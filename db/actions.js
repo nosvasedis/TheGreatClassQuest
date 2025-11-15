@@ -1428,3 +1428,47 @@ export function handleStarManagerStudentSelect() {
         overrideFormElements.forEach(el => { el.disabled = true; if(el.tagName === 'INPUT') el.value = 0; });
     }
 }
+
+// --- HERO'S CHRONICLE ACTIONS ---
+
+export async function addOrUpdateHeroChronicleNote(studentId, noteText, category, noteId = null) {
+    if (!studentId || !noteText || !category) {
+        showToast("Missing required note information.", "error");
+        return;
+    }
+    
+    const noteData = {
+        studentId,
+        teacherId: state.get('currentUserId'),
+        noteText,
+        category,
+        updatedAt: serverTimestamp()
+    };
+
+    try {
+        if (noteId) {
+            // Update existing note
+            const noteRef = doc(db, `artifacts/great-class-quest/public/data/hero_chronicle_notes`, noteId);
+            await updateDoc(noteRef, noteData);
+            showToast("Note updated successfully!", "success");
+        } else {
+            // Add new note
+            noteData.createdAt = serverTimestamp();
+            await addDoc(collection(db, `artifacts/great-class-quest/public/data/hero_chronicle_notes`), noteData);
+            showToast("Note added to Hero's Chronicle!", "success");
+        }
+    } catch (error) {
+        console.error("Error saving Hero's Chronicle note:", error);
+        showToast("Failed to save note.", "error");
+    }
+}
+
+export async function deleteHeroChronicleNote(noteId) {
+    try {
+        await deleteDoc(doc(db, `artifacts/great-class-quest/public/data/hero_chronicle_notes`, noteId));
+        showToast("Note deleted.", "success");
+    } catch (error) {
+        console.error("Error deleting Hero's Chronicle note:", error);
+        showToast("Failed to delete note.", "error");
+    }
+}

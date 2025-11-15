@@ -1289,7 +1289,6 @@
     </div>
 
     <!-- NEW: Trial History Modal -->
-    <!-- FIX #2: Increased z-index to ensure it appears above other modals -->
     <div id="trial-history-modal" class="fixed inset-0 bg-black bg-opacity-50 z-[71] flex items-center justify-center p-4 hidden">
         <div class="bg-gradient-to-br from-amber-50 to-orange-100 p-6 md:p-8 rounded-3xl shadow-2xl max-w-4xl w-full pop-in border-4 border-amber-300 flex flex-col">
             <div class="flex justify-between items-center mb-4">
@@ -1306,49 +1305,7 @@
         </div>
     </div>
     
-    <!-- FIX #2: Increased z-index to ensure it appears above the history modal -->
-    <div id="log-trial-modal" class="fixed inset-0 bg-black bg-opacity-50 z-[72] flex items-center justify-center p-4 hidden">
-        <form id="log-trial-form" class="bg-white p-8 rounded-3xl shadow-2xl max-w-lg w-full pop-in border-4 border-amber-300">
-            <h2 id="log-trial-modal-title" class="font-title text-3xl text-amber-800 mb-6 text-center">Log a New Trial</h2>
-            <input type="hidden" id="log-trial-class-id">
-            <div class="space-y-4">
-                <div>
-                    <label for="log-trial-student-select" class="block text-sm font-medium text-gray-700">Student</label>
-                    <select id="log-trial-student-select" class="mt-1 block w-full px-3 py-2 border border-gray-300 bg-white rounded-md shadow-sm focus:outline-none focus:ring-amber-500 focus:border-amber-500" required>
-                        <!-- Options will be populated by JS -->
-                    </select>
-                </div>
-                <div class="grid grid-cols-2 gap-4">
-                    <div>
-                        <label for="log-trial-date" class="block text-sm font-medium text-gray-700">Date of Trial</label>
-                        <input type="date" id="log-trial-date" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-amber-500" required>
-                    </div>
-                    <div>
-                        <label for="log-trial-type" class="block text-sm font-medium text-gray-700">Trial Type</label>
-                        <select id="log-trial-type" class="mt-1 block w-full px-3 py-2 border border-gray-300 bg-white rounded-md shadow-sm focus:outline-none focus:ring-amber-500" required>
-                            <option value="test">Test</option>
-                            <option value="dictation">Dictation</option>
-                        </select>
-                    </div>
-                </div>
-                <div id="log-trial-score-container" class="space-y-4">
-                    <!-- Score input will be dynamically generated here -->
-                </div>
-                <div>
-                    <label for="log-trial-notes" class="block text-sm font-medium text-gray-700">Notes (Optional)</label>
-                    <textarea id="log-trial-notes" rows="3" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-amber-500" placeholder="e.g., Struggled with past tense verbs."></textarea>
-                </div>
-            </div>
-            <div class="flex gap-4 mt-6">
-                 <button type="button" id="log-trial-cancel-btn" class="w-1/2 bg-gray-200 hover:bg-gray-300 text-gray-800 font-title text-lg py-3 rounded-xl bubbly-button">
-                    Cancel
-                </button>
-                <button type="submit" class="w-1/2 bg-amber-600 hover:bg-amber-700 text-white font-title text-lg py-3 rounded-xl bubbly-button">
-                    Record Treasure
-                </button>
-            </div>
-        </form>
-    </div>
+    <!-- FIX 3: Removed the duplicate log-trial-modal -->
 
     <div style="position: fixed; left: -9999px; top: -9999px;">
         <div id="certificate-template">

@@ -7,9 +7,8 @@ import {
     renderClassLeaderboardTab, 
     renderStudentLeaderboardTab,
     renderAwardStarsTab,
-    renderAdventureLogTab // <-- FIX: Imported the missing render function
+    renderAdventureLogTab // <-- FIX 2: Imported the missing render function
 } from './ui/tabs.js';
-// THIS IS THE FIX: Import the correct date function
 import { getTodayDateString } from './utils.js';
 
 // --- Internal State Store ---
@@ -54,7 +53,6 @@ function getDefaultState() {
         },
         todaysAwardLogs: {},
         todaysStars: {},
-        // THIS IS THE FIX: Use the consistent date format function
         todaysStarsDate: getTodayDateString(),
         currentManagingClassId: null,
         studentLeaderboardView: 'class',
@@ -76,7 +74,7 @@ function getDefaultState() {
             generatedImage: null
         },
         
-        calendarCurrentDate: getCalendarDefaultDate(), // <-- FIX 3: ADD THIS PROPERTY
+        calendarCurrentDate: getCalendarDefaultDate(),
 
         // Unsubscribe functions
         unsubscribeClasses: () => {},
@@ -175,9 +173,7 @@ export function setGlobalSelectedClass(classId, isManual = false) {
     updateAllClassSelectors(isManual);
     updateAllLeagueSelectors(isManual); // League might have changed
 
-    // --- MAJOR BUG FIX ---
-    // If a user manually changed the class, we need to force a re-render
-    // of the currently active tab's content.
+    // --- FIX 2: Ensure Adventure Log rerenders on manual class change ---
     if (isManual && !state.isProgrammaticSelection) {
         const activeTab = document.querySelector('.app-tab:not(.hidden)');
         if (activeTab) {
@@ -244,3 +240,33 @@ export function setUnsubscribeCompletedStories(func) { state.unsubscribeComplete
 export function setUnsubscribeWrittenScores(func) { state.unsubscribeWrittenScores = func; }
 export function setUnsubscribeAttendance(func) { state.unsubscribeAttendance = func; }
 export function setUnsubscribeScheduleOverrides(func) { state.unsubscribeScheduleOverrides = func; }
+
+// --- NEW FUNCTION, NOT EXPORTED ---
+// This function needs to be in state.js so it can be called by renderHistoricalLeaderboard
+export async function fetchMonthlyHistory(monthKey) {
+    const allMonthlyHistory = get('allMonthlyHistory');
+    if (allMonthlyHistory[monthKey]) return allMonthlyHistory[monthKey];
+    
+    const contentEl = document.getElementById('history-modal-content');
+    if(contentEl && contentEl.innerHTML.includes('Select a month')) {
+        contentEl.innerHTML = `<p class="text-center text-gray-500"><i class="fas fa-spinner fa-spin mr-2"></i>Loading historical data...</p>`;
+    }
+    
+    const historyQuery = query(collectionGroup(db, 'monthly_history'), where("month", "==", monthKey));
+    try {
+        const snapshot = await getDocs(historyQuery);
+        const scores = {};
+        snapshot.forEach(doc => {
+            const studentId = doc.ref.parent.parent.id;
+            scores[studentId] = doc.data().stars || 0;
+        });
+        allMonthlyHistory[monthKey] = scores;
+        set('allMonthlyHistory', allMonthlyHistory);
+        return scores;
+    } catch (error) {
+        console.error("Error fetching monthly history:", error);
+        allMonthlyHistory[monthKey] = {};
+        set('allMonthlyHistory', allMonthlyHistory);
+        return {};
+    }
+}

@@ -39,6 +39,7 @@ function getDefaultState() {
         allWrittenScores: [],
         allAttendanceRecords: [],
         allScheduleOverrides: [],
+        allHeroChronicleNotes: [],
         globalSelectedClassId: null,
         globalSelectedLeague: null,
         isProgrammaticSelection: false,
@@ -88,7 +89,8 @@ function getDefaultState() {
         unsubscribeCompletedStories: () => {},
         unsubscribeWrittenScores: () => {},
         unsubscribeAttendance: () => {},
-        unsubscribeScheduleOverrides: () => {}
+        unsubscribeScheduleOverrides: () => {},
+        unsubscribeHeroChronicleNotes: () => {}
     };
 }
 
@@ -153,6 +155,7 @@ export function setAllQuestAssignments(assignments) { state.allQuestAssignments 
 export function setAllWrittenScores(scores) { state.allWrittenScores = scores; }
 export function setAllAttendanceRecords(records) { state.allAttendanceRecords = records; }
 export function setAllScheduleOverrides(overrides) { state.allScheduleOverrides = overrides; }
+export function setAllHeroChronicleNotes(notes) { state.allHeroChronicleNotes = notes; }
 /**
  * Sets the globally selected class, updates the league, and syncs UI.
  * @param {string} classId - The ID of the class to select.
@@ -240,6 +243,7 @@ export function setUnsubscribeCompletedStories(func) { state.unsubscribeComplete
 export function setUnsubscribeWrittenScores(func) { state.unsubscribeWrittenScores = func; }
 export function setUnsubscribeAttendance(func) { state.unsubscribeAttendance = func; }
 export function setUnsubscribeScheduleOverrides(func) { state.unsubscribeScheduleOverrides = func; }
+export function setUnsubscribeHeroChronicleNotes(func) { state.unsubscribeHeroChronicleNotes = func; }
 
 // --- NEW FUNCTION, NOT EXPORTED ---
 // This function needs to be in state.js so it can be called by renderHistoricalLeaderboard
@@ -270,3 +274,4 @@ export async function fetchMonthlyHistory(monthKey) {
         return {};
     }
 }
+

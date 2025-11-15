@@ -1551,7 +1551,62 @@
         </div>
     </div>
 
+    <!-- NEW: Hero's Chronicle Modal -->
+    <div id="hero-chronicle-modal" class="fixed inset-0 bg-black bg-opacity-50 z-[72] flex items-center justify-center p-4 hidden">
+        <div class="bg-white p-6 md:p-8 rounded-3xl shadow-2xl max-w-6xl w-full pop-in border-4 border-green-300 flex flex-col max-h-[90vh]">
+            <div class="flex justify-between items-start mb-4 flex-shrink-0">
+                <div>
+                    <h2 id="hero-chronicle-title" class="font-title text-2xl md:text-3xl text-green-700">Hero's Chronicle</h2>
+                    <p id="hero-chronicle-student-name" class="font-semibold text-lg text-gray-600 -mt-1"></p>
+                </div>
+                <button id="hero-chronicle-close-btn" class="bg-gray-200 hover:bg-gray-300 text-gray-800 font-bold w-10 h-10 rounded-full bubbly-button flex-shrink-0">&times;</button>
+            </div>
+    
+            <div class="flex flex-col md:flex-row gap-6 min-h-0">
+                <!-- Left Column: Notes -->
+                <div class="md:w-1/2 flex flex-col min-h-0">
+                    <h3 class="font-title text-xl text-gray-700 mb-2 flex-shrink-0">Teacher's Logbook</h3>
+                    <div id="hero-chronicle-notes-feed" class="flex-grow space-y-3 overflow-y-auto pr-2 bg-gray-50 p-3 rounded-lg border">
+                        <!-- Notes will be injected here -->
+                    </div>
+                    <form id="hero-chronicle-note-form" class="mt-4 pt-4 border-t flex-shrink-0">
+                        <input type="hidden" id="hero-chronicle-note-id">
+                        <div class="flex items-center gap-2 mb-2">
+                            <label for="hero-chronicle-note-category" class="font-semibold text-sm">Category:</label>
+                            <select id="hero-chronicle-note-category" class="flex-grow border border-gray-300 rounded-md px-2 py-1 text-sm">
+                                <option>General</option>
+                                <option>Behavior</option>
+                                <option>Academic</option>
+                                <option>Social</option>
+                            </select>
+                        </div>
+                        <textarea id="hero-chronicle-note-text" rows="3" class="w-full p-2 border border-gray-300 rounded-md shadow-sm" placeholder="Add a new note..."></textarea>
+                        <div class="flex items-center gap-2 mt-2">
+                            <button type="submit" class="w-full bg-green-500 hover:bg-green-600 text-white font-title py-2 rounded-lg bubbly-button">Save Note</button>
+                            <button type="button" id="hero-chronicle-cancel-edit-btn" class="hidden w-full bg-gray-200 text-gray-700 font-title py-2 rounded-lg bubbly-button">Cancel Edit</button>
+                        </div>
+                    </form>
+                </div>
+    
+                <!-- Right Column: AI Insights -->
+                <div class="md:w-1/2 flex flex-col">
+                    <h3 class="font-title text-xl text-indigo-700 mb-2">The Oracle's Counsel</h3>
+                    <div class="grid grid-cols-2 gap-2 mb-4">
+                        <button data-type="parent" class="ai-insight-btn bg-indigo-100 text-indigo-800 p-2 rounded-lg bubbly-button text-sm font-semibold"><i class="fas fa-user-friends mr-1"></i> Parent Summary</button>
+                        <button data-type="teacher" class="ai-insight-btn bg-indigo-100 text-indigo-800 p-2 rounded-lg bubbly-button text-sm font-semibold"><i class="fas fa-chalkboard-teacher mr-1"></i> Teacher Strategy</button>
+                        <button data-type="analysis" class="ai-insight-btn bg-indigo-100 text-indigo-800 p-2 rounded-lg bubbly-button text-sm font-semibold"><i class="fas fa-chart-pie mr-1"></i> Strengths/Weaknesses</button>
+                        <button data-type="goal" class="ai-insight-btn bg-indigo-100 text-indigo-800 p-2 rounded-lg bubbly-button text-sm font-semibold"><i class="fas fa-bullseye mr-1"></i> Goal Suggestion</button>
+                    </div>
+                    <div id="hero-chronicle-ai-output" class="flex-grow bg-indigo-50 p-4 rounded-lg border border-indigo-200 overflow-y-auto">
+                        <p class="text-center text-indigo-700">Select a counsel type to receive the Oracle's wisdom.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Link to your external JavaScript file -->
     <script type="module" src="app.js"></script>
 </body>
 </html>
+

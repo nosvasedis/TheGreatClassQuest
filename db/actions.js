@@ -23,9 +23,8 @@ import {
 import * as state from '../state.js';
 import { getStartOfMonthString, getTodayDateString, parseDDMMYYYY, simpleHashCode, getAgeGroupForLeague, getLastLessonDate, compressImageBase64, getDDMMYYYY, debounce } from '../utils.js'; // Added debounce
 import { showToast, showPraiseToast } from '../ui/effects.js';
-import { showStarfallModal } from '../ui/modals.js';
+import { showStarfallModal, showModal, hideModal } from '../ui/modals.js';
 import { playSound } from '../audio.js';
-import { showModal, hideModal } from '../ui/modals.js';
 import { callGeminiApi, callCloudflareAiImageApi } from '../api.js';
 import { classColorPalettes } from '../constants.js';
 import { handleStoryWeaversClassSelect } from '../features/storyWeaver.js';
@@ -724,7 +723,8 @@ export async function awardStoryWeaverBonusStarToClass(classId) {
                 teacherId: state.get('currentUserId'),
                 stars: 0.5,
                 reason: "story_weaver",
-                date: new Date().toLocaleDateString('en-GB'), // Replaced getTodayDateString for simplicity
+                // FIX 1: Use the consistent date format function
+                date: getTodayDateString(),
                 createdAt: serverTimestamp(),
                 createdBy: { uid: state.get('currentUserId'), name: state.get('currentTeacherName') }
             });

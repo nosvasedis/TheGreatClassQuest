@@ -29,7 +29,9 @@ import {
     handleDeleteTrial,
     handleMoveStudent,
     handleMarkAbsent,
-    handleAwardBonusStar
+    handleAwardBonusStar,
+    addOrUpdateHeroChronicleNote,
+    deleteHeroChronicleNote
 } from '../db/actions.js';
 
 // --- LOCAL STATE FOR MODALS ---
@@ -1705,4 +1707,147 @@ export function openHeroStatsModal(studentId, triggerElement) {
         modal.style.backgroundColor = 'rgba(0, 0, 0, 0.7)';
         modalContent.classList.remove('modal-origin-start');
     });
+}
+
+// --- NEW: HERO'S CHRONICLE MODAL ---
+
+export function openHeroChronicleModal(studentId) {
+    const student = state.get('allStudents').find(s => s.id === studentId);
+    if (!student) return;
+
+    const modal = document.getElementById('hero-chronicle-modal');
+    modal.dataset.studentId = studentId;
+
+    document.getElementById('hero-chronicle-student-name').innerText = `for ${student.name}`;
+    
+    resetHeroChronicleForm();
+    renderHeroChronicleContent(studentId);
+    
+    // Reset AI output
+    document.getElementById('hero-chronicle-ai-output').innerHTML = `<p class="text-center text-indigo-700">Select a counsel type to receive the Oracle's wisdom.</p>`;
+
+    showAnimatedModal('hero-chronicle-modal');
+}
+
+export function renderHeroChronicleContent(studentId) {
+    const notesFeed = document.getElementById('hero-chronicle-notes-feed');
+    const notes = state.get('allHeroChronicleNotes')
+        .filter(n => n.studentId === studentId)
+        .sort((a, b) => b.createdAt.toDate() - a.createdAt.toDate());
+
+    if (notes.length === 0) {
+        notesFeed.innerHTML = `<p class="text-center text-gray-500 p-4">No notes have been added for this student yet.</p>`;
+        return;
+    }
+
+    notesFeed.innerHTML = notes.map(note => `
+        <div class="bg-white p-3 rounded-md shadow-sm border">
+            <div class="flex justify-between items-center text-xs text-gray-500 mb-1">
+                <span class="font-bold">${note.category}</span>
+                <span>${note.createdAt.toDate().toLocaleDateString('en-GB')}</span>
+            </div>
+            <p class="text-gray-800 whitespace-pre-wrap">${note.noteText}</p>
+            <div class="text-right mt-2">
+                <button class="edit-chronicle-note-btn text-blue-500 hover:underline text-xs mr-2" data-note-id="${note.id}">Edit</button>
+                <button class="delete-chronicle-note-btn text-red-500 hover:underline text-xs" data-note-id="${note.id}">Delete</button>
+            </div>
+        </div>
+    `).join('');
+}
+
+export function resetHeroChronicleForm() {
+    const form = document.getElementById('hero-chronicle-note-form');
+    form.reset();
+    document.getElementById('hero-chronicle-note-id').value = '';
+    document.getElementById('hero-chronicle-cancel-edit-btn').classList.add('hidden');
+    form.querySelector('button[type="submit"]').textContent = 'Save Note';
+}
+
+export function setupNoteForEditing(noteId) {
+    const note = state.get('allHeroChronicleNotes').find(n => n.id === noteId);
+    if (!note) return;
+
+    document.getElementById('hero-chronicle-note-id').value = noteId;
+    document.getElementById('hero-chronicle-note-text').value = note.noteText;
+    document.getElementById('hero-chronicle-note-category').value = note.category;
+    document.getElementById('hero-chronicle-cancel-edit-btn').classList.remove('hidden');
+    document.getElementById('hero-chronicle-note-form').querySelector('button[type="submit"]').textContent = 'Update Note';
+    document.getElementById('hero-chronicle-note-text').focus();
+}
+
+export async function generateAIInsight(studentId, insightType) {
+    const student = state.get('allStudents').find(s => s.id === studentId);
+    if (!student) return;
+
+    const outputEl = document.getElementById('hero-chronicle-ai-output');
+    outputEl.innerHTML = `<p class="text-center text-indigo-700"><i class="fas fa-spinner fa-spin mr-2"></i>The Oracle is consulting the records...</p>`;
+
+    // 1. Gather all data
+    const notes = state.get('allHeroChronicleNotes')
+        .filter(n => n.studentId === studentId)
+        .sort((a, b) => a.createdAt.toDate() - b.createdAt.toDate())
+        .map(n => `[${n.createdAt.toDate().toLocaleDateString('en-GB')} - ${n.category}] ${n.noteText}`)
+        .join('\n');
+
+    const academicScores = state.get('allWrittenScores')
+        .filter(s => s.studentId === studentId)
+        .sort((a, b) => new Date(a.date) - new Date(b.date))
+        .map(s => `[${s.date}] Scored ${s.scoreQualitative || `${s.scoreNumeric}/${s.maxScore}`} on a ${s.type} titled "${s.title || 'Dictation'}". Note: ${s.notes || 'N/A'}`)
+        .join('\n');
+
+    const behavioralAwards = state.get('allAwardLogs')
+        .filter(l => l.studentId === studentId)
+        .sort((a, b) => utils.parseDDMMYYYY(a.date) - utils.parseDDMMYYYY(b.date))
+        .map(l => `[${l.date}] Awarded ${l.stars} star(s) for ${l.reason}. Note: ${l.note || 'N/A'}`)
+        .join('\n');
+
+    // 2. Select prompt based on type
+    let systemPrompt = "";
+    const prompts = {
+        parent: {
+            persona: "You are a thoughtful educational psychologist writing a summary for a parent-teacher meeting. Your tone is balanced, positive, and constructive. Use clear, jargon-free language.",
+            task: `Summarize the student's progress. Structure your response with clear headings in markdown: '### Key Strengths' and '### Areas for Growth'. Under each, provide 2-3 bullet points. Conclude with a positive, encouraging sentence.`
+        },
+        teacher: {
+            persona: "You are an experienced teaching coach and mentor providing confidential advice to another teacher. Your tone is practical, supportive, and insightful.",
+            task: `Analyze the student's complete record and provide actionable strategies. Structure your response with clear headings in markdown: '### In-Classroom Strategies', '### Motivation Techniques', and '### Potential Challenges to Watch For'. Provide 2-3 specific, bulleted suggestions under each heading.`
+        },
+        analysis: {
+            persona: "You are a concise data analyst summarizing student performance patterns. Your tone is objective and direct.",
+            task: `Identify key patterns from the data. Structure your response with two markdown lists: '### Key Strengths' and '### Areas to Develop'. Provide 3-4 bullet points for each, citing specific data types (e.g., 'academic scores', 'behavior notes') where patterns emerge.`
+        },
+        goal: {
+            persona: "You are a goal-setting expert for students, focusing on SMART (Specific, Measurable, Achievable, Relevant, Time-bound) goals. Your tone is positive and forward-looking.",
+            task: `Based on the student's record, suggest ONE specific and achievable goal for the upcoming month. Explain the goal and why it's relevant in a single paragraph. Do not use markdown.`
+        }
+    };
+    systemPrompt = `${prompts[insightType].persona} Your task is to analyze a comprehensive record for a student named ${student.name} and generate a specific type of summary. ${prompts[insightType].task}`;
+    
+    const userPrompt = `Here is the complete record for ${student.name}:
+    
+    --- TEACHER'S PRIVATE NOTES ---
+    ${notes || "No private notes recorded."}
+
+    --- ACADEMIC TRIAL SCORES ---
+    ${academicScores || "No academic scores recorded."}
+
+    --- BEHAVIORAL STAR AWARDS ---
+    ${behavioralAwards || "No behavioral awards recorded."}
+
+    Please generate the requested summary.`;
+
+    try {
+        const insight = await callGeminiApi(systemPrompt, userPrompt);
+        // Basic markdown to HTML conversion
+        let htmlInsight = insight
+            .replace(/\*\*\*(.*?)\*\*\*/g, '<b>$1</b>') // Handle ***bold***
+            .replace(/\*\*(.*?)\*\*/g, '<b>$1</b>')   // Handle **bold**
+            .replace(/### (.*?)\n/g, '<h4 class="font-bold text-indigo-800 mt-3 mb-1">$1</h4>')
+            .replace(/\* (.*?)\n/g, '<li class="ml-4">$1</li>')
+            .replace(/(\n)/g, '<br>');
+        outputEl.innerHTML = `<ul>${htmlInsight}</ul>`;
+    } catch (error) {
+        console.error("AI Insight Error:", error);
+        outputEl.innerHTML = `<p class="text-center text-red-500">The Oracle could not process the records at this time. Please try again later.</p>`;
+    }
 }

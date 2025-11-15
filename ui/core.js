@@ -46,7 +46,9 @@ import {
     handleDeleteQuestEvent,
     handleAddOneTimeLesson,
     handleCancelLesson,
-    handleEndStory
+    handleEndStory,
+    addOrUpdateHeroChronicleNote,
+    deleteHeroChronicleNote
 } from '../db/actions.js';
 import { fetchLogsForMonth } from '../db/queries.js'; // <-- CORRECT IMPORT ADDED
 
@@ -556,6 +558,38 @@ export function setupUIListeners() {
             
             modals.renderOverviewContent(classId, view);
         }
+    });
+
+    // Hero's Chronicle Modal Listeners
+    document.getElementById('hero-chronicle-close-btn').addEventListener('click', () => modals.hideModal('hero-chronicle-modal'));
+    document.getElementById('hero-chronicle-note-form').addEventListener('submit', (e) => {
+        e.preventDefault();
+        const studentId = document.getElementById('hero-chronicle-modal').dataset.studentId;
+        const noteId = document.getElementById('hero-chronicle-note-id').value;
+        const noteText = document.getElementById('hero-chronicle-note-text').value;
+        const category = document.getElementById('hero-chronicle-note-category').value;
+        addOrUpdateHeroChronicleNote(studentId, noteText, category, noteId || null);
+        modals.resetHeroChronicleForm();
+    });
+    document.getElementById('hero-chronicle-cancel-edit-btn').addEventListener('click', modals.resetHeroChronicleForm);
+    document.getElementById('hero-chronicle-notes-feed').addEventListener('click', (e) => {
+        const editBtn = e.target.closest('.edit-chronicle-note-btn');
+        const deleteBtn = e.target.closest('.delete-chronicle-note-btn');
+        if (editBtn) {
+            modals.setupNoteForEditing(editBtn.dataset.noteId);
+        }
+        if (deleteBtn) {
+            showModal('Delete Note?', 'Are you sure you want to permanently delete this note?', () => {
+                deleteHeroChronicleNote(deleteBtn.dataset.noteId);
+            });
+        }
+    });
+    document.querySelectorAll('.ai-insight-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            const studentId = document.getElementById('hero-chronicle-modal').dataset.studentId;
+            const insightType = e.currentTarget.dataset.type;
+            modals.generateAIInsight(studentId, insightType);
+        });
     });
 }
 

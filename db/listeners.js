@@ -21,6 +21,7 @@ import { renderStoryArchive } from '../features/storyWeaver.js';
 import { updateCeremonyStatus } from '../features/ceremony.js';
 import * as utils from '../utils.js';
 import { competitionStart } from '../constants.js'; // <-- FIX: Import competition start date
+import * as modals from '../ui/modals.js';
 
 export function setupDataListeners(userId, dateString) {
     // Call get() on state to retrieve functions
@@ -36,6 +37,7 @@ export function setupDataListeners(userId, dateString) {
     state.get('unsubscribeWrittenScores')();
     state.get('unsubscribeAttendance')();
     state.get('unsubscribeScheduleOverrides')();
+    state.get('unsubscribeHeroChronicleNotes')();
 
     const publicDataPath = "artifacts/great-class-quest/public/data";
     
@@ -49,6 +51,7 @@ export function setupDataListeners(userId, dateString) {
     const completedStoriesQuery = query(collection(db, `${publicDataPath}/completed_stories`), orderBy('completedAt', 'desc'));
     const attendanceQuery = query(collection(db, `${publicDataPath}/attendance`));
     const overridesQuery = query(collection(db, `${publicDataPath}/schedule_overrides`));
+    const heroChronicleNotesQuery = query(collection(db, `${publicDataPath}/hero_chronicle_notes`), where('teacherId', '==', userId));
 
     // --- Time-bounded Queries for Cost Savings ---
     const thirtyDaysAgo = new Date();
@@ -242,6 +245,19 @@ export function setupDataListeners(userId, dateString) {
         renderCalendarTab();
         updateCeremonyStatus();
     }, (error) => console.error("Error listening to schedule overrides:", error)));
+
+    state.setUnsubscribeHeroChronicleNotes(onSnapshot(heroChronicleNotesQuery, (snapshot) => {
+        state.setAllHeroChronicleNotes(snapshot.docs.map(d => ({ id: d.id, ...d.data() })));
+        // Re-render the modal if it's open, to show new/updated notes
+        const modal = document.getElementById('hero-chronicle-modal');
+        if (modal && !modal.classList.contains('hidden')) {
+            const studentId = modal.dataset.studentId;
+            if (studentId) {
+                // We will create this function in modals.js
+                modals.renderHeroChronicleContent(studentId);
+            }
+        }
+    }, (error) => console.error("Error listening to hero chronicle notes:", error)));
 }
 
 export async function archivePreviousDayStars(userId, todayDateString) {
@@ -285,3 +301,4 @@ export async function fetchMonthlyHistory(monthKey) {
         return {};
     }
 }
+

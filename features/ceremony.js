@@ -2,7 +2,7 @@
 
 // --- IMPORTS ---
 import { db } from '../firebase.js';
-import { fetchMonthlyHistory } from '../db/listeners.js';
+import { fetchMonthlyHistory } from '../state.js'; // FIX: Changed import source
 import { collectionGroup, query, where, getDocs, collection, documentId } from 'https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js';
 
 import * as state from '../state.js';

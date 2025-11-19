@@ -5,6 +5,7 @@ import * as state from '../state.js';
 import * as utils from '../utils.js';
 import * as constants from '../constants.js';
 import { deleteClass } from '../db/actions.js';
+import { fetchMonthlyHistory } from '../state.js'; // FIX: Changed import source
 import * as modals from './modals.js';
 import * as scholarScroll from '../features/scholarScroll.js';
 import * as avatar from '../features/avatar.js';
@@ -585,47 +586,59 @@ export function renderAwardStarsStudentList(selectedClassId, fullRender = true) 
         if (studentsInClass.length === 0) {
             listContainer.innerHTML = `<p class="text-sm text-center text-gray-700 bg-white/70 backdrop-blur-sm p-4 rounded-2xl col-span-full">No students in this class. Add some in "My Classes"!</p>`;
         } else {
-            const lastLessonDate = utils.getLastLessonDate(selectedClassId, state.get('allSchoolClasses'));
-            const todaysAbsences = state.get('allAttendanceRecords').filter(r => r.date === lastLessonDate && r.classId === selectedClassId).map(r => r.studentId);
+            const previousLessonDate = utils.getPreviousLessonDate(selectedClassId, state.get('allSchoolClasses'));
+            const today = utils.getTodayDateString();
+
             const cloudShapes = ['cloud-shape-1', 'cloud-shape-2', 'cloud-shape-3', 'cloud-shape-4'];
+            
             listContainer.innerHTML = studentsInClass.map((s, index) => {
                 const scoreData = state.get('allStudentScores').find(score => score.id === s.id) || {}; 
                 const totalStars = scoreData.totalStars || 0; 
                 const monthlyStars = scoreData.monthlyStars || 0; 
                 const starsToday = state.get('todaysStars')[s.id]?.stars || 0;
+                const reasonToday = state.get('todaysStars')[s.id]?.reason;
                 const cloudShape = cloudShapes[index % cloudShapes.length];
-                const isAbsent = todaysAbsences.includes(s.id);
-
+                
+                const isMarkedAbsentToday = state.get('allAttendanceRecords').some(r => r.studentId === s.id && r.date === today);
+                const wasAbsentLastTime = previousLessonDate && state.get('allAttendanceRecords').some(r => r.studentId === s.id && r.date === previousLessonDate);
+                const isPresentToday = starsToday > 0 || reasonToday === 'marked_present' || reasonToday === 'welcome_back';
+                const isVisuallyAbsent = isMarkedAbsentToday || (wasAbsentLastTime && !isPresentToday);
+                
                 let absenceButtonHtml = '';
-                if (starsToday === 0) {
-                    if (isAbsent) {
-                        absenceButtonHtml = `
-                        <button class="absence-btn bg-green-200 text-green-700 hover:bg-green-300" data-action="mark-present" title="Mark as Present">
-                            <i class="fas fa-user-check pointer-events-none"></i>
-                        </button>`;
+                
+                if (isVisuallyAbsent) {
+                    if (isMarkedAbsentToday) {
+                         absenceButtonHtml = `
+                            <button class="absence-btn bg-green-200 text-green-700 hover:bg-green-300" data-action="mark-present" title="Undo: Mark as Present">
+                                <i class="fas fa-user-check pointer-events-none"></i>
+                            </button>`;
                     } else {
                         absenceButtonHtml = `
-                        <button class="absence-btn" data-action="mark-absent" title="Mark as Absent">
-                            <i class="fas fa-user-slash pointer-events-none"></i>
-                        </button>`;
+                            <button class="absence-btn bg-green-200 text-green-700 hover:bg-green-300" data-action="mark-present" title="Mark as Present">
+                                <i class="fas fa-user-check pointer-events-none"></i>
+                            </button>
+                            <button class="welcome-back-btn" data-action="welcome-back" title="Welcome Back Bonus!">
+                                <i class="fas fa-hand-sparkles pointer-events-none"></i>
+                            </button>`;
+                    }
+                } 
+                else {
+                    if (starsToday === 0) {
+                        absenceButtonHtml = `
+                            <button class="absence-btn" data-action="mark-absent" title="Mark as Absent">
+                                <i class="fas fa-user-slash pointer-events-none"></i>
+                            </button>`;
                     }
                 }
                 
-                const studentClass = state.get('allSchoolClasses').find(c => c.id === s.classId);
-                const isLessonToday = (studentClass?.scheduleDays || []).includes(new Date().getDay().toString());
-                const welcomeBackVisible = isAbsent && isLessonToday;
-
                 const avatarHtml = s.avatar 
                     ? `<img src="${s.avatar}" alt="${s.name}" class="student-avatar-cloud enlargeable-avatar">` 
                     : `<div class="student-avatar-cloud-placeholder">${s.name.charAt(0)}</div>`;
 
                 return `
-                <div class="student-cloud-card ${cloudShape} ${isAbsent ? 'is-absent' : ''}" data-studentid="${s.id}" style="animation: float-card ${4 + Math.random() * 4}s ease-in-out infinite;">
+                <div class="student-cloud-card ${cloudShape} ${isVisuallyAbsent ? 'is-absent' : ''}" data-studentid="${s.id}" style="animation: float-card ${4 + Math.random() * 4}s ease-in-out infinite;">
                     <div class="absence-controls">
                         ${absenceButtonHtml}
-                        <button class="welcome-back-btn ${welcomeBackVisible ? '' : 'hidden'}" data-action="welcome-back" title="Welcome Back Bonus!">
-                            <i class="fas fa-hand-sparkles pointer-events-none"></i>
-                        </button>
                     </div>
                     ${avatarHtml}
                     <button id="post-award-undo-${s.id}" class="post-award-undo-btn bubbly-button ${starsToday > 0 ? '' : 'hidden'}" title="Undo Award"><i class="fas fa-times"></i></button>
@@ -680,35 +693,14 @@ export function renderAwardStarsStudentList(selectedClassId, fullRender = true) 
 }
 
 export function updateStudentCardAttendanceState(studentId, isAbsent) {
-    const studentCard = document.querySelector(`.student-cloud-card[data-studentid="${studentId}"]`);
-    if (!studentCard) return;
-
-    studentCard.classList.toggle('is-absent', isAbsent);
-    const controlsDiv = studentCard.querySelector('.absence-controls');
-    if (!controlsDiv) return;
-
+    const selectedClassId = state.get('globalSelectedClassId');
     const student = state.get('allStudents').find(s => s.id === studentId);
-    if (!student) return;
-
-    const studentClass = state.get('allSchoolClasses').find(c => c.id === student.classId);
-    const isLessonToday = (studentClass?.scheduleDays || []).includes(new Date().getDay().toString());
-    const welcomeBackVisible = isAbsent && isLessonToday;
-
-    if (isAbsent) {
-        controlsDiv.innerHTML = `
-            <button class="absence-btn bg-green-200 text-green-700 hover:bg-green-300" data-action="mark-present" title="Mark as Present">
-                <i class="fas fa-user-check pointer-events-none"></i>
-            </button>
-            <button class="welcome-back-btn ${welcomeBackVisible ? '' : 'hidden'}" data-action="welcome-back" title="Welcome Back Bonus!">
-                <i class="fas fa-hand-sparkles pointer-events-none"></i>
-            </button>
-        `;
-    } else {
-        controlsDiv.innerHTML = `
-            <button class="absence-btn" data-action="mark-absent" title="Mark as Absent">
-                <i class="fas fa-user-slash pointer-events-none"></i>
-            </button>
-        `;
+    
+    if (student && student.classId === selectedClassId) {
+         const activeTab = document.querySelector('.app-tab:not(.hidden)');
+         if (activeTab && activeTab.id === 'award-stars-tab') {
+             renderAwardStarsStudentList(selectedClassId, false);
+         }
     }
 }
 
@@ -719,13 +711,12 @@ export function updateAwardCardState(studentId, starsToday, reason) {
     const todayStarsEl = studentCard.querySelector(`#today-stars-${studentId}`);
     if (!todayStarsEl) return;
     
-    // Animate only if the value has changed
     if (todayStarsEl.textContent != starsToday) {
         todayStarsEl.textContent = starsToday;
         const bubble = todayStarsEl.closest('.counter-bubble');
         if (bubble) {
             bubble.classList.add('counter-animate');
-            setTimeout(() => bubble.classList.remove('counter-animate'), 500); // 500ms matches CSS animation
+            setTimeout(() => bubble.classList.remove('counter-animate'), 500);
         }
     }
     
@@ -739,16 +730,16 @@ export function updateAwardCardState(studentId, starsToday, reason) {
         reasonSelector?.classList.add('pointer-events-none', 'opacity-50');
         starSelector?.classList.remove('visible');
         reasonSelector?.querySelectorAll('.reason-btn.active').forEach(b => b.classList.remove('active'));
+        
         if(absenceControls) absenceControls.innerHTML = '';
+        studentCard.classList.remove('is-absent'); 
+
     } else {
         undoBtn?.classList.add('hidden');
         reasonSelector?.classList.remove('pointer-events-none', 'opacity-50');
+        
         if(absenceControls) {
-            const student = state.get('allStudents').find(s => s.id === studentId);
-            if (!student) return;
-            const lastLessonDate = utils.getLastLessonDate(student.classId, state.get('allSchoolClasses'));
-            const isAbsent = state.get('allAttendanceRecords').some(r => r.studentId === studentId && r.date === lastLessonDate);
-            updateStudentCardAttendanceState(studentId, isAbsent);
+             renderAwardStarsStudentList(state.get('globalSelectedClassId'), false);
         }
     }
 }
@@ -792,11 +783,6 @@ export function findAndSetCurrentLeague(shouldRender = true) {
     }
 }
 
-/**
- * Populates only the star counts on an already-rendered calendar.
- * Needs to be exported to be used by core.js.
- * @param {Array} logSource - An array of award log documents to calculate stars from.
- */
 export function populateCalendarStars(logSource) {
     if (!logSource || logSource.length === 0) return;
 
@@ -1161,3 +1147,115 @@ export function updateAllLeagueSelectors() {
     state.set('isProgrammaticSelection', false);
 }
 
+export function openMilestoneModal(markerElement) {
+    const questCard = markerElement.closest('.quest-card');
+    const classId = questCard.dataset.classId;
+    const classInfo = state.get('allSchoolClasses').find(c => c.id === classId);
+    if (!classInfo) return;
+
+    const studentsInClass = state.get('allStudents').filter(s => s.classId === classId);
+    const studentCount = studentsInClass.length;
+    const currentMonthlyStars = studentsInClass.reduce((sum, s) => {
+        const scoreData = state.get('allStudentScores').find(score => score.id === s.id);
+        return sum + (scoreData?.monthlyStars || 0);
+    }, 0);
+
+    const GOAL_PER_STUDENT = { BRONZE: 4, SILVER: 8, GOLD: 13, DIAMOND: 18 };
+    const goals = {
+        bronze: Math.round(studentCount * GOAL_PER_STUDENT.BRONZE),
+        silver: Math.round(studentCount * GOAL_PER_STUDENT.SILVER),
+        gold: Math.round(studentCount * GOAL_PER_STUDENT.GOLD),
+        diamond: studentCount > 0 ? Math.round(studentCount * GOAL_PER_STUDENT.DIAMOND) : 18
+    };
+
+    const modalTitle = document.getElementById('milestone-modal-title');
+    const modalContent = document.getElementById('milestone-modal-content');
+    
+    let milestoneName, goal, icon;
+    if (markerElement.innerText.includes('🛡️')) { milestoneName = "Bronze Shield"; goal = goals.bronze; icon = '🛡️'; } 
+    else if (markerElement.innerText.includes('🏆')) { milestoneName = "Silver Trophy"; goal = goals.silver; icon = '🏆'; }
+    else if (markerElement.innerText.includes('👑')) { milestoneName = "Golden Crown"; goal = goals.gold; icon = '👑'; } 
+    else { milestoneName = "Diamond Quest"; goal = goals.diamond; icon = '💎'; }
+
+    const now = new Date();
+    const currentMonthIndex = now.getMonth();
+    const currentYear = now.getFullYear();
+
+    const relevantLogs = state.get('allAwardLogs').filter(log => {
+        if (log.classId !== classId) return false;
+        const logDate = utils.parseDDMMYYYY(log.date); 
+        return logDate.getMonth() === currentMonthIndex && logDate.getFullYear() === currentYear;
+    });
+
+    const today = new Date();
+    const dayOfWeek = today.getDay(); // 0 (Sun) to 6 (Sat)
+    const diff = today.getDate() - dayOfWeek + (dayOfWeek === 0 ? -6 : 1); // Adjust to Monday
+    const startOfWeek = new Date(today.setDate(diff));
+    startOfWeek.setHours(0, 0, 0, 0);
+
+    const weeklyStars = relevantLogs
+    .filter(log => utils.parseDDMMYYYY(log.date) >= startOfWeek)
+    .reduce((sum, log) => sum + log.stars, 0);
+
+    const reasonCounts = relevantLogs.reduce((acc, log) => {
+        acc[log.reason || 'other'] = (acc[log.reason || 'other'] || 0) + log.stars;
+        return acc;
+    }, {});
+    const topReasonEntry = Object.entries(reasonCounts).sort((a,b) => b[1] - a[1])[0];
+    const topReason = topReasonEntry ? `${topReasonEntry[0].charAt(0).toUpperCase() + topReasonEntry[0].slice(1)}` : "N/A";
+
+    const studentScores = studentsInClass.map(s => {
+        const score = state.get('allStudentScores').find(sc => sc.id === s.id)?.monthlyStars || 0;
+        return { name: s.name, score };
+    }).filter(s => s.score > 0);
+    
+    let topAdventurers = "None yet this month!";
+    if(studentScores.length > 0) {
+        const topStudents = studentScores.sort((a, b) => b.score - a.score).slice(0, 5).map(s => `${s.name} (${s.score}⭐)`);
+        topAdventurers = topStudents.join(', ');
+    }
+    
+    modalTitle.innerHTML = `${icon} ${milestoneName}`;
+    const starsNeeded = Math.max(0, goal - currentMonthlyStars);
+    const progressPercent = goal > 0 ? Math.min(100, (currentMonthlyStars / goal) * 100).toFixed(1) : 0;
+
+    modalContent.innerHTML = `
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 items-center">
+            <div class="text-center">
+                <h3 class="font-title text-4xl text-gray-800">${classInfo.logo} ${classInfo.name}</h3>
+                <p class="text-lg text-gray-600 -mt-2">Progress towards the ${milestoneName}</p>
+                
+                <div class="text-2xl my-4">
+                    <p><span class="font-bold text-amber-500 text-5xl">${currentMonthlyStars}</span> / <span class="font-bold text-3xl text-gray-500">${goal}</span></p>
+                    <p class="text-sm text-gray-500 -mt-1">Total Stars Collected</p>
+                    <div class="w-full bg-gray-200 rounded-full h-6 shadow-inner mt-2 border-2 border-gray-300">
+                        <div class="bg-gradient-to-r from-cyan-400 to-blue-500 h-full rounded-full flex items-center justify-center text-white font-bold text-sm" style="width: ${progressPercent}%">
+                            ${progressPercent > 10 ? `${progressPercent}%` : ''}
+                        </div>
+                    </div>
+                </div>
+                
+                ${starsNeeded > 0 
+                    ? `<p class="mt-4 text-blue-600 font-bold text-3xl animate-pulse">${starsNeeded} more stars to go!</p>` 
+                    : `<p class="mt-4 text-green-600 font-bold text-3xl title-sparkle">Milestone Achieved! Well done!</p>`
+                }
+            </div>
+            <div class="text-left bg-gray-50 p-6 rounded-2xl border-2 border-gray-200 space-y-4">
+                 <div class="bg-white p-3 rounded-lg shadow-sm">
+                    <p class="text-sm text-gray-500 flex items-center gap-1"><i class="fas fa-bolt text-yellow-500"></i> Weekly Momentum (Since Monday)</p>
+                    <p class="font-bold text-2xl text-yellow-600">${weeklyStars} stars</p>
+                </div>
+                <div class="bg-white p-3 rounded-lg shadow-sm">
+                    <p class="text-sm text-gray-500 flex items-center gap-1"><i class="fas fa-award text-green-500"></i> Top Skill This Month</p>
+                    <p class="font-bold text-2xl text-green-600">${topReason}</p>
+                </div>
+                <div class="bg-white p-3 rounded-lg shadow-sm">
+                    <p class="text-sm text-gray-500 flex items-center gap-1"><i class="fas fa-crown text-purple-500"></i> Top Adventurers (Monthly)</p>
+                    <p class="font-semibold text-lg text-purple-600" title="${topAdventurers}">${topAdventurers}</p>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    modals.showAnimatedModal('milestone-details-modal');
+}

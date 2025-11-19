@@ -1216,51 +1216,69 @@
         </div>
     </div>
 
-    <!-- NEW in v6.0.0: Log a New Trial Modal -->
-    <div id="log-trial-modal" class="fixed inset-0 bg-black bg-opacity-50 z-[72] flex items-center justify-center p-4 hidden">
-        <form id="log-trial-form" class="bg-white p-8 rounded-3xl shadow-2xl max-w-lg w-full pop-in border-4 border-amber-300">
-            <h2 id="log-trial-modal-title" class="font-title text-3xl text-amber-800 mb-6 text-center">Log a New Trial</h2>
-            <input type="hidden" id="log-trial-class-id">
-            <div class="space-y-4">
-                <div>
-                    <label for="log-trial-student-select" class="block text-sm font-medium text-gray-700">Student</label>
-                    <select id="log-trial-student-select" class="mt-1 block w-full px-3 py-2 border border-gray-300 bg-white rounded-md shadow-sm focus:outline-none focus:ring-amber-500 focus:border-amber-500" required>
-                        <!-- Options will be populated by JS -->
-                    </select>
-                </div>
-                <div class="grid grid-cols-2 gap-4">
-                    <div>
-                        <label for="log-trial-date" class="block text-sm font-medium text-gray-700">Date of Trial</label>
-                        <input type="date" id="log-trial-date" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-amber-500" required>
-                    </div>
-                    <div>
-                        <label for="log-trial-type" class="block text-sm font-medium text-gray-700">Trial Type</label>
-                        <select id="log-trial-type" class="mt-1 block w-full px-3 py-2 border border-gray-300 bg-white rounded-md shadow-sm focus:outline-none focus:ring-amber-500" required>
-                            <option value="test">Test</option>
-                            <option value="dictation">Dictation</option>
-                        </select>
-                    </div>
-                </div>
-                <div id="log-trial-score-container" class="space-y-4">
-                    <!-- Score input will be dynamically generated here -->
-                </div>
-                <div>
-                    <label for="log-trial-notes" class="block text-sm font-medium text-gray-700">Notes (Optional)</label>
-                    <textarea id="log-trial-notes" rows="3" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-amber-500" placeholder="e.g., Struggled with past tense verbs."></textarea>
-                </div>
-            </div>
-            <div class="flex gap-4 mt-6">
-                 <button type="button" id="log-trial-cancel-btn" class="w-1/2 bg-gray-200 hover:bg-gray-300 text-gray-800 font-title text-lg py-3 rounded-xl bubbly-button">
-                    Cancel
+    <!-- REVAMPED: TRIAL TYPE SELECTOR MODAL -->
+    <div id="trial-type-modal" class="fixed inset-0 bg-black bg-opacity-50 z-[72] flex items-center justify-center p-4 hidden">
+        <div class="bg-white p-8 rounded-3xl shadow-2xl max-w-2xl w-full pop-in border-4 border-amber-300 text-center">
+            <h2 class="font-title text-4xl text-amber-800 mb-2">Choose Your Challenge</h2>
+            <p class="text-gray-600 mb-8">What kind of trial are we logging today?</p>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <button id="select-dictation-btn" class="flex flex-col items-center justify-center p-8 rounded-2xl border-4 border-blue-200 bg-blue-50 hover:bg-blue-100 hover:border-blue-400 hover:shadow-xl transition-all duration-200 bubbly-button group">
+                    <i class="fas fa-microphone-alt text-6xl text-blue-400 mb-4 group-hover:text-blue-600 group-hover:scale-110 transition-transform"></i>
+                    <span class="font-title text-3xl text-blue-800">Dictation</span>
                 </button>
-                <button type="submit" class="w-1/2 bg-amber-600 hover:bg-amber-700 text-white font-title text-lg py-3 rounded-xl bubbly-button">
-                    Record Treasure
+                
+                <button id="select-test-btn" class="flex flex-col items-center justify-center p-8 rounded-2xl border-4 border-green-200 bg-green-50 hover:bg-green-100 hover:border-green-400 hover:shadow-xl transition-all duration-200 bubbly-button group">
+                    <i class="fas fa-file-alt text-6xl text-green-400 mb-4 group-hover:text-green-600 group-hover:scale-110 transition-transform"></i>
+                    <span class="font-title text-3xl text-green-800">Test</span>
                 </button>
             </div>
-        </form>
+            
+            <button id="trial-type-cancel-btn" class="mt-8 text-gray-500 hover:text-gray-800 font-semibold underline">Cancel</button>
+        </div>
     </div>
 
-    <!-- NEW in v6.0.0: Starfall Opportunity Modal -->
+    <!-- REVAMPED: BULK LOG MODAL -->
+    <div id="bulk-trial-modal" class="fixed inset-0 bg-black bg-opacity-50 z-[73] flex items-center justify-center p-4 hidden">
+        <div class="bg-white rounded-3xl shadow-2xl max-w-5xl w-full h-[90vh] flex flex-col pop-in border-4 border-amber-300 overflow-hidden">
+            
+            <!-- Header -->
+            <div class="bg-amber-50 p-6 border-b-2 border-amber-100 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                <div>
+                    <h2 id="bulk-trial-title" class="font-title text-3xl text-amber-800">Log Results</h2>
+                    <p id="bulk-trial-subtitle" class="text-amber-600 font-semibold"></p>
+                </div>
+                <div class="flex flex-wrap gap-4 items-end">
+                    <div>
+                        <label class="block text-xs font-bold text-gray-500 uppercase">Date</label>
+                        <input type="date" id="bulk-trial-date" class="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-400 outline-none">
+                    </div>
+                    <div id="bulk-trial-title-wrapper" class="hidden">
+                        <label class="block text-xs font-bold text-gray-500 uppercase">Title</label>
+                        <input type="text" id="bulk-trial-name" placeholder="e.g. Unit 5 Quiz" class="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-400 outline-none w-48 md:w-64">
+                    </div>
+                    <button id="bulk-trial-save-btn" class="bg-amber-500 hover:bg-amber-600 text-white font-title text-xl py-2 px-8 rounded-xl bubbly-button shadow-md">
+                        <i class="fas fa-save mr-2"></i> Save All
+                    </button>
+                </div>
+            </div>
+            
+            <!-- Student List (Scrollable) -->
+            <div class="flex-grow overflow-y-auto p-6 bg-gray-50">
+                <div id="bulk-student-list" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <!-- Student Rows injected here -->
+                </div>
+            </div>
+            
+            <!-- Footer -->
+            <div class="p-4 border-t border-gray-200 bg-white flex justify-between items-center">
+                <span class="text-xs text-gray-400">Prodigies Language School</span>
+                <button id="bulk-trial-close-btn" class="text-gray-500 hover:text-red-500 font-bold px-4">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Starfall Modal -->
     <div id="starfall-modal" class="fixed inset-0 bg-black bg-opacity-50 z-[80] flex items-center justify-center p-4 hidden">
         <div id="starfall-modal-content" class="relative text-center p-8 rounded-3xl shadow-2xl max-w-md w-full pop-in overflow-hidden">
             <div class="absolute -top-1/2 -left-1/2 w-[200%] h-[200%] starfall-bg"></div>
@@ -1277,7 +1295,7 @@
         </div>
     </div>
     
-    <!-- NEW IN v6.1: Attendance Chronicle Modal -->
+    <!-- Attendance Chronicle Modal -->
     <div id="attendance-chronicle-modal" class="fixed inset-0 bg-black bg-opacity-50 z-[71] flex items-center justify-center p-4 hidden">
         <div class="bg-white p-6 md:p-8 rounded-3xl shadow-2xl max-w-4xl w-full pop-in border-4 border-gray-300 flex flex-col">
             <div class="flex justify-between items-center mb-4">
@@ -1288,7 +1306,7 @@
         </div>
     </div>
 
-    <!-- NEW: Trial History Modal -->
+    <!-- Trial History Modal -->
     <div id="trial-history-modal" class="fixed inset-0 bg-black bg-opacity-50 z-[71] flex items-center justify-center p-4 hidden">
         <div class="bg-gradient-to-br from-amber-50 to-orange-100 p-6 md:p-8 rounded-3xl shadow-2xl max-w-4xl w-full pop-in border-4 border-amber-300 flex flex-col">
             <div class="flex justify-between items-center mb-4">
@@ -1305,8 +1323,7 @@
         </div>
     </div>
     
-    <!-- FIX 3: Removed the duplicate log-trial-modal -->
-
+    <!-- Hidden Templates for Printing -->
     <div style="position: fixed; left: -9999px; top: -9999px;">
         <div id="certificate-template">
              <div style="display: flex; flex-direction: column; height: 100%; width: 100%; align-items: center; text-align: center; position: relative;">
@@ -1347,7 +1364,6 @@
 
             </div>
         </div>
-        <!-- v5.5.4 Storybook Print Templates -->
         <div id="storybook-print-container" style="width: 800px;"></div>
         <div id="storybook-signature-page-template" style="width: 800px; height: 600px; display: flex; flex-direction: column; justify-content: center; align-items: center; padding: 40px; background-color: #F3E8FF; border: 10px solid #A855F7; box-sizing: border-box;">
             <div id="signature-class-logo" style="font-size: 100px; margin-bottom: 20px;"></div>
@@ -1360,33 +1376,33 @@
         </div>
     </div>
 
-        <!-- OVERVIEW MODAL -->
-<div id="overview-modal" class="fixed inset-0 bg-black bg-opacity-50 z-[71] flex items-center justify-center p-4 hidden">
-    <div class="bg-white p-6 md:p-8 rounded-3xl shadow-2xl max-w-4xl w-full pop-in border-4 border-purple-300 flex flex-col">
-        <div class="flex justify-between items-center mb-4">
-            <h2 id="overview-modal-title" class="font-title text-2xl md:text-3xl text-purple-700">Quest Overview</h2>
-            <button id="overview-modal-close-btn" class="bg-gray-200 hover:bg-gray-300 text-gray-800 font-bold w-10 h-10 rounded-full bubbly-button">&times;</button>
-        </div>
-        
-        <!-- Modal Tabs -->
-        <div class="border-b border-gray-200 mb-4">
-            <nav id="overview-modal-tabs" class="-mb-px flex space-x-6">
-                <button data-view="class" class="overview-tab-btn whitespace-nowrap py-3 px-1 border-b-4 font-semibold text-lg border-purple-500 text-purple-600">
-                    <i class="fas fa-users mr-2"></i>Class Overview
-                </button>
-                <button data-view="student" class="overview-tab-btn whitespace-nowrap py-3 px-1 border-b-4 font-semibold text-lg border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300">
-                    <i class="fas fa-user-graduate mr-2"></i>Student Overviews
-                </button>
-            </nav>
-        </div>
+    <!-- OVERVIEW MODAL -->
+    <div id="overview-modal" class="fixed inset-0 bg-black bg-opacity-50 z-[71] flex items-center justify-center p-4 hidden">
+        <div class="bg-white p-6 md:p-8 rounded-3xl shadow-2xl max-w-4xl w-full pop-in border-4 border-purple-300 flex flex-col">
+            <div class="flex justify-between items-center mb-4">
+                <h2 id="overview-modal-title" class="font-title text-2xl md:text-3xl text-purple-700">Quest Overview</h2>
+                <button id="overview-modal-close-btn" class="bg-gray-200 hover:bg-gray-300 text-gray-800 font-bold w-10 h-10 rounded-full bubbly-button">&times;</button>
+            </div>
+            
+            <!-- Modal Tabs -->
+            <div class="border-b border-gray-200 mb-4">
+                <nav id="overview-modal-tabs" class="-mb-px flex space-x-6">
+                    <button data-view="class" class="overview-tab-btn whitespace-nowrap py-3 px-1 border-b-4 font-semibold text-lg border-purple-500 text-purple-600">
+                        <i class="fas fa-users mr-2"></i>Class Overview
+                    </button>
+                    <button data-view="student" class="overview-tab-btn whitespace-nowrap py-3 px-1 border-b-4 font-semibold text-lg border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300">
+                        <i class="fas fa-user-graduate mr-2"></i>Student Overviews
+                    </button>
+                </nav>
+            </div>
 
-        <div id="overview-modal-content" class="space-y-4 max-h-[60vh] overflow-y-auto pr-2">
-            <!-- Content will be injected here -->
+            <div id="overview-modal-content" class="space-y-4 max-h-[60vh] overflow-y-auto pr-2">
+                <!-- Content will be injected here -->
+            </div>
         </div>
     </div>
-</div>
         
-    <!-- NEW IN v6.9.1: Avatar Maker Modal -->
+    <!-- Avatar Maker Modal -->
     <div id="avatar-maker-modal" class="fixed inset-0 bg-black bg-opacity-50 z-[72] flex items-center justify-center p-4 hidden">
         <!-- FIX #2: Increased max-width and added max-height for responsiveness -->
         <div class="bg-white p-6 md:p-8 rounded-3xl shadow-2xl max-w-5xl w-full pop-in border-4 border-blue-300 flex flex-col md:flex-row gap-6 max-h-[90vh]">
@@ -1460,7 +1476,7 @@
     </div>
     </div>
 
-    <!-- NEW: Move Student Modal -->
+    <!-- Move Student Modal -->
     <div id="move-student-modal" class="fixed inset-0 bg-black bg-opacity-50 z-[72] flex items-center justify-center p-4 hidden">
         <div class="bg-white p-8 rounded-3xl shadow-2xl max-w-md w-full pop-in border-4 border-yellow-300">
             <h2 class="font-title text-2xl text-yellow-800 mb-4 text-center">Move Student</h2>
@@ -1477,34 +1493,34 @@
         </div>
     </div>
 
-    <!-- NEW: Hero Stats Modal -->
-<div id="hero-stats-modal" class="fixed inset-0 bg-black bg-opacity-50 z-[72] flex items-center justify-center p-4 hidden">
-    <!-- MODIFIED: Increased max-width from 2xl to 4xl -->
-    <div class="bg-gradient-to-br from-gray-800 via-purple-900 to-gray-900 p-6 rounded-3xl shadow-2xl max-w-4xl w-full pop-in border-4 border-purple-400 flex flex-col md:flex-row gap-6 relative">
-        <button id="hero-stats-close-btn" class="absolute top-4 right-4 bg-gray-700 hover:bg-gray-600 text-white font-bold w-10 h-10 rounded-full bubbly-button z-10">&times;</button>
-        
-        <!-- Left Side: Avatar -->
-        <div id="hero-stats-avatar-container" class="md:w-1/3 flex flex-col items-center justify-center text-center text-white">
-            <div id="hero-stats-avatar" class="w-48 h-48 rounded-full border-4 border-purple-300 shadow-lg mb-4">
-                <!-- Avatar img or div will be injected here -->
+    <!-- Hero Stats Modal -->
+    <div id="hero-stats-modal" class="fixed inset-0 bg-black bg-opacity-50 z-[72] flex items-center justify-center p-4 hidden">
+        <!-- MODIFIED: Increased max-width from 2xl to 4xl -->
+        <div class="bg-gradient-to-br from-gray-800 via-purple-900 to-gray-900 p-6 rounded-3xl shadow-2xl max-w-4xl w-full pop-in border-4 border-purple-400 flex flex-col md:flex-row gap-6 relative">
+            <button id="hero-stats-close-btn" class="absolute top-4 right-4 bg-gray-700 hover:bg-gray-600 text-white font-bold w-10 h-10 rounded-full bubbly-button z-10">&times;</button>
+            
+            <!-- Left Side: Avatar -->
+            <div id="hero-stats-avatar-container" class="md:w-1/3 flex flex-col items-center justify-center text-center text-white">
+                <div id="hero-stats-avatar" class="w-48 h-48 rounded-full border-4 border-purple-300 shadow-lg mb-4">
+                    <!-- Avatar img or div will be injected here -->
+                </div>
+                <h2 id="hero-stats-name" class="font-title text-3xl" style="text-shadow: 0 2px 4px rgba(0,0,0,0.5);"></h2>
             </div>
-            <h2 id="hero-stats-name" class="font-title text-3xl" style="text-shadow: 0 2px 4px rgba(0,0,0,0.5);"></h2>
-        </div>
 
-        <!-- Right Side: Stats -->
-        <div class="flex-grow flex flex-col">
-            <div id="hero-stats-content" class="space-y-3">
-                <!-- Stats will be injected here -->
-            </div>
-            <!-- NEW: Chart Container -->
-            <div id="hero-stats-chart-container" class="mt-4 flex-grow">
-                <!-- Chart will be injected here -->
+            <!-- Right Side: Stats -->
+            <div class="flex-grow flex flex-col">
+                <div id="hero-stats-content" class="space-y-3">
+                    <!-- Stats will be injected here -->
+                </div>
+                <!-- NEW: Chart Container -->
+                <div id="hero-stats-chart-container" class="mt-4 flex-grow">
+                    <!-- Chart will be injected here -->
+                </div>
             </div>
         </div>
     </div>
-</div>
 
-    <!-- CEREMONY MODE -->
+    <!-- Ceremony Screen -->
     <div id="ceremony-screen" class="fixed inset-0 z-[90] flex items-center justify-center hidden">
         <!-- The Veil -->
         <div id="ceremony-veil" class="absolute inset-0 bg-gradient-to-br from-sky-200/80 via-purple-200/80 to-amber-200/80 backdrop-blur-md flex items-center justify-center p-4">
@@ -1516,18 +1532,6 @@
                 </div>
             </button>
         </div>
-
-        <div id="global-leaderboard-modal" class="fixed inset-0 bg-black bg-opacity-50 z-[95] flex items-center justify-center p-4 hidden">
-    <div class="bg-white p-6 md:p-8 rounded-3xl shadow-2xl max-w-lg w-full pop-in border-4 border-purple-300 flex flex-col">
-        <div class="flex justify-between items-center mb-4">
-            <h2 id="global-leaderboard-title" class="font-title text-2xl md:text-3xl text-purple-700">Global Leaderboard</h2>
-            <button id="global-leaderboard-close-btn" class="bg-gray-200 hover:bg-gray-300 text-gray-800 font-bold w-10 h-10 rounded-full bubbly-button">&times;</button>
-        </div>
-        <div id="global-leaderboard-content" class="space-y-2 max-h-[60vh] overflow-y-auto pr-2">
-            <!-- Leaderboard items will be injected here -->
-        </div>
-    </div>
-</div>
 
         <!-- The Main Stage -->
         <div id="ceremony-stage" class="absolute inset-0 bg-gray-900 text-white p-8 flex flex-col items-center justify-center hidden">
@@ -1551,7 +1555,20 @@
         </div>
     </div>
 
-    <!-- NEW: Hero's Chronicle Modal -->
+    <!-- Global Leaderboard Modal -->
+    <div id="global-leaderboard-modal" class="fixed inset-0 bg-black bg-opacity-50 z-[95] flex items-center justify-center p-4 hidden">
+        <div class="bg-white p-6 md:p-8 rounded-3xl shadow-2xl max-w-lg w-full pop-in border-4 border-purple-300 flex flex-col">
+            <div class="flex justify-between items-center mb-4">
+                <h2 id="global-leaderboard-title" class="font-title text-2xl md:text-3xl text-purple-700">Global Leaderboard</h2>
+                <button id="global-leaderboard-close-btn" class="bg-gray-200 hover:bg-gray-300 text-gray-800 font-bold w-10 h-10 rounded-full bubbly-button">&times;</button>
+            </div>
+            <div id="global-leaderboard-content" class="space-y-2 max-h-[60vh] overflow-y-auto pr-2">
+                <!-- Leaderboard items will be injected here -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Hero Chronicle Modal -->
     <div id="hero-chronicle-modal" class="fixed inset-0 bg-black bg-opacity-50 z-[72] flex items-center justify-center p-4 hidden">
         <div class="bg-white p-6 md:p-8 rounded-3xl shadow-2xl max-w-6xl w-full pop-in border-4 border-green-300 flex flex-col max-h-[90vh]">
             <div class="flex justify-between items-start mb-4 flex-shrink-0">
@@ -1609,4 +1626,3 @@
     <script type="module" src="app.js"></script>
 </body>
 </html>
-

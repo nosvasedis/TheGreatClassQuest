@@ -1,7 +1,7 @@
 // /ui/modals.js
 
 // --- IMPORTS ---
-import { fetchLogsForDate } from '../db/queries.js';
+import { fetchLogsForDate, fetchAttendanceForMonth } from '../db/queries.js';
 import { db } from '../firebase.js';
 import { doc, getDocs, collection, query, where, orderBy, limit } from 'https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js';
 
@@ -25,8 +25,7 @@ import {
     saveAwardNote,
     saveAdventureLogNote,
     deleteAdventureLog,
-    handleLogTrial,
-    handleDeleteTrial,
+    handleDeleteTrial, // Keeping this as it still exists
     handleMoveStudent,
     handleMarkAbsent,
     handleAwardBonusStar,
@@ -35,7 +34,7 @@ import {
 } from '../db/actions.js';
 
 // --- LOCAL STATE FOR MODALS ---
-let heroStatsChart = null; // To hold the chart instance
+let heroStatsChart = null;
 let currentlySelectedDayCell = null;
 
 // --- GENERIC MODAL FUNCTIONS ---
@@ -46,18 +45,13 @@ export function showAnimatedModal(modalId) {
 
     const innerContent = modal.querySelector('.pop-in');
 
-    // 1. Make the modal visible but keep its content invisible/scaled down
     modal.classList.remove('hidden');
     if (innerContent) {
-        // This class makes it start small and invisible
         innerContent.classList.add('modal-origin-start'); 
-        // Ensure any lingering 'out' animation is gone
         innerContent.classList.remove('pop-out'); 
     }
 
-    // 2. Use requestAnimationFrame to wait for the browser to apply the above changes
     requestAnimationFrame(() => {
-        // 3. Now, remove the starting class. This triggers the CSS transition.
         if (innerContent) {
             innerContent.classList.remove('modal-origin-start');
         }
@@ -84,7 +78,6 @@ export function showModal(title, message, onConfirm, confirmText = 'Confirm', ca
 }
 
 export function hideModal(modalId) {
-    // Stop any audio that might be playing from the modal
     if (modalId === 'quest-update-modal' || modalId === 'storybook-viewer-modal') {
         const audio = modalId === 'quest-update-modal' ? state.get('currentNarrativeAudio') : state.get('currentStorybookAudio');
         const btn = modalId === 'quest-update-modal' ? document.getElementById('play-narrative-btn') : document.getElementById('storybook-viewer-play-btn');
@@ -96,7 +89,6 @@ export function hideModal(modalId) {
         else state.set('currentStorybookAudio', null);
     }
 
-    // --- NEW: Destroy chart instance when modal is closed ---
     if (modalId === 'hero-stats-modal' && heroStatsChart) {
         heroStatsChart.destroy();
         heroStatsChart = null;
@@ -107,19 +99,16 @@ export function hideModal(modalId) {
 
     const innerContent = modal.querySelector('.pop-in');
 
-    // Add the pop-out animation class
     if (innerContent) {
         innerContent.classList.add('pop-out');
     }
 
-    // Wait for the animation to finish, then hide the modal
     setTimeout(() => {
         modal.classList.add('hidden');
-        // Clean up the animation class for next time
         if (innerContent) {
             innerContent.classList.remove('pop-out');
         }
-    }, 200); // 200ms matches the CSS animation duration
+    }, 200); 
 
     if (currentlySelectedDayCell) {
         currentlySelectedDayCell.classList.remove('day-selected');
@@ -201,7 +190,7 @@ export function switchDayPlannerTab(tabName) {
 function renderScheduleManagerList(dateString) {
     const listEl = document.getElementById('schedule-manager-list');
     const selectEl = document.getElementById('add-onetime-lesson-select');
-    // FIX: Pass state variables to getClassesOnDay
+    
     const classesOnDay = utils.getClassesOnDay(
         dateString,
         state.get('allSchoolClasses'),
@@ -304,7 +293,7 @@ export async function showLogbookModal(dateString, isOndemand = false) {
 
     if (isOndemand) {
         contentEl.innerHTML = '<p class="text-center py-8"><i class="fas fa-spinner fa-spin mr-2"></i>Fetching historical log...</p>';
-        showAnimatedModal('logbook-modal'); // Show modal early with loading indicator
+        showAnimatedModal('logbook-modal'); 
         logs = await fetchLogsForDate(dateString);
     } else {
         logs = state.get('allAwardLogs').filter(log => utils.getDDMMYYYY(utils.parseDDMMYYYY(log.date)) === dateString);
@@ -328,28 +317,8 @@ export async function showLogbookModal(dateString, isOndemand = false) {
         const topReason = Object.keys(reasonCounts).length > 0 ? Object.entries(reasonCounts).sort((a,b) => b[1] - a[1])[0][0] : 'N/A';
         const classStarCounts = logs.reduce((acc, log) => { acc[log.classId] = (acc[log.classId] || 0) + log.stars; return acc; }, {});
 
-        const GOAL_PER_STUDENT = { DIAMOND: 18 };
-        const classProgressIncreases = Object.entries(classStarCounts).map(([classId, starsToday]) => {
-            const studentsInClass = state.get('allStudents').filter(s => s.classId === classId);
-            const studentCount = studentsInClass.length;
-            if (studentCount === 0) return { classId, progressIncrease: 0 };
-
-            const diamondGoal = Math.round(studentCount * GOAL_PER_STUDENT.DIAMOND);
-            if (diamondGoal === 0) return { classId, progressIncrease: 0 };
-
-            const currentMonthlyStars = studentsInClass.reduce((sum, s) => {
-                const scoreData = state.get('allStudentScores').find(score => score.id === s.id);
-                return sum + (scoreData?.monthlyStars || 0);
-            }, 0);
-
-            const monthlyStarsBefore = currentMonthlyStars - starsToday;
-            const progressIncrease = ((currentMonthlyStars / diamondGoal) * 100) - ((monthlyStarsBefore / diamondGoal) * 100);
-
-            return { classId, progressIncrease };
-        });
-
-        const topClassEntry = classProgressIncreases.length > 0 ? classProgressIncreases.sort((a, b) => b.progressIncrease - a.progressIncrease)[0] : null;
-        const topClassId = topClassEntry ? topClassEntry.classId : null;
+        const topClassEntry = Object.entries(classStarCounts).sort((a,b) => b[1] - a[1])[0];
+        const topClassId = topClassEntry ? topClassEntry[0] : null;
         const topClass = topClassId ? state.get('allSchoolClasses').find(c => c.id === topClassId) : null;
         
         let summaryHtml = `<div class="grid grid-cols-3 gap-4 text-center mb-6 p-4 bg-gray-50 rounded-2xl border">
@@ -500,212 +469,189 @@ export async function renderHistoricalLeaderboard(monthKey) {
     contentEl.innerHTML = html;
 }
 
-export function openMilestoneModal(markerElement) {
-    const questCard = markerElement.closest('.quest-card');
-    const classId = questCard.dataset.classId;
-    const classInfo = state.get('allSchoolClasses').find(c => c.id === classId);
-    if (!classInfo) return;
 
+// --- REVAMPED ATTENDANCE CHRONICLE MODAL ---
+
+export async function openAttendanceChronicle() {
+    const classId = document.getElementById('adventure-log-class-select').value;
+    const classData = state.get('allTeachersClasses').find(c => c.id === classId);
+    if (!classData) return;
+
+    // Reset view date to current month on open
+    state.setAttendanceViewDate(new Date());
+
+    document.getElementById('attendance-chronicle-title').innerHTML = `${classData.logo} Attendance Chronicle`;
+    document.getElementById('attendance-chronicle-content').innerHTML = `<p class="text-center py-8"><i class="fas fa-spinner fa-spin mr-2"></i>Loading attendance records...</p>`;
+    showAnimatedModal('attendance-chronicle-modal');
+
+    await renderAttendanceChronicle(classId);
+}
+
+export async function renderAttendanceChronicle(classId) {
+    const contentEl = document.getElementById('attendance-chronicle-content');
+    const classData = state.get('allSchoolClasses').find(c => c.id === classId);
     const studentsInClass = state.get('allStudents').filter(s => s.classId === classId);
-    const studentCount = studentsInClass.length;
-    const currentMonthlyStars = studentsInClass.reduce((sum, s) => {
-        const scoreData = state.get('allStudentScores').find(score => score.id === s.id);
-        return sum + (scoreData?.monthlyStars || 0);
-    }, 0);
 
-    const GOAL_PER_STUDENT = { BRONZE: 4, SILVER: 8, GOLD: 13, DIAMOND: 18 };
-    const goals = {
-        bronze: Math.round(studentCount * GOAL_PER_STUDENT.BRONZE),
-        silver: Math.round(studentCount * GOAL_PER_STUDENT.SILVER),
-        gold: Math.round(studentCount * GOAL_PER_STUDENT.GOLD),
-        diamond: studentCount > 0 ? Math.round(studentCount * GOAL_PER_STUDENT.DIAMOND) : 18
-    };
+    if (!classData || studentsInClass.length === 0) {
+        contentEl.innerHTML = `<p class="text-center text-gray-500 py-8">No students in this class to track attendance for.</p>`;
+        return;
+    }
 
-    const modalTitle = document.getElementById('milestone-modal-title');
-    const modalContent = document.getElementById('milestone-modal-content');
+    const viewDate = state.get('attendanceViewDate');
+    const currentMonth = viewDate.getMonth();
+    const currentYear = viewDate.getFullYear();
+    const monthName = viewDate.toLocaleString('en-GB', { month: 'long', year: 'numeric' });
+
+    // 1. Determine if we can go back/forward
+    const competitionStart = constants.competitionStart;
+    const canGoBack = new Date(currentYear, currentMonth, 1) > new Date(competitionStart.getFullYear(), competitionStart.getMonth(), 1);
+    const canGoForward = new Date(currentYear, currentMonth + 1, 1) <= new Date();
+
+    // 2. Fetch data if it's an old month not covered by real-time listener
+    let attendanceRecords = [];
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+
+    const viewMonthStart = new Date(currentYear, currentMonth, 1);
     
-    let milestoneName, goal, icon;
-    if (markerElement.innerText.includes('🛡️')) { milestoneName = "Bronze Shield"; goal = goals.bronze; icon = '🛡️'; } 
-    else if (markerElement.innerText.includes('🏆')) { milestoneName = "Silver Trophy"; goal = goals.silver; icon = '🏆'; }
-    else if (markerElement.innerText.includes('👑')) { milestoneName = "Golden Crown"; goal = goals.gold; icon = '👑'; } 
-    else { milestoneName = "Diamond Quest"; goal = goals.diamond; icon = '💎'; }
+    if (viewMonthStart >= thirtyDaysAgo) {
+        // Use real-time state
+        attendanceRecords = state.get('allAttendanceRecords').filter(r => r.classId === classId);
+    } else {
+        // Fetch on demand
+        contentEl.innerHTML = `<div class="text-center py-8 text-gray-500"><i class="fas fa-spinner fa-spin mr-2"></i>Fetching historical data for ${monthName}...</div>`;
+        attendanceRecords = await fetchAttendanceForMonth(classId, currentYear, currentMonth + 1);
+    }
 
-   
-    const now = new Date();
-    const currentMonthIndex = now.getMonth();
-    const currentYear = now.getFullYear();
+    // 3. Filter lesson dates for this specific month
+    const scheduledDaysOfWeek = classData.scheduleDays || [];
+    const lessonDates = [];
+    
+    // Generate all days in the month that match the schedule
+    let loopDate = new Date(currentYear, currentMonth, 1);
+    while (loopDate.getMonth() === currentMonth) {
+        if (scheduledDaysOfWeek.includes(loopDate.getDay().toString())) {
+            // Don't show future dates
+            if (loopDate <= new Date()) {
+                lessonDates.push(utils.getDDMMYYYY(loopDate));
+            }
+        }
+        loopDate.setDate(loopDate.getDate() + 1);
+    }
 
-    const relevantLogs = state.get('allAwardLogs').filter(log => {
-        if (log.classId !== classId) return false;
-        
-        const logDate = utils.parseDDMMYYYY(log.date); 
-        
-        return logDate.getMonth() === currentMonthIndex && logDate.getFullYear() === currentYear;
+    // Also include dates where attendance was actually taken (e.g. one-off lessons)
+    attendanceRecords.forEach(r => {
+        const rDate = utils.parseDDMMYYYY(r.date);
+        if (rDate.getMonth() === currentMonth && rDate.getFullYear() === currentYear && !lessonDates.includes(r.date)) {
+            lessonDates.push(r.date);
+        }
     });
 
+    lessonDates.sort((a,b) => utils.parseDDMMYYYY(a) - utils.parseDDMMYYYY(b));
 
-    const today = new Date();
-    const dayOfWeek = today.getDay();
-    const diff = today.getDate() - dayOfWeek + (dayOfWeek === 0 ? -6 : 1);
-    const startOfWeek = new Date(today.setDate(diff));
-    startOfWeek.setHours(0, 0, 0, 0);
-
-    const weeklyStars = relevantLogs
-    .filter(log => utils.parseDDMMYYYY(log.date) >= startOfWeek)
-    .reduce((sum, log) => sum + log.stars, 0);
-
-    const reasonCounts = relevantLogs.reduce((acc, log) => {
-        acc[log.reason || 'other'] = (acc[log.reason || 'other'] || 0) + log.stars;
-        return acc;
-    }, {});
-    const topReasonEntry = Object.entries(reasonCounts).sort((a,b) => b[1] - a[1])[0];
-    const topReason = topReasonEntry ? `${topReasonEntry[0].charAt(0).toUpperCase() + topReasonEntry[0].slice(1)}` : "N/A";
-
-    const studentScores = studentsInClass.map(s => {
-        const score = state.get('allStudentScores').find(sc => sc.id === s.id)?.monthlyStars || 0;
-        return { name: s.name, score };
-    }).filter(s => s.score > 0);
-    
-    let topAdventurers = "None yet this month!";
-    if(studentScores.length > 0) {
-        const topStudents = studentScores.sort((a, b) => b.score - a.score).slice(0, 5).map(s => `${s.name} (${s.score}⭐)`);
-        topAdventurers = topStudents.join(', ');
-    }
-    
-    modalTitle.innerHTML = `${icon} ${milestoneName}`;
-    const starsNeeded = Math.max(0, goal - currentMonthlyStars);
-    const progressPercent = goal > 0 ? Math.min(100, (currentMonthlyStars / goal) * 100).toFixed(1) : 0;
-
-    modalContent.innerHTML = `
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 items-center">
-            <div class="text-center">
-                <h3 class="font-title text-4xl text-gray-800">${classInfo.logo} ${classInfo.name}</h3>
-                <p class="text-lg text-gray-600 -mt-2">Progress towards the ${milestoneName}</p>
-                
-                <div class="text-2xl my-4">
-                    <p><span class="font-bold text-amber-500 text-5xl">${currentMonthlyStars}</span> / <span class="font-bold text-3xl text-gray-500">${goal}</span></p>
-                    <p class="text-sm text-gray-500 -mt-1">Total Stars Collected</p>
-                    <div class="w-full bg-gray-200 rounded-full h-6 shadow-inner mt-2 border-2 border-gray-300">
-                        <div class="bg-gradient-to-r from-cyan-400 to-blue-500 h-full rounded-full flex items-center justify-center text-white font-bold text-sm" style="width: ${progressPercent}%">
-                            ${progressPercent > 10 ? `${progressPercent}%` : ''}
-                        </div>
-                    </div>
-                </div>
-                
-                ${starsNeeded > 0 
-                    ? `<p class="mt-4 text-blue-600 font-bold text-3xl animate-pulse">${starsNeeded} more stars to go!</p>` 
-                    : `<p class="mt-4 text-green-600 font-bold text-3xl title-sparkle">Milestone Achieved! Well done!</p>`
-                }
-            </div>
-            <div class="text-left bg-gray-50 p-6 rounded-2xl border-2 border-gray-200 space-y-4">
-                 <div class="bg-white p-3 rounded-lg shadow-sm">
-                    <p class="text-sm text-gray-500 flex items-center gap-1"><i class="fas fa-bolt text-yellow-500"></i> Weekly Momentum</p>
-                    <p class="font-bold text-2xl text-yellow-600">${weeklyStars} stars this week</p>
-                </div>
-                <div class="bg-white p-3 rounded-lg shadow-sm">
-                    <p class="text-sm text-gray-500 flex items-center gap-1"><i class="fas fa-award text-green-500"></i> Top Skill This Month</p>
-                    <p class="font-bold text-2xl text-green-600">${topReason}</p>
-                </div>
-                <div class="bg-white p-3 rounded-lg shadow-sm">
-                    <p class="text-sm text-gray-500 flex items-center gap-1"><i class="fas fa-crown text-purple-500"></i> Top Adventurers (Monthly)</p>
-                    <p class="font-semibold text-lg text-purple-600" title="${topAdventurers}">${topAdventurers}</p>
-                </div>
-            </div>
+    // 4. Build HTML
+    let html = `
+        <div class="flex items-center justify-between mb-4 bg-gray-50 p-3 rounded-lg border border-gray-200">
+            <button id="attendance-prev-btn" class="text-gray-600 hover:text-gray-800 font-bold py-1 px-3 rounded disabled:opacity-30" ${!canGoBack ? 'disabled' : ''}><i class="fas fa-chevron-left"></i></button>
+            <span class="font-title text-xl text-gray-700">${monthName}</span>
+            <button id="attendance-next-btn" class="text-gray-600 hover:text-gray-800 font-bold py-1 px-3 rounded disabled:opacity-30" ${!canGoForward ? 'disabled' : ''}><i class="fas fa-chevron-right"></i></button>
         </div>
     `;
-    
-    showAnimatedModal('milestone-details-modal');
+
+    if(lessonDates.length === 0) {
+        html += `<p class="text-center text-gray-500 py-8">No lessons recorded for this month.</p>`;
+        contentEl.innerHTML = html;
+    } else {
+        const attendanceByStudent = attendanceRecords.reduce((acc, record) => {
+            if (!acc[record.studentId]) acc[record.studentId] = new Set();
+            acc[record.studentId].add(record.date);
+            return acc;
+        }, {});
+
+        html += `<div class="overflow-x-auto rounded-lg border border-gray-200 shadow-sm"><table class="w-full border-collapse bg-white"><thead><tr class="bg-gray-100 text-gray-600 text-sm uppercase tracking-wider">
+            <th class="p-3 font-semibold text-left border-b sticky left-0 bg-gray-100 z-10 shadow-sm">Student</th>`;
+        
+        lessonDates.forEach(dateStr => {
+            const d = utils.parseDDMMYYYY(dateStr);
+            html += `<th class="p-3 font-semibold text-center border-b min-w-[60px]">${d.getDate()}</th>`;
+        });
+        html += `</tr></thead><tbody>`;
+
+        studentsInClass.forEach((student, index) => {
+            const rowBg = index % 2 === 0 ? 'bg-white' : 'bg-gray-50';
+            html += `<tr class="${rowBg} hover:bg-gray-100 transition-colors">
+                <td class="p-3 font-medium text-gray-800 border-r sticky left-0 ${rowBg} z-10">${student.name}</td>`;
+            
+            lessonDates.forEach(dateStr => {
+                const isAbsent = attendanceByStudent[student.id]?.has(dateStr);
+                const isEditable = viewMonthStart >= thirtyDaysAgo; 
+
+                html += `<td class="p-3 text-center border-r border-gray-100">
+                    <button class="attendance-status-btn w-6 h-6 rounded-full transition-transform transform hover:scale-110 focus:outline-none shadow-sm ${isAbsent ? 'status-absent bg-red-500' : 'status-present bg-green-500'}" 
+                            data-student-id="${student.id}" 
+                            data-date="${dateStr}" 
+                            ${!isEditable ? 'disabled style="cursor: default; opacity: 0.7;"' : ''}
+                            title="${isAbsent ? 'Absent' : 'Present'}">
+                            ${isAbsent ? '<i class="fas fa-times text-white text-xs"></i>' : '<i class="fas fa-check text-white text-xs"></i>'}
+                    </button>
+                </td>`;
+            });
+            html += `</tr>`;
+        });
+
+        html += `</tbody></table></div>`;
+        
+        const totalPossible = studentsInClass.length * lessonDates.length;
+        let totalAbsences = 0;
+        Object.values(attendanceByStudent).forEach(set => totalAbsences += set.size); 
+        
+        const attendanceRate = totalPossible > 0 ? ((totalPossible - totalAbsences) / totalPossible * 100).toFixed(1) : 100;
+
+        html += `<div class="mt-4 text-right text-sm text-gray-500">
+            Monthly Attendance Rate: <span class="font-bold ${attendanceRate > 90 ? 'text-green-600' : 'text-amber-600'}">${attendanceRate}%</span>
+        </div>`;
+
+        contentEl.innerHTML = html;
+    }
+
+    document.getElementById('attendance-prev-btn').addEventListener('click', () => changeAttendanceMonth(-1, classId));
+    document.getElementById('attendance-next-btn').addEventListener('click', () => changeAttendanceMonth(1, classId));
+
+    contentEl.querySelectorAll('.attendance-status-btn:not(:disabled)').forEach(btn => {
+        btn.addEventListener('click', (e) => toggleAttendanceRecord(e.currentTarget));
+    });
 }
 
-export async function showWelcomeBackMessage(firstName, stars) {
-    const modal = document.getElementById('welcome-back-modal');
-    const messageEl = document.getElementById('welcome-back-message');
-    const starsEl = document.getElementById('welcome-back-stars');
-
-    starsEl.textContent = stars;
-    messageEl.innerHTML = `<i class="fas fa-spinner fa-spin"></i>`;
-    showAnimatedModal('welcome-back-modal');
-
-    const systemPrompt = "You are the 'Quest Master' in a fun classroom game. You speak in short, exciting, single sentences. Do NOT use markdown or asterisks. Your job is to give a unique, positive welcome back message to a student who was absent. It must be one sentence only.";
-    const userPrompt = `Generate a one-sentence welcome back message for a student named ${firstName}.`;
-
-    try {
-        const message = await callGeminiApi(systemPrompt, userPrompt);
-        messageEl.textContent = message;
-    } catch (e) {
-        messageEl.textContent = `We're so glad you're back, ${firstName}!`;
-    }
-    
-    setTimeout(() => {
-        hideModal('welcome-back-modal');
-    }, 4000);
+async function changeAttendanceMonth(delta, classId) {
+    const currentViewDate = state.get('attendanceViewDate');
+    currentViewDate.setMonth(currentViewDate.getMonth() + delta);
+    state.setAttendanceViewDate(currentViewDate);
+    await renderAttendanceChronicle(classId);
 }
 
-// --- AI & REPORTING MODALS ---
+async function toggleAttendanceRecord(button) {
+    playSound('click');
+    const { studentId, date } = button.dataset;
+    const isCurrentlyAbsent = button.classList.contains('status-absent');
+    const student = state.get('allStudents').find(s => s.id === studentId);
+    if (!student) return;
 
-export async function handleGetQuestUpdate() {
-    const narrativeContainer = document.getElementById('narrative-text-container');
-    const playBtn = document.getElementById('play-narrative-btn');
-    
-    if (!state.get('globalSelectedLeague')) {
-        showToast('Please select a league first!', 'error');
-        return;
-    }
-
-    playBtn.classList.add('hidden');
-    narrativeContainer.innerHTML = `<i class="fas fa-spinner fa-spin text-4xl text-purple-400"></i>`;
-    showAnimatedModal('quest-update-modal');
-
-    const GOAL_PER_STUDENT = { DIAMOND: 18 };
-    const classesInLeague = state.get('allSchoolClasses').filter(c => c.questLevel === state.get('globalSelectedLeague'));
-    const classScores = classesInLeague.map(c => {
-        const studentsInClass = state.get('allStudents').filter(s => s.classId === c.id);
-        const studentCount = studentsInClass.length;
-        const diamondGoal = studentCount > 0 ? Math.round(studentCount * GOAL_PER_STUDENT.DIAMOND) : 18;
-        const totalStars = studentsInClass.reduce((sum, s) => sum + (state.get('allStudentScores').find(score => score.id === s.id)?.monthlyStars || 0), 0);
-        const progress = diamondGoal > 0 ? Math.min(100, (totalStars / diamondGoal) * 100).toFixed(1) : 0;
-        return { name: c.name, totalStars, progress };
-    }).sort((a, b) => b.progress - a.progress);
-
-    const topClasses = classScores.filter(c => c.totalStars > 0).slice(0, 3);
-
-    if (topClasses.length < 2) {
-        narrativeContainer.innerHTML = `<p class="text-xl text-center">Not enough Quest data yet! At least two classes need to earn stars for a rivalry to begin!</p>`;
-        return;
-    }
-
-    const classDataString = topClasses.map(c => `'${c.name}' is at ${c.progress}% of their goal with ${c.totalStars} stars`).join('. ');
-    const systemPrompt = "You are a fun, exciting quest announcer for a classroom game. Do not use markdown or asterisks. Your response must be only the narrative text. You will be given the names, progress percentage, and star counts of the top classes. Write a short, exciting, 2-sentence narrative about their race to the top. IMPORTANT: The class with the highest progress percentage is in the lead, NOT the class with the most stars. Make this distinction clear in your narrative.";
-    const userPrompt = `The top classes are: ${classDataString}. The first class in this list is in the lead. Write the narrative.`;
+    button.classList.toggle('status-absent', !isCurrentlyAbsent);
+    button.classList.toggle('status-present', isCurrentlyAbsent);
+    button.classList.toggle('bg-red-500', !isCurrentlyAbsent);
+    button.classList.toggle('bg-green-500', isCurrentlyAbsent);
+    button.innerHTML = !isCurrentlyAbsent ? '<i class="fas fa-times text-white text-xs"></i>' : '<i class="fas fa-check text-white text-xs"></i>';
 
     try {
-        const narrative = await callGeminiApi(systemPrompt, userPrompt);
-        narrativeContainer.innerHTML = `<p>${narrative}</p>`;
-        narrativeContainer.dataset.text = narrative;
-        playBtn.classList.remove('hidden');
-        playBtn.disabled = false;
-        playBtn.innerHTML = `<i class="fas fa-play-circle mr-3"></i> Play Narrative`;
-
+        await handleMarkAbsent(studentId, student.classId, !isCurrentlyAbsent);
     } catch (error) {
-        console.error("Quest Update Narrative Error:", error);
-        narrativeContainer.innerHTML = `<p class="text-xl text-center text-red-500">The Quest Announcer is taking a break. Please try again in a moment!</p>`;
+        button.classList.toggle('status-absent', isCurrentlyAbsent);
+        button.classList.toggle('status-present', !isCurrentlyAbsent);
+        button.classList.toggle('bg-red-500', isCurrentlyAbsent);
+        button.classList.toggle('bg-green-500', !isCurrentlyAbsent);
+        button.innerHTML = isCurrentlyAbsent ? '<i class="fas fa-times text-white text-xs"></i>' : '<i class="fas fa-check text-white text-xs"></i>';
+        showToast('Failed to update attendance.', 'error');
     }
-}
-
-export function openAwardNoteModal(logId) {
-    const log = state.get('allAwardLogs').find(l => l.id === logId);
-    if (!log) return;
-    document.getElementById('award-note-log-id-input').value = logId;
-    document.getElementById('award-note-textarea').value = log.note || '';
-    showAnimatedModal('award-note-modal');
-}
-
-export function openNoteModal(logId) {
-    const log = state.get('allAdventureLogs').find(l => l.id === logId);
-    if (!log) return;
-    document.getElementById('note-log-id-input').value = logId;
-    document.getElementById('note-textarea').value = log.note || '';
-    showAnimatedModal('note-modal');
 }
 
 export function openEditStudentNameModal(studentId, currentName) {
@@ -719,7 +665,6 @@ export async function openQuestAssignmentModal() {
     const classId = document.getElementById('adventure-log-class-select').value;
     if (!classId) return;
 
-    // FIX #2: Reset modal state on open
     const modal = document.getElementById('quest-assignment-modal');
     modal.dataset.editingId = '';
     document.getElementById('quest-assignment-confirm-btn').innerText = 'Save Assignment';
@@ -746,7 +691,6 @@ export async function openQuestAssignmentModal() {
         if (!snapshot.empty) {
             const lastAssignmentDoc = snapshot.docs[0];
             const lastAssignment = lastAssignmentDoc.data();
-            // FIX #2: Add edit button and logic
             previousAssignmentTextEl.innerHTML = `
                 <span class="break-words pr-2">${lastAssignment.text}</span>
                 <button id="edit-last-assignment-btn" class="mt-2 text-sm text-blue-500 hover:underline font-semibold">
@@ -803,12 +747,10 @@ export function showStarfallModal(studentId, studentName, bonusAmount, trialType
     const confirmBtn = document.getElementById('starfall-confirm-btn');
     const modal = document.getElementById('starfall-modal');
 
-    // Clone the button to remove old event listeners
     const newConfirmBtn = confirmBtn.cloneNode(true);
     confirmBtn.parentNode.replaceChild(newConfirmBtn, confirmBtn);
 
     newConfirmBtn.addEventListener('click', () => {
-        // Now this will work because we imported it at the top
         handleAwardBonusStar(studentId, bonusAmount, trialType); 
         hideModal('starfall-modal');
     });
@@ -816,136 +758,58 @@ export function showStarfallModal(studentId, studentName, bonusAmount, trialType
     showAnimatedModal('starfall-modal');
 }
 
-export async function openAttendanceChronicle() {
-    const classId = document.getElementById('adventure-log-class-select').value;
-    const classData = state.get('allTeachersClasses').find(c => c.id === classId);
-    if (!classData) return;
+// --- AI & REPORTING MODALS ---
 
-    document.getElementById('attendance-chronicle-title').innerHTML = `${classData.logo} Attendance Chronicle`;
-    document.getElementById('attendance-chronicle-content').innerHTML = `<p class="text-center py-8"><i class="fas fa-spinner fa-spin mr-2"></i>Loading attendance records...</p>`;
-    showAnimatedModal('attendance-chronicle-modal');
-
-    renderAttendanceChronicle(classId);
-}
-
-function renderAttendanceChronicle(classId) {
-    const contentEl = document.getElementById('attendance-chronicle-content');
-    const classData = state.get('allSchoolClasses').find(c => c.id === classId);
-    const studentsInClass = state.get('allStudents').filter(s => s.classId === classId);
-
-    if (!classData || studentsInClass.length === 0) {
-        contentEl.innerHTML = `<p class="text-center text-gray-500 py-8">No students in this class to track attendance for.</p>`;
+export async function handleGetQuestUpdate() {
+    const narrativeContainer = document.getElementById('narrative-text-container');
+    const playBtn = document.getElementById('play-narrative-btn');
+    
+    if (!state.get('globalSelectedLeague')) {
+        showToast('Please select a league first!', 'error');
         return;
     }
 
-    const scheduledDaysOfWeek = classData.scheduleDays || [];
-    const lessonDates = [];
-    let loopDate = new Date(constants.competitionStart);
-    const today = new Date();
+    playBtn.classList.add('hidden');
+    narrativeContainer.innerHTML = `<i class="fas fa-spinner fa-spin text-4xl text-purple-400"></i>`;
+    showAnimatedModal('quest-update-modal');
 
-    while (loopDate <= today) {
-        if (scheduledDaysOfWeek.includes(loopDate.getDay().toString())) {
-            lessonDates.push(utils.getDDMMYYYY(loopDate));
-        }
-        loopDate.setDate(loopDate.getDate() + 1);
-    }
+    const GOAL_PER_STUDENT = { DIAMOND: 18 };
+    const classesInLeague = state.get('allSchoolClasses').filter(c => c.questLevel === state.get('globalSelectedLeague'));
+    const classScores = classesInLeague.map(c => {
+        const studentsInClass = state.get('allStudents').filter(s => s.classId === c.id);
+        const studentCount = studentsInClass.length;
+        const diamondGoal = studentCount > 0 ? Math.round(studentCount * GOAL_PER_STUDENT.DIAMOND) : 18;
+        const totalStars = studentsInClass.reduce((sum, s) => sum + (state.get('allStudentScores').find(score => score.id === s.id)?.monthlyStars || 0), 0);
+        const progress = diamondGoal > 0 ? Math.min(100, (totalStars / diamondGoal) * 100).toFixed(1) : 0;
+        return { name: c.name, totalStars, progress };
+    }).sort((a, b) => b.progress - a.progress);
 
-    lessonDates.sort((a,b) => utils.parseDDMMYYYY(a) - utils.parseDDMMYYYY(b));
+    const topClasses = classScores.filter(c => c.totalStars > 0).slice(0, 3);
 
-    if(lessonDates.length === 0) {
-        contentEl.innerHTML = `<p class="text-center text-gray-500 py-8">This class has no scheduled lesson days set in 'My Classes'.</p>`;
+    if (topClasses.length < 2) {
+        narrativeContainer.innerHTML = `<p class="text-xl text-center">Not enough Quest data yet! At least two classes need to earn stars for a rivalry to begin!</p>`;
         return;
     }
 
-    const attendanceByStudent = state.get('allAttendanceRecords').reduce((acc, record) => {
-        if (record.classId === classId) {
-            if (!acc[record.studentId]) acc[record.studentId] = new Set();
-            acc[record.studentId].add(record.date);
-        }
-        return acc;
-    }, {});
-
-    let tableHtml = `<div class="overflow-x-auto"><table class="w-full border-collapse"><thead><tr class="bg-gray-100 sticky top-0 z-10">
-        <th class="p-2 border font-semibold text-left">Student</th>`;
-    lessonDates.forEach(dateStr => {
-        const d = utils.parseDDMMYYYY(dateStr);
-        tableHtml += `<th class="p-2 border text-center text-sm font-medium">${d.getDate()}/${d.getMonth()+1}</th>`;
-    });
-    tableHtml += `</tr></thead><tbody>`;
-
-    studentsInClass.forEach(student => {
-        tableHtml += `<tr class="hover:bg-gray-50">
-            <td class="p-2 border font-medium text-gray-800">${student.name}</td>`;
-        lessonDates.forEach(dateStr => {
-            const isAbsent = attendanceByStudent[student.id]?.has(dateStr);
-            tableHtml += `<td class="p-2 border text-center">
-                <button class="attendance-status-btn w-5 h-5 rounded-full transition-transform transform hover:scale-125 ${isAbsent ? 'status-absent' : 'status-present'}" 
-                        data-student-id="${student.id}" 
-                        data-date="${dateStr}" 
-                        title="${isAbsent ? 'Click to mark Present' : 'Click to mark Absent'}">
-                </button>
-            </td>`;
-        });
-        tableHtml += `</tr>`;
-    });
-
-    tableHtml += `</tbody></table></div>`;
-    contentEl.innerHTML = tableHtml;
-
-    contentEl.querySelectorAll('.attendance-status-btn').forEach(btn => {
-        btn.addEventListener('click', (e) => {
-            toggleAttendanceRecord(e.target);
-        });
-    });
-}
-
-async function toggleAttendanceRecord(button) {
-    playSound('click');
-    const { studentId, date } = button.dataset;
-    const isCurrentlyAbsent = button.classList.contains('status-absent');
-    const student = state.get('allStudents').find(s => s.id === studentId);
-    if (!student) return;
-
-    button.classList.toggle('status-absent', !isCurrentlyAbsent);
-    button.classList.toggle('status-present', isCurrentlyAbsent);
-    button.title = isCurrentlyAbsent ? 'Click to mark Absent' : 'Click to mark Present';
+    const classDataString = topClasses.map(c => `'${c.name}' is at ${c.progress}% of their goal with ${c.totalStars} stars`).join('. ');
+    const systemPrompt = "You are a fun, exciting quest announcer for a classroom game. Do not use markdown or asterisks. Your response must be only the narrative text. You will be given the names, progress percentage, and star counts of the top classes. Write a short, exciting, 2-sentence narrative about their race to the top. IMPORTANT: The class with the highest progress percentage is in the lead, NOT the class with the most stars. Make this distinction clear in your narrative.";
+    const userPrompt = `The top classes are: ${classDataString}. The first class in this list is in the lead. Write the narrative.`;
 
     try {
-        // We imported handleMarkAbsent at the top of modals.js
-        await handleMarkAbsent(studentId, student.classId, !isCurrentlyAbsent);
+        const narrative = await callGeminiApi(systemPrompt, userPrompt);
+        narrativeContainer.innerHTML = `<p>${narrative}</p>`;
+        narrativeContainer.dataset.text = narrative;
+        playBtn.classList.remove('hidden');
+        playBtn.disabled = false;
+        playBtn.innerHTML = `<i class="fas fa-play-circle mr-3"></i> Play Narrative`;
+
     } catch (error) {
-        button.classList.toggle('status-absent', isCurrentlyAbsent);
-        button.classList.toggle('status-present', !isCurrentlyAbsent);
-        button.title = isCurrentlyAbsent ? 'Click to mark Present' : 'Click to mark Absent';
-        showToast('Failed to update attendance.', 'error');
+        console.error("Quest Update Narrative Error:", error);
+        narrativeContainer.innerHTML = `<p class="text-xl text-center text-red-500">The Quest Announcer is taking a break. Please try again in a moment!</p>`;
     }
 }
 
-export async function handleGenerateClassName() {
-    const level = document.getElementById('class-level').value;
-    if (!level) { showToast('Please select a Quest Level first.', 'error'); return; }
-    const ageGroup = utils.getAgeGroupForLeague(level);
-    const btn = document.getElementById('generate-class-name-btn');
-    const suggestionsContainer = document.getElementById('class-name-suggestions');
-    btn.disabled = true;
-    suggestionsContainer.innerHTML = `<span class="text-gray-500"><i class="fas fa-spinner fa-spin mr-2"></i> Thinking of cool names...</span>`;
-
-    const systemPrompt = "You are a creative assistant for a teacher. Generate 5 fun, child-appropriate team names for a classroom. The names should be themed around adventure, learning, or positive concepts. Crucially, the names must be suitable for the specified age group. Do NOT use markdown or any formatting other than a new line for each name. Just provide the list of names.";
-    const userPrompt = `Generate 5 team names for a class of students aged ${ageGroup}.`;
-
-    try {
-        const names = await callGeminiApi(systemPrompt, userPrompt);
-        const nameArray = names.split('\n').filter(n => n.trim() !== '');
-        suggestionsContainer.innerHTML = nameArray.map(name => 
-            `<button type="button" class="suggestion-btn bg-gray-200 text-gray-800 text-sm font-semibold py-1 px-3 rounded-full hover:bg-green-200 bubbly-button">${name.trim()}</button>`
-        ).join('');
-    } catch (error) {
-        console.error('Gemini Class Name Error:', error);
-        suggestionsContainer.innerHTML = `<span class="text-red-500">Oops! The Quest Master is busy. Please try again.</span>`;
-    } finally {
-        btn.disabled = false;
-    }
-}
+// --- RESTORED IDEA FORGE FUNCTIONS ---
 
 export async function handleGenerateIdea() {
     const classId = document.getElementById('gemini-class-select').value;
@@ -1046,42 +910,157 @@ Based on ALL this data, please answer the teacher's question: "${question}"`;
     }
 }
 
-export async function playNarrative() {
-    const playBtn = document.getElementById('play-narrative-btn');
-    const narrativeText = document.getElementById('narrative-text-container').dataset.text;
-    let currentNarrativeAudio = state.get('currentNarrativeAudio');
+export function openAwardNoteModal(logId) {
+    const log = state.get('allAwardLogs').find(l => l.id === logId);
+    if (!log) return;
+    document.getElementById('award-note-log-id-input').value = logId;
+    document.getElementById('award-note-textarea').value = log.note || '';
+    showAnimatedModal('award-note-modal');
+}
 
-    if (currentNarrativeAudio && !currentNarrativeAudio.paused) {
-        currentNarrativeAudio.pause();
-        state.set('currentNarrativeAudio', null);
-        playBtn.innerHTML = `<i class="fas fa-play-circle mr-3"></i> Play Narrative`;
-        return;
+export function openNoteModal(logId) {
+    const log = state.get('allAdventureLogs').find(l => l.id === logId);
+    if (!log) return;
+    document.getElementById('note-log-id-input').value = logId;
+    document.getElementById('note-textarea').value = log.note || '';
+    showAnimatedModal('note-modal');
+}
+
+export function openMilestoneModal(markerElement) {
+    const questCard = markerElement.closest('.quest-card');
+    const classId = questCard.dataset.classId;
+    const classInfo = state.get('allSchoolClasses').find(c => c.id === classId);
+    if (!classInfo) return;
+
+    const studentsInClass = state.get('allStudents').filter(s => s.classId === classId);
+    const studentCount = studentsInClass.length;
+    const currentMonthlyStars = studentsInClass.reduce((sum, s) => {
+        const scoreData = state.get('allStudentScores').find(score => score.id === s.id);
+        return sum + (scoreData?.monthlyStars || 0);
+    }, 0);
+
+    const GOAL_PER_STUDENT = { BRONZE: 4, SILVER: 8, GOLD: 13, DIAMOND: 18 };
+    const goals = {
+        bronze: Math.round(studentCount * GOAL_PER_STUDENT.BRONZE),
+        silver: Math.round(studentCount * GOAL_PER_STUDENT.SILVER),
+        gold: Math.round(studentCount * GOAL_PER_STUDENT.GOLD),
+        diamond: studentCount > 0 ? Math.round(studentCount * GOAL_PER_STUDENT.DIAMOND) : 18
+    };
+
+    const modalTitle = document.getElementById('milestone-modal-title');
+    const modalContent = document.getElementById('milestone-modal-content');
+    
+    let milestoneName, goal, icon;
+    if (markerElement.innerText.includes('🛡️')) { milestoneName = "Bronze Shield"; goal = goals.bronze; icon = '🛡️'; } 
+    else if (markerElement.innerText.includes('🏆')) { milestoneName = "Silver Trophy"; goal = goals.silver; icon = '🏆'; }
+    else if (markerElement.innerText.includes('👑')) { milestoneName = "Golden Crown"; goal = goals.gold; icon = '👑'; } 
+    else { milestoneName = "Diamond Quest"; goal = goals.diamond; icon = '💎'; }
+
+    const now = new Date();
+    const currentMonthIndex = now.getMonth();
+    const currentYear = now.getFullYear();
+
+    const relevantLogs = state.get('allAwardLogs').filter(log => {
+        if (log.classId !== classId) return false;
+        const logDate = utils.parseDDMMYYYY(log.date); 
+        return logDate.getMonth() === currentMonthIndex && logDate.getFullYear() === currentYear;
+    });
+
+    const today = new Date();
+    const dayOfWeek = today.getDay(); // 0 (Sun) to 6 (Sat)
+    const diff = today.getDate() - dayOfWeek + (dayOfWeek === 0 ? -6 : 1); // Adjust to Monday
+    const startOfWeek = new Date(today.setDate(diff));
+    startOfWeek.setHours(0, 0, 0, 0);
+
+    const weeklyStars = relevantLogs
+    .filter(log => utils.parseDDMMYYYY(log.date) >= startOfWeek)
+    .reduce((sum, log) => sum + log.stars, 0);
+
+    const reasonCounts = relevantLogs.reduce((acc, log) => {
+        acc[log.reason || 'other'] = (acc[log.reason || 'other'] || 0) + log.stars;
+        return acc;
+    }, {});
+    const topReasonEntry = Object.entries(reasonCounts).sort((a,b) => b[1] - a[1])[0];
+    const topReason = topReasonEntry ? `${topReasonEntry[0].charAt(0).toUpperCase() + topReasonEntry[0].slice(1)}` : "N/A";
+
+    const studentScores = studentsInClass.map(s => {
+        const score = state.get('allStudentScores').find(sc => sc.id === s.id)?.monthlyStars || 0;
+        return { name: s.name, score };
+    }).filter(s => s.score > 0);
+    
+    let topAdventurers = "None yet this month!";
+    if(studentScores.length > 0) {
+        const topStudents = studentScores.sort((a, b) => b.score - a.score).slice(0, 5).map(s => `${s.name} (${s.score}⭐)`);
+        topAdventurers = topStudents.join(', ');
     }
+    
+    modalTitle.innerHTML = `${icon} ${milestoneName}`;
+    const starsNeeded = Math.max(0, goal - currentMonthlyStars);
+    const progressPercent = goal > 0 ? Math.min(100, (currentMonthlyStars / goal) * 100).toFixed(1) : 0;
 
-    playBtn.disabled = true;
-    playBtn.innerHTML = `<i class="fas fa-spinner fa-spin mr-3"></i> Generating Audio...`;
+    modalContent.innerHTML = `
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 items-center">
+            <div class="text-center">
+                <h3 class="font-title text-4xl text-gray-800">${classInfo.logo} ${classInfo.name}</h3>
+                <p class="text-lg text-gray-600 -mt-2">Progress towards the ${milestoneName}</p>
+                
+                <div class="text-2xl my-4">
+                    <p><span class="font-bold text-amber-500 text-5xl">${currentMonthlyStars}</span> / <span class="font-bold text-3xl text-gray-500">${goal}</span></p>
+                    <p class="text-sm text-gray-500 -mt-1">Total Stars Collected</p>
+                    <div class="w-full bg-gray-200 rounded-full h-6 shadow-inner mt-2 border-2 border-gray-300">
+                        <div class="bg-gradient-to-r from-cyan-400 to-blue-500 h-full rounded-full flex items-center justify-center text-white font-bold text-sm" style="width: ${progressPercent}%">
+                            ${progressPercent > 10 ? `${progressPercent}%` : ''}
+                        </div>
+                    </div>
+                </div>
+                
+                ${starsNeeded > 0 
+                    ? `<p class="mt-4 text-blue-600 font-bold text-3xl animate-pulse">${starsNeeded} more stars to go!</p>` 
+                    : `<p class="mt-4 text-green-600 font-bold text-3xl title-sparkle">Milestone Achieved! Well done!</p>`
+                }
+            </div>
+            <div class="text-left bg-gray-50 p-6 rounded-2xl border-2 border-gray-200 space-y-4">
+                 <div class="bg-white p-3 rounded-lg shadow-sm">
+                    <p class="text-sm text-gray-500 flex items-center gap-1"><i class="fas fa-bolt text-yellow-500"></i> Weekly Momentum (Since Monday)</p>
+                    <p class="font-bold text-2xl text-yellow-600">${weeklyStars} stars</p>
+                </div>
+                <div class="bg-white p-3 rounded-lg shadow-sm">
+                    <p class="text-sm text-gray-500 flex items-center gap-1"><i class="fas fa-award text-green-500"></i> Top Skill This Month</p>
+                    <p class="font-bold text-2xl text-green-600">${topReason}</p>
+                </div>
+                <div class="bg-white p-3 rounded-lg shadow-sm">
+                    <p class="text-sm text-gray-500 flex items-center gap-1"><i class="fas fa-crown text-purple-500"></i> Top Adventurers (Monthly)</p>
+                    <p class="font-semibold text-lg text-purple-600" title="${topAdventurers}">${topAdventurers}</p>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    showAnimatedModal('milestone-details-modal');
+}
+
+export async function showWelcomeBackMessage(firstName, stars) {
+    const modal = document.getElementById('welcome-back-modal');
+    const messageEl = document.getElementById('welcome-back-message');
+    const starsEl = document.getElementById('welcome-back-stars');
+
+    starsEl.textContent = stars;
+    messageEl.innerHTML = `<i class="fas fa-spinner fa-spin"></i>`;
+    showAnimatedModal('welcome-back-modal');
+
+    const systemPrompt = "You are the 'Quest Master' in a fun classroom game. You speak in short, exciting, single sentences. Do NOT use markdown or asterisks. Your job is to give a unique, positive welcome back message to a student who was absent. It must be one sentence only.";
+    const userPrompt = `Generate a one-sentence welcome back message for a student named ${firstName}.`;
 
     try {
-        const audioBlob = await callElevenLabsTtsApi(narrativeText);
-        const audioUrl = URL.createObjectURL(audioBlob);
-        currentNarrativeAudio = new Audio(audioUrl);
-        state.set('currentNarrativeAudio', currentNarrativeAudio);
-        
-        currentNarrativeAudio.onplay = () => {
-            playBtn.innerHTML = `<i class="fas fa-pause-circle mr-3"></i> Pause`;
-            playBtn.disabled = false;
-        };
-        currentNarrativeAudio.onended = () => {
-            playBtn.innerHTML = `<i class="fas fa-redo-alt mr-3"></i> Play Again`;
-            state.set('currentNarrativeAudio', null);
-        };
-        currentNarrativeAudio.play();
-    } catch (error) {
-        console.error("ElevenLabs TTS Playback Error:", error);
-        showToast('Could not generate or play audio.', 'error');
-        playBtn.innerHTML = `<i class="fas fa-play-circle mr-3"></i> Play Narrative`;
-        playBtn.disabled = false;
+        const message = await callGeminiApi(systemPrompt, userPrompt);
+        messageEl.textContent = message;
+    } catch (e) {
+        messageEl.textContent = `We're so glad you're back, ${firstName}!`;
     }
+    
+    setTimeout(() => {
+        hideModal('welcome-back-modal');
+    }, 4000);
 }
 
 export async function handleGenerateReport(classId) {
@@ -1672,7 +1651,6 @@ export function openHeroStatsModal(studentId, triggerElement) {
         }
     }
 
-    // --- Open & Close Logic ---
     const closeHandler = () => {
         modal.removeEventListener('click', backgroundClickHandler);
         
@@ -1697,7 +1675,6 @@ export function openHeroStatsModal(studentId, triggerElement) {
 
     modal.addEventListener('click', backgroundClickHandler);
 
-    // --- Animate In ---
     modal.style.transition = 'background-color 0.3s ease-out';
     modal.style.backgroundColor = 'rgba(0, 0, 0, 0)';
     modalContent.classList.add('modal-origin-start');

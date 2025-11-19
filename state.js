@@ -1,5 +1,3 @@
-// /state.js
-
 import { competitionStart } from './constants.js';
 import { 
     updateAllClassSelectors, 
@@ -7,14 +5,13 @@ import {
     renderClassLeaderboardTab, 
     renderStudentLeaderboardTab,
     renderAwardStarsTab,
-    renderAdventureLogTab // <-- FIX 2: Imported the missing render function
+    renderAdventureLogTab 
 } from './ui/tabs.js';
 import { getTodayDateString } from './utils.js';
 
 // --- Internal State Store ---
 let state = {};
 
-// --- FIX 2: Add helper function and 'calendarCurrentDate' to state ---
 function getCalendarDefaultDate() {
     let date = new Date();
     if (date < competitionStart) {
@@ -37,12 +34,16 @@ function getDefaultState() {
         allQuestEvents: [],
         allQuestAssignments: [],
         allWrittenScores: [],
-        allAttendanceRecords: [],
+        allAttendanceRecords: [], // Keeps recent/real-time records
         allScheduleOverrides: [],
         allHeroChronicleNotes: [],
+        
+        // UI Selection States
         globalSelectedClassId: null,
         globalSelectedLeague: null,
         isProgrammaticSelection: false,
+        
+        // Feature Specific States
         ceremonyState: {
             isActive: false,
             type: null,
@@ -75,7 +76,9 @@ function getDefaultState() {
             generatedImage: null
         },
         
+        // Calendar & Attendance Views
         calendarCurrentDate: getCalendarDefaultDate(),
+        attendanceViewDate: new Date(), // NEW: Tracks the month being viewed in the chronicle
 
         // Unsubscribe functions
         unsubscribeClasses: () => {},
@@ -99,20 +102,10 @@ state = getDefaultState();
 
 // --- Core Functions ---
 
-/**
- * Get a value from the state.
- * @param {string} key - The key of the state variable to retrieve.
- * @returns {*} The value from the state.
- */
 export function get(key) {
     return state[key];
 }
 
-/**
- * Set a value in the state.
- * @param {string} key - The key of the state variable to set.
- * @param {*} value - The new value.
- */
 export function set(key, value) {
     if (key in state) {
         state[key] = value;
@@ -121,26 +114,17 @@ export function set(key, value) {
     }
 }
 
-/**
- * Reset the state to its default values (used on logout).
- */
 export function resetState() {
-    // Get default state
     const defaults = getDefaultState();
-    
-    // Call all unsubscribe functions before clearing them
     Object.keys(state).forEach(key => {
         if (key.startsWith('unsubscribe') && typeof state[key] === 'function') {
             state[key]();
         }
     });
-
-    // Reset the state object
     state = defaults;
 }
 
 // --- Individual Setters ---
-// These are still needed because db/listeners.js uses them directly.
 
 export function setCurrentUserId(id) { state.currentUserId = id; }
 export function setCurrentTeacherName(name) { state.currentTeacherName = name; }
@@ -156,13 +140,9 @@ export function setAllWrittenScores(scores) { state.allWrittenScores = scores; }
 export function setAllAttendanceRecords(records) { state.allAttendanceRecords = records; }
 export function setAllScheduleOverrides(overrides) { state.allScheduleOverrides = overrides; }
 export function setAllHeroChronicleNotes(notes) { state.allHeroChronicleNotes = notes; }
-/**
- * Sets the globally selected class, updates the league, and syncs UI.
- * @param {string} classId - The ID of the class to select.
- * @param {boolean} isManual - Whether the change was user-initiated.
- */
+
 export function setGlobalSelectedClass(classId, isManual = false) {
-    if (classId === state.globalSelectedClassId && !isManual) return; // Prevent re-renders
+    if (classId === state.globalSelectedClassId && !isManual) return;
 
     state.globalSelectedClassId = classId;
     if (classId) {
@@ -172,11 +152,9 @@ export function setGlobalSelectedClass(classId, isManual = false) {
         }
     }
 
-    // Update UI elements
     updateAllClassSelectors(isManual);
-    updateAllLeagueSelectors(isManual); // League might have changed
+    updateAllLeagueSelectors(isManual);
 
-    // --- FIX 2: Ensure Adventure Log rerenders on manual class change ---
     if (isManual && !state.isProgrammaticSelection) {
         const activeTab = document.querySelector('.app-tab:not(.hidden)');
         if (activeTab) {
@@ -189,27 +167,20 @@ export function setGlobalSelectedClass(classId, isManual = false) {
     }
 }
 
-
-/**
- * Sets the globally selected league and syncs UI.
- * @param {string} league - The name of the league.
- *S @param {boolean} isManual - Whether the change was user-initiated.
- */
 export function setGlobalSelectedLeague(league, isManual = false) {
     if (league === state.globalSelectedLeague) return;
 
     state.globalSelectedLeague = league;
     updateAllLeagueSelectors(isManual);
 
-    // Manually trigger leaderboard re-renders
     if (isManual) {
-    const activeTab = document.querySelector('.app-tab:not(.hidden)');
-    if (activeTab && (activeTab.id === 'class-leaderboard-tab' || activeTab.id === 'student-leaderboard-tab')) {
-         renderClassLeaderboardTab();
-         renderStudentLeaderboardTab();
+        const activeTab = document.querySelector('.app-tab:not(.hidden)');
+        if (activeTab && (activeTab.id === 'class-leaderboard-tab' || activeTab.id === 'student-leaderboard-tab')) {
+             renderClassLeaderboardTab();
+             renderStudentLeaderboardTab();
+        }
     }
 }
-    }
 
 export function setIsProgrammaticSelection(value) { state.isProgrammaticSelection = value; }
 export function setCeremonyState(newState) { state.ceremonyState = newState; }
@@ -229,6 +200,7 @@ export function setAllCompletedStories(stories) { state.allCompletedStories = st
 export function setCurrentStorybookAudio(audio) { state.currentStorybookAudio = audio; }
 export function setCurrentNarrativeAudio(audio) { state.currentNarrativeAudio = audio; }
 export function setAvatarMakerData(data) { state.avatarMakerData = data; }
+export function setAttendanceViewDate(date) { state.attendanceViewDate = date; } // NEW SETTER
 
 // Unsubscribe setters
 export function setUnsubscribeClasses(func) { state.unsubscribeClasses = func; }
@@ -245,8 +217,7 @@ export function setUnsubscribeAttendance(func) { state.unsubscribeAttendance = f
 export function setUnsubscribeScheduleOverrides(func) { state.unsubscribeScheduleOverrides = func; }
 export function setUnsubscribeHeroChronicleNotes(func) { state.unsubscribeHeroChronicleNotes = func; }
 
-// --- NEW FUNCTION, NOT EXPORTED ---
-// This function needs to be in state.js so it can be called by renderHistoricalLeaderboard
+// Helper to fetch history (internal use)
 export async function fetchMonthlyHistory(monthKey) {
     const allMonthlyHistory = get('allMonthlyHistory');
     if (allMonthlyHistory[monthKey]) return allMonthlyHistory[monthKey];
@@ -256,6 +227,9 @@ export async function fetchMonthlyHistory(monthKey) {
         contentEl.innerHTML = `<p class="text-center text-gray-500"><i class="fas fa-spinner fa-spin mr-2"></i>Loading historical data...</p>`;
     }
     
+    const { getFirestore, collectionGroup, query, where, getDocs } = await import('https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js');
+    const { db } = await import('./firebase.js');
+
     const historyQuery = query(collectionGroup(db, 'monthly_history'), where("month", "==", monthKey));
     try {
         const snapshot = await getDocs(historyQuery);
@@ -274,4 +248,3 @@ export async function fetchMonthlyHistory(monthKey) {
         return {};
     }
 }
-

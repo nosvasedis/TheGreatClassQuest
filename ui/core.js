@@ -37,7 +37,7 @@ import {
     saveAdventureLogNote,
     handleLogAdventure,
     deleteAdventureLog,
-    handleLogTrial,
+    handleBulkSaveTrial, 
     handleSaveQuestAssignment,
     handleMarkAbsent,
     handleMoveStudent,
@@ -50,7 +50,7 @@ import {
     addOrUpdateHeroChronicleNote,
     deleteHeroChronicleNote
 } from '../db/actions.js';
-import { fetchLogsForMonth } from '../db/queries.js'; // <-- CORRECT IMPORT ADDED
+import { fetchLogsForMonth } from '../db/queries.js'; 
 
 // --- MAIN UI EVENT LISTENERS SETUP ---
 
@@ -58,7 +58,7 @@ export function setupUIListeners() {
     document.body.addEventListener('click', (e) => {
        const heroStatsTrigger = e.target.closest('.hero-stats-avatar-trigger');
         if (heroStatsTrigger) {
-            e.stopPropagation(); // Prevents other click handlers
+            e.stopPropagation(); 
             const studentId = heroStatsTrigger.dataset.studentId;
             modals.openHeroStatsModal(studentId, heroStatsTrigger); 
             return;
@@ -139,7 +139,7 @@ export function setupUIListeners() {
     document.getElementById('edit-student-name-cancel-btn').addEventListener('click', () => modals.hideModal('edit-student-name-modal'));
     document.getElementById('edit-student-name-confirm-btn').addEventListener('click', handleEditStudentName);
 
-    // --- NEW, CORRECTED CALENDAR LOGIC ---
+    // Calendar Logic
     const handleMonthChange = async (direction) => {
         const calDate = state.get('calendarCurrentDate');
         calDate.setMonth(calDate.getMonth() + direction);
@@ -205,7 +205,6 @@ export function setupUIListeners() {
             }
         }
     });
-    // --- END NEW CALENDAR LOGIC ---
 
     document.getElementById('day-planner-close-btn').addEventListener('click', () => modals.hideModal('day-planner-modal'));
     document.getElementById('day-planner-tabs').addEventListener('click', (e) => {
@@ -262,6 +261,8 @@ export function setupUIListeners() {
             icon.classList.remove('rotate-180');
         }
     });
+
+    // --- AWARD STARS & ABSENCE HANDLING ---
     document.getElementById('award-stars-student-list').addEventListener('click', async (e) => {
         const actionBtn = e.target.closest('[data-action]');
         if (actionBtn) {
@@ -269,39 +270,58 @@ export function setupUIListeners() {
             const studentId = studentCard.dataset.studentid;
             const student = state.get('allStudents').find(s => s.id === studentId);
             
+            // --- CASE 1: MARK ABSENT (Explicit for Today) ---
             if (actionBtn.dataset.action === 'mark-absent') {
                 playSound('click');
                 await handleMarkAbsent(studentId, student.classId, true);
                 return;
             }
 
+            // --- CASE 2: MARK PRESENT (Explicit Undo or Implicit Override) ---
             if (actionBtn.dataset.action === 'mark-present') {
                 playSound('click');
-                await handleMarkAbsent(studentId, student.classId, false);
+                const today = utils.getTodayDateString();
+                const isMarkedAbsentToday = state.get('allAttendanceRecords').some(r => r.studentId === studentId && r.date === today);
+                
+                if (isMarkedAbsentToday) {
+                    // It was an explicit absence for today. Just delete the record.
+                    await handleMarkAbsent(studentId, student.classId, false);
+                } else {
+                    // Implicit Absence (from previous lesson).
+                    // User wants to mark present but NOT give a bonus.
+                    // We use 0 stars with a specific reason to signal "Present" to the UI logic.
+                    await setStudentStarsForToday(studentId, 0, 'marked_present');
+                    showToast(`${student.name} marked present.`, 'success');
+                }
                 return;
             }
 
+            // --- CASE 3: WELCOME BACK (Implicit Absence Bonus) ---
             if (actionBtn.dataset.action === 'welcome-back') {
+                // Awards bonus star(s) AND creates the today_stars entry
                 const stars = Math.random() < 0.5 ? 0.5 : 1;
                 const firstName = student.name.split(' ')[0];
                 playSound('star2');
                 
                 try {
                     const publicDataPath = "artifacts/great-class-quest/public/data";
-                    const lastLessonDate = utils.getLastLessonDate(student.classId, state.get('allSchoolClasses'));
-                    const attendanceQuery = query(collection(db, `${publicDataPath}/attendance`), where("studentId", "==", studentId), where("date", "==", lastLessonDate));
-                    const attendanceSnapshot = await getDocs(attendanceQuery);
-
                     await runTransaction(db, async (transaction) => {
                         const scoreRef = doc(db, `${publicDataPath}/student_scores`, studentId);
                         const newLogRef = doc(collection(db, `${publicDataPath}/award_log`));
                         
-                        attendanceSnapshot.forEach(doc => transaction.delete(doc.ref));
-
-                        transaction.update(scoreRef, {
-                            totalStars: increment(stars),
-                            monthlyStars: increment(stars)
-                        });
+                        const scoreDoc = await transaction.get(scoreRef);
+                        if (!scoreDoc.exists()) {
+                             transaction.set(scoreRef, {
+                                totalStars: stars, monthlyStars: stars,
+                                lastMonthlyResetDate: utils.getStartOfMonthString(),
+                                createdBy: { uid: state.get('currentUserId'), name: state.get('currentTeacherName') }
+                            });
+                        } else {
+                            transaction.update(scoreRef, {
+                                totalStars: increment(stars),
+                                monthlyStars: increment(stars)
+                            });
+                        }
 
                         const logData = {
                             studentId, classId: student.classId, teacherId: state.get('currentUserId'),
@@ -309,6 +329,12 @@ export function setupUIListeners() {
                             createdAt: serverTimestamp(), createdBy: { uid: state.get('currentUserId'), name: state.get('currentTeacherName') }
                         };
                         transaction.set(newLogRef, logData);
+                        
+                        const todayStarsRef = doc(collection(db, `${publicDataPath}/today_stars`));
+                        transaction.set(todayStarsRef, {
+                             studentId, stars: stars, date: utils.getTodayDateString(), reason: 'welcome_back',
+                             teacherId: state.get('currentUserId'), createdBy: { uid: state.get('currentUserId'), name: state.get('currentTeacherName') }
+                        });
                     });
                     
                     showWelcomeBackMessage(firstName, stars);
@@ -467,10 +493,15 @@ export function setupUIListeners() {
         state.setGlobalSelectedClass(e.target.value, true);
         scholarScroll.renderScholarsScrollTab(e.target.value);
     });
-    document.getElementById('log-trial-btn').addEventListener('click', () => scholarScroll.openLogTrialModal(document.getElementById('scroll-class-select').value));
-    document.getElementById('log-trial-form').addEventListener('submit', (e) => { e.preventDefault(); handleLogTrial(); });
-    document.getElementById('log-trial-cancel-btn').addEventListener('click', () => modals.hideModal('log-trial-modal'));
-    document.getElementById('log-trial-type').addEventListener('change', scholarScroll.renderLogTrialScoreInput);
+    
+    // NEW: Replaced log-trial-btn listener to open the trial type modal via scholarScroll helper
+    document.getElementById('log-trial-btn').addEventListener('click', () => scholarScroll.openTrialTypeModal(document.getElementById('scroll-class-select').value));
+    
+    // NEW: Bulk Save listener
+    document.getElementById('bulk-trial-save-btn').addEventListener('click', handleBulkSaveTrial);
+    document.getElementById('bulk-trial-close-btn').addEventListener('click', () => modals.hideModal('bulk-trial-modal'));
+    document.getElementById('trial-type-cancel-btn').addEventListener('click', () => modals.hideModal('trial-type-modal'));
+    
     document.getElementById('view-trial-history-btn').addEventListener('click', () => scholarScroll.openTrialHistoryModal(document.getElementById('scroll-class-select').value));
     document.getElementById('trial-history-close-btn').addEventListener('click', () => modals.hideModal('trial-history-modal'));
     document.getElementById('starfall-cancel-btn').addEventListener('click', () => modals.hideModal('starfall-modal'));
@@ -579,7 +610,7 @@ export function setupUIListeners() {
             modals.setupNoteForEditing(editBtn.dataset.noteId);
         }
         if (deleteBtn) {
-            showModal('Delete Note?', 'Are you sure you want to permanently delete this note?', () => {
+            modals.showModal('Delete Note?', 'Are you sure you want to permanently delete this note?', () => {
                 deleteHeroChronicleNote(deleteBtn.dataset.noteId);
             });
         }

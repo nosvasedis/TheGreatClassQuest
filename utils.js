@@ -133,6 +133,7 @@ export function getLastLessonDate(classId, allSchoolClasses) {
     }
     
     let checkDate = new Date();
+    // Check today first, then go back
     for (let i = 0; i < 7; i++) {
         if (classData.scheduleDays.includes(checkDate.getDay().toString())) {
             return getDDMMYYYY(checkDate);
@@ -140,7 +141,28 @@ export function getLastLessonDate(classId, allSchoolClasses) {
         checkDate.setDate(checkDate.getDate() - 1);
     }
     return getTodayDateString(); 
+}
 
+/**
+ * Finds the date of the lesson strictly BEFORE today.
+ * Used for persistence of absence status.
+ */
+export function getPreviousLessonDate(classId, allSchoolClasses) {
+    const classData = allSchoolClasses.find(c => c.id === classId);
+    if (!classData || !classData.scheduleDays || classData.scheduleDays.length === 0) {
+        return null;
+    }
+    
+    let checkDate = new Date();
+    checkDate.setDate(checkDate.getDate() - 1); // Start checking from yesterday
+
+    for (let i = 0; i < 14; i++) { // Check back 2 weeks max
+        if (classData.scheduleDays.includes(checkDate.getDay().toString())) {
+            return getDDMMYYYY(checkDate);
+        }
+        checkDate.setDate(checkDate.getDate() - 1);
+    }
+    return null;
 }
 
 export function updateDateTime() {
@@ -157,12 +179,6 @@ export function updateDateTime() {
     }
 }
 
-/**
- * Debounce function to limit the rate at which a function gets called.
- * @param {Function} func The function to debounce.
- * @param {number} wait The delay in milliseconds.
- * @returns {Function} The debounced function.
- */
 export function debounce(func, wait) {
     let timeout;
   

@@ -68,10 +68,8 @@ export async function fetchLogsForMonth(year, month) {
         const snapshot = await getDocs(logsQuery);
         return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
     } catch (error) {
-        // This error will happen if the index is not created yet.
         if (error.code === 'failed-precondition') {
-            console.error("Firestore query failed. You likely need to create a composite index for 'award_log' on the 'date' field. The error message below should contain a link to create it.", error);
-            alert("A one-time database setup is required. Please open the browser console (F12) to find a link to create a necessary database index for this feature.");
+            console.error("Firestore query failed. Index needed for award_log date range.", error);
         } else {
             console.error("Error fetching logs for month:", error);
         }
@@ -79,13 +77,42 @@ export async function fetchLogsForMonth(year, month) {
     }
 }
 
-// --- NEW FUNCTIONS FOR ON-DEMAND TRIAL HISTORY ---
+// --- NEW: Attendance Fetching ---
 
 /**
- * Fetches all trial documents for a class to determine which months have data.
- * @param {string} classId - The ID of the class.
- * @returns {Promise<Set<string>>} A promise that resolves to a Set of unique month keys (YYYY-MM).
+ * Fetches attendance records for a specific class and month based on creation time.
+ * @param {string} classId 
+ * @param {number} year 
+ * @param {number} month (1-12)
  */
+export async function fetchAttendanceForMonth(classId, year, month) {
+    const startDate = new Date(year, month - 1, 1); 
+    const endDate = new Date(year, month, 0, 23, 59, 59); 
+
+    const publicDataPath = "artifacts/great-class-quest/public/data";
+    // We use createdAt for range querying because the 'date' field is a DD-MM-YYYY string 
+    // which doesn't sort chronologically in Firestore.
+    const attendanceQuery = query(
+        collection(db, `${publicDataPath}/attendance`),
+        where("classId", "==", classId),
+        where("createdAt", ">=", startDate),
+        where("createdAt", "<=", endDate)
+    );
+
+    try {
+        const snapshot = await getDocs(attendanceQuery);
+        return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    } catch (error) {
+        console.error("Error fetching attendance for month:", error);
+        if (error.code === 'failed-precondition') {
+             alert("Database Setup: A composite index is required for Attendance queries (classId + createdAt). Open console for link.");
+        }
+        return [];
+    }
+}
+
+// --- TRIAL HISTORY FUNCTIONS ---
+
 export async function fetchAllTrialMonthsForClass(classId) {
     const allTrials = await fetchAllTrialsForClass(classId);
     const monthSet = new Set();
@@ -97,18 +124,12 @@ export async function fetchAllTrialMonthsForClass(classId) {
     return monthSet;
 }
 
-/**
- * Fetches all trial documents for a specific class and month.
- * @param {string} classId - The ID of the class.
- * @param {string} monthKey - The month to fetch in YYYY-MM format.
- * @returns {Promise<Array>} A promise that resolves to an array of trial documents.
- */
 export async function fetchTrialsForMonth(classId, monthKey) {
     const startDate = new Date(monthKey + '-01');
     const endDate = new Date(startDate.getFullYear(), startDate.getMonth() + 1, 0);
 
-    const startDateString = startDate.toISOString().split('T')[0]; // YYYY-MM-DD
-    const endDateString = endDate.toISOString().split('T')[0];     // YYYY-MM-DD
+    const startDateString = startDate.toISOString().split('T')[0]; 
+    const endDateString = endDate.toISOString().split('T')[0];     
 
     const publicDataPath = "artifacts/great-class-quest/public/data";
     const trialsQuery = query(
@@ -124,9 +145,6 @@ export async function fetchTrialsForMonth(classId, monthKey) {
         return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
     } catch (error) {
         console.error(`Error fetching trials for month ${monthKey}:`, error);
-        if (error.code === 'failed-precondition') {
-             alert("A one-time database setup is required for this feature. Please open the browser console (F12) to find a link to create the necessary database index.");
-        }
         return [];
     }
 }

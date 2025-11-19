@@ -1,8 +1,8 @@
 // /db/listeners.js
 
-import { db, collection, query, where, onSnapshot, orderBy, doc, getDocs, writeBatch, documentId, collectionGroup } from '../firebase.js';
+import { db, collection, query, where, onSnapshot, orderBy, doc, getDocs, writeBatch, collectionGroup } from '../firebase.js';
 import * as state from '../state.js';
-import { getStartOfMonthString, getTodayDateString, getDDMMYYYY } from '../utils.js'; // getDDMMYYYY might be needed if we switch to it
+import { getStartOfMonthString, getTodayDateString } from '../utils.js';
 import { 
     renderClassLeaderboardTab, renderManageClassesTab, renderAwardStarsTab, renderIdeasTabSelects, 
     renderAdventureLogTab, renderStudentLeaderboardTab, renderManageStudentsTab, 
@@ -15,16 +15,18 @@ import {
     renderScholarsScrollTab, 
     renderTrialHistoryContent 
 } from '../features/scholarScroll.js';
-import { updateStudentCardAttendanceState, findAndSetCurrentLeague } from '../ui/core.js';
+import { updateStudentCardAttendanceState } from '../ui/core.js';
+import { updateStudentCardAttendanceState as updateTabAttendance } from '../ui/tabs.js'; // Explicit import to avoid naming collision if needed
+import { findAndSetCurrentLeague } from '../ui/core.js';
 import { checkAndResetMonthlyStars } from './actions.js';
 import { renderStoryArchive } from '../features/storyWeaver.js';
 import { updateCeremonyStatus } from '../features/ceremony.js';
 import * as utils from '../utils.js';
-import { competitionStart } from '../constants.js'; // <-- FIX: Import competition start date
+import { competitionStart } from '../constants.js';
 import * as modals from '../ui/modals.js';
 
 export function setupDataListeners(userId, dateString) {
-    // Call get() on state to retrieve functions
+    // Clear previous listeners
     state.get('unsubscribeClasses')();
     state.get('unsubscribeStudents')();
     state.get('unsubscribeStudentScores')();
@@ -41,6 +43,12 @@ export function setupDataListeners(userId, dateString) {
 
     const publicDataPath = "artifacts/great-class-quest/public/data";
     
+    // --- Time-bounded Definitions ---
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+    
+    const competitionStartDateString = competitionStart.toISOString().split('T')[0];
+
     // --- Define Queries ---
     const classesQuery = query(collection(db, `${publicDataPath}/classes`));
     const studentsQuery = query(collection(db, `${publicDataPath}/students`));
@@ -49,30 +57,21 @@ export function setupDataListeners(userId, dateString) {
     const questEventsQuery = query(collection(db, `${publicDataPath}/quest_events`));
     const questAssignmentsQuery = query(collection(db, `${publicDataPath}/quest_assignments`), where('createdBy.uid', '==', userId));
     const completedStoriesQuery = query(collection(db, `${publicDataPath}/completed_stories`), orderBy('completedAt', 'desc'));
-    const attendanceQuery = query(collection(db, `${publicDataPath}/attendance`));
     const overridesQuery = query(collection(db, `${publicDataPath}/schedule_overrides`));
     const heroChronicleNotesQuery = query(collection(db, `${publicDataPath}/hero_chronicle_notes`), where('teacherId', '==', userId));
 
-    // --- Time-bounded Queries for Cost Savings ---
-    const thirtyDaysAgo = new Date();
-    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-
-    // --- FIX: Change written scores to fetch from the start of the competition ---
-    // This provides a better overview for the entire school year.
-    const competitionStartDateString = competitionStart.toISOString().split('T')[0];
-
-    // These listeners correctly use 'createdAt' which you have been saving all along
+    // Optimized Queries (Time-Bounded)
     const awardLogsQuery = query(collection(db, `${publicDataPath}/award_log`), where('createdAt', '>=', thirtyDaysAgo));
     const adventureLogsQuery = query(collection(db, `${publicDataPath}/adventure_logs`), where('createdAt', '>=', thirtyDaysAgo), orderBy('createdAt', 'desc'));
     
-    // --- THE FIX IS HERE ---
-    // We now query using the 'date' field from the competition start date.
+    // REVAMP: Attendance now only fetches the last 30 days real-time. Older data is fetched on demand.
+    const attendanceQuery = query(collection(db, `${publicDataPath}/attendance`), where('createdAt', '>=', thirtyDaysAgo));
+
     const writtenScoresQuery = query(
         collection(db, `${publicDataPath}/written_scores`), 
         where('date', '>=', competitionStartDateString), 
         orderBy('date', 'desc')
     );
-    // --- END OF FIX ---
 
     // --- Attach Listeners ---
     state.setUnsubscribeClasses(onSnapshot(classesQuery, (snapshot) => {
@@ -168,7 +167,6 @@ export function setupDataListeners(userId, dateString) {
             }
         });
 
-        // Set the state with the modified object to ensure reactivity if needed elsewhere
         state.set('todaysStars', currentTodaysStars);
 
     }, (error) => console.error("Error listening to today_stars:", error)));
@@ -218,26 +216,33 @@ export function setupDataListeners(userId, dateString) {
             renderTrialHistoryContent(classId, activeView);
         }
     }, (error) => {
-        if (error.code === 'failed-precondition') {
-             console.error("Firestore query failed. You likely need to create a composite index for 'written_scores' on the 'date' field. The error message below should contain a link to create it.", error);
-            alert("A one-time database setup is required. Please open the browser console (F12) to find a link to create a necessary database index for this feature.");
-        } else {
-            console.error("Error listening to written scores:", error);
-        }
+        console.error("Error listening to written scores:", error);
     }));
 
     state.setUnsubscribeAttendance(onSnapshot(attendanceQuery, (snapshot) => {
+        // This state now only contains RECENT attendance (last 30 days)
         state.setAllAttendanceRecords(snapshot.docs.map(d => ({ id: d.id, ...d.data() })));
+        
         snapshot.docChanges().forEach(change => {
             const attendanceData = change.doc.data();
             const student = state.get('allStudents').find(s => s.id === attendanceData.studentId);
             if (student) {
                 const lastLessonDate = utils.getLastLessonDate(student.classId, state.get('allSchoolClasses'));
+                // If the change is relevant to the most recent lesson, update the UI immediately
                 if (attendanceData.date === lastLessonDate) {
                     updateStudentCardAttendanceState(attendanceData.studentId, change.type !== 'removed');
                 }
             }
         });
+        
+        // If the attendance modal is open, and we are viewing the current month, refresh it
+        const modal = document.getElementById('attendance-chronicle-modal');
+        if (modal && !modal.classList.contains('hidden')) {
+             // We'll handle this refresh logic more robustly in modals.js, 
+             // but simple re-render triggers here if needed.
+             // For now, we rely on the Modal's internal state to trigger updates or 
+             // just let the 'on-demand' logic handle older months.
+        }
     }, (error) => console.error("Error listening to attendance:", error)));
 
     state.setUnsubscribeScheduleOverrides(onSnapshot(overridesQuery, (snapshot) => {
@@ -248,12 +253,10 @@ export function setupDataListeners(userId, dateString) {
 
     state.setUnsubscribeHeroChronicleNotes(onSnapshot(heroChronicleNotesQuery, (snapshot) => {
         state.setAllHeroChronicleNotes(snapshot.docs.map(d => ({ id: d.id, ...d.data() })));
-        // Re-render the modal if it's open, to show new/updated notes
         const modal = document.getElementById('hero-chronicle-modal');
         if (modal && !modal.classList.contains('hidden')) {
             const studentId = modal.dataset.studentId;
             if (studentId) {
-                // We will create this function in modals.js
                 modals.renderHeroChronicleContent(studentId);
             }
         }
@@ -273,32 +276,3 @@ export async function archivePreviousDayStars(userId, todayDateString) {
         console.log(`Archived and deleted ${oldDocs.length} old daily entries.`);
     } catch (error) { console.error('Error archiving stars:', error); }
 }
-
-export async function fetchMonthlyHistory(monthKey) {
-    const allMonthlyHistory = state.get('allMonthlyHistory');
-    if (allMonthlyHistory[monthKey]) return allMonthlyHistory[monthKey];
-    
-    const contentEl = document.getElementById('history-modal-content');
-    if(contentEl && contentEl.innerHTML.includes('Select a month')) {
-        contentEl.innerHTML = `<p class="text-center text-gray-500"><i class="fas fa-spinner fa-spin mr-2"></i>Loading historical data...</p>`;
-    }
-    
-    const historyQuery = query(collectionGroup(db, 'monthly_history'), where("month", "==", monthKey));
-    try {
-        const snapshot = await getDocs(historyQuery);
-        const scores = {};
-        snapshot.forEach(doc => {
-            const studentId = doc.ref.parent.parent.id;
-            scores[studentId] = doc.data().stars || 0;
-        });
-        allMonthlyHistory[monthKey] = scores;
-        state.set('allMonthlyHistory', allMonthlyHistory);
-        return scores;
-    } catch (error) {
-        console.error("Error fetching monthly history:", error);
-        allMonthlyHistory[monthKey] = {};
-        state.set('allMonthlyHistory', allMonthlyHistory);
-        return {};
-    }
-}
-

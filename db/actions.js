@@ -21,7 +21,7 @@ import {
 } from '../firebase.js';
 
 import * as state from '../state.js';
-import { getStartOfMonthString, getTodayDateString, parseDDMMYYYY, simpleHashCode, getAgeGroupForLeague, getLastLessonDate, compressImageBase64, getDDMMYYYY, debounce } from '../utils.js'; // Added debounce
+import { getStartOfMonthString, getTodayDateString, parseDDMMYYYY, simpleHashCode, getAgeGroupForLeague, getLastLessonDate, compressImageBase64, getDDMMYYYY, debounce } from '../utils.js';
 import { showToast, showPraiseToast } from '../ui/effects.js';
 import { showStarfallModal, showModal, hideModal } from '../ui/modals.js';
 import { playSound } from '../audio.js';
@@ -29,7 +29,6 @@ import { callGeminiApi, callCloudflareAiImageApi } from '../api.js';
 import { classColorPalettes } from '../constants.js';
 import { handleStoryWeaversClassSelect } from '../features/storyWeaver.js';
 
-// --- DEBOUNCED QUEST COMPLETION CHECK ---
 const debouncedCheckAndRecordQuestCompletion = debounce(checkAndRecordQuestCompletion, 4000);
 
 // --- CLASS ACTIONS ---
@@ -123,7 +122,7 @@ export async function handleEditClass() {
         const classRef = doc(db, "artifacts/great-class-quest/public/data/classes", classId);
         await updateDoc(classRef, { name, questLevel: level, logo, timeStart, timeEnd, scheduleDays });
         showToast('Class updated successfully!', 'success');
-        document.getElementById('edit-class-modal').classList.add('hidden'); // Simplified hideModal
+        document.getElementById('edit-class-modal').classList.add('hidden');
     } catch (error) {
         console.error("Error updating class: ", error);
         showToast(`Error: ${error.message}`, 'error');
@@ -289,17 +288,20 @@ export async function setStudentStarsForToday(studentId, starValue, reason = nul
     let finalStarValue = starValue;
     const activeEvent = state.get('allQuestEvents').find(e => e.date === today);
     if (activeEvent) {
-        if (activeEvent.type === '2x Star Day') {
+        if (activeEvent.type === '2x Star Day' && starValue > 0) {
             finalStarValue *= 2;
-        } else if (activeEvent.type === 'Reason Bonus Day' && activeEvent.details?.reason === reason) {
+        } else if (activeEvent.type === 'Reason Bonus Day' && activeEvent.details?.reason === reason && starValue > 0) {
             finalStarValue += 1;
         }
     }
 
+    // Audio
     if (starValue > 0 && reason !== 'welcome_back' && reason !== 'story_weaver' && reason !== 'scholar_s_bonus') {
          if (starValue === 1) playSound('star1');
          else if (starValue === 2) playSound('star2');
          else playSound('star3');
+    } else if (reason === 'marked_present') {
+         playSound('confirm');
     }
     
     let studentClassId = null;
@@ -327,6 +329,7 @@ export async function setStudentStarsForToday(studentId, starValue, reason = nul
             }
             
             difference = finalStarValue - oldStars;
+
             if (difference === 0 && finalStarValue > 0) {
                 const logId = state.get('todaysAwardLogs')[studentId];
                 if (logId) {
@@ -336,7 +339,8 @@ export async function setStudentStarsForToday(studentId, starValue, reason = nul
                 return;
             }
             
-            if (difference === 0) return;
+            if (difference === 0 && reason !== 'marked_present' && !todayDocRef) return;
+
 
             const studentDoc = await transaction.get(studentRef);
             if (!studentDoc.exists()) throw new Error("Student not found!");
@@ -353,24 +357,28 @@ export async function setStudentStarsForToday(studentId, starValue, reason = nul
                     createdBy: { uid: studentData.createdBy.uid, name: studentData.createdBy.name }
                 });
             } else {
-                transaction.update(scoreRef, {
-                    totalStars: increment(difference),
-                    monthlyStars: increment(difference)
-                });
+                if (difference !== 0) {
+                    transaction.update(scoreRef, {
+                        totalStars: increment(difference),
+                        monthlyStars: increment(difference)
+                    });
+                }
             }
 
             if (todayDocRef) {
-                if (finalStarValue === 0) {
+                if (finalStarValue === 0 && reason !== 'marked_present') {
                     transaction.delete(todayDocRef);
                 } else {
                     transaction.update(todayDocRef, { stars: finalStarValue, reason: reason });
                 }
-            } else if (finalStarValue > 0) {
-                const newTodayDocRef = doc(collection(db, `${publicDataPath}/today_stars`));
-                transaction.set(newTodayDocRef, {
-                    studentId, stars: finalStarValue, date: today, reason: reason,
-                    teacherId: state.get('currentUserId'), createdBy: { uid: state.get('currentUserId'), name: state.get('currentTeacherName') }
-                });
+            } else {
+                if (finalStarValue > 0 || reason === 'marked_present') {
+                    const newTodayDocRef = doc(collection(db, `${publicDataPath}/today_stars`));
+                    transaction.set(newTodayDocRef, {
+                        studentId, stars: finalStarValue, date: today, reason: reason,
+                        teacherId: state.get('currentUserId'), createdBy: { uid: state.get('currentUserId'), name: state.get('currentTeacherName') }
+                    });
+                }
             }
 
             const logId = state.get('todaysAwardLogs')[studentId];
@@ -402,7 +410,7 @@ export async function setStudentStarsForToday(studentId, starValue, reason = nul
 
 export async function checkAndRecordQuestCompletion(classId) {
     const classRef = doc(db, "artifacts/great-class-quest/public/data/classes", classId);
-    const classDoc = await getDoc(classRef); // Use getDoc for a single document
+    const classDoc = await getDoc(classRef); 
     if (!classDoc.exists() || classDoc.data().questCompletedAt) {
         return;
     }
@@ -415,9 +423,8 @@ export async function checkAndRecordQuestCompletion(classId) {
     const diamondGoal = Math.round(studentCount * GOAL_PER_STUDENT.DIAMOND);
     
     const studentIds = studentsInClass.map(s => s.id);
-    if (studentIds.length === 0) return; // No students, no scores
+    if (studentIds.length === 0) return; 
     
-    // Querying scores for all students in the class
     let currentMonthlyStars = 0;
     const allScores = state.get('allStudentScores');
     for (const id of studentIds) {
@@ -474,7 +481,6 @@ export async function handleDeleteAwardLog(logId) {
             
             const logDoc = await transaction.get(logRef);
             if (!logDoc.exists()) {
-                console.log("Log already deleted.");
                 return; 
             }
             const logData = logDoc.data();
@@ -484,7 +490,6 @@ export async function handleDeleteAwardLog(logId) {
             const scoreRef = doc(db, `${publicDataPath}/student_scores`, studentId);
             const scoreDoc = await transaction.get(scoreRef);
             if (scoreDoc.exists()) {
-                // Check if the log date is in the current month
                 const logDate = parseDDMMYYYY(logData.date);
                 const today = new Date();
                 const isCurrentMonth = logDate.getMonth() === today.getMonth() && logDate.getFullYear() === today.getFullYear();
@@ -520,11 +525,10 @@ export async function handleDeleteAwardLog(logId) {
                 logElement.remove();
                 const contentEl = document.getElementById('logbook-modal-content');
                 if (contentEl && contentEl.querySelectorAll('[id^="log-entry-"]').length === 0) {
-                     const container = contentEl.querySelector('.mb-4.bg-white'); // Check if parent container is empty
+                     const container = contentEl.querySelector('.mb-4.bg-white'); 
                      if(container && container.querySelectorAll('[id^="log-entry-"]').length === 0) {
-                         container.remove(); // Remove the whole class box if empty
+                         container.remove(); 
                      }
-                     // Check if *all* class boxes are gone
                      if (contentEl.querySelectorAll('.mb-4.bg-white').length === 0) {
                          hideModal('logbook-modal');
                      }
@@ -543,530 +547,7 @@ export async function handleSaveAwardNote() {
     try {
         await updateDoc(doc(db, "artifacts/great-class-quest/public/data/award_log", logId), { note: newNote });
         showToast('Note saved!', 'success');
-        document.getElementById('award-note-modal').classList.add('hidden');
-    } catch (error) {
-        console.error("Error saving award note:", error);
-        showToast('Failed to save note.', 'error');
-    }
-}
-
-// --- ATTENDANCE ACTIONS ---
-
-export async function handleMarkAbsent(studentId, classId, isAbsent) {
-    const lastLessonDate = getLastLessonDate(classId, state.get('allSchoolClasses'));
-    const publicDataPath = "artifacts/great-class-quest/public/data";
-    const attendanceCollectionRef = collection(db, `${publicDataPath}/attendance`);
-
-    try {
-        const q = query(
-            attendanceCollectionRef,
-            where("studentId", "==", studentId),
-            where("date", "==", lastLessonDate)
-        );
-        const snapshot = await getDocs(q);
-
-        if (isAbsent) {
-            if (snapshot.empty) {
-                await addDoc(attendanceCollectionRef, {
-                    studentId,
-                    classId,
-                    date: lastLessonDate,
-                    markedBy: { uid: state.get('currentUserId'), name: state.get('currentTeacherName') },
-                    createdAt: serverTimestamp()
-                });
-            }
-        } else {
-            if (!snapshot.empty) {
-                const batch = writeBatch(db);
-                snapshot.forEach(doc => batch.delete(doc.ref));
-                await batch.commit();
-            }
-        }
-        
-        const student = state.get('allStudents').find(s => s.id === studentId);
-        showToast(`${student.name} marked as ${isAbsent ? 'absent' : 'present'}.`, 'success');
-
-    } catch (error) {
-        console.error("Error updating attendance:", error);
-        showToast("Failed to update attendance record.", "error");
-    }
-}
-
-// --- CALENDAR & EVENT ACTIONS ---
-
-export async function handleAddQuestEvent() {
-    const date = document.getElementById('quest-event-date').value;
-    const type = document.getElementById('quest-event-type').value;
-    if (!type) {
-        showToast('Please select an event type.', 'error');
-        return;
-    }
-
-    let details = {};
-    const title = document.getElementById('quest-event-type').options[document.getElementById('quest-event-type').selectedIndex].text;
-    details.title = title;
-
-    try {
-        switch(type) {
-            case 'Vocabulary Vault':
-            case 'Grammar Guardians':
-                details.goalTarget = parseInt(document.getElementById('quest-goal-target').value);
-                details.completionBonus = parseFloat(document.getElementById('quest-completion-bonus').value);
-                if (isNaN(details.goalTarget) || isNaN(details.completionBonus) || details.goalTarget <= 0 || details.completionBonus <= 0) {
-                    throw new Error("Please enter valid numbers for the goal and bonus.");
-                }
-                break;
-            case 'The Unbroken Chain':
-            case 'The Scribe\'s Sketch':
-            case 'Five-Sentence Saga':
-                details.completionBonus = parseFloat(document.getElementById('quest-completion-bonus').value);
-                if (isNaN(details.completionBonus) || details.completionBonus <= 0) {
-                    throw new Error("Please enter a valid bonus amount.");
-                }
-                break;
-            case 'Reason Bonus Day':
-                const reason = document.getElementById('quest-event-reason').value;
-                details.reason = reason;
-                details.title = `${reason.charAt(0).toUpperCase() + reason.slice(1)} Bonus Day`;
-                break;
-            case '2x Star Day':
-                break;
-            default:
-                throw new Error("Invalid event type selected.");
-        }
-
-        await addDoc(collection(db, "artifacts/great-class-quest/public/data/quest_events"), {
-            date, type, details,
-            createdBy: { uid: state.get('currentUserId'), name: state.get('currentTeacherName') },
-            createdAt: serverTimestamp()
-        });
-        showToast('Quest Event added to calendar!', 'success');
-        document.getElementById('day-planner-modal').classList.add('hidden');
-    } catch (error) {
-        console.error("Error adding quest event:", error);
-        showToast(error.message || 'Failed to save event.', 'error');
-    }
-}
-
-export async function handleDeleteQuestEvent(eventId) {
-    try {
-        await deleteDoc(doc(db, "artifacts/great-class-quest/public/data/quest_events", eventId));
-        showToast('Event deleted!', 'success');
-    } catch (error) {
-        console.error("Error deleting event:", error);
-        showToast('Could not delete event.', 'error');
-    }
-}
-
-export async function handleCancelLesson(dateString, classId) {
-    const override = state.get('allScheduleOverrides').find(o => o.date === dateString && o.classId === classId);
-    try {
-        if (override && override.type === 'one-time') {
-            await deleteDoc(doc(db, `artifacts/great-class-quest/public/data/schedule_overrides`, override.id));
-        } else {
-            await addDoc(collection(db, `artifacts/great-class-quest/public/data/schedule_overrides`), { 
-                date: dateString, 
-                classId, 
-                type: 'cancelled', 
-                createdBy: { uid: state.get('currentUserId'), name: state.get('currentTeacherName') }, 
-                createdAt: serverTimestamp() 
-            });
-        }
-        showToast("Lesson cancelled for this day.", "success");
-    } catch (e) { showToast("Error updating schedule.", "error"); }
-}
-
-export async function handleAddOneTimeLesson(dateString) {
-    const classId = document.getElementById('add-onetime-lesson-select').value;
-    if (!classId) return;
-    const override = state.get('allScheduleOverrides').find(o => o.date === dateString && o.classId === classId);
-    try {
-        if (override && override.type === 'cancelled') {
-            await deleteDoc(doc(db, `artifacts/great-class-quest/public/data/schedule_overrides`, override.id));
-        } else {
-            await addDoc(collection(db, `artifacts/great-class-quest/public/data/schedule_overrides`), { 
-                date: dateString, 
-                classId, 
-                type: 'one-time', 
-                createdBy: { uid: state.get('currentUserId'), name: state.get('currentTeacherName') }, 
-                createdAt: serverTimestamp() 
-            });
-        }
-        showToast("One-time lesson added.", "success");
-    } catch (e) { showToast("Error updating schedule.", "error"); }
-
-}
-
-export async function awardStoryWeaverBonusStarToClass(classId) {
-    playSound('star2');
-    const studentsInClass = state.get('allStudents').filter(s => s.classId === classId);
-    if (studentsInClass.length === 0) {
-        showToast("No students in class to award bonus stars to.", "info");
-        return;
-    }
-    
-    try {
-        const batch = writeBatch(db);
-        const publicDataPath = "artifacts/great-class-quest/public/data";
-
-        studentsInClass.forEach(student => {
-            const scoreRef = doc(db, `${publicDataPath}/student_scores`, student.id);
-            batch.update(scoreRef, {
-                monthlyStars: increment(0.5),
-                totalStars: increment(0.5)
-            });
-
-            const logRef = doc(collection(db, `${publicDataPath}/award_log`));
-            batch.set(logRef, {
-                studentId: student.id,
-                classId: classId,
-                teacherId: state.get('currentUserId'),
-                stars: 0.5,
-                reason: "story_weaver",
-                // FIX 1: Use the consistent date format function
-                date: getTodayDateString(),
-                createdAt: serverTimestamp(),
-                createdBy: { uid: state.get('currentUserId'), name: state.get('currentTeacherName') }
-            });
-        });
-
-        await batch.commit();
-        showToast("Story Weaver bonus stars awarded!", "success");
-
-        const word = state.get('currentStoryData')[classId]?.currentWord || "a new idea";
-        const systemPrompt = "You are the 'Quest Master's Assistant'. A class just successfully added to their story. Write a very short, single-sentence, celebratory message for the whole class. Do not use markdown.";
-        const userPrompt = `The new part of their story involves the word "${word}". Write the celebratory message.`;
-        callGeminiApi(systemPrompt, userPrompt).then(comment => showPraiseToast(comment, '✒️')).catch(console.error);
-
-    } catch (error) {
-        console.error("Error awarding bonus stars:", error);
-        showToast("Failed to award bonus stars.", "error");
-    }
-}
-
-export async function deleteAdventureLog(logId) {
-    showModal('Delete Log Entry?', 'Are you sure you want to permanently delete this entry from the Adventure Log?', async () => {
-        try {
-            await deleteDoc(doc(db, "artifacts/great-class-quest/public/data/adventure_logs", logId));
-            showToast('Log entry deleted.', 'success');
-        } catch (error) {
-            console.error("Error deleting log entry:", error);
-            showToast('Could not delete the log entry.', 'error');
-        }
-    });
-}
-
-export async function handleEndStory() {
-    const classId = document.getElementById('story-weavers-class-select').value;
-    const classData = state.get('allTeachersClasses').find(c => c.id === classId);
-    const currentStoryData = state.get('currentStoryData');
-
-    if (!classData || !currentStoryData[classId]) {
-        showToast("There is no active story to end.", "info");
-        return;
-    }
-
-    showModal('Finish this Storybook?', 'This will mark the story as complete and move it to the archive. You will start with a blank page. Are you sure?', async () => {
-        const endBtn = document.getElementById('story-weavers-end-btn');
-        endBtn.disabled = true;
-        endBtn.innerHTML = `<i class="fas fa-spinner fa-spin"></i>`;
-
-        try {
-            const publicDataPath = "artifacts/great-class-quest/public/data";
-            const storyDocRef = doc(db, `${publicDataPath}/story_data`, classId);
-            const historyCollectionRef = collection(db, `${storyDocRef.path}/story_history`);
-            const historySnapshot = await getDocs(query(historyCollectionRef, orderBy("createdAt", "asc")));
-
-            if (historySnapshot.empty) {
-                showToast("Cannot end an empty story.", "error");
-                return;
-            }
-
-            const storyChapters = historySnapshot.docs.map(d => d.data());
-            const storyTitle = await callGeminiApi(
-                "You are an AI that creates short, creative book titles. Based on the story, create a title that is 2-5 words long. Provide only the title, no extra text or quotation marks.",
-                `The story is: ${storyChapters.map(c => c.sentence).join(' ')}`
-            );
-
-            const batch = writeBatch(db);
-            const newArchiveDocRef = doc(collection(db, `${publicDataPath}/completed_stories`));
-            
-            batch.set(newArchiveDocRef, {
-                title: storyTitle,
-                classId: classId,
-                className: classData.name,
-                classLogo: classData.logo,
-                completedAt: serverTimestamp(),
-                createdBy: { uid: state.get('currentUserId'), name: state.get('currentTeacherName') }
-            });
-
-            storyChapters.forEach((chapter, index) => {
-                const chapterDocRef = doc(collection(db, `${newArchiveDocRef.path}/chapters`));
-                batch.set(chapterDocRef, { ...chapter, chapterNumber: index + 1 });
-            });
-            
-            historySnapshot.forEach(doc => batch.delete(doc.ref));
-            batch.delete(storyDocRef);
-
-            await batch.commit();
-            
-            handleStoryWeaversClassSelect(); // This will reset the UI.
-            showToast(`Storybook "${storyTitle}" has been archived!`, "success");
-
-        } catch (error) {
-            console.error("Error ending story:", error);
-            showToast("Failed to archive the story. Please try again.", "error");
-        } finally {
-            endBtn.disabled = false;
-            endBtn.innerHTML = `The End`;
-        }
-    }, "Yes, Finish It!");
-}
-
-export async function handleDeleteCompletedStory(storyId) {
-    const story = state.get('allCompletedStories').find(s => s.id === storyId);
-    if (!story) return;
-
-    showModal('Delete This Storybook?', `Are you sure you want to permanently delete "${story.title}"? This cannot be undone.`, async () => {
-        try {
-            const publicDataPath = "artifacts/great-class-quest/public/data";
-            const storyDocRef = doc(db, `${publicDataPath}/completed_stories`, storyId);
-            const chaptersSnapshot = await getDocs(collection(db, `${storyDocRef.path}/chapters`));
-
-            const batch = writeBatch(db);
-            chaptersSnapshot.forEach(doc => batch.delete(doc.ref));
-            batch.delete(storyDocRef);
-            await batch.commit();
-
-            hideModal('storybook-viewer-modal');
-            showToast('Storybook deleted.', 'success');
-        } catch (error) {
-            showToast('Failed to delete storybook.', 'error');
-        }
-    }, 'Delete Forever');
-}
-
-export function handleDeleteTrial(trialId) {
-    showModal('Delete Trial Record?', 'Are you sure you want to permanently delete this score? This cannot be undone.', async () => {
-        try {
-            await deleteDoc(doc(db, "artifacts/great-class-quest/public/data/written_scores", trialId));
-            showToast('Trial record deleted.', 'success');
-        } catch (error) {
-            console.error("Error deleting trial record:", error);
-            showToast('Could not delete the record.', 'error');
-        }
-    });
-}
-
-// This function is now internal to db/actions.js
-async function checkAndTriggerStarfall(studentId, newScoreData) {
-    const student = state.get('allStudents').find(s => s.id === studentId);
-    if (!student) return;
-    const studentClass = state.get('allSchoolClasses').find(c => c.id === student.classId);
-    if (!studentClass) return;
-
-    const classLevel = studentClass.questLevel;
-    const isJunior = classLevel === 'Junior A' || classLevel === 'Junior B';
-    let bonusTriggered = false;
-    let bonusAmount = 0;
-
-    const currentMonthKey = newScoreData.date.substring(0, 7);
-
-    if (newScoreData.type === 'test') {
-        const threshold = isJunior ? 37 : 85;
-        if (newScoreData.scoreNumeric >= threshold) {
-            bonusTriggered = true;
-            bonusAmount = 1;
-        }
-    } else if (newScoreData.type === 'dictation') {
-        const studentScoresThisMonth = state.get('allWrittenScores').filter(s => 
-            s.studentId === studentId && 
-            s.type === 'dictation' &&
-            s.date.startsWith(currentMonthKey)
-        );
-
-        if (isJunior) {
-            const excellentCount = studentScoresThisMonth.filter(s => s.scoreQualitative === 'Great!!!').length;
-            if (excellentCount > 2) {
-                bonusTriggered = true;
-                bonusAmount = 0.5;
-            }
-        } else {
-            const highScores = studentScoresThisMonth.filter(s => (s.scoreNumeric / s.maxScore) * 100 > 85);
-            if (highScores.length > 2) {
-                bonusTriggered = true;
-                bonusAmount = 0.5;
-            }
-        }
-
-        if (bonusTriggered) {
-            const bonusLogsThisMonth = state.get('allAwardLogs').filter(log => 
-                log.studentId === studentId && 
-                log.reason === 'scholar_s_bonus' && 
-                log.date.startsWith(currentMonthKey) &&
-                log.note && log.note.includes('dictation')
-            ).length;
-
-            if (bonusLogsThisMonth >= 2) {
-                bonusTriggered = false;
-            }
-        }
-    }
-
-    if (bonusTriggered) {
-        setTimeout(() => showStarfallModal(student.id, student.name, bonusAmount, newScoreData.type), 500);
-    }
-}
-
-// This function IS exported so the modal can call it
-export async function handleAwardBonusStar(studentId, bonusAmount, trialType) {
-    playSound('star3');
-    const student = state.get('allStudents').find(s => s.id === studentId);
-    if (!student) return;
-
-    try {
-        await runTransaction(db, async (transaction) => {
-            const publicDataPath = "artifacts/great-class-quest/public/data";
-            const scoreRef = doc(db, `${publicDataPath}/student_scores`, studentId);
-            const newLogRef = doc(collection(db, `${publicDataPath}/award_log`));
-
-            transaction.update(scoreRef, {
-                totalStars: increment(bonusAmount),
-                monthlyStars: increment(bonusAmount)
-            });
-
-            const logData = {
-                studentId,
-                classId: student.classId,
-                teacherId: state.get('currentUserId'),
-                stars: bonusAmount,
-                reason: "scholar_s_bonus",
-                note: `Awarded for exceptional performance on a ${trialType}.`,
-                date: getTodayDateString(),
-                createdAt: serverTimestamp(),
-                createdBy: { uid: state.get('currentUserId'), name: state.get('currentTeacherName') }
-            };
-            transaction.set(newLogRef, logData);
-        });
-        showToast(`✨ A ${bonusAmount}-Star Bonus has been bestowed upon ${student.name}! ✨`, 'success');
-    } catch (error) {
-        console.error("Scholar's Bonus transaction failed:", error);
-        showToast('Could not award the bonus star. Please try again.', 'error');
-    }
-}
-
-export async function handleLogTrial() {
-    const classId = document.getElementById('log-trial-class-id').value;
-    const studentId = document.getElementById('log-trial-student-select').value;
-    const date = document.getElementById('log-trial-date').value;
-    const type = document.getElementById('log-trial-type').value;
-    const notes = document.getElementById('log-trial-notes').value.trim();
-    const editingId = document.getElementById('log-trial-form').dataset.editingId;
-
-    const classData = state.get('allTeachersClasses').find(c => c.id === classId);
-    if (!classData) return;
-    const isJunior = classData.questLevel === 'Junior A' || classData.questLevel === 'Junior B';
-
-    let scoreData = {
-        studentId, classId, date: parseDDMMYYYY(date).toISOString().split('T')[0], type, notes,
-        teacherId: state.get('currentUserId'),
-        title: null,
-        scoreNumeric: null,
-        scoreQualitative: null,
-        maxScore: null
-    };
-
-    if (isJunior && type === 'dictation') {
-        const scoreEl = document.getElementById('log-trial-score-qualitative');
-        if (!scoreEl || !scoreEl.value) { showToast('Please select a score.', 'error'); return; }
-        scoreData.scoreQualitative = scoreEl.value;
-    } else {
-        const titleEl = document.getElementById('log-trial-title');
-        if (!titleEl || !titleEl.value.trim()) { showToast('Please enter a title for the test.', 'error'); return; }
-        scoreData.title = titleEl.value.trim();
-
-        const maxScore = (isJunior && type === 'test') ? 40 : 100;
-        const scoreEl = document.getElementById('log-trial-score-numeric');
-        if (!scoreEl || scoreEl.value === '') { showToast('Please enter a score.', 'error'); return; }
-        const score = parseInt(scoreEl.value, 10);
-        if (isNaN(score) || score < 0 || score > maxScore) { showToast(`Please enter a valid score between 0 and ${maxScore}.`, 'error'); return; }
-        scoreData.scoreNumeric = score;
-        scoreData.maxScore = maxScore;
-    }
-
-    try {
-        const btn = document.querySelector('#log-trial-form button[type="submit"]');
-        btn.disabled = true;
-        btn.innerHTML = `<i class="fas fa-spinner fa-spin mr-2"></i> Saving...`;
-
-        if (editingId) {
-            const docRef = doc(db, `artifacts/great-class-quest/public/data/written_scores`, editingId);
-            await updateDoc(docRef, scoreData);
-            showToast("Trial results updated successfully!", "success");
-        } else {
-            scoreData.createdAt = serverTimestamp();
-            const docRef = await addDoc(collection(db, `artifacts/great-class-quest/public/data/written_scores`), scoreData);
-            showToast("Trial results recorded successfully!", "success");
-            checkAndTriggerStarfall(studentId, {id: docRef.id, ...scoreData});
-        }
-        
-        hideModal('log-trial-modal');
-
-    } catch (error) {
-        console.error("Error logging/updating trial:", error);
-        showToast("Failed to save the score.", "error");
-    } finally {
-        const btn = document.querySelector('#log-trial-form button[type="submit"]');
-        if (btn) {
-            btn.disabled = false;
-            btn.innerHTML = 'Record Treasure';
-        }
-    }
-}
-
-export async function saveAdventureLogNote() {
-    const logId = document.getElementById('note-log-id-input').value;
-    const newNote = document.getElementById('note-textarea').value;
-    const log = state.get('allAdventureLogs').find(l => l.id === logId);
-
-    try {
-        await updateDoc(doc(db, "artifacts/great-class-quest/public/data/adventure_logs", logId), {
-            note: newNote,
-            noteBy: state.get('currentTeacherName')
-        });
-        showToast('Note saved!', 'success');
-        hideModal('note-modal'); // This now works because we imported hideModal
-        if (log && newNote.trim() !== '' && newNote !== log.note) {
-            triggerNoteToast(log.text, newNote); // This will call the helper function below
-        }
-    } catch (error) {
-        console.error("Error saving note:", error);
-        showToast('Failed to save note.', 'error');
-    }
-}
-
-// This is an internal helper function, so it doesn't need "export"
-async function triggerNoteToast(logText, noteText) {
-    const systemPrompt = "You are the 'Quest Master's Assistant', a whimsical character in a classroom game. Your job is to read the teacher's note about a day's adventure and provide a short, encouraging, one-sentence comment. Do NOT use markdown. Be positive and brief.";
-    const userPrompt = `The AI's log said: "${logText}". The teacher added this note: "${noteText}". What is your one-sentence comment?`;
-    try {
-        const comment = await callGeminiApi(systemPrompt, userPrompt);
-        showPraiseToast(comment, '📝'); // This now works because we imported showPraiseToast
-    } catch (error) {
-        console.error("Note Toast AI error:", error);
-    }
-}
-
-export async function saveAwardNote() {
-    const logId = document.getElementById('award-note-log-id-input').value;
-    const newNote = document.getElementById('award-note-textarea').value;
-
-    try {
-        await updateDoc(doc(db, "artifacts/great-class-quest/public/data/award_log", logId), {
-            note: newNote,
-        });
-        showToast('Note saved!', 'success');
-        hideModal('award-note-modal'); // This works because we imported hideModal
+        document.getElementById('award-note-modal').classList.add('hidden'); 
     } catch (error) {
         console.error("Error saving award note:", error);
         showToast('Failed to save note.', 'error');
@@ -1075,7 +556,7 @@ export async function saveAwardNote() {
 
 export async function handleAddStarsManually() {
     const studentId = document.getElementById('star-manager-student-select').value;
-    const date = document.getElementById('star-manager-date').value; // This is YYYY-MM-DD
+    const date = document.getElementById('star-manager-date').value; 
     const starsToAdd = parseFloat(document.getElementById('star-manager-stars-to-add').value);
     const reason = document.getElementById('star-manager-reason').value;
 
@@ -1101,8 +582,6 @@ export async function handleAddStarsManually() {
             const scoreDoc = await transaction.get(scoreRef);
             if (!scoreDoc.exists()) throw new Error("Student score record not found. Cannot add stars.");
 
-            // --- FIX IS HERE ---
-            // 'date' is "YYYY-MM-DD". We must convert it to "DD-MM-YYYY"
             const logDateObject = parseDDMMYYYY(date);
             const dateForDb = getDDMMYYYY(logDateObject);
             
@@ -1111,11 +590,10 @@ export async function handleAddStarsManually() {
                 stars: starsToAdd, reason, date: dateForDb, createdAt: serverTimestamp(),
                 createdBy: { uid: state.get('currentUserId'), name: state.get('currentTeacherName') }
             };
-            // --- END FIX ---
 
             transaction.set(doc(collection(db, `${publicDataPath}/award_log`)), logData);
 
-            const logDate = new Date(date); // YYYY-MM-DD string is parsable by new Date()
+            const logDate = new Date(date);
             const today = new Date();
             const isCurrentMonth = logDate.getMonth() === today.getMonth() && logDate.getFullYear() === today.getFullYear();
 
@@ -1249,6 +727,60 @@ export async function handleEraseTodaysStars() {
     finally { btn.disabled = false; btn.innerHTML = '<i class="fas fa-undo mr-2"></i> Erase Today\'s Stars'; }
 }
 
+// --- REVAMPED: QUEST ASSIGNMENT (SINGLE ENTRY) ---
+
+export async function handleSaveQuestAssignment() {
+    const classId = document.getElementById('quest-assignment-class-id').value;
+    const text = document.getElementById('quest-assignment-textarea').value.trim();
+
+    if (!text) {
+        showToast("Please write an assignment before saving.", "info");
+        return;
+    }
+
+    const btn = document.getElementById('quest-assignment-confirm-btn');
+    btn.disabled = true;
+    btn.innerHTML = `<i class="fas fa-spinner fa-spin mr-2"></i> Saving...`;
+
+    try {
+        const publicDataPath = "artifacts/great-class-quest/public/data";
+        
+        // 1. Find existing assignments for this class by this teacher
+        const q = query(
+            collection(db, `${publicDataPath}/quest_assignments`),
+            where("classId", "==", classId),
+            where("createdBy.uid", "==", state.get('currentUserId'))
+        );
+        const snapshot = await getDocs(q);
+        
+        // 2. Batch delete old ones + Add new one
+        const batch = writeBatch(db);
+        snapshot.forEach(doc => batch.delete(doc.ref));
+        
+        const newDocRef = doc(collection(db, `${publicDataPath}/quest_assignments`));
+        batch.set(newDocRef, {
+            classId,
+            text,
+            createdAt: serverTimestamp(),
+            createdBy: { uid: state.get('currentUserId'), name: state.get('currentTeacherName') }
+        });
+
+        await batch.commit();
+        
+        showToast("Quest assignment updated!", "success");
+        hideModal('quest-assignment-modal');
+
+    } catch (error) {
+        console.error("Error updating quest assignment:", error);
+        showToast("Failed to save assignment.", "error");
+    } finally {
+        btn.disabled = false;
+        btn.innerHTML = 'Save Assignment';
+    }
+}
+
+// ... (rest of actions.js remains unchanged: handleLogAdventure, handleStarManagerStudentSelect, Hero Chronicle actions, etc.) ...
+
 export async function handleLogAdventure() {
     const classId = state.get('currentLogFilter').classId;
     if (!classId) return;
@@ -1268,7 +800,6 @@ export async function handleLogAdventure() {
     btn.disabled = true;
     btn.innerHTML = `<i class="fas fa-spinner fa-spin mr-2"></i> Writing History...`;
 
-    // --- FIX #3: GATHER MORE DATA ---
     const todaysAwards = state.get('allAwardLogs').filter(log => log.classId === classId && log.date === today);
     const totalStars = todaysAwards.reduce((sum, award) => sum + award.stars, 0);
     const todaysScores = state.get('allWrittenScores').filter(s => s.classId === classId && s.date === today);
@@ -1306,18 +837,15 @@ export async function handleLogAdventure() {
         const note = s.notes ? ` (Note: ${s.notes})` : '';
         return `${studentName} scored ${score} on a ${s.type}${note}.`;
     }).join(' ');
-    // --- END DATA GATHERING ---
 
     try {
         let textSystemPrompt = "";
-        // --- FIX #3: UPDATE SYSTEM PROMPT ---
         if (ageCategory === 'junior') { 
             textSystemPrompt = "You are 'The Chronicler,' an AI historian for a fun classroom game. Write a short, exciting diary entry (2-3 sentences) about a class's adventure for the day. Use a storytelling tone with VERY simple words and short sentences suitable for young beginner English learners (ages 7-9). Do NOT use markdown. Incorporate all provided data (stars, scores, attendance, notes) into a cohesive, positive narrative.";
         } else { 
             textSystemPrompt = "You are 'The Chronicler,' an AI historian for a fun classroom game. Write a short, exciting diary entry (2-3 sentences) about a class's adventure for the day. Use a storytelling tone with engaging but still relatively simple English for non-native speakers. Do NOT use markdown. Incorporate all provided data (stars, scores, attendance, notes) into a cohesive, positive narrative.";
         }
         
-        // --- FIX #3: UPDATE USER PROMPT ---
         const textUserPrompt = `Write a diary entry for the class '${classData.name}'. Today's data:
 - Stars: ${totalStars} stars awarded. Their strongest skill was '${topReason}'. The Hero of the Day was ${heroOfTheDay}.
 - Academics: ${academicSummary || 'No trials today.'}
@@ -1350,48 +878,6 @@ Combine these points into a short, engaging story.`;
     } finally {
         btn.disabled = false;
         btn.innerHTML = `<i class="fas fa-feather-alt mr-2"></i> Log Today's Adventure`;
-    }
-}
-
-export async function handleSaveQuestAssignment() {
-    const modal = document.getElementById('quest-assignment-modal');
-    const editingId = modal.dataset.editingId;
-    const classId = document.getElementById('quest-assignment-class-id').value;
-    const text = document.getElementById('quest-assignment-textarea').value.trim();
-
-    if (!text) {
-        showToast("Please write an assignment before saving.", "info");
-        return;
-    }
-
-    const btn = document.getElementById('quest-assignment-confirm-btn');
-    btn.disabled = true;
-    btn.innerHTML = `<i class="fas fa-spinner fa-spin mr-2"></i> Saving...`;
-
-    try {
-        if (editingId) {
-            const docRef = doc(db, "artifacts/great-class-quest/public/data/quest_assignments", editingId);
-            await updateDoc(docRef, {
-                text: text,
-                updatedAt: serverTimestamp()
-            });
-            showToast("Quest assignment updated!", "success");
-        } else {
-            await addDoc(collection(db, "artifacts/great-class-quest/public/data/quest_assignments"), {
-                classId,
-                text,
-                createdAt: serverTimestamp(),
-                createdBy: { uid: state.get('currentUserId'), name: state.get('currentTeacherName') }
-            });
-            showToast("Quest assignment saved for next lesson!", "success");
-        }
-        hideModal('quest-assignment-modal');
-    } catch (error) {
-        console.error("Error saving/updating quest assignment:", error);
-        showToast("Failed to save assignment.", "error");
-    } finally {
-        btn.disabled = false;
-        btn.innerHTML = 'Save Assignment';
     }
 }
 
@@ -1429,8 +915,6 @@ export function handleStarManagerStudentSelect() {
     }
 }
 
-// --- HERO'S CHRONICLE ACTIONS ---
-
 export async function addOrUpdateHeroChronicleNote(studentId, noteText, category, noteId = null) {
     if (!studentId || !noteText || !category) {
         showToast("Missing required note information.", "error");
@@ -1447,12 +931,10 @@ export async function addOrUpdateHeroChronicleNote(studentId, noteText, category
 
     try {
         if (noteId) {
-            // Update existing note
             const noteRef = doc(db, `artifacts/great-class-quest/public/data/hero_chronicle_notes`, noteId);
             await updateDoc(noteRef, noteData);
             showToast("Note updated successfully!", "success");
         } else {
-            // Add new note
             noteData.createdAt = serverTimestamp();
             await addDoc(collection(db, `artifacts/great-class-quest/public/data/hero_chronicle_notes`), noteData);
             showToast("Note added to Hero's Chronicle!", "success");
@@ -1470,5 +952,563 @@ export async function deleteHeroChronicleNote(noteId) {
     } catch (error) {
         console.error("Error deleting Hero's Chronicle note:", error);
         showToast("Failed to delete note.", "error");
+    }
+}
+
+export async function deleteAdventureLog(logId) {
+    showModal('Delete Log Entry?', 'Are you sure you want to permanently delete this entry from the Adventure Log?', async () => {
+        try {
+            await deleteDoc(doc(db, "artifacts/great-class-quest/public/data/adventure_logs", logId));
+            showToast('Log entry deleted.', 'success');
+        } catch (error) {
+            console.error("Error deleting log entry:", error);
+            showToast('Could not delete the log entry.', 'error');
+        }
+    });
+}
+
+export async function handleEndStory() {
+    const classId = document.getElementById('story-weavers-class-select').value;
+    const classData = state.get('allTeachersClasses').find(c => c.id === classId);
+    const currentStoryData = state.get('currentStoryData');
+
+    if (!classData || !currentStoryData[classId]) {
+        showToast("There is no active story to end.", "info");
+        return;
+    }
+
+    showModal('Finish this Storybook?', 'This will mark the story as complete and move it to the archive. You will start with a blank page. Are you sure?', async () => {
+        const endBtn = document.getElementById('story-weavers-end-btn');
+        endBtn.disabled = true;
+        endBtn.innerHTML = `<i class="fas fa-spinner fa-spin"></i>`;
+
+        try {
+            const publicDataPath = "artifacts/great-class-quest/public/data";
+            const storyDocRef = doc(db, `${publicDataPath}/story_data`, classId);
+            const historyCollectionRef = collection(db, `${storyDocRef.path}/story_history`);
+            const historySnapshot = await getDocs(query(historyCollectionRef, orderBy("createdAt", "asc")));
+
+            if (historySnapshot.empty) {
+                showToast("Cannot end an empty story.", "error");
+                return;
+            }
+
+            const storyChapters = historySnapshot.docs.map(d => d.data());
+            const storyTitle = await callGeminiApi(
+                "You are an AI that creates short, creative book titles. Based on the story, create a title that is 2-5 words long. Provide only the title, no extra text or quotation marks.",
+                `The story is: ${storyChapters.map(c => c.sentence).join(' ')}`
+            );
+
+            const batch = writeBatch(db);
+            const newArchiveDocRef = doc(collection(db, `${publicDataPath}/completed_stories`));
+            
+            batch.set(newArchiveDocRef, {
+                title: storyTitle,
+                classId: classId,
+                className: classData.name,
+                classLogo: classData.logo,
+                completedAt: serverTimestamp(),
+                createdBy: { uid: state.get('currentUserId'), name: state.get('currentTeacherName') }
+            });
+
+            storyChapters.forEach((chapter, index) => {
+                const chapterDocRef = doc(collection(db, `${newArchiveDocRef.path}/chapters`));
+                batch.set(chapterDocRef, { ...chapter, chapterNumber: index + 1 });
+            });
+            
+            historySnapshot.forEach(doc => batch.delete(doc.ref));
+            batch.delete(storyDocRef);
+
+            await batch.commit();
+            
+            handleStoryWeaversClassSelect();
+            showToast(`Storybook "${storyTitle}" has been archived!`, "success");
+
+        } catch (error) {
+            console.error("Error ending story:", error);
+            showToast("Failed to archive the story. Please try again.", "error");
+        } finally {
+            endBtn.disabled = false;
+            endBtn.innerHTML = `The End`;
+        }
+    }, "Yes, Finish It!");
+}
+
+export async function handleDeleteCompletedStory(storyId) {
+    const story = state.get('allCompletedStories').find(s => s.id === storyId);
+    if (!story) return;
+
+    showModal('Delete This Storybook?', `Are you sure you want to permanently delete "${story.title}"? This cannot be undone.`, async () => {
+        try {
+            const publicDataPath = "artifacts/great-class-quest/public/data";
+            const storyDocRef = doc(db, `${publicDataPath}/completed_stories`, storyId);
+            const chaptersSnapshot = await getDocs(collection(db, `${storyDocRef.path}/chapters`));
+
+            const batch = writeBatch(db);
+            chaptersSnapshot.forEach(doc => batch.delete(doc.ref));
+            batch.delete(storyDocRef);
+            await batch.commit();
+
+            hideModal('storybook-viewer-modal');
+            showToast('Storybook deleted.', 'success');
+        } catch (error) {
+            showToast('Failed to delete storybook.', 'error');
+        }
+    }, 'Delete Forever');
+}
+
+export function handleDeleteTrial(trialId) {
+    showModal('Delete Trial Record?', 'Are you sure you want to permanently delete this score? This cannot be undone.', async () => {
+        try {
+            await deleteDoc(doc(db, "artifacts/great-class-quest/public/data/written_scores", trialId));
+            showToast('Trial record deleted.', 'success');
+        } catch (error) {
+            console.error("Error deleting trial record:", error);
+            showToast('Could not delete the record.', 'error');
+        }
+    });
+}
+
+async function checkAndTriggerStarfall(studentId, newScoreData) {
+    const student = state.get('allStudents').find(s => s.id === studentId);
+    if (!student) return;
+    const studentClass = state.get('allSchoolClasses').find(c => c.id === student.classId);
+    if (!studentClass) return;
+
+    const classLevel = studentClass.questLevel;
+    const isJunior = classLevel === 'Junior A' || classLevel === 'Junior B';
+    let bonusTriggered = false;
+    let bonusAmount = 0;
+
+    const currentMonthKey = newScoreData.date.substring(0, 7);
+
+    if (newScoreData.type === 'test') {
+        const threshold = isJunior ? 37 : 85;
+        if (newScoreData.scoreNumeric >= threshold) {
+            bonusTriggered = true;
+            bonusAmount = 1;
+        }
+    } else if (newScoreData.type === 'dictation') {
+        const studentScoresThisMonth = state.get('allWrittenScores').filter(s => 
+            s.studentId === studentId && 
+            s.type === 'dictation' &&
+            s.date.startsWith(currentMonthKey)
+        );
+
+        if (isJunior) {
+            const excellentCount = studentScoresThisMonth.filter(s => s.scoreQualitative === 'Great!!!').length;
+            if (excellentCount > 2) {
+                bonusTriggered = true;
+                bonusAmount = 0.5;
+            }
+        } else {
+            const highScores = studentScoresThisMonth.filter(s => (s.scoreNumeric / s.maxScore) * 100 > 85);
+            if (highScores.length > 2) {
+                bonusTriggered = true;
+                bonusAmount = 0.5;
+            }
+        }
+
+        if (bonusTriggered) {
+            const bonusLogsThisMonth = state.get('allAwardLogs').filter(log => 
+                log.studentId === studentId && 
+                log.reason === 'scholar_s_bonus' && 
+                log.date.startsWith(currentMonthKey) &&
+                log.note && log.note.includes('dictation')
+            ).length;
+
+            if (bonusLogsThisMonth >= 2) {
+                bonusTriggered = false;
+            }
+        }
+    }
+
+    if (bonusTriggered) {
+        setTimeout(() => showStarfallModal(student.id, student.name, bonusAmount, newScoreData.type), 500);
+    }
+}
+
+export async function handleAwardBonusStar(studentId, bonusAmount, trialType) {
+    playSound('star3');
+    const student = state.get('allStudents').find(s => s.id === studentId);
+    if (!student) return;
+
+    try {
+        await runTransaction(db, async (transaction) => {
+            const publicDataPath = "artifacts/great-class-quest/public/data";
+            const scoreRef = doc(db, `${publicDataPath}/student_scores`, studentId);
+            const newLogRef = doc(collection(db, `${publicDataPath}/award_log`));
+
+            transaction.update(scoreRef, {
+                totalStars: increment(bonusAmount),
+                monthlyStars: increment(bonusAmount)
+            });
+
+            const logData = {
+                studentId,
+                classId: student.classId,
+                teacherId: state.get('currentUserId'),
+                stars: bonusAmount,
+                reason: "scholar_s_bonus",
+                note: `Awarded for exceptional performance on a ${trialType}.`,
+                date: getTodayDateString(),
+                createdAt: serverTimestamp(),
+                createdBy: { uid: state.get('currentUserId'), name: state.get('currentTeacherName') }
+            };
+            transaction.set(newLogRef, logData);
+        });
+        showToast(`✨ A ${bonusAmount}-Star Bonus has been bestowed upon ${student.name}! ✨`, 'success');
+    } catch (error) {
+        console.error("Scholar's Bonus transaction failed:", error);
+        showToast('Could not award the bonus star. Please try again.', 'error');
+    }
+}
+
+export async function handleBulkSaveTrial() {
+    const modal = document.getElementById('bulk-trial-modal');
+    const classId = modal.dataset.classId;
+    const type = modal.dataset.type;
+    const isJunior = modal.dataset.isJunior === 'true';
+    const dateRaw = document.getElementById('bulk-trial-date').value;
+    const title = document.getElementById('bulk-trial-name').value.trim();
+
+    if (!dateRaw) {
+        showToast('Please select a date.', 'error');
+        return;
+    }
+    
+    // Firestore stores dates as YYYY-MM-DD in this app logic (or expects it for sorting)
+    // The input type="date" gives YYYY-MM-DD.
+    const date = dateRaw;
+
+    if (type === 'test' && !title) {
+        showToast('Please enter a title for the test.', 'error');
+        return;
+    }
+
+    const rows = document.querySelectorAll('.bulk-log-item');
+    if (rows.length === 0) return;
+
+    const btn = document.getElementById('bulk-trial-save-btn');
+    btn.disabled = true;
+    btn.innerHTML = `<i class="fas fa-spinner fa-spin mr-2"></i> Saving...`;
+
+    const batch = writeBatch(db);
+    const publicDataPath = "artifacts/great-class-quest/public/data";
+    const scoresCollection = collection(db, `${publicDataPath}/written_scores`);
+    
+    let operationsCount = 0;
+    const studentsToCheckStarfall = [];
+
+    try {
+        rows.forEach(row => {
+            const studentId = row.dataset.studentId;
+            const trialId = row.dataset.trialId; // Will be present if editing specific record
+            const isAbsent = row.querySelector('.toggle-absent-btn').classList.contains('is-absent');
+            const input = row.querySelector('.bulk-grade-input');
+            const val = input.value;
+
+            if (isAbsent) {
+                // If editing an existing record and marked absent -> DELETE it
+                if (trialId) {
+                    batch.delete(doc(scoresCollection, trialId));
+                    operationsCount++;
+                }
+                // If creating new, simply don't create a record
+                return;
+            }
+
+            if (!val) return; // Skip empty inputs if present
+
+            const maxScore = (isJunior && type === 'test') ? 40 : 100;
+            
+            let scoreData = {
+                studentId,
+                classId,
+                date,
+                type,
+                title: type === 'test' ? title : null,
+                teacherId: state.get('currentUserId'),
+                notes: null, // Bulk entry doesn't support individual notes yet
+                scoreNumeric: null,
+                scoreQualitative: null,
+                maxScore: maxScore
+            };
+
+            if (isJunior && type === 'dictation') {
+                scoreData.scoreQualitative = val;
+            } else {
+                scoreData.scoreNumeric = parseInt(val, 10);
+            }
+
+            if (trialId) {
+                batch.update(doc(scoresCollection, trialId), scoreData);
+            } else {
+                const newRef = doc(scoresCollection);
+                scoreData.createdAt = serverTimestamp();
+                batch.set(newRef, scoreData);
+                studentsToCheckStarfall.push({ studentId, data: { id: newRef.id, ...scoreData } });
+            }
+            operationsCount++;
+        });
+
+        if (operationsCount > 0) {
+            await batch.commit();
+            showToast('All grades saved successfully!', 'success');
+            hideModal('bulk-trial-modal');
+
+            // Check Starfall for newly added records (limit 1 to prevent spam, or check logic)
+            // For UX, maybe only trigger if < 3 students involved, otherwise just save silently
+            if (studentsToCheckStarfall.length === 1) {
+                 checkAndTriggerStarfall(studentsToCheckStarfall[0].studentId, studentsToCheckStarfall[0].data);
+            }
+        } else {
+            showToast('No changes to save.', 'info');
+            hideModal('bulk-trial-modal');
+        }
+
+    } catch (error) {
+        console.error("Bulk save error:", error);
+        showToast("Failed to save scores. Please try again.", "error");
+    } finally {
+        btn.disabled = false;
+        btn.innerHTML = `<i class="fas fa-save mr-2"></i> Save All`;
+    }
+}
+
+export async function saveAdventureLogNote() {
+    const logId = document.getElementById('note-log-id-input').value;
+    const newNote = document.getElementById('note-textarea').value;
+    const log = state.get('allAdventureLogs').find(l => l.id === logId);
+
+    try {
+        await updateDoc(doc(db, "artifacts/great-class-quest/public/data/adventure_logs", logId), {
+            note: newNote,
+            noteBy: state.get('currentTeacherName')
+        });
+        showToast('Note saved!', 'success');
+        hideModal('note-modal'); 
+        if (log && newNote.trim() !== '' && newNote !== log.note) {
+            triggerNoteToast(log.text, newNote); 
+        }
+    } catch (error) {
+        console.error("Error saving note:", error);
+        showToast('Failed to save note.', 'error');
+    }
+}
+
+async function triggerNoteToast(logText, noteText) {
+    const systemPrompt = "You are the 'Quest Master's Assistant', a whimsical character in a classroom game. Your job is to read the teacher's note about a day's adventure and provide a short, encouraging, one-sentence comment. Do NOT use markdown. Be positive and brief.";
+    const userPrompt = `The AI's log said: "${logText}". The teacher added this note: "${noteText}". What is your one-sentence comment?`;
+    try {
+        const comment = await callGeminiApi(systemPrompt, userPrompt);
+        showPraiseToast(comment, '📝'); 
+    } catch (error) {
+        console.error("Note Toast AI error:", error);
+    }
+}
+
+export async function saveAwardNote() {
+    const logId = document.getElementById('award-note-log-id-input').value;
+    const newNote = document.getElementById('award-note-textarea').value;
+
+    try {
+        await updateDoc(doc(db, "artifacts/great-class-quest/public/data/award_log", logId), {
+            note: newNote,
+        });
+        showToast('Note saved!', 'success');
+        hideModal('award-note-modal');
+    } catch (error) {
+        console.error("Error saving award note:", error);
+        showToast('Failed to save note.', 'error');
+    }
+}
+
+export async function handleMarkAbsent(studentId, classId, isAbsent) {
+    const today = getTodayDateString();
+    const publicDataPath = "artifacts/great-class-quest/public/data";
+    const attendanceCollectionRef = collection(db, `${publicDataPath}/attendance`);
+
+    try {
+        const q = query(
+            attendanceCollectionRef,
+            where("studentId", "==", studentId),
+            where("date", "==", today)
+        );
+        const snapshot = await getDocs(q);
+
+        if (isAbsent) {
+            if (snapshot.empty) {
+                await addDoc(attendanceCollectionRef, {
+                    studentId,
+                    classId,
+                    date: today,
+                    markedBy: { uid: state.get('currentUserId'), name: state.get('currentTeacherName') },
+                    createdAt: serverTimestamp()
+                });
+            }
+        } else {
+            if (!snapshot.empty) {
+                const batch = writeBatch(db);
+                snapshot.forEach(doc => batch.delete(doc.ref));
+                await batch.commit();
+            }
+        }
+        
+        const student = state.get('allStudents').find(s => s.id === studentId);
+        showToast(`${student.name} marked as ${isAbsent ? 'absent' : 'present'}.`, 'success');
+
+    } catch (error) {
+        console.error("Error updating attendance:", error);
+        showToast("Failed to update attendance record.", "error");
+    }
+}
+
+export async function handleAddQuestEvent() {
+    const date = document.getElementById('quest-event-date').value;
+    const type = document.getElementById('quest-event-type').value;
+    if (!type) {
+        showToast('Please select an event type.', 'error');
+        return;
+    }
+
+    let details = {};
+    const title = document.getElementById('quest-event-type').options[document.getElementById('quest-event-type').selectedIndex].text;
+    details.title = title;
+
+    try {
+        switch(type) {
+            case 'Vocabulary Vault':
+            case 'Grammar Guardians':
+                details.goalTarget = parseInt(document.getElementById('quest-goal-target').value);
+                details.completionBonus = parseFloat(document.getElementById('quest-completion-bonus').value);
+                if (isNaN(details.goalTarget) || isNaN(details.completionBonus) || details.goalTarget <= 0 || details.completionBonus <= 0) {
+                    throw new Error("Please enter valid numbers for the goal and bonus.");
+                }
+                break;
+            case 'The Unbroken Chain':
+            case 'The Scribe\'s Sketch':
+            case 'Five-Sentence Saga':
+                details.completionBonus = parseFloat(document.getElementById('quest-completion-bonus').value);
+                if (isNaN(details.completionBonus) || details.completionBonus <= 0) {
+                    throw new Error("Please enter a valid bonus amount.");
+                }
+                break;
+            case 'Reason Bonus Day':
+                const reason = document.getElementById('quest-event-reason').value;
+                details.reason = reason;
+                details.title = `${reason.charAt(0).toUpperCase() + reason.slice(1)} Bonus Day`;
+                break;
+            case '2x Star Day':
+                break;
+            default:
+                throw new Error("Invalid event type selected.");
+        }
+
+        await addDoc(collection(db, "artifacts/great-class-quest/public/data/quest_events"), {
+            date, type, details,
+            createdBy: { uid: state.get('currentUserId'), name: state.get('currentTeacherName') },
+            createdAt: serverTimestamp()
+        });
+        showToast('Quest Event added to calendar!', 'success');
+        document.getElementById('day-planner-modal').classList.add('hidden');
+    } catch (error) {
+        console.error("Error adding quest event:", error);
+        showToast(error.message || 'Failed to save event.', 'error');
+    }
+}
+
+export async function handleDeleteQuestEvent(eventId) {
+    try {
+        await deleteDoc(doc(db, "artifacts/great-class-quest/public/data/quest_events", eventId));
+        showToast('Event deleted!', 'success');
+    } catch (error) {
+        console.error("Error deleting event:", error);
+        showToast('Could not delete event.', 'error');
+    }
+}
+
+export async function handleCancelLesson(dateString, classId) {
+    const override = state.get('allScheduleOverrides').find(o => o.date === dateString && o.classId === classId);
+    try {
+        if (override && override.type === 'one-time') {
+            await deleteDoc(doc(db, `artifacts/great-class-quest/public/data/schedule_overrides`, override.id));
+        } else {
+            await addDoc(collection(db, `artifacts/great-class-quest/public/data/schedule_overrides`), { 
+                date: dateString, 
+                classId, 
+                type: 'cancelled', 
+                createdBy: { uid: state.get('currentUserId'), name: state.get('currentTeacherName') }, 
+                createdAt: serverTimestamp() 
+            });
+        }
+        showToast("Lesson cancelled for this day.", "success");
+    } catch (e) { showToast("Error updating schedule.", "error"); }
+}
+
+export async function handleAddOneTimeLesson(dateString) {
+    const classId = document.getElementById('add-onetime-lesson-select').value;
+    if (!classId) return;
+    const override = state.get('allScheduleOverrides').find(o => o.date === dateString && o.classId === classId);
+    try {
+        if (override && override.type === 'cancelled') {
+            await deleteDoc(doc(db, `artifacts/great-class-quest/public/data/schedule_overrides`, override.id));
+        } else {
+            await addDoc(collection(db, `artifacts/great-class-quest/public/data/schedule_overrides`), { 
+                date: dateString, 
+                classId, 
+                type: 'one-time', 
+                createdBy: { uid: state.get('currentUserId'), name: state.get('currentTeacherName') }, 
+                createdAt: serverTimestamp() 
+            });
+        }
+        showToast("One-time lesson added.", "success");
+    } catch (e) { showToast("Error updating schedule.", "error"); }
+
+}
+
+export async function awardStoryWeaverBonusStarToClass(classId) {
+    playSound('star2');
+    const studentsInClass = state.get('allStudents').filter(s => s.classId === classId);
+    if (studentsInClass.length === 0) {
+        showToast("No students in class to award bonus stars to.", "info");
+        return;
+    }
+    
+    try {
+        const batch = writeBatch(db);
+        const publicDataPath = "artifacts/great-class-quest/public/data";
+
+        studentsInClass.forEach(student => {
+            const scoreRef = doc(db, `${publicDataPath}/student_scores`, student.id);
+            batch.update(scoreRef, {
+                monthlyStars: increment(0.5),
+                totalStars: increment(0.5)
+            });
+
+            const logRef = doc(collection(db, `${publicDataPath}/award_log`));
+            batch.set(logRef, {
+                studentId: student.id,
+                classId: classId,
+                teacherId: state.get('currentUserId'),
+                stars: 0.5,
+                reason: "story_weaver",
+                date: getTodayDateString(),
+                createdAt: serverTimestamp(),
+                createdBy: { uid: state.get('currentUserId'), name: state.get('currentTeacherName') }
+            });
+        });
+
+        await batch.commit();
+        showToast("Story Weaver bonus stars awarded!", "success");
+
+        const word = state.get('currentStoryData')[classId]?.currentWord || "a new idea";
+        const systemPrompt = "You are the 'Quest Master's Assistant'. A class just successfully added to their story. Write a very short, single-sentence, celebratory message for the whole class. Do not use markdown.";
+        const userPrompt = `The new part of their story involves the word "${word}". Write the celebratory message.`;
+        callGeminiApi(systemPrompt, userPrompt).then(comment => showPraiseToast(comment, '✒️')).catch(console.error);
+
+    } catch (error) {
+        console.error("Error awarding bonus stars:", error);
+        showToast("Failed to award bonus stars.", "error");
     }
 }

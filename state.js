@@ -37,7 +37,6 @@ function getDefaultState() {
         allAttendanceRecords: [], // Keeps recent/real-time records
         allScheduleOverrides: [],
         allHeroChronicleNotes: [],
-        hasLoadedCalendarHistory: false, // NEW: Track if we have history
         
         // UI Selection States
         globalSelectedClassId: null,
@@ -141,16 +140,9 @@ export function setAllWrittenScores(scores) { state.allWrittenScores = scores; }
 export function setAllAttendanceRecords(records) { state.allAttendanceRecords = records; }
 export function setAllScheduleOverrides(overrides) { state.allScheduleOverrides = overrides; }
 export function setAllHeroChronicleNotes(notes) { state.allHeroChronicleNotes = notes; }
-export function setHasLoadedCalendarHistory(val) { state.hasLoadedCalendarHistory = val; }
 
 export function setGlobalSelectedClass(classId, isManual = false) {
-    // Even if classId matches, if it's programmatic (initial load), we might need to trigger the UI update
-    // to ensure the "Select a class" placeholder is replaced.
-    if (classId === state.globalSelectedClassId && !isManual && state.globalSelectedClassId !== null) {
-        // Force UI update anyway if it's not null
-    } else if (classId === state.globalSelectedClassId && !isManual) {
-        return;
-    }
+    if (classId === state.globalSelectedClassId && !isManual) return;
 
     state.globalSelectedClassId = classId;
     if (classId) {
@@ -163,14 +155,14 @@ export function setGlobalSelectedClass(classId, isManual = false) {
     updateAllClassSelectors(isManual);
     updateAllLeagueSelectors(isManual);
 
-    // FIX: Always check active tab and render if we have a selection, 
-    // regardless of whether it was manual or programmatic.
-    const activeTab = document.querySelector('.app-tab:not(.hidden)');
-    if (activeTab && state.globalSelectedClassId) {
-        if (activeTab.id === 'award-stars-tab') {
-            renderAwardStarsTab();
-        } else if (activeTab.id === 'adventure-log-tab') {
-            renderAdventureLogTab();
+    if (isManual && !state.isProgrammaticSelection) {
+        const activeTab = document.querySelector('.app-tab:not(.hidden)');
+        if (activeTab) {
+            if (activeTab.id === 'award-stars-tab') {
+                renderAwardStarsTab();
+            } else if (activeTab.id === 'adventure-log-tab') {
+                renderAdventureLogTab();
+            }
         }
     }
 }
@@ -181,11 +173,12 @@ export function setGlobalSelectedLeague(league, isManual = false) {
     state.globalSelectedLeague = league;
     updateAllLeagueSelectors(isManual);
 
-    // Similar fix for leagues
-    const activeTab = document.querySelector('.app-tab:not(.hidden)');
-    if (activeTab && state.globalSelectedLeague) {
-        if (activeTab.id === 'class-leaderboard-tab') renderClassLeaderboardTab();
-        if (activeTab.id === 'student-leaderboard-tab') renderStudentLeaderboardTab();
+    if (isManual) {
+        const activeTab = document.querySelector('.app-tab:not(.hidden)');
+        if (activeTab && (activeTab.id === 'class-leaderboard-tab' || activeTab.id === 'student-leaderboard-tab')) {
+             renderClassLeaderboardTab();
+             renderStudentLeaderboardTab();
+        }
     }
 }
 
@@ -207,7 +200,7 @@ export function setAllCompletedStories(stories) { state.allCompletedStories = st
 export function setCurrentStorybookAudio(audio) { state.currentStorybookAudio = audio; }
 export function setCurrentNarrativeAudio(audio) { state.currentNarrativeAudio = audio; }
 export function setAvatarMakerData(data) { state.avatarMakerData = data; }
-export function setAttendanceViewDate(date) { state.attendanceViewDate = date; } 
+export function setAttendanceViewDate(date) { state.attendanceViewDate = date; } // NEW SETTER
 
 // Unsubscribe setters
 export function setUnsubscribeClasses(func) { state.unsubscribeClasses = func; }
@@ -234,7 +227,7 @@ export async function fetchMonthlyHistory(monthKey) {
         contentEl.innerHTML = `<p class="text-center text-gray-500"><i class="fas fa-spinner fa-spin mr-2"></i>Loading historical data...</p>`;
     }
     
-    const { collectionGroup, query, where, getDocs } = await import('https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js');
+    const { getFirestore, collectionGroup, query, where, getDocs } = await import('https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js');
     const { db } = await import('./firebase.js');
 
     const historyQuery = query(collectionGroup(db, 'monthly_history'), where("month", "==", monthKey));

@@ -63,8 +63,8 @@ function renderStoryWeaversUI(classId) {
         endBtn.disabled = false;
         textEl.textContent = story.currentSentence;
         imageLoader.classList.add('hidden');
-        if (story.currentImageBase64) {
-            imageEl.src = story.currentImageBase64;
+        if (story.currentImageUrl || story.currentImageBase64) {
+            imageEl.src = story.currentImageUrl || story.currentImageBase64;
             imageEl.classList.remove('hidden');
             imagePlaceholder.classList.add('hidden');
         } else {
@@ -183,13 +183,19 @@ export async function handleLockInSentence() {
         const rawImageBase64 = await callCloudflareAiImageApi(imagePrompt);
         const compressedImageBase64 = await compressImageBase64(rawImageBase64);
 
+        // --- NEW: UPLOAD TO STORAGE START ---
+        const { uploadImageToStorage } = await import('../utils.js');
+        const imagePath = `story_images/${classId}/${Date.now()}.jpg`;
+        const imageUrl = await uploadImageToStorage(compressedImageBase64, imagePath);
+        // --- NEW: UPLOAD TO STORAGE END ---
+
         const storyDocRef = doc(db, `artifacts/great-class-quest/public/data/story_data`, classId);
         const historyCollectionRef = collection(db, `artifacts/great-class-quest/public/data/story_data/${classId}/story_history`);
         
         const batch = writeBatch(db);
         const storyDataToSet = { 
             currentSentence: newSentence, 
-            currentImageBase64: compressedImageBase64,
+            currentImageUrl: imageUrl, // Saved the URL instead of Base64
             currentWord: wordOfTheDay,
             storyAdditionsCount: increment(1),
             updatedAt: serverTimestamp(),
@@ -206,7 +212,7 @@ export async function handleLockInSentence() {
         batch.set(newHistoryDoc, {
             sentence: newSentence,
             word: wordOfTheDay,
-            imageBase64: compressedImageBase64,
+            imageUrl: imageUrl, // Saved the URL instead of Base64
             createdAt: serverTimestamp(),
             createdBy: { uid: state.get('currentUserId'), name: state.get('currentTeacherName') }
         });
@@ -221,9 +227,10 @@ export async function handleLockInSentence() {
         }
     } catch (error) {
         console.error("Error locking in sentence:", error);
-        showToast("Failed to save the story. The image might be too large or there was a network issue. Please try again.", "error");
-        renderStoryWeaversUI(classId);
+        showToast("Failed to save the story. Please try again.", "error");
+        // renderStoryWeaversUI(classId); // Optional: Refresh UI on error
     } finally {
+        // We rely on the onSnapshot listener to update the UI once the data is saved
         resetStoryWeaverWordUI();
     }
 }
@@ -254,7 +261,7 @@ export async function handleShowStoryHistory() {
             contentEl.innerHTML = snapshot.docs.map((doc, index) => {
                 const data = doc.data();
                 return `<div class="story-history-card">
-                            <img src="${data.imageBase64}" alt="Chapter ${index + 1} illustration">
+                            <img src="${data.imageUrl || data.imageBase64}" alt="Chapter ${index + 1} illustration">
                             <div class="text-content">
                                 <p class="text-xs text-gray-500 font-bold">CHAPTER ${index + 1} (Word: <span class="text-cyan-600">${data.word || 'N/A'}</span>)</p>
                                 <p class="text-gray-800 mt-2 flex-grow">${data.sentence}</p>
@@ -354,7 +361,7 @@ export async function openStorybookViewer(storyId) {
 
         contentEl.innerHTML = chapters.map((chapter) => `
             <div class="story-history-card">
-                <img src="${chapter.imageBase64}" alt="Chapter ${chapter.chapterNumber} illustration">
+                <img src="${chapter.imageUrl || chapter.imageBase64}" alt="Chapter ${chapter.chapterNumber} illustration">
                 <div class="text-content">
                     <p class="text-xs text-gray-500 font-bold">CHAPTER ${chapter.chapterNumber}</p>
                     <p class="text-gray-800 mt-2 flex-grow">${chapter.sentence}</p>

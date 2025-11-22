@@ -200,7 +200,13 @@ export function openBulkLogModal(classId, type) {
     // UI Setup
     document.getElementById('bulk-trial-title').innerText = type === 'dictation' ? 'Log Dictation' : 'Log Test';
     document.getElementById('bulk-trial-subtitle').innerText = `${classData.logo} ${classData.name}`;
-    document.getElementById('bulk-trial-date').value = utils.getTodayDateString().split('-').reverse().join('-'); // Default today YYYY-MM-DD
+    
+    // Ensure date input is YYYY-MM-DD
+    const todayObj = new Date();
+    const yyyy = todayObj.getFullYear();
+    const mm = String(todayObj.getMonth() + 1).padStart(2, '0');
+    const dd = String(todayObj.getDate()).padStart(2, '0');
+    document.getElementById('bulk-trial-date').value = `${yyyy}-${mm}-${dd}`;
     
     const titleWrapper = document.getElementById('bulk-trial-title-wrapper');
     const titleInput = document.getElementById('bulk-trial-name');
@@ -227,7 +233,7 @@ export function openBulkLogModal(classId, type) {
         });
     }
 
-    // Attach Toggle Listeners
+    // Attach Toggle Listeners (UPDATED for Green/Red)
     listContainer.querySelectorAll('.toggle-absent-btn').forEach(btn => {
         btn.addEventListener('click', (e) => {
             const row = e.target.closest('.bulk-log-item');
@@ -235,9 +241,19 @@ export function openBulkLogModal(classId, type) {
             const input = row.querySelector('.bulk-grade-input');
             
             btn.classList.toggle('is-absent');
-            btn.classList.toggle('bg-gray-200');
-            btn.classList.toggle('text-gray-600');
-            btn.innerHTML = isNowAbsent ? '<i class="fas fa-user-slash"></i> Absent' : '<i class="fas fa-user-check"></i> Present';
+            
+            // Toggle Visuals
+            if (isNowAbsent) {
+                // Becomes Absent (Red)
+                btn.classList.remove('bg-green-500', 'text-white', 'hover:bg-green-600');
+                btn.classList.add('bg-red-500', 'text-white', 'hover:bg-red-600');
+                btn.innerHTML = '<i class="fas fa-user-slash"></i> Absent';
+            } else {
+                // Becomes Present (Green)
+                btn.classList.remove('bg-red-500', 'text-white', 'hover:bg-red-600');
+                btn.classList.add('bg-green-500', 'text-white', 'hover:bg-green-600');
+                btn.innerHTML = '<i class="fas fa-user-check"></i> Present';
+            }
             
             row.classList.toggle('absent', isNowAbsent);
             if (input) input.disabled = isNowAbsent;
@@ -247,10 +263,6 @@ export function openBulkLogModal(classId, type) {
 
     document.getElementById('bulk-trial-close-btn').onclick = () => modals.hideModal('bulk-trial-modal');
     
-    // We need to import handleBulkSaveTrial dynamically or attach it in core.js
-    // For now, we will set a data attribute and let core.js pick it up, or bind directly here if imported.
-    // Better to bind in core.js setup, but for simplicity in this flow we can trigger a custom event or global func.
-    // Let's use a dataset attribute on the modal to store state and bind in core.js
     document.getElementById('bulk-trial-modal').dataset.classId = classId;
     document.getElementById('bulk-trial-modal').dataset.type = type;
     document.getElementById('bulk-trial-modal').dataset.isJunior = isJunior;
@@ -286,12 +298,17 @@ function renderStudentBulkRow(student, type, isJunior, isAbsent) {
         `;
     }
 
+    // Button Classes logic
+    const buttonClass = isAbsent 
+        ? 'is-absent bg-red-500 text-white hover:bg-red-600' 
+        : 'bg-green-500 text-white hover:bg-green-600';
+
     return `
         <div class="bulk-log-item bg-white p-3 rounded-xl shadow-sm flex items-center gap-3 ${isAbsent ? 'absent' : ''}" data-student-id="${student.id}">
             ${avatarHtml}
             <div class="flex-grow min-w-0">
                 <p class="font-bold text-gray-800 truncate">${student.name}</p>
-                <button class="toggle-absent-btn text-xs px-2 py-1 rounded-full mt-1 ${isAbsent ? 'is-absent' : 'bg-gray-200 text-gray-600'}" tabindex="-1">
+                <button class="toggle-absent-btn text-xs px-2 py-1 rounded-full mt-1 ${buttonClass}" tabindex="-1">
                     ${isAbsent ? '<i class="fas fa-user-slash"></i> Absent' : '<i class="fas fa-user-check"></i> Present'}
                 </button>
             </div>
@@ -332,10 +349,6 @@ export async function openTrialHistoryModal(classId) {
         });
     });
     
-    // Attach listener for single edit and delete
-    // Note: This uses the *old* openLogTrialModal logic which we need to re-implement as a single-edit specific function
-    // or rename the old one. 
-    // Since I removed the old one, I will create 'openSingleTrialEditModal' below.
     document.getElementById('trial-history-content').addEventListener('click', (e) => {
         const deleteBtn = e.target.closest('.delete-trial-btn');
         if (deleteBtn) modals.handleDeleteTrial(deleteBtn.dataset.trialId);
@@ -347,12 +360,15 @@ export async function openTrialHistoryModal(classId) {
     modals.showAnimatedModal('trial-history-modal');
 
     // ... (Historical loading logic remains same as before)
-    const recentMonthKeys = new Set();
     const twoMonthsAgo = new Date();
     twoMonthsAgo.setMonth(twoMonthsAgo.getMonth() - 2);
     const twoMonthsAgoKey = twoMonthsAgo.toISOString().substring(0, 7);
 
     const allMonthsSet = await fetchAllTrialMonthsForClass(classId);
+    // Important: Sort correctly based on string comparison of YYYY-MM or parse dates
+    // Since `fetchAllTrialMonthsForClass` returns raw month strings, if they are YYYY-MM, simple sort works.
+    // If they are MM-YYYY (which they shouldn't be based on how they were constructed), we'd need parsing.
+    // Assuming keys are YYYY-MM from `fetchAllTrialMonthsForClass` which pulls from `score.date`.
     const historicalMonths = [...allMonthsSet].filter(monthKey => monthKey < twoMonthsAgoKey).sort().reverse();
     
     const actionsContainer = controlsContainer.querySelector('#trial-history-actions');
@@ -391,15 +407,18 @@ export function renderTrialHistoryContent(classId, view, onDemandScores = null, 
         twoMonthsAgo.setDate(1);
         const twoMonthsAgoKey = twoMonthsAgo.toISOString().substring(0, 7);
         
-        scoresToRender = state.get('allWrittenScores').filter(s => 
-            s.classId === classId && 
-            s.type === view &&
-            s.date.substring(0, 7) >= twoMonthsAgoKey
-        );
+        scoresToRender = state.get('allWrittenScores').filter(s => {
+            // Safe parsing for filtering, assuming s.date might be YYYY-MM-DD OR DD-MM-YYYY
+            const dateObj = utils.parseDDMMYYYY(s.date);
+            const key = dateObj.toISOString().substring(0, 7);
+            return s.classId === classId && s.type === view && key >= twoMonthsAgoKey;
+        });
     }
 
     const scoresByMonth = scoresToRender.reduce((acc, score) => {
-        const key = score.date.substring(0, 7); 
+        // Use parsing to ensure YYYY-MM key even if date is stored as DD-MM-YYYY
+        const dateObj = utils.parseDDMMYYYY(score.date);
+        const key = dateObj.toISOString().substring(0, 7); 
         if (!acc[key]) acc[key] = [];
         acc[key].push(score);
         return acc;
@@ -410,22 +429,26 @@ export function renderTrialHistoryContent(classId, view, onDemandScores = null, 
     const newHtml = sortedMonths.map(currentMonthKey => {
         const monthName = new Date(currentMonthKey + '-02').toLocaleString('en-GB', { month: 'long', year: 'numeric' });
         
-        let monthScoresHtml;
-        // Group by Date
+        // Group by Date (String)
         const scoresByDate = scoresByMonth[currentMonthKey].reduce((acc, score) => {
             if (!acc[score.date]) acc[score.date] = [];
             acc[score.date].push(score);
             return acc;
         }, {});
-        const sortedDates = Object.keys(scoresByDate).sort((a,b) => new Date(b) - new Date(a));
         
-        monthScoresHtml = sortedDates.map(date => {
+        // Sort dates
+        const sortedDates = Object.keys(scoresByDate).sort((a,b) => utils.parseDDMMYYYY(b) - utils.parseDDMMYYYY(a));
+        
+        let monthScoresHtml = sortedDates.map(date => {
             const dateScoresHtml = scoresByDate[date].map(score => renderTrialHistoryItem(score)).join('');
             const title = scoresByDate[date][0].title || (view === 'dictation' ? 'Dictation' : 'Test');
             
+            // Format Date for display
+            const displayDate = utils.parseDDMMYYYY(date).toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'short' });
+
             return `<div class="bg-white/50 rounded-lg p-2 mb-2">
                         <div class="date-group-header flex justify-between items-center">
-                            <span>${new Date(date).toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'short' })}</span>
+                            <span>${displayDate}</span>
                             <span class="text-sm font-normal text-gray-500">${title}</span>
                         </div>
                         <div class="space-y-1 mt-1">${dateScoresHtml}</div>
@@ -487,26 +510,26 @@ function renderTrialHistoryItem(score) {
     `;
 }
 
-// --- SINGLE EDIT MODAL (Re-implemented lightly for historical edits) ---
+// --- SINGLE EDIT MODAL ---
 
 export function openSingleTrialEditModal(classId, trialId) {
-    // This function reuses the BULK modal structure but just filters for one student? 
-    // No, for editing a specific past record, a small modal is better.
-    // However, since we removed the old modal HTML, let's use a simple prompt or re-inject a small form into a generic modal.
-    // actually, reusing the bulk modal but pre-filtering for that one student and date is the smartest way to keep code DRY.
-    
     const score = state.get('allWrittenScores').find(s => s.id === trialId);
     if (!score) return;
     
     const classData = state.get('allSchoolClasses').find(c => c.id === classId);
     const isJunior = classData.questLevel === 'Junior A' || classData.questLevel === 'Junior B';
 
-    // We need to temporarily show the bulk modal but populated ONLY with this student's data
     const modal = document.getElementById('bulk-trial-modal');
     
     document.getElementById('bulk-trial-title').innerText = 'Edit Result';
     document.getElementById('bulk-trial-subtitle').innerText = `${classData.name}`;
-    document.getElementById('bulk-trial-date').value = score.date;
+    
+    // DATE FIX: Convert stored date (which might be DD-MM-YYYY or YYYY-MM-DD) to YYYY-MM-DD for input
+    const dateObj = utils.parseDDMMYYYY(score.date);
+    const yyyy = dateObj.getFullYear();
+    const mm = String(dateObj.getMonth() + 1).padStart(2, '0');
+    const dd = String(dateObj.getDate()).padStart(2, '0');
+    document.getElementById('bulk-trial-date').value = `${yyyy}-${mm}-${dd}`;
     
     const titleWrapper = document.getElementById('bulk-trial-title-wrapper');
     const titleInput = document.getElementById('bulk-trial-name');
@@ -546,7 +569,6 @@ export function openSingleTrialEditModal(classId, trialId) {
     const saveBtn = document.getElementById('bulk-trial-save-btn');
     const newSaveBtn = saveBtn.cloneNode(true);
     saveBtn.parentNode.replaceChild(newSaveBtn, saveBtn);
-    // The handleBulkSave function in actions.js will need to handle the data-trial-id presence
     
     modals.showAnimatedModal('bulk-trial-modal');
     document.getElementById('bulk-trial-close-btn').onclick = () => modals.hideModal('bulk-trial-modal');

@@ -255,7 +255,6 @@
                             </button>
                         </div>
                     </div>
-                    <!-- V5.3.1 FIX: Added horizontal padding to give tooltips more space -->
                     <div class="px-4 md:px-12">
                         <div id="class-leaderboard-list" class="space-y-4"></div>
                     </div>
@@ -392,7 +391,6 @@
                         <input type="hidden" id="manage-class-id">
                     </div>
                     
-                    <!-- CHANGE 2: Restructured Layout -->
                     <div class="flex flex-col md:flex-row items-start gap-8">
                         <div class="w-full md:w-1/3 flex-shrink-0">
                             <form id="add-student-form" class="bg-white p-6 rounded-3xl shadow-lg border-4 border-teal-300">
@@ -701,7 +699,7 @@
                                         </div>
                                         <div>
                                             <label for="star-manager-stars-to-add" class="block text-sm font-medium text-gray-700">Stars to Add</label>
-                                            <input type="number" id="star-manager-stars-to-add" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-amber-500" min="1" max="10" value="1" disabled>
+                                            <input type="number" id="star-manager-stars-to-add" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-amber-500" min="0.5" step="0.5" max="10" value="1" disabled>
                                         </div>
                                     </div>
                                     <div>
@@ -711,6 +709,7 @@
                                             <option value="creativity">Creativity</option>
                                             <option value="respect">Respect</option>
                                             <option value="focus">Focus/Effort</option>
+                                            <option value="welcome_back">Welcome Back Bonus</option>
                                             <option value="correction">Manual Correction</option>
                                         </select>
                                     </div>
@@ -744,6 +743,41 @@
             
                         <!-- Right Column: Profile & Danger Zone -->
                         <div class="lg:col-span-2 flex flex-col gap-8">
+                            <!-- School Year Planner -->
+<div class="bg-white p-6 rounded-3xl shadow-lg border-4 border-pink-300 space-y-4">
+    <h2 class="font-title text-3xl text-pink-700 text-center">School Year Planner</h2>
+    <p class="text-sm text-gray-500 text-center">Set school-wide holidays (Christmas, Easter) to overshadow the calendar.</p>
+    
+    <div class="grid grid-cols-2 gap-2">
+        <div class="col-span-2">
+            <label class="block text-xs font-bold text-gray-500">Holiday Name</label>
+            <input type="text" id="holiday-name" placeholder="e.g. Christmas Break" class="w-full px-3 py-2 border rounded-lg">
+        </div>
+        <div>
+            <label class="block text-xs font-bold text-gray-500">Start Date</label>
+            <input type="date" id="holiday-start" class="w-full px-3 py-2 border rounded-lg">
+        </div>
+        <div>
+            <label class="block text-xs font-bold text-gray-500">End Date</label>
+            <input type="date" id="holiday-end" class="w-full px-3 py-2 border rounded-lg">
+        </div>
+        <div class="col-span-2">
+            <label class="block text-xs font-bold text-gray-500">Theme</label>
+            <select id="holiday-type" class="w-full px-3 py-2 border rounded-lg bg-white">
+                <option value="christmas">🎄 Christmas / Winter</option>
+                <option value="easter">🐣 Easter / Spring</option>
+                <option value="generic">📅 Generic / Other</option>
+            </select>
+        </div>
+    </div>
+    <button id="add-holiday-btn" class="w-full bg-pink-500 hover:bg-pink-600 text-white font-bold py-2 rounded-xl bubbly-button">
+        <i class="fas fa-plus-circle mr-2"></i> Add Break
+    </button>
+    
+    <div id="holiday-list" class="mt-4 space-y-2 max-h-40 overflow-y-auto">
+        <!-- List populated by JS -->
+    </div>
+</div>
                             <!-- Profile Settings Card -->
                             <div class="bg-white p-6 rounded-3xl shadow-lg border-4 border-blue-300 space-y-4">
                                 <h2 class="font-title text-3xl text-blue-700 text-center">Profile Settings</h2>
@@ -1278,17 +1312,30 @@
         </div>
     </div>
 
-    <!-- Starfall Modal -->
+    <!-- Starfall Modal (UPDATED for Batch Support) -->
     <div id="starfall-modal" class="fixed inset-0 bg-black bg-opacity-50 z-[80] flex items-center justify-center p-4 hidden">
-        <div id="starfall-modal-content" class="relative text-center p-8 rounded-3xl shadow-2xl max-w-md w-full pop-in overflow-hidden">
+        <div id="starfall-modal-content" class="relative text-center p-8 rounded-3xl shadow-2xl max-w-lg w-full pop-in overflow-hidden">
             <div class="absolute -top-1/2 -left-1/2 w-[200%] h-[200%] starfall-bg"></div>
             <div class="relative z-10">
                 <div id="starfall-icon" class="text-7xl mb-4 starfall-icon-animate">⭐</div>
                 <h2 class="font-title text-4xl text-white mb-4" style="text-shadow: 0 2px 4px rgba(0,0,0,0.3);">A Starfall Opportunity!</h2>
-                <p id="starfall-message" class="text-white/90 text-lg leading-relaxed mb-6" style="text-shadow: 0 1px 3px rgba(0,0,0,0.3);">The stars have noticed <b id="starfall-student-name" class="text-yellow-200">Student Name's</b> incredible effort on their trial! Their brilliance has caused a star to fall from the sky.</p>
-                <p class="text-white font-bold text-xl mb-6">Shall we bestow this Bonus Star of Excellence for this magnificent achievement?</p>
+                
+                <!-- Single View Container -->
+                <div id="starfall-single-view">
+                    <p id="starfall-message" class="text-white/90 text-lg leading-relaxed mb-6" style="text-shadow: 0 1px 3px rgba(0,0,0,0.3);">The stars have noticed <b id="starfall-student-name" class="text-yellow-200">Student Name's</b> incredible effort on their trial! Their brilliance has caused a star to fall from the sky.</p>
+                </div>
+
+                <!-- Batch View Container (Hidden by default) -->
+                <div id="starfall-batch-view" class="hidden mb-6">
+                    <p class="text-white/90 text-lg leading-relaxed mb-4" style="text-shadow: 0 1px 3px rgba(0,0,0,0.3);">The stars are raining down! These scholars have triggered a Starfall Bonus!</p>
+                    <div id="starfall-batch-list" class="bg-white/20 backdrop-blur-sm rounded-xl p-2 max-h-40 overflow-y-auto text-left space-y-1">
+                        <!-- List items injected via JS -->
+                    </div>
+                </div>
+
+                <p class="text-white font-bold text-xl mb-6">Shall we bestow these Bonus Stars?</p>
                 <div class="flex flex-col items-center gap-3">
-                    <button id="starfall-confirm-btn" class="w-full bg-yellow-400 hover:bg-yellow-500 text-yellow-900 font-title text-xl py-3 rounded-xl bubbly-button shadow-lg border-b-4 border-yellow-600">Yes, Bestow Bonus Star! ✨</button>
+                    <button id="starfall-confirm-btn" class="w-full bg-yellow-400 hover:bg-yellow-500 text-yellow-900 font-title text-xl py-3 rounded-xl bubbly-button shadow-lg border-b-4 border-yellow-600">Yes, Bestow Bonus Stars! ✨</button>
                     <button id="starfall-cancel-btn" class="text-white/70 hover:text-white hover:underline">Not This Time</button>
                 </div>
             </div>

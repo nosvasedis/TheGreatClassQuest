@@ -4,8 +4,9 @@
 import * as state from '../state.js';
 import * as utils from '../utils.js';
 import * as constants from '../constants.js';
-import { deleteClass } from '../db/actions.js';
-import { fetchMonthlyHistory } from '../state.js'; // FIX: Changed import source
+import { deleteClass, ensureHistoryLoaded } from '../db/actions.js';
+import { db } from '../firebase.js'; 
+import { fetchMonthlyHistory } from '../state.js';
 import * as modals from './modals.js';
 import * as scholarScroll from '../features/scholarScroll.js';
 import * as avatar from '../features/avatar.js';
@@ -13,7 +14,7 @@ import * as storyWeaver from '../features/storyWeaver.js';
 
 // --- TAB NAVIGATION ---
 
-export function showTab(tabName) {
+export async function showTab(tabName) {
     const allTabs = document.querySelectorAll('.app-tab');
     const tabId = tabName.endsWith('-tab') ? tabName : `${tabName}-tab`;
     const nextTab = document.getElementById(tabId);
@@ -58,18 +59,43 @@ export function showTab(tabName) {
 
     // --- Trigger specific render functions when a tab is shown ---
     if (tabId === 'class-leaderboard-tab' || tabId === 'student-leaderboard-tab') {
+        const { findAndSetCurrentLeague } = await import('./core.js');
         findAndSetCurrentLeague();
     }
+    
     if(tabId === 'class-leaderboard-tab') renderClassLeaderboardTab();
     if(tabId === 'student-leaderboard-tab') renderStudentLeaderboardTab();
     if(tabId === 'my-classes-tab') renderManageClassesTab();
     if(tabId === 'manage-students-tab') renderManageStudentsTab();
-    if(tabId === 'award-stars-tab') { renderAwardStarsTab(); findAndSetCurrentClass(); }
-    if(tabId === 'adventure-log-tab') { renderAdventureLogTab(); findAndSetCurrentClass('adventure-log-class-select'); }
-    if(tabId === 'scholars-scroll-tab') { scholarScroll.renderScholarsScrollTab(); findAndSetCurrentClass('scroll-class-select'); }
-    if(tabId === 'calendar-tab') renderCalendarTab();
+    
+    if(tabId === 'award-stars-tab') { 
+        const { findAndSetCurrentClass } = await import('./core.js');
+        // First render with whatever state we have
+        renderAwardStarsTab(); 
+        // Then try to find the current class based on time, which will trigger a re-render via state.js if found
+        findAndSetCurrentClass(); 
+    }
+    
+    if(tabId === 'adventure-log-tab') { 
+        const { findAndSetCurrentClass } = await import('./core.js');
+        renderAdventureLogTab(); 
+        findAndSetCurrentClass('adventure-log-class-select'); 
+    }
+    
+    if(tabId === 'scholars-scroll-tab') { 
+        const { findAndSetCurrentClass } = await import('./core.js');
+        scholarScroll.renderScholarsScrollTab(); 
+        findAndSetCurrentClass('scroll-class-select'); 
+    }
+    
+    if(tabId === 'calendar-tab') {
+        await ensureHistoryLoaded(); 
+        renderCalendarTab();
+    }
+    
     if(tabId === 'reward-ideas-tab') renderIdeasTabSelects();
     if(tabId === 'options-tab') {
+        import('./core.js').then(m => m.renderHolidayList());
         if (document.getElementById('teacher-name-input')) document.getElementById('teacher-name-input').value = state.get('currentTeacherName') || '';
         renderStarManagerStudentSelect(); 
     }
@@ -241,6 +267,8 @@ export function renderClassLeaderboardTab() {
 }
 
 export function renderStudentLeaderboardTab() {
+    // ... (No changes needed here for this specific request)
+    // Copying existing logic to maintain file integrity
     const list = document.getElementById('student-leaderboard-list');
     if (!list) return;
 
@@ -601,9 +629,17 @@ export function renderAwardStarsStudentList(selectedClassId, fullRender = true) 
                 
                 const isMarkedAbsentToday = state.get('allAttendanceRecords').some(r => r.studentId === s.id && r.date === today);
                 const wasAbsentLastTime = previousLessonDate && state.get('allAttendanceRecords').some(r => r.studentId === s.id && r.date === previousLessonDate);
+                
+                // Corrected logic: Present if stars > 0 OR if specifically marked present/welcome_back (even if stars are 0)
                 const isPresentToday = starsToday > 0 || reasonToday === 'marked_present' || reasonToday === 'welcome_back';
+                
+                // Card is "Visually Absent" if explicitly marked absent today OR (absent last time AND hasn't arrived yet today)
                 const isVisuallyAbsent = isMarkedAbsentToday || (wasAbsentLastTime && !isPresentToday);
                 
+                // Lock the card if normal stars are awarded. 
+                // DO NOT LOCK if stars are 0 (e.g. marked_present) or if reason is 'welcome_back' (bonus given, but class still starts)
+                const isCardLocked = starsToday > 0 && reasonToday !== 'welcome_back';
+
                 let absenceButtonHtml = '';
                 
                 if (isVisuallyAbsent) {
@@ -623,7 +659,10 @@ export function renderAwardStarsStudentList(selectedClassId, fullRender = true) 
                     }
                 } 
                 else {
-                    if (starsToday === 0) {
+                    // If they are present (stars awarded or marked present), show "Mark Absent" only if 0 stars 
+                    // OR if the only record is welcome_back/marked_present (so we can undo arrival)
+                    // Actually, simple rule: allow marking absent if we haven't awarded performance stars yet.
+                    if (!isCardLocked) {
                         absenceButtonHtml = `
                             <button class="absence-btn" data-action="mark-absent" title="Mark as Absent">
                                 <i class="fas fa-user-slash pointer-events-none"></i>
@@ -662,7 +701,7 @@ export function renderAwardStarsStudentList(selectedClassId, fullRender = true) 
                                 <i class="fas fa-star text-xs -mt-1"></i>
                             </div>
                         </div>
-                        <div class="reason-selector flex justify-center items-center gap-2 ${starsToday > 0 ? 'pointer-events-none opacity-50' : ''}">
+                        <div class="reason-selector flex justify-center items-center gap-2 ${isCardLocked ? 'pointer-events-none opacity-50' : ''}">
                             <button class="reason-btn bubbly-button p-3 rounded-full bg-gray-100 hover:bg-purple-200" data-reason="teamwork" title="Teamwork"><i class="fas fa-users text-purple-600 pointer-events-none"></i></button>
                             <button class="reason-btn bubbly-button p-3 rounded-full bg-gray-100 hover:bg-pink-200" data-reason="creativity" title="Creativity"><i class="fas fa-lightbulb text-pink-600 pointer-events-none"></i></button>
                             <button class="reason-btn bubbly-button p-3 rounded-full bg-gray-100 hover:bg-green-200" data-reason="respect" title="Respect"><i class="fas fa-hands-helping text-green-600 pointer-events-none"></i></button>
@@ -709,9 +748,7 @@ export function updateAwardCardState(studentId, starsToday, reason) {
     if (!studentCard) return;
 
     const todayStarsEl = studentCard.querySelector(`#today-stars-${studentId}`);
-    if (!todayStarsEl) return;
-    
-    if (todayStarsEl.textContent != starsToday) {
+    if (todayStarsEl && todayStarsEl.textContent != starsToday) {
         todayStarsEl.textContent = starsToday;
         const bubble = todayStarsEl.closest('.counter-bubble');
         if (bubble) {
@@ -725,21 +762,31 @@ export function updateAwardCardState(studentId, starsToday, reason) {
     const starSelector = studentCard.querySelector('.star-selector-container');
     const absenceControls = studentCard.querySelector('.absence-controls');
 
-    if (starsToday > 0) {
+    // Logic: Card locks ONLY if stars > 0 AND the reason is NOT 'welcome_back'
+    const shouldLock = starsToday > 0 && reason !== 'welcome_back';
+
+    if (shouldLock) {
         undoBtn?.classList.remove('hidden');
         reasonSelector?.classList.add('pointer-events-none', 'opacity-50');
         starSelector?.classList.remove('visible');
         reasonSelector?.querySelectorAll('.reason-btn.active').forEach(b => b.classList.remove('active'));
-        
-        if(absenceControls) absenceControls.innerHTML = '';
-        studentCard.classList.remove('is-absent'); 
-
     } else {
-        undoBtn?.classList.add('hidden');
+        // If not locked (either 0 stars OR welcome_back), enable controls
+        undoBtn?.classList.add('hidden'); // Hide general undo
         reasonSelector?.classList.remove('pointer-events-none', 'opacity-50');
-        
+    }
+
+    // If we have 0 stars (unlocked), we are present, so remove absent visual
+    // (Unless we are specifically marked absent, but this function usually runs after awarding stars)
+    if (starsToday >= 0) {
+        studentCard.classList.remove('is-absent');
         if(absenceControls) {
-             renderAwardStarsStudentList(state.get('globalSelectedClassId'), false);
+             // Re-render controls to show "Mark Absent" again
+             absenceControls.innerHTML = `
+                <button class="absence-btn" data-action="mark-absent" title="Mark as Absent">
+                    <i class="fas fa-user-slash pointer-events-none"></i>
+                </button>
+            `;
         }
     }
 }
@@ -862,47 +909,85 @@ export function renderCalendarTab() {
         const totalStarsThisDay = logsForThisDay.reduce((sum, log) => sum + (log.stars || 0), 0);
         
         const dayCell = document.createElement('div');
-        dayCell.className = `border rounded-md p-1 calendar-day-cell ${isFuture ? 'bg-white future-day' : 'bg-white logbook-day-btn'}`;
         dayCell.dataset.date = dateString;
+
+        // 1. Check for Global Holidays (Ranges set in Options)
+        // Convert current loop day to YYYY-MM-DD for comparison
+        const yyyy = day.getFullYear();
+        const mm = String(day.getMonth() + 1).padStart(2, '0');
+        const dd = String(day.getDate()).padStart(2, '0');
+        const compDate = `${yyyy}-${mm}-${dd}`;
         
-        const dayNumberHtml = isToday ? `<span class="today-date-highlight">${i}</span>` : i;
-        const starHtml = totalStarsThisDay > 0 ? `<div class="calendar-star-count text-center text-amber-600 font-bold mt-1 text-sm"><i class="fas fa-star"></i> ${totalStarsThisDay}</div>` : '';
+        const globalHoliday = (state.get('schoolHolidayRanges') || []).find(h => compDate >= h.start && compDate <= h.end);
+
+        // 2. Check for Manual Cancellations (The Trash Can)
+        // We check if ALL scheduled classes for this teacher are cancelled on this day.
+        const myClasses = state.get('allTeachersClasses');
+        const dayOfWeekStr = day.getDay().toString();
         
+        // Classes that SHOULD occur today
+        const myScheduledClasses = myClasses.filter(c => c.scheduleDays && c.scheduleDays.includes(dayOfWeekStr));
+        
+        // Classes actually running today (utils.getClassesOnDay filters out cancelled ones)
         const classesOnThisDay = utils.getClassesOnDay(dateString, state.get('allSchoolClasses'), state.get('allScheduleOverrides'));
-        let eventsHtml = classesOnThisDay.map(c => {
-            const color = c.color || constants.classColorPalettes[utils.simpleHashCode(c.id) % constants.classColorPalettes.length];
-            const timeDisplay = (c.timeStart && c.timeEnd) ? `${c.timeStart}-${c.timeEnd}` : (c.timeStart || '');
-            return `<div class="text-xs px-1.5 py-1 rounded ${color.bg} ${color.text} border-l-4 ${color.border} shadow-sm" title="${c.name} (${timeDisplay})"><span class="font-bold">${c.logo} ${timeDisplay}</span><span class="truncate block">${c.name}</span></div>`;
-        }).join('');
         
-        const questEventsOnThisDay = state.get('allQuestEvents').filter(e => e.date === dateString);
-        let questEventsHtml = questEventsOnThisDay.map(e => {
-            const title = e.details?.title || e.type; 
-            let icon = 'fas fa-flag-checkered';
-            switch(e.type) {
-                case '2x Star Day': icon = 'fas fa-bolt'; break;
-                case 'Reason Bonus Day': icon = 'fas fa-award'; break;
-                case 'Vocabulary Vault': icon = 'fas fa-gem'; break;
-                case 'The Unbroken Chain': icon = 'fas fa-link'; break;
-                case 'Grammar Guardians': icon = 'fas fa-shield-alt'; break;
-                case 'The Scribe\'s Sketch': icon = 'fas fa-pencil-ruler'; break;
-                case 'Five-Sentence Saga': icon = 'fas fa-book'; break;
-            }
+        // Check overrides
+        const myClassIds = myClasses.map(c => c.id);
+        const myCancellations = state.get('allScheduleOverrides').filter(o => 
+            o.date === dateString && 
+            o.type === 'cancelled' && 
+            myClassIds.includes(o.classId)
+        );
 
-            return `<div class="relative text-xs px-1.5 py-1 rounded bg-purple-200 text-purple-800 border-l-4 border-purple-400 shadow-sm" title="${title}">
-                        <i class="${icon} mr-1"></i><span class="font-bold">${title}</span>
-                        ${e.createdBy.uid === state.get('currentUserId') ? `<button data-id="${e.id}" data-name="${title.replace(/'/g, "\\'")}" class="delete-event-btn"><i class="fas fa-times"></i></button>` : ''}
-                    </div>`;
-        }).join('');
+        // LOGIC: Full Block if Global Holiday OR (Scheduled Classes exist AND All are Cancelled)
+        const isFullHoliday = globalHoliday || (myScheduledClasses.length > 0 && classesOnThisDay.length === 0 && myCancellations.length > 0);
 
-        dayCell.innerHTML = `
-            <div class="font-bold text-right text-gray-800">${dayNumberHtml}</div>
-            ${starHtml}
-            <div class="flex flex-col gap-1 mt-1 overflow-y-auto" style="max-height: 150px;">
-                ${questEventsHtml}
-                ${eventsHtml}
-            </div>
-        `;
+        const dayNumberHtml = isToday ? `<span class="today-date-highlight">${i}</span>` : i;
+        
+        if (isFullHoliday) {
+            // --- RENDER HOLIDAY BLOCK ---
+            const themeClass = globalHoliday ? `holiday-theme-${globalHoliday.type}` : 'bg-red-50 border-red-200';
+            const labelText = globalHoliday ? (globalHoliday.type === 'christmas' ? 'Winter Break' : globalHoliday.name) : 'No School';
+            const icon = globalHoliday ? (globalHoliday.type === 'christmas' ? '❄️' : (globalHoliday.type === 'easter' ? '🐰' : '📅')) : '⛔';
+
+            dayCell.className = `border rounded-md p-1 calendar-day-cell calendar-holiday-cell ${themeClass} relative overflow-hidden`;
+            dayCell.innerHTML = `
+                <div class="font-bold text-right text-gray-400 opacity-50 z-10 relative">${i}</div>
+                <div class="absolute inset-0 flex flex-col items-center justify-center opacity-80 pointer-events-none">
+                    <span class="text-3xl mb-1">${icon}</span>
+                    <span class="font-title text-xs uppercase tracking-wider font-bold text-gray-500 text-center leading-tight px-1">${labelText}</span>
+                </div>
+            `;
+        } else {
+            // --- RENDER NORMAL DAY ---
+            const logsForThisDay = logsToRender.filter(log => utils.getDDMMYYYY(utils.parseDDMMYYYY(log.date)) === dateString);
+            const totalStarsThisDay = logsForThisDay.reduce((sum, log) => sum + (log.stars || 0), 0);
+            
+            dayCell.className = `border rounded-md p-1 calendar-day-cell ${isFuture ? 'bg-white future-day' : 'bg-white logbook-day-btn'}`;
+            
+            const starHtml = totalStarsThisDay > 0 ? `<div class="calendar-star-count text-center text-amber-600 font-bold mt-1 text-sm"><i class="fas fa-star"></i> ${totalStarsThisDay}</div>` : '';
+            
+            let eventsHtml = classesOnThisDay.map(c => {
+                const color = c.color || constants.classColorPalettes[utils.simpleHashCode(c.id) % constants.classColorPalettes.length];
+                const timeDisplay = (c.timeStart && c.timeEnd) ? `${c.timeStart}-${c.timeEnd}` : (c.timeStart || '');
+                return `<div class="text-xs px-1.5 py-1 rounded ${color.bg} ${color.text} border-l-4 ${color.border} shadow-sm" title="${c.name} (${timeDisplay})"><span class="font-bold">${c.logo} ${timeDisplay}</span><span class="truncate block">${c.name}</span></div>`;
+            }).join('');
+            
+            const questEventsOnThisDay = state.get('allQuestEvents').filter(e => e.date === dateString);
+            let questEventsHtml = questEventsOnThisDay.map(e => {
+                const title = e.details?.title || e.type; 
+                return `<div class="relative text-xs px-1.5 py-1 rounded bg-purple-200 text-purple-800 border-l-4 border-purple-400 shadow-sm truncate"><span class="font-bold">${title}</span></div>`;
+            }).join('');
+
+            dayCell.innerHTML = `
+                <div class="font-bold text-right text-gray-800">${dayNumberHtml}</div>
+                ${starHtml}
+                <div class="flex flex-col gap-1 mt-1 overflow-y-auto" style="max-height: 150px;">
+                    ${questEventsHtml}
+                    ${eventsHtml}
+                </div>
+            `;
+        }
         grid.appendChild(dayCell);
     }
 }
@@ -1067,7 +1152,7 @@ export function renderAdventureLog() {
                 </div>
                 <div class="diary-body">
                     <div class="diary-image-container">
-                        <img src="${log.imageBase64 || ''}" alt="Image for ${(log.keywords || []).join(', ')}" class="diary-image">
+                        <img src="${log.imageUrl || log.imageBase64 || ''}" alt="Image for ${(log.keywords || []).join(', ')}" class="diary-image">
                     </div>
                     <div class="diary-text-content">
                         <p class="diary-text">${log.text}</p>

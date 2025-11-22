@@ -137,8 +137,14 @@ export async function handleSaveAvatar() {
 
     try {
         const compressedAvatar = await compressAvatarImageBase64(generatedImage);
+        
+        // NEW: Upload to Storage
+        const { uploadImageToStorage } = await import('../utils.js');
+        const imagePath = `avatars/${studentId}_${Date.now()}.webp`;
+        const imageUrl = await uploadImageToStorage(compressedAvatar, imagePath);
+
         const studentRef = doc(db, `artifacts/great-class-quest/public/data/students`, studentId);
-        await updateDoc(studentRef, { avatar: compressedAvatar });
+        await updateDoc(studentRef, { avatar: imageUrl }); // NEW: Save URL
         
         showToast("Avatar saved successfully!", "success");
         modals.hideModal('avatar-maker-modal');

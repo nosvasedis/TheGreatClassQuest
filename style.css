@@ -557,10 +557,11 @@ body {
     color: #2563eb;
 }
 
+/* FIX #2: Move Undo button to LEFT to prevent overlap with Absence controls (Right) */
 .post-award-undo-btn {
     position: absolute;
     top: 0.75rem;
-    right: 0.75rem;
+    left: 0.75rem; /* Changed from right: 0.75rem */
     width: 2rem;
     height: 2rem;
     background-color: #fee2e2;
@@ -1953,3 +1954,105 @@ main {
     border-color: #f59e0b; /* amber-500 */
     box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.2);
 }
+
+/* Attendance Column Delete Button */
+.attendance-header-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+}
+.delete-column-btn {
+    font-size: 0.65rem;
+    color: #9ca3af;
+    cursor: pointer;
+    padding: 2px 6px;
+    border-radius: 4px;
+    transition: all 0.2s;
+    background-color: #f3f4f6;
+}
+.delete-column-btn:hover {
+    color: #ef4444; /* Red */
+    background-color: #fee2e2;
+}
+
+/* --- HOLIDAY CALENDAR OVERLAYS --- */
+
+/* Base Holiday Cell */
+.calendar-holiday-cell {
+    position: relative;
+    overflow: hidden;
+    border: 2px solid transparent;
+    transition: all 0.3s ease;
+}
+
+/* Christmas Theme (Candy Cane + Snow) */
+.holiday-theme-christmas {
+    background: repeating-linear-gradient(
+        45deg,
+        #FEF2F2,
+        #FEF2F2 10px,
+        #FEE2E2 10px,
+        #FEE2E2 20px
+    );
+    border-color: #FECACA;
+}
+.holiday-theme-christmas::before {
+    content: '❄️';
+    position: absolute;
+    font-size: 1.5rem;
+    top: -10px;
+    right: -5px;
+    opacity: 0.6;
+    animation: float-snow 3s ease-in-out infinite;
+}
+@keyframes float-snow {
+    0%, 100% { transform: translateY(0) rotate(0deg); }
+    50% { transform: translateY(5px) rotate(20deg); }
+}
+
+/* Easter Theme (Spring + Eggs) */
+.holiday-theme-easter {
+    background: linear-gradient(to bottom right, #F0FDF4, #FEFCE8); /* Green to Yellow */
+    border-color: #BBF7D0;
+}
+.holiday-theme-easter::after {
+    content: '🥚';
+    position: absolute;
+    bottom: 2px;
+    right: 2px;
+    font-size: 1.2rem;
+    opacity: 0.7;
+    transform: rotate(15deg);
+}
+.holiday-theme-easter::before {
+    content: '🌸';
+    position: absolute;
+    top: 2px;
+    left: 2px;
+    font-size: 1rem;
+    opacity: 0.6;
+}
+
+/* Generic Holiday */
+.holiday-theme-generic {
+    background-color: #F3F4F6;
+    background-image: radial-gradient(#E5E7EB 1px, transparent 1px);
+    background-size: 10px 10px;
+}
+
+/* Text Overlay */
+.holiday-label {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-family: 'Fredoka One', cursive;
+    font-size: 1.5rem;
+    color: rgba(0,0,0,0.1);
+    pointer-events: none;
+    white-space: nowrap;
+    z-index: 0;
+}
+.holiday-theme-christmas .holiday-label { color: rgba(220, 38, 38, 0.15); } /* Red tint */
+.holiday-theme-easter .holiday-label { color: rgba(101, 163, 13, 0.15); } /* Green tint */

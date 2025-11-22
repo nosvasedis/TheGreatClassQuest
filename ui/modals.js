@@ -302,7 +302,22 @@ export async function showLogbookModal(dateString, isOndemand = false) {
         // --- THE FIX: SIMPLIFIED FILTER ---
         // Old way: utils.getDDMMYYYY(utils.parseDDMMYYYY(log.date)) === dateString
         // New way: direct string comparison. Much faster and less error-prone.
-        logs = state.get('allAwardLogs').filter(log => log.date === dateString);
+        // FIX: Robust Date Comparison
+    // 1. Create a standardized timestamp for the day selected on the calendar
+    const targetTime = utils.parseDDMMYYYY(dateString).setHours(0, 0, 0, 0);
+
+    // 2. Filter logs by comparing their parsed time, not just the text string
+    logs = state.get('allAwardLogs').filter(log => {
+        // Exact match (Fastest)
+        if (log.date === dateString) return true;
+        
+        // Parsing match (Handles YYYY-MM-DD, MM/DD/YYYY, etc.)
+        if (log.date) {
+            const logTime = utils.parseDDMMYYYY(log.date).setHours(0, 0, 0, 0);
+            return logTime === targetTime;
+        }
+        return false;
+    });
     }
     
     const reasonColors = { teamwork: 'text-purple-600', creativity: 'text-pink-600', respect: 'text-green-600', focus: 'text-yellow-600', correction: 'text-gray-500', welcome_back: 'text-cyan-600', story_weaver: 'text-cyan-600', scholar_s_bonus: 'text-amber-700' };
@@ -1939,3 +1954,4 @@ export async function generateAIInsight(studentId, insightType) {
         outputEl.innerHTML = `<p class="text-center text-red-500">The Oracle could not process the records at this time. Please try again later.</p>`;
     }
 }
+

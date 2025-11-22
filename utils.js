@@ -192,3 +192,25 @@ export function debounce(func, wait) {
       timeout = setTimeout(later, wait);
     };
 }
+
+// NEW: Helper to upload images to Firebase Storage
+export async function uploadImageToStorage(base64String, path) {
+    // We need to import these dynamically to avoid circular dependencies
+    const { storage, ref, uploadString, getDownloadURL } = await import('./firebase.js');
+    
+    try {
+        // Create a reference to where the file will live
+        const storageRef = ref(storage, path);
+        
+        // Upload the Base64 string
+        // We assume the base64 string includes the data:image/jpeg;base64,... prefix
+        await uploadString(storageRef, base64String, 'data_url');
+        
+        // Get the public URL
+        const downloadURL = await getDownloadURL(storageRef);
+        return downloadURL;
+    } catch (error) {
+        console.error("Error uploading image:", error);
+        throw error;
+    }
+}

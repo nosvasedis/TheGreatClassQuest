@@ -40,12 +40,16 @@ export function setupDataListeners(userId, dateString) {
     state.get('unsubscribeAttendance')();
     state.get('unsubscribeScheduleOverrides')();
     state.get('unsubscribeHeroChronicleNotes')();
+    state.get('unsubscribeSchoolSettings')();
 
     const publicDataPath = "artifacts/great-class-quest/public/data";
     
     // --- Time-bounded Definitions ---
     const thirtyDaysAgo = new Date();
     thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+    const now = new Date();
+    const startOfCurrentMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+    const startOfMonthString = startOfCurrentMonth.toISOString().split('T')[0];
     
     const competitionStartDateString = competitionStart.toISOString().split('T')[0];
 
@@ -59,19 +63,25 @@ export function setupDataListeners(userId, dateString) {
     const completedStoriesQuery = query(collection(db, `${publicDataPath}/completed_stories`), orderBy('completedAt', 'desc'));
     const overridesQuery = query(collection(db, `${publicDataPath}/schedule_overrides`));
     const heroChronicleNotesQuery = query(collection(db, `${publicDataPath}/hero_chronicle_notes`), where('teacherId', '==', userId));
+    const schoolSettingsQuery = doc(db, `${publicDataPath}/school_settings`, 'holidays');
 
     // Optimized Queries (Time-Bounded)
-    const awardLogsQuery = query(collection(db, `${publicDataPath}/award_log`), where('createdAt', '>=', thirtyDaysAgo));
+    const awardLogsQuery = query(collection(db, `${publicDataPath}/award_log`), where('date', '==', dateString));
     const adventureLogsQuery = query(collection(db, `${publicDataPath}/adventure_logs`), where('createdAt', '>=', thirtyDaysAgo), orderBy('createdAt', 'desc'));
     
     // REVAMP: Attendance now only fetches the last 30 days real-time. Older data is fetched on demand.
-    const attendanceQuery = query(collection(db, `${publicDataPath}/attendance`), where('createdAt', '>=', thirtyDaysAgo));
+    const attendanceQuery = query(
+    collection(db, `${publicDataPath}/attendance`), 
+    where('markedBy.uid', '==', userId), // Only my attendance records
+    where('createdAt', '>=', thirtyDaysAgo)
+);
 
     const writtenScoresQuery = query(
-        collection(db, `${publicDataPath}/written_scores`), 
-        where('date', '>=', competitionStartDateString), 
-        orderBy('date', 'desc')
-    );
+    collection(db, `${publicDataPath}/written_scores`), 
+    where('teacherId', '==', userId), // Only load MY grading papers
+    where('date', '>=', startOfMonthString),
+    orderBy('date', 'desc')
+);
 
     // --- Attach Listeners ---
     state.setUnsubscribeClasses(onSnapshot(classesQuery, (snapshot) => {
@@ -261,6 +271,25 @@ export function setupDataListeners(userId, dateString) {
             }
         }
     }, (error) => console.error("Error listening to hero chronicle notes:", error)));
+    
+    state.setUnsubscribeSchoolSettings(onSnapshot(schoolSettingsQuery, async (docSnapshot) => {
+        if (docSnapshot.exists()) {
+            state.setSchoolHolidayRanges(docSnapshot.data().ranges || []);
+        } else {
+            state.setSchoolHolidayRanges([]);
+        }
+        
+        // Refresh UI
+        // We use dynamic imports here to avoid circular dependency issues
+        const { renderCalendarTab } = await import('../ui/tabs.js');
+        renderCalendarTab();
+        
+        const optionsTab = document.getElementById('options-tab');
+        if (optionsTab && !optionsTab.classList.contains('hidden')) {
+            const { renderHolidayList } = await import('../ui/core.js');
+            renderHolidayList();
+        }
+    }));
 }
 
 export async function archivePreviousDayStars(userId, todayDateString) {

@@ -25,12 +25,14 @@ import {
     saveAwardNote,
     saveAdventureLogNote,
     deleteAdventureLog,
-    handleDeleteTrial, // Keeping this as it still exists
+    handleDeleteTrial,
     handleMoveStudent,
     handleMarkAbsent,
     handleAwardBonusStar,
+    handleBatchAwardBonus, // NEW IMPORT
     addOrUpdateHeroChronicleNote,
-    deleteHeroChronicleNote
+    handleRemoveAttendanceColumn,
+    deleteHeroChronicleNote, ensureHistoryLoaded
 } from '../db/actions.js';
 
 // --- LOCAL STATE FOR MODALS ---
@@ -293,10 +295,14 @@ export async function showLogbookModal(dateString, isOndemand = false) {
 
     if (isOndemand) {
         contentEl.innerHTML = '<p class="text-center py-8"><i class="fas fa-spinner fa-spin mr-2"></i>Fetching historical log...</p>';
+        // Use the helper to show the modal with animation
         showAnimatedModal('logbook-modal'); 
         logs = await fetchLogsForDate(dateString);
     } else {
-        logs = state.get('allAwardLogs').filter(log => utils.getDDMMYYYY(utils.parseDDMMYYYY(log.date)) === dateString);
+        // --- THE FIX: SIMPLIFIED FILTER ---
+        // Old way: utils.getDDMMYYYY(utils.parseDDMMYYYY(log.date)) === dateString
+        // New way: direct string comparison. Much faster and less error-prone.
+        logs = state.get('allAwardLogs').filter(log => log.date === dateString);
     }
     
     const reasonColors = { teamwork: 'text-purple-600', creativity: 'text-pink-600', respect: 'text-green-600', focus: 'text-yellow-600', correction: 'text-gray-500', welcome_back: 'text-cyan-600', story_weaver: 'text-cyan-600', scholar_s_bonus: 'text-amber-700' };
@@ -529,11 +535,23 @@ export async function renderAttendanceChronicle(classId) {
     
     // Generate all days in the month that match the schedule
     let loopDate = new Date(currentYear, currentMonth, 1);
+    const overrides = state.get('allScheduleOverrides') || [];
+
     while (loopDate.getMonth() === currentMonth) {
-        if (scheduledDaysOfWeek.includes(loopDate.getDay().toString())) {
+        const dayOfWeek = loopDate.getDay().toString();
+        const dateStr = utils.getDDMMYYYY(loopDate);
+        
+        // Check if this specific date has a "cancelled" override
+        const isCancelled = overrides.some(o => 
+            o.classId === classId && 
+            o.date === dateStr && 
+            o.type === 'cancelled'
+        );
+
+        if (scheduledDaysOfWeek.includes(dayOfWeek) && !isCancelled) {
             // Don't show future dates
             if (loopDate <= new Date()) {
-                lessonDates.push(utils.getDDMMYYYY(loopDate));
+                lessonDates.push(dateStr);
             }
         }
         loopDate.setDate(loopDate.getDate() + 1);
@@ -573,7 +591,15 @@ export async function renderAttendanceChronicle(classId) {
         
         lessonDates.forEach(dateStr => {
             const d = utils.parseDDMMYYYY(dateStr);
-            html += `<th class="p-3 font-semibold text-center border-b min-w-[60px]">${d.getDate()}</th>`;
+            // MODIFIED: Added delete button to header
+            html += `<th class="p-3 font-semibold text-center border-b min-w-[60px] align-top">
+                <div class="attendance-header-container">
+                    <span>${d.getDate()}</span>
+                    <button class="delete-column-btn" data-date="${dateStr}" data-class-id="${classId}" title="Remove this day (Holiday/Cancelled)">
+                        <i class="fas fa-trash-alt"></i>
+                    </button>
+                </div>
+            </th>`;
         });
         html += `</tr></thead><tbody>`;
 
@@ -617,8 +643,50 @@ export async function renderAttendanceChronicle(classId) {
     document.getElementById('attendance-prev-btn').addEventListener('click', () => changeAttendanceMonth(-1, classId));
     document.getElementById('attendance-next-btn').addEventListener('click', () => changeAttendanceMonth(1, classId));
 
+    // Listener for toggling attendance status (Present/Absent)
     contentEl.querySelectorAll('.attendance-status-btn:not(:disabled)').forEach(btn => {
         btn.addEventListener('click', (e) => toggleAttendanceRecord(e.currentTarget));
+    });
+
+    // NEW: Listeners for removing columns with Holiday option
+    contentEl.querySelectorAll('.delete-column-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            const dateStr = e.currentTarget.dataset.date;
+            const cId = e.currentTarget.dataset.classId;
+            
+            // Inject a checkbox into the confirmation message
+            const messageHtml = `
+                <p class="mb-4">Mark <b>${dateStr}</b> as a "No Lesson" day?</p>
+                <div class="bg-red-50 p-3 rounded-lg text-left border border-red-200">
+                    <label class="flex items-center cursor-pointer">
+                        <input type="checkbox" id="holiday-checkbox" class="w-5 h-5 text-red-600 rounded focus:ring-red-500 border-gray-300">
+                        <span class="ml-3 font-bold text-red-800">Is this a School Holiday?</span>
+                    </label>
+                    <p class="text-xs text-red-600 mt-1 ml-8">Checked: Removes this day for ALL classes.<br>Unchecked: Removes for THIS class only.</p>
+                </div>
+            `;
+
+            showModal(
+                'Remove Date?', 
+                'placeholder', // We will replace this innerHTML immediately after
+                () => {
+                    // Check if the element exists before accessing checked property
+                    const checkbox = document.getElementById('holiday-checkbox');
+                    const isGlobal = checkbox ? checkbox.checked : false;
+                    
+                    // Dynamic import to avoid circular dependency issues if needed, or direct call
+                    // We imported handleRemoveAttendanceColumn at the top of this file, so direct call is fine:
+                    import('../db/actions.js').then(actions => {
+                        actions.handleRemoveAttendanceColumn(cId, dateStr, isGlobal);
+                    });
+                },
+                'Confirm Removal'
+            );
+            
+            // Hack to inject HTML into the simple modal
+            const msgEl = document.getElementById('modal-message');
+            if(msgEl) msgEl.innerHTML = messageHtml;
+        });
     });
 }
 
@@ -740,18 +808,54 @@ export function openMoveStudentModal(studentId) {
 
 }
 
+// --- SINGLE STARFALL (Used for individual entry edit or correction) ---
 export function showStarfallModal(studentId, studentName, bonusAmount, trialType) {
     playSound('magic_chime');
 
+    // Toggle views
+    document.getElementById('starfall-single-view').classList.remove('hidden');
+    document.getElementById('starfall-batch-view').classList.add('hidden');
+
     document.getElementById('starfall-student-name').innerText = studentName;
     const confirmBtn = document.getElementById('starfall-confirm-btn');
-    const modal = document.getElementById('starfall-modal');
+    confirmBtn.innerText = `Yes, Bestow ${bonusAmount} Star! ✨`;
 
     const newConfirmBtn = confirmBtn.cloneNode(true);
     confirmBtn.parentNode.replaceChild(newConfirmBtn, confirmBtn);
 
     newConfirmBtn.addEventListener('click', () => {
         handleAwardBonusStar(studentId, bonusAmount, trialType); 
+        hideModal('starfall-modal');
+    });
+
+    showAnimatedModal('starfall-modal');
+}
+
+// --- BATCH STARFALL (New Function) ---
+export function showBatchStarfallModal(eligibleStudents) {
+    playSound('magic_chime');
+
+    // Toggle views
+    document.getElementById('starfall-single-view').classList.add('hidden');
+    document.getElementById('starfall-batch-view').classList.remove('hidden');
+
+    const listEl = document.getElementById('starfall-batch-list');
+    listEl.innerHTML = eligibleStudents.map(s => `
+        <div class="flex justify-between items-center p-2 border-b border-white/20 last:border-0">
+            <span class="font-semibold text-white">${s.name}</span>
+            <span class="bg-yellow-400 text-yellow-900 text-xs font-bold px-2 py-1 rounded-full">+${s.bonusAmount} ⭐</span>
+        </div>
+    `).join('');
+
+    const confirmBtn = document.getElementById('starfall-confirm-btn');
+    const totalStars = eligibleStudents.reduce((sum, s) => sum + s.bonusAmount, 0);
+    confirmBtn.innerText = `Yes, Bestow ${totalStars} Bonus Stars! ✨`;
+
+    const newConfirmBtn = confirmBtn.cloneNode(true);
+    confirmBtn.parentNode.replaceChild(newConfirmBtn, confirmBtn);
+
+    newConfirmBtn.addEventListener('click', () => {
+        handleBatchAwardBonus(eligibleStudents); 
         hideModal('starfall-modal');
     });
 
@@ -840,6 +944,7 @@ export function copyToClipboard(elementId) {
 }
 
 export async function handleGetOracleInsight() {
+    await ensureHistoryLoaded();
     const classId = document.getElementById('oracle-class-select').value;
     const question = document.getElementById('oracle-question-input').value.trim();
     if (!classId || !question) {
@@ -926,7 +1031,8 @@ export function openNoteModal(logId) {
     showAnimatedModal('note-modal');
 }
 
-export function openMilestoneModal(markerElement) {
+export async function openMilestoneModal(markerElement) {
+    await ensureHistoryLoaded();
     const questCard = markerElement.closest('.quest-card');
     const classId = questCard.dataset.classId;
     const classInfo = state.get('allSchoolClasses').find(c => c.id === classId);
@@ -1064,6 +1170,7 @@ export async function showWelcomeBackMessage(firstName, stars) {
 }
 
 export async function handleGenerateReport(classId) {
+    await ensureHistoryLoaded();
     const classData = state.get('allTeachersClasses').find(c => c.id === classId);
     if (!classData) return;
     const contentEl = document.getElementById('report-modal-content');
@@ -1100,6 +1207,7 @@ Write a 2-paragraph summary highlighting connections between behavior and academ
 }
 
 export async function handleGenerateCertificate(studentId) {
+    await ensureHistoryLoaded();
     const student = state.get('allStudents').find(s => s.id === studentId);
     const studentClass = state.get('allSchoolClasses').find(c => c.id === student.classId);
     if (!student || !studentClass) return;
@@ -1198,9 +1306,12 @@ export async function downloadCertificateAsPdf() {
 }
 
 // --- ADDED: OVERVIEW MODAL FUNCTIONS ---
-export function openOverviewModal(classId) {
+    export async function openOverviewModal(classId) {
     const classData = state.get('allSchoolClasses').find(c => c.id === classId);
     if (!classData) return;
+
+    // NEW: Ensure we have the data to calculate stats
+    await ensureHistoryLoaded();
 
     const modal = document.getElementById('overview-modal');
     modal.dataset.classId = classId;

@@ -5,6 +5,7 @@ import * as state from '../state.js';
 import { db, auth } from '../firebase.js';
 import { signOut } from 'https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js';
 import { doc, collection, query, where, getDocs, runTransaction, increment, serverTimestamp } from 'https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js';
+import { handleAddHolidayRange, handleDeleteHolidayRange } from '../db/actions.js';
 
 import * as modals from './modals.js';
 import { 
@@ -298,7 +299,8 @@ export function setupUIListeners() {
 
             // --- CASE 3: WELCOME BACK (Implicit Absence Bonus) ---
             if (actionBtn.dataset.action === 'welcome-back') {
-                // Awards bonus star(s) AND creates the today_stars entry
+                // Awards bonus star(s) ONLY to monthly/total
+                // Marks today as present (0 stars) so card unlocks
                 const stars = Math.random() < 0.5 ? 0.5 : 1;
                 const firstName = student.name.split(' ')[0];
                 playSound('star2');
@@ -309,6 +311,7 @@ export function setupUIListeners() {
                         const scoreRef = doc(db, `${publicDataPath}/student_scores`, studentId);
                         const newLogRef = doc(collection(db, `${publicDataPath}/award_log`));
                         
+                        // 1. Update Scores (Total/Monthly)
                         const scoreDoc = await transaction.get(scoreRef);
                         if (!scoreDoc.exists()) {
                              transaction.set(scoreRef, {
@@ -323,6 +326,7 @@ export function setupUIListeners() {
                             });
                         }
 
+                        // 2. Log the Bonus
                         const logData = {
                             studentId, classId: student.classId, teacherId: state.get('currentUserId'),
                             stars: stars, reason: 'welcome_back', date: utils.getTodayDateString(),
@@ -330,10 +334,15 @@ export function setupUIListeners() {
                         };
                         transaction.set(newLogRef, logData);
                         
+                        // 3. Set Daily Record to 0 Stars (Present but Unlocked)
                         const todayStarsRef = doc(collection(db, `${publicDataPath}/today_stars`));
                         transaction.set(todayStarsRef, {
-                             studentId, stars: stars, date: utils.getTodayDateString(), reason: 'welcome_back',
-                             teacherId: state.get('currentUserId'), createdBy: { uid: state.get('currentUserId'), name: state.get('currentTeacherName') }
+                             studentId, 
+                             stars: 0, // Zero daily stars keeps card unlocked
+                             date: utils.getTodayDateString(), 
+                             reason: 'welcome_back',
+                             teacherId: state.get('currentUserId'), 
+                             createdBy: { uid: state.get('currentUserId'), name: state.get('currentTeacherName') }
                         });
                     });
                     
@@ -427,6 +436,14 @@ export function setupUIListeners() {
     document.getElementById('erase-today-btn').addEventListener('click', () => {
         modals.showModal('Erase Today\'s Stars?', 'Are you sure you want to remove all stars you awarded today?', () => handleEraseTodaysStars());
     });
+
+    document.getElementById('add-holiday-btn').addEventListener('click', handleAddHolidayRange);
+    document.getElementById('holiday-list').addEventListener('click', (e) => {
+    const btn = e.target.closest('.delete-holiday-btn');
+    if (btn) {
+        modals.showModal('Delete Holiday?', 'This will restore the calendar days.', () => handleDeleteHolidayRange(btn.dataset.id));
+    }
+});
 
     // Leaderboard View Switchers
     document.getElementById('view-by-league').addEventListener('click', () => {
@@ -755,4 +772,25 @@ function handleWordInputChange(event) {
     } else {
         storyWeaver.hideWordEditorControls();
     }
+}
+
+export function renderHolidayList() {
+    const list = document.getElementById('holiday-list');
+    if (!list) return;
+    const ranges = state.get('schoolHolidayRanges') || [];
+    
+    if (ranges.length === 0) {
+        list.innerHTML = '<p class="text-center text-xs text-gray-400">No holidays set.</p>';
+        return;
+    }
+    
+    list.innerHTML = ranges.map(r => `
+        <div class="flex justify-between items-center bg-gray-50 p-2 rounded border text-sm">
+            <div>
+                <span class="font-bold text-gray-700">${r.name}</span>
+                <div class="text-xs text-gray-500">${utils.parseDDMMYYYY(utils.getDDMMYYYY(new Date(r.start))).toLocaleDateString('en-GB', {day:'numeric', month:'short'})} - ${utils.parseDDMMYYYY(utils.getDDMMYYYY(new Date(r.end))).toLocaleDateString('en-GB', {day:'numeric', month:'short'})}</div>
+            </div>
+            <button class="delete-holiday-btn text-red-500 hover:text-red-700" data-id="${r.id}"><i class="fas fa-trash"></i></button>
+        </div>
+    `).join('');
 }

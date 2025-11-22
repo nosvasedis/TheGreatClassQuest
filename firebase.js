@@ -22,7 +22,6 @@ import {
     onSnapshot,
     serverTimestamp,
     writeBatch,
-    setLogLevel,
     increment,
     runTransaction,
     collectionGroup,
@@ -30,6 +29,13 @@ import {
     orderBy,
     limit
 } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+// NEW: Import Storage functions
+import { 
+    getStorage, 
+    ref, 
+    uploadString, 
+    getDownloadURL 
+} from "https://www.gstatic.com/firebasejs/11.6.1/firebase-storage.js";
 
 import { firebaseConfig } from './constants.js';
 
@@ -37,13 +43,15 @@ import { firebaseConfig } from './constants.js';
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
-setLogLevel('error');
+// NEW: Initialize Storage
+const storage = getStorage(app);
 
-// Export the initialized services and all the Firestore functions
+// Export the initialized services and functions
 export {
     app,
     auth,
     db,
+    storage, // NEW: Export storage
     // Auth functions
     createUserWithEmailAndPassword,
     signInWithEmailAndPassword,
@@ -69,5 +77,9 @@ export {
     collectionGroup,
     documentId,
     orderBy,
-    limit
+    limit,
+    // NEW: Storage functions
+    ref,
+    uploadString,
+    getDownloadURL
 };

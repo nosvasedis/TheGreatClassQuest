@@ -23,7 +23,7 @@ import {
 import * as state from '../state.js';
 import { getStartOfMonthString, getTodayDateString, parseDDMMYYYY, simpleHashCode, getAgeGroupForLeague, getLastLessonDate, compressImageBase64, getDDMMYYYY, debounce } from '../utils.js';
 import { showToast, showPraiseToast } from '../ui/effects.js';
-import { showStarfallModal, showModal, hideModal } from '../ui/modals.js';
+import { showStarfallModal, showBatchStarfallModal, showModal, hideModal } from '../ui/modals.js';
 import { playSound } from '../audio.js';
 import { callGeminiApi, callCloudflareAiImageApi } from '../api.js';
 import { classColorPalettes } from '../constants.js';
@@ -779,8 +779,6 @@ export async function handleSaveQuestAssignment() {
     }
 }
 
-// ... (rest of actions.js remains unchanged: handleLogAdventure, handleStarManagerStudentSelect, Hero Chronicle actions, etc.) ...
-
 export async function handleLogAdventure() {
     const classId = state.get('currentLogFilter').classId;
     if (!classId) return;
@@ -864,9 +862,15 @@ Combine these points into a short, engaging story.`;
 
         const imageBase64 = await callCloudflareAiImageApi(imagePrompt);
         const compressedImageBase64 = await compressImageBase64(imageBase64);
+        
+        // NEW: Upload to Storage first
+        const { uploadImageToStorage } = await import('../utils.js');
+        const imagePath = `adventure_logs/${state.get('currentUserId')}/${Date.now()}.jpg`;
+        const imageUrl = await uploadImageToStorage(compressedImageBase64, imagePath);
 
         await addDoc(collection(db, "artifacts/great-class-quest/public/data/adventure_logs"), {
-            classId, date: today, text, keywords, imageBase64: compressedImageBase64,
+            classId, date: today, text, keywords, 
+            imageUrl: imageUrl, // NEW: Save the URL, NOT the Base64
             hero: heroOfTheDay, topReason, totalStars,
             createdBy: { uid: state.get('currentUserId'), name: state.get('currentTeacherName') },
             createdAt: serverTimestamp()
@@ -1069,64 +1073,7 @@ export function handleDeleteTrial(trialId) {
     });
 }
 
-async function checkAndTriggerStarfall(studentId, newScoreData) {
-    const student = state.get('allStudents').find(s => s.id === studentId);
-    if (!student) return;
-    const studentClass = state.get('allSchoolClasses').find(c => c.id === student.classId);
-    if (!studentClass) return;
-
-    const classLevel = studentClass.questLevel;
-    const isJunior = classLevel === 'Junior A' || classLevel === 'Junior B';
-    let bonusTriggered = false;
-    let bonusAmount = 0;
-
-    const currentMonthKey = newScoreData.date.substring(0, 7);
-
-    if (newScoreData.type === 'test') {
-        const threshold = isJunior ? 37 : 85;
-        if (newScoreData.scoreNumeric >= threshold) {
-            bonusTriggered = true;
-            bonusAmount = 1;
-        }
-    } else if (newScoreData.type === 'dictation') {
-        const studentScoresThisMonth = state.get('allWrittenScores').filter(s => 
-            s.studentId === studentId && 
-            s.type === 'dictation' &&
-            s.date.startsWith(currentMonthKey)
-        );
-
-        if (isJunior) {
-            const excellentCount = studentScoresThisMonth.filter(s => s.scoreQualitative === 'Great!!!').length;
-            if (excellentCount > 2) {
-                bonusTriggered = true;
-                bonusAmount = 0.5;
-            }
-        } else {
-            const highScores = studentScoresThisMonth.filter(s => (s.scoreNumeric / s.maxScore) * 100 > 85);
-            if (highScores.length > 2) {
-                bonusTriggered = true;
-                bonusAmount = 0.5;
-            }
-        }
-
-        if (bonusTriggered) {
-            const bonusLogsThisMonth = state.get('allAwardLogs').filter(log => 
-                log.studentId === studentId && 
-                log.reason === 'scholar_s_bonus' && 
-                log.date.startsWith(currentMonthKey) &&
-                log.note && log.note.includes('dictation')
-            ).length;
-
-            if (bonusLogsThisMonth >= 2) {
-                bonusTriggered = false;
-            }
-        }
-    }
-
-    if (bonusTriggered) {
-        setTimeout(() => showStarfallModal(student.id, student.name, bonusAmount, newScoreData.type), 500);
-    }
-}
+// === MODIFIED SECTION: Starfall Logic & Bulk Saving ===
 
 export async function handleAwardBonusStar(studentId, bonusAmount, trialType) {
     playSound('star3');
@@ -1164,22 +1111,59 @@ export async function handleAwardBonusStar(studentId, bonusAmount, trialType) {
     }
 }
 
+export async function handleBatchAwardBonus(students) {
+    playSound('star3');
+    const batch = writeBatch(db);
+    const publicDataPath = "artifacts/great-class-quest/public/data";
+    const today = getTodayDateString();
+
+    students.forEach(({studentId, bonusAmount, trialType}) => {
+        const student = state.get('allStudents').find(s => s.id === studentId);
+        if (!student) return;
+
+        const scoreRef = doc(db, `${publicDataPath}/student_scores`, studentId);
+        batch.update(scoreRef, {
+            totalStars: increment(bonusAmount),
+            monthlyStars: increment(bonusAmount)
+        });
+
+        const newLogRef = doc(collection(db, `${publicDataPath}/award_log`));
+        const logData = {
+            studentId,
+            classId: student.classId,
+            teacherId: state.get('currentUserId'),
+            stars: bonusAmount,
+            reason: "scholar_s_bonus",
+            note: `Awarded for exceptional performance on a ${trialType}.`,
+            date: today,
+            createdAt: serverTimestamp(),
+            createdBy: { uid: state.get('currentUserId'), name: state.get('currentTeacherName') }
+        };
+        batch.set(newLogRef, logData);
+    });
+
+    try {
+        await batch.commit();
+        showToast(`✨ ${students.length} Scholars received their bonus stars! ✨`, 'success');
+    } catch (error) {
+        console.error("Batch Scholar's Bonus failed:", error);
+        showToast('Could not award bonuses. Please try again.', 'error');
+    }
+}
+
 export async function handleBulkSaveTrial() {
     const modal = document.getElementById('bulk-trial-modal');
     const classId = modal.dataset.classId;
     const type = modal.dataset.type;
     const isJunior = modal.dataset.isJunior === 'true';
-    const dateRaw = document.getElementById('bulk-trial-date').value;
+    
+    const date = document.getElementById('bulk-trial-date').value;
     const title = document.getElementById('bulk-trial-name').value.trim();
 
-    if (!dateRaw) {
+    if (!date) {
         showToast('Please select a date.', 'error');
         return;
     }
-    
-    // Firestore stores dates as YYYY-MM-DD in this app logic (or expects it for sorting)
-    // The input type="date" gives YYYY-MM-DD.
-    const date = dateRaw;
 
     if (type === 'test' && !title) {
         showToast('Please enter a title for the test.', 'error');
@@ -1198,27 +1182,25 @@ export async function handleBulkSaveTrial() {
     const scoresCollection = collection(db, `${publicDataPath}/written_scores`);
     
     let operationsCount = 0;
-    const studentsToCheckStarfall = [];
+    const potentialStarfallStudents = [];
 
     try {
         rows.forEach(row => {
             const studentId = row.dataset.studentId;
-            const trialId = row.dataset.trialId; // Will be present if editing specific record
+            const trialId = row.dataset.trialId; 
             const isAbsent = row.querySelector('.toggle-absent-btn').classList.contains('is-absent');
             const input = row.querySelector('.bulk-grade-input');
             const val = input.value;
 
             if (isAbsent) {
-                // If editing an existing record and marked absent -> DELETE it
                 if (trialId) {
                     batch.delete(doc(scoresCollection, trialId));
                     operationsCount++;
                 }
-                // If creating new, simply don't create a record
                 return;
             }
 
-            if (!val) return; // Skip empty inputs if present
+            if (!val) return;
 
             const maxScore = (isJunior && type === 'test') ? 40 : 100;
             
@@ -1229,7 +1211,7 @@ export async function handleBulkSaveTrial() {
                 type,
                 title: type === 'test' ? title : null,
                 teacherId: state.get('currentUserId'),
-                notes: null, // Bulk entry doesn't support individual notes yet
+                notes: null,
                 scoreNumeric: null,
                 scoreQualitative: null,
                 maxScore: maxScore
@@ -1241,13 +1223,42 @@ export async function handleBulkSaveTrial() {
                 scoreData.scoreNumeric = parseInt(val, 10);
             }
 
+            // Logic for Starfall Eligibility Check
+            let bonusAmount = 0;
+            let isEligible = false;
+
+            if (type === 'test') {
+                const threshold = isJunior ? 38 : 96; // Junior: 38+/40, Senior: 96+/100
+                if (scoreData.scoreNumeric >= threshold) {
+                    bonusAmount = 1;
+                    isEligible = true;
+                }
+            } else if (type === 'dictation') {
+                // Check if this current score is high enough to consider
+                let isHighDictation = false;
+                if (isJunior) {
+                    if (val === 'Great!!!') isHighDictation = true;
+                } else {
+                    if ((scoreData.scoreNumeric / maxScore) * 100 > 85) isHighDictation = true;
+                }
+
+                if (isHighDictation) {
+                    // We need to check history.
+                    // Note: The current score isn't in state yet (async), so we count from state + 1
+                    potentialStarfallStudents.push({ studentId, type: 'dictation', bonusAmount: 0.5 });
+                }
+            }
+
+            if (isEligible && type === 'test') {
+                potentialStarfallStudents.push({ studentId, scoreData, type, bonusAmount });
+            }
+
             if (trialId) {
                 batch.update(doc(scoresCollection, trialId), scoreData);
             } else {
                 const newRef = doc(scoresCollection);
                 scoreData.createdAt = serverTimestamp();
                 batch.set(newRef, scoreData);
-                studentsToCheckStarfall.push({ studentId, data: { id: newRef.id, ...scoreData } });
             }
             operationsCount++;
         });
@@ -1257,11 +1268,65 @@ export async function handleBulkSaveTrial() {
             showToast('All grades saved successfully!', 'success');
             hideModal('bulk-trial-modal');
 
-            // Check Starfall for newly added records (limit 1 to prevent spam, or check logic)
-            // For UX, maybe only trigger if < 3 students involved, otherwise just save silently
-            if (studentsToCheckStarfall.length === 1) {
-                 checkAndTriggerStarfall(studentsToCheckStarfall[0].studentId, studentsToCheckStarfall[0].data);
+            // --- PROCESS STARFALL FOR BATCH ---
+            const finalEligibleStudents = [];
+            
+            // Filter Test Bonuses (already confirmed eligible above)
+            const testWinners = potentialStarfallStudents.filter(p => p.type === 'test');
+            testWinners.forEach(w => {
+                const s = state.get('allStudents').find(st => st.id === w.studentId);
+                if(s) finalEligibleStudents.push({ studentId: s.id, name: s.name, bonusAmount: w.bonusAmount, trialType: 'test' });
+            });
+
+            // Filter Dictation Bonuses (Needs history check)
+            const dictationCandidates = potentialStarfallStudents.filter(p => p.type === 'dictation');
+            if (dictationCandidates.length > 0) {
+                // Check history: Need > 2 high scores in current month
+                // We rely on state.get('allWrittenScores') for history
+                const currentMonthKey = date.substring(0, 7); // YYYY-MM
+                
+                dictationCandidates.forEach(cand => {
+                    const studentScoresThisMonth = state.get('allWrittenScores').filter(s => 
+                        s.studentId === cand.studentId && 
+                        s.type === 'dictation' &&
+                        s.date.startsWith(currentMonthKey)
+                    );
+                    
+                    // Add the CURRENT one we just saved (it might not be in state yet if listener hasn't fired)
+                    // So assume count + 1.
+                    
+                    let highCount = 1; // The current one counts
+                    
+                    if (isJunior) {
+                        highCount += studentScoresThisMonth.filter(s => s.scoreQualitative === 'Great!!!').length;
+                    } else {
+                        highCount += studentScoresThisMonth.filter(s => (s.scoreNumeric / s.maxScore) * 100 > 85).length;
+                    }
+
+                    // Rule: "more than 2-3". Let's set it to >= 3 to be safe/impressive.
+                    if (highCount >= 3) {
+                        // Check if bonus already awarded this month more than twice? 
+                        // Logic says: "also activated for them". 
+                        // Let's limit to once per batch or check simple throttle.
+                        const bonusLogsThisMonth = state.get('allAwardLogs').filter(log => 
+                            log.studentId === cand.studentId && 
+                            log.reason === 'scholar_s_bonus' && 
+                            log.date.startsWith(currentMonthKey) &&
+                            log.note && log.note.includes('dictation')
+                        ).length;
+
+                        if (bonusLogsThisMonth < 2) { // Allow max 2 bonuses per month for dictations to avoid farming
+                            const s = state.get('allStudents').find(st => st.id === cand.studentId);
+                            if(s) finalEligibleStudents.push({ studentId: s.id, name: s.name, bonusAmount: 0.5, trialType: 'dictation' });
+                        }
+                    }
+                });
             }
+
+            if (finalEligibleStudents.length > 0) {
+                setTimeout(() => showBatchStarfallModal(finalEligibleStudents), 500);
+            }
+
         } else {
             showToast('No changes to save.', 'info');
             hideModal('bulk-trial-modal');
@@ -1338,25 +1403,73 @@ export async function handleMarkAbsent(studentId, classId, isAbsent) {
         const snapshot = await getDocs(q);
 
         if (isAbsent) {
-            if (snapshot.empty) {
-                await addDoc(attendanceCollectionRef, {
+            // Mark Absent Logic:
+            // 1. Create attendance record if not exists
+            // 2. Remove ANY stars awarded today (today_stars)
+            // 3. Remove logs for today (award_log)
+            // 4. Decrement student_scores
+            
+            if (!snapshot.empty) return; // Already marked absent
+            
+            await runTransaction(db, async (transaction) => {
+                // 1. Create Attendance Record
+                const newAttendanceRef = doc(attendanceCollectionRef);
+                transaction.set(newAttendanceRef, {
                     studentId,
                     classId,
                     date: today,
                     markedBy: { uid: state.get('currentUserId'), name: state.get('currentTeacherName') },
                     createdAt: serverTimestamp()
                 });
-            }
+
+                // 2. Find & Delete 'today_stars'
+                const todayStarsQ = query(collection(db, `${publicDataPath}/today_stars`), where("studentId", "==", studentId), where("date", "==", today));
+                const todayStarsSnap = await getDocs(todayStarsQ);
+                
+                let starsToRemove = 0;
+                
+                todayStarsSnap.forEach(doc => {
+                    const data = doc.data();
+                    starsToRemove += (data.stars || 0);
+                    transaction.delete(doc.ref);
+                });
+
+                // 3. Find & Delete 'award_log' for today
+                // Note: award_log stores date as DD-MM-YYYY string too
+                const logsQ = query(collection(db, `${publicDataPath}/award_log`), where("studentId", "==", studentId), where("date", "==", today));
+                const logsSnap = await getDocs(logsQ);
+                
+                logsSnap.forEach(doc => {
+                    // Double check stars just in case today_stars was out of sync, but we rely on today_stars for total sum usually
+                    // Actually, award_log is the historical record. We should delete them.
+                    // We already summed stars from today_stars which tracks the *current* visual count.
+                    transaction.delete(doc.ref);
+                });
+
+                // 4. Decrement Scores if stars were removed
+                if (starsToRemove > 0) {
+                    const scoreRef = doc(db, `${publicDataPath}/student_scores`, studentId);
+                    const scoreDoc = await transaction.get(scoreRef);
+                    if (scoreDoc.exists()) {
+                        transaction.update(scoreRef, {
+                            totalStars: increment(-starsToRemove),
+                            monthlyStars: increment(-starsToRemove)
+                        });
+                    }
+                }
+            });
+            
+            showToast(`Marked absent. Removed stars for today.`, 'info');
+
         } else {
+            // Mark Present (Undo) Logic: Just delete attendance record
             if (!snapshot.empty) {
                 const batch = writeBatch(db);
                 snapshot.forEach(doc => batch.delete(doc.ref));
                 await batch.commit();
             }
+            showToast(`Marked present.`, 'success');
         }
-        
-        const student = state.get('allStudents').find(s => s.id === studentId);
-        showToast(`${student.name} marked as ${isAbsent ? 'absent' : 'present'}.`, 'success');
 
     } catch (error) {
         console.error("Error updating attendance:", error);
@@ -1446,6 +1559,133 @@ export async function handleCancelLesson(dateString, classId) {
     } catch (e) { showToast("Error updating schedule.", "error"); }
 }
 
+export async function handleAddHolidayRange() {
+    const name = document.getElementById('holiday-name').value;
+    const type = document.getElementById('holiday-type').value;
+    const start = document.getElementById('holiday-start').value;
+    const end = document.getElementById('holiday-end').value;
+
+    if (!name || !start || !end) {
+        showToast("Please fill in all fields.", "error");
+        return;
+    }
+    if (start > end) {
+        showToast("Start date must be before end date.", "error");
+        return;
+    }
+
+    const btn = document.getElementById('add-holiday-btn');
+    btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving...';
+
+    const publicDataPath = "artifacts/great-class-quest/public/data";
+    const settingsRef = doc(db, `${publicDataPath}/school_settings`, 'holidays');
+
+    try {
+        await runTransaction(db, async (transaction) => {
+            const docSnap = await transaction.get(settingsRef);
+            let ranges = [];
+            if (docSnap.exists()) {
+                ranges = docSnap.data().ranges || [];
+            }
+            
+            // Add new range
+            ranges.push({ id: Date.now().toString(), name, type, start, end });
+            
+            // Sort by date
+            ranges.sort((a, b) => a.start.localeCompare(b.start));
+            
+            transaction.set(settingsRef, { ranges });
+        });
+        
+        showToast("Holiday range added!", "success");
+        document.getElementById('holiday-name').value = '';
+        document.getElementById('holiday-start').value = '';
+        document.getElementById('holiday-end').value = '';
+    } catch (e) {
+        console.error(e);
+        showToast("Error saving holiday.", "error");
+    } finally {
+        btn.disabled = false; btn.innerHTML = '<i class="fas fa-plus-circle mr-2"></i> Add Range';
+    }
+}
+
+export async function handleDeleteHolidayRange(rangeId) {
+    const publicDataPath = "artifacts/great-class-quest/public/data";
+    const settingsRef = doc(db, `${publicDataPath}/school_settings`, 'holidays');
+
+    try {
+        await runTransaction(db, async (transaction) => {
+            const docSnap = await transaction.get(settingsRef);
+            if (!docSnap.exists()) return;
+            
+            let ranges = docSnap.data().ranges || [];
+            ranges = ranges.filter(r => r.id !== rangeId);
+            
+            transaction.update(settingsRef, { ranges });
+        });
+        showToast("Holiday removed.", "success");
+    } catch (e) {
+        showToast("Error deleting holiday.", "error");
+    }
+}
+
+export async function handleRemoveAttendanceColumn(classId, dateString, isGlobal = false) {
+    const publicDataPath = "artifacts/great-class-quest/public/data";
+    
+    try {
+        const batch = writeBatch(db);
+        
+        // 1. Determine which classes to affect
+        let classesToCancel = [];
+        if (isGlobal) {
+            // Find ALL classes that usually have a lesson on this day of the week
+            const dayOfWeek = new Date(dateString.split('-').reverse().join('-')).getDay().toString();
+            classesToCancel = state.get('allSchoolClasses').filter(c => c.scheduleDays && c.scheduleDays.includes(dayOfWeek));
+        } else {
+            // Just the selected class
+            classesToCancel = [{ id: classId }];
+        }
+
+        // 2. Create Overrides for all affected classes
+        for (const cls of classesToCancel) {
+            const overrideRef = doc(collection(db, `${publicDataPath}/schedule_overrides`));
+            batch.set(overrideRef, { 
+                date: dateString, 
+                classId: cls.id, 
+                type: 'cancelled', 
+                createdBy: { uid: state.get('currentUserId'), name: state.get('currentTeacherName') }, 
+                createdAt: serverTimestamp() 
+            });
+        }
+
+        // 3. Delete Attendance Records for all affected classes on this day
+        const classIds = classesToCancel.map(c => c.id);
+        // Note: Firestore 'in' query is limited to 10, so we loop queries to be safe or just simple loop
+        for (const cid of classIds) {
+            const q = query(
+                collection(db, `${publicDataPath}/attendance`), 
+                where("classId", "==", cid), 
+                where("date", "==", dateString)
+            );
+            const snap = await getDocs(q);
+            snap.forEach(doc => batch.delete(doc.ref));
+        }
+
+        await batch.commit();
+
+        const msg = isGlobal ? `School Holiday set for ${dateString}.` : `Class cancelled for ${dateString}.`;
+        showToast(msg, "success");
+        
+        // Refresh the view
+        const { renderAttendanceChronicle } = await import('../ui/modals.js');
+        await renderAttendanceChronicle(classId);
+
+    } catch (error) {
+        console.error("Error removing attendance column:", error);
+        showToast("Failed to remove date.", "error");
+    }
+}
+
 export async function handleAddOneTimeLesson(dateString) {
     const classId = document.getElementById('add-onetime-lesson-select').value;
     if (!classId) return;
@@ -1510,5 +1750,47 @@ export async function awardStoryWeaverBonusStarToClass(classId) {
     } catch (error) {
         console.error("Error awarding bonus stars:", error);
         showToast("Failed to award bonus stars.", "error");
+    }
+}
+
+export async function ensureHistoryLoaded() {
+    if (state.get('hasLoadedCalendarHistory')) return;
+
+    const loader = document.getElementById('calendar-loader');
+    if (loader) loader.classList.remove('hidden');
+
+    const { getDocs, query, collection, where, orderBy } = await import('https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js');
+    const { db } = await import('../firebase.js'); 
+
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+
+    const publicDataPath = "artifacts/great-class-quest/public/data";
+
+    const q = query(
+        collection(db, `${publicDataPath}/award_log`),
+        where('createdAt', '>=', thirtyDaysAgo)
+    );
+
+    try {
+        const snapshot = await getDocs(q);
+        const historyLogs = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
+        
+        const currentLogs = state.get('allAwardLogs');
+        const logMap = new Map();
+        
+        historyLogs.forEach(log => logMap.set(log.id, log));
+        currentLogs.forEach(log => logMap.set(log.id, log));
+        
+        const mergedLogs = Array.from(logMap.values());
+        
+        state.setAllAwardLogs(mergedLogs);
+        state.setHasLoadedCalendarHistory(true); 
+        console.log(`History loaded. Total logs available: ${mergedLogs.length}`);
+        
+    } catch (e) {
+        console.error("Error loading history:", e);
+    } finally {
+        if (loader) loader.classList.add('hidden');
     }
 }

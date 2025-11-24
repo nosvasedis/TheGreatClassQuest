@@ -833,7 +833,7 @@ export function showStarfallModal(studentId, studentName, bonusAmount, trialType
 
     document.getElementById('starfall-student-name').innerText = studentName;
     const confirmBtn = document.getElementById('starfall-confirm-btn');
-    confirmBtn.innerText = `Yes, Bestow ${bonusAmount} Star! ✨`;
+    confirmBtn.innerText = `Yes, Bestow Bonus Stars! ✨`;
 
     const newConfirmBtn = confirmBtn.cloneNode(true);
     confirmBtn.parentNode.replaceChild(newConfirmBtn, confirmBtn);
@@ -1954,4 +1954,5 @@ export async function generateAIInsight(studentId, insightType) {
         outputEl.innerHTML = `<p class="text-center text-red-500">The Oracle could not process the records at this time. Please try again later.</p>`;
     }
 }
+
 

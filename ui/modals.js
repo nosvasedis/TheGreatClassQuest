@@ -1098,11 +1098,16 @@ export async function openMilestoneModal(markerElement) {
     .reduce((sum, log) => sum + log.stars, 0);
 
     const reasonCounts = relevantLogs.reduce((acc, log) => {
+        // FIX: Exclude 'welcome_back' from being counted as a skill
+        if (log.reason === 'welcome_back' || log.reason === 'scholar_s_bonus') return acc;
+        
         acc[log.reason || 'other'] = (acc[log.reason || 'other'] || 0) + log.stars;
         return acc;
     }, {});
+    
     const topReasonEntry = Object.entries(reasonCounts).sort((a,b) => b[1] - a[1])[0];
-    const topReason = topReasonEntry ? `${topReasonEntry[0].charAt(0).toUpperCase() + topReasonEntry[0].slice(1)}` : "N/A";
+    // FIX: Clean up the text (remove underscores) just in case
+    const topReason = topReasonEntry ? `${topReasonEntry[0].replace(/_/g, ' ').charAt(0).toUpperCase() + topReasonEntry[0].replace(/_/g, ' ').slice(1)}` : "N/A";
 
     const studentScores = studentsInClass.map(s => {
         const score = state.get('allStudentScores').find(sc => sc.id === s.id)?.monthlyStars || 0;
@@ -1954,5 +1959,6 @@ export async function generateAIInsight(studentId, insightType) {
         outputEl.innerHTML = `<p class="text-center text-red-500">The Oracle could not process the records at this time. Please try again later.</p>`;
     }
 }
+
 
 

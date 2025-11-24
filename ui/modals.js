@@ -1852,7 +1852,7 @@ export function renderHeroChronicleContent(studentId) {
         <div class="bg-white p-3 rounded-md shadow-sm border">
             <div class="flex justify-between items-center text-xs text-gray-500 mb-1">
                 <span class="font-bold">${note.category}</span>
-                <span>${note.createdAt.toDate().toLocaleDateString('en-GB')}</span>
+                <span>${(note.createdAt ? note.createdAt.toDate() : new Date()).toLocaleDateString('en-GB')}</span>
             </div>
             <p class="text-gray-800 whitespace-pre-wrap">${note.noteText}</p>
             <div class="text-right mt-2">
@@ -1893,8 +1893,8 @@ export async function generateAIInsight(studentId, insightType) {
     // 1. Gather all data
     const notes = state.get('allHeroChronicleNotes')
         .filter(n => n.studentId === studentId)
-        .sort((a, b) => a.createdAt.toDate() - b.createdAt.toDate())
-        .map(n => `[${n.createdAt.toDate().toLocaleDateString('en-GB')} - ${n.category}] ${n.noteText}`)
+        .sort((a, b) => (a.createdAt?.toDate() || new Date()) - (b.createdAt?.toDate() || new Date()))
+        .map(n => `[${(n.createdAt ? n.createdAt.toDate() : new Date()).toLocaleDateString('en-GB')} - ${n.category}] ${n.noteText}`)
         .join('\n');
 
     const academicScores = state.get('allWrittenScores')
@@ -1959,6 +1959,7 @@ export async function generateAIInsight(studentId, insightType) {
         outputEl.innerHTML = `<p class="text-center text-red-500">The Oracle could not process the records at this time. Please try again later.</p>`;
     }
 }
+
 
 
 

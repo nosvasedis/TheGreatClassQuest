@@ -2056,3 +2056,39 @@ main {
 }
 .holiday-theme-christmas .holiday-label { color: rgba(220, 38, 38, 0.15); } /* Red tint */
 .holiday-theme-easter .holiday-label { color: rgba(101, 163, 13, 0.15); } /* Green tint */
+
+/* --- NEW: Missing / Makeup Work Styles --- */
+.makeup-alert-container {
+    background-color: #fff7ed; /* orange-50 */
+    border: 2px dashed #f97316; /* orange-500 */
+    border-radius: 1rem;
+    padding: 1rem;
+    margin-bottom: 1.5rem;
+}
+
+.makeup-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background-color: white;
+    padding: 0.75rem;
+    border-radius: 0.5rem;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+    border-left: 4px solid #f97316;
+    margin-bottom: 0.5rem;
+}
+
+.makeup-log-btn {
+    background-color: #ffedd5;
+    color: #9a3412;
+    font-weight: bold;
+    padding: 0.25rem 0.75rem;
+    border-radius: 9999px;
+    font-size: 0.875rem;
+    transition: all 0.2s;
+}
+.makeup-log-btn:hover {
+    background-color: #fdba74;
+    color: #7c2d12;
+}
+

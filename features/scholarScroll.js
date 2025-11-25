@@ -22,10 +22,17 @@ export function renderScholarsScrollTab(selectedClassId = null) {
     const currentVal = selectedClassId || state.get('globalSelectedClassId');
     const optionsHtml = state.get('allTeachersClasses').sort((a,b) => a.name.localeCompare(b.name)).map(c => `<option value="${c.id}">${c.logo} ${c.name}</option>`).join('');
     classSelect.innerHTML = '<option value="">Select a class to view their scroll...</option>' + optionsHtml;
-    if (currentVal) classSelect.value = currentVal;
-    
-    document.getElementById('log-trial-btn').disabled = !currentVal;
-    document.getElementById('view-trial-history-btn').disabled = !currentVal;
+    if (currentVal) {
+        renderScrollDashboard(currentVal);
+        document.getElementById('scroll-dashboard-content').classList.remove('hidden');
+        document.getElementById('scroll-placeholder').classList.add('hidden');
+        
+        // NEW: Render Missing Work / Makeups
+        renderMissingWorkDashboard(currentVal);
+    } else {
+        document.getElementById('scroll-dashboard-content').classList.add('hidden');
+        document.getElementById('scroll-placeholder').classList.remove('hidden');
+    }
 
     // Remove old listeners to prevent duplicates (simple cloning trick)
     const logBtn = document.getElementById('log-trial-btn');
@@ -207,6 +214,17 @@ export function openBulkLogModal(classId, type) {
     const mm = String(todayObj.getMonth() + 1).padStart(2, '0');
     const dd = String(todayObj.getDate()).padStart(2, '0');
     document.getElementById('bulk-trial-date').value = `${yyyy}-${mm}-${dd}`;
+    // NEW: Update the DD/MM/YYYY display label
+    const dateDisplay = document.getElementById('bulk-trial-date-display');
+    const updateDateDisplay = (val) => {
+        if (!val) return;
+        const [y, m, d] = val.split('-');
+        dateDisplay.innerText = `${d}/${m}/${y}`;
+    };
+    updateDateDisplay(document.getElementById('bulk-trial-date').value);
+    
+    // Add listener for changes
+    document.getElementById('bulk-trial-date').onchange = (e) => updateDateDisplay(e.target.value);
     
     const titleWrapper = document.getElementById('bulk-trial-title-wrapper');
     const titleInput = document.getElementById('bulk-trial-name');
@@ -600,3 +618,201 @@ function calculateSeniorAverage(testScores, dictationScores) {
     else { weightedAvg = Math.max(testAvg, dictationAvg); }
     return weightedAvg;
 }
+
+// --- NEW: MAKEUP / MISSING WORK LOGIC ---
+
+function renderMissingWorkDashboard(classId) {
+    const dashboard = document.getElementById('scroll-dashboard-content');
+    // Check if container exists, if not create it at top
+    let container = document.getElementById('makeup-work-container');
+    if (!container) {
+        container = document.createElement('div');
+        container.id = 'makeup-work-container';
+        dashboard.prepend(container);
+    }
+    container.innerHTML = ''; // Clear previous
+
+    const studentsInClass = state.get('allStudents').filter(s => s.classId === classId);
+    const scoresForClass = state.get('allWrittenScores').filter(s => s.classId === classId);
+    
+    // 1. Identify unique Tests/Dictations given to this class (Group by Title+Type)
+    const uniqueAssessments = {};
+    
+    scoresForClass.forEach(score => {
+        // Only track significant assessments (tests or named dictations)
+        if (score.type === 'test' || (score.type === 'dictation' && score.title)) {
+            const key = `${score.type}-${score.title || 'Untitled'}`;
+            if (!uniqueAssessments[key]) {
+                uniqueAssessments[key] = {
+                    type: score.type,
+                    title: score.title || 'Untitled',
+                    originalDate: score.date,
+                    count: 0
+                };
+            }
+            uniqueAssessments[key].count++;
+        }
+    });
+
+    // Filter out assessments that only 1 or 2 students took (likely makeups themselves)
+    // Assume a "Class Test" means at least 30% of class took it
+    const threshold = Math.max(2, Math.floor(studentsInClass.length * 0.3));
+    const validAssessments = Object.values(uniqueAssessments).filter(a => a.count >= threshold);
+
+    if (validAssessments.length === 0) return;
+
+    // 2. Find students who missed these
+    const missingWork = [];
+
+    validAssessments.forEach(assessment => {
+        studentsInClass.forEach(student => {
+            // Check if student has a score for this specific Title + Type (date doesn't matter for makeup)
+            const hasTaken = scoresForClass.some(s => 
+                s.studentId === student.id && 
+                s.type === assessment.type && 
+                (s.title === assessment.title || (!s.title && !assessment.title))
+            );
+
+            if (!hasTaken) {
+                missingWork.push({
+                    student,
+                    assessment
+                });
+            }
+        });
+    });
+
+    if (missingWork.length === 0) return;
+
+    // 3. Render the list
+    let html = `
+        <div class="makeup-alert-container">
+            <h3 class="font-title text-xl text-orange-700 mb-2"><i class="fas fa-clock mr-2"></i>Pending Makeups</h3>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+    `;
+
+    missingWork.forEach(item => {
+        html += `
+            <div class="makeup-item">
+                <div>
+                    <div class="font-bold text-gray-800">${item.student.name}</div>
+                    <div class="text-xs text-gray-500">Missed: ${item.assessment.title} (${item.assessment.type})</div>
+                    <div class="text-xs text-orange-400">Original Date: ${utils.parseDDMMYYYY(item.assessment.originalDate).toLocaleDateString('en-GB')}</div>
+                </div>
+                <button class="makeup-log-btn makeup-trigger" 
+                    data-student-id="${item.student.id}" 
+                    data-title="${item.assessment.title}" 
+                    data-type="${item.assessment.type}">
+                    Log Now
+                </button>
+            </div>
+        `;
+    });
+
+    html += `</div></div>`;
+    container.innerHTML = html;
+
+    // 4. Bind Click Events
+    container.querySelectorAll('.makeup-trigger').forEach(btn => {
+        btn.addEventListener('click', () => {
+            openMakeupModal(classId, btn.dataset.studentId, btn.dataset.type, btn.dataset.title);
+        });
+    });
+}
+
+function openMakeupModal(classId, studentId, type, title) {
+    const classData = state.get('allSchoolClasses').find(c => c.id === classId);
+    const student = state.get('allStudents').find(s => s.id === studentId);
+    const isJunior = classData.questLevel === 'Junior A' || classData.questLevel === 'Junior B';
+
+    // Reuse Bulk Modal DOM but configure for single makeup
+    const modal = document.getElementById('bulk-trial-modal');
+    
+    document.getElementById('bulk-trial-title').innerText = `Makeup: ${type === 'dictation' ? 'Dictation' : 'Test'}`;
+    document.getElementById('bulk-trial-subtitle').innerText = `${student.name} - ${title}`;
+    
+    // Set Date to TODAY (ISO format for input)
+    const today = new Date();
+    const yyyy = today.getFullYear();
+    const mm = String(today.getMonth() + 1).padStart(2, '0');
+    const dd = String(today.getDate()).padStart(2, '0');
+    document.getElementById('bulk-trial-date').value = `${yyyy}-${mm}-${dd}`;
+    
+    // Update Visual Display manually
+    const displayEl = document.getElementById('bulk-trial-date-display');
+    if(displayEl) displayEl.innerText = `${dd}/${mm}/${yyyy}`;
+
+    // Handle Title Input
+    const titleWrapper = document.getElementById('bulk-trial-title-wrapper');
+    const titleInput = document.getElementById('bulk-trial-name');
+    
+    titleWrapper.classList.remove('hidden'); // Always show title for makeup to confirm context
+    titleInput.value = title || '';
+    
+    // Render JUST the one student row
+    const listContainer = document.getElementById('bulk-student-list');
+    
+    // We need to import the render helper or duplicate logic. 
+    // Since renderStudentBulkRow is internal to scholarScroll.js but not exported, 
+    // and we are currently IN scholarScroll.js, we can just call the logic we used in openBulkLogModal.
+    
+    // Simplified Row Generation for Makeup
+    const avatarHtml = student.avatar 
+        ? `<img src="${student.avatar}" class="w-10 h-10 rounded-full object-cover border border-gray-200">`
+        : `<div class="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center text-gray-500 font-bold">${student.name.charAt(0)}</div>`;
+
+    let inputHtml = '';
+    if (isJunior && type === 'dictation') {
+        inputHtml = `
+            <select class="bulk-grade-input w-full p-2 border border-gray-300 rounded-md bg-white focus:ring-2 focus:ring-blue-400 outline-none">
+                <option value="" selected disabled>Select Grade...</option>
+                <option value="Great!!!">Great!!!</option>
+                <option value="Great!!">Great!!</option>
+                <option value="Great!">Great!</option>
+                <option value="Nice Try!">Nice Try!</option>
+            </select>`;
+    } else {
+        const maxScore = (isJunior && type === 'test') ? 40 : 100;
+        inputHtml = `
+            <div class="relative">
+                <input type="number" class="bulk-grade-input w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-400 outline-none" 
+                    placeholder="Score" min="0" max="${maxScore}">
+                <span class="absolute right-3 top-2 text-gray-400 text-sm">/${maxScore}</span>
+            </div>`;
+    }
+
+    listContainer.innerHTML = `
+        <div class="bulk-log-item bg-white p-3 rounded-xl shadow-sm flex items-center gap-3" data-student-id="${student.id}">
+            ${avatarHtml}
+            <div class="flex-grow min-w-0">
+                <p class="font-bold text-gray-800 truncate">${student.name}</p>
+                <span class="text-xs text-green-600 bg-green-100 px-2 py-1 rounded-full">Taking Makeup</span>
+                <!-- Hidden absent button for logic compatibility -->
+                <button class="toggle-absent-btn hidden" tabindex="-1"></button>
+            </div>
+            <div class="w-32 grade-input-wrapper">
+                ${inputHtml}
+            </div>
+        </div>
+    `;
+
+    // Set modal datasets for saving
+    modal.dataset.classId = classId;
+    modal.dataset.type = type;
+    modal.dataset.isJunior = isJunior;
+
+    // Bind Save Button
+    const saveBtn = document.getElementById('bulk-trial-save-btn');
+    const newSaveBtn = saveBtn.cloneNode(true);
+    saveBtn.parentNode.replaceChild(newSaveBtn, saveBtn);
+    
+    // We need to import handleBulkSaveTrial from actions to bind it
+    import('../db/actions.js').then(actions => {
+        newSaveBtn.addEventListener('click', actions.handleBulkSaveTrial);
+    });
+
+    // Show
+    modals.showAnimatedModal('bulk-trial-modal');
+    document.getElementById('bulk-trial-close-btn').onclick = () => modals.hideModal('bulk-trial-modal');
+}
+

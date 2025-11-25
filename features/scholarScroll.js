@@ -21,17 +21,12 @@ export function renderScholarsScrollTab(selectedClassId = null) {
 
     const currentVal = selectedClassId || state.get('globalSelectedClassId');
     const optionsHtml = state.get('allTeachersClasses').sort((a,b) => a.name.localeCompare(b.name)).map(c => `<option value="${c.id}">${c.logo} ${c.name}</option>`).join('');
+    
     classSelect.innerHTML = '<option value="">Select a class to view their scroll...</option>' + optionsHtml;
+    
+    // FIX 1: Restore the selected value so the dropdown doesn't reset visualy on refresh
     if (currentVal) {
-        renderScrollDashboard(currentVal);
-        document.getElementById('scroll-dashboard-content').classList.remove('hidden');
-        document.getElementById('scroll-placeholder').classList.add('hidden');
-        
-        // NEW: Render Missing Work / Makeups
-        renderMissingWorkDashboard(currentVal);
-    } else {
-        document.getElementById('scroll-dashboard-content').classList.add('hidden');
-        document.getElementById('scroll-placeholder').classList.remove('hidden');
+        classSelect.value = currentVal;
     }
 
     // Remove old listeners to prevent duplicates (simple cloning trick)
@@ -42,10 +37,22 @@ export function renderScholarsScrollTab(selectedClassId = null) {
     newLogBtn.addEventListener('click', () => openTrialTypeModal(classSelect.value));
 
     if (currentVal) {
+        // Enable buttons
+        document.getElementById('log-trial-btn').disabled = false;
+        document.getElementById('view-trial-history-btn').disabled = false;
+
+        // Render Content
         renderScrollDashboard(currentVal);
         document.getElementById('scroll-dashboard-content').classList.remove('hidden');
         document.getElementById('scroll-placeholder').classList.add('hidden');
+        
+        // Render Missing Work
+        renderMissingWorkDashboard(currentVal);
     } else {
+        // Disable buttons
+        document.getElementById('log-trial-btn').disabled = true;
+        document.getElementById('view-trial-history-btn').disabled = true;
+
         document.getElementById('scroll-dashboard-content').classList.add('hidden');
         document.getElementById('scroll-placeholder').classList.remove('hidden');
     }
@@ -208,12 +215,13 @@ export function openBulkLogModal(classId, type) {
     document.getElementById('bulk-trial-title').innerText = type === 'dictation' ? 'Log Dictation' : 'Log Test';
     document.getElementById('bulk-trial-subtitle').innerText = `${classData.logo} ${classData.name}`;
     
-    // Ensure date input is YYYY-MM-DD
+    // Ensure date input is YYYY-MM-DD for input type="date"
     const todayObj = new Date();
     const yyyy = todayObj.getFullYear();
     const mm = String(todayObj.getMonth() + 1).padStart(2, '0');
     const dd = String(todayObj.getDate()).padStart(2, '0');
     document.getElementById('bulk-trial-date').value = `${yyyy}-${mm}-${dd}`;
+    
     // NEW: Update the DD/MM/YYYY display label
     const dateDisplay = document.getElementById('bulk-trial-date-display');
     const updateDateDisplay = (val) => {
@@ -233,7 +241,7 @@ export function openBulkLogModal(classId, type) {
     if (type === 'test') {
         titleWrapper.classList.remove('hidden');
     } else {
-        titleWrapper.classList.add('hidden'); // Dictation doesn't strictly need a title
+        titleWrapper.classList.add('hidden'); 
     }
 
     const listContainer = document.getElementById('bulk-student-list');
@@ -251,7 +259,7 @@ export function openBulkLogModal(classId, type) {
         });
     }
 
-    // Attach Toggle Listeners (UPDATED for Green/Red)
+    // Attach Toggle Listeners
     listContainer.querySelectorAll('.toggle-absent-btn').forEach(btn => {
         btn.addEventListener('click', (e) => {
             const row = e.target.closest('.bulk-log-item');
@@ -260,14 +268,11 @@ export function openBulkLogModal(classId, type) {
             
             btn.classList.toggle('is-absent');
             
-            // Toggle Visuals
             if (isNowAbsent) {
-                // Becomes Absent (Red)
                 btn.classList.remove('bg-green-500', 'text-white', 'hover:bg-green-600');
                 btn.classList.add('bg-red-500', 'text-white', 'hover:bg-red-600');
                 btn.innerHTML = '<i class="fas fa-user-slash"></i> Absent';
             } else {
-                // Becomes Present (Green)
                 btn.classList.remove('bg-red-500', 'text-white', 'hover:bg-red-600');
                 btn.classList.add('bg-green-500', 'text-white', 'hover:bg-green-600');
                 btn.innerHTML = '<i class="fas fa-user-check"></i> Present';
@@ -275,7 +280,7 @@ export function openBulkLogModal(classId, type) {
             
             row.classList.toggle('absent', isNowAbsent);
             if (input) input.disabled = isNowAbsent;
-            if (isNowAbsent && input) input.value = ''; // Clear score if absent
+            if (isNowAbsent && input) input.value = ''; 
         });
     });
 
@@ -316,7 +321,6 @@ function renderStudentBulkRow(student, type, isJunior, isAbsent) {
         `;
     }
 
-    // Button Classes logic
     const buttonClass = isAbsent 
         ? 'is-absent bg-red-500 text-white hover:bg-red-600' 
         : 'bg-green-500 text-white hover:bg-green-600';
@@ -377,16 +381,11 @@ export async function openTrialHistoryModal(classId) {
     renderTrialHistoryContent(classId, 'test');
     modals.showAnimatedModal('trial-history-modal');
 
-    // ... (Historical loading logic remains same as before)
     const twoMonthsAgo = new Date();
     twoMonthsAgo.setMonth(twoMonthsAgo.getMonth() - 2);
     const twoMonthsAgoKey = twoMonthsAgo.toISOString().substring(0, 7);
 
     const allMonthsSet = await fetchAllTrialMonthsForClass(classId);
-    // Important: Sort correctly based on string comparison of YYYY-MM or parse dates
-    // Since `fetchAllTrialMonthsForClass` returns raw month strings, if they are YYYY-MM, simple sort works.
-    // If they are MM-YYYY (which they shouldn't be based on how they were constructed), we'd need parsing.
-    // Assuming keys are YYYY-MM from `fetchAllTrialMonthsForClass` which pulls from `score.date`.
     const historicalMonths = [...allMonthsSet].filter(monthKey => monthKey < twoMonthsAgoKey).sort().reverse();
     
     const actionsContainer = controlsContainer.querySelector('#trial-history-actions');
@@ -426,7 +425,6 @@ export function renderTrialHistoryContent(classId, view, onDemandScores = null, 
         const twoMonthsAgoKey = twoMonthsAgo.toISOString().substring(0, 7);
         
         scoresToRender = state.get('allWrittenScores').filter(s => {
-            // Safe parsing for filtering, assuming s.date might be YYYY-MM-DD OR DD-MM-YYYY
             const dateObj = utils.parseDDMMYYYY(s.date);
             const key = dateObj.toISOString().substring(0, 7);
             return s.classId === classId && s.type === view && key >= twoMonthsAgoKey;
@@ -434,7 +432,6 @@ export function renderTrialHistoryContent(classId, view, onDemandScores = null, 
     }
 
     const scoresByMonth = scoresToRender.reduce((acc, score) => {
-        // Use parsing to ensure YYYY-MM key even if date is stored as DD-MM-YYYY
         const dateObj = utils.parseDDMMYYYY(score.date);
         const key = dateObj.toISOString().substring(0, 7); 
         if (!acc[key]) acc[key] = [];
@@ -447,21 +444,18 @@ export function renderTrialHistoryContent(classId, view, onDemandScores = null, 
     const newHtml = sortedMonths.map(currentMonthKey => {
         const monthName = new Date(currentMonthKey + '-02').toLocaleString('en-GB', { month: 'long', year: 'numeric' });
         
-        // Group by Date (String)
         const scoresByDate = scoresByMonth[currentMonthKey].reduce((acc, score) => {
             if (!acc[score.date]) acc[score.date] = [];
             acc[score.date].push(score);
             return acc;
         }, {});
         
-        // Sort dates
         const sortedDates = Object.keys(scoresByDate).sort((a,b) => utils.parseDDMMYYYY(b) - utils.parseDDMMYYYY(a));
         
         let monthScoresHtml = sortedDates.map(date => {
             const dateScoresHtml = scoresByDate[date].map(score => renderTrialHistoryItem(score)).join('');
             const title = scoresByDate[date][0].title || (view === 'dictation' ? 'Dictation' : 'Test');
             
-            // Format Date for display
             const displayDate = utils.parseDDMMYYYY(date).toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'short' });
 
             return `<div class="bg-white/50 rounded-lg p-2 mb-2">
@@ -542,12 +536,15 @@ export function openSingleTrialEditModal(classId, trialId) {
     document.getElementById('bulk-trial-title').innerText = 'Edit Result';
     document.getElementById('bulk-trial-subtitle').innerText = `${classData.name}`;
     
-    // DATE FIX: Convert stored date (which might be DD-MM-YYYY or YYYY-MM-DD) to YYYY-MM-DD for input
     const dateObj = utils.parseDDMMYYYY(score.date);
     const yyyy = dateObj.getFullYear();
     const mm = String(dateObj.getMonth() + 1).padStart(2, '0');
     const dd = String(dateObj.getDate()).padStart(2, '0');
     document.getElementById('bulk-trial-date').value = `${yyyy}-${mm}-${dd}`;
+    
+    // Also update display label for single edit
+    const displayEl = document.getElementById('bulk-trial-date-display');
+    if(displayEl) displayEl.innerText = `${dd}/${mm}/${yyyy}`;
     
     const titleWrapper = document.getElementById('bulk-trial-title-wrapper');
     const titleInput = document.getElementById('bulk-trial-name');
@@ -564,26 +561,21 @@ export function openSingleTrialEditModal(classId, trialId) {
     
     const student = state.get('allStudents').find(s => s.id === score.studentId);
     if (student) {
-        // Render row
         const rowHtml = renderStudentBulkRow(student, score.type, isJunior, false);
         listContainer.innerHTML = rowHtml;
         
-        // Set value
         const input = listContainer.querySelector('.bulk-grade-input');
         if (input) {
             if (score.scoreQualitative) input.value = score.scoreQualitative;
             else if (score.scoreNumeric !== null) input.value = score.scoreNumeric;
         }
-        // Mark the row with the trial ID so saving knows to UPDATE not CREATE
         listContainer.querySelector('.bulk-log-item').dataset.trialId = trialId;
     }
     
-    // Set dataset for saving logic
     modal.dataset.classId = classId;
     modal.dataset.type = score.type;
     modal.dataset.isJunior = isJunior;
     
-    // Bind save button
     const saveBtn = document.getElementById('bulk-trial-save-btn');
     const newSaveBtn = saveBtn.cloneNode(true);
     saveBtn.parentNode.replaceChild(newSaveBtn, saveBtn);
@@ -593,7 +585,7 @@ export function openSingleTrialEditModal(classId, trialId) {
 }
 
 
-// --- HELPER CALCULATIONS (Unchanged) ---
+// --- HELPER CALCULATIONS ---
 
 function calculateJuniorTreasureRank(testScores, dictationScores) {
     const dictationMap = { "Great!!!": 4, "Great!!": 3, "Great!": 2, "Nice Try!": 1 };
@@ -635,12 +627,12 @@ function renderMissingWorkDashboard(classId) {
     const studentsInClass = state.get('allStudents').filter(s => s.classId === classId);
     const scoresForClass = state.get('allWrittenScores').filter(s => s.classId === classId);
     
-    // 1. Identify unique Tests/Dictations given to this class (Group by Title+Type)
+    // 1. Identify unique Tests (Group by Title+Type)
     const uniqueAssessments = {};
     
     scoresForClass.forEach(score => {
-        // Only track significant assessments (tests or named dictations)
-        if (score.type === 'test' || (score.type === 'dictation' && score.title)) {
+        // FIX 2: ONLY Tests
+        if (score.type === 'test') { 
             const key = `${score.type}-${score.title || 'Untitled'}`;
             if (!uniqueAssessments[key]) {
                 uniqueAssessments[key] = {
@@ -655,7 +647,6 @@ function renderMissingWorkDashboard(classId) {
     });
 
     // Filter out assessments that only 1 or 2 students took (likely makeups themselves)
-    // Assume a "Class Test" means at least 30% of class took it
     const threshold = Math.max(2, Math.floor(studentsInClass.length * 0.3));
     const validAssessments = Object.values(uniqueAssessments).filter(a => a.count >= threshold);
 
@@ -666,7 +657,6 @@ function renderMissingWorkDashboard(classId) {
 
     validAssessments.forEach(assessment => {
         studentsInClass.forEach(student => {
-            // Check if student has a score for this specific Title + Type (date doesn't matter for makeup)
             const hasTaken = scoresForClass.some(s => 
                 s.studentId === student.id && 
                 s.type === assessment.type && 
@@ -752,10 +742,6 @@ function openMakeupModal(classId, studentId, type, title) {
     // Render JUST the one student row
     const listContainer = document.getElementById('bulk-student-list');
     
-    // We need to import the render helper or duplicate logic. 
-    // Since renderStudentBulkRow is internal to scholarScroll.js but not exported, 
-    // and we are currently IN scholarScroll.js, we can just call the logic we used in openBulkLogModal.
-    
     // Simplified Row Generation for Makeup
     const avatarHtml = student.avatar 
         ? `<img src="${student.avatar}" class="w-10 h-10 rounded-full object-cover border border-gray-200">`
@@ -815,4 +801,3 @@ function openMakeupModal(classId, studentId, type, title) {
     modals.showAnimatedModal('bulk-trial-modal');
     document.getElementById('bulk-trial-close-btn').onclick = () => modals.hideModal('bulk-trial-modal');
 }
-

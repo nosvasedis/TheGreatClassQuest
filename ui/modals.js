@@ -864,7 +864,7 @@ export function showBatchStarfallModal(eligibleStudents) {
 
     const confirmBtn = document.getElementById('starfall-confirm-btn');
     const totalStars = eligibleStudents.reduce((sum, s) => sum + s.bonusAmount, 0);
-    confirmBtn.innerText = `Yes, Bestow ${totalStars} Bonus Stars! ✨`;
+    confirmBtn.innerText = `Yes, Bestow Bonus Stars! ✨`;
 
     const newConfirmBtn = confirmBtn.cloneNode(true);
     confirmBtn.parentNode.replaceChild(newConfirmBtn, confirmBtn);
@@ -1959,6 +1959,7 @@ export async function generateAIInsight(studentId, insightType) {
         outputEl.innerHTML = `<p class="text-center text-red-500">The Oracle could not process the records at this time. Please try again later.</p>`;
     }
 }
+
 
 
 

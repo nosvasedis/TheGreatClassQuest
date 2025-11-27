@@ -225,7 +225,8 @@ export function openBulkLogModal(classId, type) {
     // NEW: Update the DD/MM/YYYY display label
     const dateDisplay = document.getElementById('bulk-trial-date-display');
     const updateDateDisplay = (val) => {
-        if (!val) return;
+        // Fix: Added check for !dateDisplay to prevent crash if element is missing
+        if (!val || !dateDisplay) return;
         const [y, m, d] = val.split('-');
         dateDisplay.innerText = `${d}/${m}/${y}`;
     };
@@ -801,3 +802,4 @@ function openMakeupModal(classId, studentId, type, title) {
     modals.showAnimatedModal('bulk-trial-modal');
     document.getElementById('bulk-trial-close-btn').onclick = () => modals.hideModal('bulk-trial-modal');
 }
+

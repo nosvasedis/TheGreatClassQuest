@@ -433,12 +433,41 @@ export async function checkAndRecordQuestCompletion(classId) {
     const studentCount = studentsInClass.length;
     if (studentCount === 0) return;
 
-    // Apply seasonal modifier for goal checking (Matches logic in tabs.js)
-    const currentMonth = new Date().getMonth(); // 0=Jan, 11=Dec
-    let monthModifier = 1.0;
-    if (currentMonth === 11 || currentMonth === 3) monthModifier = 0.85; // Dec & Apr (Holidays)
-    if (currentMonth === 0 || currentMonth === 4) monthModifier = 0.90; // Jan & May (Recovery/End)
+    // --- SMART HOLIDAY CALCULATOR (Matches tabs.js) ---
+    const now = new Date();
+    const currentYear = now.getFullYear();
+    const currentMonth = now.getMonth();
+    const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
+    
+    let holidayDaysLost = 0;
+    // We access the global state to get the ranges defined in Options
+    const ranges = state.get('schoolHolidayRanges') || [];
+    
+    ranges.forEach(range => {
+        const start = new Date(range.start);
+        const end = new Date(range.end);
+        
+        const monthStart = new Date(currentYear, currentMonth, 1);
+        const monthEnd = new Date(currentYear, currentMonth + 1, 0);
+        
+        const overlapStart = start > monthStart ? start : monthStart;
+        const overlapEnd = end < monthEnd ? end : monthEnd;
+        
+        if (overlapStart <= overlapEnd) {
+            const diffTime = Math.abs(overlapEnd - overlapStart);
+            const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
+            holidayDaysLost += diffDays;
+        }
+    });
 
+    let monthModifier = (daysInMonth - holidayDaysLost) / daysInMonth;
+    
+    if (currentMonth === 5) {
+        monthModifier = 0.5; // June is always half
+    } else {
+        monthModifier = Math.max(0.6, Math.min(1.0, monthModifier));
+    }
+    
     const diamondGoal = Math.round(studentCount * goalPerStudent * monthModifier);
     
     const studentIds = studentsInClass.map(s => s.id);

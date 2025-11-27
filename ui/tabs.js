@@ -165,9 +165,26 @@ export function renderClassLeaderboardTab() {
     const classScores = classesInLeague.map(c => {
         const studentsInClass = state.get('allStudents').filter(s => s.classId === c.id);
         const studentCount = studentsInClass.length;
-        const difficulty = c.difficultyLevel || 0;
+        
+        // CHECK: Did they finish the quest THIS month?
+        let isCompletedThisMonth = false;
+        if (c.questCompletedAt) {
+            const completedDate = c.questCompletedAt.toDate();
+            const now = new Date();
+            if (completedDate.getMonth() === now.getMonth() && completedDate.getFullYear() === now.getFullYear()) {
+                isCompletedThisMonth = true;
+            }
+        }
 
-        const adjustedGoalPerStudent = (BASE_GOAL + (difficulty * SCALING_FACTOR)) * monthModifier;
+        // LOGIC FIX: 
+        // If they finished this month, the DB shows the NEXT level (e.g., 1).
+        // But for the UI right now, we must calculate based on the level they just played (e.g., 0).
+        // If it's a new month (December), isCompletedThisMonth is false, so we use the new harder level.
+        const dbDifficulty = c.difficultyLevel || 0;
+        const effectiveDifficulty = isCompletedThisMonth ? Math.max(0, dbDifficulty - 1) : dbDifficulty;
+
+        // Calculate Goal using the EFFECTIVE difficulty
+        const adjustedGoalPerStudent = (BASE_GOAL + (effectiveDifficulty * SCALING_FACTOR)) * monthModifier;
 
         const goals = {
             bronze: Math.round(studentCount * (adjustedGoalPerStudent * 0.25)),
@@ -181,9 +198,11 @@ export function renderClassLeaderboardTab() {
             return sum + (scoreData?.monthlyStars || 0);
         }, 0);
 
-        const progress = goals.diamond > 0 ? (currentMonthlyStars / goals.diamond) * 100 : 0;
-        
-        return { ...c, studentCount, goals, currentMonthlyStars, progress, difficulty, questCompletedAt: c.questCompletedAt || null };
+        // If they completed it this month, FORCE progress to 100% (or higher) to avoid "99%" bugs due to rounding
+        let progress = goals.diamond > 0 ? (currentMonthlyStars / goals.diamond) * 100 : 0;
+        if (isCompletedThisMonth && progress < 100) progress = 100;
+
+        return { ...c, studentCount, goals, currentMonthlyStars, progress, difficulty: dbDifficulty, questCompletedAt: c.questCompletedAt || null };
     }).sort((a, b) => {
         if (b.progress !== a.progress) {
             return b.progress - a.progress;
@@ -1377,5 +1396,6 @@ export function openMilestoneModal(markerElement) {
     
     modals.showAnimatedModal('milestone-details-modal');
 }
+
 
 

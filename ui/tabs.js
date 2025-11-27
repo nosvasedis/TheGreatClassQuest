@@ -122,17 +122,42 @@ export function renderClassLeaderboardTab() {
         return;
     }
     
-    const GOAL_PER_STUDENT = { BRONZE: 4, SILVER: 8, GOLD: 13, DIAMOND: 18 };
+    // --- NEW SCALING LOGIC ---
+    const BASE_GOAL = 18; 
+    const SCALING_FACTOR = 1.5; // Stars added per difficulty level
     
+    // Month Modifiers (0=Jan, 11=Dec)
+    const currentMonth = new Date().getMonth();
+    let monthModifier = 1.0;
+    let monthMsg = "";
+    
+    // December (11) & April (3) - Major Holidays
+    if (currentMonth === 11 || currentMonth === 3) {
+        monthModifier = 0.85; 
+        monthMsg = "(Holiday Adjusted)";
+    }
+    // January (0) & May (4) - Short/End months
+    else if (currentMonth === 0 || currentMonth === 4) {
+        monthModifier = 0.90;
+    }
+    // June (5) - Bonus/Short
+    else if (currentMonth === 5) {
+        monthModifier = 0.50;
+    }
+
     const classScores = classesInLeague.map(c => {
         const studentsInClass = state.get('allStudents').filter(s => s.classId === c.id);
         const studentCount = studentsInClass.length;
+        const difficulty = c.difficultyLevel || 0;
+
+        // Calculate Goal per student based on class difficulty history
+        const adjustedGoalPerStudent = (BASE_GOAL + (difficulty * SCALING_FACTOR)) * monthModifier;
 
         const goals = {
-            bronze: Math.round(studentCount * GOAL_PER_STUDENT.BRONZE),
-            silver: Math.round(studentCount * GOAL_PER_STUDENT.SILVER),
-            gold: Math.round(studentCount * GOAL_PER_STUDENT.GOLD),
-            diamond: studentCount > 0 ? Math.round(studentCount * GOAL_PER_STUDENT.DIAMOND) : 18
+            bronze: Math.round(studentCount * (adjustedGoalPerStudent * 0.25)),
+            silver: Math.round(studentCount * (adjustedGoalPerStudent * 0.50)),
+            gold: Math.round(studentCount * (adjustedGoalPerStudent * 0.75)),
+            diamond: studentCount > 0 ? Math.round(studentCount * adjustedGoalPerStudent) : 18
         };
         
         const currentMonthlyStars = studentsInClass.reduce((sum, s) => {
@@ -142,7 +167,7 @@ export function renderClassLeaderboardTab() {
 
         const progress = goals.diamond > 0 ? (currentMonthlyStars / goals.diamond) * 100 : 0;
         
-        return { ...c, studentCount, goals, currentMonthlyStars, progress, questCompletedAt: c.questCompletedAt || null };
+        return { ...c, studentCount, goals, currentMonthlyStars, progress, difficulty, questCompletedAt: c.questCompletedAt || null };
     }).sort((a, b) => {
         if (b.progress !== a.progress) {
             return b.progress - a.progress;
@@ -161,7 +186,8 @@ export function renderClassLeaderboardTab() {
 
     let lastUniqueScore = -1, currentRank = 0;
     list.innerHTML = classScores.map((c, index) => {
-        const uniqueScoreIdentifier = `${c.progress}-${c.questCompletedAt?.toMillis()}`;
+        // Unique score identifier for ranking logic
+        const uniqueScoreIdentifier = `${c.progress.toFixed(2)}`; 
         if (uniqueScoreIdentifier !== lastUniqueScore) {
             currentRank = index + 1;
             lastUniqueScore = uniqueScoreIdentifier;
@@ -186,6 +212,7 @@ export function renderClassLeaderboardTab() {
             diamond: Math.max(0, c.goals.diamond - c.currentMonthlyStars)
         };
         
+        // Calculate visual positions for markers
         const progressPositions = {
             bronze: c.goals.diamond > 0 ? (c.goals.bronze / c.goals.diamond) * 100 : 25,
             silver: c.goals.diamond > 0 ? (c.goals.silver / c.goals.diamond) * 100 : 50,
@@ -197,6 +224,11 @@ export function renderClassLeaderboardTab() {
         else if (c.progress >= 33) progressTier = 'mid';
 
         const displayProgress = Math.min(100, c.progress);
+        
+        // Difficulty Badge
+        const difficultyBadge = c.difficulty > 0 
+            ? `<span class="text-xs bg-red-100 text-red-700 px-2 py-1 rounded-full border border-red-200" title="Difficulty Level: ${c.difficulty}">🔥 Level ${c.difficulty + 1}</span>` 
+            : `<span class="text-xs bg-green-100 text-green-700 px-2 py-1 rounded-full border border-green-200">🌱 Level 1</span>`;
 
         return `
         <div class="quest-card bg-white/80 backdrop-blur-sm p-6 rounded-3xl shadow-xl border-2 border-white/50 space-y-3" 
@@ -205,47 +237,38 @@ export function renderClassLeaderboardTab() {
                 <div class="flex items-center gap-4">
                     <span class="font-title text-4xl text-gray-400 w-8 text-center">${rankDisplay}</span>
                     <div>
-                        <h3 class="font-title text-2xl text-gray-800">${c.logo} ${c.name}</h3>
+                        <h3 class="font-title text-2xl text-gray-800 flex items-center gap-2">${c.logo} ${c.name} ${difficultyBadge}</h3>
                         <p class="text-sm text-gray-600">Teacher: ${c.createdBy.name} | Students: ${c.studentCount}</p>
                     </div>
                 </div>
                 <div class="text-right">
                     <p class="font-title text-4xl text-amber-500">${c.currentMonthlyStars} ⭐</p>
-                    <p class="text-xs text-gray-500 -mt-1">Goal: ${c.goals.diamond} Stars</p>
+                    <p class="text-xs text-gray-500 -mt-1">Goal: ${c.goals.diamond} Stars ${monthMsg}</p>
                 </div>
             </div>
             <div class="quest-track-path relative w-full h-10 bg-gray-200 rounded-full shadow-inner flex items-center">
                 <div class="quest-track-progress h-full rounded-full ${progressBarColor}" data-progress="${displayProgress}" style="width: 0%;"></div>
+                
                 <div class="milestone-marker absolute top-1/2 ${bronzeAchieved ? 'achieved' : ''}" style="left: ${progressPositions.bronze}%;">
                     🛡️
-                    <div class="milestone-tooltip">
-                        <p class="tooltip-main-text">${starsTo.bronze > 0 ? `${starsTo.bronze} more stars!` : 'Milestone Achieved!'}</p>
-                        ${starsTo.bronze > 0 ? `<p class="tooltip-sub-text">Total needed: ${c.goals.bronze} ⭐</p>` : ''}
-                    </div>
+                    <div class="milestone-tooltip"><p class="tooltip-main-text">${starsTo.bronze > 0 ? `${starsTo.bronze} more!` : 'Achieved!'}</p></div>
                 </div>
                 <div class="milestone-marker absolute top-1/2 ${silverAchieved ? 'achieved' : ''}" style="left: ${progressPositions.silver}%;">
                     🏆
-                    <div class="milestone-tooltip">
-                        <p class="tooltip-main-text">${starsTo.silver > 0 ? `${starsTo.silver} more stars!` : 'Milestone Achieved!'}</p>
-                        ${starsTo.silver > 0 ? `<p class="tooltip-sub-text">Total needed: ${c.goals.silver} ⭐</p>` : ''}
-                    </div>
+                    <div class="milestone-tooltip"><p class="tooltip-main-text">${starsTo.silver > 0 ? `${starsTo.silver} more!` : 'Achieved!'}</p></div>
                 </div>
                 <div class="milestone-marker absolute top-1/2 ${goldAchieved ? 'achieved' : ''}" style="left: ${progressPositions.gold}%;">
                     👑
-                    <div class="milestone-tooltip">
-                        <p class="tooltip-main-text">${starsTo.gold > 0 ? `${starsTo.gold} more stars!` : 'Milestone Achieved!'}</p>
-                        ${starsTo.gold > 0 ? `<p class="tooltip-sub-text">Total needed: ${c.goals.gold} ⭐</p>` : ''}
-                    </div>
+                    <div class="milestone-tooltip"><p class="tooltip-main-text">${starsTo.gold > 0 ? `${starsTo.gold} more!` : 'Achieved!'}</p></div>
                 </div>
                 <div class="milestone-marker is-diamond absolute top-1/2 ${diamondAchieved ? 'achieved' : ''}" style="left: 100%;">
                     💎
-                    <div class="milestone-tooltip">
-                        <p class="tooltip-main-text">${starsTo.diamond > 0 ? `${starsTo.diamond} more stars!` : 'QUEST COMPLETE!'}</p>
-                    </div>
+                    <div class="milestone-tooltip"><p class="tooltip-main-text">${starsTo.diamond > 0 ? `${starsTo.diamond} more!` : 'QUEST COMPLETE!'}</p></div>
                 </div>
+                
                 <div class="quest-track-avatar absolute top-1/2 text-4xl ${c.progress >= 100 ? 'quest-complete' : ''}" data-progress="${displayProgress}" data-progress-tier="${progressTier}" style="left: 0%;">
                     <span>${c.logo}</span>
-                    ${c.progress < 100 ? `<div class="avatar-tooltip">${c.progress.toFixed(1)}% Complete ⭐</div>` : ''}
+                    ${c.progress < 100 ? `<div class="avatar-tooltip">${c.progress.toFixed(1)}% Complete</div>` : ''}
                 </div>
             </div>
         </div>`;
@@ -254,11 +277,8 @@ export function renderClassLeaderboardTab() {
     setTimeout(() => {
         list.querySelectorAll('.quest-track-progress, .quest-track-avatar').forEach(el => {
             const progress = el.dataset.progress;
-            if (el.classList.contains('quest-track-progress')) {
-                el.style.width = `${progress}%`;
-            } else {
-                el.style.left = `${progress}%`;
-            }
+            if (el.classList.contains('quest-track-progress')) el.style.width = `${progress}%`;
+            else el.style.left = `${progress}%`;
         });
         list.querySelectorAll('.milestone-marker').forEach(marker => {
             marker.addEventListener('click', () => modals.openMilestoneModal(marker));
@@ -1344,3 +1364,4 @@ export function openMilestoneModal(markerElement) {
     
     modals.showAnimatedModal('milestone-details-modal');
 }
+

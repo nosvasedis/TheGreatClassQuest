@@ -411,16 +411,35 @@ export async function setStudentStarsForToday(studentId, starValue, reason = nul
 export async function checkAndRecordQuestCompletion(classId) {
     const classRef = doc(db, "artifacts/great-class-quest/public/data/classes", classId);
     const classDoc = await getDoc(classRef); 
-    if (!classDoc.exists() || classDoc.data().questCompletedAt) {
-        return;
+    if (!classDoc.exists()) return;
+    
+    // Check if already completed this month to prevent double counting
+    if (classDoc.data().questCompletedAt) {
+        const completedDate = classDoc.data().questCompletedAt.toDate();
+        const now = new Date();
+        if (completedDate.getMonth() === now.getMonth() && completedDate.getFullYear() === now.getFullYear()) {
+            return;
+        }
     }
 
-    const GOAL_PER_STUDENT = { DIAMOND: 18 };
+    // Dynamic Goal Calculation Base
+    const currentDifficulty = classDoc.data().difficultyLevel || 0;
+    // We calculate the goal based on the CURRENT difficulty to see if they passed
+    const GOAL_PER_STUDENT_BASE = 18;
+    // Slight increase per level (1.5 stars per level)
+    const goalPerStudent = GOAL_PER_STUDENT_BASE + (currentDifficulty * 1.5);
+
     const studentsInClass = state.get('allStudents').filter(s => s.classId === classId);
     const studentCount = studentsInClass.length;
     if (studentCount === 0) return;
 
-    const diamondGoal = Math.round(studentCount * GOAL_PER_STUDENT.DIAMOND);
+    // Apply seasonal modifier for goal checking (Matches logic in tabs.js)
+    const currentMonth = new Date().getMonth(); // 0=Jan, 11=Dec
+    let monthModifier = 1.0;
+    if (currentMonth === 11 || currentMonth === 3) monthModifier = 0.85; // Dec & Apr (Holidays)
+    if (currentMonth === 0 || currentMonth === 4) monthModifier = 0.90; // Jan & May (Recovery/End)
+
+    const diamondGoal = Math.round(studentCount * goalPerStudent * monthModifier);
     
     const studentIds = studentsInClass.map(s => s.id);
     if (studentIds.length === 0) return; 
@@ -435,9 +454,10 @@ export async function checkAndRecordQuestCompletion(classId) {
     }
 
     if (currentMonthlyStars >= diamondGoal) {
-        console.log(`Class ${classDoc.data().name} has completed the quest! Recording timestamp.`);
+        console.log(`Class ${classDoc.data().name} has completed the quest! Increasing difficulty.`);
         await updateDoc(classRef, {
-            questCompletedAt: serverTimestamp()
+            questCompletedAt: serverTimestamp(),
+            difficultyLevel: increment(1) // LEVEL UP! Next month will be harder.
         });
     }
 }

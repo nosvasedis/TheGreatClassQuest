@@ -481,24 +481,47 @@ async function fetchLastMonthResults(league, type, monthKey, classId = null) {
     if (type === 'team') {
         const classesInLeague = state.get('allSchoolClasses').filter(c => c.questLevel === league);
         
-        // --- 1. Basic Progress Calculation ---
         const BASE_GOAL = 18; 
         const SCALING_FACTOR = 1.5;
         
-        // Re-calculate modifiers based on monthKey to be accurate for THAT specific month
-        const monthIndex = new Date(monthKey + "-02").getMonth();
-        let monthModifier = 1.0;
-        if (monthIndex === 11 || monthIndex === 3) monthModifier = 0.85; 
-        else if (monthIndex === 0 || monthIndex === 4) monthModifier = 0.90;
-        else if (monthIndex === 5) monthModifier = 0.50;
+        // --- SMART HOLIDAY CALCULATOR FOR HISTORICAL MONTH ---
+        // 1. Determine days in that specific historical month
+        const y = parseInt(monthKey.split('-')[0]);
+        const m = parseInt(monthKey.split('-')[1]) - 1; // JS months are 0-indexed
+        const daysInMonth = new Date(y, m + 1, 0).getDate();
+        
+        let holidayDaysLost = 0;
+        const ranges = state.get('schoolHolidayRanges') || [];
+        
+        ranges.forEach(range => {
+            const start = new Date(range.start);
+            const end = new Date(range.end);
+            
+            const monthStart = new Date(y, m, 1);
+            const monthEnd = new Date(y, m + 1, 0);
+            
+            const overlapStart = start > monthStart ? start : monthStart;
+            const overlapEnd = end < monthEnd ? end : monthEnd;
+            
+            if (overlapStart <= overlapEnd) {
+                const diffTime = Math.abs(overlapEnd - overlapStart);
+                const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
+                holidayDaysLost += diffDays;
+            }
+        });
+
+        let monthModifier = (daysInMonth - holidayDaysLost) / daysInMonth;
+        if (m === 5) { // June
+            monthModifier = 0.5;
+        } else {
+            monthModifier = Math.max(0.6, Math.min(1.0, monthModifier));
+        }
 
         let classScores = classesInLeague.map(c => {
             const studentsInClass = state.get('allStudents').filter(s => s.classId === c.id);
             const studentCount = studentsInClass.length;
             const difficulty = c.difficultyLevel || 0;
             
-            // Note: This logic assumes difficulty hasn't changed drastically since last month,
-            // which is a safe assumption for ceremony purposes.
             const adjustedGoalPerStudent = (BASE_GOAL + (difficulty * SCALING_FACTOR)) * monthModifier;
             const diamondGoal = studentCount > 0 ? Math.round(studentCount * adjustedGoalPerStudent) : 18;
             
@@ -509,75 +532,51 @@ async function fetchLastMonthResults(league, type, monthKey, classId = null) {
         });
 
         // --- 2. Smart Tie-Breaker for Diamond Winners ---
-        // Identify classes that reached 100% (Diamond)
         const diamondClasses = classScores.filter(c => c.progress >= 100);
 
         if (diamondClasses.length > 1) {
-            // If we have a tie at the top, fetch logs to calculate "Quality"
-            // Quality = (Total 3-Star Awards) / Student Count
-            
-            // Calculate start/end date for Firestore query
-            const y = parseInt(monthKey.split('-')[0]);
-            const m = parseInt(monthKey.split('-')[1]);
-            const startDate = new Date(y, m - 1, 1);
-            const endDate = new Date(y, m, 0);
-            const startStr = `${String(startDate.getDate()).padStart(2,'0')}-${String(startDate.getMonth()+1).padStart(2,'0')}-${startDate.getFullYear()}`;
-            const endStr = `${String(endDate.getDate()).padStart(2,'0')}-${String(endDate.getMonth()+1).padStart(2,'0')}-${endDate.getFullYear()}`;
-
-            // We need to fetch logs. Using query from firestore directly here.
-            // Note: This might be slow if there are tons of logs, but it's only for winners.
+            const startDate = new Date(y, m, 1);
+            const endDate = new Date(y, m + 1, 0);
             const publicDataPath = "artifacts/great-class-quest/public/data";
             
-            // Fetch logs for ALL diamond classes in parallel
             await Promise.all(diamondClasses.map(async (c) => {
                 try {
                     const q = query(
                         collection(db, `${publicDataPath}/award_log`),
-                        where("classId", "==", c.id),
-                        // We filter roughly by checking the string date. 
-                        // Note: Firestore string date sorting is tricky, so we fetch slightly more and filter in JS
+                        where("classId", "==", c.id)
                     );
                     const snap = await getDocs(q);
                     
                     let threeStarCount = 0;
                     snap.forEach(doc => {
                         const d = doc.data();
-                        // JS Filter for exact month match
                         const logParts = d.date.split('-'); // DD-MM-YYYY
-                        if (logParts[1] == m && logParts[2] == y) {
+                        // Parse log date parts (MM is 1-12 in string)
+                        if (parseInt(logParts[1]) == (m + 1) && parseInt(logParts[2]) == y) {
                             if (d.stars === 3) threeStarCount++;
                         }
                     });
 
-                    // Calculate Quality Ratio (3-stars per student)
                     c.qualityScore = c.studentCount > 0 ? (threeStarCount / c.studentCount) : 0;
-                    console.log(`Class ${c.name} Quality: ${c.qualityScore.toFixed(3)} (3-stars: ${threeStarCount})`);
                 } catch (e) {
                     console.error("Error calculating tie-breaker", e);
                 }
             }));
         }
 
-        // --- 3. Sort ---
         return classScores.sort((a, b) => {
-            // 1. Primary: Progress %
             if (Math.abs(b.progress - a.progress) > 0.1) {
                 return b.progress - a.progress;
             }
-            
-            // 2. Tie-Breaker: If both are Diamond (>=100), use Quality Score
             if (a.progress >= 100 && b.progress >= 100) {
                 if (b.qualityScore !== a.qualityScore) {
                     return b.qualityScore - a.qualityScore;
                 }
             }
-            
-            // 3. Fallback: Total Raw Stars
             return b.score - a.score;
         });
 
     } else {
-        // Hero logic remains the same
         let studentsToRank;
         if (classId) {
             studentsToRank = state.get('allStudents').filter(s => s.classId === classId);
@@ -648,4 +647,5 @@ export async function showGlobalLeaderboardModal() {
         `;
     }).join('');
 }
+
 

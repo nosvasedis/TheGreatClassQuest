@@ -115,42 +115,58 @@ export function renderClassLeaderboardTab() {
         return;
     }
 
+    // --- RESTORED DEFINITION ---
     const classesInLeague = state.get('allSchoolClasses').filter(c => c.questLevel === league);
+    
     if (classesInLeague.length === 0) {
         list.innerHTML = `<p class="text-center text-gray-700 bg-white/50 p-4 rounded-2xl text-lg">No classes in this quest league... yet!</p>`;
         questUpdateBtn.disabled = true;
         return;
     }
     
-    // --- NEW SCALING LOGIC ---
     const BASE_GOAL = 18; 
-    const SCALING_FACTOR = 1.5; // Stars added per difficulty level
+    const SCALING_FACTOR = 1.5; 
     
-    // Month Modifiers (0=Jan, 11=Dec)
-    const currentMonth = new Date().getMonth();
-    let monthModifier = 1.0;
-    let monthMsg = "";
+    // --- SMART HOLIDAY CALCULATOR ---
+    const now = new Date();
+    const currentYear = now.getFullYear();
+    const currentMonth = now.getMonth();
+    const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
     
-    // December (11) & April (3) - Major Holidays
-    if (currentMonth === 11 || currentMonth === 3) {
-        monthModifier = 0.85; 
-        monthMsg = "(Holiday Adjusted)";
+    let holidayDaysLost = 0;
+    const ranges = state.get('schoolHolidayRanges') || [];
+    
+    ranges.forEach(range => {
+        const start = new Date(range.start);
+        const end = new Date(range.end);
+        
+        const monthStart = new Date(currentYear, currentMonth, 1);
+        const monthEnd = new Date(currentYear, currentMonth + 1, 0);
+        
+        const overlapStart = start > monthStart ? start : monthStart;
+        const overlapEnd = end < monthEnd ? end : monthEnd;
+        
+        if (overlapStart <= overlapEnd) {
+            const diffTime = Math.abs(overlapEnd - overlapStart);
+            const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
+            holidayDaysLost += diffDays;
+        }
+    });
+
+    let monthModifier = (daysInMonth - holidayDaysLost) / daysInMonth;
+    if (currentMonth === 5) {
+        monthModifier = 0.5;
+    } else {
+        monthModifier = Math.max(0.6, Math.min(1.0, monthModifier));
     }
-    // January (0) & May (4) - Short/End months
-    else if (currentMonth === 0 || currentMonth === 4) {
-        monthModifier = 0.90;
-    }
-    // June (5) - Bonus/Short
-    else if (currentMonth === 5) {
-        monthModifier = 0.50;
-    }
+
+    let monthMsg = holidayDaysLost > 0 ? `(Adjusted for ${holidayDaysLost} days off)` : "";
 
     const classScores = classesInLeague.map(c => {
         const studentsInClass = state.get('allStudents').filter(s => s.classId === c.id);
         const studentCount = studentsInClass.length;
         const difficulty = c.difficultyLevel || 0;
 
-        // Calculate Goal per student based on class difficulty history
         const adjustedGoalPerStudent = (BASE_GOAL + (difficulty * SCALING_FACTOR)) * monthModifier;
 
         const goals = {
@@ -186,7 +202,6 @@ export function renderClassLeaderboardTab() {
 
     let lastUniqueScore = -1, currentRank = 0;
     list.innerHTML = classScores.map((c, index) => {
-        // Unique score identifier for ranking logic
         const uniqueScoreIdentifier = `${c.progress.toFixed(2)}`; 
         if (uniqueScoreIdentifier !== lastUniqueScore) {
             currentRank = index + 1;
@@ -212,7 +227,6 @@ export function renderClassLeaderboardTab() {
             diamond: Math.max(0, c.goals.diamond - c.currentMonthlyStars)
         };
         
-        // Calculate visual positions for markers
         const progressPositions = {
             bronze: c.goals.diamond > 0 ? (c.goals.bronze / c.goals.diamond) * 100 : 25,
             silver: c.goals.diamond > 0 ? (c.goals.silver / c.goals.diamond) * 100 : 50,
@@ -225,7 +239,6 @@ export function renderClassLeaderboardTab() {
 
         const displayProgress = Math.min(100, c.progress);
         
-        // Difficulty Badge
         const difficultyBadge = c.difficulty > 0 
             ? `<span class="text-xs bg-red-100 text-red-700 px-2 py-1 rounded-full border border-red-200" title="Difficulty Level: ${c.difficulty}">🔥 Level ${c.difficulty + 1}</span>` 
             : `<span class="text-xs bg-green-100 text-green-700 px-2 py-1 rounded-full border border-green-200">🌱 Level 1</span>`;
@@ -1364,4 +1377,5 @@ export function openMilestoneModal(markerElement) {
     
     modals.showAnimatedModal('milestone-details-modal');
 }
+
 

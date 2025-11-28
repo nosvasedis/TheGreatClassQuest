@@ -850,15 +850,25 @@ export async function handleLogAdventure() {
     // --- 1. TEACHER NOTES ---
     const notesString = todaysAwards.filter(log => log.note).map(log => `(Teacher note on a ${log.reason} award: "${log.note}")`).join(' ');
 
-    // --- 2. ACADEMIC TRIALS (Robust Date Match) ---
+    // --- SETUP DATE OBJECTS FOR SMART COMPARISON ---
+    const nowObj = new Date();
+    const isSameDay = (date1, date2) => {
+        if (!date1 || !date2) return false;
+        return date1.getDate() === date2.getDate() &&
+               date1.getMonth() === date2.getMonth() &&
+               date1.getFullYear() === date2.getFullYear();
+    };
+
+    // --- 2. ACADEMIC TRIALS (Smart Date Match) ---
     const rawScores = state.get('allWrittenScores').filter(s => s.classId === classId);
     const todaysScoresFixed = rawScores.filter(s => {
-        if (s.date === today) return true;
-        const parts = s.date.split('-'); 
-        if (parts.length === 3 && parts[0].length === 4) {
-            return `${parts[2]}-${parts[1]}-${parts[0]}` === today; // Match YYYY-MM-DD to DD-MM-YYYY
+        let scoreDate = null;
+        if (s.date && s.date.includes('-')) {
+            const parts = s.date.split('-');
+            if (parts[0].length === 4) scoreDate = new Date(parts[0], parts[1]-1, parts[2]);
+            else scoreDate = new Date(parts[2], parts[1]-1, parts[0]);
         }
-        return false;
+        return isSameDay(scoreDate, nowObj);
     });
 
     const academicSummary = todaysScoresFixed.length > 0 ? todaysScoresFixed.map(s => {
@@ -868,66 +878,83 @@ export async function handleLogAdventure() {
         return `${studentName} scored ${score} on a ${s.type}${note}.`;
     }).join(' ') : "";
 
-    // --- 3. STORY WEAVERS CHECK (Robust Date Match) ---
-    const currentStory = state.get('currentStoryData')[classId];
+    // --- 3. STORY WEAVERS CHECK (Robust Fetch + History) ---
     let storyActive = false;
+    let storyWord = "a mystery word";
     
+    // A. Bonus Check
     if (todaysAwards.some(log => log.reason === 'story_weaver')) storyActive = true;
-    
-    if (currentStory && currentStory.updatedAt) {
-        const d = currentStory.updatedAt.toDate();
-        const storyDateStr = `${String(d.getDate()).padStart(2, '0')}-${String(d.getMonth() + 1).padStart(2, '0')}-${d.getFullYear()}`;
-        if (storyDateStr === today) storyActive = true;
+
+    // B. Completed Stories Check
+    const completedStories = state.get('allCompletedStories').filter(s => s.classId === classId);
+    const finishedStoryToday = completedStories.find(s => s.completedAt && isSameDay(s.completedAt.toDate(), nowObj));
+    if (finishedStoryToday) {
+        storyActive = true;
+        storyWord = "the final chapter";
+    }
+
+    // C. Current Story Check (Force Fetch)
+    let currentStory = state.get('currentStoryData')?.[classId];
+    if (!currentStory) {
+        try {
+            // We need getDoc here, assume it's imported or available via firebase module
+            // If getDoc isn't available in this scope, we skip this deep check
+            // However, assuming actions.js imports standard firebase tools:
+            const { getDoc } = await import('https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js');
+            const storySnap = await getDoc(doc(db, `artifacts/great-class-quest/public/data/story_data`, classId));
+            if (storySnap.exists()) currentStory = storySnap.data();
+        } catch(e) { console.error("Story fetch error", e); }
+    }
+
+    if (currentStory && currentStory.updatedAt && isSameDay(currentStory.updatedAt.toDate(), nowObj)) {
+        storyActive = true;
+        if (currentStory.currentWord) storyWord = currentStory.currentWord;
     }
 
     let storySummary = "The Story Weavers book remained closed today.";
-    if (storyActive && currentStory) {
-        const word = currentStory.currentWord || "a mystery word";
-        storySummary = `The class actively added to their Story Weavers chronicle using the word of the day: "${word}".`;
+    if (storyActive) {
+        storySummary = finishedStoryToday 
+            ? `The class completed their book "${finishedStoryToday.title}" today!`
+            : `The class actively advanced their Story Weavers chronicle using the word: "${storyWord}".`;
     }
 
-    // --- 4. QUEST EVENTS & BONUSES ---
-    const todaysEvent = state.get('allQuestEvents').find(e => e.date === today);
+    // --- 4. QUEST EVENTS ---
+    const todaysEvent = state.get('allQuestEvents').find(e => {
+        if (!e.date) return false;
+        const p = e.date.split('-');
+        return isSameDay(new Date(p[2], p[1]-1, p[0]), nowObj) || isSameDay(new Date(p[0], p[1]-1, p[2]), nowObj);
+    });
     const eventSummary = todaysEvent ? `A special event was active: "${todaysEvent.details?.title || todaysEvent.type}".` : "";
+
+    // --- 5. ASSIGNMENTS & BONUSES ---
+    const assignment = state.get('allQuestAssignments').find(a => a.classId === classId && a.createdAt && isSameDay(a.createdAt.toDate(), nowObj));
+    const assignmentSummary = assignment ? `New Homework assigned: "${assignment.text}".` : "";
 
     const starfallLogs = todaysAwards.filter(l => l.reason === 'scholar_s_bonus');
     const welcomeBackLogs = todaysAwards.filter(l => l.reason === 'welcome_back');
     let bonusSummary = "";
-    if (starfallLogs.length > 0) bonusSummary += `${starfallLogs.length} Scholar's Bonuses (Starfalls) were triggered! `;
-    if (welcomeBackLogs.length > 0) bonusSummary += `${welcomeBackLogs.length} adventurers returned (Welcome Back bonus). `;
+    if (starfallLogs.length > 0) bonusSummary += `${starfallLogs.length} Scholar's Bonuses (Starfalls) triggered! `;
+    if (welcomeBackLogs.length > 0) bonusSummary += `${welcomeBackLogs.length} students returned (Welcome Back bonus). `;
 
-    // --- 5. ASSIGNMENTS ---
-    const assignment = state.get('allQuestAssignments').find(a => {
-        if (a.classId !== classId || !a.createdAt) return false;
-        const d = a.createdAt.toDate();
-        const assignDateStr = `${String(d.getDate()).padStart(2, '0')}-${String(d.getMonth() + 1).padStart(2, '0')}-${d.getFullYear()}`;
-        return assignDateStr === today;
-    });
-    const assignmentSummary = assignment ? `New Homework assigned: "${assignment.text}".` : "";
-
-    // --- 6. SMART CALENDAR AWARENESS (New!) ---
-    const todayObj = new Date();
-    const currentMonth = todayObj.getMonth();
-    const daysInMonth = new Date(todayObj.getFullYear(), currentMonth + 1, 0).getDate();
-    const currentDay = todayObj.getDate();
+    // --- 6. SMART CALENDAR (Next Lesson) ---
+    const currentMonth = nowObj.getMonth();
+    const daysInMonth = new Date(nowObj.getFullYear(), currentMonth + 1, 0).getDate();
+    const currentDay = nowObj.getDate();
     const schedule = (classData.scheduleDays || []).map(d => parseInt(d));
     const overrides = state.get('allScheduleOverrides') || [];
     
-    // A. Calculate Next Lesson Day (Skipping Cancellations)
     let nextLessonText = "the next session";
     let isLastLessonOfMonth = true;
     let foundNext = false;
 
-    // Scan from tomorrow to end of month
     for (let d = currentDay + 1; d <= daysInMonth; d++) {
-        const tempDate = new Date(todayObj.getFullYear(), currentMonth, d);
-        const dayOfWeek = tempDate.getDay();
-        const dateStr = `${String(tempDate.getDate()).padStart(2, '0')}-${String(tempDate.getMonth() + 1).padStart(2, '0')}-${tempDate.getFullYear()}`;
-
-        if (schedule.includes(dayOfWeek)) {
-            const isCancelled = overrides.some(o => o.classId === classId && o.date === dateStr && o.type === 'cancelled');
+        const tempDate = new Date(nowObj.getFullYear(), currentMonth, d);
+        if (schedule.includes(tempDate.getDay())) {
+            const dStr1 = `${String(tempDate.getDate()).padStart(2, '0')}-${String(tempDate.getMonth() + 1).padStart(2, '0')}-${tempDate.getFullYear()}`;
+            const isCancelled = overrides.some(o => o.classId === classId && o.date === dStr1 && o.type === 'cancelled');
+            
             if (!isCancelled) {
-                isLastLessonOfMonth = false; // Found a future lesson this month!
+                isLastLessonOfMonth = false;
                 if (!foundNext) {
                     nextLessonText = tempDate.toLocaleDateString('en-GB', { weekday: 'long' });
                     foundNext = true;
@@ -936,37 +963,28 @@ export async function handleLogAdventure() {
         }
     }
     
-    // If not found this month, check next 7 days for the "Next Lesson" text
     if (!foundNext) {
         for(let i=1; i<=7; i++) {
-             const tempDate = new Date(todayObj);
-             tempDate.setDate(todayObj.getDate() + i);
-             if (schedule.includes(tempDate.getDay())) {
-                 // Simplified check: assume next month lessons aren't cancelled yet
-                 nextLessonText = tempDate.toLocaleDateString('en-GB', { weekday: 'long' });
+             const temp = new Date(nowObj); temp.setDate(nowObj.getDate() + i);
+             if (schedule.includes(temp.getDay())) {
+                 nextLessonText = temp.toLocaleDateString('en-GB', { weekday: 'long' });
                  break;
              }
         }
     }
 
-    // B. Context Variables
-    const dateContext = `Today is ${todayObj.toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long' })}.`;
-    const monthEndContext = isLastLessonOfMonth 
-        ? "CRITICAL CONTEXT: This is the LAST lesson of the month! Mention the final push for the Diamond Goal or celebrate the month's conclusion."
-        : "";
-
-    // C. Monthly Total for Context
-        const currentMonthlyStars = studentsInClass.reduce((sum, s) => {
-        const scoreData = state.get('allStudentScores').find(score => score.id === s.id);
-        return sum + (scoreData?.monthlyStars || 0);
-    }, 0);
+    const dateContext = `Today is ${nowObj.toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long' })}.`;
+    const monthEndContext = isLastLessonOfMonth ? "CRITICAL: This is the LAST lesson of the month! Mention the final push/results." : "";
+    
+    // Uses studentsInClass defined at top of function
+    const currentMonthlyStars = studentsInClass.reduce((sum, s) => sum + (state.get('allStudentScores').find(sc => sc.id === s.id)?.monthlyStars || 0), 0);
 
     try {
         let textSystemPrompt = "";
         if (ageCategory === 'junior') { 
-            textSystemPrompt = "You are 'The Chronicler,' an AI historian for a fun classroom game (ages 7-9). Write a 3-4 sentence diary entry. Use simple, magical words. Do NOT use markdown. You MUST mention: Story Weavers word (if active), Tests taken, Homework (briefly at end), and if it's the last lesson of the month.";
+            textSystemPrompt = "You are 'The Chronicler,' an AI historian for a fun classroom game (ages 7-9). Write a 3-4 sentence diary entry about today's adventure. Use simple, magical words. Do NOT use markdown. You MUST mention: Story Weavers word (if active), Tests taken, Homework (briefly at end), and if it's the last lesson of the month.";
         } else { 
-            textSystemPrompt = "You are 'The Chronicler,' an AI historian for a fun classroom game. Write a 3-4 sentence diary entry. Use an engaging, epic tone. Do NOT use markdown. You MUST weave in: Story Weavers word (if active), Test results, Homework (briefly at end), Notes, and if it's the last lesson of the month.";
+            textSystemPrompt = "You are 'The Chronicler,' an AI historian for a fun classroom game. Write a 3-4 sentence diary entry about today's adventure. Use an engaging, epic storytelling tone. Do NOT use markdown. You MUST weave in: Story Weavers word (if active), Test results, Homework (briefly at end), Notes, and if it's the last lesson of the month.";
         }
         
         const textUserPrompt = `Write a diary entry for class '${classData.name}'.
@@ -978,7 +996,7 @@ export async function handleLogAdventure() {
 - **Bonuses:** ${eventSummary} ${bonusSummary}
 - **Assignments:** ${assignmentSummary || 'No new homework.'}
 - **Attendance:** ${attendanceSummary}
-- **Teacher Notes:** ${notesString}
+- **Notes:** ${notesString}
 - **Next Adventure:** Continues on ${nextLessonText}.
 Synthesize this into a cohesive story.`;
         const text = await callGeminiApi(textSystemPrompt, textUserPrompt);

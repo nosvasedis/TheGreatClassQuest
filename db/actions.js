@@ -413,8 +413,11 @@ export async function checkAndRecordQuestCompletion(classId) {
     const classDoc = await getDoc(classRef); 
     if (!classDoc.exists()) return;
     
-    // Check if already completed this month to prevent double counting
-    if (classDoc.data().questCompletedAt) {
+    const currentDifficulty = classDoc.data().difficultyLevel || 0;
+
+    // FIX: Only prevent double-counting if they have ALREADY leveled up (difficulty > 0).
+    // This allows classes that finished in November (Legacy) to get their first Level Up to Level 2.
+    if (classDoc.data().questCompletedAt && currentDifficulty > 0) {
         const completedDate = classDoc.data().questCompletedAt.toDate();
         const now = new Date();
         if (completedDate.getMonth() === now.getMonth() && completedDate.getFullYear() === now.getFullYear()) {
@@ -423,8 +426,6 @@ export async function checkAndRecordQuestCompletion(classId) {
     }
 
     // Dynamic Goal Calculation Base
-    const currentDifficulty = classDoc.data().difficultyLevel || 0;
-    // We calculate the goal based on the CURRENT difficulty to see if they passed
     const GOAL_PER_STUDENT_BASE = 18;
     // Slight increase per level (1.5 stars per level)
     const goalPerStudent = GOAL_PER_STUDENT_BASE + (currentDifficulty * 1.5);
@@ -433,41 +434,12 @@ export async function checkAndRecordQuestCompletion(classId) {
     const studentCount = studentsInClass.length;
     if (studentCount === 0) return;
 
-    // --- SMART HOLIDAY CALCULATOR (Matches tabs.js) ---
-    const now = new Date();
-    const currentYear = now.getFullYear();
-    const currentMonth = now.getMonth();
-    const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
-    
-    let holidayDaysLost = 0;
-    // We access the global state to get the ranges defined in Options
-    const ranges = state.get('schoolHolidayRanges') || [];
-    
-    ranges.forEach(range => {
-        const start = new Date(range.start);
-        const end = new Date(range.end);
-        
-        const monthStart = new Date(currentYear, currentMonth, 1);
-        const monthEnd = new Date(currentYear, currentMonth + 1, 0);
-        
-        const overlapStart = start > monthStart ? start : monthStart;
-        const overlapEnd = end < monthEnd ? end : monthEnd;
-        
-        if (overlapStart <= overlapEnd) {
-            const diffTime = Math.abs(overlapEnd - overlapStart);
-            const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
-            holidayDaysLost += diffDays;
-        }
-    });
+    // Apply seasonal modifier
+    const currentMonth = new Date().getMonth(); 
+    let monthModifier = 1.0;
+    if (currentMonth === 11 || currentMonth === 3) monthModifier = 0.85; // Dec & Apr
+    if (currentMonth === 0 || currentMonth === 4) monthModifier = 0.90; // Jan & May
 
-    let monthModifier = (daysInMonth - holidayDaysLost) / daysInMonth;
-    
-    if (currentMonth === 5) {
-        monthModifier = 0.5; // June is always half
-    } else {
-        monthModifier = Math.max(0.6, Math.min(1.0, monthModifier));
-    }
-    
     const diamondGoal = Math.round(studentCount * goalPerStudent * monthModifier);
     
     const studentIds = studentsInClass.map(s => s.id);
@@ -486,11 +458,10 @@ export async function checkAndRecordQuestCompletion(classId) {
         console.log(`Class ${classDoc.data().name} has completed the quest! Increasing difficulty.`);
         await updateDoc(classRef, {
             questCompletedAt: serverTimestamp(),
-            difficultyLevel: increment(1) // LEVEL UP! Next month will be harder.
+            difficultyLevel: increment(1) // LEVEL UP!
         });
     }
 }
-
 
 export async function checkAndResetMonthlyStars(studentId, currentMonthStart) {
     const publicDataPath = "artifacts/great-class-quest/public/data";
@@ -876,29 +847,141 @@ export async function handleLogAdventure() {
     const topStudentId = Object.keys(studentStars).length > 0 ? Object.entries(studentStars).sort((a,b) => b[1] - a[1])[0][0] : null;
     const heroOfTheDay = topStudentId ? state.get('allStudents').find(s => s.id === topStudentId)?.name : "the whole team";
     const ageCategory = getAgeGroupForLeague(classData.questLevel);
-    const notesString = todaysAwards.filter(log => log.note).map(log => `(Note for a ${log.reason} award: "${log.note}")`).join(' ');
-    
-    const academicSummary = todaysScores.map(s => {
+    // --- 1. TEACHER NOTES ---
+    const notesString = todaysAwards.filter(log => log.note).map(log => `(Teacher note on a ${log.reason} award: "${log.note}")`).join(' ');
+
+    // --- 2. ACADEMIC TRIALS (Robust Date Match) ---
+    const rawScores = state.get('allWrittenScores').filter(s => s.classId === classId);
+    const todaysScoresFixed = rawScores.filter(s => {
+        if (s.date === today) return true;
+        const parts = s.date.split('-'); 
+        if (parts.length === 3 && parts[0].length === 4) {
+            return `${parts[2]}-${parts[1]}-${parts[0]}` === today; // Match YYYY-MM-DD to DD-MM-YYYY
+        }
+        return false;
+    });
+
+    const academicSummary = todaysScoresFixed.length > 0 ? todaysScoresFixed.map(s => {
         const studentName = state.get('allStudents').find(stu => stu.id === s.studentId)?.name || 'a student';
         const score = s.scoreQualitative || `${s.scoreNumeric}/${s.maxScore}`;
         const note = s.notes ? ` (Note: ${s.notes})` : '';
         return `${studentName} scored ${score} on a ${s.type}${note}.`;
-    }).join(' ');
+    }).join(' ') : "";
+
+    // --- 3. STORY WEAVERS CHECK (Robust Date Match) ---
+    const currentStory = state.get('currentStoryData')[classId];
+    let storyActive = false;
+    
+    if (todaysAwards.some(log => log.reason === 'story_weaver')) storyActive = true;
+    
+    if (currentStory && currentStory.updatedAt) {
+        const d = currentStory.updatedAt.toDate();
+        const storyDateStr = `${String(d.getDate()).padStart(2, '0')}-${String(d.getMonth() + 1).padStart(2, '0')}-${d.getFullYear()}`;
+        if (storyDateStr === today) storyActive = true;
+    }
+
+    let storySummary = "The Story Weavers book remained closed today.";
+    if (storyActive && currentStory) {
+        const word = currentStory.currentWord || "a mystery word";
+        storySummary = `The class actively added to their Story Weavers chronicle using the word of the day: "${word}".`;
+    }
+
+    // --- 4. QUEST EVENTS & BONUSES ---
+    const todaysEvent = state.get('allQuestEvents').find(e => e.date === today);
+    const eventSummary = todaysEvent ? `A special event was active: "${todaysEvent.details?.title || todaysEvent.type}".` : "";
+
+    const starfallLogs = todaysAwards.filter(l => l.reason === 'scholar_s_bonus');
+    const welcomeBackLogs = todaysAwards.filter(l => l.reason === 'welcome_back');
+    let bonusSummary = "";
+    if (starfallLogs.length > 0) bonusSummary += `${starfallLogs.length} Scholar's Bonuses (Starfalls) were triggered! `;
+    if (welcomeBackLogs.length > 0) bonusSummary += `${welcomeBackLogs.length} adventurers returned (Welcome Back bonus). `;
+
+    // --- 5. ASSIGNMENTS ---
+    const assignment = state.get('allQuestAssignments').find(a => {
+        if (a.classId !== classId || !a.createdAt) return false;
+        const d = a.createdAt.toDate();
+        const assignDateStr = `${String(d.getDate()).padStart(2, '0')}-${String(d.getMonth() + 1).padStart(2, '0')}-${d.getFullYear()}`;
+        return assignDateStr === today;
+    });
+    const assignmentSummary = assignment ? `New Homework assigned: "${assignment.text}".` : "";
+
+    // --- 6. SMART CALENDAR AWARENESS (New!) ---
+    const todayObj = new Date();
+    const currentMonth = todayObj.getMonth();
+    const daysInMonth = new Date(todayObj.getFullYear(), currentMonth + 1, 0).getDate();
+    const currentDay = todayObj.getDate();
+    const schedule = (classData.scheduleDays || []).map(d => parseInt(d));
+    const overrides = state.get('allScheduleOverrides') || [];
+    
+    // A. Calculate Next Lesson Day (Skipping Cancellations)
+    let nextLessonText = "the next session";
+    let isLastLessonOfMonth = true;
+    let foundNext = false;
+
+    // Scan from tomorrow to end of month
+    for (let d = currentDay + 1; d <= daysInMonth; d++) {
+        const tempDate = new Date(todayObj.getFullYear(), currentMonth, d);
+        const dayOfWeek = tempDate.getDay();
+        const dateStr = `${String(tempDate.getDate()).padStart(2, '0')}-${String(tempDate.getMonth() + 1).padStart(2, '0')}-${tempDate.getFullYear()}`;
+
+        if (schedule.includes(dayOfWeek)) {
+            const isCancelled = overrides.some(o => o.classId === classId && o.date === dateStr && o.type === 'cancelled');
+            if (!isCancelled) {
+                isLastLessonOfMonth = false; // Found a future lesson this month!
+                if (!foundNext) {
+                    nextLessonText = tempDate.toLocaleDateString('en-GB', { weekday: 'long' });
+                    foundNext = true;
+                }
+            }
+        }
+    }
+    
+    // If not found this month, check next 7 days for the "Next Lesson" text
+    if (!foundNext) {
+        for(let i=1; i<=7; i++) {
+             const tempDate = new Date(todayObj);
+             tempDate.setDate(todayObj.getDate() + i);
+             if (schedule.includes(tempDate.getDay())) {
+                 // Simplified check: assume next month lessons aren't cancelled yet
+                 nextLessonText = tempDate.toLocaleDateString('en-GB', { weekday: 'long' });
+                 break;
+             }
+        }
+    }
+
+    // B. Context Variables
+    const dateContext = `Today is ${todayObj.toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long' })}.`;
+    const monthEndContext = isLastLessonOfMonth 
+        ? "CRITICAL CONTEXT: This is the LAST lesson of the month! Mention the final push for the Diamond Goal or celebrate the month's conclusion."
+        : "";
+
+    // C. Monthly Total for Context
+    const studentsInClass = state.get('allStudents').filter(s => s.classId === classId);
+    const currentMonthlyStars = studentsInClass.reduce((sum, s) => {
+        const scoreData = state.get('allStudentScores').find(score => score.id === s.id);
+        return sum + (scoreData?.monthlyStars || 0);
+    }, 0);
 
     try {
         let textSystemPrompt = "";
         if (ageCategory === 'junior') { 
-            textSystemPrompt = "You are 'The Chronicler,' an AI historian for a fun classroom game. Write a short, exciting diary entry (2-3 sentences) about a class's adventure for the day. Use a storytelling tone with VERY simple words and short sentences suitable for young beginner English learners (ages 7-9). Do NOT use markdown. Incorporate all provided data (stars, scores, attendance, notes) into a cohesive, positive narrative.";
+            textSystemPrompt = "You are 'The Chronicler,' an AI historian for a fun classroom game (ages 7-9). Write a 3-4 sentence diary entry. Use simple, magical words. Do NOT use markdown. You MUST mention: Story Weavers word (if active), Tests taken, Homework (briefly at end), and if it's the last lesson of the month.";
         } else { 
-            textSystemPrompt = "You are 'The Chronicler,' an AI historian for a fun classroom game. Write a short, exciting diary entry (2-3 sentences) about a class's adventure for the day. Use a storytelling tone with engaging but still relatively simple English for non-native speakers. Do NOT use markdown. Incorporate all provided data (stars, scores, attendance, notes) into a cohesive, positive narrative.";
+            textSystemPrompt = "You are 'The Chronicler,' an AI historian for a fun classroom game. Write a 3-4 sentence diary entry. Use an engaging, epic tone. Do NOT use markdown. You MUST weave in: Story Weavers word (if active), Test results, Homework (briefly at end), Notes, and if it's the last lesson of the month.";
         }
         
-        const textUserPrompt = `Write a diary entry for the class '${classData.name}'. Today's data:
-- Stars: ${totalStars} stars awarded. Their strongest skill was '${topReason}'. The Hero of the Day was ${heroOfTheDay}.
-- Academics: ${academicSummary || 'No trials today.'}
-- Attendance: ${attendanceSummary}.
-- Teacher's star notes: ${notesString || 'None'}.
-Combine these points into a short, engaging story.`;
+        const textUserPrompt = `Write a diary entry for class '${classData.name}'.
+- **Context:** ${dateContext}
+- **Status:** Class has ${currentMonthlyStars} total stars this month. ${monthEndContext}
+- **Today's Stats:** ${totalStars} stars earned today. Top skill: '${topReason}'. Hero: ${heroOfTheDay}.
+- **Academics:** ${academicSummary || 'No trials today.'}
+- **Story Weavers:** ${storySummary}
+- **Bonuses:** ${eventSummary} ${bonusSummary}
+- **Assignments:** ${assignmentSummary || 'No new homework.'}
+- **Attendance:** ${attendanceSummary}
+- **Teacher Notes:** ${notesString}
+- **Next Adventure:** Continues on ${nextLessonText}.
+Synthesize this into a cohesive story.`;
         const text = await callGeminiApi(textSystemPrompt, textUserPrompt);
 
         const keywordSystemPrompt = "Analyze the provided text. Extract 2-3 single-word, visually descriptive, abstract nouns or concepts that capture the feeling of the text (e.g., harmony, energy, focus, joy). Output them as a comma-separated list. For example: 'Keywords: unity, discovery, celebration'.";

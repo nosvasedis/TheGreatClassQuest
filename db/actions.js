@@ -956,8 +956,7 @@ export async function handleLogAdventure() {
         : "";
 
     // C. Monthly Total for Context
-    const studentsInClass = state.get('allStudents').filter(s => s.classId === classId);
-    const currentMonthlyStars = studentsInClass.reduce((sum, s) => {
+        const currentMonthlyStars = studentsInClass.reduce((sum, s) => {
         const scoreData = state.get('allStudentScores').find(score => score.id === s.id);
         return sum + (scoreData?.monthlyStars || 0);
     }, 0);

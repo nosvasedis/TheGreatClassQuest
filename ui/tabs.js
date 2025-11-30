@@ -11,6 +11,7 @@ import * as modals from './modals.js';
 import * as scholarScroll from '../features/scholarScroll.js';
 import * as avatar from '../features/avatar.js';
 import * as storyWeaver from '../features/storyWeaver.js';
+import { renderActiveBounties } from './core.js';
 
 // --- TAB NAVIGATION ---
 
@@ -333,19 +334,19 @@ export function renderStudentLeaderboardTab() {
         list.innerHTML = `<p class="text-center text-gray-700 bg-white/50 p-4 rounded-2xl text-lg">No classes in this quest league... yet!</p>`;
         return;
     }
-    
+
     // --- DATA PREPARATION ---
     const allLogs = state.get('allAwardLogs');
     const allScores = state.get('allWrittenScores');
-    
+
     // 1. HELPER: Calculate Stats & Tie-Breakers
     const getStudentStats = (studentId) => {
         const studentLogs = allLogs.filter(log => log.studentId === studentId);
         const studentScores = allScores.filter(s => s.studentId === studentId);
-        
+
         const currentMonthIndex = new Date().getMonth();
         const currentYear = new Date().getFullYear();
-        
+
         const monthlyLogs = studentLogs.filter(log => {
             const logDate = utils.parseDDMMYYYY(log.date);
             return logDate.getMonth() === currentMonthIndex && logDate.getFullYear() === currentYear;
@@ -366,7 +367,7 @@ export function renderStudentLeaderboardTab() {
         let uniqueReasons = 0;
         let count3Star = 0;
         let count2Star = 0;
-        
+
         monthlyLogs.forEach(log => {
             if (log.reason) {
                 if (!reasonCounts[log.reason]) { reasonCounts[log.reason] = 0; uniqueReasons++; }
@@ -381,7 +382,7 @@ export function renderStudentLeaderboardTab() {
         // C. Academic Avg (For Month)
         let acadSum = 0;
         let acadCount = 0;
-        
+
         studentScores.forEach(s => {
             if (!s.date) return;
             const sDate = new Date(s.date);
@@ -407,24 +408,22 @@ export function renderStudentLeaderboardTab() {
             const studentClass = state.get('allSchoolClasses').find(c => c.id === s.classId);
             const scoreData = state.get('allStudentScores').find(sc => sc.id === s.id) || {};
             const score = state.get('studentStarMetric') === 'monthly' ? (scoreData.monthlyStars || 0) : (scoreData.totalStars || 0);
+
+            // NEW: Get Gold
+            const gold = scoreData.gold !== undefined ? scoreData.gold : (scoreData.totalStars || 0);
+
             const stats = getStudentStats(s.id);
 
-            return { ...s, score, stats, className: studentClass?.name || '?', classLogo: studentClass?.logo || '📚' };
+            return { ...s, score, gold, stats, className: studentClass?.name || '?', classLogo: studentClass?.logo || '📚' };
         });
-    
+
     // 3. SORTING FUNCTION
     const sortStudents = (a, b) => {
-        // 1. Stars
         if (b.score !== a.score) return b.score - a.score;
-        // 2. Supernova (3-Stars)
         if (b.stats.count3Star !== a.stats.count3Star) return b.stats.count3Star - a.stats.count3Star;
-        // 3. Shine (2-Stars)
         if (b.stats.count2Star !== a.stats.count2Star) return b.stats.count2Star - a.stats.count2Star;
-        // 4. Academic (Higher Priority)
         if (b.stats.academicAvg !== a.stats.academicAvg) return b.stats.academicAvg - a.stats.academicAvg;
-        // 5. Diversity (Lower Priority)
         if (b.stats.uniqueReasons !== a.stats.uniqueReasons) return b.stats.uniqueReasons - a.stats.uniqueReasons;
-        
         return a.name.localeCompare(b.name);
     };
 
@@ -440,78 +439,70 @@ export function renderStudentLeaderboardTab() {
     };
 
     const getAvatarHtml = (s, sizeClass = "w-12 h-12") => {
+        // Removed 'hero-stats-avatar-trigger' so it defaults to the Inventory modal via 'enlargeable-avatar'
         const hoverEffects = "transform transition-transform duration-200 hover:scale-110 hover:rotate-3 cursor-pointer enlargeable-avatar";
         if (s.avatar) {
-            return `<img src="${s.avatar}" alt="${s.name}" class="${sizeClass} rounded-full object-cover border-4 border-white shadow-md ${hoverEffects}">`;
+            return `<img src="${s.avatar}" alt="${s.name}" data-student-id="${s.id}" class="${sizeClass} rounded-full object-cover border-4 border-white shadow-md ${hoverEffects}">`;
         } else {
-            return `<div class="${sizeClass} rounded-full bg-indigo-100 text-indigo-600 flex items-center justify-center font-bold text-lg border-4 border-white shadow-md ${hoverEffects}">${s.name.charAt(0)}</div>`;
+            return `<div data-student-id="${s.id}" class="${sizeClass} rounded-full bg-indigo-100 text-indigo-600 flex items-center justify-center font-bold text-lg border-4 border-white shadow-md ${hoverEffects}">${s.name.charAt(0)}</div>`;
         }
     };
 
     const getPillsHtml = (s) => {
         let html = '';
         if (s.stats.weeklyStars > 0) {
-            html += `<div class="flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-orange-100 text-orange-600 shadow-sm border border-orange-200" title="${s.stats.weeklyStars} stars this week">
-                <i class="fas fa-fire"></i> ${s.stats.weeklyStars}
-            </div>`;
+            html += `<div class="flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-orange-100 text-orange-600 shadow-sm border border-orange-200" title="${s.stats.weeklyStars} stars this week"><i class="fas fa-fire"></i> ${s.stats.weeklyStars}</div>`;
         }
         if (s.stats.count3Star > 0) {
-            html += `<div class="flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-indigo-100 text-indigo-600 shadow-sm border border-indigo-200" title="${s.stats.count3Star} Perfect 3-Star Awards">
-                <i class="fas fa-meteor"></i> ${s.stats.count3Star}
-            </div>`;
+            html += `<div class="flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-indigo-100 text-indigo-600 shadow-sm border border-indigo-200" title="${s.stats.count3Star} Perfect 3-Star Awards"><i class="fas fa-meteor"></i> ${s.stats.count3Star}</div>`;
         }
         if (s.stats.topSkill) {
             const info = reasonInfo[s.stats.topSkill] || {icon: 'fa-star', color: 'bg-gray-100 text-gray-600', name: 'Star'};
-            html += `<div class="flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold ${info.color} shadow-sm border border-white/50" title="Top Skill">
-                <i class="fas ${info.icon}"></i> <span>${info.name}</span>
-            </div>`;
+            html += `<div class="flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold ${info.color} shadow-sm border border-white/50" title="Top Skill"><i class="fas ${info.icon}"></i> <span>${info.name}</span></div>`;
         }
         return html;
     };
 
     let outputHtml = '';
-    
-    if (state.get('studentLeaderboardView') === 'league') {
-        // === GLOBAL VIEW (Cards) ===
-        studentsInLeague.sort(sortStudents);
 
+    if (state.get('studentLeaderboardView') === 'league') {
+        // === GLOBAL VIEW ===
+        studentsInLeague.sort(sortStudents);
         let lastScore = -1, last3 = -1, last2 = -1, lastUnique = -1, lastRank = 0;
-        
+
         studentsInLeague.slice(0, 50).forEach((s, index) => {
             let isBehaviorTie = (s.score === lastScore && s.stats.count3Star === last3 && s.stats.count2Star === last2 && s.stats.uniqueReasons === lastUnique);
             let currentRank;
-
-            if (index === 0) {
-                currentRank = 1;
-            } else {
-                if (lastRank <= 3) {
-                    currentRank = isBehaviorTie ? lastRank : index + 1; // Top 3: Ignore Academic
-                } else {
+            if (index === 0) currentRank = 1;
+            else {
+                if (lastRank <= 3) currentRank = isBehaviorTie ? lastRank : index + 1;
+                else {
                     let isTotalTie = isBehaviorTie && (s.stats.academicAvg === studentsInLeague[index-1].stats.academicAvg);
-                    currentRank = isTotalTie ? lastRank : index + 1; // 4+: Use Academic
+                    currentRank = isTotalTie ? lastRank : index + 1;
                 }
             }
-
             lastScore = s.score; last3 = s.stats.count3Star; last2 = s.stats.count2Star; lastUnique = s.stats.uniqueReasons; lastRank = currentRank;
-            
+
             let cardClasses = "bg-white border-l-4 border-gray-200 hover:shadow-md";
             let rankBadge = `<div class="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center font-bold text-gray-500">${currentRank}</div>`;
-            
+
             if (currentRank === 1) { cardClasses = "bg-gradient-to-r from-amber-50 to-white border-l-4 border-amber-400 shadow-md"; rankBadge = `<div class="text-3xl">🥇</div>`; }
             else if (currentRank === 2) { cardClasses = "bg-gradient-to-r from-gray-50 to-white border-l-4 border-gray-400 shadow-sm"; rankBadge = `<div class="text-3xl">🥈</div>`; }
             else if (currentRank === 3) { cardClasses = "bg-gradient-to-r from-orange-50 to-white border-l-4 border-orange-400 shadow-sm"; rankBadge = `<div class="text-3xl">🥉</div>`; }
-
-            // Add trigger class for Global View
-            const avatarHtml = getAvatarHtml(s).replace('enlargeable-avatar', 'enlargeable-avatar hero-stats-avatar-trigger').replace('img', `img data-student-id="${s.id}"`);
 
             outputHtml += `
                 <div class="student-leaderboard-card p-3 rounded-xl mb-3 flex items-center justify-between transition-all ${cardClasses}">
                     <div class="flex items-center gap-3 md:gap-4 overflow-hidden">
                         <div class="flex-shrink-0 w-8 text-center">${rankBadge}</div>
-                        <div class="flex-shrink-0">${avatarHtml}</div>
+                        <div class="flex-shrink-0">${getAvatarHtml(s)}</div>
                         <div class="min-w-0">
                             <h3 class="font-bold text-gray-800 text-lg truncate">${s.name}</h3>
-                            <p class="text-xs text-gray-500 flex items-center gap-1"><span>${s.classLogo} ${s.className}</span></p>
+                            <div class="flex items-center gap-2 mt-0.5">
+                                <p class="text-xs text-gray-500 flex items-center gap-1"><span>${s.classLogo} ${s.className}</span></p>
+                                <div class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full border border-white shadow-sm" style="background: linear-gradient(135deg, #f59e0b 0%, #b45309 100%); color: white; font-size: 0.65rem; font-family: 'Fredoka One', cursive;">
+                                    <i class="fas fa-coins" style="color: #fcd34d;"></i> ${s.gold}
+                                </div>
+                            </div>
                         </div>
                     </div>
                     <div class="flex items-center gap-3 flex-shrink-0 ml-2">
@@ -525,7 +516,7 @@ export function renderStudentLeaderboardTab() {
         });
 
     } else {
-        // === BY CLASS VIEW (Updated VIBRANT List) ===
+        // === BY CLASS VIEW ===
         const classesMap = studentsInLeague.reduce((acc, student) => {
             if (!acc[student.classId]) acc[student.classId] = { name: student.className, logo: student.classLogo, students: [] };
             acc[student.classId].students.push(student);
@@ -541,95 +532,63 @@ export function renderStudentLeaderboardTab() {
         for (const classId of sortedClassIds) {
             const classData = classesMap[classId];
             classData.students.sort(sortStudents);
-            
             const randomGradient = constants.titleGradients[utils.simpleHashCode(classData.name) % constants.titleGradients.length];
-            
+
             outputHtml += `
             <div class="mt-10 mb-6 text-center">
                 <div class="inline-flex items-center gap-3 px-6 py-2 rounded-2xl bg-white shadow-sm border border-gray-100 transform hover:scale-105 transition-transform duration-300">
                     <span class="text-4xl filter drop-shadow-md">${classData.logo}</span>
-                    <h3 class="font-title text-3xl tracking-wide text-transparent bg-clip-text bg-gradient-to-r ${randomGradient}" style="filter: drop-shadow(0 1px 1px rgba(0,0,0,0.05));">
-                        ${classData.name}
-                    </h3>
+                    <h3 class="font-title text-3xl tracking-wide text-transparent bg-clip-text bg-gradient-to-r ${randomGradient}" style="filter: drop-shadow(0 1px 1px rgba(0,0,0,0.05));">${classData.name}</h3>
                 </div>
             </div>
-            
             <div class="flex flex-col gap-3 mb-12 max-w-5xl mx-auto">`;
 
             let lastScore = -1, last3 = -1, last2 = -1, lastUnique = -1, lastRank = 0;
-            
+
             classData.students.forEach((s, index) => {
-                // RANK LOGIC
                 let isBehaviorTie = (s.score === lastScore && s.stats.count3Star === last3 && s.stats.count2Star === last2 && s.stats.uniqueReasons === lastUnique);
                 let currentRank;
-
-                if (index === 0) {
-                    currentRank = 1;
-                } else {
-                    if (lastRank <= 3) {
-                        currentRank = isBehaviorTie ? lastRank : index + 1;
-                    } else {
+                if (index === 0) currentRank = 1;
+                else {
+                    if (lastRank <= 3) currentRank = isBehaviorTie ? lastRank : index + 1;
+                    else {
                         let isTotalTie = isBehaviorTie && (s.stats.academicAvg === classData.students[index-1].stats.academicAvg);
                         currentRank = isTotalTie ? lastRank : index + 1;
                     }
                 }
-
                 lastScore = s.score; last3 = s.stats.count3Star; last2 = s.stats.count2Star; lastUnique = s.stats.uniqueReasons; lastRank = currentRank;
 
-                // Card Styles
                 let cardBg = "bg-white border-b-4 border-gray-200";
                 let rankColor = "bg-gray-100 text-gray-500";
                 let nameColor = "text-gray-700";
                 let starColor = "text-indigo-600";
-                let bgTrophy = ''; // Default: Hidden for rank 4+
-                
-                if (currentRank === 1) { 
-                    cardBg = "bg-gradient-to-br from-white to-amber-50 border-b-4 border-amber-400 ring-2 ring-amber-100";
-                    rankColor = "bg-amber-400 text-white shadow-md";
-                    nameColor = "text-amber-900";
-                    starColor = "text-amber-500"; 
-                    bgTrophy = `<div class="absolute top-0 right-0 p-3 opacity-20 text-5xl pointer-events-none text-amber-300"><i class="fas fa-trophy"></i></div>`;
-                }
-                else if (currentRank === 2) { 
-                    cardBg = "bg-gradient-to-br from-white to-gray-50 border-b-4 border-gray-400 ring-2 ring-gray-100";
-                    rankColor = "bg-gray-400 text-white shadow-md";
-                    nameColor = "text-gray-800";
-                    starColor = "text-gray-500";
-                    bgTrophy = `<div class="absolute top-0 right-0 p-3 opacity-20 text-5xl pointer-events-none text-gray-300"><i class="fas fa-trophy"></i></div>`;
-                }
-                else if (currentRank === 3) { 
-                    cardBg = "bg-gradient-to-br from-white to-orange-50 border-b-4 border-orange-400 ring-2 ring-orange-100";
-                    rankColor = "bg-orange-400 text-white shadow-md";
-                    nameColor = "text-orange-900";
-                    starColor = "text-orange-600"; 
-                    bgTrophy = `<div class="absolute top-0 right-0 p-3 opacity-20 text-5xl pointer-events-none text-orange-300"><i class="fas fa-trophy"></i></div>`;
-                }
+                let bgTrophy = '';
+
+                if (currentRank === 1) { cardBg = "bg-gradient-to-br from-white to-amber-50 border-b-4 border-amber-400 ring-2 ring-amber-100"; rankColor = "bg-amber-400 text-white shadow-md"; nameColor = "text-amber-900"; starColor = "text-amber-500"; bgTrophy = `<div class="absolute top-0 right-0 p-3 opacity-20 text-5xl pointer-events-none text-amber-300"><i class="fas fa-trophy"></i></div>`; }
+                else if (currentRank === 2) { cardBg = "bg-gradient-to-br from-white to-gray-50 border-b-4 border-gray-400 ring-2 ring-gray-100"; rankColor = "bg-gray-400 text-white shadow-md"; nameColor = "text-gray-800"; starColor = "text-gray-500"; bgTrophy = `<div class="absolute top-0 right-0 p-3 opacity-20 text-5xl pointer-events-none text-gray-300"><i class="fas fa-trophy"></i></div>`; }
+                else if (currentRank === 3) { cardBg = "bg-gradient-to-br from-white to-orange-50 border-b-4 border-orange-400 ring-2 ring-orange-100"; rankColor = "bg-orange-400 text-white shadow-md"; nameColor = "text-orange-900"; starColor = "text-orange-600"; bgTrophy = `<div class="absolute top-0 right-0 p-3 opacity-20 text-5xl pointer-events-none text-orange-300"><i class="fas fa-trophy"></i></div>`; }
 
                 outputHtml += `
                     <div class="relative rounded-2xl p-4 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 ${cardBg} flex justify-between items-center gap-4">
                         ${bgTrophy}
-                        
-                        <div class="flex items-center gap-4 z-10"> <!-- Removed overflow-hidden -->
+                        <div class="flex items-center gap-4 z-10">
                             <div class="flex-shrink-0 relative">
-                                <div class="absolute -top-3 -left-2 w-8 h-8 rounded-full ${rankColor} flex items-center justify-center font-title text-sm z-10 border-2 border-white shadow-sm">
-                                    ${currentRank}
-                                </div>
+                                <div class="absolute -top-3 -left-2 w-8 h-8 rounded-full ${rankColor} flex items-center justify-center font-title text-sm z-10 border-2 border-white shadow-sm">${currentRank}</div>
                                 ${getAvatarHtml(s, "w-16 h-16")}
                             </div>
-                            
                             <div class="min-w-0">
                                 <h4 class="font-title text-xl ${nameColor} truncate leading-tight mb-1">${s.name}</h4>
+                                <div class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full border border-white shadow-sm" style="background: linear-gradient(135deg, #f59e0b 0%, #b45309 100%); color: white; font-size: 0.7rem; font-family: 'Fredoka One', cursive;">
+                                    <i class="fas fa-coins" style="color: #fcd34d;"></i> ${s.gold}
+                                </div>
                             </div>
                         </div>
-                        
                         <div class="flex flex-col items-end gap-1 flex-shrink-0 z-10">
                             <div class="flex items-baseline gap-1">
                                 <span class="font-title text-3xl ${starColor} leading-none">${s.score}</span>
                                 <span class="text-xs font-bold text-gray-400 uppercase">Stars</span>
                             </div>
-                            <div class="flex flex-wrap justify-end gap-1 max-w-[200px]">
-                                ${getPillsHtml(s)}
-                            </div>
+                            <div class="flex flex-wrap justify-end gap-1 max-w-[200px]">${getPillsHtml(s)}</div>
                         </div>
                     </div>`;
             });
@@ -692,8 +651,8 @@ export function renderManageStudentsTab() {
     }
     list.innerHTML = studentsInClass.map(s => {
         const avatarHtml = s.avatar 
-            ? `<img src="${s.avatar}" alt="${s.name}" class="student-avatar large-avatar enlargeable-avatar">` 
-            : `<div class="student-avatar large-avatar flex items-center justify-center bg-gray-300 text-gray-600 font-bold">${s.name.charAt(0)}</div>`;
+            ? `<img src="${s.avatar}" alt="${s.name}" data-student-id="${s.id}" class="student-avatar large-avatar enlargeable-avatar cursor-pointer">` 
+            : `<div data-student-id="${s.id}" class="student-avatar large-avatar enlargeable-avatar cursor-pointer flex items-center justify-center bg-gray-300 text-gray-600 font-bold">${s.name.charAt(0)}</div>`;
 
         return `
         <div class="flex items-center justify-between bg-gray-50 p-2 rounded-lg">
@@ -788,7 +747,8 @@ export function renderAwardStarsStudentList(selectedClassId, fullRender = true) 
             
             listContainer.innerHTML = studentsInClass.map((s, index) => {
                 const scoreData = state.get('allStudentScores').find(score => score.id === s.id) || {}; 
-                const totalStars = scoreData.totalStars || 0; 
+                const totalStars = scoreData.totalStars || 0;
+                const goldCount = scoreData.gold !== undefined ? scoreData.gold : (scoreData.totalStars || 0); // Default to total if gold not initialized yet
                 const monthlyStars = scoreData.monthlyStars || 0; 
                 const starsToday = state.get('todaysStars')[s.id]?.stars || 0;
                 const reasonToday = state.get('todaysStars')[s.id]?.reason;
@@ -841,12 +801,21 @@ export function renderAwardStarsStudentList(selectedClassId, fullRender = true) 
                     ? `<img src="${s.avatar}" alt="${s.name}" class="student-avatar-cloud enlargeable-avatar">` 
                     : `<div class="student-avatar-cloud-placeholder">${s.name.charAt(0)}</div>`;
 
+                const coinHtml = `
+                    <div class="coin-pill" title="Current Gold">
+                        <i class="fas fa-coins"></i>
+                        <span id="student-gold-display-${s.id}">${goldCount}</span>
+                    </div>
+                `;
+                //
+
                 return `
                 <div class="student-cloud-card ${cloudShape} ${isVisuallyAbsent ? 'is-absent' : ''}" data-studentid="${s.id}" style="animation: float-card ${4 + Math.random() * 4}s ease-in-out infinite;">
                     <div class="absence-controls">
                         ${absenceButtonHtml}
                     </div>
                     ${avatarHtml}
+                    ${coinHtml}
                     <button id="post-award-undo-${s.id}" class="post-award-undo-btn bubbly-button ${starsToday > 0 ? '' : 'hidden'}" title="Undo Award"><i class="fas fa-times"></i></button>
                     
                     <div class="card-content-wrapper">

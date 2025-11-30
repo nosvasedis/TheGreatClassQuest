@@ -420,10 +420,10 @@ export function renderStudentLeaderboardTab() {
         if (b.stats.count3Star !== a.stats.count3Star) return b.stats.count3Star - a.stats.count3Star;
         // 3. Shine (2-Stars)
         if (b.stats.count2Star !== a.stats.count2Star) return b.stats.count2Star - a.stats.count2Star;
-        // 4. Diversity
-        if (b.stats.uniqueReasons !== a.stats.uniqueReasons) return b.stats.uniqueReasons - a.stats.uniqueReasons;
-        // 5. Academic (Last Resort)
+        // 4. Academic (Higher Priority)
         if (b.stats.academicAvg !== a.stats.academicAvg) return b.stats.academicAvg - a.stats.academicAvg;
+        // 5. Diversity (Lower Priority)
+        if (b.stats.uniqueReasons !== a.stats.uniqueReasons) return b.stats.uniqueReasons - a.stats.uniqueReasons;
         
         return a.name.localeCompare(b.name);
     };

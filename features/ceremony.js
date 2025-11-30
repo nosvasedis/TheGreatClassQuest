@@ -176,30 +176,45 @@ async function startCeremony(type, league, monthKey, classId) {
         return;
     }
 
-    // --- UPDATED RANKING LOGIC WITH TIE-BREAKER ---
+    // --- UPDATED RANKING GROUPING LOGIC (Matches tabs.js) ---
     let dataWithRanks = [];
     if (rawData.length > 0 && rawData.some(d => d.score > 0)) {
-        let lastMetric = -1;
-        let currentRank = 0;
+        
+        let lastScore = -1, lastUnique = -1, last3 = -1, last2 = -1, lastRank = 0;
 
         rawData.forEach((entry, index) => {
-            // Determine a "ranking score" that includes the tie-breaker
-            // For Team: Progress % + tiny fraction of Quality Score
-            // For Hero: Total Stars + tiny fraction of Quality Score (3-star count)
-            // This ensures 50.01 (High Quality) > 50.005 (Low Quality), creating different ranks.
-            let metric;
-            if (type === 'team') {
-                metric = entry.progress + (entry.qualityScore || 0) * 0.001; 
+            // Note: In ceremony rawData, keys are top-level (entry.count3Star), unlike tabs.js (s.stats.count3Star)
+            let isBehaviorTie = (
+                entry.score === lastScore && 
+                entry.uniqueReasons === lastUnique && 
+                entry.count3Star === last3 && 
+                entry.count2Star === last2
+            );
+            
+            let currentRank;
+
+            if (index === 0) {
+                currentRank = 1;
             } else {
-                metric = entry.score + (entry.qualityScore || 0) * 0.001;
+                if (lastRank <= 3) {
+                    // Top 3: Ignore Academic Score for ranking (Shared Rank)
+                    currentRank = isBehaviorTie ? lastRank : index + 1;
+                } else {
+                    // 4th+: Use Academic Score as final tie-breaker
+                    // (rawData is already sorted by academicAvg at the end)
+                    let isTotalTie = isBehaviorTie && (entry.academicAvg === rawData[index-1].academicAvg);
+                    currentRank = isTotalTie ? lastRank : index + 1;
+                }
             }
 
-            if (metric !== lastMetric) {
-                currentRank = index + 1;
-            }
+            // Update trackers
+            lastScore = entry.score; 
+            lastUnique = entry.uniqueReasons; 
+            last3 = entry.count3Star; 
+            last2 = entry.count2Star; 
+            lastRank = currentRank;
+
             dataWithRanks.push({ ...entry, rank: currentRank });
-            
-            lastMetric = metric;
         });
 
         const groupedByRank = dataWithRanks.reduce((acc, entry) => {
@@ -596,14 +611,17 @@ async function fetchLastMonthResults(league, type, monthKey, classId = null) {
             studentsToRank = state.get('allStudents').filter(s => classesInLeague.some(c => c.id === s.classId));
         }
 
-        const qualityMap = {}; 
-        
+        // Stats storage
+        const studentStats = {}; 
+        const academicStats = {}; 
+
         const y = parseInt(monthKey.split('-')[0]);
         const m = parseInt(monthKey.split('-')[1]); 
 
         const publicDataPath = "artifacts/great-class-quest/public/data";
         
         try {
+            // 1. Fetch Behavioral Logs
             let logsQuery;
             if (classId) {
                 logsQuery = query(collection(db, `${publicDataPath}/award_log`), where("classId", "==", classId));
@@ -621,11 +639,44 @@ async function fetchLastMonthResults(league, type, monthKey, classId = null) {
                 const logYear = parseInt(parts[2]);
 
                 if (logMonth === m && logYear === y) {
-                    if (d.stars === 3) {
-                        qualityMap[d.studentId] = (qualityMap[d.studentId] || 0) + 1;
+                    if (!studentStats[d.studentId]) {
+                        studentStats[d.studentId] = { reasons: new Set(), count3Star: 0, count2Star: 0 };
+                    }
+                    if (d.reason) studentStats[d.studentId].reasons.add(d.reason);
+                    if (d.stars >= 3) studentStats[d.studentId].count3Star++;
+                    else if (d.stars >= 2) studentStats[d.studentId].count2Star++;
+                }
+            });
+
+            // 2. Fetch Academic Scores
+            let scoresQuery;
+            if (classId) {
+                scoresQuery = query(collection(db, `${publicDataPath}/written_scores`), where("classId", "==", classId));
+            } else {
+                scoresQuery = query(collection(db, `${publicDataPath}/written_scores`));
+            }
+            const scoresSnap = await getDocs(scoresQuery);
+            
+            scoresSnap.forEach(doc => {
+                const d = doc.data();
+                if (!d.date) return;
+                const parts = d.date.split('-');
+                const scoreDate = new Date(d.date); 
+                if (scoreDate.getMonth() + 1 === m && scoreDate.getFullYear() === y) {
+                    if (!academicStats[d.studentId]) academicStats[d.studentId] = { sum: 0, count: 0 };
+                    
+                    let val = 0;
+                    if (d.maxScore > 0 && d.scoreNumeric !== null) val = (d.scoreNumeric / d.maxScore) * 100;
+                    else if (d.scoreQualitative === "Great!!!") val = 100;
+                    else if (d.scoreQualitative === "Great!!") val = 75;
+                    
+                    if (val > 0) {
+                        academicStats[d.studentId].sum += val;
+                        academicStats[d.studentId].count++;
                     }
                 }
             });
+
         } catch (e) {
             console.error("Error calculating Hero tie-breaker:", e);
         }
@@ -633,21 +684,37 @@ async function fetchLastMonthResults(league, type, monthKey, classId = null) {
         return studentsToRank
             .map(s => {
                 const studentClass = state.get('allSchoolClasses').find(c => c.id === s.classId);
+                const score = monthlyScores[s.id] || 0;
+                
+                const stats = studentStats[s.id] || { reasons: new Set(), count3Star: 0, count2Star: 0 };
+                const acad = academicStats[s.id] || { sum: 0, count: 0 };
+                const academicAvg = acad.count > 0 ? (acad.sum / acad.count) : 0;
+
                 return { 
                     id: s.id, 
                     name: s.name, 
                     avatar: s.avatar, 
-                    score: monthlyScores[s.id] || 0, 
-                    qualityScore: qualityMap[s.id] || 0, 
-                    className: studentClass?.name || '?' 
+                    score: score, 
+                    uniqueReasons: stats.reasons.size,
+                    count3Star: stats.count3Star,
+                    count2Star: stats.count2Star,
+                    academicAvg: academicAvg, 
+                    className: studentClass?.name || '?',
+                    qualityScore: stats.reasons.size 
                 };
             })
             .sort((a, b) => {
-                // Primary: Total Stars
+                // 1. Primary: Total Stars
                 if (b.score !== a.score) return b.score - a.score;
-                // Secondary: Quality (Perfect days)
-                if (b.qualityScore !== a.qualityScore) return b.qualityScore - a.qualityScore;
-                // Tertiary: Alphabetical
+                // 2. Secondary: Supernova (3-Stars) - MOVED UP
+                if (b.count3Star !== a.count3Star) return b.count3Star - a.count3Star;
+                // 3. Tertiary: Shine (2-Stars) - MOVED UP
+                if (b.count2Star !== a.count2Star) return b.count2Star - a.count2Star;
+                // 4. Quaternary: Diversity - MOVED DOWN
+                if (b.uniqueReasons !== a.uniqueReasons) return b.uniqueReasons - a.uniqueReasons;
+                // 5. Quinary: Academic (Last Resort)
+                if (b.academicAvg !== a.academicAvg) return b.academicAvg - a.academicAvg;
+                
                 return a.name.localeCompare(b.name);
             });
     }

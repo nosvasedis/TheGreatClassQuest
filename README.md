@@ -2,147 +2,187 @@
 
 # ⭐ The Great Class Quest 🚀
 
-### Your Classroom's Epic Gamified Adventure
+### The Ultimate Gamified Classroom Management System
 
 ![Shield](https://img.shields.io/badge/Designed%20For-Teachers%20&%20Students-blueviolet)
 ![Shield](https://img.shields.io/badge/Platform-Web%20Browser-blue)
 ![Shield](https://img.shields.io/badge/Focus-Positive%20Reinforcement-brightgreen)
-![Shield](https://img.shields.io/badge/Status-Ready%20for%20Adventure!-gold)
+![Shield](https://img.shields.io/badge/Status-Live-success)
 ![Shield](https://img.shields.io/badge/Economy-Gold%20&%20Artifacts-orange)
 
-> Turn every lesson into a quest, every challenge into a milestone, and every student into a hero. Welcome to a new way to inspire and engage your classroom!
+> **"Turn every lesson into a quest, every challenge into a milestone, and every student into a hero."**
 
 </div>
 
 ---
 
-## What is The Great Class Quest?
+## 📖 Table of Contents
+- [Project Overview](#-project-overview)
+- [The Quest Master's Philosophy](#-the-quest-masters-philosophy)
+- [Core Gameplay Loop](#-core-gameplay-loop)
+- [The Economy System](#-the-economy-system-gold--shop)
+- [Live Classroom Tools](#-live-classroom-tools)
+    - [Dynamic Wallpaper Mode](#-dynamic-wallpaper-mode)
+    - [Quest Bounties](#-quest-bounties)
+- [Advanced Quest Modules](#-advanced-quest-modules)
+    - [Special Quest Types (Rules & Mechanics)](#-special-quest-types-rules--mechanics)
+- [AI & Creative Tools](#-ai--creative-tools)
+- [Tracking & Analytics](#-tracking--analytics)
 
-**The Great Class Quest** is not just a tool; it's a complete classroom management philosophy wrapped in a fun, game-like adventure. It transforms your daily lessons into an exciting journey where students work together as a class and compete as individual heroes to earn **Stars of Excellence**, collect **Gold Coins**, unlock **Rare Artifacts**, and complete **Timed Bounties**.
+---
 
-It's designed to be simple for teachers, exciting for students, and a powerful way to foster a positive, collaborative, and focused learning environment.
+## 🌍 Project Overview
+
+**The Great Class Quest** is a sophisticated web application that gamifies the classroom experience. It replaces traditional behavior charts with a living, breathing RPG (Role-Playing Game) interface.
+
+It automates tracking, uses AI to generate narratives and rewards, and provides a dual-layer competition system (Team vs. Team and Hero vs. Hero) to maximize student engagement.
 
 ---
 
 ## 📜 The Quest Master's Philosophy
 
-This app is built on a few core pedagogical principles designed to make learning more engaging and effective.
+The application is built on four pedagogical pillars:
 
-#### 🏆 Dual Motivation: The Team & The Hero
-Students are motivated on two fronts simultaneously.
-- **The Team Quest (`Team Quest` Tab):** The entire class works together to move their team across a virtual quest map. This fosters collaboration, peer support, and a sense of shared purpose.
-- **The Hero's Challenge (`Hero's Challenge` Tab):** Each student's stars also contribute to their individual score. This encourages personal accountability and celebrates individual effort.
+1.  **Dual-Layer Motivation:**
+    * **The Team Quest:** The class works as a collective unit to advance on a map. This builds **social cohesion** and peer support.
+    * **The Hero's Challenge:** Students also compete individually for rank and "Prodigy of the Month" status. This drives **personal accountability**.
 
-#### 💰 The Economy of Effort
-Tangible rewards drive engagement.
-- **Gold Coins:** For every star earned, a student also earns Gold.
-- **The Mystic Market:** Students learn basic financial literacy and decision-making by saving their Gold to purchase unique, AI-generated digital artifacts in the class shop.
+2.  **Tangible "Gold" Economy:**
+    * Behavior points (Stars) translate directly into purchasing power (Gold).
+    * This introduces financial literacy and delayed gratification mechanics via the **Mystic Market**.
 
-#### ✨ Positive Reinforcement Only
-This is a system for celebrating success. Stars are awarded for positive behaviors like **Teamwork, Creativity, Respect, and Focus**. There is no way to lose stars or be punished. This creates a safe environment where students are encouraged to try their best without fear of failure.
+3.  **Visual Feedback Loops:**
+    * Progress is never abstract. It is visualized through animated progress bars, floating stats, and growing avatars.
+    * **"The Director"** (Wallpaper Mode) keeps these stats visible even during downtime.
 
-#### 🗺️ Making Progress Visible and Fun
-Abstract concepts like "good behavior" become tangible. Students can visually see their class advancing on the **Quest Map**, watch their name climb the **Hero's Leaderboard**, and look back on their journey in the illustrated **Adventure Log**.
-
----
-
-## 🧭 Your Adventure Guide: The Core Gameplay Loop
-
-Getting started is quick and easy. This is the essential flow for using the app every day.
-
-1.  **First-Time Setup (`My Classes` Tab <i class="fas fa-chalkboard-teacher"></i>):** Create your class, give it a fun name and logo, set its schedule, and add your student roster.
-
-2.  **During the Lesson (`Award` Tab <i class="fas fa-star"></i>):** This is your main in-class tool. When a student demonstrates excellence, award them stars.
-    * **Instant Reward:** The student gets +Stars (for the leaderboard) and +Gold (for the shop).
-    * **Dynamic Praise:** The AI occasionally generates a unique compliment based on the reason for the award.
-
-3.  **Live Action (`Bounties` & `Wallpaper`):** Spice up the lesson by posting a **Quest Bounty** for the class to chase in real-time, or put the app into **Dynamic Wallpaper Mode** during quiet study time.
-
-4.  **After the Lesson (`Log` Tab <i class="fas fa-book-open"></i>):** Select your class and click **"Log Today's Adventure."** The AI analyzes the day's awards and writes a short, illustrated story about their achievements for the **Adventure Log**.
-
-5.  **Review & Shop (`Hero's Challenge` Tab <i class="fas fa-user-graduate"></i>):** Show students their ranks and let them spend their hard-earned Gold in **The Mystic Market**.
+4.  **AI as the "Dungeon Master":**
+    * Generative AI (Gemini) acts as the narrator, writing daily chronicles, generating unique reward ideas, and analyzing student performance trends for the teacher.
 
 ---
 
-## 🛠️ The Quest Master's Toolkit: Advanced Features
+## 🧭 Core Gameplay Loop
 
-Beyond the daily loop, explore these powerful tools to take your quest to the next level.
+### 1. Setup & Roster (`My Classes` Tab)
+* **Class Creation:** Define the class name, logo, schedule (days/times), and "Quest League" (Difficulty Level).
+* **Roster Management:** Add students. Each student gets a database entry tracking their Total Stars, Monthly Stars, Gold, and Inventory.
 
-### 🎪 The Economy & Shop
+### 2. The Daily Session (`Award` Tab)
+* **Awarding Stars:** Teachers select a student and a reason (Teamwork, Creativity, Respect, Focus).
+* **Visual Feedback:** Clicking an award triggers particle effects and plays a unique sound (e.g., "Magic Chime").
+* **Data Entry:** The app records the timestamp, reason, and value to Firestore.
 
--   **The Mystic Market (Accessible via `Hero's Challenge`):** A digital shop stocked with AI-generated items (e.g., "Sword of Truth", "Potion of Focus").
-    -   **Restocking:** The shop inventory changes based on the season (e.g., snowy items in Winter) and the class "League" level. Junior classes see sticker-like toys; Senior classes see RPG-style artifacts.
-    -   **Purchase Limits:** To encourage saving, students are limited to buying 2 items per month.
-    -   **Inventory:** Students build a collection of items visible in their profile.
-
-### ⚡ Live Classroom Tools
-
--   **<i class="fas fa-tv"></i> Dynamic Wallpaper Mode:** Turn your projector into a "Living Dashboard."
-    -   **What it does:** Replaces the interface with a beautiful, animated scene featuring moving clouds and a real-time Day/Night cycle synced to the sun's actual position in your location.
-    -   **The Director:** The screen automatically cycles through floating cards showing: *Top Students, Quest Progress, Attendance Streaks, Active Bounties, and Inspirational AI Quotes.* It's the perfect "screensaver" for class downtime.
-
--   **<i class="fas fa-crosshairs"></i> Quest Bounties (`Award` Tab):** Create short-term, high-energy challenges.
-    -   **How it works:** Set a target (e.g., "Class needs to earn 20 stars") and a time limit (e.g., "Before the lesson ends").
-    -   **Visuals:** A progress bar appears on the Award tab (and Wallpaper mode).
-    -   **Reward:** When completed, a victory fanfare plays!
-
-### 🎲 Planning & Engagement
-
--   **The Calendar (<i class="fas fa-calendar-alt"></i> Tab):** Your hub for planning ahead.
--   **Quest Events:** Schedule unique challenges for future dates:
-    -   **⭐ 2x Star Day:** All stars awarded are doubled automatically.
-    -   **🏆 Reason Bonus Day:** Awards for a specific skill (e.g., Teamwork) grant +1 bonus star.
-    -   **Special Quests:** Pre-defined activities like **Vocabulary Vault** or **Grammar Guardians** to gamify specific lessons.
-
-### ✨ Creative & AI-Powered Assistance
-
--   **The Story Weavers (`Ideas` Tab):** A collaborative storytelling game! You set a "Word of the Day," and the class builds a story one sentence at a time. The AI illustrates each chapter, and completed stories can be archived, narrated, and printed as PDF storybooks.
--   **<i class="fas fa-user-astronaut"></i> The Avatar Forge (`My Classes` Tab):** Personalize your classroom! Generate unique, cute 'chibi' avatars for each student based on their choice of creature, color, and accessory.
--   **Get a Quest Update (`Team Quest` Tab):** The AI generates an exciting, sports-announcer-style narrative about the race between the top classes.
--   **The Oracle's Insight (`Ideas` Tab):** Ask the AI specific questions about your class's performance trends.
-
-### 📈 Tracking, Reporting & Celebrating
-
--   **The Scholar's Scroll (<i class="fas fa-scroll"></i> Tab):** A dedicated academic grade book for **Tests** and **Dictations**.
-    -   **Starfall:** Exceptional academic performance (e.g., 100% on a test) triggers a "Starfall," allowing you to award bonus stars to the leaderboard instantly.
-    -   **Makeup Work:** The dashboard alerts you if a student missed a specific test, allowing you to log it later.
--   **Hero's Chronicle (`My Classes` -> Student):** A detailed individual profile for every student.
-    -   **Teacher's Notes:** Keep private logs of behavior or progress.
-    -   **AI Analysis:** Generate summaries for Parents or strategy guides for Teachers based on the student's entire history.
--   **Attendance Chronicle (`Log` Tab):** A detailed historical grid of presence and absence.
--   **Certificates of Achievement:** Generate unique, beautifully designed PDF certificates with personalized AI-written praise.
+### 3. The End-of-Day Ritual (`Log` Tab)
+* **"Log Today's Adventure":** This button triggers an AI process.
+* **Contextual Analysis:** The system sends all the day's events (Who won stars? For what? Any tests?) to the AI.
+* **Narrative Generation:** The AI writes a whimsical diary entry (e.g., "The class battled the Grammar Goblins...").
+* **Image Generation:** An AI image generator creates a unique "Storybook Style" illustration for the entry.
 
 ---
 
-## ❓ Frequently Asked Questions (FAQ)
+## 💰 The Economy System: Gold & Shop
 
-<details>
-  <summary><strong>What is the difference between Stars and Gold?</strong></summary>
-  <br>
-  <strong>Stars</strong> determine a student's rank on the leaderboard and help the class move on the map. They are a measure of <em>achievement</em>. <br>
-  <strong>Gold</strong> is a currency used to buy items in the Mystic Market. Spending Gold does <strong>not</strong> lower a student's rank or Star count. They are a measure of <em>buying power</em>.
-</details>
+This system runs parallel to the Star (Grade) system.
 
-<details>
-  <summary><strong>How does the Dynamic Wallpaper know when to show the Moon?</strong></summary>
-  <br>
-  The app connects to a solar API to fetch the exact Sunrise and Sunset times for your location (defaulting to Greece). The wallpaper automatically transitions from a sunny blue sky to a starry night sky in real-time as the sun goes down outside your window.
-</details>
+### 🪙 Gold Coins
+* **Earning:** 1 Star = 1 Gold.
+* **Bonus Gold:** Special events (like "2x Days") award double Gold.
+* **Separation:** Spending Gold does **not** lower a student's Leaderboard Rank (Total Stars).
 
-<details>
-  <summary><strong>What happens if I award the wrong number of stars?</strong></summary>
-  <br>
-  On the <strong>Award</strong> tab, a small red "undo" button (<i class="fas fa-times"></i>) appears on a student's card after they've been awarded stars for the day. Click it to reset their daily score to zero. This also deducts the accidentally awarded Gold.
-</details>
+### 🎪 The Mystic Market (`Hero's Challenge` -> Shop)
+A fully functional digital shop where students can spend their Gold.
+* **Dynamic Stock:** The shop uses AI to generate 15 unique items every month based on:
+    * **Season:** (e.g., "Ice Sword" in Winter, "Flower Wand" in Spring).
+    * **League Level:** Junior classes get "Toys/Stickers"; Senior classes get "RPG Artifacts".
+* **Purchase Mechanics:**
+    * **Limit:** Hard-coded limit of **2 items per month** per student to encourage saving.
+    * **Inventory:** Purchased items appear permanently in the student's "Enlarged Avatar" view.
 
-<details>
-  <summary><strong>Can I add stars students earned before I started using the app?</strong></summary>
-  <br>
-  Yes! Go to the <strong>Options</strong> tab (<i class="fas fa-cog"></i>) and find the <strong>Student Star Manager</strong>. You can retroactively add stars (and gold) for any student on any past date.
-</details>
+---
+
+## ⚡ Live Classroom Tools
+
+### 🖥️ Dynamic Wallpaper Mode
+*Activated via the TV Icon in the header.*
+
+This transforms the screen into a **"Living Dashboard"** screensaver.
+* **Real-Time Environment:** It checks the actual sunrise/sunset times for your location. The sky transitions from Day (Sun/Blue Sky) to Night (Moon/Stars) automatically.
+* **"The Director" Engine:** An intelligent algorithm cycles through floating cards every 15 seconds. It ensures variety by never showing the same card type twice in a row.
+    * **Card Types:**
+        * **🔥 The Streak:** Shows class attendance/participation streaks.
+        * **⏳ Timekeeper:** A countdown timer if a lesson is currently active.
+        * **🏆 League Race:** A comparative bar chart of all classes in the current League.
+        * **💎 The Treasury:** Total Gold collected by the class/school.
+        * **⚡ Superpower:** The most-awarded skill (e.g., "Creativity") of the month.
+        * **📜 Story Update:** The last sentence added to the class story.
+* **Wisdom Dock:** A fixed footer displaying AI-generated inspirational quotes that update every 5 minutes.
+
+### 🎯 Quest Bounties
+*Activated via the "Post a Bounty" button on the Award Tab.*
+
+* **Concept:** A short-term, high-intensity group challenge.
+* **Configuration:** Teacher sets a **Target** (e.g., 20 Stars), a **Time Limit** (e.g., 20 mins), and a **Reward** (e.g., "5 mins free time").
+* **Display:** A progress bar appears on the Award Screen and Wallpaper Mode.
+* **Win State:** Hitting the target triggers a victory fanfare and marks the bounty as "Completed."
+
+---
+
+## ⚔️ Advanced Quest Modules
+
+### 🗓️ Special Quest Types (Rules & Mechanics)
+*Scheduled via the Calendar Tab.*
+
+These are structured game modes with specific rulesets enforced or suggested by the app.
+
+| Quest Name | Objective | Mechanics & Rules |
+| :--- | :--- | :--- |
+| **💎 Vocabulary Vault** | Use target words in context. | **Goal:** Set a target number (e.g., 15 uses). <br> **Action:** Every time a student correctly uses a "Word of the Day" in speech, award a star. <br> **Win:** If the class hits the target count, the *entire class* gets a completion bonus. |
+| **🔗 The Unbroken Chain** | Fluency & Continuity. | **Goal:** Speak for 30-60 seconds on a topic without hesitation or repetition. <br> **Action:** If a student succeeds, the "Chain" grows. <br> **Win:** Award +0.5 Bonus Stars to every student who keeps the chain unbroken. |
+| **🛡️ Grammar Guardians** | Error Correction. | **Goal:** Find and fix errors in sentences written on the board. <br> **Action:** Students work in pairs to "rescue" the sentences. <br> **Win:** Correcting a sentence earns a star. Clearing the board earns a class-wide "Guardian Bonus." |
+| **✏️ The Scribe's Sketch** | Listening Comprehension. | **Goal:** Draw a scene exactly as described by the teacher. <br> **Action:** Teacher describes a scene piece-by-piece. Students draw. <br> **Win:** Students whose drawings accurately reflect the details earn "Accuracy Stars." |
+| **📖 Five-Sentence Saga** | Creative Writing. | **Goal:** Write a coherent story using 3 random elements (e.g., Robot, Banana, Moon). <br> **Action:** Must be exactly 5 sentences long. <br> **Win:** Completed sagas earn 2 Stars + 2 Gold. |
+
+---
+
+## 🎨 AI & Creative Tools
+
+### ✒️ Story Weavers
+A collaborative storytelling engine.
+* **Mechanic:** The class builds a story one sentence at a time.
+* **AI Integration:**
+    * **Suggestion:** AI suggests a "Word of the Day" to include.
+    * **Illustration:** Upon locking in a sentence, the AI generates a new image visualizing the story's progress.
+* **Output:** Stories are archived and can be printed as a PDF Storybook.
+
+### 🧑‍🚀 The Avatar Forge
+* **Customization:** Students choose a base (e.g., Wizard, Robot), a color, and an accessory.
+* **Generation:** The AI generates a unique "Chibi-style" sticker avatar.
+* **Storage:** The avatar URL is saved to their profile and appears on all leaderboards.
+
+### 🔮 The Oracle's Insight
+* **Data Analysis:** The teacher can ask natural language questions (e.g., "Who is improving the most?").
+* **Processing:** The AI scans the last 30 days of Award Logs, Academic Scores, and Attendance.
+* **Output:** It returns a strategic summary, highlighting patterns humans might miss.
+
+---
+
+## 📊 Tracking & Analytics
+
+### 📜 The Scholar's Scroll
+* **Academic Tracking:** A dedicated grade book for **Tests** and **Dictations**.
+* **Starfall System:** High scores (e.g., 100% on a test) trigger a "Starfall," allowing the teacher to instantly award Bonus Stars to the leaderboard.
+* **Makeup Work:** Automatically detects if a student has no grade for a specific test date and flags them for "Makeup Work."
+
+### 📅 Attendance Chronicle
+* **Matrix View:** A monthly grid showing presence/absence for every student.
+* **Smart Calculation:** Calculates monthly attendance percentages.
+* **Logic:** Attendance state interacts with the Star system (e.g., you cannot award stars to an absent student unless you mark them present).
+
+### 📜 Certificates
+* **Generation:** Creates a PDF certificate for a specific student.
+* **Personalization:** The AI writes a unique paragraph of praise based on the student's top "Reason" (e.g., Teamwork) and their total star count for the month.
 
 <br>
 
 <div align="center">
-  <strong>Your grand adventure awaits. Happy questing!</strong>
+  <strong>Ready to begin? The bell is ringing! 🔔</strong>
 </div>

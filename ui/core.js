@@ -263,6 +263,165 @@ export function setupUIListeners() {
         }
     });
 
+    // Shop Listeners
+    const openShopBtn = document.getElementById('open-shop-btn');
+    if (openShopBtn) {
+        openShopBtn.addEventListener('click', openShopModal); // Direct function reference
+    }
+    
+    const shopCloseBtn = document.getElementById('shop-close-btn');
+    if (shopCloseBtn) {
+        shopCloseBtn.addEventListener('click', () => modals.hideModal('shop-modal'));
+    }
+    
+    const genShopBtn = document.getElementById('generate-shop-btn');
+    if (genShopBtn) {
+        genShopBtn.addEventListener('click', () => {
+            // Use dynamic import only for the action, not the UI function
+            import('../db/actions.js').then(a => a.handleGenerateShopStock());
+        });
+    }
+    
+    const shopStudentSelect = document.getElementById('shop-student-select');
+    if (shopStudentSelect) {
+        shopStudentSelect.addEventListener('change', (e) => {
+            updateShopStudentDisplay(e.target.value);
+        });
+    }
+    
+    const shopItemsContainer = document.getElementById('shop-items-container');
+    if (shopItemsContainer) {
+        shopItemsContainer.addEventListener('click', (e) => {
+            const buyBtn = e.target.closest('.shop-buy-btn');
+            if (buyBtn) {
+                const studentId = document.getElementById('shop-student-select').value;
+                const itemId = buyBtn.dataset.id;
+                import('../db/actions.js').then(a => a.handleBuyItem(studentId, itemId));
+            }
+        });
+    }
+
+    // Bounty Listeners
+    const openBountyBtn = document.getElementById('open-bounty-modal-btn');
+    if (openBountyBtn) {
+        openBountyBtn.addEventListener('click', () => {
+            const classId = state.get('globalSelectedClassId');
+            if(!classId) { showToast('Select a class first', 'error'); return; }
+            
+            // 1. Setup ID
+            document.getElementById('bounty-class-id').value = classId;
+            
+            // 2. Generate Smart Time Options
+            const classData = state.get('allSchoolClasses').find(c => c.id === classId);
+            const selectEl = document.getElementById('bounty-duration');
+            selectEl.innerHTML = ''; // Clear old options
+            
+            const now = new Date();
+            const scheduleDays = classData.scheduleDays || [];
+            
+            // Helper: Find the next N lesson end dates
+            const upcomingLessons = [];
+            
+            // Safety break: check 60 days ahead max
+            for (let i = 0; i < 60; i++) {
+                const checkDate = new Date();
+                checkDate.setDate(now.getDate() + i);
+                const dayStr = checkDate.getDay().toString();
+                
+                if (scheduleDays.includes(dayStr)) {
+                    // Set to End Time
+                    if (classData.timeEnd) {
+                        const [endH, endM] = classData.timeEnd.split(':').map(Number);
+                        checkDate.setHours(endH, endM, 0, 0);
+                    } else {
+                        checkDate.setHours(17, 0, 0, 0); // Default 5 PM
+                    }
+                    
+                    // Only add if it's in the future
+                    if (checkDate > now) {
+                        upcomingLessons.push(checkDate);
+                    }
+                }
+                
+                if (upcomingLessons.length >= 4) break;
+            }
+
+            if (upcomingLessons.length > 0) {
+                const nextLesson = upcomingLessons[0];
+                const isToday = nextLesson.toDateString() === now.toDateString();
+                
+                // OPTION A: "End of THIS Lesson" (Only if today is a lesson day and not over)
+                if (isToday) {
+                    const diffMins = Math.round((nextLesson - now) / 60000);
+                    const opt = document.createElement('option');
+                    opt.value = diffMins;
+                    opt.innerText = `End of THIS Lesson (${diffMins} mins)`;
+                    opt.selected = true; 
+                    selectEl.appendChild(opt);
+                }
+
+                // OPTION B: "End of NEXT Lesson"
+                // If today is active (isToday), the "Next" lesson is index 1.
+                // If today is NOT active, the "Next" lesson is index 0.
+                const nextIndex = isToday ? 1 : 0;
+                
+                if (upcomingLessons[nextIndex]) {
+                    const targetDate = upcomingLessons[nextIndex];
+                    const totalMins = Math.round((targetDate - now) / 60000);
+                    const dayName = targetDate.toLocaleDateString('en-GB', { weekday: 'long' });
+                    
+                    const opt = document.createElement('option');
+                    opt.value = totalMins;
+                    opt.innerText = `Until End of NEXT Lesson (${dayName})`;
+                    // If not in a lesson, make this the default
+                    if (!isToday) opt.selected = true; 
+                    selectEl.appendChild(opt);
+                }
+
+                // OPTION C: "End of 4th Lesson" (Epic Quest)
+                // We want the 4th occurrence in the list (index 3).
+                if (upcomingLessons[3]) {
+                    const targetDate = upcomingLessons[3];
+                    const totalMins = Math.round((targetDate - now) / 60000);
+                    const dateStr = targetDate.toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'short' });
+                    
+                    const opt = document.createElement('option');
+                    opt.value = totalMins;
+                    opt.innerText = `Epic Quest: End of 4th Lesson (${dateStr})`;
+                    selectEl.appendChild(opt);
+                }
+            } else {
+                // Fallback if no schedule is set
+                const opt = document.createElement('option');
+                opt.value = 1440;
+                opt.innerText = "24 Hours (No Schedule Found)";
+                selectEl.appendChild(opt);
+            }
+
+            modals.showAnimatedModal('create-bounty-modal');
+        });
+    }
+    
+    document.getElementById('create-bounty-form')?.addEventListener('submit', (e) => {
+        e.preventDefault();
+        import('../db/actions.js').then(a => a.handleCreateBounty());
+    });
+    
+    document.getElementById('bounty-cancel-btn')?.addEventListener('click', () => modals.hideModal('create-bounty-modal'));
+    
+    // Global listener for dynamic bounty buttons (Claim/Delete)
+    document.getElementById('bounty-board-container').addEventListener('click', (e) => {
+        const deleteBtn = e.target.closest('.delete-bounty-btn');
+        const claimBtn = e.target.closest('.claim-bounty-btn');
+        
+        if (deleteBtn) {
+            import('../db/actions.js').then(a => a.handleDeleteBounty(deleteBtn.dataset.id));
+        }
+        if (claimBtn) {
+            import('../db/actions.js').then(a => a.handleClaimBounty(claimBtn.dataset.id, null, claimBtn.dataset.reward));
+        }
+    });
+
     // --- AWARD STARS & ABSENCE HANDLING ---
     document.getElementById('award-stars-student-list').addEventListener('click', async (e) => {
         const actionBtn = e.target.closest('[data-action]');
@@ -644,32 +803,104 @@ export function setupUIListeners() {
 // --- AVATAR ENLARGEMENT ---
 function handleAvatarClick(e) {
     const avatar = e.target.closest('.enlargeable-avatar');
-    if (e.target.closest('.enlarged-avatar-container')) return;
+    // Prevent closing if clicking the inventory itself
+    if (e.target.closest('.inventory-container')) return; 
+    
+    // Close existing if open
     const existingEnlarged = document.querySelector('.enlarged-avatar-container');
-    if (existingEnlarged) existingEnlarged.click();
+    if (existingEnlarged) {
+        existingEnlarged.click(); // Trigger close
+    }
+
     if (avatar) {
         e.stopPropagation(); 
+        
+        // Find student data
+        let studentId = null;
+        // Try to find ID from parent elements
+        const card = avatar.closest('[data-studentid], [data-id], .student-leaderboard-card');
+        if (card) {
+            studentId = card.dataset.studentid || card.dataset.id;
+            // For leaderboard cards, finding ID is tricky if not set explicitly. 
+            // Better to rely on the `img` dataset if we added it (we did in tabs.js: data-student-id)
+        }
+        if (!studentId && avatar.dataset.studentId) studentId = avatar.dataset.studentId;
+
         const rect = avatar.getBoundingClientRect();
         const src = avatar.src;
+        
         const container = document.createElement('div');
         container.className = 'enlarged-avatar-container';
+        
+        // Wrapper for Layout
+        const contentWrapper = document.createElement('div');
+        contentWrapper.className = 'flex flex-col items-center gap-6 transform transition-all duration-300';
+        contentWrapper.style.opacity = '0';
+        
         const clone = document.createElement('img');
         clone.src = src;
         clone.className = 'enlarged-avatar-image';
+        // Initial pos matches original
+        clone.style.position = 'fixed'; // Initially fixed for animation
         clone.style.top = `${rect.top}px`;
         clone.style.left = `${rect.left}px`;
         clone.style.width = `${rect.width}px`;
         clone.style.height = `${rect.height}px`;
+        clone.style.zIndex = '102';
+        
         container.appendChild(clone);
+        
+        // INVENTORY UI
+        let inventoryHtml = '';
+        if (studentId) {
+            const scoreData = state.get('allStudentScores').find(s => s.id === studentId);
+            const inventory = scoreData?.inventory || [];
+            const gold = scoreData.gold !== undefined ? scoreData.gold : (scoreData.totalStars || 0);
+            const student = state.get('allStudents').find(s => s.id === studentId);
+            
+            let itemsHtml = '';
+            if (inventory.length > 0) {
+                itemsHtml = inventory.map(item => `
+                    <div class="relative group cursor-help">
+                        <img src="${item.image}" class="w-16 h-16 rounded-lg border-2 border-amber-400 bg-black/50 shadow-lg transform group-hover:scale-110 transition-transform">
+                        <div class="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 w-48 bg-black/90 text-white text-xs p-2 rounded-lg pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity z-50 text-center">
+                            <strong class="text-amber-400 block mb-1">${item.name}</strong>
+                            ${item.description}
+                        </div>
+                    </div>
+                `).join('');
+            } else {
+                itemsHtml = `<p class="text-white/50 text-sm italic">No artifacts collected yet.</p>`;
+            }
+
+            inventoryHtml = `
+                <div class="inventory-container bg-indigo-950/90 backdrop-blur-md p-6 rounded-3xl border-2 border-indigo-500 shadow-2xl max-w-2xl w-full mx-4 text-center mt-[300px] z-101 opacity-0 transition-opacity duration-500 delay-100">
+                    <h3 class="font-title text-3xl text-white mb-1">${student?.name || 'Unknown'}'s Collection</h3>
+                    <p class="text-amber-400 font-bold mb-4">${gold} Gold Coins</p>
+                    <div class="flex flex-wrap justify-center gap-4">
+                        ${itemsHtml}
+                    </div>
+                </div>
+            `;
+        }
+
+        container.insertAdjacentHTML('beforeend', inventoryHtml);
         document.body.appendChild(container);
+
+        // Animate
         requestAnimationFrame(() => {
-            clone.style.top = `50%`;
+            // Move Image to Center
+            clone.style.top = `20%`;
             clone.style.left = `50%`;
-            clone.style.width = `256px`;
-            clone.style.height = `256px`;
+            clone.style.width = `200px`;
+            clone.style.height = `200px`;
             clone.style.transform = 'translate(-50%, -50%)';
             container.style.opacity = '1';
+            
+            const inv = container.querySelector('.inventory-container');
+            if(inv) inv.style.opacity = '1';
         });
+
         const closeHandler = () => {
             clone.style.top = `${rect.top}px`;
             clone.style.left = `${rect.left}px`;
@@ -793,4 +1024,245 @@ export function renderHolidayList() {
             <button class="delete-holiday-btn text-red-500 hover:text-red-700" data-id="${r.id}"><i class="fas fa-trash"></i></button>
         </div>
     `).join('');
+}
+
+// --- BOUNTY LOGIC ---
+
+export function renderActiveBounties() {
+    const container = document.getElementById('bounty-board-container');
+    if (!container) return;
+
+    const classId = state.get('globalSelectedClassId');
+    if (!classId) {
+        container.innerHTML = '';
+        return;
+    }
+
+    const bounties = state.get('allQuestBounties')
+        .filter(b => b.classId === classId && b.status !== 'completed') // Hide completed ones to keep board clean
+        .sort((a,b) => new Date(a.deadline) - new Date(b.deadline));
+
+    if (bounties.length === 0) {
+        container.innerHTML = '';
+        return;
+    }
+
+    container.innerHTML = bounties.map(b => {
+        const now = new Date();
+        const deadline = new Date(b.deadline);
+        const isExpired = now > deadline;
+        const progressPercent = Math.min(100, (b.currentProgress / b.target) * 100);
+        const isReady = b.currentProgress >= b.target;
+
+        let statusHtml = '';
+        if (isExpired) statusHtml = `<span class="text-red-500 font-bold">EXPIRED</span>`;
+        else if (isReady) statusHtml = `<button class="claim-bounty-btn bg-green-500 hover:bg-green-600 text-white font-bold py-1 px-3 rounded-full bubbly-button animate-bounce" data-id="${b.id}" data-reward="${b.reward}">CLAIM REWARD</button>`;
+        else statusHtml = `<span class="bounty-timer text-amber-600 font-bold" data-deadline="${b.deadline}">--:--</span>`;
+
+        return `
+            <div class="bounty-card mb-2 ${isExpired ? 'expired' : ''}">
+                <div class="flex items-center gap-4 flex-grow">
+                    <div class="text-3xl text-amber-500"><i class="fas fa-scroll"></i></div>
+                    <div class="flex-grow">
+                        <div class="flex justify-between items-center">
+                            <h4 class="font-bold text-lg text-amber-900">${b.title}</h4>
+                            <div class="bounty-actions text-right">
+                                ${statusHtml}
+                                <button class="delete-bounty-btn text-gray-400 hover:text-red-500 ml-2" data-id="${b.id}"><i class="fas fa-times"></i></button>
+                            </div>
+                        </div>
+                        <div class="w-full bg-amber-100 rounded-full h-3 mt-1 overflow-hidden">
+                            <div class="bg-amber-500 h-full transition-all duration-1000" style="width: ${progressPercent}%"></div>
+                        </div>
+                        <div class="flex justify-between text-xs text-amber-700 mt-1 font-semibold">
+                            <span>Progress: ${b.currentProgress} / ${b.target} ⭐</span>
+                            <span>Reward: ${b.reward}</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+    }).join('');
+
+    startBountyTimer();
+}
+
+let bountyInterval;
+function startBountyTimer() {
+    if (bountyInterval) clearInterval(bountyInterval);
+    
+    const update = () => {
+        const timers = document.querySelectorAll('.bounty-timer');
+        if (timers.length === 0) { clearInterval(bountyInterval); return; }
+
+        timers.forEach(el => {
+            const deadline = new Date(el.dataset.deadline);
+            const now = new Date();
+            const diff = deadline - now;
+
+            if (diff <= 0) {
+                el.innerText = "00:00:00";
+                el.classList.add('text-red-500');
+                // Could trigger a reload here to mark visually as expired
+            } else {
+                const h = Math.floor(diff / (1000 * 60 * 60));
+                const m = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+                const s = Math.floor((diff % (1000 * 60)) / 1000);
+                el.innerText = `${h.toString().padStart(2,'0')}:${m.toString().padStart(2,'0')}:${s.toString().padStart(2,'0')}`;
+            }
+        });
+    };
+    
+    update();
+    bountyInterval = setInterval(update, 1000);
+}
+
+// --- SHOP UI LOGIC ---
+
+export function openShopModal() {
+    // 1. Determine Context
+    let league = state.get('globalSelectedLeague');
+    let classId = state.get('globalSelectedClassId');
+
+    // If viewing Hero Stats for a specific student, try to get their class/league
+    if (!league && classId) {
+        const cls = state.get('allTeachersClasses').find(c => c.id === classId);
+        if (cls) league = cls.questLevel;
+    }
+
+    if (!league) {
+        showToast("Please select a League or Class first to enter the correct market.", "error");
+        return;
+    }
+
+    // 2. Set UI Text
+    const monthName = new Date().toLocaleString('en-US', { month: 'long' });
+    document.getElementById('shop-title').innerText = "The Mystic Market"; // Title is now static
+    document.getElementById('shop-month').innerText = monthName; // Month has its own element
+    
+    document.getElementById('shop-student-select').innerHTML = `<option value="">Select Shopper...</option>`;
+    document.getElementById('shop-student-gold').innerText = "0 🪙";
+
+    // 3. Filter Students (Only show MY students in this League)
+    // FIX: Use 'allTeachersClasses' instead of 'allSchoolClasses'
+    const myClassesInLeague = state.get('allTeachersClasses').filter(c => c.questLevel === league);
+    const myClassIds = myClassesInLeague.map(c => c.id);
+    
+    const validStudents = state.get('allStudents')
+        .filter(s => myClassIds.includes(s.classId))
+        .sort((a,b) => a.name.localeCompare(b.name));
+
+    const selectEl = document.getElementById('shop-student-select');
+    selectEl.innerHTML = `<option value="">Select Shopper...</option>` + 
+        validStudents.map(s => `<option value="${s.id}">${s.name}</option>`).join('');
+
+    renderShopUI();
+    modals.showAnimatedModal('shop-modal');
+}
+
+export function renderShopUI() {
+    const container = document.getElementById('shop-items-container');
+    const emptyState = document.getElementById('shop-empty-state');
+    
+    // 1. Determine League Context again
+    let league = state.get('globalSelectedLeague');
+    if (!league) {
+        const classId = state.get('globalSelectedClassId');
+        const cls = state.get('allSchoolClasses').find(c => c.id === classId);
+        if (cls) league = cls.questLevel;
+    }
+
+    // 2. Filter Items (By Month AND League)
+    const currentMonthKey = new Date().toISOString().substring(0, 7);
+    const shopItems = state.get('currentShopItems')
+        .filter(i => i.monthKey === currentMonthKey && i.league === league)
+        .sort((a,b) => a.price - b.price); // Sort cheapest first
+
+    if (shopItems.length === 0) {
+        container.innerHTML = '';
+        container.classList.add('hidden');
+        emptyState.classList.remove('hidden');
+    } else {
+        emptyState.classList.add('hidden');
+        container.classList.remove('hidden');
+        
+        container.innerHTML = shopItems.map(item => `
+            <div class="shop-item-card group bg-indigo-900 border-2 border-indigo-700 rounded-2xl overflow-hidden hover:border-amber-400 transition-all duration-300 hover:-translate-y-2 hover:shadow-[0_0_20px_rgba(251,191,36,0.3)] flex flex-col">
+                <div class="relative h-40 bg-white flex items-center justify-center overflow-hidden">
+                    <div class="absolute inset-0 bg-radial-gradient from-white to-gray-100 opacity-50"></div>
+                    <img src="${item.image}" class="relative w-full h-full object-contain filter drop-shadow-md group-hover:scale-110 transition-transform duration-500">
+                </div>
+                <div class="p-4 flex-grow flex flex-col">
+                    <h3 class="font-title text-xl text-amber-300 leading-tight mb-1">${item.name}</h3>
+                    <p class="text-indigo-300 text-xs mb-3 line-clamp-2 flex-grow">${item.description}</p>
+                    <div class="flex justify-between items-center mt-auto pt-3 border-t border-indigo-800">
+                        <span class="font-bold text-white text-lg">${item.price} 🪙</span>
+                        <button class="shop-buy-btn bg-indigo-600 hover:bg-indigo-500 disabled:bg-indigo-900 disabled:text-indigo-500 disabled:cursor-not-allowed text-white text-xs font-bold py-2 px-4 rounded-lg uppercase tracking-wider transition-colors" data-id="${item.id}" disabled>
+                            Select Student
+                        </button>
+                    </div>
+                </div>
+            </div>
+        `).join('');
+        
+        // Re-run status check if a student is already selected
+        const currentStudentId = document.getElementById('shop-student-select').value;
+        if(currentStudentId) updateShopStudentDisplay(currentStudentId);
+    }
+}
+
+export function updateShopStudentDisplay(studentId) {
+    const goldDisplay = document.getElementById('shop-student-gold');
+    const buyBtns = document.querySelectorAll('.shop-buy-btn');
+    
+    if (!studentId) {
+        goldDisplay.innerText = "0 🪙";
+        buyBtns.forEach(btn => {
+            btn.disabled = true;
+            btn.innerText = "Select Student";
+            btn.classList.remove('bg-red-500', 'bg-green-600');
+        });
+        return;
+    }
+
+    const scoreData = state.get('allStudentScores').find(s => s.id === studentId);
+    const gold = scoreData.gold !== undefined ? scoreData.gold : (scoreData.totalStars || 0);
+    const inventory = scoreData?.inventory || [];
+    
+    // Check Monthly Limit
+    const currentMonthKey = new Date().toISOString().substring(0, 7);
+    const itemsBoughtThisMonth = inventory.filter(i => 
+        i.acquiredAt && i.acquiredAt.startsWith(currentMonthKey)
+    );
+    const isLimitReached = itemsBoughtThisMonth.length >= 2;
+
+    goldDisplay.innerText = `${gold} 🪙`;
+
+    buyBtns.forEach(btn => {
+        const itemPrice = parseInt(btn.previousElementSibling.innerText); 
+        const itemId = btn.dataset.id;
+        const alreadyOwned = inventory.some(i => i.id === itemId);
+
+        // Reset classes
+        btn.classList.remove('bg-green-600', 'bg-red-500');
+
+        if (alreadyOwned) {
+            btn.disabled = true;
+            btn.innerText = "Owned";
+            btn.classList.add('bg-green-600');
+        } 
+        else if (isLimitReached) {
+            btn.disabled = true;
+            btn.innerText = "Limit Reached (2/2)";
+            btn.classList.add('bg-red-500');
+        }
+        else if (gold >= itemPrice) {
+            btn.disabled = false;
+            btn.innerText = "Buy Now";
+        } 
+        else {
+            btn.disabled = true;
+            btn.innerText = "Need Gold";
+        }
+    });
 }

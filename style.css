@@ -2092,3 +2092,341 @@ main {
     color: #7c2d12;
 }
 
+/* --- PROJECTOR MODE STYLES --- */
+body.projector-mode .app-tab {
+    padding: 0;
+    max-width: 100vw;
+    /* Add padding bottom so content isn't covered by the floating nav */
+    padding-bottom: 80px; 
+}
+
+/* 1. Hide Admin Controls (Everything BUT the nav bar) */
+body.projector-mode .delete-log-btn,
+body.projector-mode .note-log-btn,
+body.projector-mode .edit-class-btn,
+body.projector-mode .delete-class-btn,
+body.projector-mode .manage-students-btn,
+body.projector-mode .report-class-btn, 
+body.projector-mode #add-student-form,
+body.projector-mode #award-class-dropdown-btn,
+body.projector-mode #log-adventure-btn,
+body.projector-mode #quest-assignment-btn,
+body.projector-mode #attendance-chronicle-btn,
+body.projector-mode #gemini-idea-btn,
+body.projector-mode .absence-controls,
+body.projector-mode .post-award-undo-btn,
+body.projector-mode .edit-trial-btn,
+body.projector-mode .delete-trial-btn,
+body.projector-mode #log-trial-btn,
+body.projector-mode #view-trial-history-btn {
+    display: none !important;
+}
+
+/* 2. The Collapsible Navigation Bar */
+body.projector-mode #bottom-nav-bar {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    z-index: 100;
+    
+    /* Default State: Hidden (Transparent and pushed down) */
+    opacity: 0;
+    transform: translateY(30px);
+    
+    /* Smooth Transition */
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    
+    /* Visuals for the floating bar */
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(8px);
+    box-shadow: 0 -4px 20px rgba(0,0,0,0.1);
+    border-top: 4px solid #6366f1; /* Indigo accent line */
+    padding: 10px;
+}
+
+/* 3. The Hover Trigger: Show it when mouse is near bottom */
+body.projector-mode #bottom-nav-bar:hover,
+body.projector-mode #bottom-nav-bar:focus-within {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+/* 4. Invisible Hit-Area (Makes it easier to trigger the hover) */
+body.projector-mode #bottom-nav-bar::before {
+    content: '';
+    position: absolute;
+    top: -20px; /* Extends the hover zone 20px upwards */
+    left: 0;
+    width: 100%;
+    height: 20px;
+    background: transparent;
+}
+
+/* 5. Make visuals bigger for the big screen */
+body.projector-mode .student-cloud-card {
+    transform: scale(1.15);
+    margin: 25px;
+}
+
+body.projector-mode #class-leaderboard-list .quest-card,
+body.projector-mode #student-leaderboard-list .student-leaderboard-card {
+    border-width: 6px;
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+}
+
+/* --- BOUNTY BOARD STYLES --- */
+.bounty-card {
+    background: linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%);
+    border: 3px solid #f59e0b;
+    border-radius: 1rem;
+    padding: 1rem 1.5rem;
+    position: relative;
+    box-shadow: 0 4px 6px -1px rgba(245, 158, 11, 0.2), 0 2px 4px -1px rgba(245, 158, 11, 0.1);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    overflow: hidden;
+    animation: slide-in-from-bottom 0.5s ease-out;
+}
+
+.bounty-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; width: 100%; height: 4px;
+    background: linear-gradient(90deg, #fcd34d, #f59e0b, #b45309, #f59e0b, #fcd34d);
+    background-size: 200% 100%;
+    animation: shimmer 2s infinite linear;
+}
+
+@keyframes shimmer {
+    0% { background-position: 100% 0; }
+    100% { background-position: -100% 0; }
+}
+
+.bounty-timer {
+    font-variant-numeric: tabular-nums;
+    font-family: 'Fredoka One', cursive;
+}
+
+.bounty-card.expired {
+    background: #fee2e2;
+    border-color: #ef4444;
+    filter: grayscale(0.8);
+}
+
+.bounty-card.completed {
+    background: #ecfccb;
+    border-color: #84cc16;
+}
+
+/* Projector Mode Adjustments for Bounties */
+body.projector-mode .bounty-card {
+    transform: scale(1.2);
+    margin-bottom: 2rem;
+    box-shadow: 0 10px 25px rgba(245, 158, 11, 0.4);
+}
+body.projector-mode .bounty-actions {
+    display: none; /* Hide 'Delete'/'Claim' buttons in projector mode */
+}
+
+/* --- SHOP STYLES --- */
+.shop-item-card {
+    background: rgba(30, 27, 75, 0.8); /* indigo-950 */
+    border: 2px solid #4f46e5; /* indigo-600 */
+    border-radius: 1rem;
+    overflow: hidden;
+    position: relative;
+    transition: all 0.3s ease;
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.5);
+}
+
+.shop-item-card:hover {
+    transform: translateY(-5px);
+    border-color: #fbbf24; /* amber-400 */
+    box-shadow: 0 0 20px rgba(251, 191, 36, 0.3);
+}
+
+.shop-item-image {
+    width: 100%;
+    height: 200px;
+    object-fit: cover;
+    border-bottom: 2px solid #4f46e5;
+}
+
+.shop-buy-btn {
+    width: 100%;
+    padding: 0.75rem;
+    background: #4f46e5;
+    color: white;
+    font-family: 'Fredoka One', cursive;
+    transition: background 0.2s;
+}
+.shop-buy-btn:hover:not(:disabled) {
+    background: #4338ca;
+}
+.shop-buy-btn:disabled {
+    background: #3730a3;
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+/* Inventory Grid in Hero Modal */
+.inventory-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(60px, 1fr));
+    gap: 0.5rem;
+    margin-top: 1rem;
+}
+.inventory-item {
+    width: 60px;
+    height: 60px;
+    border-radius: 0.5rem;
+    border: 2px solid #e5e7eb;
+    overflow: hidden;
+    cursor: help;
+    transition: transform 0.2s;
+}
+.inventory-item:hover {
+    transform: scale(1.1);
+    border-color: #fbbf24;
+    z-index: 10;
+}
+
+/* --- COIN INDICATOR STYLES --- */
+.coin-pill {
+    position: absolute;
+    /* Position relative to the card top-center */
+    top: 0; 
+    left: 50%; 
+    /* Move it 40px to the right of the center (clearing the avatar) */
+    margin-left: 40px; 
+    transform: translateY(-50%); /* Vertically center on the card edge */
+    
+    background: linear-gradient(135deg, #f59e0b 0%, #b45309 100%);
+    border: 2px solid white;
+    padding: 0.1rem 0.4rem; /* Smaller padding */
+    border-radius: 9999px;
+    font-family: 'Fredoka One', cursive;
+    color: white;
+    font-size: 0.75rem; /* Smaller text */
+    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+    z-index: 15;
+    display: flex;
+    align-items: center;
+    gap: 3px;
+    white-space: nowrap;
+    text-shadow: 0 1px 2px rgba(0,0,0,0.3);
+    pointer-events: none;
+}
+
+.coin-pill i {
+    color: #fcd34d;
+    font-size: 0.65rem; /* Smaller icon */
+}
+
+/* Animation for when coins update */
+@keyframes coin-pop {
+    0% { transform: translateX(-50%) scale(1); filter: brightness(1); }
+    50% { transform: translateX(-50%) scale(1.3); filter: brightness(1.3); }
+    100% { transform: translateX(-50%) scale(1); filter: brightness(1); }
+}
+
+.coin-update-anim {
+    animation: coin-pop 0.4s ease-out;
+}
+
+/* WALLPAPER MODE STYLES */
+
+/* 1. Enter & Exit Animations */
+@keyframes expand-header { 0% { clip-path: inset(0 0 100% 0); opacity: 0; } 100% { clip-path: inset(0 0 0 0); opacity: 1; } }
+@keyframes collapse-header { 0% { clip-path: inset(0 0 0 0); opacity: 1; } 100% { clip-path: inset(0 0 100% 0); opacity: 0; } }
+
+.wallpaper-enter { animation: expand-header 1s cubic-bezier(0.2, 0.8, 0.2, 1) forwards; }
+.wallpaper-exit { animation: collapse-header 0.8s cubic-bezier(0.2, 0.8, 0.2, 1) forwards; }
+
+/* 2. Celestial Animations (Day/Night) */
+/* Night State Classes (Toggled via JS) */
+.is-night #wall-bg-day { opacity: 0; }
+.is-night #wall-bg-night { opacity: 1; }
+.is-night #wall-sun { top: 110% !important; opacity: 0; } /* Sun Sets */
+.is-night #wall-moon { top: 10% !important; } /* Moon Rises */
+.is-night #wall-class-badge { background-color: rgba(255,255,255,0.1); border-color: rgba(255,255,255,0.2); }
+.is-night #wall-class-name { color: #E0E7FF; text-shadow: 0 0 10px rgba(165, 180, 252, 0.5); }
+.is-night #wall-class-level { color: #A5B4FC; }
+
+/* 3. Floating Clouds (Extended Range to fix popping) */
+@keyframes float-clouds-right { 
+    0% { transform: translateX(-150vw); } 
+    100% { transform: translateX(150vw); } 
+}
+@keyframes float-clouds-left { 
+    0% { transform: translateX(150vw); } 
+    100% { transform: translateX(-150vw); } 
+}
+#dynamic-wallpaper-screen .fa-cloud { 
+    display: inline-block; 
+    filter: drop-shadow(0 10px 20px rgba(0,0,0,0.1)); 
+    will-change: transform; /* Performance optimization */
+}
+
+/* 4. Childish & Lively Floating Cards */
+.wallpaper-float-card {
+    position: absolute;
+    width: 360px; /* Slightly wider for new cards */
+    padding: 2rem;
+    border-radius: 2.5rem; /* Even bubblier */
+    box-shadow: 0 25px 60px rgba(0,0,0,0.15), 0 0 0 4px rgba(255,255,255,0.4);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    transition: all 2s cubic-bezier(0.22, 1, 0.36, 1); /* Slower entry/exit */
+    z-index: 60;
+    animation: float-bob 20s ease-in-out infinite; /* Much slower bob */
+}
+
+@keyframes float-bob { 
+    0% { transform: translateY(0) rotate(0deg); } 
+    33% { transform: translateY(-15px) rotate(1deg); } 
+    66% { transform: translateY(10px) rotate(-1deg); } 
+    100% { transform: translateY(0) rotate(0deg); } 
+}
+
+/* Vibrant Card Themes */
+.float-card-blue { 
+    background: linear-gradient(135deg, rgba(255,255,255,0.95), rgba(191, 219, 254, 0.9)); 
+    border: 4px solid #60A5FA; color: #1E3A8A;
+}
+.float-card-gold { 
+    background: linear-gradient(135deg, rgba(255,255,255,0.95), rgba(253, 230, 138, 0.9)); 
+    border: 4px solid #F59E0B; color: #78350F;
+}
+.float-card-purple { 
+    background: linear-gradient(135deg, rgba(255,255,255,0.95), rgba(233, 213, 255, 0.9)); 
+    border: 4px solid #A855F7; color: #581C87;
+}
+.float-card-green { 
+    background: linear-gradient(135deg, rgba(255,255,255,0.95), rgba(187, 247, 208, 0.9)); 
+    border: 4px solid #22C55E; color: #14532D;
+}
+.float-card-red { 
+    background: linear-gradient(135deg, rgba(255,255,255,0.95), rgba(254, 202, 202, 0.9)); 
+    border: 4px solid #EF4444; color: #7F1D1D;
+}
+.float-card-dark { 
+    background: linear-gradient(135deg, rgba(31,41,55,0.95), rgba(17,24,39,0.95)); 
+    border: 4px solid #FCD34D; color: white; 
+}
+
+/* 5. Center Hub */
+@keyframes hub-pulse {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(255, 255, 255, 0.4); }
+    50% { box-shadow: 0 0 50px 10px rgba(255, 255, 255, 0); }
+}
+.wall-center-hub {
+    background: rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(8px);
+    border: 2px solid rgba(255, 255, 255, 0.3);
+}
+
+/* 6. Text Shadows */
+.wall-shadow-text { filter: drop-shadow(0 4px 4px rgba(0,0,0,0.2)); }

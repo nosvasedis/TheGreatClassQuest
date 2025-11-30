@@ -13,7 +13,7 @@ import {
     getDocs, 
     runTransaction, 
     writeBatch, 
-    serverTimestamp, 
+    serverTimestamp,
     increment,
     getDoc,
     setDoc,
@@ -341,7 +341,6 @@ export async function setStudentStarsForToday(studentId, starValue, reason = nul
             
             if (difference === 0 && reason !== 'marked_present' && !todayDocRef) return;
 
-
             const studentDoc = await transaction.get(studentRef);
             if (!studentDoc.exists()) throw new Error("Student not found!");
             const studentData = studentDoc.data();
@@ -350,21 +349,33 @@ export async function setStudentStarsForToday(studentId, starValue, reason = nul
             const scoreDoc = await transaction.get(scoreRef);
             
             if (!scoreDoc.exists()) {
+                // Create new score doc
                 transaction.set(scoreRef, {
                     totalStars: difference > 0 ? difference : 0,
                     monthlyStars: difference > 0 ? difference : 0,
+                    gold: difference > 0 ? difference : 0,
+                    inventory: [],
                     lastMonthlyResetDate: getStartOfMonthString(),
                     createdBy: { uid: studentData.createdBy.uid, name: studentData.createdBy.name }
                 });
             } else {
+                // Update existing score doc
                 if (difference !== 0) {
-                    transaction.update(scoreRef, {
+                    const updates = {
                         totalStars: increment(difference),
                         monthlyStars: increment(difference)
-                    });
+                    };
+                    if (difference > 0) {
+                        updates.gold = increment(difference);
+                    } else if (difference < 0) {
+                         // Optional: remove gold on undo
+                         updates.gold = increment(difference);
+                    }
+                    transaction.update(scoreRef, updates);
                 }
-            }
+            } // <--- CLOSED ELSE BLOCK CORRECTLY HERE
 
+            // --- Daily Record Logic (Runs for everyone) ---
             if (todayDocRef) {
                 if (finalStarValue === 0 && reason !== 'marked_present') {
                     transaction.delete(todayDocRef);
@@ -381,6 +392,7 @@ export async function setStudentStarsForToday(studentId, starValue, reason = nul
                 }
             }
 
+            // --- Log Logic (Runs for everyone) ---
             const logId = state.get('todaysAwardLogs')[studentId];
             if (finalStarValue === 0) {
                 if (logId) transaction.delete(doc(db, `${publicDataPath}/award_log`, logId));
@@ -396,10 +408,12 @@ export async function setStudentStarsForToday(studentId, starValue, reason = nul
                      transaction.set(doc(collection(db, `${publicDataPath}/award_log`)), logData);
                 }
             }
-        });
+        }); // <--- END TRANSACTION
 
+        // --- Side Effects (After Transaction) ---
         if (studentClassId && difference > 0) {
             debouncedCheckAndRecordQuestCompletion(studentClassId);
+            checkBountyProgress(studentClassId, difference);
         }
 
     } catch (error) {
@@ -1941,5 +1955,329 @@ export async function ensureHistoryLoaded() {
         console.error("Error loading history:", e);
     } finally {
         if (loader) loader.classList.add('hidden');
+    }
+}
+
+// --- QUEST BOUNTIES ---
+
+export async function handleCreateBounty() {
+    const classId = document.getElementById('bounty-class-id').value;
+    const title = document.getElementById('bounty-title').value;
+    const target = parseInt(document.getElementById('bounty-target').value);
+    const durationMinutes = parseInt(document.getElementById('bounty-duration').value);
+    const reward = document.getElementById('bounty-reward').value;
+
+    if (!title || !target || !reward) {
+        showToast('Please fill all fields', 'error');
+        return;
+    }
+
+    const btn = document.querySelector('#create-bounty-form button[type="submit"]');
+    btn.disabled = true;
+    btn.innerHTML = 'Posting...';
+
+    const deadline = new Date();
+    deadline.setMinutes(deadline.getMinutes() + durationMinutes);
+
+    try {
+        await addDoc(collection(db, "artifacts/great-class-quest/public/data/quest_bounties"), {
+            classId,
+            title,
+            target,
+            reward,
+            currentProgress: 0,
+            deadline: deadline.toISOString(), // Storing as ISO string for easier querying/parsing
+            status: 'active', // active, completed, expired
+            createdBy: { uid: state.get('currentUserId'), name: state.get('currentTeacherName') },
+            createdAt: serverTimestamp()
+        });
+        
+        showToast('New Bounty Posted!', 'success');
+        import('../ui/modals.js').then(m => m.hideModal('create-bounty-modal'));
+    } catch (e) {
+        console.error(e);
+        showToast('Error posting bounty', 'error');
+    } finally {
+        btn.disabled = false;
+        btn.innerHTML = 'Post Bounty';
+    }
+}
+
+export async function handleDeleteBounty(bountyId) {
+    try {
+        await deleteDoc(doc(db, "artifacts/great-class-quest/public/data/quest_bounties", bountyId));
+        showToast('Bounty removed.', 'info');
+    } catch (e) {
+        showToast('Error deleting bounty', 'error');
+    }
+}
+
+export async function handleClaimBounty(bountyId, classId, rewardText) {
+    playSound('winnerFanfare'); // Play victory music!
+    
+    // 1. Mark as completed in DB
+    try {
+        await updateDoc(doc(db, "artifacts/great-class-quest/public/data/quest_bounties", bountyId), {
+            status: 'completed'
+        });
+    } catch(e) { console.error(e); }
+
+    // 2. Visual Celebration
+    import('../ui/effects.js').then(m => m.showPraiseToast(`BOUNTY CLAIMED: ${rewardText}`, '🎁'));
+    
+    // 3. Optional: Award a small "Victory" bonus to everyone? 
+    // Let's keep it simple: Teacher manually awards the described reward (e.g. "Pizza").
+}
+
+// Helper to update progress when stars are awarded
+// We need to hook this into `setStudentStarsForToday`
+export async function checkBountyProgress(classId, starsAdded) {
+    const bounties = state.get('allQuestBounties').filter(b => b.classId === classId && b.status === 'active');
+    
+    // Check local expiry
+    const now = new Date();
+    
+    bounties.forEach(async (b) => {
+        if (new Date(b.deadline) < now) return; // Expired
+
+        const newProgress = (b.currentProgress || 0) + starsAdded;
+        
+        // Update DB
+        const bountyRef = doc(db, "artifacts/great-class-quest/public/data/quest_bounties", b.id);
+        
+        if (newProgress >= b.target) {
+            // Auto-complete? No, let teacher claim it for dramatic effect.
+            // Just update progress to max.
+            await updateDoc(bountyRef, { currentProgress: newProgress });
+            showToast(`Bounty "${b.title}" goal reached! Ready to claim!`, 'success');
+            playSound('magic_chime');
+        } else {
+            await updateDoc(bountyRef, { currentProgress: newProgress });
+        }
+    });
+}
+
+// --- THE ECONOMY (SHOP & INVENTORY) ---
+
+export async function handleGenerateShopStock() {
+    // 1. Determine Context (League)
+    let league = state.get('globalSelectedLeague');
+    
+    // Fallback: If no league selected, try to infer from class ID
+    if (!league) {
+        const classId = state.get('globalSelectedClassId');
+        if (classId) {
+            const cls = state.get('allSchoolClasses').find(c => c.id === classId);
+            if (cls) league = cls.questLevel;
+        }
+    }
+
+    if (!league) {
+        showToast("Please select a Class or League first!", "error");
+        return;
+    }
+
+    const btn = document.getElementById('generate-shop-btn');
+    const loader = document.getElementById('shop-loader');
+    const container = document.getElementById('shop-items-container');
+    const emptyState = document.getElementById('shop-empty-state');
+    const monthKey = new Date().toISOString().substring(0, 7); // YYYY-MM
+    
+    btn.disabled = true;
+    loader.classList.remove('hidden');
+    container.innerHTML = ''; 
+    emptyState.classList.add('hidden');
+
+    try {
+        // --- STEP 0: CLEAR OLD STOCK ---
+        const publicDataPath = "artifacts/great-class-quest/public/data";
+        
+        const q = query(
+            collection(db, `${publicDataPath}/shop_items`),
+            where("league", "==", league),
+            where("monthKey", "==", monthKey),
+            where("teacherId", "==", state.get('currentUserId'))
+        );
+        
+        const snapshot = await getDocs(q);
+        if (!snapshot.empty) {
+            const batch = writeBatch(db);
+            snapshot.docs.forEach(doc => {
+                batch.delete(doc.ref);
+            });
+            await batch.commit();
+        }
+
+        // --- STEP 1: PREPARE PROMPT ---
+        const now = new Date();
+        const currentMonth = now.getMonth(); 
+        const currentYear = now.getFullYear();
+        const ageCategory = getAgeGroupForLeague(league); 
+        const isJunior = ageCategory === '7-8' || ageCategory === '8-9' || league.includes('Junior');
+
+        // Smart Season Context
+        let seasonContext = "";
+        if (currentMonth === 11) seasonContext = "Winter, Christmas, Festive, Snow, Holidays, Gifts";
+        else if (currentMonth === 3 && currentYear === 2026) seasonContext = "Spring, Orthodox Easter, Red Eggs, Candles";
+        else if (currentMonth === 0 || currentMonth === 1) seasonContext = "Winter, Ice, Frost";
+        else if (currentMonth >= 2 && currentMonth <= 4) seasonContext = "Spring, Flowers, Nature";
+        else if (currentMonth >= 5 && currentMonth <= 7) seasonContext = "Summer, Beach, Sun";
+        else if (currentMonth >= 8 && currentMonth <= 10) seasonContext = "Autumn, Halloween";
+
+        // Style Context - FORCING ICONS/STICKERS
+        let styleContext = "";
+        let itemContext = "";
+        let languageInstruction = "";
+        
+        if (isJunior) {
+            // Junior: Force "Sticker" style to ensure isolation
+            styleContext = "a die-cut vector sticker, thick white outline, flat color, simple shapes, cartoon style, white background";
+            itemContext = "magical toys, cute pets, colorful candies, fun hats";
+            languageInstruction = "Use simple English (7-9yo). Max 8 words.";
+        } else {
+            // Senior: Force "Game Icon" style to ensure single object
+            styleContext = "a fantasy rpg inventory icon, 3d render, centered, neutral background, high detail";
+            itemContext = "ancient artifacts, scrolls, potions, enchanted gear";
+            languageInstruction = "Use exciting English (10-13yo). Max 10 words.";
+        }
+
+        const systemPrompt = `You are a creative RPG item generator. 
+        Target Audience: ${league} students (approx age ${ageCategory}).
+        Current Theme: ${seasonContext}.
+        Style: ${itemContext}.
+        
+        Requirements:
+        1. Generate 15 UNIQUE items.
+        2. **CRITICAL:** Items must be TANGIBLE, HANDHELD OBJECTS (e.g., "Ice Sword", "Snow Globe"). Do NOT use abstract concepts, environments, or patterns (NO "Winter Magic", NO "Snowfall", NO "Cobweb").
+        3. DESCRIPTIONS: ${languageInstruction}
+        4. Output Format: A valid JSON array of objects: [{"name": "string", "desc": "visual description of the object", "price": number}].
+        5. Price range: 8-15 gold.
+        Do NOT use markdown.`;
+        
+        const jsonString = await callGeminiApi(systemPrompt, "Generate the JSON list now.");
+        const cleanJson = jsonString.replace(/```json|```/g, '').trim();
+        let itemsData = [];
+        try {
+            itemsData = JSON.parse(cleanJson);
+        } catch (e) {
+            console.error("JSON Parse failed, retrying...");
+            const fixedJson = await callGeminiApi("Fix this JSON:", cleanJson);
+            itemsData = JSON.parse(fixedJson.replace(/```json|```/g, '').trim());
+        }
+
+        // --- STEP 2: GENERATE IMAGES & SAVE ---
+        const { uploadImageToStorage } = await import('../utils.js');
+        
+        const chunkSize = 3;
+        for (let i = 0; i < itemsData.length; i += chunkSize) {
+            const chunk = itemsData.slice(i, i + chunkSize);
+            await Promise.all(chunk.map(async (item) => {
+                try {
+                    // FIX: Prompt Engineering for Isolation
+                    // 1. Put the Name FIRST.
+                    // 2. Wrap Name in ((brackets)) to emphasize it.
+                    // 3. Explicitly state "single isolated object".
+                    const positivePrompt = `(single isolated object) of ((${item.name})), ${item.desc}. ${styleContext}. centered, full shot, high quality.`;
+                    
+                    // FIX: Aggressive Anti-Texture Negative Prompt
+                    const negativePrompt = "pattern, texture, wallpaper, seamless, repeating, tiling, grid, background, scenery, landscape, text, watermark, blurry, noise, cropped, multiple objects, pile, heap";
+                    
+                    const base64 = await callCloudflareAiImageApi(positivePrompt, negativePrompt);
+                    const compressed = await compressImageBase64(base64, 256, 256);
+                    const path = `shop_items/${state.get('currentUserId')}/${monthKey}_${simpleHashCode(item.name)}_${Date.now()}.jpg`;
+                    const url = await uploadImageToStorage(compressed, path);
+
+                    const docRef = doc(collection(db, `${publicDataPath}/shop_items`));
+                    await setDoc(docRef, {
+                        name: item.name,
+                        description: item.desc,
+                        price: item.price,
+                        image: url,
+                        league: league, 
+                        monthKey: monthKey,
+                        teacherId: state.get('currentUserId'),
+                        createdAt: serverTimestamp(),
+                        createdBy: { uid: state.get('currentUserId'), name: state.get('currentTeacherName') }
+                    });
+                } catch (err) {
+                    console.error("Item gen failed:", item.name, err);
+                }
+            }));
+        }
+
+        showToast(`${itemsData.length} new seasonal treasures arrived for ${league}!`, 'success');
+        import('../ui/core.js').then(m => m.renderShopUI());
+
+    } catch (error) {
+        console.error("Shop generation failed:", error);
+        showToast('The Merchant got lost. Try again.', 'error');
+    } finally {
+        btn.disabled = false;
+        loader.classList.add('hidden');
+    }
+}
+
+export async function handleBuyItem(studentId, itemId) {
+    const item = state.get('currentShopItems').find(i => i.id === itemId);
+    const student = state.get('allStudents').find(s => s.id === studentId);
+    if (!item || !student) return;
+
+    const publicDataPath = "artifacts/great-class-quest/public/data";
+    const scoreRef = doc(db, `${publicDataPath}/student_scores`, studentId);
+    
+    try {
+        await runTransaction(db, async (transaction) => {
+            const scoreDoc = await transaction.get(scoreRef);
+            if (!scoreDoc.exists()) throw "Student data missing";
+            
+            const data = scoreDoc.data();
+            // Fallback for older records without 'gold' field
+            const currentGold = data.gold !== undefined ? data.gold : (data.totalStars || 0);
+            const currentInventory = data.inventory || [];
+
+            // 1. CHECK GOLD
+            if (currentGold < item.price) {
+                throw "Not enough gold!";
+            }
+
+            // 2. CHECK MONTHLY LIMIT
+            const currentMonthKey = new Date().toISOString().substring(0, 7); // YYYY-MM
+            const itemsBoughtThisMonth = currentInventory.filter(i => 
+                i.acquiredAt && i.acquiredAt.startsWith(currentMonthKey)
+            );
+
+            if (itemsBoughtThisMonth.length >= 2) {
+                throw "Monthly limit reached! (Max 2 items)";
+            }
+
+            // 3. PROCESS PURCHASE
+            const newItem = {
+                id: item.id,
+                name: item.name,
+                image: item.image,
+                description: item.description,
+                acquiredAt: new Date().toISOString()
+            };
+
+            transaction.update(scoreRef, {
+                gold: increment(-item.price),
+                inventory: [...currentInventory, newItem]
+            });
+        });
+
+        playSound('magic_chime');
+        showToast(`${student.name} bought ${item.name}!`, 'success');
+        
+        // Refresh UI
+        import('../ui/core.js').then(m => m.updateShopStudentDisplay(studentId));
+
+    } catch (error) {
+        if (error === "Not enough gold!" || error.includes("Monthly limit")) {
+            showToast(error, "error");
+            playSound('error');
+        } else {
+            console.error("Buy error:", error);
+            showToast("Transaction failed.", "error");
+        }
     }
 }

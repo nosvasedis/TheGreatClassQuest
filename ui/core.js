@@ -1196,7 +1196,10 @@ export function renderShopUI() {
                     <h3 class="font-title text-xl text-amber-300 leading-tight mb-1">${item.name}</h3>
                     <p class="text-indigo-300 text-xs mb-3 line-clamp-2 flex-grow">${item.description}</p>
                     <div class="flex justify-between items-center mt-auto pt-3 border-t border-indigo-800">
-                        <span class="font-bold text-white text-lg">${item.price} 🪙</span>
+                        <div class="flex items-center gap-1 font-bold text-white text-lg">
+                        <span>${item.price}</span>
+                        <span>🪙</span>
+                        </div>
                         <button class="shop-buy-btn bg-indigo-600 hover:bg-indigo-500 disabled:bg-indigo-900 disabled:text-indigo-500 disabled:cursor-not-allowed text-white text-xs font-bold py-2 px-4 rounded-lg uppercase tracking-wider transition-colors" data-id="${item.id}" disabled>
                             Select Student
                         </button>

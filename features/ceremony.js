@@ -21,20 +21,16 @@ export function updateCeremonyStatus() {
     
     if (!teamQuestBtn || !heroChallengeBtn) return;
 
-    // Reset pulses initially
     teamQuestBtn.classList.remove('ceremony-ready-pulse');
     heroChallengeBtn.classList.remove('ceremony-ready-pulse');
 
-    // 1. Get the currently selected class ID
     let currentClassId = state.get('globalSelectedClassId');
     
-    // If no class is selected manually, try to find the current scheduled class
     if (!currentClassId) {
         const todayStr = utils.getTodayDateString();
         const classesToday = utils.getClassesOnDay(todayStr, state.get('allSchoolClasses'), state.get('allScheduleOverrides'));
         const myClassesToday = classesToday.filter(c => state.get('allTeachersClasses').some(tc => tc.id === c.id));
         
-        // Simple time check to guess current class
         const now = new Date();
         const currentTime = now.toTimeString().slice(0, 5);
         const activeClass = myClassesToday.find(c => c.timeStart && c.timeEnd && currentTime >= c.timeStart && currentTime <= c.timeEnd);
@@ -50,40 +46,29 @@ export function updateCeremonyStatus() {
     const league = classData.questLevel;
     if (!league) return;
 
-    // 2. Check Time Context (Is it a new month?)
     const now = new Date();
-    // We look at the *previous* month to see if there is a ceremony pending for it
     const lastMonthDate = new Date(now.getFullYear(), now.getMonth() - 1, 1);
     
     if (lastMonthDate < constants.competitionStart) return;
 
-    const monthKey = lastMonthDate.toISOString().substring(0, 7); // e.g. "2025-11"
+    const monthKey = lastMonthDate.toISOString().substring(0, 7);
 
-    // 3. Check if today is a scheduled day for this class
-    // We only show the pulse if the teacher is actually teaching this class today
     const todayStr = utils.getTodayDateString();
     const classesToday = utils.getClassesOnDay(todayStr, state.get('allSchoolClasses'), state.get('allScheduleOverrides'));
     const isClassScheduledToday = classesToday.some(c => c.id === currentClassId);
 
     if (!isClassScheduledToday) return;
 
-    // 4. CHECK DATABASE STATUS
-    // The status is stored inside the class document in Firestore:
-    // classData.ceremonyHistory = { "2025-11": { team: true, hero: true } }
     const history = classData.ceremonyHistory || {};
     const monthStatus = history[monthKey] || {};
 
     const isTeamCeremonyDone = !!monthStatus.team;
     const isHeroCeremonyDone = !!monthStatus.hero;
 
-    // 5. Apply Pulse if NOT done
     if (!isTeamCeremonyDone) teamQuestBtn.classList.add('ceremony-ready-pulse');
     if (!isHeroCeremonyDone) heroChallengeBtn.classList.add('ceremony-ready-pulse');
 
-    // 6. Handle "The Veil" (Auto-show overlay)
     const activeTab = document.querySelector('.app-tab:not(.hidden)');
-    
-    // Check if user dismissed the veil for this session
     const veilDismissKey = `veil_dismiss_${currentClassId}_${monthKey}`;
     const isVeilDismissed = sessionStorage.getItem(veilDismissKey) === 'true';
 
@@ -93,7 +78,7 @@ export function updateCeremonyStatus() {
         } else if (activeTab.id === 'student-leaderboard-tab' && !isHeroCeremonyDone) {
             showCeremonyVeil('hero', league, monthKey, currentClassId);
         } else {
-            hideCeremonyVeil(false); // Don't stop music if we are just switching tabs
+            hideCeremonyVeil(false); 
         }
     }
 }
@@ -120,14 +105,12 @@ function showCeremonyVeil(type, league, monthKey, classId) {
     veil.classList.remove('hidden');
     stage.classList.add('hidden');
 
-    // Store data on the button for the start action
     btn.dataset.type = type;
     btn.dataset.league = league;
     btn.dataset.monthKey = monthKey;
     btn.dataset.classId = classId;
 
     document.getElementById('ceremony-veil-close-btn').onclick = () => {
-        // Mark as dismissed in SessionStorage so it doesn't pop up again until refresh
         const veilDismissKey = `veil_dismiss_${classId}_${monthKey}`;
         sessionStorage.setItem(veilDismissKey, 'true');
         hideCeremonyVeil();
@@ -162,7 +145,6 @@ async function startCeremony(type, league, monthKey, classId) {
     const titleEl = document.getElementById('ceremony-title');
     titleEl.innerText = `Preparing the stage...`;
     
-    // Safety check for data
     if (state.get('allSchoolClasses').length === 0) {
         await new Promise(resolve => setTimeout(resolve, 1500));
     }
@@ -186,7 +168,6 @@ async function startCeremony(type, league, monthKey, classId) {
         rawData = await fetchLastMonthResults(league, type, monthKey, classId);
     } catch (error) {
         console.error("Failed to fetch ceremony results:", error);
-        // Fallback UI
         document.getElementById('ceremony-reveal-area').innerHTML = `<p class="text-2xl font-title text-red-400">Connection Interrupted</p>`;
         nextBtn.innerHTML = `<i class="fas fa-times"></i>`;
         nextBtn.onclick = endCeremony;
@@ -195,23 +176,30 @@ async function startCeremony(type, league, monthKey, classId) {
         return;
     }
 
-    // Rank Processing Logic
+    // --- UPDATED RANKING LOGIC WITH TIE-BREAKER ---
     let dataWithRanks = [];
     if (rawData.length > 0 && rawData.some(d => d.score > 0)) {
-        let lastScore = -1;
-        let lastProgress = -1; 
+        let lastMetric = -1;
         let currentRank = 0;
 
         rawData.forEach((entry, index) => {
-            const uniqueMetric = type === 'team' ? entry.progress : entry.score;
-            const lastMetric = type === 'team' ? lastProgress : lastScore;
+            // Determine a "ranking score" that includes the tie-breaker
+            // For Team: Progress % + tiny fraction of Quality Score
+            // For Hero: Total Stars + tiny fraction of Quality Score (3-star count)
+            // This ensures 50.01 (High Quality) > 50.005 (Low Quality), creating different ranks.
+            let metric;
+            if (type === 'team') {
+                metric = entry.progress + (entry.qualityScore || 0) * 0.001; 
+            } else {
+                metric = entry.score + (entry.qualityScore || 0) * 0.001;
+            }
 
-            if (uniqueMetric !== lastMetric) {
+            if (metric !== lastMetric) {
                 currentRank = index + 1;
             }
             dataWithRanks.push({ ...entry, rank: currentRank });
             
-            if (type === 'team') { lastProgress = entry.progress; } else { lastScore = entry.score; }
+            lastMetric = metric;
         });
 
         const groupedByRank = dataWithRanks.reduce((acc, entry) => {
@@ -229,10 +217,7 @@ async function startCeremony(type, league, monthKey, classId) {
         nextBtn.onclick = endCeremony;
         nextBtn.disabled = false;
         skipBtn.disabled = true;
-        
-        // Even if empty, mark as viewed to stop pulsing so it doesn't annoy the user
         markCeremonyViewedInDB(classId, monthKey, type);
-        
         return;
     }
     
@@ -281,7 +266,7 @@ export async function advanceCeremony() {
         nextBtn.innerHTML = `Reveal Winner!`;
         const aiCommentary = document.getElementById('ceremony-ai-commentary');
         aiCommentary.innerHTML = `<p><i class="fas fa-spinner fa-spin"></i> The Quest Master is preparing the final announcement...</p>`;
-        const comment = await generateAICommentary(null, 0, ceremonyState.type, finalists1.length + finalists2.length);
+        const comment = await generateAICommentary(null, 0, ceremonyState.type);
         aiCommentary.innerHTML = `<p>${comment}</p>`;
         
         ceremonyState.step++;
@@ -316,23 +301,17 @@ export function skipCeremony() {
     }
 }
 
-// --- DB PERSISTENCE FUNCTION (NEW) ---
 async function markCeremonyViewedInDB(classId, monthKey, type) {
     if (!classId || !monthKey || !type) return;
 
     try {
         const classRef = doc(db, `artifacts/great-class-quest/public/data/classes`, classId);
-        
-        // We use dot notation to update a specific nested field without overwriting the map
         const fieldPath = `ceremonyHistory.${monthKey}.${type}`;
         
         await updateDoc(classRef, {
             [fieldPath]: true
         });
         
-        console.log(`Ceremony ${type} marked viewed for ${classId} / ${monthKey}`);
-        
-        // Update local state immediately for UI responsiveness
         const allClasses = state.get('allSchoolClasses');
         const classIndex = allClasses.findIndex(c => c.id === classId);
         if (classIndex > -1) {
@@ -342,14 +321,12 @@ async function markCeremonyViewedInDB(classId, monthKey, type) {
             state.setAllSchoolClasses(allClasses);
         }
         
-        updateCeremonyStatus(); // Refresh UI immediately
+        updateCeremonyStatus(); 
 
     } catch (e) {
         console.error("Failed to save ceremony status:", e);
     }
 }
-
-// --- VISUALIZATION HELPERS ---
 
 function revealFinalists(finalist1, finalist2) {
     const revealArea = document.getElementById('ceremony-reveal-area');
@@ -365,6 +342,7 @@ function revealFinalists(finalist1, finalist2) {
                 <h3 class="font-title text-3xl truncate">${entry.name}</h3>
                 ${entry.className ? `<p class="text-sm text-gray-300">${entry.className}</p>` : ''}
                 <p class="font-title text-4xl text-amber-400 mt-2">${entry.score} ⭐</p>
+                <p class="text-xs text-amber-200 mt-1">${entry.qualityScore} perfect lessons!</p>
             </div>
         `;
     };
@@ -473,7 +451,6 @@ export function endCeremony() {
     const ceremonyState = state.get('ceremonyState');
     const { type, league, monthKey, classId } = ceremonyState;
 
-    // SAVE TO DB NOW to prevent re-pulsing on other devices
     markCeremonyViewedInDB(classId, monthKey, type);
 
     document.getElementById('ceremony-screen').classList.add('hidden');
@@ -529,7 +506,6 @@ async function fetchLastMonthResults(league, type, monthKey, classId = null) {
         const BASE_GOAL = 18; 
         const SCALING_FACTOR = 1.5;
         
-        // --- SMART HOLIDAY CALCULATOR FOR HISTORICAL MONTH ---
         const y = parseInt(monthKey.split('-')[0]);
         const m = parseInt(monthKey.split('-')[1]) - 1; 
         const daysInMonth = new Date(y, m + 1, 0).getDate();
@@ -603,7 +579,6 @@ async function fetchLastMonthResults(league, type, monthKey, classId = null) {
 
         return classScores.sort((a, b) => {
             if (Math.abs(b.progress - a.progress) > 0.1) return b.progress - a.progress;
-            // Tie-breaker quality check
             if (a.progress >= 100 && b.progress >= 100) {
                 if (b.qualityScore !== a.qualityScore) return b.qualityScore - a.qualityScore;
             }
@@ -611,21 +586,68 @@ async function fetchLastMonthResults(league, type, monthKey, classId = null) {
         });
 
     } else {
+        // --- HERO'S CHALLENGE TIE-BREAKER LOGIC ---
         let studentsToRank;
+        
         if (classId) {
             studentsToRank = state.get('allStudents').filter(s => s.classId === classId);
         } else {
             const classesInLeague = state.get('allSchoolClasses').filter(c => c.questLevel === league);
             studentsToRank = state.get('allStudents').filter(s => classesInLeague.some(c => c.id === s.classId));
         }
+
+        const qualityMap = {}; 
+        
+        const y = parseInt(monthKey.split('-')[0]);
+        const m = parseInt(monthKey.split('-')[1]); 
+
+        const publicDataPath = "artifacts/great-class-quest/public/data";
+        
+        try {
+            let logsQuery;
+            if (classId) {
+                logsQuery = query(collection(db, `${publicDataPath}/award_log`), where("classId", "==", classId));
+            } else {
+                logsQuery = query(collection(db, `${publicDataPath}/award_log`)); 
+            }
+
+            const logsSnap = await getDocs(logsQuery);
+            
+            logsSnap.forEach(doc => {
+                const d = doc.data();
+                if (!d.date) return;
+                const parts = d.date.split('-'); 
+                const logMonth = parseInt(parts[1]);
+                const logYear = parseInt(parts[2]);
+
+                if (logMonth === m && logYear === y) {
+                    if (d.stars === 3) {
+                        qualityMap[d.studentId] = (qualityMap[d.studentId] || 0) + 1;
+                    }
+                }
+            });
+        } catch (e) {
+            console.error("Error calculating Hero tie-breaker:", e);
+        }
         
         return studentsToRank
             .map(s => {
                 const studentClass = state.get('allSchoolClasses').find(c => c.id === s.classId);
-                return { id: s.id, name: s.name, avatar: s.avatar, score: monthlyScores[s.id] || 0, className: studentClass?.name || '?' };
+                return { 
+                    id: s.id, 
+                    name: s.name, 
+                    avatar: s.avatar, 
+                    score: monthlyScores[s.id] || 0, 
+                    qualityScore: qualityMap[s.id] || 0, 
+                    className: studentClass?.name || '?' 
+                };
             })
             .sort((a, b) => {
+                // Primary: Total Stars
                 if (b.score !== a.score) return b.score - a.score;
+                // Secondary: Quality (Perfect days)
+                if (b.qualityScore !== a.qualityScore) return b.qualityScore - a.qualityScore;
+                // Tertiary: Alphabetical
                 return a.name.localeCompare(b.name);
             });
     }
@@ -651,14 +673,17 @@ export async function showGlobalLeaderboardModal() {
     }
     
     let dataWithRanks = [];
-    let lastScore = -1;
+    let lastMetric = -1;
     let currentRank = 0;
+    
     globalData.forEach((entry, index) => {
-        if (entry.score !== lastScore) {
+        // Same ranking logic as startCeremony to ensure consistency
+        const metric = entry.score + (entry.qualityScore || 0) * 0.001;
+        if (metric !== lastMetric) {
             currentRank = index + 1;
         }
         dataWithRanks.push({ ...entry, rank: currentRank });
-        lastScore = entry.score;
+        lastMetric = metric;
     });
 
     contentEl.innerHTML = dataWithRanks.slice(0, 100).map((student) => {
@@ -674,7 +699,10 @@ export async function showGlobalLeaderboardModal() {
                         <p class="text-xs text-gray-500">${student.className}</p>
                     </div>
                 </div>
-                <p class="font-title text-xl text-purple-600">${student.score} ⭐</p>
+                <div class="text-right">
+                    <p class="font-title text-xl text-purple-600">${student.score} ⭐</p>
+                    <p class="text-xs text-purple-400">${student.qualityScore} perf.</p>
+                </div>
             </div>
         `;
     }).join('');

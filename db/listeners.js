@@ -41,6 +41,7 @@ export function setupDataListeners(userId, dateString) {
     state.get('unsubscribeScheduleOverrides')();
     state.get('unsubscribeHeroChronicleNotes')();
     state.get('unsubscribeSchoolSettings')();
+    state.get('unsubscribeQuestBounties')();
 
     const publicDataPath = "artifacts/great-class-quest/public/data";
     
@@ -63,6 +64,8 @@ export function setupDataListeners(userId, dateString) {
     const completedStoriesQuery = query(collection(db, `${publicDataPath}/completed_stories`), orderBy('completedAt', 'desc'));
     const overridesQuery = query(collection(db, `${publicDataPath}/schedule_overrides`));
     const heroChronicleNotesQuery = query(collection(db, `${publicDataPath}/hero_chronicle_notes`), where('teacherId', '==', userId));
+    const questBountiesQuery = query(collection(db, `${publicDataPath}/quest_bounties`), where('createdBy.uid', '==', userId));
+    const shopItemsQuery = query(collection(db, `${publicDataPath}/shop_items`), where('teacherId', '==', userId));
     const schoolSettingsQuery = doc(db, `${publicDataPath}/school_settings`, 'holidays');
 
     // Optimized Queries (Time-Bounded)
@@ -130,6 +133,19 @@ export function setupDataListeners(userId, dateString) {
     
                 const monthlyEl = document.getElementById(`monthly-stars-${studentId}`);
                 const totalEl = document.getElementById(`total-stars-${studentId}`);
+                const newGold = scoreData.gold !== undefined ? scoreData.gold : newTotal; // Fallback
+                const goldEl = document.getElementById(`student-gold-display-${studentId}`);
+
+                if (goldEl && goldEl.innerText != newGold) {
+                    goldEl.innerText = newGold;
+                    // Trigger the CSS animation on the parent pill
+                    const pill = goldEl.closest('.coin-pill');
+                    if (pill) {
+                        pill.classList.remove('coin-update-anim'); // Reset
+                        void pill.offsetWidth; // Force reflow
+                        pill.classList.add('coin-update-anim');
+                    }
+                }
     
                 if (monthlyEl && monthlyEl.textContent != newMonthly) {
                     monthlyEl.textContent = newMonthly;
@@ -271,6 +287,18 @@ export function setupDataListeners(userId, dateString) {
             }
         }
     }, (error) => console.error("Error listening to hero chronicle notes:", error)));
+
+    state.setUnsubscribeQuestBounties(onSnapshot(questBountiesQuery, async (snapshot) => {
+        state.setAllQuestBounties(snapshot.docs.map(d => ({ id: d.id, ...d.data() })));
+        // Dynamically import to avoid circular dependency
+        const { renderActiveBounties } = await import('../ui/core.js');
+        renderActiveBounties();
+    }, (error) => console.error("Error listening to quest bounties:", error)));
+
+    onSnapshot(shopItemsQuery, (snapshot) => {
+        state.setCurrentShopItems(snapshot.docs.map(d => ({ id: d.id, ...d.data() })));
+        // If shop modal is open, refresh it? For now, we trust the manual open action.
+    });
     
     state.setUnsubscribeSchoolSettings(onSnapshot(schoolSettingsQuery, async (docSnapshot) => {
         if (docSnapshot.exists()) {

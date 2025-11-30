@@ -81,6 +81,9 @@ function getDefaultState() {
         // Calendar & Attendance Views
         calendarCurrentDate: getCalendarDefaultDate(),
         attendanceViewDate: new Date(), // NEW: Tracks the month being viewed in the chronicle
+        // Wallpaper Mode State
+        wallpaperQuoteCache: null,
+        wallpaperQuoteLastFetch: 0,
 
         // Unsubscribe functions
         unsubscribeClasses: () => {},
@@ -96,6 +99,9 @@ function getDefaultState() {
         unsubscribeAttendance: () => {},
         unsubscribeScheduleOverrides: () => {},
         unsubscribeHeroChronicleNotes: () => {},
+        allQuestBounties: [], // Store bounties
+        currentShopItems: [], // Store this month's shop items
+        unsubscribeQuestBounties: () => {}, // Listener unsubscribe
         unsubscribeSchoolSettings: () => {} // Listener for settings
     };
 }
@@ -177,6 +183,8 @@ export function setGlobalSelectedClass(classId, isManual = false) {
             renderAdventureLogTab();
         }
     }
+    // Update bounties
+    import('./ui/core.js').then(m => m.renderActiveBounties());
 }
 
 export function setGlobalSelectedLeague(league, isManual = false) {
@@ -227,6 +235,9 @@ export function setUnsubscribeWrittenScores(func) { state.unsubscribeWrittenScor
 export function setUnsubscribeAttendance(func) { state.unsubscribeAttendance = func; }
 export function setUnsubscribeScheduleOverrides(func) { state.unsubscribeScheduleOverrides = func; }
 export function setUnsubscribeHeroChronicleNotes(func) { state.unsubscribeHeroChronicleNotes = func; }
+export function setAllQuestBounties(bounties) { state.allQuestBounties = bounties; }
+export function setUnsubscribeQuestBounties(func) { state.unsubscribeQuestBounties = func; }
+export function setCurrentShopItems(items) { state.currentShopItems = items; }
 
 // Helper to fetch history (internal use)
 export async function fetchMonthlyHistory(monthKey) {

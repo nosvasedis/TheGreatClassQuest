@@ -348,7 +348,9 @@ function revealFinalists(finalist1, finalist2) {
     revealArea.innerHTML = '';
 
     const createCard = (entry, rank) => {
-        const avatarHtml = entry.avatar ? `<img src="${entry.avatar}" class="w-24 h-24 rounded-full border-4 border-white shadow-lg mx-auto">` : (entry.logo ? `<div class="text-6xl mx-auto">${entry.logo}</div>` : `<div class="w-24 h-24 rounded-full bg-gray-600 flex items-center justify-center text-5xl mx-auto">${entry.name.charAt(0)}</div>`);
+        const avatarHtml = entry.avatar 
+            ? `<img src="${entry.avatar}" data-student-id="${entry.id}" class="w-24 h-24 rounded-full border-4 border-white shadow-lg mx-auto enlargeable-avatar cursor-pointer">` 
+            : (entry.logo ? `<div class="text-6xl mx-auto">${entry.logo}</div>` : `<div data-student-id="${entry.id}" class="w-24 h-24 rounded-full bg-gray-600 flex items-center justify-center text-5xl mx-auto enlargeable-avatar cursor-pointer">${entry.name.charAt(0)}</div>`);
         
         return `
             <div class="ceremony-card finalist" data-rank="${rank}">
@@ -404,7 +406,9 @@ function revealPodiumEntry(entries, rank) {
          revealArea.innerHTML = '';
     }
     
-    const avatarHtml = entry.avatar ? `<img src="${entry.avatar}" class="w-24 h-24 rounded-full border-4 border-white shadow-lg mx-auto">` : (entry.logo ? `<div class="text-6xl mx-auto">${entry.logo}</div>` : `<div class="w-24 h-24 rounded-full bg-gray-600 flex items-center justify-center text-5xl mx-auto">${entry.name.charAt(0)}</div>`);
+    const avatarHtml = entry.avatar 
+        ? `<img src="${entry.avatar}" data-student-id="${entry.id}" class="w-24 h-24 rounded-full border-4 border-white shadow-lg mx-auto enlargeable-avatar cursor-pointer">` 
+        : (entry.logo ? `<div class="text-6xl mx-auto">${entry.logo}</div>` : `<div data-student-id="${entry.id}" class="w-24 h-24 rounded-full bg-gray-600 flex items-center justify-center text-5xl mx-auto enlargeable-avatar cursor-pointer">${entry.name.charAt(0)}</div>`);
     
     const nameHtml = tieCount > 1 
         ? entries.map(e => `<h3 class="font-title text-2xl truncate">${e.name}</h3>`).join('')
@@ -439,7 +443,9 @@ function revealRegularEntry(entries, rank) {
     revealArea.innerHTML = ''; 
     
     const cardHtml = entries.map(entry => {
-        const avatarHtml = entry.avatar ? `<img src="${entry.avatar}" class="w-16 h-16 rounded-full border-2 border-white shadow-md">` : (entry.logo ? `<div class="text-4xl">${entry.logo}</div>` : `<div class="w-16 h-16 rounded-full bg-gray-600 flex items-center justify-center text-3xl">${entry.name.charAt(0)}</div>`);
+        const avatarHtml = entry.avatar 
+            ? `<img src="${entry.avatar}" data-student-id="${entry.id}" class="w-16 h-16 rounded-full border-2 border-white shadow-md enlargeable-avatar cursor-pointer">` 
+            : (entry.logo ? `<div class="text-4xl">${entry.logo}</div>` : `<div data-student-id="${entry.id}" class="w-16 h-16 rounded-full bg-gray-600 flex items-center justify-center text-3xl enlargeable-avatar cursor-pointer">${entry.name.charAt(0)}</div>`);
         return `
             <div class="flex items-center gap-4">
                 ${avatarHtml}

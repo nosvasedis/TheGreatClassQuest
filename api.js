@@ -74,9 +74,10 @@ export async function callElevenLabsTtsApi(textToSpeak) {
     }
 }
 
-export async function callCloudflareAiImageApi(prompt) {
+export async function callCloudflareAiImageApi(prompt, negativePrompt = "") {
     const payload = {
-        prompt: prompt
+        prompt: prompt,
+        negative_prompt: negativePrompt || "text, watermark, blurry, low quality" // Default safety net
     };
     try {
         const response = await fetch(cloudflareWorkerUrl, {

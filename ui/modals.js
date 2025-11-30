@@ -1959,9 +1959,3 @@ export async function generateAIInsight(studentId, insightType) {
         outputEl.innerHTML = `<p class="text-center text-red-500">The Oracle could not process the records at this time. Please try again later.</p>`;
     }
 }
-
-
-
-
-
-

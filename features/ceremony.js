@@ -710,10 +710,10 @@ async function fetchLastMonthResults(league, type, monthKey, classId = null) {
                 if (b.count3Star !== a.count3Star) return b.count3Star - a.count3Star;
                 // 3. Tertiary: Shine (2-Stars) - MOVED UP
                 if (b.count2Star !== a.count2Star) return b.count2Star - a.count2Star;
-                // 4. Quaternary: Diversity - MOVED DOWN
-                if (b.uniqueReasons !== a.uniqueReasons) return b.uniqueReasons - a.uniqueReasons;
-                // 5. Quinary: Academic (Last Resort)
+                // 4. Quaternary: Academic (Higher Priority)
                 if (b.academicAvg !== a.academicAvg) return b.academicAvg - a.academicAvg;
+                // 5. Quinary: Diversity (Lower Priority)
+                if (b.uniqueReasons !== a.uniqueReasons) return b.uniqueReasons - a.uniqueReasons;
                 
                 return a.name.localeCompare(b.name);
             });

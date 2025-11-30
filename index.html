@@ -115,10 +115,14 @@
                 <p class="text-white text-sm opacity-80 -mt-1">Prodigies Language School</p>
             </div>
             <div class="z-10 flex items-center space-x-4">
-                 <div id="current-date-time" class="text-right text-white font-title opacity-95 date-bounce">
+                 <div id="current-date-time" class="text-right text-white font-title opacity-95 date-bounce hidden md:block">
                     <div id="current-date" class="text-3xl font-bold"></div>
                     <div id="current-time" class="text-3xl pulse-subtle"></div>
                 </div>
+                <!-- NEW: Projector Mode Button -->
+                <button id="projector-mode-btn" class="bg-indigo-500 hover:bg-indigo-600 text-white font-bold py-2 px-4 rounded-full bubbly-button transition-colors duration-300" title="Toggle Projector Mode">
+                    <i class="fas fa-tv"></i>
+                </button>
                 <button id="logout-btn" class="bg-red-500 hover:bg-red-600 text-white font-bold py-2 px-4 rounded-full bubbly-button">
                     <i class="fas fa-sign-out-alt"></i>
                 </button>
@@ -126,6 +130,8 @@
         </header>
 
         <main class="flex-1 overflow-y-auto p-4 md:p-6">
+            <!-- Bounty Board Area -->
+            <div id="bounty-board-container" class="max-w-7xl mx-auto mb-4 empty:hidden"></div>
             
             <div id="about-tab" class="app-tab">
                 <div class="max-w-6xl mx-auto text-center">
@@ -279,6 +285,9 @@
                             </button>
                             <button id="student-history-btn" class="font-title text-xl bg-white text-purple-800 py-2 px-6 rounded-full shadow-lg border-4 border-purple-300 bubbly-button">
                                 <i class="fas fa-history mr-2"></i>View History
+                            </button>
+                            <button id="open-shop-btn" class="font-title text-xl bg-gradient-to-r from-pink-500 to-rose-500 text-white py-2 px-6 rounded-full shadow-lg border-b-4 border-rose-700 bubbly-button transform hover:scale-105">
+                                <i class="fas fa-store mr-2"></i> Shop
                             </button>
                         </div>
                         <!-- Row 2: Action Buttons -->
@@ -437,6 +446,13 @@
                                 <!-- Dropdown items will be injected here -->
                             </div>
                         </div>
+                    </div>
+
+                    <!-- Bounty Action Bar -->
+                    <div class="flex justify-center mb-6">
+                        <button id="open-bounty-modal-btn" class="w-full md:w-auto bg-amber-100 text-amber-800 font-title text-xl py-3 px-8 rounded-2xl bubbly-button shadow-md hover:bg-amber-200 border-2 border-amber-300 transition-transform hover:scale-105">
+                            <i class="fas fa-crosshairs mr-2"></i> Post a Bounty
+                        </button>
                     </div>
 
                     <div id="award-stars-student-list" class="mt-6 grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -1523,6 +1539,46 @@
     </div>
     </div>
 
+    <!-- Create Bounty Modal -->
+    <div id="create-bounty-modal" class="fixed inset-0 bg-black bg-opacity-50 z-[72] flex items-center justify-center p-4 hidden">
+        <div class="bg-white p-8 rounded-3xl shadow-2xl max-w-lg w-full pop-in border-4 border-amber-400">
+            <h2 class="font-title text-3xl text-amber-600 mb-2 text-center"><i class="fas fa-scroll mr-2"></i>Post a Bounty</h2>
+            <p class="text-gray-500 text-center mb-6">Challenge your class to a timed quest!</p>
+            
+            <form id="create-bounty-form" class="space-y-4">
+                <input type="hidden" id="bounty-class-id">
+                
+                <div>
+                    <label class="block text-sm font-bold text-gray-700">Bounty Title</label>
+                    <input type="text" id="bounty-title" placeholder="e.g. Operation: Total Focus" class="w-full px-4 py-2 border rounded-xl focus:ring-amber-500" required>
+                </div>
+
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-bold text-gray-700">Target (Stars)</label>
+                        <input type="number" id="bounty-target" value="20" min="1" class="w-full px-4 py-2 border rounded-xl focus:ring-amber-500" required>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-bold text-gray-700">Time Limit</label>
+                        <select id="bounty-duration" class="w-full px-4 py-2 border rounded-xl bg-white focus:ring-amber-500">
+                            <!-- Options will be populated dynamically -->
+                        </select>
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-sm font-bold text-gray-700">Reward Description</label>
+                    <input type="text" id="bounty-reward" placeholder="e.g. 5 Minutes of Free Time" class="w-full px-4 py-2 border rounded-xl focus:ring-amber-500" required>
+                </div>
+
+                <div class="flex justify-between gap-4 mt-6">
+                    <button type="button" id="bounty-cancel-btn" class="w-1/2 bg-gray-200 text-gray-700 font-bold py-3 rounded-xl bubbly-button">Cancel</button>
+                    <button type="submit" class="w-1/2 bg-amber-500 hover:bg-amber-600 text-white font-bold py-3 rounded-xl bubbly-button">Post Bounty</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
     <!-- Move Student Modal -->
     <div id="move-student-modal" class="fixed inset-0 bg-black bg-opacity-50 z-[72] flex items-center justify-center p-4 hidden">
         <div class="bg-white p-8 rounded-3xl shadow-2xl max-w-md w-full pop-in border-4 border-yellow-300">
@@ -1536,6 +1592,72 @@
             <div class="flex justify-around gap-4 mt-6">
                 <button id="move-student-cancel-btn" class="w-full bg-gray-200 hover:bg-gray-300 text-gray-800 font-title text-lg py-2 px-8 rounded-xl bubbly-button">Cancel</button>
                 <button id="move-student-confirm-btn" class="w-full bg-yellow-500 hover:bg-yellow-600 text-white font-title text-lg py-2 px-8 rounded-xl bubbly-button">Confirm Move</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- The Mystic Shop Modal -->
+    <div id="shop-modal" class="fixed inset-0 bg-black bg-opacity-80 z-[80] flex items-center justify-center p-4 hidden">
+        <div class="bg-indigo-950 rounded-3xl shadow-2xl max-w-7xl w-full h-[90vh] flex flex-col pop-in border-4 border-amber-500 overflow-hidden relative">
+            
+            <!-- Close Button -->
+            <button id="shop-close-btn" class="absolute top-4 right-4 text-white/50 hover:text-white text-3xl z-30 transition-colors">&times;</button>
+
+            <!-- Header -->
+            <div class="bg-indigo-900/90 p-4 md:p-6 flex flex-col md:flex-row justify-between items-center border-b-4 border-indigo-800 shadow-xl z-20 gap-4 backdrop-blur-md">
+                <div class="flex items-center gap-4">
+                    <div class="text-6xl filter drop-shadow-lg">🎪</div>
+                    <div>
+                        <!-- Main Title -->
+                        <h2 id="shop-title" class="font-title text-3xl md:text-5xl text-amber-400" style="text-shadow: 0 4px 0 #78350f;">The Mystic Market</h2>
+                        <!-- Subtitle for Month (ID ADDED HERE) -->
+                        <p id="shop-month" class="text-indigo-200 text-sm font-bold uppercase tracking-widest opacity-80 mt-1 ml-1"></p>
+                    </div>
+                </div>
+                
+                <div class="flex items-center gap-3">
+                    <!-- Restock Button (Always Visible) -->
+                    <button id="generate-shop-btn" class="bg-indigo-800 hover:bg-indigo-700 text-indigo-200 hover:text-white border border-indigo-600 font-bold py-2 px-4 rounded-xl transition-all text-sm flex items-center gap-2">
+                        <i class="fas fa-sync-alt"></i> Restock
+                    </button>
+
+                    <!-- Student Selector -->
+                    <div class="flex items-center gap-3 bg-black/30 p-2 rounded-xl border border-indigo-500/30">
+                        <div class="text-right hidden lg:block">
+                            <p class="text-indigo-300 text-[10px] uppercase font-bold">Purse</p>
+                            <!-- Added 'whitespace-nowrap' to prevent line break -->
+                            <p id="shop-student-gold" class="font-title text-2xl text-yellow-400 leading-none whitespace-nowrap">0 🪙</p>
+                        </div>
+                        <select id="shop-student-select" class="bg-indigo-950 text-white border border-indigo-600 rounded-lg px-3 py-2 focus:ring-2 focus:ring-amber-400 outline-none w-48">
+                            <option value="">Select Shopper...</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Main Content Area -->
+            <div class="flex-grow overflow-y-auto p-6 md:p-8 relative custom-scrollbar">
+                <!-- Background Pattern -->
+                <div class="absolute inset-0 opacity-10 pointer-events-none" style="background-image: url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI0MCIgaGVpZ2h0PSI0MCIgdmlld0JveD0iMCAwIDQwIDQwIj48ZyBmaWxsLXJ1bGU9ImV2ZW5vZGQiPjxwYXRoIGQ9Ik0wIDQwTDQwIDBIMjBMMCAyME00MCA0MFYyMEwwIDQwIiBmaWxsPSIjZmJicmIyNCIgZmlsbC1vcGFjaXR5PSIwLjUiLz48L2c+PC9zdmc+');"></div>
+
+                <!-- Loader -->
+                <div id="shop-loader" class="hidden absolute inset-0 z-50 flex flex-col items-center justify-center bg-indigo-950/80 backdrop-blur-sm">
+                    <div class="text-6xl animate-bounce mb-4">🧙‍♂️</div>
+                    <h3 class="font-title text-3xl text-amber-400 animate-pulse">The Merchant is traveling...</h3>
+                    <p class="text-indigo-200">Procuring rare artifacts from the void.</p>
+                </div>
+
+                <!-- Items Grid -->
+                <div id="shop-items-container" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-6 relative z-10 pb-20">
+                    <!-- Items injected here -->
+                </div>
+                
+                <!-- Empty State -->
+                <div id="shop-empty-state" class="hidden flex flex-col items-center justify-center h-full text-center min-h-[400px]">
+                    <div class="text-8xl mb-6 opacity-50">📦</div>
+                    <h3 class="font-title text-4xl text-indigo-300 mb-2">Out of Stock</h3>
+                    <p class="text-indigo-400 mb-8 text-lg">Summon the merchant to restock this league's shelves!</p>
+                </div>
             </div>
         </div>
     </div>
@@ -1669,6 +1791,54 @@
         </div>
     </div>
 
+    <div id="dynamic-wallpaper-screen" class="hidden fixed inset-0 z-[100] overflow-hidden transition-colors duration-[3000ms] ease-in-out flex flex-col items-center justify-center font-sans">
+        
+        <div id="wall-bg-day" class="absolute inset-0 bg-gradient-to-b from-sky-400 via-blue-300 to-indigo-100 transition-opacity duration-[3000ms]"></div>
+        
+        <div id="wall-bg-night" class="absolute inset-0 bg-gradient-to-b from-indigo-950 via-purple-900 to-slate-800 opacity-0 transition-opacity duration-[3000ms]"></div>
+
+        <div class="absolute inset-0 pointer-events-none z-0 overflow-hidden">
+            <div id="wall-sun" class="absolute w-64 h-64 rounded-full bg-yellow-300 blur-2xl opacity-80 transition-all duration-[3000ms] ease-in-out" style="top: -5%; right: -5%;"></div>
+            
+            <div id="wall-moon" class="absolute w-48 h-48 rounded-full bg-slate-100 shadow-[0_0_50px_rgba(255,255,255,0.8)] transition-all duration-[3000ms] ease-in-out" style="top: 110%; right: 10%;">
+                <div class="absolute top-10 left-8 w-8 h-8 bg-slate-200 rounded-full opacity-50"></div>
+                <div class="absolute bottom-12 right-10 w-12 h-12 bg-slate-200 rounded-full opacity-50"></div>
+            </div>
+        </div>
+
+        <div class="absolute inset-0 pointer-events-none z-10">
+            <i class="fas fa-cloud text-white/40 absolute text-[18rem]" style="top: 5%; left: -10%; animation: float-clouds-right 80s linear infinite;"></i>
+            <i class="fas fa-cloud text-white/30 absolute text-[22rem]" style="bottom: 15%; right: -20%; animation: float-clouds-left 100s linear infinite;"></i>
+            <i class="fas fa-cloud text-white/20 absolute text-[12rem]" style="top: 30%; left: 85%; animation: float-clouds-right 90s linear infinite;"></i>
+            <i class="fas fa-cloud text-white/15 absolute text-[10rem]" style="top: 60%; left: 10%; animation: float-clouds-right 120s linear infinite; animation-delay: -20s;"></i>
+            <i class="fas fa-cloud text-white/25 absolute text-[16rem]" style="top: 15%; right: 30%; animation: float-clouds-left 110s linear infinite; animation-delay: -40s;"></i>
+        </div>
+
+        <div id="wall-center-hub" class="z-20 text-center relative p-10 rounded-[3rem] wall-center-hub animate-pulse-slow transition-all duration-1000">
+            <h1 id="wall-time" class="font-title text-[9rem] text-white leading-none drop-shadow-xl" style="text-shadow: 4px 4px 0 rgba(0,0,0,0.15);">12:00</h1>
+            <h2 id="wall-date" class="font-title text-4xl text-white/95 mt-2 mb-6 tracking-wide drop-shadow-md">Monday, January 1st</h2>
+            
+            <div id="wall-class-badge" class="inline-block bg-white/90 backdrop-blur-md px-12 py-6 rounded-full shadow-2xl transform transition-transform hover:scale-105 border-4 border-white/60">
+                <h3 id="wall-class-name" class="font-title text-5xl text-indigo-700 tracking-tight">Class Name</h3>
+                <p id="wall-class-level" class="text-indigo-500 font-bold uppercase tracking-[0.2em] text-sm mt-2">Level</p>
+            </div>
+        </div>
+
+        <div id="wall-floating-area" class="absolute inset-0 pointer-events-none z-30"></div>
+
+        <div id="wall-quote-container" class="absolute bottom-8 left-0 right-0 text-center z-40 transition-opacity duration-1000 opacity-0 px-4">
+            <div class="inline-flex items-center gap-4 bg-black/20 backdrop-blur-md border border-white/20 rounded-full px-8 py-3 shadow-lg hover:bg-black/30 transition-colors">
+                <span class="text-2xl">✨</span>
+                <p id="wall-quote-text" class="font-title text-xl text-white tracking-wide">"Loading Wisdom..."</p>
+                <span class="text-2xl">✨</span>
+            </div>
+        </div>
+
+        <button id="exit-wallpaper-btn" class="absolute top-8 right-8 z-50 bg-white/20 hover:bg-red-500 hover:text-white text-white/60 rounded-full w-16 h-16 flex items-center justify-center text-3xl backdrop-blur-md transition-all duration-300 shadow-lg border border-white/30 cursor-pointer pointer-events-auto">
+            <i class="fas fa-power-off"></i>
+        </button>
+    </div>
+                                        
     <!-- Link to your external JavaScript file -->
     <script type="module" src="app.js"></script>
 </body>

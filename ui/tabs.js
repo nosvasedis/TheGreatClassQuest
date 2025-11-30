@@ -319,8 +319,6 @@ export function renderClassLeaderboardTab() {
 }
 
 export function renderStudentLeaderboardTab() {
-    // ... (No changes needed here for this specific request)
-    // Copying existing logic to maintain file integrity
     const list = document.getElementById('student-leaderboard-list');
     if (!list) return;
 
@@ -336,14 +334,71 @@ export function renderStudentLeaderboardTab() {
         return;
     }
     
-    const reasonInfo = {
-        teamwork: { icon: 'fa-users', color: 'text-purple-500', name: 'Teamwork' },
-        creativity: { icon: 'fa-lightbulb', color: 'text-pink-500', name: 'Creativity' },
-        respect: { icon: 'fa-hands-helping', color: 'text-green-500', name: 'Respect' },
-        focus: { icon: 'fa-brain', color: 'text-yellow-600', name: 'Focus' },
-        welcome_back: { icon: 'fa-hand-sparkles', color: 'text-cyan-500', name: 'Welcome Back' },
-        story_weaver: { icon: 'fa-feather-alt', color: 'text-cyan-600', name: 'Story Weaver' },
-        scholar_s_bonus: { icon: 'fa-graduation-cap', color: 'text-amber-700', name: 'Scholar\'s Bonus' }
+    // --- DATA PREPARATION ---
+    const allLogs = state.get('allAwardLogs');
+    const allScores = state.get('allWrittenScores');
+    
+    // 1. HELPER: Calculate Stats & Tie-Breakers
+    const getStudentStats = (studentId) => {
+        const studentLogs = allLogs.filter(log => log.studentId === studentId);
+        const studentScores = allScores.filter(s => s.studentId === studentId);
+        
+        const currentMonthIndex = new Date().getMonth();
+        const currentYear = new Date().getFullYear();
+        
+        const monthlyLogs = studentLogs.filter(log => {
+            const logDate = utils.parseDDMMYYYY(log.date);
+            return logDate.getMonth() === currentMonthIndex && logDate.getFullYear() === currentYear;
+        });
+
+        // A. Weekly Stars
+        const today = new Date();
+        const dayOfWeek = today.getDay();
+        const diff = today.getDate() - dayOfWeek + (dayOfWeek === 0 ? -6 : 1);
+        const startOfWeek = new Date(today.setDate(diff));
+        startOfWeek.setHours(0, 0, 0, 0);
+        const weeklyStars = studentLogs
+            .filter(log => utils.parseDDMMYYYY(log.date) >= startOfWeek)
+            .reduce((sum, log) => sum + log.stars, 0);
+
+        // B. Behavior Stats
+        const reasonCounts = {};
+        let uniqueReasons = 0;
+        let count3Star = 0;
+        let count2Star = 0;
+        
+        monthlyLogs.forEach(log => {
+            if (log.reason) {
+                if (!reasonCounts[log.reason]) { reasonCounts[log.reason] = 0; uniqueReasons++; }
+                reasonCounts[log.reason] += log.stars;
+            }
+            if (log.stars >= 3) count3Star++;
+            else if (log.stars >= 2) count2Star++;
+        });
+        const topReasonEntry = Object.entries(reasonCounts).sort((a, b) => b[1] - a[1])[0];
+        const topSkill = topReasonEntry ? topReasonEntry[0] : null;
+
+        // C. Academic Avg (For Month)
+        let acadSum = 0;
+        let acadCount = 0;
+        
+        studentScores.forEach(s => {
+            if (!s.date) return;
+            const sDate = new Date(s.date);
+            if (sDate.getMonth() === currentMonthIndex && sDate.getFullYear() === currentYear) {
+                let val = 0;
+                if (s.maxScore > 0 && s.scoreNumeric !== null) val = (s.scoreNumeric / s.maxScore) * 100;
+                else if (s.scoreQualitative === "Great!!!") val = 100;
+                else if (s.scoreQualitative === "Great!!") val = 75;
+                if (val > 0) {
+                    acadSum += val;
+                    acadCount++;
+                }
+            }
+        });
+        const academicAvg = acadCount > 0 ? (acadSum / acadCount) : 0;
+
+        return { weeklyStars, topSkill, uniqueReasons, count3Star, count2Star, academicAvg };
     };
 
     let studentsInLeague = state.get('allStudents')
@@ -352,173 +407,233 @@ export function renderStudentLeaderboardTab() {
             const studentClass = state.get('allSchoolClasses').find(c => c.id === s.classId);
             const scoreData = state.get('allStudentScores').find(sc => sc.id === s.id) || {};
             const score = state.get('studentStarMetric') === 'monthly' ? (scoreData.monthlyStars || 0) : (scoreData.totalStars || 0);
-            return { ...s, score, className: studentClass?.name || '?', classLogo: studentClass?.logo || '📚' };
+            const stats = getStudentStats(s.id);
+
+            return { ...s, score, stats, className: studentClass?.name || '?', classLogo: studentClass?.logo || '📚' };
         });
     
-    if (studentsInLeague.length === 0) {
-         list.innerHTML = `<p class="text-center text-gray-700 bg-white/50 p-4 rounded-2xl text-lg">No students have been added to classes in this league yet.</p>`;
-         return;
-    }
-    
+    // 3. SORTING FUNCTION
+    const sortStudents = (a, b) => {
+        // 1. Stars
+        if (b.score !== a.score) return b.score - a.score;
+        // 2. Supernova (3-Stars)
+        if (b.stats.count3Star !== a.stats.count3Star) return b.stats.count3Star - a.stats.count3Star;
+        // 3. Shine (2-Stars)
+        if (b.stats.count2Star !== a.stats.count2Star) return b.stats.count2Star - a.stats.count2Star;
+        // 4. Diversity
+        if (b.stats.uniqueReasons !== a.stats.uniqueReasons) return b.stats.uniqueReasons - a.stats.uniqueReasons;
+        // 5. Academic (Last Resort)
+        if (b.stats.academicAvg !== a.stats.academicAvg) return b.stats.academicAvg - a.stats.academicAvg;
+        
+        return a.name.localeCompare(b.name);
+    };
+
+    // --- RENDER HELPERS ---
+    const reasonInfo = {
+        teamwork: { icon: 'fa-users', color: 'bg-purple-100 text-purple-700', name: 'Teamwork' },
+        creativity: { icon: 'fa-lightbulb', color: 'bg-pink-100 text-pink-700', name: 'Creativity' },
+        respect: { icon: 'fa-hands-helping', color: 'bg-green-100 text-green-700', name: 'Respect' },
+        focus: { icon: 'fa-brain', color: 'bg-yellow-100 text-yellow-700', name: 'Focus' },
+        welcome_back: { icon: 'fa-hand-sparkles', color: 'bg-cyan-100 text-cyan-700', name: 'Back!' },
+        story_weaver: { icon: 'fa-feather-alt', color: 'bg-cyan-100 text-cyan-700', name: 'Story' },
+        scholar_s_bonus: { icon: 'fa-graduation-cap', color: 'bg-amber-100 text-amber-800', name: 'Scholar' }
+    };
+
+    const getAvatarHtml = (s, sizeClass = "w-12 h-12") => {
+        const hoverEffects = "transform transition-transform duration-200 hover:scale-110 hover:rotate-3 cursor-pointer enlargeable-avatar";
+        if (s.avatar) {
+            return `<img src="${s.avatar}" alt="${s.name}" class="${sizeClass} rounded-full object-cover border-4 border-white shadow-md ${hoverEffects}">`;
+        } else {
+            return `<div class="${sizeClass} rounded-full bg-indigo-100 text-indigo-600 flex items-center justify-center font-bold text-lg border-4 border-white shadow-md ${hoverEffects}">${s.name.charAt(0)}</div>`;
+        }
+    };
+
+    const getPillsHtml = (s) => {
+        let html = '';
+        if (s.stats.weeklyStars > 0) {
+            html += `<div class="flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-orange-100 text-orange-600 shadow-sm border border-orange-200" title="${s.stats.weeklyStars} stars this week">
+                <i class="fas fa-fire"></i> ${s.stats.weeklyStars}
+            </div>`;
+        }
+        if (s.stats.count3Star > 0) {
+            html += `<div class="flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-indigo-100 text-indigo-600 shadow-sm border border-indigo-200" title="${s.stats.count3Star} Perfect 3-Star Awards">
+                <i class="fas fa-meteor"></i> ${s.stats.count3Star}
+            </div>`;
+        }
+        if (s.stats.topSkill) {
+            const info = reasonInfo[s.stats.topSkill] || {icon: 'fa-star', color: 'bg-gray-100 text-gray-600', name: 'Star'};
+            html += `<div class="flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold ${info.color} shadow-sm border border-white/50" title="Top Skill">
+                <i class="fas ${info.icon}"></i> <span>${info.name}</span>
+            </div>`;
+        }
+        return html;
+    };
+
     let outputHtml = '';
+    
     if (state.get('studentLeaderboardView') === 'league') {
-        studentsInLeague.sort((a, b) => b.score - a.score);
-        let lastScore = -1, currentRank = 0;
+        // === GLOBAL VIEW (Cards) ===
+        studentsInLeague.sort(sortStudents);
+
+        let lastScore = -1, last3 = -1, last2 = -1, lastUnique = -1, lastRank = 0;
+        
         studentsInLeague.slice(0, 50).forEach((s, index) => {
-            if (s.score !== lastScore) {
-                currentRank = index + 1;
-                lastScore = s.score;
-            }
-            const rankDisplay = currentRank;
-            const trophyColors = ['text-amber-400', 'text-gray-400', 'text-amber-600'];
-            const rankBGs = {
-                1: 'bg-gradient-to-r from-amber-100 to-white',
-                2: 'bg-gradient-to-r from-gray-200 to-white',
-                3: 'bg-gradient-to-r from-orange-100 to-white'
-            };
-            const rankBG = rankDisplay <= 3 && s.score > 0 ? rankBGs[rankDisplay] : 'bg-white';
-            
-            const today = new Date();
-            const dayOfWeek = today.getDay();
-            const diff = today.getDate() - dayOfWeek + (dayOfWeek === 0 ? -6 : 1);
-            const startOfWeek = new Date(today.setDate(diff));
-            startOfWeek.setHours(0, 0, 0, 0);
+            let isBehaviorTie = (s.score === lastScore && s.stats.count3Star === last3 && s.stats.count2Star === last2 && s.stats.uniqueReasons === lastUnique);
+            let currentRank;
 
-            const allLogs = state.get('allAwardLogs');
-            const studentLogs = allLogs.filter(log => log.studentId === s.id);
-            
-            const weeklyStars = studentLogs
-                .filter(log => utils.parseDDMMYYYY(log.date) >= startOfWeek)
-                .reduce((sum, log) => sum + log.stars, 0);
-            
-            const currentMonthIndex = new Date().getMonth();
-            const currentYear = new Date().getFullYear();
-            const monthlyLogs = studentLogs.filter(log => {
-                const logDate = utils.parseDDMMYYYY(log.date);
-                return logDate.getMonth() === currentMonthIndex && logDate.getFullYear() === currentYear;
-            });
-
-            const reasonCounts = monthlyLogs.reduce((acc, log) => {
-                if (log.reason) { acc[log.reason] = (acc[log.reason] || 0) + log.stars; }
-                return acc;
-            }, {});
-            const topReasonEntry = Object.entries(reasonCounts).sort((a, b) => b[1] - a[1])[0];
-            const topSkill = topReasonEntry ? topReasonEntry[0] : null;
-
-            let statsHtml = '';
-            if (topSkill) {
-                statsHtml += `<div class="text-center text-xs text-gray-500" title="Top Skill This Month: ${reasonInfo[topSkill]?.name || ''}">
-                                <i class="fas ${reasonInfo[topSkill]?.icon || 'fa-star'} ${reasonInfo[topSkill]?.color || 'text-gray-500'} text-lg"></i>
-                                <div>Top Skill</div>
-                              </div>`;
+            if (index === 0) {
+                currentRank = 1;
+            } else {
+                if (lastRank <= 3) {
+                    currentRank = isBehaviorTie ? lastRank : index + 1; // Top 3: Ignore Academic
+                } else {
+                    let isTotalTie = isBehaviorTie && (s.stats.academicAvg === studentsInLeague[index-1].stats.academicAvg);
+                    currentRank = isTotalTie ? lastRank : index + 1; // 4+: Use Academic
+                }
             }
-            if (weeklyStars > 0) {
-                 statsHtml += `<div class="text-center text-xs text-gray-500" title="${weeklyStars} stars this week">
-                                <i class="fas fa-fire text-orange-400 text-lg"></i>
-                                <div>${weeklyStars} This Week</div>
-                              </div>`;
-            }
+
+            lastScore = s.score; last3 = s.stats.count3Star; last2 = s.stats.count2Star; lastUnique = s.stats.uniqueReasons; lastRank = currentRank;
             
-            const avatarHtml = s.avatar ? `<img src="${s.avatar}" alt="${s.name}" class="student-avatar large-avatar mr-3 enlargeable-avatar">` : '';
+            let cardClasses = "bg-white border-l-4 border-gray-200 hover:shadow-md";
+            let rankBadge = `<div class="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center font-bold text-gray-500">${currentRank}</div>`;
+            
+            if (currentRank === 1) { cardClasses = "bg-gradient-to-r from-amber-50 to-white border-l-4 border-amber-400 shadow-md"; rankBadge = `<div class="text-3xl">🥇</div>`; }
+            else if (currentRank === 2) { cardClasses = "bg-gradient-to-r from-gray-50 to-white border-l-4 border-gray-400 shadow-sm"; rankBadge = `<div class="text-3xl">🥈</div>`; }
+            else if (currentRank === 3) { cardClasses = "bg-gradient-to-r from-orange-50 to-white border-l-4 border-orange-400 shadow-sm"; rankBadge = `<div class="text-3xl">🥉</div>`; }
+
+            // Add trigger class for Global View
+            const avatarHtml = getAvatarHtml(s).replace('enlargeable-avatar', 'enlargeable-avatar hero-stats-avatar-trigger').replace('img', `img data-student-id="${s.id}"`);
 
             outputHtml += `
-                <div class="student-leaderboard-card p-4 rounded-2xl shadow-lg border-2 border-purple-100 flex items-center justify-between ${rankBG} transition-all duration-300 transform hover:scale-[1.02] hover:shadow-xl" style="animation-delay: ${Math.random() * -6}s;">
-                    <div class="flex items-center">
-                        ${rankDisplay <= 3 && s.score > 0 ? `<i class="fas fa-trophy ${trophyColors[rankDisplay - 1]} text-4xl mr-4"></i>` : `<span class="font-bold text-3xl text-gray-400 w-12 text-center mr-3">${rankDisplay}</span>`}
-                        ${avatarHtml}
-                        <div>
-                            <h3 class="font-bold text-xl text-gray-800">${s.classLogo} ${s.name}</h3>
-                            <p class="text-sm text-purple-500">${s.className}</p>
+                <div class="student-leaderboard-card p-3 rounded-xl mb-3 flex items-center justify-between transition-all ${cardClasses}">
+                    <div class="flex items-center gap-3 md:gap-4 overflow-hidden">
+                        <div class="flex-shrink-0 w-8 text-center">${rankBadge}</div>
+                        <div class="flex-shrink-0">${avatarHtml}</div>
+                        <div class="min-w-0">
+                            <h3 class="font-bold text-gray-800 text-lg truncate">${s.name}</h3>
+                            <p class="text-xs text-gray-500 flex items-center gap-1"><span>${s.classLogo} ${s.className}</span></p>
                         </div>
                     </div>
-                    <div class="flex items-center gap-4 md:gap-6">
-                        ${statsHtml}
-                        <div class="font-title text-4xl text-purple-600">${s.score} ⭐</div>
+                    <div class="flex items-center gap-3 flex-shrink-0 ml-2">
+                        <div class="flex flex-col items-end gap-1 flex-wrap">${getPillsHtml(s)}</div>
+                        <div class="text-right">
+                            <div class="font-title text-3xl text-indigo-600 leading-none">${s.score}</div>
+                            <div class="text-[10px] text-gray-400 font-bold uppercase tracking-wider">Stars</div>
+                        </div>
                     </div>
                 </div>`;
         });
+
     } else {
+        // === BY CLASS VIEW (Updated VIBRANT List) ===
         const classesMap = studentsInLeague.reduce((acc, student) => {
             if (!acc[student.classId]) acc[student.classId] = { name: student.className, logo: student.classLogo, students: [] };
             acc[student.classId].students.push(student);
             return acc;
         }, {});
 
-        const allClassIdsInView = Object.keys(classesMap);
-        const myClassIds = allClassIdsInView.filter(classId => state.get('allTeachersClasses').some(c => c.id === classId));
-        const otherClassIds = allClassIdsInView.filter(classId => !myClassIds.includes(classId));
-        
-        const sortByName = (a, b) => (classesMap[a]?.name || '').localeCompare(classesMap[b]?.name || '');
-        myClassIds.sort(sortByName);
-        otherClassIds.sort(sortByName);
-
-        const sortedClassIds = [...myClassIds, ...otherClassIds];
+        const allClassIds = Object.keys(classesMap);
+        const myClassIds = allClassIds.filter(id => state.get('allTeachersClasses').some(c => c.id === id));
+        const otherClassIds = allClassIds.filter(id => !myClassIds.includes(id));
+        const nameSort = (a, b) => classesMap[a].name.localeCompare(classesMap[b].name);
+        const sortedClassIds = [...myClassIds.sort(nameSort), ...otherClassIds.sort(nameSort)];
 
         for (const classId of sortedClassIds) {
             const classData = classesMap[classId];
-            classData.students.sort((a, b) => b.score - a.score);
+            classData.students.sort(sortStudents);
             
             const randomGradient = constants.titleGradients[utils.simpleHashCode(classData.name) % constants.titleGradients.length];
-            outputHtml += `<h3 class="font-title text-4xl mt-8 mb-3 flex items-center gap-3" style="text-shadow: 0 2px 4px rgba(0,0,0,0.1);"><span class="text-4xl">${classData.logo}</span><span class="text-transparent bg-clip-text bg-gradient-to-r ${randomGradient}">${classData.name}</span></h3>`;
+            
+            outputHtml += `
+            <div class="mt-10 mb-6 text-center">
+                <div class="inline-flex items-center gap-3 px-6 py-2 rounded-2xl bg-white shadow-sm border border-gray-100 transform hover:scale-105 transition-transform duration-300">
+                    <span class="text-4xl filter drop-shadow-md">${classData.logo}</span>
+                    <h3 class="font-title text-3xl tracking-wide text-transparent bg-clip-text bg-gradient-to-r ${randomGradient}" style="filter: drop-shadow(0 1px 1px rgba(0,0,0,0.05));">
+                        ${classData.name}
+                    </h3>
+                </div>
+            </div>
+            
+            <div class="flex flex-col gap-3 mb-12 max-w-5xl mx-auto">`;
 
-            let lastScore = -1, currentRank = 0;
+            let lastScore = -1, last3 = -1, last2 = -1, lastUnique = -1, lastRank = 0;
+            
             classData.students.forEach((s, index) => {
-                if (s.score !== lastScore) {
-                    currentRank = index + 1;
-                    lastScore = s.score;
-                }
-                const rankDisplay = currentRank; 
-                const medalColors = { 1: 'text-amber-400', 2: 'text-gray-400', 3: 'text-amber-600' };
-                const rankBGs = { 1: 'bg-amber-100 border-amber-300', 2: 'bg-gray-200 border-gray-400', 3: 'bg-orange-100 border-orange-300' };
-                const medalHtml = rankDisplay <= 3 && s.score > 0 ? `<i class="fas fa-medal ${medalColors[rankDisplay]} text-2xl mr-3"></i>` : `<span class="font-bold text-gray-400 w-6 text-left mr-3">${rankDisplay}</span>`;
-                const rankBG = rankDisplay <= 3 && s.score > 0 ? rankBGs[rankDisplay] : 'bg-gray-50 border-purple-200';
-                
-                const today = new Date();
-                const dayOfWeek = today.getDay();
-                const diff = today.getDate() - dayOfWeek + (dayOfWeek === 0 ? -6 : 1);
-                const startOfWeek = new Date(today.setDate(diff));
-                startOfWeek.setHours(0, 0, 0, 0);
+                // RANK LOGIC
+                let isBehaviorTie = (s.score === lastScore && s.stats.count3Star === last3 && s.stats.count2Star === last2 && s.stats.uniqueReasons === lastUnique);
+                let currentRank;
 
-                const studentLogs = state.get('allAwardLogs').filter(log => log.studentId === s.id);
-                
-                const weeklyStars = studentLogs
-                    .filter(log => utils.parseDDMMYYYY(log.date) >= startOfWeek)
-                    .reduce((sum, log) => sum + log.stars, 0);
-
-                const currentMonthIndex = new Date().getMonth();
-                const currentYear = new Date().getFullYear();
-                const monthlyLogs = studentLogs.filter(log => {
-                    const logDate = utils.parseDDMMYYYY(log.date);
-                    return logDate.getMonth() === currentMonthIndex && logDate.getFullYear() === currentYear;
-                });
-                
-                const reasonCounts = monthlyLogs.reduce((acc, log) => { if (log.reason) { acc[log.reason] = (acc[log.reason] || 0) + log.stars; } return acc; }, {});
-                const topReasonEntry = Object.entries(reasonCounts).sort((a, b) => b[1] - a[1])[0];
-                const topSkill = topReasonEntry ? topReasonEntry[0] : null;
-
-                let statsHtml = '';
-                if (topSkill) {
-                    statsHtml += `<span title="Top Skill This Month: ${reasonInfo[topSkill]?.name || ''}"><i class="fas ${reasonInfo[topSkill]?.icon || 'fa-star'} ${reasonInfo[topSkill]?.color || 'text-gray-500'}"></i></span>`;
+                if (index === 0) {
+                    currentRank = 1;
+                } else {
+                    if (lastRank <= 3) {
+                        currentRank = isBehaviorTie ? lastRank : index + 1;
+                    } else {
+                        let isTotalTie = isBehaviorTie && (s.stats.academicAvg === classData.students[index-1].stats.academicAvg);
+                        currentRank = isTotalTie ? lastRank : index + 1;
+                    }
                 }
-                if (weeklyStars > 0) {
-                    statsHtml += `<span title="${weeklyStars} stars this week" class="font-semibold text-orange-500"><i class="fas fa-fire mr-1"></i>${weeklyStars}</span>`;
-                }
+
+                lastScore = s.score; last3 = s.stats.count3Star; last2 = s.stats.count2Star; lastUnique = s.stats.uniqueReasons; lastRank = currentRank;
+
+                // Card Styles
+                let cardBg = "bg-white border-b-4 border-gray-200";
+                let rankColor = "bg-gray-100 text-gray-500";
+                let nameColor = "text-gray-700";
+                let starColor = "text-indigo-600";
+                let bgTrophy = ''; // Default: Hidden for rank 4+
                 
-                const avatarHtml = s.avatar ? `<img src="${s.avatar}" alt="${s.name}" class="student-avatar mr-2 enlargeable-avatar">` : '';
+                if (currentRank === 1) { 
+                    cardBg = "bg-gradient-to-br from-white to-amber-50 border-b-4 border-amber-400 ring-2 ring-amber-100";
+                    rankColor = "bg-amber-400 text-white shadow-md";
+                    nameColor = "text-amber-900";
+                    starColor = "text-amber-500"; 
+                    bgTrophy = `<div class="absolute top-0 right-0 p-3 opacity-20 text-5xl pointer-events-none text-amber-300"><i class="fas fa-trophy"></i></div>`;
+                }
+                else if (currentRank === 2) { 
+                    cardBg = "bg-gradient-to-br from-white to-gray-50 border-b-4 border-gray-400 ring-2 ring-gray-100";
+                    rankColor = "bg-gray-400 text-white shadow-md";
+                    nameColor = "text-gray-800";
+                    starColor = "text-gray-500";
+                    bgTrophy = `<div class="absolute top-0 right-0 p-3 opacity-20 text-5xl pointer-events-none text-gray-300"><i class="fas fa-trophy"></i></div>`;
+                }
+                else if (currentRank === 3) { 
+                    cardBg = "bg-gradient-to-br from-white to-orange-50 border-b-4 border-orange-400 ring-2 ring-orange-100";
+                    rankColor = "bg-orange-400 text-white shadow-md";
+                    nameColor = "text-orange-900";
+                    starColor = "text-orange-600"; 
+                    bgTrophy = `<div class="absolute top-0 right-0 p-3 opacity-20 text-5xl pointer-events-none text-orange-300"><i class="fas fa-trophy"></i></div>`;
+                }
 
                 outputHtml += `
-                    <div class="student-leaderboard-card p-3 rounded-xl shadow-sm border ${rankBG} flex items-center justify-between transition-all duration-200 hover:shadow-md" style="animation-delay: ${Math.random() * -6}s;">
-                        <div class="flex items-center flex-grow">
-                            ${medalHtml}
-                            ${avatarHtml}
-                            <span class="font-semibold text-gray-800 flex-1">${s.name}</span>
+                    <div class="relative rounded-2xl p-4 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 ${cardBg} flex justify-between items-center gap-4">
+                        ${bgTrophy}
+                        
+                        <div class="flex items-center gap-4 z-10"> <!-- Removed overflow-hidden -->
+                            <div class="flex-shrink-0 relative">
+                                <div class="absolute -top-3 -left-2 w-8 h-8 rounded-full ${rankColor} flex items-center justify-center font-title text-sm z-10 border-2 border-white shadow-sm">
+                                    ${currentRank}
+                                </div>
+                                ${getAvatarHtml(s, "w-16 h-16")}
+                            </div>
+                            
+                            <div class="min-w-0">
+                                <h4 class="font-title text-xl ${nameColor} truncate leading-tight mb-1">${s.name}</h4>
+                            </div>
                         </div>
-                        <div class="flex items-center gap-4 text-lg">
-                            ${statsHtml}
-                            <div class="font-title text-xl text-purple-600">${s.score} ⭐</div>
+                        
+                        <div class="flex flex-col items-end gap-1 flex-shrink-0 z-10">
+                            <div class="flex items-baseline gap-1">
+                                <span class="font-title text-3xl ${starColor} leading-none">${s.score}</span>
+                                <span class="text-xs font-bold text-gray-400 uppercase">Stars</span>
+                            </div>
+                            <div class="flex flex-wrap justify-end gap-1 max-w-[200px]">
+                                ${getPillsHtml(s)}
+                            </div>
                         </div>
                     </div>`;
             });
+            outputHtml += `</div>`;
         }
     }
     list.innerHTML = outputHtml;
@@ -1396,6 +1511,3 @@ export function openMilestoneModal(markerElement) {
     
     modals.showAnimatedModal('milestone-details-modal');
 }
-
-
-

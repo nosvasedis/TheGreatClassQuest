@@ -183,10 +183,23 @@ async function drawCardFromDeck(classId) {
     
     console.log("Director dealing card:", cardType);
 
+    if (cardType.startsWith('birthday_')) {
+    const studentId = cardType.split('_')[1];
+    return getBirthdayCard(studentId);
+}
+if (cardType.startsWith('nameday_')) {
+    const studentId = cardType.split('_')[1];
+    return getNamedayCard(studentId);
+}
+
     // Build the card
     switch(cardType) {
         // Common
         case 'school_pulse': return getSchoolPulseCard();
+        case 'good_month': return getGoodMonthCard();
+        case 'seasonal_winter': return getSeasonalCard('winter');
+        case 'seasonal_halloween': return getSeasonalCard('halloween');
+        case 'seasonal_summer': return getSeasonalCard('summer');
         case 'treasury': return getTreasuryCard(classId);
         case 'skill': return getTopSkillCard(classId);
         case 'word': return await getAIWordCard(classId);
@@ -215,8 +228,44 @@ async function drawCardFromDeck(classId) {
 function buildDeck(classId) {
     cardDeck = []; // Clear
 
+    // === HIGH PRIORITY CELEBRATIONS (CLASS ONLY) ===
+    if (classId) {
+    const today = new Date();
+    // Format as MM-DD for comparison
+    const todayMMDD = `${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+
+    const studentsInClass = state.get('allStudents').filter(s => s.classId === classId);
+    studentsInClass.forEach(student => {
+        // The 'birthday' and 'nameday' fields are stored as 'YYYY-MM-DD'
+        if (student.birthday && student.birthday.endsWith(todayMMDD)) {
+            cardDeck.push(`birthday_${student.id}`); // Add with high priority
+        }
+        if (student.nameday && student.nameday.endsWith(todayMMDD)) {
+            cardDeck.push(`nameday_${student.id}`); // Add with high priority
+        }
+    });
+}
+
     // === 1. ALWAYS AVAILABLE ===
     cardDeck.push('school_pulse', 'treasury', 'skill', 'word', 'fact');
+
+    // === 2. TIME-SENSITIVE & SEASONAL CARDS ===
+    const now = new Date();
+    const dayOfMonth = now.getDate();
+    const monthIndex = now.getMonth(); // 0-11
+
+    // "Good Month" card for the first 3 days of the month
+    if (dayOfMonth <= 3) {
+        cardDeck.push('good_month', 'good_month'); // Add twice for higher chance
+    }
+    // Seasonal cards based on the month
+    if (monthIndex === 11 || monthIndex === 0) { // Dec, Jan
+        cardDeck.push('seasonal_winter');
+    } else if (monthIndex === 9) { // October
+        cardDeck.push('seasonal_halloween');
+    } else if (monthIndex >= 5 && monthIndex <= 7) { // June, July, Aug
+        cardDeck.push('seasonal_summer');
+    }
 
     if (classId) {
         // === ACTIVE CLASS MODE ===
@@ -756,4 +805,101 @@ async function getAICachedContent(type, levelContext) {
         if (type === "word") return { word: "Serendipity", def: "A happy accident" };
         return "Learning is a journey.";
     }
+}
+
+function getGoodMonthCard() {
+    const monthName = new Date().toLocaleString('en-US', { month: 'long' });
+    return {
+        html: `
+            <div class="text-center">
+                <div class="inline-block bg-amber-100 text-amber-800 text-xs font-bold px-3 py-1 rounded-full mb-4 uppercase tracking-widest border border-amber-200">A New Chapter</div>
+                <div class="text-8xl mb-4 animate-bounce">🎉</div>
+                <h3 class="font-title text-3xl text-amber-900 leading-tight">Wishing Everyone a Wonderful</h3>
+                <h2 class="font-title text-5xl text-orange-600">${monthName}!</h2>
+            </div>`,
+        css: 'float-card-gold'
+    };
+}
+function getSeasonalCard(season) {
+    let card = {};
+    switch (season) {
+        case 'winter':
+            card = {
+                html: `
+                    <div class="text-center">
+                        <div class="text-8xl mb-4">❄️</div>
+                        <h3 class="font-title text-3xl text-blue-800">Winter Wonders!</h3>
+                        <p class="text-blue-600 mt-2 font-semibold">Stay warm and keep the quest spirits bright!</p>
+                    </div>`,
+                css: 'float-card-blue'
+            };
+            break;
+        case 'halloween':
+            card = {
+                html: `
+                    <div class="text-center">
+                        <div class="text-8xl mb-4 animate-bounce">🎃</div>
+                        <h3 class="font-title text-3xl text-white">Happy Halloween!</h3>
+                        <p class="text-yellow-50 mt-2 font-semibold">Wishing you a spooky and fun adventure!</p>
+                    </div>`,
+                css: 'float-card-dark'
+            };
+            break;
+        case 'summer':
+            card = {
+                html: `
+                    <div class="text-center">
+                        <div class="text-8xl mb-4">☀️</div>
+                        <h3 class="font-title text-3xl text-orange-700">Hello, Sunshine!</h3>
+                        <p class="text-orange-600 mt-2 font-semibold">Enjoy the bright and sunny questing days!</p>
+                    </div>`,
+                css: 'float-card-gold'
+            };
+            break;
+    }
+    return card;
+}
+
+function getBirthdayCard(studentId) {
+    const student = state.get('allStudents').find(s => s.id === studentId);
+    if (!student) return null;
+
+    const avatarHtml = student.avatar
+        ? `<img src="${student.avatar}" class="w-32 h-32 rounded-full border-[6px] border-white shadow-xl mx-auto mb-4 object-cover bg-white">`
+        : `<div class="w-32 h-32 rounded-full bg-blue-100 flex items-center justify-center text-6xl mx-auto mb-4 border-[6px] border-white shadow-xl font-title text-blue-500">${student.name.charAt(0)}</div>`;
+
+    return {
+        html: `
+            <div class="text-center relative">
+                <div class="absolute -top-4 -left-4 text-5xl animate-bounce">🎉</div>
+                <div class="absolute -top-4 -right-4 text-5xl animate-bounce" style="animation-delay: 0.5s;">🎂</div>
+                <div class="inline-block bg-blue-100 text-blue-700 text-xs font-bold px-3 py-1 rounded-full mb-4 uppercase tracking-widest border border-blue-200">Happy Birthday!</div>
+                ${avatarHtml}
+                <h3 class="font-title text-4xl text-blue-900 drop-shadow-sm">${student.name}</h3>
+                <p class="text-blue-600 font-bold mt-2">Wishing you a fantastic day!</p>
+            </div>`,
+        css: 'float-card-blue'
+    };
+}
+
+function getNamedayCard(studentId) {
+    const student = state.get('allStudents').find(s => s.id === studentId);
+    if (!student) return null;
+
+    const avatarHtml = student.avatar
+        ? `<img src="${student.avatar}" class="w-32 h-32 rounded-full border-[6px] border-white shadow-xl mx-auto mb-4 object-cover bg-white">`
+        : `<div class="w-32 h-32 rounded-full bg-green-100 flex items-center justify-center text-6xl mx-auto mb-4 border-[6px] border-white shadow-xl font-title text-green-500">${student.name.charAt(0)}</div>`;
+
+    return {
+        html: `
+            <div class="text-center relative">
+                <div class="absolute -top-4 -left-4 text-5xl animate-bounce">✨</div>
+                <div class="absolute -top-4 -right-4 text-5xl animate-bounce" style="animation-delay: 0.5s;">🇬🇷</div>
+                <div class="inline-block bg-green-100 text-green-700 text-xs font-bold px-3 py-1 rounded-full mb-4 uppercase tracking-widest border border-green-200">Happy Nameday!</div>
+                ${avatarHtml}
+                <h3 class="font-title text-4xl text-green-900 drop-shadow-sm">${student.name}</h3>
+                <p class="text-green-600 font-bold mt-2">Χρόνια Πολλά!</p>
+            </div>`,
+        css: 'float-card-green'
+    };
 }

@@ -1,12 +1,13 @@
 // /ui/modals.js
 
 // --- IMPORTS ---
-import { fetchLogsForDate, fetchAttendanceForMonth } from '../db/queries.js';
+import { fetchLogsForDate, fetchAttendanceForMonth, fetchLogsForMonth } from '../db/queries.js';
 import { db } from '../firebase.js';
 import { doc, getDocs, collection, query, where, orderBy, limit } from 'https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js';
 
 // State and Constants
 import * as state from '../state.js';
+import { fetchMonthlyHistory } from '../state.js';
 import * as constants from '../constants.js';
 import * as utils from '../utils.js';
 
@@ -390,9 +391,15 @@ export async function showLogbookModal(dateString, isOndemand = false) {
     }
 }
 
-export function openHistoryModal() {
+export function openHistoryModal(type) {
+    const modal = document.getElementById('history-modal');
+    modal.dataset.historyType = type; // Store the type for later
+
+    const title = type === 'team' ? 'Team Quest History' : 'Hero\'s Challenge History';
+    document.querySelector('#history-modal h2').innerText = title;
+
     populateHistoryMonthSelector();
-    renderHistoricalLeaderboard("");
+    renderHistoricalLeaderboard("", type); // Initial render with no month selected
     showAnimatedModal('history-modal');
 }
 
@@ -412,84 +419,291 @@ function populateHistoryMonthSelector() {
     }
 }
 
-export async function renderHistoricalLeaderboard(monthKey) {
+export async function renderHistoricalLeaderboard(monthKey, type) {
     const contentEl = document.getElementById('history-modal-content');
     if (!monthKey) {
-        contentEl.innerHTML = '<p class="text-center text-gray-500">Select a month to view historical rankings.</p>';
+        contentEl.innerHTML = '<p class="text-center text-gray-500">Select a month.</p>';
         return;
     }
 
     const league = state.get('globalSelectedLeague');
     if (!league) {
-        contentEl.innerHTML = '<p class="text-center text-red-500">Please select a league on the main tab first.</p>';
+        contentEl.innerHTML = '<p class="text-center text-red-500">Select a league first.</p>';
         return;
     }
 
-    await state.fetchMonthlyHistory(monthKey);
-    const monthlyScores = state.get('allMonthlyHistory')[monthKey] || {};
+    // --- DATE LOGIC ---
+    const now = new Date();
+    let prevMonth = now.getMonth() - 1;
+    let prevYear = now.getFullYear();
+    if (prevMonth < 0) { prevMonth = 11; prevYear -= 1; }
     
-    const GOAL_PER_STUDENT = { BRONZE: 4, SILVER: 8, GOLD: 13, DIAMOND: 18 };
-    const classesInLeague = state.get('allSchoolClasses').filter(c => c.questLevel === league);
-    
-    const classScores = classesInLeague.map(c => {
-        const studentsInClass = state.get('allStudents').filter(s => s.classId === c.id);
-        const studentCount = studentsInClass.length;
-        const diamondGoal = studentCount > 0 ? Math.round(studentCount * GOAL_PER_STUDENT.DIAMOND) : 18;
-        const totalStars = studentsInClass.reduce((sum, s) => sum + (monthlyScores[s.id] || 0), 0);
-        const progress = diamondGoal > 0 ? Math.min(100, (totalStars / diamondGoal) * 100).toFixed(1) : 0;
+    // YYYY-MM key
+    const lastMonthKey = `${prevYear}-${String(prevMonth + 1).padStart(2, '0')}`;
+    const isMostRecentMonth = (monthKey === lastMonthKey);
+
+    // Data Store for Stats
+    let statsMap = {}; 
+
+    try {
+        contentEl.innerHTML = `<div class="text-center py-8"><i class="fas fa-spinner fa-spin text-2xl text-amber-500"></i><p class="mt-2 text-gray-600">Reading the archives...</p></div>`;
         
-        let milestone = "None";
-        if (totalStars >= (studentCount * GOAL_PER_STUDENT.DIAMOND)) milestone = "💎 Diamond";
-        else if (totalStars >= (studentCount * GOAL_PER_STUDENT.GOLD)) milestone = "👑 Gold";
-        else if (totalStars >= (studentCount * GOAL_PER_STUDENT.SILVER)) milestone = "🏆 Silver";
-        else if (totalStars >= (studentCount * GOAL_PER_STUDENT.BRONZE)) milestone = "🛡️ Bronze";
+        const { fetchLogsForMonth } = await import('../db/queries.js');
+        const { fetchMonthlyHistory } = await import('../state.js'); 
 
-        return { ...c, totalStars, progress, milestone };
-    }).sort((a, b) => b.progress - a.progress || b.totalStars - a.totalStars);
+        const [year, month] = monthKey.split('-').map(Number);
+        
+        const logsPromise = fetchLogsForMonth(year, month);
+        const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout')), 8000));
+        
+        let logs = [];
+        try {
+            logs = await Promise.race([logsPromise, timeoutPromise]);
+        } catch(e) { console.warn("Log fetch timed out, falling back."); }
 
-    let html = `<h3 class="font-title text-2xl text-amber-700">Class Quest Map for ${new Date(monthKey + '-02').toLocaleString('en-GB', { month: 'long', year: 'numeric' })}</h3>`;
-    if (classScores.length === 0 || classScores.every(c => c.totalStars === 0)) {
-        html += `<p class="text-gray-600 mt-2">No Quest Map data was recorded for this league during ${monthKey}.</p>`;
-    } else {
-        html += `<div class="mt-2 space-y-2">`;
-        classScores.forEach((c, index) => {
-            html += `
-                <div class="flex items-center justify-between p-3 bg-white rounded-lg shadow-sm border-l-4 border-amber-300">
-                    <span class="font-bold text-lg">${index + 1}. ${c.logo} ${c.name}</span> 
-                    <div class="text-right">
-                        <span class="font-bold text-amber-600">${c.totalStars} ⭐ (${c.progress}%)</span>
-                        <span class="block text-xs text-gray-500">Highest Milestone: ${c.milestone}</span>
-                        </div>
-                </div>`;
-        });
-        html += `</div>`;
-    }
+        if (logs && logs.length > 0) {
+            logs.forEach(log => {
+                if (!statsMap[log.studentId]) {
+                    statsMap[log.studentId] = { score: 0, count3Star: 0, reasons: {} };
+                }
+                const s = statsMap[log.studentId];
+                s.score += log.stars;
+                if (log.stars >= 3) s.count3Star++;
+                if (log.reason) {
+                    s.reasons[log.reason] = (s.reasons[log.reason] || 0) + log.stars;
+                }
+            });
 
-    html += `<h3 class="font-title text-2xl text-purple-700 mt-6">"Prodigy of the Month" Race for ${new Date(monthKey + '-02').toLocaleString('en-GB', { month: 'long', year: 'numeric' })}</h3>`;
-    const studentsInLeague = state.get('allStudents')
-        .filter(s => classesInLeague.some(c => c.id === s.classId))
-        .map(s => ({ ...s, score: monthlyScores[s.id] || 0 }))
-        .filter(s => s.score > 0)
-        .sort((a, b) => b.score - a.score);
+            Object.values(statsMap).forEach(s => {
+                const top = Object.entries(s.reasons).sort((a,b) => b[1] - a[1])[0];
+                s.topReason = top ? top[0] : null;
+            });
 
-    if (studentsInLeague.length === 0) {
-        html += `<p class="text-gray-600 mt-2">No students earned stars in this league during ${monthKey}.</p>`;
-    } else {
-        html += `<div class="mt-2 space-y-2">`;
-        studentsInLeague.slice(0, 50).forEach((s, index) => {
-            const classInfo = state.get('allSchoolClasses').find(c => c.id === s.classId);
-            html += `
-                <div class="flex items-center justify-between p-3 bg-white rounded-lg shadow-sm border-l-4 border-purple-300">
-                    <span class="font-bold text-lg">${index + 1}. ${classInfo.logo} ${s.name}</span> 
-                    <span class="font-bold text-purple-600">${s.score} ⭐</span>
-                </div>`;
-        });
-         html += `</div>`;
+        } else {
+            const simpleScores = await fetchMonthlyHistory(monthKey);
+            for (const [sId, score] of Object.entries(simpleScores)) {
+                statsMap[sId] = { score, count3Star: 0, topReason: null };
+            }
+        }
+
+    } catch (error) {
+        console.error("Leaderboard Load Error:", error);
+        contentEl.innerHTML = `<p class="text-center text-red-500">Could not load data.</p>`;
+        return;
     }
     
-    contentEl.innerHTML = html;
-}
+    const monthDisplay = new Date(monthKey + '-02').toLocaleString('en-GB', { month: 'long', year: 'numeric' });
 
+    // --- TEAM QUEST HISTORY (Classes) ---
+    if (type === 'team') {
+        const classesInLeague = state.get('allSchoolClasses').filter(c => c.questLevel === league);
+        
+        const [hYear, hMonth] = monthKey.split('-').map(Number);
+        const daysInMonth = new Date(hYear, hMonth, 0).getDate();
+        const viewMonthStart = new Date(hYear, hMonth - 1, 1);
+        const viewMonthEnd = new Date(hYear, hMonth, 0, 23, 59, 59);
+        
+        let holidayDaysLost = 0;
+        const ranges = state.get('schoolHolidayRanges') || [];
+        ranges.forEach(range => {
+            const start = new Date(range.start);
+            const end = new Date(range.end);
+            const overlapStart = start > viewMonthStart ? start : viewMonthStart;
+            const overlapEnd = end < viewMonthEnd ? end : viewMonthEnd;
+            if (overlapStart <= overlapEnd) {
+                const diffDays = Math.ceil(Math.abs(overlapEnd - overlapStart) / (1000 * 60 * 60 * 24)) + 1;
+                holidayDaysLost += diffDays;
+            }
+        });
+
+        let monthModifier = (daysInMonth - holidayDaysLost) / daysInMonth;
+        if ((hMonth - 1) === 5) monthModifier = 0.5;
+        else monthModifier = Math.max(0.6, Math.min(1.0, monthModifier));
+
+        const BASE_GOAL = 18; 
+        const SCALING_FACTOR = 1.5; 
+
+        const classScores = classesInLeague.map(c => {
+            const studentsInClass = state.get('allStudents').filter(s => {
+                if (s.classId !== c.id) return false;
+                if (s.createdAt) return s.createdAt.toDate() <= viewMonthEnd;
+                return true; 
+            });
+            
+            const studentCount = studentsInClass.length;
+            const totalStars = studentsInClass.reduce((sum, s) => sum + (statsMap[s.id]?.score || 0), 0);
+            
+            let historicalDifficulty = c.difficultyLevel || 0;
+            if (c.questCompletedAt) {
+                const completedDate = c.questCompletedAt.toDate();
+                if (completedDate >= viewMonthStart) {
+                    historicalDifficulty = Math.max(0, historicalDifficulty - 1);
+                }
+            }
+
+            const adjustedGoalPerStudent = (BASE_GOAL + (historicalDifficulty * SCALING_FACTOR)) * monthModifier;
+            const diamondGoal = studentCount > 0 ? Math.round(studentCount * adjustedGoalPerStudent) : 18;
+            const progress = diamondGoal > 0 ? (totalStars / diamondGoal) * 100 : 0;
+            
+            return { ...c, totalStars, progress, diamondGoal, studentCount };
+        }).sort((a, b) => {
+            if (Math.abs(b.progress - a.progress) > 0.1) return b.progress - a.progress;
+            return b.totalStars - a.totalStars;
+        });
+
+        let html = `<div class="mb-4">
+            <h3 class="font-title text-2xl text-amber-700">Class Rankings for ${monthDisplay}</h3>
+            ${holidayDaysLost > 0 ? `<p class="text-xs text-amber-600 font-bold"><i class="fas fa-calendar-times mr-1"></i>Goal adjusted for ${holidayDaysLost} holiday days</p>` : ''}
+        </div>`;
+        
+        if (classScores.length === 0 || classScores.every(c => c.totalStars === 0)) {
+            html += `<p class="text-gray-600 mt-2">No stars were recorded for this league during this month.</p>`;
+        } else {
+            html += `<div class="mt-4 space-y-3">`;
+            classScores.forEach((c, index) => {
+                const rank = index + 1;
+                const progressDisplay = c.progress.toFixed(1);
+                
+                let borderClass = 'border-amber-200';
+                let bgClass = 'bg-white';
+                let icon = '';
+                
+                if (rank === 1) { borderClass = 'border-amber-400'; bgClass = 'bg-amber-50'; icon = '🥇'; } 
+                else if (rank === 2) { borderClass = 'border-gray-400'; icon = '🥈'; } 
+                else if (rank === 3) { borderClass = 'border-orange-400'; icon = '🥉'; }
+
+                html += `
+                    <div class="p-4 rounded-xl shadow-sm border-l-4 ${borderClass} ${bgClass}">
+                        <div class="flex items-center justify-between mb-2">
+                            <div class="flex items-center gap-2">
+                                <span class="font-bold text-gray-500 w-6 text-xl">${rank}.</span>
+                                <span class="text-2xl">${c.logo}</span>
+                                <div>
+                                    <span class="font-bold text-lg text-gray-800">${c.name}</span>
+                                    ${icon ? `<span class="ml-2 text-xl">${icon}</span>` : ''}
+                                </div>
+                            </div>
+                            <div class="text-right">
+                                <span class="font-title text-2xl text-amber-600">${progressDisplay}%</span>
+                                <div class="text-xs text-gray-500">of Goal</div>
+                            </div>
+                        </div>
+                        <div class="w-full bg-gray-200 rounded-full h-2.5 mb-1">
+                            <div class="bg-amber-500 h-2.5 rounded-full" style="width: ${Math.min(100, c.progress)}%"></div>
+                        </div>
+                        <div class="flex justify-between text-xs text-gray-500 font-medium">
+                            <span title="Based on ${c.studentCount} students active then">${c.totalStars} Stars Earned</span>
+                            <span>Historical Goal: ${c.diamondGoal}</span>
+                        </div>
+                    </div>`;
+            });
+            html += `</div>`;
+        }
+        contentEl.innerHTML = html;
+
+    } else if (type === 'hero') {
+        // --- HERO HISTORY (VISUAL UPGRADE) ---
+        const classesInLeague = state.get('allSchoolClasses').filter(c => c.questLevel === league);
+        const studentsInLeague = state.get('allStudents')
+            .filter(s => classesInLeague.some(c => c.id === s.classId))
+            .map(s => {
+                const stats = statsMap[s.id] || { score: 0, count3Star: 0, topReason: null };
+                return { ...s, ...stats };
+            })
+            .filter(s => s.score > 0)
+            .sort((a, b) => {
+                if (b.score !== a.score) return b.score - a.score;
+                if (b.count3Star !== a.count3Star) return b.count3Star - a.count3Star;
+                return a.name.localeCompare(b.name);
+            });
+
+        const reasonInfo = {
+            teamwork: { icon: 'fa-users', color: 'bg-purple-100 text-purple-700', name: 'Teamwork' },
+            creativity: { icon: 'fa-lightbulb', color: 'bg-pink-100 text-pink-700', name: 'Creativity' },
+            respect: { icon: 'fa-hands-helping', color: 'bg-green-100 text-green-700', name: 'Respect' },
+            focus: { icon: 'fa-brain', color: 'bg-yellow-100 text-yellow-700', name: 'Focus' },
+            welcome_back: { icon: 'fa-hand-sparkles', color: 'bg-cyan-100 text-cyan-700', name: 'Back!' },
+            story_weaver: { icon: 'fa-feather-alt', color: 'bg-cyan-100 text-cyan-700', name: 'Story' },
+            scholar_s_bonus: { icon: 'fa-graduation-cap', color: 'bg-amber-100 text-amber-800', name: 'Scholar' }
+        };
+
+        let html = `<h3 class="font-title text-2xl text-purple-700">"Prodigy of the Month" Race for ${monthDisplay}</h3>`;
+        
+        if (studentsInLeague.length === 0) {
+            html += `<p class="text-gray-600 mt-2">No students earned stars in this league during this month.</p>`;
+        } else {
+            html += `<div class="mt-4 space-y-3">`;
+            
+            let lastScore = -1, last3 = -1, lastRank = 0;
+
+            studentsInLeague.slice(0, 50).forEach((s, index) => {
+                let isTie = (s.score === lastScore && s.count3Star === last3);
+                let rank = isTie ? lastRank : index + 1;
+                lastScore = s.score; last3 = s.count3Star; lastRank = rank;
+
+                // VISUAL UPGRADE: Stronger Colors for Top 3
+                let borderClass = 'border-purple-200';
+                let bgClass = 'bg-white';
+                let icon = '';
+                let rankColor = 'text-gray-500';
+                
+                if (rank === 1) { 
+                    borderClass = 'border-amber-500'; 
+                    bgClass = 'bg-amber-50'; // Gold Background
+                    icon = '🥇'; 
+                    rankColor = 'text-amber-600';
+                } 
+                else if (rank === 2) { 
+                    borderClass = 'border-slate-400'; 
+                    bgClass = 'bg-slate-50'; // Silver Background
+                    icon = '🥈'; 
+                    rankColor = 'text-slate-600';
+                } 
+                else if (rank === 3) { 
+                    borderClass = 'border-orange-400'; 
+                    bgClass = 'bg-orange-50'; // Bronze Background
+                    icon = '🥉'; 
+                    rankColor = 'text-orange-600';
+                }
+
+                let badgesHtml = '';
+                if (s.count3Star > 0) {
+                    badgesHtml += `<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-indigo-100 text-indigo-700 border border-indigo-200" title="${s.count3Star} Perfect Awards"><i class="fas fa-meteor"></i> ${s.count3Star}</span>`;
+                }
+                if (s.topReason && reasonInfo[s.topReason]) {
+                    const r = reasonInfo[s.topReason];
+                    badgesHtml += `<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold ${r.color} border border-white/50" title="Top Skill: ${r.name}"><i class="fas ${r.icon}"></i> ${r.name}</span>`;
+                }
+
+                html += `
+                    <div class="p-3 rounded-xl shadow-sm border-l-4 ${borderClass} ${bgClass} flex items-center justify-between transition-transform hover:scale-[1.01]">
+                        <div class="flex items-center gap-3">
+                            <div class="flex flex-col items-center w-8">
+                                <span class="font-bold text-xl ${rankColor}">${rank}.</span>
+                                ${icon ? `<span class="text-lg -mt-1">${icon}</span>` : ''}
+                            </div>
+                            <div>
+                                <span class="font-bold text-lg text-gray-800">${s.name}</span>
+                                <div class="flex items-center gap-2 mt-1">
+                                    <span class="text-xs text-gray-500 flex items-center gap-1">
+                                        ${state.get('allSchoolClasses').find(c=>c.id===s.classId)?.logo} 
+                                        <span class="hidden sm:inline">${state.get('allSchoolClasses').find(c=>c.id===s.classId)?.name}</span>
+                                    </span>
+                                    ${badgesHtml}
+                                </div>
+                            </div>
+                        </div>
+                        <div class="text-right">
+                            <span class="font-title text-3xl text-purple-600 block leading-none">${s.score}</span>
+                            <span class="text-[10px] font-bold text-gray-400 uppercase">Stars</span>
+                        </div>
+                    </div>`;
+            });
+             html += `</div>`;
+        }
+        contentEl.innerHTML = html;
+    }
+}
 
 // --- REVAMPED ATTENDANCE CHRONICLE MODAL ---
 

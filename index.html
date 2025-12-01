@@ -1376,10 +1376,15 @@
                 <h2 id="trial-history-title" class="font-title text-2xl md:text-3xl text-amber-800">Trial History</h2>
                 <button id="trial-history-close-btn" class="bg-amber-200 hover:bg-amber-300 text-amber-800 font-bold w-10 h-10 rounded-full bubbly-button">&times;</button>
             </div>
-            <!-- NEW: Controls Container -->
-            <div id="trial-history-controls-container" class="flex justify-between items-center mb-4">
-                <!-- This will be populated by JS -->
+            <!-- Controls Container -->
+           <div id="trial-history-controls-container" class="flex justify-between items-center mb-4">
+          <div id="trial-history-view-toggle" class="inline-flex items-center bg-white/50 p-1 rounded-full border-2 border-amber-200 shadow-inner">
+        <!-- JS will populate the view toggle buttons here -->
+         </div>
+        <div id="trial-history-actions" class="flex items-center gap-2 flex-wrap justify-end">
+        <!-- JS will populate the month buttons here -->
             </div>
+        </div>
             <div id="trial-history-content" class="space-y-3 max-h-[60vh] overflow-y-auto p-2 flex-grow bg-white/30 rounded-lg">
                 <!-- History items will be inserted here by JS -->
             </div>

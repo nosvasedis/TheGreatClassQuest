@@ -11,6 +11,7 @@ import * as modals from './modals.js';
 import * as scholarScroll from '../features/scholarScroll.js';
 import * as avatar from '../features/avatar.js';
 import * as storyWeaver from '../features/storyWeaver.js';
+import { playSound } from '../audio.js';
 import { renderActiveBounties } from './core.js';
 import { updateCeremonyStatus } from '../features/ceremony.js';
 
@@ -111,6 +112,14 @@ export function renderClassLeaderboardTab() {
     const questUpdateBtn = document.getElementById('get-quest-update-btn');
     if (!list) return;
 
+    // --- NEW: Store previous progress before re-rendering ---
+    const previousProgress = new Map();
+    list.querySelectorAll('.quest-track-progress').forEach(bar => {
+        const classId = bar.closest('.quest-card').dataset.classId;
+        previousProgress.set(classId, parseFloat(bar.dataset.progress) || 0);
+    });
+    // --- END NEW ---
+
     const league = state.get('globalSelectedLeague');
     if (!league) {
         list.innerHTML = `<div class="max-w-xl mx-auto"><p class="text-center text-gray-700 bg-white/50 p-6 rounded-2xl text-lg">Please select a league to view the Team Quest map.</p></div>`;
@@ -118,7 +127,6 @@ export function renderClassLeaderboardTab() {
         return;
     }
 
-    // --- RESTORED DEFINITION ---
     const classesInLeague = state.get('allSchoolClasses').filter(c => c.questLevel === league);
     
     if (classesInLeague.length === 0) {
@@ -130,7 +138,6 @@ export function renderClassLeaderboardTab() {
     const BASE_GOAL = 18; 
     const SCALING_FACTOR = 1.5; 
     
-    // --- SMART HOLIDAY CALCULATOR ---
     const now = new Date();
     const currentYear = now.getFullYear();
     const currentMonth = now.getMonth();
@@ -169,7 +176,6 @@ export function renderClassLeaderboardTab() {
         const studentsInClass = state.get('allStudents').filter(s => s.classId === c.id);
         const studentCount = studentsInClass.length;
         
-        // CHECK: Did they finish the quest THIS month?
         let isCompletedThisMonth = false;
         if (c.questCompletedAt) {
             const completedDate = c.questCompletedAt.toDate();
@@ -179,14 +185,8 @@ export function renderClassLeaderboardTab() {
             }
         }
 
-        // LOGIC FIX: 
-        // If they finished this month, the DB shows the NEXT level (e.g., 1).
-        // But for the UI right now, we must calculate based on the level they just played (e.g., 0).
-        // If it's a new month (December), isCompletedThisMonth is false, so we use the new harder level.
         const dbDifficulty = c.difficultyLevel || 0;
         const effectiveDifficulty = isCompletedThisMonth ? Math.max(0, dbDifficulty - 1) : dbDifficulty;
-
-        // Calculate Goal using the EFFECTIVE difficulty
         const adjustedGoalPerStudent = (BASE_GOAL + (effectiveDifficulty * SCALING_FACTOR)) * monthModifier;
 
         const goals = {
@@ -201,7 +201,6 @@ export function renderClassLeaderboardTab() {
             return sum + (scoreData?.monthlyStars || 0);
         }, 0);
 
-        // If they completed it this month, FORCE progress to 100% (or higher) to avoid "99%" bugs due to rounding
         let progress = goals.diamond > 0 ? (currentMonthlyStars / goals.diamond) * 100 : 0;
         if (isCompletedThisMonth && progress < 100) progress = 100;
 
@@ -282,7 +281,7 @@ export function renderClassLeaderboardTab() {
                 </div>
             </div>
             <div class="quest-track-path relative w-full h-10 bg-gray-200 rounded-full shadow-inner flex items-center">
-                <div class="quest-track-progress h-full rounded-full ${progressBarColor}" data-progress="${displayProgress}" style="width: 0%;"></div>
+                <div class="quest-track-progress h-full rounded-full ${progressBarColor}" data-class-id="${c.id}" data-progress="${displayProgress}" style="width: 0%;"></div>
                 
                 <div class="milestone-marker absolute top-1/2 ${bronzeAchieved ? 'achieved' : ''}" style="left: ${progressPositions.bronze}%;">
                     🛡️
@@ -311,9 +310,30 @@ export function renderClassLeaderboardTab() {
 
     setTimeout(() => {
         list.querySelectorAll('.quest-track-progress, .quest-track-avatar').forEach(el => {
-            const progress = el.dataset.progress;
-            if (el.classList.contains('quest-track-progress')) el.style.width = `${progress}%`;
-            else el.style.left = `${progress}%`;
+            const newProgress = parseFloat(el.dataset.progress);
+            const classId = el.closest('.quest-card').dataset.classId;
+            const oldProgress = previousProgress.get(classId) || 0;
+            
+            // --- NEW: MILESTONE SOUND LOGIC ---
+            const classData = classScores.find(c => c.id === classId);
+            if (classData) {
+                const milestones = {
+                    bronze: classData.goals.diamond > 0 ? (classData.goals.bronze / classData.goals.diamond) * 100 : 25,
+                    silver: classData.goals.diamond > 0 ? (classData.goals.silver / classData.goals.diamond) * 100 : 50,
+                    gold: classData.goals.diamond > 0 ? (classData.goals.gold / classData.goals.diamond) * 100 : 75,
+                    diamond: 100
+                };
+
+                // Check which milestones were crossed during this animation
+                if (oldProgress < milestones.bronze && newProgress >= milestones.bronze) setTimeout(() => playSound('star1'), 400);
+                if (oldProgress < milestones.silver && newProgress >= milestones.silver) setTimeout(() => playSound('star2'), 600);
+                if (oldProgress < milestones.gold && newProgress >= milestones.gold) setTimeout(() => playSound('star2'), 800);
+                if (oldProgress < milestones.diamond && newProgress >= milestones.diamond) setTimeout(() => playSound('magic_chime'), 1000);
+            }
+            // --- END NEW ---
+
+            if (el.classList.contains('quest-track-progress')) el.style.width = `${newProgress}%`;
+            else el.style.left = `${newProgress}%`;
         });
         list.querySelectorAll('.milestone-marker').forEach(marker => {
             marker.addEventListener('click', () => modals.openMilestoneModal(marker));

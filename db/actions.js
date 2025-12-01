@@ -183,8 +183,15 @@ export async function deleteStudent(studentId) {
 export async function handleSaveStudentDetails() {
     const studentId = document.getElementById('edit-student-id-input-full').value;
     const newName = document.getElementById('edit-student-name-input-full').value.trim();
-    const birthday = document.getElementById('edit-student-birthday-input').value;
-    const nameday = document.getElementById('edit-student-nameday-input').value;
+    
+    // NEW: Read from dropdowns and format
+    const bMonth = document.getElementById('edit-student-birthday-month').value;
+    const bDay = document.getElementById('edit-student-birthday-day').value;
+    const birthday = (bMonth && bDay) ? `0000-${String(bMonth).padStart(2, '0')}-${String(bDay).padStart(2, '0')}` : null;
+
+    const nMonth = document.getElementById('edit-student-nameday-month').value;
+    const nDay = document.getElementById('edit-student-nameday-day').value;
+    const nameday = (nMonth && nDay) ? `0000-${String(nMonth).padStart(2, '0')}-${String(nDay).padStart(2, '0')}` : null;
 
     if (!newName) {
         showToast('Name cannot be empty.', 'error');
@@ -199,8 +206,8 @@ export async function handleSaveStudentDetails() {
         const studentRef = doc(db, "artifacts/great-class-quest/public/data/students", studentId);
         await updateDoc(studentRef, {
             name: newName,
-            birthday: birthday || null,
-            nameday: nameday || null
+            birthday: birthday, // Use the new formatted string or null
+            nameday: nameday // Use the new formatted string or null
         });
         showToast('Student details updated!', 'success');
         modals.hideModal('edit-student-modal');
@@ -230,7 +237,9 @@ export async function handleLookupNameday() {
     try {
         const result = await callGeminiApi(systemPrompt, userPrompt);
         if (result && result.match(/^\d{4}-\d{2}-\d{2}$/)) {
-            document.getElementById('edit-student-nameday-input').value = result;
+            const [_year, month, day] = result.split('-').map(Number);
+            document.getElementById('edit-student-nameday-month').value = month;
+            document.getElementById('edit-student-nameday-day').value = day;
             showToast(`Suggested nameday for ${studentName} found!`, 'success');
         } else {
             showToast(`Could not automatically find a nameday for "${studentName}".`, 'info');

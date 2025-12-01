@@ -226,84 +226,108 @@ if (cardType.startsWith('nameday_')) {
 }
 
 function buildDeck(classId) {
-    cardDeck = []; // Clear
+    cardDeck = []; // Reset the deck
 
-    // === HIGH PRIORITY CELEBRATIONS (CLASS ONLY) ===
+    // === 1. HIGH PRIORITY: Birthdays & Namedays (Class Mode Only) ===
     if (classId) {
-    const today = new Date();
-    // Format as MM-DD for comparison
-    const todayMMDD = `${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+        const today = new Date();
+        // Format today as "-MM-DD" to match the end of YYYY-MM-DD strings
+        const mm = String(today.getMonth() + 1).padStart(2, '0');
+        const dd = String(today.getDate()).padStart(2, '0');
+        const matchStr = `-${mm}-${dd}`; 
 
-    const studentsInClass = state.get('allStudents').filter(s => s.classId === classId);
-    studentsInClass.forEach(student => {
-        // The 'birthday' and 'nameday' fields are stored as 'YYYY-MM-DD'
-        if (student.birthday && student.birthday.endsWith(todayMMDD)) {
-            cardDeck.push(`birthday_${student.id}`); // Add with high priority
-        }
-        if (student.nameday && student.nameday.endsWith(todayMMDD)) {
-            cardDeck.push(`nameday_${student.id}`); // Add with high priority
-        }
-    });
-}
+        const students = state.get('allStudents').filter(s => s.classId === classId);
+        students.forEach(s => {
+            // Check birthday field (stored as YYYY-MM-DD)
+            if (s.birthday && s.birthday.endsWith(matchStr)) {
+                cardDeck.push(`birthday_${s.id}`);
+                cardDeck.push(`birthday_${s.id}`); // Push twice to ensure it shows up
+            }
+            // Check nameday field
+            if (s.nameday && s.nameday.endsWith(matchStr)) {
+                cardDeck.push(`nameday_${s.id}`);
+                cardDeck.push(`nameday_${s.id}`);
+            }
+        });
+    }
 
-    // === 1. ALWAYS AVAILABLE ===
-    cardDeck.push('school_pulse', 'treasury', 'skill', 'word', 'fact');
-
-    // === 2. TIME-SENSITIVE & SEASONAL CARDS ===
+    // === 2. STANDARD FILLER CARDS (Always available) ===
+    // Added more facts/words to dilute the "School Pulse" frequency
+    cardDeck.push('fact', 'fact', 'fact'); 
+    cardDeck.push('word', 'word');
+    cardDeck.push('school_pulse'); // Only 1 entry so it appears less often
+    
+    // === 3. TIME-SENSITIVE CARDS ===
     const now = new Date();
-    const dayOfMonth = now.getDate();
-    const monthIndex = now.getMonth(); // 0-11
-
-    // "Good Month" card for the first 3 days of the month
-    if (dayOfMonth <= 3) {
-        cardDeck.push('good_month', 'good_month'); // Add twice for higher chance
-    }
-    // Seasonal cards based on the month
-    if (monthIndex === 11 || monthIndex === 0) { // Dec, Jan
-        cardDeck.push('seasonal_winter');
-    } else if (monthIndex === 9) { // October
-        cardDeck.push('seasonal_halloween');
-    } else if (monthIndex >= 5 && monthIndex <= 7) { // June, July, Aug
-        cardDeck.push('seasonal_summer');
+    // "Good Month" card only for the first 5 days of a month
+    if (now.getDate() <= 5) {
+        cardDeck.push('good_month', 'good_month');
     }
 
+    // Seasonal Cards
+    const m = now.getMonth(); // 0-11
+    if (m === 11 || m === 0) cardDeck.push('seasonal_winter', 'seasonal_winter'); // Dec, Jan
+    else if (m === 9) cardDeck.push('seasonal_halloween'); // Oct
+    else if (m >= 5 && m <= 7) cardDeck.push('seasonal_summer'); // Jun, Jul, Aug
+
+    // === 4. CONTEXT SPECIFIC CARDS ===
     if (classId) {
-        // === ACTIVE CLASS MODE ===
-        // Add multiple heroes for variety
-        cardDeck.push('hero', 'hero', 'hero'); 
-        cardDeck.push('class_quest', 'timekeeper', 'streak');
+        // --- ACTIVE CLASS MODE ---
         
-        // Conditional adds
-        const storyData = state.get('currentStoryData')[classId];
-        if (storyData && storyData.currentSentence) cardDeck.push('story');
+        // Heroes (High weight: 4 cards)
+        cardDeck.push('hero', 'hero', 'hero', 'hero'); 
         
-        const bounties = state.get('allQuestBounties').filter(b => b.classId === classId && b.status !== 'completed');
-        if (bounties.length > 0) cardDeck.push('bounty', 'bounty'); // High Priority
+        // Progress & Utility
+        cardDeck.push('class_quest', 'class_quest');
+        cardDeck.push('timekeeper');
+        cardDeck.push('streak');
         
+        // Dynamic Content Checks: Only add if data exists
+        
+        // Story Weavers
+        const story = state.get('currentStoryData')[classId];
+        if (story && story.currentSentence) {
+            cardDeck.push('story', 'story');
+        }
+        
+        // Assignments
         const assignments = state.get('allQuestAssignments').filter(a => a.classId === classId);
-        if (assignments.length > 0) cardDeck.push('homework');
+        if (assignments.length > 0) {
+            cardDeck.push('homework');
+        }
         
-        const logs = state.get('allAdventureLogs').filter(l => l.classId === classId);
-        if (logs.length > 0) cardDeck.push('flashback');
+        // Adventure Flashback (Only if we have images!)
+        const logsWithImages = state.get('allAdventureLogs').filter(l => l.classId === classId && l.imageUrl);
+        if (logsWithImages.length > 0) {
+            cardDeck.push('flashback', 'flashback');
+        }
         
+        // Academic Highlights
         const scores = state.get('allWrittenScores').filter(s => s.classId === classId);
-        if (scores.length > 0) cardDeck.push('academic');
+        if (scores.length > 0) {
+            cardDeck.push('academic');
+        }
+
+        // Active Bounties
+        const bounties = state.get('allQuestBounties').filter(b => b.classId === classId && b.status !== 'completed');
+        if (bounties.length > 0) {
+            cardDeck.push('bounty', 'bounty');
+        }
 
     } else {
-        // === GLOBAL MODE ===
+        // --- GLOBAL SCHOOL MODE ---
         cardDeck.push('global_hero', 'global_hero');
         cardDeck.push('league_race', 'league_race');
-        cardDeck.push('class_spotlight', 'class_spotlight');
-        cardDeck.push('school_pulse'); // Extra pulse for global
+        cardDeck.push('class_spotlight', 'class_spotlight', 'class_spotlight');
     }
 
-    // Shuffle Deck (Fisher-Yates)
+    // === 5. SHUFFLE THE DECK (Fisher-Yates) ===
     for (let i = cardDeck.length - 1; i > 0; i--) {
         const j = Math.floor(Math.random() * (i + 1));
         [cardDeck[i], cardDeck[j]] = [cardDeck[j], cardDeck[i]];
     }
     
-    console.log("Director rebuilt deck:", cardDeck);
+    console.log("Wallpaper Deck Rebuilt:", cardDeck);
 }
 
 // --- CARD BUILDERS ---

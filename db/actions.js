@@ -530,36 +530,6 @@ export async function checkAndRecordQuestCompletion(classId) {
     }
 }
 
-export async function checkAndResetMonthlyStars(studentId, currentMonthStart) {
-    const publicDataPath = "artifacts/great-class-quest/public/data";
-    const scoreRef = doc(db, `${publicDataPath}/student_scores`, studentId);
-    try {
-        await runTransaction(db, async (transaction) => {
-            const scoreDoc = await transaction.get(scoreRef);
-            if (!scoreDoc.exists()) return;
-            const scoreData = scoreDoc.data();
-            
-            if (scoreData.lastMonthlyResetDate !== currentMonthStart) {
-                const lastMonthScore = scoreData.monthlyStars || 0;
-                const lastMonthDateString = scoreData.lastMonthlyResetDate; 
-                const yearMonthKey = lastMonthDateString.substring(0, 7); 
-                const historyRef = doc(db, `${publicDataPath}/student_scores/${studentId}/monthly_history/${yearMonthKey}`);
-                
-                if (lastMonthScore > 0) {
-                    transaction.set(historyRef, { stars: lastMonthScore, month: yearMonthKey });
-                }
-                
-                transaction.update(scoreRef, { 
-                    monthlyStars: 0, 
-                    lastMonthlyResetDate: currentMonthStart 
-                });
-            }
-        });
-    } catch (error) { 
-        console.error(`Failed monthly reset & archive for ${studentId}:`, error); 
-    }
-}
-
 export async function handleDeleteAwardLog(logId) {
     const publicDataPath = "artifacts/great-class-quest/public/data";
     try {
@@ -1367,245 +1337,6 @@ export async function handleBatchAwardBonus(students) {
     }
 }
 
-export async function handleBulkSaveTrial() {
-    const modal = document.getElementById('bulk-trial-modal');
-    const classId = modal.dataset.classId;
-    const type = modal.dataset.type;
-    const isJunior = modal.dataset.isJunior === 'true';
-    
-    const date = document.getElementById('bulk-trial-date').value;
-    const title = document.getElementById('bulk-trial-name').value.trim();
-
-    if (!date) {
-        showToast('Please select a date.', 'error');
-        return;
-    }
-
-    if (type === 'test' && !title) {
-        showToast('Please enter a title for the test.', 'error');
-        return;
-    }
-
-    const rows = document.querySelectorAll('.bulk-log-item');
-    if (rows.length === 0) return;
-
-    const btn = document.getElementById('bulk-trial-save-btn');
-    btn.disabled = true;
-    btn.innerHTML = `<i class="fas fa-spinner fa-spin mr-2"></i> Saving...`;
-
-    const batch = writeBatch(db);
-    const publicDataPath = "artifacts/great-class-quest/public/data";
-    const scoresCollection = collection(db, `${publicDataPath}/written_scores`);
-    
-    let operationsCount = 0;
-    const potentialStarfallStudents = [];
-
-    try {
-        rows.forEach(row => {
-            const studentId = row.dataset.studentId;
-            const trialId = row.dataset.trialId; 
-            const isAbsent = row.querySelector('.toggle-absent-btn').classList.contains('is-absent');
-            const input = row.querySelector('.bulk-grade-input');
-            const val = input.value;
-
-            if (isAbsent) {
-                if (trialId) {
-                    batch.delete(doc(scoresCollection, trialId));
-                    operationsCount++;
-                }
-                return;
-            }
-
-            if (!val) return;
-
-            const maxScore = (isJunior && type === 'test') ? 40 : 100;
-            
-            let scoreData = {
-                studentId,
-                classId,
-                date,
-                type,
-                title: type === 'test' ? title : null,
-                teacherId: state.get('currentUserId'),
-                notes: null,
-                scoreNumeric: null,
-                scoreQualitative: null,
-                maxScore: maxScore
-            };
-
-            if (isJunior && type === 'dictation') {
-                scoreData.scoreQualitative = val;
-            } else {
-                scoreData.scoreNumeric = parseInt(val, 10);
-            }
-
-            // Logic for Starfall Eligibility Check
-            let bonusAmount = 0;
-            let isEligible = false;
-
-            if (type === 'test') {
-                const threshold = isJunior ? 38 : 96; // Junior: 38+/40, Senior: 96+/100
-                if (scoreData.scoreNumeric >= threshold) {
-                    bonusAmount = 1;
-                    isEligible = true;
-                }
-            } else if (type === 'dictation') {
-                // Check if this current score is high enough to consider
-                let isHighDictation = false;
-                if (isJunior) {
-                    if (val === 'Great!!!') isHighDictation = true;
-                } else {
-                    if ((scoreData.scoreNumeric / maxScore) * 100 > 85) isHighDictation = true;
-                }
-
-                if (isHighDictation) {
-                    // We need to check history.
-                    // Note: The current score isn't in state yet (async), so we count from state + 1
-                    potentialStarfallStudents.push({ studentId, type: 'dictation', bonusAmount: 0.5 });
-                }
-            }
-
-            if (isEligible && type === 'test') {
-                potentialStarfallStudents.push({ studentId, scoreData, type, bonusAmount });
-            }
-
-            if (trialId) {
-                batch.update(doc(scoresCollection, trialId), scoreData);
-            } else {
-                const newRef = doc(scoresCollection);
-                scoreData.createdAt = serverTimestamp();
-                batch.set(newRef, scoreData);
-            }
-            operationsCount++;
-        });
-
-        const savedScoresData = []; // <-- ADD THIS LINE to collect scores
-
-rows.forEach(row => {
-    // ... (existing code inside the forEach loop) ...
-
-    if (isAbsent) {
-        // ...
-        return;
-    }
-
-    if (!val) return;
-    
-    // ... (existing scoreData creation logic) ...
-
-    savedScoresData.push(scoreData); // <-- ADD THIS LINE to save the data for later
-
-    // ... (existing starfall eligibility logic) ...
-
-    if (trialId) {
-        batch.update(doc(scoresCollection, trialId), scoreData);
-    } else {
-        const newRef = doc(scoresCollection);
-        scoreData.createdAt = serverTimestamp();
-        batch.set(newRef, scoreData);
-    }
-    operationsCount++;
-});
-
-if (operationsCount > 0) {
-    await batch.commit();
-    showToast('All grades saved successfully!', 'success');
-    hideModal('bulk-trial-modal');
-
-    // --- NEW: PERSONAL BEST CHECK ---
-    savedScoresData.forEach(savedScore => {
-        if (savedScore.type === 'test' && savedScore.scoreNumeric !== null) {
-            const studentId = savedScore.studentId;
-            const student = state.get('allStudents').find(s => s.id === studentId);
-            const newScorePercent = (savedScore.scoreNumeric / savedScore.maxScore) * 100;
-
-            const previousScores = state.get('allWrittenScores')
-                .filter(s => s.studentId === studentId && s.type === 'test' && s.id !== savedScore.id); // Exclude the one just saved if editing
-
-            const maxPreviousScore = previousScores.length > 0 
-                ? Math.max(...previousScores.map(s => (s.scoreNumeric / s.maxScore) * 100))
-                : 0;
-
-            if (newScorePercent > maxPreviousScore) {
-                setTimeout(() => { // Small delay to not overlap with other toasts
-                    showPraiseToast(`${student.name} just set a new Personal Best on their test!`, '🏆');
-                }, 700);
-            }
-        }
-    });
-
-    // --- PROCESS STARFALL FOR BATCH ---
-    const finalEligibleStudents = [];
-    
-    // Filter Test Bonuses (already confirmed eligible above)
-    const testWinners = potentialStarfallStudents.filter(p => p.type === 'test');
-    testWinners.forEach(w => {
-        const s = state.get('allStudents').find(st => st.id === w.studentId);
-        if(s) finalEligibleStudents.push({ studentId: s.id, name: s.name, bonusAmount: w.bonusAmount, trialType: 'test' });
-    });
-            // Filter Dictation Bonuses (Needs history check)
-            const dictationCandidates = potentialStarfallStudents.filter(p => p.type === 'dictation');
-            if (dictationCandidates.length > 0) {
-                // Check history: Need > 2 high scores in current month
-                // We rely on state.get('allWrittenScores') for history
-                const currentMonthKey = date.substring(0, 7); // YYYY-MM
-                
-                dictationCandidates.forEach(cand => {
-                    const studentScoresThisMonth = state.get('allWrittenScores').filter(s => 
-                        s.studentId === cand.studentId && 
-                        s.type === 'dictation' &&
-                        s.date.startsWith(currentMonthKey)
-                    );
-                    
-                    // Add the CURRENT one we just saved (it might not be in state yet if listener hasn't fired)
-                    // So assume count + 1.
-                    
-                    let highCount = 1; // The current one counts
-                    
-                    if (isJunior) {
-                        highCount += studentScoresThisMonth.filter(s => s.scoreQualitative === 'Great!!!').length;
-                    } else {
-                        highCount += studentScoresThisMonth.filter(s => (s.scoreNumeric / s.maxScore) * 100 > 85).length;
-                    }
-
-                    // Rule: "more than 2-3". Let's set it to >= 3 to be safe/impressive.
-                    if (highCount >= 3) {
-                        // Check if bonus already awarded this month more than twice? 
-                        // Logic says: "also activated for them". 
-                        // Let's limit to once per batch or check simple throttle.
-                        const bonusLogsThisMonth = state.get('allAwardLogs').filter(log => 
-                            log.studentId === cand.studentId && 
-                            log.reason === 'scholar_s_bonus' && 
-                            log.date.startsWith(currentMonthKey) &&
-                            log.note && log.note.includes('dictation')
-                        ).length;
-
-                        if (bonusLogsThisMonth < 2) { // Allow max 2 bonuses per month for dictations to avoid farming
-                            const s = state.get('allStudents').find(st => st.id === cand.studentId);
-                            if(s) finalEligibleStudents.push({ studentId: s.id, name: s.name, bonusAmount: 0.5, trialType: 'dictation' });
-                        }
-                    }
-                });
-            }
-
-            if (finalEligibleStudents.length > 0) {
-                setTimeout(() => showBatchStarfallModal(finalEligibleStudents), 500);
-            }
-
-        } else {
-            showToast('No changes to save.', 'info');
-            hideModal('bulk-trial-modal');
-        }
-
-    } catch (error) {
-        console.error("Bulk save error:", error);
-        showToast("Failed to save scores. Please try again.", "error");
-    } finally {
-        btn.disabled = false;
-        btn.innerHTML = `<i class="fas fa-save mr-2"></i> Save All`;
-    }
-}
-
 export async function saveAdventureLogNote() {
     const logId = document.getElementById('note-log-id-input').value;
     const newNote = document.getElementById('note-textarea').value;
@@ -1745,6 +1476,11 @@ export async function handleMarkAbsent(studentId, classId, isAbsent) {
 export async function handleAddQuestEvent() {
     const date = document.getElementById('quest-event-date').value;
     const type = document.getElementById('quest-event-type').value;
+    
+    if (!date) {
+        showToast('System Error: Date is missing. Please close and reopen the planner.', 'error');
+        return;
+    }
     if (!type) {
         showToast('Please select an event type.', 'error');
         return;
@@ -1783,16 +1519,24 @@ export async function handleAddQuestEvent() {
                 throw new Error("Invalid event type selected.");
         }
 
+        const btn = document.querySelector('#quest-event-form button[type="submit"]');
+        btn.disabled = true; btn.innerText = "Adding...";
+
         await addDoc(collection(db, "artifacts/great-class-quest/public/data/quest_events"), {
             date, type, details,
             createdBy: { uid: state.get('currentUserId'), name: state.get('currentTeacherName') },
             createdAt: serverTimestamp()
         });
+        
         showToast('Quest Event added to calendar!', 'success');
-        document.getElementById('day-planner-modal').classList.add('hidden');
+        import('../ui/modals.js').then(m => m.hideModal('day-planner-modal'));
+        
     } catch (error) {
         console.error("Error adding quest event:", error);
         showToast(error.message || 'Failed to save event.', 'error');
+    } finally {
+        const btn = document.querySelector('#quest-event-form button[type="submit"]');
+        if(btn) { btn.disabled = false; btn.innerText = "Add Event"; }
     }
 }
 
@@ -2319,6 +2063,213 @@ export async function handleGenerateShopStock() {
     }
 }
 
+export async function handleBulkSaveTrial() {
+    const modal = document.getElementById('bulk-trial-modal');
+    const classId = modal.dataset.classId;
+    const type = modal.dataset.type;
+    const isJunior = modal.dataset.isJunior === 'true';
+    
+    const date = document.getElementById('bulk-trial-date').value;
+    const title = document.getElementById('bulk-trial-name').value.trim();
+
+    if (!date) {
+        showToast('Please select a date.', 'error');
+        return;
+    }
+
+    if (type === 'test' && !title) {
+        showToast('Please enter a title for the test.', 'error');
+        return;
+    }
+
+    const rows = document.querySelectorAll('.bulk-log-item');
+    if (rows.length === 0) return;
+
+    const btn = document.getElementById('bulk-trial-save-btn');
+    btn.disabled = true;
+    btn.innerHTML = `<i class="fas fa-spinner fa-spin mr-2"></i> Saving...`;
+
+    const batch = writeBatch(db);
+    const publicDataPath = "artifacts/great-class-quest/public/data";
+    const scoresCollection = collection(db, `${publicDataPath}/written_scores`);
+    
+    let operationsCount = 0;
+    const potentialStarfallStudents = [];
+    const savedScoresData = []; // Collection for personal best check
+
+    try {
+        rows.forEach(row => {
+            const studentId = row.dataset.studentId;
+            const trialId = row.dataset.trialId; 
+            const isAbsent = row.querySelector('.toggle-absent-btn').classList.contains('is-absent');
+            const input = row.querySelector('.bulk-grade-input');
+            const val = input.value;
+
+            if (isAbsent) {
+                if (trialId) {
+                    batch.delete(doc(scoresCollection, trialId));
+                    operationsCount++;
+                }
+                return;
+            }
+
+            if (!val) return;
+
+            const maxScore = (isJunior && type === 'test') ? 40 : 100;
+            
+            let scoreData = {
+                studentId,
+                classId,
+                date,
+                type,
+                title: type === 'test' ? title : null,
+                teacherId: state.get('currentUserId'),
+                notes: null,
+                scoreNumeric: null,
+                scoreQualitative: null,
+                maxScore: maxScore
+            };
+
+            if (isJunior && type === 'dictation') {
+                scoreData.scoreQualitative = val;
+            } else {
+                scoreData.scoreNumeric = parseInt(val, 10);
+            }
+
+            savedScoresData.push({ ...scoreData, id: trialId || 'new' }); 
+
+            // Logic for Starfall Eligibility Check
+            let bonusAmount = 0;
+            let isEligible = false;
+
+            if (type === 'test') {
+                const threshold = isJunior ? 38 : 96; 
+                if (scoreData.scoreNumeric >= threshold) {
+                    bonusAmount = 1;
+                    isEligible = true;
+                }
+            } else if (type === 'dictation') {
+                let isHighDictation = false;
+                if (isJunior) {
+                    if (val === 'Great!!!') isHighDictation = true;
+                } else {
+                    if ((scoreData.scoreNumeric / maxScore) * 100 > 85) isHighDictation = true;
+                }
+
+                if (isHighDictation) {
+                    potentialStarfallStudents.push({ studentId, type: 'dictation', bonusAmount: 0.5 });
+                }
+            }
+
+            if (isEligible && type === 'test') {
+                potentialStarfallStudents.push({ studentId, scoreData, type, bonusAmount });
+            }
+
+            if (trialId) {
+                batch.update(doc(scoresCollection, trialId), scoreData);
+            } else {
+                const newRef = doc(scoresCollection);
+                scoreData.createdAt = serverTimestamp();
+                batch.set(newRef, scoreData);
+            }
+            operationsCount++;
+        });
+
+        if (operationsCount > 0) {
+            await batch.commit();
+            showToast('All grades saved successfully!', 'success');
+            
+            // Dynamic import to avoid circular dependency issues
+            import('../ui/modals.js').then(m => m.hideModal('bulk-trial-modal'));
+
+            // --- PERSONAL BEST CHECK ---
+            savedScoresData.forEach(savedScore => {
+                if (savedScore.type === 'test' && savedScore.scoreNumeric !== null) {
+                    const studentId = savedScore.studentId;
+                    const student = state.get('allStudents').find(s => s.id === studentId);
+                    const newScorePercent = (savedScore.scoreNumeric / savedScore.maxScore) * 100;
+
+                    const previousScores = state.get('allWrittenScores')
+                        .filter(s => s.studentId === studentId && s.type === 'test' && s.id !== savedScore.id);
+
+                    const maxPreviousScore = previousScores.length > 0 
+                        ? Math.max(...previousScores.map(s => (s.scoreNumeric / s.maxScore) * 100))
+                        : 0;
+
+                    if (newScorePercent > maxPreviousScore && maxPreviousScore > 0) {
+                        setTimeout(() => { 
+                            showPraiseToast(`${student.name} just set a new Personal Best on their test!`, '🏆');
+                        }, 700);
+                    }
+                }
+            });
+
+            // --- PROCESS STARFALL FOR BATCH ---
+            const finalEligibleStudents = [];
+            
+            // Test Bonuses
+            const testWinners = potentialStarfallStudents.filter(p => p.type === 'test');
+            testWinners.forEach(w => {
+                const s = state.get('allStudents').find(st => st.id === w.studentId);
+                if(s) finalEligibleStudents.push({ studentId: s.id, name: s.name, bonusAmount: w.bonusAmount, trialType: 'test' });
+            });
+
+            // Dictation Bonuses
+            const dictationCandidates = potentialStarfallStudents.filter(p => p.type === 'dictation');
+            if (dictationCandidates.length > 0) {
+                const currentMonthKey = date.substring(0, 7); 
+                
+                dictationCandidates.forEach(cand => {
+                    const studentScoresThisMonth = state.get('allWrittenScores').filter(s => 
+                        s.studentId === cand.studentId && 
+                        s.type === 'dictation' &&
+                        s.date.startsWith(currentMonthKey)
+                    );
+                    
+                    let highCount = 1; // Current one counts
+                    
+                    if (isJunior) {
+                        highCount += studentScoresThisMonth.filter(s => s.scoreQualitative === 'Great!!!').length;
+                    } else {
+                        highCount += studentScoresThisMonth.filter(s => (s.scoreNumeric / s.maxScore) * 100 > 85).length;
+                    }
+
+                    if (highCount >= 3) {
+                        const bonusLogsThisMonth = state.get('allAwardLogs').filter(log => 
+                            log.studentId === cand.studentId && 
+                            log.reason === 'scholar_s_bonus' && 
+                            log.date.startsWith(currentMonthKey) &&
+                            log.note && log.note.includes('dictation')
+                        ).length;
+
+                        if (bonusLogsThisMonth < 2) { 
+                            const s = state.get('allStudents').find(st => st.id === cand.studentId);
+                            if(s) finalEligibleStudents.push({ studentId: s.id, name: s.name, bonusAmount: 0.5, trialType: 'dictation' });
+                        }
+                    }
+                });
+            }
+
+            if (finalEligibleStudents.length > 0) {
+                setTimeout(() => {
+                    import('../ui/modals.js').then(m => m.showBatchStarfallModal(finalEligibleStudents));
+                }, 500);
+            }
+
+        } else {
+            showToast('No changes to save.', 'info');
+            import('../ui/modals.js').then(m => m.hideModal('bulk-trial-modal'));
+        }
+
+    } catch (error) {
+        console.error("Bulk save error:", error);
+        showToast("Failed to save scores. Please try again.", "error");
+    } finally {
+        btn.disabled = false;
+        btn.innerHTML = `<i class="fas fa-save mr-2"></i> Save All`;
+    }
+}
+
 export async function handleBuyItem(studentId, itemId) {
     const item = state.get('currentShopItems').find(i => i.id === itemId);
     const student = state.get('allStudents').find(s => s.id === studentId);
@@ -2326,14 +2277,18 @@ export async function handleBuyItem(studentId, itemId) {
 
     const publicDataPath = "artifacts/great-class-quest/public/data";
     const scoreRef = doc(db, `${publicDataPath}/student_scores`, studentId);
+    const itemRef = doc(db, `${publicDataPath}/shop_items`, itemId);
     
     try {
         await runTransaction(db, async (transaction) => {
             const scoreDoc = await transaction.get(scoreRef);
             if (!scoreDoc.exists()) throw "Student data missing";
             
+            // Check if item still exists (Sold out check)
+            const itemDoc = await transaction.get(itemRef);
+            if (!itemDoc.exists()) throw "Sorry! This item was just bought by someone else.";
+
             const data = scoreDoc.data();
-            // Fallback for older records without 'gold' field
             const currentGold = data.gold !== undefined ? data.gold : (data.totalStars || 0);
             const currentInventory = data.inventory || [];
 
@@ -2343,7 +2298,7 @@ export async function handleBuyItem(studentId, itemId) {
             }
 
             // 2. CHECK MONTHLY LIMIT
-            const currentMonthKey = new Date().toISOString().substring(0, 7); // YYYY-MM
+            const currentMonthKey = new Date().toISOString().substring(0, 7); 
             const itemsBoughtThisMonth = currentInventory.filter(i => 
                 i.acquiredAt && i.acquiredAt.startsWith(currentMonthKey)
             );
@@ -2361,25 +2316,102 @@ export async function handleBuyItem(studentId, itemId) {
                 acquiredAt: new Date().toISOString()
             };
 
+            // FIX: Use increment for gold
             transaction.update(scoreRef, {
-                gold: increment(-item.price),
+                gold: increment(-item.price), 
                 inventory: [...currentInventory, newItem]
             });
+            
+            // FIX: Delete item to mark as "Sold Out"
+            transaction.delete(itemRef);
         });
 
         playSound('magic_chime');
-        showToast(`${student.name} bought ${item.name}!`, 'success');
+        showToast(`Purchased! ${student.name} acquired ${item.name}`, 'success');
         
         // Refresh UI
-        import('../ui/core.js').then(m => m.updateShopStudentDisplay(studentId));
+        import('../ui/core.js').then(m => {
+            m.updateShopStudentDisplay(studentId);
+            m.renderShopUI(); 
+        });
 
     } catch (error) {
-        if (error === "Not enough gold!" || error.includes("Monthly limit")) {
+        if (typeof error === 'string') {
             showToast(error, "error");
-            playSound('error');
+            playSound('star_remove');
         } else {
             console.error("Buy error:", error);
             showToast("Transaction failed.", "error");
         }
+    }
+}
+
+export async function checkAndResetMonthlyStars(studentId, currentMonthStart) {
+    const publicDataPath = "artifacts/great-class-quest/public/data";
+    const scoreRef = doc(db, `${publicDataPath}/student_scores`, studentId);
+    try {
+        await runTransaction(db, async (transaction) => {
+            const scoreDoc = await transaction.get(scoreRef);
+            if (!scoreDoc.exists()) return;
+            const scoreData = scoreDoc.data();
+            
+            if (scoreData.lastMonthlyResetDate !== currentMonthStart) {
+                const lastMonthScore = scoreData.monthlyStars || 0;
+                const lastMonthDateString = scoreData.lastMonthlyResetDate; 
+                const yearMonthKey = lastMonthDateString.substring(0, 7); 
+                const historyRef = doc(db, `${publicDataPath}/student_scores/${studentId}/monthly_history/${yearMonthKey}`);
+                
+                if (lastMonthScore > 0) {
+                    transaction.set(historyRef, { stars: lastMonthScore, month: yearMonthKey });
+                }
+                
+                // FIX: Ensure gold persists (do not set to 0, read current value or default)
+                const currentGold = scoreData.gold !== undefined ? scoreData.gold : (scoreData.totalStars || 0);
+
+                transaction.update(scoreRef, { 
+                    monthlyStars: 0, 
+                    lastMonthlyResetDate: currentMonthStart,
+                    gold: currentGold // Explicitly write it back to save it
+                });
+            }
+        });
+    } catch (error) { 
+        console.error(`Failed monthly reset & archive for ${studentId}:`, error); 
+    }
+}
+
+export async function handleManualGoldUpdate() {
+    const studentId = document.getElementById('economy-student-select').value;
+    const newGold = parseInt(document.getElementById('economy-gold-input').value);
+
+    if (!studentId || isNaN(newGold)) {
+        showToast('Please select a student and enter a valid amount.', 'error');
+        return;
+    }
+
+    const btn = document.getElementById('save-gold-btn');
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving...';
+
+    try {
+        const publicDataPath = "artifacts/great-class-quest/public/data";
+        const scoreRef = doc(db, `${publicDataPath}/student_scores`, studentId);
+        
+        await updateDoc(scoreRef, {
+            gold: newGold
+        });
+
+        showToast('Coin balance updated successfully!', 'success');
+        
+        // Update the visual pill if visible
+        const goldDisplay = document.getElementById(`student-gold-display-${studentId}`);
+        if(goldDisplay) goldDisplay.innerText = newGold;
+
+    } catch (error) {
+        console.error("Error updating gold:", error);
+        showToast("Failed to update gold.", "error");
+    } finally {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fas fa-save mr-2"></i> Update Balance';
     }
 }

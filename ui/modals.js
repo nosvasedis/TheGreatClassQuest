@@ -916,11 +916,16 @@ async function toggleAttendanceRecord(button) {
     }
 }
 
-export function openEditStudentNameModal(studentId, currentName) {
-    playSound('click');
-    document.getElementById('edit-student-id-input').value = studentId;
-    document.getElementById('edit-student-name-input').value = currentName;
-    showAnimatedModal('edit-student-name-modal');
+export function openEditStudentModal(studentId) {
+    const student = state.get('allStudents').find(s => s.id === studentId);
+    if (!student) return;
+
+    document.getElementById('edit-student-id-input-full').value = studentId;
+    document.getElementById('edit-student-name-input-full').value = student.name;
+    document.getElementById('edit-student-birthday-input').value = student.birthday || '';
+    document.getElementById('edit-student-nameday-input').value = student.nameday || '';
+
+    showAnimatedModal('edit-student-modal');
 }
 
 export async function openQuestAssignmentModal() {

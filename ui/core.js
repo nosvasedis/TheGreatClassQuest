@@ -236,10 +236,13 @@ export function setupUIListeners() {
             modals.openAwardNoteModal(noteBtn.dataset.logId);
         }
     });
-    document.getElementById('class-history-btn').addEventListener('click', () => modals.openHistoryModal());
-    document.getElementById('student-history-btn').addEventListener('click', () => modals.openHistoryModal());
+    document.getElementById('class-history-btn').addEventListener('click', () => modals.openHistoryModal('team'));
+    document.getElementById('student-history-btn').addEventListener('click', () => modals.openHistoryModal('hero'));
     document.getElementById('history-modal-close-btn').addEventListener('click', () => modals.hideModal('history-modal'));
-    document.getElementById('history-month-select').addEventListener('change', (e) => modals.renderHistoricalLeaderboard(e.target.value));
+    document.getElementById('history-month-select').addEventListener('change', (e) => {
+        const type = document.getElementById('history-modal').dataset.historyType;
+        modals.renderHistoricalLeaderboard(e.target.value, type);
+    });
 
     // Get Quest Update button
     document.getElementById('get-quest-update-btn').addEventListener('click', handleGetQuestUpdate);

@@ -28,6 +28,7 @@ import { playSound } from '../audio.js';
 import { callGeminiApi, callCloudflareAiImageApi } from '../api.js';
 import { classColorPalettes } from '../constants.js';
 import { handleStoryWeaversClassSelect } from '../features/storyWeaver.js';
+import * as modals from '../ui/modals.js';
 
 const debouncedCheckAndRecordQuestCompletion = debounce(checkAndRecordQuestCompletion, 4000);
 
@@ -179,24 +180,67 @@ export async function deleteStudent(studentId) {
     }
 }
 
-export async function handleEditStudentName() {
-    const studentId = document.getElementById('edit-student-id-input').value;
-    const newName = document.getElementById('edit-student-name-input').value.trim();
-    
+export async function handleSaveStudentDetails() {
+    const studentId = document.getElementById('edit-student-id-input-full').value;
+    const newName = document.getElementById('edit-student-name-input-full').value.trim();
+    const birthday = document.getElementById('edit-student-birthday-input').value;
+    const nameday = document.getElementById('edit-student-nameday-input').value;
+
     if (!newName) {
         showToast('Name cannot be empty.', 'error');
         return;
     }
-    
+
+    const btn = document.getElementById('edit-student-confirm-btn');
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> Saving...';
+
     try {
         const studentRef = doc(db, "artifacts/great-class-quest/public/data/students", studentId);
-        await updateDoc(studentRef, { name: newName });
-        showToast('Student name updated successfully!', 'success');
+        await updateDoc(studentRef, {
+            name: newName,
+            birthday: birthday || null,
+            nameday: nameday || null
+        });
+        showToast('Student details updated!', 'success');
+        modals.hideModal('edit-student-modal');
     } catch (error) {
-        console.error("Error updating student name: ", error);
-        showToast(`Failed to update name: ${error.message}`, 'error');
+        console.error("Error updating student details: ", error);
+        showToast(`Failed to update: ${error.message}`, 'error');
     } finally {
-        document.getElementById('edit-student-name-modal').classList.add('hidden');
+        btn.disabled = false;
+        btn.innerHTML = 'Save';
+    }
+}
+
+export async function handleLookupNameday() {
+    const studentName = document.getElementById('edit-student-name-input-full').value.trim();
+    if (!studentName) {
+        showToast('Please enter a name first.', 'info');
+        return;
+    }
+
+    const btn = document.getElementById('lookup-nameday-btn');
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+
+    const systemPrompt = "You are an expert on Greek Orthodox namedays (Εορτολόγιο). You will be given a Greek name. Your task is to find the corresponding nameday. If there are multiple dates, provide the most common one. Your response MUST be ONLY the date in YYYY-MM-DD format. Do not include the current year, just use a placeholder year like 2024. For example, for 'Giorgos', you should return '2024-04-23'. For 'Maria' on August 15th, return '2024-08-15'. If the name is not in the Greek Orthodox calendar, return 'Not found'.";
+    const userPrompt = `What is the nameday for the name: "${studentName}"?`;
+
+    try {
+        const result = await callGeminiApi(systemPrompt, userPrompt);
+        if (result && result.match(/^\d{4}-\d{2}-\d{2}$/)) {
+            document.getElementById('edit-student-nameday-input').value = result;
+            showToast(`Suggested nameday for ${studentName} found!`, 'success');
+        } else {
+            showToast(`Could not automatically find a nameday for "${studentName}".`, 'info');
+        }
+    } catch (error) {
+        console.error("Nameday lookup failed:", error);
+        showToast("AI lookup failed. Please enter the date manually.", "error");
+    } finally {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fas fa-magic"></i>';
     }
 }
 

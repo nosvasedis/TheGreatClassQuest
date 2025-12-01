@@ -42,7 +42,6 @@ import {
     handleSaveQuestAssignment,
     handleMarkAbsent,
     handleMoveStudent,
-    handleEditStudentName,
     handleStarManagerStudentSelect,
     handleDeleteQuestEvent,
     handleAddOneTimeLesson,
@@ -137,9 +136,14 @@ export function setupUIListeners() {
     document.getElementById('add-student-form').addEventListener('submit', (e) => { e.preventDefault(); handleAddStudent(); });
     document.getElementById('edit-class-form').addEventListener('submit', (e) => { e.preventDefault(); handleEditClass(); });
     document.getElementById('edit-class-cancel-btn').addEventListener('click', () => modals.hideModal('edit-class-modal'));
-    document.getElementById('edit-student-name-cancel-btn').addEventListener('click', () => modals.hideModal('edit-student-name-modal'));
-    document.getElementById('edit-student-name-confirm-btn').addEventListener('click', handleEditStudentName);
-
+    document.getElementById('edit-student-cancel-btn').addEventListener('click', () => modals.hideModal('edit-student-modal'));
+document.getElementById('edit-student-confirm-btn').addEventListener('click', () => {
+    import('../db/actions.js').then(actions => actions.handleSaveStudentDetails());
+});
+document.getElementById('lookup-nameday-btn').addEventListener('click', () => {
+    import('../db/actions.js').then(actions => actions.handleLookupNameday());
+});
+    
     // Calendar Logic
     const handleMonthChange = async (direction) => {
         const calDate = state.get('calendarCurrentDate');

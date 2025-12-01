@@ -465,62 +465,88 @@ document.getElementById('lookup-nameday-btn').addEventListener('click', () => {
 
             // --- CASE 3: WELCOME BACK (Implicit Absence Bonus) ---
             if (actionBtn.dataset.action === 'welcome-back') {
-                // Awards bonus star(s) ONLY to monthly/total
-                // Marks today as present (0 stars) so card unlocks
-                const stars = Math.random() < 0.5 ? 0.5 : 1;
-                const firstName = student.name.split(' ')[0];
-                playSound('star2');
-                
-                try {
-                    const publicDataPath = "artifacts/great-class-quest/public/data";
-                    await runTransaction(db, async (transaction) => {
-                        const scoreRef = doc(db, `${publicDataPath}/student_scores`, studentId);
-                        const newLogRef = doc(collection(db, `${publicDataPath}/award_log`));
-                        
-                        // 1. Update Scores (Total/Monthly)
-                        const scoreDoc = await transaction.get(scoreRef);
-                        if (!scoreDoc.exists()) {
-                             transaction.set(scoreRef, {
-                                totalStars: stars, monthlyStars: stars,
-                                lastMonthlyResetDate: utils.getStartOfMonthString(),
-                                createdBy: { uid: state.get('currentUserId'), name: state.get('currentTeacherName') }
-                            });
-                        } else {
-                            transaction.update(scoreRef, {
-                                totalStars: increment(stars),
-                                monthlyStars: increment(stars)
-                            });
-                        }
+    const studentId = actionBtn.closest('.student-cloud-card').dataset.studentid;
+    const student = state.get('allStudents').find(s => s.id === studentId);
+    const studentClass = state.get('allSchoolClasses').find(c => c.id === student.classId);
+    const firstName = student.name.split(' ')[0];
+    playSound('star2');
 
-                        // 2. Log the Bonus
-                        const logData = {
-                            studentId, classId: student.classId, teacherId: state.get('currentUserId'),
-                            stars: stars, reason: 'welcome_back', date: utils.getTodayDateString(),
-                            createdAt: serverTimestamp(), createdBy: { uid: state.get('currentUserId'), name: state.get('currentTeacherName') }
-                        };
-                        transaction.set(newLogRef, logData);
-                        
-                        // 3. Set Daily Record to 0 Stars (Present but Unlocked)
-                        const todayStarsRef = doc(collection(db, `${publicDataPath}/today_stars`));
-                        transaction.set(todayStarsRef, {
-                             studentId, 
-                             stars: 0, // Zero daily stars keeps card unlocked
-                             date: utils.getTodayDateString(), 
-                             reason: 'welcome_back',
-                             teacherId: state.get('currentUserId'), 
-                             createdBy: { uid: state.get('currentUserId'), name: state.get('currentTeacherName') }
-                        });
-                    });
-                    
-                    showWelcomeBackMessage(firstName, stars);
-
-                } catch (error) {
-                    console.error("Welcome back bonus transaction failed:", error);
-                    showToast('Could not apply welcome back bonus. Please try again.', 'error');
-                }
-                
-                return;
+    // --- NEW: SMART BONUS CALCULATION ---
+    let missedDays = 0;
+    const scheduleDays = studentClass.scheduleDays || [];
+    const attendanceRecords = state.get('allAttendanceRecords');
+    
+    // Check backwards for up to 14 days
+    for (let i = 1; i <= 14; i++) {
+        let checkDate = new Date();
+        checkDate.setDate(checkDate.getDate() - i);
+        const checkDateString = utils.getDDMMYYYY(checkDate);
+        
+        if (scheduleDays.includes(checkDate.getDay().toString())) {
+            // This was a scheduled lesson day
+            const wasAbsent = attendanceRecords.some(r => r.studentId === studentId && r.date === checkDateString);
+            if (wasAbsent) {
+                missedDays++;
+            } else {
+                // They were present, so the streak of absence is broken. Stop counting.
+                break;
             }
+        }
+    }
+    
+    const stars = missedDays >= 2 ? 1 : 0.5; // 1 star for 2+ missed days, 0.5 for 1.
+    // --- END OF NEW LOGIC ---
+
+    try {
+        const publicDataPath = "artifacts/great-class-quest/public/data";
+        await runTransaction(db, async (transaction) => {
+            const scoreRef = doc(db, `${publicDataPath}/student_scores`, studentId);
+            const newLogRef = doc(collection(db, `${publicDataPath}/award_log`));
+            
+            // 1. Update Scores (Total/Monthly)
+            const scoreDoc = await transaction.get(scoreRef);
+            if (!scoreDoc.exists()) {
+                 transaction.set(scoreRef, {
+                    totalStars: stars, monthlyStars: stars,
+                    lastMonthlyResetDate: utils.getStartOfMonthString(),
+                    createdBy: { uid: state.get('currentUserId'), name: state.get('currentTeacherName') }
+                });
+            } else {
+                transaction.update(scoreRef, {
+                    totalStars: increment(stars),
+                    monthlyStars: increment(stars)
+                });
+            }
+
+            // 2. Log the Bonus
+            const logData = {
+                studentId, classId: student.classId, teacherId: state.get('currentUserId'),
+                stars: stars, reason: 'welcome_back', date: utils.getTodayDateString(),
+                createdAt: serverTimestamp(), createdBy: { uid: state.get('currentUserId'), name: state.get('currentTeacherName') }
+            };
+            transaction.set(newLogRef, logData);
+            
+            // 3. Set Daily Record to 0 Stars (Present but Unlocked)
+            const todayStarsRef = doc(collection(db, `${publicDataPath}/today_stars`));
+            transaction.set(todayStarsRef, {
+                 studentId, 
+                 stars: 0, // Zero daily stars keeps card unlocked
+                 date: utils.getTodayDateString(), 
+                 reason: 'welcome_back',
+                 teacherId: state.get('currentUserId'), 
+                 createdBy: { uid: state.get('currentUserId'), name: state.get('currentTeacherName') }
+            });
+        });
+        
+        showWelcomeBackMessage(firstName, stars);
+
+    } catch (error) {
+        console.error("Welcome back bonus transaction failed:", error);
+        showToast('Could not apply welcome back bonus. Please try again.', 'error');
+    }
+    
+    return;
+    }
         }
         
         const reasonBtn = e.target.closest('.reason-btn');

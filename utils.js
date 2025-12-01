@@ -214,3 +214,44 @@ export async function uploadImageToStorage(base64String, path) {
         throw error;
     }
 }
+
+/**
+ * ROBUST DATE PARSER
+ * Handles: DD-MM-YYYY, DD/MM/YYYY, YYYY-MM-DD, and Date objects.
+ * Defaults to DD-MM-YYYY (UK/EU format) for ambiguity like 01/02.
+ */
+export function parseFlexibleDate(dateInput) {
+    if (!dateInput) return null;
+    if (dateInput instanceof Date) return dateInput; // Already a date object
+
+    // 1. Handle "YYYY-MM-DD" (ISO)
+    if (dateInput.match(/^\d{4}-\d{2}-\d{2}$/)) {
+        return new Date(dateInput);
+    }
+
+    // 2. Handle "DD-MM-YYYY" or "DD/MM/YYYY"
+    // We split by any non-digit character
+    const parts = dateInput.split(/[^0-9]/);
+    
+    if (parts.length === 3) {
+        const p1 = parseInt(parts[0], 10);
+        const p2 = parseInt(parts[1], 10);
+        const p3 = parseInt(parts[2], 10);
+
+        // Guess format based on year position
+        if (p3 > 1000) {
+            // Format: DD-MM-YYYY (p1=Day, p2=Month, p3=Year)
+            return new Date(p3, p2 - 1, p1);
+        } 
+        else if (p1 > 1000) {
+            // Format: YYYY-MM-DD (p1=Year, p2=Month, p3=Day)
+            return new Date(p1, p2 - 1, p3);
+        }
+    }
+
+    // 3. Fallback: Try standard Date parse
+    const rawParse = new Date(dateInput);
+    if (!isNaN(rawParse.getTime())) return rawParse;
+
+    return null;
+}

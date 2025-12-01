@@ -188,11 +188,14 @@ export function openDayPlannerModal(dateString, dayCell) {
     document.getElementById('day-planner-title').innerText = `Planner for ${displayDate}`;
     modal.dataset.date = dateString;
     
+    // 1. Reset the form FIRST to clear old inputs
+    document.getElementById('quest-event-form').reset();
+    
+    // 2. SET the date AFTER reset so it sticks
     document.getElementById('quest-event-date').value = dateString;
 
     renderScheduleManagerList(dateString);
-    document.getElementById('quest-event-form').reset();
-    renderQuestEventDetails();
+    renderQuestEventDetails(); // Clear/Reset details area
     
     switchDayPlannerTab('schedule');
     showAnimatedModal('day-planner-modal');
@@ -441,6 +444,8 @@ function populateHistoryMonthSelector() {
     }
 }
 
+// --- IN FILE: ui/modals.js ---
+
 export async function renderHistoricalLeaderboard(monthKey, type) {
     const contentEl = document.getElementById('history-modal-content');
     if (!monthKey) {
@@ -454,31 +459,23 @@ export async function renderHistoricalLeaderboard(monthKey, type) {
         return;
     }
 
-    // --- DATE LOGIC ---
-    const now = new Date();
-    let prevMonth = now.getMonth() - 1;
-    let prevYear = now.getFullYear();
-    if (prevMonth < 0) { prevMonth = 11; prevYear -= 1; }
-    
-    const lastMonthKey = `${prevYear}-${String(prevMonth + 1).padStart(2, '0')}`;
-    const isMostRecentMonth = (monthKey === lastMonthKey);
-
     let monthlyScores = {}; 
     let activeParticipants = new Set(); 
+    // *** NEW: Define logs array in scope ***
+    let logs = [];
 
     try {
         contentEl.innerHTML = `<div class="text-center py-8"><i class="fas fa-spinner fa-spin text-2xl text-amber-500"></i><p class="mt-2 text-gray-600">Reconstructing timeline...</p></div>`;
         
         const { fetchLogsForMonth } = await import('../db/queries.js');
         const { fetchMonthlyHistory } = await import('../state.js'); 
-        const utils = await import('../utils.js'); // Ensure utils is available
 
         const [year, month] = monthKey.split('-').map(Number);
         
         // 1. Fetch Logs
         const logsPromise = fetchLogsForMonth(year, month);
         const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout')), 8000));
-        let logs = await Promise.race([logsPromise, timeoutPromise]).catch(e => []);
+        logs = await Promise.race([logsPromise, timeoutPromise]).catch(e => []);
         
         if (!logs || logs.length === 0) {
             monthlyScores = await fetchMonthlyHistory(monthKey);
@@ -500,14 +497,9 @@ export async function renderHistoricalLeaderboard(monthKey, type) {
 
     if (type === 'team') {
         const classesInLeague = state.get('allSchoolClasses').filter(c => c.questLevel === league);
-        
-        // 1. SETUP TIME CONTEXT
         const [hYear, hMonth] = monthKey.split('-').map(Number);
         const daysInMonth = new Date(hYear, hMonth, 0).getDate();
-        const viewMonthStart = new Date(hYear, hMonth - 1, 1);
-        const viewMonthEnd = new Date(hYear, hMonth, 0, 23, 59, 59);
         
-        // 2a. GLOBAL HOLIDAY CALCULATION
         let globalHolidayDays = 0;
         const ranges = state.get('schoolHolidayRanges') || [];
         ranges.forEach(range => {
@@ -525,58 +517,36 @@ export async function renderHistoricalLeaderboard(monthKey, type) {
 
         const BASE_GOAL = 18; 
         const SCALING_FACTOR = 1.5; 
-
-        // Needed for date parsing inside the loop
         const { parseDDMMYYYY } = await import('../utils.js');
 
         const classScores = classesInLeague.map(c => {
-            // CHECK SNAPSHOT FIRST
             if (c.ceremonyHistory && c.ceremonyHistory[monthKey] && c.ceremonyHistory[monthKey].stats) {
                 return { ...c, ...c.ceremonyHistory[monthKey].stats, isSnapshot: true };
             }
-
-            // 2b. SPECIFIC CANCELLATIONS ("No School" Days)
             const overrides = state.get('allScheduleOverrides') || [];
             const classCancellations = overrides.filter(o => {
                 if (o.classId !== c.id || o.type !== 'cancelled') return false;
                 const oDate = parseDDMMYYYY(o.date);
-                // Check if the cancelled date falls in the target month
                 return oDate.getMonth() === (hMonth - 1) && oDate.getFullYear() === hYear;
             }).length;
 
             const totalDaysLost = globalHolidayDays + classCancellations;
-
-            // Calculate Modifier based on TOTAL lost days (Global + Specific)
             let monthModifier = (daysInMonth - totalDaysLost) / daysInMonth;
             if ((hMonth - 1) === 5) monthModifier = 0.5;
             else monthModifier = Math.max(0.6, Math.min(1.0, monthModifier));
 
-            // 3. STUDENT COUNT (Forensic)
-            const rosterStudents = state.get('allStudents').filter(s => {
-                if (s.classId !== c.id) return false;
-                if (s.createdAt) return s.createdAt.toDate() <= viewMonthEnd;
-                return true; 
-            });
+            const rosterStudents = state.get('allStudents').filter(s => s.classId === c.id); 
             const studentIds = new Set(rosterStudents.map(s => s.id));
-            activeParticipants.forEach(id => { 
-                // In a perfect world we'd check classId here, but for now we rely on the roster filter + month logs
-            });
-
             const studentCount = studentIds.size;
             const totalStars = Array.from(studentIds).reduce((sum, id) => sum + (monthlyScores[id] || 0), 0);
             
-            // 4. DIFFICULTY TIME TRAVEL
             let historicalDifficulty = c.difficultyLevel || 0;
-            if (c.questCompletedAt) {
-                const completedDate = c.questCompletedAt.toDate();
-                if (completedDate >= viewMonthStart) {
-                    historicalDifficulty = Math.max(0, historicalDifficulty - 1);
-                }
+            if (c.questCompletedAt && c.questCompletedAt.toDate() >= new Date(hYear, hMonth - 1, 1)) {
+                historicalDifficulty = Math.max(0, historicalDifficulty - 1);
             }
 
             const adjustedGoalPerStudent = (BASE_GOAL + (historicalDifficulty * SCALING_FACTOR)) * monthModifier;
             const diamondGoal = studentCount > 0 ? Math.round(studentCount * adjustedGoalPerStudent) : 18;
-            
             const progress = diamondGoal > 0 ? (totalStars / diamondGoal) * 100 : 0;
             
             return { ...c, totalStars, progress, diamondGoal, studentCount, isSnapshot: false, daysLost: totalDaysLost };
@@ -585,59 +555,35 @@ export async function renderHistoricalLeaderboard(monthKey, type) {
             return b.totalStars - a.totalStars;
         });
 
+        // ... (Render HTML for Team - same as before)
         let html = `<div class="mb-4">
             <h3 class="font-title text-2xl text-amber-700">Class Rankings for ${monthDisplay}</h3>
             ${globalHolidayDays > 0 ? `<p class="text-xs text-amber-600 font-bold"><i class="fas fa-calendar-times mr-1"></i>Includes ${globalHolidayDays} days of School Holiday</p>` : ''}
         </div>`;
-        
         if (classScores.length === 0 || classScores.every(c => c.totalStars === 0)) {
             html += `<p class="text-gray-600 mt-2">No stars were recorded for this league during this month.</p>`;
         } else {
             html += `<div class="mt-4 space-y-3">`;
             classScores.forEach((c, index) => {
                 const rank = index + 1;
-                const progressDisplay = c.progress.toFixed(1);
-                
-                let borderClass = 'border-amber-200';
-                let bgClass = 'bg-white';
-                let icon = '';
-                
+                let borderClass = 'border-amber-200', bgClass = 'bg-white', icon = '';
                 if (rank === 1) { borderClass = 'border-amber-400'; bgClass = 'bg-amber-50'; icon = '🥇'; } 
                 else if (rank === 2) { borderClass = 'border-gray-400'; icon = '🥈'; } 
                 else if (rank === 3) { borderClass = 'border-orange-400'; icon = '🥉'; }
-
-                // Show "Adjusted" badge if they had specific cancellations
                 const specificLost = c.daysLost - globalHolidayDays;
-                const adjustedBadge = specificLost > 0 
-                    ? `<span class="text-[10px] bg-red-100 text-red-600 px-1.5 py-0.5 rounded ml-2" title="${specificLost} class-specific cancellations">- ${specificLost} Days</span>` 
-                    : '';
+                const adjustedBadge = specificLost > 0 ? `<span class="text-[10px] bg-red-100 text-red-600 px-1.5 py-0.5 rounded ml-2">- ${specificLost} Days</span>` : '';
 
-                html += `
-                    <div class="p-4 rounded-xl shadow-sm border-l-4 ${borderClass} ${bgClass}">
+                html += `<div class="p-4 rounded-xl shadow-sm border-l-4 ${borderClass} ${bgClass}">
                         <div class="flex items-center justify-between mb-2">
                             <div class="flex items-center gap-2">
                                 <span class="font-bold text-gray-500 w-6 text-xl">${rank}.</span>
                                 <span class="text-2xl">${c.logo}</span>
-                                <div>
-                                    <span class="font-bold text-lg text-gray-800">${c.name}</span>
-                                    ${icon ? `<span class="ml-2 text-xl">${icon}</span>` : ''}
-                                    ${c.isSnapshot ? '<i class="fas fa-check-circle text-green-500 ml-1 text-xs" title="Verified Snapshot"></i>' : ''}
-                                </div>
+                                <div><span class="font-bold text-lg text-gray-800">${c.name}</span>${icon ? `<span class="ml-2 text-xl">${icon}</span>` : ''}</div>
                             </div>
-                            <div class="text-right">
-                                <span class="font-title text-2xl text-amber-600">${progressDisplay}%</span>
-                                <div class="text-xs text-gray-500">of Goal</div>
-                            </div>
+                            <div class="text-right"><span class="font-title text-2xl text-amber-600">${c.progress.toFixed(1)}%</span></div>
                         </div>
-                        
-                        <div class="w-full bg-gray-200 rounded-full h-2.5 mb-1">
-                            <div class="bg-amber-500 h-2.5 rounded-full" style="width: ${Math.min(100, c.progress)}%"></div>
-                        </div>
-                        
-                        <div class="flex justify-between text-xs text-gray-500 font-medium">
-                            <span title="Based on ${c.studentCount} active students">${c.totalStars} Stars Earned</span>
-                            <span class="flex items-center">Goal: ${c.diamondGoal} ${adjustedBadge}</span>
-                        </div>
+                        <div class="w-full bg-gray-200 rounded-full h-2.5 mb-1"><div class="bg-amber-500 h-2.5 rounded-full" style="width: ${Math.min(100, c.progress)}%"></div></div>
+                        <div class="flex justify-between text-xs text-gray-500 font-medium"><span>${c.totalStars} Stars</span><span>Goal: ${c.diamondGoal} ${adjustedBadge}</span></div>
                     </div>`;
             });
             html += `</div>`;
@@ -645,25 +591,44 @@ export async function renderHistoricalLeaderboard(monthKey, type) {
         contentEl.innerHTML = html;
 
     } else if (type === 'hero') {
-        // --- HERO HISTORY ---
-        // (Identical to previous fix, ensuring consistency)
+        // --- HERO HISTORY FIX ---
+        
+        // 1. Calculate statsMap from the logs we fetched above
+        const statsMap = {};
+        if (logs && logs.length > 0) {
+            logs.forEach(log => {
+                if (!statsMap[log.studentId]) {
+                    statsMap[log.studentId] = { count3Star: 0, count2Star: 0, reasons: new Set() };
+                }
+                if (log.stars >= 3) statsMap[log.studentId].count3Star++;
+                else if (log.stars >= 2) statsMap[log.studentId].count2Star++;
+                if (log.reason) statsMap[log.studentId].reasons.add(log.reason);
+            });
+        }
+
         const classesInLeague = state.get('allSchoolClasses').filter(c => c.questLevel === league);
         const studentsInLeague = state.get('allStudents')
             .filter(s => classesInLeague.some(c => c.id === s.classId))
             .map(s => {
-                const stats = statsMap && statsMap[s.id] ? statsMap[s.id] : { score: monthlyScores[s.id] || 0, count3Star: 0, topReason: null };
-                return { ...s, ...stats };
+                // Use the map we just built
+                const stats = statsMap[s.id] || { count3Star: 0, count2Star: 0, reasons: new Set() };
+                return { 
+                    ...s, 
+                    score: monthlyScores[s.id] || 0,
+                    count3Star: stats.count3Star,
+                    count2Star: stats.count2Star,
+                    uniqueReasons: stats.reasons.size
+                };
             })
             .filter(s => s.score > 0)
             .sort((a, b) => {
                 if (b.score !== a.score) return b.score - a.score;
                 if (b.count3Star !== a.count3Star) return b.count3Star - a.count3Star;
+                if (b.count2Star !== a.count2Star) return b.count2Star - a.count2Star;
+                if (b.uniqueReasons !== a.uniqueReasons) return b.uniqueReasons - a.uniqueReasons;
                 return a.name.localeCompare(b.name);
             });
 
-        // (Visual styling code for Hero - omitted for brevity but required in full implementation)
-        // ... [Paste the Hero Logic from the previous response here if you want the visual upgrades] ...
-        
         let html = `<h3 class="font-title text-2xl text-purple-700">Hero Rankings for ${monthDisplay}</h3>`;
         if (studentsInLeague.length === 0) {
             html += `<p class="text-gray-600 mt-2">No students earned stars.</p>`;
@@ -1263,18 +1228,68 @@ export async function openMilestoneModal(markerElement) {
 
     const studentsInClass = state.get('allStudents').filter(s => s.classId === classId);
     const studentCount = studentsInClass.length;
+    
+    // --- 1. SMART GOAL CALCULATION (Synced with tabs.js) ---
+    const BASE_GOAL = 18; 
+    const SCALING_FACTOR = 1.5; 
+    
+    const now = new Date();
+    const currentYear = now.getFullYear();
+    const currentMonth = now.getMonth();
+    const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
+    
+    // Calculate Global Holidays
+    let holidayDaysLost = 0;
+    const ranges = state.get('schoolHolidayRanges') || [];
+    
+    ranges.forEach(range => {
+        const start = new Date(range.start);
+        const end = new Date(range.end);
+        const monthStart = new Date(currentYear, currentMonth, 1);
+        const monthEnd = new Date(currentYear, currentMonth + 1, 0);
+        
+        const overlapStart = start > monthStart ? start : monthStart;
+        const overlapEnd = end < monthEnd ? end : monthEnd;
+        
+        if (overlapStart <= overlapEnd) {
+            const diffTime = Math.abs(overlapEnd - overlapStart);
+            const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
+            holidayDaysLost += diffDays;
+        }
+    });
+
+    // Calculate Month Modifier
+    let monthModifier = (daysInMonth - holidayDaysLost) / daysInMonth;
+    if (currentMonth === 5) monthModifier = 0.5; // June half-month
+    else monthModifier = Math.max(0.6, Math.min(1.0, monthModifier));
+
+    // Calculate Difficulty
+    let isCompletedThisMonth = false;
+    if (classInfo.questCompletedAt) {
+        const completedDate = classInfo.questCompletedAt.toDate();
+        if (completedDate.getMonth() === currentMonth && completedDate.getFullYear() === currentYear) {
+            isCompletedThisMonth = true;
+        }
+    }
+    const dbDifficulty = classInfo.difficultyLevel || 0;
+    const effectiveDifficulty = isCompletedThisMonth ? Math.max(0, dbDifficulty - 1) : dbDifficulty;
+    
+    // Final Per-Student Goal
+    const adjustedGoalPerStudent = (BASE_GOAL + (effectiveDifficulty * SCALING_FACTOR)) * monthModifier;
+
+    // Milestone Targets
+    const goals = {
+        bronze: Math.round(studentCount * (adjustedGoalPerStudent * 0.25)),
+        silver: Math.round(studentCount * (adjustedGoalPerStudent * 0.50)),
+        gold: Math.round(studentCount * (adjustedGoalPerStudent * 0.75)),
+        diamond: studentCount > 0 ? Math.round(studentCount * adjustedGoalPerStudent) : 18
+    };
+    // --- END CALCULATION ---
+
     const currentMonthlyStars = studentsInClass.reduce((sum, s) => {
         const scoreData = state.get('allStudentScores').find(score => score.id === s.id);
         return sum + (scoreData?.monthlyStars || 0);
     }, 0);
-
-    const GOAL_PER_STUDENT = { BRONZE: 4, SILVER: 8, GOLD: 13, DIAMOND: 18 };
-    const goals = {
-        bronze: Math.round(studentCount * GOAL_PER_STUDENT.BRONZE),
-        silver: Math.round(studentCount * GOAL_PER_STUDENT.SILVER),
-        gold: Math.round(studentCount * GOAL_PER_STUDENT.GOLD),
-        diamond: studentCount > 0 ? Math.round(studentCount * GOAL_PER_STUDENT.DIAMOND) : 18
-    };
 
     const modalTitle = document.getElementById('milestone-modal-title');
     const modalContent = document.getElementById('milestone-modal-content');
@@ -1285,19 +1300,16 @@ export async function openMilestoneModal(markerElement) {
     else if (markerElement.innerText.includes('👑')) { milestoneName = "Golden Crown"; goal = goals.gold; icon = '👑'; } 
     else { milestoneName = "Diamond Quest"; goal = goals.diamond; icon = '💎'; }
 
-    const now = new Date();
-    const currentMonthIndex = now.getMonth();
-    const currentYear = now.getFullYear();
-
+    // Stats Logic
     const relevantLogs = state.get('allAwardLogs').filter(log => {
         if (log.classId !== classId) return false;
         const logDate = utils.parseDDMMYYYY(log.date); 
-        return logDate.getMonth() === currentMonthIndex && logDate.getFullYear() === currentYear;
+        return logDate.getMonth() === currentMonth && logDate.getFullYear() === currentYear;
     });
 
     const today = new Date();
-    const dayOfWeek = today.getDay(); // 0 (Sun) to 6 (Sat)
-    const diff = today.getDate() - dayOfWeek + (dayOfWeek === 0 ? -6 : 1); // Adjust to Monday
+    const dayOfWeek = today.getDay(); 
+    const diff = today.getDate() - dayOfWeek + (dayOfWeek === 0 ? -6 : 1); 
     const startOfWeek = new Date(today.setDate(diff));
     startOfWeek.setHours(0, 0, 0, 0);
 
@@ -1306,15 +1318,12 @@ export async function openMilestoneModal(markerElement) {
     .reduce((sum, log) => sum + log.stars, 0);
 
     const reasonCounts = relevantLogs.reduce((acc, log) => {
-        // FIX: Exclude 'welcome_back' from being counted as a skill
         if (log.reason === 'welcome_back' || log.reason === 'scholar_s_bonus') return acc;
-        
         acc[log.reason || 'other'] = (acc[log.reason || 'other'] || 0) + log.stars;
         return acc;
     }, {});
     
     const topReasonEntry = Object.entries(reasonCounts).sort((a,b) => b[1] - a[1])[0];
-    // FIX: Clean up the text (remove underscores) just in case
     const topReason = topReasonEntry ? `${topReasonEntry[0].replace(/_/g, ' ').charAt(0).toUpperCase() + topReasonEntry[0].replace(/_/g, ' ').slice(1)}` : "N/A";
 
     const studentScores = studentsInClass.map(s => {
@@ -1330,6 +1339,7 @@ export async function openMilestoneModal(markerElement) {
     
     modalTitle.innerHTML = `${icon} ${milestoneName}`;
     const starsNeeded = Math.max(0, goal - currentMonthlyStars);
+    // Fix progress visual to not exceed 100%
     const progressPercent = goal > 0 ? Math.min(100, (currentMonthlyStars / goal) * 100).toFixed(1) : 0;
 
     modalContent.innerHTML = `
@@ -1341,10 +1351,9 @@ export async function openMilestoneModal(markerElement) {
                 <div class="text-2xl my-4">
                     <p><span class="font-bold text-amber-500 text-5xl">${currentMonthlyStars}</span> / <span class="font-bold text-3xl text-gray-500">${goal}</span></p>
                     <p class="text-sm text-gray-500 -mt-1">Total Stars Collected</p>
-                    <div class="w-full bg-gray-200 rounded-full h-6 shadow-inner mt-2 border-2 border-gray-300">
-                        <div class="bg-gradient-to-r from-cyan-400 to-blue-500 h-full rounded-full flex items-center justify-center text-white font-bold text-sm" style="width: ${progressPercent}%">
-                            ${progressPercent > 10 ? `${progressPercent}%` : ''}
-                        </div>
+                    <div class="w-full bg-gray-200 rounded-full h-6 shadow-inner mt-2 border-2 border-gray-300 relative overflow-hidden">
+                        <div class="bg-gradient-to-r from-cyan-400 to-blue-500 h-full flex items-center justify-center text-white font-bold text-sm transition-all duration-1000" style="width: ${progressPercent}%"></div>
+                        <span class="absolute inset-0 flex items-center justify-center text-xs font-bold text-gray-700 mix-blend-multiply">${progressPercent}%</span>
                     </div>
                 </div>
                 
@@ -1364,7 +1373,7 @@ export async function openMilestoneModal(markerElement) {
                 </div>
                 <div class="bg-white p-3 rounded-lg shadow-sm">
                     <p class="text-sm text-gray-500 flex items-center gap-1"><i class="fas fa-crown text-purple-500"></i> Top Adventurers (Monthly)</p>
-                    <p class="font-semibold text-lg text-purple-600" title="${topAdventurers}">${topAdventurers}</p>
+                    <p class="font-semibold text-lg text-purple-600 leading-snug" title="${topAdventurers}">${topAdventurers}</p>
                 </div>
             </div>
         </div>

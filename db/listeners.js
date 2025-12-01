@@ -100,6 +100,7 @@ export function setupDataListeners(userId, dateString) {
         renderAdventureLogTab();
         renderScholarsScrollTab();
         if (!document.getElementById('options-tab').classList.contains('hidden')) renderStarManagerStudentSelect();
+        updateCeremonyStatus();
     }, (error) => console.error("Error listening to classes:", error)));
 
     state.setUnsubscribeStudents(onSnapshot(studentsQuery, (snapshot) => {

@@ -1,4 +1,5 @@
 // /features/scholarScroll.js
+let loadedHistoricalScores = [];
 
 // --- IMPORTS ---
 import { fetchTrialsForMonth, fetchAllTrialMonthsForClass } from '../db/queries.js';
@@ -349,98 +350,178 @@ export async function openTrialHistoryModal(classId) {
     const classData = state.get('allTeachersClasses').find(c => c.id === classId);
     if (!classData) return;
 
+    loadedHistoricalScores = []; 
+
     const modal = document.getElementById('trial-history-modal');
     modal.dataset.classId = classId;
     document.getElementById('trial-history-title').innerHTML = `${classData.logo} Trial History`;
     
-    const controlsContainer = document.getElementById('trial-history-controls-container');
-    controlsContainer.innerHTML = `
-        <div id="trial-history-view-toggle" class="inline-flex items-center bg-white/50 p-1 rounded-full border-2 border-amber-200 shadow-inner">
-            <button data-view="test" class="toggle-btn active-toggle"><i class="fas fa-file-alt mr-2"></i>Tests</button>
-            <button data-view="dictation" class="toggle-btn"><i class="fas fa-microphone-alt mr-2"></i>Dictations</button>
-        </div>
-        <div id="trial-history-actions" class="flex items-center gap-2">
-            <!-- On-demand load buttons will be inserted here -->
-        </div>
+    // 1. Reset Toggle Buttons
+    const viewToggleContainer = document.getElementById('trial-history-view-toggle');
+    viewToggleContainer.innerHTML = `
+        <button data-view="test" class="toggle-btn active-toggle"><i class="fas fa-file-alt mr-2"></i>Tests</button>
+        <button data-view="dictation" class="toggle-btn"><i class="fas fa-microphone-alt mr-2"></i>Dictations</button>
     `;
 
-    controlsContainer.querySelector('#trial-history-view-toggle').querySelectorAll('.toggle-btn').forEach(btn => {
+    viewToggleContainer.querySelectorAll('.toggle-btn').forEach(btn => {
         btn.addEventListener('click', (e) => {
-            controlsContainer.querySelector('#trial-history-view-toggle').querySelectorAll('.toggle-btn').forEach(b => b.classList.remove('active-toggle'));
+            viewToggleContainer.querySelectorAll('.toggle-btn').forEach(b => b.classList.remove('active-toggle'));
             e.currentTarget.classList.add('active-toggle');
             renderTrialHistoryContent(classId, e.currentTarget.dataset.view);
         });
     });
     
-    document.getElementById('trial-history-content').addEventListener('click', (e) => {
+    // 2. Setup Edit/Delete Listeners
+    const contentEl = document.getElementById('trial-history-content');
+    const newContentEl = contentEl.cloneNode(false);
+    contentEl.parentNode.replaceChild(newContentEl, contentEl);
+    
+    newContentEl.addEventListener('click', (e) => {
         const deleteBtn = e.target.closest('.delete-trial-btn');
-        if (deleteBtn) modals.handleDeleteTrial(deleteBtn.dataset.trialId);
+        if (deleteBtn) handleDeleteTrial(deleteBtn.dataset.trialId);
         const editBtn = e.target.closest('.edit-trial-btn');
         if (editBtn) openSingleTrialEditModal(classId, editBtn.dataset.trialId);
     });
     
+    // 3. Initial Render
     renderTrialHistoryContent(classId, 'test');
     modals.showAnimatedModal('trial-history-modal');
 
-    const twoMonthsAgo = new Date();
-    twoMonthsAgo.setMonth(twoMonthsAgo.getMonth() - 2);
-    const twoMonthsAgoKey = twoMonthsAgo.toISOString().substring(0, 7);
-
-    const allMonthsSet = await fetchAllTrialMonthsForClass(classId);
-    const historicalMonths = [...allMonthsSet].filter(monthKey => monthKey < twoMonthsAgoKey).sort().reverse();
+    // 4. PERMANENT DROPDOWN IN HEADER (Safe Zone)
+    const actionsContainer = document.getElementById('trial-history-actions');
     
-    const actionsContainer = controlsContainer.querySelector('#trial-history-actions');
-    actionsContainer.innerHTML = historicalMonths.map(monthKey => {
-        const monthName = new Date(monthKey + '-02').toLocaleString('en-GB', { month: 'short', year: 'numeric' });
-        return `<button data-month="${monthKey}" class="load-month-btn font-title text-sm bg-amber-200 text-amber-800 py-1 px-3 rounded-full bubbly-button transition hover:bg-amber-300 shadow-sm">
-                    <i class="fas fa-archive mr-1"></i> Load ${monthName}
-                </button>`;
-    }).join('');
+    // Reset container with a loading state
+    actionsContainer.innerHTML = `
+        <div class="flex items-center gap-2 bg-amber-100 text-amber-900 px-3 py-1.5 rounded-lg border border-amber-300 shadow-sm opacity-70">
+            <i class="fas fa-spinner fa-spin text-sm"></i>
+            <span class="text-xs font-bold uppercase tracking-wider">Locating Archives...</span>
+        </div>`;
 
-    actionsContainer.querySelectorAll('.load-month-btn').forEach(btn => {
-        btn.addEventListener('click', async (e) => {
-            const btn = e.currentTarget;
-            const monthKey = btn.dataset.month;
-            btn.innerHTML = `<i class="fas fa-spinner fa-spin"></i>`;
-            btn.disabled = true;
+    try {
+        const { parseFlexibleDate } = await import('../utils.js');
+        const { fetchTrialsForMonth } = await import('../db/queries.js');
 
-            const scoresForMonth = await fetchTrialsForMonth(classId, monthKey);
-            const activeView = document.querySelector('#trial-history-view-toggle .active-toggle')?.dataset.view || 'test';
-            renderTrialHistoryContent(classId, activeView, scoresForMonth, monthKey);
-
-            btn.style.display = 'none';
+        // Smart Month Scanner (Checks local data first)
+        const now = new Date();
+        const currentMonthKey = now.toISOString().substring(0, 7); 
+        const allScores = state.get('allWrittenScores').filter(s => s.classId === classId);
+        const monthSet = new Set();
+        
+        allScores.forEach(s => {
+            const d = parseFlexibleDate(s.date);
+            if (d) monthSet.add(d.toISOString().substring(0, 7));
         });
-    });
+
+        // Also check DB for older months not loaded yet
+        const dbMonths = await fetchAllTrialMonthsForClass(classId);
+        dbMonths.forEach(m => monthSet.add(m));
+
+        const historicalMonths = [...monthSet].filter(m => m < currentMonthKey).sort().reverse();
+
+        if (historicalMonths.length > 0) {
+            // Render The Beautiful Dropdown
+            actionsContainer.innerHTML = `
+                <div class="relative group">
+                    <div class="flex items-center bg-white border-2 border-amber-300 rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-all">
+                        <div class="bg-amber-100 px-3 py-2 border-r border-amber-200">
+                            <i class="fas fa-history text-amber-700"></i>
+                        </div>
+                        <select id="trial-history-month-select" class="pl-2 pr-8 py-2 bg-transparent text-amber-900 font-bold text-sm outline-none cursor-pointer appearance-none min-w-[140px]">
+                            <option value="">Load Past Month...</option>
+                            ${historicalMonths.map(m => {
+                                const d = new Date(m + '-02');
+                                return `<option value="${m}">${d.toLocaleString('en-GB', { month: 'long', year: 'numeric' })}</option>`;
+                            }).join('')}
+                        </select>
+                        <div class="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-amber-500 text-xs">
+                            <i class="fas fa-chevron-down"></i>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            const select = document.getElementById('trial-history-month-select');
+            select.addEventListener('change', async (e) => {
+                const monthKey = e.target.value;
+                if(!monthKey) return;
+                
+                const originalText = select.options[select.selectedIndex].text;
+                select.disabled = true;
+                // Visual feedback inside the select
+                const tempOption = document.createElement('option');
+                tempOption.text = "Fetching...";
+                select.add(tempOption, select[0]);
+                select.selectedIndex = 0;
+
+                const scores = await fetchTrialsForMonth(classId, monthKey);
+                
+                // Remove temp option
+                select.remove(0);
+                
+                if (scores.length > 0) {
+                    loadedHistoricalScores.push(...scores);
+                    // Force refresh current view
+                    const activeView = document.querySelector('#trial-history-view-toggle .active-toggle')?.dataset.view || 'test';
+                    renderTrialHistoryContent(classId, activeView);
+                    
+                    showToast(`Archive opened: ${originalText}`, 'success');
+                } else {
+                    showToast('No records found in that archive.', 'info');
+                }
+                
+                select.disabled = false;
+                select.value = ""; // Reset to default
+            });
+        } else {
+            actionsContainer.innerHTML = `
+                <div class="px-3 py-1.5 bg-gray-100 rounded-lg border border-gray-200 text-gray-400 text-xs font-bold">
+                    No Archives Found
+                </div>`;
+        }
+    } catch (err) {
+        console.error("History Error:", err);
+        actionsContainer.innerHTML = `<span class="text-xs text-red-400">Connection Error</span>`;
+    }
 }
 
-export function renderTrialHistoryContent(classId, view, onDemandScores = null, monthKey = null) {
+export function renderTrialHistoryContent(classId, view) {
     const contentEl = document.getElementById('trial-history-content');
-    
-    let scoresToRender;
-    if (onDemandScores) {
-        scoresToRender = onDemandScores.filter(s => s.type === view);
-    } else {
-        const twoMonthsAgo = new Date();
-        twoMonthsAgo.setMonth(twoMonthsAgo.getMonth() - 2);
-        twoMonthsAgo.setDate(1);
-        const twoMonthsAgoKey = twoMonthsAgo.toISOString().substring(0, 7);
-        
-        scoresToRender = state.get('allWrittenScores').filter(s => {
-            const dateObj = utils.parseDDMMYYYY(s.date);
-            const key = dateObj.toISOString().substring(0, 7);
-            return s.classId === classId && s.type === view && key >= twoMonthsAgoKey;
-        });
-    }
 
+    // 1. Get recent scores from the app's live state (last 2 months)
+    const twoMonthsAgo = new Date();
+    twoMonthsAgo.setMonth(twoMonthsAgo.getMonth() - 2);
+    twoMonthsAgo.setDate(1);
+    const twoMonthsAgoKey = twoMonthsAgo.toISOString().substring(0, 7);
+    
+    const recentScores = state.get('allWrittenScores').filter(s => {
+        if (!s.date) return false;
+        const key = s.date.substring(0, 7); // YYYY-MM
+        return s.classId === classId && key >= twoMonthsAgoKey;
+    });
+
+    // 2. Combine with any loaded historical scores
+    const allScoresForClass = [...recentScores, ...loadedHistoricalScores];
+    
+    // 3. Remove duplicates to be safe
+    const uniqueScores = Array.from(new Map(allScoresForClass.map(item => [item.id, item])).values());
+    
+    // 4. Filter by the selected view ('test' or 'dictation')
+    const scoresToRender = uniqueScores.filter(s => s.type === view);
+
+    // 5. Group and Render
     const scoresByMonth = scoresToRender.reduce((acc, score) => {
-        const dateObj = utils.parseDDMMYYYY(score.date);
-        const key = dateObj.toISOString().substring(0, 7); 
+        const key = score.date.substring(0, 7); // YYYY-MM
         if (!acc[key]) acc[key] = [];
         acc[key].push(score);
         return acc;
     }, {});
 
     const sortedMonths = Object.keys(scoresByMonth).sort().reverse();
+
+    if (sortedMonths.length === 0) {
+        contentEl.innerHTML = `<p class="text-center text-gray-500 py-8">No ${view} records found. Try loading historical data if available.</p>`;
+        return;
+    }
 
     const newHtml = sortedMonths.map(currentMonthKey => {
         const monthName = new Date(currentMonthKey + '-02').toLocaleString('en-GB', { month: 'long', year: 'numeric' });
@@ -451,13 +532,19 @@ export function renderTrialHistoryContent(classId, view, onDemandScores = null, 
             return acc;
         }, {});
         
-        const sortedDates = Object.keys(scoresByDate).sort((a,b) => utils.parseDDMMYYYY(b) - utils.parseDDMMYYYY(a));
+        const sortedDates = Object.keys(scoresByDate).sort((a,b) => new Date(b) - new Date(a));
         
         let monthScoresHtml = sortedDates.map(date => {
-            const dateScoresHtml = scoresByDate[date].map(score => renderTrialHistoryItem(score)).join('');
-            const title = scoresByDate[date][0].title || (view === 'dictation' ? 'Dictation' : 'Test');
+            const dateScoresHtml = scoresByDate[date]
+                .sort((a,b) => {
+                    const studentA = state.get('allStudents').find(s => s.id === a.studentId)?.name || '';
+                    const studentB = state.get('allStudents').find(s => s.id === b.studentId)?.name || '';
+                    return studentA.localeCompare(studentB);
+                })
+                .map(score => renderTrialHistoryItem(score)).join('');
             
-            const displayDate = utils.parseDDMMYYYY(date).toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'short' });
+            const title = scoresByDate[date][0].title || (view === 'dictation' ? 'Dictation' : 'Test');
+            const displayDate = new Date(date).toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'short' });
 
             return `<div class="bg-white/50 rounded-lg p-2 mb-2">
                         <div class="date-group-header flex justify-between items-center">
@@ -467,8 +554,6 @@ export function renderTrialHistoryContent(classId, view, onDemandScores = null, 
                         <div class="space-y-1 mt-1">${dateScoresHtml}</div>
                     </div>`;
         }).join('');
-
-        if (monthScoresHtml.trim() === '') return '';
 
         return `
             <details class="month-group bg-white/30 rounded-lg mb-2" data-month-key="${currentMonthKey}" open>
@@ -480,20 +565,7 @@ export function renderTrialHistoryContent(classId, view, onDemandScores = null, 
         `;
     }).join('');
 
-    if (onDemandScores) {
-        if (newHtml.trim() === '') {
-            const monthName = new Date(monthKey + '-02').toLocaleString('en-GB', { month: 'long', year: 'numeric' });
-            contentEl.innerHTML += `<div class="text-center text-gray-500 p-4">No ${view}s were recorded in ${monthName}.</div>`;
-        } else {
-            contentEl.innerHTML += newHtml;
-        }
-    } else {
-        if (newHtml.trim() === '') {
-            contentEl.innerHTML = `<p class="text-center text-gray-500 py-8">No recent ${view} records found. Try loading historical data.</p>`;
-        } else {
-            contentEl.innerHTML = newHtml;
-        }
-    }
+    contentEl.innerHTML = newHtml;
 }
 
 function renderTrialHistoryItem(score) {
@@ -802,4 +874,3 @@ function openMakeupModal(classId, studentId, type, title) {
     modals.showAnimatedModal('bulk-trial-modal');
     document.getElementById('bulk-trial-close-btn').onclick = () => modals.hideModal('bulk-trial-modal');
 }
-

@@ -12,6 +12,7 @@ import * as scholarScroll from '../features/scholarScroll.js';
 import * as avatar from '../features/avatar.js';
 import * as storyWeaver from '../features/storyWeaver.js';
 import { renderActiveBounties } from './core.js';
+import { updateCeremonyStatus } from '../features/ceremony.js';
 
 // --- TAB NAVIGATION ---
 
@@ -62,6 +63,7 @@ export async function showTab(tabName) {
     if (tabId === 'class-leaderboard-tab' || tabId === 'student-leaderboard-tab') {
         const { findAndSetCurrentLeague } = await import('./core.js');
         findAndSetCurrentLeague();
+        updateCeremonyStatus(tabId); // Pass the ID!
     }
     
     if(tabId === 'class-leaderboard-tab') renderClassLeaderboardTab();

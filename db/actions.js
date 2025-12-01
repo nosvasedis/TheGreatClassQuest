@@ -1470,21 +1470,70 @@ export async function handleBulkSaveTrial() {
             operationsCount++;
         });
 
-        if (operationsCount > 0) {
-            await batch.commit();
-            showToast('All grades saved successfully!', 'success');
-            hideModal('bulk-trial-modal');
+        const savedScoresData = []; // <-- ADD THIS LINE to collect scores
 
-            // --- PROCESS STARFALL FOR BATCH ---
-            const finalEligibleStudents = [];
-            
-            // Filter Test Bonuses (already confirmed eligible above)
-            const testWinners = potentialStarfallStudents.filter(p => p.type === 'test');
-            testWinners.forEach(w => {
-                const s = state.get('allStudents').find(st => st.id === w.studentId);
-                if(s) finalEligibleStudents.push({ studentId: s.id, name: s.name, bonusAmount: w.bonusAmount, trialType: 'test' });
-            });
+rows.forEach(row => {
+    // ... (existing code inside the forEach loop) ...
 
+    if (isAbsent) {
+        // ...
+        return;
+    }
+
+    if (!val) return;
+    
+    // ... (existing scoreData creation logic) ...
+
+    savedScoresData.push(scoreData); // <-- ADD THIS LINE to save the data for later
+
+    // ... (existing starfall eligibility logic) ...
+
+    if (trialId) {
+        batch.update(doc(scoresCollection, trialId), scoreData);
+    } else {
+        const newRef = doc(scoresCollection);
+        scoreData.createdAt = serverTimestamp();
+        batch.set(newRef, scoreData);
+    }
+    operationsCount++;
+});
+
+if (operationsCount > 0) {
+    await batch.commit();
+    showToast('All grades saved successfully!', 'success');
+    hideModal('bulk-trial-modal');
+
+    // --- NEW: PERSONAL BEST CHECK ---
+    savedScoresData.forEach(savedScore => {
+        if (savedScore.type === 'test' && savedScore.scoreNumeric !== null) {
+            const studentId = savedScore.studentId;
+            const student = state.get('allStudents').find(s => s.id === studentId);
+            const newScorePercent = (savedScore.scoreNumeric / savedScore.maxScore) * 100;
+
+            const previousScores = state.get('allWrittenScores')
+                .filter(s => s.studentId === studentId && s.type === 'test' && s.id !== savedScore.id); // Exclude the one just saved if editing
+
+            const maxPreviousScore = previousScores.length > 0 
+                ? Math.max(...previousScores.map(s => (s.scoreNumeric / s.maxScore) * 100))
+                : 0;
+
+            if (newScorePercent > maxPreviousScore) {
+                setTimeout(() => { // Small delay to not overlap with other toasts
+                    showPraiseToast(`${student.name} just set a new Personal Best on their test!`, '🏆');
+                }, 700);
+            }
+        }
+    });
+
+    // --- PROCESS STARFALL FOR BATCH ---
+    const finalEligibleStudents = [];
+    
+    // Filter Test Bonuses (already confirmed eligible above)
+    const testWinners = potentialStarfallStudents.filter(p => p.type === 'test');
+    testWinners.forEach(w => {
+        const s = state.get('allStudents').find(st => st.id === w.studentId);
+        if(s) finalEligibleStudents.push({ studentId: s.id, name: s.name, bonusAmount: w.bonusAmount, trialType: 'test' });
+    });
             // Filter Dictation Bonuses (Needs history check)
             const dictationCandidates = potentialStarfallStudents.filter(p => p.type === 'dictation');
             if (dictationCandidates.length > 0) {

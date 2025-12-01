@@ -1,6 +1,7 @@
 // /db/queries.js
 
 import { db, collection, query, where, getDocs, orderBy } from '../firebase.js';
+import { parseFlexibleDate } from '../utils.js';
 
 /**
  * Fetches all award log entries for a specific date from Firestore.
@@ -116,9 +117,17 @@ export async function fetchAttendanceForMonth(classId, year, month) {
 export async function fetchAllTrialMonthsForClass(classId) {
     const allTrials = await fetchAllTrialsForClass(classId);
     const monthSet = new Set();
+    
     allTrials.forEach(trial => {
         if (trial.date) {
-            monthSet.add(trial.date.substring(0, 7)); // Extracts YYYY-MM
+            // Use the smart parser to handle DD-MM-YYYY or YYYY-MM-DD
+            const dateObj = parseFlexibleDate(trial.date);
+            if (dateObj) {
+                // Convert to standard YYYY-MM key
+                const year = dateObj.getFullYear();
+                const month = String(dateObj.getMonth() + 1).padStart(2, '0');
+                monthSet.add(`${year}-${month}`);
+            }
         }
     });
     return monthSet;

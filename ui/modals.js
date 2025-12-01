@@ -36,6 +36,28 @@ import {
     deleteHeroChronicleNote, ensureHistoryLoaded
 } from '../db/actions.js';
 
+// Helper function to populate date dropdowns
+function populateDateDropdowns(monthSelectId, daySelectId, dateString) { // dateString is YYYY-MM-DD
+    const monthSelect = document.getElementById(monthSelectId);
+    const daySelect = document.getElementById(daySelectId);
+
+    // Populate months
+    const months = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+    monthSelect.innerHTML = '<option value="">-- Month --</option>' + months.map((m, i) => `<option value="${i + 1}">${m}</option>`).join('');
+
+    // Populate days
+    daySelect.innerHTML = '<option value="">-- Day --</option>' + Array.from({ length: 31 }, (_, i) => `<option value="${i + 1}">${i + 1}</option>`).join('');
+    
+    // Set selected values if dateString exists
+    if (dateString && dateString.includes('-')) {
+        const parts = dateString.split('-');
+        const month = parseInt(parts[1], 10);
+        const day = parseInt(parts[2], 10);
+        monthSelect.value = month;
+        daySelect.value = day;
+    }
+}
+
 // --- LOCAL STATE FOR MODALS ---
 let heroStatsChart = null;
 let currentlySelectedDayCell = null;
@@ -922,8 +944,10 @@ export function openEditStudentModal(studentId) {
 
     document.getElementById('edit-student-id-input-full').value = studentId;
     document.getElementById('edit-student-name-input-full').value = student.name;
-    document.getElementById('edit-student-birthday-input').value = student.birthday || '';
-    document.getElementById('edit-student-nameday-input').value = student.nameday || '';
+    
+    // NEW: Use helper to populate dropdowns
+    populateDateDropdowns('edit-student-birthday-month', 'edit-student-birthday-day', student.birthday);
+    populateDateDropdowns('edit-student-nameday-month', 'edit-student-nameday-day', student.nameday);
 
     showAnimatedModal('edit-student-modal');
 }

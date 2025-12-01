@@ -4,11 +4,7 @@
 
 ### The Ultimate Gamified Classroom Management System
 
-![Shield](https://img.shields.io/badge/Designed%20For-Teachers%20&%20Students-blueviolet)
-![Shield](https://img.shields.io/badge/Platform-Web%20Browser-blue)
-![Shield](https://img.shields.io/badge/Focus-Positive%20Reinforcement-brightgreen)
-![Shield](https://img.shields.io/badge/Status-Live-success)
-![Shield](https://img.shields.io/badge/Economy-Gold%20&%20Artifacts-orange)
+![Shield](https://img.shields.io/badge/Designed%20For-Teachers%20&%20Students-blueviolet)![Shield](https://img.shields.io/badge/Platform-Web%20Browser-blue)![Shield](https://img.shields.io/badge/Focus-Positive%20Reinforcement-brightgreen)![Shield](https://img.shields.io/badge/Status-Live-success)![Shield](https://img.shields.io/badge/Economy-Gold%20&%20Artifacts-orange)
 
 > **"Turn every lesson into a quest, every challenge into a milestone, and every student into a hero."**
 
@@ -65,6 +61,7 @@ The application is built on four pedagogical pillars:
 ### 1. Setup & Roster (`My Classes` Tab)
 * **Class Creation:** Define the class name, logo, schedule (days/times), and "Quest League" (Difficulty Level).
 * **Roster Management:** Add students. Each student gets a database entry tracking their Total Stars, Monthly Stars, Gold, and Inventory.
+* **Personalization:** Edit student details to add their **Birthday** and **Nameday**, enabling automatic celebrations.
 
 ### 2. The Daily Session (`Award` Tab)
 * **Awarding Stars:** Teachers select a student and a reason (Teamwork, Creativity, Respect, Focus).
@@ -95,7 +92,7 @@ A fully functional digital shop where students can spend their Gold.
     * **League Level:** Junior classes get "Toys/Stickers"; Senior classes get "RPG Artifacts".
 * **Purchase Mechanics:**
     * **Limit:** Hard-coded limit of **2 items per month** per student to encourage saving.
-    * **Inventory:** Purchased items appear permanently in the student's "Enlarged Avatar" view.
+    * **Inventory:** Purchased items appear permanently in the student's personal collection, viewable via the **Enlarged Avatar** pop-up.
 
 ---
 
@@ -115,6 +112,7 @@ This transforms the screen into a **"Living Dashboard"** screensaver.
         * **⚡ Superpower:** The most-awarded skill (e.g., "Creativity") of the month.
         * **📜 Story Update:** The last sentence added to the class story.
 * **Wisdom Dock:** A fixed footer displaying AI-generated inspirational quotes that update every 5 minutes.
+* **🎂 Celebration Cards:** On a student's birthday or nameday, a special, high-priority animated card will appear, wishing them well from the whole class!
 
 ### 🎯 Quest Bounties
 *Activated via the "Post a Bounty" button on the Award Tab.*
@@ -163,9 +161,28 @@ A collaborative storytelling engine.
 * **Processing:** The AI scans the last 30 days of Award Logs, Academic Scores, and Attendance.
 * **Output:** It returns a strategic summary, highlighting patterns humans might miss.
 
+### 🇬🇷 AI Nameday Lookup
+* **Smart Field:** In the "Edit Student Details" modal, a magic wand icon appears next to the Nameday field.
+* **AI Search:** Clicking it sends the student's name to an AI trained on the Greek Orthodox Εορτολόγιο.
+* **Auto-Fill:** The AI returns the most common nameday date, which automatically populates the field, saving the teacher from manual searching.
+
 ---
 
 ## 📊 Tracking & Analytics
+
+### 🏆 Monthly Award Ceremony
+* **Automated Trigger:** At the start of a new month, the Team Quest and Hero's Challenge tabs will begin to glow, indicating a ceremony is ready.
+* **Dramatic Reveal:** Entering the tab launches a full-screen, animated ceremony with music and sound effects.
+* **Podium Finish:** The system reveals the winners from last month one by one, from 3rd place up to the champion, complete with AI-generated commentary from the "Quest Master."
+
+### 📔 Hero's Chronicle
+* **Private Student Log:** A dedicated, confidential area for each student, accessible from the roster.
+* **Teacher Notes:** Teachers can log categorized notes on behavior, academics, or social interactions.
+* **AI Counsel:** The "Oracle" can be summoned within the chronicle to provide four types of AI-generated reports based on the student's complete history:
+    1.  **Parent Summary:** A balanced, easy-to-read summary for parent-teacher meetings.
+    2.  **Teacher Strategy:** Actionable, in-classroom techniques to help that specific student.
+    3.  **Strengths/Weaknesses:** An objective analysis of patterns in their performance.
+    4.  **Goal Suggestion:** A specific, measurable goal for the student to work on.
 
 ### 📜 The Scholar's Scroll
 * **Academic Tracking:** A dedicated grade book for **Tests** and **Dictations**.

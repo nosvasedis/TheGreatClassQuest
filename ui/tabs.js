@@ -99,15 +99,21 @@ export async function showTab(tabName) {
     
     if(tabId === 'reward-ideas-tab') renderIdeasTabSelects();
     if(tabId === 'options-tab') {
-        import('./core.js').then(m => m.renderHolidayList());
-        if (document.getElementById('teacher-name-input')) document.getElementById('teacher-name-input').value = state.get('currentTeacherName') || '';
-        renderStarManagerStudentSelect(); 
+        // Load holidays and the new economy selector
+        import('./core.js').then(m => {
+            if(m.renderHolidayList) m.renderHolidayList();
+            if(m.renderStarManagerStudentSelect) m.renderStarManagerStudentSelect();
+            if(m.renderEconomyStudentSelect) m.renderEconomyStudentSelect(); // <--- NEW
+        });
+        
+        if (document.getElementById('teacher-name-input')) {
+            document.getElementById('teacher-name-input').value = state.get('currentTeacherName') || '';
+        }
     }
 }
-
 // --- TAB CONTENT RENDERERS ---
 
-export function renderClassLeaderboardTab() {
+   export function renderClassLeaderboardTab() {
     const list = document.getElementById('class-leaderboard-list');
     const questUpdateBtn = document.getElementById('get-quest-update-btn');
     if (!list) return;
@@ -230,6 +236,7 @@ export function renderClassLeaderboardTab() {
         }
         const rankDisplay = currentRank;
 
+        // --- MATH FIX: Use the pre-calculated goals from the class object ---
         const bronzeAchieved = c.currentMonthlyStars >= c.goals.bronze;
         const silverAchieved = c.currentMonthlyStars >= c.goals.silver;
         const goldAchieved = c.currentMonthlyStars >= c.goals.gold;
@@ -241,6 +248,8 @@ export function renderClassLeaderboardTab() {
         if (goldAchieved) progressBarColor = 'bg-gradient-to-r from-amber-400 to-amber-500';
         if (diamondAchieved) progressBarColor = 'bg-gradient-to-r from-cyan-400 to-blue-500';
 
+        // --- TOOLTIP CALCULATION FIX ---
+        // We calculate remaining stars based on the ADJUSTED goals (c.goals), not hardcoded numbers
         const starsTo = {
             bronze: Math.max(0, c.goals.bronze - c.currentMonthlyStars),
             silver: Math.max(0, c.goals.silver - c.currentMonthlyStars),
@@ -248,6 +257,7 @@ export function renderClassLeaderboardTab() {
             diamond: Math.max(0, c.goals.diamond - c.currentMonthlyStars)
         };
         
+        // Calculate percentages for marker positions relative to the Diamond Goal
         const progressPositions = {
             bronze: c.goals.diamond > 0 ? (c.goals.bronze / c.goals.diamond) * 100 : 25,
             silver: c.goals.diamond > 0 ? (c.goals.silver / c.goals.diamond) * 100 : 50,
@@ -1069,8 +1079,7 @@ export function renderCalendarTab() {
         const dayCell = document.createElement('div');
         dayCell.dataset.date = dateString;
 
-        // 1. Check for Global Holidays (Ranges set in Options)
-        // Convert current loop day to YYYY-MM-DD for comparison
+        // 1. Check for Global Holidays
         const yyyy = day.getFullYear();
         const mm = String(day.getMonth() + 1).padStart(2, '0');
         const dd = String(day.getDate()).padStart(2, '0');
@@ -1078,18 +1087,11 @@ export function renderCalendarTab() {
         
         const globalHoliday = (state.get('schoolHolidayRanges') || []).find(h => compDate >= h.start && compDate <= h.end);
 
-        // 2. Check for Manual Cancellations (The Trash Can)
-        // We check if ALL scheduled classes for this teacher are cancelled on this day.
+        // 2. Check for Manual Cancellations
         const myClasses = state.get('allTeachersClasses');
         const dayOfWeekStr = day.getDay().toString();
-        
-        // Classes that SHOULD occur today
         const myScheduledClasses = myClasses.filter(c => c.scheduleDays && c.scheduleDays.includes(dayOfWeekStr));
-        
-        // Classes actually running today (utils.getClassesOnDay filters out cancelled ones)
         const classesOnThisDay = utils.getClassesOnDay(dateString, state.get('allSchoolClasses'), state.get('allScheduleOverrides'));
-        
-        // Check overrides
         const myClassIds = myClasses.map(c => c.id);
         const myCancellations = state.get('allScheduleOverrides').filter(o => 
             o.date === dateString && 
@@ -1097,18 +1099,15 @@ export function renderCalendarTab() {
             myClassIds.includes(o.classId)
         );
 
-        // LOGIC: Full Block if Global Holiday OR (Scheduled Classes exist AND All are Cancelled)
         const isFullHoliday = globalHoliday || (myScheduledClasses.length > 0 && classesOnThisDay.length === 0 && myCancellations.length > 0);
-
-        const dayNumberHtml = isToday ? `<span class="today-date-highlight">${i}</span>` : i;
+        const dayNumberHtml = isToday ? `<span class="today-date-highlight shadow-md transform scale-110">${i}</span>` : i;
         
         if (isFullHoliday) {
-            // --- RENDER HOLIDAY BLOCK ---
             const themeClass = globalHoliday ? `holiday-theme-${globalHoliday.type}` : 'bg-red-50 border-red-200';
             const labelText = globalHoliday ? (globalHoliday.type === 'christmas' ? 'Winter Break' : globalHoliday.name) : 'No School';
             const icon = globalHoliday ? (globalHoliday.type === 'christmas' ? '❄️' : (globalHoliday.type === 'easter' ? '🐰' : '📅')) : '⛔';
 
-            dayCell.className = `border rounded-md p-1 calendar-day-cell calendar-holiday-cell ${themeClass} relative overflow-hidden`;
+            dayCell.className = `border rounded-md p-1 calendar-day-cell calendar-holiday-cell ${themeClass} relative overflow-hidden flex flex-col`;
             dayCell.innerHTML = `
                 <div class="font-bold text-right text-gray-400 opacity-50 z-10 relative">${i}</div>
                 <div class="absolute inset-0 flex flex-col items-center justify-center opacity-80 pointer-events-none">
@@ -1118,31 +1117,59 @@ export function renderCalendarTab() {
             `;
         } else {
             // --- RENDER NORMAL DAY ---
-            const logsForThisDay = logsToRender.filter(log => utils.getDDMMYYYY(utils.parseDDMMYYYY(log.date)) === dateString);
-            const totalStarsThisDay = logsForThisDay.reduce((sum, log) => sum + (log.stars || 0), 0);
+            dayCell.className = `border rounded-md p-1 calendar-day-cell flex flex-col ${isFuture ? 'bg-white future-day' : 'bg-white logbook-day-btn'}`;
             
-            dayCell.className = `border rounded-md p-1 calendar-day-cell ${isFuture ? 'bg-white future-day' : 'bg-white logbook-day-btn'}`;
+            const starHtml = totalStarsThisDay > 0 ? `<div class="calendar-star-count text-center text-amber-600 font-bold -mt-4 mb-1 text-sm relative z-10"><i class="fas fa-star"></i> ${totalStarsThisDay}</div>` : '';
             
-            const starHtml = totalStarsThisDay > 0 ? `<div class="calendar-star-count text-center text-amber-600 font-bold mt-1 text-sm"><i class="fas fa-star"></i> ${totalStarsThisDay}</div>` : '';
-            
-            let eventsHtml = classesOnThisDay.map(c => {
-                const color = c.color || constants.classColorPalettes[utils.simpleHashCode(c.id) % constants.classColorPalettes.length];
-                const timeDisplay = (c.timeStart && c.timeEnd) ? `${c.timeStart}-${c.timeEnd}` : (c.timeStart || '');
-                return `<div class="text-xs px-1.5 py-1 rounded ${color.bg} ${color.text} border-l-4 ${color.border} shadow-sm" title="${c.name} (${timeDisplay})"><span class="font-bold">${c.logo} ${timeDisplay}</span><span class="truncate block">${c.name}</span></div>`;
-            }).join('');
-            
+            // --- NEW: Event Icons Map ---
+            const eventIcons = {
+                '2x Star Day': '⭐ x2',
+                'Reason Bonus Day': '✨ Bonus',
+                'Vocabulary Vault': '🔑 Vocab',
+                'The Unbroken Chain': '🔗 Chain',
+                'Grammar Guardians': '🛡️ Grammar',
+                'The Scribe\'s Sketch': '✏️ Sketch',
+                'Five-Sentence Saga': '📜 Saga'
+            };
+
             const questEventsOnThisDay = state.get('allQuestEvents').filter(e => e.date === dateString);
+            
+            // --- NEW: Render Events as Banners (Outside Scroll) ---
             let questEventsHtml = questEventsOnThisDay.map(e => {
                 const title = e.details?.title || e.type; 
-                return `<div class="relative text-xs px-1.5 py-1 rounded bg-purple-200 text-purple-800 border-l-4 border-purple-400 shadow-sm truncate"><span class="font-bold">${title}</span></div>`;
+                const icon = eventIcons[e.type] || '📅 Event';
+                // Vibrant Gradient Style
+                return `
+                <div class="relative group w-full mb-1 p-1 rounded-md bg-gradient-to-r from-fuchsia-600 to-purple-600 text-white shadow-md border border-fuchsia-400 flex items-center justify-between z-20 cursor-help transition-transform hover:scale-105" title="${title}">
+                    <div class="flex items-center gap-1.5 overflow-hidden">
+                        <span class="text-[10px] font-bold bg-white/20 px-1 rounded">${icon}</span>
+                        <span class="font-title text-[10px] font-bold truncate leading-tight">${title}</span>
+                    </div>
+                    <button class="delete-event-btn bg-white/20 hover:bg-white/40 text-white rounded-full w-4 h-4 flex items-center justify-center flex-shrink-0 transition-colors" data-id="${e.id}" data-name="${title}">
+                        <i class="fas fa-times text-[8px]"></i>
+                    </button>
+                </div>`;
+            }).join('');
+
+            // Classes (Inside Scroll)
+            let classesHtml = classesOnThisDay.map(c => {
+                const color = c.color || constants.classColorPalettes[utils.simpleHashCode(c.id) % constants.classColorPalettes.length];
+                const timeDisplay = (c.timeStart && c.timeEnd) ? `${c.timeStart}-${c.timeEnd}` : (c.timeStart || '');
+                return `<div class="text-xs px-1.5 py-1 rounded ${color.bg} ${color.text} border-l-4 ${color.border} shadow-sm" title="${c.name} (${timeDisplay})"><span class="font-bold block text-[10px] opacity-80">${timeDisplay}</span><span class="truncate block font-semibold">${c.logo} ${c.name}</span></div>`;
             }).join('');
 
             dayCell.innerHTML = `
-                <div class="font-bold text-right text-gray-800">${dayNumberHtml}</div>
+                <div class="font-bold text-right text-gray-800 text-sm mb-1">${dayNumberHtml}</div>
                 ${starHtml}
-                <div class="flex flex-col gap-1 mt-1 overflow-y-auto" style="max-height: 150px;">
+                
+                <!-- Events Area (Fixed Top) -->
+                <div class="flex flex-col shrink-0">
                     ${questEventsHtml}
-                    ${eventsHtml}
+                </div>
+                
+                <!-- Classes Area (Scrollable) -->
+                <div class="flex flex-col gap-1 mt-1 overflow-y-auto flex-grow custom-scrollbar" style="min-height: 0;">
+                    ${classesHtml}
                 </div>
             `;
         }

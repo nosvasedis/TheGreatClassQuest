@@ -572,13 +572,17 @@ function renderTrialHistoryItem(score) {
     const student = state.get('allStudents').find(s => s.id === score.studentId);
     if (!student) return '';
 
-    const scorePercent = score.maxScore ? (score.scoreNumeric / score.maxScore) * 100 : null;
     let scoreDisplay = '';
+    // This part for Junior Dictations remains the same.
     if (score.scoreQualitative) {
         scoreDisplay = `<span class="font-title text-lg text-blue-600">${score.scoreQualitative}</span>`;
-    } else if (scorePercent !== null) {
+    } 
+    // This is the part we are changing.
+    else if (score.scoreNumeric !== null && score.maxScore) {
+        const scorePercent = (score.scoreNumeric / score.maxScore) * 100;
         const colorClass = scorePercent >= 80 ? 'text-green-600' : scorePercent >= 60 ? 'text-yellow-600' : 'text-red-600';
-        scoreDisplay = `<span class="font-title text-lg ${colorClass}">${scorePercent.toFixed(0)}%</span>`;
+        // We now display the raw score, but keep the color from the percentage!
+        scoreDisplay = `<span class="font-title text-lg ${colorClass}">${score.scoreNumeric}<span class="text-sm text-gray-500"> / ${score.maxScore}</span></span>`;
     }
     
     const isOwner = score.teacherId === state.get('currentUserId');

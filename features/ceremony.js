@@ -13,31 +13,28 @@ import * as modals from '../ui/modals.js';
 import { callGeminiApi } from '../api.js';
 import { renderClassLeaderboardTab, renderStudentLeaderboardTab } from '../ui/tabs.js';
 
+let dismissedVeils = new Set(); // Reset on reload
+
 // --- CEREMONY LOGIC ---
 
-export function updateCeremonyStatus() {
+export function updateCeremonyStatus(targetTabId = null) {
     const teamQuestBtn = document.querySelector('.nav-button[data-tab="class-leaderboard-tab"]');
     const heroChallengeBtn = document.querySelector('.nav-button[data-tab="student-leaderboard-tab"]');
     
     if (!teamQuestBtn || !heroChallengeBtn) return;
-
+    
+    // Reset pulses
     teamQuestBtn.classList.remove('ceremony-ready-pulse');
     heroChallengeBtn.classList.remove('ceremony-ready-pulse');
 
     let currentClassId = state.get('globalSelectedClassId');
-    
+    // Auto-select class if missing
     if (!currentClassId) {
         const todayStr = utils.getTodayDateString();
         const classesToday = utils.getClassesOnDay(todayStr, state.get('allSchoolClasses'), state.get('allScheduleOverrides'));
         const myClassesToday = classesToday.filter(c => state.get('allTeachersClasses').some(tc => tc.id === c.id));
-        
-        const now = new Date();
-        const currentTime = now.toTimeString().slice(0, 5);
-        const activeClass = myClassesToday.find(c => c.timeStart && c.timeEnd && currentTime >= c.timeStart && currentTime <= c.timeEnd);
-        
-        if (activeClass) currentClassId = activeClass.id;
+        if (myClassesToday.length > 0) currentClassId = myClassesToday[0].id;
     }
-
     if (!currentClassId) return;
 
     const classData = state.get('allSchoolClasses').find(c => c.id === currentClassId);
@@ -46,18 +43,14 @@ export function updateCeremonyStatus() {
     const league = classData.questLevel;
     if (!league) return;
 
+    // Timezone-safe Month Key
     const now = new Date();
-    const lastMonthDate = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-    
-    if (lastMonthDate < constants.competitionStart) return;
-
-    const monthKey = lastMonthDate.toISOString().substring(0, 7);
-
-    const todayStr = utils.getTodayDateString();
-    const classesToday = utils.getClassesOnDay(todayStr, state.get('allSchoolClasses'), state.get('allScheduleOverrides'));
-    const isClassScheduledToday = classesToday.some(c => c.id === currentClassId);
-
-    if (!isClassScheduledToday) return;
+    let prevMonth = now.getMonth() - 1;
+    let prevYear = now.getFullYear();
+    if (prevMonth < 0) { prevMonth = 11; prevYear -= 1; }
+    const monthKey = `${prevYear}-${String(prevMonth + 1).padStart(2, '0')}`;
+    const startKey = constants.competitionStart.toISOString().substring(0, 7);
+    if (monthKey < startKey) return;
 
     const history = classData.ceremonyHistory || {};
     const monthStatus = history[monthKey] || {};
@@ -65,20 +58,37 @@ export function updateCeremonyStatus() {
     const isTeamCeremonyDone = !!monthStatus.team;
     const isHeroCeremonyDone = !!monthStatus.hero;
 
+    // 1. GLOW LOGIC
     if (!isTeamCeremonyDone) teamQuestBtn.classList.add('ceremony-ready-pulse');
     if (!isHeroCeremonyDone) heroChallengeBtn.classList.add('ceremony-ready-pulse');
 
-    const activeTab = document.querySelector('.app-tab:not(.hidden)');
-    const veilDismissKey = `veil_dismiss_${currentClassId}_${monthKey}`;
-    const isVeilDismissed = sessionStorage.getItem(veilDismissKey) === 'true';
+    // 2. VEIL TRIGGER LOGIC
+    // Use targetTabId if provided (clicked), otherwise check active tab
+    let activeTabId = targetTabId;
+    if (!activeTabId) {
+        const activeEl = document.querySelector('.app-tab:not(.hidden)');
+        if (activeEl) activeTabId = activeEl.id;
+    }
 
-    if (activeTab && !isVeilDismissed) {
-        if (activeTab.id === 'class-leaderboard-tab' && !isTeamCeremonyDone) {
-            showCeremonyVeil('team', league, monthKey, currentClassId);
-        } else if (activeTab.id === 'student-leaderboard-tab' && !isHeroCeremonyDone) {
-            showCeremonyVeil('hero', league, monthKey, currentClassId);
-        } else {
-            hideCeremonyVeil(false); 
+    const dismissalKey = `${currentClassId}_${monthKey}`;
+
+    if (activeTabId) {
+        if (activeTabId === 'class-leaderboard-tab' && !isTeamCeremonyDone) {
+            if (!dismissedVeils.has(`team_${dismissalKey}`)) {
+                showCeremonyVeil('team', league, monthKey, currentClassId);
+            }
+        } 
+        else if (activeTabId === 'student-leaderboard-tab' && !isHeroCeremonyDone) {
+            if (!dismissedVeils.has(`hero_${dismissalKey}`)) {
+                showCeremonyVeil('hero', league, monthKey, currentClassId);
+            }
+        } 
+        else {
+            // Only hide if we aren't currently IN a ceremony
+            const ceremonyState = state.get('ceremonyState');
+            if (!ceremonyState || !ceremonyState.isActive) {
+                hideCeremonyVeil(false);
+            }
         }
     }
 }
@@ -89,8 +99,19 @@ function showCeremonyVeil(type, league, monthKey, classId) {
     const stage = document.getElementById('ceremony-stage');
     const btn = document.getElementById('start-ceremony-btn');
     const ceremonyTitle = btn.querySelector('.font-title.text-6xl');
+    
+    // 1. Get Class Info
+    const classData = state.get('allSchoolClasses').find(c => c.id === classId);
+    const className = classData ? `${classData.logo} ${classData.name}` : "";
+
     const monthName = new Date(monthKey + '-02').toLocaleString('en-GB', { month: 'long' });
-    document.getElementById('ceremony-month-name').innerText = monthName;
+    
+    // 2. Display Class Name + Month (Visual Upgrade)
+    const labelEl = document.getElementById('ceremony-month-name');
+    labelEl.innerHTML = `
+        <div class="text-2xl text-white/90 mb-1 font-bold uppercase tracking-widest" style="text-shadow: 0 2px 4px rgba(0,0,0,0.3);">${className}</div>
+        <div class="text-5xl font-title text-white" style="text-shadow: 0 3px 5px rgba(0,0,0,0.2);">${monthName}</div>
+    `;
 
     const themes = {
         team: { gradient: 'from-amber-500 to-orange-500', text: 'Team Quest Ceremony' },
@@ -111,8 +132,9 @@ function showCeremonyVeil(type, league, monthKey, classId) {
     btn.dataset.classId = classId;
 
     document.getElementById('ceremony-veil-close-btn').onclick = () => {
-        const veilDismissKey = `veil_dismiss_${classId}_${monthKey}`;
-        sessionStorage.setItem(veilDismissKey, 'true');
+        if (typeof dismissedVeils !== 'undefined') {
+            dismissedVeils.add(`${type}_${classId}_${monthKey}`);
+        }
         hideCeremonyVeil();
     };
 }
@@ -120,6 +142,21 @@ function showCeremonyVeil(type, league, monthKey, classId) {
 export function startCeremonyFromVeil() {
     const btn = document.getElementById('start-ceremony-btn');
     const { type, league, monthKey, classId } = btn.dataset;
+    
+    // --- TIME CHECK SECURITY ---
+    const classData = state.get('allSchoolClasses').find(c => c.id === classId);
+    const now = new Date();
+    const currentTime = now.toTimeString().slice(0, 5);
+
+    if (classData && classData.timeStart && classData.timeEnd) {
+        if (currentTime < classData.timeStart || currentTime > classData.timeEnd) {
+            import('../ui/effects.js').then(effects => {
+                effects.showToast("The Ceremony can only begin during lesson time!", 'error');
+            });
+            playSound('star_remove'); 
+            return; 
+        }
+    }
     
     playSound('confirm');
     document.getElementById('ceremony-veil').classList.add('hidden');
@@ -519,7 +556,37 @@ async function generateAICommentary(entry, rank, type) {
 
 // Fetch Logic
 async function fetchLastMonthResults(league, type, monthKey, classId = null) {
-    const monthlyScores = await fetchMonthlyHistory(monthKey); 
+    // --- SMART DATA FETCHING LOGIC ---
+    let monthlyScores = {};
+    const now = new Date();
+    const lastMonthDate = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+    const lastMonthKey = lastMonthDate.toISOString().substring(0, 7);
+    const isMostRecentMonth = (monthKey === lastMonthKey);
+
+    if (isMostRecentMonth) {
+        // For the month that just ended, the data isn't archived yet.
+        // We must reconstruct it on-the-fly from the raw award logs.
+        console.log("Ceremony: Reconstructing scores for the most recent month from logs...");
+        
+        const [year, month] = monthKey.split('-').map(Number);
+        const startDate = new Date(year, month - 1, 1);
+        const endDate = new Date(year, month, 0, 23, 59, 59);
+
+        const logsQuery = query(
+            collection(db, `artifacts/great-class-quest/public/data/award_log`),
+            where("createdAt", ">=", startDate),
+            where("createdAt", "<=", endDate)
+        );
+        const snapshot = await getDocs(logsQuery);
+        snapshot.forEach(doc => {
+            const data = doc.data();
+            monthlyScores[data.studentId] = (monthlyScores[data.studentId] || 0) + data.stars;
+        });
+    } else {
+        // For all older months, use the fast, archived data.
+        monthlyScores = await fetchMonthlyHistory(monthKey);
+    }
+    // --- END OF SMART DATA FETCHING ---
     
     if (type === 'team') {
         const classesInLeague = state.get('allSchoolClasses').filter(c => c.questLevel === league);

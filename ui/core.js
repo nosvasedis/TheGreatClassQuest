@@ -43,6 +43,7 @@ import {
     handleMarkAbsent,
     handleMoveStudent,
     handleStarManagerStudentSelect,
+    handleAddQuestEvent,
     handleDeleteQuestEvent,
     handleAddOneTimeLesson,
     handleCancelLesson,
@@ -637,6 +638,35 @@ document.getElementById('lookup-nameday-btn').addEventListener('click', () => {
     }
 });
 
+    // --- Economy Manager Listeners ---
+    const ecoSelect = document.getElementById('economy-student-select');
+    if (ecoSelect) {
+        ecoSelect.addEventListener('change', (e) => {
+            const studentId = e.target.value;
+            const btn = document.getElementById('save-gold-btn');
+            const input = document.getElementById('economy-gold-input');
+            
+            if (studentId) {
+                const scoreData = state.get('allStudentScores').find(s => s.id === studentId);
+                // Default to totalStars if gold is undefined
+                const currentGold = scoreData && scoreData.gold !== undefined ? scoreData.gold : (scoreData?.totalStars || 0);
+                input.value = currentGold;
+                btn.disabled = false;
+            } else {
+                input.value = '';
+                btn.disabled = true;
+            }
+        });
+    }
+
+    const saveGoldBtn = document.getElementById('save-gold-btn');
+    if (saveGoldBtn) {
+        saveGoldBtn.addEventListener('click', () => {
+            // Import dynamically to ensure actions.js is loaded
+            import('../db/actions.js').then(a => a.handleManualGoldUpdate());
+        });
+    }
+
     // Leaderboard View Switchers
     document.getElementById('view-by-league').addEventListener('click', () => {
         state.set('studentLeaderboardView', 'league');
@@ -1220,7 +1250,12 @@ export function renderShopUI() {
         container.classList.remove('hidden');
         
         container.innerHTML = shopItems.map(item => `
-            <div class="shop-item-card group bg-indigo-900 border-2 border-indigo-700 rounded-2xl overflow-hidden hover:border-amber-400 transition-all duration-300 hover:-translate-y-2 hover:shadow-[0_0_20px_rgba(251,191,36,0.3)] flex flex-col">
+            <div class="shop-item-card group bg-indigo-900 border-2 border-indigo-700 rounded-2xl overflow-hidden hover:border-amber-400 transition-all duration-300 hover:-translate-y-2 hover:shadow-[0_0_20px_rgba(251,191,36,0.3)] flex flex-col relative">
+                <!-- SINGLE STOCK BADGE -->
+                <div class="absolute top-2 right-2 z-10 bg-red-500 text-white text-[10px] font-bold px-2 py-1 rounded shadow transform rotate-3 border border-red-400">
+                    ONLY 1 LEFT!
+                </div>
+                
                 <div class="relative h-40 bg-white flex items-center justify-center overflow-hidden">
                     <div class="absolute inset-0 bg-radial-gradient from-white to-gray-100 opacity-50"></div>
                     <img src="${item.image}" class="relative w-full h-full object-contain filter drop-shadow-md group-hover:scale-110 transition-transform duration-500">
@@ -1301,4 +1336,40 @@ export function updateShopStudentDisplay(studentId) {
             btn.innerText = "Need Gold";
         }
     });
+}
+
+export function renderEconomyStudentSelect() {
+    const select = document.getElementById('economy-student-select');
+    if (!select) return;
+    
+    const currentVal = select.value;
+    
+    // Get all students and group by class
+    const allTeachersClasses = state.get('allTeachersClasses');
+    const classesMap = allTeachersClasses.reduce((acc, c) => {
+        acc[c.id] = { name: c.name, students: [] };
+        return acc;
+    }, {});
+    
+    state.get('allStudents').forEach(s => {
+        if (classesMap[s.classId]) {
+            classesMap[s.classId].students.push(s);
+        }
+    });
+
+    let html = '<option value="">Select a student...</option>';
+    
+    Object.keys(classesMap).sort((a, b) => classesMap[a].name.localeCompare(classesMap[b].name)).forEach(classId => {
+        const classData = classesMap[classId];
+        if (classData.students.length > 0) {
+            html += `<optgroup label="${classData.name}">`;
+            classData.students.sort((a,b) => a.name.localeCompare(b.name)).forEach(s => {
+                html += `<option value="${s.id}">${s.name}</option>`;
+            });
+            html += `</optgroup>`;
+        }
+    });
+
+    select.innerHTML = html;
+    select.value = currentVal;
 }

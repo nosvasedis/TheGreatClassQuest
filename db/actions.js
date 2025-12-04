@@ -21,7 +21,6 @@ import {
 } from '../firebase.js';
 
 import * as state from '../state.js';
-import { getStartOfMonthString, getTodayDateString, parseDDMMYYYY, simpleHashCode, getAgeGroupForLeague, getLastLessonDate, compressImageBase64, getDDMMYYYY, debounce } from '../utils.js';
 import { showToast, showPraiseToast } from '../ui/effects.js';
 import { showStarfallModal, showBatchStarfallModal, showModal, hideModal } from '../ui/modals.js';
 import { playSound } from '../audio.js';
@@ -29,6 +28,7 @@ import { callGeminiApi, callCloudflareAiImageApi } from '../api.js';
 import { classColorPalettes } from '../constants.js';
 import { handleStoryWeaversClassSelect } from '../features/storyWeaver.js';
 import * as modals from '../ui/modals.js';
+import { getStartOfMonthString, getTodayDateString, parseDDMMYYYY, parseFlexibleDate, simpleHashCode, getAgeGroupForLeague, getLastLessonDate, compressImageBase64, getDDMMYYYY, debounce } from '../utils.js';
 
 const debouncedCheckAndRecordQuestCompletion = debounce(checkAndRecordQuestCompletion, 4000);
 
@@ -305,7 +305,6 @@ export async function handleSaveTeacherName() {
         await updateTeacherNameInClasses(newName);
         await updateTeacherNameInStudents(newName);
         state.set('currentTeacherName', newName);
-        document.getElementById('teacher-greeting').innerText = `Welcome, ${newName}!`;
         showToast('Name updated successfully!', 'success');
     } catch (error) { 
         console.error("Error updating name: ", error); 
@@ -406,27 +405,28 @@ export async function setStudentStarsForToday(studentId, starValue, reason = nul
                 transaction.set(scoreRef, {
                     totalStars: difference > 0 ? difference : 0,
                     monthlyStars: difference > 0 ? difference : 0,
-                    gold: difference > 0 ? difference : 0,
+                    gold: difference > 0 ? difference : 0, // Initial gold = initial stars
                     inventory: [],
                     lastMonthlyResetDate: getStartOfMonthString(),
                     createdBy: { uid: studentData.createdBy.uid, name: studentData.createdBy.name }
                 });
             } else {
                 // Update existing score doc
+                const currentData = scoreDoc.data();
+                
+                // FIX: Safely determine current gold. If undefined (legacy), assume totalStars.
+                const currentGold = currentData.gold !== undefined ? currentData.gold : (currentData.totalStars || 0);
+                
                 if (difference !== 0) {
                     const updates = {
                         totalStars: increment(difference),
-                        monthlyStars: increment(difference)
+                        monthlyStars: increment(difference),
+                        // FIX: Explicitly calculate new gold total to prevent overwrite/reset
+                        gold: currentGold + difference
                     };
-                    if (difference > 0) {
-                        updates.gold = increment(difference);
-                    } else if (difference < 0) {
-                         // Optional: remove gold on undo
-                         updates.gold = increment(difference);
-                    }
                     transaction.update(scoreRef, updates);
                 }
-            } // <--- CLOSED ELSE BLOCK CORRECTLY HERE
+            }
 
             // --- Daily Record Logic (Runs for everyone) ---
             if (todayDocRef) {
@@ -843,8 +843,10 @@ export async function handleLogAdventure() {
     const classData = state.get('allTeachersClasses').find(c => c.id === classId);
     if (!classData) return;
 
-    const today = getTodayDateString();
+    const today = getTodayDateString(); // DD-MM-YYYY
+    const nowObj = new Date(); // Current Time object for smart comparisons
     
+    // Check for existing log
     const existingLog = state.get('allAdventureLogs').find(log => log.classId === classId && log.date === today);
     if (existingLog) {
         showToast("Today's adventure has already been chronicled for this class!", 'info');
@@ -855,22 +857,36 @@ export async function handleLogAdventure() {
     btn.disabled = true;
     btn.innerHTML = `<i class="fas fa-spinner fa-spin mr-2"></i> Writing History...`;
 
+    // --- DATA GATHERING ---
+    
+    // 1. AWARDS
     const todaysAwards = state.get('allAwardLogs').filter(log => log.classId === classId && log.date === today);
     const totalStars = todaysAwards.reduce((sum, award) => sum + award.stars, 0);
-    const todaysScores = state.get('allWrittenScores').filter(s => s.classId === classId && s.date === today);
+    
+    // 2. WRITTEN SCORES (Using Universal Date Parser)
+    const rawScores = state.get('allWrittenScores').filter(s => s.classId === classId);
+    const todaysScoresFixed = rawScores.filter(s => {
+        const scoreDate = parseFlexibleDate(s.date); // Universal Smart Parser
+        if (!scoreDate) return false;
+        return scoreDate.getDate() === nowObj.getDate() &&
+               scoreDate.getMonth() === nowObj.getMonth() &&
+               scoreDate.getFullYear() === nowObj.getFullYear();
+    });
 
-    if (todaysAwards.length === 0 && todaysScores.length === 0) {
+    // Empty Check
+    if (todaysAwards.length === 0 && todaysScoresFixed.length === 0) {
         showToast("No stars or scores were recorded for this class today. Nothing to log!", 'info');
         btn.disabled = false;
         btn.innerHTML = `<i class="fas fa-feather-alt mr-2"></i> Log Today's Adventure`;
         return;
     }
     
-    const studentsInClass = state.get('allStudents').filter(s => s.classId === classId);
+    // 3. ATTENDANCE
     const todaysAbsences = state.get('allAttendanceRecords').filter(r => r.date === today && r.classId === classId);
     const absentStudentNames = todaysAbsences.map(absence => state.get('allStudents').find(s => s.id === absence.studentId)?.name).filter(Boolean);
     const attendanceSummary = absentStudentNames.length > 0 ? `${absentStudentNames.join(', ')} were absent.` : `Everyone was present.`;
 
+    // 4. TOP SKILL & HERO
     const reasonCounts = todaysAwards.reduce((acc, award) => {
         if (award.reason) acc[award.reason] = (acc[award.reason] || 0) + 1;
         return acc;
@@ -883,31 +899,11 @@ export async function handleLogAdventure() {
     }, {});
     const topStudentId = Object.keys(studentStars).length > 0 ? Object.entries(studentStars).sort((a,b) => b[1] - a[1])[0][0] : null;
     const heroOfTheDay = topStudentId ? state.get('allStudents').find(s => s.id === topStudentId)?.name : "the whole team";
-    const ageCategory = getAgeGroupForLeague(classData.questLevel);
-    // --- 1. TEACHER NOTES ---
+    
+    // 5. NOTES
     const notesString = todaysAwards.filter(log => log.note).map(log => `(Teacher note on a ${log.reason} award: "${log.note}")`).join(' ');
 
-    // --- SETUP DATE OBJECTS FOR SMART COMPARISON ---
-    const nowObj = new Date();
-    const isSameDay = (date1, date2) => {
-        if (!date1 || !date2) return false;
-        return date1.getDate() === date2.getDate() &&
-               date1.getMonth() === date2.getMonth() &&
-               date1.getFullYear() === date2.getFullYear();
-    };
-
-    // --- 2. ACADEMIC TRIALS (Smart Date Match) ---
-    const rawScores = state.get('allWrittenScores').filter(s => s.classId === classId);
-    const todaysScoresFixed = rawScores.filter(s => {
-        let scoreDate = null;
-        if (s.date && s.date.includes('-')) {
-            const parts = s.date.split('-');
-            if (parts[0].length === 4) scoreDate = new Date(parts[0], parts[1]-1, parts[2]);
-            else scoreDate = new Date(parts[2], parts[1]-1, parts[0]);
-        }
-        return isSameDay(scoreDate, nowObj);
-    });
-
+    // 6. ACADEMIC SUMMARY
     const academicSummary = todaysScoresFixed.length > 0 ? todaysScoresFixed.map(s => {
         const studentName = state.get('allStudents').find(stu => stu.id === s.studentId)?.name || 'a student';
         const score = s.scoreQualitative || `${s.scoreNumeric}/${s.maxScore}`;
@@ -915,79 +911,52 @@ export async function handleLogAdventure() {
         return `${studentName} scored ${score} on a ${s.type}${note}.`;
     }).join(' ') : "";
 
-    // --- 3. STORY WEAVERS CHECK (Robust Fetch + History) ---
+    // 7. STORY WEAVERS CHECK
     let storyActive = false;
-    let storyWord = "a mystery word";
+    let storyWord = "";
     
-    // A. Bonus Check
+    // Check A: Awarded Stars
     if (todaysAwards.some(log => log.reason === 'story_weaver')) storyActive = true;
 
-    // B. Completed Stories Check
+    // Check B: Completed Story Today
     const completedStories = state.get('allCompletedStories').filter(s => s.classId === classId);
-    const finishedStoryToday = completedStories.find(s => s.completedAt && isSameDay(s.completedAt.toDate(), nowObj));
+    const finishedStoryToday = completedStories.find(s => s.completedAt && parseFlexibleDate(s.completedAt.toDate()).toDateString() === nowObj.toDateString());
     if (finishedStoryToday) {
         storyActive = true;
-        storyWord = "the final chapter";
+        storyWord = "The End";
     }
 
-    // C. Current Story Check (Force Fetch)
-    let currentStory = state.get('currentStoryData')?.[classId];
-    if (!currentStory) {
-        try {
-            // We need getDoc here, assume it's imported or available via firebase module
-            // If getDoc isn't available in this scope, we skip this deep check
-            // However, assuming actions.js imports standard firebase tools:
-            const { getDoc } = await import('https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js');
-            const storySnap = await getDoc(doc(db, `artifacts/great-class-quest/public/data/story_data`, classId));
-            if (storySnap.exists()) currentStory = storySnap.data();
-        } catch(e) { console.error("Story fetch error", e); }
+    // Check C: Current Story Updated Today
+    // We try to grab from state, but fallback to "not active" if missing to avoid blocking
+    const currentStory = state.get('currentStoryData')?.[classId];
+    if (currentStory && currentStory.updatedAt) {
+        const updateDate = currentStory.updatedAt.toDate();
+        if (updateDate.toDateString() === nowObj.toDateString()) {
+            storyActive = true;
+            if (currentStory.currentWord) storyWord = currentStory.currentWord;
+        }
     }
 
-    if (currentStory && currentStory.updatedAt && isSameDay(currentStory.updatedAt.toDate(), nowObj)) {
-        storyActive = true;
-        if (currentStory.currentWord) storyWord = currentStory.currentWord;
-    }
-
-    let storySummary = "The Story Weavers book remained closed today.";
-    if (storyActive) {
-        storySummary = finishedStoryToday 
-            ? `The class completed their book "${finishedStoryToday.title}" today!`
-            : `The class actively advanced their Story Weavers chronicle using the word: "${storyWord}".`;
-    }
-
-    // --- 4. QUEST EVENTS ---
-    const todaysEvent = state.get('allQuestEvents').find(e => {
-        if (!e.date) return false;
-        const p = e.date.split('-');
-        return isSameDay(new Date(p[2], p[1]-1, p[0]), nowObj) || isSameDay(new Date(p[0], p[1]-1, p[2]), nowObj);
-    });
-    const eventSummary = todaysEvent ? `A special event was active: "${todaysEvent.details?.title || todaysEvent.type}".` : "";
-
-    // --- 5. ASSIGNMENTS & BONUSES ---
-    const assignment = state.get('allQuestAssignments').find(a => a.classId === classId && a.createdAt && isSameDay(a.createdAt.toDate(), nowObj));
-    const assignmentSummary = assignment ? `New Homework assigned: "${assignment.text}".` : "";
-
-    const starfallLogs = todaysAwards.filter(l => l.reason === 'scholar_s_bonus');
-    const welcomeBackLogs = todaysAwards.filter(l => l.reason === 'welcome_back');
-    let bonusSummary = "";
-    if (starfallLogs.length > 0) bonusSummary += `${starfallLogs.length} Scholar's Bonuses (Starfalls) triggered! `;
-    if (welcomeBackLogs.length > 0) bonusSummary += `${welcomeBackLogs.length} students returned (Welcome Back bonus). `;
-
-    // --- 6. SMART CALENDAR (Next Lesson) ---
+    // 8. SCHEDULE LOGIC (The Bug Fix)
     const currentMonth = nowObj.getMonth();
     const daysInMonth = new Date(nowObj.getFullYear(), currentMonth + 1, 0).getDate();
     const currentDay = nowObj.getDate();
-    const schedule = (classData.scheduleDays || []).map(d => parseInt(d));
+    
+    // FIX: Parse schedule days to Integers for comparison
+    const schedule = (classData.scheduleDays || []).map(d => parseInt(d, 10));
     const overrides = state.get('allScheduleOverrides') || [];
     
     let nextLessonText = "the next session";
     let isLastLessonOfMonth = true;
     let foundNext = false;
 
+    // Check remaining days in this month
     for (let d = currentDay + 1; d <= daysInMonth; d++) {
         const tempDate = new Date(nowObj.getFullYear(), currentMonth, d);
+        
+        // FIX: Compare Number to Number
         if (schedule.includes(tempDate.getDay())) {
-            const dStr1 = `${String(tempDate.getDate()).padStart(2, '0')}-${String(tempDate.getMonth() + 1).padStart(2, '0')}-${tempDate.getFullYear()}`;
+            const dStr1 = getDDMMYYYY(tempDate);
             const isCancelled = overrides.some(o => o.classId === classId && o.date === dStr1 && o.type === 'cancelled');
             
             if (!isCancelled) {
@@ -996,13 +965,19 @@ export async function handleLogAdventure() {
                     nextLessonText = tempDate.toLocaleDateString('en-GB', { weekday: 'long' });
                     foundNext = true;
                 }
+                // If we found a valid future lesson in this month, we can stop checking for "Last Lesson" status
+                // But we continue to find "nextLessonText" if we haven't found it (though we just did)
+                break; 
             }
         }
     }
     
+    // If not found in this month, find next one in general (for the "Continues on..." text)
     if (!foundNext) {
         for(let i=1; i<=7; i++) {
-             const temp = new Date(nowObj); temp.setDate(nowObj.getDate() + i);
+             const temp = new Date(nowObj); 
+             temp.setDate(nowObj.getDate() + i);
+             // FIX: Compare Number to Number
              if (schedule.includes(temp.getDay())) {
                  nextLessonText = temp.toLocaleDateString('en-GB', { weekday: 'long' });
                  break;
@@ -1012,56 +987,66 @@ export async function handleLogAdventure() {
 
     const dateContext = `Today is ${nowObj.toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long' })}.`;
     const monthEndContext = isLastLessonOfMonth ? "CRITICAL: This is the LAST lesson of the month! Mention the final push/results." : "";
-    
-    // Uses studentsInClass defined at top of function
-    const currentMonthlyStars = studentsInClass.reduce((sum, s) => sum + (state.get('allStudentScores').find(sc => sc.id === s.id)?.monthlyStars || 0), 0);
+    const ageCategory = getAgeGroupForLeague(classData.questLevel);
 
-    try {
-        let textSystemPrompt = "";
-        if (ageCategory === 'junior') { 
-            textSystemPrompt = "You are 'The Chronicler,' an AI historian for a fun classroom game (ages 7-9). Write a 3-4 sentence diary entry about today's adventure. Use simple, magical words. Do NOT use markdown. You MUST mention: Story Weavers word (if active), Tests taken, Homework (briefly at end), and if it's the last lesson of the month.";
-        } else { 
-            textSystemPrompt = "You are 'The Chronicler,' an AI historian for a fun classroom game. Write a 3-4 sentence diary entry about today's adventure. Use an engaging, epic storytelling tone. Do NOT use markdown. You MUST weave in: Story Weavers word (if active), Test results, Homework (briefly at end), Notes, and if it's the last lesson of the month.";
-        }
-        
-        const textUserPrompt = `Write a diary entry for class '${classData.name}'.
+    // --- PROMPT CONSTRUCTION ---
+    
+    // Only include Story Weavers if it happened
+    let storySection = "";
+    if (storyActive) {
+        const summary = finishedStoryToday 
+            ? `Class finished their book "${finishedStoryToday.title}"!` 
+            : `Class used the word "${storyWord}" in their story.`;
+        storySection = `- **Story Weavers:** ${summary}`;
+    }
+
+    let textSystemPrompt = "";
+    if (ageCategory === 'junior') { 
+        textSystemPrompt = "You are 'The Chronicler,' an AI historian for a fun classroom game (ages 7-9). Write a 3-4 sentence diary entry about today's adventure. Use simple, magical words. Do NOT use markdown. Mention specific students who did well. Only mention specific game features (like Story Weavers) if they are listed in the data below.";
+    } else { 
+        textSystemPrompt = "You are 'The Chronicler,' an AI historian for a fun classroom game. Write a 3-4 sentence diary entry about today's adventure. Use an engaging, epic storytelling tone. Do NOT use markdown. Mention specific students. Only mention specific game features (like Story Weavers) if they are listed in the data below.";
+    }
+    
+    const textUserPrompt = `Write a diary entry for class '${classData.name}'.
 - **Context:** ${dateContext}
-- **Status:** Class has ${currentMonthlyStars} total stars this month. ${monthEndContext}
-- **Today's Stats:** ${totalStars} stars earned today. Top skill: '${topReason}'. Hero: ${heroOfTheDay}.
+- **Status:** ${monthEndContext}
+- **Today's Stats:** ${totalStars} stars earned. Top skill: '${topReason}'. Hero: ${heroOfTheDay}.
 - **Academics:** ${academicSummary || 'No trials today.'}
-- **Story Weavers:** ${storySummary}
-- **Bonuses:** ${eventSummary} ${bonusSummary}
-- **Assignments:** ${assignmentSummary || 'No new homework.'}
+${storySection}
 - **Attendance:** ${attendanceSummary}
 - **Notes:** ${notesString}
 - **Next Adventure:** Continues on ${nextLessonText}.
 Synthesize this into a cohesive story.`;
+
+    try {
         const text = await callGeminiApi(textSystemPrompt, textUserPrompt);
 
-        const keywordSystemPrompt = "Analyze the provided text. Extract 2-3 single-word, visually descriptive, abstract nouns or concepts that capture the feeling of the text (e.g., harmony, energy, focus, joy). Output them as a comma-separated list. For example: 'Keywords: unity, discovery, celebration'.";
-        const keywordResponse = await callGeminiApi(keywordSystemPrompt, `Text: ${text}`);
-        const keywords = keywordResponse.replace('Keywords:', '').split(',').map(kw => kw.trim().toLowerCase());
+        // Keywords & Image
+        const keywordSystemPrompt = "Extract 2-3 single-word, visually descriptive, abstract nouns from the text (e.g. harmony, focus). Comma-separated.";
+        const keywords = (await callGeminiApi(keywordSystemPrompt, text)).split(',').map(k=>k.trim().toLowerCase());
 
-        const imagePromptSystemPrompt = "You are an expert AI art prompt engineer. Your task is to convert a story and keywords into a short, effective, simplified English prompt for an image generator, under 75 tokens. The style MUST be: 'whimsical children's storybook illustration, watercolor and ink, simple characters, vibrant and cheerful colors, symbolic'. The prompt must be a single, structured paragraph. Focus on the feeling and key symbols, not a literal scene. Conclude with '(Token count: X)'.";
-        const imagePromptUserPrompt = `Refactor the following into a high-quality, short image prompt. Story: "${text}". Keywords: ${keywords.join(', ')}.`;
-        const imagePrompt = await callGeminiApi(imagePromptSystemPrompt, imagePromptUserPrompt);
+        const imagePromptSystemPrompt = "Create a short (max 50 words) AI art prompt for a children's storybook illustration based on the text. Style: watercolor and ink, cute, vibrant. No text in image.";
+        const imagePrompt = await callGeminiApi(imagePromptSystemPrompt, `Text: ${text}`);
 
         const imageBase64 = await callCloudflareAiImageApi(imagePrompt);
         const compressedImageBase64 = await compressImageBase64(imageBase64);
         
-        // NEW: Upload to Storage first
+        // Upload to Storage
         const { uploadImageToStorage } = await import('../utils.js');
         const imagePath = `adventure_logs/${state.get('currentUserId')}/${Date.now()}.jpg`;
         const imageUrl = await uploadImageToStorage(compressedImageBase64, imagePath);
 
+        // Save
         await addDoc(collection(db, "artifacts/great-class-quest/public/data/adventure_logs"), {
             classId, date: today, text, keywords, 
-            imageUrl: imageUrl, // NEW: Save the URL, NOT the Base64
+            imageUrl: imageUrl, 
             hero: heroOfTheDay, topReason, totalStars,
             createdBy: { uid: state.get('currentUserId'), name: state.get('currentTeacherName') },
             createdAt: serverTimestamp()
         });
+        
         showToast("Today's adventure has been chronicled!", 'success');
+
     } catch (error) {
         console.error("Adventure Log generation error:", error);
         showToast("The Chronicler seems to have lost their ink. Please try again.", 'error');

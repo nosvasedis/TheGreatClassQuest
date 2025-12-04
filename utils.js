@@ -8,6 +8,11 @@ export function simpleHashCode(str) {
     return Math.abs(hash);
 }
 
+export let solarData = {
+    sunrise: new Date().setHours(6, 30, 0, 0),
+    sunset: new Date().setHours(20, 30, 0, 0)
+};
+
 export function getDDMMYYYY(date = new Date()) {
     const day = date.getDate().toString().padStart(2, '0');
     const month = (date.getMonth() + 1).toString().padStart(2, '0');
@@ -19,7 +24,6 @@ export function parseDDMMYYYY(dateString) {
     if (!dateString || typeof dateString !== 'string') return new Date();
     const parts = dateString.split(/[-/]/);
     if (parts.length !== 3) return new Date();
-    // Handle both YYYY-MM-DD and DD-MM-YYYY
     if (parts[0].length === 4) {
         return new Date(parts[0], parts[1] - 1, parts[2]);
     } else {
@@ -143,10 +147,6 @@ export function getLastLessonDate(classId, allSchoolClasses) {
     return getTodayDateString(); 
 }
 
-/**
- * Finds the date of the lesson strictly BEFORE today.
- * Used for persistence of absence status.
- */
 export function getPreviousLessonDate(classId, allSchoolClasses) {
     const classData = allSchoolClasses.find(c => c.id === classId);
     if (!classData || !classData.scheduleDays || classData.scheduleDays.length === 0) {
@@ -154,9 +154,9 @@ export function getPreviousLessonDate(classId, allSchoolClasses) {
     }
     
     let checkDate = new Date();
-    checkDate.setDate(checkDate.getDate() - 1); // Start checking from yesterday
+    checkDate.setDate(checkDate.getDate() - 1); 
 
-    for (let i = 0; i < 14; i++) { // Check back 2 weeks max
+    for (let i = 0; i < 14; i++) { 
         if (classData.scheduleDays.includes(checkDate.getDay().toString())) {
             return getDDMMYYYY(checkDate);
         }
@@ -166,19 +166,63 @@ export function getPreviousLessonDate(classId, allSchoolClasses) {
 }
 
 export function updateDateTime() {
-    const now = new Date(), dateEl = document.getElementById('current-date'), timeEl = document.getElementById('current-time');
-    if (dateEl && timeEl) {
-        const dayClassMap = { 0: 'shadow-sun', 1: 'shadow-mon', 2: 'shadow-tue', 3: 'shadow-wed', 4: 'shadow-thu', 5: 'shadow-fri', 6: 'shadow-sat' };
-        const shadowClass = dayClassMap[now.getDay()];
-        const rawDateString = now.toLocaleDateString('en-GB', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
-        dateEl.className = 'text-3xl font-bold ' + shadowClass;
-        dateEl.innerHTML = Array.from(rawDateString).map((char, i) => `<span class="date-char" style="animation-delay: ${i * 0.05}s">${char === ' ' ? '&nbsp;' : char}</span>`).join('');
-        const timeString = now.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
-        timeEl.className = 'text-3xl pulse-subtle ' + shadowClass;
-        timeEl.innerHTML = Array.from(timeString).map((char, i) => `<span class="date-char" style="animation-delay: ${i * 0.05}s">${char}</span>`).join('');
-    }
-}
+    const now = new Date();
+const dateEl = document.getElementById('current-date');
+const timeEl = document.getElementById('current-time');
+const header = document.querySelector('header');
 
+if (dateEl && timeEl && header) {
+    // 1. Generate Deterministic Daily Hue
+    const dateKey = getDDMMYYYY(now);
+    const hue = simpleHashCode(dateKey) % 360;
+
+    // 2. Solar Cycle Logic
+    const nowTime = now.getTime();
+    const isNight = nowTime >= solarData.sunset || nowTime < solarData.sunrise;
+
+    let textShadowStyle;
+
+    if (isNight) {
+        // Night Mode: "Moonlight Glow"
+        const color = `hsl(${hue}, 60%, 50%)`; 
+        textShadowStyle = `
+            0 2px 4px rgba(0,0,0,0.8), 
+            0 0 15px ${color}, 
+            0 0 30px ${color}
+        `;
+    } else {
+        // Day Mode: "Sunburst Glow"
+        const color = `hsl(${hue}, 90%, 60%)`;
+        textShadowStyle = `
+            0 2px 4px rgba(0,0,0,0.3), 
+            0 0 10px ${color}, 
+            0 0 20px ${color},
+            0 0 40px ${color}
+        `;
+    }
+
+    // 3. Force Apply Styles
+    dateEl.style.textShadow = textShadowStyle;
+    timeEl.style.textShadow = textShadowStyle;
+
+    // Ensure text color is white
+    dateEl.style.color = "#ffffff";
+    timeEl.style.color = "#ffffff";
+
+    // 4. Update Text Content
+    dateEl.innerText = now.toLocaleDateString('en-GB', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
+    timeEl.innerText = now.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
+
+    // 5. Clean up old class-based coloring
+    const oldClasses = ['shadow-sun', 'shadow-mon', 'shadow-tue', 'shadow-wed', 'shadow-thu', 'shadow-fri', 'shadow-sat'];
+    dateEl.classList.remove(...oldClasses);
+    timeEl.classList.remove(...oldClasses);
+
+    // 6. Global Theme Toggles
+    header.classList.toggle('header-night', isNight);
+    document.body.classList.toggle('night-mode', isNight);
+   }
+}
 export function debounce(func, wait) {
     let timeout;
   
@@ -193,20 +237,11 @@ export function debounce(func, wait) {
     };
 }
 
-// NEW: Helper to upload images to Firebase Storage
 export async function uploadImageToStorage(base64String, path) {
-    // We need to import these dynamically to avoid circular dependencies
     const { storage, ref, uploadString, getDownloadURL } = await import('./firebase.js');
-    
     try {
-        // Create a reference to where the file will live
         const storageRef = ref(storage, path);
-        
-        // Upload the Base64 string
-        // We assume the base64 string includes the data:image/jpeg;base64,... prefix
         await uploadString(storageRef, base64String, 'data_url');
-        
-        // Get the public URL
         const downloadURL = await getDownloadURL(storageRef);
         return downloadURL;
     } catch (error) {
@@ -215,22 +250,14 @@ export async function uploadImageToStorage(base64String, path) {
     }
 }
 
-/**
- * ROBUST DATE PARSER
- * Handles: DD-MM-YYYY, DD/MM/YYYY, YYYY-MM-DD, and Date objects.
- * Defaults to DD-MM-YYYY (UK/EU format) for ambiguity like 01/02.
- */
 export function parseFlexibleDate(dateInput) {
     if (!dateInput) return null;
-    if (dateInput instanceof Date) return dateInput; // Already a date object
+    if (dateInput instanceof Date) return dateInput; 
 
-    // 1. Handle "YYYY-MM-DD" (ISO)
     if (dateInput.match(/^\d{4}-\d{2}-\d{2}$/)) {
         return new Date(dateInput);
     }
 
-    // 2. Handle "DD-MM-YYYY" or "DD/MM/YYYY"
-    // We split by any non-digit character
     const parts = dateInput.split(/[^0-9]/);
     
     if (parts.length === 3) {
@@ -238,20 +265,27 @@ export function parseFlexibleDate(dateInput) {
         const p2 = parseInt(parts[1], 10);
         const p3 = parseInt(parts[2], 10);
 
-        // Guess format based on year position
         if (p3 > 1000) {
-            // Format: DD-MM-YYYY (p1=Day, p2=Month, p3=Year)
             return new Date(p3, p2 - 1, p1);
         } 
         else if (p1 > 1000) {
-            // Format: YYYY-MM-DD (p1=Year, p2=Month, p3=Day)
             return new Date(p1, p2 - 1, p3);
         }
     }
 
-    // 3. Fallback: Try standard Date parse
     const rawParse = new Date(dateInput);
     if (!isNaN(rawParse.getTime())) return rawParse;
 
     return null;
+}
+
+export async function fetchSolarCycle() {
+    try {
+        const response = await fetch('https://api.sunrise-sunset.org/json?lat=37.9838&lng=23.7275&formatted=0');
+        const data = await response.json();
+        if (data.status === 'OK') {
+            solarData.sunrise = new Date(data.results.sunrise).getTime();
+            solarData.sunset = new Date(data.results.sunset).getTime();
+        }
+    } catch (e) { console.warn("Using default solar times."); }
 }

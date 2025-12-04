@@ -14,6 +14,7 @@ import * as storyWeaver from '../features/storyWeaver.js';
 import { playSound } from '../audio.js';
 import { renderActiveBounties } from './core.js';
 import { updateCeremonyStatus } from '../features/ceremony.js';
+import { renderHomeTab } from '../features/home.js';
 
 // --- TAB NAVIGATION ---
 
@@ -96,15 +97,21 @@ export async function showTab(tabName) {
         await ensureHistoryLoaded(); 
         renderCalendarTab();
     }
+
+    if(tabId === 'about-tab') {
+        renderHomeTab();
+    }
     
     if(tabId === 'reward-ideas-tab') renderIdeasTabSelects();
     if(tabId === 'options-tab') {
         // Load holidays and the new economy selector
         import('./core.js').then(m => {
             if(m.renderHolidayList) m.renderHolidayList();
-            if(m.renderStarManagerStudentSelect) m.renderStarManagerStudentSelect();
-            if(m.renderEconomyStudentSelect) m.renderEconomyStudentSelect(); // <--- NEW
+            if(m.renderEconomyStudentSelect) m.renderEconomyStudentSelect(); 
         });
+        
+        // FIX: Call this directly (it is defined in this file, not core.js)
+        renderStarManagerStudentSelect(); 
         
         if (document.getElementById('teacher-name-input')) {
             document.getElementById('teacher-name-input').value = state.get('currentTeacherName') || '';
@@ -1025,9 +1032,14 @@ export function populateCalendarStars(logSource) {
     }
 }
 
-export function renderCalendarTab() {
+// Accepts optional 'customLogs' for historical views. 
+// If null, defaults to state.allAwardLogs (Current Month).
+export function renderCalendarTab(customLogs = null) {
     const grid = document.getElementById('calendar-grid');
     if (!grid) return;
+    
+    // Determine which dataset to use
+    const logsToRender = customLogs || state.get('allAwardLogs');
     
     const loader = document.getElementById('calendar-loader');
     const isLoaderVisible = loader && !loader.classList.contains('hidden');
@@ -1059,7 +1071,6 @@ export function renderCalendarTab() {
     thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
     thirtyDaysAgo.setHours(0, 0, 0, 0);
     const isRecentView = calendarCurrentDate >= thirtyDaysAgo;
-    const logsToRender = isRecentView ? state.get('allAwardLogs') : [];
 
     for (let i = 0; i < firstDayIndex; i++) {
         const emptyCell = document.createElement('div');

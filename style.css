@@ -96,28 +96,31 @@ body {
     will-change: transform;
 }
 
-@keyframes jump {
-    0%, 100% { transform: translateY(0); }
-    50% { transform: translateY(-3px); }
-}
-.date-char {
-    display: inline-block;
-    transition: transform 0.2s ease-out;
-    color: #FFFFFF; 
-}
-.date-bounce:hover .date-char {
-    animation: jump 0.6s ease-in-out infinite;
+@keyframes hover-pulse {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.03); }
 }
 
-/* Day-Specific Shadow Colors */
-.shadow-mon { text-shadow: 0 0 5px #FBBF24, 0 0 10px #FBBF24; } /* Amber */
-.shadow-tue { text-shadow: 0 0 5px #06B6D4, 0 0 10px #06B6D4; } /* Cyan */
-.shadow-wed { text-shadow: 0 0 5px #10B981, 0 0 10px #10B981; } /* Emerald */
-.shadow-thu { text-shadow: 0 0 5px #6366F1, 0 0 10px #6366F1; } /* Indigo */
-.shadow-fri { text-shadow: 0 0 5px #F472B6, 0 0 10px #F472B6; } /* Pink */
-.shadow-sat { text-shadow: 0 0 5px #8B5CF6, 0 0 10px #8B5CF6; } /* Violet */
-.shadow-sun { text-shadow: 0 0 5px #F87171, 0 0 10px #F87171; } /* Red */
+.date-time-hover-group:hover #current-date,
+.date-time-hover-group:hover #current-time {
+    animation: hover-pulse 0.8s ease-in-out;
+}
 
+/* --- DATE & TIME GLOW EFFECTS --- */
+
+/* Base Text Style (Always White) */
+#current-date, #current-time {
+    color: #ffffff !important;
+    transition: text-shadow 2s ease-in-out;
+}
+
+/* --- DEPTH SHADOW & GLOW EFFECTS (No Outline) --- */
+
+/* Base Text Style */
+#current-date, #current-time {
+    color: #ffffff !important;
+    transition: text-shadow 1s ease-in-out;
+}
 
 /* --- NEW NAVIGATION BAR STYLES --- */
 @keyframes nav-pop {
@@ -1243,16 +1246,82 @@ body {
     content: "\f04c"; /* Font Awesome pause icon */
 }
 
-/* Loading Screen Animation */
-@keyframes fall {
-    0% { transform: translateY(-100px) rotate(0deg); opacity: 1; }
-    100% { transform: translateY(200px) rotate(360deg); opacity: 0; }
+/* --- MAGICAL LOADING SCREEN --- */
+
+/* 1. Center Star Pulse */
+@keyframes load-star-pulse {
+    0%, 100% { transform: scale(1); filter: drop-shadow(0 0 15px #FBBF24); }
+    50% { transform: scale(1.15); filter: drop-shadow(0 0 40px #F59E0B); }
 }
-.star {
+
+/* 1. Center Star - Geometric Fix */
+/* 1. Center Star - Geometric Lock */
+.loading-center-star {
+    width: 120px !important;  /* Fixed square box */
+    height: 120px !important;
+    
+    /* Perfect Center of the Box */
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    
+    font-size: 5rem !important; /* Font fits inside box */
+    color: #FBBF24 !important;
+    
+    animation: load-star-pulse 2s ease-in-out infinite !important;
+    z-index: 10;
+    margin: 0 auto !important; /* Force center if parent allows */
+}
+
+/* 2. Beautiful Glowing Ring */
+.loading-simple-ring {
     position: absolute;
-    font-size: 2rem;
-    color: #FBBF24;
-    animation: fall 2s linear infinite;
+    /* Perfect Center */
+    top: 50%;
+    left: 50%;
+    
+    /* Size */
+    width: 170px; 
+    height: 170px;
+    
+    /* Outer Ring Style */
+    border: 5px solid rgba(251, 191, 36, 0.1); /* Very Faint Track */
+    border-top: 5px solid #FBBF24;             /* Solid Gold Spinner */
+    border-radius: 50%;
+    
+    /* The Magical Glow */
+    filter: drop-shadow(0 0 10px #F59E0B);
+    
+    z-index: 5;
+    /* Animation includes centering translate to keep it locked in place */
+    animation: ring-spin-center 3s linear infinite;
+}
+
+/* Inner Counter-Ring (Adds complexity and beauty) */
+.loading-simple-ring::after {
+    content: '';
+    position: absolute;
+    /* Inset by 15px to create a smaller ring inside */
+    top: 15px; left: 15px; right: 15px; bottom: 15px;
+    
+    border: 4px solid rgba(251, 191, 36, 0.1);
+    border-bottom: 4px solid #FDE047; /* Brighter Yellow/Gold */
+    border-radius: 50%;
+    
+    /* Spin faster in the opposite direction */
+    animation: ring-spin-normal 1.5s linear infinite reverse;
+}
+
+/* Keyframe for the Main Ring (Must preserve centering) */
+@keyframes ring-spin-center {
+    from { transform: translate(-50%, -50%) rotate(0deg); }
+    to   { transform: translate(-50%, -50%) rotate(360deg); }
+}
+
+/* Keyframe for the Inner Ring (Rotates relative to parent) */
+@keyframes ring-spin-normal {
+    from { transform: rotate(0deg); }
+    to   { transform: rotate(360deg); }
 }
 
 /* --- NEW in v6.0.0: Scholar's Scroll & Starfall Styles --- */
@@ -2392,9 +2461,21 @@ body.projector-mode .bounty-actions {
 .is-night #wall-bg-night { opacity: 1; }
 .is-night #wall-sun { top: 110% !important; opacity: 0; } /* Sun Sets */
 .is-night #wall-moon { top: 10% !important; } /* Moon Rises */
-.is-night #wall-class-badge { background-color: rgba(255,255,255,0.1); border-color: rgba(255,255,255,0.2); }
-.is-night #wall-class-name { color: #E0E7FF; text-shadow: 0 0 10px rgba(165, 180, 252, 0.5); }
-.is-night #wall-class-level { color: #A5B4FC; }
+/* Night Mode Badge: Solid Dark Glass */
+.is-night #wall-class-badge { 
+    background-color: rgba(30, 27, 75, 0.85) !important; /* Almost solid Midnight Blue */
+    border-color: rgba(165, 180, 252, 0.3) !important; /* Indigo border */
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.6) !important;
+}
+
+.is-night #wall-class-name { 
+    color: #ffffff !important; /* Pure White Text */
+    text-shadow: 0 0 10px rgba(255, 255, 255, 0.5); 
+}
+
+.is-night #wall-class-level { 
+    color: #cbd5e1 !important; /* Slate Gray Text */
+}
 
 /* 3. Floating Clouds (Extended Range to fix popping) */
 @keyframes float-clouds-right { 
@@ -2409,20 +2490,6 @@ body.projector-mode .bounty-actions {
     display: inline-block; 
     filter: drop-shadow(0 10px 20px rgba(0,0,0,0.1)); 
     will-change: transform; /* Performance optimization */
-}
-
-/* 4. Childish & Lively Floating Cards */
-.wallpaper-float-card {
-    position: absolute;
-    width: 360px; /* Slightly wider for new cards */
-    padding: 2rem;
-    border-radius: 2.5rem; /* Even bubblier */
-    box-shadow: 0 25px 60px rgba(0,0,0,0.15), 0 0 0 4px rgba(255,255,255,0.4);
-    backdrop-filter: blur(20px);
-    -webkit-backdrop-filter: blur(20px);
-    transition: all 2s cubic-bezier(0.22, 1, 0.36, 1); /* Slower entry/exit */
-    z-index: 60;
-    animation: float-bob 20s ease-in-out infinite; /* Much slower bob */
 }
 
 @keyframes float-bob { 
@@ -2463,10 +2530,20 @@ body.projector-mode .bounty-actions {
     0%, 100% { box-shadow: 0 0 0 0 rgba(255, 255, 255, 0.4); }
     50% { box-shadow: 0 0 50px 10px rgba(255, 255, 255, 0); }
 }
+/* 5. Center Hub (Updated for better visibility) */
 .wall-center-hub {
-    background: rgba(255, 255, 255, 0.1);
-    backdrop-filter: blur(8px);
-    border: 2px solid rgba(255, 255, 255, 0.3);
+    /* Day Mode: Crisp White Glass */
+    background: rgba(255, 255, 255, 0.25); 
+    backdrop-filter: blur(12px);
+    border: 2px solid rgba(255, 255, 255, 0.6);
+    box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.1);
+}
+
+/* Night Mode: Deep Indigo Glass (Instead of faded white) */
+.is-night .wall-center-hub {
+    background: rgba(15, 23, 42, 0.5) !important; /* Dark Slate */
+    border-color: rgba(99, 102, 241, 0.3) !important; /* Faint Indigo Border */
+    box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.5) !important;
 }
 
 /* 6. Text Shadows */
@@ -2482,20 +2559,1993 @@ body.projector-mode .bounty-actions {
 .ceremony-card.finalist .reveal-content {
     opacity: 0; 
 }
-/* Ensure text doesn't overflow */
-.ceremony-card h3 {
+/* Ensure text wraps nicely instead of truncating */
+.ceremony-display-card h3 {
+    white-space: normal; /* Allow wrapping */
+    overflow: visible;
+    text-overflow: clip;
+    line-height: 1.1; /* Tighter lines for long names */
+    height: auto;
+    margin-bottom: 0.5rem;
+}
+
+/* --- DASHBOARD STYLES --- */
+.dashboard-card {
+    background: rgba(255, 255, 255, 0.7);
+    backdrop-filter: blur(12px);
+    border: 2px solid rgba(255, 255, 255, 0.8);
+    box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.1);
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+.dashboard-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 12px 40px 0 rgba(31, 38, 135, 0.15);
+    border-color: #fff;
+}
+
+.stat-value {
+    background: -webkit-linear-gradient(45deg, #F59E0B, #D97706);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    filter: drop-shadow(0 2px 2px rgba(0,0,0,0.1));
+}
+
+.dashboard-hero-bg {
+    background: linear-gradient(135deg, #e0f2fe 0%, #f0f9ff 100%);
+    position: relative;
+    overflow: hidden;
+}
+.dashboard-hero-bg::before {
+    content: '';
+    position: absolute;
+    top: -50%; left: -50%;
+    width: 200%; height: 200%;
+    background: radial-gradient(circle, rgba(255,255,255,0.8) 0%, transparent 60%);
+    opacity: 0.6;
+    animation: pulse-subtle 10s infinite;
+}
+
+/* Info Modal Tab Switchers */
+.info-tab-switcher {
+    font-family: 'Fredoka One', cursive;
+    font-size: 1.1rem;
+    padding: 0.5rem 1.5rem;
+    border-radius: 9999px;
+    transition: all 0.2s;
+    border-bottom: 4px solid rgba(0,0,0,0.1);
+}
+.info-tab-switcher:active {
+    transform: scale(0.95);
+    border-bottom-width: 2px;
+}
+.info-tab-switcher.active {
+    transform: scale(1.05);
+}
+
+/* Scrollbar specific for Dashboard */
+.custom-scrollbar::-webkit-scrollbar { width: 8px; }
+.custom-scrollbar::-webkit-scrollbar-track { background: rgba(0,0,0,0.05); }
+.custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+.custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+
+/* --- V5.7: HOME DASHBOARD REVAMP --- */
+
+/* Staggered Animations */
+@keyframes fadeInUpSmooth {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.animate-stagger-1 { animation: fadeInUpSmooth 0.6s cubic-bezier(0.2, 0.8, 0.2, 1) forwards; opacity: 0; animation-delay: 0.1s; }
+.animate-stagger-2 { animation: fadeInUpSmooth 0.6s cubic-bezier(0.2, 0.8, 0.2, 1) forwards; opacity: 0; animation-delay: 0.2s; }
+.animate-stagger-3 { animation: fadeInUpSmooth 0.6s cubic-bezier(0.2, 0.8, 0.2, 1) forwards; opacity: 0; animation-delay: 0.3s; }
+.animate-stagger-4 { animation: fadeInUpSmooth 0.6s cubic-bezier(0.2, 0.8, 0.2, 1) forwards; opacity: 0; animation-delay: 0.4s; }
+
+/* Dashboard Transitions */
+.dashboard-transition-out {
+    animation: fadeOutScale 0.3s ease-in forwards;
+}
+.dashboard-transition-in {
+    animation: fadeInScale 0.4s ease-out forwards;
+}
+
+@keyframes fadeOutScale {
+    to { opacity: 0; transform: scale(0.98); }
+}
+@keyframes fadeInScale {
+    from { opacity: 0; transform: scale(1.02); }
+    to { opacity: 1; transform: scale(1); }
+}
+
+/* Time-of-Day Text Gradients */
+.text-gradient-morning {
+    background: linear-gradient(to right, #f59e0b, #d97706);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+.text-gradient-afternoon {
+    background: linear-gradient(to right, #0ea5e9, #2563eb);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+.text-gradient-evening {
+    background: linear-gradient(to right, #7c3aed, #4f46e5);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+.text-gradient-night {
+    background: linear-gradient(to right, #475569, #1e293b);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+/* Locked Schedule Item */
+.schedule-card-locked {
+    background-color: #f9fafb;
+    border-color: #e5e7eb;
+    color: #9ca3af;
+    cursor: default;
+    opacity: 0.8;
+}
+.schedule-card-locked:hover {
+    box-shadow: none;
+    transform: none;
+}
+
+/* --- V5.8: HOME TAB POLISH --- */
+/* Smooth Fade In for Home Tab */
+@keyframes nice-fade-in {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.home-content-ready {
+    animation: nice-fade-in 0.6s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+}
+
+/* Master Tools Grid - Responsive & No Overflow */
+.master-tools-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(80px, 1fr)); /* Smart wrapping */
+    gap: 0.75rem;
+    width: 100%;
+}
+
+/* Yellow-er Star Card with Watermark */
+.star-card-yellow {
+    background: linear-gradient(135deg, #FFFBEB 0%, #FEF3C7 100%);
+    border: 2px solid #FCD34D;
+    position: relative;
+    overflow: hidden;
+}
+
+.star-watermark {
+    position: absolute;
+    bottom: -10px;
+    right: -10px;
+    font-size: 8rem;
+    color: rgba(251, 191, 36, 0.15); /* Faint yellow */
+    transform: rotate(15deg);
+    pointer-events: none;
+    z-index: 0;
+}
+
+.greeting-emoji-anim {
+    display: inline-block;
+    animation: float-up-down 3s ease-in-out infinite;
+}
+
+/* Skeleton Loading */
+.skeleton {
+    background: #e5e7eb;
+    background-image: linear-gradient(to right, #e5e7eb 0%, #f3f4f6 20%, #e5e7eb 40%, #e5e7eb 100%);
+    background-repeat: no-repeat;
+    background-size: 800px 100%; 
+    animation: shimmer 1.5s infinite linear forwards;
+    border-radius: 0.5rem;
+}
+
+@keyframes shimmer {
+    0% { background-position: -468px 0; }
+    100% { background-position: 468px 0; }
+}
+
+/* Master Tool Mini-Buttons */
+.tool-btn-mini {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.25rem;
+    padding: 0.75rem;
+    border-radius: 1rem;
+    background-color: #f8fafc;
+    border: 1px solid #e2e8f0;
+    transition: all 0.2s;
+    text-align: center;
+    height: 100%;
+}
+.tool-btn-mini:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+    background-color: white;
+    border-color: #cbd5e1;
+}
+.tool-btn-mini i {
+    font-size: 1.5rem;
+    margin-bottom: 0.25rem;
+}
+.tool-btn-mini span {
+    font-size: 0.75rem;
+    font-weight: 700;
+    line-height: 1.1;
+}
+
+/* Glassy Stat Pill */
+.glass-stat {
+    background: rgba(255, 255, 255, 0.2);
+    backdrop-filter: blur(4px);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    padding: 0.5rem 1rem;
+    border-radius: 9999px;
+    color: rgba(30, 41, 59, 0.8);
+    font-weight: 600;
+    font-size: 0.875rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+}
+
+/* --- V11.0: VIBRANT HORIZONS THEME --- */
+
+/* 1. ANIMATIONS */
+@keyframes float-cloud {
+    0%, 100% { transform: translateX(0); }
+    50% { transform: translateX(10px); }
+}
+@keyframes spin-sun {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+@keyframes pulse-glow {
+    0%, 100% { filter: drop-shadow(0 0 5px rgba(255, 215, 0, 0.6)); transform: scale(1); }
+    50% { filter: drop-shadow(0 0 15px rgba(255, 215, 0, 0.9)); transform: scale(1.05); }
+}
+
+/* 2. LAYOUT: The 3-Row Grid */
+.horizons-grid {
+    display: grid;
+    grid-template-columns: repeat(12, 1fr);
+    gap: 1.5rem;
+    padding-bottom: 2rem;
+}
+
+/* Smart Spanning */
+.h-span-12 { grid-column: span 12; }
+.h-span-8  { grid-column: span 12; }
+.h-span-6  { grid-column: span 12; }
+.h-span-4  { grid-column: span 12; }
+.h-span-3  { grid-column: span 12; }
+
+@media (min-width: 768px) {
+    .h-span-6 { grid-column: span 6; }
+}
+@media (min-width: 1024px) {
+    .h-span-8 { grid-column: span 8; }
+    .h-span-4 { grid-column: span 4; }
+    .h-span-3 { grid-column: span 3; }
+}
+
+/* 3. CARD BASE & COLORS */
+.vibrant-card {
+    border-radius: 1.75rem;
+    position: relative;
+    box-shadow: 0 10px 20px -5px rgba(0,0,0,0.05), 0 4px 6px -2px rgba(0,0,0,0.03);
+    transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.3s;
+    background: white;
+    border: 1px solid rgba(255,255,255,0.6);
+    /* FIX: Allow dropdowns to overflow the card boundaries */
+    overflow: visible !important; 
+    z-index: 1;
+}
+.vibrant-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1);
+    z-index: 30; /* Ensure hovered card acts like a popup */
+}
+
+/* FIX: Date Pill Styling */
+.date-pill {
+    padding: 0.5rem 1.5rem;
+    border-radius: 9999px;
+    font-family: 'Fredoka One', cursive;
+    letter-spacing: 0.05em;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+}
+
+/* FIX 2 & 5: Chronicle Styling & Expansion */
+.chronicle-item {
+    padding: 1.25rem;
+    border-radius: 1.5rem;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    border: 1px solid rgba(255,255,255,0.4);
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    cursor: pointer;
+    position: relative;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+    overflow: hidden;
+}
+
+.chronicle-item:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+    z-index: 10;
+}
+
+/* Expanded State (Pop-out effect) */
+.chronicle-item.expanded {
+    position: absolute;
+    top: 1rem;
+    left: 1rem;
+    right: 1rem;
+    bottom: 1rem;
+    height: auto;
+    z-index: 50;
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+    transform: scale(1.02);
+    overflow-y: auto;
+    border-width: 2px;
+}
+.chronicle-item.expanded p {
+    -webkit-line-clamp: unset !important; /* Show all text */
+    line-clamp: unset !important;
+    overflow: visible;
+}
+
+/* Gradient Themes */
+.chronicle-homework { background: linear-gradient(135deg, #e0e7ff 0%, #c7d2fe 100%); border-color: #818cf8; }
+.chronicle-story { background: linear-gradient(135deg, #ecfeff 0%, #a5f3fc 100%); border-color: #22d3ee; }
+.chronicle-log { background: linear-gradient(135deg, #f0fdf4 0%, #bbf7d0 100%); border-color: #4ade80; }
+
+/* FIX 4: General Tools Hover Colors */
+.tool-btn-pop[data-action="open-global-ranks"]:hover { background: #fdf4ff; color: #c026d3; border-color: #f0abfc; } /* Fuchsia */
+.tool-btn-pop[data-action="create-class"]:hover { background: #f0fdf4; color: #16a34a; border-color: #86efac; } /* Green */
+.tool-btn-pop[data-action="open-history"]:hover { background: #fffbeb; color: #d97706; border-color: #fcd34d; } /* Amber */
+.tool-btn-pop[data-action="open-holidays"]:hover { background: #fff1f2; color: #e11d48; border-color: #fda4af; } /* Rose */
+.tool-btn-pop[data-action="open-day-planner"]:hover { background: #eff6ff; color: #2563eb; border-color: #93c5fd; } /* Blue */
+.tool-btn-pop[data-action="open-settings"]:hover { background: #f3f4f6; color: #4b5563; border-color: #d1d5db; } /* Gray */
+
+/* 4. ROW 1: WEATHER WIDGET */
+.weather-card {
+    color: white;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    padding: 1.5rem;
+    position: relative;
+    overflow: hidden; /* <--- KEEPS THE SPINNING EMOJI INSIDE */
+    border-radius: 1.75rem; /* Ensures corners are rounded */
+    isolation: isolate; /* Fixes z-index stacking issues */
+}
+
+/* FIX 3: Roster Wiggle Animation */
+.roster-avatar {
+    width: 2.5rem; 
+    height: 2.5rem; 
+    border-radius: 9999px;
+    object-fit: cover;
+    border: 2px solid white;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    transition: transform 0.2s ease-in-out;
+}
+.roster-item:hover .roster-avatar {
+    animation: quest-avatar-jiggle 0.5s ease-in-out;
+    transform: scale(1.1);
+    border-color: #818CF8;
+}
+
+/* FIX 5: Tool Button Hover Colors */
+/* Default hover */
+.tool-btn-pop:hover { background: white; color: #4F46E5; }
+
+/* Specific Hovers based on target/action */
+.tool-btn-pop[data-target="class-leaderboard-tab"]:hover { background: #fffbeb; color: #d97706; border-color: #fcd34d; } /* Amber */
+.tool-btn-pop[data-target="student-leaderboard-tab"]:hover { background: #faf5ff; color: #7e22ce; border-color: #d8b4fe; } /* Purple */
+.tool-btn-pop[data-target="award-stars-tab"]:hover { background: #fff1f2; color: #be123c; border-color: #fda4af; } /* Rose */
+.tool-btn-pop[data-target="adventure-log-tab"]:hover { background: #f0fdfa; color: #0f766e; border-color: #99f6e4; } /* Teal */
+.tool-btn-pop[data-target="scholars-scroll-tab"]:hover { background: #fff7ed; color: #9a3412; border-color: #fdba74; } /* Orange */
+.tool-btn-pop[data-target="reward-ideas-tab"]:hover { background: #eef2ff; color: #4338ca; border-color: #a5b4fc; } /* Indigo */
+.tool-btn-pop[data-action="open-report"]:hover { background: #f0fdf4; color: #15803d; border-color: #86efac; } /* Green */
+
+/* 5. ROW 1: GREETING CARD */
+.greeting-panel {
+    background: white;
+    padding: 2rem;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    position: relative;
+    overflow: hidden; /* <--- CUTS OFF THE SQUARE MESH SHADOW */
+    border-radius: 1.75rem;
+}
+.greeting-bg-mesh {
+    position: absolute;
+    top: 0; left: 0; width: 100%; height: 100%;
+    background: radial-gradient(at 0% 0%, rgba(99, 102, 241, 0.1) 0px, transparent 50%),
+                radial-gradient(at 100% 100%, rgba(236, 72, 153, 0.1) 0px, transparent 50%);
+    opacity: 0.6;
+    pointer-events: none;
+}
+
+/* 6. ROW 2: STAT CARDS */
+.stat-card-pop {
+    background: #F8FAFC;
+    padding: 1.5rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    border: 2px solid transparent;
+    transition: all 0.2s;
+}
+.stat-card-pop:hover {
+    background: white;
+    border-color: #E2E8F0;
+}
+.stat-value-big {
+    font-family: 'Fredoka One', cursive;
+    font-size: 3rem;
+    line-height: 1;
+    margin-bottom: 0.5rem;
+}
+
+/* 7. ROW 3: TOOLS & SCHEDULE (Revamped) */
+.tools-grid-v2 {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(90px, 1fr));
+    gap: 1rem;
+    padding: 1.5rem;
+}
+
+/* NEW: Grid Layout for Schedule (Balanced Height) */
+.schedule-list-v2 {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+    gap: 1rem;
+    padding: 0 1.5rem 1.5rem 1.5rem;
+    /* FIX: Changed from 60vh to 350px for a cleaner look */
+    min-height: 350px; 
+    align-content: start;
+}
+
+/* NEW: Detailed Square Class Card (Smart Text) */
+.schedule-card-square {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: space-between;
+    /* Fixed height ratio to keep them looking uniform */
+    aspect-ratio: 1 / 1.1; 
+    padding: 0.75rem;
+    border-radius: 1.5rem;
+    background: white;
+    transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+    border: 3px solid transparent;
+    cursor: pointer;
+    position: relative;
+    overflow: hidden;
+    text-align: center;
+}
+
+.schedule-card-square:hover {
+    transform: translateY(-5px) scale(1.05);
+    box-shadow: 0 15px 30px -5px rgba(0, 0, 0, 0.15);
+    z-index: 10;
+}
+
+/* Top: Time */
+.schedule-card-square .time-pill {
+    font-size: 0.6rem;
+    font-weight: 800;
+    padding: 0.25rem 0.6rem;
+    border-radius: 99px;
+    background: rgba(255,255,255,0.7);
+    backdrop-filter: blur(4px);
+    color: #374151;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+    margin-bottom: 0.25rem;
+}
+
+/* Middle: Logo */
+.schedule-card-square .logo {
+    font-size: 2.25rem; /* Adjusted scale to make room for text */
+    filter: drop-shadow(0 4px 4px rgba(0,0,0,0.1));
+    transition: transform 0.3s;
+    line-height: 1;
+    margin: 0.25rem 0;
+}
+
+.schedule-card-square:hover .logo {
+    transform: scale(1.1) rotate(5deg);
+}
+
+/* Bottom: Info Stack */
+.schedule-card-square .info-stack {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+    /* Ensures this section takes up necessary space */
+    flex-grow: 1; 
+    justify-content: center;
+}
+
+/* SMART NAME TEXT: Wraps and Scales */
+.schedule-card-square .name {
+    font-family: 'Fredoka One', cursive;
+    font-size: 0.85rem; /* Slightly smaller to fit long names */
+    line-height: 1.1;
+    color: #1f2937;
+    width: 100%;
+    
+    /* Allow wrapping */
+    white-space: normal; 
+    word-wrap: break-word;
+    
+    /* Limit to 3 lines max to prevent overflow */
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+.schedule-card-square .league {
+    font-size: 0.6rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: rgba(0,0,0,0.5);
+    background: rgba(255,255,255,0.5);
+    padding: 1px 5px;
+    border-radius: 4px;
+    margin-top: 2px;
+}
+
+.schedule-card-square .teacher {
+    font-size: 0.6rem;
+    color: rgba(0,0,0,0.4);
+    font-weight: 600;
+    font-style: italic;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
     max-width: 100%;
 }
 
-/* Wallpaper Card Positioning Fix */
+/* Active State */
+.schedule-card-square.active-lesson {
+    border-color: #6366F1;
+    animation: pulse-border 2s infinite;
+}
+
+/* Locked State */
+.schedule-card-square.locked {
+    filter: grayscale(0.9);
+    opacity: 0.7;
+    cursor: not-allowed;
+}
+
+/* Empty State "Camp" - Matches new height */
+.schedule-empty-camp {
+    grid-column: 1 / -1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(135deg, #F0FDF4 0%, #DCFCE7 100%);
+    border: 2px dashed #86EFAC;
+    border-radius: 1.5rem;
+    padding: 2rem;
+    color: #166534;
+    text-align: center;
+    /* FIX: Set to 100% to fill the container without forcing extra scroll */
+    height: 100%; 
+}
+
+/* 8. FADE ANIMATION */
+.home-fade { animation: fadeIn 0.5s ease-out forwards; }
+@keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+/* --- NEW: VIBRANT HORIZONS HOME SCREEN SELECTOR --- */
+.glass-selector-wrapper {
+    position: relative;
+    width: 250px; /* Adjust width as needed */
+    height: 44px;
+    background: rgba(255, 255, 255, 0.2);
+    backdrop-filter: blur(4px);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    border-radius: 9999px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+    transition: all 0.2s;
+}
+.glass-selector-wrapper:hover {
+    background: rgba(255, 255, 255, 0.3);
+    border-color: rgba(255, 255, 255, 0.5);
+}
+.glass-selector {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    opacity: 0; /* Makes the original dropdown invisible */
+    cursor: pointer;
+}
+.glass-selector-display {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    height: 100%;
+    padding: 0 1rem;
+    pointer-events: none; /* Allows clicks to go through to the invisible select */
+}
+.glass-selector-text {
+    font-weight: 600;
+    color: rgba(30, 41, 59, 0.8);
+    font-size: 0.875rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* --- NEW: HOME DASHBOARD ROSTER STYLES --- */
+.roster-card {
+    display: flex;
+    flex-direction: column;
+}
+.roster-list {
+    max-height: 160px; /* Adjust this to control the scroll height */
+    overflow-y: auto;
+    padding-right: 0.5rem; /* Space for scrollbar */
+    scrollbar-width: thin;
+    scrollbar-color: #A5B4FC #E0E7FF;
+}
+.roster-list::-webkit-scrollbar { width: 6px; }
+.roster-list::-webkit-scrollbar-track { background: #E0E7FF; }
+.roster-list::-webkit-scrollbar-thumb { background-color: #A5B4FC; border-radius: 6px; }
+
+.roster-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.5rem;
+    border-radius: 0.75rem;
+    transition: background-color 0.2s;
+}
+.roster-item:hover {
+    background-color: rgba(255, 255, 255, 0.5);
+}
+.roster-avatar {
+    width: 2.5rem; /* 40px */
+    height: 2.5rem; /* 40px */
+    border-radius: 9999px;
+    object-fit: cover;
+    border: 2px solid white;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+
+/* --- NEW: HOME DASHBOARD ROSTER STYLES --- */
+.roster-card {
+    display: flex;
+    flex-direction: column;
+}
+.roster-list {
+    max-height: 160px; /* Adjust this to control the scroll height */
+    overflow-y: auto;
+    padding-right: 0.5rem; /* Space for scrollbar */
+    scrollbar-width: thin;
+    scrollbar-color: #A5B4FC #E0E7FF;
+}
+.roster-list::-webkit-scrollbar { width: 6px; }
+.roster-list::-webkit-scrollbar-track { background: #E0E7FF; }
+.roster-list::-webkit-scrollbar-thumb { background-color: #A5B4FC; border-radius: 6px; }
+
+.roster-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.5rem;
+    border-radius: 0.75rem;
+    transition: background-color 0.2s;
+}
+.roster-item:hover {
+    background-color: rgba(255, 255, 255, 0.5);
+}
+.roster-avatar {
+    width: 2.5rem; /* 40px */
+    height: 2.5rem; /* 40px */
+    border-radius: 9999px;
+    object-fit: cover;
+    border: 2px solid white;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+
+/* --- V11.0: VIBRANT HORIZONS THEME --- */
+
+/* 1. ANIMATIONS */
+@keyframes float-cloud {
+    0%, 100% { transform: translateX(0); }
+    50% { transform: translateX(10px); }
+}
+@keyframes spin-sun {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+@keyframes pulse-glow {
+    0%, 100% { filter: drop-shadow(0 0 5px rgba(255, 215, 0, 0.6)); transform: scale(1); }
+    50% { filter: drop-shadow(0 0 15px rgba(255, 215, 0, 0.9)); transform: scale(1.05); }
+}
+
+/* 2. LAYOUT: The 3-Row Grid */
+.horizons-grid {
+    display: grid;
+    grid-template-columns: repeat(12, 1fr);
+    gap: 1.5rem;
+    padding-bottom: 2rem;
+}
+
+/* Smart Spanning */
+.h-span-12 { grid-column: span 12; }
+.h-span-8  { grid-column: span 12; }
+.h-span-6  { grid-column: span 12; }
+.h-span-4  { grid-column: span 12; }
+.h-span-3  { grid-column: span 12; }
+
+@media (min-width: 768px) {
+    .h-span-6 { grid-column: span 6; }
+}
+@media (min-width: 1024px) {
+    .h-span-8 { grid-column: span 8; }
+    .h-span-4 { grid-column: span 4; }
+    .h-span-3 { grid-column: span 3; }
+}
+
+/* 3. CARD BASE */
+.vibrant-card {
+    border-radius: 1.75rem;
+    overflow: hidden;
+    position: relative;
+    box-shadow: 0 10px 20px -5px rgba(0,0,0,0.05), 0 4px 6px -2px rgba(0,0,0,0.03);
+    transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.3s;
+    background: white;
+    border: 1px solid white;
+}
+.vibrant-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1);
+    z-index: 10;
+}
+
+/* 4. ROW 1: WEATHER WIDGET */
+.weather-card {
+    color: white;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    padding: 1.5rem;
+    position: relative;
+}
+/* Weather Themes */
+.w-morning { background: linear-gradient(135deg, #FF9A9E 0%, #FECFEF 100%); }
+.w-day { background: linear-gradient(135deg, #4FACFE 0%, #00F2FE 100%); }
+.w-evening { background: linear-gradient(135deg, #667EEA 0%, #764BA2 100%); }
+.w-night { background: linear-gradient(135deg, #0f172a 0%, #312e81 100%); }
+
+.weather-sun {
+    position: absolute;
+    top: 1rem;   /* CHANGED: Positive value moves it INSIDE */
+    right: 1rem; /* CHANGED: Positive value moves it INSIDE */
+    font-size: 5rem; /* Adjusted size slightly to fit nicely */
+    color: rgba(255,255,255,0.3);
+    animation: spin-sun 20s linear infinite;
+    z-index: 0; /* Keeps it behind the text */
+}
+
+.weather-cloud {
+    position: absolute;
+    bottom: 1rem; /* CHANGED: Positive value moves it INSIDE */
+    left: 1rem;   /* CHANGED: Positive value moves it INSIDE */
+    font-size: 4rem;
+    color: rgba(255,255,255,0.4);
+    animation: float-cloud 4s ease-in-out infinite;
+    z-index: 0; /* Keeps it behind the text */
+}
+
+/* 5. ROW 1: GREETING CARD */
+.greeting-panel {
+    background: white;
+    padding: 2rem;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    position: relative;
+}
+.greeting-bg-mesh {
+    position: absolute;
+    top: 0; left: 0; width: 100%; height: 100%;
+    background: radial-gradient(at 0% 0%, rgba(99, 102, 241, 0.1) 0px, transparent 50%),
+                radial-gradient(at 100% 100%, rgba(236, 72, 153, 0.1) 0px, transparent 50%);
+    opacity: 0.6;
+    pointer-events: none;
+}
+
+/* 6. ROW 2: STAT CARDS */
+.stat-card-pop {
+    background: #F8FAFC;
+    padding: 1.5rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    border: 2px solid transparent;
+    transition: all 0.2s;
+}
+.stat-card-pop:hover {
+    background: white;
+    border-color: #E2E8F0;
+}
+.stat-value-big {
+    font-family: 'Fredoka One', cursive;
+    font-size: 3rem;
+    line-height: 1;
+    margin-bottom: 0.5rem;
+}
+
+/* 7. ROW 3: TOOLS & SCHEDULE */
+.tools-grid-v2 {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(90px, 1fr));
+    gap: 1rem;
+    padding: 1.5rem;
+}
+.tool-btn-pop {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    aspect-ratio: 1;
+    background: #F1F5F9;
+    border-radius: 1.25rem;
+    color: #64748B;
+    transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+    cursor: pointer;
+}
+.tool-btn-pop:hover {
+    transform: scale(1.1);
+    background: white;
+    box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1);
+    color: #4F46E5;
+}
+.tool-btn-pop i { font-size: 1.8rem; margin-bottom: 0.25rem; }
+.tool-btn-pop span { font-size: 0.7rem; font-weight: 800; }
+
+.schedule-list-v2 {
+    max-height: 250px;
+    overflow-y: auto;
+    padding: 0 1.5rem 1.5rem 1.5rem;
+    scrollbar-width: thin;
+}
+.schedule-item-v2 {
+    display: flex;
+    align-items: center;
+    padding: 0.75rem;
+    border-radius: 1rem;
+    margin-bottom: 0.5rem;
+    background: #F8FAFC;
+    border: 1px solid transparent;
+    transition: all 0.2s;
+}
+.schedule-item-v2:hover {
+    background: white;
+    border-color: #E2E8F0;
+    transform: translateX(5px);
+}
+.schedule-item-v2.active {
+    background: #EEF2FF;
+    border-color: #818CF8;
+}
+.schedule-item-v2.locked {
+    opacity: 0.6;
+    filter: grayscale(1);
+    cursor: not-allowed;
+}
+
+/* 8. FADE ANIMATION */
+.home-fade { animation: fadeIn 0.5s ease-out forwards; }
+@keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+/* FIX 3: Add Wiggle to Home Roster Avatars */
+.vibrant-card .roster-avatar:hover {
+    animation: quest-avatar-jiggle 0.5s ease-in-out;
+}
+
+#roster-modal-grid .enlargeable-avatar:hover {
+    animation: quest-avatar-jiggle 0.5s ease-in-out;
+}
+
+/* Header Day/Night Cycle */
+header {
+    transition: background 2s ease-in-out;
+}
+
+header.header-night {
+    background: linear-gradient(to right, #1e3a8a 0%, #312e81 100%) !important;
+    border-bottom: 1px solid #4338ca;
+}
+header.header-night .cloud {
+    color: rgba(255, 255, 255, 0.1);
+    opacity: 0.3;
+}
+/* Ensure main title in header stays visible */
+header.header-night h1 {
+    text-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
+    color: #e0e7ff;
+}
+
+/* New Weather Themes */
+.w-cloudy { background: linear-gradient(135deg, #a1a1aa 0%, #71717a 100%); }
+.w-rainy { background: linear-gradient(135deg, #374151 0%, #1f2937 100%); }
+.w-snowy { background: linear-gradient(135deg, #e2e8f0 0%, #cbd5e1 100%); color: #475569; }
+
+/* Rain Effect (Widget: Organic Drops) */
+.w-rainy::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    
+    /* ASYMMETRICAL PATTERN:
+       We define 3 distinct drops at random positions (20%, 60%, 90%) 
+       within one tile to break the "grid" look.
+       
+       Shape: '3px 6px' creates a small oval "drop" instead of a long line.
+    */
+    background-image: 
+        radial-gradient(3px 6px at 20% 30%, rgba(255,255,255,0.7), transparent),
+        radial-gradient(2px 5px at 60% 80%, rgba(255,255,255,0.6), transparent),
+        radial-gradient(3px 7px at 90% 5%, rgba(255,255,255,0.7), transparent);
+        
+    /* Large tile size spreads them out significantly */
+    background-size: 120px 120px; 
+    
+    /* Slow, consistent speed */
+    animation: rain-fall 2.5s linear infinite;
+    
+    opacity: 0.8;
+    mix-blend-mode: overlay; 
+}
+
+@keyframes rain-fall {
+    from { background-position: 0 0; }
+    to { background-position: 0 120px; } /* Must match background-size height for seamless loop */
+}
+
+/* Snow Effect (Widget: Organic Emojis) */
+.w-snowy::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    
+    /* ASYMMETRICAL EMOJI PATTERN:
+       We use an in-line SVG to place 3 distinct ❄️ emojis at random spots 
+       (Top-Left, Bottom-Right, Top-Right) to create a sparse, natural look.
+    */
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Ctext x='15' y='30' font-size='20'%3E❄️%3C/text%3E%3Ctext x='70' y='90' font-size='14'%3E❄️%3C/text%3E%3Ctext x='95' y='15' font-size='24'%3E❄️%3C/text%3E%3C/svg%3E");
+        
+    /* Match the tile size for seamless looping */
+    background-size: 120px 120px; 
+    
+    /* Re-use the rain animation loop, but much slower (6s) for floating snow */
+    animation: rain-fall 6s linear infinite;
+    
+    /* Slight transparency to blend nicely */
+    opacity: 0.85;
+}
+
+/* Fix for Wallpaper Quote Jitter */
+#wall-quote-container {
+    position: absolute;
+    bottom: 2rem;
+    left: 0; 
+    right: 0;
+    text-align: center;
+    z-index: 40;
+    transition: opacity 1s ease-in-out;
+    opacity: 0; 
+    padding: 0 1rem;
+    /* This forces the browser to handle this element on a separate layer */
+    will-change: transform, opacity;
+    transform: translateZ(0); 
+    backface-visibility: hidden;
+}
+
+/* --- NEW CEREMONY STYLES --- */
+
+/* Background Pulse */
+@keyframes pulse-slow {
+    0%, 100% { opacity: 0.3; }
+    50% { opacity: 0.6; }
+}
+.animate-pulse-slow { animation: pulse-slow 8s infinite ease-in-out; }
+
+/* Card Entrance */
+@keyframes card-enter {
+    0% { transform: translateY(100px) scale(0.8); opacity: 0; }
+    60% { transform: translateY(-20px) scale(1.05); opacity: 1; }
+    100% { transform: translateY(0) scale(1); opacity: 1; }
+}
+.ceremony-card-enter { animation: card-enter 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) forwards; }
+
+/* Showdown Heartbeat (Tension) */
+@keyframes heartbeat {
+    0% { transform: scale(1); filter: brightness(1); }
+    10% { transform: scale(1.05); filter: brightness(1.2); }
+    20% { transform: scale(1); filter: brightness(1); }
+    100% { transform: scale(1); filter: brightness(1); }
+}
+.ceremony-showdown-card {
+    animation: heartbeat 1.5s infinite;
+    box-shadow: 0 0 50px rgba(255, 255, 255, 0.2);
+}
+
+/* Winner Reveal */
+@keyframes winner-pop {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.2) rotate(5deg); }
+    100% { transform: scale(1.1) rotate(0deg); }
+}
+.ceremony-winner {
+    animation: winner-pop 0.8s ease-out forwards;
+    box-shadow: 0 0 80px rgba(251, 191, 36, 0.8); /* Gold Glow */
+    border-color: #FCD34D !important;
+    z-index: 50;
+}
+
+/* Base Card Style */
+.ceremony-display-card {
+    background: white;
+    border: 6px solid #e5e7eb;
+    border-radius: 2rem;
+    padding: 2rem;
+    width: 420px; /* Bigger width */
+    max-width: 90vw; /* Safety for mobile */
+    text-align: center;
+    box-shadow: 0 20px 40px rgba(0,0,0,0.4);
+    position: relative;
+    transition: all 0.5s ease;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+}
+
+/* Ranks */
+.rank-bronze { border-color: #cd7f32; background: linear-gradient(to bottom, #fff, #fff7ed); }
+.rank-silver { border-color: #94a3b8; background: linear-gradient(to bottom, #fff, #f8fafc); }
+.rank-gold { border-color: #fbbf24; background: linear-gradient(to bottom, #fff, #fffbeb); }
+
+/* Mystery Card */
+.ceremony-mystery-card {
+    background: linear-gradient(135deg, #1e1b4b 0%, #312e81 100%);
+    border: 6px solid #6366f1;
+    color: white;
+}
+
+/* Confetti */
+.confetti-piece {
+    position: absolute;
+    width: 10px; height: 10px;
+    background: #ffd700;
+    top: -10%;
+    z-index: 20;
+    animation: fall-confetti linear forwards;
+}
+@keyframes fall-confetti {
+    0% { transform: translateY(0) rotate(0deg); opacity: 1; }
+    100% { transform: translateY(110vh) rotate(720deg); opacity: 0; }
+}
+
+/* WALLPAPER ENHANCEMENTS */
+
+.glass-panel {
+    backdrop-filter: blur(16px) saturate(180%);
+    -webkit-backdrop-filter: blur(16px) saturate(180%);
+    background-color: rgba(255, 255, 255, 0.75);
+    border: 1px solid rgba(209, 213, 219, 0.3);
+}
+
+.float-card-celebration {
+    /* The style is applied inline in JS for gradient, but base props here */
+    color: white;
+}
+
+.float-card-white {
+    background: rgba(255, 255, 255, 0.95);
+    border: 4px solid #e0e7ff;
+    color: #312e81;
+}
+
+.float-card-pink {
+    background: linear-gradient(135deg, #fdf2f8, #fce7f3);
+    border: 4px solid #f472b6;
+    color: #831843;
+}
+
+@keyframes bounce-slow {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-20px); }
+}
+.animate-bounce-slow {
+    animation: bounce-slow 3s infinite ease-in-out;
+}
+
+/* Subtle Night Mode (Twilight) */
+body.night-mode {
+    /* Muted Indigo to Slate Gray. 
+       Looks like "evening" or "dusk" - duller than day, but not black. */
+    background: linear-gradient(to bottom, #c7d2fe 0%, #cbd5e1 100%) !important;
+}
+
+/* --- TITLE MAGIC FAIRY PATROL (Safe Height & Long Rest) --- */
+
+header h1.font-title {
+    color: white !important;
+    background: none !important;
+    -webkit-background-clip: border-box !important;
+    background-clip: border-box !important;
+    text-shadow: 0 4px 8px rgba(0, 0, 0, 0.3), 0 0 15px rgba(255, 255, 255, 0.4) !important;
+    position: relative;
+    display: inline-block;
+}
+
+header h1.font-title::after {
+    content: '✦';
+    position: absolute;
+    top: 50%;
+    left: -30px;
+    font-size: 1.4rem;
+    color: #FCD34D; /* Gold */
+    
+    /* Magical Glow */
+    text-shadow: 
+        0 0 5px #FCD34D, 
+        0 0 10px #FFFFFF, 
+        0 0 20px #F59E0B;
+    
+    opacity: 0;
+    pointer-events: none;
+    
+    /* 
+       Total Cycle: 30 seconds 
+       - 0-20s: Active Flying (Out & Back)
+       - 20-30s: REST (Invisible)
+    */
+    animation: fairy-flight-safe 30s ease-in-out infinite;
+}
+
+@keyframes fairy-flight-safe {
+    /* --- OUTBOUND LEG (Left -> Right) --- */
+    0% { 
+        left: -40px; top: 40%; 
+        opacity: 0; transform: scale(0.4) rotate(0deg); 
+    }
+    2% { opacity: 1; transform: scale(1) rotate(45deg); }
+
+    /* Path 1: Arch HIGH above the text (Negative top) */
+    10% { left: 15%; top: -20%; transform: scale(0.7) rotate(90deg); }
+    
+    /* Path 2: Dive to middle (Max 50% to stay above quote) */
+    20% { left: 40%; top: 50%; transform: scale(1.1) rotate(135deg); }
+    
+    /* Path 3: Float up slightly */
+    30% { left: 70%; top: 10%; transform: scale(0.8) rotate(180deg); }
+
+    /* Reach Right Edge & Hover */
+    35% { left: 105%; top: 30%; opacity: 1; transform: scale(1) rotate(360deg); }
+    38% { left: 110%; top: 25%; opacity: 1; transform: scale(1) rotate(380deg); }
+
+    /* --- RETURN LEG (Right -> Left - New Route) --- */
+    
+    /* Path 4: Dive Low first (Max 50%) */
+    45% { left: 80%; top: 50%; transform: scale(1.2) rotate(300deg); }
+
+    /* Path 5: Swoop VERY High (Loop-the-loop feel) */
+    55% { left: 50%; top: -40%; transform: scale(0.5) rotate(200deg); }
+
+    /* Path 6: Level out to center */
+    62% { left: 20%; top: 20%; transform: scale(0.9) rotate(100deg); }
+
+    /* Arrive back at start & Fade out */
+    66% { left: -40px; top: 40%; opacity: 1; transform: scale(0.4) rotate(0deg); }
+    68% { opacity: 0; }
+
+    /* --- LONG REST (68% to 100% = ~10 Seconds of silence) --- */
+    100% { left: -40px; opacity: 0; }
+}
+
+/* --- CEREMONY VISUAL REVAMP (Fixed & Enhanced) --- */
+
+/* Background Spotlight Effect */
+.bg-radial-gradient-spotlight {
+    background: radial-gradient(circle at center, rgba(124, 58, 237, 0.4) 0%, rgba(99, 102, 241, 0.2) 40%, rgba(17, 24, 39, 0) 80%);
+    animation: pulse-spotlight 6s infinite alternate;
+}
+
+@keyframes pulse-spotlight {
+    0% { opacity: 0.4; transform: scale(1); filter: hue-rotate(0deg); }
+    100% { opacity: 0.8; transform: scale(1.2); filter: hue-rotate(15deg); }
+}
+
+.ceremony-card {
+    animation: slide-in-from-bottom 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(12px);
+    border: 4px solid #e5e7eb;
+    width: 360px; 
+    padding: 2.5rem;
+    border-radius: 2.5rem; 
+    text-align: center;
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25), 0 0 0 2px rgba(255,255,255,0.1);
+    transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
+    /* FIX: Allow overflow so scaling effects/shadows don't clip */
+    overflow: visible !important; 
+}
+
+/* Rank Specific Styles */
+.ceremony-card.podium-1 { 
+    border-color: #fbbf24; /* Amber-400 */
+    background: linear-gradient(to bottom, #fffbeb, #fff7ed);
+    transform: scale(1.15); 
+    z-index: 20; 
+    box-shadow: 0 0 60px rgba(251, 191, 36, 0.6), 0 0 20px rgba(255,255,255,0.5);
+}
+.ceremony-card.podium-2 { 
+    border-color: #94a3b8; /* Slate-400 */
+    background: linear-gradient(to bottom, #f8fafc, #f1f5f9);
+    z-index: 10;
+}
+.ceremony-card.podium-3 { 
+    border-color: #fdba74; /* Orange-300 */
+    background: linear-gradient(to bottom, #fff7ed, #ffedd5);
+    z-index: 5;
+}
+
+/* Showdown Face-Off Style */
+.ceremony-card.face-off {
+    background: linear-gradient(135deg, #f1f5f9, #e2e8f0);
+    border-color: #64748b;
+    transform: scale(1);
+    filter: grayscale(0.4) brightness(0.9); 
+    z-index: 10;
+}
+
+/* Hide specific elements during face-off */
+.ceremony-card.face-off .rank-badge, 
+.ceremony-card.face-off .star-count {
+    opacity: 0;
+    filter: blur(10px);
+    transition: all 0.5s ease;
+}
+
+/* Tension Shake Animation */
+@keyframes shake-tension {
+    0% { transform: translate(1px, 1px) rotate(0deg); }
+    10% { transform: translate(-1px, -2px) rotate(-1deg); }
+    20% { transform: translate(-3px, 0px) rotate(1deg); }
+    30% { transform: translate(3px, 2px) rotate(0deg); }
+    40% { transform: translate(1px, -1px) rotate(1deg); }
+    50% { transform: translate(-1px, 2px) rotate(-1deg); }
+    60% { transform: translate(-3px, 1px) rotate(0deg); }
+    70% { transform: translate(3px, 1px) rotate(-1deg); }
+    80% { transform: translate(-1px, -1px) rotate(1deg); }
+    90% { transform: translate(1px, 2px) rotate(0deg); }
+    100% { transform: translate(1px, -2px) rotate(-1deg); }
+}
+
+.ceremony-card.tension-active {
+    animation: shake-tension 0.5s infinite; 
+    box-shadow: 0 0 40px rgba(251, 191, 36, 0.4); 
+}
+
+/* Winner Reveal Animation */
+@keyframes pop-gold {
+    0% { transform: scale(1); filter: brightness(1); }
+    40% { transform: scale(1.15) rotate(2deg); filter: brightness(1.2); } /* Reduced scale & rotation */
+    100% { transform: scale(1.15) rotate(0deg); filter: brightness(1); }
+}
+
+/* Winner Class (Enhanced with God Rays) */
+.ceremony-winner {
+    animation: pop-gold 0.8s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards, winner-pulse 2s infinite ease-in-out;
+    z-index: 50;
+    border-color: #FCD34D !important;
+    background: linear-gradient(to bottom, #fffbeb, #fff7ed) !important;
+    box-shadow: 0 0 80px rgba(251, 191, 36, 0.8), 0 0 30px rgba(255,255,255,0.9);
+}
+
+/* Rays of Light Effect */
+.ceremony-winner::before {
+    content: '';
+    position: absolute;
+    top: 50%; left: 50%;
+    width: 200%; height: 200%;
+    background: conic-gradient(from 0deg, transparent 0deg, rgba(251, 191, 36, 0.4) 20deg, transparent 40deg, rgba(251, 191, 36, 0.4) 60deg, transparent 80deg, rgba(251, 191, 36, 0.4) 100deg, transparent 120deg, rgba(251, 191, 36, 0.4) 140deg, transparent 160deg);
+    transform: translate(-50%, -50%);
+    z-index: -1;
+    animation: rotate-rays 10s linear infinite;
+    opacity: 0.6;
+    mask-image: radial-gradient(circle, black 30%, transparent 70%); /* Fade edges */
+    pointer-events: none;
+}
+
+@keyframes rotate-rays {
+    from { transform: translate(-50%, -50%) rotate(0deg); }
+    to { transform: translate(-50%, -50%) rotate(360deg); }
+}
+
+@keyframes winner-pulse {
+    0%, 100% { transform: scale(1.15) rotate(0deg); filter: brightness(1); }
+    50% { transform: scale(1.18) rotate(1deg); filter: brightness(1.1) drop-shadow(0 0 10px gold); }
+}
+
+/* Reveal Helpers */
+.ceremony-card.revealed-gold .rank-badge, 
+.ceremony-card.revealed-silver .rank-badge,
+.ceremony-card.revealed-gold .star-count, 
+.ceremony-card.revealed-silver .star-count {
+    opacity: 1;
+    filter: blur(0);
+}
+
+/* Update 2nd Place Style (Glimmering Silver - No Gray) */
+.ceremony-card.revealed-silver {
+    transform: scale(1.05);
+    z-index: 40;
+    opacity: 1;
+    filter: none; /* Removed Grayscale */
+    border-color: #e2e8f0 !important; /* Silver/Slate-200 */
+    background: linear-gradient(135deg, #f8fafc, #cbd5e1); /* White to Silver */
+    box-shadow: 0 0 30px rgba(148, 163, 184, 0.5), 0 0 15px rgba(255,255,255,0.8); /* Silver Glow */
+    animation: silver-pulse 2s infinite ease-in-out;
+}
+
+@keyframes silver-pulse {
+    0%, 100% { box-shadow: 0 0 30px rgba(148, 163, 184, 0.5); border-color: #94a3b8; }
+    50% { box-shadow: 0 0 50px rgba(190, 200, 220, 0.7); border-color: #cbd5e1; }
+}
+
+/* Card Entrance */
+@keyframes card-enter {
+    0% { transform: translateY(100px) scale(0.8); opacity: 0; }
+    60% { transform: translateY(-20px) scale(1.05); opacity: 1; }
+    100% { transform: translateY(0) scale(1); opacity: 1; }
+}
+.ceremony-card-enter { animation: card-enter 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) forwards; }
+
+/* Pulse Animation */
+@keyframes pulse-slow {
+    0%, 100% { opacity: 0.3; }
+    50% { opacity: 0.6; }
+}
+.animate-pulse-slow { animation: pulse-slow 8s infinite ease-in-out; }
+
+/* Confetti */
+.confetti-piece {
+    position: absolute;
+    width: 12px; height: 12px;
+    background: #ffd700;
+    top: -10%;
+    z-index: 20;
+    border-radius: 50%;
+    animation: fall-confetti linear forwards;
+}
+@keyframes fall-confetti {
+    0% { transform: translateY(0) rotate(0deg); opacity: 1; }
+    100% { transform: translateY(110vh) rotate(720deg); opacity: 0; }
+}
+
+/* Ensure Ceremony Screen covers properly */
+#ceremony-screen {
+    background-color: #0f172a; /* Slate-900 */
+    background-image: radial-gradient(circle at center, #1e293b 0%, #020617 100%);
+}
+
+/* --- TITLE & VS BADGE STYLES (Fixed for Emojis) --- */
+
+#ceremony-title {
+    color: white; /* Default fallback */
+    filter: drop-shadow(0 0 15px rgba(245, 158, 11, 0.6));
+    animation: shimmer-text 3s linear infinite;
+    display: inline-block;
+}
+
+/* New: Gradient applied only to text spans */
+.gradient-text {
+    background: linear-gradient(to right, #fbbf24, #fcd34d, #fbbf24);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    background-size: 200% auto;
+}
+
+/* New: Emoji reset to ensure visibility */
+.emoji-reset {
+    color: initial !important; 
+    background: none !important;
+    -webkit-text-fill-color: initial !important;
+    text-shadow: none;
+    filter: none;
+    display: inline-block; 
+}
+
+@keyframes shimmer-text {
+    to { background-position: 200% center; }
+}
+
+#ceremony-subtitle {
+    color: #a5b4fc;
+    text-shadow: 0 0 10px rgba(165, 180, 252, 0.6);
+    transition: opacity 0.5s ease-out;
+}
+
+/* Smooth Fade Out for VS Badge */
+@keyframes fade-out-zoom {
+    0% { opacity: 1; transform: scale(1); }
+    100% { opacity: 0; transform: scale(0.1); }
+}
+.fade-out-fast {
+    animation: fade-out-zoom 0.4s ease-in forwards;
+}
+
+/* Converge Animation for Finalists (Updated to use Transform) */
+@keyframes converge-left {
+    to { transform: translateX(60px) rotate(-5deg) scale(1.05); } 
+}
+@keyframes converge-right {
+    to { transform: translateX(-60px) rotate(5deg) scale(1.05); } 
+}
+
+.converge-left {
+    animation: converge-left 0.8s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+.converge-right {
+    animation: converge-right 0.8s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
+/* --- BRONZE SPECIAL EFFECTS --- */
+
+@keyframes bronze-shimmer {
+    0% { box-shadow: 0 0 20px rgba(205, 127, 50, 0.4); border-color: #cd7f32; }
+    50% { box-shadow: 0 0 40px rgba(255, 180, 100, 0.6); border-color: #ffcc99; transform: scale(1.02); }
+    100% { box-shadow: 0 0 20px rgba(205, 127, 50, 0.4); border-color: #cd7f32; }
+}
+
+.bronze-shine {
+    animation: bronze-shimmer 2s ease-in-out infinite;
+    background: linear-gradient(to bottom, #fff, #fff7ed);
+}
+
+/* --- FIREWORKS --- */
+
+.firework {
+    position: absolute;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    animation: firework-explode 1s ease-out forwards;
+    pointer-events: none;
+    z-index: 40;
+}
+
+@keyframes firework-explode {
+    0% {
+        transform: scale(1);
+        background: #fff;
+        box-shadow: 0 0 0 0 #fff, 0 0 0 0 #fff, 0 0 0 0 #fff, 0 0 0 0 #fff, 0 0 0 0 #fff, 0 0 0 0 #fff;
+        opacity: 1;
+    }
+    100% {
+        transform: scale(0.1);
+        background: transparent;
+        box-shadow: 
+            -120px -120px 0px -5px #ff0000, 
+            120px -120px 0px -5px #ffff00, 
+            120px 120px 0px -5px #00ff00, 
+            -120px 120px 0px -5px #0000ff, 
+            -70px -180px 0px -5px #ff00ff, 
+            70px -180px 0px -5px #00ffff;
+        opacity: 0;
+    }
+}
+
+/* --- FINAL LEADERBOARD STYLES (NEW) --- */
+.ceremony-leaderboard-container {
+    width: 100%;
+    max-width: 800px;
+    background: rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(10px);
+    border-radius: 2rem;
+    padding: 2rem;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    box-shadow: 0 20px 50px rgba(0,0,0,0.3);
+    max-height: 60vh;
+    overflow-y: auto;
+}
+
+.ceremony-leaderboard-item {
+    display: flex;
+    align-items: center;
+    background: rgba(255, 255, 255, 0.9);
+    margin-bottom: 0.75rem;
+    padding: 1rem;
+    border-radius: 1rem;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+    transition: transform 0.2s;
+    animation: slide-in-right 0.5s ease-out backwards;
+}
+
+.ceremony-leaderboard-item:hover {
+    transform: scale(1.02);
+}
+
+.cli-rank {
+    width: 3rem;
+    height: 3rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Fredoka One', cursive;
+    font-size: 1.5rem;
+    border-radius: 50%;
+    margin-right: 1rem;
+    color: white;
+    text-shadow: 0 1px 2px rgba(0,0,0,0.2);
+    flex-shrink: 0;
+}
+
+/* Rank Colors */
+.cli-rank-1 { background: linear-gradient(135deg, #fbbf24, #d97706); box-shadow: 0 0 10px #fbbf24; font-size: 1.8rem; }
+.cli-rank-2 { background: linear-gradient(135deg, #cbd5e1, #64748b); box-shadow: 0 0 10px #94a3b8; }
+.cli-rank-3 { background: linear-gradient(135deg, #fb923c, #c2410c); box-shadow: 0 0 10px #fb923c; }
+.cli-rank-other { background: #e2e8f0; color: #64748b; font-size: 1.25rem; }
+
+.cli-avatar {
+    width: 3.5rem;
+    height: 3.5rem;
+    border-radius: 50%;
+    border: 3px solid white;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    object-fit: cover;
+    margin-right: 1rem;
+}
+
+.cli-info {
+    flex-grow: 1;
+}
+
+.cli-name {
+    font-weight: 700;
+    font-size: 1.2rem;
+    color: #1e293b;
+}
+
+.cli-stats {
+    font-size: 0.9rem;
+    color: #64748b;
+}
+
+.cli-stars {
+    font-family: 'Fredoka One', cursive;
+    color: #d97706;
+    font-size: 1.5rem;
+    background: #fef3c7;
+    padding: 0.25rem 0.75rem;
+    border-radius: 999px;
+}
+
+@keyframes slide-in-right {
+    from { opacity: 0; transform: translateX(20px); }
+    to { opacity: 1; transform: translateX(0); }
+}
+
+/* --- WALLPAPER V2 STYLES --- */
+
+@keyframes float-bob-v2 { 
+    0% { transform: translateY(0) rotate(0deg); } 
+    33% { transform: translateY(-15px) rotate(1deg); } 
+    66% { transform: translateY(10px) rotate(-1deg); } 
+    100% { transform: translateY(0) rotate(0deg); } 
+}
+
+/* Badge Pill inside Cards */
+.badge-pill {
+    display: inline-block;
+    padding: 0.5rem 1.5rem;
+    border-radius: 9999px;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    font-size: 0.75rem;
+    margin-bottom: 1.5rem;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+}
+
+/* New Color Themes */
+.float-card-indigo { background: linear-gradient(135deg, rgba(255,255,255,0.95), rgba(224, 231, 255, 0.9)); border: 4px solid #6366F1; color: #312E81; }
+.float-card-gold   { background: linear-gradient(135deg, rgba(255,255,255,0.95), rgba(254, 243, 199, 0.9)); border: 4px solid #F59E0B; color: #78350F; }
+.float-card-blue   { background: linear-gradient(135deg, rgba(255,255,255,0.95), rgba(219, 234, 254, 0.9)); border: 4px solid #3B82F6; color: #1E3A8A; }
+.float-card-red    { background: linear-gradient(135deg, rgba(255,255,255,0.95), rgba(254, 226, 226, 0.9)); border: 4px solid #EF4444; color: #7F1D1D; }
+.float-card-green  { background: linear-gradient(135deg, rgba(255,255,255,0.95), rgba(220, 252, 231, 0.9)); border: 4px solid #22C55E; color: #14532D; }
+.float-card-purple { background: linear-gradient(135deg, rgba(255,255,255,0.95), rgba(243, 232, 255, 0.9)); border: 4px solid #A855F7; color: #581C87; }
+.float-card-pink   { background: linear-gradient(135deg, rgba(255,255,255,0.95), rgba(252, 231, 243, 0.9)); border: 4px solid #EC4899; color: #831843; }
+.float-card-cyan   { background: linear-gradient(135deg, rgba(255,255,255,0.95), rgba(207, 250, 254, 0.9)); border: 4px solid #06B6D4; color: #164E63; }
+.float-card-teal   { background: linear-gradient(135deg, rgba(255,255,255,0.95), rgba(204, 251, 241, 0.9)); border: 4px solid #14B8A6; color: #134E4A; }
+.float-card-orange { background: linear-gradient(135deg, rgba(255,255,255,0.95), rgba(255, 237, 213, 0.9)); border: 4px solid #F97316; color: #7C2D12; }
+
+/* Font Handwriting */
+.font-handwriting {
+    font-family: 'Comic Sans MS', 'Chalkboard SE', sans-serif;
+    font-style: italic;
+}
+
+/* Float Slow Animation for Items */
+@keyframes float-slow {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-10px); }
+}
+.animate-float-slow {
+    animation: float-slow 4s ease-in-out infinite;
+}
+
+/* --- WALLPAPER V3 STYLE FIXES --- */
+/* --- CONSOLIDATED WALLPAPER CARD STYLES --- */
 .wallpaper-float-card {
-    /* Ensure they stay within bounds */
-    max-width: 90vw;
+    /* 1. Base Dimensions & Position */
+    position: absolute;
+    width: 400px;
+    max-width: 85vw;
+    
+    /* 2. Visual Style (Glassmorphism) */
+    padding: 2.5rem;
+    border-radius: 3rem;
+    background: rgba(255, 255, 255, 0.95); /* Fallback */
+    backdrop-filter: blur(24px);
+    -webkit-backdrop-filter: blur(24px);
+    box-shadow: 
+        0 25px 60px -12px rgba(0, 0, 0, 0.25), 
+        0 0 0 2px rgba(255, 255, 255, 0.4) inset;
+    
+    /* 3. Text Legibility */
+    text-shadow: 0 2px 4px rgba(0,0,0,0.4), 0 0 10px rgba(0,0,0,0.1);
+    
+    /* 4. Layout */
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    z-index: 60;
+
+    /* 5. Positioning Logic (Safe Defaults) */
     right: auto; 
     left: 50%;
+    /* Start slightly lower for entrance animation */
     transform: translateX(-50%) translateY(40px) scale(0.9);
-    /* Dynamic positions handled in JS, but base style safe */
+
+    /* 6. Animations & Transitions */
+    transition: 
+        opacity 1.5s ease-in-out, 
+        transform 1.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+        
+    /* Slow breathing animation (40s) */
+    animation: float-bob-v2 60s ease-in-out infinite; 
+}
+
+/* Night Mode Center Hub - UPDATED FOR GLASS EFFECT */
+.is-night .wall-center-hub {
+    /* CHANGED: Opacity from 0.9 to 0.4 for glass effect */
+    background-color: rgba(15, 23, 42, 0.4) !important; 
+    
+    border-color: rgba(99, 102, 241, 0.5) !important; /* Slightly softer border */
+    box-shadow: 0 0 50px rgba(0, 0, 0, 0.5) !important;
+    backdrop-filter: blur(20px) !important;
+    -webkit-backdrop-filter: blur(20px) !important;
+    color: white !important;
+}
+
+.is-night #wall-class-badge {
+    background-color: rgba(255, 255, 255, 0.95) !important; /* Keep badge bright */
+    border-color: white !important;
+    color: #1e3a8a !important; /* Dark blue text */
+}
+.is-night #wall-class-name { color: #1e3a8a !important; text-shadow: none !important; }
+.is-night #wall-class-level { color: #4338ca !important; }
+
+/* Holiday Card Base */
+.wallpaper-float-card {
+    transition: opacity 1.5s ease-in-out, transform 1.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+/* Card Themes (Ensure these exist for smart holidays) */
+.float-card-red { background: linear-gradient(135deg, rgba(255,255,255,0.95), rgba(254, 226, 226, 0.95)); border: 4px solid #EF4444; color: #7F1D1D; }
+.float-card-green { background: linear-gradient(135deg, rgba(255,255,255,0.95), rgba(220, 252, 231, 0.95)); border: 4px solid #22C55E; color: #14532D; }
+.float-card-gold { background: linear-gradient(135deg, rgba(255,255,255,0.95), rgba(254, 243, 199, 0.95)); border: 4px solid #F59E0B; color: #78350F; }
+.float-card-blue { background: linear-gradient(135deg, rgba(255,255,255,0.95), rgba(219, 234, 254, 0.95)); border: 4px solid #3B82F6; color: #1E3A8A; }
+.float-card-indigo { background: linear-gradient(135deg, rgba(255,255,255,0.95), rgba(224, 231, 255, 0.95)); border: 4px solid #6366F1; color: #312E81; }
+.float-card-purple { background: linear-gradient(135deg, rgba(255,255,255,0.95), rgba(243, 232, 255, 0.95)); border: 4px solid #A855F7; color: #581C87; }
+.float-card-pink { background: linear-gradient(135deg, rgba(255,255,255,0.95), rgba(252, 231, 243, 0.95)); border: 4px solid #EC4899; color: #831843; }
+.float-card-cyan { background: linear-gradient(135deg, rgba(255,255,255,0.95), rgba(207, 250, 254, 0.95)); border: 4px solid #06B6D4; color: #164E63; }
+.float-card-teal { background: linear-gradient(135deg, rgba(255,255,255,0.95), rgba(204, 251, 241, 0.95)); border: 4px solid #14B8A6; color: #134E4A; }
+.float-card-orange { background: linear-gradient(135deg, rgba(255,255,255,0.95), rgba(255, 237, 213, 0.95)); border: 4px solid #F97316; color: #7C2D12; }
+.float-card-white { background: rgba(255, 255, 255, 0.95); border: 4px solid #E2E8F0; color: #475569; }
+
+/* Quote Container visibility */
+#wall-quote-container {
+    transition: opacity 1s ease-in-out;
+}
+
+/* --- WALLPAPER LEGIBILITY FIXES --- */
+
+/* 1. Global text shadow for all wallpaper cards to ensure white text is readable */
+.wallpaper-float-card {
+    text-shadow: 0 2px 4px rgba(0,0,0,0.4), 0 0 10px rgba(0,0,0,0.1);
+}
+
+/* 2. Specific darker text for light backgrounds (Gold/White cards) */
+.float-card-gold h2, .float-card-gold h3, .float-card-gold p,
+.float-card-white h2, .float-card-white h3, .float-card-white p {
+    color: #4b5563 !important; /* Dark Gray */
+    text-shadow: none !important; /* Remove shadow for dark text */
+}
+/* Re-add shadow for the big numbers/icons in light cards for depth */
+.float-card-gold .font-title, .float-card-white .font-title {
+    text-shadow: 0 2px 0px rgba(255,255,255,0.5);
+}
+
+/* --- NEW CLOCK HUB ANIMATION (Discreet Breathing) --- */
+@keyframes hub-breathe {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.02); } /* Very subtle growth */
+}
+
+.hub-breathe {
+    animation: hub-breathe 6s ease-in-out infinite;
+    /* Ensure opacity stays full! */
+    opacity: 1 !important; 
+}
+
+/* --- FINAL TITLE FIX (High Specificity) --- */
+#main-app-title {
+    /* 1. Reset any conflicting colors */
+    color: white !important;
+    background: none !important;
+    -webkit-background-clip: border-box !important;
+    background-clip: border-box !important;
+
+    /* 2. The EXACT Shadow Structure from the Clock */
+    /* Layer 1: Deep Depth (0 4px 6px) */
+    /* Layer 2: Bright Glow (0 0 20px) */
+    text-shadow: 0 4px 6px rgba(0, 0, 0, 0.6), 0 0 20px rgba(255, 255, 255, 0.8) !important;
+
+    /* 3. Ensure the Fairy still works */
+    position: relative;
+    display: inline-block;
+}
+
+/* --- MINDFULNESS ANIMATION --- */
+@keyframes breathing-circle {
+    0%, 100% { transform: scale(0.8); opacity: 0.3; }
+    50% { transform: scale(1.1); opacity: 0.6; }
+}
+
+.mindfulness-pulse {
+    animation: breathing-circle 6s ease-in-out infinite; /* Slow, deep breaths */
+}
+
+/* --- SEASONAL ATMOSPHERE STYLES --- */
+
+.seasonal-particle {
+    position: absolute;
+    top: -10%;
+    opacity: 0.7;
+    font-size: 1.5rem;
+    will-change: transform;
+}
+
+/* Snow */
+.seasonal-particle.snow {
+    color: white;
+    text-shadow: 0 0 5px white;
+    font-size: 1rem;
+    animation: fall-snow linear infinite;
+}
+@keyframes fall-snow {
+    0% { transform: translateY(0) rotate(0deg); opacity: 0; }
+    10% { opacity: 0.8; }
+    100% { transform: translateY(110vh) rotate(360deg); opacity: 0; }
+}
+
+/* Leaves */
+.seasonal-particle.leaf {
+    font-size: 1.2rem;
+    animation: fall-leaf ease-in-out infinite;
+}
+@keyframes fall-leaf {
+    0% { transform: translateY(0) translateX(0) rotate(0deg); opacity: 0; }
+    10% { opacity: 0.8; }
+    100% { transform: translateY(110vh) translateX(50px) rotate(720deg); opacity: 0; }
+}
+
+/* Petals */
+.seasonal-particle.petal {
+    font-size: 1rem;
+    animation: float-petal ease-in-out infinite;
+}
+@keyframes float-petal {
+    0% { transform: translateY(0) translateX(0) rotate(0deg); opacity: 0; }
+    20% { opacity: 0.6; }
+    100% { transform: translateY(110vh) translateX(-30px) rotate(180deg); opacity: 0; }
+}
+
+/* Summer Glow Overlay */
+.summer-glow {
+    background: radial-gradient(circle at 50% 0%, rgba(255, 255, 0, 0.15) 0%, transparent 60%);
+    animation: summer-pulse 8s infinite alternate;
+}
+@keyframes summer-pulse {
+    from { opacity: 0.5; }
+    to { opacity: 1; }
+}
+
+/* --- REAL-TIME WEATHER EFFECTS --- */
+
+/* 1. Rain Particles */
+.seasonal-particle.rain {
+    width: 2px;
+    height: 20px;
+    background: rgba(255, 255, 255, 0.5);
+    animation: fall-rain 0.6s linear infinite;
+    box-shadow: 0 0 2px rgba(255, 255, 255, 0.3);
+}
+
+@keyframes fall-rain {
+    0% { transform: translateY(-10vh); opacity: 0; }
+    10% { opacity: 1; }
+    100% { transform: translateY(110vh); opacity: 0; }
+}
+
+/* 2. Fog/Haze Layer */
+.wall-fog-layer {
+    position: absolute;
+    inset: 0;
+    background: rgba(255, 255, 255, 0.3);
+    backdrop-filter: blur(3px); /* Glassy haze */
+    z-index: 5;
+    pointer-events: none;
+    animation: fog-drift 10s ease-in-out infinite alternate;
+}
+
+@keyframes fog-drift {
+    from { opacity: 0.2; }
+    to { opacity: 0.5; }
+}
+
+/* 3. Atmospheric Backgrounds (True-to-Life Weather) */
+
+/* --- CLEAR SKY --- */
+.weather-clear .fa-cloud {
+    opacity: 0 !important; /* Hide clouds */
+    transition: opacity 2s ease-in-out;
+}
+.weather-clear #wall-sun, .weather-clear #wall-moon {
+    opacity: 1 !important;
+    filter: drop-shadow(0 0 30px rgba(255, 215, 0, 0.6)); /* Extra glow */
+}
+
+/* --- CLOUDY / OVERCAST --- */
+/* Grey-Blue Sky */
+.weather-cloudy #wall-bg-day {
+    background: linear-gradient(to bottom, #94a3b8 0%, #cbd5e1 100%) !important; /* Slate-400 to Slate-300 */
+}
+/* Dim the sun */
+.weather-cloudy #wall-sun {
+    opacity: 0.3 !important; 
+    filter: blur(10px);
+}
+/* Make clouds darker/more visible */
+.weather-cloudy .fa-cloud {
+    color: rgba(255, 255, 255, 0.6) !important;
+    filter: drop-shadow(0 10px 10px rgba(0,0,0,0.2));
+}
+
+/* --- RAINY / STORMY --- */
+/* Dark Stormy Sky */
+.weather-rainy #wall-bg-day {
+    background: linear-gradient(to bottom, #334155 0%, #475569 100%) !important; /* Slate-700 to Slate-600 */
+}
+/* HIDE THE SUN completely */
+.weather-rainy #wall-sun {
+    opacity: 0 !important;
+    top: 150% !important; /* Move it off-screen just in case */
+}
+/* Dark, heavy clouds */
+.weather-rainy .fa-cloud {
+    color: rgba(200, 210, 220, 0.4) !important; /* Greyish tint */
+}
+
+/* --- SNOWY --- */
+/* White/Grey "Winter" Sky */
+.weather-snowy #wall-bg-day {
+    background: linear-gradient(to bottom, #e2e8f0 0%, #f8fafc 100%) !important; /* Slate-200 to Slate-50 */
+}
+/* Pale, cold sun */
+.weather-snowy #wall-sun {
+    opacity: 0.5 !important;
+    background-color: #fef3c7 !important; /* Pale yellow */
+    box-shadow: 0 0 40px 20px rgba(255,255,255,0.8) !important; /* White halo */
+}
+
+/* Ensure Sun/Moon are extra visible when clear */
+.weather-clear #wall-sun, .weather-clear #wall-moon {
+    opacity: 1 !important;
+    filter: drop-shadow(0 0 20px rgba(255, 215, 0, 0.5));
+}
+
+/* --- LOADING TEXT FIX --- */
+
+/* 1. Define the Animation Keyframes */
+@keyframes load-text-breathe {
+    0%, 100% { 
+        opacity: 0.8; 
+        transform: scale(1); 
+        text-shadow: 0 0 10px rgba(251, 191, 36, 0.3);
+    }
+    50% { 
+        opacity: 1; 
+        transform: scale(1.05); 
+        text-shadow: 0 0 25px rgba(251, 191, 36, 0.8);
+    }
+}
+
+/* 4. Beautiful Loading Text (Perfectly Centered) */
+.loading-text {
+    /* Position */
+    margin-top: 3rem !important;
+    width: 100% !important;
+    
+    /* Typography */
+    font-family: 'Fredoka One', cursive !important;
+    font-size: 2.5rem !important;
+    text-transform: uppercase !important;
+    
+    /* Centering Fix */
+    text-align: center !important;
+    letter-spacing: 0.3em !important; 
+    /* THIS IS THE FIX: Add padding-left equal to letter-spacing to balance the visual center */
+    padding-left: 0.3em !important; 
+    
+    /* Colors */
+    color: #FBBF24 !important;
+    text-shadow: 0 2px 10px rgba(251, 191, 36, 0.4);
+    
+    /* Animation */
+    animation: load-text-breathe 2.5s ease-in-out infinite alternate !important;
 }

@@ -7,9 +7,11 @@ import * as state from './state.js';
 import { setupDataListeners } from './db/listeners.js';
 import { setupUIListeners } from './ui/core.js';
 import { setupSounds, activateAudioContext } from './audio.js';
-import { updateDateTime, getTodayDateString } from './utils.js';
+import { updateDateTime, getTodayDateString, fetchSolarCycle } from './utils.js';
 import { archivePreviousDayStars } from './db/listeners.js';
 import { toggleWallpaperMode } from './ui/wallpaper.js';
+import { initializeHeaderQuote } from './features/home.js';
+import * as utils from './utils.js';
 
 import { 
     createUserWithEmailAndPassword, 
@@ -79,8 +81,9 @@ function setupAuthListeners() {
         if (user) {
             state.set('currentUserId', user.uid);
             state.set('currentTeacherName', user.displayName);
+           
+            initializeHeaderQuote();
 
-            document.getElementById('teacher-greeting').innerText = `Welcome, ${user.displayName || 'Teacher'}!`;
             if (document.getElementById('teacher-name-input')) {
                 document.getElementById('teacher-name-input').value = user.displayName || '';
             }
@@ -103,6 +106,9 @@ function setupAuthListeners() {
                 authScreen.classList.remove('auth-screen-out');
                 appScreen.classList.remove('app-screen-in');
             }, 500);
+
+            // Force Home Tab on Login
+            import('./ui/tabs.js').then(tabs => tabs.showTab('about-tab'));
 
             loadingScreen.classList.add('opacity-0');
             setTimeout(() => {
@@ -150,6 +156,8 @@ async function initApp() {
         setInterval(updateDateTime, 30000);
         
         await setupSounds();
+
+        utils.fetchSolarCycle(); // Fetch sunrise/sunset times
 
     } catch (error) {
         console.error("Application initialization failed:", error);

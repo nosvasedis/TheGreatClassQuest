@@ -1,12 +1,4 @@
 import { competitionStart } from './constants.js';
-import { 
-    updateAllClassSelectors, 
-    updateAllLeagueSelectors, 
-    renderClassLeaderboardTab, 
-    renderStudentLeaderboardTab,
-    renderAwardStarsTab,
-    renderAdventureLogTab 
-} from './ui/tabs.js';
 import { getTodayDateString } from './utils.js';
 
 // --- Internal State Store ---
@@ -154,10 +146,8 @@ export function setUnsubscribeSchoolSettings(func) { state.unsubscribeSchoolSett
 export function setHasLoadedCalendarHistory(val) { state.hasLoadedCalendarHistory = val; }
 
 export function setGlobalSelectedClass(classId, isManual = false) {
-    // Even if classId matches, if it's programmatic (initial load), we might need to trigger the UI update
-    // to ensure the "Select a class" placeholder is replaced.
     if (classId === state.globalSelectedClassId && !isManual && state.globalSelectedClassId !== null) {
-        // Force UI update anyway if it's not null
+        // Force UI update anyway
     } else if (classId === state.globalSelectedClassId && !isManual) {
         return;
     }
@@ -170,20 +160,22 @@ export function setGlobalSelectedClass(classId, isManual = false) {
         }
     }
 
-    updateAllClassSelectors(isManual);
-    updateAllLeagueSelectors(isManual);
+    // DYNAMIC IMPORTS: Solves the circular dependency crash
+    import('./ui/tabs.js').then(tabs => {
+        tabs.updateAllClassSelectors(isManual);
+        tabs.updateAllLeagueSelectors(isManual);
 
-    // FIX: Always check active tab and render if we have a selection, 
-    // regardless of whether it was manual or programmatic.
-    const activeTab = document.querySelector('.app-tab:not(.hidden)');
-    if (activeTab && state.globalSelectedClassId) {
-        if (activeTab.id === 'award-stars-tab') {
-            renderAwardStarsTab();
-        } else if (activeTab.id === 'adventure-log-tab') {
-            renderAdventureLogTab();
+        const activeTab = document.querySelector('.app-tab:not(.hidden)');
+        if (activeTab && state.globalSelectedClassId) {
+            if (activeTab.id === 'award-stars-tab') {
+                tabs.renderAwardStarsTab();
+            } else if (activeTab.id === 'adventure-log-tab') {
+                tabs.renderAdventureLogTab();
+            }
         }
-    }
-    // Update bounties
+    });
+
+    // Update bounties separately
     import('./ui/core.js').then(m => m.renderActiveBounties());
 }
 
@@ -191,14 +183,17 @@ export function setGlobalSelectedLeague(league, isManual = false) {
     if (league === state.globalSelectedLeague) return;
 
     state.globalSelectedLeague = league;
-    updateAllLeagueSelectors(isManual);
+    
+    // DYNAMIC IMPORT
+    import('./ui/tabs.js').then(tabs => {
+        tabs.updateAllLeagueSelectors(isManual);
 
-    // Similar fix for leagues
-    const activeTab = document.querySelector('.app-tab:not(.hidden)');
-    if (activeTab && state.globalSelectedLeague) {
-        if (activeTab.id === 'class-leaderboard-tab') renderClassLeaderboardTab();
-        if (activeTab.id === 'student-leaderboard-tab') renderStudentLeaderboardTab();
-    }
+        const activeTab = document.querySelector('.app-tab:not(.hidden)');
+        if (activeTab && state.globalSelectedLeague) {
+            if (activeTab.id === 'class-leaderboard-tab') tabs.renderClassLeaderboardTab();
+            if (activeTab.id === 'student-leaderboard-tab') tabs.renderStudentLeaderboardTab();
+        }
+    });
 }
 
 export function setIsProgrammaticSelection(value) { state.isProgrammaticSelection = value; }

@@ -1,20 +1,20 @@
-// ui/wallpaper.js
+import { db } from '../firebase.js';
+import { collection, query, where, getDocs, addDoc, writeBatch, serverTimestamp, orderBy, limit, doc } from 'https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js';
 import * as state from '../state.js';
 import * as utils from '../utils.js';
 import { callGeminiApi } from '../api.js';
 import * as constants from '../constants.js';
 
 let directorTimeout = null;
-let quoteInterval = null;
 let clockInterval = null;
 let escListener = null;
 let isRunning = false;
 
-// The Deck System (Prevents Repetition)
-let cardDeck = [];
-let sessionHistory = new Set(); // Tracks unique IDs shown this session
+const HISTORY_KEY = 'gcq_wall_history'; 
+const SESSION_KEY = 'gcq_wall_session'; 
+const CARD_DURATION = 60000; 
+const MEMORY_LIMIT = 30; 
 
-// Solar Data (Greece Defaults)
 let solarData = {
     sunrise: new Date().setHours(6, 30, 0, 0),
     sunset: new Date().setHours(20, 30, 0, 0)
@@ -25,10 +25,7 @@ export function toggleWallpaperMode() {
     const isHidden = wallpaperEl.classList.contains('hidden') || wallpaperEl.classList.contains('wallpaper-exit');
 
     if (isHidden) {
-        // --- START ---
         isRunning = true;
-        cardDeck = []; // Reset deck
-        
         wallpaperEl.classList.remove('hidden');
         wallpaperEl.classList.remove('wallpaper-exit');
         wallpaperEl.classList.add('wallpaper-enter');
@@ -41,16 +38,14 @@ export function toggleWallpaperMode() {
         escListener = (e) => { if (e.key === 'Escape') toggleWallpaperMode(); };
         document.addEventListener('keydown', escListener);
 
-        fetchSolarCycle();
+        utils.fetchSolarCycle();
         startWallpaperClock();
-        
-        // Start Loops
+
+        initSeasonalAtmosphere();
+        initializeDailyAIContent(); 
         directorGameLoop(); 
-        updateQuote();
-        quoteInterval = setInterval(updateQuote, 600000); 
 
     } else {
-        // --- STOP ---
         isRunning = false;
         wallpaperEl.classList.remove('wallpaper-enter');
         wallpaperEl.classList.add('wallpaper-exit');
@@ -66,7 +61,6 @@ export function toggleWallpaperMode() {
                 document.exitFullscreen();
             }
             clearTimeout(directorTimeout);
-            clearInterval(quoteInterval);
             clearInterval(clockInterval);
             document.getElementById('wall-floating-area').innerHTML = '';
             document.getElementById('wall-quote-container').style.opacity = '0';
@@ -74,9 +68,7 @@ export function toggleWallpaperMode() {
     }
 }
 
-// --- REAL-TIME CLOCK ---
 function startWallpaperClock() {
-    const dayClasses = ['shadow-sun', 'shadow-mon', 'shadow-tue', 'shadow-wed', 'shadow-thu', 'shadow-fri', 'shadow-sat'];
     const wall = document.getElementById('dynamic-wallpaper-screen');
     const hubName = document.getElementById('wall-class-name');
     const hubLevel = document.getElementById('wall-class-level');
@@ -88,26 +80,42 @@ function startWallpaperClock() {
         const now = new Date();
         const nowTime = now.getTime();
         
+        // 1. Calculate Same Hash Color as Header
+        const dateKey = utils.getDDMMYYYY(now);
+        const hue = utils.simpleHashCode(dateKey) % 360;
+        const isNight = nowTime >= solarData.sunset || nowTime < solarData.sunrise;
+        
+        // 2. Define Styles
+        let textShadowStyle;
+        if (isNight) {
+             const glowColor = `hsl(${hue}, 60%, 50%)`;
+             textShadowStyle = `0 4px 8px rgba(0,0,0,0.9), 0 0 30px ${glowColor}`;
+        } else {
+             const glowColor = `hsl(${hue}, 100%, 65%)`;
+             textShadowStyle = `0 4px 6px rgba(0,0,0,0.6), 0 0 20px ${glowColor}`;
+        }
+
+        // 3. Force Apply Inline Styles
+        timeEl.style.textShadow = textShadowStyle;
+        dateEl.style.textShadow = textShadowStyle;
+
+        // 4. Set Text
         timeEl.innerText = now.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
         dateEl.innerText = now.toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long' });
         
-        const dayIndex = now.getDay();
-        timeEl.className = 'font-title text-[9rem] text-white leading-none wall-shadow-text transition-colors duration-1000';
-        timeEl.classList.add(dayClasses[dayIndex]);
+        timeEl.className = 'font-title text-[9rem] text-white leading-none transition-colors duration-1000';
+        dateEl.className = 'font-title text-4xl text-white/95 mt-2 mb-6 tracking-wide transition-colors duration-1000';
 
-        const isNight = nowTime >= solarData.sunset || nowTime < solarData.sunrise;
-        if (isNight && !wall.classList.contains('is-night')) wall.classList.add('is-night');
-        else if (!isNight && wall.classList.contains('is-night')) wall.classList.remove('is-night');
+        wall.classList.toggle('is-night', isNight);
 
         const currentClass = identifyCurrentClass();
+        
         if (currentClass) {
             if (hubName.dataset.currentId !== currentClass.id) {
                 state.setGlobalSelectedClass(currentClass.id);
                 hubName.innerHTML = `<span class="mr-3 text-5xl align-middle">${currentClass.logo}</span>${currentClass.name}`;
                 hubLevel.innerText = `Quest League: ${currentClass.questLevel}`;
                 hubName.dataset.currentId = currentClass.id;
-                // Reset deck to force fresh class content
-                cardDeck = []; 
             }
         } else {
             if (hubName.dataset.currentId !== 'global') {
@@ -115,8 +123,6 @@ function startWallpaperClock() {
                 hubName.innerHTML = `<span class="mr-3 text-5xl">🏫</span>Prodigies School`;
                 hubLevel.innerText = "Global Quest Network";
                 hubName.dataset.currentId = 'global';
-                // Reset deck to force fresh global content
-                cardDeck = []; 
             }
         }
     };
@@ -126,9 +132,8 @@ function startWallpaperClock() {
 
 function identifyCurrentClass() {
     const manualId = state.get('globalSelectedClassId');
-    if (manualId && !state.get('isProgrammaticSelection')) {
-        return state.get('allSchoolClasses').find(c => c.id === manualId);
-    }
+    if (manualId && !state.get('isProgrammaticSelection')) return state.get('allSchoolClasses').find(c => c.id === manualId);
+    
     const now = new Date();
     const todayStr = utils.getTodayDateString();
     const currentTime = now.toTimeString().slice(0, 5);
@@ -136,794 +141,939 @@ function identifyCurrentClass() {
     return todaysClasses.find(c => c.timeStart && c.timeEnd && currentTime >= c.timeStart && currentTime <= c.timeEnd) || null;
 }
 
-// --- THE DIRECTOR ENGINE ---
+function getSession() {
+    try { return JSON.parse(localStorage.getItem(SESSION_KEY)); } catch { return null; }
+}
+
+function setSession(cardData, startTime) {
+    localStorage.setItem(SESSION_KEY, JSON.stringify({ card: cardData, start: startTime }));
+}
+
+function getHistory() {
+    try { 
+        const h = JSON.parse(localStorage.getItem(HISTORY_KEY)); 
+        return Array.isArray(h) ? h : [];
+    } catch { return []; }
+}
+
+function addToHistory(cardId) {
+    let history = getHistory();
+    history.push({ id: cardId, time: Date.now() });
+    if (history.length > MEMORY_LIMIT) history = history.slice(history.length - MEMORY_LIMIT);
+    localStorage.setItem(HISTORY_KEY, JSON.stringify(history));
+}
+
+function getCooldownForType(type) {
+    if (type.startsWith('ai_') || type === 'motivation_poster') {
+        return 10 * 60 * 1000; 
+    }
+    if (type === 'story_sentence' || type === 'story_image' || type.startsWith('recent_award') || type.startsWith('log') || type.includes('bounty')) {
+        return 20 * 60 * 1000; 
+    }
+    return 15 * 60 * 1000; 
+}
+
+function hasBeenShownRecently(cardId) {
+    const history = getHistory();
+    const now = Date.now();
+    const duration = getCooldownForType(cardId);
+    const recent = history.find(h => h.id === cardId && (now - h.time) < duration);
+    return !!recent;
+}
+
+async function initializeDailyAIContent() {
+    const today = utils.getTodayDateString();
+    const storageKey = `gcq_daily_ai_${today}`;
+    if (localStorage.getItem(storageKey)) return;
+
+    const contentCollection = collection(db, "artifacts/great-class-quest/public/data/daily_ai_content");
+    const q = query(contentCollection, where("date", "==", today));
+    const snapshot = await getDocs(q);
+
+    if (snapshot.empty) {
+        console.log("Generating fresh AI content for the day...");
+        const systemPrompt = `You are a creative content engine for a classroom. Generate a JSON array of 20 objects. 
+        Types: 'fact_science', 'fact_history', 'fact_nature', 'joke', 'riddle', 'word', 'idiom'.
+        Structure: { "type": "string", "content": "string", "answer": "string (optional, for riddles/words)" }.
+        Content must be kid-friendly, educational, and fun. No markdown.`;
+        
+        try {
+            const jsonStr = await callGeminiApi(systemPrompt, "Generate 20 items.");
+            const cleanJson = jsonStr.replace(/```json|```/g, '').trim();
+            const items = JSON.parse(cleanJson);
+            
+            const batch = writeBatch(db);
+            const teacherId = state.get('currentUserId');
+            const teacherName = state.get('currentTeacherName');
+
+            items.forEach(item => {
+                const docRef = doc(contentCollection); 
+                batch.set(docRef, {
+                    ...item,
+                    date: today,
+                    createdBy: { uid: teacherId, name: teacherName },
+                    createdAt: serverTimestamp()
+                });
+            });
+            
+            await batch.commit();
+            localStorage.setItem(storageKey, "loaded"); 
+            cleanupOldAIContent();
+
+        } catch (e) {
+            console.error("AI Content Gen Error:", e);
+        }
+    } else {
+        localStorage.setItem(storageKey, "loaded");
+    }
+}
+
+async function cleanupOldAIContent() {
+    const today = utils.getTodayDateString();
+    const contentCollection = collection(db, "artifacts/great-class-quest/public/data/daily_ai_content");
+    const q = query(contentCollection, where("date", "!=", today), limit(50)); 
+    const snapshot = await getDocs(q);
+    
+    if (!snapshot.empty) {
+        const batch = writeBatch(db);
+        snapshot.forEach(doc => batch.delete(doc.ref));
+        await batch.commit();
+        console.log("Cleaned up old AI content.");
+    }
+}
+
+async function fetchRandomDailyAI(typeFilter = null) {
+    const today = utils.getTodayDateString();
+    const contentCollection = collection(db, "artifacts/great-class-quest/public/data/daily_ai_content");
+    const q = query(contentCollection, where("date", "==", today));
+    const snapshot = await getDocs(q);
+    
+    if (snapshot.empty) return null;
+    
+    const items = snapshot.docs.map(d => ({id: d.id, ...d.data()}));
+    const filtered = typeFilter ? items.filter(i => i.type.startsWith(typeFilter)) : items;
+    
+    if (filtered.length === 0) return null;
+
+    const history = getHistory(); 
+    const freshItems = filtered.filter(item => !history.some(h => h.id === item.id)); 
+    
+    const pool = freshItems.length > 0 ? freshItems : filtered;
+    
+    return pool[Math.floor(Math.random() * pool.length)];
+}
+
 async function directorGameLoop() {
+    clearTimeout(directorTimeout);
     if (!isRunning) return;
 
     const container = document.getElementById('wall-floating-area');
     const classId = state.get('globalSelectedClassId');
+    const now = Date.now();
 
-    // 1. CLEANUP: Fade out old
-    if(container.children.length > 0) {
-        Array.from(container.children).forEach(child => {
-            child.style.opacity = '0';
-            child.style.transform = 'translateY(-30px) scale(0.95)';
-            setTimeout(() => child.remove(), 2000);
-        });
-    }
+    const session = getSession();
+    let currentCardData = null;
+    let remainingTime = 0;
 
-    // 2. BREATH: Wait 5 seconds
-    await new Promise(r => setTimeout(r, 5000));
-    if (!isRunning) return;
-
-    // 3. DECISION: Draw from Deck
-    const cardHtml = await drawCardFromDeck(classId);
-    
-    // 4. SPAWN
-    if (cardHtml) {
-        spawnCard(container, cardHtml);
-    }
-
-    // 5. LOOP: 60s Show + 2s Transition allowance
-    directorTimeout = setTimeout(directorGameLoop, 60000); 
-}
-
-// --- THE DECK SYSTEM (Ensures Variety) ---
-async function drawCardFromDeck(classId) {
-    // If deck is empty, rebuild it based on current context
-    if (cardDeck.length === 0) {
-        buildDeck(classId);
-    }
-    
-    // If still empty (no data), fallback
-    if (cardDeck.length === 0) return getSchoolPulseCard();
-
-    // Draw top card
-    const cardType = cardDeck.pop();
-    
-    console.log("Director dealing card:", cardType);
-
-    if (cardType.startsWith('birthday_')) {
-    const studentId = cardType.split('_')[1];
-    return getBirthdayCard(studentId);
-}
-if (cardType.startsWith('nameday_')) {
-    const studentId = cardType.split('_')[1];
-    return getNamedayCard(studentId);
-}
-
-    // Build the card
-    switch(cardType) {
-        // Common
-        case 'school_pulse': return getSchoolPulseCard();
-        case 'good_month': return getGoodMonthCard();
-        case 'seasonal_winter': return getSeasonalCard('winter');
-        case 'seasonal_halloween': return getSeasonalCard('halloween');
-        case 'seasonal_summer': return getSeasonalCard('summer');
-        case 'treasury': return getTreasuryCard(classId);
-        case 'skill': return getTopSkillCard(classId);
-        case 'word': return await getAIWordCard(classId);
-        case 'fact': return await getAIFactCard(classId);
+    if (session && (now - session.start < CARD_DURATION)) {
+        currentCardData = session.card;
+        remainingTime = CARD_DURATION - (now - session.start);
+    } else {
+        container.innerHTML = ''; 
         
-        // Class Specific
-        case 'hero': return getStudentHighlightCard(classId);
-        case 'class_quest': return getClassQuestCard(classId);
-        case 'timekeeper': return getTimekeeperCard(classId);
-        case 'streak': return getAttendanceStreakCard(classId);
-        case 'story': return getStoryCard(classId);
-        case 'homework': return getHomeworkCard(classId);
-        case 'flashback': return getAdventureFlashbackCard(classId);
-        case 'academic': return getAcademicMVPCard(classId);
+        if (session && (now - session.start < CARD_DURATION + 5000)) {
+             remainingTime = (CARD_DURATION + 5000) - (now - session.start);
+             directorTimeout = setTimeout(directorGameLoop, remainingTime);
+             return;
+        }
+
+        currentCardData = await selectNextCard(classId);
+        if (currentCardData) {
+            setSession(currentCardData, now);
+            addToHistory(currentCardData.id);
+            remainingTime = CARD_DURATION;
+        } else {
+            remainingTime = 5000; 
+        }
+    }
+
+    const existingCard = container.firstElementChild;
+    if (currentCardData && (!existingCard || existingCard.dataset.cardId !== currentCardData.id)) {
+        container.innerHTML = ''; 
+        spawnCard(container, currentCardData);
+    }
+
+    directorTimeout = setTimeout(async () => {
+        const el = container.firstElementChild;
+        if (el) {
+            el.style.opacity = '0';
+            el.style.transform = 'translateY(-50px) scale(0.9)';
+        }
+        setTimeout(() => {
+            if(container) container.innerHTML = ''; 
+            directorGameLoop(); 
+        }, 5000); 
+    }, remainingTime);
+}
+
+async function selectNextCard(classId) {
+    try {
+        let potentialCards = buildDeckList(classId);
+        potentialCards.sort(() => Math.random() - 0.5);
         
-        // Global Specific
-        case 'global_hero': return getGlobalHeroCard();
-        case 'league_race': return getRandomLeagueRaceCard();
-        case 'class_spotlight': return getRandomClassSpotlightCard();
-        case 'bounty': return getBountyCard(classId); // Can apply to both if classId matches
+        for (const cardType of potentialCards) {
+            if (!hasBeenShownRecently(cardType)) {
+                const card = await safeHydrate(cardType, classId);
+                if (card) return card;
+            }
+        }
         
-        default: return getSchoolPulseCard();
+        for (const cardType of potentialCards) {
+             const card = await safeHydrate(cardType, classId);
+             if (card) return card;
+        }
+
+        return getSchoolPulseCard();
+
+    } catch (error) {
+        console.error("Director Error:", error);
+        return getSchoolPulseCard(); 
     }
 }
 
-function buildDeck(classId) {
-    cardDeck = []; // Reset the deck
+async function safeHydrate(type, classId) {
+    try {
+        return await hydrateCard(type, classId);
+    } catch (e) {
+        console.warn(`Failed to hydrate card ${type}:`, e);
+        return null;
+    }
+}
 
-    // === 1. HIGH PRIORITY: Birthdays & Namedays (Class Mode Only) ===
-    if (classId) {
-        const today = new Date();
-        // Format today as "-MM-DD" to match the end of YYYY-MM-DD strings
-        const mm = String(today.getMonth() + 1).padStart(2, '0');
-        const dd = String(today.getDate()).padStart(2, '0');
-        const matchStr = `-${mm}-${dd}`; 
+function buildDeckList(classId) {
+    let list = [];
+    const now = new Date();
+    const mm = String(now.getMonth() + 1).padStart(2, '0');
+    const dd = String(now.getDate()).padStart(2, '0');
+    const dateMatch = `-${mm}-${dd}`;
+    const hour = now.getHours();
+    const day = now.getDay();
+
+    if (!classId) {
+        list.push(
+            'school_pulse', 'treasury_school', 'league_race', 'school_leader_top3', 
+            'school_active_bounties', 'school_adventure_count', 'school_upcoming_event',
+            'season_visual', 'motivation_poster', 'school_top_student',
+            'ai_fact_science', 'ai_fact_history', 'ai_fact_nature', 
+            'ai_word', 'ai_joke', 'ai_riddle', 'ai_idiom',
+            'weather', 'holiday'
+        );
+    } else {
+        list.push(
+            'class_quest', 'treasury_class', 'streak', 'timekeeper', 
+            'story_sentence', 'class_bounty', 'next_lesson',
+            'attendance_summary', 'weather', 'ai_joke', 'mindfulness'
+        );
 
         const students = state.get('allStudents').filter(s => s.classId === classId);
+        const scores = state.get('allStudentScores');
+        const getMStars = (sId) => scores.find(x => x.id === sId)?.monthlyStars || 0;
+        
+        const topMonthly = students
+            .map(s => ({id: s.id, stars: getMStars(s.id)}))
+            .filter(s => s.stars > 0)
+            .sort((a,b) => b.stars - a.stars)
+            .slice(0, 5);
+        topMonthly.forEach(s => list.push(`top_student_monthly:${s.id}`));
+
+        const todaysStars = state.get('todaysStars');
+        const topDaily = students
+            .map(s => ({id: s.id, stars: todaysStars[s.id]?.stars || 0}))
+            .filter(s => s.stars > 0)
+            .sort((a,b) => b.stars - a.stars)
+            .slice(0, 3);
+        topDaily.forEach(s => list.push(`top_student_daily:${s.id}`));
+
+        const shuffled = [...students].sort(() => 0.5 - Math.random()).slice(0, 5);
+        shuffled.forEach(s => list.push(`stu_spotlight:${s.id}`));
+
+        const awardLogs = state.get('allAwardLogs')
+            .filter(l => l.classId === classId)
+            .sort((a,b) => (b.createdAt?.toMillis ? b.createdAt.toMillis() : 0) - (a.createdAt?.toMillis ? a.createdAt.toMillis() : 0))
+            .slice(0, 10);
+        awardLogs.forEach(l => list.push(`recent_award:${l.id}`));
+
+        const logs = state.get('allAdventureLogs')
+            .filter(l => l.classId === classId && l.imageUrl)
+            .sort((a,b) => (b.createdAt?.toMillis ? b.createdAt.toMillis() : 0) - (a.createdAt?.toMillis ? a.createdAt.toMillis() : 0))
+            .slice(0, 10);
+        logs.forEach(l => list.push(`log:${l.id}`));
+
         students.forEach(s => {
-            // Check birthday field (stored as YYYY-MM-DD)
-            if (s.birthday && s.birthday.endsWith(matchStr)) {
-                cardDeck.push(`birthday_${s.id}`);
-                cardDeck.push(`birthday_${s.id}`); // Push twice to ensure it shows up
-            }
-            // Check nameday field
-            if (s.nameday && s.nameday.endsWith(matchStr)) {
-                cardDeck.push(`nameday_${s.id}`);
-                cardDeck.push(`nameday_${s.id}`);
-            }
+            if (s.birthday?.endsWith(dateMatch)) { list.push(`bday:${s.id}`); list.push(`bday:${s.id}`); }
+            if (s.nameday?.endsWith(dateMatch)) { list.push(`name:${s.id}`); list.push(`name:${s.id}`); }
         });
     }
 
-    // === 2. STANDARD FILLER CARDS (Always available) ===
-    // Added more facts/words to dilute the "School Pulse" frequency
-    cardDeck.push('fact', 'fact', 'fact'); 
-    cardDeck.push('word', 'word');
-    cardDeck.push('school_pulse'); // Only 1 entry so it appears less often
-    
-    // === 3. TIME-SENSITIVE CARDS ===
-    const now = new Date();
-    // "Good Month" card only for the first 5 days of a month
-    if (now.getDate() <= 5) {
-        cardDeck.push('good_month', 'good_month');
-    }
+    if (hour < 9) list.push('context_morning');
+    if (hour >= 13 && hour < 15) list.push('context_afternoon');
+    if (hour >= 19) list.push('context_night');
+    if (day === 1) list.push('context_monday');
+    if (day === 5) list.push('context_friday');
 
-    // Seasonal Cards
-    const m = now.getMonth(); // 0-11
-    if (m === 11 || m === 0) cardDeck.push('seasonal_winter', 'seasonal_winter'); // Dec, Jan
-    else if (m === 9) cardDeck.push('seasonal_halloween'); // Oct
-    else if (m >= 5 && m <= 7) cardDeck.push('seasonal_summer'); // Jun, Jul, Aug
-
-    // === 4. CONTEXT SPECIFIC CARDS ===
-    if (classId) {
-        // --- ACTIVE CLASS MODE ---
-        
-        // Heroes (High weight: 4 cards)
-        cardDeck.push('hero', 'hero', 'hero', 'hero'); 
-        
-        // Progress & Utility
-        cardDeck.push('class_quest', 'class_quest');
-        cardDeck.push('timekeeper');
-        cardDeck.push('streak');
-        
-        // Dynamic Content Checks: Only add if data exists
-        
-        // Story Weavers
-        const story = state.get('currentStoryData')[classId];
-        if (story && story.currentSentence) {
-            cardDeck.push('story', 'story');
-        }
-        
-        // Assignments
-        const assignments = state.get('allQuestAssignments').filter(a => a.classId === classId);
-        if (assignments.length > 0) {
-            cardDeck.push('homework');
-        }
-        
-        // Adventure Flashback (Only if we have images!)
-        const logsWithImages = state.get('allAdventureLogs').filter(l => l.classId === classId && l.imageUrl);
-        if (logsWithImages.length > 0) {
-            cardDeck.push('flashback', 'flashback');
-        }
-        
-        // Academic Highlights
-        const scores = state.get('allWrittenScores').filter(s => s.classId === classId);
-        if (scores.length > 0) {
-            cardDeck.push('academic');
-        }
-
-        // Active Bounties
-        const bounties = state.get('allQuestBounties').filter(b => b.classId === classId && b.status !== 'completed');
-        if (bounties.length > 0) {
-            cardDeck.push('bounty', 'bounty');
-        }
-
-    } else {
-        // --- GLOBAL SCHOOL MODE ---
-        cardDeck.push('global_hero', 'global_hero');
-        cardDeck.push('league_race', 'league_race');
-        cardDeck.push('class_spotlight', 'class_spotlight', 'class_spotlight');
-    }
-
-    // === 5. SHUFFLE THE DECK (Fisher-Yates) ===
-    for (let i = cardDeck.length - 1; i > 0; i--) {
-        const j = Math.floor(Math.random() * (i + 1));
-        [cardDeck[i], cardDeck[j]] = [cardDeck[j], cardDeck[i]];
-    }
-    
-    console.log("Wallpaper Deck Rebuilt:", cardDeck);
+    return list;
 }
 
-// --- CARD BUILDERS ---
+async function hydrateCard(type, classId) {
+    const [baseType, dataId] = type.split(':');
+    const baseObj = { id: type }; 
+    let content = null;
 
-function getSchoolPulseCard() {
-    const allScores = state.get('allStudentScores');
-    const totalStars = allScores.reduce((sum, s) => sum + (s.totalStars || 0), 0);
-    const students = state.get('allStudents');
-    const totalStudents = students.length;
+    if (baseType === 'bday') content = getBirthdayCard(dataId);
+    else if (baseType === 'name') content = getNamedayCard(dataId);
+    else if (baseType === 'stu_spotlight') content = getStudentSpotlightCard(dataId);
+    else if (baseType === 'log') content = getSpecificLogCard(dataId);
+    else if (baseType === 'top_student_monthly') content = getTopMonthlyStudentCard(classId, dataId);
+    else if (baseType === 'top_student_daily') content = getTopDailyStudentCard(classId, dataId);
+    else if (baseType === 'recent_award') content = getRecentAwardCard(classId, dataId);
+    else {
+        switch(type) {
+            case 'school_pulse': content = getSchoolPulseCard(); break;
+            case 'treasury_school': content = getTreasuryCard(null); break;
+            case 'league_race': content = getRandomLeagueRaceCard(); break;
+            case 'school_leader_top3': content = getSchoolLeaderboardCard(); break;
+            case 'school_active_bounties': content = getSchoolActiveBountiesCard(); break;
+            case 'school_adventure_count': content = getSchoolAdventureCountCard(); break;
+            case 'school_upcoming_event': content = getSchoolUpcomingEventCard(); break;
+            case 'school_top_student': content = getSchoolTopStudentCard(); break;
+            case 'school_avg_attendance': content = getSchoolAttendanceCard(); break;
+            case 'school_gold_leader': content = getSchoolGoldLeaderCard(); break;
+            case 'season_visual': content = getSeasonalCard(); break;
+            case 'giant_clock': content = getGiantClockCard(); break;
+            case 'motivation_poster': content = await getMotivationCard(); break;
+            case 'holiday': content = getNextHolidayCard(); break;
+            case 'weather': content = getWeatherCard(); break;
+
+            case 'ai_fact_science': content = await getAIFromDB('fact_science'); break;
+            case 'ai_fact_history': content = await getAIFromDB('fact_history'); break;
+            case 'ai_fact_nature': content = await getAIFromDB('fact_nature'); break;
+            case 'ai_joke': content = await getAIFromDB('joke'); break;
+            case 'ai_riddle': content = await getAIFromDB('riddle'); break;
+            case 'ai_word': content = await getAIFromDB('word'); break;
+            case 'ai_idiom': content = await getAIFromDB('idiom'); break;
+
+            case 'class_quest': content = getClassQuestCard(classId); break;
+            case 'treasury_class': content = getTreasuryCard(classId); break;
+            case 'streak': content = getAttendanceStreakCard(classId); break;
+            case 'timekeeper': content = getTimekeeperCard(classId); break;
+            case 'story_sentence': content = getStoryCard(classId, 'text'); break;
+            case 'class_bounty': content = getClassBountyCard(classId); break;
+            case 'next_lesson': content = getNextLessonCard(classId); break;
+            case 'attendance_summary': content = getClassAttendanceCard(classId); break;
+            case 'mindfulness': content = getMindfulnessCard(); break;
+            
+            case 'context_morning': content = { html: `<div class="text-center"><div class="text-8xl mb-2 animate-bounce-slow">☀️</div><h2 class="font-title text-5xl text-amber-500">Good Morning!</h2><p class="text-gray-500 text-xl font-bold">Let's make today legendary.</p></div>`, css: 'float-card-gold' }; break;
+            case 'context_afternoon': content = { html: `<div class="text-center"><div class="text-8xl mb-2">⚡</div><h2 class="font-title text-5xl text-blue-500">Power Up!</h2><p class="text-gray-500 text-xl font-bold">Stay focused. You got this.</p></div>`, css: 'float-card-blue' }; break;
+            case 'context_night': content = { html: `<div class="text-center"><div class="text-8xl mb-2 animate-pulse-slow">🌙</div><h2 class="font-title text-5xl text-indigo-300">Rest & Recharge</h2><p class="text-indigo-200 text-xl font-bold">Great work today.</p></div>`, css: 'float-card-indigo' }; break;
+            case 'context_monday': content = { html: `<div class="text-center"><div class="text-8xl mb-2">🚀</div><h2 class="font-title text-5xl text-red-500">New Week</h2><p class="text-gray-500 text-xl font-bold">New goals. New adventures.</p></div>`, css: 'float-card-red' }; break;
+            case 'context_friday': content = { html: `<div class="text-center"><div class="text-8xl mb-2 animate-bounce">🎉</div><h2 class="font-title text-5xl text-purple-500">Fri-YAY!</h2><p class="text-gray-500 text-xl font-bold">Finish strong!</p></div>`, css: 'float-card-purple' }; break;
+
+            default: content = getSchoolPulseCard();
+        }
+    }
     
+    if (!content) return null;
+    return { ...baseObj, ...content };
+}
+
+function getMindfulnessCard() {
     return {
         html: `
-            <div class="text-center">
-                <div class="inline-block bg-indigo-100 text-indigo-700 text-xs font-bold px-4 py-2 rounded-full mb-4 uppercase tracking-widest border border-indigo-200">School Pulse</div>
-                <div class="flex flex-col gap-4">
-                    <div class="flex items-center justify-center gap-4">
-                        <div class="text-5xl">⭐</div>
-                        <div class="text-left">
-                            <div class="font-title text-4xl text-indigo-900 leading-none">${totalStars}</div>
-                            <div class="text-xs text-indigo-500 font-bold uppercase tracking-wide">Total Stars</div>
-                        </div>
-                    </div>
-                    <div class="w-3/4 h-px bg-indigo-100 mx-auto"></div>
-                    <div class="flex items-center justify-center gap-4">
-                        <div class="text-5xl">🎒</div>
-                        <div class="text-left">
-                            <div class="font-title text-4xl text-teal-600 leading-none">${totalStudents}</div>
-                            <div class="text-xs text-teal-500 font-bold uppercase tracking-wide">Adventurers</div>
-                        </div>
-                    </div>
+            <div class="text-center w-full">
+                <div class="badge-pill bg-teal-100 text-teal-800">Mindfulness Moment</div>
+                <div class="relative w-48 h-48 mx-auto my-6 flex items-center justify-center">
+                    <div class="absolute inset-0 bg-teal-300 rounded-full opacity-30 mindfulness-pulse"></div>
+                    <div class="absolute inset-4 bg-teal-400 rounded-full opacity-40 mindfulness-pulse" style="animation-delay: 0.5s"></div>
+                    <div class="absolute inset-8 bg-teal-500 rounded-full opacity-50 mindfulness-pulse" style="animation-delay: 1s"></div>
+                    <i class="fas fa-wind text-white text-5xl relative z-10"></i>
                 </div>
+                <h3 class="font-title text-3xl text-teal-700">Breathe In... Breathe Out...</h3>
             </div>`,
-        css: 'float-card-blue'
+        css: 'float-card-teal'
     };
 }
 
-function getHomeworkCard(classId) {
-    const assignments = state.get('allQuestAssignments')
-        .filter(a => a.classId === classId)
-        .sort((a,b) => b.createdAt - a.createdAt);
-        
-    if (assignments.length === 0) return null;
-    const task = assignments[0];
+function getSchoolLeaderboardCard() {
+    const classes = state.get('allSchoolClasses');
+    if (classes.length === 0) return null;
+    
+    const classScores = classes.map(c => {
+        const students = state.get('allStudents').filter(s => s.classId === c.id);
+        const stars = students.reduce((sum, s) => {
+            const score = state.get('allStudentScores').find(sc => sc.id === s.id);
+            return sum + (score?.totalStars || 0);
+        }, 0);
+        return { name: c.name, logo: c.logo, stars };
+    }).sort((a,b) => b.stars - a.stars).slice(0, 3);
+
+    const listHtml = classScores.map((c, i) => 
+        `<div class="flex items-center justify-between bg-white/20 rounded-lg p-2 mb-2">
+            <span class="font-bold text-white text-lg"><span class="mr-2">${i===0?'🥇':(i===1?'🥈':'🥉')}</span>${c.logo} ${c.name}</span>
+            <span class="font-title text-amber-300 text-xl">${c.stars}</span>
+        </div>`
+    ).join('');
 
     return {
-        html: `
-            <div class="text-center">
-                <div class="inline-block bg-red-100 text-red-700 text-xs font-bold px-3 py-1 rounded-full mb-3 uppercase tracking-widest border border-red-200">Current Mission</div>
-                <div class="text-5xl mb-2">📜</div>
-                <h3 class="font-title text-2xl text-red-900 mb-2">Homework</h3>
-                <div class="bg-white/60 p-4 rounded-xl border border-red-200 shadow-sm text-left relative">
-                    <i class="fas fa-check-circle absolute top-2 right-2 text-red-200"></i>
-                    <p class="font-serif text-red-900 text-lg leading-snug line-clamp-3">"${task.text}"</p>
-                </div>
-            </div>`,
+        html: `<div class="w-full"><h3 class="font-title text-3xl text-white text-center mb-4 border-b-2 border-white/20 pb-2">Top Classes</h3>${listHtml}</div>`,
+        css: 'float-card-indigo'
+    };
+}
+
+function getSchoolActiveBountiesCard() {
+    const bounties = state.get('allQuestBounties').filter(b => b.status === 'active');
+    if (bounties.length === 0) return null;
+    
+    return {
+        html: `<div class="text-center"><div class="badge-pill bg-red-100 text-red-800">Action Required</div><div class="text-8xl mb-2 animate-pulse">🎯</div><h2 class="font-title text-6xl text-white">${bounties.length}</h2><p class="text-red-100 font-bold text-xl">Active Bounties School-Wide!</p></div>`,
         css: 'float-card-red'
     };
 }
 
-function getAdventureFlashbackCard(classId) {
-    const logs = state.get('allAdventureLogs')
-        .filter(l => l.classId === classId)
-        .sort((a,b) => utils.parseDDMMYYYY(b.date) - utils.parseDDMMYYYY(a.date));
-        
-    if (logs.length === 0) return null;
-    const log = logs[0]; // Last entry
-
+function getSchoolAdventureCountCard() {
+    const count = state.get('allAdventureLogs').length;
     return {
-        html: `
-            <div class="text-center">
-                <div class="inline-block bg-teal-100 text-teal-700 text-xs font-bold px-3 py-1 rounded-full mb-3 uppercase tracking-widest border border-teal-200">Previously...</div>
-                <div class="text-xs text-teal-500 font-bold mb-2 uppercase">${log.date}</div>
-                <div class="bg-white/60 p-4 rounded-xl border border-teal-200 shadow-sm relative">
-                    ${log.imageUrl ? `<img src="${log.imageUrl}" class="w-full h-32 object-cover rounded-lg mb-2 opacity-90">` : ''}
-                    <p class="font-serif italic text-teal-900 text-md leading-snug line-clamp-3">"${log.text}"</p>
-                </div>
-            </div>`,
+        html: `<div class="text-center"><div class="text-8xl mb-2">📚</div><h2 class="font-title text-5xl text-emerald-900">${count}</h2><p class="text-emerald-700 font-bold">Adventures Chronicled</p></div>`,
         css: 'float-card-green'
     };
 }
 
-function getAcademicMVPCard(classId) {
-    const scores = state.get('allWrittenScores')
-        .filter(s => s.classId === classId && s.type === 'test')
-        .sort((a,b) => (b.scoreNumeric/b.maxScore) - (a.scoreNumeric/a.maxScore));
-        
-    if (scores.length === 0) return null;
-    const best = scores[0];
-    const student = state.get('allStudents').find(s => s.id === best.studentId);
-    if (!student) return null;
+function getSchoolUpcomingEventCard() {
+    const now = new Date();
+    const events = state.get('allQuestEvents')
+        .filter(e => new Date(e.date) >= now)
+        .sort((a,b) => new Date(a.date) - new Date(b.date));
+    
+    if(events.length === 0) return null;
+    const e = events[0];
+    const dateStr = new Date(e.date).toLocaleDateString('en-GB', { day: 'numeric', month: 'long' });
 
     return {
-        html: `
-            <div class="text-center">
-                <div class="inline-block bg-purple-100 text-purple-700 text-xs font-bold px-3 py-1 rounded-full mb-3 uppercase tracking-widest border border-purple-200">Academic MVP</div>
-                <div class="text-6xl mb-2">🧠</div>
-                <h3 class="font-title text-3xl text-purple-900 mb-1">${student.name}</h3>
-                <p class="text-purple-600 font-bold">Top Score: ${best.scoreNumeric}/${best.maxScore}</p>
-                <p class="text-xs text-purple-400 mt-2">On test: "${best.title || 'Recent Test'}"</p>
-            </div>`,
+        html: `<div class="text-center"><div class="badge-pill bg-purple-100 text-purple-800">Coming Soon</div><h3 class="font-title text-4xl text-white mb-2">${e.details.title}</h3><p class="text-purple-100 text-2xl">${dateStr}</p></div>`,
         css: 'float-card-purple'
     };
 }
 
-async function getAIWordCard(classId) {
-    const cls = classId ? state.get('allSchoolClasses').find(c => c.id === classId) : null;
-    const level = cls ? cls.questLevel : "Global";
-    const wordData = await getAICachedContent("word", level);
+function getGiantClockCard() {
+    const now = new Date();
     return {
-        html: `
-            <div class="text-center">
-                <div class="inline-block bg-pink-100 text-pink-700 text-xs font-bold px-3 py-1 rounded-full mb-4 uppercase tracking-widest border border-pink-200">Word of the Moment</div>
-                <h3 class="font-title text-4xl text-pink-900 mb-2">"${wordData.word}"</h3>
-                <p class="font-serif italic text-pink-700 text-lg opacity-80">${wordData.def}</p>
-            </div>`,
-        css: 'float-card-purple' 
+        html: `<div class="text-center"><h1 class="font-title text-[8rem] text-white leading-none drop-shadow-lg">${now.getHours()}:${String(now.getMinutes()).padStart(2,'0')}</h1><p class="text-white/80 text-2xl font-bold uppercase tracking-widest">${now.toLocaleDateString('en-GB', {weekday:'long'})}</p></div>`,
+        css: 'float-card-dark' 
     };
 }
 
-async function getAIFactCard(classId) {
-    const cls = classId ? state.get('allSchoolClasses').find(c => c.id === classId) : null;
-    const level = cls ? cls.questLevel : "Global";
-    const fact = await getAICachedContent("fact", level);
+function getSeasonalCard() {
+    const m = new Date().getMonth();
+    let icon = '☀️', text = 'Summer Vibes', css = 'float-card-gold';
+    if(m > 8 && m < 11) { icon = '🍂'; text = 'Autumn Leaves'; css = 'float-card-orange'; }
+    if(m === 11 || m < 2) { icon = '❄️'; text = 'Winter Wonder'; css = 'float-card-blue'; }
+    if(m > 1 && m < 5) { icon = '🌸'; text = 'Spring Bloom'; css = 'float-card-pink'; }
+    
     return {
-        html: `
-            <div class="text-center">
-                <div class="inline-block bg-teal-100 text-teal-700 text-xs font-bold px-3 py-1 rounded-full mb-4 uppercase tracking-widest border border-teal-200">Did You Know?</div>
-                <div class="text-5xl mb-3">💡</div>
-                <p class="font-serif text-xl text-teal-900 leading-relaxed">"${fact}"</p>
-            </div>`,
+        html: `<div class="text-center"><div class="text-9xl mb-4 animate-float-slow">${icon}</div><h3 class="font-title text-5xl text-gray-700">${text}</h3></div>`,
+        css: css
+    };
+}
+
+async function getMotivationCard() {
+    const quotes = [
+        "Mistakes are proof that you are trying.",
+        "Learning is a treasure that follows its owner everywhere.",
+        "The expert in anything was once a beginner.",
+        "Be curious, not judgmental.",
+        "Every day is a fresh start."
+    ];
+    const q = quotes[Math.floor(Math.random() * quotes.length)];
+    return {
+        html: `<div class="text-center p-4"><i class="fas fa-quote-left text-4xl text-white/50 mb-4 block"></i><p class="font-serif text-3xl text-white italic leading-relaxed">"${q}"</p></div>`,
+        css: 'float-card-teal'
+    };
+}
+
+function getTopMonthlyStudentCard(classId, studentId) {
+    if (!classId || !studentId) return null;
+    const student = state.get('allStudents').find(s => s.id === studentId);
+    if (!student) return null;
+    const scores = state.get('allStudentScores');
+    const sc = scores.find(x => x.id === studentId);
+    const mStars = sc?.monthlyStars || 0;
+    
+    const allStudents = state.get('allStudents').filter(s => s.classId === classId);
+    const sorted = allStudents.map(s => {
+        const sc = scores.find(x => x.id === s.id);
+        return { id: s.id, stars: sc?.monthlyStars || 0 };
+    }).sort((a,b) => b.stars - a.stars);
+    
+    const rank = sorted.findIndex(x => x.id === studentId) + 1;
+    
+    let title = "Quest Hero";
+    let css = "float-card-blue";
+    
+    if (rank === 1) { title = "Monthly Champion"; css = "float-card-gold"; }
+    else if (rank <= 3) { title = "Top Scholar"; css = "float-card-purple"; }
+    else { title = "Rising Star"; css = "float-card-green"; }
+
+    const avatar = student.avatar ? `<img src="${student.avatar}" class="w-32 h-32 rounded-full border-4 border-white shadow-lg mx-auto mb-2 object-cover">` : `<div class="w-32 h-32 rounded-full bg-white flex items-center justify-center text-6xl mx-auto mb-2 text-indigo-500 font-bold">${student.name.charAt(0)}</div>`;
+
+    return {
+        html: `<div class="text-center"><div class="badge-pill bg-white/90 text-indigo-900">${title}</div>${avatar}<h2 class="font-title text-4xl text-white">${student.name}</h2><p class="text-white/90 font-bold text-xl mt-1">${mStars} Monthly Stars</p></div>`,
+        css: css
+    };
+}
+
+function getRecentAwardCard(classId, logId) {
+    if (!classId || !logId) return null;
+    const log = state.get('allAwardLogs').find(l => l.id === logId);
+    if (!log) return null;
+    const student = state.get('allStudents').find(s => s.id === log.studentId);
+    if (!student) return null;
+
+    return {
+        html: `<div class="text-center"><div class="badge-pill bg-green-100 text-green-800">Recent Award</div><div class="text-6xl mb-2 animate-bounce">⭐</div><h3 class="font-title text-3xl text-white">${student.name}</h3><p class="text-white/80 text-lg font-bold">For ${log.reason.replace(/_/g,' ')}</p></div>`,
         css: 'float-card-green'
     };
 }
 
-function getRandomLeagueRaceCard() {
-    const allClasses = state.get('allSchoolClasses');
-    const leagues = [...new Set(allClasses.map(c => c.questLevel))];
-    if (leagues.length === 0) return null;
-    const league = leagues[Math.floor(Math.random() * leagues.length)];
-    const classesInLeague = allClasses.filter(c => c.questLevel === league);
+function getClassBountyCard(classId) {
+    const bounty = state.get('allQuestBounties').find(b => b.classId === classId && b.status === 'active');
+    if(!bounty) return null;
     
-    const leagueStats = classesInLeague.map(c => {
-        const s = state.get('allStudents').filter(st => st.classId === c.id);
-        const total = s.reduce((sum, stu) => sum + (state.get('allStudentScores').find(sc => sc.id === stu.id)?.monthlyStars || 0), 0);
-        const goal = Math.max(18, s.length * 18);
-        return { name: c.name, logo: c.logo, pct: Math.min(100, Math.round((total/goal)*100)) };
-    }).sort((a,b) => b.pct - a.pct).slice(0, 3);
-
-    const rows = leagueStats.map((c, i) => `
-        <div class="mb-3 last:mb-0">
-            <div class="flex justify-between items-center mb-1 text-sm font-bold text-amber-900">
-                <span class="flex items-center gap-2">
-                    <span class="bg-white w-6 h-6 rounded-full flex items-center justify-center text-[10px] border border-amber-300 shadow-sm">${i+1}</span>
-                    ${c.logo} ${c.name}
-                </span>
-                <span>${c.pct}%</span>
-            </div>
-            <div class="w-full bg-white/50 h-3 rounded-full overflow-hidden border border-white/60">
-                <div class="bg-gradient-to-r from-amber-400 to-orange-500 h-full rounded-full" style="width: ${c.pct}%"></div>
-            </div>
-        </div>
-    `).join('');
-
+    const pct = Math.round((bounty.currentProgress / bounty.target) * 100);
+    
     return {
-        html: `
-            <div>
-                <h3 class="font-title text-xl text-amber-800 mb-4 text-center border-b-2 border-amber-200/50 pb-2">
-                    <i class="fas fa-flag-checkered mr-2 text-amber-600"></i> League ${league} Race
-                </h3>
-                ${rows}
-            </div>`,
-        css: 'float-card-gold'
+        html: `<div class="text-center w-full"><div class="badge-pill bg-red-100 text-red-800">Active Bounty</div><h3 class="font-title text-2xl text-white mb-2">${bounty.title}</h3><div class="w-full bg-black/20 h-6 rounded-full overflow-hidden mb-2"><div class="bg-red-500 h-full transition-all" style="width:${pct}%"></div></div><p class="text-white font-bold">${bounty.currentProgress} / ${bounty.target} ⭐</p></div>`,
+        css: 'float-card-red'
     };
 }
 
-function getRandomClassSpotlightCard() {
-    const allClasses = state.get('allSchoolClasses');
-    if (allClasses.length === 0) return null;
-    const cls = allClasses[Math.floor(Math.random() * allClasses.length)];
-    const students = state.get('allStudents').filter(s => s.classId === cls.id);
-    const totalStars = students.reduce((sum, s) => sum + (state.get('allStudentScores').find(sc => sc.id === s.id)?.monthlyStars || 0), 0);
-    const goal = Math.max(18, students.length * 18);
-    const pct = Math.min(100, Math.round((totalStars/goal)*100));
-
+function getNextLessonCard(classId) {
+    const cls = state.get('allSchoolClasses').find(c => c.id === classId);
+    if(!cls) return null;
+    
+    const today = new Date().getDay();
+    const days = (cls.scheduleDays || []).map(Number).sort();
+    let nextDay = days.find(d => d > today);
+    if (nextDay === undefined) nextDay = days[0]; 
+    
+    if (nextDay === undefined) return null; 
+    
+    const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+    
     return {
-        html: `
-            <div class="text-center">
-                <div class="inline-block bg-teal-100 text-teal-700 text-xs font-bold px-3 py-1 rounded-full mb-3 uppercase tracking-widest border border-teal-200">Spotlight</div>
-                <div class="text-7xl mb-3 filter drop-shadow-md animate-bounce">${cls.logo}</div>
-                <h3 class="font-title text-3xl text-teal-900 mb-1">${cls.name}</h3>
-                <p class="text-teal-600 font-bold mb-4 uppercase text-sm tracking-wide">League ${cls.questLevel}</p>
-                <div class="w-full bg-white/50 h-6 rounded-full overflow-hidden border border-white relative shadow-inner">
-                    <div class="bg-gradient-to-r from-teal-400 to-emerald-500 h-full rounded-full" style="width: ${pct}%"></div>
-                    <span class="absolute inset-0 flex items-center justify-center text-[10px] font-bold text-teal-900">${pct}% Goal</span>
-                </div>
-            </div>`,
+        html: `<div class="text-center"><div class="text-6xl mb-2">📅</div><h3 class="font-title text-3xl text-indigo-900">Next Adventure</h3><p class="text-indigo-600 text-2xl font-bold">${dayNames[nextDay]}</p><p class="text-indigo-400">${cls.timeStart || ''}</p></div>`,
+        css: 'float-card-indigo'
+    };
+}
+
+function getClassAttendanceCard(classId) {
+    const students = state.get('allStudents').filter(s => s.classId === classId).length;
+    const absents = state.get('allAttendanceRecords').filter(r => r.classId === classId && r.date === utils.getTodayDateString()).length;
+    
+    if (students === 0) return null;
+    const present = students - absents;
+    const pct = Math.round((present/students)*100);
+    
+    return {
+        html: `<div class="text-center"><div class="text-6xl mb-2">🎒</div><h3 class="font-title text-4xl text-emerald-900">${pct}% Present</h3><p class="text-emerald-600 font-bold">Heroes Assembled</p></div>`,
         css: 'float-card-green'
     };
 }
 
-function getStudentHighlightCard(classId) {
-    let students = classId 
-        ? state.get('allStudents').filter(s => s.classId === classId)
-        : state.get('allStudents');
-    if (students.length === 0) return null;
+function getHighScoreCard(classId, type) {
+    const scores = state.get('allWrittenScores').filter(s => s.classId === classId && s.type === type);
+    if (scores.length === 0) return null;
     
-    // Weighted Random: Prefer students who earned stars today
-    const activeStudents = students.filter(s => state.get('todaysStars')[s.id]?.stars > 0);
-    const pool = activeStudents.length > 0 && Math.random() > 0.3 ? activeStudents : students;
+    scores.sort((a,b) => new Date(b.date) - new Date(a.date));
+    const recent = scores[0];
+    const student = state.get('allStudents').find(s => s.id === recent.studentId);
+    if (!student) return null;
     
-    const student = pool[Math.floor(Math.random() * pool.length)];
-    const score = state.get('allStudentScores').find(s => s.id === student.id);
-    const todayScore = state.get('todaysStars')[student.id]?.stars || 0;
-    const avatarHtml = student.avatar 
-        ? `<img src="${student.avatar}" class="w-32 h-32 rounded-full border-[6px] border-white shadow-xl mx-auto mb-4 object-cover bg-white">` 
-        : `<div class="w-32 h-32 rounded-full bg-indigo-100 flex items-center justify-center text-6xl mx-auto mb-4 border-[6px] border-white shadow-xl font-title text-indigo-500">${student.name.charAt(0)}</div>`;
+    const scoreText = recent.scoreQualitative || `${recent.scoreNumeric}%`;
+    const label = type === 'test' ? 'Test Champion' : 'Dictation Hero';
     
     return {
-        html: `
-            <div class="text-center">
-                <div class="inline-block bg-indigo-100 text-indigo-700 text-xs font-bold px-3 py-1 rounded-full mb-4 uppercase tracking-widest border border-indigo-200">Class Hero</div>
-                ${avatarHtml}
-                <h3 class="font-title text-3xl text-indigo-900 mb-2">${student.name}</h3>
-                <div class="flex justify-center gap-2 mt-2">
-                    <span class="bg-white/60 px-3 py-1 rounded-lg text-indigo-800 font-bold border border-white/50">${score?.totalStars || 0} ⭐ Total</span>
-                    ${todayScore > 0 ? `<span class="bg-green-100 text-green-700 px-3 py-1 rounded-lg font-bold border border-green-200 animate-pulse">+${todayScore} Today</span>` : ''}
-                </div>
-            </div>`,
+        html: `<div class="text-center"><div class="badge-pill bg-blue-100 text-blue-800">${label}</div><h3 class="font-title text-3xl text-white mb-2">${student.name}</h3><p class="text-white text-xl">Recent Score: <b>${scoreText}</b></p></div>`,
         css: 'float-card-blue'
     };
 }
 
-function getGlobalHeroCard() {
-    const allScores = state.get('allStudentScores');
-    const sorted = [...allScores].sort((a,b) => (b.monthlyStars||0) - (a.monthlyStars||0));
-    const topScore = sorted[0];
-    if (!topScore || topScore.monthlyStars === 0) return null;
-    const student = state.get('allStudents').find(s => s.id === topScore.id);
-    if (!student) return null;
-    const cls = state.get('allSchoolClasses').find(c => c.id === student.classId);
-    const avatarHtml = student.avatar ? `<img src="${student.avatar}" class="w-32 h-32 rounded-full border-[6px] border-white shadow-xl mx-auto mb-4 object-cover bg-white">` : `<div class="w-32 h-32 rounded-full bg-white flex items-center justify-center text-6xl mx-auto mb-4 border-[6px] border-purple-200 shadow-xl font-title text-purple-500">${student.name.charAt(0)}</div>`;
+async function getAIFromDB(typeFilter) {
+    const item = await fetchRandomDailyAI(typeFilter);
+    if (!item) return { html: `<div class="text-center text-white font-bold drop-shadow-md">Thinking...</div>`, css: 'float-card-dark' };
+    
+    let icon = '🤖';
+    let css = 'float-card-indigo';
+    let title = 'AI Wisdom';
+    
+    if (item.type.includes('fact')) { icon = '🧠'; css = 'float-card-blue'; title = 'Did You Know?'; }
+    if (item.type === 'joke') { icon = '🤣'; css = 'float-card-orange'; title = 'Quest Joke'; }
+    if (item.type === 'riddle') { icon = '🧩'; css = 'float-card-purple'; title = 'Riddle Me This'; }
+    if (item.type === 'word') { icon = '📖'; css = 'float-card-pink'; title = 'Word of the Day'; }
+    if (item.type === 'idiom') { icon = '💬'; css = 'float-card-green'; title = 'Phrase of the Day'; }
+    
+   let answerHtml = '';
+    if (item.answer) {
+        answerHtml = `
+            <div class="mt-5 pt-4 border-t border-white/30">
+                <div class="text-xs font-bold text-white/70 uppercase tracking-widest mb-1">Answer</div>
+                <div class="text-2xl font-bold text-white drop-shadow-md">
+                    ${item.answer}
+                </div>
+            </div>`;
+    }
 
     return {
         html: `
-            <div class="text-center">
-                <div class="inline-block bg-purple-100 text-purple-600 text-xs font-bold px-3 py-1 rounded-full mb-4 uppercase tracking-widest border border-purple-200">School Leader</div>
-                ${avatarHtml}
-                <h3 class="font-title text-2xl text-purple-900 drop-shadow-sm">${student.name}</h3>
-                <p class="text-purple-600 font-bold mb-2 text-sm">${cls?.name || 'Unknown Class'}</p>
-                <div class="text-5xl font-title text-amber-500 drop-shadow-md">${topScore.monthlyStars} ⭐</div>
+            <div class="text-center w-full h-full flex flex-col justify-center">
+                <div class="badge-pill bg-white/90 text-indigo-900 border-2 border-white shadow-md mx-auto mb-4">${title}</div>
+                <div class="text-7xl mb-4 animate-float-slow filter drop-shadow-lg">${icon}</div>
+                <p class="font-serif text-2xl text-white font-medium leading-relaxed drop-shadow-md px-2">
+                    "${item.content}"
+                </p>
+                ${answerHtml}
             </div>`,
-        css: 'float-card-purple'
+        css: css
     };
+}
+
+function getTopDailyStudentCard(classId, studentId) {
+    if (!classId || !studentId) return null;
+    const student = state.get('allStudents').find(s => s.id === studentId);
+    if (!student) return null;
+    const todayStars = state.get('todaysStars');
+    const stars = todayStars[studentId]?.stars || 0;
+    
+    const avatar = student.avatar ? `<img src="${student.avatar}" class="w-32 h-32 rounded-full border-4 border-white shadow-md mx-auto mb-2 object-cover">` : `<div class="w-32 h-32 rounded-full bg-white/50 flex items-center justify-center text-6xl mx-auto mb-2 font-bold">${student.name.charAt(0)}</div>`;
+    return {
+        html: `<div class="text-center"><div class="badge-pill bg-yellow-100 text-yellow-800">Daily MVP</div>${avatar}<h2 class="font-title text-4xl text-yellow-900">${student.name}</h2><p class="text-yellow-700 font-bold text-xl mt-1">+${stars} Stars Today!</p></div>`,
+        css: 'float-card-gold'
+    };
+}
+
+function getNextHolidayCard() {
+    const holidays = state.get('schoolHolidayRanges') || [];
+    const now = new Date();
+    const sorted = holidays.filter(h => new Date(h.end) >= now).sort((a,b) => new Date(a.start) - new Date(b.start));
+    const next = sorted[0];
+    if (!next) return null;
+    const diffDays = Math.ceil((new Date(next.start) - now) / (1000*60*60*24));
+    let icon = '🏖️', css = 'float-card-blue', subtext = 'Break Time';
+    if (next.name.toLowerCase().includes('christmas')) { icon = '🎄'; css = 'float-card-red'; subtext = 'Winter Holidays'; }
+    return {
+        html: `<div class="text-center"><div class="badge-pill bg-white/80 text-gray-800 font-bold">${subtext}</div><div class="text-8xl mb-4 animate-bounce-slow">${icon}</div><h3 class="font-title text-4xl text-gray-900 mb-2">${next.name}</h3><p class="text-2xl font-bold opacity-90">In ${diffDays} Days</p></div>`,
+        css: css
+    };
+}
+
+function getSchoolPulseCard() {
+    const scores = state.get('allStudentScores');
+    const totalStars = scores.reduce((a, b) => a + (b.totalStars || 0), 0);
+    return { html: `<div class="text-center"><div class="badge-pill bg-indigo-100 text-indigo-700">School Pulse</div><div class="text-7xl mb-2 animate-pulse">⭐</div><h2 class="text-5xl font-title text-indigo-900">${totalStars}</h2><p class="text-indigo-500 font-bold uppercase">Total Stars Earned</p></div>`, css: 'float-card-indigo' };
+}
+
+function getTreasuryCard(classId) {
+    let total = 0;
+    const scores = state.get('allStudentScores');
+    if(classId) state.get('allStudents').filter(s => s.classId === classId).forEach(s => { const sc = scores.find(x => x.id === s.id); if(sc) total += (sc.gold !== undefined ? sc.gold : sc.totalStars); });
+    else total = scores.reduce((sum, s) => sum + (s.gold !== undefined ? s.gold : s.totalStars), 0);
+    return { html: `<div class="text-center"><div class="badge-pill bg-amber-100 text-amber-800">Treasury</div><div class="text-8xl mb-2 animate-bounce-slow">💰</div><h2 class="text-6xl font-title text-amber-900">${total}</h2><p class="text-amber-600 font-bold">Gold Coins</p></div>`, css: 'float-card-gold' };
 }
 
 function getClassQuestCard(classId) {
     const cls = state.get('allSchoolClasses').find(c => c.id === classId);
+    if (!cls) return null;
     const students = state.get('allStudents').filter(s => s.classId === classId);
-    const scores = state.get('allStudentScores');
-    const total = students.reduce((sum, stu) => sum + (scores.find(sc => sc.id === stu.id)?.monthlyStars || 0), 0);
+    const now = new Date(); const m = now.getMonth(); const y = now.getFullYear();
+    const monthlyStars = state.get('allAwardLogs').reduce((sum, log) => { if(log.classId !== classId) return sum; const d = utils.parseDDMMYYYY(log.date); if(d.getMonth() === m && d.getFullYear() === y) return sum + log.stars; return sum; }, 0);
     const goal = Math.max(18, students.length * 18);
-    const pct = Math.min(100, Math.round((total/goal)*100));
-
-    return {
-        html: `
-            <div class="text-center">
-                <div class="inline-block bg-amber-100 text-amber-800 text-xs font-bold px-3 py-1 rounded-full mb-4 uppercase tracking-widest border border-amber-200">Quest Progress</div>
-                <div class="text-7xl mb-4 filter drop-shadow-md animate-bounce">${cls.logo}</div>
-                <div class="w-full bg-white h-8 rounded-full overflow-hidden border-2 border-amber-200 shadow-inner relative mb-2">
-                    <div class="bg-gradient-to-r from-amber-300 to-orange-500 h-full transition-all duration-1000" style="width: ${pct}%"></div>
-                </div>
-                <p class="font-title text-amber-900 text-3xl">${pct}%</p>
-                <p class="text-amber-700 text-sm font-bold uppercase">Monthly Goal</p>
-            </div>`,
-        css: 'float-card-gold'
-    };
-}
-
-function getTopSkillCard(classId) {
-    const logs = state.get('allAwardLogs');
-    const relevantLogs = classId ? logs.filter(l => l.classId === classId) : logs;
-    const reasons = {};
-    relevantLogs.forEach(l => { if(l.reason) reasons[l.reason] = (reasons[l.reason] || 0) + 1; });
-    
-    // Pick random top 3 to keep it fresh
-    const entries = Object.entries(reasons).sort((a,b) => b[1] - a[1]);
-    const displayEntry = entries.length > 0 ? entries[Math.floor(Math.random() * Math.min(3, entries.length))] : ['courage', 0];
-    
-    const displayReason = displayEntry[0];
-    const formattedName = displayReason.replace('_', ' ').toUpperCase();
-    const icons = {'teamwork': '🤝', 'creativity': '🎨', 'respect': '🙌', 'focus': '🧠', 'welcome_back': '👋', 'courage': '🦁', 'kindness': '❤️'};
-    
-    return {
-        html: `
-            <div class="text-center">
-                <div class="inline-block bg-yellow-100 text-yellow-800 text-xs font-bold px-3 py-1 rounded-full mb-4 uppercase tracking-widest border border-yellow-200">${classId ? 'Class' : 'School'} Superpower</div>
-                <div class="text-8xl mb-4 animate-bounce filter drop-shadow-md">${icons[displayReason] || '⚡'}</div>
-                <h3 class="font-title text-3xl text-white drop-shadow-md tracking-wide">${formattedName}</h3>
-                <p class="text-yellow-50 mt-2 font-semibold text-sm">Key strength this month</p>
-            </div>`,
-        css: 'float-card-dark'
-    };
-}
-
-function getTreasuryCard(classId) {
-    let totalGold = 0;
-    const scores = state.get('allStudentScores');
-    if (classId) {
-        state.get('allStudents').filter(s => s.classId === classId).forEach(s => {
-            const sc = scores.find(score => score.id === s.id);
-            if(sc) totalGold += (sc.gold !== undefined ? sc.gold : sc.totalStars);
-        });
-    } else {
-        totalGold = scores.reduce((sum, sc) => sum + (sc.gold !== undefined ? sc.gold : sc.totalStars), 0);
-    }
-    return {
-        html: `
-            <div class="text-center">
-                <div class="inline-block bg-amber-100 text-amber-800 text-xs font-bold px-3 py-1 rounded-full mb-3 uppercase tracking-widest border border-amber-200">Treasury</div>
-                <div class="text-7xl mb-2 filter drop-shadow-md">💰</div>
-                <h3 class="font-title text-5xl text-amber-900 mb-1">${totalGold}</h3>
-                <p class="text-amber-700 font-bold uppercase text-sm tracking-wide">Gold Coins Collected</p>
-            </div>`,
-        css: 'float-card-gold'
-    };
-}
-
-function getBountyCard(b) {
-    if (!b) return null;
-    const pct = Math.min(100, (b.currentProgress / b.target) * 100);
-    return {
-        html: `
-            <div class="text-center relative overflow-hidden">
-                <div class="inline-block bg-red-100 text-red-600 text-xs font-bold px-3 py-1 rounded-full mb-4 uppercase tracking-widest animate-pulse border border-red-200">Active Bounty</div>
-                <h3 class="font-title text-2xl text-gray-800 mb-1 leading-tight">${b.title}</h3>
-                <p class="text-sm text-gray-600 mb-4 bg-white/50 rounded-lg p-1 inline-block border border-gray-200">🎁 Reward: ${b.reward}</p>
-                <div class="w-full bg-gray-200 h-8 rounded-full overflow-hidden border-2 border-white shadow-inner mb-2">
-                    <div class="bg-gradient-to-r from-red-400 to-rose-500 h-full transition-all duration-1000 relative" style="width: ${pct}%"></div>
-                </div>
-                <p class="font-bold text-red-600 text-xl">${b.currentProgress} / ${b.target}</p>
-            </div>`,
-        css: 'float-card-red'
-    };
-}
-
-function getStoryCard(classId) {
-    const storyData = state.get('currentStoryData')[classId];
-    if (!storyData || !storyData.currentSentence) return null;
-    return {
-        html: `
-            <div class="text-center">
-                <div class="inline-block bg-teal-100 text-teal-700 text-xs font-bold px-3 py-1 rounded-full mb-4 uppercase tracking-widest border border-teal-200">Story Chronicle</div>
-                <div class="bg-white/60 p-6 rounded-2xl border border-teal-200 shadow-sm mb-4 relative italic text-teal-900 text-xl leading-relaxed font-serif">
-                    "...${storyData.currentSentence}..."
-                </div>
-                <p class="text-sm text-teal-700 font-bold bg-white/40 inline-block px-4 py-2 rounded-lg border border-white/50">Word: ${storyData.currentWord || 'Mystery'}</p>
-            </div>`,
-        css: 'float-card-green'
-    };
+    const pct = Math.min(100, Math.round((monthlyStars/goal)*100));
+    return { html: `<div class="text-center w-full"><div class="badge-pill bg-blue-100 text-blue-700">Quest Progress</div><div class="text-9xl mb-4 filter drop-shadow-md animate-pulse">${cls.logo}</div><div class="w-full bg-white h-8 rounded-full overflow-hidden border-2 border-blue-200 mb-2 shadow-inner"><div class="bg-gradient-to-r from-blue-400 to-indigo-500 h-full" style="width:${pct}%"></div></div><p class="font-title text-4xl text-blue-900">${pct}% Complete</p></div>`, css: 'float-card-blue' };
 }
 
 function getTimekeeperCard(classId) {
     const cls = state.get('allSchoolClasses').find(c => c.id === classId);
     if (!cls || !cls.timeEnd) return null;
-    const now = new Date();
-    const [endH, endM] = cls.timeEnd.split(':').map(Number);
-    const endTime = new Date(); endTime.setHours(endH, endM, 0);
-    const diffMs = endTime - now;
-    if (diffMs <= 0 || diffMs > 45 * 60000) return null;
-    const diffMins = Math.ceil(diffMs / 60000);
-    
-    return {
-        html: `
-            <div class="text-center">
-                <div class="inline-block bg-red-100 text-red-700 text-xs font-bold px-3 py-1 rounded-full mb-4 uppercase tracking-widest border border-red-200">Timekeeper</div>
-                <div class="relative w-32 h-32 mx-auto mb-4 flex items-center justify-center">
-                    <svg class="absolute inset-0 w-full h-full transform -rotate-90">
-                        <circle cx="64" cy="64" r="56" stroke="#FECACA" stroke-width="12" fill="none" />
-                        <circle cx="64" cy="64" r="56" stroke="#EF4444" stroke-width="12" fill="none" stroke-dasharray="351" stroke-dashoffset="${351 * (1 - diffMins/45)}" />
-                    </svg>
-                    <span class="font-title text-5xl text-red-600">${diffMins}</span>
-                </div>
-                <p class="text-red-800 font-bold text-xl uppercase tracking-wide">Minutes Left</p>
-            </div>`,
-        css: 'float-card-red'
-    };
+    const now = new Date(); const [h, m] = cls.timeEnd.split(':').map(Number); const end = new Date(); end.setHours(h, m, 0);
+    const diff = Math.ceil((end - now) / 60000);
+    if (diff <= 0 || diff > 90) return null;
+    return { html: `<div class="text-center"><div class="badge-pill bg-red-100 text-red-700">Timekeeper</div><div class="relative w-40 h-40 mx-auto mb-4 flex items-center justify-center bg-white rounded-full shadow-inner border-4 border-red-50"><span class="font-title text-7xl text-red-500">${diff}</span></div><p class="text-red-800 font-bold text-xl">Minutes Remaining</p></div>`, css: 'float-card-red' };
 }
 
 function getAttendanceStreakCard(classId) {
     const logs = state.get('allAwardLogs').filter(l => l.classId === classId);
-    if (logs.length < 5) return null;
-    const randomStreak = Math.floor(Math.random() * 5) + 3;
+    if (logs.length === 0) return null;
+
+    const starsByDate = logs.reduce((acc, log) => {
+        acc[log.date] = (acc[log.date] || 0) + log.stars;
+        return acc;
+    }, {});
+
+    const sortedDates = Object.keys(starsByDate).sort((a,b) => 
+        utils.parseDDMMYYYY(b) - utils.parseDDMMYYYY(a)
+    );
+
+    let streak = 0;
+    for (const date of sortedDates) {
+        if (starsByDate[date] >= 5) {
+            streak++;
+        } else {
+            break; 
+        }
+    }
+
+    if (streak < 2) return null; 
+
     return {
-        html: `
-            <div class="text-center">
-                <div class="inline-block bg-green-100 text-green-700 text-xs font-bold px-3 py-1 rounded-full mb-4 uppercase tracking-widest border border-green-200">Team Spirit</div>
-                <div class="text-8xl mb-4 animate-bounce">🔥</div>
-                <h3 class="font-title text-5xl text-green-800 mb-2">${randomStreak} Days</h3>
-                <p class="text-green-600 font-bold text-sm uppercase tracking-wide">Participation Streak!</p>
-            </div>`,
-        css: 'float-card-green'
+        html: `<div class="text-center"><div class="badge-pill bg-orange-100 text-orange-700">On Fire!</div><div class="text-9xl mb-4 animate-bounce">🔥</div><h3 class="font-title text-6xl text-orange-600">${streak} Lessons</h3><p class="text-orange-800 font-bold">Consecutive "Super Days" (>5 Stars)</p></div>`,
+        css: 'float-card-orange'
     };
 }
 
-// --- SPAWN HELPER (Safe Zones) ---
-function spawnCard(container, cardData) {
-    const card = document.createElement('div');
-    card.className = `wallpaper-float-card ${cardData.css} absolute`;
-    card.innerHTML = cardData.html;
-    
-    // Strict Positioning: 4rem from edge to ensure full visibility
-    const side = Math.random() > 0.5 ? 'left' : 'right';
-    const randomY = 15 + Math.random() * 55; // 15% to 70% vertical (Center Safe)
-    
-    card.style.top = `${randomY}%`;
-    if (side === 'left') {
-        card.style.left = '4rem'; 
-        card.style.right = 'auto'; 
-    } else {
-        card.style.right = '4rem';
-        card.style.left = 'auto'; 
-    }
+function getStudentSpotlightCard(studentId) {
+    const s = state.get('allStudents').find(x => x.id === studentId); if (!s) return null;
+    const avatar = s.avatar ? `<img src="${s.avatar}" class="w-40 h-40 rounded-full border-8 border-white shadow-xl mx-auto mb-4 object-cover">` : `<div class="w-40 h-40 rounded-full bg-indigo-200 flex items-center justify-center text-7xl mx-auto mb-4 border-8 border-white">${s.name.charAt(0)}</div>`;
+    return { html: `<div class="text-center"><div class="badge-pill bg-purple-100 text-purple-700">Hero Spotlight</div>${avatar}<h2 class="font-title text-5xl text-purple-900">${s.name}</h2><p class="text-purple-500 font-bold mt-2">Class Adventurer</p></div>`, css: 'float-card-purple' };
+}
 
-    card.style.opacity = '0';
-    card.style.transform = 'translateY(40px) scale(0.9)';
-    
-    container.appendChild(card);
-    
-    requestAnimationFrame(() => {
-        card.style.opacity = '1';
-        card.style.transform = 'translateY(0) scale(1)';
+function getBirthdayCard(studentId) { const s = state.get('allStudents').find(x => x.id === studentId); if(!s) return null; return { html: `<div class="text-center relative"><div class="absolute -top-6 -left-6 text-7xl animate-bounce">🎉</div><div class="absolute -top-6 -right-6 text-7xl animate-bounce" style="animation-delay:0.5s">🎂</div><div class="badge-pill bg-pink-100 text-pink-700">Celebration!</div><div class="w-40 h-40 mx-auto my-4 rounded-full bg-white flex items-center justify-center text-8xl shadow-inner border-4 border-pink-200">🥳</div><h2 class="font-title text-5xl text-pink-600">Happy Birthday!</h2><h3 class="font-title text-4xl text-pink-800 mt-2">${s.name}</h3></div>`, css: 'float-card-pink' }; }
+
+function getNamedayCard(studentId) { const s = state.get('allStudents').find(x => x.id === studentId); if(!s) return null; return { html: `<div class="text-center relative"><div class="absolute -top-4 left-1/2 -translate-x-1/2 text-6xl animate-pulse">✨</div><div class="inline-block bg-green-100 text-green-700 text-xs font-bold px-4 py-2 rounded-full mb-6 uppercase tracking-widest border border-green-200">Happy Nameday!</div><div class="text-8xl mb-4">🎈</div><h2 class="font-title text-5xl text-green-900 mb-2">${s.name}</h2><p class="font-serif italic text-2xl text-green-600 mt-2">Χρόνια Πολλά!</p></div>`, css: 'float-card-green' }; }
+
+function getStoryCard(classId, mode) {
+    const story = state.get('currentStoryData')[classId]; if(!story) return null;
+    if (mode === 'image' && story.currentImageUrl) return { html: `<div class="text-center"><div class="badge-pill bg-cyan-100 text-cyan-700">Visual Chronicle</div><div class="p-2 bg-white rounded-2xl shadow-lg rotate-1"><img src="${story.currentImageUrl}" class="w-full h-56 object-cover rounded-xl"></div><p class="text-cyan-900 font-serif italic mt-3 text-sm">"From our story..."</p></div>`, css: 'float-card-cyan' };
+    return { html: `<div class="text-center"><div class="badge-pill bg-cyan-100 text-cyan-700">Story So Far</div><div class="bg-white/60 p-6 rounded-2xl border border-cyan-200 mt-4 relative shadow-sm"><i class="fas fa-quote-left absolute top-2 left-2 text-cyan-300 text-4xl opacity-50"></i><p class="font-serif text-2xl text-cyan-900 italic leading-relaxed">"${story.currentSentence}"</p></div></div>`, css: 'float-card-cyan' };
+}
+
+function getSpecificLogCard(logId) { const log = state.get('allAdventureLogs').find(l => l.id === logId); if (!log) return null; return { html: `<div class="text-center"><div class="badge-pill bg-teal-100 text-teal-700">Flashback</div><p class="text-xs text-teal-600 font-bold uppercase mb-2">${log.date}</p><div class="bg-white p-2 rounded-2xl shadow-lg rotate-2 mb-2"><img src="${log.imageUrl}" class="w-full h-40 object-cover rounded-xl"></div><p class="font-serif text-teal-900 text-sm line-clamp-2">"${log.text}"</p></div>`, css: 'float-card-teal' }; }
+
+function getHomeworkCard(classId) { const assignments = state.get('allQuestAssignments').filter(a => a.classId === classId); if(assignments.length === 0) return null; return { html: `<div class="text-center"><div class="badge-pill bg-amber-100 text-amber-800">Mission</div><div class="text-7xl mb-2">📜</div><div class="bg-white/80 p-6 rounded-xl border-l-4 border-amber-400 text-left shadow-sm"><p class="font-handwriting text-2xl text-amber-900">${assignments[assignments.length-1].text}</p></div></div>`, css: 'float-card-gold' }; }
+
+function getWeatherCard() { return { html: `<div class="text-center"><div class="badge-pill bg-sky-100 text-sky-700">Forecast</div><div class="text-8xl mb-2 animate-pulse-slow">🌤️</div><h3 class="font-title text-4xl text-sky-900">Look Outside!</h3><p class="text-sky-600 font-bold">The world is beautiful.</p></div>`, css: 'float-card-blue' }; }
+
+function getRandomLeagueRaceCard() { return { html: `<div class="text-center"><div class="text-8xl mb-4">🏁</div><h3 class="font-title text-4xl text-gray-800">League Race</h3><p class="text-gray-600 font-bold">Who will take the lead?</p></div>`, css: 'float-card-white' }; }
+
+function getSchoolGoldLeaderCard() {
+    const classes = state.get('allSchoolClasses');
+    if(classes.length === 0) return null;
+    let topClass = null, maxGold = -1;
+    classes.forEach(c => {
+        const students = state.get('allStudents').filter(s => s.classId === c.id);
+        const gold = students.reduce((sum, s) => {
+            const sc = state.get('allStudentScores').find(score => score.id === s.id);
+            return sum + (sc?.gold || 0);
+        }, 0);
+        if(gold > maxGold) { maxGold = gold; topClass = c; }
     });
-}
-
-// --- DATA FETCHING & AI ---
-async function fetchSolarCycle() {
-    try {
-        const response = await fetch('https://api.sunrise-sunset.org/json?lat=37.9838&lng=23.7275&formatted=0');
-        const data = await response.json();
-        if (data.status === 'OK') {
-            solarData.sunrise = new Date(data.results.sunrise).getTime();
-            solarData.sunset = new Date(data.results.sunset).getTime();
-        }
-    } catch (e) { console.warn("Using default solar times."); }
-}
-
-async function updateQuote() {
-    const container = document.getElementById('wall-quote-container');
-    const textEl = document.getElementById('wall-quote-text');
-    container.style.opacity = '0';
-    setTimeout(async () => {
-        const cls = state.get('globalSelectedClassId') ? state.get('allSchoolClasses').find(c => c.id === state.get('globalSelectedClassId')) : null;
-        const level = cls ? cls.questLevel : "Global";
-        const quote = await getQuote(level);
-        textEl.innerText = `"${quote}"`;
-        container.style.opacity = '1';
-    }, 1000);
-}
-
-async function getQuote(levelContext) {
-    return getAICachedContent("quote", levelContext);
-}
-
-// Unified Cache
-async function getAICachedContent(type, levelContext) {
-    const now = Date.now();
-    const storageKeyTime = `wall_${type}_time`;
-    const storageKeyText = `wall_${type}_text`;
-    const lastFetch = localStorage.getItem(storageKeyTime);
-    const cached = localStorage.getItem(storageKeyText);
-    
-    if (lastFetch && (now - parseInt(lastFetch) < 3600000) && cached) return cached;
-    
-    const ageGroup = utils.getAgeGroupForLeague(levelContext || "Global");
-    let systemPrompt, userPrompt;
-
-    if (type === "quote") {
-        systemPrompt = `You are a wise sage. Generate a short, inspiring quote (max 10 words) for students aged ${ageGroup}. No markdown.`;
-        userPrompt = "One quote.";
-    } else if (type === "word") {
-        systemPrompt = `Generate a single interesting English word and a 3-word definition for students aged ${ageGroup}. Format: Word - Definition. No markdown.`;
-        userPrompt = "One word.";
-    } else if (type === "fact") {
-        systemPrompt = `Generate a fascinating, short educational fact (max 12 words) for students aged ${ageGroup}. No markdown.`;
-        userPrompt = "One fact.";
-    }
-
-    try {
-        let result = await callGeminiApi(systemPrompt, userPrompt);
-        if (type === "word") {
-            const parts = result.split('-');
-            if (parts.length > 1) return { word: parts[0].trim(), def: parts[1].trim() };
-            return { word: result, def: "A mystery word" };
-        }
-        localStorage.setItem(storageKeyTime, now);
-        localStorage.setItem(storageKeyText, result);
-        return result;
-    } catch (e) {
-        if (type === "word") return { word: "Serendipity", def: "A happy accident" };
-        return "Learning is a journey.";
-    }
-}
-
-function getGoodMonthCard() {
-    const monthName = new Date().toLocaleString('en-US', { month: 'long' });
+    if(!topClass) return null;
     return {
-        html: `
-            <div class="text-center">
-                <div class="inline-block bg-amber-100 text-amber-800 text-xs font-bold px-3 py-1 rounded-full mb-4 uppercase tracking-widest border border-amber-200">A New Chapter</div>
-                <div class="text-8xl mb-4 animate-bounce">🎉</div>
-                <h3 class="font-title text-3xl text-amber-900 leading-tight">Wishing Everyone a Wonderful</h3>
-                <h2 class="font-title text-5xl text-orange-600">${monthName}!</h2>
-            </div>`,
+        html: `<div class="text-center"><div class="badge-pill bg-amber-100 text-amber-800">Richest Realm</div><div class="text-7xl mb-2">💰</div><h3 class="font-title text-4xl text-amber-900">${topClass.name}</h3><p class="text-amber-700 text-xl font-bold">${maxGold} Gold Coins</p></div>`,
         css: 'float-card-gold'
     };
 }
-function getSeasonalCard(season) {
-    let card = {};
-    switch (season) {
-        case 'winter':
-            card = {
-                html: `
-                    <div class="text-center">
-                        <div class="text-8xl mb-4">❄️</div>
-                        <h3 class="font-title text-3xl text-blue-800">Winter Wonders!</h3>
-                        <p class="text-blue-600 mt-2 font-semibold">Stay warm and keep the quest spirits bright!</p>
-                    </div>`,
-                css: 'float-card-blue'
-            };
-            break;
-        case 'halloween':
-            card = {
-                html: `
-                    <div class="text-center">
-                        <div class="text-8xl mb-4 animate-bounce">🎃</div>
-                        <h3 class="font-title text-3xl text-white">Happy Halloween!</h3>
-                        <p class="text-yellow-50 mt-2 font-semibold">Wishing you a spooky and fun adventure!</p>
-                    </div>`,
-                css: 'float-card-dark'
-            };
-            break;
-        case 'summer':
-            card = {
-                html: `
-                    <div class="text-center">
-                        <div class="text-8xl mb-4">☀️</div>
-                        <h3 class="font-title text-3xl text-orange-700">Hello, Sunshine!</h3>
-                        <p class="text-orange-600 mt-2 font-semibold">Enjoy the bright and sunny questing days!</p>
-                    </div>`,
-                css: 'float-card-gold'
-            };
-            break;
+
+function getSchoolTopStudentCard() {
+    const scores = state.get('allStudentScores');
+    const students = state.get('allStudents');
+    if(scores.length === 0) return null;
+    
+    const sorted = scores.sort((a,b) => b.totalStars - a.totalStars);
+    const topScore = sorted[0];
+    const student = students.find(s => s.id === topScore.id);
+    if(!student) return null;
+    
+    return {
+        html: `<div class="text-center"><div class="badge-pill bg-purple-100 text-purple-800">School Champion</div><div class="text-7xl mb-2">👑</div><h3 class="font-title text-4xl text-purple-900">${student.name}</h3><p class="text-purple-700 text-xl font-bold">${topScore.totalStars} Total Stars</p></div>`,
+        css: 'float-card-purple'
+    };
+}
+
+function getSchoolAttendanceCard() {
+    const students = state.get('allStudents');
+    if (students.length === 0) return null;
+
+    const now = new Date();
+    const currentMonth = now.getMonth();
+    const currentYear = now.getFullYear();
+
+    const records = state.get('allAttendanceRecords').filter(r => {
+        const d = utils.parseFlexibleDate(r.date);
+        return d && d.getMonth() === currentMonth && d.getFullYear() === currentYear;
+    });
+
+    if (records.length === 0) return null;
+
+    const absentsToday = state.get('allAttendanceRecords').filter(r => 
+        r.date === utils.getTodayDateString()
+    ).length;
+    
+    const totalStudents = students.length;
+    const presentToday = totalStudents - absentsToday;
+    const pct = Math.round((presentToday / totalStudents) * 100);
+
+    return {
+        html: `<div class="text-center"><div class="text-7xl mb-2">📊</div><h3 class="font-title text-4xl text-indigo-900">${pct}% Present</h3><p class="text-indigo-600 font-bold">School-Wide Today</p></div>`,
+        css: 'float-card-indigo'
+    };
+}
+
+function spawnCard(container, card) {
+    const el = document.createElement('div');
+    el.className = `wallpaper-float-card ${card.css} absolute`;
+    el.innerHTML = card.html;
+    el.dataset.cardId = card.id; 
+    
+    const zones = [
+        { top: '8%', left: '5%', bottom: 'auto', right: 'auto' },      
+        { top: '8%', right: '5%', bottom: 'auto', left: 'auto' },      
+        { bottom: '10%', left: '5%', top: 'auto', right: 'auto' },     
+        { bottom: '10%', right: '5%', top: 'auto', left: 'auto' }      
+    ];
+    
+    const pos = zones[Math.floor(Math.random() * zones.length)];
+    
+    el.style.top = pos.top;
+    el.style.bottom = pos.bottom;
+    el.style.left = pos.left;
+    el.style.right = pos.right;
+
+    el.style.opacity = '0';
+    el.style.transform = 'translateY(50px) scale(0.9)'; 
+    
+    container.appendChild(el);
+    
+    void el.offsetWidth;
+    
+    el.style.opacity = '1';
+    el.style.transform = 'translateY(0) scale(1) rotate(' + (Math.random() * 2 - 1) + 'deg)';
+    
+    return el;
+}
+
+export async function initSeasonalAtmosphere() {
+    const wall = document.getElementById('dynamic-wallpaper-screen');
+    
+    const existingEffects = document.getElementById('seasonal-effects-layer');
+    if (existingEffects) existingEffects.remove();
+    
+    const existingFog = document.getElementById('wall-fog-overlay');
+    if (existingFog) existingFog.remove();
+
+    wall.classList.remove('weather-clear', 'weather-rainy', 'weather-snowy');
+
+    const layer = document.createElement('div');
+    layer.id = 'seasonal-effects-layer';
+    layer.className = 'absolute inset-0 pointer-events-none z-0 overflow-hidden';
+    
+    let weatherCode = null;
+    
+    const cached = localStorage.getItem('gcq_weather_data_open_meteo');
+    if (cached) {
+        try {
+            const data = JSON.parse(cached);
+            if (Date.now() - data.timestamp < 3 * 60 * 60 * 1000) {
+                weatherCode = data.weather.code;
+            }
+        } catch(e) {}
     }
-    return card;
-}
 
-function getBirthdayCard(studentId) {
-    const student = state.get('allStudents').find(s => s.id === studentId);
-    if (!student) return null;
+    if (weatherCode === null) {
+        try {
+            const res = await fetch('https://api.open-meteo.com/v1/forecast?latitude=37.9838&longitude=23.7275&current=weather_code&timezone=auto');
+            const d = await res.json();
+            weatherCode = d.current.weather_code;
+        } catch(e) { console.log("Weather fetch failed, using seasonal fallback."); }
+    }
 
-    const avatarHtml = student.avatar
-        ? `<img src="${student.avatar}" class="w-32 h-32 rounded-full border-[6px] border-white shadow-xl mx-auto mb-4 object-cover bg-white">`
-        : `<div class="w-32 h-32 rounded-full bg-blue-100 flex items-center justify-center text-6xl mx-auto mb-4 border-[6px] border-white shadow-xl font-title text-blue-500">${student.name.charAt(0)}</div>`;
+    let effectHTML = '';
+    let usedRealWeather = false;
 
-    return {
-        html: `
-            <div class="text-center relative">
-                <div class="absolute -top-4 -left-4 text-5xl animate-bounce">🎉</div>
-                <div class="absolute -top-4 -right-4 text-5xl animate-bounce" style="animation-delay: 0.5s;">🎂</div>
-                <div class="inline-block bg-blue-100 text-blue-700 text-xs font-bold px-3 py-1 rounded-full mb-4 uppercase tracking-widest border border-blue-200">Happy Birthday!</div>
-                ${avatarHtml}
-                <h3 class="font-title text-4xl text-blue-900 drop-shadow-sm">${student.name}</h3>
-                <p class="text-blue-600 font-bold mt-2">Wishing you a fantastic day!</p>
-            </div>`,
-        css: 'float-card-blue'
-    };
-}
+    if (weatherCode !== null) {
+        usedRealWeather = true;
+        console.log("Setting Wallpaper Atmosphere: Code", weatherCode);
 
-function getNamedayCard(studentId) {
-    const student = state.get('allStudents').find(s => s.id === studentId);
-    if (!student) return null;
+        // 0: Clear Sky
+        if (weatherCode === 0) {
+            wall.classList.add('weather-clear'); 
+            layer.classList.add('summer-glow'); 
+        }
+        
+        // 1, 2, 3: Mainly Clear, Partly Cloudy, Overcast
+        else if (weatherCode <= 3) {
+            wall.classList.add('weather-cloudy');
+        }
+        
+        // 45, 48: Fog
+        else if (weatherCode === 45 || weatherCode === 48) {
+            const fog = document.createElement('div');
+            fog.id = 'wall-fog-overlay';
+            fog.className = 'wall-fog-layer'; 
+            wall.appendChild(fog);
+            wall.classList.add('weather-cloudy'); // Fog is also grey/cloudy
+        }
+        
+        // 51-67 (Drizzle/Rain), 80-82 (Showers), 95+ (Storm)
+        else if ((weatherCode >= 51 && weatherCode <= 67) || (weatherCode >= 80 && weatherCode <= 82) || weatherCode >= 95) {
+            wall.classList.add('weather-rainy'); 
+            for (let i = 0; i < 80; i++) { 
+                const left = Math.random() * 100;
+                const delay = Math.random() * 1;
+                const duration = 0.5 + Math.random() * 0.3; 
+                effectHTML += `<div class="seasonal-particle rain" style="left:${left}%; animation-delay:-${delay}s; animation-duration:${duration}s;"></div>`;
+            }
+        }
+        
+        // 71-77 (Snow), 85-86 (Snow Showers)
+        else if ((weatherCode >= 71 && weatherCode <= 77) || (weatherCode >= 85 && weatherCode <= 86)) {
+            wall.classList.add('weather-snowy');
+            for (let i = 0; i < 40; i++) {
+                const left = Math.random() * 100;
+                const delay = Math.random() * 5;
+                const duration = 5 + Math.random() * 10;
+                effectHTML += `<div class="seasonal-particle snow" style="left:${left}%; animation-delay:-${delay}s; animation-duration:${duration}s;">❄️</div>`;
+            }
+        }
+    }
 
-    const avatarHtml = student.avatar
-        ? `<img src="${student.avatar}" class="w-32 h-32 rounded-full border-[6px] border-white shadow-xl mx-auto mb-4 object-cover bg-white">`
-        : `<div class="w-32 h-32 rounded-full bg-green-100 flex items-center justify-center text-6xl mx-auto mb-4 border-[6px] border-white shadow-xl font-title text-green-500">${student.name.charAt(0)}</div>`;
+    if (!usedRealWeather) {
+        const month = new Date().getMonth();
+        if (month === 11 || month <= 1) { 
+             for (let i = 0; i < 30; i++) {
+                const left = Math.random() * 100;
+                const delay = Math.random() * 5;
+                const duration = 5 + Math.random() * 10;
+                effectHTML += `<div class="seasonal-particle snow" style="left:${left}%; animation-delay:-${delay}s; animation-duration:${duration}s;">❄️</div>`;
+            }
+        } else if (month >= 8 && month <= 10) { 
+             for (let i = 0; i < 20; i++) {
+                const left = Math.random() * 100;
+                const delay = Math.random() * 5;
+                const duration = 8 + Math.random() * 5;
+                effectHTML += `<div class="seasonal-particle leaf" style="left:${left}%; animation-delay:-${delay}s; animation-duration:${duration}s;">🍂</div>`;
+            }
+        } else if (month >= 2 && month <= 4) { 
+             for (let i = 0; i < 20; i++) {
+                const left = Math.random() * 100;
+                const delay = Math.random() * 5;
+                const duration = 10 + Math.random() * 5;
+                effectHTML += `<div class="seasonal-particle petal" style="left:${left}%; animation-delay:-${delay}s; animation-duration:${duration}s;">🌸</div>`;
+            }
+        } else { 
+            wall.classList.add('weather-clear');
+            layer.classList.add('summer-glow');
+        }
+    }
 
-    return {
-        html: `
-            <div class="text-center relative">
-                <div class="absolute -top-4 -left-4 text-5xl animate-bounce">✨</div>
-                <div class="absolute -top-4 -right-4 text-5xl animate-bounce" style="animation-delay: 0.5s;">🇬🇷</div>
-                <div class="inline-block bg-green-100 text-green-700 text-xs font-bold px-3 py-1 rounded-full mb-4 uppercase tracking-widest border border-green-200">Happy Nameday!</div>
-                ${avatarHtml}
-                <h3 class="font-title text-4xl text-green-900 drop-shadow-sm">${student.name}</h3>
-                <p class="text-green-600 font-bold mt-2">Χρόνια Πολλά!</p>
-            </div>`,
-        css: 'float-card-green'
-    };
+    layer.innerHTML = effectHTML;
+    const hub = document.getElementById('wall-center-hub');
+    wall.insertBefore(layer, hub);
 }

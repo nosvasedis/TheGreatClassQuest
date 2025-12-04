@@ -465,7 +465,7 @@ function advanceCeremony() {
         stage.innerHTML = `
             <div class="text-center">
                 <h2 class="font-title text-6xl text-white mb-4">Congratulations!</h2>
-                <p class="text-2xl text-indigo-200">A new quest begins tomorrow...</p>
+                <p class="text-2xl text-indigo-200">A new quest begins...</p>
                 <div class="mt-8 text-8xl animate-bounce">🎓</div>
             </div>
         `;
@@ -868,3 +868,4 @@ async function triggerAICommentary(phase, data) {
         }
     }, 250); 
 }
+

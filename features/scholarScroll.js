@@ -61,7 +61,15 @@ export function renderScholarsScrollTab(selectedClassId = null) {
 
 function renderScrollDashboard(classId) {
     const studentsInClass = state.get('allStudents').filter(s => s.classId === classId);
-    const scoresForClass = state.get('allWrittenScores').filter(s => s.classId === classId);
+    const threeMonthsAgo = new Date();
+threeMonthsAgo.setMonth(threeMonthsAgo.getMonth() - 3);
+threeMonthsAgo.setDate(1); // Start from the beginning of that month
+
+const scoresForClass = state.get('allWrittenScores').filter(s => {
+    if (s.classId !== classId || !s.date) return false;
+    const scoreDate = utils.parseFlexibleDate(s.date);
+    return scoreDate >= threeMonthsAgo;
+});
     const classData = state.get('allSchoolClasses').find(c => c.id === classId);
     const isJunior = classData && (classData.questLevel === 'Junior A' || classData.questLevel === 'Junior B');
     

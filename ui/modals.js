@@ -418,13 +418,46 @@ export async function showLogbookModal(dateString, isOndemand = false) {
 
 export function openHistoryModal(type) {
     const modal = document.getElementById('history-modal');
-    modal.dataset.historyType = type; // Store the type for later
-
+    modal.dataset.historyType = type;
+    
+    // Title
     const title = type === 'team' ? 'Team Quest History' : 'Hero\'s Challenge History';
     document.querySelector('#history-modal h2').innerText = title;
 
-    populateHistoryMonthSelector();
-    renderHistoricalLeaderboard("", type); // Initial render with no month selected
+    const league = state.get('globalSelectedLeague');
+
+    // Logic: If it's HERO history, we still need a specific context (League or Class).
+    // If it's TEAM history, we show ALL leagues, so we don't need a selection.
+    
+    if (type === 'hero' && !league) {
+        // Show League Picker for Hero Mode
+        const contentEl = document.getElementById('history-modal-content');
+        const selectEl = document.getElementById('history-month-select');
+        selectEl.classList.add('hidden');
+        
+        contentEl.innerHTML = `<h3 class="text-center font-semibold text-gray-700 mb-4">Select a league to view Hero History:</h3>` +
+            `<div class="grid grid-cols-2 gap-4">` +
+            constants.questLeagues.map(l => `<button class="league-select-btn w-full p-4 font-title text-xl text-amber-800 bg-amber-100 rounded-xl shadow border-2 border-amber-200 transition hover:bg-amber-200 hover:shadow-md bubbly-button" data-league="${l}">${l}</button>`).join('') +
+            `</div>`;
+        
+        contentEl.querySelectorAll('.league-select-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                playSound('click');
+                state.setGlobalSelectedLeague(btn.dataset.league, false);
+                selectEl.classList.remove('hidden');
+                populateHistoryMonthSelector();
+                renderHistoricalLeaderboard("", type);
+            });
+        });
+
+    } else {
+        // Team Mode OR Hero Mode with league selected -> Show normal view
+        document.getElementById('history-month-select').classList.remove('hidden');
+        populateHistoryMonthSelector();
+        // If team, render blank state waiting for month. If hero, render blank state waiting for month.
+        renderHistoricalLeaderboard("", type);
+    }
+
     showAnimatedModal('history-modal');
 }
 
@@ -444,219 +477,274 @@ function populateHistoryMonthSelector() {
     }
 }
 
-// --- IN FILE: ui/modals.js ---
+// --- TEAM QUEST & HERO ARCHIVE ---
+// ui/modals.js
 
-export async function renderHistoricalLeaderboard(monthKey, type) {
+export async function renderHistoricalLeaderboard(monthKey, type, scope = 'class') {
+    // 1. Handle Hero History Redirect
+    if (type === 'hero') {
+        const modalTitle = document.querySelector('#history-modal h2');
+        if(modalTitle) modalTitle.style.display = 'block';
+        const outerSelect = document.querySelector('#history-month-select')?.parentElement;
+        if(outerSelect) outerSelect.style.display = 'block';
+        
+        import('./modals.js').then(m => m.openStudentRankingsModal()); 
+        return;
+    }
+
+    // 2. DOM Manipulation: Hide redundant elements
+    const modalTitle = document.querySelector('#history-modal h2');
+    if(modalTitle) modalTitle.style.display = 'none'; 
+    
+    const originalSelect = document.getElementById('history-month-select');
+    if (originalSelect && originalSelect.parentElement) {
+        originalSelect.parentElement.style.display = 'none';
+    }
+
     const contentEl = document.getElementById('history-modal-content');
+    
+    // 3. Prepare Dropdown Options
+    const options = Array.from(originalSelect.options).map(opt => {
+        const isSelected = opt.value === monthKey ? 'selected' : '';
+        return `<option value="${opt.value}" ${isSelected} class="text-gray-800 py-1">${opt.text}</option>`;
+    }).join('');
+
+    // --- Banner Header ---
+    const headerHtml = `
+        <div class="relative overflow-hidden rounded-3xl bg-gradient-to-br from-orange-500 via-amber-500 to-yellow-500 p-6 text-white shadow-xl mb-6 border-4 border-orange-400/50">
+            <div class="absolute -right-6 -top-6 text-white/10 text-9xl transform rotate-12 pointer-events-none"><i class="fas fa-flag-checkered"></i></div>
+            <div class="absolute left-10 bottom-0 text-white/10 text-8xl transform -rotate-12 pointer-events-none"><i class="fas fa-map"></i></div>
+            <div class="relative z-10 flex flex-col md:flex-row justify-between items-center gap-4">
+                <div>
+                    <div class="flex items-center gap-3 mb-1">
+                        <div class="bg-white/20 p-2 rounded-lg backdrop-blur-sm"><i class="fas fa-flag-checkered text-2xl"></i></div>
+                        <h3 class="font-title text-3xl text-shadow-sm tracking-wide">Team Quest Archive</h3>
+                    </div>
+                    <p class="text-orange-100 font-medium text-sm ml-1 opacity-90">Review past victories and league standings</p>
+                </div>
+                <div class="w-full md:w-auto">
+                    <div class="relative group">
+                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-orange-200"><i class="fas fa-calendar-alt"></i></div>
+                        <select id="internal-history-select" 
+                            class="appearance-none w-full md:w-64 bg-white/20 hover:bg-white/30 text-white font-bold py-3 pl-10 pr-10 rounded-xl backdrop-blur-md border border-white/40 shadow-inner focus:outline-none focus:ring-2 focus:ring-white/50 transition-all cursor-pointer placeholder-white">
+                            ${options}
+                        </select>
+                        <div class="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none text-orange-200"><i class="fas fa-chevron-down"></i></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+
+    // 4. Handle Empty State
     if (!monthKey) {
-        contentEl.innerHTML = '<p class="text-center text-gray-500">Select a month.</p>';
+        contentEl.innerHTML = headerHtml + `
+            <div class="flex flex-col items-center justify-center py-16 bg-gray-50 rounded-3xl border-2 border-dashed border-gray-300">
+                <div class="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mb-4"><i class="fas fa-history text-4xl text-gray-300"></i></div>
+                <p class="text-gray-500 font-bold text-lg">Time Machine Ready</p>
+                <p class="text-gray-400 text-sm">Select a month above to travel back in time.</p>
+            </div>`;
+        document.getElementById('internal-history-select').addEventListener('change', (e) => renderHistoricalLeaderboard(e.target.value, 'team'));
         return;
     }
 
-    const league = state.get('globalSelectedLeague');
-    if (!league) {
-        contentEl.innerHTML = '<p class="text-center text-red-500">Select a league first.</p>';
-        return;
-    }
+    // 5. Loading State
+    contentEl.innerHTML = headerHtml + `
+        <div class="flex flex-col items-center justify-center py-20">
+            <i class="fas fa-circle-notch fa-spin text-5xl text-amber-500 mb-4"></i>
+            <p class="text-gray-600 font-bold animate-pulse text-lg">Retrieving Quest Logs...</p>
+        </div>`;
+    
+    document.getElementById('internal-history-select').addEventListener('change', (e) => renderHistoricalLeaderboard(e.target.value, 'team'));
 
-    let monthlyScores = {}; 
-    let activeParticipants = new Set(); 
-    // *** NEW: Define logs array in scope ***
-    let logs = [];
-
+    // --- MAIN RENDER LOGIC WITH SAFETY ---
     try {
-        contentEl.innerHTML = `<div class="text-center py-8"><i class="fas fa-spinner fa-spin text-2xl text-amber-500"></i><p class="mt-2 text-gray-600">Reconstructing timeline...</p></div>`;
+        let monthlyScores = {}; 
         
-        const { fetchLogsForMonth } = await import('../db/queries.js');
-        const { fetchMonthlyHistory } = await import('../state.js'); 
-
-        const [year, month] = monthKey.split('-').map(Number);
-        
-        // 1. Fetch Logs
-        const logsPromise = fetchLogsForMonth(year, month);
-        const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout')), 8000));
-        logs = await Promise.race([logsPromise, timeoutPromise]).catch(e => []);
-        
-        if (!logs || logs.length === 0) {
-            monthlyScores = await fetchMonthlyHistory(monthKey);
-            Object.keys(monthlyScores).forEach(id => activeParticipants.add(id));
-        } else {
-            logs.forEach(log => {
-                monthlyScores[log.studentId] = (monthlyScores[log.studentId] || 0) + log.stars;
-                activeParticipants.add(log.studentId);
-            });
+        // A. Fetch Data
+        try {
+            const { fetchLogsForMonth } = await import('../db/queries.js');
+            const { fetchMonthlyHistory } = await import('../state.js'); 
+            const [year, month] = monthKey.split('-').map(Number);
+            
+            const logsPromise = fetchLogsForMonth(year, month);
+            const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout')), 5000));
+            const logs = await Promise.race([logsPromise, timeoutPromise]).catch(e => []);
+            
+            if (!logs || logs.length === 0) {
+                monthlyScores = await fetchMonthlyHistory(monthKey);
+            } else {
+                logs.forEach(log => {
+                    monthlyScores[log.studentId] = (monthlyScores[log.studentId] || 0) + log.stars;
+                });
+            }
+        } catch (e) { 
+            console.error("Fetch Error:", e); 
         }
 
-    } catch (error) {
-        console.error("Leaderboard Load Error:", error);
-        contentEl.innerHTML = `<p class="text-center text-red-500">Could not load data.</p>`;
-        return;
-    }
-    
-    const monthDisplay = new Date(monthKey + '-02').toLocaleString('en-GB', { month: 'long', year: 'numeric' });
-
-    if (type === 'team') {
-        const classesInLeague = state.get('allSchoolClasses').filter(c => c.questLevel === league);
+        // B. Calculate & Render
         const [hYear, hMonth] = monthKey.split('-').map(Number);
         const daysInMonth = new Date(hYear, hMonth, 0).getDate();
         
         let globalHolidayDays = 0;
         const ranges = state.get('schoolHolidayRanges') || [];
+        const monthStart = new Date(hYear, hMonth - 1, 1);
+        const monthEnd = new Date(hYear, hMonth, 0);
+
         ranges.forEach(range => {
             const start = new Date(range.start);
             const end = new Date(range.end);
-            const monthStart = new Date(hYear, hMonth - 1, 1);
-            const monthEnd = new Date(hYear, hMonth, 0);
             const overlapStart = start > monthStart ? start : monthStart;
             const overlapEnd = end < monthEnd ? end : monthEnd;
             if (overlapStart <= overlapEnd) {
-                const diffDays = Math.ceil(Math.abs(overlapEnd - overlapStart) / (1000 * 60 * 60 * 24)) + 1;
+                const diffTime = Math.abs(overlapEnd - overlapStart);
+                const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
                 globalHolidayDays += diffDays;
             }
         });
 
-        const BASE_GOAL = 18; 
-        const SCALING_FACTOR = 1.5; 
-        const { parseDDMMYYYY } = await import('../utils.js');
+        const overrides = state.get('allScheduleOverrides') || [];
+        const allLeagues = (await import('../constants.js')).questLeagues;
+        const allClasses = state.get('allSchoolClasses');
+        const myClassIds = state.get('allTeachersClasses').map(c => c.id);
+        const BASE_GOAL = 18;
+        const SCALING_FACTOR = 1.5;
 
-        const classScores = classesInLeague.map(c => {
-            if (c.ceremonyHistory && c.ceremonyHistory[monthKey] && c.ceremonyHistory[monthKey].stats) {
-                return { ...c, ...c.ceremonyHistory[monthKey].stats, isSnapshot: true };
-            }
-            const overrides = state.get('allScheduleOverrides') || [];
-            const classCancellations = overrides.filter(o => {
-                if (o.classId !== c.id || o.type !== 'cancelled') return false;
-                const oDate = parseDDMMYYYY(o.date);
-                return oDate.getMonth() === (hMonth - 1) && oDate.getFullYear() === hYear;
-            }).length;
+        let fullHtml = '';
 
-            const totalDaysLost = globalHolidayDays + classCancellations;
-            let monthModifier = (daysInMonth - totalDaysLost) / daysInMonth;
-            if ((hMonth - 1) === 5) monthModifier = 0.5;
-            else monthModifier = Math.max(0.6, Math.min(1.0, monthModifier));
+        for (const league of allLeagues) {
+            const classesInLeague = allClasses.filter(c => c.questLevel === league);
+            if (classesInLeague.length === 0) continue;
 
-            const rosterStudents = state.get('allStudents').filter(s => s.classId === c.id); 
-            const studentIds = new Set(rosterStudents.map(s => s.id));
-            const studentCount = studentIds.size;
-            const totalStars = Array.from(studentIds).reduce((sum, id) => sum + (monthlyScores[id] || 0), 0);
-            
-            let historicalDifficulty = c.difficultyLevel || 0;
-            if (c.questCompletedAt && c.questCompletedAt.toDate() >= new Date(hYear, hMonth - 1, 1)) {
-                historicalDifficulty = Math.max(0, historicalDifficulty - 1);
-            }
+            const leagueScores = classesInLeague.map(c => {
+                const rosterStudents = state.get('allStudents').filter(s => s.classId === c.id); 
+                const studentIds = new Set(rosterStudents.map(s => s.id));
+                const totalStars = Array.from(studentIds).reduce((sum, id) => sum + (monthlyScores[id] || 0), 0);
+                
+                const classCancellations = overrides.filter(o => {
+                    if (o.classId !== c.id || o.type !== 'cancelled') return false;
+                    const oDate = utils.parseDDMMYYYY(o.date); 
+                    return oDate.getMonth() === (hMonth - 1) && oDate.getFullYear() === hYear;
+                }).length;
 
-            const adjustedGoalPerStudent = (BASE_GOAL + (historicalDifficulty * SCALING_FACTOR)) * monthModifier;
-            const diamondGoal = studentCount > 0 ? Math.round(studentCount * adjustedGoalPerStudent) : 18;
-            const progress = diamondGoal > 0 ? (totalStars / diamondGoal) * 100 : 0;
-            
-            return { ...c, totalStars, progress, diamondGoal, studentCount, isSnapshot: false, daysLost: totalDaysLost };
-        }).sort((a, b) => {
-            if (Math.abs(b.progress - a.progress) > 0.1) return b.progress - a.progress;
-            return b.totalStars - a.totalStars;
-        });
+                const totalDaysLost = globalHolidayDays + classCancellations;
+                let monthModifier = (daysInMonth - totalDaysLost) / daysInMonth;
+                if (hMonth === 6) monthModifier = 0.5; 
+                else monthModifier = Math.max(0.6, Math.min(1.0, monthModifier));
 
-        // ... (Render HTML for Team - same as before)
-        let html = `<div class="mb-4">
-            <h3 class="font-title text-2xl text-amber-700">Class Rankings for ${monthDisplay}</h3>
-            ${globalHolidayDays > 0 ? `<p class="text-xs text-amber-600 font-bold"><i class="fas fa-calendar-times mr-1"></i>Includes ${globalHolidayDays} days of School Holiday</p>` : ''}
-        </div>`;
-        if (classScores.length === 0 || classScores.every(c => c.totalStars === 0)) {
-            html += `<p class="text-gray-600 mt-2">No stars were recorded for this league during this month.</p>`;
-        } else {
-            html += `<div class="mt-4 space-y-3">`;
-            classScores.forEach((c, index) => {
+                // --- SAFEGUARD: DIFFICULTY CALCULATION ---
+                let historicalDifficulty = c.difficultyLevel || 0;
+                if (c.questCompletedAt) {
+                    try {
+                        const completedDate = c.questCompletedAt.toDate ? c.questCompletedAt.toDate() : new Date(c.questCompletedAt);
+                        completedDate.setHours(0,0,0,0);
+                        if (completedDate >= monthStart) {
+                            historicalDifficulty = Math.max(0, historicalDifficulty - 1);
+                        }
+                    } catch(err) {
+                        console.warn("Invalid questCompletedAt date for class", c.name, err);
+                    }
+                }
+
+                const adjustedGoalPerStudent = (BASE_GOAL + (historicalDifficulty * SCALING_FACTOR)) * monthModifier;
+                const diamondGoal = Math.round(Math.max(18, rosterStudents.length * adjustedGoalPerStudent));
+                const progress = diamondGoal > 0 ? (totalStars / diamondGoal) * 100 : 0;
+                
+                return { ...c, totalStars, progress, diamondGoal, daysLost: totalDaysLost, historicalLevel: historicalDifficulty };
+            }).sort((a, b) => b.progress - a.progress);
+
+            if (leagueScores.every(c => c.totalStars === 0)) continue; 
+
+            fullHtml += `
+                <div class="mb-8 bg-white rounded-3xl shadow-sm border border-gray-100 overflow-hidden">
+                    <div class="bg-gray-50 px-6 py-4 border-b border-gray-200 flex justify-between items-center">
+                        <h4 class="font-title text-xl text-indigo-900 flex items-center gap-2">
+                            <span class="w-1.5 h-6 bg-indigo-500 rounded-full"></span>
+                            ${league} League
+                        </h4>
+                        <span class="text-xs font-bold text-gray-400 uppercase tracking-widest bg-white px-2 py-1 rounded border border-gray-200">Historical Data</span>
+                    </div>
+                    <div class="p-4 space-y-3">
+            `;
+
+            leagueScores.forEach((c, index) => {
                 const rank = index + 1;
-                let borderClass = 'border-amber-200', bgClass = 'bg-white', icon = '';
-                if (rank === 1) { borderClass = 'border-amber-400'; bgClass = 'bg-amber-50'; icon = '🥇'; } 
-                else if (rank === 2) { borderClass = 'border-gray-400'; icon = '🥈'; } 
-                else if (rank === 3) { borderClass = 'border-orange-400'; icon = '🥉'; }
-                const specificLost = c.daysLost - globalHolidayDays;
-                const adjustedBadge = specificLost > 0 ? `<span class="text-[10px] bg-red-100 text-red-600 px-1.5 py-0.5 rounded ml-2">- ${specificLost} Days</span>` : '';
+                const isMine = myClassIds.includes(c.id);
+                
+                let rankBadge = `<div class="w-10 h-10 rounded-full bg-gray-100 text-gray-500 font-bold flex items-center justify-center text-lg shadow-inner border border-gray-200">${rank}</div>`;
+                let rowBg = "bg-white hover:bg-gray-50";
+                let borderClass = "border border-gray-200";
+                
+                if (rank === 1) { 
+                    rankBadge = `<div class="w-12 h-12 text-4xl filter drop-shadow-md transform hover:scale-110 transition-transform">🥇</div>`; 
+                    rowBg = "bg-gradient-to-r from-amber-50 to-white";
+                    borderClass = "border border-amber-200 shadow-amber-100/50 shadow-md";
+                }
+                else if (rank === 2) { rankBadge = `<div class="w-10 h-10 text-3xl filter drop-shadow-sm">🥈</div>`; }
+                else if (rank === 3) { rankBadge = `<div class="w-10 h-10 text-3xl filter drop-shadow-sm">🥉</div>`; }
 
-                html += `<div class="p-4 rounded-xl shadow-sm border-l-4 ${borderClass} ${bgClass}">
-                        <div class="flex items-center justify-between mb-2">
-                            <div class="flex items-center gap-2">
-                                <span class="font-bold text-gray-500 w-6 text-xl">${rank}.</span>
-                                <span class="text-2xl">${c.logo}</span>
-                                <div><span class="font-bold text-lg text-gray-800">${c.name}</span>${icon ? `<span class="ml-2 text-xl">${icon}</span>` : ''}</div>
+                if (isMine) {
+                    rowBg += " bg-indigo-50/30";
+                    borderClass = "border-2 border-indigo-200 shadow-md ring-2 ring-indigo-50";
+                }
+
+                const highlightBadge = isMine ? `<span class="bg-indigo-100 text-indigo-700 text-[10px] px-2 py-0.5 rounded-full uppercase font-bold tracking-wider border border-indigo-200 ml-2">My Class</span>` : '';
+                const lostBadge = c.daysLost > 0 ? `<span class="bg-red-50 text-red-500 text-[10px] px-2 py-0.5 rounded-full border border-red-100 font-bold ml-1" title="${c.daysLost} days lost (Holidays/Cancelled)">-${c.daysLost}d</span>` : '';
+                const levelBadge = c.historicalLevel > 0 ? `<span class="bg-orange-100 text-orange-700 text-[10px] px-2 py-0.5 rounded-full border border-orange-200 font-bold ml-1">Lvl ${c.historicalLevel + 1}</span>` : '';
+                const displayProgress = Math.min(100, c.progress);
+                const barColor = rank === 1 ? 'bg-gradient-to-r from-amber-400 to-orange-500' : (isMine ? 'bg-indigo-500' : 'bg-gray-400');
+
+                fullHtml += `
+                    <div class="relative rounded-2xl p-4 transition-all ${rowBg} ${borderClass} flex items-center gap-4 group">
+                        <div class="flex-shrink-0 w-12 text-center">${rankBadge}</div>
+                        <div class="flex-grow min-w-0">
+                            <div class="flex items-center gap-2 mb-1.5">
+                                <span class="text-2xl filter drop-shadow-sm">${c.logo}</span>
+                                <h5 class="font-bold text-lg text-gray-800 truncate">${c.name}</h5>
+                                ${highlightBadge} ${levelBadge}
                             </div>
-                            <div class="text-right"><span class="font-title text-2xl text-amber-600">${c.progress.toFixed(1)}%</span></div>
+                            <div class="w-full bg-gray-200/80 rounded-full h-3 overflow-hidden shadow-inner relative" title="${c.progress.toFixed(1)}%">
+                                <div class="${barColor} h-full rounded-full transition-all duration-1000 relative" style="width: ${displayProgress}%">
+                                    <div class="absolute inset-0 bg-white/20"></div>
+                                </div>
+                                <div class="absolute top-0 bottom-0 w-0.5 bg-white z-10 opacity-50" style="left: 100%"></div>
+                            </div>
+                            <div class="flex items-center gap-2 mt-2">
+                                <span class="text-xs text-gray-500 font-medium bg-white px-2 py-0.5 rounded-md border border-gray-200 shadow-sm flex items-center">
+                                    <i class="fas fa-bullseye text-gray-400 mr-1"></i> Goal: ${c.diamondGoal}
+                                </span>
+                                ${lostBadge}
+                            </div>
                         </div>
-                        <div class="w-full bg-gray-200 rounded-full h-2.5 mb-1"><div class="bg-amber-500 h-2.5 rounded-full" style="width: ${Math.min(100, c.progress)}%"></div></div>
-                        <div class="flex justify-between text-xs text-gray-500 font-medium"><span>${c.totalStars} Stars</span><span>Goal: ${c.diamondGoal} ${adjustedBadge}</span></div>
+                        <div class="text-right flex-shrink-0 pl-4 border-l border-gray-100/50">
+                            <div class="font-title text-2xl text-amber-600 leading-none mb-1">${c.progress.toFixed(0)}%</div>
+                            <div class="text-xs font-bold text-gray-400 uppercase tracking-wide bg-gray-100 px-2 py-0.5 rounded">${c.totalStars} ⭐</div>
+                        </div>
                     </div>`;
             });
-            html += `</div>`;
+            fullHtml += `</div></div>`;
         }
-        contentEl.innerHTML = html;
 
-    } else if (type === 'hero') {
-        // --- HERO HISTORY FIX ---
+        contentEl.innerHTML = headerHtml + (fullHtml || `<div class="p-8 text-center text-gray-500 bg-gray-50 rounded-2xl">No data available for this month.</div>`);
         
-        // 1. Calculate statsMap from the logs we fetched above
-        const statsMap = {};
-        if (logs && logs.length > 0) {
-            logs.forEach(log => {
-                if (!statsMap[log.studentId]) {
-                    statsMap[log.studentId] = { count3Star: 0, count2Star: 0, reasons: new Set() };
-                }
-                if (log.stars >= 3) statsMap[log.studentId].count3Star++;
-                else if (log.stars >= 2) statsMap[log.studentId].count2Star++;
-                if (log.reason) statsMap[log.studentId].reasons.add(log.reason);
-            });
-        }
+        // Re-bind listener after HTML update
+        document.getElementById('internal-history-select').addEventListener('change', (e) => renderHistoricalLeaderboard(e.target.value, 'team'));
 
-        const classesInLeague = state.get('allSchoolClasses').filter(c => c.questLevel === league);
-        const studentsInLeague = state.get('allStudents')
-            .filter(s => classesInLeague.some(c => c.id === s.classId))
-            .map(s => {
-                // Use the map we just built
-                const stats = statsMap[s.id] || { count3Star: 0, count2Star: 0, reasons: new Set() };
-                return { 
-                    ...s, 
-                    score: monthlyScores[s.id] || 0,
-                    count3Star: stats.count3Star,
-                    count2Star: stats.count2Star,
-                    uniqueReasons: stats.reasons.size
-                };
-            })
-            .filter(s => s.score > 0)
-            .sort((a, b) => {
-                if (b.score !== a.score) return b.score - a.score;
-                if (b.count3Star !== a.count3Star) return b.count3Star - a.count3Star;
-                if (b.count2Star !== a.count2Star) return b.count2Star - a.count2Star;
-                if (b.uniqueReasons !== a.uniqueReasons) return b.uniqueReasons - a.uniqueReasons;
-                return a.name.localeCompare(b.name);
-            });
-
-        let html = `<h3 class="font-title text-2xl text-purple-700">Hero Rankings for ${monthDisplay}</h3>`;
-        if (studentsInLeague.length === 0) {
-            html += `<p class="text-gray-600 mt-2">No students earned stars.</p>`;
-        } else {
-            html += `<div class="mt-4 space-y-3">` + studentsInLeague.slice(0, 50).map((s, i) => {
-                const rank = i + 1;
-                let border = "border-purple-200", bg = "bg-white", icon = "", rankColor = "text-gray-500";
-                if(rank===1) { border="border-amber-500"; bg="bg-amber-50"; icon="🥇"; rankColor="text-amber-600"; }
-                else if(rank===2) { border="border-slate-400"; bg="bg-slate-50"; icon="🥈"; rankColor="text-slate-600"; }
-                else if(rank===3) { border="border-orange-400"; bg="bg-orange-50"; icon="🥉"; rankColor="text-orange-600"; }
-                
-                return `
-                <div class="p-3 rounded-xl shadow-sm border-l-4 ${border} ${bg} flex items-center justify-between">
-                    <div class="flex items-center gap-3">
-                        <div class="flex flex-col items-center w-8">
-                            <span class="font-bold text-xl ${rankColor}">${rank}.</span>
-                            ${icon ? `<span class="text-lg -mt-1">${icon}</span>` : ''}
-                        </div>
-                        <div><span class="font-bold text-lg text-gray-800">${s.name}</span></div>
-                    </div>
-                    <span class="font-title text-3xl text-purple-600">${s.score} ⭐</span>
-                </div>`;
-            }).join('') + `</div>`;
-        }
-        contentEl.innerHTML = html;
+    } catch (error) {
+        console.error("Render Error:", error);
+        contentEl.innerHTML = headerHtml + `
+            <div class="flex flex-col items-center justify-center py-16 text-center">
+                <i class="fas fa-exclamation-triangle text-4xl text-red-400 mb-4"></i>
+                <p class="text-gray-700 font-bold">The Archives are dusty.</p>
+                <p class="text-gray-500 text-sm mt-1">Error: ${error.message}</p>
+                <p class="text-gray-400 text-xs mt-4">Try selecting a different month.</p>
+            </div>`;
+        // Re-bind listener even on error state
+        const select = document.getElementById('internal-history-select');
+        if(select) select.addEventListener('change', (e) => renderHistoricalLeaderboard(e.target.value, 'team'));
     }
 }
-
+    
 // --- REVAMPED ATTENDANCE CHRONICLE MODAL ---
 
 export async function openAttendanceChronicle() {
@@ -947,12 +1035,58 @@ export async function openQuestAssignmentModal() {
         if (!snapshot.empty) {
             const lastAssignmentDoc = snapshot.docs[0];
             const lastAssignment = lastAssignmentDoc.data();
+            
+            // --- SMART FORMATTER START ---
+            const formatAssignmentText = (text) => {
+                const lines = text.split('\n');
+                let html = '';
+                
+                // Check if any line starts with a number pattern to decide if we use List Mode
+                const hasList = lines.some(l => l.trim().match(/^(\d+)[\.\)]\s+/));
+                
+                if (!hasList) {
+                    // Standard Text Mode (preserve line breaks)
+                    return `<p class="text-gray-800 italic whitespace-pre-wrap">${text}</p>`;
+                }
+
+                // List Mode
+                lines.forEach(line => {
+                    const trimmed = line.trim();
+                    if (!trimmed) return;
+
+                    // Match "1. " or "1) "
+                    const match = trimmed.match(/^(\d+)[\.\)]\s+(.*)/);
+                    
+                    if (match) {
+                        const [_, num, content] = match;
+                        // Styled Card for List Item
+                        html += `
+                            <div class="flex items-start gap-3 mb-2 bg-white p-3 rounded-lg border border-gray-200 shadow-sm transition-transform hover:translate-x-1">
+                                <span class="flex-shrink-0 w-6 h-6 flex items-center justify-center bg-indigo-500 text-white text-xs font-bold rounded-full mt-0.5 shadow-sm">${num}</span>
+                                <span class="text-gray-800 text-sm leading-relaxed">${content}</span>
+                            </div>`;
+                    } else {
+                        // Regular text (headers, notes)
+                        html += `<p class="text-gray-600 text-xs font-bold uppercase tracking-wider mb-2 mt-3 ml-1">${trimmed}</p>`;
+                    }
+                });
+                return `<div class="space-y-1 mt-2">${html}</div>`;
+            };
+            
+            const formattedContent = formatAssignmentText(lastAssignment.text);
+
             previousAssignmentTextEl.innerHTML = `
-                <span class="break-words pr-2">${lastAssignment.text}</span>
-                <button id="edit-last-assignment-btn" class="mt-2 text-sm text-blue-500 hover:underline font-semibold">
-                    <i class="fas fa-pencil-alt mr-1"></i>Edit This Assignment
-                </button>
+                <div class="w-full">
+                    ${formattedContent}
+                </div>
+                <div class="mt-3 flex justify-end">
+                    <button id="edit-last-assignment-btn" class="text-xs text-blue-500 hover:text-blue-700 font-bold bg-blue-50 px-3 py-1 rounded-full transition-colors border border-blue-100">
+                        <i class="fas fa-pencil-alt mr-1"></i>Edit
+                    </button>
+                </div>
             `;
+            // --- SMART FORMATTER END ---
+
             document.getElementById('edit-last-assignment-btn').onclick = () => {
                 currentAssignmentTextarea.value = lastAssignment.text;
                 modal.dataset.editingId = lastAssignmentDoc.id;
@@ -1404,6 +1538,42 @@ export async function showWelcomeBackMessage(firstName, stars) {
     setTimeout(() => {
         hideModal('welcome-back-modal');
     }, 4000);
+}
+
+export async function handleGenerateClassName() {
+    const level = document.getElementById('class-level').value;
+    const output = document.getElementById('class-name-suggestions');
+    const btn = document.getElementById('generate-class-name-btn');
+
+    if (!level) {
+        showToast('Please select a Quest Level first.', 'error');
+        return;
+    }
+
+    btn.disabled = true;
+    btn.innerHTML = `<i class="fas fa-spinner fa-spin"></i>`;
+    
+    // Get age context using utils
+    const ageGroup = utils.getAgeGroupForLeague(level);
+    
+    const systemPrompt = "You are a creative assistant helping a teacher name their class team. Generate 3 short, catchy, fantasy/adventure themed class names suitable for children aged " + ageGroup + ". Do not use numbers. Return only the names separated by commas (e.g. 'Star Seekers, Dragon Riders, Time Travelers').";
+    const userPrompt = `Generate names for a class in the "${level}" league.`;
+
+    try {
+        const result = await callGeminiApi(systemPrompt, userPrompt);
+        const names = result.split(',').map(n => n.trim());
+        
+        output.innerHTML = names.map(name => 
+            `<button type="button" class="suggestion-btn bg-indigo-100 text-indigo-700 px-3 py-1 rounded-full text-xs font-bold hover:bg-indigo-200 transition-colors border border-indigo-200 shadow-sm">${name}</button>`
+        ).join('');
+        
+    } catch (error) {
+        console.error(error);
+        showToast('The naming spell failed. Try again!', 'error');
+    } finally {
+        btn.disabled = false;
+        btn.innerHTML = `<i class="fas fa-magic"></i>`;
+    }
 }
 
 export async function handleGenerateReport(classId) {
@@ -2175,4 +2345,282 @@ export async function generateAIInsight(studentId, insightType) {
         console.error("AI Insight Error:", error);
         outputEl.innerHTML = `<p class="text-center text-red-500">The Oracle could not process the records at this time. Please try again later.</p>`;
     }
+}
+
+export function openAppInfoModal() {
+    const studentContent = document.getElementById('info-content-students');
+    const teacherContent = document.getElementById('info-content-teachers');
+
+    // 1. STUDENTS CONTENT (Adventure Guide)
+    studentContent.innerHTML = `
+        <div class="bg-white/80 p-6 rounded-3xl shadow-sm border-l-8 border-cyan-400">
+            <h3 class="font-title text-3xl text-cyan-800 mb-4"><i class="fas fa-map-signs"></i> Your Journey Begins!</h3>
+            <p class="text-gray-700 text-lg leading-relaxed">
+                Welcome, brave adventurer! In <strong>The Great Class Quest</strong>, your classroom is a team, and every lesson is a step on an epic journey. 
+                Work together, learn new things, and earn <strong>Stars</strong> to travel across the map!
+            </p>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div class="bg-amber-50 p-6 rounded-2xl border-2 border-amber-200">
+                <h4 class="font-title text-xl text-amber-700 mb-2"><i class="fas fa-star"></i> Earning Stars</h4>
+                <p class="text-sm text-gray-600">
+                    Show <strong>Teamwork</strong>, <strong>Creativity</strong>, <strong>Focus</strong>, and <strong>Respect</strong>. Every star your teacher awards moves your class ship forward on the Team Map!
+                </p>
+            </div>
+            <div class="bg-purple-50 p-6 rounded-2xl border-2 border-purple-200">
+                <h4 class="font-title text-xl text-purple-700 mb-2"><i class="fas fa-medal"></i> Hero's Challenge</h4>
+                <p class="text-sm text-gray-600">
+                    Your personal stars count too! Climb the ranks from <strong>Bronze</strong> to <strong>Diamond</strong>. Be the "Class Hero" by helping others!
+                </p>
+            </div>
+            <div class="bg-indigo-50 p-6 rounded-2xl border-2 border-indigo-200">
+                <h4 class="font-title text-xl text-indigo-700 mb-2"><i class="fas fa-store"></i> The Mystic Shop</h4>
+                <p class="text-sm text-gray-600">
+                    Earn <strong>Gold Coins</strong> by collecting stars. Spend them on cool virtual artifacts like swords, pets, and potions to decorate your profile!
+                </p>
+            </div>
+            <div class="bg-green-50 p-6 rounded-2xl border-2 border-green-200">
+                <h4 class="font-title text-xl text-green-700 mb-2"><i class="fas fa-feather-alt"></i> Story Weavers</h4>
+                <p class="text-sm text-gray-600">
+                    Every lesson, you create a story together. The AI illustrates your adventure based on what you learn!
+                </p>
+            </div>
+        </div>
+    `;
+
+    // 2. TEACHERS CONTENT (Game Master's Manual)
+    teacherContent.innerHTML = `
+        <div class="bg-white/80 p-6 rounded-3xl shadow-sm border-l-8 border-green-500">
+            <h3 class="font-title text-3xl text-green-800 mb-4"><i class="fas fa-chalkboard-teacher"></i> The Philosophy</h3>
+            <p class="text-gray-700 text-lg leading-relaxed">
+                This app turns classroom management into a cooperative RPG. Instead of policing behavior, you are the <strong>Game Master</strong> guiding a guild of heroes.
+                Use visuals, sounds, and AI storytelling to make "boring" tasks (attendance, homework) feel magical.
+            </p>
+        </div>
+
+        <div class="space-y-6">
+            <div class="bg-white p-5 rounded-xl shadow-sm border border-gray-200 flex gap-4">
+                <div class="text-3xl text-rose-500"><i class="fas fa-mouse-pointer"></i></div>
+                <div>
+                    <h4 class="font-bold text-gray-800 text-lg">One-Tap Awards</h4>
+                    <p class="text-sm text-gray-600">Go to <strong>Award Stars</strong>. Tap a student card to give 1 star. Tap the small buttons for specific amounts. Use the "Undo" button on the card if you make a mistake.</p>
+                </div>
+            </div>
+
+            <div class="bg-white p-5 rounded-xl shadow-sm border border-gray-200 flex gap-4">
+                <div class="text-3xl text-blue-500"><i class="fas fa-calendar-check"></i></div>
+                <div>
+                    <h4 class="font-bold text-gray-800 text-lg">The Daily Rhythm</h4>
+                    <p class="text-sm text-gray-600">
+                        1. <strong>Home Tab:</strong> Check active class.<br>
+                        2. <strong>Roll Call:</strong> Mark absences (removes today's stars).<br>
+                        3. <strong>Award:</strong> Give stars during lesson.<br>
+                        4. <strong>Log:</strong> At end of class, go to <strong>Log</strong> tab and click "Log Adventure". The AI writes the summary!
+                    </p>
+                </div>
+            </div>
+
+            <div class="bg-white p-5 rounded-xl shadow-sm border border-gray-200 flex gap-4">
+                <div class="text-3xl text-amber-500"><i class="fas fa-crown"></i></div>
+                <div>
+                    <h4 class="font-bold text-gray-800 text-lg">Ceremonies</h4>
+                    <p class="text-sm text-gray-600">
+                        At the start of a new month, the <strong>Team Quest</strong> and <strong>Hero's Challenge</strong> buttons will glow. Click them to launch the automated Award Ceremony for the previous month!
+                    </p>
+                </div>
+            </div>
+        </div>
+    `;
+
+    // 3. Reset Tabs (Show Student by default)
+    const studentBtn = document.getElementById('info-btn-students');
+    const teacherBtn = document.getElementById('info-btn-teachers');
+    
+    studentBtn.classList.add('bg-cyan-500', 'text-white', 'active');
+    studentBtn.classList.remove('bg-white', 'text-cyan-700');
+    teacherBtn.classList.remove('bg-green-500', 'text-white', 'active');
+    teacherBtn.classList.add('bg-white', 'text-green-700');
+    
+    studentContent.classList.remove('hidden');
+    teacherContent.classList.add('hidden');
+
+    showAnimatedModal('app-info-modal');
+}
+
+// --- STUDENT RANKINGS MODAL (HERO RANKS ARCHIVE) ---
+export async function openStudentRankingsModal() {
+    const modalId = 'global-leaderboard-modal';
+    const titleEl = document.getElementById('global-leaderboard-title');
+    const contentEl = document.getElementById('global-leaderboard-content');
+    
+    // 1. Determine Previous Month
+    const now = new Date();
+    now.setMonth(now.getMonth() - 1);
+    const prevMonthKey = now.toISOString().substring(0, 7); // YYYY-MM
+    const monthDisplay = now.toLocaleString('en-GB', { month: 'long', year: 'numeric' });
+
+    titleEl.innerHTML = `<i class="fas fa-trophy text-amber-500 mr-2"></i>Hero Ranks (${monthDisplay})`;
+    contentEl.innerHTML = `<div class="text-center py-8"><i class="fas fa-spinner fa-spin text-2xl text-purple-500"></i><p class="mt-2 text-gray-500">Loading Archives...</p></div>`;
+    
+    // 2. Show Modal & Fetch Data
+    import('./modals.js').then(m => m.showAnimatedModal(modalId));
+
+    // Fetch Data (Logs & History)
+    let monthlyScores = {};
+    let logs = [];
+    
+    try {
+        const { fetchLogsForMonth } = await import('../db/queries.js');
+        const { fetchMonthlyHistory } = await import('../state.js'); 
+        const [year, month] = prevMonthKey.split('-').map(Number);
+        
+        // Try fetching detailed logs first (for tie-breakers)
+        const logsPromise = fetchLogsForMonth(year, month);
+        const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout')), 5000));
+        
+        logs = await Promise.race([logsPromise, timeoutPromise]).catch(e => []);
+        
+        if (!logs || logs.length === 0) {
+            monthlyScores = await fetchMonthlyHistory(prevMonthKey);
+        } else {
+            logs.forEach(log => {
+                monthlyScores[log.studentId] = (monthlyScores[log.studentId] || 0) + log.stars;
+            });
+        }
+    } catch (e) { console.error(e); }
+
+    // 3. Prepare Selectors
+    const leagues = import('../constants.js').then(c => c.questLeagues); // Dynamic import safe check
+    const allLeagues = (await leagues).default || ['Junior A', 'Junior B', 'A', 'B', 'C', 'D'];
+    const myClasses = state.get('allTeachersClasses').sort((a,b) => a.name.localeCompare(b.name));
+
+    // 4. Render UI Structure
+    contentEl.innerHTML = `
+        <!-- TABS -->
+        <div class="flex justify-center gap-4 mb-4 border-b border-gray-200 pb-4">
+            <button id="rank-tab-global" class="px-6 py-2 rounded-full font-bold text-sm transition-all bg-indigo-600 text-white shadow-md">
+                <i class="fas fa-globe mr-2"></i>Global League
+            </button>
+            <button id="rank-tab-class" class="px-6 py-2 rounded-full font-bold text-sm transition-all bg-white text-gray-500 hover:bg-gray-100 border border-gray-200">
+                <i class="fas fa-chalkboard-teacher mr-2"></i>My Class
+            </button>
+        </div>
+
+        <!-- FILTERS -->
+        <div id="rank-filter-container" class="mb-4">
+            <!-- Injected by JS based on tab -->
+        </div>
+
+        <!-- LIST -->
+        <div id="ranks-list-container" class="space-y-2 max-h-[50vh] overflow-y-auto pr-2 custom-scrollbar"></div>
+    `;
+
+    // 5. Logic Controller
+    const renderContent = (view, filterValue) => {
+        const filterContainer = document.getElementById('rank-filter-container');
+        const listContainer = document.getElementById('ranks-list-container');
+        const allStudents = state.get('allStudents');
+        const allClasses = state.get('allSchoolClasses');
+
+        // Render Filters
+        if (view === 'global') {
+            const currentLeague = filterValue || allLeagues[0];
+            const options = allLeagues.map(l => `<option value="${l}" ${l === currentLeague ? 'selected' : ''}>${l} League</option>`).join('');
+            filterContainer.innerHTML = `
+                <select id="rank-league-select" class="w-full p-3 border-2 border-indigo-100 rounded-xl bg-indigo-50 font-bold text-indigo-900 outline-none focus:border-indigo-300">
+                    ${options}
+                </select>`;
+            
+            // Filter Students by League
+            const classesInLeague = allClasses.filter(c => c.questLevel === currentLeague);
+            const classIds = classesInLeague.map(c => c.id);
+            const filteredStudents = allStudents.filter(s => classIds.includes(s.classId));
+            renderStudentList(filteredStudents, listContainer, monthlyScores);
+
+            // Bind Change Event
+            document.getElementById('rank-league-select').onchange = (e) => renderContent('global', e.target.value);
+
+        } else {
+            // Class View
+            if (myClasses.length === 0) {
+                filterContainer.innerHTML = '';
+                listContainer.innerHTML = `<p class="text-center text-gray-500">You have no classes.</p>`;
+                return;
+            }
+            const currentClassId = filterValue || myClasses[0].id;
+            const options = myClasses.map(c => `<option value="${c.id}" ${c.id === currentClassId ? 'selected' : ''}>${c.logo} ${c.name}</option>`).join('');
+            filterContainer.innerHTML = `
+                <select id="rank-class-select" class="w-full p-3 border-2 border-purple-100 rounded-xl bg-purple-50 font-bold text-purple-900 outline-none focus:border-purple-300">
+                    ${options}
+                </select>`;
+
+            // Filter Students by Class
+            const filteredStudents = allStudents.filter(s => s.classId === currentClassId);
+            renderStudentList(filteredStudents, listContainer, monthlyScores);
+
+            // Bind Change Event
+            document.getElementById('rank-class-select').onchange = (e) => renderContent('class', e.target.value);
+        }
+    };
+
+    const renderStudentList = (students, container, scores) => {
+        if (students.length === 0) {
+            container.innerHTML = `<p class="text-center text-gray-400 py-4">No students found in this category.</p>`;
+            return;
+        }
+
+        const ranked = students.map(s => {
+            const cls = state.get('allSchoolClasses').find(c => c.id === s.classId);
+            return {
+                ...s,
+                stars: scores[s.id] || 0,
+                className: cls?.name,
+                classLogo: cls?.logo
+            };
+        }).sort((a, b) => b.stars - a.stars); // Sort by Archive Score
+
+        container.innerHTML = ranked.map((s, i) => {
+            const rank = i + 1;
+            let icon = `<span class="text-gray-400 font-bold w-6 text-right">${rank}.</span>`;
+            let bgClass = "bg-white";
+            
+            if (rank === 1) { icon = "🥇"; bgClass = "bg-amber-50 border border-amber-200"; }
+            else if (rank === 2) { icon = "🥈"; bgClass = "bg-gray-50 border border-gray-200"; }
+            else if (rank === 3) { icon = "🥉"; bgClass = "bg-orange-50 border border-orange-200"; }
+
+            return `
+                <div class="flex items-center justify-between p-3 rounded-xl ${bgClass} hover:shadow-sm transition-all mb-2">
+                    <div class="flex items-center gap-3 overflow-hidden">
+                        <div class="text-xl w-8 text-center shrink-0">${icon}</div>
+                        ${s.avatar ? `<img src="${s.avatar}" class="w-10 h-10 rounded-full object-cover border border-gray-200">` : `<div class="w-10 h-10 rounded-full bg-indigo-100 text-indigo-600 flex items-center justify-center font-bold">${s.name.charAt(0)}</div>`}
+                        <div class="min-w-0">
+                            <div class="font-bold text-gray-800 truncate">${s.name}</div>
+                            <div class="text-xs text-gray-500 truncate">${s.classLogo || ''} ${s.className || 'Unknown Class'}</div>
+                        </div>
+                    </div>
+                    <div class="font-title text-xl text-indigo-600 shrink-0">${s.stars} ⭐</div>
+                </div>
+            `;
+        }).join('');
+    };
+
+    // 6. Tab Listeners
+    const btnGlobal = document.getElementById('rank-tab-global');
+    const btnClass = document.getElementById('rank-tab-class');
+
+    btnGlobal.onclick = () => {
+        btnGlobal.className = "px-6 py-2 rounded-full font-bold text-sm transition-all bg-indigo-600 text-white shadow-md";
+        btnClass.className = "px-6 py-2 rounded-full font-bold text-sm transition-all bg-white text-gray-500 hover:bg-gray-100 border border-gray-200";
+        renderContent('global');
+    };
+
+    btnClass.onclick = () => {
+        btnClass.className = "px-6 py-2 rounded-full font-bold text-sm transition-all bg-indigo-600 text-white shadow-md";
+        btnGlobal.className = "px-6 py-2 rounded-full font-bold text-sm transition-all bg-white text-gray-500 hover:bg-gray-100 border border-gray-200";
+        renderContent('class');
+    };
+
+    // Initial Render
+    renderContent('global');
 }

@@ -24,6 +24,7 @@ import { updateCeremonyStatus } from '../features/ceremony.js';
 import * as utils from '../utils.js';
 import { competitionStart } from '../constants.js';
 import * as modals from '../ui/modals.js';
+import { renderHomeTab } from '../features/home.js';
 
 export function setupDataListeners(userId, dateString) {
     // Clear previous listeners
@@ -68,9 +69,23 @@ export function setupDataListeners(userId, dateString) {
     const shopItemsQuery = query(collection(db, `${publicDataPath}/shop_items`), where('teacherId', '==', userId));
     const schoolSettingsQuery = doc(db, `${publicDataPath}/school_settings`, 'holidays');
 
-    // Optimized Queries (Time-Bounded)
-    const awardLogsQuery = query(collection(db, `${publicDataPath}/award_log`), where('date', '==', dateString));
-    const adventureLogsQuery = query(collection(db, `${publicDataPath}/adventure_logs`), where('createdAt', '>=', thirtyDaysAgo), orderBy('createdAt', 'desc'));
+    // --- Optimized Queries (Time-Bounded) ---
+    
+    // 1. Current Month Range for Award Logs (Real-time)
+    const startOfNextMonth = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+
+    const awardLogsQuery = query(
+        collection(db, `${publicDataPath}/award_log`), 
+        where('createdAt', '>=', startOfCurrentMonth),
+        where('createdAt', '<', startOfNextMonth)
+    );
+
+    // 2. Adventure Logs (Last 30 days is fine, or match month)
+    const adventureLogsQuery = query(
+        collection(db, `${publicDataPath}/adventure_logs`), 
+        where('createdAt', '>=', thirtyDaysAgo), 
+        orderBy('createdAt', 'desc')
+    );
     
     // REVAMP: Attendance now only fetches the last 30 days real-time. Older data is fetched on demand.
     const attendanceQuery = query(
@@ -79,10 +94,14 @@ export function setupDataListeners(userId, dateString) {
     where('createdAt', '>=', thirtyDaysAgo)
 );
 
-    const writtenScoresQuery = query(
+    const threeMonthsAgo = new Date();
+threeMonthsAgo.setMonth(threeMonthsAgo.getMonth() - 3);
+const threeMonthsAgoString = threeMonthsAgo.toISOString().split('T')[0];
+
+const writtenScoresQuery = query(
     collection(db, `${publicDataPath}/written_scores`), 
     where('teacherId', '==', userId), // Only load MY grading papers
-    where('date', '>=', startOfMonthString),
+    where('date', '>=', threeMonthsAgoString),
     orderBy('date', 'desc')
 );
 
@@ -101,6 +120,7 @@ export function setupDataListeners(userId, dateString) {
         renderScholarsScrollTab();
         if (!document.getElementById('options-tab').classList.contains('hidden')) renderStarManagerStudentSelect();
         updateCeremonyStatus();
+        renderHomeTab(); // Also update home tab when classes load/change
     }, (error) => console.error("Error listening to classes:", error)));
 
     state.setUnsubscribeStudents(onSnapshot(studentsQuery, (snapshot) => {
@@ -113,6 +133,7 @@ export function setupDataListeners(userId, dateString) {
         renderAwardStarsStudentList(state.get('globalSelectedClassId')); 
         renderScholarsScrollTab(state.get('globalSelectedClassId'));
         if (!document.getElementById('options-tab').classList.contains('hidden')) renderStarManagerStudentSelect();
+        renderHomeTab(); // Update home tab (student count changes)
     }, (error) => console.error("Error listening to students:", error)));
 
     state.setUnsubscribeStudentScores(onSnapshot(scoresQuery, (snapshot) => {
@@ -170,6 +191,9 @@ export function setupDataListeners(userId, dateString) {
 
         renderStudentLeaderboardTab();
         renderClassLeaderboardTab();
+        
+        // --- ADDED LINE ---
+        import('../features/home.js').then(m => m.renderHomeTab()); 
     }, (error) => console.error("Error listening to student_scores:", error)));
 
     state.setUnsubscribeTodaysStars(onSnapshot(todaysStarsQuery, (snapshot) => {
@@ -195,6 +219,7 @@ export function setupDataListeners(userId, dateString) {
         });
 
         state.set('todaysStars', currentTodaysStars);
+        renderHomeTab(); // Update home tab (today's stars count)
 
     }, (error) => console.error("Error listening to today_stars:", error)));
 
@@ -242,6 +267,7 @@ export function setupDataListeners(userId, dateString) {
             const activeView = document.querySelector('#trial-history-view-toggle .active-toggle')?.dataset.view || 'test';
             renderTrialHistoryContent(classId, activeView);
         }
+        renderHomeTab(); // Update home tab (last test info)
     }, (error) => {
         console.error("Error listening to written scores:", error);
     }));
@@ -276,6 +302,7 @@ export function setupDataListeners(userId, dateString) {
         state.setAllScheduleOverrides(snapshot.docs.map(d => ({ id: d.id, ...d.data() })));
         renderCalendarTab();
         updateCeremonyStatus();
+        renderHomeTab(); // Update home tab (schedule changes)
     }, (error) => console.error("Error listening to schedule overrides:", error)));
 
     state.setUnsubscribeHeroChronicleNotes(onSnapshot(heroChronicleNotesQuery, (snapshot) => {
@@ -318,6 +345,7 @@ export function setupDataListeners(userId, dateString) {
             const { renderHolidayList } = await import('../ui/core.js');
             renderHolidayList();
         }
+        renderHomeTab(); // Update home tab (holidays affect monthly stars calculation context)
     }));
 }
 

@@ -1,19 +1,44 @@
 // /features/ceremony.js
 
 import { db } from '../firebase.js';
-import { updateDoc, doc, getDocs, query, collection, where } from 'https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js';
-import { fetchMonthlyHistory } from '../state.js'; 
+import { updateDoc, doc } from 'https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js';
 import * as state from '../state.js';
-import * as utils from '../utils.js';
-import * as constants from '../constants.js';
-import { playSound, ceremonyMusic, winnerFanfare, showdownSting, fadeCeremonyMusic } from '../audio.js';
-import * as modals from '../ui/modals.js';
+import { playSound, ceremonyMusic, winnerFanfare, showdownSting, fadeCeremonyMusic, stopAllCeremonyAudio, playCeremonyMusic, playDrumRoll, stopDrumRoll, playWinnerFanfare } from '../audio.js';
+import { fetchLogsForMonth } from '../db/queries.js';
 import { callGeminiApi } from '../api.js';
-import { renderClassLeaderboardTab, renderStudentLeaderboardTab } from '../ui/tabs.js';
+import * as utils from '../utils.js';
 
-// --- CEREMONY LOGIC ---
+// --- LOCAL STATE ---
+let ceremonyData = {
+    active: false,
+    phase: 'intro', 
+    monthKey: null,
+    monthName: '',
+    classId: null,
+    league: null,
+    classQueue: [], 
+    studentQueue: [], 
+    classPointer: 0, 
+    studentPointer: 0 
+};
 
-export function updateCeremonyStatus(targetTabId = null) {
+// --- HELPER: Title Formatter (Fixes Emoji Gradient Issue) ---
+function formatTitleHtml(text) {
+    const emojiRegex = /([\u2700-\u27BF]|[\uE000-\uF8FF]|\uD83C[\uDC00-\uDFFF]|\uD83D[\uDC00-\uDFFF]|[\u2011-\u26FF]|\uD83E[\uDD10-\uDDFF])/g;
+    const parts = text.split(emojiRegex);
+    return parts.map(part => {
+        if (part.match(emojiRegex)) {
+            return `<span class="emoji-reset">${part}</span>`;
+        } else if (part.trim().length > 0) {
+            return `<span class="gradient-text">${part}</span>`;
+        }
+        return '';
+    }).join('');
+}
+
+// --- 1. STATUS & INITIALIZATION ---
+
+export function updateCeremonyStatus() {
     const teamQuestBtn = document.querySelector('.nav-button[data-tab="class-leaderboard-tab"]');
     const heroChallengeBtn = document.querySelector('.nav-button[data-tab="student-leaderboard-tab"]');
     
@@ -22,661 +47,824 @@ export function updateCeremonyStatus(targetTabId = null) {
     teamQuestBtn.classList.remove('ceremony-ready-pulse');
     heroChallengeBtn.classList.remove('ceremony-ready-pulse');
 
-    let currentClassId = state.get('globalSelectedClassId');
+    const currentClassId = state.get('globalSelectedClassId');
     if (!currentClassId) return;
 
     const classData = state.get('allSchoolClasses').find(c => c.id === currentClassId);
     if (!classData) return;
 
-    // --- FIX: Smart First Lesson Calculation ---
     const now = new Date();
-    // Previous Month Key (The month we are celebrating)
-    let prevMonth = now.getMonth() - 1;
-    let prevYear = now.getFullYear();
-    if (prevMonth < 0) { prevMonth = 11; prevYear -= 1; }
-    const monthKey = `${prevYear}-${String(prevMonth + 1).padStart(2, '0')}`;
+    const prevDate = new Date();
+    prevDate.setMonth(now.getMonth() - 1);
     
-    // Check if celebration is already done
+    const monthKey = prevDate.toISOString().substring(0, 7); 
+
     const history = classData.ceremonyHistory || {};
-    const monthStatus = history[monthKey] || {};
-    const isTeamCeremonyDone = !!monthStatus.team;
-    const isHeroCeremonyDone = !!monthStatus.hero;
-
-    if (isTeamCeremonyDone && isHeroCeremonyDone) return;
-
-    // Find the FIRST VALID LESSON of the CURRENT month
-    // Valid = In schedule AND Not a holiday AND Not cancelled
-    const firstLessonDate = getFirstLessonOfMonth(classData, now.getFullYear(), now.getMonth());
+    const isComplete = history[monthKey] && history[monthKey].complete;
+    const currentMonthKey = now.toISOString().substring(0, 7);
     
-    if (!firstLessonDate) return; // No lessons this month?
-
-    const todayStr = utils.getTodayDateString();
-    
-    // 1. Is today the ceremony day?
-    if (todayStr === firstLessonDate) {
-        // 2. Is it currently lesson time?
-        const currentTime = now.toTimeString().slice(0, 5);
-        const isLessonTime = classData.timeStart && classData.timeEnd && currentTime >= classData.timeStart && currentTime <= classData.timeEnd;
-
-        if (isLessonTime) {
-            // SHOW THE GLOW
-            if (!isTeamCeremonyDone) teamQuestBtn.classList.add('ceremony-ready-pulse');
-            if (!isHeroCeremonyDone) heroChallengeBtn.classList.add('ceremony-ready-pulse');
-
-            // TRIGGER VEIL if tab is active
-            let activeTabId = targetTabId;
-            if (!activeTabId) {
-                const activeEl = document.querySelector('.app-tab:not(.hidden)');
-                if (activeEl) activeTabId = activeEl.id;
-            }
-
-            // We use a session state to prevent loop if veil is dismissed
-            if (activeTabId === 'class-leaderboard-tab' && !isTeamCeremonyDone && !state.get('ceremonyVeilDismissed_team')) {
-                showCeremonyVeil('team', classData.questLevel, monthKey, currentClassId);
-            } 
-            else if (activeTabId === 'student-leaderboard-tab' && !isHeroCeremonyDone && !state.get('ceremonyVeilDismissed_hero')) {
-                showCeremonyVeil('hero', classData.questLevel, monthKey, currentClassId);
-            }
-        }
+    if (!isComplete && monthKey !== currentMonthKey) {
+        teamQuestBtn.classList.add('ceremony-ready-pulse');
+        heroChallengeBtn.classList.add('ceremony-ready-pulse');
     }
 }
 
-function getFirstLessonOfMonth(classData, year, month) {
-    const daysInMonth = new Date(year, month + 1, 0).getDate();
-    const schedule = (classData.scheduleDays || []).map(d => parseInt(d));
-    const overrides = state.get('allScheduleOverrides') || [];
-    const holidays = state.get('schoolHolidayRanges') || [];
+export async function checkAndInitCeremony(classId) {
+    const classData = state.get('allSchoolClasses').find(c => c.id === classId);
+    if (!classData) return null;
 
-    for (let d = 1; d <= daysInMonth; d++) {
-        const dateObj = new Date(year, month, d);
-        const dayStr = utils.getDDMMYYYY(dateObj);
-        
-        // 1. Check Schedule
-        if (schedule.includes(dateObj.getDay())) {
-            
-            // 2. Check Overrides (Cancelled)
-            const isCancelled = overrides.some(o => o.classId === classData.id && o.date === dayStr && o.type === 'cancelled');
-            if (isCancelled) continue;
+    const now = new Date();
+    const prevDate = new Date();
+    prevDate.setMonth(now.getMonth() - 1);
+    
+    const monthKey = prevDate.toISOString().substring(0, 7); 
+    const monthName = prevDate.toLocaleString('en-GB', { month: 'long' });
 
-            // 3. Check Holidays
-            // Date to YYYY-MM-DD for comparison
-            const yyyy = dateObj.getFullYear();
-            const mm = String(dateObj.getMonth() + 1).padStart(2, '0');
-            const dd = String(dateObj.getDate()).padStart(2, '0');
-            const compDate = `${yyyy}-${mm}-${dd}`;
-            
-            const isHoliday = holidays.some(h => compDate >= h.start && compDate <= h.end);
-            if (isHoliday) continue;
-
-            return dayStr; // Found the first valid lesson!
-        }
+    const history = classData.ceremonyHistory || {};
+    if (history[monthKey] && history[monthKey].complete) {
+        return null; 
     }
-    return null;
+
+    if (monthKey === now.toISOString().substring(0, 7)) return null; 
+
+    return {
+        monthKey,
+        monthName,
+        classId: classData.id,
+        league: classData.questLevel
+    };
 }
 
-function showCeremonyVeil(type, league, monthKey, classId) {
-    // Prevent double showing
-    if (!document.getElementById('ceremony-screen').classList.contains('hidden')) return;
+export function startCeremony(params) {
+    ceremonyData = {
+        active: true,
+        phase: 'intro',
+        monthKey: params.monthKey,
+        monthName: params.monthName,
+        classId: params.classId,
+        league: params.league,
+        classQueue: [],
+        studentQueue: [],
+        classPointer: 0,
+        studentPointer: 0
+    };
 
     const screen = document.getElementById('ceremony-screen');
-    const veil = document.getElementById('ceremony-veil');
-    const stage = document.getElementById('ceremony-stage');
-    const btn = document.getElementById('start-ceremony-btn');
-    const ceremonyTitle = btn.querySelector('.font-title.text-6xl');
-    
-    const classData = state.get('allSchoolClasses').find(c => c.id === classId);
-    const className = classData ? `${classData.logo} ${classData.name}` : "";
-    const monthName = new Date(monthKey + '-02').toLocaleString('en-GB', { month: 'long' });
-    
-    document.getElementById('ceremony-month-name').innerHTML = `
-        <div class="text-2xl text-white/90 mb-1 font-bold uppercase tracking-widest" style="text-shadow: 0 2px 4px rgba(0,0,0,0.3);">${className}</div>
-        <div class="text-5xl font-title text-white" style="text-shadow: 0 3px 5px rgba(0,0,0,0.2);">${monthName}</div>
-    `;
-
-    const themes = {
-        team: { gradient: 'from-amber-500 to-orange-500', text: 'Team Quest Ceremony' },
-        hero: { gradient: 'from-purple-500 to-indigo-500', text: 'Hero\'s Challenge Ceremony' }
-    };
-    const theme = themes[type];
-    const buttonGradientDiv = btn.querySelector('.bg-gradient-to-r');
-    buttonGradientDiv.className = `mt-2 px-8 py-4 bg-gradient-to-r ${theme.gradient} rounded-full shadow-2xl`;
-    ceremonyTitle.innerText = theme.text;
+    const title = document.getElementById('ceremony-title');
+    const subtitle = document.getElementById('ceremony-subtitle');
+    const actionBtn = document.getElementById('ceremony-action-btn');
+    const stage = document.getElementById('ceremony-stage-area');
+    const aiBox = document.getElementById('ceremony-ai-box');
 
     screen.classList.remove('hidden');
-    veil.classList.remove('hidden');
-    stage.classList.add('hidden');
-
-    // Store data on the button for the start function
-    btn.dataset.ceremonyType = type;
-    btn.dataset.league = league;
-    btn.dataset.monthKey = monthKey;
-    btn.dataset.classId = classId;
-
-    document.getElementById('ceremony-veil-close-btn').onclick = () => {
-        state.set(`ceremonyVeilDismissed_${type}`, true);
-        hideCeremonyVeil();
-    };
-}
-
-export function startCeremonyFromVeil() {
-    const btn = document.getElementById('start-ceremony-btn');
-    const type = btn.dataset.ceremonyType;
-    const league = btn.dataset.league;
-    const monthKey = btn.dataset.monthKey;
-    const classId = btn.dataset.classId;
+    stage.innerHTML = '';
+    aiBox.style.opacity = '0';
     
-    playSound('confirm');
-    document.getElementById('ceremony-veil').classList.add('hidden');
-    document.getElementById('ceremony-stage').classList.remove('hidden');
-    
-    // Initialize State
-    const ceremonyState = { 
-        isActive: true, 
-        type, 
-        league, 
-        monthKey, 
-        classId, 
-        data: [], // Will hold sorted groups
-        currentGroupIndex: -1, // Start before first
-        isShowdown: false 
-    };
-    state.set('ceremonyState', ceremonyState);
-    
-    if (ceremonyMusic.loaded) ceremonyMusic.start();
-    
-    loadCeremonyData();
-}
+    title.innerHTML = formatTitleHtml("The Great Class Quest");
+    subtitle.innerHTML = formatTitleHtml(`${params.monthName} Ceremony`);
+    actionBtn.innerText = "Begin Ceremony";
+    actionBtn.onclick = loadDataAndAdvance;
 
-export function hideCeremonyVeil(stopMusic = true) {
-    document.getElementById('ceremony-screen').classList.add('hidden');
-    if (stopMusic && ceremonyMusic.state === "started") ceremonyMusic.stop(); 
-}
-
-async function loadCeremonyData() {
-    const { type, league, monthKey, classId } = state.get('ceremonyState');
-    const nextBtn = document.getElementById('ceremony-next-btn');
-    
-    document.getElementById('ceremony-title').innerText = `Summoning Results...`;
-    document.getElementById('ceremony-reveal-area').innerHTML = '';
-    document.getElementById('ceremony-ai-commentary').innerHTML = '';
-    nextBtn.disabled = true;
-
-    // 1. Fetch & Sort Data
-    const rawData = await fetchLastMonthResults(league, type, monthKey, classId);
-    
-    if (rawData.length === 0 || rawData.every(d => d.score === 0)) {
-        document.getElementById('ceremony-reveal-area').innerHTML = `<p class="text-3xl font-title text-white">No stars were recorded for this period!</p>`;
-        nextBtn.innerHTML = `<i class="fas fa-times"></i>`;
-        nextBtn.disabled = false;
-        nextBtn.onclick = endCeremony;
-        // Mark viewed anyway to stop pestering
-        markCeremonyViewedInDB(classId, monthKey, type);
-        return;
+    if (ceremonyMusic.loaded) {
+        ceremonyMusic.volume.value = -12; 
+        ceremonyMusic.start();
     }
-
-    // 2. Rank & Group Data (Logic Fix: Group Ties properly)
-    let rankedGroups = [];
-    let lastScore = -1, last3 = -1, last2 = -1, lastUnique = -1;
-    let currentRank = 0;
     
-    // rawData is already sorted by the complex tie-breaker logic in fetchLastMonthResults
-    rawData.forEach((entry, index) => {
-        // TIE CHECK
-        let isTie = false;
-        if (type === 'hero') {
-            // Hero Rules: Ties happen if Stars, 3-Star, 2-Star, Skill are identical.
-            // Exception: For places 1, 2, 3, Academic score is IGNORED for rank.
-            // For place 4+, Academic score is used.
-            const isStatsTie = (
-                entry.score === lastScore && 
-                entry.count3Star === last3 && 
-                entry.count2Star === last2 && 
-                entry.uniqueReasons === lastUnique
-            );
-            
-            if (currentRank < 3) { // If we are currently in top 3
-                 isTie = isStatsTie;
-            } else {
-                 // For lower ranks, use academic average as tie breaker too?
-                 // User said: "academics should affect tie breakers... ONLY from the last place up to the fourth."
-                 // This implies for Top 3, we ignore academics.
-                 // rawData is ALREADY sorted using this logic. So we just check if values match.
-                 isTie = isStatsTie && (entry.academicAvg === rawData[index-1].academicAvg);
+    aiBox.style.opacity = '1';
+    document.getElementById('ceremony-ai-text').innerText = "Welcome! The scrolls are ready...";
+    triggerAICommentary('intro', { month: params.monthName });
+}
+
+// --- 2. DATA LOADING ---
+
+async function loadDataAndAdvance() {
+    const btn = document.getElementById('ceremony-action-btn');
+    btn.disabled = true;
+    btn.innerText = "Summoning Scrolls...";
+
+    try {
+        const [year, month] = ceremonyData.monthKey.split('-').map(Number);
+        
+        // 1. Fetch Logs
+        const logs = await fetchLogsForMonth(year, month);
+        const monthlyScores = {}; 
+        logs.forEach(log => {
+            monthlyScores[log.studentId] = (monthlyScores[log.studentId] || 0) + log.stars;
+        });
+
+        // 2. PREPARE CLASSES
+        const allClasses = state.get('allSchoolClasses').filter(c => c.questLevel === ceremonyData.league);
+        const overrides = state.get('allScheduleOverrides') || [];
+        const ranges = state.get('schoolHolidayRanges') || [];
+        const daysInMonth = new Date(year, month, 0).getDate();
+        const monthStart = new Date(year, month - 1, 1);
+
+        let globalHolidayDays = 0;
+        ranges.forEach(range => {
+            const start = new Date(range.start);
+            const end = new Date(range.end);
+            const overlapStart = start > monthStart ? start : monthStart;
+            const overlapEnd = end < new Date(year, month, 0) ? end : new Date(year, month, 0);
+            if (overlapStart <= overlapEnd) {
+                const diffTime = Math.abs(overlapEnd - overlapStart);
+                const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
+                globalHolidayDays += diffDays;
             }
-        } else {
-            // Team Rules: Progress match
-            isTie = Math.abs(entry.progress - rawData[index-1]?.progress) < 0.1;
-        }
+        });
 
-        if (index === 0 || !isTie) {
-            currentRank = index + 1;
-        }
-        
-        // Push to group
-        // We group by Rank index in a sparse array or map
-        // Better: linear push to groups
-        if (index === 0 || !isTie) {
-            rankedGroups.push({ rank: currentRank, entries: [entry] });
-        } else {
-            rankedGroups[rankedGroups.length - 1].entries.push(entry);
-        }
-
-        // Update stats
-        lastScore = entry.score; last3 = entry.count3Star; last2 = entry.count2Star; lastUnique = entry.uniqueReasons;
-    });
-
-    // 3. REVERSE for Display (Last place first)
-    const ceremonyState = state.get('ceremonyState');
-    ceremonyState.data = rankedGroups.reverse();
-    state.set('ceremonyState', ceremonyState);
-
-    document.getElementById('ceremony-title').innerText = type === 'team' ? 'Team Quest Results' : 'Hero\'s Challenge Results';
-    
-    // Setup Controls
-    nextBtn.innerHTML = `<i class="fas fa-chevron-right"></i>`;
-    nextBtn.onclick = advanceCeremony;
-    nextBtn.disabled = false;
-    document.getElementById('ceremony-skip-btn').onclick = skipCeremony;
-    
-    // Start!
-    advanceCeremony();
-}
-
-export async function advanceCeremony() {
-    let ceremonyState = state.get('ceremonyState');
-    const revealArea = document.getElementById('ceremony-reveal-area');
-    const aiBox = document.getElementById('ceremony-ai-commentary');
-    const nextBtn = document.getElementById('ceremony-next-btn');
-
-    // STATE: SHOWDOWN REVEAL
-    if (ceremonyState.isShowdown) {
-        revealWinner();
-        ceremonyState.isShowdown = false;
-        state.set('ceremonyState', ceremonyState);
-        return;
-    }
-
-    ceremonyState.currentGroupIndex++;
-    const { data, currentGroupIndex } = ceremonyState;
-
-    if (currentGroupIndex >= data.length) {
-        endCeremony();
-        return;
-    }
-
-    const currentGroup = data[currentGroupIndex];
-    const { rank, entries } = currentGroup;
-
-    // CHECK FOR SHOWDOWN CONDITION:
-    // If current rank is 2 AND the NEXT group (which is last in this reversed array) is Rank 1
-    // Actually, data is reversed. So Rank 2 is near the end. Rank 1 is the VERY LAST item.
-    // Showdown triggers when we hit Rank 2, and we have a Rank 1 pending.
-    
-    const nextGroup = data[currentGroupIndex + 1];
-    if (rank === 2 && nextGroup && nextGroup.rank === 1) {
-        // ENTER SHOWDOWN MODE
-        ceremonyState.isShowdown = true;
-        ceremonyState.currentGroupIndex++; // Advance internal index to consume Rank 1 too
-        
-        const rank2Entries = entries;
-        const rank1Entries = nextGroup.entries; // Winners
-
-        renderShowdown(rank1Entries, rank2Entries);
-        
-        // AI Commentary for Showdown
-        aiBox.innerHTML = `<p class="animate-pulse">The final two! Who will take the crown?</p>`;
-        const comment = await generateAICommentary(null, 0, ceremonyState.type); // Rank 0 = Suspense
-        aiBox.innerHTML = `<p>${comment}</p>`;
-        
-        nextBtn.innerHTML = `Reveal Winner!`;
-        if (ceremonyMusic.loaded) ceremonyMusic.volume.rampTo(-20, 1);
-        if (showdownSting.loaded) showdownSting.start();
-
-    } else {
-        // STANDARD REVEAL
-        renderCardGroup(entries, rank);
-        
-        // AI Commentary
-        const comment = await generateAICommentary(entries[0], rank, ceremonyState.type);
-        aiBox.innerHTML = `<p>${comment}</p>`;
-        
-        if (currentGroupIndex === data.length - 1) {
-            nextBtn.innerHTML = `<i class="fas fa-check"></i>`; // End
-        } else {
-            nextBtn.innerHTML = `<i class="fas fa-chevron-right"></i>`;
-        }
-    }
-    
-    state.set('ceremonyState', ceremonyState);
-}
-
-function renderCardGroup(entries, rank) {
-    const revealArea = document.getElementById('ceremony-reveal-area');
-    revealArea.innerHTML = '';
-    revealArea.classList.remove('confetti-active');
-
-    playSound(rank <= 3 ? 'star2' : 'click');
-
-    entries.forEach(entry => {
-        const card = document.createElement('div');
-        
-        // --- NEW VISUALS: Bright & Colorful ---
-        let borderClass = 'border-indigo-100';
-        let bgClass = 'bg-white';
-        let textClass = 'text-gray-800';
-        let rankBadgeBg = 'bg-indigo-100 text-indigo-600';
-        let rankBadge = `#${rank}`;
-        let starColor = 'text-indigo-400';
-
-        if (rank === 3) { 
-            borderClass = 'border-orange-300'; 
-            bgClass = 'bg-orange-50'; 
-            rankBadge = '🥉'; 
-            rankBadgeBg = 'bg-white text-orange-600 border-2 border-orange-200';
-            starColor = 'text-orange-500';
-        }
-        
-        const avatarHtml = entry.avatar 
-            ? `<img src="${entry.avatar}" class="w-28 h-28 rounded-full border-4 border-white shadow-lg mx-auto object-cover bg-gray-100">` 
-            : `<div class="w-28 h-28 rounded-full bg-indigo-50 flex items-center justify-center text-6xl mx-auto text-indigo-300 font-bold border-4 border-white shadow-lg">${entry.name.charAt(0)}</div>`;
-
-        // Card Structure
-        card.className = `ceremony-card ${bgClass} ${borderClass} relative mx-4`;
-        card.innerHTML = `
-            <div class="absolute -top-6 left-1/2 transform -translate-x-1/2 text-3xl ${rankBadgeBg} rounded-full w-14 h-14 flex items-center justify-center shadow-md z-20">${rankBadge}</div>
-            <div class="mt-8 mb-4 relative z-10">${avatarHtml}</div>
-            <h3 class="font-title text-3xl ${textClass} truncate px-2 mb-1" style="text-shadow: none;">${entry.name}</h3>
-            ${entry.className ? `<p class="text-sm text-gray-500 mb-4 font-semibold">${entry.className}</p>` : ''}
-            <div class="bg-white/80 rounded-xl p-3 mx-auto w-4/5 shadow-inner border border-gray-100">
-                <p class="font-title text-4xl ${starColor}">${entry.score} ⭐</p>
-            </div>
-        `;
-        revealArea.appendChild(card);
-    });
-}
-
-function renderShowdown(rank1Entries, rank2Entries) {
-    const revealArea = document.getElementById('ceremony-reveal-area');
-    revealArea.innerHTML = '';
-    
-    // Create HIDDEN cards for both
-    // Rank 1
-    rank1Entries.forEach(entry => revealArea.appendChild(createShowdownCard(entry, 1, true)));
-    // Rank 2
-    rank2Entries.forEach(entry => revealArea.appendChild(createShowdownCard(entry, 2, true)));
-}
-
-function createShowdownCard(entry, rank, isHidden) {
-    const card = document.createElement('div');
-    
-    // Default to "Mystery" look (Purple/Blue Gradient)
-    const avatarHtml = entry.avatar 
-        ? `<img src="${entry.avatar}" class="w-36 h-36 rounded-full border-4 border-white/50 shadow-2xl mx-auto object-cover bg-indigo-800">` 
-        : `<div class="w-36 h-36 rounded-full bg-white/20 flex items-center justify-center text-7xl mx-auto text-white font-bold border-4 border-white/30">${entry.name.charAt(0)}</div>`;
-
-    card.className = `ceremony-card finalist mx-6 relative transform transition-all duration-1000`;
-    card.dataset.rank = rank; 
-
-    // Note: Text is WHITE here because .finalist has a dark purple background
-    card.innerHTML = `
-        <div class="mt-6 mb-6">${avatarHtml}</div>
-        <h3 class="font-title text-4xl text-white mb-6 drop-shadow-md">${entry.name}</h3>
-        <div class="reveal-content ${isHidden ? 'opacity-0' : ''} transition-opacity duration-1000">
-            <div class="inline-block bg-white/20 backdrop-blur-md rounded-2xl p-4 border border-white/30">
-                <p class="text-7xl mb-2 filter drop-shadow-lg">${rank === 1 ? '🥇' : '🥈'}</p>
-                <p class="font-title text-5xl text-yellow-300 drop-shadow-md">${entry.score} ⭐</p>
-            </div>
-        </div>
-    `;
-    return card;
-}
-
-function revealWinner() {
-    // Audio remains exactly as requested
-    if (showdownSting.state === "started") showdownSting.stop();
-    if (ceremonyMusic.loaded) ceremonyMusic.volume.rampTo(-12, 0.5);
-    if (winnerFanfare.loaded) winnerFanfare.start();
-
-    const revealArea = document.getElementById('ceremony-reveal-area');
-    revealArea.classList.add('confetti-active');
-
-    const cards = document.querySelectorAll('.ceremony-card.finalist');
-    cards.forEach(card => {
-        const rank = parseInt(card.dataset.rank);
-        const revealContent = card.querySelector('.reveal-content');
-        
-        // Remove the purple "Mystery" look
-        card.classList.remove('finalist');
-        
-        // Show the stars
-        revealContent.classList.remove('opacity-0');
-
-        // Apply Gold/Silver Themes (Defined in CSS now)
-        if (rank === 1) {
-            card.classList.add('podium-1');
-            // Change text colors inside to dark since background is now light gold
-            card.querySelector('h3').classList.remove('text-white');
-            card.querySelector('h3').classList.add('text-amber-900');
-            card.querySelector('.reveal-content p:last-child').classList.remove('text-yellow-300');
-            card.querySelector('.reveal-content p:last-child').classList.add('text-amber-600');
-        } else {
-            card.classList.add('podium-2');
-            // Change text colors inside
-            card.querySelector('h3').classList.remove('text-white');
-            card.querySelector('h3').classList.add('text-slate-700');
-            card.querySelector('.reveal-content p:last-child').classList.remove('text-yellow-300');
-            card.querySelector('.reveal-content p:last-child').classList.add('text-slate-500');
-        }
-    });
-
-    document.getElementById('ceremony-next-btn').innerHTML = `<i class="fas fa-check"></i>`;
-    
-    if (state.get('ceremonyState').type === 'hero') {
-        document.getElementById('ceremony-show-global-btn').classList.remove('hidden');
-    }
-}
-
-export function skipCeremony() {
-    // Jump to showdown or end
-    let s = state.get('ceremonyState');
-    const lastGroupIdx = s.data.length - 1;
-    // If we haven't reached the top 2 yet
-    if (s.currentGroupIndex < lastGroupIdx - 1) {
-        s.currentGroupIndex = lastGroupIdx - 2; // Jump to just before top 2
-        state.set('ceremonyState', s);
-        advanceCeremony();
-    } else {
-        endCeremony();
-    }
-}
-
-export function endCeremony() {
-    const s = state.get('ceremonyState');
-    markCeremonyViewedInDB(s.classId, s.monthKey, s.type);
-    
-    document.getElementById('ceremony-screen').classList.add('hidden');
-    document.getElementById('ceremony-reveal-area').classList.remove('confetti-active');
-    document.getElementById('ceremony-show-global-btn').classList.add('hidden');
-
-    if (ceremonyMusic.state === "started") ceremonyMusic.stop();
-    if (winnerFanfare.state === "started") winnerFanfare.stop();
-    
-    s.isActive = false;
-    state.set('ceremonyState', s);
-    
-    // Refresh buttons
-    updateCeremonyStatus();
-    if (s.type === 'team') renderClassLeaderboardTab();
-    else renderStudentLeaderboardTab();
-}
-
-// --- DATA FETCHING & SORTING (Simplified & Robust) ---
-
-async function fetchLastMonthResults(league, type, monthKey, classId) {
-    // Use the optimized fetch logic
-    let monthlyScores = {};
-    const now = new Date();
-    // Check if we are asking for the *current* month (e.g. testing) or *last* month
-    // The modal passes the monthKey.
-    
-    // Get Logs
-    const [year, month] = monthKey.split('-').map(Number);
-    
-    // We rely on the generic fetch function that handles archives vs live
-    // But since we need custom logic, let's just fetch ALL logs for that month
-    const { fetchLogsForMonth } = await import('../db/queries.js');
-    const logs = await fetchLogsForMonth(year, month);
-    
-    logs.forEach(log => {
-        monthlyScores[log.studentId] = (monthlyScores[log.studentId] || 0) + log.stars;
-    });
-
-    if (type === 'team') {
-        const classes = state.get('allSchoolClasses').filter(c => c.questLevel === league);
-        
-        return classes.map(c => {
+        let classScores = allClasses.map(c => {
             const students = state.get('allStudents').filter(s => s.classId === c.id);
             const score = students.reduce((sum, s) => sum + (monthlyScores[s.id] || 0), 0);
             
-            // Calculate Goal for Progress
-            // Simple formula for ceremony display
-            const goal = Math.max(18, students.length * 18);
-            const progress = (score / goal) * 100;
+            const classCancellations = overrides.filter(o => {
+                if (o.classId !== c.id || o.type !== 'cancelled') return false;
+                const oDate = utils.parseDDMMYYYY(o.date); 
+                return oDate.getMonth() === (month - 1) && oDate.getFullYear() === year;
+            }).length;
+
+            const totalDaysLost = globalHolidayDays + classCancellations;
+            let monthModifier = (daysInMonth - totalDaysLost) / daysInMonth;
+            if (month === 6) monthModifier = 0.5; 
+            else monthModifier = Math.max(0.6, Math.min(1.0, monthModifier));
+
+            let historicalDifficulty = c.difficultyLevel || 0;
+            if (c.questCompletedAt) {
+                const completedDate = c.questCompletedAt.toDate();
+                completedDate.setHours(0,0,0,0);
+                if (completedDate >= monthStart) {
+                    historicalDifficulty = Math.max(0, historicalDifficulty - 1);
+                }
+            }
+
+            const BASE_GOAL = 18;
+            const SCALING_FACTOR = 1.5;
+            const adjustedGoalPerStudent = (BASE_GOAL + (historicalDifficulty * SCALING_FACTOR)) * monthModifier;
+            const goal = Math.max(18, Math.round(students.length * adjustedGoalPerStudent));
             
-            return {
-                id: c.id,
-                name: c.name,
-                logo: c.logo,
-                score,
-                progress,
-                studentCount: students.length,
-                questCompletedAt: c.questCompletedAt // Needed for tie breaker
+            const progress = (score / goal) * 100;
+
+            return { 
+                ...c, score, goal, progress, 
+                level: historicalDifficulty + 1,
+                studentCount: students.length 
             };
-        }).sort((a, b) => {
-            if (b.progress !== a.progress) return b.progress - a.progress;
+        });
+
+        classScores.sort((a, b) => {
+            if (Math.abs(a.progress - b.progress) > 0.01) return b.progress - a.progress;
             return b.score - a.score;
         });
 
-    } else {
-        // HERO
-        let students;
-        if (classId) students = state.get('allStudents').filter(s => s.classId === classId);
-        else {
-            const classes = state.get('allSchoolClasses').filter(c => c.questLevel === league);
-            students = state.get('allStudents').filter(s => classes.some(c => c.id === s.classId));
-        }
-
-        // Calculate tie-breaker stats
-        // We need 3-star counts, etc.
-        const stats = {};
-        logs.forEach(log => {
-            if (!stats[log.studentId]) stats[log.studentId] = { s3: 0, s2: 0, skills: new Set() };
-            if (log.stars >= 3) stats[log.studentId].s3++;
-            else if (log.stars >= 2) stats[log.studentId].s2++;
-            if (log.reason) stats[log.studentId].skills.add(log.reason);
+        let cRank = 1;
+        classScores = classScores.map((c, i) => {
+            if (i > 0) {
+                const prev = classScores[i-1];
+                if (Math.abs(c.progress - prev.progress) > 0.01) cRank = i + 1;
+            }
+            return { ...c, rank: cRank };
         });
 
-        // Need academic for 4th place ties
-        const { fetchTrialsForMonth } = await import('../db/queries.js');
-        const trials = await fetchTrialsForMonth(classId, monthKey); // If global, this might miss data unless we fetch all.
-        // For global ceremony, fetching all trials is expensive. 
-        // FIX: Only fetch trials if classId provided OR assume simplified sorting for global.
-        // Let's assume simplified for global speed, detailed for class.
-        
-        return students.map(s => {
-            const st = stats[s.id] || { s3: 0, s2: 0, skills: new Set() };
-            const cls = state.get('allSchoolClasses').find(c => c.id === s.classId);
-            
-            // Calc Academic Avg locally if classId is present (faster)
-            let academicAvg = 0;
-            if (classId) {
-                const sTrials = trials.filter(t => t.studentId === s.id);
-                if (sTrials.length > 0) {
-                    const sum = sTrials.reduce((acc, t) => {
-                        if (t.scoreNumeric) return acc + (t.scoreNumeric/t.maxScore)*100;
-                        if (t.scoreQualitative === 'Great!!!') return acc + 100;
-                        return acc;
-                    }, 0);
-                    academicAvg = sum / sTrials.length;
-                }
-            }
+        ceremonyData.classQueue = classScores.reverse(); 
+
+        // 3. PREPARE STUDENTS
+        const studentsInClass = state.get('allStudents').filter(s => s.classId === ceremonyData.classId);
+        const allWrittenScores = state.get('allWrittenScores'); 
+
+        let studentStats = studentsInClass.map(s => {
+            const sLogs = logs.filter(l => l.studentId === s.id);
+            const score = monthlyScores[s.id] || 0;
+            let count3 = 0, count2 = 0;
+            const reasons = new Set();
+            sLogs.forEach(l => {
+                if (l.stars >= 3) count3++;
+                else if (l.stars >= 2) count2++;
+                if (l.reason) reasons.add(l.reason);
+            });
+
+            const sScores = allWrittenScores.filter(sc => {
+                if(sc.studentId !== s.id || !sc.date) return false;
+                const d = utils.parseFlexibleDate(sc.date);
+                return d && d.getMonth() === (month - 1) && d.getFullYear() === year;
+            });
+            let acadSum = 0;
+            sScores.forEach(sc => {
+                if (sc.scoreNumeric !== null && sc.maxScore) acadSum += (sc.scoreNumeric/sc.maxScore)*100;
+                else if (sc.scoreQualitative === 'Great!!!') acadSum += 100;
+                else if (sc.scoreQualitative === 'Great!!') acadSum += 75;
+            });
+            const academicAvg = sScores.length > 0 ? acadSum / sScores.length : 0;
 
             return {
                 id: s.id,
                 name: s.name,
                 avatar: s.avatar,
-                className: cls?.name,
-                score: monthlyScores[s.id] || 0,
-                count3Star: st.s3,
-                count2Star: st.s2,
-                uniqueReasons: st.skills.size,
-                academicAvg: academicAvg
+                score,
+                stats: { count3, count2, academicAvg, uniqueReasons: reasons.size }
             };
-        }).sort((a, b) => {
-            // Primary: Stars
-            if (b.score !== a.score) return b.score - a.score;
-            // Podium Logic applies here for sorting list
-            if (b.count3Star !== a.count3Star) return b.count3Star - a.count3Star;
-            if (b.count2Star !== a.count2Star) return b.count2Star - a.count2Star;
-            // Academics
-            if (b.academicAvg !== a.academicAvg) return b.academicAvg - a.academicAvg;
-            return a.name.localeCompare(b.name);
         });
+
+        studentStats.sort((a, b) => {
+            if (b.score !== a.score) return b.score - a.score;
+            if (b.stats.count3 !== a.stats.count3) return b.stats.count3 - a.stats.count3;
+            if (b.stats.count2 !== a.stats.count2) return b.stats.count2 - a.stats.count2;
+            if (b.stats.uniqueReasons !== a.stats.uniqueReasons) return b.stats.uniqueReasons - a.stats.uniqueReasons;
+            return b.stats.academicAvg - a.stats.academicAvg;
+        });
+
+        let sRank = 1;
+        studentStats = studentStats.map((s, i) => {
+            if (i > 0) {
+                const prev = studentStats[i-1];
+                let isTie = s.score === prev.score && 
+                            s.stats.count3 === prev.stats.count3 && 
+                            s.stats.count2 === prev.stats.count2 &&
+                            s.stats.uniqueReasons === prev.stats.uniqueReasons;
+                if (sRank > 3) isTie = isTie && (Math.abs(s.stats.academicAvg - prev.stats.academicAvg) < 0.1);
+                if (!isTie) sRank = i + 1;
+            }
+            return { ...s, rank: sRank };
+        });
+
+        ceremonyData.studentQueue = studentStats.reverse();
+        ceremonyData.phase = 'class_reveal';
+        advanceCeremony();
+
+    } catch (e) {
+        console.error("Ceremony Load Error:", e);
+        btn.innerText = "Error loading. Check connection.";
     }
 }
 
-async function markCeremonyViewedInDB(classId, monthKey, type) {
+// --- 3. THE "CONVEYOR BELT" ENGINE ---
+
+function advanceCeremony() {
+    const btn = document.getElementById('ceremony-action-btn');
+    const stage = document.getElementById('ceremony-stage-area');
+    const title = document.getElementById('ceremony-title');
+    const aiBox = document.getElementById('ceremony-ai-box');
+    const subtitle = document.getElementById('ceremony-subtitle');
+
+    btn.disabled = false;
+    btn.onclick = advanceCeremony; 
+
+    // --- PHASE 1: CLASSES ---
+    if (ceremonyData.phase === 'class_reveal') {
+        const queue = ceremonyData.classQueue;
+        
+        if (!queue || queue.length === 0) {
+            ceremonyData.phase = 'transition';
+            advanceCeremony();
+            return;
+        }
+
+        if (queue.length === 1) {
+            stage.innerHTML = '';
+            renderCard(queue[0], 'class');
+            title.innerHTML = formatTitleHtml("The Champion");
+            ceremonyData.phase = 'transition';
+            btn.innerText = "See Student Heroes";
+            return;
+        }
+
+        const pointer = ceremonyData.classPointer;
+
+        if (pointer >= queue.length - 2) {
+            ceremonyData.phase = 'class_showdown'; 
+            const silver = queue[queue.length - 2];
+            const gold = queue[queue.length - 1];
+            setupShowdown(silver, gold, 'The Final Duel', 'Two legends remain...');
+            btn.innerText = "🥁 Drumroll...";
+            btn.onclick = handleDramaticReveal;
+            return;
+        }
+
+        const entry = queue[pointer];
+        stage.innerHTML = '';
+        renderCard(entry, 'class');
+        
+        title.innerHTML = formatTitleHtml(`Rank #${entry.rank}`);
+        subtitle.innerHTML = formatTitleHtml("Team Quest");
+        aiBox.style.opacity = '1';
+        
+        triggerAICommentary('class_rank', { name: entry.name, rank: entry.rank, score: entry.score, progress: entry.progress.toFixed(0) });
+
+        ceremonyData.classPointer++;
+        btn.innerText = "Next";
+    }
+
+    // --- PHASE 1.5: CLASS SHOWDOWN DONE ---
+    else if (ceremonyData.phase === 'class_showdown_done') {
+        ceremonyData.phase = 'transition';
+        advanceCeremony();
+    }
+
+    // --- PHASE 2: TRANSITION ---
+    else if (ceremonyData.phase === 'transition') {
+        stopAllCeremonyAudio();
+        setTimeout(() => { playCeremonyMusic(); }, 500);
+
+        stage.innerHTML = `<div class="text-white text-center animate-pulse"><i class="fas fa-user-astronaut text-9xl mb-4"></i><h2 class="font-title text-5xl">Hero's Challenge</h2></div>`;
+        title.innerHTML = formatTitleHtml("Individual Honors");
+        subtitle.innerHTML = formatTitleHtml("Who went above and beyond?");
+        aiBox.style.opacity = '0';
+        triggerAICommentary('transition', {});
+        
+        btn.innerText = "Begin Hero Reveal";
+        ceremonyData.phase = 'student_reveal';
+    }
+        
+    // --- PHASE 3: STUDENTS ---
+    else if (ceremonyData.phase === 'student_reveal') {
+        const queue = ceremonyData.studentQueue;
+        
+        if (!queue || queue.length === 0) {
+            ceremonyData.phase = 'final_leaderboard';
+            advanceCeremony();
+            return;
+        }
+
+        if (queue.length === 1) {
+            stage.innerHTML = '';
+            renderCard(queue[0], 'student');
+            title.innerHTML = formatTitleHtml("Class Hero");
+            ceremonyData.phase = 'final_leaderboard';
+            btn.innerText = "See Full Results";
+            return;
+        }
+
+        const pointer = ceremonyData.studentPointer;
+
+        if (pointer >= queue.length - 2) {
+            ceremonyData.phase = 'student_showdown';
+            const silver = queue[queue.length - 2];
+            const gold = queue[queue.length - 1];
+            setupShowdown(silver, gold, 'Top Heroes', 'Two legends remain...');
+            btn.innerText = "Crown the Champion";
+            btn.onclick = handleDramaticReveal;
+            return;
+        }
+
+        const entry = queue[pointer];
+        stage.innerHTML = '';
+        renderCard(entry, 'student');
+        
+        let rankText = `#${entry.rank}`;
+        if (entry.rank === 3) rankText = "🥉 Bronze";
+        
+        title.innerHTML = formatTitleHtml(`${rankText} Place`);
+        subtitle.innerHTML = formatTitleHtml("Hero's Challenge");
+        
+        aiBox.style.opacity = '1';
+        
+        let winReason = "";
+        if (pointer > 0) {
+            const prevEntry = queue[pointer - 1];
+            if (entry.score === prevEntry.score && entry.rank < prevEntry.rank) {
+                if (entry.stats.count3 > prevEntry.stats.count3) winReason = "tie_3star";
+                else if (entry.stats.count2 > prevEntry.stats.count2) winReason = "tie_2star";
+                else if (entry.stats.academicAvg > prevEntry.stats.academicAvg) winReason = "tie_academic";
+                else if (entry.stats.uniqueReasons > prevEntry.stats.uniqueReasons) winReason = "tie_variety";
+            }
+        }
+
+        triggerAICommentary('student_rank', { 
+            name: entry.name, 
+            rank: entry.rank, 
+            score: entry.score,
+            tieReason: winReason 
+        });
+
+        ceremonyData.studentPointer++;
+        btn.innerText = "Next";
+    }
+
+    // --- PHASE 3.5: STUDENT SHOWDOWN DONE ---
+    else if (ceremonyData.phase === 'student_showdown_done') {
+        ceremonyData.phase = 'final_leaderboard';
+        btn.innerText = "Show Final Standings";
+        btn.onclick = advanceCeremony; 
+    }
+
+    // --- PHASE 3.6: FINAL LEADERBOARD (NEW) ---
+    else if (ceremonyData.phase === 'final_leaderboard') {
+        stage.innerHTML = '';
+        renderFinalLeaderboard();
+        
+        title.innerHTML = formatTitleHtml("Final Standings");
+        subtitle.innerHTML = formatTitleHtml("A glorious month for everyone!");
+        aiBox.style.opacity = '0'; // Hide AI box to focus on list
+        
+        btn.innerText = "Finish Ceremony";
+        ceremonyData.phase = 'end';
+    }
+
+    // --- PHASE 4: END ---
+    else if (ceremonyData.phase === 'end') {
+        saveCeremonyComplete();
+        
+        stage.innerHTML = `
+            <div class="text-center">
+                <h2 class="font-title text-6xl text-white mb-4">Congratulations!</h2>
+                <p class="text-2xl text-indigo-200">A new quest begins tomorrow...</p>
+                <div class="mt-8 text-8xl animate-bounce">🎓</div>
+            </div>
+        `;
+        title.innerHTML = formatTitleHtml("Ceremony Complete");
+        subtitle.innerHTML = formatTitleHtml("Until next time..."); 
+        aiBox.style.opacity = '0';
+        triggerAICommentary('outro', {});
+        btn.innerText = "Close";
+        btn.onclick = closeCeremony;
+        
+        triggerConfetti();
+        triggerFireworks();
+        if (winnerFanfare.loaded) winnerFanfare.start();
+    }
+}
+
+// --- 4. RENDERERS ---
+
+function renderCard(entry, type) {
+    const stage = document.getElementById('ceremony-stage-area');
+    const isStudent = type === 'student';
+    
+    let borderColor = 'border-gray-300';
+    let extraClass = '';
+    let rankBadge = `<span class="bg-gray-700 text-white px-3 py-1 rounded-full text-lg font-bold">#${entry.rank}</span>`;
+    
+    if (entry.rank === 3) { 
+        borderColor = 'border-orange-400'; 
+        extraClass = 'bronze-shine'; 
+        rankBadge = `<span class="bg-orange-500 text-white px-4 py-1 rounded-full text-xl font-bold">🥉 Bronze</span>`;
+    }
+
+    const imageHtml = isStudent 
+        ? (entry.avatar ? `<img src="${entry.avatar}" class="w-40 h-40 rounded-full border-4 border-white object-cover mx-auto mb-4">` : `<div class="w-40 h-40 rounded-full bg-indigo-500 flex items-center justify-center text-7xl text-white font-bold mx-auto mb-4 border-4 border-white">${entry.name.charAt(0)}</div>`)
+        : `<div class="text-8xl mb-4 filter drop-shadow-lg">${entry.logo}</div>`;
+
+    const subText = isStudent 
+        ? `${entry.score} Stars`
+        : `<div class="flex flex-col items-center">
+             <span class="text-2xl font-bold text-indigo-700">${entry.score} Stars</span>
+             <span class="text-sm font-semibold text-gray-500 uppercase tracking-wide mt-1">${entry.studentCount} Students</span>
+             <span class="text-amber-500 font-extrabold text-3xl mt-2 drop-shadow-sm">${entry.progress.toFixed(0)}%</span>
+           </div>`;
+
+    const card = document.createElement('div');
+    card.className = `ceremony-display-card ceremony-card-enter ${borderColor} ${extraClass}`;
+    card.innerHTML = `
+        <div class="absolute -top-5 left-1/2 transform -translate-x-1/2 z-20">
+            ${rankBadge}
+        </div>
+        <div class="mt-4">
+            ${imageHtml}
+            <h3 class="font-title text-4xl text-gray-800 mb-2 truncate px-2 leading-tight">${entry.name}</h3>
+            <div class="mt-2">${subText}</div>
+        </div>
+    `;
+    
+    stage.appendChild(card);
+    playSound(entry.rank <= 3 ? 'star2' : 'click');
+}
+
+function setupShowdown(silverEntry, goldEntry, titleText, subText) {
+    const stage = document.getElementById('ceremony-stage-area');
+    const title = document.getElementById('ceremony-title');
+    const subtitle = document.getElementById('ceremony-subtitle');
+    const aiBox = document.getElementById('ceremony-ai-box');
+
+    title.innerHTML = formatTitleHtml(titleText);
+    subtitle.innerHTML = formatTitleHtml(subText);
+    subtitle.style.opacity = '1';
+    aiBox.style.opacity = '1'; 
+
+    stage.innerHTML = ''; 
+
+    const spotlight = document.createElement('div');
+    spotlight.className = 'absolute inset-0 bg-radial-gradient-spotlight pointer-events-none animate-pulse-slow';
+    stage.appendChild(spotlight);
+
+    const leftCard = createFaceOff(silverEntry, silverEntry.rank, 'left');
+    const rightCard = createFaceOff(goldEntry, goldEntry.rank, 'right');
+    
+    const vsBadge = document.createElement('div');
+    vsBadge.id = 'ceremony-vs-badge';
+    vsBadge.className = 'z-20 mx-4 font-title text-6xl text-transparent bg-clip-text bg-gradient-to-br from-red-500 to-orange-600 drop-shadow-[0_0_15px_rgba(255,0,0,0.8)] animate-bounce';
+    vsBadge.innerText = 'VS';
+
+    stage.appendChild(leftCard);
+    stage.appendChild(vsBadge);
+    stage.appendChild(rightCard);
+
+    triggerAICommentary('showdown_build', { name1: silverEntry.name, name2: goldEntry.name });
+
+    stopAllCeremonyAudio(); 
+    if (showdownSting.loaded) {
+        showdownSting.volume.value = -5;
+        showdownSting.start();
+    }
+}
+
+function createFaceOff(entry, realRank, position) {
+    if (!entry) return document.createElement('div');
+
+    const div = document.createElement('div');
+    div.className = `ceremony-display-card ceremony-card face-off relative`;
+    
+    div.id = `showdown-card-${position}`; 
+    div.dataset.rank = realRank; 
+    div.dataset.name = entry.name; 
+    div.dataset.score = entry.score;
+    
+    const isStudent = entry.avatar !== undefined;
+    
+    const imageHtml = !isStudent
+        ? `<div class="text-8xl mb-4 filter drop-shadow-lg">${entry.logo}</div>`
+        : (entry.avatar
+            ? `<img src="${entry.avatar}" class="w-40 h-40 rounded-full border-4 border-gray-300 mx-auto mb-4 object-cover shadow-inner">`
+            : `<div class="w-40 h-40 rounded-full bg-gray-200 flex items-center justify-center text-7xl text-gray-500 font-bold mx-auto mb-4 border-4 border-gray-300 shadow-inner">${entry.name.charAt(0)}</div>`);
+
+    const scoreDisplay = isStudent 
+        ? `${entry.score} Stars`
+        : `<div class="flex flex-col items-center">
+             <span class="text-xl text-amber-700">${entry.score} Stars</span>
+             <span class="text-xs text-gray-500 uppercase">${entry.studentCount} Students</span>
+             <span class="text-3xl text-amber-600 font-bold mt-1">${entry.progress.toFixed(0)}%</span>
+           </div>`;
+
+    div.innerHTML = `
+        <div class="rank-badge absolute -top-8 left-1/2 transform -translate-x-1/2 text-6xl drop-shadow-md z-20 transition-all duration-500 opacity-0">
+            ${realRank === 1 ? '🥇' : '🥈'}
+        </div>
+        <div class="mt-6">
+            ${imageHtml}
+            <h3 class="font-title text-3xl text-gray-700 mb-2 truncate px-2 leading-tight">${entry.name}</h3>
+            <div class="star-count opacity-0 blur-sm transition-all duration-500">
+                ${scoreDisplay}
+            </div>
+        </div>
+    `;
+    return div;
+}
+
+function handleDramaticReveal() {
+    const btn = document.getElementById('ceremony-action-btn');
+    const title = document.getElementById('ceremony-title');
+    const subtitle = document.getElementById('ceremony-subtitle');
+    const cards = document.querySelectorAll('.ceremony-card.face-off');
+    
+    btn.disabled = true;
+    btn.innerText = "Wait for it...";
+
+    stopAllCeremonyAudio();
+    playDrumRoll();
+
+    cards.forEach(card => card.classList.add('tension-active'));
+
+    setTimeout(() => {
+        stopDrumRoll();
+        
+        if(subtitle) {
+            subtitle.style.opacity = '0'; 
+            setTimeout(() => subtitle.innerHTML = '', 500);
+        }
+
+        const vsBadge = document.getElementById('ceremony-vs-badge');
+        if (vsBadge) {
+            vsBadge.classList.add('fade-out-fast');
+            setTimeout(() => vsBadge.remove(), 500);
+        }
+        
+        let winners = [];
+        const cardLeft = document.getElementById('showdown-card-left'); // Silver usually
+        const cardRight = document.getElementById('showdown-card-right'); // Gold usually
+
+        const rankLeft = parseInt(cardLeft.dataset.rank);
+        const rankRight = parseInt(cardRight.dataset.rank);
+        const isTie = rankLeft === rankRight && rankLeft === 1;
+
+        if (cardLeft) {
+            cardLeft.classList.remove('tension-active', 'face-off');
+            cardLeft.classList.add('converge-left'); 
+        }
+        if (cardRight) {
+            cardRight.classList.remove('tension-active', 'face-off');
+            cardRight.classList.add('converge-right');
+        }
+
+        [cardLeft, cardRight].forEach(card => {
+            if(!card) return;
+            
+            const badge = card.querySelector('.rank-badge');
+            const scoreEl = card.querySelector('.star-count');
+            
+            if(badge) badge.classList.remove('opacity-0');
+            if(scoreEl) {
+                scoreEl.classList.remove('opacity-0', 'blur-sm');
+                scoreEl.classList.add('opacity-100');
+            }
+
+            const r = parseInt(card.dataset.rank);
+            if (r === 1) {
+                // WINNER
+                card.classList.add('revealed-gold', 'ceremony-winner');
+                winners.push(card.dataset.name);
+                
+                setTimeout(() => {
+                    triggerFireworks(); 
+                    triggerConfetti();
+                }, 300);
+            } else {
+                // RUNNER UP (Now Glimmering Silver, Not Grey)
+                card.classList.add('revealed-silver');
+            }
+        });
+
+        playWinnerFanfare();
+
+        if (isTie) {
+            title.innerHTML = formatTitleHtml("It's a Draw! 🤝");
+            triggerAICommentary('tie', { names: winners.join(' & '), score: cardRight.dataset.score });
+        } else {
+            title.innerHTML = formatTitleHtml("Champion Crowned!");
+            const phaseType = ceremonyData.phase === 'class_showdown' ? 'class_winner' : 'student_winner';
+            triggerAICommentary(phaseType, { name: cardRight.dataset.name, score: cardRight.dataset.score });
+        }
+
+        if (ceremonyData.phase === 'class_showdown') {
+            ceremonyData.phase = 'class_showdown_done'; 
+        } else {
+            ceremonyData.phase = 'student_showdown_done'; 
+        }
+
+        btn.disabled = false;
+        btn.innerText = "Continue";
+        btn.onclick = advanceCeremony; 
+
+    }, 3000); 
+}
+
+// --- NEW FUNCTION: RENDER FINAL LEADERBOARD ---
+function renderFinalLeaderboard() {
+    const stage = document.getElementById('ceremony-stage-area');
+    
+    // Create Container
+    const container = document.createElement('div');
+    container.className = 'ceremony-leaderboard-container custom-scrollbar';
+    
+    // Reverse again because studentQueue is [Last ... 1st] for reveal, but we want [1st ... Last] for list
+    const queue = ceremonyData.studentQueue.slice().reverse(); 
+    
+    let html = '';
+    queue.forEach((s, index) => {
+        const rank = s.rank;
+        let rankClass = 'cli-rank-other';
+        let rankContent = rank;
+        
+        if (rank === 1) { rankClass = 'cli-rank-1'; rankContent = '🥇'; }
+        else if (rank === 2) { rankClass = 'cli-rank-2'; rankContent = '🥈'; }
+        else if (rank === 3) { rankClass = 'cli-rank-3'; rankContent = '🥉'; }
+        
+        const avatarHtml = s.avatar 
+            ? `<img src="${s.avatar}" class="cli-avatar">`
+            : `<div class="cli-avatar bg-indigo-100 flex items-center justify-center text-indigo-500 font-bold text-xl">${s.name.charAt(0)}</div>`;
+
+        html += `
+            <div class="ceremony-leaderboard-item" style="animation-delay: ${index * 0.1}s">
+                <div class="cli-rank ${rankClass}">${rankContent}</div>
+                ${avatarHtml}
+                <div class="cli-info">
+                    <div class="cli-name">${s.name}</div>
+                    <div class="cli-stats">High Skill: ${s.stats.uniqueReasons} types</div>
+                </div>
+                <div class="cli-stars">${s.score} ⭐</div>
+            </div>
+        `;
+    });
+    
+    container.innerHTML = html;
+    stage.appendChild(container);
+    
+    // Trigger confetti again for effect
+    triggerConfetti(); 
+}
+
+// --- 5. HELPERS ---
+
+async function saveCeremonyComplete() {
+    const classId = ceremonyData.classId;
+    const monthKey = ceremonyData.monthKey;
     try {
         const classRef = doc(db, `artifacts/great-class-quest/public/data/classes`, classId);
-        await updateDoc(classRef, { [`ceremonyHistory.${monthKey}.${type}`]: true });
+        await updateDoc(classRef, {
+            [`ceremonyHistory.${monthKey}.complete`]: true,
+            [`ceremonyHistory.${monthKey}.watchedAt`]: new Date()
+        });
         
-        // Update local state to avoid flicker
-        const allClasses = state.get('allSchoolClasses');
-        const c = allClasses.find(cls => cls.id === classId);
+        const classes = state.get('allSchoolClasses');
+        const c = classes.find(x => x.id === classId);
         if(c) {
-            if (!c.ceremonyHistory) c.ceremonyHistory = {};
-            if (!c.ceremonyHistory[monthKey]) c.ceremonyHistory[monthKey] = {};
-            c.ceremonyHistory[monthKey][type] = true;
-            state.setAllSchoolClasses(allClasses);
+            if(!c.ceremonyHistory) c.ceremonyHistory = {};
+            if(!c.ceremonyHistory[monthKey]) c.ceremonyHistory[monthKey] = {};
+            c.ceremonyHistory[monthKey].complete = true;
         }
-    } catch(e) { console.error(e); }
+        updateCeremonyStatus();
+    } catch(e) { console.error("Save failed", e); }
 }
 
-async function generateAICommentary(entry, rank, type) {
-    if (rank === 0) return "The atmosphere is electric! Who will claim the ultimate victory?";
-    const name = entry?.name || "The class";
-    const score = entry?.score || 0;
-    
-    // Quick fallback
-    const phrases = [
-        `What an incredible performance by ${name}!`,
-        `${name} has truly shined this month with ${score} stars!`,
-        `A fantastic effort securing the #${rank} spot for ${name}!`
-    ];
-    return phrases[Math.floor(Math.random() * phrases.length)];
+function closeCeremony() {
+    document.getElementById('ceremony-screen').classList.add('hidden');
+    stopAllCeremonyAudio();
+    import('../features/home.js').then(m => m.renderHomeTab());
 }
 
-export async function showGlobalLeaderboardModal() {
-    // ... (Use existing logic, just updated for styling consistency)
-    // This part wasn't reported broken, but styling should match.
-    // Keeping existing function structure but ensuring it uses the updated data fetch.
-    const { league, monthKey } = state.get('ceremonyState');
-    const contentEl = document.getElementById('global-leaderboard-content');
-    
-    document.getElementById('global-leaderboard-title').innerText = `${league} Global Ranks`;
-    modals.showAnimatedModal('global-leaderboard-modal');
-    contentEl.innerHTML = `<p class="text-center py-8"><i class="fas fa-spinner fa-spin mr-2"></i>Loading...</p>`;
-    
-    const data = await fetchLastMonthResults(league, 'hero', monthKey, null);
-    
-    contentEl.innerHTML = data.slice(0, 50).map((s, i) => `
-        <div class="flex items-center justify-between p-2 border-b border-gray-100">
-            <div class="flex items-center gap-3">
-                <span class="font-bold text-gray-500 w-6">${i+1}.</span>
-                <span>${s.name}</span>
-                <span class="text-xs text-gray-400">(${s.className})</span>
-            </div>
-            <span class="font-bold text-purple-600">${s.score} ⭐</span>
-        </div>
-    `).join('');
+function triggerConfetti() {
+    const container = document.getElementById('ceremony-confetti-container');
+    container.innerHTML = '';
+    const colors = ['#fcd34d', '#f87171', '#60a5fa', '#a78bfa', '#34d399'];
+    for(let i=0; i<150; i++) {
+        const el = document.createElement('div');
+        el.className = 'confetti-piece';
+        el.style.left = Math.random() * 100 + '%';
+        el.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
+        el.style.animationDuration = (Math.random() * 2 + 2) + 's';
+        el.style.animationDelay = (Math.random() * 2) + 's';
+        container.appendChild(el);
+    }
+}
+
+// Firework Generator
+function triggerFireworks() {
+    const container = document.getElementById('ceremony-confetti-container');
+    for(let i=0; i<5; i++) {
+        setTimeout(() => {
+            const x = 20 + Math.random() * 60; 
+            const y = 20 + Math.random() * 40; 
+            
+            const firework = document.createElement('div');
+            firework.className = 'firework';
+            firework.style.left = x + '%';
+            firework.style.top = y + '%';
+            container.appendChild(firework);
+            
+            setTimeout(() => firework.remove(), 1000);
+        }, i * 300);
+    }
+}
+
+// --- AI COMMENTARY ---
+let aiDebounce = null;
+
+async function triggerAICommentary(phase, data) {
+    if (aiDebounce) clearTimeout(aiDebounce);
+
+    const aiBox = document.getElementById('ceremony-ai-box');
+    const aiText = document.getElementById('ceremony-ai-text');
+
+    aiDebounce = setTimeout(async () => {
+        aiBox.style.opacity = '0.5'; 
+
+        // 1. Determine Tone based on League (Age Group)
+        const league = ceremonyData.league || 'A'; // Default to A if missing
+        let toneInstruction = "";
+        
+        if (league.includes('Junior')) {
+            // Young Kids (7-9): Simple, high energy, magical
+            toneInstruction = "Speak like an exciting game show host for young kids. Use simple words. Be very enthusiastic and magical.";
+        } else {
+            // Older Kids/Teens (10+): Serious, professional, 'Esports' style
+            toneInstruction = "Speak like a professional Esports commentator. Use sophisticated, punchy, dramatic language. Be serious but hype. Use words like 'dominance', 'precision', 'legendary status'.";
+        }
+
+        let systemPrompt = `You are the 'Grand Quest Master'. ${toneInstruction} Your commentary must be short (max 12 words). Do not use markdown.`;
+        let userPrompt = "";
+
+        if (phase === 'intro') userPrompt = `Hyping up the start of the ${data.month} Ceremony.`;
+        else if (phase === 'class_rank') userPrompt = `Class '${data.name}' got Rank #${data.rank}. Hype them up!`;
+        else if (phase === 'class_winner') userPrompt = `Class '${data.name}' WON the whole thing! Go wild!`;
+        else if (phase === 'transition') userPrompt = "Transitioning to the student hero reveal. Ask who is the best.";
+        else if (phase === 'student_rank') {
+            if (data.tieReason === 'tie_3star') userPrompt = `Hype ${data.name} for having tons of 3-Star badges!`;
+            else if (data.tieReason === 'tie_2star') userPrompt = `Hype ${data.name} for consistent 2-Star plays!`;
+            else if (data.tieReason === 'tie_academic') userPrompt = `Hype ${data.name} for their brain power on tests!`;
+            else if (data.tieReason === 'tie_variety') userPrompt = `Hype ${data.name} for being a jack-of-all-trades!`;
+            else userPrompt = `Shout out ${data.name} for hitting Rank #${data.rank}.`;
+        }
+        else if (phase === 'student_winner') userPrompt = `Announce ${data.name} is the PRODIGY of the Month!`;
+        else if (phase === 'outro') userPrompt = "Sign off with energy. See you next month.";
+        else if (phase === 'showdown_build') userPrompt = `It's down to ${data.name1} vs ${data.name2}. The tension is maximum! Build extreme suspense but DO NOT announce the winner yet.`;
+        else if (phase === 'tie') userPrompt = `UNBELIEVABLE! It's a Tie! Double winners!`;
+
+        try {
+            const commentary = await callGeminiApi(systemPrompt, userPrompt);
+            aiBox.style.opacity = '0';
+            setTimeout(() => {
+                aiText.innerText = commentary;
+                aiBox.style.opacity = '1';
+            }, 300);
+        } catch (e) {
+            console.error("AI Error", e);
+            aiBox.style.opacity = '1';
+        }
+    }, 250); 
 }

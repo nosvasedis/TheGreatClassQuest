@@ -6,13 +6,15 @@ import { db, auth } from '../firebase.js';
 import { signOut } from 'https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js';
 import { doc, collection, query, where, getDocs, runTransaction, increment, serverTimestamp } from 'https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js';
 import { handleAddHolidayRange, handleDeleteHolidayRange } from '../db/actions.js';
+import { setupHomeListeners } from '../features/home.js';
 
 import * as modals from './modals.js';
 import { 
     handleGenerateIdea, 
     handleGetOracleInsight, 
     handleGetQuestUpdate, 
-    downloadCertificateAsPdf 
+    downloadCertificateAsPdf,
+    openAppInfoModal
 } from './modals.js';
 import * as tabs from './tabs.js';
 import * as scholarScroll from '../features/scholarScroll.js';
@@ -90,27 +92,7 @@ export function setupUIListeners() {
         playSound('click');
         await signOut(auth);
     });
-
-    // Home/About Tab
-    const studentBtn = document.getElementById('about-btn-students');
-    const teacherBtn = document.getElementById('about-btn-teachers');
-    studentBtn.addEventListener('click', () => {
-        document.getElementById('about-students').classList.remove('hidden');
-        document.getElementById('about-teachers').classList.add('hidden');
-        studentBtn.classList.add('bg-cyan-500', 'text-white', 'shadow-md');
-        studentBtn.classList.remove('text-cyan-700', 'bg-white');
-        teacherBtn.classList.remove('bg-green-500', 'text-white', 'shadow-md');
-        teacherBtn.classList.add('text-green-700', 'bg-white');
-    });
-    teacherBtn.addEventListener('click', () => {
-        document.getElementById('about-teachers').classList.remove('hidden');
-        document.getElementById('about-students').classList.add('hidden');
-        teacherBtn.classList.add('bg-green-500', 'text-white', 'shadow-md');
-        teacherBtn.classList.remove('text-green-700', 'bg-white');
-        studentBtn.classList.remove('bg-cyan-500', 'text-white', 'shadow-md');
-        studentBtn.classList.add('text-cyan-700', 'bg-white');
-    });
-
+    
     // Modals & Pickers
     document.getElementById('modal-cancel-btn').addEventListener('click', () => modals.hideModal('confirmation-modal'));
     document.getElementById('leaderboard-league-picker-btn').addEventListener('click', () => modals.showLeaguePicker());
@@ -145,35 +127,49 @@ document.getElementById('lookup-nameday-btn').addEventListener('click', () => {
     import('../db/actions.js').then(actions => actions.handleLookupNameday());
 });
     
-    // Calendar Logic
+    // Calendar Logic: On-Demand Loading
     const handleMonthChange = async (direction) => {
         const calDate = state.get('calendarCurrentDate');
         calDate.setMonth(calDate.getMonth() + direction);
         state.set('calendarCurrentDate', calDate);
 
-        tabs.renderCalendarTab(); 
+        // 1. Check if we moved to a past month
+        const now = new Date();
+        const isCurrentMonth = calDate.getMonth() === now.getMonth() && calDate.getFullYear() === now.getFullYear();
+        const isFuture = calDate > now;
 
-        const thirtyDaysAgo = new Date();
-        thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-        thirtyDaysAgo.setHours(0, 0, 0, 0);
-        const isHistoricalView = calDate < thirtyDaysAgo;
+        // 2. Clear grid and show loading state immediately
+        const grid = document.getElementById('calendar-grid');
+        if (grid) {
+            grid.innerHTML = '<div class="col-span-7 h-64 flex flex-col items-center justify-center text-gray-500"><i class="fas fa-spinner fa-spin text-3xl mb-2 text-indigo-500"></i><p>Traveling through time...</p></div>';
+        }
 
-        if (isHistoricalView) {
-            const loader = document.getElementById('calendar-loader');
-            if (loader) {
-                loader.classList.remove('hidden');
-                loader.classList.add('flex');
-            }
+        // 3. Data Retrieval Strategy
+        let logsForView = [];
+
+        if (isCurrentMonth || isFuture) {
+            // A. Current Month: Use the Real-Time State (Already loaded on app start)
+            logsForView = state.get('allAwardLogs');
             
+            // Re-render immediately
+            import('./tabs.js').then(m => m.renderCalendarTab(logsForView));
+        
+        } else {
+            // B. Past Month: Fetch On Demand (Save Reads)
             const year = calDate.getFullYear();
             const month = calDate.getMonth() + 1;
-            const historicalLogs = await fetchLogsForMonth(year, month);
             
-            tabs.populateCalendarStars(historicalLogs);
-            
-            if (loader) {
-                loader.classList.add('hidden');
-                loader.classList.remove('flex');
+            try {
+                // Import query dynamically
+                const { fetchLogsForMonth } = await import('../db/queries.js');
+                logsForView = await fetchLogsForMonth(year, month);
+                
+                // Render with fetched data
+                import('./tabs.js').then(m => m.renderCalendarTab(logsForView));
+                
+            } catch (error) {
+                console.error("History fetch failed:", error);
+                if (grid) grid.innerHTML = '<div class="col-span-7 text-center text-red-500 p-4">Could not load history.</div>';
             }
         }
     };
@@ -791,15 +787,9 @@ document.getElementById('lookup-nameday-btn').addEventListener('click', () => {
     document.getElementById('move-student-confirm-btn').addEventListener('click', handleMoveStudent);
     document.getElementById('move-student-cancel-btn').addEventListener('click', () => modals.hideModal('move-student-modal'));
 
-    // Ceremony Listeners
-    document.getElementById('ceremony-veil-close-btn').addEventListener('click', ceremony.hideCeremonyVeil);
-    document.getElementById('ceremony-exit-btn').addEventListener('click', ceremony.endCeremony);
-    document.getElementById('ceremony-skip-btn').addEventListener('click', ceremony.skipCeremony);
-    document.getElementById('ceremony-next-btn').addEventListener('click', ceremony.advanceCeremony);
-    document.getElementById('ceremony-show-global-btn').addEventListener('click', ceremony.showGlobalLeaderboardModal);
+    // Ceremony Listeners (New System handled via Home Tab Pill)
     document.getElementById('global-leaderboard-close-btn').addEventListener('click', () => modals.hideModal('global-leaderboard-modal'));
-    document.getElementById('start-ceremony-btn').addEventListener('click', ceremony.startCeremonyFromVeil);
-
+    
     // Other Modals
     document.getElementById('report-modal-close-btn').addEventListener('click', () => modals.hideModal('report-modal'));
     document.getElementById('certificate-modal-close-btn').addEventListener('click', () => modals.hideModal('certificate-modal'));
@@ -861,6 +851,9 @@ document.getElementById('lookup-nameday-btn').addEventListener('click', () => {
             modals.generateAIInsight(studentId, insightType);
         });
     });
+
+    // Initialize Home/Info Listeners
+    setupHomeListeners();
 }
 
 // --- AVATAR ENLARGEMENT ---
@@ -979,20 +972,21 @@ function handleAvatarClick(e) {
 }
 
 // --- GLOBAL STATE SYNC FUNCTIONS ---
-export function findAndSetCurrentClass() {
+export function findAndSetCurrentClass(targetSelectId = null) {
     if (state.get('globalSelectedClassId')) return;
+
     const todayString = utils.getTodayDateString();
-    const classesToday = utils.getClassesOnDay(
-        todayString, 
-        state.get('allSchoolClasses'), 
-        state.get('allScheduleOverrides')
-    );
+    const classesToday = utils.getClassesOnDay(todayString, state.get('allSchoolClasses'), state.get('allScheduleOverrides'));
+    
+    // FIX: Only consider classes that belong to the current teacher
     const myClassesToday = classesToday.filter(c => state.get('allTeachersClasses').some(tc => tc.id === c.id));
+
     const now = new Date();
     const currentTime = now.toTimeString().slice(0, 5);
+
     for (const c of myClassesToday) {
         if (c.timeStart && c.timeEnd && currentTime >= c.timeStart && currentTime <= c.timeEnd) {
-            state.setGlobalSelectedClass(c.id, false);
+            state.setGlobalSelectedClass(c.id);
             return;
         }
     }
@@ -1125,7 +1119,7 @@ export function renderActiveBounties() {
         return `
             <div class="bounty-card mb-2 ${isExpired ? 'expired' : ''}">
                 <div class="flex items-center gap-4 flex-grow">
-                    <div class="text-3xl text-amber-500"><i class="fas fa-scroll"></i></div>
+                    <div class="text-3xl text-amber-500"><i class="fas fa-bullseye"></i></div>
                     <div class="flex-grow">
                         <div class="flex justify-between items-center">
                             <h4 class="font-bold text-lg text-amber-900">${b.title}</h4>

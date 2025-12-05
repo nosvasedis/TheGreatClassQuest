@@ -279,13 +279,60 @@ export function parseFlexibleDate(dateInput) {
     return null;
 }
 
+export function isSpecialOccasion(dateStr, scheduleDays) {
+    if (!dateStr) return false;
+    
+    const today = new Date();
+    today.setHours(0,0,0,0);
+    
+    // Parse "YYYY-MM-DD" or "0000-MM-DD"
+    const parts = dateStr.split('-');
+    const month = parseInt(parts[1], 10) - 1;
+    const day = parseInt(parts[2], 10);
+    
+    const currentYearOccasion = new Date(today.getFullYear(), month, day);
+    
+    // Check Today
+    if (currentYearOccasion.getTime() === today.getTime()) return true;
+    
+    // Check +/- 1 Day logic based on schedule
+    const diff = (today - currentYearOccasion) / (1000 * 60 * 60 * 24);
+    
+    // If today is NOT the birthday (diff != 0), checks if we should celebrate today instead
+    // e.g. Birthday was yesterday (Sunday), today is Monday (Lesson day). diff is +1.
+    // e.g. Birthday is tomorrow (Saturday), today is Friday (Lesson day). diff is -1.
+    
+    if (Math.abs(diff) === 1) {
+        // Was there a lesson on the actual birthday?
+        const bdayDayOfWeek = currentYearOccasion.getDay().toString();
+        
+        // If the actual birthday was NOT a lesson day, allow celebration today
+        if (!scheduleDays.includes(bdayDayOfWeek)) {
+            return true;
+        }
+    }
+    
+    return false;
+}
+
 export async function fetchSolarCycle() {
     try {
-        const response = await fetch('https://api.sunrise-sunset.org/json?lat=37.9838&lng=23.7275&formatted=0');
+        const response = await fetch('https://api.sunrise-sunset.org/json?lat=37.9667&lng=23.6667&formatted=0');
         const data = await response.json();
         if (data.status === 'OK') {
             solarData.sunrise = new Date(data.results.sunrise).getTime();
             solarData.sunset = new Date(data.results.sunset).getTime();
         }
     } catch (e) { console.warn("Using default solar times."); }
+}
+
+export function datesMatch(dateInput1, dateInput2) {
+    const d1 = parseFlexibleDate(dateInput1);
+    const d2 = parseFlexibleDate(dateInput2);
+    
+    if (!d1 || !d2) return false;
+
+    return d1.getDate() === d2.getDate() &&
+           d1.getMonth() === d2.getMonth() &&
+           d1.getFullYear() === d2.getFullYear();
 }

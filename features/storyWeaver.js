@@ -9,7 +9,7 @@ import * as state from '../state.js';
 import * as modals from '../ui/modals.js';
 import { showToast } from '../ui/effects.js';
 import { playSound } from '../audio.js';
-import { callGeminiApi, callCloudflareAiImageApi, callElevenLabsTtsApi } from '../api.js';
+import { callGeminiApi, callCloudflareAiImageApi } from '../api.js';
 import { simpleHashCode, compressImageBase64, getAgeGroupForLeague } from '../utils.js';
 import * as constants from '../constants.js';
 import { awardStoryWeaverBonusStarToClass, handleDeleteCompletedStory } from '../db/actions.js';
@@ -367,10 +367,6 @@ export async function openStorybookViewer(storyId) {
                     <p class="text-gray-800 mt-2 flex-grow">${chapter.sentence}</p>
                 </div>
             </div>`).join('');
-        
-        playBtn.onclick = () => playStorybookNarration(storyId);
-        playBtn.disabled = false;
-        playBtn.innerHTML = `<i class="fas fa-play-circle mr-2"></i> Narrate Story`;
 
         document.getElementById('storybook-viewer-print-btn').onclick = () => handlePrintStorybook(storyId);
         document.getElementById('storybook-viewer-print-btn').disabled = false;
@@ -378,46 +374,6 @@ export async function openStorybookViewer(storyId) {
     } catch (error) {
         console.error("Error loading story chapters:", error);
         contentEl.innerHTML = `<p class="text-center text-red-500 py-8">Could not load the chapters for this storybook.</p>`;
-    }
-}
-
-async function playStorybookNarration(storyId) {
-    const story = state.get('allCompletedStories').find(s => s.id === storyId);
-    if (!story || !story.chapters) return;
-
-    const playBtn = document.getElementById('storybook-viewer-play-btn');
-    const fullStoryText = story.chapters.map(c => c.sentence).join(' ');
-    let currentStorybookAudio = state.get('currentStorybookAudio');
-
-    if (currentStorybookAudio && !currentStorybookAudio.paused) {
-        currentStorybookAudio.pause();
-        state.set('currentStorybookAudio', null);
-        playBtn.innerHTML = `<i class="fas fa-play-circle mr-2"></i> Narrate Story`;
-        return;
-    }
-
-    playBtn.disabled = true;
-    playBtn.innerHTML = `<i class="fas fa-spinner fa-spin mr-3"></i> Generating Audio...`;
-
-    try {
-        const audioBlob = await callElevenLabsTtsApi(fullStoryText);
-        const audioUrl = URL.createObjectURL(audioBlob);
-        currentStorybookAudio = new Audio(audioUrl);
-        state.set('currentStorybookAudio', currentStorybookAudio);
-        
-        currentStorybookAudio.onplay = () => {
-            playBtn.innerHTML = `<i class="fas fa-pause-circle mr-3"></i> Pause Narration`;
-            playBtn.disabled = false;
-        };
-        currentStorybookAudio.onended = () => {
-            playBtn.innerHTML = `<i class="fas fa-redo-alt mr-3"></i> Narrate Again`;
-            state.set('currentStorybookAudio', null);
-        };
-        currentStorybookAudio.play();
-    } catch (error) {
-        showToast('Could not generate or play audio.', 'error');
-        playBtn.innerHTML = `<i class="fas fa-play-circle mr-2"></i> Narrate Story`;
-        playBtn.disabled = false;
     }
 }
 

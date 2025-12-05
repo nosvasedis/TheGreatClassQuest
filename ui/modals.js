@@ -13,7 +13,7 @@ import * as utils from '../utils.js';
 
 // Actions and Effects
 import { playSound } from '../audio.js';
-import { callGeminiApi, callElevenLabsTtsApi } from '../api.js';
+import { callGeminiApi } from '../api.js';
 import { showToast, showPraiseToast } from './effects.js';
 import {
     deleteClass,
@@ -1035,6 +1035,26 @@ export async function openQuestAssignmentModal() {
         if (!snapshot.empty) {
             const lastAssignmentDoc = snapshot.docs[0];
             const lastAssignment = lastAssignmentDoc.data();
+
+            // --- NEW: Test Badge Logic ---
+            let testBadgeHtml = '';
+            if (lastAssignment.testData) {
+                const tDate = utils.parseFlexibleDate(lastAssignment.testData.date);
+                const dateDisplay = tDate ? tDate.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' }) : 'Date TBD';
+                
+                testBadgeHtml = `
+                    <div class="mb-3 bg-red-50 border border-red-200 rounded-lg p-3 flex items-start gap-3">
+                        <div class="bg-red-100 text-red-600 rounded-full w-8 h-8 flex items-center justify-center flex-shrink-0">
+                            <i class="fas fa-exclamation"></i>
+                        </div>
+                        <div>
+                            <h4 class="font-bold text-red-800 text-sm uppercase tracking-wide">Test Scheduled</h4>
+                            <p class="font-bold text-gray-800 text-lg leading-tight">${lastAssignment.testData.title}</p>
+                            <p class="text-red-600 text-sm mt-1"><i class="fas fa-calendar-alt mr-1"></i> ${dateDisplay}</p>
+                            ${lastAssignment.testData.curriculum ? `<p class="text-gray-500 text-xs mt-1">Topic: ${lastAssignment.testData.curriculum}</p>` : ''}
+                        </div>
+                    </div>`;
+            }
             
             // --- SMART FORMATTER START ---
             const formatAssignmentText = (text) => {
@@ -1075,9 +1095,10 @@ export async function openQuestAssignmentModal() {
             
             const formattedContent = formatAssignmentText(lastAssignment.text);
 
-            previousAssignmentTextEl.innerHTML = `
-                <div class="w-full">
-                    ${formattedContent}
+           previousAssignmentTextEl.innerHTML = `
+            <div class="w-full">
+                ${testBadgeHtml} 
+                ${formattedContent}
                 </div>
                 <div class="mt-3 flex justify-end">
                     <button id="edit-last-assignment-btn" class="text-xs text-blue-500 hover:text-blue-700 font-bold bg-blue-50 px-3 py-1 rounded-full transition-colors border border-blue-100">
@@ -1225,17 +1246,12 @@ export async function handleGetQuestUpdate() {
         const narrative = await callGeminiApi(systemPrompt, userPrompt);
         narrativeContainer.innerHTML = `<p>${narrative}</p>`;
         narrativeContainer.dataset.text = narrative;
-        playBtn.classList.remove('hidden');
-        playBtn.disabled = false;
-        playBtn.innerHTML = `<i class="fas fa-play-circle mr-3"></i> Play Narrative`;
-
+       
     } catch (error) {
         console.error("Quest Update Narrative Error:", error);
         narrativeContainer.innerHTML = `<p class="text-xl text-center text-red-500">The Quest Announcer is taking a break. Please try again in a moment!</p>`;
     }
 }
-
-// --- RESTORED IDEA FORGE FUNCTIONS ---
 
 export async function handleGenerateIdea() {
     const classId = document.getElementById('gemini-class-select').value;

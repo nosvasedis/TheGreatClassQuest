@@ -441,8 +441,8 @@ function advanceCeremony() {
     // --- PHASE 3.5: STUDENT SHOWDOWN DONE ---
     else if (ceremonyData.phase === 'student_showdown_done') {
         ceremonyData.phase = 'final_leaderboard';
-        btn.innerText = "Show Final Standings";
-        btn.onclick = advanceCeremony; 
+        // Auto-advance to render the board immediately
+        advanceCeremony(); 
     }
 
     // --- PHASE 3.6: FINAL LEADERBOARD (NEW) ---
@@ -698,7 +698,8 @@ function handleDramaticReveal() {
         }
 
         btn.disabled = false;
-        btn.innerText = "Continue";
+        // FIX: Change button directly to final step
+        btn.innerText = "Show Final Standings";
         btn.onclick = advanceCeremony; 
 
     }, 3000); 
@@ -868,4 +869,3 @@ async function triggerAICommentary(phase, data) {
         }
     }, 250); 
 }
-

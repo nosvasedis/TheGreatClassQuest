@@ -312,102 +312,81 @@ document.getElementById('lookup-nameday-btn').addEventListener('click', () => {
             const classId = state.get('globalSelectedClassId');
             if(!classId) { showToast('Select a class first', 'error'); return; }
             
-            // 1. Setup ID
             document.getElementById('bounty-class-id').value = classId;
             
-            // 2. Generate Smart Time Options
-            const classData = state.get('allSchoolClasses').find(c => c.id === classId);
-            const selectEl = document.getElementById('bounty-duration');
-            selectEl.innerHTML = ''; // Clear old options
-            
-            const now = new Date();
-            const scheduleDays = classData.scheduleDays || [];
-            
-            // Helper: Find the next N lesson end dates
-            const upcomingLessons = [];
-            
-            // Safety break: check 60 days ahead max
-            for (let i = 0; i < 60; i++) {
-                const checkDate = new Date();
-                checkDate.setDate(now.getDate() + i);
-                const dayStr = checkDate.getDay().toString();
+            // --- SMART OPTIONS GENERATOR ---
+            const smartContainer = document.getElementById('bounty-smart-options');
+            if (smartContainer) {
+                smartContainer.innerHTML = '';
                 
-                if (scheduleDays.includes(dayStr)) {
-                    // Set to End Time
-                    if (classData.timeEnd) {
-                        const [endH, endM] = classData.timeEnd.split(':').map(Number);
-                        checkDate.setHours(endH, endM, 0, 0);
-                    } else {
-                        checkDate.setHours(17, 0, 0, 0); // Default 5 PM
-                    }
+                const classData = state.get('allSchoolClasses').find(c => c.id === classId);
+                const now = new Date();
+                
+                // 1. Standard Presets
+                [5, 10, 20, 45].forEach(min => {
+                    smartContainer.innerHTML += `<button type="button" class="smart-time-btn bg-white border border-indigo-200 text-indigo-600 px-3 py-1 rounded-full text-xs font-bold hover:bg-indigo-100 transition-colors" data-mins="${min}">${min}m</button>`;
+                });
+
+                // 2. "End of Lesson" Logic
+                if (classData && classData.timeEnd) {
+                    const [endH, endM] = classData.timeEnd.split(':').map(Number);
+                    const endDate = new Date();
+                    endDate.setHours(endH, endM, 0);
                     
-                    // Only add if it's in the future
-                    if (checkDate > now) {
-                        upcomingLessons.push(checkDate);
+                    if (endDate > now) {
+                        const diffMins = Math.floor((endDate - now) / 60000);
+                        if (diffMins > 0 && diffMins < 180) {
+                            smartContainer.innerHTML += `<button type="button" class="smart-time-btn bg-indigo-100 border border-indigo-300 text-indigo-800 px-3 py-1 rounded-full text-xs font-bold hover:bg-indigo-200 transition-colors" data-mins="${diffMins}">End of Lesson (${diffMins}m)</button>`;
+                        }
                     }
                 }
-                
-                if (upcomingLessons.length >= 4) break;
-            }
 
-            if (upcomingLessons.length > 0) {
-                const nextLesson = upcomingLessons[0];
-                const isToday = nextLesson.toDateString() === now.toDateString();
-                
-                // OPTION A: "End of THIS Lesson" (Only if today is a lesson day and not over)
-                if (isToday) {
-                    const diffMins = Math.round((nextLesson - now) / 60000);
-                    const opt = document.createElement('option');
-                    opt.value = diffMins;
-                    opt.innerText = `End of THIS Lesson (${diffMins} mins)`;
-                    opt.selected = true; 
-                    selectEl.appendChild(opt);
-                }
-
-                // OPTION B: "End of NEXT Lesson"
-                // If today is active (isToday), the "Next" lesson is index 1.
-                // If today is NOT active, the "Next" lesson is index 0.
-                const nextIndex = isToday ? 1 : 0;
-                
-                if (upcomingLessons[nextIndex]) {
-                    const targetDate = upcomingLessons[nextIndex];
-                    const totalMins = Math.round((targetDate - now) / 60000);
-                    const dayName = targetDate.toLocaleDateString('en-GB', { weekday: 'long' });
-                    
-                    const opt = document.createElement('option');
-                    opt.value = totalMins;
-                    opt.innerText = `Until End of NEXT Lesson (${dayName})`;
-                    // If not in a lesson, make this the default
-                    if (!isToday) opt.selected = true; 
-                    selectEl.appendChild(opt);
-                }
-
-                // OPTION C: "End of 4th Lesson" (Epic Quest)
-                // We want the 4th occurrence in the list (index 3).
-                if (upcomingLessons[3]) {
-                    const targetDate = upcomingLessons[3];
-                    const totalMins = Math.round((targetDate - now) / 60000);
-                    const dateStr = targetDate.toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'short' });
-                    
-                    const opt = document.createElement('option');
-                    opt.value = totalMins;
-                    opt.innerText = `Epic Quest: End of 4th Lesson (${dateStr})`;
-                    selectEl.appendChild(opt);
-                }
-            } else {
-                // Fallback if no schedule is set
-                const opt = document.createElement('option');
-                opt.value = 1440;
-                opt.innerText = "24 Hours (No Schedule Found)";
-                selectEl.appendChild(opt);
+                // Click Handler for Presets
+                smartContainer.querySelectorAll('.smart-time-btn').forEach(btn => {
+                    btn.onclick = () => {
+                        document.getElementById('bounty-timer-minutes').value = btn.dataset.mins;
+                        document.getElementById('bounty-timer-end').value = ''; 
+                    };
+                });
             }
 
             modals.showAnimatedModal('create-bounty-modal');
         });
     }
+
+    // --- TOGGLE LOGIC ---
+    const bStars = document.getElementById('bounty-mode-stars');
+    const bTimer = document.getElementById('bounty-mode-timer');
+    const inputStars = document.getElementById('bounty-inputs-stars');
+    const inputTimer = document.getElementById('bounty-inputs-timer');
+    const bType = document.getElementById('bounty-type');
+    const bSubmit = document.getElementById('bounty-submit-btn');
+
+    if (bStars && bTimer) {
+        bStars.addEventListener('click', () => {
+            bStars.className = "flex-1 py-2 rounded-md text-sm font-bold bg-white text-amber-600 shadow-sm transition-all";
+            bTimer.className = "flex-1 py-2 rounded-md text-sm font-bold text-gray-500 hover:text-gray-700 transition-all";
+            inputStars.classList.remove('hidden');
+            inputTimer.classList.add('hidden');
+            bType.value = 'standard';
+            bSubmit.className = "w-2/3 bg-gradient-to-r from-amber-500 to-orange-500 text-white font-bold py-3 rounded-xl bubbly-button shadow-lg";
+            bSubmit.innerHTML = "Start Quest";
+        });
+        
+        bTimer.addEventListener('click', () => {
+            bTimer.className = "flex-1 py-2 rounded-md text-sm font-bold bg-white text-red-600 shadow-sm transition-all";
+            bStars.className = "flex-1 py-2 rounded-md text-sm font-bold text-gray-500 hover:text-gray-700 transition-all";
+            inputStars.classList.add('hidden');
+            inputTimer.classList.remove('hidden');
+            bType.value = 'timer';
+            bSubmit.className = "w-2/3 bg-gradient-to-r from-red-500 to-rose-600 text-white font-bold py-3 rounded-xl bubbly-button shadow-lg";
+            bSubmit.innerHTML = "Start Timer";
+        });
+    }
     
+    // --- FORM SUBMIT HANDLER (Crucial to prevent reload) ---
     document.getElementById('create-bounty-form')?.addEventListener('submit', (e) => {
-        e.preventDefault();
+        e.preventDefault(); // <--- THIS STOPS THE RELOAD
         import('../db/actions.js').then(a => a.handleCreateBounty());
     });
     
@@ -428,128 +407,115 @@ document.getElementById('lookup-nameday-btn').addEventListener('click', () => {
 
     // --- AWARD STARS & ABSENCE HANDLING ---
     document.getElementById('award-stars-student-list').addEventListener('click', async (e) => {
+        // 1. Define all targets first (to prevent "null" errors)
         const actionBtn = e.target.closest('[data-action]');
+        const undoBtn = e.target.closest('.post-award-undo-btn');
+        const reasonBtn = e.target.closest('.reason-btn');
+        const starBtn = e.target.closest('.star-award-btn');
+
+        // 2. Handle Action Buttons (Absent, Present, Welcome Back)
         if (actionBtn) {
             const studentCard = actionBtn.closest('.student-cloud-card');
             const studentId = studentCard.dataset.studentid;
             const student = state.get('allStudents').find(s => s.id === studentId);
             
-            // --- CASE 1: MARK ABSENT (Explicit for Today) ---
+            // --- CASE 1: MARK ABSENT ---
             if (actionBtn.dataset.action === 'mark-absent') {
                 playSound('click');
                 await handleMarkAbsent(studentId, student.classId, true);
                 return;
             }
 
-            // --- CASE 2: MARK PRESENT (Explicit Undo or Implicit Override) ---
+            // --- CASE 2: MARK PRESENT ---
             if (actionBtn.dataset.action === 'mark-present') {
                 playSound('click');
                 const today = utils.getTodayDateString();
                 const isMarkedAbsentToday = state.get('allAttendanceRecords').some(r => r.studentId === studentId && r.date === today);
                 
                 if (isMarkedAbsentToday) {
-                    // It was an explicit absence for today. Just delete the record.
                     await handleMarkAbsent(studentId, student.classId, false);
                 } else {
-                    // Implicit Absence (from previous lesson).
-                    // User wants to mark present but NOT give a bonus.
-                    // We use 0 stars with a specific reason to signal "Present" to the UI logic.
                     await setStudentStarsForToday(studentId, 0, 'marked_present');
                     showToast(`${student.name} marked present.`, 'success');
                 }
                 return;
             }
 
-            // --- CASE 3: WELCOME BACK (Implicit Absence Bonus) ---
+            // --- CASE 3: WELCOME BACK ---
             if (actionBtn.dataset.action === 'welcome-back') {
-    const studentId = actionBtn.closest('.student-cloud-card').dataset.studentid;
-    const student = state.get('allStudents').find(s => s.id === studentId);
-    const studentClass = state.get('allSchoolClasses').find(c => c.id === student.classId);
-    const firstName = student.name.split(' ')[0];
-    playSound('star2');
+                const studentClass = state.get('allSchoolClasses').find(c => c.id === student.classId);
+                const firstName = student.name.split(' ')[0];
+                playSound('star2');
 
-    // --- NEW: SMART BONUS CALCULATION ---
-    let missedDays = 0;
-    const scheduleDays = studentClass.scheduleDays || [];
-    const attendanceRecords = state.get('allAttendanceRecords');
-    
-    // Check backwards for up to 14 days
-    for (let i = 1; i <= 14; i++) {
-        let checkDate = new Date();
-        checkDate.setDate(checkDate.getDate() - i);
-        const checkDateString = utils.getDDMMYYYY(checkDate);
-        
-        if (scheduleDays.includes(checkDate.getDay().toString())) {
-            // This was a scheduled lesson day
-            const wasAbsent = attendanceRecords.some(r => r.studentId === studentId && r.date === checkDateString);
-            if (wasAbsent) {
-                missedDays++;
-            } else {
-                // They were present, so the streak of absence is broken. Stop counting.
-                break;
+                // Smart Bonus Calculation: Check last 14 days for missed lessons
+                let missedDays = 0;
+                const scheduleDays = studentClass.scheduleDays || [];
+                const attendanceRecords = state.get('allAttendanceRecords');
+                
+                for (let i = 1; i <= 14; i++) {
+                    let checkDate = new Date();
+                    checkDate.setDate(checkDate.getDate() - i);
+                    const checkDateString = utils.getDDMMYYYY(checkDate);
+                    
+                    if (scheduleDays.includes(checkDate.getDay().toString())) {
+                        const wasAbsent = attendanceRecords.some(r => r.studentId === studentId && r.date === checkDateString);
+                        if (wasAbsent) missedDays++;
+                        else break; // Streak broken
+                    }
+                }
+                
+                const stars = missedDays >= 2 ? 1 : 0.5;
+
+                try {
+                    const publicDataPath = "artifacts/great-class-quest/public/data";
+                    await runTransaction(db, async (transaction) => {
+                        const scoreRef = doc(db, `${publicDataPath}/student_scores`, studentId);
+                        const newLogRef = doc(collection(db, `${publicDataPath}/award_log`));
+                        
+                        // Update Scores
+                        const scoreDoc = await transaction.get(scoreRef);
+                        if (!scoreDoc.exists()) {
+                             transaction.set(scoreRef, {
+                                totalStars: stars, monthlyStars: stars,
+                                lastMonthlyResetDate: utils.getStartOfMonthString(),
+                                createdBy: { uid: state.get('currentUserId'), name: state.get('currentTeacherName') }
+                            });
+                        } else {
+                            transaction.update(scoreRef, {
+                                totalStars: increment(stars),
+                                monthlyStars: increment(stars),
+                                gold: increment(stars) // Ensure gold is awarded too!
+                            });
+                        }
+
+                        // Create Log
+                        const logData = {
+                            studentId, classId: student.classId, teacherId: state.get('currentUserId'),
+                            stars: stars, reason: 'welcome_back', date: utils.getTodayDateString(),
+                            createdAt: serverTimestamp(), createdBy: { uid: state.get('currentUserId'), name: state.get('currentTeacherName') }
+                        };
+                        transaction.set(newLogRef, logData);
+                        
+                        // Unlock card by setting daily stars to 0 (Present)
+                        const todayStarsRef = doc(collection(db, `${publicDataPath}/today_stars`));
+                        transaction.set(todayStarsRef, {
+                             studentId, stars: 0, date: utils.getTodayDateString(), reason: 'welcome_back',
+                             teacherId: state.get('currentUserId'), 
+                             createdBy: { uid: state.get('currentUserId'), name: state.get('currentTeacherName') }
+                        });
+                    });
+                    
+                    showWelcomeBackMessage(firstName, stars);
+
+                } catch (error) {
+                    console.error("Welcome back bonus failed:", error);
+                    showToast('Could not apply welcome back bonus.', 'error');
+                }
+                return;
             }
         }
-    }
-    
-    const stars = missedDays >= 2 ? 1 : 0.5; // 1 star for 2+ missed days, 0.5 for 1.
-    // --- END OF NEW LOGIC ---
 
-    try {
-        const publicDataPath = "artifacts/great-class-quest/public/data";
-        await runTransaction(db, async (transaction) => {
-            const scoreRef = doc(db, `${publicDataPath}/student_scores`, studentId);
-            const newLogRef = doc(collection(db, `${publicDataPath}/award_log`));
-            
-            // 1. Update Scores (Total/Monthly)
-            const scoreDoc = await transaction.get(scoreRef);
-            if (!scoreDoc.exists()) {
-                 transaction.set(scoreRef, {
-                    totalStars: stars, monthlyStars: stars,
-                    lastMonthlyResetDate: utils.getStartOfMonthString(),
-                    createdBy: { uid: state.get('currentUserId'), name: state.get('currentTeacherName') }
-                });
-            } else {
-                transaction.update(scoreRef, {
-                    totalStars: increment(stars),
-                    monthlyStars: increment(stars)
-                });
-            }
-
-            // 2. Log the Bonus
-            const logData = {
-                studentId, classId: student.classId, teacherId: state.get('currentUserId'),
-                stars: stars, reason: 'welcome_back', date: utils.getTodayDateString(),
-                createdAt: serverTimestamp(), createdBy: { uid: state.get('currentUserId'), name: state.get('currentTeacherName') }
-            };
-            transaction.set(newLogRef, logData);
-            
-            // 3. Set Daily Record to 0 Stars (Present but Unlocked)
-            const todayStarsRef = doc(collection(db, `${publicDataPath}/today_stars`));
-            transaction.set(todayStarsRef, {
-                 studentId, 
-                 stars: 0, // Zero daily stars keeps card unlocked
-                 date: utils.getTodayDateString(), 
-                 reason: 'welcome_back',
-                 teacherId: state.get('currentUserId'), 
-                 createdBy: { uid: state.get('currentUserId'), name: state.get('currentTeacherName') }
-            });
-        });
-        
-        showWelcomeBackMessage(firstName, stars);
-
-    } catch (error) {
-        console.error("Welcome back bonus transaction failed:", error);
-        showToast('Could not apply welcome back bonus. Please try again.', 'error');
-    }
-    
-    return;
-    }
-        }
-        
-        const reasonBtn = e.target.closest('.reason-btn');
-        const starBtn = e.target.closest('.star-award-btn');
-        const undoBtn = e.target.closest('.post-award-undo-btn');
-
+        // 3. Handle Undo Button
         if (undoBtn) {
             const studentId = undoBtn.closest('.student-cloud-card').dataset.studentid;
             setStudentStarsForToday(studentId, 0, null); 
@@ -558,6 +524,7 @@ document.getElementById('lookup-nameday-btn').addEventListener('click', () => {
             return;
         }
 
+        // 4. Handle Reason Selection Buttons
         if (reasonBtn) {
             const studentCard = reasonBtn.closest('.student-cloud-card');
             const studentId = studentCard.dataset.studentid;
@@ -578,9 +545,12 @@ document.getElementById('lookup-nameday-btn').addEventListener('click', () => {
                 reasonBtn.classList.add('active');
                 starSelector.classList.add('visible');
                 reasonBtn.classList.add('animate-reason-select');
+                
+                // Dynamic sparkle animation position
                 const randomAngle = Math.random() * 2 * Math.PI;
                 reasonBtn.style.setProperty('--x', `${Math.cos(randomAngle) * 60}px`);
                 reasonBtn.style.setProperty('--y', `${Math.sin(randomAngle) * 60}px`);
+                
                 reasonBtn.addEventListener('animationend', () => {
                     reasonBtn.classList.remove('animate-reason-select');
                 }, { once: true });
@@ -588,6 +558,7 @@ document.getElementById('lookup-nameday-btn').addEventListener('click', () => {
             return;
         }
 
+        // 5. Handle Star Award Buttons (with Birthday/Nameday Logic)
         if (starBtn) {
             const studentCard = starBtn.closest('.student-cloud-card');
             const studentId = studentCard.dataset.studentid;
@@ -598,9 +569,62 @@ document.getElementById('lookup-nameday-btn').addEventListener('click', () => {
                  return;
             }
 
+            const student = state.get('allStudents').find(s => s.id === studentId);
+            const cls = state.get('allSchoolClasses').find(c => c.id === student.classId);
+            const schedule = cls?.scheduleDays || [];
+
+            // --- BIRTHDAY CHECK ---
+            if (utils.isSpecialOccasion(student.birthday, schedule)) {
+                const todayLogs = state.get('allAwardLogs').filter(l => l.studentId === studentId && l.date === utils.getTodayDateString() && l.note && l.note.includes('Birthday'));
+                
+                if (todayLogs.length === 0) {
+                    // Trigger Modal
+                    document.getElementById('celebration-title').innerText = "Happy Birthday!";
+                    document.getElementById('celebration-message').innerHTML = `It's <b>${student.name}'s</b> birthday! Wish them well?`;
+                    document.getElementById('celebration-points').innerText = "2.5";
+                    
+                    const btn = document.getElementById('celebration-award-btn');
+                    const newBtn = btn.cloneNode(true);
+                    btn.parentNode.replaceChild(newBtn, btn);
+                    
+                    newBtn.onclick = () => {
+                        import('../db/actions.js').then(a => a.handleSpecialOccasionBonus(studentId, 'birthday'));
+                    };
+                    
+                    document.getElementById('celebration-cancel-btn').onclick = () => modals.hideModal('celebration-bonus-modal');
+                    modals.showAnimatedModal('celebration-bonus-modal');
+                    return; // STOP standard award logic
+                }
+            }
+
+            // --- NAMEDAY CHECK ---
+            if (utils.isSpecialOccasion(student.nameday, schedule)) {
+                const todayLogs = state.get('allAwardLogs').filter(l => l.studentId === studentId && l.date === utils.getTodayDateString() && l.note && l.note.includes('Nameday'));
+                
+                if (todayLogs.length === 0) {
+                    // Trigger Modal
+                    document.getElementById('celebration-title').innerText = "Happy Nameday!";
+                    document.getElementById('celebration-message').innerHTML = `It's <b>${student.name}'s</b> Name Day! Wish them well?`;
+                    document.getElementById('celebration-points').innerText = "1.5";
+                    
+                    const btn = document.getElementById('celebration-award-btn');
+                    const newBtn = btn.cloneNode(true);
+                    btn.parentNode.replaceChild(newBtn, btn);
+                    
+                    newBtn.onclick = () => {
+                        import('../db/actions.js').then(a => a.handleSpecialOccasionBonus(studentId, 'nameday'));
+                    };
+                    
+                    document.getElementById('celebration-cancel-btn').onclick = () => modals.hideModal('celebration-bonus-modal');
+                    modals.showAnimatedModal('celebration-bonus-modal');
+                    return; // STOP standard award logic
+                }
+            }
+
+            // --- STANDARD AWARD LOGIC ---
+            // (This only runs if it's NOT a special occasion, or if the bonus was already given today)
             const reason = activeReasonBtn.dataset.reason;
             const starValue = parseInt(starBtn.dataset.stars);
-            const student = state.get('allStudents').find(s => s.id === studentId);
 
             triggerAwardEffects(starBtn, starValue);
 
@@ -608,7 +632,6 @@ document.getElementById('lookup-nameday-btn').addEventListener('click', () => {
             triggerDynamicPraise(student.name, starValue, reason);
             
             tabs.updateAwardCardState(studentId, state.get('todaysStars')[studentId]?.stars || starValue, reason);
-            
             return;
         }
     });
@@ -800,7 +823,6 @@ document.getElementById('lookup-nameday-btn').addEventListener('click', () => {
             modals.hideModal('milestone-details-modal');
         }
     });
-    document.getElementById('play-narrative-btn').addEventListener('click', modals.playNarrative);
     document.getElementById('download-certificate-btn').addEventListener('click', downloadCertificateAsPdf);
     document.getElementById('overview-modal-close-btn').addEventListener('click', () => modals.hideModal('overview-modal'));
     document.getElementById('overview-modal-tabs').addEventListener('click', (e) => {
@@ -1105,43 +1127,53 @@ export function renderActiveBounties() {
     }
 
     container.innerHTML = bounties.map(b => {
+        const isTimer = b.type === 'timer';
         const now = new Date();
         const deadline = new Date(b.deadline);
-        const isExpired = now > deadline;
-        const progressPercent = Math.min(100, (b.currentProgress / b.target) * 100);
-        const isReady = b.currentProgress >= b.target;
-
-        let statusHtml = '';
-        if (isExpired) statusHtml = `<span class="text-red-500 font-bold">EXPIRED</span>`;
-        else if (isReady) statusHtml = `<button class="claim-bounty-btn bg-green-500 hover:bg-green-600 text-white font-bold py-1 px-3 rounded-full bubbly-button animate-bounce" data-id="${b.id}" data-reward="${b.reward}">CLAIM REWARD</button>`;
-        else statusHtml = `<span class="bounty-timer text-amber-600 font-bold" data-deadline="${b.deadline}">--:--</span>`;
-
-        return `
-            <div class="bounty-card mb-2 ${isExpired ? 'expired' : ''}">
-                <div class="flex items-center gap-4 flex-grow">
-                    <div class="text-3xl text-amber-500"><i class="fas fa-bullseye"></i></div>
-                    <div class="flex-grow">
-                        <div class="flex justify-between items-center">
-                            <h4 class="font-bold text-lg text-amber-900">${b.title}</h4>
-                            <div class="bounty-actions text-right">
-                                ${statusHtml}
-                                <button class="delete-bounty-btn text-gray-400 hover:text-red-500 ml-2" data-id="${b.id}"><i class="fas fa-times"></i></button>
-                            </div>
-                        </div>
-                        <div class="w-full bg-amber-100 rounded-full h-3 mt-1 overflow-hidden">
-                            <div class="bg-amber-500 h-full transition-all duration-1000" style="width: ${progressPercent}%"></div>
-                        </div>
-                        <div class="flex justify-between text-xs text-amber-700 mt-1 font-semibold">
-                            <span>Progress: ${b.currentProgress} / ${b.target} ⭐</span>
-                            <span>Reward: ${b.reward}</span>
-                        </div>
+        
+        // --- TIMER RENDER ---
+        if (isTimer) {
+            return `
+            <div class="bounty-card mb-3 bg-gradient-to-r from-red-50 to-white border-l-4 border-red-500 shadow-sm p-4 flex items-center justify-between">
+                <div class="flex items-center gap-4">
+                    <div class="bg-red-100 text-red-600 w-12 h-12 rounded-full flex items-center justify-center text-2xl animate-pulse">
+                        <i class="fas fa-hourglass-half"></i>
+                    </div>
+                    <div>
+                        <h4 class="font-bold text-lg text-gray-800">${b.title}</h4>
+                        <span class="bounty-timer text-3xl font-title text-red-600 leading-none" data-deadline="${b.deadline}">Loading...</span>
                     </div>
                 </div>
+                <button class="delete-bounty-btn text-gray-300 hover:text-red-500 transition-colors" data-id="${b.id}" title="Cancel Timer"><i class="fas fa-times"></i></button>
+            </div>`;
+        }
+
+        // --- STANDARD STAR RENDER ---
+        const progressPercent = Math.min(100, (b.currentProgress / b.target) * 100);
+        const isReady = b.currentProgress >= b.target;
+        let actionBtn = isReady 
+            ? `<button class="claim-bounty-btn bg-green-500 text-white px-3 py-1 rounded-full text-xs font-bold animate-bounce shadow-md" data-id="${b.id}" data-reward="${b.reward}">CLAIM</button>`
+            : `<span class="text-xs font-bold text-amber-500">${b.currentProgress}/${b.target} ⭐</span>`;
+
+        return `
+            <div class="bounty-card mb-3 bg-gradient-to-r from-amber-50 to-white border-l-4 border-amber-400 shadow-sm p-3 flex items-center gap-3">
+                <div class="text-2xl text-amber-500">🎯</div>
+                <div class="flex-grow min-w-0">
+                    <div class="flex justify-between items-center mb-1">
+                        <h4 class="font-bold text-gray-800 truncate">${b.title}</h4>
+                        ${actionBtn}
+                    </div>
+                    <div class="w-full bg-gray-200 h-2 rounded-full overflow-hidden">
+                        <div class="bg-amber-500 h-full transition-all duration-1000" style="width: ${progressPercent}%"></div>
+                    </div>
+                    <p class="text-xs text-gray-500 mt-1">Reward: ${b.reward}</p>
+                </div>
+                <button class="delete-bounty-btn text-gray-300 hover:text-red-500" data-id="${b.id}"><i class="fas fa-times"></i></button>
             </div>
         `;
     }).join('');
-
-    startBountyTimer();
+    
+    startBountyTimer(); // Ensure the interval runs
 }
 
 let bountyInterval;

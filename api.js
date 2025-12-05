@@ -41,39 +41,6 @@ export async function callGeminiApi(systemPrompt, userPrompt) {
     }
 }
 
-export async function callElevenLabsTtsApi(textToSpeak) {
-    const payload = {
-        text: textToSpeak,
-        model_id: "eleven_multilingual_v2",
-        voice_settings: {
-            stability: 0.5,
-            similarity_boost: 0.75,
-            style: 0.2,
-            use_speaker_boost: true
-        }
-    };
-
-    try {
-        const response = await fetch(cloudflareWorkerUrl, {
-            method: 'POST',
-            headers: {
-                'Accept': 'audio/mpeg',
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify(payload)
-        });
-
-        if (!response.ok) {
-            const errorText = await response.text();
-            throw new Error(`TTS Worker API error: ${response.status} - ${errorText || 'Unknown error'}`);
-        }
-        return await response.blob();
-    } catch (error) {
-        console.error('Error in callElevenLabsTtsApi (via worker):', error);
-        throw error;
-    }
-}
-
 export async function callCloudflareAiImageApi(prompt, negativePrompt = "") {
     const payload = {
         prompt: prompt,

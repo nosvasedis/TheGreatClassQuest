@@ -74,6 +74,47 @@ const scoresForClass = state.get('allWrittenScores').filter(s => {
     const isJunior = classData && (classData.questLevel === 'Junior A' || classData.questLevel === 'Junior B');
     
     const statsContainer = document.getElementById('scroll-stats-cards');
+    // --- NEW: Upcoming Test Indicator ---
+    const dashboard = document.getElementById('scroll-dashboard-content');
+    let testAlert = document.getElementById('scroll-test-alert');
+    if (testAlert) testAlert.remove(); // Clear previous to prevent duplicates
+
+    const now = new Date();
+    now.setHours(0, 0, 0, 0);
+
+    // Find the nearest upcoming test
+    const upcomingTest = state.get('allQuestAssignments')
+        .filter(a => a.classId === classId && a.testData)
+        .map(a => ({
+            ...a,
+            parsedDate: utils.parseFlexibleDate(a.testData.date)
+        }))
+        .filter(a => a.parsedDate && a.parsedDate >= now)
+        .sort((a, b) => a.parsedDate - b.parsedDate)[0];
+
+    if (upcomingTest) {
+        const dateDisplay = upcomingTest.parsedDate.toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long' });
+        const daysLeft = Math.ceil((upcomingTest.parsedDate - now) / (1000 * 60 * 60 * 24));
+        const timeText = daysLeft === 0 ? "TODAY!" : (daysLeft === 1 ? "Tomorrow" : `in ${daysLeft} days`);
+
+        testAlert = document.createElement('div');
+        testAlert.id = 'scroll-test-alert';
+        testAlert.className = "mb-4 bg-gradient-to-r from-red-50 to-white border-l-4 border-red-500 p-4 rounded-r-lg shadow-sm flex items-center justify-between";
+        testAlert.innerHTML = `
+            <div>
+                <h4 class="font-bold text-red-800 text-lg flex items-center gap-2">
+                    <i class="fas fa-file-alt"></i> Upcoming Test: ${upcomingTest.testData.title}
+                </h4>
+                <p class="text-sm text-red-600 ml-6">
+                    <span class="font-semibold">${dateDisplay}</span> (${timeText})
+                    ${upcomingTest.testData.curriculum ? `<br><span class="text-gray-500 text-xs mt-1 block">Topics: ${upcomingTest.testData.curriculum}</span>` : ''}
+                </p>
+            </div>
+            <div class="text-3xl text-red-200"><i class="fas fa-clock"></i></div>
+        `;
+        // Insert it at the very top of the dashboard content
+        dashboard.prepend(testAlert);
+    }
     const chartContainer = document.getElementById('scroll-performance-chart');
 
     const dictationMap = { "Great!!!": 4, "Great!!": 3, "Great!": 2, "Nice Try!": 1 };
@@ -219,6 +260,17 @@ export function openBulkLogModal(classId, type) {
     if (!classData) return;
 
     const isJunior = classData.questLevel === 'Junior A' || classData.questLevel === 'Junior B';
+
+    const todayStr = utils.getTodayDateString();
+    const scheduledTest = state.get('allQuestAssignments').find(a => 
+        a.classId === classId && 
+        a.testData && 
+        utils.datesMatch(a.testData.date, todayStr)
+    );
+    
+    if (scheduledTest && type === 'test') {
+        document.getElementById('bulk-trial-name').value = scheduledTest.testData.title;
+    }
     
     // UI Setup
     document.getElementById('bulk-trial-title').innerText = type === 'dictation' ? 'Log Dictation' : 'Log Test';

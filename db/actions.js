@@ -23,7 +23,7 @@ import {
 import * as state from '../state.js';
 import { showToast, showPraiseToast } from '../ui/effects.js';
 import { showStarfallModal, showBatchStarfallModal, showModal, hideModal } from '../ui/modals.js';
-import { playSound } from '../audio.js';
+import { playSound, playHeroFanfare } from '../audio.js';
 import { callGeminiApi, callCloudflareAiImageApi } from '../api.js';
 import { classColorPalettes } from '../constants.js';
 import { handleStoryWeaversClassSelect } from '../features/storyWeaver.js';
@@ -414,15 +414,16 @@ export async function setStudentStarsForToday(studentId, starValue, reason = nul
                 // Update existing score doc
                 const currentData = scoreDoc.data();
                 
-                // FIX: Safely determine current gold. If undefined (legacy), assume totalStars.
-                const currentGold = currentData.gold !== undefined ? currentData.gold : (currentData.totalStars || 0);
+                // CRITICAL FIX: Ensure Gold is independent. 
+                // If gold is undefined (old data), init it with totalStars. 
+                // Otherwise, use existing gold.
+                const safeCurrentGold = (typeof currentData.gold === 'number') ? currentData.gold : (currentData.totalStars || 0);
                 
                 if (difference !== 0) {
                     const updates = {
                         totalStars: increment(difference),
                         monthlyStars: increment(difference),
-                        // FIX: Explicitly calculate new gold total to prevent overwrite/reset
-                        gold: currentGold + difference
+                        gold: safeCurrentGold + difference // STRICT MATH: Old Gold + Change
                     };
                     transaction.update(scoreRef, updates);
                 }
@@ -789,6 +790,11 @@ export async function handleEraseTodaysStars() {
 export async function handleSaveQuestAssignment() {
     const classId = document.getElementById('quest-assignment-class-id').value;
     const text = document.getElementById('quest-assignment-textarea').value.trim();
+    
+    // New Fields
+    const testDate = document.getElementById('quest-test-date').value;
+    const testTitle = document.getElementById('quest-test-title').value;
+    const curriculum = document.getElementById('quest-test-curriculum').value;
 
     if (!text) {
         showToast("Please write an assignment before saving.", "info");
@@ -802,15 +808,12 @@ export async function handleSaveQuestAssignment() {
     try {
         const publicDataPath = "artifacts/great-class-quest/public/data";
         
-        // 1. Find existing assignments for this class by this teacher
         const q = query(
             collection(db, `${publicDataPath}/quest_assignments`),
             where("classId", "==", classId),
             where("createdBy.uid", "==", state.get('currentUserId'))
         );
         const snapshot = await getDocs(q);
-        
-        // 2. Batch delete old ones + Add new one
         const batch = writeBatch(db);
         snapshot.forEach(doc => batch.delete(doc.ref));
         
@@ -818,14 +821,14 @@ export async function handleSaveQuestAssignment() {
         batch.set(newDocRef, {
             classId,
             text,
+            testData: (testDate && testTitle) ? { date: testDate, title: testTitle, curriculum: curriculum || '' } : null,
             createdAt: serverTimestamp(),
             createdBy: { uid: state.get('currentUserId'), name: state.get('currentTeacherName') }
         });
 
         await batch.commit();
-        
         showToast("Quest assignment updated!", "success");
-        hideModal('quest-assignment-modal');
+        import('../ui/modals.js').then(m => m.hideModal('quest-assignment-modal'));
 
     } catch (error) {
         console.error("Error updating quest assignment:", error);
@@ -886,19 +889,48 @@ export async function handleLogAdventure() {
     const absentStudentNames = todaysAbsences.map(absence => state.get('allStudents').find(s => s.id === absence.studentId)?.name).filter(Boolean);
     const attendanceSummary = absentStudentNames.length > 0 ? `${absentStudentNames.join(', ')} were absent.` : `Everyone was present.`;
 
-    // 4. TOP SKILL & HERO
+    // 4. TOP SKILL & HERO (ENHANCED LOGIC)
     const reasonCounts = todaysAwards.reduce((acc, award) => {
         if (award.reason) acc[award.reason] = (acc[award.reason] || 0) + 1;
         return acc;
     }, {});
     const topReason = Object.keys(reasonCounts).length > 0 ? Object.entries(reasonCounts).sort((a, b) => b[1] - a[1])[0][0] : "great work";
 
+    // Calculate stars per student for today
     const studentStars = todaysAwards.reduce((acc, award) => {
         acc[award.studentId] = (acc[award.studentId] || 0) + award.stars;
         return acc;
     }, {});
-    const topStudentId = Object.keys(studentStars).length > 0 ? Object.entries(studentStars).sort((a,b) => b[1] - a[1])[0][0] : null;
-    const heroOfTheDay = topStudentId ? state.get('allStudents').find(s => s.id === topStudentId)?.name : "the whole team";
+
+    // Sort students by stars earned today (descending)
+    const sortedCandidates = Object.entries(studentStars).sort((a, b) => b[1] - a[1]);
+
+    // Fetch recent heroes to avoid repetition (Look back ~14 logs)
+    const recentHeroes = state.get('allAdventureLogs')
+        .filter(l => l.classId === classId)
+        .sort((a, b) => (b.createdAt?.toMillis() || 0) - (a.createdAt?.toMillis() || 0))
+        .slice(0, 14)
+        .map(l => l.hero);
+
+    let topStudentId = null;
+    let heroOfTheDay = "the whole team";
+
+    if (sortedCandidates.length > 0) {
+        // Try to find a candidate who hasn't been a hero recently
+        const freshHero = sortedCandidates.find(([id, stars]) => {
+            const sName = state.get('allStudents').find(s => s.id === id)?.name;
+            return sName && !recentHeroes.includes(sName);
+        });
+
+        if (freshHero) {
+            topStudentId = freshHero[0];
+        } else {
+            // Everyone has been a hero recently? Fallback to the top scorer.
+            topStudentId = sortedCandidates[0][0];
+        }
+        
+        heroOfTheDay = topStudentId ? state.get('allStudents').find(s => s.id === topStudentId)?.name : "the whole team";
+    }
     
     // 5. NOTES
     const notesString = todaysAwards.filter(log => log.note).map(log => `(Teacher note on a ${log.reason} award: "${log.note}")`).join(' ');
@@ -927,7 +959,6 @@ export async function handleLogAdventure() {
     }
 
     // Check C: Current Story Updated Today
-    // We try to grab from state, but fallback to "not active" if missing to avoid blocking
     const currentStory = state.get('currentStoryData')?.[classId];
     if (currentStory && currentStory.updatedAt) {
         const updateDate = currentStory.updatedAt.toDate();
@@ -937,12 +968,11 @@ export async function handleLogAdventure() {
         }
     }
 
-    // 8. SCHEDULE LOGIC (The Bug Fix)
+    // 8. SCHEDULE LOGIC
     const currentMonth = nowObj.getMonth();
     const daysInMonth = new Date(nowObj.getFullYear(), currentMonth + 1, 0).getDate();
     const currentDay = nowObj.getDate();
     
-    // FIX: Parse schedule days to Integers for comparison
     const schedule = (classData.scheduleDays || []).map(d => parseInt(d, 10));
     const overrides = state.get('allScheduleOverrides') || [];
     
@@ -953,8 +983,6 @@ export async function handleLogAdventure() {
     // Check remaining days in this month
     for (let d = currentDay + 1; d <= daysInMonth; d++) {
         const tempDate = new Date(nowObj.getFullYear(), currentMonth, d);
-        
-        // FIX: Compare Number to Number
         if (schedule.includes(tempDate.getDay())) {
             const dStr1 = getDDMMYYYY(tempDate);
             const isCancelled = overrides.some(o => o.classId === classId && o.date === dStr1 && o.type === 'cancelled');
@@ -965,19 +993,15 @@ export async function handleLogAdventure() {
                     nextLessonText = tempDate.toLocaleDateString('en-GB', { weekday: 'long' });
                     foundNext = true;
                 }
-                // If we found a valid future lesson in this month, we can stop checking for "Last Lesson" status
-                // But we continue to find "nextLessonText" if we haven't found it (though we just did)
                 break; 
             }
         }
     }
     
-    // If not found in this month, find next one in general (for the "Continues on..." text)
     if (!foundNext) {
         for(let i=1; i<=7; i++) {
              const temp = new Date(nowObj); 
              temp.setDate(nowObj.getDate() + i);
-             // FIX: Compare Number to Number
              if (schedule.includes(temp.getDay())) {
                  nextLessonText = temp.toLocaleDateString('en-GB', { weekday: 'long' });
                  break;
@@ -991,7 +1015,6 @@ export async function handleLogAdventure() {
 
     // --- PROMPT CONSTRUCTION ---
     
-    // Only include Story Weavers if it happened
     let storySection = "";
     if (storyActive) {
         const summary = finishedStoryToday 
@@ -1031,7 +1054,6 @@ Synthesize this into a cohesive story.`;
         const imageBase64 = await callCloudflareAiImageApi(imagePrompt);
         const compressedImageBase64 = await compressImageBase64(imageBase64);
         
-        // Upload to Storage
         const { uploadImageToStorage } = await import('../utils.js');
         const imagePath = `adventure_logs/${state.get('currentUserId')}/${Date.now()}.jpg`;
         const imageUrl = await uploadImageToStorage(compressedImageBase64, imagePath);
@@ -1046,6 +1068,28 @@ Synthesize this into a cohesive story.`;
         });
         
         showToast("Today's adventure has been chronicled!", 'success');
+
+        // --- NEW: Trigger Hero Celebration ---
+        if (heroOfTheDay && heroOfTheDay !== "the whole team") {
+            const heroStudent = state.get('allStudents').find(s => s.name === heroOfTheDay && s.classId === classId);
+            if (heroStudent) {
+                document.getElementById('hero-celebration-name').innerText = heroStudent.name;
+                document.getElementById('hero-celebration-reason').innerText = `For outstanding ${topReason.replace(/_/g, ' ')}`;
+                
+                const avatarEl = document.getElementById('hero-celebration-avatar');
+                if (heroStudent.avatar) {
+                    avatarEl.innerHTML = `<img src="${heroStudent.avatar}" class="w-full h-full object-cover rounded-full"><div class="absolute -top-4 -right-4 text-6xl animate-bounce">👑</div>`;
+                } else {
+                    avatarEl.innerHTML = `<span class="text-7xl font-bold text-indigo-500">${heroStudent.name.charAt(0)}</span><div class="absolute -top-4 -right-4 text-6xl animate-bounce">👑</div>`;
+                }
+                
+                // Show modal
+                import('../ui/modals.js').then(m => m.showAnimatedModal('hero-celebration-modal'));
+                
+                // Audio
+                playHeroFanfare();
+            }
+        }
 
     } catch (error) {
         console.error("Adventure Log generation error:", error);
@@ -1794,43 +1838,66 @@ export async function ensureHistoryLoaded() {
 export async function handleCreateBounty() {
     const classId = document.getElementById('bounty-class-id').value;
     const title = document.getElementById('bounty-title').value;
-    const target = parseInt(document.getElementById('bounty-target').value);
-    const durationMinutes = parseInt(document.getElementById('bounty-duration').value);
-    const reward = document.getElementById('bounty-reward').value;
+    const type = document.getElementById('bounty-type').value; // 'standard' or 'timer'
 
-    if (!title || !target || !reward) {
-        showToast('Please fill all fields', 'error');
-        return;
+    let target = 0;
+    let reward = "";
+    let deadline = null;
+
+    if (type === 'standard') {
+        target = parseInt(document.getElementById('bounty-target').value);
+        reward = document.getElementById('bounty-reward').value;
+        if (!target || !reward) { showToast('Please set stars and reward.', 'error'); return; }
+        // Default expiry for star bounty (2 hours) just to keep DB clean
+        deadline = new Date();
+        deadline.setHours(deadline.getHours() + 2);
+    } else {
+        // TIMER MODE
+        const durationInput = document.getElementById('bounty-timer-minutes').value;
+        const endTimeInput = document.getElementById('bounty-timer-end').value;
+        
+        if (endTimeInput) {
+            const [h, m] = endTimeInput.split(':').map(Number);
+            deadline = new Date();
+            deadline.setHours(h, m, 0, 0);
+            if (deadline < new Date()) deadline.setDate(deadline.getDate() + 1); // Next day if time passed
+        } else if (durationInput) {
+            deadline = new Date();
+            deadline.setMinutes(deadline.getMinutes() + parseInt(durationInput));
+        } else {
+            showToast('Please set a duration or end time.', 'error');
+            return;
+        }
+        reward = "Timer Complete"; // Placeholder, not used visually for timers
     }
 
-    const btn = document.querySelector('#create-bounty-form button[type="submit"]');
-    btn.disabled = true;
-    btn.innerHTML = 'Posting...';
+    if (!title) { showToast('Please enter a title.', 'error'); return; }
 
-    const deadline = new Date();
-    deadline.setMinutes(deadline.getMinutes() + durationMinutes);
+    const btn = document.getElementById('bounty-submit-btn');
+    btn.disabled = true; btn.innerHTML = 'Starting...';
 
     try {
         await addDoc(collection(db, "artifacts/great-class-quest/public/data/quest_bounties"), {
             classId,
             title,
-            target,
+            target: type === 'standard' ? target : 0,
             reward,
+            type, 
             currentProgress: 0,
-            deadline: deadline.toISOString(), // Storing as ISO string for easier querying/parsing
-            status: 'active', // active, completed, expired
+            deadline: deadline.toISOString(),
+            status: 'active',
             createdBy: { uid: state.get('currentUserId'), name: state.get('currentTeacherName') },
             createdAt: serverTimestamp()
         });
         
-        showToast('New Bounty Posted!', 'success');
+        showToast(type === 'timer' ? 'Timer Started!' : 'Bounty Posted!', 'success');
         import('../ui/modals.js').then(m => m.hideModal('create-bounty-modal'));
     } catch (e) {
         console.error(e);
-        showToast('Error posting bounty', 'error');
+        showToast('Error starting quest', 'error');
     } finally {
         btn.disabled = false;
-        btn.innerHTML = 'Post Bounty';
+        btn.innerHTML = type === 'timer' ? 'Start Timer' : 'Start Quest';
     }
 }
 
@@ -1844,7 +1911,7 @@ export async function handleDeleteBounty(bountyId) {
 }
 
 export async function handleClaimBounty(bountyId, classId, rewardText) {
-    playSound('winnerFanfare'); // Play victory music!
+    playHeroFanfare(); // Play victory music!
     
     // 1. Mark as completed in DB
     try {
@@ -1856,8 +1923,6 @@ export async function handleClaimBounty(bountyId, classId, rewardText) {
     // 2. Visual Celebration
     import('../ui/effects.js').then(m => m.showPraiseToast(`BOUNTY CLAIMED: ${rewardText}`, '🎁'));
     
-    // 3. Optional: Award a small "Victory" bonus to everyone? 
-    // Let's keep it simple: Teacher manually awards the described reward (e.g. "Pizza").
 }
 
 // Helper to update progress when stars are awarded
@@ -2398,5 +2463,51 @@ export async function handleManualGoldUpdate() {
     } finally {
         btn.disabled = false;
         btn.innerHTML = '<i class="fas fa-save mr-2"></i> Update Balance';
+    }
+}
+
+export async function handleSpecialOccasionBonus(studentId, type) {
+    const student = state.get('allStudents').find(s => s.id === studentId);
+    if (!student) return;
+    
+    const bonus = type === 'birthday' ? 2.5 : 1.5;
+    const reason = type === 'birthday' ? 'Birthday Bonus' : 'Nameday Bonus';
+    const icon = type === 'birthday' ? '🎂' : '🎈';
+
+    try {
+        await runTransaction(db, async (transaction) => {
+            const publicDataPath = "artifacts/great-class-quest/public/data";
+            const scoreRef = doc(db, `${publicDataPath}/student_scores`, studentId);
+            const newLogRef = doc(collection(db, `${publicDataPath}/award_log`));
+
+            // Add to totals WITHOUT affecting daily cap (only total/monthly)
+            transaction.update(scoreRef, {
+                totalStars: increment(bonus),
+                monthlyStars: increment(bonus),
+                gold: increment(bonus) // They get gold too!
+            });
+
+            // Log it
+            const logData = {
+                studentId,
+                classId: student.classId,
+                teacherId: state.get('currentUserId'),
+                stars: bonus,
+                reason: 'scholar_s_bonus', // Use scholar bonus type to prevent standard stats skew
+                note: `${icon} ${reason} Celebration!`,
+                date: utils.getTodayDateString(),
+                createdAt: serverTimestamp(),
+                createdBy: { uid: state.get('currentUserId'), name: state.get('currentTeacherName') }
+            };
+            transaction.set(newLogRef, logData);
+        });
+        
+        showToast(`${student.name} received +${bonus} Stars for their special day!`, 'success');
+        import('../ui/modals.js').then(m => m.hideModal('celebration-bonus-modal'));
+        playSound('magic_chime');
+
+    } catch (error) {
+        console.error("Bonus Error:", error);
+        showToast("Error applying bonus.", "error");
     }
 }

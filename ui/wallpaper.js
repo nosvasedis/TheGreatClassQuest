@@ -763,12 +763,17 @@ function getRecentAwardCard(classId, logId) {
     const style = reasonMap[log.reason] || { icon: 'fa-star', color: 'text-indigo-600', css: 'float-card-indigo', bg: 'bg-indigo-100' };
     const starText = log.stars === 1 ? 'Star' : 'Stars';
 
+    const avatarHtml = student.avatar
+        ? `<img src="${student.avatar}" class="w-24 h-24 rounded-full border-4 border-white object-cover shadow-lg">`
+        : `<div class="w-24 h-24 rounded-full bg-white flex items-center justify-center text-5xl text-indigo-500 font-bold">${student.name.charAt(0)}</div>`;
+
     return {
         html: `
-        <div class="text-center">
+        <div class="text-center w-full">
             <div class="badge-pill ${style.bg} ${style.color.replace('text', 'text-opacity-80')}">Recent Award</div>
-            <div class="flex justify-center items-center gap-4 mb-4">
+            <div class="flex justify-center items-center gap-4 my-4">
                 <div class="text-6xl animate-bounce text-amber-400 drop-shadow-sm">⭐</div>
+                ${avatarHtml}
                 <div class="text-6xl animate-pulse ${style.color} drop-shadow-sm"><i class="fas ${style.icon}"></i></div>
             </div>
             <h3 class="font-title text-4xl text-gray-800 mb-1">${student.name}</h3>
@@ -1038,7 +1043,14 @@ function getStoryCard(classId, mode) {
     return { html: `<div class="text-center"><div class="badge-pill bg-cyan-100 text-cyan-700">Story So Far</div><div class="bg-white/60 p-6 rounded-2xl border border-cyan-200 mt-4 relative shadow-sm"><i class="fas fa-quote-left absolute top-2 left-2 text-cyan-300 text-4xl opacity-50"></i><p class="font-serif text-2xl text-cyan-900 italic leading-relaxed">"${story.currentSentence}"</p></div></div>`, css: 'float-card-cyan' };
 }
 
-function getSpecificLogCard(logId) { const log = state.get('allAdventureLogs').find(l => l.id === logId); if (!log) return null; return { html: `<div class="text-center"><div class="badge-pill bg-teal-100 text-teal-700">Flashback</div><p class="text-xs text-teal-600 font-bold uppercase mb-2">${log.date}</p><div class="bg-white p-2 rounded-2xl shadow-lg rotate-2 mb-2"><img src="${log.imageUrl}" class="w-full h-40 object-cover rounded-xl"></div><p class="font-serif text-teal-900 text-sm line-clamp-2">"${log.text}"</p></div>`, css: 'float-card-teal' }; }
+function getSpecificLogCard(logId) {
+    const log = state.get('allAdventureLogs').find(l => l.id === logId);
+    if (!log) return null;
+    return {
+        html: `<div class="text-center"><div class="badge-pill bg-teal-100 text-teal-700">Flashback</div><p class="text-xs text-teal-600 font-bold uppercase mb-2">${log.date}</p><div class="bg-white p-2 rounded-2xl shadow-lg rotate-2 mb-2"><img src="${log.imageUrl}" class="w-full h-40 object-cover rounded-xl"></div><p class="font-serif text-teal-900 text-sm line-clamp-4">"${log.text}"</p></div>`,
+        css: 'float-card-teal'
+    };
+}
 
 function getHomeworkCard(classId) { const assignments = state.get('allQuestAssignments').filter(a => a.classId === classId); if(assignments.length === 0) return null; return { html: `<div class="text-center"><div class="badge-pill bg-amber-100 text-amber-800">Mission</div><div class="text-7xl mb-2">📜</div><div class="bg-white/80 p-6 rounded-xl border-l-4 border-amber-400 text-left shadow-sm"><p class="font-handwriting text-2xl text-amber-900">${assignments[assignments.length-1].text}</p></div></div>`, css: 'float-card-gold' }; }
 

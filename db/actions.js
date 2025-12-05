@@ -1011,7 +1011,7 @@ export async function handleLogAdventure() {
 
     const dateContext = `Today is ${nowObj.toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long' })}.`;
     const monthEndContext = isLastLessonOfMonth ? "CRITICAL: This is the LAST lesson of the month! Mention the final push/results." : "";
-    const ageCategory = getAgeGroupForLeague(classData.questLevel);
+    const ageGroup = getAgeGroupForLeague(classData.questLevel);
 
     // --- PROMPT CONSTRUCTION ---
     
@@ -1024,7 +1024,7 @@ export async function handleLogAdventure() {
     }
 
     let textSystemPrompt = "";
-    if (ageCategory === 'junior') { 
+    if (ageGroup === 'junior') { 
         textSystemPrompt = "You are 'The Chronicler,' an AI historian for a fun classroom game (ages 7-9). Write a 3-4 sentence diary entry about today's adventure. Use simple, magical words. Do NOT use markdown. Mention specific students who did well. Only mention specific game features (like Story Weavers) if they are listed in the data below.";
     } else { 
         textSystemPrompt = "You are 'The Chronicler,' an AI historian for a fun classroom game. Write a 3-4 sentence diary entry about today's adventure. Use an engaging, epic storytelling tone. Do NOT use markdown. Mention specific students. Only mention specific game features (like Story Weavers) if they are listed in the data below.";

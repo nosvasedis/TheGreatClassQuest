@@ -1,3 +1,4 @@
+
 /* Custom Font */
 body {
     font-family: 'Open Sans', sans-serif;
@@ -745,6 +746,19 @@ body {
     transform: translateY(-50%) translateX(-50%) scale(1.25);
 }
 
+/* --- V5.3.1: MILESTONE & QUEST MAP REVAMP --- */
+
+.quest-card {
+    position: relative;
+}
+.quest-card:hover {
+    z-index: 10;
+}
+
+/* Quest Map Tooltips & Cursor */
+.milestone-marker {
+    cursor: pointer;
+}
 /* --- V5.3.1: MILESTONE & QUEST MAP REVAMP --- */
 
 .quest-card {
@@ -4859,4 +4873,54 @@ header.header-cloudy::after {
 .weather-clear .fa-cloud {
     opacity: 0.4 !important; /* Faint clouds */
     animation-duration: 180s !important; /* Extremely slow */
+}
+
+/* --- WALLPAPER WEATHER STATES (Day & Night) --- */
+
+/* 1. STORMY WALLPAPER */
+.weather-stormy #wall-bg-day {
+    background: linear-gradient(to bottom, #1e1b4b 0%, #312e81 100%) !important; /* Dark Blue Day */
+}
+.weather-stormy #wall-bg-night {
+    /* Pitch black to deep midnight purple */
+    background: linear-gradient(to bottom, #020617 0%, #1e1b4b 100%) !important; 
+}
+.weather-stormy #wall-sun, .weather-stormy #wall-moon { display: none !important; }
+
+.weather-stormy .fa-cloud {
+    color: #4b5563 !important; /* Dark Grey */
+    animation-duration: 120s !important; /* Very Slow Drift */
+}
+/* Thunder Flash Overlay */
+.weather-stormy::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: white;
+    opacity: 0;
+    z-index: 50; 
+    pointer-events: none;
+    animation: thunder-flash 10s infinite;
+}
+
+@keyframes thunder-flash {
+    0%, 92%, 100% { opacity: 0; }
+    93% { opacity: 0.2; } /* Very soft flash, not blinding */
+    94% { opacity: 0; }
+    95% { opacity: 0.1; } 
+    96% { opacity: 0; }
+}
+
+/* 2. RAINY WALLPAPER */
+.weather-rainy #wall-bg-day {
+    background: linear-gradient(to bottom, #334155 0%, #475569 100%) !important; /* Grey-Blue */
+}
+.weather-rainy #wall-bg-night {
+    background: linear-gradient(to bottom, #0f172a 0%, #1e293b 100%) !important; /* Dark Slate Night */
+}
+.weather-rainy #wall-sun, .weather-rainy #wall-moon { display: none !important; }
+
+.weather-rainy .fa-cloud {
+    color: #64748b !important; /* Grey Clouds */
+    animation-duration: 100s !important;
 }

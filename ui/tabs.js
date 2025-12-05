@@ -183,7 +183,7 @@ export async function showTab(tabName) {
         monthModifier = Math.max(0.6, Math.min(1.0, monthModifier));
     }
 
-    let monthMsg = holidayDaysLost > 0 ? `(Adjusted for ${holidayDaysLost} days off)` : "";
+    let monthMsg = holidayDaysLost > 0 ? `<i class="fas fa-info-circle ml-1 text-gray-400" title="Goal reduced due to ${holidayDaysLost} days off (Holidays/Cancellations)"></i>` : "";
 
     const classScores = classesInLeague.map(c => {
         const studentsInClass = state.get('allStudents').filter(s => s.classId === c.id);
@@ -1166,7 +1166,32 @@ export function renderCalendarTab(customLogs = null) {
             let classesHtml = classesOnThisDay.map(c => {
                 const color = c.color || constants.classColorPalettes[utils.simpleHashCode(c.id) % constants.classColorPalettes.length];
                 const timeDisplay = (c.timeStart && c.timeEnd) ? `${c.timeStart}-${c.timeEnd}` : (c.timeStart || '');
-                return `<div class="text-xs px-1.5 py-1 rounded ${color.bg} ${color.text} border-l-4 ${color.border} shadow-sm" title="${c.name} (${timeDisplay})"><span class="font-bold block text-[10px] opacity-80">${timeDisplay}</span><span class="truncate block font-semibold">${c.logo} ${c.name}</span></div>`;
+                
+               // --- NEW: Check for Scheduled Test (Smart Match) ---
+                const testAssignment = state.get('allQuestAssignments').find(a => 
+                    a.classId === c.id && 
+                    a.testData && 
+                    utils.datesMatch(dateString, a.testData.date)
+                );
+                
+                // 2. Create the Indicator
+                const testIndicator = testAssignment 
+                    ? `<div class="absolute -top-1 -right-1 z-20">
+                         <span class="relative flex h-3 w-3">
+                           <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+                           <span class="relative inline-flex rounded-full h-3 w-3 bg-red-500"></span>
+                         </span>
+                       </div>
+                       <span class="absolute top-[-4px] right-[-4px] bg-red-500 text-white text-[8px] font-bold px-1.5 py-0.5 rounded-bl-md rounded-tr-md shadow-sm z-10" title="Test: ${testAssignment.testData.title}">📝 TEST</span>` 
+                    : '';
+                // -------------------------------------
+                
+                return `
+                <div class="relative text-xs px-1.5 py-1 rounded ${color.bg} ${color.text} border-l-4 ${color.border} shadow-sm group hover:scale-[1.02] transition-transform" title="${c.name} (${timeDisplay})">
+                    ${testIndicator}
+                    <span class="font-bold block text-[10px] opacity-80">${timeDisplay}</span>
+                    <span class="truncate block font-semibold">${c.logo} ${c.name}</span>
+                </div>`;
             }).join('');
 
             dayCell.innerHTML = `

@@ -876,6 +876,13 @@ document.getElementById('lookup-nameday-btn').addEventListener('click', () => {
 
     // Initialize Home/Info Listeners
     setupHomeListeners();
+     // Hero Celebration Modal
+    const heroCelebrationCloseBtn = document.getElementById('hero-celebration-close-btn');
+    if (heroCelebrationCloseBtn) {
+        heroCelebrationCloseBtn.addEventListener('click', () => {
+            modals.hideModal('hero-celebration-modal');
+        });
+    }
 }
 
 // --- AVATAR ENLARGEMENT ---

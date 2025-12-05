@@ -4,13 +4,13 @@ import * as utils from '../utils.js';
 import * as tabs from '../ui/tabs.js';
 import * as modals from '../ui/modals.js';
 import { callGeminiApi } from '../api.js';
+
 export { initializeHeaderQuote };
 
 let homeInterval = null;
 let renderDebounce = null;
 let currentRenderedViewId = null;
 
-// --- 1. DAILY SPICE (Cached AI) ---
 // --- 1. DAILY SPICE (Cached AI) ---
 async function fetchDailySpice() {
     // We fetch two DISTINCT items: one for header, one for the dashboard widget
@@ -62,52 +62,22 @@ async function executeRenderHome() {
     // --- CONTEXT ---
     const activeClassId = state.get('globalSelectedClassId');
     const teacherName = state.get('currentTeacherName') || "Quest Master";
-     const hour = new Date().getHours();
+    const hour = new Date().getHours();
     
     // Dynamic Weather/Theme
     const weatherData = await fetchWeatherData();
     let theme = {};
 
-    // 1. Calculate Time-Based Gradients
-    let timeGreeting = "Good Day";
-    let greetingGradient = "";
-    
-    if (hour >= 5 && hour < 12) {
-        timeGreeting = "Good Morning";
-        greetingGradient = "from-amber-400 via-orange-400 to-rose-400"; // Morning
-    } else if (hour >= 12 && hour < 17) {
-        timeGreeting = "Good Afternoon";
-        greetingGradient = "from-blue-400 via-cyan-400 to-teal-400"; // Afternoon
-    } else if (hour >= 17 && hour < 21) {
-        timeGreeting = "Good Evening";
-        greetingGradient = "from-indigo-500 via-purple-500 to-pink-500"; // Evening
-    } else {
-        timeGreeting = "Good Night";
-        greetingGradient = "from-indigo-900 via-purple-900 to-slate-800"; // Night
-    }
-
-    const nameGradient = "from-slate-700 to-slate-500"; 
-
-    // 2. Save these into the theme object so getLayout can use them
-    theme.greeting = timeGreeting;
-    theme.greetingGradient = greetingGradient;
-    theme.nameGradient = nameGradient;
-
-    // 3. Set Weather Visuals (Existing Logic)
+    // --- STEP 1: CALCULATE WEATHER STATE ---
     if (weatherData) {
         theme.temp = `${weatherData.temp}°C`;
         const code = weatherData.code;
-        const nowTime = new Date().getTime();
         
-        // Solar Cycle Check
-        const sunset = utils.solarData?.sunset || new Date().setHours(20, 0, 0, 0);
-        const sunrise = utils.solarData?.sunrise || new Date().setHours(6, 0, 0, 0);
-        const isNight = nowTime >= sunset || nowTime < sunrise;
-
+        // Determine Background Class
         if (code === 0) {
             theme.weatherBg = 'w-day'; theme.weatherIcon = 'fa-sun'; theme.weatherText = 'Sunny';
         } else if (code <= 3) {
-            theme.weatherBg = 'w-day'; theme.weatherIcon = 'fa-cloud-sun'; theme.weatherText = 'Partly Cloudy';
+            theme.weatherBg = 'w-cloudy'; theme.weatherIcon = 'fa-cloud-sun'; theme.weatherText = 'Partly Cloudy';
         } else if (code <= 48) {
             theme.weatherBg = 'w-cloudy'; theme.weatherIcon = 'fa-smog'; theme.weatherText = 'Foggy';
         } else if (code <= 67 || (code >= 80 && code <= 82)) {
@@ -115,27 +85,96 @@ async function executeRenderHome() {
         } else if (code <= 77 || (code >= 85 && code <= 86)) {
             theme.weatherBg = 'w-snowy'; theme.weatherIcon = 'fa-snowflake'; theme.weatherText = 'Snowy';
         } else if (code >= 95) {
-            theme.weatherBg = 'w-rainy'; theme.weatherIcon = 'fa-bolt'; theme.weatherText = 'Stormy';
+            theme.weatherBg = 'w-stormy'; theme.weatherIcon = 'fa-bolt'; theme.weatherText = 'Stormy';
         } else {
             theme.weatherBg = 'w-cloudy'; theme.weatherIcon = 'fa-cloud'; theme.weatherText = 'Cloudy';
         }
 
+        // Night Override (Solar Cycle)
+        const nowTime = new Date().getTime();
+        const sunset = utils.solarData?.sunset || new Date().setHours(20, 0, 0, 0);
+        const sunrise = utils.solarData?.sunrise || new Date().setHours(6, 0, 0, 0);
+        const isNight = nowTime >= sunset || nowTime < sunrise;
+
         if (isNight) {
-            theme.weatherBg = 'w-night';
+            // FIX: Only switch to generic "Night" if weather is mild (Clear or Cloudy).
+            // If it is Stormy, Rainy, or Snowy, we KEEP that effect because it looks cool/dark enough.
+            if (theme.weatherBg === 'w-day' || theme.weatherBg === 'w-cloudy') {
+                theme.weatherBg = 'w-night';
+            }
+
+            // Adjust Icons & Text for Night Context
             if (theme.weatherIcon === 'fa-sun') theme.weatherIcon = 'fa-moon';
             if (theme.weatherIcon === 'fa-cloud-sun') theme.weatherIcon = 'fa-cloud-moon';
             if (theme.weatherText === 'Sunny') theme.weatherText = 'Clear Night';
+            if (theme.weatherText === 'Partly Cloudy') theme.weatherText = 'Cloudy Night';
         }
-
     } else {
+        // Fallback
         theme.temp = "--°C";
         theme.weatherBg = 'w-day'; theme.weatherIcon = 'fa-cloud-sun'; theme.weatherText = 'Clear';
     }
+
+    // --- STEP 2: APPLY HEADER THEME ---
+    const header = document.querySelector('header');
+    if (header) {
+        // 1. Clean old classes
+        header.classList.remove('header-night', 'header-stormy', 'header-rainy', 'header-snowy', 'header-cloudy');
+        
+        // 2. Reset Background
+        header.style.background = '';
+        header.className = "relative overflow-hidden z-10 flex justify-between p-4 shadow-md transition-all duration-1000";
+        
+        // 3. Apply New State
+        if (theme.weatherBg === 'w-night') {
+            header.classList.add('header-night');
+        } else {
+            // Day Time Logic
+            switch (theme.weatherBg) {
+                case 'w-stormy':
+                    header.classList.add('header-stormy');
+                    break;
+                case 'w-rainy':
+                    header.classList.add('header-rainy');
+                    break;
+                case 'w-snowy':
+                    header.classList.add('header-snowy');
+                    break;
+                case 'w-cloudy':
+                    header.classList.add('header-cloudy');
+                    break;
+                default:
+                    // Default Sunny/Clear Gradient
+                    header.style.background = 'linear-gradient(to right, #89f7fe 0%, #66a6ff 100%)';
+            }
+        }
+    }
+
+    // --- STEP 3: CALCULATE TIME GRADIENTS ---
+    let timeGreeting = "Good Day";
+    let greetingGradient = "";
     
-    // Spice
+    if (hour >= 5 && hour < 12) {
+        timeGreeting = "Good Morning";
+        greetingGradient = "from-amber-400 via-orange-400 to-rose-400"; 
+    } else if (hour >= 12 && hour < 17) {
+        timeGreeting = "Good Afternoon";
+        greetingGradient = "from-blue-400 via-cyan-400 to-teal-400"; 
+    } else if (hour >= 17 && hour < 21) {
+        timeGreeting = "Good Evening";
+        greetingGradient = "from-indigo-500 via-purple-500 to-pink-500"; 
+    } else {
+        timeGreeting = "Good Night";
+        greetingGradient = "from-indigo-900 via-purple-900 to-slate-800"; 
+    }
+
+    theme.greeting = timeGreeting;
+    theme.greetingGradient = greetingGradient;
+    theme.nameGradient = "from-slate-700 to-slate-500"; 
+    
+    // --- STEP 4: FETCH SPICE & RENDER ---
     const spice = await fetchDailySpice();
 
-    // Generate Content
     const allClasses = state.get('allSchoolClasses') || [];
     let viewId = 'general';
     let contentHtml = '';
@@ -174,22 +213,18 @@ function getGeneralDashboard(name, theme, spice) {
     const totalStudents = state.get('allStudents').length;
     const allScores = state.get('allStudentScores') || [];
     
-    // FIX: Calculate School Stars from LOGS (Source of Truth) instead of Counters
-    // This ensures it matches the Calendar exactly (247.5)
     const now = new Date();
     const currentMonth = now.getMonth();
     const currentYear = now.getFullYear();
     
     const schoolStars = state.get('allAwardLogs').reduce((sum, log) => {
         const d = utils.parseDDMMYYYY(log.date);
-        // Check if log is in current month
         if (d.getMonth() === currentMonth && d.getFullYear() === currentYear) {
             return sum + log.stars;
         }
         return sum;
     }, 0);
 
-    // Gold is still read from counters (as it accumulates forever)
     const totalGold = allScores.reduce((sum, s) => sum + (s.gold !== undefined ? s.gold : s.totalStars), 0);
 
     const tools = [
@@ -203,7 +238,6 @@ function getGeneralDashboard(name, theme, spice) {
     
     return getLayout(
         name, theme, spice, getSelector(null),
-        // ROW 2: COLORFUL STATS
         `
         <div class="vibrant-card h-span-6 stat-card-pop card-gradient-sun">
             <span class="text-xs font-bold text-amber-600 uppercase tracking-widest mb-2"><i class="fas fa-star mr-1"></i> School Stars</span>
@@ -221,7 +255,6 @@ function getGeneralDashboard(name, theme, spice) {
             <div class="text-sm font-bold text-purple-700/60">Gold Coins</div>
         </div>
         `,
-        // ROW 3: TOOLS & SCHEDULE
         `
         <div class="vibrant-card h-span-4 card-glass-white">
             <h3 class="text-xs font-bold text-slate-400 uppercase tracking-widest p-4 pb-0">Global Tools</h3>
@@ -243,19 +276,15 @@ function getActiveDashboard(classData, name, theme, spice) {
     const classId = classData.id;
     const today = utils.getTodayDateString();
     
-    // Stats Calculations
     const students = state.get('allStudents').filter(s => s.classId === classId);
     const scores = state.get('allStudentScores') || [];
     
-    // FIX: Calculate Monthly Stars from LOGS to match Calendar
     const now = new Date();
     const currentMonth = now.getMonth();
     const currentYear = now.getFullYear();
 
     const monthlyStars = state.get('allAwardLogs').reduce((sum, log) => {
-        // Only count logs for THIS class
         if (log.classId !== classId) return sum;
-        
         const d = utils.parseDDMMYYYY(log.date);
         if (d.getMonth() === currentMonth && d.getFullYear() === currentYear) {
             return sum + log.stars;
@@ -266,20 +295,33 @@ function getActiveDashboard(classData, name, theme, spice) {
     const goal = Math.max(18, students.length * 18);
     const progress = Math.min(100, (monthlyStars / goal) * 100).toFixed(0);
 
-    // --- FIX: Dynamic Story Fetcher ---
-    // If story data is missing for this class, we trigger a fetch in the background
-    // but don't block the UI. The state listener will auto-update the UI when it arrives.
     if (!state.get('currentStoryData')[classId]) {
         import('../features/storyWeaver.js').then(sw => sw.handleStoryWeaversClassSelect());
     }
     const story = state.get('currentStoryData')[classId];
-    // Check if story exists AND has a sentence. If not, show "Waiting to begin"
     const storyText = (story && story.currentSentence) ? `"...${story.currentSentence}..."` : "The story awaits its first chapter...";
     const storyWord = (story && story.currentWord) ? story.currentWord : "Pending";
 
-    // Latest Updates Logic
-    const lastAssignment = state.get('allQuestAssignments').filter(a => a.classId === classId).sort((a,b) => b.createdAt - a.createdAt)[0];
-    const assignmentText = lastAssignment ? lastAssignment.text : "No active homework.";
+    const lastAssignment = state.get('allQuestAssignments')
+        .filter(a => a.classId === classId)
+        .sort((a,b) => (b.createdAt?.toMillis ? b.createdAt.toMillis() : 0) - (a.createdAt?.toMillis ? a.createdAt.toMillis() : 0))[0];
+    
+    let assignmentText = lastAssignment ? lastAssignment.text : "No active homework.";
+
+    // Append Test Info if available
+    if (lastAssignment && lastAssignment.testData) {
+        // Use smart parser to handle YYYY-MM-DD safely
+        const tDate = utils.parseFlexibleDate(lastAssignment.testData.date);
+        const dateDisplay = tDate ? tDate.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }) : 'Upcoming';
+        
+        assignmentText = `
+            <div class="flex flex-col gap-1">
+                <span>${lastAssignment.text}</span>
+                <span class="text-xs font-bold text-red-600 bg-red-50 px-2 py-1 rounded border border-red-100 self-start">
+                    <i class="fas fa-exclamation-circle mr-1"></i> TEST: ${lastAssignment.testData.title} (${dateDisplay})
+                </span>
+            </div>`;
+    }
     
     const logs = state.get('allAdventureLogs').filter(l => l.classId === classId).sort((a,b) => utils.parseDDMMYYYY(b.date) - utils.parseDDMMYYYY(a.date));
     const lastLogText = logs.length > 0 ? logs[0].text : "No adventures chronicled yet.";
@@ -296,7 +338,6 @@ function getActiveDashboard(classData, name, theme, spice) {
         }).join('')
         : '<span class="text-xs text-gray-400 pl-2">Empty Roster</span>';
 
-    // Best Skill Logic
     const classLogs = state.get('allAwardLogs').filter(l => l.classId === classId);
     const reasons = {};
     classLogs.forEach(l => { if(l.reason) reasons[l.reason] = (reasons[l.reason] || 0) + l.stars; });
@@ -314,7 +355,6 @@ function getActiveDashboard(classData, name, theme, spice) {
 
     return getLayout(
         name, theme, spice, getSelector(classId),
-        // ROW 2: PROGRESS & BANNER
         `
         <div class="vibrant-card h-span-8 p-6 flex flex-col justify-center relative overflow-hidden card-gradient-sky">
             <div class="absolute -right-4 -top-4 text-9xl opacity-5 pointer-events-none">${classData.logo}</div>
@@ -350,14 +390,11 @@ function getActiveDashboard(classData, name, theme, spice) {
             </div>
         </div>
         `,
-        // ROW 3: CHRONICLE CARDS & ACTIONS
         `
-        <!-- COL 1: QUEST LOG (Beautiful Cards) -->
         <div class="vibrant-card h-span-8 p-5 bg-gray-50/50 backdrop-blur-sm">
             <h3 class="text-xs font-bold text-slate-400 uppercase tracking-widest mb-4"><i class="fas fa-history mr-2"></i> The Chronicle</h3>
             
             <div class="grid grid-cols-1 md:grid-cols-3 gap-4 h-full">
-                <!-- Homework Card -->
                 <div class="chronicle-item chronicle-homework">
                     <div class="flex items-center gap-2 mb-2">
                         <div class="bg-white/80 p-1.5 rounded-lg text-indigo-600"><i class="fas fa-book"></i></div>
@@ -366,7 +403,6 @@ function getActiveDashboard(classData, name, theme, spice) {
                     <p class="text-sm text-indigo-900 font-medium leading-snug line-clamp-3">${assignmentText}</p>
                 </div>
 
-                <!-- Story Card -->
                 <div class="chronicle-item chronicle-story">
                     <div class="flex items-center gap-2 mb-2">
                         <div class="bg-white/80 p-1.5 rounded-lg text-cyan-600"><i class="fas fa-feather-alt"></i></div>
@@ -375,7 +411,6 @@ function getActiveDashboard(classData, name, theme, spice) {
                     <p class="text-sm text-cyan-900 font-serif italic leading-snug line-clamp-3">${storyText}</p>
                 </div>
 
-                <!-- Adventure Log Card -->
                 <div class="chronicle-item chronicle-log">
                     <div class="flex items-center gap-2 mb-2">
                         <div class="bg-white/80 p-1.5 rounded-lg text-green-600"><i class="fas fa-compass"></i></div>
@@ -386,7 +421,6 @@ function getActiveDashboard(classData, name, theme, spice) {
             </div>
         </div>
 
-        <!-- COL 2: ACTIONS GRID -->
         <div class="vibrant-card h-span-4 card-glass-white">
             <h3 class="text-xs font-bold text-slate-400 uppercase tracking-widest p-4 pb-0">Class Actions</h3>
             <div class="grid grid-cols-3 gap-3 p-4 pt-3">
@@ -400,18 +434,15 @@ function getActiveDashboard(classData, name, theme, spice) {
     );
 }
 
-// MAIN LAYOUT
 function getLayout(name, theme, spice, selector, row2, row3) {
     return `
     <div class="w-full max-w-7xl mx-auto p-4">
         <div class="horizons-grid">
             
-            <!-- ROW 1: GREETING & WEATHER -->
             <div class="vibrant-card h-span-8 greeting-panel">
                 <div class="greeting-bg-mesh"></div>
                 <div class="relative z-10 flex flex-col justify-between h-full">
                     
-                    <!-- Header Actions -->
                     <div class="flex justify-between items-start mb-2 gap-4 min-h-[44px]">
                         <div id="home-reminders-container" class="flex flex-wrap items-center gap-3 py-1">
                             ${getReminderPills(state.get('globalSelectedClassId'))}
@@ -422,7 +453,6 @@ function getLayout(name, theme, spice, selector, row2, row3) {
                     </div>
 
                     <div>
-                        <!-- DYNAMIC GREETING -->
                         <h1 class="font-title text-4xl md:text-6xl text-slate-800 drop-shadow-sm mb-2">
                             <span class="text-transparent bg-clip-text bg-gradient-to-r ${theme.greetingGradient}">${theme.greeting}</span>, 
                             <span class="text-transparent bg-clip-text bg-gradient-to-r ${theme.nameGradient} whitespace-nowrap">${name}</span>!
@@ -432,7 +462,6 @@ function getLayout(name, theme, spice, selector, row2, row3) {
                 </div>
             </div>
 
-            <!-- WEATHER WIDGET -->
             <div class="vibrant-card h-span-4 weather-card ${theme.weatherBg}">
                 <i class="fas ${theme.weatherIcon} weather-sun"></i>
                 <i class="fas fa-cloud weather-cloud"></i>
@@ -443,15 +472,11 @@ function getLayout(name, theme, spice, selector, row2, row3) {
                 </div>
                 <div class="relative z-10 text-right mt-auto pt-4">
                     <div class="text-xs font-bold opacity-75 uppercase mb-1">Daily Wisdom</div>
-                    <!-- SECOND DYNAMIC QUOTE HERE -->
                     <div class="text-sm font-medium leading-tight font-serif italic">"${spice.quote}"</div>
                 </div>
             </div>
 
-            <!-- ROW 2 -->
             ${row2}
-
-            <!-- ROW 3 -->
             ${row3}
 
         </div>
@@ -471,7 +496,6 @@ function getSelector(currentId) {
         }
     }
 
-    // FIX: z-50 to ensure it floats above everything
     return `
         <div class="relative z-50">
             <button id="home-class-selector-btn" class="flex items-center justify-between w-64 px-4 py-3 rounded-2xl bg-white shadow-lg border-2 border-indigo-100 hover:border-indigo-300 hover:scale-105 transition-all duration-200 group">
@@ -497,17 +521,14 @@ function getSelector(currentId) {
     `;
 }
 
-
 function getScheduleHtml(dateString, activeClassId) {
     const allSchoolClasses = state.get('allSchoolClasses') || [];
     const allScheduleOverrides = state.get('allScheduleOverrides') || [];
     const myClasses = state.get('allTeachersClasses') || [];
     const myClassIds = myClasses.map(c => c.id);
     
-    // Get classes for this day
     const todaysClasses = utils.getClassesOnDay(dateString, allSchoolClasses, allScheduleOverrides);
 
-    // --- NICE EMPTY STATE: THE CAMP ---
     if (todaysClasses.length === 0) return `
         <div class="schedule-empty-camp">
             <div class="text-7xl mb-4 animate-bounce-slow filter drop-shadow-sm">⛺</div>
@@ -515,22 +536,14 @@ function getScheduleHtml(dateString, activeClassId) {
             <p class="text-base text-emerald-600 font-bold opacity-80">No lessons today. The party is resting!</p>
         </div>`;
 
-    // --- COLOR PALETTES ---
     const gradients = [
-        "bg-gradient-to-br from-red-100 to-red-200",
-        "bg-gradient-to-br from-orange-100 to-orange-200",
-        "bg-gradient-to-br from-amber-100 to-amber-200",
-        "bg-gradient-to-br from-green-100 to-green-200",
-        "bg-gradient-to-br from-emerald-100 to-emerald-200",
-        "bg-gradient-to-br from-teal-100 to-teal-200",
-        "bg-gradient-to-br from-cyan-100 to-cyan-200",
-        "bg-gradient-to-br from-sky-100 to-sky-200",
-        "bg-gradient-to-br from-blue-100 to-blue-200",
-        "bg-gradient-to-br from-indigo-100 to-indigo-200",
-        "bg-gradient-to-br from-violet-100 to-violet-200",
-        "bg-gradient-to-br from-purple-100 to-purple-200",
-        "bg-gradient-to-br from-fuchsia-100 to-fuchsia-200",
-        "bg-gradient-to-br from-pink-100 to-pink-200",
+        "bg-gradient-to-br from-red-100 to-red-200", "bg-gradient-to-br from-orange-100 to-orange-200",
+        "bg-gradient-to-br from-amber-100 to-amber-200", "bg-gradient-to-br from-green-100 to-green-200",
+        "bg-gradient-to-br from-emerald-100 to-emerald-200", "bg-gradient-to-br from-teal-100 to-teal-200",
+        "bg-gradient-to-br from-cyan-100 to-cyan-200", "bg-gradient-to-br from-sky-100 to-sky-200",
+        "bg-gradient-to-br from-blue-100 to-blue-200", "bg-gradient-to-br from-indigo-100 to-indigo-200",
+        "bg-gradient-to-br from-violet-100 to-violet-200", "bg-gradient-to-br from-purple-100 to-purple-200",
+        "bg-gradient-to-br from-fuchsia-100 to-fuchsia-200", "bg-gradient-to-br from-pink-100 to-pink-200",
         "bg-gradient-to-br from-rose-100 to-rose-200"
     ];
 
@@ -538,12 +551,8 @@ function getScheduleHtml(dateString, activeClassId) {
         const isMine = myClassIds.includes(c.id);
         const timeStr = (c.timeStart) ? `${c.timeStart}` : 'TBD';
         const isActive = c.id === activeClassId;
-        
-        // Data Extraction
         const league = c.questLevel || 'Quest';
         const teacherName = c.createdBy?.name || 'Unknown';
-        
-        // Colors
         const colorIndex = utils.simpleHashCode(c.id) % gradients.length;
         const bgGradient = gradients[colorIndex];
 
@@ -562,7 +571,6 @@ function getScheduleHtml(dateString, activeClassId) {
             ${lockIcon}
             <div class="time-pill">${timeStr}</div>
             <div class="logo">${c.logo}</div>
-            
             <div class="info-stack">
                 <div class="name">${c.name}</div>
                 <div class="league">${league}</div>
@@ -572,9 +580,7 @@ function getScheduleHtml(dateString, activeClassId) {
     }).join('');
 }
 
-// --- 4. LISTENERS (STRICT BINDING) ---
 function attachListeners(container) {
-    // Dropdown Selector Logic
     const selectorBtn = document.getElementById('home-class-selector-btn');
     const selectorPanel = document.getElementById('home-class-selector-panel');
     if (selectorBtn && selectorPanel) {
@@ -590,7 +596,7 @@ function attachListeners(container) {
             }
         });
         selectorPanel.addEventListener('click', (e) => {
-            e.stopPropagation(); // Stops the click from closing the menu prematurely
+            e.stopPropagation(); 
             const item = e.target.closest('.home-class-item');
             if (item) {
                 state.setGlobalSelectedClass(item.dataset.id || null, true);
@@ -605,10 +611,8 @@ function attachListeners(container) {
         }, { once: true });
     }
 
-    // FIX 5: Chronicle Expansion Listener
     container.querySelectorAll('.chronicle-item').forEach(item => {
         item.addEventListener('click', (e) => {
-            // Close other expanded items first
             container.querySelectorAll('.chronicle-item.expanded').forEach(expandedItem => {
                 if (expandedItem !== item) expandedItem.classList.remove('expanded');
             });
@@ -616,11 +620,10 @@ function attachListeners(container) {
         });
     });
 
-    // Buttons
     container.querySelectorAll('.quick-class-select-btn').forEach(btn => {
         btn.addEventListener('click', (e) => {
             e.preventDefault();
-            e.stopPropagation(); // Stops the click from bubbling up
+            e.stopPropagation(); 
             state.setGlobalSelectedClass(btn.dataset.id, true);
             renderHomeTab();
         });
@@ -635,14 +638,9 @@ function handleAction(action, data) {
         const id = state.get('globalSelectedClassId');
         if(id) modals.openAttendanceChronicle(); else tabs.showTab('adventure-log-tab');
     }
-    // CHANGED: Specific handler for Team History (The Globe)
     else if (action === 'open-team-history') modals.openHistoryModal('team'); 
-    
     else if (action === 'open-settings' || action === 'open-holidays') tabs.showTab('options-tab');
-    
-    // CHANGED: Specific handler for Student Ranks (The Trophy)
     else if (action === 'open-student-ranks') modals.openStudentRankingsModal(); 
-    
     else if (action === 'create-class') tabs.showTab('my-classes-tab'); 
     else if (action === 'edit-class') modals.openEditClassModal(data.id);
     else if (action === 'open-report') modals.handleGenerateReport(data.id);
@@ -657,10 +655,7 @@ function startHomeSmartLogic() {
         const currentTime = now.toTimeString().slice(0, 5);
         const todayStr = utils.getTodayDateString();
         
-        // 1. Get all classes for today
         const todaysClasses = utils.getClassesOnDay(todayStr, state.get('allSchoolClasses'), state.get('allScheduleOverrides'));
-        
-        // 2. FIX: Filter to ONLY check *my* classes
         const myClasses = state.get('allTeachersClasses');
         const myTodaysClasses = todaysClasses.filter(c => myClasses.some(mc => mc.id === c.id));
 
@@ -676,14 +671,11 @@ function startHomeSmartLogic() {
     }, 60000);
 }
 
-// --- 5. INFO MODAL FIX ---
 export function setupHomeListeners() {
     const infoBtn = document.getElementById('app-info-btn');
     if(infoBtn) {
-        // Clone to kill old listeners
         const newBtn = infoBtn.cloneNode(true);
         infoBtn.parentNode.replaceChild(newBtn, infoBtn);
-        
         newBtn.addEventListener('click', (e) => {
             e.preventDefault(); e.stopPropagation();
             modals.openAppInfoModal();
@@ -719,7 +711,6 @@ export function setupHomeListeners() {
     }
 }
 
-// --- UPDATED REMINDER LOGIC (With Birthdays & Namedays) ---
 function getReminderPills(classId) {
     const now = new Date();
     now.setHours(0, 0, 0, 0); 
@@ -728,13 +719,11 @@ function getReminderPills(classId) {
 
     let pills = [];
 
-    // --- 0. CELEBRATIONS (Birthdays & Namedays) - TOP PRIORITY ---
-    // Match string format "-MM-DD"
     const mm = String(now.getMonth() + 1).padStart(2, '0');
     const dd = String(now.getDate()).padStart(2, '0');
     const todaySuffix = `-${mm}-${dd}`;
 
-    // Filter students: If class selected, only that class. Else, all MY students.
+    // 1. STUDENT BIRTHDAYS & NAMEDAYS
     let relevantStudents = state.get('allStudents');
     if (classId) {
         relevantStudents = relevantStudents.filter(s => s.classId === classId);
@@ -744,7 +733,6 @@ function getReminderPills(classId) {
     }
 
     relevantStudents.forEach(s => {
-        // Birthday Check
         if (s.birthday && s.birthday.endsWith(todaySuffix)) {
             pills.push(`
                 <div class="date-pill bg-gradient-to-r from-pink-500 to-rose-500 text-white shadow-lg flex items-center gap-2 px-4 py-2 rounded-full transform hover:scale-110 transition-all duration-300 animate-bounce cursor-default border-2 border-white/50">
@@ -753,7 +741,6 @@ function getReminderPills(classId) {
                 </div>
             `);
         }
-        // Nameday Check
         if (s.nameday && s.nameday.endsWith(todaySuffix)) {
             pills.push(`
                 <div class="date-pill bg-gradient-to-r from-emerald-500 to-teal-500 text-white shadow-lg flex items-center gap-2 px-4 py-2 rounded-full transform hover:scale-110 transition-all duration-300 cursor-default border-2 border-white/50">
@@ -764,7 +751,7 @@ function getReminderPills(classId) {
         }
     });
 
-    // --- 1. CEREMONY CHECK ---
+    // 2. CEREMONY REMINDER (Restored)
     if (classId) {
         const cls = state.get('allSchoolClasses').find(c => c.id === classId);
         if (cls) {
@@ -801,7 +788,7 @@ function getReminderPills(classId) {
         }
     }
 
-    // --- 2. Upcoming Holidays ---
+    // 3. UPCOMING HOLIDAYS (Restored)
     const holidays = state.get('schoolHolidayRanges') || [];
     const upcomingHoliday = holidays.find(h => {
         const startDate = new Date(h.start);
@@ -825,6 +812,7 @@ function getReminderPills(classId) {
         } else if (label.toLowerCase().includes('easter')) {
             icon = 'fa-egg';
             style = 'bg-green-50 text-green-800 border-green-200 shadow-sm';
+            label = `🐰 ${label}`; // Added Bunny Emoji here!
         }
 
         pills.push(`
@@ -836,7 +824,7 @@ function getReminderPills(classId) {
         `);
     }
 
-    // --- 3. Upcoming Events ---
+    // 4. QUEST EVENTS (Test/Vocab/etc)
     const events = state.get('allQuestEvents') || [];
     const upcomingEvent = events.find(e => {
         const eventDate = utils.parseDDMMYYYY(e.date);
@@ -858,12 +846,24 @@ function getReminderPills(classId) {
         `);
     }
 
-    // --- 4. Active Bounties ---
+    // 5. ACTIVE BOUNTY / TIMER (Corrected Logic)
     if (classId) {
-        const bounties = state.get('allQuestBounties').filter(b => b.classId === classId && b.status === 'active');
-        if (bounties.length > 0) {
+        const activeTimer = state.get('allQuestBounties').find(b => b.classId === classId && b.status === 'active' && b.type === 'timer');
+        const activeBounty = state.get('allQuestBounties').find(b => b.classId === classId && b.status === 'active' && b.type === 'standard');
+
+        if (activeTimer) {
+             // Just show the Title and Icon (No minutes)
              pills.push(`
-                <div class="date-pill bg-amber-50 text-amber-700 border border-amber-200 shadow-sm animate-pulse flex items-center gap-2 px-4 py-2 rounded-full cursor-pointer" onclick="document.getElementById('bounty-board-container').scrollIntoView({behavior: 'smooth'})">
+                <div class="date-pill bg-red-50 text-red-700 border border-red-200 shadow-sm animate-pulse flex items-center gap-2 px-4 py-2 rounded-full cursor-pointer" onclick="document.getElementById('bounty-board-container').scrollIntoView({behavior: 'smooth'})">
+                    <i class="fas fa-hourglass-half"></i>
+                    <span class="font-bold">${activeTimer.title}</span>
+                </div>
+             `);
+        }
+            
+        else if (activeBounty) {
+             pills.push(`
+                <div class="date-pill bg-amber-50 text-amber-700 border border-amber-200 shadow-sm flex items-center gap-2 px-4 py-2 rounded-full cursor-pointer" onclick="document.getElementById('bounty-board-container').scrollIntoView({behavior: 'smooth'})">
                     <i class="fas fa-bullseye"></i>
                     <span class="font-bold">Active Bounty</span>
                 </div>
@@ -873,6 +873,73 @@ function getReminderPills(classId) {
     
     if (pills.length === 0) return '';
     return pills.join('');
+}
+
+async function getAICachedContent(type) {
+    const todayKey = new Date().toISOString().split('T')[0];
+    const storageKey = `gcq_daily_${type}`; 
+    
+    const cached = localStorage.getItem(storageKey);
+    if (cached) {
+        try {
+            const data = JSON.parse(cached);
+            if (data.date === todayKey) {
+                return data.content;
+            }
+        } catch(e) { localStorage.removeItem(storageKey); }
+    }
+
+    try {
+        let systemPrompt = "You are a wise sage for a classroom. Generate a short, inspiring quote (max 10 words). No markdown. Just the text.";
+        let userPrompt = "Generate a quote.";
+
+        if (type === 'quote_header') {
+            userPrompt = "Generate a short quote about new beginnings or focus.";
+        } else if (type === 'quote_widget') {
+            userPrompt = "Generate a short quote about curiosity or nature.";
+        } else if (type === 'fact') {
+            systemPrompt = "You are a curator of trivia. Generate a single short educational fact (max 12 words).";
+            userPrompt = "One fact.";
+        }
+        
+        const content = await callGeminiApi(systemPrompt, userPrompt);
+        localStorage.setItem(storageKey, JSON.stringify({ date: todayKey, content }));
+        return content;
+    } catch (e) {
+        return "The adventure begins with a single step.";
+    }
+}
+
+async function fetchWeatherData() {
+    const storageKey = 'gcq_weather_data_open_meteo';
+    const now = Date.now();
+    
+    const cached = localStorage.getItem(storageKey);
+    if (cached) {
+        try {
+            const data = JSON.parse(cached);
+            if (now - data.timestamp < 3600000) {
+                return data.weather;
+            }
+        } catch(e) { localStorage.removeItem(storageKey); }
+    }
+
+    try {
+        const response = await fetch('https://api.open-meteo.com/v1/forecast?latitude=37.9667&longitude=23.6667&current=temperature_2m,weather_code&timezone=auto');
+        if (!response.ok) throw new Error('Weather API failed');
+        const data = await response.json();
+        
+        const weather = {
+            temp: Math.round(data.current.temperature_2m),
+            code: data.current.weather_code
+        };
+
+        localStorage.setItem(storageKey, JSON.stringify({ timestamp: now, weather }));
+        return weather;
+    } catch (e) {
+        console.error("Open-Meteo fetch failed:", e);
+        return null; 
+    }
 }
 
 function getTopSkillHtml(skill) {
@@ -900,74 +967,4 @@ function getTopSkillHtml(skill) {
             </div>
         </div>
     `;
-}
-
-async function getAICachedContent(type) {
-    const todayKey = new Date().toISOString().split('T')[0];
-    const storageKey = `gcq_daily_${type}`; 
-    
-    const cached = localStorage.getItem(storageKey);
-    if (cached) {
-        try {
-            const data = JSON.parse(cached);
-            if (data.date === todayKey) {
-                return data.content;
-            }
-        } catch(e) { localStorage.removeItem(storageKey); }
-    }
-
-    try {
-        let systemPrompt = "You are a wise sage for a classroom. Generate a short, inspiring quote (max 10 words). No markdown. Just the text.";
-        let userPrompt = "Generate a quote.";
-
-        // Distinguish prompts slightly to ensure variety
-        if (type === 'quote_header') {
-            userPrompt = "Generate a short quote about new beginnings or focus.";
-        } else if (type === 'quote_widget') {
-            userPrompt = "Generate a short quote about curiosity or nature.";
-        } else if (type === 'fact') {
-            systemPrompt = "You are a curator of trivia. Generate a single short educational fact (max 12 words).";
-            userPrompt = "One fact.";
-        }
-        
-        const content = await callGeminiApi(systemPrompt, userPrompt);
-        localStorage.setItem(storageKey, JSON.stringify({ date: todayKey, content }));
-        return content;
-    } catch (e) {
-        return "The adventure begins with a single step.";
-    }
-}
-
-async function fetchWeatherData() {
-    const storageKey = 'gcq_weather_data_open_meteo';
-    const now = Date.now();
-    
-    const cached = localStorage.getItem(storageKey);
-    if (cached) {
-        try {
-            const data = JSON.parse(cached);
-            // Cache for 1 hour
-            if (now - data.timestamp < 3600000) {
-                return data.weather;
-            }
-        } catch(e) { localStorage.removeItem(storageKey); }
-    }
-
-    try {
-        // Fetch from Open-Meteo (Athens coordinates)
-        const response = await fetch('https://api.open-meteo.com/v1/forecast?latitude=37.9838&longitude=23.7275&current=temperature_2m,weather_code&timezone=auto');
-        if (!response.ok) throw new Error('Weather API failed');
-        const data = await response.json();
-        
-        const weather = {
-            temp: Math.round(data.current.temperature_2m),
-            code: data.current.weather_code
-        };
-
-        localStorage.setItem(storageKey, JSON.stringify({ timestamp: now, weather }));
-        return weather;
-    } catch (e) {
-        console.error("Open-Meteo fetch failed:", e);
-        return null; 
-    }
 }

@@ -271,6 +271,114 @@ async function directorGameLoop() {
     const classId = state.get('globalSelectedClassId');
     const now = Date.now();
 
+    // --- PRIORITY 1: ACTIVE TIMER ---
+    const activeTimer = state.get('allQuestBounties').find(b => b.classId === classId && b.status === 'active' && b.type === 'timer');
+    
+    if (activeTimer) {
+        const deadline = new Date(activeTimer.deadline).getTime();
+        const timeLeftMs = deadline - now;
+
+        if (timeLeftMs > 0) {
+            // RENDER STICKY CARD
+            const existing = container.firstElementChild;
+            const minutes = Math.floor(timeLeftMs / 60000);
+            const seconds = Math.floor((timeLeftMs % 60000) / 1000);
+            const timeDisplay = `${minutes}:${String(seconds).padStart(2, '0')}`;
+            
+            // Visual Urgency: Red if < 2 mins, otherwise Orange/Yellow
+            let cssClass = timeLeftMs < 120000 ? 'float-card-red' : 'float-card-orange';
+            let icon = timeLeftMs < 120000 ? '🔥' : '⏳';
+
+            if (!existing || existing.dataset.cardId !== `timer_${activeTimer.id}`) {
+                container.innerHTML = ''; // Force clear
+                
+                // NEW: Smaller HTML structure
+                const html = `
+                    <div class="text-center w-full px-6 py-2 flex items-center justify-between gap-6">
+                        <div class="flex items-center gap-4">
+                            <div class="text-4xl animate-pulse">${icon}</div>
+                            <div class="text-left">
+                                <div class="badge-pill bg-white text-red-600 border border-red-200 text-[10px] py-0 px-2 mb-0">Time Remaining</div>
+                                <h3 class="font-title text-2xl text-white/90 truncate max-w-[200px]">${activeTimer.title}</h3>
+                            </div>
+                        </div>
+                        <h2 class="font-title text-6xl text-white drop-shadow-md leading-none font-variant-numeric:tabular-nums">${timeDisplay}</h2>
+                    </div>`;
+                
+                const el = spawnCard(container, { html, css: cssClass, id: `timer_${activeTimer.id}` });
+                
+                // NEW: Positioning (Bottom Center, Wide & Short)
+                el.style.top = 'auto'; 
+                el.style.bottom = '3rem'; // Stick to bottom
+                el.style.left = '50%'; 
+                el.style.right = 'auto';
+                
+                // Override default card styles to make it a "Bar" instead of a "Card"
+                el.style.width = 'auto';
+                el.style.minWidth = '500px';
+                el.style.padding = '0.5rem';
+                el.style.borderRadius = '1.5rem';
+                el.style.transform = 'translateX(-50%)'; // Center horizontally
+                el.style.animation = 'none'; // Stop floating
+            } else {
+                // Just update the numbers
+                const h2 = existing.querySelector('h2');
+                if(h2) h2.innerText = timeDisplay;
+                // Update urgency color dynamically
+                if (timeLeftMs < 120000 && existing.classList.contains('float-card-orange')) {
+                    existing.classList.remove('float-card-orange');
+                    existing.classList.add('float-card-red');
+                }
+            }
+            
+            // Loop fast (1 second) to tick the clock
+            directorTimeout = setTimeout(directorGameLoop, 1000);
+            return; 
+        
+        } else {
+            // --- TIMER FINISHED LOGIC ---
+            
+            // 1. Mark as completed in DB immediately to stop re-rendering
+            const { updateDoc, doc } = await import('https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js');
+            await updateDoc(doc(db, "artifacts/great-class-quest/public/data/quest_bounties", activeTimer.id), { status: 'completed' });
+
+            // 2. Play Sound
+            const { playSound } = await import('../audio.js');
+            playSound('magic_chime'); 
+
+            // 3. Generate AI Message
+            let aiMessage = "Time is up! Great effort!";
+            try {
+                const prompt = `The classroom timer for activity "${activeTimer.title}" just finished. Write a very short, fun 5-word phrase to tell students to stop (e.g. "Pencils down, hands up!").`;
+                aiMessage = await callGeminiApi("You are a fun teacher assistant.", prompt);
+            } catch(e) {}
+
+            // 4. Show "Time's Up" Card briefly
+            container.innerHTML = '';
+            const html = `
+                <div class="text-center w-full">
+                    <div class="text-9xl mb-4 animate-bounce">⏰</div>
+                    <h2 class="font-title text-6xl text-white drop-shadow-xl mb-4">Time's Up!</h2>
+                    <p class="text-3xl text-white font-serif italic">"${aiMessage}"</p>
+                </div>`;
+            const el = spawnCard(container, { html, css: 'float-card-purple', id: 'timer_end' });
+            el.style.top = '50%'; el.style.left = '50%'; 
+            el.style.transform = 'translate(-50%, -50%) scale(1.2)';
+            
+            // 5. Resume normal loop after 8 seconds
+            directorTimeout = setTimeout(directorGameLoop, 8000);
+            return;
+        }
+    }
+
+    // --- PRIORITY 2: STANDARD CARDS (Existing Logic) ---
+    // ... (This part of your existing code remains the same as previous step) ...
+    // Copy the rest of the original directorGameLoop here (getting session, selectNextCard, etc.)
+    
+    // For brevity in this response, assume standard logic follows here.
+    // If you need the standard logic block again, let me know, but you likely have it.
+    
+    // RE-INSERT STANDARD LOGIC:
     const session = getSession();
     let currentCardData = null;
     let remainingTime = 0;
@@ -280,13 +388,11 @@ async function directorGameLoop() {
         remainingTime = CARD_DURATION - (now - session.start);
     } else {
         container.innerHTML = ''; 
-        
         if (session && (now - session.start < CARD_DURATION + 5000)) {
              remainingTime = (CARD_DURATION + 5000) - (now - session.start);
              directorTimeout = setTimeout(directorGameLoop, remainingTime);
              return;
         }
-
         currentCardData = await selectNextCard(classId);
         if (currentCardData) {
             setSession(currentCardData, now);
@@ -372,7 +478,7 @@ function buildDeckList(classId) {
         list.push(
             'class_quest', 'treasury_class', 'streak', 'timekeeper', 
             'story_sentence', 'class_bounty', 'next_lesson',
-            'attendance_summary', 'weather', 'ai_joke', 'mindfulness'
+            'attendance_summary', 'absent_heroes', 'weather', 'ai_joke', 'mindfulness'
         );
 
         const students = state.get('allStudents').filter(s => s.classId === classId);
@@ -394,7 +500,13 @@ function buildDeckList(classId) {
             .slice(0, 3);
         topDaily.forEach(s => list.push(`top_student_daily:${s.id}`));
 
-        const shuffled = [...students].sort(() => 0.5 - Math.random()).slice(0, 5);
+        // Filter out absent students from spotlight
+        const todayStr = utils.getTodayDateString();
+        const absents = state.get('allAttendanceRecords').filter(r => r.classId === classId && r.date === todayStr).map(r => r.studentId);
+        
+        const presentStudents = students.filter(s => !absents.includes(s.id));
+        const shuffled = [...presentStudents].sort(() => 0.5 - Math.random()).slice(0, 5);
+        
         shuffled.forEach(s => list.push(`stu_spotlight:${s.id}`));
 
         const awardLogs = state.get('allAwardLogs')
@@ -470,6 +582,7 @@ async function hydrateCard(type, classId) {
             case 'class_bounty': content = getClassBountyCard(classId); break;
             case 'next_lesson': content = getNextLessonCard(classId); break;
             case 'attendance_summary': content = getClassAttendanceCard(classId); break;
+            case 'absent_heroes': content = getAbsentHeroesCard(classId); break;
             case 'mindfulness': content = getMindfulnessCard(); break;
             
             case 'context_morning': content = { html: `<div class="text-center"><div class="text-8xl mb-2 animate-bounce-slow">☀️</div><h2 class="font-title text-5xl text-amber-500">Good Morning!</h2><p class="text-gray-500 text-xl font-bold">Let's make today legendary.</p></div>`, css: 'float-card-gold' }; break;
@@ -637,9 +750,32 @@ function getRecentAwardCard(classId, logId) {
     const student = state.get('allStudents').find(s => s.id === log.studentId);
     if (!student) return null;
 
+    const reasonMap = {
+        teamwork: { icon: 'fa-users', color: 'text-purple-600', css: 'float-card-purple', bg: 'bg-purple-100' },
+        creativity: { icon: 'fa-lightbulb', color: 'text-pink-600', css: 'float-card-pink', bg: 'bg-pink-100' },
+        respect: { icon: 'fa-hands-helping', color: 'text-green-600', css: 'float-card-green', bg: 'bg-green-100' },
+        focus: { icon: 'fa-brain', color: 'text-yellow-600', css: 'float-card-gold', bg: 'bg-yellow-100' },
+        welcome_back: { icon: 'fa-door-open', color: 'text-cyan-600', css: 'float-card-cyan', bg: 'bg-cyan-100' },
+        scholar_s_bonus: { icon: 'fa-scroll', color: 'text-amber-700', css: 'float-card-orange', bg: 'bg-amber-100' },
+        correction: { icon: 'fa-wrench', color: 'text-gray-600', css: 'float-card-white', bg: 'bg-gray-100' }
+    };
+
+    const style = reasonMap[log.reason] || { icon: 'fa-star', color: 'text-indigo-600', css: 'float-card-indigo', bg: 'bg-indigo-100' };
+    const starText = log.stars === 1 ? 'Star' : 'Stars';
+
     return {
-        html: `<div class="text-center"><div class="badge-pill bg-green-100 text-green-800">Recent Award</div><div class="text-6xl mb-2 animate-bounce">⭐</div><h3 class="font-title text-3xl text-white">${student.name}</h3><p class="text-white/80 text-lg font-bold">For ${log.reason.replace(/_/g,' ')}</p></div>`,
-        css: 'float-card-green'
+        html: `
+        <div class="text-center">
+            <div class="badge-pill ${style.bg} ${style.color.replace('text', 'text-opacity-80')}">Recent Award</div>
+            <div class="flex justify-center items-center gap-4 mb-4">
+                <div class="text-6xl animate-bounce text-amber-400 drop-shadow-sm">⭐</div>
+                <div class="text-6xl animate-pulse ${style.color} drop-shadow-sm"><i class="fas ${style.icon}"></i></div>
+            </div>
+            <h3 class="font-title text-4xl text-gray-800 mb-1">${student.name}</h3>
+            <p class="text-2xl font-bold ${style.color}">+${log.stars} ${starText}</p>
+            <p class="text-gray-500 font-bold text-sm uppercase tracking-widest mt-2">${log.reason.replace(/_/g,' ')}</p>
+        </div>`,
+        css: style.css
     };
 }
 
@@ -765,9 +901,29 @@ function getNextHolidayCard() {
     const sorted = holidays.filter(h => new Date(h.end) >= now).sort((a,b) => new Date(a.start) - new Date(b.start));
     const next = sorted[0];
     if (!next) return null;
+    
     const diffDays = Math.ceil((new Date(next.start) - now) / (1000*60*60*24));
-    let icon = '🏖️', css = 'float-card-blue', subtext = 'Break Time';
-    if (next.name.toLowerCase().includes('christmas')) { icon = '🎄'; css = 'float-card-red'; subtext = 'Winter Holidays'; }
+    
+    // Default: Generic Holiday
+    let icon = '🏖️'; 
+    let css = 'float-card-blue'; 
+    let subtext = 'Break Time';
+
+    const name = next.name.toLowerCase();
+
+    // Christmas Logic
+    if (name.includes('christmas') || name.includes('winter')) { 
+        icon = '🎄'; 
+        css = 'float-card-red'; 
+        subtext = 'Winter Holidays'; 
+    } 
+    // Easter Logic (NEW)
+    else if (name.includes('easter') || name.includes('spring')) {
+        icon = '🐰'; // Big Bunny Icon
+        css = 'float-card-pink'; 
+        subtext = 'Spring Celebration';
+    }
+
     return {
         html: `<div class="text-center"><div class="badge-pill bg-white/80 text-gray-800 font-bold">${subtext}</div><div class="text-8xl mb-4 animate-bounce-slow">${icon}</div><h3 class="font-title text-4xl text-gray-900 mb-2">${next.name}</h3><p class="text-2xl font-bold opacity-90">In ${diffDays} Days</p></div>`,
         css: css
@@ -803,9 +959,37 @@ function getTimekeeperCard(classId) {
     const cls = state.get('allSchoolClasses').find(c => c.id === classId);
     if (!cls || !cls.timeEnd) return null;
     const now = new Date(); const [h, m] = cls.timeEnd.split(':').map(Number); const end = new Date(); end.setHours(h, m, 0);
+    
+    // Calculate total duration (assumed 60 mins if start missing, or calc from start)
+    let totalDuration = 60; 
+    if (cls.timeStart) {
+        const [sh, sm] = cls.timeStart.split(':').map(Number);
+        const start = new Date(); start.setHours(sh, sm, 0);
+        totalDuration = (end - start) / 60000;
+    }
+
     const diff = Math.ceil((end - now) / 60000);
-    if (diff <= 0 || diff > 90) return null;
-    return { html: `<div class="text-center"><div class="badge-pill bg-red-100 text-red-700">Timekeeper</div><div class="relative w-40 h-40 mx-auto mb-4 flex items-center justify-center bg-white rounded-full shadow-inner border-4 border-red-50"><span class="font-title text-7xl text-red-500">${diff}</span></div><p class="text-red-800 font-bold text-xl">Minutes Remaining</p></div>`, css: 'float-card-red' };
+    if (diff <= 0 || diff > 120) return null;
+
+    // Calculate percentage for ring
+    const percent = Math.max(0, Math.min(100, (diff / totalDuration) * 100));
+    const degree = percent * 3.6; // 360 degrees
+
+    return { 
+        html: `
+        <div class="text-center">
+            <div class="badge-pill bg-red-100 text-red-700">Timekeeper</div>
+            <div class="relative w-48 h-48 mx-auto mb-4 flex items-center justify-center bg-white rounded-full shadow-lg"
+                 style="background: conic-gradient(#ef4444 ${degree}deg, #f3f4f6 0deg);">
+                <div class="absolute inset-4 bg-white rounded-full flex items-center justify-center flex-col">
+                    <span class="font-title text-6xl text-red-600 leading-none">${diff}</span>
+                    <span class="text-xs font-bold text-red-400 uppercase">Mins</span>
+                </div>
+            </div>
+            <p class="text-red-900 font-bold text-2xl">Until Adventure Ends</p>
+        </div>`, 
+        css: 'float-card-red' 
+    };
 }
 
 function getAttendanceStreakCard(classId) {
@@ -968,7 +1152,7 @@ export async function initSeasonalAtmosphere() {
     const existingFog = document.getElementById('wall-fog-overlay');
     if (existingFog) existingFog.remove();
 
-    wall.classList.remove('weather-clear', 'weather-rainy', 'weather-snowy');
+    wall.classList.remove('weather-clear', 'weather-cloudy', 'weather-rainy', 'weather-snowy', 'weather-stormy');
 
     const layer = document.createElement('div');
     layer.id = 'seasonal-effects-layer';
@@ -988,7 +1172,7 @@ export async function initSeasonalAtmosphere() {
 
     if (weatherCode === null) {
         try {
-            const res = await fetch('https://api.open-meteo.com/v1/forecast?latitude=37.9838&longitude=23.7275&current=weather_code&timezone=auto');
+            const res = await fetch('https://api.open-meteo.com/v1/forecast?latitude=37.9667&longitude=23.6667&current=weather_code&timezone=auto');
             const d = await res.json();
             weatherCode = d.current.weather_code;
         } catch(e) { console.log("Weather fetch failed, using seasonal fallback."); }
@@ -997,74 +1181,109 @@ export async function initSeasonalAtmosphere() {
     let effectHTML = '';
     let usedRealWeather = false;
 
+    // Helper to generate "A LOT" of clouds
+    const generateHeavyClouds = (count = 15, opacity = 0.8) => {
+        let clouds = '';
+        for(let i=0; i<count; i++) {
+            const top = Math.random() * 60; // Top half of screen
+            const left = Math.random() * 100;
+            const size = 10 + Math.random() * 20; // Massive clouds
+            const duration = 120 + Math.random() * 60; // Slow drift
+            const delay = -Math.random() * 100;
+            // Use existing font-awesome cloud class logic from CSS (color changes by weather type)
+            clouds += `<i class="fas fa-cloud absolute" style="font-size:${size}rem; top:${top}%; left:${left}%; opacity:${opacity}; animation: float-clouds-right ${duration}s linear infinite; animation-delay:${delay}s;"></i>`;
+        }
+        return clouds;
+    };
+
     if (weatherCode !== null) {
         usedRealWeather = true;
-        console.log("Setting Wallpaper Atmosphere: Code", weatherCode);
-
+        
         // 0: Clear Sky
         if (weatherCode === 0) {
             wall.classList.add('weather-clear'); 
             layer.classList.add('summer-glow'); 
         }
         
-        // 1, 2, 3: Mainly Clear, Partly Cloudy, Overcast
-        else if (weatherCode <= 3) {
+        // 1-2: Mainly Clear / Partly Cloudy (NO extra clouds, sun visible)
+        else if (weatherCode <= 2) {
+            wall.classList.add('weather-cloudy'); 
+            // Standard static clouds in HTML are enough
+        }
+
+        // 3, 45, 48: Overcast / Fog (ADD extra clouds to obscure sun)
+        else if (weatherCode <= 48) {
             wall.classList.add('weather-cloudy');
+            effectHTML += generateHeavyClouds(12, 0.6); // Add heavy cloud layer
+            
+            if (weatherCode >= 45) { 
+                const fog = document.createElement('div');
+                fog.id = 'wall-fog-overlay';
+                fog.className = 'wall-fog-layer'; 
+                wall.appendChild(fog);
+            }
         }
         
-        // 45, 48: Fog
-        else if (weatherCode === 45 || weatherCode === 48) {
-            const fog = document.createElement('div');
-            fog.id = 'wall-fog-overlay';
-            fog.className = 'wall-fog-layer'; 
-            wall.appendChild(fog);
-            wall.classList.add('weather-cloudy'); // Fog is also grey/cloudy
-        }
-        
-        // 51-67 (Drizzle/Rain), 80-82 (Showers), 95+ (Storm)
-        else if ((weatherCode >= 51 && weatherCode <= 67) || (weatherCode >= 80 && weatherCode <= 82) || weatherCode >= 95) {
+        // 51-67, 80-82: Rain (ADD extra clouds)
+        else if ((weatherCode >= 51 && weatherCode <= 67) || (weatherCode >= 80 && weatherCode <= 82)) {
             wall.classList.add('weather-rainy'); 
-            for (let i = 0; i < 80; i++) { 
+            effectHTML += generateHeavyClouds(15, 0.7); // Darker, denser clouds
+            for (let i = 0; i < 60; i++) { 
                 const left = Math.random() * 100;
-                const delay = Math.random() * 1;
-                const duration = 0.5 + Math.random() * 0.3; 
+                const delay = Math.random() * 2;
+                const duration = 1.5 + Math.random() * 1.0; 
                 effectHTML += `<div class="seasonal-particle rain" style="left:${left}%; animation-delay:-${delay}s; animation-duration:${duration}s;"></div>`;
             }
         }
         
-        // 71-77 (Snow), 85-86 (Snow Showers)
+        // 71-77, 85-86: Snow (ADD extra clouds)
         else if ((weatherCode >= 71 && weatherCode <= 77) || (weatherCode >= 85 && weatherCode <= 86)) {
             wall.classList.add('weather-snowy');
+            effectHTML += generateHeavyClouds(15, 0.7); // White heavy clouds
             for (let i = 0; i < 40; i++) {
                 const left = Math.random() * 100;
                 const delay = Math.random() * 5;
-                const duration = 5 + Math.random() * 10;
+                const duration = 10 + Math.random() * 8;
                 effectHTML += `<div class="seasonal-particle snow" style="left:${left}%; animation-delay:-${delay}s; animation-duration:${duration}s;">❄️</div>`;
+            }
+        }
+
+        // 95+: Thunderstorm (ADD extra clouds)
+        else if (weatherCode >= 95) {
+            wall.classList.add('weather-stormy');
+            effectHTML += generateHeavyClouds(20, 0.9); // Very dense, dark clouds
+            for (let i = 0; i < 100; i++) { 
+                const left = Math.random() * 100;
+                const delay = Math.random() * 2;
+                const duration = 1.0 + Math.random() * 0.8; 
+                effectHTML += `<div class="seasonal-particle rain" style="left:${left}%; animation-delay:-${delay}s; animation-duration:${duration}s; height: 40px; opacity: 0.7;"></div>`;
             }
         }
     }
 
+    // Seasonal Fallback (Slowed)
     if (!usedRealWeather) {
         const month = new Date().getMonth();
         if (month === 11 || month <= 1) { 
+             effectHTML += generateHeavyClouds(10, 0.6); // Winter clouds
              for (let i = 0; i < 30; i++) {
                 const left = Math.random() * 100;
                 const delay = Math.random() * 5;
-                const duration = 5 + Math.random() * 10;
+                const duration = 10 + Math.random() * 8;
                 effectHTML += `<div class="seasonal-particle snow" style="left:${left}%; animation-delay:-${delay}s; animation-duration:${duration}s;">❄️</div>`;
             }
         } else if (month >= 8 && month <= 10) { 
-             for (let i = 0; i < 20; i++) {
+             for (let i = 0; i < 15; i++) {
                 const left = Math.random() * 100;
                 const delay = Math.random() * 5;
-                const duration = 8 + Math.random() * 5;
+                const duration = 12 + Math.random() * 5; 
                 effectHTML += `<div class="seasonal-particle leaf" style="left:${left}%; animation-delay:-${delay}s; animation-duration:${duration}s;">🍂</div>`;
             }
         } else if (month >= 2 && month <= 4) { 
-             for (let i = 0; i < 20; i++) {
+             for (let i = 0; i < 15; i++) {
                 const left = Math.random() * 100;
                 const delay = Math.random() * 5;
-                const duration = 10 + Math.random() * 5;
+                const duration = 15 + Math.random() * 5; 
                 effectHTML += `<div class="seasonal-particle petal" style="left:${left}%; animation-delay:-${delay}s; animation-duration:${duration}s;">🌸</div>`;
             }
         } else { 
@@ -1076,4 +1295,33 @@ export async function initSeasonalAtmosphere() {
     layer.innerHTML = effectHTML;
     const hub = document.getElementById('wall-center-hub');
     wall.insertBefore(layer, hub);
+}
+
+function getAbsentHeroesCard(classId) {
+    const today = utils.getTodayDateString();
+    const absents = state.get('allAttendanceRecords')
+        .filter(r => r.classId === classId && r.date === today)
+        .map(r => {
+            const s = state.get('allStudents').find(stu => stu.id === r.studentId);
+            return s ? s.name.split(' ')[0] : null;
+        })
+        .filter(Boolean);
+
+    if (absents.length === 0) return null;
+
+    const namesHtml = absents.map(n => `<span class="inline-block bg-white/50 px-2 py-1 rounded m-1 text-red-800 font-bold">${n}</span>`).join('');
+
+    return {
+        html: `
+        <div class="text-center">
+            <div class="badge-pill bg-red-100 text-red-800">Missing Heroes</div>
+            <div class="text-7xl mb-4 opacity-80">🛡️</div>
+            <h3 class="font-title text-3xl text-red-900 mb-2">We miss you!</h3>
+            <div class="flex flex-wrap justify-center text-lg">
+                ${namesHtml}
+            </div>
+            <p class="text-red-700/60 text-sm mt-3 font-bold">Hope to see you next time!</p>
+        </div>`,
+        css: 'float-card-red'
+    };
 }

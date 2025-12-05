@@ -43,7 +43,7 @@
             <div class="loading-simple-ring"></div>
         </div>
         
-        <div class="loading-text">Loading...</div>
+        <div class="loading-text">Loading</div>
     </div>
     
     <!-- Login/Signup Screen -->
@@ -1038,20 +1038,22 @@
         </div>
     </div>
     
-    <!-- V4.0 NEW MODAL: Quest Update Narrative -->
-    <div id="quest-update-modal" class="fixed inset-0 bg-black bg-opacity-50 z-[70] flex items-center justify-center p-4 hidden">
+   <div id="quest-update-modal" class="fixed inset-0 bg-black bg-opacity-50 z-[70] flex items-center justify-center p-4 hidden">
         <div class="bg-white p-6 md:p-8 rounded-3xl shadow-2xl max-w-2xl w-full pop-in border-4 border-purple-300">
             <div class="flex justify-between items-center mb-4">
                 <h2 class="font-title text-2xl md:text-3xl text-purple-700">Latest Quest Update</h2>
                 <button id="quest-update-close-btn" class="bg-gray-200 hover:bg-gray-300 text-gray-800 font-bold w-10 h-10 rounded-full bubbly-button">&times;</button>
             </div>
-            <div id="narrative-text-container" class="mb-6 flex items-center justify-center">
-                <!-- Content will be populated by JS -->
-                <i class="fas fa-spinner fa-spin text-4xl text-purple-400"></i>
+            
+            <div id="narrative-text-container" class="bg-purple-50 p-6 rounded-2xl border-2 border-purple-100 text-lg text-purple-900 leading-relaxed min-h-[150px] flex items-center justify-center">
+                Loading update...
             </div>
-            <button id="play-narrative-btn" class="w-full bg-amber-500 hover:bg-amber-600 text-white font-title text-2xl py-4 rounded-xl bubbly-button shadow-lg hidden">
-                <i class="fas fa-play-circle mr-3"></i> Play Narrative
-            </button>
+
+            <div class="mt-6 flex justify-center">
+                <button id="play-narrative-btn" class="bg-purple-500 hover:bg-purple-600 text-white font-title text-xl py-3 px-8 rounded-full bubbly-button shadow-lg hidden">
+                    <i class="fas fa-play-circle mr-2"></i> Play Commentary
+                </button>
+            </div>
         </div>
     </div>
 
@@ -1260,22 +1262,80 @@
         </div>
     </div>
 
+    <div id="celebration-bonus-modal" class="fixed inset-0 bg-black bg-opacity-60 z-[90] flex items-center justify-center p-4 hidden">
+        <div class="bg-white rounded-3xl shadow-2xl max-w-sm w-full pop-in border-4 border-white relative overflow-hidden text-center">
+            <div class="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/confetti.png')] opacity-20"></div>
+            <div id="celebration-header" class="bg-gradient-to-r from-pink-500 to-rose-500 p-6">
+                <div class="text-6xl mb-2 animate-bounce">🎂</div>
+                <h2 id="celebration-title" class="font-title text-3xl text-white drop-shadow-md">Happy Birthday!</h2>
+            </div>
+            <div class="p-6">
+                <p id="celebration-message" class="text-gray-600 mb-6 text-lg">It's <b>Student's</b> special day! Would you like to award a gift?</p>
+                <button id="celebration-award-btn" class="w-full bg-gradient-to-r from-pink-500 to-rose-500 text-white font-title text-xl py-3 rounded-xl bubbly-button shadow-lg mb-3">
+                    <i class="fas fa-gift mr-2"></i> Award +<span id="celebration-points">2.5</span> Stars
+                </button>
+                <button id="celebration-cancel-btn" class="text-gray-400 text-sm hover:text-gray-600 underline">Not now</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="hero-celebration-modal" class="fixed inset-0 bg-black bg-opacity-80 z-[95] flex items-center justify-center p-4 hidden">
+        <div class="bg-gradient-to-b from-purple-900 to-indigo-900 rounded-[3rem] shadow-2xl max-w-md w-full pop-in border-4 border-yellow-400 relative overflow-hidden text-center p-8">
+            <div class="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/stardust.png')] opacity-30 animate-pulse"></div>
+            
+            <div class="relative z-10">
+                <div class="badge-pill bg-yellow-400 text-yellow-900 mx-auto mb-4 shadow-[0_0_20px_rgba(250,204,21,0.6)]">Hero of the Day</div>
+                
+                <div id="hero-celebration-avatar" class="w-40 h-40 mx-auto rounded-full border-8 border-yellow-400 shadow-2xl mb-6 bg-white flex items-center justify-center text-7xl font-bold text-indigo-500 relative">
+                    <div class="absolute -top-4 -right-4 text-6xl animate-bounce">👑</div>
+                </div>
+                
+                <h2 id="hero-celebration-name" class="font-title text-5xl text-white mb-2 text-shadow-lg">Student Name</h2>
+                <p id="hero-celebration-reason" class="text-purple-200 text-xl font-bold uppercase tracking-widest mb-8">For Outstanding Courage</p>
+                
+                <button id="hero-celebration-close-btn" class="bg-yellow-400 hover:bg-yellow-300 text-yellow-900 font-title text-xl py-3 px-10 rounded-full bubbly-button shadow-xl">
+                    Huzzah!
+                </button>
+            </div>
+        </div>
+    </div>
+    
     <div id="quest-assignment-modal" class="fixed inset-0 bg-black bg-opacity-50 z-[72] flex items-center justify-center p-4 hidden">
-        <div class="bg-white p-8 rounded-3xl shadow-2xl max-w-xl w-full pop-in border-4 border-indigo-300">
-            <h2 class="font-title text-2xl text-indigo-700 mb-4 text-center flex items-center justify-center gap-2"><i class="fas fa-scroll"></i> Quest Assignment</h2>
+        <div class="bg-white p-8 rounded-3xl shadow-2xl max-w-lg w-full pop-in border-4 border-indigo-300">
+            <h2 class="font-title text-2xl text-indigo-700 mb-4 text-center">Update Quest Board</h2>
             <input type="hidden" id="quest-assignment-class-id">
             
-            <div class="mb-6 p-4 bg-gray-50 rounded-lg border-l-4 border-gray-300">
-                <h3 class="text-sm font-bold text-gray-600">Previous Assignment:</h3>
-                <p id="previous-assignment-text" class="text-gray-800 italic mt-1 min-h-[40px]"></p>
+            <div id="previous-assignment-text" class="mb-4 p-3 bg-gray-50 rounded-lg text-sm text-gray-600 border border-gray-200 italic min-h-[60px]">
+                Loading previous assignment...
             </div>
 
-            <div class="mb-4">
-                <label for="quest-assignment-textarea" class="block text-sm font-bold text-gray-700 mb-2">Assignment for Next Lesson:</label>
-                <textarea id="quest-assignment-textarea" rows="6" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"></textarea>
+            <div class="mb-4 space-y-3">
+                <div>
+                    <label for="quest-assignment-textarea" class="block text-sm font-bold text-gray-700 mb-2">Assignment for Next Lesson:</label>
+                    <textarea id="quest-assignment-textarea" rows="4" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"></textarea>
+                </div>
+                
+                <div class="bg-indigo-50 p-3 rounded-lg border border-indigo-200">
+                    <h3 class="font-bold text-indigo-800 mb-2 flex items-center"><i class="fas fa-file-alt mr-2"></i> Schedule a Test (Optional)</h3>
+                    <div class="grid grid-cols-2 gap-3">
+                        <div>
+                            <label class="block text-xs font-bold text-gray-500">Test Date</label>
+                            <input type="date" id="quest-test-date" class="w-full px-2 py-1 border rounded focus:ring-indigo-500">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-gray-500">Test Title</label>
+                            <input type="text" id="quest-test-title" placeholder="e.g. Unit 5 Review" class="w-full px-2 py-1 border rounded focus:ring-indigo-500">
+                        </div>
+                        <div class="col-span-2">
+                            <label class="block text-xs font-bold text-gray-500">Curriculum / Topics</label>
+                            <input type="text" id="quest-test-curriculum" placeholder="e.g. Past Simple, Vocabulary pg 40-45" class="w-full px-2 py-1 border rounded focus:ring-indigo-500">
+                        </div>
+                    </div>
+                </div>
             </div>
+
             <div class="flex justify-around gap-4 mt-6">
-                <button id="quest-assignment-cancel-btn" class="w-full bg-gray-200 hover:bg-gray-300 text-gray-800 font-title text-lg py-2 px-8 rounded-xl bubbly-button">Close</button>
+                <button id="quest-assignment-cancel-btn" class="w-full bg-gray-200 hover:bg-gray-300 text-gray-800 font-title text-lg py-2 px-8 rounded-xl bubbly-button">Cancel</button>
                 <button id="quest-assignment-confirm-btn" class="w-full bg-indigo-500 hover:bg-indigo-600 text-white font-title text-lg py-2 px-8 rounded-xl bubbly-button">Save Assignment</button>
             </div>
         </div>
@@ -1562,43 +1622,72 @@
     <!-- Create Bounty Modal -->
     <div id="create-bounty-modal" class="fixed inset-0 bg-black bg-opacity-50 z-[72] flex items-center justify-center p-4 hidden">
         <div class="bg-white p-8 rounded-3xl shadow-2xl max-w-lg w-full pop-in border-4 border-amber-400">
-            <h2 class="font-title text-3xl text-amber-600 mb-2 text-center"><i class="fas fa-scroll mr-2"></i>Post a Bounty</h2>
-            <p class="text-gray-500 text-center mb-6">Challenge your class to a timed quest!</p>
+            
+            <h2 id="bounty-modal-title" class="font-title text-3xl text-amber-600 mb-6 text-center">
+                <i class="fas fa-scroll mr-2"></i>Post a Bounty
+            </h2>
             
             <form id="create-bounty-form" class="space-y-4">
                 <input type="hidden" id="bounty-class-id">
+                <input type="hidden" id="bounty-type" value="standard"> 
                 
-                <div>
-                    <label class="block text-sm font-bold text-gray-700">Bounty Title</label>
-                    <input type="text" id="bounty-title" placeholder="e.g. Operation: Total Focus" class="w-full px-4 py-2 border rounded-xl focus:ring-amber-500" required>
-                </div>
-
-                <div class="grid grid-cols-2 gap-4">
-                    <div>
-                        <label class="block text-sm font-bold text-gray-700">Target (Stars)</label>
-                        <input type="number" id="bounty-target" value="20" min="1" class="w-full px-4 py-2 border rounded-xl focus:ring-amber-500" required>
-                    </div>
-                    <div>
-                        <label class="block text-sm font-bold text-gray-700">Time Limit</label>
-                        <select id="bounty-duration" class="w-full px-4 py-2 border rounded-xl bg-white focus:ring-amber-500">
-                            <!-- Options will be populated dynamically -->
-                        </select>
-                    </div>
+                <!-- Toggle at the top -->
+                <div class="flex justify-center bg-gray-100 p-1 rounded-lg mb-4">
+                    <button type="button" id="bounty-mode-stars" class="flex-1 py-2 rounded-md text-sm font-bold bg-white text-amber-600 shadow-sm transition-all">Star Target</button>
+                    <button type="button" id="bounty-mode-timer" class="flex-1 py-2 rounded-md text-sm font-bold text-gray-500 hover:text-gray-700 transition-all">Countdown Timer</button>
                 </div>
 
                 <div>
-                    <label class="block text-sm font-bold text-gray-700">Reward Description</label>
-                    <input type="text" id="bounty-reward" placeholder="e.g. 5 Minutes of Free Time" class="w-full px-4 py-2 border rounded-xl focus:ring-amber-500" required>
+                    <label class="block text-sm font-bold text-gray-700 mb-1">Quest Title</label>
+                    <input type="text" id="bounty-title" placeholder="e.g. Unit 5 Test / Clean Up" class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none" required autocomplete="off">
+                </div>
+
+                <!-- STARS MODE INPUTS -->
+                <div id="bounty-inputs-stars" class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-bold text-gray-700 mb-1">Target Stars</label>
+                        <input type="number" id="bounty-target" value="20" min="1" class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-amber-500 outline-none">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-bold text-gray-700 mb-1">Reward</label>
+                        <input type="text" id="bounty-reward" placeholder="e.g. Free Time" class="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-amber-500 outline-none">
+                    </div>
+                </div>
+
+                <!-- TIMER MODE INPUTS -->
+                <div id="bounty-inputs-timer" class="hidden space-y-4">
+                    <div class="bg-indigo-50 p-4 rounded-xl border border-indigo-100">
+                        <label class="block text-xs font-bold text-indigo-800 uppercase tracking-wide mb-2">Duration Setting</label>
+                        
+                        <!-- Smart Presets -->
+                        <div id="bounty-smart-options" class="flex flex-wrap gap-2 mb-3">
+                            <!-- Injected by JS -->
+                        </div>
+
+                        <div class="grid grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-xs text-gray-500 mb-1">Minutes</label>
+                                <div class="relative">
+                                    <input type="number" id="bounty-timer-minutes" placeholder="20" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-indigo-500 outline-none">
+                                    <span class="absolute right-3 top-2 text-gray-400 text-xs">min</span>
+                                </div>
+                            </div>
+                            <div>
+                                <label class="block text-xs text-gray-500 mb-1">OR End Time</label>
+                                <input type="time" id="bounty-timer-end" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-indigo-500 outline-none">
+                            </div>
+                        </div>
+                    </div>
                 </div>
 
                 <div class="flex justify-between gap-4 mt-6">
-                    <button type="button" id="bounty-cancel-btn" class="w-1/2 bg-gray-200 text-gray-700 font-bold py-3 rounded-xl bubbly-button">Cancel</button>
-                    <button type="submit" class="w-1/2 bg-amber-500 hover:bg-amber-600 text-white font-bold py-3 rounded-xl bubbly-button">Post Bounty</button>
+                    <button type="button" id="bounty-cancel-btn" class="w-1/3 bg-gray-200 text-gray-700 font-bold py-3 rounded-xl bubbly-button">Cancel</button>
+                    <button type="submit" class="w-2/3 bg-gradient-to-r from-amber-500 to-orange-500 text-white font-bold py-3 rounded-xl bubbly-button shadow-lg" id="bounty-submit-btn">Start Quest</button>
                 </div>
             </form>
         </div>
     </div>
-
+    
     <!-- Move Student Modal -->
     <div id="move-student-modal" class="fixed inset-0 bg-black bg-opacity-50 z-[72] flex items-center justify-center p-4 hidden">
         <div class="bg-white p-8 rounded-3xl shadow-2xl max-w-md w-full pop-in border-4 border-yellow-300">

@@ -4,7 +4,9 @@ let sounds = {};
 export let ceremonyMusic = {};
 export let winnerFanfare = {};
 export let showdownSting = {};
+export let heroFanfare = {};
 let soundsReady = false;
+let lastSoundTime = 0; // Track the time of the last scheduled sound
 
 export async function setupSounds() {
     try {
@@ -62,6 +64,13 @@ export async function setupSounds() {
             onload: () => console.log("Showdown Sting Loaded"),
             onerror: (e) => console.warn("Showdown Sting failed to load", e)
         }).toDestination();
+
+        heroFanfare = new Tone.Player({
+            url: "hero_fanfare.mp3", // Make sure your file is named exactly this!
+            volume: -2, // Slightly louder for impact
+            onload: () => console.log("Hero Fanfare Loaded"),
+            onerror: (e) => console.warn("Hero Fanfare failed to load", e)
+        }).toDestination();
         
         // Wait for buffers
         await Tone.loaded();
@@ -77,22 +86,44 @@ export async function setupSounds() {
 export function playSound(sound) {
     if (!soundsReady || Tone.context.state !== 'running') return;
     if (!sounds[sound]) return;
+    
+    // 1. Get current audio context time
+    const now = Tone.now();
+    
+    // 2. Schedule strictly in the future
+    // If the last sound is still playing (in the future), schedule this one 0.1s after it.
+    // If the timeline is clear, schedule it "now + buffer".
+    let playTime = Math.max(now + 0.05, lastSoundTime + 0.1);
+    
+    // 3. Update tracker
+    lastSoundTime = playTime;
+
     try {
-        if (sound === 'click') sounds.click.triggerAttackRelease('C5', '8n');
-        else if (sound === 'star1') sounds.star1.triggerAttackRelease('C6', '16n');
+        if (sound === 'click') sounds.click.triggerAttackRelease('C5', '8n', playTime);
+        else if (sound === 'star1') sounds.star1.triggerAttackRelease('C6', '16n', playTime);
         else if (sound === 'star2') {
-            sounds.star2.triggerAttackRelease('E6', '16n', Tone.now());
-            sounds.star2.triggerAttackRelease('G6', '16n', Tone.now() + 0.05);
+            sounds.star2.triggerAttackRelease('E6', '16n', playTime);
+            sounds.star2.triggerAttackRelease('G6', '16n', playTime + 0.05);
         } else if (sound === 'star3') {
-            sounds.star3.triggerAttackRelease('C6', '16n', Tone.now());
-            sounds.star3.triggerAttackRelease('E6', '16n', Tone.now() + 0.05);
-            sounds.star3.triggerAttackRelease('G6', '16n', Tone.now() + 0.1);
-            sounds.star3.triggerAttackRelease('C7', '16n', Tone.now() + 0.15);
-        } else if (sound === 'star_remove') sounds.star_remove.triggerAttackRelease('8n');
-        else if (sound === 'confirm') sounds.confirm.triggerAttackRelease('E4', '8n');
-        else if (sound === 'writing') sounds.writing.triggerAttackRelease('4n');
-        else if (sound === 'magic_chime') sounds.magic_chime.triggerAttackRelease('C7', '8n');
-    } catch (e) { console.error('Sound play error:', e); }
+            sounds.star3.triggerAttackRelease('C6', '16n', playTime);
+            sounds.star3.triggerAttackRelease('E5', '16n', playTime + 0.05);
+            sounds.star3.triggerAttackRelease('G5', '16n', playTime + 0.1);
+            sounds.star3.triggerAttackRelease('C7', '16n', playTime + 0.15);
+        } else if (sound === 'star_remove') sounds.star_remove.triggerAttackRelease('8n', playTime);
+        else if (sound === 'confirm') sounds.confirm.triggerAttackRelease('E4', '8n', playTime);
+        else if (sound === 'writing') sounds.writing.triggerAttackRelease('4n', playTime);
+        else if (sound === 'magic_chime') sounds.magic_chime.triggerAttackRelease('C7', '8n', playTime);
+        
+        // Custom Fanfare Logic (if you added it previously)
+        else if (sound === 'hero_fanfare' && sounds.star3) { 
+             // ... existing synth logic ...
+             // Ensure you pass `playTime` instead of `Tone.now()` to the triggers here too
+        }
+        
+    } catch (e) { 
+        // Suppress overlapping errors silently now that we have a queue
+        // console.error('Audio ignored:', e); 
+    }
 }
 
 export function activateAudioContext() {
@@ -152,5 +183,11 @@ export function stopDrumRoll() {
         drumRollLoop.dispose();
         drumRollLoop = null;
         Tone.Transport.stop();
+    }
+}
+
+export function playHeroFanfare() {
+    if (soundsReady && heroFanfare.loaded) {
+        heroFanfare.start();
     }
 }

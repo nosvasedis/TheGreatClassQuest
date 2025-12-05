@@ -14,8 +14,6 @@ export const firebaseConfig = {
 export const workerBaseUrl = 'https://gemini-proxy.nvasedis-cc5.workers.dev';
 export const geminiModelPath = '/v1beta/models/gemini-2.5-flash-lite:generateContent';
 export const geminiApiUrl = `${workerBaseUrl}${geminiModelPath}`;
-
-export const elevenLabsVoiceId = "Xb7hH8MSUJpSbSDYk0k2";
 export const cloudflareWorkerUrl = 'https://great-class-quest-ai-proxy.nvasedis-cc5.workers.dev/';
 
 export const questLeagues = ['Junior A', 'Junior B', 'A', 'B', 'C', 'D']; 

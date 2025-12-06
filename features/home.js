@@ -76,8 +76,12 @@ async function executeRenderHome() {
         // Determine Background Class
         if (code === 0) {
             theme.weatherBg = 'w-day'; theme.weatherIcon = 'fa-sun'; theme.weatherText = 'Sunny';
-        } else if (code <= 3) {
-            theme.weatherBg = 'w-cloudy'; theme.weatherIcon = 'fa-cloud-sun'; theme.weatherText = 'Partly Cloudy';
+        } else if (code <= 2) {
+        // Codes 1 & 2: Mainly Clear / Partly Cloudy -> Keep Blue Sky (w-day)
+        theme.weatherBg = 'w-day'; theme.weatherIcon = 'fa-cloud-sun'; theme.weatherText = 'Partly Cloudy';
+        } else if (code === 3) {
+        // Code 3: Overcast -> Gray Sky
+        theme.weatherBg = 'w-cloudy'; theme.weatherIcon = 'fa-cloud'; theme.weatherText = 'Overcast';
         } else if (code <= 48) {
             theme.weatherBg = 'w-cloudy'; theme.weatherIcon = 'fa-smog'; theme.weatherText = 'Foggy';
         } else if (code <= 67 || (code >= 80 && code <= 82)) {
@@ -529,12 +533,23 @@ function getScheduleHtml(dateString, activeClassId) {
     
     const todaysClasses = utils.getClassesOnDay(dateString, allSchoolClasses, allScheduleOverrides);
 
-    if (todaysClasses.length === 0) return `
-        <div class="schedule-empty-camp">
-            <div class="text-7xl mb-4 animate-bounce-slow filter drop-shadow-sm">⛺</div>
-            <h4 class="font-title text-3xl text-emerald-800 mb-2">Heroes' Camp</h4>
-            <p class="text-base text-emerald-600 font-bold opacity-80">No lessons today. The party is resting!</p>
+    if (todaysClasses.length === 0) {
+        const dayOfWeek = new Date().getDay(); // 0 = Sunday, 6 = Saturday
+        const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
+        
+        const title = isWeekend ? "Weekend Break" : "Heroes' Camp";
+        const message = isWeekend 
+            ? "Enjoy your weekend! Recharge your mana for next week." 
+            : "No lessons today. The party is resting!";
+        const icon = isWeekend ? "🏖️" : "⛺";
+
+        return `
+        <div class="schedule-empty-camp" style="min-height: 325px;">
+            <div class="text-7xl mb-4 animate-bounce-slow filter drop-shadow-sm">${icon}</div>
+            <h4 class="font-title text-3xl text-emerald-800 mb-2">${title}</h4>
+            <p class="text-base text-emerald-600 font-bold opacity-80">${message}</p>
         </div>`;
+    }
 
     const gradients = [
         "bg-gradient-to-br from-red-100 to-red-200", "bg-gradient-to-br from-orange-100 to-orange-200",

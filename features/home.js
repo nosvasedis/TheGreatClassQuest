@@ -1,3 +1,5 @@
+import { db } from '../firebase.js';
+import { doc, getDoc } from 'https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js';
 import * as ceremony from '../features/ceremony.js';
 import * as state from '../state.js';
 import * as utils from '../utils.js';
@@ -299,8 +301,18 @@ function getActiveDashboard(classData, name, theme, spice) {
     const goal = Math.max(18, students.length * 18);
     const progress = Math.min(100, (monthlyStars / goal) * 100).toFixed(0);
 
+    // FIX: Fetch story data directly if missing, instead of relying on the Ideas tab UI
     if (!state.get('currentStoryData')[classId]) {
-        import('../features/storyWeaver.js').then(sw => sw.handleStoryWeaversClassSelect());
+        const storyRef = doc(db, `artifacts/great-class-quest/public/data/story_data`, classId);
+        getDoc(storyRef).then((docSnap) => {
+            if (docSnap.exists()) {
+                const currentData = state.get('currentStoryData');
+                currentData[classId] = docSnap.data();
+                state.setCurrentStoryData(currentData);
+                // Trigger a re-render to update the text immediately
+                renderHomeTab();
+            }
+        }).catch(err => console.log("Silent story fetch error", err));
     }
     const story = state.get('currentStoryData')[classId];
     const storyText = (story && story.currentSentence) ? `"...${story.currentSentence}..."` : "The story awaits its first chapter...";

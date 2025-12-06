@@ -1218,11 +1218,12 @@ export async function initSeasonalAtmosphere() {
         }
         
         // 1-2: Mainly Clear / Partly Cloudy (NO extra clouds, sun visible)
+        // 1-2: Mainly Clear / Partly Cloudy (Blue Sky + Some Clouds)
         else if (weatherCode <= 2) {
-            wall.classList.add('weather-cloudy'); 
-            // Standard static clouds in HTML are enough
+            wall.classList.add('weather-clear'); // Uses the Blue Sky Gradient
+            effectHTML += generateHeavyClouds(8, 0.5); // Add some light clouds manually
         }
-
+            
         // 3, 45, 48: Overcast / Fog (ADD extra clouds to obscure sun)
         else if (weatherCode <= 48) {
             wall.classList.add('weather-cloudy');

@@ -10,7 +10,6 @@ let lastSoundTime = 0; // Track the time of the last scheduled sound
 
 export async function setupSounds() {
     try {
-        await Tone.start();
         
         // SFX Synths
         const reverb = new Tone.Reverb({ decay: 0.8, wet: 0.3 }).toDestination();

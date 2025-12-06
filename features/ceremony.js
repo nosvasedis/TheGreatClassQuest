@@ -100,6 +100,7 @@ export function startCeremony(params) {
         active: true,
         phase: 'intro',
         monthKey: params.monthKey,
+        currentAppClassId: state.get('globalSelectedClassId'), // Identify who is watching
         monthName: params.monthName,
         classId: params.classId,
         league: params.league,
@@ -346,7 +347,7 @@ function advanceCeremony() {
         subtitle.innerHTML = formatTitleHtml("Team Quest");
         aiBox.style.opacity = '1';
         
-        triggerAICommentary('class_rank', { name: entry.name, rank: entry.rank, score: entry.score, progress: entry.progress.toFixed(0) });
+        triggerAICommentary('class_rank', { id: entry.id, name: entry.name, rank: entry.rank, score: entry.score, progress: entry.progress.toFixed(0) });
 
         ceremonyData.classPointer++;
         btn.innerText = "Next";
@@ -509,13 +510,18 @@ function renderCard(entry, type) {
              <span class="text-sm font-semibold text-gray-500 uppercase tracking-wide mt-1">${entry.studentCount} Students</span>
              <span class="text-amber-500 font-extrabold text-3xl mt-2 drop-shadow-sm">${entry.progress.toFixed(0)}%</span>
            </div>`;
-
+    // Check if this card belongs to the class currently using the app
+    const isMyClass = !isStudent && entry.id === ceremonyData.currentAppClassId;
+    const myClassBadge = isMyClass 
+        ? `<div class="absolute top-2 right-2 bg-gradient-to-r from-indigo-500 to-purple-600 text-white text-xs font-bold px-3 py-1 rounded-full shadow-lg border border-white/50 animate-pulse z-30">YOU</div>` 
+        : '';
     const card = document.createElement('div');
     card.className = `ceremony-display-card ceremony-card-enter ${borderColor} ${extraClass}`;
     card.innerHTML = `
         <div class="absolute -top-5 left-1/2 transform -translate-x-1/2 z-20">
             ${rankBadge}
         </div>
+        ${myClassBadge}
         <div class="mt-4">
             ${imageHtml}
             <h3 class="font-title text-4xl text-gray-800 mb-2 truncate px-2 leading-tight">${entry.name}</h3>
@@ -575,6 +581,7 @@ function createFaceOff(entry, realRank, position) {
     div.dataset.rank = realRank; 
     div.dataset.name = entry.name; 
     div.dataset.score = entry.score;
+    div.dataset.id = entry.id;
     
     const isStudent = entry.avatar !== undefined;
     
@@ -688,7 +695,7 @@ function handleDramaticReveal() {
         } else {
             title.innerHTML = formatTitleHtml("Champion Crowned!");
             const phaseType = ceremonyData.phase === 'class_showdown' ? 'class_winner' : 'student_winner';
-            triggerAICommentary(phaseType, { name: cardRight.dataset.name, score: cardRight.dataset.score });
+            triggerAICommentary(phaseType, { id: cardRight.dataset.id, name: cardRight.dataset.name, score: cardRight.dataset.score });
         }
 
         if (ceremonyData.phase === 'class_showdown') {
@@ -841,8 +848,22 @@ async function triggerAICommentary(phase, data) {
         let userPrompt = "";
 
         if (phase === 'intro') userPrompt = `Hyping up the start of the ${data.month} Ceremony.`;
-        else if (phase === 'class_rank') userPrompt = `Class '${data.name}' got Rank #${data.rank}. Hype them up!`;
-        else if (phase === 'class_winner') userPrompt = `Class '${data.name}' WON the whole thing! Go wild!`;
+        else if (phase === 'class_rank') {
+            const isMyClass = data.id === state.get('globalSelectedClassId');
+            if (isMyClass) {
+                userPrompt = `The class watching this is '${data.name}'. They just got Rank #${data.rank}. Talk directly to them ("You"). Congratulate or encourage them on their result!`;
+            } else {
+                userPrompt = `Class '${data.name}' got Rank #${data.rank}. Hype them up!`;
+            }
+        }
+        else if (phase === 'class_winner') {
+            const isMyClass = data.id === state.get('globalSelectedClassId');
+            if (isMyClass) {
+                userPrompt = `The class watching this ('${data.name}') WON! Tell them "YOU DID IT!" Go wild!`;
+            } else {
+                userPrompt = `Class '${data.name}' WON the whole thing! Go wild!`;
+            }
+        }
         else if (phase === 'transition') userPrompt = "Transitioning to the student hero reveal. Ask who is the best.";
         else if (phase === 'student_rank') {
             if (data.tieReason === 'tie_3star') userPrompt = `Hype ${data.name} for having tons of 3-Star badges!`;

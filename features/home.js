@@ -902,20 +902,24 @@ function getReminderPills(classId) {
     return pills.join('');
 }
 
+// --- NEW: Database-backed Shared Caching ---
 async function getAICachedContent(type) {
     const todayKey = new Date().toISOString().split('T')[0];
-    const storageKey = `gcq_daily_${type}`; 
+    const docId = `daily_content_${todayKey}_${type}`;
     
-    const cached = localStorage.getItem(storageKey);
-    if (cached) {
-        try {
-            const data = JSON.parse(cached);
-            if (data.date === todayKey) {
-                return data.content;
-            }
-        } catch(e) { localStorage.removeItem(storageKey); }
+    // 1. Check Firebase First (Shared Cache)
+    try {
+        const docRef = doc(db, "artifacts/great-class-quest/public/data/daily_cache", docId);
+        const docSnap = await getDoc(docRef);
+        
+        if (docSnap.exists()) {
+            return docSnap.data().content;
+        }
+    } catch (e) {
+        console.warn("Cache fetch skipped, trying generation.");
     }
 
+    // 2. Generate if not found
     try {
         let systemPrompt = "You are a wise sage for a classroom. Generate a short, inspiring quote (max 10 words). No markdown. Just the text.";
         let userPrompt = "Generate a quote.";
@@ -924,15 +928,23 @@ async function getAICachedContent(type) {
             userPrompt = "Generate a short quote about new beginnings or focus.";
         } else if (type === 'quote_widget') {
             userPrompt = "Generate a short quote about curiosity or nature.";
-        } else if (type === 'fact') {
-            systemPrompt = "You are a curator of trivia. Generate a single short educational fact (max 12 words).";
-            userPrompt = "One fact.";
         }
         
         const content = await callGeminiApi(systemPrompt, userPrompt);
-        localStorage.setItem(storageKey, JSON.stringify({ date: todayKey, content }));
+        
+        // 3. Save to Firebase (So others don't have to generate)
+        try {
+            const { setDoc } = await import('https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js');
+            await setDoc(doc(db, "artifacts/great-class-quest/public/data/daily_cache", docId), {
+                content: content,
+                date: todayKey,
+                type: type
+            });
+        } catch (e) { console.error("Failed to save to cache", e); }
+
         return content;
     } catch (e) {
+        console.error(e);
         return "The adventure begins with a single step.";
     }
 }

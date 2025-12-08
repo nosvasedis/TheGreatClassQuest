@@ -1,22 +1,29 @@
 import { geminiApiUrl, cloudflareWorkerUrl } from './constants.js';
 import { blobToBase64 } from './utils.js';
 
-async function fetchWithBackoff(url, options, retries = 3, delay = 1000) {
+async function fetchWithBackoff(url, options, retries = 3, delay = 2000) { // Increased start delay
     try {
         const response = await fetch(url, options);
-        if (response.status === 429 || response.status >= 500) {
-            if (retries > 0) {
-                await new Promise(res => setTimeout(res, delay));
-                return fetchWithBackoff(url, options, retries - 1, delay * 2);
-            } else throw new Error('API call failed after retries');
+        if (!response.ok) {
+            // Specifically handle 429 (Too Many Requests) or Server Errors
+            if (response.status === 429 || response.status >= 500) {
+                if (retries > 0) {
+                    console.warn(`API Error ${response.status}. Retrying in ${delay}ms...`);
+                    await new Promise(res => setTimeout(res, delay));
+                    // Exponential backoff: 2s -> 4s -> 8s
+                    return fetchWithBackoff(url, options, retries - 1, delay * 2);
+                }
+            }
+            throw new Error(`API failed with status ${response.status}`);
         }
         return response;
     } catch (error) {
          if (retries > 0) {
+            console.warn("Network error, retrying...", error);
             await new Promise(res => setTimeout(res, delay));
             return fetchWithBackoff(url, options, retries - 1, delay * 2);
         } else {
-            console.error('Fetch error:', error);
+            console.error('Fetch exhausted retries:', error);
             throw error;
         }
     }

@@ -8,10 +8,86 @@ export function simpleHashCode(str) {
     return Math.abs(hash);
 }
 
+// Global Solar Data (Ag. Ioannis Rentis, Greece)
+// Default fallback times until API loads
 export let solarData = {
     sunrise: new Date().setHours(6, 30, 0, 0),
     sunset: new Date().setHours(20, 30, 0, 0)
 };
+
+export async function fetchSolarCycle() {
+    try {
+        // Ag. Ioannis Rentis Coordinates
+        const response = await fetch('https://api.sunrise-sunset.org/json?lat=37.9761&lng=23.6586&formatted=0');
+        const data = await response.json();
+        if (data.status === 'OK') {
+            solarData.sunrise = new Date(data.results.sunrise).getTime();
+            solarData.sunset = new Date(data.results.sunset).getTime();
+            console.log("Solar Cycle Synced with Greece:", new Date(solarData.sunset).toLocaleTimeString());
+        }
+    } catch (e) { console.warn("Using default solar times."); }
+}
+
+export function updateDateTime() {
+    const now = new Date();
+    const dateEl = document.getElementById('current-date');
+    const timeEl = document.getElementById('current-time');
+    const header = document.querySelector('header');
+    const wallScreen = document.getElementById('dynamic-wallpaper-screen');
+
+    // 1. Real-Time Solar Check (Greece/Rentis)
+    // We use the solarData fetched earlier, or defaults
+    const nowTime = now.getTime();
+    const sunset = solarData.sunset || new Date().setHours(20, 30, 0, 0);
+    const sunrise = solarData.sunrise || new Date().setHours(6, 30, 0, 0);
+    
+    // Logic: It is night if it's AFTER sunset OR BEFORE sunrise
+    const isNight = nowTime >= sunset || nowTime < sunrise;
+
+    // 2. Apply Global Classes IMMEDIATELY
+    if (isNight) {
+        document.body.classList.add('night-mode');
+        if (header) header.classList.add('header-night');
+        if (wallScreen) wallScreen.classList.add('is-night');
+    } else {
+        document.body.classList.remove('night-mode');
+        if (header) header.classList.remove('header-night');
+        if (wallScreen) wallScreen.classList.remove('is-night');
+    }
+
+    if (dateEl && timeEl) {
+        // 3. FIX: Better Random Color Variance for Glow
+        // We use Day + Hour + Minute to ensure it shifts, but stays consistent for a minute
+        const uniqueTimeSeed = now.getDate() + now.getHours() + (now.getMinutes() * 13);
+        const hue = (uniqueTimeSeed * 137.508) % 360; 
+
+        let textShadowStyle;
+        
+        if (isNight) {
+             // Night: Higher saturation, slightly darker glow
+             const color = `hsl(${hue}, 80%, 60%)`; 
+             textShadowStyle = `0 2px 4px rgba(0,0,0,0.8), 0 0 15px ${color}, 0 0 30px ${color}`;
+        } else {
+             // Day: High brightness
+             const color = `hsl(${hue}, 90%, 50%)`;
+             textShadowStyle = `0 2px 4px rgba(0,0,0,0.3), 0 0 10px ${color}, 0 0 20px ${color}`;
+        }
+
+        dateEl.style.textShadow = textShadowStyle;
+        timeEl.style.textShadow = textShadowStyle;
+        dateEl.style.color = "#ffffff";
+        timeEl.style.color = "#ffffff";
+
+        dateEl.innerText = now.toLocaleDateString('en-GB', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
+        timeEl.innerText = now.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
+    }
+    
+    // 4. Force Wallpaper Re-Check (updates weather visuals in night mode)
+    if (wallScreen && !wallScreen.classList.contains('hidden')) {
+        // Dispatch a custom event or call the init function if exported
+        // Since we can't easily cross-call here, we rely on the CSS .is-night classes we just set
+    }
+}
 
 export function getDDMMYYYY(date = new Date()) {
     const day = date.getDate().toString().padStart(2, '0');
@@ -165,64 +241,6 @@ export function getPreviousLessonDate(classId, allSchoolClasses) {
     return null;
 }
 
-export function updateDateTime() {
-    const now = new Date();
-const dateEl = document.getElementById('current-date');
-const timeEl = document.getElementById('current-time');
-const header = document.querySelector('header');
-
-if (dateEl && timeEl && header) {
-    // 1. Generate Deterministic Daily Hue
-    const dateKey = getDDMMYYYY(now);
-    const hue = simpleHashCode(dateKey) % 360;
-
-    // 2. Solar Cycle Logic
-    const nowTime = now.getTime();
-    const isNight = nowTime >= solarData.sunset || nowTime < solarData.sunrise;
-
-    let textShadowStyle;
-
-    if (isNight) {
-        // Night Mode: "Moonlight Glow"
-        const color = `hsl(${hue}, 60%, 50%)`; 
-        textShadowStyle = `
-            0 2px 4px rgba(0,0,0,0.8), 
-            0 0 15px ${color}, 
-            0 0 30px ${color}
-        `;
-    } else {
-        // Day Mode: "Sunburst Glow"
-        const color = `hsl(${hue}, 90%, 60%)`;
-        textShadowStyle = `
-            0 2px 4px rgba(0,0,0,0.3), 
-            0 0 10px ${color}, 
-            0 0 20px ${color},
-            0 0 40px ${color}
-        `;
-    }
-
-    // 3. Force Apply Styles
-    dateEl.style.textShadow = textShadowStyle;
-    timeEl.style.textShadow = textShadowStyle;
-
-    // Ensure text color is white
-    dateEl.style.color = "#ffffff";
-    timeEl.style.color = "#ffffff";
-
-    // 4. Update Text Content
-    dateEl.innerText = now.toLocaleDateString('en-GB', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
-    timeEl.innerText = now.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
-
-    // 5. Clean up old class-based coloring
-    const oldClasses = ['shadow-sun', 'shadow-mon', 'shadow-tue', 'shadow-wed', 'shadow-thu', 'shadow-fri', 'shadow-sat'];
-    dateEl.classList.remove(...oldClasses);
-    timeEl.classList.remove(...oldClasses);
-
-    // 6. Global Theme Toggles
-    header.classList.toggle('header-night', isNight);
-    document.body.classList.toggle('night-mode', isNight);
-   }
-}
 export function debounce(func, wait) {
     let timeout;
   
@@ -313,17 +331,6 @@ export function isSpecialOccasion(dateStr, scheduleDays) {
     }
     
     return false;
-}
-
-export async function fetchSolarCycle() {
-    try {
-        const response = await fetch('https://api.sunrise-sunset.org/json?lat=37.9667&lng=23.6667&formatted=0');
-        const data = await response.json();
-        if (data.status === 'OK') {
-            solarData.sunrise = new Date(data.results.sunrise).getTime();
-            solarData.sunset = new Date(data.results.sunset).getTime();
-        }
-    } catch (e) { console.warn("Using default solar times."); }
 }
 
 export function datesMatch(dateInput1, dateInput2) {

@@ -78,35 +78,34 @@ function startWallpaperClock() {
     const update = () => {
         if (!isRunning) return;
         const now = new Date();
-        const nowTime = now.getTime();
-        
-        // 1. Calculate Same Hash Color as Header
-        const dateKey = utils.getDDMMYYYY(now);
-        const hue = utils.simpleHashCode(dateKey) % 360;
-        const isNight = nowTime >= solarData.sunset || nowTime < solarData.sunrise;
-        
-        // 2. Define Styles
-        let textShadowStyle;
-        if (isNight) {
-             const glowColor = `hsl(${hue}, 60%, 50%)`;
-             textShadowStyle = `0 4px 8px rgba(0,0,0,0.9), 0 0 30px ${glowColor}`;
-        } else {
-             const glowColor = `hsl(${hue}, 100%, 65%)`;
-             textShadowStyle = `0 4px 6px rgba(0,0,0,0.6), 0 0 20px ${glowColor}`;
-        }
-
-        // 3. Force Apply Inline Styles
-        timeEl.style.textShadow = textShadowStyle;
-        dateEl.style.textShadow = textShadowStyle;
-
-        // 4. Set Text
+        // 1. Update Text (Keep the clock ticking!)
         timeEl.innerText = now.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
         dateEl.innerText = now.toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long' });
+
+        // 2. Check Night Mode from Global State (Fixes Issue #2)
+        const isNight = document.body.classList.contains('night-mode');
+
+        // 3. Dynamic Glow - Varied Colors (Fixes Issue #5)
+        // Uses time-based seed so colors shift throughout the day
+        const uniqueTimeSeed = now.getDate() + now.getHours() + (now.getMinutes() * 13);
+        const hue = (uniqueTimeSeed * 137.508) % 360; 
         
+        let textShadowStyle;
+        if (isNight) {
+             const color = `hsl(${hue}, 80%, 60%)`; 
+             textShadowStyle = `0 4px 8px rgba(0,0,0,0.9), 0 0 30px ${color}`;
+        } else {
+             const color = `hsl(${hue}, 90%, 50%)`;
+             textShadowStyle = `0 4px 6px rgba(0,0,0,0.6), 0 0 20px ${color}`;
+        }
+
+        // 4. Apply Styles
+        timeEl.style.textShadow = textShadowStyle;
+        dateEl.style.textShadow = textShadowStyle;
+        
+        // Ensure base classes are set
         timeEl.className = 'font-title text-[9rem] text-white leading-none transition-colors duration-1000';
         dateEl.className = 'font-title text-4xl text-white/95 mt-2 mb-6 tracking-wide transition-colors duration-1000';
-
-        wall.classList.toggle('is-night', isNight);
 
         const currentClass = identifyCurrentClass();
         
@@ -271,29 +270,32 @@ async function directorGameLoop() {
     const classId = state.get('globalSelectedClassId');
     const now = Date.now();
 
-    // --- PRIORITY 1: ACTIVE TIMER ---
+    // --- PRIORITY 1: ACTIVE TIMER (Parallel Rendering) ---
+    // We render this into a SEPARATE container so it doesn't get cleared
     const activeTimer = state.get('allQuestBounties').find(b => b.classId === classId && b.status === 'active' && b.type === 'timer');
+    let timerOverlay = document.getElementById('wall-timer-overlay');
     
+    // Create specific container for timer if missing
+    if (!timerOverlay) {
+        timerOverlay = document.createElement('div');
+        timerOverlay.id = 'wall-timer-overlay';
+        timerOverlay.className = 'absolute bottom-8 left-1/2 -translate-x-1/2 z-50 pointer-events-none transition-all duration-500';
+        document.getElementById('dynamic-wallpaper-screen').appendChild(timerOverlay);
+    }
+
     if (activeTimer) {
         const deadline = new Date(activeTimer.deadline).getTime();
         const timeLeftMs = deadline - now;
 
         if (timeLeftMs > 0) {
-            // RENDER STICKY CARD
-            const existing = container.firstElementChild;
             const minutes = Math.floor(timeLeftMs / 60000);
             const seconds = Math.floor((timeLeftMs % 60000) / 1000);
             const timeDisplay = `${minutes}:${String(seconds).padStart(2, '0')}`;
-            
-            // Visual Urgency: Red if < 2 mins, otherwise Orange/Yellow
-            let cssClass = timeLeftMs < 120000 ? 'float-card-red' : 'float-card-orange';
-            let icon = timeLeftMs < 120000 ? '🔥' : '⏳';
+            const cssClass = timeLeftMs < 120000 ? 'float-card-red' : 'float-card-orange';
+            const icon = timeLeftMs < 120000 ? '🔥' : '⏳';
 
-            if (!existing || existing.dataset.cardId !== `timer_${activeTimer.id}`) {
-                container.innerHTML = ''; // Force clear
-                
-                // NEW: Smaller HTML structure
-                const html = `
+            timerOverlay.innerHTML = `
+                <div class="wallpaper-float-card ${cssClass}" style="position: relative; width: auto; min-width: 400px; transform: none; animation: none;">
                     <div class="text-center w-full px-6 py-2 flex items-center justify-between gap-6">
                         <div class="flex items-center gap-4">
                             <div class="text-4xl animate-pulse">${icon}</div>
@@ -303,82 +305,46 @@ async function directorGameLoop() {
                             </div>
                         </div>
                         <h2 class="font-title text-6xl text-white drop-shadow-md leading-none font-variant-numeric:tabular-nums">${timeDisplay}</h2>
-                    </div>`;
-                
-                const el = spawnCard(container, { html, css: cssClass, id: `timer_${activeTimer.id}` });
-                
-                // NEW: Positioning (Bottom Center, Wide & Short)
-                el.style.top = 'auto'; 
-                el.style.bottom = '3rem'; // Stick to bottom
-                el.style.left = '50%'; 
-                el.style.right = 'auto';
-                
-                // Override default card styles to make it a "Bar" instead of a "Card"
-                el.style.width = 'auto';
-                el.style.minWidth = '500px';
-                el.style.padding = '0.5rem';
-                el.style.borderRadius = '1.5rem';
-                el.style.transform = 'translateX(-50%)'; // Center horizontally
-                el.style.animation = 'none'; // Stop floating
-            } else {
-                // Just update the numbers
-                const h2 = existing.querySelector('h2');
-                if(h2) h2.innerText = timeDisplay;
-                // Update urgency color dynamically
-                if (timeLeftMs < 120000 && existing.classList.contains('float-card-orange')) {
-                    existing.classList.remove('float-card-orange');
-                    existing.classList.add('float-card-red');
-                }
-            }
-            
-            // Loop fast (1 second) to tick the clock
-            directorTimeout = setTimeout(directorGameLoop, 1000);
-            return; 
-        
+                    </div>
+                </div>`;
         } else {
-            // --- TIMER FINISHED LOGIC ---
+            // --- TIMER FINISHED ---
+            timerOverlay.innerHTML = ''; // Clear visual timer
             
-            // 1. Mark as completed in DB immediately to stop re-rendering
+            // 1. Mark complete in DB
             const { updateDoc, doc } = await import('https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js');
             await updateDoc(doc(db, "artifacts/great-class-quest/public/data/quest_bounties", activeTimer.id), { status: 'completed' });
 
-            // 2. Play Sound
+            // 2. Play Sound (5 Seconds Loop)
             const { playSound } = await import('../audio.js');
-            playSound('magic_chime'); 
+            playSound('magic_chime');
+            let chimeCount = 0;
+            const chimeInterval = setInterval(() => {
+                chimeCount++;
+                if(chimeCount >= 5) clearInterval(chimeInterval); // Stop after 5 times (approx 5 sec)
+                playSound('magic_chime');
+            }, 1000);
 
-            // 3. Generate AI Message
-            let aiMessage = "Time is up! Great effort!";
-            try {
-                const prompt = `The classroom timer for activity "${activeTimer.title}" just finished. Write a very short, fun 5-word phrase to tell students to stop (e.g. "Pencils down, hands up!").`;
-                aiMessage = await callGeminiApi("You are a fun teacher assistant.", prompt);
-            } catch(e) {}
-
-            // 4. Show "Time's Up" Card briefly
+            // 3. Show "Time's Up" Card briefly in the main flow
             container.innerHTML = '';
             const html = `
                 <div class="text-center w-full">
                     <div class="text-9xl mb-4 animate-bounce">⏰</div>
                     <h2 class="font-title text-6xl text-white drop-shadow-xl mb-4">Time's Up!</h2>
-                    <p class="text-3xl text-white font-serif italic">"${aiMessage}"</p>
+                    <p class="text-3xl text-white font-serif italic">"Great effort everyone!"</p>
                 </div>`;
             const el = spawnCard(container, { html, css: 'float-card-purple', id: 'timer_end' });
             el.style.top = '50%'; el.style.left = '50%'; 
             el.style.transform = 'translate(-50%, -50%) scale(1.2)';
             
-            // 5. Resume normal loop after 8 seconds
             directorTimeout = setTimeout(directorGameLoop, 8000);
             return;
         }
+    } else {
+        timerOverlay.innerHTML = ''; // Clean up if no timer
     }
 
-    // --- PRIORITY 2: STANDARD CARDS (Existing Logic) ---
-    // ... (This part of your existing code remains the same as previous step) ...
-    // Copy the rest of the original directorGameLoop here (getting session, selectNextCard, etc.)
-    
-    // For brevity in this response, assume standard logic follows here.
-    // If you need the standard logic block again, let me know, but you likely have it.
-    
-    // RE-INSERT STANDARD LOGIC:
+    // --- STANDARD CARD LOGIC (Now runs in parallel!) ---
     const session = getSession();
     let currentCardData = null;
     let remainingTime = 0;
@@ -387,7 +353,15 @@ async function directorGameLoop() {
         currentCardData = session.card;
         remainingTime = CARD_DURATION - (now - session.start);
     } else {
-        container.innerHTML = ''; 
+        // Clear previous card
+        if (container.children.length > 0 && !session) {
+             const oldEl = container.firstElementChild;
+             oldEl.style.opacity = '0';
+             oldEl.style.transform = 'translateY(-50px) scale(0.9)';
+             await new Promise(r => setTimeout(r, 500));
+             container.innerHTML = '';
+        }
+
         if (session && (now - session.start < CARD_DURATION + 5000)) {
              remainingTime = (CARD_DURATION + 5000) - (now - session.start);
              directorTimeout = setTimeout(directorGameLoop, remainingTime);
@@ -409,6 +383,7 @@ async function directorGameLoop() {
         spawnCard(container, currentCardData);
     }
 
+    // Loop logic
     directorTimeout = setTimeout(async () => {
         const el = container.firstElementChild;
         if (el) {

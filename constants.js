@@ -12,7 +12,7 @@ export const firebaseConfig = {
 };
 
 export const workerBaseUrl = 'https://gemini-proxy.nvasedis-cc5.workers.dev';
-export const geminiModelPath = '/v1beta/models/gemini-2.5-flash-lite:generateContent';
+export const geminiModelPath = '/v1beta/models/gemini-2.5-flash:generateContent';
 export const geminiApiUrl = `${workerBaseUrl}${geminiModelPath}`;
 export const cloudflareWorkerUrl = 'https://great-class-quest-ai-proxy.nvasedis-cc5.workers.dev/';
 

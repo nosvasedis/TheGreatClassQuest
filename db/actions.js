@@ -1942,11 +1942,13 @@ export async function checkBountyProgress(classId, starsAdded) {
         const bountyRef = doc(db, "artifacts/great-class-quest/public/data/quest_bounties", b.id);
         
         if (newProgress >= b.target) {
-            // Auto-complete? No, let teacher claim it for dramatic effect.
-            // Just update progress to max.
             await updateDoc(bountyRef, { currentProgress: newProgress });
-            showToast(`Bounty "${b.title}" goal reached! Ready to claim!`, 'success');
-            playSound('magic_chime');
+            
+            // TASK 3 FIX: Only show toast for Standard bounties, not Timers
+            if (b.type !== 'timer') {
+                showToast(`Bounty "${b.title}" goal reached! Ready to claim!`, 'success');
+                playSound('magic_chime');
+            }
         } else {
             await updateDoc(bountyRef, { currentProgress: newProgress });
         }
@@ -2325,6 +2327,46 @@ export async function handleBuyItem(studentId, itemId) {
     const student = state.get('allStudents').find(s => s.id === studentId);
     if (!item || !student) return;
 
+    // --- INSTANT UI UPDATE (Task 7) ---
+    // 1. Hide the item immediately
+    const itemCard = document.querySelector(`.shop-buy-btn[data-id="${itemId}"]`).closest('.shop-item-card');
+    if (itemCard) itemCard.style.display = 'none';
+
+    // 2. Update Coin Display immediately
+    const goldDisplay = document.getElementById('shop-student-gold');
+    const currentGold = parseInt(goldDisplay.innerText);
+    const newGoldDisplay = Math.max(0, currentGold - item.price);
+    goldDisplay.innerText = `${newGoldDisplay} 🪙`;
+
+    // 3. Show Purchase Modal ABOVE everything
+    const purchaseModal = document.createElement('div');
+    purchaseModal.className = "fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm animate-fade-in";
+    purchaseModal.innerHTML = `
+        <div class="bg-white p-8 rounded-3xl shadow-2xl text-center border-4 border-amber-400 pop-in relative overflow-hidden max-w-sm w-full">
+            <div class="absolute inset-0 bg-yellow-50 opacity-50 bg-[url('https://www.transparenttextures.com/patterns/stardust.png')]"></div>
+            <div class="relative z-10">
+                <div class="w-24 h-24 mx-auto bg-indigo-100 rounded-full flex items-center justify-center text-5xl mb-4 shadow-inner">🛍️</div>
+                <h2 class="font-title text-3xl text-indigo-900 mb-2">Item Acquired!</h2>
+                <p class="text-gray-600 text-lg mb-1"><b>${student.name}</b> bought:</p>
+                <p class="font-bold text-xl text-purple-600 mb-4">${item.name}</p>
+                <div class="inline-block bg-amber-100 text-amber-800 px-4 py-2 rounded-full font-bold text-lg border border-amber-300">
+                    Paid ${item.price} 🪙
+                </div>
+                <button class="mt-6 w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 rounded-xl bubbly-button">Awesome!</button>
+            </div>
+        </div>
+    `;
+    document.body.appendChild(purchaseModal);
+    
+    // Close handler
+    const closeBtn = purchaseModal.querySelector('button');
+    closeBtn.onclick = () => {
+        purchaseModal.remove();
+        // Check if we need to re-render shop (handled by DB listener, but UI is already clean)
+    };
+    playSound('magic_chime');
+
+    // --- DB TRANSACTION ---
     const publicDataPath = "artifacts/great-class-quest/public/data";
     const scoreRef = doc(db, `${publicDataPath}/student_scores`, studentId);
     const itemRef = doc(db, `${publicDataPath}/shop_items`, itemId);
@@ -2334,65 +2376,35 @@ export async function handleBuyItem(studentId, itemId) {
             const scoreDoc = await transaction.get(scoreRef);
             if (!scoreDoc.exists()) throw "Student data missing";
             
-            // Check if item still exists (Sold out check)
             const itemDoc = await transaction.get(itemRef);
-            if (!itemDoc.exists()) throw "Sorry! This item was just bought by someone else.";
+            if (!itemDoc.exists()) throw "Already sold";
 
             const data = scoreDoc.data();
-            const currentGold = data.gold !== undefined ? data.gold : (data.totalStars || 0);
+            const currentDbGold = data.gold !== undefined ? data.gold : (data.totalStars || 0);
             const currentInventory = data.inventory || [];
 
-            // 1. CHECK GOLD
-            if (currentGold < item.price) {
-                throw "Not enough gold!";
-            }
+            if (currentDbGold < item.price) throw "Not enough gold!";
 
-            // 2. CHECK MONTHLY LIMIT
-            const currentMonthKey = new Date().toISOString().substring(0, 7); 
-            const itemsBoughtThisMonth = currentInventory.filter(i => 
-                i.acquiredAt && i.acquiredAt.startsWith(currentMonthKey)
-            );
-
-            if (itemsBoughtThisMonth.length >= 2) {
-                throw "Monthly limit reached! (Max 2 items)";
-            }
-
-            // 3. PROCESS PURCHASE
-            const newItem = {
-                id: item.id,
-                name: item.name,
-                image: item.image,
-                description: item.description,
-                acquiredAt: new Date().toISOString()
-            };
-
-            // FIX: Use increment for gold
+            // Update DB
             transaction.update(scoreRef, {
                 gold: increment(-item.price), 
-                inventory: [...currentInventory, newItem]
+                inventory: [...currentInventory, {
+                    id: item.id,
+                    name: item.name,
+                    image: item.image,
+                    description: item.description,
+                    acquiredAt: new Date().toISOString()
+                }]
             });
-            
-            // FIX: Delete item to mark as "Sold Out"
             transaction.delete(itemRef);
         });
-
-        playSound('magic_chime');
-        showToast(`Purchased! ${student.name} acquired ${item.name}`, 'success');
-        
-        // Refresh UI
-        import('../ui/core.js').then(m => {
-            m.updateShopStudentDisplay(studentId);
-            m.renderShopUI(); 
-        });
-
+        // Success handled by UI above
     } catch (error) {
-        if (typeof error === 'string') {
-            showToast(error, "error");
-            playSound('star_remove');
-        } else {
-            console.error("Buy error:", error);
-            showToast("Transaction failed.", "error");
-        }
+        purchaseModal.remove(); // Remove success modal if failed
+        showToast(typeof error === 'string' ? error : "Transaction failed.", "error");
+        playSound('star_remove');
+        // Revert visuals (reload shop)
+        import('../ui/core.js').then(m => m.renderShopUI());
     }
 }
 

@@ -153,7 +153,7 @@ async function initApp() {
         setupUIListeners();
         
         updateDateTime();
-        setInterval(updateDateTime, 30000);
+        setInterval(updateDateTime, 1000);
         
         await setupSounds();
 

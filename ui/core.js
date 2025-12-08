@@ -442,29 +442,49 @@ document.getElementById('lookup-nameday-btn').addEventListener('click', () => {
             }
 
             // --- CASE 3: WELCOME BACK ---
+            // --- CASE 3: WELCOME BACK (Escalated) ---
             if (actionBtn.dataset.action === 'welcome-back') {
                 const studentClass = state.get('allSchoolClasses').find(c => c.id === student.classId);
                 const firstName = student.name.split(' ')[0];
                 playSound('star2');
 
-                // Smart Bonus Calculation: Check last 14 days for missed lessons
-                let missedDays = 0;
+                // 1. Calculate Streak of Missed Lessons
+                let missedLessons = 0;
                 const scheduleDays = studentClass.scheduleDays || [];
                 const attendanceRecords = state.get('allAttendanceRecords');
                 
-                for (let i = 1; i <= 14; i++) {
+                // Look back up to 30 days
+                for (let i = 1; i <= 30; i++) {
                     let checkDate = new Date();
                     checkDate.setDate(checkDate.getDate() - i);
                     const checkDateString = utils.getDDMMYYYY(checkDate);
                     
+                    // If it was a scheduled day
                     if (scheduleDays.includes(checkDate.getDay().toString())) {
                         const wasAbsent = attendanceRecords.some(r => r.studentId === studentId && r.date === checkDateString);
-                        if (wasAbsent) missedDays++;
-                        else break; // Streak broken
+                        if (wasAbsent) {
+                            missedLessons++;
+                        } else {
+                            // Found a day present (or no record), streak ends
+                            // But check if it was cancelled? Assuming simple logic for now.
+                            // If user wasn't marked absent, streak breaks.
+                            break; 
+                        }
                     }
                 }
                 
-                const stars = missedDays >= 2 ? 1 : 0.5;
+                // 2. Determine Bonus
+                let stars = 0.5;
+                if (missedLessons === 1) {
+                    // Random 0.5 or 1.0
+                    stars = Math.random() > 0.5 ? 1.0 : 0.5;
+                } else if (missedLessons === 2) {
+                    stars = 1.5;
+                } else if (missedLessons >= 3) {
+                    stars = 2.0;
+                }
+
+                console.log(`Student missed ${missedLessons} lessons. Awarding ${stars} stars.`);
 
                 try {
                     const publicDataPath = "artifacts/great-class-quest/public/data";
@@ -476,7 +496,7 @@ document.getElementById('lookup-nameday-btn').addEventListener('click', () => {
                         const scoreDoc = await transaction.get(scoreRef);
                         if (!scoreDoc.exists()) {
                              transaction.set(scoreRef, {
-                                totalStars: stars, monthlyStars: stars,
+                                totalStars: stars, monthlyStars: stars, gold: stars,
                                 lastMonthlyResetDate: utils.getStartOfMonthString(),
                                 createdBy: { uid: state.get('currentUserId'), name: state.get('currentTeacherName') }
                             });
@@ -484,7 +504,7 @@ document.getElementById('lookup-nameday-btn').addEventListener('click', () => {
                             transaction.update(scoreRef, {
                                 totalStars: increment(stars),
                                 monthlyStars: increment(stars),
-                                gold: increment(stars) // Ensure gold is awarded too!
+                                gold: increment(stars) 
                             });
                         }
 
@@ -496,7 +516,7 @@ document.getElementById('lookup-nameday-btn').addEventListener('click', () => {
                         };
                         transaction.set(newLogRef, logData);
                         
-                        // Unlock card by setting daily stars to 0 (Present)
+                        // Unlock card
                         const todayStarsRef = doc(collection(db, `${publicDataPath}/today_stars`));
                         transaction.set(todayStarsRef, {
                              studentId, stars: 0, date: utils.getTodayDateString(), reason: 'welcome_back',

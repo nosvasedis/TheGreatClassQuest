@@ -1,3 +1,4 @@
+
 /* Custom Font */
 body {
     font-family: 'Open Sans', sans-serif;
@@ -3727,13 +3728,6 @@ header.header-night h1 {
     animation: bounce-slow 3s infinite ease-in-out;
 }
 
-/* Subtle Night Mode (Twilight) */
-body.night-mode {
-    /* Muted Indigo to Slate Gray. 
-       Looks like "evening" or "dusk" - duller than day, but not black. */
-    background: linear-gradient(to bottom, #c7d2fe 0%, #cbd5e1 100%) !important;
-}
-
 /* --- TITLE MAGIC FAIRY PATROL (Safe Height & Long Rest) --- */
 
 header h1.font-title {
@@ -4893,4 +4887,29 @@ header.header-cloudy::after {
     color: rgba(255, 255, 255, 0.7) !important; /* Explicit White */
     opacity: 1 !important; /* Make sure they are visible */
     animation-duration: 180s !important; /* Extremely slow */
+}
+
+/* Subtle Night Mode (Twilight) */
+body.night-mode {
+    /* Muted Indigo to Slate Gray. 
+       Looks like "evening" or "dusk" - duller than day, but not black. */
+    background: linear-gradient(to bottom, #c7d2fe 0%, #cbd5e1 100%) !important;
+}
+
+/* Ensure the wallpaper screen inherits night mode correctly */
+#dynamic-wallpaper-screen.is-night #wall-bg-day {
+    opacity: 0;
+}
+#dynamic-wallpaper-screen.is-night #wall-bg-night {
+    opacity: 1;
+}
+
+/* --- TASK 7: SHOP CONFIRMATION MODAL --- */
+@keyframes fade-in-modal {
+    from { opacity: 0; backdrop-filter: blur(0); }
+    to { opacity: 1; backdrop-filter: blur(4px); }
+}
+
+.animate-fade-in {
+    animation: fade-in-modal 0.3s ease-out forwards;
 }

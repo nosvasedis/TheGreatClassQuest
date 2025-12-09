@@ -328,12 +328,26 @@ function getActiveDashboard(classData, name, theme, spice) {
     if (lastAssignment && lastAssignment.testData) {
         // Use smart parser to handle YYYY-MM-DD safely
         const tDate = utils.parseFlexibleDate(lastAssignment.testData.date);
-        const dateDisplay = tDate ? tDate.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }) : 'Upcoming';
+        
+        let dateDisplay = 'Upcoming';
+        if (tDate) {
+            // Logic to determine Today vs Tomorrow
+            const checkNow = new Date();
+            checkNow.setHours(0,0,0,0);
+            tDate.setHours(0,0,0,0);
+            
+            const diffTime = tDate - checkNow;
+            const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+            if (diffDays === 0) dateDisplay = "TODAY";
+            else if (diffDays === 1) dateDisplay = "Tomorrow";
+            else dateDisplay = tDate.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
+        }
         
         assignmentText = `
             <div class="flex flex-col gap-1">
                 <span>${lastAssignment.text}</span>
-                <span class="text-xs font-bold text-red-600 bg-red-50 px-2 py-1 rounded border border-red-100 self-start">
+                <span class="text-xs font-bold text-red-600 bg-red-50 px-2 py-1 rounded border border-red-100 self-start animate-pulse">
                     <i class="fas fa-exclamation-circle mr-1"></i> TEST: ${lastAssignment.testData.title} (${dateDisplay})
                 </span>
             </div>`;

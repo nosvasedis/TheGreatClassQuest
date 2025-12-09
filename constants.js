@@ -11,10 +11,10 @@ export const firebaseConfig = {
   measurementId: "G-QJZC4NGX75"
 };
 
-export const workerBaseUrl = 'https://gemini-proxy.nvasedis-cc5.workers.dev';
-export const geminiModelPath = '/v1beta/models/gemini-2.5-flash:generateContent';
-export const geminiApiUrl = `${workerBaseUrl}${geminiModelPath}`;
 export const cloudflareWorkerUrl = 'https://great-class-quest-ai-proxy.nvasedis-cc5.workers.dev/';
+export const workerBaseUrl = 'https://great-class-quest-ai-proxy.nvasedis-cc5.workers.dev';
+export const geminiApiUrl = workerBaseUrl; 
+export const OPENROUTER_MODEL = "amazon/nova-2-lite-v1:free";
 
 export const questLeagues = ['Junior A', 'Junior B', 'A', 'B', 'C', 'D']; 
 

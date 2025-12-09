@@ -1042,15 +1042,25 @@ ${storySection}
 Synthesize this into a cohesive story.`;
 
     try {
+        // 1. Generate Story Text
         const text = await callGeminiApi(textSystemPrompt, textUserPrompt);
 
-        // Keywords & Image
-        const keywordSystemPrompt = "Extract 2-3 single-word, visually descriptive, abstract nouns from the text (e.g. harmony, focus). Comma-separated.";
-        const keywords = (await callGeminiApi(keywordSystemPrompt, text)).split(',').map(k=>k.trim().toLowerCase());
+        // WAIT 4 SECONDS to avoid Error 429
+        await new Promise(r => setTimeout(r, 4000));
 
+        // 2. Extract Keywords
+        const keywordSystemPrompt = "Extract 2-3 single-word, visually descriptive, abstract nouns from the text (e.g. harmony, focus). Comma-separated.";
+        const keywordsRaw = await callGeminiApi(keywordSystemPrompt, text);
+        const keywords = keywordsRaw.split(',').map(k=>k.trim().toLowerCase());
+
+        // WAIT 4 SECONDS to avoid Error 429
+        await new Promise(r => setTimeout(r, 4000));
+
+        // 3. Generate Image Prompt
         const imagePromptSystemPrompt = "Create a short (max 50 words) AI art prompt for a children's storybook illustration based on the text. Style: watercolor and ink, cute, vibrant. No text in image.";
         const imagePrompt = await callGeminiApi(imagePromptSystemPrompt, `Text: ${text}`);
 
+        // 4. Generate Image
         const imageBase64 = await callCloudflareAiImageApi(imagePrompt);
         const compressedImageBase64 = await compressImageBase64(imageBase64);
         
@@ -1093,13 +1103,17 @@ Synthesize this into a cohesive story.`;
 
     } catch (error) {
         console.error("Adventure Log generation error:", error);
-        showToast("The Chronicler seems to have lost their ink. Please try again.", 'error');
+        // Specialized error message for 429
+        if(error.message && error.message.includes('429')) {
+             showToast("AI Overload (429)! Please wait 1 minute and try again.", 'error');
+        } else {
+             showToast("The Chronicler seems to have lost their ink. Please try again.", 'error');
+        }
     } finally {
         btn.disabled = false;
         btn.innerHTML = `<i class="fas fa-feather-alt mr-2"></i> Log Today's Adventure`;
     }
 }
-
 export function handleStarManagerStudentSelect() {
     const studentId = document.getElementById('star-manager-student-select').value;
     const logFormElements = [

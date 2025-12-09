@@ -1,5 +1,5 @@
-import { geminiApiUrl, cloudflareWorkerUrl } from './constants.js';
 import { blobToBase64 } from './utils.js';
+import { geminiApiUrl, OPENROUTER_MODEL, cloudflareWorkerUrl } from './constants.js';
 
 async function fetchWithBackoff(url, options, retries = 3, delay = 2000) { // Increased start delay
     try {
@@ -30,20 +30,35 @@ async function fetchWithBackoff(url, options, retries = 3, delay = 2000) { // In
 }
 
 export async function callGeminiApi(systemPrompt, userPrompt) {
-    const payload = { contents: [{ parts: [{ text: userPrompt }] }], systemInstruction: { parts: [{ text: systemPrompt }] }, };
+    // 1. Prepare Payload for OpenRouter (via Worker)
+    const payload = {
+        model: OPENROUTER_MODEL, 
+        messages: [
+            { role: "system", content: systemPrompt },
+            { role: "user", content: userPrompt }
+        ]
+    };
+
     try {
-        const response = await fetchWithBackoff(geminiApiUrl, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
-        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+        // 2. Call YOUR Worker (No API Key sent here!)
+        const response = await fetchWithBackoff(geminiApiUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
+
+        if (!response.ok) throw new Error(`Proxy error! status: ${response.status}`);
+
         const result = await response.json();
-        const candidate = result.candidates?.[0];
-        if (candidate && candidate.content?.parts?.[0]?.text) return candidate.content.parts[0].text;
+        
+        // 3. Extract content (OpenRouter structure)
+        const content = result.choices?.[0]?.message?.content;
+        
+        if (content) return content;
         else throw new Error('Invalid AI response structure');
+
     } catch (error) {
-        console.error('Error in callGeminiApi:', error);
-        console.log("--- FAILED AI PROMPT ---");
-        console.log("System Prompt:", systemPrompt);
-        console.log("User Prompt:", userPrompt);
-        console.log("-----------------------");
+        console.error('Error in callGeminiApi (Proxy):', error);
         throw error;
     }
 }

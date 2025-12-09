@@ -6,6 +6,7 @@ import { callGeminiApi } from '../api.js';
 import * as constants from '../constants.js';
 
 let directorTimeout = null;
+let wallpaperTimerInterval = null;
 let clockInterval = null;
 let escListener = null;
 let isRunning = false;
@@ -61,6 +62,7 @@ export function toggleWallpaperMode() {
                 document.exitFullscreen();
             }
             clearTimeout(directorTimeout);
+            if (wallpaperTimerInterval) clearInterval(wallpaperTimerInterval);
             clearInterval(clockInterval);
             document.getElementById('wall-floating-area').innerHTML = '';
             document.getElementById('wall-quote-container').style.opacity = '0';
@@ -270,12 +272,10 @@ async function directorGameLoop() {
     const classId = state.get('globalSelectedClassId');
     const now = Date.now();
 
-    // --- PRIORITY 1: ACTIVE TIMER (Parallel Rendering) ---
-    // We render this into a SEPARATE container so it doesn't get cleared
+    // --- PRIORITY 1: ACTIVE TIMER (Real-Time Logic) ---
     const activeTimer = state.get('allQuestBounties').find(b => b.classId === classId && b.status === 'active' && b.type === 'timer');
     let timerOverlay = document.getElementById('wall-timer-overlay');
     
-    // Create specific container for timer if missing
     if (!timerOverlay) {
         timerOverlay = document.createElement('div');
         timerOverlay.id = 'wall-timer-overlay';
@@ -283,68 +283,84 @@ async function directorGameLoop() {
         document.getElementById('dynamic-wallpaper-screen').appendChild(timerOverlay);
     }
 
+    // Clear any existing timer interval to prevent stacking
+    if (wallpaperTimerInterval) clearInterval(wallpaperTimerInterval);
+
     if (activeTimer) {
-        const deadline = new Date(activeTimer.deadline).getTime();
-        const timeLeftMs = deadline - now;
+        const updateTimerVisuals = async () => {
+            const currentNow = Date.now();
+            const deadline = new Date(activeTimer.deadline).getTime();
+            const timeLeftMs = deadline - currentNow;
 
-        if (timeLeftMs > 0) {
-            const minutes = Math.floor(timeLeftMs / 60000);
-            const seconds = Math.floor((timeLeftMs % 60000) / 1000);
-            const timeDisplay = `${minutes}:${String(seconds).padStart(2, '0')}`;
-            const cssClass = timeLeftMs < 120000 ? 'float-card-red' : 'float-card-orange';
-            const icon = timeLeftMs < 120000 ? '🔥' : '⏳';
+            if (timeLeftMs > 0) {
+                const minutes = Math.floor(timeLeftMs / 60000);
+                const seconds = Math.floor((timeLeftMs % 60000) / 1000);
+                const timeDisplay = `${minutes}:${String(seconds).padStart(2, '0')}`;
+                
+                // Color Logic
+                let cssClass = 'float-card-indigo'; // Default
+                let icon = '⏳';
+                
+                if (timeLeftMs < 60000) { // Less than 1 min
+                    cssClass = 'float-card-red animate-pulse'; // Red & Pulse
+                    icon = '🔥';
+                } else if (timeLeftMs < 180000) { // Less than 3 mins
+                    cssClass = 'float-card-orange';
+                }
 
-            timerOverlay.innerHTML = `
-                <div class="wallpaper-float-card ${cssClass}" style="position: relative; width: auto; min-width: 400px; transform: none; animation: none;">
-                    <div class="text-center w-full px-6 py-2 flex items-center justify-between gap-6">
-                        <div class="flex items-center gap-4">
-                            <div class="text-4xl animate-pulse">${icon}</div>
-                            <div class="text-left">
-                                <div class="badge-pill bg-white text-red-600 border border-red-200 text-[10px] py-0 px-2 mb-0">Time Remaining</div>
-                                <h3 class="font-title text-2xl text-white/90 truncate max-w-[200px]">${activeTimer.title}</h3>
+                timerOverlay.innerHTML = `
+                    <div class="wallpaper-float-card ${cssClass}" style="position: relative; width: auto; min-width: 400px; transform: none; animation: none;">
+                        <div class="text-center w-full px-6 py-2 flex items-center justify-between gap-6">
+                            <div class="flex items-center gap-4">
+                                <div class="text-4xl">${icon}</div>
+                                <div class="text-left">
+                                    <div class="badge-pill bg-white text-indigo-900 border border-indigo-200 text-[10px] py-0 px-2 mb-0">Time Remaining</div>
+                                    <h3 class="font-title text-2xl text-white/90 truncate max-w-[200px]">${activeTimer.title}</h3>
+                                </div>
                             </div>
+                            <h2 class="font-title text-6xl text-white drop-shadow-md leading-none font-variant-numeric:tabular-nums">${timeDisplay}</h2>
                         </div>
-                        <h2 class="font-title text-6xl text-white drop-shadow-md leading-none font-variant-numeric:tabular-nums">${timeDisplay}</h2>
-                    </div>
-                </div>`;
-        } else {
-            // --- TIMER FINISHED ---
-            timerOverlay.innerHTML = ''; // Clear visual timer
-            
-            // 1. Mark complete in DB
-            const { updateDoc, doc } = await import('https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js');
-            await updateDoc(doc(db, "artifacts/great-class-quest/public/data/quest_bounties", activeTimer.id), { status: 'completed' });
+                    </div>`;
+            } else {
+                // --- TIMER FINISHED ---
+                clearInterval(wallpaperTimerInterval);
+                timerOverlay.innerHTML = ''; 
+                
+                // 1. Mark complete in DB
+                const { updateDoc, doc } = await import('https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js');
+                await updateDoc(doc(db, "artifacts/great-class-quest/public/data/quest_bounties", activeTimer.id), { status: 'completed' });
 
-            // 2. Play Sound (5 Seconds Loop)
-            const { playSound } = await import('../audio.js');
-            playSound('magic_chime');
-            let chimeCount = 0;
-            const chimeInterval = setInterval(() => {
-                chimeCount++;
-                if(chimeCount >= 5) clearInterval(chimeInterval); // Stop after 5 times (approx 5 sec)
+                // 2. Play Sound
+                const { playSound } = await import('../audio.js');
                 playSound('magic_chime');
-            }, 1000);
 
-            // 3. Show "Time's Up" Card briefly in the main flow
-            container.innerHTML = '';
-            const html = `
-                <div class="text-center w-full">
-                    <div class="text-9xl mb-4 animate-bounce">⏰</div>
-                    <h2 class="font-title text-6xl text-white drop-shadow-xl mb-4">Time's Up!</h2>
-                    <p class="text-3xl text-white font-serif italic">"Great effort everyone!"</p>
-                </div>`;
-            const el = spawnCard(container, { html, css: 'float-card-purple', id: 'timer_end' });
-            el.style.top = '50%'; el.style.left = '50%'; 
-            el.style.transform = 'translate(-50%, -50%) scale(1.2)';
-            
-            directorTimeout = setTimeout(directorGameLoop, 8000);
-            return;
-        }
+                // 3. Show "Time's Up" Card briefly
+                container.innerHTML = '';
+                const html = `
+                    <div class="text-center w-full">
+                        <div class="text-9xl mb-4 animate-bounce">⏰</div>
+                        <h2 class="font-title text-6xl text-white drop-shadow-xl mb-4">Time's Up!</h2>
+                        <p class="text-3xl text-white font-serif italic">"Pencils down, heroes!"</p>
+                    </div>`;
+                const el = spawnCard(container, { html, css: 'float-card-purple', id: 'timer_end' });
+                el.style.top = '50%'; el.style.left = '50%'; 
+                el.style.transform = 'translate(-50%, -50%) scale(1.2)';
+                
+                // Pause director briefly then resume
+                clearTimeout(directorTimeout);
+                directorTimeout = setTimeout(directorGameLoop, 8000);
+            }
+        };
+
+        // Run immediately then set interval
+        updateTimerVisuals();
+        wallpaperTimerInterval = setInterval(updateTimerVisuals, 1000);
+
     } else {
-        timerOverlay.innerHTML = ''; // Clean up if no timer
+        timerOverlay.innerHTML = ''; 
     }
 
-    // --- STANDARD CARD LOGIC (Now runs in parallel!) ---
+    // --- STANDARD CARD LOGIC (Running in background) ---
     const session = getSession();
     let currentCardData = null;
     let remainingTime = 0;
@@ -379,19 +395,24 @@ async function directorGameLoop() {
 
     const existingCard = container.firstElementChild;
     if (currentCardData && (!existingCard || existingCard.dataset.cardId !== currentCardData.id)) {
-        container.innerHTML = ''; 
-        spawnCard(container, currentCardData);
+        // Don't overwrite if showing Time's Up
+        if (!existingCard || existingCard.dataset.cardId !== 'timer_end') {
+            container.innerHTML = ''; 
+            spawnCard(container, currentCardData);
+        }
     }
 
     // Loop logic
     directorTimeout = setTimeout(async () => {
         const el = container.firstElementChild;
-        if (el) {
+        // Don't fade out if it's the timer end card, let the timeout above handle it
+        if (el && el.dataset.cardId !== 'timer_end') {
             el.style.opacity = '0';
             el.style.transform = 'translateY(-50px) scale(0.9)';
         }
         setTimeout(() => {
-            if(container) container.innerHTML = ''; 
+            // Only clear if not timer end
+            if(container && (!el || el.dataset.cardId !== 'timer_end')) container.innerHTML = ''; 
             directorGameLoop(); 
         }, 5000); 
     }, remainingTime);
@@ -439,6 +460,25 @@ function buildDeckList(classId) {
     const dateMatch = `-${mm}-${dd}`;
     const hour = now.getHours();
     const day = now.getDay();
+
+    // --- CHECK FOR TESTS TODAY ---
+    if (classId) {
+        const todayStr = utils.getTodayDateString();
+        const assignments = state.get('allQuestAssignments');
+        // Look for a test match
+        const hasTestToday = assignments.some(a => 
+            a.classId === classId && 
+            a.testData && 
+            utils.datesMatch(a.testData.date, todayStr)
+        );
+        
+        if (hasTestToday) {
+            // Push it twice so it appears frequently
+            list.push('class_test_luck');
+            list.push('class_test_luck');
+        }
+    }
+    // -----------------------------
 
     if (!classId) {
         list.push(
@@ -540,6 +580,7 @@ async function hydrateCard(type, classId) {
             case 'motivation_poster': content = await getMotivationCard(); break;
             case 'holiday': content = getNextHolidayCard(); break;
             case 'weather': content = getWeatherCard(); break;
+            case 'class_test_luck': content = getTestLuckCard(classId); break;
 
             case 'ai_fact_science': content = await getAIFromDB('fact_science'); break;
             case 'ai_fact_history': content = await getAIFromDB('fact_history'); break;
@@ -1309,6 +1350,32 @@ function getAbsentHeroesCard(classId) {
                 ${namesHtml}
             </div>
             <p class="text-red-700/60 text-sm mt-3 font-bold">Hope to see you next time!</p>
+        </div>`,
+        css: 'float-card-red'
+    };
+}
+
+function getTestLuckCard(classId) {
+    const assignments = state.get('allQuestAssignments');
+    const todayStr = utils.getTodayDateString();
+    
+    // Find the specific test details
+    const test = assignments.find(a => 
+        a.classId === classId && 
+        a.testData && 
+        utils.datesMatch(a.testData.date, todayStr)
+    );
+    
+    const title = test ? test.testData.title : "The Big Exam";
+
+    return {
+        html: `
+        <div class="text-center w-full">
+            <div class="badge-pill bg-white/90 text-red-600 border border-red-200">⚔️ Challenge Event</div>
+            <div class="text-8xl mb-4 animate-bounce">🍀</div>
+            <h2 class="font-title text-5xl text-white drop-shadow-md mb-2">Good Luck!</h2>
+            <p class="text-white text-xl font-bold opacity-90">You are ready for</p>
+            <p class="font-title text-3xl text-yellow-300 mt-1" style="text-shadow: 0 2px 4px rgba(0,0,0,0.5);">${title}</p>
         </div>`,
         css: 'float-card-red'
     };

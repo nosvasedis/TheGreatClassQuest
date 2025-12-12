@@ -1046,7 +1046,7 @@ Synthesize this into a cohesive story.`;
         const text = await callGeminiApi(textSystemPrompt, textUserPrompt);
 
         // WAIT 4 SECONDS to avoid Error 429
-        await new Promise(r => setTimeout(r, 4000));
+        await new Promise(r => setTimeout(r, 8000));
 
         // 2. Extract Keywords
         const keywordSystemPrompt = "Extract 2-3 single-word, visually descriptive, abstract nouns from the text (e.g. harmony, focus). Comma-separated.";

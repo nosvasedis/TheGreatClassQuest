@@ -14,7 +14,7 @@ export const firebaseConfig = {
 export const cloudflareWorkerUrl = 'https://great-class-quest-ai-proxy.nvasedis-cc5.workers.dev';
 export const workerBaseUrl = 'https://great-class-quest-ai-proxy.nvasedis-cc5.workers.dev';
 export const geminiApiUrl = workerBaseUrl; 
-export const OPENROUTER_MODEL = "amazon/nova-2-lite-v1:free";
+export const OPENROUTER_MODEL = "tngtech/tng-r1t-chimera:free";
 
 export const questLeagues = ['Junior A', 'Junior B', 'A', 'B', 'C', 'D']; 
 
@@ -89,4 +89,5 @@ export const classColorPalettes = [
     { bg: 'bg-sky-100', text: 'text-sky-800', border: 'border-sky-300' },
     { bg: 'bg-violet-100', text: 'text-violet-800', border: 'border-violet-300' }
 ];
+
 

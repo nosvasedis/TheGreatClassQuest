@@ -134,6 +134,12 @@ const writtenScoresQuery = query(
         renderScholarsScrollTab(state.get('globalSelectedClassId'));
         if (!document.getElementById('options-tab').classList.contains('hidden')) renderStarManagerStudentSelect();
         renderHomeTab(); // Update home tab (student count changes)
+        // --- NEW: Check for missing genders in background ---
+        // Debounce this slightly so it doesn't fire while typing a new name
+        if (window.genderCheckTimeout) clearTimeout(window.genderCheckTimeout);
+        window.genderCheckTimeout = setTimeout(() => {
+            import('../db/actions.js').then(a => a.resolveMissingGenders());
+        }, 3000); // Wait 3 seconds after data loads
     }, (error) => console.error("Error listening to students:", error)));
 
     state.setUnsubscribeStudentScores(onSnapshot(scoresQuery, (snapshot) => {

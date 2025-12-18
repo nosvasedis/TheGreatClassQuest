@@ -791,10 +791,10 @@ export async function handleSaveQuestAssignment() {
     const classId = document.getElementById('quest-assignment-class-id').value;
     const text = document.getElementById('quest-assignment-textarea').value.trim();
     
-    // New Fields
-    const testDate = document.getElementById('quest-test-date').value;
-    const testTitle = document.getElementById('quest-test-title').value;
-    const curriculum = document.getElementById('quest-test-curriculum').value;
+    // New Fields from Form
+    const formTestDate = document.getElementById('quest-test-date').value;
+    const formTestTitle = document.getElementById('quest-test-title').value;
+    const formCurriculum = document.getElementById('quest-test-curriculum').value;
 
     if (!text) {
         showToast("Please write an assignment before saving.", "info");
@@ -808,20 +808,52 @@ export async function handleSaveQuestAssignment() {
     try {
         const publicDataPath = "artifacts/great-class-quest/public/data";
         
+        // 1. Fetch the EXISTING assignment to see if there is a future test we need to keep
         const q = query(
             collection(db, `${publicDataPath}/quest_assignments`),
             where("classId", "==", classId),
-            where("createdBy.uid", "==", state.get('currentUserId'))
+            where("createdBy.uid", "==", state.get('currentUserId')),
+            orderBy("createdAt", "desc"), // Get latest first
+            limit(1)
         );
         const snapshot = await getDocs(q);
+        
+        let testDataToSave = null;
+        let existingTest = null;
+
+        // Extract existing test if available
+        if (!snapshot.empty) {
+            existingTest = snapshot.docs[0].data().testData;
+        }
+
+        // LOGIC: Determine which Test Data to use
+        if (formTestDate && formTestTitle) {
+            // A. User entered a NEW test in the form -> Use it
+            testDataToSave = { date: formTestDate, title: formTestTitle, curriculum: formCurriculum || '' };
+        } else if (existingTest) {
+            // B. User left form blank, but there was an OLD test. Check if it's still in the future.
+            const today = new Date();
+            today.setHours(0,0,0,0);
+            const oldTestDate = new Date(existingTest.date);
+            oldTestDate.setHours(0,0,0,0);
+
+            // Keep it if it is Today or in the Future
+            if (oldTestDate >= today) {
+                testDataToSave = existingTest;
+                console.log("Preserving existing upcoming test:", existingTest.title);
+            }
+        }
+
         const batch = writeBatch(db);
+        
+        // Clean up old assignments to keep DB tidy (optional, but good for cleanliness)
         snapshot.forEach(doc => batch.delete(doc.ref));
         
         const newDocRef = doc(collection(db, `${publicDataPath}/quest_assignments`));
         batch.set(newDocRef, {
             classId,
             text,
-            testData: (testDate && testTitle) ? { date: testDate, title: testTitle, curriculum: curriculum || '' } : null,
+            testData: testDataToSave, // Saves either the new one OR the preserved old one
             createdAt: serverTimestamp(),
             createdBy: { uid: state.get('currentUserId'), name: state.get('currentTeacherName') }
         });
@@ -2535,5 +2567,59 @@ export async function handleSpecialOccasionBonus(studentId, type) {
     } catch (error) {
         console.error("Bonus Error:", error);
         showToast("Error applying bonus.", "error");
+
+        
+    }
+}
+
+// --- GENDER RESOLVER (Quota Saver - Rule Safe) ---
+
+export async function resolveMissingGenders() {
+    const currentUserId = state.get('currentUserId'); // Get your ID
+    const allStudents = state.get('allStudents');
+    
+    // 1. Find students WITHOUT gender AND created by YOU
+    // This prevents the batch from failing due to Firebase "isOwner" rules
+    const unclassified = allStudents.filter(s => 
+        !s.gender && 
+        s.createdBy && 
+        s.createdBy.uid === currentUserId
+    );
+
+    if (unclassified.length === 0) return; 
+
+    console.log(`Resolving genders for ${unclassified.length} of your students...`);
+
+    // 2. Prepare the list for the AI (ID + Name)
+    const listToAnalyze = unclassified.map(s => ({ id: s.id, name: s.name.split(' ')[0] }));
+
+    // 3. Ask AI (ONE single call for everyone)
+    const systemPrompt = "You are a name classifier. You will receive a list of student names. Classify them as 'boy' or 'girl' based on Greek and International naming conventions. If ambiguous, guess based on common probability. Return strictly valid JSON: { 'student_id': 'boy'|'girl', ... }.";
+    const userPrompt = `Classify these students: ${JSON.stringify(listToAnalyze)}`;
+
+    try {
+        const jsonStr = await callGeminiApi(systemPrompt, userPrompt);
+        const cleanJson = jsonStr.replace(/```json|```/g, '').trim();
+        const resultMap = JSON.parse(cleanJson);
+
+        // 4. Batch Save to Firebase
+        const batch = writeBatch(db);
+        let count = 0;
+
+        Object.entries(resultMap).forEach(([id, gender]) => {
+            if (listToAnalyze.find(s => s.id === id)) {
+                const docRef = doc(db, "artifacts/great-class-quest/public/data/students", id);
+                batch.update(docRef, { gender: gender.toLowerCase() });
+                count++;
+            }
+        });
+
+        if (count > 0) {
+            await batch.commit();
+            console.log(`Gender resolved and saved for ${count} students.`);
+        }
+
+    } catch (e) {
+        console.error("Gender resolution failed (Quota saved, will try next time):", e);
     }
 }

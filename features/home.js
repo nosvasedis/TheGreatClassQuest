@@ -324,31 +324,47 @@ function getActiveDashboard(classData, name, theme, spice) {
     
     let assignmentText = lastAssignment ? lastAssignment.text : "No active homework.";
 
-    // Append Test Info if available
+   // Append Test Info if available
     if (lastAssignment && lastAssignment.testData) {
         // Use smart parser to handle YYYY-MM-DD safely
         const tDate = utils.parseFlexibleDate(lastAssignment.testData.date);
         
         let dateDisplay = 'Upcoming';
+        let badgeColor = 'bg-red-50 text-red-600 border-red-100'; // Default styling
+        let icon = 'exclamation-circle';
+
         if (tDate) {
             // Logic to determine Today vs Tomorrow
             const checkNow = new Date();
-            checkNow.setHours(0,0,0,0);
-            tDate.setHours(0,0,0,0);
+            checkNow.setHours(0,0,0,0); // Reset time to midnight
             
-            const diffTime = tDate - checkNow;
-            const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+            // Clone date to ensure we don't mutate original if used elsewhere
+            const checkTest = new Date(tDate);
+            checkTest.setHours(0,0,0,0); // Reset time to midnight
+            
+            // Calculate difference in Days
+            const diffTime = checkTest - checkNow;
+            const diffDays = Math.round(diffTime / (1000 * 60 * 60 * 24));
 
-            if (diffDays === 0) dateDisplay = "TODAY";
-            else if (diffDays === 1) dateDisplay = "Tomorrow";
-            else dateDisplay = tDate.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
+            if (diffDays < 0) {
+                // Past test - should ideally be cleared, but just in case
+                dateDisplay = "Past Due";
+            } else if (diffDays === 0) {
+                dateDisplay = "TODAY!";
+                badgeColor = "bg-red-600 text-white border-red-700 shadow-md animate-pulse"; // Urgent style
+                icon = "bell";
+            } else if (diffDays === 1) {
+                dateDisplay = "Tomorrow";
+            } else {
+                dateDisplay = tDate.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
+            }
         }
         
         assignmentText = `
             <div class="flex flex-col gap-1">
                 <span>${lastAssignment.text}</span>
-                <span class="text-xs font-bold text-red-600 bg-red-50 px-2 py-1 rounded border border-red-100 self-start animate-pulse">
-                    <i class="fas fa-exclamation-circle mr-1"></i> TEST: ${lastAssignment.testData.title} (${dateDisplay})
+                <span class="text-xs font-bold px-2 py-1 rounded border ${badgeColor} self-start flex items-center gap-1 mt-1">
+                    <i class="fas fa-${icon}"></i> TEST: ${lastAssignment.testData.title} (${dateDisplay})
                 </span>
             </div>`;
     }

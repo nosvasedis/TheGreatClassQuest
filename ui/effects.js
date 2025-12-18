@@ -1,4 +1,5 @@
 import { callGeminiApi } from '../api.js';
+import * as state from '../state.js';
 
 export function showToast(message, type = 'info', duration = 3000) {
     const container = document.getElementById('toast-container');
@@ -75,15 +76,118 @@ export async function showWelcomeBackMessage(firstName, stars) {
     }, 4000);
 }
 
-export async function triggerDynamicPraise(studentName, starCount, reason) {
+export function triggerDynamicPraise(studentName, starCount, reason) {
     const firstName = studentName.split(' ')[0];
-    const starText = starCount === 1 ? "1 star" : `${starCount} stars`;
-    const systemPrompt = "You are the 'Quest Master' in a fun classroom game. You speak in short, exciting, game-like single sentences. Do NOT use markdown or asterisks. Your job is to give a unique, positive praise message to a student who just earned stars for a specific reason. The praise should be one sentence only.";
-    const userPrompt = `Generate a one-sentence praise for a student named ${firstName} who just earned ${starText} for demonstrating excellent ${reason}.`;
-    try {
-        const praise = await callGeminiApi(systemPrompt, userPrompt);
-        if (praise) showPraiseToast(praise, '✨');
-    } catch (error) { console.error('Gemini Praise Error:', error); }
+    
+    // 1. Get Gender from State (Cached from DB)
+    const student = state.get('allStudents').find(s => s.name === studentName) || {};
+    const g = student.gender === 'girl' ? 'girl' : 'boy'; 
+
+    // --- PRE-DEFINED PERSONALIZED DATABASE ---
+    const praiseDB = {
+        // 1. TEAMWORK (Purple)
+        teamwork: {
+            color: "text-purple-600",
+            1: {
+                boy: ["Great helper, ${name}!", "Solid teammate!", "Good assist!"],
+                girl: ["Great helper, ${name}!", "Solid teammate!", "Good assist!"]
+            },
+            2: {
+                boy: ["You make the team stronger, ${name}!", "A true brother in arms!", "Excellent cooperation!"],
+                girl: ["You make the team stronger, ${name}!", "A true sister in arms!", "Excellent cooperation!"]
+            },
+            3: {
+                boy: ["THE KING OF COOPERATION! The guild salutes you!", "A Legendary Ally!", "The team's MVP!"],
+                girl: ["THE QUEEN OF COOPERATION! The guild salutes you!", "A Legendary Ally!", "The team's MVP!"]
+            }
+        },
+        // 2. CREATIVITY (Pink)
+        creativity: {
+            color: "text-pink-600",
+            1: {
+                boy: ["Cool idea, ${name}!", "Nice thinking!", "Creative spark!"],
+                girl: ["Cool idea, ${name}!", "Nice thinking!", "Creative spark!"]
+            },
+            2: {
+                boy: ["Brilliant imagination, sir!", "What a clever mind!", "Colorful thinking!"],
+                girl: ["Brilliant imagination, miss!", "What a clever mind!", "Colorful thinking!"]
+            },
+            3: {
+                boy: ["A VISIONARY GENIUS! Your mind is a galaxy!", "Master Inventor!", "Pure Magic!"],
+                girl: ["A VISIONARY GENIUS! Your mind is a galaxy!", "Mistress of Invention!", "Pure Magic!"]
+            }
+        },
+        // 3. RESPECT (Green)
+        respect: {
+            color: "text-green-600",
+            1: {
+                boy: ["Very polite, ${name}.", "Respectful choice.", "Kind heart."],
+                girl: ["Very polite, ${name}.", "Respectful choice.", "Kind heart."]
+            },
+            2: {
+                boy: ["A true gentleman!", "You earn respect by giving it!", "Honorable behavior!"],
+                girl: ["A true lady!", "You earn respect by giving it!", "Honorable behavior!"]
+            },
+            3: {
+                boy: ["A PARAGON OF VIRTUE! A Knight of Honor!", "The heart of a Hero!", "Maximum Respect!"],
+                girl: ["A PARAGON OF VIRTUE! A Knight of Honor!", "The heart of a Heroine!", "Maximum Respect!"]
+            }
+        },
+        // 4. FOCUS (Yellow/Amber)
+        focus: {
+            color: "text-amber-600",
+            1: {
+                boy: ["Sharp eyes, ${name}!", "Good focus.", "On target."],
+                girl: ["Sharp eyes, ${name}!", "Good focus.", "On target."]
+            },
+            2: {
+                boy: ["Laser concentration!", "Nothing gets past him!", "Locked in!"],
+                girl: ["Laser concentration!", "Nothing gets past her!", "Locked in!"]
+            },
+            3: {
+                boy: ["UNBREAKABLE WILL! Nothing distracts him!", "The Eye of the Tiger!", "Hyper-Focus Achieved!"],
+                girl: ["UNBREAKABLE WILL! Nothing distracts her!", "The Eye of the Tiger!", "Hyper-Focus Achieved!"]
+            }
+        },
+        // 5. GENERIC / OTHER (Blue)
+        default: {
+            color: "text-blue-600",
+            1: {
+                boy: ["Well done, ${name}!", "Good job!", "Nice work!"],
+                girl: ["Well done, ${name}!", "Good job!", "Nice work!"]
+            },
+            2: {
+                boy: ["Awesome effort, ${name}!", "He's leveling up!", "Way to go!"],
+                girl: ["Awesome effort, ${name}!", "She's leveling up!", "Way to go!"]
+            },
+            3: {
+                boy: ["SPECTACULAR! He is on fire today!", "Quest Crushed!", "A Legend is born!"],
+                girl: ["SPECTACULAR! She is on fire today!", "Quest Crushed!", "A Legend is born!"]
+            }
+        }
+    };
+
+    // Select category and star level
+    const category = praiseDB[reason] || praiseDB['default'];
+    const countKey = Math.min(starCount, 3);
+    
+    // Select gender-specific array
+    const messages = category[countKey][g];
+    
+    // Pick random message
+    const rawMessage = messages[Math.floor(Math.random() * messages.length)];
+    const message = rawMessage.replace("${name}", firstName);
+    
+    // Determine Icon
+    let icon = '✨';
+    if (starCount === 2) icon = '🌟';
+    if (starCount >= 3) icon = '🏆';
+
+    // Stylize
+    const styledMessage = `<span class="${category.color} font-bold">${message}</span>`;
+
+    // Trigger
+    showPraiseToast(styledMessage, icon);
 }
 
 export function triggerAwardEffects(button, starCount) {

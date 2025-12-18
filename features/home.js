@@ -881,27 +881,45 @@ function getReminderPills(classId) {
         `);
     }
 
-    // 4. QUEST EVENTS (Test/Vocab/etc)
+   // 4. QUEST EVENTS (Test/Vocab/etc) - FIXED & BEAUTIFIED
     const events = state.get('allQuestEvents') || [];
-    const upcomingEvent = events.find(e => {
-        const eventDate = utils.parseDDMMYYYY(e.date);
-        return eventDate >= now && eventDate <= endOfMonth;
-    });
+    
+    // Ταξινομούμε τα events ώστε τα σημερινά να εμφανίζονται πάντα πρώτα
+    const sortedEvents = [...events].sort((a, b) => utils.parseDDMMYYYY(a.date) - utils.parseDDMMYYYY(b.date));
 
-    if (upcomingEvent) {
-         const eventDate = utils.parseDDMMYYYY(upcomingEvent.date);
-         const diffTime = eventDate - now;
-         const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-         const timeText = diffDays === 0 ? "Today!" : (diffDays === 1 ? "Tomorrow!" : `in ${diffDays} days`);
+    sortedEvents.forEach(e => {
+        const eventDate = utils.parseDDMMYYYY(e.date);
+        
+        // Φιλτράρουμε ώστε να δείχνουμε μόνο από σήμερα και μετά, μέχρι το τέλος του μήνα
+        if (eventDate < now || eventDate > endOfMonth) return;
+
+        const diffTime = eventDate - now;
+        // Χρησιμοποιούμε round για να αποφύγουμε μικρολάθη στα milliseconds
+        const diffDays = Math.round(diffTime / (1000 * 60 * 60 * 24));
+        const timeText = diffDays === 0 ? "Today!" : (diffDays === 1 ? "Tomorrow!" : `in ${diffDays} days`);
+        
+        const title = e.details.title || e.type;
+        const isDoubleStar = title.toLowerCase().includes('2x star');
+        
+        // Ορίζουμε το στυλ: Αν είναι 2x Star Day, βάζουμε χρυσό gradient και animation
+        let pillStyle = "bg-purple-50 text-purple-700 border-purple-200";
+        let icon = "fa-magic";
+        let specialClass = "";
+
+        if (isDoubleStar) {
+            pillStyle = "bg-gradient-to-r from-amber-400 via-orange-500 to-yellow-400 text-white border-white shadow-[0_0_20px_rgba(251,191,36,0.6)]";
+            icon = "fa-bolt-lightning";
+            specialClass = "animate-bounce-slow star-day-glow";
+        }
 
         pills.push(`
-            <div class="date-pill bg-purple-50 text-purple-700 border border-purple-200 shadow-sm flex items-center gap-2 px-4 py-2 rounded-full transition-transform hover:scale-105 cursor-default">
-                <i class="fas fa-magic"></i>
-                <span class="font-bold">${upcomingEvent.details.title || upcomingEvent.type}</span>
-                <span class="bg-white/60 px-2 py-0.5 rounded-full text-xs font-extrabold uppercase tracking-wide ml-1">${timeText}</span>
+            <div class="date-pill ${pillStyle} ${specialClass} border-2 flex items-center gap-2 px-4 py-2 rounded-full transition-all hover:scale-110 cursor-default">
+                <i class="fas ${icon} ${isDoubleStar ? 'animate-pulse' : ''}"></i>
+                <span class="font-bold tracking-tight">${title}</span>
+                <span class="bg-white/30 backdrop-blur-sm px-2 py-0.5 rounded-full text-[10px] font-black uppercase ml-1">${timeText}</span>
             </div>
         `);
-    }
+    });
 
     // 5. ACTIVE BOUNTY / TIMER (Corrected Logic)
     if (classId) {

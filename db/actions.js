@@ -17,7 +17,8 @@ import {
     increment,
     getDoc,
     setDoc,
-    orderBy
+    orderBy,
+    limit
 } from '../firebase.js';
 
 import * as state from '../state.js';

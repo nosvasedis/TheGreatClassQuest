@@ -34,6 +34,7 @@ function getDefaultState() {
         
         // UI Selection States
         globalSelectedClassId: null,
+        reigningHero: null, // Stores the student object of the last crowned hero
         globalSelectedLeague: null,
         isProgrammaticSelection: false,
         
@@ -131,10 +132,10 @@ export function setCurrentUserId(id) { state.currentUserId = id; }
 export function setCurrentTeacherName(name) { state.currentTeacherName = name; }
 export function setAllTeachersClasses(classes) { state.allTeachersClasses = classes; }
 export function setAllSchoolClasses(classes) { state.allSchoolClasses = classes; }
-export function setAllStudents(students) { state.allStudents = students; }
+export function setAllStudents(students) { state.allStudents = students; updateReigningHero(); }
 export function setAllStudentScores(scores) { state.allStudentScores = scores; }
 export function setAllAwardLogs(logs) { state.allAwardLogs = logs; }
-export function setAllAdventureLogs(logs) { state.allAdventureLogs = logs; }
+export function setAllAdventureLogs(logs) { state.allAdventureLogs = logs; updateReigningHero(); }
 export function setAllQuestEvents(events) { state.allQuestEvents = events; }
 export function setAllQuestAssignments(assignments) { state.allQuestAssignments = assignments; }
 export function setAllWrittenScores(scores) { state.allWrittenScores = scores; }
@@ -153,6 +154,7 @@ export function setGlobalSelectedClass(classId, isManual = false) {
     }
 
     state.globalSelectedClassId = classId;
+    updateReigningHero();
     if (classId) {
         const selectedClass = state.allSchoolClasses.find(c => c.id === classId);
         if (selectedClass) {
@@ -263,5 +265,27 @@ export async function fetchMonthlyHistory(monthKey) {
         allMonthlyHistory[monthKey] = {};
         set('allMonthlyHistory', allMonthlyHistory);
         return {};
+    }
+}
+
+export function setReigningHero(hero) { state.reigningHero = hero; }
+
+function updateReigningHero() {
+    const classId = state.globalSelectedClassId;
+    if (!classId || !state.allAdventureLogs.length) {
+        state.reigningHero = null;
+        return;
+    }
+
+    // Φιλτράρισμα και ταξινόμηση για να βρούμε το πιο πρόσφατο Log
+    const logs = [...state.allAdventureLogs]
+        .filter(l => l.classId === classId)
+        .sort((a, b) => (b.createdAt?.toMillis?.() || 0) - (a.createdAt?.toMillis?.() || 0));
+    
+    if (logs.length > 0) {
+        const lastHeroName = logs[0].hero;
+        state.reigningHero = state.allStudents.find(s => s.name === lastHeroName && s.classId === classId) || null;
+    } else {
+        state.reigningHero = null;
     }
 }

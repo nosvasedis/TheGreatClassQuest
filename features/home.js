@@ -46,7 +46,7 @@ function updateHeaderQuote(quote) {
 export function renderHomeTab() {
     const container = document.getElementById('home-dashboard-container');
     if (!container) return;
-    
+
     // Skeleton check
     if (!state.get('allSchoolClasses')) {
         container.innerHTML = getSkeleton();
@@ -289,16 +289,17 @@ function getActiveDashboard(classData, name, theme, spice) {
     const currentMonth = now.getMonth();
     const currentYear = now.getFullYear();
 
-    const monthlyStars = state.get('allAwardLogs').reduce((sum, log) => {
-        if (log.classId !== classId) return sum;
-        const d = utils.parseDDMMYYYY(log.date);
-        if (d.getMonth() === currentMonth && d.getFullYear() === currentYear) {
-            return sum + log.stars;
-        }
-        return sum;
+    // SOURCE OF TRUTH: Sum the actual Monthly Star scores for every student in the class
+    // This ensures Starfall, Story Weaver, and all bonuses are included.
+    const monthlyStars = students.reduce((sum, s) => {
+        const scoreData = scores.find(sc => sc.id === s.id);
+        return sum + (scoreData ? (scoreData.monthlyStars || 0) : 0);
     }, 0);
 
-    const goal = Math.max(18, students.length * 18);
+    // NEW: Dynamic goal based on actual lessons, holidays, and overrides
+    // NEW: Pass the full classData to match Leaderboard logic
+    let goal = calculateMonthlyClassGoal(classData, students.length);
+    if (goal < 18) goal = 18; // Shared safety floor
     const progress = Math.min(100, (monthlyStars / goal) * 100).toFixed(0);
 
     // FIX: Fetch story data directly if missing, instead of relying on the Ideas tab UI
@@ -945,6 +946,28 @@ function getReminderPills(classId) {
              `);
         }
     }
+
+    // Hero of the Day Pill
+const reigningHero = state.get('reigningHero');
+if (reigningHero && classId) {
+    const avatarHtml = reigningHero.avatar 
+        ? `<img src="${reigningHero.avatar}" class="w-6 h-6 rounded-full border border-white shadow-sm">`
+        : `<span class="bg-indigo-400 text-white w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold">${reigningHero.name.charAt(0)}</span>`;
+    
+    pills.push(`
+        <div class="date-pill bg-gradient-to-r from-indigo-600 to-blue-700 text-white shadow-lg flex items-center gap-2 px-4 py-2 rounded-full transform hover:scale-105 transition-all border-2 border-indigo-400">
+            ${avatarHtml}
+            <div class="flex flex-col leading-none">
+                <span class="text-[10px] uppercase font-black tracking-tighter opacity-80">Reigning Hero</span>
+                <span class="font-bold text-shadow-sm">${reigningHero.name.split(' ')[0]}</span>
+            </div>
+            <div class="flex gap-1 ml-1">
+                <i class="fas fa-shield-alt text-xs text-indigo-300" title="Hero's Boon (+1 Star)"></i>
+                <i class="fas fa-tags text-xs text-indigo-300" title="Merchant's Favorite (-2 Gold)"></i>
+            </div>
+        </div>
+    `);
+}
     
     if (pills.length === 0) return '';
     return pills.join('');
@@ -1027,6 +1050,63 @@ async function fetchWeatherData() {
         console.error("Open-Meteo fetch failed:", e);
         return null; 
     }
+}
+
+/**
+ * SOURCE OF TRUTH: This function implements the EXACT math from the Team Quest (tabs.js).
+ * It uses a monthly modifier based on holidays rather than counting lessons.
+ */
+function calculateMonthlyClassGoal(classData, studentCount) {
+    if (studentCount === 0) return 18;
+
+    const BASE_GOAL = 18; 
+    const SCALING_FACTOR = 2.5; 
+    
+    const now = new Date();
+    const currentYear = now.getFullYear();
+    const currentMonth = now.getMonth();
+    const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
+    
+    // 1. Calculate Holiday Days Lost (Exact Leaderboard logic)
+    let holidayDaysLost = 0;
+    const ranges = state.get('schoolHolidayRanges') || [];
+    
+    ranges.forEach(range => {
+        const start = new Date(range.start);
+        const end = new Date(range.end);
+        const monthStart = new Date(currentYear, currentMonth, 1);
+        const monthEnd = new Date(currentYear, currentMonth + 1, 0);
+        const overlapStart = start > monthStart ? start : monthStart;
+        const overlapEnd = end < monthEnd ? end : monthEnd;
+        if (overlapStart <= overlapEnd) {
+            const diffTime = Math.abs(overlapEnd - overlapStart);
+            const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
+            holidayDaysLost += diffDays;
+        }
+    });
+
+    // 2. Apply Month Modifier (Exact Leaderboard logic)
+    let monthModifier = (daysInMonth - holidayDaysLost) / daysInMonth;
+    if (currentMonth === 5) { // June
+        monthModifier = 0.5;
+    } else {
+        monthModifier = Math.max(0.6, Math.min(1.0, monthModifier));
+    }
+
+    // 3. Handle Difficulty & Completion (Exact Leaderboard logic)
+    let isCompletedThisMonth = false;
+    if (classData.questCompletedAt) {
+        const completedDate = classData.questCompletedAt.toDate();
+        if (completedDate.getMonth() === currentMonth && completedDate.getFullYear() === currentYear) {
+            isCompletedThisMonth = true;
+        }
+    }
+    const dbDifficulty = classData.difficultyLevel || 0;
+    const effectiveDifficulty = isCompletedThisMonth ? Math.max(0, dbDifficulty - 1) : dbDifficulty;
+
+    // 4. Final Calculation
+    const adjustedGoalPerStudent = (BASE_GOAL + (effectiveDifficulty * SCALING_FACTOR)) * monthModifier;
+    return Math.round(studentCount * adjustedGoalPerStudent);
 }
 
 function getTopSkillHtml(skill) {

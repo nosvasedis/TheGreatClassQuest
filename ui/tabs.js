@@ -149,7 +149,7 @@ export async function showTab(tabName) {
     }
     
     const BASE_GOAL = 18; 
-    const SCALING_FACTOR = 1.5; 
+    const SCALING_FACTOR = 2.5; // Increased from 1.5 to make higher levels more challenging
     
     const now = new Date();
     const currentYear = now.getFullYear();
@@ -277,10 +277,18 @@ export async function showTab(tabName) {
 
         const displayProgress = Math.min(100, c.progress);
         
-        const difficultyBadge = c.difficulty > 0 
-            ? `<span class="text-xs bg-red-100 text-red-700 px-2 py-1 rounded-full border border-red-200" title="Difficulty Level: ${c.difficulty}">🔥 Level ${c.difficulty + 1}</span>` 
-            : `<span class="text-xs bg-green-100 text-green-700 px-2 py-1 rounded-full border border-green-200">🌱 Level 1</span>`;
-
+        // 5-LEVEL DIFFICULTY SYSTEM
+        const diff = (c.difficulty || 0) + 1;
+        let badgeHtml = '';
+        
+        if (diff <= 1) badgeHtml = `<span class="text-xs bg-green-100 text-green-700 px-2 py-1 rounded-full border border-green-200">🌱 Level 1</span>`;
+        else if (diff === 2) badgeHtml = `<span class="text-xs bg-orange-100 text-orange-700 px-2 py-1 rounded-full border border-orange-200">🔥 Level 2</span>`;
+        else if (diff === 3) badgeHtml = `<span class="text-xs bg-red-100 text-red-700 px-2 py-1 rounded-full border border-red-200">⚔️ Level 3</span>`;
+        else if (diff === 4) badgeHtml = `<span class="text-xs bg-purple-100 text-purple-700 px-2 py-1 rounded-full border border-purple-200">🐲 Level 4</span>`;
+        else badgeHtml = `<span class="text-xs bg-indigo-900 text-white px-2 py-1 rounded-full border border-indigo-700 animate-pulse">🌌 Level 5+</span>`;
+        
+        const difficultyBadge = badgeHtml;
+        
         return `
         <div class="quest-card bg-white/80 backdrop-blur-sm p-6 rounded-3xl shadow-xl border-2 border-white/50 space-y-3" 
             data-class-id="${c.id}">
@@ -785,6 +793,8 @@ export function renderAwardStarsStudentList(selectedClassId, fullRender = true) 
             const cloudShapes = ['cloud-shape-1', 'cloud-shape-2', 'cloud-shape-3', 'cloud-shape-4'];
             
             listContainer.innerHTML = studentsInClass.map((s, index) => {
+                const reigningHero = state.get('reigningHero');
+                const isReigningHero = reigningHero && reigningHero.id === s.id;
                 const scoreData = state.get('allStudentScores').find(score => score.id === s.id) || {}; 
                 const totalStars = scoreData.totalStars || 0;
                 const goldCount = scoreData.gold !== undefined ? scoreData.gold : (scoreData.totalStars || 0); // Default to total if gold not initialized yet
@@ -849,9 +859,10 @@ export function renderAwardStarsStudentList(selectedClassId, fullRender = true) 
                 //
 
                 return `
-                <div class="student-cloud-card ${cloudShape} ${isVisuallyAbsent ? 'is-absent' : ''}" data-studentid="${s.id}" style="animation: float-card ${4 + Math.random() * 4}s ease-in-out infinite;">
-                    <div class="absence-controls">
-                        ${absenceButtonHtml}
+               <div class="student-cloud-card ${cloudShape} ${isVisuallyAbsent ? 'is-absent' : ''} ${isReigningHero ? 'reigning-hero-card' : ''}" data-studentid="${s.id}" style="animation: float-card ${4 + Math.random() * 4}s ease-in-out infinite;">
+               ${isReigningHero ? '<div class="hero-crown-badge">👑</div>' : ''}
+               <div class="absence-controls">
+               ${absenceButtonHtml}
                     </div>
                     ${avatarHtml}
                     ${coinHtml}
@@ -1302,15 +1313,27 @@ export function renderAdventureLogTab() {
     document.getElementById('log-adventure-btn').disabled = !classVal;
     document.getElementById('quest-assignment-btn').disabled = !classVal;
     document.getElementById('attendance-chronicle-btn').disabled = !classVal;
+    document.getElementById('hall-of-heroes-btn').disabled = !classVal;
     
     const monthVal = monthFilter.value;
+    // FIX: Use parseFlexibleDate to handle ALL date formats (DD-MM-YYYY, ISO, etc.)
     const availableMonths = [...new Set(state.get('allAdventureLogs').map(log => {
-        const dateObj = utils.parseDDMMYYYY(log.date);
+        const dateObj = utils.parseFlexibleDate(log.date);
+        if (!dateObj || isNaN(dateObj.getTime())) return null; // Skip invalid dates
+        
         const month = (dateObj.getMonth() + 1).toString().padStart(2, '0');
         const year = dateObj.getFullYear();
         return `${month}-${year}`;
-    }))];
-    availableMonths.sort().reverse();
+    }).filter(Boolean))]; // Remove nulls
+
+    // FIX: Sort months chronologically (Year -> Month) descending
+    availableMonths.sort((a, b) => {
+        const [monthA, yearA] = a.split('-').map(Number);
+        const [monthB, yearB] = b.split('-').map(Number);
+        
+        if (yearA !== yearB) return yearB - yearA; 
+        return monthB - monthA; 
+    });
     const currentMonth = utils.getDDMMYYYY(new Date()).substring(3);
     if (!availableMonths.includes(currentMonth)) {
         availableMonths.unshift(currentMonth);
@@ -1339,7 +1362,11 @@ export function renderAdventureLog() {
     
     const logsForClass = state.get('allAdventureLogs').filter(log => {
          if (log.classId !== currentLogFilter.classId) return false;
-        const dateObj = utils.parseDDMMYYYY(log.date);
+         
+         // FIX: Use smart parser here too so we match the dropdown keys
+        const dateObj = utils.parseFlexibleDate(log.date);
+        if (!dateObj || isNaN(dateObj.getTime())) return false;
+
         const month = (dateObj.getMonth() + 1).toString().padStart(2, '0');
         const year = dateObj.getFullYear();
         const logMonthKey = `${month}-${year}`;
@@ -1353,7 +1380,7 @@ export function renderAdventureLog() {
     }
 
     feed.innerHTML = logsForClass.map(log => {
-        const displayDate = utils.parseDDMMYYYY(log.date).toLocaleDateString('en-GB', { weekday: 'long', month: 'long', day: 'numeric' });
+        const displayDate = utils.parseFlexibleDate(log.date).toLocaleDateString('en-GB', { weekday: 'long', month: 'long', day: 'numeric' });
         const keywordsHtml = (log.keywords || []).map(kw => `<span class="diary-keyword">#${kw}</span>`).join('');
         
         const noteHtml = log.note ? `
@@ -1367,9 +1394,11 @@ export function renderAdventureLog() {
             <div class="diary-page pop-in-start">
                 <div class="diary-header">
                     <h3 class="diary-date">${displayDate}</h3>
-                    <div class="diary-hero">
-                        <i class="fas fa-crown mr-1"></i> Hero: ${log.hero}
-                    </div>
+                    <div class="diary-hero bg-gradient-to-r from-amber-400 to-orange-500 text-white shadow-md">
+                <i class="fas fa-crown mr-1"></i> 
+                <span class="uppercase tracking-tighter text-[10px] opacity-90 mr-1">Hero:</span>
+                ${log.hero}
+                </div>
                 </div>
                 <div class="diary-body">
                     <div class="diary-image-container">

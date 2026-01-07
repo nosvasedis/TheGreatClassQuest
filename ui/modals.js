@@ -383,30 +383,39 @@ export async function showLogbookModal(dateString, isOndemand = false) {
             detailsHtml += `<div class="mb-4 bg-white p-4 rounded-xl shadow-md border"><h3 class="font-title text-xl text-gray-800 border-b pb-2 mb-2 flex justify-between items-center"><span>${classInfo.logo} ${classInfo.name}</span> <span class="text-amber-500 font-sans font-bold text-lg">${classStarCounts[classId]} ⭐</span></h3><div class="space-y-2 mt-2">`;
             
             groupedByClass[classId].sort((a, b) => {
-                const nameA = state.get('allStudents').find(s => s.id === a.studentId)?.name || 'Z';
-                const nameB = state.get('allStudents').find(s => s.id === b.studentId)?.name || 'Z';
-                return nameA.localeCompare(nameB);
-            }).forEach(log => {
-                const student = state.get('allStudents').find(s => s.id === log.studentId);
-                const teacherName = log.createdBy?.name || teacherNameMap[log.teacherId] || 'a teacher';
-                const colorClass = reasonColors[log.reason] || 'text-gray-500';
-                const noteHtml = log.note ? `<p class="text-xs text-gray-600 italic pl-4 border-l-2 border-gray-300 ml-1 mt-1">"${log.note}"</p>` : '';
-                detailsHtml += `<div class="bg-gray-50 p-3 rounded-lg min-h-[50px] flex flex-col justify-center" id="log-entry-${log.id}">
-                            <div class="flex justify-between items-center">
-                                <div class="flex-grow">
-                                    <span class="font-semibold">${student?.name || '?'}</span>
-                                    <span class="text-sm text-gray-500"> - for <b class="${colorClass} capitalize">${(log.reason || '').replace(/_/g, ' ')}</b> from ${teacherName}</span>
-                                </div>
-                                <div class="flex items-center flex-shrink-0">
-                                    <span class="font-title text-lg text-amber-600">${log.stars} ⭐</span>
-                                    ${log.teacherId === state.get('currentUserId') ? `<button class="note-log-btn" data-log-id="${log.id}" title="${log.note ? 'Edit Note' : 'Add Note'}"><i class="fas fa-pencil-alt"></i></button>` : ''}
-                                    ${log.teacherId === state.get('currentUserId') && log.reason !== 'story_weaver' && log.reason !== 'scholar_s_bonus' ? `<button class="delete-log-btn ml-2" data-log-id="${log.id}" data-student-id="${log.studentId}" data-stars="${log.stars}" title="Delete this log entry">&times;</button>` : ''}
-                                </div>
+            const nameA = state.get('allStudents').find(s => s.id === a.studentId)?.name || 'Z';
+            const nameB = state.get('allStudents').find(s => s.id === b.studentId)?.name || 'Z';
+            return nameA.localeCompare(nameB);
+        }).forEach(log => {
+            const student = state.get('allStudents').find(s => s.id === log.studentId);
+            
+            // --- ADDED: Check if this student was the Hero of THIS specific day ---
+            const dayAdventureLog = state.get('allAdventureLogs').find(l => l.classId === log.classId && l.date === dateString);
+            const isDayHero = dayAdventureLog && dayAdventureLog.hero === student?.name;
+            // ---------------------------------------------------------------------
+
+            const teacherName = log.createdBy?.name || teacherNameMap[log.teacherId] || 'a teacher';
+            const colorClass = reasonColors[log.reason] || 'text-gray-500';
+            const noteHtml = log.note ? `<p class="text-xs text-gray-600 italic pl-4 border-l-2 border-gray-300 ml-1 mt-1">"${log.note}"</p>` : '';
+            
+            detailsHtml += `<div class="bg-gray-50 p-3 rounded-lg min-h-[50px] flex flex-col justify-center" id="log-entry-${log.id}">
+                        <div class="flex justify-between items-center">
+                            <div class="flex-grow">
+                                <!-- UPDATED: Added Crown and Color for historical heroes -->
+                                <span class="font-semibold ${isDayHero ? 'text-indigo-700' : ''}">
+                                    ${isDayHero ? '<i class="fas fa-crown text-amber-500 mr-1"></i>' : ''}${student?.name || '?'}
+                                </span>
+                                <span class="text-sm text-gray-500"> - for <b class="${colorClass} capitalize">${(log.reason || '').replace(/_/g, ' ')}</b> from ${teacherName}</span>
                             </div>
-                            ${noteHtml}
-                         </div>`;
-            });
-            detailsHtml += `</div></div>`;
+                            <div class="flex items-center flex-shrink-0">
+                                <span class="font-title text-lg text-amber-600">${log.stars} ⭐</span>
+                                ${log.teacherId === state.get('currentUserId') ? `<button class="note-log-btn" data-log-id="${log.id}" title="${log.note ? 'Edit Note' : 'Add Note'}"><i class="fas fa-pencil-alt"></i></button>` : ''}
+                                ${log.teacherId === state.get('currentUserId') && log.reason !== 'story_weaver' && log.reason !== 'scholar_s_bonus' ? `<button class="delete-log-btn ml-2" data-log-id="${log.id}" data-student-id="${log.studentId}" data-stars="${log.stars}" title="Delete this log entry">&times;</button>` : ''}
+                            </div>
+                        </div>
+                        ${noteHtml}
+                     </div>`;
+        });
         }
         contentEl.innerHTML = summaryHtml + detailsHtml;
     }
@@ -451,14 +460,20 @@ export function openHistoryModal(type) {
         });
 
     } else {
-        // Team Mode OR Hero Mode with league selected -> Show normal view
+        // Team Mode OR Hero Mode with league selected
+        
+        // FIX: If it is Hero mode, go straight to the Hero modal logic and SKIP the Team modal
+        if (type === 'hero') {
+            renderHistoricalLeaderboard("", type);
+            return; // STOP here so we don't open the 'history-modal'
+        }
+
+        // Team Mode -> Show normal view
         document.getElementById('history-month-select').classList.remove('hidden');
         populateHistoryMonthSelector();
-        // If team, render blank state waiting for month. If hero, render blank state waiting for month.
         renderHistoricalLeaderboard("", type);
+        showAnimatedModal('history-modal'); // Only show this for Team history
     }
-
-    showAnimatedModal('history-modal');
 }
 
 function populateHistoryMonthSelector() {
@@ -560,13 +575,15 @@ export async function renderHistoricalLeaderboard(monthKey, type, scope = 'class
     // --- MAIN RENDER LOGIC WITH SAFETY ---
     try {
         let monthlyScores = {}; 
-        
+        let questHistoryData = []; // NEW: Store the accurate history
+
         // A. Fetch Data
         try {
             const { fetchLogsForMonth } = await import('../db/queries.js');
             const { fetchMonthlyHistory } = await import('../state.js'); 
             const [year, month] = monthKey.split('-').map(Number);
             
+            // 1. Fetch Star Logs (The raw numbers)
             const logsPromise = fetchLogsForMonth(year, month);
             const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout')), 5000));
             const logs = await Promise.race([logsPromise, timeoutPromise]).catch(e => []);
@@ -578,6 +595,16 @@ export async function renderHistoricalLeaderboard(monthKey, type, scope = 'class
                     monthlyScores[log.studentId] = (monthlyScores[log.studentId] || 0) + log.stars;
                 });
             }
+
+            // 2. NEW: Fetch Quest History (The "Truth" Snapshots)
+            // This grabs the official record if a class finished the quest that month
+            const historyQ = query(
+                collection(db, "artifacts/great-class-quest/public/data/quest_history"),
+                where("monthKey", "==", monthKey)
+            );
+            const historySnap = await getDocs(historyQ);
+            questHistoryData = historySnap.docs.map(d => d.data());
+
         } catch (e) { 
             console.error("Fetch Error:", e); 
         }
@@ -617,6 +644,23 @@ export async function renderHistoricalLeaderboard(monthKey, type, scope = 'class
             if (classesInLeague.length === 0) continue;
 
             const leagueScores = classesInLeague.map(c => {
+                // 1. Check for an Official History Record (The "Truth")
+                const historyRecord = questHistoryData.find(h => h.classId === c.id);
+
+                if (historyRecord) {
+                    // USE ACCURATE SNAPSHOT
+                    return {
+                        ...c,
+                        totalStars: historyRecord.starsEarned,
+                        progress: 100, // They finished it!
+                        diamondGoal: historyRecord.goalTarget,
+                        daysLost: 0, // Not needed for history records
+                        historicalLevel: historyRecord.levelReached - 1, // Display the level they were AT, not what they reached
+                        isQuestComplete: true // Flag for UI
+                    };
+                }
+
+                // 2. Fallback: Calculate from Logs (for classes that didn't finish)
                 const rosterStudents = state.get('allStudents').filter(s => s.classId === c.id); 
                 const studentIds = new Set(rosterStudents.map(s => s.id));
                 const totalStars = Array.from(studentIds).reduce((sum, id) => sum + (monthlyScores[id] || 0), 0);
@@ -632,8 +676,10 @@ export async function renderHistoricalLeaderboard(monthKey, type, scope = 'class
                 if (hMonth === 6) monthModifier = 0.5; 
                 else monthModifier = Math.max(0.6, Math.min(1.0, monthModifier));
 
-                // --- SAFEGUARD: DIFFICULTY CALCULATION ---
+                // Guess difficulty based on current state (fallback)
                 let historicalDifficulty = c.difficultyLevel || 0;
+                
+                // Adjustment attempt for older logs
                 if (c.questCompletedAt) {
                     try {
                         const completedDate = c.questCompletedAt.toDate ? c.questCompletedAt.toDate() : new Date(c.questCompletedAt);
@@ -641,18 +687,23 @@ export async function renderHistoricalLeaderboard(monthKey, type, scope = 'class
                         if (completedDate >= monthStart) {
                             historicalDifficulty = Math.max(0, historicalDifficulty - 1);
                         }
-                    } catch(err) {
-                        console.warn("Invalid questCompletedAt date for class", c.name, err);
-                    }
+                    } catch(err) {}
                 }
 
                 const adjustedGoalPerStudent = (BASE_GOAL + (historicalDifficulty * SCALING_FACTOR)) * monthModifier;
                 const diamondGoal = Math.round(Math.max(18, rosterStudents.length * adjustedGoalPerStudent));
                 const progress = diamondGoal > 0 ? (totalStars / diamondGoal) * 100 : 0;
                 
-                return { ...c, totalStars, progress, diamondGoal, daysLost: totalDaysLost, historicalLevel: historicalDifficulty };
+                return { 
+                    ...c, 
+                    totalStars, 
+                    progress, 
+                    diamondGoal, 
+                    daysLost: totalDaysLost, 
+                    historicalLevel: historicalDifficulty,
+                    isQuestComplete: false 
+                };
             }).sort((a, b) => b.progress - a.progress);
-
             if (leagueScores.every(c => c.totalStars === 0)) continue; 
 
             fullHtml += `
@@ -1221,14 +1272,43 @@ export async function handleGetQuestUpdate() {
     showAnimatedModal('quest-update-modal');
 
     const GOAL_PER_STUDENT = { DIAMOND: 18 };
-    const classesInLeague = state.get('allSchoolClasses').filter(c => c.questLevel === state.get('globalSelectedLeague'));
+   const classesInLeague = state.get('allSchoolClasses').filter(c => c.questLevel === state.get('globalSelectedLeague'));
+    
+    // Correct Calculation Logic
     const classScores = classesInLeague.map(c => {
-        const studentsInClass = state.get('allStudents').filter(s => s.classId === c.id);
-        const studentCount = studentsInClass.length;
-        const diamondGoal = studentCount > 0 ? Math.round(studentCount * GOAL_PER_STUDENT.DIAMOND) : 18;
-        const totalStars = studentsInClass.reduce((sum, s) => sum + (state.get('allStudentScores').find(score => score.id === s.id)?.monthlyStars || 0), 0);
-        const progress = diamondGoal > 0 ? Math.min(100, (totalStars / diamondGoal) * 100).toFixed(1) : 0;
-        return { name: c.name, totalStars, progress };
+        const students = state.get('allStudents').filter(s => s.classId === c.id);
+        const scores = state.get('allStudentScores') || [];
+        const monthlyStars = students.reduce((sum, s) => {
+            const scoreData = scores.find(sc => sc.id === s.id);
+            return sum + (scoreData ? (scoreData.monthlyStars || 0) : 0);
+        }, 0);
+
+        const BASE_GOAL = 18; 
+        const SCALING_FACTOR = 2.5; 
+        const now = new Date();
+        const daysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
+        
+        let holidayDaysLost = 0;
+        (state.get('schoolHolidayRanges') || []).forEach(range => {
+            const start = new Date(range.start);
+            const end = new Date(range.end);
+            const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+            const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+            const overlapStart = start > monthStart ? start : monthStart;
+            const overlapEnd = end < monthEnd ? end : monthEnd;
+            if (overlapStart <= overlapEnd) {
+                holidayDaysLost += (Math.ceil(Math.abs(overlapEnd - overlapStart) / (1000 * 60 * 60 * 24)) + 1);
+            }
+        });
+
+        let monthModifier = (daysInMonth - holidayDaysLost) / daysInMonth;
+        monthModifier = now.getMonth() === 5 ? 0.5 : Math.max(0.6, Math.min(1.0, monthModifier));
+        
+        const adjustedGoalPerStudent = (BASE_GOAL + ((c.difficultyLevel || 0) * SCALING_FACTOR)) * monthModifier;
+        const diamondGoal = Math.round(Math.max(18, students.length * adjustedGoalPerStudent));
+        const progress = diamondGoal > 0 ? ((monthlyStars / diamondGoal) * 100).toFixed(1) : 0;
+        
+        return { name: c.name, totalStars: monthlyStars, progress };
     }).sort((a, b) => b.progress - a.progress);
 
     const topClasses = classScores.filter(c => c.totalStars > 0).slice(0, 3);
@@ -2465,31 +2545,37 @@ export function openAppInfoModal() {
 }
 
 // --- STUDENT RANKINGS MODAL (HERO RANKS ARCHIVE) ---
-export async function openStudentRankingsModal() {
+// --- STUDENT RANKINGS MODAL (HERO RANKS ARCHIVE) ---
+export async function openStudentRankingsModal(resetDate = true) {
     const modalId = 'global-leaderboard-modal';
     const titleEl = document.getElementById('global-leaderboard-title');
     const contentEl = document.getElementById('global-leaderboard-content');
     
-    // 1. Determine Previous Month
-    const now = new Date();
-    now.setMonth(now.getMonth() - 1);
-    const prevMonthKey = now.toISOString().substring(0, 7); // YYYY-MM
-    const monthDisplay = now.toLocaleString('en-GB', { month: 'long', year: 'numeric' });
-
-    titleEl.innerHTML = `<i class="fas fa-trophy text-amber-500 mr-2"></i>Hero Ranks (${monthDisplay})`;
-    contentEl.innerHTML = `<div class="text-center py-8"><i class="fas fa-spinner fa-spin text-2xl text-purple-500"></i><p class="mt-2 text-gray-500">Loading Archives...</p></div>`;
+    // 1. Manage the Date (Default to last month if opening fresh)
+    if (resetDate) {
+        rankingsViewDate = new Date();
+        rankingsViewDate.setMonth(rankingsViewDate.getMonth() - 1);
+    }
     
-    // 2. Show Modal & Fetch Data
-    import('./modals.js').then(m => m.showAnimatedModal(modalId));
+    const activeMonthKey = rankingsViewDate.toISOString().substring(0, 7); // YYYY-MM
+    const monthDisplay = rankingsViewDate.toLocaleString('en-GB', { month: 'long', year: 'numeric' });
 
-    // Fetch Data (Logs & History)
+    titleEl.innerHTML = `<i class="fas fa-trophy text-amber-500 mr-2"></i>Hero Ranks`;
+    contentEl.innerHTML = `<div class="text-center py-8"><i class="fas fa-spinner fa-spin text-2xl text-purple-500"></i><p class="mt-2 text-gray-500">Loading Archives for ${monthDisplay}...</p></div>`;
+    
+    // 2. Show Modal (Only animate the first time it opens)
+    if (resetDate) {
+        showAnimatedModal(modalId);
+    }
+
+    // 3. Fetch Data (Logs & History)
     let monthlyScores = {};
     let logs = [];
     
     try {
         const { fetchLogsForMonth } = await import('../db/queries.js');
         const { fetchMonthlyHistory } = await import('../state.js'); 
-        const [year, month] = prevMonthKey.split('-').map(Number);
+        const [year, month] = activeMonthKey.split('-').map(Number);
         
         // Try fetching detailed logs first (for tie-breakers)
         const logsPromise = fetchLogsForMonth(year, month);
@@ -2498,7 +2584,7 @@ export async function openStudentRankingsModal() {
         logs = await Promise.race([logsPromise, timeoutPromise]).catch(e => []);
         
         if (!logs || logs.length === 0) {
-            monthlyScores = await fetchMonthlyHistory(prevMonthKey);
+            monthlyScores = await fetchMonthlyHistory(activeMonthKey);
         } else {
             logs.forEach(log => {
                 monthlyScores[log.studentId] = (monthlyScores[log.studentId] || 0) + log.stars;
@@ -2506,14 +2592,23 @@ export async function openStudentRankingsModal() {
         }
     } catch (e) { console.error(e); }
 
-    // 3. Prepare Selectors
-    const leagues = import('../constants.js').then(c => c.questLeagues); // Dynamic import safe check
-    const allLeagues = (await leagues).default || ['Junior A', 'Junior B', 'A', 'B', 'C', 'D'];
+    // 4. Prepare Data
+    const leaguesPromise = import('../constants.js').then(c => c.questLeagues);
+    const allLeagues = (await leaguesPromise).default || ['Junior A', 'Junior B', 'A', 'B', 'C', 'D'];
     const myClasses = state.get('allTeachersClasses').sort((a,b) => a.name.localeCompare(b.name));
 
-    // 4. Render UI Structure
+    // 5. Render UI Structure with Navigation
     contentEl.innerHTML = `
-        <!-- TABS -->
+        <div class="flex items-center justify-between mb-4 bg-indigo-50 p-2 rounded-xl border border-indigo-100 shadow-sm">
+            <button id="rank-prev-month" class="w-8 h-8 rounded-full bg-white text-indigo-600 shadow hover:bg-indigo-100 transition-colors flex items-center justify-center">
+                <i class="fas fa-chevron-left"></i>
+            </button>
+            <span class="font-title text-lg text-indigo-900">${monthDisplay}</span>
+            <button id="rank-next-month" class="w-8 h-8 rounded-full bg-white text-indigo-600 shadow hover:bg-indigo-100 transition-colors flex items-center justify-center">
+                <i class="fas fa-chevron-right"></i>
+            </button>
+        </div>
+
         <div class="flex justify-center gap-4 mb-4 border-b border-gray-200 pb-4">
             <button id="rank-tab-global" class="px-6 py-2 rounded-full font-bold text-sm transition-all bg-indigo-600 text-white shadow-md">
                 <i class="fas fa-globe mr-2"></i>Global League
@@ -2523,59 +2618,47 @@ export async function openStudentRankingsModal() {
             </button>
         </div>
 
-        <!-- FILTERS -->
-        <div id="rank-filter-container" class="mb-4">
-            <!-- Injected by JS based on tab -->
-        </div>
+        <div id="rank-filter-container" class="mb-4"></div>
 
-        <!-- LIST -->
         <div id="ranks-list-container" class="space-y-2 max-h-[50vh] overflow-y-auto pr-2 custom-scrollbar"></div>
     `;
 
-    // 5. Logic Controller
+    // --- NAVIGATION LISTENERS ---
+    document.getElementById('rank-prev-month').onclick = () => {
+        rankingsViewDate.setMonth(rankingsViewDate.getMonth() - 1);
+        openStudentRankingsModal(false); // Refresh without re-animating modal
+    };
+    document.getElementById('rank-next-month').onclick = () => {
+        // Don't go past the current month
+        if (rankingsViewDate.getMonth() === new Date().getMonth() && rankingsViewDate.getFullYear() === new Date().getFullYear()) return;
+        rankingsViewDate.setMonth(rankingsViewDate.getMonth() + 1);
+        openStudentRankingsModal(false);
+    };
+
+    // --- INTERNAL RENDER LOGIC ---
     const renderContent = (view, filterValue) => {
         const filterContainer = document.getElementById('rank-filter-container');
         const listContainer = document.getElementById('ranks-list-container');
         const allStudents = state.get('allStudents');
         const allClasses = state.get('allSchoolClasses');
 
-        // Render Filters
         if (view === 'global') {
             const currentLeague = filterValue || allLeagues[0];
             const options = allLeagues.map(l => `<option value="${l}" ${l === currentLeague ? 'selected' : ''}>${l} League</option>`).join('');
-            filterContainer.innerHTML = `
-                <select id="rank-league-select" class="w-full p-3 border-2 border-indigo-100 rounded-xl bg-indigo-50 font-bold text-indigo-900 outline-none focus:border-indigo-300">
-                    ${options}
-                </select>`;
-            
-            // Filter Students by League
+            filterContainer.innerHTML = `<select id="rank-league-select" class="w-full p-3 border-2 border-indigo-100 rounded-xl bg-indigo-50 font-bold text-indigo-900 outline-none">${options}</select>`;
             const classesInLeague = allClasses.filter(c => c.questLevel === currentLeague);
             const classIds = classesInLeague.map(c => c.id);
-            const filteredStudents = allStudents.filter(s => classIds.includes(s.classId));
-            renderStudentList(filteredStudents, listContainer, monthlyScores);
-
-            // Bind Change Event
+            renderStudentList(allStudents.filter(s => classIds.includes(s.classId)), listContainer, monthlyScores);
             document.getElementById('rank-league-select').onchange = (e) => renderContent('global', e.target.value);
-
         } else {
-            // Class View
             if (myClasses.length === 0) {
-                filterContainer.innerHTML = '';
-                listContainer.innerHTML = `<p class="text-center text-gray-500">You have no classes.</p>`;
+                listContainer.innerHTML = `<p class="text-center text-gray-500">No classes found.</p>`;
                 return;
             }
             const currentClassId = filterValue || myClasses[0].id;
             const options = myClasses.map(c => `<option value="${c.id}" ${c.id === currentClassId ? 'selected' : ''}>${c.logo} ${c.name}</option>`).join('');
-            filterContainer.innerHTML = `
-                <select id="rank-class-select" class="w-full p-3 border-2 border-purple-100 rounded-xl bg-purple-50 font-bold text-purple-900 outline-none focus:border-purple-300">
-                    ${options}
-                </select>`;
-
-            // Filter Students by Class
-            const filteredStudents = allStudents.filter(s => s.classId === currentClassId);
-            renderStudentList(filteredStudents, listContainer, monthlyScores);
-
-            // Bind Change Event
+            filterContainer.innerHTML = `<select id="rank-class-select" class="w-full p-3 border-2 border-purple-100 rounded-xl bg-purple-50 font-bold text-purple-900 outline-none">${options}</select>`;
+            renderStudentList(allStudents.filter(s => s.classId === currentClassId), listContainer, monthlyScores);
             document.getElementById('rank-class-select').onchange = (e) => renderContent('class', e.target.value);
         }
     };
@@ -2586,18 +2669,76 @@ export async function openStudentRankingsModal() {
             return;
         }
 
+        const allWrittenScores = state.get('allWrittenScores');
+        const [year, month] = activeMonthKey.split('-').map(Number);
+
+        // 1. Calculate Stats EXACTLY like ceremony.js
         const ranked = students.map(s => {
             const cls = state.get('allSchoolClasses').find(c => c.id === s.classId);
+            const sLogs = logs.filter(l => l.studentId === s.id);
+            const score = scores[s.id] || 0;
+            
+            let count3 = 0, count2 = 0;
+            const reasons = new Set();
+            sLogs.forEach(l => {
+                if (l.stars >= 3) count3++;
+                else if (l.stars >= 2) count2++;
+                if (l.reason) reasons.add(l.reason);
+            });
+
+            const sScores = allWrittenScores.filter(sc => {
+                if(sc.studentId !== s.id || !sc.date) return false;
+                const d = utils.parseFlexibleDate(sc.date);
+                return d && d.getMonth() === (month - 1) && d.getFullYear() === year;
+            });
+
+            let acadSum = 0;
+            sScores.forEach(sc => {
+                if (sc.scoreNumeric !== null && sc.maxScore) acadSum += (sc.scoreNumeric/sc.maxScore)*100;
+                else if (sc.scoreQualitative === 'Great!!!') acadSum += 100;
+                else if (sc.scoreQualitative === 'Great!!') acadSum += 75;
+            });
+            const academicAvg = sScores.length > 0 ? acadSum / sScores.length : 0;
+
             return {
                 ...s,
-                stars: scores[s.id] || 0,
+                stars: score,
                 className: cls?.name,
-                classLogo: cls?.logo
+                classLogo: cls?.logo,
+                stats: { count3, count2, academicAvg, uniqueReasons: reasons.size }
             };
-        }).sort((a, b) => b.stars - a.stars); // Sort by Archive Score
+        }).sort((a, b) => {
+            // 2. Sort EXACTLY like ceremony.js
+            if (b.stars !== a.stars) return b.stars - a.stars;
+            if (b.stats.count3 !== a.stats.count3) return b.stats.count3 - a.stats.count3;
+            if (b.stats.count2 !== a.stats.count2) return b.stats.count2 - a.stats.count2;
+            if (b.stats.uniqueReasons !== a.stats.uniqueReasons) return b.stats.uniqueReasons - a.stats.uniqueReasons;
+            return b.stats.academicAvg - a.stats.academicAvg;
+        });
 
-        container.innerHTML = ranked.map((s, i) => {
-            const rank = i + 1;
+        // 3. Assign Ranks EXACTLY like ceremony.js (handling visual ties)
+        let currentRank = 1;
+        const finalizedList = ranked.map((s, i) => {
+            if (i > 0) {
+                const prev = ranked[i-1];
+                let isTie = s.stars === prev.stars && 
+                            s.stats.count3 === prev.stats.count3 && 
+                            s.stats.count2 === prev.stats.count2 &&
+                            s.stats.uniqueReasons === prev.stats.uniqueReasons;
+                
+                // Academic average only breaks ties after the Top 3
+                if (currentRank > 3) {
+                    isTie = isTie && (Math.abs(s.stats.academicAvg - prev.stats.academicAvg) < 0.1);
+                }
+                
+                if (!isTie) currentRank = i + 1;
+            }
+            return { ...s, ceremonyRank: currentRank };
+        });
+
+        // 4. Render the UI
+        container.innerHTML = finalizedList.map((s) => {
+            const rank = s.ceremonyRank;
             let icon = `<span class="text-gray-400 font-bold w-6 text-right">${rank}.</span>`;
             let bgClass = "bg-white";
             
@@ -2609,10 +2750,10 @@ export async function openStudentRankingsModal() {
                 <div class="flex items-center justify-between p-3 rounded-xl ${bgClass} hover:shadow-sm transition-all mb-2">
                     <div class="flex items-center gap-3 overflow-hidden">
                         <div class="text-xl w-8 text-center shrink-0">${icon}</div>
-                        ${s.avatar ? `<img src="${s.avatar}" class="w-10 h-10 rounded-full object-cover border border-gray-200">` : `<div class="w-10 h-10 rounded-full bg-indigo-100 text-indigo-600 flex items-center justify-center font-bold">${s.name.charAt(0)}</div>`}
+                        ${s.avatar ? `<img src="${s.avatar}" class="w-10 h-10 rounded-full object-cover">` : `<div class="w-10 h-10 rounded-full bg-indigo-100 text-indigo-600 flex items-center justify-center font-bold">${s.name.charAt(0)}</div>`}
                         <div class="min-w-0">
                             <div class="font-bold text-gray-800 truncate">${s.name}</div>
-                            <div class="text-xs text-gray-500 truncate">${s.classLogo || ''} ${s.className || 'Unknown Class'}</div>
+                            <div class="text-[10px] text-gray-500 truncate">${s.classLogo || ''} ${s.className || ''}</div>
                         </div>
                     </div>
                     <div class="font-title text-xl text-indigo-600 shrink-0">${s.stars} ⭐</div>
@@ -2620,8 +2761,8 @@ export async function openStudentRankingsModal() {
             `;
         }).join('');
     };
-
-    // 6. Tab Listeners
+    
+    // Tab Listeners
     const btnGlobal = document.getElementById('rank-tab-global');
     const btnClass = document.getElementById('rank-tab-class');
 
@@ -2637,6 +2778,119 @@ export async function openStudentRankingsModal() {
         renderContent('class');
     };
 
-    // Initial Render
     renderContent('global');
+}
+
+// Internal state for the Hall of Heroes month-browsing
+let rankingsViewDate = new Date();
+let hallOfHeroesViewDate = new Date();
+
+export async function openHallOfHeroes() {
+    const classId = document.getElementById('adventure-log-class-select').value;
+    if (!classId) { showToast("Select a class first!", "info"); return; }
+    
+    // Reset view to the current month when opening
+    hallOfHeroesViewDate = new Date();
+    
+    const modal = document.getElementById('history-modal');
+    const selectEl = document.getElementById('history-month-select');
+    
+    // Setup Modal appearance
+    selectEl.classList.add('hidden');
+    showAnimatedModal('history-modal');
+
+    renderHallOfHeroesContent(classId);
+}
+
+async function renderHallOfHeroesContent(classId) {
+    const classData = state.get('allSchoolClasses').find(c => c.id === classId);
+    const contentEl = document.getElementById('history-modal-content');
+    const modalTitle = document.querySelector('#history-modal h2');
+
+    const monthName = hallOfHeroesViewDate.toLocaleString('en-GB', { month: 'long', year: 'numeric' });
+    const currentMonth = hallOfHeroesViewDate.getMonth();
+    const currentYear = hallOfHeroesViewDate.getFullYear();
+
+    modalTitle.innerHTML = `<i class="fas fa-crown text-amber-500 mr-3"></i>${classData.name} Heroes`;
+
+    // Filter logs for this specific class and specific month
+    const monthlyLogs = state.get('allAdventureLogs').filter(l => {
+        const d = utils.parseDDMMYYYY(l.date);
+        return l.classId === classId && d.getMonth() === currentMonth && d.getFullYear() === currentYear;
+    }).sort((a,b) => utils.parseDDMMYYYY(b.date) - utils.parseDDMMYYYY(a.date));
+
+    let html = `
+        <div class="flex items-center justify-between mb-6 bg-indigo-50 p-3 rounded-2xl border-2 border-indigo-100">
+            <button id="hero-prev-month" class="w-10 h-10 rounded-full bg-white text-indigo-600 shadow hover:bg-indigo-100 transition-colors flex items-center justify-center">
+                <i class="fas fa-chevron-left"></i>
+            </button>
+            <span class="font-title text-xl text-indigo-900">${monthName}</span>
+            <button id="hero-next-month" class="w-10 h-10 rounded-full bg-white text-indigo-600 shadow hover:bg-indigo-100 transition-colors flex items-center justify-center">
+                <i class="fas fa-chevron-right"></i>
+            </button>
+        </div>
+    `;
+
+    if (monthlyLogs.length === 0) {
+        html += `
+            <div class="text-center py-16 opacity-50">
+                <div class="text-6xl mb-4">📜</div>
+                <p class="font-bold text-gray-500">No heroes were crowned in ${monthName}.</p>
+            </div>`;
+    } else {
+        html += `<div class="grid grid-cols-1 md:grid-cols-2 gap-6 pb-10">`;
+        
+        monthlyLogs.forEach(log => {
+            const dateStr = utils.parseDDMMYYYY(log.date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
+            
+            // Find the student object to get their avatar
+            const student = state.get('allStudents').find(s => s.name === log.hero && s.classId === classId);
+            const avatarHtml = student?.avatar 
+                ? `<img src="${student.avatar}" class="w-14 h-14 rounded-full border-4 border-white shadow-md object-cover">`
+                : `<div class="w-14 h-14 rounded-full bg-indigo-500 border-4 border-white shadow-md flex items-center justify-center text-white font-bold">${log.hero.charAt(0)}</div>`;
+
+            html += `
+                <div class="bg-white rounded-3xl shadow-lg border border-gray-100 overflow-hidden group hover:scale-[1.02] transition-transform">
+                    <!-- Diary Image (AI Image) -->
+                    <div class="h-32 w-full relative">
+                        <img src="${log.imageUrl}" class="w-full h-full object-cover grayscale-[30%] group-hover:grayscale-0 transition-all">
+                        <div class="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent"></div>
+                        <div class="absolute bottom-2 left-3 text-white text-[10px] font-black uppercase tracking-tighter">${dateStr}</div>
+                    </div>
+                    
+                    <!-- Content Area -->
+                    <div class="p-4 pt-0 relative">
+                        <!-- Student Avatar Overlap -->
+                        <div class="absolute -top-7 right-4">
+                            ${avatarHtml}
+                        </div>
+                        
+                        <div class="mt-4">
+                            <h4 class="font-title text-xl text-indigo-900 leading-tight mb-1">${log.hero}</h4>
+                            <div class="flex items-center gap-1">
+                                <span class="bg-amber-100 text-amber-700 text-[10px] px-2 py-0.5 rounded-full font-bold border border-amber-200">
+                                    <i class="fas fa-award mr-1"></i>${log.topReason.replace(/_/g, ' ')}
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        });
+        html += `</div>`;
+    }
+
+    contentEl.innerHTML = html;
+
+    // Attach Nav Listeners
+    document.getElementById('hero-prev-month').onclick = () => {
+        hallOfHeroesViewDate.setMonth(hallOfHeroesViewDate.getMonth() - 1);
+        renderHallOfHeroesContent(classId);
+    };
+    document.getElementById('hero-next-month').onclick = () => {
+        // Prevent going into the future
+        if (hallOfHeroesViewDate.getMonth() === new Date().getMonth() && hallOfHeroesViewDate.getFullYear() === new Date().getFullYear()) return;
+        hallOfHeroesViewDate.setMonth(hallOfHeroesViewDate.getMonth() + 1);
+        renderHallOfHeroesContent(classId);
+    };
 }

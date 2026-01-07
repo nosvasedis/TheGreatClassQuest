@@ -526,8 +526,7 @@ export async function checkAndRecordQuestCompletion(classId) {
     
     const currentDifficulty = classDoc.data().difficultyLevel || 0;
 
-    // FIX: Only prevent double-counting if they have ALREADY leveled up (difficulty > 0).
-    // This allows classes that finished in November (Legacy) to get their first Level Up to Level 2.
+    // 1. Check if already completed this month to prevent duplicates
     if (classDoc.data().questCompletedAt && currentDifficulty > 0) {
         const completedDate = classDoc.data().questCompletedAt.toDate();
         const now = new Date();
@@ -536,41 +535,56 @@ export async function checkAndRecordQuestCompletion(classId) {
         }
     }
 
-    // Dynamic Goal Calculation Base
+    // 2. Calculate Goals (Same logic as UI)
     const GOAL_PER_STUDENT_BASE = 18;
-    // Slight increase per level (1.5 stars per level)
     const goalPerStudent = GOAL_PER_STUDENT_BASE + (currentDifficulty * 1.5);
-
     const studentsInClass = state.get('allStudents').filter(s => s.classId === classId);
     const studentCount = studentsInClass.length;
     if (studentCount === 0) return;
 
-    // Apply seasonal modifier
     const currentMonth = new Date().getMonth(); 
     let monthModifier = 1.0;
-    if (currentMonth === 11 || currentMonth === 3) monthModifier = 0.85; // Dec & Apr
-    if (currentMonth === 0 || currentMonth === 4) monthModifier = 0.90; // Jan & May
+    if (currentMonth === 11 || currentMonth === 3) monthModifier = 0.85; 
+    if (currentMonth === 0 || currentMonth === 4) monthModifier = 0.90; 
 
     const diamondGoal = Math.round(studentCount * goalPerStudent * monthModifier);
     
-    const studentIds = studentsInClass.map(s => s.id);
-    if (studentIds.length === 0) return; 
-    
-    let currentMonthlyStars = 0;
+    // 3. Calculate Current Stars
     const allScores = state.get('allStudentScores');
-    for (const id of studentIds) {
-        const scoreData = allScores.find(s => s.id === id);
-        if (scoreData) {
-            currentMonthlyStars += scoreData.monthlyStars || 0;
-        }
+    let currentMonthlyStars = 0;
+    for (const s of studentsInClass) {
+        const scoreData = allScores.find(score => score.id === s.id);
+        if (scoreData) currentMonthlyStars += (scoreData.monthlyStars || 0);
     }
 
+    // 4. Check for Victory & SAVE HISTORY
     if (currentMonthlyStars >= diamondGoal) {
-        console.log(`Class ${classDoc.data().name} has completed the quest! Increasing difficulty.`);
-        await updateDoc(classRef, {
+        console.log(`Class ${classDoc.data().name} has completed the quest!`);
+
+        const batch = writeBatch(db);
+
+        // A. Update the Class (Level Up)
+        batch.update(classRef, {
             questCompletedAt: serverTimestamp(),
-            difficultyLevel: increment(1) // LEVEL UP!
+            difficultyLevel: increment(1) 
         });
+
+        // B. Create Persistent History Record
+        const historyRef = doc(collection(db, "artifacts/great-class-quest/public/data/quest_history"));
+        batch.set(historyRef, {
+            classId: classId,
+            className: classDoc.data().name,
+            levelReached: currentDifficulty + 1, // They just finished currentDifficulty to reach +1
+            goalTarget: diamondGoal,
+            starsEarned: currentMonthlyStars,
+            completedAt: serverTimestamp(),
+            monthKey: new Date().toISOString().slice(0, 7), // "2026-01"
+            createdBy: { uid: state.get('currentUserId'), name: state.get('currentTeacherName') }
+        });
+
+        await batch.commit();
+        showToast(`Quest Complete! History recorded.`, 'success');
+        playSound('magic_chime');
     }
 }
 

@@ -4948,3 +4948,68 @@ body.night-mode {
 .animate-bounce-slow {
     animation: bounce-slow 2s infinite ease-in-out;
 }
+
+/* Reigning Hero Special Card */
+.reigning-hero-card {
+    border: 4px solid #FBBF24 !important; /* Gold Border */
+    box-shadow: 0 0 25px rgba(251, 191, 36, 0.6), 0 10px 15px -3px rgba(0, 0, 0, 0.1) !important;
+    transform: scale(1.05);
+}
+
+.hero-crown-badge {
+    position: absolute;
+    top: -45px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 3rem;
+    filter: drop-shadow(0 0 10px rgba(251, 191, 36, 0.8));
+    z-index: 30;
+    animation: crown-bounce 2s infinite ease-in-out;
+}
+
+@keyframes crown-bounce {
+    0%, 100% { transform: translateX(-50%) translateY(0) rotate(0); }
+    50% { transform: translateX(-50%) translateY(-10px) rotate(5deg); }
+}
+
+/* Reigning Hero Visuals - Subtle & Small */
+.reigning-hero-card {
+    border: 4px solid #FBBF24 !important;
+    box-shadow: 0 0 30px rgba(251, 191, 36, 0.3), 0 10px 15px -3px rgba(0, 0, 0, 0.1) !important;
+}
+
+.hero-crown-badge {
+    position: absolute;
+    /* This sits right on the top curve of the avatar */
+    top: -42px; 
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 1.8rem; /* Shrunk from 3.5rem */
+    filter: drop-shadow(0 2px 4px rgba(0,0,0,0.2));
+    z-index: 50;
+    animation: crown-shimmer 3s infinite ease-in-out;
+    pointer-events: none;
+}
+
+@keyframes crown-shimmer {
+    0%, 100% { transform: translateX(-50%) translateY(0) rotate(-5deg); filter: brightness(1); }
+    50% { transform: translateX(-50%) translateY(-3px) rotate(5deg); filter: brightness(1.3) drop-shadow(0 0 10px gold); }
+}
+
+#hall-of-heroes-btn:not(:disabled) {
+    box-shadow: 0 4px 15px rgba(244, 63, 94, 0.4);
+    border-bottom: 4px solid #9f1239; /* Deep dark red edge */
+}
+
+#hall-of-heroes-btn:active:not(:disabled) {
+    border-bottom-width: 0;
+    transform: translateY(4px);
+}
+
+#wall-timer-overlay {
+    position: fixed !important;
+    bottom: 40px !important;
+    left: 50% !important;
+    transform: translateX(-50%) !important;
+    z-index: 1000 !important;
+}

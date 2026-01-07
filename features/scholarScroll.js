@@ -547,19 +547,16 @@ export async function openTrialHistoryModal(classId) {
 export function renderTrialHistoryContent(classId, view) {
     const contentEl = document.getElementById('trial-history-content');
 
-    // 1. Get recent scores from the app's live state (last 2 months)
-    const twoMonthsAgo = new Date();
-    twoMonthsAgo.setMonth(twoMonthsAgo.getMonth() - 2);
-    twoMonthsAgo.setDate(1);
-    const twoMonthsAgoKey = twoMonthsAgo.toISOString().substring(0, 7);
+    // 1. Get ONLY recent scores (last 45 days) for the initial view
+    const recentCutoff = new Date();
+    recentCutoff.setDate(recentCutoff.getDate() - 45);
     
     const recentScores = state.get('allWrittenScores').filter(s => {
-        if (!s.date) return false;
-        const key = s.date.substring(0, 7); // YYYY-MM
-        return s.classId === classId && key >= twoMonthsAgoKey;
+        if (!s.date || s.classId !== classId) return false;
+        return utils.parseFlexibleDate(s.date) >= recentCutoff;
     });
 
-    // 2. Combine with any loaded historical scores
+    // 2. ONLY combine with historical scores if the user explicitly clicked them
     const allScoresForClass = [...recentScores, ...loadedHistoricalScores];
     
     // 3. Remove duplicates to be safe

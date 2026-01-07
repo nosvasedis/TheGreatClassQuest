@@ -102,6 +102,7 @@ export function setupUIListeners() {
     document.getElementById('edit-logo-picker-btn').addEventListener('click', () => modals.showLogoPicker('edit'));
     document.getElementById('logo-picker-close-btn').addEventListener('click', () => modals.hideModal('logo-picker-modal'));
     document.getElementById('hero-stats-close-btn').addEventListener('click', () => modals.hideModal('hero-stats-modal'));
+    document.getElementById('hall-of-heroes-btn').addEventListener('click', modals.openHallOfHeroes);
     
     // Class & Student Management
     document.getElementById('add-class-form').addEventListener('submit', (e) => { e.preventDefault(); handleAddClass(); });
@@ -238,7 +239,7 @@ document.getElementById('lookup-nameday-btn').addEventListener('click', () => {
         }
     });
     document.getElementById('class-history-btn').addEventListener('click', () => modals.openHistoryModal('team'));
-    document.getElementById('student-history-btn').addEventListener('click', () => modals.openHistoryModal('hero'));
+    document.getElementById('student-history-btn').addEventListener('click', modals.openStudentRankingsModal);
     document.getElementById('history-modal-close-btn').addEventListener('click', () => modals.hideModal('history-modal'));
     document.getElementById('history-month-select').addEventListener('change', (e) => {
         const type = document.getElementById('history-modal').dataset.historyType;
@@ -1344,30 +1345,56 @@ export function updateShopStudentDisplay(studentId) {
         buyBtns.forEach(btn => {
             btn.disabled = true;
             btn.innerText = "Select Student";
-            btn.classList.remove('bg-red-500', 'bg-green-600');
+            btn.classList.remove('bg-green-600', 'bg-red-500');
         });
         return;
     }
 
     const scoreData = state.get('allStudentScores').find(s => s.id === studentId);
-    const gold = scoreData.gold !== undefined ? scoreData.gold : (scoreData.totalStars || 0);
+    const gold = scoreData.gold !== undefined ? scoreData.gold : (scoreData?.totalStars || 0);
     const inventory = scoreData?.inventory || [];
     
+    // MERCHANT'S FAVORITE LOGIC
+    const reigningHero = state.get('reigningHero');
+    const isHero = reigningHero && reigningHero.id === studentId;
+    
+    // Update Shop Header
+    const shopTitleEl = document.getElementById('shop-title');
+    if (isHero) {
+        shopTitleEl.innerHTML = `The Mystic Market <span class="text-xs bg-green-500 text-white px-3 py-1 rounded-full align-middle ml-2 animate-pulse shadow-sm border border-white/20">Hero Discount Active!</span>`;
+    } else {
+        shopTitleEl.innerText = "The Mystic Market";
+    }
+
     // Check Monthly Limit
     const currentMonthKey = new Date().toISOString().substring(0, 7);
-    const itemsBoughtThisMonth = inventory.filter(i => 
-        i.acquiredAt && i.acquiredAt.startsWith(currentMonthKey)
-    );
+    const itemsBoughtThisMonth = inventory.filter(i => i.acquiredAt && i.acquiredAt.startsWith(currentMonthKey));
     const isLimitReached = itemsBoughtThisMonth.length >= 2;
 
     goldDisplay.innerText = `${gold} 🪙`;
 
     buyBtns.forEach(btn => {
-        const itemPrice = parseInt(btn.previousElementSibling.innerText); 
+        const itemCard = btn.closest('.shop-item-card');
+        const priceLabelContainer = itemCard.querySelector('.font-bold.text-white.text-lg');
         const itemId = btn.dataset.id;
-        const alreadyOwned = inventory.some(i => i.id === itemId);
+        
+        // Get original price from state
+        const itemData = state.get('currentShopItems').find(i => i.id === itemId);
+        const originalPrice = itemData ? itemData.price : 10;
+        
+        let finalPrice = originalPrice;
+        if (isHero) {
+            finalPrice = Math.max(1, originalPrice - 2);
+            // Show discounted UI
+            priceLabelContainer.innerHTML = `
+                <span class="text-xs line-through opacity-50 mr-1">${originalPrice}</span>
+                <span class="text-green-400">${finalPrice}</span>
+                <span class="ml-1">🪙</span>`;
+        } else {
+            priceLabelContainer.innerHTML = `<span>${originalPrice}</span><span>🪙</span>`;
+        }
 
-        // Reset classes
+        const alreadyOwned = inventory.some(i => i.id === itemId);
         btn.classList.remove('bg-green-600', 'bg-red-500');
 
         if (alreadyOwned) {
@@ -1380,7 +1407,7 @@ export function updateShopStudentDisplay(studentId) {
             btn.innerText = "Limit Reached (2/2)";
             btn.classList.add('bg-red-500');
         }
-        else if (gold >= itemPrice) {
+        else if (gold >= finalPrice) {
             btn.disabled = false;
             btn.innerText = "Buy Now";
         } 

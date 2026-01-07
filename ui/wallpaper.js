@@ -5,6 +5,14 @@ import * as utils from '../utils.js';
 import { callGeminiApi } from '../api.js';
 import * as constants from '../constants.js';
 
+// Proper Fisher-Yates shuffle for true variety
+function shuffleDeck(array) {
+    for (let i = array.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [array[i], array[j]] = [array[j], array[i]];
+    }
+    return array;
+}
 let directorTimeout = null;
 let wallpaperTimerInterval = null;
 let clockInterval = null;
@@ -14,7 +22,7 @@ let isRunning = false;
 const HISTORY_KEY = 'gcq_wall_history'; 
 const SESSION_KEY = 'gcq_wall_session'; 
 const CARD_DURATION = 60000; 
-const MEMORY_LIMIT = 30; 
+const MEMORY_LIMIT = 100; 
 
 let solarData = {
     sunrise: new Date().setHours(6, 30, 0, 0),
@@ -309,16 +317,16 @@ async function directorGameLoop() {
                 }
 
                 timerOverlay.innerHTML = `
-                    <div class="wallpaper-float-card ${cssClass}" style="position: relative; width: auto; min-width: 400px; transform: none; animation: none;">
-                        <div class="text-center w-full px-6 py-2 flex items-center justify-between gap-6">
-                            <div class="flex items-center gap-4">
-                                <div class="text-4xl">${icon}</div>
+                    <div class="wallpaper-float-card ${cssClass} !w-auto !min-w-[320px] !p-4 !rounded-2xl shadow-2xl border-4" style="position: relative; transform: none; animation: none;">
+                        <div class="flex items-center justify-between gap-6">
+                            <div class="flex items-center gap-3">
+                                <div class="text-3xl">${icon}</div>
                                 <div class="text-left">
-                                    <div class="badge-pill bg-white text-indigo-900 border border-indigo-200 text-[10px] py-0 px-2 mb-0">Time Remaining</div>
-                                    <h3 class="font-title text-2xl text-white/90 truncate max-w-[200px]">${activeTimer.title}</h3>
+                                    <div class="text-[10px] font-black uppercase text-white/70 leading-none mb-1">Time Remaining</div>
+                                    <h3 class="font-title text-lg text-white leading-tight truncate max-w-[150px]">${activeTimer.title}</h3>
                                 </div>
                             </div>
-                            <h2 class="font-title text-6xl text-white drop-shadow-md leading-none font-variant-numeric:tabular-nums">${timeDisplay}</h2>
+                            <div class="font-title text-5xl text-white drop-shadow-md leading-none font-variant-numeric:tabular-nums">${timeDisplay}</div>
                         </div>
                     </div>`;
             } else {
@@ -421,7 +429,7 @@ async function directorGameLoop() {
 async function selectNextCard(classId) {
     try {
         let potentialCards = buildDeckList(classId);
-        potentialCards.sort(() => Math.random() - 0.5);
+        potentialCards = shuffleDeck(potentialCards);
         
         for (const cardType of potentialCards) {
             if (!hasBeenShownRecently(cardType)) {
@@ -455,100 +463,79 @@ async function safeHydrate(type, classId) {
 function buildDeckList(classId) {
     let list = [];
     const now = new Date();
-    const mm = String(now.getMonth() + 1).padStart(2, '0');
-    const dd = String(now.getDate()).padStart(2, '0');
-    const dateMatch = `-${mm}-${dd}`;
+    const dateMatch = `-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
     const hour = now.getHours();
-    const day = now.getDay();
 
-    // --- CHECK FOR TESTS TODAY ---
-    if (classId) {
-        const todayStr = utils.getTodayDateString();
-        const assignments = state.get('allQuestAssignments');
-        // Look for a test match
-        const hasTestToday = assignments.some(a => 
-            a.classId === classId && 
-            a.testData && 
-            utils.datesMatch(a.testData.date, todayStr)
-        );
-        
-        if (hasTestToday) {
-            // Push it twice so it appears frequently
-            list.push('class_test_luck');
-            list.push('class_test_luck');
-        }
-    }
-    // -----------------------------
+    // --- 1. THE "ALWAYS FRESH" GLOBAL POOL ---
+    // These cards appear in BOTH School and Class modes to ensure variety
+    const globalPool = [
+        'school_pulse', 'treasury_school', 'school_leader_top3', 
+        'school_active_bounties', 'school_adventure_count', 'school_upcoming_event',
+        'season_visual', 'motivation_poster', 'school_top_student',
+        'ai_fact_science', 'ai_fact_history', 'ai_fact_nature', 
+        'ai_word', 'ai_joke', 'ai_riddle', 'ai_idiom', 'weather', 'holiday'
+    ];
+
+    // --- 2. THE CLASS-SPECIFIC POOL ---
+    const classPool = [
+        'class_quest', 'treasury_class', 'streak', 'timekeeper', 
+        'story_sentence', 'class_bounty', 'next_lesson',
+        'attendance_summary', 'absent_heroes', 'mindfulness'
+    ];
 
     if (!classId) {
-        list.push(
-            'school_pulse', 'treasury_school', 'league_race', 'school_leader_top3', 
-            'school_active_bounties', 'school_adventure_count', 'school_upcoming_event',
-            'season_visual', 'motivation_poster', 'school_top_student',
-            'ai_fact_science', 'ai_fact_history', 'ai_fact_nature', 
-            'ai_word', 'ai_joke', 'ai_riddle', 'ai_idiom',
-            'weather', 'holiday'
-        );
+        // Mode: School Overview
+        list = [...globalPool];
     } else {
-        list.push(
-            'class_quest', 'treasury_class', 'streak', 'timekeeper', 
-            'story_sentence', 'class_bounty', 'next_lesson',
-            'attendance_summary', 'absent_heroes', 'weather', 'ai_joke', 'mindfulness'
-        );
+        // Mode: Specific Class (Lessons: 1.5h - 2h)
+        // Mix: 60% Class Data + 40% Global Facts/School Trivia
+        list = [...classPool, ...globalPool.sort(() => 0.5 - Math.random()).slice(0, 8)];
 
         const students = state.get('allStudents').filter(s => s.classId === classId);
         const scores = state.get('allStudentScores');
-        const getMStars = (sId) => scores.find(x => x.id === sId)?.monthlyStars || 0;
-        
-        const topMonthly = students
-            .map(s => ({id: s.id, stars: getMStars(s.id)}))
-            .filter(s => s.stars > 0)
-            .sort((a,b) => b.stars - a.stars)
-            .slice(0, 5);
-        topMonthly.forEach(s => list.push(`top_student_monthly:${s.id}`));
-
-        const todaysStars = state.get('todaysStars');
-        const topDaily = students
-            .map(s => ({id: s.id, stars: todaysStars[s.id]?.stars || 0}))
-            .filter(s => s.stars > 0)
-            .sort((a,b) => b.stars - a.stars)
-            .slice(0, 3);
-        topDaily.forEach(s => list.push(`top_student_daily:${s.id}`));
-
-        // Filter out absent students from spotlight
         const todayStr = utils.getTodayDateString();
-        const absents = state.get('allAttendanceRecords').filter(r => r.classId === classId && r.date === todayStr).map(r => r.studentId);
-        
-        const presentStudents = students.filter(s => !absents.includes(s.id));
-        const shuffled = [...presentStudents].sort(() => 0.5 - Math.random()).slice(0, 5);
-        
-        shuffled.forEach(s => list.push(`stu_spotlight:${s.id}`));
 
+        // Check for Test Luck
+        const hasTest = state.get('allQuestAssignments').some(a => a.classId === classId && a.testData && utils.datesMatch(a.testData.date, todayStr));
+        if (hasTest) list.push('class_test_luck', 'class_test_luck');
+
+        // STUDENT SPOTLIGHTS (Filter out absents)
+        const absents = state.get('allAttendanceRecords').filter(r => r.classId === classId && r.date === todayStr).map(r => r.studentId);
+        const presentStudents = students.filter(s => !absents.includes(s.id));
+        presentStudents.sort(() => 0.5 - Math.random()).slice(0, 6).forEach(s => list.push(`stu_spotlight:${s.id}`));
+
+        // RECENT AWARDS (Fix: One per student to avoid clumping!)
         const awardLogs = state.get('allAwardLogs')
             .filter(l => l.classId === classId)
-            .sort((a,b) => (b.createdAt?.toMillis ? b.createdAt.toMillis() : 0) - (a.createdAt?.toMillis ? a.createdAt.toMillis() : 0))
-            .slice(0, 10);
-        awardLogs.forEach(l => list.push(`recent_award:${l.id}`));
+            .sort((a,b) => (b.createdAt?.toMillis?.() || 0) - (a.createdAt?.toMillis?.() || 0));
+        
+        const featuredStudents = new Set();
+        awardLogs.forEach(l => {
+            if (!featuredStudents.has(l.studentId) && featuredStudents.size < 8) {
+                list.push(`recent_award:${l.id}`);
+                featuredStudents.add(l.studentId);
+            }
+        });
 
-        const logs = state.get('allAdventureLogs')
+        // RECENT ADVENTURES (Last 4)
+        state.get('allAdventureLogs')
             .filter(l => l.classId === classId && l.imageUrl)
-            .sort((a,b) => (b.createdAt?.toMillis ? b.createdAt.toMillis() : 0) - (a.createdAt?.toMillis ? a.createdAt.toMillis() : 0))
-            .slice(0, 10);
-        logs.forEach(l => list.push(`log:${l.id}`));
+            .slice(0, 4)
+            .forEach(l => list.push(`log:${l.id}`));
 
+        // BIRTHDAYS/NAMEDAYS
         students.forEach(s => {
-            if (s.birthday?.endsWith(dateMatch)) { list.push(`bday:${s.id}`); list.push(`bday:${s.id}`); }
-            if (s.nameday?.endsWith(dateMatch)) { list.push(`name:${s.id}`); list.push(`name:${s.id}`); }
+            if (s.birthday?.endsWith(dateMatch)) list.push(`bday:${s.id}`, `bday:${s.id}`);
+            if (s.nameday?.endsWith(dateMatch)) list.push(`name:${s.id}`, `name:${s.id}`);
         });
     }
 
+    // Contextual time-based injections
     if (hour < 9) list.push('context_morning');
     if (hour >= 13 && hour < 15) list.push('context_afternoon');
     if (hour >= 19) list.push('context_night');
-    if (day === 1) list.push('context_monday');
-    if (day === 5) list.push('context_friday');
 
-    return list;
+    return shuffleDeck(list); // Use the new proper shuffle!
 }
 
 async function hydrateCard(type, classId) {
@@ -968,12 +955,50 @@ function getTreasuryCard(classId) {
 function getClassQuestCard(classId) {
     const cls = state.get('allSchoolClasses').find(c => c.id === classId);
     if (!cls) return null;
+    
     const students = state.get('allStudents').filter(s => s.classId === classId);
-    const now = new Date(); const m = now.getMonth(); const y = now.getFullYear();
-    const monthlyStars = state.get('allAwardLogs').reduce((sum, log) => { if(log.classId !== classId) return sum; const d = utils.parseDDMMYYYY(log.date); if(d.getMonth() === m && d.getFullYear() === y) return sum + log.stars; return sum; }, 0);
-    const goal = Math.max(18, students.length * 18);
+    const scores = state.get('allStudentScores') || [];
+    
+    // Calculate actual monthly stars
+    const monthlyStars = students.reduce((sum, s) => {
+        const scoreData = scores.find(sc => sc.id === s.id);
+        return sum + (scoreData ? (scoreData.monthlyStars || 0) : 0);
+    }, 0);
+
+    // Calculate Dynamic Goal (Sync with Home logic)
+    const BASE_GOAL = 18; 
+    const SCALING_FACTOR = 2.5; 
+    const now = new Date();
+    const daysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
+    
+    // Holiday Logic
+    let holidayDaysLost = 0;
+    const ranges = state.get('schoolHolidayRanges') || [];
+    ranges.forEach(range => {
+        const start = new Date(range.start);
+        const end = new Date(range.end);
+        const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+        const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+        const overlapStart = start > monthStart ? start : monthStart;
+        const overlapEnd = end < monthEnd ? end : monthEnd;
+        if (overlapStart <= overlapEnd) {
+            holidayDaysLost += (Math.ceil(Math.abs(overlapEnd - overlapStart) / (1000 * 60 * 60 * 24)) + 1);
+        }
+    });
+
+    let monthModifier = (daysInMonth - holidayDaysLost) / daysInMonth;
+    monthModifier = now.getMonth() === 5 ? 0.5 : Math.max(0.6, Math.min(1.0, monthModifier));
+    
+    const dbDifficulty = cls.difficultyLevel || 0;
+    const adjustedGoalPerStudent = (BASE_GOAL + (dbDifficulty * SCALING_FACTOR)) * monthModifier;
+    const goal = Math.round(Math.max(18, students.length * adjustedGoalPerStudent));
+    
     const pct = Math.min(100, Math.round((monthlyStars/goal)*100));
-    return { html: `<div class="text-center w-full"><div class="badge-pill bg-blue-100 text-blue-700">Quest Progress</div><div class="text-9xl mb-4 filter drop-shadow-md animate-pulse">${cls.logo}</div><div class="w-full bg-white h-8 rounded-full overflow-hidden border-2 border-blue-200 mb-2 shadow-inner"><div class="bg-gradient-to-r from-blue-400 to-indigo-500 h-full" style="width:${pct}%"></div></div><p class="font-title text-4xl text-blue-900">${pct}% Complete</p></div>`, css: 'float-card-blue' };
+    
+    return { 
+        html: `<div class="text-center w-full"><div class="badge-pill bg-blue-100 text-blue-700">Quest Progress</div><div class="text-9xl mb-4 filter drop-shadow-md animate-pulse">${cls.logo}</div><div class="w-full bg-white h-8 rounded-full overflow-hidden border-2 border-blue-200 mb-2 shadow-inner"><div class="bg-gradient-to-r from-blue-400 to-indigo-500 h-full" style="width:${pct}%"></div></div><p class="font-title text-4xl text-blue-900">${pct}% Complete</p></div>`, 
+        css: 'float-card-blue' 
+    };
 }
 
 function getTimekeeperCard(classId) {

@@ -1459,155 +1459,168 @@ export async function openMilestoneModal(markerElement) {
     const studentsInClass = state.get('allStudents').filter(s => s.classId === classId);
     const studentCount = studentsInClass.length;
     
-    // --- 1. SMART GOAL CALCULATION (Synced with tabs.js) ---
+    // --- 1. SYNCED MATH LOGIC ---
     const BASE_GOAL = 18; 
-    const SCALING_FACTOR = 1.5; 
-    
+    const SCALING_FACTOR = 2.5; 
     const now = new Date();
     const currentYear = now.getFullYear();
     const currentMonth = now.getMonth();
     const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
     
-    // Calculate Global Holidays
     let holidayDaysLost = 0;
     const ranges = state.get('schoolHolidayRanges') || [];
-    
     ranges.forEach(range => {
         const start = new Date(range.start);
         const end = new Date(range.end);
         const monthStart = new Date(currentYear, currentMonth, 1);
         const monthEnd = new Date(currentYear, currentMonth + 1, 0);
-        
         const overlapStart = start > monthStart ? start : monthStart;
         const overlapEnd = end < monthEnd ? end : monthEnd;
-        
         if (overlapStart <= overlapEnd) {
-            const diffTime = Math.abs(overlapEnd - overlapStart);
-            const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
-            holidayDaysLost += diffDays;
+            holidayDaysLost += (Math.ceil(Math.abs(overlapEnd - overlapStart) / (1000 * 60 * 60 * 24)) + 1);
         }
     });
 
-    // Calculate Month Modifier
     let monthModifier = (daysInMonth - holidayDaysLost) / daysInMonth;
-    if (currentMonth === 5) monthModifier = 0.5; // June half-month
-    else monthModifier = Math.max(0.6, Math.min(1.0, monthModifier));
+    monthModifier = currentMonth === 5 ? 0.5 : Math.max(0.6, Math.min(1.0, monthModifier));
 
-    // Calculate Difficulty
     let isCompletedThisMonth = false;
     if (classInfo.questCompletedAt) {
         const completedDate = classInfo.questCompletedAt.toDate();
-        if (completedDate.getMonth() === currentMonth && completedDate.getFullYear() === currentYear) {
-            isCompletedThisMonth = true;
-        }
+        if (completedDate.getMonth() === currentMonth && completedDate.getFullYear() === currentYear) isCompletedThisMonth = true;
     }
     const dbDifficulty = classInfo.difficultyLevel || 0;
     const effectiveDifficulty = isCompletedThisMonth ? Math.max(0, dbDifficulty - 1) : dbDifficulty;
-    
-    // Final Per-Student Goal
     const adjustedGoalPerStudent = (BASE_GOAL + (effectiveDifficulty * SCALING_FACTOR)) * monthModifier;
 
-    // Milestone Targets
     const goals = {
         bronze: Math.round(studentCount * (adjustedGoalPerStudent * 0.25)),
         silver: Math.round(studentCount * (adjustedGoalPerStudent * 0.50)),
         gold: Math.round(studentCount * (adjustedGoalPerStudent * 0.75)),
         diamond: studentCount > 0 ? Math.round(studentCount * adjustedGoalPerStudent) : 18
     };
-    // --- END CALCULATION ---
 
+    // --- 2. ADVANCED DATA ANALYSIS ---
     const currentMonthlyStars = studentsInClass.reduce((sum, s) => {
         const scoreData = state.get('allStudentScores').find(score => score.id === s.id);
         return sum + (scoreData?.monthlyStars || 0);
     }, 0);
 
-    const modalTitle = document.getElementById('milestone-modal-title');
-    const modalContent = document.getElementById('milestone-modal-content');
-    
-    let milestoneName, goal, icon;
-    if (markerElement.innerText.includes('🛡️')) { milestoneName = "Bronze Shield"; goal = goals.bronze; icon = '🛡️'; } 
-    else if (markerElement.innerText.includes('🏆')) { milestoneName = "Silver Trophy"; goal = goals.silver; icon = '🏆'; }
-    else if (markerElement.innerText.includes('👑')) { milestoneName = "Golden Crown"; goal = goals.gold; icon = '👑'; } 
-    else { milestoneName = "Diamond Quest"; goal = goals.diamond; icon = '💎'; }
-
-    // Stats Logic
     const relevantLogs = state.get('allAwardLogs').filter(log => {
         if (log.classId !== classId) return false;
         const logDate = utils.parseDDMMYYYY(log.date); 
         return logDate.getMonth() === currentMonth && logDate.getFullYear() === currentYear;
     });
 
-    const today = new Date();
-    const dayOfWeek = today.getDay(); 
-    const diff = today.getDate() - dayOfWeek + (dayOfWeek === 0 ? -6 : 1); 
-    const startOfWeek = new Date(today.setDate(diff));
+    // Weekly Momentum
+    const todayDate = new Date();
+    const startOfWeek = new Date(todayDate.setDate(todayDate.getDate() - todayDate.getDay() + (todayDate.getDay() === 0 ? -6 : 1)));
     startOfWeek.setHours(0, 0, 0, 0);
+    const weeklyStars = relevantLogs.filter(log => utils.parseDDMMYYYY(log.date) >= startOfWeek).reduce((sum, log) => sum + log.stars, 0);
 
-    const weeklyStars = relevantLogs
-    .filter(log => utils.parseDDMMYYYY(log.date) >= startOfWeek)
-    .reduce((sum, log) => sum + log.stars, 0);
+    // Trial Mastery (Class Average)
+    const classTrials = state.get('allWrittenScores').filter(s => s.classId === classId && new Date(s.date).getMonth() === currentMonth);
+    let totalScorePercent = 0, scoreCount = 0;
+    classTrials.forEach(s => {
+        if (s.scoreNumeric !== null) { totalScorePercent += (s.scoreNumeric / s.maxScore) * 100; scoreCount++; }
+        else if (s.scoreQualitative === "Great!!!") { totalScorePercent += 100; scoreCount++; }
+    });
+    const trialMastery = scoreCount > 0 ? (totalScorePercent / scoreCount).toFixed(0) : "N/A";
 
+    // Attendance Rate
+    const absences = state.get('allAttendanceRecords').filter(r => r.classId === classId && utils.parseDDMMYYYY(r.date).getMonth() === currentMonth).length;
+    const lessonDatesCount = new Set(relevantLogs.map(l => l.date)).size || 1;
+    const totalPotential = studentCount * lessonDatesCount;
+    const attendanceRate = totalPotential > 0 ? (((totalPotential - absences) / totalPotential) * 100).toFixed(0) : "100";
+
+    // Top Skill
     const reasonCounts = relevantLogs.reduce((acc, log) => {
-        if (log.reason === 'welcome_back' || log.reason === 'scholar_s_bonus') return acc;
-        acc[log.reason || 'other'] = (acc[log.reason || 'other'] || 0) + log.stars;
+        if (['welcome_back', 'scholar_s_bonus'].includes(log.reason)) return acc;
+        acc[log.reason || 'excellence'] = (acc[log.reason || 'excellence'] || 0) + log.stars;
         return acc;
     }, {});
-    
-    const topReasonEntry = Object.entries(reasonCounts).sort((a,b) => b[1] - a[1])[0];
-    const topReason = topReasonEntry ? `${topReasonEntry[0].replace(/_/g, ' ').charAt(0).toUpperCase() + topReasonEntry[0].replace(/_/g, ' ').slice(1)}` : "N/A";
+    const topReason = Object.entries(reasonCounts).sort((a,b) => b[1] - a[1])[0]?.[0].replace(/_/g, ' ') || "Teamwork";
 
-    const studentScores = studentsInClass.map(s => {
-        const score = state.get('allStudentScores').find(sc => sc.id === s.id)?.monthlyStars || 0;
-        return { name: s.name, score };
-    }).filter(s => s.score > 0);
+    // --- 3. DYNAMIC UI RENDER ---
+    const modalTitle = document.getElementById('milestone-modal-title');
+    const modalContent = document.getElementById('milestone-modal-content');
     
-    let topAdventurers = "None yet this month!";
-    if(studentScores.length > 0) {
-        const topStudents = studentScores.sort((a, b) => b.score - a.score).slice(0, 5).map(s => `${s.name} (${s.score}⭐)`);
-        topAdventurers = topStudents.join(', ');
-    }
-    
-    modalTitle.innerHTML = `${icon} ${milestoneName}`;
-    const starsNeeded = Math.max(0, goal - currentMonthlyStars);
-    // Fix progress visual to not exceed 100%
+    let milestoneName, goal, icon, color;
+    if (markerElement.innerText.includes('🛡️')) { milestoneName = "Bronze Shield"; goal = goals.bronze; icon = '🛡️'; color = "blue"; } 
+    else if (markerElement.innerText.includes('🏆')) { milestoneName = "Silver Trophy"; goal = goals.silver; icon = '🏆'; color = "slate"; }
+    else if (markerElement.innerText.includes('👑')) { milestoneName = "Golden Crown"; goal = goals.gold; icon = '👑'; color = "amber"; } 
+    else { milestoneName = "Diamond Quest"; goal = goals.diamond; icon = '💎'; color = "cyan"; }
+
     const progressPercent = goal > 0 ? Math.min(100, (currentMonthlyStars / goal) * 100).toFixed(1) : 0;
+    const starsNeeded = Math.max(0, goal - currentMonthlyStars);
 
+    modalTitle.innerHTML = `${icon} ${milestoneName}`;
     modalContent.innerHTML = `
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 items-center">
-            <div class="text-center">
-                <h3 class="font-title text-4xl text-gray-800">${classInfo.logo} ${classInfo.name}</h3>
-                <p class="text-lg text-gray-600 -mt-2">Progress towards the ${milestoneName}</p>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-8 items-start">
+            <div class="vibrant-card p-6 bg-gradient-to-b from-white to-${color}-50 border-4 border-${color}-400 shadow-[0_10px_30px_rgba(0,0,0,0.1)] rounded-[3rem] text-center">
+                <div class="mb-4">
+                    <span class="text-4xl filter drop-shadow-md">${classInfo.logo}</span>
+                    <h3 class="font-title text-4xl text-gray-800 tracking-tight mt-2">${classInfo.name}</h3>
+                    <p class="text-xs font-black uppercase text-${color}-600 tracking-[0.2em] mb-4">Quest Level ${dbDifficulty + 1}</p>
+                </div>
                 
-                <div class="text-2xl my-4">
-                    <p><span class="font-bold text-amber-500 text-5xl">${currentMonthlyStars}</span> / <span class="font-bold text-3xl text-gray-500">${goal}</span></p>
-                    <p class="text-sm text-gray-500 -mt-1">Total Stars Collected</p>
-                    <div class="w-full bg-gray-200 rounded-full h-6 shadow-inner mt-2 border-2 border-gray-300 relative overflow-hidden">
-                        <div class="bg-gradient-to-r from-cyan-400 to-blue-500 h-full flex items-center justify-center text-white font-bold text-sm transition-all duration-1000" style="width: ${progressPercent}%"></div>
-                        <span class="absolute inset-0 flex items-center justify-center text-xs font-bold text-gray-700 mix-blend-multiply">${progressPercent}%</span>
+                <div class="relative py-4">
+                    <div class="flex justify-center items-baseline gap-2 mb-2">
+                        <span class="font-title text-7xl text-transparent bg-clip-text bg-gradient-to-br from-${color}-500 to-${color}-800">${currentMonthlyStars}</span>
+                        <span class="font-title text-2xl text-gray-400">/ ${goal}</span>
+                    </div>
+                    <div class="w-full bg-gray-200/50 rounded-full h-10 border-4 border-white shadow-inner relative overflow-hidden">
+                        <div class="h-full bg-gradient-to-r from-${color}-400 to-${color}-600 transition-all duration-1000 shadow-[0_0_20px_rgba(0,0,0,0.2)]" style="width: ${progressPercent}%">
+                            <div class="absolute inset-0 bg-white/20 animate-pulse"></div>
+                        </div>
+                        <span class="absolute inset-0 flex items-center justify-center text-sm font-black text-gray-800 mix-blend-overlay">${progressPercent}%</span>
                     </div>
                 </div>
-                
+
                 ${starsNeeded > 0 
-                    ? `<p class="mt-4 text-blue-600 font-bold text-3xl animate-pulse">${starsNeeded} more stars to go!</p>` 
-                    : `<p class="mt-4 text-green-600 font-bold text-3xl title-sparkle">Milestone Achieved! Well done!</p>`
+                    ? `<div class="mt-6 bg-${color}-100/50 border-2 border-dashed border-${color}-300 rounded-2xl p-4 animate-bounce-slow">
+                         <p class="text-${color}-800 font-bold text-lg"><i class="fas fa-arrow-up mr-2"></i>${starsNeeded} stars to reach ${icon}</p>
+                       </div>` 
+                    : `<div class="mt-6 bg-green-100 border-2 border-green-400 rounded-2xl p-4">
+                         <p class="text-green-800 font-bold text-xl">⚔️ Milestone Claimed!</p>
+                       </div>`
                 }
             </div>
-            <div class="text-left bg-gray-50 p-6 rounded-2xl border-2 border-gray-200 space-y-4">
-                 <div class="bg-white p-3 rounded-lg shadow-sm">
-                    <p class="text-sm text-gray-500 flex items-center gap-1"><i class="fas fa-bolt text-yellow-500"></i> Weekly Momentum (Since Monday)</p>
-                    <p class="font-bold text-2xl text-yellow-600">${weeklyStars} stars</p>
+
+            <div class="grid grid-cols-1 gap-4">
+                <div class="vibrant-card p-4 bg-white border-2 border-orange-300 rounded-3xl shadow-sm flex items-center gap-4">
+                    <div class="w-14 h-14 rounded-2xl bg-orange-100 text-orange-600 flex items-center justify-center text-2xl shadow-inner"><i class="fas fa-fire-alt"></i></div>
+                    <div>
+                        <p class="text-[10px] font-black text-orange-400 uppercase tracking-widest leading-none mb-1">Weekly Momentum</p>
+                        <p class="font-title text-3xl text-orange-700">${weeklyStars} <span class="text-sm font-sans font-bold">Stars</span></p>
+                    </div>
                 </div>
-                <div class="bg-white p-3 rounded-lg shadow-sm">
-                    <p class="text-sm text-gray-500 flex items-center gap-1"><i class="fas fa-award text-green-500"></i> Top Skill This Month</p>
-                    <p class="font-bold text-2xl text-green-600">${topReason}</p>
+
+                <div class="vibrant-card p-4 bg-white border-2 border-purple-300 rounded-3xl shadow-sm flex items-center gap-4">
+                    <div class="w-14 h-14 rounded-2xl bg-purple-100 text-purple-600 flex items-center justify-center text-2xl shadow-inner"><i class="fas fa-bolt"></i></div>
+                    <div>
+                        <p class="text-[10px] font-black text-purple-400 uppercase tracking-widest leading-none mb-1">Top Skill</p>
+                        <p class="font-title text-3xl text-purple-700 capitalize">${topReason}</p>
+                    </div>
                 </div>
-                <div class="bg-white p-3 rounded-lg shadow-sm">
-                    <p class="text-sm text-gray-500 flex items-center gap-1"><i class="fas fa-crown text-purple-500"></i> Top Adventurers (Monthly)</p>
-                    <p class="font-semibold text-lg text-purple-600 leading-snug" title="${topAdventurers}">${topAdventurers}</p>
+
+                <div class="vibrant-card p-4 bg-white border-2 border-green-300 rounded-3xl shadow-sm flex items-center gap-4">
+                    <div class="w-14 h-14 rounded-2xl bg-green-100 text-green-600 flex items-center justify-center text-2xl shadow-inner"><i class="fas fa-graduation-cap"></i></div>
+                    <div>
+                        <p class="text-[10px] font-black text-green-400 uppercase tracking-widest leading-none mb-1">Trial Mastery</p>
+                        <p class="font-title text-3xl text-green-700">${trialMastery}% <span class="text-sm font-sans font-bold">Avg</span></p>
+                    </div>
+                </div>
+
+                <div class="vibrant-card p-4 bg-white border-2 border-indigo-300 rounded-3xl shadow-sm flex items-center gap-4">
+                    <div class="w-14 h-14 rounded-2xl bg-indigo-100 text-indigo-600 flex items-center justify-center text-2xl shadow-inner"><i class="fas fa-user-check"></i></div>
+                    <div>
+                        <p class="text-[10px] font-black text-indigo-400 uppercase tracking-widest leading-none mb-1">Attendance Rate</p>
+                        <p class="font-title text-3xl text-indigo-700">${attendanceRate}% <span class="text-sm font-sans font-bold">Show-up</span></p>
+                    </div>
                 </div>
             </div>
-        </div>
-    `;
+        </div>`;
     
     showAnimatedModal('milestone-details-modal');
 }

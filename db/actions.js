@@ -935,13 +935,10 @@ export async function handleLogAdventure() {
     const classData = state.get('allTeachersClasses').find(c => c.id === classId);
     if (!classData) return;
 
-    const today = getTodayDateString(); // DD-MM-YYYY
-    const nowObj = new Date(); 
-    
-    // 1. Check for existing log
+    const today = getTodayDateString();
     const existingLog = state.get('allAdventureLogs').find(log => log.classId === classId && log.date === today);
     if (existingLog) {
-        showToast("Today's adventure has already been chronicled!", 'info');
+        showToast("Today's adventure is already recorded!", 'info');
         return;
     }
 
@@ -949,135 +946,47 @@ export async function handleLogAdventure() {
     btn.disabled = true;
     btn.innerHTML = `<i class="fas fa-spinner fa-spin mr-2"></i> Writing History...`;
 
-    // --- SMART CONTEXT GATHERING ---
-    const currentMonth = nowObj.getMonth(); 
-    const currentDay = nowObj.getDate();
-    const currentYear = nowObj.getFullYear();
+    // --- START TASK 3: PLAY DRUMROLL ---
+    import('../audio.js').then(m => m.playDrumRoll());
+
+    const nowObj = new Date(); 
     const league = classData.questLevel;
     const ageGroup = getAgeGroupForLeague(league); 
 
-    // A. Seasonal Intelligence
-    let seasonalVibe = "a standard questing day";
-    if (currentMonth === 11) {
-        seasonalVibe = currentDay > 20 ? "the festive peak of the Winter Holidays" : "the magical build-up to Christmas";
-    } else if (currentMonth === 3 || currentMonth === 4) {
-        seasonalVibe = "the blooming energy of Spring and Easter celebrations";
-    } else if (currentMonth === 5) {
-        seasonalVibe = "the final heroic countdown to Summer Break";
-    } else if (currentMonth === 8) {
-        seasonalVibe = "the dawn of a brand new academic year";
-    } else if (currentMonth === 9 && currentDay > 24) {
-        seasonalVibe = "spooky autumn nights and ancient legends";
-    }
-
-    // B. Professional Tone Selection
-    const styleInstruction = ageGroup === 'junior' 
-        ? "magical, simple, and full of wonder for 7-9 year olds. Focus on 'the power of friendship' and 'magical items'."
-        : "epic, heroic, and professional for 10-13 year olds. Use high-fantasy metaphors of 'legacy', 'strategic dominance', and 'valor'.";
-
-    // --- DATA GATHERING FROM ALL APP PARTS ---
-    
-    // 1. AWARDS & TOP SKILLS
+    // Gather contextual data
     const todaysAwards = state.get('allAwardLogs').filter(log => log.classId === classId && log.date === today);
     const totalStars = todaysAwards.reduce((sum, award) => sum + award.stars, 0);
-    const reasonCounts = todaysAwards.reduce((acc, award) => {
-        if (award.reason) acc[award.reason] = (acc[award.reason] || 0) + 1;
-        return acc;
-    }, {});
-    const topReason = Object.keys(reasonCounts).length > 0 ? Object.entries(reasonCounts).sort((a, b) => b[1] - a[1])[0][0] : "excellence";
+    const topReason = todaysAwards.length > 0 ? Object.entries(todaysAwards.reduce((acc, award) => { if (award.reason) acc[award.reason] = (acc[award.reason] || 0) + 1; return acc; }, {})).sort((a, b) => b[1] - a[1])[0][0] : "excellence";
 
-    // 2. HERO SELECTION (FAIRNESS ROTATION)
-    const studentStars = todaysAwards.reduce((acc, award) => {
-        acc[award.studentId] = (acc[award.studentId] || 0) + award.stars;
-        return acc;
-    }, {});
+    // Hero Selection
+    const studentStars = todaysAwards.reduce((acc, award) => { acc[award.studentId] = (acc[award.studentId] || 0) + award.stars; return acc; }, {});
     const eligibleCandidates = Object.keys(studentStars).map(id => {
         const student = state.get('allStudents').find(s => s.id === id);
         if (!student) return null;
-        const lastHeroLog = [...state.get('allAdventureLogs')]
-            .filter(l => l.classId === classId && l.hero === student.name)
-            .sort((a, b) => (b.createdAt?.toMillis() || 0) - (a.createdAt?.toMillis() || 0))[0];
-        return { id: student.id, name: student.name, stars: studentStars[id], lastHeroDate: lastHeroLog ? lastHeroLog.createdAt?.toMillis() || 0 : 0 };
-    }).filter(Boolean);
-    eligibleCandidates.sort((a, b) => a.lastHeroDate - b.lastHeroDate || b.stars - a.stars);
+        const lastHeroLog = [...state.get('allAdventureLogs')].filter(l => l.classId === classId && l.hero === student.name).sort((a, b) => (b.createdAt?.toMillis() || 0) - (a.createdAt?.toMillis() || 0))[0];
+        return { name: student.name, stars: studentStars[id], lastHeroDate: lastHeroLog?.createdAt?.toMillis() || 0 };
+    }).filter(Boolean).sort((a, b) => a.lastHeroDate - b.lastHeroDate || b.stars - a.stars);
     
     let heroOfTheDay = eligibleCandidates.length > 0 ? eligibleCandidates[0].name : "the whole team";
 
-    // 3. WORLD EVENTS & BOUNTIES
-    const activeEvent = state.get('allQuestEvents').find(e => e.date === today);
-    const eventContext = activeEvent ? `WORLD EVENT ACTIVE: ${activeEvent.details?.title || activeEvent.type}.` : "";
-    // Only celebrate bounties that were claimed TODAY
-    const completedBounties = state.get('allQuestBounties').filter(b => {
-        if (b.classId !== classId || b.status !== 'completed' || !b.claimedAt) return false;
-        
-        // Convert the Firebase timestamp to a readable date
-        const claimDate = b.claimedAt.toDate(); 
-        return claimDate.toDateString() === nowObj.toDateString();
-    });
-    const bountyText = completedBounties.length > 0 ? `Bounties Claimed: ${completedBounties.map(b => b.title).join(', ')}.` : "";
-
-    // 3-4. QUEST MISSIONS (Checking if it's new or an old saga)
-    const activeAssignment = state.get('allQuestAssignments').find(a => a.classId === classId);
-    let assignmentText = "No current major missions.";
-    if (activeAssignment) {
-        const isNewToday = activeAssignment.createdAt?.toDate().toDateString() === nowObj.toDateString();
-        assignmentText = isNewToday 
-            ? `NEW MISSION ASSIGNED: ${activeAssignment.text}` 
-            : `The long quest continues: ${activeAssignment.text}`;
-    }
-
-    // 5. SCHOLARLY TRIALS (WRITTEN SCORES)
-    const rawScores = state.get('allWrittenScores').filter(s => s.classId === classId);
-    const todaysScores = rawScores.filter(s => {
-        const d = parseFlexibleDate(s.date);
-        return d && d.toDateString() === nowObj.toDateString();
-    });
-    const academicSummary = todaysScores.length > 0 ? todaysScores.map(s => {
-        const student = state.get('allStudents').find(stu => stu.id === s.studentId)?.name || 'A student';
-        return `${student} scored ${s.scoreQualitative || (s.scoreNumeric + '/' + s.maxScore)} on a ${s.type}.`;
-    }).join(' ') : "No formal trials today.";
-
-    // 6. STORY WEAVERS
+    // Story Weaver Check (TASK 2: Only mention if active)
     const currentStory = state.get('currentStoryData')?.[classId];
-    let storySection = "The Story Weavers' scrolls were silent today.";
-    if (todaysAwards.some(l => l.reason === 'story_weaver') || (currentStory?.updatedAt?.toDate().toDateString() === nowObj.toDateString())) {
-        storySection = currentStory?.currentWord ? `Class evolved their tale using the word "${currentStory.currentWord}".` : "Class added new chapters to their story.";
-    }
+    const isStoryActive = todaysAwards.some(l => l.reason === 'story_weaver') || (currentStory?.updatedAt?.toDate().toDateString() === nowObj.toDateString());
+    const storyContext = isStoryActive ? `In our Story Weavers saga, we explored the idea of '${currentStory?.currentWord || "a new chapter"}.'` : "";
 
-    // 7. ATTENDANCE & TEACHER NOTES
-    const todaysAbsences = state.get('allAttendanceRecords').filter(r => r.date === today && r.classId === classId);
-    const absentNames = todaysAbsences.map(r => state.get('allStudents').find(s => s.id === r.studentId)?.name).filter(Boolean);
-    const attendanceSummary = absentNames.length > 0 ? `${absentNames.join(', ')} were away.` : `The full party was present.`;
-    const notesString = todaysAwards.filter(l => l.note).map(l => `(Teacher note: "${l.note}")`).join(' ');
+    const textSystemPrompt = `You are 'The Chronicler'. Write a beautiful, positive diary entry from the perspective of a child's classroom team. 
+    Style: ${ageGroup === 'junior' ? 'Very simple, magical, and excited (7-9yo).' : 'Heroic, epic, and descriptive (10-13yo).'}. 
+    Length: Exactly 3 sentences. No markdown. Focus on the team's effort and the Hero of the Day.`;
 
-    // 8. SCHEDULE LOGIC
-    const schedule = (classData.scheduleDays || []).map(d => parseInt(d, 10));
-    const overrides = state.get('allScheduleOverrides') || [];
-    let nextLessonText = "the next session";
-    let isLastLessonOfMonth = true;
-    for (let d = currentDay + 1; d <= new Date(currentYear, currentMonth + 1, 0).getDate(); d++) {
-        const temp = new Date(currentYear, currentMonth, d);
-        if (schedule.includes(temp.getDay()) && !overrides.some(o => o.classId === classId && o.date === getDDMMYYYY(temp) && o.type === 'cancelled')) {
-            isLastLessonOfMonth = false;
-            nextLessonText = temp.toLocaleDateString('en-GB', { weekday: 'long' });
-            break;
-        }
-    }
-    const monthEndContext = isLastLessonOfMonth ? "CRITICAL: This is the LAST lesson of the month! Mention the final results." : "";
-
-    // --- THE MASTER AI PROMPT ---
-    const textSystemPrompt = `You are 'The Chronicler', an AI historian for a classroom RPG. Your style is ${styleInstruction}. Write a breathtaking, 3-4 sentence immersive diary entry. Do NOT use markdown.`;
-    const textUserPrompt = `Context: ${nowObj.toDateString()} during ${seasonalVibe}. Class: ${classData.name}. Achievements: ${totalStars} stars, Skill: '${topReason}'. Hero: ${heroOfTheDay} (Received Hero's Boon). Events: ${eventContext} ${bountyText}. Mission: ${assignmentText}. Trials: ${academicSummary}. Story: ${storySection}. Attendance: ${attendanceSummary}. Notes: ${notesString}. Next: ${nextLessonText}. ${monthEndContext}`;
+    const textUserPrompt = `Class: ${classData.name}. Team earned ${totalStars} stars for ${topReason}. The Hero was ${heroOfTheDay}. ${storyContext} Attendance: Full party present. Next lesson is soon!`;
 
     try {
         const text = await callGeminiApi(textSystemPrompt, textUserPrompt);
-        await new Promise(r => setTimeout(r, 8000)); // Quota safety
+        
+        // --- SPEED FIX: Reduced wait times for faster loading ---
+        await new Promise(r => setTimeout(r, 2000)); 
 
-        const keywordsRaw = await callGeminiApi("Extract 2-3 single-word, visually descriptive nouns from the text. Comma-separated.", text);
-        const keywords = keywordsRaw.split(',').map(k=>k.trim().toLowerCase());
-        await new Promise(r => setTimeout(r, 4000));
-
-        const imagePrompt = await callGeminiApi("Create a 50-word art prompt for a children's storybook illustration based on this text. Style: watercolor and ink, vibrant.", `Text: ${text}`);
+        const imagePrompt = `Whimsical children's storybook illustration of: ${text}. Watercolor style, vibrant, magical atmosphere.`;
         const imageBase64 = await callCloudflareAiImageApi(imagePrompt);
         const compressed = await compressImageBase64(imageBase64);
         
@@ -1085,28 +994,30 @@ export async function handleLogAdventure() {
         const imageUrl = await uploadImageToStorage(compressed, `adventure_logs/${state.get('currentUserId')}/${Date.now()}.jpg`);
 
         await addDoc(collection(db, "artifacts/great-class-quest/public/data/adventure_logs"), {
-            classId, date: today, text, keywords, imageUrl, hero: heroOfTheDay, topReason, totalStars,
+            classId, date: today, text, imageUrl, hero: heroOfTheDay, topReason, totalStars,
             createdBy: { uid: state.get('currentUserId'), name: state.get('currentTeacherName') },
             createdAt: serverTimestamp()
         });
         
+        // --- STOP DRUMROLL ---
+        import('../audio.js').then(m => m.stopDrumRoll());
         showToast("The adventure has been chronicled!", 'success');
 
-        if (heroOfTheDay && heroOfTheDay !== "the whole team") {
+        if (heroOfTheDay !== "the whole team") {
             const heroStudent = state.get('allStudents').find(s => s.name === heroOfTheDay && s.classId === classId);
             if (heroStudent) {
                 document.getElementById('hero-celebration-name').innerText = heroStudent.name;
                 document.getElementById('hero-celebration-reason').innerText = `For outstanding ${topReason.replace(/_/g, ' ')}`;
                 const avatarEl = document.getElementById('hero-celebration-avatar');
-                avatarEl.innerHTML = heroStudent.avatar ? `<img src="${heroStudent.avatar}" class="w-full h-full object-cover rounded-full">` : `<span class="text-7xl font-bold text-indigo-500">${heroStudent.name.charAt(0)}</span>`;
-                avatarEl.innerHTML += `<div class="absolute -top-4 -right-4 text-6xl animate-bounce">👑</div>`;
+                avatarEl.innerHTML = heroStudent.avatar ? `<img src="${heroStudent.avatar}" class="w-full h-full object-cover rounded-full">` : `<span class="text-7xl font-bold text-indigo-50">${heroStudent.name.charAt(0)}</span>`;
                 import('../ui/modals.js').then(m => m.showAnimatedModal('hero-celebration-modal'));
-                playHeroFanfare();
+                import('../audio.js').then(m => m.playHeroFanfare());
             }
         }
     } catch (error) {
+        import('../audio.js').then(m => m.stopDrumRoll());
         console.error(error);
-        showToast(error.message?.includes('429') ? "AI Overload! Wait 1 minute." : "The Chronicler failed to write.", 'error');
+        showToast("The Chronicler failed to write. Check connection.", 'error');
     } finally {
         btn.disabled = false;
         btn.innerHTML = `<i class="fas fa-feather-alt mr-2"></i> Log Today's Adventure`;

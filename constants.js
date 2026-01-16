@@ -11,8 +11,8 @@ export const firebaseConfig = {
   measurementId: "G-QJZC4NGX75"
 };
 
-export const cloudflareWorkerUrl = 'https://great-class-quest-ai-proxy.nvasedis-cc5.workers.dev/';
-export const workerBaseUrl = 'https://great-class-quest-ai-proxy.nvasedis-cc5.workers.dev/';
+export const cloudflareWorkerUrl = 'https://great-class-quest-ai-proxy.nvasedis-cc5.workers.dev';
+export const workerBaseUrl = 'https://great-class-quest-ai-proxy.nvasedis-cc5.workers.dev';
 export const geminiApiUrl = workerBaseUrl; 
 export const OPENROUTER_MODEL = "xiaomi/mimo-v2-flash:free";
 
@@ -89,6 +89,3 @@ export const classColorPalettes = [
     { bg: 'bg-sky-100', text: 'text-sky-800', border: 'border-sky-300' },
     { bg: 'bg-violet-100', text: 'text-violet-800', border: 'border-violet-300' }
 ];
-
-
-

@@ -54,6 +54,7 @@ import {
     deleteHeroChronicleNote
 } from '../db/actions.js';
 import { fetchLogsForMonth } from '../db/queries.js'; 
+import { handleBestowBoon } from '../features/boons.js';
 
 // --- MAIN UI EVENT LISTENERS SETUP ---
 
@@ -268,6 +269,21 @@ document.getElementById('lookup-nameday-btn').addEventListener('click', () => {
         }
     });
 
+    // Boon Modal Listeners
+    document.getElementById('boon-cancel-btn').addEventListener('click', () => modals.hideModal('bestow-boon-modal'));
+    document.getElementById('boon-confirm-btn').addEventListener('click', () => {
+        const modal = document.getElementById('bestow-boon-modal');
+        const receiverId = modal.dataset.receiverId;
+        const senderId = document.getElementById('boon-sender-select').value;
+        
+        if (senderId && receiverId) {
+            import('../features/boons.js').then(m => {
+                m.handleBestowBoon(senderId, receiverId);
+                modals.hideModal('bestow-boon-modal');
+            });
+        }
+    });
+    
     // Shop Listeners
     const openShopBtn = document.getElementById('open-shop-btn');
     if (openShopBtn) {
@@ -408,6 +424,16 @@ document.getElementById('lookup-nameday-btn').addEventListener('click', () => {
 
     // --- AWARD STARS & ABSENCE HANDLING ---
     document.getElementById('award-stars-student-list').addEventListener('click', async (e) => {
+
+        const boonBtn = e.target.closest('.boon-btn');
+        if (boonBtn) {
+            e.stopPropagation();
+            const receiverId = boonBtn.dataset.receiverId;
+            // NEW: Open the nice modal instead of prompt
+            modals.openBestowBoonModal(receiverId);
+            return;
+        }
+        
         // 1. Define all targets first (to prevent "null" errors)
         const actionBtn = e.target.closest('[data-action]');
         const undoBtn = e.target.closest('.post-award-undo-btn');
@@ -1280,8 +1306,8 @@ export function openShopModal() {
 export function renderShopUI() {
     const container = document.getElementById('shop-items-container');
     const emptyState = document.getElementById('shop-empty-state');
+    const currentMonthKey = new Date().toISOString().substring(0, 7);
     
-    // 1. Determine League Context again
     let league = state.get('globalSelectedLeague');
     if (!league) {
         const classId = state.get('globalSelectedClassId');
@@ -1289,54 +1315,91 @@ export function renderShopUI() {
         if (cls) league = cls.questLevel;
     }
 
-    // 2. Filter Items (By Month AND League)
-    const currentMonthKey = new Date().toISOString().substring(0, 7);
-    const shopItems = state.get('currentShopItems')
+    // 1. Get Seasonal Items
+    const seasonalItems = state.get('currentShopItems')
         .filter(i => i.monthKey === currentMonthKey && i.league === league)
-        .sort((a,b) => a.price - b.price); // Sort cheapest first
+        .sort((a,b) => a.price - b.price);
 
-    if (shopItems.length === 0) {
-        container.innerHTML = '';
-        container.classList.add('hidden');
-        emptyState.classList.remove('hidden');
-    } else {
-        emptyState.classList.add('hidden');
-        container.classList.remove('hidden');
+    // 2. Get Legendary Artifacts (from our new file)
+    import('../features/powerUps.js').then(m => {
+        const artifacts = m.LEGENDARY_ARTIFACTS;
         
-        container.innerHTML = shopItems.map(item => `
-            <div class="shop-item-card group bg-indigo-900 border-2 border-indigo-700 rounded-2xl overflow-hidden hover:border-amber-400 transition-all duration-300 hover:-translate-y-2 hover:shadow-[0_0_20px_rgba(251,191,36,0.3)] flex flex-col relative">
-                <!-- SINGLE STOCK BADGE -->
-                <div class="absolute top-2 right-2 z-10 bg-red-500 text-white text-[10px] font-bold px-2 py-1 rounded shadow transform rotate-3 border border-red-400">
-                    ONLY 1 LEFT!
+        if (seasonalItems.length === 0 && artifacts.length === 0) {
+            container.innerHTML = '';
+            container.classList.add('hidden');
+            emptyState.classList.remove('hidden');
+        } else {
+            emptyState.classList.add('hidden');
+            container.classList.remove('hidden');
+
+            let html = `
+                <div class="col-span-full mb-4 border-b-2 border-indigo-500/30 pb-2">
+                    <h3 class="font-title text-2xl text-indigo-300 flex items-center gap-2">
+                        <i class="fas fa-scroll"></i> Legendary Artifacts
+                        <span class="text-xs bg-indigo-500/20 px-2 py-1 rounded text-indigo-400 font-sans uppercase">Limit: 2 per month</span>
+                    </h3>
                 </div>
-                
-                <div class="relative h-40 bg-white flex items-center justify-center overflow-hidden">
-                    <div class="absolute inset-0 bg-radial-gradient from-white to-gray-100 opacity-50"></div>
-                    <img src="${item.image}" class="relative w-full h-full object-contain filter drop-shadow-md group-hover:scale-110 transition-transform duration-500">
+            `;
+
+            html += artifacts.map(item => renderShopItemCard(item, true)).join('');
+
+            html += `
+                <div class="col-span-full mt-8 mb-4 border-b-2 border-amber-500/30 pb-2">
+                    <h3 class="font-title text-2xl text-amber-300 flex items-center gap-2">
+                        <i class="fas fa-leaf"></i> Seasonal Treasures
+                        <span class="text-xs bg-amber-500/20 px-2 py-1 rounded text-amber-400 font-sans uppercase">Month: ${new Date().toLocaleString('en-US', {month: 'long'})}</span>
+                    </h3>
                 </div>
-                <div class="p-4 flex-grow flex flex-col">
-                    <h3 class="font-title text-xl text-amber-300 leading-tight mb-1">${item.name}</h3>
-                    <p class="text-indigo-300 text-xs mb-3 line-clamp-2 flex-grow">${item.description}</p>
-                    <div class="flex justify-between items-center mt-auto pt-3 border-t border-indigo-800">
-                        <div class="flex items-center gap-1 font-bold text-white text-lg">
-                        <span>${item.price}</span>
-                        <span>🪙</span>
-                        </div>
-                        <button class="shop-buy-btn bg-indigo-600 hover:bg-indigo-500 disabled:bg-indigo-900 disabled:text-indigo-500 disabled:cursor-not-allowed text-white text-xs font-bold py-2 px-4 rounded-lg uppercase tracking-wider transition-colors" data-id="${item.id}" disabled>
-                            Select Student
-                        </button>
-                    </div>
-                </div>
-            </div>
-        `).join('');
-        
-        // Re-run status check if a student is already selected
-        const currentStudentId = document.getElementById('shop-student-select').value;
-        if(currentStudentId) updateShopStudentDisplay(currentStudentId);
-    }
+            `;
+
+            html += seasonalItems.map(item => renderShopItemCard(item, false)).join('');
+            
+            container.innerHTML = html;
+            
+            const currentStudentId = document.getElementById('shop-student-select').value;
+            if(currentStudentId) updateShopStudentDisplay(currentStudentId);
+        }
+    });
 }
 
-export function updateShopStudentDisplay(studentId) {
+/**
+ * Shared card renderer to keep things neat
+ */
+function renderShopItemCard(item, isLegendary) {
+    const badge = isLegendary 
+        ? `<div class="absolute top-2 right-2 z-10 bg-indigo-600 text-white text-[10px] font-bold px-2 py-1 rounded shadow transform -rotate-2 border border-indigo-400">ARTIFACT</div>`
+        : `<div class="absolute top-2 right-2 z-10 bg-red-500 text-white text-[10px] font-bold px-2 py-1 rounded shadow transform rotate-3 border border-red-400">ONLY 1 LEFT!</div>`;
+
+    const imageHtml = item.image 
+        ? `<img src="${item.image}" class="relative w-full h-full object-contain filter drop-shadow-md group-hover:scale-110 transition-transform duration-500">`
+        : `<div class="text-7xl group-hover:scale-125 transition-transform duration-500">${item.icon || '📦'}</div>`;
+
+    return `
+        <div class="shop-item-card group bg-indigo-950 border-2 border-indigo-800 rounded-2xl overflow-hidden hover:border-amber-400 transition-all duration-300 hover:-translate-y-2 hover:shadow-[0_0_20px_rgba(251,191,36,0.3)] flex flex-col relative">
+            ${badge}
+            <div class="relative h-40 bg-white/5 flex items-center justify-center overflow-hidden">
+                <div class="absolute inset-0 bg-radial-gradient from-white/10 to-transparent opacity-50"></div>
+                ${imageHtml}
+            </div>
+            <div class="p-4 flex-grow flex flex-col">
+                <h3 class="font-title text-xl text-amber-300 leading-tight mb-1">${item.name}</h3>
+                <p class="text-indigo-300 text-xs mb-3 line-clamp-2 flex-grow">${item.description}</p>
+                <div class="flex justify-between items-center mt-auto pt-3 border-t border-indigo-800">
+                    <div class="flex items-center gap-1 font-bold text-white text-lg">
+                        <span>${item.price}</span>
+                        <span>🪙</span>
+                    </div>
+                    <button class="shop-buy-btn bg-indigo-600 hover:bg-indigo-500 disabled:bg-indigo-900 disabled:text-indigo-500 disabled:cursor-not-allowed text-white text-xs font-bold py-2 px-4 rounded-lg uppercase tracking-wider transition-colors" 
+                            data-id="${item.id}" data-type="${isLegendary ? 'legendary' : 'seasonal'}" disabled>
+                        Select Student
+                    </button>
+                </div>
+            </div>
+        </div>
+    `;
+}
+
+export async function updateShopStudentDisplay(studentId) {
     const goldDisplay = document.getElementById('shop-student-gold');
     const buyBtns = document.querySelectorAll('.shop-buy-btn');
     
@@ -1351,63 +1414,63 @@ export function updateShopStudentDisplay(studentId) {
     }
 
     const scoreData = state.get('allStudentScores').find(s => s.id === studentId);
-    const gold = scoreData.gold !== undefined ? scoreData.gold : (scoreData?.totalStars || 0);
+    const gold = scoreData && scoreData.gold !== undefined ? scoreData.gold : (scoreData?.totalStars || 0);
     const inventory = scoreData?.inventory || [];
-    
-    // MERCHANT'S FAVORITE LOGIC
-    const reigningHero = state.get('reigningHero');
-    const isHero = reigningHero && reigningHero.id === studentId;
-    
-    // Update Shop Header
-    const shopTitleEl = document.getElementById('shop-title');
-    if (isHero) {
-        shopTitleEl.innerHTML = `The Mystic Market <span class="text-xs bg-green-500 text-white px-3 py-1 rounded-full align-middle ml-2 animate-pulse shadow-sm border border-white/20">Hero Discount Active!</span>`;
-    } else {
-        shopTitleEl.innerText = "The Mystic Market";
-    }
+    const student = state.get('allStudents').find(s => s.id === studentId);
 
-    // Check Monthly Limit
+    // LIMIT CHECK 1: Individual Legendary limit (2 per month)
     const currentMonthKey = new Date().toISOString().substring(0, 7);
-    const itemsBoughtThisMonth = inventory.filter(i => i.acquiredAt && i.acquiredAt.startsWith(currentMonthKey));
-    const isLimitReached = itemsBoughtThisMonth.length >= 2;
+    const legendariesThisMonth = inventory.filter(i => i.id && i.id.startsWith('leg_') && i.acquiredAt && i.acquiredAt.startsWith(currentMonthKey));
+    const legLimitReached = legendariesThisMonth.length >= 2;
 
+    // LIMIT CHECK 2: Pathfinder Map (1 per class per month)
+    // We check if it was already USED (log exists) OR if anyone in the class is currently HOLDING it
+    const { LEGENDARY_ARTIFACTS } = await import('../features/powerUps.js');
+    const pathfinderLog = state.get('allAwardLogs').find(l => 
+        l.classId === student.classId && 
+        l.reason === 'pathfinder_bonus' && 
+        l.date.substring(3) === `${currentMonthKey.substring(5)}-${currentMonthKey.substring(0,4)}`
+    );
+    
+    const classStudents = state.get('allStudents').filter(s => s.classId === student.classId);
+    const classScores = state.get('allStudentScores').filter(sc => classStudents.some(cs => cs.id === sc.id));
+    const pathfinderHeldBySomeone = classScores.some(sc => sc.inventory?.some(i => i.id === 'leg_pathfinder'));
+
+    const pathfinderLockedForClass = !!pathfinderLog || pathfinderHeldBySomeone;
+
+    // Update UI Display
     goldDisplay.innerText = `${gold} 🪙`;
 
     buyBtns.forEach(btn => {
-        const itemCard = btn.closest('.shop-item-card');
-        const priceLabelContainer = itemCard.querySelector('.font-bold.text-white.text-lg');
         const itemId = btn.dataset.id;
+        const isLegendary = btn.dataset.type === 'legendary';
         
-        // Get original price from state
-        const itemData = state.get('currentShopItems').find(i => i.id === itemId);
-        const originalPrice = itemData ? itemData.price : 10;
-        
-        let finalPrice = originalPrice;
-        if (isHero) {
-            finalPrice = Math.max(1, originalPrice - 2);
-            // Show discounted UI
-            priceLabelContainer.innerHTML = `
-                <span class="text-xs line-through opacity-50 mr-1">${originalPrice}</span>
-                <span class="text-green-400">${finalPrice}</span>
-                <span class="ml-1">🪙</span>`;
+        let price = 10;
+        if (isLegendary) {
+            price = LEGENDARY_ARTIFACTS.find(a => a.id === itemId)?.price || 0;
         } else {
-            priceLabelContainer.innerHTML = `<span>${originalPrice}</span><span>🪙</span>`;
+            price = state.get('currentShopItems').find(i => i.id === itemId)?.price || 10;
         }
 
         const alreadyOwned = inventory.some(i => i.id === itemId);
         btn.classList.remove('bg-green-600', 'bg-red-500');
 
-        if (alreadyOwned) {
+        if (alreadyOwned && isLegendary) {
             btn.disabled = true;
             btn.innerText = "Owned";
             btn.classList.add('bg-green-600');
         } 
-        else if (isLimitReached) {
+        else if (isLegendary && legLimitReached) {
             btn.disabled = true;
-            btn.innerText = "Limit Reached (2/2)";
+            btn.innerText = "Monthly limit (2/2)";
             btn.classList.add('bg-red-500');
         }
-        else if (gold >= finalPrice) {
+        else if (itemId === 'leg_pathfinder' && pathfinderLockedForClass) {
+            btn.disabled = true;
+            btn.innerText = "Class limit reached";
+            btn.classList.add('bg-red-500');
+        }
+        else if (gold >= price) {
             btn.disabled = false;
             btn.innerText = "Buy Now";
         } 

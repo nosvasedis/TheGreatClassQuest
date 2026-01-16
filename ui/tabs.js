@@ -15,6 +15,7 @@ import { playSound } from '../audio.js';
 import { renderActiveBounties } from './core.js';
 import { updateCeremonyStatus } from '../features/ceremony.js';
 import { renderHomeTab } from '../features/home.js';
+import { HERO_CLASSES } from '../features/heroClasses.js';
 
 // --- TAB NAVIGATION ---
 
@@ -209,10 +210,16 @@ export async function showTab(tabName) {
             diamond: studentCount > 0 ? Math.round(studentCount * adjustedGoalPerStudent) : 18
         };
         
-        const currentMonthlyStars = studentsInClass.reduce((sum, s) => {
-            const scoreData = state.get('allStudentScores').find(score => score.id === s.id);
-            return sum + (scoreData?.monthlyStars || 0);
-        }, 0);
+        // --- FIX: Sum stars from logs so Pathfinder Bonuses are included ---
+        const now = new Date();
+        const currentMonthIndex = now.getMonth();
+        const currentYear = now.getFullYear();
+
+        const currentMonthlyStars = state.get('allAwardLogs').filter(log => {
+            if (log.classId !== c.id) return false;
+            const logDate = utils.parseDDMMYYYY(log.date);
+            return logDate && logDate.getMonth() === currentMonthIndex && logDate.getFullYear() === currentYear;
+        }).reduce((sum, log) => sum + (log.stars || 0), 0);
 
         let progress = goals.diamond > 0 ? (currentMonthlyStars / goals.diamond) * 100 : 0;
         if (isCompletedThisMonth && progress < 100) progress = 100;
@@ -396,7 +403,10 @@ export function renderStudentLeaderboardTab() {
 
         const monthlyLogs = studentLogs.filter(log => {
             const logDate = utils.parseDDMMYYYY(log.date);
-            return logDate.getMonth() === currentMonthIndex && logDate.getFullYear() === currentYear;
+            // EXCLUDE Pathfinder bonuses from individual leaderboard stats
+            return logDate.getMonth() === currentMonthIndex && 
+                   logDate.getFullYear() === currentYear &&
+                   log.reason !== 'pathfinder_bonus';
         });
 
         // A. Weekly Stars
@@ -543,7 +553,10 @@ export function renderStudentLeaderboardTab() {
                         <div class="flex-shrink-0 w-8 text-center">${rankBadge}</div>
                         <div class="flex-shrink-0">${getAvatarHtml(s)}</div>
                         <div class="min-w-0">
-                            <h3 class="font-bold text-gray-800 text-lg truncate">${s.name}</h3>
+                            <h3 class="font-bold text-gray-800 text-lg truncate">
+    ${s.heroClass && HERO_CLASSES[s.heroClass] ? HERO_CLASSES[s.heroClass].icon : ''} ${s.name} 
+    <span class="text-xs font-normal opacity-60">(${s.heroClass || 'Novice'})</span>
+</h3>
                             <div class="flex items-center gap-2 mt-0.5">
                                 <p class="text-xs text-gray-500 flex items-center gap-1"><span>${s.classLogo} ${s.className}</span></p>
                                 <div class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full border border-white shadow-sm" style="background: linear-gradient(135deg, #f59e0b 0%, #b45309 100%); color: white; font-size: 0.65rem; font-family: 'Fredoka One', cursive;">
@@ -624,7 +637,9 @@ export function renderStudentLeaderboardTab() {
                                 ${getAvatarHtml(s, "w-16 h-16")}
                             </div>
                             <div class="min-w-0">
-                                <h4 class="font-title text-xl ${nameColor} truncate leading-tight mb-1">${s.name}</h4>
+                                <h4 class="font-title text-xl ${nameColor} truncate leading-tight mb-1">
+    ${s.heroClass && HERO_CLASSES[s.heroClass] ? HERO_CLASSES[s.heroClass].icon : ''} ${s.name}
+</h4>
                                 <div class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full border border-white shadow-sm" style="background: linear-gradient(135deg, #f59e0b 0%, #b45309 100%); color: white; font-size: 0.7rem; font-family: 'Fredoka One', cursive;">
                                     <i class="fas fa-coins" style="color: #fcd34d;"></i> ${s.gold}
                                 </div>
@@ -851,12 +866,18 @@ export function renderAwardStarsStudentList(selectedClassId, fullRender = true) 
                     : `<div class="student-avatar-cloud-placeholder">${s.name.charAt(0)}</div>`;
 
                 const coinHtml = `
-                    <div class="coin-pill" title="Current Gold">
-                        <i class="fas fa-coins"></i>
-                        <span id="student-gold-display-${s.id}">${goldCount}</span>
-                    </div>
+              <div class="coin-pill ${starsToday > 0 ? 'animate-glitter' : ''}" title="Current Gold">
+              <i class="fas fa-coins text-yellow-400"></i>
+             <span id="student-gold-display-${s.id}">${goldCount}</span>
+          </div>
+           `;
+
+            const boonBtnHtml = `
+                    <button class="boon-btn absolute top-2 left-14 w-8 h-8 rounded-full bg-rose-100 text-rose-500 hover:bg-rose-200 transition-colors shadow-sm border border-rose-200 z-30" 
+                            data-receiver-id="${s.id}" title="Bestow Hero's Boon">
+                        <i class="fas fa-heart"></i>
+                    </button>
                 `;
-                //
 
                 return `
                <div class="student-cloud-card ${cloudShape} ${isVisuallyAbsent ? 'is-absent' : ''} ${isReigningHero ? 'reigning-hero-card' : ''}" data-studentid="${s.id}" style="animation: float-card ${4 + Math.random() * 4}s ease-in-out infinite;">
@@ -865,11 +886,16 @@ export function renderAwardStarsStudentList(selectedClassId, fullRender = true) 
                ${absenceButtonHtml}
                     </div>
                     ${avatarHtml}
-                    ${coinHtml}
+                    ${coinHtml} ${boonBtnHtml}
                     <button id="post-award-undo-${s.id}" class="post-award-undo-btn bubbly-button ${starsToday > 0 ? '' : 'hidden'}" title="Undo Award"><i class="fas fa-times"></i></button>
                     
                     <div class="card-content-wrapper">
-                        <h3 class="font-title text-2xl text-gray-800 text-center">${s.name}</h3>
+                        <h3 class="font-title text-2xl text-gray-800 text-center">
+    <span class="text-sm opacity-70 block mb-1">
+        ${s.heroClass && HERO_CLASSES[s.heroClass] ? HERO_CLASSES[s.heroClass].icon : ''} ${s.heroClass || ''}
+    </span>
+    ${s.name}
+</h3>
                         <div class="flex gap-2 text-center justify-center items-center p-2">
                             <div class="counter-bubble w-20 h-20 flex flex-col items-center justify-center bg-pink-300 rounded-full shadow-md border-b-4 border-pink-400 text-pink-900 transform transition-transform hover:scale-105">
                                 <span class="text-xs font-bold">TODAY</span>

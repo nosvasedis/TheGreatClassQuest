@@ -12,6 +12,7 @@ import * as utils from '../utils.js';
 import { showToast } from '../ui/effects.js';
 import { playSound } from '../audio.js';
 import * as modals from '../ui/modals.js';
+import { HERO_CLASSES } from '../features/heroClasses.js';
 
 
 // --- TAB RENDERING ---
@@ -94,8 +95,14 @@ const scoresForClass = state.get('allWrittenScores').filter(s => {
 
     if (upcomingTest) {
         const dateDisplay = upcomingTest.parsedDate.toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long' });
-        const daysLeft = Math.ceil((upcomingTest.parsedDate - now) / (1000 * 60 * 60 * 24));
-        const timeText = daysLeft === 0 ? "TODAY!" : (daysLeft === 1 ? "Tomorrow" : `in ${daysLeft} days`);
+        const isToday = utils.datesMatch(upcomingTest.testData.date, utils.getTodayDateString());
+
+// Calculate difference in days by stripping time
+const d1 = new Date(now).setHours(0,0,0,0);
+const d2 = new Date(upcomingTest.parsedDate).setHours(0,0,0,0);
+const daysLeft = Math.round((d2 - d1) / (1000 * 60 * 60 * 24));
+
+const timeText = isToday ? "TODAY!" : (daysLeft === 1 ? "Tomorrow" : `in ${daysLeft} days`);
 
         testAlert = document.createElement('div');
         testAlert.id = 'scroll-test-alert';
@@ -220,7 +227,9 @@ const scoresForClass = state.get('allWrittenScores').filter(s => {
         <div class="hero-stats-avatar-trigger cursor-pointer" data-student-id="${student.id}">
             ${avatarHtml}
         </div>
-        <div class="chart-label">${student.name}</div>
+        <div class="chart-label">
+    ${student.heroClass && HERO_CLASSES[student.heroClass] ? HERO_CLASSES[student.heroClass].icon : ''} ${student.name}
+</div>
         <div class="chart-bar-wrapper">
             <div class="chart-bar" data-score-tier="${tier}" style="width: ${percentage}%; animation-delay: ${Math.random() * 0.2}s;">
                 <span>${performance.display}</span>

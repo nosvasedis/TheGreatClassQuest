@@ -10,6 +10,7 @@ import * as state from '../state.js';
 import { fetchMonthlyHistory } from '../state.js';
 import * as constants from '../constants.js';
 import * as utils from '../utils.js';
+import { HERO_CLASSES } from '../features/heroClasses.js';
 
 // Actions and Effects
 import { playSound } from '../audio.js';
@@ -1052,7 +1053,18 @@ export function openEditStudentModal(studentId) {
     // NEW: Use helper to populate dropdowns
     populateDateDropdowns('edit-student-birthday-month', 'edit-student-birthday-day', student.birthday);
     populateDateDropdowns('edit-student-nameday-month', 'edit-student-nameday-day', student.nameday);
-
+    // Load Hero Class into dropdown
+   // Load Hero Class and check if locked
+    const classDropdown = document.getElementById('edit-student-hero-class');
+    classDropdown.value = student.heroClass || "";
+    
+    if (student.isHeroClassLocked) {
+        classDropdown.disabled = true;
+        classDropdown.title = "This student has already used their one-time class change.";
+    } else {
+        classDropdown.disabled = false;
+        classDropdown.title = "";
+    }
     showAnimatedModal('edit-student-modal');
 }
 
@@ -2105,7 +2117,8 @@ export function openHeroStatsModal(studentId, triggerElement) {
     modalContent.style.transformOrigin = `${originX}px ${originY}px`;
 
     // --- Populate Content ---
-    nameEl.textContent = student.name;
+    const heroIcon = (student.heroClass && HERO_CLASSES[student.heroClass]) ? HERO_CLASSES[student.heroClass].icon : '';
+nameEl.innerHTML = `${heroIcon} ${student.name}`;
     if (student.avatar) {
         avatarEl.innerHTML = `<img src="${student.avatar}" alt="${student.name}">`;
     } else {
@@ -2906,4 +2919,34 @@ async function renderHallOfHeroesContent(classId) {
         hallOfHeroesViewDate.setMonth(hallOfHeroesViewDate.getMonth() + 1);
         renderHallOfHeroesContent(classId);
     };
+}
+
+/**
+ * Opens the Boon Modal and populates the sponsor list
+ */
+export function openBestowBoonModal(receiverId) {
+    const receiver = state.get('allStudents').find(s => s.id === receiverId);
+    if (!receiver) return;
+
+    const modal = document.getElementById('bestow-boon-modal');
+    document.getElementById('boon-receiver-name').innerText = receiver.name;
+    modal.dataset.receiverId = receiverId;
+
+    // Get all other students in the same class
+    const classmates = state.get('allStudents').filter(s => s.classId === receiver.classId && s.id !== receiverId);
+    const select = document.getElementById('boon-sender-select');
+    
+    if (classmates.length === 0) {
+        select.innerHTML = `<option value="">No other students in class</option>`;
+        document.getElementById('boon-confirm-btn').disabled = true;
+    } else {
+        select.innerHTML = classmates.map(s => {
+            const scoreData = state.get('allStudentScores').find(sc => sc.id === s.id);
+            const gold = scoreData?.gold !== undefined ? scoreData.gold : (scoreData?.totalStars || 0);
+            return `<option value="${s.id}" ${gold < 15 ? 'disabled' : ''}>${s.name} (${gold} Gold)</option>`;
+        }).join('');
+        document.getElementById('boon-confirm-btn').disabled = false;
+    }
+
+    showAnimatedModal('bestow-boon-modal');
 }

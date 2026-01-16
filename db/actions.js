@@ -20,7 +20,7 @@ import {
     orderBy,
     limit
 } from '../firebase.js';
-
+import { calculateHeroGold, canChangeHeroClass } from '../features/heroClasses.js';
 import * as state from '../state.js';
 import { showToast, showPraiseToast } from '../ui/effects.js';
 import { showStarfallModal, showBatchStarfallModal, showModal, hideModal } from '../ui/modals.js';
@@ -184,6 +184,14 @@ export async function deleteStudent(studentId) {
 export async function handleSaveStudentDetails() {
     const studentId = document.getElementById('edit-student-id-input-full').value;
     const newName = document.getElementById('edit-student-name-input-full').value.trim();
+    const newHeroClass = document.getElementById('edit-student-hero-class').value;
+    const student = state.get('allStudents').find(s => s.id === studentId);
+
+    // Check if the class change is allowed
+    if (!canChangeHeroClass(student, newHeroClass)) {
+        showToast('This student has already changed their class once and is now locked!', 'error');
+        return;
+    }
     
     // NEW: Read from dropdowns and format
     const bMonth = document.getElementById('edit-student-birthday-month').value;
@@ -205,10 +213,16 @@ export async function handleSaveStudentDetails() {
 
     try {
         const studentRef = doc(db, "artifacts/great-class-quest/public/data/students", studentId);
+        // Determine if we should lock the class now
+        // Lock it if they already had a class and are now changing it to something else
+        const isNowLocked = (student.heroClass && newHeroClass !== "" && student.heroClass !== newHeroClass) || student.isHeroClassLocked;
+
         await updateDoc(studentRef, {
             name: newName,
-            birthday: birthday, // Use the new formatted string or null
-            nameday: nameday // Use the new formatted string or null
+            birthday: birthday,
+            nameday: nameday,
+            heroClass: newHeroClass,
+            isHeroClassLocked: isNowLocked || false
         });
         showToast('Student details updated!', 'success');
         modals.hideModal('edit-student-modal');
@@ -436,12 +450,15 @@ export async function setStudentStarsForToday(studentId, starValue, reason = nul
                 // If gold is undefined (old data), init it with totalStars. 
                 // Otherwise, use existing gold.
                 const safeCurrentGold = (typeof currentData.gold === 'number') ? currentData.gold : (currentData.totalStars || 0);
+                // --- HERO CLASS INTEGRATION ---
+                // Calculate if they get extra gold based on their Class and the Reason
+                const goldChange = calculateHeroGold(studentData, reason, difference);
                 
                 if (difference !== 0) {
                     const updates = {
                         totalStars: increment(difference),
                         monthlyStars: increment(difference),
-                        gold: safeCurrentGold + difference // STRICT MATH: Old Gold + Change
+                        gold: safeCurrentGold + goldChange // INCLUDING HERO BONUS
                     };
                     transaction.update(scoreRef, updates);
                 }
@@ -946,17 +963,29 @@ export async function handleLogAdventure() {
     btn.disabled = true;
     btn.innerHTML = `<i class="fas fa-spinner fa-spin mr-2"></i> Writing History...`;
 
-    // --- START TASK 3: PLAY DRUMROLL ---
-    import('../audio.js').then(m => m.playDrumRoll());
+    // --- CHANGED: Use Writing Sound instead of Drumroll ---
+    import('../audio.js').then(m => m.playWritingLoop());
 
     const nowObj = new Date(); 
     const league = classData.questLevel;
     const ageGroup = getAgeGroupForLeague(league); 
 
-    // Gather contextual data
+    // --- PERSONALIZATION DATA GATHERING ---
     const todaysAwards = state.get('allAwardLogs').filter(log => log.classId === classId && log.date === today);
     const totalStars = todaysAwards.reduce((sum, award) => sum + award.stars, 0);
-    const topReason = todaysAwards.length > 0 ? Object.entries(todaysAwards.reduce((acc, award) => { if (award.reason) acc[award.reason] = (acc[award.reason] || 0) + 1; return acc; }, {})).sort((a, b) => b[1] - a[1])[0][0] : "excellence";
+    
+    // Get unique reasons (e.g., "Teamwork, Creativity") instead of just one
+    const uniqueReasons = [...new Set(todaysAwards.map(a => a.reason).filter(r => r && r !== 'marked_present'))];
+    const topReasonsStr = uniqueReasons.length > 0 ? uniqueReasons.map(r => r.replace(/_/g, ' ')).join(', ') : "general excellence";
+
+    // Get Attendance / Absences
+    const attendanceRecords = state.get('allAttendanceRecords').filter(r => r.classId === classId && r.date === today);
+    const absentStudentIds = attendanceRecords.map(r => r.studentId);
+    const absentNames = state.get('allStudents')
+        .filter(s => absentStudentIds.includes(s.id))
+        .map(s => s.name.split(' ')[0])
+        .join(', ');
+    const attendanceText = absentNames ? `We missed our friends: ${absentNames}.` : "The entire party was present!";
 
     // Hero Selection
     const studentStars = todaysAwards.reduce((acc, award) => { acc[award.studentId] = (acc[award.studentId] || 0) + award.stars; return acc; }, {});
@@ -967,18 +996,46 @@ export async function handleLogAdventure() {
         return { name: student.name, stars: studentStars[id], lastHeroDate: lastHeroLog?.createdAt?.toMillis() || 0 };
     }).filter(Boolean).sort((a, b) => a.lastHeroDate - b.lastHeroDate || b.stars - a.stars);
     
-    let heroOfTheDay = eligibleCandidates.length > 0 ? eligibleCandidates[0].name : "the whole team";
+    // --- MASK OF THE PROTAGONIST CHECK ---
+    const scores = state.get('allStudentScores');
+    const protagonist = state.get('allStudents').find(s => 
+        s.classId === classId && 
+        scores.find(sc => sc.id === s.id)?.pendingHeroStatus === true
+    );
 
-    // Story Weaver Check (TASK 2: Only mention if active)
+    let heroOfTheDay;
+    if (protagonist) {
+        heroOfTheDay = protagonist.name;
+        // Consume the status
+        const scoreRef = doc(db, "artifacts/great-class-quest/public/data/student_scores", protagonist.id);
+        updateDoc(scoreRef, { pendingHeroStatus: false });
+    } else {
+        heroOfTheDay = eligibleCandidates.length > 0 ? eligibleCandidates[0].name : "the whole team";
+    }
+
+    // Story Weaver Check
     const currentStory = state.get('currentStoryData')?.[classId];
     const isStoryActive = todaysAwards.some(l => l.reason === 'story_weaver') || (currentStory?.updatedAt?.toDate().toDateString() === nowObj.toDateString());
-    const storyContext = isStoryActive ? `In our Story Weavers saga, we explored the idea of '${currentStory?.currentWord || "a new chapter"}.'` : "";
+    const storyContext = isStoryActive ? `We continued our Story Weavers saga with the word '${currentStory?.currentWord || "mystery"}'.` : "";
 
-    const textSystemPrompt = `You are 'The Chronicler'. Write a beautiful, positive diary entry from the perspective of a child's classroom team. 
-    Style: ${ageGroup === 'junior' ? 'Very simple, magical, and excited (7-9yo).' : 'Heroic, epic, and descriptive (10-13yo).'}. 
-    Length: Exactly 3 sentences. No markdown. Focus on the team's effort and the Hero of the Day.`;
+    // --- PROMPT ENGINEERING ---
+    const textSystemPrompt = `You are 'The Chronicler', writing a class diary entry.
+    TARGET AUDIENCE AGE: ${ageGroup} (Strictly adhere to this).
+    
+    IF AGE is 7-9: Use simple, short sentences. Magical, exciting tone. Focus on fun. Max 25 words.
+    IF AGE is 10-12: Use cool, adventurous language. RPG style. Focus on action. Max 35 words.
+    IF AGE is 13+: Use inspiring, slightly more mature language. Focus on achievement. Max 40 words.
 
-    const textUserPrompt = `Class: ${classData.name}. Team earned ${totalStars} stars for ${topReason}. The Hero was ${heroOfTheDay}. ${storyContext} Attendance: Full party present. Next lesson is soon!`;
+    Do not use markdown. Do not use hashtags. Write exactly 3 sentences.`;
+
+    const textUserPrompt = `
+    Class Name: ${classData.name}.
+    Stars Earned: ${totalStars}.
+    Skills Shown: ${topReasonsStr}.
+    Hero of the Day: ${heroOfTheDay}.
+    Attendance: ${attendanceText}
+    Story Activity: ${storyContext}
+    Write the diary entry based on this data.`;
 
     try {
         const text = await callGeminiApi(textSystemPrompt, textUserPrompt);
@@ -994,20 +1051,20 @@ export async function handleLogAdventure() {
         const imageUrl = await uploadImageToStorage(compressed, `adventure_logs/${state.get('currentUserId')}/${Date.now()}.jpg`);
 
         await addDoc(collection(db, "artifacts/great-class-quest/public/data/adventure_logs"), {
-            classId, date: today, text, imageUrl, hero: heroOfTheDay, topReason, totalStars,
+            classId, date: today, text, imageUrl, hero: heroOfTheDay, topReason: topReasonsStr.split(',')[0] || 'excellence', totalStars,
             createdBy: { uid: state.get('currentUserId'), name: state.get('currentTeacherName') },
             createdAt: serverTimestamp()
         });
         
-        // --- STOP DRUMROLL ---
-        import('../audio.js').then(m => m.stopDrumRoll());
+        // --- STOP WRITING LOOP ---
+        import('../audio.js').then(m => m.stopWritingLoop());
         showToast("The adventure has been chronicled!", 'success');
 
         if (heroOfTheDay !== "the whole team") {
             const heroStudent = state.get('allStudents').find(s => s.name === heroOfTheDay && s.classId === classId);
             if (heroStudent) {
                 document.getElementById('hero-celebration-name').innerText = heroStudent.name;
-                document.getElementById('hero-celebration-reason').innerText = `For outstanding ${topReason.replace(/_/g, ' ')}`;
+                document.getElementById('hero-celebration-reason').innerText = `For outstanding ${topReasonsStr.split(',')[0] || 'effort'}`;
                 const avatarEl = document.getElementById('hero-celebration-avatar');
                 avatarEl.innerHTML = heroStudent.avatar ? `<img src="${heroStudent.avatar}" class="w-full h-full object-cover rounded-full">` : `<span class="text-7xl font-bold text-indigo-50">${heroStudent.name.charAt(0)}</span>`;
                 import('../ui/modals.js').then(m => m.showAnimatedModal('hero-celebration-modal'));
@@ -1015,7 +1072,7 @@ export async function handleLogAdventure() {
             }
         }
     } catch (error) {
-        import('../audio.js').then(m => m.stopDrumRoll());
+        import('../audio.js').then(m => m.stopWritingLoop());
         console.error(error);
         showToast("The Chronicler failed to write. Check connection.", 'error');
     } finally {
@@ -1223,18 +1280,30 @@ export async function handleAwardBonusStar(studentId, bonusAmount, trialType) {
         await runTransaction(db, async (transaction) => {
             const publicDataPath = "artifacts/great-class-quest/public/data";
             const scoreRef = doc(db, `${publicDataPath}/student_scores`, studentId);
-            const newLogRef = doc(collection(db, `${publicDataPath}/award_log`));
+            const scoreDoc = await transaction.get(scoreRef);
+            
+            let finalBonus = bonusAmount;
+
+            if (scoreDoc.exists()) {
+                const currentScoreData = scoreDoc.data();
+                // --- STARFALL CATALYST CHECK ---
+                if (currentScoreData.starfallCatalystActive) {
+                    finalBonus *= 2;
+                    transaction.update(scoreRef, { starfallCatalystActive: false });
+                }
+            }
 
             transaction.update(scoreRef, {
-                totalStars: increment(bonusAmount),
-                monthlyStars: increment(bonusAmount)
+                totalStars: increment(finalBonus),
+                monthlyStars: increment(finalBonus)
             });
 
+            const newLogRef = doc(collection(db, `${publicDataPath}/award_log`));
             const logData = {
                 studentId,
                 classId: student.classId,
                 teacherId: state.get('currentUserId'),
-                stars: bonusAmount,
+                stars: finalBonus,
                 reason: "scholar_s_bonus",
                 note: `Awarded for exceptional performance on a ${trialType}.`,
                 date: getTodayDateString(),
@@ -1243,7 +1312,7 @@ export async function handleAwardBonusStar(studentId, bonusAmount, trialType) {
             };
             transaction.set(newLogRef, logData);
         });
-        showToast(`✨ A ${bonusAmount}-Star Bonus has been bestowed upon ${student.name}! ✨`, 'success');
+        showToast(`✨ A Bonus has been bestowed upon ${student.name}! ✨`, 'success');
     } catch (error) {
         console.error("Scholar's Bonus transaction failed:", error);
         showToast('Could not award the bonus star. Please try again.', 'error');
@@ -2246,61 +2315,46 @@ export async function handleBulkSaveTrial() {
 }
 
 export async function handleBuyItem(studentId, itemId) {
-    const item = state.get('currentShopItems').find(i => i.id === itemId);
     const student = state.get('allStudents').find(s => s.id === studentId);
-    if (!item || !student) return;
+    if (!student) return;
 
-    // --- INSTANT UI UPDATE (Task 7) ---
-    // 1. Hide the item immediately
-    const itemCard = document.querySelector(`.shop-buy-btn[data-id="${itemId}"]`).closest('.shop-item-card');
-    if (itemCard) itemCard.style.display = 'none';
+    // 1. Determine if it's Legendary or Seasonal
+    const isLegendary = itemId.startsWith('leg_');
+    let item;
 
-    // 2. Update Coin Display immediately
-    const goldDisplay = document.getElementById('shop-student-gold');
-    const currentGold = parseInt(goldDisplay.innerText);
-    const newGoldDisplay = Math.max(0, currentGold - item.price);
-    goldDisplay.innerText = `${newGoldDisplay} 🪙`;
+    if (isLegendary) {
+        const { LEGENDARY_ARTIFACTS } = await import('../features/powerUps.js');
+        item = LEGENDARY_ARTIFACTS.find(i => i.id === itemId);
+    } else {
+        item = state.get('currentShopItems').find(i => i.id === itemId);
+    }
 
-    // 3. Show Purchase Modal ABOVE everything
-    const purchaseModal = document.createElement('div');
-    purchaseModal.className = "fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm animate-fade-in";
-    purchaseModal.innerHTML = `
-        <div class="bg-white p-8 rounded-3xl shadow-2xl text-center border-4 border-amber-400 pop-in relative overflow-hidden max-w-sm w-full">
-            <div class="absolute inset-0 bg-yellow-50 opacity-50 bg-[url('https://www.transparenttextures.com/patterns/stardust.png')]"></div>
-            <div class="relative z-10">
-                <div class="w-24 h-24 mx-auto bg-indigo-100 rounded-full flex items-center justify-center text-5xl mb-4 shadow-inner">🛍️</div>
-                <h2 class="font-title text-3xl text-indigo-900 mb-2">Item Acquired!</h2>
-                <p class="text-gray-600 text-lg mb-1"><b>${student.name}</b> bought:</p>
-                <p class="font-bold text-xl text-purple-600 mb-4">${item.name}</p>
-                <div class="inline-block bg-amber-100 text-amber-800 px-4 py-2 rounded-full font-bold text-lg border border-amber-300">
-                    Paid ${item.price} 🪙
-                </div>
-                <button class="mt-6 w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 rounded-xl bubbly-button">Awesome!</button>
-            </div>
-        </div>
-    `;
-    document.body.appendChild(purchaseModal);
+    if (!item) return;
+
+    // 2. Instant UI update
+    const buyBtn = document.querySelector(`.shop-buy-btn[data-id="${itemId}"]`);
+    if (buyBtn && !isLegendary) {
+        buyBtn.closest('.shop-item-card').style.display = 'none';
+    }
     
-    // Close handler
-    const closeBtn = purchaseModal.querySelector('button');
-    closeBtn.onclick = () => {
-        purchaseModal.remove();
-        // Check if we need to re-render shop (handled by DB listener, but UI is already clean)
-    };
     playSound('magic_chime');
 
-    // --- DB TRANSACTION ---
+    // 3. DB Transaction
     const publicDataPath = "artifacts/great-class-quest/public/data";
     const scoreRef = doc(db, `${publicDataPath}/student_scores`, studentId);
-    const itemRef = doc(db, `${publicDataPath}/shop_items`, itemId);
     
     try {
         await runTransaction(db, async (transaction) => {
             const scoreDoc = await transaction.get(scoreRef);
             if (!scoreDoc.exists()) throw "Student data missing";
-            
-            const itemDoc = await transaction.get(itemRef);
-            if (!itemDoc.exists()) throw "Already sold";
+
+            // If it's seasonal, we MUST verify it still exists in the database
+            if (!isLegendary) {
+                const itemRef = doc(db, `${publicDataPath}/shop_items`, itemId);
+                const itemDoc = await transaction.get(itemRef);
+                if (!itemDoc.exists()) throw "Item already sold!";
+                transaction.delete(itemRef);
+            }
 
             const data = scoreDoc.data();
             const currentDbGold = data.gold !== undefined ? data.gold : (data.totalStars || 0);
@@ -2308,25 +2362,22 @@ export async function handleBuyItem(studentId, itemId) {
 
             if (currentDbGold < item.price) throw "Not enough gold!";
 
-            // Update DB
             transaction.update(scoreRef, {
                 gold: increment(-item.price), 
                 inventory: [...currentInventory, {
                     id: item.id,
                     name: item.name,
-                    image: item.image,
+                    image: item.image || null, // Might be null for artifacts using icons
                     description: item.description,
                     acquiredAt: new Date().toISOString()
                 }]
             });
-            transaction.delete(itemRef);
         });
-        // Success handled by UI above
+        
+        showToast(`${item.name} acquired! Check your inventory.`, 'success');
+        
     } catch (error) {
-        purchaseModal.remove(); // Remove success modal if failed
         showToast(typeof error === 'string' ? error : "Transaction failed.", "error");
-        playSound('star_remove');
-        // Revert visuals (reload shop)
         import('../ui/core.js').then(m => m.renderShopUI());
     }
 }

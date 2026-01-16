@@ -852,7 +852,7 @@ function getHighScoreCard(classId, type) {
 
 async function getAIFromDB(typeFilter) {
     const item = await fetchRandomDailyAI(typeFilter);
-    if (!item) return { html: `<div class="text-center text-white font-bold drop-shadow-md">Thinking...</div>`, css: 'float-card-dark' };
+    if (!item) return null; // Returning null tells the app to skip this card and pick a different one
     
     let icon = '🤖';
     let css = 'float-card-indigo';

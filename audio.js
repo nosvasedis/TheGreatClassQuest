@@ -185,6 +185,27 @@ export function stopDrumRoll() {
     }
 }
 
+let writingLoop;
+export function playWritingLoop() {
+    if (!soundsReady) return;
+    // Play a gentle writing sound every quarter note
+    writingLoop = new Tone.Loop(time => {
+        // Randomize playback rate slightly for realism
+        sounds.writing.noise.playbackRate = 0.5 + (Math.random() * 0.2); 
+        sounds.writing.triggerAttackRelease("16n", time);
+    }, "8n").start(0);
+    Tone.Transport.start();
+}
+
+export function stopWritingLoop() {
+    if (writingLoop) {
+        writingLoop.dispose();
+        writingLoop = null;
+        // Do not stop Transport here if drumRoll is also running, but usually they are exclusive.
+        // Safer to just dispose the loop.
+    }
+}
+
 export function playHeroFanfare() {
     if (soundsReady && heroFanfare.loaded) {
         heroFanfare.start();

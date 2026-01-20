@@ -20,6 +20,12 @@ export async function setupSounds() {
         
         sounds.writing = new Tone.NoiseSynth({ noise: { type: "white", playbackRate: 0.5 }, envelope: { attack: 0.01, decay: 0.1, sustain: 0, release: 0.1 }, volume: -20 }).toDestination();
         sounds.magic_chime = new Tone.PluckSynth({ attackNoise: 0.5, dampening: 2000, resonance: 0.9, volume: -12 }).connect(reverb);
+        // NEW: Coin Sound
+        sounds.cash = new Tone.PolySynth(Tone.Synth, {
+            oscillator: { type: "sine" },
+            envelope: { attack: 0.001, decay: 0.1, sustain: 0, release: 0.1 }
+        }).toDestination();
+        sounds.cash.volume.value = -10;
         // Procedural Snare for Drumroll
         sounds.snare = new Tone.NoiseSynth({
             noise: { type: 'white' },
@@ -112,6 +118,10 @@ export function playSound(sound) {
         else if (sound === 'confirm') sounds.confirm.triggerAttackRelease('E4', '8n', playTime);
         else if (sound === 'writing') sounds.writing.triggerAttackRelease('4n', playTime);
         else if (sound === 'magic_chime') sounds.magic_chime.triggerAttackRelease('C7', '8n', playTime);
+        else if (sound === 'cash') {
+            sounds.cash.triggerAttackRelease(["B5", "E6"], "16n", playTime);
+            sounds.cash.triggerAttackRelease(["C6", "G6"], "16n", playTime + 0.05);
+        }
         
         // Custom Fanfare Logic (if you added it previously)
         else if (sound === 'hero_fanfare' && sounds.star3) { 

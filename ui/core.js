@@ -1402,13 +1402,20 @@ function renderShopItemCard(item, isLegendary) {
 export async function updateShopStudentDisplay(studentId) {
     const goldDisplay = document.getElementById('shop-student-gold');
     const buyBtns = document.querySelectorAll('.shop-buy-btn');
+    const shopHeader = document.getElementById('shop-student-select').parentElement; // Get container for visual effects
     
+    // Reset visual effects
+    shopHeader.classList.remove('ring-4', 'ring-amber-400', 'bg-amber-50', 'rounded-xl', 'p-2');
+    const existingBadge = document.getElementById('shop-hero-badge');
+    if(existingBadge) existingBadge.remove();
+
     if (!studentId) {
         goldDisplay.innerText = "0 🪙";
         buyBtns.forEach(btn => {
             btn.disabled = true;
             btn.innerText = "Select Student";
-            btn.classList.remove('bg-green-600', 'bg-red-500');
+            btn.classList.remove('bg-green-600', 'bg-red-500', 'bg-indigo-600');
+            btn.classList.add('bg-indigo-600');
         });
         return;
     }
@@ -1418,13 +1425,26 @@ export async function updateShopStudentDisplay(studentId) {
     const inventory = scoreData?.inventory || [];
     const student = state.get('allStudents').find(s => s.id === studentId);
 
+    // --- CHECK HERO STATUS ---
+    const reigningHero = state.get('reigningHero');
+    const isHero = reigningHero && reigningHero.id === studentId;
+
+    if (isHero) {
+        // Add Hero Visuals
+        shopHeader.classList.add('ring-4', 'ring-amber-400', 'bg-amber-50', 'rounded-xl', 'p-2', 'transition-all');
+        const badge = document.createElement('div');
+        badge.id = 'shop-hero-badge';
+        badge.className = 'w-full text-center bg-gradient-to-r from-amber-400 to-orange-500 text-white font-bold text-sm uppercase tracking-widest py-1 rounded shadow-md mb-2 animate-pulse';
+        badge.innerHTML = '<i class="fas fa-crown mr-2"></i>HERO OF THE DAY ACTIVE<i class="fas fa-crown ml-2"></i>';
+        shopHeader.insertBefore(badge, shopHeader.firstChild);
+    }
+
     // LIMIT CHECK 1: Individual Legendary limit (2 per month)
     const currentMonthKey = new Date().toISOString().substring(0, 7);
     const legendariesThisMonth = inventory.filter(i => i.id && i.id.startsWith('leg_') && i.acquiredAt && i.acquiredAt.startsWith(currentMonthKey));
     const legLimitReached = legendariesThisMonth.length >= 2;
 
     // LIMIT CHECK 2: Pathfinder Map (1 per class per month)
-    // We check if it was already USED (log exists) OR if anyone in the class is currently HOLDING it
     const { LEGENDARY_ARTIFACTS } = await import('../features/powerUps.js');
     const pathfinderLog = state.get('allAwardLogs').find(l => 
         l.classId === student.classId && 
@@ -1435,7 +1455,6 @@ export async function updateShopStudentDisplay(studentId) {
     const classStudents = state.get('allStudents').filter(s => s.classId === student.classId);
     const classScores = state.get('allStudentScores').filter(sc => classStudents.some(cs => cs.id === sc.id));
     const pathfinderHeldBySomeone = classScores.some(sc => sc.inventory?.some(i => i.id === 'leg_pathfinder'));
-
     const pathfinderLockedForClass = !!pathfinderLog || pathfinderHeldBySomeone;
 
     // Update UI Display
@@ -1445,15 +1464,25 @@ export async function updateShopStudentDisplay(studentId) {
         const itemId = btn.dataset.id;
         const isLegendary = btn.dataset.type === 'legendary';
         
-        let price = 10;
+        // --- PRICE CALCULATION ---
+        let basePrice = 10;
         if (isLegendary) {
-            price = LEGENDARY_ARTIFACTS.find(a => a.id === itemId)?.price || 0;
+            basePrice = LEGENDARY_ARTIFACTS.find(a => a.id === itemId)?.price || 0;
         } else {
-            price = state.get('currentShopItems').find(i => i.id === itemId)?.price || 10;
+            basePrice = state.get('currentShopItems').find(i => i.id === itemId)?.price || 10;
+        }
+
+        let finalPrice = basePrice;
+        let discountLabel = "";
+
+        // Apply Discount (Seasonal Only for Hero)
+        if (isHero && !isLegendary) {
+            finalPrice = Math.floor(basePrice * 0.75);
+            discountLabel = " (Hero -25%)";
         }
 
         const alreadyOwned = inventory.some(i => i.id === itemId);
-        btn.classList.remove('bg-green-600', 'bg-red-500');
+        btn.classList.remove('bg-green-600', 'bg-red-500', 'bg-indigo-600');
 
         if (alreadyOwned && isLegendary) {
             btn.disabled = true;
@@ -1470,13 +1499,15 @@ export async function updateShopStudentDisplay(studentId) {
             btn.innerText = "Class limit reached";
             btn.classList.add('bg-red-500');
         }
-        else if (gold >= price) {
+        else if (gold >= finalPrice) {
             btn.disabled = false;
-            btn.innerText = "Buy Now";
+            btn.innerText = `Buy ${finalPrice}🪙${discountLabel}`;
+            btn.classList.add('bg-indigo-600');
         } 
         else {
             btn.disabled = true;
-            btn.innerText = "Need Gold";
+            btn.innerText = `Need ${finalPrice}🪙`;
+            btn.classList.add('bg-gray-500');
         }
     });
 }

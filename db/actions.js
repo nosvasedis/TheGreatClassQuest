@@ -30,6 +30,7 @@ import { classColorPalettes } from '../constants.js';
 import { handleStoryWeaversClassSelect } from '../features/storyWeaver.js';
 import * as modals from '../ui/modals.js';
 import { getStartOfMonthString, getTodayDateString, parseDDMMYYYY, parseFlexibleDate, simpleHashCode, getAgeGroupForLeague, getLastLessonDate, compressImageBase64, getDDMMYYYY, debounce } from '../utils.js';
+import * as utils from '../utils.js';
 
 const debouncedCheckAndRecordQuestCompletion = debounce(checkAndRecordQuestCompletion, 4000);
 
@@ -437,7 +438,7 @@ export async function setStudentStarsForToday(studentId, starValue, reason = nul
                 transaction.set(scoreRef, {
                     totalStars: difference > 0 ? difference : 0,
                     monthlyStars: difference > 0 ? difference : 0,
-                    gold: difference > 0 ? difference : 0, // Initial gold = initial stars
+                    gold: difference > 0 ? difference : 0,
                     inventory: [],
                     lastMonthlyResetDate: getStartOfMonthString(),
                     createdBy: { uid: studentData.createdBy.uid, name: studentData.createdBy.name }
@@ -446,19 +447,40 @@ export async function setStudentStarsForToday(studentId, starValue, reason = nul
                 // Update existing score doc
                 const currentData = scoreDoc.data();
                 
-                // CRITICAL FIX: Ensure Gold is independent. 
-                // If gold is undefined (old data), init it with totalStars. 
-                // Otherwise, use existing gold.
+                // POWER UP: Scroll of the Gilded Star (Triple Gold)
+                let multiplier = 1;
+                if (difference > 0 && currentData.hasGildedEffect) {
+                    multiplier = 3;
+                    transaction.update(scoreRef, { hasGildedEffect: false }); // Consume it
+                    // NOTE: We can't show a toast from inside a transaction easily, but the gold update will be visible
+                }
+
+                // POWER UP: Elixir of Luck (20% chance for +1 Star)
+                // We check if luckDate matches TODAY and if we haven't already applied a luck bonus this transaction
+                if (currentData.luckDate === today && difference > 0 && !isHeroBoonEligible) {
+                    // Simple deterministic check based on time to avoid random in transaction re-runs? 
+                    // No, simpler: Just do it. If transaction retries, it might re-roll, which is acceptable.
+                    if (Math.random() < 0.20) {
+                        finalStarValue += 1; // Add actual star
+                        difference += 1; // Update diff
+                        // We consume the date so it doesn't trigger again today
+                        transaction.update(scoreRef, { luckDate: null });
+                    } else {
+                        // Consumed without luck (User tried and failed)
+                        transaction.update(scoreRef, { luckDate: null });
+                    }
+                }
+
                 const safeCurrentGold = (typeof currentData.gold === 'number') ? currentData.gold : (currentData.totalStars || 0);
-                // --- HERO CLASS INTEGRATION ---
-                // Calculate if they get extra gold based on their Class and the Reason
-                const goldChange = calculateHeroGold(studentData, reason, difference);
+                
+                // Calculate Gold with Hero Class AND Gilded Multiplier
+                const goldChange = calculateHeroGold(studentData, reason, difference) * multiplier;
                 
                 if (difference !== 0) {
                     const updates = {
                         totalStars: increment(difference),
                         monthlyStars: increment(difference),
-                        gold: safeCurrentGold + goldChange // INCLUDING HERO BONUS
+                        gold: safeCurrentGold + goldChange
                     };
                     transaction.update(scoreRef, updates);
                 }
@@ -1013,35 +1035,68 @@ export async function handleLogAdventure() {
         heroOfTheDay = eligibleCandidates.length > 0 ? eligibleCandidates[0].name : "the whole team";
     }
 
-    // Story Weaver Check
+   // --- CONTEXT GATHERING ---
+    
+    // 1. Story Weaver
     const currentStory = state.get('currentStoryData')?.[classId];
     const isStoryActive = todaysAwards.some(l => l.reason === 'story_weaver') || (currentStory?.updatedAt?.toDate().toDateString() === nowObj.toDateString());
-    const storyContext = isStoryActive ? `We continued our Story Weavers saga with the word '${currentStory?.currentWord || "mystery"}'.` : "";
+    const storyContext = isStoryActive ? `The class continued their Story Weavers saga using the word '${currentStory?.currentWord || "mystery"}'.` : "";
+
+    // 2. Assignments & Tests (NEW)
+    const assignments = state.get('allQuestAssignments').filter(a => a.classId === classId);
+    // Sort by creation to get latest
+    assignments.sort((a,b) => (b.createdAt?.toMillis() || 0) - (a.createdAt?.toMillis() || 0));
+    const latestAssignment = assignments[0];
+    
+    let assignmentContext = "";
+    if (latestAssignment) {
+        // Check if there is a TEST today
+        if (latestAssignment.testData && utils.datesMatch(latestAssignment.testData.date, today)) {
+            assignmentContext = `IMPORTANT: Today the class took a TEST titled "${latestAssignment.testData.title}".`;
+        } 
+        // Or if assignment was created TODAY
+        else if (utils.datesMatch(utils.getDDMMYYYY(latestAssignment.createdAt.toDate()), today)) {
+            assignmentContext = `New Quest Assignment given: "${latestAssignment.text}".`;
+        }
+    }
+
+    // 3. Power-Ups Used (NEW)
+    // Check logs for specific power-up usage reasons today
+    const pathfinderLog = todaysAwards.find(l => l.reason === 'pathfinder_bonus');
+    const powerUpContext = pathfinderLog ? `A Pathfinder's Map was used to discover a shortcut!` : "";
 
     // --- PROMPT ENGINEERING ---
     const textSystemPrompt = `You are 'The Chronicler', writing a class diary entry.
-    TARGET AUDIENCE AGE: ${ageGroup} (Strictly adhere to this).
+    TARGET AUDIENCE AGE: ${ageGroup}.
     
-    IF AGE is 7-9: Use simple, short sentences. Magical, exciting tone. Focus on fun. Max 25 words.
-    IF AGE is 10-12: Use cool, adventurous language. RPG style. Focus on action. Max 35 words.
-    IF AGE is 13+: Use inspiring, slightly more mature language. Focus on achievement. Max 40 words.
-
-    Do not use markdown. Do not use hashtags. Write exactly 3 sentences.`;
+    INSTRUCTIONS:
+    1. Write exactly 5-6 lines.
+    2. Tone: Epic, magical, encouraging, tailored to the age group.
+    3. Include specific details from the Context provided below (Homework, Tests, Story words) IF they exist.
+    4. Mention the Hero of the Day.
+    5. Mention specific skills shown (Creativity, Teamwork, etc).
+    
+    Do not use markdown. Do not use hashtags.`;
 
     const textUserPrompt = `
     Class Name: ${classData.name}.
     Stars Earned: ${totalStars}.
     Skills Shown: ${topReasonsStr}.
     Hero of the Day: ${heroOfTheDay}.
-    Attendance: ${attendanceText}
-    Story Activity: ${storyContext}
-    Write the diary entry based on this data.`;
+    Attendance: ${attendanceText}.
+    
+    CONTEXT EVENTS (Include these if present):
+    ${storyContext}
+    ${assignmentContext}
+    ${powerUpContext}
+    
+    Write the diary entry.`;
 
     try {
         const text = await callGeminiApi(textSystemPrompt, textUserPrompt);
         
         // --- SPEED FIX: Reduced wait times for faster loading ---
-        await new Promise(r => setTimeout(r, 2000)); 
+        await new Promise(r => setTimeout(r, 100)); 
 
         const imagePrompt = `Whimsical children's storybook illustration of: ${text}. Watercolor style, vibrant, magical atmosphere.`;
         const imageBase64 = await callCloudflareAiImageApi(imagePrompt);
@@ -2331,19 +2386,26 @@ export async function handleBuyItem(studentId, itemId) {
 
     if (!item) return;
 
-    // 2. Instant UI update
-    const buyBtn = document.querySelector(`.shop-buy-btn[data-id="${itemId}"]`);
-    if (buyBtn && !isLegendary) {
-        buyBtn.closest('.shop-item-card').style.display = 'none';
-    }
+    // --- NEW: Hero of the Day Discount Logic ---
+    let finalPrice = item.price;
+    const reigningHero = state.get('reigningHero');
+    const isHero = reigningHero && reigningHero.id === studentId;
     
-    playSound('magic_chime');
+    // Discount applies ONLY to Seasonal items (not Legendary)
+    if (isHero && !isLegendary) {
+        finalPrice = Math.floor(item.price * 0.75); // 25% Discount
+    }
 
+    // 2. UI Pre-check and Optimistic Update preparation
+    const buyBtn = document.querySelector(`.shop-buy-btn[data-id="${itemId}"]`);
+    
     // 3. DB Transaction
     const publicDataPath = "artifacts/great-class-quest/public/data";
     const scoreRef = doc(db, `${publicDataPath}/student_scores`, studentId);
     
     try {
+        let newGoldBalance = 0;
+
         await runTransaction(db, async (transaction) => {
             const scoreDoc = await transaction.get(scoreRef);
             if (!scoreDoc.exists()) throw "Student data missing";
@@ -2360,23 +2422,57 @@ export async function handleBuyItem(studentId, itemId) {
             const currentDbGold = data.gold !== undefined ? data.gold : (data.totalStars || 0);
             const currentInventory = data.inventory || [];
 
-            if (currentDbGold < item.price) throw "Not enough gold!";
+            if (currentDbGold < finalPrice) throw "Not enough gold!";
+            
+            newGoldBalance = currentDbGold - finalPrice; // Calculate for UI
 
             transaction.update(scoreRef, {
-                gold: increment(-item.price), 
+                gold: increment(-finalPrice), 
                 inventory: [...currentInventory, {
                     id: item.id,
                     name: item.name,
-                    image: item.image || null, // Might be null for artifacts using icons
+                    image: item.image || null,
                     description: item.description,
                     acquiredAt: new Date().toISOString()
                 }]
             });
         });
         
-        showToast(`${item.name} acquired! Check your inventory.`, 'success');
+        // --- SUCCESS: Update UI Immediately ---
+        playSound('cash');
         
+        // 1. Update Gold Display Instantly
+        const goldDisplay = document.getElementById('shop-student-gold');
+        if (goldDisplay) {
+            goldDisplay.innerText = `${newGoldBalance} 🪙`;
+            // Add a flash effect
+            goldDisplay.style.color = '#ef4444'; // Red momentarily
+            setTimeout(() => goldDisplay.style.color = '', 500);
+        }
+
+        // 2. Remove item card if seasonal
+        if (!isLegendary && buyBtn) {
+            const card = buyBtn.closest('.shop-item-card');
+            if(card) {
+                card.style.transition = 'all 0.5s';
+                card.style.transform = 'scale(0)';
+                setTimeout(() => card.remove(), 500);
+            }
+        }
+
+        // 3. Show Proper Popup (Modal)
+        showModal(
+            'Purchase Successful!', 
+            `${student.name} bought "${item.name}" for ${finalPrice} Gold.\n\nRemaining Balance: ${newGoldBalance} Gold.`, 
+            () => {}, // No action needed on confirm
+            'Awesome!'
+        );
+        
+        // 4. Refresh buttons logic (disable items they can no longer afford)
+        import('../ui/core.js').then(m => m.updateShopStudentDisplay(studentId));
+
     } catch (error) {
+        console.error(error);
         showToast(typeof error === 'string' ? error : "Transaction failed.", "error");
         import('../ui/core.js').then(m => m.renderShopUI());
     }

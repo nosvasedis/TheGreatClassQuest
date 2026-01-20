@@ -400,6 +400,9 @@ function getActiveDashboard(classData, name, theme, spice) {
         { icon: 'fa-pencil-alt', label: 'Edit', action: 'edit-class', id: classId },
     ];
 
+    // FIX: Get content AND theme from the new function
+    const skillData = getTopSkillHtml(topSkill);
+
     return getLayout(
         name, theme, spice, getSelector(classId),
         `
@@ -422,13 +425,13 @@ function getActiveDashboard(classData, name, theme, spice) {
             </div>
         </div>
         
-        <div class="vibrant-card h-span-4 p-5 flex flex-col justify-between card-gradient-mint">
+        <div class="vibrant-card h-span-4 p-5 flex flex-col justify-between ${skillData.theme}">
             <div>
-                <h3 class="text-xs font-bold text-green-600 uppercase tracking-widest mb-1"><i class="fas fa-bolt mr-1"></i> Top Skill</h3>
-                ${getTopSkillHtml(topSkill)}
+                <h3 class="text-xs font-bold opacity-70 uppercase tracking-widest mb-1"><i class="fas fa-bolt mr-1"></i> Top Skill</h3>
+                ${skillData.html}
             </div>
             <div class="mt-4">
-                <h3 class="text-xs font-bold text-green-600 uppercase tracking-widest mb-2 flex justify-between">
+                <h3 class="text-xs font-bold opacity-70 uppercase tracking-widest mb-2 flex justify-between">
                     <span>Heroes</span>
                 </h3>
                 <div class="flex items-center flex-wrap pl-2 gap-y-2">
@@ -1111,27 +1114,33 @@ function calculateMonthlyClassGoal(classData, studentCount) {
 
 function getTopSkillHtml(skill) {
     if (!skill) {
-        return `<div class="font-title text-3xl text-green-800 truncate">Ready to Quest!</div>`;
+        return { 
+            html: `<div class="font-title text-3xl text-green-800 truncate">Ready to Quest!</div>`,
+            theme: 'card-gradient-mint' 
+        };
     }
 
+    // Define colors and gradients for each skill
     const reasonInfo = {
-        teamwork: { icon: 'fa-users', color: 'purple', name: 'Teamwork' },
-        creativity: { icon: 'fa-lightbulb', color: 'pink', name: 'Creativity' },
-        respect: { icon: 'fa-hands-helping', color: 'green', name: 'Respect' },
-        focus: { icon: 'fa-brain', color: 'yellow', name: 'Focus' },
-        welcome_back: { icon: 'fa-hand-sparkles', color: 'cyan', name: 'Welcome' },
-        story_weaver: { icon: 'fa-feather-alt', color: 'cyan', name: 'Story' },
-        scholar_s_bonus: { icon: 'fa-graduation-cap', color: 'amber', name: 'Scholar' }
+        teamwork: { icon: 'fa-users', color: 'purple', name: 'Teamwork', theme: 'bg-gradient-to-br from-violet-100 to-purple-200 border-purple-300' },
+        creativity: { icon: 'fa-lightbulb', color: 'pink', name: 'Creativity', theme: 'bg-gradient-to-br from-pink-100 to-rose-200 border-rose-300' },
+        respect: { icon: 'fa-hands-helping', color: 'green', name: 'Respect', theme: 'bg-gradient-to-br from-emerald-100 to-green-200 border-green-300' },
+        focus: { icon: 'fa-brain', color: 'yellow', name: 'Focus', theme: 'bg-gradient-to-br from-amber-100 to-yellow-200 border-amber-300' },
+        welcome_back: { icon: 'fa-hand-sparkles', color: 'cyan', name: 'Welcome', theme: 'bg-gradient-to-br from-cyan-100 to-sky-200 border-sky-300' },
+        story_weaver: { icon: 'fa-feather-alt', color: 'cyan', name: 'Story', theme: 'bg-gradient-to-br from-cyan-100 to-blue-200 border-cyan-300' },
+        scholar_s_bonus: { icon: 'fa-graduation-cap', color: 'amber', name: 'Scholar', theme: 'bg-gradient-to-br from-orange-100 to-amber-200 border-orange-300' }
     };
 
-    const info = reasonInfo[skill] || { icon: 'fa-star', color: 'gray', name: skill.replace('_', ' ') };
+    const info = reasonInfo[skill] || { icon: 'fa-star', color: 'gray', name: skill.replace('_', ' '), theme: 'card-gradient-mint' };
 
-    return `
+    const html = `
         <div class="flex items-center gap-3">
-            <div class="text-4xl text-${info.color}-500"><i class="fas ${info.icon}"></i></div>
+            <div class="text-4xl text-${info.color}-600 filter drop-shadow-sm"><i class="fas ${info.icon}"></i></div>
             <div class="text-left">
-                <div class="font-title text-2xl text-${info.color}-800 truncate capitalize">${info.name}</div>
+                <div class="font-title text-2xl text-${info.color}-900 truncate capitalize">${info.name}</div>
             </div>
         </div>
     `;
+
+    return { html, theme: info.theme };
 }

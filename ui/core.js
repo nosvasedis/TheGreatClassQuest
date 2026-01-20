@@ -1435,7 +1435,7 @@ export async function updateShopStudentDisplay(studentId) {
         const badge = document.createElement('div');
         badge.id = 'shop-hero-badge';
         badge.className = 'w-full text-center bg-gradient-to-r from-amber-400 to-orange-500 text-white font-bold text-sm uppercase tracking-widest py-1 rounded shadow-md mb-2 animate-pulse';
-        badge.innerHTML = '<i class="fas fa-crown mr-2"></i>HERO OF THE DAY ACTIVE<i class="fas fa-crown ml-2"></i>';
+        badge.innerHTML = '<i class="fas fa-crown mr-2"></i>HERO OF THE DAY<i class="fas fa-crown ml-2"></i>';
         shopHeader.insertBefore(badge, shopHeader.firstChild);
     }
 

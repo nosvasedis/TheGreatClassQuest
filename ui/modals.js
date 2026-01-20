@@ -2950,3 +2950,246 @@ export function openBestowBoonModal(receiverId) {
 
     showAnimatedModal('bestow-boon-modal');
 }
+
+export function openZoneOverviewModal(zoneType) {
+    const league = state.get('globalSelectedLeague');
+    if (!league) return;
+
+    // 1. Zone Definitions
+    const ZONE_CONFIG = {
+        bronze: { 
+            name: "Bronze Meadows", pct: 25, icon: "🛡️", 
+            desc: "The lush beginning. Green fields and ancient forests.",
+            bannerGradient: "from-emerald-400 to-teal-600",
+            cardBorder: "border-emerald-200",
+            iconBg: "bg-emerald-100",
+            barGradient: "from-emerald-400 to-teal-500",
+            textColor: "text-emerald-600",
+            lightBg: "bg-emerald-50"
+        },
+        silver: { 
+            name: "Silver Peaks", pct: 50, icon: "🏆", 
+            desc: "The frozen mountains. Only the brave cross the bridge.",
+            bannerGradient: "from-cyan-400 to-blue-600",
+            cardBorder: "border-cyan-200",
+            iconBg: "bg-cyan-100",
+            barGradient: "from-cyan-400 to-blue-500",
+            textColor: "text-cyan-600",
+            lightBg: "bg-cyan-50"
+        },
+        gold: { 
+            name: "Golden Citadel", pct: 75, icon: "👑", 
+            desc: "The royal desert city. Riches await within.",
+            bannerGradient: "from-amber-300 to-orange-500",
+            cardBorder: "border-amber-200",
+            iconBg: "bg-amber-100",
+            barGradient: "from-amber-300 to-orange-500",
+            textColor: "text-amber-600",
+            lightBg: "bg-amber-50"
+        },
+        diamond: { 
+            name: "Crystal Realm", pct: 100, icon: "💎", 
+            desc: "The floating void islands. The ultimate destination.",
+            bannerGradient: "from-fuchsia-400 to-purple-600",
+            cardBorder: "border-fuchsia-200",
+            iconBg: "bg-fuchsia-100",
+            barGradient: "from-fuchsia-400 to-purple-500",
+            textColor: "text-fuchsia-600",
+            lightBg: "bg-fuchsia-50"
+        }
+    };
+    
+    const config = ZONE_CONFIG[zoneType];
+    const classes = state.get('allSchoolClasses').filter(c => c.questLevel === league);
+    
+    // --- CALCULATION LOGIC ---
+    const BASE_GOAL = 18; 
+    const SCALING_FACTOR = 2.5; 
+    const now = new Date();
+    const currentYear = now.getFullYear();
+    const currentMonth = now.getMonth();
+    const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
+    
+    let holidayDaysLost = 0;
+    (state.get('schoolHolidayRanges') || []).forEach(range => {
+        const start = new Date(range.start);
+        const end = new Date(range.end);
+        const monthStart = new Date(currentYear, currentMonth, 1);
+        const monthEnd = new Date(currentYear, currentMonth + 1, 0);
+        const overlapStart = start > monthStart ? start : monthStart;
+        const overlapEnd = end < monthEnd ? end : monthEnd;
+        if (overlapStart <= overlapEnd) {
+            holidayDaysLost += (Math.ceil(Math.abs(overlapEnd - overlapStart) / (1000 * 60 * 60 * 24)) + 1);
+        }
+    });
+
+    let monthModifier = (daysInMonth - holidayDaysLost) / daysInMonth;
+    if (currentMonth === 5) monthModifier = 0.5;
+    else monthModifier = Math.max(0.6, Math.min(1.0, monthModifier));
+
+    const completed = [];
+    const approaching = [];
+    const far = [];
+
+    const allStudentScores = state.get('allStudentScores') || [];
+
+    classes.forEach(c => {
+        const studentsInClass = state.get('allStudents').filter(s => s.classId === c.id);
+        const studentCount = studentsInClass.length;
+        
+        let isCompletedThisMonth = false;
+        if (c.questCompletedAt) {
+            const completedDate = c.questCompletedAt.toDate();
+            if (completedDate.getMonth() === currentMonth && completedDate.getFullYear() === currentYear) {
+                isCompletedThisMonth = true;
+            }
+        }
+
+        const dbDifficulty = c.difficultyLevel || 0;
+        const effectiveDifficulty = isCompletedThisMonth ? Math.max(0, dbDifficulty - 1) : dbDifficulty;
+        const adjustedGoalPerStudent = (BASE_GOAL + (effectiveDifficulty * SCALING_FACTOR)) * monthModifier;
+        const diamondGoal = studentCount > 0 ? Math.round(studentCount * adjustedGoalPerStudent) : 18;
+
+        const currentMonthlyStars = studentsInClass.reduce((sum, s) => {
+            const scoreData = allStudentScores.find(sc => sc.id === s.id);
+            return sum + (scoreData ? (Number(scoreData.monthlyStars) || 0) : 0);
+        }, 0);
+
+        const zoneTargetStars = (diamondGoal * (config.pct / 100));
+        const remaining = Math.max(0, zoneTargetStars - currentMonthlyStars);
+        
+        let progressPct = diamondGoal > 0 ? (currentMonthlyStars / diamondGoal) * 100 : 0;
+        if (isCompletedThisMonth && progressPct < 100) progressPct = 100;
+        
+        const info = { 
+            name: c.name, 
+            logo: c.logo, 
+            progress: progressPct, 
+            stars: currentMonthlyStars,
+            remaining: remaining 
+        };
+        
+        if (progressPct >= config.pct) completed.push(info);
+        else if (progressPct >= (config.pct - 20)) approaching.push(info); 
+        else far.push(info);
+    });
+
+    // --- NEW: SORT LISTS BY PROGRESS DESCENDING ---
+    const sortDesc = (a, b) => {
+        // Primary sort: Progress %
+        if (b.progress !== a.progress) return b.progress - a.progress;
+        // Secondary sort: Total Stars (Tie-breaker)
+        return b.stars - a.stars;
+    };
+    
+    completed.sort(sortDesc);
+    approaching.sort(sortDesc);
+    far.sort(sortDesc);
+
+    const formatStarValue = (val) => {
+        return val % 1 !== 0 ? val.toFixed(1) : val.toFixed(0);
+    };
+
+    // 5. Render
+    const titleEl = document.getElementById('milestone-modal-title');
+    const contentEl = document.getElementById('milestone-modal-content');
+    
+    titleEl.innerHTML = ``;
+    titleEl.className = "hidden"; 
+
+    const renderSection = (list, title, type) => {
+        if (list.length === 0) return '';
+        
+        let icon = type === 'done' ? '✅' : (type === 'near' ? '🔥' : '🔭');
+        let titleColor = type === 'done' ? 'text-green-600' : 'text-gray-500';
+        
+        return `
+            <div class="mb-8 animate-fade-in">
+                <div class="flex items-center gap-3 mb-4 pl-2">
+                    <span class="text-2xl filter drop-shadow-sm">${icon}</span>
+                    <h4 class="text-lg font-black ${titleColor} uppercase tracking-widest">${title}</h4>
+                    <span class="bg-gray-100 text-gray-500 px-3 py-1 rounded-full text-xs font-bold shadow-inner">${list.length} Classes</span>
+                </div>
+                
+                <div class="grid grid-cols-1 gap-4">
+                    ${list.map(c => {
+                        let badge;
+                        let cardStyle = `bg-white border-4 ${config.cardBorder}`;
+                        let glowEffect = "";
+                        
+                        const remainingFormatted = formatStarValue(c.remaining);
+
+                        if (type === 'done') {
+                            badge = `<div class="bg-gradient-to-r from-green-400 to-emerald-500 text-white px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-wider shadow-md transform -rotate-2">Completed</div>`;
+                            cardStyle = `bg-gradient-to-br from-white to-green-50 border-4 border-green-300`;
+                            glowEffect = "shadow-[0_0_15px_rgba(34,197,94,0.3)]";
+                        } else {
+                            badge = `<div class="bg-gray-100 text-gray-600 px-3 py-1.5 rounded-full text-[10px] font-black uppercase tracking-wider border border-gray-200 shadow-sm"><span class="text-rose-500 mr-1">${remainingFormatted}</span> Stars Left</div>`;
+                        }
+
+                        const starsFormatted = formatStarValue(c.stars);
+                        const barFill = Math.min(100, (c.progress / config.pct) * 100);
+
+                        return `
+                        <div class="group relative p-5 rounded-[2rem] ${cardStyle} ${glowEffect} shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 overflow-hidden">
+                            <div class="absolute inset-0 opacity-[0.03]" style="background-image: radial-gradient(#000 1px, transparent 1px); background-size: 20px 20px;"></div>
+                            
+                            <div class="relative z-10 flex items-center gap-5">
+                                <div class="w-16 h-16 rounded-2xl ${config.iconBg} flex items-center justify-center text-4xl shadow-inner transform group-hover:scale-110 group-hover:rotate-6 transition-transform duration-500">
+                                    ${c.logo}
+                                </div>
+                                
+                                <div class="flex-grow min-w-0">
+                                    <div class="flex justify-between items-center mb-2">
+                                        <div class="font-title text-xl text-gray-800 truncate tracking-tight">${c.name}</div>
+                                        ${badge}
+                                    </div>
+                                    
+                                    <div class="h-6 bg-gray-100 rounded-full border border-gray-200 overflow-hidden relative shadow-inner">
+                                        <div class="h-full bg-gradient-to-r ${config.barGradient} relative transition-all duration-1000" style="width: ${barFill}%">
+                                            <div class="absolute inset-0 w-full h-full opacity-30" 
+                                                 style="background-image: linear-gradient(45deg,rgba(255,255,255,.15) 25%,transparent 25%,transparent 50%,rgba(255,255,255,.15) 50%,rgba(255,255,255,.15) 75%,transparent 75%,transparent); background-size: 1rem 1rem;">
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="flex justify-between mt-2 text-xs font-bold text-gray-400 uppercase tracking-wide">
+                                        <span><i class="fas fa-star text-amber-400 mr-1"></i>${starsFormatted} Collected</span>
+                                        <span class="${config.textColor}">${c.progress.toFixed(0)}% Overall</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    `}).join('')}
+                </div>
+            </div>
+        `;
+    };
+
+    contentEl.innerHTML = `
+        <div class="relative overflow-hidden p-8 rounded-[2.5rem] bg-gradient-to-br ${config.bannerGradient} shadow-2xl text-white mb-8 border-4 border-white ring-4 ring-${config.color}-100 transform transition-transform hover:scale-[1.01]">
+            <div class="absolute -right-6 -bottom-6 text-9xl opacity-20 transform rotate-12 filter blur-sm pointer-events-none">${config.icon}</div>
+            
+            <div class="relative z-10">
+                <div class="flex items-center gap-3 mb-2">
+                     <span class="text-4xl filter drop-shadow-md animate-bounce-slow">${config.icon}</span>
+                     <h3 class="font-title text-4xl text-shadow-md tracking-wide">${config.name}</h3>
+                </div>
+                <p class="text-lg font-medium opacity-90 italic max-w-lg leading-relaxed">"${config.desc}"</p>
+                
+                <div class="mt-6 inline-flex items-center gap-2 bg-white/20 backdrop-blur-md px-5 py-2 rounded-full border border-white/40 shadow-lg">
+                    <i class="fas fa-flag text-yellow-300"></i> 
+                    <span class="font-black uppercase tracking-wider text-xs">Requirement: ${config.pct}% Total Progress</span>
+                </div>
+            </div>
+        </div>
+        
+        <div class="max-h-[60vh] overflow-y-auto pr-2 custom-scrollbar pb-8">
+            ${renderSection(completed, "Conquered", 'done')}
+            ${renderSection(approaching, "Approaching", 'near')}
+            ${renderSection(far, "On the Way", 'far')}
+        </div>
+    `;
+
+    import('./modals.js').then(m => m.showAnimatedModal('milestone-details-modal'));
+}

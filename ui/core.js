@@ -620,6 +620,18 @@ document.getElementById('lookup-nameday-btn').addEventListener('click', () => {
             const cls = state.get('allSchoolClasses').find(c => c.id === student.classId);
             const schedule = cls?.scheduleDays || [];
 
+            // --- STANDARD AWARD LOGIC ---
+            // (This only runs if it's NOT a special occasion, or if the bonus was already given today)
+            const reason = activeReasonBtn.dataset.reason;
+            const starValue = parseInt(starBtn.dataset.stars);
+
+            triggerAwardEffects(starBtn, starValue);
+
+            await setStudentStarsForToday(studentId, starValue, reason);
+            triggerDynamicPraise(student.name, starValue, reason);
+            
+            tabs.updateAwardCardState(studentId, state.get('todaysStars')[studentId]?.stars || starValue, reason);
+
             // --- BIRTHDAY CHECK ---
             if (utils.isSpecialOccasion(student.birthday, schedule)) {
                 const todayLogs = state.get('allAwardLogs').filter(l => l.studentId === studentId && l.date === utils.getTodayDateString() && l.note && l.note.includes('Birthday'));
@@ -667,18 +679,7 @@ document.getElementById('lookup-nameday-btn').addEventListener('click', () => {
                     return; // STOP standard award logic
                 }
             }
-
-            // --- STANDARD AWARD LOGIC ---
-            // (This only runs if it's NOT a special occasion, or if the bonus was already given today)
-            const reason = activeReasonBtn.dataset.reason;
-            const starValue = parseInt(starBtn.dataset.stars);
-
-            triggerAwardEffects(starBtn, starValue);
-
-            await setStudentStarsForToday(studentId, starValue, reason);
-            triggerDynamicPraise(student.name, starValue, reason);
             
-            tabs.updateAwardCardState(studentId, state.get('todaysStars')[studentId]?.stars || starValue, reason);
             return;
         }
     });

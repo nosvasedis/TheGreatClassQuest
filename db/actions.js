@@ -2467,7 +2467,26 @@ export async function handleBuyItem(studentId, itemId) {
             () => {}, // No action needed on confirm
             'Awesome!'
         );
-        
+
+        // --- FIX: Update Local State Immediately ---
+        const allScores = state.get('allStudentScores');
+        const studentIndex = allScores.findIndex(s => s.id === studentId);
+        if (studentIndex !== -1) {
+            // Update the local state object directly so the UI render sees the new gold
+            allScores[studentIndex].gold = newGoldBalance;
+            // Also push the new item to inventory so the button says "Owned" immediately
+            if (!allScores[studentIndex].inventory) allScores[studentIndex].inventory = [];
+            
+            allScores[studentIndex].inventory.push({
+                id: item.id,
+                name: item.name,
+                image: item.image || null,
+                description: item.description,
+                acquiredAt: new Date().toISOString()
+            });
+            state.setAllStudentScores(allScores);
+        }
+       
         // 4. Refresh buttons logic (disable items they can no longer afford)
         import('../ui/core.js').then(m => m.updateShopStudentDisplay(studentId));
 

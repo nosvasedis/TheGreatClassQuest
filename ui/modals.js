@@ -2921,19 +2921,65 @@ async function renderHallOfHeroesContent(classId) {
     };
 }
 
-/**
- * Opens the Boon Modal and populates the sponsor list
- */
 export function openBestowBoonModal(receiverId) {
     const receiver = state.get('allStudents').find(s => s.id === receiverId);
     if (!receiver) return;
 
+    // --- RULE 1: DAILY LIMIT CHECK (Max 2 per class per day) ---
+    const today = utils.getTodayDateString();
+    const classBoonsToday = state.get('allAwardLogs').filter(l => 
+        l.classId === receiver.classId && 
+        l.date === today && 
+        l.reason === 'peer_boon'
+    ).length;
+
+    if (classBoonsToday >= 2) {
+        showToast("Daily limit reached: The class has already bestowed 2 Boons today!", "error");
+        return;
+    }
+
+    // --- RULE 2: ELIGIBILITY CHECK ---
+    // Criteria: Must be in Bottom 3 OR must be Tied with someone
+    
+    const scores = state.get('allStudentScores');
+    const studentsInClass = state.get('allStudents').filter(s => s.classId === receiver.classId);
+
+    // 1. Build Leaderboard
+    const leaderboard = studentsInClass.map(s => {
+        const scoreData = scores.find(sc => sc.id === s.id);
+        return {
+            id: s.id,
+            stars: scoreData ? (Number(scoreData.monthlyStars) || 0) : 0
+        };
+    });
+
+    // 2. Identify Bottom 3 Students (Sorted by lowest score)
+    leaderboard.sort((a, b) => a.stars - b.stars);
+    const bottomThreeIds = leaderboard.slice(0, 3).map(s => s.id);
+
+    // 3. Identify Tied Students (Anyone with a score shared by another)
+    const scoreCounts = {};
+    leaderboard.forEach(s => {
+        scoreCounts[s.stars] = (scoreCounts[s.stars] || 0) + 1;
+    });
+    
+    const receiverData = leaderboard.find(s => s.id === receiverId);
+    const isTied = receiverData && scoreCounts[receiverData.stars] > 1;
+    const isBottomThree = bottomThreeIds.includes(receiverId);
+
+    // 4. Final Validation
+    if (!isBottomThree && !isTied) {
+        showToast("Boons are for the Bottom 3 or Tied students only!", "error");
+        return;
+    }
+
+    // --- PROCEED TO OPEN MODAL ---
     const modal = document.getElementById('bestow-boon-modal');
     document.getElementById('boon-receiver-name').innerText = receiver.name;
     modal.dataset.receiverId = receiverId;
 
-    // Get all other students in the same class
-    const classmates = state.get('allStudents').filter(s => s.classId === receiver.classId && s.id !== receiverId);
+    // Get all other students in the same class (Potential Senders)
+    const classmates = studentsInClass.filter(s => s.id !== receiverId);
     const select = document.getElementById('boon-sender-select');
     
     if (classmates.length === 0) {
@@ -2941,8 +2987,9 @@ export function openBestowBoonModal(receiverId) {
         document.getElementById('boon-confirm-btn').disabled = true;
     } else {
         select.innerHTML = classmates.map(s => {
-            const scoreData = state.get('allStudentScores').find(sc => sc.id === s.id);
+            const scoreData = scores.find(sc => sc.id === s.id);
             const gold = scoreData?.gold !== undefined ? scoreData.gold : (scoreData?.totalStars || 0);
+            // Disable if sender has less than 15 gold
             return `<option value="${s.id}" ${gold < 15 ? 'disabled' : ''}>${s.name} (${gold} Gold)</option>`;
         }).join('');
         document.getElementById('boon-confirm-btn').disabled = false;

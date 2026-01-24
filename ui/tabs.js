@@ -994,12 +994,27 @@ export function renderAwardStarsStudentList(selectedClassId, fullRender = true) 
 
             const cloudShapes = ['cloud-shape-1', 'cloud-shape-2', 'cloud-shape-3', 'cloud-shape-4'];
             
+            // --- 1. PRE-CALCULATE BOON ELIGIBILITY ---
+            const allScores = state.get('allStudentScores');
+            // Map students to scores
+            const leaderboard = studentsInClass.map(s => {
+                const sc = allScores.find(score => score.id === s.id);
+                return { id: s.id, stars: sc ? (Number(sc.monthlyStars) || 0) : 0 };
+            });
+            // Sort ascending (Lowest stars first)
+            leaderboard.sort((a, b) => a.stars - b.stars);
+            // Identify Bottom 3 IDs
+            const bottomThreeIds = leaderboard.slice(0, 3).map(x => x.id);
+            // Identify Ties
+            const scoreCounts = {};
+            leaderboard.forEach(x => { scoreCounts[x.stars] = (scoreCounts[x.stars] || 0) + 1; });
+
             listContainer.innerHTML = studentsInClass.map((s, index) => {
                 const reigningHero = state.get('reigningHero');
                 const isReigningHero = reigningHero && reigningHero.id === s.id;
                 const scoreData = state.get('allStudentScores').find(score => score.id === s.id) || {}; 
                 const totalStars = scoreData.totalStars || 0;
-                const goldCount = scoreData.gold !== undefined ? scoreData.gold : (scoreData.totalStars || 0); // Default to total if gold not initialized yet
+                const goldCount = scoreData.gold !== undefined ? scoreData.gold : (scoreData.totalStars || 0);
                 const monthlyStars = scoreData.monthlyStars || 0; 
                 const starsToday = state.get('todaysStars')[s.id]?.stars || 0;
                 const reasonToday = state.get('todaysStars')[s.id]?.reason;
@@ -1008,14 +1023,8 @@ export function renderAwardStarsStudentList(selectedClassId, fullRender = true) 
                 const isMarkedAbsentToday = state.get('allAttendanceRecords').some(r => r.studentId === s.id && r.date === today);
                 const wasAbsentLastTime = previousLessonDate && state.get('allAttendanceRecords').some(r => r.studentId === s.id && r.date === previousLessonDate);
                 
-                // Corrected logic: Present if stars > 0 OR if specifically marked present/welcome_back (even if stars are 0)
                 const isPresentToday = starsToday > 0 || reasonToday === 'marked_present' || reasonToday === 'welcome_back';
-                
-                // Card is "Visually Absent" if explicitly marked absent today OR (absent last time AND hasn't arrived yet today)
                 const isVisuallyAbsent = isMarkedAbsentToday || (wasAbsentLastTime && !isPresentToday);
-                
-                // Lock the card if normal stars are awarded. 
-                // DO NOT LOCK if stars are 0 (e.g. marked_present) or if reason is 'welcome_back' (bonus given, but class still starts)
                 const isCardLocked = starsToday > 0 && reasonToday !== 'welcome_back';
 
                 let absenceButtonHtml = '';
@@ -1037,9 +1046,6 @@ export function renderAwardStarsStudentList(selectedClassId, fullRender = true) 
                     }
                 } 
                 else {
-                    // If they are present (stars awarded or marked present), show "Mark Absent" only if 0 stars 
-                    // OR if the only record is welcome_back/marked_present (so we can undo arrival)
-                    // Actually, simple rule: allow marking absent if we haven't awarded performance stars yet.
                     if (!isCardLocked) {
                         absenceButtonHtml = `
                             <button class="absence-btn" data-action="mark-absent" title="Mark as Absent">
@@ -1053,18 +1059,32 @@ export function renderAwardStarsStudentList(selectedClassId, fullRender = true) 
                     : `<div class="student-avatar-cloud-placeholder">${s.name.charAt(0)}</div>`;
 
                 const coinHtml = `
-              <div class="coin-pill ${starsToday > 0 ? 'animate-glitter' : ''}" title="Current Gold">
-              <i class="fas fa-coins text-yellow-400"></i>
-             <span id="student-gold-display-${s.id}">${goldCount}</span>
-          </div>
-           `;
+                  <div class="coin-pill ${starsToday > 0 ? 'animate-glitter' : ''}" title="Current Gold">
+                      <i class="fas fa-coins text-yellow-400"></i>
+                      <span id="student-gold-display-${s.id}">${goldCount}</span>
+                  </div>
+                `;
 
-            const boonBtnHtml = `
+                // --- BOON BUTTON VISUAL LOGIC ---
+                // Check eligibility based on the pre-calculated leaderboard
+                const myLeaderboardData = leaderboard.find(x => x.id === s.id);
+                const isEligible = bottomThreeIds.includes(s.id) || (myLeaderboardData && scoreCounts[myLeaderboardData.stars] > 1);
+                
+                let boonBtnHtml = '';
+                if (isEligible) {
+                    boonBtnHtml = `
                     <button class="boon-btn absolute top-2 left-14 w-8 h-8 rounded-full bg-rose-100 text-rose-500 hover:bg-rose-200 transition-colors shadow-sm border border-rose-200 z-30" 
                             data-receiver-id="${s.id}" title="Bestow Hero's Boon">
                         <i class="fas fa-heart"></i>
-                    </button>
-                `;
+                    </button>`;
+                } else {
+                    // Visually disabled state (Greyed out)
+                    boonBtnHtml = `
+                    <button class="boon-btn absolute top-2 left-14 w-8 h-8 rounded-full bg-gray-100 text-gray-300 border border-gray-200 z-30 cursor-not-allowed opacity-60" 
+                            data-receiver-id="${s.id}" title="Not eligible for Boon">
+                        <i class="fas fa-heart-broken"></i>
+                    </button>`;
+                }
 
                 return `
                <div class="student-cloud-card ${cloudShape} ${isVisuallyAbsent ? 'is-absent' : ''} ${isReigningHero ? 'reigning-hero-card' : ''}" data-studentid="${s.id}" style="animation: float-card ${4 + Math.random() * 4}s ease-in-out infinite;">
@@ -1073,16 +1093,17 @@ export function renderAwardStarsStudentList(selectedClassId, fullRender = true) 
                ${absenceButtonHtml}
                     </div>
                     ${avatarHtml}
-                    ${coinHtml} ${boonBtnHtml}
+                    ${coinHtml} 
+                    ${boonBtnHtml}
                     <button id="post-award-undo-${s.id}" class="post-award-undo-btn bubbly-button ${starsToday > 0 ? '' : 'hidden'}" title="Undo Award"><i class="fas fa-times"></i></button>
                     
                     <div class="card-content-wrapper">
                         <h3 class="font-title text-2xl text-gray-800 text-center">
-    <span class="text-sm opacity-70 block mb-1">
-        ${s.heroClass && HERO_CLASSES[s.heroClass] ? HERO_CLASSES[s.heroClass].icon : ''} ${s.heroClass || ''}
-    </span>
-    ${s.name}
-</h3>
+                            <span class="text-sm opacity-70 block mb-1">
+                                ${s.heroClass && HERO_CLASSES[s.heroClass] ? HERO_CLASSES[s.heroClass].icon : ''} ${s.heroClass || ''}
+                            </span>
+                            ${s.name}
+                        </h3>
                         <div class="flex gap-2 text-center justify-center items-center p-2">
                             <div class="counter-bubble w-20 h-20 flex flex-col items-center justify-center bg-pink-300 rounded-full shadow-md border-b-4 border-pink-400 text-pink-900 transform transition-transform hover:scale-105">
                                 <span class="text-xs font-bold">TODAY</span>

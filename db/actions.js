@@ -1119,7 +1119,7 @@ export async function handleLogAdventure() {
             const heroStudent = state.get('allStudents').find(s => s.name === heroOfTheDay && s.classId === classId);
             if (heroStudent) {
                 document.getElementById('hero-celebration-name').innerText = heroStudent.name;
-                document.getElementById('hero-celebration-reason').innerText = `For outstanding ${topReasonsStr.split(',')[0] || 'effort'}`;
+                document.getElementById('hero-celebration-reason').innerText = "The Class Hero!"; 
                 const avatarEl = document.getElementById('hero-celebration-avatar');
                 avatarEl.innerHTML = heroStudent.avatar ? `<img src="${heroStudent.avatar}" class="w-full h-full object-cover rounded-full">` : `<span class="text-7xl font-bold text-indigo-50">${heroStudent.name.charAt(0)}</span>`;
                 import('../ui/modals.js').then(m => m.showAnimatedModal('hero-celebration-modal'));

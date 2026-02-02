@@ -164,3 +164,25 @@ export async function fetchTrialsForMonth(classId, monthKey) {
         return [];
     }
 }
+
+export async function fetchAdventureLogsForMonth(classId, year, month) {
+    const startDate = new Date(year, month - 1, 1);
+    const endDate = new Date(year, month, 0, 23, 59, 59);
+
+    const publicDataPath = "artifacts/great-class-quest/public/data";
+    const logsQuery = query(
+        collection(db, `${publicDataPath}/adventure_logs`),
+        where("classId", "==", classId),
+        where("createdAt", ">=", startDate),
+        where("createdAt", "<=", endDate),
+        orderBy("createdAt", "desc")
+    );
+
+    try {
+        const snapshot = await getDocs(logsQuery);
+        return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    } catch (error) {
+        console.error("Error fetching adventure logs for month:", error);
+        return [];
+    }
+}

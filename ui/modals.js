@@ -2839,11 +2839,37 @@ async function renderHallOfHeroesContent(classId) {
 
     modalTitle.innerHTML = `<i class="fas fa-crown text-amber-500 mr-3"></i>${classData.name} Heroes`;
 
-    // Filter logs for this specific class and specific month
-    const monthlyLogs = state.get('allAdventureLogs').filter(l => {
-        const d = utils.parseDDMMYYYY(l.date);
-        return l.classId === classId && d.getMonth() === currentMonth && d.getFullYear() === currentYear;
-    }).sort((a,b) => utils.parseDDMMYYYY(b.date) - utils.parseDDMMYYYY(a.date));
+    // --- ON-DEMAND FETCH LOGIC ---
+    let monthlyLogs = [];
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+    const viewMonthStart = new Date(currentYear, currentMonth, 1);
+
+    if (viewMonthStart >= thirtyDaysAgo) {
+        // Use real-time state for recent logs
+        monthlyLogs = state.get('allAdventureLogs').filter(l => {
+            const d = utils.parseDDMMYYYY(l.date);
+            return l.classId === classId && d.getMonth() === currentMonth && d.getFullYear() === currentYear;
+        });
+    } else {
+        // Fetch from Firestore on-demand for older months
+        contentEl.innerHTML = `
+            <div class="text-center py-16 text-gray-500">
+                <i class="fas fa-spinner fa-spin mr-2"></i>
+                Opening the Archives for ${monthName}...
+            </div>`;
+        
+        try {
+            const { fetchAdventureLogsForMonth } = await import('../db/queries.js');
+            monthlyLogs = await fetchAdventureLogsForMonth(classId, currentYear, currentMonth + 1);
+        } catch (error) {
+            console.error("Historical fetch failed:", error);
+            monthlyLogs = [];
+        }
+    }
+    
+    // Sort logs by date (newest first)
+    monthlyLogs.sort((a,b) => utils.parseDDMMYYYY(b.date) - utils.parseDDMMYYYY(a.date));
 
     let html = `
         <div class="flex items-center justify-between mb-6 bg-indigo-50 p-3 rounded-2xl border-2 border-indigo-100">
@@ -2877,16 +2903,13 @@ async function renderHallOfHeroesContent(classId) {
 
             html += `
                 <div class="bg-white rounded-3xl shadow-lg border border-gray-100 overflow-hidden group hover:scale-[1.02] transition-transform">
-                    <!-- Diary Image (AI Image) -->
                     <div class="h-32 w-full relative">
                         <img src="${log.imageUrl}" class="w-full h-full object-cover grayscale-[30%] group-hover:grayscale-0 transition-all">
                         <div class="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent"></div>
                         <div class="absolute bottom-2 left-3 text-white text-[10px] font-black uppercase tracking-tighter">${dateStr}</div>
                     </div>
                     
-                    <!-- Content Area -->
                     <div class="p-4 pt-0 relative">
-                        <!-- Student Avatar Overlap -->
                         <div class="absolute -top-7 right-4">
                             ${avatarHtml}
                         </div>

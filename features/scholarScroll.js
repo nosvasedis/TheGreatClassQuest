@@ -800,6 +800,14 @@ function renderMissingWorkDashboard(classId) {
 
     validAssessments.forEach(assessment => {
         studentsInClass.forEach(student => {
+            // FIX: Check if student joined AFTER the test date
+            if (student.createdAt) {
+                const joinDate = student.createdAt.toDate ? student.createdAt.toDate() : new Date(student.createdAt);
+                const testDate = utils.parseFlexibleDate(assessment.originalDate);
+                testDate.setHours(23, 59, 59, 999); 
+                if (joinDate > testDate) return;
+            }
+
             const hasTaken = scoresForClass.some(s => 
                 s.studentId === student.id && 
                 s.type === assessment.type && 

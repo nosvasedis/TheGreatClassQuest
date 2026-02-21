@@ -1,0 +1,105 @@
+/* FIX 3: Add Wiggle to Home Roster Avatars */
+.vibrant-card .roster-avatar:hover {
+    animation: quest-avatar-jiggle 0.5s ease-in-out;
+}
+
+#roster-modal-grid .enlargeable-avatar:hover {
+    animation: quest-avatar-jiggle 0.5s ease-in-out;
+}
+
+/* Header Day/Night Cycle */
+header {
+    transition: background 2s ease-in-out;
+}
+
+header.header-night {
+    background: linear-gradient(to right, #1e3a8a 0%, #312e81 100%) !important;
+    border-bottom: 1px solid #4338ca;
+}
+header.header-night .cloud {
+    color: rgba(255, 255, 255, 0.1);
+    opacity: 0.3;
+}
+/* Ensure main title in header stays visible */
+header.header-night h1 {
+    text-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
+    color: #e0e7ff;
+}
+
+/* New Weather Themes */
+.w-cloudy { background: linear-gradient(135deg, #a1a1aa 0%, #71717a 100%); }
+.w-rainy { background: linear-gradient(135deg, #374151 0%, #1f2937 100%); }
+.w-snowy { background: linear-gradient(135deg, #e2e8f0 0%, #cbd5e1 100%); color: #475569; }
+
+/* Rain Effect (Widget: Organic Drops) */
+.w-rainy::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    
+    /* ASYMMETRICAL PATTERN:
+       We define 3 distinct drops at random positions (20%, 60%, 90%) 
+       within one tile to break the "grid" look.
+       
+       Shape: '3px 6px' creates a small oval "drop" instead of a long line.
+    */
+    background-image: 
+        radial-gradient(3px 6px at 20% 30%, rgba(255,255,255,0.7), transparent),
+        radial-gradient(2px 5px at 60% 80%, rgba(255,255,255,0.6), transparent),
+        radial-gradient(3px 7px at 90% 5%, rgba(255,255,255,0.7), transparent);
+        
+    /* Large tile size spreads them out significantly */
+    background-size: 120px 120px; 
+    
+    /* Slow, consistent speed */
+    animation: rain-fall 2.5s linear infinite;
+    
+    opacity: 0.8;
+    mix-blend-mode: overlay; 
+}
+
+@keyframes rain-fall {
+    from { background-position: 0 0; }
+    to { background-position: 0 120px; } /* Must match background-size height for seamless loop */
+}
+
+/* Snow Effect (Widget: Organic Emojis) */
+.w-snowy::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    
+    /* ASYMMETRICAL EMOJI PATTERN:
+       We use an in-line SVG to place 3 distinct ❄️ emojis at random spots 
+       (Top-Left, Bottom-Right, Top-Right) to create a sparse, natural look.
+    */
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Ctext x='15' y='30' font-size='20'%3E❄️%3C/text%3E%3Ctext x='70' y='90' font-size='14'%3E❄️%3C/text%3E%3Ctext x='95' y='15' font-size='24'%3E❄️%3C/text%3E%3C/svg%3E");
+        
+    /* Match the tile size for seamless looping */
+    background-size: 120px 120px; 
+    
+    /* Re-use the rain animation loop, but much slower (6s) for floating snow */
+    animation: rain-fall 6s linear infinite;
+    
+    /* Slight transparency to blend nicely */
+    opacity: 0.85;
+}
+
+/* Fix for Wallpaper Quote Jitter */
+#wall-quote-container {
+    position: absolute;
+    bottom: 2rem;
+    left: 0; 
+    right: 0;
+    text-align: center;
+    z-index: 40;
+    transition: opacity 1s ease-in-out;
+    opacity: 0; 
+    padding: 0 1rem;
+    /* This forces the browser to handle this element on a separate layer */
+    will-change: transform, opacity;
+    transform: translateZ(0); 
+    backface-visibility: hidden;
+}

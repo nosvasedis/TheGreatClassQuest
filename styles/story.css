@@ -1,0 +1,71 @@
+/* V5.5.0: Story Weaver Revamp */
+#story-weavers-main-content {
+    background: linear-gradient(to bottom, #f0f9ff, #e0f2fe);
+    border-radius: 1.5rem;
+    padding: 1rem;
+    border: 2px solid #a5f3fc;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+    transition: flex-grow 0.4s ease-in-out;
+}
+#story-weavers-image-container {
+    width: 100%;
+    aspect-ratio: 1/1;
+    background-color: #e0f2fe;
+    border-radius: 1rem;
+    margin-bottom: 1rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 2px dashed #93c5fd;
+    overflow: hidden;
+}
+#story-weavers-image {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+#story-weavers-text {
+    font-family: 'Georgia', serif;
+    font-size: 1.25rem;
+    color: #1e3a8a;
+    min-height: 80px;
+}
+#story-history-content .story-history-card, #storybook-viewer-content .story-history-card {
+    display: flex;
+    gap: 1rem;
+    padding: 1rem;
+    background-color: white;
+    border-radius: 1rem;
+    border: 1px solid #e5e7eb;
+}
+#story-history-content .story-history-card img, #storybook-viewer-content .story-history-card img {
+    width: 150px;
+    height: 150px;
+    object-fit: cover;
+    border-radius: 0.75rem;
+    flex-shrink: 0;
+}
+#story-history-content .story-history-card .text-content, #storybook-viewer-content .story-history-card .text-content {
+    display: flex;
+    flex-direction: column;
+}
+
+/* v5.5.4 Storybook Archive Styles */
+.completed-storybook-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 1rem;
+    background-color: white;
+    border-radius: 0.75rem;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+    border-left-width: 8px;
+    transition: all 200ms;
+}
+.completed-storybook-item:hover {
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+    transform: translateY(-0.25rem);
+}
+.audio-controls button.playing i:before {
+    content: "\f04c"; /* Font Awesome pause icon */
+}

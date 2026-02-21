@@ -1,0 +1,111 @@
+
+.delete-event-btn {
+    position: absolute;
+    top: 0.25rem;
+    right: 0.25rem;
+    width: 1.25rem;
+    height: 1.25rem;
+    background-color: #fecaca;
+    color: #b91c1c;
+    border-radius: 9999px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.75rem;
+    opacity: 0.5;
+    transition: all 150ms ease-out;
+}
+.delete-event-btn:hover {
+    opacity: 1;
+    background-color: #fca5a5;
+}
+
+/* Custom Minimal Scrollbar */
+#calendar-grid .overflow-y-auto, #award-class-list, #adventure-log-feed, #story-history-content, #logbook-modal-content, #story-archive-list, #storybook-viewer-content, #scroll-student-roster, #attendance-chronicle-content, #trial-history-content, #schedule-manager-list, #avatar-maker-options-wrapper {
+    scrollbar-width: thin; /* For Firefox */
+    scrollbar-color: #A5B4FC transparent; /* For Firefox */
+}
+#calendar-grid .overflow-y-auto::-webkit-scrollbar, #award-class-list::-webkit-scrollbar, #adventure-log-feed::-webkit-scrollbar, #story-history-content::-webkit-scrollbar, #logbook-modal-content::-webkit-scrollbar, #story-archive-list::-webkit-scrollbar, #storybook-viewer-content::-webkit-scrollbar, #scroll-student-roster::-webkit-scrollbar, #attendance-chronicle-content::-webkit-scrollbar, #trial-history-content::-webkit-scrollbar, #schedule-manager-list::-webkit-scrollbar, #avatar-maker-options-wrapper::-webkit-scrollbar {
+    width: 4px;
+}
+#calendar-grid .overflow-y-auto::-webkit-scrollbar-track, #award-class-list::-webkit-scrollbar-track, #adventure-log-feed::-webkit-scrollbar-track, #story-history-content::-webkit-scrollbar-track, #logbook-modal-content::-webkit-scrollbar-track, #story-archive-list::-webkit-scrollbar-track, #storybook-viewer-content::-webkit-scrollbar-track, #scroll-student-roster::-webkit-scrollbar-track, #attendance-chronicle-content::-webkit-scrollbar-track, #trial-history-content::-webkit-scrollbar-track, #schedule-manager-list::-webkit-scrollbar-track, #avatar-maker-options-wrapper::-webkit-scrollbar-track {
+    background: transparent;
+}
+#calendar-grid .overflow-y-auto::-webkit-scrollbar-thumb, #award-class-list::-webkit-scrollbar-thumb, #adventure-log-feed::-webkit-scrollbar-thumb, #story-history-content::-webkit-scrollbar-thumb, #logbook-modal-content::-webkit-scrollbar-thumb, #story-archive-list::-webkit-scrollbar-thumb, #storybook-viewer-content::-webkit-scrollbar-thumb, #scroll-student-roster::-webkit-scrollbar-thumb, #attendance-chronicle-content::-webkit-scrollbar-thumb, #trial-history-content::-webkit-scrollbar-thumb, #schedule-manager-list::-webkit-scrollbar-thumb, #avatar-maker-options-wrapper::-webkit-scrollbar-thumb {
+    background-color: #A5B4FC; /* indigo-300 */
+    border-radius: 20px;
+}
+#calendar-grid .overflow-y-auto::-webkit-scrollbar-thumb:hover, #award-class-list::-webkit-scrollbar-thumb:hover, #adventure-log-feed::-webkit-scrollbar-thumb:hover, #story-history-content::-webkit-scrollbar-thumb:hover, #logbook-modal-content::-webkit-scrollbar-thumb:hover, #story-archive-list::-webkit-scrollbar-thumb:hover, #storybook-viewer-content::-webkit-scrollbar-thumb:hover, #scroll-student-roster::-webkit-scrollbar-thumb:hover, #attendance-chronicle-content::-webkit-scrollbar-thumb:hover, #trial-history-content::-webkit-scrollbar-thumb:hover, #schedule-manager-list::-webkit-scrollbar-thumb:hover, #avatar-maker-options-wrapper::-webkit-scrollbar-thumb:hover {
+    background-color: #818CF8; /* indigo-400 */
+}
+
+#certificate-template {
+    width: 800px;
+    height: 600px;
+    padding: 25px;
+    border-width: 10px;
+    border-style: solid;
+    font-family: 'Georgia', serif;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    transition: all 0.3s ease-in-out;
+    box-sizing: border-box;
+    position: relative;
+}
+
+/* --- V4.7.2: Quest Update Narrative & Award Dropdown Styles --- */
+#narrative-text-container {
+    font-size: 1.5rem;
+    font-weight: 600;
+    color: #374151;
+    line-height: 1.6;
+    padding: 1rem;
+    background-color: #f3f4f6;
+    border-radius: 0.5rem;
+    min-height: 120px;
+    overflow-wrap: break-word;
+    white-space: normal;
+    word-break: break-word;
+}
+@media (min-width: 768px) {
+    #narrative-text-container {
+        font-size: 1.875rem;
+    }
+}
+
+#award-class-dropdown-panel {
+    transform-origin: top;
+    animation: pop-in 0.2s ease-out;
+}
+
+/* --- V5.0.0: QUEST MAP STYLES --- */
+.quest-track-path {
+    background-image: url('data:image/svg+xml;charset=UTF-8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 80 40" width="40" height="20"><path fill="%23d1d5db" d="M 0 39 L 39 0 L 41 0 L 1 39 Z M 40 39 L 79 0 L 81 0 L 41 39 Z"></path></svg>');
+    background-repeat: repeat-x;
+}
+.quest-track-progress {
+    transition: width 1s ease-in-out;
+}
+.quest-track-avatar {
+    transition: left 1s ease-in-out;
+    filter: drop-shadow(0 4px 6px rgba(0,0,0,0.3));
+    z-index: 10;
+    transform: translateY(-50%) translateX(-50%);
+}
+.quest-track-avatar span {
+    display: inline-block;
+    transform: scale(1.1);
+}
+
+/* V5.4.3 FIX: Quest Map Avatar Hover Effects */
+@keyframes quest-avatar-jiggle {
+    0%, 100% { transform: rotate(0deg) scale(1.1); }
+    25% { transform: rotate(-8deg) scale(1.15); }
+    75% { transform: rotate(8deg) scale(1.15); }
+}
+@keyframes quest-avatar-spin-pop {
+    0% { transform: rotate(0deg) scale(1.1); }
+    50% { transform: rotate(180deg) scale(1.25); }
+    100% { transform: rotate(360deg) scale(1.1); }
+}

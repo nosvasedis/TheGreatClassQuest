@@ -1,0 +1,124 @@
+
+/* WALLPAPER MODE STYLES */
+
+/* 1. Enter & Exit Animations */
+@keyframes expand-header { 0% { clip-path: inset(0 0 100% 0); opacity: 0; } 100% { clip-path: inset(0 0 0 0); opacity: 1; } }
+@keyframes collapse-header { 0% { clip-path: inset(0 0 0 0); opacity: 1; } 100% { clip-path: inset(0 0 100% 0); opacity: 0; } }
+
+.wallpaper-enter { animation: expand-header 1s cubic-bezier(0.2, 0.8, 0.2, 1) forwards; }
+.wallpaper-exit { animation: collapse-header 0.8s cubic-bezier(0.2, 0.8, 0.2, 1) forwards; }
+
+/* 2. Celestial Animations (Day/Night) */
+/* Night State Classes (Toggled via JS) */
+.is-night #wall-bg-day { opacity: 0; }
+.is-night #wall-bg-night { opacity: 1; }
+.is-night #wall-sun { top: 110% !important; opacity: 0; } /* Sun Sets */
+.is-night #wall-moon { top: 10% !important; } /* Moon Rises */
+/* Night Mode Badge: Solid Dark Glass */
+.is-night #wall-class-badge { 
+    background-color: rgba(30, 27, 75, 0.85) !important; /* Almost solid Midnight Blue */
+    border-color: rgba(165, 180, 252, 0.3) !important; /* Indigo border */
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.6) !important;
+}
+
+.is-night #wall-class-name { 
+    color: #ffffff !important; /* Pure White Text */
+    text-shadow: 0 0 10px rgba(255, 255, 255, 0.5); 
+}
+
+.is-night #wall-class-level { 
+    color: #cbd5e1 !important; /* Slate Gray Text */
+}
+
+/* 3. Floating Clouds (Extended Range to fix popping) */
+@keyframes float-clouds-right { 
+    0% { transform: translateX(-150vw); } 
+    100% { transform: translateX(150vw); } 
+}
+@keyframes float-clouds-left { 
+    0% { transform: translateX(150vw); } 
+    100% { transform: translateX(-150vw); } 
+}
+#dynamic-wallpaper-screen .fa-cloud { 
+    display: inline-block; 
+    filter: drop-shadow(0 10px 20px rgba(0,0,0,0.1)); 
+    will-change: transform; /* Performance optimization */
+}
+
+@keyframes float-bob { 
+    0% { transform: translateY(0) rotate(0deg); } 
+    33% { transform: translateY(-15px) rotate(1deg); } 
+    66% { transform: translateY(10px) rotate(-1deg); } 
+    100% { transform: translateY(0) rotate(0deg); } 
+}
+
+/* Vibrant Card Themes */
+.float-card-blue { 
+    background: linear-gradient(135deg, rgba(255,255,255,0.95), rgba(191, 219, 254, 0.9)); 
+    border: 4px solid #60A5FA; color: #1E3A8A;
+}
+.float-card-gold { 
+    background: linear-gradient(135deg, rgba(255,255,255,0.95), rgba(253, 230, 138, 0.9)); 
+    border: 4px solid #F59E0B; color: #78350F;
+}
+.float-card-purple { 
+    background: linear-gradient(135deg, rgba(255,255,255,0.95), rgba(233, 213, 255, 0.9)); 
+    border: 4px solid #A855F7; color: #581C87;
+}
+.float-card-green { 
+    background: linear-gradient(135deg, rgba(255,255,255,0.95), rgba(187, 247, 208, 0.9)); 
+    border: 4px solid #22C55E; color: #14532D;
+}
+.float-card-red { 
+    background: linear-gradient(135deg, rgba(255,255,255,0.95), rgba(254, 202, 202, 0.9)); 
+    border: 4px solid #EF4444; color: #7F1D1D;
+}
+.float-card-dark { 
+    background: linear-gradient(135deg, rgba(31,41,55,0.95), rgba(17,24,39,0.95)); 
+    border: 4px solid #FCD34D; color: white; 
+}
+
+/* 5. Center Hub */
+@keyframes hub-pulse {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(255, 255, 255, 0.4); }
+    50% { box-shadow: 0 0 50px 10px rgba(255, 255, 255, 0); }
+}
+/* 5. Center Hub (Updated for better visibility) */
+.wall-center-hub {
+    /* Day Mode: Crisp White Glass */
+    background: rgba(255, 255, 255, 0.25); 
+    backdrop-filter: blur(12px);
+    border: 2px solid rgba(255, 255, 255, 0.6);
+    box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.1);
+}
+
+/* Night Mode: Deep Indigo Glass (Instead of faded white) */
+.is-night .wall-center-hub {
+    background: rgba(15, 23, 42, 0.5) !important; /* Dark Slate */
+    border-color: rgba(99, 102, 241, 0.3) !important; /* Faint Indigo Border */
+    box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.5) !important;
+}
+
+/* 6. Text Shadows */
+.wall-shadow-text { filter: drop-shadow(0 4px 4px rgba(0,0,0,0.2)); }
+
+/* --- Ceremony Updates --- */
+.ceremony-card.finalist {
+    /* Hide the stars/rank content initially */
+    background: linear-gradient(135deg, #1f2937, #111827);
+    border-color: #4b5563;
+    transform: scale(0.95);
+}
+.ceremony-card.finalist .reveal-content {
+    opacity: 0; 
+}
+/* Ensure text wraps nicely instead of truncating */
+.ceremony-display-card h3 {
+    white-space: normal; /* Allow wrapping */
+    overflow: visible;
+    text-overflow: clip;
+    line-height: 1.1; /* Tighter lines for long names */
+    height: auto;
+    margin-bottom: 0.5rem;
+}
+

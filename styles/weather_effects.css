@@ -1,0 +1,331 @@
+
+/* Stormy Weather Header */
+header.header-stormy {
+    animation: storm-flash 5s infinite;
+}
+
+@keyframes storm-flash {
+    0%, 90%, 100% { filter: brightness(1); }
+    92% { filter: brightness(2) contrast(1.2); } /* Flash */
+    94% { filter: brightness(1); }
+    96% { filter: brightness(1.5); } /* Aftershock */
+}
+
+/* Stormy Wallpaper Background */
+.w-stormy #wall-bg-day {
+    background: linear-gradient(to bottom, #1e1b4b 0%, #312e81 100%) !important;
+}
+.w-stormy #wall-sun {
+    display: none;
+}
+.w-stormy .fa-cloud {
+    color: #4b5563 !important;
+    animation-duration: 20s !important; /* Fast moving clouds */
+}
+/* Rain + Thunder Overlay */
+.w-stormy::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; width: 100%; height: 100%;
+    background-image: radial-gradient(2px 10px at 20% 30%, rgba(255,255,255,0.6), transparent),
+                      radial-gradient(2px 10px at 60% 80%, rgba(255,255,255,0.6), transparent);
+    background-size: 120px 120px;
+    animation: rain-fall 0.4s linear infinite; /* Very fast rain */
+    opacity: 0.6;
+    z-index: 1;
+}
+.w-stormy::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: white;
+    opacity: 0;
+    z-index: 2;
+    animation: storm-flash-overlay 8s infinite;
+}
+@keyframes storm-flash-overlay {
+    92% { opacity: 0.3; }
+    93% { opacity: 0; }
+    94% { opacity: 0.1; }
+    95% { opacity: 0; }
+}
+
+/* --- WEATHER STATES (Header & Widget) --- */
+
+/* --- STORMY WEATHER EFFECTS (Calm & Non-Distracting) --- */
+
+/* 1. Header Container Config */
+header.header-stormy {
+    background: linear-gradient(to right, #374151 0%, #1f2937 100%) !important;
+    position: relative;
+    overflow: hidden !important; 
+}
+
+/* 2. Widget Container Config */
+.w-stormy { 
+    background: linear-gradient(135deg, #1e1b4b 0%, #312e81 100%) !important; 
+    color: white; 
+    position: relative;
+    overflow: hidden !important; 
+    border-radius: 1.75rem; 
+}
+
+.w-stormy #wall-sun { display: none; }
+
+/* Dark Clouds - SLOWED DOWN */
+.w-stormy .fa-cloud {
+    color: #4b5563 !important; 
+    /* Changed from 20s to 60s for a slow, ominous drift */
+    animation-duration: 60s !important; 
+}
+
+/* 3. The "Nice" Asymmetrical Rain Layer (Full Coverage & Slow) */
+.w-stormy::before, header.header-stormy::before {
+    content: '';
+    position: absolute;
+    
+    /* Massive size to cover rotation gaps */
+    top: -50vh;
+    left: -50vw;
+    width: 200vw;
+    height: 200vh;
+    
+    /* Nice Asymmetrical Raindrops */
+    background-image: 
+        radial-gradient(2px 9px at 10% 10%, rgba(255,255,255,0.6), transparent),
+        radial-gradient(2px 9px at 25% 60%, rgba(255,255,255,0.5), transparent),
+        radial-gradient(2px 9px at 50% 20%, rgba(255,255,255,0.6), transparent),
+        radial-gradient(2px 9px at 75% 80%, rgba(255,255,255,0.5), transparent),
+        radial-gradient(2px 9px at 90% 40%, rgba(255,255,255,0.6), transparent);
+        
+    background-size: 100px 100px; 
+    
+    /* CHANGED: Slowed to 2.5s for a gentle heavy rain, not a blur */
+    animation: storm-rain-fall 2.5s linear infinite; 
+    
+    transform: rotate(15deg); 
+    opacity: 0.6;
+    z-index: 1;
+    pointer-events: none;
+}
+
+/* De-synchronize Header */
+header.header-stormy::before {
+    animation-delay: -1.2s;
+}
+
+@keyframes storm-rain-fall {
+    from { background-position: 0 0; }
+    to { background-position: 0 100px; } 
+}
+
+/* 4. Thunder Flash Overlay (Subtle) */
+.w-stormy::after, header.header-stormy::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: white;
+    opacity: 0;
+    z-index: 5;
+    pointer-events: none;
+    animation: thunder-flash 10s infinite; /* Less frequent flashes */
+}
+
+header.header-stormy::after {
+    animation-delay: 4s;
+}
+
+@keyframes thunder-flash {
+    0%, 92%, 100% { opacity: 0; }
+    93% { opacity: 0.2; } /* Very soft flash, not blinding */
+    94% { opacity: 0; }
+    95% { opacity: 0.1; } 
+    96% { opacity: 0; }
+}
+
+/* 2. RAINY */
+header.header-rainy {
+    background: linear-gradient(to right, #4b5563 0%, #374151 100%) !important;
+}
+/* Rain Overlay */
+.w-rainy::before, header.header-rainy::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; width: 100%; height: 100%;
+    background-image: 
+        radial-gradient(2px 10px at 20% 30%, rgba(255,255,255,0.4), transparent),
+        radial-gradient(2px 10px at 50% 60%, rgba(255,255,255,0.4), transparent);
+    background-size: 100px 100px;
+    animation: rain-fall 0.8s linear infinite; /* Normal Rain */
+    opacity: 0.6;
+    z-index: 1;
+    pointer-events: none;
+}
+@keyframes rain-fall {
+    from { background-position: 0 0; }
+    to { background-position: 0 120px; }
+}
+
+
+/* 3. SNOWY */
+header.header-snowy {
+    background: linear-gradient(to right, #cbd5e1 0%, #94a3b8 100%) !important;
+}
+/* Snow Overlay */
+.w-snowy::before, header.header-snowy::before {
+    content: '❄️';
+    position: absolute;
+    top: -20px; left: 10%;
+    color: rgba(255,255,255,0.6);
+    text-shadow: 50vw 0 0 rgba(255,255,255,0.6), 10vw 20vh 0 rgba(255,255,255,0.6), 60vw 40vh 0 rgba(255,255,255,0.6);
+    font-size: 1rem;
+    animation: snow-fall 10s linear infinite;
+    z-index: 1;
+    pointer-events: none;
+}
+@keyframes snow-fall {
+    0% { transform: translateY(0); }
+    100% { transform: translateY(100vh); }
+}
+
+
+/* 4. CLOUDY */
+header.header-cloudy {
+    background: linear-gradient(to right, #94a3b8 0%, #64748b 100%) !important;
+}
+/* Moving Clouds Overlay */
+header.header-cloudy::after {
+    content: '☁️';
+    font-size: 8rem;
+    position: absolute;
+    top: 20%; left: -20%;
+    opacity: 0.2;
+    animation: cloud-pass 40s linear infinite;
+}
+@keyframes cloud-pass {
+    0% { transform: translateX(0); }
+    100% { transform: translateX(120vw); }
+}
+
+/* --- WALLPAPER WEATHER STATES (Day & Night) --- */
+
+/* BASE CLOUD STYLE - FIX FOR BLACK CLOUDS */
+#dynamic-wallpaper-screen .fa-cloud {
+    color: rgba(255, 255, 255, 0.85); /* Default to White */
+    filter: drop-shadow(0 0 15px rgba(255,255,255,0.2)); /* Slight glow */
+    transition: color 2s ease-in-out, opacity 2s ease-in-out;
+}
+
+/* 1. STORMY WALLPAPER */
+.weather-stormy #wall-bg-day {
+    background: linear-gradient(to bottom, #1e1b4b 0%, #312e81 100%) !important; /* Dark Blue Day */
+}
+.weather-stormy #wall-bg-night {
+    /* Pitch black to deep midnight purple */
+    background: linear-gradient(to bottom, #020617 0%, #1e1b4b 100%) !important; 
+}
+.weather-stormy #wall-sun, .weather-stormy #wall-moon { display: none !important; }
+
+.weather-stormy .fa-cloud {
+    color: #475569 !important; /* Slate-600 (Dark Grey) */
+    opacity: 0.9 !important;
+    filter: drop-shadow(0 0 10px rgba(0,0,0,0.5)) !important; /* Dark shadow */
+    animation-duration: 60s !important; /* Slow, ominous drift */
+}
+/* Thunder Flash Overlay */
+.weather-stormy::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: white;
+    opacity: 0;
+    z-index: 50; 
+    pointer-events: none;
+    animation: thunder-flash 10s infinite;
+}
+
+@keyframes thunder-flash {
+    0%, 92%, 100% { opacity: 0; }
+    93% { opacity: 0.2; } /* Very soft flash, not blinding */
+    94% { opacity: 0; }
+    95% { opacity: 0.1; } 
+    96% { opacity: 0; }
+}
+
+/* 2. RAINY WALLPAPER */
+.weather-rainy #wall-bg-day {
+    background: linear-gradient(to bottom, #334155 0%, #475569 100%) !important; /* Grey-Blue */
+}
+.weather-rainy #wall-bg-night {
+    background: linear-gradient(to bottom, #0f172a 0%, #1e293b 100%) !important; /* Dark Slate Night */
+}
+.weather-rainy #wall-sun { opacity: 0 !important; }
+
+.weather-rainy .fa-cloud {
+    color: #94a3b8 !important; /* Slate-400 (Grey) */
+    opacity: 0.8 !important;
+    animation-duration: 100s !important;
+}
+
+/* 3. SNOWY WALLPAPER */
+.weather-snowy #wall-bg-day {
+    background: linear-gradient(to bottom, #e2e8f0 0%, #f8fafc 100%) !important; /* White-Grey */
+}
+.weather-snowy #wall-bg-night {
+    background: linear-gradient(to bottom, #1e293b 0%, #334155 100%) !important; /* Cold Blue Night */
+}
+.weather-snowy #wall-sun {
+    opacity: 0.3 !important;
+    background-color: #fef3c7 !important; 
+    box-shadow: 0 0 40px 20px rgba(255,255,255,0.8) !important;
+}
+.weather-snowy .fa-cloud {
+    color: #e2e8f0 !important; /* Slate-200 (Very Light Grey/White) */
+    opacity: 0.9 !important;
+    animation-duration: 150s !important;
+}
+
+/* 4. CLOUDY WALLPAPER */
+.weather-cloudy #wall-bg-day {
+    background: linear-gradient(to bottom, #94a3b8 0%, #cbd5e1 100%) !important;
+}
+.weather-cloudy #wall-bg-night {
+    background: linear-gradient(to bottom, #172554 0%, #1e3a8a 100%) !important; /* Cloudy Night Blue */
+}
+.weather-cloudy #wall-sun {
+    opacity: 0.4 !important;
+    filter: blur(8px);
+}
+.weather-cloudy .fa-cloud {
+    color: #f1f5f9 !important; /* Slate-100 (Whiteish) */
+    opacity: 0.8 !important;
+    animation-duration: 120s !important;
+}
+
+/* 5. CLEAR / PARTLY CLOUDY WALLPAPER (Visual Fix for "Black Clouds") */
+/* Uses default gradients defined in HTML/JS, just ensuring sun visibility */
+.weather-clear #wall-sun {
+    opacity: 1 !important;
+    filter: drop-shadow(0 0 30px rgba(255, 215, 0, 0.6));
+}
+.weather-clear .fa-cloud {
+    color: rgba(255, 255, 255, 0.7) !important; /* Explicit White */
+    opacity: 1 !important; /* Make sure they are visible */
+    animation-duration: 180s !important; /* Extremely slow */
+}
+
+/* Subtle Night Mode (Twilight) */
+body.night-mode {
+    /* Muted Indigo to Slate Gray. 
+       Looks like "evening" or "dusk" - duller than day, but not black. */
+    background: linear-gradient(to bottom, #c7d2fe 0%, #cbd5e1 100%) !important;
+}
+
+/* Ensure the wallpaper screen inherits night mode correctly */
+#dynamic-wallpaper-screen.is-night #wall-bg-day {
+    opacity: 0;
+}
+#dynamic-wallpaper-screen.is-night #wall-bg-night {
+    opacity: 1;
+}
+

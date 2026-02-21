@@ -1,0 +1,52 @@
+
+/* V5.3.4 HOME TAB REVAMP */
+.game-card {
+    background-color: rgba(255, 255, 255, 0.8);
+    backdrop-filter: blur(4px);
+    padding: 2rem 3rem;
+    border-radius: 1.5rem;
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+    border-width: 4px;
+    transition: all 300ms;
+}
+
+/* V5.4.4 REVAMP: Enlarged Home Buttons & V5.6 UPDATE: Smaller Buttons */
+.about-tab-switcher {
+    font-family: 'Fredoka One', cursive;
+    font-size: 1.25rem; /* UPDATED */
+    padding: 0.75rem 1.5rem; /* UPDATED */
+    transition: all 200ms;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+    border-bottom-width: 4px;
+    border-color: rgba(107, 114, 128, 0.5);
+    transform: none;
+    border-radius: 9999px;
+    text-shadow: 0 1px 2px rgba(0,0,0,0.1);
+}
+@media (min-width: 768px) {
+    .about-tab-switcher {
+        font-size: 1.5rem; /* UPDATED */
+    }
+}
+.about-tab-switcher:hover {
+    transform: scale(1.05);
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+}
+.about-tab-switcher:active {
+    box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+    transform: translateY(2px) scale(0.98);
+    border-bottom-width: 2px;
+}
+
+.about-content {
+    animation: pop-in 0.4s ease-out;
+}
+
+@keyframes subtle-pulse {
+    0%, 100% { transform: scale(1); opacity: 1; }
+    50% { transform: scale(1.03); opacity: 0.8; }
+}
+.login-bg-pulse {
+    animation: subtle-pulse 5s ease-in-out infinite;
+}
+

@@ -1,0 +1,676 @@
+
+/* --- V11.0: VIBRANT HORIZONS THEME --- */
+
+/* 1. ANIMATIONS */
+@keyframes float-cloud {
+    0%, 100% { transform: translateX(0); }
+    50% { transform: translateX(10px); }
+}
+@keyframes spin-sun {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+@keyframes pulse-glow {
+    0%, 100% { filter: drop-shadow(0 0 5px rgba(255, 215, 0, 0.6)); transform: scale(1); }
+    50% { filter: drop-shadow(0 0 15px rgba(255, 215, 0, 0.9)); transform: scale(1.05); }
+}
+
+/* 2. LAYOUT: The 3-Row Grid */
+.horizons-grid {
+    display: grid;
+    grid-template-columns: repeat(12, 1fr);
+    gap: 1.5rem;
+    padding-bottom: 2rem;
+}
+
+/* Smart Spanning */
+.h-span-12 { grid-column: span 12; }
+.h-span-8  { grid-column: span 12; }
+.h-span-6  { grid-column: span 12; }
+.h-span-4  { grid-column: span 12; }
+.h-span-3  { grid-column: span 12; }
+
+@media (min-width: 768px) {
+    .h-span-6 { grid-column: span 6; }
+}
+@media (min-width: 1024px) {
+    .h-span-8 { grid-column: span 8; }
+    .h-span-4 { grid-column: span 4; }
+    .h-span-3 { grid-column: span 3; }
+}
+
+/* 3. CARD BASE & COLORS */
+.vibrant-card {
+    border-radius: 1.75rem;
+    position: relative;
+    box-shadow: 0 10px 20px -5px rgba(0,0,0,0.05), 0 4px 6px -2px rgba(0,0,0,0.03);
+    transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.3s;
+    background: white;
+    border: 1px solid rgba(255,255,255,0.6);
+    /* FIX: Allow dropdowns to overflow the card boundaries */
+    overflow: visible !important; 
+    z-index: 1;
+}
+.vibrant-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1);
+    z-index: 30; /* Ensure hovered card acts like a popup */
+}
+
+/* FIX: Date Pill Styling */
+.date-pill {
+    padding: 0.5rem 1.5rem;
+    border-radius: 9999px;
+    font-family: 'Fredoka One', cursive;
+    letter-spacing: 0.05em;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+}
+
+/* FIX 2 & 5: Chronicle Styling & Expansion */
+.chronicle-item {
+    padding: 1.25rem;
+    border-radius: 1.5rem;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    border: 1px solid rgba(255,255,255,0.4);
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    cursor: pointer;
+    position: relative;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+    overflow: hidden;
+}
+
+.chronicle-item:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+    z-index: 10;
+}
+
+/* Expanded State (Pop-out effect) */
+.chronicle-item.expanded {
+    position: absolute;
+    top: 1rem;
+    left: 1rem;
+    right: 1rem;
+    bottom: 1rem;
+    height: auto;
+    z-index: 50;
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+    transform: scale(1.02);
+    overflow-y: auto;
+    border-width: 2px;
+}
+.chronicle-item.expanded p {
+    -webkit-line-clamp: unset !important; /* Show all text */
+    line-clamp: unset !important;
+    overflow: visible;
+}
+
+/* Gradient Themes */
+.chronicle-homework { background: linear-gradient(135deg, #e0e7ff 0%, #c7d2fe 100%); border-color: #818cf8; }
+.chronicle-story { background: linear-gradient(135deg, #ecfeff 0%, #a5f3fc 100%); border-color: #22d3ee; }
+.chronicle-log { background: linear-gradient(135deg, #f0fdf4 0%, #bbf7d0 100%); border-color: #4ade80; }
+
+/* FIX 4: General Tools Hover Colors */
+.tool-btn-pop[data-action="open-global-ranks"]:hover { background: #fdf4ff; color: #c026d3; border-color: #f0abfc; } /* Fuchsia */
+.tool-btn-pop[data-action="create-class"]:hover { background: #f0fdf4; color: #16a34a; border-color: #86efac; } /* Green */
+.tool-btn-pop[data-action="open-history"]:hover { background: #fffbeb; color: #d97706; border-color: #fcd34d; } /* Amber */
+.tool-btn-pop[data-action="open-holidays"]:hover { background: #fff1f2; color: #e11d48; border-color: #fda4af; } /* Rose */
+.tool-btn-pop[data-action="open-day-planner"]:hover { background: #eff6ff; color: #2563eb; border-color: #93c5fd; } /* Blue */
+.tool-btn-pop[data-action="open-settings"]:hover { background: #f3f4f6; color: #4b5563; border-color: #d1d5db; } /* Gray */
+
+/* 4. ROW 1: WEATHER WIDGET */
+.weather-card {
+    color: white;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    padding: 1.5rem;
+    position: relative;
+    overflow: hidden; /* <--- KEEPS THE SPINNING EMOJI INSIDE */
+    border-radius: 1.75rem; /* Ensures corners are rounded */
+    isolation: isolate; /* Fixes z-index stacking issues */
+}
+
+/* FIX 3: Roster Wiggle Animation */
+.roster-avatar {
+    width: 2.5rem; 
+    height: 2.5rem; 
+    border-radius: 9999px;
+    object-fit: cover;
+    border: 2px solid white;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    transition: transform 0.2s ease-in-out;
+}
+.roster-item:hover .roster-avatar {
+    animation: quest-avatar-jiggle 0.5s ease-in-out;
+    transform: scale(1.1);
+    border-color: #818CF8;
+}
+
+/* FIX 5: Tool Button Hover Colors */
+/* Default hover */
+.tool-btn-pop:hover { background: white; color: #4F46E5; }
+
+/* Specific Hovers based on target/action */
+.tool-btn-pop[data-target="class-leaderboard-tab"]:hover { background: #fffbeb; color: #d97706; border-color: #fcd34d; } /* Amber */
+.tool-btn-pop[data-target="student-leaderboard-tab"]:hover { background: #faf5ff; color: #7e22ce; border-color: #d8b4fe; } /* Purple */
+.tool-btn-pop[data-target="award-stars-tab"]:hover { background: #fff1f2; color: #be123c; border-color: #fda4af; } /* Rose */
+.tool-btn-pop[data-target="adventure-log-tab"]:hover { background: #f0fdfa; color: #0f766e; border-color: #99f6e4; } /* Teal */
+.tool-btn-pop[data-target="scholars-scroll-tab"]:hover { background: #fff7ed; color: #9a3412; border-color: #fdba74; } /* Orange */
+.tool-btn-pop[data-target="reward-ideas-tab"]:hover { background: #eef2ff; color: #4338ca; border-color: #a5b4fc; } /* Indigo */
+.tool-btn-pop[data-action="open-report"]:hover { background: #f0fdf4; color: #15803d; border-color: #86efac; } /* Green */
+
+/* 5. ROW 1: GREETING CARD */
+.greeting-panel {
+    background: white;
+    padding: 2rem;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    position: relative;
+    overflow: hidden; /* <--- CUTS OFF THE SQUARE MESH SHADOW */
+    border-radius: 1.75rem;
+}
+.greeting-bg-mesh {
+    position: absolute;
+    top: 0; left: 0; width: 100%; height: 100%;
+    background: radial-gradient(at 0% 0%, rgba(99, 102, 241, 0.1) 0px, transparent 50%),
+                radial-gradient(at 100% 100%, rgba(236, 72, 153, 0.1) 0px, transparent 50%);
+    opacity: 0.6;
+    pointer-events: none;
+}
+
+/* 6. ROW 2: STAT CARDS */
+.stat-card-pop {
+    background: #F8FAFC;
+    padding: 1.5rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    border: 2px solid transparent;
+    transition: all 0.2s;
+}
+.stat-card-pop:hover {
+    background: white;
+    border-color: #E2E8F0;
+}
+.stat-value-big {
+    font-family: 'Fredoka One', cursive;
+    font-size: 3rem;
+    line-height: 1;
+    margin-bottom: 0.5rem;
+}
+
+/* 7. ROW 3: TOOLS & SCHEDULE (Revamped) */
+.tools-grid-v2 {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(90px, 1fr));
+    gap: 1rem;
+    padding: 1.5rem;
+}
+
+/* NEW: Grid Layout for Schedule (Balanced Height) */
+.schedule-list-v2 {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+    gap: 1rem;
+    padding: 0 1.5rem 1.5rem 1.5rem;
+    /* FIX: Changed from 60vh to 350px for a cleaner look */
+    min-height: 350px; 
+    align-content: start;
+}
+
+/* NEW: Detailed Square Class Card (Smart Text) */
+.schedule-card-square {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: space-between;
+    /* Fixed height ratio to keep them looking uniform */
+    aspect-ratio: 1 / 1.1; 
+    padding: 0.75rem;
+    border-radius: 1.5rem;
+    background: white;
+    transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+    border: 3px solid transparent;
+    cursor: pointer;
+    position: relative;
+    overflow: hidden;
+    text-align: center;
+}
+
+.schedule-card-square:hover {
+    transform: translateY(-5px) scale(1.05);
+    box-shadow: 0 15px 30px -5px rgba(0, 0, 0, 0.15);
+    z-index: 10;
+}
+
+/* Top: Time */
+.schedule-card-square .time-pill {
+    font-size: 0.6rem;
+    font-weight: 800;
+    padding: 0.25rem 0.6rem;
+    border-radius: 99px;
+    background: rgba(255,255,255,0.7);
+    backdrop-filter: blur(4px);
+    color: #374151;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+    margin-bottom: 0.25rem;
+}
+
+/* Middle: Logo */
+.schedule-card-square .logo {
+    font-size: 2.25rem; /* Adjusted scale to make room for text */
+    filter: drop-shadow(0 4px 4px rgba(0,0,0,0.1));
+    transition: transform 0.3s;
+    line-height: 1;
+    margin: 0.25rem 0;
+}
+
+.schedule-card-square:hover .logo {
+    transform: scale(1.1) rotate(5deg);
+}
+
+/* Bottom: Info Stack */
+.schedule-card-square .info-stack {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+    /* Ensures this section takes up necessary space */
+    flex-grow: 1; 
+    justify-content: center;
+}
+
+/* SMART NAME TEXT: Wraps and Scales */
+.schedule-card-square .name {
+    font-family: 'Fredoka One', cursive;
+    font-size: 0.85rem; /* Slightly smaller to fit long names */
+    line-height: 1.1;
+    color: #1f2937;
+    width: 100%;
+    
+    /* Allow wrapping */
+    white-space: normal; 
+    word-wrap: break-word;
+    
+    /* Limit to 3 lines max to prevent overflow */
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+.schedule-card-square .league {
+    font-size: 0.6rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: rgba(0,0,0,0.5);
+    background: rgba(255,255,255,0.5);
+    padding: 1px 5px;
+    border-radius: 4px;
+    margin-top: 2px;
+}
+
+.schedule-card-square .teacher {
+    font-size: 0.6rem;
+    color: rgba(0,0,0,0.4);
+    font-weight: 600;
+    font-style: italic;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 100%;
+}
+
+/* Active State */
+.schedule-card-square.active-lesson {
+    border-color: #6366F1;
+    animation: pulse-border 2s infinite;
+}
+
+/* Locked State */
+.schedule-card-square.locked {
+    filter: grayscale(0.9);
+    opacity: 0.7;
+    cursor: not-allowed;
+}
+
+/* Empty State "Camp" - Matches new height */
+.schedule-empty-camp {
+    grid-column: 1 / -1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(135deg, #F0FDF4 0%, #DCFCE7 100%);
+    border: 2px dashed #86EFAC;
+    border-radius: 1.5rem;
+    padding: 2rem;
+    color: #166534;
+    text-align: center;
+    /* FIX: Set to 100% to fill the container without forcing extra scroll */
+    height: 100%; 
+}
+
+/* 8. FADE ANIMATION */
+.home-fade { animation: fadeIn 0.5s ease-out forwards; }
+@keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+/* --- NEW: VIBRANT HORIZONS HOME SCREEN SELECTOR --- */
+.glass-selector-wrapper {
+    position: relative;
+    width: 250px; /* Adjust width as needed */
+    height: 44px;
+    background: rgba(255, 255, 255, 0.2);
+    backdrop-filter: blur(4px);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    border-radius: 9999px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+    transition: all 0.2s;
+}
+.glass-selector-wrapper:hover {
+    background: rgba(255, 255, 255, 0.3);
+    border-color: rgba(255, 255, 255, 0.5);
+}
+.glass-selector {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    opacity: 0; /* Makes the original dropdown invisible */
+    cursor: pointer;
+}
+.glass-selector-display {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    height: 100%;
+    padding: 0 1rem;
+    pointer-events: none; /* Allows clicks to go through to the invisible select */
+}
+.glass-selector-text {
+    font-weight: 600;
+    color: rgba(30, 41, 59, 0.8);
+    font-size: 0.875rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* --- NEW: HOME DASHBOARD ROSTER STYLES --- */
+.roster-card {
+    display: flex;
+    flex-direction: column;
+}
+.roster-list {
+    max-height: 160px; /* Adjust this to control the scroll height */
+    overflow-y: auto;
+    padding-right: 0.5rem; /* Space for scrollbar */
+    scrollbar-width: thin;
+    scrollbar-color: #A5B4FC #E0E7FF;
+}
+.roster-list::-webkit-scrollbar { width: 6px; }
+.roster-list::-webkit-scrollbar-track { background: #E0E7FF; }
+.roster-list::-webkit-scrollbar-thumb { background-color: #A5B4FC; border-radius: 6px; }
+
+.roster-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.5rem;
+    border-radius: 0.75rem;
+    transition: background-color 0.2s;
+}
+.roster-item:hover {
+    background-color: rgba(255, 255, 255, 0.5);
+}
+.roster-avatar {
+    width: 2.5rem; /* 40px */
+    height: 2.5rem; /* 40px */
+    border-radius: 9999px;
+    object-fit: cover;
+    border: 2px solid white;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+
+/* --- NEW: HOME DASHBOARD ROSTER STYLES --- */
+.roster-card {
+    display: flex;
+    flex-direction: column;
+}
+.roster-list {
+    max-height: 160px; /* Adjust this to control the scroll height */
+    overflow-y: auto;
+    padding-right: 0.5rem; /* Space for scrollbar */
+    scrollbar-width: thin;
+    scrollbar-color: #A5B4FC #E0E7FF;
+}
+.roster-list::-webkit-scrollbar { width: 6px; }
+.roster-list::-webkit-scrollbar-track { background: #E0E7FF; }
+.roster-list::-webkit-scrollbar-thumb { background-color: #A5B4FC; border-radius: 6px; }
+
+.roster-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.5rem;
+    border-radius: 0.75rem;
+    transition: background-color 0.2s;
+}
+.roster-item:hover {
+    background-color: rgba(255, 255, 255, 0.5);
+}
+.roster-avatar {
+    width: 2.5rem; /* 40px */
+    height: 2.5rem; /* 40px */
+    border-radius: 9999px;
+    object-fit: cover;
+    border: 2px solid white;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+
+/* --- V11.0: VIBRANT HORIZONS THEME --- */
+
+/* 1. ANIMATIONS */
+@keyframes float-cloud {
+    0%, 100% { transform: translateX(0); }
+    50% { transform: translateX(10px); }
+}
+@keyframes spin-sun {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+@keyframes pulse-glow {
+    0%, 100% { filter: drop-shadow(0 0 5px rgba(255, 215, 0, 0.6)); transform: scale(1); }
+    50% { filter: drop-shadow(0 0 15px rgba(255, 215, 0, 0.9)); transform: scale(1.05); }
+}
+
+/* 2. LAYOUT: The 3-Row Grid */
+.horizons-grid {
+    display: grid;
+    grid-template-columns: repeat(12, 1fr);
+    gap: 1.5rem;
+    padding-bottom: 2rem;
+}
+
+/* Smart Spanning */
+.h-span-12 { grid-column: span 12; }
+.h-span-8  { grid-column: span 12; }
+.h-span-6  { grid-column: span 12; }
+.h-span-4  { grid-column: span 12; }
+.h-span-3  { grid-column: span 12; }
+
+@media (min-width: 768px) {
+    .h-span-6 { grid-column: span 6; }
+}
+@media (min-width: 1024px) {
+    .h-span-8 { grid-column: span 8; }
+    .h-span-4 { grid-column: span 4; }
+    .h-span-3 { grid-column: span 3; }
+}
+
+/* 3. CARD BASE */
+.vibrant-card {
+    border-radius: 1.75rem;
+    overflow: hidden;
+    position: relative;
+    box-shadow: 0 10px 20px -5px rgba(0,0,0,0.05), 0 4px 6px -2px rgba(0,0,0,0.03);
+    transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.3s;
+    background: white;
+    border: 1px solid white;
+}
+.vibrant-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1);
+    z-index: 10;
+}
+
+/* 4. ROW 1: WEATHER WIDGET */
+.weather-card {
+    color: white;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    padding: 1.5rem;
+    position: relative;
+}
+/* Weather Themes */
+.w-morning { background: linear-gradient(135deg, #FF9A9E 0%, #FECFEF 100%); }
+.w-day { background: linear-gradient(135deg, #4FACFE 0%, #00F2FE 100%); }
+.w-evening { background: linear-gradient(135deg, #667EEA 0%, #764BA2 100%); }
+.w-night { background: linear-gradient(135deg, #0f172a 0%, #312e81 100%); }
+
+.weather-sun {
+    position: absolute;
+    top: 1rem;   /* CHANGED: Positive value moves it INSIDE */
+    right: 1rem; /* CHANGED: Positive value moves it INSIDE */
+    font-size: 5rem; /* Adjusted size slightly to fit nicely */
+    color: rgba(255,255,255,0.3);
+    animation: spin-sun 20s linear infinite;
+    z-index: 0; /* Keeps it behind the text */
+}
+
+.weather-cloud {
+    position: absolute;
+    bottom: 1rem; /* CHANGED: Positive value moves it INSIDE */
+    left: 1rem;   /* CHANGED: Positive value moves it INSIDE */
+    font-size: 4rem;
+    color: rgba(255,255,255,0.4);
+    animation: float-cloud 4s ease-in-out infinite;
+    z-index: 0; /* Keeps it behind the text */
+}
+
+/* 5. ROW 1: GREETING CARD */
+.greeting-panel {
+    background: white;
+    padding: 2rem;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    position: relative;
+}
+.greeting-bg-mesh {
+    position: absolute;
+    top: 0; left: 0; width: 100%; height: 100%;
+    background: radial-gradient(at 0% 0%, rgba(99, 102, 241, 0.1) 0px, transparent 50%),
+                radial-gradient(at 100% 100%, rgba(236, 72, 153, 0.1) 0px, transparent 50%);
+    opacity: 0.6;
+    pointer-events: none;
+}
+
+/* 6. ROW 2: STAT CARDS */
+.stat-card-pop {
+    background: #F8FAFC;
+    padding: 1.5rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    border: 2px solid transparent;
+    transition: all 0.2s;
+}
+.stat-card-pop:hover {
+    background: white;
+    border-color: #E2E8F0;
+}
+.stat-value-big {
+    font-family: 'Fredoka One', cursive;
+    font-size: 3rem;
+    line-height: 1;
+    margin-bottom: 0.5rem;
+}
+
+/* 7. ROW 3: TOOLS & SCHEDULE */
+.tools-grid-v2 {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(90px, 1fr));
+    gap: 1rem;
+    padding: 1.5rem;
+}
+.tool-btn-pop {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    aspect-ratio: 1;
+    background: #F1F5F9;
+    border-radius: 1.25rem;
+    color: #64748B;
+    transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+    cursor: pointer;
+}
+.tool-btn-pop:hover {
+    transform: scale(1.1);
+    background: white;
+    box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1);
+    color: #4F46E5;
+}
+.tool-btn-pop i { font-size: 1.8rem; margin-bottom: 0.25rem; }
+.tool-btn-pop span { font-size: 0.7rem; font-weight: 800; }
+
+.schedule-list-v2 {
+    max-height: 250px;
+    overflow-y: auto;
+    padding: 0 1.5rem 1.5rem 1.5rem;
+    scrollbar-width: thin;
+}
+.schedule-item-v2 {
+    display: flex;
+    align-items: center;
+    padding: 0.75rem;
+    border-radius: 1rem;
+    margin-bottom: 0.5rem;
+    background: #F8FAFC;
+    border: 1px solid transparent;
+    transition: all 0.2s;
+}
+.schedule-item-v2:hover {
+    background: white;
+    border-color: #E2E8F0;
+    transform: translateX(5px);
+}
+.schedule-item-v2.active {
+    background: #EEF2FF;
+    border-color: #818CF8;
+}
+.schedule-item-v2.locked {
+    opacity: 0.6;
+    filter: grayscale(1);
+    cursor: not-allowed;
+}
+
+/* 8. FADE ANIMATION */
+.home-fade { animation: fadeIn 0.5s ease-out forwards; }
+@keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+

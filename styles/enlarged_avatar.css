@@ -1,0 +1,76 @@
+/* --- FIX #6: Avatar Enlargement Styles --- */
+.enlargeable-avatar {
+    cursor: pointer;
+    transition: transform 0.2s ease-out;
+}
+
+/* FIX #5: Specific avatar hover effects */
+.student-leaderboard-card .enlargeable-avatar:hover, #student-list .enlargeable-avatar:hover, #scroll-performance-chart .enlargeable-avatar:hover {
+    transform: scale(1.1);
+}
+
+@keyframes cloud-avatar-wiggle {
+    0%, 100% { transform: translateX(-50%) rotate(-2deg); }
+    50% { transform: translateX(-50%) rotate(2deg); }
+}
+.student-cloud-card .enlargeable-avatar:hover {
+    animation: cloud-avatar-wiggle 0.4s ease-in-out;
+}
+
+
+.enlarged-avatar-container {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background-color: rgba(0, 0, 0, 0.7);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 100;
+    opacity: 0;
+    transition: opacity 0.3s ease-out;
+    cursor: pointer;
+}
+
+.enlarged-avatar-image {
+    position: fixed;
+    border-radius: 9999px;
+    border: 6px solid white;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    z-index: 101;
+    cursor: default;
+}
+
+/* --- FIX #10: Smooth Resizing for Idea Forge --- */
+#reward-ideas-tab .grid {
+    align-items: start;
+    transition: align-items 0.4s ease-in-out;
+}
+#reward-ideas-tab .grid.story-weavers-active {
+    display: flex;
+    flex-direction: column;
+}
+@media (min-width: 768px) {
+    #reward-ideas-tab .grid.story-weavers-active {
+        flex-direction: row;
+        align-items: stretch;
+    }
+}
+#reward-ideas-tab .grid > div {
+    transition: flex-grow 0.4s ease-in-out;
+    width: 100%;
+}
+@media (min-width: 768px) {
+    #reward-ideas-tab .grid > div {
+        width: auto;
+    }
+}
+
+
+#reward-ideas-tab .grid.story-weavers-active > div:last-child {
+    flex-grow: 1;
+}
+

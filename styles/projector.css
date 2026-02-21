@@ -1,0 +1,84 @@
+
+/* --- PROJECTOR MODE STYLES --- */
+body.projector-mode .app-tab {
+    padding: 0;
+    max-width: 100vw;
+    /* Add padding bottom so content isn't covered by the floating nav */
+    padding-bottom: 80px; 
+}
+
+/* 1. Hide Admin Controls (Everything BUT the nav bar) */
+body.projector-mode .delete-log-btn,
+body.projector-mode .note-log-btn,
+body.projector-mode .edit-class-btn,
+body.projector-mode .delete-class-btn,
+body.projector-mode .manage-students-btn,
+body.projector-mode .report-class-btn, 
+body.projector-mode #add-student-form,
+body.projector-mode #award-class-dropdown-btn,
+body.projector-mode #log-adventure-btn,
+body.projector-mode #quest-assignment-btn,
+body.projector-mode #attendance-chronicle-btn,
+body.projector-mode #gemini-idea-btn,
+body.projector-mode .absence-controls,
+body.projector-mode .post-award-undo-btn,
+body.projector-mode .edit-trial-btn,
+body.projector-mode .delete-trial-btn,
+body.projector-mode #log-trial-btn,
+body.projector-mode #view-trial-history-btn {
+    display: none !important;
+}
+
+/* 2. The Collapsible Navigation Bar */
+body.projector-mode #bottom-nav-bar {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    z-index: 100;
+    
+    /* Default State: Hidden (Transparent and pushed down) */
+    opacity: 0;
+    transform: translateY(30px);
+    
+    /* Smooth Transition */
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    
+    /* Visuals for the floating bar */
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(8px);
+    box-shadow: 0 -4px 20px rgba(0,0,0,0.1);
+    border-top: 4px solid #6366f1; /* Indigo accent line */
+    padding: 10px;
+}
+
+/* 3. The Hover Trigger: Show it when mouse is near bottom */
+body.projector-mode #bottom-nav-bar:hover,
+body.projector-mode #bottom-nav-bar:focus-within {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+/* 4. Invisible Hit-Area (Makes it easier to trigger the hover) */
+body.projector-mode #bottom-nav-bar::before {
+    content: '';
+    position: absolute;
+    top: -20px; /* Extends the hover zone 20px upwards */
+    left: 0;
+    width: 100%;
+    height: 20px;
+    background: transparent;
+}
+
+/* 5. Make visuals bigger for the big screen */
+body.projector-mode .student-cloud-card {
+    transform: scale(1.15);
+    margin: 25px;
+}
+
+body.projector-mode #class-leaderboard-list .quest-card,
+body.projector-mode #student-leaderboard-list .student-leaderboard-card {
+    border-width: 6px;
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+}
+

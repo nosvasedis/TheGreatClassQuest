@@ -1,0 +1,342 @@
+/* --- WALLPAPER V2 STYLES --- */
+
+@keyframes float-bob-v2 { 
+    0% { transform: translateY(0) rotate(0deg); } 
+    33% { transform: translateY(-15px) rotate(1deg); } 
+    66% { transform: translateY(10px) rotate(-1deg); } 
+    100% { transform: translateY(0) rotate(0deg); } 
+}
+
+/* Badge Pill inside Cards */
+.badge-pill {
+    display: inline-block;
+    padding: 0.5rem 1.5rem;
+    border-radius: 9999px;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    font-size: 0.75rem;
+    margin-bottom: 1.5rem;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+}
+
+/* New Color Themes */
+.float-card-indigo { background: linear-gradient(135deg, rgba(255,255,255,0.95), rgba(224, 231, 255, 0.9)); border: 4px solid #6366F1; color: #312E81; }
+.float-card-gold   { background: linear-gradient(135deg, rgba(255,255,255,0.95), rgba(254, 243, 199, 0.9)); border: 4px solid #F59E0B; color: #78350F; }
+.float-card-blue   { background: linear-gradient(135deg, rgba(255,255,255,0.95), rgba(219, 234, 254, 0.9)); border: 4px solid #3B82F6; color: #1E3A8A; }
+.float-card-red    { background: linear-gradient(135deg, rgba(255,255,255,0.95), rgba(254, 226, 226, 0.9)); border: 4px solid #EF4444; color: #7F1D1D; }
+.float-card-green  { background: linear-gradient(135deg, rgba(255,255,255,0.95), rgba(220, 252, 231, 0.9)); border: 4px solid #22C55E; color: #14532D; }
+.float-card-purple { background: linear-gradient(135deg, rgba(255,255,255,0.95), rgba(243, 232, 255, 0.9)); border: 4px solid #A855F7; color: #581C87; }
+.float-card-pink   { background: linear-gradient(135deg, rgba(255,255,255,0.95), rgba(252, 231, 243, 0.9)); border: 4px solid #EC4899; color: #831843; }
+.float-card-cyan   { background: linear-gradient(135deg, rgba(255,255,255,0.95), rgba(207, 250, 254, 0.9)); border: 4px solid #06B6D4; color: #164E63; }
+.float-card-teal   { background: linear-gradient(135deg, rgba(255,255,255,0.95), rgba(204, 251, 241, 0.9)); border: 4px solid #14B8A6; color: #134E4A; }
+.float-card-orange { background: linear-gradient(135deg, rgba(255,255,255,0.95), rgba(255, 237, 213, 0.9)); border: 4px solid #F97316; color: #7C2D12; }
+
+/* Font Handwriting */
+.font-handwriting {
+    font-family: 'Comic Sans MS', 'Chalkboard SE', sans-serif;
+    font-style: italic;
+}
+
+/* Float Slow Animation for Items */
+@keyframes float-slow {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-10px); }
+}
+.animate-float-slow {
+    animation: float-slow 4s ease-in-out infinite;
+}
+
+/* --- WALLPAPER V3 STYLE FIXES --- */
+/* --- CONSOLIDATED WALLPAPER CARD STYLES --- */
+.wallpaper-float-card {
+    /* 1. Base Dimensions & Position */
+    position: absolute;
+    width: 400px;
+    max-width: 85vw;
+    
+    /* 2. Visual Style (Glassmorphism) */
+    padding: 2.5rem;
+    border-radius: 3rem;
+    background: rgba(255, 255, 255, 0.95); /* Fallback */
+    backdrop-filter: blur(24px);
+    -webkit-backdrop-filter: blur(24px);
+    box-shadow: 
+        0 25px 60px -12px rgba(0, 0, 0, 0.25), 
+        0 0 0 2px rgba(255, 255, 255, 0.4) inset;
+    
+    /* 3. Text Legibility */
+    text-shadow: 0 2px 4px rgba(0,0,0,0.4), 0 0 10px rgba(0,0,0,0.1);
+    
+    /* 4. Layout */
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    z-index: 60;
+
+    /* 5. Positioning Logic (Safe Defaults) */
+    right: auto; 
+    left: 50%;
+    /* Start slightly lower for entrance animation */
+    transform: translateX(-50%) translateY(40px) scale(0.9);
+
+    /* 6. Animations & Transitions */
+    transition: 
+        opacity 1.5s ease-in-out, 
+        transform 1.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+        
+    /* Slow breathing animation (40s) */
+    animation: float-bob-v2 60s ease-in-out infinite; 
+}
+
+/* Night Mode Center Hub - UPDATED FOR GLASS EFFECT */
+.is-night .wall-center-hub {
+    /* CHANGED: Opacity from 0.9 to 0.4 for glass effect */
+    background-color: rgba(15, 23, 42, 0.4) !important; 
+    
+    border-color: rgba(99, 102, 241, 0.5) !important; /* Slightly softer border */
+    box-shadow: 0 0 50px rgba(0, 0, 0, 0.5) !important;
+    backdrop-filter: blur(20px) !important;
+    -webkit-backdrop-filter: blur(20px) !important;
+    color: white !important;
+}
+
+.is-night #wall-class-badge {
+    background-color: rgba(255, 255, 255, 0.95) !important; /* Keep badge bright */
+    border-color: white !important;
+    color: #1e3a8a !important; /* Dark blue text */
+}
+.is-night #wall-class-name { color: #1e3a8a !important; text-shadow: none !important; }
+.is-night #wall-class-level { color: #4338ca !important; }
+
+/* Holiday Card Base */
+.wallpaper-float-card {
+    transition: opacity 1.5s ease-in-out, transform 1.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+/* Card Themes (Ensure these exist for smart holidays) */
+.float-card-red { background: linear-gradient(135deg, rgba(255,255,255,0.95), rgba(254, 226, 226, 0.95)); border: 4px solid #EF4444; color: #7F1D1D; }
+.float-card-green { background: linear-gradient(135deg, rgba(255,255,255,0.95), rgba(220, 252, 231, 0.95)); border: 4px solid #22C55E; color: #14532D; }
+.float-card-gold { background: linear-gradient(135deg, rgba(255,255,255,0.95), rgba(254, 243, 199, 0.95)); border: 4px solid #F59E0B; color: #78350F; }
+.float-card-blue { background: linear-gradient(135deg, rgba(255,255,255,0.95), rgba(219, 234, 254, 0.95)); border: 4px solid #3B82F6; color: #1E3A8A; }
+.float-card-indigo { background: linear-gradient(135deg, rgba(255,255,255,0.95), rgba(224, 231, 255, 0.95)); border: 4px solid #6366F1; color: #312E81; }
+.float-card-purple { background: linear-gradient(135deg, rgba(255,255,255,0.95), rgba(243, 232, 255, 0.95)); border: 4px solid #A855F7; color: #581C87; }
+.float-card-pink { background: linear-gradient(135deg, rgba(255,255,255,0.95), rgba(252, 231, 243, 0.95)); border: 4px solid #EC4899; color: #831843; }
+.float-card-cyan { background: linear-gradient(135deg, rgba(255,255,255,0.95), rgba(207, 250, 254, 0.95)); border: 4px solid #06B6D4; color: #164E63; }
+.float-card-teal { background: linear-gradient(135deg, rgba(255,255,255,0.95), rgba(204, 251, 241, 0.95)); border: 4px solid #14B8A6; color: #134E4A; }
+.float-card-orange { background: linear-gradient(135deg, rgba(255,255,255,0.95), rgba(255, 237, 213, 0.95)); border: 4px solid #F97316; color: #7C2D12; }
+.float-card-white { background: rgba(255, 255, 255, 0.95); border: 4px solid #E2E8F0; color: #475569; }
+
+/* Quote Container visibility */
+#wall-quote-container {
+    transition: opacity 1s ease-in-out;
+}
+
+/* --- WALLPAPER LEGIBILITY FIXES --- */
+
+/* 1. Global text shadow for all wallpaper cards to ensure white text is readable */
+.wallpaper-float-card {
+    text-shadow: 0 2px 4px rgba(0,0,0,0.4), 0 0 10px rgba(0,0,0,0.1);
+}
+
+/* 2. Specific darker text for light backgrounds (Gold/White cards) */
+.float-card-gold h2, .float-card-gold h3, .float-card-gold p,
+.float-card-white h2, .float-card-white h3, .float-card-white p {
+    color: #4b5563 !important; /* Dark Gray */
+    text-shadow: none !important; /* Remove shadow for dark text */
+}
+/* Re-add shadow for the big numbers/icons in light cards for depth */
+.float-card-gold .font-title, .float-card-white .font-title {
+    text-shadow: 0 2px 0px rgba(255,255,255,0.5);
+}
+
+/* --- NEW CLOCK HUB ANIMATION (Discreet Breathing) --- */
+@keyframes hub-breathe {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.02); } /* Very subtle growth */
+}
+
+.hub-breathe {
+    animation: hub-breathe 6s ease-in-out infinite;
+    /* Ensure opacity stays full! */
+    opacity: 1 !important; 
+}
+
+/* --- FINAL TITLE FIX (High Specificity) --- */
+#main-app-title {
+    /* 1. Reset any conflicting colors */
+    color: white !important;
+    background: none !important;
+    -webkit-background-clip: border-box !important;
+    background-clip: border-box !important;
+
+    /* 2. The EXACT Shadow Structure from the Clock */
+    /* Layer 1: Deep Depth (0 4px 6px) */
+    /* Layer 2: Bright Glow (0 0 20px) */
+    text-shadow: 0 4px 6px rgba(0, 0, 0, 0.6), 0 0 20px rgba(255, 255, 255, 0.8) !important;
+
+    /* 3. Ensure the Fairy still works */
+    position: relative;
+    display: inline-block;
+}
+
+/* --- MINDFULNESS ANIMATION --- */
+@keyframes breathing-circle {
+    0%, 100% { transform: scale(0.8); opacity: 0.3; }
+    50% { transform: scale(1.1); opacity: 0.6; }
+}
+
+.mindfulness-pulse {
+    animation: breathing-circle 6s ease-in-out infinite; /* Slow, deep breaths */
+}
+
+/* --- SEASONAL ATMOSPHERE STYLES --- */
+
+.seasonal-particle {
+    position: absolute;
+    top: -10%;
+    opacity: 0.7;
+    font-size: 1.5rem;
+    will-change: transform;
+}
+
+/* Snow */
+.seasonal-particle.snow {
+    color: white;
+    text-shadow: 0 0 5px white;
+    font-size: 1rem;
+    animation: fall-snow linear infinite;
+}
+@keyframes fall-snow {
+    0% { transform: translateY(0) rotate(0deg); opacity: 0; }
+    10% { opacity: 0.8; }
+    100% { transform: translateY(110vh) rotate(360deg); opacity: 0; }
+}
+
+/* Leaves */
+.seasonal-particle.leaf {
+    font-size: 1.2rem;
+    animation: fall-leaf ease-in-out infinite;
+}
+@keyframes fall-leaf {
+    0% { transform: translateY(0) translateX(0) rotate(0deg); opacity: 0; }
+    10% { opacity: 0.8; }
+    100% { transform: translateY(110vh) translateX(50px) rotate(720deg); opacity: 0; }
+}
+
+/* Petals */
+.seasonal-particle.petal {
+    font-size: 1rem;
+    animation: float-petal ease-in-out infinite;
+}
+@keyframes float-petal {
+    0% { transform: translateY(0) translateX(0) rotate(0deg); opacity: 0; }
+    20% { opacity: 0.6; }
+    100% { transform: translateY(110vh) translateX(-30px) rotate(180deg); opacity: 0; }
+}
+
+/* Summer Glow Overlay */
+.summer-glow {
+    background: radial-gradient(circle at 50% 0%, rgba(255, 255, 0, 0.15) 0%, transparent 60%);
+    animation: summer-pulse 8s infinite alternate;
+}
+@keyframes summer-pulse {
+    from { opacity: 0.5; }
+    to { opacity: 1; }
+}
+
+/* --- REAL-TIME WEATHER EFFECTS --- */
+
+/* 1. Rain Particles */
+.seasonal-particle.rain {
+    width: 2px;
+    height: 20px;
+    background: rgba(255, 255, 255, 0.5);
+    animation: fall-rain 0.6s linear infinite;
+    box-shadow: 0 0 2px rgba(255, 255, 255, 0.3);
+}
+
+@keyframes fall-rain {
+    0% { transform: translateY(-10vh); opacity: 0; }
+    10% { opacity: 1; }
+    100% { transform: translateY(110vh); opacity: 0; }
+}
+
+/* 2. Fog/Haze Layer */
+.wall-fog-layer {
+    position: absolute;
+    inset: 0;
+    background: rgba(255, 255, 255, 0.3);
+    backdrop-filter: blur(3px); /* Glassy haze */
+    z-index: 5;
+    pointer-events: none;
+    animation: fog-drift 10s ease-in-out infinite alternate;
+}
+
+@keyframes fog-drift {
+    from { opacity: 0.2; }
+    to { opacity: 0.5; }
+}
+
+/* 3. Atmospheric Backgrounds (True-to-Life Weather) */
+
+/* --- CLEAR SKY --- */
+.weather-clear .fa-cloud {
+    opacity: 0 !important; /* Hide clouds */
+    transition: opacity 2s ease-in-out;
+}
+.weather-clear #wall-sun, .weather-clear #wall-moon {
+    opacity: 1 !important;
+    filter: drop-shadow(0 0 30px rgba(255, 215, 0, 0.6)); /* Extra glow */
+}
+
+/* --- CLOUDY / OVERCAST --- */
+/* Grey-Blue Sky */
+.weather-cloudy #wall-bg-day {
+    background: linear-gradient(to bottom, #94a3b8 0%, #cbd5e1 100%) !important; /* Slate-400 to Slate-300 */
+}
+/* Dim the sun */
+.weather-cloudy #wall-sun {
+    opacity: 0.3 !important; 
+    filter: blur(10px);
+}
+/* Make clouds darker/more visible */
+.weather-cloudy .fa-cloud {
+    color: rgba(255, 255, 255, 0.6) !important;
+    filter: drop-shadow(0 10px 10px rgba(0,0,0,0.2));
+}
+
+/* --- RAINY / STORMY --- */
+/* Dark Stormy Sky */
+.weather-rainy #wall-bg-day {
+    background: linear-gradient(to bottom, #334155 0%, #475569 100%) !important; /* Slate-700 to Slate-600 */
+}
+/* HIDE THE SUN completely */
+.weather-rainy #wall-sun {
+    opacity: 0 !important;
+    top: 150% !important; /* Move it off-screen just in case */
+}
+/* Dark, heavy clouds */
+.weather-rainy .fa-cloud {
+    color: rgba(200, 210, 220, 0.4) !important; /* Greyish tint */
+}
+
+/* --- SNOWY --- */
+/* White/Grey "Winter" Sky */
+.weather-snowy #wall-bg-day {
+    background: linear-gradient(to bottom, #e2e8f0 0%, #f8fafc 100%) !important; /* Slate-200 to Slate-50 */
+}
+/* Pale, cold sun */
+.weather-snowy #wall-sun {
+    opacity: 0.5 !important;
+    background-color: #fef3c7 !important; /* Pale yellow */
+    box-shadow: 0 0 40px 20px rgba(255,255,255,0.8) !important; /* White halo */
+}
+
+/* Ensure Sun/Moon are extra visible when clear */
+.weather-clear #wall-sun, .weather-clear #wall-moon {
+    opacity: 1 !important;
+    filter: drop-shadow(0 0 20px rgba(255, 215, 0, 0.5));
+}
+

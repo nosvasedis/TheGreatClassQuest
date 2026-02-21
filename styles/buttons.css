@@ -1,0 +1,164 @@
+/* --- V4.7: REDESIGNED AWARD STARS STYLES --- */
+@keyframes float-card {
+    0%, 100% { transform: translateY(-3px); }
+    50% { transform: translateY(3px); }
+}
+@keyframes star-jiggle {
+    0%, 100% { transform: rotate(0deg) scale(1); }
+    25% { transform: rotate(-5deg) scale(1.1); }
+    75% { transform: rotate(5deg) scale(1.1); }
+}
+
+.star-award-btn {
+    font-family: 'Fredoka One', cursive;
+    color: white;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+    transition: all 150ms ease-out;
+    transform: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.25rem;
+    text-shadow: 0 1px 2px rgba(0,0,0,0.2);
+    font-size: 1.5rem; /* Larger base size */
+    padding: 0.75rem 1rem;
+    border-radius: 9999px; /* Pill shape */
+    border-bottom: 4px solid rgba(0,0,0,0.2);
+    position: relative; /* For animation pseudo-elements */
+}
+.star-award-btn .fa-star {
+    color: #FFD700; /* Gold color for stars */
+    text-shadow: 0 1px 1px rgba(0,0,0,0.3);
+}
+.star-award-btn:hover {
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+    transform: scale(1.05);
+}
+.star-award-btn:hover .fa-star {
+    animation: star-jiggle 0.5s ease-in-out;
+}
+
+.star-btn-1 { 
+    background-image: linear-gradient(to right, var(--tw-gradient-stops));
+    --tw-gradient-from: #22d3ee;
+    --tw-gradient-to: #3b82f6;
+    --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to);
+    border-bottom-color: #1D4ED8;
+    --glow-color-1: #38BDF8;
+    --glow-color-2: rgba(56, 189, 248, 0.5);
+}
+.star-btn-2 { 
+    background-image: linear-gradient(to right, var(--tw-gradient-stops));
+    --tw-gradient-from: #c084fc;
+    --tw-gradient-to: #ec4899;
+    --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to);
+    border-bottom-color: #BE185D;
+    font-size: 1.6rem;
+    --glow-color-1: #F472B6;
+    --glow-color-2: rgba(244, 114, 182, 0.5);
+}
+.star-btn-3 { 
+    background-image: linear-gradient(to right, var(--tw-gradient-stops));
+    --tw-gradient-from: #fbbf24;
+    --tw-gradient-to: #f97316;
+    --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to);
+    border-bottom-color: #C2410C;
+    font-size: 1.7rem;
+    text-shadow: 0 2px 3px rgba(0,0,0,0.3);
+    --glow-color-1: #FBBF24;
+    --glow-color-2: rgba(251, 191, 36, 0.6);
+}
+
+/* --- V4.7: NEW STUDENT CLOUD CARD & ANIMATIONS --- */
+.student-cloud-card {
+    background-color: white;
+    position: relative;
+    padding: 1rem 1.5rem 1.5rem 1.5rem; /* Adjusted padding for avatar */
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    filter: drop-shadow(0 5px 8px rgba(0, 0, 0, 0.15));
+    transform: translateZ(0);
+    animation: float-card 6s ease-in-out infinite;
+    padding-top: 40px; /* Make space for the overlapping avatar */
+}
+
+.student-avatar-cloud {
+    position: absolute;
+    top: -30px; /* Position it to overlap the top edge */
+    left: 50%;
+    transform: translateX(-50%);
+    width: 70px;
+    height: 70px;
+    border-radius: 9999px;
+    object-fit: cover;
+    background-color: #e5e7eb;
+    border: 4px solid white;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+    z-index: 10;
+    transition: all 0.3s ease-out;
+}
+
+.student-avatar-cloud-placeholder {
+    position: absolute;
+    top: -30px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 70px;
+    height: 70px;
+    border-radius: 9999px;
+    background-color: #d1d5db; /* gray-300 */
+    border: 4px solid white;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+    z-index: 10;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Fredoka One', cursive;
+    font-size: 2rem;
+    color: #4b5563; /* gray-600 */
+    transition: all 0.3s ease-out;
+}
+
+
+@keyframes fade-out-down { from { opacity: 1; transform: translateY(0); } to { opacity: 0; transform: translateY(20px); } }
+@keyframes fade-in-up { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+.fade-out { animation: fade-out-down 0.3s ease-out forwards; }
+.fade-in { animation: fade-in-up 0.3s ease-out forwards; }
+
+.cloud-shape-1 { border-radius: 50% 60% 40% 70% / 60% 50% 70% 40%; }
+.cloud-shape-2 { border-radius: 40% 70% 50% 60% / 70% 60% 40% 50%; }
+.cloud-shape-3 { border-radius: 60% 50% 70% 40% / 50% 70% 50% 60%; }
+.cloud-shape-4 { border-radius: 70% 40% 60% 50% / 60% 50% 70% 40%; }
+
+.logo-select-btn:hover {
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.4); 
+    transform: scale(1.1);
+    background-color: #f3f4f6;
+}
+
+@keyframes count-change {
+    0% { transform: scale(1.0); }
+    50% { transform: scale(1.2) rotate(5deg); background-color: #FCD34D; }
+    100% { transform: scale(1.0) rotate(0deg); } 
+}
+
+.counter-animate {
+    animation: count-change 0.5s ease-out;
+}
+
+@keyframes float-up-down {
+    0%, 100% { transform: translateY(-5px); }
+    50% { transform: translateY(5px); }
+}
+.floating-icon {
+    animation: float-up-down 3s ease-in-out infinite;
+}
+
+@keyframes title-sparkle {
+    0%, 100% { filter: brightness(1); text-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+    50% { filter: brightness(1.5) drop-shadow(0 0 8px #FBBF24); text-shadow: 0 2px 4px rgba(251, 191, 36, 0.5); }
+}
+.title-sparkle {
+    animation: title-sparkle 2s ease-in-out infinite;
+}

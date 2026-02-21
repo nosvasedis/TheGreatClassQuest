@@ -1,0 +1,54 @@
+/* --- FINAL: Smooth Tab Change Animations --- */
+main {
+    position: relative;
+}
+
+@keyframes tab-fade-in {
+    from { opacity: 0; }
+    to   { opacity: 1; }
+}
+
+@keyframes tab-fade-out {
+    from { opacity: 1; }
+    to   { opacity: 0; }
+}
+
+.app-tab.tab-animate-in {
+    animation: tab-fade-in 350ms ease-out forwards;
+}
+
+.app-tab.tab-animate-out {
+    position: absolute; 
+    top: 1.5rem;
+    left: 1.5rem;
+    right: 1.5rem;
+    width: auto;
+    animation: tab-fade-out 350ms ease-in forwards;
+}
+
+@media (max-width: 767px) {
+    .app-tab.tab-animate-out {
+        top: 1rem;
+        left: 1rem;
+        right: 1rem;
+    }
+}
+
+/* FIX 3: Added animations for login/app screen transition */
+@keyframes auth-fade-out {
+    from { transform: scale(1); opacity: 1; }
+    to { transform: scale(1.05); opacity: 0; }
+}
+.auth-screen-out {
+    animation: auth-fade-out 0.5s ease-in forwards;
+}
+
+@keyframes app-fade-in {
+    from { transform: scale(0.95); opacity: 0; }
+    to { transform: scale(1); opacity: 1; }
+}
+.app-screen-in {
+    animation: app-fade-in 0.5s ease-out forwards;
+}
+
+

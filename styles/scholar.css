@@ -1,0 +1,226 @@
+/* --- NEW in v6.0.0: Scholar's Scroll & Starfall Styles --- */
+
+/* Starfall Modal Background */
+@keyframes starfall-swirl {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+.starfall-bg {
+    background: radial-gradient(ellipse at center, rgba(29,78,216,0.5) 0%, rgba(30,58,138,0.8) 40%, rgba(17,24,39,1) 100%);
+    animation: starfall-swirl 20s linear infinite;
+}
+/* Starfall Modal Icon */
+@keyframes starfall-icon-pulse {
+    0%, 100% { 
+        transform: scale(1);
+        filter: drop-shadow(0 0 10px #FBBF24) drop-shadow(0 0 20px #FFF);
+    }
+    50% { 
+        transform: scale(1.1);
+        filter: drop-shadow(0 0 20px #FBBF24) drop-shadow(0 0 40px #FFF);
+    }
+}
+.starfall-icon-animate {
+    animation: starfall-icon-pulse 2.5s ease-in-out infinite;
+}
+
+/* Scholar's Scroll Dashboard Cards */
+.scroll-stat-card {
+    background-color: #fffbeb; /* amber-50 */
+    border-left-width: 8px;
+    border-color: #f59e0b; /* amber-600 */
+    padding: 1rem;
+    border-radius: 0.75rem;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+    display: flex; /* FIX #3 */
+    flex-direction: column; /* FIX #3 */
+    justify-content: space-between; /* FIX #3 */
+    min-height: 120px; /* FIX #3 */
+}
+/* FIX #3: Allow scholar names to wrap */
+.scroll-stat-card .font-title {
+    white-space: normal;
+    word-break: break-word;
+    flex-grow: 1;
+}
+
+.scroll-student-row:hover {
+    background-color: #f9fafb; /* gray-50 */
+}
+
+/* *** NEW: Style for optgroup labels in select dropdowns *** */
+optgroup {
+    font-weight: bold;
+    font-style: italic;
+    color: #581c87; /* purple-900 */
+    background-color: #f3f4f6; /* gray-100 */
+    padding: 4px;
+}
+
+/* --- NEW IN v6.1: Attendance & Overview Styles --- */
+
+/* Attendance Chronicle */
+#attendance-chronicle-content .date-header {
+    position: sticky;
+    top: -1px;
+    background-color: #f3f4f6; /* gray-100 */
+    z-index: 10;
+}
+.attendance-status {
+    width: 1.25rem;
+    height: 1.25rem;
+    border-radius: 9999px;
+    display: inline-block;
+}
+.status-present {
+    background-color: #22c55e; /* green-500 */
+    box-shadow: 0 0 5px #22c55e;
+}
+.status-absent {
+    background-color: #ef4444; /* red-500 */
+    box-shadow: 0 0 5px #ef4444;
+}
+
+/* --- NEW IN v6.1.2: Revamped Attendance Chronicle Modal --- */
+
+#attendance-chronicle-content {
+    overflow: auto;
+}
+
+#attendance-chronicle-content table {
+    min-width: 600px; 
+}
+
+#attendance-chronicle-content th,
+#attendance-chronicle-content td {
+    padding: 0.75rem 0.5rem;
+    border: 1px solid #e5e7eb;
+    text-align: center;
+    vertical-align: middle;
+}
+
+#attendance-chronicle-content th {
+    background-color: #f9fafb;
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: #4b5563;
+}
+
+#attendance-chronicle-content th:first-child,
+#attendance-chronicle-content td:first-child {
+    text-align: left;
+    position: sticky;
+    left: 0;
+    background-color: #f9fafb;
+    z-index: 20;
+}
+
+#attendance-chronicle-content td:first-child {
+    background-color: #ffffff;
+    font-weight: 500;
+}
+
+#attendance-chronicle-content tbody tr:hover td,
+#attendance-chronicle-content tbody tr:hover td:first-child {
+    background-color: #f3f4f6;
+}
+
+.attendance-status-btn {
+    width: 1.5rem;
+    height: 1.5rem;
+    border-radius: 9999px;
+    display: inline-block;
+    cursor: pointer;
+    transition: all 150ms ease-out;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1), inset 0 1px 2px rgba(255,255,255,0.5);
+    border: 2px solid transparent;
+}
+
+.attendance-status-btn:hover {
+    transform: scale(1.2);
+    border-color: #9ca3af;
+}
+
+.attendance-status-btn.status-present {
+    background-color: #22c55e;
+    box-shadow: 0 0 8px rgba(34, 197, 94, 0.5);
+}
+
+.attendance-status-btn.status-absent {
+    background-color: #ef4444;
+    box-shadow: 0 0 8px rgba(239, 68, 68, 0.5);
+}
+
+/* --- NEW: Trial History Modal Styles (FIX #3) --- */
+#trial-history-modal {
+    z-index: 71; /* Higher than edit modal */
+}
+#log-trial-modal {
+    z-index: 72; /* Higher than history modal */
+}
+
+#trial-history-view-toggle .toggle-btn {
+    font-family: 'Fredoka One', cursive;
+    padding: 0.5rem 1.5rem;
+    border-radius: 9999px;
+    font-size: 1.125rem;
+    color: #9A3412; /* amber-800 */
+    transition: all 200ms ease-out;
+    cursor: pointer;
+}
+#trial-history-view-toggle .toggle-btn.active-toggle {
+    background-color: #F59E0B; /* amber-500 */
+    color: white;
+    box-shadow: 0 4px 10px rgba(245, 158, 11, 0.4);
+    transform: scale(1.05);
+}
+
+.trial-history-item {
+    background-color: white;
+    padding: 1rem;
+    border-radius: 1rem;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+    border-left-width: 6px;
+    border-color: #FCD34D; /* amber-300 */
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    transition: all 200ms ease-out;
+}
+.trial-history-item:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+    border-color: #FBBF24; /* amber-400 */
+}
+
+.delete-trial-btn, .edit-trial-btn {
+    opacity: 0.5;
+}
+.trial-history-item:hover .delete-trial-btn, .trial-history-item:hover .edit-trial-btn {
+    opacity: 1;
+}
+.edit-trial-btn { background-color: #dbeafe; color: #1e40af; }
+
+details.month-group {
+    border: 1px solid #e5e7eb;
+    border-radius: 0.75rem;
+    overflow: hidden;
+}
+details.month-group summary {
+    background-color: #f9fafb;
+    border-bottom: 1px solid #e5e7eb;
+}
+details.month-group[open] summary {
+    border-bottom-color: transparent;
+}
+
+/* FIX #1: Trial History Date Grouping */
+.date-group-header {
+    font-weight: 600;
+    color: #4b5563; /* gray-600 */
+    padding: 0.5rem;
+    background-color: #f3f4f6; /* gray-100 */
+    border-radius: 0.5rem;
+    margin-top: 0.5rem;
+}
+

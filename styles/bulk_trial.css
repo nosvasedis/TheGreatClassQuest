@@ -1,0 +1,59 @@
+/* --- NEW IN v6.4: Bulk Trial Log Styles --- */
+.bulk-log-item {
+    transition: all 0.2s ease-in-out;
+    border: 2px solid transparent;
+}
+.bulk-log-item:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+}
+.bulk-log-item.absent {
+    background-color: #F3F4F6;
+    border-style: dashed;
+    border-color: #9CA3AF;
+}
+.bulk-log-item.absent .student-avatar {
+    filter: grayscale(100%);
+    opacity: 0.6;
+}
+.bulk-log-item.absent .grade-input-wrapper {
+    opacity: 0.4;
+    pointer-events: none;
+}
+
+.toggle-absent-btn {
+    transition: all 0.2s;
+}
+.toggle-absent-btn.is-absent {
+    background-color: #EF4444;
+    color: white;
+}
+
+.bulk-grade-input {
+    transition: border-color 0.2s;
+}
+.bulk-grade-input:focus {
+    border-color: #f59e0b; /* amber-500 */
+    box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.2);
+}
+
+/* Attendance Column Delete Button */
+.attendance-header-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+}
+.delete-column-btn {
+    font-size: 0.65rem;
+    color: #9ca3af;
+    cursor: pointer;
+    padding: 2px 6px;
+    border-radius: 4px;
+    transition: all 0.2s;
+    background-color: #f3f4f6;
+}
+.delete-column-btn:hover {
+    color: #ef4444; /* Red */
+    background-color: #fee2e2;
+}

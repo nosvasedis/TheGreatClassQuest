@@ -1,0 +1,123 @@
+/* Custom Font */
+body {
+    font-family: 'Open Sans', sans-serif;
+    overflow-x: hidden; /* Prevent horizontal scroll from cloud shapes */
+}
+.font-title {
+    font-family: 'Fredoka One', cursive;
+}
+
+/* --- NEW ANIMATED GAME-LIKE THEME --- */
+
+/* Bubbly Button Effects */
+.bubbly-button {
+    transition: transform 0.1s ease-out, box-shadow 0.1s ease-out;
+    will-change: transform;
+}
+.bubbly-button:active {
+    transform: scale(0.95);
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+/* Wobble Animation */
+@keyframes wobble {
+    0%, 100% { transform: rotate(-1deg); }
+    50% { transform: rotate(1deg); }
+}
+.wobble {
+    animation: wobble 2s ease-in-out infinite;
+}
+
+/* Wobbly Text (for login) */
+@keyframes wobbly-text {
+    0%, 100% { transform: scale(1); }
+    25% { transform: scale(1.02) rotate(-1deg); }
+    75% { transform: scale(0.98) rotate(1deg); }
+}
+.wobbly-title {
+    animation: wobbly-text 4s ease-in-out infinite;
+    display: inline-block;
+}
+
+@keyframes subtle-pulse-title {
+    0%, 100% { transform: scale(1); opacity: 1; }
+    50% { transform: scale(1.05); opacity: 0.9; }
+}
+.login-title-pulse {
+    animation: subtle-pulse-title 5s ease-in-out infinite;
+}
+
+
+/* Pop-in Animation (now transition-based for flexibility) */
+.pop-in {
+    transition: transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.2s ease-out;
+    will-change: transform, opacity;
+    opacity: 1;
+    transform: scale(1);
+}
+.modal-origin-start, .pop-in-start {
+    transform: scale(0);
+    opacity: 0;
+}
+
+
+/* FIX: Pop-out Animation for Modals */
+@keyframes pop-out {
+    from { transform: scale(1); opacity: 1; }
+    to { transform: scale(0.95); opacity: 0; }
+}
+.pop-out {
+    animation: pop-out 0.2s ease-in forwards;
+}
+
+
+/* NEW: Sparkle animation for star counters */
+@keyframes sparkle {
+    0%, 100% { 
+        transform: scale(1);
+        filter: brightness(1);
+    }
+    50% { 
+        transform: scale(1.1); 
+        filter: brightness(1.5) drop-shadow(0 0 5px #FBBF24);
+    }
+}
+.sparkle {
+    animation: sparkle 0.5s ease-out;
+}
+
+@keyframes soft-pulse {
+    0%, 100% { transform: scale(1); filter: brightness(1); }
+    50% { transform: scale(1.02); filter: brightness(1.1); }
+}
+.pulse-subtle {
+    animation: soft-pulse 4s ease-in-out infinite;
+    display: inline-block;
+    will-change: transform;
+}
+
+@keyframes hover-pulse {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.03); }
+}
+
+.date-time-hover-group:hover #current-date,
+.date-time-hover-group:hover #current-time {
+    animation: hover-pulse 0.8s ease-in-out;
+}
+
+/* --- DATE & TIME GLOW EFFECTS --- */
+
+/* Base Text Style (Always White) */
+#current-date, #current-time {
+    color: #ffffff !important;
+    transition: text-shadow 2s ease-in-out;
+}
+
+/* --- DEPTH SHADOW & GLOW EFFECTS (No Outline) --- */
+
+/* Base Text Style */
+#current-date, #current-time {
+    color: #ffffff !important;
+    transition: text-shadow 1s ease-in-out;
+}

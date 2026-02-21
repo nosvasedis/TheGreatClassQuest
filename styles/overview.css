@@ -1,0 +1,17 @@
+/* --- NEW IN v6.2.2: Overview Modal Styles --- */
+.overview-tab-btn {
+    transition: all 150ms ease-in-out;
+}
+
+.overview-stat-card {
+    background-color: #faf5ff; /* purple-50 */
+    border-left-width: 6px;
+    border-color: #a855f7; /* purple-600 */
+    padding: 1rem;
+    border-radius: 0.75rem;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+}
+

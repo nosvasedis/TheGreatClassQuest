@@ -1,0 +1,227 @@
+/* --- DASHBOARD STYLES --- */
+.dashboard-card {
+    background: rgba(255, 255, 255, 0.7);
+    backdrop-filter: blur(12px);
+    border: 2px solid rgba(255, 255, 255, 0.8);
+    box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.1);
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+.dashboard-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 12px 40px 0 rgba(31, 38, 135, 0.15);
+    border-color: #fff;
+}
+
+.stat-value {
+    background: -webkit-linear-gradient(45deg, #F59E0B, #D97706);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    filter: drop-shadow(0 2px 2px rgba(0,0,0,0.1));
+}
+
+.dashboard-hero-bg {
+    background: linear-gradient(135deg, #e0f2fe 0%, #f0f9ff 100%);
+    position: relative;
+    overflow: hidden;
+}
+.dashboard-hero-bg::before {
+    content: '';
+    position: absolute;
+    top: -50%; left: -50%;
+    width: 200%; height: 200%;
+    background: radial-gradient(circle, rgba(255,255,255,0.8) 0%, transparent 60%);
+    opacity: 0.6;
+    animation: pulse-subtle 10s infinite;
+}
+
+/* Info Modal Tab Switchers */
+.info-tab-switcher {
+    font-family: 'Fredoka One', cursive;
+    font-size: 1.1rem;
+    padding: 0.5rem 1.5rem;
+    border-radius: 9999px;
+    transition: all 0.2s;
+    border-bottom: 4px solid rgba(0,0,0,0.1);
+}
+.info-tab-switcher:active {
+    transform: scale(0.95);
+    border-bottom-width: 2px;
+}
+.info-tab-switcher.active {
+    transform: scale(1.05);
+}
+
+/* Scrollbar specific for Dashboard */
+.custom-scrollbar::-webkit-scrollbar { width: 8px; }
+.custom-scrollbar::-webkit-scrollbar-track { background: rgba(0,0,0,0.05); }
+.custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+.custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+
+/* --- V5.7: HOME DASHBOARD REVAMP --- */
+
+/* Staggered Animations */
+@keyframes fadeInUpSmooth {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.animate-stagger-1 { animation: fadeInUpSmooth 0.6s cubic-bezier(0.2, 0.8, 0.2, 1) forwards; opacity: 0; animation-delay: 0.1s; }
+.animate-stagger-2 { animation: fadeInUpSmooth 0.6s cubic-bezier(0.2, 0.8, 0.2, 1) forwards; opacity: 0; animation-delay: 0.2s; }
+.animate-stagger-3 { animation: fadeInUpSmooth 0.6s cubic-bezier(0.2, 0.8, 0.2, 1) forwards; opacity: 0; animation-delay: 0.3s; }
+.animate-stagger-4 { animation: fadeInUpSmooth 0.6s cubic-bezier(0.2, 0.8, 0.2, 1) forwards; opacity: 0; animation-delay: 0.4s; }
+
+/* Dashboard Transitions */
+.dashboard-transition-out {
+    animation: fadeOutScale 0.3s ease-in forwards;
+}
+.dashboard-transition-in {
+    animation: fadeInScale 0.4s ease-out forwards;
+}
+
+@keyframes fadeOutScale {
+    to { opacity: 0; transform: scale(0.98); }
+}
+@keyframes fadeInScale {
+    from { opacity: 0; transform: scale(1.02); }
+    to { opacity: 1; transform: scale(1); }
+}
+
+/* Time-of-Day Text Gradients */
+.text-gradient-morning {
+    background: linear-gradient(to right, #f59e0b, #d97706);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+.text-gradient-afternoon {
+    background: linear-gradient(to right, #0ea5e9, #2563eb);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+.text-gradient-evening {
+    background: linear-gradient(to right, #7c3aed, #4f46e5);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+.text-gradient-night {
+    background: linear-gradient(to right, #475569, #1e293b);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+/* Locked Schedule Item */
+.schedule-card-locked {
+    background-color: #f9fafb;
+    border-color: #e5e7eb;
+    color: #9ca3af;
+    cursor: default;
+    opacity: 0.8;
+}
+.schedule-card-locked:hover {
+    box-shadow: none;
+    transform: none;
+}
+
+/* --- V5.8: HOME TAB POLISH --- */
+/* Smooth Fade In for Home Tab */
+@keyframes nice-fade-in {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.home-content-ready {
+    animation: nice-fade-in 0.6s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+}
+
+/* Master Tools Grid - Responsive & No Overflow */
+.master-tools-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(80px, 1fr)); /* Smart wrapping */
+    gap: 0.75rem;
+    width: 100%;
+}
+
+/* Yellow-er Star Card with Watermark */
+.star-card-yellow {
+    background: linear-gradient(135deg, #FFFBEB 0%, #FEF3C7 100%);
+    border: 2px solid #FCD34D;
+    position: relative;
+    overflow: hidden;
+}
+
+.star-watermark {
+    position: absolute;
+    bottom: -10px;
+    right: -10px;
+    font-size: 8rem;
+    color: rgba(251, 191, 36, 0.15); /* Faint yellow */
+    transform: rotate(15deg);
+    pointer-events: none;
+    z-index: 0;
+}
+
+.greeting-emoji-anim {
+    display: inline-block;
+    animation: float-up-down 3s ease-in-out infinite;
+}
+
+/* Skeleton Loading */
+.skeleton {
+    background: #e5e7eb;
+    background-image: linear-gradient(to right, #e5e7eb 0%, #f3f4f6 20%, #e5e7eb 40%, #e5e7eb 100%);
+    background-repeat: no-repeat;
+    background-size: 800px 100%; 
+    animation: shimmer 1.5s infinite linear forwards;
+    border-radius: 0.5rem;
+}
+
+@keyframes shimmer {
+    0% { background-position: -468px 0; }
+    100% { background-position: 468px 0; }
+}
+
+/* Master Tool Mini-Buttons */
+.tool-btn-mini {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.25rem;
+    padding: 0.75rem;
+    border-radius: 1rem;
+    background-color: #f8fafc;
+    border: 1px solid #e2e8f0;
+    transition: all 0.2s;
+    text-align: center;
+    height: 100%;
+}
+.tool-btn-mini:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+    background-color: white;
+    border-color: #cbd5e1;
+}
+.tool-btn-mini i {
+    font-size: 1.5rem;
+    margin-bottom: 0.25rem;
+}
+.tool-btn-mini span {
+    font-size: 0.75rem;
+    font-weight: 700;
+    line-height: 1.1;
+}
+
+/* Glassy Stat Pill */
+.glass-stat {
+    background: rgba(255, 255, 255, 0.2);
+    backdrop-filter: blur(4px);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    padding: 0.5rem 1rem;
+    border-radius: 9999px;
+    color: rgba(30, 41, 59, 0.8);
+    font-weight: 600;
+    font-size: 0.875rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+}

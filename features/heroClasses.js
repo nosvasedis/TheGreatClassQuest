@@ -8,22 +8,27 @@ export const HERO_CLASSES = {
     'Artificer': { reason: 'focus', icon: '⚙️', bonus: 10, desc: '+10 Gold for Focus' },
     'Scholar': { reason: 'scholar_s_bonus', icon: '📜', bonus: 10, desc: '+10 Gold for Trial Results' },
     'Weaver': { reason: 'story_weaver', icon: '✒️', bonus: 10, desc: '+10 Gold for Story Weaver' },
-    'Nomad': { reason: 'welcome_back', icon: '👟', bonus: 1, desc: '+10 Gold for Coming Back' }
+    'Nomad': { reason: 'welcome_back', icon: '👟', bonus: 10, desc: '+10 Gold for Coming Back' }
 };
 
-/**
- * Calculates extra gold based on a student's Hero Class.
- */
 export function calculateHeroGold(studentData, reason, starDifference) {
+    // Basic validation: We only give bonuses if stars are being added (positive difference)
     if (starDifference <= 0 || !reason) return starDifference;
 
     const heroClass = studentData.heroClass;
+    
+    // Check if the student has a valid Hero Class
     if (heroClass && HERO_CLASSES[heroClass]) {
         const classInfo = HERO_CLASSES[heroClass];
-        if (classInfo.reason === reason) {
+        
+        // Robust comparison: Ensure both are strings and trim whitespace
+        if (classInfo.reason === reason || classInfo.reason === reason.trim()) {
+            // Return base stars + bonus gold (e.g., 1 star + 10 gold = 11 total value added to gold)
             return starDifference + classInfo.bonus;
         }
     }
+    
+    // Default: Just return the star value converted to gold (1 Star = 1 Gold)
     return starDifference;
 }
 

@@ -89,5 +89,3 @@ export const classColorPalettes = [
     { bg: 'bg-sky-100', text: 'text-sky-800', border: 'border-sky-300' },
     { bg: 'bg-violet-100', text: 'text-violet-800', border: 'border-violet-300' }
 ];
-
-

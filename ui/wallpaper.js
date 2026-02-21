@@ -1890,32 +1890,12 @@ function getClassQuestCard(classId) {
     }, 0);
 
     // Calculate Dynamic Goal (Sync with Home logic)
-    const BASE_GOAL = 18;
-    const SCALING_FACTOR = 2.5;
-    const now = new Date();
-    const daysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
-
-    // Holiday Logic
-    let holidayDaysLost = 0;
-    const ranges = state.get('schoolHolidayRanges') || [];
-    ranges.forEach(range => {
-        const start = new Date(range.start);
-        const end = new Date(range.end);
-        const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
-        const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0);
-        const overlapStart = start > monthStart ? start : monthStart;
-        const overlapEnd = end < monthEnd ? end : monthEnd;
-        if (overlapStart <= overlapEnd) {
-            holidayDaysLost += (Math.ceil(Math.abs(overlapEnd - overlapStart) / (1000 * 60 * 60 * 24)) + 1);
-        }
-    });
-
-    let monthModifier = (daysInMonth - holidayDaysLost) / daysInMonth;
-    monthModifier = now.getMonth() === 5 ? 0.5 : Math.max(0.6, Math.min(1.0, monthModifier));
-
-    const dbDifficulty = cls.difficultyLevel || 0;
-    const adjustedGoalPerStudent = (BASE_GOAL + (dbDifficulty * SCALING_FACTOR)) * monthModifier;
-    const goal = Math.round(Math.max(18, students.length * adjustedGoalPerStudent));
+    const goal = utils.calculateMonthlyClassGoal(
+        cls,
+        students.length,
+        state.get('schoolHolidayRanges'),
+        state.get('allScheduleOverrides')
+    );
 
     const pct = Math.min(100, Math.round((monthlyStars / goal) * 100));
 

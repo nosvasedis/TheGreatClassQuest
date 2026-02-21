@@ -20,9 +20,9 @@ async function fetchDailySpice() {
         getAICachedContent('quote_header'),   // Unique key for header
         getAICachedContent('quote_widget')    // Unique key for weather widget
     ]);
-    
+
     updateHeaderQuote(headerQuote); // Update header immediately
-    
+
     return {
         quote: weatherQuote, // Return the second quote for the widget
     };
@@ -65,7 +65,7 @@ async function executeRenderHome() {
     const activeClassId = state.get('globalSelectedClassId');
     const teacherName = state.get('currentTeacherName') || "Quest Master";
     const hour = new Date().getHours();
-    
+
     // Dynamic Weather/Theme
     const weatherData = await fetchWeatherData();
     let theme = {};
@@ -74,16 +74,16 @@ async function executeRenderHome() {
     if (weatherData) {
         theme.temp = `${weatherData.temp}°C`;
         const code = weatherData.code;
-        
+
         // Determine Background Class
         if (code === 0) {
             theme.weatherBg = 'w-day'; theme.weatherIcon = 'fa-sun'; theme.weatherText = 'Sunny';
         } else if (code <= 2) {
-        // Codes 1 & 2: Mainly Clear / Partly Cloudy -> Keep Blue Sky (w-day)
-        theme.weatherBg = 'w-day'; theme.weatherIcon = 'fa-cloud-sun'; theme.weatherText = 'Partly Cloudy';
+            // Codes 1 & 2: Mainly Clear / Partly Cloudy -> Keep Blue Sky (w-day)
+            theme.weatherBg = 'w-day'; theme.weatherIcon = 'fa-cloud-sun'; theme.weatherText = 'Partly Cloudy';
         } else if (code === 3) {
-        // Code 3: Overcast -> Gray Sky
-        theme.weatherBg = 'w-cloudy'; theme.weatherIcon = 'fa-cloud'; theme.weatherText = 'Overcast';
+            // Code 3: Overcast -> Gray Sky
+            theme.weatherBg = 'w-cloudy'; theme.weatherIcon = 'fa-cloud'; theme.weatherText = 'Overcast';
         } else if (code <= 48) {
             theme.weatherBg = 'w-cloudy'; theme.weatherIcon = 'fa-smog'; theme.weatherText = 'Foggy';
         } else if (code <= 67 || (code >= 80 && code <= 82)) {
@@ -126,11 +126,11 @@ async function executeRenderHome() {
     if (header) {
         // 1. Clean old classes
         header.classList.remove('header-night', 'header-stormy', 'header-rainy', 'header-snowy', 'header-cloudy');
-        
+
         // 2. Reset Background
         header.style.background = '';
         header.className = "relative overflow-hidden z-10 flex justify-between p-4 shadow-md transition-all duration-1000";
-        
+
         // 3. Apply New State
         if (theme.weatherBg === 'w-night') {
             header.classList.add('header-night');
@@ -159,25 +159,25 @@ async function executeRenderHome() {
     // --- STEP 3: CALCULATE TIME GRADIENTS ---
     let timeGreeting = "Good Day";
     let greetingGradient = "";
-    
+
     if (hour >= 5 && hour < 12) {
         timeGreeting = "Good Morning";
-        greetingGradient = "from-amber-400 via-orange-400 to-rose-400"; 
+        greetingGradient = "from-amber-400 via-orange-400 to-rose-400";
     } else if (hour >= 12 && hour < 17) {
         timeGreeting = "Good Afternoon";
-        greetingGradient = "from-blue-400 via-cyan-400 to-teal-400"; 
+        greetingGradient = "from-blue-400 via-cyan-400 to-teal-400";
     } else if (hour >= 17 && hour < 21) {
         timeGreeting = "Good Evening";
-        greetingGradient = "from-indigo-500 via-purple-500 to-pink-500"; 
+        greetingGradient = "from-indigo-500 via-purple-500 to-pink-500";
     } else {
         timeGreeting = "Good Night";
-        greetingGradient = "from-indigo-900 via-purple-900 to-slate-800"; 
+        greetingGradient = "from-indigo-900 via-purple-900 to-slate-800";
     }
 
     theme.greeting = timeGreeting;
     theme.greetingGradient = greetingGradient;
-    theme.nameGradient = "from-slate-700 to-slate-500"; 
-    
+    theme.nameGradient = "from-slate-700 to-slate-500";
+
     // --- STEP 4: FETCH SPICE & RENDER ---
     const spice = await fetchDailySpice();
 
@@ -214,15 +214,15 @@ function getSkeleton() {
 
 function getGeneralDashboard(name, theme, spice) {
     const today = utils.getTodayDateString();
-    
+
     const myClasses = state.get('allTeachersClasses') || [];
     const totalStudents = state.get('allStudents').length;
     const allScores = state.get('allStudentScores') || [];
-    
+
     const now = new Date();
     const currentMonth = now.getMonth();
     const currentYear = now.getFullYear();
-    
+
     const schoolStars = state.get('allAwardLogs').reduce((sum, log) => {
         const d = utils.parseDDMMYYYY(log.date);
         if (d.getMonth() === currentMonth && d.getFullYear() === currentYear) {
@@ -241,7 +241,7 @@ function getGeneralDashboard(name, theme, spice) {
         { icon: 'fa-calendar-alt', label: 'Plan', action: 'open-day-planner' },
         { icon: 'fa-cog', label: 'Setup', action: 'open-settings' },
     ];
-    
+
     return getLayout(
         name, theme, spice, getSelector(null),
         `
@@ -281,10 +281,10 @@ function getGeneralDashboard(name, theme, spice) {
 function getActiveDashboard(classData, name, theme, spice) {
     const classId = classData.id;
     const today = utils.getTodayDateString();
-    
+
     const students = state.get('allStudents').filter(s => s.classId === classId);
     const scores = state.get('allStudentScores') || [];
-    
+
     const now = new Date();
     const currentMonth = now.getMonth();
     const currentYear = now.getFullYear();
@@ -321,15 +321,15 @@ function getActiveDashboard(classData, name, theme, spice) {
 
     const lastAssignment = state.get('allQuestAssignments')
         .filter(a => a.classId === classId)
-        .sort((a,b) => (b.createdAt?.toMillis ? b.createdAt.toMillis() : 0) - (a.createdAt?.toMillis ? a.createdAt.toMillis() : 0))[0];
-    
+        .sort((a, b) => (b.createdAt?.toMillis ? b.createdAt.toMillis() : 0) - (a.createdAt?.toMillis ? a.createdAt.toMillis() : 0))[0];
+
     let assignmentText = lastAssignment ? lastAssignment.text : "No active homework.";
 
-   // Append Test Info if available
+    // Append Test Info if available
     if (lastAssignment && lastAssignment.testData) {
         // Use smart parser to handle YYYY-MM-DD safely
         const tDate = utils.parseFlexibleDate(lastAssignment.testData.date);
-        
+
         let dateDisplay = 'Upcoming';
         let badgeColor = 'bg-red-50 text-red-600 border-red-100'; // Default styling
         let icon = 'exclamation-circle';
@@ -337,12 +337,12 @@ function getActiveDashboard(classData, name, theme, spice) {
         if (tDate) {
             // Logic to determine Today vs Tomorrow
             const checkNow = new Date();
-            checkNow.setHours(0,0,0,0); // Reset time to midnight
-            
+            checkNow.setHours(0, 0, 0, 0); // Reset time to midnight
+
             // Clone date to ensure we don't mutate original if used elsewhere
             const checkTest = new Date(tDate);
-            checkTest.setHours(0,0,0,0); // Reset time to midnight
-            
+            checkTest.setHours(0, 0, 0, 0); // Reset time to midnight
+
             // Calculate difference in Days
             const diffTime = checkTest - checkNow;
             const diffDays = Math.round(diffTime / (1000 * 60 * 60 * 24));
@@ -360,7 +360,7 @@ function getActiveDashboard(classData, name, theme, spice) {
                 dateDisplay = tDate.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
             }
         }
-        
+
         assignmentText = `
             <div class="flex flex-col gap-1">
                 <span>${lastAssignment.text}</span>
@@ -369,26 +369,26 @@ function getActiveDashboard(classData, name, theme, spice) {
                 </span>
             </div>`;
     }
-    
-    const logs = state.get('allAdventureLogs').filter(l => l.classId === classId).sort((a,b) => utils.parseDDMMYYYY(b.date) - utils.parseDDMMYYYY(a.date));
+
+    const logs = state.get('allAdventureLogs').filter(l => l.classId === classId).sort((a, b) => utils.parseDDMMYYYY(b.date) - utils.parseDDMMYYYY(a.date));
     const lastLogText = logs.length > 0 ? logs[0].text : "No adventures chronicled yet.";
-    const lastLogDate = logs.length > 0 ? new Date(utils.parseDDMMYYYY(logs[0].date)).toLocaleDateString('en-GB', {weekday:'short', day:'numeric'}) : '';
+    const lastLogDate = logs.length > 0 ? new Date(utils.parseDDMMYYYY(logs[0].date)).toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric' }) : '';
 
     const rosterHtml = students.length > 0
         ? students.sort((a, b) => a.name.localeCompare(b.name)).map(s => {
-             const scoreData = scores.find(sc => sc.id === s.id);
-             const stars = scoreData?.monthlyStars || 0;
-             const avatarHtml = s.avatar 
+            const scoreData = scores.find(sc => sc.id === s.id);
+            const stars = scoreData?.monthlyStars || 0;
+            const avatarHtml = s.avatar
                 ? `<img src="${s.avatar}" alt="${s.name}" class="roster-avatar enlargeable-avatar" data-student-id="${s.id}" title="${s.name} (${stars} ⭐)">`
                 : `<div class="roster-avatar bg-indigo-100 text-indigo-600 flex items-center justify-center font-bold text-xs enlargeable-avatar" data-student-id="${s.id}" title="${s.name} (${stars} ⭐)">${s.name.charAt(0)}</div>`;
-             return `<div class="relative group -ml-2 first:ml-0 transition-transform hover:z-50">${avatarHtml}</div>`;
+            return `<div class="relative group -ml-2 first:ml-0 transition-transform hover:z-50">${avatarHtml}</div>`;
         }).join('')
         : '<span class="text-xs text-gray-400 pl-2">Empty Roster</span>';
 
     const classLogs = state.get('allAwardLogs').filter(l => l.classId === classId);
     const reasons = {};
-    classLogs.forEach(l => { if(l.reason) reasons[l.reason] = (reasons[l.reason] || 0) + l.stars; });
-    const topReasonEntry = Object.entries(reasons).sort((a,b) => b[1] - a[1])[0];
+    classLogs.forEach(l => { if (l.reason) reasons[l.reason] = (reasons[l.reason] || 0) + l.stars; });
+    const topReasonEntry = Object.entries(reasons).sort((a, b) => b[1] - a[1])[0];
     const topSkill = topReasonEntry ? topReasonEntry[0] : null;
 
     const tools = [
@@ -475,9 +475,9 @@ function getActiveDashboard(classData, name, theme, spice) {
             <h3 class="text-xs font-bold text-slate-400 uppercase tracking-widest p-4 pb-0">Class Actions</h3>
             <div class="grid grid-cols-3 gap-3 p-4 pt-3">
                 ${tools.map(t => {
-                    const attr = t.target ? `data-target="${t.target}" class="tool-btn-pop shortcut-tab-btn"` : `data-action="${t.action}" data-id="${t.id || ''}" class="tool-btn-pop shortcut-action-btn"`;
-                    return `<div ${attr} style="aspect-ratio: 1/0.8"><i class="fas ${t.icon} text-xl mb-1"></i><span style="font-size: 0.65rem">${t.label}</span></div>`;
-                }).join('')}
+            const attr = t.target ? `data-target="${t.target}" class="tool-btn-pop shortcut-tab-btn"` : `data-action="${t.action}" data-id="${t.id || ''}" class="tool-btn-pop shortcut-action-btn"`;
+            return `<div ${attr} style="aspect-ratio: 1/0.8"><i class="fas ${t.icon} text-xl mb-1"></i><span style="font-size: 0.65rem">${t.label}</span></div>`;
+        }).join('')}
             </div>
         </div>
         `
@@ -536,8 +536,8 @@ function getLayout(name, theme, spice, selector, row2, row3) {
 // --- HELPERS ---
 
 function getSelector(currentId) {
-    const classes = state.get('allTeachersClasses').sort((a,b) => a.name.localeCompare(b.name));
-    
+    const classes = state.get('allTeachersClasses').sort((a, b) => a.name.localeCompare(b.name));
+
     let currentSelectionText = '🏫 General View';
     if (currentId) {
         const selectedClass = classes.find(c => c.id === currentId);
@@ -576,16 +576,16 @@ function getScheduleHtml(dateString, activeClassId) {
     const allScheduleOverrides = state.get('allScheduleOverrides') || [];
     const myClasses = state.get('allTeachersClasses') || [];
     const myClassIds = myClasses.map(c => c.id);
-    
+
     const todaysClasses = utils.getClassesOnDay(dateString, allSchoolClasses, allScheduleOverrides);
 
     if (todaysClasses.length === 0) {
         const dayOfWeek = new Date().getDay(); // 0 = Sunday, 6 = Saturday
         const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
-        
+
         const title = isWeekend ? "Weekend Break" : "Heroes' Camp";
-        const message = isWeekend 
-            ? "Enjoy your weekend! Recharge your mana for next week." 
+        const message = isWeekend
+            ? "Enjoy your weekend! Recharge your mana for next week."
             : "No lessons today. The party is resting!";
         const icon = isWeekend ? "🏖️" : "⛺";
 
@@ -620,9 +620,9 @@ function getScheduleHtml(dateString, activeClassId) {
         let cardClass = `schedule-card-square ${bgGradient}`;
         if (isActive) cardClass += ' active-lesson';
         if (!isMine) cardClass += ' locked';
-        
-        const interactionAttr = isMine 
-            ? `class="${cardClass} quick-class-select-btn" data-id="${c.id}"` 
+
+        const interactionAttr = isMine
+            ? `class="${cardClass} quick-class-select-btn" data-id="${c.id}"`
             : `class="${cardClass}"`;
 
         const lockIcon = !isMine ? '<div class="absolute top-2 right-2 text-gray-400/30 text-xs"><i class="fas fa-lock"></i></div>' : '';
@@ -657,7 +657,7 @@ function attachListeners(container) {
             }
         });
         selectorPanel.addEventListener('click', (e) => {
-            e.stopPropagation(); 
+            e.stopPropagation();
             const item = e.target.closest('.home-class-item');
             if (item) {
                 state.setGlobalSelectedClass(item.dataset.id || null, true);
@@ -667,7 +667,7 @@ function attachListeners(container) {
         });
         document.addEventListener('click', (e) => {
             if (!selectorBtn.contains(e.target) && !selectorPanel.contains(e.target)) {
-                 selectorPanel.classList.add('hidden');
+                selectorPanel.classList.add('hidden');
             }
         }, { once: true });
     }
@@ -684,7 +684,7 @@ function attachListeners(container) {
     container.querySelectorAll('.quick-class-select-btn').forEach(btn => {
         btn.addEventListener('click', (e) => {
             e.preventDefault();
-            e.stopPropagation(); 
+            e.stopPropagation();
             state.setGlobalSelectedClass(btn.dataset.id, true);
             renderHomeTab();
         });
@@ -697,25 +697,24 @@ function handleAction(action, data) {
     if (action === 'open-day-planner') modals.openDayPlannerModal(utils.getTodayDateString(), document.body);
     else if (action === 'open-attendance') {
         const id = state.get('globalSelectedClassId');
-        if(id) modals.openAttendanceChronicle(); else tabs.showTab('adventure-log-tab');
+        if (id) modals.openAttendanceChronicle(); else tabs.showTab('adventure-log-tab');
     }
-    else if (action === 'open-team-history') modals.openHistoryModal('team'); 
+    else if (action === 'open-team-history') modals.openHistoryModal('team');
     else if (action === 'open-settings' || action === 'open-holidays') tabs.showTab('options-tab');
-    else if (action === 'open-student-ranks') modals.openStudentRankingsModal(); 
-    else if (action === 'create-class') tabs.showTab('my-classes-tab'); 
+    else if (action === 'open-student-ranks') modals.openStudentRankingsModal();
+    else if (action === 'create-class') tabs.showTab('my-classes-tab');
     else if (action === 'edit-class') modals.openEditClassModal(data.id);
     else if (action === 'open-report') modals.handleGenerateReport(data.id);
 }
 
 function startHomeSmartLogic() {
     if (homeInterval) clearInterval(homeInterval);
-    homeInterval = setInterval(() => {
-        const tab = document.querySelector('.app-tab:not(.hidden)');
-        if (tab && tab.id !== 'about-tab') return;
+
+    const checkLogic = () => {
         const now = new Date();
         const currentTime = now.toTimeString().slice(0, 5);
         const todayStr = utils.getTodayDateString();
-        
+
         const todaysClasses = utils.getClassesOnDay(todayStr, state.get('allSchoolClasses'), state.get('allScheduleOverrides'));
         const myClasses = state.get('allTeachersClasses');
         const myTodaysClasses = todaysClasses.filter(c => myClasses.some(mc => mc.id === c.id));
@@ -725,16 +724,24 @@ function startHomeSmartLogic() {
         if (currentActiveLesson) {
             const currentSelectedId = state.get('globalSelectedClassId');
             if (currentSelectedId !== currentActiveLesson.id) {
-                state.setGlobalSelectedClass(currentActiveLesson.id, false); 
-                renderHomeTab();
+                state.setGlobalSelectedClass(currentActiveLesson.id, false);
+                // Refresh the current active tab to reflect new class selection
+                const tab = document.querySelector('.app-tab:not(.hidden)');
+                if (tab) {
+                    import('../ui/tabs.js').then(tools => tools.showTab(tab.id));
+                }
             }
         }
-    }, 60000);
+    };
+
+    // Run once 2 seconds after initialization, then every 60 seconds
+    setTimeout(checkLogic, 2000);
+    homeInterval = setInterval(checkLogic, 60000);
 }
 
 export function setupHomeListeners() {
     const infoBtn = document.getElementById('app-info-btn');
-    if(infoBtn) {
+    if (infoBtn) {
         const newBtn = infoBtn.cloneNode(true);
         infoBtn.parentNode.replaceChild(newBtn, infoBtn);
         newBtn.addEventListener('click', (e) => {
@@ -744,7 +751,7 @@ export function setupHomeListeners() {
     }
 
     const closeBtn = document.getElementById('app-info-close-btn');
-    if(closeBtn) {
+    if (closeBtn) {
         const newClose = closeBtn.cloneNode(true);
         closeBtn.parentNode.replaceChild(newClose, closeBtn);
         newClose.addEventListener('click', () => modals.hideModal('app-info-modal'));
@@ -774,9 +781,9 @@ export function setupHomeListeners() {
 
 function getReminderPills(classId) {
     const now = new Date();
-    now.setHours(0, 0, 0, 0); 
+    now.setHours(0, 0, 0, 0);
     const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0);
-    endOfMonth.setHours(23, 59, 59, 999); 
+    endOfMonth.setHours(23, 59, 59, 999);
 
     let pills = [];
 
@@ -820,9 +827,9 @@ function getReminderPills(classId) {
             let prevYear = now.getFullYear();
             if (prevMonth < 0) { prevMonth = 11; prevYear -= 1; }
             const monthKey = `${prevYear}-${String(prevMonth + 1).padStart(2, '0')}`;
-            
+
             const isDone = cls.ceremonyHistory && cls.ceremonyHistory[monthKey] && cls.ceremonyHistory[monthKey].complete;
-            
+
             if (!isDone) {
                 const monthName = new Date(monthKey + "-02").toLocaleString('en-GB', { month: 'long' });
                 pills.push(`
@@ -831,7 +838,7 @@ function getReminderPills(classId) {
                         <span class="font-bold">${monthName} Ceremony!</span>
                     </button>
                 `);
-                
+
                 setTimeout(() => {
                     const btn = document.getElementById('trigger-ceremony-btn');
                     if (btn) {
@@ -839,7 +846,7 @@ function getReminderPills(classId) {
                             e.stopPropagation();
                             import('./ceremony.js').then(m => {
                                 m.checkAndInitCeremony(classId).then(params => {
-                                    if(params) m.startCeremony(params);
+                                    if (params) m.startCeremony(params);
                                 });
                             });
                         };
@@ -859,17 +866,17 @@ function getReminderPills(classId) {
     if (upcomingHoliday) {
         const startDate = new Date(upcomingHoliday.start);
         const diffTime = startDate - now;
-        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)); 
-        
+        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
         let label = upcomingHoliday.name;
         let icon = 'fa-umbrella-beach';
         let style = 'bg-pink-50 text-pink-700 border-pink-200 shadow-sm';
         let timeText = diffDays === 0 ? "Starts Today!" : (diffDays === 1 ? "Starts Tomorrow!" : `in ${diffDays} days`);
 
         if (label.toLowerCase().includes('christmas') || label.toLowerCase().includes('winter')) {
-            icon = 'fa-snowflake'; 
+            icon = 'fa-snowflake';
             style = 'bg-red-50 text-red-800 border-red-200 shadow-sm';
-            label = `🎄 ${label}`; 
+            label = `🎄 ${label}`;
         } else if (label.toLowerCase().includes('easter')) {
             icon = 'fa-egg';
             style = 'bg-green-50 text-green-800 border-green-200 shadow-sm';
@@ -885,15 +892,15 @@ function getReminderPills(classId) {
         `);
     }
 
-   // 4. QUEST EVENTS (Test/Vocab/etc) - FIXED & BEAUTIFIED
+    // 4. QUEST EVENTS (Test/Vocab/etc) - FIXED & BEAUTIFIED
     const events = state.get('allQuestEvents') || [];
-    
+
     // Ταξινομούμε τα events ώστε τα σημερινά να εμφανίζονται πάντα πρώτα
     const sortedEvents = [...events].sort((a, b) => utils.parseDDMMYYYY(a.date) - utils.parseDDMMYYYY(b.date));
 
     sortedEvents.forEach(e => {
         const eventDate = utils.parseDDMMYYYY(e.date);
-        
+
         // Φιλτράρουμε ώστε να δείχνουμε μόνο από σήμερα και μετά, μέχρι το τέλος του μήνα
         if (eventDate < now || eventDate > endOfMonth) return;
 
@@ -901,10 +908,10 @@ function getReminderPills(classId) {
         // Χρησιμοποιούμε round για να αποφύγουμε μικρολάθη στα milliseconds
         const diffDays = Math.round(diffTime / (1000 * 60 * 60 * 24));
         const timeText = diffDays === 0 ? "Today!" : (diffDays === 1 ? "Tomorrow!" : `in ${diffDays} days`);
-        
+
         const title = e.details.title || e.type;
         const isDoubleStar = title.toLowerCase().includes('2x star');
-        
+
         // Ορίζουμε το στυλ: Αν είναι 2x Star Day, βάζουμε χρυσό gradient και animation
         let pillStyle = "bg-purple-50 text-purple-700 border-purple-200";
         let icon = "fa-magic";
@@ -931,17 +938,17 @@ function getReminderPills(classId) {
         const activeBounty = state.get('allQuestBounties').find(b => b.classId === classId && b.status === 'active' && b.type === 'standard');
 
         if (activeTimer) {
-             // Just show the Title and Icon (No minutes)
-             pills.push(`
+            // Just show the Title and Icon (No minutes)
+            pills.push(`
                 <div class="date-pill bg-red-50 text-red-700 border border-red-200 shadow-sm animate-pulse flex items-center gap-2 px-4 py-2 rounded-full cursor-pointer" onclick="document.getElementById('bounty-board-container').scrollIntoView({behavior: 'smooth'})">
                     <i class="fas fa-hourglass-half"></i>
                     <span class="font-bold">${activeTimer.title}</span>
                 </div>
              `);
         }
-            
+
         else if (activeBounty) {
-             pills.push(`
+            pills.push(`
                 <div class="date-pill bg-amber-50 text-amber-700 border border-amber-200 shadow-sm flex items-center gap-2 px-4 py-2 rounded-full cursor-pointer" onclick="document.getElementById('bounty-board-container').scrollIntoView({behavior: 'smooth'})">
                     <i class="fas fa-bullseye"></i>
                     <span class="font-bold">Active Bounty</span>
@@ -951,13 +958,13 @@ function getReminderPills(classId) {
     }
 
     // Hero of the Day Pill
-const reigningHero = state.get('reigningHero');
-if (reigningHero && classId) {
-    const avatarHtml = reigningHero.avatar 
-        ? `<img src="${reigningHero.avatar}" class="w-6 h-6 rounded-full border border-white shadow-sm">`
-        : `<span class="bg-indigo-400 text-white w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold">${reigningHero.name.charAt(0)}</span>`;
-    
-    pills.push(`
+    const reigningHero = state.get('reigningHero');
+    if (reigningHero && classId) {
+        const avatarHtml = reigningHero.avatar
+            ? `<img src="${reigningHero.avatar}" class="w-6 h-6 rounded-full border border-white shadow-sm">`
+            : `<span class="bg-indigo-400 text-white w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold">${reigningHero.name.charAt(0)}</span>`;
+
+        pills.push(`
         <div class="date-pill bg-gradient-to-r from-indigo-600 to-blue-700 text-white shadow-lg flex items-center gap-2 px-4 py-2 rounded-full transform hover:scale-105 transition-all border-2 border-indigo-400">
             ${avatarHtml}
             <div class="flex flex-col leading-none">
@@ -970,8 +977,8 @@ if (reigningHero && classId) {
             </div>
         </div>
     `);
-}
-    
+    }
+
     if (pills.length === 0) return '';
     return pills.join('');
 }
@@ -980,12 +987,12 @@ if (reigningHero && classId) {
 async function getAICachedContent(type) {
     const todayKey = new Date().toISOString().split('T')[0];
     const docId = `daily_content_${todayKey}_${type}`;
-    
+
     // 1. Check Firebase First (Shared Cache)
     try {
         const docRef = doc(db, "artifacts/great-class-quest/public/data/daily_cache", docId);
         const docSnap = await getDoc(docRef);
-        
+
         if (docSnap.exists()) {
             return docSnap.data().content;
         }
@@ -1003,9 +1010,9 @@ async function getAICachedContent(type) {
         } else if (type === 'quote_widget') {
             userPrompt = "Generate a short quote about curiosity or nature.";
         }
-        
+
         const content = await callGeminiApi(systemPrompt, userPrompt);
-        
+
         // 3. Save to Firebase (So others don't have to generate)
         try {
             const { setDoc } = await import('https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js');
@@ -1026,7 +1033,7 @@ async function getAICachedContent(type) {
 async function fetchWeatherData() {
     const storageKey = 'gcq_weather_data_open_meteo';
     const now = Date.now();
-    
+
     const cached = localStorage.getItem(storageKey);
     if (cached) {
         try {
@@ -1034,14 +1041,14 @@ async function fetchWeatherData() {
             if (now - data.timestamp < 3600000) {
                 return data.weather;
             }
-        } catch(e) { localStorage.removeItem(storageKey); }
+        } catch (e) { localStorage.removeItem(storageKey); }
     }
 
     try {
         const response = await fetch('https://api.open-meteo.com/v1/forecast?latitude=37.9667&longitude=23.6667&current=temperature_2m,weather_code&timezone=auto');
         if (!response.ok) throw new Error('Weather API failed');
         const data = await response.json();
-        
+
         const weather = {
             temp: Math.round(data.current.temperature_2m),
             code: data.current.weather_code
@@ -1051,7 +1058,7 @@ async function fetchWeatherData() {
         return weather;
     } catch (e) {
         console.error("Open-Meteo fetch failed:", e);
-        return null; 
+        return null;
     }
 }
 
@@ -1060,63 +1067,19 @@ async function fetchWeatherData() {
  * It uses a monthly modifier based on holidays rather than counting lessons.
  */
 function calculateMonthlyClassGoal(classData, studentCount) {
-    if (studentCount === 0) return 18;
-
-    const BASE_GOAL = 18; 
-    const SCALING_FACTOR = 2.5; 
-    
-    const now = new Date();
-    const currentYear = now.getFullYear();
-    const currentMonth = now.getMonth();
-    const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
-    
-    // 1. Calculate Holiday Days Lost (Exact Leaderboard logic)
-    let holidayDaysLost = 0;
-    const ranges = state.get('schoolHolidayRanges') || [];
-    
-    ranges.forEach(range => {
-        const start = new Date(range.start);
-        const end = new Date(range.end);
-        const monthStart = new Date(currentYear, currentMonth, 1);
-        const monthEnd = new Date(currentYear, currentMonth + 1, 0);
-        const overlapStart = start > monthStart ? start : monthStart;
-        const overlapEnd = end < monthEnd ? end : monthEnd;
-        if (overlapStart <= overlapEnd) {
-            const diffTime = Math.abs(overlapEnd - overlapStart);
-            const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
-            holidayDaysLost += diffDays;
-        }
-    });
-
-    // 2. Apply Month Modifier (Exact Leaderboard logic)
-    let monthModifier = (daysInMonth - holidayDaysLost) / daysInMonth;
-    if (currentMonth === 5) { // June
-        monthModifier = 0.5;
-    } else {
-        monthModifier = Math.max(0.6, Math.min(1.0, monthModifier));
-    }
-
-    // 3. Handle Difficulty & Completion (Exact Leaderboard logic)
-    let isCompletedThisMonth = false;
-    if (classData.questCompletedAt) {
-        const completedDate = classData.questCompletedAt.toDate();
-        if (completedDate.getMonth() === currentMonth && completedDate.getFullYear() === currentYear) {
-            isCompletedThisMonth = true;
-        }
-    }
-    const dbDifficulty = classData.difficultyLevel || 0;
-    const effectiveDifficulty = isCompletedThisMonth ? Math.max(0, dbDifficulty - 1) : dbDifficulty;
-
-    // 4. Final Calculation
-    const adjustedGoalPerStudent = (BASE_GOAL + (effectiveDifficulty * SCALING_FACTOR)) * monthModifier;
-    return Math.round(studentCount * adjustedGoalPerStudent);
+    return utils.calculateMonthlyClassGoal(
+        classData,
+        studentCount,
+        state.get('schoolHolidayRanges'),
+        state.get('allScheduleOverrides')
+    );
 }
 
 function getTopSkillHtml(skill) {
     if (!skill) {
-        return { 
+        return {
             html: `<div class="font-title text-3xl text-green-800 truncate">Ready to Quest!</div>`,
-            theme: 'card-gradient-mint' 
+            theme: 'card-gradient-mint'
         };
     }
 

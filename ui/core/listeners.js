@@ -23,7 +23,7 @@ import * as avatar from '../features/avatar.js';
 import * as ceremony from '../features/ceremony.js';
 import * as utils from '../utils.js';
 import { playSound } from '../audio.js';
-import { showToast, triggerAwardEffects, triggerDynamicPraise, showWelcomeBackMessage } from './effects.js';
+import { showToast, triggerAwardEffects, triggerDynamicPraise, showWelcomeBackMessage, createFloatingHearts } from './effects.js';
 import {
     handleAddClass,
     handleAddStudent,
@@ -221,6 +221,28 @@ export function setupUIListeners() {
         const dateString = document.getElementById('day-planner-modal').dataset.date;
         handleAddOneTimeLesson(dateString);
     });
+
+    // NEW: Mark School Holiday Button
+    document.getElementById('day-planner-mark-holiday-btn').addEventListener('click', () => {
+        const dateString = document.getElementById('day-planner-modal').dataset.date;
+        modals.showModal(
+            'Mark School Holiday?',
+            `<p class="mb-4">Are you sure you want to mark <b>${dateString}</b> as a School Holiday?</p>
+            <p class="text-sm text-red-600 font-bold">This will cancel ALL classes for this day and adjust monthly goals accordingly.</p>`,
+            () => {
+                import('../db/actions.js').then(actions => {
+                    actions.handleRemoveAttendanceColumn(null, dateString, true);
+                    modals.hideModal('day-planner-modal');
+                    // Refresh calendar if active
+                    const currentTab = document.querySelector('.app-tab:not(.hidden)');
+                    if (currentTab && currentTab.id === 'calendar-tab') {
+                        import('./tabs.js').then(t => t.renderCalendarTab());
+                    }
+                });
+            },
+            'Confirm Holiday'
+        );
+    });
     document.getElementById('quest-event-form').addEventListener('submit', (e) => { e.preventDefault(); handleAddQuestEvent(); });
     document.getElementById('quest-event-type').addEventListener('change', modals.renderQuestEventDetails);
 
@@ -271,12 +293,15 @@ export function setupUIListeners() {
 
     // Boon Modal Listeners
     document.getElementById('boon-cancel-btn').addEventListener('click', () => modals.hideModal('bestow-boon-modal'));
-    document.getElementById('boon-confirm-btn').addEventListener('click', () => {
+    document.getElementById('boon-confirm-btn').addEventListener('click', (e) => {
         const modal = document.getElementById('bestow-boon-modal');
         const receiverId = modal.dataset.receiverId;
         const senderId = document.getElementById('boon-sender-select').value;
 
         if (senderId && receiverId) {
+            playSound('star3');
+            createFloatingHearts(e.clientX, e.clientY);
+
             const sender = state.get('allStudents').find(s => s.id === senderId);
             const receiver = state.get('allStudents').find(s => s.id === receiverId);
 

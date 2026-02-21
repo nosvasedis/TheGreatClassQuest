@@ -166,3 +166,19 @@
         height: 400px;
     }
 }
+
+/* --- HERO'S BOON EFFECTS --- */
+@keyframes float-up-heart {
+    0% {
+        transform: translate(-50%, -50%) scale(0) rotate(0deg);
+        opacity: 0;
+    }
+    20% {
+        transform: translate(-50%, -50%) scale(1.2) rotate(calc(var(--rot) / 2));
+        opacity: 0.9;
+    }
+    100% {
+        transform: translate(calc(-50% + var(--tx)), calc(-50% + var(--ty))) scale(1) rotate(var(--rot));
+        opacity: 0;
+    }
+}

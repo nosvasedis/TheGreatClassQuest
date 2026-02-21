@@ -21,37 +21,6 @@ export async function renderClassLeaderboardTab() {
     }
 
     // --- CALCULATIONS ---
-    const BASE_GOAL = 18;
-    const SCALING_FACTOR = 2.5;
-    const now = new Date();
-    const currentYear = now.getFullYear();
-    const currentMonth = now.getMonth();
-    const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
-
-    const today = new Date();
-    const dayOfWeek = today.getDay();
-    const daysToMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
-    const startOfWeek = new Date(today);
-    startOfWeek.setDate(today.getDate() - daysToMonday);
-    startOfWeek.setHours(0, 0, 0, 0);
-
-    let holidayDaysLost = 0;
-    (state.get('schoolHolidayRanges') || []).forEach(range => {
-        const start = new Date(range.start);
-        const end = new Date(range.end);
-        const monthStart = new Date(currentYear, currentMonth, 1);
-        const monthEnd = new Date(currentYear, currentMonth + 1, 0);
-        const overlapStart = start > monthStart ? start : monthStart;
-        const overlapEnd = end < monthEnd ? end : monthEnd;
-        if (overlapStart <= overlapEnd) {
-            holidayDaysLost += (Math.ceil(Math.abs(overlapEnd - overlapStart) / (1000 * 60 * 60 * 24)) + 1);
-        }
-    });
-
-    let monthModifier = (daysInMonth - holidayDaysLost) / daysInMonth;
-    if (currentMonth === 5) monthModifier = 0.5;
-    else monthModifier = Math.max(0.6, Math.min(1.0, monthModifier));
-
     const allStudentScores = state.get('allStudentScores') || [];
     const allStudents = state.get('allStudents') || [];
 
@@ -59,22 +28,31 @@ export async function renderClassLeaderboardTab() {
         const studentsInClass = allStudents.filter(s => s.classId === c.id);
         const studentCount = studentsInClass.length;
 
-        let isCompletedThisMonth = false;
-        if (c.questCompletedAt) {
-            const completedDate = c.questCompletedAt.toDate();
-            if (completedDate.getMonth() === now.getMonth() && completedDate.getFullYear() === now.getFullYear()) {
-                isCompletedThisMonth = true;
+        // Calculate goal centrally
+        const goalValue = utils.calculateMonthlyClassGoal(
+            c,
+            studentCount,
+            state.get('schoolHolidayRanges'),
+            state.get('allScheduleOverrides')
+        );
+
+        const goals = { diamond: goalValue };
+
+        let goalDifference = 0;
+        if (studentCount > 0) {
+            const dbDifficulty = c.difficultyLevel || 0;
+            // Estimate original for UI difference
+            let isCompletedThisMonth = false;
+            if (c.questCompletedAt) {
+                const completedDate = typeof c.questCompletedAt.toDate === 'function' ? c.questCompletedAt.toDate() : new Date(c.questCompletedAt);
+                if (completedDate.getMonth() === new Date().getMonth() && completedDate.getFullYear() === new Date().getFullYear()) {
+                    isCompletedThisMonth = true;
+                }
             }
+            const effectiveDiff = isCompletedThisMonth ? Math.max(0, dbDifficulty - 1) : dbDifficulty;
+            const originalGoalTotal = Math.round(studentCount * (18 + (effectiveDiff * 2.5)));
+            goalDifference = goalValue - originalGoalTotal;
         }
-
-        const dbDifficulty = c.difficultyLevel || 0;
-        const effectiveDifficulty = isCompletedThisMonth ? Math.max(0, dbDifficulty - 1) : dbDifficulty;
-        const rawBasePerStudent = BASE_GOAL + (effectiveDifficulty * SCALING_FACTOR);
-        const adjustedGoalPerStudent = rawBasePerStudent * monthModifier;
-
-        const goals = { diamond: studentCount > 0 ? Math.round(studentCount * adjustedGoalPerStudent) : 18 };
-        const originalGoalTotal = Math.round(studentCount * rawBasePerStudent);
-        const goalDifference = goals.diamond - originalGoalTotal;
 
         const currentMonthlyStars = studentsInClass.reduce((sum, s) => {
             const scoreData = allStudentScores.find(sc => sc.id === s.id);
@@ -535,7 +513,18 @@ export function renderStudentLeaderboardTab() {
         });
         const academicAvg = acadCount > 0 ? (acadSum / acadCount) : 0;
 
-        return { weeklyStars, topSkill, streak, count3Star, count2Star, academicAvg };
+        // Use the centralized helper for the tie-breaker specific stats
+        const tieBreakerStats = utils.calculateStudentStats(studentId, monthlyLogs, studentScores.filter(s => {
+            if (!s.date) return false;
+            const sDate = new Date(s.date);
+            return sDate.getMonth() === currentMonthIndex && sDate.getFullYear() === currentYear;
+        }));
+
+        return {
+            weeklyStars, topSkill, streak,
+            academicAvg,
+            ...tieBreakerStats // Brings in count3, count2, uniqueReasons, and recalculates academicAvg strictly for tie-breaking
+        };
     };
 
     let studentsInLeague = state.get('allStudents')
@@ -554,14 +543,7 @@ export function renderStudentLeaderboardTab() {
         });
 
     // 3. SORTING FUNCTION
-    const sortStudents = (a, b) => {
-        if (b.score !== a.score) return b.score - a.score;
-        if (b.stats.count3Star !== a.stats.count3Star) return b.stats.count3Star - a.stats.count3Star;
-        if (b.stats.count2Star !== a.stats.count2Star) return b.stats.count2Star - a.stats.count2Star;
-        if (b.stats.academicAvg !== a.stats.academicAvg) return b.stats.academicAvg - a.stats.academicAvg;
-        if (b.stats.uniqueReasons !== a.stats.uniqueReasons) return b.stats.uniqueReasons - a.stats.uniqueReasons;
-        return a.name.localeCompare(b.name);
-    };
+    const sortStudents = utils.sortStudentsByTieBreaker;
 
     // --- RENDER HELPERS ---
     const reasonInfo = {
@@ -610,11 +592,13 @@ export function renderStudentLeaderboardTab() {
 
     if (state.get('studentLeaderboardView') === 'league') {
         // === GLOBAL VIEW ===
+        // Re-map score to stars for sort Students By Tie Breaker
+        studentsInLeague = studentsInLeague.map(s => ({ ...s, stars: s.score }));
         studentsInLeague.sort(sortStudents);
         let lastScore = -1, last3 = -1, last2 = -1, lastUnique = -1, lastRank = 0;
 
         studentsInLeague.slice(0, 50).forEach((s, index) => {
-            let isBehaviorTie = (s.score === lastScore && s.stats.count3Star === last3 && s.stats.count2Star === last2 && s.stats.uniqueReasons === lastUnique);
+            let isBehaviorTie = (s.stars === lastScore && s.stats.count3 === last3 && s.stats.count2 === last2 && s.stats.uniqueReasons === lastUnique);
             let currentRank;
             if (index === 0) currentRank = 1;
             else {
@@ -624,7 +608,7 @@ export function renderStudentLeaderboardTab() {
                     currentRank = isTotalTie ? lastRank : index + 1;
                 }
             }
-            lastScore = s.score; last3 = s.stats.count3Star; last2 = s.stats.count2Star; lastUnique = s.stats.uniqueReasons; lastRank = currentRank;
+            lastScore = s.stars; last3 = s.stats.count3; last2 = s.stats.count2; lastUnique = s.stats.uniqueReasons; lastRank = currentRank;
 
             let cardClasses = "bg-white border-l-4 border-gray-200 hover:shadow-md";
             let rankBadge = `<div class="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center font-bold text-gray-500">${currentRank}</div>`;
@@ -677,6 +661,9 @@ export function renderStudentLeaderboardTab() {
 
         for (const classId of sortedClassIds) {
             const classData = classesMap[classId];
+
+            // Re-map score to stars for sort Students By Tie Breaker
+            classData.students = classData.students.map(s => ({ ...s, stars: s.score }));
             classData.students.sort(sortStudents);
             const randomGradient = constants.titleGradients[utils.simpleHashCode(classData.name) % constants.titleGradients.length];
 
@@ -692,7 +679,7 @@ export function renderStudentLeaderboardTab() {
             let lastScore = -1, last3 = -1, last2 = -1, lastUnique = -1, lastRank = 0;
 
             classData.students.forEach((s, index) => {
-                let isBehaviorTie = (s.score === lastScore && s.stats.count3Star === last3 && s.stats.count2Star === last2 && s.stats.uniqueReasons === lastUnique);
+                let isBehaviorTie = (s.stars === lastScore && s.stats.count3 === last3 && s.stats.count2 === last2 && s.stats.uniqueReasons === lastUnique);
                 let currentRank;
                 if (index === 0) currentRank = 1;
                 else {
@@ -702,7 +689,7 @@ export function renderStudentLeaderboardTab() {
                         currentRank = isTotalTie ? lastRank : index + 1;
                     }
                 }
-                lastScore = s.score; last3 = s.stats.count3Star; last2 = s.stats.count2Star; lastUnique = s.stats.uniqueReasons; lastRank = currentRank;
+                lastScore = s.stars; last3 = s.stats.count3; last2 = s.stats.count2; lastUnique = s.stats.uniqueReasons; lastRank = currentRank;
 
                 let cardBg = "bg-white border-b-4 border-gray-200";
                 let rankColor = "bg-gray-100 text-gray-500";

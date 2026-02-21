@@ -250,3 +250,32 @@ export function triggerAwardEffects(button, starCount) {
         shockwave.addEventListener('animationend', () => shockwave.remove());
     }
 }
+
+export function createFloatingHearts(x, y) {
+    const numHearts = 8 + Math.floor(Math.random() * 5); // 8 to 12 hearts
+
+    for (let i = 0; i < numHearts; i++) {
+        const heart = document.createElement('i');
+        heart.className = 'fas fa-heart absolute text-rose-500 z-[100] pointer-events-none drop-shadow-md';
+
+        const size = 16 + Math.random() * 24; // 16px to 40px
+        heart.style.fontSize = `${size}px`;
+        heart.style.left = `${x}px`;
+        heart.style.top = `${y}px`;
+
+        const tx = (Math.random() - 0.5) * 150; // -75px to 75px horizontal
+        const ty = -100 - Math.random() * 150; // -100px to -250px vertical
+        const rot = (Math.random() - 0.5) * 90; // Rotation
+        const duration = 1 + Math.random() * 1.5; // 1s to 2.5s
+
+        heart.style.setProperty('--tx', `${tx}px`);
+        heart.style.setProperty('--ty', `${ty}px`);
+        heart.style.setProperty('--rot', `${rot}deg`);
+
+        heart.style.animation = `float-up-heart ${duration}s ease-out forwards`;
+
+        document.body.appendChild(heart);
+
+        heart.addEventListener('animationend', () => heart.remove());
+    }
+}

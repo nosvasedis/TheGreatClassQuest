@@ -1,0 +1,11 @@
+{
+  "name": "the-great-class-quest",
+  "version": "1.0.0",
+  "description": "The Great Class Quest",
+  "scripts": {
+    "dev": "npx serve -l 3000"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC"
+}

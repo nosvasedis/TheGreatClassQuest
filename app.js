@@ -107,10 +107,8 @@ function setupAuthListeners() {
                 appScreen.classList.remove('app-screen-in');
             }, 500);
 
-            // Force Home Tab on Login
-            // Persistence: Load last active tab or default to Home
-            const lastTab = localStorage.getItem('quest_last_active_tab') || 'about-tab';
-            import('./ui/tabs.js').then(tabs => tabs.showTab(lastTab));
+            // Force Home Tab on Login (Bypass Persistence)
+            import('./ui/tabs.js').then(tabs => tabs.showTab('about-tab'));
 
             loadingScreen.classList.add('opacity-0');
             setTimeout(() => {

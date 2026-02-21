@@ -4,7 +4,7 @@
 export async function handleGetQuestUpdate() {
     const narrativeContainer = document.getElementById('narrative-text-container');
     const playBtn = document.getElementById('play-narrative-btn');
-    
+
     if (!state.get('globalSelectedLeague')) {
         showToast('Please select a league first!', 'error');
         return;
@@ -15,8 +15,8 @@ export async function handleGetQuestUpdate() {
     showAnimatedModal('quest-update-modal');
 
     const GOAL_PER_STUDENT = { DIAMOND: 18 };
-   const classesInLeague = state.get('allSchoolClasses').filter(c => c.questLevel === state.get('globalSelectedLeague'));
-    
+    const classesInLeague = state.get('allSchoolClasses').filter(c => c.questLevel === state.get('globalSelectedLeague'));
+
     // Correct Calculation Logic
     const classScores = classesInLeague.map(c => {
         const students = state.get('allStudents').filter(s => s.classId === c.id);
@@ -26,11 +26,11 @@ export async function handleGetQuestUpdate() {
             return sum + (scoreData ? (scoreData.monthlyStars || 0) : 0);
         }, 0);
 
-        const BASE_GOAL = 18; 
-        const SCALING_FACTOR = 2.5; 
+        const BASE_GOAL = 18;
+        const SCALING_FACTOR = 2.5;
         const now = new Date();
         const daysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
-        
+
         let holidayDaysLost = 0;
         (state.get('schoolHolidayRanges') || []).forEach(range => {
             const start = new Date(range.start);
@@ -46,11 +46,11 @@ export async function handleGetQuestUpdate() {
 
         let monthModifier = (daysInMonth - holidayDaysLost) / daysInMonth;
         monthModifier = now.getMonth() === 5 ? 0.5 : Math.max(0.6, Math.min(1.0, monthModifier));
-        
+
         const adjustedGoalPerStudent = (BASE_GOAL + ((c.difficultyLevel || 0) * SCALING_FACTOR)) * monthModifier;
         const diamondGoal = Math.round(Math.max(18, students.length * adjustedGoalPerStudent));
         const progress = diamondGoal > 0 ? ((monthlyStars / diamondGoal) * 100).toFixed(1) : 0;
-        
+
         return { name: c.name, totalStars: monthlyStars, progress };
     }).sort((a, b) => b.progress - a.progress);
 
@@ -69,7 +69,7 @@ export async function handleGetQuestUpdate() {
         const narrative = await callGeminiApi(systemPrompt, userPrompt);
         narrativeContainer.innerHTML = `<p>${narrative}</p>`;
         narrativeContainer.dataset.text = narrative;
-       
+
     } catch (error) {
         console.error("Quest Update Narrative Error:", error);
         narrativeContainer.innerHTML = `<p class="text-xl text-center text-red-500">The Quest Announcer is taking a break. Please try again in a moment!</p>`;
@@ -130,13 +130,13 @@ export async function handleGetOracleInsight() {
         const noteText = log.note ? ` (Note: ${log.note})` : '';
         return `On ${log.date}, ${student?.name || 'A student'} received ${log.stars} star(s) for ${log.reason}${noteText}.`;
     }).join('\n');
-    
+
     const academicScores = state.get('allWrittenScores').filter(score => score.classId === classId && score.date >= oneMonthAgoStr).map(score => {
         const student = state.get('allStudents').find(s => s.id === score.studentId);
         const noteText = score.note ? ` (Note: ${score.note})` : '';
         return `On ${score.date}, ${student?.name || 'A student'} scored ${score.scoreNumeric || score.scoreQualitative} on a ${score.type}${noteText}.`;
     }).join('\n');
-    
+
     const attendanceRecords = state.get('allAttendanceRecords').filter(rec => rec.classId === classId && rec.date >= oneMonthAgoStr);
     const absenceCount = attendanceRecords.length;
     const absentStudents = attendanceRecords.reduce((acc, rec) => {
@@ -201,15 +201,15 @@ export async function openMilestoneModal(markerElement) {
 
     const studentsInClass = state.get('allStudents').filter(s => s.classId === classId);
     const studentCount = studentsInClass.length;
-    
+
     // --- 1. SYNCED MATH LOGIC ---
-    const BASE_GOAL = 18; 
-    const SCALING_FACTOR = 2.5; 
+    const BASE_GOAL = 18;
+    const SCALING_FACTOR = 2.5;
     const now = new Date();
     const currentYear = now.getFullYear();
     const currentMonth = now.getMonth();
     const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
-    
+
     let holidayDaysLost = 0;
     const ranges = state.get('schoolHolidayRanges') || [];
     ranges.forEach(range => {
@@ -229,7 +229,7 @@ export async function openMilestoneModal(markerElement) {
 
     let isCompletedThisMonth = false;
     if (classInfo.questCompletedAt) {
-        const completedDate = classInfo.questCompletedAt.toDate();
+        const completedDate = typeof classInfo.questCompletedAt.toDate === 'function' ? classInfo.questCompletedAt.toDate() : new Date(classInfo.questCompletedAt);
         if (completedDate.getMonth() === currentMonth && completedDate.getFullYear() === currentYear) isCompletedThisMonth = true;
     }
     const dbDifficulty = classInfo.difficultyLevel || 0;
@@ -251,7 +251,7 @@ export async function openMilestoneModal(markerElement) {
 
     const relevantLogs = state.get('allAwardLogs').filter(log => {
         if (log.classId !== classId) return false;
-        const logDate = utils.parseDDMMYYYY(log.date); 
+        const logDate = utils.parseDDMMYYYY(log.date);
         return logDate.getMonth() === currentMonth && logDate.getFullYear() === currentYear;
     });
 
@@ -282,16 +282,16 @@ export async function openMilestoneModal(markerElement) {
         acc[log.reason || 'excellence'] = (acc[log.reason || 'excellence'] || 0) + log.stars;
         return acc;
     }, {});
-    const topReason = Object.entries(reasonCounts).sort((a,b) => b[1] - a[1])[0]?.[0].replace(/_/g, ' ') || "Teamwork";
+    const topReason = Object.entries(reasonCounts).sort((a, b) => b[1] - a[1])[0]?.[0].replace(/_/g, ' ') || "Teamwork";
 
     // --- 3. DYNAMIC UI RENDER ---
     const modalTitle = document.getElementById('milestone-modal-title');
     const modalContent = document.getElementById('milestone-modal-content');
-    
+
     let milestoneName, goal, icon, color;
-    if (markerElement.innerText.includes('🛡️')) { milestoneName = "Bronze Shield"; goal = goals.bronze; icon = '🛡️'; color = "blue"; } 
+    if (markerElement.innerText.includes('🛡️')) { milestoneName = "Bronze Shield"; goal = goals.bronze; icon = '🛡️'; color = "blue"; }
     else if (markerElement.innerText.includes('🏆')) { milestoneName = "Silver Trophy"; goal = goals.silver; icon = '🏆'; color = "slate"; }
-    else if (markerElement.innerText.includes('👑')) { milestoneName = "Golden Crown"; goal = goals.gold; icon = '👑'; color = "amber"; } 
+    else if (markerElement.innerText.includes('👑')) { milestoneName = "Golden Crown"; goal = goals.gold; icon = '👑'; color = "amber"; }
     else { milestoneName = "Diamond Quest"; goal = goals.diamond; icon = '💎'; color = "cyan"; }
 
     const progressPercent = goal > 0 ? Math.min(100, (currentMonthlyStars / goal) * 100).toFixed(1) : 0;
@@ -320,14 +320,14 @@ export async function openMilestoneModal(markerElement) {
                     </div>
                 </div>
 
-                ${starsNeeded > 0 
-                    ? `<div class="mt-6 bg-${color}-100/50 border-2 border-dashed border-${color}-300 rounded-2xl p-4 animate-bounce-slow">
+                ${starsNeeded > 0
+            ? `<div class="mt-6 bg-${color}-100/50 border-2 border-dashed border-${color}-300 rounded-2xl p-4 animate-bounce-slow">
                          <p class="text-${color}-800 font-bold text-lg"><i class="fas fa-arrow-up mr-2"></i>${starsNeeded} stars to reach ${icon}</p>
-                       </div>` 
-                    : `<div class="mt-6 bg-green-100 border-2 border-green-400 rounded-2xl p-4">
+                       </div>`
+            : `<div class="mt-6 bg-green-100 border-2 border-green-400 rounded-2xl p-4">
                          <p class="text-green-800 font-bold text-xl">⚔️ Milestone Claimed!</p>
                        </div>`
-                }
+        }
             </div>
 
             <div class="grid grid-cols-1 gap-4">
@@ -364,7 +364,7 @@ export async function openMilestoneModal(markerElement) {
                 </div>
             </div>
         </div>`;
-    
+
     showAnimatedModal('milestone-details-modal');
 }
 
@@ -386,7 +386,7 @@ export async function showWelcomeBackMessage(firstName, stars) {
     } catch (e) {
         messageEl.textContent = `We're so glad you're back, ${firstName}!`;
     }
-    
+
     setTimeout(() => {
         hideModal('welcome-back-modal');
     }, 4000);
@@ -404,21 +404,21 @@ export async function handleGenerateClassName() {
 
     btn.disabled = true;
     btn.innerHTML = `<i class="fas fa-spinner fa-spin"></i>`;
-    
+
     // Get age context using utils
     const ageGroup = utils.getAgeGroupForLeague(level);
-    
+
     const systemPrompt = "You are a creative assistant helping a teacher name their class team. Generate 3 short, catchy, fantasy/adventure themed class names suitable for children aged " + ageGroup + ". Do not use numbers. Return only the names separated by commas (e.g. 'Star Seekers, Dragon Riders, Time Travelers').";
     const userPrompt = `Generate names for a class in the "${level}" league.`;
 
     try {
         const result = await callGeminiApi(systemPrompt, userPrompt);
         const names = result.split(',').map(n => n.trim());
-        
-        output.innerHTML = names.map(name => 
+
+        output.innerHTML = names.map(name =>
             `<button type="button" class="suggestion-btn bg-indigo-100 text-indigo-700 px-3 py-1 rounded-full text-xs font-bold hover:bg-indigo-200 transition-colors border border-indigo-200 shadow-sm">${name}</button>`
         ).join('');
-        
+
     } catch (error) {
         console.error(error);
         showToast('The naming spell failed. Try again!', 'error');
@@ -426,3 +426,4 @@ export async function handleGenerateClassName() {
         btn.disabled = false;
         btn.innerHTML = `<i class="fas fa-magic"></i>`;
     }
+}

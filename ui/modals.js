@@ -599,13 +599,17 @@ export async function renderHistoricalLeaderboard(monthKey, type, scope = 'class
             }
 
             // 2. NEW: Fetch Quest History (The "Truth" Snapshots)
-            // This grabs the official record if a class finished the quest that month
+            // Fetch ALL history so we can accurately deduce historical levels
             const historyQ = query(
-                collection(db, "artifacts/great-class-quest/public/data/quest_history"),
-                where("monthKey", "==", monthKey)
+                collection(db, "artifacts/great-class-quest/public/data/quest_history")
             );
             const historySnap = await getDocs(historyQ);
-            questHistoryData = historySnap.docs.map(d => d.data());
+            const allQuestHistoryData = historySnap.docs.map(d => d.data());
+
+            questHistoryData = allQuestHistoryData.filter(h => h.monthKey === monthKey);
+
+            // Attach all history to the scope for calculating historical difficulty later
+            window._tempAllQuestHistoryData = allQuestHistoryData;
 
         } catch (e) {
             console.error("Fetch Error:", e);
@@ -678,19 +682,14 @@ export async function renderHistoricalLeaderboard(monthKey, type, scope = 'class
                 if (hMonth === 6) monthModifier = 0.5;
                 else monthModifier = Math.max(0.6, Math.min(1.0, monthModifier));
 
-                // Guess difficulty based on current state (fallback)
-                let historicalDifficulty = c.difficultyLevel || 0;
-
-                // Adjustment attempt for older logs
-                if (c.questCompletedAt) {
-                    try {
-                        const completedDate = c.questCompletedAt.toDate ? c.questCompletedAt.toDate() : new Date(c.questCompletedAt);
-                        completedDate.setHours(0, 0, 0, 0);
-                        if (completedDate >= monthStart) {
-                            historicalDifficulty = Math.max(0, historicalDifficulty - 1);
-                        }
-                    } catch (err) { }
-                }
+                // Calculate historical difficulty by counting completions BEFORE this month
+                let historicalDifficulty = 0;
+                const allHistory = window._tempAllQuestHistoryData || [];
+                allHistory.forEach(h => {
+                    if (h.classId === c.id && h.monthKey < monthKey) {
+                        historicalDifficulty++;
+                    }
+                });
 
                 const adjustedGoalPerStudent = (BASE_GOAL + (historicalDifficulty * SCALING_FACTOR)) * monthModifier;
                 const diamondGoal = Math.round(Math.max(18, rosterStudents.length * adjustedGoalPerStudent));
@@ -1296,29 +1295,12 @@ export async function handleGetQuestUpdate() {
             return sum + (scoreData ? (scoreData.monthlyStars || 0) : 0);
         }, 0);
 
-        const BASE_GOAL = 18;
-        const SCALING_FACTOR = 2.5;
-        const now = new Date();
-        const daysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
-
-        let holidayDaysLost = 0;
-        (state.get('schoolHolidayRanges') || []).forEach(range => {
-            const start = new Date(range.start);
-            const end = new Date(range.end);
-            const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
-            const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0);
-            const overlapStart = start > monthStart ? start : monthStart;
-            const overlapEnd = end < monthEnd ? end : monthEnd;
-            if (overlapStart <= overlapEnd) {
-                holidayDaysLost += (Math.ceil(Math.abs(overlapEnd - overlapStart) / (1000 * 60 * 60 * 24)) + 1);
-            }
-        });
-
-        let monthModifier = (daysInMonth - holidayDaysLost) / daysInMonth;
-        monthModifier = now.getMonth() === 5 ? 0.5 : Math.max(0.6, Math.min(1.0, monthModifier));
-
-        const adjustedGoalPerStudent = (BASE_GOAL + ((c.difficultyLevel || 0) * SCALING_FACTOR)) * monthModifier;
-        const diamondGoal = Math.round(Math.max(18, students.length * adjustedGoalPerStudent));
+        const diamondGoal = utils.calculateMonthlyClassGoal(
+            c,
+            students.length,
+            state.get('schoolHolidayRanges'),
+            state.get('allScheduleOverrides')
+        );
         const progress = diamondGoal > 0 ? ((monthlyStars / diamondGoal) * 100).toFixed(1) : 0;
 
         return { name: c.name, totalStars: monthlyStars, progress };
@@ -1473,44 +1455,21 @@ export async function openMilestoneModal(markerElement) {
     const studentCount = studentsInClass.length;
 
     // --- 1. SYNCED MATH LOGIC ---
-    const BASE_GOAL = 18;
-    const SCALING_FACTOR = 2.5;
-    const now = new Date();
-    const currentYear = now.getFullYear();
-    const currentMonth = now.getMonth();
-    const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
+    const goalDiamond = utils.calculateMonthlyClassGoal(
+        classInfo,
+        studentCount,
+        state.get('schoolHolidayRanges'),
+        state.get('allScheduleOverrides')
+    );
 
-    let holidayDaysLost = 0;
-    const ranges = state.get('schoolHolidayRanges') || [];
-    ranges.forEach(range => {
-        const start = new Date(range.start);
-        const end = new Date(range.end);
-        const monthStart = new Date(currentYear, currentMonth, 1);
-        const monthEnd = new Date(currentYear, currentMonth + 1, 0);
-        const overlapStart = start > monthStart ? start : monthStart;
-        const overlapEnd = end < monthEnd ? end : monthEnd;
-        if (overlapStart <= overlapEnd) {
-            holidayDaysLost += (Math.ceil(Math.abs(overlapEnd - overlapStart) / (1000 * 60 * 60 * 24)) + 1);
-        }
-    });
-
-    let monthModifier = (daysInMonth - holidayDaysLost) / daysInMonth;
-    monthModifier = currentMonth === 5 ? 0.5 : Math.max(0.6, Math.min(1.0, monthModifier));
-
-    let isCompletedThisMonth = false;
-    if (classInfo.questCompletedAt) {
-        const completedDate = classInfo.questCompletedAt.toDate();
-        if (completedDate.getMonth() === currentMonth && completedDate.getFullYear() === currentYear) isCompletedThisMonth = true;
-    }
-    const dbDifficulty = classInfo.difficultyLevel || 0;
-    const effectiveDifficulty = isCompletedThisMonth ? Math.max(0, dbDifficulty - 1) : dbDifficulty;
-    const adjustedGoalPerStudent = (BASE_GOAL + (effectiveDifficulty * SCALING_FACTOR)) * monthModifier;
+    // Estimate per-student for the lower tiers
+    const adjustedGoalPerStudent = studentCount > 0 ? (goalDiamond / studentCount) : 18;
 
     const goals = {
         bronze: Math.round(studentCount * (adjustedGoalPerStudent * 0.25)),
         silver: Math.round(studentCount * (adjustedGoalPerStudent * 0.50)),
         gold: Math.round(studentCount * (adjustedGoalPerStudent * 0.75)),
-        diamond: studentCount > 0 ? Math.round(studentCount * adjustedGoalPerStudent) : 18
+        diamond: goalDiamond
     };
 
     // --- 2. ADVANCED DATA ANALYSIS ---
@@ -3131,7 +3090,7 @@ export function openZoneOverviewModal(zoneType) {
 
         let isCompletedThisMonth = false;
         if (c.questCompletedAt) {
-            const completedDate = c.questCompletedAt.toDate();
+            const completedDate = typeof c.questCompletedAt.toDate === 'function' ? c.questCompletedAt.toDate() : new Date(c.questCompletedAt);
             if (completedDate.getMonth() === currentMonth && completedDate.getFullYear() === currentYear) {
                 isCompletedThisMonth = true;
             }

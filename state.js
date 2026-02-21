@@ -174,11 +174,11 @@ export function setGlobalSelectedClass(classId, isManual = false) {
         tabs.updateAllClassSelectors(isManual);
         tabs.updateAllLeagueSelectors(isManual);
 
-        const activeTab = document.querySelector('.app-tab:not(.hidden)');
-        if (activeTab && state.globalSelectedClassId) {
-            if (activeTab.id === 'award-stars-tab') {
+        const activeTabId = localStorage.getItem('quest_last_active_tab') || 'about-tab';
+        if (activeTabId && state.globalSelectedClassId) {
+            if (activeTabId === 'award-stars-tab') {
                 tabs.renderAwardStarsTab();
-            } else if (activeTab.id === 'adventure-log-tab') {
+            } else if (activeTabId === 'adventure-log-tab') {
                 tabs.renderAdventureLogTab();
             }
         }
@@ -202,10 +202,10 @@ export function setGlobalSelectedLeague(league, isManual = false) {
     import('./ui/tabs.js').then(tabs => {
         tabs.updateAllLeagueSelectors(isManual);
 
-        const activeTab = document.querySelector('.app-tab:not(.hidden)');
-        if (activeTab && state.globalSelectedLeague) {
-            if (activeTab.id === 'class-leaderboard-tab') tabs.renderClassLeaderboardTab();
-            if (activeTab.id === 'student-leaderboard-tab') tabs.renderStudentLeaderboardTab();
+        const activeTabId = localStorage.getItem('quest_last_active_tab') || 'about-tab';
+        if (activeTabId && state.globalSelectedLeague) {
+            if (activeTabId === 'class-leaderboard-tab') tabs.renderClassLeaderboardTab();
+            if (activeTabId === 'student-leaderboard-tab') tabs.renderStudentLeaderboardTab();
         }
     });
 }

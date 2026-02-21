@@ -5,7 +5,7 @@ import * as state from '../state.js';
 import * as utils from '../utils.js';
 import * as constants from '../constants.js';
 import { deleteClass, deleteStudent, ensureHistoryLoaded } from '../db/actions.js';
-import { db } from '../firebase.js'; 
+import { db } from '../firebase.js';
 import { fetchMonthlyHistory } from '../state.js';
 import * as modals from './modals.js';
 import * as scholarScroll from '../features/scholarScroll.js';
@@ -24,12 +24,14 @@ export async function showTab(tabName) {
     const allTabs = document.querySelectorAll('.app-tab');
     const tabId = tabName.endsWith('-tab') ? tabName : `${tabName}-tab`;
     const nextTab = document.getElementById(tabId);
-    
+
     const currentTab = document.querySelector('.app-tab:not(.hidden)');
 
     if (!nextTab || (currentTab && currentTab.id === tabId)) {
         return;
     }
+
+    localStorage.setItem('quest_last_active_tab', tabId);
 
     document.querySelectorAll('.nav-button[data-tab]').forEach(btn => {
         btn.classList.toggle('active', btn.dataset.tab === tabId);
@@ -42,14 +44,14 @@ export async function showTab(tabName) {
 
     if (currentTab) {
         currentTab.classList.add('tab-animate-out');
-        
+
         setTimeout(() => {
             currentTab.classList.add('hidden');
             currentTab.classList.remove('tab-animate-out');
 
             nextTab.classList.remove('hidden');
             nextTab.classList.add('tab-animate-in');
-            
+
             setTimeout(() => {
                 nextTab.classList.remove('tab-animate-in');
             }, animationDuration);
@@ -69,52 +71,52 @@ export async function showTab(tabName) {
         findAndSetCurrentLeague();
         updateCeremonyStatus(tabId); // Pass the ID!
     }
-    
-    if(tabId === 'class-leaderboard-tab') renderClassLeaderboardTab();
-    if(tabId === 'student-leaderboard-tab') renderStudentLeaderboardTab();
-    if(tabId === 'my-classes-tab') renderManageClassesTab();
-    if(tabId === 'manage-students-tab') renderManageStudentsTab();
-    
-    if(tabId === 'award-stars-tab') { 
+
+    if (tabId === 'class-leaderboard-tab') renderClassLeaderboardTab();
+    if (tabId === 'student-leaderboard-tab') renderStudentLeaderboardTab();
+    if (tabId === 'my-classes-tab') renderManageClassesTab();
+    if (tabId === 'manage-students-tab') renderManageStudentsTab();
+
+    if (tabId === 'award-stars-tab') {
         const { findAndSetCurrentClass } = await import('./core.js');
         // First render with whatever state we have
-        renderAwardStarsTab(); 
+        renderAwardStarsTab();
         // Then try to find the current class based on time, which will trigger a re-render via state.js if found
-        findAndSetCurrentClass(); 
+        findAndSetCurrentClass();
     }
-    
-    if(tabId === 'adventure-log-tab') { 
+
+    if (tabId === 'adventure-log-tab') {
         const { findAndSetCurrentClass } = await import('./core.js');
-        renderAdventureLogTab(); 
-        findAndSetCurrentClass('adventure-log-class-select'); 
+        renderAdventureLogTab();
+        findAndSetCurrentClass('adventure-log-class-select');
     }
-    
-    if(tabId === 'scholars-scroll-tab') { 
+
+    if (tabId === 'scholars-scroll-tab') {
         const { findAndSetCurrentClass } = await import('./core.js');
-        scholarScroll.renderScholarsScrollTab(); 
-        findAndSetCurrentClass('scroll-class-select'); 
+        scholarScroll.renderScholarsScrollTab();
+        findAndSetCurrentClass('scroll-class-select');
     }
-    
-    if(tabId === 'calendar-tab') {
-        await ensureHistoryLoaded(); 
+
+    if (tabId === 'calendar-tab') {
+        await ensureHistoryLoaded();
         renderCalendarTab();
     }
 
-    if(tabId === 'about-tab') {
+    if (tabId === 'about-tab') {
         renderHomeTab();
     }
-    
-    if(tabId === 'reward-ideas-tab') renderIdeasTabSelects();
-    if(tabId === 'options-tab') {
+
+    if (tabId === 'reward-ideas-tab') renderIdeasTabSelects();
+    if (tabId === 'options-tab') {
         // Load holidays and the new economy selector
         import('./core.js').then(m => {
-            if(m.renderHolidayList) m.renderHolidayList();
-            if(m.renderEconomyStudentSelect) m.renderEconomyStudentSelect(); 
+            if (m.renderHolidayList) m.renderHolidayList();
+            if (m.renderEconomyStudentSelect) m.renderEconomyStudentSelect();
         });
-        
+
         // FIX: Call this directly (it is defined in this file, not core.js)
-        renderStarManagerStudentSelect(); 
-        
+        renderStarManagerStudentSelect();
+
         if (document.getElementById('teacher-name-input')) {
             document.getElementById('teacher-name-input').value = state.get('currentTeacherName') || '';
         }
@@ -135,27 +137,27 @@ export async function renderClassLeaderboardTab() {
     }
 
     const classesInLeague = state.get('allSchoolClasses').filter(c => c.questLevel === league);
-    
+
     if (classesInLeague.length === 0) {
         list.innerHTML = `<p class="text-center text-gray-700 bg-white/50 p-4 rounded-2xl text-lg">No classes in this quest league... yet!</p>`;
         questUpdateBtn.disabled = true;
         return;
     }
-    
+
     // --- CALCULATIONS ---
-    const BASE_GOAL = 18; 
-    const SCALING_FACTOR = 2.5; 
+    const BASE_GOAL = 18;
+    const SCALING_FACTOR = 2.5;
     const now = new Date();
     const currentYear = now.getFullYear();
     const currentMonth = now.getMonth();
     const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
-    
+
     const today = new Date();
-    const dayOfWeek = today.getDay(); 
+    const dayOfWeek = today.getDay();
     const daysToMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
     const startOfWeek = new Date(today);
     startOfWeek.setDate(today.getDate() - daysToMonday);
-    startOfWeek.setHours(0, 0, 0, 0); 
+    startOfWeek.setHours(0, 0, 0, 0);
 
     let holidayDaysLost = 0;
     (state.get('schoolHolidayRanges') || []).forEach(range => {
@@ -180,7 +182,7 @@ export async function renderClassLeaderboardTab() {
     const classScores = classesInLeague.map(c => {
         const studentsInClass = allStudents.filter(s => s.classId === c.id);
         const studentCount = studentsInClass.length;
-        
+
         let isCompletedThisMonth = false;
         if (c.questCompletedAt) {
             const completedDate = c.questCompletedAt.toDate();
@@ -193,10 +195,10 @@ export async function renderClassLeaderboardTab() {
         const effectiveDifficulty = isCompletedThisMonth ? Math.max(0, dbDifficulty - 1) : dbDifficulty;
         const rawBasePerStudent = BASE_GOAL + (effectiveDifficulty * SCALING_FACTOR);
         const adjustedGoalPerStudent = rawBasePerStudent * monthModifier;
-        
+
         const goals = { diamond: studentCount > 0 ? Math.round(studentCount * adjustedGoalPerStudent) : 18 };
         const originalGoalTotal = Math.round(studentCount * rawBasePerStudent);
-        const goalDifference = goals.diamond - originalGoalTotal; 
+        const goalDifference = goals.diamond - originalGoalTotal;
 
         const currentMonthlyStars = studentsInClass.reduce((sum, s) => {
             const scoreData = allStudentScores.find(sc => sc.id === s.id);
@@ -223,10 +225,10 @@ export async function renderClassLeaderboardTab() {
         const topHeroes = studentsInClass
             .map(s => {
                 const scoreData = allStudentScores.find(sc => sc.id === s.id);
-                return { 
-                    name: s.name, 
-                    avatar: s.avatar, 
-                    stars: scoreData ? (Number(scoreData.monthlyStars) || 0) : 0 
+                return {
+                    name: s.name,
+                    avatar: s.avatar,
+                    stars: scoreData ? (Number(scoreData.monthlyStars) || 0) : 0
                 };
             })
             .sort((a, b) => b.stars - a.stars)
@@ -238,26 +240,26 @@ export async function renderClassLeaderboardTab() {
         });
 
         const reasons = {};
-        classLogs.forEach(l => { if(l.reason) reasons[l.reason] = (reasons[l.reason] || 0) + l.stars; });
-        const topSkill = Object.entries(reasons).sort((a,b) => b[1] - a[1])[0]?.[0] || 'None';
+        classLogs.forEach(l => { if (l.reason) reasons[l.reason] = (reasons[l.reason] || 0) + l.stars; });
+        const topSkill = Object.entries(reasons).sort((a, b) => b[1] - a[1])[0]?.[0] || 'None';
 
         let progress = goals.diamond > 0 ? (currentMonthlyStars / goals.diamond) * 100 : 0;
         if (isCompletedThisMonth && progress < 100) progress = 100;
 
-        return { 
-            ...c, 
-            studentCount, 
+        return {
+            ...c,
+            studentCount,
             goals,
-            goalDifference, 
-            currentMonthlyStars, 
+            goalDifference,
+            currentMonthlyStars,
             weeklyStars,
             totalGold,
             adventureCount,
             topHeroes,
             hasPathfinder,
             topSkill,
-            progress, 
-            difficulty: dbDifficulty 
+            progress,
+            difficulty: dbDifficulty
         };
     }).sort((a, b) => b.progress - a.progress);
 
@@ -269,12 +271,12 @@ export async function renderClassLeaderboardTab() {
     // --- RENDER ANALYTICS CARDS ---
     const cardsHtml = classScores.map((c, index) => {
         const rank = index + 1;
-        
+
         // 1. EXACT LEVELS (1-6) - NO NAMES - HOVER INFO
         const diff = (c.difficulty || 0) + 1;
         let diffBadge = "";
         let factor = 1.0 + (c.difficulty * 0.1); // Fake factor calculation for display
-        
+
         // Define style based on level 1-6
         const lvlStyles = {
             1: { color: "bg-teal-100 text-teal-800 border-teal-200", icon: "🌱" },
@@ -308,7 +310,7 @@ export async function renderClassLeaderboardTab() {
             const sign = isReduction ? "" : "+"; // Negative number already has sign
             const colorClass = isReduction ? "text-orange-500" : "text-green-500";
             const icon = isReduction ? "fa-umbrella-beach" : "fa-calendar-plus";
-            
+
             goalIconHtml = `
             <div class="relative inline-block ml-2" 
                  onmouseenter="this.querySelector('.goal-tooltip').classList.remove('opacity-0', 'pointer-events-none')" 
@@ -334,7 +336,7 @@ export async function renderClassLeaderboardTab() {
         else if (rank === 3) { headerColor = "bg-gradient-to-r from-orange-50 to-amber-50 border-b border-orange-200"; rankBadge = `<div class="text-3xl filter drop-shadow-sm">🥉</div>`; }
 
         // Multi-Stage Progress Bar
-        const p = c.progress; 
+        const p = c.progress;
         const fillBronze = Math.min(p, 30) / 30 * 100;
         const fillSilver = Math.min(Math.max(p - 30, 0), 30) / 30 * 100;
         const fillGold = Math.min(Math.max(p - 60, 0), 25) / 25 * 100;
@@ -374,7 +376,7 @@ export async function renderClassLeaderboardTab() {
         const starsFormatted = Number(c.currentMonthlyStars) % 1 !== 0 ? c.currentMonthlyStars.toFixed(1) : c.currentMonthlyStars.toFixed(0);
         const weeklyFormatted = Number(c.weeklyStars) % 1 !== 0 ? c.weeklyStars.toFixed(1) : c.weeklyStars.toFixed(0);
 
-        const topHeroesHtml = c.topHeroes.length > 0 ? 
+        const topHeroesHtml = c.topHeroes.length > 0 ?
             c.topHeroes.map(h => `
                 <div class="flex flex-col items-center" title="${h.name}: ${h.stars} Stars">
                     <div class="w-8 h-8 rounded-full border border-gray-200 overflow-hidden shadow-sm">
@@ -490,22 +492,22 @@ export async function renderClassLeaderboardTab() {
     const container = document.getElementById('league-standings-container');
     const stickyBtn = document.getElementById('sticky-show-map-btn');
 
-   if (toggleBtn && container) {
+    if (toggleBtn && container) {
         // Main Toggle Button Logic
         toggleBtn.onclick = () => {
             // FIX: Always act as "Open/Go To" when clicked. 
             // Do not toggle closed, because the sticky button handles closing.
-            
+
             container.classList.remove('hidden');
             requestAnimationFrame(() => {
                 container.classList.remove('opacity-0', 'translate-y-4');
             });
-            
+
             // 1. Hide the original Analysis button
             toggleBtn.classList.add('opacity-0', 'pointer-events-none');
-            
+
             // 2. Show the sticky button immediately
-            if(stickyBtn) stickyBtn.classList.remove('translate-y-32', 'opacity-0');
+            if (stickyBtn) stickyBtn.classList.remove('translate-y-32', 'opacity-0');
 
             container.scrollIntoView({ behavior: 'smooth', block: 'start' });
         };
@@ -516,7 +518,7 @@ export async function renderClassLeaderboardTab() {
 
             // Watch the map to automatically toggle buttons when scrolling
             const mapArea = list.querySelector('.league-map-wrapper') || list.firstElementChild;
-            
+
             const observer = new IntersectionObserver((entries) => {
                 entries.forEach(entry => {
                     // If map comes back into view (User scrolled to top)
@@ -540,18 +542,18 @@ export async function renderClassLeaderboardTab() {
             // CLOSE ANALYTICS
             container.classList.add('opacity-0', 'translate-y-4');
             setTimeout(() => container.classList.add('hidden'), 300);
-            
+
             // 1. Restore the original Analysis button
             toggleBtn.classList.remove('opacity-0', 'pointer-events-none');
-            
+
             // 2. Hide the sticky button
-            if(stickyBtn) stickyBtn.classList.add('translate-y-32', 'opacity-0');
-            
+            if (stickyBtn) stickyBtn.classList.add('translate-y-32', 'opacity-0');
+
             // Scroll back to Map smoothly
             list.scrollIntoView({ behavior: 'smooth', block: 'start' });
         }
     }
-    
+
     list.querySelectorAll('.zone-trigger').forEach(zone => {
         zone.addEventListener('click', (e) => {
             const zoneType = e.currentTarget.dataset.zone;
@@ -592,9 +594,9 @@ export function renderStudentLeaderboardTab() {
 
         const monthlyLogs = studentLogs.filter(log => {
             const logDate = utils.parseDDMMYYYY(log.date);
-            return logDate.getMonth() === currentMonthIndex && 
-                   logDate.getFullYear() === currentYear &&
-                   log.reason !== 'pathfinder_bonus';
+            return logDate.getMonth() === currentMonthIndex &&
+                logDate.getFullYear() === currentYear &&
+                log.reason !== 'pathfinder_bonus';
         });
 
         // A. Weekly Stars (Monday to Friday)
@@ -603,7 +605,7 @@ export function renderStudentLeaderboardTab() {
         const startOfWeek = new Date(now);
         startOfWeek.setDate(now.getDate() - daysToMonday);
         startOfWeek.setHours(0, 0, 0, 0);
-        
+
         const weeklyStars = studentLogs
             .filter(log => utils.parseDDMMYYYY(log.date) >= startOfWeek)
             .reduce((sum, log) => sum + log.stars, 0);
@@ -630,13 +632,13 @@ export function renderStudentLeaderboardTab() {
 
         monthlyLogs.forEach(log => {
             if (log.reason) {
-                if (!reasonCounts[log.reason]) reasonCounts[log.reason] = 0; 
+                if (!reasonCounts[log.reason]) reasonCounts[log.reason] = 0;
                 reasonCounts[log.reason] += log.stars;
             }
             if (log.stars >= 3) count3Star++;
             else if (log.stars >= 2) count2Star++;
         });
-        
+
         // Sort reasons by highest star count
         const topReasonEntry = Object.entries(reasonCounts).sort((a, b) => b[1] - a[1])[0];
         const topSkill = topReasonEntry ? topReasonEntry[0] : null;
@@ -659,7 +661,7 @@ export function renderStudentLeaderboardTab() {
 
         return { weeklyStars, topSkill, streak, count3Star, count2Star, academicAvg };
     };
-    
+
     let studentsInLeague = state.get('allStudents')
         .filter(s => classesInLeague.some(c => c.id === s.classId))
         .map(s => {
@@ -708,23 +710,23 @@ export function renderStudentLeaderboardTab() {
 
     const getPillsHtml = (s) => {
         let html = '';
-        
+
         // Badge 1: Stars THIS WEEK
         if (s.stats.weeklyStars > 0) {
             html += `<div class="flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-orange-100 text-orange-600 shadow-sm border border-orange-200" title="${s.stats.weeklyStars} stars this week"><i class="fas fa-fire"></i> Week: ${s.stats.weeklyStars}</div>`;
         }
-        
+
         // Badge 2: Streak of Perfect 3-Stars
         if (s.stats.streak > 1) {
             html += `<div class="flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-indigo-100 text-indigo-600 shadow-sm border border-indigo-200" title="Streak of ${s.stats.streak} perfect lessons!"><i class="fas fa-bolt"></i> Streak: ${s.stats.streak}</div>`;
         }
-        
+
         // Badge 3: Top Reason of the MONTH
         if (s.stats.topSkill) {
-            const info = reasonInfo[s.stats.topSkill] || {icon: 'fa-star', color: 'bg-gray-100 text-gray-600', name: 'Star'};
+            const info = reasonInfo[s.stats.topSkill] || { icon: 'fa-star', color: 'bg-gray-100 text-gray-600', name: 'Star' };
             html += `<div class="flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold ${info.color} shadow-sm border border-white/50" title="Top Skill this Month"><i class="fas ${info.icon}"></i> <span>${info.name}</span></div>`;
         }
-        
+
         return html;
     };
 
@@ -742,7 +744,7 @@ export function renderStudentLeaderboardTab() {
             else {
                 if (lastRank <= 3) currentRank = isBehaviorTie ? lastRank : index + 1;
                 else {
-                    let isTotalTie = isBehaviorTie && (s.stats.academicAvg === studentsInLeague[index-1].stats.academicAvg);
+                    let isTotalTie = isBehaviorTie && (s.stats.academicAvg === studentsInLeague[index - 1].stats.academicAvg);
                     currentRank = isTotalTie ? lastRank : index + 1;
                 }
             }
@@ -820,7 +822,7 @@ export function renderStudentLeaderboardTab() {
                 else {
                     if (lastRank <= 3) currentRank = isBehaviorTie ? lastRank : index + 1;
                     else {
-                        let isTotalTie = isBehaviorTie && (s.stats.academicAvg === classData.students[index-1].stats.academicAvg);
+                        let isTotalTie = isBehaviorTie && (s.stats.academicAvg === classData.students[index - 1].stats.academicAvg);
                         currentRank = isTotalTie ? lastRank : index + 1;
                     }
                 }
@@ -875,7 +877,7 @@ export function renderManageClassesTab() {
         list.innerHTML = `<p class="text-center text-gray-700 bg-white/50 p-4 rounded-2xl text-lg">You haven't created any classes yet. Add one above!</p>`;
         return;
     }
-    list.innerHTML = state.get('allTeachersClasses').sort((a,b) => a.name.localeCompare(b.name)).map(c => {
+    list.innerHTML = state.get('allTeachersClasses').sort((a, b) => a.name.localeCompare(b.name)).map(c => {
         const schedule = (c.scheduleDays || []).map(d => ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'][d]).join(', ');
         const time = (c.timeStart && c.timeEnd) ? `${c.timeStart} - ${c.timeEnd}` : 'No time set';
         return `
@@ -897,7 +899,7 @@ export function renderManageClassesTab() {
                 </div>
             </div>`;
     }).join('');
-    
+
     list.querySelectorAll('.manage-students-btn').forEach(btn => btn.addEventListener('click', () => {
         state.set('currentManagingClassId', btn.dataset.id);
         document.getElementById('manage-class-name').innerText = btn.dataset.name;
@@ -914,14 +916,14 @@ export function renderManageStudentsTab() {
     const list = document.getElementById('student-list');
     const currentManagingClassId = state.get('currentManagingClassId');
     if (!list || !currentManagingClassId) return;
-    const studentsInClass = state.get('allStudents').filter(s => s.classId === currentManagingClassId).sort((a,b) => a.name.localeCompare(b.name));
+    const studentsInClass = state.get('allStudents').filter(s => s.classId === currentManagingClassId).sort((a, b) => a.name.localeCompare(b.name));
     if (studentsInClass.length === 0) {
         list.innerHTML = `<p class="text-sm text-center text-gray-500">No students in this class yet. Add one!</p>`;
         return;
     }
     list.innerHTML = studentsInClass.map(s => {
-        const avatarHtml = s.avatar 
-            ? `<img src="${s.avatar}" alt="${s.name}" data-student-id="${s.id}" class="student-avatar large-avatar enlargeable-avatar cursor-pointer">` 
+        const avatarHtml = s.avatar
+            ? `<img src="${s.avatar}" alt="${s.name}" data-student-id="${s.id}" class="student-avatar large-avatar enlargeable-avatar cursor-pointer">`
             : `<div data-student-id="${s.id}" class="student-avatar large-avatar enlargeable-avatar cursor-pointer flex items-center justify-center bg-gray-300 text-gray-600 font-bold">${s.name.charAt(0)}</div>`;
 
         return `
@@ -940,7 +942,7 @@ export function renderManageStudentsTab() {
             </div>
         </div>`;
     }).join('');
-    
+
     list.querySelectorAll('.delete-student-btn').forEach(btn => btn.addEventListener('click', () => modals.showModal('Delete Student?', 'Are you sure you want to delete this student?', () => deleteStudent(btn.dataset.id))));
     list.querySelectorAll('.certificate-student-btn').forEach(btn => btn.addEventListener('click', () => modals.handleGenerateCertificate(btn.dataset.id)));
     list.querySelectorAll('.edit-student-btn').forEach(btn => btn.addEventListener('click', () => modals.openEditStudentModal(btn.dataset.id)));
@@ -953,21 +955,21 @@ export function renderAwardStarsTab() {
     const dropdownList = document.getElementById('award-class-list');
     const studentListContainer = document.getElementById('award-stars-student-list');
     if (!dropdownList) return;
-    
+
     const selectedClassId = state.get('globalSelectedClassId');
     const allTeachersClasses = state.get('allTeachersClasses');
 
     if (allTeachersClasses.length === 0) {
-         dropdownList.innerHTML = '';
-         document.getElementById('selected-class-name').innerText = 'No classes created';
-         document.getElementById('selected-class-level').innerText = 'Create one in "My Classes"';
-         document.getElementById('selected-class-logo').innerText = '😢';
-         studentListContainer.innerHTML = `<p class="text-center text-gray-700 bg-white/70 backdrop-blur-sm p-4 rounded-2xl text-lg col-span-full">You must create a class first.</p>`;
-         return;
+        dropdownList.innerHTML = '';
+        document.getElementById('selected-class-name').innerText = 'No classes created';
+        document.getElementById('selected-class-level').innerText = 'Create one in "My Classes"';
+        document.getElementById('selected-class-logo').innerText = '😢';
+        studentListContainer.innerHTML = `<p class="text-center text-gray-700 bg-white/70 backdrop-blur-sm p-4 rounded-2xl text-lg col-span-full">You must create a class first.</p>`;
+        return;
     }
-    
+
     dropdownList.innerHTML = allTeachersClasses
-        .sort((a,b) => a.name.localeCompare(b.name))
+        .sort((a, b) => a.name.localeCompare(b.name))
         .map(c => `
         <div class="award-class-item flex items-center gap-3 p-3 hover:bg-rose-50 cursor-pointer" data-id="${c.id}">
             <span class="text-3xl">${c.logo}</span>
@@ -979,12 +981,24 @@ export function renderAwardStarsTab() {
     `).join('');
 
     if (selectedClassId) {
-        renderAwardStarsStudentList(selectedClassId);
+        const selectedClass = allTeachersClasses.find(c => c.id === selectedClassId);
+        if (selectedClass) {
+            document.getElementById('selected-class-name').innerText = selectedClass.name;
+            document.getElementById('selected-class-level').innerText = selectedClass.questLevel;
+            document.getElementById('selected-class-logo').innerText = selectedClass.logo;
+            renderAwardStarsStudentList(selectedClassId);
+        } else {
+            // Class might have been deleted but ID still in localStorage
+            document.getElementById('selected-class-name').innerText = 'Select a class...';
+            document.getElementById('selected-class-level').innerText = '';
+            document.getElementById('selected-class-logo').innerText = '❓';
+            studentListContainer.innerHTML = `<p class="text-center text-gray-700 bg-white/70 backdrop-blur-sm p-4 rounded-2xl text-lg col-span-full">Please select a class above to award stars.</p>`;
+        }
     } else {
-         document.getElementById('selected-class-name').innerText = 'Select a class...';
-         document.getElementById('selected-class-level').innerText = '';
-         document.getElementById('selected-class-logo').innerText = '❓';
-         studentListContainer.innerHTML = `<p class="text-center text-gray-700 bg-white/70 backdrop-blur-sm p-4 rounded-2xl text-lg col-span-full">Please select a class above to award stars.</p>`;
+        document.getElementById('selected-class-name').innerText = 'Select a class...';
+        document.getElementById('selected-class-level').innerText = '';
+        document.getElementById('selected-class-logo').innerText = '❓';
+        studentListContainer.innerHTML = `<p class="text-center text-gray-700 bg-white/70 backdrop-blur-sm p-4 rounded-2xl text-lg col-span-full">Please select a class above to award stars.</p>`;
     }
 }
 
@@ -999,7 +1013,7 @@ export function renderAwardStarsStudentList(selectedClassId, fullRender = true) 
         }
 
         let studentsInClass = state.get('allStudents').filter(s => s.classId === selectedClassId);
-        
+
         if (fullRender) {
             for (let i = studentsInClass.length - 1; i > 0; i--) {
                 const j = Math.floor(Math.random() * (i + 1));
@@ -1014,7 +1028,7 @@ export function renderAwardStarsStudentList(selectedClassId, fullRender = true) 
             const today = utils.getTodayDateString();
 
             const cloudShapes = ['cloud-shape-1', 'cloud-shape-2', 'cloud-shape-3', 'cloud-shape-4'];
-            
+
             // --- 1. PRE-CALCULATE BOON ELIGIBILITY ---
             const allScores = state.get('allStudentScores');
             // Map students to scores
@@ -1033,26 +1047,26 @@ export function renderAwardStarsStudentList(selectedClassId, fullRender = true) 
             listContainer.innerHTML = studentsInClass.map((s, index) => {
                 const reigningHero = state.get('reigningHero');
                 const isReigningHero = reigningHero && reigningHero.id === s.id;
-                const scoreData = state.get('allStudentScores').find(score => score.id === s.id) || {}; 
+                const scoreData = state.get('allStudentScores').find(score => score.id === s.id) || {};
                 const totalStars = scoreData.totalStars || 0;
                 const goldCount = scoreData.gold !== undefined ? scoreData.gold : (scoreData.totalStars || 0);
-                const monthlyStars = scoreData.monthlyStars || 0; 
+                const monthlyStars = scoreData.monthlyStars || 0;
                 const starsToday = state.get('todaysStars')[s.id]?.stars || 0;
                 const reasonToday = state.get('todaysStars')[s.id]?.reason;
                 const cloudShape = cloudShapes[index % cloudShapes.length];
-                
+
                 const isMarkedAbsentToday = state.get('allAttendanceRecords').some(r => r.studentId === s.id && r.date === today);
                 const wasAbsentLastTime = previousLessonDate && state.get('allAttendanceRecords').some(r => r.studentId === s.id && r.date === previousLessonDate);
-                
+
                 const isPresentToday = starsToday > 0 || reasonToday === 'marked_present' || reasonToday === 'welcome_back';
                 const isVisuallyAbsent = isMarkedAbsentToday || (wasAbsentLastTime && !isPresentToday);
                 const isCardLocked = starsToday > 0 && reasonToday !== 'welcome_back';
 
                 let absenceButtonHtml = '';
-                
+
                 if (isVisuallyAbsent) {
                     if (isMarkedAbsentToday) {
-                         absenceButtonHtml = `
+                        absenceButtonHtml = `
                             <button class="absence-btn bg-green-200 text-green-700 hover:bg-green-300" data-action="mark-present" title="Undo: Mark as Present">
                                 <i class="fas fa-user-check pointer-events-none"></i>
                             </button>`;
@@ -1065,7 +1079,7 @@ export function renderAwardStarsStudentList(selectedClassId, fullRender = true) 
                                 <i class="fas fa-hand-sparkles pointer-events-none"></i>
                             </button>`;
                     }
-                } 
+                }
                 else {
                     if (!isCardLocked) {
                         absenceButtonHtml = `
@@ -1074,9 +1088,9 @@ export function renderAwardStarsStudentList(selectedClassId, fullRender = true) 
                             </button>`;
                     }
                 }
-                
-                const avatarHtml = s.avatar 
-                    ? `<img src="${s.avatar}" alt="${s.name}" class="student-avatar-cloud enlargeable-avatar">` 
+
+                const avatarHtml = s.avatar
+                    ? `<img src="${s.avatar}" alt="${s.name}" class="student-avatar-cloud enlargeable-avatar">`
                     : `<div class="student-avatar-cloud-placeholder">${s.name.charAt(0)}</div>`;
 
                 const coinHtml = `
@@ -1090,7 +1104,7 @@ export function renderAwardStarsStudentList(selectedClassId, fullRender = true) 
                 // Check eligibility based on the pre-calculated leaderboard
                 const myLeaderboardData = leaderboard.find(x => x.id === s.id);
                 const isEligible = bottomThreeIds.includes(s.id) || (myLeaderboardData && scoreCounts[myLeaderboardData.stars] > 1);
-                
+
                 let boonBtnHtml = '';
                 if (isEligible) {
                     boonBtnHtml = `
@@ -1175,12 +1189,12 @@ export function renderAwardStarsStudentList(selectedClassId, fullRender = true) 
 export function updateStudentCardAttendanceState(studentId, isAbsent) {
     const selectedClassId = state.get('globalSelectedClassId');
     const student = state.get('allStudents').find(s => s.id === studentId);
-    
+
     if (student && student.classId === selectedClassId) {
-         const activeTab = document.querySelector('.app-tab:not(.hidden)');
-         if (activeTab && activeTab.id === 'award-stars-tab') {
-             renderAwardStarsStudentList(selectedClassId, false);
-         }
+        const activeTab = document.querySelector('.app-tab:not(.hidden)');
+        if (activeTab && activeTab.id === 'award-stars-tab') {
+            renderAwardStarsStudentList(selectedClassId, false);
+        }
     }
 }
 
@@ -1197,7 +1211,7 @@ export function updateAwardCardState(studentId, starsToday, reason) {
             setTimeout(() => bubble.classList.remove('counter-animate'), 500);
         }
     }
-    
+
     const undoBtn = studentCard.querySelector(`#post-award-undo-${studentId}`);
     const reasonSelector = studentCard.querySelector('.reason-selector');
     const starSelector = studentCard.querySelector('.star-selector-container');
@@ -1221,9 +1235,9 @@ export function updateAwardCardState(studentId, starsToday, reason) {
     // (Unless we are specifically marked absent, but this function usually runs after awarding stars)
     if (starsToday >= 0) {
         studentCard.classList.remove('is-absent');
-        if(absenceControls) {
-             // Re-render controls to show "Mark Absent" again
-             absenceControls.innerHTML = `
+        if (absenceControls) {
+            // Re-render controls to show "Mark Absent" again
+            absenceControls.innerHTML = `
                 <button class="absence-btn" data-action="mark-absent" title="Mark as Absent">
                     <i class="fas fa-user-slash pointer-events-none"></i>
                 </button>
@@ -1275,7 +1289,7 @@ export function populateCalendarStars(logSource) {
     if (!logSource || logSource.length === 0) return;
 
     const logsByDate = logSource.reduce((acc, log) => {
-        const date = log.date; 
+        const date = log.date;
         if (!acc[date]) {
             acc[date] = 0;
         }
@@ -1290,7 +1304,7 @@ export function populateCalendarStars(logSource) {
             if (dateNumberEl) {
                 const existingStars = dayCell.querySelector('.calendar-star-count');
                 if (existingStars) existingStars.remove();
-                
+
                 const starHtml = `<div class="calendar-star-count text-center text-amber-600 font-bold mt-1 text-sm"><i class="fas fa-star"></i> ${totalStars}</div>`;
                 dateNumberEl.insertAdjacentHTML('afterend', starHtml);
             }
@@ -1303,18 +1317,18 @@ export function populateCalendarStars(logSource) {
 export function renderCalendarTab(customLogs = null) {
     const grid = document.getElementById('calendar-grid');
     if (!grid) return;
-    
+
     // Determine which dataset to use
     const logsToRender = customLogs || state.get('allAwardLogs');
-    
+
     const loader = document.getElementById('calendar-loader');
     const isLoaderVisible = loader && !loader.classList.contains('hidden');
-    
-    grid.innerHTML = ''; 
+
+    grid.innerHTML = '';
     if (isLoaderVisible) {
         grid.appendChild(loader);
     }
-    
+
     const dayHeaders = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
     dayHeaders.forEach(day => {
         const headerEl = document.createElement('div');
@@ -1322,17 +1336,17 @@ export function renderCalendarTab(customLogs = null) {
         headerEl.textContent = day;
         grid.appendChild(headerEl);
     });
-    
+
     const calendarCurrentDate = state.get('calendarCurrentDate');
     const month = calendarCurrentDate.getMonth(), year = calendarCurrentDate.getFullYear();
     document.getElementById('calendar-month-year').innerText = calendarCurrentDate.toLocaleString('en-GB', { month: 'long', year: 'numeric' });
     const firstDayIndex = (new Date(year, month, 1).getDay() + 6) % 7;
     const daysInMonth = new Date(year, month + 1, 0).getDate();
     const today = new Date();
-    today.setHours(0,0,0,0); 
+    today.setHours(0, 0, 0, 0);
     document.getElementById('prev-month-btn').disabled = calendarCurrentDate <= constants.competitionStart;
     document.getElementById('next-month-btn').disabled = calendarCurrentDate.getMonth() === constants.competitionEnd.getMonth() && calendarCurrentDate.getFullYear() === constants.competitionEnd.getFullYear();
-    
+
     const thirtyDaysAgo = new Date();
     thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
     thirtyDaysAgo.setHours(0, 0, 0, 0);
@@ -1343,16 +1357,16 @@ export function renderCalendarTab(customLogs = null) {
         emptyCell.className = 'border rounded-md bg-gray-50/70 calendar-day-cell';
         grid.appendChild(emptyCell);
     }
-    
+
     for (let i = 1; i <= daysInMonth; i++) {
         const day = new Date(year, month, i);
         const isFuture = day > today;
         const isToday = today.toDateString() === day.toDateString();
         const dateString = utils.getDDMMYYYY(day);
-        
+
         const logsForThisDay = logsToRender.filter(log => utils.getDDMMYYYY(utils.parseDDMMYYYY(log.date)) === dateString);
         const totalStarsThisDay = logsForThisDay.reduce((sum, log) => sum + (log.stars || 0), 0);
-        
+
         const dayCell = document.createElement('div');
         dayCell.dataset.date = dateString;
 
@@ -1361,7 +1375,7 @@ export function renderCalendarTab(customLogs = null) {
         const mm = String(day.getMonth() + 1).padStart(2, '0');
         const dd = String(day.getDate()).padStart(2, '0');
         const compDate = `${yyyy}-${mm}-${dd}`;
-        
+
         const globalHoliday = (state.get('schoolHolidayRanges') || []).find(h => compDate >= h.start && compDate <= h.end);
 
         // 2. Check for Manual Cancellations
@@ -1370,15 +1384,15 @@ export function renderCalendarTab(customLogs = null) {
         const myScheduledClasses = myClasses.filter(c => c.scheduleDays && c.scheduleDays.includes(dayOfWeekStr));
         const classesOnThisDay = utils.getClassesOnDay(dateString, state.get('allSchoolClasses'), state.get('allScheduleOverrides'));
         const myClassIds = myClasses.map(c => c.id);
-        const myCancellations = state.get('allScheduleOverrides').filter(o => 
-            o.date === dateString && 
-            o.type === 'cancelled' && 
+        const myCancellations = state.get('allScheduleOverrides').filter(o =>
+            o.date === dateString &&
+            o.type === 'cancelled' &&
             myClassIds.includes(o.classId)
         );
 
         const isFullHoliday = globalHoliday || (myScheduledClasses.length > 0 && classesOnThisDay.length === 0 && myCancellations.length > 0);
         const dayNumberHtml = isToday ? `<span class="today-date-highlight shadow-md transform scale-110">${i}</span>` : i;
-        
+
         if (isFullHoliday) {
             const themeClass = globalHoliday ? `holiday-theme-${globalHoliday.type}` : 'bg-red-50 border-red-200';
             const labelText = globalHoliday ? (globalHoliday.type === 'christmas' ? 'Winter Break' : globalHoliday.name) : 'No School';
@@ -1395,9 +1409,9 @@ export function renderCalendarTab(customLogs = null) {
         } else {
             // --- RENDER NORMAL DAY ---
             dayCell.className = `border rounded-md p-1 calendar-day-cell flex flex-col ${isFuture ? 'bg-white future-day' : 'bg-white logbook-day-btn'}`;
-            
+
             const starHtml = totalStarsThisDay > 0 ? `<div class="calendar-star-count text-center text-amber-600 font-bold -mt-4 mb-1 text-sm relative z-10"><i class="fas fa-star"></i> ${totalStarsThisDay}</div>` : '';
-            
+
             // --- NEW: Event Icons Map ---
             const eventIcons = {
                 '2x Star Day': '⭐ x2',
@@ -1410,10 +1424,10 @@ export function renderCalendarTab(customLogs = null) {
             };
 
             const questEventsOnThisDay = state.get('allQuestEvents').filter(e => e.date === dateString);
-            
+
             // --- NEW: Render Events as Banners (Outside Scroll) ---
             let questEventsHtml = questEventsOnThisDay.map(e => {
-                const title = e.details?.title || e.type; 
+                const title = e.details?.title || e.type;
                 const icon = eventIcons[e.type] || '📅 Event';
                 // Vibrant Gradient Style
                 return `
@@ -1432,26 +1446,26 @@ export function renderCalendarTab(customLogs = null) {
             let classesHtml = classesOnThisDay.map(c => {
                 const color = c.color || constants.classColorPalettes[utils.simpleHashCode(c.id) % constants.classColorPalettes.length];
                 const timeDisplay = (c.timeStart && c.timeEnd) ? `${c.timeStart}-${c.timeEnd}` : (c.timeStart || '');
-                
-               // --- NEW: Check for Scheduled Test (Smart Match) ---
-                const testAssignment = state.get('allQuestAssignments').find(a => 
-                    a.classId === c.id && 
-                    a.testData && 
+
+                // --- NEW: Check for Scheduled Test (Smart Match) ---
+                const testAssignment = state.get('allQuestAssignments').find(a =>
+                    a.classId === c.id &&
+                    a.testData &&
                     utils.datesMatch(dateString, a.testData.date)
                 );
-                
+
                 // 2. Create the Indicator
-                const testIndicator = testAssignment 
+                const testIndicator = testAssignment
                     ? `<div class="absolute -top-1 -right-1 z-20">
                          <span class="relative flex h-3 w-3">
                            <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
                            <span class="relative inline-flex rounded-full h-3 w-3 bg-red-500"></span>
                          </span>
                        </div>
-                       <span class="absolute top-[-4px] right-[-4px] bg-red-500 text-white text-[8px] font-bold px-1.5 py-0.5 rounded-bl-md rounded-tr-md shadow-sm z-10" title="Test: ${testAssignment.testData.title}">📝 TEST</span>` 
+                       <span class="absolute top-[-4px] right-[-4px] bg-red-500 text-white text-[8px] font-bold px-1.5 py-0.5 rounded-bl-md rounded-tr-md shadow-sm z-10" title="Test: ${testAssignment.testData.title}">📝 TEST</span>`
                     : '';
                 // -------------------------------------
-                
+
                 return `
                 <div class="relative text-xs px-1.5 py-1 rounded ${color.bg} ${color.text} border-l-4 ${color.border} shadow-sm group hover:scale-[1.02] transition-transform" title="${c.name} (${timeDisplay})">
                     ${testIndicator}
@@ -1500,7 +1514,7 @@ export function renderIdeasTabSelects() {
     storySelect.innerHTML = '<option value="">Select a class...</option>' + optionsHtml;
     storySelect.value = globalClassId || '';
 
-    storyWeaver.handleStoryWeaversClassSelect(); 
+    storyWeaver.handleStoryWeaversClassSelect();
 }
 
 export function renderStarManagerStudentSelect() {
@@ -1514,14 +1528,14 @@ export function renderStarManagerStudentSelect() {
         select.innerHTML = '<option value="">No students found in your classes</option>';
         return;
     }
-    
+
     const classesMap = allTeachersClasses.reduce((acc, c) => {
         acc[c.id] = { name: c.name, students: [] };
         return acc;
     }, {});
-    
+
     const studentsInMyClasses = state.get('allStudents').filter(s => classesMap[s.classId]);
-    
+
     if (studentsInMyClasses.length === 0) {
         select.innerHTML = '<option value="">No students found in your classes</option>';
         return;
@@ -1537,7 +1551,7 @@ export function renderStarManagerStudentSelect() {
         if (classData.students.length > 0) {
             const optgroup = document.createElement('optgroup');
             optgroup.label = classData.name;
-            classData.students.sort((a,b) => a.name.localeCompare(b.name));
+            classData.students.sort((a, b) => a.name.localeCompare(b.name));
             classData.students.forEach(s => {
                 const option = document.createElement('option');
                 option.value = s.id;
@@ -1557,19 +1571,19 @@ export async function renderAdventureLogTab() {
     if (!classSelect || !monthFilter) return;
 
     const classVal = state.get('globalSelectedClassId');
-    const optionsHtml = state.get('allTeachersClasses').sort((a,b) => a.name.localeCompare(b.name)).map(c => `<option value="${c.id}">${c.logo} ${c.name}</option>`).join('');
+    const optionsHtml = state.get('allTeachersClasses').sort((a, b) => a.name.localeCompare(b.name)).map(c => `<option value="${c.id}">${c.logo} ${c.name}</option>`).join('');
     classSelect.innerHTML = '<option value="">Select a class to view its log...</option>' + optionsHtml;
-    
+
     if (classVal) {
         classSelect.value = classVal;
     }
-    
-    state.get('currentLogFilter').classId = classVal; 
+
+    state.get('currentLogFilter').classId = classVal;
     document.getElementById('log-adventure-btn').disabled = !classVal;
     document.getElementById('quest-assignment-btn').disabled = !classVal;
     document.getElementById('attendance-chronicle-btn').disabled = !classVal;
     document.getElementById('hall-of-heroes-btn').disabled = !classVal;
-    
+
     const monthVal = monthFilter.value;
 
     // --- FIX: Generate month list from competition start instead of memory ---
@@ -1586,7 +1600,7 @@ export async function renderAdventureLogTab() {
     }
 
     const currentMonth = utils.getDDMMYYYY(new Date()).substring(3);
-    
+
     monthFilter.innerHTML = availableMonths.map(monthKey => {
         const [m, y] = monthKey.split('-').map(Number);
         const d = new Date(y, m - 1, 1);
@@ -1603,14 +1617,14 @@ export async function renderAdventureLogTab() {
 export async function renderAdventureLog() {
     const feed = document.getElementById('adventure-log-feed');
     if (!feed) return;
-    
+
     const currentLogFilter = state.get('currentLogFilter');
 
     if (!currentLogFilter.classId) {
         feed.innerHTML = `<p class="text-center text-gray-500 bg-white/50 p-6 rounded-2xl">Please select one of your classes to see its Adventure Log.</p>`;
         return;
     }
-    
+
     // --- FIX: ON-DEMAND FETCHING FOR HISTORICAL LOGS ---
     let logsForClass = [];
     const [month, year] = currentLogFilter.month.split('-').map(Number);
@@ -1644,7 +1658,7 @@ export async function renderAdventureLog() {
             console.error("Historical log fetch failed:", error);
         }
     }
-    
+
     if (logsForClass.length === 0) {
         const selectedMonthDisplay = document.getElementById('adventure-log-month-filter').options[document.getElementById('adventure-log-month-filter').selectedIndex]?.text;
         feed.innerHTML = `<div class="diary-page empty"><p class="text-center text-gray-500">The diary is empty for ${selectedMonthDisplay}.<br>Award some stars and then 'Log Today's Adventure'!</p></div>`;
@@ -1652,13 +1666,13 @@ export async function renderAdventureLog() {
     }
 
     // Sort descending by date
-    logsForClass.sort((a,b) => utils.parseFlexibleDate(b.date) - utils.parseFlexibleDate(a.date));
+    logsForClass.sort((a, b) => utils.parseFlexibleDate(b.date) - utils.parseFlexibleDate(a.date));
 
     feed.innerHTML = logsForClass.map(log => {
         const dateObj = utils.parseFlexibleDate(log.date);
         const displayDate = dateObj ? dateObj.toLocaleDateString('en-GB', { weekday: 'long', month: 'long', day: 'numeric' }) : log.date;
         const keywordsHtml = (log.keywords || []).map(kw => `<span class="diary-keyword">#${kw}</span>`).join('');
-        
+
         const noteHtml = log.note ? `
             <div class="diary-note">
                 <p>"${log.note}"</p>
@@ -1728,7 +1742,7 @@ export function updateAllClassSelectors(isManual) {
             document.getElementById('selected-class-level').innerText = '';
             awardBtn.dataset.selectedId = '';
             if (document.querySelector('.app-tab:not(.hidden)')?.id === 'award-stars-tab') {
-                 renderAwardStarsStudentList(null);
+                renderAwardStarsStudentList(null);
             }
         }
     }

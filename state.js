@@ -31,13 +31,13 @@ function getDefaultState() {
         allHeroChronicleNotes: [],
         schoolHolidayRanges: [], // Stores global holiday periods
         hasLoadedCalendarHistory: false, // NEW: Track if we have history
-        
+
         // UI Selection States
-        globalSelectedClassId: null,
+        globalSelectedClassId: localStorage.getItem('quest_last_class_id') || null,
         reigningHero: null, // Stores the student object of the last crowned hero
-        globalSelectedLeague: null,
+        globalSelectedLeague: localStorage.getItem('quest_last_league') || null,
         isProgrammaticSelection: false,
-        
+
         // Feature Specific States
         ceremonyState: {
             isActive: false,
@@ -70,7 +70,7 @@ function getDefaultState() {
             accessory: null,
             generatedImage: null
         },
-        
+
         // Calendar & Attendance Views
         calendarCurrentDate: getCalendarDefaultDate(),
         attendanceViewDate: new Date(), // NEW: Tracks the month being viewed in the chronicle
@@ -79,23 +79,23 @@ function getDefaultState() {
         wallpaperQuoteLastFetch: 0,
 
         // Unsubscribe functions
-        unsubscribeClasses: () => {},
-        unsubscribeStudents: () => {},
-        unsubscribeStudentScores: () => {},
-        unsubscribeTodaysStars: () => {},
-        unsubscribeAwardLogs: () => {},
-        unsubscribeQuestEvents: () => {},
-        unsubscribeAdventureLogs: () => {},
-        unsubscribeQuestAssignments: () => {},
-        unsubscribeCompletedStories: () => {},
-        unsubscribeWrittenScores: () => {},
-        unsubscribeAttendance: () => {},
-        unsubscribeScheduleOverrides: () => {},
-        unsubscribeHeroChronicleNotes: () => {},
+        unsubscribeClasses: () => { },
+        unsubscribeStudents: () => { },
+        unsubscribeStudentScores: () => { },
+        unsubscribeTodaysStars: () => { },
+        unsubscribeAwardLogs: () => { },
+        unsubscribeQuestEvents: () => { },
+        unsubscribeAdventureLogs: () => { },
+        unsubscribeQuestAssignments: () => { },
+        unsubscribeCompletedStories: () => { },
+        unsubscribeWrittenScores: () => { },
+        unsubscribeAttendance: () => { },
+        unsubscribeScheduleOverrides: () => { },
+        unsubscribeHeroChronicleNotes: () => { },
         allQuestBounties: [], // Store bounties
         currentShopItems: [], // Store this month's shop items
-        unsubscribeQuestBounties: () => {}, // Listener unsubscribe
-        unsubscribeSchoolSettings: () => {} // Listener for settings
+        unsubscribeQuestBounties: () => { }, // Listener unsubscribe
+        unsubscribeSchoolSettings: () => { } // Listener for settings
     };
 }
 
@@ -154,11 +154,18 @@ export function setGlobalSelectedClass(classId, isManual = false) {
     }
 
     state.globalSelectedClassId = classId;
+    if (classId) {
+        localStorage.setItem('quest_last_class_id', classId);
+    } else {
+        localStorage.removeItem('quest_last_class_id');
+    }
+
     updateReigningHero();
     if (classId) {
         const selectedClass = state.allSchoolClasses.find(c => c.id === classId);
         if (selectedClass) {
             state.globalSelectedLeague = selectedClass.questLevel;
+            localStorage.setItem('quest_last_league', selectedClass.questLevel);
         }
     }
 
@@ -185,7 +192,12 @@ export function setGlobalSelectedLeague(league, isManual = false) {
     if (league === state.globalSelectedLeague) return;
 
     state.globalSelectedLeague = league;
-    
+    if (league) {
+        localStorage.setItem('quest_last_league', league);
+    } else {
+        localStorage.removeItem('quest_last_league');
+    }
+
     // DYNAMIC IMPORT
     import('./ui/tabs.js').then(tabs => {
         tabs.updateAllLeagueSelectors(isManual);
@@ -216,7 +228,7 @@ export function setAllCompletedStories(stories) { state.allCompletedStories = st
 export function setCurrentStorybookAudio(audio) { state.currentStorybookAudio = audio; }
 export function setCurrentNarrativeAudio(audio) { state.currentNarrativeAudio = audio; }
 export function setAvatarMakerData(data) { state.avatarMakerData = data; }
-export function setAttendanceViewDate(date) { state.attendanceViewDate = date; } 
+export function setAttendanceViewDate(date) { state.attendanceViewDate = date; }
 
 // Unsubscribe setters
 export function setUnsubscribeClasses(func) { state.unsubscribeClasses = func; }
@@ -240,12 +252,12 @@ export function setCurrentShopItems(items) { state.currentShopItems = items; }
 export async function fetchMonthlyHistory(monthKey) {
     const allMonthlyHistory = get('allMonthlyHistory');
     if (allMonthlyHistory[monthKey]) return allMonthlyHistory[monthKey];
-    
+
     const contentEl = document.getElementById('history-modal-content');
-    if(contentEl && contentEl.innerHTML.includes('Select a month')) {
+    if (contentEl && contentEl.innerHTML.includes('Select a month')) {
         contentEl.innerHTML = `<p class="text-center text-gray-500"><i class="fas fa-spinner fa-spin mr-2"></i>Loading historical data...</p>`;
     }
-    
+
     const { collectionGroup, query, where, getDocs } = await import('https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js');
     const { db } = await import('./firebase.js');
 
@@ -281,7 +293,7 @@ function updateReigningHero() {
     const logs = [...state.allAdventureLogs]
         .filter(l => l.classId === classId)
         .sort((a, b) => (b.createdAt?.toMillis?.() || 0) - (a.createdAt?.toMillis?.() || 0));
-    
+
     if (logs.length > 0) {
         const lastHeroName = logs[0].hero;
         state.reigningHero = state.allStudents.find(s => s.name === lastHeroName && s.classId === classId) || null;

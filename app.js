@@ -13,10 +13,10 @@ import { toggleWallpaperMode } from './ui/wallpaper.js';
 import { initializeHeaderQuote } from './features/home.js';
 import * as utils from './utils.js';
 
-import { 
-    createUserWithEmailAndPassword, 
-    signInWithEmailAndPassword, 
-    onAuthStateChanged, 
+import {
+    createUserWithEmailAndPassword,
+    signInWithEmailAndPassword,
+    onAuthStateChanged,
     updateProfile,
     signOut
 } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
@@ -30,7 +30,7 @@ function setupAuthListeners() {
         const signup = document.getElementById('signup-form');
         const title = document.getElementById('auth-title');
         const toggleBtn = document.getElementById('toggle-auth-mode');
-        
+
         if (login.classList.contains('hidden')) {
             login.classList.remove('hidden');
             signup.classList.add('hidden');
@@ -77,18 +77,18 @@ function setupAuthListeners() {
         const loadingScreen = document.getElementById('loading-screen');
         const authScreen = document.getElementById('auth-screen');
         const appScreen = document.getElementById('app-screen');
-        
+
         if (user) {
             state.set('currentUserId', user.uid);
             state.set('currentTeacherName', user.displayName);
-           
+
             initializeHeaderQuote();
 
             if (document.getElementById('teacher-name-input')) {
                 document.getElementById('teacher-name-input').value = user.displayName || '';
             }
 
-            const newDate = getTodayDateString(); 
+            const newDate = getTodayDateString();
             await archivePreviousDayStars(user.uid, newDate);
             if (newDate !== state.get('todaysStarsDate')) {
                 state.set('todaysStars', {});
@@ -96,11 +96,11 @@ function setupAuthListeners() {
             }
 
             setupDataListeners(user.uid, newDate);
-            
+
             authScreen.classList.add('auth-screen-out');
             appScreen.classList.remove('hidden');
             appScreen.classList.add('app-screen-in');
-            
+
             setTimeout(() => {
                 authScreen.classList.add('hidden');
                 authScreen.classList.remove('auth-screen-out');
@@ -108,7 +108,9 @@ function setupAuthListeners() {
             }, 500);
 
             // Force Home Tab on Login
-            import('./ui/tabs.js').then(tabs => tabs.showTab('about-tab'));
+            // Persistence: Load last active tab or default to Home
+            const lastTab = localStorage.getItem('quest_last_active_tab') || 'about-tab';
+            import('./ui/tabs.js').then(tabs => tabs.showTab(lastTab));
 
             loadingScreen.classList.add('opacity-0');
             setTimeout(() => {
@@ -130,9 +132,9 @@ function setupAuthListeners() {
 async function initApp() {
     try {
         document.querySelectorAll('input').forEach(input => input.setAttribute('autocomplete', 'off'));
-        
+
         setupAuthListeners();
-        
+
         // --- FIXED SECTION START ---
         // Dynamic Wallpaper Toggle Listeners
         const projBtn = document.getElementById('projector-mode-btn');
@@ -141,7 +143,7 @@ async function initApp() {
                 toggleWallpaperMode();
             });
         }
-        
+
         const exitWallBtn = document.getElementById('exit-wallpaper-btn');
         if (exitWallBtn) {
             exitWallBtn.addEventListener('click', () => {
@@ -151,10 +153,10 @@ async function initApp() {
         // --- FIXED SECTION END ---
 
         setupUIListeners();
-        
+
         updateDateTime();
         setInterval(updateDateTime, 1000);
-        
+
         await setupSounds();
 
         utils.fetchSolarCycle(); // Fetch sunrise/sunset times

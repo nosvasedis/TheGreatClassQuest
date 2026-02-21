@@ -2916,11 +2916,6 @@ async function renderHallOfHeroesContent(classId) {
                         
                         <div class="mt-4">
                             <h4 class="font-title text-xl text-indigo-900 leading-tight mb-1">${log.hero}</h4>
-                            <div class="flex items-center gap-1">
-                                <span class="bg-amber-100 text-amber-700 text-[10px] px-2 py-0.5 rounded-full font-bold border border-amber-200">
-                                    <i class="fas fa-award mr-1"></i>${log.topReason.replace(/_/g, ' ')}
-                                </span>
-                            </div>
                         </div>
                     </div>
                 </div>
@@ -3262,4 +3257,310 @@ export function openZoneOverviewModal(zoneType) {
     `;
 
     import('./modals.js').then(m => m.showAnimatedModal('milestone-details-modal'));
+}
+
+// --- PRODIGY OF THE MONTH FEATURE (FIXED) ---
+
+// Local state for navigation
+let prodigyViewDate = new Date();
+
+export async function openProdigyModal() {
+    const classSelect = document.getElementById('prodigy-class-select');
+    const allTeachersClasses = state.get('allTeachersClasses');
+    
+    // 1. Reset Date: Default to LAST month
+    prodigyViewDate = new Date();
+    prodigyViewDate.setDate(1); 
+    prodigyViewDate.setMonth(prodigyViewDate.getMonth() - 1);
+    
+    // 2. Populate Dropdown
+    classSelect.innerHTML = '<option value="">Select a Class...</option>' + 
+        allTeachersClasses.sort((a,b) => a.name.localeCompare(b.name))
+        .map(c => `<option value="${c.id}">${c.logo} ${c.name}</option>`).join('');
+
+    // 3. SMART AUTO-SELECT FIX
+    const currentGlobal = state.get('globalSelectedClassId');
+    
+    // Check if the current global class is actually in the teacher's list
+    const isValidClass = allTeachersClasses.some(c => c.id === currentGlobal);
+
+    if (currentGlobal && isValidClass) {
+        classSelect.value = currentGlobal;
+        // Trigger render immediately
+        renderProdigyHistory(currentGlobal);
+    } else {
+        document.getElementById('prodigy-content').innerHTML = `
+            <div class="h-full flex flex-col items-center justify-center text-indigo-300 opacity-60">
+                <i class="fas fa-hand-pointer text-6xl mb-4 animate-bounce"></i>
+                <p class="text-2xl font-bold">Select a class to enter the Hall</p>
+            </div>`;
+    }
+
+    showAnimatedModal('prodigy-modal');
+}
+
+export async function renderProdigyHistory(classId) {
+    if (!classId) return;
+    const contentEl = document.getElementById('prodigy-content');
+    
+    // Loading State
+    contentEl.innerHTML = `<div class="h-full flex flex-col items-center justify-center text-amber-400"><i class="fas fa-circle-notch fa-spin text-5xl"></i><p class="mt-4 font-bold text-lg">Summoning the Legends...</p></div>`;
+
+    // Ensure history is loaded
+    await import('../db/actions.js').then(a => a.ensureHistoryLoaded());
+    // Import artifacts to lookup icons if missing from DB
+    const { LEGENDARY_ARTIFACTS } = await import('../features/powerUps.js');
+
+    // 1. Setup Dates
+    const viewYear = prodigyViewDate.getFullYear();
+    const viewMonthIndex = prodigyViewDate.getMonth();
+    const monthName = prodigyViewDate.toLocaleString('en-GB', { month: 'long', year: 'numeric' });
+
+    // 2. Navigation Limits
+    const now = new Date();
+    const canGoForward = (new Date(viewYear, viewMonthIndex + 1, 1) < new Date(now.getFullYear(), now.getMonth(), 1));
+    const canGoBack = (new Date(viewYear, viewMonthIndex, 1) > new Date('2025-11-01'));
+
+    // 3. Build Header
+    let html = `
+        <div class="flex items-center justify-between mb-6 bg-black/20 p-3 rounded-full border border-white/10 backdrop-blur-md shadow-lg z-20 relative mx-auto max-w-lg">
+            <button id="prodigy-prev-btn" class="w-10 h-10 rounded-full bg-white text-indigo-900 hover:bg-indigo-100 flex items-center justify-center transition-all disabled:opacity-30 disabled:cursor-not-allowed" ${!canGoBack ? 'disabled' : ''}>
+                <i class="fas fa-chevron-left"></i>
+            </button>
+            <span class="font-title text-2xl text-amber-300 tracking-wide drop-shadow-md">${monthName}</span>
+            <button id="prodigy-next-btn" class="w-10 h-10 rounded-full bg-white text-indigo-900 hover:bg-indigo-100 flex items-center justify-center transition-all disabled:opacity-30 disabled:cursor-not-allowed" ${!canGoForward ? 'disabled' : ''}>
+                <i class="fas fa-chevron-right"></i>
+            </button>
+        </div>
+    `;
+
+    // --- DATA FETCHING ---
+    let logsToAnalyze = [];
+    const isCurrentMonth = (viewYear === now.getFullYear() && viewMonthIndex === now.getMonth());
+
+    if (isCurrentMonth) {
+        logsToAnalyze = state.get('allAwardLogs').filter(l => l.classId === classId);
+    } else {
+        try {
+            const { fetchLogsForMonth } = await import('../db/queries.js');
+            const fetchedLogs = await fetchLogsForMonth(viewYear, viewMonthIndex + 1);
+            logsToAnalyze = fetchedLogs.filter(l => l.classId === classId);
+        } catch (e) {
+            console.error("Prodigy history fetch error:", e);
+            contentEl.innerHTML = `<div class="text-center text-red-400 p-8">Could not retrieve archives.</div>`;
+            return;
+        }
+    }
+
+    const monthlyLogs = logsToAnalyze.filter(l => {
+        const d = utils.parseFlexibleDate(l.date); 
+        if (!d) return false;
+        return d.getMonth() === viewMonthIndex && d.getFullYear() === viewYear;
+    });
+
+    const allScores = state.get('allWrittenScores').filter(s => s.classId === classId);
+    const students = state.get('allStudents').filter(s => s.classId === classId);
+
+    if (monthlyLogs.length === 0) {
+        html += `
+            <div class="flex flex-col items-center justify-center py-20 opacity-50">
+                <div class="text-8xl mb-4 grayscale filter drop-shadow-lg">🕸️</div>
+                <p class="font-bold text-indigo-200 text-2xl">The Hall is empty.</p>
+                <p class="text-indigo-400">No stars were recorded in ${monthName}.</p>
+            </div>`;
+    } else {
+        // 5. Calculate Stats
+        const studentStats = students.map(s => {
+            const sLogs = monthlyLogs.filter(l => l.studentId === s.id);
+            const totalStars = sLogs.reduce((sum, l) => sum + l.stars, 0);
+            
+            let count3 = 0, count2 = 0;
+            const reasons = new Set();
+            sLogs.forEach(l => {
+                if (l.stars >= 3) count3++;
+                else if (l.stars >= 2) count2++;
+                if (l.reason) reasons.add(l.reason);
+            });
+
+            const sScores = allScores.filter(sc => {
+                const scDate = utils.parseFlexibleDate(sc.date);
+                return sc.studentId === s.id && scDate && scDate.getMonth() === viewMonthIndex && scDate.getFullYear() === viewYear;
+            });
+            
+            let acadSum = 0;
+            sScores.forEach(sc => {
+                if (sc.maxScore) acadSum += (sc.scoreNumeric / sc.maxScore) * 100;
+                else if (sc.scoreQualitative === "Great!!!") acadSum += 100;
+                else if (sc.scoreQualitative === "Great!!") acadSum += 75;
+            });
+            const academicAvg = sScores.length > 0 ? (acadSum / sScores.length) : 0;
+
+            return { 
+                ...s, 
+                monthlyStars: totalStars, 
+                stats: { count3, count2, academicAvg, uniqueReasons: reasons.size }
+            };
+        });
+
+        // 6. SORT: EXACT MATCH to Leaderboard/Ceremony
+        // Order: Stars -> 3Stars -> 2Stars -> Unique Skills -> Academic
+        studentStats.sort((a, b) => {
+            if (b.monthlyStars !== a.monthlyStars) return b.monthlyStars - a.monthlyStars;
+            if (b.stats.count3 !== a.stats.count3) return b.stats.count3 - a.stats.count3;
+            if (b.stats.count2 !== a.stats.count2) return b.stats.count2 - a.stats.count2;
+            if (b.stats.uniqueReasons !== a.stats.uniqueReasons) return b.stats.uniqueReasons - a.stats.uniqueReasons;
+            return b.stats.academicAvg - a.stats.academicAvg;
+        });
+
+        const topStudent = studentStats[0];
+
+        if (!topStudent || topStudent.monthlyStars === 0) {
+             html += `<div class="text-center py-12 text-indigo-300">No stars awarded this month.</div>`;
+        } else {
+            // --- TIE DETECTION ---
+            const winners = studentStats.filter(s => {
+                // 1. Must equal top stars
+                if (s.monthlyStars !== topStudent.monthlyStars) return false;
+                
+                // 2. Must equal top stats counts
+                if (s.stats.count3 !== topStudent.stats.count3) return false;
+                if (s.stats.count2 !== topStudent.stats.count2) return false;
+                if (s.stats.uniqueReasons !== topStudent.stats.uniqueReasons) return false;
+                
+                // 3. Academic Tie-Breaker (Allow 0.5% tolerance for floating point math)
+                // If top student has 0 academic score, we strictly require 0.
+                if (topStudent.stats.academicAvg === 0 && s.stats.academicAvg > 0) return false;
+                
+                // Otherwise check difference
+                if (Math.abs(s.stats.academicAvg - topStudent.stats.academicAvg) > 0.5) return false;
+                
+                return true;
+            });
+
+            // Adjust Layout
+            const isTie = winners.length > 1;
+            const containerClass = isTie ? "flex flex-wrap justify-center gap-8" : "flex justify-center";
+            const cardClass = isTie ? "w-full lg:w-[45%] max-w-md" : "w-full max-w-lg"; 
+            const titleText = isTie ? "Co-Prodigy of the Month" : "Prodigy of the Month";
+
+            const cardsHtml = winners.map(winner => {
+                // Inventory Handling
+                const scoreData = state.get('allStudentScores').find(sc => sc.id === winner.id);
+                const inventory = scoreData?.inventory || [];
+                
+                const inventoryHtml = inventory.length > 0 
+                    ? inventory.slice(0, 4).map(i => {
+                        // FIX: Logic for displaying Image OR Icon (for Legendaries)
+                        let visual = '';
+                        if (i.image) {
+                            visual = `<img src="${i.image}" class="w-full h-full object-cover">`;
+                        } else {
+                            // Try to find icon in legendary list by ID or Name, or fallback
+                            const legendary = LEGENDARY_ARTIFACTS.find(l => l.id === i.id || l.name === i.name);
+                            const icon = i.icon || (legendary ? legendary.icon : '📦');
+                            visual = `<div class="w-full h-full flex items-center justify-center text-xl bg-indigo-900/50 text-white">${icon}</div>`;
+                        }
+
+                        return `
+                        <div class="relative group">
+                            <div class="w-12 h-12 rounded-lg border-2 border-amber-400/60 shadow-lg bg-black/40 overflow-hidden transform group-hover:scale-110 transition-transform">
+                                ${visual}
+                            </div>
+                            <div class="absolute -bottom-8 left-1/2 -translate-x-1/2 text-[10px] text-white bg-black/90 px-2 py-1 rounded opacity-0 group-hover:opacity-100 whitespace-nowrap pointer-events-none z-50 transition-opacity border border-white/20">${i.name}</div>
+                        </div>`;
+                    }).join('')
+                    : '<span class="text-sm text-indigo-300/50 italic py-2">Vault is empty</span>';
+
+                const avatarHtml = winner.avatar 
+                    ? `<img src="${winner.avatar}" class="w-48 h-48 rounded-full border-8 border-amber-300 shadow-[0_0_50px_rgba(251,191,36,0.6)] object-cover bg-white relative z-10">`
+                    : `<div class="w-48 h-48 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 border-8 border-amber-300 flex items-center justify-center text-8xl font-bold text-white shadow-[0_0_50px_rgba(251,191,36,0.6)] relative z-10">${winner.name.charAt(0)}</div>`;
+
+                let badgeText = "Behavior Hero";
+                let badgeIcon = "❤️";
+                if (winner.stats.academicAvg >= 90) { badgeText = `Quiz Master (${winner.stats.academicAvg.toFixed(0)}%)`; badgeIcon = "🧠"; }
+                else if (winner.stats.academicAvg > 0) { badgeText = `Academic Star (${winner.stats.academicAvg.toFixed(0)}%)`; badgeIcon = "📝"; }
+
+                // Confetti CSS
+                const confettiHtml = Array.from({length: 15}).map((_, i) => {
+                    const left = Math.random() * 100;
+                    const delay = Math.random() * 3;
+                    const color = ['#fbbf24', '#f87171', '#60a5fa'][Math.floor(Math.random()*3)];
+                    return `<div class="absolute w-2 h-2 rounded-full" style="background:${color}; left:${left}%; top:-20%; animation: fall-confetti ${3+Math.random()}s linear infinite; animation-delay:${delay}s; opacity:0.6;"></div>`;
+                }).join('');
+
+                return `
+                <div class="relative ${cardClass} perspective-1000 mb-4 transform hover:-translate-y-2 transition-transform duration-500">
+                    <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[110%] h-[110%] bg-gradient-to-r from-indigo-600/30 via-purple-600/30 to-indigo-600/30 blur-[60px] rounded-full animate-pulse-slow"></div>
+
+                    <div class="relative bg-gradient-to-b from-indigo-900/90 to-indigo-950/95 border-2 border-amber-400/30 rounded-[3rem] p-6 flex flex-col items-center text-center shadow-2xl overflow-hidden backdrop-blur-md h-full justify-between">
+                        
+                        <div class="absolute inset-0 pointer-events-none overflow-hidden">${confettiHtml}</div>
+
+                        <!-- Badge -->
+                        <div class="bg-gradient-to-r from-amber-400 to-yellow-300 text-amber-900 px-6 py-1.5 rounded-full font-black uppercase tracking-widest shadow-lg shadow-amber-500/20 mb-6 transform hover:scale-105 transition-transform cursor-default relative z-20 text-xs sm:text-sm">
+                            <i class="fas fa-crown mr-1"></i>${titleText}
+                        </div>
+
+                        <!-- Avatar -->
+                        <div class="relative mb-4 group cursor-pointer">
+                            ${avatarHtml}
+                            <div class="absolute top-0 right-0 text-6xl filter drop-shadow-md z-30 animate-bounce-slow" style="animation-delay: 0.5s">👑</div>
+                        </div>
+
+                        <!-- Name & Score -->
+                        <div class="relative z-10 w-full mb-6">
+                            <h2 class="font-title text-5xl md:text-6xl text-transparent bg-clip-text bg-gradient-to-b from-white to-indigo-200 drop-shadow-sm mb-2 leading-tight">${winner.name.split(' ')[0]}</h2>
+                            <div class="inline-block bg-black/40 px-4 py-1 rounded-full border border-amber-500/30">
+                                <span class="text-2xl font-bold text-amber-400">${winner.monthlyStars} Stars</span>
+                            </div>
+                        </div>
+
+                        <!-- Stats & Inventory -->
+                        <div class="w-full bg-white/5 rounded-3xl p-4 border border-white/10 backdrop-blur-md relative z-10">
+                            <div class="grid grid-cols-2 gap-2 mb-3 pb-3 border-b border-white/10">
+                                <div class="bg-black/20 rounded-xl p-2">
+                                    <p class="text-[9px] text-indigo-300 uppercase font-bold tracking-wider mb-1">Top Skill</p>
+                                    <p class="text-white font-bold text-sm"><i class="fas fa-star text-yellow-400 mr-1"></i>${winner.stats.uniqueReasons} Types</p>
+                                </div>
+                                <div class="bg-black/20 rounded-xl p-2">
+                                    <p class="text-[9px] text-indigo-300 uppercase font-bold tracking-wider mb-1">Academics</p>
+                                    <p class="text-white font-bold text-sm">${badgeIcon} ${badgeText.split(' ')[0]}</p>
+                                </div>
+                            </div>
+                            
+                            <div class="text-center">
+                                <p class="text-[9px] text-amber-400/80 uppercase font-bold tracking-widest mb-2">Hero's Loot</p>
+                                <div class="flex flex-wrap justify-center gap-3">
+                                    ${inventoryHtml}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>`;
+            }).join('');
+
+            html += `<div class="${containerClass} w-full pb-8">${cardsHtml}</div>`;
+        }
+    }
+
+    contentEl.innerHTML = html;
+
+    // 6. Bind Listeners
+    const prevBtn = document.getElementById('prodigy-prev-btn');
+    const nextBtn = document.getElementById('prodigy-next-btn');
+
+    if (prevBtn) {
+        prevBtn.onclick = () => {
+            playSound('click');
+            prodigyViewDate.setMonth(prodigyViewDate.getMonth() - 1);
+            renderProdigyHistory(classId);
+        };
+    }
+    if (nextBtn) {
+        nextBtn.onclick = () => {
+            playSound('click');
+            prodigyViewDate.setMonth(prodigyViewDate.getMonth() + 1);
+            renderProdigyHistory(classId);
+        };
+    }
 }

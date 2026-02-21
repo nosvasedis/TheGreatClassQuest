@@ -33,10 +33,10 @@ export function showPraiseToast(message, icon = '✨') {
         </div>
         <button class="absolute top-2 right-3 text-gray-400 hover:text-gray-600 text-lg">&times;</button>
     `;
-    
+
     wrapper.appendChild(toast);
     container.appendChild(wrapper);
-    
+
     const animateOut = (el) => {
         if (!el) return;
         const innerToast = el.querySelector('.praise-toast');
@@ -70,7 +70,7 @@ export async function showWelcomeBackMessage(firstName, stars) {
     } catch (e) {
         messageEl.textContent = `We're so glad you're back, ${firstName}!`;
     }
-    
+
     setTimeout(() => {
         document.getElementById('welcome-back-modal').classList.add('hidden'); // Simplified hideModal
     }, 4000);
@@ -78,10 +78,10 @@ export async function showWelcomeBackMessage(firstName, stars) {
 
 export function triggerDynamicPraise(studentName, starCount, reason) {
     const firstName = studentName.split(' ')[0];
-    
+
     // 1. Get Gender from State (Cached from DB)
     const student = state.get('allStudents').find(s => s.name === studentName) || {};
-    const g = student.gender === 'girl' ? 'girl' : 'boy'; 
+    const g = student.gender === 'girl' ? 'girl' : 'boy';
 
     // --- PRE-DEFINED PERSONALIZED DATABASE ---
     const praiseDB = {
@@ -170,14 +170,14 @@ export function triggerDynamicPraise(studentName, starCount, reason) {
     // Select category and star level
     const category = praiseDB[reason] || praiseDB['default'];
     const countKey = Math.min(starCount, 3);
-    
+
     // Select gender-specific array
     const messages = category[countKey][g];
-    
+
     // Pick random message
     const rawMessage = messages[Math.floor(Math.random() * messages.length)];
     const message = rawMessage.replace("${name}", firstName);
-    
+
     // Determine Icon
     let icon = '✨';
     if (starCount === 2) icon = '🌟';
@@ -228,7 +228,7 @@ export function triggerAwardEffects(button, starCount) {
         particle.style.top = `${y}px`;
         particle.style.setProperty('--tx', `${tx}px`);
         particle.style.setProperty('--ty', `${ty}px`);
-        
+
         particle.addEventListener('animationend', () => particle.remove());
     }
 

@@ -9,10 +9,10 @@ import { handleAddHolidayRange, handleDeleteHolidayRange } from '../db/actions.j
 import { setupHomeListeners } from '../features/home.js';
 
 import * as modals from './modals.js';
-import { 
-    handleGenerateIdea, 
-    handleGetOracleInsight, 
-    handleGetQuestUpdate, 
+import {
+    handleGenerateIdea,
+    handleGetOracleInsight,
+    handleGetQuestUpdate,
     downloadCertificateAsPdf,
     openAppInfoModal
 } from './modals.js';
@@ -24,9 +24,9 @@ import * as ceremony from '../features/ceremony.js';
 import * as utils from '../utils.js';
 import { playSound } from '../audio.js';
 import { showToast, triggerAwardEffects, triggerDynamicPraise, showWelcomeBackMessage } from './effects.js';
-import { 
-    handleAddClass, 
-    handleAddStudent, 
+import {
+    handleAddClass,
+    handleAddStudent,
     handleEditClass,
     handleSaveTeacherName,
     setStudentStarsForToday,
@@ -40,7 +40,7 @@ import {
     saveAdventureLogNote,
     handleLogAdventure,
     deleteAdventureLog,
-    handleBulkSaveTrial, 
+    handleBulkSaveTrial,
     handleSaveQuestAssignment,
     handleMarkAbsent,
     handleMoveStudent,
@@ -53,18 +53,18 @@ import {
     addOrUpdateHeroChronicleNote,
     deleteHeroChronicleNote
 } from '../db/actions.js';
-import { fetchLogsForMonth } from '../db/queries.js'; 
+import { fetchLogsForMonth } from '../db/queries.js';
 import { handleBestowBoon } from '../features/boons.js';
 
 // --- MAIN UI EVENT LISTENERS SETUP ---
 
 export function setupUIListeners() {
     document.body.addEventListener('click', (e) => {
-       const heroStatsTrigger = e.target.closest('.hero-stats-avatar-trigger');
+        const heroStatsTrigger = e.target.closest('.hero-stats-avatar-trigger');
         if (heroStatsTrigger) {
-            e.stopPropagation(); 
+            e.stopPropagation();
             const studentId = heroStatsTrigger.dataset.studentId;
-            modals.openHeroStatsModal(studentId, heroStatsTrigger); 
+            modals.openHeroStatsModal(studentId, heroStatsTrigger);
             return;
         }
         handleAvatarClick(e);
@@ -82,7 +82,7 @@ export function setupUIListeners() {
     document.getElementById('bottom-nav-bar').addEventListener('click', (e) => {
         const target = e.target.closest('.nav-button');
         if (target) {
-            playSound('click'); 
+            playSound('click');
             tabs.showTab(target.dataset.tab);
         }
     });
@@ -93,7 +93,7 @@ export function setupUIListeners() {
         playSound('click');
         await signOut(auth);
     });
-    
+
     // Modals & Pickers
     document.getElementById('modal-cancel-btn').addEventListener('click', () => modals.hideModal('confirmation-modal'));
     document.getElementById('leaderboard-league-picker-btn').addEventListener('click', () => modals.showLeaguePicker());
@@ -104,7 +104,7 @@ export function setupUIListeners() {
     document.getElementById('logo-picker-close-btn').addEventListener('click', () => modals.hideModal('logo-picker-modal'));
     document.getElementById('hero-stats-close-btn').addEventListener('click', () => modals.hideModal('hero-stats-modal'));
     document.getElementById('hall-of-heroes-btn').addEventListener('click', modals.openHallOfHeroes);
-    
+
     // Class & Student Management
     document.getElementById('add-class-form').addEventListener('submit', (e) => { e.preventDefault(); handleAddClass(); });
     document.getElementById('generate-class-name-btn').addEventListener('click', modals.handleGenerateClassName);
@@ -114,21 +114,21 @@ export function setupUIListeners() {
             document.getElementById('class-name-suggestions').innerHTML = '';
         }
     });
-    document.getElementById('class-level').addEventListener('change', () => { 
-        document.getElementById('generate-class-name-btn').disabled = !document.getElementById('class-level').value; 
+    document.getElementById('class-level').addEventListener('change', () => {
+        document.getElementById('generate-class-name-btn').disabled = !document.getElementById('class-level').value;
     });
 
     document.getElementById('add-student-form').addEventListener('submit', (e) => { e.preventDefault(); handleAddStudent(); });
     document.getElementById('edit-class-form').addEventListener('submit', (e) => { e.preventDefault(); handleEditClass(); });
     document.getElementById('edit-class-cancel-btn').addEventListener('click', () => modals.hideModal('edit-class-modal'));
     document.getElementById('edit-student-cancel-btn').addEventListener('click', () => modals.hideModal('edit-student-modal'));
-document.getElementById('edit-student-confirm-btn').addEventListener('click', () => {
-    import('../db/actions.js').then(actions => actions.handleSaveStudentDetails());
-});
-document.getElementById('lookup-nameday-btn').addEventListener('click', () => {
-    import('../db/actions.js').then(actions => actions.handleLookupNameday());
-});
-    
+    document.getElementById('edit-student-confirm-btn').addEventListener('click', () => {
+        import('../db/actions.js').then(actions => actions.handleSaveStudentDetails());
+    });
+    document.getElementById('lookup-nameday-btn').addEventListener('click', () => {
+        import('../db/actions.js').then(actions => actions.handleLookupNameday());
+    });
+
     // Calendar Logic: On-Demand Loading
     const handleMonthChange = async (direction) => {
         const calDate = state.get('calendarCurrentDate');
@@ -152,23 +152,23 @@ document.getElementById('lookup-nameday-btn').addEventListener('click', () => {
         if (isCurrentMonth || isFuture) {
             // A. Current Month: Use the Real-Time State (Already loaded on app start)
             logsForView = state.get('allAwardLogs');
-            
+
             // Re-render immediately
             import('./tabs.js').then(m => m.renderCalendarTab(logsForView));
-        
+
         } else {
             // B. Past Month: Fetch On Demand (Save Reads)
             const year = calDate.getFullYear();
             const month = calDate.getMonth() + 1;
-            
+
             try {
                 // Import query dynamically
                 const { fetchLogsForMonth } = await import('../db/queries.js');
                 logsForView = await fetchLogsForMonth(year, month);
-                
+
                 // Render with fetched data
                 import('./tabs.js').then(m => m.renderCalendarTab(logsForView));
-                
+
             } catch (error) {
                 console.error("History fetch failed:", error);
                 if (grid) grid.innerHTML = '<div class="col-span-7 text-center text-red-500 p-4">Could not load history.</div>';
@@ -178,11 +178,11 @@ document.getElementById('lookup-nameday-btn').addEventListener('click', () => {
 
     document.getElementById('prev-month-btn').addEventListener('click', () => handleMonthChange(-1));
     document.getElementById('next-month-btn').addEventListener('click', () => handleMonthChange(1));
-    
+
     document.getElementById('calendar-grid').addEventListener('click', (e) => {
         const dayCell = e.target.closest('.calendar-day-cell');
         const deleteBtn = e.target.closest('.delete-event-btn');
-    
+
         if (deleteBtn) {
             e.stopPropagation();
             const eventId = deleteBtn.dataset.id;
@@ -190,9 +190,9 @@ document.getElementById('lookup-nameday-btn').addEventListener('click', () => {
             modals.showModal('Delete Event?', `Are you sure you want to delete the "${eventName}" event?`, () => handleDeleteQuestEvent(eventId));
             return;
         }
-    
+
         if (!dayCell) return;
-        
+
         const dateString = dayCell.dataset.date;
         const dayDate = utils.parseDDMMYYYY(dateString);
         const thirtyDaysAgo = new Date();
@@ -223,7 +223,7 @@ document.getElementById('lookup-nameday-btn').addEventListener('click', () => {
     });
     document.getElementById('quest-event-form').addEventListener('submit', (e) => { e.preventDefault(); handleAddQuestEvent(); });
     document.getElementById('quest-event-type').addEventListener('change', modals.renderQuestEventDetails);
-    
+
     // Logbook & History
     document.getElementById('logbook-modal-close-btn').addEventListener('click', () => modals.hideModal('logbook-modal'));
     document.getElementById('logbook-modal-content').addEventListener('click', (e) => {
@@ -235,7 +235,7 @@ document.getElementById('lookup-nameday-btn').addEventListener('click', () => {
             });
         }
         const noteBtn = e.target.closest('.note-log-btn');
-        if(noteBtn) {
+        if (noteBtn) {
             modals.openAwardNoteModal(noteBtn.dataset.logId);
         }
     });
@@ -275,15 +275,20 @@ document.getElementById('lookup-nameday-btn').addEventListener('click', () => {
         const modal = document.getElementById('bestow-boon-modal');
         const receiverId = modal.dataset.receiverId;
         const senderId = document.getElementById('boon-sender-select').value;
-        
+
         if (senderId && receiverId) {
-            import('../features/boons.js').then(m => {
-                m.handleBestowBoon(senderId, receiverId);
-                modals.hideModal('bestow-boon-modal');
+            const sender = state.get('allStudents').find(s => s.id === senderId);
+            const receiver = state.get('allStudents').find(s => s.id === receiverId);
+
+            modals.showBoonConfirmationModal(sender, receiver, () => {
+                import('../features/boons.js').then(m => {
+                    m.handleBestowBoon(senderId, receiverId);
+                    modals.hideModal('bestow-boon-modal');
+                });
             });
         }
     });
-    
+
     // Shop Listeners
     const openShopBtn = document.getElementById('open-shop-btn');
     if (openShopBtn) {
@@ -299,12 +304,12 @@ document.getElementById('lookup-nameday-btn').addEventListener('click', () => {
     document.getElementById('prodigy-class-select').addEventListener('change', (e) => {
         modals.renderProdigyHistory(e.target.value);
     });
-    
+
     const shopCloseBtn = document.getElementById('shop-close-btn');
     if (shopCloseBtn) {
         shopCloseBtn.addEventListener('click', () => modals.hideModal('shop-modal'));
     }
-    
+
     const genShopBtn = document.getElementById('generate-shop-btn');
     if (genShopBtn) {
         genShopBtn.addEventListener('click', () => {
@@ -312,14 +317,14 @@ document.getElementById('lookup-nameday-btn').addEventListener('click', () => {
             import('../db/actions.js').then(a => a.handleGenerateShopStock());
         });
     }
-    
+
     const shopStudentSelect = document.getElementById('shop-student-select');
     if (shopStudentSelect) {
         shopStudentSelect.addEventListener('change', (e) => {
             updateShopStudentDisplay(e.target.value);
         });
     }
-    
+
     const shopItemsContainer = document.getElementById('shop-items-container');
     if (shopItemsContainer) {
         shopItemsContainer.addEventListener('click', (e) => {
@@ -337,18 +342,18 @@ document.getElementById('lookup-nameday-btn').addEventListener('click', () => {
     if (openBountyBtn) {
         openBountyBtn.addEventListener('click', () => {
             const classId = state.get('globalSelectedClassId');
-            if(!classId) { showToast('Select a class first', 'error'); return; }
-            
+            if (!classId) { showToast('Select a class first', 'error'); return; }
+
             document.getElementById('bounty-class-id').value = classId;
-            
+
             // --- SMART OPTIONS GENERATOR ---
             const smartContainer = document.getElementById('bounty-smart-options');
             if (smartContainer) {
                 smartContainer.innerHTML = '';
-                
+
                 const classData = state.get('allSchoolClasses').find(c => c.id === classId);
                 const now = new Date();
-                
+
                 // 1. Standard Presets
                 [5, 10, 20, 45].forEach(min => {
                     smartContainer.innerHTML += `<button type="button" class="smart-time-btn bg-white border border-indigo-200 text-indigo-600 px-3 py-1 rounded-full text-xs font-bold hover:bg-indigo-100 transition-colors" data-mins="${min}">${min}m</button>`;
@@ -359,7 +364,7 @@ document.getElementById('lookup-nameday-btn').addEventListener('click', () => {
                     const [endH, endM] = classData.timeEnd.split(':').map(Number);
                     const endDate = new Date();
                     endDate.setHours(endH, endM, 0);
-                    
+
                     if (endDate > now) {
                         const diffMins = Math.floor((endDate - now) / 60000);
                         if (diffMins > 0 && diffMins < 180) {
@@ -372,7 +377,7 @@ document.getElementById('lookup-nameday-btn').addEventListener('click', () => {
                 smartContainer.querySelectorAll('.smart-time-btn').forEach(btn => {
                     btn.onclick = () => {
                         document.getElementById('bounty-timer-minutes').value = btn.dataset.mins;
-                        document.getElementById('bounty-timer-end').value = ''; 
+                        document.getElementById('bounty-timer-end').value = '';
                     };
                 });
             }
@@ -399,7 +404,7 @@ document.getElementById('lookup-nameday-btn').addEventListener('click', () => {
             bSubmit.className = "w-2/3 bg-gradient-to-r from-amber-500 to-orange-500 text-white font-bold py-3 rounded-xl bubbly-button shadow-lg";
             bSubmit.innerHTML = "Start Quest";
         });
-        
+
         bTimer.addEventListener('click', () => {
             bTimer.className = "flex-1 py-2 rounded-md text-sm font-bold bg-white text-red-600 shadow-sm transition-all";
             bStars.className = "flex-1 py-2 rounded-md text-sm font-bold text-gray-500 hover:text-gray-700 transition-all";
@@ -410,20 +415,20 @@ document.getElementById('lookup-nameday-btn').addEventListener('click', () => {
             bSubmit.innerHTML = "Start Timer";
         });
     }
-    
+
     // --- FORM SUBMIT HANDLER (Crucial to prevent reload) ---
     document.getElementById('create-bounty-form')?.addEventListener('submit', (e) => {
         e.preventDefault(); // <--- THIS STOPS THE RELOAD
         import('../db/actions.js').then(a => a.handleCreateBounty());
     });
-    
+
     document.getElementById('bounty-cancel-btn')?.addEventListener('click', () => modals.hideModal('create-bounty-modal'));
-    
+
     // Global listener for dynamic bounty buttons (Claim/Delete)
     document.getElementById('bounty-board-container').addEventListener('click', (e) => {
         const deleteBtn = e.target.closest('.delete-bounty-btn');
         const claimBtn = e.target.closest('.claim-bounty-btn');
-        
+
         if (deleteBtn) {
             import('../db/actions.js').then(a => a.handleDeleteBounty(deleteBtn.dataset.id));
         }
@@ -443,7 +448,7 @@ document.getElementById('lookup-nameday-btn').addEventListener('click', () => {
             modals.openBestowBoonModal(receiverId);
             return;
         }
-        
+
         // 1. Define all targets first (to prevent "null" errors)
         const actionBtn = e.target.closest('[data-action]');
         const undoBtn = e.target.closest('.post-award-undo-btn');
@@ -455,7 +460,7 @@ document.getElementById('lookup-nameday-btn').addEventListener('click', () => {
             const studentCard = actionBtn.closest('.student-cloud-card');
             const studentId = studentCard.dataset.studentid;
             const student = state.get('allStudents').find(s => s.id === studentId);
-            
+
             // --- CASE 1: MARK ABSENT ---
             if (actionBtn.dataset.action === 'mark-absent') {
                 playSound('click');
@@ -468,7 +473,7 @@ document.getElementById('lookup-nameday-btn').addEventListener('click', () => {
                 playSound('click');
                 const today = utils.getTodayDateString();
                 const isMarkedAbsentToday = state.get('allAttendanceRecords').some(r => r.studentId === studentId && r.date === today);
-                
+
                 if (isMarkedAbsentToday) {
                     await handleMarkAbsent(studentId, student.classId, false);
                 } else {
@@ -489,13 +494,13 @@ document.getElementById('lookup-nameday-btn').addEventListener('click', () => {
                 let missedLessons = 0;
                 const scheduleDays = studentClass.scheduleDays || [];
                 const attendanceRecords = state.get('allAttendanceRecords');
-                
+
                 // Look back up to 30 days
                 for (let i = 1; i <= 30; i++) {
                     let checkDate = new Date();
                     checkDate.setDate(checkDate.getDate() - i);
                     const checkDateString = utils.getDDMMYYYY(checkDate);
-                    
+
                     // If it was a scheduled day
                     if (scheduleDays.includes(checkDate.getDay().toString())) {
                         const wasAbsent = attendanceRecords.some(r => r.studentId === studentId && r.date === checkDateString);
@@ -505,11 +510,11 @@ document.getElementById('lookup-nameday-btn').addEventListener('click', () => {
                             // Found a day present (or no record), streak ends
                             // But check if it was cancelled? Assuming simple logic for now.
                             // If user wasn't marked absent, streak breaks.
-                            break; 
+                            break;
                         }
                     }
                 }
-                
+
                 // 2. Determine Bonus
                 let stars = 0.5;
                 if (missedLessons === 1) {
@@ -528,11 +533,11 @@ document.getElementById('lookup-nameday-btn').addEventListener('click', () => {
                     await runTransaction(db, async (transaction) => {
                         const scoreRef = doc(db, `${publicDataPath}/student_scores`, studentId);
                         const newLogRef = doc(collection(db, `${publicDataPath}/award_log`));
-                        
+
                         // Update Scores
                         const scoreDoc = await transaction.get(scoreRef);
                         if (!scoreDoc.exists()) {
-                             transaction.set(scoreRef, {
+                            transaction.set(scoreRef, {
                                 totalStars: stars, monthlyStars: stars, gold: stars,
                                 lastMonthlyResetDate: utils.getStartOfMonthString(),
                                 createdBy: { uid: state.get('currentUserId'), name: state.get('currentTeacherName') }
@@ -541,7 +546,7 @@ document.getElementById('lookup-nameday-btn').addEventListener('click', () => {
                             transaction.update(scoreRef, {
                                 totalStars: increment(stars),
                                 monthlyStars: increment(stars),
-                                gold: increment(stars) 
+                                gold: increment(stars)
                             });
                         }
 
@@ -552,16 +557,16 @@ document.getElementById('lookup-nameday-btn').addEventListener('click', () => {
                             createdAt: serverTimestamp(), createdBy: { uid: state.get('currentUserId'), name: state.get('currentTeacherName') }
                         };
                         transaction.set(newLogRef, logData);
-                        
+
                         // Unlock card
                         const todayStarsRef = doc(collection(db, `${publicDataPath}/today_stars`));
                         transaction.set(todayStarsRef, {
-                             studentId, stars: 0, date: utils.getTodayDateString(), reason: 'welcome_back',
-                             teacherId: state.get('currentUserId'), 
-                             createdBy: { uid: state.get('currentUserId'), name: state.get('currentTeacherName') }
+                            studentId, stars: 0, date: utils.getTodayDateString(), reason: 'welcome_back',
+                            teacherId: state.get('currentUserId'),
+                            createdBy: { uid: state.get('currentUserId'), name: state.get('currentTeacherName') }
                         });
                     });
-                    
+
                     showWelcomeBackMessage(firstName, stars);
 
                 } catch (error) {
@@ -575,9 +580,9 @@ document.getElementById('lookup-nameday-btn').addEventListener('click', () => {
         // 3. Handle Undo Button
         if (undoBtn) {
             const studentId = undoBtn.closest('.student-cloud-card').dataset.studentid;
-            setStudentStarsForToday(studentId, 0, null); 
+            setStudentStarsForToday(studentId, 0, null);
             playSound('star_remove');
-            tabs.updateAwardCardState(studentId, 0, null); 
+            tabs.updateAwardCardState(studentId, 0, null);
             return;
         }
 
@@ -585,7 +590,7 @@ document.getElementById('lookup-nameday-btn').addEventListener('click', () => {
         if (reasonBtn) {
             const studentCard = reasonBtn.closest('.student-cloud-card');
             const studentId = studentCard.dataset.studentid;
-            
+
             if (state.get('todaysStars')[studentId]?.stars > 0) {
                 showToast('Please use the undo button to change today\'s stars.', 'info');
                 return;
@@ -602,12 +607,12 @@ document.getElementById('lookup-nameday-btn').addEventListener('click', () => {
                 reasonBtn.classList.add('active');
                 starSelector.classList.add('visible');
                 reasonBtn.classList.add('animate-reason-select');
-                
+
                 // Dynamic sparkle animation position
                 const randomAngle = Math.random() * 2 * Math.PI;
                 reasonBtn.style.setProperty('--x', `${Math.cos(randomAngle) * 60}px`);
                 reasonBtn.style.setProperty('--y', `${Math.sin(randomAngle) * 60}px`);
-                
+
                 reasonBtn.addEventListener('animationend', () => {
                     reasonBtn.classList.remove('animate-reason-select');
                 }, { once: true });
@@ -620,10 +625,10 @@ document.getElementById('lookup-nameday-btn').addEventListener('click', () => {
             const studentCard = starBtn.closest('.student-cloud-card');
             const studentId = studentCard.dataset.studentid;
             const activeReasonBtn = studentCard.querySelector('.reason-btn.active');
-            
+
             if (!activeReasonBtn) {
-                 showToast('Please select a reason first!', 'info');
-                 return;
+                showToast('Please select a reason first!', 'info');
+                return;
             }
 
             const student = state.get('allStudents').find(s => s.id === studentId);
@@ -639,27 +644,27 @@ document.getElementById('lookup-nameday-btn').addEventListener('click', () => {
 
             await setStudentStarsForToday(studentId, starValue, reason);
             triggerDynamicPraise(student.name, starValue, reason);
-            
+
             tabs.updateAwardCardState(studentId, state.get('todaysStars')[studentId]?.stars || starValue, reason);
 
             // --- BIRTHDAY CHECK ---
             if (utils.isSpecialOccasion(student.birthday, schedule)) {
                 const todayLogs = state.get('allAwardLogs').filter(l => l.studentId === studentId && l.date === utils.getTodayDateString() && l.note && l.note.includes('Birthday'));
-                
+
                 if (todayLogs.length === 0) {
                     // Trigger Modal
                     document.getElementById('celebration-title').innerText = "Happy Birthday!";
                     document.getElementById('celebration-message').innerHTML = `It's <b>${student.name}'s</b> birthday! Wish them well?`;
                     document.getElementById('celebration-points').innerText = "2.5";
-                    
+
                     const btn = document.getElementById('celebration-award-btn');
                     const newBtn = btn.cloneNode(true);
                     btn.parentNode.replaceChild(newBtn, btn);
-                    
+
                     newBtn.onclick = () => {
                         import('../db/actions.js').then(a => a.handleSpecialOccasionBonus(studentId, 'birthday'));
                     };
-                    
+
                     document.getElementById('celebration-cancel-btn').onclick = () => modals.hideModal('celebration-bonus-modal');
                     modals.showAnimatedModal('celebration-bonus-modal');
                     return; // STOP standard award logic
@@ -669,27 +674,27 @@ document.getElementById('lookup-nameday-btn').addEventListener('click', () => {
             // --- NAMEDAY CHECK ---
             if (utils.isSpecialOccasion(student.nameday, schedule)) {
                 const todayLogs = state.get('allAwardLogs').filter(l => l.studentId === studentId && l.date === utils.getTodayDateString() && l.note && l.note.includes('Nameday'));
-                
+
                 if (todayLogs.length === 0) {
                     // Trigger Modal
                     document.getElementById('celebration-title').innerText = "Happy Nameday!";
                     document.getElementById('celebration-message').innerHTML = `It's <b>${student.name}'s</b> Name Day! Wish them well?`;
                     document.getElementById('celebration-points').innerText = "1.5";
-                    
+
                     const btn = document.getElementById('celebration-award-btn');
                     const newBtn = btn.cloneNode(true);
                     btn.parentNode.replaceChild(newBtn, btn);
-                    
+
                     newBtn.onclick = () => {
                         import('../db/actions.js').then(a => a.handleSpecialOccasionBonus(studentId, 'nameday'));
                     };
-                    
+
                     document.getElementById('celebration-cancel-btn').onclick = () => modals.hideModal('celebration-bonus-modal');
                     modals.showAnimatedModal('celebration-bonus-modal');
                     return; // STOP standard award logic
                 }
             }
-            
+
             return;
         }
     });
@@ -709,11 +714,11 @@ document.getElementById('lookup-nameday-btn').addEventListener('click', () => {
 
     document.getElementById('add-holiday-btn').addEventListener('click', handleAddHolidayRange);
     document.getElementById('holiday-list').addEventListener('click', (e) => {
-    const btn = e.target.closest('.delete-holiday-btn');
-    if (btn) {
-        modals.showModal('Delete Holiday?', 'This will restore the calendar days.', () => handleDeleteHolidayRange(btn.dataset.id));
-    }
-});
+        const btn = e.target.closest('.delete-holiday-btn');
+        if (btn) {
+            modals.showModal('Delete Holiday?', 'This will restore the calendar days.', () => handleDeleteHolidayRange(btn.dataset.id));
+        }
+    });
 
     // --- Economy Manager Listeners ---
     const ecoSelect = document.getElementById('economy-student-select');
@@ -722,7 +727,7 @@ document.getElementById('lookup-nameday-btn').addEventListener('click', () => {
             const studentId = e.target.value;
             const btn = document.getElementById('save-gold-btn');
             const input = document.getElementById('economy-gold-input');
-            
+
             if (studentId) {
                 const scoreData = state.get('allStudentScores').find(s => s.id === studentId);
                 // Default to totalStars if gold is undefined
@@ -803,30 +808,30 @@ document.getElementById('lookup-nameday-btn').addEventListener('click', () => {
     document.getElementById('quest-assignment-confirm-btn').addEventListener('click', handleSaveQuestAssignment);
     document.getElementById('attendance-chronicle-btn').addEventListener('click', modals.openAttendanceChronicle);
     document.getElementById('attendance-chronicle-close-btn').addEventListener('click', () => modals.hideModal('attendance-chronicle-modal'));
-    
+
     // Scholar's Scroll
     document.getElementById('scroll-class-select').addEventListener('change', (e) => {
         state.setGlobalSelectedClass(e.target.value, true);
         scholarScroll.renderScholarsScrollTab(e.target.value);
     });
-    
+
     // NEW: Replaced log-trial-btn listener to open the trial type modal via scholarScroll helper
     document.getElementById('log-trial-btn').addEventListener('click', () => scholarScroll.openTrialTypeModal(document.getElementById('scroll-class-select').value));
-    
+
     // NEW: Bulk Save listener
     document.getElementById('bulk-trial-save-btn').addEventListener('click', handleBulkSaveTrial);
     document.getElementById('bulk-trial-close-btn').addEventListener('click', () => modals.hideModal('bulk-trial-modal'));
     document.getElementById('trial-type-cancel-btn').addEventListener('click', () => modals.hideModal('trial-type-modal'));
-    
+
     document.getElementById('view-trial-history-btn').addEventListener('click', () => scholarScroll.openTrialHistoryModal(document.getElementById('scroll-class-select').value));
     document.getElementById('trial-history-close-btn').addEventListener('click', () => modals.hideModal('trial-history-modal'));
     document.getElementById('starfall-cancel-btn').addEventListener('click', () => modals.hideModal('starfall-modal'));
-    
+
     // Idea Forge AI buttons
     document.getElementById('gemini-idea-btn').addEventListener('click', handleGenerateIdea);
     document.getElementById('copy-idea-btn').addEventListener('click', () => modals.copyToClipboard('gemini-idea-output'));
     document.getElementById('oracle-insight-btn').addEventListener('click', handleGetOracleInsight);
-    
+
     // Story Weavers
     document.getElementById('story-weavers-class-select').addEventListener('change', (e) => {
         state.setGlobalSelectedClass(e.target.value, true);
@@ -870,7 +875,7 @@ document.getElementById('lookup-nameday-btn').addEventListener('click', () => {
 
     // Ceremony Listeners (New System handled via Home Tab Pill)
     document.getElementById('global-leaderboard-close-btn').addEventListener('click', () => modals.hideModal('global-leaderboard-modal'));
-    
+
     // Other Modals
     document.getElementById('report-modal-close-btn').addEventListener('click', () => modals.hideModal('report-modal'));
     document.getElementById('certificate-modal-close-btn').addEventListener('click', () => modals.hideModal('certificate-modal'));
@@ -888,14 +893,14 @@ document.getElementById('lookup-nameday-btn').addEventListener('click', () => {
         if (btn) {
             const classId = document.getElementById('overview-modal').dataset.classId;
             const view = btn.dataset.view;
-            
+
             document.querySelectorAll('.overview-tab-btn').forEach(b => {
                 b.classList.remove('border-purple-500', 'text-purple-600');
                 b.classList.add('border-transparent', 'text-gray-500');
             });
             btn.classList.add('border-purple-500', 'text-purple-600');
             btn.classList.remove('border-transparent', 'text-gray-500');
-            
+
             modals.renderOverviewContent(classId, view);
         }
     });
@@ -934,7 +939,7 @@ document.getElementById('lookup-nameday-btn').addEventListener('click', () => {
 
     // Initialize Home/Info Listeners
     setupHomeListeners();
-     // Hero Celebration Modal
+    // Hero Celebration Modal
     const heroCelebrationCloseBtn = document.getElementById('hero-celebration-close-btn');
     if (heroCelebrationCloseBtn) {
         heroCelebrationCloseBtn.addEventListener('click', () => {

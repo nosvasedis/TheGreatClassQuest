@@ -13,6 +13,27 @@ function shuffleDeck(array) {
     }
     return array;
 }
+
+// Returns a human-readable age/level description for AI prompts
+function getLevelLabel(questLevel) {
+    const map = {
+        'Junior A': 'young children aged 7-8 (very simple words, short sentences, playful tone)',
+        'Junior B': 'children aged 8-9 (simple language, fun facts, short sentences)',
+        'A': 'students aged 9-10 (clear and friendly language, interesting facts)',
+        'B': 'students aged 10-11 (moderate vocabulary, engaging content)',
+        'C': 'students aged 11-12 (good vocabulary, thought-provoking content)',
+        'D': 'students aged 12-13 (advanced vocabulary, challenging content okay)'
+    };
+    return map[questLevel] || 'students aged 9-12 (clear, fun, and educational language)';
+}
+
+// Returns a simple tier for conditional logic
+function getLevelTier(questLevel) {
+    if (!questLevel) return 'mid';
+    if (questLevel === 'Junior A' || questLevel === 'Junior B') return 'junior';
+    if (questLevel === 'A' || questLevel === 'B') return 'mid';
+    return 'senior';
+}
 let directorTimeout = null;
 let wallpaperTimerInterval = null;
 let clockInterval = null;
@@ -234,15 +255,33 @@ async function initializeDailyAIContent() {
     const q = query(contentCollection, where("date", "==", today));
     const snapshot = await getDocs(q);
 
+    // Determine the audience level from the currently viewed class
+    const cls = state.get('allSchoolClasses').find(c => c.id === state.get('globalSelectedClassId'));
+    const levelLabel = getLevelLabel(cls?.questLevel);
+
     if (snapshot.empty) {
         console.log("Generating fresh AI content for the day...");
-        const systemPrompt = `You are a creative content engine for a classroom. Generate a JSON array of 20 objects. 
-        Types: 'fact_science', 'fact_history', 'fact_nature', 'joke', 'riddle', 'word', 'idiom'.
-        Structure: { "type": "string", "content": "string", "answer": "string (optional, for riddles/words)" }.
-        Content must be kid-friendly, educational, and fun. No markdown.`;
+        const systemPrompt = `You are a creative content engine for an English language school in Greece.
+        Target audience: ${levelLabel}.
+        Generate a JSON array of EXACTLY 30 objects. Use a diverse mix of these types:
+        - 'fact_science' (curious science facts)
+        - 'fact_history' (history facts about ancient Greece, UK, USA, world history – use 4-5 of each)
+        - 'fact_nature' (animals, plants, environment)
+        - 'fact_geography' (UK, USA, Greece, world – cities, landmarks, records)
+        - 'fact_math' (fun numbers, patterns, records)
+        - 'did_you_know' (surprising general knowledge)
+        - 'joke' (clean, funny, age-appropriate)
+        - 'riddle' (simple logic riddle with answer)
+        - 'brain_teaser' (short logic puzzle with answer)
+        - 'word' (interesting English word with its meaning as answer)
+        - 'idiom' (English idiom with its meaning as answer)
+        - 'tongue_twister' (fun English tongue twister)
+        Structure: { "type": "string", "content": "string", "answer": "string (only for riddles, brain_teasers, words, idioms)" }.
+        IMPORTANT: Calibrate all language complexity and content to be appropriate for ${levelLabel}.
+        Content must be kid-friendly, educational, and fun. No markdown. Return ONLY the JSON array.`;
 
         try {
-            const jsonStr = await callGeminiApi(systemPrompt, "Generate 20 items.");
+            const jsonStr = await callGeminiApi(systemPrompt, "Generate 30 items now.");
             const cleanJson = jsonStr.replace(/```json|```/g, '').trim();
             const items = JSON.parse(cleanJson);
 
@@ -255,6 +294,7 @@ async function initializeDailyAIContent() {
                 batch.set(docRef, {
                     ...item,
                     date: today,
+                    levelLabel: levelLabel,
                     createdBy: { uid: teacherId, name: teacherName },
                     createdAt: serverTimestamp()
                 });
@@ -500,50 +540,95 @@ function buildDeckList(classId) {
     const now = new Date();
     const dateMatch = `-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
     const hour = now.getHours();
+    const dayOfWeek = now.getDay(); // 0=Sun, 1=Mon, ..., 5=Fri, 6=Sat
+    const todayStr = utils.getTodayDateString();
+
+    // --- Determine lesson phase for time-aware card weighting ---
+    // We detect how far into the current lesson we are
+    let lessonPhase = 'main'; // 'opening', 'main', 'winddown'
+    if (classId) {
+        const cls = state.get('allSchoolClasses').find(c => c.id === classId);
+        if (cls?.timeStart) {
+            const [sh, sm] = cls.timeStart.split(':').map(Number);
+            const lessonStartMs = sh * 60 + sm;
+            const nowMs = now.getHours() * 60 + now.getMinutes();
+            const minIntoLesson = nowMs - lessonStartMs;
+            if (minIntoLesson < 20) lessonPhase = 'opening';
+            else if (minIntoLesson >= 70) lessonPhase = 'winddown';
+        }
+    }
 
     // --- 1. THE "ALWAYS FRESH" GLOBAL POOL ---
-    // These cards appear in BOTH School and Class modes to ensure variety
     const globalPool = [
         'school_pulse', 'treasury_school', 'school_leader_top3',
         'school_active_bounties', 'school_adventure_count', 'school_upcoming_event',
-        'season_visual', 'motivation_poster', 'school_top_student',
-        'ai_fact_science', 'ai_fact_history', 'ai_fact_nature',
-        'ai_word', 'ai_joke', 'ai_riddle', 'ai_idiom', 'weather', 'holiday'
+        'season_visual', 'motivation_poster', 'school_top_student', 'school_gold_leader',
+        'school_avg_attendance',
+        // AI-generated variety
+        'ai_fact_science', 'ai_fact_history', 'ai_fact_nature', 'ai_fact_geography',
+        'ai_fact_math', 'ai_did_you_know',
+        'ai_word', 'ai_joke', 'ai_riddle', 'ai_idiom', 'ai_brain_teaser', 'ai_tongue_twister',
+        // Contextual trivia
+        'weather', 'holiday', 'this_day_history', 'world_record',
+        'study_tip', 'thought_experiment', 'emoji_riddle', 'math_challenge',
+        'greek_nameday_today', 'orthodox_calendar'
     ];
 
     // --- 2. THE CLASS-SPECIFIC POOL ---
     const classPool = [
         'class_quest', 'treasury_class', 'streak', 'timekeeper',
         'story_sentence', 'class_bounty', 'next_lesson',
-        'attendance_summary', 'absent_heroes', 'mindfulness'
+        'attendance_summary', 'absent_heroes', 'mindfulness',
+        'quest_map_position', 'class_rank_vs_school', 'class_gold_ranking',
+        'reigning_hero_spotlight', 'lesson_milestone'
     ];
 
     if (!classId) {
         // Mode: School Overview
         list = [...globalPool];
     } else {
-        // Mode: Specific Class (Lessons: 1.5h - 2h)
-        // Mix: 60% Class Data + 40% Global Facts/School Trivia
-        list = [...classPool, ...globalPool.sort(() => 0.5 - Math.random()).slice(0, 8)];
+        // Mode: Specific Class
+        // Phase-aware mixing
+        const globalSample = lessonPhase === 'opening' ? 6 :
+            lessonPhase === 'winddown' ? 10 : 8;
+        list = [...classPool, ...globalPool.sort(() => 0.5 - Math.random()).slice(0, globalSample)];
 
         const students = state.get('allStudents').filter(s => s.classId === classId);
         const scores = state.get('allStudentScores');
-        const todayStr = utils.getTodayDateString();
 
-        // Check for Test Luck
-        const hasTest = state.get('allQuestAssignments').some(a => a.classId === classId && a.testData && utils.datesMatch(a.testData.date, todayStr));
-        if (hasTest) list.push('class_test_luck', 'class_test_luck');
+        // --- Test Today: big luck boost ---
+        const hasTestToday = state.get('allQuestAssignments').some(a =>
+            a.classId === classId && a.testData && utils.datesMatch(a.testData.date, todayStr));
+        if (hasTestToday) list.push('class_test_luck', 'class_test_luck', 'class_test_luck');
+
+        // --- Upcoming Test Countdown (within 7 days but not today) ---
+        const nextTest = state.get('allQuestAssignments').find(a => {
+            if (!a.classId === classId || !a.testData) return false;
+            const testDate = utils.parseFlexibleDate(a.testData.date);
+            if (!testDate) return false;
+            const diff = Math.ceil((testDate - now) / (1000 * 60 * 60 * 24));
+            return diff > 0 && diff <= 7;
+        });
+        if (nextTest) list.push('upcoming_test_countdown', 'upcoming_test_countdown');
 
         // STUDENT SPOTLIGHTS (Filter out absents)
-        const absents = state.get('allAttendanceRecords').filter(r => r.classId === classId && r.date === todayStr).map(r => r.studentId);
+        const absents = state.get('allAttendanceRecords')
+            .filter(r => r.classId === classId && r.date === todayStr)
+            .map(r => r.studentId);
         const presentStudents = students.filter(s => !absents.includes(s.id));
-        presentStudents.sort(() => 0.5 - Math.random()).slice(0, 6).forEach(s => list.push(`stu_spotlight:${s.id}`));
 
-        // RECENT AWARDS (Fix: One per student to avoid clumping!)
+        // Spotlight cards (up to 6)
+        presentStudents.sort(() => 0.5 - Math.random()).slice(0, 6)
+            .forEach(s => list.push(`stu_spotlight:${s.id}`));
+
+        // Student fun-fact cards (up to 5, distinct from spotlights)
+        presentStudents.sort(() => 0.5 - Math.random()).slice(0, 5)
+            .forEach(s => list.push(`stu_funfact:${s.id}`));
+
+        // RECENT AWARDS (One per student to avoid clumping)
         const awardLogs = state.get('allAwardLogs')
             .filter(l => l.classId === classId)
             .sort((a, b) => (b.createdAt?.toMillis?.() || 0) - (a.createdAt?.toMillis?.() || 0));
-
         const featuredStudents = new Set();
         awardLogs.forEach(l => {
             if (!featuredStudents.has(l.studentId) && featuredStudents.size < 8) {
@@ -558,19 +643,49 @@ function buildDeckList(classId) {
             .slice(0, 4)
             .forEach(l => list.push(`log:${l.id}`));
 
-        // BIRTHDAYS/NAMEDAYS
+        // BIRTHDAYS/NAMEDAYS (doubled for celebration priority)
         students.forEach(s => {
             if (s.birthday?.endsWith(dateMatch)) list.push(`bday:${s.id}`, `bday:${s.id}`);
             if (s.nameday?.endsWith(dateMatch)) list.push(`name:${s.id}`, `name:${s.id}`);
         });
+
+        if (lessonPhase === 'opening') {
+            list.push('mindfulness', 'context_morning');
+            // Check if it's been a while since the last lesson (Holiday Welcome)
+            const attendance = state.get('allAttendanceRecords').filter(r => r.classId === classId);
+            const sortedDates = [...new Set(attendance.map(r => r.date))].sort().reverse();
+            if (sortedDates.length > 0) {
+                const last = utils.parseFlexibleDate(sortedDates[0]);
+                const diff = (now - last) / (1000 * 60 * 60 * 24);
+                if (diff > 7) list.push('post_holiday_welcome', 'post_holiday_welcome');
+            }
+        }
+        if (lessonPhase === 'winddown') {
+            list.push('mindfulness', 'study_tip', 'thought_experiment', 'class_season_snapshot');
+        }
     }
 
-    // Contextual time-based injections
+    // --- Global time-of-day context cards ---
     if (hour < 9) list.push('context_morning');
     if (hour >= 13 && hour < 15) list.push('context_afternoon');
     if (hour >= 19) list.push('context_night');
 
-    return shuffleDeck(list); // Use the new proper shuffle!
+    // Day-of-week context
+    if (dayOfWeek === 1) list.push('context_monday', 'context_monday'); // Monday gets double
+    if (dayOfWeek === 5) list.push('context_friday', 'context_friday'); // Friday gets double
+
+    // Pre-holiday hype (within 7 days of a holiday)
+    const nextHoliday = (state.get('schoolHolidayRanges') || [])
+        .filter(h => new Date(h.start) >= now)
+        .sort((a, b) => new Date(a.start) - new Date(b.start))[0];
+    if (nextHoliday) {
+        const daysToHoliday = Math.ceil((new Date(nextHoliday.start) - now) / (1000 * 60 * 60 * 24));
+        if (daysToHoliday <= 7 && daysToHoliday > 0) {
+            list.push('pre_holiday_hype', 'pre_holiday_hype');
+        }
+    }
+
+    return shuffleDeck(list);
 }
 
 async function hydrateCard(type, classId) {
@@ -578,15 +693,21 @@ async function hydrateCard(type, classId) {
     const baseObj = { id: type };
     let content = null;
 
+    // Get current class info for level-aware cards
+    const cls = classId ? state.get('allSchoolClasses').find(c => c.id === classId) : null;
+    const questLevel = cls?.questLevel || null;
+
     if (baseType === 'bday') content = getBirthdayCard(dataId);
     else if (baseType === 'name') content = getNamedayCard(dataId);
-    else if (baseType === 'stu_spotlight') content = getStudentSpotlightCard(dataId);
+    else if (baseType === 'stu_spotlight') content = getStudentSpotlightCard(dataId, questLevel);
+    else if (baseType === 'stu_funfact') content = getStudentFunFactCard(dataId, classId, questLevel);
     else if (baseType === 'log') content = getSpecificLogCard(dataId);
     else if (baseType === 'top_student_monthly') content = getTopMonthlyStudentCard(classId, dataId);
     else if (baseType === 'top_student_daily') content = getTopDailyStudentCard(classId, dataId);
     else if (baseType === 'recent_award') content = getRecentAwardCard(classId, dataId);
     else {
         switch (type) {
+            // --- School-wide cards ---
             case 'school_pulse': content = getSchoolPulseCard(); break;
             case 'treasury_school': content = getTreasuryCard(null); break;
             case 'league_race': content = getRandomLeagueRaceCard(); break;
@@ -597,21 +718,42 @@ async function hydrateCard(type, classId) {
             case 'school_top_student': content = getSchoolTopStudentCard(); break;
             case 'school_avg_attendance': content = getSchoolAttendanceCard(); break;
             case 'school_gold_leader': content = getSchoolGoldLeaderCard(); break;
+
+            // --- Static/generated visual cards ---
             case 'season_visual': content = getSeasonalCard(); break;
             case 'giant_clock': content = getGiantClockCard(); break;
-            case 'motivation_poster': content = await getMotivationCard(); break;
+            case 'motivation_poster': content = getMotivationCard(questLevel); break;
             case 'holiday': content = getNextHolidayCard(); break;
             case 'weather': content = getWeatherCard(); break;
-            case 'class_test_luck': content = getTestLuckCard(classId); break;
+            case 'class_test_luck': content = getTestLuckCard(classId, questLevel); break;
+            case 'upcoming_test_countdown': content = getUpcomingTestCountdownCard(classId, questLevel); break;
+            case 'pre_holiday_hype': content = getPreHolidayHypeCard(); break;
 
+            // --- AI-generated knowledge cards ---
             case 'ai_fact_science': content = await getAIFromDB('fact_science'); break;
             case 'ai_fact_history': content = await getAIFromDB('fact_history'); break;
             case 'ai_fact_nature': content = await getAIFromDB('fact_nature'); break;
+            case 'ai_fact_geography': content = await getAIFromDB('fact_geography'); break;
+            case 'ai_fact_math': content = await getAIFromDB('fact_math'); break;
+            case 'ai_did_you_know': content = await getAIFromDB('did_you_know'); break;
             case 'ai_joke': content = await getAIFromDB('joke'); break;
             case 'ai_riddle': content = await getAIFromDB('riddle'); break;
+            case 'ai_brain_teaser': content = await getAIFromDB('brain_teaser'); break;
             case 'ai_word': content = await getAIFromDB('word'); break;
             case 'ai_idiom': content = await getAIFromDB('idiom'); break;
+            case 'ai_tongue_twister': content = await getAIFromDB('tongue_twister'); break;
 
+            // --- Hardcoded knowledge & trivia ---
+            case 'this_day_history': content = getThisDayInHistoryCard(questLevel); break;
+            case 'world_record': content = getWorldRecordCard(questLevel); break;
+            case 'study_tip': content = getStudyTipCard(questLevel); break;
+            case 'thought_experiment': content = getThoughtExperimentCard(questLevel); break;
+            case 'emoji_riddle': content = getEmojiRiddleCard(questLevel); break;
+            case 'math_challenge': content = getMathChallengeCard(questLevel); break;
+            case 'greek_nameday_today': content = getGreekNamedayCard(); break;
+            case 'orthodox_calendar': content = getOrthodoxCalendarCard(); break;
+
+            // --- Class-specific cards ---
             case 'class_quest': content = getClassQuestCard(classId); break;
             case 'treasury_class': content = getTreasuryCard(classId); break;
             case 'streak': content = getAttendanceStreakCard(classId); break;
@@ -621,13 +763,22 @@ async function hydrateCard(type, classId) {
             case 'next_lesson': content = getNextLessonCard(classId); break;
             case 'attendance_summary': content = getClassAttendanceCard(classId); break;
             case 'absent_heroes': content = getAbsentHeroesCard(classId); break;
-            case 'mindfulness': content = getMindfulnessCard(); break;
+            case 'mindfulness': content = getMindfulnessCard(questLevel); break;
+            case 'quest_map_position': content = getQuestMapPositionCard(classId); break;
+            case 'class_rank_vs_school': content = getClassRankVsSchoolCard(classId); break;
+            case 'class_gold_ranking': content = getClassGoldRankingCard(classId); break;
+            case 'reigning_hero_spotlight': content = getReigningHeroCard(classId); break;
+            case 'lesson_milestone': content = getLessonMilestoneCard(classId); break;
 
-            case 'context_morning': content = { html: `<div class="text-center"><div class="text-8xl mb-2 animate-bounce-slow">☀️</div><h2 class="font-title text-5xl text-amber-500">Good Morning!</h2><p class="text-gray-500 text-xl font-bold">Let's make today legendary.</p></div>`, css: 'float-card-gold' }; break;
-            case 'context_afternoon': content = { html: `<div class="text-center"><div class="text-8xl mb-2">⚡</div><h2 class="font-title text-5xl text-blue-500">Power Up!</h2><p class="text-gray-500 text-xl font-bold">Stay focused. You got this.</p></div>`, css: 'float-card-blue' }; break;
-            case 'context_night': content = { html: `<div class="text-center"><div class="text-8xl mb-2 animate-pulse-slow">🌙</div><h2 class="font-title text-5xl text-indigo-300">Rest & Recharge</h2><p class="text-indigo-200 text-xl font-bold">Great work today.</p></div>`, css: 'float-card-indigo' }; break;
-            case 'context_monday': content = { html: `<div class="text-center"><div class="text-8xl mb-2">🚀</div><h2 class="font-title text-5xl text-red-500">New Week</h2><p class="text-gray-500 text-xl font-bold">New goals. New adventures.</p></div>`, css: 'float-card-red' }; break;
-            case 'context_friday': content = { html: `<div class="text-center"><div class="text-8xl mb-2 animate-bounce">🎉</div><h2 class="font-title text-5xl text-purple-500">Fri-YAY!</h2><p class="text-gray-500 text-xl font-bold">Finish strong!</p></div>`, css: 'float-card-purple' }; break;
+            // --- Context cards ---
+            case 'context_morning': content = getContextCard('morning', questLevel); break;
+            case 'context_afternoon': content = getContextCard('afternoon', questLevel); break;
+            case 'context_night': content = getContextCard('night', questLevel); break;
+            case 'context_monday': content = getContextCard('monday', questLevel); break;
+            case 'context_friday': content = getContextCard('friday', questLevel); break;
+            case 'post_holiday_welcome': content = getPostHolidayWelcomeCard(); break;
+            case 'class_season_snapshot': content = getClassSeasonSnapshotCard(classId); break;
+
 
             default: content = getSchoolPulseCard();
         }
@@ -637,22 +788,763 @@ async function hydrateCard(type, classId) {
     return { ...baseObj, ...content };
 }
 
-function getMindfulnessCard() {
+function getMindfulnessCard(questLevel) {
+    const tier = getLevelTier(questLevel);
+    const prompts = {
+        junior: ['Take a big breath in... and out! 😊', 'Close your eyes and count to 5!', 'Shake your hands, take a breath, smile!'],
+        mid: ['Breathe in for 4... hold for 4... out for 4.', 'Close your eyes. Think of your happy place.', 'Roll your shoulders back. Deep breath. Ready!'],
+        senior: ['Box breathing: in 4, hold 4, out 4, hold 4.', 'Ground yourself: 5 things you can see right now.', 'One deep breath resets your focus. Try it.']
+    };
+    const opts = prompts[tier] || prompts.mid;
+    const msg = opts[Math.floor(Math.random() * opts.length)];
     return {
         html: `
             <div class="text-center w-full">
                 <div class="badge-pill bg-teal-100 text-teal-800">Mindfulness Moment</div>
-                <div class="relative w-48 h-48 mx-auto my-6 flex items-center justify-center">
+                <div class="relative w-44 h-44 mx-auto my-6 flex items-center justify-center">
                     <div class="absolute inset-0 bg-teal-300 rounded-full opacity-30 mindfulness-pulse"></div>
-                    <div class="absolute inset-4 bg-teal-400 rounded-full opacity-40 mindfulness-pulse" style="animation-delay: 0.5s"></div>
-                    <div class="absolute inset-8 bg-teal-500 rounded-full opacity-50 mindfulness-pulse" style="animation-delay: 1s"></div>
+                    <div class="absolute inset-4 bg-teal-400 rounded-full opacity-40 mindfulness-pulse" style="animation-delay:0.5s"></div>
+                    <div class="absolute inset-8 bg-teal-500 rounded-full opacity-50 mindfulness-pulse" style="animation-delay:1s"></div>
                     <i class="fas fa-wind text-white text-5xl relative z-10"></i>
                 </div>
-                <h3 class="font-title text-3xl text-teal-700">Breathe In... Breathe Out...</h3>
+                <h3 class="font-title text-3xl text-teal-700">${msg}</h3>
             </div>`,
         css: 'float-card-teal'
     };
 }
+
+// ─── Context Cards (level-aware) ────────────────────────────────────────────
+function getContextCard(moment, questLevel) {
+    const tier = getLevelTier(questLevel);
+    const cards = {
+        morning: {
+            junior: { icon: '☀️', title: 'Good Morning!', sub: 'Ready to learn something amazing today?' },
+            mid: { icon: '☀️', title: 'Good Morning!', sub: "Let's make today legendary!" },
+            senior: { icon: '🌅', title: 'Rise & Shine!', sub: 'Every great day starts with a great attitude.' }
+        },
+        afternoon: {
+            junior: { icon: '⚡', title: 'Keep Going!', sub: "You're doing great! Don't stop now!" },
+            mid: { icon: '⚡', title: 'Power Hour!', sub: 'Stay focused – the finish line is near!' },
+            senior: { icon: '💪', title: 'Push Through!', sub: 'Discipline now = success later.' }
+        },
+        night: {
+            junior: { icon: '🌙', title: 'Great Job Today!', sub: 'Time to rest your super brain! 🧠' },
+            mid: { icon: '🌙', title: 'Rest & Recharge', sub: 'Great work today, hero!' },
+            senior: { icon: '🌠', title: 'Day Well Done', sub: 'Rest is part of the growth process.' }
+        },
+        monday: {
+            junior: { icon: '🚀', title: 'New Week!', sub: 'New adventures are waiting for you!' },
+            mid: { icon: '🚀', title: 'New Week!', sub: 'New goals. New challenges. Let\'s go!' },
+            senior: { icon: '🏁', title: 'Monday Mission', sub: 'The week is your canvas. Make it count.' }
+        },
+        friday: {
+            junior: { icon: '🎉', title: 'FRI-YAY!', sub: 'You made it through the week! Amazing!' },
+            mid: { icon: '🎉', title: 'Fri-YAY!', sub: 'Finish strong – weekend is earned!' },
+            senior: { icon: '🔥', title: 'End of Week Strong', sub: 'No shortcuts on Fridays. Finish with pride.' }
+        }
+    };
+    const c = (cards[moment] || cards.morning)[tier] || (cards[moment] || cards.morning).mid;
+    const cssMap = { morning: 'float-card-gold', afternoon: 'float-card-blue', night: 'float-card-indigo', monday: 'float-card-red', friday: 'float-card-purple' };
+    return {
+        html: `<div class="text-center"><div class="text-8xl mb-3 animate-bounce-slow">${c.icon}</div><h2 class="font-title text-5xl text-white">${c.title}</h2><p class="text-white/80 text-xl font-bold mt-2">${c.sub}</p></div>`,
+        css: cssMap[moment] || 'float-card-gold'
+    };
+}
+
+// ─── Enhanced Student Spotlight ──────────────────────────────────────────────
+function getStudentSpotlightCard(studentId, questLevel) {
+    const s = state.get('allStudents').find(x => x.id === studentId);
+    if (!s) return null;
+    const sc = state.get('allStudentScores').find(x => x.id === studentId);
+    if (!sc) return null;
+
+    // Calculate Rank
+    const allClassStudents = state.get('allStudents').filter(x => x.classId === s.classId);
+    const scored = allClassStudents.map(stu => ({ id: stu.id, stars: state.get('allStudentScores').find(x => x.id === stu.id)?.monthlyStars || 0 }))
+        .sort((a, b) => b.stars - a.stars);
+    const rank = scored.findIndex(x => x.id === studentId) + 1;
+
+    const totalStars = sc.totalStars || 0;
+    const monthlyStars = sc.monthlyStars || 0;
+    const hero = s.hero || 'Adventurer';
+    const tier = getLevelTier(questLevel);
+
+    // Superlatives
+    const superlatives = [
+        'Star of the Week ⭐', 'Legendary Effort 🏆', 'Quest Master ⚔️',
+        'Ancient Sage 📜', 'Fastest Thinker ⚡', 'Golden Heart 💛'
+    ];
+    const superL = superlatives[Math.floor(Math.random() * superlatives.length)];
+
+    const tagline = tier === 'junior' ? 'Super Learner! 🌟' : tier === 'mid' ? 'Class Adventurer ⚔️' : 'Quest Scholar 📜';
+    const avatar = s.avatar
+        ? `<img src="${s.avatar}" class="w-40 h-40 rounded-full border-8 border-white shadow-xl mx-auto mb-4 object-cover">`
+        : `<div class="w-40 h-40 rounded-full bg-indigo-200 flex items-center justify-center text-7xl mx-auto mb-4 border-8 border-white font-bold">${s.name.charAt(0)}</div>`;
+
+    return {
+        html: `<div class="text-center">
+            <div class="badge-pill bg-purple-100 text-purple-700">Hero Spotlight</div>
+            ${avatar}
+            <h2 class="font-title text-5xl text-purple-900">${s.name}</h2>
+            <div class="flex justify-center gap-2 mt-1">
+                <span class="bg-indigo-100 text-indigo-700 px-3 py-1 rounded-full text-sm font-bold">${hero}</span>
+                <span class="bg-amber-100 text-amber-700 px-3 py-1 rounded-full text-sm font-bold">#${rank} Rank</span>
+            </div>
+            <p class="text-purple-500 font-bold mt-2 text-xl">${superL}</p>
+            <p class="text-purple-700 font-title text-3xl mt-2">⭐ ${monthlyStars} <span class="text-sm uppercase font-bold text-purple-400">Stars this month</span></p>
+            <p class="text-purple-400 font-bold text-xs mt-1">Total Career Stars: ${totalStars}</p>
+        </div>`,
+        css: 'float-card-purple'
+    };
+}
+
+// ─── Student Fun-Fact Card ────────────────────────────────────────────────────
+function getStudentFunFactCard(studentId, classId, questLevel) {
+    const s = state.get('allStudents').find(x => x.id === studentId);
+    if (!s) return null;
+    const sc = state.get('allStudentScores').find(x => x.id === studentId);
+    const scores = state.get('allStudentScores');
+    const allClassStudents = state.get('allStudents').filter(x => x.classId === classId);
+
+    const sorted = allClassStudents.map(stu => ({ id: stu.id, stars: scores.find(sc => sc.id === stu.id)?.monthlyStars || 0 })).sort((a, b) => b.stars - a.stars);
+    const rank = sorted.findIndex(x => x.id === studentId) + 1;
+    const monthlyStars = sc?.monthlyStars || 0;
+    const totalStars = sc?.totalStars || 0;
+
+    const tier = getLevelTier(questLevel);
+    const superlatives = [
+        { condition: rank === 1, label: '🏆 #1 This Month!', sub: `Leading with ${monthlyStars} stars` },
+        { condition: rank <= 3 && rank > 1, label: `🥈 Top ${rank} This Month!`, sub: `${monthlyStars} monthly stars` },
+        { condition: totalStars >= 100, label: '💯 Century Club!', sub: tier === 'junior' ? 'Over 100 stars – WOW!' : `${totalStars} total stars earned` },
+        { condition: monthlyStars >= 20, label: '🔥 On Fire!', sub: `${monthlyStars} stars this month!` },
+        { condition: true, label: '⭐ Quest Hero', sub: `${totalStars} stars earned so far` }
+    ];
+    const fact = superlatives.find(x => x.condition);
+    const avatar = s.avatar
+        ? `<img src="${s.avatar}" class="w-32 h-32 rounded-full border-4 border-white shadow-lg mx-auto mb-3 object-cover">`
+        : `<div class="w-32 h-32 rounded-full bg-amber-200 flex items-center justify-center text-6xl mx-auto mb-3 border-4 border-white font-bold">${s.name.charAt(0)}</div>`;
+    return {
+        html: `<div class="text-center">
+            <div class="badge-pill bg-amber-100 text-amber-800">Student Stats</div>
+            ${avatar}
+            <h2 class="font-title text-4xl text-amber-900">${s.name}</h2>
+            <p class="font-title text-3xl text-amber-600 mt-2">${fact.label}</p>
+            <p class="text-amber-700 font-bold text-lg mt-1">${fact.sub}</p>
+        </div>`,
+        css: 'float-card-gold'
+    };
+}
+
+// ─── Quest Map Position ───────────────────────────────────────────────────────
+function getQuestMapPositionCard(classId) {
+    const cls = state.get('allSchoolClasses').find(c => c.id === classId);
+    if (!cls) return null;
+    const mapZones = {
+        'Junior A': { zone: 'The Starter Village', icon: '🏘️', desc: 'Every legend begins here!' },
+        'Junior B': { zone: 'The Whispering Woods', icon: '🌲', desc: 'Brave explorers ahead!' },
+        'A': { zone: 'The Crystal Caves', icon: '💎', desc: 'Treasures await the bold!' },
+        'B': { zone: 'The Dragon Highlands', icon: '🐲', desc: 'Only the strong persist!' },
+        'C': { zone: 'The Storm Peaks', icon: '⛰️', desc: 'Near the top – keep climbing!' },
+        'D': { zone: 'The Sky Citadel', icon: '🏰', desc: 'Elite territory, champion!' }
+    };
+    const zone = mapZones[cls.questLevel] || mapZones['A'];
+    const students = state.get('allStudents').filter(s => s.classId === classId);
+    const scores = state.get('allStudentScores');
+    const totalStars = students.reduce((sum, s) => { const sc = scores.find(x => x.id === s.id); return sum + (sc?.monthlyStars || 0); }, 0);
+    return {
+        html: `<div class="text-center w-full">
+            <div class="badge-pill bg-emerald-100 text-emerald-800">Quest Map Position</div>
+            <div class="text-7xl my-4">${zone.icon}</div>
+            <h3 class="font-title text-3xl text-emerald-900">${zone.zone}</h3>
+            <p class="text-emerald-600 font-bold text-lg mt-1">${zone.desc}</p>
+            <div class="mt-4 bg-emerald-100 rounded-xl p-3">
+                <p class="text-emerald-800 font-bold">League: ${cls.questLevel} &nbsp;|&nbsp; ${totalStars} ⭐ this month</p>
+            </div>
+        </div>`,
+        css: 'float-card-green'
+    };
+}
+
+// ─── Class Rank vs School ─────────────────────────────────────────────────────
+function getClassRankVsSchoolCard(classId) {
+    const classes = state.get('allSchoolClasses');
+    if (classes.length < 2) return null;
+    const scores = state.get('allStudentScores');
+    const ranked = classes.map(c => {
+        const students = state.get('allStudents').filter(s => s.classId === c.id);
+        const stars = students.reduce((sum, s) => { const sc = scores.find(x => x.id === s.id); return sum + (sc?.monthlyStars || 0); }, 0);
+        return { id: c.id, name: c.name, logo: c.logo, stars };
+    }).sort((a, b) => b.stars - a.stars);
+    const rank = ranked.findIndex(c => c.id === classId) + 1;
+    if (rank === 0) return null;
+    const total = ranked.length;
+    const rankEmoji = rank === 1 ? '🥇' : rank === 2 ? '🥈' : rank === 3 ? '🥉' : `#${rank}`;
+    const msgs = rank === 1
+        ? ['You\'re in the lead! Can you hold it? 🔥', 'TOP OF THE SCHOOL! Keep it up! 🏆']
+        : rank <= 3
+            ? [`Almost at the top – only ${rank - 1} class${rank - 1 > 1 ? 'es' : ''} ahead!`, 'Push harder – the podium is in sight!']
+            : [`${rank === total ? 'Room to grow – every point counts!' : `${total - rank} more push and you move up!`}`];
+    const msg = msgs[Math.floor(Math.random() * msgs.length)];
+    return {
+        html: `<div class="text-center w-full">
+            <div class="badge-pill bg-blue-100 text-blue-800">School Ranking</div>
+            <div class="text-8xl my-4">${rankEmoji}</div>
+            <h3 class="font-title text-4xl text-blue-900">Rank ${rank} of ${total}</h3>
+            <p class="text-blue-600 font-bold text-xl mt-2">${msg}</p>
+            <p class="text-blue-400 font-bold text-sm mt-2">${ranked[0].logo} Leader: ${ranked[0].name} (${ranked[0].stars} ⭐)</p>
+        </div>`,
+        css: 'float-card-blue'
+    };
+}
+
+// ─── Class Gold Ranking ───────────────────────────────────────────────────────
+function getClassGoldRankingCard(classId) {
+    const classes = state.get('allSchoolClasses');
+    if (classes.length < 2) return null;
+    const scores = state.get('allStudentScores');
+    const ranked = classes.map(c => {
+        const students = state.get('allStudents').filter(s => s.classId === c.id);
+        const gold = students.reduce((sum, s) => { const sc = scores.find(x => x.id === s.id); return sum + (sc?.gold || 0); }, 0);
+        return { id: c.id, name: c.name, logo: c.logo, gold };
+    }).sort((a, b) => b.gold - a.gold);
+    const myData = ranked.find(c => c.id === classId);
+    const rank = ranked.findIndex(c => c.id === classId) + 1;
+    if (!myData) return null;
+    return {
+        html: `<div class="text-center w-full">
+            <div class="badge-pill bg-amber-100 text-amber-800">Gold Treasury Rank</div>
+            <div class="text-7xl my-3">💰</div>
+            <h3 class="font-title text-4xl text-amber-900">#${rank} Richest Class</h3>
+            <p class="font-title text-3xl text-amber-600">${myData.gold} Gold Coins</p>
+            ${rank === 1 ? '<p class="text-amber-700 font-bold mt-2">👑 Wealthiest in school!</p>' : `<p class="text-amber-600 font-bold mt-2">${ranked[0].logo} ${ranked[0].name}: ${ranked[0].gold} 💰</p>`}
+        </div>`,
+        css: 'float-card-gold'
+    };
+}
+
+// ─── Reigning Hero Spotlight ──────────────────────────────────────────────────
+function getReigningHeroCard(classId) {
+    const hero = state.get('reigningHero');
+    if (!hero) return null;
+    const logs = state.get('allAdventureLogs').filter(l => l.classId === classId && l.hero === hero.name);
+    const lastLog = logs.sort((a, b) => (b.createdAt?.toMillis?.() || 0) - (a.createdAt?.toMillis?.() || 0))[0];
+    if (!lastLog) return null;
+    const avatar = hero.avatar
+        ? `<img src="${hero.avatar}" class="w-36 h-36 rounded-full border-4 border-yellow-300 shadow-xl mx-auto mb-3 object-cover">`
+        : `<div class="w-36 h-36 rounded-full bg-yellow-200 flex items-center justify-center text-6xl mx-auto mb-3 border-4 border-yellow-300 font-bold">${hero.name.charAt(0)}</div>`;
+    const excerpt = lastLog.text ? `"${lastLog.text.slice(0, 80)}${lastLog.text.length > 80 ? '...' : ''}"` : '';
+    return {
+        html: `<div class="text-center w-full">
+            <div class="badge-pill bg-yellow-100 text-yellow-800">👑 Reigning Hero</div>
+            ${avatar}
+            <h2 class="font-title text-5xl text-yellow-900">${hero.name}</h2>
+            ${excerpt ? `<p class="font-serif italic text-yellow-700 text-lg mt-2 px-2">${excerpt}</p>` : ''}
+            <p class="text-yellow-600 font-bold text-sm mt-2">${lastLog.date}</p>
+        </div>`,
+        css: 'float-card-gold'
+    };
+}
+
+// ─── Lesson Milestone ─────────────────────────────────────────────────────────
+function getLessonMilestoneCard(classId) {
+    const logs = state.get('allAwardLogs').filter(l => l.classId === classId);
+    const dates = [...new Set(logs.map(l => l.date))].length;
+    if (dates < 5) return null;
+    const milestones = [5, 10, 15, 20, 25, 30, 40, 50];
+    const hit = milestones.filter(m => dates >= m).pop();
+    if (!hit) return null;
+    const icons = { 5: '🌱', 10: '🌿', 15: '🌳', 20: '🏅', 25: '🎖️', 30: '🏆', 40: '💎', 50: '👑' };
+    return {
+        html: `<div class="text-center">
+            <div class="badge-pill bg-cyan-100 text-cyan-800">Lesson Milestone</div>
+            <div class="text-9xl my-4 animate-bounce">${icons[hit] || '🏆'}</div>
+            <h3 class="font-title text-5xl text-cyan-900">${hit} Lessons Together!</h3>
+            <p class="text-cyan-600 font-bold text-lg mt-2">What an adventure it's been! 🎉</p>
+        </div>`,
+        css: 'float-card-cyan'
+    };
+}
+
+// ─── Study Tip (age-aware) ────────────────────────────────────────────────────
+function getStudyTipCard(questLevel) {
+    const tier = getLevelTier(questLevel);
+    const tips = {
+        junior: [
+            '📏 Read each question TWICE before answering!',
+            '✏️ If you don\'t know, draw a picture to help you think!',
+            '🌟 Work slowly – slow and steady wins the race!',
+            '🤫 When you\'re stuck, take a big breath and try again!',
+            '👀 Check your work before you say you\'re done!'
+        ],
+        mid: [
+            '🧠 Read the whole question before writing anything.',
+            '⏰ In a test: do the easy ones first, then come back to the hard ones!',
+            '📝 Underline KEY words in the question.',
+            '🔁 Repeat new words out loud 3 times to remember them better.',
+            '💡 Stuck? Skip it and come back – your brain keeps working!'
+        ],
+        senior: [
+            '🎯 Active recall beats re-reading: cover the notes and quiz yourself.',
+            '⏱️ The Pomodoro method: 25 min focus, 5 min break. Repeat.',
+            '🗂️ Teach what you\'ve learned to someone – if you can explain it, you know it.',
+            '📊 Spaced repetition: review yesterday\'s material before today\'s.',
+            '🧩 Connect new knowledge to things you already know.'
+        ]
+    };
+    const pool = tips[tier] || tips.mid;
+    const tip = pool[Math.floor(Math.random() * pool.length)];
+    return {
+        html: `<div class="text-center w-full">
+            <div class="badge-pill bg-sky-100 text-sky-800">Study Tip</div>
+            <div class="text-7xl my-4">📚</div>
+            <p class="font-serif text-2xl text-sky-900 italic leading-relaxed px-2">${tip}</p>
+        </div>`,
+        css: 'float-card-blue'
+    };
+}
+
+// ─── Thought Experiment (age-aware) ───────────────────────────────────────────
+function getThoughtExperimentCard(questLevel) {
+    const tier = getLevelTier(questLevel);
+    const questions = {
+        junior: [
+            'If you could talk to any animal, which would you pick? 🐘',
+            'What superpower would make school more fun? 🦸',
+            'If you could fly anywhere right now, where would you go? ✈️',
+            'What would you invent to help your friends? 🔧',
+            'If your pet could talk, what do you think it would say? 🐶'
+        ],
+        mid: [
+            'If you could live in any time period of history, when would it be and why?',
+            'You can master any skill instantly – what do you choose?',
+            'If animals could vote, which animal would win an election? 🗳️',
+            'What would the world look like if everyone was kind all the time?',
+            'If you could change one school rule, what would it be?'
+        ],
+        senior: [
+            'If you had to explain colours to someone born blind, how would you do it?',
+            'Would you rather be the best at something nobody cares about, or average at something everybody loves?',
+            'If history could be rewritten by AI, should it be? Why or why not?',
+            'If you could only keep 3 things from modern technology, what would they be?',
+            'Is it ever right to break a rule? Defend your answer.'
+        ]
+    };
+    const pool = questions[tier] || questions.mid;
+    const q = pool[Math.floor(Math.random() * pool.length)];
+    return {
+        html: `<div class="text-center w-full">
+            <div class="badge-pill bg-violet-100 text-violet-800">Thought Experiment</div>
+            <div class="text-7xl my-4">🤔</div>
+            <p class="font-serif text-2xl text-violet-900 italic leading-relaxed px-2">"${q}"</p>
+            <p class="text-violet-500 font-bold text-sm mt-4">(Discuss with a friend!)</p>
+        </div>`,
+        css: 'float-card-purple'
+    };
+}
+
+// ─── World Records (age-aware) ────────────────────────────────────────────────
+function getWorldRecordCard(questLevel) {
+    const tier = getLevelTier(questLevel);
+    const records = {
+        junior: [
+            { fact: 'The longest pizza ever made was 1,930 metres long! 🍕', icon: '🍕' },
+            { fact: 'The tallest sandcastle was over 17 metres high – taller than a 5-floor building! 🏰', icon: '🏖️' },
+            { fact: 'The fastest ever sneeze was recorded at 166 km/h! Bless you! 🤧', icon: '🤧' },
+            { fact: 'The world\'s biggest lego tower used 500,000 bricks! 🧱', icon: '🧱' },
+            { fact: 'A dog named Pal earned more in one movie than most actors at the time! 🐕', icon: '🎬' }
+        ],
+        mid: [
+            { fact: 'The Olympic flame has been burning continuously since 1936 at times! 🔥', icon: '🏅' },
+            { fact: 'The Eiffel Tower grows 15cm taller in summer due to heat! 🗼', icon: '🗼' },
+            { fact: 'A bolt of lightning contains enough energy to toast 100,000 slices of bread! ⚡', icon: '⚡' },
+            { fact: 'The world\'s deepest lake (Baikal, Russia) holds 20% of all fresh water on Earth! 🌊', icon: '💧' },
+            { fact: 'The UK has the world\'s oldest working public railway – opened in 1825! 🚂', icon: '🚂' }
+        ],
+        senior: [
+            { fact: 'Oxford University (UK) is older than the Aztec Empire by two centuries! 🎓', icon: '🏛️' },
+            { fact: 'If you removed all empty space from atoms, all humans would fit in a sugar cube! ⚛️', icon: '⚛️' },
+            { fact: 'The USA has the world\'s largest economy, yet ranks 27th in maths education globally. 📊', icon: '📊' },
+            { fact: 'The Great Wall of China took over 1,000 years and multiple dynasties to build! 🏯', icon: '🏯' },
+            { fact: 'Cleopatra lived closer in time to the Moon landing than to the building of the Great Pyramid! 🌙', icon: '🌙' }
+        ]
+    };
+    const pool = records[tier] || records.mid;
+    const rec = pool[Math.floor(Math.random() * pool.length)];
+    return {
+        html: `<div class="text-center w-full">
+            <div class="badge-pill bg-orange-100 text-orange-800">🏅 World Record</div>
+            <div class="text-8xl my-4">${rec.icon}</div>
+            <p class="font-serif text-2xl text-orange-900 italic leading-relaxed px-2">${rec.fact}</p>
+        </div>`,
+        css: 'float-card-orange'
+    };
+}
+
+// ─── This Day in History (age-aware) ──────────────────────────────────────────
+function getThisDayInHistoryCard(questLevel) {
+    const now = new Date();
+    const mmdd = `${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+    const tier = getLevelTier(questLevel);
+
+    const events = {
+        '01-15': { icon: '✏️', junior: 'Martin Luther King Jr. was born today in 1929 – he fought for everyone to be treated the same!', mid: 'MLK Jr. born 1929 – civil rights hero who changed the USA forever.', senior: 'MLK Jr. born 1929: his "I Have a Dream" speech is one of the most important in US history.' },
+        '01-25': { icon: '💡', junior: 'Thomas Edison made the first phone call today in 1915 – across the whole USA!', mid: 'First transcontinental telephone call made (1915) – NYC to San Francisco!', senior: 'First transcontinental telephone call, 1915: Alexander Graham Bell spoke to his assistant Watson across the USA.' },
+        '02-12': { icon: '🔬', junior: "Charles Darwin was born today in 1809 – he discovered how animals change over a really long time!", mid: 'Darwin born 1809 – his theory of evolution changed science forever.', senior: 'Darwin born 1809 – published On the Origin of Species in 1859, revolutionising biology.' },
+        '02-14': { icon: '💌', junior: "It's Valentine's Day! People have been sending love notes since the 1400s! 💝", mid: "Valentine's Day origins trace to the Middle Ages – Chaucer linked it to romantic love!", senior: "The earliest known Valentine's letter was written by Charles, Duke of Orleans, in 1415 from the Tower of London." },
+        '03-06': { icon: '🌍', junior: 'Ghana became a free country today in 1957 – the first African country to win independence!', mid: 'Ghana gained independence 1957 – first sub-Saharan African country to do so.', senior: 'Ghana\'s independence 1957 sparked a wave of African decolonisation throughout the continent.' },
+        '03-25': { icon: '🇬🇷', junior: "Today is Greek Independence Day! In 1821, Greece started fighting to be free!", mid: "25 March 1821: Greece began the War of Independence from the Ottoman Empire!", senior: "25 March 1821: The Greek Revolution began – after nearly 400 years of Ottoman rule, Greece reclaimed independence." },
+        '04-23': { icon: '✍️', junior: 'William Shakespeare was born today in 1564 – he wrote amazing plays and stories!', mid: 'Shakespeare born 1564 – wrote 37 plays and 154 sonnets!', senior: 'Shakespeare born 1564 in Stratford-upon-Avon; his works shaped the English language itself.' },
+        '05-06': { icon: '🏃', junior: 'Roger Bannister ran a mile in under 4 minutes today in 1954 – people thought it was impossible!', mid: 'Roger Bannister broke the 4-minute mile (1954) – once thought physically impossible.', senior: 'Bannister\'s 1954 sub-4-minute mile inspired a psychological breakthrough: within a year, others did it too.' },
+        '07-04': { icon: '🇺🇸', junior: 'Happy 4th of July! Today in 1776, the USA declared it was a free country!', mid: 'US Independence Day 1776 – the Declaration of Independence was signed.', senior: 'US Declaration of Independence, 1776 – drafted mainly by Thomas Jefferson, it inspired revolutions worldwide.' },
+        '09-05': { icon: '🌌', junior: 'Voyager 1 launched today in 1977 – it\'s now the farthest man-made object in space!', mid: 'Voyager 1 launched 1977 – it entered interstellar space in 2012!', senior: 'Voyager 1 (1977) carries a Golden Record with sounds of Earth for any extraterrestrial life.' },
+        '10-12': { icon: '⛵', junior: 'Columbus sailed to America today in 1492 – he was looking for a shortcut to India!', mid: 'Columbus reached the Americas in 1492, changing world history forever.', senior: 'Columbus\'s 1492 voyage connected two worlds – but also began the era of colonialism.' },
+        '11-09': { icon: '🧱', junior: 'The Berlin Wall came down today in 1989 – families were finally allowed to be together again!', mid: 'Berlin Wall fell 1989 – East and West Germany reunited after 28 years.', senior: 'The fall of the Berlin Wall (1989) symbolised the end of the Cold War era.' },
+        '12-17': { icon: '✈️', junior: 'The Wright brothers flew the first airplane today in 1903 – for just 12 seconds!', mid: 'Wright Brothers\' first powered flight, 1903 – only 12 seconds, but it changed everything!', senior: 'First powered flight 1903 – just 59 years later, humans were in orbit around the Earth.' },
+    };
+
+    const entry = events[mmdd];
+    if (!entry) {
+        // Fallback: random pick
+        const all = Object.values(events);
+        const fallback = all[Math.floor(Math.random() * all.length)];
+        return {
+            html: `<div class="text-center w-full"><div class="badge-pill bg-rose-100 text-rose-800">This Day in History</div><div class="text-7xl my-4">${fallback.icon}</div><p class="font-serif text-2xl text-rose-900 italic leading-relaxed px-2">${fallback[tier] || fallback.mid}</p></div>`,
+            css: 'float-card-red'
+        };
+    }
+    return {
+        html: `<div class="text-center w-full">
+            <div class="badge-pill bg-rose-100 text-rose-800">📅 This Day in History</div>
+            <div class="text-7xl my-4">${entry.icon}</div>
+            <p class="font-serif text-2xl text-rose-900 italic leading-relaxed px-2">${entry[tier] || entry.mid}</p>
+        </div>`,
+        css: 'float-card-red'
+    };
+}
+
+// ─── Greek Orthodox Nameday ────────────────────────────────────────────────────
+function getGreekNamedayCard() {
+    const now = new Date();
+    const mmdd = `${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+    const NAMEDAYS = {
+        '01-01': ['Vassilis', 'Vassiliki'], '01-06': ['Fotis', 'Fotini'], '01-07': ['Ioannis', 'Giannis', 'Ioanna'],
+        '01-17': ['Antonis', 'Antonia'], '01-18': ['Athanasios', 'Nassos', 'Nassia'],
+        '02-02': ['Ypapanti'], '02-10': ['Charalampos', 'Chara'], '02-11': ['Theodora'],
+        '03-04': ['Gerasimos'], '03-17': ['Alexios'], '03-25': ['Annunciation', 'Evangelia', 'Vangelis'],
+        '04-23': ['Georgios', 'Giorgis', 'Georgia'], '04-25': ['Markos'],
+        '05-01': ['May Day'], '05-05': ['Irene'], '05-21': ['Konstantinos', 'Eleni', 'Nikos'],
+        '06-11': ['Barnabas'], '06-24': ['John the Baptist', 'Giannis'],
+        '06-29': ['Petros', 'Pavlos'],
+        '07-17': ['Marina'], '07-20': ['Elias', 'Elianna'], '07-22': ['Mary Magdalene'],
+        '07-26': ['Paraskevi'], '07-27': ['Panteleimon'],
+        '08-06': ['Sotiris', 'Sotiria'], '08-15': ['Holy Mary', 'Maria', 'Panagiotis'],
+        '09-08': ['Maria', 'Nativity'], '09-14': ['Stavros', 'Stavroula'],
+        '10-18': ['Loukas'], '10-26': ['Dimitrios', 'Dimitra', 'Mitsos'],
+        '11-08': ['Archangels'], '11-14': ['Philippos'], '11-25': ['Aikaterini', 'Katerina'],
+        '11-30': ['Andreas'],
+        '12-04': ['Varvara'], '12-05': ['Savvas'], '12-06': ['Nikolaos', 'Nikos', 'Nikoleta'],
+        '12-09': ['Anna'], '12-12': ['Spyridon', 'Spyros'], '12-17': ['Dionysios'],
+        '12-25': ['Christmas'], '12-27': ['Stefanos', 'Stefania']
+    };
+    const names = NAMEDAYS[mmdd];
+    if (!names || names.length === 0) return null;
+    const nameList = names.join(' & ');
+    return {
+        html: `<div class="text-center relative">
+            <div class="absolute -top-4 left-1/2 -translate-x-1/2 text-5xl animate-bounce">✨</div>
+            <div class="badge-pill bg-green-100 text-green-700 mt-4">Greek Nameday</div>
+            <div class="text-8xl my-4">🎈</div>
+            <h2 class="font-title text-4xl text-green-900">${nameList}</h2>
+            <p class="font-serif italic text-2xl text-green-600 mt-3">Happy Nameday! 🎉</p>
+            <p class="text-green-500 text-sm mt-1">Today is the nameday of ${nameList}!</p>
+        </div>`,
+        css: 'float-card-green'
+    };
+}
+
+// ─── Orthodox Calendar Card ────────────────────────────────────────────────────
+function getOrthodoxCalendarCard() {
+    const now = new Date();
+    const mmdd = `${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+    // Key Orthodox events/fasting periods (approximate fixed dates)
+    const events = [
+        { start: '11-15', end: '12-24', name: 'Nativity Fast', icon: '⛪', info: 'Fasting season before Christmas' },
+        { start: '01-07', end: '01-07', name: 'After Christmas', icon: '✝️', info: 'Orthodox Christmas celebrations' },
+        { start: '03-25', end: '03-25', name: 'Annunciation', icon: '🇬🇷', info: 'National & religious celebration!' },
+        { start: '04-01', end: '04-15', name: 'Great Lent', icon: '🕊️', info: 'Holy Week approaching – big celebrations ahead!' },
+        { start: '04-16', end: '04-22', name: 'Holy Week', icon: '🕯️', info: 'The most sacred week of the Orthodox year' },
+        { start: '08-01', end: '08-14', name: 'Dormition Fast', icon: '🌸', info: 'Fasting before the feast of the Virgin Mary (Aug 15)' },
+        { start: '08-15', end: '08-15', name: 'Dormition of the Theotokos', icon: '🌹', info: 'Major feast day – Best wishes to all Marias!' },
+        { start: '09-14', end: '09-14', name: 'Holy Cross Day', icon: '✝️', info: 'Feast of the Exaltation of the Holy Cross' },
+    ];
+    const toNum = s => parseInt(s.replace('-', ''), 10);
+    const todayNum = toNum(mmdd);
+    const current = events.find(e => todayNum >= toNum(e.start) && todayNum <= toNum(e.end));
+    if (!current) return null;
+    return {
+        html: `<div class="text-center w-full">
+            <div class="badge-pill bg-indigo-100 text-indigo-800">Orthodox Calendar</div>
+            <div class="text-8xl my-4">${current.icon}</div>
+            <h3 class="font-title text-4xl text-indigo-900">${current.name}</h3>
+            <p class="text-indigo-600 font-bold text-xl mt-2">${current.info}</p>
+        </div>`,
+        css: 'float-card-indigo'
+    };
+}
+
+// ─── Emoji Riddle ─────────────────────────────────────────────────────────────
+function getEmojiRiddleCard(questLevel) {
+    const tier = getLevelTier(questLevel);
+    const riddles = {
+        junior: [
+            { q: '🐱 + 🏠 = ?', a: 'Cat House / Cathouse' },
+            { q: '🌧️ + 🌈 = ?', a: 'Rainbows come after rain!' },
+            { q: '🐝 + 🌸 = ?', a: 'A bee on a flower – making honey!' },
+            { q: '🔑 + 🚪 = ?', a: 'Open the door!' },
+            { q: '🌙 + ⭐ = ?', a: 'Night sky!' }
+        ],
+        mid: [
+            { q: '🌍 + 🌊 + ☀️ = ?', a: 'Earth: land, sea, and sun – our planet!' },
+            { q: '📚 + 🧠 = ?', a: 'Learning = Knowledge!' },
+            { q: '🍎 + ⚡ + 💡 = ?', a: 'Apple + Electricity = Edison? Or iPhone!', },
+            { q: '🏃 + 🏁 + 🥇 = ?', a: 'Win the race!' },
+            { q: '🦁 + 👑 = ?', a: 'The Lion King!' }
+        ],
+        senior: [
+            { q: '🧬 + 🔬 + 💊 = ?', a: 'DNA research → medicine' },
+            { q: '🌍 + 🔥 + 💧 = ?', a: 'Climate change: Earth + heat + water crisis' },
+            { q: '📱 + 🌐 + 👥 = ?', a: 'Social media connecting the world' },
+            { q: '⚖️ + 🏛️ + 👨‍⚖️ = ?', a: 'Justice system / Democracy' },
+            { q: '🚀 + 🌕 + 🇺🇸 = ?', a: 'NASA Moon landing 1969' }
+        ]
+    };
+    const pool = riddles[tier] || riddles.mid;
+    const r = pool[Math.floor(Math.random() * pool.length)];
+    return {
+        html: `<div class="text-center w-full">
+            <div class="badge-pill bg-pink-100 text-pink-800">Emoji Riddle</div>
+            <div class="text-5xl my-6 tracking-widest">${r.q}</div>
+            <div class="mt-4 pt-4 border-t border-pink-200">
+                <div class="text-xs font-bold text-pink-400 uppercase tracking-widest mb-1">Answer</div>
+                <p class="text-2xl font-bold text-pink-700">${r.a}</p>
+            </div>
+        </div>`,
+        css: 'float-card-pink'
+    };
+}
+
+// ─── Math Challenge (age-aware) ───────────────────────────────────────────────
+function getMathChallengeCard(questLevel) {
+    const tier = getLevelTier(questLevel);
+    let q, a;
+    if (tier === 'junior') {
+        const n1 = Math.floor(Math.random() * 10) + 1;
+        const n2 = Math.floor(Math.random() * 10) + 1;
+        const ops = ['+', '-'].filter(op => op !== '-' || n1 >= n2);
+        const op = ops[Math.floor(Math.random() * ops.length)];
+        a = op === '+' ? n1 + n2 : n1 - n2;
+        q = `${n1} ${op} ${n2} = ?`;
+    } else if (tier === 'mid') {
+        const n1 = Math.floor(Math.random() * 12) + 2;
+        const n2 = Math.floor(Math.random() * 10) + 2;
+        const ops = ['+', '×', '-'];
+        const op = ops[Math.floor(Math.random() * ops.length)];
+        if (op === '+') { a = n1 * 10 + n2; q = `${n1 * 10} + ${n2} = ?`; }
+        else if (op === '×') { a = n1 * n2; q = `${n1} × ${n2} = ?`; }
+        else { const big = n1 * 10; a = big - n2; q = `${big} − ${n2} = ?`; }
+    } else {
+        // Senior: percentage or fraction challenge
+        const opts = [
+            () => { const p = [10, 20, 25, 50][Math.floor(Math.random() * 4)]; const n = [40, 80, 120, 200][Math.floor(Math.random() * 4)]; return { q: `${p}% of ${n} = ?`, a: (p * n / 100).toString() }; },
+            () => { const n = Math.floor(Math.random() * 15) + 5; return { q: `${n}² = ?`, a: (n * n).toString() }; },
+            () => { const n = Math.floor(Math.random() * 9) + 2; const m = Math.floor(Math.random() * 9) + 2; return { q: `(${n} + ${m}) × ${Math.floor(Math.random() * 4) + 2} = ?`, a: ((n + m) * (Math.floor(Math.random() * 4) + 2)).toString() }; }
+        ];
+        const chosen = opts[Math.floor(Math.random() * opts.length)]();
+        q = chosen.q; a = chosen.a;
+    }
+    return {
+        html: `<div class="text-center w-full">
+            <div class="badge-pill bg-blue-100 text-blue-800">⚡ Math Challenge</div>
+            <div class="text-7xl my-4">🔢</div>
+            <p class="font-title text-5xl text-blue-900">${q}</p>
+            <div class="mt-6 pt-4 border-t border-blue-200">
+                <div class="text-xs font-bold text-blue-400 uppercase tracking-widest mb-1">Answer</div>
+                <p class="font-title text-5xl text-blue-600">${a}</p>
+            </div>
+        </div>`,
+        css: 'float-card-blue'
+    };
+}
+
+// ─── Upcoming Test Countdown ───────────────────────────────────────────────────
+function getUpcomingTestCountdownCard(classId, questLevel) {
+    const now = new Date();
+    const assignments = state.get('allQuestAssignments');
+    const upcoming = assignments
+        .filter(a => a.classId === classId && a.testData)
+        .map(a => ({ ...a, testDate: utils.parseFlexibleDate(a.testData.date) }))
+        .filter(a => a.testDate && a.testDate > now)
+        .sort((a, b) => a.testDate - b.testDate)[0];
+    if (!upcoming) return null;
+    const days = Math.ceil((upcoming.testDate - now) / (1000 * 60 * 60 * 24));
+    const tier = getLevelTier(questLevel);
+    const msgs = {
+        junior: [`Only ${days} days until your test! You've got this! 💪`, `${days} more sleeps until the test – keep practising! 🌟`],
+        mid: [`Test in ${days} day${days > 1 ? 's' : ''}! Time to review your notes!`, `${days} day countdown to "${upcoming.testData.title}" – start preparing!`],
+        senior: [`${days} day${days > 1 ? 's' : ''} until "${upcoming.testData.title}" – plan your revision now.`, `T-minus ${days}: use active recall to prepare for "${upcoming.testData.title}".`]
+    };
+    const pool = msgs[tier] || msgs.mid;
+    const msg = pool[Math.floor(Math.random() * pool.length)];
+    return {
+        html: `<div class="text-center w-full">
+            <div class="badge-pill bg-amber-100 text-amber-800">⏰ Test Countdown</div>
+            <div class="text-8xl my-4 animate-bounce-slow">📝</div>
+            <h3 class="font-title text-5xl text-amber-900">${days} Day${days > 1 ? 's' : ''}</h3>
+            <p class="text-amber-700 font-bold text-xl mt-2">${msg}</p>
+            <p class="text-amber-600 font-bold mt-2">📖 "${upcoming.testData.title}"</p>
+        </div>`,
+        css: 'float-card-gold'
+    };
+}
+
+// ─── Pre-Holiday Hype ─────────────────────────────────────────────────────────
+function getPreHolidayHypeCard() {
+    const now = new Date();
+    const next = (state.get('schoolHolidayRanges') || [])
+        .filter(h => new Date(h.start) > now)
+        .sort((a, b) => new Date(a.start) - new Date(b.start))[0];
+    if (!next) return null;
+    const days = Math.ceil((new Date(next.start) - now) / (1000 * 60 * 60 * 24));
+    const name = next.name || 'Holiday';
+    const lname = name.toLowerCase();
+    let icon = '🎉', css = 'float-card-purple';
+    if (lname.includes('christmas') || lname.includes('xmas')) { icon = '🎄'; css = 'float-card-red'; }
+    else if (lname.includes('easter') || lname.includes('πάσχα')) { icon = '🐣'; css = 'float-card-pink'; }
+    else if (lname.includes('summer') || lname.includes('καλοκαίρι')) { icon = '🏖️'; css = 'float-card-gold'; }
+    return {
+        html: `<div class="text-center w-full">
+            <div class="badge-pill bg-white/80 text-purple-800">Holiday Countdown! 🎊</div>
+            <div class="text-9xl my-4 animate-bounce">${icon}</div>
+            <h2 class="font-title text-6xl text-white drop-shadow-md">${days} ${days === 1 ? 'Day' : 'Days'}!</h2>
+            <p class="text-white/90 font-bold text-2xl mt-2">Until ${name}!</p>
+            <p class="text-white/70 font-bold text-lg mt-1">${days === 1 ? 'Tomorrow is the day! 🎉' : 'The countdown is ON! 🚀'}</p>
+        </div>`,
+        css: css
+    };
+}
+
+// ─── Updated getMotivationCard (level-aware, bigger pool) ─────────────────────
+function getMotivationCard(questLevel) {
+    const tier = getLevelTier(questLevel);
+    const quotes = {
+        junior: [
+            'Every expert was once a beginner! 🌱',
+            'Mistakes help you learn – try again! 💪',
+            'You are braver than you think! 🦁',
+            'One step at a time – you\'ve got this! 🐢',
+            'Ask questions – curious minds go far! 🔍',
+            'Your best is always good enough! ⭐'
+        ],
+        mid: [
+            '"Mistakes are proof that you are trying."',
+            '"The expert in anything was once a beginner."',
+            '"Be curious, not judgmental." – Walt Whitman',
+            '"Every day is a fresh start."',
+            '"Hard work beats talent when talent doesn\'t work hard."',
+            '"Success is the sum of small efforts repeated every day."',
+            '"You don\'t have to be great to start, but you have to start to be great."'
+        ],
+        senior: [
+            '"The more I read, the more I acquire, the more certain I am that I know nothing." – Voltaire',
+            '"An investment in knowledge pays the best interest." – Benjamin Franklin',
+            '"Education is the most powerful weapon which you can use to change the world." – Mandela',
+            '"The function of education is to teach one to think intensively and to think critically." – MLK Jr.',
+            '"It does not matter how slowly you go as long as you do not stop." – Confucius',
+            '"Live as if you were to die tomorrow. Learn as if you were to live forever." – Gandhi',
+            '"Education is a second sun for people." – Heraclitus',
+            '"Knowledge is power."'
+        ]
+    };
+    const pool = quotes[tier] || quotes.mid;
+    const q = pool[Math.floor(Math.random() * pool.length)];
+    return {
+        html: `<div class="text-center p-4">
+            <i class="fas fa-quote-left text-4xl text-white/50 mb-4 block"></i>
+            <p class="font-serif text-3xl text-white italic leading-relaxed">${q}</p>
+        </div>`,
+        css: 'float-card-teal'
+    };
+}
+
+// ─── Updated getTestLuckCard (level-aware) ────────────────────────────────────
+function getTestLuckCard(classId, questLevel) {
+    const todayStr = utils.getTodayDateString();
+    const test = state.get('allQuestAssignments').find(a =>
+        a.classId === classId && a.testData && utils.datesMatch(a.testData.date, todayStr));
+    const title = test ? test.testData.title : 'The Big Exam';
+    const tier = getLevelTier(questLevel);
+    const msgs = {
+        junior: ['You\'ve been working hard – that means you\'re ready! ⭐', 'Just do your best and you\'ll be amazing! 🌟', 'Breathe in, breathe out, and show what you know! 🍀'],
+        mid: ['You\'ve prepared – now show off what you know!', 'Take a deep breath. Believe in yourself. You\'ve got this!', 'Hard work + confidence = success. Go get \'em!'],
+        senior: ['Trust your preparation. Stay calm, think carefully, and execute.', 'Anxiety is just excitement without the breath – breathe, and begin.', 'You\'ve done the work. Now demonstrate it.']
+    };
+    const students = state.get('allStudents').filter(s => s.classId === classId);
+    const todayLog = state.get('allAttendanceRecords').filter(r => r.classId === classId && r.date === todayStr).map(r => r.studentId);
+    const presentNames = students.filter(s => todayLog.includes(s.id)).map(s => s.name.split(' ')[0]);
+    const namesList = presentNames.length > 0 ? presentNames.slice(0, 5).join(', ') + (presentNames.length > 5 ? ' & more!' : '') : 'Everyone';
+
+    const pool = msgs[tier] || msgs.mid;
+    const msg = pool[Math.floor(Math.random() * pool.length)];
+
+    return {
+        html: `<div class="text-center w-full">
+            <div class="badge-pill bg-white/90 text-red-600 border border-red-200">⚔️ Challenge Day</div>
+            <div class="text-8xl mb-4 mt-2 animate-bounce">🍀</div>
+            <h2 class="font-title text-5xl text-white drop-shadow-md mb-2">Good Luck!</h2>
+            <p class="text-white/90 text-xl font-bold mb-1">${namesList}</p>
+            <p class="font-title text-2xl text-yellow-300" style="text-shadow:0 2px 4px rgba(0,0,0,0.5);">${title}</p>
+            <p class="text-white/80 text-xl font-bold mt-3">${msg}</p>
+        </div>`,
+        css: 'float-card-red'
+    };
+}
+
+// ─── Post-Holiday Welcome Card ──────────────────────────────────────────────
+function getPostHolidayWelcomeCard() {
+    return {
+        html: `<div class="text-center w-full">
+            <div class="badge-pill bg-sky-100 text-sky-800">Welcome Back!</div>
+            <div class="text-8xl my-4 animate-bounce">🎒</div>
+            <h2 class="font-title text-5xl text-sky-900">Great to see you again!</h2>
+            <p class="text-sky-600 font-bold text-2xl mt-3">Welcome back to our English quest! ⚔️</p>
+            <p class="text-sky-500 font-bold text-lg mt-2 italic">Ready for new adventures? 🎉</p>
+        </div>`,
+        css: 'float-card-blue'
+    };
+}
+
+// ─── Class Season Snapshot Card ─────────────────────────────────────────────
+function getClassSeasonSnapshotCard(classId) {
+    const students = state.get('allStudents').filter(s => s.classId === classId);
+    const scores = state.get('allStudentScores');
+    const totalStars = students.reduce((sum, s) => {
+        const sc = scores.find(x => x.id === s.id);
+        return sum + (sc?.monthlyStars || 0);
+    }, 0);
+    const monthName = new Date().toLocaleString('default', { month: 'long' });
+    return {
+        html: `<div class="text-center w-full">
+            <div class="badge-pill bg-purple-100 text-purple-800">Season Progress</div>
+            <div class="text-7xl my-4">📈</div>
+            <h3 class="font-title text-3xl text-purple-900">This Month: ${monthName}</h3>
+            <p class="font-title text-5xl text-purple-600 mt-2">${totalStars} ⭐</p>
+            <p class="text-purple-700 font-bold text-lg mt-1">Total Stars Earned by Class</p>
+        </div>`,
+        css: 'float-card-purple'
+    };
+}
+
+// ─── Updated getAIFromDB (also handles new types) ─────────────────────────────
 
 function getSchoolLeaderboardCard() {
     const classes = state.get('allSchoolClasses');
@@ -735,21 +1627,6 @@ function getSeasonalCard() {
     };
 }
 
-async function getMotivationCard() {
-    const quotes = [
-        "Mistakes are proof that you are trying.",
-        "Learning is a treasure that follows its owner everywhere.",
-        "The expert in anything was once a beginner.",
-        "Be curious, not judgmental.",
-        "Every day is a fresh start."
-    ];
-    const q = quotes[Math.floor(Math.random() * quotes.length)];
-    return {
-        html: `<div class="text-center p-4"><i class="fas fa-quote-left text-4xl text-white/50 mb-4 block"></i><p class="font-serif text-3xl text-white italic leading-relaxed">"${q}"</p></div>`,
-        css: 'float-card-teal'
-    };
-}
-
 function getTopMonthlyStudentCard(classId, studentId) {
     if (!classId || !studentId) return null;
     const student = state.get('allStudents').find(s => s.id === studentId);
@@ -816,7 +1693,9 @@ function getRecentAwardCard(classId, logId) {
             </div>
             <h3 class="font-title text-4xl text-gray-800 mb-1">${student.name}</h3>
             <p class="text-2xl font-bold ${style.color}">+${log.stars} ${starText}</p>
-            <p class="text-gray-500 font-bold text-sm uppercase tracking-widest mt-2">${log.reason.replace(/_/g, ' ')}</p>
+            <p class="text-gray-500 font-bold text-xs uppercase tracking-widest mt-2">
+                ${log.reason.replace(/_/g, ' ')}
+            </p>
         </div>`,
         css: style.css
     };
@@ -893,7 +1772,17 @@ async function getAIFromDB(typeFilter) {
     let css = 'float-card-indigo';
     let title = 'AI Wisdom';
 
-    if (item.type.includes('fact')) { icon = '🧠'; css = 'float-card-blue'; title = 'Did You Know?'; }
+    if (item.type.includes('fact')) {
+        icon = '🧠'; css = 'float-card-blue'; title = 'Did You Know?';
+        if (item.type === 'fact_science') icon = '🧪';
+        if (item.type === 'fact_history') icon = '📜';
+        if (item.type === 'fact_nature') icon = '🌿';
+        if (item.type === 'fact_geography') icon = '🌍';
+        if (item.type === 'fact_math') icon = '🔢';
+    }
+    if (item.type === 'did_you_know') { icon = '💡'; css = 'float-card-gold'; title = 'Insight'; }
+    if (item.type === 'brain_teaser') { icon = '🤯'; css = 'float-card-purple'; title = 'Brain Teaser'; }
+    if (item.type === 'tongue_twister') { icon = '👅'; css = 'float-card-pink'; title = 'Tongue Twister'; }
     if (item.type === 'joke') { icon = '🤣'; css = 'float-card-orange'; title = 'Quest Joke'; }
     if (item.type === 'riddle') { icon = '🧩'; css = 'float-card-purple'; title = 'Riddle Me This'; }
     if (item.type === 'word') { icon = '📖'; css = 'float-card-pink'; title = 'Word of the Day'; }
@@ -1103,15 +1992,26 @@ function getAttendanceStreakCard(classId) {
     };
 }
 
-function getStudentSpotlightCard(studentId) {
-    const s = state.get('allStudents').find(x => x.id === studentId); if (!s) return null;
-    const avatar = s.avatar ? `<img src="${s.avatar}" class="w-40 h-40 rounded-full border-8 border-white shadow-xl mx-auto mb-4 object-cover">` : `<div class="w-40 h-40 rounded-full bg-indigo-200 flex items-center justify-center text-7xl mx-auto mb-4 border-8 border-white">${s.name.charAt(0)}</div>`;
-    return { html: `<div class="text-center"><div class="badge-pill bg-purple-100 text-purple-700">Hero Spotlight</div>${avatar}<h2 class="font-title text-5xl text-purple-900">${s.name}</h2><p class="text-purple-500 font-bold mt-2">Class Adventurer</p></div>`, css: 'float-card-purple' };
+function getBirthdayCard(studentId) {
+    const s = state.get('allStudents').find(x => x.id === studentId);
+    if (!s) return null;
+    return {
+        html: `<div class="text-center relative">
+            <div class="absolute -top-6 -left-6 text-7xl animate-bounce">🎉</div>
+            <div class="absolute -top-6 -right-6 text-7xl animate-bounce" style="animation-delay:0.5s">🎂</div>
+            <div class="absolute -bottom-4 -left-8 text-4xl animate-pulse">🎊</div>
+            <div class="absolute -bottom-4 -right-8 text-4xl animate-pulse">✨</div>
+            <div class="badge-pill bg-pink-100 text-pink-700">Birthday Celebration!</div>
+            <div class="w-40 h-40 mx-auto my-4 rounded-full bg-white flex items-center justify-center text-8xl shadow-inner border-4 border-pink-200">🥳</div>
+            <h2 class="font-title text-5xl text-pink-600">Happy Birthday!</h2>
+            <h3 class="font-title text-4xl text-pink-800 mt-2">${s.name}</h3>
+            <p class="font-serif italic text-2xl text-pink-500 mt-4">Happy Birthday! 🎈</p>
+        </div>`,
+        css: 'float-card-pink'
+    };
 }
 
-function getBirthdayCard(studentId) { const s = state.get('allStudents').find(x => x.id === studentId); if (!s) return null; return { html: `<div class="text-center relative"><div class="absolute -top-6 -left-6 text-7xl animate-bounce">🎉</div><div class="absolute -top-6 -right-6 text-7xl animate-bounce" style="animation-delay:0.5s">🎂</div><div class="badge-pill bg-pink-100 text-pink-700">Celebration!</div><div class="w-40 h-40 mx-auto my-4 rounded-full bg-white flex items-center justify-center text-8xl shadow-inner border-4 border-pink-200">🥳</div><h2 class="font-title text-5xl text-pink-600">Happy Birthday!</h2><h3 class="font-title text-4xl text-pink-800 mt-2">${s.name}</h3></div>`, css: 'float-card-pink' }; }
-
-function getNamedayCard(studentId) { const s = state.get('allStudents').find(x => x.id === studentId); if (!s) return null; return { html: `<div class="text-center relative"><div class="absolute -top-4 left-1/2 -translate-x-1/2 text-6xl animate-pulse">✨</div><div class="inline-block bg-green-100 text-green-700 text-xs font-bold px-4 py-2 rounded-full mb-6 uppercase tracking-widest border border-green-200">Happy Nameday!</div><div class="text-8xl mb-4">🎈</div><h2 class="font-title text-5xl text-green-900 mb-2">${s.name}</h2><p class="font-serif italic text-2xl text-green-600 mt-2">Χρόνια Πολλά!</p></div>`, css: 'float-card-green' }; }
+function getNamedayCard(studentId) { const s = state.get('allStudents').find(x => x.id === studentId); if (!s) return null; return { html: `<div class="text-center relative"><div class="absolute -top-4 left-1/2 -translate-x-1/2 text-6xl animate-pulse">✨</div><div class="inline-block bg-green-100 text-green-700 text-xs font-bold px-4 py-2 rounded-full mb-6 uppercase tracking-widest border border-green-200">Happy Nameday!</div><div class="text-8xl mb-4">🎈</div><h2 class="font-title text-5xl text-green-900 mb-2">${s.name}</h2><p class="font-serif italic text-2xl text-green-600 mt-2">Happy Nameday!</p></div>`, css: 'float-card-green' }; }
 
 function getStoryCard(classId, mode) {
     const story = state.get('currentStoryData')[classId]; if (!story) return null;
@@ -1410,32 +2310,6 @@ function getAbsentHeroesCard(classId) {
                 ${namesHtml}
             </div>
             <p class="text-red-700/60 text-sm mt-3 font-bold">Hope to see you next time!</p>
-        </div>`,
-        css: 'float-card-red'
-    };
-}
-
-function getTestLuckCard(classId) {
-    const assignments = state.get('allQuestAssignments');
-    const todayStr = utils.getTodayDateString();
-
-    // Find the specific test details
-    const test = assignments.find(a =>
-        a.classId === classId &&
-        a.testData &&
-        utils.datesMatch(a.testData.date, todayStr)
-    );
-
-    const title = test ? test.testData.title : "The Big Exam";
-
-    return {
-        html: `
-        <div class="text-center w-full">
-            <div class="badge-pill bg-white/90 text-red-600 border border-red-200">⚔️ Challenge Event</div>
-            <div class="text-8xl mb-4 animate-bounce">🍀</div>
-            <h2 class="font-title text-5xl text-white drop-shadow-md mb-2">Good Luck!</h2>
-            <p class="text-white text-xl font-bold opacity-90">You are ready for</p>
-            <p class="font-title text-3xl text-yellow-300 mt-1" style="text-shadow: 0 2px 4px rgba(0,0,0,0.5);">${title}</p>
         </div>`,
         css: 'float-card-red'
     };

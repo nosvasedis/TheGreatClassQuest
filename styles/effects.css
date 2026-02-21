@@ -1,16 +1,30 @@
 .reason-selector .reason-btn {
     transition: all 0.2s ease-out;
 }
+
 .reason-selector .reason-btn.active {
     transform: scale(1.1);
 }
+
 .reason-selector .reason-btn.active i {
     color: white;
 }
-.reason-selector .reason-btn[data-reason="teamwork"].active { background-color: #8b5cf6; }
-.reason-selector .reason-btn[data-reason="creativity"].active { background-color: #ec4899; }
-.reason-selector .reason-btn[data-reason="respect"].active { background-color: #22c55e; }
-.reason-selector .reason-btn[data-reason="focus"].active { background-color: #eab308; }
+
+.reason-selector .reason-btn[data-reason="teamwork"].active {
+    background-color: #8b5cf6;
+}
+
+.reason-selector .reason-btn[data-reason="creativity"].active {
+    background-color: #ec4899;
+}
+
+.reason-selector .reason-btn[data-reason="respect"].active {
+    background-color: #22c55e;
+}
+
+.reason-selector .reason-btn[data-reason="focus"].active {
+    background-color: #eab308;
+}
 
 .star-selector-container {
     max-height: 0;
@@ -19,6 +33,7 @@
     transition: max-height 0.3s ease-out, opacity 0.3s ease-out, margin-top 0.3s ease-out;
     margin-top: 0;
 }
+
 .star-selector-container.visible {
     max-height: 100px;
     opacity: 1;
@@ -27,15 +42,26 @@
 
 /* Reason Button Animation */
 @keyframes spark-burst {
-    0% { transform: scale(1); }
-    50% { transform: scale(1.15); }
-    100% { transform: scale(1); }
+    0% {
+        transform: scale(1);
+    }
+
+    50% {
+        transform: scale(1.15);
+    }
+
+    100% {
+        transform: scale(1);
+    }
 }
+
 .animate-reason-select {
     animation: spark-burst 0.4s ease-out;
     position: relative;
 }
-.animate-reason-select::before, .animate-reason-select::after {
+
+.animate-reason-select::before,
+.animate-reason-select::after {
     content: '✨';
     position: absolute;
     top: 50%;
@@ -45,13 +71,22 @@
     font-size: 1.5rem;
     z-index: 10;
 }
+
 .animate-reason-select::after {
     content: '⭐';
     animation-delay: 0.1s;
 }
+
 @keyframes spark-fly {
-    0% { transform: translate(-50%, -50%) scale(0); opacity: 1; }
-    100% { transform: translate(var(--x, -60px), var(--y, -60px)) scale(1); opacity: 0; }
+    0% {
+        transform: translate(-50%, -50%) scale(0);
+        opacity: 1;
+    }
+
+    100% {
+        transform: translate(var(--x, -60px), var(--y, -60px)) scale(1);
+        opacity: 0;
+    }
 }
 
 /* --- V5.3.2: REVAMPED STAR BUTTON EFFECTS --- */
@@ -62,18 +97,28 @@
     z-index: 1000;
     opacity: 0;
     animation: particle-fly 1s ease-out forwards;
-    transform: translate(-50%, -50%); /* Center the particle on its coordinates */
+    transform: translate(-50%, -50%);
+    /* Center the particle on its coordinates */
 }
 
 @keyframes particle-fly {
-    0% { transform: translate(-50%, -50%) scale(0.5); opacity: 1; }
-    100% { transform: translate(calc(-50% + var(--tx)), calc(-50% + var(--ty))) scale(0); opacity: 0; }
+    0% {
+        transform: translate(-50%, -50%) scale(0.5);
+        opacity: 1;
+    }
+
+    100% {
+        transform: translate(calc(-50% + var(--tx)), calc(-50% + var(--ty))) scale(0);
+        opacity: 0;
+    }
 }
 
 .screen-flash {
     position: fixed;
-    top: 0; left: 0;
-    width: 100vw; height: 100vh;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
     background: var(--flash-color);
     opacity: 0;
     z-index: 999;
@@ -82,9 +127,17 @@
 }
 
 @keyframes screen-flash-anim {
-    0% { opacity: 0; }
-    20% { opacity: 0.3; }
-    100% { opacity: 0; }
+    0% {
+        opacity: 0;
+    }
+
+    20% {
+        opacity: 0.3;
+    }
+
+    100% {
+        opacity: 0;
+    }
 }
 
 .shockwave {
@@ -99,6 +152,17 @@
 }
 
 @keyframes shockwave-anim {
-    0% { transform: translate(-50%, -50%) scale(0); opacity: 1; width: 0px; height: 0px; }
-    100% { transform: translate(-50%, -50%) scale(1); opacity: 0; width: 400px; height: 400px; }
+    0% {
+        transform: translate(-50%, -50%) scale(0);
+        opacity: 1;
+        width: 0px;
+        height: 0px;
+    }
+
+    100% {
+        transform: translate(-50%, -50%) scale(1);
+        opacity: 0;
+        width: 400px;
+        height: 400px;
+    }
 }

@@ -13,9 +13,6 @@ export async function handleBestowBoon(senderId, receiverId) {
 
     const sender = state.get('allStudents').find(s => s.id === senderId);
     const receiver = state.get('allStudents').find(s => s.id === receiverId);
-    
-    const confirmMsg = `Spend 15 Gold from ${sender.name} to bestow a Hero's Boon on ${receiver.name}? (+0.5 Stars)`;
-    if (!confirm(confirmMsg)) return;
 
     try {
         await runTransaction(db, async (transaction) => {

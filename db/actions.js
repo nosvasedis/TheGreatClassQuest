@@ -985,7 +985,6 @@ export async function handleLogAdventure() {
     btn.disabled = true;
     btn.innerHTML = `<i class="fas fa-spinner fa-spin mr-2"></i> Writing History...`;
 
-    // --- CHANGED: Use Writing Sound instead of Drumroll ---
     import('../audio.js').then(m => m.playWritingLoop());
 
     const nowObj = new Date(); 
@@ -996,7 +995,6 @@ export async function handleLogAdventure() {
     const todaysAwards = state.get('allAwardLogs').filter(log => log.classId === classId && log.date === today);
     const totalStars = todaysAwards.reduce((sum, award) => sum + award.stars, 0);
     
-    // Get unique reasons (e.g., "Teamwork, Creativity") instead of just one
     const uniqueReasons = [...new Set(todaysAwards.map(a => a.reason).filter(r => r && r !== 'marked_present'))];
     const topReasonsStr = uniqueReasons.length > 0 ? uniqueReasons.map(r => r.replace(/_/g, ' ')).join(', ') : "general excellence";
 
@@ -1009,19 +1007,46 @@ export async function handleLogAdventure() {
         .join(', ');
     const attendanceText = absentNames ? `We missed our friends: ${absentNames}.` : "The entire party was present!";
 
-    // Hero Selection
-    const studentStars = todaysAwards.reduce((acc, award) => { acc[award.studentId] = (acc[award.studentId] || 0) + award.stars; return acc; }, {});
-    const eligibleCandidates = Object.keys(studentStars).map(id => {
-        const student = state.get('allStudents').find(s => s.id === id);
-        if (!student) return null;
-        const lastHeroLog = [...state.get('allAdventureLogs')].filter(l => l.classId === classId && l.hero === student.name).sort((a, b) => (b.createdAt?.toMillis() || 0) - (a.createdAt?.toMillis() || 0))[0];
-        return { name: student.name, stars: studentStars[id], lastHeroDate: lastHeroLog?.createdAt?.toMillis() || 0 };
-    }).filter(Boolean).sort((a, b) => a.lastHeroDate - b.lastHeroDate || b.stars - a.stars);
+    // --- HERO SELECTION (FAIR & RANDOM) ---
+    // 1. Get all students in this class
+    const classStudents = state.get('allStudents').filter(s => s.classId === classId);
+    
+    // [FIX]: Filter out students who are ABSENT today so they cannot be picked
+    const presentStudents = classStudents.filter(s => !absentStudentIds.includes(s.id));
+
+    // 2. Get names of everyone who has EVER been a hero in this class
+    const pastHeroNames = state.get('allAdventureLogs')
+        .filter(l => l.classId === classId && l.hero)
+        .map(l => l.hero);
+
+    // 3. Find students who have NEVER been hero from the PRESENT list
+    let candidates = presentStudents.filter(s => !pastHeroNames.includes(s.name));
+
+    // 4. If everyone present has been a hero, reset pool (allow everyone present again)
+    // But exclude the person who was hero *yesterday* to prevent back-to-back
+    if (candidates.length === 0 && presentStudents.length > 0) {
+        const lastHeroName = state.get('allAdventureLogs')
+            .filter(l => l.classId === classId)
+            .sort((a,b) => (b.createdAt?.toMillis() || 0) - (a.createdAt?.toMillis() || 0))[0]?.hero;
+            
+        candidates = presentStudents.filter(s => s.name !== lastHeroName);
+        // Safety: If the only student present was the hero yesterday, allow them anyway
+        if (candidates.length === 0) candidates = presentStudents;
+    }
+
+    // 5. Pick a RANDOM winner from the candidates
+    let heroStudentObj = null;
+    if (candidates.length > 0) {
+        const randomIndex = Math.floor(Math.random() * candidates.length);
+        heroStudentObj = candidates[randomIndex];
+    }
+    
+    const heroOfTheDayCandidate = heroStudentObj ? heroStudentObj.name : "The Class Team";
     
     // --- MASK OF THE PROTAGONIST CHECK ---
+    // (Only checks students who are actually present)
     const scores = state.get('allStudentScores');
-    const protagonist = state.get('allStudents').find(s => 
-        s.classId === classId && 
+    const protagonist = presentStudents.find(s => 
         scores.find(sc => sc.id === s.id)?.pendingHeroStatus === true
     );
 
@@ -1032,7 +1057,7 @@ export async function handleLogAdventure() {
         const scoreRef = doc(db, "artifacts/great-class-quest/public/data/student_scores", protagonist.id);
         updateDoc(scoreRef, { pendingHeroStatus: false });
     } else {
-        heroOfTheDay = eligibleCandidates.length > 0 ? eligibleCandidates[0].name : "the whole team";
+        heroOfTheDay = heroOfTheDayCandidate;
     }
 
    // --- CONTEXT GATHERING ---
@@ -1042,9 +1067,8 @@ export async function handleLogAdventure() {
     const isStoryActive = todaysAwards.some(l => l.reason === 'story_weaver') || (currentStory?.updatedAt?.toDate().toDateString() === nowObj.toDateString());
     const storyContext = isStoryActive ? `The class continued their Story Weavers saga using the word '${currentStory?.currentWord || "mystery"}'.` : "";
 
-    // 2. Assignments & Tests (NEW)
+    // 2. Assignments & Tests [FIX: Explicit wording for Next Lesson]
     const assignments = state.get('allQuestAssignments').filter(a => a.classId === classId);
-    // Sort by creation to get latest
     assignments.sort((a,b) => (b.createdAt?.toMillis() || 0) - (a.createdAt?.toMillis() || 0));
     const latestAssignment = assignments[0];
     
@@ -1052,16 +1076,15 @@ export async function handleLogAdventure() {
     if (latestAssignment) {
         // Check if there is a TEST today
         if (latestAssignment.testData && utils.datesMatch(latestAssignment.testData.date, today)) {
-            assignmentContext = `IMPORTANT: Today the class took a TEST titled "${latestAssignment.testData.title}".`;
+            assignmentContext = `IMPORTANT EVENT TODAY: The class took a TEST titled "${latestAssignment.testData.title}".`;
         } 
         // Or if assignment was created TODAY
         else if (utils.datesMatch(utils.getDDMMYYYY(latestAssignment.createdAt.toDate()), today)) {
-            assignmentContext = `New Quest Assignment given: "${latestAssignment.text}".`;
+            assignmentContext = `HOMEWORK ASSIGNED FOR NEXT LESSON: "${latestAssignment.text}".`;
         }
     }
 
-    // 3. Power-Ups Used (NEW)
-    // Check logs for specific power-up usage reasons today
+    // 3. Power-Ups Used
     const pathfinderLog = todaysAwards.find(l => l.reason === 'pathfinder_bonus');
     const powerUpContext = pathfinderLog ? `A Pathfinder's Map was used to discover a shortcut!` : "";
 
@@ -1075,6 +1098,7 @@ export async function handleLogAdventure() {
     3. Include specific details from the Context provided below (Homework, Tests, Story words) IF they exist.
     4. Mention the Hero of the Day.
     5. Mention specific skills shown (Creativity, Teamwork, etc).
+    6. If Homework is listed, mention it clearly as the quest for next time.
     
     Do not use markdown. Do not use hashtags.`;
 
@@ -1095,7 +1119,6 @@ export async function handleLogAdventure() {
     try {
         const text = await callGeminiApi(textSystemPrompt, textUserPrompt);
         
-        // --- SPEED FIX: Reduced wait times for faster loading ---
         await new Promise(r => setTimeout(r, 100)); 
 
         const imagePrompt = `Whimsical children's storybook illustration of: ${text}. Watercolor style, vibrant, magical atmosphere.`;
@@ -1111,7 +1134,6 @@ export async function handleLogAdventure() {
             createdAt: serverTimestamp()
         });
         
-        // --- STOP WRITING LOOP ---
         import('../audio.js').then(m => m.stopWritingLoop());
         showToast("The adventure has been chronicled!", 'success');
 
@@ -2432,6 +2454,7 @@ export async function handleBuyItem(studentId, itemId) {
                     id: item.id,
                     name: item.name,
                     image: item.image || null,
+                    icon: item.icon || null, // NEW: Save the icon for legendaries
                     description: item.description,
                     acquiredAt: new Date().toISOString()
                 }]

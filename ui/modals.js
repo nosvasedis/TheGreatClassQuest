@@ -87,7 +87,7 @@ export function showAnimatedModal(modalId) {
 
 export function showModal(title, message, onConfirm, confirmText = 'Confirm', cancelText = 'Cancel') {
     document.getElementById('modal-title').innerText = title;
-    document.getElementById('modal-message').innerText = message;
+    document.getElementById('modal-message').innerHTML = message;
     const confirmBtn = document.getElementById('modal-confirm-btn');
     const cancelBtn = document.getElementById('modal-cancel-btn');
     confirmBtn.innerText = confirmText;

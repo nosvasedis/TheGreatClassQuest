@@ -48,7 +48,7 @@ function populateDateDropdowns(monthSelectId, daySelectId, dateString) { // date
 
     // Populate days
     daySelect.innerHTML = '<option value="">-- Day --</option>' + Array.from({ length: 31 }, (_, i) => `<option value="${i + 1}">${i + 1}</option>`).join('');
-    
+
     // Set selected values if dateString exists
     if (dateString && dateString.includes('-')) {
         const parts = dateString.split('-');
@@ -73,8 +73,8 @@ export function showAnimatedModal(modalId) {
 
     modal.classList.remove('hidden');
     if (innerContent) {
-        innerContent.classList.add('modal-origin-start'); 
-        innerContent.classList.remove('pop-out'); 
+        innerContent.classList.add('modal-origin-start');
+        innerContent.classList.remove('pop-out');
     }
 
     requestAnimationFrame(() => {
@@ -87,7 +87,7 @@ export function showAnimatedModal(modalId) {
 
 export function showModal(title, message, onConfirm, confirmText = 'Confirm', cancelText = 'Cancel') {
     document.getElementById('modal-title').innerText = title;
-    document.getElementById('modal-message').innerText = message;
+    document.getElementById('modal-message').innerHTML = message;
     const confirmBtn = document.getElementById('modal-confirm-btn');
     const cancelBtn = document.getElementById('modal-cancel-btn');
     confirmBtn.innerText = confirmText;
@@ -109,7 +109,7 @@ export function hideModal(modalId) {
         const btn = modalId === 'quest-update-modal' ? document.getElementById('play-narrative-btn') : document.getElementById('storybook-viewer-play-btn');
         if (audio && !audio.paused) {
             audio.pause();
-            if(btn) btn.innerHTML = `<i class="fas fa-play-circle mr-2"></i> ${btn.textContent.includes('Narrate') ? 'Narrate Story' : 'Play Narrative'}`;
+            if (btn) btn.innerHTML = `<i class="fas fa-play-circle mr-2"></i> ${btn.textContent.includes('Narrate') ? 'Narrate Story' : 'Play Narrative'}`;
         }
         if (modalId === 'quest-update-modal') state.set('currentNarrativeAudio', null);
         else state.set('currentStorybookAudio', null);
@@ -134,7 +134,7 @@ export function hideModal(modalId) {
         if (innerContent) {
             innerContent.classList.remove('pop-out');
         }
-    }, 200); 
+    }, 200);
 
     if (currentlySelectedDayCell) {
         currentlySelectedDayCell.classList.remove('day-selected');

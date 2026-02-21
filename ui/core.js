@@ -289,6 +289,16 @@ document.getElementById('lookup-nameday-btn').addEventListener('click', () => {
     if (openShopBtn) {
         openShopBtn.addEventListener('click', openShopModal); // Direct function reference
     }
+
+    // --- Prodigy Button Listener ---
+    const openProdigyBtn = document.getElementById('open-prodigy-btn');
+    if (openProdigyBtn) {
+        openProdigyBtn.addEventListener('click', modals.openProdigyModal);
+    }
+    document.getElementById('prodigy-close-btn').addEventListener('click', () => modals.hideModal('prodigy-modal'));
+    document.getElementById('prodigy-class-select').addEventListener('change', (e) => {
+        modals.renderProdigyHistory(e.target.value);
+    });
     
     const shopCloseBtn = document.getElementById('shop-close-btn');
     if (shopCloseBtn) {
@@ -993,15 +1003,29 @@ function handleAvatarClick(e) {
             
             let itemsHtml = '';
             if (inventory.length > 0) {
-                itemsHtml = inventory.map(item => `
+                itemsHtml = inventory.map(item => {
+                    // FIX: Check for image, otherwise use icon/default
+                    let visual = '';
+                    if (item.image) {
+                        visual = `<img src="${item.image}" class="w-16 h-16 rounded-lg border-2 border-amber-400 bg-black/50 shadow-lg transform group-hover:scale-110 transition-transform object-cover">`;
+                    } else {
+                        // Try to find icon in legendary list if needed, or fallback
+                        // Note: We can't easily import LEGENDARY_ARTIFACTS here synchronously if not top-level, 
+                        // so we rely on item.icon if saved, or a generic fallback.
+                        // Ideally, actions.js should save 'icon' to inventory.
+                        const icon = item.icon || '📦'; 
+                        visual = `<div class="w-16 h-16 rounded-lg border-2 border-amber-400 bg-indigo-900/80 shadow-lg transform group-hover:scale-110 transition-transform flex items-center justify-center text-3xl">${icon}</div>`;
+                    }
+
+                    return `
                     <div class="relative group cursor-help">
-                        <img src="${item.image}" class="w-16 h-16 rounded-lg border-2 border-amber-400 bg-black/50 shadow-lg transform group-hover:scale-110 transition-transform">
+                        ${visual}
                         <div class="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 w-48 bg-black/90 text-white text-xs p-2 rounded-lg pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity z-50 text-center">
                             <strong class="text-amber-400 block mb-1">${item.name}</strong>
                             ${item.description}
                         </div>
                     </div>
-                `).join('');
+                `}).join('');
             } else {
                 itemsHtml = `<p class="text-white/50 text-sm italic">No artifacts collected yet.</p>`;
             }

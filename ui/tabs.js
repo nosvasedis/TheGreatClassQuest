@@ -4,7 +4,7 @@
 import * as state from '../state.js';
 import * as utils from '../utils.js';
 import * as constants from '../constants.js';
-import { deleteClass, ensureHistoryLoaded } from '../db/actions.js';
+import { deleteClass, deleteStudent, ensureHistoryLoaded } from '../db/actions.js';
 import { db } from '../firebase.js'; 
 import { fetchMonthlyHistory } from '../state.js';
 import * as modals from './modals.js';
@@ -581,52 +581,69 @@ export function renderStudentLeaderboardTab() {
     const allScores = state.get('allWrittenScores');
 
     // 1. HELPER: Calculate Stats & Tie-Breakers
+    // 1. HELPER: Calculate Stats & Tie-Breakers
     const getStudentStats = (studentId) => {
         const studentLogs = allLogs.filter(log => log.studentId === studentId);
         const studentScores = allScores.filter(s => s.studentId === studentId);
 
-        const currentMonthIndex = new Date().getMonth();
-        const currentYear = new Date().getFullYear();
+        const now = new Date();
+        const currentMonthIndex = now.getMonth();
+        const currentYear = now.getFullYear();
 
         const monthlyLogs = studentLogs.filter(log => {
             const logDate = utils.parseDDMMYYYY(log.date);
-            // EXCLUDE Pathfinder bonuses from individual leaderboard stats
             return logDate.getMonth() === currentMonthIndex && 
                    logDate.getFullYear() === currentYear &&
                    log.reason !== 'pathfinder_bonus';
         });
 
-        // A. Weekly Stars
-        const today = new Date();
-        const dayOfWeek = today.getDay();
-        const diff = today.getDate() - dayOfWeek + (dayOfWeek === 0 ? -6 : 1);
-        const startOfWeek = new Date(today.setDate(diff));
+        // A. Weekly Stars (Monday to Friday)
+        const dayOfWeek = now.getDay(); // 0 (Sun) to 6 (Sat)
+        const daysToMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1; // Calculate days to go back to Monday
+        const startOfWeek = new Date(now);
+        startOfWeek.setDate(now.getDate() - daysToMonday);
         startOfWeek.setHours(0, 0, 0, 0);
+        
         const weeklyStars = studentLogs
             .filter(log => utils.parseDDMMYYYY(log.date) >= startOfWeek)
             .reduce((sum, log) => sum + log.stars, 0);
 
-        // B. Behavior Stats
+        // B. 3-Star Streak Calculation (Consecutive lessons with 3+ stars)
+        // We exclude small bonuses like 'welcome_back' so they don't break the streak
+        const streakLogs = studentLogs
+            .filter(l => !['welcome_back', 'scholar_s_bonus', 'story_weaver'].includes(l.reason))
+            .sort((a, b) => utils.parseDDMMYYYY(b.date) - utils.parseDDMMYYYY(a.date)); // Newest first
+
+        let streak = 0;
+        for (const log of streakLogs) {
+            if (log.stars >= 3) {
+                streak++;
+            } else {
+                break; // Streak ends if a main lesson wasn't 3 stars
+            }
+        }
+
+        // C. Top Reason of the Month
         const reasonCounts = {};
-        let uniqueReasons = 0;
-        let count3Star = 0;
+        let count3Star = 0; // Total 3-stars (kept for tie-breaking)
         let count2Star = 0;
 
         monthlyLogs.forEach(log => {
             if (log.reason) {
-                if (!reasonCounts[log.reason]) { reasonCounts[log.reason] = 0; uniqueReasons++; }
+                if (!reasonCounts[log.reason]) reasonCounts[log.reason] = 0; 
                 reasonCounts[log.reason] += log.stars;
             }
             if (log.stars >= 3) count3Star++;
             else if (log.stars >= 2) count2Star++;
         });
+        
+        // Sort reasons by highest star count
         const topReasonEntry = Object.entries(reasonCounts).sort((a, b) => b[1] - a[1])[0];
         const topSkill = topReasonEntry ? topReasonEntry[0] : null;
 
-        // C. Academic Avg (For Month)
+        // D. Academic Avg
         let acadSum = 0;
         let acadCount = 0;
-
         studentScores.forEach(s => {
             if (!s.date) return;
             const sDate = new Date(s.date);
@@ -635,17 +652,14 @@ export function renderStudentLeaderboardTab() {
                 if (s.maxScore > 0 && s.scoreNumeric !== null) val = (s.scoreNumeric / s.maxScore) * 100;
                 else if (s.scoreQualitative === "Great!!!") val = 100;
                 else if (s.scoreQualitative === "Great!!") val = 75;
-                if (val > 0) {
-                    acadSum += val;
-                    acadCount++;
-                }
+                if (val > 0) { acadSum += val; acadCount++; }
             }
         });
         const academicAvg = acadCount > 0 ? (acadSum / acadCount) : 0;
 
-        return { weeklyStars, topSkill, uniqueReasons, count3Star, count2Star, academicAvg };
+        return { weeklyStars, topSkill, streak, count3Star, count2Star, academicAvg };
     };
-
+    
     let studentsInLeague = state.get('allStudents')
         .filter(s => classesInLeague.some(c => c.id === s.classId))
         .map(s => {
@@ -694,16 +708,23 @@ export function renderStudentLeaderboardTab() {
 
     const getPillsHtml = (s) => {
         let html = '';
+        
+        // Badge 1: Stars THIS WEEK
         if (s.stats.weeklyStars > 0) {
-            html += `<div class="flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-orange-100 text-orange-600 shadow-sm border border-orange-200" title="${s.stats.weeklyStars} stars this week"><i class="fas fa-fire"></i> ${s.stats.weeklyStars}</div>`;
+            html += `<div class="flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-orange-100 text-orange-600 shadow-sm border border-orange-200" title="${s.stats.weeklyStars} stars this week"><i class="fas fa-fire"></i> Week: ${s.stats.weeklyStars}</div>`;
         }
-        if (s.stats.count3Star > 0) {
-            html += `<div class="flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-indigo-100 text-indigo-600 shadow-sm border border-indigo-200" title="${s.stats.count3Star} Perfect 3-Star Awards"><i class="fas fa-meteor"></i> ${s.stats.count3Star}</div>`;
+        
+        // Badge 2: Streak of Perfect 3-Stars
+        if (s.stats.streak > 1) {
+            html += `<div class="flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-indigo-100 text-indigo-600 shadow-sm border border-indigo-200" title="Streak of ${s.stats.streak} perfect lessons!"><i class="fas fa-bolt"></i> Streak: ${s.stats.streak}</div>`;
         }
+        
+        // Badge 3: Top Reason of the MONTH
         if (s.stats.topSkill) {
             const info = reasonInfo[s.stats.topSkill] || {icon: 'fa-star', color: 'bg-gray-100 text-gray-600', name: 'Star'};
-            html += `<div class="flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold ${info.color} shadow-sm border border-white/50" title="Top Skill"><i class="fas ${info.icon}"></i> <span>${info.name}</span></div>`;
+            html += `<div class="flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold ${info.color} shadow-sm border border-white/50" title="Top Skill this Month"><i class="fas ${info.icon}"></i> <span>${info.name}</span></div>`;
         }
+        
         return html;
     };
 

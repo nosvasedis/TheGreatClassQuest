@@ -1,21 +1,21 @@
-// /ui/modals.js
+// /ui/modals/base.js
 
 // --- IMPORTS ---
-import { fetchLogsForDate, fetchAttendanceForMonth, fetchLogsForMonth } from '../db/queries.js';
-import { db } from '../firebase.js';
+import { fetchLogsForDate, fetchAttendanceForMonth, fetchLogsForMonth } from '../../db/queries.js';
+import { db } from '../../firebase.js';
 import { doc, getDocs, collection, query, where, orderBy, limit } from 'https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js';
 
 // State and Constants
-import * as state from '../state.js';
-import { fetchMonthlyHistory } from '../state.js';
-import * as constants from '../constants.js';
-import * as utils from '../utils.js';
-import { HERO_CLASSES } from '../features/heroClasses.js';
+import * as state from '../../state.js';
+import { fetchMonthlyHistory } from '../../state.js';
+import * as constants from '../../constants.js';
+import * as utils from '../../utils.js';
+import { HERO_CLASSES } from '../../features/heroClasses.js';
 
 // Actions and Effects
-import { playSound } from '../audio.js';
-import { callGeminiApi } from '../api.js';
-import { showToast, showPraiseToast } from './effects.js';
+import { playSound } from '../../audio.js';
+import { callGeminiApi } from '../../api.js';
+import { showToast, showPraiseToast } from '../effects.js';
 import {
     deleteClass,
     deleteStudent,
@@ -31,14 +31,15 @@ import {
     handleMoveStudent,
     handleMarkAbsent,
     handleAwardBonusStar,
-    handleBatchAwardBonus, // NEW IMPORT
+    handleBatchAwardBonus,
     addOrUpdateHeroChronicleNote,
     handleRemoveAttendanceColumn,
-    deleteHeroChronicleNote, ensureHistoryLoaded
-} from '../db/actions.js';
+    deleteHeroChronicleNote,
+    ensureHistoryLoaded
+} from '../../db/actions.js';
 
 // Helper function to populate date dropdowns
-function populateDateDropdowns(monthSelectId, daySelectId, dateString) { // dateString is YYYY-MM-DD
+export function populateDateDropdowns(monthSelectId, daySelectId, dateString) { // dateString is YYYY-MM-DD
     const monthSelect = document.getElementById(monthSelectId);
     const daySelect = document.getElementById(daySelectId);
 
@@ -62,6 +63,12 @@ function populateDateDropdowns(monthSelectId, daySelectId, dateString) { // date
 // --- LOCAL STATE FOR MODALS ---
 let heroStatsChart = null;
 let currentlySelectedDayCell = null;
+export function setCurrentlySelectedDayCell(cell) {
+    currentlySelectedDayCell = cell;
+}
+export function getCurrentlySelectedDayCell() {
+    return currentlySelectedDayCell;
+}
 
 // --- GENERIC MODAL FUNCTIONS ---
 

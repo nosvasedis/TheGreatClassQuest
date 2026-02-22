@@ -1,5 +1,14 @@
+// /ui/modals/rankings.js
+import * as state from '../../state.js';
+import * as utils from '../../utils.js';
+import * as constants from '../../constants.js';
+import { showAnimatedModal } from './base.js';
+import { showToast } from '../effects.js';
+import { playSound } from '../../audio.js';
+import { HERO_CLASSES } from '../../features/heroClasses.js';
 
-// --- STUDENT RANKINGS MODAL (HERO RANKS ARCHIVE) ---
+let rankingsViewDate = new Date();
+
 // --- STUDENT RANKINGS MODAL (HERO RANKS ARCHIVE) ---
 export async function openStudentRankingsModal(resetDate = true) {
     const modalId = 'global-leaderboard-modal';
@@ -28,8 +37,8 @@ export async function openStudentRankingsModal(resetDate = true) {
     let logs = [];
 
     try {
-        const { fetchLogsForMonth } = await import('../db/queries.js');
-        const { fetchMonthlyHistory } = await import('../state.js');
+        const { fetchLogsForMonth } = await import('../../db/queries.js');
+        const { fetchMonthlyHistory } = await import('../../state.js');
         const [year, month] = activeMonthKey.split('-').map(Number);
 
         // Try fetching detailed logs first (for tie-breakers)
@@ -48,7 +57,7 @@ export async function openStudentRankingsModal(resetDate = true) {
     } catch (e) { console.error(e); }
 
     // 4. Prepare Data
-    const leaguesPromise = import('../constants.js').then(c => c.questLeagues);
+    const leaguesPromise = import('../../constants.js').then(c => c.questLeagues);
     const allLeagues = (await leaguesPromise).default || ['Junior A', 'Junior B', 'A', 'B', 'C', 'D'];
     const myClasses = state.get('allTeachersClasses').sort((a, b) => a.name.localeCompare(b.name));
 
@@ -237,7 +246,6 @@ export async function openStudentRankingsModal(resetDate = true) {
 }
 
 // Internal state for the Hall of Heroes month-browsing
-let rankingsViewDate = new Date();
 let hallOfHeroesViewDate = new Date();
 
 export async function openHallOfHeroes() {
@@ -289,7 +297,7 @@ async function renderHallOfHeroesContent(classId) {
             </div>`;
 
         try {
-            const { fetchAdventureLogsForMonth } = await import('../db/queries.js');
+            const { fetchAdventureLogsForMonth } = await import('../../db/queries.js');
             monthlyLogs = await fetchAdventureLogsForMonth(classId, currentYear, currentMonth + 1);
         } catch (error) {
             console.error("Historical fetch failed:", error);
@@ -709,9 +717,9 @@ export async function renderProdigyHistory(classId) {
     contentEl.innerHTML = `<div class="h-full flex flex-col items-center justify-center text-amber-400"><i class="fas fa-circle-notch fa-spin text-5xl"></i><p class="mt-4 font-bold text-lg">Summoning the Legends...</p></div>`;
 
     // Ensure history is loaded
-    await import('../db/actions.js').then(a => a.ensureHistoryLoaded());
+    await import('../../db/actions.js').then(a => a.ensureHistoryLoaded());
     // Import artifacts to lookup icons if missing from DB
-    const { LEGENDARY_ARTIFACTS } = await import('../features/powerUps.js');
+    const { LEGENDARY_ARTIFACTS } = await import('../../features/powerUps.js');
 
     // 1. Setup Dates
     const viewYear = prodigyViewDate.getFullYear();
@@ -744,7 +752,7 @@ export async function renderProdigyHistory(classId) {
         logsToAnalyze = state.get('allAwardLogs').filter(l => l.classId === classId);
     } else {
         try {
-            const { fetchLogsForMonth } = await import('../db/queries.js');
+            const { fetchLogsForMonth } = await import('../../db/queries.js');
             const fetchedLogs = await fetchLogsForMonth(viewYear, viewMonthIndex + 1);
             logsToAnalyze = fetchedLogs.filter(l => l.classId === classId);
         } catch (e) {

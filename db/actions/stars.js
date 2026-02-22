@@ -1,3 +1,28 @@
+// /db/actions/stars.js — scores, stars, award log, purge
+import {
+    db,
+    doc,
+    addDoc,
+    updateDoc,
+    getDoc,
+    collection,
+    query,
+    where,
+    getDocs,
+    runTransaction,
+    writeBatch,
+    serverTimestamp,
+    increment,
+    orderBy,
+    limit
+} from '../../firebase.js';
+import * as state from '../../state.js';
+import { showToast, showPraiseToast } from '../../ui/effects.js';
+import { showStarfallModal, showBatchStarfallModal, showModal, hideModal } from '../../ui/modals.js';
+import { playSound, playHeroFanfare } from '../../audio.js';
+import { getTodayDateString, getStartOfMonthString, debounce, parseDDMMYYYY } from '../../utils.js';
+import { checkBountyProgress } from './bounties.js';
+import { calculateHeroGold, canChangeHeroClass } from '../../features/heroClasses.js';
 
 // --- SCORE, STAR, & LOG ACTIONS ---
 
@@ -191,7 +216,7 @@ export async function setStudentStarsForToday(studentId, starValue, reason = nul
 
             // Delayed visual for dramatic effect
             setTimeout(() => {
-                import('../ui/effects.js').then(m => {
+                import('../../ui/effects.js').then(m => {
                     m.showPraiseToast(`${firstName} activated their Hero's Boon! +1 Star added to the coffers!`, '🛡️');
                 });
                 playSound('magic_chime');
@@ -278,6 +303,8 @@ export async function checkAndRecordQuestCompletion(classId) {
         playSound('magic_chime');
     }
 }
+
+const debouncedCheckAndRecordQuestCompletion = debounce(checkAndRecordQuestCompletion, 4000);
 
 export async function handleDeleteAwardLog(logId) {
     const publicDataPath = "artifacts/great-class-quest/public/data";

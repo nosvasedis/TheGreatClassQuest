@@ -1,5 +1,8 @@
 // /app.js
 
+import { injectHTML } from './templates/index.js';
+injectHTML();
+
 import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
 import { db, auth } from './firebase.js';
 import { firebaseConfig } from './constants.js';

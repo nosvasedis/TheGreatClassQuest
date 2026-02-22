@@ -177,6 +177,11 @@ body.projector-mode .bounty-actions {
 }
 
 /* --- TROPHY ROOM: Character-creator layout (avatar center, items on ring) --- */
+/* Extra top padding when stage is shown so the top item doesn't crowd the header */
+#trophy-room-content:has(.trophy-room-stage) {
+    padding-top: 2.5rem;
+}
+
 #trophy-room-content .trophy-room-stage {
     position: relative;
     width: min(640px, 100%);
@@ -184,6 +189,7 @@ body.projector-mode .bounty-actions {
     aspect-ratio: 1 / 1;
     min-height: 480px;
     margin: 0 auto;
+    margin-top: 0.5rem;
     display: flex;
     align-items: center;
     justify-content: center;

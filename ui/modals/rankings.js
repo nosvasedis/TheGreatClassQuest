@@ -502,6 +502,7 @@ export function openZoneOverviewModal(zoneType) {
     };
 
     const config = ZONE_CONFIG[zoneType];
+    const allStudentScores = state.get('allStudentScores') || [];
     const classes = state.get('allSchoolClasses').filter(c => c.questLevel === league);
 
     classes.forEach(c => {

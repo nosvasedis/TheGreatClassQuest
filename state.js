@@ -236,7 +236,11 @@ export function setGlobalSelectedLeague(league, isManual = false) {
     // DYNAMIC IMPORT
     import('./ui/tabs.js').then(tabs => {
         tabs.updateAllLeagueSelectors(isManual);
-        tabs.updateAllClassSelectors(isManual);
+        // Only sync class selectors when isManual — the class only changes on manual league picks.
+        // Calling updateAllClassSelectors during a programmatic (auto) league set interferes with
+        // the tab fade-out animation because the function checks the DOM for the visible tab, which
+        // is still not hidden during the CSS transition.
+        if (isManual) tabs.updateAllClassSelectors(isManual);
 
         const activeTabId = localStorage.getItem('quest_last_active_tab') || 'about-tab';
         if (activeTabId && state.globalSelectedLeague) {

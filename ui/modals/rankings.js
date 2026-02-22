@@ -671,7 +671,7 @@ export function openZoneOverviewModal(zoneType) {
         </div>
     `;
 
-    import('./modals.js').then(m => m.showAnimatedModal('milestone-details-modal'));
+    import('../modals.js').then(m => m.showAnimatedModal('milestone-details-modal'));
 }
 
 // --- PRODIGY OF THE MONTH FEATURE (FIXED) ---

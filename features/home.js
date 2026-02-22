@@ -37,7 +37,7 @@ function updateHeaderQuote(quote) {
     const container = document.getElementById('header-quote-container');
     const textEl = document.getElementById('header-quote-text');
     if (container && textEl) {
-        textEl.innerText = `"${quote}"`;
+        textEl.innerText = quote;
         container.classList.remove('hidden');
     }
 }

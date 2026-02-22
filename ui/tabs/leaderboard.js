@@ -15,7 +15,7 @@ export async function renderClassLeaderboardTab() {
     const league = state.get('globalSelectedLeague');
     if (!league) {
         list.innerHTML = `<div class="max-w-xl mx-auto"><p class="text-center text-gray-700 bg-white/50 p-6 rounded-2xl text-lg">Please select a league to view the Team Quest map.</p></div>`;
-        questUpdateBtn.disabled = true;
+        if (questUpdateBtn) questUpdateBtn.disabled = true;
         return;
     }
 
@@ -23,7 +23,7 @@ export async function renderClassLeaderboardTab() {
 
     if (classesInLeague.length === 0) {
         list.innerHTML = `<p class="text-center text-gray-700 bg-white/50 p-4 rounded-2xl text-lg">No classes in this quest league... yet!</p>`;
-        questUpdateBtn.disabled = true;
+        if (questUpdateBtn) questUpdateBtn.disabled = true;
         return;
     }
 
@@ -131,7 +131,7 @@ export async function renderClassLeaderboardTab() {
         };
     }).sort((a, b) => b.progress - a.progress);
 
-    questUpdateBtn.disabled = classScores.filter(c => c.currentMonthlyStars > 0).length < 2;
+    if (questUpdateBtn) questUpdateBtn.disabled = classScores.filter(c => c.currentMonthlyStars > 0).length < 2;
 
     const { generateLeagueMapHtml } = await import('../../features/worldMap.js');
     const mapHtml = generateLeagueMapHtml(classScores);

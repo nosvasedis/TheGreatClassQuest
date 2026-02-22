@@ -98,8 +98,8 @@
 
 @keyframes clarity-glimmer-shine {
     0% { filter: brightness(1) drop-shadow(0 0 0 transparent); }
-    20% { filter: brightness(1.9) drop-shadow(0 0 18px rgba(34, 211, 238, 0.9); }
-    50% { filter: brightness(1.5) drop-shadow(0 0 14px rgba(34, 211, 238, 0.7); }
+    20% { filter: brightness(1.9) drop-shadow(0 0 18px rgba(34, 211, 238, 0.9)); }
+    50% { filter: brightness(1.5) drop-shadow(0 0 14px rgba(34, 211, 238, 0.7)); }
     100% { filter: brightness(1) drop-shadow(0 0 0 transparent); }
 }
 
@@ -112,10 +112,10 @@
 }
 
 @keyframes clarity-glimmer-avatar {
-    0% { filter: brightness(1); }
-    15% { filter: brightness(1.8) drop-shadow(0 0 12px rgba(34, 211, 238, 0.8); transform: scale(1.1); }
-    30% { filter: brightness(1.4); }
-    100% { filter: brightness(1); }
+    0% { filter: brightness(1); transform: scale(1); }
+    15% { filter: brightness(1.8) drop-shadow(0 0 12px rgba(34, 211, 238, 0.8)); transform: scale(1.1); }
+    30% { filter: brightness(1.4); transform: scale(1); }
+    100% { filter: brightness(1); transform: scale(1); }
 }
 
 #hall-of-heroes-btn:not(:disabled) {

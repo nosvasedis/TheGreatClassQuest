@@ -21,9 +21,18 @@ import {
     signOut
 } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
 
+let soundSetupStarted = false;
+function onFirstUserGesture() {
+    activateAudioContext();
+    if (!soundSetupStarted) {
+        soundSetupStarted = true;
+        setupSounds(); // Defer so AudioContext is created after user gesture (avoids console warning)
+    }
+}
+
 function setupAuthListeners() {
-    document.body.addEventListener('mousedown', activateAudioContext, { once: true });
-    document.body.addEventListener('touchstart', activateAudioContext, { once: true });
+    document.body.addEventListener('mousedown', onFirstUserGesture, { once: true });
+    document.body.addEventListener('touchstart', onFirstUserGesture, { once: true });
 
     document.getElementById('toggle-auth-mode').addEventListener('click', (e) => {
         const login = document.getElementById('login-form');
@@ -155,7 +164,7 @@ async function initApp() {
         updateDateTime();
         setInterval(updateDateTime, 1000);
 
-        await setupSounds();
+        // Audio is initialized on first user gesture (mousedown/touchstart) to satisfy browser autoplay policy
 
         utils.fetchSolarCycle(); // Fetch sunrise/sunset times
 

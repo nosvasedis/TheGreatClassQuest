@@ -47,6 +47,11 @@
     animation: float-slow 4s ease-in-out infinite;
 }
 
+/* Timed blur answer block (e.g. emoji riddle): blur strength is controlled by JS over the card's 1min lifetime */
+.wallpaper-card-answer-blur {
+    transition: filter 1s ease-out;
+}
+
 /* --- WALLPAPER V3 STYLE FIXES --- */
 /* --- CONSOLIDATED WALLPAPER CARD STYLES --- */
 .wallpaper-float-card {

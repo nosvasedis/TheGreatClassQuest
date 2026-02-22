@@ -44,6 +44,10 @@ const HISTORY_KEY = 'gcq_wall_history';
 const SESSION_KEY = 'gcq_wall_session';
 const CARD_DURATION = 60000;
 const MEMORY_LIMIT = 100;
+// Timed blur: answer stays blurred for (CARD_DURATION - BLUR_FULLY_VISIBLE_LAST_MS), then fully visible for last 10s
+const BLUR_FULLY_VISIBLE_LAST_MS = 10000;
+const BLUR_REVEAL_MS = CARD_DURATION - BLUR_FULLY_VISIBLE_LAST_MS; // 50s of gradual unblur
+const BLUR_MAX_PX = 12;
 
 let solarData = {
     sunrise: new Date().setHours(6, 30, 0, 0),
@@ -455,6 +459,7 @@ async function directorGameLoop() {
         // Clear previous card
         if (container.children.length > 0 && !session) {
             const oldEl = container.firstElementChild;
+            if (oldEl._blurIntervalId) clearInterval(oldEl._blurIntervalId);
             oldEl.style.opacity = '0';
             oldEl.style.transform = 'translateY(-50px) scale(0.9)';
             await new Promise(r => setTimeout(r, 500));
@@ -490,6 +495,7 @@ async function directorGameLoop() {
         const el = container.firstElementChild;
         // Don't fade out if it's the timer end card, let the timeout above handle it
         if (el && el.dataset.cardId !== 'timer_end') {
+            if (el._blurIntervalId) clearInterval(el._blurIntervalId);
             el.style.opacity = '0';
             el.style.transform = 'translateY(-50px) scale(0.9)';
         }
@@ -1324,12 +1330,13 @@ function getEmojiRiddleCard(questLevel) {
         html: `<div class="text-center w-full">
             <div class="badge-pill bg-pink-100 text-pink-800">Emoji Riddle</div>
             <div class="text-5xl my-6 tracking-widest">${r.q}</div>
-            <div class="mt-4 pt-4 border-t border-pink-200">
+            <div class="wallpaper-card-answer-blur mt-4 pt-4 border-t border-pink-200">
                 <div class="text-xs font-bold text-pink-400 uppercase tracking-widest mb-1">Answer</div>
                 <p class="text-2xl font-bold text-pink-700">${r.a}</p>
             </div>
         </div>`,
-        css: 'float-card-pink'
+        css: 'float-card-pink',
+        timedBlurAnswer: true
     };
 }
 
@@ -2107,6 +2114,25 @@ function spawnCard(container, card) {
 
     el.style.opacity = '1';
     el.style.transform = 'translateY(0) scale(1) rotate(' + (Math.random() * 2 - 1) + 'deg)';
+
+    if (card.timedBlurAnswer) {
+        const answerBlock = el.querySelector('.wallpaper-card-answer-blur');
+        if (answerBlock) {
+            const tick = () => {
+                const session = getSession();
+                if (!session) return;
+                const elapsed = Date.now() - session.start;
+                if (elapsed >= BLUR_REVEAL_MS) {
+                    answerBlock.style.filter = 'blur(0)';
+                    return;
+                }
+                const blurPx = BLUR_MAX_PX * (1 - elapsed / BLUR_REVEAL_MS);
+                answerBlock.style.filter = `blur(${blurPx}px)`;
+            };
+            tick();
+            el._blurIntervalId = setInterval(tick, 1000);
+        }
+    }
 
     return el;
 }

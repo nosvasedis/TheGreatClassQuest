@@ -28,19 +28,22 @@ export function findAndSetCurrentClass(targetSelectId = null) {
 
 export function findAndSetCurrentLeague(shouldRender = true) {
     if (state.get('globalSelectedLeague')) return;
+
     const now = new Date();
-    const currentDay = now.getDay().toString();
     const currentTime = now.toTimeString().slice(0, 5);
-    for (const c of state.get('allTeachersClasses')) {
-        if (c.scheduleDays && c.scheduleDays.includes(currentDay)) {
-            if (c.timeStart && c.timeEnd && currentTime >= c.timeStart && currentTime <= c.timeEnd) {
-                state.setGlobalSelectedLeague(c.questLevel, false);
-                if (shouldRender) {
-                    renderClassLeaderboardTab();
-                    renderStudentLeaderboardTab();
-                }
-                return;
+    const todayString = utils.getTodayDateString();
+    // Use getClassesOnDay so cancelled/overridden classes are respected
+    const classesToday = utils.getClassesOnDay(todayString, state.get('allSchoolClasses'), state.get('allScheduleOverrides'));
+    const myClassesToday = classesToday.filter(c => state.get('allTeachersClasses').some(tc => tc.id === c.id));
+
+    for (const c of myClassesToday) {
+        if (c.timeStart && c.timeEnd && currentTime >= c.timeStart && currentTime <= c.timeEnd) {
+            state.setGlobalSelectedLeague(c.questLevel, false);
+            if (shouldRender) {
+                renderClassLeaderboardTab();
+                renderStudentLeaderboardTab();
             }
+            return;
         }
     }
 }

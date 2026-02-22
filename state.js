@@ -1,5 +1,5 @@
 import { competitionStart } from './constants.js';
-import { getTodayDateString } from './utils.js';
+import { getTodayDateString, getClassesOnDay } from './utils.js';
 
 // --- Internal State Store ---
 let state = {};
@@ -175,11 +175,19 @@ export function setGlobalSelectedClass(classId, isManual = false) {
         tabs.updateAllLeagueSelectors(isManual);
 
         const activeTabId = localStorage.getItem('quest_last_active_tab') || 'about-tab';
-        if (activeTabId && state.globalSelectedClassId) {
+        if (activeTabId) {
             if (activeTabId === 'award-stars-tab') {
                 tabs.renderAwardStarsTab();
             } else if (activeTabId === 'adventure-log-tab') {
                 tabs.renderAdventureLogTab();
+            } else if (activeTabId === 'class-leaderboard-tab') {
+                tabs.renderClassLeaderboardTab();
+            } else if (activeTabId === 'student-leaderboard-tab') {
+                tabs.renderStudentLeaderboardTab();
+            } else if (activeTabId === 'scholars-scroll-tab') {
+                import('./features/scholarScroll.js').then(m => m.renderScholarsScrollTab());
+            } else if (activeTabId === 'reward-ideas-tab') {
+                tabs.renderIdeasTabSelects();
             }
         }
     });
@@ -189,7 +197,7 @@ export function setGlobalSelectedClass(classId, isManual = false) {
 }
 
 export function setGlobalSelectedLeague(league, isManual = false) {
-    if (league === state.globalSelectedLeague) return;
+    if (league === state.globalSelectedLeague && !isManual) return;
 
     state.globalSelectedLeague = league;
     if (league) {
@@ -198,14 +206,47 @@ export function setGlobalSelectedLeague(league, isManual = false) {
         localStorage.removeItem('quest_last_league');
     }
 
+    // When the league is manually changed, sync the class selection to the best
+    // matching class in that league so all tabs stay consistent.
+    if (isManual && league) {
+        const now = new Date();
+        const currentTime = now.toTimeString().slice(0, 5);
+        const todayString = getTodayDateString();
+        const classesToday = getClassesOnDay(todayString, state.allSchoolClasses, state.allScheduleOverrides);
+        const myLeagueClasses = classesToday.filter(c =>
+            c.questLevel === league &&
+            state.allTeachersClasses.some(tc => tc.id === c.id)
+        );
+        // Prefer the class that's currently in session; fall back to the first one in the league
+        const activeClass = myLeagueClasses.find(c =>
+            c.timeStart && c.timeEnd && currentTime >= c.timeStart && currentTime <= c.timeEnd
+        );
+        const bestClass = activeClass || myLeagueClasses[0] || null;
+
+        if (bestClass) {
+            state.globalSelectedClassId = bestClass.id;
+            localStorage.setItem('quest_last_class_id', bestClass.id);
+        } else {
+            state.globalSelectedClassId = null;
+            localStorage.removeItem('quest_last_class_id');
+        }
+        updateReigningHero();
+    }
+
     // DYNAMIC IMPORT
     import('./ui/tabs.js').then(tabs => {
         tabs.updateAllLeagueSelectors(isManual);
+        tabs.updateAllClassSelectors(isManual);
 
         const activeTabId = localStorage.getItem('quest_last_active_tab') || 'about-tab';
         if (activeTabId && state.globalSelectedLeague) {
             if (activeTabId === 'class-leaderboard-tab') tabs.renderClassLeaderboardTab();
-            if (activeTabId === 'student-leaderboard-tab') tabs.renderStudentLeaderboardTab();
+            else if (activeTabId === 'student-leaderboard-tab') tabs.renderStudentLeaderboardTab();
+            else if (activeTabId === 'award-stars-tab') tabs.renderAwardStarsTab();
+            else if (activeTabId === 'adventure-log-tab') tabs.renderAdventureLogTab();
+            else if (activeTabId === 'scholars-scroll-tab') {
+                import('./features/scholarScroll.js').then(m => m.renderScholarsScrollTab());
+            }
         }
     });
 }

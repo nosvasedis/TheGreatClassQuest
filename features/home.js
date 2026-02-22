@@ -724,12 +724,8 @@ function startHomeSmartLogic() {
         if (currentActiveLesson) {
             const currentSelectedId = state.get('globalSelectedClassId');
             if (currentSelectedId !== currentActiveLesson.id) {
+                // setGlobalSelectedClass handles re-rendering the active tab internally
                 state.setGlobalSelectedClass(currentActiveLesson.id, false);
-                // Refresh the current active tab to reflect new class selection
-                const tab = document.querySelector('.app-tab:not(.hidden)');
-                if (tab) {
-                    import('../ui/tabs.js').then(tools => tools.showTab(tab.id));
-                }
             }
         }
     };

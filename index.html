@@ -256,16 +256,20 @@
                                 Select a League
                             </button>
                             <button id="student-history-btn"
-                                class="font-title text-xl bg-white text-purple-800 py-2 px-6 rounded-full shadow-lg border-4 border-purple-300 bubbly-button">
+                                class="hero-challenge-btn font-title text-lg bg-white text-purple-800 py-2 px-5 rounded-full shadow-lg border-2 border-purple-300 bubbly-button">
                                 <i class="fas fa-history mr-2"></i>View History
                             </button>
                             <button id="open-prodigy-btn"
-                                class="font-title text-xl bg-gradient-to-r from-amber-400 to-yellow-500 text-white py-2 px-6 rounded-full shadow-lg border-b-4 border-yellow-700 bubbly-button transform hover:scale-105 mr-2">
+                                class="hero-challenge-btn font-title text-lg bg-gradient-to-r from-amber-400 to-yellow-500 text-white py-2 px-5 rounded-full shadow-lg border-2 border-yellow-600 bubbly-button transform hover:scale-105">
                                 <i class="fas fa-crown mr-2"></i> Hall of Prodigies
                             </button>
                             <button id="open-shop-btn"
-                                class="font-title text-xl bg-gradient-to-r from-pink-500 to-rose-500 text-white py-2 px-6 rounded-full shadow-lg border-b-4 border-rose-700 bubbly-button transform hover:scale-105">
+                                class="hero-challenge-btn font-title text-lg bg-gradient-to-r from-pink-500 to-rose-500 text-white py-2 px-5 rounded-full shadow-lg border-2 border-rose-600 bubbly-button transform hover:scale-105">
                                 <i class="fas fa-store mr-2"></i> Shop
+                            </button>
+                            <button id="open-trophy-room-btn"
+                                class="hero-challenge-btn font-title text-lg bg-gradient-to-r from-emerald-500 to-teal-600 text-white py-2 px-5 rounded-full shadow-lg border-2 border-teal-700 bubbly-button transform hover:scale-105">
+                                <i class="fas fa-trophy mr-2"></i> Trophy Room
                             </button>
                         </div>
                         <!-- Row 2: Action Buttons -->
@@ -2265,6 +2269,35 @@
                     <h3 class="font-title text-4xl text-indigo-300 mb-2">Out of Stock</h3>
                     <p class="text-indigo-400 mb-8 text-lg">Summon the merchant to restock this league's shelves!</p>
                 </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Trophy Room Modal -->
+    <div id="trophy-room-modal"
+        class="fixed inset-0 bg-black bg-opacity-80 z-[80] flex items-center justify-center p-4 hidden">
+        <div
+            class="bg-indigo-950 rounded-3xl shadow-2xl max-w-7xl w-full max-h-[95vh] flex flex-col pop-in border-4 border-amber-500 overflow-x-hidden overflow-y-auto relative">
+            <button id="trophy-room-close-btn"
+                class="absolute top-4 right-4 text-white/50 hover:text-white text-3xl z-30 transition-colors">&times;</button>
+            <div class="bg-indigo-900/90 p-4 md:p-6 flex flex-col md:flex-row justify-between items-center border-b-4 border-amber-700/50 shadow-xl z-20 gap-4 backdrop-blur-md flex-shrink-0">
+                <div class="flex items-center gap-4">
+                    <div class="text-5xl filter drop-shadow-lg">🏆</div>
+                    <div>
+                        <h2 class="font-title text-2xl md:text-4xl text-amber-400" style="text-shadow: 0 4px 0 #78350f;">Trophy Room</h2>
+                        <p class="text-indigo-200 text-sm font-bold uppercase tracking-widest opacity-80 mt-1">Treasures collected on the quest</p>
+                    </div>
+                </div>
+                <div class="flex items-center gap-3 bg-black/30 p-2 rounded-xl border border-amber-500/30">
+                    <p class="text-indigo-300 text-[10px] uppercase font-bold hidden sm:block">Adventurer</p>
+                    <select id="trophy-room-student-select"
+                        class="bg-indigo-900/50 border border-amber-500/50 text-white text-sm font-bold rounded-lg focus:ring-amber-500 focus:border-amber-500 block p-2.5 outline-none min-w-[180px]">
+                        <option value="">Choose adventurer...</option>
+                    </select>
+                </div>
+            </div>
+            <div id="trophy-room-content" class="flex-grow overflow-y-auto overflow-x-visible p-6 min-h-0 flex items-center justify-center custom-scrollbar relative z-10">
+                <!-- Student name, gold, and inventory grid injected here -->
             </div>
         </div>
     </div>

@@ -337,6 +337,22 @@ export function setupUIListeners() {
         shopCloseBtn.addEventListener('click', () => modals.hideModal('shop-modal'));
     }
 
+    // Trophy Room
+    const openTrophyRoomBtn = document.getElementById('open-trophy-room-btn');
+    if (openTrophyRoomBtn) {
+        openTrophyRoomBtn.addEventListener('click', () => modals.openTrophyRoomModal());
+    }
+    const trophyRoomCloseBtn = document.getElementById('trophy-room-close-btn');
+    if (trophyRoomCloseBtn) {
+        trophyRoomCloseBtn.addEventListener('click', () => modals.hideModal('trophy-room-modal'));
+    }
+    const trophyRoomStudentSelect = document.getElementById('trophy-room-student-select');
+    if (trophyRoomStudentSelect) {
+        trophyRoomStudentSelect.addEventListener('change', (e) => {
+            modals.renderTrophyRoomContent(e.target.value);
+        });
+    }
+
     const genShopBtn = document.getElementById('generate-shop-btn');
     if (genShopBtn) {
         genShopBtn.addEventListener('click', () => {

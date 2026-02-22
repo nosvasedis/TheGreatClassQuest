@@ -20,6 +20,11 @@ export const LEGENDARY_ARTIFACTS = [
     { id: 'leg_protagonist', name: "The Mask of the Protagonist", price: 75, description: "Guarantees you are the Hero in the next Story Log.", icon: "🎭" }
 ];
 
+/** Whether an item can be used (has an active power). Use for UI to show "Use" button. */
+export function isItemUsable(itemName) {
+    return !!POWER_UP_EFFECTS[itemName];
+}
+
 const POWER_UP_EFFECTS = {
     "Crystal of Clarity": (student) => activateClarity(student),
     "Scroll of the Gilded Star": (student) => activateGildedScroll(student),
@@ -44,6 +49,11 @@ export async function handleUseItem(studentId, itemIndex) {
 
     if (!confirm(`Consume ${item.name}?`)) return;
 
+    if (item.name === "Crystal of Clarity") {
+        document.dispatchEvent(new CustomEvent('clarity-glimmer', { detail: { studentId, itemIndex } }));
+        showToast("Incoming hint", 'success');
+    }
+
     try {
         await runTransaction(db, async (transaction) => {
             const scoreRef = doc(db, "artifacts/great-class-quest/public/data/student_scores", studentId);
@@ -59,6 +69,19 @@ export async function handleUseItem(studentId, itemIndex) {
             }
         });
         playSound('magic_chime');
+        // Show toasts once here (not inside transaction) so they don't run twice on transaction retry
+        if (item.name === "Scroll of the Gilded Star") {
+            showToast(`Next star for ${student.name} is worth triple Gold!`, 'success');
+        }
+        // Update local state so UI (Trophy Room, avatar popover) reflects item removed immediately
+        const allScores = state.get('allStudentScores');
+        const idx = allScores.findIndex(s => s.id === studentId);
+        if (idx !== -1 && allScores[idx].inventory) {
+            const nextInv = [...allScores[idx].inventory];
+            nextInv.splice(itemIndex, 1);
+            allScores[idx] = { ...allScores[idx], inventory: nextInv };
+            state.setAllStudentScores(allScores);
+        }
     } catch (error) {
         console.error(error);
         showToast("The magic fizzled out!", "error");
@@ -68,16 +91,13 @@ export async function handleUseItem(studentId, itemIndex) {
 // --- EFFECT FUNCTIONS ---
 
 async function activateClarity(student) {
-    const scoreRef = doc(db, "artifacts/great-class-quest/public/data/student_scores", student.id);
-    await updateDoc(scoreRef, { clarityActive: true });
-    showToast(`${student.name} gained Clarity! Pulsing gem added to card.`, 'success');
+    // Crystal of Clarity: no DB flag. Use = glimmer + "Incoming hint" + item consumed (handled in handleUseItem).
     return true;
 }
 
 async function activateGildedScroll(student) {
     const scoreRef = doc(db, "artifacts/great-class-quest/public/data/student_scores", student.id);
     await updateDoc(scoreRef, { hasGildedEffect: true });
-    showToast(`Next star for ${student.name} is worth triple Gold!`, 'success');
     return true;
 }
 

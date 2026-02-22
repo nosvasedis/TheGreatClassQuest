@@ -632,7 +632,7 @@ export function renderStudentLeaderboardTab() {
             else if (currentRank === 3) { cardClasses = "bg-gradient-to-r from-orange-50 to-white border-l-4 border-orange-400 shadow-sm"; rankBadge = `<div class="text-3xl">🥉</div>`; }
 
             outputHtml += `
-                <div class="student-leaderboard-card p-3 rounded-xl mb-3 flex items-center justify-between transition-all ${cardClasses}">
+                <div class="student-leaderboard-card relative p-3 rounded-xl mb-3 flex items-center justify-between transition-all ${cardClasses}">
                     <div class="flex items-center gap-3 md:gap-4 overflow-hidden">
                         <div class="flex-shrink-0 w-8 text-center">${rankBadge}</div>
                         <div class="flex-shrink-0">${getAvatarHtml(s)}</div>

@@ -1,3 +1,9 @@
+// /ui/tabs/classes.js
+import * as state from '../../state.js';
+import * as modals from '../modals.js';
+import { deleteClass, deleteStudent } from '../../db/actions.js';
+import { showTab } from './navigation.js';
+import * as avatar from '../../features/avatar.js';
 
 export function renderManageClassesTab() {
     const list = document.getElementById('class-list');

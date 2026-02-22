@@ -1,4 +1,7 @@
-}
+// /ui/core/shop.js
+import * as state from '../../state.js';
+import { showToast } from '../effects.js';
+import * as modals from '../modals.js';
 
 // --- SHOP UI LOGIC ---
 
@@ -61,7 +64,7 @@ export function renderShopUI() {
         .sort((a,b) => a.price - b.price);
 
     // 2. Get Legendary Artifacts (from our new file)
-    import('../features/powerUps.js').then(m => {
+    import('../../features/powerUps.js').then(m => {
         const artifacts = m.LEGENDARY_ARTIFACTS;
         
         if (seasonalItems.length === 0 && artifacts.length === 0) {
@@ -185,7 +188,7 @@ export async function updateShopStudentDisplay(studentId) {
     const legLimitReached = legendariesThisMonth.length >= 2;
 
     // LIMIT CHECK 2: Pathfinder Map (1 per class per month)
-    const { LEGENDARY_ARTIFACTS } = await import('../features/powerUps.js');
+    const { LEGENDARY_ARTIFACTS } = await import('../../features/powerUps.js');
     const pathfinderLog = state.get('allAwardLogs').find(l => 
         l.classId === student.classId && 
         l.reason === 'pathfinder_bonus' && 

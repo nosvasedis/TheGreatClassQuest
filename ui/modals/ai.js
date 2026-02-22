@@ -1,3 +1,10 @@
+// /ui/modals/ai.js
+import * as state from '../../state.js';
+import * as utils from '../../utils.js';
+import { showAnimatedModal, hideModal } from './base.js';
+import { showToast } from '../effects.js';
+import { callGeminiApi } from '../../api.js';
+import { ensureHistoryLoaded } from '../../db/actions.js';
 
 // --- AI & REPORTING MODALS ---
 

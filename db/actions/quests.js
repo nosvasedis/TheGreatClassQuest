@@ -1,3 +1,24 @@
+// /db/actions/quests.js — quest assignments, adventure log, star manager
+import {
+    db,
+    doc,
+    addDoc,
+    updateDoc,
+    deleteDoc,
+    collection,
+    query,
+    where,
+    getDocs,
+    getDoc,
+    runTransaction,
+    writeBatch,
+    serverTimestamp,
+    orderBy,
+    limit
+} from '../../firebase.js';
+import * as state from '../../state.js';
+import { showToast } from '../../ui/effects.js';
+import { getTodayDateString } from '../../utils.js';
 
 // --- REVAMPED: QUEST ASSIGNMENT (SINGLE ENTRY) ---
 
@@ -74,7 +95,7 @@ export async function handleSaveQuestAssignment() {
 
         await batch.commit();
         showToast("Quest assignment updated!", "success");
-        import('../ui/modals.js').then(m => m.hideModal('quest-assignment-modal'));
+        import('../../ui/modals.js').then(m => m.hideModal('quest-assignment-modal'));
 
     } catch (error) {
         console.error("Error updating quest assignment:", error);
@@ -103,7 +124,7 @@ export async function handleLogAdventure() {
     btn.disabled = true;
     btn.innerHTML = `<i class="fas fa-spinner fa-spin mr-2"></i> Writing History...`;
 
-    import('../audio.js').then(m => m.playWritingLoop());
+    import('../../audio.js').then(m => m.playWritingLoop());
 
     const nowObj = new Date(); 
     const league = classData.questLevel;
@@ -243,7 +264,7 @@ export async function handleLogAdventure() {
         const imageBase64 = await callCloudflareAiImageApi(imagePrompt);
         const compressed = await compressImageBase64(imageBase64);
         
-        const { uploadImageToStorage } = await import('../utils.js');
+        const { uploadImageToStorage } = await import('../../utils.js');
         const imageUrl = await uploadImageToStorage(compressed, `adventure_logs/${state.get('currentUserId')}/${Date.now()}.jpg`);
 
         await addDoc(collection(db, "artifacts/great-class-quest/public/data/adventure_logs"), {
@@ -252,7 +273,7 @@ export async function handleLogAdventure() {
             createdAt: serverTimestamp()
         });
         
-        import('../audio.js').then(m => m.stopWritingLoop());
+        import('../../audio.js').then(m => m.stopWritingLoop());
         showToast("The adventure has been chronicled!", 'success');
 
         if (heroOfTheDay !== "the whole team") {
@@ -262,12 +283,12 @@ export async function handleLogAdventure() {
                 document.getElementById('hero-celebration-reason').innerText = "The Class Hero!"; 
                 const avatarEl = document.getElementById('hero-celebration-avatar');
                 avatarEl.innerHTML = heroStudent.avatar ? `<img src="${heroStudent.avatar}" class="w-full h-full object-cover rounded-full">` : `<span class="text-7xl font-bold text-indigo-50">${heroStudent.name.charAt(0)}</span>`;
-                import('../ui/modals.js').then(m => m.showAnimatedModal('hero-celebration-modal'));
-                import('../audio.js').then(m => m.playHeroFanfare());
+                import('../../ui/modals.js').then(m => m.showAnimatedModal('hero-celebration-modal'));
+                import('../../audio.js').then(m => m.playHeroFanfare());
             }
         }
     } catch (error) {
-        import('../audio.js').then(m => m.stopWritingLoop());
+        import('../../audio.js').then(m => m.stopWritingLoop());
         console.error(error);
         showToast("The Chronicler failed to write. Check connection.", 'error');
     } finally {

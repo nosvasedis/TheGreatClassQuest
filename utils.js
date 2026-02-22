@@ -23,7 +23,7 @@ export async function fetchSolarCycle() {
         if (data.status === 'OK') {
             solarData.sunrise = new Date(data.results.sunrise).getTime();
             solarData.sunset = new Date(data.results.sunset).getTime();
-            console.log("Solar Cycle Synced with Greece:", new Date(solarData.sunset).toLocaleTimeString());
+            console.log(`Solar Cycle Synced with Greece — Sunrise: ${new Date(solarData.sunrise).toLocaleTimeString()}, Sunset: ${new Date(solarData.sunset).toLocaleTimeString()}`);
         }
     } catch (e) { console.warn("Using default solar times."); }
 }

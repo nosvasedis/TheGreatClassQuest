@@ -1,5 +1,8 @@
-    }
-}
+// /db/actions/bounties.js — quest bounties
+import { db, doc, addDoc, updateDoc, deleteDoc, collection, serverTimestamp } from '../../firebase.js';
+import * as state from '../../state.js';
+import { showToast } from '../../ui/effects.js';
+import { playSound, playHeroFanfare } from '../../audio.js';
 
 // --- QUEST BOUNTIES ---
 
@@ -59,7 +62,7 @@ export async function handleCreateBounty() {
         });
         
         showToast(type === 'timer' ? 'Timer Started!' : 'Bounty Posted!', 'success');
-        import('../ui/modals.js').then(m => m.hideModal('create-bounty-modal'));
+        import('../../ui/modals.js').then(m => m.hideModal('create-bounty-modal'));
     } catch (e) {
         console.error(e);
         showToast('Error starting quest', 'error');
@@ -88,7 +91,7 @@ export async function handleClaimBounty(bountyId, classId, rewardText) {
         });
     } catch(e) { console.error(e); }
 
-    import('../ui/effects.js').then(m => m.showPraiseToast(`BOUNTY CLAIMED: ${rewardText}`, '🎁'));
+    import('../../ui/effects.js').then(m => m.showPraiseToast(`BOUNTY CLAIMED: ${rewardText}`, '🎁'));
 }
 
 // Helper to update progress when stars are awarded

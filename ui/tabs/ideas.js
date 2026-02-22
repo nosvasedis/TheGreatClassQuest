@@ -1,3 +1,6 @@
+// /ui/tabs/ideas.js
+import * as state from '../../state.js';
+import * as storyWeaver from '../../features/storyWeaver.js';
 
 export function renderIdeasTabSelects() {
     const geminiSelect = document.getElementById('gemini-class-select');

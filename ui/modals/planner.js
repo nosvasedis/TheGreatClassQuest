@@ -1,12 +1,17 @@
-
+// /ui/modals/planner.js
+import * as state from '../../state.js';
+import * as utils from '../../utils.js';
+import { showAnimatedModal, setCurrentlySelectedDayCell, getCurrentlySelectedDayCell } from './base.js';
+import { handleCancelLesson } from '../../db/actions.js';
 
 // --- MAIN FEATURE MODALS ---
 
 export function openDayPlannerModal(dateString, dayCell) {
-    if (currentlySelectedDayCell) {
-        currentlySelectedDayCell.classList.remove('day-selected');
+    const prev = getCurrentlySelectedDayCell();
+    if (prev) {
+        prev.classList.remove('day-selected');
     }
-    currentlySelectedDayCell = dayCell;
+    setCurrentlySelectedDayCell(dayCell);
     dayCell.classList.add('day-selected');
 
     const modal = document.getElementById('day-planner-modal');

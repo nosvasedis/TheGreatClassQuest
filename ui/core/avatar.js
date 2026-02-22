@@ -1,6 +1,8 @@
+// /ui/core/avatar.js
+import * as state from '../../state.js';
 
 // --- AVATAR ENLARGEMENT ---
-function handleAvatarClick(e) {
+export function handleAvatarClick(e) {
     const avatar = e.target.closest('.enlargeable-avatar');
     // Prevent closing if clicking the inventory itself
     if (e.target.closest('.inventory-container')) return; 

@@ -1,4 +1,10 @@
-}
+// /ui/modals/reports.js
+import * as state from '../../state.js';
+import * as utils from '../../utils.js';
+import * as constants from '../../constants.js';
+import { showAnimatedModal } from './base.js';
+import { ensureHistoryLoaded } from '../../db/actions.js';
+import { callGeminiApi } from '../../api.js';
 
 export async function handleGenerateReport(classId) {
     await ensureHistoryLoaded();

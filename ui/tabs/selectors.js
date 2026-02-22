@@ -1,4 +1,10 @@
-
+// /ui/tabs/selectors.js
+import * as state from '../../state.js';
+import * as utils from '../../utils.js';
+import * as constants from '../../constants.js';
+import * as modals from '../modals.js';
+import { renderClassLeaderboardTab, renderStudentLeaderboardTab } from './leaderboard.js';
+import { renderAwardStarsStudentList } from './award.js';
 
 export function findAndSetCurrentClass(targetSelectId = null) {
     if (state.get('globalSelectedClassId')) return;

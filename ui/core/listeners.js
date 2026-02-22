@@ -1,29 +1,31 @@
-// /ui/core.js
+// /ui/core/listeners.js
 
 // --- IMPORTS ---
-import * as state from '../state.js';
-import { db, auth } from '../firebase.js';
+import * as state from '../../state.js';
+import { db, auth } from '../../firebase.js';
 import { signOut } from 'https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js';
 import { doc, collection, query, where, getDocs, runTransaction, increment, serverTimestamp } from 'https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js';
-import { handleAddHolidayRange, handleDeleteHolidayRange } from '../db/actions.js';
-import { setupHomeListeners } from '../features/home.js';
+import { handleAddHolidayRange, handleDeleteHolidayRange } from '../../db/actions.js';
+import { setupHomeListeners } from '../../features/home.js';
 
-import * as modals from './modals.js';
+import * as modals from '../modals.js';
 import {
     handleGenerateIdea,
     handleGetOracleInsight,
     handleGetQuestUpdate,
     downloadCertificateAsPdf,
     openAppInfoModal
-} from './modals.js';
-import * as tabs from './tabs.js';
-import * as scholarScroll from '../features/scholarScroll.js';
-import * as storyWeaver from '../features/storyWeaver.js';
-import * as avatar from '../features/avatar.js';
-import * as ceremony from '../features/ceremony.js';
-import * as utils from '../utils.js';
-import { playSound } from '../audio.js';
-import { showToast, triggerAwardEffects, triggerDynamicPraise, showWelcomeBackMessage, createFloatingHearts } from './effects.js';
+} from '../modals.js';
+import * as tabs from '../tabs.js';
+import * as scholarScroll from '../../features/scholarScroll.js';
+import * as storyWeaver from '../../features/storyWeaver.js';
+import * as avatar from '../../features/avatar.js';
+import * as ceremony from '../../features/ceremony.js';
+import * as utils from '../../utils.js';
+import { playSound } from '../../audio.js';
+import { showToast, triggerAwardEffects, triggerDynamicPraise, showWelcomeBackMessage, createFloatingHearts } from '../effects.js';
+import { openShopModal, updateShopStudentDisplay } from './shop.js';
+import { confirmWord, handleWordInputChange } from './misc.js';
 import {
     handleAddClass,
     handleAddStudent,
@@ -52,9 +54,10 @@ import {
     handleEndStory,
     addOrUpdateHeroChronicleNote,
     deleteHeroChronicleNote
-} from '../db/actions.js';
-import { fetchLogsForMonth } from '../db/queries.js';
-import { handleBestowBoon } from '../features/boons.js';
+} from '../../db/actions.js';
+import { fetchLogsForMonth } from '../../db/queries.js';
+import { handleBestowBoon } from '../../features/boons.js';
+import { handleAvatarClick } from './avatar.js';
 
 // --- MAIN UI EVENT LISTENERS SETUP ---
 
@@ -123,10 +126,10 @@ export function setupUIListeners() {
     document.getElementById('edit-class-cancel-btn').addEventListener('click', () => modals.hideModal('edit-class-modal'));
     document.getElementById('edit-student-cancel-btn').addEventListener('click', () => modals.hideModal('edit-student-modal'));
     document.getElementById('edit-student-confirm-btn').addEventListener('click', () => {
-        import('../db/actions.js').then(actions => actions.handleSaveStudentDetails());
+        import('../../db/actions.js').then(actions => actions.handleSaveStudentDetails());
     });
     document.getElementById('lookup-nameday-btn').addEventListener('click', () => {
-        import('../db/actions.js').then(actions => actions.handleLookupNameday());
+        import('../../db/actions.js').then(actions => actions.handleLookupNameday());
     });
 
     // Calendar Logic: On-Demand Loading
@@ -154,7 +157,7 @@ export function setupUIListeners() {
             logsForView = state.get('allAwardLogs');
 
             // Re-render immediately
-            import('./tabs.js').then(m => m.renderCalendarTab(logsForView));
+            import('../tabs.js').then(m => m.renderCalendarTab(logsForView));
 
         } else {
             // B. Past Month: Fetch On Demand (Save Reads)
@@ -163,11 +166,11 @@ export function setupUIListeners() {
 
             try {
                 // Import query dynamically
-                const { fetchLogsForMonth } = await import('../db/queries.js');
-                logsForView = await fetchLogsForMonth(year, month);
+                const { fetchLogsForMonth: fetchLogs } = await import('../../db/queries.js');
+                logsForView = await fetchLogs(year, month);
 
                 // Render with fetched data
-                import('./tabs.js').then(m => m.renderCalendarTab(logsForView));
+                import('../tabs.js').then(m => m.renderCalendarTab(logsForView));
 
             } catch (error) {
                 console.error("History fetch failed:", error);
@@ -230,13 +233,12 @@ export function setupUIListeners() {
             `<p class="mb-4">Are you sure you want to mark <b>${dateString}</b> as a School Holiday?</p>
             <p class="text-sm text-red-600 font-bold">This will cancel ALL classes for this day and adjust monthly goals accordingly.</p>`,
             () => {
-                import('../db/actions.js').then(actions => {
+                import('../../db/actions.js').then(actions => {
                     actions.handleRemoveAttendanceColumn(null, dateString, true);
                     modals.hideModal('day-planner-modal');
-                    // Refresh calendar if active
                     const currentTab = document.querySelector('.app-tab:not(.hidden)');
                     if (currentTab && currentTab.id === 'calendar-tab') {
-                        import('./tabs.js').then(t => t.renderCalendarTab());
+                        import('../tabs.js').then(t => t.renderCalendarTab());
                     }
                 });
             },
@@ -306,7 +308,7 @@ export function setupUIListeners() {
             const receiver = state.get('allStudents').find(s => s.id === receiverId);
 
             modals.showBoonConfirmationModal(sender, receiver, () => {
-                import('../features/boons.js').then(m => {
+                import('../../features/boons.js').then(m => {
                     m.handleBestowBoon(senderId, receiverId);
                     modals.hideModal('bestow-boon-modal');
                 });
@@ -339,7 +341,7 @@ export function setupUIListeners() {
     if (genShopBtn) {
         genShopBtn.addEventListener('click', () => {
             // Use dynamic import only for the action, not the UI function
-            import('../db/actions.js').then(a => a.handleGenerateShopStock());
+            import('../../db/actions.js').then(a => a.handleGenerateShopStock());
         });
     }
 
@@ -357,7 +359,7 @@ export function setupUIListeners() {
             if (buyBtn) {
                 const studentId = document.getElementById('shop-student-select').value;
                 const itemId = buyBtn.dataset.id;
-                import('../db/actions.js').then(a => a.handleBuyItem(studentId, itemId));
+                import('../../db/actions.js').then(a => a.handleBuyItem(studentId, itemId));
             }
         });
     }
@@ -444,7 +446,7 @@ export function setupUIListeners() {
     // --- FORM SUBMIT HANDLER (Crucial to prevent reload) ---
     document.getElementById('create-bounty-form')?.addEventListener('submit', (e) => {
         e.preventDefault(); // <--- THIS STOPS THE RELOAD
-        import('../db/actions.js').then(a => a.handleCreateBounty());
+        import('../../db/actions.js').then(a => a.handleCreateBounty());
     });
 
     document.getElementById('bounty-cancel-btn')?.addEventListener('click', () => modals.hideModal('create-bounty-modal'));
@@ -455,10 +457,10 @@ export function setupUIListeners() {
         const claimBtn = e.target.closest('.claim-bounty-btn');
 
         if (deleteBtn) {
-            import('../db/actions.js').then(a => a.handleDeleteBounty(deleteBtn.dataset.id));
+            import('../../db/actions.js').then(a => a.handleDeleteBounty(deleteBtn.dataset.id));
         }
         if (claimBtn) {
-            import('../db/actions.js').then(a => a.handleClaimBounty(claimBtn.dataset.id, null, claimBtn.dataset.reward));
+            import('../../db/actions.js').then(a => a.handleClaimBounty(claimBtn.dataset.id, null, claimBtn.dataset.reward));
         }
     });
 
@@ -687,7 +689,7 @@ export function setupUIListeners() {
                     btn.parentNode.replaceChild(newBtn, btn);
 
                     newBtn.onclick = () => {
-                        import('../db/actions.js').then(a => a.handleSpecialOccasionBonus(studentId, 'birthday'));
+                        import('../../db/actions.js').then(a => a.handleSpecialOccasionBonus(studentId, 'birthday'));
                     };
 
                     document.getElementById('celebration-cancel-btn').onclick = () => modals.hideModal('celebration-bonus-modal');
@@ -711,7 +713,7 @@ export function setupUIListeners() {
                     btn.parentNode.replaceChild(newBtn, btn);
 
                     newBtn.onclick = () => {
-                        import('../db/actions.js').then(a => a.handleSpecialOccasionBonus(studentId, 'nameday'));
+                        import('../../db/actions.js').then(a => a.handleSpecialOccasionBonus(studentId, 'nameday'));
                     };
 
                     document.getElementById('celebration-cancel-btn').onclick = () => modals.hideModal('celebration-bonus-modal');
@@ -770,7 +772,7 @@ export function setupUIListeners() {
     if (saveGoldBtn) {
         saveGoldBtn.addEventListener('click', () => {
             // Import dynamically to ensure actions.js is loaded
-            import('../db/actions.js').then(a => a.handleManualGoldUpdate());
+            import('../../db/actions.js').then(a => a.handleManualGoldUpdate());
         });
     }
 

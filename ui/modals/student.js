@@ -1,3 +1,12 @@
+// /ui/modals/student.js
+import * as state from '../../state.js';
+import * as utils from '../../utils.js';
+import { db } from '../../firebase.js';
+import { query, collection, where, orderBy, limit, getDocs } from 'https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js';
+import { showAnimatedModal, showModal, hideModal, populateDateDropdowns } from './base.js';
+import { showToast } from '../effects.js';
+import { playSound } from '../../audio.js';
+import { handleAwardBonusStar, handleBatchAwardBonus } from '../../db/actions.js';
 
 export function openEditStudentModal(studentId) {
     const student = state.get('allStudents').find(s => s.id === studentId);

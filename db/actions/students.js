@@ -1,3 +1,20 @@
+// /db/actions/students.js — student CRUD, move, teacher name, nameday
+import {
+    db,
+    doc,
+    collection,
+    runTransaction,
+    serverTimestamp,
+    getDocs,
+    query,
+    where,
+    updateDoc,
+    getDoc,
+    setDoc
+} from '../../firebase.js';
+import * as state from '../../state.js';
+import { showToast } from '../../ui/effects.js';
+import { getStartOfMonthString } from '../../utils.js';
 
 // --- STUDENT & USER ACTIONS ---
 

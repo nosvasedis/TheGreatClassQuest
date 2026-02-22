@@ -1,22 +1,28 @@
-// /ui/tabs.js
+// /ui/tabs/navigation.js
 
 // --- IMPORTS ---
-import * as state from '../state.js';
-import * as utils from '../utils.js';
-import * as constants from '../constants.js';
-import { deleteClass, deleteStudent, ensureHistoryLoaded } from '../db/actions.js';
-import { db } from '../firebase.js';
-import { fetchMonthlyHistory } from '../state.js';
-import * as modals from './modals.js';
-import * as scholarScroll from '../features/scholarScroll.js';
-import * as avatar from '../features/avatar.js';
-import * as storyWeaver from '../features/storyWeaver.js';
-import { playSound } from '../audio.js';
-import { renderActiveBounties } from './core.js';
-import { updateCeremonyStatus } from '../features/ceremony.js';
-import { renderHomeTab } from '../features/home.js';
-import { HERO_CLASSES } from '../features/heroClasses.js';
-import { generateLeagueMapHtml } from '../features/worldMap.js';
+import * as state from '../../state.js';
+import * as utils from '../../utils.js';
+import * as constants from '../../constants.js';
+import { deleteClass, deleteStudent, ensureHistoryLoaded } from '../../db/actions.js';
+import { db } from '../../firebase.js';
+import { fetchMonthlyHistory } from '../../state.js';
+import * as modals from '../modals.js';
+import * as scholarScroll from '../../features/scholarScroll.js';
+import * as avatar from '../../features/avatar.js';
+import * as storyWeaver from '../../features/storyWeaver.js';
+import { playSound } from '../../audio.js';
+import { renderActiveBounties } from '../core.js';
+import { updateCeremonyStatus } from '../../features/ceremony.js';
+import { renderHomeTab } from '../../features/home.js';
+import { HERO_CLASSES } from '../../features/heroClasses.js';
+import { generateLeagueMapHtml } from '../../features/worldMap.js';
+import { renderClassLeaderboardTab, renderStudentLeaderboardTab } from './leaderboard.js';
+import { renderManageClassesTab, renderManageStudentsTab } from './classes.js';
+import { renderAwardStarsTab } from './award.js';
+import { renderAdventureLogTab } from './log.js';
+import { renderCalendarTab } from './selectors.js';
+import { renderIdeasTabSelects, renderStarManagerStudentSelect } from './ideas.js';
 
 // --- TAB NAVIGATION ---
 
@@ -67,7 +73,7 @@ export async function showTab(tabName) {
 
     // --- Trigger specific render functions when a tab is shown ---
     if (tabId === 'class-leaderboard-tab' || tabId === 'student-leaderboard-tab') {
-        const { findAndSetCurrentLeague } = await import('./core.js');
+        const { findAndSetCurrentLeague } = await import('../core.js');
         findAndSetCurrentLeague();
         updateCeremonyStatus(tabId); // Pass the ID!
     }
@@ -78,7 +84,7 @@ export async function showTab(tabName) {
     if (tabId === 'manage-students-tab') renderManageStudentsTab();
 
     if (tabId === 'award-stars-tab') {
-        const { findAndSetCurrentClass } = await import('./core.js');
+        const { findAndSetCurrentClass } = await import('../core.js');
         // First render with whatever state we have
         renderAwardStarsTab();
         // Then try to find the current class based on time, which will trigger a re-render via state.js if found
@@ -86,13 +92,13 @@ export async function showTab(tabName) {
     }
 
     if (tabId === 'adventure-log-tab') {
-        const { findAndSetCurrentClass } = await import('./core.js');
+        const { findAndSetCurrentClass } = await import('../core.js');
         renderAdventureLogTab();
         findAndSetCurrentClass('adventure-log-class-select');
     }
 
     if (tabId === 'scholars-scroll-tab') {
-        const { findAndSetCurrentClass } = await import('./core.js');
+        const { findAndSetCurrentClass } = await import('../core.js');
         scholarScroll.renderScholarsScrollTab();
         findAndSetCurrentClass('scroll-class-select');
     }
@@ -109,7 +115,7 @@ export async function showTab(tabName) {
     if (tabId === 'reward-ideas-tab') renderIdeasTabSelects();
     if (tabId === 'options-tab') {
         // Load holidays and the new economy selector
-        import('./core.js').then(m => {
+        import('../core.js').then(m => {
             if (m.renderHolidayList) m.renderHolidayList();
             if (m.renderEconomyStudentSelect) m.renderEconomyStudentSelect();
         });

@@ -1,3 +1,9 @@
+// /ui/core/misc.js
+import * as state from '../../state.js';
+import * as utils from '../../utils.js';
+import { renderClassLeaderboardTab, renderStudentLeaderboardTab } from '../tabs.js';
+import * as storyWeaver from '../../features/storyWeaver.js';
+import { playSound } from '../../audio.js';
 
 // --- GLOBAL STATE SYNC FUNCTIONS ---
 export function findAndSetCurrentClass(targetSelectId = null) {
@@ -30,8 +36,8 @@ export function findAndSetCurrentLeague(shouldRender = true) {
             if (c.timeStart && c.timeEnd && currentTime >= c.timeStart && currentTime <= c.timeEnd) {
                 state.setGlobalSelectedLeague(c.questLevel, false);
                 if (shouldRender) {
-                    tabs.renderClassLeaderboardTab();
-                    tabs.renderStudentLeaderboardTab();
+                    renderClassLeaderboardTab();
+                    renderStudentLeaderboardTab();
                 }
                 return;
             }
@@ -68,7 +74,7 @@ export function updateStudentCardAttendanceState(studentId, isAbsent) {
     }
 }
 
-function confirmWord() {
+export function confirmWord() {
     const input = document.getElementById('story-weavers-word-input');
     const word = input.value.trim();
     if (word) {
@@ -82,7 +88,7 @@ function confirmWord() {
     }
 }
 
-function handleWordInputChange(event) {
+export function handleWordInputChange(event) {
     if (event.target.value.trim() !== '') {
         storyWeaver.showWordEditorControls();
     } else {
@@ -210,3 +216,4 @@ function startBountyTimer() {
     
     update();
     bountyInterval = setInterval(update, 1000);
+}

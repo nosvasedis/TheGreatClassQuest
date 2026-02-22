@@ -1,3 +1,27 @@
+// /db/actions/log.js — log, hero chronicle, quest events, attendance, holidays
+import {
+    db,
+    doc,
+    addDoc,
+    updateDoc,
+    deleteDoc,
+    collection,
+    query,
+    where,
+    getDocs,
+    runTransaction,
+    writeBatch,
+    serverTimestamp,
+    increment,
+    orderBy
+} from '../../firebase.js';
+import * as state from '../../state.js';
+import { showToast, showPraiseToast } from '../../ui/effects.js';
+import { showModal, hideModal } from '../../ui/modals.js';
+import { callGeminiApi } from '../../api.js';
+import { playSound } from '../../audio.js';
+import { handleStoryWeaversClassSelect } from '../../features/storyWeaver.js';
+import { getTodayDateString } from '../../utils.js';
 
 export async function addOrUpdateHeroChronicleNote(studentId, noteText, category, noteId = null) {
     if (!studentId || !noteText || !category) {
@@ -435,7 +459,7 @@ export async function handleAddQuestEvent() {
         });
         
         showToast('Quest Event added to calendar!', 'success');
-        import('../ui/modals.js').then(m => m.hideModal('day-planner-modal'));
+        import('../../ui/modals.js').then(m => m.hideModal('day-planner-modal'));
         
     } catch (error) {
         console.error("Error adding quest event:", error);
@@ -592,7 +616,7 @@ export async function handleRemoveAttendanceColumn(classId, dateString, isGlobal
         showToast(msg, "success");
         
         // Refresh the view
-        const { renderAttendanceChronicle } = await import('../ui/modals.js');
+        const { renderAttendanceChronicle } = await import('../../ui/modals.js');
         await renderAttendanceChronicle(classId);
 
     } catch (error) {

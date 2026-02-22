@@ -1,3 +1,7 @@
+// /ui/tabs/award.js
+import * as state from '../../state.js';
+import * as utils from '../../utils.js';
+import { HERO_CLASSES } from '../../features/heroClasses.js';
 
 export function renderAwardStarsTab() {
     const dropdownList = document.getElementById('award-class-list');

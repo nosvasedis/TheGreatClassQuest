@@ -1,3 +1,9 @@
+// /ui/modals/hero.js
+import * as state from '../../state.js';
+import * as utils from '../../utils.js';
+import { HERO_CLASSES } from '../../features/heroClasses.js';
+import { showAnimatedModal } from './base.js';
+import { callGeminiApi } from '../../api.js';
 
 // --- CORRECTED & ENHANCED HERO STATS MODAL ---
 

@@ -1,3 +1,26 @@
+// /db/actions/economy.js — shop, trials, gold, occasions
+import {
+    db,
+    doc,
+    setDoc,
+    addDoc,
+    updateDoc,
+    getDoc,
+    collection,
+    query,
+    where,
+    getDocs,
+    runTransaction,
+    writeBatch,
+    serverTimestamp,
+    increment,
+    orderBy,
+    limit
+} from '../../firebase.js';
+import * as state from '../../state.js';
+import { showToast } from '../../ui/effects.js';
+import { callGeminiApi, callCloudflareAiImageApi } from '../../api.js';
+import { getAgeGroupForLeague, getStartOfMonthString, compressImageBase64, simpleHashCode } from '../../utils.js';
 
 // --- THE ECONOMY (SHOP & INVENTORY) ---
 
@@ -109,7 +132,7 @@ export async function handleGenerateShopStock() {
         }
 
         // --- STEP 2: GENERATE IMAGES & SAVE ---
-        const { uploadImageToStorage } = await import('../utils.js');
+        const { uploadImageToStorage } = await import('../../utils.js');
         
         const chunkSize = 3;
         for (let i = 0; i < itemsData.length; i += chunkSize) {
@@ -149,7 +172,7 @@ export async function handleGenerateShopStock() {
         }
 
         showToast(`${itemsData.length} new seasonal treasures arrived for ${league}!`, 'success');
-        import('../ui/core.js').then(m => m.renderShopUI());
+        import('../../ui/core.js').then(m => m.renderShopUI());
 
     } catch (error) {
         console.error("Shop generation failed:", error);
@@ -277,7 +300,7 @@ export async function handleBulkSaveTrial() {
             showToast('All grades saved successfully!', 'success');
             
             // Dynamic import to avoid circular dependency issues
-            import('../ui/modals.js').then(m => m.hideModal('bulk-trial-modal'));
+            import('../../ui/modals.js').then(m => m.hideModal('bulk-trial-modal'));
 
             // --- PERSONAL BEST CHECK ---
             savedScoresData.forEach(savedScore => {
@@ -349,13 +372,13 @@ export async function handleBulkSaveTrial() {
 
             if (finalEligibleStudents.length > 0) {
                 setTimeout(() => {
-                    import('../ui/modals.js').then(m => m.showBatchStarfallModal(finalEligibleStudents));
+                    import('../../ui/modals.js').then(m => m.showBatchStarfallModal(finalEligibleStudents));
                 }, 500);
             }
 
         } else {
             showToast('No changes to save.', 'info');
-            import('../ui/modals.js').then(m => m.hideModal('bulk-trial-modal'));
+            import('../../ui/modals.js').then(m => m.hideModal('bulk-trial-modal'));
         }
 
     } catch (error) {
@@ -376,7 +399,7 @@ export async function handleBuyItem(studentId, itemId) {
     let item;
 
     if (isLegendary) {
-        const { LEGENDARY_ARTIFACTS } = await import('../features/powerUps.js');
+        const { LEGENDARY_ARTIFACTS } = await import('../../features/powerUps.js');
         item = LEGENDARY_ARTIFACTS.find(i => i.id === itemId);
     } else {
         item = state.get('currentShopItems').find(i => i.id === itemId);
@@ -487,12 +510,12 @@ export async function handleBuyItem(studentId, itemId) {
         }
        
         // 4. Refresh buttons logic (disable items they can no longer afford)
-        import('../ui/core.js').then(m => m.updateShopStudentDisplay(studentId));
+        import('../../ui/core.js').then(m => m.updateShopStudentDisplay(studentId));
 
     } catch (error) {
         console.error(error);
         showToast(typeof error === 'string' ? error : "Transaction failed.", "error");
-        import('../ui/core.js').then(m => m.renderShopUI());
+        import('../../ui/core.js').then(m => m.renderShopUI());
     }
 }
 
@@ -603,7 +626,7 @@ export async function handleSpecialOccasionBonus(studentId, type) {
         });
         
         showToast(`${student.name} received +${bonus} Stars for their special day!`, 'success');
-        import('../ui/modals.js').then(m => m.hideModal('celebration-bonus-modal'));
+        import('../../ui/modals.js').then(m => m.hideModal('celebration-bonus-modal'));
         playSound('magic_chime');
 
     } catch (error) {

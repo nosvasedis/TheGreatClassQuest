@@ -1,3 +1,9 @@
+// /ui/tabs/log.js
+import * as state from '../../state.js';
+import * as utils from '../../utils.js';
+import * as constants from '../../constants.js';
+import * as modals from '../modals.js';
+import { renderAwardStarsStudentList } from './award.js';
 
 export async function renderAdventureLogTab() {
     const classSelect = document.getElementById('adventure-log-class-select');
@@ -87,7 +93,7 @@ export async function renderAdventureLog() {
                 </p>
             </div>`;
         try {
-            const { fetchAdventureLogsForMonth } = await import('../db/queries.js');
+            const { fetchAdventureLogsForMonth } = await import('../../db/queries.js');
             logsForClass = await fetchAdventureLogsForMonth(currentLogFilter.classId, year, month);
         } catch (error) {
             console.error("Historical log fetch failed:", error);

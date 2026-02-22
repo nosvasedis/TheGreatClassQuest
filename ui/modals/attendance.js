@@ -1,4 +1,13 @@
-    
+// /ui/modals/attendance.js
+import * as state from '../../state.js';
+import * as utils from '../../utils.js';
+import * as constants from '../../constants.js';
+import { showAnimatedModal, showModal } from './base.js';
+import { showToast } from '../effects.js';
+import { playSound } from '../../audio.js';
+import { fetchAttendanceForMonth } from '../../db/queries.js';
+import { handleMarkAbsent } from '../../db/actions.js';
+
 // --- REVAMPED ATTENDANCE CHRONICLE MODAL ---
 
 export async function openAttendanceChronicle() {
@@ -199,7 +208,7 @@ export async function renderAttendanceChronicle(classId) {
                     
                     // Dynamic import to avoid circular dependency issues if needed, or direct call
                     // We imported handleRemoveAttendanceColumn at the top of this file, so direct call is fine:
-                    import('../db/actions.js').then(actions => {
+                    import('../../db/actions.js').then(actions => {
                         actions.handleRemoveAttendanceColumn(cId, dateStr, isGlobal);
                     });
                 },

@@ -1,3 +1,11 @@
+// /ui/modals/log.js
+import * as state from '../../state.js';
+import * as utils from '../../utils.js';
+import * as constants from '../../constants.js';
+import { db } from '../../firebase.js';
+import { query, collection, where, getDocs } from 'https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js';
+import { showAnimatedModal } from './base.js';
+import { fetchLogsForDate } from '../../db/queries.js';
 
 export function openEditClassModal(classId) {
     const classData = state.get('allTeachersClasses').find(c => c.id === classId);
@@ -284,8 +292,8 @@ export async function renderHistoricalLeaderboard(monthKey, type, scope = 'class
 
         // A. Fetch Data
         try {
-            const { fetchLogsForMonth } = await import('../db/queries.js');
-            const { fetchMonthlyHistory } = await import('../state.js'); 
+            const { fetchLogsForMonth } = await import('../../db/queries.js');
+            const { fetchMonthlyHistory } = await import('../../state.js'); 
             const [year, month] = monthKey.split('-').map(Number);
             
             // 1. Fetch Star Logs (The raw numbers)
@@ -336,7 +344,7 @@ export async function renderHistoricalLeaderboard(monthKey, type, scope = 'class
         });
 
         const overrides = state.get('allScheduleOverrides') || [];
-        const allLeagues = (await import('../constants.js')).questLeagues;
+        const allLeagues = (await import('../../constants.js')).questLeagues;
         const allClasses = state.get('allSchoolClasses');
         const myClassIds = state.get('allTeachersClasses').map(c => c.id);
         const BASE_GOAL = 18;

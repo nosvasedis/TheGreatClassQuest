@@ -1,3 +1,10 @@
+// /ui/tabs/leaderboard.js
+import * as state from '../../state.js';
+import * as utils from '../../utils.js';
+import * as constants from '../../constants.js';
+import * as modals from '../modals.js';
+import { HERO_CLASSES } from '../../features/heroClasses.js';
+
 // --- TAB CONTENT RENDERERS ---
 
 export async function renderClassLeaderboardTab() {
@@ -24,11 +31,18 @@ export async function renderClassLeaderboardTab() {
     const allStudentScores = state.get('allStudentScores') || [];
     const allStudents = state.get('allStudents') || [];
 
+    const now = new Date();
+    const currentMonth = now.getMonth();
+    const dayOfWeek = now.getDay();
+    const daysToMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
+    const startOfWeek = new Date(now);
+    startOfWeek.setDate(now.getDate() - daysToMonday);
+    startOfWeek.setHours(0, 0, 0, 0);
+
     const classScores = classesInLeague.map(c => {
         const studentsInClass = allStudents.filter(s => s.classId === c.id);
         const studentCount = studentsInClass.length;
 
-        // Calculate goal centrally
         const goalValue = utils.calculateMonthlyClassGoal(
             c,
             studentCount,
@@ -38,14 +52,14 @@ export async function renderClassLeaderboardTab() {
 
         const goals = { diamond: goalValue };
 
+        const dbDifficulty = c.difficultyLevel || 0;
+        let isCompletedThisMonth = false;
         let goalDifference = 0;
+
         if (studentCount > 0) {
-            const dbDifficulty = c.difficultyLevel || 0;
-            // Estimate original for UI difference
-            let isCompletedThisMonth = false;
             if (c.questCompletedAt) {
                 const completedDate = typeof c.questCompletedAt.toDate === 'function' ? c.questCompletedAt.toDate() : new Date(c.questCompletedAt);
-                if (completedDate.getMonth() === new Date().getMonth() && completedDate.getFullYear() === new Date().getFullYear()) {
+                if (completedDate.getMonth() === now.getMonth() && completedDate.getFullYear() === now.getFullYear()) {
                     isCompletedThisMonth = true;
                 }
             }
@@ -119,7 +133,7 @@ export async function renderClassLeaderboardTab() {
 
     questUpdateBtn.disabled = classScores.filter(c => c.currentMonthlyStars > 0).length < 2;
 
-    const { generateLeagueMapHtml } = await import('../features/worldMap.js');
+    const { generateLeagueMapHtml } = await import('../../features/worldMap.js');
     const mapHtml = generateLeagueMapHtml(classScores);
 
     // --- RENDER ANALYTICS CARDS ---
@@ -411,7 +425,7 @@ export async function renderClassLeaderboardTab() {
     list.querySelectorAll('.zone-trigger').forEach(zone => {
         zone.addEventListener('click', (e) => {
             const zoneType = e.currentTarget.dataset.zone;
-            import('./modals.js').then(m => m.openZoneOverviewModal(zoneType));
+            import('../modals.js').then(m => m.openZoneOverviewModal(zoneType));
         });
     });
 }

@@ -1,5 +1,15 @@
+// /ui/modals/class.js
+import * as state from '../../state.js';
+import * as utils from '../../utils.js';
+import * as constants from '../../constants.js';
+import { db } from '../../firebase.js';
+import { query, collection, where, getDocs } from 'https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js';
+import { showAnimatedModal, showModal } from './base.js';
+import { fetchLogsForDate } from '../../db/queries.js';
+import { ensureHistoryLoaded } from '../../db/actions.js';
+
 // --- ADDED: OVERVIEW MODAL FUNCTIONS ---
-    export async function openOverviewModal(classId) {
+export async function openOverviewModal(classId) {
     const classData = state.get('allSchoolClasses').find(c => c.id === classId);
     if (!classData) return;
 

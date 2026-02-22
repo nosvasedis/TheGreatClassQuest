@@ -505,6 +505,10 @@ export function openZoneOverviewModal(zoneType) {
     const allStudentScores = state.get('allStudentScores') || [];
     const classes = state.get('allSchoolClasses').filter(c => c.questLevel === league);
 
+    const completed = [];
+    const approaching = [];
+    const far = [];
+
     classes.forEach(c => {
         const studentsInClass = state.get('allStudents').filter(s => s.classId === c.id);
         const studentCount = studentsInClass.length;

@@ -70,10 +70,11 @@ The app is built on four pedagogical pillars:
 |-----|---------|
 | **Home** | Dashboard: weather, time greeting, school/class stats, today’s schedule, quick actions (Team History, Holiday, Planner, Report, etc.). |
 | **Team Quest** | Class leaderboard, **League Map** (journey from Bronze Meadows to Crystal Realm), monthly goal (adjusted for holidays/cancellations), **Monthly Award Ceremony**. |
-| **Hero's Challenge** | Student leaderboard with **Individual / Guild** toggle, **Mystic Market** (shop), Hero Stats modal, **Prodigy of the Month** archive, certificates. |
-| **My Classes** | Create/edit classes (name, logo, schedule, Quest League). Manage roster, edit students (birthday, nameday, **Hero Class**, avatar), and trigger the **Guild Sorting Quiz** for unassigned students. **Report** (AI class summary), **Certificate** (per student). |
+| **Hero's Challenge** | Student leaderboard with **Individual / Guild** toggle; **Shop** (Mystic Market) and **Trophy Room** (view a student’s full collection + inventory); Hero Stats modal, **Prodigy of the Month** archive, certificates. Click an avatar → enlarged avatar (Familiar, Inventory, link to Trophy Room). |
+| **Guilds** | **Guild Hall**: crystal columns for all four guilds (Total Stars, member count, top contributors). **This Month's Champion** per guild. Tap emblem for lore; play guild **anthem** (karaoke-style). |
+| **My Classes** | Create/edit classes (name, logo, schedule, Quest League). Click **Students** → **Manage Students** (roster with per-student **Skill Tree**, **Hero's Chronicle**, **Avatar Forge**, **Certificate**, **Move Student**, **Guild Quiz** if no guild). **Report** (AI class summary). |
 | **Award** | Award stars (Teamwork, Creativity, Respect, Focus, etc.), **Quest Bounties**, **Hero's Boon**. Sounds and particle effects. |
-| **Adventure Log** | **Log Today's Adventure** (AI diary + storybook image), view past entries, **Quest Events** (schedule special quests). |
+| **Adventure Log** | **Log Today's Adventure** (AI diary + storybook image), view past entries. Buttons: **Quest Assignment**, **Attendance** (Attendance Chronicle), **Hall of Heroes** (Prodigy archive). **Quest Events** are scheduled from Calendar → Day Planner. |
 | **Scholar's Scroll** | **Tests** and **Dictations**, **Starfall** on high scores, **Makeup Work** flags, **Performance Chart**, upcoming test alert. |
 | **Calendar** | Month view, **Day Planner** (see/cancel/add lessons, mark holiday, add **Quest Events**). Holiday/cancellation themes. |
 | **Story Weavers** | Collaborative story + Word of the Day + AI art. |
@@ -177,9 +178,10 @@ The **Home** tab is your command center and adapts to **weather** and **time of 
 
 ## 🏆 Hero's Challenge
 
-- **Student Leaderboard:** Ranks by Total Stars (and/or Monthly); avatars with **Hero Class aura ring**, Gold, and (optionally) their animated **Familiar** companion. Click student → **Hero Stats** modal (or enlarged avatar).
+- **Student Leaderboard:** Ranks by Total Stars (and/or Monthly); avatars with **Hero Class aura ring**, Gold, and (optionally) their animated **Familiar** companion. Click student → **Hero Stats** modal or **enlarged avatar** (avatar + Familiar + **Inventory**, link to **Trophy Room**).
+- **Shop & Trophy Room:** **Shop** opens the **Mystic Market**. **Trophy Room** shows a student's full **Inventory** (and access to shop); also openable from the enlarged avatar via "See full collection →".
 - **Hero Stats Modal:** Avatar, name, Hero Class, **Trials Logged**, **Average Test Score**, **Best Test**, dictation summary (Junior: qualitative; Senior: average %). **Performance chart** (test/dictation over time). Links to **Hero's Chronicle** and **Certificate**.
-- **Prodigy of the Month:** Archive of past **Prodigy** (and Co-Prodigy) with month selector; can be opened from Home or Hero’s Challenge.
+- **Prodigy of the Month / Hall of Heroes:** Archive of past **Prodigy** (and Co-Prodigy) with month selector; open from Hero's Challenge, Home, or **Adventure Log** tab (**Hall of Heroes** button).
 - **Certificates:** **Generate Certificate** (from roster or Hero Stats) → AI writes a unique paragraph from top reason + monthly stars; PDF download with avatar and themed style (Junior/Mid/Senior).
 - **Guild View:** Switch the leaderboard to **Guild** mode to see the four guilds ranked by **Total Stars** (cumulative for the whole school year), along with member counts and top contributors.
 
@@ -204,8 +206,8 @@ The **Home** tab is your command center and adapts to **weather** and **time of 
 
 ## 👥 My Classes & Roster
 
-- **Classes:** Create/edit class (name, logo, schedule days, Quest League). **Report** button → AI **Weekly Summary** + **Suggested Mini-Quest** from behavior + academic data.
-- **Roster:** List students; **Edit** opens student modal (name, birthday, **Nameday**, **Hero Class**, avatar, notes). **Nameday:** magic wand → **AI Nameday Lookup** (Greek Orthodox calendar) to auto-fill date. **Certificate** button per student.
+- **Classes:** Create/edit class (name, logo, schedule days, Quest League). **Report**, **Overview**, **Edit** per class.
+- **Manage Students:** Click **Students** on a class to open the roster. Per student: **Skill Tree** (hero level and branch choices; button pulses when a new choice is available), **Hero's Chronicle** (notes + Oracle), **Avatar Forge**, **Certificate**, **Move Student** (to another class), **Guild Quiz** (if no guild). **Edit** opens student modal (name, birthday, **Nameday**, **Hero Class**, avatar, notes). **Nameday:** magic wand → **AI Nameday Lookup** (Greek Orthodox calendar) to auto-fill date.
 - **Class overview modal:** Tabs for class details, **Team History** (past performance/story), and shortcuts.
 
 ---
@@ -222,7 +224,10 @@ The **Home** tab is your command center and adapts to **weather** and **time of 
 ## 📜 Adventure Log
 
 - **Log Today's Adventure:** Sends the day’s awards (and optional context like tests, bounties, **Pathfinder**, **Protagonist**) to the AI. AI returns a short story + a **storybook-style image**. Saved as the day’s entry.
-- **Past entries:** Browse by date; each shows text + image.
+- **Past entries:** Browse by class and month; each shows text + image.
+- **Quest Assignment:** Schedule or view **Quest Assignments** (special tasks linked to the log).
+- **Attendance:** Opens **Attendance Chronicle** (month × students matrix, mark present/absent, monthly %).
+- **Hall of Heroes:** Opens the **Prodigy of the Month** archive (past class heroes by month).
 - **Quest Events:** From **Calendar** → Day Planner → **Quest Event** tab: schedule a **Special Quest** (Vocabulary Vault, Unbroken Chain, Grammar Guardians, Scribe’s Sketch, Five-Sentence Saga) with date, type, and parameters (e.g. completion bonus, goal target). Events show on calendar and can influence goals/logs.
 
 ---

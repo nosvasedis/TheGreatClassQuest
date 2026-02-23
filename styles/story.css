@@ -6,13 +6,16 @@
     border: 2px solid #a5f3fc;
     box-shadow: 0 4px 15px rgba(0,0,0,0.05);
     transition: flex-grow 0.4s ease-in-out;
+    max-height: 72vh;
+    overflow-y: auto;
 }
 #story-weavers-image-container {
-    width: 100%;
-    aspect-ratio: 1/1;
+    width: min(100%, 760px);
+    aspect-ratio: 16/9;
+    max-height: 42vh;
     background-color: #e0f2fe;
     border-radius: 1rem;
-    margin-bottom: 1rem;
+    margin: 0 auto 1rem;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -28,7 +31,22 @@
     font-family: 'Georgia', serif;
     font-size: 1.25rem;
     color: #1e3a8a;
-    min-height: 80px;
+    min-height: 56px;
+}
+
+@media (max-height: 900px) {
+    #story-weavers-main-content {
+        max-height: 66vh;
+    }
+    #story-weavers-image-container {
+        max-height: 36vh;
+    }
+}
+
+@media (max-width: 767px) {
+    #story-weavers-image-container {
+        aspect-ratio: 4/3;
+    }
 }
 #story-history-content .story-history-card, #storybook-viewer-content .story-history-card {
     display: flex;

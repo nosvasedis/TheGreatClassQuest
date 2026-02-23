@@ -40,7 +40,7 @@ export const navHTML = `
                 <span class="text">Calendar</span>
             </button>
             <button class="nav-button nav-color-indigo" data-tab="reward-ideas-tab">
-                <i class="fas fa-magic icon"></i>
+                <i class="fas fa-feather-alt icon"></i>
                 <span class="text">Story Weavers</span>
             </button>
             <button class="nav-button nav-color-gray" data-tab="options-tab">

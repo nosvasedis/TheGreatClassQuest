@@ -10,7 +10,7 @@ export const ideasTabHTML = `
                         <p class="text-lg text-gray-600 mt-2">Collaborative class storytelling with AI-powered word suggestions and illustrations.</p>
                     </div>
                     <div class="grid grid-cols-1 gap-8">
-                        <div class="bg-white p-6 rounded-3xl shadow-lg border-4 border-cyan-300 space-y-4 flex flex-col">
+                        <div class="bg-white p-6 rounded-3xl shadow-lg border-4 border-cyan-300 space-y-4">
                             <h2
                                 class="font-title text-3xl text-cyan-700 mb-2 text-center flex items-center justify-center gap-2">
                                 <i class="fas fa-feather-alt"></i> The Story Weavers
@@ -25,8 +25,8 @@ export const ideasTabHTML = `
                                 </select>
                             </div>
 
-                            <div id="story-weavers-main-content" class="hidden flex-grow flex flex-col">
-                                <div class="flex-grow flex flex-col items-center justify-center text-center">
+                            <div id="story-weavers-main-content" class="hidden flex flex-col">
+                                <div class="flex flex-col items-center justify-center text-center">
                                     <div id="story-weavers-image-container">
                                         <img id="story-weavers-image" src="" alt="Story illustration"
                                             class="hidden pop-in">
@@ -84,7 +84,7 @@ export const ideasTabHTML = `
                                     </div>
                                 </div>
                             </div>
-                            <div id="story-weavers-placeholder" class="flex-grow flex items-center justify-center">
+                            <div id="story-weavers-placeholder" class="flex items-center justify-center py-8">
                                 <p class="text-center text-gray-500">Select a class to begin your chronicle!</p>
                             </div>
                         </div>

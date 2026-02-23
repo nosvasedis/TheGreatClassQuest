@@ -11,11 +11,6 @@ export const ideasTabHTML = `
                     </div>
                     <div class="grid grid-cols-1 gap-8">
                         <div class="bg-white p-6 rounded-3xl shadow-lg border-4 border-cyan-300 space-y-4">
-                            <h2
-                                class="font-title text-3xl text-cyan-700 mb-2 text-center flex items-center justify-center gap-2">
-                                <i class="fas fa-feather-alt"></i> The Story Weavers
-                            </h2>
-
                             <div class="mb-2">
                                 <label for="story-weavers-class-select"
                                     class="block text-sm font-medium text-gray-700 mb-1">Select class to play:</label>

@@ -10,9 +10,9 @@
     overflow-y: auto;
 }
 #story-weavers-image-container {
-    width: min(100%, 760px);
-    aspect-ratio: 16/9;
-    max-height: 42vh;
+    width: min(100%, 520px);
+    aspect-ratio: 3/2;
+    max-height: 26vh;
     background-color: #e0f2fe;
     border-radius: 1rem;
     margin: 0 auto 1rem;
@@ -36,16 +36,18 @@
 
 @media (max-height: 900px) {
     #story-weavers-main-content {
-        max-height: 66vh;
+        max-height: 62vh;
     }
     #story-weavers-image-container {
-        max-height: 36vh;
+        max-height: 22vh;
     }
 }
 
 @media (max-width: 767px) {
     #story-weavers-image-container {
+        width: min(100%, 420px);
         aspect-ratio: 4/3;
+        max-height: 24vh;
     }
 }
 #story-history-content .story-history-card, #storybook-viewer-content .story-history-card {

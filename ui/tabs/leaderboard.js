@@ -6,6 +6,8 @@ import * as modals from '../modals.js';
 import { HERO_CLASSES } from '../../features/heroClasses.js';
 import { getGuildLeaderboardData } from '../../features/guildScoring.js';
 import { getGuildById, getGuildEmblemUrl } from '../../features/guilds.js';
+import { getHeroTitle, HERO_SKILL_TREE } from '../../features/heroSkillTree.js';
+import { renderFamiliarSprite } from '../../features/familiars.js';
 
 // --- TAB CONTENT RENDERERS ---
 
@@ -555,7 +557,16 @@ export function renderStudentLeaderboardTab() {
 
             const stats = getStudentStats(s.id);
 
-            return { ...s, score, gold, stats, className: studentClass?.name || '?', classLogo: studentClass?.logo || '📚' };
+            return {
+                ...s,
+                score,
+                gold,
+                stats,
+                heroLevel: scoreData.heroLevel || 0,
+                familiar: scoreData.familiar || null,
+                className: studentClass?.name || '?',
+                classLogo: studentClass?.logo || '📚'
+            };
         });
 
     // 3. SORTING FUNCTION
@@ -573,13 +584,23 @@ export function renderStudentLeaderboardTab() {
     };
 
     const getAvatarHtml = (s, sizeClass = "w-12 h-12") => {
-        // Removed 'hero-stats-avatar-trigger' so it defaults to the Inventory modal via 'enlargeable-avatar'
         const hoverEffects = "transform transition-transform duration-200 hover:scale-110 hover:rotate-3 cursor-pointer enlargeable-avatar";
+        const heroLevel = s.heroLevel || 0;
+        const auraColor = heroLevel >= 3 && s.heroClass && HERO_SKILL_TREE[s.heroClass] ? HERO_SKILL_TREE[s.heroClass].auraColor : null;
+        const auraStyle = auraColor ? `style="box-shadow: 0 0 0 3px ${auraColor}, 0 0 14px 4px ${auraColor}88; border-color: ${auraColor};"` : '';
         if (s.avatar) {
-            return `<img src="${s.avatar}" alt="${s.name}" data-student-id="${s.id}" class="${sizeClass} rounded-full object-cover border-4 border-white shadow-md ${hoverEffects}">`;
+            return `<img src="${s.avatar}" alt="${s.name}" data-student-id="${s.id}" class="${sizeClass} rounded-full object-cover border-4 border-white shadow-md ${hoverEffects}" ${auraStyle}>`;
         } else {
-            return `<div data-student-id="${s.id}" class="${sizeClass} rounded-full bg-indigo-100 text-indigo-600 flex items-center justify-center font-bold text-lg border-4 border-white shadow-md ${hoverEffects}">${s.name.charAt(0)}</div>`;
+            return `<div data-student-id="${s.id}" class="${sizeClass} rounded-full bg-indigo-100 text-indigo-600 flex items-center justify-center font-bold text-lg border-4 border-white shadow-md ${hoverEffects}" ${auraStyle}>${s.name.charAt(0)}</div>`;
         }
+    };
+
+    const getChampionBadgeHtml = (s) => {
+        const guildChampions = state.get('guildChampions') || {};
+        if (!s.guildId || guildChampions[s.guildId]?.studentId !== s.id) return '';
+        const guild = getGuildById(s.guildId);
+        const color = guild?.primary || '#7c3aed';
+        return `<span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[10px] font-bold text-white ml-1" style="background:${color};" title="Guild Champion this month">⚔️ Champion</span>`;
     };
 
     const getPillsHtml = (s) => {
@@ -639,9 +660,10 @@ export function renderStudentLeaderboardTab() {
                         <div class="flex-shrink-0 w-8 text-center">${rankBadge}</div>
                         <div class="flex-shrink-0">${getAvatarHtml(s)}</div>
                         <div class="min-w-0">
-                            <h3 class="font-bold text-gray-800 text-lg truncate">
-    ${s.heroClass && HERO_CLASSES[s.heroClass] ? HERO_CLASSES[s.heroClass].icon : ''} ${s.name} 
-    <span class="text-xs font-normal opacity-60">(${s.heroClass || 'Novice'})</span>
+                            <h3 class="font-bold text-gray-800 text-lg truncate flex items-center flex-wrap gap-1">
+    <span>${s.heroClass && HERO_CLASSES[s.heroClass] ? HERO_CLASSES[s.heroClass].icon : ''} ${s.name}</span>
+    <span class="text-xs font-normal opacity-60">(${s.heroClass ? getHeroTitle(s.heroClass, s.heroLevel || 0) || s.heroClass : 'Novice'})</span>
+    ${getChampionBadgeHtml(s)}
 </h3>
                             <div class="flex items-center gap-2 mt-0.5">
                                 <p class="text-xs text-gray-500 flex items-center gap-1"><span>${s.classLogo} ${s.className}</span></p>
@@ -724,10 +746,13 @@ export function renderStudentLeaderboardTab() {
                             <div class="flex-shrink-0 relative">
                                 <div class="absolute -top-3 -left-2 w-8 h-8 rounded-full ${rankColor} flex items-center justify-center font-title text-sm z-10 border-2 border-white shadow-sm">${currentRank}</div>
                                 ${getAvatarHtml(s, "w-16 h-16")}
+                                ${s.familiar ? `<div class="familiar-chip">${renderFamiliarSprite(s.familiar, 'small', s.id)}</div>` : ''}
                             </div>
                             <div class="min-w-0">
-                                <h4 class="font-title text-xl ${nameColor} truncate leading-tight mb-1">
-    ${s.heroClass && HERO_CLASSES[s.heroClass] ? HERO_CLASSES[s.heroClass].icon : ''} ${s.name}
+                                <h4 class="font-title text-xl ${nameColor} truncate leading-tight mb-1 flex items-center flex-wrap gap-1">
+    <span>${s.heroClass && HERO_CLASSES[s.heroClass] ? HERO_CLASSES[s.heroClass].icon : ''} ${s.name}</span>
+    ${s.heroClass && (s.heroLevel || 0) > 0 ? `<span class="text-xs font-sans font-normal opacity-60">${getHeroTitle(s.heroClass, s.heroLevel)}</span>` : ''}
+    ${getChampionBadgeHtml(s)}
 </h4>
                                 <div class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full border border-white shadow-sm" style="background: linear-gradient(135deg, #f59e0b 0%, #b45309 100%); color: white; font-size: 0.7rem; font-family: 'Fredoka One', cursive;">
                                     <i class="fas fa-coins" style="color: #fcd34d;"></i> ${s.gold}

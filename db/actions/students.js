@@ -37,7 +37,18 @@ export async function handleAddStudent() {
             const studentData = { name, classId, createdBy: { uid: state.get('currentUserId'), name: state.get('currentTeacherName') }, createdAt: serverTimestamp() };
             transaction.set(newStudentRef, studentData);
             const newScoreRef = doc(db, `${publicDataPath}/student_scores`, newStudentRef.id);
-            transaction.set(newScoreRef, { totalStars: 0, monthlyStars: 0, lastMonthlyResetDate: getStartOfMonthString(), createdBy: { uid: studentData.createdBy.uid, name: studentData.createdBy.name } });
+            transaction.set(newScoreRef, {
+                totalStars: 0,
+                monthlyStars: 0,
+                gold: 0,
+                inventory: [],
+                starsByReason: {},
+                heroLevel: 0,
+                heroSkills: [],
+                pendingSkillChoice: false,
+                lastMonthlyResetDate: getStartOfMonthString(),
+                createdBy: { uid: studentData.createdBy.uid, name: studentData.createdBy.name }
+            });
         });
         input.value = '';
     } catch (error) {

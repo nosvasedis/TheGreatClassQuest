@@ -90,3 +90,28 @@ export function getGuildLeaderboardData() {
     list.sort((a, b) => b.totalStars - a.totalStars);
     return list;
 }
+
+/**
+ * Returns the current month's guild champion for each guild as { guildId → { studentId, studentName, avatar, monthlyStars } }.
+ * Computed in-memory — no Firestore query needed for live display.
+ */
+export function getGuildChampionsForMonth(allStudents, allStudentScores) {
+    const champions = {};
+    for (const guildId of GUILD_IDS) {
+        const members = allStudents.filter(s => s.guildId === guildId);
+        let topStudent = null;
+        let topStars = -1;
+        for (const member of members) {
+            const score = allStudentScores.find(sc => sc.id === member.id);
+            const monthlyStars = score?.monthlyStars || 0;
+            if (monthlyStars > topStars) {
+                topStars = monthlyStars;
+                topStudent = { studentId: member.id, studentName: member.name, avatar: member.avatar || null, monthlyStars };
+            }
+        }
+        if (topStudent && topStudent.monthlyStars > 0) {
+            champions[guildId] = topStudent;
+        }
+    }
+    return champions;
+}

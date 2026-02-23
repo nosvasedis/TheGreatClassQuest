@@ -56,6 +56,7 @@ function getDefaultState() {
         studentStarMetric: 'monthly',
         studentLeaderboardDisplay: 'individual', // 'individual' | 'guild'
         allGuildScores: {},
+        guildChampions: {}, // keyed by guildId → { studentId, studentName, avatar, monthlyStars }
         allMonthlyHistory: {},
         currentlySelectedDayCell: null,
         currentLogFilter: { classId: null, month: '' },
@@ -98,7 +99,8 @@ function getDefaultState() {
         currentShopItems: [], // Store this month's shop items
         unsubscribeQuestBounties: () => { }, // Listener unsubscribe
         unsubscribeSchoolSettings: () => { }, // Listener for settings
-        unsubscribeGuildScores: () => { }
+        unsubscribeGuildScores: () => { },
+        unsubscribeGuildChampions: () => { }
     };
 }
 
@@ -297,6 +299,8 @@ export function setUnsubscribeHeroChronicleNotes(func) { state.unsubscribeHeroCh
 export function setAllQuestBounties(bounties) { state.allQuestBounties = bounties; }
 export function setUnsubscribeQuestBounties(func) { state.unsubscribeQuestBounties = func; }
 export function setUnsubscribeGuildScores(func) { state.unsubscribeGuildScores = func; }
+export function setGuildChampions(champions) { state.guildChampions = champions; }
+export function setUnsubscribeGuildChampions(func) { state.unsubscribeGuildChampions = func; }
 export function setCurrentShopItems(items) { state.currentShopItems = items; }
 
 // Helper to fetch history (internal use)

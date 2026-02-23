@@ -24,6 +24,8 @@ import { getTodayDateString, getStartOfMonthString, debounce, parseDDMMYYYY } fr
 import { checkBountyProgress } from './bounties.js';
 import { calculateHeroGold, canChangeHeroClass } from '../../features/heroClasses.js';
 import { updateGuildScores } from '../../features/guildScoring.js';
+import { computeHeroLevel, getHeroReason, getOutwardEffects } from '../../features/heroSkillTree.js';
+import { checkHatchOrLevelUp } from '../../features/familiars.js';
 
 // --- SCORE, STAR, & LOG ACTIONS ---
 
@@ -151,15 +153,33 @@ export async function setStudentStarsForToday(studentId, starValue, reason = nul
 
                 const safeCurrentGold = (typeof currentData.gold === 'number') ? currentData.gold : (currentData.totalStars || 0);
                 
-                // Calculate Gold with Hero Class AND Gilded Multiplier
-                const goldChange = calculateHeroGold(studentData, reason, difference) * multiplier;
-                
+                // Calculate Gold + Skill Bonuses
+                const { goldChange, bonusStars } = calculateHeroGold(studentData, reason, difference, currentData);
+                const totalGoldChange = goldChange * multiplier;
+                const totalDifference = difference + bonusStars;
+
                 if (difference !== 0) {
+                    // --- Track starsByReason for hero skill tree ---
+                    const heroClass = studentData.heroClass;
+                    const classReason = getHeroReason(heroClass);
                     const updates = {
-                        totalStars: increment(difference),
-                        monthlyStars: increment(difference),
-                        gold: safeCurrentGold + goldChange
+                        totalStars: increment(totalDifference),
+                        monthlyStars: increment(totalDifference),
+                        gold: safeCurrentGold + totalGoldChange
                     };
+                    if (heroClass && classReason && reason === classReason && difference > 0) {
+                        const currentReasonStars = currentData.starsByReason?.[classReason] || 0;
+                        const newReasonStars = currentReasonStars + difference;
+                        updates[`starsByReason.${classReason}`] = newReasonStars;
+
+                        // Level-up check
+                        const currentHeroLevel = currentData.heroLevel || 0;
+                        const newHeroLevel = computeHeroLevel(heroClass, newReasonStars);
+                        if (newHeroLevel > currentHeroLevel) {
+                            updates.heroLevel = newHeroLevel;
+                            updates.pendingSkillChoice = true;
+                        }
+                    }
                     transaction.update(scoreRef, updates);
                 }
             }
@@ -229,6 +249,10 @@ export async function setStudentStarsForToday(studentId, starValue, reason = nul
             debouncedCheckAndRecordQuestCompletion(studentClassId);
             checkBountyProgress(studentClassId, difference);
             updateGuildScores(studentId, difference);
+            // Apply outward skill effects (guildmate/classmate gold) — fire-and-forget
+            _applyOutwardSkillEffects(studentId, studentClassId, reason, difference).catch(e => console.warn('Outward skill effect failed:', e));
+            // Check familiar hatch / level-up — fire-and-forget
+            checkHatchOrLevelUp(studentId).catch(e => console.warn('Familiar check failed:', e));
         }
 
     } catch (error) {
@@ -547,6 +571,78 @@ export async function handlePurgeAwardLogs() {
         showToast('All your award logs have been purged! Student scores are not affected.', 'success');
     } catch (error) { console.error("Error purging award logs: ", error); showToast(`Error: ${error.message}`, 'error'); }
     finally { btn.disabled = false; btn.innerHTML = '<i class="fas fa-exclamation-triangle mr-2"></i> Purge All My Award Logs'; }
+}
+
+/**
+ * Applies outward skill effects (guildmate gold, classmate gold, random classmate gold)
+ * to other students after the main star transaction completes. Fire-and-forget.
+ */
+async function _applyOutwardSkillEffects(awardedStudentId, classId, reason, difference) {
+    const student = state.get('allStudents').find(s => s.id === awardedStudentId);
+    if (!student) return;
+
+    const scoreData = state.get('allStudentScores').find(s => s.id === awardedStudentId);
+    if (!scoreData?.heroSkills?.length) return;
+
+    const outwardEffects = getOutwardEffects(student.heroClass, scoreData.heroSkills, reason, difference);
+    if (!outwardEffects.length) return;
+
+    const publicDataPath = 'artifacts/great-class-quest/public/data';
+    const allStudents = state.get('allStudents');
+    const allScores = state.get('allStudentScores');
+
+    const batch = writeBatch(db);
+    let hasBatchWrites = false;
+
+    const currentMonthKey = new Date().toISOString().substring(0, 7); // "YYYY-MM"
+
+    for (const eff of outwardEffects) {
+        let targets = [];
+
+        if (eff.type === 'classmate_gold_on_reason') {
+            const todaysStars = state.get('todaysStars');
+            targets = allStudents.filter(s =>
+                s.id !== awardedStudentId &&
+                s.classId === classId &&
+                todaysStars[s.id]?.reason === reason
+            );
+        } else if (eff.type === 'guildmate_gold_on_reason') {
+            targets = allStudents.filter(s =>
+                s.id !== awardedStudentId &&
+                s.guildId && s.guildId === student.guildId
+            );
+        } else if (eff.type === 'random_classmate_gold') {
+            const classmates = allStudents.filter(s => s.id !== awardedStudentId && s.classId === classId);
+            if (classmates.length > 0) {
+                targets = [classmates[Math.floor(Math.random() * classmates.length)]];
+            }
+        } else if (eff.type === 'first_of_month_guild_bonus') {
+            // Only fires the FIRST time this student earns their class reason this month
+            const alreadyFiredThisMonth = scoreData.lastGuildBonusMonth === currentMonthKey;
+            if (!alreadyFiredThisMonth) {
+                // Mark as fired for this month on the awarding student's score
+                const awardedRef = doc(db, `${publicDataPath}/student_scores`, awardedStudentId);
+                batch.update(awardedRef, { lastGuildBonusMonth: currentMonthKey });
+                hasBatchWrites = true;
+
+                // Give gold to all guildmates
+                targets = allStudents.filter(s =>
+                    s.id !== awardedStudentId &&
+                    s.guildId && s.guildId === student.guildId
+                );
+            }
+        }
+
+        for (const target of targets) {
+            const targetScore = allScores.find(sc => sc.id === target.id);
+            const currentGold = typeof targetScore?.gold === 'number' ? targetScore.gold : (targetScore?.totalStars || 0);
+            const targetRef = doc(db, `${publicDataPath}/student_scores`, target.id);
+            batch.update(targetRef, { gold: currentGold + eff.amount });
+            hasBatchWrites = true;
+        }
+    }
+
+    if (hasBatchWrites) await batch.commit();
 }
 
 export async function handleEraseTodaysStars() {

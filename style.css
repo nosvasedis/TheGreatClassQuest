@@ -114,3 +114,6 @@
 
 /* 35. Misc end: shop confirm, star-day-glow, reigning-hero-card, crown badge */
 @import url('./styles/misc_end.css');
+
+/* 36. Familiars: sprite sheet cycling, egg wobble, per-type animations */
+@import url('./styles/familiars.css');

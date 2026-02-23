@@ -33,6 +33,19 @@ export async function setupSounds() {
         }).toDestination();
         sounds.snare.volume.value = -10;
 
+        // Familiar: hatch — rising arpeggio
+        sounds.familiar_hatch = new Tone.PolySynth(Tone.Synth, {
+            oscillator: { type: 'triangle' },
+            envelope: { attack: 0.02, decay: 0.15, sustain: 0.1, release: 0.4 },
+            volume: -8
+        }).connect(reverb);
+        // Familiar: levelup — triumphant chord
+        sounds.familiar_levelup = new Tone.PolySynth(Tone.Synth, {
+            oscillator: { type: 'sawtooth' },
+            envelope: { attack: 0.01, decay: 0.2, sustain: 0.1, release: 0.6 },
+            volume: -10
+        }).connect(reverb);
+
         sounds.star1 = new Tone.PluckSynth({ attackNoise: 1, dampening: 4000, resonance: 0.7, volume: -10 }).connect(reverb);
         sounds.star2 = new Tone.PluckSynth({ attackNoise: 1, dampening: 3000, resonance: 0.8, volume: -8 }).connect(reverb);
         
@@ -121,6 +134,16 @@ export function playSound(sound) {
         else if (sound === 'cash') {
             sounds.cash.triggerAttackRelease(["B5", "E6"], "16n", playTime);
             sounds.cash.triggerAttackRelease(["C6", "G6"], "16n", playTime + 0.05);
+        }
+        else if (sound === 'familiar_hatch') {
+            sounds.familiar_hatch.triggerAttackRelease(['C5', 'E5'], '8n', playTime);
+            sounds.familiar_hatch.triggerAttackRelease(['G5', 'C6'], '8n', playTime + 0.12);
+            sounds.familiar_hatch.triggerAttackRelease(['E6', 'G6', 'C7'], '4n', playTime + 0.25);
+        }
+        else if (sound === 'familiar_levelup') {
+            sounds.familiar_levelup.triggerAttackRelease(['C5', 'E5', 'G5'], '8n', playTime);
+            sounds.familiar_levelup.triggerAttackRelease(['F5', 'A5', 'C6'], '8n', playTime + 0.15);
+            sounds.familiar_levelup.triggerAttackRelease(['G5', 'B5', 'D6', 'G6'], '4n', playTime + 0.3);
         }
         
         // Custom Fanfare Logic (if you added it previously)

@@ -2,6 +2,7 @@
 import * as state from '../../state.js';
 import { showToast } from '../effects.js';
 import * as modals from '../modals.js';
+import { FAMILIAR_TYPES, FAMILIAR_LEVEL_THRESHOLDS, buildFamiliarInitData } from '../../features/familiars.js';
 
 // --- SHOP UI LOGIC ---
 
@@ -96,7 +97,19 @@ export function renderShopUI() {
             `;
 
             html += seasonalItems.map(item => renderShopItemCard(item, false)).join('');
-            
+
+            // ─── Familiar Eggs section ────────────────────────────────────────
+            html += `
+                <div class="col-span-full mt-8 mb-4 border-b-2 border-purple-500/30 pb-2">
+                    <h3 class="font-title text-2xl text-purple-300 flex items-center gap-2">
+                        <i class="fas fa-egg"></i> Familiar Eggs
+                        <span class="text-xs bg-purple-500/20 px-2 py-1 rounded text-purple-400 font-sans uppercase">Hatch at ${FAMILIAR_LEVEL_THRESHOLDS.hatch} stars</span>
+                    </h3>
+                    <p class="text-xs text-purple-400/60 mt-1">Each student can own one Familiar. Earn stars to hatch it, then keep earning to evolve it!</p>
+                </div>
+            `;
+            html += Object.values(FAMILIAR_TYPES).map(fType => renderFamiliarEggCard(fType)).join('');
+
             container.innerHTML = html;
             
             const currentStudentId = document.getElementById('shop-student-select').value;
@@ -224,6 +237,27 @@ export async function updateShopStudentDisplay(studentId) {
             discountLabel = " (Hero -25%)";
         }
 
+        // Familiar egg buttons
+        if (btn.dataset.type === 'familiar') {
+            const hasFamiliar = !!scoreData?.familiar;
+            const price = parseInt(btn.dataset.price || '40');
+            btn.classList.remove('bg-green-600', 'bg-red-500', 'bg-indigo-600', 'bg-gray-500');
+            if (hasFamiliar) {
+                btn.disabled = true;
+                btn.innerText = 'Already Owned';
+                btn.classList.add('bg-green-600');
+            } else if (gold >= price) {
+                btn.disabled = false;
+                btn.innerText = `Buy ${price}🪙`;
+                btn.classList.add('bg-purple-600');
+            } else {
+                btn.disabled = true;
+                btn.innerText = `Need ${price}🪙`;
+                btn.classList.add('bg-gray-500');
+            }
+            return;
+        }
+
         const alreadyOwned = inventory.some(i => i.id === itemId);
         btn.classList.remove('bg-green-600', 'bg-red-500', 'bg-indigo-600');
 
@@ -253,6 +287,38 @@ export async function updateShopStudentDisplay(studentId) {
             btn.classList.add('bg-gray-500');
         }
     });
+}
+
+function renderFamiliarEggCard(fType) {
+    return `
+        <div class="shop-item-card group bg-indigo-950 border-2 border-purple-800 rounded-2xl overflow-hidden hover:border-purple-400 transition-all duration-300 hover:-translate-y-2 hover:shadow-[0_0_20px_rgba(167,139,250,0.3)] flex flex-col relative">
+            <div class="absolute top-2 right-2 z-10 bg-purple-600 text-white text-[10px] font-bold px-2 py-1 rounded shadow transform -rotate-2 border border-purple-400">EGG</div>
+            <div class="relative h-40 flex items-center justify-center overflow-hidden" style="background:linear-gradient(135deg,${fType.eggColor}33,${fType.eggAccent}22);">
+                <div class="text-7xl group-hover:scale-125 transition-transform duration-500 familiar-egg-wobble" style="filter:drop-shadow(0 0 12px ${fType.eggColor});">🥚</div>
+                <div class="absolute bottom-2 text-[10px] font-bold px-2 py-1 rounded-full text-white/80" style="background:${fType.eggColor}88;">${fType.name}</div>
+            </div>
+            <div class="p-4 flex-grow flex flex-col">
+                <h3 class="font-title text-xl text-purple-300 leading-tight mb-1">${fType.name}</h3>
+                <p class="text-indigo-300 text-xs mb-1 flex-grow">${fType.desc}</p>
+                <p class="text-purple-400/70 text-[10px] italic mb-3">${fType.flavorHint}</p>
+                <div class="flex flex-col gap-1 mb-3 text-[10px] text-indigo-400">
+                    <div>🥚 Hatches after <strong class="text-white">${FAMILIAR_LEVEL_THRESHOLDS.hatch} stars</strong> earned</div>
+                    <div>✨ Evolves: <strong class="text-white">+${FAMILIAR_LEVEL_THRESHOLDS.level2}</strong> stars after hatch → Level 2</div>
+                    <div>✨ Evolves: <strong class="text-white">+${FAMILIAR_LEVEL_THRESHOLDS.level3}</strong> stars after hatch → Level 3</div>
+                    <div>📛 Forms: ${fType.levelNames.map(n => `<strong class="text-purple-300">${n}</strong>`).join(' → ')}</div>
+                </div>
+                <div class="flex justify-between items-center mt-auto pt-3 border-t border-purple-800">
+                    <div class="flex items-center gap-1 font-bold text-white text-lg">
+                        <span>${fType.price}</span>
+                        <span>🪙</span>
+                    </div>
+                    <button class="shop-buy-btn bg-purple-600 hover:bg-purple-500 disabled:bg-indigo-900 disabled:text-indigo-500 disabled:cursor-not-allowed text-white text-xs font-bold py-2 px-4 rounded-lg uppercase tracking-wider transition-colors"
+                            data-id="${fType.id}" data-type="familiar" data-price="${fType.price}" disabled>
+                        Select Student
+                    </button>
+                </div>
+            </div>
+        </div>`;
 }
 
 export function renderEconomyStudentSelect() {

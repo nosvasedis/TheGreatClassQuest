@@ -5,6 +5,7 @@ import { deleteClass, deleteStudent } from '../../db/actions.js';
 import { showTab } from './navigation.js';
 import * as avatar from '../../features/avatar.js';
 import { getGuildBadgeHtml, getGuildById } from '../../features/guilds.js';
+import { openSkillTreeModal } from '../modals/skillTree.js';
 
 export function renderManageClassesTab() {
     const list = document.getElementById('class-list');
@@ -58,6 +59,9 @@ export function renderManageStudentsTab() {
         return;
     }
     list.innerHTML = studentsInClass.map(s => {
+        const scoreData = state.get('allStudentScores').find(sc => sc.id === s.id);
+        const pendingSkill = scoreData?.pendingSkillChoice || false;
+
         const avatarHtml = s.avatar
             ? `<img src="${s.avatar}" alt="${s.name}" data-student-id="${s.id}" class="student-avatar large-avatar enlargeable-avatar cursor-pointer">`
             : `<div data-student-id="${s.id}" class="student-avatar large-avatar enlargeable-avatar cursor-pointer flex items-center justify-center bg-gray-300 text-gray-600 font-bold">${s.name.charAt(0)}</div>`;
@@ -66,6 +70,10 @@ export function renderManageStudentsTab() {
             : `<button data-id="${s.id}" class="guild-quiz-btn bg-amber-100 text-amber-800 font-bold w-8 h-8 rounded-full bubbly-button" title="Guild Quiz"><i class="fas fa-hat-wizard text-xs"></i></button>`;
         const guildBorder = s.guildId ? 'border-l-4' : '';
         const borderStyle = s.guildId && getGuildById(s.guildId) ? `style="border-left-color: ${getGuildById(s.guildId).primary}"` : '';
+
+        const skillTreeBtnClass = pendingSkill
+            ? 'skill-tree-btn bg-purple-500 text-white font-bold w-8 h-8 rounded-full bubbly-button animate-pulse ring-2 ring-purple-300'
+            : 'skill-tree-btn bg-purple-100 text-purple-800 font-bold w-8 h-8 rounded-full bubbly-button';
 
         return `
         <div class="flex items-center justify-between bg-gray-50 p-2 rounded-lg ${guildBorder}" ${borderStyle}>
@@ -77,6 +85,7 @@ export function renderManageStudentsTab() {
                 ${s.guildId ? `<span class="guild-badge-wrap flex-shrink-0">${guildBadgeOrQuiz}</span>` : guildBadgeOrQuiz}
                 <button data-id="${s.id}" class="move-student-btn bg-yellow-100 text-yellow-800 font-bold w-8 h-8 rounded-full bubbly-button" title="Move Student"><i class="fas fa-people-arrows text-xs"></i></button>
                 <button data-id="${s.id}" class="hero-chronicle-btn bg-green-100 text-green-800 font-bold w-8 h-8 rounded-full bubbly-button" title="Hero's Chronicle"><i class="fas fa-book-reader text-xs"></i></button>
+                <button data-id="${s.id}" class="${skillTreeBtnClass}" title="${pendingSkill ? 'New Skill Available!' : 'Skill Tree'}"><i class="fas fa-sitemap text-xs"></i></button>
                 <button data-id="${s.id}" class="avatar-maker-btn font-bold w-8 h-8 rounded-full bubbly-button" title="Create/Edit Avatar"><i class="fas fa-user-astronaut text-xs"></i></button>
                 <button data-id="${s.id}" class="certificate-student-btn bg-indigo-100 text-indigo-800 font-bold w-8 h-8 rounded-full bubbly-button" title="Generate Certificate"><i class="fas fa-award text-xs"></i></button>
                 <button data-id="${s.id}" class="edit-student-btn bg-cyan-100 text-cyan-800 font-bold w-8 h-8 rounded-full bubbly-button" title="Edit Student Details"><i class="fas fa-pencil-alt text-xs"></i></button>
@@ -92,4 +101,5 @@ export function renderManageStudentsTab() {
     list.querySelectorAll('.move-student-btn').forEach(btn => btn.addEventListener('click', () => modals.openMoveStudentModal(btn.dataset.id)));
     list.querySelectorAll('.hero-chronicle-btn').forEach(btn => btn.addEventListener('click', () => modals.openHeroChronicleModal(btn.dataset.id)));
     list.querySelectorAll('.guild-quiz-btn').forEach(btn => btn.addEventListener('click', () => modals.openSortingQuizModal(btn.dataset.id)));
+    list.querySelectorAll('.skill-tree-btn').forEach(btn => btn.addEventListener('click', () => openSkillTreeModal(btn.dataset.id)));
 }

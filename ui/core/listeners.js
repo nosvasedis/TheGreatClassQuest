@@ -374,7 +374,12 @@ export function setupUIListeners() {
             if (buyBtn) {
                 const studentId = document.getElementById('shop-student-select').value;
                 const itemId = buyBtn.dataset.id;
-                import('../../db/actions.js').then(a => a.handleBuyItem(studentId, itemId));
+                const itemType = buyBtn.dataset.type;
+                if (itemType === 'familiar') {
+                    import('../../db/actions/economy.js').then(a => a.handleBuyFamiliarEgg(studentId, itemId));
+                } else {
+                    import('../../db/actions.js').then(a => a.handleBuyItem(studentId, itemId));
+                }
             }
         });
     }
@@ -983,4 +988,14 @@ export function setupUIListeners() {
             modals.hideModal('hero-celebration-modal');
         });
     }
+
+    // Skill Tree Modal close
+    const skillTreeCloseBtn = document.getElementById('skill-tree-close-btn');
+    if (skillTreeCloseBtn) {
+        skillTreeCloseBtn.addEventListener('click', () => modals.hideModal('skill-tree-modal'));
+    }
+    // Close on backdrop click
+    document.getElementById('skill-tree-modal')?.addEventListener('click', (e) => {
+        if (e.target === document.getElementById('skill-tree-modal')) modals.hideModal('skill-tree-modal');
+    });
 }

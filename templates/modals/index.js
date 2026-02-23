@@ -12,6 +12,7 @@ import { rankingsModalsHTML } from './rankings.js';
 import { trophyRoomModalsHTML } from './trophyRoom.js';
 import { miscModalsHTML } from './misc.js';
 import { sortingQuizModalsHTML } from './sortingQuiz.js';
+import { skillTreeModalHTML } from './skillTree.js';
 
 export const allModalsHTML =
     baseModalsHTML +
@@ -25,4 +26,5 @@ export const allModalsHTML =
     rankingsModalsHTML +
     trophyRoomModalsHTML +
     miscModalsHTML +
-    sortingQuizModalsHTML;
+    sortingQuizModalsHTML +
+    skillTreeModalHTML;

@@ -362,6 +362,19 @@ const writtenScoresQuery = query(
         state.setAllGuildScores(allGuildScores);
         renderStudentLeaderboardTab();
     }, (error) => console.error("Error listening to guild_scores:", error)));
+
+    // Guild Champions — current month
+    const currentMonthKey = new Date().toISOString().substring(0, 7);
+    const guildChampionsQuery = query(
+        collection(db, `${publicDataPath}/guild_champions`),
+        where('monthKey', '==', currentMonthKey)
+    );
+    state.setUnsubscribeGuildChampions(onSnapshot(guildChampionsQuery, (snapshot) => {
+        const champions = {};
+        snapshot.docs.forEach(d => { champions[d.data().guildId] = { ...d.data() }; });
+        state.setGuildChampions(champions);
+        renderStudentLeaderboardTab();
+    }, (error) => console.error("Error listening to guild_champions:", error)));
 }
 
 export async function archivePreviousDayStars(userId, todayDateString) {

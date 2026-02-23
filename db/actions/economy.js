@@ -21,6 +21,7 @@ import * as state from '../../state.js';
 import { showToast } from '../../ui/effects.js';
 import { callGeminiApi, callCloudflareAiImageApi } from '../../api.js';
 import { getAgeGroupForLeague, getStartOfMonthString, compressImageBase64, simpleHashCode } from '../../utils.js';
+// GUILD_IDS not needed at module level but kept for reference
 
 // --- THE ECONOMY (SHOP & INVENTORY) ---
 
@@ -538,19 +539,63 @@ export async function checkAndResetMonthlyStars(studentId, currentMonthStart) {
                     transaction.set(historyRef, { stars: lastMonthScore, month: yearMonthKey });
                 }
                 
-                // FIX: Ensure gold persists (do not set to 0, read current value or default)
                 const currentGold = scoreData.gold !== undefined ? scoreData.gold : (scoreData.totalStars || 0);
 
                 transaction.update(scoreRef, { 
                     monthlyStars: 0, 
                     lastMonthlyResetDate: currentMonthStart,
-                    gold: currentGold // Explicitly write it back to save it
+                    gold: currentGold
                 });
             }
         });
+
+        // After resetting this student, check and persist guild champions for the closing month
+        // Fire-and-forget — runs once per student reset but only writes if this student is a guild champion
+        _checkAndPersistGuildChampion(studentId, currentMonthStart).catch(e => console.warn('Guild champion persist failed:', e));
+
     } catch (error) { 
         console.error(`Failed monthly reset & archive for ${studentId}:`, error); 
     }
+}
+
+/** Persists the current guild champion for the student's guild to guild_champions collection. */
+async function _checkAndPersistGuildChampion(studentId, currentMonthStart) {
+    const publicDataPath = "artifacts/great-class-quest/public/data";
+    const student = state.get('allStudents').find(s => s.id === studentId);
+    if (!student?.guildId) return;
+
+    const allStudents = state.get('allStudents');
+    const allStudentScores = state.get('allStudentScores');
+
+    // Find top monthly earner in this student's guild
+    const guildId = student.guildId;
+    const guildMembers = allStudents.filter(s => s.guildId === guildId);
+    let champion = null;
+    let topStars = -1;
+
+    for (const member of guildMembers) {
+        const score = allStudentScores.find(sc => sc.id === member.id);
+        const monthlyStars = score?.monthlyStars || 0;
+        if (monthlyStars > topStars) {
+            topStars = monthlyStars;
+            champion = { studentId: member.id, studentName: member.name, monthlyStars };
+        }
+    }
+
+    if (!champion || champion.monthlyStars <= 0) return;
+
+    const closingMonthKey = currentMonthStart.substring(0, 7); // e.g. "2026-01"
+    const docId = `${closingMonthKey}_${guildId}`;
+    const champRef = doc(db, `${publicDataPath}/guild_champions`, docId);
+
+    await setDoc(champRef, {
+        guildId,
+        monthKey: closingMonthKey,
+        studentId: champion.studentId,
+        studentName: champion.studentName,
+        monthlyStars: champion.monthlyStars,
+        updatedAt: serverTimestamp()
+    }, { merge: true });
 }
 
 export async function handleManualGoldUpdate() {
@@ -634,6 +679,41 @@ export async function handleSpecialOccasionBonus(studentId, type) {
         showToast("Error applying bonus.", "error");
 
         
+    }
+}
+
+// --- FAMILIAR EGG PURCHASE ---
+
+export async function handleBuyFamiliarEgg(studentId, typeId) {
+    if (!studentId) { showToast('Please select a student first.', 'error'); return; }
+
+    const { FAMILIAR_TYPES, buildFamiliarInitData } = await import('../../features/familiars.js');
+    const typeDef = FAMILIAR_TYPES[typeId];
+    if (!typeDef) { showToast('Unknown familiar type.', 'error'); return; }
+
+    const publicDataPath = 'artifacts/great-class-quest/public/data';
+    const scoreRef = doc(db, `${publicDataPath}/student_scores`, studentId);
+
+    try {
+        await runTransaction(db, async (transaction) => {
+            const scoreDoc = await transaction.get(scoreRef);
+            if (!scoreDoc.exists()) throw new Error('Score document not found.');
+            const scoreData = scoreDoc.data();
+
+            if (scoreData.familiar) throw new Error('This student already owns a Familiar!');
+
+            const currentGold = typeof scoreData.gold === 'number' ? scoreData.gold : (scoreData.totalStars || 0);
+            if (currentGold < typeDef.price) throw new Error(`Not enough Gold! Need ${typeDef.price}🪙.`);
+
+            transaction.update(scoreRef, {
+                gold: currentGold - typeDef.price,
+                familiar: buildFamiliarInitData(typeId, scoreData.totalStars || 0)
+            });
+        });
+        showToast(`${typeDef.name} Egg purchased! Earn ${20} stars to hatch it!`, 'success');
+        import('../../ui/core.js').then(m => m.updateShopStudentDisplay(studentId));
+    } catch (error) {
+        showToast(typeof error === 'string' ? error : error.message || 'Purchase failed.', 'error');
     }
 }
 

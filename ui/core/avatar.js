@@ -1,6 +1,7 @@
 // /ui/core/avatar.js
 import * as state from '../../state.js';
 import { handleUseItem, isItemUsable } from '../../features/powerUps.js';
+import { renderFamiliarSprite, openFamiliarStatsOverlay } from '../../features/familiars.js';
 
 document.addEventListener('clarity-glimmer', (e) => {
     const { studentId, itemIndex } = e.detail || {};
@@ -64,6 +65,15 @@ function buildInventoryInnerHtml(studentId) {
 
 // --- AVATAR ENLARGEMENT ---
 export function handleAvatarClick(e) {
+    // Familiar tap — show stats overlay
+    const familiarEl = e.target.closest('.enlargeable-familiar');
+    if (familiarEl) {
+        e.stopPropagation();
+        const studentId = familiarEl.dataset.studentId;
+        if (studentId) openFamiliarStatsOverlay(studentId);
+        return;
+    }
+
     const avatar = e.target.closest('.enlargeable-avatar');
     // Prevent closing if clicking the inventory itself
     if (e.target.closest('.inventory-container')) return; 
@@ -112,6 +122,16 @@ export function handleAvatarClick(e) {
         
         container.appendChild(clone);
         
+        // FAMILIAR companion display
+        let familiarHtml = '';
+        if (studentId) {
+            const scoreData = state.get('allStudentScores').find(sc => sc.id === studentId);
+            if (scoreData?.familiar) {
+                const spriteHtml = renderFamiliarSprite(scoreData.familiar, 'medium', studentId);
+                familiarHtml = `<div class="enlargeable-familiar familiar-enlarged-companion mt-[-20px] z-[103]" data-student-id="${studentId}">${spriteHtml}</div>`;
+            }
+        }
+
         // INVENTORY UI
         let inventoryHtml = '';
         if (studentId) {
@@ -122,6 +142,7 @@ export function handleAvatarClick(e) {
             `;
         }
 
+        if (familiarHtml) container.insertAdjacentHTML('beforeend', familiarHtml);
         container.insertAdjacentHTML('beforeend', inventoryHtml);
         document.body.appendChild(container);
 

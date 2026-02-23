@@ -2,6 +2,7 @@
 
 import { getGuildLeaderboardData } from '../../features/guildScoring.js';
 import { getGuildById, getGuildEmblemUrl, GUILD_IDS, GUILDS } from '../../features/guilds.js';
+import * as state from '../../state.js';
 
 // ─── Sound cache ─────────────────────────────────────────────────────────────
 const _audioCache = {};
@@ -302,6 +303,25 @@ function wireGuildLoreListeners() {
 }
 
 // ─── Main render ─────────────────────────────────────────────────────────────
+function _getChampionHtml(guildId, primary, glow) {
+    const guildChampions = state.get('guildChampions') || {};
+    const champ = guildChampions[guildId];
+    if (!champ) return '';
+    const avatarHtml = champ.avatar
+        ? `<img src="${champ.avatar}" class="w-8 h-8 rounded-full object-cover border-2 flex-shrink-0" style="border-color:${primary}">`
+        : `<div class="w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold text-white flex-shrink-0" style="background:${primary}">${champ.studentName?.charAt(0) || '?'}</div>`;
+    return `
+        <div class="guild-crystal-champion mt-3 flex items-center gap-2 px-3 py-2 rounded-xl border" style="border-color:${primary}44;background:${glow}11;">
+            <span class="text-sm">⚔️</span>
+            ${avatarHtml}
+            <div class="min-w-0">
+                <div class="text-[10px] font-bold uppercase tracking-wider opacity-60" style="color:${primary}">This Month's Champion</div>
+                <div class="text-xs font-bold truncate text-white">${champ.studentName}</div>
+                <div class="text-[10px] opacity-50">${champ.monthlyStars} ⭐ this month</div>
+            </div>
+        </div>`;
+}
+
 export function renderGuildsTab() {
     const list = document.getElementById('guilds-leaderboard-list');
     if (!list) return;
@@ -411,6 +431,7 @@ export function renderGuildsTab() {
                 <div class="guild-crystal-members">${g.memberCount} member${g.memberCount === 1 ? '' : 's'}</div>
 
                 ${topHtml}
+                ${_getChampionHtml(g.guildId, primary, glow)}
             </div>`;
     });
 

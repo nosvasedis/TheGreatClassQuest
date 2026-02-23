@@ -1,5 +1,6 @@
 // /features/heroClasses.js
 import * as state from '../state.js';
+import { calculateSkillBonus } from './heroSkillTree.js';
 
 export const HERO_CLASSES = {
     'Guardian': { reason: 'respect', icon: '🛡️', bonus: 10, desc: '+10 Gold for Respect' },
@@ -11,25 +12,36 @@ export const HERO_CLASSES = {
     'Nomad': { reason: 'welcome_back', icon: '👟', bonus: 10, desc: '+10 Gold for Coming Back' }
 };
 
-export function calculateHeroGold(studentData, reason, starDifference) {
-    // Basic validation: We only give bonuses if stars are being added (positive difference)
-    if (starDifference <= 0 || !reason) return starDifference;
+/**
+ * Calculates total gold change for a star award.
+ * Returns { goldChange, bonusStars } accounting for:
+ *   1. The base +10 class bonus (existing)
+ *   2. Any active skill tree bonuses (self_gold_on_reason, star_bonus_on_reason)
+ * scoreData is optional; if provided, skill bonuses are also applied.
+ */
+export function calculateHeroGold(studentData, reason, starDifference, scoreData = null) {
+    if (starDifference <= 0 || !reason) return { goldChange: starDifference, bonusStars: 0 };
 
     const heroClass = studentData.heroClass;
-    
-    // Check if the student has a valid Hero Class
+    let goldChange = starDifference;
+    let bonusStars = 0;
+
+    // 1. Base class bonus (+10 when reason matches)
     if (heroClass && HERO_CLASSES[heroClass]) {
         const classInfo = HERO_CLASSES[heroClass];
-        
-        // Robust comparison: Ensure both are strings and trim whitespace
         if (classInfo.reason === reason || classInfo.reason === reason.trim()) {
-            // Return base stars + bonus gold (e.g., 1 star + 10 gold = 11 total value added to gold)
-            return starDifference + classInfo.bonus;
+            goldChange += classInfo.bonus;
         }
     }
-    
-    // Default: Just return the star value converted to gold (1 Star = 1 Gold)
-    return starDifference;
+
+    // 2. Skill tree personal bonuses (self_gold_on_reason + star_bonus_on_reason)
+    if (heroClass && scoreData?.heroSkills?.length) {
+        const { extraGold, extraStars } = calculateSkillBonus(heroClass, scoreData.heroSkills, reason, starDifference);
+        goldChange += extraGold;
+        bonusStars += extraStars;
+    }
+
+    return { goldChange, bonusStars };
 }
 
 /**

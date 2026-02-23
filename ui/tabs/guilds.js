@@ -1,4 +1,4 @@
-// /ui/tabs/guilds.js — Guild Hall: crystal-column rankings, lore overlay, guild sounds
+// /ui/tabs/guilds.js — Guild Hall: crystal-column rankings, lore overlay, guild sounds, anthem modal
 
 import { getGuildLeaderboardData } from '../../features/guildScoring.js';
 import { getGuildById, getGuildEmblemUrl, GUILD_IDS, GUILDS } from '../../features/guilds.js';
@@ -15,8 +15,203 @@ function playGuildSound(guildId) {
         }
         const audio = _audioCache[guildId];
         audio.currentTime = 0;
-        audio.play().catch(() => {}); // gracefully handle browser autoplay policies
+        audio.play().catch(() => {});
     } catch (_) {}
+}
+
+// ─── Anthem audio ─────────────────────────────────────────────────────────────
+const _anthemCache = {};
+let _currentAnthemId  = null;
+let _fadeTimer        = null;
+let _endFadeScheduled = false;
+let _endFadeCleanup   = null;
+const FADE_BEFORE_END = 1.5; // seconds before track end to start auto-fade
+
+function _cancelFade() {
+    if (_fadeTimer !== null) { clearInterval(_fadeTimer); _fadeTimer = null; }
+}
+
+function _teardownEndFade() {
+    if (_endFadeCleanup) { _endFadeCleanup(); _endFadeCleanup = null; }
+    _endFadeScheduled = false;
+}
+
+function _setupEndFade(audio) {
+    _teardownEndFade();
+
+    function onTimeUpdate() {
+        if (_endFadeScheduled) return;
+        const dur = audio.duration;
+        if (!dur || dur === Infinity) return;
+        const remaining = dur - audio.currentTime;
+        if (remaining > 0 && remaining <= FADE_BEFORE_END) {
+            _endFadeScheduled = true;
+            fadeOutAndStopAnthem(remaining * 1000);
+        }
+    }
+
+    function onEnded() {
+        // Fires if the fade didn't fully pause before the browser raised 'ended'
+        _teardownEndFade();
+        _cancelFade();
+        _currentAnthemId = null;
+        try { audio.volume = 0.80; audio.currentTime = 0; } catch (_) {}
+    }
+
+    audio.addEventListener('timeupdate', onTimeUpdate);
+    audio.addEventListener('ended', onEnded);
+    _endFadeCleanup = () => {
+        audio.removeEventListener('timeupdate', onTimeUpdate);
+        audio.removeEventListener('ended', onEnded);
+    };
+}
+
+function playGuildAnthem(guildId) {
+    _cancelFade();
+    _teardownEndFade();
+    const guild = getGuildById(guildId);
+    if (!guild?.anthem) return;
+    try {
+        if (!_anthemCache[guildId]) {
+            _anthemCache[guildId] = new Audio(guild.anthem);
+        }
+        const audio = _anthemCache[guildId];
+        audio.loop        = false; // play once; restart only on re-open
+        audio.volume      = 0.80;
+        audio.currentTime = 0;
+        _currentAnthemId  = guildId;
+        _setupEndFade(audio);
+        audio.play().catch(() => {});
+    } catch (_) {}
+}
+
+function fadeOutAndStopAnthem(duration = 1400) {
+    _cancelFade();
+    const id = _currentAnthemId;
+    _currentAnthemId = null; // stop karaoke updates immediately
+    if (!id || !_anthemCache[id]) return;
+    const audio  = _anthemCache[id];
+    const steps  = 28;
+    const tick   = duration / steps;
+    const startV = audio.volume;
+    let   step   = 0;
+    _fadeTimer = setInterval(() => {
+        step++;
+        audio.volume = Math.max(0, startV * (1 - step / steps));
+        if (step >= steps) {
+            _cancelFade();
+            try { audio.pause(); audio.currentTime = 0; } catch (_) {}
+            audio.volume = 0.80; // restore for next play
+        }
+    }, tick);
+}
+
+// ─── Karaoke sync ─────────────────────────────────────────────────────────────
+let _karaokeCleanup = null;
+
+function startKaraokeSync(guildId) {
+    stopKaraokeSync();
+    const audio    = _anthemCache[guildId];
+    const lyricsEl = document.getElementById('guild-anthem-lyrics');
+    if (!audio || !lyricsEl) return;
+
+    const lines = Array.from(lyricsEl.querySelectorAll('.guild-anthem-line[data-time]'));
+    if (!lines.length) return;
+
+    let lastActiveIdx = -1;
+
+    function onTimeUpdate() {
+        if (!_currentAnthemId) return;
+        const ct = audio.currentTime;
+        let activeIdx = -1;
+        for (let i = 0; i < lines.length; i++) {
+            if (ct >= parseFloat(lines[i].dataset.time)) activeIdx = i;
+        }
+        if (activeIdx === lastActiveIdx) return;
+        lastActiveIdx = activeIdx;
+        lines.forEach((line, i) => {
+            line.classList.toggle('karaoke-active', i === activeIdx);
+            line.classList.toggle('karaoke-past',   i < activeIdx);
+            line.classList.toggle('karaoke-upcoming', i > activeIdx);
+        });
+        if (activeIdx >= 0) {
+            lines[activeIdx].scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }
+    }
+
+    audio.addEventListener('timeupdate', onTimeUpdate);
+    _karaokeCleanup = () => audio.removeEventListener('timeupdate', onTimeUpdate);
+}
+
+function stopKaraokeSync() {
+    if (_karaokeCleanup) { _karaokeCleanup(); _karaokeCleanup = null; }
+    // reset all line states
+    document.querySelectorAll('.guild-anthem-line').forEach(l => {
+        l.classList.remove('karaoke-active', 'karaoke-past', 'karaoke-upcoming');
+    });
+}
+
+// ─── Anthem modal ─────────────────────────────────────────────────────────────
+function openAnthemModal(guildId) {
+    const overlay = document.getElementById('guild-anthem-overlay');
+    const card    = document.getElementById('guild-anthem-card');
+    if (!overlay || !card) return;
+
+    const guild     = getGuildById(guildId);
+    const primary   = guild?.primary   || '#7c3aed';
+    const secondary = guild?.secondary || '#a78bfa';
+    const glow      = guild?.glow      || primary;
+    const emoji     = guild?.emoji     || '🎵';
+
+    card.style.background = `linear-gradient(160deg, ${primary} 0%, ${secondary} 65%, ${primary}cc 100%)`;
+    card.style.boxShadow  = `0 0 0 1.5px rgba(255,255,255,0.2), 0 32px 80px rgba(0,0,0,0.7), 0 0 80px ${glow}55`;
+
+    const titleEl = document.getElementById('guild-anthem-title');
+    if (titleEl) titleEl.textContent = `${emoji} ${guild?.name || guildId} Anthem`;
+
+    const lyricsEl = document.getElementById('guild-anthem-lyrics');
+    if (lyricsEl && guild?.anthemLyrics) {
+        lyricsEl.innerHTML = guild.anthemLyrics.map(section => {
+            const sectionClass = section.type === 'chorus' ? 'guild-anthem-chorus' : 'guild-anthem-verse';
+            const label = section.type === 'chorus' ? '🎶 Chorus' : '🎵 Verse';
+            return `
+                <div class="${sectionClass}">
+                    <span class="guild-anthem-section-label">${label}</span>
+                    ${section.lines.map(line =>
+                        `<p class="guild-anthem-line karaoke-upcoming" data-time="${line.time}">${line.text}</p>`
+                    ).join('')}
+                </div>`;
+        }).join('');
+    }
+
+    card.classList.remove('pop-in');
+    void card.offsetWidth;
+    card.classList.add('pop-in');
+
+    overlay.classList.remove('hidden');
+    playGuildAnthem(guildId);
+    startKaraokeSync(guildId);
+}
+
+function closeAnthemModal() {
+    stopKaraokeSync();
+    _teardownEndFade();
+    fadeOutAndStopAnthem();
+    setTimeout(() => {
+        document.getElementById('guild-anthem-overlay')?.classList.add('hidden');
+    }, 300);
+}
+
+function wireAnthemListeners() {
+    const overlay = document.getElementById('guild-anthem-overlay');
+    if (!overlay || overlay._anthemWired) return;
+    overlay._anthemWired = true;
+
+    document.getElementById('guild-anthem-close')?.addEventListener('click', closeAnthemModal);
+    document.getElementById('guild-anthem-overlay-bg')?.addEventListener('click', closeAnthemModal);
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') closeAnthemModal();
+    });
 }
 
 // ─── Lore overlay ────────────────────────────────────────────────────────────
@@ -112,6 +307,7 @@ export function renderGuildsTab() {
     if (!list) return;
 
     wireGuildLoreListeners();
+    wireAnthemListeners();
 
     const rawData = getGuildLeaderboardData();
 
@@ -170,7 +366,7 @@ export function renderGuildsTab() {
 
                 <!-- ── Header section (fixed min-height so all columns align at tube start) ── -->
                 <div class="guild-crystal-header">
-                    <!-- Emblem is the click target for lore + sound -->
+                    <!-- Emblem is the click target for lore + sound; anthem btn lives inside, bottom-left -->
                     <div class="guild-crystal-emblem-wrapper"
                          data-guild-id="${g.guildId}"
                          role="button" tabindex="0"
@@ -178,6 +374,9 @@ export function renderGuildsTab() {
                          style="--glow-color:${glow};">
                         ${emblemHtml}
                         <div class="guild-emblem-ring" style="border-color:${glow};box-shadow:0 0 24px ${glow}88;"></div>
+                        <button class="guild-anthem-btn" data-anthem-guild="${g.guildId}"
+                                aria-label="Play ${g.guildName} anthem"
+                                style="--anthem-color:${primary};--anthem-glow:${glow};">🎵</button>
                     </div>
                     <div class="guild-crystal-name" style="color:${primary};">${emoji} ${g.guildName}</div>
                 </div>
@@ -232,6 +431,13 @@ export function renderGuildsTab() {
     if (!arena) return;
 
     const handleGuildActivate = (e) => {
+        // Anthem button takes priority
+        const anthemBtn = e.target.closest('.guild-anthem-btn');
+        if (anthemBtn) {
+            e.stopPropagation();
+            openAnthemModal(anthemBtn.dataset.anthemGuild);
+            return;
+        }
         const wrapper = e.target.closest('.guild-crystal-emblem-wrapper');
         if (!wrapper) return;
         e.stopPropagation();

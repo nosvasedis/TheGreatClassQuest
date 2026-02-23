@@ -23,7 +23,7 @@ function resolveQuestLevelForStudent(studentId) {
 
 // ─── Render ─────────────────────────────────────────────────────────────────
 
-function renderQuizStep() {
+function renderQuizStep(animate = false) {
     const { step, answers, questions } = sortingQuiz.getQuizState();
     const totalSteps = questions?.length || 0;
     const question = questions?.[step - 1];
@@ -33,9 +33,19 @@ function renderQuizStep() {
     const progressEl = document.getElementById('sorting-quiz-progress');
     if (progressEl) progressEl.textContent = `Question ${step} of ${totalSteps}`;
 
-    // Emoji
+    // Emoji (animate the emoji change with a quick scale)
     const emojiEl = document.getElementById('sorting-quiz-question-emoji');
-    if (emojiEl) emojiEl.textContent = question.emoji || '✨';
+    if (emojiEl) {
+        emojiEl.textContent = question.emoji || '✨';
+        if (animate) {
+            emojiEl.style.transform = 'scale(0.6)';
+            emojiEl.style.transition = 'none';
+            requestAnimationFrame(() => {
+                emojiEl.style.transition = 'transform 0.35s cubic-bezier(0.34,1.56,0.64,1)';
+                emojiEl.style.transform = 'scale(1)';
+            });
+        }
+    }
 
     // Progress fill bar
     const fill = document.getElementById('sorting-quiz-progress-fill');
@@ -52,6 +62,14 @@ function renderQuizStep() {
             const current = i === step - 1;
             return `<span class="sorting-quiz-dot ${done ? 'sorting-quiz-dot--done' : ''} ${current ? 'sorting-quiz-dot--active' : ''}"></span>`;
         }).join('');
+    }
+
+    // Question wrap: animate slide-in
+    const questionWrap = document.getElementById('sorting-quiz-question');
+    if (questionWrap && animate) {
+        questionWrap.classList.remove('sorting-quiz-question-entering');
+        void questionWrap.offsetWidth; // force reflow
+        questionWrap.classList.add('sorting-quiz-question-entering');
     }
 
     // Question text
@@ -78,7 +96,7 @@ function renderQuizStep() {
     // Next/Submit button
     const nextBtn = document.getElementById('sorting-quiz-next-btn');
     if (nextBtn) {
-        nextBtn.textContent = step === totalSteps ? '✓ Submit' : 'Next →';
+        nextBtn.textContent = step === totalSteps ? '✨ Submit' : 'Next →';
         nextBtn.disabled = answers[step - 1] === undefined;
     }
 }
@@ -145,7 +163,7 @@ function wireQuizListeners() {
             const idx = parseInt(btn.dataset.optionIndex, 10);
             if (Number.isNaN(idx)) return;
             sortingQuiz.selectAnswer(idx);
-            renderQuizStep();
+            renderQuizStep(false);
         });
     }
 
@@ -167,12 +185,12 @@ function wireQuizListeners() {
                     if (result) showResultModal(result);
                 } finally {
                     nextBtn.disabled = false;
-                    nextBtn.textContent = '✓ Submit';
+                    nextBtn.textContent = '✨ Submit';
                 }
                 return;
             }
             sortingQuiz.goNext();
-            renderQuizStep();
+            renderQuizStep(true); // animate slide-in on question advance
         });
     }
 
@@ -210,8 +228,8 @@ export function openSortingQuizModal(studentId) {
     // Wire listeners once (idempotent)
     wireQuizListeners();
 
-    renderQuizStep();
     modal.classList.remove('hidden');
+    renderQuizStep(true); // animate first question in
 }
 
 /**

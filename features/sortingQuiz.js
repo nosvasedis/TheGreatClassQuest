@@ -1,7 +1,8 @@
 // /features/sortingQuiz.js — Quiz state, navigation, submit → guild assignment
 
 import * as state from '../state.js';
-import { assignGuildFromQuizResults, getGuildById, getQuestionsForLevel, SORTING_QUIZ_QUESTIONS } from './guilds.js';
+import { assignGuildFromQuizResults, getRandomizedQuestionsForLevel, SORTING_QUIZ_QUESTIONS } from './guildQuiz.js';
+import { getGuildById } from './guilds.js';
 import { assignStudentToGuild } from '../db/actions/guilds.js';
 
 /** Module-level quiz state. questions = the set used for this run (per age/league). */
@@ -20,7 +21,9 @@ let sortingQuizState = {
  */
 export function startQuiz(studentId, questLevel = null) {
     const resolvedLevel = questLevel || resolveQuestLevelForStudent(studentId);
-    const questions = getQuestionsForLevel(resolvedLevel);
+    // Randomised: each student gets a unique selection from the level's 35-question pool,
+    // with options also shuffled per question so answer positions differ every time.
+    const questions = getRandomizedQuestionsForLevel(resolvedLevel);
     sortingQuizState = {
         studentId,
         step: 1,

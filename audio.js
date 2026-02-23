@@ -47,9 +47,9 @@ export async function setupSounds() {
             volume: -5 
         }).connect(reverb);
         
-        // Music Players (Using relative paths - Ensure files are in root)
+        // Music Players
         ceremonyMusic = new Tone.Player({
-            url: "ceremony_reveal.mp3",
+            url: "assets/ceremony_reveal.mp3",
             loop: true,
             volume: -12,
             onload: () => console.log("Ceremony Music Loaded"),
@@ -57,22 +57,22 @@ export async function setupSounds() {
         }).toDestination();
 
         winnerFanfare = new Tone.Player({
-            url: "ceremony_winner.mp3",
+            url: "assets/ceremony_winner.mp3",
             volume: -3,
             onload: () => console.log("Winner Fanfare Loaded"),
             onerror: (e) => console.warn("Winner Fanfare failed to load", e)
         }).toDestination();
 
         showdownSting = new Tone.Player({
-            url: "ceremony_showdown.mp3",
+            url: "assets/ceremony_showdown.mp3",
             volume: -6,
             onload: () => console.log("Showdown Sting Loaded"),
             onerror: (e) => console.warn("Showdown Sting failed to load", e)
         }).toDestination();
 
         heroFanfare = new Tone.Player({
-            url: "hero_fanfare.mp3", // Make sure your file is named exactly this!
-            volume: -2, // Slightly louder for impact
+            url: "assets/hero_fanfare.mp3",
+            volume: -2,
             onload: () => console.log("Hero Fanfare Loaded"),
             onerror: (e) => console.warn("Hero Fanfare failed to load", e)
         }).toDestination();

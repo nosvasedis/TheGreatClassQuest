@@ -113,18 +113,39 @@ export const attendanceModalsHTML = `
                 style="display: flex; flex-direction: column; height: 100%; width: 100%; align-items: center; text-align: center; position: relative;">
 
                 <div>
-                    <div id="cert-icon" style="font-size: 70px; line-height: 1; margin-bottom: 5px;"></div>
+                    <div style="display: flex; align-items: center; justify-content: center; gap: 12px; margin-bottom: 4px;">
+                        <div id="cert-icon" style="font-size: 70px; line-height: 1;"></div>
+                        <img id="cert-guild-emblem" src=""
+                             style="display: none; width: 52px; height: 52px; border-radius: 9999px; border: 3px solid rgba(255,255,255,0.9); box-shadow: 0 2px 8px rgba(0,0,0,0.35); object-fit: cover;">
+                    </div>
                     <h1 id="cert-title" style="font-family: 'Fredoka One', cursive; font-size: 44px; margin: 0;">
                         Certificate of Achievement</h1>
-                    <p style="font-size: 22px; margin-top: 5px;">PROUDLY PRESENTED TO</p>
+                    <p id="cert-subtitle"
+                       style="font-size: 16px; margin-top: 4px; letter-spacing: 0.08em; text-transform: uppercase;">
+                        The Great Class Quest • Hero Certificate
+                    </p>
+                    <p style="font-size: 22px; margin-top: 8px;">PROUDLY PRESENTED TO</p>
                 </div>
 
                 <div style="flex-grow: 1; display: flex; flex-direction: column; justify-content: center; width: 100%;">
                     <p id="cert-student-name"
                         style="font-family: 'Fredoka One', cursive; font-size: 56px; margin: 10px 0;"></p>
+
+                    <div id="cert-badges"
+                         style="display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; margin-bottom: 8px; font-size: 14px;">
+                        <span id="cert-class-name"
+                              style="padding: 4px 10px; border-radius: 9999px; background-color: rgba(255,255,255,0.16); border: 1px solid rgba(255,255,255,0.35);"></span>
+                        <span id="cert-guild-pill"
+                              style="padding: 4px 10px; border-radius: 9999px; border: 1px solid rgba(255,255,255,0.35);"></span>
+                        <span id="cert-hero-pill"
+                              style="padding: 4px 10px; border-radius: 9999px; background-color: rgba(0,0,0,0.14); border: 1px solid rgba(255,255,255,0.25);"></span>
+                    </div>
+
                     <div id="cert-text" style="font-size: 21px; margin: 10px auto; max-width: 90%;">
                         Certificate text will be generated here.
                     </div>
+                    <div id="cert-meta"
+                         style="font-size: 14px; margin-top: 6px; opacity: 0.9;"></div>
                 </div>
 
                 <div style="width: 100%; margin-top: auto; padding-top: 10px;">

@@ -2,6 +2,8 @@
 import * as state from '../../state.js';
 import * as utils from '../../utils.js';
 import * as constants from '../../constants.js';
+import { HERO_CLASSES } from '../../features/heroClasses.js';
+import { getGuildById, getGuildEmblemUrl } from '../../features/guilds.js';
 import { showAnimatedModal } from './base.js';
 import { ensureHistoryLoaded } from '../../db/actions.js';
 import { callGeminiApi } from '../../api.js';
@@ -60,12 +62,12 @@ export async function handleGenerateCertificate(studentId) {
     if (ageCategory === 'junior') stylePool = constants.juniorCertificateStyles;
     if (ageCategory === 'senior') stylePool = constants.seniorCertificateStyles;
     const randomStyle = stylePool[Math.floor(Math.random() * stylePool.length)];
-    
+
     const certTemplate = document.getElementById('certificate-template');
     certTemplate.style.borderColor = randomStyle.borderColor;
     certTemplate.style.backgroundColor = randomStyle.bgColor;
     certTemplate.style.color = randomStyle.textColor;
-    
+
     const certAvatarEl = document.getElementById('cert-avatar');
     if (student.avatar) {
         certAvatarEl.src = student.avatar;
@@ -74,9 +76,73 @@ export async function handleGenerateCertificate(studentId) {
         certAvatarEl.style.display = 'none';
     }
 
+    // --- Guild & Hero data for styling and wording ---
+    const guildId = student.guildId;
+    const guild = guildId ? getGuildById(guildId) : null;
+    const guildName = guild?.name || null;
+    const guildEmoji = guild?.emoji || '🛡️';
+    const guildMotto = guild?.motto || '';
+    const guildTraits = (guild?.traits || []).join(', ');
+
+    const heroClassId = student.heroClass || '';
+    const heroDef = heroClassId && HERO_CLASSES[heroClassId] ? HERO_CLASSES[heroClassId] : null;
+    const heroLabel = heroDef
+        ? `${heroDef.icon || ''} ${heroClassId}`.trim()
+        : (heroClassId || 'Novice');
+
+    // Crest icon + title colours
     document.getElementById('cert-icon').innerText = randomStyle.icon;
     document.getElementById('cert-icon').style.color = randomStyle.borderColor;
-    document.getElementById('cert-title').style.color = randomStyle.titleColor;
+    const titleEl = document.getElementById('cert-title');
+    titleEl.style.color = randomStyle.titleColor;
+    // Slightly different title flavour for older students
+    if (ageCategory === 'senior') {
+        titleEl.innerText = 'Quest Certificate of Achievement';
+    } else if (ageCategory === 'junior') {
+        titleEl.innerText = 'Hero of the Quest';
+    } else {
+        titleEl.innerText = 'Great Class Quest Certificate';
+    }
+
+    // Class / guild / hero badges
+    const classLabel = `${studentClass.logo || '🏰'} ${studentClass.name || ''}`.trim();
+    const classNameEl = document.getElementById('cert-class-name');
+    if (classNameEl) classNameEl.innerText = classLabel;
+
+    const guildPillEl = document.getElementById('cert-guild-pill');
+    if (guildPillEl) {
+        if (guildName) {
+            guildPillEl.innerText = `${guildEmoji} ${guildName} Guild`;
+            guildPillEl.style.display = 'inline-flex';
+            if (guild?.primary && guild?.secondary) {
+                guildPillEl.style.background = `linear-gradient(135deg, ${guild.primary} 0%, ${guild.secondary} 100%)`;
+                guildPillEl.style.color = guild.textColor || '#ffffff';
+                guildPillEl.style.boxShadow = `0 0 18px ${(guild.glow || guild.primary)}66`;
+            }
+        } else {
+            guildPillEl.innerText = 'Guild: Not yet sorted';
+            guildPillEl.style.display = 'inline-flex';
+        }
+    }
+
+    const heroPillEl = document.getElementById('cert-hero-pill');
+    if (heroPillEl) {
+        heroPillEl.innerText = heroLabel;
+    }
+
+    // Optional guild emblem crest
+    const emblemEl = document.getElementById('cert-guild-emblem');
+    if (emblemEl) {
+        const emblemUrl = guildId ? getGuildEmblemUrl(guildId) : '';
+        if (emblemUrl) {
+            emblemEl.src = emblemUrl;
+            emblemEl.style.display = 'block';
+        } else {
+            emblemEl.style.display = 'none';
+        }
+    }
+
+    // Name & signature colours
     document.getElementById('cert-student-name').style.color = randomStyle.nameColor;
     document.getElementById('cert-teacher-name').style.borderTopColor = randomStyle.borderColor;
     document.getElementById('cert-date').style.borderTopColor = randomStyle.borderColor;
@@ -94,15 +160,31 @@ export async function handleGenerateCertificate(studentId) {
     const topScoreString = topScore ? `a top score of ${topScore.scoreNumeric || topScore.scoreQualitative}` : "";
     const academicNotes = academicScores.filter(s => s.note).map(s => `(Academic note: '${s.note}')`).join(' ');
 
-    let systemPrompt = "";
-    if (ageCategory === 'junior') { 
-        systemPrompt = "You are an AI writing for a young child's (ages 7-9) achievement certificate. Use very simple English, short sentences, and a cheerful tone. Do NOT use markdown. Write 1-2 brief, simple sentences. Focus on being encouraging. If specific notes are provided, try to incorporate their theme simply.";
-    } else if (ageCategory === 'mid') { 
-        systemPrompt = "You are an AI writing for a pre-teen's (ages 9-12) certificate. Use positive, encouraging language that sounds cool and acknowledges their effort. Do NOT use markdown. Write 2 brief, well-structured sentences. Refer to specific achievements if notes are provided.";
-    } else {
-        systemPrompt = "You are an AI writing for a teenager's (ages 12+) certificate. The student is an English language learner. Use clear, positive, and inspiring language, avoiding overly complex vocabulary. The tone should respect their effort. Do NOT use markdown. Write 2 brief, powerful sentences. Use the teacher's notes and academic scores to make the message specific and impactful.";
+    // Mini meta summary printed under the AI text (not generated by AI)
+    const metaEl = document.getElementById('cert-meta');
+    if (metaEl) {
+        const leagueLabel = studentClass.questLevel ? `League: ${studentClass.questLevel}` : '';
+        const starsLabel = `Stars this month: ${monthlyStars}`;
+        const reasonLabel = topReason ? `Top virtue: ${topReason}` : '';
+        metaEl.innerText = [leagueLabel, starsLabel, reasonLabel].filter(Boolean).join(' • ');
     }
-    const userPrompt = `Write a short certificate message for ${student.name}. This month they showed great ${topReason}, earned ${monthlyStars} stars, and achieved ${topScoreString || 'good results on their trials'}. Teacher's academic notes: ${academicNotes || 'None'}. Keep it brief.`;
+
+    let systemPrompt = "";
+    if (ageCategory === 'junior') {
+        systemPrompt = "You are an AI writing for a young child's (ages 7-9) fantasy classroom achievement certificate in a world called 'The Great Class Quest'. Use very simple English, short sentences, and a cheerful, magical tone. Mention the child as a hero in their guild and class (for example 'Dragon Flame Guild' or 'Grizzly Might'), and optionally their hero role. Do NOT use markdown. Write 1-2 very short sentences (max ~12 words each). You may use 1-2 fun emojis (like ⭐, 🐻, 📚) that fit the data. Focus on encouragement, effort, and being a kind teammate.";
+    } else if (ageCategory === 'mid') {
+        systemPrompt = "You are an AI writing for a pre-teen's (ages 9-12) fantasy RPG-themed certificate in a classroom game called 'The Great Class Quest'. Use positive, encouraging language that sounds cool and acknowledges their effort over the month. Do NOT use markdown. Write 2 brief, well-structured sentences. If available, weave in their guild name, guild values (traits), and hero role, and connect stars and scores to the idea of quests, guild races, or the Hero's Challenge. You may use 1-3 fitting emojis that match the data (shields, stars, books, etc.).";
+    } else {
+        systemPrompt = "You are an AI writing for a teenager's (ages 12+) fantasy-themed certificate. The student is an English language learner playing in a classroom RPG called 'The Great Class Quest'. Use clear, positive, and inspiring language, avoiding overly complex vocabulary and not sounding childish. Do NOT use markdown. Write 2 brief, powerful sentences that respect their effort. Where appropriate, briefly reference their guild, hero role, and how their stars and academic work show growth on their quests. Emojis are optional; if you use them, use at most one subtle emoji.";
+    }
+
+    const userPrompt = `Write a short certificate message for ${student.name}.
+They are in class "${studentClass.name}" (League: ${studentClass.questLevel}).
+Guild: ${guildName || 'None yet'}${guildEmoji ? ` (${guildEmoji})` : ''}. Guild motto: "${guildMotto || 'None'}". Guild traits: ${guildTraits || 'None'}.
+Hero role: ${heroLabel}.
+This month they showed great ${topReason}, earned ${monthlyStars} stars, and achieved ${topScoreString || 'good results on their trials'}.
+Teacher's academic notes: ${academicNotes || 'None'}.
+Keep it brief but vivid, so it feels like a moment from their adventure in The Great Class Quest.`;
 
     try {
         const text = await callGeminiApi(systemPrompt, userPrompt);

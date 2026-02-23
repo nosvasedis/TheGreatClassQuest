@@ -70,5 +70,26 @@ export const guildsTabHTML = `
                         <div class="guild-lore-stats" id="guild-lore-stats"></div>
                     </div>
                 </div>
+
+                <!-- Guild Anthem Modal (shown on note button click) -->
+                <div id="guild-anthem-overlay" class="guild-anthem-overlay hidden" role="dialog" aria-modal="true">
+                    <div class="guild-anthem-overlay-bg" id="guild-anthem-overlay-bg"></div>
+                    <div class="guild-anthem-card pop-in" id="guild-anthem-card">
+                        <button class="guild-anthem-close" id="guild-anthem-close" aria-label="Close">✕</button>
+                        <div class="guild-anthem-header" id="guild-anthem-header">
+                            <div class="guild-anthem-note-icon" aria-hidden="true">🎵</div>
+                            <h3 class="guild-anthem-title font-title" id="guild-anthem-title"></h3>
+                            <p class="guild-anthem-subtitle">Sing along with your guild!</p>
+                        </div>
+                        <div class="guild-anthem-player" id="guild-anthem-player">
+                            <div class="guild-anthem-now-playing" id="guild-anthem-now-playing">
+                                <span class="guild-anthem-note-anim">♪</span>
+                                <span class="guild-anthem-now-playing-text">Now Playing…</span>
+                                <span class="guild-anthem-note-anim" style="animation-delay:0.4s">♫</span>
+                            </div>
+                        </div>
+                        <div class="guild-anthem-lyrics" id="guild-anthem-lyrics"></div>
+                    </div>
+                </div>
             </div>
 `;

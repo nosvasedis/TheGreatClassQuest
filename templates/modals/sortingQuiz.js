@@ -12,9 +12,10 @@ export const sortingQuizModalsHTML = `
         <div class="sorting-quiz-card pop-in">
             <!-- Header -->
             <div class="sorting-quiz-header">
-                <div id="sorting-quiz-question-emoji" class="sorting-quiz-question-emoji">💪</div>
+                <div id="sorting-quiz-question-emoji" class="sorting-quiz-question-emoji">✨</div>
                 <h2 id="sorting-quiz-title" class="sorting-quiz-title">Guild Sorting Quiz</h2>
                 <p class="sorting-quiz-subtitle">Discover your destiny ✨</p>
+                <span class="sorting-quiz-random-badge">🎲 Unique to you</span>
             </div>
 
             <!-- Progress dots -->

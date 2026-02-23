@@ -1,4 +1,5 @@
-// /features/guilds.js — Guild definitions, quiz content, assignment algorithm, visual helpers
+// features/guilds.js — Guild definitions and visual helpers
+// Quiz content, question pools, and guild assignment logic live in guildQuiz.js
 
 /** Guild IDs (stable for Firestore and state) */
 export const GUILD_IDS = ['dragon_flame', 'grizzly_might', 'owl_wisdom', 'phoenix_rising'];
@@ -13,10 +14,26 @@ export const GUILDS = {
         secondary: '#f97316',
         glow: '#ef4444',
         textColor: '#fff',
-        emblem: 'dragonflame.webp',
-        sound: './dragon.mp3',
+        emblem: 'assets/dragonflame.webp',
+        sound: './assets/dragon.mp3',
+        anthem: './assets/dragon_anthem.mp3',
         traits: ['Courage', 'Fire', 'Bold'],
         motto: 'Fear nothing. Burn bright.',
+        anthemLyrics: [
+            { type: 'chorus', lines: [
+                { text: 'Who\'s brave and bold?',    time: 1.6  },
+                { text: '— Dragon Flame!',            time: 4.9  },
+                { text: 'Who burns so bright?',       time: 8.6  },
+                { text: '— Dragon Flame!',            time: 13.4 },
+            ]},
+            { type: 'verse', lines: [
+                { text: 'Through the dark we fly,',  time: 17.3 },
+                { text: 'heads up, fire high.',       time: 21.2 },
+            ]},
+            { type: 'chorus', lines: [
+                { text: 'Fear nothing. Burn bright.', time: 23.9 },
+            ]},
+        ],
     },
     grizzly_might: {
         id: 'grizzly_might',
@@ -26,10 +43,23 @@ export const GUILDS = {
         secondary: '#d97706',
         glow: '#f59e0b',
         textColor: '#fff',
-        emblem: 'grizzlymight.webp',
-        sound: './bear.mp3',
+        emblem: 'assets/grizzlymight.webp',
+        sound: './assets/bear.mp3',
+        anthem: './assets/bear_anthem.mp3',
         traits: ['Strength', 'Teamwork', 'Steadfast'],
         motto: 'Stand together. Stand strong.',
+        anthemLyrics: [
+            { type: 'verse', lines: [
+                { text: 'One bear is strong.',            time: 0.0  },
+                { text: 'Two bears are stronger.',        time: 4.7  },
+                { text: 'All of us together—',            time: 9.7  },
+                { text: 'we go farther.',                  time: 14.5 },
+            ]},
+            { type: 'chorus', lines: [
+                { text: 'Side by side, we stand.',        time: 19.3 },
+                { text: 'Stand together. Stand strong.',  time: 23.9 },
+            ]},
+        ],
     },
     owl_wisdom: {
         id: 'owl_wisdom',
@@ -39,10 +69,25 @@ export const GUILDS = {
         secondary: '#3b82f6',
         glow: '#60a5fa',
         textColor: '#fff',
-        emblem: 'owlwisdom.webp',
-        sound: './owl.mp3',
+        emblem: 'assets/owlwisdom.webp',
+        sound: './assets/owl.mp3',
+        anthem: './assets/owl_anthem.mp3',
         traits: ['Wisdom', 'Curiosity', 'Calm'],
         motto: 'Knowledge is power.',
+        anthemLyrics: [
+            { type: 'verse', lines: [
+                { text: 'When the moon is in the sky,',           time: 0.0  },
+                { text: 'we open our eyes and ask why.',          time: 3.8  },
+            ]},
+            { type: 'verse', lines: [
+                { text: 'Every book, every star—',                time: 7.7  },
+                { text: 'Knowledge is power.',                    time: 11.6 },
+            ]},
+            { type: 'chorus', lines: [
+                { text: 'We learn and grow, we wonder and know.', time: 14.9 },
+                { text: 'Knowledge is power.',                    time: 18.9 },
+            ]},
+        ],
     },
     phoenix_rising: {
         id: 'phoenix_rising',
@@ -52,125 +97,31 @@ export const GUILDS = {
         secondary: '#ec4899',
         glow: '#f472b6',
         textColor: '#fff',
-        emblem: 'phoenixrising.webp',
-        sound: './phoenix.mp3',
+        emblem: 'assets/phoenixrising.webp',
+        sound: './assets/phoenix.mp3',
+        anthem: './assets/phoenix_anthem.mp3',
         traits: ['Resilience', 'Renewal', 'Hope'],
         motto: 'Fall down seven, rise up eight.',
+        anthemLyrics: [
+            { type: 'verse', lines: [
+                { text: 'From the ashes we rise up high.',     time: 2.2  },
+                { text: 'Fall down seven, rise up eight.',     time: 6.2  },
+            ]},
+            { type: 'verse', lines: [
+                { text: 'Spread our wings and touch the sky.', time: 9.0  },
+                { text: 'Fall down seven, rise up eight.',     time: 12.9 },
+            ]},
+            { type: 'chorus', lines: [
+                { text: 'Phoenix Rising, we shine so bright—', time: 16.1 },
+                { text: 'fall down seven, rise up eight.',     time: 20.0 },
+            ]},
+        ],
     },
 };
 
-/** Default (mid/senior) quiz questions for Greek EFL. Each option maps to guild weight deltas. */
-const SORTING_QUIZ_QUESTIONS_DEFAULT = [
-    {
-        id: 'q1',
-        emoji: '💪',
-        question: 'When something is hard, I usually…',
-        options: [
-            { text: 'Try again until I get it!', guildWeights: { phoenix_rising: 2, dragon_flame: 1 } },
-            { text: 'Ask a friend to help me.', guildWeights: { grizzly_might: 2, owl_wisdom: 1 } },
-            { text: 'Think carefully first.', guildWeights: { owl_wisdom: 2, phoenix_rising: 1 } },
-            { text: 'Jump in and try my best!', guildWeights: { dragon_flame: 2, grizzly_might: 1 } },
-        ],
-    },
-    {
-        id: 'q2',
-        emoji: '📖',
-        question: 'My favourite kind of story is…',
-        options: [
-            { text: 'Adventure and heroes!', guildWeights: { dragon_flame: 2, phoenix_rising: 1 } },
-            { text: 'Animals and nature.', guildWeights: { grizzly_might: 2, owl_wisdom: 1 } },
-            { text: 'Mysteries and learning new things.', guildWeights: { owl_wisdom: 2, dragon_flame: 1 } },
-            { text: 'Stories where someone never gives up.', guildWeights: { phoenix_rising: 2, grizzly_might: 1 } },
-        ],
-    },
-    {
-        id: 'q3',
-        emoji: '🎓',
-        question: 'In class I like to…',
-        options: [
-            { text: 'Be the first to answer!', guildWeights: { dragon_flame: 2, phoenix_rising: 1 } },
-            { text: 'Work with my classmates.', guildWeights: { grizzly_might: 2, owl_wisdom: 1 } },
-            { text: 'Read and discover new words.', guildWeights: { owl_wisdom: 2, phoenix_rising: 1 } },
-            { text: 'Keep trying even when it\'s difficult.', guildWeights: { phoenix_rising: 2, grizzly_might: 1 } },
-        ],
-    },
-    {
-        id: 'q4',
-        emoji: '🐾',
-        question: 'If I could be an animal, I would be…',
-        options: [
-            { text: 'A dragon — strong and brave!', guildWeights: { dragon_flame: 2, grizzly_might: 1 } },
-            { text: 'A bear — strong and kind to friends.', guildWeights: { grizzly_might: 2, owl_wisdom: 1 } },
-            { text: 'An owl — wise and calm.', guildWeights: { owl_wisdom: 2, dragon_flame: 1 } },
-            { text: 'A phoenix — I always rise again!', guildWeights: { phoenix_rising: 2, dragon_flame: 1 } },
-        ],
-    },
-    {
-        id: 'q5',
-        emoji: '🌟',
-        question: 'The best thing about learning English is…',
-        options: [
-            { text: 'Showing I can do it!', guildWeights: { dragon_flame: 2, phoenix_rising: 1 } },
-            { text: 'Doing activities with friends.', guildWeights: { grizzly_might: 2, owl_wisdom: 1 } },
-            { text: 'Finding out new things.', guildWeights: { owl_wisdom: 2, phoenix_rising: 1 } },
-            { text: 'Getting better step by step.', guildWeights: { phoenix_rising: 2, grizzly_might: 1 } },
-        ],
-    },
-];
-
-/** Junior A/B: simpler wording, same structure and guildWeights so assignment logic is unchanged. */
-const SORTING_QUIZ_QUESTIONS_JUNIOR = [
-    { id: 'q1', emoji: '💪', question: 'When something is hard, I…', options: [
-        { text: 'Try again and again!', guildWeights: { phoenix_rising: 2, dragon_flame: 1 } },
-        { text: 'Ask a friend to help.', guildWeights: { grizzly_might: 2, owl_wisdom: 1 } },
-        { text: 'Think first.', guildWeights: { owl_wisdom: 2, phoenix_rising: 1 } },
-        { text: 'Just try my best!', guildWeights: { dragon_flame: 2, grizzly_might: 1 } },
-    ]},
-    { id: 'q2', emoji: '📖', question: 'I like stories about…', options: [
-        { text: 'Adventures and heroes!', guildWeights: { dragon_flame: 2, phoenix_rising: 1 } },
-        { text: 'Animals and nature.', guildWeights: { grizzly_might: 2, owl_wisdom: 1 } },
-        { text: 'Mysteries and new things.', guildWeights: { owl_wisdom: 2, dragon_flame: 1 } },
-        { text: 'Someone who never gives up.', guildWeights: { phoenix_rising: 2, grizzly_might: 1 } },
-    ]},
-    { id: 'q3', emoji: '🎓', question: 'In class I like to…', options: [
-        { text: 'Answer first!', guildWeights: { dragon_flame: 2, phoenix_rising: 1 } },
-        { text: 'Work with my friends.', guildWeights: { grizzly_might: 2, owl_wisdom: 1 } },
-        { text: 'Read and learn new words.', guildWeights: { owl_wisdom: 2, phoenix_rising: 1 } },
-        { text: 'Keep trying when it\'s difficult.', guildWeights: { phoenix_rising: 2, grizzly_might: 1 } },
-    ]},
-    { id: 'q4', emoji: '🐾', question: 'If I were an animal, I\'d be…', options: [
-        { text: 'A dragon — strong and brave!', guildWeights: { dragon_flame: 2, grizzly_might: 1 } },
-        { text: 'A bear — strong and kind.', guildWeights: { grizzly_might: 2, owl_wisdom: 1 } },
-        { text: 'An owl — wise and calm.', guildWeights: { owl_wisdom: 2, dragon_flame: 1 } },
-        { text: 'A phoenix — I rise again!', guildWeights: { phoenix_rising: 2, dragon_flame: 1 } },
-    ]},
-    { id: 'q5', emoji: '🌟', question: 'The best thing about English is…', options: [
-        { text: 'Showing I can do it!', guildWeights: { dragon_flame: 2, phoenix_rising: 1 } },
-        { text: 'Doing things with friends.', guildWeights: { grizzly_might: 2, owl_wisdom: 1 } },
-        { text: 'Learning new things.', guildWeights: { owl_wisdom: 2, phoenix_rising: 1 } },
-        { text: 'Getting better step by step.', guildWeights: { phoenix_rising: 2, grizzly_might: 1 } },
-    ]},
-];
-
-/** For backward compatibility: default export is the default set. */
-export const SORTING_QUIZ_QUESTIONS = SORTING_QUIZ_QUESTIONS_DEFAULT;
-
-/**
- * Returns the age/league-appropriate question set for the sorting quiz.
- * Junior A/B get simpler wording; other leagues get the default set.
- * @param {string} [questLevel] - Class quest level (e.g. "Junior A", "A", "B")
- * @returns {Array} Question array with same structure (id, question, options with text + guildWeights)
- */
-export function getQuestionsForLevel(questLevel) {
-    if (!questLevel) return SORTING_QUIZ_QUESTIONS_DEFAULT;
-    const level = String(questLevel).trim();
-    if (level === 'Junior A' || level === 'Junior B') return SORTING_QUIZ_QUESTIONS_JUNIOR;
-    return SORTING_QUIZ_QUESTIONS_DEFAULT;
-}
-
 /**
  * Get guild by id.
- * @param {string} id - Guild id
+ * @param {string} id
  * @returns {object|undefined}
  */
 export function getGuildById(id) {
@@ -178,7 +129,7 @@ export function getGuildById(id) {
 }
 
 /**
- * Get CSS color variables / inline styles for a guild.
+ * Get CSS color variables for a guild.
  * @param {string} guildId
  * @returns {{ primary: string, secondary: string }}
  */
@@ -188,7 +139,7 @@ export function getGuildColors(guildId) {
 }
 
 /**
- * Get emblem image URL (project root or assets path).
+ * Get emblem image URL.
  * @param {string} guildId
  * @returns {string}
  */
@@ -199,9 +150,9 @@ export function getGuildEmblemUrl(guildId) {
 }
 
 /**
- * Build a small guild badge HTML (emblem img or initial).
+ * Build a small guild badge HTML (emblem img or initial fallback).
  * @param {string} guildId
- * @param {string} [sizeClass] - e.g. 'w-8 h-8'
+ * @param {string} [sizeClass]
  * @returns {string}
  */
 export function getGuildBadgeHtml(guildId, sizeClass = 'w-8 h-8') {
@@ -215,37 +166,4 @@ export function getGuildBadgeHtml(guildId, sizeClass = 'w-8 h-8') {
     }
     const initial = name.charAt(0);
     return `<div class="${cssClass} flex items-center justify-center font-bold text-sm" title="${name}" style="background-color: ${g.primary}20; border-color: ${g.primary}; color: ${g.primary}">${initial}</div>`;
-}
-
-/**
- * Assign guild from quiz answers. Returns guildId with highest weighted score.
- * Uses the same question set that was shown (so level-specific sets work).
- * @param {Array<number>} selectedOptionIndices - Per-question selected option index (0-based)
- * @param {string} [classId] - If provided, balance by current guild counts in this class (future use)
- * @param {Array} [questions] - Question set used for this quiz (must match what was shown; defaults to SORTING_QUIZ_QUESTIONS_DEFAULT)
- * @returns {string} guildId
- */
-export function assignGuildFromQuizResults(selectedOptionIndices, classId = null, questions = SORTING_QUIZ_QUESTIONS_DEFAULT) {
-    const scores = { dragon_flame: 0, grizzly_might: 0, owl_wisdom: 0, phoenix_rising: 0 };
-    (questions || SORTING_QUIZ_QUESTIONS_DEFAULT).forEach((q, qIndex) => {
-        const choice = selectedOptionIndices[qIndex];
-        const option = q.options[choice];
-        if (option && option.guildWeights) {
-            Object.entries(option.guildWeights).forEach(([gid, w]) => {
-                if (GUILD_IDS.includes(gid)) scores[gid] += w;
-            });
-        }
-    });
-
-    // Optional balance: if classId provided, we could add a small nudge toward less-populated guilds.
-    // For now we just take the max score; tie-break by first in GUILD_IDS.
-    let bestId = GUILD_IDS[0];
-    let bestScore = scores[bestId];
-    GUILD_IDS.forEach((gid) => {
-        if (scores[gid] > bestScore) {
-            bestScore = scores[gid];
-            bestId = gid;
-        }
-    });
-    return bestId;
 }

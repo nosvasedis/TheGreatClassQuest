@@ -123,24 +123,44 @@ export async function handleGenerateCertificate(studentId) {
         titleEl.innerText = 'Great Class Quest Certificate';
     }
 
-    // Class / guild / hero badges
+    // Hero-class pill colors (by role / theme)
+    const HERO_PILL_COLORS = {
+        Guardian: { bg: '#2563eb', color: '#fff', border: '#1d4ed8' },
+        Sage: { bg: '#7c3aed', color: '#fff', border: '#6d28d9' },
+        Paladin: { bg: '#dc2626', color: '#fff', border: '#b91c1c' },
+        Artificer: { bg: '#0d9488', color: '#fff', border: '#0f766e' },
+        Scholar: { bg: '#b45309', color: '#fff', border: '#92400e' },
+        Weaver: { bg: '#059669', color: '#fff', border: '#047857' },
+        Nomad: { bg: '#475569', color: '#f1f5f9', border: '#334155' },
+    };
+    const defaultHeroPill = { bg: '#4b5563', color: '#f9fafb', border: '#374151' };
+
+    // Class pill — friendly “class/team” color (e.g. emerald)
     const classLabel = `${studentClass.logo || '🏰'} ${studentClass.name || ''}`.trim();
     const classNameEl = document.getElementById('cert-class-name');
-    if (classNameEl) classNameEl.innerText = classLabel;
+    if (classNameEl) {
+        classNameEl.innerText = classLabel;
+        classNameEl.style.background = 'linear-gradient(135deg, #059669 0%, #10b981 100%)';
+        classNameEl.style.color = '#fff';
+        classNameEl.style.border = '1px solid rgba(255,255,255,0.4)';
+        classNameEl.style.boxShadow = '0 0 12px rgba(5,150,105,0.4)';
+    }
 
     const guildPillEl = document.getElementById('cert-guild-pill');
     if (guildPillEl) {
-        if (guildName) {
+        guildPillEl.style.display = 'inline-flex';
+        if (guildName && guild?.primary && guild?.secondary) {
             guildPillEl.innerText = `${guildEmoji} ${guildName} Guild`;
-            guildPillEl.style.display = 'inline-flex';
-            if (guild?.primary && guild?.secondary) {
-                guildPillEl.style.background = `linear-gradient(135deg, ${guild.primary} 0%, ${guild.secondary} 100%)`;
-                guildPillEl.style.color = guild.textColor || '#ffffff';
-                guildPillEl.style.boxShadow = `0 0 18px ${(guild.glow || guild.primary)}66`;
-            }
+            guildPillEl.style.background = `linear-gradient(135deg, ${guild.primary} 0%, ${guild.secondary} 100%)`;
+            guildPillEl.style.color = guild.textColor || '#ffffff';
+            guildPillEl.style.border = `1px solid rgba(255,255,255,0.4)`;
+            guildPillEl.style.boxShadow = `0 0 18px ${(guild.glow || guild.primary)}66`;
         } else {
             guildPillEl.innerText = 'Guild: Not yet sorted';
-            guildPillEl.style.display = 'inline-flex';
+            guildPillEl.style.background = 'linear-gradient(135deg, #475569 0%, #64748b 100%)';
+            guildPillEl.style.color = '#f1f5f9';
+            guildPillEl.style.border = '1px solid rgba(255,255,255,0.25)';
+            guildPillEl.style.boxShadow = 'none';
         }
     }
 
@@ -148,11 +168,20 @@ export async function handleGenerateCertificate(studentId) {
     if (heroPillEl) {
         const levelSuffix = heroLevel > 0 ? ` · Lv.${heroLevel}` : '';
         heroPillEl.innerText = `${heroLabel}${levelSuffix}`;
+        const heroColors = (heroClassId && HERO_PILL_COLORS[heroClassId]) ? HERO_PILL_COLORS[heroClassId] : defaultHeroPill;
+        heroPillEl.style.background = heroColors.bg;
+        heroPillEl.style.color = heroColors.color;
+        heroPillEl.style.border = `1px solid ${heroColors.border}`;
+        heroPillEl.style.boxShadow = `0 0 12px ${heroColors.bg}66`;
     }
 
     const starsPillEl = document.getElementById('cert-stars-pill');
     if (starsPillEl) {
         starsPillEl.innerText = `⭐ ${monthlyStars} Stars This Month`;
+        starsPillEl.style.background = 'linear-gradient(135deg, #d97706 0%, #f59e0b 100%)';
+        starsPillEl.style.color = '#fff';
+        starsPillEl.style.border = '1px solid rgba(255,255,255,0.4)';
+        starsPillEl.style.boxShadow = '0 0 12px rgba(217,119,6,0.45)';
     }
 
     // Optional guild emblem crest

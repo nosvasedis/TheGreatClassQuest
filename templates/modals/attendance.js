@@ -136,17 +136,17 @@ export const attendanceModalsHTML = `
             </div>
 
             <!-- Proudly Presented To + Name -->
-            <div style="flex-shrink:0; text-align:center;">
+            <div style="flex-shrink:0; text-align:center; margin-bottom:4px;">
                 <p style="font-size:11px; text-transform:uppercase; letter-spacing:0.2em; opacity:0.58; margin:0 0 3px;">Proudly Presented To</p>
                 <p id="cert-student-name" style="font-family:'Fredoka One',cursive; font-size:46px; margin:0; line-height:1.2;"></p>
             </div>
 
-            <!-- Badges row: class, guild, hero, stars -->
-            <div id="cert-badges" style="display:flex; flex-wrap:wrap; justify-content:center; gap:5px; margin:7px 0 4px; font-size:11.5px; font-weight:600; flex-shrink:0;">
-                <span id="cert-class-name" style="padding:3px 11px; border-radius:9999px; background:rgba(255,255,255,0.24); border:1px solid rgba(255,255,255,0.5);"></span>
-                <span id="cert-guild-pill" style="padding:3px 11px; border-radius:9999px; background:rgba(255,255,255,0.2); border:1px solid rgba(255,255,255,0.45);"></span>
-                <span id="cert-hero-pill" style="padding:3px 11px; border-radius:9999px; background:rgba(0,0,0,0.09); border:1px solid rgba(255,255,255,0.32);"></span>
-                <span id="cert-stars-pill" style="padding:3px 11px; border-radius:9999px; background:rgba(0,0,0,0.09); border:1px solid rgba(255,255,255,0.32);"></span>
+            <!-- Badges row: class, guild, hero, stars (positioned well below the name) -->
+            <div id="cert-badges" style="display:flex; flex-wrap:wrap; justify-content:center; align-items:center; gap:8px; margin:22px 0 12px; font-size:11.5px; font-weight:600; flex-shrink:0;">
+                <span id="cert-class-name" class="cert-pill" style="display:inline-flex; align-items:center; justify-content:center; padding:5px 14px; border-radius:9999px; text-align:center;"></span>
+                <span id="cert-guild-pill" class="cert-pill" style="display:inline-flex; align-items:center; justify-content:center; padding:5px 14px; border-radius:9999px; text-align:center;"></span>
+                <span id="cert-hero-pill" class="cert-pill" style="display:inline-flex; align-items:center; justify-content:center; padding:5px 14px; border-radius:9999px; text-align:center;"></span>
+                <span id="cert-stars-pill" class="cert-pill" style="display:inline-flex; align-items:center; justify-content:center; padding:5px 14px; border-radius:9999px; text-align:center;"></span>
             </div>
 
             <!-- AI-generated certificate text -->

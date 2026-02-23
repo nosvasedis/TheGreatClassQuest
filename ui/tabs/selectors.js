@@ -125,7 +125,7 @@ export function renderCalendarTab(customLogs = null) {
         const isToday = today.toDateString() === day.toDateString();
         const dateString = utils.getDDMMYYYY(day);
 
-        const logsForThisDay = logsToRender.filter(log => utils.getDDMMYYYY(utils.parseDDMMYYYY(log.date)) === dateString);
+        const logsForThisDay = logsToRender.filter(log => utils.datesMatch(log.date, dateString));
         const totalStarsThisDay = logsForThisDay.reduce((sum, log) => sum + (log.stars || 0), 0);
 
         const dayCell = document.createElement('div');
@@ -184,7 +184,7 @@ export function renderCalendarTab(customLogs = null) {
                 'Five-Sentence Saga': '📜 Saga'
             };
 
-            const questEventsOnThisDay = state.get('allQuestEvents').filter(e => e.date === dateString);
+            const questEventsOnThisDay = state.get('allQuestEvents').filter(e => utils.datesMatch(e.date, dateString));
 
             // --- NEW: Render Events as Banners (Outside Scroll) ---
             let questEventsHtml = questEventsOnThisDay.map(e => {

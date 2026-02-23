@@ -37,13 +37,52 @@ export function openAvatarMaker(studentId) {
         deleteBtn.classList.add('hidden');
     }
     
-    const creatures = ['Fairy', 'Wizard', 'Witch', 'Elf', 'Dwarf', 'Goblin', 'Knight', 'Dragon', 'Unicorn', 'Robot', 'Alien', 'Mermaid', 'Gnome', 'Prince', 'Princess', 'Pirate', 'Superhero'];
-    const colors = ['Red', 'Blue', 'Green', 'Yellow', 'Purple', 'Orange', 'Pink', 'Turquoise', 'Black', 'White', 'Grey', 'Rainbow'];
-    const accessories = ['None', 'Magic Wand', 'Big Glasses', 'Flower Crown', 'Pointy Hat', 'Shiny Sword', 'Glowing Book', 'Headphones', 'Small Backpack'];
-    
-    document.getElementById('avatar-creature-pool').innerHTML = creatures.map(c => `<button class="avatar-maker-option-btn" data-value="${c}">${c}</button>`).join('');
-    document.getElementById('avatar-color-pool').innerHTML = colors.map(c => `<button class="avatar-maker-option-btn" data-value="${c}">${c}</button>`).join('');
-    document.getElementById('avatar-accessory-pool').innerHTML = accessories.map(a => `<button class="avatar-maker-option-btn" data-value="${a}">${a}</button>`).join('');
+    const creatures = [
+        { value: 'Fairy', icon: '🧚' },     { value: 'Wizard', icon: '🧙' },
+        { value: 'Witch', icon: '🧙‍♀️' },   { value: 'Elf', icon: '🧝' },
+        { value: 'Dwarf', icon: '⛏️' },      { value: 'Goblin', icon: '👺' },
+        { value: 'Knight', icon: '🗡️' },    { value: 'Dragon', icon: '🐉' },
+        { value: 'Unicorn', icon: '🦄' },    { value: 'Robot', icon: '🤖' },
+        { value: 'Alien', icon: '👽' },      { value: 'Mermaid', icon: '🧜' },
+        { value: 'Gnome', icon: '🍄' },      { value: 'Prince', icon: '🤴' },
+        { value: 'Princess', icon: '👸' },   { value: 'Pirate', icon: '🏴‍☠️' },
+        { value: 'Superhero', icon: '🦸' },
+    ];
+    const colors = [
+        { value: 'Red', hex: '#ef4444' },       { value: 'Blue', hex: '#3b82f6' },
+        { value: 'Green', hex: '#22c55e' },      { value: 'Yellow', hex: '#eab308' },
+        { value: 'Purple', hex: '#a855f7' },     { value: 'Orange', hex: '#f97316' },
+        { value: 'Pink', hex: '#ec4899' },       { value: 'Turquoise', hex: '#14b8a6' },
+        { value: 'Black', hex: '#374151' },      { value: 'White', hex: '#e5e7eb' },
+        { value: 'Grey', hex: '#9ca3af' },       { value: 'Rainbow', hex: null },
+    ];
+    const accessories = [
+        { value: 'None', icon: '✨' },           { value: 'Magic Wand', icon: '🪄' },
+        { value: 'Big Glasses', icon: '👓' },    { value: 'Flower Crown', icon: '🌸' },
+        { value: 'Pointy Hat', icon: '🎩' },     { value: 'Shiny Sword', icon: '⚔️' },
+        { value: 'Glowing Book', icon: '📚' },   { value: 'Headphones', icon: '🎧' },
+        { value: 'Small Backpack', icon: '🎒' },
+    ];
+
+    document.getElementById('avatar-creature-pool').innerHTML = creatures.map(c =>
+        `<button class="avatar-maker-option-btn" data-value="${c.value}">${c.icon} ${c.value}</button>`
+    ).join('');
+
+    document.getElementById('avatar-color-pool').innerHTML = colors.map(c => {
+        const bg = c.hex ?? 'linear-gradient(90deg,#ef4444,#f97316,#eab308,#22c55e,#3b82f6,#a855f7)';
+        return `<button class="avatar-maker-option-btn avatar-color-btn" data-value="${c.value}">
+            <span class="avatar-color-swatch" style="background:${bg};"></span>${c.value}
+        </button>`;
+    }).join('');
+
+    document.getElementById('avatar-accessory-pool').innerHTML = accessories.map(a =>
+        `<button class="avatar-maker-option-btn" data-value="${a.value}">${a.icon} ${a.value}</button>`
+    ).join('');
+
+    // Reset step checkmarks
+    ['creature', 'color', 'accessory'].forEach(p => {
+        document.getElementById(`step-${p}-check`)?.classList.add('hidden');
+    });
 
     const placeholder = document.getElementById('avatar-maker-placeholder');
     const loader = document.getElementById('avatar-maker-loader');
@@ -75,6 +114,9 @@ export function handleAvatarOptionSelect(event, pool) {
     btn.classList.add('selected');
 
     avatarMakerData[pool] = btn.dataset.value;
+
+    // Light up the step checkmark
+    document.getElementById(`step-${pool}-check`)?.classList.remove('hidden');
 
     if (avatarMakerData.creature && avatarMakerData.color && avatarMakerData.accessory) {
         document.getElementById('avatar-generate-btn').disabled = false;

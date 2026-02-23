@@ -520,8 +520,9 @@ export function renderStudentLeaderboardTab() {
         let acadCount = 0;
         studentScores.forEach(s => {
             if (!s.date) return;
-            const sDate = new Date(s.date);
-            if (sDate.getMonth() === currentMonthIndex && sDate.getFullYear() === currentYear) {
+            const sDate = utils.parseFlexibleDate(s.date);
+            if (!sDate || (sDate.getMonth() !== currentMonthIndex || sDate.getFullYear() !== currentYear)) return;
+            {
                 let val = 0;
                 if (s.maxScore > 0 && s.scoreNumeric !== null) val = (s.scoreNumeric / s.maxScore) * 100;
                 else if (s.scoreQualitative === "Great!!!") val = 100;
@@ -534,8 +535,8 @@ export function renderStudentLeaderboardTab() {
         // Use the centralized helper for the tie-breaker specific stats
         const tieBreakerStats = utils.calculateStudentStats(studentId, monthlyLogs, studentScores.filter(s => {
             if (!s.date) return false;
-            const sDate = new Date(s.date);
-            return sDate.getMonth() === currentMonthIndex && sDate.getFullYear() === currentYear;
+            const sDate = utils.parseFlexibleDate(s.date);
+            return sDate && sDate.getMonth() === currentMonthIndex && sDate.getFullYear() === currentYear;
         }));
 
         return {

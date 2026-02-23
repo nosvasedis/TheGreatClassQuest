@@ -68,6 +68,12 @@ export async function handleGenerateCertificate(studentId) {
     certTemplate.style.backgroundColor = randomStyle.bgColor;
     certTemplate.style.color = randomStyle.textColor;
 
+    // Style the corner ornaments to match the border colour
+    ['cert-corner-tl', 'cert-corner-tr', 'cert-corner-bl', 'cert-corner-br'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.style.borderColor = randomStyle.borderColor;
+    });
+
     const certAvatarEl = document.getElementById('cert-avatar');
     if (student.avatar) {
         certAvatarEl.src = student.avatar;
@@ -89,6 +95,11 @@ export async function handleGenerateCertificate(studentId) {
     const heroLabel = heroDef
         ? `${heroDef.icon || ''} ${heroClassId}`.trim()
         : (heroClassId || 'Novice');
+
+    // Extra progression data for richer certificate
+    const scoreData = state.get('allStudentScores').find(sc => sc.id === studentId);
+    const heroLevel = scoreData?.heroLevel || 0;
+    const totalStarsAllTime = scoreData?.totalStars || 0;
 
     // Crest icon + title colours
     document.getElementById('cert-icon').innerText = randomStyle.icon;
@@ -127,7 +138,13 @@ export async function handleGenerateCertificate(studentId) {
 
     const heroPillEl = document.getElementById('cert-hero-pill');
     if (heroPillEl) {
-        heroPillEl.innerText = heroLabel;
+        const levelSuffix = heroLevel > 0 ? ` · Lv.${heroLevel}` : '';
+        heroPillEl.innerText = `${heroLabel}${levelSuffix}`;
+    }
+
+    const starsPillEl = document.getElementById('cert-stars-pill');
+    if (starsPillEl) {
+        starsPillEl.innerText = `⭐ ${monthlyStars} Stars This Month`;
     }
 
     // Optional guild emblem crest
@@ -181,8 +198,8 @@ export async function handleGenerateCertificate(studentId) {
     const userPrompt = `Write a short certificate message for ${student.name}.
 They are in class "${studentClass.name}" (League: ${studentClass.questLevel}).
 Guild: ${guildName || 'None yet'}${guildEmoji ? ` (${guildEmoji})` : ''}. Guild motto: "${guildMotto || 'None'}". Guild traits: ${guildTraits || 'None'}.
-Hero role: ${heroLabel}.
-This month they showed great ${topReason}, earned ${monthlyStars} stars, and achieved ${topScoreString || 'good results on their trials'}.
+Hero role: ${heroLabel}${heroLevel > 0 ? ` (Hero Level ${heroLevel})` : ''}.
+This month they showed great ${topReason}, earned ${monthlyStars} stars${totalStarsAllTime > 0 ? ` (${totalStarsAllTime} total stars on their journey)` : ''}, and achieved ${topScoreString || 'good results on their trials'}.
 Teacher's academic notes: ${academicNotes || 'None'}.
 Keep it brief but vivid, so it feels like a moment from their adventure in The Great Class Quest.`;
 

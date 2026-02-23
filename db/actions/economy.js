@@ -20,7 +20,7 @@ import {
 import * as state from '../../state.js';
 import { showToast } from '../../ui/effects.js';
 import { callGeminiApi, callCloudflareAiImageApi } from '../../api.js';
-import { getAgeGroupForLeague, getStartOfMonthString, compressImageBase64, simpleHashCode } from '../../utils.js';
+import { getAgeGroupForLeague, getStartOfMonthString, compressImageBase64, simpleHashCode, parseFlexibleDate } from '../../utils.js';
 // GUILD_IDS not needed at module level but kept for reference
 
 // --- THE ECONOMY (SHOP & INVENTORY) ---
@@ -338,17 +338,17 @@ export async function handleBulkSaveTrial() {
             // Dictation Bonuses
             const dictationCandidates = potentialStarfallStudents.filter(p => p.type === 'dictation');
             if (dictationCandidates.length > 0) {
-                const currentMonthKey = date.substring(0, 7); 
-                
+                const refDate = parseFlexibleDate(date);
+                const refYear = refDate ? refDate.getFullYear() : 0;
+                const refMonth = refDate ? refDate.getMonth() : -1;
+
                 dictationCandidates.forEach(cand => {
-                    const studentScoresThisMonth = state.get('allWrittenScores').filter(s => 
-                        s.studentId === cand.studentId && 
-                        s.type === 'dictation' &&
-                        s.date.startsWith(currentMonthKey)
-                    );
-                    
+                    const studentScoresThisMonth = state.get('allWrittenScores').filter(s => {
+                        const d = parseFlexibleDate(s.date);
+                        return s.studentId === cand.studentId && s.type === 'dictation' && d && d.getFullYear() === refYear && d.getMonth() === refMonth;
+                    });
+
                     let highCount = 1; // Current one counts
-                    
                     if (isJunior) {
                         highCount += studentScoresThisMonth.filter(s => s.scoreQualitative === 'Great!!!').length;
                     } else {
@@ -356,12 +356,10 @@ export async function handleBulkSaveTrial() {
                     }
 
                     if (highCount >= 3) {
-                        const bonusLogsThisMonth = state.get('allAwardLogs').filter(log => 
-                            log.studentId === cand.studentId && 
-                            log.reason === 'scholar_s_bonus' && 
-                            log.date.startsWith(currentMonthKey) &&
-                            log.note && log.note.includes('dictation')
-                        ).length;
+                        const bonusLogsThisMonth = state.get('allAwardLogs').filter(log => {
+                            const d = parseFlexibleDate(log.date);
+                            return log.studentId === cand.studentId && log.reason === 'scholar_s_bonus' && d && d.getFullYear() === refYear && d.getMonth() === refMonth && log.note && log.note.includes('dictation');
+                        }).length;
 
                         if (bonusLogsThisMonth < 2) { 
                             const s = state.get('allStudents').find(st => st.id === cand.studentId);

@@ -42,21 +42,8 @@ export async function showLogbookModal(dateString, isOndemand = false) {
         // Old way: utils.getDDMMYYYY(utils.parseDDMMYYYY(log.date)) === dateString
         // New way: direct string comparison. Much faster and less error-prone.
         // FIX: Robust Date Comparison
-    // 1. Create a standardized timestamp for the day selected on the calendar
-    const targetTime = utils.parseDDMMYYYY(dateString).setHours(0, 0, 0, 0);
-
-    // 2. Filter logs by comparing their parsed time, not just the text string
-    logs = state.get('allAwardLogs').filter(log => {
-        // Exact match (Fastest)
-        if (log.date === dateString) return true;
-        
-        // Parsing match (Handles YYYY-MM-DD, MM/DD/YYYY, etc.)
-        if (log.date) {
-            const logTime = utils.parseDDMMYYYY(log.date).setHours(0, 0, 0, 0);
-            return logTime === targetTime;
-        }
-        return false;
-    });
+    // Use smart date parser so any format (DD-MM-YYYY, YYYY-MM-DD, etc.) matches correctly
+    logs = state.get('allAwardLogs').filter(log => log.date && utils.datesMatch(log.date, dateString));
     }
     
     const reasonColors = { teamwork: 'text-purple-600', creativity: 'text-pink-600', respect: 'text-green-600', focus: 'text-yellow-600', correction: 'text-gray-500', welcome_back: 'text-cyan-600', story_weaver: 'text-cyan-600', scholar_s_bonus: 'text-amber-700' };
@@ -103,7 +90,7 @@ export async function showLogbookModal(dateString, isOndemand = false) {
             const student = state.get('allStudents').find(s => s.id === log.studentId);
             
             // --- ADDED: Check if this student was the Hero of THIS specific day ---
-            const dayAdventureLog = state.get('allAdventureLogs').find(l => l.classId === log.classId && l.date === dateString);
+            const dayAdventureLog = state.get('allAdventureLogs').find(l => l.classId === log.classId && utils.datesMatch(l.date, dateString));
             const isDayHero = dayAdventureLog && dayAdventureLog.hero === student?.name;
             // ---------------------------------------------------------------------
 

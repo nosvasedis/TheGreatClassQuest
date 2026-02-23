@@ -574,9 +574,10 @@ export function renderTrialHistoryContent(classId, view) {
     // 4. Filter by the selected view ('test' or 'dictation')
     const scoresToRender = uniqueScores.filter(s => s.type === view);
 
-    // 5. Group and Render
+    // 5. Group and Render (use smart date parser — scores may be DD-MM-YYYY or YYYY-MM-DD)
     const scoresByMonth = scoresToRender.reduce((acc, score) => {
-        const key = score.date.substring(0, 7); // YYYY-MM
+        const d = utils.parseFlexibleDate(score.date);
+        const key = d ? `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}` : (score.date && score.date.substring(0, 7)) || 'unknown';
         if (!acc[key]) acc[key] = [];
         acc[key].push(score);
         return acc;
@@ -598,8 +599,12 @@ export function renderTrialHistoryContent(classId, view) {
             return acc;
         }, {});
         
-        const sortedDates = Object.keys(scoresByDate).sort((a,b) => new Date(b) - new Date(a));
-        
+        const sortedDates = Object.keys(scoresByDate).sort((a, b) => {
+            const da = utils.parseFlexibleDate(a);
+            const db = utils.parseFlexibleDate(b);
+            return (db || 0) - (da || 0);
+        });
+
         let monthScoresHtml = sortedDates.map(date => {
             const dateScoresHtml = scoresByDate[date]
                 .sort((a,b) => {
@@ -608,9 +613,9 @@ export function renderTrialHistoryContent(classId, view) {
                     return studentA.localeCompare(studentB);
                 })
                 .map(score => renderTrialHistoryItem(score)).join('');
-            
             const title = scoresByDate[date][0].title || (view === 'dictation' ? 'Dictation' : 'Test');
-            const displayDate = new Date(date).toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'short' });
+            const dateObj = utils.parseFlexibleDate(date);
+            const displayDate = dateObj ? dateObj.toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'short' }) : date;
 
             return `<div class="bg-white/50 rounded-lg p-2 mb-2">
                         <div class="date-group-header flex justify-between items-center">

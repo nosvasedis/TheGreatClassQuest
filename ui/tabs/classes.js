@@ -53,43 +53,108 @@ export function renderManageStudentsTab() {
     const list = document.getElementById('student-list');
     const currentManagingClassId = state.get('currentManagingClassId');
     if (!list || !currentManagingClassId) return;
-    const studentsInClass = state.get('allStudents').filter(s => s.classId === currentManagingClassId).sort((a, b) => a.name.localeCompare(b.name));
+
+    const studentsInClass = state.get('allStudents')
+        .filter(s => s.classId === currentManagingClassId)
+        .sort((a, b) => a.name.localeCompare(b.name));
+
+    // Update header count badge
+    const countBadge = document.getElementById('student-count-badge');
+    const countNumber = document.getElementById('student-count-number');
+    if (countBadge && countNumber) {
+        countNumber.textContent = studentsInClass.length;
+        countBadge.classList.toggle('hidden', studentsInClass.length === 0);
+    }
+
     if (studentsInClass.length === 0) {
-        list.innerHTML = `<p class="text-sm text-center text-gray-500">No students in this class yet. Add one!</p>`;
+        list.innerHTML = `
+            <div class="text-center py-14 px-6">
+                <div class="text-gray-200 text-6xl mb-4"><i class="fas fa-users"></i></div>
+                <p class="text-gray-500 font-semibold text-lg">No adventurers yet!</p>
+                <p class="text-gray-400 text-sm mt-1">Add your first student using the form to start the quest.</p>
+            </div>`;
         return;
     }
+
+    const heroClassConfig = {
+        'Guardian':  { icon: '🛡️', bg: '#f3e8ff', text: '#7e22ce', ring: '#a855f7' },
+        'Sage':      { icon: '🔮', bg: '#ede9fe', text: '#6d28d9', ring: '#8b5cf6' },
+        'Paladin':   { icon: '⚔️', bg: '#fee2e2', text: '#991b1b', ring: '#ef4444' },
+        'Artificer': { icon: '⚙️', bg: '#ffedd5', text: '#9a3412', ring: '#f97316' },
+        'Scholar':   { icon: '📜', bg: '#fef3c7', text: '#92400e', ring: '#f59e0b' },
+        'Weaver':    { icon: '✒️', bg: '#d1fae5', text: '#065f46', ring: '#10b981' },
+        'Nomad':     { icon: '👟', bg: '#e0f2fe', text: '#075985', ring: '#0ea5e9' },
+    };
+
     list.innerHTML = studentsInClass.map(s => {
         const scoreData = state.get('allStudentScores').find(sc => sc.id === s.id);
         const pendingSkill = scoreData?.pendingSkillChoice || false;
+        const hc = s.heroClass ? (heroClassConfig[s.heroClass] || null) : null;
+
+        const ringStyle = hc
+            ? `box-shadow: 0 0 0 2px white, 0 0 0 4px ${hc.ring};`
+            : 'box-shadow: 0 0 0 2px white, 0 0 0 4px #d1d5db;';
 
         const avatarHtml = s.avatar
-            ? `<img src="${s.avatar}" alt="${s.name}" data-student-id="${s.id}" class="student-avatar large-avatar enlargeable-avatar cursor-pointer">`
-            : `<div data-student-id="${s.id}" class="student-avatar large-avatar enlargeable-avatar cursor-pointer flex items-center justify-center bg-gray-300 text-gray-600 font-bold">${s.name.charAt(0)}</div>`;
-        const guildBadgeOrQuiz = s.guildId
-            ? getGuildBadgeHtml(s.guildId, 'w-8 h-8')
-            : `<button data-id="${s.id}" class="guild-quiz-btn bg-amber-100 text-amber-800 font-bold w-8 h-8 rounded-full bubbly-button" title="Guild Quiz"><i class="fas fa-hat-wizard text-xs"></i></button>`;
-        const guildBorder = s.guildId ? 'border-l-4' : '';
-        const borderStyle = s.guildId && getGuildById(s.guildId) ? `style="border-left-color: ${getGuildById(s.guildId).primary}"` : '';
+            ? `<img src="${s.avatar}" alt="${s.name}" data-student-id="${s.id}"
+                class="student-avatar large-avatar enlargeable-avatar cursor-pointer"
+                style="${ringStyle}">`
+            : `<div data-student-id="${s.id}"
+                class="student-avatar large-avatar enlargeable-avatar cursor-pointer flex items-center justify-center font-title text-white"
+                style="font-size:1.25rem; background: linear-gradient(135deg, #2dd4bf, #06b6d4); ${ringStyle}">${s.name.charAt(0).toUpperCase()}</div>`;
 
-        const skillTreeBtnClass = pendingSkill
-            ? 'skill-tree-btn bg-purple-500 text-white font-bold w-8 h-8 rounded-full bubbly-button animate-pulse ring-2 ring-purple-300'
-            : 'skill-tree-btn bg-purple-100 text-purple-800 font-bold w-8 h-8 rounded-full bubbly-button';
+        const heroClassBadge = hc
+            ? `<span class="inline-flex items-center gap-1 text-[11px] font-bold px-2 py-0.5 rounded-full" style="background:${hc.bg};color:${hc.text};">${hc.icon} ${s.heroClass}</span>`
+            : `<span class="text-[11px] text-gray-400 italic">No class</span>`;
+
+        const guildAction = s.guildId
+            ? `<span class="guild-badge-wrap flex-shrink-0">${getGuildBadgeHtml(s.guildId, 'w-7 h-7')}</span>`
+            : `<button data-id="${s.id}" class="guild-quiz-btn w-7 h-7 flex items-center justify-center bg-amber-100 hover:bg-amber-200 text-amber-700 rounded-full bubbly-button transition-colors" title="Take Guild Quiz"><i class="fas fa-hat-wizard" style="font-size:10px;"></i></button>`;
+
+        const skillTreeBtnCls = pendingSkill
+            ? 'skill-tree-btn w-7 h-7 flex items-center justify-center bg-purple-500 hover:bg-purple-600 text-white rounded-full bubbly-button animate-pulse ring-2 ring-purple-300 transition-colors'
+            : 'skill-tree-btn w-7 h-7 flex items-center justify-center bg-purple-100 hover:bg-purple-200 text-purple-700 rounded-full bubbly-button transition-colors';
+
+        const guildBorderStyle = s.guildId && getGuildById(s.guildId)
+            ? `border-left: 3px solid ${getGuildById(s.guildId).primary};`
+            : '';
 
         return `
-        <div class="flex items-center justify-between bg-gray-50 p-2 rounded-lg ${guildBorder}" ${borderStyle}>
-            <div class="flex items-center gap-3">
-                ${avatarHtml}
-                <span class="font-medium text-gray-700">${s.name}</span>
+        <div class="flex items-center gap-3 px-4 py-3 hover:bg-teal-50/50 transition-colors" style="${guildBorderStyle}">
+            <div class="flex-shrink-0">${avatarHtml}</div>
+            <div class="flex-1 min-w-0">
+                <p class="font-semibold text-gray-800 text-sm leading-snug truncate">${s.name}</p>
+                <div class="flex items-center gap-1.5 mt-0.5 flex-wrap">${heroClassBadge}</div>
             </div>
-            <div class="flex items-center gap-2">
-                ${s.guildId ? `<span class="guild-badge-wrap flex-shrink-0">${guildBadgeOrQuiz}</span>` : guildBadgeOrQuiz}
-                <button data-id="${s.id}" class="move-student-btn bg-yellow-100 text-yellow-800 font-bold w-8 h-8 rounded-full bubbly-button" title="Move Student"><i class="fas fa-people-arrows text-xs"></i></button>
-                <button data-id="${s.id}" class="hero-chronicle-btn bg-green-100 text-green-800 font-bold w-8 h-8 rounded-full bubbly-button" title="Hero's Chronicle"><i class="fas fa-book-reader text-xs"></i></button>
-                <button data-id="${s.id}" class="${skillTreeBtnClass}" title="${pendingSkill ? 'New Skill Available!' : 'Skill Tree'}"><i class="fas fa-sitemap text-xs"></i></button>
-                <button data-id="${s.id}" class="avatar-maker-btn font-bold w-8 h-8 rounded-full bubbly-button" title="Create/Edit Avatar"><i class="fas fa-user-astronaut text-xs"></i></button>
-                <button data-id="${s.id}" class="certificate-student-btn bg-indigo-100 text-indigo-800 font-bold w-8 h-8 rounded-full bubbly-button" title="Generate Certificate"><i class="fas fa-award text-xs"></i></button>
-                <button data-id="${s.id}" class="edit-student-btn bg-cyan-100 text-cyan-800 font-bold w-8 h-8 rounded-full bubbly-button" title="Edit Student Details"><i class="fas fa-pencil-alt text-xs"></i></button>
-                <button data-id="${s.id}" class="delete-student-btn bg-red-100 text-red-800 font-bold w-8 h-8 rounded-full bubbly-button" title="Delete Student"><i class="fas fa-trash-alt text-xs"></i></button>
+            <div class="flex-shrink-0 flex flex-col items-end gap-1.5">
+                <div class="flex items-center gap-1">
+                    ${guildAction}
+                    <button data-id="${s.id}" class="${skillTreeBtnCls}" title="${pendingSkill ? '✨ New Skill Available!' : 'Skill Tree'}">
+                        <i class="fas fa-sitemap" style="font-size:10px;"></i>
+                    </button>
+                    <button data-id="${s.id}" class="hero-chronicle-btn w-7 h-7 flex items-center justify-center bg-green-100 hover:bg-green-200 text-green-700 rounded-full bubbly-button transition-colors" title="Hero's Chronicle">
+                        <i class="fas fa-book-reader" style="font-size:10px;"></i>
+                    </button>
+                    <button data-id="${s.id}" class="avatar-maker-btn w-7 h-7 flex items-center justify-center rounded-full bubbly-button transition-colors" title="Create/Edit Avatar">
+                        <i class="fas fa-user-astronaut" style="font-size:10px;"></i>
+                    </button>
+                    <button data-id="${s.id}" class="certificate-student-btn w-7 h-7 flex items-center justify-center bg-indigo-100 hover:bg-indigo-200 text-indigo-700 rounded-full bubbly-button transition-colors" title="Generate Certificate">
+                        <i class="fas fa-award" style="font-size:10px;"></i>
+                    </button>
+                </div>
+                <div class="flex items-center gap-1.5">
+                    <button data-id="${s.id}" class="move-student-btn flex items-center gap-1 border border-yellow-200 text-xs font-bold py-1 px-2.5 rounded-full bubbly-button transition-colors" title="Move to Another Class">
+                        <i class="fas fa-people-arrows" style="font-size:10px;"></i>
+                        <span>Move</span>
+                    </button>
+                    <button data-id="${s.id}" class="edit-student-btn flex items-center gap-1 bg-cyan-50 hover:bg-cyan-100 text-cyan-800 border border-cyan-200 text-xs font-bold py-1 px-2.5 rounded-full bubbly-button transition-colors" title="Edit Student Details">
+                        <i class="fas fa-pencil-alt" style="font-size:10px;"></i>
+                        <span>Edit</span>
+                    </button>
+                    <button data-id="${s.id}" class="delete-student-btn w-7 h-7 flex items-center justify-center bg-red-100 hover:bg-red-200 text-red-600 rounded-full bubbly-button transition-colors" title="Delete Student">
+                        <i class="fas fa-trash-alt" style="font-size:10px;"></i>
+                    </button>
+                </div>
             </div>
         </div>`;
     }).join('');

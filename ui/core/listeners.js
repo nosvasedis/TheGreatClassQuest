@@ -120,7 +120,20 @@ export function setupUIListeners() {
         document.getElementById('generate-class-name-btn').disabled = !document.getElementById('class-level').value;
     });
 
-    document.getElementById('add-student-form').addEventListener('submit', (e) => { e.preventDefault(); handleAddStudent(); });
+    document.getElementById('add-student-toggle-btn').addEventListener('click', () => {
+        const panel = document.getElementById('add-student-panel');
+        const isNowVisible = panel.classList.toggle('hidden');
+        if (!isNowVisible) document.getElementById('student-name').focus();
+    });
+
+    document.getElementById('add-student-form').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        await handleAddStudent();
+        // Auto-collapse the panel on success (input will be empty after a successful add)
+        if (!document.getElementById('student-name').value) {
+            document.getElementById('add-student-panel').classList.add('hidden');
+        }
+    });
     document.getElementById('edit-class-form').addEventListener('submit', (e) => { e.preventDefault(); handleEditClass(); });
     document.getElementById('edit-class-cancel-btn').addEventListener('click', () => modals.hideModal('edit-class-modal'));
     document.getElementById('edit-student-cancel-btn').addEventListener('click', () => modals.hideModal('edit-student-modal'));

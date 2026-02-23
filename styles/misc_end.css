@@ -312,3 +312,37 @@
 #prodigy-content::-webkit-scrollbar-thumb:hover {
     background: #f59e0b; /* Amber-500 */
 }
+
+/* --- STUDENT MANAGEMENT PAGE --- */
+
+/* Smooth reveal animation for the inline add-student panel */
+@keyframes slide-down-fade {
+    from { opacity: 0; transform: translateY(-6px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+#add-student-panel:not(.hidden) {
+    animation: slide-down-fade 0.18s ease-out forwards;
+}
+
+/* Smooth hover transition on roster rows */
+#student-list > div {
+    transition: background-color 0.15s ease;
+}
+
+/* Ensure action buttons are always vertically centered */
+#student-list .flex-col.items-end {
+    align-self: center;
+}
+
+/* Move-student pill: inherits CSS-defined yellow bg, adds pill shape */
+.move-student-btn {
+    border-color: #fde68a !important; /* amber-200 */
+}
+.move-student-btn:hover {
+    background-color: #fef3c7 !important; /* amber-100 on hover */
+}
+
+/* Avatar placeholder gradient override for student management list */
+#student-list .student-avatar.large-avatar {
+    font-family: 'Fredoka One', cursive;
+}

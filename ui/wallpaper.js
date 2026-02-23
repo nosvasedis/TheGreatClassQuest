@@ -1599,13 +1599,15 @@ function getSchoolAdventureCountCard() {
 
 function getSchoolUpcomingEventCard() {
     const now = new Date();
+    now.setHours(0, 0, 0, 0);
     const events = state.get('allQuestEvents')
-        .filter(e => new Date(e.date) >= now)
-        .sort((a, b) => new Date(a.date) - new Date(b.date));
+        .map(e => ({ e, d: utils.parseFlexibleDate(e.date) }))
+        .filter(({ d }) => d && d >= now)
+        .sort((a, b) => a.d - b.d);
 
     if (events.length === 0) return null;
-    const e = events[0];
-    const dateStr = new Date(e.date).toLocaleDateString('en-GB', { day: 'numeric', month: 'long' });
+    const e = events[0].e;
+    const dateStr = events[0].d.toLocaleDateString('en-GB', { day: 'numeric', month: 'long' });
 
     return {
         html: `<div class="text-center"><div class="badge-pill bg-purple-100 text-purple-800">Coming Soon</div><h3 class="font-title text-4xl text-white mb-2">${e.details.title}</h3><p class="text-purple-100 text-2xl">${dateStr}</p></div>`,
@@ -1757,7 +1759,7 @@ function getHighScoreCard(classId, type) {
     const scores = state.get('allWrittenScores').filter(s => s.classId === classId && s.type === type);
     if (scores.length === 0) return null;
 
-    scores.sort((a, b) => new Date(b.date) - new Date(a.date));
+    scores.sort((a, b) => (utils.parseFlexibleDate(b.date) || 0) - (utils.parseFlexibleDate(a.date) || 0));
     const recent = scores[0];
     const student = state.get('allStudents').find(s => s.id === recent.studentId);
     if (!student) return null;

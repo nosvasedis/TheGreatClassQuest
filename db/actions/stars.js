@@ -20,7 +20,7 @@ import * as state from '../../state.js';
 import { showToast, showPraiseToast } from '../../ui/effects.js';
 import { showStarfallModal, showBatchStarfallModal, showModal, hideModal } from '../../ui/modals.js';
 import { playSound, playHeroFanfare } from '../../audio.js';
-import { getTodayDateString, getStartOfMonthString, debounce, parseDDMMYYYY } from '../../utils.js';
+import { getTodayDateString, getStartOfMonthString, debounce, parseDDMMYYYY, datesMatch } from '../../utils.js';
 import { checkBountyProgress } from './bounties.js';
 import { calculateHeroGold, canChangeHeroClass } from '../../features/heroClasses.js';
 import { updateGuildScores } from '../../features/guildScoring.js';
@@ -34,7 +34,7 @@ export async function setStudentStarsForToday(studentId, starValue, reason = nul
     const publicDataPath = "artifacts/great-class-quest/public/data";
     
     let finalStarValue = starValue;
-    const activeEvent = state.get('allQuestEvents').find(e => e.date === today);
+    const activeEvent = state.get('allQuestEvents').find(e => datesMatch(e.date, today));
     if (activeEvent) {
         if (activeEvent.type === '2x Star Day' && starValue > 0) {
             finalStarValue *= 2;

@@ -145,8 +145,8 @@ nameEl.innerHTML = `${heroIcon} ${student.name}`;
             const canvas = document.createElement('canvas');
             chartContainer.appendChild(canvas);
             
-            const sortedScores = [...studentScores].sort((a, b) => new Date(a.date) - new Date(b.date));
-            const labels = sortedScores.map(s => new Date(s.date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }));
+            const sortedScores = [...studentScores].sort((a, b) => (utils.parseFlexibleDate(a.date) || 0) - (utils.parseFlexibleDate(b.date) || 0));
+            const labels = sortedScores.map(s => (utils.parseFlexibleDate(s.date) || new Date()).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }));
             const dictationMap = { "Great!!!": 100, "Great!!": 75, "Great!": 50, "Nice Try!": 25 };
 
             const testData = sortedScores.map(s => s.type === 'test' ? (s.scoreNumeric / s.maxScore) * 100 : null);
@@ -316,7 +316,7 @@ export async function generateAIInsight(studentId, insightType) {
 
     const academicScores = state.get('allWrittenScores')
         .filter(s => s.studentId === studentId)
-        .sort((a, b) => new Date(a.date) - new Date(b.date))
+        .sort((a, b) => (utils.parseFlexibleDate(a.date) || 0) - (utils.parseFlexibleDate(b.date) || 0))
         .map(s => `[${s.date}] Scored ${s.scoreQualitative || `${s.scoreNumeric}/${s.maxScore}`} on a ${s.type} titled "${s.title || 'Dictation'}". Note: ${s.notes || 'N/A'}`)
         .join('\n');
 

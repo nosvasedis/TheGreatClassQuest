@@ -121,6 +121,7 @@ export function getAgeCategoryForLeague(league) {
     return 'senior';
 }
 
+/** Today in canonical DD-MM-YYYY (local). Use with datesMatch/parseFlexibleDate everywhere. */
 export function getTodayDateString() {
     return getDDMMYYYY(new Date());
 }
@@ -268,33 +269,42 @@ export async function uploadImageToStorage(base64String, path) {
     }
 }
 
+/**
+ * SMART DATE PARSER — use everywhere in the app for any date string or Date.
+ * Handles: YYYY-MM-DD, DD-MM-YYYY, DD/MM/YYYY, Date instances.
+ * Parses as LOCAL date so "today" and calendar day comparisons are correct in all timezones.
+ */
 export function parseFlexibleDate(dateInput) {
     if (!dateInput) return null;
-    if (dateInput instanceof Date) return dateInput;
+    if (dateInput instanceof Date) return isNaN(dateInput.getTime()) ? null : dateInput;
 
-    if (dateInput.match(/^\d{4}-\d{2}-\d{2}$/)) {
-        return new Date(dateInput);
+    const str = typeof dateInput === 'string' ? dateInput.trim() : String(dateInput);
+    if (!str) return null;
+
+    // YYYY-MM-DD: parse as local date to avoid UTC-midnight timezone bugs
+    if (str.match(/^\d{4}-\d{2}-\d{2}$/)) {
+        const [y, m, d] = str.split('-').map(Number);
+        return new Date(y, m - 1, d);
     }
 
-    const parts = dateInput.split(/[^0-9]/);
-
+    const parts = str.split(/[^0-9]/).filter(Boolean);
     if (parts.length === 3) {
         const p1 = parseInt(parts[0], 10);
         const p2 = parseInt(parts[1], 10);
         const p3 = parseInt(parts[2], 10);
-
-        if (p3 > 1000) {
-            return new Date(p3, p2 - 1, p1);
-        }
-        else if (p1 > 1000) {
-            return new Date(p1, p2 - 1, p3);
-        }
+        if (p2 < 1 || p2 > 12) return null;
+        if (p3 > 1000) return new Date(p3, p2 - 1, p1);  // DD-MM-YYYY
+        if (p1 > 1000) return new Date(p1, p2 - 1, p3);  // YYYY-MM-DD (already handled above, but safe)
     }
 
-    const rawParse = new Date(dateInput);
-    if (!isNaN(rawParse.getTime())) return rawParse;
+    const rawParse = new Date(str);
+    return !isNaN(rawParse.getTime()) ? rawParse : null;
+}
 
-    return null;
+/** Returns canonical DD-MM-YYYY from any date input. Use for storage or string comparison. */
+export function normalizeToDateString(dateInput) {
+    const d = parseFlexibleDate(dateInput);
+    return d ? getDDMMYYYY(d) : '';
 }
 
 export function isSpecialOccasion(dateStr, scheduleDays) {
@@ -333,15 +343,19 @@ export function isSpecialOccasion(dateStr, scheduleDays) {
     return false;
 }
 
+/** Compare two date inputs (any format). Use everywhere instead of string === or raw Date. */
 export function datesMatch(dateInput1, dateInput2) {
     const d1 = parseFlexibleDate(dateInput1);
     const d2 = parseFlexibleDate(dateInput2);
-
     if (!d1 || !d2) return false;
-
     return d1.getDate() === d2.getDate() &&
         d1.getMonth() === d2.getMonth() &&
         d1.getFullYear() === d2.getFullYear();
+}
+
+/** True if dateInput is the same calendar day as today (local). */
+export function isToday(dateInput) {
+    return datesMatch(dateInput, getTodayDateString());
 }
 
 /**

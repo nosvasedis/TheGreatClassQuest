@@ -109,67 +109,80 @@ export const attendanceModalsHTML = `
 
     <div style="position: fixed; left: -9999px; top: -9999px;">
         <div id="certificate-template">
-            <div
-                style="display: flex; flex-direction: column; height: 100%; width: 100%; align-items: center; text-align: center; position: relative;">
 
-                <div>
-                    <div style="display: flex; align-items: center; justify-content: center; gap: 12px; margin-bottom: 4px;">
-                        <div id="cert-icon" style="font-size: 70px; line-height: 1;"></div>
-                        <img id="cert-guild-emblem" src=""
-                             style="display: none; width: 52px; height: 52px; border-radius: 9999px; border: 3px solid rgba(255,255,255,0.9); box-shadow: 0 2px 8px rgba(0,0,0,0.35); object-fit: cover;">
-                    </div>
-                    <h1 id="cert-title" style="font-family: 'Fredoka One', cursive; font-size: 44px; margin: 0;">
-                        Certificate of Achievement</h1>
-                    <p id="cert-subtitle"
-                       style="font-size: 16px; margin-top: 4px; letter-spacing: 0.08em; text-transform: uppercase;">
-                        The Great Class Quest • Hero Certificate
-                    </p>
-                    <p style="font-size: 22px; margin-top: 8px;">PROUDLY PRESENTED TO</p>
+            <!-- Corner ornaments (border-color set by JS) -->
+            <div id="cert-corner-tl" style="position:absolute;top:14px;left:14px;width:26px;height:26px;border-top:2px solid;border-left:2px solid;border-radius:3px 0 0 0;opacity:0.5;pointer-events:none;"></div>
+            <div id="cert-corner-tr" style="position:absolute;top:14px;right:14px;width:26px;height:26px;border-top:2px solid;border-right:2px solid;border-radius:0 3px 0 0;opacity:0.5;pointer-events:none;"></div>
+            <div id="cert-corner-bl" style="position:absolute;bottom:14px;left:14px;width:26px;height:26px;border-bottom:2px solid;border-left:2px solid;border-radius:0 0 0 3px;opacity:0.5;pointer-events:none;"></div>
+            <div id="cert-corner-br" style="position:absolute;bottom:14px;right:14px;width:26px;height:26px;border-bottom:2px solid;border-right:2px solid;border-radius:0 0 3px 0;opacity:0.5;pointer-events:none;"></div>
+
+            <!-- Header: crest icon + guild emblem, title, subtitle -->
+            <div style="flex-shrink:0; text-align:center;">
+                <div style="display:flex; align-items:center; justify-content:center; gap:10px; margin-bottom:2px;">
+                    <div id="cert-icon" style="font-size:44px; line-height:1;"></div>
+                    <img id="cert-guild-emblem" src="" style="display:none; width:40px; height:40px; border-radius:9999px; border:3px solid rgba(255,255,255,0.88); box-shadow:0 2px 10px rgba(0,0,0,0.28); object-fit:cover;">
                 </div>
-
-                <div style="flex-grow: 1; display: flex; flex-direction: column; justify-content: center; width: 100%;">
-                    <p id="cert-student-name"
-                        style="font-family: 'Fredoka One', cursive; font-size: 56px; margin: 10px 0;"></p>
-
-                    <div id="cert-badges"
-                         style="display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; margin-bottom: 8px; font-size: 14px;">
-                        <span id="cert-class-name"
-                              style="padding: 4px 10px; border-radius: 9999px; background-color: rgba(255,255,255,0.16); border: 1px solid rgba(255,255,255,0.35);"></span>
-                        <span id="cert-guild-pill"
-                              style="padding: 4px 10px; border-radius: 9999px; border: 1px solid rgba(255,255,255,0.35);"></span>
-                        <span id="cert-hero-pill"
-                              style="padding: 4px 10px; border-radius: 9999px; background-color: rgba(0,0,0,0.14); border: 1px solid rgba(255,255,255,0.25);"></span>
-                    </div>
-
-                    <div id="cert-text" style="font-size: 21px; margin: 10px auto; max-width: 90%;">
-                        Certificate text will be generated here.
-                    </div>
-                    <div id="cert-meta"
-                         style="font-size: 14px; margin-top: 6px; opacity: 0.9;"></div>
-                </div>
-
-                <div style="width: 100%; margin-top: auto; padding-top: 10px;">
-                    <div style="display: flex; justify-content: space-between; align-items: flex-end;">
-                        <div style="text-align: center;">
-                            <p style="border-top-width: 2px; border-top-style: solid; padding-top: 5px; font-weight: bold;"
-                                id="cert-teacher-name">Teacher Name</p>
-                            <p style="font-size: 14px; margin-top: 5px;">Quest Facilitator</p>
-                        </div>
-                        <div style="display: flex; align-items: flex-end; gap: 15px;">
-                            <div style="text-align: center;">
-                                <p style="border-top-width: 2px; border-top-style: solid; padding-top: 5px; font-weight: bold;"
-                                    id="cert-date">Date</p>
-                                <p style="font-size: 14px; margin-top: 5px;">Date of Issue</p>
-                            </div>
-                            <img id="cert-avatar" src=""
-                                style="display: none; width: 60px; height: 60px; border-radius: 9999px; border: 4px solid white; box-shadow: 0 2px 5px rgba(0,0,0,0.2);">
-                        </div>
-                    </div>
-                    <p style="font-size: 12px; color: #888; margin-top: 15px; text-align: center; width: 100%;">
-                        Prodigies Language School</p>
-                </div>
-
+                <h1 id="cert-title" style="font-family:'Fredoka One',cursive; font-size:36px; margin:0; line-height:1.1;"></h1>
+                <p style="font-size:10.5px; margin:3px 0 0; letter-spacing:0.15em; text-transform:uppercase; opacity:0.65;">
+                    The Great Class Quest &nbsp;•&nbsp; Hero Certificate
+                </p>
             </div>
+
+            <!-- Divider 1 -->
+            <div style="width:100%; display:flex; align-items:center; gap:10px; margin:9px 0 6px; flex-shrink:0; opacity:0.3;">
+                <div style="flex:1; border-top:1px solid rgba(0,0,0,0.6);"></div>
+                <span style="font-size:12px; color:rgba(0,0,0,0.5);">✦</span>
+                <div style="flex:1; border-top:1px solid rgba(0,0,0,0.6);"></div>
+            </div>
+
+            <!-- Proudly Presented To + Name -->
+            <div style="flex-shrink:0; text-align:center;">
+                <p style="font-size:11px; text-transform:uppercase; letter-spacing:0.2em; opacity:0.58; margin:0 0 3px;">Proudly Presented To</p>
+                <p id="cert-student-name" style="font-family:'Fredoka One',cursive; font-size:46px; margin:0; line-height:1.2;"></p>
+            </div>
+
+            <!-- Badges row: class, guild, hero, stars -->
+            <div id="cert-badges" style="display:flex; flex-wrap:wrap; justify-content:center; gap:5px; margin:7px 0 4px; font-size:11.5px; font-weight:600; flex-shrink:0;">
+                <span id="cert-class-name" style="padding:3px 11px; border-radius:9999px; background:rgba(255,255,255,0.24); border:1px solid rgba(255,255,255,0.5);"></span>
+                <span id="cert-guild-pill" style="padding:3px 11px; border-radius:9999px; background:rgba(255,255,255,0.2); border:1px solid rgba(255,255,255,0.45);"></span>
+                <span id="cert-hero-pill" style="padding:3px 11px; border-radius:9999px; background:rgba(0,0,0,0.09); border:1px solid rgba(255,255,255,0.32);"></span>
+                <span id="cert-stars-pill" style="padding:3px 11px; border-radius:9999px; background:rgba(0,0,0,0.09); border:1px solid rgba(255,255,255,0.32);"></span>
+            </div>
+
+            <!-- AI-generated certificate text -->
+            <div id="cert-text" style="font-size:16.5px; text-align:center; line-height:1.62; max-width:86%; flex-shrink:0; font-style:italic;"></div>
+
+            <!-- Meta stats line -->
+            <div id="cert-meta" style="font-size:10.5px; margin-top:4px; opacity:0.52; text-align:center; flex-shrink:0; letter-spacing:0.06em;"></div>
+
+            <!-- Flex spacer — pushes footer down -->
+            <div style="flex:1; min-height:6px;"></div>
+
+            <!-- Divider 2 -->
+            <div style="width:100%; display:flex; align-items:center; gap:10px; margin-bottom:9px; flex-shrink:0; opacity:0.3;">
+                <div style="flex:1; border-top:1px solid rgba(0,0,0,0.6);"></div>
+                <span style="font-size:12px; color:rgba(0,0,0,0.5);">✦</span>
+                <div style="flex:1; border-top:1px solid rgba(0,0,0,0.6);"></div>
+            </div>
+
+            <!-- Footer: teacher | school | date + avatar -->
+            <div style="width:100%; display:flex; justify-content:space-between; align-items:flex-end; flex-shrink:0;">
+                <div style="text-align:center; min-width:150px;">
+                    <p id="cert-teacher-name" style="font-weight:700; font-size:13px; border-top-width:2px; border-top-style:solid; padding-top:5px; margin:0;"></p>
+                    <p style="font-size:10px; margin-top:2px; opacity:0.55;">Quest Facilitator</p>
+                </div>
+                <div style="text-align:center; font-size:9.5px; opacity:0.38; flex:1; padding:0 8px;">
+                    Prodigies Language School
+                </div>
+                <div style="display:flex; align-items:flex-end; gap:8px;">
+                    <div style="text-align:center; min-width:150px;">
+                        <p id="cert-date" style="font-weight:700; font-size:13px; border-top-width:2px; border-top-style:solid; padding-top:5px; margin:0;"></p>
+                        <p style="font-size:10px; margin-top:2px; opacity:0.55;">Date of Issue</p>
+                    </div>
+                    <img id="cert-avatar" src="" style="display:none; width:50px; height:50px; border-radius:9999px; border:3px solid white; box-shadow:0 2px 8px rgba(0,0,0,0.22); object-fit:cover; flex-shrink:0;">
+                </div>
+            </div>
+
         </div>
         <div id="storybook-print-container" style="width: 800px;"></div>
         <div id="storybook-signature-page-template"

@@ -21,7 +21,7 @@ import { showModal, hideModal } from '../../ui/modals.js';
 import { callGeminiApi } from '../../api.js';
 import { playSound } from '../../audio.js';
 import { handleStoryWeaversClassSelect } from '../../features/storyWeaver.js';
-import { getTodayDateString } from '../../utils.js';
+import { getTodayDateString, parseFlexibleDate } from '../../utils.js';
 
 export async function addOrUpdateHeroChronicleNote(studentId, noteText, category, noteId = null) {
     if (!studentId || !noteText || !category) {
@@ -578,7 +578,7 @@ export async function handleRemoveAttendanceColumn(classId, dateString, isGlobal
         let classesToCancel = [];
         if (isGlobal) {
             // Find ALL classes that usually have a lesson on this day of the week
-            const dayOfWeek = new Date(dateString.split('-').reverse().join('-')).getDay().toString();
+            const dayOfWeek = (parseFlexibleDate(dateString) || new Date()).getDay().toString();
             classesToCancel = state.get('allSchoolClasses').filter(c => c.scheduleDays && c.scheduleDays.includes(dayOfWeek));
         } else {
             // Just the selected class

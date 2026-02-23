@@ -888,16 +888,20 @@ function getReminderPills(classId) {
         `);
     }
 
-    // 4. QUEST EVENTS (Test/Vocab/etc) - FIXED & BEAUTIFIED
+    // 4. QUEST EVENTS (Test/Vocab/etc) — use smart date parser (any format)
     const events = state.get('allQuestEvents') || [];
-
-    // Ταξινομούμε τα events ώστε τα σημερινά να εμφανίζονται πάντα πρώτα
-    const sortedEvents = [...events].sort((a, b) => utils.parseDDMMYYYY(a.date) - utils.parseDDMMYYYY(b.date));
+    const sortedEvents = [...events].sort((a, b) => {
+        const da = utils.parseFlexibleDate(a.date);
+        const db = utils.parseFlexibleDate(b.date);
+        return (da || 0) - (db || 0);
+    });
 
     sortedEvents.forEach(e => {
-        const eventDate = utils.parseDDMMYYYY(e.date);
+        const eventDate = utils.parseFlexibleDate(e.date);
+        if (!eventDate) return;
+        eventDate.setHours(0, 0, 0, 0);
 
-        // Φιλτράρουμε ώστε να δείχνουμε μόνο από σήμερα και μετά, μέχρι το τέλος του μήνα
+        // Show only from today through end of month
         if (eventDate < now || eventDate > endOfMonth) return;
 
         const diffTime = eventDate - now;

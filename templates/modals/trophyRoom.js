@@ -97,68 +97,105 @@ export const trophyRoomModalsHTML = `
     </div>
 
     <div id="avatar-maker-modal"
-        class="fixed inset-0 bg-black bg-opacity-50 z-[72] flex items-center justify-center p-4 hidden">
-        <div
-            class="bg-white p-6 md:p-8 rounded-3xl shadow-2xl max-w-5xl w-full pop-in border-4 border-blue-300 flex flex-col md:flex-row gap-6 max-h-[90vh]">
-            <div class="flex-1 flex flex-col min-h-0">
-                <div class="text-center flex-shrink-0">
-                    <h2 class="font-title text-2xl md:text-3xl text-blue-700">Avatar Forge</h2>
-                    <p id="avatar-maker-student-name" class="font-semibold text-lg text-gray-600"></p>
+        class="fixed inset-0 bg-black/75 backdrop-blur-sm z-[72] flex items-center justify-center p-4 hidden">
+        <div class="relative bg-gradient-to-br from-slate-900 to-indigo-950 rounded-3xl shadow-2xl max-w-4xl w-full pop-in border border-purple-500/40 flex flex-col max-h-[92vh] overflow-hidden"
+            style="box-shadow: 0 0 80px rgba(124,58,237,0.18), 0 25px 50px rgba(0,0,0,0.6);">
+
+            <!-- Subtle inner glow ring -->
+            <div class="absolute inset-0 rounded-3xl pointer-events-none"
+                style="box-shadow: inset 0 0 60px rgba(139,92,246,0.07);"></div>
+
+            <!-- Header -->
+            <div class="relative flex items-center gap-3 px-6 py-4 border-b border-white/10 flex-shrink-0 bg-black/20">
+                <span class="text-3xl leading-none">⚒️</span>
+                <div class="flex-1 min-w-0">
+                    <h2 class="font-title text-2xl text-purple-300 leading-tight"
+                        style="text-shadow: 0 0 24px rgba(167,139,250,0.5);">Avatar Forge</h2>
+                    <p id="avatar-maker-student-name" class="text-indigo-400 text-sm font-semibold truncate"></p>
                 </div>
-
-                <div id="avatar-maker-options-wrapper" class="mt-4 flex-grow space-y-4 overflow-y-auto pr-3">
-                    <div class="avatar-maker-option-pool">
-                        <h3 class="font-bold text-gray-700 mb-2 text-center">1. Choose a Creature</h3>
-                        <div id="avatar-creature-pool" class="flex flex-wrap justify-center gap-2"></div>
-                    </div>
-
-                    <div class="avatar-maker-option-pool">
-                        <h3 class="font-bold text-gray-700 mb-2 text-center">2. Choose a Main Color</h3>
-                        <div id="avatar-color-pool" class="flex flex-wrap justify-center gap-2"></div>
-                    </div>
-
-                    <div class="avatar-maker-option-pool">
-                        <h3 class="font-bold text-gray-700 mb-2 text-center">3. Choose an Accessory</h3>
-                        <div id="avatar-accessory-pool" class="flex flex-wrap justify-center gap-2"></div>
-                    </div>
-                </div>
+                <button id="avatar-maker-close-btn"
+                    class="text-white/40 hover:text-white text-2xl leading-none w-9 h-9 flex items-center justify-center rounded-full hover:bg-white/10 transition-all bubbly-button flex-shrink-0">&times;</button>
             </div>
 
-            <div class="md:w-1/3 flex flex-col items-center justify-between">
-                <div id="avatar-display-area" class="mb-4">
-                    <div id="avatar-maker-placeholder" class="text-center text-gray-500 p-4">
-                        <i class="fas fa-magic text-4xl"></i>
-                        <p class="mt-2 font-semibold">Your creation will appear here!</p>
+            <!-- Body: options (left/top) + preview (right/bottom) -->
+            <div class="relative flex flex-col md:flex-row flex-1 min-h-0">
+
+                <!-- Left: scrollable option pools -->
+                <div id="avatar-maker-options-wrapper" class="flex-1 overflow-y-auto p-5 space-y-3 min-h-0">
+
+                    <!-- Step 1: Creature -->
+                    <div class="avatar-forge-step">
+                        <div class="flex items-center gap-2.5 mb-3">
+                            <div class="avatar-step-number">1</div>
+                            <h3 class="text-xs font-bold text-indigo-300 uppercase tracking-widest">Choose a Creature</h3>
+                            <i id="step-creature-check" class="fas fa-check-circle text-emerald-400 ml-auto hidden text-base"></i>
+                        </div>
+                        <div id="avatar-creature-pool" class="flex flex-wrap gap-1.5"></div>
                     </div>
-                    <div id="avatar-maker-loader" class="text-center text-gray-500 p-4 hidden">
-                        <i class="fas fa-spinner fa-spin text-4xl"></i>
-                        <p class="mt-2 font-semibold">Forging avatar...</p>
+
+                    <!-- Step 2: Color -->
+                    <div class="avatar-forge-step">
+                        <div class="flex items-center gap-2.5 mb-3">
+                            <div class="avatar-step-number">2</div>
+                            <h3 class="text-xs font-bold text-indigo-300 uppercase tracking-widest">Choose a Main Color</h3>
+                            <i id="step-color-check" class="fas fa-check-circle text-emerald-400 ml-auto hidden text-base"></i>
+                        </div>
+                        <div id="avatar-color-pool" class="flex flex-wrap gap-1.5"></div>
                     </div>
-                    <img id="avatar-maker-img" class="hidden" src="" alt="Generated Avatar">
+
+                    <!-- Step 3: Accessory -->
+                    <div class="avatar-forge-step">
+                        <div class="flex items-center gap-2.5 mb-3">
+                            <div class="avatar-step-number">3</div>
+                            <h3 class="text-xs font-bold text-indigo-300 uppercase tracking-widest">Choose an Accessory</h3>
+                            <i id="step-accessory-check" class="fas fa-check-circle text-emerald-400 ml-auto hidden text-base"></i>
+                        </div>
+                        <div id="avatar-accessory-pool" class="flex flex-wrap gap-1.5"></div>
+                    </div>
+
                 </div>
 
-                <div class="w-full space-y-2">
-                    <button id="avatar-generate-btn"
-                        class="w-full bg-blue-500 hover:bg-blue-600 text-white font-title text-xl py-3 rounded-xl bubbly-button disabled:opacity-50"
-                        disabled>
-                        <i class="fas fa-magic mr-2"></i> Generate
-                    </button>
-                    <div id="avatar-post-generation-btns" class="hidden w-full space-y-2">
-                        <button id="avatar-save-btn"
-                            class="w-full bg-green-500 hover:bg-green-600 text-white font-title text-xl py-3 rounded-xl bubbly-button">
-                            <i class="fas fa-save mr-2"></i> Save Avatar
+                <!-- Right: preview + action buttons -->
+                <div class="w-full md:w-60 lg:w-64 flex flex-col items-center gap-4 p-5 border-t md:border-t-0 md:border-l border-white/10 bg-black/25 flex-shrink-0">
+
+                    <!-- Preview frame -->
+                    <div id="avatar-display-area">
+                        <div id="avatar-maker-placeholder" class="text-center text-indigo-400/80">
+                            <div class="text-5xl mb-2 opacity-70">✨</div>
+                            <p class="text-xs font-semibold leading-relaxed">Your avatar<br>will appear here</p>
+                        </div>
+                        <div id="avatar-maker-loader" class="hidden text-center">
+                            <div class="text-4xl mb-2" style="animation: avatar-forge-bounce 0.8s ease-in-out infinite;">⚒️</div>
+                            <p class="font-title text-base text-purple-300" style="animation: forge-pulse 1s ease-in-out infinite;">Forging...</p>
+                        </div>
+                        <img id="avatar-maker-img" class="hidden" src="" alt="Generated Avatar">
+                    </div>
+
+                    <!-- Action buttons -->
+                    <div class="w-full space-y-2">
+                        <button id="avatar-generate-btn"
+                            class="w-full text-white font-title text-lg py-3 rounded-xl bubbly-button disabled:opacity-40 disabled:cursor-not-allowed transition-all"
+                            style="background: linear-gradient(135deg, #7c3aed, #2563eb); box-shadow: 0 4px 18px rgba(124,58,237,0.4);"
+                            disabled>
+                            <i class="fas fa-fire mr-2"></i>Forge Avatar
                         </button>
-                        <button id="avatar-retry-btn"
-                            class="w-full bg-gray-500 hover:bg-gray-600 text-white font-title text-lg py-2 rounded-xl bubbly-button">
-                            <i class="fas fa-redo mr-2"></i> Try Again
+                        <div id="avatar-post-generation-btns" class="hidden space-y-2">
+                            <button id="avatar-save-btn"
+                                class="w-full bg-emerald-500 hover:bg-emerald-400 text-white font-title text-lg py-3 rounded-xl bubbly-button transition-colors"
+                                style="box-shadow: 0 4px 14px rgba(16,185,129,0.3);">
+                                <i class="fas fa-save mr-2"></i>Save Avatar
+                            </button>
+                            <button id="avatar-retry-btn"
+                                class="w-full bg-white/10 hover:bg-white/15 text-indigo-200 font-bold text-sm py-2.5 rounded-xl bubbly-button transition-colors border border-white/15">
+                                <i class="fas fa-redo mr-1.5"></i>Try Again
+                            </button>
+                        </div>
+                        <button id="avatar-delete-btn"
+                            class="w-full hidden bg-transparent hover:bg-red-500/10 text-red-400/60 hover:text-red-300 text-xs font-semibold py-2 rounded-xl bubbly-button transition-all border border-red-500/15">
+                            <i class="fas fa-trash-alt mr-1.5"></i>Remove Current Avatar
                         </button>
                     </div>
-                    <button id="avatar-delete-btn"
-                        class="w-full bg-red-100 text-red-700 font-semibold text-sm py-2 rounded-lg mt-2 bubbly-button hidden">
-                        <i class="fas fa-trash-alt mr-2"></i> Remove Avatar
-                    </button>
-                    <button id="avatar-maker-close-btn"
-                        class="w-full text-sm text-gray-600 hover:underline mt-2">Close</button>
+
                 </div>
             </div>
         </div>

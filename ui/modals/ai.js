@@ -269,7 +269,10 @@ export async function openMilestoneModal(markerElement) {
     const weeklyStars = relevantLogs.filter(log => utils.parseDDMMYYYY(log.date) >= startOfWeek).reduce((sum, log) => sum + log.stars, 0);
 
     // Trial Mastery (Class Average)
-    const classTrials = state.get('allWrittenScores').filter(s => s.classId === classId && new Date(s.date).getMonth() === currentMonth);
+    const classTrials = state.get('allWrittenScores').filter(s => {
+        const d = utils.parseFlexibleDate(s.date);
+        return s.classId === classId && d && d.getMonth() === currentMonth && d.getFullYear() === currentYear;
+    });
     let totalScorePercent = 0, scoreCount = 0;
     classTrials.forEach(s => {
         if (s.scoreNumeric !== null) { totalScorePercent += (s.scoreNumeric / s.maxScore) * 100; scoreCount++; }

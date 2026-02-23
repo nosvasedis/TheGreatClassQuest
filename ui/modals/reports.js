@@ -272,7 +272,8 @@ export async function handleGenerateCertificate(studentId) {
         if (topReason) {
             const key = topReason.toLowerCase();
             const cfg = VIRTUE_PILL_STYLES[key] || defaultVirtuePill;
-            virtuePillEl.innerText = `${cfg.emoji} ${topReason}`;
+            const capitalisedReason = topReason.charAt(0).toUpperCase() + topReason.slice(1);
+            virtuePillEl.innerText = `${cfg.emoji} ${capitalisedReason}`;
             virtuePillEl.style.background = cfg.bg;
             virtuePillEl.style.color = cfg.color;
             virtuePillEl.style.border = `1px solid ${cfg.border}`;

@@ -142,13 +142,13 @@ export const attendanceModalsHTML = `
             </div>
 
             <!-- Badges row: class, guild, hero, stars, league, virtue (kept in a single row) -->
-            <div id="cert-badges" style="display:flex; flex-wrap:nowrap; justify-content:center; align-items:center; gap:6px; margin:22px 0 12px; font-size:11.5px; font-weight:600; flex-shrink:0; max-width:100%; overflow:hidden;">
-                <span id="cert-class-name" class="cert-pill" style="display:inline-flex; align-items:center; justify-content:center; padding:4px 12px; border-radius:9999px; text-align:center; line-height:1;"></span>
-                <span id="cert-guild-pill" class="cert-pill" style="display:inline-flex; align-items:center; justify-content:center; padding:4px 12px; border-radius:9999px; text-align:center; line-height:1;"></span>
-                <span id="cert-hero-pill" class="cert-pill" style="display:inline-flex; align-items:center; justify-content:center; padding:4px 12px; border-radius:9999px; text-align:center; line-height:1;"></span>
-                <span id="cert-stars-pill" class="cert-pill" style="display:inline-flex; align-items:center; justify-content:center; padding:4px 12px; border-radius:9999px; text-align:center; line-height:1;"></span>
-                <span id="cert-league-pill" class="cert-pill" style="display:inline-flex; align-items:center; justify-content:center; padding:4px 12px; border-radius:9999px; text-align:center; line-height:1;"></span>
-                <span id="cert-virtue-pill" class="cert-pill" style="display:inline-flex; align-items:center; justify-content:center; padding:4px 12px; border-radius:9999px; text-align:center; line-height:1;"></span>
+            <div id="cert-badges" style="display:flex; flex-wrap:nowrap; justify-content:center; align-items:center; gap:6px; margin:22px 0 12px; font-size:11px; font-weight:600; flex-shrink:0; max-width:100%; overflow:visible;">
+                <span id="cert-class-name"   class="cert-pill" style="display:inline-flex; align-items:center; justify-content:center; padding:4px 10px; border-radius:9999px; white-space:nowrap; line-height:1;"></span>
+                <span id="cert-guild-pill"   class="cert-pill" style="display:inline-flex; align-items:center; justify-content:center; padding:4px 10px; border-radius:9999px; white-space:nowrap; line-height:1;"></span>
+                <span id="cert-hero-pill"    class="cert-pill" style="display:inline-flex; align-items:center; justify-content:center; padding:4px 10px; border-radius:9999px; white-space:nowrap; line-height:1;"></span>
+                <span id="cert-stars-pill"   class="cert-pill" style="display:inline-flex; align-items:center; justify-content:center; padding:4px 10px; border-radius:9999px; white-space:nowrap; line-height:1;"></span>
+                <span id="cert-league-pill"  class="cert-pill" style="display:inline-flex; align-items:center; justify-content:center; padding:4px 10px; border-radius:9999px; white-space:nowrap; line-height:1;"></span>
+                <span id="cert-virtue-pill"  class="cert-pill" style="display:inline-flex; align-items:center; justify-content:center; padding:4px 10px; border-radius:9999px; white-space:nowrap; line-height:1;"></span>
             </div>
 
             <!-- AI-generated certificate text -->

@@ -101,6 +101,14 @@ export async function handleGenerateCertificate(studentId) {
     const heroLevel = scoreData?.heroLevel || 0;
     const totalStarsAllTime = scoreData?.totalStars || 0;
 
+    const startOfMonth = new Date(new Date().setDate(1)).toLocaleDateString('en-GB');
+    const logs = state.get('allAwardLogs').filter(log => log.studentId === studentId && log.teacherId === state.get('currentUserId') && log.date >= startOfMonth);
+    const monthlyStars = logs.reduce((sum, log) => sum + log.stars, 0);
+    const topReason = Object.entries(logs.reduce((acc, log) => {
+        acc[log.reason] = (acc[log.reason] || 0) + 1;
+        return acc;
+    }, {})).sort((a, b) => b[1] - a[1])[0]?.[0] || 'all-around excellence';
+
     // Crest icon + title colours
     document.getElementById('cert-icon').innerText = randomStyle.icon;
     document.getElementById('cert-icon').style.color = randomStyle.borderColor;
@@ -164,14 +172,6 @@ export async function handleGenerateCertificate(studentId) {
     document.getElementById('cert-teacher-name').style.borderTopColor = randomStyle.borderColor;
     document.getElementById('cert-date').style.borderTopColor = randomStyle.borderColor;
 
-    const startOfMonth = new Date(new Date().setDate(1)).toLocaleDateString('en-GB');
-    const logs = state.get('allAwardLogs').filter(log => log.studentId === studentId && log.teacherId === state.get('currentUserId') && log.date >= startOfMonth);
-    const monthlyStars = logs.reduce((sum, log) => sum + log.stars, 0);
-    const topReason = Object.entries(logs.reduce((acc, log) => {
-        acc[log.reason] = (acc[log.reason] || 0) + 1;
-        return acc;
-    }, {})).sort((a, b) => b[1] - a[1])[0]?.[0] || 'all-around excellence';
-    
     const academicScores = state.get('allWrittenScores').filter(score => score.studentId === studentId && score.date >= startOfMonth);
     const topScore = academicScores.sort((a, b) => (b.scoreNumeric / b.maxScore) - (a.scoreNumeric / a.scoreNumeric))[0];
     const topScoreString = topScore ? `a top score of ${topScore.scoreNumeric || topScore.scoreQualitative}` : "";

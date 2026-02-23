@@ -4,6 +4,7 @@ import * as modals from '../modals.js';
 import { deleteClass, deleteStudent } from '../../db/actions.js';
 import { showTab } from './navigation.js';
 import * as avatar from '../../features/avatar.js';
+import { wrapAvatarWithLevelUpIndicator } from '../core/avatar.js';
 import { getGuildBadgeHtml, getGuildById } from '../../features/guilds.js';
 import { openSkillTreeModal } from '../modals/skillTree.js';
 
@@ -95,13 +96,14 @@ export function renderManageStudentsTab() {
             ? `box-shadow: 0 0 0 2px white, 0 0 0 4px ${hc.ring};`
             : 'box-shadow: 0 0 0 2px white, 0 0 0 4px #d1d5db;';
 
-        const avatarHtml = s.avatar
+        const avatarInner = s.avatar
             ? `<img src="${s.avatar}" alt="${s.name}" data-student-id="${s.id}"
                 class="student-avatar large-avatar enlargeable-avatar cursor-pointer"
                 style="${ringStyle}">`
             : `<div data-student-id="${s.id}"
                 class="student-avatar large-avatar enlargeable-avatar cursor-pointer flex items-center justify-center font-title text-white"
                 style="font-size:1.25rem; background: linear-gradient(135deg, #2dd4bf, #06b6d4); ${ringStyle}">${s.name.charAt(0).toUpperCase()}</div>`;
+        const avatarHtml = wrapAvatarWithLevelUpIndicator(avatarInner, pendingSkill);
 
         const heroClassBadge = hc
             ? `<span class="inline-flex items-center gap-1 text-[11px] font-bold px-2 py-0.5 rounded-full" style="background:${hc.bg};color:${hc.text};">${hc.icon} ${s.heroClass}</span>`

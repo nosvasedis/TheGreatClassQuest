@@ -2,6 +2,7 @@
 import * as state from '../../state.js';
 import * as utils from '../../utils.js';
 import { HERO_CLASSES } from '../../features/heroClasses.js';
+import { wrapAvatarWithLevelUpIndicator } from '../core/avatar.js';
 
 export function renderAwardStarsTab() {
     const dropdownList = document.getElementById('award-class-list');
@@ -141,9 +142,10 @@ export function renderAwardStarsStudentList(selectedClassId, fullRender = true) 
                     }
                 }
 
-                const avatarHtml = s.avatar
+                const avatarInner = s.avatar
                     ? `<img src="${s.avatar}" alt="${s.name}" class="student-avatar-cloud enlargeable-avatar">`
                     : `<div class="student-avatar-cloud-placeholder">${s.name.charAt(0)}</div>`;
+                const avatarHtml = wrapAvatarWithLevelUpIndicator(avatarInner, !!scoreData.pendingSkillChoice);
 
                 const coinHtml = `
                   <div class="coin-pill ${starsToday > 0 ? 'animate-glitter' : ''}" title="Current Gold">

@@ -12,6 +12,7 @@ import * as utils from '../utils.js';
 import { showToast } from '../ui/effects.js';
 import { playSound } from '../audio.js';
 import * as modals from '../ui/modals.js';
+import { wrapAvatarWithLevelUpIndicator } from '../ui/core/avatar.js';
 import { HERO_CLASSES } from '../features/heroClasses.js';
 
 
@@ -212,9 +213,12 @@ const timeText = isToday ? "TODAY!" : (daysLeft === 1 ? "Tomorrow" : `in ${daysL
         chartContainer.innerHTML = `<p class="text-center text-gray-400 p-8">Log some trials to see the performance chart!</p>`;
     } else {
         chartContainer.innerHTML = `<div class="performance-chart-container">${studentPerformanceData.map(({student, performance}) => {
-            const avatarHtml = student.avatar 
+            const scoreData = state.get('allStudentScores').find(sc => sc.id === student.id);
+            const pendingSkill = !!scoreData?.pendingSkillChoice;
+            const avatarInner = student.avatar 
                 ? `<img src="${student.avatar}" alt="${student.name}" class="student-avatar enlargeable-avatar">` 
                 : `<div class="student-avatar enlargeable-avatar flex items-center justify-center bg-gray-300 text-gray-600 font-bold">${student.name.charAt(0)}</div>`;
+            const avatarHtml = wrapAvatarWithLevelUpIndicator(avatarInner, pendingSkill);
             
             const maxVal = isJunior ? 4 : 100;
             const percentage = (performance.value / maxVal) * 100;

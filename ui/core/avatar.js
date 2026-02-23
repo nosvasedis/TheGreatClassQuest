@@ -3,6 +3,19 @@ import * as state from '../../state.js';
 import { handleUseItem, isItemUsable } from '../../features/powerUps.js';
 import { renderFamiliarSprite, openFamiliarStatsOverlay } from '../../features/familiars.js';
 
+/**
+ * Wraps avatar HTML with the level-up indicator (arrow + glow) when the student has leveled up
+ * but not yet been given a skill in the Skill Tree. Use on every tab where the student avatar appears.
+ * @param {string} avatarInnerHtml - The img or div for the avatar.
+ * @param {boolean} pendingSkillChoice - From scoreData.pendingSkillChoice.
+ * @returns {string} HTML string: wrapper + optional arrow + avatar.
+ */
+export function wrapAvatarWithLevelUpIndicator(avatarInnerHtml, pendingSkillChoice) {
+    if (!pendingSkillChoice) return avatarInnerHtml;
+    const arrow = '<div class="level-up-arrow" aria-hidden="true" title="Level up! Assign skill in Skill Tree"></div>';
+    return `<div class="avatar-with-level-up-wrap">${arrow}${avatarInnerHtml}</div>`;
+}
+
 document.addEventListener('clarity-glimmer', (e) => {
     const { studentId, itemIndex } = e.detail || {};
     const container = document.querySelector(`.inventory-container[data-student-id="${studentId}"]`);

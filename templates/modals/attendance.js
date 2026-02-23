@@ -141,16 +141,21 @@ export const attendanceModalsHTML = `
                 <p id="cert-student-name" style="font-family:'Fredoka One',cursive; font-size:46px; margin:0; line-height:1.2;"></p>
             </div>
 
-            <!-- Badges row: class, guild, hero, stars (positioned well below the name) -->
-            <div id="cert-badges" style="display:flex; flex-wrap:wrap; justify-content:center; align-items:center; gap:8px; margin:22px 0 12px; font-size:11.5px; font-weight:600; flex-shrink:0;">
-                <span id="cert-class-name" class="cert-pill" style="display:inline-flex; align-items:center; justify-content:center; padding:5px 14px; border-radius:9999px; text-align:center;"></span>
-                <span id="cert-guild-pill" class="cert-pill" style="display:inline-flex; align-items:center; justify-content:center; padding:5px 14px; border-radius:9999px; text-align:center;"></span>
-                <span id="cert-hero-pill" class="cert-pill" style="display:inline-flex; align-items:center; justify-content:center; padding:5px 14px; border-radius:9999px; text-align:center;"></span>
-                <span id="cert-stars-pill" class="cert-pill" style="display:inline-flex; align-items:center; justify-content:center; padding:5px 14px; border-radius:9999px; text-align:center;"></span>
+            <!-- Badges row: class, guild, hero, stars, league, virtue (kept in a single row) -->
+            <div id="cert-badges" style="display:flex; flex-wrap:nowrap; justify-content:center; align-items:center; gap:6px; margin:22px 0 12px; font-size:11.5px; font-weight:600; flex-shrink:0; max-width:100%; overflow:hidden;">
+                <span id="cert-class-name" class="cert-pill" style="display:inline-flex; align-items:center; justify-content:center; padding:4px 12px; border-radius:9999px; text-align:center; line-height:1;"></span>
+                <span id="cert-guild-pill" class="cert-pill" style="display:inline-flex; align-items:center; justify-content:center; padding:4px 12px; border-radius:9999px; text-align:center; line-height:1;"></span>
+                <span id="cert-hero-pill" class="cert-pill" style="display:inline-flex; align-items:center; justify-content:center; padding:4px 12px; border-radius:9999px; text-align:center; line-height:1;"></span>
+                <span id="cert-stars-pill" class="cert-pill" style="display:inline-flex; align-items:center; justify-content:center; padding:4px 12px; border-radius:9999px; text-align:center; line-height:1;"></span>
+                <span id="cert-league-pill" class="cert-pill" style="display:inline-flex; align-items:center; justify-content:center; padding:4px 12px; border-radius:9999px; text-align:center; line-height:1;"></span>
+                <span id="cert-virtue-pill" class="cert-pill" style="display:inline-flex; align-items:center; justify-content:center; padding:4px 12px; border-radius:9999px; text-align:center; line-height:1;"></span>
             </div>
 
             <!-- AI-generated certificate text -->
             <div id="cert-text" style="font-size:16.5px; text-align:center; line-height:1.62; max-width:86%; flex-shrink:0; font-style:italic;"></div>
+
+            <!-- Decorative flair row under the main text -->
+            <div id="cert-flair-row" style="margin-top:8px; display:flex; justify-content:center; gap:8px; flex-shrink:0;"></div>
 
             <!-- Meta stats line -->
             <div id="cert-meta" style="font-size:10.5px; margin-top:4px; opacity:0.52; text-align:center; flex-shrink:0; letter-spacing:0.06em;"></div>

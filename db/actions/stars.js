@@ -23,6 +23,7 @@ import { playSound, playHeroFanfare } from '../../audio.js';
 import { getTodayDateString, getStartOfMonthString, debounce, parseDDMMYYYY } from '../../utils.js';
 import { checkBountyProgress } from './bounties.js';
 import { calculateHeroGold, canChangeHeroClass } from '../../features/heroClasses.js';
+import { updateGuildScores } from '../../features/guildScoring.js';
 
 // --- SCORE, STAR, & LOG ACTIONS ---
 
@@ -227,6 +228,7 @@ export async function setStudentStarsForToday(studentId, starValue, reason = nul
         if (studentClassId && difference > 0) {
             debouncedCheckAndRecordQuestCompletion(studentClassId);
             checkBountyProgress(studentClassId, difference);
+            updateGuildScores(studentId, difference);
         }
 
     } catch (error) {

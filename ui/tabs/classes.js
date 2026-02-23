@@ -4,6 +4,7 @@ import * as modals from '../modals.js';
 import { deleteClass, deleteStudent } from '../../db/actions.js';
 import { showTab } from './navigation.js';
 import * as avatar from '../../features/avatar.js';
+import { getGuildBadgeHtml, getGuildById } from '../../features/guilds.js';
 
 export function renderManageClassesTab() {
     const list = document.getElementById('class-list');
@@ -60,14 +61,20 @@ export function renderManageStudentsTab() {
         const avatarHtml = s.avatar
             ? `<img src="${s.avatar}" alt="${s.name}" data-student-id="${s.id}" class="student-avatar large-avatar enlargeable-avatar cursor-pointer">`
             : `<div data-student-id="${s.id}" class="student-avatar large-avatar enlargeable-avatar cursor-pointer flex items-center justify-center bg-gray-300 text-gray-600 font-bold">${s.name.charAt(0)}</div>`;
+        const guildBadgeOrQuiz = s.guildId
+            ? getGuildBadgeHtml(s.guildId, 'w-8 h-8')
+            : `<button data-id="${s.id}" class="guild-quiz-btn bg-amber-100 text-amber-800 font-bold w-8 h-8 rounded-full bubbly-button" title="Guild Quiz"><i class="fas fa-hat-wizard text-xs"></i></button>`;
+        const guildBorder = s.guildId ? 'border-l-4' : '';
+        const borderStyle = s.guildId && getGuildById(s.guildId) ? `style="border-left-color: ${getGuildById(s.guildId).primary}"` : '';
 
         return `
-        <div class="flex items-center justify-between bg-gray-50 p-2 rounded-lg">
+        <div class="flex items-center justify-between bg-gray-50 p-2 rounded-lg ${guildBorder}" ${borderStyle}>
             <div class="flex items-center gap-3">
                 ${avatarHtml}
                 <span class="font-medium text-gray-700">${s.name}</span>
             </div>
-            <div class="flex gap-2">
+            <div class="flex items-center gap-2">
+                ${s.guildId ? `<span class="guild-badge-wrap flex-shrink-0">${guildBadgeOrQuiz}</span>` : guildBadgeOrQuiz}
                 <button data-id="${s.id}" class="move-student-btn bg-yellow-100 text-yellow-800 font-bold w-8 h-8 rounded-full bubbly-button" title="Move Student"><i class="fas fa-people-arrows text-xs"></i></button>
                 <button data-id="${s.id}" class="hero-chronicle-btn bg-green-100 text-green-800 font-bold w-8 h-8 rounded-full bubbly-button" title="Hero's Chronicle"><i class="fas fa-book-reader text-xs"></i></button>
                 <button data-id="${s.id}" class="avatar-maker-btn font-bold w-8 h-8 rounded-full bubbly-button" title="Create/Edit Avatar"><i class="fas fa-user-astronaut text-xs"></i></button>
@@ -84,4 +91,5 @@ export function renderManageStudentsTab() {
     list.querySelectorAll('.avatar-maker-btn').forEach(btn => btn.addEventListener('click', () => avatar.openAvatarMaker(btn.dataset.id)));
     list.querySelectorAll('.move-student-btn').forEach(btn => btn.addEventListener('click', () => modals.openMoveStudentModal(btn.dataset.id)));
     list.querySelectorAll('.hero-chronicle-btn').forEach(btn => btn.addEventListener('click', () => modals.openHeroChronicleModal(btn.dataset.id)));
+    list.querySelectorAll('.guild-quiz-btn').forEach(btn => btn.addEventListener('click', () => modals.openSortingQuizModal(btn.dataset.id)));
 }

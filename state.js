@@ -54,6 +54,8 @@ function getDefaultState() {
         currentManagingClassId: null,
         studentLeaderboardView: 'class',
         studentStarMetric: 'monthly',
+        studentLeaderboardDisplay: 'individual', // 'individual' | 'guild'
+        allGuildScores: {},
         allMonthlyHistory: {},
         currentlySelectedDayCell: null,
         currentLogFilter: { classId: null, month: '' },
@@ -95,7 +97,8 @@ function getDefaultState() {
         allQuestBounties: [], // Store bounties
         currentShopItems: [], // Store this month's shop items
         unsubscribeQuestBounties: () => { }, // Listener unsubscribe
-        unsubscribeSchoolSettings: () => { } // Listener for settings
+        unsubscribeSchoolSettings: () => { }, // Listener for settings
+        unsubscribeGuildScores: () => { }
     };
 }
 
@@ -263,6 +266,8 @@ export function setTodaysStarsDate(date) { state.todaysStarsDate = date; }
 export function setCurrentManagingClassId(id) { state.currentManagingClassId = id; }
 export function setStudentLeaderboardView(view) { state.studentLeaderboardView = view; }
 export function setStudentStarMetric(metric) { state.studentStarMetric = metric; }
+export function setStudentLeaderboardDisplay(display) { state.studentLeaderboardDisplay = display; }
+export function setAllGuildScores(scores) { state.allGuildScores = scores; }
 export function setAllMonthlyHistory(history) { state.allMonthlyHistory = history; }
 export function setCurrentlySelectedDayCell(cell) { state.currentlySelectedDayCell = cell; }
 export function setCurrentLogFilter(filter) { state.currentLogFilter = filter; }
@@ -291,6 +296,7 @@ export function setUnsubscribeScheduleOverrides(func) { state.unsubscribeSchedul
 export function setUnsubscribeHeroChronicleNotes(func) { state.unsubscribeHeroChronicleNotes = func; }
 export function setAllQuestBounties(bounties) { state.allQuestBounties = bounties; }
 export function setUnsubscribeQuestBounties(func) { state.unsubscribeQuestBounties = func; }
+export function setUnsubscribeGuildScores(func) { state.unsubscribeGuildScores = func; }
 export function setCurrentShopItems(items) { state.currentShopItems = items; }
 
 // Helper to fetch history (internal use)

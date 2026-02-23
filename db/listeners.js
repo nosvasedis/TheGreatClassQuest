@@ -43,6 +43,7 @@ export function setupDataListeners(userId, dateString) {
     state.get('unsubscribeHeroChronicleNotes')();
     state.get('unsubscribeSchoolSettings')();
     state.get('unsubscribeQuestBounties')();
+    state.get('unsubscribeGuildScores')();
 
     const publicDataPath = "artifacts/great-class-quest/public/data";
     
@@ -68,6 +69,7 @@ export function setupDataListeners(userId, dateString) {
     const questBountiesQuery = query(collection(db, `${publicDataPath}/quest_bounties`), where('createdBy.uid', '==', userId));
     const shopItemsQuery = query(collection(db, `${publicDataPath}/shop_items`), where('teacherId', '==', userId));
     const schoolSettingsQuery = doc(db, `${publicDataPath}/school_settings`, 'holidays');
+    const guildScoresQuery = query(collection(db, `${publicDataPath}/guild_scores`));
 
     // --- Optimized Queries (Time-Bounded) ---
     
@@ -353,6 +355,13 @@ const writtenScoresQuery = query(
         }
         renderHomeTab(); // Update home tab (holidays affect monthly stars calculation context)
     }));
+
+    state.setUnsubscribeGuildScores(onSnapshot(guildScoresQuery, (snapshot) => {
+        const allGuildScores = {};
+        snapshot.docs.forEach(d => { allGuildScores[d.id] = { id: d.id, ...d.data() }; });
+        state.setAllGuildScores(allGuildScores);
+        renderStudentLeaderboardTab();
+    }, (error) => console.error("Error listening to guild_scores:", error)));
 }
 
 export async function archivePreviousDayStars(userId, todayDateString) {

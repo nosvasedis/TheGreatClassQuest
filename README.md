@@ -24,6 +24,7 @@
 | [Home Dashboard](#-home-dashboard) | Weather, schedule, tools, class/school view |
 | [Team Quest](#-team-quest) | League map, monthly goals, ceremony |
 | [Hero's Challenge](#-heros-challenge) | Leaderboard, shop, Hero Stats, Prodigy, certificates |
+| [Guilds & Factions](#-guilds--factions) | Guild houses, sorting quiz, year-long race |
 | [My Classes & Roster](#-my-classes--roster) | Classes, students, reports, certificates |
 | [Award Stars](#-award-stars) | Reasons, effects, bounties, Hero's Boon |
 | [Adventure Log](#-adventure-log) | AI diary, story image, Quest Events |
@@ -43,7 +44,7 @@
 
 **The Great Class Quest** is a sophisticated web application that gamifies the classroom experience. It replaces traditional behavior charts with a living, breathing RPG-style interface.
 
-- **Dual competition:** Class vs. class on the **Team Quest** map, and student vs. student in **Hero's Challenge** for rank and "Prodigy of the Month."
+- **Triple-layer competition:** Class vs. class on the **Team Quest** map, student vs. student in **Hero's Challenge** for rank and "Prodigy of the Month," and **guild vs. guild** in a year-long race toward the **Guild Ceremony**.
 - **Automated tracking:** Stars, gold, inventory, tests, attendance, and logs are stored in **Firestore** and stay in sync.
 - **AI-powered narrative:** **Gemini** writes daily chronicles, reward ideas, performance insights, certificates, and story illustrations.
 - **Live display:** **Dynamic Wallpaper Mode** turns your screen into a real-time quest dashboard with day/night, weather-aware sky, rotating cards, and celebrations.
@@ -69,8 +70,8 @@ The app is built on four pedagogical pillars:
 |-----|---------|
 | **Home** | Dashboard: weather, time greeting, school/class stats, today’s schedule, quick actions (Team History, Holiday, Planner, Report, etc.). |
 | **Team Quest** | Class leaderboard, **League Map** (journey from Bronze Meadows to Crystal Realm), monthly goal (adjusted for holidays/cancellations), **Monthly Award Ceremony**. |
-| **Hero's Challenge** | Student leaderboard, **Mystic Market** (shop), Hero Stats modal, **Prodigy of the Month** archive, certificates. |
-| **My Classes** | Create/edit classes (name, logo, schedule, Quest League). Manage roster, edit students (birthday, nameday, **Hero Class**, avatar). **Report** (AI class summary), **Certificate** (per student). |
+| **Hero's Challenge** | Student leaderboard with **Individual / Guild** toggle, **Mystic Market** (shop), Hero Stats modal, **Prodigy of the Month** archive, certificates. |
+| **My Classes** | Create/edit classes (name, logo, schedule, Quest League). Manage roster, edit students (birthday, nameday, **Hero Class**, avatar), and trigger the **Guild Sorting Quiz** for unassigned students. **Report** (AI class summary), **Certificate** (per student). |
 | **Award** | Award stars (Teamwork, Creativity, Respect, Focus, etc.), **Quest Bounties**, **Hero's Boon**. Sounds and particle effects. |
 | **Adventure Log** | **Log Today's Adventure** (AI diary + storybook image), view past entries, **Quest Events** (schedule special quests). |
 | **Scholar's Scroll** | **Tests** and **Dictations**, **Starfall** on high scores, **Makeup Work** flags, **Performance Chart**, upcoming test alert. |
@@ -160,6 +161,23 @@ The **Home** tab is your command center and adapts to **weather** and **time of 
 - **Hero Stats Modal:** Avatar, name, Hero Class, **Trials Logged**, **Average Test Score**, **Best Test**, dictation summary (Junior: qualitative; Senior: average %). **Performance chart** (test/dictation over time). Links to **Hero's Chronicle** and **Certificate**.
 - **Prodigy of the Month:** Archive of past **Prodigy** (and Co-Prodigy) with month selector; can be opened from Home or Hero’s Challenge.
 - **Certificates:** **Generate Certificate** (from roster or Hero Stats) → AI writes a unique paragraph from top reason + monthly stars; PDF download with avatar and themed style (Junior/Mid/Senior).
+- **Guild View:** Switch the leaderboard to **Guild** mode to see the four guilds ranked by **Total Stars** (cumulative for the whole school year), along with member counts and top contributors.
+
+---
+
+## 🏰 Guilds & Factions
+
+- **Four Guilds:** Every student can belong to one of four guilds, each with its own emblem and theme:
+  - **Dragon Flame** – courage, boldness, fiery energy.
+  - **Grizzly Might** – strength, teamwork, steady effort.
+  - **Owl Wisdom** – curiosity, thoughtful learning, calm focus.
+  - **Phoenix Rising** – resilience, bouncing back, never giving up.
+- **Guild Sorting Quiz:** From **My Classes → Students (Manage Students)**, students without a guild can take an age-appropriate, story-style **Sorting Quiz**. Their choices are mapped to traits and used to assign a guild in a fun, narrative way.
+- **Year-Long Guild Progress:** Every positive star a student earns also feeds their guild’s **Total Stars**. Guild totals **do not reset monthly**; they accumulate across the school year and are the basis for the end-of-year **Guild Ceremony** (e.g. June 2026) to crown the winning guild.
+- **Guild Leaderboard:** In **Hero’s Challenge**, switch to **Guild** view to see a compact leaderboard of all guilds with:
+  - Total Stars (cumulative, not reset).
+  - Member count and a quick list of top contributors.
+  - Colors/emblems matching the guild’s identity for quick recognition on the projector.
 
 ---
 

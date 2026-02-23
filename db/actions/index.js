@@ -10,3 +10,4 @@ export * from './quests.js';
 export * from './log.js';
 export * from './bounties.js';
 export * from './economy.js';
+export * from './guilds.js';

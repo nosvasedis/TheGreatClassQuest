@@ -1,7 +1,7 @@
 // templates/app/nav.js
 
 export const navHTML = `
-        <nav id="bottom-nav-bar" class="grid grid-cols-10 gap-1 p-2 shadow-inner"
+        <nav id="bottom-nav-bar" class="grid grid-cols-11 gap-1 p-2 shadow-inner"
             style="background: linear-gradient(to right, #89f7fe 0%, #66a6ff 100%);">
             <button class="nav-button nav-color-cyan active" data-tab="about-tab">
                 <i class="fas fa-home icon"></i>
@@ -14,6 +14,10 @@ export const navHTML = `
             <button class="nav-button nav-color-purple" data-tab="student-leaderboard-tab">
                 <i class="fas fa-user-graduate icon"></i>
                 <span class="text">Hero's Challenge</span>
+            </button>
+            <button class="nav-button nav-color-guild" data-tab="guilds-tab">
+                <i class="fas fa-shield-alt icon"></i>
+                <span class="text">Guilds</span>
             </button>
             <button class="nav-button nav-color-green" data-tab="my-classes-tab">
                 <i class="fas fa-chalkboard-teacher icon"></i>

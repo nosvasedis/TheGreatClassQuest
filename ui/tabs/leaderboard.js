@@ -4,6 +4,8 @@ import * as utils from '../../utils.js';
 import * as constants from '../../constants.js';
 import * as modals from '../modals.js';
 import { HERO_CLASSES } from '../../features/heroClasses.js';
+import { getGuildLeaderboardData } from '../../features/guildScoring.js';
+import { getGuildById, getGuildEmblemUrl } from '../../features/guilds.js';
 
 // --- TAB CONTENT RENDERERS ---
 

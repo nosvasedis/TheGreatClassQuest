@@ -2,6 +2,7 @@
 
 import { homeTabHTML } from './home.js';
 import { leaderboardTabHTML } from './leaderboard.js';
+import { guildsTabHTML } from './guilds.js';
 import { classesTabHTML } from './classes.js';
 import { studentsTabHTML } from './students.js';
 import { awardTabHTML } from './award.js';
@@ -16,6 +17,7 @@ export const mainContentHTML = `
             <div id="bounty-board-container" class="max-w-7xl mx-auto mb-4 empty:hidden"></div>
             ${homeTabHTML}
             ${leaderboardTabHTML}
+            ${guildsTabHTML}
             ${classesTabHTML}
             ${studentsTabHTML}
             ${awardTabHTML}

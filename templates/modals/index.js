@@ -11,6 +11,7 @@ import { heroModalsHTML } from './hero.js';
 import { rankingsModalsHTML } from './rankings.js';
 import { trophyRoomModalsHTML } from './trophyRoom.js';
 import { miscModalsHTML } from './misc.js';
+import { sortingQuizModalsHTML } from './sortingQuiz.js';
 
 export const allModalsHTML =
     baseModalsHTML +
@@ -23,4 +24,5 @@ export const allModalsHTML =
     heroModalsHTML +
     rankingsModalsHTML +
     trophyRoomModalsHTML +
-    miscModalsHTML;
+    miscModalsHTML +
+    sortingQuizModalsHTML;

@@ -14,3 +14,4 @@ export * from './class.js';
 export * from './hero.js';
 export * from './rankings.js';
 export * from './trophyRoom.js';
+export * from './sortingQuiz.js';

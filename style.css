@@ -40,6 +40,9 @@
 /* 11. Student leaderboard card float, absence styles, welcome-back-btn */
 @import url('./styles/leaderboard.css');
 
+/* 11b. Guilds: color schemes, badges, quiz modal, guild leaderboard cards */
+@import url('./styles/guilds.css');
+
 /* 12. Diary/adventure log pages, story-weaver styles, quest avatar tooltip */
 @import url('./styles/diary_log.css');
 

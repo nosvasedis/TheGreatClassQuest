@@ -5,6 +5,7 @@
 
 export * from './navigation.js';
 export * from './leaderboard.js';
+export * from './guilds.js';
 export * from './classes.js';
 export * from './award.js';
 export * from './selectors.js';

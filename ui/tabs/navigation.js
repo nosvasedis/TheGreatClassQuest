@@ -18,6 +18,7 @@ import { renderHomeTab } from '../../features/home.js';
 import { HERO_CLASSES } from '../../features/heroClasses.js';
 import { generateLeagueMapHtml } from '../../features/worldMap.js';
 import { renderClassLeaderboardTab, renderStudentLeaderboardTab } from './leaderboard.js';
+import { renderGuildsTab } from './guilds.js';
 import { renderManageClassesTab, renderManageStudentsTab } from './classes.js';
 import { renderAwardStarsTab } from './award.js';
 import { renderAdventureLogTab } from './log.js';
@@ -72,7 +73,7 @@ export async function showTab(tabName) {
     }
 
     // --- Trigger specific render functions when a tab is shown ---
-    if (tabId === 'class-leaderboard-tab' || tabId === 'student-leaderboard-tab') {
+    if (tabId === 'class-leaderboard-tab' || tabId === 'student-leaderboard-tab' || tabId === 'guilds-tab') {
         const { findAndSetCurrentLeague } = await import('../core.js');
         findAndSetCurrentLeague();
         updateCeremonyStatus(tabId); // Pass the ID!
@@ -80,6 +81,7 @@ export async function showTab(tabName) {
 
     if (tabId === 'class-leaderboard-tab') renderClassLeaderboardTab();
     if (tabId === 'student-leaderboard-tab') renderStudentLeaderboardTab();
+    if (tabId === 'guilds-tab') renderGuildsTab();
     if (tabId === 'my-classes-tab') renderManageClassesTab();
     if (tabId === 'manage-students-tab') renderManageStudentsTab();
 

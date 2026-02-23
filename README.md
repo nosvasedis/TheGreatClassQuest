@@ -33,8 +33,8 @@
 | [Live Classroom: Wallpaper Mode](#-live-classroom-wallpaper-mode) | The Director, cards, clock, celebrations |
 | [Quest Bounties](#-quest-bounties) | Short-term group challenges |
 | [Special Quest Types](#-special-quest-types) | Vocabulary Vault, Unbroken Chain, and more |
-| [Idea Forge](#-idea-forge) | Treasure Chest, Oracle's Insight, Story Weavers |
-| [AI & Creative Tools](#-ai--creative-tools) | Avatar Forge, Oracle, Nameday lookup, reports |
+| [Story Weavers](#-story-weavers) | Collaborative story writing with AI illustrations |
+| [AI & Creative Tools](#-ai--creative-tools) | Avatar Forge, Nameday lookup, reports, Story Weavers |
 | [Tracking & Analytics](#-tracking--analytics) | Hero's Chronicle, Attendance, certificates |
 | [Options & Settings](#-options--settings) | Star Manager, Coin Purse, holidays, profile, danger zone |
 
@@ -46,7 +46,7 @@
 
 - **Triple-layer competition:** Class vs. class on the **Team Quest** map, student vs. student in **Hero's Challenge** for rank and "Prodigy of the Month," and **guild vs. guild** in a year-long race toward the **Guild Ceremony**.
 - **Automated tracking:** Stars, gold, inventory, tests, attendance, and logs are stored in **Firestore** and stay in sync.
-- **AI-powered narrative:** **Gemini** writes daily chronicles, reward ideas, performance insights, certificates, and story illustrations.
+- **AI-powered narrative:** **Gemini** writes daily chronicles, certificates, and story illustrations.
 - **Live display:** **Dynamic Wallpaper Mode** turns your screen into a real-time quest dashboard with day/night, weather-aware sky, rotating cards, and celebrations.
 
 ---
@@ -60,7 +60,7 @@ The app is built on four pedagogical pillars:
 | **Dual-Layer Motivation** | **Team Quest:** The class advances together on a map (social cohesion). **Hero's Challenge:** Students compete for rank and Prodigy status (personal accountability). |
 | **Tangible "Gold" Economy** | Stars become purchasing power. The **Mystic Market** (seasonal + **Legendary Artifacts**) and **Hero's Boon** (peer-to-peer gift) teach delayed gratification and generosity. |
 | **Visual Feedback Loops** | Progress is never abstract: progress bars, floating stats, growing avatars, **League Map** zones (Bronze → Silver → Gold → Crystal), and **Wallpaper Mode** keep the quest visible. |
-| **AI as the "Dungeon Master"** | AI narrates daily logs, suggests words for Story Weavers, generates avatars and certificates, analyzes performance (Oracle), and powers **Hero's Chronicle** reports. |
+| **AI as the "Dungeon Master"** | AI narrates daily logs, suggests words for Story Weavers, generates avatars and certificates, and powers **Hero's Chronicle** reports. |
 
 ---
 
@@ -76,7 +76,7 @@ The app is built on four pedagogical pillars:
 | **Adventure Log** | **Log Today's Adventure** (AI diary + storybook image), view past entries, **Quest Events** (schedule special quests). |
 | **Scholar's Scroll** | **Tests** and **Dictations**, **Starfall** on high scores, **Makeup Work** flags, **Performance Chart**, upcoming test alert. |
 | **Calendar** | Month view, **Day Planner** (see/cancel/add lessons, mark holiday, add **Quest Events**). Holiday/cancellation themes. |
-| **Idea Forge** | **Treasure Chest** (AI reward ideas), **Oracle's Insight** (performance Q&A), **Story Weavers** (collaborative story + Word of the Day + AI art). |
+| **Story Weavers** | Collaborative story + Word of the Day + AI art. |
 | **Options** | **Star Manager**, **Coin Purse Manager**, **School Year Planner** (holidays), Profile (display name), **Danger Zone** (purge/erase). |
 
 ---
@@ -269,14 +269,10 @@ The **Home** tab is your command center and adapts to **weather** and **time of 
 
 ---
 
-## 🎨 Idea Forge
-
-Three panels in one tab:
+## 🎨 Story Weavers
 
 | Tool | Description |
 |------|-------------|
-| **The Treasure Chest** | Select class (for age group). **Generate New Idea** → AI suggests reward ideas. Copy to clipboard. |
-| **The Oracle's Insight** | Select class, type a **question** (e.g. “Who is improving the most?”, “Which skill needs focus?”). AI analyzes last ~30 days of awards, scores, attendance and returns a strategic summary. |
 | **The Story Weavers** | Select class. Class builds a story **one sentence at a time**. **Word of the Day** (teacher or AI suggestion). **Lock in** sentence → AI generates a new **illustration**. **Reveal Story to Class**, **Current Story**, **Story Archive**, **Start New**. Stories can be exported/printed as a PDF storybook. |
 
 ---
@@ -286,13 +282,12 @@ Three panels in one tab:
 | Feature | Where | What it does |
 |--------|--------|----------------|
 | **Avatar Forge** | Edit Student (or onboarding) | Student picks base (e.g. Wizard, Robot), color, accessory. AI generates a **Chibi-style** avatar; URL saved to profile and used on leaderboards. |
-| **The Oracle's Insight** | Idea Forge | Natural-language questions about class performance; AI scans awards, scores, attendance and returns insights. |
 | **AI Nameday Lookup** | Edit Student → Nameday | Magic wand sends name to AI (Greek Orthodox Εορτολόγιο); returns suggested nameday date and auto-fills. |
 | **Class Report** | My Classes → Report | AI **Weekly Summary** + **Suggested Mini-Quest** from behavior + academic data. |
 | **Certificate** | Roster / Hero Stats | AI writes a unique praise paragraph from top reason + monthly stars; PDF with avatar and age-themed style. |
 | **Hero's Chronicle – Oracle** | Student modal → Chronicle | Four report types: **Parent Summary**, **Teacher Strategy**, **Strengths/Weaknesses**, **Goal Suggestion**, from full history. |
 | **Daily Log** | Adventure Log | AI diary entry + storybook image from the day’s events. |
-| **Story Weavers** | Idea Forge | Word suggestions + illustration per sentence. |
+| **Story Weavers** | Story Weavers tab | Word suggestions + illustration per sentence. |
 
 ---
 
@@ -334,7 +329,7 @@ Three panels in one tab:
 |-------|------------|
 | **Frontend** | Vanilla JS (ES modules), HTML, CSS (Tailwind-style utilities, custom themes) |
 | **Backend / DB** | **Firebase** (Firestore: classes, students, scores, award_log, bounties, schedule overrides, holidays, story data, etc.) |
-| **AI** | **Gemini** (diary, reports, Oracle, certificates, reward ideas, nameday, Story Weaver text and image) |
+| **AI** | **Gemini** (diary, reports, certificates, nameday, Story Weaver text and image) |
 
 **Run locally:** From the project root, run `npx serve -l 3000` (or any static server). Configure Firebase in your project for full functionality.
 

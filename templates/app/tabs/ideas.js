@@ -2,83 +2,15 @@
 
 export const ideasTabHTML = `
             <div id="reward-ideas-tab" class="app-tab hidden">
-                <div class="max-w-7xl mx-auto">
+                <div class="max-w-5xl mx-auto">
                     <div class="text-center mb-6">
-                        <i class="fas fa-magic text-indigo-500 text-5xl floating-icon"></i>
-                        <h2 class="font-title text-5xl text-indigo-700 mt-2"
-                            style="text-shadow: 0 2px 4px rgba(0,0,0,0.1);">Idea Forge</h2>
-                        <p class="text-lg text-gray-600 mt-2">Brainstorm rewards, analyze performance, and play creative
-                            games.</p>
+                        <i class="fas fa-feather-alt text-cyan-500 text-5xl floating-icon"></i>
+                        <h2 class="font-title text-5xl text-cyan-700 mt-2"
+                            style="text-shadow: 0 2px 4px rgba(0,0,0,0.1);">Story Weavers</h2>
+                        <p class="text-lg text-gray-600 mt-2">Collaborative class storytelling with AI-powered word suggestions and illustrations.</p>
                     </div>
-                    <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
-                        <div class="flex-1 bg-white p-6 rounded-3xl shadow-lg border-4 border-indigo-300 space-y-4">
-                            <h2
-                                class="font-title text-3xl text-indigo-700 mb-2 text-center flex items-center justify-center gap-2">
-                                <i class="fas fa-gem"></i> The Treasure Chest
-                            </h2>
-                            <div class="mb-4">
-                                <label for="gemini-class-select"
-                                    class="block text-sm font-medium text-gray-700 mb-1">Select class for age
-                                    group:</label>
-                                <select id="gemini-class-select"
-                                    class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white">
-                                    <option value="">Select a class...</option>
-                                </select>
-                            </div>
-                            <button id="gemini-idea-btn"
-                                class="w-full bg-indigo-500 hover:bg-indigo-600 text-white font-title text-xl py-3 rounded-xl bubbly-button disabled:opacity-50"
-                                disabled>
-                                <i class="fas fa-lightbulb mr-2"></i> Generate New Idea
-                            </button>
-                            <div class="mt-4">
-                                <textarea id="gemini-idea-output"
-                                    class="w-full h-48 p-4 bg-gray-50 border border-gray-200 rounded-lg shadow-inner"
-                                    placeholder="AI-generated reward ideas will appear here..." readonly></textarea>
-                                <button id="copy-idea-btn"
-                                    class="w-full mt-2 bg-gray-600 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded-lg bubbly-button opacity-50"
-                                    disabled>
-                                    <i class="fas fa-copy"></i> Copy Idea
-                                </button>
-                            </div>
-                        </div>
-
-                        <div class="flex-1 bg-white p-6 rounded-3xl shadow-lg border-4 border-purple-300 space-y-4">
-                            <h2
-                                class="font-title text-3xl text-purple-700 mb-2 text-center flex items-center justify-center gap-2">
-                                <i class="fa-solid fa-eye"></i> The Oracle's Insight
-                            </h2>
-                            <p class="text-sm text-center text-gray-600 -mt-2 mb-4">Ask the AI about your class's
-                                performance!</p>
-                            <div class="mb-4">
-                                <label for="oracle-class-select"
-                                    class="block text-sm font-medium text-gray-700 mb-1">Select a class to
-                                    analyze:</label>
-                                <select id="oracle-class-select"
-                                    class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 bg-white">
-                                    <option value="">Select a class...</option>
-                                </select>
-                            </div>
-                            <div>
-                                <label for="oracle-question-input"
-                                    class="block text-sm font-medium text-gray-700 mb-1">Your Question:</label>
-                                <input type="text" id="oracle-question-input"
-                                    class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
-                                    placeholder="e.g., Which skill needs more focus?" autocomplete="off">
-                            </div>
-                            <button id="oracle-insight-btn"
-                                class="w-full bg-purple-500 hover:bg-purple-600 text-white font-title text-xl py-3 rounded-xl bubbly-button disabled:opacity-50"
-                                disabled>
-                                <i class="fas fa-question-circle mr-2"></i> Ask the Oracle
-                            </button>
-                            <div class="mt-4">
-                                <textarea id="oracle-insight-output"
-                                    class="w-full h-48 p-4 bg-gray-50 border border-gray-200 rounded-lg shadow-inner"
-                                    placeholder="The Oracle's insights will appear here..." readonly></textarea>
-                            </div>
-                        </div>
-
-                        <div
-                            class="flex-1 bg-white p-6 rounded-3xl shadow-lg border-4 border-cyan-300 space-y-4 flex flex-col">
+                    <div class="grid grid-cols-1 gap-8">
+                        <div class="bg-white p-6 rounded-3xl shadow-lg border-4 border-cyan-300 space-y-4 flex flex-col">
                             <h2
                                 class="font-title text-3xl text-cyan-700 mb-2 text-center flex items-center justify-center gap-2">
                                 <i class="fas fa-feather-alt"></i> The Story Weavers
@@ -156,7 +88,6 @@ export const ideasTabHTML = `
                                 <p class="text-center text-gray-500">Select a class to begin your chronicle!</p>
                             </div>
                         </div>
-
                     </div>
                 </div>
             </div>

@@ -3,22 +3,12 @@ import * as state from '../../state.js';
 import * as storyWeaver from '../../features/storyWeaver.js';
 
 export function renderIdeasTabSelects() {
-    const geminiSelect = document.getElementById('gemini-class-select');
-    const oracleSelect = document.getElementById('oracle-class-select');
     const storySelect = document.getElementById('story-weavers-class-select');
-    if (!geminiSelect || !oracleSelect || !storySelect) return;
+    if (!storySelect) return;
 
     const optionsHtml = state.get('allTeachersClasses').sort((a, b) => a.name.localeCompare(b.name)).map(c => `<option value="${c.id}">${c.name} (${c.questLevel})</option>`).join('');
 
     const globalClassId = state.get('globalSelectedClassId');
-
-    geminiSelect.innerHTML = '<option value="">Select a class...</option>' + optionsHtml;
-    geminiSelect.value = globalClassId || '';
-    document.getElementById('gemini-idea-btn').disabled = !geminiSelect.value;
-
-    oracleSelect.innerHTML = '<option value="">Select a class...</option>' + optionsHtml;
-    oracleSelect.value = globalClassId || '';
-    document.getElementById('oracle-insight-btn').disabled = !oracleSelect.value;
 
     storySelect.innerHTML = '<option value="">Select a class...</option>' + optionsHtml;
     storySelect.value = globalClassId || '';

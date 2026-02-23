@@ -10,8 +10,6 @@ import { setupHomeListeners } from '../../features/home.js';
 
 import * as modals from '../modals.js';
 import {
-    handleGenerateIdea,
-    handleGetOracleInsight,
     handleGetQuestUpdate,
     downloadCertificateAsPdf,
     openAppInfoModal
@@ -870,11 +868,6 @@ export function setupUIListeners() {
     document.getElementById('view-trial-history-btn').addEventListener('click', () => scholarScroll.openTrialHistoryModal(document.getElementById('scroll-class-select').value));
     document.getElementById('trial-history-close-btn').addEventListener('click', () => modals.hideModal('trial-history-modal'));
     document.getElementById('starfall-cancel-btn').addEventListener('click', () => modals.hideModal('starfall-modal'));
-
-    // Idea Forge AI buttons
-    document.getElementById('gemini-idea-btn').addEventListener('click', handleGenerateIdea);
-    document.getElementById('copy-idea-btn').addEventListener('click', () => modals.copyToClipboard('gemini-idea-output'));
-    document.getElementById('oracle-insight-btn').addEventListener('click', handleGetOracleInsight);
 
     // Story Weavers
     document.getElementById('story-weavers-class-select').addEventListener('change', (e) => {

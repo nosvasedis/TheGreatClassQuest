@@ -175,7 +175,7 @@ export async function handleGenerateCertificate(studentId) {
         },
         focus: {
             emoji: '🎯',
-            bg: 'linear-gradient(135deg, '#0f766e' 0%, '#14b8a6' 100%)',
+            bg: 'linear-gradient(135deg, #0f766e 0%, #14b8a6 100%)',
             color: '#ecfeff',
             border: 'rgba(255,255,255,0.55)'
         },

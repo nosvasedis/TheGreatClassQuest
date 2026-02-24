@@ -2,8 +2,7 @@
 import * as state from '../../state.js';
 import * as utils from '../../utils.js';
 import { HERO_CLASSES } from '../../features/heroClasses.js';
-import { wrapAvatarWithLevelUpIndicator } from '../core/avatar.js';
-import { getGuildBadgeHtml, getGuildById } from '../../features/guilds.js';
+import { getGuildBadgeHtml } from '../../features/guilds.js';
 
 export function renderAwardStarsTab() {
     const dropdownList = document.getElementById('award-class-list');
@@ -146,9 +145,14 @@ export function renderAwardStarsStudentList(selectedClassId, fullRender = true) 
                 const avatarInner = s.avatar
                     ? `<img src="${s.avatar}" alt="${s.name}" class="student-avatar-cloud enlargeable-avatar">`
                     : `<div class="student-avatar-cloud-placeholder">${s.name.charAt(0)}</div>`;
-                const avatarHtml = wrapAvatarWithLevelUpIndicator(avatarInner, !!scoreData.pendingSkillChoice);
+                const avatarHtml = avatarInner;
+                const levelUpArrowHtml = !!scoreData.pendingSkillChoice
+                    ? `<div class="award-level-up-overlay"><div class="level-up-arrow" aria-hidden="true" title="Level up! Assign skill in Skill Tree"></div></div>`
+                    : '';
                 const guildBadgeHtml = s.guildId
-                    ? `<div class="award-guild-emblem ${getGuildById(s.guildId) ? `guild-tone-${s.guildId}` : ''}">${getGuildBadgeHtml(s.guildId, 'w-9 h-9')}</div>`
+                    ? getGuildBadgeHtml(s.guildId, 'w-5 h-5')
+                        .replace('guild-badge ', 'guild-badge award-guild-corner ')
+                        .replace(' border-2', '')
                     : '';
 
                 const coinHtml = `
@@ -185,10 +189,9 @@ export function renderAwardStarsStudentList(selectedClassId, fullRender = true) 
                <div class="absence-controls">
                ${absenceButtonHtml}
                     </div>
-                    <div class="award-avatar-stack">
-                        ${avatarHtml}
-                        ${guildBadgeHtml}
-                    </div>
+                    ${avatarHtml}
+                    ${levelUpArrowHtml}
+                    ${guildBadgeHtml}
                     ${coinHtml} 
                     ${boonBtnHtml}
                     <button id="post-award-undo-${s.id}" class="post-award-undo-btn bubbly-button ${starsToday > 0 ? '' : 'hidden'}" title="Undo Award"><i class="fas fa-times"></i></button>

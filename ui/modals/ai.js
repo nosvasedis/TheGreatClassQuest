@@ -102,6 +102,7 @@ export async function handleGetQuestUpdate() {
             speakText(textToSpeak, {
                 rate: isJuniorLeague ? 0.95 : 1,
                 pitch: isJuniorLeague ? 1.08 : 1.0,
+                voiceHint: 'en',
                 onStart: () => {
                     playBtn.innerHTML = `<i class="fas fa-stop-circle mr-2"></i> Stop Commentary`;
                 },

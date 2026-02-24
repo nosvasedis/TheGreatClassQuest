@@ -164,27 +164,23 @@
     50%      { filter: drop-shadow(0 0 10px rgba(168, 85, 247, 1)) drop-shadow(0 0 18px rgba(168, 85, 247, 0.8)); opacity: 0.95; }
 }
 
-/* Awards tab: guild emblem pinned bottom-right of avatar */
-.award-avatar-stack {
-    position: relative;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-}
-.award-avatar-stack .award-guild-emblem {
+/* Awards tab: direct emblem on avatar corner (no container chrome) */
+.award-guild-corner {
     position: absolute;
-    right: -8px;
-    bottom: -8px;
-    z-index: 9;
-    border-radius: 9999px;
-    padding: 2px;
-    background: #ffffff;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
+    top: 24px;
+    left: calc(50% + 16px);
+    z-index: 12;
+    pointer-events: none;
 }
-.award-avatar-stack .award-guild-emblem .guild-badge {
-    border-width: 2px;
+
+/* Awards tab: preserve level-up arrow without wrapping the avatar element */
+.award-level-up-overlay {
+    position: absolute;
+    top: -30px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 70px;
+    height: 70px;
+    z-index: 11;
+    pointer-events: none;
 }
-.award-avatar-stack .award-guild-emblem.guild-tone-dragon_flame { box-shadow: 0 0 0 2px #fecaca, 0 2px 8px rgba(0, 0, 0, 0.25); }
-.award-avatar-stack .award-guild-emblem.guild-tone-grizzly_might { box-shadow: 0 0 0 2px #fde68a, 0 2px 8px rgba(0, 0, 0, 0.25); }
-.award-avatar-stack .award-guild-emblem.guild-tone-owl_wisdom { box-shadow: 0 0 0 2px #bfdbfe, 0 2px 8px rgba(0, 0, 0, 0.25); }
-.award-avatar-stack .award-guild-emblem.guild-tone-phoenix_rising { box-shadow: 0 0 0 2px #fbcfe8, 0 2px 8px rgba(0, 0, 0, 0.25); }

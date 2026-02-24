@@ -391,6 +391,7 @@ export async function openStorybookViewer(storyId) {
             speakText(chapterText, {
                 rate: 0.95,
                 pitch: 1.05,
+                voiceHint: 'en',
                 onStart: () => {
                     playBtn.innerHTML = `<i class="fas fa-stop-circle mr-2"></i> Stop Narration`;
                 },

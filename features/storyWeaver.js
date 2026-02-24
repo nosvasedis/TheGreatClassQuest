@@ -13,6 +13,7 @@ import { callGeminiApi, callCloudflareAiImageApi } from '../api.js';
 import { simpleHashCode, compressImageBase64, getAgeGroupForLeague } from '../utils.js';
 import * as constants from '../constants.js';
 import { awardStoryWeaverBonusStarToClass, handleDeleteCompletedStory } from '../db/actions.js';
+import { isSpeaking, speakText, stopSpeech, isTtsSupported } from './tts.js';
 
 // --- MAIN UI & STATE MANAGEMENT ---
 
@@ -339,6 +340,7 @@ export async function openStorybookViewer(storyId) {
     const playBtn = document.getElementById('storybook-viewer-play-btn');
     playBtn.onclick = null;
     playBtn.disabled = true;
+    playBtn.innerHTML = `<i class="fas fa-play-circle mr-2"></i> Narrate Story`;
 
     document.getElementById('storybook-viewer-print-btn').onclick = null;
     document.getElementById('storybook-viewer-print-btn').disabled = true;
@@ -370,6 +372,37 @@ export async function openStorybookViewer(storyId) {
 
         document.getElementById('storybook-viewer-print-btn').onclick = () => handlePrintStorybook(storyId);
         document.getElementById('storybook-viewer-print-btn').disabled = false;
+
+        if (!isTtsSupported()) {
+            playBtn.disabled = true;
+            playBtn.innerHTML = `<i class="fas fa-volume-mute mr-2"></i> TTS Unsupported`;
+            return;
+        }
+
+        playBtn.disabled = false;
+        playBtn.onclick = () => {
+            const chapterText = (story.chapters || []).map(c => c.sentence || '').filter(Boolean).join(' ');
+            if (!chapterText) return;
+            if (isSpeaking()) {
+                stopSpeech();
+                playBtn.innerHTML = `<i class="fas fa-play-circle mr-2"></i> Narrate Story`;
+                return;
+            }
+            speakText(chapterText, {
+                rate: 0.95,
+                pitch: 1.05,
+                onStart: () => {
+                    playBtn.innerHTML = `<i class="fas fa-stop-circle mr-2"></i> Stop Narration`;
+                },
+                onEnd: () => {
+                    playBtn.innerHTML = `<i class="fas fa-play-circle mr-2"></i> Narrate Story`;
+                },
+                onError: () => {
+                    playBtn.innerHTML = `<i class="fas fa-play-circle mr-2"></i> Narrate Story`;
+                    showToast('Narration failed on this device/browser.', 'error');
+                }
+            });
+        };
 
     } catch (error) {
         console.error("Error loading story chapters:", error);

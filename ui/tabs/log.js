@@ -112,7 +112,10 @@ export async function renderAdventureLog() {
     feed.innerHTML = logsForClass.map(log => {
         const dateObj = utils.parseFlexibleDate(log.date);
         const displayDate = dateObj ? dateObj.toLocaleDateString('en-GB', { weekday: 'long', month: 'long', day: 'numeric' }) : log.date;
+        const title = log.title || 'Daily Chronicle';
+        const heroLabel = log.hero || 'The Class Team';
         const keywordsHtml = (log.keywords || []).map(kw => `<span class="diary-keyword">#${kw}</span>`).join('');
+        const highlightsHtml = (log.highlights || []).slice(0, 4).map(h => `<span class="diary-highlight-chip">${h}</span>`).join('');
 
         const noteHtml = log.note ? `
             <div class="diary-note">
@@ -124,11 +127,14 @@ export async function renderAdventureLog() {
         return `
             <div class="diary-page pop-in-start">
                 <div class="diary-header">
-                    <h3 class="diary-date">${displayDate}</h3>
+                    <div>
+                        <h3 class="diary-date">${displayDate}</h3>
+                        <p class="diary-title">${title}</p>
+                    </div>
                     <div class="diary-hero bg-gradient-to-r from-amber-400 to-orange-500 text-white shadow-md">
                         <i class="fas fa-crown mr-1"></i> 
                         <span class="uppercase tracking-tighter text-[10px] opacity-90 mr-1">Hero:</span>
-                        ${log.hero}
+                        ${heroLabel}
                     </div>
                 </div>
                 <div class="diary-body">
@@ -137,6 +143,7 @@ export async function renderAdventureLog() {
                     </div>
                     <div class="diary-text-content">
                         <p class="diary-text">${log.text}</p>
+                        ${highlightsHtml ? `<div class="diary-highlights">${highlightsHtml}</div>` : ''}
                         ${noteHtml}
                     </div>
                 </div>

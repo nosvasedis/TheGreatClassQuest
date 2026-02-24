@@ -1,4 +1,4 @@
-// /features/heroSkillTree.js — Hero Class Skill Tree: 5 levels, 2 branches per level, 7 classes
+// /features/heroSkillTree.js — Hero Class Skill Tree: mixed depth by class
 // Effect types:
 //   self_gold_on_reason          — add `amount` gold to the star recipient when reason matches
 //   star_bonus_on_reason         — add `amount` bonus stars (total + monthly) when reason matches
@@ -275,61 +275,39 @@ export const HERO_SKILL_TREE = {
         reason: 'scholar_s_bonus',
         auraColor: '#0891b2',
         auraGlow: '0 0 18px 6px #0891b288',
-        titles: ['Scribe', 'Analyst', 'Researcher', 'Professor', 'Grand Scholar'],
+        titles: ['Scribe', 'Research Mentor', 'Grand Scholar'],
         levels: [
             {
                 threshold: 20,
                 branches: [
                     { id: 'scholar_1a', name: 'Academic Edge', icon: '📝',
-                      desc: 'Earn +3 Gold whenever you receive a Scholar Bonus star.',
-                      effect: { type: 'self_gold_on_reason', amount: 3 } },
+                      desc: 'Earn +4 Gold whenever you receive a Scholar Bonus star.',
+                      effect: { type: 'self_gold_on_reason', amount: 4 } },
                     { id: 'scholar_1b', name: 'Study Group', icon: '📖',
-                      desc: '+1 Gold to every classmate who also earns a Scholar Bonus on the same day as you.',
-                      effect: { type: 'classmate_gold_on_reason', amount: 1 } }
+                      desc: '+2 Gold to every classmate who also earns a Scholar Bonus on the same day as you.',
+                      effect: { type: 'classmate_gold_on_reason', amount: 2 } }
                 ]
             },
             {
-                threshold: 45,
+                threshold: 60,
                 branches: [
-                    { id: 'scholar_2a', name: 'Trial Mastery', icon: '✏️',
-                      desc: '+2 Gold to every guildmate who earns a Scholar Bonus today.',
-                      effect: { type: 'guildmate_gold_on_reason', amount: 2 } },
-                    { id: 'scholar_2b', name: 'Tutor', icon: '🧑‍🏫',
-                      desc: "The first time you earn a Scholar's Bonus star each month, all your guildmates receive +5 Gold automatically.",
-                      effect: { type: 'first_of_month_guild_bonus', amount: 5 } }
+                    { id: 'scholar_2a', name: 'Research Grant', icon: '🔬',
+                      desc: 'Earn +7 Gold whenever you receive a Scholar Bonus star.',
+                      effect: { type: 'self_gold_on_reason', amount: 7 } },
+                    { id: 'scholar_2b', name: 'Scholar Network', icon: '🌐',
+                      desc: "The first time you earn a Scholar's Bonus star each month, all your guildmates receive +6 Gold automatically.",
+                      effect: { type: 'first_of_month_guild_bonus', amount: 6 } }
                 ]
             },
             {
-                threshold: 70,
-                branches: [
-                    { id: 'scholar_3a', name: 'Research Grant', icon: '🔬',
-                      desc: 'Earn +5 Gold whenever you receive a Scholar Bonus star.',
-                      effect: { type: 'self_gold_on_reason', amount: 5 } },
-                    { id: 'scholar_3b', name: 'Library Perk', icon: '📚',
-                      desc: '+1 bonus star added to your total whenever you earn a Scholar Bonus.',
-                      effect: { type: 'star_bonus_on_reason', amount: 1 } }
-                ]
-            },
-            {
-                threshold: 95,
-                branches: [
-                    { id: 'scholar_4a', name: 'Thesis Defense', icon: '🎓',
-                      desc: '+3 Gold to a random classmate every time you earn a Scholar Bonus.',
-                      effect: { type: 'random_classmate_gold', amount: 3 } },
-                    { id: 'scholar_4b', name: 'Scholar Network', icon: '🌐',
-                      desc: "The first time you earn a Scholar's Bonus star each month, all your guildmates receive +3 Gold automatically.",
-                      effect: { type: 'first_of_month_guild_bonus', amount: 3 } }
-                ]
-            },
-            {
-                threshold: 120,
+                threshold: 110,
                 branches: [
                     { id: 'scholar_5a', name: "Grand Scholar's Mark", icon: '🌟',
-                      desc: '+8 Gold when you earn Scholar Bonus AND +2 Gold to all guildmates earning it.',
-                      effect: { type: 'self_gold_on_reason', amount: 8 }, secondaryEffect: { type: 'guildmate_gold_on_reason', amount: 2 } },
+                      desc: '+10 Gold when you earn Scholar Bonus AND +4 Gold to all guildmates earning it.',
+                      effect: { type: 'self_gold_on_reason', amount: 10 }, secondaryEffect: { type: 'guildmate_gold_on_reason', amount: 4 } },
                     { id: 'scholar_5b', name: 'Academic Legacy', icon: '👑',
-                      desc: '+2 bonus stars added to your total whenever you earn a Scholar Bonus.',
-                      effect: { type: 'star_bonus_on_reason', amount: 2 } }
+                      desc: '+3 bonus stars added to your total whenever you earn a Scholar Bonus.',
+                      effect: { type: 'star_bonus_on_reason', amount: 3 } }
                 ]
             }
         ]
@@ -405,61 +383,39 @@ export const HERO_SKILL_TREE = {
         reason: 'welcome_back',
         auraColor: '#7c3aed',
         auraGlow: '0 0 18px 6px #7c3aed88',
-        titles: ['Wanderer', 'Ranger', 'Wayfarer', 'Pathfinder', 'Legendary Nomad'],
+        titles: ['Wanderer', 'Pathfinder', 'Legendary Nomad'],
         levels: [
             {
                 threshold: 20,
                 branches: [
                     { id: 'nomad_1a', name: 'Road Ready', icon: '🥾',
-                      desc: 'Earn +3 Gold whenever you receive a Welcome Back star.',
-                      effect: { type: 'self_gold_on_reason', amount: 3 } },
+                      desc: 'Earn +4 Gold whenever you receive a Welcome Back star.',
+                      effect: { type: 'self_gold_on_reason', amount: 4 } },
                     { id: 'nomad_1b', name: 'Open Road', icon: '🛤️',
-                      desc: '+1 Gold to every classmate who also earns a Welcome Back star on the same day.',
-                      effect: { type: 'classmate_gold_on_reason', amount: 1 } }
+                      desc: '+2 Gold to every classmate who also earns a Welcome Back star on the same day.',
+                      effect: { type: 'classmate_gold_on_reason', amount: 2 } }
                 ]
             },
             {
-                threshold: 45,
-                branches: [
-                    { id: 'nomad_2a', name: "Traveler's Luck", icon: '🍀',
-                      desc: '+2 Gold to every guildmate who earns a Welcome Back star today.',
-                      effect: { type: 'guildmate_gold_on_reason', amount: 2 } },
-                    { id: 'nomad_2b', name: 'Waymark', icon: '🗺️',
-                      desc: 'The first time you earn a Welcome Back star each month, all your guildmates receive +5 Gold automatically.',
-                      effect: { type: 'first_of_month_guild_bonus', amount: 5 } }
-                ]
-            },
-            {
-                threshold: 70,
-                branches: [
-                    { id: 'nomad_3a', name: "Explorer's Gift", icon: '🎁',
-                      desc: 'Earn +5 Gold whenever you receive a Welcome Back star.',
-                      effect: { type: 'self_gold_on_reason', amount: 5 } },
-                    { id: 'nomad_3b', name: 'Campfire', icon: '🔥',
-                      desc: '+1 bonus star added to your total whenever you earn a Welcome Back star.',
-                      effect: { type: 'star_bonus_on_reason', amount: 1 } }
-                ]
-            },
-            {
-                threshold: 95,
+                threshold: 60,
                 branches: [
                     { id: 'nomad_4a', name: 'Trail Blazer', icon: '🌄',
-                      desc: '+3 Gold to a random classmate every time you earn a Welcome Back star.',
-                      effect: { type: 'random_classmate_gold', amount: 3 } },
+                      desc: '+5 Gold to a random classmate every time you earn a Welcome Back star.',
+                      effect: { type: 'random_classmate_gold', amount: 5 } },
                     { id: 'nomad_4b', name: "Wanderer's Wisdom", icon: '🧭',
-                      desc: 'The first time you earn a Welcome Back star each month, all your guildmates receive +3 Gold automatically.',
-                      effect: { type: 'first_of_month_guild_bonus', amount: 3 } }
+                      desc: 'The first time you earn a Welcome Back star each month, all your guildmates receive +6 Gold automatically.',
+                      effect: { type: 'first_of_month_guild_bonus', amount: 6 } }
                 ]
             },
             {
-                threshold: 120,
+                threshold: 110,
                 branches: [
                     { id: 'nomad_5a', name: "Legendary Nomad's Path", icon: '🌟',
-                      desc: '+8 Gold when you earn Welcome Back AND +2 Gold to all guildmates earning it.',
-                      effect: { type: 'self_gold_on_reason', amount: 8 }, secondaryEffect: { type: 'guildmate_gold_on_reason', amount: 2 } },
+                      desc: '+10 Gold when you earn Welcome Back AND +4 Gold to all guildmates earning it.',
+                      effect: { type: 'self_gold_on_reason', amount: 10 }, secondaryEffect: { type: 'guildmate_gold_on_reason', amount: 4 } },
                     { id: 'nomad_5b', name: 'Eternal Wanderer', icon: '👑',
-                      desc: '+2 bonus stars added to your total whenever you earn a Welcome Back star.',
-                      effect: { type: 'star_bonus_on_reason', amount: 2 } }
+                      desc: '+3 bonus stars added to your total whenever you earn a Welcome Back star.',
+                      effect: { type: 'star_bonus_on_reason', amount: 3 } }
                 ]
             }
         ]
@@ -514,7 +470,7 @@ export function getActiveSkills(heroClass, heroSkills = []) {
 
 /**
  * Returns the level a student should be at given their stars in class reason.
- * Level 0 = not yet at level 1. Level 1-5 based on HERO_SKILL_TREE thresholds.
+ * Level 0 = not yet at level 1. Level count is dynamic per class tree.
  */
 export function computeHeroLevel(heroClass, starsInReason) {
     const tree = HERO_SKILL_TREE[heroClass];
@@ -532,7 +488,7 @@ export function computeHeroLevel(heroClass, starsInReason) {
  */
 export function starsToNextLevel(heroClass, heroLevel, starsInReason) {
     const tree = HERO_SKILL_TREE[heroClass];
-    if (!tree || heroLevel >= 5) return null;
+    if (!tree || heroLevel >= tree.levels.length) return null;
     const nextThreshold = tree.levels[heroLevel]?.threshold;
     if (!nextThreshold) return null;
     return Math.max(0, nextThreshold - starsInReason);

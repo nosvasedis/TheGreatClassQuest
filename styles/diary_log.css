@@ -33,6 +33,13 @@
     font-size: 1.25rem;
     color: #8B4513; /* SaddleBrown */
 }
+.diary-title {
+    font-family: 'Fredoka One', cursive;
+    font-size: 1.05rem;
+    color: #0f766e;
+    margin-top: 0.2rem;
+    letter-spacing: 0.02em;
+}
 .diary-hero {
     background-color: #fef3c7;
     color: #92400e;
@@ -74,6 +81,23 @@
     line-height: 1.7;
     color: #374151;
     flex-grow: 1;
+}
+.diary-highlights {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin-top: 0.8rem;
+}
+.diary-highlight-chip {
+    display: inline-flex;
+    align-items: center;
+    background: linear-gradient(135deg, #ecfeff, #cffafe);
+    color: #0c4a6e;
+    border: 1px solid #67e8f9;
+    border-radius: 9999px;
+    padding: 0.22rem 0.65rem;
+    font-size: 0.8rem;
+    font-weight: 700;
 }
 .diary-note {
     background-color: #f0f9ff;

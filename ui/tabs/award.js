@@ -3,6 +3,7 @@ import * as state from '../../state.js';
 import * as utils from '../../utils.js';
 import { HERO_CLASSES } from '../../features/heroClasses.js';
 import { wrapAvatarWithLevelUpIndicator } from '../core/avatar.js';
+import { getGuildBadgeHtml, getGuildById } from '../../features/guilds.js';
 
 export function renderAwardStarsTab() {
     const dropdownList = document.getElementById('award-class-list');
@@ -146,6 +147,9 @@ export function renderAwardStarsStudentList(selectedClassId, fullRender = true) 
                     ? `<img src="${s.avatar}" alt="${s.name}" class="student-avatar-cloud enlargeable-avatar">`
                     : `<div class="student-avatar-cloud-placeholder">${s.name.charAt(0)}</div>`;
                 const avatarHtml = wrapAvatarWithLevelUpIndicator(avatarInner, !!scoreData.pendingSkillChoice);
+                const guildBadgeHtml = s.guildId
+                    ? `<div class="award-guild-emblem ${getGuildById(s.guildId) ? `guild-tone-${s.guildId}` : ''}">${getGuildBadgeHtml(s.guildId, 'w-9 h-9')}</div>`
+                    : '';
 
                 const coinHtml = `
                   <div class="coin-pill ${starsToday > 0 ? 'animate-glitter' : ''}" title="Current Gold">
@@ -181,7 +185,10 @@ export function renderAwardStarsStudentList(selectedClassId, fullRender = true) 
                <div class="absence-controls">
                ${absenceButtonHtml}
                     </div>
-                    ${avatarHtml}
+                    <div class="award-avatar-stack">
+                        ${avatarHtml}
+                        ${guildBadgeHtml}
+                    </div>
                     ${coinHtml} 
                     ${boonBtnHtml}
                     <button id="post-award-undo-${s.id}" class="post-award-undo-btn bubbly-button ${starsToday > 0 ? '' : 'hidden'}" title="Undo Award"><i class="fas fa-times"></i></button>

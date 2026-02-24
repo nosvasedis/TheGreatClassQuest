@@ -16,6 +16,7 @@ import { HERO_CLASSES } from '../../features/heroClasses.js';
 import { playSound } from '../../audio.js';
 import { callGeminiApi } from '../../api.js';
 import { showToast, showPraiseToast } from '../effects.js';
+import { isSpeaking, stopSpeech } from '../../features/tts.js';
 import {
     deleteClass,
     deleteStudent,
@@ -112,12 +113,11 @@ export function showModal(title, message, onConfirm, confirmText = 'Confirm', ca
 
 export function hideModal(modalId) {
     if (modalId === 'quest-update-modal' || modalId === 'storybook-viewer-modal') {
-        const audio = modalId === 'quest-update-modal' ? state.get('currentNarrativeAudio') : state.get('currentStorybookAudio');
         const btn = modalId === 'quest-update-modal' ? document.getElementById('play-narrative-btn') : document.getElementById('storybook-viewer-play-btn');
-        if (audio && !audio.paused) {
-            audio.pause();
-            if (btn) btn.innerHTML = `<i class="fas fa-play-circle mr-2"></i> ${btn.textContent.includes('Narrate') ? 'Narrate Story' : 'Play Narrative'}`;
+        if (isSpeaking()) {
+            stopSpeech();
         }
+        if (btn) btn.innerHTML = `<i class="fas fa-play-circle mr-2"></i> ${modalId === 'storybook-viewer-modal' ? 'Narrate Story' : 'Play Commentary'}`;
         if (modalId === 'quest-update-modal') state.set('currentNarrativeAudio', null);
         else state.set('currentStorybookAudio', null);
     }

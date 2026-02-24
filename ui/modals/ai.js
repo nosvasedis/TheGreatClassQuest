@@ -5,6 +5,7 @@ import { showAnimatedModal, hideModal } from './base.js';
 import { showToast } from '../effects.js';
 import { callGeminiApi } from '../../api.js';
 import { ensureHistoryLoaded } from '../../db/actions.js';
+import { isSpeaking, speakText, stopSpeech, isTtsSupported } from '../../features/tts.js';
 
 // --- AI & REPORTING MODALS ---
 
@@ -18,6 +19,8 @@ export async function handleGetQuestUpdate() {
     }
 
     playBtn.classList.add('hidden');
+    playBtn.disabled = true;
+    playBtn.onclick = null;
     narrativeContainer.innerHTML = `<i class="fas fa-spinner fa-spin text-4xl text-purple-400"></i>`;
     showAnimatedModal('quest-update-modal');
 
@@ -76,6 +79,41 @@ export async function handleGetQuestUpdate() {
         const narrative = await callGeminiApi(systemPrompt, userPrompt);
         narrativeContainer.innerHTML = `<p>${narrative}</p>`;
         narrativeContainer.dataset.text = narrative;
+        playBtn.classList.remove('hidden');
+
+        if (!isTtsSupported()) {
+            playBtn.disabled = true;
+            playBtn.innerHTML = `<i class="fas fa-volume-mute mr-2"></i> TTS Unsupported`;
+            return;
+        }
+
+        playBtn.disabled = false;
+        playBtn.innerHTML = `<i class="fas fa-play-circle mr-2"></i> Play Commentary`;
+        playBtn.onclick = () => {
+            const textToSpeak = (narrativeContainer.dataset.text || '').trim();
+            if (!textToSpeak) return;
+            if (isSpeaking()) {
+                stopSpeech();
+                playBtn.innerHTML = `<i class="fas fa-play-circle mr-2"></i> Play Commentary`;
+                return;
+            }
+            const league = state.get('globalSelectedLeague') || '';
+            const isJuniorLeague = league.toLowerCase().includes('junior');
+            speakText(textToSpeak, {
+                rate: isJuniorLeague ? 0.95 : 1,
+                pitch: isJuniorLeague ? 1.08 : 1.0,
+                onStart: () => {
+                    playBtn.innerHTML = `<i class="fas fa-stop-circle mr-2"></i> Stop Commentary`;
+                },
+                onEnd: () => {
+                    playBtn.innerHTML = `<i class="fas fa-play-circle mr-2"></i> Play Commentary`;
+                },
+                onError: () => {
+                    playBtn.innerHTML = `<i class="fas fa-play-circle mr-2"></i> Play Commentary`;
+                    showToast('Narration failed on this device/browser.', 'error');
+                }
+            });
+        };
 
     } catch (error) {
         console.error("Quest Update Narrative Error:", error);

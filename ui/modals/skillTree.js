@@ -64,13 +64,14 @@ function _renderTree(student, scoreData, heroClass, tree) {
     const starsInReason = reason ? (starsByReason[reason] || 0) : 0;
     const currentLevel = scoreData.heroLevel || 0;
     const pendingChoice = scoreData.pendingSkillChoice || false;
+    const maxLevel = tree?.levels?.length || 0;
 
     // Progress bar
     const levelLabel = document.getElementById('skill-tree-level-label');
     const progressText = document.getElementById('skill-tree-progress-text');
     const progressBar = document.getElementById('skill-tree-progress-bar');
 
-    if (tree && currentLevel < 5) {
+    if (tree && currentLevel < maxLevel) {
         const nextThreshold = tree.levels[currentLevel]?.threshold || 200;
         const prevThreshold = currentLevel > 0 ? tree.levels[currentLevel - 1].threshold : 0;
         const segmentTotal = nextThreshold - prevThreshold;
@@ -81,9 +82,9 @@ function _renderTree(student, scoreData, heroClass, tree) {
         const needed = starsToNextLevel(heroClass, currentLevel, starsInReason);
         const reasonLabel = getReasonDisplayName(reason);
         progressText.textContent = `${starsInReason} ${reasonLabel} stars · ${needed} to Level ${currentLevel + 1}`;
-    } else if (tree && currentLevel >= 5) {
+    } else if (tree && currentLevel >= maxLevel) {
         progressBar.style.width = '100%';
-        levelLabel.textContent = `${getHeroTitle(heroClass, 5)} — MAX LEVEL`;
+        levelLabel.textContent = `${getHeroTitle(heroClass, maxLevel)} — MAX LEVEL`;
         progressText.textContent = `${starsInReason} ${getReasonDisplayName(reason)} stars — Legendary!`;
     } else {
         progressBar.style.width = '0%';

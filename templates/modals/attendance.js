@@ -116,11 +116,10 @@ export const attendanceModalsHTML = `
             <div id="cert-corner-bl" style="position:absolute;bottom:14px;left:14px;width:26px;height:26px;border-bottom:2px solid;border-left:2px solid;border-radius:0 0 0 3px;opacity:0.5;pointer-events:none;"></div>
             <div id="cert-corner-br" style="position:absolute;bottom:14px;right:14px;width:26px;height:26px;border-bottom:2px solid;border-right:2px solid;border-radius:0 0 3px 0;opacity:0.5;pointer-events:none;"></div>
 
-            <!-- Header: crest icon + guild emblem, title, subtitle -->
+            <!-- Header: crest icon + title, subtitle -->
             <div style="flex-shrink:0; text-align:center;">
                 <div style="display:flex; align-items:center; justify-content:center; gap:10px; margin-bottom:2px;">
                     <div id="cert-icon" style="font-size:44px; line-height:1;"></div>
-                    <img id="cert-guild-emblem" src="" style="display:none; width:40px; height:40px; border-radius:9999px; border:3px solid rgba(255,255,255,0.88); box-shadow:0 2px 10px rgba(0,0,0,0.28); object-fit:cover;">
                 </div>
                 <h1 id="cert-title" style="font-family:'Fredoka One',cursive; font-size:36px; margin:0; line-height:1.1;"></h1>
                 <p style="font-size:10.5px; margin:3px 0 0; letter-spacing:0.15em; text-transform:uppercase; opacity:0.65;">
@@ -170,11 +169,14 @@ export const attendanceModalsHTML = `
                 <div style="flex:1; border-top:1px solid rgba(0,0,0,0.6);"></div>
             </div>
 
-            <!-- Footer: teacher | school | date + avatar -->
+            <!-- Footer: guild emblem + teacher | school | date + avatar -->
             <div style="width:100%; display:flex; justify-content:space-between; align-items:flex-end; flex-shrink:0;">
-                <div style="text-align:center; min-width:150px;">
-                    <p id="cert-teacher-name" style="font-weight:700; font-size:13px; border-top-width:2px; border-top-style:solid; padding-top:5px; margin:0;"></p>
-                    <p style="font-size:10px; margin-top:2px; opacity:0.55;">Quest Facilitator</p>
+                <div style="display:flex; align-items:flex-end; gap:8px;">
+                    <img id="cert-guild-emblem" src="" style="display:none; width:50px; height:50px; border-radius:9999px; border:3px solid white; box-shadow:0 2px 8px rgba(0,0,0,0.22); object-fit:cover; flex-shrink:0;">
+                    <div style="text-align:center; min-width:150px;">
+                        <p id="cert-teacher-name" style="font-weight:700; font-size:13px; border-top-width:2px; border-top-style:solid; padding-top:5px; margin:0;"></p>
+                        <p style="font-size:10px; margin-top:2px; opacity:0.55;">Quest Facilitator</p>
+                    </div>
                 </div>
                 <div style="text-align:center; font-size:9.5px; opacity:0.38; flex:1; padding:0 8px;">
                     Prodigies Language School

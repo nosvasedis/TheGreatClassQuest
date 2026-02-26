@@ -14,13 +14,18 @@ import { wrapAvatarWithLevelUpIndicator } from '../core/avatar.js';
 
 export async function renderClassLeaderboardTab() {
     const list = document.getElementById('class-leaderboard-list');
-    const questUpdateBtn = document.getElementById('get-quest-update-btn');
     if (!list) return;
+
+    // Update the month name in the title
+    const monthNameEl = document.getElementById('quest-month-name');
+    if (monthNameEl) {
+        const monthName = new Date().toLocaleString('en-US', { month: 'long' });
+        monthNameEl.textContent = monthName;
+    }
 
     const league = state.get('globalSelectedLeague');
     if (!league) {
         list.innerHTML = `<div class="max-w-xl mx-auto"><p class="text-center text-gray-700 bg-white/50 p-6 rounded-2xl text-lg">Please select a league to view the Team Quest map.</p></div>`;
-        if (questUpdateBtn) questUpdateBtn.disabled = true;
         return;
     }
 
@@ -28,7 +33,6 @@ export async function renderClassLeaderboardTab() {
 
     if (classesInLeague.length === 0) {
         list.innerHTML = `<p class="text-center text-gray-700 bg-white/50 p-4 rounded-2xl text-lg">No classes in this quest league... yet!</p>`;
-        if (questUpdateBtn) questUpdateBtn.disabled = true;
         return;
     }
 
@@ -117,7 +121,7 @@ export async function renderClassLeaderboardTab() {
         const topSkill = Object.entries(reasons).sort((a, b) => b[1] - a[1])[0]?.[0] || 'None';
 
         let progress = goals.diamond > 0 ? (currentMonthlyStars / goals.diamond) * 100 : 0;
-        if (isCompletedThisMonth && progress < 100) progress = 100;
+        // Removed: Don't force progress to 100% - show actual progress for accuracy
 
         return {
             ...c,
@@ -136,7 +140,7 @@ export async function renderClassLeaderboardTab() {
         };
     }).sort((a, b) => b.progress - a.progress);
 
-    if (questUpdateBtn) questUpdateBtn.disabled = classScores.filter(c => c.currentMonthlyStars > 0).length < 2;
+    // Removed: quest update button no longer exists
 
     const { generateLeagueMapHtml } = await import('../../features/worldMap.js');
     const mapHtml = generateLeagueMapHtml(classScores);

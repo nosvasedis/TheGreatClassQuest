@@ -462,32 +462,61 @@ export async function handleBuyItem(studentId, itemId) {
         // --- SUCCESS: Update UI Immediately ---
         playSound('cash');
         
-        // 1. Update Gold Display Instantly
+        // 1. Update Gold Display Instantly with animation
         const goldDisplay = document.getElementById('shop-student-gold');
         if (goldDisplay) {
+            // Animate the gold change
+            goldDisplay.classList.add('animate-pulse');
             goldDisplay.innerText = `${newGoldBalance} 🪙`;
-            // Add a flash effect
-            goldDisplay.style.color = '#ef4444'; // Red momentarily
-            setTimeout(() => goldDisplay.style.color = '', 500);
+            goldDisplay.style.color = '#22c55e'; // Green for success
+            goldDisplay.style.transform = 'scale(1.2)';
+            setTimeout(() => {
+                goldDisplay.style.color = '';
+                goldDisplay.style.transform = '';
+                goldDisplay.classList.remove('animate-pulse');
+            }, 600);
         }
 
-        // 2. Remove item card if seasonal
+        // 2. Remove item card if seasonal with animation
         if (!isLegendary && buyBtn) {
             const card = buyBtn.closest('.shop-item-card');
             if(card) {
                 card.style.transition = 'all 0.5s';
-                card.style.transform = 'scale(0)';
+                card.style.transform = 'scale(0) rotate(10deg)';
+                card.style.opacity = '0';
                 setTimeout(() => card.remove(), 500);
             }
         }
 
-        // 3. Show Proper Popup (Modal)
-        showModal(
-            'Purchase Successful!', 
-            `${student.name} bought "${item.name}" for ${finalPrice} Gold.\n\nRemaining Balance: ${newGoldBalance} Gold.`, 
-            () => {}, // No action needed on confirm
-            'Awesome!'
-        );
+        // 3. Show Nice Purchase Modal
+        const purchaseModal = document.getElementById('shop-purchase-modal');
+        if (purchaseModal) {
+            const itemIcon = item.icon ? item.icon : (item.image ? `<img src="${item.image}" class="w-16 h-16 object-contain mx-auto">` : '🎁');
+            document.getElementById('shop-purchase-icon').innerHTML = itemIcon;
+            document.getElementById('shop-purchase-name').innerText = item.name;
+            document.getElementById('shop-purchase-desc').innerText = item.description || 'A rare artifact for your collection!';
+            document.getElementById('shop-purchase-cost').innerText = `-${finalPrice} 🪙`;
+            document.getElementById('shop-purchase-balance').innerText = `${newGoldBalance} 🪙`;
+            document.getElementById('shop-purchase-student').innerHTML = `<i class="fas fa-user mr-2"></i><span class="font-bold">${student.name}</span>'s inventory`;
+            
+            purchaseModal.classList.remove('hidden');
+            
+            // Auto-close after 3 seconds or on button click
+            const closeBtn = document.getElementById('shop-purchase-close-btn');
+            const closeModal = () => {
+                purchaseModal.classList.add('hidden');
+            };
+            closeBtn.onclick = closeModal;
+            setTimeout(closeModal, 3000);
+        } else {
+            // Fallback to old modal if new one doesn't exist
+            showModal(
+                'Purchase Successful!', 
+                `${student.name} bought "${item.name}" for ${finalPrice} Gold.\n\nRemaining Balance: ${newGoldBalance} Gold.`, 
+                () => {},
+                'Awesome!'
+            );
+        }
 
         // --- FIX: Update Local State Immediately ---
         const allScores = state.get('allStudentScores');

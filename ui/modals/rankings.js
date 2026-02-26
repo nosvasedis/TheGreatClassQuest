@@ -531,7 +531,7 @@ export function openZoneOverviewModal(zoneType) {
 
         let progressPct = diamondGoal > 0 ? (currentMonthlyStars / diamondGoal) * 100 : 0;
 
-        // Ensure accurate tracking for completed classes
+        // Track if completed this month for badge display (but don't force 100% progress)
         let isCompletedThisMonth = false;
         if (c.questCompletedAt) {
             const completedDate = typeof c.questCompletedAt.toDate === 'function' ? c.questCompletedAt.toDate() : new Date(c.questCompletedAt);
@@ -539,7 +539,7 @@ export function openZoneOverviewModal(zoneType) {
                 isCompletedThisMonth = true;
             }
         }
-        if (isCompletedThisMonth && progressPct < 100) progressPct = 100;
+        // Removed: Don't force progress to 100% - show actual progress for accuracy
 
         const info = {
             name: c.name,

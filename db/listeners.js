@@ -15,7 +15,7 @@ import {
     renderScholarsScrollTab, 
     renderTrialHistoryContent 
 } from '../features/scholarScroll.js';
-import { updateStudentCardAttendanceState } from '../ui/core.js';
+import { updateStudentCardAttendanceState, findAndSetCurrentClass } from '../ui/core.js';
 import { updateStudentCardAttendanceState as updateTabAttendance } from '../ui/tabs.js'; // Explicit import to avoid naming collision if needed
 import { findAndSetCurrentLeague } from '../ui/core.js';
 import { checkAndResetMonthlyStars } from './actions.js';
@@ -113,6 +113,8 @@ const writtenScoresQuery = query(
         state.setAllSchoolClasses(schoolClasses);
         state.setAllTeachersClasses(schoolClasses.filter(c => c.createdBy?.uid === userId));
         findAndSetCurrentLeague();
+        // Smart class selector - find active class if there's an active lesson
+        findAndSetCurrentClass();
         renderClassLeaderboardTab();
         renderManageClassesTab();
         renderCalendarTab();
@@ -331,9 +333,14 @@ const writtenScoresQuery = query(
         renderActiveBounties();
     }, (error) => console.error("Error listening to quest bounties:", error)));
 
-    onSnapshot(shopItemsQuery, (snapshot) => {
+    onSnapshot(shopItemsQuery, async (snapshot) => {
         state.setCurrentShopItems(snapshot.docs.map(d => ({ id: d.id, ...d.data() })));
-        // If shop modal is open, refresh it? For now, we trust the manual open action.
+        // Real-time stock updates: Refresh shop UI if modal is open
+        const shopModal = document.getElementById('shop-modal');
+        if (shopModal && !shopModal.classList.contains('hidden')) {
+            const { renderShopUI } = await import('../ui/core/shop.js');
+            renderShopUI();
+        }
     });
     
     state.setUnsubscribeSchoolSettings(onSnapshot(schoolSettingsQuery, async (docSnapshot) => {

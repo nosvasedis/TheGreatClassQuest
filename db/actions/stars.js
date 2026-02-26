@@ -269,10 +269,12 @@ export async function checkAndRecordQuestCompletion(classId) {
     const currentDifficulty = classDoc.data().difficultyLevel || 0;
 
     // 1. Check if already completed this month to prevent duplicates
-    if (classDoc.data().questCompletedAt && currentDifficulty > 0) {
+    // Fix: Check regardless of difficulty level to prevent annoying popups
+    if (classDoc.data().questCompletedAt) {
         const completedDate = classDoc.data().questCompletedAt.toDate();
         const now = new Date();
         if (completedDate.getMonth() === now.getMonth() && completedDate.getFullYear() === now.getFullYear()) {
+            // Already completed this month - don't show popup or re-record
             return;
         }
     }

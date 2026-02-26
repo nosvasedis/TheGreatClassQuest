@@ -732,8 +732,8 @@ function startHomeSmartLogic() {
         }
     };
 
-    // Run once 2 seconds after initialization, then every 60 seconds
-    setTimeout(checkLogic, 2000);
+    // Run immediately on load, then every 60 seconds
+    checkLogic();
     homeInterval = setInterval(checkLogic, 60000);
 }
 

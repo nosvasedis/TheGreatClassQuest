@@ -25,11 +25,9 @@ export const leaderboardTabHTML = `
                             </button>
                         </div>
                         <div class="flex items-center justify-center">
-                            <button id="get-quest-update-btn"
-                                class="bg-gradient-to-r from-purple-500 to-indigo-600 text-white font-title text-xl py-3 px-8 rounded-full bubbly-button shadow-lg hover:shadow-xl transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed"
-                                disabled>
-                                <i class="fas fa-scroll mr-2"></i> Get Quest Update!
-                            </button>
+                            <div id="current-month-quest-title" class="bg-gradient-to-r from-amber-500 to-orange-500 text-white font-title text-xl py-3 px-8 rounded-full shadow-lg">
+                                <i class="fas fa-calendar-alt mr-2"></i> <span id="quest-month-name">February</span> Quest
+                            </div>
                         </div>
                     </div>
                     <div class="px-4 md:px-12">

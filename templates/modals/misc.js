@@ -89,53 +89,77 @@ export const miscModalsHTML = `
 
     <div id="quest-assignment-modal"
         class="fixed inset-0 bg-black bg-opacity-50 z-[72] flex items-center justify-center p-4 hidden">
-        <div class="bg-white p-8 rounded-3xl shadow-2xl max-w-lg w-full pop-in border-4 border-indigo-300">
-            <h2 class="font-title text-2xl text-indigo-700 mb-4 text-center">Update Quest Board</h2>
-            <input type="hidden" id="quest-assignment-class-id">
-
-            <div id="previous-assignment-text"
-                class="mb-4 p-3 bg-gray-50 rounded-lg text-sm text-gray-600 border border-gray-200 italic min-h-[60px]">
-                Loading previous assignment...
+        <div class="bg-white rounded-3xl shadow-2xl max-w-lg w-full pop-in border-4 border-indigo-300 flex flex-col max-h-[90vh]">
+            <!-- Header -->
+            <div class="p-6 pb-4 border-b border-indigo-100 flex-shrink-0">
+                <div class="flex items-center justify-center gap-3">
+                    <div class="text-4xl">📜</div>
+                    <h2 class="font-title text-2xl text-indigo-700">Quest Board</h2>
+                </div>
             </div>
+            
+            <!-- Scrollable Content -->
+            <div class="flex-1 overflow-y-auto p-6 pt-4 space-y-4">
+                <input type="hidden" id="quest-assignment-class-id">
 
-            <div class="mb-4 space-y-3">
-                <div>
-                    <label for="quest-assignment-textarea" class="block text-sm font-bold text-gray-700 mb-2">Assignment
-                        for Next Lesson:</label>
-                    <textarea id="quest-assignment-textarea" rows="4"
-                        class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"></textarea>
+                <!-- Previous Assignment Card -->
+                <div class="bg-gradient-to-r from-indigo-50 to-purple-50 rounded-xl p-4 border border-indigo-200">
+                    <h3 class="text-xs font-bold text-indigo-500 uppercase tracking-wider mb-2 flex items-center gap-2">
+                        <i class="fas fa-history"></i> Previous Assignment
+                    </h3>
+                    <div id="previous-assignment-text" class="text-sm text-gray-700 italic">
+                        Loading previous assignment...
+                    </div>
                 </div>
 
-                <div class="bg-indigo-50 p-3 rounded-lg border border-indigo-200">
-                    <h3 class="font-bold text-indigo-800 mb-2 flex items-center"><i class="fas fa-file-alt mr-2"></i>
-                        Schedule a Test (Optional)</h3>
+                <!-- New Assignment Section -->
+                <div class="space-y-3">
+                    <label for="quest-assignment-textarea" class="block text-sm font-bold text-gray-700 flex items-center gap-2">
+                        <i class="fas fa-edit text-indigo-500"></i> Assignment for Next Lesson:
+                    </label>
+                    <textarea id="quest-assignment-textarea" rows="4"
+                        class="w-full px-4 py-3 border-2 border-indigo-200 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:border-indigo-400 resize-none"
+                        placeholder="Enter homework, topics to review, or any notes for the class..."></textarea>
+                </div>
+
+                <!-- Test Scheduling Card -->
+                <div class="bg-gradient-to-r from-amber-50 to-orange-50 rounded-xl p-4 border border-amber-200">
+                    <h3 class="font-bold text-amber-800 mb-3 flex items-center gap-2">
+                        <i class="fas fa-calendar-check"></i> Schedule a Test (Optional)
+                    </h3>
                     <div class="grid grid-cols-2 gap-3">
                         <div>
-                            <label class="block text-xs font-bold text-gray-500">Test Date</label>
+                            <label class="block text-xs font-bold text-amber-600 mb-1">Test Date</label>
                             <input type="date" id="quest-test-date"
-                                class="w-full px-2 py-1 border rounded focus:ring-indigo-500">
+                                class="w-full px-3 py-2 border-2 border-amber-200 rounded-lg focus:ring-2 focus:ring-amber-400 focus:border-amber-400">
                         </div>
                         <div>
-                            <label class="block text-xs font-bold text-gray-500">Test Title</label>
+                            <label class="block text-xs font-bold text-amber-600 mb-1">Test Title</label>
                             <input type="text" id="quest-test-title" placeholder="e.g. Unit 5 Review"
-                                class="w-full px-2 py-1 border rounded focus:ring-indigo-500">
+                                class="w-full px-3 py-2 border-2 border-amber-200 rounded-lg focus:ring-2 focus:ring-amber-400 focus:border-amber-400">
                         </div>
                         <div class="col-span-2">
-                            <label class="block text-xs font-bold text-gray-500">Curriculum / Topics</label>
+                            <label class="block text-xs font-bold text-amber-600 mb-1">Curriculum / Topics</label>
                             <input type="text" id="quest-test-curriculum"
                                 placeholder="e.g. Past Simple, Vocabulary pg 40-45"
-                                class="w-full px-2 py-1 border rounded focus:ring-indigo-500">
+                                class="w-full px-3 py-2 border-2 border-amber-200 rounded-lg focus:ring-2 focus:ring-amber-400 focus:border-amber-400">
                         </div>
                     </div>
                 </div>
             </div>
 
-            <div class="flex justify-around gap-4 mt-6">
-                <button id="quest-assignment-cancel-btn"
-                    class="w-full bg-gray-200 hover:bg-gray-300 text-gray-800 font-title text-lg py-2 px-8 rounded-xl bubbly-button">Cancel</button>
-                <button id="quest-assignment-confirm-btn"
-                    class="w-full bg-indigo-500 hover:bg-indigo-600 text-white font-title text-lg py-2 px-8 rounded-xl bubbly-button">Save
-                    Assignment</button>
+            <!-- Footer Buttons -->
+            <div class="p-6 pt-4 border-t border-gray-100 flex-shrink-0">
+                <div class="flex gap-3">
+                    <button id="quest-assignment-cancel-btn"
+                        class="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold py-3 px-6 rounded-xl transition-colors">
+                        <i class="fas fa-times mr-2"></i>Cancel
+                    </button>
+                    <button id="quest-assignment-confirm-btn"
+                        class="flex-1 bg-gradient-to-r from-indigo-500 to-purple-500 hover:from-indigo-600 hover:to-purple-600 text-white font-bold py-3 px-6 rounded-xl shadow-lg transition-all">
+                        <i class="fas fa-save mr-2"></i>Save Assignment
+                    </button>
+                </div>
             </div>
         </div>
     </div>

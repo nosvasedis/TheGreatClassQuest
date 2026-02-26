@@ -109,6 +109,11 @@ export async function renderAdventureLog() {
     // Sort descending by date
     logsForClass.sort((a, b) => utils.parseFlexibleDate(b.date) - utils.parseFlexibleDate(a.date));
 
+    // Track if this is a re-render (to skip animations)
+    const existingEntries = feed.querySelectorAll('.diary-page');
+    const isReRender = existingEntries.length > 0;
+    const existingLogIds = isReRender ? Array.from(existingEntries).map(el => el.dataset.logId) : [];
+
     feed.innerHTML = logsForClass.map(log => {
         const dateObj = utils.parseFlexibleDate(log.date);
         const displayDate = dateObj ? dateObj.toLocaleDateString('en-GB', { weekday: 'long', month: 'long', day: 'numeric' }) : log.date;
@@ -124,8 +129,12 @@ export async function renderAdventureLog() {
             </div>
         ` : '';
 
+        // Only animate if this is a new entry (not already in DOM)
+        const isNewEntry = !isReRender || !existingLogIds.includes(log.id);
+        const animationClass = isNewEntry ? 'diary-page pop-in-start' : 'diary-page';
+
         return `
-            <div class="diary-page pop-in-start">
+            <div class="${animationClass}" data-log-id="${log.id}">
                 <div class="diary-header">
                     <div>
                         <h3 class="diary-date">${displayDate}</h3>
@@ -159,7 +168,8 @@ export async function renderAdventureLog() {
             </div>`;
     }).join('');
 
-    const pages = feed.querySelectorAll('.diary-page');
+    // Only animate NEW pages
+    const pages = feed.querySelectorAll('.diary-page.pop-in-start');
     pages.forEach((page, index) => {
         setTimeout(() => {
             page.classList.remove('pop-in-start');

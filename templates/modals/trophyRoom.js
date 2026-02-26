@@ -96,6 +96,52 @@ export const trophyRoomModalsHTML = `
         </div>
     </div>
 
+    <!-- Purchase Success Modal -->
+    <div id="shop-purchase-modal"
+        class="fixed inset-0 bg-black/70 backdrop-blur-sm z-[90] flex items-center justify-center p-4 hidden">
+        <div class="bg-gradient-to-br from-indigo-900 to-purple-950 rounded-3xl shadow-2xl max-w-sm w-full pop-in border-4 border-amber-500/50 overflow-hidden text-center">
+            <!-- Success Header -->
+            <div class="bg-gradient-to-r from-amber-500 to-orange-500 p-6 relative overflow-hidden">
+                <div class="absolute inset-0 opacity-30">
+                    <div class="absolute top-2 left-4 text-4xl animate-bounce">✨</div>
+                    <div class="absolute top-4 right-6 text-3xl animate-pulse">🎉</div>
+                    <div class="absolute bottom-2 left-8 text-2xl animate-bounce delay-100">⭐</div>
+                </div>
+                <div class="text-6xl mb-2 relative z-10">🛒</div>
+                <h2 class="font-title text-3xl text-white drop-shadow-lg relative z-10">Purchase Complete!</h2>
+            </div>
+            
+            <!-- Content -->
+            <div class="p-6">
+                <div id="shop-purchase-item" class="bg-white/10 rounded-2xl p-4 mb-4 border border-white/20">
+                    <div id="shop-purchase-icon" class="text-5xl mb-2">📦</div>
+                    <h3 id="shop-purchase-name" class="font-title text-xl text-amber-300">Item Name</h3>
+                    <p id="shop-purchase-desc" class="text-indigo-300 text-sm mt-1">Item description</p>
+                </div>
+                
+                <div class="flex justify-center gap-6 mb-4">
+                    <div class="text-center">
+                        <p class="text-indigo-400 text-xs uppercase font-bold">Cost</p>
+                        <p id="shop-purchase-cost" class="font-title text-2xl text-red-400">-10 🪙</p>
+                    </div>
+                    <div class="text-center">
+                        <p class="text-indigo-400 text-xs uppercase font-bold">Remaining</p>
+                        <p id="shop-purchase-balance" class="font-title text-2xl text-green-400">90 🪙</p>
+                    </div>
+                </div>
+                
+                <p id="shop-purchase-student" class="text-indigo-300 text-sm mb-4">
+                    <i class="fas fa-user mr-2"></i><span>Student Name</span>'s inventory
+                </p>
+                
+                <button id="shop-purchase-close-btn"
+                    class="w-full bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-white font-bold py-3 px-6 rounded-xl shadow-lg transition-all">
+                    <i class="fas fa-check mr-2"></i>Awesome!
+                </button>
+            </div>
+        </div>
+    </div>
+
     <div id="avatar-maker-modal"
         class="fixed inset-0 bg-black/75 backdrop-blur-sm z-[72] flex items-center justify-center p-4 hidden">
         <div class="relative bg-gradient-to-br from-slate-900 to-indigo-950 rounded-3xl shadow-2xl max-w-4xl w-full pop-in border border-purple-500/40 flex flex-col max-h-[92vh] overflow-hidden"

@@ -33,7 +33,7 @@ function getDefaultState() {
         hasLoadedCalendarHistory: false, // NEW: Track if we have history
 
         // UI Selection States
-        globalSelectedClassId: localStorage.getItem('quest_last_class_id') || null,
+        globalSelectedClassId: null, // Don't persist - always use smart selector on load
         reigningHero: null, // Stores the student object of the last crowned hero
         globalSelectedLeague: localStorage.getItem('quest_last_league') || null,
         isProgrammaticSelection: false,
@@ -159,11 +159,12 @@ export function setGlobalSelectedClass(classId, isManual = false) {
     }
 
     state.globalSelectedClassId = classId;
-    if (classId) {
-        localStorage.setItem('quest_last_class_id', classId);
-    } else {
-        localStorage.removeItem('quest_last_class_id');
-    }
+    // Don't persist class selection to localStorage - use smart selector on each load
+    // if (classId) {
+    //     localStorage.setItem('quest_last_class_id', classId);
+    // } else {
+    //     localStorage.removeItem('quest_last_class_id');
+    // }
 
     updateReigningHero();
     if (classId) {

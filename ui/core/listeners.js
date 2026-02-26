@@ -284,7 +284,7 @@ export function setupUIListeners() {
     });
 
     // Get Quest Update button
-    document.getElementById('get-quest-update-btn').addEventListener('click', handleGetQuestUpdate);
+    // Removed: Get Quest Update button replaced with month title
 
     // Award Stars Tab
     document.getElementById('award-class-dropdown-btn').addEventListener('click', () => {
@@ -319,11 +319,10 @@ export function setupUIListeners() {
             const sender = state.get('allStudents').find(s => s.id === senderId);
             const receiver = state.get('allStudents').find(s => s.id === receiverId);
 
-            modals.showBoonConfirmationModal(sender, receiver, () => {
-                import('../../features/boons.js').then(m => {
-                    m.handleBestowBoon(senderId, receiverId);
-                    modals.hideModal('bestow-boon-modal');
-                });
+            // Directly bestow the boon - confirmation is implicit in the modal UI
+            import('../../features/boons.js').then(m => {
+                m.handleBestowBoon(senderId, receiverId);
+                modals.hideModal('bestow-boon-modal');
             });
         }
     });

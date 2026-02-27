@@ -577,7 +577,9 @@ function buildDeckList(classId) {
         // Contextual trivia
         'weather', 'holiday', 'this_day_history', 'world_record',
         'study_tip', 'thought_experiment', 'emoji_riddle', 'math_challenge',
-        'greek_nameday_today', 'orthodox_calendar'
+        'greek_nameday_today', 'orthodox_calendar',
+        // New cards
+        'guild_leaderboard', 'fun_english_phrase'
     ];
 
     // --- 2. THE CLASS-SPECIFIC POOL ---
@@ -586,7 +588,9 @@ function buildDeckList(classId) {
         'story_sentence', 'class_bounty', 'next_lesson',
         'attendance_summary', 'absent_heroes', 'mindfulness',
         'quest_map_position', 'class_rank_vs_school', 'class_gold_ranking',
-        'reigning_hero_spotlight', 'lesson_milestone'
+        'reigning_hero_spotlight', 'lesson_milestone',
+        // New cards
+        'class_familiar_parade', 'class_gold_top_trio'
     ];
 
     if (!classId) {
@@ -775,6 +779,9 @@ async function hydrateCard(type, classId) {
             case 'class_gold_ranking': content = getClassGoldRankingCard(classId); break;
             case 'reigning_hero_spotlight': content = getReigningHeroCard(classId); break;
             case 'lesson_milestone': content = getLessonMilestoneCard(classId); break;
+            // New class cards
+            case 'class_familiar_parade': content = getClassFamiliarParadeCard(classId); break;
+            case 'class_gold_top_trio': content = getClassGoldTopTrioCard(classId); break;
 
             // --- Context cards ---
             case 'context_morning': content = getContextCard('morning', questLevel); break;
@@ -784,6 +791,9 @@ async function hydrateCard(type, classId) {
             case 'context_friday': content = getContextCard('friday', questLevel); break;
             case 'post_holiday_welcome': content = getPostHolidayWelcomeCard(); break;
             case 'class_season_snapshot': content = getClassSeasonSnapshotCard(classId); break;
+            // New global cards
+            case 'guild_leaderboard': content = getGuildLeaderboardCard(); break;
+            case 'fun_english_phrase': content = getFunEnglishPhraseCard(questLevel); break;
 
 
             default: content = getSchoolPulseCard();
@@ -794,7 +804,183 @@ async function hydrateCard(type, classId) {
     return { ...baseObj, ...content };
 }
 
+// ─── Guild Leaderboard ────────────────────────────────────────────────────────
+function getGuildLeaderboardCard() {
+    const allGuildScores = state.get('allGuildScores') || {};
+    const allStudents = state.get('allStudents') || [];
+    const allStudentScores = state.get('allStudentScores') || [];
+    const guildIds = ['dragon_flame', 'grizzly_might', 'owl_wisdom', 'phoenix_rising'];
+    const guildMeta = {
+        dragon_flame: { name: 'Dragon Flame', emoji: '🔥', color: '#ef4444' },
+        grizzly_might: { name: 'Grizzly Might', emoji: '🐻', color: '#d97706' },
+        owl_wisdom: { name: 'Owl Wisdom', emoji: '🦉', color: '#3b82f6' },
+        phoenix_rising: { name: 'Phoenix Rising', emoji: '🦅', color: '#ec4899' },
+    };
+
+    const guilds = guildIds.map(gid => {
+        const scoreDoc = allGuildScores[gid] || {};
+        const members = allStudents.filter(s => s.guildId === gid);
+        const memberCount = members.length || 1;
+        const monthlyStars = members.reduce((sum, s) => {
+            const sc = allStudentScores.find(sc => sc.id === s.id);
+            return sum + (Number(sc?.monthlyStars) || 0);
+        }, 0);
+        const perCapita = Math.round((monthlyStars / memberCount) * 10) / 10;
+        const meta = guildMeta[gid] || { name: gid, emoji: '⚔️', color: '#9ca3af' };
+        return { gid, name: meta.name, emoji: meta.emoji, color: meta.color, monthlyStars, memberCount, perCapita };
+    }).sort((a, b) => b.perCapita - a.perCapita);
+
+    const maxPerCapita = Math.max(...guilds.map(g => g.perCapita)) || 1;
+    const rankEmoji = ['🥇', '🥈', '🥉', '4️⃣'];
+
+    const rows = guilds.map((g, i) => {
+        const barWidth = Math.max(8, Math.round((g.perCapita / maxPerCapita) * 100));
+        return `<div class="flex items-center gap-3 mb-2">
+            <span class="text-xl w-7 text-center">${rankEmoji[i]}</span>
+            <span class="text-2xl">${g.emoji}</span>
+            <div class="flex-1">
+                <div class="flex justify-between items-center mb-0.5">
+                    <span class="font-bold text-sm" style="color:${g.color}">${g.name}</span>
+                    <span class="text-xs font-bold opacity-70">${g.perCapita} ⭐/member</span>
+                </div>
+                <div class="h-2 rounded-full bg-white/10 overflow-hidden">
+                    <div class="h-full rounded-full" style="width:${barWidth}%;background:${g.color};"></div>
+                </div>
+            </div>
+        </div>`;
+    }).join('');
+
+    return {
+        html: `<div class="w-full px-2">
+            <div class="badge-pill bg-purple-100 text-purple-800">⚔️ Guild Rankings</div>
+            <p class="text-purple-600 text-xs font-bold uppercase tracking-widest mt-2 mb-4">Per-member this month</p>
+            ${rows}
+        </div>`,
+        css: 'float-card-purple'
+    };
+}
+
+// ─── Fun English Phrase ───────────────────────────────────────────────────────
+function getFunEnglishPhraseCard(questLevel) {
+    const tier = getLevelTier(questLevel);
+    const phrases = {
+        junior: [
+            { phrase: 'Break a leg!', meaning: 'Good luck! (We say this to wish someone well before a performance.)' },
+            { phrase: 'It\'s raining cats and dogs!', meaning: 'It\'s raining very heavily!' },
+            { phrase: 'You\'re on fire!', meaning: 'You\'re doing an amazing job!' },
+            { phrase: 'Hit the books!', meaning: 'Time to study!' },
+            { phrase: 'Piece of cake!', meaning: 'It\'s very easy!' },
+        ],
+        mid: [
+            { phrase: 'Bite the bullet!', meaning: 'Do something difficult or unpleasant that cannot be avoided.' },
+            { phrase: 'Beat around the bush.', meaning: 'Avoid talking about something directly.' },
+            { phrase: 'Kill two birds with one stone.', meaning: 'Solve two problems with one action.' },
+            { phrase: 'The ball is in your court.', meaning: 'It\'s your turn to take action or make a decision.' },
+            { phrase: 'Costs an arm and a leg.', meaning: 'Very expensive.' },
+        ],
+        senior: [
+            { phrase: 'Bite off more than you can chew.', meaning: 'Take on more responsibility than you can handle.' },
+            { phrase: 'Burn the midnight oil.', meaning: 'Work late into the night.' },
+            { phrase: 'The devil is in the details.', meaning: 'Small details are actually the most important things.' },
+            { phrase: 'A blessing in disguise.', meaning: 'Something that seems bad at first but turns out to be beneficial.' },
+            { phrase: 'Cut corners.', meaning: 'Do something the easy way, but with lower quality results.' },
+        ],
+    };
+    const pool = phrases[tier] || phrases.mid;
+    const item = pool[Math.floor(Math.random() * pool.length)];
+    return {
+        html: `<div class="text-center w-full">
+            <div class="badge-pill bg-teal-100 text-teal-800">🗣️ English Phrase</div>
+            <div class="text-6xl my-4">💬</div>
+            <h3 class="font-title text-4xl text-teal-900 mb-3">"${item.phrase}"</h3>
+            <p class="font-serif text-lg text-teal-700 italic leading-relaxed px-2">${item.meaning}</p>
+        </div>`,
+        css: 'float-card-cyan'
+    };
+}
+
+// ─── Class Familiar Parade ────────────────────────────────────────────────────
+function getClassFamiliarParadeCard(classId) {
+    const allStudentScores = state.get('allStudentScores') || [];
+    const students = state.get('allStudents').filter(s => s.classId === classId);
+    if (!students.length) return null;
+
+    const familiars = students.map(s => {
+        const score = allStudentScores.find(sc => sc.id === s.id) || {};
+        const egg = score.familiarEgg;
+        const hatched = score.familiarHatched;
+        const evolved = score.familiarEvolved;
+        const display = evolved || hatched || egg;
+        if (!display) return null;
+        const isEvolved = !!evolved;
+        const isHatched = !!hatched && !evolved;
+        const badge = isEvolved ? '✨' : isHatched ? '🐣' : '🥚';
+        return `<div class="flex flex-col items-center gap-1">
+            <div class="text-4xl">${display}</div>
+            <span class="text-[9px] font-bold opacity-50">${badge}</span>
+            <span class="text-[9px] text-center truncate max-w-[48px]">${s.name.split(' ')[0]}</span>
+        </div>`;
+    }).filter(Boolean);
+
+    if (!familiars.length) return null;
+
+    return {
+        html: `<div class="text-center w-full">
+            <div class="badge-pill bg-pink-100 text-pink-800">🐾 Class Familiars</div>
+            <p class="text-pink-600 text-sm font-bold mt-2 mb-4">Meet our magical companions!</p>
+            <div class="flex flex-wrap justify-center gap-3 max-h-40 overflow-hidden">
+                ${familiars.slice(0, 16).join('')}
+            </div>
+            ${familiars.length > 16 ? `<p class="text-pink-400 text-xs mt-2">+${familiars.length - 16} more companions!</p>` : ''}
+        </div>`,
+        css: 'float-card-pink'
+    };
+}
+
+// ─── Class Gold Top Trio ──────────────────────────────────────────────────────
+function getClassGoldTopTrioCard(classId) {
+    const allStudentScores = state.get('allStudentScores') || [];
+    const students = state.get('allStudents').filter(s => s.classId === classId);
+    if (!students.length) return null;
+
+    const ranked = students.map(s => {
+        const score = allStudentScores.find(sc => sc.id === s.id) || {};
+        return { ...s, gold: Number(score.gold) || 0 };
+    }).filter(s => s.gold > 0).sort((a, b) => b.gold - a.gold).slice(0, 3);
+
+    if (!ranked.length) return null;
+
+    const rankStyles = [
+        { emoji: '🥇', bg: 'from-yellow-500/20 to-amber-600/20', border: 'border-yellow-500/30', color: 'text-yellow-400', size: 'text-5xl' },
+        { emoji: '🥈', bg: 'from-gray-400/20 to-slate-500/20', border: 'border-gray-400/30', color: 'text-gray-300', size: 'text-4xl' },
+        { emoji: '🥉', bg: 'from-orange-700/20 to-amber-800/20', border: 'border-orange-600/30', color: 'text-orange-400', size: 'text-3xl' },
+    ];
+
+    const cards = ranked.map((s, i) => {
+        const style = rankStyles[i];
+        const avatar = s.avatar
+            ? `<img src="${s.avatar}" class="w-14 h-14 rounded-full object-cover border-2 mx-auto mb-2" style="border-color: rgba(251,191,36,0.4);">`
+            : `<div class="w-14 h-14 rounded-full bg-indigo-700 flex items-center justify-center text-2xl font-bold text-white mx-auto mb-2">${s.name.charAt(0)}</div>`;
+        return `<div class="flex-1 bg-gradient-to-b ${style.bg} border ${style.border} rounded-2xl p-3 text-center">
+            <div class="text-2xl mb-1">${style.emoji}</div>
+            ${avatar}
+            <div class="font-bold text-white text-sm truncate">${s.name.split(' ')[0]}</div>
+            <div class="${style.color} font-title text-lg mt-1">${s.gold.toLocaleString()} 🪙</div>
+        </div>`;
+    }).join('');
+
+    return {
+        html: `<div class="text-center w-full">
+            <div class="badge-pill bg-yellow-100 text-yellow-800">💰 Wealthiest Adventurers</div>
+            <p class="text-yellow-700 text-sm font-bold mt-2 mb-5">The class treasury leaders!</p>
+            <div class="flex gap-3">${cards}</div>
+        </div>`,
+        css: 'float-card-gold'
+    };
+}
+
 function getMindfulnessCard(questLevel) {
+
     const tier = getLevelTier(questLevel);
     const prompts = {
         junior: ['Take a big breath in... and out! 😊', 'Close your eyes and count to 5!', 'Shake your hands, take a breath, smile!'],

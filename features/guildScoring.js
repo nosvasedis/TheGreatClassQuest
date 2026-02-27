@@ -52,9 +52,10 @@ export async function updateGuildScores(studentId, starDelta) {
 }
 
 /**
- * Returns sorted guild list for leaderboard: guildId, guildName, totalStars, memberCount, top contributors.
+ * Returns sorted guild list for leaderboard: guildId, guildName, totalStars, memberCount,
+ * monthlyStars, perCapitaStars, monthlyPerCapitaStars, top contributors.
+ * Sorted by monthlyPerCapitaStars (fairest metric across guilds of different sizes).
  * Uses in-memory state for sub-500ms response.
- * @returns {Array<{ guildId: string, guildName: string, totalStars: number, memberCount: number, topContributors: Array<{ name: string, avatar?: string, totalStars: number }> }>}
  */
 export function getGuildLeaderboardData() {
     const allGuildScores = state.get('allGuildScores') || {};
@@ -65,31 +66,48 @@ export function getGuildLeaderboardData() {
         const doc = allGuildScores[gid] || {};
         const totalStars = Number(doc.totalStars) || 0;
         const memberIds = doc.memberIds || [];
-        const memberCount = memberIds.length || allStudents.filter((s) => s.guildId === gid).length;
-        const guildDef = GUILDS[gid];
         const members = allStudents.filter((s) => s.guildId === gid);
+        const memberCount = members.length || memberIds.length || 1; // avoid div by zero
+        const guildDef = GUILDS[gid];
+
+        // Monthly stars: sum of all members' current monthlyStars
+        const monthlyStars = members.reduce((sum, s) => {
+            const sc = allStudentScores.find((sc) => sc.id === s.id);
+            return sum + (Number(sc?.monthlyStars) || 0);
+        }, 0);
+
+        // Per-capita metrics (rounded to 1 decimal)
+        const perCapitaStars = Math.round((totalStars / memberCount) * 10) / 10;
+        const monthlyPerCapitaStars = Math.round((monthlyStars / memberCount) * 10) / 10;
+
         const topContributors = members
             .map((s) => ({
                 studentId: s.id,
                 name: s.name,
                 avatar: s.avatar,
                 totalStars: Number((allStudentScores.find((sc) => sc.id === s.id) || {}).totalStars) || 0,
+                monthlyStars: Number((allStudentScores.find((sc) => sc.id === s.id) || {}).monthlyStars) || 0,
             }))
-            .sort((a, b) => b.totalStars - a.totalStars)
+            .sort((a, b) => b.monthlyStars - a.monthlyStars)
             .slice(0, 3);
 
         return {
             guildId: gid,
             guildName: guildDef?.name || doc.guildName || gid,
             totalStars,
+            monthlyStars,
             memberCount,
+            perCapitaStars,
+            monthlyPerCapitaStars,
             topContributors,
         };
     });
 
-    list.sort((a, b) => b.totalStars - a.totalStars);
+    // Sort by monthly per-capita stars (fairest), then by total stars as tiebreaker
+    list.sort((a, b) => b.monthlyPerCapitaStars - a.monthlyPerCapitaStars || b.totalStars - a.totalStars);
     return list;
 }
+
 
 /**
  * Returns the current month's guild champion for each guild as { guildId → { studentId, studentName, avatar, monthlyStars } }.

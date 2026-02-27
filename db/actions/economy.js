@@ -21,6 +21,7 @@ import * as state from '../../state.js';
 import { showToast } from '../../ui/effects.js';
 import { callGeminiApi, callCloudflareAiImageApi } from '../../api.js';
 import { getAgeGroupForLeague, getStartOfMonthString, compressImageBase64, simpleHashCode, parseFlexibleDate } from '../../utils.js';
+import { playSound } from '../../audio.js';
 // GUILD_IDS not needed at module level but kept for reference
 
 // --- THE ECONOMY (SHOP & INVENTORY) ---
@@ -28,7 +29,7 @@ import { getAgeGroupForLeague, getStartOfMonthString, compressImageBase64, simpl
 export async function handleGenerateShopStock() {
     // 1. Determine Context (League)
     let league = state.get('globalSelectedLeague');
-    
+
     // Fallback: If no league selected, try to infer from class ID
     if (!league) {
         const classId = state.get('globalSelectedClassId');
@@ -48,23 +49,23 @@ export async function handleGenerateShopStock() {
     const container = document.getElementById('shop-items-container');
     const emptyState = document.getElementById('shop-empty-state');
     const monthKey = new Date().toISOString().substring(0, 7); // YYYY-MM
-    
+
     btn.disabled = true;
     loader.classList.remove('hidden');
-    container.innerHTML = ''; 
+    container.innerHTML = '';
     emptyState.classList.add('hidden');
 
     try {
         // --- STEP 0: CLEAR OLD STOCK ---
         const publicDataPath = "artifacts/great-class-quest/public/data";
-        
+
         const q = query(
             collection(db, `${publicDataPath}/shop_items`),
             where("league", "==", league),
             where("monthKey", "==", monthKey),
             where("teacherId", "==", state.get('currentUserId'))
         );
-        
+
         const snapshot = await getDocs(q);
         if (!snapshot.empty) {
             const batch = writeBatch(db);
@@ -76,9 +77,9 @@ export async function handleGenerateShopStock() {
 
         // --- STEP 1: PREPARE PROMPT ---
         const now = new Date();
-        const currentMonth = now.getMonth(); 
+        const currentMonth = now.getMonth();
         const currentYear = now.getFullYear();
-        const ageCategory = getAgeGroupForLeague(league); 
+        const ageCategory = getAgeGroupForLeague(league);
         const isJunior = ageCategory === '7-8' || ageCategory === '8-9' || league.includes('Junior');
 
         // Smart Season Context
@@ -94,7 +95,7 @@ export async function handleGenerateShopStock() {
         let styleContext = "";
         let itemContext = "";
         let languageInstruction = "";
-        
+
         if (isJunior) {
             // Junior: Force "Sticker" style to ensure isolation
             styleContext = "a die-cut vector sticker, thick white outline, flat color, simple shapes, cartoon style, white background";
@@ -120,7 +121,7 @@ export async function handleGenerateShopStock() {
         3. DESCRIPTIONS: ${languageInstruction}
         4. Output Format: A valid JSON array of objects: [{"name": "string", "desc": "string", "price": number}].
         Do NOT use markdown.`;
-        
+
         const jsonString = await callGeminiApi(systemPrompt, "Generate the JSON list now.");
         const cleanJson = jsonString.replace(/```json|```/g, '').trim();
         let itemsData = [];
@@ -134,7 +135,7 @@ export async function handleGenerateShopStock() {
 
         // --- STEP 2: GENERATE IMAGES & SAVE ---
         const { uploadImageToStorage } = await import('../../utils.js');
-        
+
         const chunkSize = 3;
         for (let i = 0; i < itemsData.length; i += chunkSize) {
             const chunk = itemsData.slice(i, i + chunkSize);
@@ -145,10 +146,10 @@ export async function handleGenerateShopStock() {
                     // 2. Wrap Name in ((brackets)) to emphasize it.
                     // 3. Explicitly state "single isolated object".
                     const positivePrompt = `(single isolated object) of ((${item.name})), ${item.desc}. ${styleContext}. centered, full shot, high quality.`;
-                    
+
                     // FIX: Aggressive Anti-Texture Negative Prompt
                     const negativePrompt = "pattern, texture, wallpaper, seamless, repeating, tiling, grid, background, scenery, landscape, text, watermark, blurry, noise, cropped, multiple objects, pile, heap";
-                    
+
                     const base64 = await callCloudflareAiImageApi(positivePrompt, negativePrompt);
                     const compressed = await compressImageBase64(base64, 256, 256);
                     const path = `shop_items/${state.get('currentUserId')}/${monthKey}_${simpleHashCode(item.name)}_${Date.now()}.jpg`;
@@ -160,7 +161,7 @@ export async function handleGenerateShopStock() {
                         description: item.desc,
                         price: item.price,
                         image: url,
-                        league: league, 
+                        league: league,
                         monthKey: monthKey,
                         teacherId: state.get('currentUserId'),
                         createdAt: serverTimestamp(),
@@ -189,7 +190,7 @@ export async function handleBulkSaveTrial() {
     const classId = modal.dataset.classId;
     const type = modal.dataset.type;
     const isJunior = modal.dataset.isJunior === 'true';
-    
+
     const date = document.getElementById('bulk-trial-date').value;
     const title = document.getElementById('bulk-trial-name').value.trim();
 
@@ -213,7 +214,7 @@ export async function handleBulkSaveTrial() {
     const batch = writeBatch(db);
     const publicDataPath = "artifacts/great-class-quest/public/data";
     const scoresCollection = collection(db, `${publicDataPath}/written_scores`);
-    
+
     let operationsCount = 0;
     const potentialStarfallStudents = [];
     const savedScoresData = []; // Collection for personal best check
@@ -221,7 +222,7 @@ export async function handleBulkSaveTrial() {
     try {
         rows.forEach(row => {
             const studentId = row.dataset.studentId;
-            const trialId = row.dataset.trialId; 
+            const trialId = row.dataset.trialId;
             const isAbsent = row.querySelector('.toggle-absent-btn').classList.contains('is-absent');
             const input = row.querySelector('.bulk-grade-input');
             const val = input.value;
@@ -237,7 +238,7 @@ export async function handleBulkSaveTrial() {
             if (!val) return;
 
             const maxScore = (isJunior && type === 'test') ? 40 : 100;
-            
+
             let scoreData = {
                 studentId,
                 classId,
@@ -257,14 +258,14 @@ export async function handleBulkSaveTrial() {
                 scoreData.scoreNumeric = parseInt(val, 10);
             }
 
-            savedScoresData.push({ ...scoreData, id: trialId || 'new' }); 
+            savedScoresData.push({ ...scoreData, id: trialId || 'new' });
 
             // Logic for Starfall Eligibility Check
             let bonusAmount = 0;
             let isEligible = false;
 
             if (type === 'test') {
-                const threshold = isJunior ? 38 : 96; 
+                const threshold = isJunior ? 38 : 96;
                 if (scoreData.scoreNumeric >= threshold) {
                     bonusAmount = 1;
                     isEligible = true;
@@ -299,7 +300,7 @@ export async function handleBulkSaveTrial() {
         if (operationsCount > 0) {
             await batch.commit();
             showToast('All grades saved successfully!', 'success');
-            
+
             // Dynamic import to avoid circular dependency issues
             import('../../ui/modals.js').then(m => m.hideModal('bulk-trial-modal'));
 
@@ -313,12 +314,12 @@ export async function handleBulkSaveTrial() {
                     const previousScores = state.get('allWrittenScores')
                         .filter(s => s.studentId === studentId && s.type === 'test' && s.id !== savedScore.id);
 
-                    const maxPreviousScore = previousScores.length > 0 
+                    const maxPreviousScore = previousScores.length > 0
                         ? Math.max(...previousScores.map(s => (s.scoreNumeric / s.maxScore) * 100))
                         : 0;
 
                     if (newScorePercent > maxPreviousScore && maxPreviousScore > 0) {
-                        setTimeout(() => { 
+                        setTimeout(() => {
                             showPraiseToast(`${student.name} just set a new Personal Best on their test!`, '🏆');
                         }, 700);
                     }
@@ -327,12 +328,12 @@ export async function handleBulkSaveTrial() {
 
             // --- PROCESS STARFALL FOR BATCH ---
             const finalEligibleStudents = [];
-            
+
             // Test Bonuses
             const testWinners = potentialStarfallStudents.filter(p => p.type === 'test');
             testWinners.forEach(w => {
                 const s = state.get('allStudents').find(st => st.id === w.studentId);
-                if(s) finalEligibleStudents.push({ studentId: s.id, name: s.name, bonusAmount: w.bonusAmount, trialType: 'test' });
+                if (s) finalEligibleStudents.push({ studentId: s.id, name: s.name, bonusAmount: w.bonusAmount, trialType: 'test' });
             });
 
             // Dictation Bonuses
@@ -361,9 +362,9 @@ export async function handleBulkSaveTrial() {
                             return log.studentId === cand.studentId && log.reason === 'scholar_s_bonus' && d && d.getFullYear() === refYear && d.getMonth() === refMonth && log.note && log.note.includes('dictation');
                         }).length;
 
-                        if (bonusLogsThisMonth < 2) { 
+                        if (bonusLogsThisMonth < 2) {
                             const s = state.get('allStudents').find(st => st.id === cand.studentId);
-                            if(s) finalEligibleStudents.push({ studentId: s.id, name: s.name, bonusAmount: 0.5, trialType: 'dictation' });
+                            if (s) finalEligibleStudents.push({ studentId: s.id, name: s.name, bonusAmount: 0.5, trialType: 'dictation' });
                         }
                     }
                 });
@@ -410,7 +411,7 @@ export async function handleBuyItem(studentId, itemId) {
     let finalPrice = item.price;
     const reigningHero = state.get('reigningHero');
     const isHero = reigningHero && reigningHero.id === studentId;
-    
+
     // Discount applies ONLY to Seasonal items (not Legendary)
     if (isHero && !isLegendary) {
         finalPrice = Math.floor(item.price * 0.75); // 25% Discount
@@ -418,11 +419,11 @@ export async function handleBuyItem(studentId, itemId) {
 
     // 2. UI Pre-check and Optimistic Update preparation
     const buyBtn = document.querySelector(`.shop-buy-btn[data-id="${itemId}"]`);
-    
+
     // 3. DB Transaction
     const publicDataPath = "artifacts/great-class-quest/public/data";
     const scoreRef = doc(db, `${publicDataPath}/student_scores`, studentId);
-    
+
     try {
         let newGoldBalance = 0;
 
@@ -443,11 +444,11 @@ export async function handleBuyItem(studentId, itemId) {
             const currentInventory = data.inventory || [];
 
             if (currentDbGold < finalPrice) throw "Not enough gold!";
-            
+
             newGoldBalance = currentDbGold - finalPrice; // Calculate for UI
 
             transaction.update(scoreRef, {
-                gold: increment(-finalPrice), 
+                gold: increment(-finalPrice),
                 inventory: [...currentInventory, {
                     id: item.id,
                     name: item.name,
@@ -458,10 +459,10 @@ export async function handleBuyItem(studentId, itemId) {
                 }]
             });
         });
-        
+
         // --- SUCCESS: Update UI Immediately ---
         playSound('cash');
-        
+
         // 1. Update Gold Display Instantly with animation
         const goldDisplay = document.getElementById('shop-student-gold');
         if (goldDisplay) {
@@ -480,7 +481,7 @@ export async function handleBuyItem(studentId, itemId) {
         // 2. Remove item card if seasonal with animation
         if (!isLegendary && buyBtn) {
             const card = buyBtn.closest('.shop-item-card');
-            if(card) {
+            if (card) {
                 card.style.transition = 'all 0.5s';
                 card.style.transform = 'scale(0) rotate(10deg)';
                 card.style.opacity = '0';
@@ -498,22 +499,37 @@ export async function handleBuyItem(studentId, itemId) {
             document.getElementById('shop-purchase-cost').innerText = `-${finalPrice} 🪙`;
             document.getElementById('shop-purchase-balance').innerText = `${newGoldBalance} 🪙`;
             document.getElementById('shop-purchase-student').innerHTML = `<i class="fas fa-user mr-2"></i><span class="font-bold">${student.name}</span>'s inventory`;
-            
+
             purchaseModal.classList.remove('hidden');
-            
+
+            // Animate the progress bar countdown (3 seconds)
+            const timerBar = document.getElementById('shop-purchase-timer-bar');
+            if (timerBar) {
+                timerBar.style.transition = 'none';
+                timerBar.style.width = '100%';
+                // Force a reflow to make the starting state stick before animating
+                timerBar.offsetWidth;
+                timerBar.style.transition = 'width 3s linear';
+                timerBar.style.width = '0%';
+            }
+
             // Auto-close after 3 seconds or on button click
             const closeBtn = document.getElementById('shop-purchase-close-btn');
+            let autoCloseTimer = null;
             const closeModal = () => {
+                clearTimeout(autoCloseTimer);
                 purchaseModal.classList.add('hidden');
+                if (timerBar) { timerBar.style.transition = 'none'; timerBar.style.width = '100%'; }
             };
             closeBtn.onclick = closeModal;
-            setTimeout(closeModal, 3000);
+            autoCloseTimer = setTimeout(closeModal, 3000);
+
         } else {
             // Fallback to old modal if new one doesn't exist
             showModal(
-                'Purchase Successful!', 
-                `${student.name} bought "${item.name}" for ${finalPrice} Gold.\n\nRemaining Balance: ${newGoldBalance} Gold.`, 
-                () => {},
+                'Purchase Successful!',
+                `${student.name} bought "${item.name}" for ${finalPrice} Gold.\n\nRemaining Balance: ${newGoldBalance} Gold.`,
+                () => { },
                 'Awesome!'
             );
         }
@@ -526,7 +542,7 @@ export async function handleBuyItem(studentId, itemId) {
             allScores[studentIndex].gold = newGoldBalance;
             // Also push the new item to inventory so the button says "Owned" immediately
             if (!allScores[studentIndex].inventory) allScores[studentIndex].inventory = [];
-            
+
             allScores[studentIndex].inventory.push({
                 id: item.id,
                 name: item.name,
@@ -536,7 +552,7 @@ export async function handleBuyItem(studentId, itemId) {
             });
             state.setAllStudentScores(allScores);
         }
-       
+
         // 4. Refresh buttons logic (disable items they can no longer afford)
         import('../../ui/core.js').then(m => m.updateShopStudentDisplay(studentId));
 
@@ -555,21 +571,21 @@ export async function checkAndResetMonthlyStars(studentId, currentMonthStart) {
             const scoreDoc = await transaction.get(scoreRef);
             if (!scoreDoc.exists()) return;
             const scoreData = scoreDoc.data();
-            
+
             if (scoreData.lastMonthlyResetDate !== currentMonthStart) {
                 const lastMonthScore = scoreData.monthlyStars || 0;
-                const lastMonthDateString = scoreData.lastMonthlyResetDate; 
-                const yearMonthKey = lastMonthDateString.substring(0, 7); 
+                const lastMonthDateString = scoreData.lastMonthlyResetDate;
+                const yearMonthKey = lastMonthDateString.substring(0, 7);
                 const historyRef = doc(db, `${publicDataPath}/student_scores/${studentId}/monthly_history/${yearMonthKey}`);
-                
+
                 if (lastMonthScore > 0) {
                     transaction.set(historyRef, { stars: lastMonthScore, month: yearMonthKey });
                 }
-                
+
                 const currentGold = scoreData.gold !== undefined ? scoreData.gold : (scoreData.totalStars || 0);
 
-                transaction.update(scoreRef, { 
-                    monthlyStars: 0, 
+                transaction.update(scoreRef, {
+                    monthlyStars: 0,
                     lastMonthlyResetDate: currentMonthStart,
                     gold: currentGold
                 });
@@ -580,8 +596,8 @@ export async function checkAndResetMonthlyStars(studentId, currentMonthStart) {
         // Fire-and-forget — runs once per student reset but only writes if this student is a guild champion
         _checkAndPersistGuildChampion(studentId, currentMonthStart).catch(e => console.warn('Guild champion persist failed:', e));
 
-    } catch (error) { 
-        console.error(`Failed monthly reset & archive for ${studentId}:`, error); 
+    } catch (error) {
+        console.error(`Failed monthly reset & archive for ${studentId}:`, error);
     }
 }
 
@@ -641,16 +657,16 @@ export async function handleManualGoldUpdate() {
     try {
         const publicDataPath = "artifacts/great-class-quest/public/data";
         const scoreRef = doc(db, `${publicDataPath}/student_scores`, studentId);
-        
+
         await updateDoc(scoreRef, {
             gold: newGold
         });
 
         showToast('Coin balance updated successfully!', 'success');
-        
+
         // Update the visual pill if visible
         const goldDisplay = document.getElementById(`student-gold-display-${studentId}`);
-        if(goldDisplay) goldDisplay.innerText = newGold;
+        if (goldDisplay) goldDisplay.innerText = newGold;
 
     } catch (error) {
         console.error("Error updating gold:", error);
@@ -664,7 +680,7 @@ export async function handleManualGoldUpdate() {
 export async function handleSpecialOccasionBonus(studentId, type) {
     const student = state.get('allStudents').find(s => s.id === studentId);
     if (!student) return;
-    
+
     const bonus = type === 'birthday' ? 2.5 : 1.5;
     const reason = type === 'birthday' ? 'Birthday Bonus' : 'Nameday Bonus';
     const icon = type === 'birthday' ? '🎂' : '🎈';
@@ -696,7 +712,7 @@ export async function handleSpecialOccasionBonus(studentId, type) {
             };
             transaction.set(newLogRef, logData);
         });
-        
+
         showToast(`${student.name} received +${bonus} Stars for their special day!`, 'success');
         import('../../ui/modals.js').then(m => m.hideModal('celebration-bonus-modal'));
         playSound('magic_chime');
@@ -705,7 +721,7 @@ export async function handleSpecialOccasionBonus(studentId, type) {
         console.error("Bonus Error:", error);
         showToast("Error applying bonus.", "error");
 
-        
+
     }
 }
 
@@ -749,16 +765,16 @@ export async function handleBuyFamiliarEgg(studentId, typeId) {
 export async function resolveMissingGenders() {
     const currentUserId = state.get('currentUserId'); // Get your ID
     const allStudents = state.get('allStudents');
-    
+
     // 1. Find students WITHOUT gender AND created by YOU
     // This prevents the batch from failing due to Firebase "isOwner" rules
-    const unclassified = allStudents.filter(s => 
-        !s.gender && 
-        s.createdBy && 
+    const unclassified = allStudents.filter(s =>
+        !s.gender &&
+        s.createdBy &&
         s.createdBy.uid === currentUserId
     );
 
-    if (unclassified.length === 0) return; 
+    if (unclassified.length === 0) return;
 
     console.log(`Resolving genders for ${unclassified.length} of your students...`);
 

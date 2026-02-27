@@ -27,7 +27,7 @@ import { callGeminiApi, callCloudflareAiImageApi } from '../../api.js';
 export async function handleSaveQuestAssignment() {
     const classId = document.getElementById('quest-assignment-class-id').value;
     const text = document.getElementById('quest-assignment-textarea').value.trim();
-    
+
     // New Fields from Form
     const formTestDate = document.getElementById('quest-test-date').value;
     const formTestTitle = document.getElementById('quest-test-title').value;
@@ -44,7 +44,7 @@ export async function handleSaveQuestAssignment() {
 
     try {
         const publicDataPath = "artifacts/great-class-quest/public/data";
-        
+
         // 1. Fetch the EXISTING assignment to see if there is a future test we need to keep
         const q = query(
             collection(db, `${publicDataPath}/quest_assignments`),
@@ -54,7 +54,7 @@ export async function handleSaveQuestAssignment() {
             limit(1)
         );
         const snapshot = await getDocs(q);
-        
+
         let testDataToSave = null;
         let existingTest = null;
 
@@ -70,9 +70,9 @@ export async function handleSaveQuestAssignment() {
         } else if (existingTest) {
             // B. User left form blank, but there was an OLD test. Check if it's still in the future.
             const today = new Date();
-            today.setHours(0,0,0,0);
+            today.setHours(0, 0, 0, 0);
             const oldTestDate = new Date(existingTest.date);
-            oldTestDate.setHours(0,0,0,0);
+            oldTestDate.setHours(0, 0, 0, 0);
 
             // Keep it if it is Today or in the Future
             if (oldTestDate >= today) {
@@ -82,10 +82,10 @@ export async function handleSaveQuestAssignment() {
         }
 
         const batch = writeBatch(db);
-        
+
         // Clean up old assignments to keep DB tidy (optional, but good for cleanliness)
         snapshot.forEach(doc => batch.delete(doc.ref));
-        
+
         const newDocRef = doc(collection(db, `${publicDataPath}/quest_assignments`));
         batch.set(newDocRef, {
             classId,
@@ -296,44 +296,75 @@ async function _selectHeroOfTheDay(classId, classData, presentStudents) {
     const presentIds = presentStudents.map(s => s.id);
     const presentSet = new Set(presentIds);
     const allScores = state.get('allStudentScores');
+
+    // Check for a student with pendingHeroStatus (teacher-designated special hero)
     const protagonist = presentStudents.find(s => (allScores.find(sc => sc.id === s.id)?.pendingHeroStatus === true));
 
     let chosenId = null;
-    const rotation = classData?.heroRotation || {};
-    let cycleHeroIds = Array.isArray(rotation.cycleHeroIds) ? rotation.cycleHeroIds.filter(id => presentSet.has(id)) : [];
-    const lastHeroId = rotation.lastHeroId || null;
+    const classRef = doc(db, 'artifacts/great-class-quest/public/data/classes', classId);
+
+    // --- READ FRESH from Firestore to avoid stale heroRotation in allTeachersClasses state ---
+    const classDoc = await getDoc(classRef);
+    const freshRotation = classDoc.exists() ? (classDoc.data().heroRotation || {}) : {};
+
+    // Filter cycleHeroIds to only include students currently present
+    let cycleHeroIds = Array.isArray(freshRotation.cycleHeroIds)
+        ? freshRotation.cycleHeroIds.filter(id => presentSet.has(id))
+        : [];
+    const lastHeroId = freshRotation.lastHeroId || null;
 
     if (protagonist) {
         chosenId = protagonist.id;
         const protagonistScoreRef = doc(db, 'artifacts/great-class-quest/public/data/student_scores', protagonist.id);
         await updateDoc(protagonistScoreRef, { pendingHeroStatus: false });
     } else {
+        // Find students NOT yet used in this rotation cycle
         let unused = presentIds.filter(id => !cycleHeroIds.includes(id));
+
+        // All present students have had a turn — reset cycle
         if (unused.length === 0) {
             cycleHeroIds = [];
             unused = [...presentIds];
         }
+
+        // Always exclude the previous hero to prevent back-to-back repeats
         let candidates = unused;
         if (lastHeroId && candidates.length > 1) {
             const filtered = candidates.filter(id => id !== lastHeroId);
             candidates = filtered.length ? filtered : candidates;
         }
+
         chosenId = candidates[Math.floor(Math.random() * candidates.length)];
     }
 
+    // Record this student as used in the current cycle
     if (!cycleHeroIds.includes(chosenId)) cycleHeroIds.push(chosenId);
-    const classRef = doc(db, 'artifacts/great-class-quest/public/data/classes', classId);
-    await updateDoc(classRef, {
-        heroRotation: {
-            cycleHeroIds,
-            lastHeroId: chosenId,
-            updatedAt: serverTimestamp()
-        }
-    });
+
+    const newRotation = {
+        cycleHeroIds,
+        lastHeroId: chosenId,
+        cycleSize: presentIds.length,
+        updatedAt: serverTimestamp()
+    };
+
+    // Persist updated rotation to Firestore
+    await updateDoc(classRef, { heroRotation: newRotation });
+
+    // Update local state so within the same session it reflects the new rotation immediately
+    const allTeachersClasses = state.get('allTeachersClasses');
+    const classIndex = allTeachersClasses.findIndex(c => c.id === classId);
+    if (classIndex !== -1) {
+        allTeachersClasses[classIndex] = {
+            ...allTeachersClasses[classIndex],
+            heroRotation: { cycleHeroIds, lastHeroId: chosenId, cycleSize: presentIds.length }
+        };
+        state.setAllTeachersClasses(allTeachersClasses);
+    }
 
     const student = presentStudents.find(s => s.id === chosenId) || state.get('allStudents').find(s => s.id === chosenId);
     return { heroName: student?.name || 'The Class Team', heroStudentId: student?.id || null };
 }
+
 
 export function handleStarManagerStudentSelect() {
     const studentId = document.getElementById('star-manager-student-select').value;
@@ -350,7 +381,7 @@ export function handleStarManagerStudentSelect() {
         document.getElementById('override-total-stars'),
         document.getElementById('star-manager-override-btn')
     ];
-    
+
     if (studentId) {
         logFormElements.forEach(el => el.disabled = false);
         overrideFormElements.forEach(el => el.disabled = false);
@@ -358,13 +389,13 @@ export function handleStarManagerStudentSelect() {
 
         const scoreData = state.get('allStudentScores').find(s => s.id === studentId) || {};
         const todayData = state.get('todaysStars')[studentId] || {};
-        
+
         document.getElementById('override-today-stars').value = todayData.stars || 0;
         document.getElementById('override-monthly-stars').value = scoreData.monthlyStars || 0;
-        document.getElementById('override-total-stars').value = scoreData.totalStars|| 0;
+        document.getElementById('override-total-stars').value = scoreData.totalStars || 0;
 
     } else {
         logFormElements.forEach(el => el.disabled = true);
-        overrideFormElements.forEach(el => { el.disabled = true; if(el.tagName === 'INPUT') el.value = 0; });
+        overrideFormElements.forEach(el => { el.disabled = true; if (el.tagName === 'INPUT') el.value = 0; });
     }
 }

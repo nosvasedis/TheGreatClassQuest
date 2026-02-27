@@ -16,16 +16,16 @@ function playGuildSound(guildId) {
         }
         const audio = _audioCache[guildId];
         audio.currentTime = 0;
-        audio.play().catch(() => {});
-    } catch (_) {}
+        audio.play().catch(() => { });
+    } catch (_) { }
 }
 
 // ─── Anthem audio ─────────────────────────────────────────────────────────────
 const _anthemCache = {};
-let _currentAnthemId  = null;
-let _fadeTimer        = null;
+let _currentAnthemId = null;
+let _fadeTimer = null;
 let _endFadeScheduled = false;
-let _endFadeCleanup   = null;
+let _endFadeCleanup = null;
 const FADE_BEFORE_END = 1.5; // seconds before track end to start auto-fade
 
 function _cancelFade() {
@@ -56,7 +56,7 @@ function _setupEndFade(audio) {
         _teardownEndFade();
         _cancelFade();
         _currentAnthemId = null;
-        try { audio.volume = 0.80; audio.currentTime = 0; } catch (_) {}
+        try { audio.volume = 0.80; audio.currentTime = 0; } catch (_) { }
     }
 
     audio.addEventListener('timeupdate', onTimeUpdate);
@@ -77,13 +77,13 @@ function playGuildAnthem(guildId) {
             _anthemCache[guildId] = new Audio(guild.anthem);
         }
         const audio = _anthemCache[guildId];
-        audio.loop        = false; // play once; restart only on re-open
-        audio.volume      = 0.80;
+        audio.loop = false; // play once; restart only on re-open
+        audio.volume = 0.80;
         audio.currentTime = 0;
-        _currentAnthemId  = guildId;
+        _currentAnthemId = guildId;
         _setupEndFade(audio);
-        audio.play().catch(() => {});
-    } catch (_) {}
+        audio.play().catch(() => { });
+    } catch (_) { }
 }
 
 function fadeOutAndStopAnthem(duration = 1400) {
@@ -91,17 +91,17 @@ function fadeOutAndStopAnthem(duration = 1400) {
     const id = _currentAnthemId;
     _currentAnthemId = null; // stop karaoke updates immediately
     if (!id || !_anthemCache[id]) return;
-    const audio  = _anthemCache[id];
-    const steps  = 28;
-    const tick   = duration / steps;
+    const audio = _anthemCache[id];
+    const steps = 28;
+    const tick = duration / steps;
     const startV = audio.volume;
-    let   step   = 0;
+    let step = 0;
     _fadeTimer = setInterval(() => {
         step++;
         audio.volume = Math.max(0, startV * (1 - step / steps));
         if (step >= steps) {
             _cancelFade();
-            try { audio.pause(); audio.currentTime = 0; } catch (_) {}
+            try { audio.pause(); audio.currentTime = 0; } catch (_) { }
             audio.volume = 0.80; // restore for next play
         }
     }, tick);
@@ -112,7 +112,7 @@ let _karaokeCleanup = null;
 
 function startKaraokeSync(guildId) {
     stopKaraokeSync();
-    const audio    = _anthemCache[guildId];
+    const audio = _anthemCache[guildId];
     const lyricsEl = document.getElementById('guild-anthem-lyrics');
     if (!audio || !lyricsEl) return;
 
@@ -132,7 +132,7 @@ function startKaraokeSync(guildId) {
         lastActiveIdx = activeIdx;
         lines.forEach((line, i) => {
             line.classList.toggle('karaoke-active', i === activeIdx);
-            line.classList.toggle('karaoke-past',   i < activeIdx);
+            line.classList.toggle('karaoke-past', i < activeIdx);
             line.classList.toggle('karaoke-upcoming', i > activeIdx);
         });
         if (activeIdx >= 0) {
@@ -155,17 +155,17 @@ function stopKaraokeSync() {
 // ─── Anthem modal ─────────────────────────────────────────────────────────────
 function openAnthemModal(guildId) {
     const overlay = document.getElementById('guild-anthem-overlay');
-    const card    = document.getElementById('guild-anthem-card');
+    const card = document.getElementById('guild-anthem-card');
     if (!overlay || !card) return;
 
-    const guild     = getGuildById(guildId);
-    const primary   = guild?.primary   || '#7c3aed';
+    const guild = getGuildById(guildId);
+    const primary = guild?.primary || '#7c3aed';
     const secondary = guild?.secondary || '#a78bfa';
-    const glow      = guild?.glow      || primary;
-    const emoji     = guild?.emoji     || '🎵';
+    const glow = guild?.glow || primary;
+    const emoji = guild?.emoji || '🎵';
 
     card.style.background = `linear-gradient(160deg, ${primary} 0%, ${secondary} 65%, ${primary}cc 100%)`;
-    card.style.boxShadow  = `0 0 0 1.5px rgba(255,255,255,0.2), 0 32px 80px rgba(0,0,0,0.7), 0 0 80px ${glow}55`;
+    card.style.boxShadow = `0 0 0 1.5px rgba(255,255,255,0.2), 0 32px 80px rgba(0,0,0,0.7), 0 0 80px ${glow}55`;
 
     const titleEl = document.getElementById('guild-anthem-title');
     if (titleEl) titleEl.textContent = `${emoji} ${guild?.name || guildId} Anthem`;
@@ -179,8 +179,8 @@ function openAnthemModal(guildId) {
                 <div class="${sectionClass}">
                     <span class="guild-anthem-section-label">${label}</span>
                     ${section.lines.map(line =>
-                        `<p class="guild-anthem-line karaoke-upcoming" data-time="${line.time}">${line.text}</p>`
-                    ).join('')}
+                `<p class="guild-anthem-line karaoke-upcoming" data-time="${line.time}">${line.text}</p>`
+            ).join('')}
                 </div>`;
         }).join('');
     }
@@ -218,22 +218,22 @@ function wireAnthemListeners() {
 // ─── Lore overlay ────────────────────────────────────────────────────────────
 function openGuildLore(guildId, gData) {
     const overlay = document.getElementById('guild-lore-overlay');
-    const card    = document.getElementById('guild-lore-card');
+    const card = document.getElementById('guild-lore-card');
     if (!overlay || !card) return;
 
-    const guild      = getGuildById(guildId);
-    const emblemUrl  = getGuildEmblemUrl(guildId);
-    const primary    = guild?.primary   || '#7c3aed';
-    const secondary  = guild?.secondary || '#a78bfa';
-    const glow       = guild?.glow      || primary;
-    const emoji      = guild?.emoji     || '⚔️';
-    const motto      = guild?.motto     || '';
-    const traits     = guild?.traits    || [];
+    const guild = getGuildById(guildId);
+    const emblemUrl = getGuildEmblemUrl(guildId);
+    const primary = guild?.primary || '#7c3aed';
+    const secondary = guild?.secondary || '#a78bfa';
+    const glow = guild?.glow || primary;
+    const emoji = guild?.emoji || '⚔️';
+    const motto = guild?.motto || '';
+    const traits = guild?.traits || [];
 
     // Style card with guild gradient
-    card.style.background       = `linear-gradient(145deg, ${primary} 0%, ${secondary} 70%, ${primary}cc 100%)`;
+    card.style.background = `linear-gradient(145deg, ${primary} 0%, ${secondary} 70%, ${primary}cc 100%)`;
     card.style.setProperty('--lore-glow', glow);
-    card.style.boxShadow        = `0 0 0 1.5px rgba(255,255,255,0.2), 0 32px 80px rgba(0,0,0,0.7), 0 0 80px ${glow}55`;
+    card.style.boxShadow = `0 0 0 1.5px rgba(255,255,255,0.2), 0 32px 80px rgba(0,0,0,0.7), 0 0 80px ${glow}55`;
 
     // Emblem
     const emblemWrap = document.getElementById('guild-lore-emblem-wrap');
@@ -248,25 +248,27 @@ function openGuildLore(guildId, gData) {
     }
 
     // Text fields
-    const emojiEl  = document.getElementById('guild-lore-emoji');
-    const nameEl   = document.getElementById('guild-lore-name');
-    const mottoEl  = document.getElementById('guild-lore-motto');
+    const emojiEl = document.getElementById('guild-lore-emoji');
+    const nameEl = document.getElementById('guild-lore-name');
+    const mottoEl = document.getElementById('guild-lore-motto');
     const traitsEl = document.getElementById('guild-lore-traits');
-    const statsEl  = document.getElementById('guild-lore-stats');
+    const statsEl = document.getElementById('guild-lore-stats');
 
-    if (emojiEl)  emojiEl.textContent  = emoji;
-    if (nameEl)   nameEl.textContent   = guild?.name || guildId;
-    if (mottoEl)  mottoEl.textContent  = `"${motto}"`;
+    if (emojiEl) emojiEl.textContent = emoji;
+    if (nameEl) nameEl.textContent = guild?.name || guildId;
+    if (mottoEl) mottoEl.textContent = `"${motto}"`;
     if (traitsEl) {
         traitsEl.innerHTML = traits.map(t =>
             `<span class="guild-lore-trait" style="background:rgba(255,255,255,0.18);border-color:rgba(255,255,255,0.35);">${t}</span>`
         ).join('');
     }
     if (statsEl) {
-        const stars   = gData?.totalStars  || 0;
+        const stars = gData?.totalStars || 0;
+        const perCapita = gData?.monthlyPerCapitaStars || 0;
         const members = gData?.memberCount || 0;
         statsEl.innerHTML = `
             <span class="guild-lore-stat">⭐ <strong>${stars}</strong> Total Stars</span>
+            <span class="guild-lore-stat">⚖️ <strong>${perCapita.toFixed(1)}</strong> ★/member/month</span>
             <span class="guild-lore-stat">👥 <strong>${members}</strong> Member${members === 1 ? '' : 's'}</span>`;
     }
 
@@ -336,26 +338,30 @@ export function renderGuildsTab() {
         const found = rawData.find((d) => d.guildId === gid);
         const guild = GUILDS[gid];
         return {
-            guildId:        gid,
-            guildName:      guild?.name        || gid,
-            totalStars:     found?.totalStars  || 0,
-            memberCount:    found?.memberCount || 0,
+            guildId: gid,
+            guildName: guild?.name || gid,
+            totalStars: found?.totalStars || 0,
+            monthlyStars: found?.monthlyStars || 0,
+            memberCount: found?.memberCount || 0,
+            perCapitaStars: found?.perCapitaStars || 0,
+            monthlyPerCapitaStars: found?.monthlyPerCapitaStars || 0,
             topContributors: found?.topContributors || [],
         };
-    }).sort((a, b) => b.totalStars - a.totalStars);
+    }).sort((a, b) => b.monthlyPerCapitaStars - a.monthlyPerCapitaStars || b.totalStars - a.totalStars);
 
-    const maxStars   = Math.max(...displayData.map(g => g.totalStars)) || 1;
-    const rankEmoji  = ['🥇', '🥈', '🥉', '4️⃣'];
+    const maxStars = Math.max(...displayData.map(g => g.totalStars)) || 1;
+    const rankEmoji = ['🥇', '🥈', '🥉', '4️⃣'];
 
     const columns = displayData.map((g, index) => {
-        const guild     = getGuildById(g.guildId);
+        const guild = getGuildById(g.guildId);
         const emblemUrl = getGuildEmblemUrl(g.guildId);
-        const primary   = guild?.primary   || '#6b7280';
+        const primary = guild?.primary || '#6b7280';
         const secondary = guild?.secondary || '#9ca3af';
-        const glow      = guild?.glow      || primary;
-        const emoji     = guild?.emoji     || '⚔️';
-        // Fill: leader gets up to 90%, others scale proportionally; minimum 5%
-        const fillPct   = Math.max(5, Math.round((g.totalStars / maxStars) * 90));
+        const glow = guild?.glow || primary;
+        const emoji = guild?.emoji || '⚔️';
+        // Fill based on monthly per-capita (fairest metric), leader gets 90%
+        const maxPerCapita = Math.max(...displayData.map(g => g.monthlyPerCapitaStars)) || 1;
+        const fillPct = Math.max(5, Math.round((g.monthlyPerCapitaStars / maxPerCapita) * 90));
 
         const emblemHtml = emblemUrl
             ? `<img src="${emblemUrl}" alt="${g.guildName}" class="guild-crystal-emblem"
@@ -371,7 +377,7 @@ export function renderGuildsTab() {
                    ${g.topContributors.slice(0, 3).map(c => `
                        <span class="guild-crystal-hero-chip" style="color:${primary};border-color:${primary}33;">
                            ${c.name}
-                           <span style="opacity:0.65;font-size:0.6rem">${c.totalStars}⭐</span>
+                           <span style="opacity:0.65;font-size:0.6rem">${c.monthlyStars}⭐ this month</span>
                        </span>`).join('')}
                </div>`
             : `<div class="guild-crystal-heroes">
@@ -425,10 +431,12 @@ export function renderGuildsTab() {
 
                 <!-- ── Bottom stats ── -->
                 <div class="guild-crystal-count" style="color:${primary};">
-                    <span class="guild-crystal-count-num">${g.totalStars.toLocaleString()}</span>
-                    <span class="guild-crystal-count-label">⭐ stars</span>
+                    <span class="guild-crystal-count-num">${g.monthlyPerCapitaStars.toFixed(1)}</span>
+                    <span class="guild-crystal-count-label">⭐ / member this month</span>
                 </div>
-                <div class="guild-crystal-members">${g.memberCount} member${g.memberCount === 1 ? '' : 's'}</div>
+                <div class="guild-crystal-members" style="opacity:0.65;">
+                    ${g.totalStars.toLocaleString()} total ⭐ · ${g.memberCount} member${g.memberCount === 1 ? '' : 's'}
+                </div>
 
                 ${topHtml}
                 ${_getChampionHtml(g.guildId, primary, glow)}
@@ -463,7 +471,7 @@ export function renderGuildsTab() {
         if (!wrapper) return;
         e.stopPropagation();
         const guildId = wrapper.dataset.guildId;
-        const gData   = displayData.find(d => d.guildId === guildId);
+        const gData = displayData.find(d => d.guildId === guildId);
         openGuildLore(guildId, gData);
     };
 

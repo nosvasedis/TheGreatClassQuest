@@ -778,6 +778,12 @@ export function setupUIListeners() {
             modals.showModal('Delete Holiday?', 'This will restore the calendar days.', () => handleDeleteHolidayRange(btn.dataset.id));
         }
     });
+    
+    // Class End Dates Configuration
+    document.getElementById('save-class-end-dates-btn').addEventListener('click', async () => {
+        const { saveClassEndDates } = await import('./misc.js');
+        await saveClassEndDates();
+    });
 
     // --- Economy Manager Listeners ---
     const ecoSelect = document.getElementById('economy-student-select');

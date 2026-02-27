@@ -1,0 +1,487 @@
+/* styles/grandGuildCeremony.css - Grand Guild Ceremony Styles */
+
+/* --- CEREMONY SCREEN BASE STYLES --- */
+#grand-guild-ceremony-screen {
+    font-family: 'Cinzel Decorative', cursive, serif;
+    background: linear-gradient(135deg, #1e3a8a 0%, #7c3aed 25%, #be185d 50%, #dc2626 75%, #ea580c 100%);
+    overflow: hidden;
+}
+
+#grand-guild-ceremony-screen.hidden {
+    display: none !important;
+}
+
+/* --- CEREMONY HEADER --- */
+#ceremony-header {
+    animation: header-glow 3s ease-in-out infinite alternate;
+}
+
+@keyframes header-glow {
+    from {
+        text-shadow: 0 0 20px rgba(255, 255, 255, 0.5);
+    }
+    to {
+        text-shadow: 0 0 30px rgba(255, 255, 255, 0.8), 0 0 40px rgba(255, 215, 0, 0.6);
+    }
+}
+
+#ceremony-title {
+    background: linear-gradient(45deg, #ffd700, #ffed4e, #fff8dc, #ffd700);
+    background-size: 200% 200%;
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    animation: gold-shimmer 3s ease-in-out infinite;
+}
+
+@keyframes gold-shimmer {
+    0% {
+        background-position: 0% 50%;
+    }
+    50% {
+        background-position: 100% 50%;
+    }
+    100% {
+        background-position: 0% 50%;
+    }
+}
+
+/* --- CEREMONY STAGE AREA --- */
+#ceremony-stage-area {
+    min-height: 400px;
+    position: relative;
+}
+
+/* --- CEREMONY ACTION BUTTON --- */
+#ceremony-action-btn {
+    background: linear-gradient(45deg, #f59e0b, #f97316, #ea580c, #dc2626);
+    background-size: 200% 200%;
+    animation: button-pulse 2s ease-in-out infinite, button-gradient 3s ease-in-out infinite;
+    box-shadow: 0 0 30px rgba(245, 158, 11, 0.6), 0 0 60px rgba(245, 158, 11, 0.3);
+    transition: all 0.3s ease;
+}
+
+#ceremony-action-btn:hover {
+    transform: scale(1.05);
+    box-shadow: 0 0 40px rgba(245, 158, 11, 0.8), 0 0 80px rgba(245, 158, 11, 0.4);
+}
+
+#ceremony-action-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    animation: none;
+}
+
+@keyframes button-pulse {
+    0%, 100% {
+        transform: scale(1);
+    }
+    50% {
+        transform: scale(1.02);
+    }
+}
+
+@keyframes button-gradient {
+    0% {
+        background-position: 0% 50%;
+    }
+    50% {
+        background-position: 100% 50%;
+    }
+    100% {
+        background-position: 0% 50%;
+    }
+}
+
+/* --- AI COMMENTARY BOX --- */
+#ceremony-ai-box {
+    background: linear-gradient(135deg, rgba(0, 0, 0, 0.6), rgba(30, 58, 138, 0.4));
+    border: 2px solid rgba(255, 255, 255, 0.2);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+    backdrop-filter: blur(12px);
+    animation: ai-box-float 4s ease-in-out infinite;
+}
+
+@keyframes ai-box-float {
+    0%, 100% {
+        transform: translateY(0);
+    }
+    50% {
+        transform: translateY(-5px);
+    }
+}
+
+#ceremony-ai-text {
+    font-family: 'Georgia', serif;
+    font-style: italic;
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.8);
+    animation: text-glow 2s ease-in-out infinite alternate;
+}
+
+@keyframes text-glow {
+    from {
+        text-shadow: 0 2px 4px rgba(0, 0, 0, 0.8);
+    }
+    to {
+        text-shadow: 0 2px 4px rgba(0, 0, 0, 0.8), 0 0 10px rgba(255, 255, 255, 0.3);
+    }
+}
+
+/* --- GUILD THEMED PARTICLES --- */
+
+/* Dragon Flame - Fire Particles */
+.fire-particle {
+    background: radial-gradient(circle, #ff6b35, #f7931e, #ff4500);
+    box-shadow: 0 0 15px #ff6b35, 0 0 30px #f7931e, 0 0 45px #ff4500;
+}
+
+/* Grizzly Might - Earth Particles */
+.earth-particle {
+    background: radial-gradient(circle, #8b4513, #a0522d, #d2691e);
+    box-shadow: 0 0 12px #8b4513, 0 0 24px #a0522d, 0 0 36px #d2691e;
+}
+
+/* Owl Wisdom - Star Particles */
+.star-particle {
+    background: radial-gradient(circle, #ffd700, #ffed4e, #fff8dc);
+    box-shadow: 0 0 18px #ffd700, 0 0 36px #ffed4e, 0 0 54px #fff8dc;
+}
+
+/* Phoenix Rising - Light Particles */
+.light-particle {
+    background: radial-gradient(circle, #ff69b4, #ff1493, #c71585);
+    box-shadow: 0 0 20px #ff69b4, 0 0 40px #ff1493, 0 0 60px #c71585;
+}
+
+/* --- CEREMONY CONTENT STYLES --- */
+
+/* Hero Gallery Styles */
+.hero-gallery {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 1rem;
+    padding: 2rem;
+}
+
+.hero-card {
+    background: linear-gradient(135deg, rgba(255, 215, 0, 0.2), rgba(255, 165, 0, 0.2));
+    border: 2px solid rgba(255, 215, 0, 0.5);
+    border-radius: 1rem;
+    padding: 1rem;
+    text-align: center;
+    transition: all 0.3s ease;
+    animation: hero-card-float 3s ease-in-out infinite;
+}
+
+.hero-card:hover {
+    transform: translateY(-5px) scale(1.05);
+    box-shadow: 0 10px 30px rgba(255, 215, 0, 0.3);
+}
+
+@keyframes hero-card-float {
+    0%, 100% {
+        transform: translateY(0);
+    }
+    50% {
+        transform: translateY(-3px);
+    }
+}
+
+/* Team Quest Styles */
+.team-quest-ranking {
+    background: linear-gradient(135deg, rgba(59, 130, 246, 0.2), rgba(99, 102, 241, 0.2));
+    border: 2px solid rgba(59, 130, 246, 0.5);
+    border-radius: 1rem;
+    padding: 1.5rem;
+    margin-bottom: 1rem;
+    transition: all 0.3s ease;
+}
+
+.team-quest-ranking:hover {
+    transform: translateX(10px);
+    box-shadow: 0 5px 20px rgba(59, 130, 246, 0.3);
+}
+
+.rank-medal {
+    font-size: 2rem;
+    animation: medal-shine 2s ease-in-out infinite;
+}
+
+@keyframes medal-shine {
+    0%, 100% {
+        transform: scale(1) rotate(0deg);
+    }
+    50% {
+        transform: scale(1.1) rotate(5deg);
+    }
+}
+
+/* Prodigy Timeline Styles */
+.prodigy-card {
+    background: linear-gradient(135deg, rgba(168, 85, 247, 0.2), rgba(196, 181, 253, 0.2));
+    border: 2px solid rgba(168, 85, 247, 0.5);
+    border-radius: 1rem;
+    padding: 1.5rem;
+    text-align: center;
+    transition: all 0.3s ease;
+    animation: prodigy-glow 3s ease-in-out infinite;
+}
+
+.prodigy-card:hover {
+    transform: scale(1.05);
+    box-shadow: 0 10px 30px rgba(168, 85, 247, 0.3);
+}
+
+@keyframes prodigy-glow {
+    0%, 100% {
+        box-shadow: 0 5px 20px rgba(168, 85, 247, 0.2);
+    }
+    50% {
+        box-shadow: 0 10px 40px rgba(168, 85, 247, 0.4);
+    }
+}
+
+/* Guild Champion Styles */
+.guild-winner {
+    background: linear-gradient(135deg, rgba(245, 158, 11, 0.3), rgba(251, 191, 36, 0.3));
+    border: 3px solid rgba(245, 158, 11, 0.6);
+    border-radius: 1.5rem;
+    padding: 2rem;
+    text-align: center;
+    animation: winner-crown 4s ease-in-out infinite;
+}
+
+@keyframes winner-crown {
+    0%, 100% {
+        transform: scale(1);
+        box-shadow: 0 10px 40px rgba(245, 158, 11, 0.4);
+    }
+    50% {
+        transform: scale(1.02);
+        box-shadow: 0 15px 60px rgba(245, 158, 11, 0.6);
+    }
+}
+
+.guild-ranking {
+    background: linear-gradient(135deg, rgba(107, 114, 128, 0.2), rgba(156, 163, 175, 0.2));
+    border: 2px solid rgba(107, 114, 128, 0.5);
+    border-radius: 1rem;
+    padding: 1rem;
+    margin-bottom: 1rem;
+    transition: all 0.3s ease;
+}
+
+.guild-ranking:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 8px 25px rgba(107, 114, 128, 0.3);
+}
+
+/* Hall of Heroes Styles */
+.hall-of-heroes {
+    background: linear-gradient(135deg, rgba(34, 197, 94, 0.2), rgba(74, 222, 128, 0.2));
+    border: 2px solid rgba(34, 197, 94, 0.5);
+    border-radius: 1.5rem;
+    padding: 2rem;
+    text-align: center;
+    animation: heroes-aura 5s ease-in-out infinite;
+}
+
+@keyframes heroes-aura {
+    0%, 100% {
+        box-shadow: 0 0 30px rgba(34, 197, 94, 0.3);
+    }
+    50% {
+        box-shadow: 0 0 50px rgba(34, 197, 94, 0.5);
+    }
+}
+
+.highlight-stat {
+    background: linear-gradient(135deg, rgba(251, 191, 36, 0.3), rgba(245, 158, 11, 0.3));
+    border: 2px solid rgba(251, 191, 36, 0.6);
+    border-radius: 0.75rem;
+    padding: 1rem;
+    margin: 0.5rem;
+    transition: all 0.3s ease;
+}
+
+.highlight-stat:hover {
+    transform: scale(1.05);
+    box-shadow: 0 5px 20px rgba(251, 191, 36, 0.4);
+}
+
+/* --- CONFETTI AND FIREWORKS --- */
+.confetti-piece {
+    position: absolute;
+    width: 10px;
+    height: 10px;
+    opacity: 0.9;
+    animation: confetti-fall var(--duration, 3s) linear infinite;
+}
+
+.firework {
+    position: absolute;
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    animation: firework-explode 2s ease-out forwards;
+}
+
+/* --- CEREMONY PHASE TRANSITIONS --- */
+.ceremony-phase-transition {
+    animation: phase-transition 1s ease-in-out;
+}
+
+@keyframes phase-transition {
+    0% {
+        opacity: 0;
+        transform: scale(0.9);
+    }
+    50% {
+        opacity: 0.5;
+        transform: scale(0.95);
+    }
+    100% {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+/* --- RESPONSIVE DESIGN --- */
+@media (max-width: 768px) {
+    #ceremony-title {
+        font-size: 2.5rem !important;
+    }
+    
+    #ceremony-subtitle {
+        font-size: 1rem !important;
+    }
+    
+    #ceremony-action-btn {
+        font-size: 1.25rem !important;
+        padding: 1rem 2rem !important;
+    }
+    
+    .hero-gallery {
+        grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+        gap: 0.75rem;
+        padding: 1rem;
+    }
+    
+    .guild-winner {
+        padding: 1.5rem;
+    }
+    
+    .hall-of-heroes {
+        padding: 1.5rem;
+    }
+}
+
+@media (max-width: 480px) {
+    #ceremony-title {
+        font-size: 2rem !important;
+    }
+    
+    #ceremony-stage-area {
+        min-height: 300px;
+    }
+    
+    .hero-gallery {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 0.5rem;
+        padding: 0.75rem;
+    }
+    
+    .prodigy-card {
+        padding: 1rem;
+    }
+    
+    .guild-winner {
+        padding: 1rem;
+    }
+    
+    .hall-of-heroes {
+        padding: 1rem;
+    }
+}
+
+/* --- ACCESSIBILITY --- */
+@media (prefers-reduced-motion: reduce) {
+    * {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+    }
+    
+    .fire-particle,
+    .earth-particle,
+    .star-particle,
+    .light-particle,
+    .confetti-piece {
+        animation: none !important;
+    }
+    
+    #ceremony-action-btn {
+        animation: none !important;
+    }
+}
+
+/* --- HIGH CONTRAST MODE --- */
+@media (prefers-contrast: high) {
+    #grand-guild-ceremony-screen {
+        background: #000;
+    }
+    
+    #ceremony-title {
+        color: #fff;
+        background: none;
+        -webkit-text-fill-color: #fff;
+    }
+    
+    #ceremony-ai-box {
+        background: rgba(0, 0, 0, 0.9);
+        border: 2px solid #fff;
+    }
+    
+    .hero-card,
+    .team-quest-ranking,
+    .prodigy-card,
+    .guild-ranking,
+    .guild-winner,
+    .hall-of-heroes {
+        background: rgba(255, 255, 255, 0.1);
+        border: 2px solid #fff;
+    }
+}
+
+/* --- FOCUS STYLES --- */
+#ceremony-action-btn:focus,
+.hero-card:focus,
+.team-quest-ranking:focus,
+.prodigy-card:focus,
+.guild-ranking:focus,
+.guild-winner:focus,
+.hall-of-heroes:focus {
+    outline: 3px solid #ffd700;
+    outline-offset: 2px;
+}
+
+/* --- PRINT STYLES --- */
+@media print {
+    #grand-guild-ceremony-screen {
+        background: white !important;
+        color: black !important;
+    }
+    
+    .fire-particle,
+    .earth-particle,
+    .star-particle,
+    .light-particle,
+    .confetti-piece,
+    .firework {
+        display: none !important;
+    }
+    
+    #ceremony-action-btn {
+        display: none !important;
+    }
+}

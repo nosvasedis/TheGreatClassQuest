@@ -4,6 +4,7 @@ import { headerHTML } from './header.js';
 import { mainContentHTML } from './tabs/index.js';
 import { navHTML } from './nav.js';
 import { ceremonyHTML } from './screens/ceremony.js';
+import { grandGuildCeremonyHTML } from './screens/grandGuildCeremony.js';
 import { wallpaperHTML } from './screens/wallpaper.js';
 
 export const appHTML = `
@@ -13,5 +14,6 @@ export const appHTML = `
         ${navHTML}
     </div>
     ${ceremonyHTML}
+    ${grandGuildCeremonyHTML}
     ${wallpaperHTML}
 `;

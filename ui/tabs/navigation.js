@@ -119,6 +119,7 @@ export async function showTab(tabName) {
         // Load holidays and the new economy selector
         import('../core.js').then(m => {
             if (m.renderHolidayList) m.renderHolidayList();
+            if (m.renderClassEndDatesList) m.renderClassEndDatesList();
             if (m.renderEconomyStudentSelect) m.renderEconomyStudentSelect();
         });
 

@@ -1,6 +1,10 @@
 // /ui/core/misc.js
+
 import * as state from '../../state.js';
+import { db } from '../../firebase.js';
+import { doc, updateDoc } from 'https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js';
 import * as utils from '../../utils.js';
+import { showToast } from '../effects.js';
 import { renderClassLeaderboardTab, renderStudentLeaderboardTab } from '../tabs.js';
 import * as storyWeaver from '../../features/storyWeaver.js';
 import { playSound } from '../../audio.js';
@@ -118,6 +122,128 @@ export function renderHolidayList() {
             <button class="delete-holiday-btn text-red-500 hover:text-red-700" data-id="${r.id}"><i class="fas fa-trash"></i></button>
         </div>
     `).join('');
+}
+
+// --- CLASS END DATES CONFIGURATION ---
+
+export function renderClassEndDatesList() {
+    const list = document.getElementById('class-end-dates-list');
+    if (!list) return;
+    
+    const myClasses = state.get('allTeachersClasses') || [];
+    const teacherSettings = state.get('teacherSettings') || {};
+    const classEndDates = teacherSettings.schoolYearSettings?.classEndDates || {};
+    
+    if (myClasses.length === 0) {
+        list.innerHTML = '<p class="text-center text-xs text-gray-400">No classes found.</p>';
+        return;
+    }
+    
+    list.innerHTML = myClasses.map(cls => {
+        const schedule = (cls.scheduleDays || []).map(d => ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'][d]).join(', ');
+        const currentEndDate = classEndDates[cls.id] || '';
+        const suggestedDate = calculateSuggestedEndDate(cls.scheduleDays || []);
+        
+        return `
+            <div class="bg-gray-50 p-3 rounded border">
+                <div class="flex justify-between items-start mb-2">
+                    <div>
+                        <div class="font-bold text-gray-700">${cls.name}</div>
+                        <div class="text-xs text-gray-500">Schedule: ${schedule}</div>
+                        <div class="text-xs text-purple-600">Suggested: ${suggestedDate}</div>
+                    </div>
+                    <div class="text-2xl">${cls.logo}</div>
+                </div>
+                <div class="flex items-center gap-2">
+                    <input type="date" 
+                        id="class-end-date-${cls.id}" 
+                        class="flex-1 px-2 py-1 border border-gray-300 rounded text-sm"
+                        value="${currentEndDate}"
+                        min="2025-09-01"
+                        max="2026-06-30">
+                    <button type="button" 
+                        class="text-xs bg-purple-100 hover:bg-purple-200 text-purple-700 px-2 py-1 rounded"
+                        onclick="document.getElementById('class-end-date-${cls.id}').value = '${suggestedDate}'">
+                        Use Suggested
+                    </button>
+                </div>
+            </div>
+        `;
+    }).join('');
+}
+
+/**
+ * Calculate suggested end date for a class based on schedule
+ */
+function calculateSuggestedEndDate(scheduleDays) {
+    const targetMonth = 5; // June (0-indexed)
+    const targetYear = 2026;
+    const lastDay = new Date(targetYear, targetMonth + 1, 0); // Last day of June
+    const scheduleDaysArray = scheduleDays.map(Number).sort();
+    
+    // Work backwards from last day of month to find last scheduled day
+    for (let d = lastDay.getDate(); d >= 1; d--) {
+        const checkDate = new Date(targetYear, targetMonth, d);
+        const dayOfWeek = checkDate.getDay().toString();
+        
+        if (scheduleDaysArray.includes(dayOfWeek)) {
+            return checkDate.toISOString().split('T')[0]; // Format as YYYY-MM-DD
+        }
+    }
+    
+    return lastDay.toISOString().split('T')[0]; // Fallback to last day of June
+}
+
+/**
+ * Save class end dates to teacher settings
+ */
+export async function saveClassEndDates() {
+    const myClasses = state.get('allTeachersClasses') || [];
+    const teacherId = state.get('currentUserId');
+    
+    if (!teacherId) {
+        showToast('Error: Teacher not found', 'error');
+        return;
+    }
+    
+    const classEndDates = {};
+    
+    // Collect all end dates from the form
+    myClasses.forEach(cls => {
+        const input = document.getElementById(`class-end-date-${cls.id}`);
+        if (input && input.value) {
+            classEndDates[cls.id] = input.value;
+        }
+    });
+    
+    try {
+        // Update teacher profile with class end dates
+        const teacherRef = doc(db, 'artifacts/great-class-quest/public/data/teachers', teacherId);
+        await updateDoc(teacherRef, {
+            'schoolYearSettings.classEndDates': classEndDates
+        });
+        
+        // Update local state
+        const currentSettings = state.get('teacherSettings') || {};
+        const updatedSettings = {
+            ...currentSettings,
+            schoolYearSettings: {
+                ...currentSettings.schoolYearSettings,
+                classEndDates
+            }
+        };
+        state.setTeacherSettings(updatedSettings);
+        
+        // Update ceremony buttons
+        const { updateCeremonyButtons } = await import('../../features/grandGuildCeremony.js');
+        updateCeremonyButtons();
+        
+        showToast('Class end dates saved successfully!', 'success');
+        
+    } catch (error) {
+        console.error('Error saving class end dates:', error);
+        showToast('Error saving class end dates', 'error');
+    }
 }
 
 // --- BOUNTY LOGIC ---

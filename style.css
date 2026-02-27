@@ -117,3 +117,6 @@
 
 /* 36. Familiars: sprite sheet cycling, egg wobble, per-type animations */
 @import url('./styles/familiars.css');
+
+/* 37. Grand Guild Ceremony: ultimate end-of-year celebration styles */
+@import url('./styles/grandGuildCeremony.css');

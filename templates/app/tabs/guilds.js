@@ -54,6 +54,15 @@ export const guildsTabHTML = `
                     <div id="guilds-leaderboard-list" class="guild-hall-scene-content"></div>
                 </div>
 
+                <!-- Grand Guild Ceremony Button (shown on ceremony day) -->
+                <div id="grand-guild-ceremony-btn-guilds" class="hidden text-center mt-6">
+                    <button onclick="startGrandGuildCeremony()" 
+                        class="bubbly-button bg-gradient-to-r from-amber-400 to-orange-500 text-white font-title text-xl py-4 px-8 rounded-full shadow-[0_0_30px_rgba(245,158,11,0.6)] hover:scale-105 transition-transform border-4 border-white/30 animate-pulse">
+                        <i class="fas fa-crown text-2xl mb-2"></i>
+                        <span class="font-title text-xl">Grand Guild Ceremony</span>
+                    </button>
+                </div>
+
                 <!-- Guild Lore Overlay (shown on emblem click) -->
                 <div id="guild-lore-overlay" class="guild-lore-overlay hidden" role="dialog" aria-modal="true">
                     <div class="guild-lore-overlay-bg" id="guild-lore-overlay-bg"></div>

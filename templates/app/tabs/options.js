@@ -177,6 +177,21 @@ export const optionsTabHTML = `
 
                                 <div id="holiday-list" class="mt-4 space-y-2 max-h-40 overflow-y-auto"></div>
                             </div>
+                            
+                            <!-- Class End Dates Configuration -->
+                            <div class="bg-white p-6 rounded-3xl shadow-lg border-4 border-purple-300 space-y-4">
+                                <h2 class="font-title text-3xl text-purple-700 text-center">Class End Dates</h2>
+                                <p class="text-sm text-gray-500 text-center">Set the last lesson date for each class. The Grand Guild Ceremony will activate on these dates.</p>
+
+                                <div id="class-end-dates-list" class="space-y-3 max-h-60 overflow-y-auto">
+                                    <!-- Class end dates will be populated here by JavaScript -->
+                                </div>
+                                
+                                <button id="save-class-end-dates-btn"
+                                    class="w-full bg-purple-500 hover:bg-purple-600 text-white font-bold py-2 rounded-xl bubbly-button">
+                                    <i class="fas fa-save mr-2"></i> Save End Dates
+                                </button>
+                            </div>
                             <div class="bg-white p-6 rounded-3xl shadow-lg border-4 border-blue-300 space-y-4">
                                 <h2 class="font-title text-3xl text-blue-700 text-center">Profile Settings</h2>
                                 <div>

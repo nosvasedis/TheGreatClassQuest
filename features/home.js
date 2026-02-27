@@ -7,6 +7,7 @@ import * as tabs from '../ui/tabs.js';
 import * as modals from '../ui/modals.js';
 import { wrapAvatarWithLevelUpIndicator } from '../ui/core/avatar.js';
 import { callGeminiApi } from '../api.js';
+import * as grandGuildCeremony from '../features/grandGuildCeremony.js';
 
 export { initializeHeaderQuote };
 
@@ -261,6 +262,15 @@ function getGeneralDashboard(name, theme, spice) {
             <div class="stat-value-big text-purple-500">${totalGold}</div>
             <div class="text-sm font-bold text-purple-700/60">Gold Coins</div>
         </div>
+        
+        <!-- Grand Guild Ceremony Button (shown on ceremony day) -->
+        <div id="grand-guild-ceremony-btn-home" class="hidden h-span-3">
+            <div class="bg-gradient-to-r from-amber-400 to-orange-500 text-white p-4 rounded-2xl shadow-lg animate-pulse h-full flex flex-col justify-center items-center cursor-pointer hover:scale-105 transition-transform" onclick="grandGuildCeremony.startGrandGuildCeremony()">
+                <i class="fas fa-crown text-3xl mb-2"></i>
+                <div class="font-title text-lg">Grand Guild Ceremony</div>
+                <div class="text-sm opacity-75">Click to begin!</div>
+            </div>
+        </div>
         `,
         `
         <div class="vibrant-card h-span-4 card-glass-white">
@@ -439,6 +449,15 @@ function getActiveDashboard(classData, name, theme, spice) {
                 <div class="flex items-center flex-wrap pl-2 gap-y-2">
                     ${rosterHtml}
                 </div>
+            </div>
+        </div>
+        
+        <!-- Grand Guild Ceremony Button (shown on ceremony day for this class) -->
+        <div id="grand-guild-ceremony-btn-class" class="hidden h-span-4">
+            <div class="bg-gradient-to-r from-purple-400 to-pink-500 text-white p-4 rounded-2xl shadow-lg animate-pulse h-full flex flex-col justify-center items-center cursor-pointer hover:scale-105 transition-transform" onclick="grandGuildCeremony.startGrandGuildCeremony(['${classId}'])">
+                <i class="fas fa-crown text-3xl mb-2"></i>
+                <div class="font-title text-lg">Your Class Ceremony</div>
+                <div class="text-sm opacity-75">Click to begin!</div>
             </div>
         </div>
         `,
@@ -730,6 +749,9 @@ function startHomeSmartLogic() {
                 state.setGlobalSelectedClass(currentActiveLesson.id, false);
             }
         }
+        
+        // Update Grand Guild Ceremony buttons
+        grandGuildCeremony.updateCeremonyButtons();
     };
 
     // Run immediately on load, then every 60 seconds

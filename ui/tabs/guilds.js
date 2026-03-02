@@ -2,7 +2,6 @@
 
 import { getGuildLeaderboardData } from '../../features/guildScoring.js';
 import { getGuildById, getGuildEmblemUrl, GUILD_IDS, GUILDS } from '../../features/guilds.js';
-import * as state from '../../state.js';
 
 // ─── Sound cache ─────────────────────────────────────────────────────────────
 const _audioCache = {};
@@ -264,11 +263,11 @@ function openGuildLore(guildId, gData) {
     }
     if (statsEl) {
         const stars = gData?.totalStars || 0;
-        const perCapita = gData?.monthlyPerCapitaStars || 0;
+        const perCapita = gData?.perCapitaStars || 0;
         const members = gData?.memberCount || 0;
         statsEl.innerHTML = `
             <span class="guild-lore-stat">⭐ <strong>${stars}</strong> Total Stars</span>
-            <span class="guild-lore-stat">⚖️ <strong>${perCapita.toFixed(1)}</strong> ★/member/month</span>
+            <span class="guild-lore-stat">⚖️ <strong>${perCapita.toFixed(1)}</strong> ★/member total</span>
             <span class="guild-lore-stat">👥 <strong>${members}</strong> Member${members === 1 ? '' : 's'}</span>`;
     }
 
@@ -305,21 +304,20 @@ function wireGuildLoreListeners() {
 }
 
 // ─── Main render ─────────────────────────────────────────────────────────────
-function _getChampionHtml(guildId, primary, glow) {
-    const guildChampions = state.get('guildChampions') || {};
-    const champ = guildChampions[guildId];
+function _getChampionHtml(gData, primary, glow) {
+    const champ = gData?.topContributors?.[0];
     if (!champ) return '';
     const avatarHtml = champ.avatar
         ? `<img src="${champ.avatar}" class="w-8 h-8 rounded-full object-cover border-2 flex-shrink-0" style="border-color:${primary}">`
-        : `<div class="w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold text-white flex-shrink-0" style="background:${primary}">${champ.studentName?.charAt(0) || '?'}</div>`;
+        : `<div class="w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold text-white flex-shrink-0" style="background:${primary}">${champ.name?.charAt(0) || '?'}</div>`;
     return `
         <div class="guild-crystal-champion mt-3 flex items-center gap-2 px-3 py-2 rounded-xl border" style="border-color:${primary}44;background:${glow}11;">
             <span class="text-sm">⚔️</span>
             ${avatarHtml}
             <div class="min-w-0">
-                <div class="text-[10px] font-bold uppercase tracking-wider opacity-60" style="color:${primary}">This Month's Champion</div>
-                <div class="text-xs font-bold truncate text-white">${champ.studentName}</div>
-                <div class="text-[10px] opacity-50">${champ.monthlyStars} ⭐ this month</div>
+                <div class="text-[10px] font-bold uppercase tracking-wider opacity-60" style="color:${primary}">Top Champion</div>
+                <div class="text-xs font-bold truncate text-white">${champ.name}</div>
+                <div class="text-[10px] opacity-50">${champ.totalStars} ⭐ total</div>
             </div>
         </div>`;
 }
@@ -347,7 +345,7 @@ export function renderGuildsTab() {
             monthlyPerCapitaStars: found?.monthlyPerCapitaStars || 0,
             topContributors: found?.topContributors || [],
         };
-    }).sort((a, b) => b.monthlyPerCapitaStars - a.monthlyPerCapitaStars || b.totalStars - a.totalStars);
+    }).sort((a, b) => b.perCapitaStars - a.perCapitaStars || b.totalStars - a.totalStars);
 
     const maxStars = Math.max(...displayData.map(g => g.totalStars)) || 1;
     const rankEmoji = ['🥇', '🥈', '🥉', '4️⃣'];
@@ -359,9 +357,9 @@ export function renderGuildsTab() {
         const secondary = guild?.secondary || '#9ca3af';
         const glow = guild?.glow || primary;
         const emoji = guild?.emoji || '⚔️';
-        // Fill based on monthly per-capita (fairest metric), leader gets 90%
-        const maxPerCapita = Math.max(...displayData.map(g => g.monthlyPerCapitaStars)) || 1;
-        const fillPct = Math.max(5, Math.round((g.monthlyPerCapitaStars / maxPerCapita) * 90));
+        // Fill based on cumulative per-capita (fairest metric), leader gets 90%
+        const maxPerCapita = Math.max(...displayData.map(g => g.perCapitaStars)) || 1;
+        const fillPct = Math.max(5, Math.round((g.perCapitaStars / maxPerCapita) * 90));
 
         const emblemHtml = emblemUrl
             ? `<img src="${emblemUrl}" alt="${g.guildName}" class="guild-crystal-emblem"
@@ -377,7 +375,7 @@ export function renderGuildsTab() {
                    ${g.topContributors.slice(0, 3).map(c => `
                        <span class="guild-crystal-hero-chip" style="color:${primary};border-color:${primary}33;">
                            ${c.name}
-                           <span style="opacity:0.65;font-size:0.6rem">${c.monthlyStars}⭐ this month</span>
+                           <span style="opacity:0.65;font-size:0.6rem">${c.totalStars}⭐ total</span>
                        </span>`).join('')}
                </div>`
             : `<div class="guild-crystal-heroes">
@@ -431,15 +429,15 @@ export function renderGuildsTab() {
 
                 <!-- ── Bottom stats ── -->
                 <div class="guild-crystal-count" style="color:${primary};">
-                    <span class="guild-crystal-count-num">${g.monthlyPerCapitaStars.toFixed(1)}</span>
-                    <span class="guild-crystal-count-label">⭐ / member this month</span>
+                    <span class="guild-crystal-count-num">${g.perCapitaStars.toFixed(1)}</span>
+                    <span class="guild-crystal-count-label">⭐ / member total</span>
                 </div>
                 <div class="guild-crystal-members" style="opacity:0.65;">
                     ${g.totalStars.toLocaleString()} total ⭐ · ${g.memberCount} member${g.memberCount === 1 ? '' : 's'}
                 </div>
 
                 ${topHtml}
-                ${_getChampionHtml(g.guildId, primary, glow)}
+                ${_getChampionHtml(g, primary, glow)}
             </div>`;
     });
 

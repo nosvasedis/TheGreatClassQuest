@@ -81,6 +81,9 @@ export async function renderClassLeaderboardTab() {
             const scoreData = allStudentScores.find(sc => sc.id === s.id);
             return sum + (scoreData ? (Number(scoreData.monthlyStars) || 0) : 0);
         }, 0);
+        const currentMonthKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+        const classTeamBonus = Number(c.teamQuestBonuses?.[currentMonthKey]) || 0;
+        const teamQuestStars = currentMonthlyStars + classTeamBonus;
 
         const classLogs = state.get('allAwardLogs').filter(l => l.classId === c.id);
         const weeklyStars = classLogs.filter(log => {
@@ -111,16 +114,13 @@ export async function renderClassLeaderboardTab() {
             .sort((a, b) => b.stars - a.stars)
             .slice(0, 3);
 
-        const hasPathfinder = classLogs.some(log => {
-            const d = utils.parseDDMMYYYY(log.date);
-            return d && d.getMonth() === currentMonth && log.reason === 'pathfinder_bonus';
-        });
+        const hasPathfinder = classTeamBonus >= 10;
 
         const reasons = {};
         classLogs.forEach(l => { if (l.reason) reasons[l.reason] = (reasons[l.reason] || 0) + l.stars; });
         const topSkill = Object.entries(reasons).sort((a, b) => b[1] - a[1])[0]?.[0] || 'None';
 
-        let progress = goals.diamond > 0 ? (currentMonthlyStars / goals.diamond) * 100 : 0;
+        let progress = goals.diamond > 0 ? (teamQuestStars / goals.diamond) * 100 : 0;
         // Removed: Don't force progress to 100% - show actual progress for accuracy
 
         return {
@@ -128,7 +128,7 @@ export async function renderClassLeaderboardTab() {
             studentCount,
             goals,
             goalDifference,
-            currentMonthlyStars,
+            currentMonthlyStars: teamQuestStars,
             weeklyStars,
             totalGold,
             adventureCount,

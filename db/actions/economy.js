@@ -26,6 +26,81 @@ import { playSound } from '../../audio.js';
 
 // --- THE ECONOMY (SHOP & INVENTORY) ---
 
+function animateShopGoldChange(newGoldBalance, durationMs = 650) {
+    const goldDisplay = document.getElementById('shop-student-gold');
+    if (!goldDisplay) return;
+
+    const oldGold = parseInt(String(goldDisplay.innerText || '0').replace(/[^\d-]/g, ''), 10);
+    if (isNaN(oldGold)) {
+        goldDisplay.innerText = `${newGoldBalance} 🪙`;
+        return;
+    }
+    if (oldGold === newGoldBalance) return;
+
+    const start = performance.now();
+    const diff = newGoldBalance - oldGold;
+    goldDisplay.classList.add('coin-update-anim');
+    goldDisplay.style.color = diff < 0 ? '#fca5a5' : '#86efac';
+    goldDisplay.style.transform = 'scale(1.15)';
+
+    function step(ts) {
+        const elapsed = ts - start;
+        const t = Math.min(1, elapsed / durationMs);
+        const eased = 1 - Math.pow(1 - t, 3);
+        const val = Math.round(oldGold + (diff * eased));
+        goldDisplay.innerText = `${val} 🪙`;
+        if (t < 1) {
+            requestAnimationFrame(step);
+        } else {
+            goldDisplay.innerText = `${newGoldBalance} 🪙`;
+            setTimeout(() => {
+                goldDisplay.style.color = '';
+                goldDisplay.style.transform = '';
+                goldDisplay.classList.remove('coin-update-anim');
+            }, 220);
+        }
+    }
+    requestAnimationFrame(step);
+}
+
+function showShopPurchasePopup({ itemName, itemDescription, itemVisualHtml, finalPrice, newGoldBalance, studentName, cta = 'Awesome!' }) {
+    const purchaseModal = document.getElementById('shop-purchase-modal');
+    if (!purchaseModal) return false;
+
+    document.getElementById('shop-purchase-icon').innerHTML = itemVisualHtml;
+    document.getElementById('shop-purchase-name').innerText = itemName;
+    document.getElementById('shop-purchase-desc').innerText = itemDescription || 'A rare artifact for your collection!';
+    document.getElementById('shop-purchase-cost').innerText = `-${finalPrice} 🪙`;
+    document.getElementById('shop-purchase-balance').innerText = `${newGoldBalance} 🪙`;
+    document.getElementById('shop-purchase-student').innerHTML = `<i class="fas fa-user mr-2"></i><span class="font-bold">${studentName}</span>'s inventory`;
+    document.getElementById('shop-purchase-close-btn').innerHTML = `<i class="fas fa-check mr-2"></i>${cta}`;
+
+    purchaseModal.classList.remove('hidden');
+
+    const timerBar = document.getElementById('shop-purchase-timer-bar');
+    if (timerBar) {
+        timerBar.style.transition = 'none';
+        timerBar.style.width = '100%';
+        timerBar.offsetWidth;
+        timerBar.style.transition = 'width 3s linear';
+        timerBar.style.width = '0%';
+    }
+
+    const closeBtn = document.getElementById('shop-purchase-close-btn');
+    let autoCloseTimer = null;
+    const closeModal = () => {
+        clearTimeout(autoCloseTimer);
+        purchaseModal.classList.add('hidden');
+        if (timerBar) {
+            timerBar.style.transition = 'none';
+            timerBar.style.width = '100%';
+        }
+    };
+    closeBtn.onclick = closeModal;
+    autoCloseTimer = setTimeout(closeModal, 3000);
+    return true;
+}
+
 export async function handleGenerateShopStock() {
     // 1. Determine Context (League)
     let league = state.get('globalSelectedLeague');
@@ -463,20 +538,8 @@ export async function handleBuyItem(studentId, itemId) {
         // --- SUCCESS: Update UI Immediately ---
         playSound('cash');
 
-        // 1. Update Gold Display Instantly with animation
-        const goldDisplay = document.getElementById('shop-student-gold');
-        if (goldDisplay) {
-            // Animate the gold change
-            goldDisplay.classList.add('animate-pulse');
-            goldDisplay.innerText = `${newGoldBalance} 🪙`;
-            goldDisplay.style.color = '#22c55e'; // Green for success
-            goldDisplay.style.transform = 'scale(1.2)';
-            setTimeout(() => {
-                goldDisplay.style.color = '';
-                goldDisplay.style.transform = '';
-                goldDisplay.classList.remove('animate-pulse');
-            }, 600);
-        }
+        // 1. Update Gold Display with tweened subtraction animation
+        animateShopGoldChange(newGoldBalance);
 
         // 2. Remove item card if seasonal with animation
         if (!isLegendary && buyBtn) {
@@ -490,48 +553,17 @@ export async function handleBuyItem(studentId, itemId) {
         }
 
         // 3. Show Nice Purchase Modal
-        const purchaseModal = document.getElementById('shop-purchase-modal');
-        if (purchaseModal) {
-            const itemIcon = item.icon ? item.icon : (item.image ? `<img src="${item.image}" class="w-16 h-16 object-contain mx-auto">` : '🎁');
-            document.getElementById('shop-purchase-icon').innerHTML = itemIcon;
-            document.getElementById('shop-purchase-name').innerText = item.name;
-            document.getElementById('shop-purchase-desc').innerText = item.description || 'A rare artifact for your collection!';
-            document.getElementById('shop-purchase-cost').innerText = `-${finalPrice} 🪙`;
-            document.getElementById('shop-purchase-balance').innerText = `${newGoldBalance} 🪙`;
-            document.getElementById('shop-purchase-student').innerHTML = `<i class="fas fa-user mr-2"></i><span class="font-bold">${student.name}</span>'s inventory`;
-
-            purchaseModal.classList.remove('hidden');
-
-            // Animate the progress bar countdown (3 seconds)
-            const timerBar = document.getElementById('shop-purchase-timer-bar');
-            if (timerBar) {
-                timerBar.style.transition = 'none';
-                timerBar.style.width = '100%';
-                // Force a reflow to make the starting state stick before animating
-                timerBar.offsetWidth;
-                timerBar.style.transition = 'width 3s linear';
-                timerBar.style.width = '0%';
-            }
-
-            // Auto-close after 3 seconds or on button click
-            const closeBtn = document.getElementById('shop-purchase-close-btn');
-            let autoCloseTimer = null;
-            const closeModal = () => {
-                clearTimeout(autoCloseTimer);
-                purchaseModal.classList.add('hidden');
-                if (timerBar) { timerBar.style.transition = 'none'; timerBar.style.width = '100%'; }
-            };
-            closeBtn.onclick = closeModal;
-            autoCloseTimer = setTimeout(closeModal, 3000);
-
-        } else {
-            // Fallback to old modal if new one doesn't exist
-            showModal(
-                'Purchase Successful!',
-                `${student.name} bought "${item.name}" for ${finalPrice} Gold.\n\nRemaining Balance: ${newGoldBalance} Gold.`,
-                () => { },
-                'Awesome!'
-            );
+        const popupShown = showShopPurchasePopup({
+            itemName: item.name,
+            itemDescription: item.description || 'A rare artifact for your collection!',
+            itemVisualHtml: item.icon ? item.icon : (item.image ? `<img src="${item.image}" class="w-16 h-16 object-contain mx-auto">` : '🎁'),
+            finalPrice,
+            newGoldBalance,
+            studentName: student.name,
+            cta: 'Awesome!'
+        });
+        if (!popupShown) {
+            showToast(`${student.name} bought "${item.name}" for ${finalPrice}🪙.`, 'success');
         }
 
         // --- FIX: Update Local State Immediately ---
@@ -733,11 +765,15 @@ export async function handleBuyFamiliarEgg(studentId, typeId) {
     const { FAMILIAR_TYPES, buildFamiliarInitData } = await import('../../features/familiars.js');
     const typeDef = FAMILIAR_TYPES[typeId];
     if (!typeDef) { showToast('Unknown familiar type.', 'error'); return; }
+    const student = state.get('allStudents').find(s => s.id === studentId);
+    if (!student) { showToast('Student not found.', 'error'); return; }
 
     const publicDataPath = 'artifacts/great-class-quest/public/data';
     const scoreRef = doc(db, `${publicDataPath}/student_scores`, studentId);
 
     try {
+        let newGoldBalance = 0;
+        let familiarData = null;
         await runTransaction(db, async (transaction) => {
             const scoreDoc = await transaction.get(scoreRef);
             if (!scoreDoc.exists()) throw new Error('Score document not found.');
@@ -747,13 +783,40 @@ export async function handleBuyFamiliarEgg(studentId, typeId) {
 
             const currentGold = typeof scoreData.gold === 'number' ? scoreData.gold : (scoreData.totalStars || 0);
             if (currentGold < typeDef.price) throw new Error(`Not enough Gold! Need ${typeDef.price}🪙.`);
+            newGoldBalance = currentGold - typeDef.price;
+            familiarData = buildFamiliarInitData(typeId, scoreData.totalStars || 0);
 
             transaction.update(scoreRef, {
-                gold: currentGold - typeDef.price,
-                familiar: buildFamiliarInitData(typeId, scoreData.totalStars || 0)
+                gold: newGoldBalance,
+                familiar: familiarData
             });
         });
-        showToast(`${typeDef.name} Egg purchased! Earn ${20} stars to hatch it!`, 'success');
+
+        playSound('cash');
+        animateShopGoldChange(newGoldBalance);
+        const popupShown = showShopPurchasePopup({
+            itemName: `${typeDef.name} Egg`,
+            itemDescription: `A new companion has joined ${student.name}. Earn ${20} stars to hatch it!`,
+            itemVisualHtml: `<div class="text-6xl familiar-egg-wobble" style="filter:drop-shadow(0 0 12px ${typeDef.eggColor});">🥚</div>`,
+            finalPrice: typeDef.price,
+            newGoldBalance,
+            studentName: student.name,
+            cta: 'Meet Familiar!'
+        });
+        if (!popupShown) {
+            showToast(`${typeDef.name} Egg purchased! Earn ${20} stars to hatch it!`, 'success');
+        }
+
+        const allScores = state.get('allStudentScores');
+        const idx = allScores.findIndex(s => s.id === studentId);
+        if (idx !== -1) {
+            allScores[idx] = {
+                ...allScores[idx],
+                gold: newGoldBalance,
+                familiar: familiarData
+            };
+            state.setAllStudentScores(allScores);
+        }
         import('../../ui/core.js').then(m => m.updateShopStudentDisplay(studentId));
     } catch (error) {
         showToast(typeof error === 'string' ? error : error.message || 'Purchase failed.', 'error');

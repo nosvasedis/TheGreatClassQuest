@@ -54,7 +54,7 @@ export async function updateGuildScores(studentId, starDelta) {
 /**
  * Returns sorted guild list for leaderboard: guildId, guildName, totalStars, memberCount,
  * monthlyStars, perCapitaStars, monthlyPerCapitaStars, top contributors.
- * Sorted by monthlyPerCapitaStars (fairest metric across guilds of different sizes).
+ * Sorted by perCapitaStars (cumulative fairest metric across guilds of different sizes).
  * Uses in-memory state for sub-500ms response.
  */
 export function getGuildLeaderboardData() {
@@ -88,7 +88,7 @@ export function getGuildLeaderboardData() {
                 totalStars: Number((allStudentScores.find((sc) => sc.id === s.id) || {}).totalStars) || 0,
                 monthlyStars: Number((allStudentScores.find((sc) => sc.id === s.id) || {}).monthlyStars) || 0,
             }))
-            .sort((a, b) => b.monthlyStars - a.monthlyStars)
+            .sort((a, b) => b.totalStars - a.totalStars || b.monthlyStars - a.monthlyStars)
             .slice(0, 3);
 
         return {
@@ -103,8 +103,8 @@ export function getGuildLeaderboardData() {
         };
     });
 
-    // Sort by monthly per-capita stars (fairest), then by total stars as tiebreaker
-    list.sort((a, b) => b.monthlyPerCapitaStars - a.monthlyPerCapitaStars || b.totalStars - a.totalStars);
+    // Sort by cumulative per-capita stars (fairest), then by total stars as tiebreaker.
+    list.sort((a, b) => b.perCapitaStars - a.perCapitaStars || b.totalStars - a.totalStars);
     return list;
 }
 

@@ -1,5 +1,5 @@
 // /features/powerUps.js
-import { db, doc, runTransaction, serverTimestamp, collection, addDoc, updateDoc, increment, setDoc } from '../firebase.js';
+import { db, doc, runTransaction, updateDoc, increment } from '../firebase.js';
 import * as state from '../state.js';
 import { showToast, showPraiseToast } from '../ui/effects.js';
 import { playSound } from '../audio.js';
@@ -61,7 +61,7 @@ export async function handleUseItem(studentId, itemIndex) {
             const currentInventory = scoreDoc.data().inventory || [];
             const classData = state.get('allSchoolClasses').find(c => c.id === student.classId);
 
-            const success = await POWER_UP_EFFECTS[item.name](student, classData);
+            const success = await POWER_UP_EFFECTS[item.name](student, classData, { transaction });
 
             if (success) {
                 currentInventory.splice(itemIndex, 1);
@@ -72,6 +72,8 @@ export async function handleUseItem(studentId, itemIndex) {
         // Show toasts once here (not inside transaction) so they don't run twice on transaction retry
         if (item.name === "Scroll of the Gilded Star") {
             showToast(`Next star for ${student.name} is worth triple Gold!`, 'success');
+        } else if (item.name === "The Pathfinder’s Map") {
+            showToast(`🗺️ ${student.name} discovered a shortcut! +10 Stars for the Team Map!`, 'success');
         }
         // Update local state so UI (Trophy Room, avatar popover) reflects item removed immediately
         const allScores = state.get('allStudentScores');
@@ -134,20 +136,33 @@ async function activateStarfallCatalyst(student) {
     return true;
 }
 
-async function activatePathfinderMap(student, classData) {
-    const logRef = doc(collection(db, "artifacts/great-class-quest/public/data/award_log"));
-    await setDoc(logRef, {
-        studentId: student.id,
-        classId: classData.id,
-        teacherId: state.get('currentUserId'),
-        stars: 10,
-        reason: "pathfinder_bonus",
-        note: `Pathfinder Map used by ${student.name}!`,
-        date: utils.getTodayDateString(),
-        createdAt: serverTimestamp(),
-        createdBy: { uid: state.get('currentUserId'), name: state.get('currentTeacherName') }
+async function activatePathfinderMap(student, classData, context = {}) {
+    if (!classData?.id || !context.transaction) {
+        showToast("Could not apply Pathfinder bonus right now.", "error");
+        return false;
+    }
+    const classRef = doc(db, "artifacts/great-class-quest/public/data/classes", classData.id);
+    const classDoc = await context.transaction.get(classRef);
+    if (!classDoc.exists()) {
+        showToast("Class not found for Pathfinder bonus.", "error");
+        return false;
+    }
+
+    const classFresh = classDoc.data();
+    const now = new Date();
+    const monthKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+    const existing = Number(classFresh.teamQuestBonuses?.[monthKey]) || 0;
+    if (existing >= 10) {
+        showToast("Pathfinder Map has already been used for this class this month.", "info");
+        return false;
+    }
+
+    context.transaction.update(classRef, {
+        [`teamQuestBonuses.${monthKey}`]: increment(10),
+        lastPathfinderDate: utils.getTodayDateString(),
+        lastPathfinderByStudentId: student.id,
+        lastPathfinderByName: student.name
     });
-    showToast(`🗺️ ${student.name} discovered a shortcut! +10 Stars for the Team Map!`, 'success');
     return true;
 }
 

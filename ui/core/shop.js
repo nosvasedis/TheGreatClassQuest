@@ -202,16 +202,13 @@ export async function updateShopStudentDisplay(studentId) {
 
     // LIMIT CHECK 2: Pathfinder Map (1 per class per month)
     const { LEGENDARY_ARTIFACTS } = await import('../../features/powerUps.js');
-    const pathfinderLog = state.get('allAwardLogs').find(l => 
-        l.classId === student.classId && 
-        l.reason === 'pathfinder_bonus' && 
-        l.date.substring(3) === `${currentMonthKey.substring(5)}-${currentMonthKey.substring(0,4)}`
-    );
+    const classData = state.get('allSchoolClasses').find(c => c.id === student.classId);
+    const pathfinderBonusThisMonth = Number(classData?.teamQuestBonuses?.[currentMonthKey]) || 0;
     
     const classStudents = state.get('allStudents').filter(s => s.classId === student.classId);
     const classScores = state.get('allStudentScores').filter(sc => classStudents.some(cs => cs.id === sc.id));
     const pathfinderHeldBySomeone = classScores.some(sc => sc.inventory?.some(i => i.id === 'leg_pathfinder'));
-    const pathfinderLockedForClass = !!pathfinderLog || pathfinderHeldBySomeone;
+    const pathfinderLockedForClass = pathfinderBonusThisMonth >= 10 || pathfinderHeldBySomeone;
 
     // Update UI Display
     goldDisplay.innerText = `${gold} 🪙`;

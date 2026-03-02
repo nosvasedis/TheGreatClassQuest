@@ -26,17 +26,18 @@ import { callGeminiApi, callCloudflareAiImageApi } from '../../api.js';
 
 export async function handleSaveQuestAssignment() {
     const classId = document.getElementById('quest-assignment-class-id').value;
-    const text = document.getElementById('quest-assignment-textarea').value.trim();
+    const rawText = document.getElementById('quest-assignment-textarea').value.trim();
 
     // New Fields from Form
     const formTestDate = document.getElementById('quest-test-date').value;
     const formTestTitle = document.getElementById('quest-test-title').value;
     const formCurriculum = document.getElementById('quest-test-curriculum').value;
 
-    if (!text) {
+    if (!rawText) {
         showToast("Please write an assignment before saving.", "info");
         return;
     }
+    const text = _buildDatedAssignmentText(rawText);
 
     const btn = document.getElementById('quest-assignment-confirm-btn');
     btn.disabled = true;
@@ -116,6 +117,13 @@ export async function handleLogAdventure() {
     if (!classData) return;
 
     const today = getTodayDateString();
+    const classStudents = state.get('allStudents').filter(s => s.classId === classId);
+    const todaysStars = state.get('todaysStars') || {};
+    const hasAwardedStarsToday = classStudents.some(s => (Number(todaysStars[s.id]?.stars) || 0) > 0);
+    if (!hasAwardedStarsToday) {
+        showToast("Award stars to this class first, then log today's adventure.", "info");
+        return;
+    }
     const existingLog = state.get('allAdventureLogs').find(log => log.classId === classId && log.date === today);
     if (existingLog) {
         showToast("Today's adventure is already recorded!", 'info');
@@ -134,16 +142,20 @@ export async function handleLogAdventure() {
     const ageTier = _getAgeTierFromLeague(league);
 
     const todaysAwards = state.get('allAwardLogs').filter(log => log.classId === classId && log.date === today);
-    const totalStars = todaysAwards.reduce((sum, award) => sum + (Number(award.stars) || 0), 0);
+    const monthKey = `${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, '0')}`;
+    const classPathfinderBonus = Number(classData.teamQuestBonuses?.[monthKey]) || 0;
+    const pathfinderUsedToday = classData.lastPathfinderDate === today;
+    const todaysPathfinderBonus = pathfinderUsedToday ? Math.max(10, classPathfinderBonus > 0 ? 10 : 0) : 0;
+    const totalStars = todaysAwards.reduce((sum, award) => sum + (Number(award.stars) || 0), 0) + todaysPathfinderBonus;
     const uniqueReasons = [...new Set(todaysAwards.map(a => a.reason).filter(r => r && r !== 'marked_present'))];
     const reasonLabels = uniqueReasons.map(r => r.replace(/_/g, ' '));
     const topReasonsStr = reasonLabels.length > 0 ? reasonLabels.join(', ') : 'general excellence';
 
     const attendanceRecords = state.get('allAttendanceRecords').filter(r => r.classId === classId && r.date === today);
     const absentStudentIds = new Set(attendanceRecords.map(r => r.studentId));
-    const classStudents = state.get('allStudents').filter(s => s.classId === classId);
-    const presentStudents = classStudents.filter(s => !absentStudentIds.has(s.id));
-    const absentNames = classStudents.filter(s => absentStudentIds.has(s.id)).map(s => s.name.split(' ')[0]).join(', ');
+    const classStudentsForAttendance = state.get('allStudents').filter(s => s.classId === classId);
+    const presentStudents = classStudentsForAttendance.filter(s => !absentStudentIds.has(s.id));
+    const absentNames = classStudentsForAttendance.filter(s => absentStudentIds.has(s.id)).map(s => s.name.split(' ')[0]).join(', ');
     const attendanceText = absentNames ? `We missed our friends: ${absentNames}.` : 'The entire party was present!';
 
     const heroSelection = await _selectHeroOfTheDay(classId, classData, presentStudents);
@@ -164,8 +176,7 @@ export async function handleLogAdventure() {
         assignmentContext = `Next lesson quest assignment: "${latestAssignment.text}".`;
     }
 
-    const pathfinderLog = todaysAwards.find(l => l.reason === 'pathfinder_bonus');
-    const powerUpContext = pathfinderLog ? "A Pathfinder's Map was used today." : '';
+    const powerUpContext = pathfinderUsedToday ? "A Pathfinder's Map was used today." : '';
 
     const systemPrompt = `You are The Chronicler, writing a class diary.
 Return ONLY valid JSON:
@@ -252,6 +263,14 @@ Power-up context: ${powerUpContext || 'none'}`;
         btn.disabled = false;
         btn.innerHTML = `<i class="fas fa-feather-alt mr-2"></i> Log Today's Adventure`;
     }
+}
+
+function _buildDatedAssignmentText(rawText) {
+    const datePrefixRegex = /^\s*\d{1,2}[\/-]\d{1,2}[\/-]\d{4}\s*[:\-]?\s*/;
+    const stripped = rawText.replace(datePrefixRegex, '').trim();
+    const todayDash = getTodayDateString(); // DD-MM-YYYY
+    const todaySlash = todayDash.replace(/-/g, '/');
+    return `${todaySlash} - ${stripped}`;
 }
 
 function _getAgeTierFromLeague(league) {

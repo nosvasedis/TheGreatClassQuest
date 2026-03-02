@@ -581,3 +581,111 @@ header h1.font-title::after {
     to { opacity: 1; transform: translateX(0); }
 }
 
+/* --- CEREMONY LAYOUT + BUILDUP OVERRIDES --- */
+.ceremony-layout {
+    display: grid;
+    grid-template-rows: auto minmax(0, 1fr) auto auto;
+    gap: 0.75rem;
+    align-items: center;
+    justify-items: center;
+    max-width: 1280px;
+    margin: 0 auto;
+}
+
+#ceremony-stage-area {
+    width: 100%;
+    min-height: 0;
+    max-height: 56vh;
+    overflow: auto;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 1rem;
+    padding: 0.5rem;
+}
+
+#ceremony-ai-box {
+    max-height: 18vh;
+    overflow: hidden;
+}
+
+#ceremony-title {
+    line-height: 1.06;
+}
+
+#ceremony-subtitle {
+    line-height: 1.2;
+}
+
+.ceremony-display-card {
+    width: clamp(280px, 42vw, 420px);
+    max-width: 92vw;
+    padding: clamp(1rem, 2vw, 2rem);
+    border-radius: 1.6rem;
+}
+
+.ceremony-card.face-off {
+    position: relative;
+    overflow: hidden !important;
+}
+
+.ceremony-card.face-off::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(115deg, transparent 10%, rgba(255,255,255,0.22) 45%, transparent 80%);
+    transform: translateX(-120%);
+    animation: showdown-scan 1.35s ease-in-out infinite;
+    pointer-events: none;
+}
+
+@keyframes showdown-scan {
+    to { transform: translateX(120%); }
+}
+
+#ceremony-screen.ceremony-phase-suspense #ceremony-bg-gradient {
+    filter: saturate(1.25) brightness(1.08);
+}
+
+#ceremony-screen.ceremony-phase-suspense #ceremony-action-btn {
+    box-shadow: 0 0 32px rgba(248, 113, 113, 0.55), 0 0 16px rgba(253, 224, 71, 0.55);
+    animation: suspense-btn-pulse 0.9s ease-in-out infinite alternate;
+}
+
+@keyframes suspense-btn-pulse {
+    from { transform: scale(1); }
+    to { transform: scale(1.03); }
+}
+
+#ceremony-screen.ceremony-phase-reveal .ceremony-winner {
+    box-shadow: 0 0 110px rgba(251, 191, 36, 0.9), 0 0 28px rgba(255,255,255,0.95);
+}
+
+#ceremony-screen.ceremony-phase-reveal #ceremony-title {
+    filter: drop-shadow(0 0 20px rgba(250, 204, 21, 0.7));
+}
+
+@media (max-height: 860px) {
+    .ceremony-layout {
+        gap: 0.5rem;
+    }
+    #ceremony-stage-area {
+        max-height: 51vh;
+    }
+    #ceremony-ai-box {
+        min-height: 70px;
+        max-height: 14vh;
+    }
+}
+
+@media (max-width: 900px) {
+    #ceremony-stage-area {
+        flex-wrap: wrap;
+        align-content: center;
+        max-height: 50vh;
+    }
+    .ceremony-display-card {
+        width: min(92vw, 440px);
+    }
+}
+

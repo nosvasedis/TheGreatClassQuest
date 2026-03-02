@@ -118,6 +118,7 @@ export function startCeremony(params) {
     const aiBox = document.getElementById('ceremony-ai-box');
 
     screen.classList.remove('hidden');
+    screen.classList.remove('ceremony-phase-suspense', 'ceremony-phase-reveal');
     stage.innerHTML = '';
     aiBox.style.opacity = '0';
     
@@ -175,7 +176,9 @@ async function loadDataAndAdvance() {
 
         let classScores = allClasses.map(c => {
             const students = state.get('allStudents').filter(s => s.classId === c.id);
-            const score = students.reduce((sum, s) => sum + (monthlyScores[s.id] || 0), 0);
+            const scoreFromStudents = students.reduce((sum, s) => sum + (monthlyScores[s.id] || 0), 0);
+            const classTeamBonus = Number(c.teamQuestBonuses?.[ceremonyData.monthKey]) || 0;
+            const score = scoreFromStudents + classTeamBonus;
             
             const classCancellations = overrides.filter(o => {
                 if (o.classId !== c.id || o.type !== 'cancelled') return false;
@@ -304,9 +307,16 @@ function advanceCeremony() {
     const title = document.getElementById('ceremony-title');
     const aiBox = document.getElementById('ceremony-ai-box');
     const subtitle = document.getElementById('ceremony-subtitle');
+    const screen = document.getElementById('ceremony-screen');
 
     btn.disabled = false;
     btn.onclick = advanceCeremony; 
+    if (screen) {
+        screen.classList.remove('ceremony-phase-suspense', 'ceremony-phase-reveal');
+        if (ceremonyData.phase === 'class_showdown' || ceremonyData.phase === 'student_showdown') {
+            screen.classList.add('ceremony-phase-suspense');
+        }
+    }
 
     // --- PHASE 1: CLASSES ---
     if (ceremonyData.phase === 'class_reveal') {
@@ -480,6 +490,7 @@ function advanceCeremony() {
         triggerConfetti();
         triggerFireworks();
         if (winnerFanfare.loaded) winnerFanfare.start();
+        if (screen) screen.classList.add('ceremony-phase-reveal');
     }
 }
 
@@ -619,9 +630,14 @@ function handleDramaticReveal() {
     const title = document.getElementById('ceremony-title');
     const subtitle = document.getElementById('ceremony-subtitle');
     const cards = document.querySelectorAll('.ceremony-card.face-off');
+    const screen = document.getElementById('ceremony-screen');
     
     btn.disabled = true;
     btn.innerText = "Wait for it...";
+    if (screen) {
+        screen.classList.remove('ceremony-phase-suspense');
+        screen.classList.add('ceremony-phase-reveal');
+    }
 
     stopAllCeremonyAudio();
     playDrumRoll();
@@ -781,7 +797,9 @@ async function saveCeremonyComplete() {
 }
 
 function closeCeremony() {
-    document.getElementById('ceremony-screen').classList.add('hidden');
+    const screen = document.getElementById('ceremony-screen');
+    screen.classList.add('hidden');
+    screen.classList.remove('ceremony-phase-suspense', 'ceremony-phase-reveal');
     stopAllCeremonyAudio();
     import('../features/home.js').then(m => m.renderHomeTab());
 }

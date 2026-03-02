@@ -209,6 +209,8 @@ const writtenScoresQuery = query(
     state.setUnsubscribeTodaysStars(onSnapshot(todaysStarsQuery, (snapshot) => {
         const awardStarsTab = document.getElementById('award-stars-tab');
         const isTabVisible = awardStarsTab && !awardStarsTab.classList.contains('hidden');
+        const adventureLogTab = document.getElementById('adventure-log-tab');
+        const isAdventureLogVisible = adventureLogTab && !adventureLogTab.classList.contains('hidden');
         const currentTodaysStars = state.get('todaysStars');
 
         snapshot.docChanges().forEach(change => {
@@ -229,6 +231,7 @@ const writtenScoresQuery = query(
         });
 
         state.set('todaysStars', currentTodaysStars);
+        if (isAdventureLogVisible) renderAdventureLogTab();
         renderHomeTab(); // Update home tab (today's stars count)
 
     }, (error) => console.error("Error listening to today_stars:", error)));

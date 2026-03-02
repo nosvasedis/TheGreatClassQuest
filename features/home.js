@@ -306,12 +306,15 @@ function getActiveDashboard(classData, name, theme, spice) {
         const scoreData = scores.find(sc => sc.id === s.id);
         return sum + (scoreData ? (scoreData.monthlyStars || 0) : 0);
     }, 0);
+    const currentMonthKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+    const teamQuestBonus = Number(classData.teamQuestBonuses?.[currentMonthKey]) || 0;
+    const monthlyStarsWithBonus = monthlyStars + teamQuestBonus;
 
     // NEW: Dynamic goal based on actual lessons, holidays, and overrides
     // NEW: Pass the full classData to match Leaderboard logic
     let goal = calculateMonthlyClassGoal(classData, students.length);
     if (goal < 18) goal = 18; // Shared safety floor
-    const progress = Math.min(100, (monthlyStars / goal) * 100).toFixed(0);
+    const progress = Math.min(100, (monthlyStarsWithBonus / goal) * 100).toFixed(0);
 
     // FIX: Fetch story data directly if missing, instead of relying on the Ideas tab UI
     if (!state.get('currentStoryData')[classId]) {
@@ -426,7 +429,7 @@ function getActiveDashboard(classData, name, theme, spice) {
                     <div class="font-title text-5xl text-blue-600">${progress}%</div>
                 </div>
                 <div class="text-right">
-                    <div class="font-title text-4xl text-amber-500">${monthlyStars} ⭐</div>
+                    <div class="font-title text-4xl text-amber-500">${monthlyStarsWithBonus} ⭐</div>
                     <p class="text-xs font-bold text-amber-600/70">Monthly Collected</p>
                 </div>
             </div>

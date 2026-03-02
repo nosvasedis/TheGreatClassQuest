@@ -5,6 +5,14 @@ import * as constants from '../../constants.js';
 import * as modals from '../modals.js';
 import { renderAwardStarsStudentList } from './award.js';
 
+function classHasAwardedStarsToday(classId) {
+    if (!classId) return false;
+    const studentsInClass = state.get('allStudents').filter(s => s.classId === classId);
+    if (studentsInClass.length === 0) return false;
+    const todaysStars = state.get('todaysStars') || {};
+    return studentsInClass.some(s => (Number(todaysStars[s.id]?.stars) || 0) > 0);
+}
+
 export async function renderAdventureLogTab() {
     const classSelect = document.getElementById('adventure-log-class-select');
     const monthFilter = document.getElementById('adventure-log-month-filter');
@@ -20,7 +28,7 @@ export async function renderAdventureLogTab() {
     }
 
     state.get('currentLogFilter').classId = classVal;
-    document.getElementById('log-adventure-btn').disabled = !classVal;
+    document.getElementById('log-adventure-btn').disabled = !classVal || !classHasAwardedStarsToday(classVal);
     document.getElementById('quest-assignment-btn').disabled = !classVal;
     document.getElementById('attendance-chronicle-btn').disabled = !classVal;
     document.getElementById('hall-of-heroes-btn').disabled = !classVal;

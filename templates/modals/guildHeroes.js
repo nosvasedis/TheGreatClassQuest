@@ -13,8 +13,8 @@ export const guildHeroesModalHTML = `
 
             <div id="guild-heroes-overview" class="guild-heroes-overview"></div>
             <div id="guild-heroes-tabs" class="guild-heroes-tabs"></div>
+            <div id="guild-heroes-view-tabs" class="guild-heroes-view-tabs"></div>
             <div id="guild-heroes-content" class="guild-heroes-content"></div>
         </div>
     </div>
 `;
-

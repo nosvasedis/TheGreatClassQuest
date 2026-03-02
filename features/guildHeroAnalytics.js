@@ -27,6 +27,7 @@ import { GUILD_IDS, getGuildById } from './guilds.js';
  * @property {{ totalStars: number, monthlyStars: number, memberCount: number, perCapitaStars: number, monthlyPerCapitaStars: number }} totals
  * @property {{ monthlyChampion: HeroRow|null, allTimeChampion: HeroRow|null }} champions
  * @property {HeroRow[]} heroesTop
+ * @property {HeroRow[]} heroesAll
  * @property {{ activeHeroes: number, activeRatePct: number, top3SharePct: number, classContributions: Array<{classId: string|null, className: string, totalStars: number, sharePct: number}>, heroClassMix: Array<{heroClass: string, count: number}> }} breakdown
  * @property {{ rankByPerCapita: number, deltaToLeaderPerCapita: number, deltaToLeaderTotal: number }} comparison
  */
@@ -181,6 +182,7 @@ export function getGuildHeroAnalytics() {
                 allTimeChampion: heroesByTotal[0] || null
             },
             heroesTop: heroesByTotal.slice(0, 5),
+            heroesAll: heroesByTotal,
             breakdown: {
                 activeHeroes,
                 activeRatePct: lb.memberCount > 0 ? Math.round((activeHeroes / lb.memberCount) * 1000) / 10 : 0,
@@ -242,4 +244,3 @@ export function getGuildHeroAnalyticsFor(guildId) {
         guilds: [found, ...payload.guilds.filter(g => g.guildId !== guildId)]
     };
 }
-

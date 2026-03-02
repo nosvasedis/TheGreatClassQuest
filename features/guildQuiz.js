@@ -879,218 +879,218 @@ const POOL_LEVEL_B = [
 ];
 
 // ─── Pool 5: Levels C & D ────────────────────────────────────────────────────
-// A2+ / B1 → B1+ │ Ages 12–15 │ Options 10–15 words, B1 vocabulary
+// A1+ │ Ages 10–12 │ Simple vocabulary, shorter sentences, similar to Level A/B
 
 const POOL_LEVEL_CD = [
-    { id: 'cd01', emoji: '💪', question: 'When I face a real setback, I naturally tend to…', options: [
-        { text: '🔥 Channel my frustration into renewed effort and energy', guildWeights: { dragon_flame: 2, phoenix_rising: 1 } },
-        { text: '🤝 Look for support and perspective from people I trust', guildWeights: { grizzly_might: 2, owl_wisdom: 1 } },
-        { text: '🔍 Take time to analyse carefully what went wrong', guildWeights: { owl_wisdom: 2, phoenix_rising: 1 } },
-        { text: '🌱 Accept it as part of the process and look forward', guildWeights: { phoenix_rising: 2, grizzly_might: 1 } },
+    { id: 'cd01', emoji: '💪', question: 'When something is hard, I…', options: [
+        { text: '🔥 Try harder and use my energy!', guildWeights: { dragon_flame: 2, phoenix_rising: 1 } },
+        { text: '🤝 Ask my friends for help', guildWeights: { grizzly_might: 2, owl_wisdom: 1 } },
+        { text: '🤔 Think about what went wrong', guildWeights: { owl_wisdom: 2, phoenix_rising: 1 } },
+        { text: '🌱 Keep going and look forward', guildWeights: { phoenix_rising: 2, grizzly_might: 1 } },
     ]},
-    { id: 'cd02', emoji: '🏫', question: 'In group work, I tend to…', options: [
-        { text: '📣 Take charge and keep the team focused on results', guildWeights: { dragon_flame: 2, grizzly_might: 1 } },
-        { text: '🤗 Make sure everyone contributes and feels genuinely valued', guildWeights: { grizzly_might: 2, owl_wisdom: 1 } },
-        { text: '💡 Bring ideas and solve problems analytically', guildWeights: { owl_wisdom: 2, dragon_flame: 1 } },
-        { text: '💪 Keep the group motivated when energy and focus drop', guildWeights: { phoenix_rising: 2, owl_wisdom: 1 } },
+    { id: 'cd02', emoji: '🏫', question: 'In group work, I like to…', options: [
+        { text: '👑 Lead the team and get things done', guildWeights: { dragon_flame: 2, grizzly_might: 1 } },
+        { text: '🤗 Make sure everyone helps and feels happy', guildWeights: { grizzly_might: 2, owl_wisdom: 1 } },
+        { text: '💡 Think of ideas and solve problems', guildWeights: { owl_wisdom: 2, dragon_flame: 1 } },
+        { text: '💪 Cheer up the team when they are tired', guildWeights: { phoenix_rising: 2, owl_wisdom: 1 } },
     ]},
-    { id: 'cd03', emoji: '🧠', question: 'My approach to learning is best described as…', options: [
-        { text: '🏆 Competitive — I want to outperform everyone around me', guildWeights: { dragon_flame: 2, phoenix_rising: 1 } },
-        { text: '👫 Collaborative — I genuinely learn much better with others', guildWeights: { grizzly_might: 2, owl_wisdom: 1 } },
-        { text: '🧱 Systematic — I build my knowledge carefully, step by step', guildWeights: { owl_wisdom: 2, dragon_flame: 1 } },
-        { text: '🌱 Growth-oriented — every struggle makes me a stronger learner', guildWeights: { phoenix_rising: 2, grizzly_might: 1 } },
+    { id: 'cd03', emoji: '🧠', question: 'I learn best when…', options: [
+        { text: '🏆 I try to be the best in class', guildWeights: { dragon_flame: 2, phoenix_rising: 1 } },
+        { text: '👫 I study with my friends', guildWeights: { grizzly_might: 2, owl_wisdom: 1 } },
+        { text: '📚 I take my time and learn step by step', guildWeights: { owl_wisdom: 2, dragon_flame: 1 } },
+        { text: '🌱 Every hard thing makes me stronger', guildWeights: { phoenix_rising: 2, grizzly_might: 1 } },
     ]},
-    { id: 'cd04', emoji: '👑', question: 'The quality I most admire in a great leader is…', options: [
-        { text: '🦁 The courage to make bold decisions under real pressure', guildWeights: { dragon_flame: 2, phoenix_rising: 1 } },
-        { text: '🤗 The genuine ability to listen well and unite a team', guildWeights: { grizzly_might: 2, owl_wisdom: 1 } },
-        { text: '🔭 Clear, strategic thinking and a strong long-term vision', guildWeights: { owl_wisdom: 2, dragon_flame: 1 } },
-        { text: '🌊 The composure and strength to lead through really hard times', guildWeights: { phoenix_rising: 2, grizzly_might: 1 } },
+    { id: 'cd04', emoji: '👑', question: 'A good leader should be…', options: [
+        { text: '🦁 Brave and ready to make choices', guildWeights: { dragon_flame: 2, phoenix_rising: 1 } },
+        { text: '🤗 Kind and good at listening to others', guildWeights: { grizzly_might: 2, owl_wisdom: 1 } },
+        { text: '🔭 Smart and able to plan ahead', guildWeights: { owl_wisdom: 2, dragon_flame: 1 } },
+        { text: '🌊 Strong enough to lead in hard times', guildWeights: { phoenix_rising: 2, grizzly_might: 1 } },
     ]},
-    { id: 'cd05', emoji: '🌱', question: 'I believe real personal growth mainly comes from…', options: [
-        { text: '💥 Strong ambition and a deep desire to be the best', guildWeights: { dragon_flame: 2, phoenix_rising: 1 } },
-        { text: '🤝 Deep, meaningful friendships and genuine support from others', guildWeights: { grizzly_might: 2, owl_wisdom: 1 } },
-        { text: '📚 Consistent effort in reading, studying and intellectual challenge', guildWeights: { owl_wisdom: 2, dragon_flame: 1 } },
-        { text: '🌊 Facing real difficulties, failing, and finding the strength to return', guildWeights: { phoenix_rising: 2, grizzly_might: 1 } },
+    { id: 'cd05', emoji: '🌱', question: 'I grow as a person when…', options: [
+        { text: '💥 I work hard to be the best', guildWeights: { dragon_flame: 2, phoenix_rising: 1 } },
+        { text: '🤝 I have good friends who support me', guildWeights: { grizzly_might: 2, owl_wisdom: 1 } },
+        { text: '📚 I read, study and learn new things', guildWeights: { owl_wisdom: 2, dragon_flame: 1 } },
+        { text: '🌊 I face hard times and keep going', guildWeights: { phoenix_rising: 2, grizzly_might: 1 } },
     ]},
-    { id: 'cd06', emoji: '🔮', question: 'The metaphor that best fits my personality is…', options: [
-        { text: '🔥 A fire — intense, passionate and very difficult to stop', guildWeights: { dragon_flame: 2, phoenix_rising: 1 } },
-        { text: '🌳 A forest — strong, grounded and full of living connections', guildWeights: { grizzly_might: 2, owl_wisdom: 1 } },
-        { text: '🧭 A compass — reliable, precise and always pointing the right way', guildWeights: { owl_wisdom: 2, dragon_flame: 1 } },
-        { text: '🌊 A river — persistent, always finding a way around every obstacle', guildWeights: { phoenix_rising: 2, grizzly_might: 1 } },
+    { id: 'cd06', emoji: '🔮', question: 'I am most like…', options: [
+        { text: '🔥 A fire — strong and full of energy', guildWeights: { dragon_flame: 2, phoenix_rising: 1 } },
+        { text: '🌳 A tree — strong with many friends', guildWeights: { grizzly_might: 2, owl_wisdom: 1 } },
+        { text: '🧭 A compass — always showing the right way', guildWeights: { owl_wisdom: 2, dragon_flame: 1 } },
+        { text: '🌊 A river — always moving forward', guildWeights: { phoenix_rising: 2, grizzly_might: 1 } },
     ]},
-    { id: 'cd07', emoji: '💬', question: 'When I receive criticism, I tend to…', options: [
-        { text: '🦁 Stand my ground — I have real confidence in my own abilities', guildWeights: { dragon_flame: 2, grizzly_might: 1 } },
-        { text: '🤗 Think carefully about how it affects everyone involved', guildWeights: { grizzly_might: 2, owl_wisdom: 1 } },
-        { text: '🔍 Examine it objectively to see if there is anything valid in it', guildWeights: { owl_wisdom: 2, phoenix_rising: 1 } },
-        { text: '💪 Use it as clear motivation to work harder and genuinely improve', guildWeights: { phoenix_rising: 2, dragon_flame: 1 } },
+    { id: 'cd07', emoji: '💬', question: 'When someone says I did something wrong, I…', options: [
+        { text: '🦁 Stand tall — I believe in myself', guildWeights: { dragon_flame: 2, grizzly_might: 1 } },
+        { text: '🤗 Think about how others feel', guildWeights: { grizzly_might: 2, owl_wisdom: 1 } },
+        { text: '🔍 Look at it carefully to see if it is true', guildWeights: { owl_wisdom: 2, phoenix_rising: 1 } },
+        { text: '💪 Use it to work harder and do better', guildWeights: { phoenix_rising: 2, dragon_flame: 1 } },
     ]},
-    { id: 'cd08', emoji: '💡', question: 'The value I consider most important in my life is…', options: [
-        { text: '🦁 Courage — the readiness to face real difficulty without ever backing down', guildWeights: { dragon_flame: 2, phoenix_rising: 1 } },
-        { text: '🤝 Loyalty — never letting down the people who truly depend on me', guildWeights: { grizzly_might: 2, owl_wisdom: 1 } },
-        { text: '🧠 Wisdom — thinking clearly and consistently making the right decisions', guildWeights: { owl_wisdom: 2, dragon_flame: 1 } },
-        { text: '🌟 Hope — the belief that things can always improve, no matter what', guildWeights: { phoenix_rising: 2, grizzly_might: 1 } },
+    { id: 'cd08', emoji: '💡', question: 'The most important thing to me is…', options: [
+        { text: '🦁 Being brave and never giving up', guildWeights: { dragon_flame: 2, phoenix_rising: 1 } },
+        { text: '🤝 Being a good friend who helps others', guildWeights: { grizzly_might: 2, owl_wisdom: 1 } },
+        { text: '🧠 Being smart and making good choices', guildWeights: { owl_wisdom: 2, dragon_flame: 1 } },
+        { text: '🌟 Always hoping things will get better', guildWeights: { phoenix_rising: 2, grizzly_might: 1 } },
     ]},
-    { id: 'cd09', emoji: '🎓', question: 'When I think about my future career, I\'m most drawn to…', options: [
-        { text: '👑 Roles that involve real leadership and significant responsibility', guildWeights: { dragon_flame: 2, grizzly_might: 1 } },
-        { text: '🤗 Working directly with people and making a positive difference', guildWeights: { grizzly_might: 2, owl_wisdom: 1 } },
-        { text: '🔬 Something that requires deep knowledge, research or expertise', guildWeights: { owl_wisdom: 2, dragon_flame: 1 } },
-        { text: '🏗️ Building something meaningful and important over a long period', guildWeights: { phoenix_rising: 2, grizzly_might: 1 } },
+    { id: 'cd09', emoji: '🎓', question: 'When I grow up, I want to…', options: [
+        { text: '👑 Be a leader and help others', guildWeights: { dragon_flame: 2, grizzly_might: 1 } },
+        { text: '🤗 Work with people and make them happy', guildWeights: { grizzly_might: 2, owl_wisdom: 1 } },
+        { text: '🔬 Learn a lot and become an expert', guildWeights: { owl_wisdom: 2, dragon_flame: 1 } },
+        { text: '🏗️ Build something important over time', guildWeights: { phoenix_rising: 2, grizzly_might: 1 } },
     ]},
-    { id: 'cd10', emoji: '🌍', question: 'The kind of conversation I find most interesting is…', options: [
-        { text: '🔥 A lively debate where very different views genuinely clash', guildWeights: { dragon_flame: 2, phoenix_rising: 1 } },
-        { text: '🤝 A deep, personal conversation with someone I truly trust', guildWeights: { grizzly_might: 2, owl_wisdom: 1 } },
-        { text: '🌍 A discussion about important ideas, society or the wider world', guildWeights: { owl_wisdom: 2, dragon_flame: 1 } },
-        { text: '🌄 Someone sharing honestly how they overcame something very difficult', guildWeights: { phoenix_rising: 2, grizzly_might: 1 } },
+    { id: 'cd10', emoji: '🌍', question: 'I like talking about…', options: [
+        { text: '🔥 Fun debates with different ideas', guildWeights: { dragon_flame: 2, phoenix_rising: 1 } },
+        { text: '🤝 Personal things with my best friend', guildWeights: { grizzly_might: 2, owl_wisdom: 1 } },
+        { text: '🌍 Big ideas about the world', guildWeights: { owl_wisdom: 2, dragon_flame: 1 } },
+        { text: '🌄 How people got through hard times', guildWeights: { phoenix_rising: 2, grizzly_might: 1 } },
     ]},
-    { id: 'cd11', emoji: '🌅', question: 'The phrase that best describes my attitude to setbacks is…', options: [
-        { text: '🔥 "Bring it on — I\'m ready and I won\'t back down"', guildWeights: { dragon_flame: 2, phoenix_rising: 1 } },
-        { text: '🤝 "We\'ll get through this together — I\'m absolutely sure of it"', guildWeights: { grizzly_might: 2, owl_wisdom: 1 } },
-        { text: '🔍 "What can I actually learn and take from this situation?"', guildWeights: { owl_wisdom: 2, dragon_flame: 1 } },
-        { text: '🌄 "This is just another step forward on a very long journey"', guildWeights: { phoenix_rising: 2, grizzly_might: 1 } },
+    { id: 'cd11', emoji: '🌅', question: 'When something bad happens, I say…', options: [
+        { text: '🔥 "I am ready — let us go!"', guildWeights: { dragon_flame: 2, phoenix_rising: 1 } },
+        { text: '🤝 "We can do this together!"', guildWeights: { grizzly_might: 2, owl_wisdom: 1 } },
+        { text: '🔍 "What can I learn from this?"', guildWeights: { owl_wisdom: 2, dragon_flame: 1 } },
+        { text: '🌄 "This is just one step forward"', guildWeights: { phoenix_rising: 2, grizzly_might: 1 } },
     ]},
-    { id: 'cd12', emoji: '🎨', question: 'In creative tasks, I tend to…', options: [
-        { text: '🎨 Go for original, surprising ideas that clearly stand out from the rest', guildWeights: { dragon_flame: 2, phoenix_rising: 1 } },
-        { text: '🤝 Build on others\' ideas through close collaboration and teamwork', guildWeights: { grizzly_might: 2, owl_wisdom: 1 } },
-        { text: '📖 Research carefully and plan the whole thing before I start', guildWeights: { owl_wisdom: 2, dragon_flame: 1 } },
-        { text: '🔄 Keep revising and improving patiently until it is as strong as possible', guildWeights: { phoenix_rising: 2, grizzly_might: 1 } },
+    { id: 'cd12', emoji: '🎨', question: 'When I make something creative, I…', options: [
+        { text: '🎨 Try new and surprising ideas', guildWeights: { dragon_flame: 2, phoenix_rising: 1 } },
+        { text: '🤝 Work with others and share ideas', guildWeights: { grizzly_might: 2, owl_wisdom: 1 } },
+        { text: '📖 Plan carefully before I start', guildWeights: { owl_wisdom: 2, dragon_flame: 1 } },
+        { text: '🔄 Keep working on it until it is great', guildWeights: { phoenix_rising: 2, grizzly_might: 1 } },
     ]},
-    { id: 'cd13', emoji: '🌟', question: 'The legacy I most want to leave behind is…', options: [
-        { text: '🌟 Having achieved something remarkable that people will remember', guildWeights: { dragon_flame: 2, phoenix_rising: 1 } },
-        { text: '🤗 Having made a genuine and lasting positive difference in people\'s lives', guildWeights: { grizzly_might: 2, owl_wisdom: 1 } },
-        { text: '🎓 Having contributed something meaningful to knowledge or culture', guildWeights: { owl_wisdom: 2, dragon_flame: 1 } },
-        { text: '🌱 Having proved that real persistence and hard work ultimately pays off', guildWeights: { phoenix_rising: 2, grizzly_might: 1 } },
+    { id: 'cd13', emoji: '🌟', question: 'I want people to remember me as…', options: [
+        { text: '🌟 Someone who did something amazing', guildWeights: { dragon_flame: 2, phoenix_rising: 1 } },
+        { text: '🤗 Someone who helped others', guildWeights: { grizzly_might: 2, owl_wisdom: 1 } },
+        { text: '🎓 Someone who knew a lot', guildWeights: { owl_wisdom: 2, dragon_flame: 1 } },
+        { text: '🌱 Someone who never gave up', guildWeights: { phoenix_rising: 2, grizzly_might: 1 } },
     ]},
-    { id: 'cd14', emoji: '🎯', question: 'The way I most like to improve myself is…', options: [
-        { text: '💥 Setting very ambitious goals and consistently pushing my limits hard', guildWeights: { dragon_flame: 2, phoenix_rising: 1 } },
-        { text: '🤝 Learning actively from people I genuinely respect and admire', guildWeights: { grizzly_might: 2, owl_wisdom: 1 } },
-        { text: '🎯 Identifying my specific weaknesses and targeting them very directly', guildWeights: { owl_wisdom: 2, dragon_flame: 1 } },
-        { text: '🌱 Making small but completely consistent progress day after day', guildWeights: { phoenix_rising: 2, grizzly_might: 1 } },
+    { id: 'cd14', emoji: '🎯', question: 'To get better at something, I…', options: [
+        { text: '💥 Set big goals and work very hard', guildWeights: { dragon_flame: 2, phoenix_rising: 1 } },
+        { text: '🤝 Learn from people I look up to', guildWeights: { grizzly_might: 2, owl_wisdom: 1 } },
+        { text: '🎯 Find my weak spots and fix them', guildWeights: { owl_wisdom: 2, dragon_flame: 1 } },
+        { text: '🌱 Practice a little bit every day', guildWeights: { phoenix_rising: 2, grizzly_might: 1 } },
     ]},
-    { id: 'cd15', emoji: '🤝', question: 'When someone I care about is going through a hard time, I…', options: [
-        { text: '🔥 Try to take immediate action and find a practical solution for them', guildWeights: { dragon_flame: 2, grizzly_might: 1 } },
-        { text: '🤝 Give them my complete attention and simply be present for them', guildWeights: { grizzly_might: 2, owl_wisdom: 1 } },
-        { text: '💡 Offer them honest practical advice and a genuinely different perspective', guildWeights: { owl_wisdom: 2, phoenix_rising: 1 } },
-        { text: '🌄 Remind them of their real strengths and just how far they have already come', guildWeights: { phoenix_rising: 2, grizzly_might: 1 } },
+    { id: 'cd15', emoji: '🤝', question: 'When my friend is sad, I…', options: [
+        { text: '🔥 Try to fix the problem for them', guildWeights: { dragon_flame: 2, grizzly_might: 1 } },
+        { text: '🤝 Stay with them and listen', guildWeights: { grizzly_might: 2, owl_wisdom: 1 } },
+        { text: '💡 Give them advice and new ideas', guildWeights: { owl_wisdom: 2, phoenix_rising: 1 } },
+        { text: '🌄 Remind them how strong they are', guildWeights: { phoenix_rising: 2, grizzly_might: 1 } },
     ]},
-    { id: 'cd16', emoji: '🏛️', question: 'The most important thing school gives me is…', options: [
-        { text: '🎤 A stage to demonstrate my real abilities and ambition to others', guildWeights: { dragon_flame: 2, phoenix_rising: 1 } },
-        { text: '🤗 A genuine sense of community, friendship and belonging', guildWeights: { grizzly_might: 2, owl_wisdom: 1 } },
-        { text: '📚 The knowledge and analytical tools to understand the world around me', guildWeights: { owl_wisdom: 2, dragon_flame: 1 } },
-        { text: '🌱 The opportunity to develop steadily into the person I want to become', guildWeights: { phoenix_rising: 2, grizzly_might: 1 } },
+    { id: 'cd16', emoji: '🏛️', question: 'School helps me by…', options: [
+        { text: '🎤 Letting me show what I can do', guildWeights: { dragon_flame: 2, phoenix_rising: 1 } },
+        { text: '🤗 Giving me friends and a place to belong', guildWeights: { grizzly_might: 2, owl_wisdom: 1 } },
+        { text: '📚 Teaching me about the world', guildWeights: { owl_wisdom: 2, dragon_flame: 1 } },
+        { text: '🌱 Helping me become who I want to be', guildWeights: { phoenix_rising: 2, grizzly_might: 1 } },
     ]},
-    { id: 'cd17', emoji: '🔭', question: 'What I find most exciting to learn about is…', options: [
-        { text: '🏛️ Power, leadership and what made certain historical figures truly extraordinary', guildWeights: { dragon_flame: 2, phoenix_rising: 1 } },
-        { text: '🤝 Human psychology and the complex ways people relate to one another', guildWeights: { grizzly_might: 2, owl_wisdom: 1 } },
-        { text: '🔭 Science, philosophy and the big ideas that help explain our universe', guildWeights: { owl_wisdom: 2, dragon_flame: 1 } },
-        { text: '📜 Stories of people who faced the hardest challenges and transformed themselves', guildWeights: { phoenix_rising: 2, grizzly_might: 1 } },
+    { id: 'cd17', emoji: '🔭', question: 'I like learning about…', options: [
+        { text: '🏛️ Heroes and leaders from history', guildWeights: { dragon_flame: 2, phoenix_rising: 1 } },
+        { text: '🤝 How people think and feel', guildWeights: { grizzly_might: 2, owl_wisdom: 1 } },
+        { text: '🔭 Science and how the world works', guildWeights: { owl_wisdom: 2, dragon_flame: 1 } },
+        { text: '📜 People who beat hard challenges', guildWeights: { phoenix_rising: 2, grizzly_might: 1 } },
     ]},
-    { id: 'cd18', emoji: '⚡', question: 'I feel most alive when I…', options: [
-        { text: '🌟 Accomplish something genuinely difficult that others can clearly see', guildWeights: { dragon_flame: 2, phoenix_rising: 1 } },
-        { text: '🤝 Feel truly and deeply connected to the people around me', guildWeights: { grizzly_might: 2, owl_wisdom: 1 } },
-        { text: '💡 Discover or understand something I had never properly grasped before', guildWeights: { owl_wisdom: 2, dragon_flame: 1 } },
-        { text: '🌱 Realise clearly that I have grown from something that truly challenged me', guildWeights: { phoenix_rising: 2, grizzly_might: 1 } },
+    { id: 'cd18', emoji: '⚡', question: 'I feel happiest when I…', options: [
+        { text: '🌟 Do something hard that others see', guildWeights: { dragon_flame: 2, phoenix_rising: 1 } },
+        { text: '🤝 Feel close to my friends and family', guildWeights: { grizzly_might: 2, owl_wisdom: 1 } },
+        { text: '💡 Learn something new', guildWeights: { owl_wisdom: 2, dragon_flame: 1 } },
+        { text: '🌱 Know I have grown from something hard', guildWeights: { phoenix_rising: 2, grizzly_might: 1 } },
     ]},
-    { id: 'cd19', emoji: '🦁', question: 'I would describe my core character as…', options: [
-        { text: '🦁 Bold and direct — I say what I think and I go for what I want', guildWeights: { dragon_flame: 2, phoenix_rising: 1 } },
-        { text: '🤗 Warm, dependable and genuinely caring about the people around me', guildWeights: { grizzly_might: 2, owl_wisdom: 1 } },
-        { text: '🔍 Thoughtful, curious and always questioning and exploring new ideas', guildWeights: { owl_wisdom: 2, dragon_flame: 1 } },
-        { text: '🌊 Flexible, resilient and fully able to bounce back from any difficulty', guildWeights: { phoenix_rising: 2, grizzly_might: 1 } },
+    { id: 'cd19', emoji: '🦁', question: 'My friends would say I am…', options: [
+        { text: '🦁 Brave and say what I think', guildWeights: { dragon_flame: 2, phoenix_rising: 1 } },
+        { text: '🤗 Kind and always there for them', guildWeights: { grizzly_might: 2, owl_wisdom: 1 } },
+        { text: '🔍 Curious and love to learn', guildWeights: { owl_wisdom: 2, dragon_flame: 1 } },
+        { text: '🌊 Strong and can bounce back from anything', guildWeights: { phoenix_rising: 2, grizzly_might: 1 } },
     ]},
-    { id: 'cd20', emoji: '📖', question: 'The best piece of advice I have heard (or would give someone) is…', options: [
-        { text: '🔥 "Be bold — the world genuinely rewards people who are willing to act"', guildWeights: { dragon_flame: 2, phoenix_rising: 1 } },
-        { text: '🤝 "Surround yourself with people who truly and genuinely lift you up"', guildWeights: { grizzly_might: 2, owl_wisdom: 1 } },
-        { text: '🧠 "Never stop being curious — it is one of your greatest possible assets"', guildWeights: { owl_wisdom: 2, dragon_flame: 1 } },
-        { text: '🌄 "Every single time you fall, you learn something that helps you fall better"', guildWeights: { phoenix_rising: 2, grizzly_might: 1 } },
+    { id: 'cd20', emoji: '📖', question: 'Good advice I would give is…', options: [
+        { text: '🔥 "Be brave and take action!"', guildWeights: { dragon_flame: 2, phoenix_rising: 1 } },
+        { text: '🤝 "Keep good friends close to you"', guildWeights: { grizzly_might: 2, owl_wisdom: 1 } },
+        { text: '🧠 "Never stop being curious"', guildWeights: { owl_wisdom: 2, dragon_flame: 1 } },
+        { text: '🌄 "Every fall helps you rise higher"', guildWeights: { phoenix_rising: 2, grizzly_might: 1 } },
     ]},
-    { id: 'cd21', emoji: '📈', question: 'What motivates me most in my studies is…', options: [
-        { text: '🔥 The desire to perform better than I have ever done before', guildWeights: { dragon_flame: 2, phoenix_rising: 1 } },
-        { text: '🤝 The chance to share the entire learning experience with other people', guildWeights: { grizzly_might: 2, owl_wisdom: 1 } },
-        { text: '📚 A genuine and deep interest in understanding things on a deeper level', guildWeights: { owl_wisdom: 2, dragon_flame: 1 } },
-        { text: '🌱 The satisfaction of overcoming something that once felt completely impossible', guildWeights: { phoenix_rising: 2, grizzly_might: 1 } },
+    { id: 'cd21', emoji: '📈', question: 'I study hard because…', options: [
+        { text: '🔥 I want to do better than before', guildWeights: { dragon_flame: 2, phoenix_rising: 1 } },
+        { text: '🤝 I like learning with my friends', guildWeights: { grizzly_might: 2, owl_wisdom: 1 } },
+        { text: '📚 I love understanding new things', guildWeights: { owl_wisdom: 2, dragon_flame: 1 } },
+        { text: '🌱 I enjoy beating hard challenges', guildWeights: { phoenix_rising: 2, grizzly_might: 1 } },
     ]},
-    { id: 'cd22', emoji: '😤', question: 'I handle stress and pressure by…', options: [
-        { text: '🏋️ Converting it into focused and highly productive energy', guildWeights: { dragon_flame: 2, phoenix_rising: 1 } },
-        { text: '🤝 Talking it through honestly with someone I genuinely trust', guildWeights: { grizzly_might: 2, owl_wisdom: 1 } },
-        { text: '🧩 Understanding exactly what is causing it and dealing with it directly', guildWeights: { owl_wisdom: 2, dragon_flame: 1 } },
-        { text: '🌊 Reminding myself that I have managed very difficult situations before', guildWeights: { phoenix_rising: 2, grizzly_might: 1 } },
+    { id: 'cd22', emoji: '😤', question: 'When I feel stressed, I…', options: [
+        { text: '🏋️ Use the energy to work harder', guildWeights: { dragon_flame: 2, phoenix_rising: 1 } },
+        { text: '🤝 Talk to someone I trust', guildWeights: { grizzly_might: 2, owl_wisdom: 1 } },
+        { text: '🧩 Figure out what is wrong and fix it', guildWeights: { owl_wisdom: 2, dragon_flame: 1 } },
+        { text: '🌊 Remember I have been through hard times before', guildWeights: { phoenix_rising: 2, grizzly_might: 1 } },
     ]},
-    { id: 'cd23', emoji: '🌏', question: 'The characteristic that I believe most distinguishes great people is…', options: [
-        { text: '🔥 The courage and nerve to act decisively when everyone else hesitates', guildWeights: { dragon_flame: 2, phoenix_rising: 1 } },
-        { text: '🤗 A genuine and deep ability to understand and truly care about others', guildWeights: { grizzly_might: 2, owl_wisdom: 1 } },
-        { text: '🦉 Unusual clarity that lets them consistently see what most people consistently miss', guildWeights: { owl_wisdom: 2, dragon_flame: 1 } },
-        { text: '🌊 An extraordinary capacity to keep going no matter how difficult or long it takes', guildWeights: { phoenix_rising: 2, grizzly_might: 1 } },
+    { id: 'cd23', emoji: '🌏', question: 'Great people are great because…', options: [
+        { text: '🔥 They are brave and act fast', guildWeights: { dragon_flame: 2, phoenix_rising: 1 } },
+        { text: '🤗 They care about others', guildWeights: { grizzly_might: 2, owl_wisdom: 1 } },
+        { text: '🦉 They see things others miss', guildWeights: { owl_wisdom: 2, dragon_flame: 1 } },
+        { text: '🌊 They never stop trying', guildWeights: { phoenix_rising: 2, grizzly_might: 1 } },
     ]},
-    { id: 'cd24', emoji: '🧭', question: 'My personal philosophy could be summed up as…', options: [
-        { text: '🔥 "Life rewards those who are bold enough to truly act on their deepest dreams"', guildWeights: { dragon_flame: 2, phoenix_rising: 1 } },
-        { text: '🤝 "Real and lasting success is simply impossible without the people who support you"', guildWeights: { grizzly_might: 2, owl_wisdom: 1 } },
-        { text: '📚 "The more I genuinely understand, the better I can navigate my world"', guildWeights: { owl_wisdom: 2, dragon_flame: 1 } },
-        { text: '🌄 "Every fall in life is simply another valuable chance to rise just a little higher"', guildWeights: { phoenix_rising: 2, grizzly_might: 1 } },
+    { id: 'cd24', emoji: '🧭', question: 'My life motto is…', options: [
+        { text: '🔥 "Be bold and follow your dreams!"', guildWeights: { dragon_flame: 2, phoenix_rising: 1 } },
+        { text: '🤝 "Friends help you succeed"', guildWeights: { grizzly_might: 2, owl_wisdom: 1 } },
+        { text: '📚 "The more you know, the better"', guildWeights: { owl_wisdom: 2, dragon_flame: 1 } },
+        { text: '🌄 "Every fall is a chance to rise"', guildWeights: { phoenix_rising: 2, grizzly_might: 1 } },
     ]},
-    { id: 'cd25', emoji: '🚨', question: 'The role I most naturally take in a genuine crisis is…', options: [
-        { text: '👑 Taking the lead and making very clear decisions under significant pressure', guildWeights: { dragon_flame: 2, grizzly_might: 1 } },
-        { text: '🤝 Keeping the group emotionally together, focused and genuinely motivated', guildWeights: { grizzly_might: 2, owl_wisdom: 1 } },
-        { text: '🔍 Carefully and calmly analysing the situation before proposing practical solutions', guildWeights: { owl_wisdom: 2, dragon_flame: 1 } },
-        { text: '🌊 Staying calm under pressure and always keeping the long-term goal clearly in mind', guildWeights: { phoenix_rising: 2, grizzly_might: 1 } },
+    { id: 'cd25', emoji: '🚨', question: 'In a difficult situation, I…', options: [
+        { text: '👑 Take charge and make decisions', guildWeights: { dragon_flame: 2, grizzly_might: 1 } },
+        { text: '🤝 Keep everyone together and happy', guildWeights: { grizzly_might: 2, owl_wisdom: 1 } },
+        { text: '🔍 Look at the problem carefully first', guildWeights: { owl_wisdom: 2, dragon_flame: 1 } },
+        { text: '🌊 Stay calm and think of the future', guildWeights: { phoenix_rising: 2, grizzly_might: 1 } },
     ]},
-    { id: 'cd26', emoji: '🔥', question: 'When I am truly passionate about something, I…', options: [
-        { text: '💥 Commit to it fully and push myself to my absolute limit every single time', guildWeights: { dragon_flame: 2, phoenix_rising: 1 } },
-        { text: '🤝 Want to share the experience genuinely with all the people I care most about', guildWeights: { grizzly_might: 2, owl_wisdom: 1 } },
-        { text: '📚 Dive deep into research and try to understand it as completely as possible', guildWeights: { owl_wisdom: 2, dragon_flame: 1 } },
-        { text: '🎯 Set myself clear and ambitious personal targets and carefully track all my progress', guildWeights: { phoenix_rising: 2, grizzly_might: 1 } },
+    { id: 'cd26', emoji: '🔥', question: 'When I love something, I…', options: [
+        { text: '💥 Give it all my energy!', guildWeights: { dragon_flame: 2, phoenix_rising: 1 } },
+        { text: '🤝 Share it with people I care about', guildWeights: { grizzly_might: 2, owl_wisdom: 1 } },
+        { text: '📚 Learn everything I can about it', guildWeights: { owl_wisdom: 2, dragon_flame: 1 } },
+        { text: '🎯 Set goals and track my progress', guildWeights: { phoenix_rising: 2, grizzly_might: 1 } },
     ]},
-    { id: 'cd27', emoji: '📅', question: 'When no one is watching, I am most likely to be…', options: [
-        { text: '💪 Practising intensely or working on something I am determined to master', guildWeights: { dragon_flame: 2, phoenix_rising: 1 } },
-        { text: '🤝 Checking in quietly on a close friend who might be going through something', guildWeights: { grizzly_might: 2, owl_wisdom: 1 } },
-        { text: '📚 Reading, watching or thinking deeply about something that genuinely interests me', guildWeights: { owl_wisdom: 2, dragon_flame: 1 } },
-        { text: '🎯 Working patiently and quietly on a long-term goal I set for myself some time ago', guildWeights: { phoenix_rising: 2, grizzly_might: 1 } },
+    { id: 'cd27', emoji: '📅', question: 'When I am alone, I like to…', options: [
+        { text: '💪 Practice to get better at something', guildWeights: { dragon_flame: 2, phoenix_rising: 1 } },
+        { text: '🤝 Check on my friends', guildWeights: { grizzly_might: 2, owl_wisdom: 1 } },
+        { text: '📚 Read or learn about interesting things', guildWeights: { owl_wisdom: 2, dragon_flame: 1 } },
+        { text: '🎯 Work on my long-term goals', guildWeights: { phoenix_rising: 2, grizzly_might: 1 } },
     ]},
-    { id: 'cd28', emoji: '🔑', question: 'The most important thing I have ever learned about myself is…', options: [
-        { text: '🔥 I consistently do my very best work when there is real pressure and real stakes', guildWeights: { dragon_flame: 2, phoenix_rising: 1 } },
-        { text: '🤝 I genuinely need other people around me in order to be truly at my best', guildWeights: { grizzly_might: 2, owl_wisdom: 1 } },
-        { text: '🧠 I need to understand things deeply and completely before I can feel truly confident', guildWeights: { owl_wisdom: 2, dragon_flame: 1 } },
-        { text: '💪 I am far stronger than I usually realise — real difficulty has a way of revealing that', guildWeights: { phoenix_rising: 2, grizzly_might: 1 } },
+    { id: 'cd28', emoji: '🔑', question: 'I learned that I…', options: [
+        { text: '🔥 Work best when there is pressure', guildWeights: { dragon_flame: 2, phoenix_rising: 1 } },
+        { text: '🤝 Need friends to do my best', guildWeights: { grizzly_might: 2, owl_wisdom: 1 } },
+        { text: '🧠 Need to understand things fully', guildWeights: { owl_wisdom: 2, dragon_flame: 1 } },
+        { text: '💪 Am stronger than I thought', guildWeights: { phoenix_rising: 2, grizzly_might: 1 } },
     ]},
-    { id: 'cd29', emoji: '🌐', question: 'My attitude to learning English and language in general is…', options: [
-        { text: '🏆 Highly ambitious — I genuinely want to reach the very highest level possible', guildWeights: { dragon_flame: 2, phoenix_rising: 1 } },
-        { text: '🌍 Deeply social — the real value for me is connecting meaningfully with other people', guildWeights: { grizzly_might: 2, owl_wisdom: 1 } },
-        { text: '🧠 Genuinely intellectual — I find the structure and depth of the language truly fascinating', guildWeights: { owl_wisdom: 2, dragon_flame: 1 } },
-        { text: '💪 Absolutely determined — I have worked very hard to get here and I certainly will not stop', guildWeights: { phoenix_rising: 2, grizzly_might: 1 } },
+    { id: 'cd29', emoji: '🌐', question: 'I like learning English because…', options: [
+        { text: '🏆 I want to be the very best', guildWeights: { dragon_flame: 2, phoenix_rising: 1 } },
+        { text: '🌍 It helps me talk to more people', guildWeights: { grizzly_might: 2, owl_wisdom: 1 } },
+        { text: '🧠 The language is interesting', guildWeights: { owl_wisdom: 2, dragon_flame: 1 } },
+        { text: '💪 I have worked hard and will not stop', guildWeights: { phoenix_rising: 2, grizzly_might: 1 } },
     ]},
-    { id: 'cd30', emoji: '🏆', question: 'I feel most proud when I…', options: [
-        { text: '🌟 Achieve something truly remarkable that required real courage and commitment', guildWeights: { dragon_flame: 2, phoenix_rising: 1 } },
-        { text: '🤗 Genuinely help someone who really needed support and was struggling', guildWeights: { grizzly_might: 2, owl_wisdom: 1 } },
-        { text: '💡 Finally fully understand something complex that had genuinely challenged me', guildWeights: { owl_wisdom: 2, dragon_flame: 1 } },
-        { text: '🌄 Accomplish something I once truly believed was completely beyond my abilities', guildWeights: { phoenix_rising: 2, grizzly_might: 1 } },
+    { id: 'cd30', emoji: '🏆', question: 'I am proud when I…', options: [
+        { text: '🌟 Do something brave and important', guildWeights: { dragon_flame: 2, phoenix_rising: 1 } },
+        { text: '🤗 Help someone who needs it', guildWeights: { grizzly_might: 2, owl_wisdom: 1 } },
+        { text: '💡 Finally understand something hard', guildWeights: { owl_wisdom: 2, dragon_flame: 1 } },
+        { text: '🌄 Do something I thought was impossible', guildWeights: { phoenix_rising: 2, grizzly_might: 1 } },
     ]},
-    { id: 'cd31', emoji: '🤔', question: 'I believe a truly great friendship is built on…', options: [
-        { text: '🦁 Mutual respect and the genuine courage to always be completely honest', guildWeights: { dragon_flame: 2, phoenix_rising: 1 } },
-        { text: '🤝 Real loyalty — being there unconditionally no matter what actually happens', guildWeights: { grizzly_might: 2, owl_wisdom: 1 } },
-        { text: '🧠 Shared curiosity and the ability to truly learn and grow from each other', guildWeights: { owl_wisdom: 2, dragon_flame: 1 } },
-        { text: '🌊 A deep and consistent commitment to supporting each other through the hardest of times', guildWeights: { phoenix_rising: 2, grizzly_might: 1 } },
+    { id: 'cd31', emoji: '🤔', question: 'A good friendship needs…', options: [
+        { text: '🦁 Honesty and respect', guildWeights: { dragon_flame: 2, phoenix_rising: 1 } },
+        { text: '🤝 Loyalty — being there no matter what', guildWeights: { grizzly_might: 2, owl_wisdom: 1 } },
+        { text: '🧠 Learning and growing together', guildWeights: { owl_wisdom: 2, dragon_flame: 1 } },
+        { text: '🌊 Supporting each other in hard times', guildWeights: { phoenix_rising: 2, grizzly_might: 1 } },
     ]},
-    { id: 'cd32', emoji: '🎖️', question: 'The kind of achievement I genuinely value most is…', options: [
-        { text: '🔥 Something bold that required real courage, risk-taking and conviction', guildWeights: { dragon_flame: 2, phoenix_rising: 1 } },
-        { text: '🤝 Something done completely together that no single person could ever have done alone', guildWeights: { grizzly_might: 2, owl_wisdom: 1 } },
-        { text: '🎓 Something based on very deep knowledge, real expertise and genuine understanding', guildWeights: { owl_wisdom: 2, dragon_flame: 1 } },
-        { text: '🌱 Something that required years of absolutely patient, persistent and consistent effort', guildWeights: { phoenix_rising: 2, grizzly_might: 1 } },
+    { id: 'cd32', emoji: '🎖️', question: 'The best kind of success is…', options: [
+        { text: '🔥 Doing something brave and risky', guildWeights: { dragon_flame: 2, phoenix_rising: 1 } },
+        { text: '🤝 Doing something as a team', guildWeights: { grizzly_might: 2, owl_wisdom: 1 } },
+        { text: '🎓 Doing something that needs deep knowledge', guildWeights: { owl_wisdom: 2, dragon_flame: 1 } },
+        { text: '🌱 Doing something that takes years of hard work', guildWeights: { phoenix_rising: 2, grizzly_might: 1 } },
     ]},
-    { id: 'cd33', emoji: '💫', question: 'The aspect of my character I am most proud of is…', options: [
-        { text: '💥 My boldness — I act on my convictions even when the risk is very real', guildWeights: { dragon_flame: 2, phoenix_rising: 1 } },
-        { text: '🤗 My loyalty — the people I care about can always count on me absolutely', guildWeights: { grizzly_might: 2, owl_wisdom: 1 } },
-        { text: '🔍 My curiosity — I am always searching for deeper understanding and meaning', guildWeights: { owl_wisdom: 2, dragon_flame: 1 } },
-        { text: '🌊 My resilience — I have come back stronger from things that would have stopped others', guildWeights: { phoenix_rising: 2, grizzly_might: 1 } },
+    { id: 'cd33', emoji: '💫', question: 'The best thing about me is…', options: [
+        { text: '💥 I am bold and take action', guildWeights: { dragon_flame: 2, phoenix_rising: 1 } },
+        { text: '🤗 I am loyal to my friends', guildWeights: { grizzly_might: 2, owl_wisdom: 1 } },
+        { text: '🔍 I am curious and love to learn', guildWeights: { owl_wisdom: 2, dragon_flame: 1 } },
+        { text: '🌊 I bounce back from hard times', guildWeights: { phoenix_rising: 2, grizzly_might: 1 } },
     ]},
-    { id: 'cd34', emoji: '🌿', question: 'The way I approach long-term self-improvement is…', options: [
-        { text: '💥 Setting bold targets and working consistently hard to beat my personal best', guildWeights: { dragon_flame: 2, phoenix_rising: 1 } },
-        { text: '🤝 Learning actively from mentors and real role models I genuinely respect', guildWeights: { grizzly_might: 2, owl_wisdom: 1 } },
-        { text: '🎯 Identifying specific gaps in my abilities and targeting them with great precision', guildWeights: { owl_wisdom: 2, dragon_flame: 1 } },
-        { text: '🌱 Trusting completely in small, consistent daily efforts that build up powerfully over time', guildWeights: { phoenix_rising: 2, grizzly_might: 1 } },
+    { id: 'cd34', emoji: '🌿', question: 'To improve myself over time, I…', options: [
+        { text: '💥 Set big goals and beat my best', guildWeights: { dragon_flame: 2, phoenix_rising: 1 } },
+        { text: '🤝 Learn from people I respect', guildWeights: { grizzly_might: 2, owl_wisdom: 1 } },
+        { text: '🎯 Find weak spots and fix them', guildWeights: { owl_wisdom: 2, dragon_flame: 1 } },
+        { text: '🌱 Practice a little every day', guildWeights: { phoenix_rising: 2, grizzly_might: 1 } },
     ]},
-    { id: 'cd35', emoji: '✨', question: 'My motto for life could be…', options: [
-        { text: '🔥 "Fear nothing. Burn bright."', guildWeights: { dragon_flame: 2, phoenix_rising: 1 } },
-        { text: '🤝 "Stand together. Stand strong."', guildWeights: { grizzly_might: 2, owl_wisdom: 1 } },
-        { text: '🧠 "Knowledge is power."', guildWeights: { owl_wisdom: 2, dragon_flame: 1 } },
-        { text: '💪 "Fall down seven, rise up eight."', guildWeights: { phoenix_rising: 2, grizzly_might: 1 } },
+    { id: 'cd35', emoji: '✨', question: 'My motto for life is…', options: [
+        { text: '🔥 "Be brave and strong!"', guildWeights: { dragon_flame: 2, phoenix_rising: 1 } },
+        { text: '🤝 "Stand together!"', guildWeights: { grizzly_might: 2, owl_wisdom: 1 } },
+        { text: '🧠 "Keep learning!"', guildWeights: { owl_wisdom: 2, dragon_flame: 1 } },
+        { text: '💪 "Never give up!"', guildWeights: { phoenix_rising: 2, grizzly_might: 1 } },
     ]},
 ];
 

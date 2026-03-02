@@ -372,9 +372,12 @@ export function renderGuildsTab() {
 
         const topHtml = g.topContributors.length
             ? `<div class="guild-crystal-heroes">
-                   <button class="guild-top-heroes-btn" data-top-heroes-guild="${g.guildId}">
-                       ⚔️ Top Heroes
-                   </button>
+                   <div class="guild-top-heroes-header">
+                       <span class="guild-top-heroes-title">⚔️ Top Heroes</span>
+                       <button class="guild-info-btn" data-top-heroes-guild="${g.guildId}" title="View Guild Analytics">
+                           ℹ️
+                       </button>
+                   </div>
                    ${g.topContributors.slice(0, 3).map(c => `
                        <span class="guild-crystal-hero-chip" style="color:${primary};border-color:${primary}33;">
                            ${c.name}
@@ -382,9 +385,12 @@ export function renderGuildsTab() {
                        </span>`).join('')}
                </div>`
             : `<div class="guild-crystal-heroes">
-                   <button class="guild-top-heroes-btn" data-top-heroes-guild="${g.guildId}">
-                       ⚔️ Top Heroes
-                   </button>
+                   <div class="guild-top-heroes-header">
+                       <span class="guild-top-heroes-title">⚔️ Top Heroes</span>
+                       <button class="guild-info-btn" data-top-heroes-guild="${g.guildId}" title="View Guild Analytics">
+                           ℹ️
+                       </button>
+                   </div>
                    <span class="guild-crystal-heroes-label" style="opacity:0.45">No heroes yet</span>
                </div>`;
 

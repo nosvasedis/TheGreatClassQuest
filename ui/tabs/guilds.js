@@ -2,6 +2,7 @@
 
 import { getGuildLeaderboardData } from '../../features/guildScoring.js';
 import { getGuildById, getGuildEmblemUrl, GUILD_IDS, GUILDS } from '../../features/guilds.js';
+import { openGuildHeroesModal } from '../modals/guildHeroes.js';
 
 // ─── Sound cache ─────────────────────────────────────────────────────────────
 const _audioCache = {};
@@ -317,7 +318,7 @@ function _getChampionHtml(gData, primary, glow) {
             <div class="min-w-0">
                 <div class="text-[10px] font-bold uppercase tracking-wider opacity-60" style="color:${primary}">Top Champion</div>
                 <div class="text-xs font-bold truncate text-white">${champ.name}</div>
-                <div class="text-[10px] opacity-50">${champ.totalStars} ⭐ total</div>
+                <div class="text-[10px]" style="color:rgba(255,255,255,0.78)">${champ.totalStars} ⭐ total</div>
             </div>
         </div>`;
 }
@@ -371,7 +372,9 @@ export function renderGuildsTab() {
 
         const topHtml = g.topContributors.length
             ? `<div class="guild-crystal-heroes">
-                   <span class="guild-crystal-heroes-label">⚔️ Top Heroes</span>
+                   <button class="guild-top-heroes-btn" data-top-heroes-guild="${g.guildId}">
+                       ⚔️ Top Heroes
+                   </button>
                    ${g.topContributors.slice(0, 3).map(c => `
                        <span class="guild-crystal-hero-chip" style="color:${primary};border-color:${primary}33;">
                            ${c.name}
@@ -379,6 +382,9 @@ export function renderGuildsTab() {
                        </span>`).join('')}
                </div>`
             : `<div class="guild-crystal-heroes">
+                   <button class="guild-top-heroes-btn" data-top-heroes-guild="${g.guildId}">
+                       ⚔️ Top Heroes
+                   </button>
                    <span class="guild-crystal-heroes-label" style="opacity:0.45">No heroes yet</span>
                </div>`;
 
@@ -458,6 +464,13 @@ export function renderGuildsTab() {
     if (!arena) return;
 
     const handleGuildActivate = (e) => {
+        const topHeroesBtn = e.target.closest('.guild-top-heroes-btn');
+        if (topHeroesBtn) {
+            e.stopPropagation();
+            openGuildHeroesModal(topHeroesBtn.dataset.topHeroesGuild);
+            return;
+        }
+
         // Anthem button takes priority
         const anthemBtn = e.target.closest('.guild-anthem-btn');
         if (anthemBtn) {

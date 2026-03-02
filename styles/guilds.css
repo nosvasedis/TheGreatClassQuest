@@ -1278,3 +1278,246 @@
 }
 .sorting-quiz-result-motto  { font-size: 0.85rem; color: rgba(255,255,255,0.75); font-style: italic; margin-bottom: 0.9rem; }
 .sorting-quiz-result-msg    { font-size: 0.85rem; color: rgba(255,255,255,0.8);  margin-bottom: 1.25rem; line-height: 1.5; }
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   GUILD HEROES ANALYTICS MODAL
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.guild-top-heroes-btn {
+    font-size: 0.63rem;
+    color: rgba(255,255,255,0.9);
+    text-transform: uppercase;
+    letter-spacing: 0.07em;
+    padding: 0.2rem 0.55rem;
+    border-radius: 9999px;
+    border: 1px solid rgba(255,255,255,0.24);
+    background: rgba(0,0,0,0.22);
+    transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
+}
+.guild-top-heroes-btn:hover {
+    transform: translateY(-1px);
+    border-color: rgba(255,255,255,0.55);
+    box-shadow: 0 6px 18px rgba(0,0,0,0.3);
+}
+
+.guild-heroes-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 220;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1rem;
+}
+.guild-heroes-overlay.hidden { display: none; }
+.guild-heroes-overlay-bg {
+    position: absolute;
+    inset: 0;
+    background: rgba(2, 8, 20, 0.8);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+}
+.guild-heroes-card {
+    position: relative;
+    z-index: 1;
+    width: min(1100px, 100%);
+    max-height: 92vh;
+    overflow-y: auto;
+    border-radius: 1.25rem;
+    padding: 1.1rem;
+    background: linear-gradient(180deg, #0b1223 0%, #111827 100%);
+    color: #e2e8f0;
+    border: 1px solid rgba(148,163,184,0.28);
+    box-shadow: 0 26px 70px rgba(0,0,0,0.6);
+}
+
+.guild-heroes-close-btn {
+    position: absolute;
+    top: 0.7rem;
+    right: 0.8rem;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    border: 1px solid rgba(255,255,255,0.2);
+    background: rgba(15,23,42,0.75);
+    color: #cbd5e1;
+}
+.guild-heroes-close-btn:hover { background: rgba(30,41,59,0.95); }
+
+.guild-heroes-header { padding-right: 2.2rem; margin-bottom: 0.75rem; }
+.guild-heroes-title { font-size: 1.4rem; color: #f8fafc; margin: 0; }
+.guild-heroes-subtitle { color: #93c5fd; font-size: 0.82rem; margin-top: 0.2rem; }
+
+.guild-heroes-overview {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 0.6rem;
+    margin-bottom: 0.75rem;
+}
+.guild-heroes-overview-card {
+    text-align: left;
+    border-radius: 0.9rem;
+    padding: 0.6rem;
+    border: 1px solid rgba(148,163,184,0.25);
+    background: linear-gradient(160deg, rgba(15,23,42,0.9), rgba(30,41,59,0.88));
+    transition: transform 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
+}
+.guild-heroes-overview-card:hover {
+    transform: translateY(-1px);
+    border-color: rgba(255,255,255,0.35);
+}
+.guild-heroes-overview-card.active {
+    border-color: var(--gh-primary, #60a5fa);
+    box-shadow: 0 0 22px color-mix(in srgb, var(--gh-glow, #60a5fa) 35%, transparent);
+}
+.guild-heroes-overview-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 0.4rem;
+}
+.guild-heroes-rank { font-size: 0.72rem; color: #cbd5e1; }
+.guild-heroes-name { font-size: 0.77rem; color: #f8fafc; font-weight: 700; }
+.guild-heroes-overview-body { display: flex; align-items: center; gap: 0.5rem; }
+.guild-heroes-overview-meta { min-width: 0; }
+.guild-heroes-overview-line {
+    font-size: 0.68rem;
+    color: #cbd5e1;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.guild-heroes-tabs {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.45rem;
+    margin-bottom: 0.8rem;
+}
+.guild-heroes-tab-btn {
+    font-size: 0.75rem;
+    border-radius: 9999px;
+    padding: 0.32rem 0.75rem;
+    border: 1px solid rgba(148,163,184,0.3);
+    background: rgba(15,23,42,0.8);
+    color: #cbd5e1;
+}
+.guild-heroes-tab-btn.active {
+    border-color: var(--gh-tab, #60a5fa);
+    color: #fff;
+    box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--gh-tab, #60a5fa) 45%, transparent);
+}
+
+.guild-heroes-kpis {
+    display: grid;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    gap: 0.55rem;
+    margin-bottom: 0.8rem;
+}
+.guild-heroes-kpi {
+    border: 1px solid rgba(148,163,184,0.2);
+    border-radius: 0.75rem;
+    padding: 0.5rem;
+    background: rgba(15,23,42,0.7);
+}
+.guild-heroes-kpi span { display: block; font-size: 0.65rem; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.06em; }
+.guild-heroes-kpi strong { display: block; margin-top: 0.2rem; font-size: 1rem; color: #f8fafc; }
+
+.guild-heroes-champions {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.6rem;
+    margin-bottom: 0.8rem;
+}
+.guild-heroes-champion-card {
+    border-radius: 0.9rem;
+    border: 1px solid rgba(148,163,184,0.25);
+    background: rgba(15,23,42,0.72);
+    padding: 0.6rem;
+}
+.guild-heroes-champion-card .label { font-size: 0.66rem; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.06em; }
+.guild-heroes-champion-card .body { margin-top: 0.35rem; display: flex; align-items: center; gap: 0.55rem; }
+.guild-heroes-champion-card .name { color: #f8fafc; font-weight: 700; font-size: 0.86rem; }
+.guild-heroes-champion-card .meta { color: #cbd5e1; font-size: 0.72rem; }
+
+.guild-heroes-avatar {
+    width: 36px;
+    height: 36px;
+    border-radius: 9999px;
+    object-fit: cover;
+    border: 2px solid rgba(255,255,255,0.25);
+    flex-shrink: 0;
+}
+.guild-heroes-avatar.fallback {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-weight: 700;
+}
+
+.guild-heroes-grid {
+    display: grid;
+    grid-template-columns: 1.6fr 1fr;
+    gap: 0.7rem;
+}
+.guild-heroes-panel {
+    border: 1px solid rgba(148,163,184,0.22);
+    border-radius: 0.9rem;
+    background: rgba(15,23,42,0.72);
+    padding: 0.65rem;
+}
+.guild-heroes-panel h4 {
+    font-family: 'Fredoka One', cursive;
+    font-size: 0.95rem;
+    margin-bottom: 0.5rem;
+    color: #f8fafc;
+}
+.guild-heroes-panel h5 {
+    margin-top: 0.6rem;
+    margin-bottom: 0.25rem;
+    font-size: 0.7rem;
+    color: #93c5fd;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+}
+
+.guild-heroes-table-wrap { overflow-x: auto; }
+.guild-heroes-table { width: 100%; border-collapse: collapse; }
+.guild-heroes-table th, .guild-heroes-table td {
+    font-size: 0.74rem;
+    border-bottom: 1px solid rgba(148,163,184,0.2);
+    padding: 0.38rem 0.3rem;
+    text-align: left;
+}
+.guild-heroes-table th { color: #93c5fd; font-size: 0.66rem; text-transform: uppercase; letter-spacing: 0.05em; }
+.guild-heroes-empty-row { color: #94a3b8; text-align: center; padding: 0.8rem 0.4rem; }
+.guild-heroes-cell-hero { display: flex; align-items: center; gap: 0.45rem; min-width: 170px; }
+.guild-heroes-cell-hero .name { color: #f8fafc; font-weight: 700; font-size: 0.77rem; }
+.guild-heroes-cell-hero .meta { color: #94a3b8; font-size: 0.66rem; }
+
+.guild-heroes-bullets { margin: 0; padding-left: 1rem; }
+.guild-heroes-bullets li { font-size: 0.75rem; color: #cbd5e1; margin-bottom: 0.23rem; }
+.guild-heroes-rivalry {
+    margin-top: 0.7rem;
+    border-radius: 0.65rem;
+    padding: 0.45rem 0.55rem;
+    border: 1px solid rgba(96,165,250,0.35);
+    background: rgba(30,58,138,0.2);
+    color: #bfdbfe;
+    font-size: 0.72rem;
+}
+.guild-heroes-empty { color: #94a3b8; text-align: center; padding: 0.9rem; }
+
+@media (max-width: 980px) {
+    .guild-heroes-overview { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .guild-heroes-kpis { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+    .guild-heroes-grid { grid-template-columns: 1fr; }
+}
+@media (max-width: 640px) {
+    .guild-heroes-card { padding: 0.85rem; }
+    .guild-heroes-title { font-size: 1.15rem; }
+    .guild-heroes-overview { grid-template-columns: 1fr; }
+    .guild-heroes-kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .guild-heroes-champions { grid-template-columns: 1fr; }
+}

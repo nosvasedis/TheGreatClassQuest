@@ -470,10 +470,10 @@ export function renderGuildsTab() {
     if (!arena) return;
 
     const handleGuildActivate = (e) => {
-        const topHeroesBtn = e.target.closest('.guild-top-heroes-btn');
-        if (topHeroesBtn) {
+        const infoBtn = e.target.closest('.guild-info-btn');
+        if (infoBtn) {
             e.stopPropagation();
-            openGuildHeroesModal(topHeroesBtn.dataset.topHeroesGuild);
+            openGuildHeroesModal(infoBtn.dataset.topHeroesGuild);
             return;
         }
 

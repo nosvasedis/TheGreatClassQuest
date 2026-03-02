@@ -1,6 +1,7 @@
 // /ui/modals/guildHeroes.js
 
 import { getGuildHeroAnalytics } from '../../features/guildHeroAnalytics.js';
+import { getGuildEmblemUrl } from '../../features/guilds.js';
 import { hideModal, showAnimatedModal } from './base.js';
 
 let _wired = false;
@@ -47,7 +48,7 @@ function _allHeroesForSelectedGuild(guild) {
 }
 
 function _guildEmblem(guild) {
-    const emblemUrl = guild.emblemUrl || guild.emblem;
+    const emblemUrl = getGuildEmblemUrl(guild.guildId);
     if (emblemUrl) {
         return `<img src="${emblemUrl}" alt="${_escapeHtml(guild.guildName)}" class="guild-heroes-emblem-mini" 
                 style="border-color:${guild.colors.primary}; box-shadow: 0 0 8px ${guild.colors.glow}77;">`;

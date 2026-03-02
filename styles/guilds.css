@@ -1283,7 +1283,19 @@
    GUILD HEROES ANALYTICS MODAL - GAMEY FANTASY THEME
    ═══════════════════════════════════════════════════════════════════════════ */
 
-
+/* ─── Fun Animations ─── */
+@keyframes gh-name-glow {
+    0%, 100% { filter: drop-shadow(0 1px 2px rgba(99, 102, 241, 0.2)); transform: scale(1); }
+    50% { filter: drop-shadow(0 2px 6px rgba(139, 92, 246, 0.4)); transform: scale(1.02); }
+}
+@keyframes gh-champion-pulse {
+    0%, 100% { filter: drop-shadow(0 2px 4px rgba(245, 158, 11, 0.2)); transform: scale(1); }
+    50% { filter: drop-shadow(0 3px 8px rgba(236, 72, 153, 0.4)); transform: scale(1.03); }
+}
+@keyframes gh-float {
+    0%, 100% { transform: translateY(0px); }
+    50% { transform: translateY(-4px); }
+}
 
 /* Guild Hall - Top Heroes Header with Info Button */
 .guild-top-heroes-header {
@@ -1688,8 +1700,14 @@
 }
 .guild-heroes-champion-card .name {
     font-family: 'Fredoka One', cursive;
-    color: #1f2937;
-    font-size: 1.1rem;
+    font-size: 1.15rem;
+    background: linear-gradient(135deg, #f59e0b, #ec4899, #8b5cf6);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    display: inline-block;
+    filter: drop-shadow(0 2px 4px rgba(245, 158, 11, 0.2));
+    animation: gh-champion-pulse 1.5s ease-in-out infinite;
 }
 .guild-heroes-champion-card .meta {
     color: #6b7280;
@@ -1705,13 +1723,15 @@
     height: 48px;
     border-radius: 50%;
     object-fit: cover;
-    border: 2px solid #e5e7eb;
+    border: 3px solid #e5e7eb;
     flex-shrink: 0;
-    transition: all 0.2s ease;
+    transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
 }
 .guild-heroes-avatar:hover {
-    transform: scale(1.05);
-    border-color: #c7d2fe;
+    transform: scale(1.15) rotate(5deg);
+    border-color: #818cf8;
+    box-shadow: 0 8px 20px rgba(99, 102, 241, 0.3);
 }
 .guild-heroes-avatar.fallback {
     display: flex;
@@ -1760,7 +1780,9 @@
 }
 .guild-heroes-leaderboard-item:hover {
     background: #f3f4f6;
-    border-color: #e5e7eb;
+    border-color: #c7d2fe;
+    transform: translateX(4px);
+    box-shadow: 0 4px 12px rgba(99, 102, 241, 0.15);
 }
 .guild-heroes-leaderboard-item.top-1 {
     background: #fef3c7;
@@ -1807,13 +1829,20 @@
 }
 .guild-heroes-hero-info .name {
     font-family: 'Fredoka One', cursive;
-    color: #fff;
     font-size: 1rem;
     margin-bottom: 0.15rem;
+    background: linear-gradient(135deg, #6366f1, #8b5cf6, #ec4899);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    display: inline-block;
+    filter: drop-shadow(0 1px 2px rgba(99, 102, 241, 0.2));
+    animation: gh-name-glow 2s ease-in-out infinite;
 }
 .guild-heroes-hero-info .meta {
-    color: #94a3b8;
+    color: #6b7280;
     font-size: 0.75rem;
+    font-weight: 500;
 }
 .guild-heroes-stat {
     text-align: center;
@@ -1923,8 +1952,13 @@
 }
 .guild-heroes-cell-hero .name {
     font-family: 'Fredoka One', cursive;
-    color: #1f2937;
-    font-size: 0.85rem;
+    font-size: 0.9rem;
+    background: linear-gradient(135deg, #4f46e5, #7c3aed, #db2777);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    display: inline-block;
+    filter: drop-shadow(0 1px 2px rgba(79, 70, 229, 0.15));
 }
 .guild-heroes-cell-hero .meta {
     color: #9ca3af;

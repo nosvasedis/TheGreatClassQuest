@@ -131,7 +131,7 @@ function _renderChampionsView(guild) {
     const allTimeChampion = guild.champions.allTimeChampion;
     return `
         <div class="guild-heroes-champions">
-            <div class="guild-heroes-champion-card">
+            <div class="guild-heroes-champion-card" style="--gh-primary:${guild.colors.primary};--gh-secondary:${guild.colors.secondary};">
                 <div class="label">Monthly Champion</div>
                 <div class="body">
                     ${_heroAvatar(monthlyChampion, guild.colors.primary)}
@@ -141,7 +141,7 @@ function _renderChampionsView(guild) {
                     </div>
                 </div>
             </div>
-            <div class="guild-heroes-champion-card">
+            <div class="guild-heroes-champion-card" style="--gh-primary:${guild.colors.secondary};--gh-secondary:${guild.colors.primary};">
                 <div class="label">All-Time Top Champion</div>
                 <div class="body">
                     ${_heroAvatar(allTimeChampion, guild.colors.secondary)}
@@ -156,105 +156,142 @@ function _renderChampionsView(guild) {
 }
 
 function _renderTopHeroesView(guild) {
+    const maxStars = guild.heroesTop.length ? Math.max(...guild.heroesTop.map(h => h.totalStars)) : 1;
+    
     const rows = guild.heroesTop.length
-        ? guild.heroesTop.map((h, idx) => `
-            <tr>
-                <td>${idx + 1}</td>
-                <td>
-                    <div class="guild-heroes-cell-hero">
-                        ${_heroAvatar(h, guild.colors.primary)}
-                        <div>
-                            <div class="name">${_escapeHtml(h.name)}</div>
-                            <div class="meta">${_escapeHtml(h.heroClass)} · ${_escapeHtml(h.className)}</div>
+        ? guild.heroesTop.map((h, idx) => {
+            const rankClass = idx === 0 ? 'top-1' : idx === 1 ? 'top-2' : idx === 2 ? 'top-3' : '';
+            const badgeClass = idx === 0 ? 'gold' : idx === 1 ? 'silver' : idx === 2 ? 'bronze' : 'other';
+            const rankIcon = idx === 0 ? '👑' : idx === 1 ? '🥈' : idx === 2 ? '🥉' : `#${idx + 1}`;
+            const progressPct = maxStars > 0 ? (h.totalStars / maxStars) * 100 : 0;
+            
+            return `
+                <div class="guild-heroes-leaderboard-item ${rankClass}">
+                    <div class="guild-heroes-rank-badge ${badgeClass}">${rankIcon}</div>
+                    ${_heroAvatar(h, guild.colors.primary)}
+                    <div class="guild-heroes-hero-info">
+                        <div class="name">${_escapeHtml(h.name)}</div>
+                        <div class="meta">${_escapeHtml(h.heroClass)} · ${_escapeHtml(h.className)}</div>
+                        <div class="guild-heroes-progress-bar">
+                            <div class="guild-heroes-progress-fill" style="width: ${progressPct}%"></div>
                         </div>
                     </div>
-                </td>
-                <td>${_fmtNumber(h.totalStars)}</td>
-                <td>${_fmtNumber(h.monthlyStars)}</td>
-                <td>${_fmtOne(h.contributionPct)}%</td>
-            </tr>
-        `).join('')
-        : `<tr><td colspan="5" class="guild-heroes-empty-row">No heroes in this guild yet.</td></tr>`;
+                    <div class="guild-heroes-stat">
+                        <div class="value">${_fmtNumber(h.totalStars)}</div>
+                        <div class="label">Total ⭐</div>
+                    </div>
+                    <div class="guild-heroes-stat">
+                        <div class="value">${_fmtNumber(h.monthlyStars)}</div>
+                        <div class="label">Month ⭐</div>
+                    </div>
+                    <div class="guild-heroes-stat">
+                        <div class="value">${_fmtOne(h.contributionPct)}%</div>
+                        <div class="label">Share</div>
+                    </div>
+                </div>
+            `;
+        }).join('')
+        : `<div class="guild-heroes-empty">No heroes in this guild yet. Be the first!</div>`;
 
     return `
-        <section class="guild-heroes-panel">
-            <h4>Top Heroes of ${_escapeHtml(guild.guildName)}</h4>
-            <div class="guild-heroes-table-wrap">
-                <table class="guild-heroes-table">
-                    <thead><tr><th>#</th><th>Hero</th><th>Total</th><th>Month</th><th>Share</th></tr></thead>
-                    <tbody>${rows}</tbody>
-                </table>
+        <div class="guild-heroes-leaderboard">
+            <div class="guild-heroes-leaderboard-header">
+                <h4>⚔️ Top Heroes of ${_escapeHtml(guild.guildName)}</h4>
             </div>
-        </section>
+            <div class="guild-heroes-leaderboard-list">
+                ${rows}
+            </div>
+        </div>
     `;
 }
 
 function _renderAllHeroesView(payload, guild) {
     const allAcross = _allHeroesAcrossGuilds(payload);
     const selected = _allHeroesForSelectedGuild(guild);
+    
     const crossRows = allAcross.length
-        ? allAcross.map((h, idx) => `
-            <tr>
-                <td>${idx + 1}</td>
-                <td>
-                    <div class="guild-heroes-cell-hero">
-                        ${_heroAvatar(h, h.guildColors.primary)}
-                        <div>
-                            <div class="name">${_escapeHtml(h.name)}</div>
-                            <div class="meta">${_escapeHtml(h.heroClass)} · ${_escapeHtml(h.className)}</div>
-                        </div>
+        ? allAcross.map((h, idx) => {
+            const rankClass = idx === 0 ? 'top-1' : idx === 1 ? 'top-2' : idx === 2 ? 'top-3' : '';
+            const badgeClass = idx === 0 ? 'gold' : idx === 1 ? 'silver' : idx === 2 ? 'bronze' : 'other';
+            const rankIcon = idx === 0 ? '👑' : idx === 1 ? '🥈' : idx === 2 ? '🥉' : `#${idx + 1}`;
+            
+            return `
+                <div class="guild-heroes-leaderboard-item ${rankClass}">
+                    <div class="guild-heroes-rank-badge ${badgeClass}">${rankIcon}</div>
+                    ${_heroAvatar(h, h.guildColors.primary)}
+                    <div class="guild-heroes-hero-info">
+                        <div class="name">${_escapeHtml(h.name)}</div>
+                        <div class="meta">${_escapeHtml(h.heroClass)} · ${_escapeHtml(h.className)}</div>
                     </div>
-                </td>
-                <td>${_escapeHtml(h.guildEmoji)} ${_escapeHtml(h.guildName)}</td>
-                <td>${_fmtNumber(h.totalStars)}</td>
-                <td>${_fmtNumber(h.monthlyStars)}</td>
-            </tr>
-        `).join('')
-        : `<tr><td colspan="5" class="guild-heroes-empty-row">No heroes yet.</td></tr>`;
+                    <div class="guild-heroes-stat">
+                        <div class="value" style="color:${h.guildColors.primary}">${_escapeHtml(h.guildEmoji)}</div>
+                        <div class="label">${_escapeHtml(h.guildName)}</div>
+                    </div>
+                    <div class="guild-heroes-stat">
+                        <div class="value">${_fmtNumber(h.totalStars)}</div>
+                        <div class="label">Total ⭐</div>
+                    </div>
+                    <div class="guild-heroes-stat">
+                        <div class="value">${_fmtNumber(h.monthlyStars)}</div>
+                        <div class="label">Month ⭐</div>
+                    </div>
+                </div>
+            `;
+        }).join('')
+        : `<div class="guild-heroes-empty">No heroes yet.</div>`;
 
     const selectedRows = selected.length
-        ? selected.map((h, idx) => `
-            <tr>
-                <td>${idx + 1}</td>
-                <td>${_escapeHtml(h.name)}</td>
-                <td>${_fmtNumber(h.totalStars)}</td>
-                <td>${_fmtNumber(h.monthlyStars)}</td>
-            </tr>
-        `).join('')
-        : `<tr><td colspan="4" class="guild-heroes-empty-row">No heroes in this guild yet.</td></tr>`;
+        ? selected.map((h, idx) => {
+            const badgeClass = idx === 0 ? 'gold' : idx === 1 ? 'silver' : idx === 2 ? 'bronze' : 'other';
+            return `
+                <div class="guild-heroes-leaderboard-item">
+                    <div class="guild-heroes-rank-badge ${badgeClass}">#${idx + 1}</div>
+                    <div class="guild-heroes-hero-info" style="flex:1">
+                        <div class="name">${_escapeHtml(h.name)}</div>
+                    </div>
+                    <div class="guild-heroes-stat">
+                        <div class="value">${_fmtNumber(h.totalStars)}</div>
+                        <div class="label">Total ⭐</div>
+                    </div>
+                    <div class="guild-heroes-stat">
+                        <div class="value">${_fmtNumber(h.monthlyStars)}</div>
+                        <div class="label">Month ⭐</div>
+                    </div>
+                </div>
+            `;
+        }).join('')
+        : `<div class="guild-heroes-empty">No heroes in this guild yet.</div>`;
 
     return `
         <div class="guild-heroes-grid">
-            <section class="guild-heroes-panel">
-                <h4>All Guild Heroes (Cross-Guild)</h4>
-                <div class="guild-heroes-table-wrap">
-                    <table class="guild-heroes-table">
-                        <thead><tr><th>#</th><th>Hero</th><th>Guild</th><th>Total</th><th>Month</th></tr></thead>
-                        <tbody>${crossRows}</tbody>
-                    </table>
+            <div class="guild-heroes-leaderboard">
+                <div class="guild-heroes-leaderboard-header">
+                    <h4>🌍 All Guild Heroes (Cross-Guild)</h4>
                 </div>
-            </section>
-            <section class="guild-heroes-panel">
-                <h4>Selected Guild Roster</h4>
-                <p class="guild-heroes-note">Full roster for ${_escapeHtml(guild.guildName)} sorted by total stars.</p>
-                <div class="guild-heroes-table-wrap">
-                    <table class="guild-heroes-table">
-                        <thead><tr><th>#</th><th>Hero</th><th>Total</th><th>Month</th></tr></thead>
-                        <tbody>${selectedRows}</tbody>
-                    </table>
+                <div class="guild-heroes-leaderboard-list">
+                    ${crossRows}
                 </div>
-            </section>
+            </div>
+            <div class="guild-heroes-panel">
+                <h4>📋 ${_escapeHtml(guild.guildName)} Roster</h4>
+                <p class="guild-heroes-note">Full roster sorted by total stars</p>
+                ${selectedRows}
+            </div>
         </div>
     `;
 }
 
 function _renderHealthView(payload, guild) {
     const leader = payload.guilds[0];
+    const activeRate = guild.breakdown.activeRatePct || 0;
+    const top3Share = guild.breakdown.top3SharePct || 0;
+    
     const classContrib = guild.breakdown.classContributions.length
         ? guild.breakdown.classContributions.slice(0, 8).map(c =>
             `<li>${_escapeHtml(c.className)}: <strong>${_fmtNumber(c.totalStars)}⭐</strong> (${_fmtOne(c.sharePct)}%)</li>`
         ).join('')
         : '<li>No class contribution data yet.</li>';
+        
     const heroClassMix = guild.breakdown.heroClassMix.length
         ? guild.breakdown.heroClassMix.map(c =>
             `<li>${_escapeHtml(c.heroClass)}: <strong>${_fmtNumber(c.count)}</strong></li>`
@@ -267,21 +304,52 @@ function _renderHealthView(payload, guild) {
 
     return `
         <div class="guild-heroes-grid">
-            <section class="guild-heroes-panel">
-                <h4>Team Health Metrics</h4>
-                <ul class="guild-heroes-bullets">
-                    <li>Active heroes this month: <strong>${_fmtNumber(guild.breakdown.activeHeroes)}</strong> / ${_fmtNumber(guild.totals.memberCount)} (${_fmtOne(guild.breakdown.activeRatePct)}%)</li>
-                    <li>Top 3 heroes share: <strong>${_fmtOne(guild.breakdown.top3SharePct)}%</strong></li>
-                    <li>Guild rank by per-member stars: <strong>#${_fmtNumber(guild.comparison.rankByPerCapita)}</strong></li>
-                </ul>
+            <div class="guild-heroes-health-card">
+                <h4>💚 Team Health Metrics</h4>
+                
+                <div class="guild-heroes-health-metric">
+                    <div class="icon">⚡</div>
+                    <div class="info">
+                        <div class="label">Active Heroes This Month</div>
+                        <div class="value">${_fmtNumber(guild.breakdown.activeHeroes)} / ${_fmtNumber(guild.totals.memberCount)}</div>
+                        <div class="guild-heroes-health-bar">
+                            <div class="guild-heroes-health-fill" style="width: ${activeRate}%"></div>
+                        </div>
+                    </div>
+                    <div class="guild-heroes-stat">
+                        <div class="value">${_fmtOne(activeRate)}%</div>
+                    </div>
+                </div>
+                
+                <div class="guild-heroes-health-metric">
+                    <div class="icon">⭐</div>
+                    <div class="info">
+                        <div class="label">Top 3 Heroes Power Share</div>
+                        <div class="value">${_fmtOne(top3Share)}% of guild total</div>
+                        <div class="guild-heroes-health-bar">
+                            <div class="guild-heroes-health-fill" style="width: ${Math.min(top3Share, 100)}%"></div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="guild-heroes-health-metric">
+                    <div class="icon">🏆</div>
+                    <div class="info">
+                        <div class="label">Guild Rank</div>
+                        <div class="value">#${_fmtNumber(guild.comparison.rankByPerCapita)} by per-member stars</div>
+                    </div>
+                </div>
+                
                 <div class="guild-heroes-rivalry">${rivalryLine}</div>
-            </section>
-            <section class="guild-heroes-panel">
+            </div>
+            
+            <div class="guild-heroes-panel">
+                <h4>📊 Class Breakdown</h4>
                 <h5>Class Contributions</h5>
                 <ul class="guild-heroes-bullets">${classContrib}</ul>
                 <h5>Hero Class Mix</h5>
                 <ul class="guild-heroes-bullets">${heroClassMix}</ul>
-            </section>
+            </div>
         </div>
     `;
 }

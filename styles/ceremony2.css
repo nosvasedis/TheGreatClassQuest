@@ -604,6 +604,11 @@ header h1.font-title::after {
     padding: 0.5rem;
 }
 
+/* Keep the regular ceremony reveal clean (no container scrollbars during crowning). */
+#ceremony-screen #ceremony-stage-area {
+    overflow: hidden;
+}
+
 #ceremony-ai-box {
     max-height: 18vh;
     overflow: hidden;

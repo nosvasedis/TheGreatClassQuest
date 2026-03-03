@@ -1844,6 +1844,34 @@
     font-size: 0.75rem;
     font-weight: 500;
 }
+.guild-heroes-role-badges {
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+    margin-bottom: 0.2rem;
+}
+.guild-heroes-role-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    border-radius: 9999px;
+    padding: 0.1rem 0.45rem;
+    font-size: 0.62rem;
+    font-weight: 800;
+    line-height: 1.1;
+    letter-spacing: 0.02em;
+    border: 1px solid transparent;
+}
+.guild-heroes-role-badge.champion {
+    background: linear-gradient(145deg, #4f46e5, #7c3aed);
+    color: #ffffff;
+    border-color: #c4b5fd;
+}
+.guild-heroes-role-badge.top-hero {
+    background: #fef3c7;
+    color: #92400e;
+    border-color: #f59e0b;
+}
 .guild-heroes-stat {
     text-align: center;
     padding: 0 0.75rem;

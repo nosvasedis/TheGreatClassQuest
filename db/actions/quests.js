@@ -37,7 +37,7 @@ export async function handleSaveQuestAssignment() {
         showToast("Please write an assignment before saving.", "info");
         return;
     }
-    const text = _buildDatedAssignmentText(rawText);
+    const text = rawText;
 
     const btn = document.getElementById('quest-assignment-confirm-btn');
     btn.disabled = true;
@@ -263,14 +263,6 @@ Power-up context: ${powerUpContext || 'none'}`;
         btn.disabled = false;
         btn.innerHTML = `<i class="fas fa-feather-alt mr-2"></i> Log Today's Adventure`;
     }
-}
-
-function _buildDatedAssignmentText(rawText) {
-    const datePrefixRegex = /^\s*\d{1,2}[\/-]\d{1,2}[\/-]\d{4}\s*[:\-]?\s*/;
-    const stripped = rawText.replace(datePrefixRegex, '').trim();
-    const todayDash = getTodayDateString(); // DD-MM-YYYY
-    const todaySlash = todayDash.replace(/-/g, '/');
-    return `${todaySlash} - ${stripped}`;
 }
 
 function _getAgeTierFromLeague(league) {

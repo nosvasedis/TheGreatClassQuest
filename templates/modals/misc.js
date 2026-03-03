@@ -117,9 +117,16 @@ export const miscModalsHTML = `
                     <label for="quest-assignment-textarea" class="block text-sm font-bold text-gray-700 flex items-center gap-2">
                         <i class="fas fa-edit text-indigo-500"></i> Assignment for Next Lesson:
                     </label>
-                    <textarea id="quest-assignment-textarea" rows="4"
-                        class="w-full px-4 py-3 border-2 border-indigo-200 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:border-indigo-400 resize-none"
-                        placeholder="Enter homework, topics to review, or any notes for the class..."></textarea>
+                    <div class="relative">
+                        <div id="quest-assignment-date-chip"
+                            class="pointer-events-none absolute top-2 left-3 inline-flex items-center gap-1 rounded-full border border-indigo-200 bg-indigo-50 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-indigo-600">
+                            <i class="fas fa-calendar-day"></i>
+                            <span>DD/MM/YYYY</span>
+                        </div>
+                        <textarea id="quest-assignment-textarea" rows="4"
+                            class="w-full px-4 pt-9 pb-3 border-2 border-indigo-200 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:border-indigo-400 resize-none"
+                            placeholder="Enter homework, topics to review, or any notes for the class..."></textarea>
+                    </div>
                 </div>
 
                 <!-- Test Scheduling Card -->

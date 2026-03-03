@@ -4,7 +4,7 @@ import * as utils from '../../utils.js';
 import * as constants from '../../constants.js';
 import * as modals from '../modals.js';
 import { HERO_CLASSES } from '../../features/heroClasses.js';
-import { getGuildLeaderboardData } from '../../features/guildScoring.js';
+import { getGuildLeaderboardData, getGuildChampionsForMonth } from '../../features/guildScoring.js';
 import { getGuildById, getGuildEmblemUrl } from '../../features/guilds.js';
 import { getHeroTitle, HERO_SKILL_TREE } from '../../features/heroSkillTree.js';
 import { renderFamiliarSprite } from '../../features/familiars.js';
@@ -458,6 +458,18 @@ export function renderStudentLeaderboardTab() {
     // --- DATA PREPARATION ---
     const allLogs = state.get('allAwardLogs');
     const allScores = state.get('allWrittenScores');
+    const allStudents = state.get('allStudents') || [];
+    const allStudentScores = state.get('allStudentScores') || [];
+    const persistedGuildChampions = state.get('guildChampions') || {};
+    const computedGuildChampions = getGuildChampionsForMonth(allStudents, allStudentScores);
+    const guildChampions = { ...computedGuildChampions, ...persistedGuildChampions };
+    const topHeroByGuild = {};
+    getGuildLeaderboardData().forEach((guildRow) => {
+        const topHero = guildRow.topContributors?.[0];
+        if (topHero?.studentId) {
+            topHeroByGuild[guildRow.guildId] = topHero.studentId;
+        }
+    });
 
     // 1. HELPER: Calculate Stats & Tie-Breakers
     // 1. HELPER: Calculate Stats & Tie-Breakers
@@ -551,11 +563,11 @@ export function renderStudentLeaderboardTab() {
         };
     };
 
-    let studentsInLeague = state.get('allStudents')
+    let studentsInLeague = allStudents
         .filter(s => classesInLeague.some(c => c.id === s.classId))
         .map(s => {
             const studentClass = state.get('allSchoolClasses').find(c => c.id === s.classId);
-            const scoreData = state.get('allStudentScores').find(sc => sc.id === s.id) || {};
+            const scoreData = allStudentScores.find(sc => sc.id === s.id) || {};
             const score = state.get('studentStarMetric') === 'monthly' ? (scoreData.monthlyStars || 0) : (scoreData.totalStars || 0);
 
             // NEW: Get Gold
@@ -604,12 +616,20 @@ export function renderStudentLeaderboardTab() {
         return wrapAvatarWithLevelUpIndicator(inner, s.pendingSkillChoice);
     };
 
-    const getChampionBadgeHtml = (s) => {
-        const guildChampions = state.get('guildChampions') || {};
-        if (!s.guildId || guildChampions[s.guildId]?.studentId !== s.id) return '';
+    const getGuildRoleBadgesHtml = (s) => {
+        if (!s.guildId) return '';
         const guild = getGuildById(s.guildId);
         const color = guild?.primary || '#7c3aed';
-        return `<span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[10px] font-bold text-white ml-1" style="background:${color};" title="Guild Champion this month">⚔️ Champion</span>`;
+        const badges = [];
+
+        if (guildChampions[s.guildId]?.studentId === s.id) {
+            badges.push(`<span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[10px] font-bold text-white" style="background:${color};" title="Guild Champion this month">⚔️ Champion</span>`);
+        }
+        if (topHeroByGuild[s.guildId] === s.id) {
+            badges.push(`<span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-700 border border-amber-300" title="Top Hero for this guild">🏅 Top Hero</span>`);
+        }
+
+        return badges.join('');
     };
 
     const getPillsHtml = (s) => {
@@ -672,7 +692,7 @@ export function renderStudentLeaderboardTab() {
                             <h3 class="font-bold text-gray-800 text-lg truncate flex items-center flex-wrap gap-1">
     <span>${s.heroClass && HERO_CLASSES[s.heroClass] ? HERO_CLASSES[s.heroClass].icon : ''} ${s.name}</span>
     <span class="text-xs font-normal opacity-60">(${s.heroClass ? getHeroTitle(s.heroClass, s.heroLevel || 0) || s.heroClass : 'Novice'})</span>
-    ${getChampionBadgeHtml(s)}
+    ${getGuildRoleBadgesHtml(s)}
 </h3>
                             <div class="flex items-center gap-2 mt-0.5">
                                 <p class="text-xs text-gray-500 flex items-center gap-1"><span>${s.classLogo} ${s.className}</span></p>
@@ -761,7 +781,7 @@ export function renderStudentLeaderboardTab() {
                                 <h4 class="font-title text-xl ${nameColor} truncate leading-tight mb-1 flex items-center flex-wrap gap-1">
     <span>${s.heroClass && HERO_CLASSES[s.heroClass] ? HERO_CLASSES[s.heroClass].icon : ''} ${s.name}</span>
     ${s.heroClass && (s.heroLevel || 0) > 0 ? `<span class="text-xs font-sans font-normal opacity-60">${getHeroTitle(s.heroClass, s.heroLevel)}</span>` : ''}
-    ${getChampionBadgeHtml(s)}
+    ${getGuildRoleBadgesHtml(s)}
 </h4>
                                 <div class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full border border-white shadow-sm" style="background: linear-gradient(135deg, #f59e0b 0%, #b45309 100%); color: white; font-size: 0.7rem; font-family: 'Fredoka One', cursive;">
                                     <i class="fas fa-coins" style="color: #fcd34d;"></i> ${s.gold}

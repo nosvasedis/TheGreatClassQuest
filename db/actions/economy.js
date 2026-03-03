@@ -20,7 +20,7 @@ import {
 import * as state from '../../state.js';
 import { showToast } from '../../ui/effects.js';
 import { callGeminiApi, callCloudflareAiImageApi } from '../../api.js';
-import { getAgeGroupForLeague, getStartOfMonthString, compressImageBase64, simpleHashCode, parseFlexibleDate } from '../../utils.js';
+import { getAgeGroupForLeague, getStartOfMonthString, getTodayDateString, compressImageBase64, simpleHashCode, parseFlexibleDate } from '../../utils.js';
 import { playSound } from '../../audio.js';
 // GUILD_IDS not needed at module level but kept for reference
 
@@ -801,7 +801,7 @@ export async function handleBuyFamiliarEgg(studentId, typeId) {
             finalPrice: typeDef.price,
             newGoldBalance,
             studentName: student.name,
-            cta: 'Meet Familiar!'
+            cta: 'Egg Acquired!'
         });
         if (!popupShown) {
             showToast(`${typeDef.name} Egg purchased! Earn ${20} stars to hatch it!`, 'success');

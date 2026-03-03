@@ -78,6 +78,8 @@ function buildInventoryInnerHtml(studentId) {
 
 // --- AVATAR ENLARGEMENT ---
 export function handleAvatarClick(e) {
+    if (e.target.closest('.familiar-stats-overlay')) return;
+
     // Familiar tap — show stats overlay
     const familiarEl = e.target.closest('.enlargeable-familiar');
     if (familiarEl) {

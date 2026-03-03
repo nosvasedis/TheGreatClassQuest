@@ -304,8 +304,19 @@ export function openFamiliarStatsOverlay(studentId) {
     const typeDef = FAMILIAR_TYPES[familiar.typeId];
     if (!typeDef) return;
 
-    // Close any existing
-    document.querySelector('.familiar-stats-overlay')?.remove();
+    const existingOverlay = document.querySelector('.familiar-stats-overlay');
+    if (existingOverlay) {
+        if (existingOverlay.dataset.studentId === studentId) {
+            const existingTap = existingOverlay.querySelector('.fam-overlay-tap');
+            if (existingTap) {
+                existingTap.classList.remove('fam-tap-bump');
+                void existingTap.offsetWidth;
+                existingTap.classList.add('fam-tap-bump');
+            }
+            return;
+        }
+        existingOverlay.remove();
+    }
 
     const level = familiar.level || 1;
     const starsTotal = scoreData.totalStars || 0;
@@ -321,11 +332,16 @@ export function openFamiliarStatsOverlay(studentId) {
     const spriteHtml = renderFamiliarSprite(familiar, 'large', studentId);
 
     const overlay = document.createElement('div');
+    overlay.dataset.studentId = studentId;
     overlay.className = 'familiar-stats-overlay fixed inset-0 z-[95] flex items-center justify-center bg-black/80 pop-in';
     overlay.innerHTML = `
         <div class="relative bg-gray-900 rounded-3xl p-6 max-w-sm w-full mx-4 border-2 shadow-2xl text-center" style="border-color:${typeDef.eggColor};">
             <button class="fam-overlay-close absolute top-3 right-4 text-white/40 hover:text-white text-2xl">&times;</button>
-            <div class="flex justify-center mb-4">${spriteHtml}</div>
+            <div class="flex justify-center mb-4">
+                <button type="button" class="fam-overlay-tap" aria-label="Tap familiar">
+                    ${spriteHtml}
+                </button>
+            </div>
             <h3 class="font-title text-2xl text-white mb-1">${typeDef.name}</h3>
             <div class="inline-block px-3 py-0.5 rounded-full text-xs font-bold text-white mb-3" style="background:${typeDef.eggColor}">${levelName}</div>
             <p class="text-sm text-white/60 italic mb-4">"${typeDef.personality}"</p>
@@ -357,8 +373,18 @@ export function openFamiliarStatsOverlay(studentId) {
         try { new Audio(typeDef.tapSound).play().catch(() => {}); } catch (_) {}
     }
 
-    overlay.querySelector('.fam-overlay-close').addEventListener('click', () => overlay.remove());
-    overlay.addEventListener('click', (e) => { if (e.target === overlay) overlay.remove(); });
+    const closeOverlay = () => overlay.remove();
+    overlay.querySelector('.fam-overlay-close').addEventListener('click', closeOverlay);
+    overlay.addEventListener('click', (e) => { if (e.target === overlay) closeOverlay(); });
+    const tapBtn = overlay.querySelector('.fam-overlay-tap');
+    if (tapBtn) {
+        tapBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            tapBtn.classList.remove('fam-tap-bump');
+            void tapBtn.offsetWidth;
+            tapBtn.classList.add('fam-tap-bump');
+        });
+    }
 }
 
 // ─── PURCHASE HELPER ─────────────────────────────────────────────────────────

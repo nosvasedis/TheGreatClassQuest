@@ -59,6 +59,21 @@ function _guildEmblem(guild) {
             </div>`;
 }
 
+function _renderGuildRoleBadges(hero, guild) {
+    if (!hero || !guild) return '';
+    const badges = [];
+
+    if (guild.champions.monthlyChampion?.studentId === hero.studentId) {
+        badges.push(`<span class="guild-heroes-role-badge champion">⚔️ Champion</span>`);
+    }
+    if (guild.champions.allTimeChampion?.studentId === hero.studentId) {
+        badges.push(`<span class="guild-heroes-role-badge top-hero">🏅 Top Hero</span>`);
+    }
+
+    if (!badges.length) return '';
+    return `<div class="guild-heroes-role-badges">${badges.join('')}</div>`;
+}
+
 function _renderOverviewCards(payload) {
     const wrap = document.getElementById('guild-heroes-overview');
     if (!wrap) return;
@@ -178,6 +193,7 @@ function _renderTopHeroesView(guild) {
                     ${_heroAvatar(h, guild.colors.primary)}
                     <div class="guild-heroes-hero-info">
                         <div class="name">${_escapeHtml(h.name)}</div>
+                        ${_renderGuildRoleBadges(h, guild)}
                         <div class="meta">${_escapeHtml(h.heroClass)} · ${_escapeHtml(h.className)}</div>
                         <div class="guild-heroes-progress-bar">
                             <div class="guild-heroes-progress-fill" style="width: ${progressPct}%"></div>
@@ -224,6 +240,7 @@ function _renderAllHeroesView(payload, guild) {
                     ${_heroAvatar(h, guild.colors.primary)}
                     <div class="guild-heroes-hero-info" style="flex:1">
                         <div class="name">${_escapeHtml(h.name)}</div>
+                        ${_renderGuildRoleBadges(h, guild)}
                         <div class="meta">${_escapeHtml(h.heroClass)} · ${_escapeHtml(h.className)}</div>
                     </div>
                     <div class="guild-heroes-stat">

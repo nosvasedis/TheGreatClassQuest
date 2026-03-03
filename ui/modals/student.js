@@ -8,6 +8,21 @@ import { showToast } from '../effects.js';
 import { playSound } from '../../audio.js';
 import { handleAwardBonusStar, handleBatchAwardBonus } from '../../db/actions.js';
 
+const LEGACY_ASSIGNMENT_DATE_PREFIX_REGEX = /^\s*\d{1,2}[\/-]\d{1,2}[\/-]\d{4}\s*[:\-]?\s*/;
+
+function stripLegacyAssignmentDatePrefix(text) {
+    if (typeof text !== 'string') return '';
+    return text.replace(LEGACY_ASSIGNMENT_DATE_PREFIX_REGEX, '').trimStart();
+}
+
+function getTodayAssignmentChipText() {
+    const parsedToday = utils.parseFlexibleDate(utils.getTodayDateString()) || new Date();
+    const dd = String(parsedToday.getDate()).padStart(2, '0');
+    const mm = String(parsedToday.getMonth() + 1).padStart(2, '0');
+    const yyyy = parsedToday.getFullYear();
+    return `${dd}/${mm}/${yyyy}`;
+}
+
 export function openEditStudentModal(studentId) {
     const student = state.get('allStudents').find(s => s.id === studentId);
     if (!student) return;
@@ -44,9 +59,14 @@ export async function openQuestAssignmentModal() {
     document.getElementById('quest-assignment-class-id').value = classId;
     const previousAssignmentTextEl = document.getElementById('previous-assignment-text');
     const currentAssignmentTextarea = document.getElementById('quest-assignment-textarea');
+    const dateChipEl = document.getElementById('quest-assignment-date-chip');
 
     previousAssignmentTextEl.innerHTML = `<i class="fas fa-spinner fa-spin"></i>`;
     currentAssignmentTextarea.value = '';
+    if (dateChipEl) {
+        const labelEl = dateChipEl.querySelector('span');
+        if (labelEl) labelEl.textContent = getTodayAssignmentChipText();
+    }
 
     showAnimatedModal('quest-assignment-modal');
 
@@ -137,7 +157,7 @@ export async function openQuestAssignmentModal() {
             // --- SMART FORMATTER END ---
 
             document.getElementById('edit-last-assignment-btn').onclick = () => {
-                currentAssignmentTextarea.value = lastAssignment.text;
+                currentAssignmentTextarea.value = stripLegacyAssignmentDatePrefix(lastAssignment.text || '');
                 modal.dataset.editingId = lastAssignmentDoc.id;
                 document.getElementById('quest-assignment-confirm-btn').innerText = 'Update Assignment';
                 currentAssignmentTextarea.focus();

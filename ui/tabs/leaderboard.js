@@ -680,6 +680,8 @@ export async function renderStudentLeaderboardTab() {
     // --- REIGNING PRODIGY (previous month's winners, with co-prodigy/tie support) ---
     const prodigyByClass = await getReigningProdigies();
 
+    // 3. SORTING FUNCTION
+    const sortStudents = utils.sortStudentsByTieBreaker;
 
     // --- RENDER HELPERS ---
     const reasonInfo = {

@@ -127,6 +127,7 @@ export async function renderClassLeaderboardTab() {
     }
 
     // --- CALCULATIONS ---
+    const sortStudents = utils.sortStudentsByTieBreaker;
     const allStudentScores = state.get('allStudentScores') || [];
     const allStudents = state.get('allStudents') || [];
 

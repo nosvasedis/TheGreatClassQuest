@@ -159,15 +159,8 @@ export function renderAwardStarsStudentList(selectedClassId, fullRender = true) 
             const previousLessonDate = utils.getPreviousLessonDate(selectedClassId, state.get('allSchoolClasses'));
             const today = utils.getTodayDateString();
 
-            // --- REIGNING PRODIGY BANNER (previous month's winner) ---
+            // --- REIGNING PRODIGY (previous month's winner) — crown watermark on card only ---
             const prodigySet = await getReigningProdigyForClass(selectedClassId);
-            const prodigyStudents = studentsInClass.filter(s => prodigySet.has(s.id));
-            const prodigyBannerHtml = prodigyStudents.length > 0 ? `
-                <div class="col-span-full mb-2 flex items-center justify-center gap-2 px-4 py-2 bg-gradient-to-r from-amber-400/90 to-yellow-300/90 backdrop-blur-sm rounded-2xl shadow-md border border-amber-300 text-amber-900 text-sm font-bold">
-                    👑 <span>Reigning Prodigy:</span>
-                    <span class="font-title text-base">${prodigyStudents.map(s => s.name).join(' &amp; ')}</span>
-                    <span class="text-xs font-normal opacity-70">(last month)</span>
-                </div>` : '';
 
             const cloudShapes = ['cloud-shape-1', 'cloud-shape-2', 'cloud-shape-3', 'cloud-shape-4'];
 
@@ -186,7 +179,7 @@ export function renderAwardStarsStudentList(selectedClassId, fullRender = true) 
             const scoreCounts = {};
             leaderboard.forEach(x => { scoreCounts[x.stars] = (scoreCounts[x.stars] || 0) + 1; });
 
-            listContainer.innerHTML = prodigyBannerHtml + studentsInClass.map((s, index) => {
+            listContainer.innerHTML = studentsInClass.map((s, index) => {
                 const reigningHero = state.get('reigningHero');
                 const isReigningHero = reigningHero && reigningHero.id === s.id;
                 const scoreData = state.get('allStudentScores').find(score => score.id === s.id) || {};

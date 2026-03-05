@@ -15,6 +15,9 @@ import {
 import * as state from '../../state.js';
 import { showToast } from '../../ui/effects.js';
 import { getStartOfMonthString } from '../../utils.js';
+import { canChangeHeroClass } from '../../features/heroClasses.js';
+import * as modals from '../../ui/modals.js';
+import { callGeminiApi } from '../../api.js';
 
 // --- STUDENT & USER ACTIONS ---
 
@@ -88,7 +91,7 @@ export async function handleSaveStudentDetails() {
         showToast('This student has already changed their class once and is now locked!', 'error');
         return;
     }
-    
+
     // NEW: Read from dropdowns and format
     const bMonth = document.getElementById('edit-student-birthday-month').value;
     const bDay = document.getElementById('edit-student-birthday-day').value;
@@ -176,14 +179,14 @@ export async function handleMoveStudent() {
         showToast("Target class data not found.", "error");
         return;
     }
-    
+
     const btn = document.getElementById('move-student-confirm-btn');
     btn.disabled = true;
     btn.innerHTML = `<i class="fas fa-spinner fa-spin mr-2"></i> Moving...`;
 
     try {
         const studentRef = doc(db, `artifacts/great-class-quest/public/data/students`, studentId);
-        await updateDoc(studentRef, { 
+        await updateDoc(studentRef, {
             classId: newClassId,
             createdBy: {
                 uid: newClassData.createdBy.uid,
@@ -206,23 +209,23 @@ export async function handleSaveTeacherName() {
     const newName = input.value.trim();
     if (!newName) { showToast('Name cannot be empty.', 'error'); return; }
     if (newName === state.get('currentTeacherName')) { showToast('Name is already set to this!', 'info'); return; }
-    
+
     const btn = document.getElementById('save-teacher-name-btn');
-    btn.disabled = true; 
+    btn.disabled = true;
     btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> Saving...';
-    
+
     try {
         await updateProfile(auth.currentUser, { displayName: newName });
         await updateTeacherNameInClasses(newName);
         await updateTeacherNameInStudents(newName);
         state.set('currentTeacherName', newName);
         showToast('Name updated successfully!', 'success');
-    } catch (error) { 
-        console.error("Error updating name: ", error); 
-        showToast(`Error: ${error.message}`, 'error'); 
-    } finally { 
-        btn.disabled = false; 
-        btn.innerHTML = '<i class="fas fa-save mr-2"></i> Save Name'; 
+    } catch (error) {
+        console.error("Error updating name: ", error);
+        showToast(`Error: ${error.message}`, 'error');
+    } finally {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fas fa-save mr-2"></i> Save Name';
     }
 }
 

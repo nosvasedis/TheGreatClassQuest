@@ -752,7 +752,7 @@ function startHomeSmartLogic() {
                 state.setGlobalSelectedClass(currentActiveLesson.id, false);
             }
         }
-        
+
         // Update Grand Guild Ceremony buttons
         grandGuildCeremony.updateCeremonyButtons();
     };
@@ -923,6 +923,11 @@ function getReminderPills(classId) {
         return (da || 0) - (db || 0);
     });
 
+    // When viewing a specific class, pre-compute which dates the class has lessons
+    // so we only show events relevant to that class.
+    const allSchoolClasses = state.get('allSchoolClasses') || [];
+    const allScheduleOverrides = state.get('allScheduleOverrides') || [];
+
     sortedEvents.forEach(e => {
         const eventDate = utils.parseFlexibleDate(e.date);
         if (!eventDate) return;
@@ -930,6 +935,16 @@ function getReminderPills(classId) {
 
         // Show only from today through end of month
         if (eventDate < now || eventDate > endOfMonth) return;
+
+        // --- CLASS RELEVANCY FILTER ---
+        // In a class view, only show the event if that class actually has a lesson on that day.
+        // utils.getClassesOnDay uses parseDDMMYYYY which handles both DD-MM-YYYY and YYYY-MM-DD.
+        if (classId) {
+            const d = eventDate;
+            const eventDateDDMMYYYY = `${String(d.getDate()).padStart(2, '0')}-${String(d.getMonth() + 1).padStart(2, '0')}-${d.getFullYear()}`;
+            const classesOnThatDay = utils.getClassesOnDay(eventDateDDMMYYYY, allSchoolClasses, allScheduleOverrides);
+            if (!classesOnThatDay.some(c => c.id === classId)) return; // Skip — not a lesson day for this class
+        }
 
         const diffTime = eventDate - now;
         // Χρησιμοποιούμε round για να αποφύγουμε μικρολάθη στα milliseconds
@@ -958,6 +973,7 @@ function getReminderPills(classId) {
             </div>
         `);
     });
+
 
     // 5. ACTIVE BOUNTY / TIMER (Corrected Logic)
     if (classId) {

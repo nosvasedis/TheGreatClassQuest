@@ -20,7 +20,7 @@ import * as state from '../../state.js';
 import { showToast, showPraiseToast } from '../../ui/effects.js';
 import { showStarfallModal, showBatchStarfallModal, showModal, hideModal } from '../../ui/modals.js';
 import { playSound, playHeroFanfare } from '../../audio.js';
-import { getTodayDateString, getStartOfMonthString, debounce, parseDDMMYYYY, datesMatch } from '../../utils.js';
+import { getTodayDateString, getStartOfMonthString, debounce, parseDDMMYYYY, parseFlexibleDate, datesMatch } from '../../utils.js';
 import { checkBountyProgress } from './bounties.js';
 import { calculateHeroGold, canChangeHeroClass } from '../../features/heroClasses.js';
 import { updateGuildScores } from '../../features/guildScoring.js';
@@ -32,7 +32,7 @@ import { checkHatchOrLevelUp } from '../../features/familiars.js';
 export async function setStudentStarsForToday(studentId, starValue, reason = null) {
     const today = getTodayDateString();
     const publicDataPath = "artifacts/great-class-quest/public/data";
-    
+
     let finalStarValue = starValue;
     const activeEvent = state.get('allQuestEvents').find(e => datesMatch(e.date, today));
     if (activeEvent) {
@@ -45,23 +45,23 @@ export async function setStudentStarsForToday(studentId, starValue, reason = nul
 
     // Audio
     if (starValue > 0 && reason !== 'welcome_back' && reason !== 'story_weaver' && reason !== 'scholar_s_bonus') {
-         if (starValue === 1) playSound('star1');
-         else if (starValue === 2) playSound('star2');
-         else playSound('star3');
+        if (starValue === 1) playSound('star1');
+        else if (starValue === 2) playSound('star2');
+        else playSound('star3');
     } else if (reason === 'marked_present') {
-         playSound('confirm');
+        playSound('confirm');
     }
-    
+
     let studentClassId = null;
     let difference = 0;
 
     // HERO'S BOON LOGIC
-    
+
     try {
         let isHeroBoonEligible = false;
         let heroBoonNote = "";
         const reigningHero = state.get('reigningHero');
-        
+
         // If they are the hero, and this is a positive star award...
         if (reigningHero && reigningHero.id === studentId && starValue > 0) {
             // Check if they already have stars today (we only give the bonus once)
@@ -72,7 +72,7 @@ export async function setStudentStarsForToday(studentId, starValue, reason = nul
                 heroBoonNote = "🛡️ Includes Hero's Boon (+1 Bonus Star)";
             }
         }
-        
+
         await runTransaction(db, async (transaction) => {
             const studentRef = doc(db, `${publicDataPath}/students`, studentId);
             const scoreRef = doc(db, `${publicDataPath}/student_scores`, studentId);
@@ -84,7 +84,7 @@ export async function setStudentStarsForToday(studentId, starValue, reason = nul
                 where("date", "==", today)
             );
             const todayStarsSnapshot = await getDocs(todayStarsQuery);
-            
+
             let todayDocRef = null;
             let oldStars = 0;
             if (!todayStarsSnapshot.empty) {
@@ -92,7 +92,7 @@ export async function setStudentStarsForToday(studentId, starValue, reason = nul
                 todayDocRef = todayDoc.ref;
                 oldStars = todayDoc.data().stars || 0;
             }
-            
+
             difference = finalStarValue - oldStars;
 
             if (difference === 0 && finalStarValue > 0) {
@@ -103,7 +103,7 @@ export async function setStudentStarsForToday(studentId, starValue, reason = nul
                 }
                 return;
             }
-            
+
             if (difference === 0 && reason !== 'marked_present' && !todayDocRef) return;
 
             const studentDoc = await transaction.get(studentRef);
@@ -112,7 +112,7 @@ export async function setStudentStarsForToday(studentId, starValue, reason = nul
             studentClassId = studentData.classId;
 
             const scoreDoc = await transaction.get(scoreRef);
-            
+
             if (!scoreDoc.exists()) {
                 // Create new score doc
                 transaction.set(scoreRef, {
@@ -126,7 +126,7 @@ export async function setStudentStarsForToday(studentId, starValue, reason = nul
             } else {
                 // Update existing score doc
                 const currentData = scoreDoc.data();
-                
+
                 // POWER UP: Scroll of the Gilded Star (Triple Gold)
                 let multiplier = 1;
                 if (difference > 0 && currentData.hasGildedEffect) {
@@ -152,7 +152,7 @@ export async function setStudentStarsForToday(studentId, starValue, reason = nul
                 }
 
                 const safeCurrentGold = (typeof currentData.gold === 'number') ? currentData.gold : (currentData.totalStars || 0);
-                
+
                 // Calculate Gold + Skill Bonuses
                 const { goldChange, bonusStars } = calculateHeroGold(studentData, reason, difference, currentData);
                 const totalGoldChange = goldChange * multiplier;
@@ -204,32 +204,32 @@ export async function setStudentStarsForToday(studentId, starValue, reason = nul
             // FIX: Find the SPECIFIC log for "standard" daily stars, ignore bonuses
             const allTodaysLogs = state.get('allAwardLogs').filter(l => l.studentId === studentId && l.date === today);
             const dailyPerformanceLog = allTodaysLogs.find(l => !['welcome_back', 'scholar_s_bonus', 'story_weaver'].includes(l.reason));
-            
+
             if (finalStarValue === 0) {
                 if (dailyPerformanceLog) transaction.delete(doc(db, `${publicDataPath}/award_log`, dailyPerformanceLog.id));
             } else if (finalStarValue > 0) {
                 const logData = {
-                    studentId, 
-                    classId: studentData.classId, 
+                    studentId,
+                    classId: studentData.classId,
                     teacherId: state.get('currentUserId'),
-                    stars: finalStarValue, 
-                    reason: reason || "excellence", 
-                    note: heroBoonNote || "", 
-                    date: today, 
+                    stars: finalStarValue,
+                    reason: reason || "excellence",
+                    note: heroBoonNote || "",
+                    date: today,
                     createdAt: serverTimestamp(),
                     createdBy: { uid: state.get('currentUserId'), name: state.get('currentTeacherName') }
                 };
 
                 if (dailyPerformanceLog) {
-                     transaction.update(doc(db, `${publicDataPath}/award_log`, dailyPerformanceLog.id), { 
-                         stars: finalStarValue, 
-                         reason: reason || dailyPerformanceLog.reason
-                     });
+                    transaction.update(doc(db, `${publicDataPath}/award_log`, dailyPerformanceLog.id), {
+                        stars: finalStarValue,
+                        reason: reason || dailyPerformanceLog.reason
+                    });
                 } else {
-                     transaction.set(doc(collection(db, `${publicDataPath}/award_log`)), logData);
+                    transaction.set(doc(collection(db, `${publicDataPath}/award_log`)), logData);
                 }
             }
-         });
+        });
 
         if (isHeroBoonEligible) {
             const student = state.get('allStudents').find(s => s.id === studentId);
@@ -263,9 +263,9 @@ export async function setStudentStarsForToday(studentId, starValue, reason = nul
 
 export async function checkAndRecordQuestCompletion(classId) {
     const classRef = doc(db, "artifacts/great-class-quest/public/data/classes", classId);
-    const classDoc = await getDoc(classRef); 
+    const classDoc = await getDoc(classRef);
     if (!classDoc.exists()) return;
-    
+
     const currentDifficulty = classDoc.data().difficultyLevel || 0;
 
     // 1. Check if already completed this month to prevent duplicates
@@ -286,13 +286,13 @@ export async function checkAndRecordQuestCompletion(classId) {
     const studentCount = studentsInClass.length;
     if (studentCount === 0) return;
 
-    const currentMonth = new Date().getMonth(); 
+    const currentMonth = new Date().getMonth();
     let monthModifier = 1.0;
-    if (currentMonth === 11 || currentMonth === 3) monthModifier = 0.85; 
-    if (currentMonth === 0 || currentMonth === 4) monthModifier = 0.90; 
+    if (currentMonth === 11 || currentMonth === 3) monthModifier = 0.85;
+    if (currentMonth === 0 || currentMonth === 4) monthModifier = 0.90;
 
     const diamondGoal = Math.round(studentCount * goalPerStudent * monthModifier);
-    
+
     // 3. Calculate Current Stars
     const allScores = state.get('allStudentScores');
     let currentMonthlyStars = 0;
@@ -310,7 +310,7 @@ export async function checkAndRecordQuestCompletion(classId) {
         // A. Update the Class (Level Up)
         batch.update(classRef, {
             questCompletedAt: serverTimestamp(),
-            difficultyLevel: increment(1) 
+            difficultyLevel: increment(1)
         });
 
         // B. Create Persistent History Record
@@ -339,10 +339,10 @@ export async function handleDeleteAwardLog(logId) {
     try {
         await runTransaction(db, async (transaction) => {
             const logRef = doc(db, `${publicDataPath}/award_log`, logId);
-            
+
             const logDoc = await transaction.get(logRef);
             if (!logDoc.exists()) {
-                return; 
+                return;
             }
             const logData = logDoc.data();
             const actualStars = logData.stars;
@@ -354,7 +354,7 @@ export async function handleDeleteAwardLog(logId) {
                 const logDate = parseDDMMYYYY(logData.date);
                 const today = new Date();
                 const isCurrentMonth = logDate.getMonth() === today.getMonth() && logDate.getFullYear() === today.getFullYear();
-                
+
                 const updates = { totalStars: increment(-actualStars) };
                 if (isCurrentMonth) {
                     updates.monthlyStars = increment(-actualStars);
@@ -366,8 +366,8 @@ export async function handleDeleteAwardLog(logId) {
 
             if (logData.date === getTodayDateString()) {
                 const todayStarsQuery = query(
-                    collection(db, `${publicDataPath}/today_stars`), 
-                    where("studentId", "==", studentId), 
+                    collection(db, `${publicDataPath}/today_stars`),
+                    where("studentId", "==", studentId),
                     where("teacherId", "==", state.get('currentUserId'))
                 );
                 const todayStarsSnapshot = await getDocs(todayStarsQuery);
@@ -376,7 +376,7 @@ export async function handleDeleteAwardLog(logId) {
         });
 
         showToast('Log entry deleted successfully!', 'success');
-        
+
         const logElement = document.getElementById(`log-entry-${logId}`);
         if (logElement) {
             logElement.style.transition = 'opacity 0.3s ease, transform 0.3s ease';
@@ -386,13 +386,13 @@ export async function handleDeleteAwardLog(logId) {
                 logElement.remove();
                 const contentEl = document.getElementById('logbook-modal-content');
                 if (contentEl && contentEl.querySelectorAll('[id^="log-entry-"]').length === 0) {
-                     const container = contentEl.querySelector('.mb-4.bg-white'); 
-                     if(container && container.querySelectorAll('[id^="log-entry-"]').length === 0) {
-                         container.remove(); 
-                     }
-                     if (contentEl.querySelectorAll('.mb-4.bg-white').length === 0) {
-                         hideModal('logbook-modal');
-                     }
+                    const container = contentEl.querySelector('.mb-4.bg-white');
+                    if (container && container.querySelectorAll('[id^="log-entry-"]').length === 0) {
+                        container.remove();
+                    }
+                    if (contentEl.querySelectorAll('.mb-4.bg-white').length === 0) {
+                        hideModal('logbook-modal');
+                    }
                 }
             }, 300);
         }
@@ -408,7 +408,7 @@ export async function handleSaveAwardNote() {
     try {
         await updateDoc(doc(db, "artifacts/great-class-quest/public/data/award_log", logId), { note: newNote });
         showToast('Note saved!', 'success');
-        document.getElementById('award-note-modal').classList.add('hidden'); 
+        document.getElementById('award-note-modal').classList.add('hidden');
     } catch (error) {
         console.error("Error saving award note:", error);
         showToast('Failed to save note.', 'error');
@@ -417,7 +417,7 @@ export async function handleSaveAwardNote() {
 
 export async function handleAddStarsManually() {
     const studentId = document.getElementById('star-manager-student-select').value;
-    const date = document.getElementById('star-manager-date').value; 
+    const date = document.getElementById('star-manager-date').value;
     const starsToAdd = parseFloat(document.getElementById('star-manager-stars-to-add').value);
     const reason = document.getElementById('star-manager-reason').value;
 
@@ -443,9 +443,10 @@ export async function handleAddStarsManually() {
             const scoreDoc = await transaction.get(scoreRef);
             if (!scoreDoc.exists()) throw new Error("Student score record not found. Cannot add stars.");
 
-            const logDateObject = parseDDMMYYYY(date);
-            const dateForDb = getDDMMYYYY(logDateObject);
-            
+            const logDateObject = parseFlexibleDate(date) || new Date(date);
+            const dParts = logDateObject;
+            const dateForDb = `${String(dParts.getDate()).padStart(2, '0')}-${String(dParts.getMonth() + 1).padStart(2, '0')}-${dParts.getFullYear()}`;
+
             const logData = {
                 studentId, classId: student.classId, teacherId: state.get('currentUserId'),
                 stars: starsToAdd, reason, date: dateForDb, createdAt: serverTimestamp(),
@@ -550,13 +551,13 @@ export function handlePurgeStudentStars() {
                 }
             });
             showToast('All star scores purged for student!', 'success');
-        } catch (error) { 
-            console.error("Error purging stars: ", error); 
-            showToast(`Error: ${error.message}`, 'error'); 
+        } catch (error) {
+            console.error("Error purging stars: ", error);
+            showToast(`Error: ${error.message}`, 'error');
         }
-        finally { 
-            btn.disabled = false; 
-            btn.innerHTML = '<i class="fas fa-exclamation-triangle mr-2"></i> Purge All Score Data for Student'; 
+        finally {
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fas fa-exclamation-triangle mr-2"></i> Purge All Score Data for Student';
         }
     });
 }

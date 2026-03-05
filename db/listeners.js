@@ -3,17 +3,17 @@
 import { db, collection, query, where, onSnapshot, orderBy, doc, getDocs, writeBatch, collectionGroup } from '../firebase.js';
 import * as state from '../state.js';
 import { getStartOfMonthString, getTodayDateString } from '../utils.js';
-import { 
-    renderClassLeaderboardTab, renderManageClassesTab, renderAwardStarsTab, renderIdeasTabSelects, 
-    renderAdventureLogTab, renderStudentLeaderboardTab, renderManageStudentsTab, 
-    renderAwardStarsStudentList, renderCalendarTab, renderStarManagerStudentSelect, 
+import {
+    renderClassLeaderboardTab, renderManageClassesTab, renderAwardStarsTab, renderIdeasTabSelects,
+    renderAdventureLogTab, renderStudentLeaderboardTab, renderManageStudentsTab,
+    renderAwardStarsStudentList, renderCalendarTab, renderStarManagerStudentSelect,
     renderAdventureLog,
     updateAwardCardState
 } from '../ui/tabs.js';
 
-import { 
-    renderScholarsScrollTab, 
-    renderTrialHistoryContent 
+import {
+    renderScholarsScrollTab,
+    renderTrialHistoryContent
 } from '../features/scholarScroll.js';
 import { updateStudentCardAttendanceState, findAndSetCurrentClass } from '../ui/core.js';
 import { updateStudentCardAttendanceState as updateTabAttendance } from '../ui/tabs.js'; // Explicit import to avoid naming collision if needed
@@ -46,14 +46,14 @@ export function setupDataListeners(userId, dateString) {
     state.get('unsubscribeGuildScores')();
 
     const publicDataPath = "artifacts/great-class-quest/public/data";
-    
+
     // --- Time-bounded Definitions ---
     const thirtyDaysAgo = new Date();
     thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
     const now = new Date();
     const startOfCurrentMonth = new Date(now.getFullYear(), now.getMonth(), 1);
     const startOfMonthString = startOfCurrentMonth.toISOString().split('T')[0];
-    
+
     const competitionStartDateString = competitionStart.toISOString().split('T')[0];
 
     // --- Define Queries ---
@@ -72,40 +72,40 @@ export function setupDataListeners(userId, dateString) {
     const guildScoresQuery = query(collection(db, `${publicDataPath}/guild_scores`));
 
     // --- Optimized Queries (Time-Bounded) ---
-    
+
     // 1. Current Month Range for Award Logs (Real-time)
     const startOfNextMonth = new Date(now.getFullYear(), now.getMonth() + 1, 1);
 
     const awardLogsQuery = query(
-        collection(db, `${publicDataPath}/award_log`), 
+        collection(db, `${publicDataPath}/award_log`),
         where('createdAt', '>=', startOfCurrentMonth),
         where('createdAt', '<', startOfNextMonth)
     );
 
     // 2. Adventure Logs (Last 30 days is fine, or match month)
     const adventureLogsQuery = query(
-        collection(db, `${publicDataPath}/adventure_logs`), 
-        where('createdAt', '>=', thirtyDaysAgo), 
+        collection(db, `${publicDataPath}/adventure_logs`),
+        where('createdAt', '>=', thirtyDaysAgo),
         orderBy('createdAt', 'desc')
     );
-    
+
     // REVAMP: Attendance now only fetches the last 30 days real-time. Older data is fetched on demand.
     const attendanceQuery = query(
-    collection(db, `${publicDataPath}/attendance`), 
-    where('markedBy.uid', '==', userId), // Only my attendance records
-    where('createdAt', '>=', thirtyDaysAgo)
-);
+        collection(db, `${publicDataPath}/attendance`),
+        where('markedBy.uid', '==', userId), // Only my attendance records
+        where('createdAt', '>=', thirtyDaysAgo)
+    );
 
     const threeMonthsAgo = new Date();
-threeMonthsAgo.setMonth(threeMonthsAgo.getMonth() - 3);
-const threeMonthsAgoString = threeMonthsAgo.toISOString().split('T')[0];
+    threeMonthsAgo.setMonth(threeMonthsAgo.getMonth() - 3);
+    const threeMonthsAgoString = threeMonthsAgo.toISOString().split('T')[0];
 
-const writtenScoresQuery = query(
-    collection(db, `${publicDataPath}/written_scores`), 
-    where('teacherId', '==', userId), // Only load MY grading papers
-    where('date', '>=', threeMonthsAgoString),
-    orderBy('date', 'desc')
-);
+    const writtenScoresQuery = query(
+        collection(db, `${publicDataPath}/written_scores`),
+        where('teacherId', '==', userId), // Only load MY grading papers
+        where('date', '>=', threeMonthsAgoString),
+        orderBy('date', 'desc')
+    );
 
     // --- Attach Listeners ---
     state.setUnsubscribeClasses(onSnapshot(classesQuery, (snapshot) => {
@@ -118,8 +118,8 @@ const writtenScoresQuery = query(
         renderClassLeaderboardTab();
         renderManageClassesTab();
         renderCalendarTab();
-        renderAwardStarsTab(); 
-        renderIdeasTabSelects(); 
+        renderAwardStarsTab();
+        renderIdeasTabSelects();
         renderAdventureLogTab();
         renderScholarsScrollTab();
         if (!document.getElementById('options-tab').classList.contains('hidden')) renderStarManagerStudentSelect();
@@ -129,12 +129,12 @@ const writtenScoresQuery = query(
 
     state.setUnsubscribeStudents(onSnapshot(studentsQuery, (snapshot) => {
         const allStudents = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-        state.setAllStudents(allStudents.sort((a,b) => a.name.localeCompare(b.name)));
-        
+        state.setAllStudents(allStudents.sort((a, b) => a.name.localeCompare(b.name)));
+
         renderStudentLeaderboardTab();
         renderClassLeaderboardTab();
         renderManageStudentsTab();
-        renderAwardStarsStudentList(state.get('globalSelectedClassId')); 
+        renderAwardStarsStudentList(state.get('globalSelectedClassId'));
         renderScholarsScrollTab(state.get('globalSelectedClassId'));
         if (!document.getElementById('options-tab').classList.contains('hidden')) renderStarManagerStudentSelect();
         renderHomeTab(); // Update home tab (student count changes)
@@ -150,19 +150,24 @@ const writtenScoresQuery = query(
         const currentMonthStart = getStartOfMonthString();
         const allStudentScores = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
         state.setAllStudentScores(allStudentScores);
-        
+
         snapshot.docChanges().forEach(change => {
             if (change.type === "added" || change.type === "modified") {
                 const scoreData = change.doc.data();
                 const studentId = change.doc.id;
-    
+
                 if (scoreData.lastMonthlyResetDate !== currentMonthStart) {
-                    checkAndResetMonthlyStars(studentId, currentMonthStart);
+                    // Only reset MY students — writing sub-collections on other teachers'
+                    // students causes Firebase 403 permission-denied errors.
+                    const student = state.get('allStudents').find(s => s.id === studentId);
+                    if (student?.createdBy?.uid === userId) {
+                        checkAndResetMonthlyStars(studentId, currentMonthStart);
+                    }
                 }
-    
+
                 const newMonthly = scoreData.monthlyStars || 0;
                 const newTotal = scoreData.totalStars || 0;
-    
+
                 const monthlyEl = document.getElementById(`monthly-stars-${studentId}`);
                 const totalEl = document.getElementById(`total-stars-${studentId}`);
                 const newGold = scoreData.gold !== undefined ? scoreData.gold : newTotal; // Fallback
@@ -178,7 +183,7 @@ const writtenScoresQuery = query(
                         pill.classList.add('coin-update-anim');
                     }
                 }
-    
+
                 if (monthlyEl && monthlyEl.textContent != newMonthly) {
                     monthlyEl.textContent = newMonthly;
                     const bubble = monthlyEl.closest('.counter-bubble');
@@ -187,7 +192,7 @@ const writtenScoresQuery = query(
                         setTimeout(() => bubble.classList.remove('counter-animate'), 500);
                     }
                 }
-    
+
                 if (totalEl && totalEl.textContent != newTotal) {
                     totalEl.textContent = newTotal;
                     const bubble = totalEl.closest('.counter-bubble');
@@ -201,9 +206,9 @@ const writtenScoresQuery = query(
 
         renderStudentLeaderboardTab();
         renderClassLeaderboardTab();
-        
+
         // --- ADDED LINE ---
-        import('../features/home.js').then(m => m.renderHomeTab()); 
+        import('../features/home.js').then(m => m.renderHomeTab());
     }, (error) => console.error("Error listening to student_scores:", error)));
 
     state.setUnsubscribeTodaysStars(onSnapshot(todaysStarsQuery, (snapshot) => {
@@ -288,7 +293,7 @@ const writtenScoresQuery = query(
     state.setUnsubscribeAttendance(onSnapshot(attendanceQuery, (snapshot) => {
         // This state now only contains RECENT attendance (last 30 days)
         state.setAllAttendanceRecords(snapshot.docs.map(d => ({ id: d.id, ...d.data() })));
-        
+
         snapshot.docChanges().forEach(change => {
             const attendanceData = change.doc.data();
             const student = state.get('allStudents').find(s => s.id === attendanceData.studentId);
@@ -300,14 +305,14 @@ const writtenScoresQuery = query(
                 }
             }
         });
-        
+
         // If the attendance modal is open, and we are viewing the current month, refresh it
         const modal = document.getElementById('attendance-chronicle-modal');
         if (modal && !modal.classList.contains('hidden')) {
-             // We'll handle this refresh logic more robustly in modals.js, 
-             // but simple re-render triggers here if needed.
-             // For now, we rely on the Modal's internal state to trigger updates or 
-             // just let the 'on-demand' logic handle older months.
+            // We'll handle this refresh logic more robustly in modals.js, 
+            // but simple re-render triggers here if needed.
+            // For now, we rely on the Modal's internal state to trigger updates or 
+            // just let the 'on-demand' logic handle older months.
         }
     }, (error) => console.error("Error listening to attendance:", error)));
 
@@ -345,19 +350,19 @@ const writtenScoresQuery = query(
             renderShopUI();
         }
     });
-    
+
     state.setUnsubscribeSchoolSettings(onSnapshot(schoolSettingsQuery, async (docSnapshot) => {
         if (docSnapshot.exists()) {
             state.setSchoolHolidayRanges(docSnapshot.data().ranges || []);
         } else {
             state.setSchoolHolidayRanges([]);
         }
-        
+
         // Refresh UI
         // We use dynamic imports here to avoid circular dependency issues
         const { renderCalendarTab } = await import('../ui/tabs.js');
         renderCalendarTab();
-        
+
         const optionsTab = document.getElementById('options-tab');
         if (optionsTab && !optionsTab.classList.contains('hidden')) {
             const { renderHolidayList } = await import('../ui/core.js');

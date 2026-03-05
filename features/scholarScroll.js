@@ -23,10 +23,10 @@ export function renderScholarsScrollTab(selectedClassId = null) {
     if (!classSelect) return;
 
     const currentVal = selectedClassId || state.get('globalSelectedClassId');
-    const optionsHtml = state.get('allTeachersClasses').sort((a,b) => a.name.localeCompare(b.name)).map(c => `<option value="${c.id}">${c.logo} ${c.name}</option>`).join('');
-    
+    const optionsHtml = state.get('allTeachersClasses').sort((a, b) => a.name.localeCompare(b.name)).map(c => `<option value="${c.id}">${c.logo} ${c.name}</option>`).join('');
+
     classSelect.innerHTML = '<option value="">Select a class to view their scroll...</option>' + optionsHtml;
-    
+
     // FIX 1: Restore the selected value so the dropdown doesn't reset visualy on refresh
     if (currentVal) {
         classSelect.value = currentVal;
@@ -36,7 +36,7 @@ export function renderScholarsScrollTab(selectedClassId = null) {
     const logBtn = document.getElementById('log-trial-btn');
     const newLogBtn = logBtn.cloneNode(true);
     logBtn.parentNode.replaceChild(newLogBtn, logBtn);
-    
+
     newLogBtn.addEventListener('click', () => openTrialTypeModal(classSelect.value));
 
     if (currentVal) {
@@ -48,7 +48,7 @@ export function renderScholarsScrollTab(selectedClassId = null) {
         renderScrollDashboard(currentVal);
         document.getElementById('scroll-dashboard-content').classList.remove('hidden');
         document.getElementById('scroll-placeholder').classList.add('hidden');
-        
+
         // Render Missing Work
         renderMissingWorkDashboard(currentVal);
     } else {
@@ -64,17 +64,17 @@ export function renderScholarsScrollTab(selectedClassId = null) {
 function renderScrollDashboard(classId) {
     const studentsInClass = state.get('allStudents').filter(s => s.classId === classId);
     const threeMonthsAgo = new Date();
-threeMonthsAgo.setMonth(threeMonthsAgo.getMonth() - 3);
-threeMonthsAgo.setDate(1); // Start from the beginning of that month
+    threeMonthsAgo.setMonth(threeMonthsAgo.getMonth() - 3);
+    threeMonthsAgo.setDate(1); // Start from the beginning of that month
 
-const scoresForClass = state.get('allWrittenScores').filter(s => {
-    if (s.classId !== classId || !s.date) return false;
-    const scoreDate = utils.parseFlexibleDate(s.date);
-    return scoreDate >= threeMonthsAgo;
-});
+    const scoresForClass = state.get('allWrittenScores').filter(s => {
+        if (s.classId !== classId || !s.date) return false;
+        const scoreDate = utils.parseFlexibleDate(s.date);
+        return scoreDate >= threeMonthsAgo;
+    });
     const classData = state.get('allSchoolClasses').find(c => c.id === classId);
     const isJunior = classData && (classData.questLevel === 'Junior A' || classData.questLevel === 'Junior B');
-    
+
     const statsContainer = document.getElementById('scroll-stats-cards');
     // --- NEW: Upcoming Test Indicator ---
     const dashboard = document.getElementById('scroll-dashboard-content');
@@ -98,12 +98,12 @@ const scoresForClass = state.get('allWrittenScores').filter(s => {
         const dateDisplay = upcomingTest.parsedDate.toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long' });
         const isToday = utils.datesMatch(upcomingTest.testData.date, utils.getTodayDateString());
 
-// Calculate difference in days by stripping time
-const d1 = new Date(now).setHours(0,0,0,0);
-const d2 = new Date(upcomingTest.parsedDate).setHours(0,0,0,0);
-const daysLeft = Math.round((d2 - d1) / (1000 * 60 * 60 * 24));
+        // Calculate difference in days by stripping time
+        const d1 = new Date(now).setHours(0, 0, 0, 0);
+        const d2 = new Date(upcomingTest.parsedDate).setHours(0, 0, 0, 0);
+        const daysLeft = Math.round((d2 - d1) / (1000 * 60 * 60 * 24));
 
-const timeText = isToday ? "TODAY!" : (daysLeft === 1 ? "Tomorrow" : `in ${daysLeft} days`);
+        const timeText = isToday ? "TODAY!" : (daysLeft === 1 ? "Tomorrow" : `in ${daysLeft} days`);
 
         testAlert = document.createElement('div');
         testAlert.id = 'scroll-test-alert';
@@ -126,13 +126,13 @@ const timeText = isToday ? "TODAY!" : (daysLeft === 1 ? "Tomorrow" : `in ${daysL
     const chartContainer = document.getElementById('scroll-performance-chart');
 
     const dictationMap = { "Great!!!": 4, "Great!!": 3, "Great!": 2, "Nice Try!": 1 };
-    
+
     const testScores = scoresForClass.filter(s => s.type === 'test' && s.scoreNumeric !== null);
     const dictationScores = scoresForClass.filter(s => s.type === 'dictation');
-    
+
     // --- Calculate Averages ---
-    const testAvg = testScores.length > 0 
-        ? (testScores.reduce((sum, s) => sum + (s.scoreNumeric / s.maxScore) * 100, 0) / testScores.length) 
+    const testAvg = testScores.length > 0
+        ? (testScores.reduce((sum, s) => sum + (s.scoreNumeric / s.maxScore) * 100, 0) / testScores.length)
         : null;
 
     let avgDictationDisplay = '--';
@@ -163,14 +163,14 @@ const timeText = isToday ? "TODAY!" : (daysLeft === 1 ? "Tomorrow" : `in ${daysL
             const studentDictationScores = dictationScores.filter(s => s.studentId === student.id);
             if (studentTestScores.length === 0 && studentDictationScores.length === 0) return null;
 
-            const avg = isJunior 
-                ? calculateJuniorTreasureRank(studentTestScores, studentDictationScores).value 
+            const avg = isJunior
+                ? calculateJuniorTreasureRank(studentTestScores, studentDictationScores).value
                 : calculateSeniorAverage(studentTestScores, studentDictationScores);
 
             return { name: student.name, avg };
         }).filter(Boolean);
 
-        if(studentAverages.length > 0) {
+        if (studentAverages.length > 0) {
             const maxAvg = Math.max(...studentAverages.map(s => s.avg));
             topScholars = studentAverages.filter(s => s.avg === maxAvg);
         }
@@ -195,7 +195,7 @@ const timeText = isToday ? "TODAY!" : (daysLeft === 1 ? "Tomorrow" : `in ${daysL
     const studentPerformanceData = studentsInClass.map(student => {
         const studentTestScores = scoresForClass.filter(s => s.studentId === student.id && s.type === 'test');
         const studentDictationScores = scoresForClass.filter(s => s.studentId === student.id && s.type === 'dictation');
-        
+
         let performance = { value: 0, display: '--' };
         if (studentTestScores.length > 0 || studentDictationScores.length > 0) {
             if (isJunior) {
@@ -212,14 +212,14 @@ const timeText = isToday ? "TODAY!" : (daysLeft === 1 ? "Tomorrow" : `in ${daysL
     if (studentPerformanceData.length === 0 || studentPerformanceData.every(d => d.performance.value === 0)) {
         chartContainer.innerHTML = `<p class="text-center text-gray-400 p-8">Log some trials to see the performance chart!</p>`;
     } else {
-        chartContainer.innerHTML = `<div class="performance-chart-container">${studentPerformanceData.map(({student, performance}) => {
+        chartContainer.innerHTML = `<div class="performance-chart-container">${studentPerformanceData.map(({ student, performance }) => {
             const scoreData = state.get('allStudentScores').find(sc => sc.id === student.id);
             const pendingSkill = !!scoreData?.pendingSkillChoice;
-            const avatarInner = student.avatar 
-                ? `<img src="${student.avatar}" alt="${student.name}" class="student-avatar enlargeable-avatar">` 
+            const avatarInner = student.avatar
+                ? `<img src="${student.avatar}" alt="${student.name}" class="student-avatar enlargeable-avatar">`
                 : `<div class="student-avatar enlargeable-avatar flex items-center justify-center bg-gray-300 text-gray-600 font-bold">${student.name.charAt(0)}</div>`;
             const avatarHtml = wrapAvatarWithLevelUpIndicator(avatarInner, pendingSkill);
-            
+
             const maxVal = isJunior ? 4 : 100;
             const percentage = (performance.value / maxVal) * 100;
             let tier = 'low';
@@ -258,44 +258,44 @@ export function openTrialTypeModal(classId) {
         modals.hideModal('trial-type-modal');
         setTimeout(() => openBulkLogModal(classId, 'dictation'), 300);
     };
-    
+
     document.getElementById('select-test-btn').onclick = () => {
         modals.hideModal('trial-type-modal');
         setTimeout(() => openBulkLogModal(classId, 'test'), 300);
     };
-    
+
     document.getElementById('trial-type-cancel-btn').onclick = () => modals.hideModal('trial-type-modal');
 }
 
 export function openBulkLogModal(classId, type) {
     const classData = state.get('allSchoolClasses').find(c => c.id === classId);
-    const students = state.get('allStudents').filter(s => s.classId === classId).sort((a,b) => a.name.localeCompare(b.name));
+    const students = state.get('allStudents').filter(s => s.classId === classId).sort((a, b) => a.name.localeCompare(b.name));
     if (!classData) return;
 
     const isJunior = classData.questLevel === 'Junior A' || classData.questLevel === 'Junior B';
 
     const todayStr = utils.getTodayDateString();
-    const scheduledTest = state.get('allQuestAssignments').find(a => 
-        a.classId === classId && 
-        a.testData && 
+    const scheduledTest = state.get('allQuestAssignments').find(a =>
+        a.classId === classId &&
+        a.testData &&
         utils.datesMatch(a.testData.date, todayStr)
     );
-    
+
     if (scheduledTest && type === 'test') {
         document.getElementById('bulk-trial-name').value = scheduledTest.testData.title;
     }
-    
+
     // UI Setup
     document.getElementById('bulk-trial-title').innerText = type === 'dictation' ? 'Log Dictation' : 'Log Test';
     document.getElementById('bulk-trial-subtitle').innerText = `${classData.logo} ${classData.name}`;
-    
+
     // Ensure date input is YYYY-MM-DD for input type="date"
     const todayObj = new Date();
     const yyyy = todayObj.getFullYear();
     const mm = String(todayObj.getMonth() + 1).padStart(2, '0');
     const dd = String(todayObj.getDate()).padStart(2, '0');
     document.getElementById('bulk-trial-date').value = `${yyyy}-${mm}-${dd}`;
-    
+
     // NEW: Update the DD/MM/YYYY display label
     const dateDisplay = document.getElementById('bulk-trial-date-display');
     const updateDateDisplay = (val) => {
@@ -305,18 +305,18 @@ export function openBulkLogModal(classId, type) {
         dateDisplay.innerText = `${d}/${m}/${y}`;
     };
     updateDateDisplay(document.getElementById('bulk-trial-date').value);
-    
+
     // Add listener for changes
     document.getElementById('bulk-trial-date').onchange = (e) => updateDateDisplay(e.target.value);
-    
+
     const titleWrapper = document.getElementById('bulk-trial-title-wrapper');
     const titleInput = document.getElementById('bulk-trial-name');
     titleInput.value = '';
-    
+
     if (type === 'test') {
         titleWrapper.classList.remove('hidden');
     } else {
-        titleWrapper.classList.add('hidden'); 
+        titleWrapper.classList.add('hidden');
     }
 
     const listContainer = document.getElementById('bulk-student-list');
@@ -340,9 +340,9 @@ export function openBulkLogModal(classId, type) {
             const row = e.target.closest('.bulk-log-item');
             const isNowAbsent = !btn.classList.contains('is-absent');
             const input = row.querySelector('.bulk-grade-input');
-            
+
             btn.classList.toggle('is-absent');
-            
+
             if (isNowAbsent) {
                 btn.classList.remove('bg-green-500', 'text-white', 'hover:bg-green-600');
                 btn.classList.add('bg-red-500', 'text-white', 'hover:bg-red-600');
@@ -352,15 +352,15 @@ export function openBulkLogModal(classId, type) {
                 btn.classList.add('bg-green-500', 'text-white', 'hover:bg-green-600');
                 btn.innerHTML = '<i class="fas fa-user-check"></i> Present';
             }
-            
+
             row.classList.toggle('absent', isNowAbsent);
             if (input) input.disabled = isNowAbsent;
-            if (isNowAbsent && input) input.value = ''; 
+            if (isNowAbsent && input) input.value = '';
         });
     });
 
     document.getElementById('bulk-trial-close-btn').onclick = () => modals.hideModal('bulk-trial-modal');
-    
+
     document.getElementById('bulk-trial-modal').dataset.classId = classId;
     document.getElementById('bulk-trial-modal').dataset.type = type;
     document.getElementById('bulk-trial-modal').dataset.isJunior = isJunior;
@@ -369,7 +369,7 @@ export function openBulkLogModal(classId, type) {
 }
 
 function renderStudentBulkRow(student, type, isJunior, isAbsent) {
-    const avatarHtml = student.avatar 
+    const avatarHtml = student.avatar
         ? `<img src="${student.avatar}" class="w-10 h-10 rounded-full object-cover border border-gray-200 student-avatar">`
         : `<div class="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center text-gray-500 font-bold student-avatar">${student.name.charAt(0)}</div>`;
 
@@ -396,8 +396,8 @@ function renderStudentBulkRow(student, type, isJunior, isAbsent) {
         `;
     }
 
-    const buttonClass = isAbsent 
-        ? 'is-absent bg-red-500 text-white hover:bg-red-600' 
+    const buttonClass = isAbsent
+        ? 'is-absent bg-red-500 text-white hover:bg-red-600'
         : 'bg-green-500 text-white hover:bg-green-600';
 
     return `
@@ -423,12 +423,12 @@ export async function openTrialHistoryModal(classId) {
     const classData = state.get('allTeachersClasses').find(c => c.id === classId);
     if (!classData) return;
 
-    loadedHistoricalScores = []; 
+    loadedHistoricalScores = [];
 
     const modal = document.getElementById('trial-history-modal');
     modal.dataset.classId = classId;
     document.getElementById('trial-history-title').innerHTML = `${classData.logo} Trial History`;
-    
+
     // 1. Reset Toggle Buttons
     const viewToggleContainer = document.getElementById('trial-history-view-toggle');
     viewToggleContainer.innerHTML = `
@@ -443,26 +443,26 @@ export async function openTrialHistoryModal(classId) {
             renderTrialHistoryContent(classId, e.currentTarget.dataset.view);
         });
     });
-    
+
     // 2. Setup Edit/Delete Listeners
     const contentEl = document.getElementById('trial-history-content');
     const newContentEl = contentEl.cloneNode(false);
     contentEl.parentNode.replaceChild(newContentEl, contentEl);
-    
+
     newContentEl.addEventListener('click', (e) => {
         const deleteBtn = e.target.closest('.delete-trial-btn');
         if (deleteBtn) handleDeleteTrial(deleteBtn.dataset.trialId);
         const editBtn = e.target.closest('.edit-trial-btn');
         if (editBtn) openSingleTrialEditModal(classId, editBtn.dataset.trialId);
     });
-    
+
     // 3. Initial Render
     renderTrialHistoryContent(classId, 'test');
     modals.showAnimatedModal('trial-history-modal');
 
     // 4. PERMANENT DROPDOWN IN HEADER (Safe Zone)
     const actionsContainer = document.getElementById('trial-history-actions');
-    
+
     // Reset container with a loading state
     actionsContainer.innerHTML = `
         <div class="flex items-center gap-2 bg-amber-100 text-amber-900 px-3 py-1.5 rounded-lg border border-amber-300 shadow-sm opacity-70">
@@ -476,10 +476,10 @@ export async function openTrialHistoryModal(classId) {
 
         // Smart Month Scanner (Checks local data first)
         const now = new Date();
-        const currentMonthKey = now.toISOString().substring(0, 7); 
+        const currentMonthKey = now.toISOString().substring(0, 7);
         const allScores = state.get('allWrittenScores').filter(s => s.classId === classId);
         const monthSet = new Set();
-        
+
         allScores.forEach(s => {
             const d = parseFlexibleDate(s.date);
             if (d) monthSet.add(d.toISOString().substring(0, 7));
@@ -502,9 +502,9 @@ export async function openTrialHistoryModal(classId) {
                         <select id="trial-history-month-select" class="pl-2 pr-8 py-2 bg-transparent text-amber-900 font-bold text-sm outline-none cursor-pointer appearance-none min-w-[140px]">
                             <option value="">Load Past Month...</option>
                             ${historicalMonths.map(m => {
-                                const d = new Date(m + '-02');
-                                return `<option value="${m}">${d.toLocaleString('en-GB', { month: 'long', year: 'numeric' })}</option>`;
-                            }).join('')}
+                const d = new Date(m + '-02');
+                return `<option value="${m}">${d.toLocaleString('en-GB', { month: 'long', year: 'numeric' })}</option>`;
+            }).join('')}
                         </select>
                         <div class="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-amber-500 text-xs">
                             <i class="fas fa-chevron-down"></i>
@@ -516,8 +516,8 @@ export async function openTrialHistoryModal(classId) {
             const select = document.getElementById('trial-history-month-select');
             select.addEventListener('change', async (e) => {
                 const monthKey = e.target.value;
-                if(!monthKey) return;
-                
+                if (!monthKey) return;
+
                 const originalText = select.options[select.selectedIndex].text;
                 select.disabled = true;
                 // Visual feedback inside the select
@@ -527,21 +527,21 @@ export async function openTrialHistoryModal(classId) {
                 select.selectedIndex = 0;
 
                 const scores = await fetchTrialsForMonth(classId, monthKey);
-                
+
                 // Remove temp option
                 select.remove(0);
-                
+
                 if (scores.length > 0) {
                     loadedHistoricalScores.push(...scores);
                     // Force refresh current view
                     const activeView = document.querySelector('#trial-history-view-toggle .active-toggle')?.dataset.view || 'test';
                     renderTrialHistoryContent(classId, activeView);
-                    
+
                     showToast(`Archive opened: ${originalText}`, 'success');
                 } else {
                     showToast('No records found in that archive.', 'info');
                 }
-                
+
                 select.disabled = false;
                 select.value = ""; // Reset to default
             });
@@ -563,7 +563,7 @@ export function renderTrialHistoryContent(classId, view) {
     // 1. Get ONLY recent scores (last 45 days) for the initial view
     const recentCutoff = new Date();
     recentCutoff.setDate(recentCutoff.getDate() - 45);
-    
+
     const recentScores = state.get('allWrittenScores').filter(s => {
         if (!s.date || s.classId !== classId) return false;
         return utils.parseFlexibleDate(s.date) >= recentCutoff;
@@ -571,10 +571,10 @@ export function renderTrialHistoryContent(classId, view) {
 
     // 2. ONLY combine with historical scores if the user explicitly clicked them
     const allScoresForClass = [...recentScores, ...loadedHistoricalScores];
-    
+
     // 3. Remove duplicates to be safe
     const uniqueScores = Array.from(new Map(allScoresForClass.map(item => [item.id, item])).values());
-    
+
     // 4. Filter by the selected view ('test' or 'dictation')
     const scoresToRender = uniqueScores.filter(s => s.type === view);
 
@@ -596,13 +596,13 @@ export function renderTrialHistoryContent(classId, view) {
 
     const newHtml = sortedMonths.map(currentMonthKey => {
         const monthName = new Date(currentMonthKey + '-02').toLocaleString('en-GB', { month: 'long', year: 'numeric' });
-        
+
         const scoresByDate = scoresByMonth[currentMonthKey].reduce((acc, score) => {
             if (!acc[score.date]) acc[score.date] = [];
             acc[score.date].push(score);
             return acc;
         }, {});
-        
+
         const sortedDates = Object.keys(scoresByDate).sort((a, b) => {
             const da = utils.parseFlexibleDate(a);
             const db = utils.parseFlexibleDate(b);
@@ -611,7 +611,7 @@ export function renderTrialHistoryContent(classId, view) {
 
         let monthScoresHtml = sortedDates.map(date => {
             const dateScoresHtml = scoresByDate[date]
-                .sort((a,b) => {
+                .sort((a, b) => {
                     const studentA = state.get('allStudents').find(s => s.id === a.studentId)?.name || '';
                     const studentB = state.get('allStudents').find(s => s.id === b.studentId)?.name || '';
                     return studentA.localeCompare(studentB);
@@ -651,7 +651,7 @@ function renderTrialHistoryItem(score) {
     // This part for Junior Dictations remains the same.
     if (score.scoreQualitative) {
         scoreDisplay = `<span class="font-title text-lg text-blue-600">${score.scoreQualitative}</span>`;
-    } 
+    }
     // This is the part we are changing.
     else if (score.scoreNumeric !== null && score.maxScore) {
         const scorePercent = (score.scoreNumeric / score.maxScore) * 100;
@@ -659,7 +659,7 @@ function renderTrialHistoryItem(score) {
         // We now display the raw score, but keep the color from the percentage!
         scoreDisplay = `<span class="font-title text-lg ${colorClass}">${score.scoreNumeric}<span class="text-sm text-gray-500"> / ${score.maxScore}</span></span>`;
     }
-    
+
     const isOwner = score.teacherId === state.get('currentUserId');
 
     return `
@@ -679,43 +679,43 @@ function renderTrialHistoryItem(score) {
 export function openSingleTrialEditModal(classId, trialId) {
     const score = state.get('allWrittenScores').find(s => s.id === trialId);
     if (!score) return;
-    
+
     const classData = state.get('allSchoolClasses').find(c => c.id === classId);
     const isJunior = classData.questLevel === 'Junior A' || classData.questLevel === 'Junior B';
 
     const modal = document.getElementById('bulk-trial-modal');
-    
+
     document.getElementById('bulk-trial-title').innerText = 'Edit Result';
     document.getElementById('bulk-trial-subtitle').innerText = `${classData.name}`;
-    
+
     const dateObj = utils.parseDDMMYYYY(score.date);
     const yyyy = dateObj.getFullYear();
     const mm = String(dateObj.getMonth() + 1).padStart(2, '0');
     const dd = String(dateObj.getDate()).padStart(2, '0');
     document.getElementById('bulk-trial-date').value = `${yyyy}-${mm}-${dd}`;
-    
+
     // Also update display label for single edit
     const displayEl = document.getElementById('bulk-trial-date-display');
-    if(displayEl) displayEl.innerText = `${dd}/${mm}/${yyyy}`;
-    
+    if (displayEl) displayEl.innerText = `${dd}/${mm}/${yyyy}`;
+
     const titleWrapper = document.getElementById('bulk-trial-title-wrapper');
     const titleInput = document.getElementById('bulk-trial-name');
-    
+
     if (score.type === 'test') {
         titleWrapper.classList.remove('hidden');
         titleInput.value = score.title || '';
     } else {
         titleWrapper.classList.add('hidden');
     }
-    
+
     const listContainer = document.getElementById('bulk-student-list');
     listContainer.innerHTML = '';
-    
+
     const student = state.get('allStudents').find(s => s.id === score.studentId);
     if (student) {
         const rowHtml = renderStudentBulkRow(student, score.type, isJunior, false);
         listContainer.innerHTML = rowHtml;
-        
+
         const input = listContainer.querySelector('.bulk-grade-input');
         if (input) {
             if (score.scoreQualitative) input.value = score.scoreQualitative;
@@ -723,15 +723,15 @@ export function openSingleTrialEditModal(classId, trialId) {
         }
         listContainer.querySelector('.bulk-log-item').dataset.trialId = trialId;
     }
-    
+
     modal.dataset.classId = classId;
     modal.dataset.type = score.type;
     modal.dataset.isJunior = isJunior;
-    
+
     const saveBtn = document.getElementById('bulk-trial-save-btn');
     const newSaveBtn = saveBtn.cloneNode(true);
     saveBtn.parentNode.replaceChild(newSaveBtn, saveBtn);
-    
+
     modals.showAnimatedModal('bulk-trial-modal');
     document.getElementById('bulk-trial-close-btn').onclick = () => modals.hideModal('bulk-trial-modal');
 }
@@ -744,7 +744,7 @@ function calculateJuniorTreasureRank(testScores, dictationScores) {
     const testAvg = testScores.length > 0 ? (testScores.reduce((sum, s) => sum + (s.scoreNumeric / s.maxScore), 0) / testScores.length) * 4 : 0;
     const dictationAvg = dictationScores.length > 0 ? dictationScores.reduce((sum, s) => sum + dictationMap[s.scoreQualitative], 0) / dictationScores.length : 0;
     let finalScore;
-    if (testScores.length > 0 && dictationScores.length > 0) { finalScore = (testAvg * 0.6) + (dictationAvg * 0.4); } 
+    if (testScores.length > 0 && dictationScores.length > 0) { finalScore = (testAvg * 0.6) + (dictationAvg * 0.4); }
     else { finalScore = Math.max(testAvg, dictationAvg); }
     let display = '--';
     if (finalScore > 3.5) display = '💎 Diamond Explorer';
@@ -758,7 +758,7 @@ function calculateSeniorAverage(testScores, dictationScores) {
     const testAvg = testScores.length > 0 ? (testScores.reduce((sum, s) => sum + (s.scoreNumeric / s.maxScore), 0) / testScores.length) * 100 : 0;
     const dictationAvg = dictationScores.length > 0 ? (dictationScores.reduce((sum, s) => sum + (s.scoreNumeric / s.maxScore), 0) / dictationScores.length) * 100 : 0;
     let weightedAvg;
-    if (testScores.length > 0 && dictationScores.length > 0) { weightedAvg = (testAvg * 0.6) + (dictationAvg * 0.4); } 
+    if (testScores.length > 0 && dictationScores.length > 0) { weightedAvg = (testAvg * 0.6) + (dictationAvg * 0.4); }
     else { weightedAvg = Math.max(testAvg, dictationAvg); }
     return weightedAvg;
 }
@@ -778,13 +778,13 @@ function renderMissingWorkDashboard(classId) {
 
     const studentsInClass = state.get('allStudents').filter(s => s.classId === classId);
     const scoresForClass = state.get('allWrittenScores').filter(s => s.classId === classId);
-    
+
     // 1. Identify unique Tests (Group by Title+Type)
     const uniqueAssessments = {};
-    
+
     scoresForClass.forEach(score => {
         // FIX 2: ONLY Tests
-        if (score.type === 'test') { 
+        if (score.type === 'test') {
             const key = `${score.type}-${score.title || 'Untitled'}`;
             if (!uniqueAssessments[key]) {
                 uniqueAssessments[key] = {
@@ -800,7 +800,18 @@ function renderMissingWorkDashboard(classId) {
 
     // Filter out assessments that only 1 or 2 students took (likely makeups themselves)
     const threshold = Math.max(2, Math.floor(studentsInClass.length * 0.3));
-    const validAssessments = Object.values(uniqueAssessments).filter(a => a.count >= threshold);
+
+    // Only show makeups for assessments within the past 3 months (matching the data load window)
+    const threeMonthsAgo = new Date();
+    threeMonthsAgo.setMonth(threeMonthsAgo.getMonth() - 3);
+    threeMonthsAgo.setHours(0, 0, 0, 0);
+
+    const validAssessments = Object.values(uniqueAssessments).filter(a => {
+        if (a.count < threshold) return false;
+        const aDate = utils.parseFlexibleDate(a.originalDate);
+        if (!aDate) return false;
+        return aDate >= threeMonthsAgo; // Skip stale assessments from > 3 months ago
+    });
 
     if (validAssessments.length === 0) return;
 
@@ -813,13 +824,13 @@ function renderMissingWorkDashboard(classId) {
             if (student.createdAt) {
                 const joinDate = student.createdAt.toDate ? student.createdAt.toDate() : new Date(student.createdAt);
                 const testDate = utils.parseFlexibleDate(assessment.originalDate);
-                testDate.setHours(23, 59, 59, 999); 
+                testDate.setHours(23, 59, 59, 999);
                 if (joinDate > testDate) return;
             }
 
-            const hasTaken = scoresForClass.some(s => 
-                s.studentId === student.id && 
-                s.type === assessment.type && 
+            const hasTaken = scoresForClass.some(s =>
+                s.studentId === student.id &&
+                s.type === assessment.type &&
                 (s.title === assessment.title || (!s.title && !assessment.title))
             );
 
@@ -834,6 +845,18 @@ function renderMissingWorkDashboard(classId) {
 
     if (missingWork.length === 0) return;
 
+    // Load dismissed makeups from localStorage (keyed by classId-type-title-studentId)
+    const dismissedKey = `dismissed_makeups_${classId}`;
+    const dismissed = JSON.parse(localStorage.getItem(dismissedKey) || '{}');
+
+    // Filter out dismissed items
+    const filteredWork = missingWork.filter(item => {
+        const itemKey = `${item.assessment.type}-${item.assessment.title}-${item.student.id}`;
+        return !dismissed[itemKey];
+    });
+
+    if (filteredWork.length === 0) return;
+
     // 3. Render the list
     let html = `
         <div class="makeup-alert-container">
@@ -841,23 +864,33 @@ function renderMissingWorkDashboard(classId) {
             <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
     `;
 
-    missingWork.forEach(item => {
+    filteredWork.forEach(item => {
         html += `
             <div class="makeup-item">
                 <div>
                     <div class="font-bold text-gray-800">${item.student.name}</div>
                     <div class="text-xs text-gray-500">Missed: ${item.assessment.title} (${item.assessment.type})</div>
-                    <div class="text-xs text-orange-400">Original Date: ${utils.parseDDMMYYYY(item.assessment.originalDate).toLocaleDateString('en-GB')}</div>
+                    <div class="text-xs text-orange-400">Original Date: ${(utils.parseFlexibleDate(item.assessment.originalDate) || new Date()).toLocaleDateString('en-GB')}</div>
                 </div>
-                <button class="makeup-log-btn makeup-trigger" 
-                    data-student-id="${item.student.id}" 
-                    data-title="${item.assessment.title}" 
-                    data-type="${item.assessment.type}">
-                    Log Now
-                </button>
+                <div class="flex items-center gap-2">
+                    <button class="makeup-dismiss-btn w-7 h-7 rounded-full bg-gray-100 text-gray-400 hover:bg-red-100 hover:text-red-500 flex items-center justify-center transition-colors" 
+                        data-student-id="${item.student.id}" 
+                        data-title="${item.assessment.title}" 
+                        data-type="${item.assessment.type}"
+                        title="Dismiss this pending makeup">
+                        <i class="fas fa-times text-xs pointer-events-none"></i>
+                    </button>
+                    <button class="makeup-log-btn makeup-trigger" 
+                        data-student-id="${item.student.id}" 
+                        data-title="${item.assessment.title}" 
+                        data-type="${item.assessment.type}">
+                        Log Now
+                    </button>
+                </div>
             </div>
         `;
     });
+
 
     html += `</div></div>`;
     container.innerHTML = html;
@@ -866,6 +899,28 @@ function renderMissingWorkDashboard(classId) {
     container.querySelectorAll('.makeup-trigger').forEach(btn => {
         btn.addEventListener('click', () => {
             openMakeupModal(classId, btn.dataset.studentId, btn.dataset.type, btn.dataset.title);
+        });
+    });
+
+    // 5. Bind Dismiss Buttons
+    container.querySelectorAll('.makeup-dismiss-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const itemKey = `${btn.dataset.type}-${btn.dataset.title}-${btn.dataset.studentId}`;
+            const saved = JSON.parse(localStorage.getItem(dismissedKey) || '{}');
+            saved[itemKey] = true;
+            localStorage.setItem(dismissedKey, JSON.stringify(saved));
+            // Remove from DOM immediately
+            const makeupItem = btn.closest('.makeup-item');
+            if (makeupItem) {
+                makeupItem.style.opacity = '0';
+                makeupItem.style.transition = 'opacity 0.3s';
+                setTimeout(() => {
+                    makeupItem.remove();
+                    // If no items left, remove the whole container
+                    const remaining = container.querySelectorAll('.makeup-item');
+                    if (remaining.length === 0) container.remove();
+                }, 300);
+            }
         });
     });
 }
@@ -877,33 +932,33 @@ function openMakeupModal(classId, studentId, type, title) {
 
     // Reuse Bulk Modal DOM but configure for single makeup
     const modal = document.getElementById('bulk-trial-modal');
-    
+
     document.getElementById('bulk-trial-title').innerText = `Makeup: ${type === 'dictation' ? 'Dictation' : 'Test'}`;
     document.getElementById('bulk-trial-subtitle').innerText = `${student.name} - ${title}`;
-    
+
     // Set Date to TODAY (ISO format for input)
     const today = new Date();
     const yyyy = today.getFullYear();
     const mm = String(today.getMonth() + 1).padStart(2, '0');
     const dd = String(today.getDate()).padStart(2, '0');
     document.getElementById('bulk-trial-date').value = `${yyyy}-${mm}-${dd}`;
-    
+
     // Update Visual Display manually
     const displayEl = document.getElementById('bulk-trial-date-display');
-    if(displayEl) displayEl.innerText = `${dd}/${mm}/${yyyy}`;
+    if (displayEl) displayEl.innerText = `${dd}/${mm}/${yyyy}`;
 
     // Handle Title Input
     const titleWrapper = document.getElementById('bulk-trial-title-wrapper');
     const titleInput = document.getElementById('bulk-trial-name');
-    
+
     titleWrapper.classList.remove('hidden'); // Always show title for makeup to confirm context
     titleInput.value = title || '';
-    
+
     // Render JUST the one student row
     const listContainer = document.getElementById('bulk-student-list');
-    
+
     // Simplified Row Generation for Makeup
-    const avatarHtml = student.avatar 
+    const avatarHtml = student.avatar
         ? `<img src="${student.avatar}" class="w-10 h-10 rounded-full object-cover border border-gray-200">`
         : `<div class="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center text-gray-500 font-bold">${student.name.charAt(0)}</div>`;
 
@@ -951,7 +1006,7 @@ function openMakeupModal(classId, studentId, type, title) {
     const saveBtn = document.getElementById('bulk-trial-save-btn');
     const newSaveBtn = saveBtn.cloneNode(true);
     saveBtn.parentNode.replaceChild(newSaveBtn, saveBtn);
-    
+
     // We need to import handleBulkSaveTrial from actions to bind it
     import('../db/actions.js').then(actions => {
         newSaveBtn.addEventListener('click', actions.handleBulkSaveTrial);

@@ -4,6 +4,85 @@ import * as utils from '../../utils.js';
 import { HERO_CLASSES } from '../../features/heroClasses.js';
 import { getGuildBadgeHtml } from '../../features/guilds.js';
 
+// --- REIGNING PRODIGY CACHE (previous month, with tie-breaker) ---
+let _awardProdigyCacheKey = null;
+let _awardProdigyCache = {}; // classId -> Set<studentId>
+
+async function getReigningProdigyForClass(classId) {
+    const now = new Date();
+    const prevMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+    const cacheKey = `${prevMonth.getFullYear()}-${prevMonth.getMonth()}`;
+
+    // Re-use cached data if already fetched this session/month
+    if (_awardProdigyCacheKey !== cacheKey) {
+        try {
+            const { fetchLogsForMonth } = await import('../../db/queries.js');
+            const logs = await fetchLogsForMonth(prevMonth.getFullYear(), prevMonth.getMonth() + 1);
+            const allScores = state.get('allWrittenScores') || [];
+            const vm = prevMonth.getMonth();
+            const vy = prevMonth.getFullYear();
+
+            const logsByClass = {};
+            logs.forEach(l => {
+                if (!l.classId) return;
+                if (!logsByClass[l.classId]) logsByClass[l.classId] = [];
+                logsByClass[l.classId].push(l);
+            });
+
+            const result = {};
+            Object.entries(logsByClass).forEach(([cId, classLogs]) => {
+                const students = state.get('allStudents').filter(s => s.classId === cId);
+                const stats = students.map(s => {
+                    const sLogs = classLogs.filter(l => l.studentId === s.id);
+                    const totalStars = sLogs.reduce((sum, l) => sum + (l.stars || 0), 0);
+                    let count3 = 0, count2 = 0;
+                    const reasons = new Set();
+                    sLogs.forEach(l => {
+                        if (l.stars >= 3) count3++;
+                        else if (l.stars >= 2) count2++;
+                        if (l.reason) reasons.add(l.reason);
+                    });
+                    const sScores = allScores.filter(sc => {
+                        const d = utils.parseFlexibleDate(sc.date);
+                        return sc.studentId === s.id && d && d.getMonth() === vm && d.getFullYear() === vy;
+                    });
+                    let acadSum = 0;
+                    sScores.forEach(sc => {
+                        if (sc.maxScore) acadSum += (sc.scoreNumeric / sc.maxScore) * 100;
+                        else if (sc.scoreQualitative === 'Great!!!') acadSum += 100;
+                        else if (sc.scoreQualitative === 'Great!!') acadSum += 75;
+                    });
+                    return { id: s.id, monthlyStars: totalStars, count3, count2, uniqueReasons: reasons.size, academicAvg: sScores.length > 0 ? acadSum / sScores.length : 0 };
+                }).filter(s => s.monthlyStars > 0);
+
+                if (!stats.length) return;
+                stats.sort((a, b) => {
+                    if (b.monthlyStars !== a.monthlyStars) return b.monthlyStars - a.monthlyStars;
+                    if (b.count3 !== a.count3) return b.count3 - a.count3;
+                    if (b.count2 !== a.count2) return b.count2 - a.count2;
+                    if (b.uniqueReasons !== a.uniqueReasons) return b.uniqueReasons - a.uniqueReasons;
+                    return b.academicAvg - a.academicAvg;
+                });
+                const top = stats[0];
+                result[cId] = new Set(
+                    stats.filter(s =>
+                        s.monthlyStars === top.monthlyStars && s.count3 === top.count3 &&
+                        s.count2 === top.count2 && s.uniqueReasons === top.uniqueReasons &&
+                        Math.abs(s.academicAvg - top.academicAvg) <= 0.5
+                    ).map(s => s.id)
+                );
+            });
+
+            _awardProdigyCacheKey = cacheKey;
+            _awardProdigyCache = result;
+        } catch (e) {
+            console.warn('Award tab: could not load reigning prodigies:', e);
+        }
+    }
+
+    return _awardProdigyCache[classId] || new Set();
+}
+
 export function renderAwardStarsTab() {
     const dropdownList = document.getElementById('award-class-list');
     const studentListContainer = document.getElementById('award-stars-student-list');
@@ -59,7 +138,7 @@ export function renderAwardStarsStudentList(selectedClassId, fullRender = true) 
     const listContainer = document.getElementById('award-stars-student-list');
     if (!listContainer) return;
 
-    const renderContent = () => {
+    const renderContent = async () => {
         if (!selectedClassId) {
             listContainer.innerHTML = `<p class="text-center text-gray-700 bg-white/70 backdrop-blur-sm p-4 rounded-2xl text-lg col-span-full">Please select a class above to award stars.</p>`;
             return;
@@ -80,6 +159,16 @@ export function renderAwardStarsStudentList(selectedClassId, fullRender = true) 
             const previousLessonDate = utils.getPreviousLessonDate(selectedClassId, state.get('allSchoolClasses'));
             const today = utils.getTodayDateString();
 
+            // --- REIGNING PRODIGY BANNER (previous month's winner) ---
+            const prodigySet = await getReigningProdigyForClass(selectedClassId);
+            const prodigyStudents = studentsInClass.filter(s => prodigySet.has(s.id));
+            const prodigyBannerHtml = prodigyStudents.length > 0 ? `
+                <div class="col-span-full mb-2 flex items-center justify-center gap-2 px-4 py-2 bg-gradient-to-r from-amber-400/90 to-yellow-300/90 backdrop-blur-sm rounded-2xl shadow-md border border-amber-300 text-amber-900 text-sm font-bold">
+                    👑 <span>Reigning Prodigy:</span>
+                    <span class="font-title text-base">${prodigyStudents.map(s => s.name).join(' &amp; ')}</span>
+                    <span class="text-xs font-normal opacity-70">(last month)</span>
+                </div>` : '';
+
             const cloudShapes = ['cloud-shape-1', 'cloud-shape-2', 'cloud-shape-3', 'cloud-shape-4'];
 
             // --- 1. PRE-CALCULATE BOON ELIGIBILITY ---
@@ -97,7 +186,7 @@ export function renderAwardStarsStudentList(selectedClassId, fullRender = true) 
             const scoreCounts = {};
             leaderboard.forEach(x => { scoreCounts[x.stars] = (scoreCounts[x.stars] || 0) + 1; });
 
-            listContainer.innerHTML = studentsInClass.map((s, index) => {
+            listContainer.innerHTML = prodigyBannerHtml + studentsInClass.map((s, index) => {
                 const reigningHero = state.get('reigningHero');
                 const isReigningHero = reigningHero && reigningHero.id === s.id;
                 const scoreData = state.get('allStudentScores').find(score => score.id === s.id) || {};
@@ -184,7 +273,7 @@ export function renderAwardStarsStudentList(selectedClassId, fullRender = true) 
                 }
 
                 return `
-               <div class="student-cloud-card ${cloudShape} ${isVisuallyAbsent ? 'is-absent' : ''} ${isReigningHero ? 'reigning-hero-card' : ''}" data-studentid="${s.id}" style="animation: float-card ${4 + Math.random() * 4}s ease-in-out infinite;">
+               <div class="student-cloud-card ${cloudShape} ${isVisuallyAbsent ? 'is-absent' : ''} ${isReigningHero ? 'reigning-hero-card' : ''} ${prodigySet.has(s.id) ? 'prodigy-card' : ''}" data-studentid="${s.id}" style="animation: float-card ${4 + Math.random() * 4}s ease-in-out infinite;">
                ${isReigningHero ? '<div class="hero-crown-badge">👑</div>' : ''}
                <div class="absence-controls">
                ${absenceButtonHtml}

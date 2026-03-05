@@ -10,6 +10,96 @@ import { getHeroTitle, HERO_SKILL_TREE } from '../../features/heroSkillTree.js';
 import { renderFamiliarSprite } from '../../features/familiars.js';
 import { wrapAvatarWithLevelUpIndicator } from '../core/avatar.js';
 
+// --- REIGNING PRODIGY CACHE ---
+// Fetches previous month's award logs once per session (cached by monthKey).
+// Returns { [classId]: Set<studentId> } — a Set to support co-prodigies (ties).
+let _prodigyCacheKey = null;
+let _prodigyCache = {}; // classId -> Set of winner studentIds
+
+async function getReigningProdigies() {
+    const now = new Date();
+    const prevMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+    const cacheKey = `${prevMonth.getFullYear()}-${prevMonth.getMonth()}`;
+
+    if (_prodigyCacheKey === cacheKey) return _prodigyCache; // Already fetched this month
+
+    try {
+        const { fetchLogsForMonth } = await import('../../db/queries.js');
+        const logs = await fetchLogsForMonth(prevMonth.getFullYear(), prevMonth.getMonth() + 1);
+        const allScores = state.get('allWrittenScores') || [];
+
+        // Group logs by class
+        const logsByClass = {};
+        logs.forEach(l => {
+            if (!l.classId) return;
+            if (!logsByClass[l.classId]) logsByClass[l.classId] = [];
+            logsByClass[l.classId].push(l);
+        });
+
+        const result = {};
+        const vm = prevMonth.getMonth();
+        const vy = prevMonth.getFullYear();
+
+        Object.entries(logsByClass).forEach(([classId, classLogs]) => {
+            const students = state.get('allStudents').filter(s => s.classId === classId);
+
+            // Compute per-student stats using same algorithm as renderProdigyHistory
+            const studentStats = students.map(s => {
+                const sLogs = classLogs.filter(l => l.studentId === s.id);
+                const totalStars = sLogs.reduce((sum, l) => sum + (l.stars || 0), 0);
+                let count3 = 0, count2 = 0;
+                const reasons = new Set();
+                sLogs.forEach(l => {
+                    if (l.stars >= 3) count3++;
+                    else if (l.stars >= 2) count2++;
+                    if (l.reason) reasons.add(l.reason);
+                });
+                const sScores = allScores.filter(sc => {
+                    const scDate = utils.parseFlexibleDate(sc.date);
+                    return sc.studentId === s.id && scDate && scDate.getMonth() === vm && scDate.getFullYear() === vy;
+                });
+                let acadSum = 0;
+                sScores.forEach(sc => {
+                    if (sc.maxScore) acadSum += (sc.scoreNumeric / sc.maxScore) * 100;
+                    else if (sc.scoreQualitative === 'Great!!!') acadSum += 100;
+                    else if (sc.scoreQualitative === 'Great!!') acadSum += 75;
+                });
+                const academicAvg = sScores.length > 0 ? acadSum / sScores.length : 0;
+                return { id: s.id, monthlyStars: totalStars, count3, count2, uniqueReasons: reasons.size, academicAvg };
+            }).filter(s => s.monthlyStars > 0);
+
+            if (studentStats.length === 0) return;
+
+            // Sort: same order as renderProdigyHistory
+            studentStats.sort((a, b) => {
+                if (b.monthlyStars !== a.monthlyStars) return b.monthlyStars - a.monthlyStars;
+                if (b.count3 !== a.count3) return b.count3 - a.count3;
+                if (b.count2 !== a.count2) return b.count2 - a.count2;
+                if (b.uniqueReasons !== a.uniqueReasons) return b.uniqueReasons - a.uniqueReasons;
+                return b.academicAvg - a.academicAvg;
+            });
+
+            const top = studentStats[0];
+            // Collect all tied winners (co-prodigies)
+            const winners = studentStats.filter(s =>
+                s.monthlyStars === top.monthlyStars &&
+                s.count3 === top.count3 &&
+                s.count2 === top.count2 &&
+                s.uniqueReasons === top.uniqueReasons &&
+                Math.abs(s.academicAvg - top.academicAvg) <= 0.5
+            );
+
+            result[classId] = new Set(winners.map(w => w.id));
+        });
+
+        _prodigyCacheKey = cacheKey;
+        _prodigyCache = result;
+    } catch (e) {
+        console.warn('Could not load reigning prodigies:', e);
+    }
+    return _prodigyCache;
+}
+
 // --- TAB CONTENT RENDERERS ---
 
 export async function renderClassLeaderboardTab() {
@@ -439,7 +529,7 @@ export async function renderClassLeaderboardTab() {
     });
 }
 
-export function renderStudentLeaderboardTab() {
+export async function renderStudentLeaderboardTab() {
     const list = document.getElementById('student-leaderboard-list');
     if (!list) return;
 
@@ -587,9 +677,9 @@ export function renderStudentLeaderboardTab() {
                 classLogo: studentClass?.logo || '📚'
             };
         });
+    // --- REIGNING PRODIGY (previous month's winners, with co-prodigy/tie support) ---
+    const prodigyByClass = await getReigningProdigies();
 
-    // 3. SORTING FUNCTION
-    const sortStudents = utils.sortStudentsByTieBreaker;
 
     // --- RENDER HELPERS ---
     const reasonInfo = {
@@ -634,6 +724,11 @@ export function renderStudentLeaderboardTab() {
 
     const getPillsHtml = (s) => {
         let html = '';
+
+        // Badge 0: Reigning Prodigy of the Month (previous month's winner, supports co-prodigies)
+        if (prodigyByClass[s.classId]?.has(s.id)) {
+            html += `<div class="flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-700 shadow-sm border border-amber-300" title="Reigning Prodigy of the Month!">👑 Prodigy</div>`;
+        }
 
         // Badge 1: Stars THIS WEEK
         if (s.stats.weeklyStars > 0) {

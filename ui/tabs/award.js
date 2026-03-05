@@ -285,6 +285,7 @@ export function renderAwardStarsStudentList(selectedClassId, fullRender = true) 
                             </span>
                             ${s.name}
                         </h3>
+                        ${prodigySet.has(s.id) ? '<div class="text-center text-base mt-[-4px] mb-1 opacity-50 tracking-widest" title="Reigning Prodigy of last month">👑 👑 👑</div>' : ''}
                         <div class="flex gap-2 text-center justify-center items-center p-2">
                             <div class="counter-bubble w-20 h-20 flex flex-col items-center justify-center bg-pink-300 rounded-full shadow-md border-b-4 border-pink-400 text-pink-900 transform transition-transform hover:scale-105">
                                 <span class="text-xs font-bold">TODAY</span>

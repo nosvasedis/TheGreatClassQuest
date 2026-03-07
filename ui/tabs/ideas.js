@@ -61,4 +61,33 @@ export function renderStarManagerStudentSelect() {
         }
     });
     select.value = currentVal;
+
+    // Also populate "Find logs" student dropdown (same list)
+    const findSelect = document.getElementById('find-logs-student-select');
+    if (findSelect) {
+        const findVal = findSelect.value;
+        findSelect.innerHTML = '<option value="">Select student...</option>';
+        sortedClassIds.forEach(classId => {
+            const classData = classesMap[classId];
+            if (classData.students.length > 0) {
+                const optgroup = document.createElement('optgroup');
+                optgroup.label = classData.name;
+                classData.students.forEach(s => {
+                    const option = document.createElement('option');
+                    option.value = s.id;
+                    option.textContent = s.name;
+                    optgroup.appendChild(option);
+                });
+                findSelect.appendChild(optgroup);
+            }
+        });
+        findSelect.value = findVal;
+    }
+
+    // Populate find-logs year dropdown (current year ± 2)
+    const yearSelect = document.getElementById('find-logs-year');
+    if (yearSelect && yearSelect.options.length <= 1) {
+        const y = new Date().getFullYear();
+        yearSelect.innerHTML = [y - 2, y - 1, y, y + 1].map(yr => `<option value="${yr}" ${yr === y ? 'selected' : ''}>${yr}</option>`).join('');
+    }
 }

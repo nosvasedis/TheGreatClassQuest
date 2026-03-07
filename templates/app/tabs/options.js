@@ -101,6 +101,33 @@ export const optionsTabHTML = `
                                 </div>
                             </div>
 
+                            <div class="bg-white p-6 rounded-3xl shadow-lg border-4 border-indigo-200 space-y-4">
+                                <h2 class="font-title text-xl text-indigo-800 text-center">Find Student's Award Logs</h2>
+                                <p class="text-sm text-gray-600 text-center">Pick a student and month to list their award log document IDs. Use these IDs in Firebase Console to open the exact document (e.g. to add a star for Prodigy).</p>
+                                <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                                    <div>
+                                        <label for="find-logs-student-select" class="block text-xs font-medium text-gray-700 mb-1">Student</label>
+                                        <select id="find-logs-student-select" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white">
+                                            <option value="">Select student...</option>
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label for="find-logs-month" class="block text-xs font-medium text-gray-700 mb-1">Month</label>
+                                        <select id="find-logs-month" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white">
+                                            <option value="1">January</option><option value="2" selected>February</option><option value="3">March</option><option value="4">April</option><option value="5">May</option><option value="6">June</option><option value="7">July</option><option value="8">August</option><option value="9">September</option><option value="10">October</option><option value="11">November</option><option value="12">December</option>
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label for="find-logs-year" class="block text-xs font-medium text-gray-700 mb-1">Year</label>
+                                        <select id="find-logs-year" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white"></select>
+                                    </div>
+                                </div>
+                                <button type="button" id="find-logs-btn" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 rounded-xl bubbly-button">
+                                    <i class="fas fa-search mr-2"></i> Find logs
+                                </button>
+                                <div id="find-logs-result" class="text-sm max-h-64 overflow-y-auto border border-gray-200 rounded-xl p-3 bg-gray-50 hidden"></div>
+                            </div>
+
                             <div class="bg-white p-6 rounded-3xl shadow-lg border-4 border-yellow-400 space-y-6">
                                 <div class="text-center">
                                     <div class="text-4xl mb-2">💰</div>

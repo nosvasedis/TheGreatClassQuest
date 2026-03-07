@@ -767,6 +767,64 @@ export function setupUIListeners() {
     document.getElementById('purge-logs-btn').addEventListener('click', () => {
         modals.showModal('Purge All My Logs?', 'Are you sure you want to delete all your historical award log entries? This cannot be undone.', () => handlePurgeAwardLogs());
     });
+
+    const findLogsBtn = document.getElementById('find-logs-btn');
+    if (findLogsBtn) {
+        findLogsBtn.addEventListener('click', async () => {
+            const studentId = document.getElementById('find-logs-student-select')?.value;
+            const year = parseInt(document.getElementById('find-logs-year')?.value, 10);
+            const month = parseInt(document.getElementById('find-logs-month')?.value, 10);
+            const resultEl = document.getElementById('find-logs-result');
+            if (!resultEl) return;
+            if (!studentId) {
+                showToast('Please select a student.', 'info');
+                return;
+            }
+            findLogsBtn.disabled = true;
+            findLogsBtn.innerHTML = '<i class="fas fa-circle-notch fa-spin mr-2"></i> Finding...';
+            try {
+                const logs = await fetchLogsForMonth(year, month);
+                const studentLogs = logs.filter(l => l.studentId === studentId);
+                resultEl.classList.remove('hidden');
+                if (studentLogs.length === 0) {
+                    resultEl.innerHTML = `<p class="text-gray-600">No award logs for this student in the selected month.</p>`;
+                } else {
+                    resultEl.innerHTML = `
+                        <p class="font-bold text-gray-700 mb-2">${studentLogs.length} log(s). Copy a document ID and open it in Firebase (award_log collection):</p>
+                        <table class="w-full text-left border-collapse">
+                            <thead><tr class="border-b border-gray-300"><th class="py-1 pr-2">Document ID</th><th class="py-1 pr-2">Date</th><th class="py-1 pr-2">Stars</th><th class="py-1">Reason</th></tr></thead>
+                            <tbody>
+                                ${studentLogs.map(l => `
+                                    <tr class="border-b border-gray-100">
+                                        <td class="py-1 pr-2">
+                                            <code class="text-xs bg-white px-1 rounded">${l.id}</code>
+                                            <button type="button" class="copy-log-id ml-1 text-indigo-600 hover:underline text-xs" data-id="${l.id}" title="Copy ID">Copy</button>
+                                        </td>
+                                        <td class="py-1 pr-2">${l.date || '—'}</td>
+                                        <td class="py-1 pr-2">${l.stars ?? '—'}</td>
+                                        <td class="py-1">${(l.reason || '—').toString()}</td>
+                                    </tr>
+                                `).join('')}
+                            </tbody>
+                        </table>
+                    `;
+                    resultEl.querySelectorAll('.copy-log-id').forEach(btn => {
+                        btn.addEventListener('click', () => {
+                            navigator.clipboard.writeText(btn.dataset.id).then(() => showToast('Document ID copied to clipboard.', 'success'));
+                        });
+                    });
+                }
+            } catch (e) {
+                console.error('Find logs error:', e);
+                resultEl.classList.remove('hidden');
+                resultEl.innerHTML = `<p class="text-red-600">Could not load logs: ${e.message}</p>`;
+            } finally {
+                findLogsBtn.disabled = false;
+                findLogsBtn.innerHTML = '<i class="fas fa-search mr-2"></i> Find logs';
+            }
+        });
+    }
+
     document.getElementById('erase-today-btn').addEventListener('click', () => {
         modals.showModal('Erase Today\'s Stars?', 'Are you sure you want to remove all stars you awarded today?', () => handleEraseTodaysStars());
     });

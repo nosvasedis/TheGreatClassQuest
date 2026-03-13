@@ -96,6 +96,11 @@
     --glow-color-2: rgba(251, 191, 36, 0.6);
 }
 
+#award-stars-student-list {
+    align-items: start;
+    overflow: visible;
+}
+
 /* --- V4.7: NEW STUDENT CLOUD CARD & ANIMATIONS --- */
 .student-cloud-card {
     --award-cloud-mask: none;
@@ -119,7 +124,10 @@
 .student-cloud-card::before {
     content: '';
     position: absolute;
-    inset: 0;
+    top: 0;
+    bottom: 0;
+    left: -22px;
+    right: -22px;
     z-index: 0;
     pointer-events: none;
     background:
@@ -128,8 +136,8 @@
     mask-image: var(--award-cloud-mask);
     -webkit-mask-repeat: no-repeat;
     mask-repeat: no-repeat;
-    -webkit-mask-size: 112% 112%;
-    mask-size: 112% 112%;
+    -webkit-mask-size: 100% 100%;
+    mask-size: 100% 100%;
     -webkit-mask-position: center;
     mask-position: center;
     box-shadow:
@@ -140,7 +148,10 @@
 .student-cloud-card::after {
     content: '';
     position: absolute;
-    inset: -4px;
+    top: -4px;
+    bottom: -4px;
+    left: -26px;
+    right: -26px;
     z-index: -1;
     pointer-events: none;
     opacity: 0;
@@ -148,11 +159,11 @@
     mask-image: var(--award-cloud-mask);
     -webkit-mask-repeat: no-repeat;
     mask-repeat: no-repeat;
-    -webkit-mask-size: 112% 112%;
-    mask-size: 112% 112%;
+    -webkit-mask-size: 100% 100%;
+    mask-size: 100% 100%;
     -webkit-mask-position: center;
     mask-position: center;
-    transform: scale(1.015);
+    transform: none;
 }
 
 .student-cloud-card > * {
@@ -255,7 +266,7 @@
 
 /* Reigning Prodigy — golden cloud tint */
 .award-reigning-prodigy {
-    box-shadow: 0 8px 18px rgba(251, 191, 36, 0.18);
+    box-shadow: none;
 }
 
 .award-reigning-prodigy::before {
@@ -268,7 +279,7 @@
 .award-reigning-prodigy::after {
     opacity: 1;
     background: rgba(251, 191, 36, 0.9);
-    filter: drop-shadow(0 0 7px rgba(251, 191, 36, 0.65));
+    filter: none;
 }
 
 @supports not ((-webkit-mask-image: url("")) or (mask-image: url(""))) {

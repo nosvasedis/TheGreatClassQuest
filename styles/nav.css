@@ -6,113 +6,45 @@
     100% { transform: scale(1); }
 }
 
-#bottom-nav-bar {
-    position: relative;
-    overflow: visible;
-}
-
 .nav-button {
     position: relative;
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    gap: 0.1rem;
-    min-height: 3rem;
-    padding: 0.35rem 0.24rem 0.24rem;
-    border-radius: 9999px;
+    padding: 0.5rem;
+    border-radius: 1rem;
     color: white;
     transition: all 150ms ease-out;
     font-weight: 700;
     text-shadow: 0 1px 2px rgba(0,0,0,0.2);
-    border-bottom: 3px solid rgba(0,0,0,0.16);
+    border-bottom: 4px solid rgba(0,0,0,0.2);
     transform: scale(0.95);
-    opacity: 0.92;
-    isolation: isolate;
-    overflow: visible;
-    box-shadow: 0 5px 10px rgba(25, 74, 132, 0.18);
-}
-
-.nav-button::before,
-.nav-button::after {
-    content: '';
-    position: absolute;
-    inset: auto;
-    border-radius: 9999px;
-    background: inherit;
-    z-index: -1;
-    pointer-events: none;
-}
-
-.nav-button::before {
-    width: 50%;
-    height: 46%;
-    left: 11%;
-    top: 14%;
-    box-shadow:
-        1.05rem -0.08rem 0 -0.2rem currentColor,
-        2rem 0.18rem 0 -0.6rem currentColor;
-    opacity: 0.16;
-    filter: blur(0.2px);
-}
-
-.nav-button::after {
-    left: 10%;
-    right: 10%;
-    top: 26%;
-    bottom: 10%;
-    border-radius: 1.1rem 1.1rem 0.95rem 0.95rem;
-}
-
-.nav-button > * {
-    position: relative;
-    z-index: 1;
+    opacity: 0.8;
 }
 
 .nav-button .icon {
-    font-size: 1rem;
+    font-size: 1.25rem;
     line-height: 1;
 }
 .nav-button .text {
-    font-size: 0.58rem;
+    font-size: 0.75rem;
     font-weight: 700;
     display: none;
-    line-height: 1;
-    max-width: 100%;
 }
 @media (min-width: 768px) {
     .nav-button .text {
         display: block;
     }
-
-    .nav-button {
-        min-height: 3.6rem;
-        padding-top: 0.42rem;
-    }
-
-    .nav-button .icon {
-        font-size: 1.08rem;
-    }
-
-    .nav-button .text {
-        font-size: 0.62rem;
-    }
 }
 
 .nav-button.active {
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
     transform: scale(1);
     opacity: 1;
     border-bottom-width: 2px;
     animation: nav-pop 0.2s ease-out;
-    box-shadow: 0 0 16px rgba(255, 255, 255, 0.82), 0 7px 14px rgba(0, 0, 0, 0.18);
-}
-
-.nav-button.active::before {
-    opacity: 0.28;
-}
-
-.nav-button:hover {
-    transform: translateY(-1px) scale(0.98);
+    box-shadow: 0 0 15px rgba(255, 255, 255, 0.8), 0 2px 4px rgba(0,0,0,0.4);
 }
 
 /* Individual Nav Button Colors */

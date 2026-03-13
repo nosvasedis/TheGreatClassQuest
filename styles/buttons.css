@@ -98,7 +98,7 @@
 
 /* --- V4.7: NEW STUDENT CLOUD CARD & ANIMATIONS --- */
 .student-cloud-card {
-    background-color: white;
+    --award-cloud-mask: none;
     position: relative;
     padding: 1rem 1.5rem 1.5rem 1.5rem;
     /* Adjusted padding for avatar */
@@ -110,6 +110,36 @@
     animation: float-card 6s ease-in-out infinite;
     padding-top: 40px;
     /* Make space for the overlapping avatar */
+    background: transparent;
+    border-radius: 2rem;
+    isolation: isolate;
+    overflow: visible;
+}
+
+.student-cloud-card::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    pointer-events: none;
+    background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.98) 0%, rgba(250, 252, 255, 0.98) 65%, rgba(241, 247, 255, 0.98) 100%);
+    -webkit-mask-image: var(--award-cloud-mask);
+    mask-image: var(--award-cloud-mask);
+    -webkit-mask-repeat: no-repeat;
+    mask-repeat: no-repeat;
+    -webkit-mask-size: 100% 100%;
+    mask-size: 100% 100%;
+    -webkit-mask-position: center;
+    mask-position: center;
+    box-shadow:
+        inset 0 1px 0 rgba(255,255,255,0.9),
+        inset 0 -12px 18px rgba(191, 219, 254, 0.16);
+}
+
+.student-cloud-card > * {
+    position: relative;
+    z-index: 1;
 }
 
 .student-avatar-cloud {
@@ -186,25 +216,72 @@
 }
 
 .cloud-shape-1 {
-    border-radius: 50% 60% 40% 70% / 60% 50% 70% 40%;
+    --award-cloud-mask: url('../assets/cloud-mask-1.svg');
 }
 
 .cloud-shape-2 {
-    border-radius: 40% 70% 50% 60% / 70% 60% 40% 50%;
+    --award-cloud-mask: url('../assets/cloud-mask-2.svg');
 }
 
 .cloud-shape-3 {
-    border-radius: 60% 50% 70% 40% / 50% 70% 50% 60%;
+    --award-cloud-mask: url('../assets/cloud-mask-3.svg');
 }
 
 .cloud-shape-4 {
-    border-radius: 70% 40% 60% 50% / 60% 50% 70% 40%;
+    --award-cloud-mask: url('../assets/cloud-mask-4.svg');
+}
+
+.cloud-shape-5 {
+    --award-cloud-mask: url('../assets/cloud-mask-5.svg');
 }
 
 /* Reigning Prodigy — golden cloud tint */
 .award-reigning-prodigy {
-    background: linear-gradient(160deg, #fef3c7 0%, #fffbeb 40%, #ffffff 70%) !important;
-    box-shadow: 0 0 0 2.5px rgba(251, 191, 36, 0.55), 0 5px 12px rgba(251, 191, 36, 0.18);
+    box-shadow: 0 0 0 2.5px rgba(251, 191, 36, 0.18), 0 5px 12px rgba(251, 191, 36, 0.18);
+}
+
+.award-reigning-prodigy::before {
+    background: linear-gradient(160deg, #fef3c7 0%, #fffbeb 42%, #ffffff 74%) !important;
+    box-shadow:
+        inset 0 1px 0 rgba(255,255,255,0.92),
+        inset 0 -12px 18px rgba(251, 191, 36, 0.16),
+        0 0 0 2px rgba(251, 191, 36, 0.42);
+}
+
+@supports not ((-webkit-mask-image: url("")) or (mask-image: url(""))) {
+    .student-cloud-card {
+        background-color: white;
+        border-radius: 50% 60% 40% 70% / 60% 50% 70% 40%;
+    }
+
+    .student-cloud-card::before {
+        display: none;
+    }
+
+    .cloud-shape-1 {
+        border-radius: 50% 60% 40% 70% / 60% 50% 70% 40%;
+    }
+
+    .cloud-shape-2 {
+        border-radius: 40% 70% 50% 60% / 70% 60% 40% 50%;
+    }
+
+    .cloud-shape-3 {
+        border-radius: 60% 50% 70% 40% / 50% 70% 50% 60%;
+    }
+
+    .cloud-shape-4 {
+        border-radius: 70% 40% 60% 50% / 60% 50% 70% 40%;
+    }
+
+    .cloud-shape-5 {
+        border-radius: 55% 65% 45% 60% / 62% 48% 66% 44%;
+    }
+
+    .award-reigning-prodigy {
+        background: linear-gradient(160deg, #fef3c7 0%, #fffbeb 40%, #ffffff 70%) !important;
+        box-shadow: 0 0 0 2.5px rgba(251, 191, 36, 0.55), 0 5px 12px rgba(251, 191, 36, 0.18);
+    }
 }
 
 /* "Reigning Prodigy" badge inside the cloud */

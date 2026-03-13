@@ -8,6 +8,15 @@ import { getGuildBadgeHtml } from '../../features/guilds.js';
 let _awardProdigyCacheKey = null;
 let _awardProdigyCache = {}; // classId -> Set<studentId>
 
+function getStableCloudShape(studentId, cloudShapes) {
+    let hash = 0;
+    for (let i = 0; i < studentId.length; i++) {
+        hash = ((hash << 5) - hash) + studentId.charCodeAt(i);
+        hash |= 0;
+    }
+    return cloudShapes[Math.abs(hash) % cloudShapes.length];
+}
+
 async function getReigningProdigyForClass(classId) {
     const now = new Date();
     const prevMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
@@ -162,7 +171,7 @@ export function renderAwardStarsStudentList(selectedClassId, fullRender = true) 
             // --- REIGNING PRODIGY (previous month's winner) — crown watermark on card only ---
             const prodigySet = await getReigningProdigyForClass(selectedClassId);
 
-            const cloudShapes = ['cloud-shape-1', 'cloud-shape-2', 'cloud-shape-3', 'cloud-shape-4'];
+            const cloudShapes = ['cloud-shape-1', 'cloud-shape-2', 'cloud-shape-3', 'cloud-shape-4', 'cloud-shape-5'];
 
             // --- 1. PRE-CALCULATE BOON ELIGIBILITY ---
             const allScores = state.get('allStudentScores');
@@ -188,7 +197,7 @@ export function renderAwardStarsStudentList(selectedClassId, fullRender = true) 
                 const monthlyStars = scoreData.monthlyStars || 0;
                 const starsToday = state.get('todaysStars')[s.id]?.stars || 0;
                 const reasonToday = state.get('todaysStars')[s.id]?.reason;
-                const cloudShape = cloudShapes[index % cloudShapes.length];
+                const cloudShape = getStableCloudShape(s.id, cloudShapes);
                 const reigningHeroEmoji = s.gender === 'girl' ? '👸' : '🫅';
 
                 const isMarkedAbsentToday = state.get('allAttendanceRecords').some(r => r.studentId === s.id && r.date === today);

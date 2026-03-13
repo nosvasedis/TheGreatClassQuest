@@ -12,8 +12,8 @@
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    padding: 0.5rem;
-    border-radius: 1rem;
+    padding: 0.45rem 0.5rem 0.4rem;
+    border-radius: 1.35rem;
     color: white;
     transition: all 150ms ease-out;
     font-weight: 700;
@@ -21,6 +21,7 @@
     border-bottom: 4px solid rgba(0,0,0,0.2);
     transform: scale(0.95);
     opacity: 0.8;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.28), 0 3px 6px rgba(0,0,0,0.12);
 }
 
 .nav-button .icon {
@@ -39,12 +40,11 @@
 }
 
 .nav-button.active {
-    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
     transform: scale(1);
     opacity: 1;
     border-bottom-width: 2px;
     animation: nav-pop 0.2s ease-out;
-    box-shadow: 0 0 15px rgba(255, 255, 255, 0.8), 0 2px 4px rgba(0,0,0,0.4);
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.34), 0 0 15px rgba(255, 255, 255, 0.8), 0 2px 4px rgba(0,0,0,0.4);
 }
 
 /* Individual Nav Button Colors */

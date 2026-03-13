@@ -189,6 +189,7 @@ export function renderAwardStarsStudentList(selectedClassId, fullRender = true) 
                 const starsToday = state.get('todaysStars')[s.id]?.stars || 0;
                 const reasonToday = state.get('todaysStars')[s.id]?.reason;
                 const cloudShape = cloudShapes[index % cloudShapes.length];
+                const reigningHeroEmoji = s.gender === 'girl' ? '👸' : '🫅';
 
                 const isMarkedAbsentToday = state.get('allAttendanceRecords').some(r => r.studentId === s.id && r.date === today);
                 const wasAbsentLastTime = previousLessonDate && state.get('allAttendanceRecords').some(r => r.studentId === s.id && r.date === previousLessonDate);
@@ -287,7 +288,7 @@ export function renderAwardStarsStudentList(selectedClassId, fullRender = true) 
                         </h3>
                         ${isReigningHero ? `
                         <div class="reigning-prodigy-label reigning-hero-label">
-                            <span class="crown-icon">🫅</span>
+                            <span class="crown-icon">${reigningHeroEmoji}</span>
                             <span class="prodigy-text">Reigning Hero</span>
                         </div>` : ''}
                         ${prodigySet.has(s.id) ? `

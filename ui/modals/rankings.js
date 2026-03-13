@@ -521,10 +521,7 @@ export function openZoneOverviewModal(zoneType) {
             state.get('allScheduleOverrides')
         );
 
-        const currentMonthlyStars = studentsInClass.reduce((sum, s) => {
-            const scoreData = allStudentScores.find(sc => sc.id === s.id);
-            return sum + (scoreData ? (Number(scoreData.monthlyStars) || 0) : 0);
-        }, 0);
+        const { totalStars: currentMonthlyStars, classBonus: classQuestBonus } = utils.getClassMonthlyQuestStars(c, studentsInClass, allStudentScores);
 
         const zoneTargetStars = (diamondGoal * (config.pct / 100));
         const remaining = Math.max(0, zoneTargetStars - currentMonthlyStars);
@@ -546,6 +543,7 @@ export function openZoneOverviewModal(zoneType) {
             logo: c.logo,
             progress: progressPct,
             stars: currentMonthlyStars,
+            questBonus: classQuestBonus,
             remaining: remaining
         };
 
@@ -633,8 +631,8 @@ export function openZoneOverviewModal(zoneType) {
                                         </div>
                                     </div>
                                     
-                                    <div class="flex justify-between mt-2 text-xs font-bold text-gray-400 uppercase tracking-wide">
-                                        <span><i class="fas fa-star text-amber-400 mr-1"></i>${starsFormatted} Collected</span>
+                                    <div class="flex justify-between mt-2 text-xs font-bold text-gray-400 uppercase tracking-wide gap-3">
+                                        <span><i class="fas fa-star text-amber-400 mr-1"></i>${starsFormatted} Collected${c.questBonus > 0 ? ` <span class="text-indigo-600">(+${c.questBonus} Quest)</span>` : ''}</span>
                                         <span class="${config.textColor}">${c.progress.toFixed(0)}% Overall</span>
                                     </div>
                                 </div>

@@ -435,6 +435,27 @@ export function calculateMonthlyClassGoal(classData, studentCount, schoolHoliday
     return Math.round(studentCount * adjustedGoalPerStudent);
 }
 
+export function getMonthKey(date = new Date()) {
+    return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+}
+
+export function getClassQuestBonusForMonth(classData, date = new Date()) {
+    return Number(classData?.teamQuestBonuses?.[getMonthKey(date)]) || 0;
+}
+
+export function getClassMonthlyQuestStars(classData, studentsInClass, allStudentScores, date = new Date()) {
+    const studentStars = (studentsInClass || []).reduce((sum, student) => {
+        const scoreData = (allStudentScores || []).find(score => score.id === student.id);
+        return sum + (scoreData ? (Number(scoreData.monthlyStars) || 0) : 0);
+    }, 0);
+    const classBonus = getClassQuestBonusForMonth(classData, date);
+    return {
+        studentStars,
+        classBonus,
+        totalStars: studentStars + classBonus
+    };
+}
+
 /**
  * SOURCE OF TRUTH: Centralized formula for extracting tie-breaker stats for a given student
  * Returns an object containing { count3, count2, academicAvg, uniqueReasons }

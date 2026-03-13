@@ -20,7 +20,7 @@ import * as state from '../../state.js';
 import { showToast, showPraiseToast } from '../../ui/effects.js';
 import { showStarfallModal, showBatchStarfallModal, showModal, hideModal } from '../../ui/modals.js';
 import { playSound, playHeroFanfare } from '../../audio.js';
-import { getTodayDateString, getStartOfMonthString, debounce, parseDDMMYYYY, parseFlexibleDate, datesMatch } from '../../utils.js';
+import { getTodayDateString, getStartOfMonthString, debounce, parseDDMMYYYY, parseFlexibleDate, datesMatch, getClassMonthlyQuestStars } from '../../utils.js';
 import { checkBountyProgress } from './bounties.js';
 import { calculateHeroGold, canChangeHeroClass } from '../../features/heroClasses.js';
 import { updateGuildScores } from '../../features/guildScoring.js';
@@ -295,11 +295,7 @@ export async function checkAndRecordQuestCompletion(classId) {
 
     // 3. Calculate Current Stars
     const allScores = state.get('allStudentScores');
-    let currentMonthlyStars = 0;
-    for (const s of studentsInClass) {
-        const scoreData = allScores.find(score => score.id === s.id);
-        if (scoreData) currentMonthlyStars += (scoreData.monthlyStars || 0);
-    }
+    const { totalStars: currentMonthlyStars } = getClassMonthlyQuestStars(classDoc.data(), studentsInClass, allScores);
 
     // 4. Check for Victory & SAVE HISTORY
     if (currentMonthlyStars >= diamondGoal) {

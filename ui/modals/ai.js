@@ -31,10 +31,7 @@ export async function handleGetQuestUpdate() {
     const classScores = classesInLeague.map(c => {
         const students = state.get('allStudents').filter(s => s.classId === c.id);
         const scores = state.get('allStudentScores') || [];
-        const monthlyStars = students.reduce((sum, s) => {
-            const scoreData = scores.find(sc => sc.id === s.id);
-            return sum + (scoreData ? (scoreData.monthlyStars || 0) : 0);
-        }, 0);
+        const { totalStars: monthlyStars, classBonus: classQuestBonus } = utils.getClassMonthlyQuestStars(c, students, scores);
 
         const BASE_GOAL = 18;
         const SCALING_FACTOR = 2.5;
@@ -61,7 +58,7 @@ export async function handleGetQuestUpdate() {
         const diamondGoal = Math.round(Math.max(18, students.length * adjustedGoalPerStudent));
         const progress = diamondGoal > 0 ? ((monthlyStars / diamondGoal) * 100).toFixed(1) : 0;
 
-        return { name: c.name, totalStars: monthlyStars, progress };
+        return { name: c.name, totalStars: monthlyStars, progress, classQuestBonus };
     }).sort((a, b) => b.progress - a.progress);
 
     const topClasses = classScores.filter(c => c.totalStars > 0).slice(0, 3);
@@ -71,7 +68,7 @@ export async function handleGetQuestUpdate() {
         return;
     }
 
-    const classDataString = topClasses.map(c => `'${c.name}' is at ${c.progress}% of their goal with ${c.totalStars} stars`).join('. ');
+    const classDataString = topClasses.map(c => `'${c.name}' is at ${c.progress}% of their goal with ${c.totalStars} stars${c.classQuestBonus > 0 ? `, including a +${c.classQuestBonus} Pathfinder team bonus` : ''}`).join('. ');
     const systemPrompt = "You are a fun, exciting quest announcer for a classroom game. Do not use markdown or asterisks. Your response must be only the narrative text. You will be given the names, progress percentage, and star counts of the top classes. Write a short, exciting, 2-sentence narrative about their race to the top. IMPORTANT: The class with the highest progress percentage is in the lead, NOT the class with the most stars. Make this distinction clear in your narrative.";
     const userPrompt = `The top classes are: ${classDataString}. The first class in this list is in the lead. Write the narrative.`;
 
@@ -290,10 +287,7 @@ export async function openMilestoneModal(markerElement) {
     };
 
     // --- 2. ADVANCED DATA ANALYSIS ---
-    const currentMonthlyStars = studentsInClass.reduce((sum, s) => {
-        const scoreData = state.get('allStudentScores').find(score => score.id === s.id);
-        return sum + (scoreData?.monthlyStars || 0);
-    }, 0);
+    const { totalStars: currentMonthlyStars, classBonus: classQuestBonus } = utils.getClassMonthlyQuestStars(classInfo, studentsInClass, state.get('allStudentScores'));
 
     const relevantLogs = state.get('allAwardLogs').filter(log => {
         if (log.classId !== classId) return false;
@@ -361,6 +355,7 @@ export async function openMilestoneModal(markerElement) {
                         <span class="font-title text-7xl text-transparent bg-clip-text bg-gradient-to-br from-${color}-500 to-${color}-800">${currentMonthlyStars}</span>
                         <span class="font-title text-2xl text-gray-400">/ ${goal}</span>
                     </div>
+                    ${classQuestBonus > 0 ? `<p class="text-sm font-black uppercase tracking-wider text-indigo-600 mb-3">Includes +${classQuestBonus} Pathfinder Quest Bonus</p>` : ''}
                     <div class="w-full bg-gray-200/50 rounded-full h-10 border-4 border-white shadow-inner relative overflow-hidden">
                         <div class="h-full bg-gradient-to-r from-${color}-400 to-${color}-600 transition-all duration-1000 shadow-[0_0_20px_rgba(0,0,0,0.2)]" style="width: ${progressPercent}%">
                             <div class="absolute inset-0 bg-white/20 animate-pulse"></div>

@@ -169,13 +169,7 @@ export async function renderClassLeaderboardTab() {
             goalDifference = goalValue - originalGoalTotal;
         }
 
-        const currentMonthlyStars = studentsInClass.reduce((sum, s) => {
-            const scoreData = allStudentScores.find(sc => sc.id === s.id);
-            return sum + (scoreData ? (Number(scoreData.monthlyStars) || 0) : 0);
-        }, 0);
-        const currentMonthKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
-        const classTeamBonus = Number(c.teamQuestBonuses?.[currentMonthKey]) || 0;
-        const teamQuestStars = currentMonthlyStars + classTeamBonus;
+        const { totalStars: teamQuestStars, classBonus: classTeamBonus } = utils.getClassMonthlyQuestStars(c, studentsInClass, allStudentScores);
 
         const classLogs = state.get('allAwardLogs').filter(l => l.classId === c.id);
         const weeklyStars = classLogs.filter(log => {
@@ -221,6 +215,7 @@ export async function renderClassLeaderboardTab() {
             goals,
             goalDifference,
             currentMonthlyStars: teamQuestStars,
+            classQuestBonus: classTeamBonus,
             weeklyStars,
             totalGold,
             adventureCount,

@@ -2129,11 +2129,7 @@ function getClassQuestCard(classId) {
     const students = state.get('allStudents').filter(s => s.classId === classId);
     const scores = state.get('allStudentScores') || [];
 
-    // Calculate actual monthly stars
-    const monthlyStars = students.reduce((sum, s) => {
-        const scoreData = scores.find(sc => sc.id === s.id);
-        return sum + (scoreData ? (scoreData.monthlyStars || 0) : 0);
-    }, 0);
+    const { totalStars: monthlyStars, classBonus: classQuestBonus } = utils.getClassMonthlyQuestStars(cls, students, scores);
 
     // Calculate Dynamic Goal (Sync with Home logic)
     const goal = utils.calculateMonthlyClassGoal(
@@ -2146,7 +2142,7 @@ function getClassQuestCard(classId) {
     const pct = Math.min(100, Math.round((monthlyStars / goal) * 100));
 
     return {
-        html: `<div class="text-center w-full"><div class="badge-pill bg-blue-100 text-blue-700">Quest Progress</div><div class="text-9xl mb-4 filter drop-shadow-md animate-pulse">${cls.logo}</div><div class="w-full bg-white h-8 rounded-full overflow-hidden border-2 border-blue-200 mb-2 shadow-inner"><div class="bg-gradient-to-r from-blue-400 to-indigo-500 h-full" style="width:${pct}%"></div></div><p class="font-title text-4xl text-blue-900">${pct}% Complete</p></div>`,
+        html: `<div class="text-center w-full"><div class="badge-pill bg-blue-100 text-blue-700">Quest Progress</div><div class="text-9xl mb-4 filter drop-shadow-md animate-pulse">${cls.logo}</div><div class="w-full bg-white h-8 rounded-full overflow-hidden border-2 border-blue-200 mb-2 shadow-inner"><div class="bg-gradient-to-r from-blue-400 to-indigo-500 h-full" style="width:${pct}%"></div></div><p class="font-title text-4xl text-blue-900">${pct}% Complete</p>${classQuestBonus > 0 ? `<p class="text-sm font-bold text-indigo-600 mt-2">Includes +${classQuestBonus} Pathfinder bonus</p>` : ''}</div>`,
         css: 'float-card-blue'
     };
 }

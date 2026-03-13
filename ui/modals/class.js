@@ -71,7 +71,8 @@ function generateOverviewData(classId) {
     };
 
     const monthlyStats = Object.entries(logsByMonth).map(([monthKey, monthLogs]) => {
-        const totalStars = monthLogs.reduce((sum, log) => sum + log.stars, 0);
+        const classQuestBonus = Number(classData?.teamQuestBonuses?.[monthKey]) || 0;
+        const totalStars = monthLogs.reduce((sum, log) => sum + log.stars, 0) + classQuestBonus;
         const diamondGoal = studentsInClass.length > 0 ? Math.round(studentsInClass.length * GOAL_PER_STUDENT.DIAMOND) : 18;
         const progress = diamondGoal > 0 ? Math.min(100, (totalStars / diamondGoal) * 100) : 0;
         
@@ -81,11 +82,11 @@ function generateOverviewData(classId) {
         else if (totalStars >= studentsInClass.length * GOAL_PER_STUDENT.SILVER) milestone = 'silver';
         else if (totalStars >= studentsInClass.length * GOAL_PER_STUDENT.BRONZE) milestone = 'bronze';
 
-        return { monthKey, totalStars, progress, milestone };
+        return { monthKey, totalStars, progress, milestone, classQuestBonus };
     });
 
-    const bestMonth = monthlyStats.sort((a, b) => b.totalStars - a.totalStars)[0] || null;
-    const furthestMilestoneMonth = monthlyStats.sort((a, b) => b.progress - a.progress)[0] || null;
+    const bestMonth = [...monthlyStats].sort((a, b) => b.totalStars - a.totalStars)[0] || null;
+    const furthestMilestoneMonth = [...monthlyStats].sort((a, b) => b.progress - a.progress)[0] || null;
 
     const allTimeReasonCounts = logsForClass.reduce((acc, log) => {
         if(log.reason) acc[log.reason] = (acc[log.reason] || 0) + log.stars;
@@ -130,7 +131,7 @@ function generateOverviewData(classId) {
 
     return {
         classStats: {
-            bestMonth: bestMonth ? { month: bestMonth.monthKey, stars: bestMonth.totalStars } : null,
+            bestMonth: bestMonth ? { month: bestMonth.monthKey, stars: bestMonth.totalStars, bonus: bestMonth.classQuestBonus } : null,
             furthestMilestone: furthestMilestoneMonth ? { month: furthestMilestoneMonth.monthKey, milestone: MILESTONE_NAMES[furthestMilestoneMonth.milestone] } : null,
             topReason: topReason ? { reason: topReason[0], stars: topReason[1] } : null,
             topStudents
@@ -176,7 +177,7 @@ function renderClassOverview(data) {
             <div class="overview-stat-card">
                 <p class="text-sm font-bold text-purple-800 flex items-center"><i class="fas fa-calendar-alt mr-2"></i>Best Month</p>
                 <p class="font-title text-3xl text-purple-700">${bestMonthDisplay}</p>
-                <p class="font-semibold text-lg text-purple-600">${bestMonth?.stars || 0} ⭐ collected</p>
+                <p class="font-semibold text-lg text-purple-600">${bestMonth?.stars || 0} ⭐ collected${bestMonth?.bonus ? ` <span class="text-sm text-indigo-600">(+${bestMonth.bonus} quest)</span>` : ''}</p>
             </div>
             <div class="overview-stat-card">
                 <p class="text-sm font-bold text-purple-800 flex items-center"><i class="fas fa-route mr-2"></i>Furthest on Quest Map</p>

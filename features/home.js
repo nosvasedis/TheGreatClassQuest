@@ -300,15 +300,7 @@ function getActiveDashboard(classData, name, theme, spice) {
     const currentMonth = now.getMonth();
     const currentYear = now.getFullYear();
 
-    // SOURCE OF TRUTH: Sum the actual Monthly Star scores for every student in the class
-    // This ensures Starfall, Story Weaver, and all bonuses are included.
-    const monthlyStars = students.reduce((sum, s) => {
-        const scoreData = scores.find(sc => sc.id === s.id);
-        return sum + (scoreData ? (scoreData.monthlyStars || 0) : 0);
-    }, 0);
-    const currentMonthKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
-    const teamQuestBonus = Number(classData.teamQuestBonuses?.[currentMonthKey]) || 0;
-    const monthlyStarsWithBonus = monthlyStars + teamQuestBonus;
+    const { totalStars: monthlyStarsWithBonus } = utils.getClassMonthlyQuestStars(classData, students, scores, now);
 
     // NEW: Dynamic goal based on actual lessons, holidays, and overrides
     // NEW: Pass the full classData to match Leaderboard logic

@@ -1,5 +1,6 @@
 // features/worldMap.js
 import * as state from '../state.js'; // Import state to get live scores
+import * as utils from '../utils.js';
 
 export function generateLeagueMapHtml(classes) {
     const W = 1000;
@@ -13,11 +14,9 @@ export function generateLeagueMapHtml(classes) {
     let mapItems = classes.map(c => {
         const students = state.get('allStudents').filter(s => s.classId === c.id);
         const allScores = state.get('allStudentScores') || [];
-        
-        const liveMonthlyStars = students.reduce((sum, s) => {
-            const scoreData = allScores.find(sc => sc.id === s.id);
-            return sum + (scoreData ? (parseFloat(scoreData.monthlyStars) || 0) : 0);
-        }, 0);
+        const fallbackTotals = utils.getClassMonthlyQuestStars(c, students, allScores);
+        const liveMonthlyStars = Number.isFinite(c.currentMonthlyStars) ? Number(c.currentMonthlyStars) : fallbackTotals.totalStars;
+        const classQuestBonus = Number.isFinite(c.classQuestBonus) ? Number(c.classQuestBonus) : fallbackTotals.classBonus;
 
         const starsDisplay = liveMonthlyStars % 1 !== 0 ? liveMonthlyStars.toFixed(1) : liveMonthlyStars.toFixed(0);
         const goal = c.goals?.diamond || 18;
@@ -32,6 +31,7 @@ export function generateLeagueMapHtml(classes) {
             c,
             pct,
             liveMonthlyStars,
+            classQuestBonus,
             starsDisplay,
             goal,
             progressDisplay,
@@ -80,7 +80,7 @@ export function generateLeagueMapHtml(classes) {
 
     // 3. RENDER AVATARS
     const avatarsHtml = mapItems.map((item, index) => {
-        const { c, pct, x, y, isLeader, progressDisplay, starsDisplay, goal, displayLevel } = item;
+        const { c, pct, x, y, isLeader, progressDisplay, starsDisplay, goal, displayLevel, classQuestBonus } = item;
 
         // Determine Zone Styles
         let currentZone = "Bronze Meadows";
@@ -151,6 +151,7 @@ export function generateLeagueMapHtml(classes) {
                             <span class="text-indigo-600 text-base">${starsDisplay}</span> 
                             <span class="text-gray-400">/</span> ${goal} ⭐
                         </span>
+                        ${classQuestBonus > 0 ? `<span class="text-[10px] font-black uppercase tracking-wide text-indigo-500 block mt-1">+${classQuestBonus} Pathfinder</span>` : ''}
                     </div>
                 </div>
             </div>

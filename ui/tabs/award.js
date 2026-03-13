@@ -390,11 +390,13 @@ export function updateAwardCardState(studentId, starsToday, reason) {
         undoBtn?.classList.remove('hidden');
         reasonSelector?.classList.add('pointer-events-none', 'opacity-50');
         starSelector?.classList.remove('visible');
+        studentCard.classList.remove('reason-expanded');
         reasonSelector?.querySelectorAll('.reason-btn.active').forEach(b => b.classList.remove('active'));
     } else {
         // If not locked (either 0 stars OR welcome_back), enable controls
         undoBtn?.classList.add('hidden'); // Hide general undo
         reasonSelector?.classList.remove('pointer-events-none', 'opacity-50');
+        if (!studentCard.querySelector('.reason-btn.active')) studentCard.classList.remove('reason-expanded');
     }
 
     // If we have 0 stars (unlocked), we are present, so remove absent visual

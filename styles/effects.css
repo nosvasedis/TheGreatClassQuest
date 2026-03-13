@@ -29,15 +29,17 @@
 .star-selector-container {
     max-height: 0;
     opacity: 0;
-    overflow: hidden;
+    overflow: visible;
     transition: max-height 0.3s ease-out, opacity 0.3s ease-out, margin-top 0.3s ease-out;
     margin-top: 0;
+    width: 100%;
+    padding: 0;
 }
 
 .star-selector-container.visible {
-    max-height: 100px;
+    max-height: 140px;
     opacity: 1;
-    margin-top: 0.75rem;
+    margin-top: 1rem;
 }
 
 /* Reason Button Animation */

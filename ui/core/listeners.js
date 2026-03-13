@@ -662,10 +662,12 @@ export function setupUIListeners() {
             if (reasonBtn.classList.contains('active')) {
                 reasonBtn.classList.remove('active');
                 starSelector.classList.remove('visible');
+                studentCard.classList.remove('reason-expanded');
             } else {
                 allReasonBtns.forEach(btn => btn.classList.remove('active'));
                 reasonBtn.classList.add('active');
                 starSelector.classList.add('visible');
+                studentCard.classList.add('reason-expanded');
                 reasonBtn.classList.add('animate-reason-select');
 
                 // Dynamic sparkle animation position

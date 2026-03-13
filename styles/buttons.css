@@ -30,33 +30,43 @@
 .star-award-btn {
     font-family: 'Fredoka One', cursive;
     color: white;
-    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-    transition: all 150ms ease-out;
+    box-shadow: 0 8px 14px rgba(0, 0, 0, 0.14);
+    transition: transform 150ms ease-out, box-shadow 150ms ease-out, filter 150ms ease-out;
     transform: none;
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 0.25rem;
+    gap: 0.45rem;
     text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
-    font-size: 1.5rem;
-    /* Larger base size */
-    padding: 0.75rem 1rem;
+    font-size: 1.45rem;
+    padding: 0.85rem 1.05rem;
     border-radius: 9999px;
-    /* Pill shape */
     border-bottom: 4px solid rgba(0, 0, 0, 0.2);
     position: relative;
-    /* For animation pseudo-elements */
+    overflow: hidden;
+    min-height: 4.1rem;
+    min-width: 4.4rem;
+}
+
+.star-award-btn::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(135deg, rgba(255,255,255,0.38), transparent 45%, rgba(255,255,255,0.08));
+    pointer-events: none;
 }
 
 .star-award-btn .fa-star {
-    color: #FFD700;
-    /* Gold color for stars */
-    text-shadow: 0 1px 1px rgba(0, 0, 0, 0.3);
+    color: #ffe15d;
+    filter: drop-shadow(0 2px 2px rgba(120, 63, 0, 0.25));
+    text-shadow: 0 1px 1px rgba(0, 0, 0, 0.25);
+    position: relative;
+    z-index: 1;
 }
 
 .star-award-btn:hover {
-    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
-    transform: scale(1.05);
+    box-shadow: 0 12px 22px rgba(0, 0, 0, 0.18);
+    transform: translateY(-2px) scale(1.04);
 }
 
 .star-award-btn:hover .fa-star {
@@ -65,35 +75,57 @@
 
 .star-btn-1 {
     background-image: linear-gradient(to right, var(--tw-gradient-stops));
-    --tw-gradient-from: #22d3ee;
-    --tw-gradient-to: #3b82f6;
+    --tw-gradient-from: #38bdf8;
+    --tw-gradient-to: #2563eb;
     --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to);
     border-bottom-color: #1D4ED8;
     --glow-color-1: #38BDF8;
     --glow-color-2: rgba(56, 189, 248, 0.5);
+    min-width: 4.8rem;
 }
 
 .star-btn-2 {
     background-image: linear-gradient(to right, var(--tw-gradient-stops));
-    --tw-gradient-from: #c084fc;
+    --tw-gradient-from: #a855f7;
     --tw-gradient-to: #ec4899;
     --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to);
     border-bottom-color: #BE185D;
     font-size: 1.6rem;
     --glow-color-1: #F472B6;
     --glow-color-2: rgba(244, 114, 182, 0.5);
+    min-width: 7.7rem;
 }
 
 .star-btn-3 {
     background-image: linear-gradient(to right, var(--tw-gradient-stops));
-    --tw-gradient-from: #fbbf24;
+    --tw-gradient-from: #facc15;
     --tw-gradient-to: #f97316;
     --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to);
     border-bottom-color: #C2410C;
-    font-size: 1.7rem;
+    font-size: 1.72rem;
     text-shadow: 0 2px 3px rgba(0, 0, 0, 0.3);
     --glow-color-1: #FBBF24;
     --glow-color-2: rgba(251, 191, 36, 0.6);
+    min-width: 10.2rem;
+    box-shadow: 0 0 0 1px rgba(255, 236, 153, 0.5), 0 0 24px rgba(251, 191, 36, 0.38), 0 10px 18px rgba(194, 65, 12, 0.22);
+}
+
+.star-btn-3::after {
+    content: '';
+    position: absolute;
+    top: -30%;
+    left: -20%;
+    width: 40%;
+    height: 160%;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.55), transparent);
+    transform: rotate(20deg);
+    animation: star-btn-shimmer 2s linear infinite;
+    pointer-events: none;
+}
+
+@keyframes star-btn-shimmer {
+    from { left: -35%; }
+    to { left: 110%; }
 }
 
 #award-stars-student-list {
@@ -105,16 +137,13 @@
 .student-cloud-card {
     --award-cloud-mask: none;
     position: relative;
-    padding: 1rem 1.5rem 1.5rem 1.5rem;
-    /* Adjusted padding for avatar */
+    padding: 7rem 1.9rem 3.7rem 1.9rem;
     display: flex;
     flex-direction: column;
     gap: 0.75rem;
     filter: drop-shadow(0 5px 8px rgba(0, 0, 0, 0.15));
     transform: translateZ(0);
     animation: float-card 6s ease-in-out infinite;
-    padding-top: 40px;
-    /* Make space for the overlapping avatar */
     background: transparent;
     border-radius: 2rem;
     isolation: isolate;
@@ -124,10 +153,10 @@
 .student-cloud-card::before {
     content: '';
     position: absolute;
-    top: 0;
-    bottom: 0;
-    left: -22px;
-    right: -22px;
+    top: 0.25rem;
+    bottom: -0.75rem;
+    left: -52px;
+    right: -52px;
     z-index: 0;
     pointer-events: none;
     background:
@@ -148,10 +177,10 @@
 .student-cloud-card::after {
     content: '';
     position: absolute;
-    top: -4px;
-    bottom: -4px;
-    left: -26px;
-    right: -26px;
+    top: 0;
+    bottom: -1rem;
+    left: -56px;
+    right: -56px;
     z-index: -1;
     pointer-events: none;
     opacity: 0;
@@ -171,18 +200,33 @@
     z-index: 2;
 }
 
+.student-cloud-card.reason-expanded {
+    z-index: 15;
+}
+
+.student-cloud-card.reason-expanded::before {
+    left: -66px;
+    right: -66px;
+    bottom: -1.25rem;
+}
+
+.student-cloud-card.reason-expanded::after {
+    left: -70px;
+    right: -70px;
+    bottom: -1.4rem;
+}
+
 .student-avatar-cloud {
     position: absolute;
-    top: -30px;
-    /* Position it to overlap the top edge */
+    top: 1rem;
     left: 50%;
     transform: translateX(-50%);
-    width: 70px;
-    height: 70px;
+    width: 82px;
+    height: 82px;
     border-radius: 9999px;
     object-fit: cover;
     background-color: #e5e7eb;
-    border: 4px solid white;
+    border: 5px solid white;
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
     z-index: 10;
     transition: all 0.3s ease-out;
@@ -190,15 +234,14 @@
 
 .student-avatar-cloud-placeholder {
     position: absolute;
-    top: -30px;
+    top: 1rem;
     left: 50%;
     transform: translateX(-50%);
-    width: 70px;
-    height: 70px;
+    width: 82px;
+    height: 82px;
     border-radius: 9999px;
     background-color: #d1d5db;
-    /* gray-300 */
-    border: 4px solid white;
+    border: 5px solid white;
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
     z-index: 10;
     display: flex;
@@ -207,7 +250,6 @@
     font-family: 'Fredoka One', cursive;
     font-size: 2rem;
     color: #4b5563;
-    /* gray-600 */
     transition: all 0.3s ease-out;
 }
 
@@ -391,6 +433,12 @@
 
 .counter-animate {
     animation: count-change 0.5s ease-out;
+}
+
+.card-content-wrapper {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
 }
 
 @keyframes float-up-down {

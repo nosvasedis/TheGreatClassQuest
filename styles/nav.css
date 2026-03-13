@@ -18,8 +18,8 @@
     align-items: center;
     justify-content: center;
     gap: 0.1rem;
-    min-height: 3.4rem;
-    padding: 0.45rem 0.2rem 0.35rem;
+    min-height: 3rem;
+    padding: 0.35rem 0.24rem 0.24rem;
     border-radius: 9999px;
     color: white;
     transition: all 150ms ease-out;
@@ -45,23 +45,23 @@
 }
 
 .nav-button::before {
-    width: 62%;
-    height: 58%;
-    left: 7%;
-    top: 10%;
+    width: 50%;
+    height: 46%;
+    left: 11%;
+    top: 14%;
     box-shadow:
-        1.45rem -0.1rem 0 -0.12rem currentColor,
-        2.65rem 0.28rem 0 -0.42rem currentColor;
-    opacity: 0.22;
+        1.05rem -0.08rem 0 -0.2rem currentColor,
+        2rem 0.18rem 0 -0.6rem currentColor;
+    opacity: 0.16;
     filter: blur(0.2px);
 }
 
 .nav-button::after {
-    left: 6%;
-    right: 6%;
-    top: 20%;
-    bottom: 8%;
-    border-radius: 1.25rem 1.25rem 1.05rem 1.05rem;
+    left: 10%;
+    right: 10%;
+    top: 26%;
+    bottom: 10%;
+    border-radius: 1.1rem 1.1rem 0.95rem 0.95rem;
 }
 
 .nav-button > * {
@@ -70,11 +70,11 @@
 }
 
 .nav-button .icon {
-    font-size: 1.1rem;
+    font-size: 1rem;
     line-height: 1;
 }
 .nav-button .text {
-    font-size: 0.63rem;
+    font-size: 0.58rem;
     font-weight: 700;
     display: none;
     line-height: 1;
@@ -86,16 +86,16 @@
     }
 
     .nav-button {
-        min-height: 4rem;
-        padding-top: 0.5rem;
+        min-height: 3.6rem;
+        padding-top: 0.42rem;
     }
 
     .nav-button .icon {
-        font-size: 1.18rem;
+        font-size: 1.08rem;
     }
 
     .nav-button .text {
-        font-size: 0.68rem;
+        font-size: 0.62rem;
     }
 }
 

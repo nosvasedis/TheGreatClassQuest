@@ -4,6 +4,7 @@ import * as state from '../state.js';
 import { showToast } from '../ui/effects.js';
 import { playSound } from '../audio.js';
 import * as utils from '../utils.js';
+import { reconcileFamiliarLifecycle } from './familiars.js';
 
 export async function handleBestowBoon(senderId, receiverId) {
     if (senderId === receiverId) {
@@ -44,6 +45,7 @@ export async function handleBestowBoon(senderId, receiverId) {
             });
         });
 
+        reconcileFamiliarLifecycle(receiverId, { announce: true, source: 'peer-boon' }).catch((e) => console.warn('Peer boon familiar reconciliation failed:', e));
         playSound('magic_chime');
         showToast(`${receiver.name} received a Hero's Boon!`, 'success');
     } catch (error) {

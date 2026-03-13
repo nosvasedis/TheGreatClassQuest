@@ -22,6 +22,7 @@ import { showToast } from '../../ui/effects.js';
 import { callGeminiApi, callCloudflareAiImageApi } from '../../api.js';
 import { getAgeGroupForLeague, getStartOfMonthString, getTodayDateString, compressImageBase64, simpleHashCode, parseFlexibleDate } from '../../utils.js';
 import { playSound } from '../../audio.js';
+import { reconcileFamiliarLifecycle } from '../../features/familiars.js';
 // GUILD_IDS not needed at module level but kept for reference
 
 // --- THE ECONOMY (SHOP & INVENTORY) ---
@@ -745,6 +746,7 @@ export async function handleSpecialOccasionBonus(studentId, type) {
             transaction.set(newLogRef, logData);
         });
 
+        reconcileFamiliarLifecycle(studentId, { announce: true, source: 'special-occasion' }).catch((e) => console.warn('Special occasion familiar reconciliation failed:', e));
         showToast(`${student.name} received +${bonus} Stars for their special day!`, 'success');
         import('../../ui/modals.js').then(m => m.hideModal('celebration-bonus-modal'));
         playSound('magic_chime');

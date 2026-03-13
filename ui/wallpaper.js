@@ -4,6 +4,7 @@ import * as state from '../state.js';
 import * as utils from '../utils.js';
 import { callGeminiApi } from '../api.js';
 import * as constants from '../constants.js';
+import { renderFamiliarSprite } from '../features/familiars.js';
 
 // Proper Fisher-Yates shuffle for true variety
 function shuffleDeck(array) {
@@ -907,16 +908,11 @@ function getClassFamiliarParadeCard(classId) {
 
     const familiars = students.map(s => {
         const score = allStudentScores.find(sc => sc.id === s.id) || {};
-        const egg = score.familiarEgg;
-        const hatched = score.familiarHatched;
-        const evolved = score.familiarEvolved;
-        const display = evolved || hatched || egg;
-        if (!display) return null;
-        const isEvolved = !!evolved;
-        const isHatched = !!hatched && !evolved;
-        const badge = isEvolved ? '✨' : isHatched ? '🐣' : '🥚';
+        const familiar = score.familiar;
+        if (!familiar) return null;
+        const badge = familiar.state === 'egg' ? '🥚' : familiar.level >= 2 ? '✨' : '🐣';
         return `<div class="flex flex-col items-center gap-1">
-            <div class="text-4xl">${display}</div>
+            <div>${renderFamiliarSprite(familiar, 'medium', s.id)}</div>
             <span class="text-[9px] font-bold opacity-50">${badge}</span>
             <span class="text-[9px] text-center truncate max-w-[48px]">${s.name.split(' ')[0]}</span>
         </div>`;

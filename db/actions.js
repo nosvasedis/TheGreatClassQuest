@@ -12,6 +12,7 @@ import { showToast, showPraiseToast } from '../ui/effects.js';
 import { playSound } from '../audio.js';
 import { callGeminiApi } from '../api.js';
 import { getTodayDateString } from '../utils.js';
+import { reconcileFamiliarLifecycle } from '../features/familiars.js';
 
 export * from './actions/index.js';
 
@@ -48,6 +49,9 @@ export async function awardStoryWeaverBonusStarToClass(classId) {
         });
 
         await batch.commit();
+        studentsInClass.forEach((student) => {
+            reconcileFamiliarLifecycle(student.id, { announce: true, source: 'story-weaver' }).catch((e) => console.warn('Story Weaver familiar reconciliation failed:', e));
+        });
         showToast("Story Weaver bonus stars awarded!", "success");
 
         const word = state.get('currentStoryData')[classId]?.currentWord || "a new idea";

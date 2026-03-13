@@ -25,6 +25,7 @@ import * as utils from '../utils.js';
 import { competitionStart } from '../constants.js';
 import * as modals from '../ui/modals.js';
 import { renderHomeTab } from '../features/home.js';
+import { reconcileFamiliarLifecycle, shouldPassivelyReconcileFamiliar } from '../features/familiars.js';
 
 export function setupDataListeners(userId, dateString) {
     // Clear previous listeners
@@ -200,6 +201,11 @@ export function setupDataListeners(userId, dateString) {
                         bubble.classList.add('counter-animate');
                         setTimeout(() => bubble.classList.remove('counter-animate'), 500);
                     }
+                }
+
+                const ownerUid = scoreData.createdBy?.uid || state.get('allStudents').find((s) => s.id === studentId)?.createdBy?.uid;
+                if (ownerUid === userId && shouldPassivelyReconcileFamiliar(scoreData)) {
+                    reconcileFamiliarLifecycle(studentId, { announce: false, source: 'listener-passive' }).catch((e) => console.warn('Passive familiar reconciliation failed:', e));
                 }
             }
         });

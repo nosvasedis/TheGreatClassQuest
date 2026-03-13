@@ -22,6 +22,7 @@ import { callGeminiApi } from '../../api.js';
 import { playSound } from '../../audio.js';
 import { handleStoryWeaversClassSelect } from '../../features/storyWeaver.js';
 import { getTodayDateString, parseFlexibleDate } from '../../utils.js';
+import { reconcileFamiliarLifecycle } from '../../features/familiars.js';
 
 export async function addOrUpdateHeroChronicleNote(studentId, noteText, category, noteId = null) {
     if (!studentId || !noteText || !category) {
@@ -220,6 +221,7 @@ export async function handleAwardBonusStar(studentId, bonusAmount, trialType) {
             };
             transaction.set(newLogRef, logData);
         });
+        reconcileFamiliarLifecycle(studentId, { announce: true, source: 'trial-bonus' }).catch((e) => console.warn('Trial familiar reconciliation failed:', e));
         showToast(`✨ A Bonus has been bestowed upon ${student.name}! ✨`, 'success');
     } catch (error) {
         console.error("Scholar's Bonus transaction failed:", error);
@@ -260,6 +262,9 @@ export async function handleBatchAwardBonus(students) {
 
     try {
         await batch.commit();
+        students.forEach(({ studentId }) => {
+            reconcileFamiliarLifecycle(studentId, { announce: true, source: 'trial-batch-bonus' }).catch((e) => console.warn('Batch familiar reconciliation failed:', e));
+        });
         showToast(`✨ ${students.length} Scholars received their bonus stars! ✨`, 'success');
     } catch (error) {
         console.error("Batch Scholar's Bonus failed:", error);

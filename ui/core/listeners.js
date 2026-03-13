@@ -55,6 +55,7 @@ import {
 } from '../../db/actions.js';
 import { handleBestowBoon } from '../../features/boons.js';
 import { handleAvatarClick } from './avatar.js';
+import { reconcileFamiliarLifecycle } from '../../features/familiars.js';
 
 // --- MAIN UI EVENT LISTENERS SETUP ---
 
@@ -626,6 +627,7 @@ export function setupUIListeners() {
                     });
 
                     showWelcomeBackMessage(firstName, stars);
+                    reconcileFamiliarLifecycle(studentId, { announce: true, source: 'welcome-back' }).catch((e) => console.warn('Welcome back familiar reconciliation failed:', e));
 
                 } catch (error) {
                     console.error("Welcome back bonus failed:", error);

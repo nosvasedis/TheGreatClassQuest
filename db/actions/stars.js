@@ -25,7 +25,7 @@ import { checkBountyProgress } from './bounties.js';
 import { calculateHeroGold, canChangeHeroClass } from '../../features/heroClasses.js';
 import { updateGuildScores } from '../../features/guildScoring.js';
 import { computeHeroLevel, getHeroReason, getOutwardEffects } from '../../features/heroSkillTree.js';
-import { checkHatchOrLevelUp } from '../../features/familiars.js';
+import { reconcileFamiliarLifecycle } from '../../features/familiars.js';
 
 // --- SCORE, STAR, & LOG ACTIONS ---
 
@@ -252,7 +252,7 @@ export async function setStudentStarsForToday(studentId, starValue, reason = nul
             // Apply outward skill effects (guildmate/classmate gold) — fire-and-forget
             _applyOutwardSkillEffects(studentId, studentClassId, reason, difference).catch(e => console.warn('Outward skill effect failed:', e));
             // Check familiar hatch / level-up — fire-and-forget
-            checkHatchOrLevelUp(studentId).catch(e => console.warn('Familiar check failed:', e));
+            reconcileFamiliarLifecycle(studentId, { announce: true, source: 'stars' }).catch(e => console.warn('Familiar check failed:', e));
         }
 
     } catch (error) {
@@ -465,6 +465,7 @@ export async function handleAddStarsManually() {
             }
             transaction.update(scoreRef, updates);
         });
+        reconcileFamiliarLifecycle(studentId, { announce: true, source: 'manual-log' }).catch((e) => console.warn('Manual familiar reconciliation failed:', e));
         showToast(`${starsToAdd} star(s) for ${reason} added to ${student.name}'s log for ${date}.`, 'success');
     } catch (error) {
         console.error("Error adding stars manually: ", error);
@@ -490,6 +491,7 @@ export async function handleSetStudentScores() {
 
     const btn = document.getElementById('star-manager-override-btn');
     btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> Setting...';
+    const previousTotalStars = state.get('allStudentScores').find((s) => s.id === studentId)?.totalStars || 0;
 
     try {
         await runTransaction(db, async (transaction) => {
@@ -520,6 +522,9 @@ export async function handleSetStudentScores() {
             }
         });
         const student = state.get('allStudents').find(s => s.id === studentId);
+        if (totalStarsVal > previousTotalStars) {
+            reconcileFamiliarLifecycle(studentId, { announce: true, source: 'score-override' }).catch((e) => console.warn('Override familiar reconciliation failed:', e));
+        }
         showToast(`Scores for ${student.name} have been updated.`, 'success');
 
     } catch (error) {

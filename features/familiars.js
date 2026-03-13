@@ -1,14 +1,23 @@
 // /features/familiars.js — Familiars (Pets) System
 // Sprite sheets generated via Cloudflare AI, animated with CSS steps()
 
-import { db, doc, updateDoc, serverTimestamp } from '../firebase.js';
+import { db, doc, getDoc, updateDoc, serverTimestamp } from '../firebase.js';
 import * as state from '../state.js';
 import { callCloudflareAiImageApi } from '../api.js';
-// uploadImageToStorage imported dynamically to match avatar.js pattern
-import { showToast } from '../ui/effects.js';
 import { playSound } from '../audio.js';
+import {
+    FAMILIAR_LEVEL_THRESHOLDS,
+    deriveLegacyStarsAtHatch,
+    getEffectiveStarsAtHatch,
+    getUnlockedFamiliarLevel,
+    getFamiliarProgress,
+    getFamiliarProgressPercent
+} from './familiarProgression.mjs';
 
 const publicDataPath = 'artifacts/great-class-quest/public/data';
+const familiarOps = new Map();
+
+export { FAMILIAR_LEVEL_THRESHOLDS };
 
 // ─── FAMILIAR TYPE DEFINITIONS ────────────────────────────────────────────────
 
@@ -85,8 +94,8 @@ export const FAMILIAR_TYPES = {
         levelNames: ['Shadow Wisp', 'Phantom Cat', 'Void Stalker'],
         spritePrompts: {
             1: '2D game sprite sheet, exactly 4 frames in a single horizontal row on a pure white background, no borders between frames, flat chibi pixel-art style, tiny shadow wisp creature, dark smoky body with glowing purple eyes, wispy tail, semi-transparent ghost-like form, frame 1: floating idle with slight glow, frame 2: drifting forward, frame 3: phasing through a brief flash, frame 4: reappearing with smoke puff, consistent character across all frames, no text, clean outlines, game asset',
-            2: '2D game sprite sheet, exactly 4 frames in a single horizontal row on a pure white background, no borders between frames, flat chibi pixel-art style, phantom cat, sleek dark shadow body, purple glowing eyes and paw tips, shadowy tail with glowing tip, half-visible ethereal form, frame 1: crouching ready, frame 2: creeping forward with glow, frame 3: pouncing with shadow trail, frame 4: landing in shadow burst, consistent character, no text, game asset',
-            3: '2D game sprite sheet, exactly 4 frames in a single horizontal row on a pure white background, no borders between frames, flat chibi pixel-art style, void stalker, massive shadowy form with void energy, floating in darkness made visible, multiple glowing purple eyes, dimensional rift markings, frame 1: ominous hovering, frame 2: lunging forward with void tear, frame 3: reality-bending leap, frame 4: impact with void explosion, consistent character, no text, game asset'
+            2: '2D game sprite sheet, exactly 4 frames in a single horizontal row on a pure white background, no borders between frames, flat chibi pixel-art style, phantom cat, sleek dark shadow body, purple glowing eyes and paw tips, shadowy tail with glowing tip, half-visible ethereal form, frame 1: stalking pose, frame 2: creeping forward, frame 3: shadow pounce through a purple flash, frame 4: silent landing with smoke, consistent character, no text, game asset',
+            3: '2D game sprite sheet, exactly 4 frames in a single horizontal row on a pure white background, no borders between frames, flat chibi pixel-art style, tiny void stalker, dark panther-like shadow beast with glowing violet core, long smoke tendrils, spectral claws, frame 1: crouched ready, frame 2: lunging forward, frame 3: teleport leap with void spark, frame 4: landing in a shadow ring, consistent character, no text, game asset'
         }
     },
     sparkling: {
@@ -96,24 +105,18 @@ export const FAMILIAR_TYPES = {
         eggIcon: '🥚',
         eggColor: '#f59e0b',
         eggAccent: '#fde68a',
-        personality: 'Joyful and radiant — sunshine in the shape of a friend.',
+        personality: 'Bright and joyful — a burst of sunrise magic.',
         animClass: 'fam-anim-spin-sparkle',
         tapSound: null,
-        desc: 'A light fairy that grows into a radiant phoenix chick.',
-        flavorHint: 'Cheerful • Bright • Magical',
-        levelNames: ['Light Fairy', 'Aurora Sprite', 'Phoenix Chick'],
+        desc: 'A radiant fairy-phoenix that blossoms into a legendary sun guardian.',
+        flavorHint: 'Radiant • Joyful • Inspiring',
+        levelNames: ['Sun Sprite', 'Dawn Fairy', 'Solar Phoenix'],
         spritePrompts: {
-            1: '2D game sprite sheet, exactly 4 frames in a single horizontal row on a pure white background, no borders between frames, flat chibi pixel-art style, tiny adorable light fairy, glowing golden body, small shimmering wings, star-tipped wand, sparkling aura, frame 1: hovering with sparkles, frame 2: waving wand forward, frame 3: spinning with star trail, frame 4: landing with burst of light, consistent character across all frames, no text, clean outlines, game asset',
-            2: '2D game sprite sheet, exactly 4 frames in a single horizontal row on a pure white background, no borders between frames, flat chibi pixel-art style, aurora sprite, larger graceful fairy body with rainbow aurora wings, glowing halo, trailing light ribbons, frame 1: floating in aurora glow, frame 2: gliding forward with light trail, frame 3: spinning leap with rainbow arc, frame 4: landing in shimmer burst, consistent character, no text, game asset',
+            1: '2D game sprite sheet, exactly 4 frames in a single horizontal row on a pure white background, no borders between frames, flat chibi pixel-art style, tiny glowing sun sprite, golden round body, bright eyes, tiny light wings, sparkles around feet, frame 1: hovering idle, frame 2: bobbing happily, frame 3: upward hop with sparkles, frame 4: glowing landing, consistent character, no text, clean outlines, game asset',
+            2: '2D game sprite sheet, exactly 4 frames in a single horizontal row on a pure white background, no borders between frames, flat chibi pixel-art style, elegant dawn fairy, warm gold and peach colors, luminous wings, flowing spark trail, gentle halo, frame 1: poised hover, frame 2: twirling forward, frame 3: airborne spin with sparkles, frame 4: soft landing with glow, consistent character, no text, game asset',
             3: '2D game sprite sheet, exactly 4 frames in a single horizontal row on a pure white background, no borders between frames, flat chibi pixel-art style, radiant phoenix chick, brilliant golden feathers with flame tips, majestic small wings, blazing tail, brilliant halo, frame 1: standing in radiant glow, frame 2: strutting forward with fire step, frame 3: soaring leap in flames, frame 4: landing with phoenix burst, consistent character, no text, game asset'
         }
     }
-};
-
-export const FAMILIAR_LEVEL_THRESHOLDS = {
-    hatch: 20,      // stars after purchase to hatch (~1 month)
-    level2: 60,     // totalStars earned after hatch to reach level 2 (~3 months after hatch)
-    level3: 140     // totalStars earned after hatch to reach level 3 (~7 months after hatch, near year end)
 };
 
 // ─── SPRITE GENERATION ───────────────────────────────────────────────────────
@@ -136,7 +139,6 @@ async function _compressSpriteSheet(base64) {
         const img = new Image();
         img.src = base64;
         img.onload = () => {
-            // Keep aspect ratio but cap height at 128px (4 frames wide × ~128px each)
             const targetH = 128;
             const scale = targetH / img.height;
             const targetW = Math.round(img.width * scale);
@@ -144,7 +146,7 @@ async function _compressSpriteSheet(base64) {
             canvas.width = targetW;
             canvas.height = targetH;
             const ctx = canvas.getContext('2d');
-            ctx.imageSmoothingEnabled = false; // pixel-art crisp
+            ctx.imageSmoothingEnabled = false;
             ctx.drawImage(img, 0, 0, targetW, targetH);
             resolve(canvas.toDataURL('image/webp', 0.9));
         };
@@ -152,81 +154,236 @@ async function _compressSpriteSheet(base64) {
     });
 }
 
-// ─── HATCH / LEVEL-UP CHECK (fire-and-forget, called after star transaction) ──
+// ─── RECONCILIATION ──────────────────────────────────────────────────────────
 
-export async function checkHatchOrLevelUp(studentId) {
-    const scoreData = state.get('allStudentScores').find(s => s.id === studentId);
-    if (!scoreData?.familiar) return;
+export function buildFamiliarInitData(typeId, currentTotalStars) {
+    return {
+        typeId,
+        state: 'egg',
+        level: 0,
+        starsWhenPurchased: currentTotalStars,
+        starsWhenHatched: 0,
+        starsAtHatch: null,
+        spriteSheets: { 1: null, 2: null, 3: null },
+        generationStatus: 'idle',
+        generationLevel: null,
+        generationError: null,
+        generationUpdatedAt: null,
+        schemaVersion: 2
+    };
+}
+
+export function shouldPassivelyReconcileFamiliar(scoreData) {
+    if (!scoreData?.familiar) return false;
 
     const familiar = scoreData.familiar;
     const totalStars = scoreData.totalStars || 0;
+    const unlockedLevel = getUnlockedFamiliarLevel(familiar, totalStars);
+    const currentLevel = familiar.state === 'egg' ? 0 : (familiar.level || 0);
+    const currentSpriteLevel = unlockedLevel || currentLevel;
+    const currentSprite = currentSpriteLevel > 0 ? familiar.spriteSheets?.[currentSpriteLevel] : null;
+    const hasLegacyMetadata = familiar.schemaVersion !== 2 || (familiar.state !== 'egg' && typeof familiar.starsAtHatch !== 'number');
+    const needsLevelSync = unlockedLevel > currentLevel;
+    const needsSpriteGeneration = currentSpriteLevel > 0 && !currentSprite && familiar.generationStatus !== 'generating' && familiar.generationStatus !== 'failed';
 
-    if (familiar.state === 'egg') {
-        const starsSincePurchase = totalStars - (familiar.starsWhenPurchased || 0);
-        if (starsSincePurchase >= FAMILIAR_LEVEL_THRESHOLDS.hatch) {
-            await _hatchFamiliar(studentId, familiar, totalStars);
-        }
-    } else if (familiar.state === 'alive' && familiar.level < 3) {
-        const starsSinceHatch = totalStars - (familiar.starsWhenHatched || 0);
-        const threshold = familiar.level === 1 ? FAMILIAR_LEVEL_THRESHOLDS.level2 : FAMILIAR_LEVEL_THRESHOLDS.level3;
-        if (starsSinceHatch >= threshold) {
-            await _evolveFamiliar(studentId, familiar, totalStars);
-        }
-    }
+    return hasLegacyMetadata || needsLevelSync || needsSpriteGeneration;
 }
 
-async function _hatchFamiliar(studentId, familiar, totalStars) {
+export function checkHatchOrLevelUp(studentId) {
+    return reconcileFamiliarLifecycle(studentId, { announce: true, source: 'stars' });
+}
+
+export function reconcileFamiliarLifecycle(studentId, options = {}) {
+    const existing = familiarOps.get(studentId);
+    if (existing) return existing;
+
+    const promise = _reconcileFamiliarLifecycle(studentId, options)
+        .catch((error) => {
+            console.warn('Familiar reconciliation failed:', error);
+            return null;
+        })
+        .finally(() => {
+            familiarOps.delete(studentId);
+        });
+
+    familiarOps.set(studentId, promise);
+    return promise;
+}
+
+export function retryFamiliarSpriteGeneration(studentId) {
+    return reconcileFamiliarLifecycle(studentId, { announce: false, source: 'retry', forceRetry: true });
+}
+
+async function _reconcileFamiliarLifecycle(studentId, options = {}) {
     const scoreRef = doc(db, `${publicDataPath}/student_scores`, studentId);
-    // Immediately set state = alive, level = 1 so UI shows "Hatching..."
+    const scoreSnap = await getDoc(scoreRef);
+    if (!scoreSnap.exists()) return null;
+
+    const scoreData = scoreSnap.data();
+    if (!scoreData?.familiar) return null;
+
+    let familiar = scoreData.familiar;
+    const totalStars = scoreData.totalStars || 0;
+    const migrationUpdates = _buildMigrationUpdates(familiar);
+    if (Object.keys(migrationUpdates).length) {
+        await updateDoc(scoreRef, migrationUpdates);
+        familiar = _mergeFamiliar(familiar, migrationUpdates);
+    }
+
+    const currentLevel = familiar.state === 'alive' ? (familiar.level || 0) : 0;
+    const unlockedLevel = getUnlockedFamiliarLevel(familiar, totalStars);
+    const desiredLevel = Math.max(currentLevel, unlockedLevel);
+    const desiredState = desiredLevel > 0 || familiar.state === 'alive' ? 'alive' : 'egg';
+    const levelChanged = (familiar.level || 0) !== desiredLevel || familiar.state !== desiredState;
+    const progressionUpdates = {};
+
+    if (desiredState === 'alive') {
+        const starsAtHatch = getEffectiveStarsAtHatch(familiar, totalStars);
+        if (familiar.state !== 'alive') progressionUpdates['familiar.state'] = 'alive';
+        if ((familiar.level || 0) !== desiredLevel) progressionUpdates['familiar.level'] = desiredLevel;
+        if (familiar.starsWhenHatched !== starsAtHatch) progressionUpdates['familiar.starsWhenHatched'] = starsAtHatch;
+        if (familiar.starsAtHatch !== starsAtHatch) progressionUpdates['familiar.starsAtHatch'] = starsAtHatch;
+    } else {
+        if (familiar.state !== 'egg') progressionUpdates['familiar.state'] = 'egg';
+        if ((familiar.level || 0) !== 0) progressionUpdates['familiar.level'] = 0;
+    }
+
+    const spriteLevel = desiredLevel;
+    const spriteUrl = spriteLevel > 0 ? familiar.spriteSheets?.[spriteLevel] : null;
+    const currentStatus = familiar.generationStatus || 'idle';
+    const currentGenerationLevel = familiar.generationLevel ?? null;
+
+    if (spriteLevel > 0 && spriteUrl && (currentStatus !== 'idle' || currentGenerationLevel !== null || familiar.generationError)) {
+        progressionUpdates['familiar.generationStatus'] = 'idle';
+        progressionUpdates['familiar.generationLevel'] = null;
+        progressionUpdates['familiar.generationError'] = null;
+        progressionUpdates['familiar.generationUpdatedAt'] = serverTimestamp();
+    }
+
+    if (Object.keys(progressionUpdates).length) {
+        await updateDoc(scoreRef, progressionUpdates);
+        familiar = _mergeFamiliar(familiar, progressionUpdates);
+    }
+
+    if (spriteLevel <= 0) {
+        return { level: desiredLevel, generated: false };
+    }
+
+    const autoGenerationBlocked = familiar.generationStatus === 'failed' && !options.forceRetry;
+    const alreadyGeneratingThisLevel = familiar.generationStatus === 'generating' && familiar.generationLevel === spriteLevel && !options.forceRetry;
+    const targetSpriteUrl = familiar.spriteSheets?.[spriteLevel] || null;
+
+    if (!targetSpriteUrl && !autoGenerationBlocked && !alreadyGeneratingThisLevel) {
+        await _generateCurrentStageSprite(scoreRef, studentId, familiar, spriteLevel, options);
+    } else if (!targetSpriteUrl && options.source === 'retry') {
+        await _markGenerationFailed(scoreRef, spriteLevel, new Error('Retry is unavailable until the previous attempt finishes.'));
+    } else if (levelChanged && options.announce) {
+        await _announceStageChange(studentId, familiar, desiredLevel);
+    }
+
+    return { level: desiredLevel, generated: !targetSpriteUrl };
+}
+
+async function _generateCurrentStageSprite(scoreRef, studentId, familiar, spriteLevel, options) {
     await updateDoc(scoreRef, {
-        'familiar.state': 'alive',
-        'familiar.level': 1,
-        'familiar.starsWhenHatched': totalStars
+        'familiar.generationStatus': 'generating',
+        'familiar.generationLevel': spriteLevel,
+        'familiar.generationError': null,
+        'familiar.generationUpdatedAt': serverTimestamp()
     });
 
     try {
-        const url = await generateFamiliarSpriteSheet(familiar.typeId, 1, totalStars, studentId);
-        await updateDoc(scoreRef, { 'familiar.spriteSheets.1': url });
+        const url = await generateFamiliarSpriteSheet(familiar.typeId, spriteLevel);
+        await updateDoc(scoreRef, {
+            [`familiar.spriteSheets.${spriteLevel}`]: url,
+            'familiar.generationStatus': 'idle',
+            'familiar.generationLevel': null,
+            'familiar.generationError': null,
+            'familiar.generationUpdatedAt': serverTimestamp()
+        });
 
-        // Show hatch notification
-        const student = state.get('allStudents').find(s => s.id === studentId);
-        const typeDef = FAMILIAR_TYPES[familiar.typeId];
-        if (student && typeDef) {
-            import('../ui/effects.js').then(m => {
-                m.showPraiseToast(`${student.name.split(' ')[0]}'s ${typeDef.name} has hatched! 🥚✨`, '🎉');
-            });
+        if (options.announce) {
+            await _announceStageChange(studentId, familiar, spriteLevel);
         }
-        // Play hatch sound (via Audio element, not Tone.js)
+    } catch (error) {
+        console.error('Familiar sprite generation failed:', error);
+        await _markGenerationFailed(scoreRef, spriteLevel, error);
+    }
+}
+
+async function _markGenerationFailed(scoreRef, spriteLevel, error) {
+    await updateDoc(scoreRef, {
+        'familiar.generationStatus': 'failed',
+        'familiar.generationLevel': spriteLevel,
+        'familiar.generationError': _sanitizeGenerationError(error),
+        'familiar.generationUpdatedAt': serverTimestamp()
+    });
+}
+
+function _buildMigrationUpdates(familiar) {
+    const updates = {};
+    if (!familiar) return updates;
+
+    if (familiar.schemaVersion !== 2) updates['familiar.schemaVersion'] = 2;
+    if (!('generationStatus' in familiar)) updates['familiar.generationStatus'] = 'idle';
+    if (!('generationLevel' in familiar)) updates['familiar.generationLevel'] = null;
+    if (!('generationError' in familiar)) updates['familiar.generationError'] = null;
+    if (!('generationUpdatedAt' in familiar)) updates['familiar.generationUpdatedAt'] = null;
+    if (!familiar.spriteSheets) {
+        updates['familiar.spriteSheets'] = { 1: null, 2: null, 3: null };
+    }
+
+    if (familiar.state !== 'egg') {
+        const starsAtHatch = deriveLegacyStarsAtHatch(familiar);
+        if (typeof starsAtHatch === 'number') {
+            if (familiar.starsAtHatch !== starsAtHatch) updates['familiar.starsAtHatch'] = starsAtHatch;
+            if (familiar.starsWhenHatched !== starsAtHatch) updates['familiar.starsWhenHatched'] = starsAtHatch;
+        }
+    }
+
+    return updates;
+}
+
+function _mergeFamiliar(familiar, updates) {
+    const merged = typeof structuredClone === 'function'
+        ? structuredClone(familiar)
+        : JSON.parse(JSON.stringify(familiar));
+    for (const [path, value] of Object.entries(updates)) {
+        if (!path.startsWith('familiar.')) continue;
+        const keys = path.split('.').slice(1);
+        let cursor = merged;
+        while (keys.length > 1) {
+            const key = keys.shift();
+            if (!(key in cursor) || typeof cursor[key] !== 'object' || cursor[key] === null) cursor[key] = {};
+            cursor = cursor[key];
+        }
+        cursor[keys[0]] = value;
+    }
+    return merged;
+}
+
+async function _announceStageChange(studentId, familiar, newLevel) {
+    const student = state.get('allStudents').find((s) => s.id === studentId);
+    const typeDef = FAMILIAR_TYPES[familiar.typeId];
+    if (!student || !typeDef) return;
+
+    if (newLevel <= 1) {
+        import('../ui/effects.js').then((m) => {
+            m.showPraiseToast(`${student.name.split(' ')[0]}'s ${typeDef.name} has hatched! 🥚✨`, '🎉');
+        });
         _playFamiliarSound('hatch');
-    } catch (err) {
-        console.error('Familiar hatch generation failed:', err);
+        return;
     }
+
+    import('../ui/effects.js').then((m) => {
+        m.showPraiseToast(`${student.name.split(' ')[0]}'s ${typeDef.name} evolved to ${typeDef.levelNames[newLevel - 1]}! 🌟`, '⬆️');
+    });
+    _playFamiliarSound('levelup');
 }
 
-async function _evolveFamiliar(studentId, familiar, totalStars) {
-    const newLevel = familiar.level + 1;
-    const scoreRef = doc(db, `${publicDataPath}/student_scores`, studentId);
-    // Immediately update level so UI shows "Evolving..."
-    await updateDoc(scoreRef, {
-        'familiar.level': newLevel,
-        'familiar.starsWhenHatched': totalStars  // reset milestone counter
-    });
-
-    try {
-        const url = await generateFamiliarSpriteSheet(familiar.typeId, newLevel, totalStars, studentId);
-        await updateDoc(scoreRef, { [`familiar.spriteSheets.${newLevel}`]: url });
-
-        const student = state.get('allStudents').find(s => s.id === studentId);
-        const typeDef = FAMILIAR_TYPES[familiar.typeId];
-        if (student && typeDef) {
-            import('../ui/effects.js').then(m => {
-                m.showPraiseToast(`${student.name.split(' ')[0]}'s ${typeDef.name} evolved to ${typeDef.levelNames[newLevel - 1]}! 🌟`, '⬆️');
-            });
-        }
-        _playFamiliarSound('levelup');
-    } catch (err) {
-        console.error('Familiar evolution generation failed:', err);
-    }
+function _sanitizeGenerationError(error) {
+    const message = String(error?.message || error || 'Unknown familiar generation error');
+    return message.replace(/\s+/g, ' ').trim().slice(0, 180);
 }
 
 function _playFamiliarSound(type) {
@@ -237,12 +394,6 @@ function _playFamiliarSound(type) {
 
 // ─── RENDER HELPERS ───────────────────────────────────────────────────────────
 
-/**
- * Returns the HTML for rendering a familiar on leaderboard / avatar overlay.
- * @param {object} familiar - the familiar object from student_scores
- * @param {'small'|'medium'|'large'} size - 'small' = 40px, 'medium' = 64px, 'large' = 128px
- * @param {string} studentId
- */
 export function renderFamiliarSprite(familiar, size = 'small', studentId = '') {
     if (!familiar) return '';
     const typeDef = FAMILIAR_TYPES[familiar.typeId];
@@ -256,26 +407,30 @@ export function renderFamiliarSprite(familiar, size = 'small', studentId = '') {
     }
 
     const spriteUrl = familiar.spriteSheets?.[familiar.level] || null;
-
-    if (!spriteUrl) {
-        // Generating — show shimmer placeholder
+    if (spriteUrl) {
         return `
-            <div class="familiar-container ${typeDef.animClass} enlargeable-familiar" 
+            <div class="familiar-container ${typeDef.animClass} enlargeable-familiar"
                  data-student-id="${studentId}"
-                 style="width:${px}px;height:${px}px;"
-                 title="${typeDef.name} — hatching...">
-                <div class="familiar-shimmer" style="width:${px}px;height:${px}px;border-radius:50%;"></div>
+                 style="width:${px}px;height:${px}px;flex-shrink:0;"
+                 title="${typeDef.name} — ${typeDef.levelNames[(familiar.level || 1) - 1]}">
+                <div class="familiar-sprite"
+                     style="width:${px}px;height:${px}px;background-image:url('${spriteUrl}');background-size:400% 100%;image-rendering:pixelated;">
+                </div>
             </div>`;
     }
 
-    // Animated sprite sheet (4 frames wide)
+    const isFailed = familiar.generationStatus === 'failed' && familiar.generationLevel === familiar.level;
+    const shellClass = isFailed ? 'familiar-status-shell familiar-status-failed' : 'familiar-status-shell familiar-status-generating';
+    const icon = isFailed ? '!' : '...';
+    const label = isFailed ? 'sprite failed' : 'generating sprite';
+
     return `
         <div class="familiar-container ${typeDef.animClass} enlargeable-familiar"
              data-student-id="${studentId}"
-             style="width:${px}px;height:${px}px;flex-shrink:0;"
-             title="${typeDef.name} — ${typeDef.levelNames[(familiar.level || 1) - 1]}">
-            <div class="familiar-sprite"
-                 style="width:${px}px;height:${px}px;background-image:url('${spriteUrl}');background-size:400% 100%;image-rendering:pixelated;">
+             style="width:${px}px;height:${px}px;"
+             title="${typeDef.name} — ${label}">
+            <div class="${shellClass}" style="width:${px}px;height:${px}px;border-color:${typeDef.eggColor};">
+                <div class="familiar-status-icon">${icon}</div>
             </div>
         </div>`;
 }
@@ -296,8 +451,8 @@ function _renderEgg(typeDef, px, studentId) {
 // ─── FAMILIAR STATS OVERLAY ──────────────────────────────────────────────────
 
 export function openFamiliarStatsOverlay(studentId) {
-    const scoreData = state.get('allStudentScores').find(s => s.id === studentId);
-    const student = state.get('allStudents').find(s => s.id === studentId);
+    const scoreData = state.get('allStudentScores').find((s) => s.id === studentId);
+    const student = state.get('allStudents').find((s) => s.id === studentId);
     if (!scoreData?.familiar || !student) return;
 
     const familiar = scoreData.familiar;
@@ -320,16 +475,26 @@ export function openFamiliarStatsOverlay(studentId) {
 
     const level = familiar.level || 1;
     const starsTotal = scoreData.totalStars || 0;
-    const starsTogether = starsTotal - (familiar.starsWhenPurchased || 0);
-    const isMaxLevel = level >= 3;
-    const starsToNext = isMaxLevel
-        ? null
-        : level === 1
-            ? Math.max(0, FAMILIAR_LEVEL_THRESHOLDS.level2 - (starsTotal - (familiar.starsWhenHatched || 0)))
-            : Math.max(0, FAMILIAR_LEVEL_THRESHOLDS.level3 - (starsTotal - (familiar.starsWhenHatched || 0)));
-
+    const starsTogether = Math.max(0, starsTotal - (familiar.starsWhenPurchased || 0));
+    const progress = getFamiliarProgress(familiar, starsTotal);
+    const progressPercent = getFamiliarProgressPercent(progress);
+    const isMaxLevel = progress.phase === 'max';
     const levelName = familiar.state === 'egg' ? 'Egg' : (typeDef.levelNames[level - 1] || 'Unknown');
     const spriteHtml = renderFamiliarSprite(familiar, 'large', studentId);
+
+    let progressTitle = 'Stars to hatch';
+    let progressSubtitle = `${progress.remaining} more stars needed`;
+    if (progress.phase === 'level1') {
+        progressTitle = 'Stars to Level 2';
+        progressSubtitle = `${progress.remaining} more stars needed`;
+    } else if (progress.phase === 'level2') {
+        progressTitle = 'Stars to Level 3';
+        progressSubtitle = `${progress.remaining} more stars needed`;
+    } else if (progress.phase === 'max') {
+        progressSubtitle = 'Maximum evolution reached';
+    }
+
+    const isFailed = familiar.generationStatus === 'failed' && familiar.generationLevel === familiar.level;
 
     const overlay = document.createElement('div');
     overlay.dataset.studentId = studentId;
@@ -355,20 +520,27 @@ export function openFamiliarStatsOverlay(studentId) {
                     <div class="text-xl font-bold text-white">${familiar.state === 'egg' ? '🥚 Egg' : `Lv. ${level}`}</div>
                 </div>
             </div>
-            ${!isMaxLevel && familiar.state === 'alive' ? `
+            ${!isMaxLevel ? `
             <div class="bg-white/5 rounded-xl p-3 mb-4">
-                <div class="text-xs text-white/40 uppercase mb-1">Stars to next evolution</div>
+                <div class="text-xs text-white/40 uppercase mb-1">${progressTitle}</div>
                 <div class="w-full bg-white/10 rounded-full h-2 overflow-hidden">
-                    <div class="h-2 rounded-full transition-all" style="background:${typeDef.eggColor};width:${Math.min(100, Math.round(((level === 1 ? FAMILIAR_LEVEL_THRESHOLDS.level2 - starsToNext : FAMILIAR_LEVEL_THRESHOLDS.level3 - starsToNext) / (level === 1 ? FAMILIAR_LEVEL_THRESHOLDS.level2 : FAMILIAR_LEVEL_THRESHOLDS.level3)) * 100))}%"></div>
+                    <div class="h-2 rounded-full transition-all" style="background:${typeDef.eggColor};width:${progressPercent}%"></div>
                 </div>
-                <div class="text-xs text-white/50 mt-1">${starsToNext} more stars needed</div>
-            </div>` : isMaxLevel ? `<div class="text-xs text-amber-400 font-bold mb-4">✨ MAX EVOLUTION REACHED</div>` : ''}
+                <div class="text-xs text-white/50 mt-1">${progressSubtitle}</div>
+            </div>` : `<div class="text-xs text-amber-400 font-bold mb-4">✨ MAX EVOLUTION REACHED</div>`}
+            ${isFailed ? `
+            <div class="bg-red-500/10 border border-red-400/30 rounded-xl p-3 mb-4 text-left">
+                <div class="text-xs font-bold uppercase tracking-wider text-red-300 mb-1">Sprite generation failed</div>
+                <p class="text-xs text-red-100/80 mb-3">${familiar.generationError || 'The browser could not create this familiar sprite.'}</p>
+                <button type="button" class="fam-retry-btn w-full rounded-lg bg-red-500 hover:bg-red-400 text-white font-bold text-sm py-2" data-student-id="${studentId}">
+                    Retry Sprite Generation
+                </button>
+            </div>` : ''}
             <p class="text-[10px] text-white/30 italic">${typeDef.flavorHint}</p>
         </div>`;
 
     document.body.appendChild(overlay);
 
-    // Play tap sound if available
     if (typeDef.tapSound) {
         try { new Audio(typeDef.tapSound).play().catch(() => {}); } catch (_) {}
     }
@@ -376,6 +548,7 @@ export function openFamiliarStatsOverlay(studentId) {
     const closeOverlay = () => overlay.remove();
     overlay.querySelector('.fam-overlay-close').addEventListener('click', closeOverlay);
     overlay.addEventListener('click', (e) => { if (e.target === overlay) closeOverlay(); });
+
     const tapBtn = overlay.querySelector('.fam-overlay-tap');
     if (tapBtn) {
         tapBtn.addEventListener('click', (e) => {
@@ -385,17 +558,16 @@ export function openFamiliarStatsOverlay(studentId) {
             tapBtn.classList.add('fam-tap-bump');
         });
     }
-}
 
-// ─── PURCHASE HELPER ─────────────────────────────────────────────────────────
-
-export function buildFamiliarInitData(typeId, currentTotalStars) {
-    return {
-        typeId,
-        state: 'egg',
-        level: 0,
-        starsWhenPurchased: currentTotalStars,
-        starsWhenHatched: 0,
-        spriteSheets: { 1: null, 2: null, 3: null }
-    };
+    const retryBtn = overlay.querySelector('.fam-retry-btn');
+    if (retryBtn) {
+        retryBtn.addEventListener('click', async (e) => {
+            e.stopPropagation();
+            retryBtn.disabled = true;
+            retryBtn.textContent = 'Retrying...';
+            await retryFamiliarSpriteGeneration(studentId);
+            closeOverlay();
+            setTimeout(() => openFamiliarStatsOverlay(studentId), 200);
+        });
+    }
 }

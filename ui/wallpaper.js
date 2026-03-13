@@ -1920,7 +1920,9 @@ function getRecentAwardCard(classId, logId) {
     };
 
     const style = reasonMap[log.reason] || { icon: 'fa-star', color: 'text-indigo-600', css: 'float-card-indigo', bg: 'bg-indigo-100' };
-    const starText = log.stars === 1 ? 'Star' : 'Stars';
+    const rewardText = log.reason === 'pathfinder_map'
+        ? '+10 Class Quest'
+        : `+${log.stars} ${log.stars === 1 ? 'Star' : 'Stars'}`;
 
     const avatarHtml = student.avatar
         ? `<img src="${student.avatar}" class="w-24 h-24 rounded-full border-4 border-white object-cover shadow-lg">`
@@ -1936,7 +1938,7 @@ function getRecentAwardCard(classId, logId) {
                 <div class="text-6xl animate-pulse ${style.color} drop-shadow-sm"><i class="fas ${style.icon}"></i></div>
             </div>
             <h3 class="font-title text-4xl text-gray-800 mb-1">${student.name}</h3>
-            <p class="text-2xl font-bold ${style.color}">+${log.stars} ${starText}</p>
+            <p class="text-2xl font-bold ${style.color}">${rewardText}</p>
             <p class="text-gray-500 font-bold text-xs uppercase tracking-widest mt-2">
                 ${log.reason.replace(/_/g, ' ')}
             </p>

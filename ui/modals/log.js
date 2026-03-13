@@ -7,6 +7,17 @@ import { query, collection, where, getDocs } from 'https://www.gstatic.com/fireb
 import { showAnimatedModal } from './base.js';
 import { fetchLogsForDate } from '../../db/queries.js';
 
+function getQuestBonusFromLog(log) {
+    return log.reason === 'pathfinder_map' ? 10 : 0;
+}
+
+function getLogRewardMarkup(log) {
+    if (log.reason === 'pathfinder_map') {
+        return '<span class="font-title text-lg text-indigo-600">+10 Class Quest</span>';
+    }
+    return `<span class="font-title text-lg text-amber-600">${log.stars} ⭐</span>`;
+}
+
 export function openEditClassModal(classId) {
     const classData = state.get('allTeachersClasses').find(c => c.id === classId);
     if (!classData) return;
@@ -60,18 +71,24 @@ export async function showLogbookModal(dateString, isOndemand = false) {
         teacherNameMap[state.get('currentUserId')] = state.get('currentTeacherName');
 
         const totalStars = logs.reduce((sum, log) => sum + log.stars, 0);
+        const totalClassQuestBonus = logs.reduce((sum, log) => sum + getQuestBonusFromLog(log), 0);
         const reasonCounts = logs.reduce((acc, log) => { if(log.reason) acc[log.reason] = (acc[log.reason] || 0) + log.stars; return acc; }, {});
         const topReason = Object.keys(reasonCounts).length > 0 ? Object.entries(reasonCounts).sort((a,b) => b[1] - a[1])[0][0] : 'N/A';
         const classStarCounts = logs.reduce((acc, log) => { acc[log.classId] = (acc[log.classId] || 0) + log.stars; return acc; }, {});
+        const classQuestBonusCounts = logs.reduce((acc, log) => {
+            acc[log.classId] = (acc[log.classId] || 0) + getQuestBonusFromLog(log);
+            return acc;
+        }, {});
 
         const topClassEntry = Object.entries(classStarCounts).sort((a,b) => b[1] - a[1])[0];
         const topClassId = topClassEntry ? topClassEntry[0] : null;
         const topClass = topClassId ? state.get('allSchoolClasses').find(c => c.id === topClassId) : null;
         
-        let summaryHtml = `<div class="grid grid-cols-3 gap-4 text-center mb-6 p-4 bg-gray-50 rounded-2xl border">
+        let summaryHtml = `<div class="grid ${totalClassQuestBonus > 0 ? 'grid-cols-4' : 'grid-cols-3'} gap-4 text-center mb-6 p-4 bg-gray-50 rounded-2xl border">
             <div><div class="text-sm text-gray-500">Total Stars</div><div class="font-title text-3xl text-amber-600 flex items-center justify-center gap-2">${totalStars} <i class="fas fa-star"></i></div></div>
             <div><div class="text-sm text-gray-500">Top Skill</div><div class="font-title text-3xl ${reasonColors[topReason] || 'text-purple-600'} capitalize">${topReason.replace(/_/g, ' ')}</div></div>
             <div><div class="text-sm text-gray-500">Top Class</div><div class="font-title text-xl text-green-600 truncate">${topClass ? `${topClass.logo} ${topClass.name}` : 'N/A'}</div></div>
+            ${totalClassQuestBonus > 0 ? `<div><div class="text-sm text-gray-500">Class Quest Bonus</div><div class="font-title text-3xl text-indigo-600 flex items-center justify-center gap-2">${totalClassQuestBonus} <i class="fas fa-route"></i></div></div>` : ''}
         </div>`;
 
         const groupedByClass = logs.reduce((acc, log)=> { (acc[log.classId] = acc[log.classId] || []).push(log); return acc; }, {});
@@ -80,7 +97,8 @@ export async function showLogbookModal(dateString, isOndemand = false) {
         for (const classId in groupedByClass) {
             const classInfo = state.get('allSchoolClasses').find(c => c.id === classId);
             if (!classInfo) continue;
-            detailsHtml += `<div class="mb-4 bg-white p-4 rounded-xl shadow-md border"><h3 class="font-title text-xl text-gray-800 border-b pb-2 mb-2 flex justify-between items-center"><span>${classInfo.logo} ${classInfo.name}</span> <span class="text-amber-500 font-sans font-bold text-lg">${classStarCounts[classId]} ⭐</span></h3><div class="space-y-2 mt-2">`;
+            const classQuestBonus = classQuestBonusCounts[classId] || 0;
+            detailsHtml += `<div class="mb-4 bg-white p-4 rounded-xl shadow-md border"><h3 class="font-title text-xl text-gray-800 border-b pb-2 mb-2 flex justify-between items-center"><span>${classInfo.logo} ${classInfo.name}</span> <span class="flex items-center gap-3"><span class="text-amber-500 font-sans font-bold text-lg">${classStarCounts[classId]} ⭐</span>${classQuestBonus > 0 ? `<span class="text-indigo-600 font-sans font-bold text-sm">+${classQuestBonus} Quest</span>` : ''}</span></h3><div class="space-y-2 mt-2">`;
             
             groupedByClass[classId].sort((a, b) => {
             const nameA = state.get('allStudents').find(s => s.id === a.studentId)?.name || 'Z';
@@ -108,7 +126,7 @@ export async function showLogbookModal(dateString, isOndemand = false) {
                                 <span class="text-sm text-gray-500"> - for <b class="${colorClass} capitalize">${(log.reason || '').replace(/_/g, ' ')}</b> from ${teacherName}</span>
                             </div>
                             <div class="flex items-center flex-shrink-0">
-                                <span class="font-title text-lg text-amber-600">${log.stars} ⭐</span>
+                                ${getLogRewardMarkup(log)}
                                 ${log.teacherId === state.get('currentUserId') ? `<button class="note-log-btn" data-log-id="${log.id}" title="${log.note ? 'Edit Note' : 'Add Note'}"><i class="fas fa-pencil-alt"></i></button>` : ''}
                                 ${log.teacherId === state.get('currentUserId') && log.reason !== 'story_weaver' && log.reason !== 'scholar_s_bonus' ? `<button class="delete-log-btn ml-2" data-log-id="${log.id}" data-student-id="${log.studentId}" data-stars="${log.stars}" title="Delete this log entry">&times;</button>` : ''}
                             </div>

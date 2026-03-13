@@ -30,43 +30,29 @@
 .star-award-btn {
     font-family: 'Fredoka One', cursive;
     color: white;
-    box-shadow: 0 8px 14px rgba(0, 0, 0, 0.14);
-    transition: transform 150ms ease-out, box-shadow 150ms ease-out, filter 150ms ease-out;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+    transition: all 150ms ease-out;
     transform: none;
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 0.45rem;
+    gap: 0.25rem;
     text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
-    font-size: 1.45rem;
-    padding: 0.85rem 1.05rem;
+    font-size: 1.5rem;
+    padding: 0.75rem 1rem;
     border-radius: 9999px;
     border-bottom: 4px solid rgba(0, 0, 0, 0.2);
     position: relative;
-    overflow: hidden;
-    min-height: 4.1rem;
-    min-width: 4.4rem;
-}
-
-.star-award-btn::before {
-    content: '';
-    position: absolute;
-    inset: 0;
-    background: linear-gradient(135deg, rgba(255,255,255,0.38), transparent 45%, rgba(255,255,255,0.08));
-    pointer-events: none;
 }
 
 .star-award-btn .fa-star {
-    color: #ffe15d;
-    filter: drop-shadow(0 2px 2px rgba(120, 63, 0, 0.25));
-    text-shadow: 0 1px 1px rgba(0, 0, 0, 0.25);
-    position: relative;
-    z-index: 1;
+    color: #FFD700;
+    text-shadow: 0 1px 1px rgba(0, 0, 0, 0.3);
 }
 
 .star-award-btn:hover {
-    box-shadow: 0 12px 22px rgba(0, 0, 0, 0.18);
-    transform: translateY(-2px) scale(1.04);
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+    transform: scale(1.05);
 }
 
 .star-award-btn:hover .fa-star {
@@ -75,131 +61,79 @@
 
 .star-btn-1 {
     background-image: linear-gradient(to right, var(--tw-gradient-stops));
-    --tw-gradient-from: #38bdf8;
-    --tw-gradient-to: #2563eb;
+    --tw-gradient-from: #22d3ee;
+    --tw-gradient-to: #3b82f6;
     --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to);
     border-bottom-color: #1D4ED8;
     --glow-color-1: #38BDF8;
     --glow-color-2: rgba(56, 189, 248, 0.5);
-    min-width: 4.8rem;
 }
 
 .star-btn-2 {
     background-image: linear-gradient(to right, var(--tw-gradient-stops));
-    --tw-gradient-from: #a855f7;
+    --tw-gradient-from: #c084fc;
     --tw-gradient-to: #ec4899;
     --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to);
     border-bottom-color: #BE185D;
     font-size: 1.6rem;
     --glow-color-1: #F472B6;
     --glow-color-2: rgba(244, 114, 182, 0.5);
-    min-width: 7.7rem;
 }
 
 .star-btn-3 {
     background-image: linear-gradient(to right, var(--tw-gradient-stops));
-    --tw-gradient-from: #facc15;
+    --tw-gradient-from: #fbbf24;
     --tw-gradient-to: #f97316;
     --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to);
     border-bottom-color: #C2410C;
-    font-size: 1.72rem;
+    font-size: 1.7rem;
     text-shadow: 0 2px 3px rgba(0, 0, 0, 0.3);
     --glow-color-1: #FBBF24;
     --glow-color-2: rgba(251, 191, 36, 0.6);
-    min-width: 10.2rem;
-    box-shadow: 0 0 0 1px rgba(255, 236, 153, 0.5), 0 0 24px rgba(251, 191, 36, 0.38), 0 10px 18px rgba(194, 65, 12, 0.22);
-}
-
-.star-btn-3::after {
-    content: '';
-    position: absolute;
-    top: -30%;
-    left: -20%;
-    width: 40%;
-    height: 160%;
-    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.55), transparent);
-    transform: rotate(20deg);
-    animation: star-btn-shimmer 2s linear infinite;
-    pointer-events: none;
-}
-
-@keyframes star-btn-shimmer {
-    from { left: -35%; }
-    to { left: 110%; }
-}
-
-#award-stars-student-list {
-    align-items: start;
-    overflow: visible;
-    row-gap: 4rem;
-    column-gap: 2.75rem;
-    padding: 1rem 1rem 3rem;
 }
 
 /* --- V4.7: NEW STUDENT CLOUD CARD & ANIMATIONS --- */
 .student-cloud-card {
     position: relative;
-    padding: 0;
+    background-color: white;
+    padding: 1rem 1.5rem 1.5rem 1.5rem;
     display: flex;
     flex-direction: column;
-    filter: drop-shadow(0 10px 18px rgba(102, 145, 171, 0.18));
+    gap: 0.75rem;
+    filter: drop-shadow(0 5px 8px rgba(0, 0, 0, 0.15));
     transform: translateZ(0);
     animation: float-card 6s ease-in-out infinite;
-    background: transparent;
-    border-radius: 2rem;
-    isolation: isolate;
-    overflow: visible;
-    min-height: 33.5rem;
-}
-
-.student-cloud-shape {
-    position: absolute;
-    inset: 0;
-    width: 100%;
-    height: 100%;
-    z-index: 0;
-    pointer-events: none;
-    overflow: visible;
-}
-
-.student-cloud-shape .cloud-body {
-    fill: #f9fbff;
-}
-
-.student-cloud-shape .cloud-outline {
-    fill: none;
-    stroke: transparent;
-    stroke-width: 8;
-    stroke-linejoin: round;
-}
-
-.student-cloud-card > * {
-    position: relative;
-    z-index: 2;
+    padding-top: 40px;
 }
 
 .student-avatar-cloud {
-    position: static;
-    width: 96px;
-    height: 96px;
+    position: absolute;
+    top: -30px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 70px;
+    height: 70px;
     border-radius: 9999px;
     object-fit: cover;
     background-color: #e5e7eb;
-    border: 5px solid white;
+    border: 4px solid white;
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
-    z-index: 2;
+    z-index: 10;
     transition: all 0.3s ease-out;
 }
 
 .student-avatar-cloud-placeholder {
-    position: static;
-    width: 96px;
-    height: 96px;
+    position: absolute;
+    top: -30px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 70px;
+    height: 70px;
     border-radius: 9999px;
     background-color: #d1d5db;
-    border: 5px solid white;
+    border: 4px solid white;
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
-    z-index: 2;
+    z-index: 10;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -242,13 +176,25 @@
     animation: fade-in-up 0.3s ease-out forwards;
 }
 
-/* Reigning Prodigy — golden cloud tint */
-.award-reigning-prodigy .student-cloud-shape .cloud-body {
-    fill: #fff7df;
+.cloud-shape-1 {
+    border-radius: 50% 60% 40% 70% / 60% 50% 70% 40%;
 }
 
-.award-reigning-prodigy .student-cloud-shape .cloud-outline {
-    stroke: rgba(245, 158, 11, 0.88);
+.cloud-shape-2 {
+    border-radius: 40% 70% 50% 60% / 70% 60% 40% 50%;
+}
+
+.cloud-shape-3 {
+    border-radius: 60% 50% 70% 40% / 50% 70% 50% 60%;
+}
+
+.cloud-shape-4 {
+    border-radius: 70% 40% 60% 50% / 60% 50% 70% 40%;
+}
+
+.award-reigning-prodigy {
+    background: linear-gradient(160deg, #fef3c7 0%, #fffbeb 40%, #ffffff 70%) !important;
+    box-shadow: 0 0 0 2.5px rgba(251, 191, 36, 0.55), 0 5px 12px rgba(251, 191, 36, 0.18);
 }
 
 /* "Reigning Prodigy" badge inside the cloud */
@@ -324,109 +270,6 @@
 
 .counter-animate {
     animation: count-change 0.5s ease-out;
-}
-
-.card-content-wrapper {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: flex-start;
-    gap: 0.9rem;
-    min-height: 100%;
-    width: 100%;
-    box-sizing: border-box;
-    padding: 1.1rem 2.1rem 1.7rem;
-}
-
-.student-cloud-toolbar {
-    width: 100%;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    min-height: 2.8rem;
-}
-
-.student-cloud-toolbar-group {
-    display: flex;
-    align-items: center;
-    gap: 0.55rem;
-}
-
-.student-cloud-header {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 0.45rem;
-    width: 100%;
-}
-
-.student-cloud-avatar-wrap {
-    position: relative;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    min-height: 96px;
-    margin-bottom: 0.25rem;
-}
-
-.student-cloud-card .counter-bubble {
-    width: 5.1rem;
-    height: 5.1rem;
-}
-
-.student-cloud-card .reason-selector {
-    gap: 0.8rem;
-    flex-wrap: wrap;
-    width: 100%;
-    justify-content: center;
-}
-
-.student-cloud-card .reason-btn {
-    width: 3.6rem;
-    height: 3.6rem;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-}
-
-.student-cloud-card .star-selector-container {
-    justify-content: center;
-    gap: 0.85rem;
-    flex-wrap: wrap;
-    width: 100%;
-    padding-bottom: 0.25rem;
-    min-height: 6rem;
-    align-content: center;
-    margin-top: auto;
-}
-
-.award-toolbar-btn {
-    width: 2.6rem;
-    height: 2.6rem;
-    border-radius: 9999px;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    border: 2px solid rgba(255,255,255,0.92);
-    box-shadow: 0 4px 10px rgba(0,0,0,0.12);
-    transition: transform 150ms ease-out, box-shadow 150ms ease-out, background-color 150ms ease-out;
-}
-
-.award-toolbar-btn:hover {
-    transform: translateY(-1px) scale(1.04);
-    box-shadow: 0 7px 14px rgba(0,0,0,0.16);
-}
-
-.boon-btn-enabled {
-    background: linear-gradient(135deg, #ffe4ea 0%, #ffc2d1 100%);
-    color: #e11d48;
-}
-
-.boon-btn-disabled {
-    background: linear-gradient(135deg, #f5f5f5 0%, #e5e7eb 100%);
-    color: #9ca3af;
-    cursor: not-allowed;
-    opacity: 0.72;
 }
 
 @keyframes float-up-down {

@@ -66,7 +66,9 @@
 
 /* FIX #2: Move Undo button to LEFT to prevent overlap with Absence controls (Right) */
 .post-award-undo-btn {
-    position: static;
+    position: absolute;
+    top: 0.75rem;
+    left: 0.75rem; /* Changed from right: 0.75rem */
     width: 2rem;
     height: 2rem;
     background-color: #fee2e2;

@@ -3,7 +3,7 @@
 }
 
 .reason-selector .reason-btn.active {
-    transform: scale(1.05);
+    transform: scale(1.1);
 }
 
 .reason-selector .reason-btn.active i {
@@ -27,24 +27,17 @@
 }
 
 .star-selector-container {
-    max-height: none;
-    min-height: 6rem;
+    max-height: 0;
     opacity: 0;
-    overflow: visible;
-    transition: opacity 0.25s ease-out, transform 0.25s ease-out;
-    margin-top: 0.5rem;
-    width: 100%;
-    padding: 0;
-    visibility: hidden;
-    pointer-events: none;
-    transform: translateY(6px);
+    overflow: hidden;
+    transition: max-height 0.3s ease-out, opacity 0.3s ease-out, margin-top 0.3s ease-out;
+    margin-top: 0;
 }
 
 .star-selector-container.visible {
+    max-height: 100px;
     opacity: 1;
-    visibility: visible;
-    pointer-events: auto;
-    transform: translateY(0);
+    margin-top: 0.75rem;
 }
 
 /* Reason Button Animation */

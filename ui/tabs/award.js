@@ -8,38 +8,6 @@ import { getGuildBadgeHtml } from '../../features/guilds.js';
 let _awardProdigyCacheKey = null;
 let _awardProdigyCache = {}; // classId -> Set<studentId>
 
-const AWARD_CLOUD_SHAPES = [
-    {
-        className: 'cloud-shape-1',
-        path: 'M36 392C14 392 0 378 0 356V267C0 235 24 209 57 205C77 133 146 89 226 89C263 89 299 99 329 119C365 74 425 49 492 49C589 49 665 99 683 172C714 180 736 206 736 238V356C736 376 720 392 700 392H36Z'
-    },
-    {
-        className: 'cloud-shape-2',
-        path: 'M40 392C18 392 0 374 0 352V279C0 247 27 221 59 217C72 144 138 97 223 97C258 97 289 106 317 124C355 78 418 50 488 50C591 50 671 104 684 185C716 191 736 217 736 249V352C736 374 718 392 696 392H40Z'
-    },
-    {
-        className: 'cloud-shape-3',
-        path: 'M30 392C12 392 0 378 0 360V273C0 240 24 213 56 208C74 131 148 84 232 84C270 84 303 96 331 118C372 70 438 41 511 41C608 41 683 98 695 177C719 184 736 206 736 234V360C736 378 724 392 706 392H30Z'
-    },
-    {
-        className: 'cloud-shape-4',
-        path: 'M34 392C15 392 0 377 0 358V271C0 240 23 215 52 209C68 137 137 92 219 92C264 92 300 105 330 131C360 88 419 61 487 61C587 61 663 115 683 188C713 194 736 220 736 250V358C736 377 721 392 702 392H34Z'
-    },
-    {
-        className: 'cloud-shape-5',
-        path: 'M38 392C18 392 0 376 0 356V276C0 244 25 218 58 212C74 140 143 95 224 95C260 95 295 105 323 123C364 79 429 52 503 52C597 52 671 105 689 176C716 184 736 207 736 236V356C736 376 720 392 700 392H38Z'
-    }
-];
-
-function getStableCloudShape(studentId) {
-    let hash = 0;
-    for (let i = 0; i < studentId.length; i++) {
-        hash = ((hash << 5) - hash) + studentId.charCodeAt(i);
-        hash |= 0;
-    }
-    return AWARD_CLOUD_SHAPES[Math.abs(hash) % AWARD_CLOUD_SHAPES.length];
-}
-
 async function getReigningProdigyForClass(classId) {
     const now = new Date();
     const prevMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
@@ -193,6 +161,7 @@ export function renderAwardStarsStudentList(selectedClassId, fullRender = true) 
 
             // --- REIGNING PRODIGY (previous month's winner) — crown watermark on card only ---
             const prodigySet = await getReigningProdigyForClass(selectedClassId);
+            const cloudShapes = ['cloud-shape-1', 'cloud-shape-2', 'cloud-shape-3', 'cloud-shape-4'];
 
             // --- 1. PRE-CALCULATE BOON ELIGIBILITY ---
             const allScores = state.get('allStudentScores');
@@ -218,7 +187,7 @@ export function renderAwardStarsStudentList(selectedClassId, fullRender = true) 
                 const monthlyStars = scoreData.monthlyStars || 0;
                 const starsToday = state.get('todaysStars')[s.id]?.stars || 0;
                 const reasonToday = state.get('todaysStars')[s.id]?.reason;
-                const cloudShape = getStableCloudShape(s.id);
+                const cloudShape = cloudShapes[index % cloudShapes.length];
                 const reigningHeroEmoji = s.gender === 'girl' ? '👸' : '🫅';
 
                 const isMarkedAbsentToday = state.get('allAttendanceRecords').some(r => r.studentId === s.id && r.date === today);
@@ -283,54 +252,39 @@ export function renderAwardStarsStudentList(selectedClassId, fullRender = true) 
                 let boonBtnHtml = '';
                 if (isEligible) {
                     boonBtnHtml = `
-                    <button class="boon-btn award-toolbar-btn boon-btn-enabled" 
+                    <button class="boon-btn absolute top-2 left-14 w-8 h-8 rounded-full bg-rose-100 text-rose-500 hover:bg-rose-200 transition-colors shadow-sm border border-rose-200 z-30" 
                             data-receiver-id="${s.id}" title="Bestow Hero's Boon">
                         <i class="fas fa-heart"></i>
                     </button>`;
                 } else {
                     // Visually disabled state (Greyed out)
                     boonBtnHtml = `
-                    <button class="boon-btn award-toolbar-btn boon-btn-disabled" 
+                    <button class="boon-btn absolute top-2 left-14 w-8 h-8 rounded-full bg-gray-100 text-gray-300 border border-gray-200 z-30 cursor-not-allowed opacity-60" 
                             data-receiver-id="${s.id}" title="Not eligible for Boon">
                         <i class="fas fa-heart-broken"></i>
                     </button>`;
                 }
 
-                const cloudSvgHtml = `
-                    <svg class="student-cloud-shape ${cloudShape.className}" viewBox="0 0 736 420" preserveAspectRatio="none" aria-hidden="true">
-                        <path class="cloud-body" d="${cloudShape.path}"></path>
-                        <path class="cloud-outline" d="${cloudShape.path}"></path>
-                    </svg>
-                `;
-
                 return `
-               <div class="student-cloud-card ${cloudShape.className} ${isVisuallyAbsent ? 'is-absent' : ''} ${isReigningHero ? 'reigning-hero-card' : ''} ${prodigySet.has(s.id) ? 'award-reigning-prodigy' : ''}" data-studentid="${s.id}" style="animation: float-card ${4 + Math.random() * 4}s ease-in-out infinite;">
-                    ${cloudSvgHtml}
+               <div class="student-cloud-card ${cloudShape} ${isVisuallyAbsent ? 'is-absent' : ''} ${isReigningHero ? 'reigning-hero-card' : ''} ${prodigySet.has(s.id) ? 'award-reigning-prodigy' : ''}" data-studentid="${s.id}" style="animation: float-card ${4 + Math.random() * 4}s ease-in-out infinite;">
+               ${isReigningHero ? '<div class="hero-crown-badge">👑</div>' : ''}
+               <div class="absence-controls">
+               ${absenceButtonHtml}
+                    </div>
+                    ${avatarHtml}
+                    ${levelUpArrowHtml}
+                    ${guildBadgeHtml}
+                    ${coinHtml} 
+                    ${boonBtnHtml}
+                    <button id="post-award-undo-${s.id}" class="post-award-undo-btn bubbly-button ${starsToday > 0 ? '' : 'hidden'}" title="Undo Award"><i class="fas fa-times"></i></button>
+                    
                     <div class="card-content-wrapper">
-                        <div class="student-cloud-toolbar">
-                            <div class="student-cloud-toolbar-group">
-                                ${boonBtnHtml}
-                                <button id="post-award-undo-${s.id}" class="post-award-undo-btn bubbly-button ${starsToday > 0 ? '' : 'hidden'}" title="Undo Award"><i class="fas fa-times"></i></button>
-                            </div>
-                            <div class="absence-controls">
-                                ${absenceButtonHtml}
-                            </div>
-                        </div>
-                        <div class="student-cloud-header">
-                            <div class="student-cloud-avatar-wrap">
-                                ${isReigningHero ? '<div class="hero-crown-badge">👑</div>' : ''}
-                                ${avatarHtml}
-                                ${levelUpArrowHtml}
-                                ${guildBadgeHtml}
-                                ${coinHtml}
-                            </div>
-                            <h3 class="font-title text-2xl text-gray-800 text-center">
+                        <h3 class="font-title text-2xl text-gray-800 text-center">
                             <span class="text-sm opacity-70 block mb-1">
                                 ${s.heroClass && HERO_CLASSES[s.heroClass] ? HERO_CLASSES[s.heroClass].icon : ''} ${s.heroClass || ''}
                             </span>
                             ${s.name}
-                            </h3>
-                        </div>
+                        </h3>
                         ${isReigningHero ? `
                         <div class="reigning-prodigy-label reigning-hero-label">
                             <span class="crown-icon">${reigningHeroEmoji}</span>
@@ -426,13 +380,11 @@ export function updateAwardCardState(studentId, starsToday, reason) {
         undoBtn?.classList.remove('hidden');
         reasonSelector?.classList.add('pointer-events-none', 'opacity-50');
         starSelector?.classList.remove('visible');
-        studentCard.classList.remove('reason-expanded');
         reasonSelector?.querySelectorAll('.reason-btn.active').forEach(b => b.classList.remove('active'));
     } else {
         // If not locked (either 0 stars OR welcome_back), enable controls
         undoBtn?.classList.add('hidden'); // Hide general undo
         reasonSelector?.classList.remove('pointer-events-none', 'opacity-50');
-        if (!studentCard.querySelector('.reason-btn.active')) studentCard.classList.remove('reason-expanded');
     }
 
     // If we have 0 stars (unlocked), we are present, so remove absent visual

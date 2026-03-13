@@ -156,7 +156,8 @@ function renderClassOverview(data) {
         focus: { icon: 'fa-brain', color: 'text-yellow-600', name: 'Focus/Effort' },
         welcome_back: { icon: 'fa-hand-sparkles', color: 'text-cyan-500', name: 'Welcome Back' },
         story_weaver: { icon: 'fa-feather-alt', color: 'text-cyan-600', name: 'Story Weaver' },
-        scholar_s_bonus: { icon: 'fa-graduation-cap', color: 'text-amber-700', name: 'Scholar\'s Bonus' }
+        scholar_s_bonus: { icon: 'fa-graduation-cap', color: 'text-amber-700', name: 'Scholar\'s Bonus' },
+        pathfinder_map: { icon: 'fa-map', color: 'text-indigo-500', name: 'Pathfinder Map' }
     };
 
     const bestMonthDisplay = bestMonth ? new Date(bestMonth.month + '-02').toLocaleString('en-GB', { month: 'long', year: 'numeric' }) : 'N/A';
@@ -246,7 +247,8 @@ function renderStudentDetails(data, studentId) {
         focus: { icon: 'fa-brain', color: 'text-yellow-600', name: 'Focus/Effort' },
         welcome_back: { icon: 'fa-hand-sparkles', color: 'text-cyan-500', name: 'Welcome Back' },
         story_weaver: { icon: 'fa-feather-alt', color: 'text-cyan-600', name: 'Story Weaver' },
-        scholar_s_bonus: { icon: 'fa-graduation-cap', color: 'text-amber-700', name: 'Scholar\'s Bonus' }
+        scholar_s_bonus: { icon: 'fa-graduation-cap', color: 'text-amber-700', name: 'Scholar\'s Bonus' },
+        pathfinder_map: { icon: 'fa-map', color: 'text-indigo-500', name: 'Pathfinder Map' }
     };
 
     const bestMonthDisplay = bestMonth ? new Date(bestMonth.month + '-02').toLocaleString('en-GB', { month: 'long', year: 'numeric' }) : 'N/A';

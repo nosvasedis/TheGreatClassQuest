@@ -695,7 +695,8 @@ export async function renderStudentLeaderboardTab() {
         focus: { icon: 'fa-brain', color: 'bg-yellow-100 text-yellow-700', name: 'Focus' },
         welcome_back: { icon: 'fa-hand-sparkles', color: 'bg-cyan-100 text-cyan-700', name: 'Back!' },
         story_weaver: { icon: 'fa-feather-alt', color: 'bg-cyan-100 text-cyan-700', name: 'Story' },
-        scholar_s_bonus: { icon: 'fa-graduation-cap', color: 'bg-amber-100 text-amber-800', name: 'Scholar' }
+        scholar_s_bonus: { icon: 'fa-graduation-cap', color: 'bg-amber-100 text-amber-800', name: 'Scholar' },
+        pathfinder_map: { icon: 'fa-map', color: 'bg-indigo-100 text-indigo-700', name: 'Pathfinder' }
     };
 
     const getAvatarHtml = (s, sizeClass = "w-12 h-12") => {

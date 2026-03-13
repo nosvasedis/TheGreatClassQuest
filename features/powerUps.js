@@ -1,5 +1,5 @@
 // /features/powerUps.js
-import { db, doc, runTransaction, updateDoc, increment } from '../firebase.js';
+import { db, doc, runTransaction, updateDoc, increment, collection, serverTimestamp } from '../firebase.js';
 import * as state from '../state.js';
 import { showToast, showPraiseToast } from '../ui/effects.js';
 import { showModal } from '../ui/modals/base.js';
@@ -50,7 +50,7 @@ export async function handleUseItem(studentId, itemIndex) {
 
     // Pre-check: Pathfinder Map — verify the class hasn’t already used it this month
     if (item.id === 'leg_pathfinder') {
-        const classData = state.get('allSchoolClasses').find(c => c.id === student.classId);
+        const classData = state.get('allTeachersClasses').find(c => c.id === student.classId);
         const monthKey = `${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, '0')}`;
         const existing = Number(classData?.teamQuestBonuses?.[monthKey]) || 0;
         if (existing >= 10) {
@@ -74,7 +74,7 @@ export async function handleUseItem(studentId, itemIndex) {
                     const scoreRef = doc(db, "artifacts/great-class-quest/public/data/student_scores", studentId);
                     const scoreDoc = await transaction.get(scoreRef);
                     const currentInventory = scoreDoc.data().inventory || [];
-                    const classData = state.get('allSchoolClasses').find(c => c.id === student.classId);
+                    const classData = state.get('allTeachersClasses').find(c => c.id === student.classId);
 
                     const success = await POWER_UP_EFFECTS[item.name](student, classData, { transaction });
                     if (success) {
@@ -185,6 +185,21 @@ async function activatePathfinderMap(student, classData, context = {}) {
         lastPathfinderByStudentId: student.id,
         lastPathfinderByName: student.name
     });
+
+    // Create award log entry for calendar
+    const awardLogData = {
+        studentId: student.id,
+        classId: classData.id,
+        teacherId: state.get('currentUserId'),
+        stars: 0, // No individual stars for student
+        reason: 'pathfinder_map',
+        note: `${student.name} used The Pathfinder's Map to advance the class quest!`,
+        date: utils.getTodayDateString(),
+        createdAt: serverTimestamp(),
+        createdBy: { uid: state.get('currentUserId'), name: state.get('currentTeacherName') }
+    };
+    context.transaction.set(doc(collection(db, "artifacts/great-class-quest/public/data/award_log")), awardLogData);
+
     return true;
 }
 

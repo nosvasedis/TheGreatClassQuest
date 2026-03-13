@@ -46,7 +46,7 @@ export async function showLogbookModal(dateString, isOndemand = false) {
     logs = state.get('allAwardLogs').filter(log => log.date && utils.datesMatch(log.date, dateString));
     }
     
-    const reasonColors = { teamwork: 'text-purple-600', creativity: 'text-pink-600', respect: 'text-green-600', focus: 'text-yellow-600', correction: 'text-gray-500', welcome_back: 'text-cyan-600', story_weaver: 'text-cyan-600', scholar_s_bonus: 'text-amber-700' };
+    const reasonColors = { teamwork: 'text-purple-600', creativity: 'text-pink-600', respect: 'text-green-600', focus: 'text-yellow-600', correction: 'text-gray-500', welcome_back: 'text-cyan-600', story_weaver: 'text-cyan-600', scholar_s_bonus: 'text-amber-700', pathfinder_map: 'text-indigo-600' };
 
     if (logs.length === 0) {
         contentEl.innerHTML = '<p class="text-gray-600 text-center py-8">No stars were awarded in the school on this day.</p>';

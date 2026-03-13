@@ -27,14 +27,14 @@ export function isItemUsable(itemName) {
 }
 
 const POWER_UP_EFFECTS = {
-    "Crystal of Clarity": (student) => activateClarity(student),
-    "Scroll of the Gilded Star": (student) => activateGildedScroll(student),
-    "Time Warp Hourglass": (student, classData) => extendBountyTimer(classData.id),
-    "Elixir of Luck": (student, classData) => activateNextLessonLuck(student, classData),
-    "The Herald's Banner": (student) => broadcastBanner(student),
-    "The Starfall Catalyst": (student) => activateStarfallCatalyst(student),
-    "The Pathfinder’s Map": (student, classData) => activatePathfinderMap(student, classData),
-    "The Mask of the Protagonist": (student) => activateProtagonistMask(student)
+    "Crystal of Clarity": (student, classData, context) => activateClarity(student, classData, context),
+    "Scroll of the Gilded Star": (student, classData, context) => activateGildedScroll(student, classData, context),
+    "Time Warp Hourglass": (student, classData, context) => extendBountyTimer(classData.id, context),
+    "Elixir of Luck": (student, classData, context) => activateNextLessonLuck(student, classData, context),
+    "The Herald's Banner": (student, classData, context) => broadcastBanner(student, classData, context),
+    "The Starfall Catalyst": (student, classData, context) => activateStarfallCatalyst(student, classData, context),
+    "The Pathfinder’s Map": (student, classData, context) => activatePathfinderMap(student, classData, context),
+    "The Mask of the Protagonist": (student, classData, context) => activateProtagonistMask(student, classData, context)
 };
 
 export async function handleUseItem(studentId, itemIndex) {
@@ -87,9 +87,9 @@ export async function handleUseItem(studentId, itemIndex) {
                 if (operationSucceeded) {
                     playSound('magic_chime');
                     // Show toasts once here (not inside transaction) so they don’t run twice on retry
-                    if (item.name === "Scroll of the Gilded Star") {
+                    if (item.id === 'leg_gilded') {
                         showToast(`Next star for ${student.name} is worth triple Gold!`, 'success');
-                    } else if (item.name === "The Pathfinder's Map") {
+                    } else if (item.id === 'leg_pathfinder') {
                         showToast(`🗺️ The class quest advances! +10 Team Stars — thanks to ${student.name}'s discovery!`, 'success');
                     }
                     // Update local state so UI (Trophy Room, avatar popover) reflects item removed immediately

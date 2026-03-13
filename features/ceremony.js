@@ -1,7 +1,7 @@
 // /features/ceremony.js
 
 import { db } from '../firebase.js';
-import { updateDoc, doc } from 'https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js';
+import { updateDoc, doc, collection, getDocs } from 'https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js';
 import * as state from '../state.js';
 import { playSound, ceremonyMusic, winnerFanfare, showdownSting, fadeCeremonyMusic, stopAllCeremonyAudio, playCeremonyMusic, playDrumRoll, stopDrumRoll, playWinnerFanfare } from '../audio.js';
 import { fetchLogsForMonth } from '../db/queries.js';
@@ -149,6 +149,8 @@ async function loadDataAndAdvance() {
         
         // 1. Fetch Logs
         const logs = await fetchLogsForMonth(year, month);
+        const questHistorySnap = await getDocs(collection(db, 'artifacts/great-class-quest/public/data/quest_history'));
+        const questHistoryRecords = questHistorySnap.docs.map(docSnap => docSnap.data());
         const monthlyScores = {}; 
         logs.forEach(log => {
             monthlyScores[log.studentId] = (monthlyScores[log.studentId] || 0) + log.stars;
@@ -156,54 +158,24 @@ async function loadDataAndAdvance() {
 
         // 2. PREPARE CLASSES
         const allClasses = state.get('allSchoolClasses').filter(c => c.questLevel === ceremonyData.league);
-        const overrides = state.get('allScheduleOverrides') || [];
         const ranges = state.get('schoolHolidayRanges') || [];
-        const daysInMonth = new Date(year, month, 0).getDate();
         const monthStart = new Date(year, month - 1, 1);
-
-        let globalHolidayDays = 0;
-        ranges.forEach(range => {
-            const start = new Date(range.start);
-            const end = new Date(range.end);
-            const overlapStart = start > monthStart ? start : monthStart;
-            const overlapEnd = end < new Date(year, month, 0) ? end : new Date(year, month, 0);
-            if (overlapStart <= overlapEnd) {
-                const diffTime = Math.abs(overlapEnd - overlapStart);
-                const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
-                globalHolidayDays += diffDays;
-            }
-        });
+        const overrides = state.get('allScheduleOverrides') || [];
 
         let classScores = allClasses.map(c => {
             const students = state.get('allStudents').filter(s => s.classId === c.id);
             const scoreFromStudents = students.reduce((sum, s) => sum + (monthlyScores[s.id] || 0), 0);
             const classTeamBonus = Number(c.teamQuestBonuses?.[ceremonyData.monthKey]) || 0;
             const score = scoreFromStudents + classTeamBonus;
-            
-            const classCancellations = overrides.filter(o => {
-                if (o.classId !== c.id || o.type !== 'cancelled') return false;
-                const oDate = utils.parseDDMMYYYY(o.date); 
-                return oDate.getMonth() === (month - 1) && oDate.getFullYear() === year;
-            }).length;
-
-            const totalDaysLost = globalHolidayDays + classCancellations;
-            let monthModifier = (daysInMonth - totalDaysLost) / daysInMonth;
-            if (month === 6) monthModifier = 0.5; 
-            else monthModifier = Math.max(0.6, Math.min(1.0, monthModifier));
-
-            let historicalDifficulty = c.difficultyLevel || 0;
-            if (c.questCompletedAt) {
-                const completedDate = c.questCompletedAt.toDate();
-                completedDate.setHours(0,0,0,0);
-                if (completedDate >= monthStart) {
-                    historicalDifficulty = Math.max(0, historicalDifficulty - 1);
-                }
-            }
-
-            const BASE_GOAL = 18;
-            const SCALING_FACTOR = 1.5;
-            const adjustedGoalPerStudent = (BASE_GOAL + (historicalDifficulty * SCALING_FACTOR)) * monthModifier;
-            const goal = Math.max(18, Math.round(students.length * adjustedGoalPerStudent));
+            const goal = utils.calculateMonthlyClassGoalForDate(
+                c,
+                students.length,
+                ranges,
+                overrides,
+                monthStart,
+                questHistoryRecords
+            );
+            const historicalDifficulty = utils.getHistoricalDifficultyForMonth(c, monthStart, questHistoryRecords);
             
             const progress = (score / goal) * 100;
 

@@ -293,7 +293,7 @@ export async function renderHistoricalLeaderboard(monthKey, type, scope = 'class
     // --- MAIN RENDER LOGIC WITH SAFETY ---
     try {
         let monthlyScores = {}; 
-        let questHistoryData = []; // NEW: Store the accurate history
+        let questHistoryData = []; // Store quest history across all months for accurate difficulty reconstruction
 
         // A. Fetch Data
         try {
@@ -314,13 +314,7 @@ export async function renderHistoricalLeaderboard(monthKey, type, scope = 'class
                 });
             }
 
-            // 2. NEW: Fetch Quest History (The "Truth" Snapshots)
-            // This grabs the official record if a class finished the quest that month
-            const historyQ = query(
-                collection(db, "artifacts/great-class-quest/public/data/quest_history"),
-                where("monthKey", "==", monthKey)
-            );
-            const historySnap = await getDocs(historyQ);
+            const historySnap = await getDocs(collection(db, 'artifacts/great-class-quest/public/data/quest_history'));
             questHistoryData = historySnap.docs.map(d => d.data());
 
         } catch (e) { 
@@ -328,32 +322,12 @@ export async function renderHistoricalLeaderboard(monthKey, type, scope = 'class
         }
 
         // B. Calculate & Render
-        const [hYear, hMonth] = monthKey.split('-').map(Number);
-        const daysInMonth = new Date(hYear, hMonth, 0).getDate();
-        
-        let globalHolidayDays = 0;
         const ranges = state.get('schoolHolidayRanges') || [];
-        const monthStart = new Date(hYear, hMonth - 1, 1);
-        const monthEnd = new Date(hYear, hMonth, 0);
-
-        ranges.forEach(range => {
-            const start = new Date(range.start);
-            const end = new Date(range.end);
-            const overlapStart = start > monthStart ? start : monthStart;
-            const overlapEnd = end < monthEnd ? end : monthEnd;
-            if (overlapStart <= overlapEnd) {
-                const diffTime = Math.abs(overlapEnd - overlapStart);
-                const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
-                globalHolidayDays += diffDays;
-            }
-        });
-
+        const monthStart = new Date(`${monthKey}-01T00:00:00`);
         const overrides = state.get('allScheduleOverrides') || [];
         const allLeagues = (await import('../../constants.js')).questLeagues;
         const allClasses = state.get('allSchoolClasses');
         const myClassIds = state.get('allTeachersClasses').map(c => c.id);
-        const BASE_GOAL = 18;
-        const SCALING_FACTOR = 1.5;
 
         let fullHtml = '';
 
@@ -363,7 +337,8 @@ export async function renderHistoricalLeaderboard(monthKey, type, scope = 'class
 
             const leagueScores = classesInLeague.map(c => {
                 // 1. Check for an Official History Record (The "Truth")
-                const historyRecord = questHistoryData.find(h => h.classId === c.id);
+                const historyRecord = questHistoryData.find(h => h.classId === c.id && h.monthKey === monthKey);
+                const daysLost = utils.calculateMonthlyDaysLostForDate(c, ranges, overrides, monthStart);
 
                 if (historyRecord) {
                     // USE ACCURATE SNAPSHOT
@@ -372,7 +347,7 @@ export async function renderHistoricalLeaderboard(monthKey, type, scope = 'class
                         totalStars: historyRecord.starsEarned,
                         progress: 100, // They finished it!
                         diamondGoal: historyRecord.goalTarget,
-                        daysLost: 0, // Not needed for history records
+                        daysLost,
                         historicalLevel: historyRecord.levelReached - 1, // Display the level they were AT, not what they reached
                         isQuestComplete: true // Flag for UI
                     };
@@ -381,35 +356,17 @@ export async function renderHistoricalLeaderboard(monthKey, type, scope = 'class
                 // 2. Fallback: Calculate from Logs (for classes that didn't finish)
                 const rosterStudents = state.get('allStudents').filter(s => s.classId === c.id); 
                 const studentIds = new Set(rosterStudents.map(s => s.id));
-                const totalStars = Array.from(studentIds).reduce((sum, id) => sum + (monthlyScores[id] || 0), 0);
-                
-                const classCancellations = overrides.filter(o => {
-                    if (o.classId !== c.id || o.type !== 'cancelled') return false;
-                    const oDate = utils.parseDDMMYYYY(o.date); 
-                    return oDate.getMonth() === (hMonth - 1) && oDate.getFullYear() === hYear;
-                }).length;
-
-                const totalDaysLost = globalHolidayDays + classCancellations;
-                let monthModifier = (daysInMonth - totalDaysLost) / daysInMonth;
-                if (hMonth === 6) monthModifier = 0.5; 
-                else monthModifier = Math.max(0.6, Math.min(1.0, monthModifier));
-
-                // Guess difficulty based on current state (fallback)
-                let historicalDifficulty = c.difficultyLevel || 0;
-                
-                // Adjustment attempt for older logs
-                if (c.questCompletedAt) {
-                    try {
-                        const completedDate = c.questCompletedAt.toDate ? c.questCompletedAt.toDate() : new Date(c.questCompletedAt);
-                        completedDate.setHours(0,0,0,0);
-                        if (completedDate >= monthStart) {
-                            historicalDifficulty = Math.max(0, historicalDifficulty - 1);
-                        }
-                    } catch(err) {}
-                }
-
-                const adjustedGoalPerStudent = (BASE_GOAL + (historicalDifficulty * SCALING_FACTOR)) * monthModifier;
-                const diamondGoal = Math.round(Math.max(18, rosterStudents.length * adjustedGoalPerStudent));
+                const classQuestBonus = Number(c.teamQuestBonuses?.[monthKey]) || 0;
+                const totalStars = Array.from(studentIds).reduce((sum, id) => sum + (monthlyScores[id] || 0), 0) + classQuestBonus;
+                const historicalDifficulty = utils.getHistoricalDifficultyForMonth(c, monthStart, questHistoryData);
+                const diamondGoal = utils.calculateMonthlyClassGoalForDate(
+                    c,
+                    rosterStudents.length,
+                    ranges,
+                    overrides,
+                    monthStart,
+                    questHistoryData
+                );
                 const progress = diamondGoal > 0 ? (totalStars / diamondGoal) * 100 : 0;
                 
                 return { 
@@ -417,7 +374,7 @@ export async function renderHistoricalLeaderboard(monthKey, type, scope = 'class
                     totalStars, 
                     progress, 
                     diamondGoal, 
-                    daysLost: totalDaysLost, 
+                    daysLost, 
                     historicalLevel: historicalDifficulty,
                     isQuestComplete: false 
                 };

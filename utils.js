@@ -362,25 +362,46 @@ export function isToday(dateInput) {
  * SOURCE OF TRUTH: Calculates the dynamic goal for a class based on global holidays and class-specific cancellations.
  */
 export function calculateMonthlyClassGoal(classData, studentCount, schoolHolidayRanges, allScheduleOverrides) {
-    if (studentCount === 0) return 18;
+    return calculateMonthlyClassGoalForDate(classData, studentCount, schoolHolidayRanges, allScheduleOverrides, new Date());
+}
 
-    const BASE_GOAL = 18;
-    const SCALING_FACTOR = 2.5;
+function normalizeMonthDate(dateInput = new Date()) {
+    if (dateInput instanceof Date) {
+        return new Date(dateInput.getFullYear(), dateInput.getMonth(), 1);
+    }
 
-    const now = new Date();
-    const currentYear = now.getFullYear();
-    const currentMonth = now.getMonth();
-    const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
+    if (typeof dateInput === 'string' && /^\d{4}-\d{2}$/.test(dateInput)) {
+        const [year, month] = dateInput.split('-').map(Number);
+        return new Date(year, month - 1, 1);
+    }
 
-    // 1. Calculate Holiday Days Lost (Exact Leaderboard logic)
+    const parsed = new Date(dateInput);
+    return new Date(parsed.getFullYear(), parsed.getMonth(), 1);
+}
+
+function isDateInsideRanges(date, ranges) {
+    return (ranges || []).some(range => {
+        const start = new Date(range.start);
+        const end = new Date(range.end);
+        start.setHours(0, 0, 0, 0);
+        end.setHours(23, 59, 59, 999);
+        return date >= start && date <= end;
+    });
+}
+
+export function calculateMonthlyDaysLostForDate(classData, schoolHolidayRanges, allScheduleOverrides, date = new Date()) {
+    const targetDate = normalizeMonthDate(date);
+    const currentYear = targetDate.getFullYear();
+    const currentMonth = targetDate.getMonth();
+    const monthStart = new Date(currentYear, currentMonth, 1);
+    const monthEnd = new Date(currentYear, currentMonth + 1, 0);
+
     let holidayDaysLost = 0;
     const ranges = schoolHolidayRanges || [];
 
     ranges.forEach(range => {
         const start = new Date(range.start);
         const end = new Date(range.end);
-        const monthStart = new Date(currentYear, currentMonth, 1);
-        const monthEnd = new Date(currentYear, currentMonth + 1, 0);
         const overlapStart = start > monthStart ? start : monthStart;
         const overlapEnd = end < monthEnd ? end : monthEnd;
         if (overlapStart <= overlapEnd) {
@@ -390,49 +411,64 @@ export function calculateMonthlyClassGoal(classData, studentCount, schoolHoliday
         }
     });
 
-    // Add class-specific cancellations (No School days / explicitly cancelled days)
     const overrides = allScheduleOverrides || [];
-    overrides.filter(o => o.classId === classData.id && o.type === 'cancelled').forEach(c => {
-        const parts = c.date.split('-');
-        if (parts.length === 3) {
-            const oDate = new Date(parts[2], parseInt(parts[1]) - 1, parts[0]);
-            // Ensure this cancelled day isn't already inside a holiday range, to prevent double counting
-            let isInsideGlobHoliday = false;
-            ranges.forEach(range => {
-                const start = new Date(range.start);
-                const end = new Date(range.end);
-                start.setHours(0, 0, 0, 0); end.setHours(23, 59, 59, 999);
-                if (oDate >= start && oDate <= end) isInsideGlobHoliday = true;
-            });
+    overrides
+        .filter(override => override.classId === classData.id && override.type === 'cancelled')
+        .forEach(override => {
+            const oDate = parseDDMMYYYY(override.date);
+            if (!oDate) return;
+            if (oDate.getMonth() !== currentMonth || oDate.getFullYear() !== currentYear) return;
+            if (isDateInsideRanges(oDate, ranges)) return;
+            holidayDaysLost += 1;
+        });
 
-            if (oDate.getMonth() === currentMonth && oDate.getFullYear() === currentYear && !isInsideGlobHoliday) {
-                holidayDaysLost += 1;
-            }
+    return holidayDaysLost;
+}
+
+export function getHistoricalDifficultyForMonth(classData, date = new Date(), questHistoryRecords = []) {
+    const targetMonthKey = getMonthKey(normalizeMonthDate(date));
+    const dbDifficulty = Number(classData?.difficultyLevel) || 0;
+
+    const completionsFromTargetMonth = (questHistoryRecords || []).filter(record => {
+        return record.classId === classData?.id && typeof record.monthKey === 'string' && record.monthKey >= targetMonthKey;
+    }).length;
+
+    if (completionsFromTargetMonth > 0) {
+        return Math.max(0, dbDifficulty - completionsFromTargetMonth);
+    }
+
+    if (classData?.questCompletedAt) {
+        const completedDate = typeof classData.questCompletedAt.toDate === 'function'
+            ? classData.questCompletedAt.toDate()
+            : new Date(classData.questCompletedAt);
+        if (getMonthKey(completedDate) >= targetMonthKey) {
+            return Math.max(0, dbDifficulty - 1);
         }
-    });
+    }
 
-    // 2. Apply Month Modifier (Exact Leaderboard logic)
-    let monthModifier = (daysInMonth - holidayDaysLost) / daysInMonth;
-    if (currentMonth === 5) { // June
+    return dbDifficulty;
+}
+
+export function calculateMonthlyClassGoalForDate(classData, studentCount, schoolHolidayRanges, allScheduleOverrides, date = new Date(), questHistoryRecords = []) {
+    if (studentCount === 0) return 18;
+
+    const BASE_GOAL = 18;
+    const SCALING_FACTOR = 2.5;
+    const targetDate = normalizeMonthDate(date);
+    const currentMonth = targetDate.getMonth();
+    const daysInMonth = new Date(targetDate.getFullYear(), currentMonth + 1, 0).getDate();
+    const daysLost = calculateMonthlyDaysLostForDate(classData, schoolHolidayRanges, allScheduleOverrides, targetDate);
+
+    let monthModifier = (daysInMonth - daysLost) / daysInMonth;
+    if (currentMonth === 5) {
         monthModifier = 0.5;
     } else {
         monthModifier = Math.max(0.6, Math.min(1.0, monthModifier));
     }
 
-    // 3. Handle Difficulty & Completion (Exact Leaderboard logic)
-    let isCompletedThisMonth = false;
-    if (classData.questCompletedAt) {
-        const completedDate = typeof classData.questCompletedAt.toDate === 'function' ? classData.questCompletedAt.toDate() : new Date(classData.questCompletedAt);
-        if (completedDate.getMonth() === currentMonth && completedDate.getFullYear() === currentYear) {
-            isCompletedThisMonth = true;
-        }
-    }
-    const dbDifficulty = classData.difficultyLevel || 0;
-    const effectiveDifficulty = isCompletedThisMonth ? Math.max(0, dbDifficulty - 1) : dbDifficulty;
-
-    // 4. Final Calculation
+    const effectiveDifficulty = getHistoricalDifficultyForMonth(classData, targetDate, questHistoryRecords);
     const adjustedGoalPerStudent = (BASE_GOAL + (effectiveDifficulty * SCALING_FACTOR)) * monthModifier;
-    return Math.round(studentCount * adjustedGoalPerStudent);
+    return Math.round(Math.max(18, studentCount * adjustedGoalPerStudent));
 }
 
 export function getMonthKey(date = new Date()) {

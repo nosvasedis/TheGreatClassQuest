@@ -20,7 +20,7 @@ import * as state from '../../state.js';
 import { showToast, showPraiseToast } from '../../ui/effects.js';
 import { showStarfallModal, showBatchStarfallModal, showModal, hideModal } from '../../ui/modals.js';
 import { playSound, playHeroFanfare } from '../../audio.js';
-import { getTodayDateString, getStartOfMonthString, debounce, parseDDMMYYYY, parseFlexibleDate, datesMatch, getClassMonthlyQuestStars } from '../../utils.js';
+import { getTodayDateString, getStartOfMonthString, debounce, parseDDMMYYYY, parseFlexibleDate, datesMatch, getClassMonthlyQuestStars, calculateMonthlyClassGoal } from '../../utils.js';
 import { checkBountyProgress } from './bounties.js';
 import { calculateHeroGold, canChangeHeroClass } from '../../features/heroClasses.js';
 import { updateGuildScores } from '../../features/guildScoring.js';
@@ -280,18 +280,16 @@ export async function checkAndRecordQuestCompletion(classId) {
     }
 
     // 2. Calculate Goals (Same logic as UI)
-    const GOAL_PER_STUDENT_BASE = 18;
-    const goalPerStudent = GOAL_PER_STUDENT_BASE + (currentDifficulty * 1.5);
     const studentsInClass = state.get('allStudents').filter(s => s.classId === classId);
     const studentCount = studentsInClass.length;
     if (studentCount === 0) return;
 
-    const currentMonth = new Date().getMonth();
-    let monthModifier = 1.0;
-    if (currentMonth === 11 || currentMonth === 3) monthModifier = 0.85;
-    if (currentMonth === 0 || currentMonth === 4) monthModifier = 0.90;
-
-    const diamondGoal = Math.round(studentCount * goalPerStudent * monthModifier);
+    const diamondGoal = calculateMonthlyClassGoal(
+        classDoc.data(),
+        studentCount,
+        state.get('schoolHolidayRanges'),
+        state.get('allScheduleOverrides')
+    );
 
     // 3. Calculate Current Stars
     const allScores = state.get('allStudentScores');

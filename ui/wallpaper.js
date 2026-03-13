@@ -5,6 +5,7 @@ import * as utils from '../utils.js';
 import { callGeminiApi } from '../api.js';
 import * as constants from '../constants.js';
 import { renderFamiliarSprite } from '../features/familiars.js';
+import { getEggAlertState } from '../features/familiarProgression.mjs';
 
 // Proper Fisher-Yates shuffle for true variety
 function shuffleDeck(array) {
@@ -591,7 +592,7 @@ function buildDeckList(classId) {
         'quest_map_position', 'class_rank_vs_school', 'class_gold_ranking',
         'reigning_hero_spotlight', 'lesson_milestone',
         // New cards
-        'class_familiar_parade', 'class_gold_top_trio'
+        'class_familiar_parade', 'class_familiar_hatch_watch', 'class_gold_top_trio'
     ];
 
     if (!classId) {
@@ -782,6 +783,7 @@ async function hydrateCard(type, classId) {
             case 'lesson_milestone': content = getLessonMilestoneCard(classId); break;
             // New class cards
             case 'class_familiar_parade': content = getClassFamiliarParadeCard(classId); break;
+            case 'class_familiar_hatch_watch': content = getClassFamiliarHatchWatchCard(classId); break;
             case 'class_gold_top_trio': content = getClassGoldTopTrioCard(classId); break;
 
             // --- Context cards ---
@@ -928,6 +930,56 @@ function getClassFamiliarParadeCard(classId) {
                 ${familiars.slice(0, 16).join('')}
             </div>
             ${familiars.length > 16 ? `<p class="text-pink-400 text-xs mt-2">+${familiars.length - 16} more companions!</p>` : ''}
+        </div>`,
+        css: 'float-card-pink'
+    };
+}
+
+function getClassFamiliarHatchWatchCard(classId) {
+    const allStudentScores = state.get('allStudentScores') || [];
+    const students = state.get('allStudents').filter(s => s.classId === classId);
+    if (!students.length) return null;
+
+    const hatchWatch = students.map((student) => {
+        const score = allStudentScores.find(sc => sc.id === student.id) || {};
+        const familiar = score.familiar;
+        if (!familiar) return null;
+
+        const alert = getEggAlertState(familiar, score.totalStars || 0);
+        if (!alert) return null;
+
+        const badge = alert.kind === 'ready'
+            ? `<span class="inline-flex items-center px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700 text-[10px] font-bold">READY</span>`
+            : `<span class="inline-flex items-center px-2 py-0.5 rounded-full bg-fuchsia-100 text-fuchsia-700 text-[10px] font-bold">${alert.remaining} LEFT</span>`;
+
+        return {
+            remaining: alert.remaining,
+            html: `<div class="flex items-center gap-3 rounded-2xl bg-white/85 border border-pink-200 px-3 py-2 shadow-sm">
+                <div class="shrink-0">${renderFamiliarSprite(familiar, 'small', student.id)}</div>
+                <div class="min-w-0 text-left">
+                    <div class="text-xs font-bold text-slate-700 truncate">${student.name.split(' ')[0]}</div>
+                    <div class="text-[10px] text-slate-500">${alert.kind === 'ready' ? 'Egg can hatch now' : `${alert.remaining} more star${alert.remaining === 1 ? '' : 's'} to hatch`}</div>
+                </div>
+                <div class="ml-auto shrink-0">${badge}</div>
+            </div>`
+        };
+    }).filter(Boolean).sort((a, b) => a.remaining - b.remaining);
+
+    if (!hatchWatch.length) return null;
+
+    const readyCount = hatchWatch.filter(item => item.remaining === 0).length;
+    const subtitle = readyCount > 0
+        ? `${readyCount} egg${readyCount === 1 ? '' : 's'} can hatch right now`
+        : 'Some familiars are close to hatching';
+
+    return {
+        html: `<div class="text-center w-full">
+            <div class="badge-pill bg-pink-100 text-pink-800">🥚 Hatch Watch</div>
+            <p class="text-pink-600 text-sm font-bold mt-2 mb-4">${subtitle}</p>
+            <div class="grid gap-2">
+                ${hatchWatch.slice(0, 5).map(item => item.html).join('')}
+            </div>
+            ${hatchWatch.length > 5 ? `<p class="text-pink-400 text-xs mt-2">+${hatchWatch.length - 5} more nearly-ready eggs</p>` : ''}
         </div>`,
         css: 'float-card-pink'
     };

@@ -4,6 +4,7 @@ import assert from 'node:assert/strict';
 import {
     FAMILIAR_LEVEL_THRESHOLDS,
     deriveLegacyStarsAtHatch,
+    getEggAlertState,
     getUnlockedFamiliarLevel,
     getFamiliarProgress,
     getFamiliarProgressPercent
@@ -86,4 +87,25 @@ test('progress display does not de-evolve an already evolved familiar', () => {
     const progress = getFamiliarProgress(familiar, 50);
     assert.equal(progress.phase, 'level2');
     assert.equal(progress.current, 60);
+});
+
+test('egg alert state reports soon and ready thresholds', () => {
+    const familiar = makeFamiliar({
+        state: 'egg',
+        starsWhenPurchased: 10
+    });
+
+    assert.equal(getEggAlertState(familiar, 24), null);
+    assert.deepEqual(getEggAlertState(familiar, 25), {
+        kind: 'soon',
+        remaining: 5,
+        current: 15,
+        threshold: 20
+    });
+    assert.deepEqual(getEggAlertState(familiar, 30), {
+        kind: 'ready',
+        remaining: 0,
+        current: 20,
+        threshold: 20
+    });
 });

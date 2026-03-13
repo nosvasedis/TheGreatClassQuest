@@ -8,6 +8,7 @@ import { getGuildLeaderboardData, getGuildChampionsForMonth } from '../../featur
 import { getGuildById, getGuildEmblemUrl } from '../../features/guilds.js';
 import { getHeroTitle, HERO_SKILL_TREE } from '../../features/heroSkillTree.js';
 import { renderFamiliarSprite } from '../../features/familiars.js';
+import { getEggAlertState } from '../../features/familiarProgression.mjs';
 import { wrapAvatarWithLevelUpIndicator } from '../core/avatar.js';
 
 // --- REIGNING PRODIGY CACHE ---
@@ -660,6 +661,7 @@ export async function renderStudentLeaderboardTab() {
             const studentClass = state.get('allSchoolClasses').find(c => c.id === s.classId);
             const scoreData = allStudentScores.find(sc => sc.id === s.id) || {};
             const score = state.get('studentStarMetric') === 'monthly' ? (scoreData.monthlyStars || 0) : (scoreData.totalStars || 0);
+            const totalStars = scoreData.totalStars || 0;
 
             // NEW: Get Gold
             const gold = scoreData.gold !== undefined ? scoreData.gold : (scoreData.totalStars || 0);
@@ -669,6 +671,7 @@ export async function renderStudentLeaderboardTab() {
             return {
                 ...s,
                 score,
+                totalStars,
                 gold,
                 stats,
                 heroLevel: scoreData.heroLevel || 0,
@@ -747,6 +750,13 @@ export async function renderStudentLeaderboardTab() {
         if (s.stats.topSkill) {
             const info = reasonInfo[s.stats.topSkill] || { icon: 'fa-star', color: 'bg-gray-100 text-gray-600', name: 'Star' };
             html += `<div class="flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold ${info.color} shadow-sm border border-white/50" title="Top Skill this Month"><i class="fas ${info.icon}"></i> <span>${info.name}</span></div>`;
+        }
+
+        const eggAlert = s.familiar ? getEggAlertState(s.familiar, s.totalStars) : null;
+        if (eggAlert?.kind === 'ready') {
+            html += `<div class="flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-700 shadow-sm border border-emerald-300" title="This egg is ready to hatch now">🥚 Ready!</div>`;
+        } else if (eggAlert?.kind === 'soon') {
+            html += `<div class="flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-fuchsia-100 text-fuchsia-700 shadow-sm border border-fuchsia-300" title="${eggAlert.remaining} more star(s) until hatch">🥚 ${eggAlert.remaining} left</div>`;
         }
 
         return html;

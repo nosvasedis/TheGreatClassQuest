@@ -786,7 +786,7 @@ export async function handleBuyFamiliarEgg(studentId, typeId) {
             const currentGold = typeof scoreData.gold === 'number' ? scoreData.gold : (scoreData.totalStars || 0);
             if (currentGold < typeDef.price) throw new Error(`Not enough Gold! Need ${typeDef.price}🪙.`);
             newGoldBalance = currentGold - typeDef.price;
-            familiarData = buildFamiliarInitData(typeId, scoreData.totalStars || 0);
+            familiarData = buildFamiliarInitData(typeId, scoreData.totalStars || 0, studentId);
 
             transaction.update(scoreRef, {
                 gold: newGoldBalance,

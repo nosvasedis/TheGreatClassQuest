@@ -5,6 +5,7 @@ import { db, doc, getDoc, updateDoc, serverTimestamp } from '../firebase.js';
 import * as state from '../state.js';
 import { callCloudflareAiImageApi } from '../api.js';
 import { playSound } from '../audio.js';
+import { showToast } from '../ui/effects.js';
 import {
     FAMILIAR_LEVEL_THRESHOLDS,
     deriveLegacyStarsAtHatch,
@@ -13,6 +14,7 @@ import {
     getFamiliarProgress,
     getFamiliarProgressPercent
 } from './familiarProgression.mjs';
+import { getFamiliarVariant, normalizeFamiliarName } from './familiarIdentity.mjs';
 
 const publicDataPath = 'artifacts/great-class-quest/public/data';
 const familiarOps = new Map();
@@ -121,11 +123,14 @@ export const FAMILIAR_TYPES = {
 
 // ─── SPRITE GENERATION ───────────────────────────────────────────────────────
 
-export async function generateFamiliarSpriteSheet(typeId, level) {
+export async function generateFamiliarSpriteSheet(typeId, level, variant = null) {
     const type = FAMILIAR_TYPES[typeId];
     if (!type) throw new Error(`Unknown familiar type: ${typeId}`);
-    const prompt = type.spritePrompts[level];
-    if (!prompt) throw new Error(`No prompt for ${typeId} level ${level}`);
+    const basePrompt = type.spritePrompts[level];
+    if (!basePrompt) throw new Error(`No prompt for ${typeId} level ${level}`);
+    const prompt = variant?.promptFlavor
+        ? `${basePrompt}, same familiar variant identity across all frames, ${variant.promptFlavor}`
+        : basePrompt;
 
     const base64 = await callCloudflareAiImageApi(prompt, 'realistic photo, 3d render, text, watermark, blurry, extra limbs, deformed');
     const compressed = await _compressSpriteSheet(base64);
@@ -156,7 +161,8 @@ async function _compressSpriteSheet(base64) {
 
 // ─── RECONCILIATION ──────────────────────────────────────────────────────────
 
-export function buildFamiliarInitData(typeId, currentTotalStars) {
+export function buildFamiliarInitData(typeId, currentTotalStars, studentId = '') {
+    const variant = getFamiliarVariant(typeId, studentId);
     return {
         typeId,
         state: 'egg',
@@ -164,6 +170,8 @@ export function buildFamiliarInitData(typeId, currentTotalStars) {
         starsWhenPurchased: currentTotalStars,
         starsWhenHatched: 0,
         starsAtHatch: null,
+        name: '',
+        variant,
         spriteSheets: { 1: null, 2: null, 3: null },
         generationStatus: 'idle',
         generationLevel: null,
@@ -224,7 +232,7 @@ async function _reconcileFamiliarLifecycle(studentId, options = {}) {
 
     let familiar = scoreData.familiar;
     const totalStars = scoreData.totalStars || 0;
-    const migrationUpdates = _buildMigrationUpdates(familiar);
+    const migrationUpdates = _buildMigrationUpdates(familiar, studentId);
     if (Object.keys(migrationUpdates).length) {
         await updateDoc(scoreRef, migrationUpdates);
         familiar = _mergeFamiliar(familiar, migrationUpdates);
@@ -293,7 +301,8 @@ async function _generateCurrentStageSprite(scoreRef, studentId, familiar, sprite
     });
 
     try {
-        const url = await generateFamiliarSpriteSheet(familiar.typeId, spriteLevel);
+        const variant = familiar.variant || getFamiliarVariant(familiar.typeId, studentId);
+        const url = await generateFamiliarSpriteSheet(familiar.typeId, spriteLevel, variant);
         await updateDoc(scoreRef, {
             [`familiar.spriteSheets.${spriteLevel}`]: url,
             'familiar.generationStatus': 'idle',
@@ -320,7 +329,7 @@ async function _markGenerationFailed(scoreRef, spriteLevel, error) {
     });
 }
 
-function _buildMigrationUpdates(familiar) {
+function _buildMigrationUpdates(familiar, studentId = '') {
     const updates = {};
     if (!familiar) return updates;
 
@@ -340,6 +349,9 @@ function _buildMigrationUpdates(familiar) {
             if (familiar.starsWhenHatched !== starsAtHatch) updates['familiar.starsWhenHatched'] = starsAtHatch;
         }
     }
+
+    if (!('name' in familiar)) updates['familiar.name'] = '';
+    if (!familiar.variant) updates['familiar.variant'] = getFamiliarVariant(familiar.typeId, studentId);
 
     return updates;
 }
@@ -366,17 +378,18 @@ async function _announceStageChange(studentId, familiar, newLevel) {
     const student = state.get('allStudents').find((s) => s.id === studentId);
     const typeDef = FAMILIAR_TYPES[familiar.typeId];
     if (!student || !typeDef) return;
+    const familiarLabel = getFamiliarDisplayName(familiar, typeDef);
 
     if (newLevel <= 1) {
         import('../ui/effects.js').then((m) => {
-            m.showPraiseToast(`${student.name.split(' ')[0]}'s ${typeDef.name} has hatched! 🥚✨`, '🎉');
+            m.showPraiseToast(`${student.name.split(' ')[0]}'s ${familiarLabel} has hatched! 🥚✨`, '🎉');
         });
         _playFamiliarSound('hatch');
         return;
     }
 
     import('../ui/effects.js').then((m) => {
-        m.showPraiseToast(`${student.name.split(' ')[0]}'s ${typeDef.name} evolved to ${typeDef.levelNames[newLevel - 1]}! 🌟`, '⬆️');
+        m.showPraiseToast(`${student.name.split(' ')[0]}'s ${familiarLabel} evolved to ${typeDef.levelNames[newLevel - 1]}! 🌟`, '⬆️');
     });
     _playFamiliarSound('levelup');
 }
@@ -398,6 +411,9 @@ export function renderFamiliarSprite(familiar, size = 'small', studentId = '') {
     if (!familiar) return '';
     const typeDef = FAMILIAR_TYPES[familiar.typeId];
     if (!typeDef) return '';
+    const displayName = getFamiliarDisplayName(familiar, typeDef);
+    const subtitle = familiar.variant?.label ? `${displayName} • ${familiar.variant.label}` : displayName;
+    const safeSubtitle = escapeHtml(subtitle);
 
     const sizeMap = { small: 40, medium: 64, large: 128 };
     const px = sizeMap[size] || 40;
@@ -412,7 +428,7 @@ export function renderFamiliarSprite(familiar, size = 'small', studentId = '') {
             <div class="familiar-container ${typeDef.animClass} enlargeable-familiar"
                  data-student-id="${studentId}"
                  style="width:${px}px;height:${px}px;flex-shrink:0;"
-                 title="${typeDef.name} — ${typeDef.levelNames[(familiar.level || 1) - 1]}">
+                 title="${safeSubtitle} — ${escapeHtml(typeDef.levelNames[(familiar.level || 1) - 1])}">
                 <div class="familiar-sprite"
                      style="width:${px}px;height:${px}px;background-image:url('${spriteUrl}');background-size:400% 100%;image-rendering:pixelated;">
                 </div>
@@ -428,7 +444,7 @@ export function renderFamiliarSprite(familiar, size = 'small', studentId = '') {
         <div class="familiar-container ${typeDef.animClass} enlargeable-familiar"
              data-student-id="${studentId}"
              style="width:${px}px;height:${px}px;"
-             title="${typeDef.name} — ${label}">
+             title="${safeSubtitle} — ${escapeHtml(label)}">
             <div class="${shellClass}" style="width:${px}px;height:${px}px;border-color:${typeDef.eggColor};">
                 <div class="familiar-status-icon">${icon}</div>
             </div>
@@ -481,6 +497,13 @@ export function openFamiliarStatsOverlay(studentId) {
     const isMaxLevel = progress.phase === 'max';
     const levelName = familiar.state === 'egg' ? 'Egg' : (typeDef.levelNames[level - 1] || 'Unknown');
     const spriteHtml = renderFamiliarSprite(familiar, 'large', studentId);
+    const displayName = getFamiliarDisplayName(familiar, typeDef);
+    const speciesLabel = familiar.name ? typeDef.name : familiar.variant?.label ? `${typeDef.name} • ${familiar.variant.label}` : typeDef.name;
+    const safeDisplayName = escapeHtml(displayName);
+    const safeSpeciesLabel = escapeHtml(speciesLabel);
+    const safeLevelName = escapeHtml(levelName);
+    const safePersonality = escapeHtml(typeDef.personality);
+    const safeVariantLabel = escapeHtml(familiar.variant?.label || 'Standard');
 
     let progressTitle = 'Stars to hatch';
     let progressSubtitle = `${progress.remaining} more stars needed`;
@@ -507,9 +530,10 @@ export function openFamiliarStatsOverlay(studentId) {
                     ${spriteHtml}
                 </button>
             </div>
-            <h3 class="font-title text-2xl text-white mb-1">${typeDef.name}</h3>
-            <div class="inline-block px-3 py-0.5 rounded-full text-xs font-bold text-white mb-3" style="background:${typeDef.eggColor}">${levelName}</div>
-            <p class="text-sm text-white/60 italic mb-4">"${typeDef.personality}"</p>
+            <h3 class="font-title text-2xl text-white mb-1">${safeDisplayName}</h3>
+            <div class="text-[11px] text-white/45 uppercase tracking-[0.2em] mb-2">${safeSpeciesLabel}</div>
+            <div class="inline-block px-3 py-0.5 rounded-full text-xs font-bold text-white mb-3" style="background:${typeDef.eggColor}">${safeLevelName}</div>
+            <p class="text-sm text-white/60 italic mb-4">"${safePersonality}"</p>
             <div class="grid grid-cols-2 gap-3 text-left mb-4">
                 <div class="bg-white/5 rounded-xl p-3">
                     <div class="text-xs text-white/40 uppercase tracking-wider">Stars Together</div>
@@ -536,6 +560,22 @@ export function openFamiliarStatsOverlay(studentId) {
                     Retry Sprite Generation
                 </button>
             </div>` : ''}
+            ${familiar.state === 'alive' ? `
+            <div class="bg-white/5 rounded-xl p-3 mb-4 text-left">
+                <div class="text-xs text-white/40 uppercase tracking-wider mb-2">Familiar Name</div>
+                <div class="flex gap-2">
+                    <input type="text" class="fam-name-input flex-1 rounded-lg bg-black/30 border border-white/10 px-3 py-2 text-sm text-white placeholder:text-white/25" maxlength="24" value="${escapeHtml(familiar.name || '')}" placeholder="Give this familiar a name">
+                    <button type="button" class="fam-name-save rounded-lg bg-amber-500 hover:bg-amber-400 text-amber-950 font-bold text-sm px-3 py-2" data-student-id="${studentId}">
+                        Save
+                    </button>
+                </div>
+                <div class="text-[10px] text-white/35 mt-2">Variant: ${safeVariantLabel}</div>
+            </div>` : `
+            <div class="bg-white/5 rounded-xl p-3 mb-4 text-left">
+                <div class="text-xs text-white/40 uppercase tracking-wider mb-1">Naming</div>
+                <div class="text-xs text-white/50">This egg can be named after it hatches.</div>
+                <div class="text-[10px] text-white/35 mt-2">Destined variant: ${safeVariantLabel}</div>
+            </div>`}
             <p class="text-[10px] text-white/30 italic">${typeDef.flavorHint}</p>
         </div>`;
 
@@ -570,4 +610,76 @@ export function openFamiliarStatsOverlay(studentId) {
             setTimeout(() => openFamiliarStatsOverlay(studentId), 200);
         });
     }
+
+    const saveBtn = overlay.querySelector('.fam-name-save');
+    const nameInput = overlay.querySelector('.fam-name-input');
+    if (saveBtn && nameInput) {
+        const commitName = async () => {
+            saveBtn.disabled = true;
+            saveBtn.textContent = 'Saving...';
+            try {
+                await saveFamiliarName(studentId, nameInput.value);
+                closeOverlay();
+                setTimeout(() => openFamiliarStatsOverlay(studentId), 120);
+            } finally {
+                saveBtn.disabled = false;
+                saveBtn.textContent = 'Save';
+            }
+        };
+
+        saveBtn.addEventListener('click', async (e) => {
+            e.stopPropagation();
+            await commitName();
+        });
+
+        nameInput.addEventListener('keydown', async (e) => {
+            if (e.key !== 'Enter') return;
+            e.preventDefault();
+            e.stopPropagation();
+            await commitName();
+        });
+    }
+}
+
+export async function saveFamiliarName(studentId, rawName) {
+    const scoreData = state.get('allStudentScores').find((s) => s.id === studentId);
+    if (!scoreData?.familiar || scoreData.familiar.state !== 'alive') {
+        showToast('This familiar can be named after it hatches.', 'error');
+        return;
+    }
+
+    const name = normalizeFamiliarName(rawName);
+    const scoreRef = doc(db, `${publicDataPath}/student_scores`, studentId);
+    await updateDoc(scoreRef, {
+        'familiar.name': name
+    });
+
+    _patchLocalFamiliarState(studentId, (familiar) => ({ ...familiar, name }));
+    showToast(name ? `Familiar named "${name}"!` : 'Familiar name cleared.', 'success');
+}
+
+function _patchLocalFamiliarState(studentId, patcher) {
+    const scores = state.get('allStudentScores');
+    const index = scores.findIndex((score) => score.id === studentId && score.familiar);
+    if (index === -1) return;
+
+    const nextScores = [...scores];
+    nextScores[index] = {
+        ...nextScores[index],
+        familiar: patcher(scores[index].familiar)
+    };
+    state.setAllStudentScores(nextScores);
+}
+
+function getFamiliarDisplayName(familiar, typeDef) {
+    return familiar?.name || typeDef?.name || 'Familiar';
+}
+
+function escapeHtml(value) {
+    return String(value || '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
 }

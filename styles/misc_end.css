@@ -46,8 +46,8 @@
 
 /* Reigning Hero Special Card */
 .reigning-hero-card {
-    border: 4px solid #FBBF24 !important; /* Gold Border */
-    box-shadow: 0 0 25px rgba(251, 191, 36, 0.6), 0 10px 15px -3px rgba(0, 0, 0, 0.1) !important;
+    border: 4px solid #22c55e !important; /* Hero green border */
+    box-shadow: 0 0 25px rgba(34, 197, 94, 0.45), 0 10px 15px -3px rgba(0, 0, 0, 0.1) !important;
     transform: scale(1.05);
 }
 
@@ -69,8 +69,8 @@
 
 /* Reigning Hero Visuals - Subtle & Small */
 .reigning-hero-card {
-    border: 4px solid #FBBF24 !important;
-    box-shadow: 0 0 30px rgba(251, 191, 36, 0.3), 0 10px 15px -3px rgba(0, 0, 0, 0.1) !important;
+    border: 4px solid #22c55e !important;
+    box-shadow: 0 0 30px rgba(34, 197, 94, 0.32), 0 10px 15px -3px rgba(0, 0, 0, 0.1) !important;
 }
 
 .hero-crown-badge {

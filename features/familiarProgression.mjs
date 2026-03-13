@@ -104,3 +104,30 @@ export function getFamiliarProgressPercent(progress) {
     if (span <= 0) return progress.phase === 'max' ? 100 : 0;
     return Math.round((clamp(progress.current, progress.min, progress.max) - progress.min) / span * 100);
 }
+
+export function getEggAlertState(familiar, totalStars, soonThreshold = 5) {
+    if (!familiar || familiar.state !== 'egg') return null;
+
+    const progress = getFamiliarProgress(familiar, totalStars);
+    if (progress.phase !== 'egg') return null;
+
+    if (progress.remaining <= 0) {
+        return {
+            kind: 'ready',
+            remaining: 0,
+            current: progress.current,
+            threshold: progress.max
+        };
+    }
+
+    if (progress.remaining <= soonThreshold) {
+        return {
+            kind: 'soon',
+            remaining: progress.remaining,
+            current: progress.current,
+            threshold: progress.max
+        };
+    }
+
+    return null;
+}

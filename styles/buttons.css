@@ -235,6 +235,16 @@
     filter: drop-shadow(0 1px 1px rgba(180, 100, 0, 0.15));
 }
 
+.reigning-hero-label .crown-icon {
+    filter: drop-shadow(0 1px 2px rgba(21, 128, 61, 0.35));
+}
+
+.reigning-hero-label .prodigy-text {
+    background: linear-gradient(90deg, #166534, #16a34a, #4ade80, #16a34a, #166534);
+    background-size: 200% auto;
+    filter: drop-shadow(0 1px 1px rgba(22, 101, 52, 0.18));
+}
+
 @keyframes prodigy-shimmer {
     0% {
         background-position: 0% center;

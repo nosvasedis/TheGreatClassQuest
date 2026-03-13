@@ -287,7 +287,7 @@ export function renderAwardStarsStudentList(selectedClassId, fullRender = true) 
                         </h3>
                         ${isReigningHero ? `
                         <div class="reigning-prodigy-label reigning-hero-label">
-                            <span class="crown-icon">👑</span>
+                            <span class="crown-icon">🫅</span>
                             <span class="prodigy-text">Reigning Hero</span>
                         </div>` : ''}
                         ${prodigySet.has(s.id) ? `

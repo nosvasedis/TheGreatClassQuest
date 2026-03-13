@@ -24,9 +24,7 @@
 }
 
 .absence-controls {
-    position: absolute;
-    top: 1rem;
-    right: -0.75rem;
+    position: static;
     display: flex;
     gap: 0.5rem;
     z-index: 20; /* Ensure buttons are on top of avatar */

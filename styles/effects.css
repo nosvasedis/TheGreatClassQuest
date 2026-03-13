@@ -27,19 +27,24 @@
 }
 
 .star-selector-container {
-    max-height: 0;
+    max-height: none;
+    min-height: 6rem;
     opacity: 0;
     overflow: visible;
-    transition: max-height 0.3s ease-out, opacity 0.3s ease-out, margin-top 0.3s ease-out;
-    margin-top: 0;
+    transition: opacity 0.25s ease-out, transform 0.25s ease-out;
+    margin-top: 0.5rem;
     width: 100%;
     padding: 0;
+    visibility: hidden;
+    pointer-events: none;
+    transform: translateY(6px);
 }
 
 .star-selector-container.visible {
-    max-height: 180px;
     opacity: 1;
-    margin-top: 1rem;
+    visibility: visible;
+    pointer-events: auto;
+    transform: translateY(0);
 }
 
 /* Reason Button Animation */

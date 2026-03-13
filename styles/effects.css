@@ -3,7 +3,7 @@
 }
 
 .reason-selector .reason-btn.active {
-    transform: scale(1.1);
+    transform: scale(1.05);
 }
 
 .reason-selector .reason-btn.active i {
@@ -37,7 +37,7 @@
 }
 
 .star-selector-container.visible {
-    max-height: 140px;
+    max-height: 180px;
     opacity: 1;
     margin-top: 1rem;
 }

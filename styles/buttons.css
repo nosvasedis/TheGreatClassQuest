@@ -131,16 +131,19 @@
 #award-stars-student-list {
     align-items: start;
     overflow: visible;
+    row-gap: 5rem;
+    column-gap: 3rem;
+    padding: 1rem 1.5rem 3rem;
 }
 
 /* --- V4.7: NEW STUDENT CLOUD CARD & ANIMATIONS --- */
 .student-cloud-card {
     --award-cloud-mask: none;
     position: relative;
-    padding: 7rem 1.9rem 3.7rem 1.9rem;
+    padding: 0.85rem 1.25rem 1.4rem;
     display: flex;
     flex-direction: column;
-    gap: 0.75rem;
+    gap: 0;
     filter: drop-shadow(0 5px 8px rgba(0, 0, 0, 0.15));
     transform: translateZ(0);
     animation: float-card 6s ease-in-out infinite;
@@ -148,15 +151,13 @@
     border-radius: 2rem;
     isolation: isolate;
     overflow: visible;
+    min-height: 33rem;
 }
 
 .student-cloud-card::before {
     content: '';
     position: absolute;
-    top: 0.25rem;
-    bottom: -0.75rem;
-    left: -52px;
-    right: -52px;
+    inset: 0;
     z-index: 0;
     pointer-events: none;
     background:
@@ -177,10 +178,7 @@
 .student-cloud-card::after {
     content: '';
     position: absolute;
-    top: 0;
-    bottom: -1rem;
-    left: -56px;
-    right: -56px;
+    inset: -3px;
     z-index: -1;
     pointer-events: none;
     opacity: 0;
@@ -200,50 +198,28 @@
     z-index: 2;
 }
 
-.student-cloud-card.reason-expanded {
-    z-index: 15;
-}
-
-.student-cloud-card.reason-expanded::before {
-    left: -66px;
-    right: -66px;
-    bottom: -1.25rem;
-}
-
-.student-cloud-card.reason-expanded::after {
-    left: -70px;
-    right: -70px;
-    bottom: -1.4rem;
-}
-
 .student-avatar-cloud {
-    position: absolute;
-    top: 1rem;
-    left: 50%;
-    transform: translateX(-50%);
-    width: 82px;
-    height: 82px;
+    position: static;
+    width: 92px;
+    height: 92px;
     border-radius: 9999px;
     object-fit: cover;
     background-color: #e5e7eb;
     border: 5px solid white;
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
-    z-index: 10;
+    z-index: 2;
     transition: all 0.3s ease-out;
 }
 
 .student-avatar-cloud-placeholder {
-    position: absolute;
-    top: 1rem;
-    left: 50%;
-    transform: translateX(-50%);
-    width: 82px;
-    height: 82px;
+    position: static;
+    width: 92px;
+    height: 92px;
     border-radius: 9999px;
     background-color: #d1d5db;
     border: 5px solid white;
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
-    z-index: 10;
+    z-index: 2;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -439,6 +415,54 @@
     display: flex;
     flex-direction: column;
     align-items: center;
+    gap: 0.9rem;
+    min-height: 100%;
+    padding-top: 0.8rem;
+    padding-bottom: 1.1rem;
+}
+
+.student-cloud-header {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.5rem;
+    width: 100%;
+}
+
+.student-cloud-avatar-wrap {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 92px;
+    margin-bottom: 0.15rem;
+}
+
+.student-cloud-card .counter-bubble {
+    width: 5.15rem;
+    height: 5.15rem;
+}
+
+.student-cloud-card .reason-selector {
+    gap: 0.8rem;
+    flex-wrap: wrap;
+    width: 100%;
+}
+
+.student-cloud-card .reason-btn {
+    width: 3.6rem;
+    height: 3.6rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.student-cloud-card .star-selector-container {
+    justify-content: center;
+    gap: 0.85rem;
+    flex-wrap: nowrap;
+    width: 100%;
+    padding-bottom: 0.25rem;
 }
 
 @keyframes float-up-down {

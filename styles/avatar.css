@@ -167,20 +167,18 @@
 /* Awards tab: direct emblem on avatar corner (no container chrome) */
 .award-guild-corner {
     position: absolute;
-    top: 76px;
-    left: calc(50% + 20px);
-    z-index: 12;
+    right: -4px;
+    bottom: 2px;
+    z-index: 4;
     pointer-events: none;
 }
 
 /* Awards tab: preserve level-up arrow without wrapping the avatar element */
 .award-level-up-overlay {
     position: absolute;
-    top: 1rem;
-    left: 50%;
-    transform: translateX(-50%);
-    width: 82px;
-    height: 82px;
-    z-index: 11;
+    inset: 0;
+    width: 92px;
+    height: 92px;
+    z-index: 3;
     pointer-events: none;
 }

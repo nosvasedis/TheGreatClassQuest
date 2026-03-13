@@ -277,24 +277,27 @@ export function renderAwardStarsStudentList(selectedClassId, fullRender = true) 
 
                 return `
                <div class="student-cloud-card ${cloudShape} ${isVisuallyAbsent ? 'is-absent' : ''} ${isReigningHero ? 'reigning-hero-card' : ''} ${prodigySet.has(s.id) ? 'award-reigning-prodigy' : ''}" data-studentid="${s.id}" style="animation: float-card ${4 + Math.random() * 4}s ease-in-out infinite;">
-               ${isReigningHero ? '<div class="hero-crown-badge">👑</div>' : ''}
-               <div class="absence-controls">
-               ${absenceButtonHtml}
+                    <div class="absence-controls">
+                        ${absenceButtonHtml}
                     </div>
-                    ${avatarHtml}
-                    ${levelUpArrowHtml}
-                    ${guildBadgeHtml}
-                    ${coinHtml} 
                     ${boonBtnHtml}
-                    <button id="post-award-undo-${s.id}" class="post-award-undo-btn bubbly-button ${starsToday > 0 ? '' : 'hidden'}" title="Undo Award"><i class="fas fa-times"></i></button>
-                    
                     <div class="card-content-wrapper">
-                        <h3 class="font-title text-2xl text-gray-800 text-center">
+                        <button id="post-award-undo-${s.id}" class="post-award-undo-btn bubbly-button ${starsToday > 0 ? '' : 'hidden'}" title="Undo Award"><i class="fas fa-times"></i></button>
+                        <div class="student-cloud-header">
+                            <div class="student-cloud-avatar-wrap">
+                                ${isReigningHero ? '<div class="hero-crown-badge">👑</div>' : ''}
+                                ${avatarHtml}
+                                ${levelUpArrowHtml}
+                                ${guildBadgeHtml}
+                                ${coinHtml}
+                            </div>
+                            <h3 class="font-title text-2xl text-gray-800 text-center">
                             <span class="text-sm opacity-70 block mb-1">
                                 ${s.heroClass && HERO_CLASSES[s.heroClass] ? HERO_CLASSES[s.heroClass].icon : ''} ${s.heroClass || ''}
                             </span>
                             ${s.name}
-                        </h3>
+                            </h3>
+                        </div>
                         ${isReigningHero ? `
                         <div class="reigning-prodigy-label reigning-hero-label">
                             <span class="crown-icon">${reigningHeroEmoji}</span>

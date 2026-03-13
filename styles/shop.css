@@ -136,9 +136,9 @@ body.projector-mode .bounty-actions {
 /* --- COIN INDICATOR STYLES --- */
 .coin-pill {
     position: absolute;
-    top: 1.35rem; 
-    left: 50%; 
-    margin-left: 52px; 
+    top: 0.35rem; 
+    left: calc(100% - 0.3rem);
+    margin-left: 0; 
     transform: none;
     
     background: linear-gradient(135deg, #f59e0b 0%, #b45309 100%);
@@ -149,7 +149,7 @@ body.projector-mode .bounty-actions {
     color: white;
     font-size: 0.85rem;
     box-shadow: 0 2px 4px rgba(0,0,0,0.2);
-    z-index: 15;
+    z-index: 4;
     display: flex;
     align-items: center;
     gap: 3px;

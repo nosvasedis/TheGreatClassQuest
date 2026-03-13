@@ -204,7 +204,7 @@ export function triggerAwardEffects(button, starCount) {
     const effectConfig = {
         1: { particles: 15, size: [2, 5], distance: [30, 60] },
         2: { particles: 30, size: [3, 7], distance: [50, 100], shockwave: 'rgba(216, 180, 254, 0.7)' },
-        3: { particles: 60, size: [4, 9], distance: [80, 150], flash: 'rgba(249, 115, 22, 0.3)', shockwave: 'rgba(251, 191, 36, 0.8)' }
+        3: { particles: 105, size: [4, 10], distance: [100, 210], flash: 'rgba(249, 115, 22, 0.35)', shockwave: 'rgba(251, 191, 36, 0.88)' }
     };
 
     const config = effectConfig[starCount];
@@ -248,6 +248,57 @@ export function triggerAwardEffects(button, starCount) {
         shockwave.style.setProperty('--shockwave-color', config.shockwave);
         document.body.appendChild(shockwave);
         shockwave.addEventListener('animationend', () => shockwave.remove());
+    }
+
+    // ✦ 3-STAR SPECIAL: extra shockwaves + gold flash + star emoji rain
+    if (starCount === 3) {
+        // Two more shockwaves, staggered
+        [130, 270].forEach((delay, i) => {
+            setTimeout(() => {
+                const sw = document.createElement('div');
+                sw.className = 'shockwave';
+                sw.style.left = `${x}px`;
+                sw.style.top = `${y}px`;
+                sw.style.setProperty('--shockwave-color', i === 0 ? 'rgba(251,191,36,0.62)' : 'rgba(249,115,22,0.42)');
+                document.body.appendChild(sw);
+                sw.addEventListener('animationend', () => sw.remove());
+            }, delay);
+        });
+
+        // Extra gold flash after the orange one
+        setTimeout(() => {
+            const goldFlash = document.createElement('div');
+            goldFlash.className = 'screen-flash';
+            goldFlash.style.setProperty('--flash-color', 'rgba(251, 191, 36, 0.22)');
+            document.body.appendChild(goldFlash);
+            goldFlash.addEventListener('animationend', () => goldFlash.remove());
+        }, 190);
+
+        // Star emoji rain
+        const starEmojis = ['⭐', '✨', '🌟', '💫', '⭐', '🌟'];
+        for (let i = 0; i < 24; i++) {
+            const star = document.createElement('div');
+            star.className = 'star-rain-element';
+            star.textContent = starEmojis[Math.floor(Math.random() * starEmojis.length)];
+            const sz  = 18 + Math.random() * 26;
+            const ws  = (Math.random() - 0.5) * 130;
+            const we  = (Math.random() - 0.5) * 190;
+            const fd  = 150 + Math.random() * 270;
+            const rot = (Math.random() - 0.5) * 720;
+            const dur = 0.75 + Math.random() * 0.9;
+            const startX = x + (Math.random() - 0.5) * 230;
+            star.style.left = `${startX}px`;
+            star.style.top  = `${y}px`;
+            star.style.setProperty('--size',     `${sz}px`);
+            star.style.setProperty('--ws',       `${ws}px`);
+            star.style.setProperty('--we',       `${we}px`);
+            star.style.setProperty('--fd',       `${fd}px`);
+            star.style.setProperty('--rot',      `${rot}deg`);
+            star.style.setProperty('--duration', `${dur}s`);
+            star.style.animationDelay = `${Math.random() * 0.28}s`;
+            document.body.appendChild(star);
+            star.addEventListener('animationend', () => star.remove());
+        }
     }
 }
 

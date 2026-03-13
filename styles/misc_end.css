@@ -44,10 +44,8 @@
     animation: bounce-slow 2s infinite ease-in-out;
 }
 
-/* Reigning Hero Special Card */
+/* Reigning Hero Special Card — glow handled by .cloud-bg-svg via @keyframes hero-cloud-glow in buttons.css */
 .reigning-hero-card {
-    border: 4px solid #22c55e !important; /* Hero green border */
-    box-shadow: 0 0 25px rgba(34, 197, 94, 0.45), 0 10px 15px -3px rgba(0, 0, 0, 0.1) !important;
     transform: scale(1.05);
 }
 
@@ -67,11 +65,7 @@
     50% { transform: translateX(-50%) translateY(-10px) rotate(5deg); }
 }
 
-/* Reigning Hero Visuals - Subtle & Small */
-.reigning-hero-card {
-    border: 4px solid #22c55e !important;
-    box-shadow: 0 0 30px rgba(34, 197, 94, 0.32), 0 10px 15px -3px rgba(0, 0, 0, 0.1) !important;
-}
+/* Reigning Hero — glow lives on .cloud-bg-svg via hero-cloud-glow animation in buttons.css */
 
 .hero-crown-badge {
     position: absolute;

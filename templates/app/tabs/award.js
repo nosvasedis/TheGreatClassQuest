@@ -36,7 +36,7 @@ export const awardTabHTML = `
                         </button>
                     </div>
 
-                    <div id="award-stars-student-list" class="mt-6 grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div id="award-stars-student-list" class="mt-6 grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
                         <p
                             class="text-center text-gray-700 bg-white/70 backdrop-blur-sm p-4 rounded-2xl text-lg col-span-full">
                             Please select a class to award stars.</p>

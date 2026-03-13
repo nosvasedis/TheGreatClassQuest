@@ -23,7 +23,7 @@ import * as utils from '../../utils.js';
 import { playSound } from '../../audio.js';
 import { showToast, triggerAwardEffects, triggerDynamicPraise, showWelcomeBackMessage, createFloatingHearts } from '../effects.js';
 import { openShopModal, updateShopStudentDisplay } from './shop.js';
-import { confirmWord, handleWordInputChange } from './misc.js';
+import { confirmWord, handleWordInputChange, updateStudentCardAttendanceState } from './misc.js';
 import {
     handleAddClass,
     handleAddStudent,
@@ -524,6 +524,7 @@ export function setupUIListeners() {
             if (actionBtn.dataset.action === 'mark-absent') {
                 playSound('click');
                 await handleMarkAbsent(studentId, student.classId, true);
+                updateStudentCardAttendanceState(studentId, true);
                 return;
             }
 
@@ -535,6 +536,7 @@ export function setupUIListeners() {
 
                 if (isMarkedAbsentToday) {
                     await handleMarkAbsent(studentId, student.classId, false);
+                    updateStudentCardAttendanceState(studentId, false);
                 } else {
                     await setStudentStarsForToday(studentId, 0, 'marked_present');
                     showToast(`${student.name} marked present.`, 'success');

@@ -83,6 +83,162 @@ async function getReigningProdigyForClass(classId) {
     return _awardProdigyCache[classId] || new Set();
 }
 
+// --- 6 SVG CLOUD SHAPES (viewBox 0 0 300 380) ---
+// Technique: GOOEY SVG FILTER — overlapping near-circular ellipses are blurred together
+// then alpha-thresholded, creating smooth organic cloud silhouettes automatically.
+// The body is a wide flat oval; bumps are near-circular (rx ≈ ry) for puffy authentic look.
+// Bumps extend past all four viewBox edges; SVG overflow:visible reveals them.
+const CLOUD_SHAPES = {
+    // ── c1  Classic 3-top / 3-bottom symmetrical ──────────────────────────────
+    c1: [
+        // body
+        {cx:150, cy:192, rx:153, ry:96},
+        // side lobes (bleed past left/right edges for width)
+        {cx: -2, cy:192, rx:58, ry:50},
+        {cx:302, cy:192, rx:58, ry:50},
+        // top bumps (flat wide ovals)
+        {cx: 65, cy: 80, rx:95, ry:56},
+        {cx:150, cy: 48, rx:88, ry:54},
+        {cx:235, cy: 80, rx:95, ry:56},
+        // top bridges
+        {cx:107, cy:118, rx:80, ry:44},
+        {cx:193, cy:116, rx:80, ry:44},
+        // bottom bumps
+        {cx: 70, cy:320, rx:90, ry:54},
+        {cx:150, cy:344, rx:86, ry:52},
+        {cx:230, cy:320, rx:90, ry:54},
+        // bottom bridges
+        {cx:108, cy:298, rx:76, ry:40},
+        {cx:192, cy:296, rx:76, ry:40},
+    ],
+    // ── c2  Wide 4-top / 3-bottom ─────────────────────────────────────────────
+    c2: [
+        {cx:150, cy:190, rx:155, ry:94},
+        {cx:  0, cy:190, rx:60, ry:50},
+        {cx:300, cy:190, rx:60, ry:50},
+        // top bumps (4, pushed wide)
+        {cx: 42, cy: 90, rx:86, ry:52},
+        {cx:120, cy: 50, rx:84, ry:52},
+        {cx:180, cy: 50, rx:84, ry:52},
+        {cx:258, cy: 90, rx:86, ry:52},
+        {cx: 80, cy:118, rx:75, ry:42},
+        {cx:150, cy:108, rx:80, ry:44},
+        {cx:220, cy:116, rx:75, ry:42},
+        // bottom bumps
+        {cx: 78, cy:315, rx:88, ry:52},
+        {cx:150, cy:340, rx:84, ry:50},
+        {cx:222, cy:315, rx:88, ry:52},
+        {cx:112, cy:295, rx:74, ry:40},
+        {cx:188, cy:293, rx:74, ry:40},
+    ],
+    // ── c3  Asymmetric left-heavy ──────────────────────────────────────────────
+    c3: [
+        {cx:148, cy:192, rx:154, ry:95},
+        {cx: -5, cy:185, rx:64, ry:54},
+        {cx:302, cy:195, rx:56, ry:46},
+        // top bumps (bigger left side)
+        {cx: 52, cy: 75, rx:100, ry:58},
+        {cx:138, cy: 48, rx:84,  ry:52},
+        {cx:218, cy: 88, rx:86,  ry:52},
+        {cx: 92, cy:116, rx:78,  ry:44},
+        {cx:178, cy:118, rx:72,  ry:42},
+        // bottom bumps
+        {cx: 65, cy:318, rx:90, ry:54},
+        {cx:150, cy:346, rx:84, ry:50},
+        {cx:232, cy:322, rx:86, ry:52},
+        {cx:106, cy:298, rx:72, ry:40},
+        {cx:194, cy:296, rx:70, ry:38},
+    ],
+    // ── c4  Tall centre-peak cloud ────────────────────────────────────────────
+    c4: [
+        {cx:150, cy:192, rx:153, ry:96},
+        {cx: -2, cy:192, rx:58, ry:50},
+        {cx:302, cy:192, rx:58, ry:50},
+        // top bumps (tall centre)
+        {cx: 68, cy: 86, rx:92, ry:54},
+        {cx:150, cy: 38, rx:92, ry:58},   // very high centre peak
+        {cx:232, cy: 86, rx:92, ry:54},
+        {cx:108, cy:120, rx:80, ry:44},
+        {cx:192, cy:118, rx:80, ry:44},
+        // bottom bumps
+        {cx: 75, cy:322, rx:90, ry:54},
+        {cx:150, cy:348, rx:86, ry:52},
+        {cx:225, cy:322, rx:90, ry:54},
+        {cx:110, cy:300, rx:76, ry:40},
+        {cx:190, cy:298, rx:76, ry:40},
+    ],
+    // ── c5  5-peak fluffy cloud ───────────────────────────────────────────────
+    c5: [
+        {cx:150, cy:190, rx:155, ry:94},
+        {cx:  0, cy:188, rx:62, ry:52},
+        {cx:300, cy:188, rx:62, ry:52},
+        // top bumps (5)
+        {cx: 35, cy:100, rx:82, ry:50},
+        {cx: 98, cy: 58, rx:80, ry:50},
+        {cx:150, cy: 38, rx:84, ry:53},
+        {cx:202, cy: 58, rx:80, ry:50},
+        {cx:265, cy:100, rx:82, ry:50},
+        {cx: 65, cy:124, rx:72, ry:42},
+        {cx:150, cy:106, rx:76, ry:44},
+        {cx:235, cy:122, rx:72, ry:42},
+        // bottom bumps
+        {cx: 68, cy:316, rx:88, ry:52},
+        {cx:150, cy:344, rx:84, ry:50},
+        {cx:232, cy:316, rx:88, ry:52},
+        {cx:108, cy:295, rx:74, ry:40},
+        {cx:192, cy:293, rx:74, ry:40},
+    ],
+    // ── c6  Rounded 3-top / 2-bottom (widest body) ───────────────────────────
+    c6: [
+        {cx:150, cy:192, rx:155, ry:98},
+        {cx: -4, cy:192, rx:62, ry:54},
+        {cx:304, cy:192, rx:62, ry:54},
+        // top bumps
+        {cx: 60, cy: 82, rx:96, ry:58},
+        {cx:150, cy: 46, rx:90, ry:56},
+        {cx:240, cy: 82, rx:96, ry:58},
+        {cx:103, cy:118, rx:82, ry:45},
+        {cx:197, cy:116, rx:82, ry:45},
+        // bottom bumps (only 2 wide ones + centre for variety)
+        {cx: 96, cy:330, rx:96, ry:56},
+        {cx:204, cy:330, rx:96, ry:56},
+        {cx:150, cy:354, rx:82, ry:52},
+        {cx:148, cy:305, rx:78, ry:42},
+    ],
+};
+
+/**
+ * Returns an inline <svg> using the GOOEY FILTER technique:
+ * near-circular ellipses are blurred then alpha-thresholded, producing
+ * a smooth organic cloud silhouette on every side.
+ * @param {string}  shapeKey  - one of c1..c6
+ * @param {boolean} isProdigy - amber fill
+ * @param {boolean} isHero    - light-green fill
+ * @param {string}  uid       - unique identifier to avoid SVG filter ID collisions
+ */
+function getCloudSvg(shapeKey, isProdigy, isHero, uid) {
+    const ellipses = CLOUD_SHAPES[shapeKey] || CLOUD_SHAPES.c1;
+    let fill = 'white';
+    if (isHero && isProdigy) fill = '#fef9c3';
+    else if (isProdigy)      fill = '#fffbeb';
+    else if (isHero)         fill = '#f0fdf4';
+    // Each card needs a unique filter ID — multiple students can share the same shape key
+    const fid = `gcf-${uid || shapeKey}`;
+    const ellipseSVG = ellipses.map(e =>
+        `<ellipse cx="${e.cx}" cy="${e.cy}" rx="${e.rx}" ry="${e.ry}"/>`
+    ).join('');
+    return `<svg class="cloud-bg-svg" viewBox="0 0 300 380" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false">
+        <defs>
+          <filter id="${fid}" filterUnits="userSpaceOnUse" x="-60" y="-80" width="420" height="540">
+            <feGaussianBlur in="SourceGraphic" stdDeviation="16" result="blur"/>
+            <feColorMatrix in="blur" type="matrix"
+              values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 22 -9"/>
+          </filter>
+        </defs>
+        <g filter="url(#${fid})" fill="${fill}">${ellipseSVG}</g>
+      </svg>`;
+}
+
 export function renderAwardStarsTab() {
     const dropdownList = document.getElementById('award-class-list');
     const studentListContainer = document.getElementById('award-stars-student-list');
@@ -161,7 +317,7 @@ export function renderAwardStarsStudentList(selectedClassId, fullRender = true) 
 
             // --- REIGNING PRODIGY (previous month's winner) — crown watermark on card only ---
             const prodigySet = await getReigningProdigyForClass(selectedClassId);
-            const cloudShapes = ['cloud-shape-1', 'cloud-shape-2', 'cloud-shape-3', 'cloud-shape-4'];
+            const cloudShapes = ['c1', 'c2', 'c3', 'c4', 'c5', 'c6'];
 
             // --- 1. PRE-CALCULATE BOON ELIGIBILITY ---
             const allScores = state.get('allStudentScores');
@@ -187,7 +343,7 @@ export function renderAwardStarsStudentList(selectedClassId, fullRender = true) 
                 const monthlyStars = scoreData.monthlyStars || 0;
                 const starsToday = state.get('todaysStars')[s.id]?.stars || 0;
                 const reasonToday = state.get('todaysStars')[s.id]?.reason;
-                const cloudShape = cloudShapes[index % cloudShapes.length];
+                const cloudShape = cloudShapes[Math.floor(Math.random() * cloudShapes.length)];
                 const reigningHeroEmoji = s.gender === 'girl' ? '👸' : '🫅';
 
                 const isMarkedAbsentToday = state.get('allAttendanceRecords').some(r => r.studentId === s.id && r.date === today);
@@ -266,7 +422,8 @@ export function renderAwardStarsStudentList(selectedClassId, fullRender = true) 
                 }
 
                 return `
-               <div class="student-cloud-card ${cloudShape} ${isVisuallyAbsent ? 'is-absent' : ''} ${isReigningHero ? 'reigning-hero-card' : ''} ${prodigySet.has(s.id) ? 'award-reigning-prodigy' : ''}" data-studentid="${s.id}" style="animation: float-card ${4 + Math.random() * 4}s ease-in-out infinite;">
+               <div class="student-cloud-card ${isVisuallyAbsent ? 'is-absent' : ''} ${isReigningHero ? 'reigning-hero-card' : ''} ${prodigySet.has(s.id) ? 'award-reigning-prodigy' : ''}" data-studentid="${s.id}" style="animation: float-card ${4 + Math.random() * 4}s ease-in-out infinite;">
+               ${getCloudSvg(cloudShape, prodigySet.has(s.id), isReigningHero, s.id)}
                ${isReigningHero ? '<div class="hero-crown-badge">👑</div>' : ''}
                <div class="absence-controls">
                ${absenceButtonHtml}
@@ -318,9 +475,11 @@ export function renderAwardStarsStudentList(selectedClassId, fullRender = true) 
                             <button class="reason-btn bubbly-button p-3 rounded-full bg-gray-100 hover:bg-green-200" data-reason="respect" title="Respect"><i class="fas fa-hands-helping text-green-600 pointer-events-none"></i></button>
                             <button class="reason-btn bubbly-button p-3 rounded-full bg-gray-100 hover:bg-yellow-200" data-reason="focus" title="Focus/Effort"><i class="fas fa-brain text-yellow-600 pointer-events-none"></i></button>
                         </div>
-                        <div class="star-selector-container flex items-center justify-center space-x-2">
+                        <div class="star-selector-container flex items-center justify-center">
                             <button data-stars="1" class="star-award-btn star-btn-1"><i class="fas fa-star"></i></button>
+                            <span class="star-divider" aria-hidden="true"></span>
                             <button data-stars="2" class="star-award-btn star-btn-2"><i class="fas fa-star"></i><i class="fas fa-star"></i></button>
+                            <span class="star-divider" aria-hidden="true"></span>
                             <button data-stars="3" class="star-award-btn star-btn-3"><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i></button>
                         </div>
                     </div>

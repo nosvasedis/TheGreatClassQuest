@@ -22,6 +22,11 @@
 .student-cloud-card.is-absent .star-selector-container {
     pointer-events: none;
 }
+/* Grey out the cloud background itself when absent */
+.student-cloud-card.is-absent .cloud-bg-svg {
+    filter: grayscale(1) drop-shadow(0 4px 8px rgba(0, 0, 0, 0.08)) !important;
+    opacity: 0.55;
+}
 
 .absence-controls {
     position: absolute;

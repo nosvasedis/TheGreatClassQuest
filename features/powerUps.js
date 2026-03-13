@@ -2,6 +2,7 @@
 import { db, doc, runTransaction, updateDoc, increment } from '../firebase.js';
 import * as state from '../state.js';
 import { showToast, showPraiseToast } from '../ui/effects.js';
+import { showModal } from '../ui/modals/base.js';
 import { playSound } from '../audio.js';
 import * as utils from '../utils.js';
 
@@ -47,47 +48,68 @@ export async function handleUseItem(studentId, itemIndex) {
         return;
     }
 
-    if (!confirm(`Consume ${item.name}?`)) return;
-
-    if (item.name === "Crystal of Clarity") {
-        document.dispatchEvent(new CustomEvent('clarity-glimmer', { detail: { studentId, itemIndex } }));
-        showToast("Incoming hint", 'success');
+    // Pre-check: Pathfinder Map — verify the class hasn’t already used it this month
+    if (item.id === 'leg_pathfinder') {
+        const classData = state.get('allSchoolClasses').find(c => c.id === student.classId);
+        const monthKey = `${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, '0')}`;
+        const existing = Number(classData?.teamQuestBonuses?.[monthKey]) || 0;
+        if (existing >= 10) {
+            showToast("🗺️ The class already used the Pathfinder’s Map this month. No bonus available.", "info");
+            return;
+        }
     }
 
-    try {
-        await runTransaction(db, async (transaction) => {
-            const scoreRef = doc(db, "artifacts/great-class-quest/public/data/student_scores", studentId);
-            const scoreDoc = await transaction.get(scoreRef);
-            const currentInventory = scoreDoc.data().inventory || [];
-            const classData = state.get('allSchoolClasses').find(c => c.id === student.classId);
-
-            const success = await POWER_UP_EFFECTS[item.name](student, classData, { transaction });
-
-            if (success) {
-                currentInventory.splice(itemIndex, 1);
-                transaction.update(scoreRef, { inventory: currentInventory });
+    // Styled confirm modal (replaces native browser confirm())
+    showModal(
+        `Use ${item.icon || '✨'} ${item.name}?`,
+        `<div class="text-center text-gray-600 mt-1">${item.description || 'Consume this item to activate its power.'}</div>`,
+        async () => {
+            if (item.name === "Crystal of Clarity") {
+                document.dispatchEvent(new CustomEvent('clarity-glimmer', { detail: { studentId, itemIndex } }));
+                showToast("Incoming hint", 'success');
             }
-        });
-        playSound('magic_chime');
-        // Show toasts once here (not inside transaction) so they don't run twice on transaction retry
-        if (item.name === "Scroll of the Gilded Star") {
-            showToast(`Next star for ${student.name} is worth triple Gold!`, 'success');
-        } else if (item.name === "The Pathfinder’s Map") {
-            showToast(`🗺️ ${student.name} discovered a shortcut! +10 Stars for the Team Map!`, 'success');
-        }
-        // Update local state so UI (Trophy Room, avatar popover) reflects item removed immediately
-        const allScores = state.get('allStudentScores');
-        const idx = allScores.findIndex(s => s.id === studentId);
-        if (idx !== -1 && allScores[idx].inventory) {
-            const nextInv = [...allScores[idx].inventory];
-            nextInv.splice(itemIndex, 1);
-            allScores[idx] = { ...allScores[idx], inventory: nextInv };
-            state.setAllStudentScores(allScores);
-        }
-    } catch (error) {
-        console.error(error);
-        showToast("The magic fizzled out!", "error");
-    }
+
+            try {
+                const operationSucceeded = await runTransaction(db, async (transaction) => {
+                    const scoreRef = doc(db, "artifacts/great-class-quest/public/data/student_scores", studentId);
+                    const scoreDoc = await transaction.get(scoreRef);
+                    const currentInventory = scoreDoc.data().inventory || [];
+                    const classData = state.get('allSchoolClasses').find(c => c.id === student.classId);
+
+                    const success = await POWER_UP_EFFECTS[item.name](student, classData, { transaction });
+                    if (success) {
+                        currentInventory.splice(itemIndex, 1);
+                        transaction.update(scoreRef, { inventory: currentInventory });
+                    }
+                    return success; // surface result so outer code only runs on true success
+                });
+
+                if (operationSucceeded) {
+                    playSound('magic_chime');
+                    // Show toasts once here (not inside transaction) so they don’t run twice on retry
+                    if (item.name === "Scroll of the Gilded Star") {
+                        showToast(`Next star for ${student.name} is worth triple Gold!`, 'success');
+                    } else if (item.name === "The Pathfinder's Map") {
+                        showToast(`🗺️ The class quest advances! +10 Team Stars — thanks to ${student.name}'s discovery!`, 'success');
+                    }
+                    // Update local state so UI (Trophy Room, avatar popover) reflects item removed immediately
+                    const allScores = state.get('allStudentScores');
+                    const idx = allScores.findIndex(s => s.id === studentId);
+                    if (idx !== -1 && allScores[idx].inventory) {
+                        const nextInv = [...allScores[idx].inventory];
+                        nextInv.splice(itemIndex, 1);
+                        allScores[idx] = { ...allScores[idx], inventory: nextInv };
+                        state.setAllStudentScores(allScores);
+                    }
+                }
+            } catch (error) {
+                console.error(error);
+                showToast("The magic fizzled out!", "error");
+            }
+        },
+        'Use Item',
+        'Keep It'
+    );
 }
 
 // --- EFFECT FUNCTIONS ---

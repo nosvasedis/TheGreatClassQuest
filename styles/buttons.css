@@ -59,51 +59,127 @@
     animation: star-jiggle 0.5s ease-in-out;
 }
 
+/* ★ 1 — intentionally understated */
 .star-btn-1 {
-    background-image: linear-gradient(to right, var(--tw-gradient-stops));
-    --tw-gradient-from: #22d3ee;
-    --tw-gradient-to: #3b82f6;
-    --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to);
-    border-bottom-color: #1D4ED8;
-    --glow-color-1: #38BDF8;
-    --glow-color-2: rgba(56, 189, 248, 0.5);
+    background: linear-gradient(135deg, #94a3b8, #64748b);
+    border-bottom-color: #475569;
+    font-size: 1.1rem;
+    padding: 0.5rem 0.85rem;
+    opacity: 0.72;
 }
 
+.star-btn-1 .fa-star {
+    color: #cbd5e1;
+    text-shadow: none;
+    font-size: 0.9em;
+}
+
+.star-btn-1:hover {
+    opacity: 0.92;
+    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.14);
+}
+
+/* ★★ 2 — vibrant and striking */
 .star-btn-2 {
-    background-image: linear-gradient(to right, var(--tw-gradient-stops));
-    --tw-gradient-from: #c084fc;
-    --tw-gradient-to: #ec4899;
-    --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to);
-    border-bottom-color: #BE185D;
-    font-size: 1.6rem;
-    --glow-color-1: #F472B6;
-    --glow-color-2: rgba(244, 114, 182, 0.5);
+    background: linear-gradient(135deg, #c084fc, #ec4899);
+    border-bottom-color: #be185d;
+    font-size: 1.45rem;
+    padding: 0.65rem 1rem;
 }
 
+.star-btn-2 .fa-star {
+    color: #fce7f3;
+    text-shadow: 0 0 7px rgba(255, 255, 255, 0.6);
+}
+
+.star-btn-2:hover {
+    transform: scale(1.08);
+    box-shadow: 0 0 24px rgba(236, 72, 153, 0.65), 0 8px 16px -4px rgba(0, 0, 0, 0.18);
+}
+
+/* ★★★ 3 — extravagant, always animated */
 .star-btn-3 {
-    background-image: linear-gradient(to right, var(--tw-gradient-stops));
-    --tw-gradient-from: #fbbf24;
-    --tw-gradient-to: #f97316;
-    --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to);
-    border-bottom-color: #C2410C;
-    font-size: 1.7rem;
-    text-shadow: 0 2px 3px rgba(0, 0, 0, 0.3);
-    --glow-color-1: #FBBF24;
-    --glow-color-2: rgba(251, 191, 36, 0.6);
+    background: linear-gradient(135deg, #fbbf24 0%, #f97316 50%, #ef4444 100%);
+    background-size: 200% 200%;
+    border-bottom-color: #c2410c;
+    font-size: 1.8rem;
+    padding: 0.78rem 1.1rem;
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.35);
+    animation: star3-glow-pulse 2s ease-in-out infinite, star3-bg-shift 3s ease-in-out infinite;
 }
 
-/* --- V4.7: NEW STUDENT CLOUD CARD & ANIMATIONS --- */
+.star-btn-3 .fa-star {
+    display: inline-block;
+    color: #fef3c7;
+    text-shadow: 0 0 8px rgba(255, 220, 50, 0.9), 0 0 16px rgba(255, 180, 0, 0.6);
+    animation: star3-icon-dance 1.6s ease-in-out infinite alternate;
+}
+
+.star-btn-3:hover {
+    transform: scale(1.12);
+    box-shadow: 0 0 42px rgba(251, 191, 36, 0.98), 0 0 80px rgba(249, 115, 22, 0.55), 0 10px 22px -4px rgba(0, 0, 0, 0.28);
+    animation: star3-hover-pulse 0.7s ease-in-out infinite, star3-bg-shift 1s ease-in-out infinite;
+}
+
+@keyframes star3-glow-pulse {
+    0%, 100% { box-shadow: 0 0 10px rgba(251, 191, 36, 0.55), 0 4px 8px rgba(0, 0, 0, 0.1); }
+    50%       { box-shadow: 0 0 28px rgba(249, 115, 22, 0.9), 0 0 55px rgba(251, 191, 36, 0.4), 0 6px 14px rgba(0, 0, 0, 0.14); }
+}
+
+@keyframes star3-hover-pulse {
+    0%, 100% { box-shadow: 0 0 38px rgba(251, 191, 36, 0.95), 0 0 72px rgba(249, 115, 22, 0.55); }
+    50%       { box-shadow: 0 0 60px rgba(251, 191, 36, 1), 0 0 105px rgba(249, 115, 22, 0.75); }
+}
+
+@keyframes star3-bg-shift {
+    0%   { background-position: 0% 50%; }
+    50%  { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
+}
+
+@keyframes star3-icon-dance {
+    0%   { transform: translateY(0) scale(1) rotate(-5deg);    text-shadow: 0 0 6px rgba(255, 220, 50, 0.8),  0 0 12px rgba(255, 180, 0, 0.5); }
+    100% { transform: translateY(-4px) scale(1.16) rotate(5deg); text-shadow: 0 0 14px rgba(255, 255, 150, 1), 0 0 28px rgba(255, 220, 0, 0.95), 0 0 48px rgba(255, 120, 0, 0.4); }
+}
+
+/* --- SVG CLOUD CARDS --- */
 .student-cloud-card {
     position: relative;
-    background-color: white;
-    padding: 1rem 1.5rem 1.5rem 1.5rem;
+    background: transparent;
+    /* top: room for avatar overhang; bottom: reserved space for abs-positioned star buttons */
+    padding: 40px 1.75rem 5.5rem 1.75rem;
     display: flex;
     flex-direction: column;
     gap: 0.75rem;
-    filter: drop-shadow(0 5px 8px rgba(0, 0, 0, 0.15));
-    transform: translateZ(0);
+    overflow: visible;
     animation: float-card 6s ease-in-out infinite;
-    padding-top: 40px;
+}
+
+/* SVG cloud background injected as first child */
+.cloud-bg-svg {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    z-index: -1;
+    pointer-events: none;
+    overflow: visible;
+    filter: drop-shadow(0 5px 10px rgba(0, 0, 0, 0.13));
+}
+
+/* Reigning Prodigy: amber glow on the svg cloud */
+.award-reigning-prodigy .cloud-bg-svg {
+    filter: drop-shadow(0 0 20px rgba(251, 191, 36, 0.72)) drop-shadow(0 5px 10px rgba(0, 0, 0, 0.12));
+}
+
+/* Reigning Hero: animated green glow on the svg cloud */
+.reigning-hero-card .cloud-bg-svg {
+    animation: hero-cloud-glow 2.5s ease-in-out infinite;
+}
+
+@keyframes hero-cloud-glow {
+    0%, 100% { filter: drop-shadow(0 0 16px rgba(34, 197, 94, 0.65)) drop-shadow(0 5px 10px rgba(0, 0, 0, 0.10)); }
+    50%       { filter: drop-shadow(0 0 34px rgba(34, 197, 94, 0.98)) drop-shadow(0 0 58px rgba(34, 197, 94, 0.32)) drop-shadow(0 5px 10px rgba(0, 0, 0, 0.12)); }
 }
 
 .student-avatar-cloud {
@@ -176,25 +252,21 @@
     animation: fade-in-up 0.3s ease-out forwards;
 }
 
-.cloud-shape-1 {
-    border-radius: 50% 60% 40% 70% / 60% 50% 70% 40%;
-}
+/* Cloud shapes are now SVG paths — see getCloudSvg() in ui/tabs/award.js */
 
-.cloud-shape-2 {
-    border-radius: 40% 70% 50% 60% / 70% 60% 40% 50%;
-}
-
-.cloud-shape-3 {
-    border-radius: 60% 50% 70% 40% / 50% 70% 50% 60%;
-}
-
-.cloud-shape-4 {
-    border-radius: 70% 40% 60% 50% / 60% 50% 70% 40%;
-}
-
+/* Award Reigning Prodigy: background is the SVG fill; glow is on .cloud-bg-svg above */
 .award-reigning-prodigy {
-    background: linear-gradient(160deg, #fef3c7 0%, #fffbeb 40%, #ffffff 70%) !important;
-    box-shadow: 0 0 0 2.5px rgba(251, 191, 36, 0.55), 0 5px 12px rgba(251, 191, 36, 0.18);
+    /* intentionally empty — handled via .cloud-bg-svg and SVG fill */
+}
+
+/* Divider between star award buttons */
+.star-divider {
+    width: 1px;
+    height: 1.75rem;
+    background: linear-gradient(to bottom, transparent, rgba(168, 85, 247, 0.4), transparent);
+    border-radius: 2px;
+    flex-shrink: 0;
+    margin: 0 0.35rem;
 }
 
 /* "Reigning Prodigy" badge inside the cloud */

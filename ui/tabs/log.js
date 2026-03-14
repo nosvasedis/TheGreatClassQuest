@@ -243,7 +243,7 @@ export function updateAllClassSelectors(isManual) {
         }
     }
 
-    const selectors = ['gemini-class-select', 'oracle-class-select', 'story-weavers-class-select', 'adventure-log-class-select', 'scroll-class-select'];
+    const selectors = ['gemini-class-select', 'story-weavers-class-select', 'adventure-log-class-select', 'scroll-class-select'];
     selectors.forEach(id => {
         const select = document.getElementById(id);
         if (select) {

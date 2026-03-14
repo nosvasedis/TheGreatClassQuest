@@ -80,10 +80,10 @@ export const FEATURE_DEFINITIONS = {
     eliteAI: {
         name: 'AI Magic ✨',
         emoji: '🤖',
-        description: 'AI summaries, Oracle, story images',
+        description: 'AI summaries, Hero Chronicle Oracle, story images',
         tier: 'Elite',
-        teacherExplain: "The Elite AI suite brings magic to your classroom: the Oracle analyses your class data and gives you personalised insights on student performance, the AI Story Writer generates adventure log entries automatically, and AI Story Images create beautiful illustrated covers for your class stories. Less admin, more inspiration — powered by Gemini AI. 🤖✨🎨",
-        studentExplain: "Your class has an AI Oracle! 🤖✨ The Oracle helps create amazing stories and images for your class adventure, making every lesson feel like part of a real fantasy world. This is the cutting edge of magical classroom technology! 🌟"
+        teacherExplain: "The Elite AI suite brings magic to your classroom: the Oracle inside Hero's Chronicle analyses individual student data and generates personalised reports (Parent Summary, Teacher Strategy, Strengths/Weaknesses, Goal Suggestion), the AI Story Writer generates adventure log entries automatically, and AI Story Images create beautiful illustrated covers for your class stories. Less admin, more inspiration — powered by Gemini AI. 🤖✨🎨",
+        studentExplain: "Your teacher has an AI Oracle inside Hero's Chronicle! 🤖✨ The Oracle helps your teacher understand your progress and give you better support. It's like having a magical advisor watching over your hero's journey! 🌟"
     }
 };
 
@@ -130,6 +130,7 @@ export function getGuideSections(perspective) {
                 intro: 'Beautiful, clear academic tracking that turns boring grade records into a living progress story for each student.',
                 features: [
                     { emoji: '📜', name: "Scholar's Scroll", tier: 'pro', key: 'scholarScroll', teacherExplain: FEATURE_DEFINITIONS.scholarScroll.teacherExplain, why: "Replaces paper grade sheets with a visual, satisfying record system you'll actually want to open." },
+                    { emoji: '📓', name: "Hero's Chronicle", tier: 'starter', teacherExplain: "Hero's Chronicle is your private notebook for each student — accessible from My Classes → Students → Chronicle button. Add notes by category (General, Academic, Behavioral, Social, Goals), track progress over time, and keep everything in one place. On Elite tier, the Oracle AI can analyse your notes plus trial scores and star awards to generate Parent Summaries, Teacher Strategies, Strengths/Weaknesses analyses, and Goal Suggestions. 📓✨", why: 'Keep detailed records without drowning in paperwork — and let AI help you spot patterns on Elite.' },
                     { emoji: '🔄', name: 'Make-up Tracking', tier: 'pro', key: 'makeupTracking', teacherExplain: FEATURE_DEFINITIONS.makeupTracking.teacherExplain, why: 'Perfect for private English schools with flexible scheduling — nothing slips through the cracks.' },
                     { emoji: '📋', name: 'Advanced Attendance', tier: 'pro', key: 'advancedAttendance', teacherExplain: FEATURE_DEFINITIONS.advancedAttendance.teacherExplain, why: 'Professional-grade records that protect you and inform parents with clarity.' },
                 ]
@@ -162,11 +163,11 @@ export function getGuideSections(perspective) {
             {
                 id: 'ai',
                 emoji: '🤖',
-                title: 'AI Magic ✨ (Elite)',
+                title: 'AI Magic ✨',
                 color: 'indigo',
                 intro: 'The most advanced frontier of The Great Class Quest — AI-powered tools that save you time and spark creativity.',
                 features: [
-                    { emoji: '🔮', name: 'The Oracle', tier: 'elite', key: 'eliteAI', teacherExplain: 'The Oracle is your AI teaching assistant — analyse your whole class\'s performance data and get personalised insights, patterns, and suggestions in plain English. Who needs extra support? Who is a hidden star? The Oracle sees it all. 🔮✨', why: 'Saves hours of data analysis and surfaces insights you might have missed.' },
+                    { emoji: '🔮', name: "Hero's Chronicle Oracle", tier: 'elite', key: 'eliteAI', teacherExplain: "Inside each student's Hero's Chronicle (My Classes → Students → Chronicle), the Oracle AI generates four types of personalised reports: Parent Summary (for parent-teacher meetings), Teacher Strategy (actionable classroom tips), Strengths/Weaknesses Analysis, and Goal Suggestions. The Oracle reads all the student's notes, trial scores, and star awards to give you insights you might have missed. 🔮✨", why: 'Saves hours of analysis and helps you support every student as an individual.' },
                     { emoji: '✍️', name: 'AI Adventure Log Writer', tier: 'elite', key: 'eliteAI', teacherExplain: 'After each lesson, the AI automatically generates a beautifully written Adventure Log entry based on what happened in class — stars awarded, bounties completed, achievements earned. You can edit or publish as-is. It turns admin into a magical storybook in seconds! ✍️🤖', why: 'Eliminates the time cost of writing lesson logs while making them richer than ever.' },
                     { emoji: '🎨', name: 'AI Story Images', tier: 'elite', key: 'eliteAI', teacherExplain: 'Generate illustrated cover images for your class stories using AI — beautiful, fantasy-themed artwork created just for your class\'s unique adventure. Students see their story as a real illustrated book. It\'s creative, memorable, and completely unique. 🎨🖼️', why: 'Transforms student writing into something visually stunning that they are genuinely proud of.' },
                     { emoji: '🦸', name: 'AI Avatar Generator', tier: 'elite', key: 'eliteAI', teacherExplain: 'Students create unique AI-generated avatars! They choose a creature type, colour scheme, and accessory, and the AI creates a personalised chibi-style character just for them. Each avatar is completely unique — no two heroes look the same! 🦸✨', why: 'Students feel genuinely attached to their unique identity in the Quest world.' },
@@ -233,11 +234,11 @@ export function getGuideSections(perspective) {
         {
             id: 'ai',
             emoji: '🤖',
-            title: 'AI Magic ✨ (Elite)',
+            title: 'AI Magic ✨',
             color: 'indigo',
             intro: 'The most advanced features in the Quest universe — powered by AI to make your class stories and experiences truly extraordinary.',
             features: [
-                { emoji: '🔮', name: 'The Oracle', tier: 'elite', studentExplain: "There's an AI Oracle helping your teacher understand how the whole class is doing! 🔮✨ The Oracle gives special insights that help your teacher support you even better. It's like having a magical advisor watching over the whole Quest.", why: 'The Oracle helps make sure every hero gets the support they need! 🌟' },
+                { emoji: '🔮', name: "Hero's Chronicle Oracle", tier: 'elite', studentExplain: "Your teacher has a special AI Oracle inside your Hero's Chronicle! 🔮✨ The Oracle looks at all your progress — stars, tests, and achievements — and helps your teacher understand how to support you better. It's like having a magical advisor watching over your hero's journey!", why: 'The Oracle helps make sure every hero gets the support they need! 🌟' },
                 { emoji: '🎨', name: 'AI Story Images', tier: 'elite', studentExplain: "Your class stories get AI-generated illustrated covers — real artwork made just for YOUR class's adventure! 🎨🖼️ These images are completely unique and make your story feel like a real published fantasy book.", why: 'Your class story deserves a cover worthy of a legendary tale! ✨' },
                 { emoji: '🦸', name: 'AI Avatar Generator', tier: 'elite', studentExplain: 'Create your own unique AI-generated avatar! 🦸✨ Choose your creature type, colour, and accessory, and the AI makes a personalised chibi-style hero just for you. No two avatars are the same — yours will be completely unique!', why: 'Your hero is unique. Make them look the part! ✨' },
             ]
@@ -303,7 +304,7 @@ export function getTierSummary(rawTier) {
         return {
             badge: 'Top Tier',
             title: 'You are on Elite — the full magical toolkit.',
-            body: 'All AI-powered features unlocked: the Oracle, AI avatars, AI reports & certificates, AI story images, AI adventure log writer, plus full analytics, planning, guilds, story weavers and every classroom magic trick.',
+            body: 'All AI-powered features unlocked: Hero\'s Chronicle Oracle, AI avatars, AI reports & certificates, AI story images, AI adventure log writer, plus full analytics, planning, guilds, story weavers and every classroom magic trick.',
             cta: 'Thank you for being a founding legend of The Great Class Quest.',
             isTopTier: true
         };
@@ -313,7 +314,7 @@ export function getTierSummary(rawTier) {
             badge: 'Pro Power',
             title: 'Pro unlocks guilds, planners and advanced logs.',
             body: "You have access to Guilds, Hero Classes & Skill Tree progression, the Calendar & School Year Planner, Story Weavers, Scholar's Scroll, and the full Adventure Log.",
-            cta: 'Upgrade to Elite to add AI-assisted summaries, the Oracle, and early-access experiments.',
+            cta: 'Upgrade to Elite to add AI-assisted summaries, Hero\'s Chronicle Oracle, and early-access experiments.',
             isTopTier: false
         };
     }
@@ -321,7 +322,7 @@ export function getTierSummary(rawTier) {
         badge: 'Starter',
         title: 'Starter keeps things simple and safe.',
         body: 'Perfect for trying the core experience: award stars, run ceremonies, use Quest Assignment & Attendance, and manage Familiars, Bounties, and the Mystic Market.',
-        cta: 'Upgrade to Pro to unlock guilds, hero classes, planners, story tools and the full Adventure Log — or go straight to Elite for AI-powered features like avatars, reports, and the Oracle.',
+        cta: 'Upgrade to Pro to unlock guilds, hero classes, planners, story tools and the full Adventure Log — or go straight to Elite for AI-powered features like avatars, reports, and Hero\'s Chronicle Oracle.',
         isTopTier: false
     };
 }
@@ -346,7 +347,7 @@ export function getTiersAtAGlance() {
         {
             tier: 'Starter',
             label: 'Starter',
-            bullets: 'Core stars, ceremonies, Quest Assignment & Attendance, Familiars, Bounties, Mystic Market, Hero\'s Boon, Quest World Map, Projector Mode.'
+            bullets: 'Core stars, ceremonies, Quest Assignment & Attendance, Familiars, Bounties, Mystic Market, Hero\'s Boon, Quest World Map, Projector Mode, Hero\'s Chronicle (note-taking).'
         },
         {
             tier: 'Pro',
@@ -356,7 +357,7 @@ export function getTiersAtAGlance() {
         {
             tier: 'Elite',
             label: 'Elite',
-            bullets: 'Everything in Pro plus AI-powered features: the Oracle, AI avatars, AI reports & certificates, AI story images, AI adventure log writer, early-access experiments and priority support.'
+            bullets: 'Everything in Pro plus AI-powered features: Hero\'s Chronicle Oracle (AI insights), AI avatars, AI reports & certificates, AI story images, AI adventure log writer, early-access experiments and priority support.'
         }
     ];
 }

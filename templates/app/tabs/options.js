@@ -10,6 +10,8 @@ export const optionsTabHTML = `
                         <p class="text-lg text-gray-600 mt-2">Manage your profile and access advanced tools.</p>
                     </div>
 
+                    <div id="options-tier-summary" class="mb-6"></div>
+
                     <div class="options-subtab-bar">
                         <button type="button" class="options-subtab-btn options-subtab-active" data-options-tab="manage">
                             <i class="fas fa-tools mr-1.5"></i> Manage

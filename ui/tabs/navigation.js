@@ -206,16 +206,59 @@ export async function showTab(tabName) {
 
         const tierEl = document.getElementById('app-tier-label');
         const versionEl = document.getElementById('app-version-label');
+        const summaryEl = document.getElementById('options-tier-summary');
+
+        const rawTier = getTier();
+        const pretty =
+            rawTier === 'elite' ? 'Elite' :
+            rawTier === 'pro' ? 'Pro' : 'Starter';
+
         if (tierEl) {
-            const rawTier = getTier();
-            const pretty =
-                rawTier === 'elite' ? 'Elite' :
-                rawTier === 'pro' ? 'Pro' : 'Starter';
             tierEl.textContent = `Plan: ${pretty}`;
         }
         if (versionEl) {
             const version = (constants && constants.APP_VERSION) || '0.0.2';
             versionEl.textContent = `Version ${version}`;
+        }
+
+        if (summaryEl) {
+            let badge, title, body, cta;
+            if (rawTier === 'elite') {
+                badge = '🌟 Top Tier';
+                title = 'You are on Elite — the full magical toolkit.';
+                body = 'AI-assisted adventures, full analytics, planning, guilds, story weavers and every classroom magic trick are unlocked for your school.';
+                cta = 'Thank you for being a founding legend of The Great Class Quest.';
+            } else if (rawTier === 'pro') {
+                badge = '🚀 Pro Power';
+                title = 'Pro unlocks guilds, planners and advanced logs.';
+                body = 'You have access to Guilds, the Calendar & School Year Planner, Story Weavers, Scholar\'s Scroll and advanced attendance & make-up tools.';
+                cta = 'Upgrade to Elite to add AI-assisted summaries, smart suggestions and early access experiments.';
+            } else {
+                badge = '🔰 Starter';
+                title = 'Starter keeps things simple and safe.';
+                body = 'Perfect for trying the core experience: award stars, run ceremonies and use the basic adventure log with your classes.';
+                cta = 'Upgrade to Pro to unlock guilds, planners, story tools and rich analytics — or go straight to Elite for the full AI-powered experience.';
+            }
+
+            summaryEl.innerHTML = `
+                <div class="bg-gradient-to-r from-sky-50 via-slate-50 to-emerald-50 border border-sky-100 rounded-3xl shadow-md p-4 md:p-5 flex flex-col md:flex-row md:items-center gap-4">
+                    <div class="flex-1">
+                        <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/70 border border-sky-100 text-xs font-semibold text-sky-700 mb-2">
+                            <span>${badge}</span>
+                            <span class="h-1 w-1 rounded-full bg-sky-400"></span>
+                            <span>Current plan: ${pretty}</span>
+                        </div>
+                        <h3 class="font-title text-xl text-slate-800 mb-1">${title}</h3>
+                        <p class="text-sm text-slate-600">${body}</p>
+                    </div>
+                    <div class="md:w-56">
+                        <div class="bg-white/80 rounded-2xl px-3 py-3 text-xs text-slate-600 border border-dashed border-sky-100">
+                            <p class="font-semibold text-slate-800 mb-1">${rawTier === 'elite' ? 'You\'re all set ✨' : 'Thinking about upgrading?'}</p>
+                            <p>${cta}</p>
+                        </div>
+                    </div>
+                </div>
+            `;
         }
     }
 }

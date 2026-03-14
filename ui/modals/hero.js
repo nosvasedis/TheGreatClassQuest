@@ -4,6 +4,7 @@ import * as utils from '../../utils.js';
 import { HERO_CLASSES } from '../../features/heroClasses.js';
 import { showAnimatedModal } from './base.js';
 import { callGeminiApi } from '../../api.js';
+import { getTier } from '../../utils/subscription.js';
 
 // --- CORRECTED & ENHANCED HERO STATS MODAL ---
 
@@ -381,6 +382,17 @@ export function openAppInfoModal() {
     const studentContent = document.getElementById('info-content-students');
     const teacherContent = document.getElementById('info-content-teachers');
 
+    const rawTier = getTier();
+    const prettyTier =
+        rawTier === 'elite' ? 'Elite' :
+        rawTier === 'pro' ? 'Pro' : 'Starter';
+    const tierTagline =
+        rawTier === 'elite'
+            ? 'All features unlocked – enjoy the full quest!'
+            : rawTier === 'pro'
+                ? 'Guilds, planners and advanced tools active.'
+                : 'Core quest experience – perfect starting point.';
+
     // 1. STUDENTS CONTENT (Adventure Guide)
     studentContent.innerHTML = `
         <div class="bg-white/80 p-6 rounded-3xl shadow-sm border-l-8 border-cyan-400">
@@ -413,8 +425,20 @@ export function openAppInfoModal() {
             <div class="bg-green-50 p-6 rounded-2xl border-2 border-green-200">
                 <h4 class="font-title text-xl text-green-700 mb-2"><i class="fas fa-feather-alt"></i> Story Weavers</h4>
                 <p class="text-sm text-gray-600">
-                    Every lesson, you create a story together. The AI illustrates your adventure based on what you learn!
+                    Every lesson, you create a story together.${rawTier === 'elite' ? ' On Elite, AI can help illustrate or inspire your adventures.' : ' Some story features unlock on higher plans your teacher can enable later.'}
                 </p>
+            </div>
+        </div>
+        <div class="mt-6 bg-gradient-to-r from-sky-500 to-emerald-500 text-white rounded-2xl p-4 flex items-center justify-between flex-wrap gap-2">
+            <div class="text-sm font-semibold">
+                This school is on the <span class="underline decoration-white/60">${prettyTier}</span> plan.
+            </div>
+            <div class="text-xs opacity-90">
+                ${rawTier === 'elite'
+                    ? 'You already have every student-facing feature turned on.'
+                    : rawTier === 'pro'
+                        ? 'Ask your teacher about Elite to add more magic and AI helpers.'
+                        : 'Some powerful tools are hidden until your teachers upgrade the quest.'}
             </div>
         </div>
     `;
@@ -422,11 +446,19 @@ export function openAppInfoModal() {
     // 2. TEACHERS CONTENT (Game Master's Manual)
     teacherContent.innerHTML = `
         <div class="bg-white/80 p-6 rounded-3xl shadow-sm border-l-8 border-green-500">
-            <h3 class="font-title text-3xl text-green-800 mb-4"><i class="fas fa-chalkboard-teacher"></i> The Philosophy</h3>
-            <p class="text-gray-700 text-lg leading-relaxed">
-                This app turns classroom management into a cooperative RPG. Instead of policing behavior, you are the <strong>Game Master</strong> guiding a guild of heroes.
-                Use visuals, sounds, and AI storytelling to make "boring" tasks (attendance, homework) feel magical.
-            </p>
+            <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+                <div>
+                    <h3 class="font-title text-3xl text-green-800 mb-1"><i class="fas fa-chalkboard-teacher"></i> The Philosophy</h3>
+                    <p class="text-gray-700 text-sm leading-relaxed">
+                        This app turns classroom management into a cooperative RPG. Instead of policing behavior, you are the <strong>Game Master</strong> guiding a guild of heroes.
+                        Use visuals, sounds, and storytelling to make attendance, homework and tests feel meaningful.
+                    </p>
+                </div>
+                <div class="bg-emerald-50 border border-emerald-200 rounded-2xl px-4 py-3 text-xs text-emerald-800 shadow-sm">
+                    <div class="font-title text-sm mb-1">Current Plan: ${prettyTier}</div>
+                    <p>${tierTagline}</p>
+                </div>
+            </div>
         </div>
 
         <div class="space-y-6">
@@ -446,7 +478,7 @@ export function openAppInfoModal() {
                         1. <strong>Home Tab:</strong> Check active class.<br>
                         2. <strong>Roll Call:</strong> Mark absences (removes today's stars).<br>
                         3. <strong>Award:</strong> Give stars during lesson.<br>
-                        4. <strong>Log:</strong> At end of class, go to <strong>Log</strong> tab and click "Log Adventure". The AI writes the summary!
+                        4. <strong>Log:</strong> At end of class, go to <strong>Log</strong> tab and click "Log Adventure".${rawTier === 'elite' ? ' On Elite, AI can draft the summary for you.' : ' You can write a quick summary; Elite adds AI-written logs later if you choose.'}
                     </p>
                 </div>
             </div>
@@ -454,11 +486,32 @@ export function openAppInfoModal() {
             <div class="bg-white p-5 rounded-xl shadow-sm border border-gray-200 flex gap-4">
                 <div class="text-3xl text-amber-500"><i class="fas fa-crown"></i></div>
                 <div>
-                    <h4 class="font-bold text-gray-800 text-lg">Ceremonies</h4>
+                    <h4 class="font-bold text-gray-800 text-lg">Ceremonies & Guilds</h4>
                     <p class="text-sm text-gray-600">
-                        At the start of a new month, the <strong>Team Quest</strong> and <strong>Hero's Challenge</strong> buttons will glow. Click them to launch the automated Award Ceremony for the previous month!
+                        At the start of a new month, the <strong>Team Quest</strong> and <strong>Hero's Challenge</strong> buttons will glow. Click them to launch the Award Ceremony for the previous month.
+                        ${rawTier === 'starter'
+                            ? ' On Pro, Guilds and a richer ceremony flow become available.'
+                            : ' Combine this with Guilds to make end-of-month celebrations unforgettable.'}
                     </p>
                 </div>
+            </div>
+
+            <div class="bg-slate-50 p-5 rounded-xl border border-dashed border-slate-300 space-y-2">
+                <h4 class="font-bold text-gray-800 text-lg flex items-center gap-2">
+                    <i class="fas fa-layer-group text-sky-500"></i> Plan Tiers at a Glance
+                </h4>
+                <ul class="text-sm text-gray-600 list-disc pl-5 space-y-1">
+                    <li><strong>Starter:</strong> Core stars, ceremonies, basic log, one-school setup.</li>
+                    <li><strong>Pro:</strong> Adds Guilds, Calendar & School Year Planner, Story Weavers, Scholar's Scroll, advanced attendance and make-up tracking.</li>
+                    <li><strong>Elite:</strong> Everything in Pro <em>plus</em> AI-assisted logs and stories, early-access experiments and priority support.</li>
+                </ul>
+                <p class="text-xs text-gray-500 mt-1">
+                    ${rawTier === 'elite'
+                        ? 'You are already on Elite — enjoy exploring every corner of the quest! ✨'
+                        : rawTier === 'pro'
+                            ? 'You are on Pro. When you feel ready for AI support and experiments, upgrading to Elite takes seconds.'
+                            : 'You are on Starter. When your staff are comfortable, moving to Pro or Elite unlocks much more without changing your daily routine.'}
+                </p>
             </div>
         </div>
     `;

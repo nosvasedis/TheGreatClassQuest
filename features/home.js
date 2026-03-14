@@ -502,6 +502,7 @@ function getActiveDashboard(classData, name, theme, spice) {
 }
 
 function getLayout(name, theme, spice, selector, row2, row3) {
+    const schoolName = state.get('schoolName') || 'Prodigies Language School';
     return `
     <div class="w-full max-w-7xl mx-auto p-4">
         <div class="horizons-grid">

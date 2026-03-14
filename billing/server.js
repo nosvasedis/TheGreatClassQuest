@@ -7,17 +7,19 @@
  * or (webhookUrl + webhookSecret) for callback. Direct Firestore = no per-school deployment.
  *
  * Env: STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET, BILLING_SCHOOLS_PATH (optional)
- * Optional: PORT (default 3333)
+ * Optional: PORT (default 3333). Loads .env from billing folder if present.
  */
+
+import dotenv from 'dotenv';
+import { fileURLToPath } from 'url';
+import { dirname, join } from 'path';
+dotenv.config({ path: join(dirname(fileURLToPath(import.meta.url)), '.env') });
 
 import express from 'express';
 import cors from 'cors';
 import Stripe from 'stripe';
 import admin from 'firebase-admin';
-import { readFileSync, existsSync } from 'fs';
-import { fileURLToPath } from 'url';
-import { dirname, join } from 'path';
-
+import { readFileSync, writeFileSync, existsSync } from 'fs';
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
 const firebaseApps = {};
@@ -74,8 +76,8 @@ function loadSchools() {
 
 function loadTierPreset(tier) {
   const paths = [
-    join(__dirname, '..', 'config', 'tiers', `${tier}.json'),
-    join(process.cwd(), 'config', 'tiers', `${tier}.json'),
+    join(__dirname, '..', 'config', 'tiers', tier + '.json'),
+    join(process.cwd(), 'config', 'tiers', tier + '.json'),
   ];
   for (const p of paths) {
     if (existsSync(p)) return JSON.parse(readFileSync(p, 'utf8'));
@@ -91,6 +93,99 @@ function getSchoolByCustomerId(customerId) {
 function getSchoolById(schoolId) {
   const { schools } = loadSchools();
   return schools.find((s) => s.schoolId === schoolId) || null;
+}
+
+/** Cached portal configuration ID so customers can switch plans (Starter / Pro / Elite) in Stripe. */
+let cachedPortalConfigId = null;
+
+/** Get or create a Stripe Customer Portal config that allows plan switching. Uses priceIds from schools config. */
+async function getOrCreatePortalConfiguration() {
+  if (cachedPortalConfigId) return cachedPortalConfigId;
+  const { priceIds } = loadSchools();
+  const tierOrder = ['starter', 'pro', 'elite'];
+  const productPricePairs = [];
+  for (const tier of tierOrder) {
+    const priceId = priceIds?.[tier];
+    if (!priceId) continue;
+    try {
+      const price = await stripe.prices.retrieve(priceId);
+      const productId = typeof price.product === 'string' ? price.product : price.product?.id;
+      if (productId) productPricePairs.push({ product: productId, prices: [priceId] });
+    } catch (e) {
+      console.warn('Could not load price for tier', tier, e.message);
+    }
+  }
+  if (productPricePairs.length === 0) {
+    console.warn('No valid prices for portal config; plan switching will be disabled in portal.');
+    return undefined;
+  }
+  try {
+    const config = await stripe.billingPortal.configurations.create({
+      business_profile: { headline: 'Manage your subscription' },
+      features: {
+        subscription_update: {
+          enabled: true,
+          default_allowed_updates: ['price'],
+          proration_behavior: 'create_prorations',
+          products: productPricePairs,
+          schedule_at_period_end: {
+            conditions: [{ type: 'decreasing_item_amount' }],
+          },
+        },
+        subscription_cancel: { enabled: true, mode: 'at_period_end' },
+        payment_method_update: { enabled: true },
+        invoice_history: { enabled: true },
+      },
+    });
+    cachedPortalConfigId = config.id;
+    console.log('Portal configuration created for plan switching:', config.id);
+    return cachedPortalConfigId;
+  } catch (e) {
+    console.error('Failed to create portal configuration:', e.message);
+    return undefined;
+  }
+}
+
+/** Resolve Stripe customer ID for a school (from schools.json or by finding subscription/customer). */
+async function getCustomerIdForSchool(schoolId) {
+  const school = getSchoolById(schoolId);
+  let customerId = school?.stripeCustomerId;
+  if (customerId) return customerId;
+  try {
+    const subs = await stripe.subscriptions.list({ limit: 100, status: 'all' });
+    const match = subs.data.find((s) => s.metadata?.gcqSchoolId === schoolId);
+    if (match) {
+      customerId = typeof match.customer === 'string' ? match.customer : match.customer?.id;
+      if (customerId) saveSchoolStripeCustomerId(schoolId, customerId);
+      return customerId;
+    }
+    const customers = await stripe.customers.list({ limit: 100 });
+    const cust = customers.data.find((c) => c.metadata?.gcqSchoolId === schoolId);
+    if (cust) {
+      saveSchoolStripeCustomerId(schoolId, cust.id);
+      return cust.id;
+    }
+  } catch (e) {
+    console.error('getCustomerIdForSchool error:', e);
+  }
+  return null;
+}
+
+/** Persist Stripe customer ID to schools.json so portal and future checkouts use it. No-op if config is from env. */
+function saveSchoolStripeCustomerId(schoolId, customerId) {
+  if (process.env.BILLING_SCHOOLS_JSON) return;
+  if (!existsSync(schoolsPath)) return;
+  try {
+    const data = JSON.parse(readFileSync(schoolsPath, 'utf8'));
+    const school = data.schools?.find((s) => s.schoolId === schoolId);
+    if (school) {
+      school.stripeCustomerId = customerId;
+      writeFileSync(schoolsPath, JSON.stringify(data, null, 2), 'utf8');
+      console.log('Saved stripeCustomerId for school', schoolId);
+    }
+  } catch (e) {
+    console.error('Failed to save stripeCustomerId to schools.json:', e.message);
+  }
 }
 
 // Create Checkout Session for a school upgrading to a tier
@@ -118,7 +213,7 @@ app.post('/create-checkout-session', express.json(), async (req, res) => {
         metadata: { gcqSchoolId: schoolId },
       });
       customerId = customer.id;
-      // In production you would persist customerId back to schools.json or a DB
+      saveSchoolStripeCustomerId(schoolId, customerId);
     }
 
     const session = await stripe.checkout.sessions.create({
@@ -135,6 +230,100 @@ app.post('/create-checkout-session', express.json(), async (req, res) => {
   } catch (e) {
     console.error('Checkout session error:', e);
     return res.status(500).json({ error: e.message || 'Checkout failed' });
+  }
+});
+
+// Create Stripe Customer Portal session (manage subscription, payment method, invoices)
+app.post('/create-portal-session', express.json(), async (req, res) => {
+  const { schoolId, returnUrl } = req.body || {};
+  if (!schoolId) {
+    return res.status(400).json({ error: 'schoolId required' });
+  }
+
+  const customerId = await getCustomerIdForSchool(schoolId);
+  if (!customerId) {
+    return res.status(404).json({ error: 'No subscription found for this school' });
+  }
+
+  try {
+    const configuration = await getOrCreatePortalConfiguration();
+    const session = await stripe.billingPortal.sessions.create({
+      customer: customerId,
+      return_url: returnUrl || req.headers.referer || `${req.protocol}://${req.get('host')}/`,
+      ...(configuration && { configuration }),
+    });
+    return res.json({ url: session.url });
+  } catch (e) {
+    console.error('Portal session error:', e);
+    return res.status(500).json({ error: e.message || 'Portal failed' });
+  }
+});
+
+// Return subscription details for Options UI (before sending user to Stripe)
+app.get('/subscription-info', async (req, res) => {
+  const schoolId = req.query.schoolId;
+  if (!schoolId) {
+    return res.status(400).json({ error: 'schoolId required' });
+  }
+
+  try {
+    const customerId = await getCustomerIdForSchool(schoolId);
+    if (!customerId) {
+      return res.json({ hasSubscription: false, tier: 'starter' });
+    }
+
+    const subs = await stripe.subscriptions.list({
+      customer: customerId,
+      status: 'all',
+      limit: 20,
+      expand: ['data.items.data.price'],
+    });
+
+    // Prefer active/trialing; otherwise most recent by period end
+    const sorted = subs.data
+      .filter((s) => s.status !== 'incomplete_expired')
+      .sort((a, b) => (b.current_period_end || 0) - (a.current_period_end || 0));
+    const sub = sorted[0];
+
+    if (!sub) {
+      return res.json({ hasSubscription: false, tier: 'starter' });
+    }
+
+    let tier = null;
+    const priceRef = sub.items?.data?.[0]?.price;
+    const priceId = typeof priceRef === 'string' ? priceRef : priceRef?.id;
+    if (priceId) {
+      const { priceIds } = loadSchools();
+      for (const [t, id] of Object.entries(priceIds || {})) {
+        if (id === priceId) {
+          tier = t;
+          break;
+        }
+      }
+    }
+    if (!tier) tier = (sub.metadata?.tier || (typeof priceRef === 'object' && priceRef?.nickname) || 'pro').toLowerCase();
+    const currentPeriodStart = sub.current_period_start
+      ? new Date(sub.current_period_start * 1000).toISOString().slice(0, 10)
+      : null;
+    const currentPeriodEnd = sub.current_period_end
+      ? new Date(sub.current_period_end * 1000).toISOString().slice(0, 10)
+      : null;
+    const canceledAt = sub.canceled_at
+      ? new Date(sub.canceled_at * 1000).toISOString().slice(0, 10)
+      : null;
+
+    return res.json({
+      hasSubscription: true,
+      tier,
+      status: sub.status,
+      currentPeriodStart,
+      currentPeriodEnd,
+      cancelAtPeriodEnd: sub.cancel_at_period_end === true,
+      canceledAt,
+    });
+  } catch (e) {
+    console.error('Subscription info error:', e);
+    return res.status(500).json({ error: e.message || 'Failed to load subscription' });
   }
 });
 
@@ -162,15 +351,29 @@ async function webhookHandler(req, res) {
       const session = event.data.object;
       schoolId = session.metadata?.gcqSchoolId || session.subscription && (await stripe.subscriptions.retrieve(session.subscription)).metadata?.gcqSchoolId;
       tier = session.metadata?.tier || (session.subscription && (await stripe.subscriptions.retrieve(session.subscription)).metadata?.tier);
+      const customerId = typeof session.customer === 'string' ? session.customer : session.customer?.id;
+      if (schoolId && customerId) saveSchoolStripeCustomerId(schoolId, customerId);
       break;
     }
     case 'customer.subscription.updated':
     case 'customer.subscription.deleted': {
       const sub = event.data.object;
       schoolId = sub.metadata?.gcqSchoolId;
-      tier = sub.metadata?.tier;
       if (event.type === 'customer.subscription.deleted') {
-        tier = 'starter';
+        tier = 'expired';
+      } else {
+        const priceRef = sub.items?.data?.[0]?.price;
+        const priceId = typeof priceRef === 'string' ? priceRef : priceRef?.id;
+        if (priceId) {
+          const { priceIds } = loadSchools();
+          for (const [t, id] of Object.entries(priceIds || {})) {
+            if (id === priceId) {
+              tier = t;
+              break;
+            }
+          }
+        }
+        if (!tier) tier = sub.metadata?.tier;
       }
       break;
     }

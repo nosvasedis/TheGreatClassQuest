@@ -106,7 +106,7 @@ export function getGuideSections(perspective) {
                     { emoji: '💰', name: 'Mystic Market & Shop', tier: 'starter', teacherExplain: 'Students spend their earned stars and gold on items in the Mystic Market — Legendary Artifacts with special powers, Familiar eggs, and seasonal treasures. You control what\'s in the shop and set prices. The economy creates natural drive: students want to earn more so they can buy more. 🛒✨', why: 'Creates intrinsic motivation without external prizes or stickers.' },
                     { emoji: '🎁', name: "Hero's Boon", tier: 'starter', teacherExplain: "Hero's Boon is a peer-to-peer gift system — students can spend 15 Gold to bestow a Boon on a classmate, giving them +0.5 Stars! It teaches generosity and community spirit. Students treasure receiving Boons from their friends. Perfect for building classroom camaraderie and celebrating each other's achievements. 🎁💫", why: 'Teaches generosity and builds peer-to-peer connections in the classroom.' },
                     { emoji: '🏹', name: 'Quest Bounties', tier: 'starter', teacherExplain: 'Launch time-limited Quest Bounties — mini challenges with a star reward that students race to complete. Set a task ("First to read the paragraph correctly wins 5 stars!") and watch the energy in the room completely transform. Bounties are perfect for drilling vocabulary or comprehension in a fun, competitive way. 🏹⏱️', why: 'Instantly boosts engagement and creates memorable competitive moments.' },
-                    { emoji: '🐉', name: 'Familiars', tier: 'starter', teacherExplain: "Each student adopts a Familiar — a magical creature egg that hatches and evolves as they earn stars. Familiars grow through multiple stages and are completely unique to each student. It's a powerful long-term engagement hook that makes kids actually excited to come to English class. 🐉🥚", why: 'Long-term progression that makes every star feel like it matters beyond today.' },
+                    { emoji: '🐉', name: 'Familiars', tier: 'elite', teacherExplain: "Each student adopts a Familiar — a magical creature egg that hatches and evolves as they earn stars. Familiars grow through multiple stages and are completely unique to each student. It's a powerful long-term engagement hook that makes kids actually excited to come to English class. 🐉🥚", why: 'Long-term progression that makes every star feel like it matters beyond today.' },
                     { emoji: '🎉', name: 'Ceremonies', tier: 'starter', teacherExplain: 'Monthly ceremonies are magical end-of-cycle celebrations — the app generates highlights, spotlights top heroes, announces champions, and plays celebration animations. Run it on your projector and your students will talk about it all week. No extra preparation needed — the Quest does it all! 🎉🏆', why: 'Creates emotional peaks that students look forward to every month.' },
                 ]
             },
@@ -190,7 +190,7 @@ export function getGuideSections(perspective) {
                 { emoji: '🛒', name: 'Mystic Market', tier: 'starter', studentExplain: 'Spend your stars and gold in the Mystic Market! 🛒✨ Buy Legendary Artifacts with special powers, Familiar eggs, and seasonal treasures. The shop has rare items too — save up for the big ones! Your inventory is your treasure chest of hard-earned rewards.', why: 'Every item you buy is proof of how much you\'ve participated and grown! 🏆' },
                 { emoji: '🎁', name: "Hero's Boon", tier: 'starter', studentExplain: "A Hero's Boon is a special gift you can give to a classmate! 🎁💫 It costs 15 Gold, and the receiver gets +0.5 Stars! When someone gives you a Boon, it means they think you did something legendary. You can also save up your Gold to surprise a friend with one!", why: "It's a way to celebrate your friends and build team spirit! ✨" },
                 { emoji: '🏹', name: 'Quest Bounties', tier: 'starter', studentExplain: 'When your teacher launches a Bounty, a challenge appears with a star reward attached! 🏹⏱️ Race to complete it first, or be the best at it, to claim the prize. Bounties are fast, exciting, and completely change the energy of the lesson!', why: 'The fastest way to earn big stars and show off your English skills! 🌟' },
-                { emoji: '🐉', name: 'Your Familiar', tier: 'starter', studentExplain: "Your Familiar is your magical companion — it starts as an egg and hatches and evolves as you earn stars! 🐉🥚 Every Familiar is unique. Feed it with your hard work and watch it grow into something spectacular. Don't let it down — it's counting on you!", why: "A growing creature that's entirely YOURS, reflecting your entire journey. 💫" },
+                { emoji: '🐉', name: 'Your Familiar', tier: 'elite', studentExplain: "Your Familiar is your magical companion — it starts as an egg and hatches and evolves as you earn stars! 🐉🥚 Every Familiar is unique. Feed it with your hard work and watch it grow into something spectacular. Don't let it down — it's counting on you!", why: "A growing creature that's entirely YOURS, reflecting your entire journey. 💫" },
             ]
         },
         {
@@ -321,7 +321,7 @@ export function getTierSummary(rawTier) {
     return {
         badge: 'Starter',
         title: 'Starter keeps things simple and safe.',
-        body: 'Perfect for trying the core experience: award stars, run ceremonies, use Quest Assignment & Attendance, and manage Familiars, Bounties, and the Mystic Market.',
+        body: 'Perfect for trying the core experience: award stars, run ceremonies, use Quest Assignment & Attendance, Bounties, and the Mystic Market.',
         cta: 'Upgrade to Pro to unlock guilds, hero classes, planners, story tools and the full Adventure Log — or go straight to Elite for AI-powered features like avatars, reports, and Hero\'s Chronicle Oracle.',
         isTopTier: false
     };
@@ -347,7 +347,7 @@ export function getTiersAtAGlance() {
         {
             tier: 'Starter',
             label: 'Starter',
-            bullets: 'Core stars, ceremonies, Quest Assignment & Attendance, Familiars, Bounties, Mystic Market, Hero\'s Boon, Quest World Map, Projector Mode, Hero\'s Chronicle (note-taking).'
+            bullets: 'Core stars, ceremonies, Quest Assignment & Attendance, Bounties, Mystic Market, Hero\'s Boon, Quest World Map, Projector Mode, Hero\'s Chronicle (note-taking).'
         },
         {
             tier: 'Pro',
@@ -357,7 +357,7 @@ export function getTiersAtAGlance() {
         {
             tier: 'Elite',
             label: 'Elite',
-            bullets: 'Everything in Pro plus AI-powered features: Hero\'s Chronicle Oracle (AI insights), AI avatars, AI reports & certificates, AI story images, AI adventure log writer, early-access experiments and priority support.'
+            bullets: 'Everything in Pro plus Familiars (magical companion eggs), AI-powered features: Hero\'s Chronicle Oracle (AI insights), AI avatars, AI reports & certificates, AI story images, AI adventure log writer, early-access experiments and priority support.'
         }
     ];
 }

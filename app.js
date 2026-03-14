@@ -5,7 +5,7 @@ injectHTML();
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
 import { db, auth } from './firebase.js';
-import { firebaseConfig } from './constants.js';
+import { firebaseConfig, BILLING_BASE_URL, BILLING_SCHOOL_ID } from './constants.js';
 import * as state from './state.js';
 import { setupDataListeners } from './db/listeners.js';
 import { setupUIListeners } from './ui/core.js';
@@ -15,8 +15,17 @@ import { archivePreviousDayStars } from './db/listeners.js';
 import { toggleWallpaperMode } from './ui/wallpaper.js';
 import { initializeHeaderQuote } from './features/home.js';
 import * as utils from './utils.js';
-import { loadSubscription } from './utils/subscription.js';
+import { loadSubscription, hasActiveSubscription, getTier } from './utils/subscription.js';
 import { isSetupNeeded, showSetupScreen } from './features/schoolSetup.js';
+
+function updateTierLabel() {
+    const tierEl = document.getElementById('app-tier-label');
+    if (!tierEl) return;
+    const t = getTier();
+    const pretty = t === 'elite' ? 'Elite' : t === 'pro' ? 'Pro' : t === 'expired' ? 'Expired' : 'Starter';
+    tierEl.textContent = `Plan: ${pretty}`;
+}
+window.addEventListener('gcq-subscription-updated', updateTierLabel);
 
 import {
     createUserWithEmailAndPassword,
@@ -78,6 +87,62 @@ function onFirstUserGesture() {
         soundSetupStarted = true;
         setupSounds(); // Defer so AudioContext is created after user gesture (avoids console warning)
     }
+}
+
+function showSubscribeScreen(loadingScreen, authScreen) {
+    authScreen.classList.add('hidden');
+    const subscribeScreen = document.getElementById('subscribe-screen');
+    const actionsEl = document.getElementById('subscribe-actions');
+    const refreshHint = document.getElementById('subscribe-refresh-hint');
+    const titleEl = subscribeScreen?.querySelector('h1');
+    const descEl = subscribeScreen?.querySelector('.text-gray-600');
+    if (!subscribeScreen || !actionsEl) return;
+
+    const expired = getTier() === 'expired';
+    if (titleEl) titleEl.textContent = expired ? 'Your subscription has ended' : 'Subscribe to get started';
+    if (descEl) descEl.textContent = expired ? 'Resubscribe to continue using The Great Class Quest.' : 'Choose a plan to unlock The Great Class Quest for your school.';
+
+    const schoolId = BILLING_SCHOOL_ID || firebaseConfig?.projectId || '';
+    const billingUrl = (BILLING_BASE_URL || '').replace(/\/$/, '');
+
+    if (billingUrl && schoolId) {
+        actionsEl.innerHTML = `
+            <button type="button" id="subscribe-starter-btn" class="w-full bg-indigo-500 hover:bg-indigo-600 text-white font-title text-xl py-3 rounded-xl mb-3">Subscribe to Starter</button>
+            <button type="button" id="subscribe-pro-btn" class="w-full bg-sky-500 hover:bg-sky-600 text-white font-title text-xl py-3 rounded-xl mb-3">Subscribe to Pro</button>
+            <button type="button" id="subscribe-elite-btn" class="w-full bg-emerald-500 hover:bg-emerald-600 text-white font-title text-xl py-3 rounded-xl">Subscribe to Elite</button>
+        `;
+        refreshHint.classList.remove('hidden');
+
+        const goCheckout = async (tier) => {
+            try {
+                const res = await fetch(billingUrl + '/create-checkout-session', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        schoolId,
+                        tier,
+                        successUrl: window.location.href,
+                        cancelUrl: window.location.href
+                    })
+                });
+                const data = await res.json();
+                if (data.url) window.location.href = data.url;
+                else actionsEl.insertAdjacentHTML('beforeend', `<p class="text-red-600 text-sm mt-2">${data.error || 'Checkout failed'}</p>`);
+            } catch (e) {
+                console.error(e);
+                actionsEl.insertAdjacentHTML('beforeend', '<p class="text-red-600 text-sm mt-2">Could not open checkout. Try again or contact support.</p>');
+            }
+        };
+
+        document.getElementById('subscribe-starter-btn').addEventListener('click', () => goCheckout('starter'));
+        document.getElementById('subscribe-pro-btn').addEventListener('click', () => goCheckout('pro'));
+        document.getElementById('subscribe-elite-btn').addEventListener('click', () => goCheckout('elite'));
+    } else {
+        actionsEl.innerHTML = '<p class="text-gray-600">Contact us to get started and choose your plan.</p>';
+    }
+
+    subscribeScreen.classList.remove('hidden');
+    if (loadingScreen) animateLoadingScreenOut(loadingScreen);
 }
 
 function setupAuthListeners() {
@@ -155,6 +220,12 @@ function setupAuthListeners() {
             }
 
             await loadSubscription();
+
+            if (!hasActiveSubscription()) {
+                showSubscribeScreen(loadingScreen, authScreen);
+                return;
+            }
+
             setupDataListeners(user.uid, newDate, function onInitialDataReady() {
                 authScreen.classList.add('auth-screen-out');
                 setTimeout(() => {
@@ -177,6 +248,8 @@ function setupAuthListeners() {
         } else {
             state.resetState();
             appScreen.classList.add('hidden');
+            const subScreen = document.getElementById('subscribe-screen');
+            if (subScreen) subScreen.classList.add('hidden');
             authScreen.classList.remove('hidden');
             animateLoadingScreenOut(loadingScreen);
         }

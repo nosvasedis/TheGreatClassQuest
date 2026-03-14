@@ -1,0 +1,14 @@
+Ngrok needs a one-time setup (free):
+
+1. Sign up: https://dashboard.ngrok.com/signup
+2. Get your authtoken: https://dashboard.ngrok.com/get-started/your-authtoken
+3. In Terminal, from the project root run once:
+   ./ngrok config add-authtoken YOUR_TOKEN_HERE
+
+4. Start the tunnel (billing server must be running on port 3333):
+   npm run ngrok
+   or: ./ngrok http 3333
+
+5. Copy the https URL ngrok shows (e.g. https://abc123.ngrok-free.app) and use it as:
+   - Stripe webhook: https://YOUR-URL/webhook
+   - config.json billingBaseUrl: YOUR-URL

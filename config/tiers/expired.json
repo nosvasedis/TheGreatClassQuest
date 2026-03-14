@@ -1,0 +1,19 @@
+{
+  "tier": "expired",
+  "maxTeachers": 0,
+  "maxClasses": 0,
+  "guilds": false,
+  "adventureLog": false,
+  "calendar": false,
+  "schoolYearPlanner": false,
+  "scholarScroll": false,
+  "makeupTracking": false,
+  "advancedAttendance": false,
+  "storyWeavers": false,
+  "heroProgression": false,
+  "familiars": false,
+  "eliteAI": false,
+  "earlyAccess": false,
+  "prioritySupport": false,
+  "customFeatures": false
+}

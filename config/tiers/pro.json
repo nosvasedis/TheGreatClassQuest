@@ -11,6 +11,7 @@
   "advancedAttendance": true,
   "storyWeavers": true,
   "heroProgression": true,
+  "familiars": false,
   "eliteAI": false,
   "earlyAccess": false,
   "prioritySupport": false,

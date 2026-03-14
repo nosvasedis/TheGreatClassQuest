@@ -382,6 +382,11 @@ export function setupUIListeners() {
     const shopItemsContainer = document.getElementById('shop-items-container');
     if (shopItemsContainer) {
         shopItemsContainer.addEventListener('click', (e) => {
+            const upgradeFamiliarsBtn = e.target.closest('.shop-upgrade-familiars-btn');
+            if (upgradeFamiliarsBtn) {
+                import('../../utils/upgradePrompt.js').then(m => m.showUpgradePrompt({ feature: 'Familiars', tier: 'Elite', message: 'Familiars are magical companion eggs that hatch and evolve as students earn stars. Available on the Elite plan.' }));
+                return;
+            }
             const buyBtn = e.target.closest('.shop-buy-btn');
             if (buyBtn) {
                 const studentId = document.getElementById('shop-student-select').value;

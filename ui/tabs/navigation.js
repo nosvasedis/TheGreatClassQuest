@@ -264,5 +264,113 @@ export async function showTab(tabName) {
                 </div>
             `;
         }
+
+        let billingUrl = (constants.BILLING_BASE_URL || '').trim().replace(/\/$/, '');
+        if (billingUrl && !/^https?:\/\//i.test(billingUrl)) billingUrl = 'https://' + billingUrl;
+        const schoolId = constants.BILLING_SCHOOL_ID || constants.firebaseConfig?.projectId || '';
+        const manageWrap = document.getElementById('options-subscription-manage-wrap');
+        const manageBtn = document.getElementById('options-manage-subscription-btn');
+        if (manageWrap && manageBtn) {
+            if (billingUrl && schoolId) {
+                manageWrap.classList.remove('hidden');
+                const detailsEl = document.getElementById('options-subscription-details');
+                const formatDate = (iso) => {
+                    if (!iso) return '';
+                    const d = new Date(iso + 'T12:00:00Z');
+                    return isNaN(d.getTime()) ? iso : d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+                };
+                // Load accurate subscription details (period end, cancel-at-period-end, etc.)
+                (async () => {
+                    const fallbackTier = (() => {
+                        const t = getTier();
+                        return t ? t.charAt(0).toUpperCase() + t.slice(1) : null;
+                    })();
+                    const fallbackMsg = fallbackTier
+                        ? `${fallbackTier} • Restart the billing server to see renewal date.`
+                        : 'Subscription details unavailable.';
+                    try {
+                        const r = await fetch(billingUrl + '/subscription-info?schoolId=' + encodeURIComponent(schoolId), {
+                            headers: { 'ngrok-skip-browser-warning': '1' }
+                        });
+                        if (!r.ok) {
+                            if (detailsEl) detailsEl.textContent = fallbackMsg;
+                            return;
+                        }
+                        const data = await r.json().catch(() => ({}));
+                        if (detailsEl) {
+                            if (!data.hasSubscription || !data.tier) {
+                                detailsEl.textContent = 'No active subscription.';
+                                return;
+                            }
+                            const tierCap = (data.tier || 'pro').charAt(0).toUpperCase() + (data.tier || '').slice(1);
+                            const endDate = formatDate(data.currentPeriodEnd);
+                            if (data.cancelAtPeriodEnd && endDate) {
+                                detailsEl.textContent = `${tierCap} • Cancels at end of period on ${endDate}.`;
+                            } else if (data.status === 'canceled' && data.canceledAt) {
+                                detailsEl.textContent = `${tierCap} • Ended on ${formatDate(data.canceledAt)}.`;
+                            } else if (endDate) {
+                                detailsEl.textContent = `${tierCap} • Renews on ${endDate}.`;
+                            } else {
+                                detailsEl.textContent = `${tierCap} • Active subscription.`;
+                            }
+                        }
+                    } catch {
+                        if (detailsEl) detailsEl.textContent = fallbackMsg;
+                    }
+                })();
+                // Health check: if billing server is unreachable, show hint and disable button
+                (async () => {
+                    try {
+                        const r = await fetch(billingUrl + '/health', {
+                            headers: { 'ngrok-skip-browser-warning': '1' }
+                        });
+                        if (!r.ok) throw new Error('Unreachable');
+                        manageWrap.querySelector('[data-billing-hint]')?.remove();
+                    } catch {
+                        const hint = document.createElement('p');
+                        hint.setAttribute('data-billing-hint', '');
+                        hint.className = 'text-xs text-amber-600 mt-1';
+                        hint.textContent = 'Billing server unreachable. Run node billing/server.js (port 3333) and point ngrok at it.';
+                        manageBtn.after(hint);
+                        manageBtn.disabled = true;
+                    }
+                })();
+                manageBtn.onclick = async () => {
+                    try {
+                        const res = await fetch(billingUrl + '/create-portal-session', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'ngrok-skip-browser-warning': '1'
+                            },
+                            body: JSON.stringify({ schoolId, returnUrl: window.location.href })
+                        });
+                        const contentType = res.headers.get('Content-Type') || '';
+                        if (!res.ok) {
+                            const msg = contentType.includes('application/json')
+                                ? (await res.json().catch(() => ({}))).error
+                                : null;
+                            const hint = res.status === 404
+                                ? ' Start the billing server (e.g. node billing/server.js on port 3333) and point ngrok at that port — not at the app.'
+                                : '';
+                            modals.showModal('Subscription', msg || ('Could not open subscription management.' + hint), null, 'OK', 'Close');
+                            return;
+                        }
+                        if (!contentType.includes('application/json')) {
+                            modals.showModal('Subscription', 'Could not open subscription management. Invalid response from server.', null, 'OK', 'Close');
+                            return;
+                        }
+                        const data = await res.json();
+                        if (data.url) window.location.href = data.url;
+                        else modals.showModal('Subscription', data.error || 'Could not open subscription management.', null, 'OK', 'Close');
+                    } catch (e) {
+                        console.error(e);
+                        modals.showModal('Subscription', 'Could not open subscription management. Try again later.', null, 'OK', 'Close');
+                    }
+                };
+            } else {
+                manageWrap.classList.add('hidden');
+            }
+        }
     }
 }

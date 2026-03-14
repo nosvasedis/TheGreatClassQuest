@@ -12,6 +12,36 @@ export const optionsTabHTML = `
 
                     <div id="options-tier-summary" class="mb-6"></div>
 
+                    <div id="options-subscription-manage-wrap" class="mb-6 hidden">
+                        <div class="bg-white rounded-2xl shadow-lg border-2 border-indigo-200 overflow-hidden">
+                            <div class="bg-gradient-to-r from-indigo-50 to-purple-50 px-5 py-4 border-b border-indigo-100">
+                                <h3 class="font-title text-xl text-indigo-800 mb-0.5"><i class="fas fa-credit-card mr-2 text-indigo-600"></i>Billing & subscription</h3>
+                                <p class="text-sm text-indigo-600/90">Managed securely by Stripe. Your payment and plan details live in your Stripe customer portal.</p>
+                            </div>
+                            <div class="p-5 space-y-4">
+                                <div>
+                                    <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Current status</p>
+                                    <p id="options-subscription-details" class="text-sm text-gray-800 font-medium" aria-live="polite">Loading subscription…</p>
+                                </div>
+                                <div class="bg-gray-50 rounded-xl p-3 border border-gray-100">
+                                    <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">In Stripe you can</p>
+                                    <ul class="text-sm text-gray-700 space-y-2">
+                                        <li class="flex items-center gap-2"><i class="fas fa-credit-card text-indigo-500 w-4 text-center" aria-hidden="true"></i>Update payment method</li>
+                                        <li class="flex items-center gap-2"><i class="fas fa-file-invoice text-indigo-500 w-4 text-center" aria-hidden="true"></i>View and download invoices</li>
+                                        <li class="flex items-center gap-2"><i class="fas fa-exchange-alt text-indigo-500 w-4 text-center" aria-hidden="true"></i>Change plan (upgrade or downgrade)</li>
+                                        <li class="flex items-center gap-2"><i class="fas fa-calendar-times text-indigo-500 w-4 text-center" aria-hidden="true"></i>Cancel at end of billing period</li>
+                                    </ul>
+                                </div>
+                                <p class="text-xs text-gray-500">To upgrade from the app, use the plan card above. Opening the button below takes you to Stripe’s secure portal.</p>
+                                <button type="button" id="options-manage-subscription-btn" class="w-full bg-indigo-500 hover:bg-indigo-600 text-white font-title text-base py-3 rounded-xl bubbly-button flex items-center justify-center gap-2">
+                                    <i class="fas fa-external-link-alt"></i>
+                                    <span>Open Stripe billing</span>
+                                </button>
+                                <p class="text-xs text-gray-400 text-center">You’ll be redirected to Stripe’s secure site.</p>
+                            </div>
+                        </div>
+                    </div>
+
                     <div class="options-subtab-bar">
                         <button type="button" class="options-subtab-btn options-subtab-active" data-options-tab="manage">
                             <i class="fas fa-tools mr-1.5"></i> Manage

@@ -45,3 +45,4 @@ docs/
 billing/README.md
 billing/schools.json
 billing/keys/
+billing/.env

@@ -767,6 +767,13 @@ export async function handleSpecialOccasionBonus(studentId, type) {
 export async function handleBuyFamiliarEgg(studentId, typeId) {
     if (!studentId) { showToast('Please select a student first.', 'error'); return; }
 
+    const { canUseFeature } = await import('../../utils/subscription.js');
+    const { showUpgradePrompt } = await import('../../utils/upgradePrompt.js');
+    if (!canUseFeature('familiars')) {
+        showUpgradePrompt({ feature: 'Familiars', tier: 'Elite', message: 'Familiars are magical companion eggs that hatch and evolve as students earn stars. Available on the Elite plan.' });
+        return;
+    }
+
     const { FAMILIAR_TYPES, buildFamiliarInitData } = await import('../../features/familiars.js');
     const typeDef = FAMILIAR_TYPES[typeId];
     if (!typeDef) { showToast('Unknown familiar type.', 'error'); return; }

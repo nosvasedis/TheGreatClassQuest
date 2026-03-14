@@ -2,6 +2,7 @@
 import * as state from '../../state.js';
 import { showToast } from '../effects.js';
 import * as modals from '../modals.js';
+import { canUseFeature } from '../../utils/subscription.js';
 import { FAMILIAR_TYPES, FAMILIAR_LEVEL_THRESHOLDS, buildFamiliarInitData } from '../../features/familiars.js';
 
 // --- SHOP UI LOGIC ---
@@ -98,17 +99,27 @@ export function renderShopUI() {
 
             html += seasonalItems.map(item => renderShopItemCard(item, false)).join('');
 
-            // ─── Familiar Eggs section ────────────────────────────────────────
-            html += `
-                <div class="col-span-full mt-8 mb-4 border-b-2 border-purple-500/30 pb-2">
-                    <h3 class="font-title text-2xl text-purple-300 flex items-center gap-2">
-                        <i class="fas fa-egg"></i> Familiar Eggs
-                        <span class="text-xs bg-purple-500/20 px-2 py-1 rounded text-purple-400 font-sans uppercase">Hatch at ${FAMILIAR_LEVEL_THRESHOLDS.hatch} stars</span>
-                    </h3>
-                    <p class="text-xs text-purple-400/60 mt-1">Each student can own one Familiar. Earn stars to hatch it, then keep earning to evolve it!</p>
-                </div>
-            `;
-            html += Object.values(FAMILIAR_TYPES).map(fType => renderFamiliarEggCard(fType)).join('');
+            // ─── Familiar Eggs section (Elite only) ────────────────────────────
+            if (canUseFeature('familiars')) {
+                html += `
+                    <div class="col-span-full mt-8 mb-4 border-b-2 border-purple-500/30 pb-2">
+                        <h3 class="font-title text-2xl text-purple-300 flex items-center gap-2">
+                            <i class="fas fa-egg"></i> Familiar Eggs
+                            <span class="text-xs bg-purple-500/20 px-2 py-1 rounded text-purple-400 font-sans uppercase">Hatch at ${FAMILIAR_LEVEL_THRESHOLDS.hatch} stars</span>
+                        </h3>
+                        <p class="text-xs text-purple-400/60 mt-1">Each student can own one Familiar. Earn stars to hatch it, then keep earning to evolve it!</p>
+                    </div>
+                `;
+                html += Object.values(FAMILIAR_TYPES).map(fType => renderFamiliarEggCard(fType)).join('');
+            } else {
+                html += `
+                    <div class="col-span-full mt-8 p-4 rounded-2xl bg-purple-900/30 border-2 border-purple-500/40 border-dashed text-center">
+                        <p class="text-purple-300 font-title text-lg mb-1">🐉 Familiar Eggs</p>
+                        <p class="text-purple-400/80 text-sm">Unlock Familiars on the Elite plan — magical companion eggs that hatch and evolve as students earn stars.</p>
+                        <button type="button" class="mt-3 shop-upgrade-familiars-btn text-amber-400 hover:text-amber-300 text-sm font-bold underline">Upgrade to Elite</button>
+                    </div>
+                `;
+            }
 
             container.innerHTML = html;
             

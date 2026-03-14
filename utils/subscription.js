@@ -2,25 +2,54 @@
 // Tier-based feature gating. Reads from Firestore appConfig/subscription.
 // If doc is missing, defaults to Starter (safe fallback).
 
-import { db, doc, getDoc } from '../firebase.js';
+import { db, doc, getDoc, onSnapshot } from '../firebase.js';
 
 const SUBSCRIPTION_PATH = 'appConfig/subscription';
 
 let subscriptionConfig = null;
+let subscriptionUnsubscribe = null;
+
+function applySubscriptionSnapshot(snap) {
+    if (snap.exists()) {
+        subscriptionConfig = snap.data();
+    } else {
+        subscriptionConfig = getStarterDefaults();
+    }
+    if (typeof window !== 'undefined' && window.dispatchEvent) {
+        window.dispatchEvent(new CustomEvent('gcq-subscription-updated', { detail: subscriptionConfig }));
+    }
+}
 
 /**
- * Load subscription doc from Firestore. Call once after auth (e.g. with or after setupDataListeners).
+ * Load subscription doc from Firestore and keep listening so tier updates (e.g. after Stripe upgrade) apply without refresh.
+ * Call once after auth (e.g. with or after setupDataListeners).
  * @returns {Promise<object>} The subscription data, or Starter defaults if missing
  */
 export async function loadSubscription() {
+    if (subscriptionUnsubscribe) {
+        subscriptionUnsubscribe();
+        subscriptionUnsubscribe = null;
+    }
     try {
         const ref = doc(db, SUBSCRIPTION_PATH);
-        const snap = await getDoc(ref);
-        if (snap.exists()) {
-            subscriptionConfig = snap.data();
-        } else {
-            subscriptionConfig = getStarterDefaults();
-        }
+        await new Promise((resolve) => {
+            let resolved = false;
+            subscriptionUnsubscribe = onSnapshot(ref, (snap) => {
+                applySubscriptionSnapshot(snap);
+                if (!resolved) {
+                    resolved = true;
+                    resolve();
+                }
+            }, (err) => {
+                console.warn('GCQ: Subscription listener failed:', err?.code || err?.message || err);
+                subscriptionConfig = getStarterDefaults();
+                if (!resolved) {
+                    resolved = true;
+                    resolve();
+                }
+            });
+        });
+        return subscriptionConfig;
     } catch (e) {
         console.warn('GCQ: Subscription load failed (Plan will show as Starter). If you set Elite, check Firestore Rules allow read on appConfig/subscription:', e?.code || e?.message || e);
         subscriptionConfig = getStarterDefaults();
@@ -64,6 +93,10 @@ export function canUseFeature(featureFlag) {
         const tier = getTier();
         return tier === 'pro' || tier === 'elite';
     }
+    if (featureFlag === 'familiars' && val === undefined) {
+        const tier = getTier();
+        return tier === 'elite';
+    }
 
     return false;
 }
@@ -81,8 +114,26 @@ export function getLimit(limitKey) {
 
 /**
  * Current tier name for display or logic.
- * @returns {string} 'starter' | 'pro' | 'elite'
+ * @returns {string} 'pending' | 'starter' | 'pro' | 'elite'
  */
 export function getTier() {
     return subscriptionConfig?.tier || 'starter';
+}
+
+/**
+ * True if the school can use the app (Starter, Pro, or Elite).
+ * False when tier is 'pending' (never subscribed) or 'expired' (subscription ended at period end).
+ * @returns {boolean}
+ */
+export function hasActiveSubscription() {
+    const tier = getTier();
+    return tier === 'starter' || tier === 'pro' || tier === 'elite';
+}
+
+/**
+ * True if the school's subscription has ended (cancelled and period expired). They are locked out until they resubscribe.
+ * @returns {boolean}
+ */
+export function isSubscriptionExpired() {
+    return getTier() === 'expired';
 }

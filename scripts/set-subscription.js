@@ -18,7 +18,7 @@ const tier = (process.argv[3] || 'elite').toLowerCase();
 
 if (!keyPath || !fs.existsSync(keyPath)) {
   console.error('Usage: node scripts/set-subscription.js <path-to-service-account-key.json> [tier]');
-  console.error('Tier: starter | pro | elite (default: elite)');
+  console.error('Tier: pending | starter | pro | elite (default: elite)');
   process.exit(1);
 }
 

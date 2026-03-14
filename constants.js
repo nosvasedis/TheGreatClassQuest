@@ -24,6 +24,11 @@ export const workerBaseUrl = 'https://great-class-quest-ai-proxy.nvasedis-cc5.wo
 export const geminiApiUrl = workerBaseUrl; 
 export const OPENROUTER_MODEL = "arcee-ai/trinity-large-preview:free";
 
+/** Billing: base URL of your billing backend (Stripe checkout). When set, upgrade prompts show an "Upgrade" button that redirects to Stripe. Leave empty to keep "Contact me to upgrade". */
+export const BILLING_BASE_URL = (typeof window !== 'undefined' && window.__GCQ_BILLING_BASE_URL__) || '';
+/** Billing: school id passed to create-checkout-session. If empty, uses firebaseConfig.projectId. */
+export const BILLING_SCHOOL_ID = (typeof window !== 'undefined' && window.__GCQ_BILLING_SCHOOL_ID__) || '';
+
 export const questLeagues = ['Junior A', 'Junior B', 'A', 'B', 'C', 'D']; 
 
 export const classLogos = [

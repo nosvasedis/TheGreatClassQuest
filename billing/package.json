@@ -1,0 +1,17 @@
+{
+  "name": "gcq-billing",
+  "version": "1.0.0",
+  "description": "Central billing backend for GCQ: Stripe checkout + webhook → sync tier to schools",
+  "type": "module",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js"
+  },
+  "dependencies": {
+    "cors": "^2.8.5",
+    "express": "^4.21.0",
+    "firebase-admin": "^13.0.0",
+    "stripe": "^17.0.0"
+  }
+}

@@ -1,21 +1,54 @@
 // utils/upgradePrompt.js
 // Single place for "upgrade to Pro/Elite" prompts. Uses the app's confirmation modal.
+// When BILLING_BASE_URL is set, shows an "Upgrade" button that redirects to Stripe Checkout.
 
 import * as modals from '../ui/modals.js';
 import { canUseFeature } from './subscription.js';
 import { getUpgradeMessage } from '../config/tiers/features.js';
+import { BILLING_BASE_URL, BILLING_SCHOOL_ID, firebaseConfig } from '../constants.js';
 
 /**
  * Show a modal prompting the user to upgrade for a gated feature.
+ * If BILLING_BASE_URL is set, "Upgrade" opens Stripe Checkout; otherwise "OK" / "Contact me to upgrade".
  * @param {object} opts - { feature: string, tier: 'Pro' | 'Elite', message?: string }
  */
 export function showUpgradePrompt(opts) {
     const { feature, tier = 'Pro', message = '' } = opts;
     const title = `🔒 ${feature}`;
+    const billingEnabled = BILLING_BASE_URL && (BILLING_SCHOOL_ID || firebaseConfig?.projectId);
+    const schoolId = BILLING_SCHOOL_ID || firebaseConfig?.projectId || '';
     const body = message
-        ? `${message}<br><br><strong>Available on the ${tier} plan.</strong> Contact me to upgrade.`
-        : `This feature is available on the <strong>${tier}</strong> plan. Contact me to upgrade.`;
-    modals.showModal(title, body, null, 'OK', 'Close');
+        ? `${message}<br><br><strong>Available on the ${tier} plan.</strong>${billingEnabled ? '' : ' Contact me to upgrade.'}`
+        : `This feature is available on the <strong>${tier}</strong> plan.${billingEnabled ? '' : ' Contact me to upgrade.'}`;
+
+    if (billingEnabled && schoolId) {
+        const confirmText = `Upgrade to ${tier}`;
+        modals.showModal(title, body, async () => {
+            try {
+                const res = await fetch(`${BILLING_BASE_URL.replace(/\/$/, '')}/create-checkout-session`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        schoolId,
+                        tier: tier.toLowerCase(),
+                        successUrl: window.location.href,
+                        cancelUrl: window.location.href
+                    })
+                });
+                const data = await res.json();
+                if (data.url) {
+                    window.location.href = data.url;
+                } else {
+                    throw new Error(data.error || 'Could not start checkout');
+                }
+            } catch (e) {
+                console.error('Billing checkout error:', e);
+                modals.showModal('Checkout unavailable', 'Could not open the upgrade page. Please try again or contact support.', null, 'OK', 'Close');
+            }
+        }, confirmText, 'Close');
+    } else {
+        modals.showModal(title, body, null, 'OK', 'Close');
+    }
 }
 
 /**

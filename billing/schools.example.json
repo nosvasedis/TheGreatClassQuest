@@ -1,0 +1,15 @@
+{
+  "schools": [
+    {
+      "schoolId": "gcq-school-mytown",
+      "stripeCustomerId": null,
+      "firebaseProjectId": "their-firebase-project-id",
+      "firebaseServiceAccountPath": "./keys/school-mytown.json"
+    }
+  ],
+  "priceIds": {
+    "starter": "price_1TAwNBE4wTwWp1U0p5IgyB6W",
+    "pro": "price_1TAwNeE4wTwWp1U0rNLfhMAF",
+    "elite": "price_1TAwNyE4wTwWp1U0ffn9ev0y"
+  }
+}

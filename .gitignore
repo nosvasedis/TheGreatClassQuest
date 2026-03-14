@@ -37,3 +37,11 @@ config.json
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+
+# All guides and docs (private; do not push to GitHub)
+docs/
+
+# Billing: config with secrets and keys (do not push)
+billing/README.md
+billing/schools.json
+billing/keys/

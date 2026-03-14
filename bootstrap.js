@@ -10,6 +10,8 @@ fetch('./config.json')
         if (firebase && firebase.apiKey) {
             window.__GCQ_FIREBASE_CONFIG__ = firebase;
         }
+        if (c.billingBaseUrl) window.__GCQ_BILLING_BASE_URL__ = c.billingBaseUrl;
+        if (c.billingSchoolId) window.__GCQ_BILLING_SCHOOL_ID__ = c.billingSchoolId;
     })
     .catch(() => {})
     .finally(() => {

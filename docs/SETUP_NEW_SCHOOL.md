@@ -48,6 +48,8 @@ Use this checklist when onboarding a new φροντιστήριο. Goal: under 9
 
 9. Send them the **app link** and a short “quick start” note.
 
+**Optional — paid upgrades (Stripe):** If this school will pay to upgrade (Starter → Pro/Elite) and you use the billing backend, see **docs/BILLING_SUBSCRIPTIONS.md**. You’ll register the school in the billing service, deploy the per-school webhook (e.g. Cloud Function), and set **BILLING_BASE_URL** (and optionally **BILLING_SCHOOL_ID**) so the app’s "Upgrade" button opens Stripe Checkout.
+
 ## First user experience
 
 When the **first user** signs up and the school has **no classes**, they see the **setup screen** where they can:

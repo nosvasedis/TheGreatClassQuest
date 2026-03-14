@@ -26,6 +26,11 @@ if (missing.length) {
   process.exit(0);
 }
 
+const config = {
+  firebaseConfig,
+  billingBaseUrl: env.GCQ_BILLING_BASE_URL || '',
+  billingSchoolId: env.GCQ_BILLING_SCHOOL_ID || firebaseConfig.projectId || ''
+};
 const outPath = path.join(process.cwd(), 'config.json');
-fs.writeFileSync(outPath, JSON.stringify({ firebaseConfig }, null, 2), 'utf8');
+fs.writeFileSync(outPath, JSON.stringify(config, null, 2), 'utf8');
 console.log('write-config: wrote config.json for project', firebaseConfig.projectId);

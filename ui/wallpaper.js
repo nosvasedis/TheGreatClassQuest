@@ -1613,12 +1613,13 @@ function getMathChallengeCard(questLevel) {
             <div class="badge-pill bg-blue-100 text-blue-800">⚡ Math Challenge</div>
             <div class="text-7xl my-4">🔢</div>
             <p class="font-title text-5xl text-blue-900">${q}</p>
-            <div class="mt-6 pt-4 border-t border-blue-200">
+            <div class="wallpaper-card-answer-blur mt-6 pt-4 border-t border-blue-200">
                 <div class="text-xs font-bold text-blue-400 uppercase tracking-widest mb-1">Answer</div>
                 <p class="font-title text-5xl text-blue-600">${a}</p>
             </div>
         </div>`,
-        css: 'float-card-blue'
+        css: 'float-card-blue',
+        timedBlurAnswer: true
     };
 }
 
@@ -2042,7 +2043,7 @@ async function getAIFromDB(typeFilter) {
     let answerHtml = '';
     if (item.answer) {
         answerHtml = `
-            <div class="mt-5 pt-4 border-t border-white/30">
+            <div class="wallpaper-card-answer-blur mt-5 pt-4 border-t border-white/30">
                 <div class="text-xs font-bold text-white/70 uppercase tracking-widest mb-1">Answer</div>
                 <div class="text-2xl font-bold text-white drop-shadow-md">
                     ${item.answer}
@@ -2060,7 +2061,8 @@ async function getAIFromDB(typeFilter) {
                 </p>
                 ${answerHtml}
             </div>`,
-        css: css
+        css: css,
+        timedBlurAnswer: item.answer ? true : false
     };
 }
 

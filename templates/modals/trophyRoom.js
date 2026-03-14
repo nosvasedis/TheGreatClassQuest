@@ -54,6 +54,7 @@ export const trophyRoomModalsHTML = `
                     <button id="generate-shop-btn"
                         class="bg-indigo-800 hover:bg-indigo-700 text-indigo-200 hover:text-white border border-indigo-600 font-bold py-2 px-4 rounded-xl transition-all text-sm flex items-center gap-2">
                         <i class="fas fa-sync-alt"></i> Restock
+                        <span class="text-[10px] bg-amber-500/30 text-amber-300 px-1.5 py-0.5 rounded font-sans uppercase tracking-wide">Elite</span>
                     </button>
 
                     <div class="flex items-center gap-3 bg-black/30 p-2 rounded-xl border border-indigo-500/30">

@@ -97,7 +97,25 @@ export function renderShopUI() {
                 </div>
             `;
 
-            html += seasonalItems.map(item => renderShopItemCard(item, false)).join('');
+            if (seasonalItems.length === 0) {
+                if (canUseFeature('eliteAI')) {
+                    html += `
+                        <div class="col-span-full p-4 rounded-2xl bg-amber-900/20 border border-amber-500/30 border-dashed text-center">
+                            <p class="text-amber-300/70 text-sm">No seasonal items yet this month. Click <strong>Restock</strong> to generate AI-crafted treasures! ✨</p>
+                        </div>
+                    `;
+                } else {
+                    html += `
+                        <div class="col-span-full p-4 rounded-2xl bg-amber-900/20 border-2 border-amber-500/40 border-dashed text-center">
+                            <p class="text-amber-300 font-title text-lg mb-1">🌟 Seasonal Treasures</p>
+                            <p class="text-amber-400/80 text-sm">Seasonal items are AI-generated each month and are available on the Elite plan. Upgrade to unlock monthly themed treasures for your students!</p>
+                            <button type="button" class="shop-upgrade-seasonal-btn mt-3 text-amber-400 hover:text-amber-300 text-sm font-bold underline">Upgrade to Elite</button>
+                        </div>
+                    `;
+                }
+            } else {
+                html += seasonalItems.map(item => renderShopItemCard(item, false)).join('');
+            }
 
             // ─── Familiar Eggs section (Elite only) ────────────────────────────
             if (canUseFeature('familiars')) {

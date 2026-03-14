@@ -387,6 +387,11 @@ export function setupUIListeners() {
                 import('../../utils/upgradePrompt.js').then(m => m.showUpgradePrompt({ feature: 'Familiars', tier: 'Elite', message: 'Familiars are magical companion eggs that hatch and evolve as students earn stars. Available on the Elite plan.' }));
                 return;
             }
+            const upgradeSeasonalBtn = e.target.closest('.shop-upgrade-seasonal-btn');
+            if (upgradeSeasonalBtn) {
+                import('../../utils/upgradePrompt.js').then(m => m.showUpgradePrompt({ feature: 'Seasonal Treasures', tier: 'Elite', message: 'Seasonal Treasures are AI-generated each month — themed items that change with the season. Available on the Elite plan.' }));
+                return;
+            }
             const buyBtn = e.target.closest('.shop-buy-btn');
             if (buyBtn) {
                 const studentId = document.getElementById('shop-student-select').value;

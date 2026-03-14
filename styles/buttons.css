@@ -168,9 +168,9 @@
 
 .cloud-bg-asset {
     background-image: var(--award-cloud-image);
-    background-position: center;
+    background-position: center 56%;
     background-repeat: no-repeat;
-    background-size: 100% 100%;
+    background-size: 100% auto;
 }
 
 /* Reigning Prodigy: amber glow on the svg cloud */

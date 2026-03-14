@@ -235,25 +235,8 @@ export function setupDataListeners(userId, dateString, onInitialDataReady) {
         import('../features/home.js').then(m => m.renderHomeTab());
     }, (error) => console.error("Error listening to student_scores:", error)));
 
-    state.setUnsubscribeSchoolSettings(onSnapshot(schoolSettingsQuery, (docSnap) => {
-        if (docSnap.exists()) {
-            const data = docSnap.data();
-            state.setSchoolHolidayRanges(data.ranges || []);
-            state.setSchoolName(data.schoolName || null);
-            const weatherLocation = utils.normalizeWeatherLocation(data.weatherLocation);
-            state.setSchoolWeatherLocation(weatherLocation);
-            utils.setWeatherCoordinates(weatherLocation);
-            applySchoolNameToDom(data.schoolName);
-        } else {
-            state.setSchoolHolidayRanges([]);
-            state.setSchoolName(null);
-            state.setSchoolWeatherLocation(null);
-            utils.setWeatherCoordinates(null);
-            applySchoolNameToDom(null);
-        }
-        utils.fetchSolarCycle();
-        renderHomeTab();
-    }, (error) => console.error("Error listening to school_settings:", error)));
+    // School settings listener is set up below (line ~398) to avoid duplicate listeners
+    // It handles holidays, school name, and weather location
 
     state.setUnsubscribeTodaysStars(onSnapshot(todaysStarsQuery, (snapshot) => {
         const awardStarsTab = document.getElementById('award-stars-tab');
@@ -399,13 +382,17 @@ export function setupDataListeners(userId, dateString, onInitialDataReady) {
         if (docSnapshot.exists()) {
             const data = docSnapshot.data();
             state.setSchoolHolidayRanges(data.ranges || []);
+            state.setSchoolName(data.schoolName || null);
             const weatherLocation = utils.normalizeWeatherLocation(data.weatherLocation);
             state.setSchoolWeatherLocation(weatherLocation);
             utils.setWeatherCoordinates(weatherLocation);
+            applySchoolNameToDom(data.schoolName);
         } else {
             state.setSchoolHolidayRanges([]);
+            state.setSchoolName(null);
             state.setSchoolWeatherLocation(null);
             utils.setWeatherCoordinates(null);
+            applySchoolNameToDom(null);
         }
         utils.fetchSolarCycle();
 

@@ -827,6 +827,15 @@ export function setupHomeListeners() {
             replayGuideAnimation(tContent);
         });
     }
+
+    // First-login auto-show: open guide once per browser session/device if not seen before
+    const GUIDE_SEEN_KEY = 'gcq_guide_seen';
+    if (!localStorage.getItem(GUIDE_SEEN_KEY)) {
+        setTimeout(() => {
+            modals.openAppInfoModal();
+            localStorage.setItem(GUIDE_SEEN_KEY, '1');
+        }, 900);
+    }
 }
 
 function getReminderPills(classId) {

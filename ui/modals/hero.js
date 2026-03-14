@@ -37,7 +37,7 @@ export function showHeroLevelUpCelebration({ studentId, studentName, newHeroLeve
 }
 
 import { getTier } from '../../utils/subscription.js';
-import { getTierTagline, getTiersAtAGlance } from '../../config/tiers/features.js';
+import { getTierTagline, getTierSummary, getGuideSections } from '../../config/tiers/features.js';
 import { requireEliteAI } from '../../utils/upgradePrompt.js';
 
 // --- CORRECTED & ENHANCED HERO STATS MODAL ---
@@ -416,13 +416,12 @@ export async function generateAIInsight(studentId, insightType) {
 export function openAppInfoModal() {
     const studentContent = document.getElementById('info-content-students');
     const teacherContent = document.getElementById('info-content-teachers');
+    const tierBadgeEl = document.getElementById('guide-header-tier-badge');
 
     const rawTier = getTier();
-    const prettyTier =
-        rawTier === 'elite' ? 'Elite' :
-        rawTier === 'pro' ? 'Pro' : 'Starter';
+    const prettyTier = rawTier === 'elite' ? 'Elite ✨' : rawTier === 'pro' ? 'Pro ⚡' : 'Starter 🌱';
     const tierTagline = getTierTagline(rawTier);
-    const tiersGlance = getTiersAtAGlance();
+    const tierSummary = getTierSummary(rawTier);
     const tierRank = rawTier === 'elite' ? 2 : rawTier === 'pro' ? 1 : 0;
 
     const hasTier = (requiredTier) => {
@@ -432,347 +431,236 @@ export function openAppInfoModal() {
         return false;
     };
 
-    const availabilityBadge = (requiredTier, lockedLabel) => {
+    const tierBadgeHTML = (requiredTier) => {
         if (hasTier(requiredTier)) {
-            return '<span class="guide-pill guide-pill-on"><i class="fas fa-check-circle"></i> Available now</span>';
+            return '<span class="guide-acc-badge guide-acc-badge-active">✅ Active</span>';
         }
-        return `<span class="guide-pill guide-pill-locked"><i class="fas fa-lock"></i> ${lockedLabel}</span>`;
+        if (requiredTier === 'pro') return '<span class="guide-acc-badge guide-acc-badge-locked">🔒 Pro</span>';
+        if (requiredTier === 'elite') return '<span class="guide-acc-badge guide-acc-badge-locked">🔒 Elite</span>';
+        return '<span class="guide-acc-badge guide-acc-badge-active">✅ Active</span>';
     };
 
-    const compactAvailability = (requiredTier) => {
-        if (hasTier(requiredTier)) {
-            return '<span class="guide-chip-status guide-chip-status-on">Now</span>';
-        }
-        if (requiredTier === 'pro') {
-            return '<span class="guide-chip-status guide-chip-status-lock">Pro</span>';
-        }
-        if (requiredTier === 'elite') {
-            return '<span class="guide-chip-status guide-chip-status-lock">Elite</span>';
-        }
-        return '<span class="guide-chip-status guide-chip-status-on">Now</span>';
+    // Populate header tier badge
+    if (tierBadgeEl) {
+        const tierEmoji = rawTier === 'elite' ? '👑' : rawTier === 'pro' ? '⚡' : '🌱';
+        tierBadgeEl.innerHTML = `<span class="guide-header-tier-inner">${tierEmoji} ${prettyTier.replace(/[✨⚡🌱]/g, '').trim()} Plan — ${tierTagline}</span>`;
+    }
+
+    // ─────────── SECTION BUILDER UTILITY ───────────
+    const buildSectionHTML = (sections, perspective) => {
+        const colorMap = {
+            amber:  { bg: 'guide-cluster-amber',  accent: '#b45309' },
+            violet: { bg: 'guide-cluster-violet', accent: '#6d28d9' },
+            teal:   { bg: 'guide-cluster-teal',   accent: '#0d9488' },
+            rose:   { bg: 'guide-cluster-rose',   accent: '#e11d48' },
+            cyan:   { bg: 'guide-cluster-cyan',   accent: '#0284c7' },
+            indigo: { bg: 'guide-cluster-indigo', accent: '#4338ca' },
+        };
+
+        return sections.map((section, sIdx) => {
+            const colorClass = colorMap[section.color]?.bg || 'guide-cluster-cyan';
+            const featuresHTML = section.features.map((feat, fIdx) => {
+                const isActive = hasTier(feat.tier);
+                const explain = perspective === 'teacher' ? (feat.teacherExplain || '') : (feat.studentExplain || '');
+                const itemId = `gacc-${perspective}-${sIdx}-${fIdx}`;
+                return `
+                <div class="guide-acc-item${isActive ? '' : ' guide-acc-item-locked'}" data-acc-id="${itemId}">
+                    <button class="guide-acc-item-header" aria-expanded="false" aria-controls="${itemId}-body" onclick="this.closest('.guide-acc-item').classList.toggle('open'); const expanded = this.closest('.guide-acc-item').classList.contains('open'); this.setAttribute('aria-expanded', expanded); this.querySelector('.guide-acc-arrow').textContent = expanded ? '▲' : '▼';">
+                        <span class="guide-acc-item-left">
+                            <span class="guide-acc-emoji">${feat.emoji}</span>
+                            <span class="guide-acc-name">${feat.name}</span>
+                        </span>
+                        <span class="guide-acc-item-right">
+                            ${tierBadgeHTML(feat.tier)}
+                            <span class="guide-acc-arrow" aria-hidden="true">▼</span>
+                        </span>
+                    </button>
+                    <div class="guide-acc-item-body" id="${itemId}-body" role="region">
+                        <p class="guide-acc-explain">${explain}</p>
+                        ${feat.why ? `<p class="guide-acc-why">💡 <em>${feat.why}</em></p>` : ''}
+                        ${!isActive ? `<p class="guide-acc-upgrade-hint">🔒 Unlock this on the <strong>${feat.tier.charAt(0).toUpperCase() + feat.tier.slice(1)}</strong> plan — contact us to upgrade!</p>` : ''}
+                    </div>
+                </div>`;
+            }).join('');
+
+            return `
+            <section class="guide-accordion-group guide-stagger-item ${colorClass}" style="--guide-delay: ${80 + sIdx * 60}ms;">
+                <div class="guide-acc-group-header">
+                    <span class="guide-acc-group-emoji">${section.emoji}</span>
+                    <div>
+                        <h4 class="guide-acc-group-title">${section.title}</h4>
+                        <p class="guide-acc-group-intro">${section.intro}</p>
+                    </div>
+                </div>
+                <div class="guide-acc-items">${featuresHTML}</div>
+            </section>`;
+        }).join('');
     };
 
-    const studentQuestClusters = [
-        {
-            theme: 'guide-cluster-cyan',
-            icon: 'fa-globe',
-            title: 'Quest World Core',
-            items: [
-                { name: 'Home mission view', tier: 'starter' },
-                { name: 'Team Quest map progress', tier: 'starter' },
-                { name: 'Monthly ceremonies', tier: 'starter' },
-                { name: "Hero's Challenge ranks", tier: 'starter' },
-                { name: 'Hall of Heroes highlights', tier: 'pro' }
-            ]
-        },
-        {
-            theme: 'guide-cluster-amber',
-            icon: 'fa-coins',
-            title: 'Economy and Rewards',
-            items: [
-                { name: 'Stars and gold loop', tier: 'starter' },
-                { name: 'Mystic Market items', tier: 'starter' },
-                { name: 'Legendary artifacts', tier: 'starter' },
-                { name: 'Inventory and Trophy Room', tier: 'starter' },
-                { name: "Hero's Boon gifting", tier: 'starter' }
-            ]
-        },
-        {
-            theme: 'guide-cluster-violet',
-            icon: 'fa-dragon',
-            title: 'Identity and Growth',
-            items: [
-                { name: 'Hero Classes', tier: 'pro' },
-                { name: 'Skill Tree progression', tier: 'pro' },
-                { name: 'Familiars hatch and evolve', tier: 'starter' },
-                { name: 'Guild identity and house points', tier: 'pro' },
-                { name: 'Guild champions', tier: 'pro' }
-            ]
-        },
-        {
-            theme: 'guide-cluster-teal',
-            icon: 'fa-book',
-            title: 'Learning and Story',
-            items: [
-                { name: 'Adventure Log stories', tier: 'pro' },
-                { name: 'Story Weavers', tier: 'pro' },
-                { name: 'Word of the Day', tier: 'pro' },
-                { name: "Scholar's Scroll tests", tier: 'pro' },
-                { name: 'Dictation tracking', tier: 'pro' }
-            ]
-        },
-        {
-            theme: 'guide-cluster-rose',
-            icon: 'fa-calendar-check',
-            title: 'Events and Planner',
-            items: [
-                { name: 'Calendar day planner', tier: 'pro' },
-                { name: 'Quest Events and specials', tier: 'pro' },
-                { name: 'Attendance chronicle', tier: 'pro' },
-                { name: 'Quest assignments', tier: 'pro' },
-                { name: 'School year holiday flow', tier: 'pro' }
-            ]
-        },
-        {
-            theme: 'guide-cluster-indigo',
-            icon: 'fa-wand-magic-sparkles',
-            title: 'Elite AI Magic',
-            items: [
-                { name: 'Oracle insights', tier: 'elite' },
-                { name: 'AI story support', tier: 'elite' },
-                { name: 'AI image creativity', tier: 'elite' },
-                { name: 'Smart summary helpers', tier: 'elite' },
-                { name: 'Early-access experiments', tier: 'elite' }
-            ]
-        }
-    ];
+    // ─────────── DAILY FLOW BUILDER ───────────
+    const buildDailyFlow = (steps) => steps.map((step, i) => `
+        <article class="guide-flow-card guide-stagger-item" style="--guide-delay: ${500 + i * 60}ms;">
+            <div class="guide-flow-num">${i + 1}</div>
+            <div class="guide-flow-content">
+                <h5 class="guide-flow-title">${step.emoji} ${step.title}</h5>
+                <p class="guide-flow-body">${step.body}</p>
+            </div>
+        </article>`
+    ).join('');
 
-    const teacherQuestClusters = [
-        {
-            theme: 'guide-cluster-cyan',
-            icon: 'fa-compass',
-            title: 'Command Tabs (Daily)',
-            items: [
-                { name: 'Home dashboard', tier: 'starter' },
-                { name: 'Team Quest', tier: 'starter' },
-                { name: "Hero's Challenge", tier: 'starter' },
-                { name: 'My Classes', tier: 'starter' },
-                { name: 'Award Stars', tier: 'starter' },
-                { name: 'Options', tier: 'starter' }
-            ]
-        },
-        {
-            theme: 'guide-cluster-violet',
-            icon: 'fa-users-gear',
-            title: 'Class and Student Management',
-            items: [
-                { name: 'Class creation/editing', tier: 'starter' },
-                { name: 'Roster and student profile', tier: 'starter' },
-                { name: 'Avatar and hero identity setup', tier: 'starter' },
-                { name: 'Hero skill tree controls', tier: 'pro' },
-                { name: 'Move student between classes', tier: 'starter' },
-                { name: 'Guild sorting quiz', tier: 'pro' }
-            ]
-        },
-        {
-            theme: 'guide-cluster-amber',
-            icon: 'fa-sack-dollar',
-            title: 'Motivation and Economy Engine',
-            items: [
-                { name: 'Reason-based star awards', tier: 'starter' },
-                { name: 'Quest bounties with timers', tier: 'starter' },
-                { name: "Hero's Boon economy", tier: 'starter' },
-                { name: 'Mystic Market and artifacts', tier: 'starter' },
-                { name: 'Familiars progression', tier: 'starter' },
-                { name: 'Ceremony triggers and highlights', tier: 'starter' }
-            ]
-        },
-        {
-            theme: 'guide-cluster-teal',
-            icon: 'fa-chart-line',
-            title: 'Academics and Analytics',
-            items: [
-                { name: "Scholar's Scroll", tier: 'pro' },
-                { name: 'Tests and dictations', tier: 'pro' },
-                { name: 'Performance charts', tier: 'pro' },
-                { name: 'Makeup tracking', tier: 'pro' },
-                { name: 'Class and hero reports', tier: 'starter' },
-                { name: 'Certificates', tier: 'starter' }
-            ]
-        },
-        {
-            theme: 'guide-cluster-rose',
-            icon: 'fa-calendar-check',
-            title: 'Planning and Attendance',
-            items: [
-                { name: 'Calendar tab', tier: 'pro' },
-                { name: 'Day planner overrides', tier: 'pro' },
-                { name: 'Quest events planner', tier: 'pro' },
-                { name: 'Adventure Log and assignments', tier: 'pro' },
-                { name: 'Attendance chronicle', tier: 'pro' },
-                { name: 'School year planner', tier: 'pro' }
-            ]
-        },
-        {
-            theme: 'guide-cluster-indigo',
-            icon: 'fa-wand-magic-sparkles',
-            title: 'Creative and Premium Layer',
-            items: [
-                { name: 'Story Weavers', tier: 'pro' },
-                { name: 'Word-of-the-Day workflows', tier: 'pro' },
-                { name: 'Guild hall and anthem experience', tier: 'pro' },
-                { name: 'Projector wallpaper mode', tier: 'starter' },
-                { name: 'AI Oracle and AI logs', tier: 'elite' },
-                { name: 'Priority and early-access tools', tier: 'elite' }
-            ]
+    // ─────────── TIER BOTTOM CARD ───────────
+    const buildTierCard = () => {
+        if (rawTier === 'elite') {
+            return `
+            <section class="guide-elite-celebration guide-stagger-item" style="--guide-delay: 700ms;">
+                <div class="guide-elite-inner">
+                    <div class="guide-elite-burst" aria-hidden="true">🎉✨🏆✨🎉</div>
+                    <h3 class="guide-elite-title">You've unlocked the Full Quest Universe! 🌟</h3>
+                    <p class="guide-elite-body">Every feature, every AI tool, every ceremony enhancement, and every creative tool is live for your school. You are running the most complete gamified English classroom experience available — and your students feel every bit of it.</p>
+                    <p class="guide-elite-thanks">💜 Thank you for being a founding legend of The Great Class Quest. This journey grows with you!</p>
+                </div>
+            </section>`;
         }
-    ];
 
+        const nextTier = rawTier === 'pro' ? 'Elite' : 'Pro';
+        const nextEmoji = rawTier === 'pro' ? '🤖✨' : '⚡🏰';
+        const nextPerks = rawTier === 'pro'
+            ? [
+                '🤖 AI Oracle — personalised class insights automatically',
+                '✍️ AI Adventure Log Writer — logs generated after each lesson',
+                '🎨 AI Story Images — illustrated covers for your class stories',
+                '🔬 Early-access experiments and priority support',
+              ]
+            : [
+                '🏰 Guilds & Sorting Quiz — houses, team competition, champions',
+                '⚔️ Hero Classes & Skill Tree — student identity and levelling',
+                '📅 Calendar & School Year Planner — full academic year planning',
+                '📖 Story Weavers — collaborative storytelling with Word of the Day',
+                "📜 Scholar's Scroll — test tracking, dictations, and performance charts",
+                '📓 Adventure Log — visual diary, Hall of Heroes, lesson stories',
+                '📋 Advanced Attendance — chronicles, monthly view, absence history',
+              ];
+
+        return `
+        <section class="guide-upgrade-card guide-stagger-item" style="--guide-delay: 700ms;">
+            <div class="guide-upgrade-inner">
+                <div class="guide-upgrade-top">
+                    <span class="guide-upgrade-emoji">${nextEmoji}</span>
+                    <div>
+                        <h4 class="guide-upgrade-title">Imagine what ${nextTier} would add to your classroom…</h4>
+                        <p class="guide-upgrade-subtitle">You're doing amazing things already. Here's what opens up next:</p>
+                    </div>
+                </div>
+                <ul class="guide-upgrade-perks">
+                    ${nextPerks.map(p => `<li>${p}</li>`).join('')}
+                </ul>
+                <p class="guide-upgrade-cta">Interested? <strong>Contact us</strong> to upgrade — no complex setup, just more magic! 🌟</p>
+            </div>
+        </section>`;
+    };
+
+    // ─────────── STUDENT DAILY FLOW ───────────
     const studentDailyFlow = [
-        { icon: 'fa-sun', title: 'Start', body: 'Check your class mission and choose your hero attitude for the lesson.' },
-        { icon: 'fa-star', title: 'Earn', body: 'Collect stars from teamwork, focus, creativity, and challenge participation.' },
-        { icon: 'fa-bag-shopping', title: 'Build', body: 'Spend smart in the shop, grow your inventory, and evolve your familiar.' },
-        { icon: 'fa-trophy', title: 'Celebrate', body: 'Finish with stories, events, guild moments, and ceremony milestones.' }
+        { emoji: '🌅', title: 'Arrive as the Hero you Are', body: 'Walk into class knowing your avatar is waiting. Check your missions, your familiar, and your stars from last time — then get ready to earn more!' },
+        { emoji: '⭐', title: 'Earn Stars & Conquer Bounties', body: 'Answer questions, speak English, help classmates, complete bounties — every great moment earns stars. The teacher notices EVERYTHING in the Quest!' },
+        { emoji: '🛒', title: 'Build Your Legend', body: 'Visit the Mystic Market, evolve your familiar, level up your hero class, and grow your skill tree. Your character is uniquely yours.' },
+        { emoji: '🎉', title: 'Celebrate & Remember', body: 'Monthly ceremonies spotlight the top heroes. Your class story goes in the Adventure Log. These are moments you will actually remember!' },
     ];
 
+    // ─────────── TEACHER DAILY FLOW ───────────
     const teacherDailyFlow = [
-        { icon: 'fa-house', title: 'Prepare', body: 'Open Home, check reminders and class selection, confirm schedule reality.' },
-        { icon: 'fa-bolt', title: 'Run', body: 'Award stars fast, launch bounties, and keep momentum high during teaching.' },
-        { icon: 'fa-book-medical', title: 'Record', body: 'Capture key outcomes in log, tests, dictations, and attendance as needed.' },
-        { icon: 'fa-chart-pie-simple', title: 'Review', body: 'Use reports, stats, and ceremonies to close loops and plan the next cycle.' }
+        { emoji: '🏫', title: 'Open & Orient (2 min)', body: 'Select your class, glance at the Home dashboard — reminders, any ceremonies due, bounty ideas. You know exactly where the Quest stands before the lesson starts.' },
+        { emoji: '⭐', title: 'Award Stars in Real Time', body: 'Tap student avatars to award stars during the lesson. Use reasons (Speaking, Grammar, Effort, Creativity) so students know WHY they earned it. Launch a bounty for an instant energy spike!' },
+        { emoji: '📝', title: 'Record What Matters', body: "Log test scores in Scholar's Scroll, mark attendance, write a quick Adventure Log entry. It takes seconds but builds a rich class history over the year." },
+        { emoji: '🏆', title: 'Review & Celebrate', body: 'End the lesson with a quick look at the leaderboard. Trigger a ceremony when the time is right. Your students leave talking about the Quest — that is the goal!' },
     ];
 
-    const countItems = (clusters) => clusters.reduce((sum, cluster) => sum + cluster.items.length, 0);
-    const countUnlockedItems = (clusters) => clusters.reduce((sum, cluster) => sum + cluster.items.filter(item => hasTier(item.tier)).length, 0);
+    const studentSections = getGuideSections('student');
+    const teacherSections = getGuideSections('teacher');
 
-    const studentTotalItems = countItems(studentQuestClusters);
-    const studentUnlockedItems = countUnlockedItems(studentQuestClusters);
-    const teacherTotalItems = countItems(teacherQuestClusters);
-    const teacherUnlockedItems = countUnlockedItems(teacherQuestClusters);
+    // ─────────── PHILOSOPHY INTRO ───────────
+    const studentPhilosophyHTML = `
+    <section class="guide-philosophy-card guide-philosophy-student guide-stagger-item" style="--guide-delay: 30ms;">
+        <div class="guide-philosophy-inner">
+            <span class="guide-philosophy-icon">🌍</span>
+            <div>
+                <h4 class="guide-philosophy-title">Why is English Class a Quest? 🗡️</h4>
+                <p class="guide-philosophy-body">Because language learning is an adventure — and adventures need heroes, rewards, companions, and celebrations. <strong>The Great Class Quest</strong> turns every lesson into a chapter of your own story. Stars are XP. Your teacher is the Quest Master. Every word you learn is a new power. Every answer you give is a move forward. You are genuinely becoming a better version of yourself — and the Quest makes that visible, tangible, and FUN. 🚀</p>
+            </div>
+        </div>
+    </section>`;
 
-    // 1. STUDENTS CONTENT (Adventure Guide)
+    const teacherPhilosophyHTML = `
+    <section class="guide-philosophy-card guide-philosophy-teacher guide-stagger-item" style="--guide-delay: 30ms;">
+        <div class="guide-philosophy-inner">
+            <span class="guide-philosophy-icon">🏫</span>
+            <div>
+                <h4 class="guide-philosophy-title">Why Gamify Your English Classroom? ✨</h4>
+                <p class="guide-philosophy-body"><strong>The Great Class Quest</strong> is built specifically for English teachers in private language schools. It answers a real challenge: how do you keep students genuinely engaged lesson after lesson, year after year, across all levels and ages? The answer is a carefully designed reward economy, a hero identity for every student, team dynamics through Guilds, academic tracking through Scholar's Scroll, and a living story — the Adventure Log — that makes every lesson feel part of something bigger. You don't need to change how you teach. You just give the Quest to your classroom and watch what happens. 🌟</p>
+            </div>
+        </div>
+    </section>`;
+
+    // ─────────── BUILD FINAL HTML ───────────
     studentContent.innerHTML = `
         <section class="guide-hero-card guide-student-hero guide-sparkle-layer guide-stagger-item" style="--guide-delay: 0ms;">
-            <div class="guide-hero-badge">For Students</div>
-            <h3 class="font-title text-3xl md:text-4xl text-cyan-900 mb-3"><i class="fas fa-compass mr-2"></i> Your Quest Book, but Actually Fun</h3>
-            <p class="text-slate-700 text-base md:text-lg leading-relaxed">
-                Everything is here: stars, heroes, shop, familiars, events, stories, guilds, and AI magic. It is colorful on purpose, quick to scan, and built to show exactly what your school plan unlocks.
+            <h3 class="font-title text-3xl md:text-4xl text-cyan-900 mb-2">🧙 Welcome, Hero!</h3>
+            <p class="text-slate-700 text-base md:text-lg leading-relaxed mb-3">
+                This is your complete guide to The Great Class Quest — <em>your</em> adventure in English class. Tap any feature below to discover what it does, what you can unlock, and why it makes class genuinely exciting! 🌟
             </p>
             <div class="guide-tier-chip-row">
-                <span class="guide-tier-chip"><i class="fas fa-layer-group"></i> School Plan: ${prettyTier}</span>
+                <span class="guide-tier-chip">🏫 School Plan: ${prettyTier}</span>
                 <span class="guide-tier-chip guide-tier-chip-soft">${tierTagline}</span>
-                <span class="guide-tier-chip"><i class="fas fa-unlock-keyhole"></i> ${studentUnlockedItems}/${studentTotalItems} feature modules active</span>
             </div>
         </section>
 
-        <section class="guide-kpi-grid guide-stagger-item" style="--guide-delay: 70ms;">
-            <article class="guide-kpi-card"><span class="kpi-number">${studentUnlockedItems}</span><span class="kpi-label">Unlocked Modules</span></article>
-            <article class="guide-kpi-card"><span class="kpi-number">${studentTotalItems - studentUnlockedItems}</span><span class="kpi-label">Future Unlocks</span></article>
-            <article class="guide-kpi-card"><span class="kpi-number">${prettyTier}</span><span class="kpi-label">Current Plan</span></article>
-            <article class="guide-kpi-card"><span class="kpi-number">4</span><span class="kpi-label">Daily Quest Beats</span></article>
+        ${studentPhilosophyHTML}
+
+        <div class="guide-section-label guide-stagger-item" style="--guide-delay: 60ms;">🗂️ Tap any feature to learn what it does!</div>
+
+        ${buildSectionHTML(studentSections, 'student')}
+
+        <section class="guide-panel guide-stagger-item" style="--guide-delay: 480ms;">
+            <h4 class="guide-section-title">⚡ Your Daily Quest Loop</h4>
+            <div class="guide-flow-grid">${buildDailyFlow(studentDailyFlow)}</div>
         </section>
 
-        <section class="guide-panel guide-stagger-item" style="--guide-delay: 120ms;">
-            <h4 class="guide-section-title"><i class="fas fa-map-location-dot"></i> Student Feature Atlas</h4>
-            <div class="guide-cluster-grid">
-                ${studentQuestClusters.map((cluster, index) => `
-                    <article class="guide-cluster ${cluster.theme} guide-stagger-item" style="--guide-delay: ${150 + (index * 35)}ms;">
-                        <h5><i class="fas ${cluster.icon}"></i> ${cluster.title}</h5>
-                        <div class="guide-chip-list">
-                            ${cluster.items.map(item => `
-                                <span class="guide-chip-item">
-                                    <span class="guide-chip-name">${item.name}</span>
-                                    ${compactAvailability(item.tier)}
-                                </span>
-                            `).join('')}
-                        </div>
-                    </article>
-                `).join('')}
-            </div>
-        </section>
-
-        <section class="guide-panel guide-stagger-item" style="--guide-delay: 380ms;">
-            <h4 class="guide-section-title"><i class="fas fa-timeline"></i> Your Daily Loop</h4>
-            <div class="guide-timeline-grid">
-                ${studentDailyFlow.map((step, index) => `
-                    <article class="guide-timeline-card guide-stagger-item" style="--guide-delay: ${420 + (index * 45)}ms;">
-                        <h5><i class="fas ${step.icon}"></i> ${step.title}</h5>
-                        <p>${step.body}</p>
-                    </article>
-                `).join('')}
-            </div>
-        </section>
-
-        <section class="guide-panel guide-tier-panel guide-stagger-item" style="--guide-delay: 620ms;">
-            <h4 class="guide-section-title"><i class="fas fa-unlock-alt"></i> Tier Progress Path</h4>
-            <ul class="guide-tier-list">
-                ${tiersGlance.map(t => `<li><strong>${t.label}:</strong> ${t.bullets}</li>`).join('')}
-            </ul>
-            <p class="guide-tier-footnote">
-                ${rawTier === 'elite'
-                    ? 'Everything is live. Explore all systems and use the full quest universe.'
-                    : rawTier === 'pro'
-                        ? 'Pro gives you the full classroom adventure toolkit; Elite adds the deepest AI magic.'
-                        : 'Starter has a strong core; Pro unlocks the larger world with stories, planner, guilds, and advanced tracking.'}
-            </p>
-        </section>
+        ${buildTierCard()}
     `;
 
-    // 2. TEACHERS CONTENT (Game Master's Manual)
     teacherContent.innerHTML = `
         <section class="guide-hero-card guide-teacher-hero guide-sparkle-layer guide-stagger-item" style="--guide-delay: 0ms;">
-            <div class="guide-hero-badge">For Teachers</div>
-            <h3 class="font-title text-3xl md:text-4xl text-emerald-900 mb-3"><i class="fas fa-chalkboard-teacher mr-2"></i> Beautiful, Fast, Complete Teacher Command Guide</h3>
-            <p class="text-slate-700 text-base md:text-lg leading-relaxed">
-                Every major workflow is listed here, grouped by purpose, color-coded, and tier-labeled. No feature is hidden, but nothing feels like a wall of text.
+            <h3 class="font-title text-3xl md:text-4xl text-emerald-900 mb-2">🏫 Welcome, Quest Master!</h3>
+            <p class="text-slate-700 text-base md:text-lg leading-relaxed mb-3">
+                This guide covers everything in The Great Class Quest — designed for English teachers and school owners. Tap any feature to see a full explanation in plain English (no tech jargon, ever). Your current plan is shown on each feature so you always know what's live. 🌟
             </p>
             <div class="guide-tier-chip-row">
-                <span class="guide-tier-chip"><i class="fas fa-crown"></i> Active Plan: ${prettyTier}</span>
+                <span class="guide-tier-chip">👑 Active Plan: ${prettyTier}</span>
                 <span class="guide-tier-chip guide-tier-chip-soft">${tierTagline}</span>
-                <span class="guide-tier-chip"><i class="fas fa-server"></i> ${teacherUnlockedItems}/${teacherTotalItems} modules active</span>
             </div>
         </section>
 
-        <section class="guide-kpi-grid guide-stagger-item" style="--guide-delay: 70ms;">
-            <article class="guide-kpi-card"><span class="kpi-number">${teacherUnlockedItems}</span><span class="kpi-label">Active Modules</span></article>
-            <article class="guide-kpi-card"><span class="kpi-number">${teacherTotalItems - teacherUnlockedItems}</span><span class="kpi-label">Locked Modules</span></article>
-            <article class="guide-kpi-card"><span class="kpi-number">11</span><span class="kpi-label">Main Nav Tabs</span></article>
-            <article class="guide-kpi-card"><span class="kpi-number">4</span><span class="kpi-label">Daily Ops Stages</span></article>
+        ${teacherPhilosophyHTML}
+
+        <div class="guide-section-label guide-stagger-item" style="--guide-delay: 60ms;">🗂️ Tap any feature to see its full explanation!</div>
+
+        ${buildSectionHTML(teacherSections, 'teacher')}
+
+        <section class="guide-panel guide-stagger-item" style="--guide-delay: 480ms;">
+            <h4 class="guide-section-title">⚡ Your Daily Teaching Loop</h4>
+            <div class="guide-flow-grid">${buildDailyFlow(teacherDailyFlow)}</div>
         </section>
 
-        <section class="guide-panel guide-stagger-item" style="--guide-delay: 120ms;">
-            <h4 class="guide-section-title"><i class="fas fa-sparkles"></i> Full Teacher Feature Atlas</h4>
-            <div class="guide-cluster-grid">
-                ${teacherQuestClusters.map((cluster, index) => `
-                    <article class="guide-cluster ${cluster.theme} guide-stagger-item" style="--guide-delay: ${150 + (index * 35)}ms;">
-                        <h5><i class="fas ${cluster.icon}"></i> ${cluster.title}</h5>
-                        <div class="guide-chip-list">
-                            ${cluster.items.map(item => `
-                                <span class="guide-chip-item">
-                                    <span class="guide-chip-name">${item.name}</span>
-                                    ${compactAvailability(item.tier)}
-                                </span>
-                            `).join('')}
-                        </div>
-                    </article>
-                `).join('')}
-            </div>
-        </section>
-
-        <section class="guide-panel guide-stagger-item" style="--guide-delay: 380ms;">
-            <h4 class="guide-section-title"><i class="fas fa-list-check"></i> Teacher Daily Operating Loop</h4>
-            <div class="guide-timeline-grid">
-                ${teacherDailyFlow.map((step, index) => `
-                    <article class="guide-timeline-card guide-stagger-item" style="--guide-delay: ${420 + (index * 45)}ms;">
-                        <h5><i class="fas ${step.icon}"></i> ${step.title}</h5>
-                        <p>${step.body}</p>
-                    </article>
-                `).join('')}
-            </div>
-        </section>
-
-        <section class="guide-panel guide-tier-panel guide-stagger-item" style="--guide-delay: 620ms;">
-            <h4 class="guide-section-title"><i class="fas fa-layer-group"></i> Plan Tiers at a Glance</h4>
-            <ul class="guide-tier-list">
-                ${tiersGlance.map(t => `<li><strong>${t.label}:</strong> ${t.bullets}</li>`).join('')}
-            </ul>
-            <p class="guide-tier-footnote">
-                ${rawTier === 'elite'
-                    ? 'Elite is active: full AI support, full operations, and full classroom quest depth are available.'
-                    : rawTier === 'pro'
-                        ? 'Pro is active: complete classroom systems are live; Elite is the AI/premium extension layer.'
-                        : 'Starter is active: core quest systems are ready, and Pro/Elite expand depth when your school wants it.'}
-            </p>
-        </section>
+        ${buildTierCard()}
     `;
 
-    // 3. Reset Tabs (Show Student by default)
+    // Reset Tabs — show Students by default
     const studentBtn = document.getElementById('info-btn-students');
     const teacherBtn = document.getElementById('info-btn-teachers');
-    
+
     studentBtn.classList.add('active');
     teacherBtn.classList.remove('active');
-    
+
     studentContent.classList.remove('hidden');
     teacherContent.classList.add('hidden');
 

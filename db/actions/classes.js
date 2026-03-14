@@ -18,6 +18,7 @@ import {
 } from '../../firebase.js';
 import * as state from '../../state.js';
 import { showToast } from '../../ui/effects.js';
+import { hideModal } from '../../ui/modals.js';
 import { classColorPalettes } from '../../constants.js';
 import { simpleHashCode } from '../../utils.js';
 import { getLimit } from '../../utils/subscription.js';
@@ -143,7 +144,7 @@ export async function handleEditClass() {
         const classRef = doc(db, "artifacts/great-class-quest/public/data/classes", classId);
         await updateDoc(classRef, { name, questLevel: level, logo, timeStart, timeEnd, scheduleDays });
         showToast('Class updated successfully!', 'success');
-        document.getElementById('edit-class-modal').classList.add('hidden');
+        hideModal('edit-class-modal');
     } catch (error) {
         console.error("Error updating class: ", error);
         showToast(`Error: ${error.message}`, 'error');

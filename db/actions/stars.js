@@ -415,7 +415,7 @@ export async function handleSaveAwardNote() {
     try {
         await updateDoc(doc(db, "artifacts/great-class-quest/public/data/award_log", logId), { note: newNote });
         showToast('Note saved!', 'success');
-        document.getElementById('award-note-modal').classList.add('hidden');
+        hideModal('award-note-modal');
     } catch (error) {
         console.error("Error saving award note:", error);
         showToast('Failed to save note.', 'error');

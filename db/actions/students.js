@@ -210,7 +210,7 @@ export async function handleMoveStudent() {
             }
         });
         showToast("Student moved and ownership transferred successfully!", "success");
-        document.getElementById('move-student-modal').classList.add('hidden');
+        modals.hideModal('move-student-modal');
     } catch (error) {
         console.error("Error moving student:", error);
         showToast("Failed to move student. Please try again.", "error");

@@ -133,15 +133,22 @@ export function hideModal(modalId) {
     const innerContent = modal.querySelector('.pop-in');
 
     if (innerContent) {
-        innerContent.classList.add('pop-out');
+        innerContent.classList.add('modal-origin-start');
+        modal.style.backgroundColor = 'rgba(0, 0, 0, 0)';
+    } else {
+        modal.style.transition = 'opacity 0.25s ease';
+        modal.style.opacity = '0';
     }
 
     setTimeout(() => {
         modal.classList.add('hidden');
+        modal.style.backgroundColor = '';
+        modal.style.transition = '';
+        modal.style.opacity = '';
         if (innerContent) {
-            innerContent.classList.remove('pop-out');
+            innerContent.classList.remove('modal-origin-start');
         }
-    }, 200);
+    }, 350);
 
     if (currentlySelectedDayCell) {
         currentlySelectedDayCell.classList.remove('day-selected');

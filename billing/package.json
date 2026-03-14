@@ -4,6 +4,7 @@
   "description": "Central billing backend for GCQ: Stripe checkout + webhook → sync tier to schools",
   "type": "module",
   "main": "server.js",
+  "engines": { "node": ">=18" },
   "scripts": {
     "start": "node server.js",
     "dev": "node --watch server.js"

@@ -26,8 +26,17 @@ import { competitionStart } from '../constants.js';
 import * as modals from '../ui/modals.js';
 import { renderHomeTab } from '../features/home.js';
 import { reconcileFamiliarLifecycle, shouldPassivelyReconcileFamiliar } from '../features/familiars.js';
+import { refreshSetupClassesList } from '../features/schoolSetup.js';
 
-export function setupDataListeners(userId, dateString) {
+export function setupDataListeners(userId, dateString, onInitialDataReady) {
+    let initialReadyFired = false;
+    function maybeFireInitialReady() {
+        if (typeof onInitialDataReady === 'function' && !initialReadyFired) {
+            initialReadyFired = true;
+            onInitialDataReady();
+        }
+    }
+
     // Clear previous listeners
     state.get('unsubscribeClasses')();
     state.get('unsubscribeStudents')();
@@ -113,6 +122,8 @@ export function setupDataListeners(userId, dateString) {
         const schoolClasses = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
         state.setAllSchoolClasses(schoolClasses);
         state.setAllTeachersClasses(schoolClasses.filter(c => c.createdBy?.uid === userId));
+        maybeFireInitialReady();
+        refreshSetupClassesList();
         findAndSetCurrentLeague();
         // Smart class selector - find active class if there's an active lesson
         findAndSetCurrentClass();

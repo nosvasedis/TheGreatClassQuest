@@ -1,0 +1,17 @@
+{
+  "tier": "pro",
+  "maxTeachers": 6,
+  "maxClasses": 10,
+  "guilds": true,
+  "adventureLog": true,
+  "calendar": true,
+  "schoolYearPlanner": true,
+  "scholarScroll": true,
+  "makeupTracking": true,
+  "advancedAttendance": true,
+  "storyWeavers": true,
+  "eliteAI": false,
+  "earlyAccess": false,
+  "prioritySupport": false,
+  "customFeatures": false
+}

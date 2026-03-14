@@ -1,0 +1,11 @@
+# Netlify: one site per school. Set env vars for that school's Firebase project.
+# Build only writes config.json from env; no other build step.
+[build]
+  command = "node scripts/write-config.js"
+  publish = "."
+
+# Optional: redirect SPA if you add client-side routing later
+# [[redirects]]
+#   from = "/*"
+#   to = "/index.html"
+#   status = 200

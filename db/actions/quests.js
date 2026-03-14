@@ -113,6 +113,13 @@ export async function handleLogAdventure() {
     const classId = state.get('currentLogFilter').classId;
     if (!classId) return;
 
+    const { canUseFeature } = await import('../../utils/subscription.js');
+    if (!canUseFeature('eliteAI')) {
+        const { showUpgradePrompt } = await import('../../utils/upgradePrompt.js');
+        showUpgradePrompt({ feature: 'AI Adventure Log', tier: 'Elite', message: 'The AI-powered diary and storybook image are on the Elite plan.' });
+        return;
+    }
+
     const classData = state.get('allTeachersClasses').find(c => c.id === classId);
     if (!classData) return;
 

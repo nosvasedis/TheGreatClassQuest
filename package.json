@@ -4,9 +4,13 @@
   "description": "The Great Class Quest",
   "scripts": {
     "dev": "npx serve -l 3000",
-    "test": "node --test"
+    "test": "node --test",
+    "set-subscription": "node scripts/set-subscription.js"
   },
   "keywords": [],
   "author": "",
-  "license": "ISC"
+  "license": "ISC",
+  "devDependencies": {
+    "firebase-admin": "^13.0.0"
+  }
 }

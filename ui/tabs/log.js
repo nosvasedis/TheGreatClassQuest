@@ -3,6 +3,7 @@ import * as state from '../../state.js';
 import * as utils from '../../utils.js';
 import * as constants from '../../constants.js';
 import * as modals from '../modals.js';
+import { canUseFeature } from '../../utils/subscription.js';
 import { renderAwardStarsStudentList } from './award.js';
 
 function classHasAwardedStarsToday(classId) {
@@ -28,10 +29,22 @@ export async function renderAdventureLogTab() {
     }
 
     state.get('currentLogFilter').classId = classVal;
-    document.getElementById('log-adventure-btn').disabled = !classVal || !classHasAwardedStarsToday(classVal);
+    const hasAdventureLog = canUseFeature('adventureLog');
+    const logBtn = document.getElementById('log-adventure-btn');
+    const hallBtn = document.getElementById('hall-of-heroes-btn');
+    const feedEl = document.getElementById('adventure-log-feed');
+    if (logBtn) {
+        logBtn.style.display = hasAdventureLog ? '' : 'none';
+        logBtn.disabled = !classVal || !classHasAwardedStarsToday(classVal);
+    }
+    if (hallBtn) {
+        hallBtn.style.display = hasAdventureLog ? '' : 'none';
+        hallBtn.disabled = !classVal;
+    }
+    if (feedEl) feedEl.style.display = hasAdventureLog ? '' : 'none';
+    if (monthFilter) monthFilter.style.display = hasAdventureLog ? '' : 'none';
     document.getElementById('quest-assignment-btn').disabled = !classVal;
     document.getElementById('attendance-chronicle-btn').disabled = !classVal;
-    document.getElementById('hall-of-heroes-btn').disabled = !classVal;
 
     const monthVal = monthFilter.value;
 

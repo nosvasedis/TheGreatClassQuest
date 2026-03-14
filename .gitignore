@@ -14,6 +14,10 @@ build/
 .DS_Store
 *.pem
 
+# Firebase service account key (never commit)
+*.serviceAccount.json
+*-firebase-adminsdk-*.json
+
 # Env
 .env
 .env.local
@@ -28,6 +32,7 @@ build/
 *.swo
 
 # Project specific
+config.json
 *.log
 npm-debug.log*
 yarn-debug.log*

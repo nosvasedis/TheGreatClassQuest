@@ -1,0 +1,17 @@
+{
+  "tier": "elite",
+  "maxTeachers": null,
+  "maxClasses": null,
+  "guilds": true,
+  "adventureLog": true,
+  "calendar": true,
+  "schoolYearPlanner": true,
+  "scholarScroll": true,
+  "makeupTracking": true,
+  "advancedAttendance": true,
+  "storyWeavers": true,
+  "eliteAI": true,
+  "earlyAccess": true,
+  "prioritySupport": true,
+  "customFeatures": true
+}

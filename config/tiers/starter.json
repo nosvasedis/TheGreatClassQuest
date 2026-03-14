@@ -1,0 +1,17 @@
+{
+  "tier": "starter",
+  "maxTeachers": 3,
+  "maxClasses": 6,
+  "guilds": false,
+  "adventureLog": false,
+  "calendar": false,
+  "schoolYearPlanner": false,
+  "scholarScroll": false,
+  "makeupTracking": false,
+  "advancedAttendance": false,
+  "storyWeavers": false,
+  "eliteAI": false,
+  "earlyAccess": false,
+  "prioritySupport": false,
+  "customFeatures": false
+}

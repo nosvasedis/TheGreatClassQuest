@@ -24,8 +24,24 @@ import { renderAwardStarsTab } from './award.js';
 import { renderAdventureLogTab } from './log.js';
 import { renderCalendarTab } from './selectors.js';
 import { renderIdeasTabSelects, renderStarManagerStudentSelect } from './ideas.js';
+import { canUseFeature } from '../../utils/subscription.js';
+import { showUpgradePrompt } from '../../utils/upgradePrompt.js';
 
 // --- TAB NAVIGATION ---
+
+const GATED_TABS = {
+    'guilds-tab': { feature: 'Guilds', tier: 'Pro', message: 'Unlock the full Guild system and sorting quiz.' },
+    'calendar-tab': { feature: 'Calendar & Day Planner', tier: 'Pro', message: 'Manage your schedule, holidays, and Quest Events.' },
+    'scholars-scroll-tab': { feature: "Scholar's Scroll", tier: 'Pro', message: 'Track tests, dictations, and performance charts.' },
+    'reward-ideas-tab': { feature: 'Story Weavers', tier: 'Pro', message: 'Collaborative story and Word of the Day.' }
+};
+
+const TAB_FEATURE_FLAGS = {
+    'guilds-tab': 'guilds',
+    'calendar-tab': 'calendar',
+    'scholars-scroll-tab': 'scholarScroll',
+    'reward-ideas-tab': 'storyWeavers'
+};
 
 export async function showTab(tabName) {
     const allTabs = document.querySelectorAll('.app-tab');
@@ -35,6 +51,13 @@ export async function showTab(tabName) {
     const currentTab = document.querySelector('.app-tab:not(.hidden)');
 
     if (!nextTab || (currentTab && currentTab.id === tabId)) {
+        return;
+    }
+
+    const flag = TAB_FEATURE_FLAGS[tabId];
+    if (flag && !canUseFeature(flag)) {
+        const opts = GATED_TABS[tabId];
+        if (opts) showUpgradePrompt(opts);
         return;
     }
 

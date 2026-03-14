@@ -15,6 +15,8 @@ import { archivePreviousDayStars } from './db/listeners.js';
 import { toggleWallpaperMode } from './ui/wallpaper.js';
 import { initializeHeaderQuote } from './features/home.js';
 import * as utils from './utils.js';
+import { loadSubscription } from './utils/subscription.js';
+import { isSetupNeeded, showSetupScreen } from './features/schoolSetup.js';
 
 import {
     createUserWithEmailAndPassword,
@@ -107,25 +109,26 @@ function setupAuthListeners() {
                 state.set('todaysStarsDate', newDate);
             }
 
-            setupDataListeners(user.uid, newDate);
+            await loadSubscription();
+            setupDataListeners(user.uid, newDate, function onInitialDataReady() {
+                authScreen.classList.add('auth-screen-out');
+                setTimeout(() => {
+                    authScreen.classList.add('hidden');
+                    authScreen.classList.remove('auth-screen-out');
+                }, 500);
 
-            authScreen.classList.add('auth-screen-out');
-            appScreen.classList.remove('hidden');
-            appScreen.classList.add('app-screen-in');
+                if (isSetupNeeded()) {
+                    showSetupScreen();
+                } else {
+                    appScreen.classList.remove('hidden');
+                    appScreen.classList.add('app-screen-in');
+                    setTimeout(() => appScreen.classList.remove('app-screen-in'), 500);
+                    import('./ui/tabs.js').then(tabs => tabs.showTab('about-tab'));
+                }
 
-            setTimeout(() => {
-                authScreen.classList.add('hidden');
-                authScreen.classList.remove('auth-screen-out');
-                appScreen.classList.remove('app-screen-in');
-            }, 500);
-
-            // Force Home Tab on Login (Bypass Persistence)
-            import('./ui/tabs.js').then(tabs => tabs.showTab('about-tab'));
-
-            loadingScreen.classList.add('opacity-0');
-            setTimeout(() => {
-                loadingScreen.classList.add('pointer-events-none');
-            }, 500);
+                loadingScreen.classList.add('opacity-0');
+                setTimeout(() => loadingScreen.classList.add('pointer-events-none'), 500);
+            });
 
         } else {
             state.resetState();

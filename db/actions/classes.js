@@ -20,8 +20,53 @@ import * as state from '../../state.js';
 import { showToast } from '../../ui/effects.js';
 import { classColorPalettes } from '../../constants.js';
 import { simpleHashCode } from '../../utils.js';
+import { getLimit } from '../../utils/subscription.js';
+import { showUpgradePrompt } from '../../utils/upgradePrompt.js';
+
+const publicDataPath = 'artifacts/great-class-quest/public/data';
+
+/**
+ * Create a class in Firestore. Used by handleAddClass and by the first-user setup flow.
+ * @param {object} data - { name, questLevel, logo?, scheduleDays?, timeStart?, timeEnd? }
+ */
+export async function createClass(data) {
+    const { name, questLevel, logo = '📚', scheduleDays = [], timeStart = '', timeEnd = '' } = data;
+    if (!name || !questLevel) {
+        showToast('Please fill in both Class Name and Quest Level.', 'error');
+        return;
+    }
+    const randomColor = classColorPalettes[simpleHashCode(name) % classColorPalettes.length];
+    await addDoc(collection(db, `${publicDataPath}/classes`), {
+        name,
+        questLevel,
+        logo,
+        scheduleDays,
+        timeStart,
+        timeEnd,
+        color: randomColor,
+        createdBy: { uid: state.get('currentUserId'), name: state.get('currentTeacherName') },
+        createdAt: serverTimestamp()
+    });
+    showToast('Class created successfully!', 'success');
+}
 
 export async function handleAddClass() {
+    const maxClasses = getLimit('maxClasses');
+    const maxTeachers = getLimit('maxTeachers');
+    const classes = state.get('allSchoolClasses') || [];
+    const userId = state.get('currentUserId');
+
+    if (maxClasses !== null && classes.length >= maxClasses) {
+        showUpgradePrompt({ feature: 'More classes', tier: 'Pro', message: 'You have reached your plan limit. Upgrade to add more classes.' });
+        return;
+    }
+    const teacherIds = new Set(classes.map(c => c.createdBy?.uid).filter(Boolean));
+    const isNewTeacher = userId && !teacherIds.has(userId);
+    if (maxTeachers !== null && isNewTeacher && teacherIds.size >= maxTeachers) {
+        showUpgradePrompt({ feature: 'More teachers', tier: 'Pro', message: 'Your school has reached the teacher limit. Upgrade to add more teachers.' });
+        return;
+    }
+
     const form = document.getElementById('add-class-form');
     const name = document.getElementById('class-name').value;
     const level = document.getElementById('class-level').value;
@@ -33,25 +78,13 @@ export async function handleAddClass() {
     const timeStart = document.getElementById('class-time-start').value;
     const timeEnd = document.getElementById('class-time-end').value;
     const scheduleDays = Array.from(document.querySelectorAll('input[name="schedule-day"]:checked')).map(cb => cb.value);
-    const randomColor = classColorPalettes[simpleHashCode(name) % classColorPalettes.length];
 
     try {
-        await addDoc(collection(db, "artifacts/great-class-quest/public/data/classes"), {
-            name,
-            questLevel: level,
-            logo,
-            scheduleDays,
-            timeStart,
-            timeEnd,
-            color: randomColor,
-            createdBy: { uid: state.get('currentUserId'), name: state.get('currentTeacherName') },
-            createdAt: serverTimestamp()
-        });
-        showToast('Class created successfully!', 'success');
+        await createClass({ name, questLevel: level, logo, scheduleDays, timeStart, timeEnd });
         form.reset();
-        document.getElementById('logo-picker-btn').innerText = '📚';
-        document.getElementById('class-logo').value = '📚';
-        document.getElementById('class-name-suggestions').innerHTML = '';
+        if (document.getElementById('logo-picker-btn')) document.getElementById('logo-picker-btn').innerText = '📚';
+        if (document.getElementById('class-logo')) document.getElementById('class-logo').value = '📚';
+        if (document.getElementById('class-name-suggestions')) document.getElementById('class-name-suggestions').innerHTML = '';
     } catch (error) {
         console.error("Error adding class: ", error);
         showToast(`Error: ${error.message}`, 'error');
@@ -60,7 +93,6 @@ export async function handleAddClass() {
 
 export async function deleteClass(classId) {
     try {
-        const publicDataPath = "artifacts/great-class-quest/public/data";
         const studentsQuery = query(collection(db, `${publicDataPath}/students`), where("classId", "==", classId));
         const studentSnapshot = await getDocs(studentsQuery);
         const studentIdsInClass = studentSnapshot.docs.map(d => d.id);

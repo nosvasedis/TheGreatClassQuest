@@ -1,7 +1,8 @@
 export const competitionStart = new Date('2025-11-01');
 export const competitionEnd = new Date('2026-06-30');
 
-export const firebaseConfig = {
+// Use optional config from bootstrap (config.json) when present; otherwise this default (e.g. your school).
+const DEFAULT_FIREBASE_CONFIG = {
   apiKey: "AIzaSyCxpouLYfm8woS8ToK8kRzndRvbIwsPuFU",
   authDomain: "the-great-class-quest.firebaseapp.com",
   projectId: "the-great-class-quest",
@@ -10,6 +11,9 @@ export const firebaseConfig = {
   appId: "1:1021026433595:web:d1bc4b6f45f01fe25c3a1e",
   measurementId: "G-QJZC4NGX75"
 };
+
+export const firebaseConfig =
+  (typeof window !== 'undefined' && window.__GCQ_FIREBASE_CONFIG__) || DEFAULT_FIREBASE_CONFIG;
 
 export const cloudflareWorkerUrl = 'https://great-class-quest-ai-proxy.nvasedis-cc5.workers.dev';
 export const workerBaseUrl = 'https://great-class-quest-ai-proxy.nvasedis-cc5.workers.dev';

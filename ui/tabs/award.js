@@ -404,9 +404,16 @@ export function renderAwardStarsStudentList(selectedClassId, fullRender = true) 
                   </div>
                 `;
 
+                // Hero title pill with class color and icon - shows class name at level 0, title at level 1+
                 const heroLevel = scoreData.heroLevel || 0;
-                const heroTitlePill = heroProgressionEnabled && s.heroClass && heroLevel > 0
-                    ? (() => { const title = getHeroTitle(s.heroClass, heroLevel); const tree = HERO_SKILL_TREE[s.heroClass]; const aura = tree?.auraColor || '#7c3aed'; return `<span class="hero-title-pill inline-flex items-center gap-1 text-[10px] font-bold px-1.5 py-0.5 rounded-full text-white shadow-sm border border-white/30" style="background: linear-gradient(135deg, ${aura}, ${aura}dd);">${title}</span>`; })()
+                const heroTitlePill = heroProgressionEnabled && s.heroClass
+                    ? (() => {
+                        const title = heroLevel > 0 ? getHeroTitle(s.heroClass, heroLevel) : s.heroClass;
+                        const tree = HERO_SKILL_TREE[s.heroClass];
+                        const aura = tree?.auraColor || '#7c3aed';
+                        const icon = HERO_CLASSES[s.heroClass]?.icon || '';
+                        return `<span class="hero-title-pill inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full text-white shadow-sm border border-white/30" style="background: linear-gradient(135deg, ${aura}, ${aura}dd); box-shadow: 0 1px 3px rgba(0,0,0,0.2), 0 0 0 1px rgba(255,255,255,0.2);">${icon ? `<span class="opacity-90">${icon}</span>` : ''}<span>${title}</span></span>`;
+                      })()
                     : '';
 
                 // --- BOON BUTTON VISUAL LOGIC ---
@@ -446,7 +453,6 @@ export function renderAwardStarsStudentList(selectedClassId, fullRender = true) 
                     <div class="card-content-wrapper">
                         <h3 class="font-title text-2xl text-gray-800 text-center">
                             <div class="flex flex-wrap items-center justify-center gap-1.5 mb-1">
-                                <span class="text-sm opacity-70">${heroProgressionEnabled ? `${s.heroClass && HERO_CLASSES[s.heroClass] ? HERO_CLASSES[s.heroClass].icon : ''} ${s.heroClass || ''}` : ''}</span>
                                 ${heroTitlePill}
                             </div>
                             ${s.name}

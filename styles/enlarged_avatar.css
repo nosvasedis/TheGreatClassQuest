@@ -44,6 +44,11 @@
     cursor: default;
 }
 
+/* Enlarged avatar wrapper with level-up badge needs same transition */
+.enlarged-avatar-level-up-wrap {
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
 /* --- FIX #10: Smooth Resizing for Idea Forge --- */
 #reward-ideas-tab .grid {
     align-items: start;

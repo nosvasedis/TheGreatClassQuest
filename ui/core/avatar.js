@@ -2,6 +2,7 @@
 import * as state from '../../state.js';
 import { handleUseItem, isItemUsable } from '../../features/powerUps.js';
 import { renderFamiliarSprite, openFamiliarStatsOverlay } from '../../features/familiars.js';
+import { openSkillTreeModal } from '../modals/skillTree.js';
 
 /**
  * Wraps avatar HTML with the level-up indicator (arrow + glow) when the student has leveled up
@@ -147,12 +148,7 @@ export function handleAvatarClick(e) {
             avatarWrap.style.width = `${rect.width}px`;
             avatarWrap.style.height = `${rect.height}px`;
             avatarWrap.style.zIndex = '102';
-            const badge = document.createElement('span');
-            badge.className = 'level-up-badge level-up-badge--enlarged';
-            badge.setAttribute('aria-hidden', 'true');
-            badge.title = 'Level up! Assign skill in Skill Tree';
-            badge.innerHTML = '<i class="fas fa-arrow-up"></i>';
-            avatarWrap.appendChild(badge);
+            // Add clone first (as background), then badge on top
             clone.style.position = 'absolute';
             clone.style.top = '0';
             clone.style.left = '0';
@@ -161,6 +157,20 @@ export function handleAvatarClick(e) {
             clone.style.objectFit = 'cover';
             clone.style.borderRadius = '9999px';
             avatarWrap.appendChild(clone);
+            const badge = document.createElement('span');
+            badge.className = 'level-up-badge level-up-badge--enlarged';
+            badge.setAttribute('aria-hidden', 'true');
+            badge.title = 'Level up! Click to open Skill Tree';
+            badge.innerHTML = '<i class="fas fa-arrow-up"></i>';
+            // Click badge to open skill tree
+            badge.addEventListener('click', (e) => {
+                e.stopPropagation();
+                if (studentId) {
+                    closeHandler();
+                    openSkillTreeModal(studentId);
+                }
+            });
+            avatarWrap.appendChild(badge);
             container.appendChild(avatarWrap);
             animatedEl = avatarWrap;
         } else {

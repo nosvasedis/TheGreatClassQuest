@@ -115,7 +115,9 @@ export function handleAvatarClick(e) {
 
         const rect = avatar.getBoundingClientRect();
         const src = avatar.src;
-        
+        const scoreData = studentId ? state.get('allStudentScores').find(sc => sc.id === studentId) : null;
+        const pendingSkillChoice = !!scoreData?.pendingSkillChoice;
+
         const container = document.createElement('div');
         container.className = 'enlarged-avatar-container';
         
@@ -135,16 +137,41 @@ export function handleAvatarClick(e) {
         clone.style.height = `${rect.height}px`;
         clone.style.zIndex = '102';
         
-        container.appendChild(clone);
+        let animatedEl = clone;
+        if (pendingSkillChoice) {
+            const avatarWrap = document.createElement('div');
+            avatarWrap.className = 'enlarged-avatar-level-up-wrap';
+            avatarWrap.style.position = 'fixed';
+            avatarWrap.style.top = `${rect.top}px`;
+            avatarWrap.style.left = `${rect.left}px`;
+            avatarWrap.style.width = `${rect.width}px`;
+            avatarWrap.style.height = `${rect.height}px`;
+            avatarWrap.style.zIndex = '102';
+            const badge = document.createElement('span');
+            badge.className = 'level-up-badge level-up-badge--enlarged';
+            badge.setAttribute('aria-hidden', 'true');
+            badge.title = 'Level up! Assign skill in Skill Tree';
+            badge.innerHTML = '<i class="fas fa-arrow-up"></i>';
+            avatarWrap.appendChild(badge);
+            clone.style.position = 'absolute';
+            clone.style.top = '0';
+            clone.style.left = '0';
+            clone.style.width = '100%';
+            clone.style.height = '100%';
+            clone.style.objectFit = 'cover';
+            clone.style.borderRadius = '9999px';
+            avatarWrap.appendChild(clone);
+            container.appendChild(avatarWrap);
+            animatedEl = avatarWrap;
+        } else {
+            container.appendChild(clone);
+        }
         
         // FAMILIAR companion display
         let familiarHtml = '';
-        if (studentId) {
-            const scoreData = state.get('allStudentScores').find(sc => sc.id === studentId);
-            if (scoreData?.familiar) {
-                const spriteHtml = renderFamiliarSprite(scoreData.familiar, 'medium', studentId);
-                familiarHtml = `<div class="enlargeable-familiar familiar-enlarged-companion mt-[-20px] z-[103]" data-student-id="${studentId}">${spriteHtml}</div>`;
-            }
+        if (studentId && scoreData?.familiar) {
+            const spriteHtml = renderFamiliarSprite(scoreData.familiar, 'medium', studentId);
+            familiarHtml = `<div class="enlargeable-familiar familiar-enlarged-companion mt-[-20px] z-[103]" data-student-id="${studentId}">${spriteHtml}</div>`;
         }
 
         // INVENTORY UI
@@ -192,12 +219,12 @@ export function handleAvatarClick(e) {
 
         // Animate
         requestAnimationFrame(() => {
-            // Move Image to Center
-            clone.style.top = `20%`;
-            clone.style.left = `50%`;
-            clone.style.width = `200px`;
-            clone.style.height = `200px`;
-            clone.style.transform = 'translate(-50%, -50%)';
+            // Move image (or wrapper) to center
+            animatedEl.style.top = `20%`;
+            animatedEl.style.left = `50%`;
+            animatedEl.style.width = `200px`;
+            animatedEl.style.height = `200px`;
+            animatedEl.style.transform = 'translate(-50%, -50%)';
             container.style.opacity = '1';
             
             const inv = container.querySelector('.inventory-container');
@@ -205,11 +232,11 @@ export function handleAvatarClick(e) {
         });
 
         const closeHandler = () => {
-            clone.style.top = `${rect.top}px`;
-            clone.style.left = `${rect.left}px`;
-            clone.style.width = `${rect.width}px`;
-            clone.style.height = `${rect.height}px`;
-            clone.style.transform = 'translate(0, 0)';
+            animatedEl.style.top = `${rect.top}px`;
+            animatedEl.style.left = `${rect.left}px`;
+            animatedEl.style.width = `${rect.width}px`;
+            animatedEl.style.height = `${rect.height}px`;
+            animatedEl.style.transform = 'translate(0, 0)';
             container.style.opacity = '0';
             container.removeEventListener('click', closeHandler);
             setTimeout(() => container.remove(), 300);

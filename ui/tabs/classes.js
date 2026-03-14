@@ -7,6 +7,8 @@ import * as avatar from '../../features/avatar.js';
 import { wrapAvatarWithLevelUpIndicator } from '../core/avatar.js';
 import { getGuildBadgeHtml, getGuildById } from '../../features/guilds.js';
 import { openSkillTreeModal } from '../modals/skillTree.js';
+import { getHeroTitle, HERO_SKILL_TREE } from '../../features/heroSkillTree.js';
+import { HERO_CLASSES } from '../../features/heroClasses.js';
 
 export function renderManageClassesTab() {
     const list = document.getElementById('class-list');
@@ -105,6 +107,13 @@ export function renderManageStudentsTab() {
                 style="font-size:1.25rem; background: linear-gradient(135deg, #2dd4bf, #06b6d4); ${ringStyle}">${s.name.charAt(0).toUpperCase()}</div>`;
         const avatarHtml = wrapAvatarWithLevelUpIndicator(avatarInner, pendingSkill);
 
+        const heroLevel = scoreData?.heroLevel || 0;
+        const heroTitle = s.heroClass && heroLevel > 0 ? getHeroTitle(s.heroClass, heroLevel) : null;
+        const tree = s.heroClass ? HERO_SKILL_TREE[s.heroClass] : null;
+        const auraColor = tree?.auraColor || '#7c3aed';
+        const heroTitlePill = heroTitle
+            ? `<span class="hero-title-pill inline-flex items-center gap-1 text-[11px] font-bold px-2 py-0.5 rounded-full text-white shadow-sm border border-white/30" style="background: linear-gradient(135deg, ${auraColor}, ${auraColor}dd); box-shadow: 0 1px 3px rgba(0,0,0,0.2), 0 0 0 1px rgba(255,255,255,0.2);">${HERO_CLASSES[s.heroClass]?.icon || ''} ${heroTitle}</span>`
+            : '';
         const heroClassBadge = hc
             ? `<span class="inline-flex items-center gap-1 text-[11px] font-bold px-2 py-0.5 rounded-full" style="background:${hc.bg};color:${hc.text};">${hc.icon} ${s.heroClass}</span>`
             : `<span class="text-[11px] text-gray-400 italic">No class</span>`;
@@ -126,7 +135,7 @@ export function renderManageStudentsTab() {
             <div class="flex-shrink-0">${avatarHtml}</div>
             <div class="flex-1 min-w-0">
                 <p class="font-semibold text-gray-800 text-sm leading-snug truncate">${s.name}</p>
-                <div class="flex items-center gap-1.5 mt-0.5 flex-wrap">${heroClassBadge}</div>
+                <div class="flex items-center gap-1.5 mt-0.5 flex-wrap">${heroClassBadge}${heroTitlePill}</div>
             </div>
             <div class="flex-shrink-0 flex flex-col items-end gap-1.5">
                 <div class="flex items-center gap-1">

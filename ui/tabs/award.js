@@ -3,6 +3,7 @@ import * as state from '../../state.js';
 import * as utils from '../../utils.js';
 import { HERO_CLASSES } from '../../features/heroClasses.js';
 import { getGuildBadgeHtml } from '../../features/guilds.js';
+import { getHeroTitle, HERO_SKILL_TREE } from '../../features/heroSkillTree.js';
 
 // --- REIGNING PRODIGY CACHE (previous month, with tie-breaker) ---
 let _awardProdigyCacheKey = null;
@@ -400,6 +401,11 @@ export function renderAwardStarsStudentList(selectedClassId, fullRender = true) 
                   </div>
                 `;
 
+                const heroLevel = scoreData.heroLevel || 0;
+                const heroTitlePill = s.heroClass && heroLevel > 0
+                    ? (() => { const title = getHeroTitle(s.heroClass, heroLevel); const tree = HERO_SKILL_TREE[s.heroClass]; const aura = tree?.auraColor || '#7c3aed'; return `<span class="hero-title-pill inline-flex items-center gap-1 text-[10px] font-bold px-1.5 py-0.5 rounded-full text-white shadow-sm border border-white/30" style="background: linear-gradient(135deg, ${aura}, ${aura}dd);">${title}</span>`; })()
+                    : '';
+
                 // --- BOON BUTTON VISUAL LOGIC ---
                 // Check eligibility based on the pre-calculated leaderboard
                 const myLeaderboardData = leaderboard.find(x => x.id === s.id);
@@ -437,9 +443,10 @@ export function renderAwardStarsStudentList(selectedClassId, fullRender = true) 
                     
                     <div class="card-content-wrapper">
                         <h3 class="font-title text-2xl text-gray-800 text-center">
-                            <span class="text-sm opacity-70 block mb-1">
-                                ${s.heroClass && HERO_CLASSES[s.heroClass] ? HERO_CLASSES[s.heroClass].icon : ''} ${s.heroClass || ''}
-                            </span>
+                            <div class="flex flex-wrap items-center justify-center gap-1.5 mb-1">
+                                <span class="text-sm opacity-70">${s.heroClass && HERO_CLASSES[s.heroClass] ? HERO_CLASSES[s.heroClass].icon : ''} ${s.heroClass || ''}</span>
+                                ${heroTitlePill}
+                            </div>
                             ${s.name}
                         </h3>
                         ${isReigningHero ? `

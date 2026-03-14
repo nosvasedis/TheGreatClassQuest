@@ -2,7 +2,40 @@
 import * as state from '../../state.js';
 import * as utils from '../../utils.js';
 import { HERO_CLASSES } from '../../features/heroClasses.js';
+import { getHeroTitle, HERO_SKILL_TREE } from '../../features/heroSkillTree.js';
 import { showAnimatedModal } from './base.js';
+import { callGeminiApi } from '../../api.js';
+
+/** Shows the hero level-up celebration modal. Called after a student levels up in the skill tree. */
+export function showHeroLevelUpCelebration({ studentId, studentName, newHeroLevel, heroClass }) {
+    const modal = document.getElementById('hero-level-up-modal');
+    const inner = document.getElementById('hero-level-up-modal-inner');
+    if (!modal || !inner) return;
+
+    modal.dataset.studentId = studentId;
+
+    const tree = HERO_SKILL_TREE[heroClass];
+    const title = getHeroTitle(heroClass, newHeroLevel);
+    const icon = HERO_CLASSES[heroClass]?.icon || '⚔️';
+    const auraColor = tree?.auraColor || '#7c3aed';
+
+    document.getElementById('hero-level-up-name').textContent = studentName;
+    document.getElementById('hero-level-up-title-text').textContent = title;
+    document.getElementById('hero-level-up-title-icon').textContent = icon;
+    document.getElementById('hero-level-up-level-num').textContent = String(newHeroLevel);
+    document.getElementById('hero-level-up-title-badge').style.background = `linear-gradient(135deg, ${auraColor}, ${auraColor}dd)`;
+
+    const student = state.get('allStudents').find(s => s.id === studentId);
+    const avatarEl = document.getElementById('hero-level-up-avatar');
+    if (student?.avatar) {
+        avatarEl.innerHTML = `<img src="${student.avatar}" alt="${studentName}" class="w-full h-full object-cover">`;
+    } else {
+        avatarEl.innerHTML = `<span class="text-indigo-500">${(studentName || '?').charAt(0)}</span>`;
+    }
+
+    showAnimatedModal('hero-level-up-modal');
+}
+
 import { callGeminiApi } from '../../api.js';
 import { getTier } from '../../utils/subscription.js';
 import { getTierTagline, getTiersAtAGlance } from '../../config/tiers/features.js';
@@ -407,250 +440,248 @@ export function openAppInfoModal() {
         return `<span class="guide-pill guide-pill-locked"><i class="fas fa-lock"></i> ${lockedLabel}</span>`;
     };
 
-    const studentFeatures = [
+    const compactAvailability = (requiredTier) => {
+        if (hasTier(requiredTier)) {
+            return '<span class="guide-chip-status guide-chip-status-on">Now</span>';
+        }
+        if (requiredTier === 'pro') {
+            return '<span class="guide-chip-status guide-chip-status-lock">Pro</span>';
+        }
+        if (requiredTier === 'elite') {
+            return '<span class="guide-chip-status guide-chip-status-lock">Elite</span>';
+        }
+        return '<span class="guide-chip-status guide-chip-status-on">Now</span>';
+    };
+
+    const studentQuestClusters = [
         {
-            icon: 'fa-route',
-            title: 'Team Quest & Monthly Ceremonies',
-            requiredTier: 'starter',
-            lockedLabel: '',
-            desc: 'Your class collects stars together and moves across the quest map. At month-end, ceremonies celebrate class and hero progress.'
+            theme: 'guide-cluster-cyan',
+            icon: 'fa-globe',
+            title: 'Quest World Core',
+            items: [
+                { name: 'Home mission view', tier: 'starter' },
+                { name: 'Team Quest map progress', tier: 'starter' },
+                { name: 'Monthly ceremonies', tier: 'starter' },
+                { name: "Hero's Challenge ranks", tier: 'starter' },
+                { name: 'Hall of Heroes highlights', tier: 'pro' }
+            ]
         },
         {
-            icon: 'fa-user-graduate',
-            title: "Hero's Challenge & Ranks",
-            requiredTier: 'starter',
-            lockedLabel: '',
-            desc: 'Every star you earn shapes your personal rank, class reputation, and monthly hero highlights.'
+            theme: 'guide-cluster-amber',
+            icon: 'fa-coins',
+            title: 'Economy and Rewards',
+            items: [
+                { name: 'Stars and gold loop', tier: 'starter' },
+                { name: 'Mystic Market items', tier: 'starter' },
+                { name: 'Legendary artifacts', tier: 'starter' },
+                { name: 'Inventory and Trophy Room', tier: 'starter' },
+                { name: "Hero's Boon gifting", tier: 'starter' }
+            ]
         },
         {
-            icon: 'fa-store',
-            title: 'Mystic Market, Inventory & Trophy Room',
-            requiredTier: 'starter',
-            lockedLabel: '',
-            desc: 'Spend gold on themed items, collect artifacts, and show your collection in your expanded hero view.'
+            theme: 'guide-cluster-violet',
+            icon: 'fa-dragon',
+            title: 'Identity and Growth',
+            items: [
+                { name: 'Hero Classes', tier: 'starter' },
+                { name: 'Skill Tree progression', tier: 'starter' },
+                { name: 'Familiars hatch and evolve', tier: 'starter' },
+                { name: 'Guild identity and house points', tier: 'pro' },
+                { name: 'Guild champions', tier: 'pro' }
+            ]
         },
         {
-            icon: 'fa-paw',
-            title: 'Familiars (Eggs, Hatch, Evolution)',
-            requiredTier: 'starter',
-            lockedLabel: '',
-            desc: 'Some rewards become living companions that hatch and evolve as your star journey continues.'
+            theme: 'guide-cluster-teal',
+            icon: 'fa-book',
+            title: 'Learning and Story',
+            items: [
+                { name: 'Adventure Log stories', tier: 'pro' },
+                { name: 'Story Weavers', tier: 'pro' },
+                { name: 'Word of the Day', tier: 'pro' },
+                { name: "Scholar's Scroll tests", tier: 'pro' },
+                { name: 'Dictation tracking', tier: 'pro' }
+            ]
         },
         {
-            icon: 'fa-shield-alt',
-            title: 'Guild Identity & Guild Races',
-            requiredTier: 'pro',
-            lockedLabel: 'Unlocks on Pro',
-            desc: 'Join one of the school guilds, contribute to year-long guild totals, and chase guild champion status.'
+            theme: 'guide-cluster-rose',
+            icon: 'fa-calendar-check',
+            title: 'Events and Planner',
+            items: [
+                { name: 'Calendar day planner', tier: 'pro' },
+                { name: 'Quest Events and specials', tier: 'pro' },
+                { name: 'Attendance chronicle', tier: 'pro' },
+                { name: 'Quest assignments', tier: 'pro' },
+                { name: 'School year holiday flow', tier: 'pro' }
+            ]
         },
         {
-            icon: 'fa-scroll',
-            title: "Scholar's Scroll (Tests & Dictations)",
-            requiredTier: 'pro',
-            lockedLabel: 'Unlocks on Pro',
-            desc: 'Your test and dictation results can be tracked over time with progress visuals and performance feedback.'
-        },
-        {
-            icon: 'fa-calendar-alt',
-            title: 'Calendar, Day Planner & Quest Events',
-            requiredTier: 'pro',
-            lockedLabel: 'Unlocks on Pro',
-            desc: 'See lesson days, holidays, special challenge events, and the rhythm of your school quest calendar.'
-        },
-        {
-            icon: 'fa-feather-alt',
-            title: 'Story Weavers & Word-of-the-Day',
-            requiredTier: 'pro',
-            lockedLabel: 'Unlocks on Pro',
-            desc: 'Build collaborative stories as a class and transform lessons into shared worldbuilding moments.'
-        },
-        {
-            icon: 'fa-book-open',
-            title: 'Adventure Log, Hall of Heroes & Assignments',
-            requiredTier: 'pro',
-            lockedLabel: 'Unlocks on Pro',
-            desc: 'Review class chronicles, attendance history, assignments, and monthly hero archives in one place.'
-        },
-        {
-            icon: 'fa-magic',
-            title: 'AI Magic (Oracle, Story Art, Smart Summaries)',
-            requiredTier: 'elite',
-            lockedLabel: 'Unlocks on Elite',
-            desc: 'Elite adds creative AI support for stories, reflections, and richer teacher-student narrative feedback.'
+            theme: 'guide-cluster-indigo',
+            icon: 'fa-wand-magic-sparkles',
+            title: 'Elite AI Magic',
+            items: [
+                { name: 'Oracle insights', tier: 'elite' },
+                { name: 'AI story support', tier: 'elite' },
+                { name: 'AI image creativity', tier: 'elite' },
+                { name: 'Smart summary helpers', tier: 'elite' },
+                { name: 'Early-access experiments', tier: 'elite' }
+            ]
         }
     ];
 
-    const teacherSystems = [
+    const teacherQuestClusters = [
         {
-            icon: 'fa-home',
-            title: 'Home Dashboard',
-            requiredTier: 'starter',
-            lockedLabel: '',
-            desc: 'School or class overview, schedule snapshots, ceremony reminders, weather-aware ambiance, and quick actions.'
+            theme: 'guide-cluster-cyan',
+            icon: 'fa-compass',
+            title: 'Command Tabs (Daily)',
+            items: [
+                { name: 'Home dashboard', tier: 'starter' },
+                { name: 'Team Quest', tier: 'starter' },
+                { name: "Hero's Challenge", tier: 'starter' },
+                { name: 'My Classes', tier: 'starter' },
+                { name: 'Award Stars', tier: 'starter' },
+                { name: 'Options', tier: 'starter' }
+            ]
         },
         {
-            icon: 'fa-route',
-            title: 'Team Quest',
-            requiredTier: 'starter',
-            lockedLabel: '',
-            desc: 'Monthly class leaderboard, league map progression, goal tracking adjusted by holidays/cancellations, and ceremonies.'
+            theme: 'guide-cluster-violet',
+            icon: 'fa-users-gear',
+            title: 'Class and Student Management',
+            items: [
+                { name: 'Class creation/editing', tier: 'starter' },
+                { name: 'Roster and student profile', tier: 'starter' },
+                { name: 'Avatar and hero identity setup', tier: 'starter' },
+                { name: 'Hero skill tree controls', tier: 'starter' },
+                { name: 'Move student between classes', tier: 'starter' },
+                { name: 'Guild sorting quiz', tier: 'pro' }
+            ]
         },
         {
-            icon: 'fa-user-graduate',
-            title: "Hero's Challenge",
-            requiredTier: 'starter',
-            lockedLabel: '',
-            desc: 'Individual leaderboard, rank progression, shop, inventory, hero stats, familiars, and certificate links.'
+            theme: 'guide-cluster-amber',
+            icon: 'fa-sack-dollar',
+            title: 'Motivation and Economy Engine',
+            items: [
+                { name: 'Reason-based star awards', tier: 'starter' },
+                { name: 'Quest bounties with timers', tier: 'starter' },
+                { name: "Hero's Boon economy", tier: 'starter' },
+                { name: 'Mystic Market and artifacts', tier: 'starter' },
+                { name: 'Familiars progression', tier: 'starter' },
+                { name: 'Ceremony triggers and highlights', tier: 'starter' }
+            ]
         },
         {
-            icon: 'fa-shield-alt',
-            title: 'Guilds',
-            requiredTier: 'pro',
-            lockedLabel: 'Unlocks on Pro',
-            desc: 'Guild hall, sorting quiz pathways, yearly guild totals, anthem/lore moments, and guild champion views.'
+            theme: 'guide-cluster-teal',
+            icon: 'fa-chart-line',
+            title: 'Academics and Analytics',
+            items: [
+                { name: "Scholar's Scroll", tier: 'pro' },
+                { name: 'Tests and dictations', tier: 'pro' },
+                { name: 'Performance charts', tier: 'pro' },
+                { name: 'Makeup tracking', tier: 'pro' },
+                { name: 'Class and hero reports', tier: 'starter' },
+                { name: 'Certificates', tier: 'starter' }
+            ]
         },
         {
-            icon: 'fa-chalkboard-teacher',
-            title: 'My Classes & Student Management',
-            requiredTier: 'starter',
-            lockedLabel: '',
-            desc: 'Create classes, edit schedules, manage rosters, set birthdays/namedays, assign hero classes, move students, and run reports.'
+            theme: 'guide-cluster-rose',
+            icon: 'fa-calendar-check',
+            title: 'Planning and Attendance',
+            items: [
+                { name: 'Calendar tab', tier: 'pro' },
+                { name: 'Day planner overrides', tier: 'pro' },
+                { name: 'Quest events planner', tier: 'pro' },
+                { name: 'Adventure Log and assignments', tier: 'pro' },
+                { name: 'Attendance chronicle', tier: 'pro' },
+                { name: 'School year planner', tier: 'pro' }
+            ]
         },
         {
-            icon: 'fa-star',
-            title: 'Award Stars',
-            requiredTier: 'starter',
-            lockedLabel: '',
-            desc: 'Fast awarding by reason, bounty timers, hero boons, particle/sound feedback, and motivation loops during lessons.'
-        },
-        {
-            icon: 'fa-book-open',
-            title: 'Adventure Log',
-            requiredTier: 'pro',
-            lockedLabel: 'Unlocks on Pro',
-            desc: 'Daily chronicles, assignment and attendance workflows, hall of heroes archive, and class narrative memory.'
-        },
-        {
-            icon: 'fa-scroll',
-            title: "Scholar's Scroll",
-            requiredTier: 'pro',
-            lockedLabel: 'Unlocks on Pro',
-            desc: 'Tests, dictations, performance trends, makeup tracking, and trial-based analytics by student or class.'
-        },
-        {
-            icon: 'fa-calendar-alt',
-            title: 'Calendar & School Planner',
-            requiredTier: 'pro',
-            lockedLabel: 'Unlocks on Pro',
-            desc: 'Lesson overrides, cancellations, school holiday ranges, and quest events that shape monthly objectives.'
-        },
-        {
-            icon: 'fa-feather-alt',
-            title: 'Story Weavers',
-            requiredTier: 'pro',
-            lockedLabel: 'Unlocks on Pro',
-            desc: 'Collaborative writing mode and creative prompts that connect literacy practice to your classroom storyline.'
-        },
-        {
-            icon: 'fa-cog',
-            title: 'Options & Operations',
-            requiredTier: 'starter',
-            lockedLabel: '',
-            desc: 'Star and coin managers, profile controls, school setup tools, and data safety controls for administrators.'
-        },
-        {
-            icon: 'fa-robot',
-            title: 'Elite AI Assistant Layer',
-            requiredTier: 'elite',
-            lockedLabel: 'Unlocks on Elite',
-            desc: 'Oracle insights, AI-aided diary writing, creative story support, and early-access experimental classroom tools.'
+            theme: 'guide-cluster-indigo',
+            icon: 'fa-wand-magic-sparkles',
+            title: 'Creative and Premium Layer',
+            items: [
+                { name: 'Story Weavers', tier: 'pro' },
+                { name: 'Word-of-the-Day workflows', tier: 'pro' },
+                { name: 'Guild hall and anthem experience', tier: 'pro' },
+                { name: 'Projector wallpaper mode', tier: 'starter' },
+                { name: 'AI Oracle and AI logs', tier: 'elite' },
+                { name: 'Priority and early-access tools', tier: 'elite' }
+            ]
         }
     ];
 
     const studentDailyFlow = [
-        'Arrive and check your class quest goals for the day.',
-        'Earn stars through teamwork, focus, creativity, respect, and challenge participation.',
-        'Use gold in the Mystic Market and track your hero/familiar progression.',
-        'Join story, guild, or quest event moments when your class activates them.',
-        'Celebrate milestones in monthly ceremonies and hall-of-heroes moments.'
+        { icon: 'fa-sun', title: 'Start', body: 'Check your class mission and choose your hero attitude for the lesson.' },
+        { icon: 'fa-star', title: 'Earn', body: 'Collect stars from teamwork, focus, creativity, and challenge participation.' },
+        { icon: 'fa-bag-shopping', title: 'Build', body: 'Spend smart in the shop, grow your inventory, and evolve your familiar.' },
+        { icon: 'fa-trophy', title: 'Celebrate', body: 'Finish with stories, events, guild moments, and ceremony milestones.' }
     ];
 
     const teacherDailyFlow = [
-        '<strong>Before class:</strong> check Home reminders, schedule, and active class selection.',
-        '<strong>During class:</strong> use Award Stars for fast positive reinforcement and bounty pacing.',
-        '<strong>After key tasks:</strong> update tests/dictations, attendance, or quest events where needed.',
-        '<strong>End of session:</strong> write or generate the day\'s Adventure Log entry and assignments.',
-        '<strong>Weekly/Monthly:</strong> review analytics, celebrate ceremonies, and tune goals/settings.'
+        { icon: 'fa-house', title: 'Prepare', body: 'Open Home, check reminders and class selection, confirm schedule reality.' },
+        { icon: 'fa-bolt', title: 'Run', body: 'Award stars fast, launch bounties, and keep momentum high during teaching.' },
+        { icon: 'fa-book-medical', title: 'Record', body: 'Capture key outcomes in log, tests, dictations, and attendance as needed.' },
+        { icon: 'fa-chart-pie-simple', title: 'Review', body: 'Use reports, stats, and ceremonies to close loops and plan the next cycle.' }
     ];
 
-    const quickFacts = [
-        {
-            icon: 'fa-coins',
-            title: 'Stars and Gold Economy',
-            body: 'Stars drive class and hero progression. Gold supports reward choice, collection strategy, and long-term motivation through items and familiars.'
-        },
-        {
-            icon: 'fa-chess-knight',
-            title: 'Hero Classes and Skill Trees',
-            body: 'Students can build an identity path with class-themed progressions and choices that influence rewards and play style over the year.'
-        },
-        {
-            icon: 'fa-scroll-old',
-            title: 'Quest Bounties and Events',
-            body: 'Timed group challenges and planner events create focused objective windows for participation, effort, and academic targets.'
-        },
-        {
-            icon: 'fa-tv',
-            title: 'Projector and Wallpaper Presence',
-            body: 'Live visual mode can turn classroom screens into dynamic quest dashboards with atmosphere and progress cues.'
-        }
-    ];
+    const countItems = (clusters) => clusters.reduce((sum, cluster) => sum + cluster.items.length, 0);
+    const countUnlockedItems = (clusters) => clusters.reduce((sum, cluster) => sum + cluster.items.filter(item => hasTier(item.tier)).length, 0);
+
+    const studentTotalItems = countItems(studentQuestClusters);
+    const studentUnlockedItems = countUnlockedItems(studentQuestClusters);
+    const teacherTotalItems = countItems(teacherQuestClusters);
+    const teacherUnlockedItems = countUnlockedItems(teacherQuestClusters);
 
     // 1. STUDENTS CONTENT (Adventure Guide)
     studentContent.innerHTML = `
-        <section class="guide-hero-card guide-student-hero">
+        <section class="guide-hero-card guide-student-hero guide-sparkle-layer">
             <div class="guide-hero-badge">For Students</div>
-            <h3 class="font-title text-3xl md:text-4xl text-cyan-900 mb-3"><i class="fas fa-compass mr-2"></i> The Complete Student Adventure Guide</h3>
+            <h3 class="font-title text-3xl md:text-4xl text-cyan-900 mb-3"><i class="fas fa-compass mr-2"></i> Your Quest Book, but Actually Fun</h3>
             <p class="text-slate-700 text-base md:text-lg leading-relaxed">
-                Your classroom is a living quest world. You grow through stars, unlock hero identity, collect rewards, and build team victories with your class.
-                This guide shows everything available in your school's plan and what unlocks next.
+                Everything is here: stars, heroes, shop, familiars, events, stories, guilds, and AI magic. It is colorful on purpose, quick to scan, and built to show exactly what your school plan unlocks.
             </p>
             <div class="guide-tier-chip-row">
                 <span class="guide-tier-chip"><i class="fas fa-layer-group"></i> School Plan: ${prettyTier}</span>
                 <span class="guide-tier-chip guide-tier-chip-soft">${tierTagline}</span>
+                <span class="guide-tier-chip"><i class="fas fa-unlock-keyhole"></i> ${studentUnlockedItems}/${studentTotalItems} feature modules active</span>
             </div>
         </section>
 
-        <section class="guide-panel">
-            <h4 class="guide-section-title"><i class="fas fa-flag-checkered"></i> Student Daily Quest Loop</h4>
-            <ol class="guide-ordered-list">
-                ${studentDailyFlow.map(item => `<li>${item}</li>`).join('')}
-            </ol>
+        <section class="guide-kpi-grid">
+            <article class="guide-kpi-card"><span class="kpi-number">${studentUnlockedItems}</span><span class="kpi-label">Unlocked Modules</span></article>
+            <article class="guide-kpi-card"><span class="kpi-number">${studentTotalItems - studentUnlockedItems}</span><span class="kpi-label">Future Unlocks</span></article>
+            <article class="guide-kpi-card"><span class="kpi-number">${prettyTier}</span><span class="kpi-label">Current Plan</span></article>
+            <article class="guide-kpi-card"><span class="kpi-number">4</span><span class="kpi-label">Daily Quest Beats</span></article>
         </section>
 
         <section class="guide-panel">
-            <h4 class="guide-section-title"><i class="fas fa-map"></i> Student Features and What They Mean</h4>
-            <div class="guide-feature-grid">
-                ${studentFeatures.map(feature => `
-                    <article class="guide-feature-card">
-                        <div class="guide-feature-head">
-                            <h5><i class="fas ${feature.icon}"></i> ${feature.title}</h5>
-                            ${availabilityBadge(feature.requiredTier, feature.lockedLabel)}
+            <h4 class="guide-section-title"><i class="fas fa-map-location-dot"></i> Student Feature Atlas</h4>
+            <div class="guide-cluster-grid">
+                ${studentQuestClusters.map(cluster => `
+                    <article class="guide-cluster ${cluster.theme}">
+                        <h5><i class="fas ${cluster.icon}"></i> ${cluster.title}</h5>
+                        <div class="guide-chip-list">
+                            ${cluster.items.map(item => `
+                                <span class="guide-chip-item">
+                                    <span class="guide-chip-name">${item.name}</span>
+                                    ${compactAvailability(item.tier)}
+                                </span>
+                            `).join('')}
                         </div>
-                        <p>${feature.desc}</p>
                     </article>
                 `).join('')}
             </div>
         </section>
 
         <section class="guide-panel">
-            <h4 class="guide-section-title"><i class="fas fa-lightbulb"></i> Student Power Tips</h4>
-            <ul class="guide-bullet-list">
-                <li>Consistency beats bursts: daily effort grows stars, rank, and familiar progress faster than occasional spikes.</li>
-                <li>Choose your rewards strategically: some items are cosmetic, while others support key challenge moments.</li>
-                <li>When guilds are active, helping your team helps your own profile too.</li>
-                <li>Ceremony months are milestone months: your progress can become part of your class legend.</li>
-            </ul>
+            <h4 class="guide-section-title"><i class="fas fa-timeline"></i> Your Daily Loop</h4>
+            <div class="guide-timeline-grid">
+                ${studentDailyFlow.map(step => `
+                    <article class="guide-timeline-card">
+                        <h5><i class="fas ${step.icon}"></i> ${step.title}</h5>
+                        <p>${step.body}</p>
+                    </article>
+                `).join('')}
+            </div>
         </section>
 
         <section class="guide-panel guide-tier-panel">
@@ -660,69 +691,62 @@ export function openAppInfoModal() {
             </ul>
             <p class="guide-tier-footnote">
                 ${rawTier === 'elite'
-                    ? 'You are on the full experience. Every major student-facing feature is active.'
+                    ? 'Everything is live. Explore all systems and use the full quest universe.'
                     : rawTier === 'pro'
-                        ? 'You are on Pro. Elite adds advanced AI-powered creativity and assistant tools.'
-                        : 'You are on Starter. Pro unlocks the expanded quest world (guilds, stories, planner, log, and scroll).'}
+                        ? 'Pro gives you the full classroom adventure toolkit; Elite adds the deepest AI magic.'
+                        : 'Starter has a strong core; Pro unlocks the larger world with stories, planner, guilds, and advanced tracking.'}
             </p>
         </section>
     `;
 
     // 2. TEACHERS CONTENT (Game Master's Manual)
     teacherContent.innerHTML = `
-        <section class="guide-hero-card guide-teacher-hero">
+        <section class="guide-hero-card guide-teacher-hero guide-sparkle-layer">
             <div class="guide-hero-badge">For Teachers</div>
-            <h3 class="font-title text-3xl md:text-4xl text-emerald-900 mb-3"><i class="fas fa-chalkboard-teacher mr-2"></i> The Game Master's Complete Manual</h3>
+            <h3 class="font-title text-3xl md:text-4xl text-emerald-900 mb-3"><i class="fas fa-chalkboard-teacher mr-2"></i> Beautiful, Fast, Complete Teacher Command Guide</h3>
             <p class="text-slate-700 text-base md:text-lg leading-relaxed">
-                The Great Class Quest transforms daily classroom routines into an intentional motivation system: visible progress, narrative ownership,
-                celebration moments, and feedback loops that students understand.
+                Every major workflow is listed here, grouped by purpose, color-coded, and tier-labeled. No feature is hidden, but nothing feels like a wall of text.
             </p>
             <div class="guide-tier-chip-row">
                 <span class="guide-tier-chip"><i class="fas fa-crown"></i> Active Plan: ${prettyTier}</span>
                 <span class="guide-tier-chip guide-tier-chip-soft">${tierTagline}</span>
+                <span class="guide-tier-chip"><i class="fas fa-server"></i> ${teacherUnlockedItems}/${teacherTotalItems} modules active</span>
             </div>
         </section>
 
-        <section class="guide-panel">
-            <h4 class="guide-section-title"><i class="fas fa-list-check"></i> Teacher Daily Operating Loop</h4>
-            <ol class="guide-ordered-list">
-                ${teacherDailyFlow.map(item => `<li>${item}</li>`).join('')}
-            </ol>
+        <section class="guide-kpi-grid">
+            <article class="guide-kpi-card"><span class="kpi-number">${teacherUnlockedItems}</span><span class="kpi-label">Active Modules</span></article>
+            <article class="guide-kpi-card"><span class="kpi-number">${teacherTotalItems - teacherUnlockedItems}</span><span class="kpi-label">Locked Modules</span></article>
+            <article class="guide-kpi-card"><span class="kpi-number">11</span><span class="kpi-label">Main Nav Tabs</span></article>
+            <article class="guide-kpi-card"><span class="kpi-number">4</span><span class="kpi-label">Daily Ops Stages</span></article>
         </section>
 
         <section class="guide-panel">
-            <h4 class="guide-section-title"><i class="fas fa-sitemap"></i> Full System Overview (Tab by Tab)</h4>
-            <div class="guide-feature-grid">
-                ${teacherSystems.map(system => `
-                    <article class="guide-feature-card">
-                        <div class="guide-feature-head">
-                            <h5><i class="fas ${system.icon}"></i> ${system.title}</h5>
-                            ${availabilityBadge(system.requiredTier, system.lockedLabel)}
+            <h4 class="guide-section-title"><i class="fas fa-sparkles"></i> Full Teacher Feature Atlas</h4>
+            <div class="guide-cluster-grid">
+                ${teacherQuestClusters.map(cluster => `
+                    <article class="guide-cluster ${cluster.theme}">
+                        <h5><i class="fas ${cluster.icon}"></i> ${cluster.title}</h5>
+                        <div class="guide-chip-list">
+                            ${cluster.items.map(item => `
+                                <span class="guide-chip-item">
+                                    <span class="guide-chip-name">${item.name}</span>
+                                    ${compactAvailability(item.tier)}
+                                </span>
+                            `).join('')}
                         </div>
-                        <p>${system.desc}</p>
                     </article>
                 `).join('')}
             </div>
         </section>
 
         <section class="guide-panel">
-            <h4 class="guide-section-title"><i class="fas fa-toolbox"></i> What Teachers Should Configure Early</h4>
-            <ul class="guide-bullet-list">
-                <li>Set class schedules accurately first; monthly goals and planning rely on lesson-day truth.</li>
-                <li>Define clear award reasons with students so stars represent shared values, not random points.</li>
-                <li>Use reports, hero stats, and scroll trends to combine behavior and academic signals in one view.</li>
-                <li>Use namedays, ceremonies, and hall-of-heroes moments to strengthen class belonging.</li>
-                <li>Review school-wide options (holiday ranges, star/coin settings, setup tools) at least monthly.</li>
-            </ul>
-        </section>
-
-        <section class="guide-panel">
-            <h4 class="guide-section-title"><i class="fas fa-helmet-battle"></i> Core Mechanics Worth Teaching Students Explicitly</h4>
-            <div class="guide-facts-grid">
-                ${quickFacts.map(fact => `
-                    <article class="guide-fact-card">
-                        <h5><i class="fas ${fact.icon}"></i> ${fact.title}</h5>
-                        <p>${fact.body}</p>
+            <h4 class="guide-section-title"><i class="fas fa-list-check"></i> Teacher Daily Operating Loop</h4>
+            <div class="guide-timeline-grid">
+                ${teacherDailyFlow.map(step => `
+                    <article class="guide-timeline-card">
+                        <h5><i class="fas ${step.icon}"></i> ${step.title}</h5>
+                        <p>${step.body}</p>
                     </article>
                 `).join('')}
             </div>
@@ -735,10 +759,10 @@ export function openAppInfoModal() {
             </ul>
             <p class="guide-tier-footnote">
                 ${rawTier === 'elite'
-                    ? 'Elite is active: all current major features and AI support layers are available to your school.'
+                    ? 'Elite is active: full AI support, full operations, and full classroom quest depth are available.'
                     : rawTier === 'pro'
-                        ? 'Pro is active: the expanded classroom toolkit is unlocked, with Elite reserved for advanced AI and experimental tools.'
-                        : 'Starter is active: core quest operations are available now, and Pro/Elite can be added without changing your classroom identity.'}
+                        ? 'Pro is active: complete classroom systems are live; Elite is the AI/premium extension layer.'
+                        : 'Starter is active: core quest systems are ready, and Pro/Elite expand depth when your school wants it.'}
             </p>
         </section>
     `;

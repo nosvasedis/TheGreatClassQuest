@@ -207,3 +207,26 @@
     font-size: 12px;
     flex-shrink: 0;
 }
+
+/* Enlarged avatar (click-to-expand overlay): level-up badge on the big avatar */
+.enlarged-avatar-level-up-wrap {
+    position: fixed;
+    border-radius: 9999px;
+    overflow: hidden;
+}
+.enlarged-avatar-level-up-wrap .level-up-badge--enlarged {
+    position: absolute;
+    bottom: 8px;
+    left: 8px;
+    width: 44px;
+    height: 44px;
+    font-size: 18px;
+    z-index: 10;
+    box-shadow:
+        0 0 0 3px rgba(255, 255, 255, 0.95),
+        0 4px 12px rgba(124, 58, 237, 0.5),
+        0 0 24px rgba(168, 85, 247, 0.7);
+}
+.enlarged-avatar-level-up-wrap .level-up-badge--enlarged i {
+    margin-left: 1px;
+}

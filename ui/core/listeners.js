@@ -1010,6 +1010,26 @@ export function setupUIListeners() {
         });
     }
 
+    // Hero Level-Up Celebration Modal
+    const heroLevelUpModal = document.getElementById('hero-level-up-modal');
+    const heroLevelUpCloseBtn = document.getElementById('hero-level-up-close-btn');
+    const heroLevelUpSkillTreeBtn = document.getElementById('hero-level-up-skill-tree-btn');
+    if (heroLevelUpCloseBtn) {
+        heroLevelUpCloseBtn.addEventListener('click', () => modals.hideModal('hero-level-up-modal'));
+    }
+    if (heroLevelUpSkillTreeBtn && heroLevelUpModal) {
+        heroLevelUpSkillTreeBtn.addEventListener('click', () => {
+            const studentId = heroLevelUpModal.dataset.studentId;
+            modals.hideModal('hero-level-up-modal');
+            if (studentId) {
+                import('../modals/skillTree.js').then(m => m.openSkillTreeModal(studentId));
+            }
+        });
+        heroLevelUpModal.addEventListener('click', (e) => {
+            if (e.target === heroLevelUpModal) modals.hideModal('hero-level-up-modal');
+        });
+    }
+
     // Skill Tree Modal close
     const skillTreeCloseBtn = document.getElementById('skill-tree-close-btn');
     if (skillTreeCloseBtn) {

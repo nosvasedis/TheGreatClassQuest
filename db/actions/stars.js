@@ -54,6 +54,8 @@ export async function setStudentStarsForToday(studentId, starValue, reason = nul
 
     let studentClassId = null;
     let difference = 0;
+    /** Set when a hero level-up occurs in the transaction; used after commit to show celebration modal. */
+    let levelUpInfo = null;
 
     // HERO'S BOON LOGIC
 
@@ -178,6 +180,7 @@ export async function setStudentStarsForToday(studentId, starValue, reason = nul
                         if (newHeroLevel > currentHeroLevel) {
                             updates.heroLevel = newHeroLevel;
                             updates.pendingSkillChoice = true;
+                            levelUpInfo = { studentId, studentName: studentData.name, newHeroLevel, heroClass };
                         }
                     }
                     transaction.update(scoreRef, updates);
@@ -253,6 +256,12 @@ export async function setStudentStarsForToday(studentId, starValue, reason = nul
             _applyOutwardSkillEffects(studentId, studentClassId, reason, difference).catch(e => console.warn('Outward skill effect failed:', e));
             // Check familiar hatch / level-up — fire-and-forget
             reconcileFamiliarLifecycle(studentId, { announce: true, source: 'stars' }).catch(e => console.warn('Familiar check failed:', e));
+        }
+
+        // --- Hero Level-Up Celebration (after successful transaction) ---
+        if (levelUpInfo) {
+            playHeroFanfare();
+            import('../../ui/modals/hero.js').then(m => m.showHeroLevelUpCelebration(levelUpInfo));
         }
 
     } catch (error) {

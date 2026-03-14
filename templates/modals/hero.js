@@ -33,6 +33,45 @@ export const heroModalsHTML = `
         </div>
     </div>
 
+    <div id="hero-level-up-modal"
+        class="fixed inset-0 bg-black bg-opacity-85 z-[96] flex items-center justify-center p-4 hidden">
+        <div id="hero-level-up-modal-inner"
+            class="bg-gradient-to-b from-indigo-900 via-purple-900 to-violet-900 rounded-[2.5rem] shadow-2xl max-w-md w-full pop-in border-4 border-amber-400/90 relative overflow-hidden text-center p-8">
+            <div class="absolute inset-0 opacity-25" style="background: radial-gradient(ellipse at 50% 0%, rgba(250,204,21,0.4) 0%, transparent 60%);"></div>
+            <div class="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/stardust.png')] opacity-20"></div>
+            <div class="absolute top-4 left-1/2 -translate-x-1/2 text-6xl opacity-90 animate-bounce" style="animation-duration: 1.2s;">✨</div>
+            <div class="absolute top-12 right-6 text-4xl opacity-70">🌟</div>
+            <div class="absolute top-14 left-6 text-4xl opacity-70">🌟</div>
+
+            <div class="relative z-10 pt-10">
+                <div class="inline-block px-4 py-1.5 rounded-full bg-amber-400/95 text-amber-900 font-title font-bold text-lg shadow-[0_0_24px_rgba(250,204,21,0.5)] mb-4">
+                    LEVEL UP!
+                </div>
+                <div id="hero-level-up-avatar"
+                    class="w-28 h-28 mx-auto rounded-full border-4 border-amber-400/90 shadow-2xl mb-4 bg-white flex items-center justify-center text-5xl font-bold text-indigo-500 overflow-hidden">
+                </div>
+                <h2 id="hero-level-up-name" class="font-title text-3xl text-white mb-1 text-shadow-lg">Student</h2>
+                <p id="hero-level-up-subtitle" class="text-purple-200 text-sm font-semibold mb-2">reached a new rank</p>
+                <div id="hero-level-up-title-badge" class="inline-flex items-center gap-2 px-5 py-2.5 rounded-2xl text-white font-title text-xl font-bold mb-2 shadow-lg" style="background: linear-gradient(135deg, #a855f7, #7c3aed); border: 2px solid rgba(255,255,255,0.3);">
+                    <span id="hero-level-up-title-icon"></span>
+                    <span id="hero-level-up-title-text">Tinkerer</span>
+                </div>
+                <p id="hero-level-up-level" class="text-amber-300 text-sm font-bold mb-6">Level <span id="hero-level-up-level-num">2</span></p>
+                <p class="text-white/80 text-sm mb-5">Choose a new skill in the Skill Tree!</p>
+                <div class="flex flex-col sm:flex-row gap-3 justify-center">
+                    <button id="hero-level-up-skill-tree-btn"
+                        class="bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-300 hover:to-amber-400 text-amber-900 font-title text-lg py-3 px-6 rounded-xl bubbly-button shadow-xl border-2 border-amber-300/50">
+                        <i class="fas fa-sitemap mr-2"></i> Open Skill Tree
+                    </button>
+                    <button id="hero-level-up-close-btn"
+                        class="bg-white/20 hover:bg-white/30 text-white font-semibold py-3 px-6 rounded-xl transition-colors border border-white/30">
+                        Later
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <div id="hero-stats-modal"
         class="fixed inset-0 bg-black bg-opacity-50 z-[72] flex items-center justify-center p-4 hidden">
         <div

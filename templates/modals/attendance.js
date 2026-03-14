@@ -63,7 +63,7 @@ export const attendanceModalsHTML = `
             </div>
 
             <div class="p-4 border-t border-gray-200 bg-white flex justify-between items-center">
-                <span class="text-xs text-gray-400" data-school-name>Prodigies Language School</span>
+                <span class="text-xs text-gray-400" data-school-name>Your School</span>
                 <button id="bulk-trial-close-btn"
                     class="text-gray-500 hover:text-red-500 font-bold px-4">Cancel</button>
             </div>
@@ -178,9 +178,7 @@ export const attendanceModalsHTML = `
                         <p style="font-size:10px; margin-top:2px; opacity:0.55;">Quest Facilitator</p>
                     </div>
                 </div>
-                <div style="text-align:center; font-size:9.5px; opacity:0.38; flex:1; padding:0 8px;">
-                    Prodigies Language School
-                </div>
+                <div style="text-align:center; font-size:9.5px; opacity:0.38; flex:1; padding:0 8px;" data-school-name>Your School</div>
                 <div style="display:flex; align-items:flex-end; gap:8px;">
                     <div style="text-align:center; min-width:150px;">
                         <p id="cert-date" style="font-weight:700; font-size:13px; border-top-width:2px; border-top-style:solid; padding-top:5px; margin:0;"></p>

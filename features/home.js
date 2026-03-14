@@ -7,7 +7,9 @@ import * as tabs from '../ui/tabs.js';
 import * as modals from '../ui/modals.js';
 import { wrapAvatarWithLevelUpIndicator } from '../ui/core/avatar.js';
 import { callGeminiApi } from '../api.js';
+import { canUseFeature } from '../utils/subscription.js';
 import * as grandGuildCeremony from '../features/grandGuildCeremony.js';
+import { DEFAULT_SCHOOL_NAME } from '../constants.js';
 
 export { initializeHeaderQuote };
 
@@ -66,7 +68,7 @@ async function executeRenderHome() {
     // --- CONTEXT ---
     const activeClassId = state.get('globalSelectedClassId');
     const teacherName = state.get('currentTeacherName') || "Quest Master";
-    const schoolName = state.get('schoolName') || 'Prodigies Language School';
+    const schoolName = state.get('schoolName') || DEFAULT_SCHOOL_NAME;
     const hour = new Date().getHours();
 
     // Dynamic Weather/Theme
@@ -1036,7 +1038,10 @@ async function getAICachedContent(type) {
         console.warn("Cache fetch skipped, trying generation.");
     }
 
-    // 2. Generate if not found
+    // 2. Generate if not found (Elite only)
+    if (!canUseFeature('eliteAI')) {
+        return "The adventure begins with a single step.";
+    }
     try {
         let systemPrompt = "You are a wise sage for a classroom. Generate a short, inspiring quote (max 10 words). No markdown. Just the text.";
         let userPrompt = "Generate a quote.";

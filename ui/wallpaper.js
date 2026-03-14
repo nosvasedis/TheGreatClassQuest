@@ -3,6 +3,7 @@ import { collection, query, where, getDocs, addDoc, writeBatch, serverTimestamp,
 import * as state from '../state.js';
 import * as utils from '../utils.js';
 import { callGeminiApi } from '../api.js';
+import { canUseFeature } from '../utils/subscription.js';
 import * as constants from '../constants.js';
 import { renderFamiliarSprite } from '../features/familiars.js';
 import { getEggAlertState } from '../features/familiarProgression.mjs';
@@ -266,6 +267,10 @@ async function initializeDailyAIContent() {
     const levelLabel = getLevelLabel(cls?.questLevel);
 
     if (snapshot.empty) {
+        if (!canUseFeature('eliteAI')) {
+            localStorage.setItem(storageKey, "loaded");
+            return;
+        }
         console.log("Generating fresh AI content for the day...");
         const systemPrompt = `You are a creative content engine for an English language school in Greece.
         Target audience: ${levelLabel}.

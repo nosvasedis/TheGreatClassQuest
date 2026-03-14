@@ -6,6 +6,7 @@ import * as state from '../state.js';
 import { playSound, ceremonyMusic, winnerFanfare, showdownSting, fadeCeremonyMusic, stopAllCeremonyAudio, playCeremonyMusic, playDrumRoll, stopDrumRoll, playWinnerFanfare } from '../audio.js';
 import { fetchLogsForMonth } from '../db/queries.js';
 import { callGeminiApi } from '../api.js';
+import { canUseFeature } from '../utils/subscription.js';
 import * as utils from '../utils.js';
 
 // --- LOCAL STATE ---
@@ -867,15 +868,34 @@ async function triggerAICommentary(phase, data) {
         else if (phase === 'showdown_build') userPrompt = `It's down to ${data.name1} vs ${data.name2}. The tension is maximum! Build extreme suspense but DO NOT announce the winner yet.`;
         else if (phase === 'tie') userPrompt = `UNBELIEVABLE! It's a Tie! Double winners!`;
 
+        const genericByPhase = {
+            intro: `Welcome to the ${data.month} Ceremony!`,
+            class_rank: `Rank #${data.rank} — ${data.name}!`,
+            class_winner: `${data.name} wins! You did it!`,
+            transition: 'Who will be our Prodigy?',
+            student_rank: `Shout out to ${data.name}!`,
+            student_winner: `${data.name} is the PRODIGY of the Month!`,
+            outro: 'See you next month!',
+            showdown_build: `${data.name1} vs ${data.name2} — the final showdown!`,
+            tie: 'Unbelievable — double winners!'
+        };
+        const genericMessage = genericByPhase[phase] || 'Congratulations to our heroes!';
+
         try {
-            const commentary = await callGeminiApi(systemPrompt, userPrompt);
-            aiBox.style.opacity = '0';
-            setTimeout(() => {
-                aiText.innerText = commentary;
+            if (canUseFeature('eliteAI')) {
+                const commentary = await callGeminiApi(systemPrompt, userPrompt);
+                aiBox.style.opacity = '0';
+                setTimeout(() => {
+                    aiText.innerText = commentary;
+                    aiBox.style.opacity = '1';
+                }, 300);
+            } else {
+                aiText.innerText = genericMessage;
                 aiBox.style.opacity = '1';
-            }, 300);
+            }
         } catch (e) {
             console.error("AI Error", e);
+            aiText.innerText = genericMessage;
             aiBox.style.opacity = '1';
         }
     }, 250); 

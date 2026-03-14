@@ -22,6 +22,7 @@ import { classColorPalettes } from '../../constants.js';
 import { simpleHashCode } from '../../utils.js';
 import { getLimit } from '../../utils/subscription.js';
 import { showUpgradePrompt } from '../../utils/upgradePrompt.js';
+import { getUpgradeMessage } from '../../config/tiers/features.js';
 
 const publicDataPath = 'artifacts/great-class-quest/public/data';
 
@@ -57,13 +58,13 @@ export async function handleAddClass() {
     const userId = state.get('currentUserId');
 
     if (maxClasses !== null && classes.length >= maxClasses) {
-        showUpgradePrompt({ feature: 'More classes', tier: 'Pro', message: 'You have reached your plan limit. Upgrade to add more classes.' });
+        showUpgradePrompt({ feature: 'More classes', tier: 'Pro', message: getUpgradeMessage('Pro', 'maxClasses') });
         return;
     }
     const teacherIds = new Set(classes.map(c => c.createdBy?.uid).filter(Boolean));
     const isNewTeacher = userId && !teacherIds.has(userId);
     if (maxTeachers !== null && isNewTeacher && teacherIds.size >= maxTeachers) {
-        showUpgradePrompt({ feature: 'More teachers', tier: 'Pro', message: 'Your school has reached the teacher limit. Upgrade to add more teachers.' });
+        showUpgradePrompt({ feature: 'More teachers', tier: 'Pro', message: getUpgradeMessage('Pro', 'maxTeachers') });
         return;
     }
 

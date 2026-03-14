@@ -13,6 +13,7 @@ import { playSound } from '../audio.js';
 import { callGeminiApi } from '../api.js';
 import { getTodayDateString } from '../utils.js';
 import { reconcileFamiliarLifecycle } from '../features/familiars.js';
+import { canUseFeature } from '../utils/subscription.js';
 
 export * from './actions/index.js';
 
@@ -54,10 +55,14 @@ export async function awardStoryWeaverBonusStarToClass(classId) {
         });
         showToast("Story Weaver bonus stars awarded!", "success");
 
-        const word = state.get('currentStoryData')[classId]?.currentWord || "a new idea";
-        const systemPrompt = "You are the 'Quest Master's Assistant'. A class just successfully added to their story. Write a very short, single-sentence, celebratory message for the whole class. Do not use markdown.";
-        const userPrompt = `The new part of their story involves the word "${word}". Write the celebratory message.`;
-        callGeminiApi(systemPrompt, userPrompt).then(comment => showPraiseToast(comment, '✒️')).catch(console.error);
+        if (canUseFeature('eliteAI')) {
+            const word = state.get('currentStoryData')[classId]?.currentWord || "a new idea";
+            const systemPrompt = "You are the 'Quest Master's Assistant'. A class just successfully added to their story. Write a very short, single-sentence, celebratory message for the whole class. Do not use markdown.";
+            const userPrompt = `The new part of their story involves the word "${word}". Write the celebratory message.`;
+            callGeminiApi(systemPrompt, userPrompt).then(comment => showPraiseToast(comment, '✒️')).catch(console.error);
+        } else {
+            showPraiseToast("Another chapter in your story — well done!", '✒️');
+        }
 
     } catch (error) {
         console.error("Error awarding bonus stars:", error);

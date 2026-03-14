@@ -1,8 +1,9 @@
 # Firestore: allow app to read subscription (Plan: Elite/Pro/Starter)
 
 The app reads the **subscription** tier from Firestore at `appConfig/subscription`.  
-The **set-subscription script** writes that doc using the Admin SDK (bypasses rules).  
-The **web app** in the browser uses the client SDK, so it must be allowed by your **Firestore Security Rules**.
+The **set-subscription script** (or any Admin SDK script) writes that doc and **bypasses** client rules.  
+The **web app** in the browser uses the client SDK, so it must be allowed by your **Firestore Security Rules**.  
+**Changing tier (Starter/Pro/Elite) or any feature flag requires an admin action:** run the set-subscription script or manually update the document in the Firebase Console; the client has **read-only** access and cannot write to `appConfig/subscription`.
 
 If the app shows **Plan: Starter** even after you ran the script, the client is probably **not allowed to read** `appConfig/subscription`.
 

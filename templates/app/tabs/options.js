@@ -236,7 +236,7 @@ export const optionsTabHTML = `
                                         <input type="text" id="options-school-name-input"
                                             class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
                                             autocomplete="off"
-                                            placeholder="e.g. Prodigies Language School">
+                                            placeholder="e.g. Your School">
                                         <p class="text-xs text-gray-500 mt-1">This appears on the home screen, login header, and attendance footer.</p>
                                     </div>
                                     <button id="save-school-name-btn"

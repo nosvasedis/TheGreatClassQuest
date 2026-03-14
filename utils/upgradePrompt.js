@@ -2,6 +2,8 @@
 // Single place for "upgrade to Pro/Elite" prompts. Uses the app's confirmation modal.
 
 import * as modals from '../ui/modals.js';
+import { canUseFeature } from './subscription.js';
+import { getUpgradeMessage } from '../config/tiers/features.js';
 
 /**
  * Show a modal prompting the user to upgrade for a gated feature.
@@ -14,4 +16,18 @@ export function showUpgradePrompt(opts) {
         ? `${message}<br><br><strong>Available on the ${tier} plan.</strong> Contact me to upgrade.`
         : `This feature is available on the <strong>${tier}</strong> plan. Contact me to upgrade.`;
     modals.showModal(title, body, null, 'OK', 'Close');
+}
+
+/**
+ * Gate AI features: returns true if Elite AI is allowed, otherwise shows upgrade prompt and returns false.
+ * Use at the start of any AI-invoking flow (Oracle, narrative, avatar, report, etc.).
+ * @param {object} [opts] - Optional { feature?: string, message?: string } for the prompt
+ * @returns {boolean}
+ */
+export function requireEliteAI(opts = {}) {
+    if (canUseFeature('eliteAI')) return true;
+    const feature = opts.feature || 'AI features';
+    const message = opts.message || getUpgradeMessage('Elite');
+    showUpgradePrompt({ feature, tier: 'Elite', message });
+    return false;
 }

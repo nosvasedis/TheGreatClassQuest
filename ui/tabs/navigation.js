@@ -27,22 +27,9 @@ import { renderCalendarTab } from './selectors.js';
 import { renderIdeasTabSelects, renderStarManagerStudentSelect } from './ideas.js';
 import { canUseFeature, getTier } from '../../utils/subscription.js';
 import { showUpgradePrompt } from '../../utils/upgradePrompt.js';
+import { GATED_TABS, TAB_FEATURE_FLAGS, getTierSummary, getUpgradeMessage } from '../../config/tiers/features.js';
 
 // --- TAB NAVIGATION ---
-
-const GATED_TABS = {
-    'guilds-tab': { feature: 'Guilds', tier: 'Pro', message: 'Unlock the full Guild system and sorting quiz.' },
-    'calendar-tab': { feature: 'Calendar & Day Planner', tier: 'Pro', message: 'Manage your schedule, holidays, and Quest Events.' },
-    'scholars-scroll-tab': { feature: "Scholar's Scroll", tier: 'Pro', message: 'Track tests, dictations, and performance charts.' },
-    'reward-ideas-tab': { feature: 'Story Weavers', tier: 'Pro', message: 'Collaborative story and Word of the Day.' }
-};
-
-const TAB_FEATURE_FLAGS = {
-    'guilds-tab': 'guilds',
-    'calendar-tab': 'calendar',
-    'scholars-scroll-tab': 'scholarScroll',
-    'reward-ideas-tab': 'storyWeavers'
-};
 
 export async function showTab(tabName) {
     const allTabs = document.querySelectorAll('.app-tab');
@@ -156,7 +143,7 @@ export async function showTab(tabName) {
         }
         const schoolInput = document.getElementById('options-school-name-input');
         if (schoolInput) {
-            schoolInput.value = state.get('schoolName') || 'Prodigies Language School';
+            schoolInput.value = state.get('schoolName') || constants.DEFAULT_SCHOOL_NAME;
         }
 
         // Options subtabs: beautiful bar, active state, tier-aware Planning
@@ -191,7 +178,7 @@ export async function showTab(tabName) {
             });
             if (planningLocked) {
                 planningLocked.addEventListener('click', () => {
-                    showUpgradePrompt({ feature: 'School Year Planner', tier: 'Pro', message: 'Planning tools (holidays, class end dates) unlock with Pro.' });
+                    showUpgradePrompt({ feature: 'School Year Planner', tier: 'Pro', message: getUpgradeMessage('Pro', 'schoolYearPlanner') });
                 });
                 planningLocked.style.cursor = 'pointer';
             }
@@ -222,39 +209,23 @@ export async function showTab(tabName) {
         }
 
         if (summaryEl) {
-            let badge, title, body, cta;
-            if (rawTier === 'elite') {
-                badge = '🌟 Top Tier';
-                title = 'You are on Elite — the full magical toolkit.';
-                body = 'AI-assisted adventures, full analytics, planning, guilds, story weavers and every classroom magic trick are unlocked for your school.';
-                cta = 'Thank you for being a founding legend of The Great Class Quest.';
-            } else if (rawTier === 'pro') {
-                badge = '🚀 Pro Power';
-                title = 'Pro unlocks guilds, planners and advanced logs.';
-                body = 'You have access to Guilds, the Calendar & School Year Planner, Story Weavers, Scholar\'s Scroll and advanced attendance & make-up tools.';
-                cta = 'Upgrade to Elite to add AI-assisted summaries, smart suggestions and early access experiments.';
-            } else {
-                badge = '🔰 Starter';
-                title = 'Starter keeps things simple and safe.';
-                body = 'Perfect for trying the core experience: award stars, run ceremonies and use the basic adventure log with your classes.';
-                cta = 'Upgrade to Pro to unlock guilds, planners, story tools and rich analytics — or go straight to Elite for the full AI-powered experience.';
-            }
-
+            const summary = getTierSummary(rawTier);
+            const badgeEmoji = rawTier === 'elite' ? '🌟' : rawTier === 'pro' ? '🚀' : '🔰';
             summaryEl.innerHTML = `
                 <div class="bg-gradient-to-r from-sky-50 via-slate-50 to-emerald-50 border border-sky-100 rounded-3xl shadow-md p-4 md:p-5 flex flex-col md:flex-row md:items-center gap-4">
                     <div class="flex-1">
                         <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/70 border border-sky-100 text-xs font-semibold text-sky-700 mb-2">
-                            <span>${badge}</span>
+                            <span>${badgeEmoji} ${summary.badge}</span>
                             <span class="h-1 w-1 rounded-full bg-sky-400"></span>
                             <span>Current plan: ${pretty}</span>
                         </div>
-                        <h3 class="font-title text-xl text-slate-800 mb-1">${title}</h3>
-                        <p class="text-sm text-slate-600">${body}</p>
+                        <h3 class="font-title text-xl text-slate-800 mb-1">${summary.title}</h3>
+                        <p class="text-sm text-slate-600">${summary.body}</p>
                     </div>
                     <div class="md:w-56">
                         <div class="bg-white/80 rounded-2xl px-3 py-3 text-xs text-slate-600 border border-dashed border-sky-100">
-                            <p class="font-semibold text-slate-800 mb-1">${rawTier === 'elite' ? 'You\'re all set ✨' : 'Thinking about upgrading?'}</p>
-                            <p>${cta}</p>
+                            <p class="font-semibold text-slate-800 mb-1">${summary.isTopTier ? "You're all set ✨" : 'Thinking about upgrading?'}</p>
+                            <p>${summary.cta}</p>
                         </div>
                     </div>
                 </div>

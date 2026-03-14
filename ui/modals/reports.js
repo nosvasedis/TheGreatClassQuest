@@ -7,8 +7,10 @@ import { getGuildById, getGuildEmblemUrl } from '../../features/guilds.js';
 import { showAnimatedModal } from './base.js';
 import { ensureHistoryLoaded } from '../../db/actions.js';
 import { callGeminiApi } from '../../api.js';
+import { requireEliteAI } from '../../utils/upgradePrompt.js';
 
 export async function handleGenerateReport(classId) {
+    if (!requireEliteAI({ feature: 'Weekly report' })) return;
     await ensureHistoryLoaded();
     const classData = state.get('allTeachersClasses').find(c => c.id === classId);
     if (!classData) return;
@@ -46,6 +48,7 @@ Write a 2-paragraph summary highlighting connections between behavior and academ
 }
 
 export async function handleGenerateCertificate(studentId) {
+    if (!requireEliteAI({ feature: 'Certificate text' })) return;
     await ensureHistoryLoaded();
     const student = state.get('allStudents').find(s => s.id === studentId);
     const studentClass = state.get('allSchoolClasses').find(c => c.id === student.classId);

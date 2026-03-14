@@ -16,7 +16,7 @@ export const authHTML = `
             <h1 class="font-title text-5xl text-white text-center mb-6 wobbly-title login-title-pulse"
                 style="text-shadow: 0 4px 6px rgba(0,0,0,0.1);">
                 The Great Class Quest
-                <span class="block text-2xl text-white/80 font-semibold mt-1" data-school-name>Prodigies Language School</span>
+                <span class="block text-2xl text-white/80 font-semibold mt-1" data-school-name>Your School</span>
             </h1>
 
             <div id="login-form-container" class="bg-white p-8 rounded-3xl shadow-2xl pop-in">

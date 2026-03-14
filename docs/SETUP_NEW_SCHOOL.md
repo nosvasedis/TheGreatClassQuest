@@ -37,7 +37,8 @@ Use this checklist when onboarding a new φροντιστήριο. Goal: under 9
      - `starter.json` → Starter
      - `pro.json` → Pro
      - `elite.json` → Elite
-   - Field names and values must match (tier, maxTeachers, maxClasses, guilds, adventureLog, calendar, etc.).
+   - Field names and values must match (see **Feature flags and tiers** below).
+   - **Changing tier later:** Update the document by re-pasting the desired `config/tiers/*.json` contents, or use the Node script that writes via the Admin SDK (see docs/FIRESTORE_RULES_APPCONFIG.md). The web app cannot write to `appConfig/subscription`; only an admin or script can.
 
 6. **Pro/Elite only:** Configure OpenRouter (or your AI proxy) for this project if needed (API key / spending limit).
 
@@ -56,6 +57,29 @@ When the **first user** signs up and the school has **no classes**, they see the
 - Click **“Enter the Quest”** (after adding at least one class) to open the main app.
 
 After that, all users (including new signups) go straight to the main app.
+
+## Feature flags and tiers
+
+The `appConfig/subscription` document is the single source of truth for plan limits and feature flags. The app reads it at load (see `utils/subscription.js`). The presets in **`config/tiers/`** define what each plan includes:
+
+| Flag | Starter | Pro | Elite | Notes |
+|------|---------|-----|------|------|
+| `tier` | `starter` | `pro` | `elite` | Display name / logic |
+| `maxTeachers` | 3 | 10 | null (unlimited) | School-wide |
+| `maxClasses` | 6 | 30 | null (unlimited) | Per school |
+| `guilds` | false | true | true | Guilds tab, sorting quiz |
+| `calendar` | false | true | true | Calendar & Day Planner |
+| `schoolYearPlanner` | false | true | true | Holidays, class end dates |
+| `scholarScroll` | false | true | true | Scholar's Scroll tab |
+| `storyWeavers` | false | true | true | Story Weavers / reward ideas tab |
+| `adventureLog` | false | true | true | Full Adventure Log (diary, Hall of Heroes) |
+| `advancedAttendance` | false | true | true | Attendance Chronicle (month view) |
+| `makeupTracking` | false | true | true | Reserved for make-up lesson tracking |
+| `eliteAI` | false | false | true | AI: Oracle, log summaries, story images, shop generator, etc. |
+| `earlyAccess` | false | false | true | Early-access experiments |
+| `prioritySupport` | false | false | true | Priority support |
+
+Adding or changing a tier (e.g. from Starter to Pro) requires updating the Firestore document; the client app has **read-only** access. Use the Admin SDK script or paste the JSON from the matching `config/tiers/*.json` file.
 
 ## Your school (Elite)
 

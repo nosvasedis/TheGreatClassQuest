@@ -2,6 +2,7 @@ import { db } from '../../firebase.js';
 import { doc, setDoc } from 'https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js';
 import * as state from '../../state.js';
 import { showToast } from '../../ui/effects.js';
+import { DEFAULT_SCHOOL_NAME } from '../../constants.js';
 
 const PUBLIC_DATA_PATH = 'artifacts/great-class-quest/public/data';
 
@@ -10,7 +11,7 @@ export async function handleSaveSchoolNameFromOptions() {
     if (!input) return;
 
     const newName = input.value.trim();
-    const current = state.get('schoolName') || 'Prodigies Language School';
+    const current = state.get('schoolName') || DEFAULT_SCHOOL_NAME;
 
     if (!newName) {
         showToast('School name cannot be empty.', 'error');

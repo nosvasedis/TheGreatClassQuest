@@ -2,6 +2,9 @@ export const competitionStart = new Date('2025-11-01');
 export const competitionEnd = new Date('2026-06-30');
 export const APP_VERSION = '0.0.2';
 
+/** Fallback when school_settings.schoolName is not set. Used everywhere school name is displayed. */
+export const DEFAULT_SCHOOL_NAME = 'Your School';
+
 // Use optional config from bootstrap (config.json) when present; otherwise this default (e.g. your school).
 const DEFAULT_FIREBASE_CONFIG = {
   apiKey: "AIzaSyCxpouLYfm8woS8ToK8kRzndRvbIwsPuFU",

@@ -116,7 +116,8 @@ export async function handleLogAdventure() {
     const { canUseFeature } = await import('../../utils/subscription.js');
     if (!canUseFeature('eliteAI')) {
         const { showUpgradePrompt } = await import('../../utils/upgradePrompt.js');
-        showUpgradePrompt({ feature: 'AI Adventure Log', tier: 'Elite', message: 'The AI-powered diary and storybook image are on the Elite plan.' });
+        const { getUpgradeMessage } = await import('../../config/tiers/features.js');
+        showUpgradePrompt({ feature: 'AI Adventure Log', tier: 'Elite', message: getUpgradeMessage('Elite', 'adventureLog') });
         return;
     }
 

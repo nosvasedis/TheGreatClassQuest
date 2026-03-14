@@ -10,6 +10,7 @@ import { showToast } from '../ui/effects.js';
 import { playSound } from '../audio.js';
 import { callGeminiApi, callCloudflareAiImageApi } from '../api.js';
 import { compressAvatarImageBase64 } from '../utils.js';
+import { requireEliteAI } from '../utils/upgradePrompt.js';
 
 // --- LOCAL STATE ---
 let avatarMakerData = {
@@ -127,6 +128,7 @@ export function handleAvatarOptionSelect(event, pool) {
 // --- CORE ACTIONS ---
 
 export async function handleGenerateAvatar() {
+    if (!requireEliteAI({ feature: 'Avatar image generator' })) return;
     playSound('magic_chime');
     const { creature, color, accessory } = avatarMakerData;
     if (!creature || !color || !accessory) {

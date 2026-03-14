@@ -5,6 +5,8 @@ import { HERO_CLASSES } from '../../features/heroClasses.js';
 import { showAnimatedModal } from './base.js';
 import { callGeminiApi } from '../../api.js';
 import { getTier } from '../../utils/subscription.js';
+import { getTierTagline, getTiersAtAGlance } from '../../config/tiers/features.js';
+import { requireEliteAI } from '../../utils/upgradePrompt.js';
 
 // --- CORRECTED & ENHANCED HERO STATS MODAL ---
 
@@ -302,6 +304,7 @@ export function setupNoteForEditing(noteId) {
 }
 
 export async function generateAIInsight(studentId, insightType) {
+    if (!requireEliteAI({ feature: 'The Oracle' })) return;
     const student = state.get('allStudents').find(s => s.id === studentId);
     if (!student) return;
 
@@ -386,12 +389,8 @@ export function openAppInfoModal() {
     const prettyTier =
         rawTier === 'elite' ? 'Elite' :
         rawTier === 'pro' ? 'Pro' : 'Starter';
-    const tierTagline =
-        rawTier === 'elite'
-            ? 'All features unlocked – enjoy the full quest!'
-            : rawTier === 'pro'
-                ? 'Guilds, planners and advanced tools active.'
-                : 'Core quest experience – perfect starting point.';
+    const tierTagline = getTierTagline(rawTier);
+    const tiersGlance = getTiersAtAGlance();
 
     // 1. STUDENTS CONTENT (Adventure Guide)
     studentContent.innerHTML = `
@@ -501,13 +500,11 @@ export function openAppInfoModal() {
                     <i class="fas fa-layer-group text-sky-500"></i> Plan Tiers at a Glance
                 </h4>
                 <ul class="text-sm text-gray-600 list-disc pl-5 space-y-1">
-                    <li><strong>Starter:</strong> Core stars, ceremonies, basic log, one-school setup.</li>
-                    <li><strong>Pro:</strong> Adds Guilds, Calendar & School Year Planner, Story Weavers, Scholar's Scroll, advanced attendance and make-up tracking.</li>
-                    <li><strong>Elite:</strong> Everything in Pro <em>plus</em> AI-assisted logs and stories, early-access experiments and priority support.</li>
+                    ${tiersGlance.map(t => `<li><strong>${t.label}:</strong> ${t.bullets}</li>`).join('')}
                 </ul>
                 <p class="text-xs text-gray-500 mt-1">
                     ${rawTier === 'elite'
-                        ? 'You are already on Elite — enjoy exploring every corner of the quest! ✨'
+                        ? 'You are already on Elite — enjoy exploring every corner of the quest!'
                         : rawTier === 'pro'
                             ? 'You are on Pro. When you feel ready for AI support and experiments, upgrading to Elite takes seconds.'
                             : 'You are on Starter. When your staff are comfortable, moving to Pro or Elite unlocks much more without changing your daily routine.'}

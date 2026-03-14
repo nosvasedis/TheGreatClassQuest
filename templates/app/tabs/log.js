@@ -7,7 +7,7 @@ export const logTabHTML = `
                         <i class="fas fa-book-open text-teal-500 text-5xl floating-icon"></i>
                         <h2 class="font-title text-5xl text-teal-700 mt-2"
                             style="text-shadow: 0 2px 4px rgba(0,0,0,0.1);">Adventure Log</h2>
-                        <p class="text-lg text-gray-600 mt-2">A visual diary of your class's epic journey!</p>
+                        <p id="adventure-log-tagline" class="text-lg text-gray-600 mt-2">A visual diary of your class's epic journey!</p>
                     </div>
 
                     <div class="bg-white p-4 rounded-2xl shadow-lg border-2 border-gray-100 flex flex-col gap-4 mb-6">
@@ -44,6 +44,11 @@ export const logTabHTML = `
                     </div>
 
                     <div id="adventure-log-feed" class="space-y-6 max-h-[60vh] overflow-y-auto p-2"></div>
+                    <div id="adventure-log-upsell" class="hidden bg-gradient-to-br from-teal-50 to-indigo-50 border-2 border-teal-200 rounded-2xl p-6 text-center max-w-xl mx-auto">
+                        <p id="adventure-log-upsell-title" class="font-title text-xl text-teal-800 mb-2"></p>
+                        <p id="adventure-log-upsell-body" class="text-gray-600 mb-4"></p>
+                        <p class="text-sm text-gray-500">See Options for your plan and upgrade path.</p>
+                    </div>
                 </div>
             </div>
 `;

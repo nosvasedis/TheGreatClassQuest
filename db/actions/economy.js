@@ -20,6 +20,8 @@ import {
 import * as state from '../../state.js';
 import { showToast } from '../../ui/effects.js';
 import { callGeminiApi, callCloudflareAiImageApi } from '../../api.js';
+import { requireEliteAI } from '../../utils/upgradePrompt.js';
+import { canUseFeature } from '../../utils/subscription.js';
 import { getAgeGroupForLeague, getStartOfMonthString, getTodayDateString, compressImageBase64, simpleHashCode, parseFlexibleDate } from '../../utils.js';
 import { playSound } from '../../audio.js';
 import { reconcileFamiliarLifecycle } from '../../features/familiars.js';
@@ -103,6 +105,7 @@ function showShopPurchasePopup({ itemName, itemDescription, itemVisualHtml, fina
 }
 
 export async function handleGenerateShopStock() {
+    if (!requireEliteAI({ feature: 'Shop item generator' })) return;
     // 1. Determine Context (League)
     let league = state.get('globalSelectedLeague');
 
@@ -840,6 +843,8 @@ export async function resolveMissingGenders() {
     );
 
     if (unclassified.length === 0) return;
+
+    if (!canUseFeature('eliteAI')) return;
 
     console.log(`Resolving genders for ${unclassified.length} of your students...`);
 

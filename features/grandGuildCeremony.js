@@ -7,6 +7,7 @@ import * as state from '../state.js';
 import { playSound, ceremonyMusic, winnerFanfare, showdownSting, fadeCeremonyMusic, stopAllCeremonyAudio, playCeremonyMusic, playDrumRoll, stopDrumRoll, playWinnerFanfare } from '../audio.js';
 import { fetchLogsForMonth } from '../db/queries.js';
 import { callGeminiApi } from '../api.js';
+import { canUseFeature } from '../utils/subscription.js';
 import * as utils from '../utils.js';
 import { GUILDS, getGuildById, getGuildBadgeHtml } from './guilds.js';
 
@@ -422,9 +423,13 @@ export function checkCeremonyActivation() {
 }
 
 /**
- * Update ceremony button visibility
+ * Update ceremony button visibility. Grand Guild Ceremony is Pro+ (guilds feature).
  */
 export function updateCeremonyButtons() {
+    if (!canUseFeature('guilds')) {
+        [document.getElementById('grand-guild-ceremony-btn-guilds'), document.getElementById('grand-guild-ceremony-btn-home'), document.getElementById('grand-guild-ceremony-btn-class')].forEach(btn => { if (btn) btn.classList.add('hidden'); });
+        return;
+    }
     const participatingClasses = checkCeremonyActivation();
     const hasActiveCeremony = participatingClasses.length > 0;
     
@@ -484,9 +489,15 @@ function updateHomeCeremonyButtons(participatingClasses) {
 }
 
 /**
- * Start the Grand Guild Ceremony
+ * Start the Grand Guild Ceremony. Pro+ only (guilds feature).
  */
 export async function startGrandGuildCeremony(classIds = null) {
+    if (!canUseFeature('guilds')) {
+        const { showUpgradePrompt } = await import('../utils/upgradePrompt.js');
+        const { getUpgradeMessage } = await import('../config/tiers/features.js');
+        showUpgradePrompt('Pro', { message: getUpgradeMessage('Pro', 'default') });
+        return;
+    }
     const participatingClasses = classIds || checkCeremonyActivation();
     
     if (participatingClasses.length === 0) {
@@ -1122,14 +1133,28 @@ async function triggerAICommentary(phase, data) {
                 prompt = 'Continue the ceremony with enthusiasm and celebration!';
         }
         
-        const response = await callGeminiApi(prompt);
+        const genericByPhase = {
+            grand_opening: "Welcome to the Grand Guild Ceremony!",
+            hero_gallery: "Celebrating our daily heroes from throughout the year!",
+            team_quest_journey: "The Team Quest journey — what a year!",
+            prodigy_timeline: "Celebrating our monthly prodigies!",
+            guild_crowning: "The moment we've all been waiting for — the guild champion!",
+            'hall_of heroes': "Here's to a year of excellence. Congratulations, everyone!"
+        };
+        const genericMessage = genericByPhase[phase] || 'Congratulations to everyone!';
+
         const aiText = document.getElementById('ceremony-ai-text');
-        if (aiText && response) {
-            aiText.innerText = response;
+        if (canUseFeature('eliteAI')) {
+            const response = await callGeminiApi(prompt);
+            if (aiText && response) aiText.innerText = response;
+        } else if (aiText) {
+            aiText.innerText = genericMessage;
         }
         
     } catch (error) {
         console.error('Error generating AI commentary:', error);
+        const aiTextFallback = document.getElementById('ceremony-ai-text');
+        if (aiTextFallback) aiTextFallback.innerText = genericMessage || 'Congratulations to everyone!';
     }
 }
 

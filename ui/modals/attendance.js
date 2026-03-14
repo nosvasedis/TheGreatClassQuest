@@ -7,10 +7,17 @@ import { showToast } from '../effects.js';
 import { playSound } from '../../audio.js';
 import { fetchAttendanceForMonth } from '../../db/queries.js';
 import { handleMarkAbsent } from '../../db/actions.js';
+import { canUseFeature } from '../../utils/subscription.js';
+import { showUpgradePrompt } from '../../utils/upgradePrompt.js';
+import { getUpgradeMessage } from '../../config/tiers/features.js';
 
 // --- REVAMPED ATTENDANCE CHRONICLE MODAL ---
 
 export async function openAttendanceChronicle() {
+    if (!canUseFeature('advancedAttendance')) {
+        showUpgradePrompt('Pro', { message: getUpgradeMessage('Pro', 'advancedAttendance') });
+        return;
+    }
     const classId = document.getElementById('adventure-log-class-select').value;
     const classData = state.get('allTeachersClasses').find(c => c.id === classId);
     if (!classData) return;

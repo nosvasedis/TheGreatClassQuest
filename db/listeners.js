@@ -22,7 +22,7 @@ import { checkAndResetMonthlyStars } from './actions.js';
 import { renderStoryArchive } from '../features/storyWeaver.js';
 import { updateCeremonyStatus } from '../features/ceremony.js';
 import * as utils from '../utils.js';
-import { competitionStart } from '../constants.js';
+import { competitionStart, DEFAULT_SCHOOL_NAME } from '../constants.js';
 import * as modals from '../ui/modals.js';
 import { renderHomeTab } from '../features/home.js';
 import { reconcileFamiliarLifecycle, shouldPassivelyReconcileFamiliar } from '../features/familiars.js';
@@ -118,7 +118,7 @@ export function setupDataListeners(userId, dateString, onInitialDataReady) {
     );
 
     function applySchoolNameToDom(name) {
-        const display = name || 'Prodigies Language School';
+        const display = name || DEFAULT_SCHOOL_NAME;
         document.querySelectorAll('[data-school-name]').forEach((el) => {
             el.textContent = display;
         });

@@ -20,6 +20,7 @@ import { showToast, showPraiseToast } from '../../ui/effects.js';
 import { showModal, hideModal } from '../../ui/modals.js';
 import { callGeminiApi } from '../../api.js';
 import { playSound } from '../../audio.js';
+import { canUseFeature } from '../../utils/subscription.js';
 import { handleStoryWeaversClassSelect } from '../../features/storyWeaver.js';
 import { getTodayDateString, parseFlexibleDate } from '../../utils.js';
 import { reconcileFamiliarLifecycle } from '../../features/familiars.js';
@@ -103,10 +104,15 @@ export async function handleEndStory() {
             }
 
             const storyChapters = historySnapshot.docs.map(d => d.data());
-            const storyTitle = await callGeminiApi(
-                "You are an AI that creates short, creative book titles. Based on the story, create a title that is 2-5 words long. Provide only the title, no extra text or quotation marks.",
-                `The story is: ${storyChapters.map(c => c.sentence).join(' ')}`
-            );
+            let storyTitle;
+            if (canUseFeature('eliteAI')) {
+                storyTitle = await callGeminiApi(
+                    "You are an AI that creates short, creative book titles. Based on the story, create a title that is 2-5 words long. Provide only the title, no extra text or quotation marks.",
+                    `The story is: ${storyChapters.map(c => c.sentence).join(' ')}`
+                );
+            } else {
+                storyTitle = `${classData.name} Story`;
+            }
 
             const batch = writeBatch(db);
             const newArchiveDocRef = doc(collection(db, `${publicDataPath}/completed_stories`));
@@ -294,11 +300,15 @@ export async function saveAdventureLogNote() {
 }
 
 async function triggerNoteToast(logText, noteText) {
+    if (!canUseFeature('eliteAI')) {
+        showPraiseToast('Note saved — another moment in the chronicle!', '📝');
+        return;
+    }
     const systemPrompt = "You are the 'Quest Master's Assistant', a whimsical character in a classroom game. Your job is to read the teacher's note about a day's adventure and provide a short, encouraging, one-sentence comment. Do NOT use markdown. Be positive and brief.";
     const userPrompt = `The AI's log said: "${logText}". The teacher added this note: "${noteText}". What is your one-sentence comment?`;
     try {
         const comment = await callGeminiApi(systemPrompt, userPrompt);
-        showPraiseToast(comment, '📝'); 
+        showPraiseToast(comment, '📝');
     } catch (error) {
         console.error("Note Toast AI error:", error);
     }

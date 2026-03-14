@@ -4,6 +4,7 @@ import * as utils from '../../utils.js';
 import * as constants from '../../constants.js';
 import * as modals from '../modals.js';
 import { canUseFeature } from '../../utils/subscription.js';
+import { getLogTabCopy } from '../../config/tiers/features.js';
 import { renderAwardStarsStudentList } from './award.js';
 
 function classHasAwardedStarsToday(classId) {
@@ -30,6 +31,17 @@ export async function renderAdventureLogTab() {
 
     state.get('currentLogFilter').classId = classVal;
     const hasAdventureLog = canUseFeature('adventureLog');
+    const logCopy = getLogTabCopy(hasAdventureLog);
+    const taglineEl = document.getElementById('adventure-log-tagline');
+    const upsellEl = document.getElementById('adventure-log-upsell');
+    if (taglineEl) taglineEl.textContent = logCopy.tagline;
+    if (upsellEl) {
+        upsellEl.classList.toggle('hidden', hasAdventureLog);
+        const upsellTitle = document.getElementById('adventure-log-upsell-title');
+        const upsellBody = document.getElementById('adventure-log-upsell-body');
+        if (upsellTitle) upsellTitle.textContent = logCopy.upsellTitle;
+        if (upsellBody) upsellBody.textContent = logCopy.upsellBody;
+    }
     const logBtn = document.getElementById('log-adventure-btn');
     const hallBtn = document.getElementById('hall-of-heroes-btn');
     const feedEl = document.getElementById('adventure-log-feed');
@@ -44,7 +56,12 @@ export async function renderAdventureLogTab() {
     if (feedEl) feedEl.style.display = hasAdventureLog ? '' : 'none';
     if (monthFilter) monthFilter.style.display = hasAdventureLog ? '' : 'none';
     document.getElementById('quest-assignment-btn').disabled = !classVal;
-    document.getElementById('attendance-chronicle-btn').disabled = !classVal;
+    const attendanceChronicleBtn = document.getElementById('attendance-chronicle-btn');
+    const hasAdvancedAttendance = canUseFeature('advancedAttendance');
+    if (attendanceChronicleBtn) {
+        attendanceChronicleBtn.style.display = hasAdvancedAttendance ? '' : 'none';
+        attendanceChronicleBtn.disabled = !classVal;
+    }
 
     const monthVal = monthFilter.value;
 

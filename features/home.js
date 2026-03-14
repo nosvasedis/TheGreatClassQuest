@@ -780,6 +780,19 @@ export function setupHomeListeners() {
     const sContent = document.getElementById('info-content-students');
     const tContent = document.getElementById('info-content-teachers');
 
+    const replayGuideAnimation = (rootEl) => {
+        if (!rootEl) return;
+        const animated = rootEl.querySelectorAll('.guide-stagger-item');
+        animated.forEach(el => {
+            el.style.animation = 'none';
+        });
+        // Force reflow so animation can restart cleanly
+        void rootEl.offsetHeight;
+        animated.forEach(el => {
+            el.style.animation = '';
+        });
+    };
+
     if (sBtn && tBtn) {
         const newS = sBtn.cloneNode(true); sBtn.parentNode.replaceChild(newS, sBtn);
         const newT = tBtn.cloneNode(true); tBtn.parentNode.replaceChild(newT, tBtn);
@@ -788,11 +801,13 @@ export function setupHomeListeners() {
             newS.classList.add('active');
             newT.classList.remove('active');
             sContent.classList.remove('hidden'); tContent.classList.add('hidden');
+            replayGuideAnimation(sContent);
         });
         newT.addEventListener('click', () => {
             newT.classList.add('active');
             newS.classList.remove('active');
             tContent.classList.remove('hidden'); sContent.classList.add('hidden');
+            replayGuideAnimation(tContent);
         });
     }
 }

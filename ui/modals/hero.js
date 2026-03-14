@@ -36,7 +36,6 @@ export function showHeroLevelUpCelebration({ studentId, studentName, newHeroLeve
     showAnimatedModal('hero-level-up-modal');
 }
 
-import { callGeminiApi } from '../../api.js';
 import { getTier } from '../../utils/subscription.js';
 import { getTierTagline, getTiersAtAGlance } from '../../config/tiers/features.js';
 import { requireEliteAI } from '../../utils/upgradePrompt.js';
@@ -633,7 +632,7 @@ export function openAppInfoModal() {
 
     // 1. STUDENTS CONTENT (Adventure Guide)
     studentContent.innerHTML = `
-        <section class="guide-hero-card guide-student-hero guide-sparkle-layer">
+        <section class="guide-hero-card guide-student-hero guide-sparkle-layer guide-stagger-item" style="--guide-delay: 0ms;">
             <div class="guide-hero-badge">For Students</div>
             <h3 class="font-title text-3xl md:text-4xl text-cyan-900 mb-3"><i class="fas fa-compass mr-2"></i> Your Quest Book, but Actually Fun</h3>
             <p class="text-slate-700 text-base md:text-lg leading-relaxed">
@@ -646,18 +645,18 @@ export function openAppInfoModal() {
             </div>
         </section>
 
-        <section class="guide-kpi-grid">
+        <section class="guide-kpi-grid guide-stagger-item" style="--guide-delay: 70ms;">
             <article class="guide-kpi-card"><span class="kpi-number">${studentUnlockedItems}</span><span class="kpi-label">Unlocked Modules</span></article>
             <article class="guide-kpi-card"><span class="kpi-number">${studentTotalItems - studentUnlockedItems}</span><span class="kpi-label">Future Unlocks</span></article>
             <article class="guide-kpi-card"><span class="kpi-number">${prettyTier}</span><span class="kpi-label">Current Plan</span></article>
             <article class="guide-kpi-card"><span class="kpi-number">4</span><span class="kpi-label">Daily Quest Beats</span></article>
         </section>
 
-        <section class="guide-panel">
+        <section class="guide-panel guide-stagger-item" style="--guide-delay: 120ms;">
             <h4 class="guide-section-title"><i class="fas fa-map-location-dot"></i> Student Feature Atlas</h4>
             <div class="guide-cluster-grid">
-                ${studentQuestClusters.map(cluster => `
-                    <article class="guide-cluster ${cluster.theme}">
+                ${studentQuestClusters.map((cluster, index) => `
+                    <article class="guide-cluster ${cluster.theme} guide-stagger-item" style="--guide-delay: ${150 + (index * 35)}ms;">
                         <h5><i class="fas ${cluster.icon}"></i> ${cluster.title}</h5>
                         <div class="guide-chip-list">
                             ${cluster.items.map(item => `
@@ -672,11 +671,11 @@ export function openAppInfoModal() {
             </div>
         </section>
 
-        <section class="guide-panel">
+        <section class="guide-panel guide-stagger-item" style="--guide-delay: 380ms;">
             <h4 class="guide-section-title"><i class="fas fa-timeline"></i> Your Daily Loop</h4>
             <div class="guide-timeline-grid">
-                ${studentDailyFlow.map(step => `
-                    <article class="guide-timeline-card">
+                ${studentDailyFlow.map((step, index) => `
+                    <article class="guide-timeline-card guide-stagger-item" style="--guide-delay: ${420 + (index * 45)}ms;">
                         <h5><i class="fas ${step.icon}"></i> ${step.title}</h5>
                         <p>${step.body}</p>
                     </article>
@@ -684,7 +683,7 @@ export function openAppInfoModal() {
             </div>
         </section>
 
-        <section class="guide-panel guide-tier-panel">
+        <section class="guide-panel guide-tier-panel guide-stagger-item" style="--guide-delay: 620ms;">
             <h4 class="guide-section-title"><i class="fas fa-unlock-alt"></i> Tier Progress Path</h4>
             <ul class="guide-tier-list">
                 ${tiersGlance.map(t => `<li><strong>${t.label}:</strong> ${t.bullets}</li>`).join('')}
@@ -701,7 +700,7 @@ export function openAppInfoModal() {
 
     // 2. TEACHERS CONTENT (Game Master's Manual)
     teacherContent.innerHTML = `
-        <section class="guide-hero-card guide-teacher-hero guide-sparkle-layer">
+        <section class="guide-hero-card guide-teacher-hero guide-sparkle-layer guide-stagger-item" style="--guide-delay: 0ms;">
             <div class="guide-hero-badge">For Teachers</div>
             <h3 class="font-title text-3xl md:text-4xl text-emerald-900 mb-3"><i class="fas fa-chalkboard-teacher mr-2"></i> Beautiful, Fast, Complete Teacher Command Guide</h3>
             <p class="text-slate-700 text-base md:text-lg leading-relaxed">
@@ -714,18 +713,18 @@ export function openAppInfoModal() {
             </div>
         </section>
 
-        <section class="guide-kpi-grid">
+        <section class="guide-kpi-grid guide-stagger-item" style="--guide-delay: 70ms;">
             <article class="guide-kpi-card"><span class="kpi-number">${teacherUnlockedItems}</span><span class="kpi-label">Active Modules</span></article>
             <article class="guide-kpi-card"><span class="kpi-number">${teacherTotalItems - teacherUnlockedItems}</span><span class="kpi-label">Locked Modules</span></article>
             <article class="guide-kpi-card"><span class="kpi-number">11</span><span class="kpi-label">Main Nav Tabs</span></article>
             <article class="guide-kpi-card"><span class="kpi-number">4</span><span class="kpi-label">Daily Ops Stages</span></article>
         </section>
 
-        <section class="guide-panel">
+        <section class="guide-panel guide-stagger-item" style="--guide-delay: 120ms;">
             <h4 class="guide-section-title"><i class="fas fa-sparkles"></i> Full Teacher Feature Atlas</h4>
             <div class="guide-cluster-grid">
-                ${teacherQuestClusters.map(cluster => `
-                    <article class="guide-cluster ${cluster.theme}">
+                ${teacherQuestClusters.map((cluster, index) => `
+                    <article class="guide-cluster ${cluster.theme} guide-stagger-item" style="--guide-delay: ${150 + (index * 35)}ms;">
                         <h5><i class="fas ${cluster.icon}"></i> ${cluster.title}</h5>
                         <div class="guide-chip-list">
                             ${cluster.items.map(item => `
@@ -740,11 +739,11 @@ export function openAppInfoModal() {
             </div>
         </section>
 
-        <section class="guide-panel">
+        <section class="guide-panel guide-stagger-item" style="--guide-delay: 380ms;">
             <h4 class="guide-section-title"><i class="fas fa-list-check"></i> Teacher Daily Operating Loop</h4>
             <div class="guide-timeline-grid">
-                ${teacherDailyFlow.map(step => `
-                    <article class="guide-timeline-card">
+                ${teacherDailyFlow.map((step, index) => `
+                    <article class="guide-timeline-card guide-stagger-item" style="--guide-delay: ${420 + (index * 45)}ms;">
                         <h5><i class="fas ${step.icon}"></i> ${step.title}</h5>
                         <p>${step.body}</p>
                     </article>
@@ -752,7 +751,7 @@ export function openAppInfoModal() {
             </div>
         </section>
 
-        <section class="guide-panel guide-tier-panel">
+        <section class="guide-panel guide-tier-panel guide-stagger-item" style="--guide-delay: 620ms;">
             <h4 class="guide-section-title"><i class="fas fa-layer-group"></i> Plan Tiers at a Glance</h4>
             <ul class="guide-tier-list">
                 ${tiersGlance.map(t => `<li><strong>${t.label}:</strong> ${t.bullets}</li>`).join('')}

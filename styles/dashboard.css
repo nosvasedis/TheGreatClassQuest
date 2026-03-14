@@ -544,6 +544,13 @@
     line-height: 1.45;
 }
 
+.guide-stagger-item {
+    opacity: 0;
+    transform: translateY(10px) scale(0.99);
+    animation: guide-stagger-in 0.48s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+    animation-delay: var(--guide-delay, 0ms);
+}
+
 @media (min-width: 820px) {
     .guide-kpi-grid {
         grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -561,6 +568,17 @@
 @keyframes guide-sparkle-drift {
     0%, 100% { transform: translateY(0); opacity: 0.65; }
     50% { transform: translateY(-4px); opacity: 0.95; }
+}
+
+@keyframes guide-stagger-in {
+    from {
+        opacity: 0;
+        transform: translateY(10px) scale(0.99);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
 }
 
 @keyframes guide-fade-up {

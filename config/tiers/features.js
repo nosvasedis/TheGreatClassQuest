@@ -10,7 +10,7 @@ export const FEATURE_DEFINITIONS = {
         emoji: '🏰',
         description: 'Full Guild system and sorting quiz',
         tier: 'Pro',
-        teacherExplain: 'Split your class into Houses or Guilds — Mages, Warriors, Rogues, and more — and run a magical sorting quiz to assign them. Every star students earn goes to their Guild\'s total, creating exciting team competition that makes even shy students invest in class participation. You can see guild standings, run Guild ceremonies, and celebrate champions together. 🏆',
+        teacherExplain: 'Split your class into four Guilds — Dragon Flame, Grizzly Might, Owl Wisdom, and Phoenix Rising — and run a magical sorting quiz to assign them. Every star students earn goes to their Guild\'s total, creating exciting team competition that makes even shy students invest in class participation. You can see guild standings, run Guild ceremonies, and celebrate champions together. 🏆',
         studentExplain: 'You belong to a Guild — your House in the Quest world! 🏰 Everything you do earns points for your team. Compete together, celebrate together, and fight for the top spot on the Guild leaderboard!'
     },
     calendar: {
@@ -42,8 +42,8 @@ export const FEATURE_DEFINITIONS = {
         emoji: '⚔️',
         description: 'Class identity, leveling, and skill branches',
         tier: 'Pro',
-        teacherExplain: "Every student picks a Hero Class — Mage, Warrior, Ranger, and more — each with its own personality and skill branches. As they earn XP, they level up and unlock skills on their personal Skill Tree. This powerful identity engine makes students feel genuinely heroic and gives you a natural framework to reward different learning styles. ⚔️🧙",
-        studentExplain: "Who is your hero? ⚔️ Choose your Hero Class — Mage, Warrior, Rogue or more — and level up by earning stars in class. Each level unlocks new skills on your Skill Tree, making your hero more powerful. Your adventure is YOUR adventure! 🌟"
+        teacherExplain: "Every student picks a Hero Class — Guardian, Sage, Paladin, Artificer, Scholar, Weaver, or Nomad — each with its own personality and skill branches. As they earn XP in their class's specialty reason, they level up and unlock skills on their personal Skill Tree. This powerful identity engine makes students feel genuinely heroic and gives you a natural framework to reward different learning styles. ⚔️🧙",
+        studentExplain: "Who is your hero? ⚔️ Choose your Hero Class — Guardian, Sage, Paladin, Artificer, Scholar, Weaver, or Nomad — and level up by earning stars in your specialty. Each level unlocks new skills on your Skill Tree, making your hero more powerful. Your adventure is YOUR adventure! 🌟"
     },
     adventureLog: {
         name: 'Adventure Log',
@@ -103,8 +103,8 @@ export function getGuideSections(perspective) {
                 intro: 'The heart of The Great Class Quest — the motivation engine that keeps every student engaged every single lesson.',
                 features: [
                     { emoji: '⭐', name: 'Award Stars', tier: 'starter', teacherExplain: 'Your most-used tool! Tap any student\'s avatar and award stars for participation, effort, creativity, correct answers, or any reason you define. Stars power the entire economy — students spend them in the Mystic Market, convert them to gold, and use them in ceremonies. Make it feel special and your students will feel it. ✨', why: 'The fastest way to energise a quiet class or reward a breakthrough moment.' },
-                    { emoji: '💰', name: 'Mystic Market & Shop', tier: 'starter', teacherExplain: 'Students spend their earned stars and gold on items in the Mystic Market — avatar accessories, power-ups, game items, and legendary artifacts. You control what\'s in the shop and set prices. The economy creates natural drive: students want to earn more so they can buy more. 🛒✨', why: 'Creates intrinsic motivation without external prizes or stickers.' },
-                    { emoji: '🎁', name: "Hero's Boon", tier: 'starter', teacherExplain: "Hero's Boon is your personal teacher gift tool — award a special Boon to any student for something truly exceptional. It's separate from regular stars, more meaningful, and students treasure them. Perfect for that student who helped a classmate, showed extraordinary growth, or simply had a legendary lesson. 🎁💫", why: 'Celebrates genuine moments of excellence in a personal, memorable way.' },
+                    { emoji: '💰', name: 'Mystic Market & Shop', tier: 'starter', teacherExplain: 'Students spend their earned stars and gold on items in the Mystic Market — Legendary Artifacts with special powers, Familiar eggs, and seasonal treasures. You control what\'s in the shop and set prices. The economy creates natural drive: students want to earn more so they can buy more. 🛒✨', why: 'Creates intrinsic motivation without external prizes or stickers.' },
+                    { emoji: '🎁', name: "Hero's Boon", tier: 'starter', teacherExplain: "Hero's Boon is a peer-to-peer gift system — students can spend 15 Gold to bestow a Boon on a classmate, giving them +0.5 Stars! It teaches generosity and community spirit. Students treasure receiving Boons from their friends. Perfect for building classroom camaraderie and celebrating each other's achievements. 🎁💫", why: 'Teaches generosity and builds peer-to-peer connections in the classroom.' },
                     { emoji: '🏹', name: 'Quest Bounties', tier: 'starter', teacherExplain: 'Launch time-limited Quest Bounties — mini challenges with a star reward that students race to complete. Set a task ("First to read the paragraph correctly wins 5 stars!") and watch the energy in the room completely transform. Bounties are perfect for drilling vocabulary or comprehension in a fun, competitive way. 🏹⏱️', why: 'Instantly boosts engagement and creates memorable competitive moments.' },
                     { emoji: '🐉', name: 'Familiars', tier: 'starter', teacherExplain: "Each student adopts a Familiar — a magical creature egg that hatches and evolves as they earn stars. Familiars grow through multiple stages and are completely unique to each student. It's a powerful long-term engagement hook that makes kids actually excited to come to English class. 🐉🥚", why: 'Long-term progression that makes every star feel like it matters beyond today.' },
                     { emoji: '🎉', name: 'Ceremonies', tier: 'starter', teacherExplain: 'Monthly ceremonies are magical end-of-cycle celebrations — the app generates highlights, spotlights top heroes, announces champions, and plays celebration animations. Run it on your projector and your students will talk about it all week. No extra preparation needed — the Quest does it all! 🎉🏆', why: 'Creates emotional peaks that students look forward to every month.' },
@@ -119,7 +119,6 @@ export function getGuideSections(perspective) {
                 features: [
                     { emoji: '🧙', name: 'Hero Classes', tier: 'pro', key: 'heroProgression', teacherExplain: FEATURE_DEFINITIONS.heroProgression.teacherExplain, why: 'Students who identify with their hero class are more likely to stay in character — focused, participatory, and proud.' },
                     { emoji: '🌳', name: 'Skill Tree', tier: 'pro', key: 'heroProgression', teacherExplain: 'The Skill Tree is each student\'s personal progression path — as they level up, they unlock new skills and abilities. You can see every student\'s tree, understand their growth trajectory, and celebrate milestones. It gives advanced students something to chase and weaker students a clear path to follow. 🌳⬆️', why: 'Makes improvement visible, tangible, and exciting rather than abstract.' },
-                    { emoji: '🎨', name: 'Avatar & Identity', tier: 'starter', teacherExplain: "Every hero has a fully customisable avatar — chosen from a rich set of character options that students unlock. The avatar IS the student's identity in the Quest world. They personalise it, protect it, and feel genuine attachment to it. Setting up avatars with your class makes the whole experience come alive instantly. 🎨🦸", why: "Students protect and care for things they've personalised. The avatar makes every interaction personal." },
                     { emoji: '🏰', name: 'Guilds & Sorting Quiz', tier: 'pro', key: 'guilds', teacherExplain: FEATURE_DEFINITIONS.guilds.teacherExplain, why: 'Team dynamics transform individual effort into collective pride.' },
                 ]
             },
@@ -133,7 +132,6 @@ export function getGuideSections(perspective) {
                     { emoji: '📜', name: "Scholar's Scroll", tier: 'pro', key: 'scholarScroll', teacherExplain: FEATURE_DEFINITIONS.scholarScroll.teacherExplain, why: "Replaces paper grade sheets with a visual, satisfying record system you'll actually want to open." },
                     { emoji: '🔄', name: 'Make-up Tracking', tier: 'pro', key: 'makeupTracking', teacherExplain: FEATURE_DEFINITIONS.makeupTracking.teacherExplain, why: 'Perfect for private English schools with flexible scheduling — nothing slips through the cracks.' },
                     { emoji: '📋', name: 'Advanced Attendance', tier: 'pro', key: 'advancedAttendance', teacherExplain: FEATURE_DEFINITIONS.advancedAttendance.teacherExplain, why: 'Professional-grade records that protect you and inform parents with clarity.' },
-                    { emoji: '📄', name: 'Reports & Certificates', tier: 'starter', teacherExplain: 'Generate polished HTML reports for any student or class — perfect for parent meetings, end-of-term summaries, or self-reflection. Award printable certificates to celebrate achievements. These look beautiful and feel special to students and parents alike. 📄🏅', why: 'Professional output that impresses parents and celebrates student milestones.' },
                 ]
             },
             {
@@ -171,6 +169,8 @@ export function getGuideSections(perspective) {
                     { emoji: '🔮', name: 'The Oracle', tier: 'elite', key: 'eliteAI', teacherExplain: 'The Oracle is your AI teaching assistant — analyse your whole class\'s performance data and get personalised insights, patterns, and suggestions in plain English. Who needs extra support? Who is a hidden star? The Oracle sees it all. 🔮✨', why: 'Saves hours of data analysis and surfaces insights you might have missed.' },
                     { emoji: '✍️', name: 'AI Adventure Log Writer', tier: 'elite', key: 'eliteAI', teacherExplain: 'After each lesson, the AI automatically generates a beautifully written Adventure Log entry based on what happened in class — stars awarded, bounties completed, achievements earned. You can edit or publish as-is. It turns admin into a magical storybook in seconds! ✍️🤖', why: 'Eliminates the time cost of writing lesson logs while making them richer than ever.' },
                     { emoji: '🎨', name: 'AI Story Images', tier: 'elite', key: 'eliteAI', teacherExplain: 'Generate illustrated cover images for your class stories using AI — beautiful, fantasy-themed artwork created just for your class\'s unique adventure. Students see their story as a real illustrated book. It\'s creative, memorable, and completely unique. 🎨🖼️', why: 'Transforms student writing into something visually stunning that they are genuinely proud of.' },
+                    { emoji: '🦸', name: 'AI Avatar Generator', tier: 'elite', key: 'eliteAI', teacherExplain: 'Students create unique AI-generated avatars! They choose a creature type, colour scheme, and accessory, and the AI creates a personalised chibi-style character just for them. Each avatar is completely unique — no two heroes look the same! 🦸✨', why: 'Students feel genuinely attached to their unique identity in the Quest world.' },
+                    { emoji: '📄', name: 'AI Reports & Certificates', tier: 'elite', key: 'eliteAI', teacherExplain: 'Generate AI-powered weekly class reports with insights and suggestions, plus beautifully styled certificates with AI-generated personalised text for each student. Perfect for parent meetings and celebrating achievements! 📄🏅', why: 'Professional, personalised output that impresses parents and saves hours of writing.' },
                 ]
             },
         ];
@@ -186,8 +186,8 @@ export function getGuideSections(perspective) {
             intro: 'The beating heart of your Quest — earn stars, build your treasure, and become the most powerful hero in the class!',
             features: [
                 { emoji: '⭐', name: 'Earning Stars', tier: 'starter', studentExplain: 'Stars are your EXP points! 🌟 Your teacher awards them for speaking English, answering questions, helping classmates, being creative, or completing challenges. Every star brings you closer to new items, new abilities, and a more powerful hero!', why: 'Every star is proof that you\'re growing as an English hero! 💪' },
-                { emoji: '🛒', name: 'Mystic Market', tier: 'starter', studentExplain: 'Spend your stars and gold in the Mystic Market! 🛒✨ Buy new avatar accessories, power-up items, and legendary artifacts. The shop refreshes and has rare items too — save up for the big ones! Your inventory is your treasure chest of hard-earned rewards.', why: 'Every item you buy is proof of how much you\'ve participated and grown! 🏆' },
-                { emoji: '🎁', name: "Hero's Boon", tier: 'starter', studentExplain: "A Hero's Boon is a special reward from your teacher — rarer and more meaningful than regular stars. 🎁💫 When your teacher gives you a Boon, it means you did something truly legendary: helped a friend, showed amazing progress, or had an absolutely epic lesson!", why: "It's the teacher's personal way of saying: you're extraordinary! ✨" },
+                { emoji: '🛒', name: 'Mystic Market', tier: 'starter', studentExplain: 'Spend your stars and gold in the Mystic Market! 🛒✨ Buy Legendary Artifacts with special powers, Familiar eggs, and seasonal treasures. The shop has rare items too — save up for the big ones! Your inventory is your treasure chest of hard-earned rewards.', why: 'Every item you buy is proof of how much you\'ve participated and grown! 🏆' },
+                { emoji: '🎁', name: "Hero's Boon", tier: 'starter', studentExplain: "A Hero's Boon is a special gift you can give to a classmate! 🎁💫 It costs 15 Gold, and the receiver gets +0.5 Stars! When someone gives you a Boon, it means they think you did something legendary. You can also save up your Gold to surprise a friend with one!", why: "It's a way to celebrate your friends and build team spirit! ✨" },
                 { emoji: '🏹', name: 'Quest Bounties', tier: 'starter', studentExplain: 'When your teacher launches a Bounty, a challenge appears with a star reward attached! 🏹⏱️ Race to complete it first, or be the best at it, to claim the prize. Bounties are fast, exciting, and completely change the energy of the lesson!', why: 'The fastest way to earn big stars and show off your English skills! 🌟' },
                 { emoji: '🐉', name: 'Your Familiar', tier: 'starter', studentExplain: "Your Familiar is your magical companion — it starts as an egg and hatches and evolves as you earn stars! 🐉🥚 Every Familiar is unique. Feed it with your hard work and watch it grow into something spectacular. Don't let it down — it's counting on you!", why: "A growing creature that's entirely YOURS, reflecting your entire journey. 💫" },
             ]
@@ -199,8 +199,7 @@ export function getGuideSections(perspective) {
             color: 'violet',
             intro: "This isn't just a class — it's your origin story. Discover who your hero is!",
             features: [
-                { emoji: '🎨', name: 'Your Avatar', tier: 'starter', studentExplain: 'Your avatar is YOU in the Quest world! 🎨🦸 Customise your hero\'s look, unlock new accessories from the shop, and stand out from the crowd. Your avatar appears on the leaderboard, in ceremonies, and in your profile — make it legendary!', why: 'Your hero is unique. Make them look the part! ✨' },
-                { emoji: '⚔️', name: 'Your Hero Class', tier: 'pro', studentExplain: FEATURE_DEFINITIONS.heroProgression.studentExplain, why: 'Your class defines your strengths and gives you a unique identity in the Quest! 🌟' },
+                { emoji: '⚔️', name: 'Your Hero Class', tier: 'pro', studentExplain: 'Who is your hero? ⚔️ Choose your Hero Class — Guardian, Sage, Paladin, Artificer, Scholar, Weaver, or Nomad — and level up by earning stars in your specialty. Each level unlocks new skills on your Skill Tree, making your hero more powerful. Your adventure is YOUR adventure! 🌟', why: 'Your class defines your strengths and gives you a unique identity in the Quest! 🌟' },
                 { emoji: '🌳', name: 'Skill Tree', tier: 'pro', studentExplain: 'As you level up, you unlock branches on your personal Skill Tree! 🌳✨ Each skill makes you more powerful in different ways. Some students focus on combat skills, others on magic — your tree tells the story of your growth as a hero.', why: 'Levelling up means YOU are visibly, undeniably getting stronger. 💪' },
                 { emoji: '🏰', name: 'Your Guild', tier: 'pro', studentExplain: FEATURE_DEFINITIONS.guilds.studentExplain, why: 'Being part of a team makes every star you earn feel even more important! 🏆' },
             ]
@@ -240,6 +239,7 @@ export function getGuideSections(perspective) {
             features: [
                 { emoji: '🔮', name: 'The Oracle', tier: 'elite', studentExplain: "There's an AI Oracle helping your teacher understand how the whole class is doing! 🔮✨ The Oracle gives special insights that help your teacher support you even better. It's like having a magical advisor watching over the whole Quest.", why: 'The Oracle helps make sure every hero gets the support they need! 🌟' },
                 { emoji: '🎨', name: 'AI Story Images', tier: 'elite', studentExplain: "Your class stories get AI-generated illustrated covers — real artwork made just for YOUR class's adventure! 🎨🖼️ These images are completely unique and make your story feel like a real published fantasy book.", why: 'Your class story deserves a cover worthy of a legendary tale! ✨' },
+                { emoji: '🦸', name: 'AI Avatar Generator', tier: 'elite', studentExplain: 'Create your own unique AI-generated avatar! 🦸✨ Choose your creature type, colour, and accessory, and the AI makes a personalised chibi-style hero just for you. No two avatars are the same — yours will be completely unique!', why: 'Your hero is unique. Make them look the part! ✨' },
             ]
         },
     ];
@@ -303,7 +303,7 @@ export function getTierSummary(rawTier) {
         return {
             badge: 'Top Tier',
             title: 'You are on Elite — the full magical toolkit.',
-            body: 'AI-assisted adventures, full analytics, planning, guilds, story weavers and every classroom magic trick are unlocked for your school.',
+            body: 'All AI-powered features unlocked: the Oracle, AI avatars, AI reports & certificates, AI story images, AI adventure log writer, plus full analytics, planning, guilds, story weavers and every classroom magic trick.',
             cta: 'Thank you for being a founding legend of The Great Class Quest.',
             isTopTier: true
         };
@@ -320,8 +320,8 @@ export function getTierSummary(rawTier) {
     return {
         badge: 'Starter',
         title: 'Starter keeps things simple and safe.',
-        body: 'Perfect for trying the core experience: award stars, run ceremonies, and use Quest Assignment & Attendance.',
-        cta: 'Upgrade to Pro to unlock guilds, planners, story tools and the full Adventure Log — or go straight to Elite for the full AI-powered experience.',
+        body: 'Perfect for trying the core experience: award stars, run ceremonies, use Quest Assignment & Attendance, and manage Familiars, Bounties, and the Mystic Market.',
+        cta: 'Upgrade to Pro to unlock guilds, hero classes, planners, story tools and the full Adventure Log — or go straight to Elite for AI-powered features like avatars, reports, and the Oracle.',
         isTopTier: false
     };
 }
@@ -346,7 +346,7 @@ export function getTiersAtAGlance() {
         {
             tier: 'Starter',
             label: 'Starter',
-            bullets: 'Core stars, ceremonies, Quest Assignment & Attendance, one-school setup.'
+            bullets: 'Core stars, ceremonies, Quest Assignment & Attendance, Familiars, Bounties, Mystic Market, Hero\'s Boon, Quest World Map, Projector Mode.'
         },
         {
             tier: 'Pro',
@@ -356,7 +356,7 @@ export function getTiersAtAGlance() {
         {
             tier: 'Elite',
             label: 'Elite',
-            bullets: 'Everything in Pro plus AI-assisted logs and stories, the Oracle, early-access experiments and priority support.'
+            bullets: 'Everything in Pro plus AI-powered features: the Oracle, AI avatars, AI reports & certificates, AI story images, AI adventure log writer, early-access experiments and priority support.'
         }
     ];
 }

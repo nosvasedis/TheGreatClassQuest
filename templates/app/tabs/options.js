@@ -243,6 +243,26 @@ export const optionsTabHTML = `
                                         class="w-full bg-sky-600 hover:bg-sky-700 text-white font-title text-xl py-3 rounded-xl bubbly-button flex items-center justify-center">
                                         <i class="fas fa-save mr-2"></i> Save School Name
                                     </button>
+                                    <div class="pt-2 border-t border-dashed border-blue-100 space-y-2">
+                                        <label for="options-school-location-search"
+                                            class="block text-sm font-medium text-gray-700 mb-1">School location for weather</label>
+                                        <div class="flex flex-wrap gap-2">
+                                            <input type="text" id="options-school-location-search"
+                                                class="flex-1 min-w-[180px] px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                                autocomplete="off"
+                                                placeholder="e.g. Thessaloniki, Heraklion">
+                                            <button id="search-school-location-btn"
+                                                class="bg-sky-500 hover:bg-sky-600 text-white font-title text-lg py-3 px-4 rounded-xl bubbly-button flex items-center justify-center whitespace-nowrap">
+                                                <i class="fas fa-search mr-2"></i> Search
+                                            </button>
+                                        </div>
+                                        <select id="options-school-location-results" class="hidden w-full px-4 py-3 border border-gray-300 rounded-xl bg-white text-sm"></select>
+                                        <p id="options-school-location-status" class="text-xs text-gray-500">No weather location selected. Default Athens area is used.</p>
+                                        <button id="save-school-location-btn"
+                                            class="w-full bg-cyan-600 hover:bg-cyan-700 text-white font-title text-xl py-3 rounded-xl bubbly-button flex items-center justify-center">
+                                            <i class="fas fa-map-marker-alt mr-2"></i> Save School Location
+                                        </button>
+                                    </div>
                                 </div>
                             </div>
 

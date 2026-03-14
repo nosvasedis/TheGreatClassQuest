@@ -2393,8 +2393,10 @@ export async function initSeasonalAtmosphere() {
     layer.className = 'absolute inset-0 pointer-events-none z-0 overflow-hidden';
 
     let weatherCode = null;
+    const location = utils.getActiveWeatherLocation();
 
-    const cached = localStorage.getItem('gcq_weather_data_open_meteo');
+    const cacheKey = utils.getWeatherCacheKey('gcq_weather_data_open_meteo', location);
+    const cached = localStorage.getItem(cacheKey);
     if (cached) {
         try {
             const data = JSON.parse(cached);
@@ -2406,7 +2408,7 @@ export async function initSeasonalAtmosphere() {
 
     if (weatherCode === null) {
         try {
-            const res = await fetch('https://api.open-meteo.com/v1/forecast?latitude=37.9667&longitude=23.6667&current=weather_code&timezone=auto');
+            const res = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${location.latitude}&longitude=${location.longitude}&current=weather_code&timezone=auto`);
             const d = await res.json();
             weatherCode = d.current.weather_code;
         } catch (e) { console.log("Weather fetch failed, using seasonal fallback."); }

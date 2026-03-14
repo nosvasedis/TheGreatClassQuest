@@ -22,7 +22,13 @@ import { renderGuildsTab } from './guilds.js';
 import { renderManageClassesTab, renderManageStudentsTab } from './classes.js';
 import { renderAwardStarsTab } from './award.js';
 import { renderAdventureLogTab } from './log.js';
-import { handleSaveSchoolNameFromOptions } from '../../db/actions/school.js';
+import {
+    handleSaveSchoolNameFromOptions,
+    initializeSchoolLocationOptionsUi,
+    handleSearchSchoolLocationFromOptions,
+    handleSchoolLocationResultChange,
+    handleSaveSchoolLocationFromOptions
+} from '../../db/actions/school.js';
 import { renderCalendarTab } from './selectors.js';
 import { renderIdeasTabSelects, renderStarManagerStudentSelect } from './ideas.js';
 import { canUseFeature, getTier } from '../../utils/subscription.js';
@@ -145,6 +151,7 @@ export async function showTab(tabName) {
         if (schoolInput) {
             schoolInput.value = state.get('schoolName') || constants.DEFAULT_SCHOOL_NAME;
         }
+        initializeSchoolLocationOptionsUi();
 
         // Options subtabs: beautiful bar, active state, tier-aware Planning
         if (!window.__optionsSubtabsWired) {
@@ -186,6 +193,32 @@ export async function showTab(tabName) {
             if (saveSchoolBtn) {
                 saveSchoolBtn.addEventListener('click', () => {
                     handleSaveSchoolNameFromOptions();
+                });
+            }
+            const searchSchoolLocationBtn = document.getElementById('search-school-location-btn');
+            if (searchSchoolLocationBtn) {
+                searchSchoolLocationBtn.addEventListener('click', () => {
+                    handleSearchSchoolLocationFromOptions();
+                });
+            }
+            const schoolLocationInput = document.getElementById('options-school-location-search');
+            if (schoolLocationInput) {
+                schoolLocationInput.addEventListener('keydown', (event) => {
+                    if (event.key !== 'Enter') return;
+                    event.preventDefault();
+                    handleSearchSchoolLocationFromOptions();
+                });
+            }
+            const schoolLocationResults = document.getElementById('options-school-location-results');
+            if (schoolLocationResults) {
+                schoolLocationResults.addEventListener('change', () => {
+                    handleSchoolLocationResultChange();
+                });
+            }
+            const saveSchoolLocationBtn = document.getElementById('save-school-location-btn');
+            if (saveSchoolLocationBtn) {
+                saveSchoolLocationBtn.addEventListener('click', () => {
+                    handleSaveSchoolLocationFromOptions();
                 });
             }
             activate('manage');

@@ -17,6 +17,22 @@ export const setupHTML = `
                     class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-sky-500">
             </section>
 
+            <section class="mb-6">
+                <h2 class="font-title text-xl text-gray-800 mb-3 flex items-center gap-2">
+                    <i class="fas fa-map-marker-alt text-sky-500"></i> School location (for live weather)
+                </h2>
+                <p class="text-gray-600 text-sm mb-2">Search your city or area in Greece so weather and day/night effects match your school.</p>
+                <div class="flex flex-wrap gap-2 mb-2">
+                    <input type="text" id="setup-school-location-search" placeholder="e.g. Patra, Volos, Chania"
+                        class="flex-1 min-w-[180px] px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-sky-500">
+                    <button type="button" id="setup-search-location-btn" class="bg-sky-500 hover:bg-sky-600 text-white font-bold py-2 px-4 rounded-lg bubbly-button">
+                        <i class="fas fa-search mr-1"></i> Search
+                    </button>
+                </div>
+                <select id="setup-location-results" class="hidden w-full px-3 py-2 border border-gray-300 rounded-lg bg-white text-sm"></select>
+                <p id="setup-location-status" class="text-xs text-gray-500 mt-2">No location selected yet. Weather will use default Athens area until you choose one.</p>
+            </section>
+
             <section class="mb-8">
                 <h2 class="font-title text-xl text-gray-800 mb-3 flex items-center gap-2">
                     <i class="fas fa-chalkboard-teacher text-sky-500"></i> Add classes

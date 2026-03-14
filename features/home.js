@@ -1104,7 +1104,8 @@ async function getAICachedContent(type) {
 }
 
 async function fetchWeatherData() {
-    const storageKey = 'gcq_weather_data_open_meteo';
+    const location = utils.getActiveWeatherLocation();
+    const storageKey = utils.getWeatherCacheKey('gcq_weather_data_open_meteo', location);
     const now = Date.now();
 
     const cached = localStorage.getItem(storageKey);
@@ -1118,7 +1119,7 @@ async function fetchWeatherData() {
     }
 
     try {
-        const response = await fetch('https://api.open-meteo.com/v1/forecast?latitude=37.9667&longitude=23.6667&current=temperature_2m,weather_code&timezone=auto');
+        const response = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${location.latitude}&longitude=${location.longitude}&current=temperature_2m,weather_code&timezone=auto`);
         if (!response.ok) throw new Error('Weather API failed');
         const data = await response.json();
 

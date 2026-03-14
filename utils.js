@@ -8,7 +8,61 @@ export function simpleHashCode(str) {
     return Math.abs(hash);
 }
 
-// Global Solar Data (Ag. Ioannis Rentis, Greece)
+const DEFAULT_WEATHER_LOCATION = {
+    name: 'Athens',
+    admin1: 'Attica',
+    country: 'Greece',
+    countryCode: 'GR',
+    timezone: 'auto',
+    latitude: 37.9667,
+    longitude: 23.6667
+};
+
+let activeWeatherLocation = { ...DEFAULT_WEATHER_LOCATION };
+
+export function normalizeWeatherLocation(raw) {
+    if (!raw || typeof raw !== 'object') return null;
+    const latitude = Number(raw.latitude);
+    const longitude = Number(raw.longitude);
+    const name = typeof raw.name === 'string' ? raw.name.trim() : '';
+
+    if (!Number.isFinite(latitude) || !Number.isFinite(longitude) || !name) {
+        return null;
+    }
+
+    return {
+        name,
+        admin1: typeof raw.admin1 === 'string' ? raw.admin1 : '',
+        country: typeof raw.country === 'string' ? raw.country : '',
+        countryCode: typeof raw.countryCode === 'string' ? raw.countryCode : '',
+        timezone: typeof raw.timezone === 'string' ? raw.timezone : 'auto',
+        latitude,
+        longitude
+    };
+}
+
+export function getDefaultWeatherLocation() {
+    return { ...DEFAULT_WEATHER_LOCATION };
+}
+
+export function getActiveWeatherLocation() {
+    return { ...activeWeatherLocation };
+}
+
+export function setWeatherCoordinates(location) {
+    const normalized = normalizeWeatherLocation(location);
+    activeWeatherLocation = normalized ? normalized : { ...DEFAULT_WEATHER_LOCATION };
+    return getActiveWeatherLocation();
+}
+
+export function getWeatherCacheKey(prefix, location) {
+    const normalized = normalizeWeatherLocation(location) || activeWeatherLocation;
+    const lat = normalized.latitude.toFixed(4);
+    const lon = normalized.longitude.toFixed(4);
+    return `${prefix}_${lat}_${lon}`;
+}
+
+// Global Solar Data (school location)
 // Default fallback times until API loads
 export let solarData = {
     sunrise: new Date().setHours(6, 30, 0, 0),
@@ -17,13 +71,14 @@ export let solarData = {
 
 export async function fetchSolarCycle() {
     try {
-        // Ag. Ioannis Rentis Coordinates
-        const response = await fetch('https://api.sunrise-sunset.org/json?lat=37.9761&lng=23.6586&formatted=0');
+        const lat = activeWeatherLocation.latitude;
+        const lng = activeWeatherLocation.longitude;
+        const response = await fetch(`https://api.sunrise-sunset.org/json?lat=${lat}&lng=${lng}&formatted=0`);
         const data = await response.json();
         if (data.status === 'OK') {
             solarData.sunrise = new Date(data.results.sunrise).getTime();
             solarData.sunset = new Date(data.results.sunset).getTime();
-            console.log(`Solar Cycle Synced with Greece — Sunrise: ${new Date(solarData.sunrise).toLocaleTimeString()}, Sunset: ${new Date(solarData.sunset).toLocaleTimeString()}`);
+            console.log(`Solar cycle synced for ${activeWeatherLocation.name}: sunrise ${new Date(solarData.sunrise).toLocaleTimeString()}, sunset ${new Date(solarData.sunset).toLocaleTimeString()}`);
         }
     } catch (e) { console.warn("Using default solar times."); }
 }

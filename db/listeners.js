@@ -240,12 +240,18 @@ export function setupDataListeners(userId, dateString, onInitialDataReady) {
             const data = docSnap.data();
             state.setSchoolHolidayRanges(data.ranges || []);
             state.setSchoolName(data.schoolName || null);
+            const weatherLocation = utils.normalizeWeatherLocation(data.weatherLocation);
+            state.setSchoolWeatherLocation(weatherLocation);
+            utils.setWeatherCoordinates(weatherLocation);
             applySchoolNameToDom(data.schoolName);
         } else {
             state.setSchoolHolidayRanges([]);
             state.setSchoolName(null);
+            state.setSchoolWeatherLocation(null);
+            utils.setWeatherCoordinates(null);
             applySchoolNameToDom(null);
         }
+        utils.fetchSolarCycle();
         renderHomeTab();
     }, (error) => console.error("Error listening to school_settings:", error)));
 
@@ -391,10 +397,17 @@ export function setupDataListeners(userId, dateString, onInitialDataReady) {
 
     state.setUnsubscribeSchoolSettings(onSnapshot(schoolSettingsQuery, async (docSnapshot) => {
         if (docSnapshot.exists()) {
-            state.setSchoolHolidayRanges(docSnapshot.data().ranges || []);
+            const data = docSnapshot.data();
+            state.setSchoolHolidayRanges(data.ranges || []);
+            const weatherLocation = utils.normalizeWeatherLocation(data.weatherLocation);
+            state.setSchoolWeatherLocation(weatherLocation);
+            utils.setWeatherCoordinates(weatherLocation);
         } else {
             state.setSchoolHolidayRanges([]);
+            state.setSchoolWeatherLocation(null);
+            utils.setWeatherCoordinates(null);
         }
+        utils.fetchSolarCycle();
 
         // Refresh UI
         // We use dynamic imports here to avoid circular dependency issues

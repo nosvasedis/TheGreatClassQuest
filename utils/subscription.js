@@ -71,6 +71,7 @@ function getStarterDefaults() {
         advancedAttendance: false,
         storyWeavers: false,
         heroProgression: false,
+        familiars: false,
         eliteAI: false,
         earlyAccess: false,
         prioritySupport: false,

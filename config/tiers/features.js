@@ -33,7 +33,7 @@ export const FEATURE_DEFINITIONS = {
         name: 'Story Weavers',
         emoji: '📖',
         description: 'Collaborative story and Word of the Day',
-        tier: 'Pro',
+        tier: 'Elite',
         teacherExplain: "Build collaborative stories with your students using the Story Weavers tool — each student adds a sentence or paragraph to a shared adventure tale. Combine it with Word of the Day to sneak in vocabulary naturally. It's creative writing, class bonding, and English practice stitched into one magical experience. ✍️🌟",
         studentExplain: "The whole class writes ONE story — and you're part of it! 📖 Each lesson you can add your piece to the adventure, use the Word of the Day, and watch the story grow into something amazing together! ✨"
     },
@@ -84,6 +84,14 @@ export const FEATURE_DEFINITIONS = {
         tier: 'Elite',
         teacherExplain: "The Elite AI suite brings magic to your classroom: the Oracle inside Hero's Chronicle analyses individual student data and generates personalised reports (Parent Summary, Teacher Strategy, Strengths/Weaknesses, Goal Suggestion), the AI Story Writer generates adventure log entries automatically, and AI Story Images create beautiful illustrated covers for your class stories. Less admin, more inspiration — powered by Gemini AI. 🤖✨🎨",
         studentExplain: "Your teacher has an AI Oracle inside Hero's Chronicle! 🤖✨ The Oracle helps your teacher understand your progress and give you better support. It's like having a magical advisor watching over your hero's journey! 🌟"
+    },
+    familiars: {
+        name: 'Familiars',
+        emoji: '🐉',
+        description: 'Magical creature companions that hatch and evolve',
+        tier: 'Elite',
+        teacherExplain: "Each student adopts a Familiar — a magical creature egg that hatches and evolves as they earn stars. Familiars grow through multiple stages and are completely unique to each student. It's a powerful long-term engagement hook that makes kids actually excited to come to English class. 🐉🥚",
+        studentExplain: "Your Familiar is your magical companion — it starts as an egg and hatches and evolves as you earn stars! 🐉🥚 Every Familiar is unique. Feed it with your hard work and watch it grow into something spectacular. Don't let it down — it's counting on you!"
     }
 };
 
@@ -103,7 +111,7 @@ export function getGuideSections(perspective) {
                 intro: 'The heart of The Great Class Quest — the motivation engine that keeps every student engaged every single lesson.',
                 features: [
                     { emoji: '⭐', name: 'Award Stars', tier: 'starter', teacherExplain: 'Your most-used tool! Tap any student\'s avatar and award stars for participation, effort, creativity, correct answers, or any reason you define. Stars power the entire economy — students spend them in the Mystic Market, convert them to gold, and use them in ceremonies. Make it feel special and your students will feel it. ✨', why: 'The fastest way to energise a quiet class or reward a breakthrough moment.' },
-                    { emoji: '💰', name: 'Mystic Market & Shop', tier: 'starter', teacherExplain: 'Students spend their earned stars and gold on items in the Mystic Market — Legendary Artifacts with special powers, Familiar eggs, and seasonal treasures. You control what\'s in the shop and set prices. The economy creates natural drive: students want to earn more so they can buy more. 🛒✨', why: 'Creates intrinsic motivation without external prizes or stickers.' },
+                    { emoji: '💰', name: 'Mystic Market & Shop', tier: 'starter', teacherExplain: 'Students spend their earned stars and gold on items in the Mystic Market — Legendary Artifacts with special powers and seasonal treasures. On Elite, Familiar eggs are also available for purchase. You control what\'s in the shop and set prices. The economy creates natural drive: students want to earn more so they can buy more. 🛒✨', why: 'Creates intrinsic motivation without external prizes or stickers.' },
                     { emoji: '🎁', name: "Hero's Boon", tier: 'starter', teacherExplain: "Hero's Boon is a peer-to-peer gift system — students can spend 15 Gold to bestow a Boon on a classmate, giving them +0.5 Stars! It teaches generosity and community spirit. Students treasure receiving Boons from their friends. Perfect for building classroom camaraderie and celebrating each other's achievements. 🎁💫", why: 'Teaches generosity and builds peer-to-peer connections in the classroom.' },
                     { emoji: '🏹', name: 'Quest Bounties', tier: 'starter', teacherExplain: 'Launch time-limited Quest Bounties — mini challenges with a star reward that students race to complete. Set a task ("First to read the paragraph correctly wins 5 stars!") and watch the energy in the room completely transform. Bounties are perfect for drilling vocabulary or comprehension in a fun, competitive way. 🏹⏱️', why: 'Instantly boosts engagement and creates memorable competitive moments.' },
                     { emoji: '🐉', name: 'Familiars', tier: 'elite', teacherExplain: "Each student adopts a Familiar — a magical creature egg that hatches and evolves as they earn stars. Familiars grow through multiple stages and are completely unique to each student. It's a powerful long-term engagement hook that makes kids actually excited to come to English class. 🐉🥚", why: 'Long-term progression that makes every star feel like it matters beyond today.' },
@@ -154,8 +162,8 @@ export function getGuideSections(perspective) {
                 color: 'cyan',
                 intro: 'Story writing, vocabulary, and creative expression tools designed specifically for English language teachers.',
                 features: [
-                    { emoji: '📖', name: 'Story Weavers', tier: 'pro', key: 'storyWeavers', teacherExplain: FEATURE_DEFINITIONS.storyWeavers.teacherExplain, why: 'Makes creative writing collaborative, exciting, and something students actually want to do.' },
-                    { emoji: '💬', name: 'Word of the Day', tier: 'pro', key: 'storyWeavers', teacherExplain: "Launch a Word of the Day each lesson — students learn the word, use it actively, and earn stars for using it correctly in context. It's vocabulary building disguised as a fun daily ritual. Over a school year, students accumulate a rich vocabulary bank they genuinely remember. 💬📚", why: 'Vocabulary sticks when it comes with a story, a context, and a star reward.' },
+                    { emoji: '📖', name: 'Story Weavers', tier: 'elite', key: 'storyWeavers', teacherExplain: FEATURE_DEFINITIONS.storyWeavers.teacherExplain, why: 'Makes creative writing collaborative, exciting, and something students actually want to do.' },
+                    { emoji: '💬', name: 'Word of the Day', tier: 'elite', key: 'storyWeavers', teacherExplain: "Launch a Word of the Day each lesson — students learn the word, use it actively, and earn stars for using it correctly in context. It\'s vocabulary building disguised as a fun daily ritual. Over a school year, students accumulate a rich vocabulary bank they genuinely remember. 💬📚", why: 'Vocabulary sticks when it comes with a story, a context, and a star reward.' },
                     { emoji: '🗺️', name: 'Quest World Map', tier: 'starter', teacherExplain: 'The Quest World Map visualises your class\'s collective progress through the school year as a literal adventure journey. Students can see how far they\'ve come and what exciting territory lies ahead. Display it on the projector to create a shared sense of adventure. 🗺️⚔️', why: 'Transforms abstract progress into a visual journey students can feel proud of.' },
                     { emoji: '🖥️', name: 'Projector Mode', tier: 'starter', teacherExplain: "Switch to Projector Mode and the app transforms into a beautiful, animated classroom display — perfect for showing on your classroom projector or smart board. Students see their heroes, the leaderboard, ceremony animations, and the Quest world in full cinematic style. 🖥️🎬", why: 'Turns your classroom screen into an immersive Quest experience that excites students the moment they walk in.' },
                 ]
@@ -187,7 +195,7 @@ export function getGuideSections(perspective) {
             intro: 'The beating heart of your Quest — earn stars, build your treasure, and become the most powerful hero in the class!',
             features: [
                 { emoji: '⭐', name: 'Earning Stars', tier: 'starter', studentExplain: 'Stars are your EXP points! 🌟 Your teacher awards them for speaking English, answering questions, helping classmates, being creative, or completing challenges. Every star brings you closer to new items, new abilities, and a more powerful hero!', why: 'Every star is proof that you\'re growing as an English hero! 💪' },
-                { emoji: '🛒', name: 'Mystic Market', tier: 'starter', studentExplain: 'Spend your stars and gold in the Mystic Market! 🛒✨ Buy Legendary Artifacts with special powers, Familiar eggs, and seasonal treasures. The shop has rare items too — save up for the big ones! Your inventory is your treasure chest of hard-earned rewards.', why: 'Every item you buy is proof of how much you\'ve participated and grown! 🏆' },
+                { emoji: '🛒', name: 'Mystic Market', tier: 'starter', studentExplain: 'Spend your stars and gold in the Mystic Market! 🛒✨ Buy Legendary Artifacts with special powers and seasonal treasures. The shop has rare items too — save up for the big ones! On Elite, you can even buy Familiar eggs! Your inventory is your treasure chest of hard-earned rewards.', why: 'Every item you buy is proof of how much you\'ve participated and grown! 🏆' },
                 { emoji: '🎁', name: "Hero's Boon", tier: 'starter', studentExplain: "A Hero's Boon is a special gift you can give to a classmate! 🎁💫 It costs 15 Gold, and the receiver gets +0.5 Stars! When someone gives you a Boon, it means they think you did something legendary. You can also save up your Gold to surprise a friend with one!", why: "It's a way to celebrate your friends and build team spirit! ✨" },
                 { emoji: '🏹', name: 'Quest Bounties', tier: 'starter', studentExplain: 'When your teacher launches a Bounty, a challenge appears with a star reward attached! 🏹⏱️ Race to complete it first, or be the best at it, to claim the prize. Bounties are fast, exciting, and completely change the energy of the lesson!', why: 'The fastest way to earn big stars and show off your English skills! 🌟' },
                 { emoji: '🐉', name: 'Your Familiar', tier: 'elite', studentExplain: "Your Familiar is your magical companion — it starts as an egg and hatches and evolves as you earn stars! 🐉🥚 Every Familiar is unique. Feed it with your hard work and watch it grow into something spectacular. Don't let it down — it's counting on you!", why: "A growing creature that's entirely YOURS, reflecting your entire journey. 💫" },
@@ -212,8 +220,8 @@ export function getGuideSections(perspective) {
             color: 'teal',
             intro: 'English class becomes an actual adventure — stories, vocabulary, challenges, and achievements that are genuinely exciting.',
             features: [
-                { emoji: '📖', name: 'Story Weavers', tier: 'pro', studentExplain: FEATURE_DEFINITIONS.storyWeavers.studentExplain, why: "Your sentences become part of a REAL story your whole class writes together! ✍️" },
-                { emoji: '💬', name: 'Word of the Day', tier: 'pro', studentExplain: "Every lesson there\'s a special Word of the Day! 💬📚 Learn it, use it in conversation or writing, and earn bonus stars. It's a tiny challenge that builds your vocabulary into something superpower-level by the end of the year!", why: 'Small daily words = huge vocabulary by the end of the year. 🌟' },
+                { emoji: '📖', name: 'Story Weavers', tier: 'elite', studentExplain: FEATURE_DEFINITIONS.storyWeavers.studentExplain, why: "Your sentences become part of a REAL story your whole class writes together! ✍️" },
+                { emoji: '💬', name: 'Word of the Day', tier: 'elite', studentExplain: "Every lesson there\'s a special Word of the Day! 💬📚 Learn it, use it in conversation or writing, and earn bonus stars. It's a tiny challenge that builds your vocabulary into something superpower-level by the end of the year!", why: 'Small daily words = huge vocabulary by the end of the year. 🌟' },
                 { emoji: '📜', name: "Scholar's Scroll", tier: 'pro', studentExplain: FEATURE_DEFINITIONS.scholarScroll.studentExplain, why: 'Watching your own scores improve is incredibly motivating! 📈' },
                 { emoji: '🗺️', name: 'Quest Map', tier: 'starter', studentExplain: 'The Quest Map shows your class\'s collective journey through the year like an epic fantasy map! 🗺️⚔️ Every milestone your class hits moves you further into new, exciting territory. It\'s visual proof of how far you\'ve all come together!', why: 'Progress feels REAL when you can see it on a map! 🌍' },
             ]
@@ -265,8 +273,8 @@ export const GATED_TABS = {
     },
     'reward-ideas-tab': {
         feature: FEATURE_DEFINITIONS.storyWeavers.name,
-        tier: 'Pro',
-        message: 'Collaborative story and Word of the Day.'
+        tier: 'Elite',
+        message: 'Collaborative story writing and Word of the Day — available on the Elite plan.'
     }
 };
 
@@ -290,7 +298,9 @@ export const UPGRADE_MESSAGES = {
     },
     Elite: {
         default: 'AI-powered features unlock on the Elite plan. Contact me to upgrade.',
-        adventureLog: 'The AI-powered diary and storybook image are on the Elite plan.'
+        adventureLog: 'The AI-powered diary and storybook image are on the Elite plan.',
+        storyWeavers: 'Story Weavers and Word of the Day are available on the Elite plan. Contact me to upgrade.',
+        familiars: 'Familiars — magical creature companions that hatch and evolve — are available on the Elite plan. Contact me to upgrade.'
     }
 };
 
@@ -304,7 +314,7 @@ export function getTierSummary(rawTier) {
         return {
             badge: 'Top Tier',
             title: 'You are on Elite — the full magical toolkit.',
-            body: 'All AI-powered features unlocked: Hero\'s Chronicle Oracle, AI avatars, AI reports & certificates, AI story images, AI adventure log writer, plus full analytics, planning, guilds, story weavers and every classroom magic trick.',
+            body: 'All AI-powered features unlocked: Hero\'s Chronicle Oracle, AI avatars, AI reports & certificates, AI story images, AI adventure log writer, plus Story Weavers, Familiars, full analytics, planning, guilds and every classroom magic trick.',
             cta: 'Thank you for being a founding legend of The Great Class Quest.',
             isTopTier: true
         };
@@ -313,8 +323,8 @@ export function getTierSummary(rawTier) {
         return {
             badge: 'Pro Power',
             title: 'Pro unlocks guilds, planners and advanced logs.',
-            body: "You have access to Guilds, Hero Classes & Skill Tree progression, the Calendar & School Year Planner, Story Weavers, Scholar's Scroll, and the full Adventure Log.",
-            cta: 'Upgrade to Elite to add AI-assisted summaries, Hero\'s Chronicle Oracle, and early-access experiments.',
+            body: "You have access to Guilds, Hero Classes & Skill Tree progression, the Calendar & School Year Planner, Scholar's Scroll, and the full Adventure Log.",
+            cta: 'Upgrade to Elite to add Story Weavers, Familiars, AI-assisted summaries, Hero\'s Chronicle Oracle, and early-access experiments.',
             isTopTier: false
         };
     }
@@ -352,12 +362,12 @@ export function getTiersAtAGlance() {
         {
             tier: 'Pro',
             label: 'Pro',
-            bullets: "Adds Guilds, Hero Classes & Skill Tree progression, Calendar & School Year Planner, Story Weavers, Scholar's Scroll, full Adventure Log (diary, Hall of Heroes)."
+            bullets: "Adds Guilds, Hero Classes & Skill Tree progression, Calendar & School Year Planner, Scholar's Scroll, full Adventure Log (diary, Hall of Heroes)."
         },
         {
             tier: 'Elite',
             label: 'Elite',
-            bullets: 'Everything in Pro plus Familiars (magical companion eggs), AI-powered features: Hero\'s Chronicle Oracle (AI insights), AI avatars, AI reports & certificates, AI story images, AI adventure log writer, early-access experiments and priority support.'
+            bullets: 'Everything in Pro plus Story Weavers (collaborative stories & Word of the Day), Familiars (magical companion eggs), AI-powered features: Hero\'s Chronicle Oracle (AI insights), AI avatars, AI reports & certificates, AI story images, AI adventure log writer, early-access experiments and priority support.'
         }
     ];
 }

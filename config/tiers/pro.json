@@ -9,7 +9,7 @@
   "scholarScroll": true,
   "makeupTracking": true,
   "advancedAttendance": true,
-  "storyWeavers": true,
+  "storyWeavers": false,
   "heroProgression": true,
   "familiars": false,
   "eliteAI": false,

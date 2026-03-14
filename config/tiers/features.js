@@ -9,6 +9,7 @@ export const FEATURE_DEFINITIONS = {
     calendar: { name: 'Calendar & Day Planner', description: 'Schedule, holidays, Quest Events', tier: 'Pro' },
     scholarScroll: { name: "Scholar's Scroll", description: 'Tests, dictations, performance charts', tier: 'Pro' },
     storyWeavers: { name: 'Story Weavers', description: 'Collaborative story and Word of the Day', tier: 'Pro' },
+    heroProgression: { name: 'Hero Classes & Skill Tree', description: 'Class identity, leveling, and skill branches', tier: 'Pro' },
     adventureLog: { name: 'Adventure Log', description: 'Diary, Hall of Heroes, feed', tier: 'Pro' },
     schoolYearPlanner: { name: 'School Year Planner', description: 'Holidays, class end dates', tier: 'Pro' },
     makeupTracking: { name: 'Make-up tracking', description: 'Track make-up lessons', tier: 'Pro' },
@@ -54,6 +55,7 @@ export const UPGRADE_MESSAGES = {
         default: 'This feature is available on the Pro plan. Contact me to upgrade.',
         schoolYearPlanner: 'Planning tools (holidays, class end dates) unlock with Pro.',
         advancedAttendance: 'The Attendance Chronicle (month view and history) is available on the Pro plan.',
+        heroProgression: 'Hero Classes and Skill Tree progression are available on the Pro plan.',
         maxClasses: 'You have reached your plan limit. Upgrade to add more classes.',
         maxTeachers: 'Your school has reached the teacher limit. Upgrade to add more teachers.'
     },
@@ -82,7 +84,7 @@ export function getTierSummary(rawTier) {
         return {
             badge: 'Pro Power',
             title: 'Pro unlocks guilds, planners and advanced logs.',
-            body: "You have access to Guilds, the Calendar & School Year Planner, Story Weavers, Scholar's Scroll, and the full Adventure Log.",
+            body: "You have access to Guilds, Hero Classes & Skill Tree progression, the Calendar & School Year Planner, Story Weavers, Scholar's Scroll, and the full Adventure Log.",
             cta: 'Upgrade to Elite to add AI-assisted summaries, the Oracle, and early-access experiments.',
             isTopTier: false
         };
@@ -121,7 +123,7 @@ export function getTiersAtAGlance() {
         {
             tier: 'Pro',
             label: 'Pro',
-            bullets: "Adds Guilds, Calendar & School Year Planner, Story Weavers, Scholar's Scroll, full Adventure Log (diary, Hall of Heroes)."
+            bullets: "Adds Guilds, Hero Classes & Skill Tree progression, Calendar & School Year Planner, Story Weavers, Scholar's Scroll, full Adventure Log (diary, Hall of Heroes)."
         },
         {
             tier: 'Elite',

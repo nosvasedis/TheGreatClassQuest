@@ -9,6 +9,9 @@ import { getGuildBadgeHtml, getGuildById } from '../../features/guilds.js';
 import { openSkillTreeModal } from '../modals/skillTree.js';
 import { getHeroTitle, HERO_SKILL_TREE } from '../../features/heroSkillTree.js';
 import { HERO_CLASSES } from '../../features/heroClasses.js';
+import { canUseFeature } from '../../utils/subscription.js';
+import { showUpgradePrompt } from '../../utils/upgradePrompt.js';
+import { getUpgradeMessage } from '../../config/tiers/features.js';
 
 export function renderManageClassesTab() {
     const list = document.getElementById('class-list');
@@ -60,6 +63,7 @@ export function renderManageStudentsTab() {
     const studentsInClass = state.get('allStudents')
         .filter(s => s.classId === currentManagingClassId)
         .sort((a, b) => a.name.localeCompare(b.name));
+    const heroProgressionEnabled = canUseFeature('heroProgression');
 
     // Update header count badge
     const countBadge = document.getElementById('student-count-badge');
@@ -91,8 +95,8 @@ export function renderManageStudentsTab() {
 
     list.innerHTML = studentsInClass.map(s => {
         const scoreData = state.get('allStudentScores').find(sc => sc.id === s.id);
-        const pendingSkill = scoreData?.pendingSkillChoice || false;
-        const hc = s.heroClass ? (heroClassConfig[s.heroClass] || null) : null;
+        const pendingSkill = heroProgressionEnabled && (scoreData?.pendingSkillChoice || false);
+        const hc = heroProgressionEnabled && s.heroClass ? (heroClassConfig[s.heroClass] || null) : null;
 
         const ringStyle = hc
             ? `box-shadow: 0 0 0 2px white, 0 0 0 4px ${hc.ring};`
@@ -107,24 +111,26 @@ export function renderManageStudentsTab() {
                 style="font-size:1.25rem; background: linear-gradient(135deg, #2dd4bf, #06b6d4); ${ringStyle}">${s.name.charAt(0).toUpperCase()}</div>`;
         const avatarHtml = wrapAvatarWithLevelUpIndicator(avatarInner, pendingSkill);
 
-        const heroLevel = scoreData?.heroLevel || 0;
-        const heroTitle = s.heroClass && heroLevel > 0 ? getHeroTitle(s.heroClass, heroLevel) : null;
-        const tree = s.heroClass ? HERO_SKILL_TREE[s.heroClass] : null;
+        const heroLevel = heroProgressionEnabled ? (scoreData?.heroLevel || 0) : 0;
+        const heroTitle = heroProgressionEnabled && s.heroClass && heroLevel > 0 ? getHeroTitle(s.heroClass, heroLevel) : null;
+        const tree = heroProgressionEnabled && s.heroClass ? HERO_SKILL_TREE[s.heroClass] : null;
         const auraColor = tree?.auraColor || '#7c3aed';
         const heroTitlePill = heroTitle
             ? `<span class="hero-title-pill inline-flex items-center gap-1 text-[11px] font-bold px-2 py-0.5 rounded-full text-white shadow-sm border border-white/30" style="background: linear-gradient(135deg, ${auraColor}, ${auraColor}dd); box-shadow: 0 1px 3px rgba(0,0,0,0.2), 0 0 0 1px rgba(255,255,255,0.2);">${HERO_CLASSES[s.heroClass]?.icon || ''} ${heroTitle}</span>`
             : '';
         const heroClassBadge = hc
             ? `<span class="inline-flex items-center gap-1 text-[11px] font-bold px-2 py-0.5 rounded-full" style="background:${hc.bg};color:${hc.text};">${hc.icon} ${s.heroClass}</span>`
-            : `<span class="text-[11px] text-gray-400 italic">No class</span>`;
+            : `<span class="text-[11px] text-gray-400 italic">${heroProgressionEnabled ? 'No class' : 'Pro feature'}</span>`;
 
         const guildAction = s.guildId
             ? `<span class="guild-badge-wrap flex-shrink-0">${getGuildBadgeHtml(s.guildId, 'w-7 h-7')}</span>`
             : `<button data-id="${s.id}" class="guild-quiz-btn w-7 h-7 flex items-center justify-center bg-amber-100 hover:bg-amber-200 text-amber-700 rounded-full bubbly-button transition-colors" title="Take Guild Quiz"><i class="fas fa-hat-wizard" style="font-size:10px;"></i></button>`;
 
-        const skillTreeBtnCls = pendingSkill
-            ? 'skill-tree-btn w-7 h-7 flex items-center justify-center bg-purple-500 hover:bg-purple-600 text-white rounded-full bubbly-button animate-pulse ring-2 ring-purple-300 transition-colors'
-            : 'skill-tree-btn w-7 h-7 flex items-center justify-center bg-purple-100 hover:bg-purple-200 text-purple-700 rounded-full bubbly-button transition-colors';
+        const skillTreeBtnCls = !heroProgressionEnabled
+            ? 'skill-tree-btn skill-tree-btn-locked w-7 h-7 flex items-center justify-center bg-gray-100 text-gray-400 rounded-full border border-gray-200 cursor-not-allowed'
+            : pendingSkill
+                ? 'skill-tree-btn w-7 h-7 flex items-center justify-center bg-purple-500 hover:bg-purple-600 text-white rounded-full bubbly-button animate-pulse ring-2 ring-purple-300 transition-colors'
+                : 'skill-tree-btn w-7 h-7 flex items-center justify-center bg-purple-100 hover:bg-purple-200 text-purple-700 rounded-full bubbly-button transition-colors';
 
         const guildBorderStyle = s.guildId && getGuildById(s.guildId)
             ? `border-left: 3px solid ${getGuildById(s.guildId).primary};`
@@ -140,8 +146,8 @@ export function renderManageStudentsTab() {
             <div class="flex-shrink-0 flex flex-col items-end gap-1.5">
                 <div class="flex items-center gap-1">
                     ${guildAction}
-                    <button data-id="${s.id}" class="${skillTreeBtnCls}" title="${pendingSkill ? '✨ New Skill Available!' : 'Skill Tree'}">
-                        <i class="fas fa-sitemap" style="font-size:10px;"></i>
+                    <button data-id="${s.id}" class="${skillTreeBtnCls}" title="${!heroProgressionEnabled ? 'Pro plan: Hero Classes & Skill Tree' : (pendingSkill ? '✨ New Skill Available!' : 'Skill Tree')}">
+                        <i class="fas ${!heroProgressionEnabled ? 'fa-lock' : 'fa-sitemap'}" style="font-size:10px;"></i>
                     </button>
                     <button data-id="${s.id}" class="hero-chronicle-btn w-7 h-7 flex items-center justify-center bg-green-100 hover:bg-green-200 text-green-700 rounded-full bubbly-button transition-colors" title="Hero's Chronicle">
                         <i class="fas fa-book-reader" style="font-size:10px;"></i>
@@ -177,5 +183,15 @@ export function renderManageStudentsTab() {
     list.querySelectorAll('.move-student-btn').forEach(btn => btn.addEventListener('click', () => modals.openMoveStudentModal(btn.dataset.id)));
     list.querySelectorAll('.hero-chronicle-btn').forEach(btn => btn.addEventListener('click', () => modals.openHeroChronicleModal(btn.dataset.id)));
     list.querySelectorAll('.guild-quiz-btn').forEach(btn => btn.addEventListener('click', () => modals.openSortingQuizModal(btn.dataset.id)));
-    list.querySelectorAll('.skill-tree-btn').forEach(btn => btn.addEventListener('click', () => openSkillTreeModal(btn.dataset.id)));
+    list.querySelectorAll('.skill-tree-btn').forEach(btn => btn.addEventListener('click', () => {
+        if (!heroProgressionEnabled) {
+            showUpgradePrompt({
+                feature: 'Hero Classes & Skill Tree',
+                tier: 'Pro',
+                message: getUpgradeMessage('Pro', 'heroProgression')
+            });
+            return;
+        }
+        openSkillTreeModal(btn.dataset.id);
+    }));
 }

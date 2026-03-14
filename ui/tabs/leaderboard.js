@@ -10,6 +10,7 @@ import { getHeroTitle, HERO_SKILL_TREE } from '../../features/heroSkillTree.js';
 import { renderFamiliarSprite } from '../../features/familiars.js';
 import { getEggAlertState } from '../../features/familiarProgression.mjs';
 import { wrapAvatarWithLevelUpIndicator } from '../core/avatar.js';
+import { canUseFeature } from '../../utils/subscription.js';
 
 // --- REIGNING PRODIGY CACHE ---
 // Fetches previous month's award logs once per session (cached by monthKey).
@@ -529,6 +530,7 @@ export async function renderClassLeaderboardTab() {
 export async function renderStudentLeaderboardTab() {
     const list = document.getElementById('student-leaderboard-list');
     if (!list) return;
+    const heroProgressionEnabled = canUseFeature('heroProgression');
 
     const league = state.get('globalSelectedLeague');
     if (!league) {
@@ -669,8 +671,8 @@ export async function renderStudentLeaderboardTab() {
                 totalStars,
                 gold,
                 stats,
-                heroLevel: scoreData.heroLevel || 0,
-                pendingSkillChoice: !!scoreData.pendingSkillChoice,
+                heroLevel: heroProgressionEnabled ? (scoreData.heroLevel || 0) : 0,
+                pendingSkillChoice: heroProgressionEnabled ? !!scoreData.pendingSkillChoice : false,
                 familiar: scoreData.familiar || null,
                 className: studentClass?.name || '?',
                 classLogo: studentClass?.logo || '📚'
@@ -697,7 +699,7 @@ export async function renderStudentLeaderboardTab() {
     const getAvatarHtml = (s, sizeClass = "w-12 h-12") => {
         const hoverEffects = "transform transition-transform duration-200 hover:scale-110 hover:rotate-3 cursor-pointer enlargeable-avatar";
         const heroLevel = s.heroLevel || 0;
-        const auraColor = heroLevel >= 3 && s.heroClass && HERO_SKILL_TREE[s.heroClass] ? HERO_SKILL_TREE[s.heroClass].auraColor : null;
+        const auraColor = heroProgressionEnabled && heroLevel >= 3 && s.heroClass && HERO_SKILL_TREE[s.heroClass] ? HERO_SKILL_TREE[s.heroClass].auraColor : null;
         const auraStyle = auraColor ? `style="box-shadow: 0 0 0 3px ${auraColor}, 0 0 14px 4px ${auraColor}88; border-color: ${auraColor};"` : '';
         let inner;
         if (s.avatar) {
@@ -726,6 +728,7 @@ export async function renderStudentLeaderboardTab() {
 
     /** Hero rank title (e.g. Tinkerer, Sentinel) as a styled pill using class aura color. */
     const getHeroTitleBadgeHtml = (s) => {
+        if (!heroProgressionEnabled) return '';
         if (!s.heroClass) return '';
         const level = s.heroLevel || 0;
         const title = level > 0 ? getHeroTitle(s.heroClass, level) : (s.heroClass || 'Novice');
@@ -805,7 +808,7 @@ export async function renderStudentLeaderboardTab() {
                         <div class="flex-shrink-0">${getAvatarHtml(s)}</div>
                         <div class="min-w-0">
                             <h3 class="font-bold text-gray-800 text-lg truncate flex items-center flex-wrap gap-1.5">
-    <span>${s.heroClass && HERO_CLASSES[s.heroClass] ? HERO_CLASSES[s.heroClass].icon : ''} ${s.name}</span>
+    <span>${heroProgressionEnabled && s.heroClass && HERO_CLASSES[s.heroClass] ? HERO_CLASSES[s.heroClass].icon : ''} ${s.name}</span>
     ${getHeroTitleBadgeHtml(s)}
     ${getGuildRoleBadgesHtml(s)}
 </h3>
@@ -894,7 +897,7 @@ export async function renderStudentLeaderboardTab() {
                             </div>
                             <div class="min-w-0">
                                 <h4 class="font-title text-xl ${nameColor} truncate leading-tight mb-1 flex items-center flex-wrap gap-1.5">
-    <span>${s.heroClass && HERO_CLASSES[s.heroClass] ? HERO_CLASSES[s.heroClass].icon : ''} ${s.name}</span>
+    <span>${heroProgressionEnabled && s.heroClass && HERO_CLASSES[s.heroClass] ? HERO_CLASSES[s.heroClass].icon : ''} ${s.name}</span>
     ${getHeroTitleBadgeHtml(s)}
     ${getGuildRoleBadgesHtml(s)}
 </h4>

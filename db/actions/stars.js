@@ -26,6 +26,7 @@ import { calculateHeroGold, canChangeHeroClass } from '../../features/heroClasse
 import { updateGuildScores } from '../../features/guildScoring.js';
 import { computeHeroLevel, getHeroReason, getOutwardEffects } from '../../features/heroSkillTree.js';
 import { reconcileFamiliarLifecycle } from '../../features/familiars.js';
+import { canUseFeature } from '../../utils/subscription.js';
 
 // --- SCORE, STAR, & LOG ACTIONS ---
 
@@ -54,6 +55,7 @@ export async function setStudentStarsForToday(studentId, starValue, reason = nul
 
     let studentClassId = null;
     let difference = 0;
+    const heroProgressionEnabled = canUseFeature('heroProgression');
     /** Set when a hero level-up occurs in the transaction; used after commit to show celebration modal. */
     let levelUpInfo = null;
 
@@ -156,7 +158,9 @@ export async function setStudentStarsForToday(studentId, starValue, reason = nul
                 const safeCurrentGold = (typeof currentData.gold === 'number') ? currentData.gold : (currentData.totalStars || 0);
 
                 // Calculate Gold + Skill Bonuses
-                const { goldChange, bonusStars } = calculateHeroGold(studentData, reason, difference, currentData);
+                const { goldChange, bonusStars } = heroProgressionEnabled
+                    ? calculateHeroGold(studentData, reason, difference, currentData)
+                    : { goldChange: difference, bonusStars: 0 };
                 const totalGoldChange = goldChange * multiplier;
                 const totalDifference = difference + bonusStars;
 
@@ -169,7 +173,7 @@ export async function setStudentStarsForToday(studentId, starValue, reason = nul
                         monthlyStars: increment(totalDifference),
                         gold: safeCurrentGold + totalGoldChange
                     };
-                    if (heroClass && classReason && reason === classReason && difference > 0) {
+                    if (heroProgressionEnabled && heroClass && classReason && reason === classReason && difference > 0) {
                         const currentReasonStars = currentData.starsByReason?.[classReason] || 0;
                         const newReasonStars = currentReasonStars + difference;
                         updates[`starsByReason.${classReason}`] = newReasonStars;
@@ -589,6 +593,8 @@ export async function handlePurgeAwardLogs() {
  * to other students after the main star transaction completes. Fire-and-forget.
  */
 async function _applyOutwardSkillEffects(awardedStudentId, classId, reason, difference) {
+    if (!canUseFeature('heroProgression')) return;
+
     const student = state.get('allStudents').find(s => s.id === awardedStudentId);
     if (!student) return;
 

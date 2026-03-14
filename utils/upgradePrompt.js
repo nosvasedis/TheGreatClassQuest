@@ -31,3 +31,16 @@ export function requireEliteAI(opts = {}) {
     showUpgradePrompt({ feature, tier: 'Elite', message });
     return false;
 }
+
+/**
+ * Gate Hero Classes + Skill Tree progression to Pro and above.
+ * @param {object} [opts] - Optional { feature?: string, message?: string } for the prompt
+ * @returns {boolean}
+ */
+export function requireProHeroProgression(opts = {}) {
+    if (canUseFeature('heroProgression')) return true;
+    const feature = opts.feature || 'Hero Classes & Skill Tree';
+    const message = opts.message || getUpgradeMessage('Pro', 'heroProgression');
+    showUpgradePrompt({ feature, tier: 'Pro', message });
+    return false;
+}

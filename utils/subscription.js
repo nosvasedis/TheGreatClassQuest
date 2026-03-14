@@ -41,6 +41,7 @@ function getStarterDefaults() {
         makeupTracking: false,
         advancedAttendance: false,
         storyWeavers: false,
+        heroProgression: false,
         eliteAI: false,
         earlyAccess: false,
         prioritySupport: false,
@@ -50,12 +51,21 @@ function getStarterDefaults() {
 
 /**
  * Check if a feature flag is enabled (true). Use for tab/UI gating.
- * @param {string} featureFlag - e.g. 'guilds', 'adventureLog', 'calendar', 'scholarScroll', 'storyWeavers', 'eliteAI'
+ * @param {string} featureFlag - e.g. 'guilds', 'adventureLog', 'calendar', 'scholarScroll', 'storyWeavers', 'heroProgression', 'eliteAI'
  * @returns {boolean}
  */
 export function canUseFeature(featureFlag) {
     if (!subscriptionConfig) return false;
-    return subscriptionConfig[featureFlag] === true;
+    const val = subscriptionConfig[featureFlag];
+    if (val === true) return true;
+
+    // Backward compatibility: old Pro/Elite docs may not include this new flag yet.
+    if (featureFlag === 'heroProgression' && val === undefined) {
+        const tier = getTier();
+        return tier === 'pro' || tier === 'elite';
+    }
+
+    return false;
 }
 
 /**

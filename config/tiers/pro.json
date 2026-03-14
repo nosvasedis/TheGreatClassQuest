@@ -10,6 +10,7 @@
   "makeupTracking": true,
   "advancedAttendance": true,
   "storyWeavers": true,
+  "heroProgression": true,
   "eliteAI": false,
   "earlyAccess": false,
   "prioritySupport": false,

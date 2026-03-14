@@ -482,8 +482,8 @@ export function openAppInfoModal() {
             icon: 'fa-dragon',
             title: 'Identity and Growth',
             items: [
-                { name: 'Hero Classes', tier: 'starter' },
-                { name: 'Skill Tree progression', tier: 'starter' },
+                { name: 'Hero Classes', tier: 'pro' },
+                { name: 'Skill Tree progression', tier: 'pro' },
                 { name: 'Familiars hatch and evolve', tier: 'starter' },
                 { name: 'Guild identity and house points', tier: 'pro' },
                 { name: 'Guild champions', tier: 'pro' }
@@ -549,7 +549,7 @@ export function openAppInfoModal() {
                 { name: 'Class creation/editing', tier: 'starter' },
                 { name: 'Roster and student profile', tier: 'starter' },
                 { name: 'Avatar and hero identity setup', tier: 'starter' },
-                { name: 'Hero skill tree controls', tier: 'starter' },
+                { name: 'Hero skill tree controls', tier: 'pro' },
                 { name: 'Move student between classes', tier: 'starter' },
                 { name: 'Guild sorting quiz', tier: 'pro' }
             ]

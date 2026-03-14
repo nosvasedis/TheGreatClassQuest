@@ -4,6 +4,7 @@ import * as utils from '../../utils.js';
 import { HERO_CLASSES } from '../../features/heroClasses.js';
 import { getGuildBadgeHtml } from '../../features/guilds.js';
 import { getHeroTitle, HERO_SKILL_TREE } from '../../features/heroSkillTree.js';
+import { canUseFeature } from '../../utils/subscription.js';
 
 // --- REIGNING PRODIGY CACHE (previous month, with tie-breaker) ---
 let _awardProdigyCacheKey = null;
@@ -296,6 +297,8 @@ export function renderAwardStarsStudentList(selectedClassId, fullRender = true) 
     if (!listContainer) return;
 
     const renderContent = async () => {
+        const heroProgressionEnabled = canUseFeature('heroProgression');
+
         if (!selectedClassId) {
             listContainer.innerHTML = `<p class="text-center text-gray-700 bg-white/70 backdrop-blur-sm p-4 rounded-2xl text-lg col-span-full">Please select a class above to award stars.</p>`;
             return;
@@ -385,7 +388,7 @@ export function renderAwardStarsStudentList(selectedClassId, fullRender = true) 
                     ? `<img src="${s.avatar}" alt="${s.name}" class="student-avatar-cloud enlargeable-avatar">`
                     : `<div class="student-avatar-cloud-placeholder">${s.name.charAt(0)}</div>`;
                 const avatarHtml = avatarInner;
-                const levelUpArrowHtml = !!scoreData.pendingSkillChoice
+                const levelUpArrowHtml = heroProgressionEnabled && !!scoreData.pendingSkillChoice
                     ? `<div class="award-level-up-overlay"><span class="level-up-badge level-up-badge--award" aria-hidden="true" title="Level up! Assign skill in Skill Tree"><i class="fas fa-arrow-up"></i></span></div>`
                     : '';
                 const guildBadgeHtml = s.guildId
@@ -402,7 +405,7 @@ export function renderAwardStarsStudentList(selectedClassId, fullRender = true) 
                 `;
 
                 const heroLevel = scoreData.heroLevel || 0;
-                const heroTitlePill = s.heroClass && heroLevel > 0
+                const heroTitlePill = heroProgressionEnabled && s.heroClass && heroLevel > 0
                     ? (() => { const title = getHeroTitle(s.heroClass, heroLevel); const tree = HERO_SKILL_TREE[s.heroClass]; const aura = tree?.auraColor || '#7c3aed'; return `<span class="hero-title-pill inline-flex items-center gap-1 text-[10px] font-bold px-1.5 py-0.5 rounded-full text-white shadow-sm border border-white/30" style="background: linear-gradient(135deg, ${aura}, ${aura}dd);">${title}</span>`; })()
                     : '';
 
@@ -444,7 +447,7 @@ export function renderAwardStarsStudentList(selectedClassId, fullRender = true) 
                     <div class="card-content-wrapper">
                         <h3 class="font-title text-2xl text-gray-800 text-center">
                             <div class="flex flex-wrap items-center justify-center gap-1.5 mb-1">
-                                <span class="text-sm opacity-70">${s.heroClass && HERO_CLASSES[s.heroClass] ? HERO_CLASSES[s.heroClass].icon : ''} ${s.heroClass || ''}</span>
+                                <span class="text-sm opacity-70">${heroProgressionEnabled ? `${s.heroClass && HERO_CLASSES[s.heroClass] ? HERO_CLASSES[s.heroClass].icon : ''} ${s.heroClass || ''}` : ''}</span>
                                 ${heroTitlePill}
                             </div>
                             ${s.name}

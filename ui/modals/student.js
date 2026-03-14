@@ -7,6 +7,7 @@ import { showAnimatedModal, showModal, hideModal, populateDateDropdowns } from '
 import { showToast } from '../effects.js';
 import { playSound } from '../../audio.js';
 import { handleAwardBonusStar, handleBatchAwardBonus } from '../../db/actions.js';
+import { canUseFeature } from '../../utils/subscription.js';
 
 const LEGACY_ASSIGNMENT_DATE_PREFIX_REGEX = /^\s*\d{1,2}[\/-]\d{1,2}[\/-]\d{4}\s*[:\-]?\s*/;
 
@@ -36,14 +37,31 @@ export function openEditStudentModal(studentId) {
     // Load Hero Class into dropdown
    // Load Hero Class and check if locked
     const classDropdown = document.getElementById('edit-student-hero-class');
+    const tierNote = document.getElementById('hero-class-tier-note');
+    const heroProgressionEnabled = canUseFeature('heroProgression');
     classDropdown.value = student.heroClass || "";
-    
-    if (student.isHeroClassLocked) {
+
+    if (!heroProgressionEnabled) {
+        classDropdown.disabled = true;
+        classDropdown.title = 'Hero Classes & Skill Tree are available on Pro and above.';
+        if (tierNote) {
+            tierNote.className = 'text-[10px] text-rose-500 mt-2 font-bold';
+            tierNote.textContent = 'Pro feature: Hero Classes and Skill Tree are locked on Starter.';
+        }
+    } else if (student.isHeroClassLocked) {
         classDropdown.disabled = true;
         classDropdown.title = "This student has already used their one-time class change.";
+        if (tierNote) {
+            tierNote.className = 'text-[10px] text-indigo-400 mt-2 italic';
+            tierNote.textContent = 'This student has used their one-time class change.';
+        }
     } else {
         classDropdown.disabled = false;
         classDropdown.title = "";
+        if (tierNote) {
+            tierNote.className = 'text-[10px] text-indigo-400 mt-2 italic';
+            tierNote.textContent = 'Classes grant +10 extra Gold Coins when earning stars for their specific trait.';
+        }
     }
     showAnimatedModal('edit-student-modal');
 }

@@ -55,7 +55,7 @@ export const studentModalsHTML = `
                         <option value="Weaver">✒️ Weaver (Story)</option>
                         <option value="Nomad">👟 Nomad (Attendance)</option>
                     </select>
-                    <p class="text-[10px] text-indigo-400 mt-2 italic">Classes grant +10 extra Gold Coins when earning
+                    <p id="hero-class-tier-note" class="text-[10px] text-indigo-400 mt-2 italic">Classes grant +10 extra Gold Coins when earning
                         stars for their specific trait.</p>
                 </div>
             </div>

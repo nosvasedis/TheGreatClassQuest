@@ -18,6 +18,9 @@ import { getStartOfMonthString } from '../../utils.js';
 import { canChangeHeroClass } from '../../features/heroClasses.js';
 import * as modals from '../../ui/modals.js';
 import { callGeminiApi } from '../../api.js';
+import { canUseFeature } from '../../utils/subscription.js';
+import { showUpgradePrompt } from '../../utils/upgradePrompt.js';
+import { getUpgradeMessage } from '../../config/tiers/features.js';
 
 // --- STUDENT & USER ACTIONS ---
 
@@ -83,8 +86,19 @@ export async function deleteStudent(studentId) {
 export async function handleSaveStudentDetails() {
     const studentId = document.getElementById('edit-student-id-input-full').value;
     const newName = document.getElementById('edit-student-name-input-full').value.trim();
-    const newHeroClass = document.getElementById('edit-student-hero-class').value;
+    const classDropdownEl = document.getElementById('edit-student-hero-class');
+    const heroProgressionEnabled = canUseFeature('heroProgression');
+    const newHeroClass = heroProgressionEnabled ? classDropdownEl.value : (student?.heroClass || '');
     const student = state.get('allStudents').find(s => s.id === studentId);
+
+    if (!heroProgressionEnabled && student?.heroClass && classDropdownEl?.value !== student.heroClass) {
+        showUpgradePrompt({
+            feature: 'Hero Classes & Skill Tree',
+            tier: 'Pro',
+            message: getUpgradeMessage('Pro', 'heroProgression')
+        });
+        return;
+    }
 
     // Check if the class change is allowed
     if (!canChangeHeroClass(student, newHeroClass)) {
@@ -114,7 +128,9 @@ export async function handleSaveStudentDetails() {
         const studentRef = doc(db, "artifacts/great-class-quest/public/data/students", studentId);
         // Determine if we should lock the class now
         // Lock it if they already had a class and are now changing it to something else
-        const isNowLocked = (student.heroClass && newHeroClass !== "" && student.heroClass !== newHeroClass) || student.isHeroClassLocked;
+        const isNowLocked = heroProgressionEnabled
+            ? ((student.heroClass && newHeroClass !== "" && student.heroClass !== newHeroClass) || student.isHeroClassLocked)
+            : !!student.isHeroClassLocked;
 
         await updateDoc(studentRef, {
             name: newName,

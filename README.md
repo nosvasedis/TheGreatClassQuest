@@ -20,7 +20,7 @@
 | [The Quest Master's Philosophy](#-the-quest-masters-philosophy) | Four pedagogical pillars |
 | [Navigation at a Glance](#-navigation-at-a-glance) | All main tabs and what they do |
 | [Core Gameplay Loop](#-core-gameplay-loop) | Setup → Award → Log |
-| [The Economy System](#-the-economy-system-gold--shop) | Gold, Mystic Market, Legendary Artifacts, Hero Classes, Boons, Familiars |
+| [The Economy System](#-the-economy-system-gold--shop) | Gold, Mystic Market, Legendary Artifacts, Hero Classes (Pro+), Boons, Familiars |
 | [Home Dashboard](#-home-dashboard) | Weather, schedule, tools, class/school view |
 | [Team Quest](#-team-quest) | League map, monthly goals, ceremony |
 | [Hero's Challenge](#-heros-challenge) | Leaderboard, shop, Hero Stats, Prodigy, certificates |
@@ -87,12 +87,12 @@ The app is built on four pedagogical pillars:
 ### 1. Setup & Roster (**My Classes**)
 - **Class:** Name, logo, schedule (days/times), **Quest League** (difficulty/age).
 - **Roster:** Add students; each has Total Stars, Monthly Stars, Gold, Inventory, **Hero Class**, avatar, birthday, nameday.
-- **Personalization:** Edit student → Birthday, **Nameday** (with **AI Nameday Lookup** for Greek Orthodox Εορτολόγιο), **Hero Class** (optional lock).
+- **Personalization:** Edit student → Birthday, **Nameday** (with **AI Nameday Lookup** for Greek Orthodox Εορτολόγιο), **Hero Class** (Pro+, optional lock).
 
 ### 2. The Daily Session (**Award**)
 - Choose student + reason (Teamwork, Creativity, Respect, Focus, Welcome Back, Scholar's Bonus, Story Weaver, etc.).
 - **Visual feedback:** Particle effects + unique sound (e.g. Magic Chime).
-- Data (timestamp, reason, value) is written to Firestore; **Hero Class** can grant **+10 Gold** for matching reason and additional bonuses from that hero’s **Skill Tree** (e.g. extra Gold, bonus stars, guild-wide perks).
+- Data (timestamp, reason, value) is written to Firestore; on **Pro+**, **Hero Class** can grant **+10 Gold** for matching reason and additional bonuses from that hero’s **Skill Tree** (e.g. extra Gold, bonus stars, guild-wide perks).
 
 ### 3. The End-of-Day Ritual (**Log**)
 - **"Log Today's Adventure"** sends the day’s events to the AI.
@@ -104,7 +104,7 @@ The app is built on four pedagogical pillars:
 ## 💰 The Economy System: Gold & Shop
 
 ### 🪙 Gold Coins
-- **Earning:** 1 Star = 1 Gold. **Bonus Gold:** e.g. "2x Days," **Hero Class** match (+10), **Hero Skill Tree** perks (extra Gold or bonus stars when the student plays to their class’s strength), **Scroll of the Gilded Star** (3× next star).
+- **Earning:** 1 Star = 1 Gold. **Bonus Gold:** e.g. "2x Days," **Hero Class** match (+10, Pro+), **Hero Skill Tree** perks (extra Gold or bonus stars when the student plays to their class’s strength, Pro+), **Scroll of the Gilded Star** (3× next star).
 - **Spending** Gold does **not** lower Leaderboard rank (Total Stars are separate).
 
 ### 🎪 The Mystic Market (Hero's Challenge → Shop)
@@ -127,8 +127,8 @@ The app is built on four pedagogical pillars:
 
 *Use from Inventory in the Hero Stats / enlarged avatar flow; consuming applies the effect and removes the item.*
 
-### 🛡️ Hero Classes & Skill Trees
-Students can choose a **Hero Class** (e.g. Guardian, Sage, Paladin, Artificer, Scholar, Weaver, Nomad).
+### 🛡️ Hero Classes & Skill Trees (Pro+)
+Students on **Pro+** can choose a **Hero Class** (e.g. Guardian, Sage, Paladin, Artificer, Scholar, Weaver, Nomad).
 
 - **Class Reasons:** Each class is tied to a reason (e.g. Guardian → Respect, Sage → Creativity, Scholar → Scholar's Bonus, Nomad → Welcome Back).
 - **Leveling (5 tiers):** As students earn stars in their class’s reason across the school year, they climb **five hero levels** (e.g. Guardian: Sentinel → Warden → Protector → Champion → Eternal Guardian). Thresholds are tuned so a typical student (2 lessons/week, ~2–3 stars/lesson) can realistically reach high levels over a **full September–June year**, not in a single month.
@@ -207,14 +207,14 @@ The **Home** tab is your command center and adapts to **weather** and **time of 
 ## 👥 My Classes & Roster
 
 - **Classes:** Create/edit class (name, logo, schedule days, Quest League). **Report**, **Overview**, **Edit** per class.
-- **Manage Students:** Click **Students** on a class to open the roster. Per student: **Skill Tree** (hero level and branch choices; button pulses when a new choice is available), **Hero's Chronicle** (notes + Oracle), **Avatar Forge**, **Certificate**, **Move Student** (to another class), **Guild Quiz** (if no guild). **Edit** opens student modal (name, birthday, **Nameday**, **Hero Class**, avatar, notes). **Nameday:** magic wand → **AI Nameday Lookup** (Greek Orthodox calendar) to auto-fill date.
+- **Manage Students:** Click **Students** on a class to open the roster. Per student: **Skill Tree** (Pro+, hero level and branch choices; button pulses when a new choice is available), **Hero's Chronicle** (notes + Oracle), **Avatar Forge**, **Certificate**, **Move Student** (to another class), **Guild Quiz** (if no guild). **Edit** opens student modal (name, birthday, **Nameday**, **Hero Class** on Pro+, avatar, notes). **Nameday:** magic wand → **AI Nameday Lookup** (Greek Orthodox calendar) to auto-fill date.
 - **Class overview modal:** Tabs for class details, **Team History** (past performance/story), and shortcuts.
 
 ---
 
 ## ⭐ Award Stars
 
-- **Reasons:** Teamwork, Creativity, Respect, Focus, Welcome Back, Scholar's Bonus, Story Weaver, Correction, etc. **Hero Class** adds +10 Gold when reason matches, and may add extra Gold or bonus stars if the student has unlocked matching **Skill Tree** perks.
+- **Reasons:** Teamwork, Creativity, Respect, Focus, Welcome Back, Scholar's Bonus, Story Weaver, Correction, etc. On **Pro+**, **Hero Class** adds +10 Gold when reason matches, and may add extra Gold or bonus stars if the student has unlocked matching **Skill Tree** perks.
 - **Effects:** Click award → particle burst + sound (e.g. Magic Chime). **Clarity** (Crystal of Clarity) shows a pulsing gem on the card.
 - **Quest Bounties:** “Post a Bounty” → set **Target** (e.g. 20 stars), **Time limit**, **Reward** (e.g. 5 mins free time). Progress bar on Award screen and **Wallpaper Mode**; victory fanfare when target is hit. **Time Warp Hourglass** adds +5 minutes to active timers.
 - **Hero's Boon:** Button to bestow Boon on another student (cost 15 Gold; receiver +0.5 Stars).

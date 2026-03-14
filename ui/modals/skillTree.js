@@ -13,12 +13,15 @@ import {
 } from '../../features/heroSkillTree.js';
 import { HERO_CLASSES } from '../../features/heroClasses.js';
 import { db, doc, updateDoc } from '../../firebase.js';
+import { requireProHeroProgression } from '../../utils/upgradePrompt.js';
 
 const publicDataPath = 'artifacts/great-class-quest/public/data';
 
 // ─── OPEN ─────────────────────────────────────────────────────────────────────
 
 export function openSkillTreeModal(studentId) {
+    if (!requireProHeroProgression({ feature: 'Skill Tree' })) return;
+
     const student = state.get('allStudents').find(s => s.id === studentId);
     const scoreData = state.get('allStudentScores').find(s => s.id === studentId);
     if (!student || !scoreData) {

@@ -10,10 +10,29 @@ export const optionsTabHTML = `
                         <p class="text-lg text-gray-600 mt-2">Manage your profile and access advanced tools.</p>
                     </div>
 
+                    <div class="mb-6 flex flex-wrap justify-center gap-3">
+                        <button class="options-subtab-btn px-4 py-2 rounded-full text-sm font-semibold bg-sky-500 text-white shadow-md"
+                            data-options-tab="manage">
+                            <i class="fas fa-tools mr-1"></i> Manage
+                        </button>
+                        <button class="options-subtab-btn px-4 py-2 rounded-full text-sm font-semibold bg-white/80 text-gray-700 border border-sky-200"
+                            data-options-tab="planning">
+                            <i class="fas fa-calendar-alt mr-1"></i> Planning
+                        </button>
+                        <button class="options-subtab-btn px-4 py-2 rounded-full text-sm font-semibold bg-white/80 text-gray-700 border border-sky-200"
+                            data-options-tab="profile">
+                            <i class="fas fa-user mr-1"></i> Profile
+                        </button>
+                        <button class="options-subtab-btn px-4 py-2 rounded-full text-sm font-semibold bg-white/80 text-gray-700 border border-red-200"
+                            data-options-tab="danger">
+                            <i class="fas fa-skull-crossbones mr-1"></i> Danger
+                        </button>
+                    </div>
+
                     <div class="grid grid-cols-1 lg:grid-cols-5 gap-8 items-start">
                         <div class="lg:col-span-3 flex flex-col gap-8">
 
-                            <div class="bg-white p-6 rounded-3xl shadow-lg border-4 border-amber-300 space-y-6">
+                            <div class="bg-white p-6 rounded-3xl shadow-lg border-4 border-amber-300 space-y-6" data-options-section="manage">
                                 <h2 class="font-title text-3xl text-amber-700 mb-2 text-center">Student Star Manager
                                 </h2>
                                 <div id="star-manager-form" class="space-y-4">
@@ -101,7 +120,7 @@ export const optionsTabHTML = `
                                 </div>
                             </div>
 
-                            <div class="bg-white p-6 rounded-3xl shadow-lg border-4 border-yellow-400 space-y-6">
+                            <div class="bg-white p-6 rounded-3xl shadow-lg border-4 border-yellow-400 space-y-6" data-options-section="manage">
                                 <div class="text-center">
                                     <div class="text-4xl mb-2">💰</div>
                                     <h2 class="font-title text-3xl text-yellow-700">Coin Purse Manager</h2>
@@ -141,7 +160,7 @@ export const optionsTabHTML = `
                         </div>
 
                         <div class="lg:col-span-2 flex flex-col gap-8">
-                            <div class="bg-white p-6 rounded-3xl shadow-lg border-4 border-pink-300 space-y-4">
+                            <div class="bg-white p-6 rounded-3xl shadow-lg border-4 border-pink-300 space-y-4" data-options-section="planning">
                                 <h2 class="font-title text-3xl text-pink-700 text-center">School Year Planner</h2>
                                 <p class="text-sm text-gray-500 text-center">Set school-wide holidays (Christmas,
                                     Easter) to overshadow the calendar.</p>
@@ -179,7 +198,7 @@ export const optionsTabHTML = `
                             </div>
                             
                             <!-- Class End Dates Configuration -->
-                            <div class="bg-white p-6 rounded-3xl shadow-lg border-4 border-purple-300 space-y-4">
+                            <div class="bg-white p-6 rounded-3xl shadow-lg border-4 border-purple-300 space-y-4" data-options-section="planning">
                                 <h2 class="font-title text-3xl text-purple-700 text-center">Class End Dates</h2>
                                 <p class="text-sm text-gray-500 text-center">Set the last lesson date for each class. The Grand Guild Ceremony will activate on these dates.</p>
 
@@ -192,7 +211,7 @@ export const optionsTabHTML = `
                                     <i class="fas fa-save mr-2"></i> Save End Dates
                                 </button>
                             </div>
-                            <div class="bg-white p-6 rounded-3xl shadow-lg border-4 border-blue-300 space-y-4">
+                            <div class="bg-white p-6 rounded-3xl shadow-lg border-4 border-blue-300 space-y-4" data-options-section="profile">
                                 <h2 class="font-title text-3xl text-blue-700 text-center">Profile Settings</h2>
                                 <div>
                                     <label for="teacher-name-input"
@@ -207,7 +226,7 @@ export const optionsTabHTML = `
                                 </button>
                             </div>
 
-                            <div class="bg-white p-6 rounded-3xl shadow-lg border-4 border-red-300 space-y-4">
+                            <div class="bg-white p-6 rounded-3xl shadow-lg border-4 border-red-300 space-y-4" data-options-section="danger">
                                 <h2 class="font-title text-3xl text-red-700 text-center">Danger Zone</h2>
                                 <div class="space-y-4">
                                     <p class="text-sm text-gray-600 text-center">These actions are permanent and can

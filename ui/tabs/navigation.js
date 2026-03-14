@@ -149,8 +149,35 @@ export async function showTab(tabName) {
         // FIX: Call this directly (it is defined in this file, not core.js)
         renderStarManagerStudentSelect();
 
-        if (document.getElementById('teacher-name-input')) {
-            document.getElementById('teacher-name-input').value = state.get('currentTeacherName') || '';
+        const teacherInput = document.getElementById('teacher-name-input');
+        if (teacherInput) {
+            teacherInput.value = state.get('currentTeacherName') || '';
+        }
+
+        // Options subtabs (Manage / Planning / Profile / Danger)
+        if (!window.__optionsSubtabsWired) {
+            window.__optionsSubtabsWired = true;
+            const buttons = document.querySelectorAll('.options-subtab-btn');
+            const sections = document.querySelectorAll('[data-options-section]');
+            const activate = (key) => {
+                buttons.forEach(btn => {
+                    const active = btn.dataset.optionsTab === key;
+                    btn.classList.toggle('bg-sky-500', active && key === 'manage');
+                    btn.classList.toggle('text-white', active);
+                    btn.classList.toggle('bg-white/80', !active);
+                });
+                sections.forEach(sec => {
+                    sec.classList.toggle('hidden', sec.dataset.optionsSection !== key);
+                });
+            };
+            buttons.forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const key = btn.dataset.optionsTab || 'manage';
+                    activate(key);
+                });
+            });
+            // Initial state
+            activate('manage');
         }
 
         const tierEl = document.getElementById('app-tier-label');

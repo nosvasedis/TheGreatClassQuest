@@ -145,6 +145,7 @@
 /* --- Award Cloud Cards --- */
 .student-cloud-card {
     position: relative;
+    isolation: isolate;
     background: transparent;
     /* top: room for avatar overhang; bottom: reserved space for abs-positioned star buttons */
     padding: 40px 1.75rem 5.5rem 1.75rem;
@@ -161,7 +162,7 @@
     inset: 0;
     width: 100%;
     height: 100%;
-    z-index: -1;
+    z-index: 0;
     pointer-events: none;
     filter: drop-shadow(0 5px 10px rgba(0, 0, 0, 0.13));
 }

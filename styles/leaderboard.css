@@ -10,6 +10,8 @@
 
 /* --- NEW: Absence & Welcome Back Feature Styles (FIXED) --- */
 .student-cloud-card .card-content-wrapper {
+    position: relative;
+    z-index: 1;
     transition: all 0.3s ease-out;
 }
 .student-cloud-card.is-absent .card-content-wrapper,

@@ -25,8 +25,7 @@ export const optionsTabHTML = `
                         </button>
                     </div>
 
-                    <div class="grid grid-cols-1 lg:grid-cols-5 gap-8 items-start">
-                        <div class="lg:col-span-3 flex flex-col gap-8">
+                    <div class="space-y-8">
 
                             <div class="bg-white p-6 rounded-3xl shadow-lg border-4 border-amber-300 space-y-6" data-options-section="manage">
                                 <h2 class="font-title text-3xl text-amber-700 mb-2 text-center">Student Star Manager
@@ -115,7 +114,7 @@ export const optionsTabHTML = `
                                     </div>
                                 </div>
                             </div>
-
+                            
                             <div class="bg-white p-6 rounded-3xl shadow-lg border-4 border-yellow-400 space-y-6" data-options-section="manage">
                                 <div class="text-center">
                                     <div class="text-4xl mb-2">💰</div>
@@ -152,10 +151,7 @@ export const optionsTabHTML = `
                                     </div>
                                 </div>
                             </div>
-
-                        </div>
-
-                        <div class="lg:col-span-2 flex flex-col gap-8">
+                            
                             <div class="space-y-6" data-options-section="planning">
                                 <div id="options-planning-locked" class="options-tier-locked hidden">
                                     <div class="options-tier-locked-icon">📅</div>
@@ -164,59 +160,60 @@ export const optionsTabHTML = `
                                     <span class="options-tier-locked-badge">Pro</span>
                                 </div>
                                 <div id="options-planning-content" class="flex flex-col gap-8">
-                            <div class="bg-white p-6 rounded-3xl shadow-lg border-4 border-pink-300 space-y-4">
-                                <h2 class="font-title text-3xl text-pink-700 text-center">School Year Planner</h2>
-                                <p class="text-sm text-gray-500 text-center">Set school-wide holidays (Christmas,
-                                    Easter) to overshadow the calendar.</p>
+                                    <div class="bg-white p-6 rounded-3xl shadow-lg border-4 border-pink-300 space-y-4">
+                                        <h2 class="font-title text-3xl text-pink-700 text-center">School Year Planner</h2>
+                                        <p class="text-sm text-gray-500 text-center">Set school-wide holidays (Christmas,
+                                            Easter) to overshadow the calendar.</p>
 
-                                <div class="grid grid-cols-2 gap-2">
-                                    <div class="col-span-2">
-                                        <label class="block text-xs font-bold text-gray-500">Holiday Name</label>
-                                        <input type="text" id="holiday-name" placeholder="e.g. Christmas Break"
-                                            class="w-full px-3 py-2 border rounded-lg">
+                                        <div class="grid grid-cols-2 gap-2">
+                                            <div class="col-span-2">
+                                                <label class="block text-xs font-bold text-gray-500">Holiday Name</label>
+                                                <input type="text" id="holiday-name" placeholder="e.g. Christmas Break"
+                                                    class="w-full px-3 py-2 border rounded-lg">
+                                            </div>
+                                            <div>
+                                                <label class="block text-xs font-bold text-gray-500">Start Date</label>
+                                                <input type="date" id="holiday-start"
+                                                    class="w-full px-3 py-2 border rounded-lg">
+                                            </div>
+                                            <div>
+                                                <label class="block text-xs font-bold text-gray-500">End Date</label>
+                                                <input type="date" id="holiday-end" class="w-full px-3 py-2 border rounded-lg">
+                                            </div>
+                                            <div class="col-span-2">
+                                                <label class="block text-xs font-bold text-gray-500">Theme</label>
+                                                <select id="holiday-type" class="w-full px-3 py-2 border rounded-lg bg-white">
+                                                    <option value="christmas">🎄 Christmas / Winter</option>
+                                                    <option value="easter">🐣 Easter / Spring</option>
+                                                    <option value="generic">📅 Generic / Other</option>
+                                                </select>
+                                            </div>
+                                        </div>
+                                        <button id="add-holiday-btn"
+                                            class="w-full bg-pink-500 hover:bg-pink-600 text-white font-bold py-2 rounded-xl bubbly-button">
+                                            <i class="fas fa-plus-circle mr-2"></i> Add Break
+                                        </button>
+
+                                        <div id="holiday-list" class="mt-4 space-y-2 max-h-40 overflow-y-auto"></div>
                                     </div>
-                                    <div>
-                                        <label class="block text-xs font-bold text-gray-500">Start Date</label>
-                                        <input type="date" id="holiday-start"
-                                            class="w-full px-3 py-2 border rounded-lg">
-                                    </div>
-                                    <div>
-                                        <label class="block text-xs font-bold text-gray-500">End Date</label>
-                                        <input type="date" id="holiday-end" class="w-full px-3 py-2 border rounded-lg">
-                                    </div>
-                                    <div class="col-span-2">
-                                        <label class="block text-xs font-bold text-gray-500">Theme</label>
-                                        <select id="holiday-type" class="w-full px-3 py-2 border rounded-lg bg-white">
-                                            <option value="christmas">🎄 Christmas / Winter</option>
-                                            <option value="easter">🐣 Easter / Spring</option>
-                                            <option value="generic">📅 Generic / Other</option>
-                                        </select>
+                                    
+                                    <!-- Class End Dates Configuration -->
+                                    <div class="bg-white p-6 rounded-3xl shadow-lg border-4 border-purple-300 space-y-4">
+                                        <h2 class="font-title text-3xl text-purple-700 text-center">Class End Dates</h2>
+                                        <p class="text-sm text-gray-500 text-center">Set the last lesson date for each class. The Grand Guild Ceremony will activate on these dates.</p>
+
+                                        <div id="class-end-dates-list" class="space-y-3 max-h-60 overflow-y-auto">
+                                            <!-- Class end dates will be populated here by JavaScript -->
+                                        </div>
+                                        
+                                        <button id="save-class-end-dates-btn"
+                                            class="w-full bg-purple-500 hover:bg-purple-600 text-white font-bold py-2 rounded-xl bubbly-button">
+                                            <i class="fas fa-save mr-2"></i> Save End Dates
+                                        </button>
                                     </div>
                                 </div>
-                                <button id="add-holiday-btn"
-                                    class="w-full bg-pink-500 hover:bg-pink-600 text-white font-bold py-2 rounded-xl bubbly-button">
-                                    <i class="fas fa-plus-circle mr-2"></i> Add Break
-                                </button>
+                            </div>
 
-                                <div id="holiday-list" class="mt-4 space-y-2 max-h-40 overflow-y-auto"></div>
-                            </div>
-                            
-                            <!-- Class End Dates Configuration -->
-                            <div class="bg-white p-6 rounded-3xl shadow-lg border-4 border-purple-300 space-y-4">
-                                <h2 class="font-title text-3xl text-purple-700 text-center">Class End Dates</h2>
-                                <p class="text-sm text-gray-500 text-center">Set the last lesson date for each class. The Grand Guild Ceremony will activate on these dates.</p>
-
-                                <div id="class-end-dates-list" class="space-y-3 max-h-60 overflow-y-auto">
-                                    <!-- Class end dates will be populated here by JavaScript -->
-                                </div>
-                                
-                                <button id="save-class-end-dates-btn"
-                                    class="w-full bg-purple-500 hover:bg-purple-600 text-white font-bold py-2 rounded-xl bubbly-button">
-                                    <i class="fas fa-save mr-2"></i> Save End Dates
-                                </button>
-                            </div>
-                                </div>
-                            </div>
                             <div class="bg-white p-6 rounded-3xl shadow-lg border-4 border-blue-300 space-y-4" data-options-section="profile">
                                 <h2 class="font-title text-3xl text-blue-700 text-center">Profile Settings</h2>
                                 <div>
@@ -267,12 +264,10 @@ export const optionsTabHTML = `
                                     </button>
                                 </div>
                             </div>
-                            <div class="mt-4 text-center text-xs text-gray-400">
-                                <span id="app-tier-label" class="font-semibold"></span>
-                                <span class="mx-1">•</span>
-                                <span id="app-version-label"></span>
+                            <div class="options-meta-footer mt-8 text-center text-xs text-gray-400">
+                                <span id="app-tier-label" class="font-semibold block"></span>
+                                <span id="app-version-label" class="block mt-1"></span>
                             </div>
-                        </div>
                     </div>
                 </div>
             </div>

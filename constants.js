@@ -1,5 +1,6 @@
 export const competitionStart = new Date('2025-11-01');
 export const competitionEnd = new Date('2026-06-30');
+export const APP_VERSION = '0.0.2';
 
 // Use optional config from bootstrap (config.json) when present; otherwise this default (e.g. your school).
 const DEFAULT_FIREBASE_CONFIG = {

@@ -227,6 +227,11 @@ export const optionsTabHTML = `
                                     </button>
                                 </div>
                             </div>
+                            <div class="mt-4 text-center text-xs text-gray-400">
+                                <span id="app-tier-label" class="font-semibold"></span>
+                                <span class="mx-1">•</span>
+                                <span id="app-version-label"></span>
+                            </div>
                         </div>
                     </div>
                 </div>

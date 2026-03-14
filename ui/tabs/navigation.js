@@ -24,7 +24,7 @@ import { renderAwardStarsTab } from './award.js';
 import { renderAdventureLogTab } from './log.js';
 import { renderCalendarTab } from './selectors.js';
 import { renderIdeasTabSelects, renderStarManagerStudentSelect } from './ideas.js';
-import { canUseFeature } from '../../utils/subscription.js';
+import { canUseFeature, getTier } from '../../utils/subscription.js';
 import { showUpgradePrompt } from '../../utils/upgradePrompt.js';
 
 // --- TAB NAVIGATION ---
@@ -151,6 +151,20 @@ export async function showTab(tabName) {
 
         if (document.getElementById('teacher-name-input')) {
             document.getElementById('teacher-name-input').value = state.get('currentTeacherName') || '';
+        }
+
+        const tierEl = document.getElementById('app-tier-label');
+        const versionEl = document.getElementById('app-version-label');
+        if (tierEl) {
+            const rawTier = getTier();
+            const pretty =
+                rawTier === 'elite' ? 'Elite' :
+                rawTier === 'pro' ? 'Pro' : 'Starter';
+            tierEl.textContent = `Plan: ${pretty}`;
+        }
+        if (versionEl) {
+            const version = (constants && constants.APP_VERSION) || '0.0.2';
+            versionEl.textContent = `Version ${version}`;
         }
     }
 }

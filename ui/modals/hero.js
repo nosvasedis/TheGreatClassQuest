@@ -391,136 +391,364 @@ export function openAppInfoModal() {
         rawTier === 'pro' ? 'Pro' : 'Starter';
     const tierTagline = getTierTagline(rawTier);
     const tiersGlance = getTiersAtAGlance();
+    const tierRank = rawTier === 'elite' ? 2 : rawTier === 'pro' ? 1 : 0;
+
+    const hasTier = (requiredTier) => {
+        if (requiredTier === 'starter') return true;
+        if (requiredTier === 'pro') return tierRank >= 1;
+        if (requiredTier === 'elite') return tierRank >= 2;
+        return false;
+    };
+
+    const availabilityBadge = (requiredTier, lockedLabel) => {
+        if (hasTier(requiredTier)) {
+            return '<span class="guide-pill guide-pill-on"><i class="fas fa-check-circle"></i> Available now</span>';
+        }
+        return `<span class="guide-pill guide-pill-locked"><i class="fas fa-lock"></i> ${lockedLabel}</span>`;
+    };
+
+    const studentFeatures = [
+        {
+            icon: 'fa-route',
+            title: 'Team Quest & Monthly Ceremonies',
+            requiredTier: 'starter',
+            lockedLabel: '',
+            desc: 'Your class collects stars together and moves across the quest map. At month-end, ceremonies celebrate class and hero progress.'
+        },
+        {
+            icon: 'fa-user-graduate',
+            title: "Hero's Challenge & Ranks",
+            requiredTier: 'starter',
+            lockedLabel: '',
+            desc: 'Every star you earn shapes your personal rank, class reputation, and monthly hero highlights.'
+        },
+        {
+            icon: 'fa-store',
+            title: 'Mystic Market, Inventory & Trophy Room',
+            requiredTier: 'starter',
+            lockedLabel: '',
+            desc: 'Spend gold on themed items, collect artifacts, and show your collection in your expanded hero view.'
+        },
+        {
+            icon: 'fa-paw',
+            title: 'Familiars (Eggs, Hatch, Evolution)',
+            requiredTier: 'starter',
+            lockedLabel: '',
+            desc: 'Some rewards become living companions that hatch and evolve as your star journey continues.'
+        },
+        {
+            icon: 'fa-shield-alt',
+            title: 'Guild Identity & Guild Races',
+            requiredTier: 'pro',
+            lockedLabel: 'Unlocks on Pro',
+            desc: 'Join one of the school guilds, contribute to year-long guild totals, and chase guild champion status.'
+        },
+        {
+            icon: 'fa-scroll',
+            title: "Scholar's Scroll (Tests & Dictations)",
+            requiredTier: 'pro',
+            lockedLabel: 'Unlocks on Pro',
+            desc: 'Your test and dictation results can be tracked over time with progress visuals and performance feedback.'
+        },
+        {
+            icon: 'fa-calendar-alt',
+            title: 'Calendar, Day Planner & Quest Events',
+            requiredTier: 'pro',
+            lockedLabel: 'Unlocks on Pro',
+            desc: 'See lesson days, holidays, special challenge events, and the rhythm of your school quest calendar.'
+        },
+        {
+            icon: 'fa-feather-alt',
+            title: 'Story Weavers & Word-of-the-Day',
+            requiredTier: 'pro',
+            lockedLabel: 'Unlocks on Pro',
+            desc: 'Build collaborative stories as a class and transform lessons into shared worldbuilding moments.'
+        },
+        {
+            icon: 'fa-book-open',
+            title: 'Adventure Log, Hall of Heroes & Assignments',
+            requiredTier: 'pro',
+            lockedLabel: 'Unlocks on Pro',
+            desc: 'Review class chronicles, attendance history, assignments, and monthly hero archives in one place.'
+        },
+        {
+            icon: 'fa-magic',
+            title: 'AI Magic (Oracle, Story Art, Smart Summaries)',
+            requiredTier: 'elite',
+            lockedLabel: 'Unlocks on Elite',
+            desc: 'Elite adds creative AI support for stories, reflections, and richer teacher-student narrative feedback.'
+        }
+    ];
+
+    const teacherSystems = [
+        {
+            icon: 'fa-home',
+            title: 'Home Dashboard',
+            requiredTier: 'starter',
+            lockedLabel: '',
+            desc: 'School or class overview, schedule snapshots, ceremony reminders, weather-aware ambiance, and quick actions.'
+        },
+        {
+            icon: 'fa-route',
+            title: 'Team Quest',
+            requiredTier: 'starter',
+            lockedLabel: '',
+            desc: 'Monthly class leaderboard, league map progression, goal tracking adjusted by holidays/cancellations, and ceremonies.'
+        },
+        {
+            icon: 'fa-user-graduate',
+            title: "Hero's Challenge",
+            requiredTier: 'starter',
+            lockedLabel: '',
+            desc: 'Individual leaderboard, rank progression, shop, inventory, hero stats, familiars, and certificate links.'
+        },
+        {
+            icon: 'fa-shield-alt',
+            title: 'Guilds',
+            requiredTier: 'pro',
+            lockedLabel: 'Unlocks on Pro',
+            desc: 'Guild hall, sorting quiz pathways, yearly guild totals, anthem/lore moments, and guild champion views.'
+        },
+        {
+            icon: 'fa-chalkboard-teacher',
+            title: 'My Classes & Student Management',
+            requiredTier: 'starter',
+            lockedLabel: '',
+            desc: 'Create classes, edit schedules, manage rosters, set birthdays/namedays, assign hero classes, move students, and run reports.'
+        },
+        {
+            icon: 'fa-star',
+            title: 'Award Stars',
+            requiredTier: 'starter',
+            lockedLabel: '',
+            desc: 'Fast awarding by reason, bounty timers, hero boons, particle/sound feedback, and motivation loops during lessons.'
+        },
+        {
+            icon: 'fa-book-open',
+            title: 'Adventure Log',
+            requiredTier: 'pro',
+            lockedLabel: 'Unlocks on Pro',
+            desc: 'Daily chronicles, assignment and attendance workflows, hall of heroes archive, and class narrative memory.'
+        },
+        {
+            icon: 'fa-scroll',
+            title: "Scholar's Scroll",
+            requiredTier: 'pro',
+            lockedLabel: 'Unlocks on Pro',
+            desc: 'Tests, dictations, performance trends, makeup tracking, and trial-based analytics by student or class.'
+        },
+        {
+            icon: 'fa-calendar-alt',
+            title: 'Calendar & School Planner',
+            requiredTier: 'pro',
+            lockedLabel: 'Unlocks on Pro',
+            desc: 'Lesson overrides, cancellations, school holiday ranges, and quest events that shape monthly objectives.'
+        },
+        {
+            icon: 'fa-feather-alt',
+            title: 'Story Weavers',
+            requiredTier: 'pro',
+            lockedLabel: 'Unlocks on Pro',
+            desc: 'Collaborative writing mode and creative prompts that connect literacy practice to your classroom storyline.'
+        },
+        {
+            icon: 'fa-cog',
+            title: 'Options & Operations',
+            requiredTier: 'starter',
+            lockedLabel: '',
+            desc: 'Star and coin managers, profile controls, school setup tools, and data safety controls for administrators.'
+        },
+        {
+            icon: 'fa-robot',
+            title: 'Elite AI Assistant Layer',
+            requiredTier: 'elite',
+            lockedLabel: 'Unlocks on Elite',
+            desc: 'Oracle insights, AI-aided diary writing, creative story support, and early-access experimental classroom tools.'
+        }
+    ];
+
+    const studentDailyFlow = [
+        'Arrive and check your class quest goals for the day.',
+        'Earn stars through teamwork, focus, creativity, respect, and challenge participation.',
+        'Use gold in the Mystic Market and track your hero/familiar progression.',
+        'Join story, guild, or quest event moments when your class activates them.',
+        'Celebrate milestones in monthly ceremonies and hall-of-heroes moments.'
+    ];
+
+    const teacherDailyFlow = [
+        '<strong>Before class:</strong> check Home reminders, schedule, and active class selection.',
+        '<strong>During class:</strong> use Award Stars for fast positive reinforcement and bounty pacing.',
+        '<strong>After key tasks:</strong> update tests/dictations, attendance, or quest events where needed.',
+        '<strong>End of session:</strong> write or generate the day\'s Adventure Log entry and assignments.',
+        '<strong>Weekly/Monthly:</strong> review analytics, celebrate ceremonies, and tune goals/settings.'
+    ];
+
+    const quickFacts = [
+        {
+            icon: 'fa-coins',
+            title: 'Stars and Gold Economy',
+            body: 'Stars drive class and hero progression. Gold supports reward choice, collection strategy, and long-term motivation through items and familiars.'
+        },
+        {
+            icon: 'fa-chess-knight',
+            title: 'Hero Classes and Skill Trees',
+            body: 'Students can build an identity path with class-themed progressions and choices that influence rewards and play style over the year.'
+        },
+        {
+            icon: 'fa-scroll-old',
+            title: 'Quest Bounties and Events',
+            body: 'Timed group challenges and planner events create focused objective windows for participation, effort, and academic targets.'
+        },
+        {
+            icon: 'fa-tv',
+            title: 'Projector and Wallpaper Presence',
+            body: 'Live visual mode can turn classroom screens into dynamic quest dashboards with atmosphere and progress cues.'
+        }
+    ];
 
     // 1. STUDENTS CONTENT (Adventure Guide)
     studentContent.innerHTML = `
-        <div class="bg-white/80 p-6 rounded-3xl shadow-sm border-l-8 border-cyan-400">
-            <h3 class="font-title text-3xl text-cyan-800 mb-4"><i class="fas fa-map-signs"></i> Your Journey Begins!</h3>
-            <p class="text-gray-700 text-lg leading-relaxed">
-                Welcome, brave adventurer! In <strong>The Great Class Quest</strong>, your classroom is a team, and every lesson is a step on an epic journey. 
-                Work together, learn new things, and earn <strong>Stars</strong> to travel across the map!
+        <section class="guide-hero-card guide-student-hero">
+            <div class="guide-hero-badge">For Students</div>
+            <h3 class="font-title text-3xl md:text-4xl text-cyan-900 mb-3"><i class="fas fa-compass mr-2"></i> The Complete Student Adventure Guide</h3>
+            <p class="text-slate-700 text-base md:text-lg leading-relaxed">
+                Your classroom is a living quest world. You grow through stars, unlock hero identity, collect rewards, and build team victories with your class.
+                This guide shows everything available in your school's plan and what unlocks next.
             </p>
-        </div>
+            <div class="guide-tier-chip-row">
+                <span class="guide-tier-chip"><i class="fas fa-layer-group"></i> School Plan: ${prettyTier}</span>
+                <span class="guide-tier-chip guide-tier-chip-soft">${tierTagline}</span>
+            </div>
+        </section>
 
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div class="bg-amber-50 p-6 rounded-2xl border-2 border-amber-200">
-                <h4 class="font-title text-xl text-amber-700 mb-2"><i class="fas fa-star"></i> Earning Stars</h4>
-                <p class="text-sm text-gray-600">
-                    Show <strong>Teamwork</strong>, <strong>Creativity</strong>, <strong>Focus</strong>, and <strong>Respect</strong>. Every star your teacher awards moves your class ship forward on the Team Map!
-                </p>
+        <section class="guide-panel">
+            <h4 class="guide-section-title"><i class="fas fa-flag-checkered"></i> Student Daily Quest Loop</h4>
+            <ol class="guide-ordered-list">
+                ${studentDailyFlow.map(item => `<li>${item}</li>`).join('')}
+            </ol>
+        </section>
+
+        <section class="guide-panel">
+            <h4 class="guide-section-title"><i class="fas fa-map"></i> Student Features and What They Mean</h4>
+            <div class="guide-feature-grid">
+                ${studentFeatures.map(feature => `
+                    <article class="guide-feature-card">
+                        <div class="guide-feature-head">
+                            <h5><i class="fas ${feature.icon}"></i> ${feature.title}</h5>
+                            ${availabilityBadge(feature.requiredTier, feature.lockedLabel)}
+                        </div>
+                        <p>${feature.desc}</p>
+                    </article>
+                `).join('')}
             </div>
-            <div class="bg-purple-50 p-6 rounded-2xl border-2 border-purple-200">
-                <h4 class="font-title text-xl text-purple-700 mb-2"><i class="fas fa-medal"></i> Hero's Challenge</h4>
-                <p class="text-sm text-gray-600">
-                    Your personal stars count too! Climb the ranks from <strong>Bronze</strong> to <strong>Diamond</strong>. Be the "Class Hero" by helping others!
-                </p>
-            </div>
-            <div class="bg-indigo-50 p-6 rounded-2xl border-2 border-indigo-200">
-                <h4 class="font-title text-xl text-indigo-700 mb-2"><i class="fas fa-store"></i> The Mystic Shop</h4>
-                <p class="text-sm text-gray-600">
-                    Earn <strong>Gold Coins</strong> by collecting stars. Spend them on cool virtual artifacts like swords, pets, and potions to decorate your profile!
-                </p>
-            </div>
-            <div class="bg-green-50 p-6 rounded-2xl border-2 border-green-200">
-                <h4 class="font-title text-xl text-green-700 mb-2"><i class="fas fa-feather-alt"></i> Story Weavers</h4>
-                <p class="text-sm text-gray-600">
-                    Every lesson, you create a story together.${rawTier === 'elite' ? ' On Elite, AI can help illustrate or inspire your adventures.' : ' Some story features unlock on higher plans your teacher can enable later.'}
-                </p>
-            </div>
-        </div>
-        <div class="mt-6 bg-gradient-to-r from-sky-500 to-emerald-500 text-white rounded-2xl p-4 flex items-center justify-between flex-wrap gap-2">
-            <div class="text-sm font-semibold">
-                This school is on the <span class="underline decoration-white/60">${prettyTier}</span> plan.
-            </div>
-            <div class="text-xs opacity-90">
+        </section>
+
+        <section class="guide-panel">
+            <h4 class="guide-section-title"><i class="fas fa-lightbulb"></i> Student Power Tips</h4>
+            <ul class="guide-bullet-list">
+                <li>Consistency beats bursts: daily effort grows stars, rank, and familiar progress faster than occasional spikes.</li>
+                <li>Choose your rewards strategically: some items are cosmetic, while others support key challenge moments.</li>
+                <li>When guilds are active, helping your team helps your own profile too.</li>
+                <li>Ceremony months are milestone months: your progress can become part of your class legend.</li>
+            </ul>
+        </section>
+
+        <section class="guide-panel guide-tier-panel">
+            <h4 class="guide-section-title"><i class="fas fa-unlock-alt"></i> Tier Progress Path</h4>
+            <ul class="guide-tier-list">
+                ${tiersGlance.map(t => `<li><strong>${t.label}:</strong> ${t.bullets}</li>`).join('')}
+            </ul>
+            <p class="guide-tier-footnote">
                 ${rawTier === 'elite'
-                    ? 'You already have every student-facing feature turned on.'
+                    ? 'You are on the full experience. Every major student-facing feature is active.'
                     : rawTier === 'pro'
-                        ? 'Ask your teacher about Elite to add more magic and AI helpers.'
-                        : 'Some powerful tools are hidden until your teachers upgrade the quest.'}
-            </div>
-        </div>
+                        ? 'You are on Pro. Elite adds advanced AI-powered creativity and assistant tools.'
+                        : 'You are on Starter. Pro unlocks the expanded quest world (guilds, stories, planner, log, and scroll).'}
+            </p>
+        </section>
     `;
 
     // 2. TEACHERS CONTENT (Game Master's Manual)
     teacherContent.innerHTML = `
-        <div class="bg-white/80 p-6 rounded-3xl shadow-sm border-l-8 border-green-500">
-            <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
-                <div>
-                    <h3 class="font-title text-3xl text-green-800 mb-1"><i class="fas fa-chalkboard-teacher"></i> The Philosophy</h3>
-                    <p class="text-gray-700 text-sm leading-relaxed">
-                        This app turns classroom management into a cooperative RPG. Instead of policing behavior, you are the <strong>Game Master</strong> guiding a guild of heroes.
-                        Use visuals, sounds, and storytelling to make attendance, homework and tests feel meaningful.
-                    </p>
-                </div>
-                <div class="bg-emerald-50 border border-emerald-200 rounded-2xl px-4 py-3 text-xs text-emerald-800 shadow-sm">
-                    <div class="font-title text-sm mb-1">Current Plan: ${prettyTier}</div>
-                    <p>${tierTagline}</p>
-                </div>
+        <section class="guide-hero-card guide-teacher-hero">
+            <div class="guide-hero-badge">For Teachers</div>
+            <h3 class="font-title text-3xl md:text-4xl text-emerald-900 mb-3"><i class="fas fa-chalkboard-teacher mr-2"></i> The Game Master's Complete Manual</h3>
+            <p class="text-slate-700 text-base md:text-lg leading-relaxed">
+                The Great Class Quest transforms daily classroom routines into an intentional motivation system: visible progress, narrative ownership,
+                celebration moments, and feedback loops that students understand.
+            </p>
+            <div class="guide-tier-chip-row">
+                <span class="guide-tier-chip"><i class="fas fa-crown"></i> Active Plan: ${prettyTier}</span>
+                <span class="guide-tier-chip guide-tier-chip-soft">${tierTagline}</span>
             </div>
-        </div>
+        </section>
 
-        <div class="space-y-6">
-            <div class="bg-white p-5 rounded-xl shadow-sm border border-gray-200 flex gap-4">
-                <div class="text-3xl text-rose-500"><i class="fas fa-mouse-pointer"></i></div>
-                <div>
-                    <h4 class="font-bold text-gray-800 text-lg">One-Tap Awards</h4>
-                    <p class="text-sm text-gray-600">Go to <strong>Award Stars</strong>. Tap a student card to give 1 star. Tap the small buttons for specific amounts. Use the "Undo" button on the card if you make a mistake.</p>
-                </div>
-            </div>
+        <section class="guide-panel">
+            <h4 class="guide-section-title"><i class="fas fa-list-check"></i> Teacher Daily Operating Loop</h4>
+            <ol class="guide-ordered-list">
+                ${teacherDailyFlow.map(item => `<li>${item}</li>`).join('')}
+            </ol>
+        </section>
 
-            <div class="bg-white p-5 rounded-xl shadow-sm border border-gray-200 flex gap-4">
-                <div class="text-3xl text-blue-500"><i class="fas fa-calendar-check"></i></div>
-                <div>
-                    <h4 class="font-bold text-gray-800 text-lg">The Daily Rhythm</h4>
-                    <p class="text-sm text-gray-600">
-                        1. <strong>Home Tab:</strong> Check active class.<br>
-                        2. <strong>Roll Call:</strong> Mark absences (removes today's stars).<br>
-                        3. <strong>Award:</strong> Give stars during lesson.<br>
-                        4. <strong>Log:</strong> At end of class, go to <strong>Log</strong> tab and click "Log Adventure".${rawTier === 'elite' ? ' On Elite, AI can draft the summary for you.' : ' You can write a quick summary; Elite adds AI-written logs later if you choose.'}
-                    </p>
-                </div>
+        <section class="guide-panel">
+            <h4 class="guide-section-title"><i class="fas fa-sitemap"></i> Full System Overview (Tab by Tab)</h4>
+            <div class="guide-feature-grid">
+                ${teacherSystems.map(system => `
+                    <article class="guide-feature-card">
+                        <div class="guide-feature-head">
+                            <h5><i class="fas ${system.icon}"></i> ${system.title}</h5>
+                            ${availabilityBadge(system.requiredTier, system.lockedLabel)}
+                        </div>
+                        <p>${system.desc}</p>
+                    </article>
+                `).join('')}
             </div>
+        </section>
 
-            <div class="bg-white p-5 rounded-xl shadow-sm border border-gray-200 flex gap-4">
-                <div class="text-3xl text-amber-500"><i class="fas fa-crown"></i></div>
-                <div>
-                    <h4 class="font-bold text-gray-800 text-lg">Ceremonies & Guilds</h4>
-                    <p class="text-sm text-gray-600">
-                        At the start of a new month, the <strong>Team Quest</strong> and <strong>Hero's Challenge</strong> buttons will glow. Click them to launch the Award Ceremony for the previous month.
-                        ${rawTier === 'starter'
-                            ? ' On Pro, Guilds and a richer ceremony flow become available.'
-                            : ' Combine this with Guilds to make end-of-month celebrations unforgettable.'}
-                    </p>
-                </div>
-            </div>
+        <section class="guide-panel">
+            <h4 class="guide-section-title"><i class="fas fa-toolbox"></i> What Teachers Should Configure Early</h4>
+            <ul class="guide-bullet-list">
+                <li>Set class schedules accurately first; monthly goals and planning rely on lesson-day truth.</li>
+                <li>Define clear award reasons with students so stars represent shared values, not random points.</li>
+                <li>Use reports, hero stats, and scroll trends to combine behavior and academic signals in one view.</li>
+                <li>Use namedays, ceremonies, and hall-of-heroes moments to strengthen class belonging.</li>
+                <li>Review school-wide options (holiday ranges, star/coin settings, setup tools) at least monthly.</li>
+            </ul>
+        </section>
 
-            <div class="bg-slate-50 p-5 rounded-xl border border-dashed border-slate-300 space-y-2">
-                <h4 class="font-bold text-gray-800 text-lg flex items-center gap-2">
-                    <i class="fas fa-layer-group text-sky-500"></i> Plan Tiers at a Glance
-                </h4>
-                <ul class="text-sm text-gray-600 list-disc pl-5 space-y-1">
-                    ${tiersGlance.map(t => `<li><strong>${t.label}:</strong> ${t.bullets}</li>`).join('')}
-                </ul>
-                <p class="text-xs text-gray-500 mt-1">
-                    ${rawTier === 'elite'
-                        ? 'You are already on Elite — enjoy exploring every corner of the quest!'
-                        : rawTier === 'pro'
-                            ? 'You are on Pro. When you feel ready for AI support and experiments, upgrading to Elite takes seconds.'
-                            : 'You are on Starter. When your staff are comfortable, moving to Pro or Elite unlocks much more without changing your daily routine.'}
-                </p>
+        <section class="guide-panel">
+            <h4 class="guide-section-title"><i class="fas fa-helmet-battle"></i> Core Mechanics Worth Teaching Students Explicitly</h4>
+            <div class="guide-facts-grid">
+                ${quickFacts.map(fact => `
+                    <article class="guide-fact-card">
+                        <h5><i class="fas ${fact.icon}"></i> ${fact.title}</h5>
+                        <p>${fact.body}</p>
+                    </article>
+                `).join('')}
             </div>
-        </div>
+        </section>
+
+        <section class="guide-panel guide-tier-panel">
+            <h4 class="guide-section-title"><i class="fas fa-layer-group"></i> Plan Tiers at a Glance</h4>
+            <ul class="guide-tier-list">
+                ${tiersGlance.map(t => `<li><strong>${t.label}:</strong> ${t.bullets}</li>`).join('')}
+            </ul>
+            <p class="guide-tier-footnote">
+                ${rawTier === 'elite'
+                    ? 'Elite is active: all current major features and AI support layers are available to your school.'
+                    : rawTier === 'pro'
+                        ? 'Pro is active: the expanded classroom toolkit is unlocked, with Elite reserved for advanced AI and experimental tools.'
+                        : 'Starter is active: core quest operations are available now, and Pro/Elite can be added without changing your classroom identity.'}
+            </p>
+        </section>
     `;
 
     // 3. Reset Tabs (Show Student by default)
     const studentBtn = document.getElementById('info-btn-students');
     const teacherBtn = document.getElementById('info-btn-teachers');
     
-    studentBtn.classList.add('bg-cyan-500', 'text-white', 'active');
-    studentBtn.classList.remove('bg-white', 'text-cyan-700');
-    teacherBtn.classList.remove('bg-green-500', 'text-white', 'active');
-    teacherBtn.classList.add('bg-white', 'text-green-700');
+    studentBtn.classList.add('active');
+    teacherBtn.classList.remove('active');
     
     studentContent.classList.remove('hidden');
     teacherContent.classList.add('hidden');

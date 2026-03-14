@@ -3,28 +3,28 @@
 
 export const aiModalsHTML = `
     <div id="app-info-modal"
-        class="fixed inset-0 bg-black bg-opacity-60 z-[95] flex items-center justify-center p-4 hidden backdrop-blur-sm">
+        class="fixed inset-0 bg-slate-950/60 z-[95] flex items-center justify-center p-4 hidden backdrop-blur-sm">
         <div
-            class="bg-white p-0 rounded-3xl shadow-2xl max-w-5xl w-full h-[85vh] pop-in border-4 border-cyan-300 flex flex-col overflow-hidden relative">
+            class="guide-shell bg-white p-0 rounded-[1.8rem] shadow-2xl max-w-5xl w-full h-[86vh] pop-in border border-slate-200 flex flex-col overflow-hidden relative">
             <button id="app-info-close-btn"
-                class="absolute top-4 right-4 bg-gray-100 hover:bg-red-100 text-gray-500 hover:text-red-500 font-bold w-10 h-10 rounded-full bubbly-button z-50 transition-colors">&times;</button>
+                class="premium-close-btn guide-close-btn absolute top-4 right-4 bg-white/75 hover:bg-white text-slate-500 hover:text-rose-500 font-bold w-10 h-10 rounded-full bubbly-button z-50 transition-colors">&times;</button>
 
-            <div class="bg-gradient-to-r from-cyan-500 to-blue-600 p-6 text-white text-center shadow-md z-10">
+            <div class="guide-header p-6 text-white text-center shadow-md z-10">
                 <h2 class="font-title text-4xl mb-1 text-shadow-md"><i class="fas fa-book-open mr-3"></i>The
                     Adventurer's Guide</h2>
-                <p class="opacity-90 font-semibold">Mastering the Great Class Quest</p>
+                <p class="guide-header-subtitle font-semibold">Mastering the Great Class Quest</p>
             </div>
 
-            <div class="bg-gray-100 p-3 flex justify-center gap-4 shadow-inner z-10">
-                <button id="info-btn-students" class="info-tab-switcher bg-cyan-500 text-white shadow-md active">
+            <div class="guide-tab-row p-3 flex justify-center gap-3 shadow-inner z-10">
+                <button id="info-btn-students" class="info-tab-switcher info-tab-student active">
                     <i class="fas fa-user-graduate mr-2"></i> For Students
                 </button>
-                <button id="info-btn-teachers" class="info-tab-switcher bg-white text-green-700">
+                <button id="info-btn-teachers" class="info-tab-switcher info-tab-teacher">
                     <i class="fas fa-chalkboard-teacher mr-2"></i> For Teachers
                 </button>
             </div>
 
-            <div class="flex-grow overflow-y-auto p-8 bg-slate-50 custom-scrollbar relative">
+            <div class="guide-body flex-grow overflow-y-auto p-5 md:p-8 custom-scrollbar relative">
                 <div id="info-content-students" class="info-section space-y-8 relative z-10">
                 </div>
 
@@ -38,7 +38,7 @@ export const aiModalsHTML = `
         class="fixed inset-0 bg-black bg-opacity-70 z-[71] flex items-center justify-center p-4 hidden">
         <div class="bg-white p-8 rounded-3xl shadow-2xl max-w-4xl w-full pop-in relative">
             <button id="story-reveal-close-btn"
-                class="absolute top-4 right-4 bg-gray-200 hover:bg-gray-300 text-gray-800 font-bold w-10 h-10 rounded-full bubbly-button">&times;</button>
+                class="premium-close-btn absolute top-4 right-4 bg-gray-200 hover:bg-gray-300 text-gray-800 font-bold w-10 h-10 rounded-full bubbly-button">&times;</button>
             <p id="story-reveal-text" class="text-4xl md:text-5xl text-center leading-relaxed font-serif text-gray-800">
             </p>
         </div>
@@ -51,7 +51,7 @@ export const aiModalsHTML = `
             <div class="flex justify-between items-center mb-4">
                 <h2 id="story-history-title" class="font-title text-2xl md:text-3xl text-cyan-700">Story Chronicle</h2>
                 <button id="story-history-close-btn"
-                    class="bg-gray-200 hover:bg-gray-300 text-gray-800 font-bold w-10 h-10 rounded-full bubbly-button">&times;</button>
+                    class="premium-close-btn bg-gray-200 hover:bg-gray-300 text-gray-800 font-bold w-10 h-10 rounded-full bubbly-button">&times;</button>
             </div>
             <div id="story-history-content" class="space-y-4 max-h-[60vh] overflow-y-auto pr-2 flex-grow"></div>
         </div>
@@ -64,7 +64,7 @@ export const aiModalsHTML = `
             <div class="flex justify-between items-center mb-4">
                 <h2 class="font-title text-2xl md:text-3xl text-indigo-700">Completed Storybook Archive</h2>
                 <button id="story-archive-close-btn"
-                    class="bg-gray-200 hover:bg-gray-300 text-gray-800 font-bold w-10 h-10 rounded-full bubbly-button">&times;</button>
+                    class="premium-close-btn bg-gray-200 hover:bg-gray-300 text-gray-800 font-bold w-10 h-10 rounded-full bubbly-button">&times;</button>
             </div>
             <div id="story-archive-list"
                 class="space-y-3 max-h-[60vh] overflow-y-auto p-2 flex-grow bg-gray-50 rounded-lg"></div>
@@ -81,7 +81,7 @@ export const aiModalsHTML = `
                     <p id="storybook-viewer-subtitle" class="text-sm text-gray-500 -mt-1"></p>
                 </div>
                 <button id="storybook-viewer-close-btn"
-                    class="bg-gray-200 hover:bg-gray-300 text-gray-800 font-bold w-10 h-10 rounded-full bubbly-button flex-shrink-0">&times;</button>
+                    class="premium-close-btn bg-gray-200 hover:bg-gray-300 text-gray-800 font-bold w-10 h-10 rounded-full bubbly-button flex-shrink-0">&times;</button>
             </div>
             <div id="storybook-viewer-content"
                 class="space-y-4 max-h-[60vh] overflow-y-auto pr-2 flex-grow bg-gray-50 p-4 rounded-lg"></div>

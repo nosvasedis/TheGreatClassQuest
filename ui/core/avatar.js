@@ -12,8 +12,8 @@ import { renderFamiliarSprite, openFamiliarStatsOverlay } from '../../features/f
  */
 export function wrapAvatarWithLevelUpIndicator(avatarInnerHtml, pendingSkillChoice) {
     if (!pendingSkillChoice) return avatarInnerHtml;
-    const arrow = '<div class="level-up-arrow" aria-hidden="true" title="Level up! Assign skill in Skill Tree"></div>';
-    return `<div class="avatar-with-level-up-wrap">${arrow}${avatarInnerHtml}</div>`;
+    const badge = '<span class="level-up-badge" aria-hidden="true" title="Level up! Assign skill in Skill Tree"><i class="fas fa-arrow-up"></i></span>';
+    return `<div class="avatar-with-level-up-wrap">${badge}${avatarInnerHtml}</div>`;
 }
 
 document.addEventListener('clarity-glimmer', (e) => {

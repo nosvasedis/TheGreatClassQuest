@@ -385,7 +385,7 @@ export function renderAwardStarsStudentList(selectedClassId, fullRender = true) 
                     : `<div class="student-avatar-cloud-placeholder">${s.name.charAt(0)}</div>`;
                 const avatarHtml = avatarInner;
                 const levelUpArrowHtml = !!scoreData.pendingSkillChoice
-                    ? `<div class="award-level-up-overlay"><div class="level-up-arrow" aria-hidden="true" title="Level up! Assign skill in Skill Tree"></div></div>`
+                    ? `<div class="award-level-up-overlay"><span class="level-up-badge level-up-badge--award" aria-hidden="true" title="Level up! Assign skill in Skill Tree"><i class="fas fa-arrow-up"></i></span></div>`
                     : '';
                 const guildBadgeHtml = s.guildId
                     ? getGuildBadgeHtml(s.guildId, 'w-5 h-5')

@@ -724,6 +724,17 @@ export async function renderStudentLeaderboardTab() {
         return badges.join('');
     };
 
+    /** Hero rank title (e.g. Tinkerer, Sentinel) as a styled pill using class aura color. */
+    const getHeroTitleBadgeHtml = (s) => {
+        if (!s.heroClass) return '';
+        const level = s.heroLevel || 0;
+        const title = level > 0 ? getHeroTitle(s.heroClass, level) : (s.heroClass || 'Novice');
+        const tree = HERO_SKILL_TREE[s.heroClass];
+        const auraColor = tree?.auraColor || '#7c3aed';
+        const icon = HERO_CLASSES[s.heroClass]?.icon || '';
+        return `<span class="hero-title-pill inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-bold text-white shadow-sm border border-white/30" style="background: linear-gradient(135deg, ${auraColor}, ${auraColor}dd); box-shadow: 0 1px 3px rgba(0,0,0,0.2), 0 0 0 1px rgba(255,255,255,0.2);" title="Hero rank">${icon ? `<span class="opacity-90">${icon}</span>` : ''}<span>${title}</span></span>`;
+    };
+
     const getPillsHtml = (s) => {
         let html = '';
 
@@ -793,9 +804,9 @@ export async function renderStudentLeaderboardTab() {
                         <div class="flex-shrink-0 w-8 text-center">${rankBadge}</div>
                         <div class="flex-shrink-0">${getAvatarHtml(s)}</div>
                         <div class="min-w-0">
-                            <h3 class="font-bold text-gray-800 text-lg truncate flex items-center flex-wrap gap-1">
+                            <h3 class="font-bold text-gray-800 text-lg truncate flex items-center flex-wrap gap-1.5">
     <span>${s.heroClass && HERO_CLASSES[s.heroClass] ? HERO_CLASSES[s.heroClass].icon : ''} ${s.name}</span>
-    <span class="text-xs font-normal opacity-60">(${s.heroClass ? getHeroTitle(s.heroClass, s.heroLevel || 0) || s.heroClass : 'Novice'})</span>
+    ${getHeroTitleBadgeHtml(s)}
     ${getGuildRoleBadgesHtml(s)}
 </h3>
                             <div class="flex items-center gap-2 mt-0.5">
@@ -882,9 +893,9 @@ export async function renderStudentLeaderboardTab() {
                                 ${s.familiar ? `<div class="familiar-chip">${renderFamiliarSprite(s.familiar, 'small', s.id)}</div>` : ''}
                             </div>
                             <div class="min-w-0">
-                                <h4 class="font-title text-xl ${nameColor} truncate leading-tight mb-1 flex items-center flex-wrap gap-1">
+                                <h4 class="font-title text-xl ${nameColor} truncate leading-tight mb-1 flex items-center flex-wrap gap-1.5">
     <span>${s.heroClass && HERO_CLASSES[s.heroClass] ? HERO_CLASSES[s.heroClass].icon : ''} ${s.name}</span>
-    ${s.heroClass && (s.heroLevel || 0) > 0 ? `<span class="text-xs font-sans font-normal opacity-60">${getHeroTitle(s.heroClass, s.heroLevel)}</span>` : ''}
+    ${getHeroTitleBadgeHtml(s)}
     ${getGuildRoleBadgesHtml(s)}
 </h4>
                                 <div class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full border border-white shadow-sm" style="background: linear-gradient(135deg, #f59e0b 0%, #b45309 100%); color: white; font-size: 0.7rem; font-family: 'Fredoka One', cursive;">

@@ -785,13 +785,13 @@ export function setupHomeListeners() {
         const newT = tBtn.cloneNode(true); tBtn.parentNode.replaceChild(newT, tBtn);
 
         newS.addEventListener('click', () => {
-            newS.classList.add('bg-cyan-500', 'text-white', 'shadow-md'); newS.classList.remove('bg-white', 'text-green-700');
-            newT.classList.remove('bg-green-500', 'text-white', 'shadow-md'); newT.classList.add('bg-white', 'text-green-700');
+            newS.classList.add('active');
+            newT.classList.remove('active');
             sContent.classList.remove('hidden'); tContent.classList.add('hidden');
         });
         newT.addEventListener('click', () => {
-            newT.classList.add('bg-green-500', 'text-white', 'shadow-md'); newT.classList.remove('bg-white', 'text-green-700');
-            newS.classList.remove('bg-cyan-500', 'text-white', 'shadow-md'); newS.classList.add('bg-white', 'text-cyan-700');
+            newT.classList.add('active');
+            newS.classList.remove('active');
             tContent.classList.remove('hidden'); sContent.classList.add('hidden');
         });
     }

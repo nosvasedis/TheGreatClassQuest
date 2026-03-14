@@ -139,29 +139,42 @@
 
 /* ═══════════════════════════════════════
    LEVEL-UP INDICATOR (pending skill choice)
-   Arrow + glow at bottom-left of avatar
+   Badge with arrow icon at bottom-left of avatar
    ═══════════════════════════════════════ */
 .avatar-with-level-up-wrap {
     position: relative;
     display: inline-block;
 }
-.avatar-with-level-up-wrap .level-up-arrow {
-    position: absolute;
-    bottom: -2px;
-    left: -2px;
-    width: 0;
-    height: 0;
-    border-style: solid;
-    border-width: 14px 8px 0 8px;
-    border-color: #a855f7 transparent transparent transparent;
-    filter: drop-shadow(0 0 6px rgba(168, 85, 247, 0.9)) drop-shadow(0 0 12px rgba(168, 85, 247, 0.6));
-    animation: level-up-glow 1.8s ease-in-out infinite;
+/* Shared level-up badge look (gradient, glow, pulse) */
+.level-up-badge {
+    border-radius: 50%;
+    background: linear-gradient(145deg, #a855f7 0%, #7c3aed 50%, #6d28d9 100%);
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow:
+        0 0 0 2px rgba(255, 255, 255, 0.9),
+        0 2px 6px rgba(124, 58, 237, 0.5),
+        0 0 12px rgba(168, 85, 247, 0.6);
+    animation: level-up-badge-pulse 1.8s ease-in-out infinite;
     pointer-events: none;
+}
+.level-up-badge i {
+    margin-left: 0.5px;
+}
+.avatar-with-level-up-wrap .level-up-badge {
+    position: absolute;
+    bottom: -4px;
+    left: -4px;
+    width: 22px;
+    height: 22px;
+    font-size: 10px;
     z-index: 5;
 }
-@keyframes level-up-glow {
-    0%, 100% { filter: drop-shadow(0 0 6px rgba(168, 85, 247, 0.9)) drop-shadow(0 0 12px rgba(168, 85, 247, 0.6)); opacity: 1; }
-    50%      { filter: drop-shadow(0 0 10px rgba(168, 85, 247, 1)) drop-shadow(0 0 18px rgba(168, 85, 247, 0.8)); opacity: 0.95; }
+@keyframes level-up-badge-pulse {
+    0%, 100% { box-shadow: 0 0 0 2px rgba(255,255,255,0.9), 0 2px 6px rgba(124,58,237,0.5), 0 0 12px rgba(168,85,247,0.6); transform: scale(1); }
+    50%      { box-shadow: 0 0 0 2px rgba(255,255,255,0.95), 0 2px 8px rgba(124,58,237,0.6), 0 0 18px rgba(168,85,247,0.8); transform: scale(1.08); }
 }
 
 /* Awards tab: direct emblem on avatar corner (no container chrome) */
@@ -173,14 +186,24 @@
     pointer-events: none;
 }
 
-/* Awards tab: preserve level-up arrow without wrapping the avatar element */
+/* Awards tab: level-up badge above the avatar (no wrap) */
 .award-level-up-overlay {
     position: absolute;
-    top: -30px;
+    top: -28px;
     left: 50%;
     transform: translateX(-50%);
     width: 70px;
     height: 70px;
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
     z-index: 11;
     pointer-events: none;
+}
+.award-level-up-overlay .level-up-badge {
+    position: static;
+    width: 26px;
+    height: 26px;
+    font-size: 12px;
+    flex-shrink: 0;
 }

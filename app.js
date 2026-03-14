@@ -27,6 +27,51 @@ import {
 } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
 
 let soundSetupStarted = false;
+
+const HOME_READY_FALLBACK_MS = 4500;
+
+function animateLoadingScreenOut(loadingScreen) {
+    if (!loadingScreen || loadingScreen.dataset.exiting === 'true') return;
+
+    loadingScreen.dataset.exiting = 'true';
+    loadingScreen.classList.add('loading-screen-exit');
+
+    const finishExit = () => {
+        loadingScreen.classList.add('opacity-0', 'pointer-events-none', 'hidden');
+    };
+
+    const onExitAnimationEnd = (event) => {
+        if (event.target !== loadingScreen) return;
+        loadingScreen.removeEventListener('animationend', onExitAnimationEnd);
+        finishExit();
+    };
+
+    loadingScreen.addEventListener('animationend', onExitAnimationEnd);
+    setTimeout(() => {
+        loadingScreen.removeEventListener('animationend', onExitAnimationEnd);
+        finishExit();
+    }, 1100);
+}
+
+function dismissLoadingAfterHomeIsReady(loadingScreen) {
+    if (!loadingScreen) return;
+
+    let isSettled = false;
+    const settle = () => {
+        if (isSettled) return;
+        isSettled = true;
+        document.removeEventListener('home:rendered', onHomeRendered);
+        animateLoadingScreenOut(loadingScreen);
+    };
+
+    const onHomeRendered = () => {
+        requestAnimationFrame(settle);
+    };
+
+    document.addEventListener('home:rendered', onHomeRendered, { once: true });
+    setTimeout(settle, HOME_READY_FALLBACK_MS);
+}
+
 function onFirstUserGesture() {
     activateAudioContext();
     if (!soundSetupStarted) {
@@ -119,25 +164,21 @@ function setupAuthListeners() {
 
                 if (isSetupNeeded()) {
                     showSetupScreen();
+                    animateLoadingScreenOut(loadingScreen);
                 } else {
                     appScreen.classList.remove('hidden');
                     appScreen.classList.add('app-screen-in');
                     setTimeout(() => appScreen.classList.remove('app-screen-in'), 500);
                     import('./ui/tabs.js').then(tabs => tabs.showTab('about-tab'));
+                    dismissLoadingAfterHomeIsReady(loadingScreen);
                 }
-
-                loadingScreen.classList.add('opacity-0');
-                setTimeout(() => loadingScreen.classList.add('pointer-events-none'), 500);
             });
 
         } else {
             state.resetState();
             appScreen.classList.add('hidden');
             authScreen.classList.remove('hidden');
-            loadingScreen.classList.add('opacity-0');
-            setTimeout(() => {
-                loadingScreen.classList.add('pointer-events-none');
-            }, 500);
+            animateLoadingScreenOut(loadingScreen);
         }
     });
 }

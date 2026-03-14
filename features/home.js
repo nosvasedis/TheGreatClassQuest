@@ -16,6 +16,7 @@ export { initializeHeaderQuote };
 let homeInterval = null;
 let renderDebounce = null;
 let currentRenderedViewId = null;
+let hasPlayedInitialHomeEntrance = false;
 
 // --- 1. DAILY SPICE (Cached AI) ---
 async function fetchDailySpice() {
@@ -207,8 +208,24 @@ async function executeRenderHome() {
     if (isViewChange) container.innerHTML = `<div class="home-fade w-full h-full">${contentHtml}</div>`;
     else container.innerHTML = `<div class="w-full h-full">${contentHtml}</div>`;
 
+    const isInitialHomeRender = !hasPlayedInitialHomeEntrance;
+    if (isInitialHomeRender) {
+        hasPlayedInitialHomeEntrance = true;
+        container.classList.add('home-intro-root');
+        requestAnimationFrame(() => {
+            container.classList.add('home-intro-visible');
+        });
+        setTimeout(() => {
+            container.classList.remove('home-intro-root', 'home-intro-visible');
+        }, 950);
+    }
+
     attachListeners(container);
     startHomeSmartLogic();
+
+    document.dispatchEvent(new CustomEvent('home:rendered', {
+        detail: { isInitialHomeRender, viewId }
+    }));
 }
 
 // --- 3. TEMPLATES (VIBRANT HORIZONS) ---

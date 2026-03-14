@@ -433,7 +433,6 @@ export function renderAwardStarsStudentList(selectedClassId, fullRender = true) 
                 return `
                <div class="student-cloud-card ${isVisuallyAbsent ? 'is-absent' : ''} ${isReigningHero ? 'reigning-hero-card' : ''} ${prodigySet.has(s.id) ? 'award-reigning-prodigy' : ''}" data-studentid="${s.id}" style="animation: float-card ${4 + Math.random() * 4}s ease-in-out infinite;">
                ${getCloudSvg(cloudShape, prodigySet.has(s.id), isReigningHero, s.id)}
-               ${isReigningHero ? '<div class="hero-crown-badge">👑</div>' : ''}
                <div class="absence-controls">
                ${absenceButtonHtml}
                     </div>

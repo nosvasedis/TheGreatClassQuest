@@ -9,14 +9,14 @@ export const aiModalsHTML = `
             <button id="app-info-close-btn"
                 class="premium-close-btn guide-close-btn absolute top-4 right-4 bg-white/75 hover:bg-white text-slate-500 hover:text-rose-500 font-bold w-10 h-10 rounded-full bubbly-button z-50 transition-colors">&times;</button>
 
-            <div class="guide-header guide-header-v3 pt-5 pb-4 px-6 text-white text-center shadow-md z-10">
-                <div class="guide-header-sparkles" aria-hidden="true">✦ ✦ ✦</div>
-                <h2 class="font-title text-3xl md:text-4xl mb-1 text-shadow-md leading-tight">📖 The Adventurer's Guide</h2>
+            <div class="guide-header-v3 text-white text-center z-10" id="guide-header-shell">
+                <div class="guide-header-sparkles" aria-hidden="true">✨ ✦︎ ✨ ✦︎ ✨</div>
+                <h2 class="font-title text-3xl md:text-4xl mb-0 text-shadow-md leading-tight">📖 The Adventurer's Guide</h2>
                 <p class="guide-header-subtitle-v3 font-title text-lg md:text-xl mt-1">✨ Mastering the Great Class Quest ✨</p>
-                <div id="guide-header-tier-badge" class="guide-header-tier-pill mt-3"></div>
+                <div id="guide-header-tier-badge" class="guide-header-tier-pill mt-2"></div>
             </div>
 
-            <div class="guide-tab-row p-3 flex justify-center gap-3 shadow-inner z-10">
+            <div class="guide-tab-row flex justify-center gap-3 shadow-inner z-10">
                 <button id="info-btn-students" class="info-tab-switcher info-tab-student active">
                     🧙 For Students
                 </button>

@@ -36,7 +36,7 @@ export function showHeroLevelUpCelebration({ studentId, studentName, newHeroLeve
     showAnimatedModal('hero-level-up-modal');
 }
 
-import { getTier } from '../../utils/subscription.js';
+import { getTier, canUseFeature } from '../../utils/subscription.js';
 import { getTierTagline, getTierSummary, getGuideSections } from '../../config/tiers/features.js';
 import { requireEliteAI } from '../../utils/upgradePrompt.js';
 
@@ -417,17 +417,35 @@ export function openAppInfoModal() {
     const studentContent = document.getElementById('info-content-students');
     const teacherContent = document.getElementById('info-content-teachers');
     const tierBadgeEl = document.getElementById('guide-header-tier-badge');
+    const headerEl = document.getElementById('guide-header-shell');
 
-    const rawTier = getTier();
+    // ─── ROBUST TIER DETECTION ───────────────────────────────────────────────
+    // We use canUseFeature() (reads Firestore boolean flags) as ground truth,
+    // not just getTier() (reads the 'tier' string) — older subscription docs
+    // may have boolean flags set without the 'tier' string field.
+    const hasEliteFeatures = canUseFeature('eliteAI');
+    const hasProFeatures   = canUseFeature('guilds') ||
+                             canUseFeature('scholarScroll') ||
+                             canUseFeature('calendar') ||
+                             canUseFeature('storyWeavers') ||
+                             canUseFeature('heroProgression') ||
+                             canUseFeature('adventureLog');
+
+    // Resolve canonical tier: feature flags win, tier string is the tie-breaker
+    const tierString = getTier();
+    const rawTier = hasEliteFeatures ? 'elite'
+                  : hasProFeatures   ? 'pro'
+                  : tierString;   // 'pro' or 'elite' from Firestore tier field if flags not set
+
     const prettyTier = rawTier === 'elite' ? 'Elite ✨' : rawTier === 'pro' ? 'Pro ⚡' : 'Starter 🌱';
     const tierTagline = getTierTagline(rawTier);
     const tierSummary = getTierSummary(rawTier);
-    const tierRank = rawTier === 'elite' ? 2 : rawTier === 'pro' ? 1 : 0;
 
+    // hasTier: use the feature flags directly — they ARE the ground truth
     const hasTier = (requiredTier) => {
         if (requiredTier === 'starter') return true;
-        if (requiredTier === 'pro') return tierRank >= 1;
-        if (requiredTier === 'elite') return tierRank >= 2;
+        if (requiredTier === 'elite')   return hasEliteFeatures || rawTier === 'elite';
+        if (requiredTier === 'pro')     return hasEliteFeatures || hasProFeatures || rawTier === 'pro' || rawTier === 'elite';
         return false;
     };
 
@@ -435,15 +453,23 @@ export function openAppInfoModal() {
         if (hasTier(requiredTier)) {
             return '<span class="guide-acc-badge guide-acc-badge-active">✅ Active</span>';
         }
-        if (requiredTier === 'pro') return '<span class="guide-acc-badge guide-acc-badge-locked">🔒 Pro</span>';
+        if (requiredTier === 'pro')   return '<span class="guide-acc-badge guide-acc-badge-locked">🔒 Pro</span>';
         if (requiredTier === 'elite') return '<span class="guide-acc-badge guide-acc-badge-locked">🔒 Elite</span>';
         return '<span class="guide-acc-badge guide-acc-badge-active">✅ Active</span>';
     };
 
-    // Populate header tier badge
+    // Apply tier-themed gradient class and aria to the header
+    if (headerEl) {
+        headerEl.classList.remove('tier-starter', 'tier-pro', 'tier-elite');
+        headerEl.classList.add(`tier-${rawTier}`);
+    }
+
+    // Populate header tier badge with appropriate styling
     if (tierBadgeEl) {
-        const tierEmoji = rawTier === 'elite' ? '👑' : rawTier === 'pro' ? '⚡' : '🌱';
-        tierBadgeEl.innerHTML = `<span class="guide-header-tier-inner">${tierEmoji} ${prettyTier.replace(/[✨⚡🌱]/g, '').trim()} Plan — ${tierTagline}</span>`;
+        const tierEmoji  = rawTier === 'elite' ? '👑' : rawTier === 'pro' ? '⚡' : '🌱';
+        const pillClass  = rawTier === 'elite' ? 'pill-elite' : rawTier === 'pro' ? 'pill-pro' : 'pill-starter';
+        const tierLabel  = rawTier === 'elite' ? 'Elite Plan' : rawTier === 'pro' ? 'Pro Plan' : 'Starter Plan';
+        tierBadgeEl.innerHTML = `<span class="guide-header-tier-inner ${pillClass}">${tierEmoji} ${tierLabel} — ${tierTagline}</span>`;
     }
 
     // ─────────── SECTION BUILDER UTILITY ───────────

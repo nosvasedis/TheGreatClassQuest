@@ -189,7 +189,7 @@
 /* Awards tab: level-up badge above the avatar (no wrap) */
 .award-level-up-overlay {
     position: absolute;
-    top: -28px;
+    top: -22px;
     left: 50%;
     transform: translateX(-50%);
     width: 70px;
@@ -221,7 +221,7 @@
     width: 44px;
     height: 44px;
     font-size: 18px;
-    z-index: 10;
+    z-index: 20;
     box-shadow:
         0 0 0 3px rgba(255, 255, 255, 0.95),
         0 4px 12px rgba(124, 58, 237, 0.5),

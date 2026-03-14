@@ -27,6 +27,12 @@ export function openShopModal() {
     const monthName = new Date().toLocaleString('en-US', { month: 'long' });
     document.getElementById('shop-title').innerText = "The Mystic Market"; // Title is now static
     document.getElementById('shop-month').innerText = monthName; // Month has its own element
+
+    const restockBtn = document.getElementById('generate-shop-btn');
+    if (restockBtn) {
+        const canRestock = canUseFeature('eliteAI');
+        restockBtn.classList.toggle('hidden', !canRestock);
+    }
     
     document.getElementById('shop-student-select').innerHTML = `<option value="">Select Shopper...</option>`;
     document.getElementById('shop-student-gold').innerText = "0 🪙";

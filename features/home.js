@@ -502,7 +502,6 @@ function getActiveDashboard(classData, name, theme, spice) {
 }
 
 function getLayout(name, theme, spice, selector, row2, row3) {
-    const schoolName = state.get('schoolName') || 'Prodigies Language School';
     return `
     <div class="w-full max-w-7xl mx-auto p-4">
         <div class="horizons-grid">
@@ -525,7 +524,7 @@ function getLayout(name, theme, spice, selector, row2, row3) {
                             <span class="text-transparent bg-clip-text bg-gradient-to-r ${theme.greetingGradient}">${theme.greeting}</span>, 
                             <span class="text-transparent bg-clip-text bg-gradient-to-r ${theme.nameGradient} whitespace-nowrap">${name}</span>!
                         </h1>
-                        <p class="text-gray-500 font-semibold text-lg" data-school-name>${schoolName}</p>
+                        <p class="text-gray-500 font-semibold text-lg" data-school-name></p>
                     </div>
                 </div>
             </div>

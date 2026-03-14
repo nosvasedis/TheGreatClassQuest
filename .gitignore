@@ -50,4 +50,6 @@ billing/keys/
 billing/.env
 billing/DEPLOY_*.md
 billing/HOW_TO_ADD_A_SCHOOL.md
+billing/ONBOARD_NEW_SCHOOL.md
 billing/schools.local.json
+billing/render-paste.txt

@@ -1,15 +1,15 @@
 {
   "schools": [
     {
-      "schoolId": "gcq-school-mytown",
+      "schoolId": "your-firebase-project-id",
       "stripeCustomerId": null,
-      "firebaseProjectId": "their-firebase-project-id",
-      "firebaseServiceAccountPath": "./keys/school-mytown.json"
+      "firebaseProjectId": "your-firebase-project-id",
+      "firebaseServiceAccountPath": "./keys/your-school-key.json"
     }
   ],
   "priceIds": {
-    "starter": "price_1TAwNBE4wTwWp1U0p5IgyB6W",
-    "pro": "price_1TAwNeE4wTwWp1U0rNLfhMAF",
-    "elite": "price_1TAwNyE4wTwWp1U0ffn9ev0y"
+    "starter": "price_REPLACE_FROM_STRIPE_DASHBOARD",
+    "pro": "price_REPLACE_FROM_STRIPE_DASHBOARD",
+    "elite": "price_REPLACE_FROM_STRIPE_DASHBOARD"
   }
 }

@@ -37,7 +37,37 @@ import { GATED_TABS, TAB_FEATURE_FLAGS, getTierSummary, getUpgradeMessage } from
 
 // --- TAB NAVIGATION ---
 
+export function updateBottomNavGateState() {
+    const navButtons = document.querySelectorAll('.nav-button[data-tab]');
+    if (!navButtons.length) return;
+
+    navButtons.forEach(btn => {
+        const tabId = btn.dataset.tab;
+        const featureFlag = TAB_FEATURE_FLAGS[tabId];
+        const gate = GATED_TABS[tabId];
+        const isLocked = Boolean(featureFlag) && !canUseFeature(featureFlag);
+
+        btn.classList.toggle('nav-button-locked', isLocked);
+        btn.setAttribute('aria-disabled', isLocked ? 'true' : 'false');
+
+        if (isLocked && gate) {
+            btn.dataset.lockedTier = (gate.tier || '').toLowerCase();
+            btn.title = `${gate.feature} requires ${gate.tier}.`;
+            return;
+        }
+
+        btn.removeAttribute('data-locked-tier');
+        btn.removeAttribute('title');
+    });
+}
+
+if (typeof window !== 'undefined') {
+    window.addEventListener('gcq-subscription-updated', updateBottomNavGateState);
+}
+
 export async function showTab(tabName) {
+    updateBottomNavGateState();
+
     const allTabs = document.querySelectorAll('.app-tab');
     const tabId = tabName.endsWith('-tab') ? tabName : `${tabName}-tab`;
     const nextTab = document.getElementById(tabId);

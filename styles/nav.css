@@ -47,6 +47,35 @@
     box-shadow: inset 0 1px 0 rgba(255,255,255,0.34), 0 0 15px rgba(255, 255, 255, 0.8), 0 2px 4px rgba(0,0,0,0.4);
 }
 
+.nav-button.nav-button-locked {
+    background-image: linear-gradient(to top, #9ca3af, #d1d5db);
+    border-bottom-color: #6b7280;
+    color: rgba(255,255,255,0.92);
+    opacity: 0.58;
+    text-shadow: none;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.2), 0 2px 5px rgba(55,65,81,0.18);
+    filter: grayscale(1);
+}
+
+.nav-button.nav-button-locked.active {
+    opacity: 0.72;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.26), 0 0 0 2px rgba(255,255,255,0.22), 0 2px 4px rgba(55,65,81,0.2);
+}
+
+.nav-button.nav-button-locked::after {
+    content: 'LOCKED';
+    position: absolute;
+    top: 0.22rem;
+    right: 0.3rem;
+    font-size: 0.46rem;
+    font-weight: 800;
+    letter-spacing: 0.06em;
+    color: rgba(55,65,81,0.88);
+    background: rgba(255,255,255,0.7);
+    border-radius: 999px;
+    padding: 0.08rem 0.28rem;
+}
+
 /* Individual Nav Button Colors */
 .nav-color-cyan { background-image: linear-gradient(to top, var(--tw-gradient-stops)); --tw-gradient-from: #06b6d4; --tw-gradient-to: #22d3ee; --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to); border-bottom-color: #0891B2; }
 .nav-color-cyan.active { --tw-gradient-from: #22d3ee; --tw-gradient-to: #67e8f9; }

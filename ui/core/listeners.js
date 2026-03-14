@@ -87,6 +87,7 @@ export function setupUIListeners() {
             tabs.showTab(target.dataset.tab);
         }
     });
+    tabs.updateBottomNavGateState();
     document.getElementById('back-to-classes-btn').addEventListener('click', () => tabs.showTab('my-classes-tab'));
 
     // Auth

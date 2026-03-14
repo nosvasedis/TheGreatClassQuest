@@ -66,6 +66,7 @@ async function executeRenderHome() {
     // --- CONTEXT ---
     const activeClassId = state.get('globalSelectedClassId');
     const teacherName = state.get('currentTeacherName') || "Quest Master";
+    const schoolName = state.get('schoolName') || 'Prodigies Language School';
     const hour = new Date().getHours();
 
     // Dynamic Weather/Theme
@@ -523,7 +524,7 @@ function getLayout(name, theme, spice, selector, row2, row3) {
                             <span class="text-transparent bg-clip-text bg-gradient-to-r ${theme.greetingGradient}">${theme.greeting}</span>, 
                             <span class="text-transparent bg-clip-text bg-gradient-to-r ${theme.nameGradient} whitespace-nowrap">${name}</span>!
                         </h1>
-                        <p class="text-gray-500 font-semibold text-lg">Prodigies Language School</p>
+                        <p class="text-gray-500 font-semibold text-lg" data-school-name>${schoolName}</p>
                     </div>
                 </div>
             </div>

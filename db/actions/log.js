@@ -527,18 +527,13 @@ export async function handleAddHolidayRange() {
     try {
         await runTransaction(db, async (transaction) => {
             const docSnap = await transaction.get(settingsRef);
-            let ranges = [];
-            if (docSnap.exists()) {
-                ranges = docSnap.data().ranges || [];
-            }
-            
-            // Add new range
+            const existing = docSnap.exists() ? (docSnap.data() || {}) : {};
+            let ranges = existing.ranges || [];
+
             ranges.push({ id: Date.now().toString(), name, type, start, end });
-            
-            // Sort by date
             ranges.sort((a, b) => a.start.localeCompare(b.start));
-            
-            transaction.set(settingsRef, { ranges });
+
+            transaction.set(settingsRef, { ...existing, ranges }, { merge: true });
         });
         
         showToast("Holiday range added!", "success");

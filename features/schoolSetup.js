@@ -4,6 +4,8 @@
 import * as state from '../state.js';
 import { createClass } from '../db/actions/classes.js';
 import { showToast } from '../ui/effects.js';
+import { db } from '../firebase.js';
+import { doc, setDoc } from 'https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js';
 
 /**
  * Should we show the setup screen? Yes when the school has no classes yet.
@@ -39,13 +41,25 @@ export function hideSetupScreen() {
 /**
  * User finished setup: hide setup, show app, and switch to a default tab (e.g. My Classes).
  */
-export function finishSetupAndEnterApp() {
+export async function finishSetupAndEnterApp() {
     const classes = state.get('allSchoolClasses') || [];
     if (classes.length === 0) {
         showToast('Add at least one class, then click Enter the Quest.', 'error');
         const hint = document.getElementById('setup-enter-hint');
         if (hint) hint.classList.remove('hidden');
         return;
+    }
+
+    const nameInput = document.getElementById('setup-school-name');
+    const rawName = nameInput?.value?.trim();
+    if (rawName) {
+        const publicDataPath = "artifacts/great-class-quest/public/data";
+        const settingsRef = doc(db, `${publicDataPath}/school_settings`, 'holidays');
+        try {
+            await setDoc(settingsRef, { schoolName: rawName }, { merge: true });
+        } catch (e) {
+            console.error('Failed to save school name from setup:', e);
+        }
     }
     hideSetupScreen();
     import('../ui/tabs.js').then(tabs => tabs.showTab('my-classes-tab'));
@@ -105,8 +119,8 @@ function setupSetupListeners() {
         }
     });
 
-    document.getElementById('setup-enter-quest-btn')?.addEventListener('click', () => {
-        finishSetupAndEnterApp();
+    document.getElementById('setup-enter-quest-btn')?.addEventListener('click', async () => {
+        await finishSetupAndEnterApp();
     });
 }
 

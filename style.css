@@ -16,6 +16,9 @@
 /* 3. Praise toast pop-in/out animations */
 @import url('./styles/modals.css');
 
+/* 3b. Options tab: sub-tabs bar, tier-locked state */
+@import url('./styles/options.css');
+
 /* 4. Star award buttons, student cloud card, float-card, cloud shapes */
 @import url('./styles/buttons.css');
 

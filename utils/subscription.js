@@ -22,7 +22,7 @@ export async function loadSubscription() {
             subscriptionConfig = getStarterDefaults();
         }
     } catch (e) {
-        console.warn('Subscription load failed, using Starter defaults:', e);
+        console.warn('GCQ: Subscription load failed (Plan will show as Starter). If you set Elite, check Firestore Rules allow read on appConfig/subscription:', e?.code || e?.message || e);
         subscriptionConfig = getStarterDefaults();
     }
     return subscriptionConfig;

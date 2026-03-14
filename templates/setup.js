@@ -8,6 +8,15 @@ export const setupHTML = `
             <h1 class="font-title text-4xl text-sky-700 text-center mb-2">Set up your school</h1>
             <p class="text-center text-gray-600 mb-6">Add your first classes and invite your colleagues. Then enter the Quest!</p>
 
+            <section class="mb-6">
+                <h2 class="font-title text-xl text-gray-800 mb-3 flex items-center gap-2">
+                    <i class="fas fa-school text-sky-500"></i> School name
+                </h2>
+                <p class="text-gray-600 text-sm mb-2">This is how your school will appear across the app (home screen, headers, certificates).</p>
+                <input type="text" id="setup-school-name" placeholder="e.g. Prodiges Language School"
+                    class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-sky-500">
+            </section>
+
             <section class="mb-8">
                 <h2 class="font-title text-xl text-gray-800 mb-3 flex items-center gap-2">
                     <i class="fas fa-chalkboard-teacher text-sky-500"></i> Add classes

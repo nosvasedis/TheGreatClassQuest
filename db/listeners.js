@@ -117,6 +117,13 @@ export function setupDataListeners(userId, dateString, onInitialDataReady) {
         orderBy('date', 'desc')
     );
 
+    function applySchoolNameToDom(name) {
+        const display = name || 'Prodigies Language School';
+        document.querySelectorAll('[data-school-name]').forEach((el) => {
+            el.textContent = display;
+        });
+    }
+
     // --- Attach Listeners ---
     state.setUnsubscribeClasses(onSnapshot(classesQuery, (snapshot) => {
         const schoolClasses = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
@@ -227,6 +234,20 @@ export function setupDataListeners(userId, dateString, onInitialDataReady) {
         // --- ADDED LINE ---
         import('../features/home.js').then(m => m.renderHomeTab());
     }, (error) => console.error("Error listening to student_scores:", error)));
+
+    state.setUnsubscribeSchoolSettings(onSnapshot(schoolSettingsQuery, (docSnap) => {
+        if (docSnap.exists()) {
+            const data = docSnap.data();
+            state.setSchoolHolidayRanges(data.ranges || []);
+            state.setSchoolName(data.schoolName || null);
+            applySchoolNameToDom(data.schoolName);
+        } else {
+            state.setSchoolHolidayRanges([]);
+            state.setSchoolName(null);
+            applySchoolNameToDom(null);
+        }
+        renderHomeTab();
+    }, (error) => console.error("Error listening to school_settings:", error)));
 
     state.setUnsubscribeTodaysStars(onSnapshot(todaysStarsQuery, (snapshot) => {
         const awardStarsTab = document.getElementById('award-stars-tab');

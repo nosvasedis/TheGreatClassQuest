@@ -10,22 +10,18 @@ export const optionsTabHTML = `
                         <p class="text-lg text-gray-600 mt-2">Manage your profile and access advanced tools.</p>
                     </div>
 
-                    <div class="mb-6 flex flex-wrap justify-center gap-3">
-                        <button class="options-subtab-btn px-4 py-2 rounded-full text-sm font-semibold bg-sky-500 text-white shadow-md"
-                            data-options-tab="manage">
-                            <i class="fas fa-tools mr-1"></i> Manage
+                    <div class="options-subtab-bar">
+                        <button type="button" class="options-subtab-btn options-subtab-active" data-options-tab="manage">
+                            <i class="fas fa-tools mr-1.5"></i> Manage
                         </button>
-                        <button class="options-subtab-btn px-4 py-2 rounded-full text-sm font-semibold bg-white/80 text-gray-700 border border-sky-200"
-                            data-options-tab="planning">
-                            <i class="fas fa-calendar-alt mr-1"></i> Planning
+                        <button type="button" class="options-subtab-btn" data-options-tab="planning">
+                            <i class="fas fa-calendar-alt mr-1.5"></i> Planning
                         </button>
-                        <button class="options-subtab-btn px-4 py-2 rounded-full text-sm font-semibold bg-white/80 text-gray-700 border border-sky-200"
-                            data-options-tab="profile">
-                            <i class="fas fa-user mr-1"></i> Profile
+                        <button type="button" class="options-subtab-btn" data-options-tab="profile">
+                            <i class="fas fa-user mr-1.5"></i> Profile
                         </button>
-                        <button class="options-subtab-btn px-4 py-2 rounded-full text-sm font-semibold bg-white/80 text-gray-700 border border-red-200"
-                            data-options-tab="danger">
-                            <i class="fas fa-skull-crossbones mr-1"></i> Danger
+                        <button type="button" class="options-subtab-btn" data-options-tab="danger">
+                            <i class="fas fa-shield-alt mr-1.5"></i> Danger
                         </button>
                     </div>
 
@@ -160,7 +156,15 @@ export const optionsTabHTML = `
                         </div>
 
                         <div class="lg:col-span-2 flex flex-col gap-8">
-                            <div class="bg-white p-6 rounded-3xl shadow-lg border-4 border-pink-300 space-y-4" data-options-section="planning">
+                            <div class="space-y-6" data-options-section="planning">
+                                <div id="options-planning-locked" class="options-tier-locked hidden">
+                                    <div class="options-tier-locked-icon">📅</div>
+                                    <div class="options-tier-locked-title">Planning tools</div>
+                                    <p class="options-tier-locked-text">School Year Planner and Class End Dates are available on the Pro plan.</p>
+                                    <span class="options-tier-locked-badge">Pro</span>
+                                </div>
+                                <div id="options-planning-content" class="flex flex-col gap-8">
+                            <div class="bg-white p-6 rounded-3xl shadow-lg border-4 border-pink-300 space-y-4">
                                 <h2 class="font-title text-3xl text-pink-700 text-center">School Year Planner</h2>
                                 <p class="text-sm text-gray-500 text-center">Set school-wide holidays (Christmas,
                                     Easter) to overshadow the calendar.</p>
@@ -198,7 +202,7 @@ export const optionsTabHTML = `
                             </div>
                             
                             <!-- Class End Dates Configuration -->
-                            <div class="bg-white p-6 rounded-3xl shadow-lg border-4 border-purple-300 space-y-4" data-options-section="planning">
+                            <div class="bg-white p-6 rounded-3xl shadow-lg border-4 border-purple-300 space-y-4">
                                 <h2 class="font-title text-3xl text-purple-700 text-center">Class End Dates</h2>
                                 <p class="text-sm text-gray-500 text-center">Set the last lesson date for each class. The Grand Guild Ceremony will activate on these dates.</p>
 
@@ -211,6 +215,8 @@ export const optionsTabHTML = `
                                     <i class="fas fa-save mr-2"></i> Save End Dates
                                 </button>
                             </div>
+                                </div>
+                            </div>
                             <div class="bg-white p-6 rounded-3xl shadow-lg border-4 border-blue-300 space-y-4" data-options-section="profile">
                                 <h2 class="font-title text-3xl text-blue-700 text-center">Profile Settings</h2>
                                 <div>
@@ -221,9 +227,24 @@ export const optionsTabHTML = `
                                         autocomplete="off">
                                 </div>
                                 <button id="save-teacher-name-btn"
-                                    class="w-full bg-blue-600 hover:bg-blue-700 text-white font-title text-xl py-3 rounded-xl bubbly-button flex items-center justify-center">
+                                    class="w-full bg-blue-600 hover:bg-blue-700 text-white font-title text-xl py-3 rounded-xl bubbly-button flex items-center justify-center mb-4">
                                     <i class="fas fa-save mr-2"></i> Save Name
                                 </button>
+                                <div class="pt-2 border-t border-dashed border-blue-100 space-y-3">
+                                    <div>
+                                        <label for="options-school-name-input"
+                                            class="block text-sm font-medium text-gray-700 mb-1">School name</label>
+                                        <input type="text" id="options-school-name-input"
+                                            class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                            autocomplete="off"
+                                            placeholder="e.g. Prodigies Language School">
+                                        <p class="text-xs text-gray-500 mt-1">This appears on the home screen, login header, and attendance footer.</p>
+                                    </div>
+                                    <button id="save-school-name-btn"
+                                        class="w-full bg-sky-600 hover:bg-sky-700 text-white font-title text-xl py-3 rounded-xl bubbly-button flex items-center justify-center">
+                                        <i class="fas fa-save mr-2"></i> Save School Name
+                                    </button>
+                                </div>
                             </div>
 
                             <div class="bg-white p-6 rounded-3xl shadow-lg border-4 border-red-300 space-y-4" data-options-section="danger">

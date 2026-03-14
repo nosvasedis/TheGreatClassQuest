@@ -1,0 +1,130 @@
+/* --- Options tab: sub-navigation and tier-aware sections --- */
+
+@keyframes options-subtab-pop {
+    0% { transform: scale(0.96); }
+    70% { transform: scale(1.04); }
+    100% { transform: scale(1); }
+}
+
+@keyframes options-section-in {
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.options-subtab-bar {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 0.5rem;
+    padding: 0.5rem;
+    margin-bottom: 1.5rem;
+    background: linear-gradient(135deg, rgba(255,255,255,0.9) 0%, rgba(224,242,254,0.5) 100%);
+    border-radius: 2rem;
+    border: 3px solid rgba(56, 189, 248, 0.35);
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.8), 0 4px 14px rgba(0,0,0,0.08);
+}
+
+.options-subtab-btn {
+    font-family: 'Fredoka One', cursive;
+    font-size: 0.95rem;
+    padding: 0.6rem 1.1rem;
+    border-radius: 2rem;
+    border: none;
+    cursor: pointer;
+    transition: transform 0.15s ease, box-shadow 0.2s ease, opacity 0.2s ease;
+    text-shadow: 0 1px 2px rgba(0,0,0,0.15);
+    color: white;
+    position: relative;
+    border-bottom: 3px solid rgba(0,0,0,0.2);
+    box-shadow: 0 2px 6px rgba(0,0,0,0.12);
+}
+
+.options-subtab-btn:hover {
+    transform: scale(1.05);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    opacity: 1;
+}
+
+.options-subtab-btn.options-subtab-active {
+    transform: scale(1.08);
+    border-bottom-width: 2px;
+    animation: options-subtab-pop 0.25s ease-out;
+    box-shadow: 0 0 18px rgba(255,255,255,0.5), 0 4px 12px rgba(0,0,0,0.15);
+}
+
+/* Inactive state: soft, not grey */
+.options-subtab-btn:not(.options-subtab-active) {
+    opacity: 0.85;
+    background: linear-gradient(to bottom, #e2e8f0, #cbd5e1);
+    color: #475569;
+    border-bottom-color: #94a3b8;
+}
+
+/* Active state colors (match main nav vibe) */
+.options-subtab-btn[data-options-tab="manage"].options-subtab-active {
+    background: linear-gradient(to top, #f59e0b, #fbbf24);
+    border-bottom-color: #b45309;
+}
+
+.options-subtab-btn[data-options-tab="planning"].options-subtab-active {
+    background: linear-gradient(to top, #a855f7, #c084fc);
+    border-bottom-color: #6b21a8;
+}
+
+.options-subtab-btn[data-options-tab="profile"].options-subtab-active {
+    background: linear-gradient(to top, #3b82f6, #60a5fa);
+    border-bottom-color: #1d4ed8;
+}
+
+.options-subtab-btn[data-options-tab="danger"].options-subtab-active {
+    background: linear-gradient(to top, #dc2626, #f87171);
+    border-bottom-color: #991b1b;
+}
+
+/* Section content: smooth appear when switching */
+[data-options-section].options-section-visible {
+    animation: options-section-in 0.3s ease-out;
+}
+
+/* Locked (tier) state: one beautiful card for Pro+ features */
+.options-tier-locked {
+    background: linear-gradient(145deg, #f8fafc 0%, #e2e8f0 100%);
+    border: 3px dashed #94a3b8;
+    border-radius: 1.5rem;
+    padding: 2.5rem 1.5rem;
+    text-align: center;
+    color: #64748b;
+    box-shadow: inset 0 2px 8px rgba(255,255,255,0.6);
+}
+
+.options-tier-locked .options-tier-locked-icon {
+    font-size: 3rem;
+    margin-bottom: 0.75rem;
+    opacity: 0.9;
+}
+
+.options-tier-locked .options-tier-locked-title {
+    font-family: 'Fredoka One', cursive;
+    font-size: 1.35rem;
+    color: #475569;
+    margin-bottom: 0.5rem;
+}
+
+.options-tier-locked .options-tier-locked-text {
+    font-size: 0.95rem;
+    max-width: 20rem;
+    margin: 0 auto 1rem;
+    line-height: 1.4;
+}
+
+.options-tier-locked .options-tier-locked-badge {
+    display: inline-block;
+    background: linear-gradient(to top, #a855f7, #c084fc);
+    color: white;
+    padding: 0.35rem 0.85rem;
+    border-radius: 1rem;
+    font-size: 0.85rem;
+    font-weight: 700;
+    text-shadow: 0 1px 1px rgba(0,0,0,0.2);
+    border-bottom: 2px solid #6b21a8;
+}

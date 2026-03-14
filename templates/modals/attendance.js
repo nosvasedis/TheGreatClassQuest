@@ -63,7 +63,7 @@ export const attendanceModalsHTML = `
             </div>
 
             <div class="p-4 border-t border-gray-200 bg-white flex justify-between items-center">
-                <span class="text-xs text-gray-400">Prodigies Language School</span>
+                <span class="text-xs text-gray-400" data-school-name>Prodigies Language School</span>
                 <button id="bulk-trial-close-btn"
                     class="text-gray-500 hover:text-red-500 font-bold px-4">Cancel</button>
             </div>

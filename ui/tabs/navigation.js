@@ -22,6 +22,7 @@ import { renderGuildsTab } from './guilds.js';
 import { renderManageClassesTab, renderManageStudentsTab } from './classes.js';
 import { renderAwardStarsTab } from './award.js';
 import { renderAdventureLogTab } from './log.js';
+import { handleSaveSchoolNameFromOptions } from '../../db/actions/school.js';
 import { renderCalendarTab } from './selectors.js';
 import { renderIdeasTabSelects, renderStarManagerStudentSelect } from './ideas.js';
 import { canUseFeature, getTier } from '../../utils/subscription.js';
@@ -138,7 +139,7 @@ export async function showTab(tabName) {
     }
 
     if (tabId === 'reward-ideas-tab') renderIdeasTabSelects();
-    if (tabId === 'options-tab') {
+        if (tabId === 'options-tab') {
         // Load holidays and the new economy selector
         import('../core.js').then(m => {
             if (m.renderHolidayList) m.renderHolidayList();
@@ -153,30 +154,53 @@ export async function showTab(tabName) {
         if (teacherInput) {
             teacherInput.value = state.get('currentTeacherName') || '';
         }
+        const schoolInput = document.getElementById('options-school-name-input');
+        if (schoolInput) {
+            schoolInput.value = state.get('schoolName') || 'Prodigies Language School';
+        }
 
-        // Options subtabs (Manage / Planning / Profile / Danger)
+        // Options subtabs: beautiful bar, active state, tier-aware Planning
         if (!window.__optionsSubtabsWired) {
             window.__optionsSubtabsWired = true;
             const buttons = document.querySelectorAll('.options-subtab-btn');
             const sections = document.querySelectorAll('[data-options-section]');
+            const planningLocked = document.getElementById('options-planning-locked');
+            const planningContent = document.getElementById('options-planning-content');
+
             const activate = (key) => {
                 buttons.forEach(btn => {
-                    const active = btn.dataset.optionsTab === key;
-                    btn.classList.toggle('bg-sky-500', active && key === 'manage');
-                    btn.classList.toggle('text-white', active);
-                    btn.classList.toggle('bg-white/80', !active);
+                    btn.classList.toggle('options-subtab-active', btn.dataset.optionsTab === key);
                 });
                 sections.forEach(sec => {
-                    sec.classList.toggle('hidden', sec.dataset.optionsSection !== key);
+                    const isVisible = sec.dataset.optionsSection === key;
+                    sec.classList.toggle('hidden', !isVisible);
+                    sec.classList.toggle('options-section-visible', isVisible);
                 });
+                // Tier: Planning is Pro+. Show locked card or real content
+                const hasPlanning = canUseFeature('schoolYearPlanner');
+                if (planningLocked) planningLocked.classList.toggle('hidden', hasPlanning || key !== 'planning');
+                if (planningContent) planningContent.classList.toggle('hidden', !hasPlanning || key !== 'planning');
             };
+
             buttons.forEach(btn => {
                 btn.addEventListener('click', () => {
                     const key = btn.dataset.optionsTab || 'manage';
                     activate(key);
+                    if (typeof playSound === 'function') playSound('click');
                 });
             });
-            // Initial state
+            if (planningLocked) {
+                planningLocked.addEventListener('click', () => {
+                    showUpgradePrompt({ feature: 'School Year Planner', tier: 'Pro', message: 'Planning tools (holidays, class end dates) unlock with Pro.' });
+                });
+                planningLocked.style.cursor = 'pointer';
+            }
+            const saveSchoolBtn = document.getElementById('save-school-name-btn');
+            if (saveSchoolBtn) {
+                saveSchoolBtn.addEventListener('click', () => {
+                    handleSaveSchoolNameFromOptions();
+                });
+            }
             activate('manage');
         }
 

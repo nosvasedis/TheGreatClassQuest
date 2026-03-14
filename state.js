@@ -17,6 +17,7 @@ function getDefaultState() {
     return {
         currentUserId: null,
         currentTeacherName: null,
+        schoolName: null,
         allTeachersClasses: [],
         allSchoolClasses: [],
         allStudents: [],
@@ -135,6 +136,7 @@ export function resetState() {
 
 export function setCurrentUserId(id) { state.currentUserId = id; }
 export function setCurrentTeacherName(name) { state.currentTeacherName = name; }
+export function setSchoolName(name) { state.schoolName = name || null; }
 export function setAllTeachersClasses(classes) { state.allTeachersClasses = classes; }
 export function setAllSchoolClasses(classes) { state.allSchoolClasses = classes; }
 export function setAllStudents(students) { state.allStudents = students; updateReigningHero(); }

@@ -86,19 +86,19 @@ async function getReigningProdigyForClass(classId) {
 }
 
 const AWARD_CLOUD_BACKGROUNDS = [
-    'assets/award-clouds/cloud-a.png',
-    'assets/award-clouds/cloud-b.png',
-    'assets/award-clouds/cloud-c.png',
-    'assets/award-clouds/cloud-d.png',
-    'assets/award-clouds/cloud-e.png',
-    'assets/award-clouds/cloud-f.png',
-    'assets/award-clouds/cloud-g.png',
-    'assets/award-clouds/cloud-h.png'
+    'award-cloud-a',
+    'award-cloud-b',
+    'award-cloud-c',
+    'award-cloud-d',
+    'award-cloud-e',
+    'award-cloud-f',
+    'award-cloud-g',
+    'award-cloud-h'
 ];
 
-function getCloudBackgroundHtml(cloudAsset) {
-    const safeAsset = cloudAsset || AWARD_CLOUD_BACKGROUNDS[0];
-    return `<div class="cloud-bg-svg cloud-bg-asset" style="--award-cloud-image: url('${safeAsset}')" aria-hidden="true"></div>`;
+function getCloudBackgroundHtml(cloudClass) {
+    const safeClass = cloudClass || AWARD_CLOUD_BACKGROUNDS[0];
+    return `<div class="cloud-bg-svg cloud-bg-asset ${safeClass}" aria-hidden="true"></div>`;
 }
 
 export function renderAwardStarsTab() {

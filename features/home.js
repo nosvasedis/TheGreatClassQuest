@@ -543,7 +543,7 @@ function getLayout(name, theme, spice, selector, row2, row3) {
                             <span class="text-transparent bg-clip-text bg-gradient-to-r ${theme.greetingGradient}">${theme.greeting}</span>, 
                             <span class="text-transparent bg-clip-text bg-gradient-to-r ${theme.nameGradient} whitespace-nowrap">${name}</span>!
                         </h1>
-                        <p class="text-gray-500 font-semibold text-lg" data-school-name>${schoolName}</p>
+                            <p class="text-gray-500 font-semibold text-lg" data-school-name>${state.get('schoolName') || DEFAULT_SCHOOL_NAME}</p>
                     </div>
                 </div>
             </div>

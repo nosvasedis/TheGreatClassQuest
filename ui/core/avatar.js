@@ -115,7 +115,7 @@ export function handleAvatarClick(e) {
         if (!studentId && avatar.dataset.studentId) studentId = avatar.dataset.studentId;
 
         const rect = avatar.getBoundingClientRect();
-        const src = avatar.src;
+        const isImageAvatar = avatar.tagName === 'IMG';
         const scoreData = studentId ? state.get('allStudentScores').find(sc => sc.id === studentId) : null;
         const pendingSkillChoice = !!scoreData?.pendingSkillChoice;
 
@@ -127,9 +127,8 @@ export function handleAvatarClick(e) {
         contentWrapper.className = 'flex flex-col items-center gap-6 transform transition-all duration-300';
         contentWrapper.style.opacity = '0';
         
-        const clone = document.createElement('img');
-        clone.src = src;
-        clone.className = 'enlarged-avatar-image';
+        const clone = avatar.cloneNode(true);
+        clone.classList.add('enlarged-avatar-image');
         // Initial pos matches original
         clone.style.position = 'fixed'; // Initially fixed for animation
         clone.style.top = `${rect.top}px`;
@@ -137,6 +136,14 @@ export function handleAvatarClick(e) {
         clone.style.width = `${rect.width}px`;
         clone.style.height = `${rect.height}px`;
         clone.style.zIndex = '102';
+        if (!isImageAvatar) {
+            clone.style.display = 'flex';
+            clone.style.alignItems = 'center';
+            clone.style.justifyContent = 'center';
+            clone.style.fontSize = `${Math.max(rect.width * 0.42, 24)}px`;
+            clone.style.lineHeight = '1';
+            clone.style.overflow = 'hidden';
+        }
         
         let animatedEl = clone;
         if (pendingSkillChoice) {
@@ -154,8 +161,10 @@ export function handleAvatarClick(e) {
             clone.style.left = '0';
             clone.style.width = '100%';
             clone.style.height = '100%';
-            clone.style.objectFit = 'cover';
             clone.style.borderRadius = '9999px';
+            if (isImageAvatar) {
+                clone.style.objectFit = 'cover';
+            }
             avatarWrap.appendChild(clone);
             const badge = document.createElement('span');
             badge.className = 'level-up-badge level-up-badge--enlarged';
@@ -235,6 +244,9 @@ export function handleAvatarClick(e) {
             animatedEl.style.width = `200px`;
             animatedEl.style.height = `200px`;
             animatedEl.style.transform = 'translate(-50%, -50%)';
+            if (!isImageAvatar) {
+                clone.style.fontSize = '6rem';
+            }
             container.style.opacity = '1';
             
             const inv = container.querySelector('.inventory-container');
@@ -247,6 +259,9 @@ export function handleAvatarClick(e) {
             animatedEl.style.width = `${rect.width}px`;
             animatedEl.style.height = `${rect.height}px`;
             animatedEl.style.transform = 'translate(0, 0)';
+            if (!isImageAvatar) {
+                clone.style.fontSize = `${Math.max(rect.width * 0.42, 24)}px`;
+            }
             container.style.opacity = '0';
             container.removeEventListener('click', closeHandler);
             setTimeout(() => container.remove(), 300);

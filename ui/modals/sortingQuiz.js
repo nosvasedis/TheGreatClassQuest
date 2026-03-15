@@ -3,6 +3,9 @@
 import * as state from '../../state.js';
 import * as sortingQuiz from '../../features/sortingQuiz.js';
 import { getGuildById, getGuildEmblemUrl } from '../../features/guilds.js';
+import { canUseFeature } from '../../utils/subscription.js';
+import { showUpgradePrompt } from '../../utils/upgradePrompt.js';
+import { getUpgradeMessage } from '../../config/tiers/features.js';
 
 // Option letter labels
 const OPTION_LABELS = ['A', 'B', 'C', 'D'];
@@ -218,6 +221,15 @@ function wireQuizListeners() {
  * @param {string} studentId
  */
 export function openSortingQuizModal(studentId) {
+    if (!canUseFeature('guilds')) {
+        showUpgradePrompt({
+            feature: 'Guild Sorting Quiz',
+            tier: 'Pro',
+            message: getUpgradeMessage('Pro', 'guilds')
+        });
+        return;
+    }
+
     const modal = document.getElementById(QUIZ_MODAL_ID);
     if (!modal) return;
 

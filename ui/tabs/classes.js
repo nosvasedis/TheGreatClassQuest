@@ -64,6 +64,7 @@ export function renderManageStudentsTab() {
         .filter(s => s.classId === currentManagingClassId)
         .sort((a, b) => a.name.localeCompare(b.name));
     const heroProgressionEnabled = canUseFeature('heroProgression');
+    const guildsEnabled = canUseFeature('guilds');
 
     // Update header count badge
     const countBadge = document.getElementById('student-count-badge');
@@ -124,7 +125,9 @@ export function renderManageStudentsTab() {
 
         const guildAction = s.guildId
             ? `<span class="guild-badge-wrap flex-shrink-0">${getGuildBadgeHtml(s.guildId, 'w-7 h-7')}</span>`
-            : `<button data-id="${s.id}" class="guild-quiz-btn w-7 h-7 flex items-center justify-center bg-amber-100 hover:bg-amber-200 text-amber-700 rounded-full bubbly-button transition-colors" title="Take Guild Quiz"><i class="fas fa-hat-wizard" style="font-size:10px;"></i></button>`;
+            : guildsEnabled
+                ? `<button data-id="${s.id}" class="guild-quiz-btn w-7 h-7 flex items-center justify-center bg-amber-100 hover:bg-amber-200 text-amber-700 rounded-full bubbly-button transition-colors" title="Take Guild Quiz"><i class="fas fa-hat-wizard" style="font-size:10px;"></i></button>`
+                : `<button data-id="${s.id}" class="guild-quiz-btn w-7 h-7 flex items-center justify-center bg-gray-100 text-gray-400 rounded-full border border-gray-200 cursor-not-allowed transition-colors" title="Pro plan: Guild Sorting Quiz"><i class="fas fa-lock" style="font-size:10px;"></i></button>`;
 
         const skillTreeBtnCls = !heroProgressionEnabled
             ? 'skill-tree-btn skill-tree-btn-locked w-7 h-7 flex items-center justify-center bg-gray-100 text-gray-400 rounded-full border border-gray-200 cursor-not-allowed'
@@ -182,7 +185,17 @@ export function renderManageStudentsTab() {
     list.querySelectorAll('.avatar-maker-btn').forEach(btn => btn.addEventListener('click', () => avatar.openAvatarMaker(btn.dataset.id)));
     list.querySelectorAll('.move-student-btn').forEach(btn => btn.addEventListener('click', () => modals.openMoveStudentModal(btn.dataset.id)));
     list.querySelectorAll('.hero-chronicle-btn').forEach(btn => btn.addEventListener('click', () => modals.openHeroChronicleModal(btn.dataset.id)));
-    list.querySelectorAll('.guild-quiz-btn').forEach(btn => btn.addEventListener('click', () => modals.openSortingQuizModal(btn.dataset.id)));
+    list.querySelectorAll('.guild-quiz-btn').forEach(btn => btn.addEventListener('click', () => {
+        if (!guildsEnabled) {
+            showUpgradePrompt({
+                feature: 'Guild Sorting Quiz',
+                tier: 'Pro',
+                message: getUpgradeMessage('Pro', 'guilds')
+            });
+            return;
+        }
+        modals.openSortingQuizModal(btn.dataset.id);
+    }));
     list.querySelectorAll('.skill-tree-btn').forEach(btn => btn.addEventListener('click', () => {
         if (!heroProgressionEnabled) {
             showUpgradePrompt({

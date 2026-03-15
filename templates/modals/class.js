@@ -12,9 +12,8 @@ export const classModalsHTML = `
 
             <div class="relative">
                 <div class="text-center mb-6">
-                    <p class="text-[11px] uppercase tracking-[0.35em] font-black text-emerald-600 mb-2">Class Forge</p>
-                    <h2 class="font-title text-4xl text-green-700">Create a New Class</h2>
-                    <p class="text-gray-600 mt-2">Set the league, banner, and schedule without leaving your existing roster view.</p>
+                    <h2 class="font-title text-4xl text-green-700">Add New Class</h2>
+                    <p class="text-gray-600 mt-2">Enter the class details below.</p>
                 </div>
 
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">

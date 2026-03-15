@@ -33,7 +33,7 @@ export const baseModalsHTML = `
     </div>
 
     <div id="logo-picker-modal"
-        class="fixed inset-0 bg-black bg-opacity-50 z-[71] flex items-center justify-center p-4 hidden">
+        class="fixed inset-0 bg-black bg-opacity-50 z-[90] flex items-center justify-center p-4 hidden">
         <div class="bg-white p-8 rounded-3xl shadow-2xl max-w-3xl w-full pop-in border-4 border-green-300">
             <h2 class="font-title text-3xl text-green-700 mb-6 text-center">Choose a Class Logo</h2>
             <div id="logo-picker-list" class="grid grid-cols-10 gap-4 text-3xl max-h-72 overflow-y-auto p-2"></div>

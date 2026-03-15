@@ -7,7 +7,7 @@ import * as tabs from '../ui/tabs.js';
 import * as modals from '../ui/modals.js';
 import { wrapAvatarWithLevelUpIndicator } from '../ui/core/avatar.js';
 import { callGeminiApi } from '../api.js';
-import { canUseFeature } from '../utils/subscription.js';
+import { canUseFeature, getSubscriptionSnapshot, getTier } from '../utils/subscription.js';
 import * as grandGuildCeremony from '../features/grandGuildCeremony.js';
 import { DEFAULT_SCHOOL_NAME } from '../constants.js';
 import { loadTeacherJourneyState, markTeacherGuideSeen } from './teacherJourney.js';
@@ -237,6 +237,8 @@ function getSkeleton() {
 
 function getGeneralDashboard(name, theme, spice) {
     const today = utils.getTodayDateString();
+    const activeLeague = resolveActiveHomeLeague();
+    const activePlanLabel = getHomePlanLabel();
 
     const myClasses = state.get('allTeachersClasses') || [];
     const totalStudents = state.get('allStudents').length;
@@ -257,13 +259,13 @@ function getGeneralDashboard(name, theme, spice) {
     const totalGold = allScores.reduce((sum, s) => sum + (s.gold !== undefined ? s.gold : s.totalStars), 0);
 
     const tools = [
-        { icon: 'fa-trophy', label: 'Hero Ranks', action: 'open-student-ranks' },
-        { icon: 'fa-plus-circle', label: 'New', action: 'create-class' },
-        { icon: 'fa-globe', label: 'Team History', action: 'open-team-history' },
-        { icon: 'fa-umbrella-beach', label: 'Holiday', action: 'open-holidays' },
-        { icon: 'fa-calendar-alt', label: 'Plan', action: 'open-day-planner' },
+        { icon: 'fa-trophy', label: 'Hero Ranks', action: 'open-student-ranks', league: activeLeague },
+        { icon: 'fa-plus-circle', label: 'New', action: 'create-class', league: activeLeague },
+        { icon: 'fa-globe', label: 'Team History', action: 'open-team-history', league: activeLeague },
+        { icon: 'fa-umbrella-beach', label: 'Holiday', action: 'open-holidays', featureFlag: 'schoolYearPlanner' },
+        { icon: 'fa-calendar-alt', label: 'Plan', action: 'open-day-planner', featureFlag: 'calendar' },
         { icon: 'fa-cog', label: 'Setup', action: 'open-settings' },
-    ];
+    ].filter(tool => !tool.featureFlag || canUseFeature(tool.featureFlag));
 
     return getLayout(
         name, theme, spice, getSelector(null),
@@ -295,9 +297,23 @@ function getGeneralDashboard(name, theme, spice) {
         `,
         `
         <div class="vibrant-card h-span-4 card-glass-white">
-            <h3 class="text-xs font-bold text-slate-400 uppercase tracking-widest p-4 pb-0">Global Tools</h3>
+            <div class="flex items-center justify-between gap-3 p-4 pb-0">
+                <h3 class="text-xs font-bold text-slate-400 uppercase tracking-widest">Global Tools</h3>
+                <span class="text-[10px] font-bold uppercase tracking-[0.18em] px-3 py-1 rounded-full border bg-indigo-50 text-indigo-600 border-indigo-100">
+                    School Plan: ${activePlanLabel}
+                </span>
+            </div>
             <div class="tools-grid-v2">
-                ${tools.map(t => `<div class="tool-btn-pop shortcut-action-btn" data-action="${t.action}"><i class="fas ${t.icon}"></i><span>${t.label}</span></div>`).join('')}
+                ${tools.map(t => `
+                    <div
+                        class="tool-btn-pop shortcut-action-btn"
+                        data-action="${t.action}"
+                        data-league="${t.league || ''}"
+                        title="${t.league ? `${t.label} for ${t.league} League` : t.label}">
+                        <i class="fas ${t.icon}"></i>
+                        <span>${t.label}</span>
+                    </div>
+                `).join('')}
             </div>
         </div>
         <div class="vibrant-card h-span-8 card-glass-white">
@@ -608,6 +624,51 @@ function getSelector(currentId) {
     `;
 }
 
+function resolveActiveHomeLeague() {
+    const activeClassId = state.get('globalSelectedClassId');
+    const activeClass = activeClassId
+        ? (state.get('allSchoolClasses') || []).find(c => c.id === activeClassId)
+        : null;
+    if (activeClass?.questLevel) return activeClass.questLevel;
+
+    const selectedLeague = state.get('globalSelectedLeague');
+    if (selectedLeague) return selectedLeague;
+
+    const todaysClasses = utils.getClassesOnDay(
+        utils.getTodayDateString(),
+        state.get('allSchoolClasses') || [],
+        state.get('allScheduleOverrides') || []
+    );
+    const myClassIds = new Set((state.get('allTeachersClasses') || []).map(c => c.id));
+    const currentTime = new Date().toTimeString().slice(0, 5);
+    const activeNow = todaysClasses.find(c =>
+        myClassIds.has(c.id) &&
+        c.timeStart &&
+        c.timeEnd &&
+        currentTime >= c.timeStart &&
+        currentTime <= c.timeEnd
+    ) || todaysClasses.find(c => myClassIds.has(c.id));
+    if (activeNow?.questLevel) return activeNow.questLevel;
+
+    return null;
+}
+
+function getHomePlanLabel() {
+    const subscription = getSubscriptionSnapshot();
+    const runtimeTier = subscription?.tier || getTier();
+    const prettyTier = runtimeTier === 'elite'
+        ? 'Elite'
+        : runtimeTier === 'pro'
+            ? 'Pro'
+            : runtimeTier === 'expired'
+                ? 'Expired'
+                : runtimeTier === 'pending'
+                    ? 'Pending'
+                    : 'Starter';
+
+    return subscription?.isGracePeriod ? `${prettyTier} (Grace Day)` : prettyTier;
+}
+
 function getScheduleHtml(dateString, activeClassId) {
     const allSchoolClasses = state.get('allSchoolClasses') || [];
     const allScheduleOverrides = state.get('allScheduleOverrides') || [];
@@ -731,15 +792,28 @@ function attachListeners(container) {
 }
 
 function handleAction(action, data) {
+    const scopedLeague = (data?.league || '').trim();
+    if (scopedLeague) {
+        state.setGlobalSelectedLeague(scopedLeague, false);
+    }
+
     if (action === 'open-day-planner') modals.openDayPlannerModal(utils.getTodayDateString(), document.body);
     else if (action === 'open-attendance') {
         const id = state.get('globalSelectedClassId');
         if (id) modals.openAttendanceChronicle(); else tabs.showTab('adventure-log-tab');
     }
-    else if (action === 'open-team-history') modals.openHistoryModal('team');
+    else if (action === 'open-team-history') modals.openHistoryModal('team', { league: scopedLeague || null });
     else if (action === 'open-settings' || action === 'open-holidays') tabs.showTab('options-tab');
     else if (action === 'open-student-ranks') modals.openStudentRankingsModal();
-    else if (action === 'create-class') tabs.showTab('my-classes-tab');
+    else if (action === 'create-class') {
+        tabs.showTab('my-classes-tab');
+        const levelSelect = document.getElementById('class-level');
+        if (levelSelect && scopedLeague) {
+            levelSelect.value = scopedLeague;
+            levelSelect.dispatchEvent(new Event('change'));
+        }
+        document.getElementById('class-name')?.focus();
+    }
     else if (action === 'edit-class') modals.openEditClassModal(data.id);
     else if (action === 'open-report') modals.handleGenerateReport(data.id);
 }

@@ -37,6 +37,32 @@ function formatTitleHtml(text) {
     }).join('');
 }
 
+function getCeremonyMonthBounds(monthKey) {
+    const [year, month] = String(monthKey || '').split('-').map(Number);
+    const monthStart = new Date(year, month - 1, 1);
+    const monthEnd = new Date(year, month, 0, 23, 59, 59, 999);
+    return { monthStart, monthEnd };
+}
+
+function normalizeCreatedAt(value) {
+    if (!value) return null;
+    if (typeof value.toDate === 'function') return value.toDate();
+    if (value instanceof Date) return Number.isNaN(value.getTime()) ? null : value;
+    const parsed = new Date(value);
+    return Number.isNaN(parsed.getTime()) ? null : parsed;
+}
+
+function existedByMonthEnd(record, monthKey) {
+    const createdAt = normalizeCreatedAt(record?.createdAt);
+    if (!createdAt) return true;
+    return createdAt <= getCeremonyMonthBounds(monthKey).monthEnd;
+}
+
+function formatPercent(value) {
+    const numeric = Number(value);
+    return Number.isFinite(numeric) ? numeric.toFixed(0) : '0';
+}
+
 // --- 1. STATUS & INITIALIZATION ---
 
 export function updateCeremonyStatus() {
@@ -64,7 +90,7 @@ export function updateCeremonyStatus() {
     const isComplete = history[monthKey] && history[monthKey].complete;
     const currentMonthKey = now.toISOString().substring(0, 7);
     
-    if (!isComplete && monthKey !== currentMonthKey) {
+    if (!isComplete && monthKey !== currentMonthKey && existedByMonthEnd(classData, monthKey)) {
         teamQuestBtn.classList.add('ceremony-ready-pulse');
         heroChallengeBtn.classList.add('ceremony-ready-pulse');
     }
@@ -87,6 +113,7 @@ export async function checkAndInitCeremony(classId) {
     }
 
     if (monthKey === now.toISOString().substring(0, 7)) return null; 
+    if (!existedByMonthEnd(classData, monthKey)) return null;
 
     return {
         monthKey,
@@ -147,6 +174,8 @@ async function loadDataAndAdvance() {
 
     try {
         const [year, month] = ceremonyData.monthKey.split('-').map(Number);
+        const { monthStart } = getCeremonyMonthBounds(ceremonyData.monthKey);
+        const allStudents = state.get('allStudents') || [];
         
         // 1. Fetch Logs
         const logs = await fetchLogsForMonth(year, month);
@@ -158,13 +187,13 @@ async function loadDataAndAdvance() {
         });
 
         // 2. PREPARE CLASSES
-        const allClasses = state.get('allSchoolClasses').filter(c => c.questLevel === ceremonyData.league);
+        const allClasses = state.get('allSchoolClasses')
+            .filter(c => c.questLevel === ceremonyData.league && existedByMonthEnd(c, ceremonyData.monthKey));
         const ranges = state.get('schoolHolidayRanges') || [];
-        const monthStart = new Date(year, month - 1, 1);
         const overrides = state.get('allScheduleOverrides') || [];
 
         let classScores = allClasses.map(c => {
-            const students = state.get('allStudents').filter(s => s.classId === c.id);
+            const students = allStudents.filter(s => s.classId === c.id && existedByMonthEnd(s, ceremonyData.monthKey));
             const scoreFromStudents = students.reduce((sum, s) => sum + (monthlyScores[s.id] || 0), 0);
             const classTeamBonus = Number(c.teamQuestBonuses?.[ceremonyData.monthKey]) || 0;
             const score = scoreFromStudents + classTeamBonus;
@@ -178,7 +207,7 @@ async function loadDataAndAdvance() {
             );
             const historicalDifficulty = utils.getHistoricalDifficultyForMonth(c, monthStart, questHistoryRecords);
             
-            const progress = (score / goal) * 100;
+            const progress = goal > 0 ? (score / goal) * 100 : 0;
 
             return { 
                 ...c, score, goal, progress, 
@@ -204,8 +233,8 @@ async function loadDataAndAdvance() {
         ceremonyData.classQueue = classScores.reverse(); 
 
         // 3. PREPARE STUDENTS
-        const studentsInClass = state.get('allStudents').filter(s => s.classId === ceremonyData.classId);
-        const allWrittenScores = state.get('allWrittenScores'); 
+        const studentsInClass = allStudents.filter(s => s.classId === ceremonyData.classId && existedByMonthEnd(s, ceremonyData.monthKey));
+        const allWrittenScores = state.get('allWrittenScores') || []; 
 
         let studentStats = studentsInClass.map(s => {
             const sLogs = logs.filter(l => l.studentId === s.id);
@@ -316,7 +345,7 @@ function advanceCeremony() {
             ceremonyData.phase = 'class_showdown'; 
             const silver = queue[queue.length - 2];
             const gold = queue[queue.length - 1];
-            setupShowdown(silver, gold, 'The Final Duel', 'Two legends remain...');
+            setupShowdown(silver, gold, 'The Final Duel', 'Two legends remain...', 'class');
             btn.innerText = "🥁 Drumroll...";
             btn.onclick = handleDramaticReveal;
             return;
@@ -330,7 +359,7 @@ function advanceCeremony() {
         subtitle.innerHTML = formatTitleHtml("Team Quest");
         aiBox.style.opacity = '1';
         
-        triggerAICommentary('class_rank', { id: entry.id, name: entry.name, rank: entry.rank, score: entry.score, progress: entry.progress.toFixed(0) });
+        triggerAICommentary('class_rank', { id: entry.id, name: entry.name, rank: entry.rank, score: entry.score, progress: formatPercent(entry.progress) });
 
         ceremonyData.classPointer++;
         btn.innerText = "Next";
@@ -382,7 +411,7 @@ function advanceCeremony() {
             ceremonyData.phase = 'student_showdown';
             const silver = queue[queue.length - 2];
             const gold = queue[queue.length - 1];
-            setupShowdown(silver, gold, 'Top Heroes', 'Two legends remain...');
+            setupShowdown(silver, gold, 'Top Heroes', 'Two legends remain...', 'student');
             btn.innerText = "Crown the Champion";
             btn.onclick = handleDramaticReveal;
             return;
@@ -492,7 +521,7 @@ function renderCard(entry, type) {
         : `<div class="flex flex-col items-center">
              <span class="text-2xl font-bold text-indigo-700">${entry.score} Stars</span>
              <span class="text-sm font-semibold text-gray-500 uppercase tracking-wide mt-1">${entry.studentCount} Students</span>
-             <span class="text-amber-500 font-extrabold text-3xl mt-2 drop-shadow-sm">${entry.progress.toFixed(0)}%</span>
+             <span class="text-amber-500 font-extrabold text-3xl mt-2 drop-shadow-sm">${formatPercent(entry.progress)}%</span>
            </div>`;
     // Check if this card belongs to the class currently using the app
     const isMyClass = !isStudent && entry.id === ceremonyData.currentAppClassId;
@@ -517,7 +546,7 @@ function renderCard(entry, type) {
     playSound(entry.rank <= 3 ? 'star2' : 'click');
 }
 
-function setupShowdown(silverEntry, goldEntry, titleText, subText) {
+function setupShowdown(silverEntry, goldEntry, titleText, subText, entryType) {
     const stage = document.getElementById('ceremony-stage-area');
     const title = document.getElementById('ceremony-title');
     const subtitle = document.getElementById('ceremony-subtitle');
@@ -534,8 +563,8 @@ function setupShowdown(silverEntry, goldEntry, titleText, subText) {
     spotlight.className = 'absolute inset-0 bg-radial-gradient-spotlight pointer-events-none animate-pulse-slow';
     stage.appendChild(spotlight);
 
-    const leftCard = createFaceOff(silverEntry, silverEntry.rank, 'left');
-    const rightCard = createFaceOff(goldEntry, goldEntry.rank, 'right');
+    const leftCard = createFaceOff(silverEntry, silverEntry.rank, 'left', entryType);
+    const rightCard = createFaceOff(goldEntry, goldEntry.rank, 'right', entryType);
     
     const vsBadge = document.createElement('div');
     vsBadge.id = 'ceremony-vs-badge';
@@ -555,7 +584,7 @@ function setupShowdown(silverEntry, goldEntry, titleText, subText) {
     }
 }
 
-function createFaceOff(entry, realRank, position) {
+function createFaceOff(entry, realRank, position, entryType) {
     if (!entry) return document.createElement('div');
 
     const div = document.createElement('div');
@@ -567,7 +596,7 @@ function createFaceOff(entry, realRank, position) {
     div.dataset.score = entry.score;
     div.dataset.id = entry.id;
     
-    const isStudent = entry.avatar !== undefined;
+    const isStudent = entryType === 'student';
     
     const imageHtml = !isStudent
         ? `<div class="text-8xl mb-4 filter drop-shadow-lg">${entry.logo}</div>`
@@ -580,7 +609,7 @@ function createFaceOff(entry, realRank, position) {
         : `<div class="flex flex-col items-center">
              <span class="text-xl text-amber-700">${entry.score} Stars</span>
              <span class="text-xs text-gray-500 uppercase">${entry.studentCount} Students</span>
-             <span class="text-3xl text-amber-600 font-bold mt-1">${entry.progress.toFixed(0)}%</span>
+             <span class="text-3xl text-amber-600 font-bold mt-1">${formatPercent(entry.progress)}%</span>
            </div>`;
 
     div.innerHTML = `

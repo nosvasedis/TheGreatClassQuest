@@ -281,8 +281,9 @@ export function setupUIListeners() {
     document.getElementById('student-history-btn').addEventListener('click', modals.openStudentRankingsModal);
     document.getElementById('history-modal-close-btn').addEventListener('click', () => modals.hideModal('history-modal'));
     document.getElementById('history-month-select').addEventListener('change', (e) => {
-        const type = document.getElementById('history-modal').dataset.historyType;
-        modals.renderHistoricalLeaderboard(e.target.value, type);
+        const modal = document.getElementById('history-modal');
+        const type = modal.dataset.historyType;
+        modals.renderHistoricalLeaderboard(e.target.value, type, modal.dataset.historyLeague || null);
     });
 
     // Get Quest Update button

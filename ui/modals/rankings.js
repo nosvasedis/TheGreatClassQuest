@@ -107,13 +107,21 @@ export async function openStudentRankingsModal(resetDate = true) {
         const allClasses = state.get('allSchoolClasses');
 
         if (view === 'global') {
-            const currentLeague = filterValue || allLeagues[0];
+            const preferredLeague = state.get('globalSelectedLeague');
+            const currentLeague = allLeagues.includes(filterValue)
+                ? filterValue
+                : allLeagues.includes(preferredLeague)
+                    ? preferredLeague
+                    : allLeagues[0];
             const options = allLeagues.map(l => `<option value="${l}" ${l === currentLeague ? 'selected' : ''}>${l} League</option>`).join('');
             filterContainer.innerHTML = `<select id="rank-league-select" class="w-full p-3 border-2 border-indigo-100 rounded-xl bg-indigo-50 font-bold text-indigo-900 outline-none">${options}</select>`;
             const classesInLeague = allClasses.filter(c => c.questLevel === currentLeague);
             const classIds = classesInLeague.map(c => c.id);
             renderStudentList(allStudents.filter(s => classIds.includes(s.classId)), listContainer, monthlyScores);
-            document.getElementById('rank-league-select').onchange = (e) => renderContent('global', e.target.value);
+            document.getElementById('rank-league-select').onchange = (e) => {
+                state.setGlobalSelectedLeague(e.target.value, false);
+                renderContent('global', e.target.value);
+            };
         } else {
             if (myClasses.length === 0) {
                 listContainer.innerHTML = `<p class="text-center text-gray-500">No classes found.</p>`;

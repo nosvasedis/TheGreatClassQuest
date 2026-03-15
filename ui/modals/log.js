@@ -143,15 +143,16 @@ export async function showLogbookModal(dateString, isOndemand = false) {
     }
 }
 
-export function openHistoryModal(type) {
+export function openHistoryModal(type, options = {}) {
     const modal = document.getElementById('history-modal');
     modal.dataset.historyType = type;
+    modal.dataset.historyLeague = options.league || '';
     
     // Title
     const title = type === 'team' ? 'Team Quest History' : 'Hero\'s Challenge History';
     document.querySelector('#history-modal h2').innerText = title;
 
-    const league = state.get('globalSelectedLeague');
+    const league = options.league || state.get('globalSelectedLeague');
 
     // Logic: If it's HERO history, we still need a specific context (League or Class).
     // If it's TEAM history, we show ALL leagues, so we don't need a selection.
@@ -171,9 +172,10 @@ export function openHistoryModal(type) {
             btn.addEventListener('click', () => {
                 playSound('click');
                 state.setGlobalSelectedLeague(btn.dataset.league, false);
+                modal.dataset.historyLeague = btn.dataset.league;
                 selectEl.classList.remove('hidden');
                 populateHistoryMonthSelector();
-                renderHistoricalLeaderboard("", type);
+                renderHistoricalLeaderboard("", type, btn.dataset.league);
             });
         });
 
@@ -182,14 +184,14 @@ export function openHistoryModal(type) {
         
         // FIX: If it is Hero mode, go straight to the Hero modal logic and SKIP the Team modal
         if (type === 'hero') {
-            renderHistoricalLeaderboard("", type);
+            renderHistoricalLeaderboard("", type, league || null);
             return; // STOP here so we don't open the 'history-modal'
         }
 
         // Team Mode -> Show normal view
         document.getElementById('history-month-select').classList.remove('hidden');
         populateHistoryMonthSelector();
-        renderHistoricalLeaderboard("", type);
+        renderHistoricalLeaderboard("", type, league || null);
         showAnimatedModal('history-modal'); // Only show this for Team history
     }
 }
@@ -213,7 +215,7 @@ function populateHistoryMonthSelector() {
 // --- TEAM QUEST & HERO ARCHIVE ---
 // ui/modals.js
 
-export async function renderHistoricalLeaderboard(monthKey, type, scope = 'class') {
+export async function renderHistoricalLeaderboard(monthKey, type, leagueFilter = null) {
     // 1. Handle Hero History Redirect
     if (type === 'hero') {
         const modalTitle = document.querySelector('#history-modal h2');
@@ -243,6 +245,11 @@ export async function renderHistoricalLeaderboard(monthKey, type, scope = 'class
     }).join('');
 
     // --- Banner Header ---
+    const archiveTitle = leagueFilter ? `${leagueFilter} League Archive` : 'Team Quest Archive';
+    const archiveSubtitle = leagueFilter
+        ? `Historical standings for the active ${leagueFilter} tier`
+        : 'Review past victories and league standings';
+
     const headerHtml = `
         <div class="relative overflow-hidden rounded-3xl bg-gradient-to-br from-orange-500 via-amber-500 to-yellow-500 p-6 text-white shadow-xl mb-6 border-4 border-orange-400/50">
             <div class="absolute -right-6 -top-6 text-white/10 text-9xl transform rotate-12 pointer-events-none"><i class="fas fa-flag-checkered"></i></div>
@@ -251,9 +258,9 @@ export async function renderHistoricalLeaderboard(monthKey, type, scope = 'class
                 <div>
                     <div class="flex items-center gap-3 mb-1">
                         <div class="bg-white/20 p-2 rounded-lg backdrop-blur-sm"><i class="fas fa-flag-checkered text-2xl"></i></div>
-                        <h3 class="font-title text-3xl text-shadow-sm tracking-wide">Team Quest Archive</h3>
+                        <h3 class="font-title text-3xl text-shadow-sm tracking-wide">${archiveTitle}</h3>
                     </div>
-                    <p class="text-orange-100 font-medium text-sm ml-1 opacity-90">Review past victories and league standings</p>
+                    <p class="text-orange-100 font-medium text-sm ml-1 opacity-90">${archiveSubtitle}</p>
                 </div>
                 <div class="w-full md:w-auto">
                     <div class="relative group">
@@ -277,7 +284,7 @@ export async function renderHistoricalLeaderboard(monthKey, type, scope = 'class
                 <p class="text-gray-500 font-bold text-lg">Time Machine Ready</p>
                 <p class="text-gray-400 text-sm">Select a month above to travel back in time.</p>
             </div>`;
-        document.getElementById('internal-history-select').addEventListener('change', (e) => renderHistoricalLeaderboard(e.target.value, 'team'));
+        document.getElementById('internal-history-select').addEventListener('change', (e) => renderHistoricalLeaderboard(e.target.value, 'team', leagueFilter));
         return;
     }
 
@@ -288,7 +295,7 @@ export async function renderHistoricalLeaderboard(monthKey, type, scope = 'class
             <p class="text-gray-600 font-bold animate-pulse text-lg">Retrieving Quest Logs...</p>
         </div>`;
     
-    document.getElementById('internal-history-select').addEventListener('change', (e) => renderHistoricalLeaderboard(e.target.value, 'team'));
+    document.getElementById('internal-history-select').addEventListener('change', (e) => renderHistoricalLeaderboard(e.target.value, 'team', leagueFilter));
 
     // --- MAIN RENDER LOGIC WITH SAFETY ---
     try {
@@ -331,7 +338,9 @@ export async function renderHistoricalLeaderboard(monthKey, type, scope = 'class
 
         let fullHtml = '';
 
-        for (const league of allLeagues) {
+        const leaguesToRender = leagueFilter ? allLeagues.filter(league => league === leagueFilter) : allLeagues;
+
+        for (const league of leaguesToRender) {
             const classesInLeague = allClasses.filter(c => c.questLevel === league);
             if (classesInLeague.length === 0) continue;
 
@@ -454,7 +463,7 @@ export async function renderHistoricalLeaderboard(monthKey, type, scope = 'class
         contentEl.innerHTML = headerHtml + (fullHtml || `<div class="p-8 text-center text-gray-500 bg-gray-50 rounded-2xl">No data available for this month.</div>`);
         
         // Re-bind listener after HTML update
-        document.getElementById('internal-history-select').addEventListener('change', (e) => renderHistoricalLeaderboard(e.target.value, 'team'));
+        document.getElementById('internal-history-select').addEventListener('change', (e) => renderHistoricalLeaderboard(e.target.value, 'team', leagueFilter));
 
     } catch (error) {
         console.error("Render Error:", error);
@@ -467,6 +476,6 @@ export async function renderHistoricalLeaderboard(monthKey, type, scope = 'class
             </div>`;
         // Re-bind listener even on error state
         const select = document.getElementById('internal-history-select');
-        if(select) select.addEventListener('change', (e) => renderHistoricalLeaderboard(e.target.value, 'team'));
+        if(select) select.addEventListener('change', (e) => renderHistoricalLeaderboard(e.target.value, 'team', leagueFilter));
     }
 }

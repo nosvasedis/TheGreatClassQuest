@@ -86,8 +86,14 @@ export const setupHTML = `
                                         <select id="setup-class-level" class="w-full px-4 py-3 border border-indigo-200 rounded-2xl focus:ring-2 focus:ring-indigo-500 bg-white"></select>
                                     </div>
                                     <div>
-                                        <label class="block text-sm font-bold text-slate-700 mb-2" for="setup-class-logo">Class emoji</label>
-                                        <select id="setup-class-logo" class="w-full px-4 py-3 border border-indigo-200 rounded-2xl focus:ring-2 focus:ring-indigo-500 bg-white"></select>
+                                        <label class="block text-sm font-bold text-slate-700 mb-2" for="setup-class-logo-grid">Class emoji</label>
+                                        <div class="rounded-2xl border border-indigo-200 bg-white p-3">
+                                            <div class="flex items-center justify-between gap-3 mb-3">
+                                                <p class="text-xs uppercase tracking-[0.2em] text-slate-400">Selected</p>
+                                                <div id="setup-class-logo-preview" class="w-11 h-11 rounded-2xl bg-indigo-100 text-indigo-700 border border-indigo-200 flex items-center justify-center text-2xl shadow-sm">📚</div>
+                                            </div>
+                                            <div id="setup-class-logo-grid" class="grid grid-cols-6 sm:grid-cols-8 gap-2 max-h-40 overflow-y-auto pr-1"></div>
+                                        </div>
                                     </div>
                                 </div>
 
@@ -103,9 +109,9 @@ export const setupHTML = `
                                 <div id="setup-class-name-suggestions" class="flex flex-wrap gap-2 mb-4"></div>
 
                                 <label class="block text-sm font-bold text-slate-700 mb-2" for="setup-class-students">Students in this class</label>
-                                <textarea id="setup-class-students" rows="7" placeholder="One student per line&#10;Maria&#10;Nikos&#10;Eleni"
+                                <textarea id="setup-class-students" rows="7" placeholder="One student per line&#10;Maria Papadopoulou&#10;Nikos Georgiou&#10;Eleni Ioannou"
                                     class="w-full px-4 py-3 border border-indigo-200 rounded-2xl focus:ring-2 focus:ring-indigo-500 bg-white resize-y"></textarea>
-                                <p class="text-xs text-slate-500 mt-2">You can paste a whole class list. Each non-empty line becomes one student.</p>
+                                <p class="text-xs text-slate-500 mt-2">Write each student’s full name on one line. GCQ keeps the whole line as the student name and uses the first word as the first name in greetings.</p>
 
                                 <div class="mt-5 flex flex-wrap gap-3">
                                     <button type="button" id="setup-add-class-btn" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-6 rounded-2xl bubbly-button flex items-center gap-2">

@@ -88,7 +88,7 @@ function prefillSetupLocationFromState() {
 
 function populateSetupSelectors() {
     const levelSelect = document.getElementById('setup-class-level');
-    const logoSelect = document.getElementById('setup-class-logo');
+    const logoGrid = document.getElementById('setup-class-logo-grid');
 
     if (levelSelect && !levelSelect.dataset.ready) {
         levelSelect.innerHTML = questLeagues
@@ -97,12 +97,48 @@ function populateSetupSelectors() {
         levelSelect.dataset.ready = 'true';
     }
 
-    if (logoSelect && !logoSelect.dataset.ready) {
-        logoSelect.innerHTML = classLogos
-            .map((logo) => `<option value="${logo}">${logo} ${logo}</option>`)
+    if (logoGrid && !logoGrid.dataset.ready) {
+        logoGrid.innerHTML = classLogos
+            .map((logo) => `
+                <button
+                    type="button"
+                    class="setup-logo-btn w-11 h-11 rounded-2xl border border-slate-200 bg-slate-50 text-2xl transition hover:bg-indigo-50 hover:border-indigo-300 bubbly-button"
+                    data-logo="${logo}"
+                    aria-label="Choose ${logo} as the class emoji"
+                    title="${logo}"
+                >${logo}</button>
+            `)
             .join('');
-        logoSelect.value = '📚';
-        logoSelect.dataset.ready = 'true';
+        logoGrid.dataset.ready = 'true';
+    }
+
+    setSelectedSetupLogo(getSelectedSetupLogo() || '📚');
+}
+
+function getSelectedSetupLogo() {
+    return document.getElementById('setup-class-logo-grid')?.dataset.selectedLogo || '📚';
+}
+
+function setSelectedSetupLogo(logo) {
+    const nextLogo = classLogos.includes(logo) ? logo : '📚';
+    const logoGrid = document.getElementById('setup-class-logo-grid');
+    const preview = document.getElementById('setup-class-logo-preview');
+    if (logoGrid) {
+        logoGrid.dataset.selectedLogo = nextLogo;
+        logoGrid.querySelectorAll('.setup-logo-btn').forEach((button) => {
+            const isSelected = button.dataset.logo === nextLogo;
+            button.classList.toggle('bg-indigo-600', isSelected);
+            button.classList.toggle('text-white', isSelected);
+            button.classList.toggle('border-indigo-600', isSelected);
+            button.classList.toggle('shadow-lg', isSelected);
+            button.classList.toggle('scale-[1.06]', isSelected);
+            button.classList.toggle('bg-slate-50', !isSelected);
+            button.classList.toggle('text-slate-800', !isSelected);
+            button.classList.toggle('border-slate-200', !isSelected);
+        });
+    }
+    if (preview) {
+        preview.textContent = nextLogo;
     }
 }
 
@@ -116,7 +152,10 @@ function parseStudentNames(raw) {
     const seen = new Set();
     return raw
         .split('\n')
-        .map((name) => name.trim())
+        .map((name) => name
+            .replace(/^\s*(?:[-*•]|\d+[.)-])\s*/, '')
+            .replace(/\s+/g, ' ')
+            .trim())
         .filter(Boolean)
         .filter((name) => {
             const key = name.toLowerCase();
@@ -130,13 +169,12 @@ function resetClassDraftForm() {
     const nameInput = document.getElementById('setup-class-name');
     const studentsInput = document.getElementById('setup-class-students');
     const levelSelect = document.getElementById('setup-class-level');
-    const logoSelect = document.getElementById('setup-class-logo');
     const suggestions = document.getElementById('setup-class-name-suggestions');
 
     if (nameInput) nameInput.value = '';
     if (studentsInput) studentsInput.value = '';
     if (levelSelect) levelSelect.value = questLeagues[0];
-    if (logoSelect) logoSelect.value = '📚';
+    setSelectedSetupLogo('📚');
     if (suggestions) suggestions.innerHTML = '';
 }
 
@@ -344,12 +382,11 @@ async function handleGenerateSetupClassName() {
 function handleAddDraftClass() {
     const nameInput = document.getElementById('setup-class-name');
     const levelSelect = document.getElementById('setup-class-level');
-    const logoSelect = document.getElementById('setup-class-logo');
     const studentsInput = document.getElementById('setup-class-students');
 
     const name = nameInput?.value?.trim();
     const questLevel = levelSelect?.value || questLeagues[0];
-    const logo = logoSelect?.value || '📚';
+    const logo = getSelectedSetupLogo();
     const students = parseStudentNames(studentsInput?.value || '');
 
     if (!name) {
@@ -509,6 +546,11 @@ function setupSetupListeners() {
     document.getElementById('setup-add-class-btn')?.addEventListener('click', handleAddDraftClass);
     document.getElementById('setup-clear-class-form-btn')?.addEventListener('click', resetClassDraftForm);
     document.getElementById('setup-generate-class-name-btn')?.addEventListener('click', handleGenerateSetupClassName);
+    document.getElementById('setup-class-logo-grid')?.addEventListener('click', (event) => {
+        const logoButton = event.target.closest('.setup-logo-btn');
+        if (!logoButton) return;
+        setSelectedSetupLogo(logoButton.dataset.logo || '📚');
+    });
     document.getElementById('setup-class-name-suggestions')?.addEventListener('click', (event) => {
         if (!event.target.classList.contains('setup-suggestion-btn')) return;
         const classNameInput = document.getElementById('setup-class-name');

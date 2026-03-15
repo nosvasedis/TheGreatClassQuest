@@ -18,8 +18,11 @@ This is the main noob-friendly setup quest. It:
 
 - saves the school in your local billing records
 - stores the Firebase key safely on your machine
+- checks that Cloud Firestore is enabled
+- deploys the repo's Firestore rules
 - writes the school subscription as `pending`
 - checks and creates Firestore indexes
+- checks Firebase Storage and deploys Storage rules when a bucket exists
 - rebuilds the Render billing JSON
 - prepares the Netlify environment variables
 

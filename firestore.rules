@@ -1,0 +1,119 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /appConfig/subscription {
+      allow read: if request.auth != null;
+      allow write: if false;
+    }
+
+    function isOwner(docData) {
+      return request.auth.uid == docData.createdBy.uid;
+    }
+
+    function isMarker(docData) {
+      return request.auth.uid == docData.markedBy.uid;
+    }
+
+    match /teacher_metadata/{userId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+
+    match /artifacts/great-class-quest/public/data/{collection}/{docId} {
+      allow read: if request.auth != null && (
+        collection != 'hero_chronicle_notes' ||
+        (collection == 'hero_chronicle_notes' && resource.data.teacherId == request.auth.uid)
+      );
+
+      allow create: if request.auth != null && (
+        (collection == 'classes' && isOwner(request.resource.data)) ||
+        (collection == 'students' && isOwner(request.resource.data)) ||
+        (collection == 'student_scores' && isOwner(request.resource.data)) ||
+        (collection == 'award_log' && isOwner(request.resource.data)) ||
+        (collection == 'today_stars' && request.auth.uid == request.resource.data.teacherId) ||
+        (collection == 'adventure_logs' && isOwner(request.resource.data)) ||
+        (collection == 'quest_events' && isOwner(request.resource.data)) ||
+        (collection == 'quest_assignments' && isOwner(request.resource.data)) ||
+        (collection == 'quest_bounties' && isOwner(request.resource.data)) ||
+        (collection == 'shop_items' && isOwner(request.resource.data)) ||
+        (collection == 'written_scores' && request.auth.uid == request.resource.data.teacherId) ||
+        (collection == 'story_data' && isOwner(request.resource.data)) ||
+        (collection == 'completed_stories' && isOwner(request.resource.data)) ||
+        (collection == 'attendance' && isMarker(request.resource.data)) ||
+        (collection == 'schedule_overrides' && isOwner(request.resource.data)) ||
+        (collection == 'class_shields' && isOwner(request.resource.data)) ||
+        (collection == 'world_boss' && request.auth.uid != null) ||
+        (collection == 'hero_chronicle_notes' && request.resource.data.teacherId == request.auth.uid) ||
+        (collection == 'quest_history' && isOwner(request.resource.data)) ||
+        (collection == 'school_settings') ||
+        (collection == 'daily_ai_content' && isOwner(request.resource.data)) ||
+        (collection == 'daily_cache') ||
+        (collection == 'guild_scores' && request.auth.uid != null) ||
+        (collection == 'guild_champions' && request.auth.uid != null)
+      );
+
+      allow update: if request.auth != null && (
+        (collection == 'classes' && isOwner(resource.data) && !('createdBy' in request.resource.data.diff(resource.data).affectedKeys())) ||
+        (collection == 'student_scores' && get(/databases/$(database)/documents/artifacts/great-class-quest/public/data/students/$(docId)).data.createdBy.uid == request.auth.uid) ||
+        (collection == 'today_stars' && request.auth.uid == resource.data.teacherId) ||
+        (collection == 'award_log' && isOwner(resource.data)) ||
+        (collection == 'adventure_logs' && isOwner(resource.data)) ||
+        (collection == 'story_data' && isOwner(resource.data)) ||
+        (collection == 'quest_bounties' && isOwner(resource.data)) ||
+        (collection == 'shop_items' && isOwner(resource.data)) ||
+        (collection == 'world_boss' && request.auth.uid != null) ||
+        (collection == 'class_shields' && isOwner(resource.data)) ||
+        (collection == 'written_scores' && request.auth.uid == resource.data.teacherId) ||
+        (collection == 'students' &&
+          (
+            (isOwner(resource.data) && !('createdBy' in request.resource.data.diff(resource.data).affectedKeys())) ||
+            (
+              request.resource.data.diff(resource.data).affectedKeys().hasOnly(['classId', 'createdBy']) &&
+              get(/databases/$(database)/documents/artifacts/great-class-quest/public/data/classes/$(request.resource.data.classId)).data.createdBy.uid == request.auth.uid &&
+              request.resource.data.createdBy.uid == get(/databases/$(database)/documents/artifacts/great-class-quest/public/data/classes/$(request.resource.data.classId)).data.createdBy.uid
+            )
+          )
+        ) ||
+        (collection == 'hero_chronicle_notes' && resource.data.teacherId == request.auth.uid) ||
+        (collection == 'school_settings') ||
+        (collection == 'daily_ai_content' && isOwner(resource.data)) ||
+        (collection == 'daily_cache') ||
+        (collection == 'guild_scores' && request.auth.uid != null) ||
+        (collection == 'guild_champions' && request.auth.uid != null)
+      );
+
+      allow delete: if request.auth != null && (
+        isOwner(resource.data) ||
+        (collection == 'attendance' && isMarker(resource.data)) ||
+        (collection == 'written_scores' && request.auth.uid == resource.data.teacherId) ||
+        (collection == 'schedule_overrides' && isOwner(resource.data)) ||
+        (collection == 'hero_chronicle_notes' && resource.data.teacherId == request.auth.uid) ||
+        (collection == 'school_settings') ||
+        (collection == 'daily_ai_content' && isOwner(resource.data)) ||
+        (collection == 'quest_bounties' && isOwner(resource.data)) ||
+        (collection == 'shop_items' && isOwner(resource.data)) ||
+        (collection == 'class_shields' && isOwner(resource.data)) ||
+        (collection == 'class_sanctuaries' && isOwner(resource.data)) ||
+        (collection == 'daily_cache')
+      );
+    }
+
+    match /{path=**}/monthly_history/{monthId} {
+      allow read: if request.auth != null;
+    }
+
+    match /artifacts/great-class-quest/public/data/student_scores/{studentId}/monthly_history/{monthId} {
+      allow write: if request.auth != null &&
+        get(/databases/$(database)/documents/artifacts/great-class-quest/public/data/students/$(studentId)).data.createdBy.uid == request.auth.uid;
+    }
+
+    match /artifacts/great-class-quest/public/data/story_data/{classId}/story_history/{historyId} {
+      allow read, write: if request.auth != null;
+      allow delete: if request.auth != null;
+    }
+
+    match /artifacts/great-class-quest/public/data/completed_stories/{storyId}/chapters/{chapterId} {
+      allow read: if request.auth != null;
+      allow write, delete: if request.auth != null;
+    }
+  }
+}

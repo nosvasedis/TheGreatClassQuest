@@ -9,9 +9,79 @@ const SUBSCRIPTION_PATH = 'appConfig/subscription';
 let subscriptionConfig = null;
 let subscriptionUnsubscribe = null;
 
+function getTierDefaults(tier) {
+    switch ((tier || '').toLowerCase()) {
+        case 'starter':
+            return {
+                tier: 'starter',
+                maxTeachers: 3,
+                maxClasses: 6,
+                guilds: false,
+                adventureLog: false,
+                calendar: false,
+                schoolYearPlanner: false,
+                scholarScroll: false,
+                makeupTracking: false,
+                advancedAttendance: false,
+                storyWeavers: false,
+                heroProgression: false,
+                familiars: false,
+                eliteAI: false,
+                earlyAccess: false,
+                prioritySupport: false,
+                customFeatures: false
+            };
+        case 'pro':
+            return {
+                tier: 'pro',
+                maxTeachers: 6,
+                maxClasses: 10,
+                guilds: true,
+                adventureLog: true,
+                calendar: true,
+                schoolYearPlanner: true,
+                scholarScroll: true,
+                makeupTracking: true,
+                advancedAttendance: true,
+                storyWeavers: false,
+                heroProgression: true,
+                familiars: false,
+                eliteAI: false,
+                earlyAccess: false,
+                prioritySupport: false,
+                customFeatures: false
+            };
+        case 'elite':
+            return {
+                tier: 'elite',
+                maxTeachers: null,
+                maxClasses: null,
+                guilds: true,
+                adventureLog: true,
+                calendar: true,
+                schoolYearPlanner: true,
+                scholarScroll: true,
+                makeupTracking: true,
+                advancedAttendance: true,
+                storyWeavers: true,
+                heroProgression: true,
+                familiars: true,
+                eliteAI: true,
+                earlyAccess: true,
+                prioritySupport: true,
+                customFeatures: true
+            };
+        case 'expired':
+            return getExpiredDefaults();
+        case 'pending':
+        default:
+            return getStarterDefaults();
+    }
+}
+
 function applySubscriptionSnapshot(snap) {
     if (snap.exists()) {
-        subscriptionConfig = snap.data();
+        subscriptionConfig = resolveSubscriptionConfig(snap.data());
     } else {
         subscriptionConfig = getStarterDefaults();
     }
@@ -78,6 +148,59 @@ function getStarterDefaults() {
         earlyAccess: false,
         prioritySupport: false,
         customFeatures: false
+    };
+}
+
+function getExpiredDefaults() {
+    return {
+        tier: 'expired',
+        maxTeachers: 0,
+        maxClasses: 0,
+        guilds: false,
+        adventureLog: false,
+        calendar: false,
+        schoolYearPlanner: false,
+        scholarScroll: false,
+        makeupTracking: false,
+        advancedAttendance: false,
+        storyWeavers: false,
+        heroProgression: false,
+        familiars: false,
+        eliteAI: false,
+        earlyAccess: false,
+        prioritySupport: false,
+        customFeatures: false
+    };
+}
+
+function resolveSubscriptionConfig(rawConfig) {
+    const base = rawConfig || {};
+    const startsAt = base.startsAt ? new Date(base.startsAt).getTime() : null;
+    const endsAt = base.endsAt ? new Date(base.endsAt).getTime() : null;
+    const now = Date.now();
+
+    if (startsAt && !Number.isNaN(startsAt) && startsAt > now) {
+        return {
+            ...getStarterDefaults(),
+            ...base,
+            tier: 'pending',
+            effectiveTier: 'pending'
+        };
+    }
+
+    if (endsAt && !Number.isNaN(endsAt) && endsAt <= now) {
+        return {
+            ...getExpiredDefaults(),
+            ...base,
+            tier: 'expired',
+            effectiveTier: 'expired'
+        };
+    }
+
+    return {
+        ...getTierDefaults(base.tier),
+        ...base,
+        effectiveTier: base.tier || 'pending'
     };
 }
 

@@ -1,7 +1,9 @@
 const fs = require('fs');
 const path = require('path');
+const crypto = require('crypto');
+const { spawn, spawnSync } = require('child_process');
 const admin = require('firebase-admin');
-const { JWT } = require('google-auth-library');
+const { JWT, GoogleAuth } = require('google-auth-library');
 
 const repoRoot = path.resolve(__dirname, '..', '..');
 const billingDir = path.join(repoRoot, 'billing');
@@ -13,6 +15,9 @@ const schoolsExamplePath = path.join(billingDir, 'schools.example.json');
 const renderPastePath = path.join(billingDir, 'render-paste.txt');
 const priceIdsLocalPath = path.join(billingDir, 'price-ids.local.json');
 const firestoreIndexesPath = path.join(repoRoot, 'firestore.indexes.json');
+const firestoreRulesPath = path.join(repoRoot, 'firestore.rules');
+const storageRulesPath = path.join(repoRoot, 'storage.rules');
+const tierConfigDir = path.join(repoRoot, 'config', 'tiers');
 const pendingTierPath = path.join(repoRoot, 'config', 'tiers', 'pending.json');
 
 const DEFAULT_DEFAULTS = {
@@ -24,13 +29,18 @@ const DEFAULT_DEFAULTS = {
   },
   lastSchoolLabel: '',
   lastProjectId: '',
+  firebaseLocation: 'europe-west1',
+  readinessTarget: 'starter',
 };
 
 const OAUTH_SCOPES = [
   'https://www.googleapis.com/auth/cloud-platform',
   'https://www.googleapis.com/auth/datastore',
   'https://www.googleapis.com/auth/firebase',
+  'https://www.googleapis.com/auth/service.management',
 ];
+
+let bootstrapAdminAuthPromise = null;
 
 function clone(value) {
   return JSON.parse(JSON.stringify(value));
@@ -112,6 +122,195 @@ function validateSchoolLabel(label) {
   return '';
 }
 
+function normalizeReadinessTarget(value) {
+  return value === 'pro' || value === 'elite' ? 'pro' : 'starter';
+}
+
+function normalizeFirebaseLocation(value) {
+  const normalized = String(value || '').trim();
+  return normalized || DEFAULT_DEFAULTS.firebaseLocation;
+}
+
+function normalizeDateInput(value) {
+  const raw = String(value || '').trim();
+  if (!raw) return '';
+  const parsed = new Date(raw);
+  if (Number.isNaN(parsed.getTime())) {
+    throw new Error('That date is not valid yet. Please use a real calendar date.');
+  }
+  return parsed.toISOString();
+}
+
+function extractProjectNumber(projectMetadata) {
+  const candidates = [
+    projectMetadata && projectMetadata.projectNumber,
+    projectMetadata && projectMetadata.project_number,
+    projectMetadata && projectMetadata.resources && projectMetadata.resources.projectNumber,
+  ];
+  for (const candidate of candidates) {
+    const value = String(candidate || '').trim();
+    if (/^\d+$/.test(value)) {
+      return value;
+    }
+  }
+  return '';
+}
+
+function buildServiceUsageConsumerName(projectMetadata) {
+  const projectNumber = extractProjectNumber(projectMetadata);
+  if (!projectNumber) {
+    throw new Error('Google did not return a project number for this Firebase project yet.');
+  }
+  return `projects/${projectNumber}`;
+}
+
+async function getBootstrapAdminAuth() {
+  if (!bootstrapAdminAuthPromise) {
+    bootstrapAdminAuthPromise = (async () => {
+      const auth = new GoogleAuth({
+        scopes: OAUTH_SCOPES,
+      });
+      const client = await auth.getClient();
+      return {
+        kind: 'bootstrap_admin',
+        auth,
+        client,
+      };
+    })().catch((error) => {
+      bootstrapAdminAuthPromise = null;
+      throw error;
+    });
+  }
+  return bootstrapAdminAuthPromise;
+}
+
+async function getOptionalBootstrapAdminAuth() {
+  try {
+    return await getBootstrapAdminAuth();
+  } catch (error) {
+    return null;
+  }
+}
+
+async function inspectBootstrapAdminAuth() {
+  try {
+    const auth = await getBootstrapAdminAuth();
+    const headers = await getAuthHeaders(auth, 'https://cloudresourcemanager.googleapis.com/');
+    return {
+      available: Boolean(headers.Authorization),
+      source: process.env.GOOGLE_APPLICATION_CREDENTIALS ? 'credentials_file' : 'google_login',
+      message: process.env.GOOGLE_APPLICATION_CREDENTIALS
+        ? 'Bootstrap admin access is ready from your local Google credentials file.'
+        : 'Bootstrap admin access is ready from your Google login on this machine.',
+      actionHint: '',
+      technicalDetails: '',
+    };
+  } catch (error) {
+    return {
+      available: false,
+      source: 'missing',
+      message: 'Bootstrap admin access is not ready on this machine yet.',
+      actionHint: 'Run `gcloud auth application-default login` with the Google account that manages this Firebase project, then restart the onboarding console.',
+      technicalDetails: error.message || '',
+    };
+  }
+}
+
+function inspectGcloudCli() {
+  const candidates = [
+    'gcloud',
+    path.join(process.env.HOME || '', 'google-cloud-sdk', 'bin', 'gcloud'),
+  ].filter(Boolean);
+
+  let resolvedPath = '';
+  let result = null;
+  for (const candidate of candidates) {
+    result = spawnSync(candidate, ['--version'], {
+      encoding: 'utf8',
+      stdio: ['ignore', 'pipe', 'pipe'],
+    });
+    if (!result.error && result.status === 0) {
+      resolvedPath = candidate;
+      break;
+    }
+  }
+
+  if (result.error || result.status !== 0) {
+    return {
+      installed: false,
+      command: 'gcloud auth application-default login',
+      message: 'Google Cloud CLI is not installed on this machine yet.',
+      actionHint: 'Install Google Cloud CLI first, then use the one-click Google sign-in button here.',
+      technicalDetails: result.error ? result.error.message : String(result.stderr || result.stdout || '').trim(),
+    };
+  }
+  const versionLine = String(result.stdout || '').split('\n').find((line) => /Google Cloud SDK/i.test(line)) || '';
+  return {
+    installed: true,
+    resolvedPath,
+    command: 'gcloud auth application-default login',
+    message: versionLine || 'Google Cloud CLI is installed on this machine.',
+    actionHint: '',
+    technicalDetails: '',
+  };
+}
+
+function startBootstrapAdminLogin() {
+  const gcloud = inspectGcloudCli();
+  if (!gcloud.installed) {
+    throw new Error('Google Cloud CLI is not installed on this machine yet. Install it first, then try the Google sign-in button again.');
+  }
+  if (process.platform !== 'darwin') {
+    throw new Error('One-click Google sign-in is currently only wired for macOS. Run `gcloud auth application-default login` in your terminal.');
+  }
+
+  const command = [
+    `${JSON.stringify(gcloud.resolvedPath || 'gcloud')} auth application-default login`,
+    'echo',
+    'echo "When Google sign-in finishes, return to the GCQ onboarding console and press Refresh Google Login Status."',
+  ].join('; ');
+  const appleScript = [
+    'tell application "Terminal"',
+    'activate',
+    `do script ${JSON.stringify(command)}`,
+    'end tell',
+  ].join('\n');
+
+  const child = spawn('osascript', ['-e', appleScript], {
+    detached: true,
+    stdio: 'ignore',
+  });
+  child.unref();
+
+  return {
+    started: true,
+    message: 'A new Terminal window was opened to start Google sign-in for one-time project setup.',
+    actionHint: 'Finish the Google sign-in in that Terminal window, then come back here and refresh the login status.',
+  };
+}
+
+function setBootstrapQuotaProject(projectId) {
+  const value = String(projectId || '').trim();
+  if (!value) {
+    throw new Error('Choose or type the Firebase project ID first so the Google login can use the right quota project.');
+  }
+  const gcloud = inspectGcloudCli();
+  if (!gcloud.installed) {
+    throw new Error('Google Cloud CLI is not installed on this machine yet.');
+  }
+  const result = spawnSync(gcloud.resolvedPath || 'gcloud', ['auth', 'application-default', 'set-quota-project', value], {
+    encoding: 'utf8',
+    stdio: ['ignore', 'pipe', 'pipe'],
+  });
+  if (result.error || result.status !== 0) {
+    throw new Error(String(result.stderr || result.stdout || result.error?.message || 'The quota project could not be set.').trim());
+  }
+  return {
+    ok: true,
+    message: `The Google login quota project was set to ${value}.`,
+  };
+}
+
 function parseServiceAccount(serviceAccountInput) {
   let parsed = serviceAccountInput;
   if (typeof parsed === 'string') {
@@ -162,28 +361,51 @@ function validateSetupInput(input, options = {}) {
   };
 }
 
+function getRequiredServices(readinessTarget) {
+  const target = normalizeReadinessTarget(readinessTarget);
+  const base = [
+    'serviceusage.googleapis.com',
+    'firebase.googleapis.com',
+    'firebaserules.googleapis.com',
+    'firestore.googleapis.com',
+  ];
+  if (target === 'pro') {
+    base.push('firebasestorage.googleapis.com');
+  }
+  return base;
+}
+
 function loadDefaults() {
   const fileDefaults = loadJsonIfExists(defaultsPath, {});
   const localPriceIds = loadJsonIfExists(priceIdsLocalPath, {});
+  const normalizedLocalPriceIds = normalizePriceIds(localPriceIds);
+  const normalizedFilePriceIds = normalizePriceIds(fileDefaults.priceIds || {});
   return {
     ...clone(DEFAULT_DEFAULTS),
     ...fileDefaults,
     priceIds: {
       ...clone(DEFAULT_DEFAULTS.priceIds),
-      ...normalizePriceIds(localPriceIds),
-      ...normalizePriceIds(fileDefaults.priceIds || {}),
+      ...normalizedFilePriceIds,
+      starter: normalizedFilePriceIds.starter || normalizedLocalPriceIds.starter || '',
+      pro: normalizedFilePriceIds.pro || normalizedLocalPriceIds.pro || '',
+      elite: normalizedFilePriceIds.elite || normalizedLocalPriceIds.elite || '',
     },
+    firebaseLocation: normalizeFirebaseLocation(fileDefaults.firebaseLocation),
+    readinessTarget: normalizeReadinessTarget(fileDefaults.readinessTarget),
   };
 }
 
 function saveDefaults(nextDefaults = {}) {
+  const currentDefaults = loadDefaults();
   const merged = {
-    ...loadDefaults(),
+    ...currentDefaults,
     ...nextDefaults,
     priceIds: {
-      ...loadDefaults().priceIds,
+      ...currentDefaults.priceIds,
       ...normalizePriceIds(nextDefaults.priceIds || {}),
     },
+    firebaseLocation: normalizeFirebaseLocation(nextDefaults.firebaseLocation || currentDefaults.firebaseLocation),
+    readinessTarget: normalizeReadinessTarget(nextDefaults.readinessTarget || currentDefaults.readinessTarget),
   };
   writeJson(defaultsPath, merged);
   writeJson(priceIdsLocalPath, merged.priceIds);
@@ -288,6 +510,28 @@ function writeRenderPaste(configData) {
   };
 }
 
+function readRuleSource(filePath) {
+  return fs.readFileSync(filePath, 'utf8');
+}
+
+function hashRuleSource(content) {
+  return crypto.createHash('sha256').update(content, 'utf8').digest('base64');
+}
+
+function normalizeRulesSource(content) {
+  return String(content || '')
+    .replace(/\r\n/g, '\n')
+    .trim();
+}
+
+function buildFirestoreReleaseName(projectId) {
+  return `projects/${projectId}/releases/cloud.firestore`;
+}
+
+function buildStorageReleaseName(projectId, bucketName) {
+  return `projects/${projectId}/releases/firebase.storage/${bucketName}`;
+}
+
 function getAdminApp(projectId, serviceAccount) {
   const appName = `gcq-onboarding-${String(projectId).replace(/[^a-z0-9-]/gi, '-').toLowerCase()}`;
   const existing = admin.apps.find((app) => app.name === appName);
@@ -299,6 +543,44 @@ function getAdminApp(projectId, serviceAccount) {
     },
     appName
   );
+}
+
+function getRulesAdminApp(projectId, authInput) {
+  const authKind = authInput && authInput.kind === 'bootstrap_admin' ? 'bootstrap' : 'service';
+  const appName = `gcq-rules-${String(projectId).replace(/[^a-z0-9-]/gi, '-').toLowerCase()}-${authKind}`;
+  const existing = admin.apps.find((app) => app.name === appName);
+  if (existing) return existing;
+  return admin.initializeApp(
+    {
+      credential: authKind === 'bootstrap'
+        ? admin.credential.applicationDefault()
+        : admin.credential.cert(authInput),
+      projectId,
+    },
+    appName
+  );
+}
+
+function parseRulesReleaseContext(releaseName, sourcePath) {
+  const projectId = String(releaseName || '').split('/')[1] || '';
+  if (releaseName === buildFirestoreReleaseName(projectId)) {
+    return {
+      projectId,
+      type: 'firestore',
+      bucketName: '',
+      sourceName: path.basename(sourcePath) || 'firestore.rules',
+    };
+  }
+  const storagePrefix = `projects/${projectId}/releases/firebase.storage/`;
+  if (releaseName.startsWith(storagePrefix)) {
+    return {
+      projectId,
+      type: 'storage',
+      bucketName: releaseName.slice(storagePrefix.length),
+      sourceName: path.basename(sourcePath) || 'storage.rules',
+    };
+  }
+  throw new Error(`Unsupported Firebase rules release name: ${releaseName}`);
 }
 
 async function writePendingSubscription(projectId, serviceAccount) {
@@ -328,21 +610,196 @@ async function readSubscriptionStatus(projectId, serviceAccount) {
   return { exists: true, tier: data && data.tier ? data.tier : null, data };
 }
 
-async function getAuthHeaders(serviceAccount) {
-  const client = new JWT({
-    email: serviceAccount.client_email,
-    key: serviceAccount.private_key,
-    scopes: OAUTH_SCOPES,
-  });
-  return client.getRequestHeaders();
+function loadTierPresetByName(tier) {
+  const normalizedTier = String(tier || '').trim().toLowerCase();
+  const presetPath = path.join(tierConfigDir, `${normalizedTier}.json`);
+  if (!fs.existsSync(presetPath)) {
+    throw new Error(`No subscription preset was found for "${normalizedTier}".`);
+  }
+  return readJson(presetPath);
 }
 
-async function googleJsonRequest(url, serviceAccount, options = {}) {
+function buildManualSubscriptionPayload(input = {}) {
+  const tier = String(input.tier || '').trim().toLowerCase();
+  if (!tier) {
+    throw new Error('Choose a subscription tier first.');
+  }
+  const preset = loadTierPresetByName(tier);
+  const startsAt = normalizeDateInput(input.startsAt);
+  const endsAt = normalizeDateInput(input.endsAt);
+  if (startsAt && endsAt && new Date(startsAt).getTime() > new Date(endsAt).getTime()) {
+    throw new Error('The end date must be after the start date.');
+  }
+  const notes = String(input.notes || '').trim();
+  const source = String(input.source || 'manual').trim() || 'manual';
+  const now = new Date().toISOString();
+  return {
+    ...preset,
+    source,
+    assignedTier: tier,
+    startsAt: startsAt || null,
+    endsAt: endsAt || null,
+    notes: notes || '',
+    updatedAt: now,
+    grantedAt: now,
+  };
+}
+
+function formatSubscriptionSummary(subscription) {
+  if (!subscription || !subscription.exists) {
+    return {
+      exists: false,
+      tier: 'missing',
+      effectiveTier: 'pending',
+      startsAt: null,
+      endsAt: null,
+      notes: '',
+      source: '',
+      message: 'No subscription document exists yet for this school.',
+    };
+  }
+  const data = subscription.data || {};
+  const startsAt = data.startsAt || null;
+  const endsAt = data.endsAt || null;
+  const now = Date.now();
+  let effectiveTier = data.tier || 'pending';
+  if (startsAt && new Date(startsAt).getTime() > now) {
+    effectiveTier = 'pending';
+  }
+  if (endsAt && new Date(endsAt).getTime() <= now) {
+    effectiveTier = 'expired';
+  }
+  return {
+    exists: true,
+    tier: data.tier || 'pending',
+    effectiveTier,
+    startsAt,
+    endsAt,
+    notes: data.notes || '',
+    source: data.source || '',
+    updatedAt: data.updatedAt || null,
+    message: `Current saved subscription tier is "${data.tier || 'pending'}".`,
+    data,
+  };
+}
+
+async function getSavedSchoolDetails(projectId) {
+  const schools = getSavedSchools();
+  const school = schools.find((item) => item.schoolId === projectId || item.firebaseProjectId === projectId);
+  if (!school) {
+    throw new Error('That school is not in your saved local billing list yet.');
+  }
+  if (!school.firebaseServiceAccountPath) {
+    throw new Error('This saved school does not have a Firebase key path yet.');
+  }
+  const keyPath = school.firebaseServiceAccountPath.startsWith('.')
+    ? path.join(billingDir, school.firebaseServiceAccountPath.replace(/^\.\//, ''))
+    : school.firebaseServiceAccountPath;
+  if (!fs.existsSync(keyPath)) {
+    throw new Error('The saved Firebase key file for this school could not be found.');
+  }
+  const serviceAccount = readJson(keyPath);
+  const subscription = await readSubscriptionStatus(projectId, serviceAccount);
+  return {
+    school,
+    serviceAccount,
+    subscription: formatSubscriptionSummary(subscription),
+  };
+}
+
+async function updateSavedSchoolSubscription(projectId, input = {}) {
+  const details = await getSavedSchoolDetails(projectId);
+  const payload = buildManualSubscriptionPayload(input);
+  const app = getAdminApp(projectId, details.serviceAccount);
+  await app.firestore().collection('appConfig').doc('subscription').set(payload, { merge: false });
+  const nextSubscription = await readSubscriptionStatus(projectId, details.serviceAccount);
+  return {
+    school: details.school,
+    subscription: formatSubscriptionSummary(nextSubscription),
+    message: 'The school subscription was updated successfully.',
+  };
+}
+
+function removeSchoolFromLocalConfig(projectId) {
+  const editable = ensureEditableSchoolsConfig();
+  const nextSchools = (editable.data.schools || []).filter((school) => {
+    const normalized = normalizeSchoolRecord(school);
+    return normalized.schoolId !== projectId && normalized.firebaseProjectId !== projectId;
+  });
+  const nextConfig = {
+    ...editable.data,
+    schools: nextSchools,
+  };
+  writeJson(editable.path, nextConfig);
+  const keyPath = path.join(billingKeysDir, `${projectId}.json`);
+  if (fs.existsSync(keyPath)) {
+    fs.unlinkSync(keyPath);
+  }
+  const renderOutput = writeRenderPaste(nextConfig);
+  return {
+    schools: nextSchools.map(normalizeSchoolRecord),
+    renderJson: renderOutput.renderJson,
+  };
+}
+
+async function getAuthHeaders(authInput, url = '') {
+  if (authInput && authInput.kind === 'bootstrap_admin' && authInput.client) {
+    const headers = await authInput.client.getRequestHeaders(url);
+    const directAuthorization = headers.Authorization || headers.authorization || '';
+    if (directAuthorization) {
+      return {
+        Authorization: directAuthorization,
+      };
+    }
+
+    const tokenResult = await authInput.client.getAccessToken();
+    const directToken = typeof tokenResult === 'string'
+      ? tokenResult
+      : tokenResult && (tokenResult.token || tokenResult.access_token || '');
+    if (directToken) {
+      return {
+        Authorization: `Bearer ${directToken}`,
+      };
+    }
+
+    const authToken = await authInput.auth.getAccessToken();
+    const fallbackToken = typeof authToken === 'string'
+      ? authToken
+      : authToken && (authToken.token || authToken.access_token || '');
+    if (fallbackToken) {
+      return {
+        Authorization: `Bearer ${fallbackToken}`,
+      };
+    }
+
+    throw new Error('Your local Google admin login did not provide an OAuth access token.');
+  }
+
+  const client = new JWT({
+    email: authInput.client_email,
+    key: authInput.private_key,
+    scopes: OAUTH_SCOPES,
+  });
+  client.useJWTAccessWithScope = false;
+  const tokens = await client.authorize();
+  const accessToken = tokens && tokens.access_token ? tokens.access_token : '';
+  if (!accessToken) {
+    throw new Error('The Firebase service account key could not create a Google OAuth access token.');
+  }
+  return {
+    Authorization: `Bearer ${accessToken}`,
+  };
+}
+
+async function googleJsonRequest(url, authInput, options = {}) {
   const headers = {
-    ...(await getAuthHeaders(serviceAccount)),
+    ...(await getAuthHeaders(authInput, url)),
     'Content-Type': 'application/json',
     ...(options.headers || {}),
   };
+  if (options.quotaProject) {
+    headers['x-goog-user-project'] = options.quotaProject;
+  }
   const response = await fetch(url, {
     method: options.method || 'GET',
     headers,
@@ -367,6 +824,511 @@ async function googleJsonRequest(url, serviceAccount, options = {}) {
   return json;
 }
 
+async function getFirestoreDatabaseInfo(projectId, serviceAccount) {
+  const url = `https://firestore.googleapis.com/v1/projects/${encodeURIComponent(projectId)}/databases/(default)`;
+  return googleJsonRequest(url, serviceAccount);
+}
+
+async function getProjectMetadata(projectId, serviceAccount) {
+  const requestOptions = { quotaProject: projectId };
+  const urls = [
+    `https://cloudresourcemanager.googleapis.com/v1/projects/${encodeURIComponent(projectId)}`,
+    `https://firebase.googleapis.com/v1beta1/projects/${encodeURIComponent(projectId)}`,
+  ];
+
+  let lastError = null;
+  for (const url of urls) {
+    try {
+      const metadata = await googleJsonRequest(url, serviceAccount, requestOptions);
+      const projectNumber = extractProjectNumber(metadata);
+      if (projectNumber) {
+        return {
+          ...metadata,
+          projectNumber,
+        };
+      }
+    } catch (error) {
+      lastError = error;
+    }
+  }
+
+  if (lastError) {
+    throw lastError;
+  }
+  throw new Error('The Firebase project metadata could not be loaded yet.');
+}
+
+async function getProjectIamPolicy(projectId, authInput) {
+  const url = `https://cloudresourcemanager.googleapis.com/v1/projects/${encodeURIComponent(projectId)}:getIamPolicy`;
+  return googleJsonRequest(url, authInput, {
+    method: 'POST',
+    body: {},
+    quotaProject: projectId,
+  });
+}
+
+async function setProjectIamPolicy(projectId, authInput, policy) {
+  const url = `https://cloudresourcemanager.googleapis.com/v1/projects/${encodeURIComponent(projectId)}:setIamPolicy`;
+  return googleJsonRequest(url, authInput, {
+    method: 'POST',
+    body: {
+      policy,
+    },
+    quotaProject: projectId,
+  });
+}
+
+async function deleteGoogleProject(projectId, authInput) {
+  const projectMetadata = await getProjectMetadata(projectId, authInput);
+  const projectName = buildServiceUsageConsumerName(projectMetadata);
+  const url = `https://cloudresourcemanager.googleapis.com/v3/${projectName}`;
+  const operation = await googleJsonRequest(url, authInput, {
+    method: 'DELETE',
+    quotaProject: projectId,
+  });
+  return {
+    projectName,
+    operation,
+  };
+}
+
+function ensurePolicyBinding(policy, role, member) {
+  const nextPolicy = {
+    ...policy,
+    bindings: Array.isArray(policy.bindings) ? policy.bindings.map((binding) => ({
+      ...binding,
+      members: Array.isArray(binding.members) ? [...binding.members] : [],
+    })) : [],
+  };
+  const existing = nextPolicy.bindings.find((binding) => binding.role === role);
+  if (existing) {
+    if (existing.members.includes(member)) {
+      return {
+        changed: false,
+        policy: nextPolicy,
+      };
+    }
+    existing.members.push(member);
+    return {
+      changed: true,
+      policy: nextPolicy,
+    };
+  }
+  nextPolicy.bindings.push({
+    role,
+    members: [member],
+  });
+  return {
+    changed: true,
+    policy: nextPolicy,
+  };
+}
+
+async function ensureBootstrapServiceUsageAccess(projectId, serviceAccount, bootstrapAuth) {
+  const member = `serviceAccount:${serviceAccount.client_email}`;
+  const roles = [
+    'roles/serviceusage.serviceUsageConsumer',
+    'roles/serviceusage.serviceUsageAdmin',
+  ];
+  const currentPolicy = await getProjectIamPolicy(projectId, bootstrapAuth);
+  let nextPolicy = currentPolicy;
+  let changed = false;
+  for (const role of roles) {
+    const result = ensurePolicyBinding(nextPolicy, role, member);
+    nextPolicy = result.policy;
+    changed = changed || result.changed;
+  }
+  if (!changed) {
+    return {
+      status: 'already_done',
+      member,
+      roles,
+      message: 'The school Firebase key already has the Google service permissions it needs for future setup runs.',
+    };
+  }
+  await setProjectIamPolicy(projectId, bootstrapAuth, nextPolicy);
+  return {
+    status: 'done',
+    member,
+    roles,
+    message: 'The school Firebase key was granted the Google service permissions it needs for future setup runs.',
+  };
+}
+
+async function deleteSavedSchool(projectId, options = {}) {
+  const schoolId = String(projectId || '').trim();
+  if (!schoolId) {
+    throw new Error('Choose a saved school first.');
+  }
+  const school = getSavedSchools().find((item) => item.schoolId === schoolId || item.firebaseProjectId === schoolId);
+  if (!school) {
+    throw new Error('That school is not in your saved local billing list yet.');
+  }
+
+  let projectDeletion = null;
+  if (options.deleteProject === true) {
+    const bootstrapAdmin = await getOptionalBootstrapAdminAuth();
+    if (!bootstrapAdmin) {
+      throw new Error('Deleting the whole Firebase/Google project needs your local Google admin login first.');
+    }
+    projectDeletion = await deleteGoogleProject(schoolId, bootstrapAdmin);
+  }
+
+  const local = removeSchoolFromLocalConfig(schoolId);
+  return {
+    schoolId,
+    deleteProject: options.deleteProject === true,
+    projectDeletion,
+    schools: local.schools,
+    renderJson: local.renderJson,
+    message: options.deleteProject === true
+      ? 'The Google/Firebase project was marked for deletion and the school was removed from your local saved list.'
+      : 'The school was removed from your local saved list only.',
+  };
+}
+
+async function createFirestoreDatabase(projectId, serviceAccount, locationId) {
+  const url = `https://firestore.googleapis.com/v1/projects/${encodeURIComponent(projectId)}/databases?databaseId=(default)`;
+  return googleJsonRequest(url, serviceAccount, {
+    method: 'POST',
+    body: {
+      type: 'FIRESTORE_NATIVE',
+      locationId,
+    },
+  });
+}
+
+async function getStorageDefaultBucket(projectId, serviceAccount) {
+  const url = `https://firebasestorage.googleapis.com/v1alpha/projects/${encodeURIComponent(projectId)}/defaultBucket`;
+  return googleJsonRequest(url, serviceAccount);
+}
+
+async function createStorageDefaultBucket(projectId, serviceAccount, location) {
+  const url = `https://firebasestorage.googleapis.com/v1alpha/projects/${encodeURIComponent(projectId)}/defaultBucket?location=${encodeURIComponent(location)}`;
+  return googleJsonRequest(url, serviceAccount, {
+    method: 'POST',
+    body: {},
+  });
+}
+
+async function createRuleset(projectId, serviceAccount, sourceContent) {
+  const url = `https://firebaserules.googleapis.com/v1/projects/${encodeURIComponent(projectId)}/rulesets`;
+  return googleJsonRequest(url, serviceAccount, {
+    method: 'POST',
+    body: {
+      source: {
+        files: [
+          {
+            name: 'rules',
+            content: sourceContent,
+            fingerprint: hashRuleSource(sourceContent),
+          },
+        ],
+      },
+    },
+  });
+}
+
+async function getRulesRelease(releaseName, serviceAccount) {
+  return googleJsonRequest(`https://firebaserules.googleapis.com/v1/${releaseName}`, serviceAccount);
+}
+
+async function getRuleset(rulesetName, serviceAccount) {
+  return googleJsonRequest(`https://firebaserules.googleapis.com/v1/${rulesetName}`, serviceAccount);
+}
+
+async function upsertRulesRelease(releaseName, rulesetName, serviceAccount) {
+  try {
+    const patchAttempts = [
+      {
+        url: `https://firebaserules.googleapis.com/v1/${releaseName}`,
+        body: {
+          release: {
+            name: releaseName,
+            rulesetName,
+          },
+          updateMask: 'release.rulesetName',
+        },
+      },
+      {
+        url: `https://firebaserules.googleapis.com/v1/${releaseName}`,
+        body: {
+          release: {
+            name: releaseName,
+            rulesetName,
+          },
+          updateMask: 'release.ruleset_name',
+        },
+      },
+      {
+        url: `https://firebaserules.googleapis.com/v1/${releaseName}?updateMask=release.rulesetName`,
+        body: {
+          release: {
+            name: releaseName,
+            rulesetName,
+          },
+        },
+      },
+      {
+        url: `https://firebaserules.googleapis.com/v1/${releaseName}?updateMask=release.ruleset_name`,
+        body: {
+          release: {
+            name: releaseName,
+            rulesetName,
+          },
+        },
+      },
+    ];
+
+    let lastPatchError = null;
+    for (const attempt of patchAttempts) {
+      try {
+        return await googleJsonRequest(attempt.url, serviceAccount, {
+          method: 'PATCH',
+          body: attempt.body,
+        });
+      } catch (error) {
+        lastPatchError = error;
+        const message = String(error.message || '');
+        if (!/invalid argument|unknown name/i.test(message)) {
+          throw error;
+        }
+      }
+    }
+    throw lastPatchError || new Error('The live rules release could not be updated.');
+  } catch (error) {
+    if (error.status !== 404) throw error;
+    return googleJsonRequest(`https://firebaserules.googleapis.com/v1/projects/${releaseName.split('/')[1]}/releases`, serviceAccount, {
+      method: 'POST',
+      body: {
+        name: releaseName,
+        rulesetName,
+      },
+    });
+  }
+}
+
+async function inspectRulesRelease(releaseName, sourcePath, serviceAccount) {
+  const context = parseRulesReleaseContext(releaseName, sourcePath);
+  const localSource = readRuleSource(sourcePath);
+  try {
+    const app = getRulesAdminApp(context.projectId, serviceAccount);
+    const securityRules = admin.securityRules(app);
+    const ruleset = context.type === 'firestore'
+      ? await securityRules.getFirestoreRuleset()
+      : await securityRules.getStorageRuleset(context.bucketName);
+    const remoteSource = (ruleset.source || []).map((file) => file.content || '').join('\n');
+    const matches = normalizeRulesSource(remoteSource) === normalizeRulesSource(localSource);
+    return {
+      exists: true,
+      matches,
+      release: {
+        name: releaseName,
+      },
+      rulesetName: ruleset.name,
+      localSource,
+      remoteSource,
+    };
+  } catch (error) {
+    if (error.status === 404 || /not[- ]found/i.test(String(error.code || '')) || /not[- ]found/i.test(String(error.message || ''))) {
+      return {
+        exists: false,
+        matches: false,
+        release: null,
+        rulesetName: '',
+        localSource,
+        remoteSource: '',
+      };
+    }
+    throw error;
+  }
+}
+
+async function deployRulesRelease(projectId, releaseName, sourcePath, serviceAccount) {
+  const context = parseRulesReleaseContext(releaseName, sourcePath);
+  const before = await inspectRulesRelease(releaseName, sourcePath, serviceAccount);
+  if (before.exists && before.matches) {
+    return {
+      status: 'already_done',
+      message: 'The live rules already match the safe version saved in this repo.',
+      before,
+      after: before,
+    };
+  }
+  const app = getRulesAdminApp(projectId, serviceAccount);
+  const securityRules = admin.securityRules(app);
+  const source = readRuleSource(sourcePath);
+  const ruleset = context.type === 'firestore'
+    ? await securityRules.releaseFirestoreRulesetFromSource(source)
+    : await securityRules.releaseStorageRulesetFromSource(source, context.bucketName);
+  const after = await inspectRulesRelease(releaseName, sourcePath, serviceAccount);
+  return {
+    status: before.exists ? 'done' : 'done',
+    message: before.exists
+      ? 'The live rules were updated to match the safe version saved in this repo.'
+      : 'The live rules were deployed for this school.',
+    before,
+    after: {
+      ...after,
+      rulesetName: ruleset.name || after.rulesetName,
+    },
+  };
+}
+
+async function waitForGoogleOperation(url, serviceAccount, options = {}) {
+  const attempts = options.attempts || 12;
+  const delayMs = options.delayMs || 2000;
+  const requestOptions = options.requestOptions || {};
+  let last = null;
+  for (let attempt = 0; attempt < attempts; attempt++) {
+    last = await googleJsonRequest(url, serviceAccount, requestOptions);
+    if (last.done === true || last.state === 'SUCCESSFUL' || last.response || last.error) {
+      return last;
+    }
+    await wait(delayMs);
+  }
+  return last;
+}
+
+async function enableRequiredServices(projectId, serviceAccount, readinessTarget) {
+  const services = getRequiredServices(readinessTarget);
+  const projectMetadata = await getProjectMetadata(projectId, serviceAccount);
+  const consumerName = buildServiceUsageConsumerName(projectMetadata);
+  const requestOptions = {
+    quotaProject: projectId,
+  };
+  const url = `https://serviceusage.googleapis.com/v1/${consumerName}/services:batchEnable`;
+  try {
+    const operation = await googleJsonRequest(url, serviceAccount, {
+      method: 'POST',
+      body: {
+        serviceIds: services,
+      },
+      quotaProject: requestOptions.quotaProject,
+    });
+    if (operation && operation.name) {
+      const finalOperation = await waitForGoogleOperation(
+        `https://serviceusage.googleapis.com/v1/${operation.name}`,
+        serviceAccount,
+        {
+          attempts: 15,
+          delayMs: 2000,
+          requestOptions,
+        }
+      );
+      return {
+        services,
+        consumerName,
+        operation: finalOperation,
+      };
+    }
+    return {
+      services,
+      consumerName,
+      operation,
+    };
+  } catch (error) {
+    if (error.status === 400 && /already enabled/i.test(error.message || '')) {
+      return {
+        services,
+        consumerName,
+        operation: { done: true },
+      };
+    }
+    throw error;
+  }
+}
+
+async function ensureFirestoreReady(projectId, serviceAccount, locationId) {
+  try {
+    const firestore = await getFirestoreDatabaseInfo(projectId, serviceAccount);
+    return {
+      status: 'already_done',
+      firestore,
+      created: false,
+    };
+  } catch (error) {
+    const message = error.message || '';
+    if (error.status !== 404 && !/not been used/i.test(message) && !/disabled/i.test(message)) {
+      throw error;
+    }
+  }
+
+  const operation = await createFirestoreDatabase(projectId, serviceAccount, locationId);
+  const finalOperation = operation?.name
+    ? await waitForGoogleOperation(`https://firestore.googleapis.com/v1/${operation.name}`, serviceAccount, {
+        attempts: 20,
+        delayMs: 3000,
+      })
+    : operation;
+  const firestore = await getFirestoreDatabaseInfo(projectId, serviceAccount);
+  return {
+    status: 'done',
+    firestore,
+    created: true,
+    operation: finalOperation,
+  };
+}
+
+async function ensureStorageReady(projectId, serviceAccount, locationId, readinessTarget) {
+  const target = normalizeReadinessTarget(readinessTarget);
+  try {
+    const storageBucket = await getStorageDefaultBucket(projectId, serviceAccount);
+    return {
+      status: 'already_done',
+      storageBucket,
+      created: false,
+      target,
+    };
+  } catch (error) {
+    if (target !== 'pro') {
+      return {
+        status: 'skipped',
+        storageBucket: null,
+        created: false,
+        target,
+        reason: 'Starter flow does not require Firebase Storage yet.',
+      };
+    }
+    if (error.status !== 404 && !/not found/i.test(error.message || '')) {
+      throw error;
+    }
+  }
+
+  const created = await createStorageDefaultBucket(projectId, serviceAccount, locationId);
+  const storageBucket = await getStorageDefaultBucket(projectId, serviceAccount);
+  return {
+    status: 'done',
+    storageBucket,
+    created: true,
+    operation: created,
+    target,
+  };
+}
+
+async function inspectFirebaseServices(projectId, serviceAccount) {
+  const firestore = await getFirestoreDatabaseInfo(projectId, serviceAccount);
+  let storageBucket = null;
+  let storageMissing = false;
+  let storageError = null;
+  try {
+    storageBucket = await getStorageDefaultBucket(projectId, serviceAccount);
+  } catch (error) {
+    if (error.status === 404) {
+      storageMissing = true;
+    } else {
+      storageError = error;
+    }
+  }
+
+  return {
+    firestore,
+    storageBucket,
+    storageMissing,
+    storageError,
+  };
+}
+
 function loadRequiredIndexes() {
   const raw = readJson(firestoreIndexesPath);
   return (raw.indexes || []).map((index) => ({
@@ -387,11 +1349,33 @@ function normalizeIndex(index) {
     fields: (index.fields || [])
       .filter((field) => field.fieldPath !== '__name__')
       .map((field) => ({
-      fieldPath: field.fieldPath,
-      order: field.order || null,
-      arrayConfig: field.arrayConfig || null,
+        fieldPath: field.fieldPath,
+        order: field.order || null,
+        arrayConfig: field.arrayConfig || null,
       })),
   });
+}
+
+function normalizeIndexForLookup(index) {
+  const normalized = JSON.parse(normalizeIndex(index));
+  normalized.fields = normalized.fields
+    .slice()
+    .sort((a, b) => {
+      if (a.fieldPath === b.fieldPath) {
+        return String(a.order || a.arrayConfig || '').localeCompare(String(b.order || b.arrayConfig || ''));
+      }
+      return String(a.fieldPath).localeCompare(String(b.fieldPath));
+    });
+  return JSON.stringify(normalized);
+}
+
+function getCollectionGroupFromIndex(index) {
+  if (index && index.collectionGroup) {
+    return index.collectionGroup;
+  }
+  const name = String(index && index.name ? index.name : '');
+  const match = name.match(/\/collectionGroups\/([^/]+)\/indexes\//);
+  return match ? decodeURIComponent(match[1]) : '';
 }
 
 function mapIndexState(state) {
@@ -432,8 +1416,8 @@ function compareRequiredIndexes(requiredIndexes, existingIndexes) {
   const existingMap = new Map();
   for (const index of existingIndexes) {
     existingMap.set(
-      normalizeIndex({
-        collectionGroup: index.collectionGroup,
+      normalizeIndexForLookup({
+        collectionGroup: getCollectionGroupFromIndex(index),
         queryScope: index.queryScope || 'COLLECTION',
         fields: index.fields || [],
       }),
@@ -442,7 +1426,7 @@ function compareRequiredIndexes(requiredIndexes, existingIndexes) {
   }
 
   return requiredIndexes.map((required) => {
-    const existing = existingMap.get(normalizeIndex(required));
+    const existing = existingMap.get(normalizeIndexForLookup(required));
     const rawState = existing ? existing.state || 'UNKNOWN' : 'MISSING';
     const status = existing ? mapIndexState(rawState) : 'missing';
     return {
@@ -482,9 +1466,16 @@ async function ensureFirestoreIndexes(projectId, serviceAccount, options = {}) {
   const missing = before.filter((item) => item.status === 'missing');
 
   const createErrors = [];
+  const createOperations = [];
   for (const item of missing) {
     try {
-      await createIndex(projectId, serviceAccount, item);
+      const result = await createIndex(projectId, serviceAccount, item);
+      if (result && result.name) {
+        createOperations.push({
+          index: item,
+          operationName: result.name,
+        });
+      }
     } catch (error) {
       createErrors.push({
         index: item,
@@ -493,8 +1484,27 @@ async function ensureFirestoreIndexes(projectId, serviceAccount, options = {}) {
     }
   }
 
-  const maxAttempts = options.maxAttempts || 4;
-  const delayMs = options.delayMs || 1500;
+  const operationAttempts = options.operationAttempts || 20;
+  const operationDelayMs = options.operationDelayMs || 3000;
+  for (const operation of createOperations) {
+    try {
+      const operationUrl = operation.operationName.startsWith('http')
+        ? operation.operationName
+        : `https://firestore.googleapis.com/v1/${operation.operationName}`;
+      operation.result = await waitForGoogleOperation(operationUrl, serviceAccount, {
+        attempts: operationAttempts,
+        delayMs: operationDelayMs,
+      });
+    } catch (error) {
+      createErrors.push({
+        index: operation.index,
+        message: error.message,
+      });
+    }
+  }
+
+  const maxAttempts = options.maxAttempts || 8;
+  const delayMs = options.delayMs || 3000;
   let after = before;
   for (let attempt = 0; attempt < maxAttempts; attempt++) {
     after = compareRequiredIndexes(requiredIndexes, await listAllIndexes(projectId, serviceAccount, requiredIndexes));
@@ -512,6 +1522,7 @@ async function ensureFirestoreIndexes(projectId, serviceAccount, options = {}) {
     buildingCount: after.filter((item) => item.status === 'building').length,
     readyCount: after.filter((item) => item.status === 'done').length,
     createErrors,
+    createOperations,
   };
 }
 
@@ -624,6 +1635,61 @@ function summarizeIndexCheck(indexReport) {
   );
 }
 
+function summarizeFirestoreRulesInspection(inspectResult) {
+  if (inspectResult.exists && inspectResult.matches) {
+    return makeTask(
+      'firestoreRules',
+      'done',
+      'Check Firestore rules',
+      'Firestore security rules already match the safe version saved in this repo.'
+    );
+  }
+  return makeTask(
+    'firestoreRules',
+    'needs_attention',
+    'Check Firestore rules',
+    inspectResult.exists
+      ? 'Firestore rules are live, but they do not match the safe version saved in this repo.'
+      : 'Firestore rules have not been deployed for this school yet.',
+    {
+      actionHint: 'Run the automatic setup to deploy the rules automatically.',
+    }
+  );
+}
+
+function summarizeStorageRulesResult(bucketName, result) {
+  if (!bucketName) {
+    return makeTask(
+      'storageRules',
+      'needs_attention',
+      'Check Storage bucket and rules',
+      'No Firebase Storage bucket was found for this project.',
+      {
+        actionHint: 'This is okay for paywall and Starter setup, but Pro/Elite image features will need Firebase Storage enabled later.',
+      }
+    );
+  }
+
+  if (result.exists && result.matches) {
+    return makeTask(
+      'storageRules',
+      'done',
+      'Check Storage bucket and rules',
+      `Storage bucket "${bucketName}" exists and its rules already match the safe version in this repo.`
+    );
+  }
+
+  return makeTask(
+    'storageRules',
+    'needs_attention',
+    'Check Storage bucket and rules',
+    `Storage bucket "${bucketName}" exists, but its rules do not match the safe version saved in this repo yet.`,
+    {
+      actionHint: 'Run the automatic setup to deploy the Storage rules automatically.',
+    }
+  );
+}
+
 async function runAutomaticSetup(input) {
   const validation = validateSetupInput(input);
   if (!validation.ok) {
@@ -633,17 +1699,38 @@ async function runAutomaticSetup(input) {
   }
 
   const serviceAccount = parseServiceAccount(input.serviceAccount);
+  const readinessTarget = normalizeReadinessTarget(input.readinessTarget);
+  const firebaseLocation = normalizeFirebaseLocation(input.firebaseLocation);
   const defaults = saveDefaults({
     renderUrl: input.renderUrl,
     priceIds: input.priceIds,
     lastProjectId: input.projectId,
     lastSchoolLabel: input.schoolLabel,
+    readinessTarget,
+    firebaseLocation,
   });
 
   const tasks = [];
   const editable = ensureEditableSchoolsConfig();
+  const bootstrapAdmin = await getOptionalBootstrapAdminAuth();
+  const bootstrapStatus = await inspectBootstrapAdminAuth();
+  const provisioningAuth = bootstrapAdmin || serviceAccount;
   const savedKey = saveServiceAccountKey(input.projectId, serviceAccount);
   tasks.push(makeTask('copyKey', savedKey.status, 'Save the Firebase key safely', savedKey.message));
+  tasks.push(
+    makeTask(
+      'bootstrapLogin',
+      bootstrapStatus.available ? 'done' : 'working',
+      'Use your Google admin login for one-time project setup',
+      bootstrapStatus.available
+        ? bootstrapStatus.message
+        : 'No local Google admin login was found, so the console will try the school key. Brand-new projects are much smoother if you first sign in with your Google admin account on this machine.',
+      {
+        actionHint: bootstrapStatus.available ? '' : bootstrapStatus.actionHint,
+        technicalDetails: bootstrapStatus.technicalDetails || '',
+      }
+    )
+  );
 
   const nextConfig = upsertSchoolConfig(
     editable.data,
@@ -666,6 +1753,195 @@ async function runAutomaticSetup(input) {
     )
   );
 
+  if (bootstrapAdmin) {
+    try {
+      const iamResult = await ensureBootstrapServiceUsageAccess(input.projectId, serviceAccount, bootstrapAdmin);
+      tasks.push(
+        makeTask(
+          'grantServiceUsageRoles',
+          iamResult.status,
+          'Let the school Firebase key use Google services later',
+          iamResult.message,
+          {
+            technicalDetails: JSON.stringify({
+              member: iamResult.member,
+              roles: iamResult.roles,
+            }, null, 2),
+          }
+        )
+      );
+    } catch (error) {
+      tasks.push(
+        makeTask(
+          'grantServiceUsageRoles',
+          'working',
+          'Let the school Firebase key use Google services later',
+          'Your Google admin login is ready, but it could not automatically grant the extra Google service roles to the school key yet.',
+          {
+            actionHint: 'That is not fatal right now because the console can keep using your Google admin login for the one-time provisioning tasks.',
+            technicalDetails: error.message || '',
+          }
+        )
+      );
+    }
+  }
+
+  try {
+    const enabledServices = await enableRequiredServices(input.projectId, provisioningAuth, readinessTarget);
+    tasks.push(
+      makeTask(
+        'enableApis',
+        'done',
+        'Enable the Google and Firebase services this school needs',
+        readinessTarget === 'pro'
+          ? 'The required Google/Firebase services were enabled for paywall, Firestore, rules, and Pro/Elite storage features.'
+          : 'The required Google/Firebase services were enabled for paywall, Firestore, and rules.',
+        {
+          technicalDetails: JSON.stringify(enabledServices.services, null, 2),
+        }
+      )
+    );
+  } catch (error) {
+    tasks.push(
+      makeTask(
+        'enableApis',
+        'needs_attention',
+        'Enable the Google and Firebase services this school needs',
+        error.message || 'The required Google/Firebase services could not be enabled automatically.',
+        {
+          actionHint: 'This usually means the service account does not have enough Google Cloud permission. The project should allow Service Usage Admin actions.',
+          technicalDetails: error.message || '',
+        }
+      )
+    );
+    return {
+      defaults,
+      tasks,
+      outputs: {
+        renderJson: '',
+        netlifyVars: '',
+        webConfig: null,
+        renderPath: renderPastePath,
+        firebaseWebConfigStatus: 'missing',
+      },
+      finalStatus: 'needs_attention',
+      summary: 'Google/Firebase services could not be enabled automatically yet.',
+    };
+  }
+
+  try {
+    const firestoreReady = await ensureFirestoreReady(input.projectId, provisioningAuth, firebaseLocation);
+    tasks.push(
+      makeTask(
+        'ensureFirestore',
+        firestoreReady.status,
+        'Create or confirm the Firestore database',
+        firestoreReady.created
+          ? `A Firestore database was created for this school in ${firebaseLocation}.`
+          : 'The Firestore database already exists for this school.'
+      )
+    );
+  } catch (error) {
+    tasks.push(
+      makeTask(
+        'ensureFirestore',
+        'needs_attention',
+        'Create or confirm the Firestore database',
+        error.message || 'The Firestore database could not be created automatically.',
+        {
+          actionHint: 'If this project is brand new, check Google Cloud/Firebase permissions and try again. Database location is a one-time choice.',
+          technicalDetails: error.message || '',
+        }
+      )
+    );
+    return {
+      defaults,
+      tasks,
+      outputs: {
+        renderJson: '',
+        netlifyVars: '',
+        webConfig: null,
+        renderPath: renderPastePath,
+        firebaseWebConfigStatus: 'missing',
+      },
+      finalStatus: 'needs_attention',
+      summary: 'The Firestore database is not ready for this school yet.',
+    };
+  }
+
+  let firebaseServices;
+  try {
+    firebaseServices = await inspectFirebaseServices(input.projectId, provisioningAuth);
+    tasks.push(
+      makeTask(
+        'checkFirebase',
+        'done',
+        'Check Firebase services',
+        'Cloud Firestore is enabled for this project and can be reached.',
+        {
+          actionHint: firebaseServices.storageMissing
+            ? 'Firebase Storage is not set up yet. That is okay for paywall and Starter setup, but Pro/Elite image features will need it later.'
+            : '',
+        }
+      )
+    );
+  } catch (error) {
+    tasks.push(
+      makeTask(
+        'checkFirebase',
+        'needs_attention',
+        'Check Firebase services',
+        error.message || 'Firebase services could not be reached yet.',
+        {
+          actionHint: 'Enable Cloud Firestore and create the Firestore database for this project, wait a minute, then click Try Again.',
+          technicalDetails: error.message || '',
+        }
+      )
+    );
+    return {
+      defaults,
+      tasks,
+      outputs: {
+        renderJson: '',
+        netlifyVars: '',
+        webConfig: null,
+        renderPath: renderPastePath,
+        firebaseWebConfigStatus: 'missing',
+      },
+      finalStatus: 'needs_attention',
+      summary: 'Cloud Firestore is not ready for this school yet. Enable it first, then rerun the setup.',
+    };
+  }
+
+  const firestoreRulesBefore = await inspectRulesRelease(
+    buildFirestoreReleaseName(input.projectId),
+    firestoreRulesPath,
+    provisioningAuth
+  );
+  tasks.push(summarizeFirestoreRulesInspection(firestoreRulesBefore));
+
+  const deployedFirestoreRules = await deployRulesRelease(
+    input.projectId,
+    buildFirestoreReleaseName(input.projectId),
+    firestoreRulesPath,
+    provisioningAuth
+  );
+  tasks.push(
+    makeTask(
+      'deployFirestoreRules',
+      deployedFirestoreRules.status,
+      'Deploy Firestore rules',
+      deployedFirestoreRules.message,
+      {
+        technicalDetails: JSON.stringify({
+          beforeMatched: deployedFirestoreRules.before.matches,
+          afterMatched: deployedFirestoreRules.after.matches,
+          release: deployedFirestoreRules.after.release?.name || '',
+        }, null, 2),
+      }
+    )
+  );
+
   const pendingResult = await writePendingSubscription(input.projectId, serviceAccount);
   tasks.push(
     makeTask(
@@ -676,10 +1952,10 @@ async function runAutomaticSetup(input) {
     )
   );
 
-  const beforeIndexReport = await inspectFirestoreIndexes(input.projectId, serviceAccount);
+  const beforeIndexReport = await inspectFirestoreIndexes(input.projectId, provisioningAuth);
   tasks.push(summarizeIndexCheck(beforeIndexReport));
 
-  const ensuredIndexes = await ensureFirestoreIndexes(input.projectId, serviceAccount);
+  const ensuredIndexes = await ensureFirestoreIndexes(input.projectId, provisioningAuth);
   let createIndexesTask;
   if (ensuredIndexes.createErrors.length > 0) {
     createIndexesTask = makeTask(
@@ -729,6 +2005,51 @@ async function runAutomaticSetup(input) {
   }
   tasks.push(createIndexesTask);
 
+  let storageBucketName = '';
+  let storageRulesStatus = makeTask(
+    'storageRules',
+    'needs_attention',
+    'Check Storage bucket and rules',
+    'No Firebase Storage bucket was found for this project.',
+    {
+      actionHint: 'This is okay for paywall and Starter setup, but Pro/Elite image features will need Firebase Storage enabled later.',
+    }
+  );
+
+  if (!firebaseServices.storageMissing && firebaseServices.storageBucket) {
+    storageBucketName = firebaseServices.storageBucket.bucket?.name || firebaseServices.storageBucket.name || '';
+    const storageRulesBefore = await inspectRulesRelease(
+      buildStorageReleaseName(input.projectId, storageBucketName),
+      storageRulesPath,
+      provisioningAuth
+    );
+    tasks.push(summarizeStorageRulesResult(storageBucketName, storageRulesBefore));
+
+    const deployedStorageRules = await deployRulesRelease(
+      input.projectId,
+      buildStorageReleaseName(input.projectId, storageBucketName),
+      storageRulesPath,
+      provisioningAuth
+    );
+    storageRulesStatus = makeTask(
+      'deployStorageRules',
+      deployedStorageRules.status,
+      'Deploy Storage rules',
+      deployedStorageRules.message,
+      {
+        actionHint: 'Storage is mainly needed for Pro/Elite image features such as avatars and story images.',
+        technicalDetails: JSON.stringify({
+          bucket: storageBucketName,
+          beforeMatched: deployedStorageRules.before.matches,
+          afterMatched: deployedStorageRules.after.matches,
+          release: deployedStorageRules.after.release?.name || '',
+        }, null, 2),
+      }
+    );
+  } else {
+    tasks.push(storageRulesStatus);
+  }
+
   const renderOutput = writeRenderPaste(nextConfig);
   tasks.push(
     makeTask(
@@ -741,7 +2062,7 @@ async function runAutomaticSetup(input) {
 
   let webConfigResult;
   try {
-    webConfigResult = await fetchFirebaseWebAppConfig(input.projectId, serviceAccount);
+    webConfigResult = await fetchFirebaseWebAppConfig(input.projectId, provisioningAuth);
   } catch (error) {
     webConfigResult = {
       ok: false,
@@ -767,25 +2088,42 @@ async function runAutomaticSetup(input) {
     )
   );
 
+  if (!firebaseServices.storageMissing && firebaseServices.storageBucket) {
+    tasks.push(storageRulesStatus);
+  }
+
   const subscriptionStatus = await readSubscriptionStatus(input.projectId, serviceAccount);
-  const finalReady = Boolean(
+  const coreReady = Boolean(
     renderOutput.renderJson &&
     webConfigResult.ok &&
     subscriptionStatus.exists &&
     subscriptionStatus.tier === 'pending' &&
-    ensuredIndexes.missingCount === 0
+    ensuredIndexes.missingCount === 0 &&
+    deployedFirestoreRules.after.matches
+  );
+  const futureProReady = Boolean(
+    readinessTarget !== 'pro' ||
+    (storageBucketName && storageRulesStatus.status !== 'needs_attention')
   );
 
   tasks.push(
     makeTask(
       'finalHealth',
-      finalReady ? 'done' : 'needs_attention',
+      coreReady ? 'done' : 'needs_attention',
       'Run the final health check',
-      finalReady
-        ? 'This school is ready. You only need to paste the final values into Render and Netlify.'
+      coreReady
+        ? readinessTarget === 'pro'
+          ? 'This school is ready, including the Storage pieces needed for Pro/Elite image features.'
+          : futureProReady
+            ? 'This school is ready for paywall and Starter flow.'
+            : 'This school is ready for paywall and Starter flow. Create Firebase Storage later before using Pro/Elite image features.'
         : 'Almost ready: one or more setup checks still need attention before this school is fully ready.',
       {
-        actionHint: finalReady ? '' : 'Look at the tasks above marked “Needs attention” or “Working”, then rerun the check.',
+        actionHint: coreReady
+          ? readinessTarget === 'pro'
+            ? ''
+            : 'When you are ready to sell Pro/Elite image features, rerun the setup with “Pro / Elite ready” and the tool will prepare Firebase Storage too.'
+          : 'Look at the tasks above marked “Needs attention” or “Working”, then rerun the check.',
       }
     )
   );
@@ -800,9 +2138,13 @@ async function runAutomaticSetup(input) {
       renderPath: renderOutput.path,
       firebaseWebConfigStatus: webConfigResult.ok ? 'ready' : 'missing',
     },
-    finalStatus: finalReady ? 'ready' : 'needs_attention',
-    summary: finalReady
-      ? 'This school is ready. Paste the Render and Netlify values, deploy both, and you are done.'
+    finalStatus: coreReady && futureProReady ? 'ready' : 'needs_attention',
+    summary: coreReady
+      ? readinessTarget === 'pro'
+        ? 'This school is ready for Pro or Elite. Paste the Render and Netlify values, deploy both, and you are done.'
+        : futureProReady
+          ? 'This school is ready for Starter. Paste the Render and Netlify values, deploy both, and you are done.'
+          : 'This school is ready for Starter flow. Later, when the school upgrades, rerun the setup with “Pro / Elite ready” and the tool will prepare Firebase Storage too.'
       : 'The setup is close, but one thing still needs attention before the school is fully ready.',
   };
 }
@@ -812,7 +2154,7 @@ function getSavedSchools() {
   return (editable.data.schools || []).map((school) => normalizeSchoolRecord(school));
 }
 
-async function recheckExistingSchool(projectId) {
+async function recheckExistingSchool(projectId, options = {}) {
   const schools = getSavedSchools();
   const school = schools.find((item) => item.schoolId === projectId || item.firebaseProjectId === projectId);
   if (!school) {
@@ -827,8 +2169,17 @@ async function recheckExistingSchool(projectId) {
   if (!fs.existsSync(keyPath)) {
     throw new Error('The saved Firebase key file for this school could not be found.');
   }
+
   const serviceAccount = readJson(keyPath);
-  const defaults = loadDefaults();
+  const bootstrapAdmin = await getOptionalBootstrapAdminAuth();
+  const bootstrapStatus = await inspectBootstrapAdminAuth();
+  const provisioningAuth = bootstrapAdmin || serviceAccount;
+  const defaults = saveDefaults({
+    readinessTarget: options.readinessTarget,
+    firebaseLocation: options.firebaseLocation,
+  });
+  const readinessTarget = normalizeReadinessTarget(options.readinessTarget || defaults.readinessTarget);
+  const firebaseLocation = normalizeFirebaseLocation(options.firebaseLocation || defaults.firebaseLocation);
   const tasks = [];
 
   tasks.push(
@@ -839,6 +2190,223 @@ async function recheckExistingSchool(projectId) {
       'The school was found in your saved local setup list.'
     )
   );
+  tasks.push(
+    makeTask(
+      'bootstrapLogin',
+      bootstrapStatus.available ? 'done' : 'working',
+      'Use your Google admin login for one-time project setup',
+      bootstrapStatus.available
+        ? bootstrapStatus.message
+        : 'No local Google admin login was found. The console will try the school key, but Starter-to-Pro upgrades are much smoother if you first sign in with your Google admin account on this machine.',
+      {
+        actionHint: bootstrapStatus.available ? '' : bootstrapStatus.actionHint,
+        technicalDetails: bootstrapStatus.technicalDetails || '',
+      }
+    )
+  );
+
+  if (bootstrapAdmin) {
+    try {
+      const iamResult = await ensureBootstrapServiceUsageAccess(projectId, serviceAccount, bootstrapAdmin);
+      tasks.push(
+        makeTask(
+          'grantServiceUsageRoles',
+          iamResult.status,
+          'Let the school Firebase key use Google services later',
+          iamResult.message,
+          {
+            technicalDetails: JSON.stringify({
+              member: iamResult.member,
+              roles: iamResult.roles,
+            }, null, 2),
+          }
+        )
+      );
+    } catch (error) {
+      tasks.push(
+        makeTask(
+          'grantServiceUsageRoles',
+          'working',
+          'Let the school Firebase key use Google services later',
+          'Your Google admin login is ready, but it could not automatically grant the extra Google service roles to the school key yet.',
+          {
+            actionHint: 'That is not fatal right now because the console can keep using your Google admin login for the one-time provisioning tasks.',
+            technicalDetails: error.message || '',
+          }
+        )
+      );
+    }
+  }
+
+  try {
+    const enabledServices = await enableRequiredServices(projectId, provisioningAuth, readinessTarget);
+    tasks.push(
+      makeTask(
+        'enableApis',
+        'done',
+        'Enable the Google and Firebase services this school needs',
+        readinessTarget === 'pro'
+          ? 'The required Google/Firebase services were enabled or already ready for Pro/Elite features.'
+          : 'The required Google/Firebase services were enabled or already ready for Starter flow.',
+        {
+          technicalDetails: JSON.stringify(enabledServices.services, null, 2),
+        }
+      )
+    );
+  } catch (error) {
+    tasks.push(
+      makeTask(
+        'enableApis',
+        'needs_attention',
+        'Enable the Google and Firebase services this school needs',
+        error.message || 'The required Google/Firebase services could not be enabled automatically.',
+        {
+          actionHint: 'This usually means the service account does not have enough Google Cloud permission.',
+          technicalDetails: error.message || '',
+        }
+      )
+    );
+  }
+
+  try {
+    const firestoreReady = await ensureFirestoreReady(projectId, provisioningAuth, firebaseLocation);
+    tasks.push(
+      makeTask(
+        'ensureFirestore',
+        firestoreReady.status,
+        'Create or confirm the Firestore database',
+        firestoreReady.created
+          ? `A Firestore database was created for this school in ${firebaseLocation}.`
+          : 'The Firestore database already exists for this school.'
+      )
+    );
+  } catch (error) {
+    tasks.push(
+      makeTask(
+        'ensureFirestore',
+        'needs_attention',
+        'Create or confirm the Firestore database',
+        error.message || 'The Firestore database could not be confirmed automatically.',
+        {
+          actionHint: 'Check permissions and rerun this school check.',
+          technicalDetails: error.message || '',
+        }
+      )
+    );
+  }
+
+  let firebaseServices;
+  try {
+    firebaseServices = await inspectFirebaseServices(projectId, provisioningAuth);
+    tasks.push(
+      makeTask(
+        'checkFirebase',
+        'done',
+        'Check Firebase services',
+        'Cloud Firestore is enabled for this project and can be reached.',
+        {
+          actionHint: firebaseServices.storageMissing
+            ? 'Firebase Storage is not set up yet. That is okay for paywall and Starter flow, but Pro/Elite image features will need it later.'
+            : '',
+        }
+      )
+    );
+  } catch (error) {
+    tasks.push(
+      makeTask(
+        'checkFirebase',
+        'needs_attention',
+        'Check Firebase services',
+        error.message || 'Firebase services could not be reached yet.',
+        {
+          actionHint: 'Enable Cloud Firestore and create the Firestore database for this project, then rerun this school check.',
+          technicalDetails: error.message || '',
+        }
+      )
+    );
+    return {
+      defaults,
+      school,
+      tasks,
+      outputs: {
+        renderJson: '',
+        netlifyVars: '',
+        webConfig: null,
+        renderPath: renderPastePath,
+        firebaseWebConfigStatus: 'missing',
+      },
+      finalStatus: 'needs_attention',
+      summary: 'Cloud Firestore is not ready for this school yet.',
+    };
+  }
+
+  let storageBucketName = '';
+  try {
+    const storageReady = await ensureStorageReady(projectId, provisioningAuth, firebaseLocation, readinessTarget);
+    tasks.push(
+      makeTask(
+        'ensureStorage',
+        storageReady.status === 'skipped' ? 'already_done' : storageReady.status,
+        'Create or confirm the Firebase Storage bucket',
+        storageReady.status === 'skipped'
+          ? 'Starter flow does not require Firebase Storage yet.'
+          : storageReady.created
+            ? `A Firebase Storage bucket was created for this school in ${firebaseLocation}.`
+            : 'The Firebase Storage bucket already exists for this school.',
+        {
+          actionHint: readinessTarget === 'pro'
+            ? 'Pro and Elite image features need Storage to exist.'
+            : '',
+        }
+      )
+    );
+    if (storageReady.storageBucket) {
+      firebaseServices.storageBucket = storageReady.storageBucket;
+      firebaseServices.storageMissing = false;
+      storageBucketName = storageReady.storageBucket.bucket?.name || storageReady.storageBucket.name || '';
+    }
+  } catch (error) {
+    tasks.push(
+      makeTask(
+        'ensureStorage',
+        readinessTarget === 'pro' ? 'needs_attention' : 'already_done',
+        'Create or confirm the Firebase Storage bucket',
+        readinessTarget === 'pro'
+          ? (error.message || 'The Firebase Storage bucket could not be created automatically.')
+          : 'Starter flow does not require Firebase Storage yet.',
+        {
+          actionHint: readinessTarget === 'pro'
+            ? 'This often means billing/Blaze is not enabled yet for this Firebase project.'
+            : '',
+          technicalDetails: readinessTarget === 'pro' ? (error.message || '') : '',
+        }
+      )
+    );
+  }
+
+  let firestoreRulesCheck = await inspectRulesRelease(
+    buildFirestoreReleaseName(projectId),
+    firestoreRulesPath,
+    provisioningAuth
+  );
+  tasks.push(summarizeFirestoreRulesInspection(firestoreRulesCheck));
+  if (!firestoreRulesCheck.matches) {
+    const deployedFirestoreRules = await deployRulesRelease(
+      projectId,
+      buildFirestoreReleaseName(projectId),
+      firestoreRulesPath,
+      provisioningAuth
+    );
+    tasks.push(
+      makeTask(
+        'deployFirestoreRules',
+        deployedFirestoreRules.status,
+        'Deploy Firestore rules',
+        deployedFirestoreRules.message
+      )
+    );
+    firestoreRulesCheck = deployedFirestoreRules.after;
+  }
 
   const subscription = await readSubscriptionStatus(projectId, serviceAccount);
   if (subscription.exists) {
@@ -866,14 +2434,81 @@ async function recheckExistingSchool(projectId) {
     );
   }
 
-  const indexReport = await inspectFirestoreIndexes(projectId, serviceAccount);
+  let indexReport = await inspectFirestoreIndexes(projectId, provisioningAuth);
   tasks.push(summarizeIndexCheck(indexReport));
+  if (indexReport.missingCount > 0) {
+    const ensuredIndexes = await ensureFirestoreIndexes(projectId, provisioningAuth);
+    tasks.push(
+      makeTask(
+        'createIndexes',
+        ensuredIndexes.missingCount === 0 ? (ensuredIndexes.createdCount > 0 ? 'done' : 'already_done') : 'working',
+        'Create missing Firestore indexes',
+        ensuredIndexes.missingCount === 0
+          ? 'All needed Firestore indexes are ready for this school.'
+          : `${ensuredIndexes.createdCount} missing indexes were requested. Some are still building.`,
+        {
+          actionHint: ensuredIndexes.missingCount === 0 ? '' : 'Wait a little, then rerun this school check if needed.',
+          technicalDetails: JSON.stringify(ensuredIndexes.after, null, 2),
+        }
+      )
+    );
+    indexReport = {
+      ...indexReport,
+      missingCount: ensuredIndexes.missingCount,
+    };
+  }
+
+  if (!firebaseServices.storageMissing && firebaseServices.storageBucket) {
+    storageBucketName = firebaseServices.storageBucket.bucket?.name || firebaseServices.storageBucket.name || storageBucketName;
+    let storageRulesCheck = await inspectRulesRelease(
+      buildStorageReleaseName(projectId, storageBucketName),
+      storageRulesPath,
+      provisioningAuth
+    );
+    tasks.push(summarizeStorageRulesResult(storageBucketName, storageRulesCheck));
+    if (!storageRulesCheck.matches) {
+      const deployedStorageRules = await deployRulesRelease(
+        projectId,
+        buildStorageReleaseName(projectId, storageBucketName),
+        storageRulesPath,
+        provisioningAuth
+      );
+      tasks.push(
+        makeTask(
+          'deployStorageRules',
+          deployedStorageRules.status,
+          'Deploy Storage rules',
+          deployedStorageRules.message,
+          {
+            actionHint: 'Storage is mainly needed for Pro/Elite image features.',
+          }
+        )
+      );
+      storageRulesCheck = deployedStorageRules.after;
+    }
+  } else {
+    tasks.push(
+      makeTask(
+        'storageRules',
+        readinessTarget === 'pro' ? 'needs_attention' : 'already_done',
+        'Check Storage bucket and rules',
+        readinessTarget === 'pro'
+          ? 'No Firebase Storage bucket was found for this project.'
+          : 'Starter flow does not require Firebase Storage yet.',
+        {
+          actionHint: readinessTarget === 'pro'
+            ? 'Pro/Elite image features need Firebase Storage.'
+            : 'When a school upgrades later, rerun this tool with “Pro / Elite ready”.',
+        }
+      )
+    );
+  }
 
   const editable = ensureEditableSchoolsConfig();
   const renderOutput = writeRenderPaste(editable.data);
   let webConfigResult;
   try {
-    webConfigResult = await fetchFirebaseWebAppConfig(projectId, serviceAccount);
+    webConfigResult = await fetchFirebaseWebAppConfig(projectId, provisioningAuth);
   } catch (error) {
     webConfigResult = {
       ok: false,
@@ -887,16 +2522,22 @@ async function recheckExistingSchool(projectId) {
   const ready = Boolean(
     subscription.exists &&
     renderOutput.renderJson &&
+    firestoreRulesCheck.exists &&
+    firestoreRulesCheck.matches &&
     indexReport.missingCount === 0 &&
-    webConfigResult.ok
+    webConfigResult.ok &&
+    (readinessTarget !== 'pro' || Boolean(storageBucketName))
   );
+
   tasks.push(
     makeTask(
       'finalHealth',
       ready ? 'done' : 'needs_attention',
       'Run the final health check',
       ready
-        ? 'This saved school looks ready.'
+        ? readinessTarget === 'pro'
+          ? 'This saved school looks ready for Pro/Elite, including Storage.'
+          : 'This saved school looks ready for Starter flow.'
         : 'This school still needs attention before it is fully ready.',
       {
         actionHint: ready ? '' : 'Fix the checks above, then rerun this school check.',
@@ -917,12 +2558,14 @@ async function recheckExistingSchool(projectId) {
     },
     finalStatus: ready ? 'ready' : 'needs_attention',
     summary: ready
-      ? 'This school looks ready.'
+      ? readinessTarget === 'pro'
+        ? 'This school looks ready for Pro or Elite.'
+        : 'This school looks ready for Starter flow.'
       : 'This school still needs attention.',
   };
 }
 
-function getBootstrapData() {
+async function getBootstrapData() {
   return {
     defaults: loadDefaults(),
     schools: getSavedSchools().map((school) => ({
@@ -930,6 +2573,8 @@ function getBootstrapData() {
       schoolLabel: school.schoolLabel,
       firebaseProjectId: school.firebaseProjectId,
     })),
+    bootstrapAdmin: await inspectBootstrapAdminAuth(),
+    gcloud: inspectGcloudCli(),
   };
 }
 
@@ -939,6 +2584,8 @@ module.exports = {
   schoolsLocalPath,
   renderPastePath,
   firestoreIndexesPath,
+  firestoreRulesPath,
+  storageRulesPath,
   normalizePriceIds,
   validateProjectId,
   validateRenderUrl,
@@ -953,7 +2600,22 @@ module.exports = {
   saveServiceAccountKey,
   upsertSchoolConfig,
   buildRenderPayload,
+  buildManualSubscriptionPayload,
+  buildFirestoreReleaseName,
+  buildStorageReleaseName,
+  extractProjectNumber,
+  buildServiceUsageConsumerName,
+  inspectBootstrapAdminAuth,
+  inspectGcloudCli,
+  startBootstrapAdminLogin,
+  setBootstrapQuotaProject,
+  getSavedSchoolDetails,
+  updateSavedSchoolSubscription,
+  deleteSavedSchool,
   writeRenderPaste,
+  inspectFirebaseServices,
+  inspectRulesRelease,
+  deployRulesRelease,
   loadRequiredIndexes,
   normalizeIndex,
   compareRequiredIndexes,

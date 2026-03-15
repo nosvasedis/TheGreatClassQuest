@@ -7,6 +7,10 @@ const {
   validateSetupInput,
   upsertSchoolConfig,
   buildRenderPayload,
+  buildManualSubscriptionPayload,
+  buildFirestoreReleaseName,
+  buildStorageReleaseName,
+  buildServiceUsageConsumerName,
   compareRequiredIndexes,
   formatNetlifyVariables,
 } = require('../tools/onboarding-console/lib');
@@ -167,6 +171,72 @@ test('compareRequiredIndexes reports ready and missing index states', () => {
 
   assert.equal(result[0].status, 'done');
   assert.equal(result[1].status, 'missing');
+});
+
+test('compareRequiredIndexes matches API indexes that only expose collection group in name', () => {
+  const required = [
+    {
+      collectionGroup: 'attendance',
+      queryScope: 'COLLECTION',
+      fields: [
+        { fieldPath: 'classId', order: 'ASCENDING' },
+        { fieldPath: 'createdAt', order: 'ASCENDING' },
+      ],
+    },
+  ];
+
+  const existing = [
+    {
+      name: 'projects/gcq-test-school/databases/(default)/collectionGroups/attendance/indexes/abc123',
+      queryScope: 'COLLECTION',
+      state: 'READY',
+      fields: [
+        { fieldPath: 'classId', order: 'ASCENDING' },
+        { fieldPath: 'createdAt', order: 'ASCENDING' },
+        { fieldPath: '__name__', order: 'ASCENDING' },
+      ],
+    },
+  ];
+
+  const result = compareRequiredIndexes(required, existing);
+  assert.equal(result[0].status, 'done');
+});
+
+test('build release names for Firestore and Storage rules correctly', () => {
+  assert.equal(
+    buildFirestoreReleaseName('gcq-test-school'),
+    'projects/gcq-test-school/releases/cloud.firestore'
+  );
+  assert.equal(
+    buildStorageReleaseName('gcq-test-school', 'gcq-test-school.firebasestorage.app'),
+    'projects/gcq-test-school/releases/firebase.storage/gcq-test-school.firebasestorage.app'
+  );
+});
+
+test('build service usage consumer name from a project number', () => {
+  assert.equal(
+    buildServiceUsageConsumerName({
+      projectId: 'gcq-test-school',
+      projectNumber: '123456789012',
+    }),
+    'projects/123456789012'
+  );
+});
+
+test('buildManualSubscriptionPayload adds optional dates and notes', () => {
+  const payload = buildManualSubscriptionPayload({
+    tier: 'pro',
+    startsAt: '2026-03-20',
+    endsAt: '2026-04-20',
+    notes: 'Gifted for spring term',
+    source: 'manual',
+  });
+
+  assert.equal(payload.tier, 'pro');
+  assert.equal(payload.source, 'manual');
+  assert.equal(payload.notes, 'Gifted for spring term');
+  assert.match(payload.startsAt, /^2026-03-20T/);
+  assert.match(payload.endsAt, /^2026-04-20T/);
 });
 
 test('formatNetlifyVariables includes Firebase config and billing values', () => {

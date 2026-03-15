@@ -2,8 +2,13 @@ const http = require('http');
 const fs = require('fs');
 const path = require('path');
 const {
+  deleteSavedSchool,
   getBootstrapData,
+  getSavedSchoolDetails,
   parseServiceAccount,
+  startBootstrapAdminLogin,
+  setBootstrapQuotaProject,
+  updateSavedSchoolSubscription,
   validateSetupInput,
   runAutomaticSetup,
   recheckExistingSchool,
@@ -35,6 +40,16 @@ function sendText(res, statusCode, body, contentType = 'text/plain; charset=utf-
   res.writeHead(statusCode, {
     'Content-Type': contentType,
     'Content-Length': Buffer.byteLength(body),
+    'Cache-Control': 'no-store',
+  });
+  res.end(body);
+}
+
+function sendDownload(res, filename, body, contentType = 'text/plain; charset=utf-8') {
+  res.writeHead(200, {
+    'Content-Type': contentType,
+    'Content-Length': Buffer.byteLength(body),
+    'Content-Disposition': `attachment; filename="${filename}"`,
     'Cache-Control': 'no-store',
   });
   res.end(body);
@@ -125,7 +140,73 @@ async function handleRecheck(req, res) {
     });
     return;
   }
-  const result = await recheckExistingSchool(projectId);
+  const result = await recheckExistingSchool(projectId, {
+    readinessTarget: body.readinessTarget,
+    firebaseLocation: body.firebaseLocation,
+  });
+  sendJson(res, 200, result);
+}
+
+async function handleStartBootstrapLogin(req, res) {
+  const result = startBootstrapAdminLogin();
+  sendJson(res, 200, result);
+}
+
+async function handleSetBootstrapQuotaProject(req, res) {
+  const body = await readJsonBody(req);
+  const result = setBootstrapQuotaProject(body.projectId);
+  sendJson(res, 200, result);
+}
+
+async function handleGetSchoolSubscription(req, res, requestUrl) {
+  const projectId = String(requestUrl.searchParams.get('projectId') || '').trim();
+  if (!projectId) {
+    sendJson(res, 400, { ok: false, error: 'Choose a saved school first.' });
+    return;
+  }
+  const result = await getSavedSchoolDetails(projectId);
+  sendJson(res, 200, result);
+}
+
+async function handleDownloadNetlifyEnv(req, res, requestUrl) {
+  const projectId = String(requestUrl.searchParams.get('projectId') || '').trim();
+  const mode = String(requestUrl.searchParams.get('mode') || 'saved').trim();
+  let content = '';
+
+  if (mode === 'saved') {
+    if (!projectId) {
+      sendJson(res, 400, { ok: false, error: 'Choose a saved school first.' });
+      return;
+    }
+    const details = await getSavedSchoolDetails(projectId);
+    const result = await recheckExistingSchool(projectId, {});
+    content = result.outputs?.netlifyVars || '';
+    if (!content) {
+      throw new Error('Netlify values are not ready for this saved school yet.');
+    }
+    sendDownload(res, `${details.school.schoolId}.netlify.env`, content + '\n');
+    return;
+  }
+
+  sendJson(res, 400, { ok: false, error: 'That Netlify download mode is not supported.' });
+}
+
+async function handleUpdateSchoolSubscription(req, res) {
+  const body = await readJsonBody(req);
+  const projectId = String(body.projectId || '').trim();
+  if (!projectId) {
+    sendJson(res, 400, { ok: false, error: 'Choose a saved school first.' });
+    return;
+  }
+  const result = await updateSavedSchoolSubscription(projectId, body);
+  sendJson(res, 200, result);
+}
+
+async function handleDeleteSavedSchool(req, res) {
+  const body = await readJsonBody(req);
+  const result = await deleteSavedSchool(body.projectId, {
+    deleteProject: body.deleteProject === true,
+  });
   sendJson(res, 200, result);
 }
 
@@ -136,7 +217,15 @@ function createServer() {
 
     try {
       if (req.method === 'GET' && pathname === '/api/bootstrap') {
-        sendJson(res, 200, getBootstrapData());
+        sendJson(res, 200, await getBootstrapData());
+        return;
+      }
+      if (req.method === 'GET' && pathname === '/api/school-subscription') {
+        await handleGetSchoolSubscription(req, res, requestUrl);
+        return;
+      }
+      if (req.method === 'GET' && pathname === '/api/download-netlify-env') {
+        await handleDownloadNetlifyEnv(req, res, requestUrl);
         return;
       }
       if (req.method === 'POST' && pathname === '/api/validate-service-account') {
@@ -153,6 +242,22 @@ function createServer() {
       }
       if (req.method === 'POST' && pathname === '/api/recheck') {
         await handleRecheck(req, res);
+        return;
+      }
+      if (req.method === 'POST' && pathname === '/api/start-bootstrap-login') {
+        await handleStartBootstrapLogin(req, res);
+        return;
+      }
+      if (req.method === 'POST' && pathname === '/api/set-bootstrap-quota-project') {
+        await handleSetBootstrapQuotaProject(req, res);
+        return;
+      }
+      if (req.method === 'POST' && pathname === '/api/update-school-subscription') {
+        await handleUpdateSchoolSubscription(req, res);
+        return;
+      }
+      if (req.method === 'POST' && pathname === '/api/delete-saved-school') {
+        await handleDeleteSavedSchool(req, res);
         return;
       }
       if (req.method === 'GET') {

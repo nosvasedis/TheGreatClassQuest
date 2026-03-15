@@ -17,6 +17,8 @@ const state = {
     schoolLabel: '',
     projectId: '',
     renderUrl: '',
+    readinessTarget: 'starter',
+    firebaseLocation: 'europe-west1',
     serviceAccount: '',
     priceIds: {
       starter: '',
@@ -28,6 +30,16 @@ const state = {
   setupResult: null,
   recheckSchoolId: '',
   recheckResult: null,
+  manageSchoolId: '',
+  manageSubscription: null,
+  manageLoading: false,
+  manageForm: {
+    tier: 'pending',
+    startsAt: '',
+    endsAt: '',
+    notes: '',
+  },
+  manageDeleteConfirm: '',
   isRunning: false,
   renderPasted: false,
   netlifyPasted: false,
@@ -36,9 +48,19 @@ const state = {
 const taskIcons = {
   saveSchool: 'fa-book-open',
   copyKey: 'fa-key',
+  bootstrapLogin: 'fa-user-shield',
+  grantServiceUsageRoles: 'fa-id-badge',
+  checkFirebase: 'fa-plug-circle-check',
+  enableApis: 'fa-toggle-on',
+  ensureFirestore: 'fa-database',
+  firestoreRules: 'fa-shield-halved',
+  deployFirestoreRules: 'fa-shield',
   writePending: 'fa-lock',
   checkIndexes: 'fa-list-check',
   createIndexes: 'fa-hammer',
+  storageRules: 'fa-box-archive',
+  ensureStorage: 'fa-photo-film',
+  deployStorageRules: 'fa-cloud-arrow-up',
   renderOutput: 'fa-cloud-arrow-up',
   netlifyOutput: 'fa-globe',
   finalHealth: 'fa-heart-circle-check',
@@ -63,12 +85,15 @@ async function bootstrap() {
   state.form.schoolLabel = data.defaults.lastSchoolLabel || '';
   state.form.projectId = data.defaults.lastProjectId || '';
   state.form.renderUrl = data.defaults.renderUrl || '';
+  state.form.readinessTarget = data.defaults.readinessTarget || 'starter';
+  state.form.firebaseLocation = data.defaults.firebaseLocation || 'europe-west1';
   state.form.priceIds = {
     starter: data.defaults.priceIds?.starter || '',
     pro: data.defaults.priceIds?.pro || '',
     elite: data.defaults.priceIds?.elite || '',
   };
   state.recheckSchoolId = data.schools[0]?.schoolId || '';
+  state.manageSchoolId = data.schools[0]?.schoolId || '';
   state.loading = false;
   render();
 }
@@ -96,11 +121,28 @@ function render() {
     return;
   }
 
+  if (state.mode === 'manage') {
+    app.innerHTML = renderManageSchools();
+    bindManageEvents();
+    return;
+  }
+
   app.innerHTML = renderNewSetup();
   bindNewSetupEvents();
 }
 
 function renderWelcome() {
+  const bootstrapAdmin = state.bootstrap.bootstrapAdmin || {
+    available: false,
+    message: '',
+    actionHint: '',
+  };
+  const gcloud = state.bootstrap.gcloud || {
+    installed: false,
+    message: '',
+    actionHint: '',
+    command: 'gcloud auth application-default login',
+  };
   return `
     <section class="welcome-grid">
       <div class="panel">
@@ -116,6 +158,27 @@ function renderWelcome() {
           <li><i class="fas fa-check-circle"></i><span>Your Render billing URL</span></li>
           <li><i class="fas fa-check-circle"></i><span>Your Stripe price IDs</span></li>
         </ul>
+        <div class="helper-card" style="margin-top:18px;">
+          <h4>One-time Google admin login</h4>
+          <p>${escapeHtml(bootstrapAdmin.available
+            ? bootstrapAdmin.message
+            : 'For brand-new schools, the smoothest setup is to first sign in on this machine with the Google account that manages the Firebase project.')}</p>
+          ${bootstrapAdmin.actionHint ? `<p class="field-hint" style="margin-top:12px;">${escapeHtml(bootstrapAdmin.actionHint)}</p>` : ''}
+          ${bootstrapAdmin.technicalDetails ? `<p class="field-error" style="margin-top:12px;">${escapeHtml(bootstrapAdmin.technicalDetails)}</p>` : ''}
+          <p class="field-hint">${escapeHtml(gcloud.installed
+            ? 'Google Cloud CLI is installed, so this tool can open the sign-in flow for you.'
+            : 'Google Cloud CLI is not installed yet, so the tool cannot open the sign-in flow on this machine yet.')}</p>
+          ${bootstrapAdmin.available ? '' : `
+            <div class="button-row" style="margin-top:12px;">
+              <button class="secondary-btn" data-action="start-bootstrap-login" ${gcloud.installed ? '' : 'disabled'}>Open Google Sign-In</button>
+              <button class="secondary-btn" data-action="set-bootstrap-quota-project" ${gcloud.installed ? '' : 'disabled'}>Use Current Project for Google Login</button>
+              <button class="ghost-btn" data-action="refresh-bootstrap-status">Refresh Google Login Status</button>
+            </div>
+            <p class="field-hint" style="margin-top:12px;">${escapeHtml(gcloud.installed
+              ? 'This opens a separate Terminal window and starts Google sign-in there.'
+              : `Install Google Cloud CLI first, then run: ${gcloud.command}`)}</p>
+          `}
+        </div>
       </div>
 
       <div class="panel">
@@ -130,6 +193,12 @@ function renderWelcome() {
             <h3>Check an existing school</h3>
             <p>Choose a saved school and rerun the safe checks to make sure its config, paywall, and indexes still look right.</p>
             <button class="secondary-btn" data-action="start-recheck">Check an Existing School</button>
+          </article>
+
+          <article class="choice-card">
+            <h3>Manage saved schools</h3>
+            <p>Open a school from your saved list, view its current subscription, and manually grant Starter, Pro, Elite, Pending, or Expired with an optional date range.</p>
+            <button class="secondary-btn" data-action="start-manage">Manage Saved Schools</button>
           </article>
         </div>
       </div>
@@ -196,6 +265,26 @@ function renderCurrentStep() {
             <p class="${errors.renderUrl ? 'field-error' : 'field-hint'}">${escapeHtml(errors.renderUrl || 'This is the address of your billing server on Render.')}</p>
           </div>
 
+          <div class="field-wrap">
+            <label for="readinessTarget">What are you preparing today?</label>
+            <select id="readinessTarget">
+              <option value="starter" ${state.form.readinessTarget === 'starter' ? 'selected' : ''}>Starter / paywall only</option>
+              <option value="pro" ${state.form.readinessTarget === 'pro' ? 'selected' : ''}>Pro / Elite ready</option>
+            </select>
+            <p class="field-hint">Starter keeps things lighter. Pro / Elite ready also prepares Firebase Storage for image features.</p>
+          </div>
+
+          <div class="field-wrap">
+            <label for="firebaseLocation">Firebase region</label>
+            <select id="firebaseLocation">
+              <option value="europe-west1" ${state.form.firebaseLocation === 'europe-west1' ? 'selected' : ''}>Europe west 1 (Belgium) - Recommended</option>
+              <option value="europe-west3" ${state.form.firebaseLocation === 'europe-west3' ? 'selected' : ''}>Europe west 3 (Frankfurt)</option>
+              <option value="europe-west2" ${state.form.firebaseLocation === 'europe-west2' ? 'selected' : ''}>Europe west 2 (London)</option>
+              <option value="us-central1" ${state.form.firebaseLocation === 'us-central1' ? 'selected' : ''}>US central 1 (Iowa)</option>
+            </select>
+            <p class="field-hint">This is only used if the tool must create Firestore or Storage automatically. It is a one-time choice for the Firebase project.</p>
+          </div>
+
           <button class="primary-btn" data-action="save-details">Save and Continue</button>
         </div>
 
@@ -211,6 +300,12 @@ function renderCurrentStep() {
           <article class="helper-card">
             <h4>What happens when I click?</h4>
             <p>I simply save these details inside the wizard and move you to the Firebase key step. Nothing is deployed yet.</p>
+          </article>
+          <article class="helper-card">
+            <h4>Do I need to sign in with my Google admin account?</h4>
+            <p>${escapeHtml((state.bootstrap.bootstrapAdmin && state.bootstrap.bootstrapAdmin.available)
+              ? 'Yes, and this machine already looks ready for that one-time admin work.'
+              : 'For brand-new Firebase projects, yes. The easiest path is to run gcloud auth application-default login once on this machine, using the same Google account that manages the Firebase project.')}</p>
           </article>
         </div>
       </div>
@@ -428,7 +523,10 @@ function renderFinalStep(stepHeader) {
             <h3>Step 2: Paste these into Netlify</h3>
             <p>Open the school site in Netlify -> Site configuration -> Environment variables, then add these values and deploy the site.</p>
           </div>
-          <button class="copy-btn" data-copy="netlifyVars" ${!result?.outputs?.netlifyVars ? 'disabled' : ''}>Copy Netlify Values</button>
+          <div class="button-row">
+            <button class="copy-btn" data-copy="netlifyVars" ${!result?.outputs?.netlifyVars ? 'disabled' : ''}>Copy Netlify Values</button>
+            <button class="secondary-btn" data-action="download-netlify-inline" ${!result?.outputs?.netlifyVars ? 'disabled' : ''}>Download .env File</button>
+          </div>
         </div>
         <pre class="output-box">${escapeHtml(result?.outputs?.netlifyVars || 'The Netlify values will appear here after automatic setup runs.')}</pre>
         <label class="checkline">
@@ -438,8 +536,23 @@ function renderFinalStep(stepHeader) {
       </section>
     </div>
 
+    ${ready ? `
+      <section class="quest-complete">
+        <div class="quest-complete-glow"></div>
+        <div class="quest-complete-copy">
+          <p class="eyebrow">Quest Complete</p>
+          <h3>This school is fully ready.</h3>
+          <p>Render is updated, Netlify is prepared, and this onboarding run is complete. You can move on to the next school whenever you want.</p>
+        </div>
+        <div class="button-row">
+          <button class="primary-btn" data-action="finish-quest">Finish This School</button>
+          <button class="secondary-btn" data-action="set-up-another">Set Up Another School</button>
+        </div>
+      </section>
+    ` : ''}
+
     <div class="button-row" style="margin-top:18px;">
-      <button class="secondary-btn" data-action="start-over">Back to Home</button>
+      <button class="secondary-btn" data-action="start-over">${ready ? 'Back to Home' : 'Back to Home'}</button>
       <button class="ghost-btn" data-action="back-step">Back</button>
     </div>
   `;
@@ -512,6 +625,25 @@ function renderRecheck() {
               <p class="field-hint">This list comes from your local billing records on this machine.</p>
             </div>
 
+            <div class="field-wrap">
+              <label for="savedReadinessTarget">What do you want this school ready for now?</label>
+              <select id="savedReadinessTarget">
+                <option value="starter" ${state.form.readinessTarget === 'starter' ? 'selected' : ''}>Starter / paywall only</option>
+                <option value="pro" ${state.form.readinessTarget === 'pro' ? 'selected' : ''}>Pro / Elite ready</option>
+              </select>
+              <p class="field-hint">Use Pro / Elite ready later when an existing school upgrades and now needs Storage image features.</p>
+            </div>
+
+            <div class="field-wrap">
+              <label for="savedFirebaseLocation">Firebase region if creation is needed</label>
+              <select id="savedFirebaseLocation">
+                <option value="europe-west1" ${state.form.firebaseLocation === 'europe-west1' ? 'selected' : ''}>Europe west 1 (Belgium) - Recommended</option>
+                <option value="europe-west3" ${state.form.firebaseLocation === 'europe-west3' ? 'selected' : ''}>Europe west 3 (Frankfurt)</option>
+                <option value="europe-west2" ${state.form.firebaseLocation === 'europe-west2' ? 'selected' : ''}>Europe west 2 (London)</option>
+                <option value="us-central1" ${state.form.firebaseLocation === 'us-central1' ? 'selected' : ''}>US central 1 (Iowa)</option>
+              </select>
+            </div>
+
             <div class="button-row">
               <button class="primary-btn" data-action="run-recheck" ${state.isRunning ? 'disabled' : ''}>${state.isRunning ? 'Running School Check...' : 'Run School Check'}</button>
               <button class="ghost-btn" data-action="start-over">Back to Home</button>
@@ -529,6 +661,21 @@ function renderRecheck() {
           <article class="helper-card">
             <h4>Will this duplicate anything?</h4>
             <p>No. This mode is meant to be safe to rerun. It checks what is there and tells you what still needs attention.</p>
+          </article>
+          <article class="helper-card">
+            <h4>Google admin login status</h4>
+            <p>${escapeHtml((state.bootstrap.bootstrapAdmin && state.bootstrap.bootstrapAdmin.available)
+              ? state.bootstrap.bootstrapAdmin.message
+              : 'No local Google admin login is ready right now. Starter-to-Pro upgrades are much smoother if you run gcloud auth application-default login first.')}</p>
+            ${state.bootstrap.gcloud?.installed ? `
+              <div class="button-row" style="margin-top:12px;">
+                <button class="secondary-btn" data-action="start-bootstrap-login">Open Google Sign-In</button>
+                <button class="secondary-btn" data-action="set-bootstrap-quota-project">Use Current Project for Google Login</button>
+                <button class="ghost-btn" data-action="refresh-bootstrap-status">Refresh Google Login Status</button>
+              </div>
+            ` : `
+              <p class="field-hint" style="margin-top:12px;">Install Google Cloud CLI first, then run: ${escapeHtml(state.bootstrap.gcloud?.command || 'gcloud auth application-default login')}</p>
+            `}
           </article>
         </div>
       </div>
@@ -560,7 +707,10 @@ function renderRecheck() {
                   <h3>Netlify values</h3>
                   <p>This is the current set of values for the school site in Netlify.</p>
                 </div>
-                <button class="copy-btn" data-copy="netlifyVars" ${!state.recheckResult.outputs.netlifyVars ? 'disabled' : ''}>Copy Netlify Values</button>
+                <div class="button-row">
+                  <button class="copy-btn" data-copy="netlifyVars" ${!state.recheckResult.outputs.netlifyVars ? 'disabled' : ''}>Copy Netlify Values</button>
+                  <button class="secondary-btn" data-action="download-netlify-saved" ${!state.recheckResult.outputs.netlifyVars ? 'disabled' : ''}>Download .env File</button>
+                </div>
               </div>
               <pre class="output-box">${escapeHtml(state.recheckResult.outputs.netlifyVars || 'No Netlify values available yet.')}</pre>
             </section>
@@ -571,7 +721,178 @@ function renderRecheck() {
   `;
 }
 
+function renderManageSchools() {
+  const details = state.manageSubscription;
+  const subscription = details?.subscription || null;
+  const currentTier = subscription?.tier || 'missing';
+  const effectiveTier = subscription?.effectiveTier || 'pending';
+  const deleteReady = state.manageDeleteConfirm.trim() === state.manageSchoolId;
+  return `
+    <section class="welcome-grid">
+      <div class="panel">
+        <p class="eyebrow">Saved school admin</p>
+        <h2 class="panel-title">Manage a saved school subscription</h2>
+        <p class="panel-subtitle">Use this when you want to grant Starter, Pro, or Elite manually, lock a school back to Pending, or give access for a specific date range.</p>
+
+        ${state.bootstrap.schools.length === 0 ? `
+          <div class="empty-box">
+            You do not have any saved schools yet. Run the new school setup first, then this screen will let you manage them.
+          </div>
+        ` : `
+          <div class="field-grid">
+            <div class="field-wrap">
+              <label for="manageSchool">Saved school</label>
+              <select id="manageSchool">
+                ${state.bootstrap.schools.map((school) => `
+                  <option value="${escapeHtml(school.schoolId)}" ${state.manageSchoolId === school.schoolId ? 'selected' : ''}>
+                    ${escapeHtml(school.schoolLabel || school.schoolId)} (${escapeHtml(school.schoolId)})
+                  </option>
+                `).join('')}
+              </select>
+              <p class="field-hint">Choose the school you want to manage from your local saved list.</p>
+            </div>
+
+            <div class="button-row">
+              <button class="secondary-btn" data-action="load-manage-school" ${state.manageLoading ? 'disabled' : ''}>${state.manageLoading ? 'Loading...' : 'Load School Details'}</button>
+              <button class="ghost-btn" data-action="start-over">Back to Home</button>
+            </div>
+          </div>
+        `}
+      </div>
+
+      <div class="panel">
+        <div class="helper-cards">
+          <article class="helper-card">
+            <h4>What does this change?</h4>
+            <p>This writes the school’s <strong>appConfig/subscription</strong> document in Firestore using the same tier presets the app already understands.</p>
+          </article>
+          <article class="helper-card">
+            <h4>What do the dates mean?</h4>
+            <p>If you add a start date in the future, the app will treat the school as Pending until that date. If you add an end date, the app will treat the school as Expired after that date.</p>
+          </article>
+          <article class="helper-card">
+            <h4>Will the tool remember my schools?</h4>
+            <p>Yes. The list comes from your saved local billing records, so you can reopen the same school later and manage it again.</p>
+          </article>
+        </div>
+      </div>
+
+      ${details ? `
+        <div class="result-card" style="grid-column: 1 / -1;">
+          <div class="summary-card subscription-hero" style="margin-bottom:18px;">
+            <div>
+              <h3 class="mini-label">Current subscription snapshot</h3>
+              <p class="field-hint" style="margin-top:10px;">School: <strong>${escapeHtml(details.school.schoolLabel || details.school.schoolId)}</strong> (${escapeHtml(details.school.schoolId)})</p>
+            </div>
+            <div class="button-row">
+              <button class="secondary-btn" data-action="download-netlify-managed">Download Netlify .env</button>
+            </div>
+            <div class="summary-grid">
+              <div class="summary-pill">
+                <div class="pill-label">Saved tier</div>
+                <div class="pill-value">${escapeHtml(capitalize(currentTier))}</div>
+              </div>
+              <div class="summary-pill">
+                <div class="pill-label">Effective right now</div>
+                <div class="pill-value">${escapeHtml(capitalize(effectiveTier))}</div>
+              </div>
+              <div class="summary-pill">
+                <div class="pill-label">Starts</div>
+                <div class="pill-value">${escapeHtml(formatDateForDisplay(subscription?.startsAt))}</div>
+              </div>
+              <div class="summary-pill">
+                <div class="pill-label">Ends</div>
+                <div class="pill-value">${escapeHtml(formatDateForDisplay(subscription?.endsAt))}</div>
+              </div>
+            </div>
+            <p class="field-hint" style="margin-top:14px;">${escapeHtml(subscription?.message || '')}</p>
+          </div>
+
+          ${state.manageLoading ? `
+            <div class="loading-inline">
+              <div class="spinner"></div>
+              <p>Working on this school now...</p>
+            </div>
+          ` : ''}
+
+          <div class="grid-two">
+            <div class="field-grid">
+              <div class="field-wrap">
+                <label for="manageTier">Grant this tier</label>
+                <select id="manageTier">
+                  ${['pending', 'starter', 'pro', 'elite', 'expired'].map((tier) => `
+                    <option value="${tier}" ${state.manageForm.tier === tier ? 'selected' : ''}>${capitalize(tier)}</option>
+                  `).join('')}
+                </select>
+                <p class="field-hint">Pick the plan or locked state you want the school to have.</p>
+              </div>
+
+              <div class="field-wrap">
+                <label for="manageStartsAt">Start date (optional)</label>
+                <input id="manageStartsAt" type="date" value="${escapeHtml(state.manageForm.startsAt)}">
+                <p class="field-hint">Leave empty to start immediately.</p>
+              </div>
+
+              <div class="field-wrap">
+                <label for="manageEndsAt">End date (optional)</label>
+                <input id="manageEndsAt" type="date" value="${escapeHtml(state.manageForm.endsAt)}">
+                <p class="field-hint">Leave empty for no automatic end date.</p>
+              </div>
+
+              <div class="field-wrap">
+                <label>Quick grant buttons</label>
+                <div class="button-row">
+                  <button class="secondary-btn" data-action="apply-days" data-days="30">Grant 30 Days</button>
+                  <button class="secondary-btn" data-action="apply-days" data-days="60">Grant 60 Days</button>
+                  <button class="secondary-btn" data-action="apply-days" data-days="90">Grant 90 Days</button>
+                </div>
+                <p class="field-hint">These set the start date to today and the end date automatically.</p>
+              </div>
+
+              <div class="field-wrap">
+                <label for="manageNotes">Notes for yourself (optional)</label>
+                <textarea id="manageNotes" placeholder="e.g. Gifted Pro until summer exams.">${escapeHtml(state.manageForm.notes)}</textarea>
+                <p class="field-hint">This is stored in the subscription doc so you can remember why you changed it.</p>
+              </div>
+
+              <div class="button-row">
+                <button class="primary-btn" data-action="save-manage-subscription" ${state.manageLoading ? 'disabled' : ''}>${state.manageLoading ? 'Saving...' : 'Save Subscription'}</button>
+                <button class="ghost-btn" data-action="reset-manual-overrides" ${state.manageLoading ? 'disabled' : ''}>Clear Manual Dates/Notes</button>
+              </div>
+            </div>
+
+            <div class="helper-cards">
+              <article class="helper-card">
+                <h4>Examples</h4>
+                <p>Set <strong>Elite</strong> with an end date for a temporary gift. Set <strong>Pending</strong> to lock the school until payment. Set <strong>Expired</strong> if access should end immediately.</p>
+              </article>
+              <article class="helper-card">
+                <h4>What happens in the app?</h4>
+                <p>The live school app will read this Firestore document. If the start date is in the future it behaves like Pending; if the end date is in the past it behaves like Expired.</p>
+              </article>
+              <article class="helper-card danger-card">
+                <h4>Danger zone</h4>
+                <p>Type <strong>${escapeHtml(state.manageSchoolId)}</strong> below before using either delete button.</p>
+                <div class="field-wrap">
+                  <label for="manageDeleteConfirm">Type the school ID to confirm</label>
+                  <input id="manageDeleteConfirm" type="text" value="${escapeHtml(state.manageDeleteConfirm)}" placeholder="${escapeHtml(state.manageSchoolId)}">
+                </div>
+                <div class="button-row">
+                  <button class="danger-btn" data-action="delete-school-local" ${deleteReady && !state.manageLoading ? '' : 'disabled'}>Remove From Saved List Only</button>
+                  <button class="danger-btn" data-action="delete-school-project" ${deleteReady && !state.manageLoading ? '' : 'disabled'}>Delete Whole School Project</button>
+                </div>
+                <p class="field-hint">Remove from saved list only keeps the Firebase project alive. Delete whole school project requests deletion of the actual Google/Firebase project and also removes it from your saved list.</p>
+              </article>
+            </div>
+          </div>
+        </div>
+      ` : ''}
+    </section>
+  `;
+}
+
 function bindWelcomeEvents() {
+  bindStaticEvents();
   document.querySelector('[data-action="start-new"]')?.addEventListener('click', () => {
     state.mode = 'new';
     state.step = 0;
@@ -585,6 +906,15 @@ function bindWelcomeEvents() {
     state.recheckResult = null;
     render();
   });
+  document.querySelector('[data-action="start-manage"]')?.addEventListener('click', async () => {
+    state.mode = 'manage';
+    state.manageSubscription = null;
+    state.manageDeleteConfirm = '';
+    render();
+    if (state.manageSchoolId) {
+      await loadManagedSchool();
+    }
+  });
 }
 
 function bindNewSetupEvents() {
@@ -593,6 +923,8 @@ function bindNewSetupEvents() {
   const schoolLabel = document.getElementById('schoolLabel');
   const projectId = document.getElementById('projectId');
   const renderUrl = document.getElementById('renderUrl');
+  const readinessTarget = document.getElementById('readinessTarget');
+  const firebaseLocation = document.getElementById('firebaseLocation');
   const serviceAccount = document.getElementById('serviceAccount');
   const starterPrice = document.getElementById('starterPrice');
   const proPrice = document.getElementById('proPrice');
@@ -607,6 +939,12 @@ function bindNewSetupEvents() {
   });
   renderUrl?.addEventListener('input', (event) => {
     state.form.renderUrl = event.target.value.trim();
+  });
+  readinessTarget?.addEventListener('change', (event) => {
+    state.form.readinessTarget = event.target.value;
+  });
+  firebaseLocation?.addEventListener('change', (event) => {
+    state.form.firebaseLocation = event.target.value;
   });
   serviceAccount?.addEventListener('input', (event) => {
     state.form.serviceAccount = event.target.value;
@@ -636,6 +974,44 @@ function bindRecheckEvents() {
   document.getElementById('savedSchool')?.addEventListener('change', (event) => {
     state.recheckSchoolId = event.target.value;
   });
+  document.getElementById('savedReadinessTarget')?.addEventListener('change', (event) => {
+    state.form.readinessTarget = event.target.value;
+  });
+  document.getElementById('savedFirebaseLocation')?.addEventListener('change', (event) => {
+    state.form.firebaseLocation = event.target.value;
+  });
+}
+
+function bindManageEvents() {
+  bindStaticEvents();
+  document.getElementById('manageSchool')?.addEventListener('change', (event) => {
+    state.manageSchoolId = event.target.value;
+    state.manageDeleteConfirm = '';
+  });
+  document.getElementById('manageTier')?.addEventListener('change', (event) => {
+    state.manageForm.tier = event.target.value;
+  });
+  document.getElementById('manageStartsAt')?.addEventListener('input', (event) => {
+    state.manageForm.startsAt = event.target.value;
+  });
+  document.getElementById('manageEndsAt')?.addEventListener('input', (event) => {
+    state.manageForm.endsAt = event.target.value;
+  });
+  document.getElementById('manageNotes')?.addEventListener('input', (event) => {
+    state.manageForm.notes = event.target.value;
+  });
+  document.getElementById('manageDeleteConfirm')?.addEventListener('input', (event) => {
+    state.manageDeleteConfirm = event.target.value;
+  });
+  document.querySelector('[data-action="load-manage-school"]')?.addEventListener('click', loadManagedSchool);
+  document.querySelector('[data-action="save-manage-subscription"]')?.addEventListener('click', saveManagedSubscription);
+  document.querySelector('[data-action="reset-manual-overrides"]')?.addEventListener('click', resetManualOverrides);
+  document.querySelector('[data-action="download-netlify-managed"]')?.addEventListener('click', downloadManagedNetlifyEnv);
+  document.querySelectorAll('[data-action="apply-days"]').forEach((button) => {
+    button.addEventListener('click', () => applyManageDays(Number(button.getAttribute('data-days') || '0')));
+  });
+  document.querySelector('[data-action="delete-school-local"]')?.addEventListener('click', () => deleteManagedSchool(false));
+  document.querySelector('[data-action="delete-school-project"]')?.addEventListener('click', () => deleteManagedSchool(true));
 }
 
 function bindStaticEvents() {
@@ -646,9 +1022,40 @@ function bindStaticEvents() {
       state.step = 0;
       state.setupResult = null;
       state.recheckResult = null;
+      state.manageSubscription = null;
+      state.manageLoading = false;
+      state.manageDeleteConfirm = '';
       state.isRunning = false;
       state.renderPasted = false;
       state.netlifyPasted = false;
+      render();
+    });
+  });
+  document.querySelectorAll('[data-action="finish-quest"]').forEach((button) => {
+    button.addEventListener('click', () => {
+      state.mode = null;
+      state.step = 0;
+      state.setupResult = null;
+      state.recheckResult = null;
+      state.manageSubscription = null;
+      state.manageLoading = false;
+      state.manageDeleteConfirm = '';
+      state.renderPasted = false;
+      state.netlifyPasted = false;
+      render();
+    });
+  });
+  document.querySelectorAll('[data-action="set-up-another"]').forEach((button) => {
+    button.addEventListener('click', () => {
+      state.mode = 'new';
+      state.step = 0;
+      state.setupResult = null;
+      state.renderPasted = false;
+      state.netlifyPasted = false;
+      state.serviceAccountSummary = null;
+      state.form.schoolLabel = '';
+      state.form.projectId = '';
+      state.form.serviceAccount = '';
       render();
     });
   });
@@ -668,6 +1075,15 @@ function bindStaticEvents() {
     render();
   });
   document.querySelector('[data-action="validate-key"]')?.addEventListener('click', validateServiceAccount);
+  document.querySelectorAll('[data-action="start-bootstrap-login"]').forEach((button) => {
+    button.addEventListener('click', startBootstrapLogin);
+  });
+  document.querySelectorAll('[data-action="refresh-bootstrap-status"]').forEach((button) => {
+    button.addEventListener('click', refreshBootstrapStatus);
+  });
+  document.querySelectorAll('[data-action="set-bootstrap-quota-project"]').forEach((button) => {
+    button.addEventListener('click', setBootstrapQuotaProject);
+  });
   document.querySelector('[data-action="use-key"]')?.addEventListener('click', () => {
     if (!state.serviceAccountSummary?.matchesProject) return;
     state.step = 2;
@@ -709,6 +1125,8 @@ function bindStaticEvents() {
       }, 1400);
     });
   });
+  document.querySelector('[data-action="download-netlify-inline"]')?.addEventListener('click', downloadInlineNetlifyEnv);
+  document.querySelector('[data-action="download-netlify-saved"]')?.addEventListener('click', downloadSavedNetlifyEnv);
   document.querySelector('[data-toggle="render-pasted"]')?.addEventListener('change', (event) => {
     state.renderPasted = event.target.checked;
     render();
@@ -756,6 +1174,8 @@ async function runSetup() {
         schoolLabel: state.form.schoolLabel.trim(),
         projectId: state.form.projectId.trim(),
         renderUrl: state.form.renderUrl.trim(),
+        readinessTarget: state.form.readinessTarget,
+        firebaseLocation: state.form.firebaseLocation,
         serviceAccount: state.form.serviceAccount,
         priceIds: state.form.priceIds,
       },
@@ -789,6 +1209,97 @@ async function runSetup() {
   }
 }
 
+async function startBootstrapLogin() {
+  try {
+    const result = await api('/api/start-bootstrap-login', {
+      method: 'POST',
+      body: {},
+    });
+    window.alert(result.message);
+  } catch (error) {
+    window.alert(error.message || 'Google sign-in could not be started from the tool.');
+  }
+}
+
+async function refreshBootstrapStatus() {
+  try {
+    state.bootstrap = await api('/api/bootstrap');
+    render();
+    const status = state.bootstrap.bootstrapAdmin || {};
+    window.alert(status.available
+      ? 'Google admin login is ready on this machine.'
+      : `${status.message || 'Google admin login is still not ready.'}${status.technicalDetails ? `\n\nDetails: ${status.technicalDetails}` : ''}`);
+  } catch (error) {
+    window.alert(error.message || 'Google login status could not be refreshed.');
+  }
+}
+
+async function setBootstrapQuotaProject() {
+  const projectId = state.form.projectId?.trim() || state.bootstrap.defaults?.lastProjectId || state.recheckSchoolId;
+  try {
+    const result = await api('/api/set-bootstrap-quota-project', {
+      method: 'POST',
+      body: {
+        projectId,
+      },
+    });
+    window.alert(result.message);
+    state.bootstrap = await api('/api/bootstrap');
+    render();
+  } catch (error) {
+    window.alert(error.message || 'The Google login quota project could not be set.');
+  }
+}
+
+function downloadTextFile(filename, content) {
+  const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const anchor = document.createElement('a');
+  anchor.href = url;
+  anchor.download = filename;
+  document.body.appendChild(anchor);
+  anchor.click();
+  anchor.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 500);
+}
+
+async function downloadInlineNetlifyEnv() {
+  const projectId = state.form.projectId.trim() || 'school';
+  const content = state.setupResult?.outputs?.netlifyVars || '';
+  if (!content) return;
+  downloadTextFile(`${projectId}.netlify.env`, content + '\n');
+}
+
+async function downloadSavedNetlifyEnv() {
+  if (!state.recheckSchoolId) return;
+  try {
+    const response = await fetch(`/api/download-netlify-env?projectId=${encodeURIComponent(state.recheckSchoolId)}&mode=saved`);
+    if (!response.ok) {
+      const payload = await response.json().catch(() => ({}));
+      throw new Error(payload.error || 'The Netlify env file could not be downloaded.');
+    }
+    const text = await response.text();
+    downloadTextFile(`${state.recheckSchoolId}.netlify.env`, text);
+  } catch (error) {
+    window.alert(error.message || 'The Netlify env file could not be downloaded.');
+  }
+}
+
+async function downloadManagedNetlifyEnv() {
+  if (!state.manageSchoolId) return;
+  try {
+    const response = await fetch(`/api/download-netlify-env?projectId=${encodeURIComponent(state.manageSchoolId)}&mode=saved`);
+    if (!response.ok) {
+      const payload = await response.json().catch(() => ({}));
+      throw new Error(payload.error || 'The Netlify env file could not be downloaded.');
+    }
+    const text = await response.text();
+    downloadTextFile(`${state.manageSchoolId}.netlify.env`, text);
+  } catch (error) {
+    window.alert(error.message || 'The Netlify env file could not be downloaded.');
+  }
+}
+
 async function runRecheck() {
   state.isRunning = true;
   state.recheckResult = null;
@@ -798,6 +1309,8 @@ async function runRecheck() {
       method: 'POST',
       body: {
         projectId: state.recheckSchoolId,
+        readinessTarget: state.form.readinessTarget,
+        firebaseLocation: state.form.firebaseLocation,
       },
     });
     state.recheckResult = result;
@@ -823,6 +1336,116 @@ async function runRecheck() {
     };
   } finally {
     state.isRunning = false;
+    render();
+  }
+}
+
+async function loadManagedSchool() {
+  if (!state.manageSchoolId) return;
+  state.manageLoading = true;
+  render();
+  try {
+    const result = await api(`/api/school-subscription?projectId=${encodeURIComponent(state.manageSchoolId)}`);
+    state.manageSubscription = result;
+    state.manageForm = {
+      tier: result.subscription?.tier || 'pending',
+      startsAt: formatDateForInput(result.subscription?.startsAt),
+      endsAt: formatDateForInput(result.subscription?.endsAt),
+      notes: result.subscription?.notes || '',
+    };
+    state.manageDeleteConfirm = '';
+  } catch (error) {
+    window.alert(error.message || 'The school details could not be loaded.');
+  } finally {
+    state.manageLoading = false;
+    render();
+  }
+}
+
+async function saveManagedSubscription() {
+  if (!state.manageSchoolId) return;
+  state.manageLoading = true;
+  render();
+  try {
+    const result = await api('/api/update-school-subscription', {
+      method: 'POST',
+      body: {
+        projectId: state.manageSchoolId,
+        tier: state.manageForm.tier,
+        startsAt: state.manageForm.startsAt,
+        endsAt: state.manageForm.endsAt,
+        notes: state.manageForm.notes,
+        source: 'manual',
+      },
+    });
+    state.manageSubscription = result;
+    state.manageForm = {
+      tier: result.subscription?.tier || state.manageForm.tier,
+      startsAt: formatDateForInput(result.subscription?.startsAt),
+      endsAt: formatDateForInput(result.subscription?.endsAt),
+      notes: result.subscription?.notes || '',
+    };
+    window.alert(result.message || 'The subscription was saved.');
+  } catch (error) {
+    window.alert(error.message || 'The subscription could not be saved.');
+  } finally {
+    state.manageLoading = false;
+    render();
+  }
+}
+
+function applyManageDays(days) {
+  if (!Number.isFinite(days) || days <= 0) return;
+  const start = new Date();
+  const end = new Date();
+  end.setDate(end.getDate() + days);
+  state.manageForm.startsAt = formatDateForInput(start.toISOString());
+  state.manageForm.endsAt = formatDateForInput(end.toISOString());
+  render();
+}
+
+function resetManualOverrides() {
+  state.manageForm.startsAt = '';
+  state.manageForm.endsAt = '';
+  state.manageForm.notes = '';
+  render();
+}
+
+async function deleteManagedSchool(deleteProject) {
+  if (!state.manageSchoolId) return;
+  const actionLabel = deleteProject ? 'delete the whole school project' : 'remove the school from your saved list';
+  if (state.manageDeleteConfirm.trim() !== state.manageSchoolId) {
+    window.alert(`Type ${state.manageSchoolId} first before you ${actionLabel}.`);
+    return;
+  }
+  const confirmed = window.confirm(deleteProject
+    ? `This will request deletion of the whole Google/Firebase project for ${state.manageSchoolId} and remove it from your saved list. Continue?`
+    : `This will remove ${state.manageSchoolId} from your local saved list only. Continue?`);
+  if (!confirmed) return;
+
+  state.manageLoading = true;
+  render();
+  try {
+    const result = await api('/api/delete-saved-school', {
+      method: 'POST',
+      body: {
+        projectId: state.manageSchoolId,
+        deleteProject,
+      },
+    });
+    window.alert(result.message);
+    state.bootstrap = await api('/api/bootstrap');
+    state.manageSchoolId = state.bootstrap.schools[0]?.schoolId || '';
+    state.manageSubscription = null;
+    state.manageDeleteConfirm = '';
+    if (state.manageSchoolId) {
+      await loadManagedSchool();
+      return;
+    }
+  } catch (error) {
+    window.alert(error.message || 'The school could not be deleted.');
+  } finally {
+    state.manageLoading = false;
     render();
   }
 }
@@ -884,4 +1507,18 @@ function escapeHtml(value) {
 
 function capitalize(value) {
   return value ? value.charAt(0).toUpperCase() + value.slice(1) : '';
+}
+
+function formatDateForInput(value) {
+  if (!value) return '';
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) return '';
+  return parsed.toISOString().slice(0, 10);
+}
+
+function formatDateForDisplay(value) {
+  if (!value) return 'Not set';
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) return value;
+  return parsed.toLocaleDateString();
 }

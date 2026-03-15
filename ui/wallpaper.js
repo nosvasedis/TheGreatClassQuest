@@ -192,7 +192,8 @@ function startWallpaperClock() {
         } else {
             if (hubName.dataset.currentId !== 'global') {
                 state.setGlobalSelectedClass(null);
-                hubName.innerHTML = `<span class="mr-3 text-5xl">🏫</span>Prodigies School`;
+                const schoolName = state.get('schoolName') || constants.DEFAULT_SCHOOL_NAME;
+                hubName.innerHTML = `<span class="mr-3 text-5xl">🏫</span>${schoolName}`;
                 hubLevel.innerText = "Global Quest Network";
                 hubName.dataset.currentId = 'global';
             }

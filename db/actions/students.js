@@ -151,6 +151,15 @@ export async function handleSaveStudentDetails() {
 }
 
 export async function handleLookupNameday() {
+    if (!canUseFeature('eliteAI')) {
+        showUpgradePrompt({
+            feature: 'AI Nameday Lookup',
+            tier: 'Elite',
+            message: getUpgradeMessage('Elite')
+        });
+        return;
+    }
+
     const studentName = document.getElementById('edit-student-name-input-full').value.trim();
     if (!studentName) {
         showToast('Please enter a name first.', 'info');

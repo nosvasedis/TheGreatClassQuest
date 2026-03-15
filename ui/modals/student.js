@@ -106,7 +106,17 @@ export function openEditStudentModal(studentId) {
     const classDropdown = document.getElementById('edit-student-hero-class');
     const tierNote = document.getElementById('hero-class-tier-note');
     const heroProgressionEnabled = canUseFeature('heroProgression');
+    const namedayLookupBtn = document.getElementById('lookup-nameday-btn');
+    const eliteAiEnabled = canUseFeature('eliteAI');
     classDropdown.value = student.heroClass || "";
+
+    if (namedayLookupBtn) {
+        namedayLookupBtn.className = eliteAiEnabled
+            ? 'bg-indigo-100 text-indigo-700 h-10 w-10 rounded-full bubbly-button flex-shrink-0 transition-colors hover:bg-indigo-200'
+            : 'bg-slate-100 text-slate-400 h-10 w-10 rounded-full bubbly-button flex-shrink-0 border border-slate-200 transition-colors hover:bg-slate-200';
+        namedayLookupBtn.title = eliteAiEnabled ? 'AI Nameday Lookup' : 'Elite plan: AI Nameday Lookup';
+        namedayLookupBtn.setAttribute('aria-label', namedayLookupBtn.title);
+    }
 
     if (!heroProgressionEnabled) {
         classDropdown.disabled = true;

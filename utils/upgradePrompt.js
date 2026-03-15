@@ -10,7 +10,7 @@ import { requestCheckoutSession } from './billingCheckout.js';
 
 /**
  * Show a modal prompting the user to upgrade for a gated feature.
- * If BILLING_BASE_URL is set, "Upgrade" opens Stripe Checkout; otherwise "OK" / "Contact me to upgrade".
+ * If BILLING_BASE_URL is set, "Upgrade" opens Stripe Checkout; otherwise the modal just explains the required tier.
  * @param {object} opts - { feature: string, tier: 'Pro' | 'Elite', message?: string }
  */
 export function showUpgradePrompt(opts) {
@@ -19,8 +19,8 @@ export function showUpgradePrompt(opts) {
     const billingEnabled = BILLING_BASE_URL && (BILLING_SCHOOL_ID || firebaseConfig?.projectId);
     const schoolId = BILLING_SCHOOL_ID || firebaseConfig?.projectId || '';
     const body = message
-        ? `${message}<br><br><strong>Available on the ${tier} plan.</strong>${billingEnabled ? '' : ' Contact me to upgrade.'}`
-        : `This feature is available on the <strong>${tier}</strong> plan.${billingEnabled ? '' : ' Contact me to upgrade.'}`;
+        ? `${message}<br><br><strong>Available on the ${tier} plan.</strong>`
+        : `This feature is available on the <strong>${tier}</strong> plan.`;
 
     if (billingEnabled && schoolId) {
         const confirmText = `Upgrade to ${tier}`;

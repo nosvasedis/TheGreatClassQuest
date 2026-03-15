@@ -24,6 +24,7 @@ let avatarMakerData = {
 // --- MODAL & UI FUNCTIONS ---
 
 export function openAvatarMaker(studentId) {
+    if (!requireEliteAI({ feature: 'Avatar Forge' })) return;
     const student = state.get('allStudents').find(s => s.id === studentId);
     if (!student) return;
 

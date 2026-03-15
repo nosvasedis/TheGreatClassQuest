@@ -65,6 +65,7 @@ export function renderManageStudentsTab() {
         .sort((a, b) => a.name.localeCompare(b.name));
     const heroProgressionEnabled = canUseFeature('heroProgression');
     const guildsEnabled = canUseFeature('guilds');
+    const eliteAiEnabled = canUseFeature('eliteAI');
 
     // Update header count badge
     const countBadge = document.getElementById('student-count-badge');
@@ -127,13 +128,16 @@ export function renderManageStudentsTab() {
             ? `<span class="guild-badge-wrap flex-shrink-0">${getGuildBadgeHtml(s.guildId, 'w-7 h-7')}</span>`
             : guildsEnabled
                 ? `<button data-id="${s.id}" class="guild-quiz-btn w-7 h-7 flex items-center justify-center bg-amber-100 hover:bg-amber-200 text-amber-700 rounded-full bubbly-button transition-colors" title="Take Guild Quiz"><i class="fas fa-hat-wizard" style="font-size:10px;"></i></button>`
-                : `<button data-id="${s.id}" class="guild-quiz-btn w-7 h-7 flex items-center justify-center bg-gray-100 text-gray-400 rounded-full border border-gray-200 cursor-not-allowed transition-colors" title="Pro plan: Guild Sorting Quiz"><i class="fas fa-lock" style="font-size:10px;"></i></button>`;
+                : `<button data-id="${s.id}" class="guild-quiz-btn w-7 h-7 flex items-center justify-center bg-slate-100 hover:bg-slate-200 text-slate-400 rounded-full border border-slate-200 bubbly-button transition-colors" title="Pro plan: Guild Sorting Quiz"><i class="fas fa-hat-wizard" style="font-size:10px;"></i></button>`;
 
         const skillTreeBtnCls = !heroProgressionEnabled
-            ? 'skill-tree-btn skill-tree-btn-locked w-7 h-7 flex items-center justify-center bg-gray-100 text-gray-400 rounded-full border border-gray-200 cursor-not-allowed'
+            ? 'skill-tree-btn skill-tree-btn-locked w-7 h-7 flex items-center justify-center bg-slate-100 hover:bg-slate-200 text-slate-400 rounded-full border border-slate-200 bubbly-button transition-colors'
             : pendingSkill
                 ? 'skill-tree-btn w-7 h-7 flex items-center justify-center bg-purple-500 hover:bg-purple-600 text-white rounded-full bubbly-button animate-pulse ring-2 ring-purple-300 transition-colors'
                 : 'skill-tree-btn w-7 h-7 flex items-center justify-center bg-purple-100 hover:bg-purple-200 text-purple-700 rounded-full bubbly-button transition-colors';
+        const avatarMakerBtnCls = eliteAiEnabled
+            ? 'avatar-maker-btn w-7 h-7 flex items-center justify-center bg-fuchsia-100 hover:bg-fuchsia-200 text-fuchsia-700 rounded-full bubbly-button transition-colors'
+            : 'avatar-maker-btn avatar-maker-btn-locked w-7 h-7 flex items-center justify-center bg-slate-100 hover:bg-slate-200 text-slate-400 rounded-full border border-slate-200 bubbly-button transition-colors';
 
         const guildBorderStyle = s.guildId && getGuildById(s.guildId)
             ? `border-left: 3px solid ${getGuildById(s.guildId).primary};`
@@ -150,12 +154,12 @@ export function renderManageStudentsTab() {
                 <div class="flex items-center gap-1">
                     ${guildAction}
                     <button data-id="${s.id}" class="${skillTreeBtnCls}" title="${!heroProgressionEnabled ? 'Pro plan: Hero Classes & Skill Tree' : (pendingSkill ? '✨ New Skill Available!' : 'Skill Tree')}">
-                        <i class="fas ${!heroProgressionEnabled ? 'fa-lock' : 'fa-sitemap'}" style="font-size:10px;"></i>
+                        <i class="fas fa-sitemap" style="font-size:10px;"></i>
                     </button>
                     <button data-id="${s.id}" class="hero-chronicle-btn w-7 h-7 flex items-center justify-center bg-green-100 hover:bg-green-200 text-green-700 rounded-full bubbly-button transition-colors" title="Hero's Chronicle">
                         <i class="fas fa-book-reader" style="font-size:10px;"></i>
                     </button>
-                    <button data-id="${s.id}" class="avatar-maker-btn w-7 h-7 flex items-center justify-center rounded-full bubbly-button transition-colors" title="Create/Edit Avatar">
+                    <button data-id="${s.id}" class="${avatarMakerBtnCls}" title="${eliteAiEnabled ? 'Create/Edit Avatar' : 'Elite plan: Avatar Forge'}">
                         <i class="fas fa-user-astronaut" style="font-size:10px;"></i>
                     </button>
                     <button data-id="${s.id}" class="certificate-student-btn w-7 h-7 flex items-center justify-center bg-indigo-100 hover:bg-indigo-200 text-indigo-700 rounded-full bubbly-button transition-colors" title="Generate Certificate">
@@ -182,7 +186,17 @@ export function renderManageStudentsTab() {
     list.querySelectorAll('.delete-student-btn').forEach(btn => btn.addEventListener('click', () => modals.showModal('Delete Student?', 'Are you sure you want to delete this student?', () => deleteStudent(btn.dataset.id))));
     list.querySelectorAll('.certificate-student-btn').forEach(btn => btn.addEventListener('click', () => modals.handleGenerateCertificate(btn.dataset.id)));
     list.querySelectorAll('.edit-student-btn').forEach(btn => btn.addEventListener('click', () => modals.openEditStudentModal(btn.dataset.id)));
-    list.querySelectorAll('.avatar-maker-btn').forEach(btn => btn.addEventListener('click', () => avatar.openAvatarMaker(btn.dataset.id)));
+    list.querySelectorAll('.avatar-maker-btn').forEach(btn => btn.addEventListener('click', () => {
+        if (!eliteAiEnabled) {
+            showUpgradePrompt({
+                feature: 'Avatar Forge',
+                tier: 'Elite',
+                message: getUpgradeMessage('Elite')
+            });
+            return;
+        }
+        avatar.openAvatarMaker(btn.dataset.id);
+    }));
     list.querySelectorAll('.move-student-btn').forEach(btn => btn.addEventListener('click', () => modals.openMoveStudentModal(btn.dataset.id)));
     list.querySelectorAll('.hero-chronicle-btn').forEach(btn => btn.addEventListener('click', () => modals.openHeroChronicleModal(btn.dataset.id)));
     list.querySelectorAll('.guild-quiz-btn').forEach(btn => btn.addEventListener('click', () => {

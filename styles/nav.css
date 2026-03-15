@@ -84,7 +84,7 @@
 }
 
 .nav-button.nav-button-locked::after {
-    content: 'LOCKED';
+    content: attr(data-locked-label);
     position: absolute;
     top: 0.22rem;
     right: 0.3rem;
@@ -144,4 +144,3 @@
 .cloud-fast {
     animation-duration: 35s;
 }
-

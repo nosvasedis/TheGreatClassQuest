@@ -52,11 +52,13 @@ export function updateBottomNavGateState() {
 
         if (isLocked && gate) {
             btn.dataset.lockedTier = (gate.tier || '').toLowerCase();
+            btn.dataset.lockedLabel = gate.tier || '';
             btn.title = `${gate.feature} requires ${gate.tier}.`;
             return;
         }
 
         btn.removeAttribute('data-locked-tier');
+        btn.removeAttribute('data-locked-label');
         btn.removeAttribute('title');
     });
 }

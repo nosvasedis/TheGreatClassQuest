@@ -122,7 +122,10 @@ export function renderManageStudentsTab() {
             : '';
         const heroClassBadge = hc
             ? `<span class="inline-flex items-center gap-1 text-[11px] font-bold px-2 py-0.5 rounded-full" style="background:${hc.bg};color:${hc.text};">${hc.icon} ${s.heroClass}</span>`
-            : `<span class="text-[11px] text-gray-400 italic">${heroProgressionEnabled ? 'No class' : 'Pro feature'}</span>`;
+            : (heroProgressionEnabled ? `<span class="text-[11px] text-gray-400 italic">No class</span>` : '');
+        const heroMetaRow = (heroClassBadge || heroTitlePill)
+            ? `<div class="flex items-center gap-1.5 mt-0.5 flex-wrap">${heroClassBadge}${heroTitlePill}</div>`
+            : '';
 
         const guildAction = s.guildId
             ? `<span class="guild-badge-wrap flex-shrink-0">${getGuildBadgeHtml(s.guildId, 'w-7 h-7')}</span>`
@@ -148,7 +151,7 @@ export function renderManageStudentsTab() {
             <div class="flex-shrink-0">${avatarHtml}</div>
             <div class="flex-1 min-w-0">
                 <p class="font-semibold text-gray-800 text-sm leading-snug truncate">${s.name}</p>
-                <div class="flex items-center gap-1.5 mt-0.5 flex-wrap">${heroClassBadge}${heroTitlePill}</div>
+                ${heroMetaRow}
             </div>
             <div class="flex-shrink-0 flex flex-col items-end gap-1.5">
                 <div class="flex items-center gap-1">

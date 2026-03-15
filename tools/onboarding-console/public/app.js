@@ -17,6 +17,7 @@ const state = {
     schoolLabel: '',
     projectId: '',
     renderUrl: '',
+    siteDomain: '',
     readinessTarget: 'starter',
     firebaseLocation: 'europe-west1',
     serviceAccount: '',
@@ -51,6 +52,9 @@ const taskIcons = {
   bootstrapLogin: 'fa-user-shield',
   grantServiceUsageRoles: 'fa-id-badge',
   checkFirebase: 'fa-plug-circle-check',
+  ensureAuth: 'fa-user-lock',
+  enableEmailPassword: 'fa-envelope-open-text',
+  authorizeSchoolDomain: 'fa-globe',
   enableApis: 'fa-toggle-on',
   ensureFirestore: 'fa-database',
   firestoreRules: 'fa-shield-halved',
@@ -66,6 +70,45 @@ const taskIcons = {
   finalHealth: 'fa-heart-circle-check',
   savedSchool: 'fa-folder-open',
   subscriptionCheck: 'fa-receipt',
+};
+
+const manageTierMeta = {
+  pending: {
+    label: 'Pending',
+    emoji: '⏳',
+    tone: 'pending',
+    blurb: 'School is locked until payment or grace access.',
+  },
+  starter: {
+    label: 'Starter',
+    emoji: '🌱',
+    tone: 'starter',
+    blurb: 'Core GCQ setup with lighter limits and no premium extras.',
+  },
+  pro: {
+    label: 'Pro',
+    emoji: '⚔️',
+    tone: 'pro',
+    blurb: 'Unlocks the richer classroom systems and larger school limits.',
+  },
+  elite: {
+    label: 'Elite',
+    emoji: '👑',
+    tone: 'elite',
+    blurb: 'Everything unlocked, including AI-powered features.',
+  },
+  expired: {
+    label: 'Expired',
+    emoji: '🔒',
+    tone: 'expired',
+    blurb: 'Access ends immediately until you grant a new plan.',
+  },
+  missing: {
+    label: 'Missing',
+    emoji: '❔',
+    tone: 'pending',
+    blurb: 'No saved subscription document was found yet.',
+  },
 };
 
 bootstrap().catch((error) => {
@@ -85,6 +128,7 @@ async function bootstrap() {
   state.form.schoolLabel = data.defaults.lastSchoolLabel || '';
   state.form.projectId = data.defaults.lastProjectId || '';
   state.form.renderUrl = data.defaults.renderUrl || '';
+  state.form.siteDomain = data.defaults.siteDomain || '';
   state.form.readinessTarget = data.defaults.readinessTarget || 'starter';
   state.form.firebaseLocation = data.defaults.firebaseLocation || 'europe-west1';
   state.form.priceIds = {
@@ -244,7 +288,7 @@ function renderCurrentStep() {
     const errors = detailsErrors();
     return `
       ${stepHeader}
-      <p class="step-subtitle">Tell me which school you are preparing, and where your billing server lives.</p>
+      <p class="step-subtitle">Tell me which school you are preparing, where your billing server lives, and what public domain the teachers will actually use.</p>
       <div class="grid-two">
         <div class="field-grid">
           <div class="field-wrap">
@@ -263,6 +307,12 @@ function renderCurrentStep() {
             <label for="renderUrl">Render billing URL</label>
             <input id="renderUrl" type="text" value="${escapeHtml(state.form.renderUrl)}" placeholder="https://your-billing.onrender.com">
             <p class="${errors.renderUrl ? 'field-error' : 'field-hint'}">${escapeHtml(errors.renderUrl || 'This is the address of your billing server on Render.')}</p>
+          </div>
+
+          <div class="field-wrap">
+            <label for="siteDomain">School site domain</label>
+            <input id="siteDomain" type="text" value="${escapeHtml(state.form.siteDomain)}" placeholder="gcq-test-school.netlify.app">
+            <p class="${errors.siteDomain ? 'field-error' : 'field-hint'}">${escapeHtml(errors.siteDomain || 'The tool uses this to authorize sign-in in Firebase Authentication. You can paste the full URL or just the hostname.')}</p>
           </div>
 
           <div class="field-wrap">
@@ -296,6 +346,10 @@ function renderCurrentStep() {
           <article class="helper-card">
             <h4>Where do I find the Render URL?</h4>
             <p>Open your billing service on Render. The public URL is the address that ends in <strong>.onrender.com</strong>.</p>
+          </article>
+          <article class="helper-card">
+            <h4>What should I put as the school site domain?</h4>
+            <p>Use the exact public school site hostname, usually the Netlify domain like <strong>gcq-test-school.netlify.app</strong>. This lets the tool authorize that domain for Firebase sign-in automatically.</p>
           </article>
           <article class="helper-card">
             <h4>What happens when I click?</h4>
@@ -727,162 +781,289 @@ function renderManageSchools() {
   const currentTier = subscription?.tier || 'missing';
   const effectiveTier = subscription?.effectiveTier || 'pending';
   const deleteReady = state.manageDeleteConfirm.trim() === state.manageSchoolId;
+  const selectedMeta = manageTierMeta[state.manageForm.tier] || manageTierMeta.pending;
+  const currentMeta = manageTierMeta[currentTier] || manageTierMeta.missing;
+  const effectiveMeta = manageTierMeta[effectiveTier] || manageTierMeta.pending;
+  const schools = state.bootstrap.schools || [];
   return `
     <section class="welcome-grid">
-      <div class="panel">
-        <p class="eyebrow">Saved school admin</p>
-        <h2 class="panel-title">Manage a saved school subscription</h2>
-        <p class="panel-subtitle">Use this when you want to grant Starter, Pro, or Elite manually, lock a school back to Pending, or give access for a specific date range.</p>
+      <div class="panel manage-hero-panel">
+        <div class="manage-hero-copy">
+          <p class="eyebrow">Saved school admin</p>
+          <h2 class="panel-title">Manage a saved school subscription</h2>
+          <p class="panel-subtitle">Pick a school, see its current status clearly, then grant the tier and date range you want without digging through technical text.</p>
+        </div>
+        <div class="manage-hero-orb" aria-hidden="true">
+          <span>🏫</span>
+        </div>
 
-        ${state.bootstrap.schools.length === 0 ? `
+        ${schools.length === 0 ? `
           <div class="empty-box">
             You do not have any saved schools yet. Run the new school setup first, then this screen will let you manage them.
           </div>
         ` : `
-          <div class="field-grid">
-            <div class="field-wrap">
-              <label for="manageSchool">Saved school</label>
+          <div class="manage-school-picker">
+            <div class="field-wrap manage-school-field">
+              <label for="manageSchool">Choose a saved school</label>
               <select id="manageSchool">
-                ${state.bootstrap.schools.map((school) => `
+                ${schools.map((school) => `
                   <option value="${escapeHtml(school.schoolId)}" ${state.manageSchoolId === school.schoolId ? 'selected' : ''}>
                     ${escapeHtml(school.schoolLabel || school.schoolId)} (${escapeHtml(school.schoolId)})
                   </option>
                 `).join('')}
               </select>
-              <p class="field-hint">Choose the school you want to manage from your local saved list.</p>
+              <p class="field-hint">This list comes from your local saved billing records.</p>
             </div>
 
-            <div class="button-row">
-              <button class="secondary-btn" data-action="load-manage-school" ${state.manageLoading ? 'disabled' : ''}>${state.manageLoading ? 'Loading...' : 'Load School Details'}</button>
+            <div class="manage-school-actions">
+              <button class="secondary-btn" data-action="load-manage-school" ${state.manageLoading ? 'disabled' : ''}>${state.manageLoading ? 'Loading...' : 'Open This School'}</button>
               <button class="ghost-btn" data-action="start-over">Back to Home</button>
             </div>
+          </div>
+
+          <div class="manage-school-chip-grid">
+            ${schools.map((school) => `
+              <button
+                type="button"
+                class="manage-school-chip ${state.manageSchoolId === school.schoolId ? 'selected' : ''}"
+                data-action="pick-manage-school"
+                data-school-id="${escapeHtml(school.schoolId)}"
+              >
+                <span class="manage-school-chip-icon">${state.manageSchoolId === school.schoolId ? '✨' : '📘'}</span>
+                <span class="manage-school-chip-copy">
+                  <strong>${escapeHtml(school.schoolLabel || school.schoolId)}</strong>
+                  <small>${escapeHtml(school.schoolId)}</small>
+                </span>
+              </button>
+            `).join('')}
           </div>
         `}
       </div>
 
-      <div class="panel">
-        <div class="helper-cards">
-          <article class="helper-card">
-            <h4>What does this change?</h4>
-            <p>This writes the school’s <strong>appConfig/subscription</strong> document in Firestore using the same tier presets the app already understands.</p>
+      <div class="panel manage-help-panel">
+        <div class="manage-help-grid">
+          <article class="manage-help-card sunrise">
+            <h4>What this really changes</h4>
+            <p>This updates the school’s <strong>appConfig/subscription</strong> document in Firestore using the same plan rules the live app already understands.</p>
           </article>
-          <article class="helper-card">
-            <h4>What do the dates mean?</h4>
-            <p>If you add a start date in the future, the app will treat the school as Pending until that date. If you add an end date, the app will treat the school as Expired after that date.</p>
+          <article class="manage-help-card sky">
+            <h4>What the dates do</h4>
+            <p>A future start date makes the school stay <strong>Pending</strong> until that day. A passed end date makes the school behave as <strong>Expired</strong>.</p>
           </article>
-          <article class="helper-card">
-            <h4>Will the tool remember my schools?</h4>
-            <p>Yes. The list comes from your saved local billing records, so you can reopen the same school later and manage it again.</p>
+          <article class="manage-help-card mint">
+            <h4>Helpful use cases</h4>
+            <p>Gift 30 days of Pro, unlock Elite for exam season, or push a school back to Pending until payment is sorted.</p>
           </article>
         </div>
       </div>
 
       ${details ? `
-        <div class="result-card" style="grid-column: 1 / -1;">
-          <div class="summary-card subscription-hero" style="margin-bottom:18px;">
-            <div>
-              <h3 class="mini-label">Current subscription snapshot</h3>
-              <p class="field-hint" style="margin-top:10px;">School: <strong>${escapeHtml(details.school.schoolLabel || details.school.schoolId)}</strong> (${escapeHtml(details.school.schoolId)})</p>
+        <div class="result-card manage-results" style="grid-column: 1 / -1;">
+          <div class="manage-status-hero tone-${effectiveMeta.tone}">
+            <div class="manage-status-main">
+              <div class="manage-status-badge">
+                <span class="manage-status-emoji">${effectiveMeta.emoji}</span>
+                <div>
+                  <p class="mini-label">Currently live in the app</p>
+                  <h3>${escapeHtml(effectiveMeta.label)}</h3>
+                </div>
+              </div>
+              <p class="manage-status-copy">${escapeHtml(subscription?.message || effectiveMeta.blurb)}</p>
             </div>
-            <div class="button-row">
+            <div class="manage-status-side">
+              <div class="manage-school-title">
+                <p class="mini-label">Saved school</p>
+                <h4>${escapeHtml(details.school.schoolLabel || details.school.schoolId)}</h4>
+                <p>${escapeHtml(details.school.schoolId)}</p>
+              </div>
               <button class="secondary-btn" data-action="download-netlify-managed">Download Netlify .env</button>
             </div>
-            <div class="summary-grid">
-              <div class="summary-pill">
-                <div class="pill-label">Saved tier</div>
-                <div class="pill-value">${escapeHtml(capitalize(currentTier))}</div>
+          </div>
+
+          <div class="manage-snapshot-grid">
+            <article class="manage-snapshot-card tone-${currentMeta.tone}">
+              <div class="manage-snapshot-top">
+                <span class="manage-snapshot-emoji">${currentMeta.emoji}</span>
+                <div>
+                  <p class="pill-label">Saved tier</p>
+                  <h4>${escapeHtml(currentMeta.label)}</h4>
+                </div>
               </div>
-              <div class="summary-pill">
-                <div class="pill-label">Effective right now</div>
-                <div class="pill-value">${escapeHtml(capitalize(effectiveTier))}</div>
+              <p>${escapeHtml(currentMeta.blurb)}</p>
+            </article>
+            <article class="manage-snapshot-card tone-${effectiveMeta.tone}">
+              <div class="manage-snapshot-top">
+                <span class="manage-snapshot-emoji">${effectiveMeta.emoji}</span>
+                <div>
+                  <p class="pill-label">Effective right now</p>
+                  <h4>${escapeHtml(effectiveMeta.label)}</h4>
+                </div>
               </div>
-              <div class="summary-pill">
-                <div class="pill-label">Starts</div>
-                <div class="pill-value">${escapeHtml(formatDateForDisplay(subscription?.startsAt))}</div>
+              <p>${effectiveTier === currentTier
+                ? 'The saved tier and the live tier currently match.'
+                : 'Dates are changing what the app is doing right now.'}</p>
+            </article>
+            <article class="manage-snapshot-card neutral">
+              <div class="manage-date-line">
+                <span>Starts</span>
+                <strong>${escapeHtml(formatDateForDisplay(subscription?.startsAt))}</strong>
               </div>
-              <div class="summary-pill">
-                <div class="pill-label">Ends</div>
-                <div class="pill-value">${escapeHtml(formatDateForDisplay(subscription?.endsAt))}</div>
+              <div class="manage-date-line">
+                <span>Ends</span>
+                <strong>${escapeHtml(formatDateForDisplay(subscription?.endsAt))}</strong>
               </div>
-            </div>
-            <p class="field-hint" style="margin-top:14px;">${escapeHtml(subscription?.message || '')}</p>
+            </article>
           </div>
 
           ${state.manageLoading ? `
-            <div class="loading-inline">
+            <div class="loading-inline manage-loading-inline">
               <div class="spinner"></div>
               <p>Working on this school now...</p>
             </div>
           ` : ''}
 
-          <div class="grid-two">
-            <div class="field-grid">
-              <div class="field-wrap">
-                <label for="manageTier">Grant this tier</label>
-                <select id="manageTier">
-                  ${['pending', 'starter', 'pro', 'elite', 'expired'].map((tier) => `
-                    <option value="${tier}" ${state.manageForm.tier === tier ? 'selected' : ''}>${capitalize(tier)}</option>
-                  `).join('')}
-                </select>
-                <p class="field-hint">Pick the plan or locked state you want the school to have.</p>
-              </div>
-
-              <div class="field-wrap">
-                <label for="manageStartsAt">Start date (optional)</label>
-                <input id="manageStartsAt" type="date" value="${escapeHtml(state.manageForm.startsAt)}">
-                <p class="field-hint">Leave empty to start immediately.</p>
-              </div>
-
-              <div class="field-wrap">
-                <label for="manageEndsAt">End date (optional)</label>
-                <input id="manageEndsAt" type="date" value="${escapeHtml(state.manageForm.endsAt)}">
-                <p class="field-hint">Leave empty for no automatic end date.</p>
-              </div>
-
-              <div class="field-wrap">
-                <label>Quick grant buttons</label>
-                <div class="button-row">
-                  <button class="secondary-btn" data-action="apply-days" data-days="30">Grant 30 Days</button>
-                  <button class="secondary-btn" data-action="apply-days" data-days="60">Grant 60 Days</button>
-                  <button class="secondary-btn" data-action="apply-days" data-days="90">Grant 90 Days</button>
+          <div class="manage-layout">
+            <div class="manage-main-stack">
+              <section class="manage-card manage-tier-card">
+                <div class="manage-card-head">
+                  <div>
+                    <p class="mini-label">Step 1</p>
+                    <h3>Pick the plan you want to grant</h3>
+                  </div>
+                  <div class="manage-selected-pill tone-${selectedMeta.tone}">
+                    <span>${selectedMeta.emoji}</span>
+                    <strong>${escapeHtml(selectedMeta.label)}</strong>
+                  </div>
                 </div>
-                <p class="field-hint">These set the start date to today and the end date automatically.</p>
-              </div>
+                <div class="manage-tier-grid">
+                  ${['pending', 'starter', 'pro', 'elite', 'expired'].map((tier) => {
+                    const meta = manageTierMeta[tier];
+                    return `
+                      <button
+                        type="button"
+                        class="manage-tier-option tone-${meta.tone} ${state.manageForm.tier === tier ? 'selected' : ''}"
+                        data-action="pick-manage-tier"
+                        data-tier="${tier}"
+                      >
+                        <span class="manage-tier-emoji">${meta.emoji}</span>
+                        <span class="manage-tier-copy">
+                          <strong>${escapeHtml(meta.label)}</strong>
+                          <small>${escapeHtml(meta.blurb)}</small>
+                        </span>
+                      </button>
+                    `;
+                  }).join('')}
+                </div>
+                <div class="field-wrap compact">
+                  <label for="manageTier">Or use the dropdown</label>
+                  <select id="manageTier">
+                    ${['pending', 'starter', 'pro', 'elite', 'expired'].map((tier) => `
+                      <option value="${tier}" ${state.manageForm.tier === tier ? 'selected' : ''}>${capitalize(tier)}</option>
+                    `).join('')}
+                  </select>
+                </div>
+              </section>
 
-              <div class="field-wrap">
-                <label for="manageNotes">Notes for yourself (optional)</label>
-                <textarea id="manageNotes" placeholder="e.g. Gifted Pro until summer exams.">${escapeHtml(state.manageForm.notes)}</textarea>
-                <p class="field-hint">This is stored in the subscription doc so you can remember why you changed it.</p>
-              </div>
+              <section class="manage-card">
+                <div class="manage-card-head">
+                  <div>
+                    <p class="mini-label">Step 2</p>
+                    <h3>Choose when it starts and ends</h3>
+                  </div>
+                </div>
+                <div class="manage-dates-grid">
+                  <div class="field-wrap">
+                    <label for="manageStartsAt">Start date</label>
+                    <input id="manageStartsAt" type="date" value="${escapeHtml(state.manageForm.startsAt)}">
+                    <p class="field-hint">Leave blank if the school should start this plan immediately.</p>
+                  </div>
 
-              <div class="button-row">
-                <button class="primary-btn" data-action="save-manage-subscription" ${state.manageLoading ? 'disabled' : ''}>${state.manageLoading ? 'Saving...' : 'Save Subscription'}</button>
-                <button class="ghost-btn" data-action="reset-manual-overrides" ${state.manageLoading ? 'disabled' : ''}>Clear Manual Dates/Notes</button>
-              </div>
+                  <div class="field-wrap">
+                    <label for="manageEndsAt">End date</label>
+                    <input id="manageEndsAt" type="date" value="${escapeHtml(state.manageForm.endsAt)}">
+                    <p class="field-hint">Leave blank if the plan should stay active with no fixed end.</p>
+                  </div>
+                </div>
+                <div class="manage-quick-grants">
+                  <p class="pill-label">Helpful shortcuts</p>
+                  <div class="manage-quick-grant-row">
+                    <button class="secondary-btn" data-action="apply-days" data-days="30">30 Days</button>
+                    <button class="secondary-btn" data-action="apply-days" data-days="60">60 Days</button>
+                    <button class="secondary-btn" data-action="apply-days" data-days="90">90 Days</button>
+                  </div>
+                </div>
+              </section>
+
+              <section class="manage-card">
+                <div class="manage-card-head">
+                  <div>
+                    <p class="mini-label">Step 3</p>
+                    <h3>Leave yourself a note</h3>
+                  </div>
+                </div>
+                <div class="field-wrap">
+                  <label for="manageNotes">Why are you changing this?</label>
+                  <textarea id="manageNotes" placeholder="e.g. Gifted Pro until summer exams.">${escapeHtml(state.manageForm.notes)}</textarea>
+                  <p class="field-hint">This is only for you, so future-you remembers why this school was changed.</p>
+                </div>
+                <div class="manage-save-row">
+                  <button class="primary-btn" data-action="save-manage-subscription" ${state.manageLoading ? 'disabled' : ''}>${state.manageLoading ? 'Saving...' : 'Save This Subscription'}</button>
+                  <button class="ghost-btn" data-action="reset-manual-overrides" ${state.manageLoading ? 'disabled' : ''}>Clear Dates And Note</button>
+                </div>
+              </section>
             </div>
 
-            <div class="helper-cards">
-              <article class="helper-card">
-                <h4>Examples</h4>
-                <p>Set <strong>Elite</strong> with an end date for a temporary gift. Set <strong>Pending</strong> to lock the school until payment. Set <strong>Expired</strong> if access should end immediately.</p>
-              </article>
-              <article class="helper-card">
-                <h4>What happens in the app?</h4>
-                <p>The live school app will read this Firestore document. If the start date is in the future it behaves like Pending; if the end date is in the past it behaves like Expired.</p>
-              </article>
-              <article class="helper-card danger-card">
-                <h4>Danger zone</h4>
-                <p>Type <strong>${escapeHtml(state.manageSchoolId)}</strong> below before using either delete button.</p>
+            <div class="manage-side-stack">
+              <section class="manage-card manage-tips-card">
+                <div class="manage-card-head">
+                  <div>
+                    <p class="mini-label">Helpful Examples</p>
+                    <h3>Common things you might want to do</h3>
+                  </div>
+                </div>
+                <div class="manage-example-list">
+                  <article class="manage-example">
+                    <span>🎁</span>
+                    <div>
+                      <strong>Temporary gift</strong>
+                      <p>Choose Pro or Elite and add an end date.</p>
+                    </div>
+                  </article>
+                  <article class="manage-example">
+                    <span>🚪</span>
+                    <div>
+                      <strong>Lock the school again</strong>
+                      <p>Choose Pending so the app shows the paywall.</p>
+                    </div>
+                  </article>
+                  <article class="manage-example">
+                    <span>⛔</span>
+                    <div>
+                      <strong>End access now</strong>
+                      <p>Choose Expired when the school should stop immediately.</p>
+                    </div>
+                  </article>
+                </div>
+              </section>
+
+              <section class="manage-card danger-card manage-danger-card">
+                <div class="manage-card-head">
+                  <div>
+                    <p class="mini-label">Danger Zone</p>
+                    <h3>Delete carefully</h3>
+                  </div>
+                </div>
+                <p>Type <strong>${escapeHtml(state.manageSchoolId)}</strong> before using either delete action.</p>
                 <div class="field-wrap">
                   <label for="manageDeleteConfirm">Type the school ID to confirm</label>
                   <input id="manageDeleteConfirm" type="text" value="${escapeHtml(state.manageDeleteConfirm)}" placeholder="${escapeHtml(state.manageSchoolId)}">
                 </div>
-                <div class="button-row">
+                <div class="manage-danger-actions">
                   <button class="danger-btn" data-action="delete-school-local" ${deleteReady && !state.manageLoading ? '' : 'disabled'}>Remove From Saved List Only</button>
                   <button class="danger-btn" data-action="delete-school-project" ${deleteReady && !state.manageLoading ? '' : 'disabled'}>Delete Whole School Project</button>
                 </div>
-                <p class="field-hint">Remove from saved list only keeps the Firebase project alive. Delete whole school project requests deletion of the actual Google/Firebase project and also removes it from your saved list.</p>
-              </article>
+                <p class="field-hint">Removing from the saved list keeps Firebase alive. Deleting the whole school project requests deletion of the actual Google/Firebase project too.</p>
+              </section>
             </div>
           </div>
         </div>
@@ -923,6 +1104,7 @@ function bindNewSetupEvents() {
   const schoolLabel = document.getElementById('schoolLabel');
   const projectId = document.getElementById('projectId');
   const renderUrl = document.getElementById('renderUrl');
+  const siteDomain = document.getElementById('siteDomain');
   const readinessTarget = document.getElementById('readinessTarget');
   const firebaseLocation = document.getElementById('firebaseLocation');
   const serviceAccount = document.getElementById('serviceAccount');
@@ -939,6 +1121,9 @@ function bindNewSetupEvents() {
   });
   renderUrl?.addEventListener('input', (event) => {
     state.form.renderUrl = event.target.value.trim();
+  });
+  siteDomain?.addEventListener('input', (event) => {
+    state.form.siteDomain = event.target.value.trim();
   });
   readinessTarget?.addEventListener('change', (event) => {
     state.form.readinessTarget = event.target.value;
@@ -987,9 +1172,26 @@ function bindManageEvents() {
   document.getElementById('manageSchool')?.addEventListener('change', (event) => {
     state.manageSchoolId = event.target.value;
     state.manageDeleteConfirm = '';
+    state.manageSubscription = null;
+    render();
+  });
+  document.querySelectorAll('[data-action="pick-manage-school"]').forEach((button) => {
+    button.addEventListener('click', () => {
+      state.manageSchoolId = button.getAttribute('data-school-id') || '';
+      state.manageDeleteConfirm = '';
+      state.manageSubscription = null;
+      render();
+    });
   });
   document.getElementById('manageTier')?.addEventListener('change', (event) => {
     state.manageForm.tier = event.target.value;
+    render();
+  });
+  document.querySelectorAll('[data-action="pick-manage-tier"]').forEach((button) => {
+    button.addEventListener('click', () => {
+      state.manageForm.tier = button.getAttribute('data-tier') || 'pending';
+      render();
+    });
   });
   document.getElementById('manageStartsAt')?.addEventListener('input', (event) => {
     state.manageForm.startsAt = event.target.value;
@@ -1002,6 +1204,7 @@ function bindManageEvents() {
   });
   document.getElementById('manageDeleteConfirm')?.addEventListener('input', (event) => {
     state.manageDeleteConfirm = event.target.value;
+    render();
   });
   document.querySelector('[data-action="load-manage-school"]')?.addEventListener('click', loadManagedSchool);
   document.querySelector('[data-action="save-manage-subscription"]')?.addEventListener('click', saveManagedSubscription);
@@ -1055,6 +1258,7 @@ function bindStaticEvents() {
       state.serviceAccountSummary = null;
       state.form.schoolLabel = '';
       state.form.projectId = '';
+      state.form.siteDomain = '';
       state.form.serviceAccount = '';
       render();
     });
@@ -1174,6 +1378,7 @@ async function runSetup() {
         schoolLabel: state.form.schoolLabel.trim(),
         projectId: state.form.projectId.trim(),
         renderUrl: state.form.renderUrl.trim(),
+        siteDomain: state.form.siteDomain.trim(),
         readinessTarget: state.form.readinessTarget,
         firebaseLocation: state.form.firebaseLocation,
         serviceAccount: state.form.serviceAccount,
@@ -1459,7 +1664,23 @@ function detailsErrors() {
     renderUrl: isValidHttpUrl(state.form.renderUrl.trim())
       ? ''
       : 'Please enter the full Render billing URL.',
+    siteDomain: isValidHostedDomain(state.form.siteDomain.trim())
+      ? ''
+      : 'Please enter the live school site domain, such as gcq-test-school.netlify.app.',
   };
+}
+
+function isValidHostedDomain(value) {
+  const trimmed = String(value || '').trim();
+  if (!trimmed) return false;
+  const candidate = /^https?:\/\//i.test(trimmed) ? trimmed : `https://${trimmed}`;
+  try {
+    const parsed = new URL(candidate);
+    const host = parsed.hostname.toLowerCase();
+    return host === 'localhost' || host === '127.0.0.1' || /^[a-z0-9.-]+\.[a-z]{2,}$/i.test(host);
+  } catch (error) {
+    return false;
+  }
 }
 
 function billingErrors() {

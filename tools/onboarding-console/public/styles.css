@@ -806,12 +806,558 @@ body {
   font-size: 0.92rem;
 }
 
+.manage-hero-panel {
+  position: relative;
+  overflow: hidden;
+  background:
+    radial-gradient(circle at top right, rgba(255, 223, 164, 0.85), transparent 34%),
+    linear-gradient(145deg, rgba(255, 255, 255, 0.97), rgba(240, 248, 255, 0.96));
+}
+
+.manage-hero-copy {
+  position: relative;
+  z-index: 1;
+}
+
+.manage-hero-orb {
+  position: absolute;
+  top: 20px;
+  right: 24px;
+  width: 86px;
+  height: 86px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 30px;
+  background: linear-gradient(145deg, rgba(255,255,255,0.9), rgba(239,248,255,0.78));
+  box-shadow: 0 18px 35px rgba(73, 114, 177, 0.16);
+  font-size: 2.2rem;
+}
+
+.manage-school-picker {
+  display: grid;
+  grid-template-columns: minmax(0, 1.4fr) auto;
+  gap: 16px;
+  align-items: end;
+  margin-top: 22px;
+}
+
+.manage-school-field {
+  margin-bottom: 0;
+}
+
+.manage-school-actions {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.manage-school-chip-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+  gap: 12px;
+  margin-top: 18px;
+}
+
+.manage-school-chip {
+  border: 1px solid rgba(82, 123, 184, 0.16);
+  background: linear-gradient(145deg, rgba(250, 252, 255, 0.94), rgba(237, 245, 255, 0.9));
+  border-radius: 22px;
+  padding: 14px 15px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  text-align: left;
+  cursor: pointer;
+  transition: transform 180ms ease, box-shadow 180ms ease, border-color 180ms ease;
+}
+
+.manage-school-chip:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 14px 30px rgba(81, 113, 163, 0.14);
+  border-color: rgba(71, 125, 214, 0.28);
+}
+
+.manage-school-chip.selected {
+  background: linear-gradient(145deg, rgba(79, 135, 227, 0.96), rgba(104, 187, 224, 0.94));
+  border-color: rgba(79, 135, 227, 0.7);
+  box-shadow: 0 16px 34px rgba(75, 125, 210, 0.3);
+  color: #fff;
+}
+
+.manage-school-chip-icon {
+  width: 44px;
+  height: 44px;
+  border-radius: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.85);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.7);
+  font-size: 1.2rem;
+  flex-shrink: 0;
+}
+
+.manage-school-chip.selected .manage-school-chip-icon {
+  background: rgba(255, 255, 255, 0.18);
+}
+
+.manage-school-chip-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.manage-school-chip-copy strong {
+  font-size: 0.98rem;
+}
+
+.manage-school-chip-copy small {
+  color: #7388a1;
+  font-size: 0.78rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.manage-school-chip.selected .manage-school-chip-copy small {
+  color: rgba(255, 255, 255, 0.82);
+}
+
+.manage-help-panel {
+  background: linear-gradient(160deg, rgba(252, 249, 255, 0.96), rgba(242, 250, 255, 0.96));
+}
+
+.manage-help-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.manage-help-card {
+  border-radius: 24px;
+  padding: 20px;
+  border: 1px solid rgba(116, 149, 188, 0.12);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.65);
+}
+
+.manage-help-card h4 {
+  margin: 0 0 10px;
+  font-family: 'Fredoka', cursive;
+  color: #284b78;
+  font-size: 1.15rem;
+}
+
+.manage-help-card p {
+  margin: 0;
+  color: #5a7390;
+  line-height: 1.6;
+}
+
+.manage-help-card.sunrise {
+  background: linear-gradient(160deg, rgba(255, 243, 214, 0.96), rgba(255, 251, 240, 0.92));
+}
+
+.manage-help-card.sky {
+  background: linear-gradient(160deg, rgba(225, 242, 255, 0.96), rgba(244, 250, 255, 0.92));
+}
+
+.manage-help-card.mint {
+  background: linear-gradient(160deg, rgba(225, 250, 239, 0.96), rgba(245, 255, 250, 0.92));
+}
+
+.manage-results {
+  display: grid;
+  gap: 18px;
+}
+
+.manage-status-hero {
+  border-radius: 30px;
+  padding: 24px;
+  display: grid;
+  grid-template-columns: minmax(0, 1.3fr) auto;
+  gap: 18px;
+  border: 1px solid rgba(255,255,255,0.4);
+}
+
+.manage-status-hero.tone-pending {
+  background: linear-gradient(135deg, rgba(255, 245, 214, 0.98), rgba(255, 252, 241, 0.95));
+}
+
+.manage-status-hero.tone-starter {
+  background: linear-gradient(135deg, rgba(226, 252, 236, 0.98), rgba(245, 255, 249, 0.95));
+}
+
+.manage-status-hero.tone-pro {
+  background: linear-gradient(135deg, rgba(232, 244, 255, 0.98), rgba(245, 250, 255, 0.95));
+}
+
+.manage-status-hero.tone-elite {
+  background: linear-gradient(135deg, rgba(245, 235, 255, 0.98), rgba(255, 248, 254, 0.95));
+}
+
+.manage-status-hero.tone-expired {
+  background: linear-gradient(135deg, rgba(255, 232, 236, 0.98), rgba(255, 246, 247, 0.95));
+}
+
+.manage-status-main,
+.manage-status-side {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.manage-status-side {
+  align-items: flex-end;
+  justify-content: space-between;
+  text-align: right;
+}
+
+.manage-status-badge {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.manage-status-emoji {
+  width: 62px;
+  height: 62px;
+  border-radius: 22px;
+  background: rgba(255,255,255,0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.7rem;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.7);
+}
+
+.manage-status-badge h3,
+.manage-school-title h4,
+.manage-card-head h3,
+.manage-snapshot-card h4 {
+  margin: 0;
+  font-family: 'Fredoka', cursive;
+}
+
+.manage-status-copy,
+.manage-school-title p,
+.manage-snapshot-card p,
+.manage-example p,
+.manage-danger-card > p {
+  margin: 0;
+  color: #5d6f84;
+  line-height: 1.6;
+}
+
+.manage-snapshot-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.manage-snapshot-card,
+.manage-card {
+  border-radius: 26px;
+  padding: 22px;
+  border: 1px solid rgba(103, 137, 182, 0.12);
+  background: linear-gradient(160deg, rgba(255,255,255,0.96), rgba(246,250,255,0.96));
+  box-shadow: 0 16px 30px rgba(83, 112, 155, 0.08);
+}
+
+.manage-snapshot-card.tone-pending {
+  background: linear-gradient(160deg, rgba(255, 246, 226, 0.98), rgba(255, 252, 241, 0.95));
+}
+
+.manage-snapshot-card.tone-starter {
+  background: linear-gradient(160deg, rgba(230, 252, 239, 0.98), rgba(245, 255, 249, 0.95));
+}
+
+.manage-snapshot-card.tone-pro {
+  background: linear-gradient(160deg, rgba(231, 244, 255, 0.98), rgba(245, 250, 255, 0.95));
+}
+
+.manage-snapshot-card.tone-elite {
+  background: linear-gradient(160deg, rgba(245, 235, 255, 0.98), rgba(255, 248, 254, 0.95));
+}
+
+.manage-snapshot-card.tone-expired {
+  background: linear-gradient(160deg, rgba(255, 234, 237, 0.98), rgba(255, 247, 247, 0.95));
+}
+
+.manage-snapshot-card.neutral {
+  background: linear-gradient(160deg, rgba(244, 248, 255, 0.98), rgba(251, 253, 255, 0.95));
+}
+
+.manage-snapshot-top {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 10px;
+}
+
+.manage-snapshot-emoji {
+  width: 48px;
+  height: 48px;
+  border-radius: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255,255,255,0.7);
+  font-size: 1.35rem;
+}
+
+.manage-date-line {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 0;
+  color: #5d6f84;
+}
+
+.manage-date-line + .manage-date-line {
+  border-top: 1px solid rgba(104, 135, 176, 0.12);
+}
+
+.manage-loading-inline {
+  border-radius: 24px;
+  background: linear-gradient(160deg, rgba(233, 244, 255, 0.95), rgba(248, 252, 255, 0.94));
+}
+
+.manage-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1.35fr) minmax(300px, 0.8fr);
+  gap: 18px;
+}
+
+.manage-main-stack,
+.manage-side-stack {
+  display: grid;
+  gap: 18px;
+}
+
+.manage-card-head {
+  display: flex;
+  align-items: start;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 18px;
+}
+
+.manage-selected-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  border-radius: 999px;
+  font-size: 0.92rem;
+}
+
+.manage-selected-pill.tone-pending {
+  background: rgba(255, 199, 56, 0.14);
+  color: #9a6500;
+}
+
+.manage-selected-pill.tone-starter {
+  background: rgba(40, 190, 115, 0.14);
+  color: #187147;
+}
+
+.manage-selected-pill.tone-pro {
+  background: rgba(52, 125, 229, 0.14);
+  color: #2452a4;
+}
+
+.manage-selected-pill.tone-elite {
+  background: rgba(171, 85, 255, 0.14);
+  color: #7a33c0;
+}
+
+.manage-selected-pill.tone-expired {
+  background: rgba(235, 77, 96, 0.14);
+  color: #b32c43;
+}
+
+.manage-tier-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.manage-tier-option {
+  text-align: left;
+  border-radius: 22px;
+  padding: 15px;
+  border: 1px solid rgba(111, 143, 185, 0.16);
+  cursor: pointer;
+  display: flex;
+  gap: 12px;
+  align-items: start;
+  background: rgba(255,255,255,0.9);
+  transition: transform 180ms ease, box-shadow 180ms ease, border-color 180ms ease;
+}
+
+.manage-tier-option:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 12px 24px rgba(82, 112, 155, 0.12);
+}
+
+.manage-tier-option.selected {
+  border-width: 2px;
+  box-shadow: 0 14px 28px rgba(82, 112, 155, 0.16);
+}
+
+.manage-tier-option.tone-pending.selected {
+  border-color: rgba(235, 177, 42, 0.9);
+  background: linear-gradient(145deg, rgba(255, 246, 222, 0.98), rgba(255, 253, 244, 0.95));
+}
+
+.manage-tier-option.tone-starter.selected {
+  border-color: rgba(33, 174, 103, 0.9);
+  background: linear-gradient(145deg, rgba(231, 251, 239, 0.98), rgba(247, 255, 250, 0.95));
+}
+
+.manage-tier-option.tone-pro.selected {
+  border-color: rgba(58, 124, 226, 0.9);
+  background: linear-gradient(145deg, rgba(233, 244, 255, 0.98), rgba(246, 251, 255, 0.95));
+}
+
+.manage-tier-option.tone-elite.selected {
+  border-color: rgba(162, 77, 247, 0.9);
+  background: linear-gradient(145deg, rgba(244, 236, 255, 0.98), rgba(253, 249, 255, 0.95));
+}
+
+.manage-tier-option.tone-expired.selected {
+  border-color: rgba(229, 73, 93, 0.9);
+  background: linear-gradient(145deg, rgba(255, 236, 239, 0.98), rgba(255, 248, 248, 0.95));
+}
+
+.manage-tier-emoji {
+  width: 42px;
+  height: 42px;
+  border-radius: 15px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255,255,255,0.76);
+  font-size: 1.2rem;
+  flex-shrink: 0;
+}
+
+.manage-tier-copy {
+  display: grid;
+  gap: 4px;
+}
+
+.manage-tier-copy strong {
+  color: #2e4f7c;
+}
+
+.manage-tier-copy small {
+  color: #68809b;
+  line-height: 1.45;
+}
+
+.field-wrap.compact {
+  margin-top: 10px;
+}
+
+.manage-dates-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.manage-quick-grants {
+  margin-top: 18px;
+  padding: 16px;
+  border-radius: 22px;
+  background: linear-gradient(160deg, rgba(243, 248, 255, 0.95), rgba(252, 254, 255, 0.94));
+  border: 1px solid rgba(105, 138, 184, 0.12);
+}
+
+.manage-quick-grant-row {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-top: 10px;
+}
+
+.manage-save-row,
+.manage-danger-actions {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-top: 16px;
+}
+
+.manage-example-list {
+  display: grid;
+  gap: 12px;
+}
+
+.manage-example {
+  display: grid;
+  grid-template-columns: 42px minmax(0, 1fr);
+  gap: 12px;
+  align-items: start;
+  padding: 14px;
+  border-radius: 20px;
+  background: linear-gradient(160deg, rgba(247, 250, 255, 0.95), rgba(255, 255, 255, 0.94));
+  border: 1px solid rgba(110, 140, 181, 0.12);
+}
+
+.manage-example span {
+  width: 42px;
+  height: 42px;
+  border-radius: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255,255,255,0.78);
+  font-size: 1.25rem;
+}
+
+.manage-example strong {
+  display: block;
+  color: #27476f;
+  margin-bottom: 4px;
+}
+
+.manage-danger-card {
+  background: linear-gradient(160deg, rgba(255, 240, 243, 0.98), rgba(255, 249, 249, 0.95));
+}
+
+.manage-danger-card .field-wrap {
+  margin-top: 14px;
+}
+
 @media (max-width: 980px) {
   .welcome-grid,
   .step-layout,
   .grid-two,
   .summary-grid {
     grid-template-columns: 1fr;
+  }
+
+  .manage-help-grid,
+  .manage-snapshot-grid,
+  .manage-layout,
+  .manage-dates-grid,
+  .manage-school-picker {
+    grid-template-columns: 1fr;
+  }
+
+  .manage-status-hero {
+    grid-template-columns: 1fr;
+  }
+
+  .manage-status-side {
+    align-items: start;
+    text-align: left;
   }
 
   .progress-card {
@@ -840,6 +1386,22 @@ body {
   .task-head,
   .output-head {
     flex-direction: column;
+  }
+
+  .manage-tier-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .manage-school-actions,
+  .manage-save-row,
+  .manage-danger-actions,
+  .manage-quick-grant-row {
+    flex-direction: column;
+  }
+
+  .manage-hero-orb {
+    position: static;
+    margin-top: 18px;
   }
 
   .hero-badge {

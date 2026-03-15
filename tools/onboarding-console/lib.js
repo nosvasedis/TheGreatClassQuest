@@ -22,6 +22,7 @@ const pendingTierPath = path.join(repoRoot, 'config', 'tiers', 'pending.json');
 
 const DEFAULT_DEFAULTS = {
   renderUrl: '',
+  siteDomain: '',
   priceIds: {
     starter: '',
     pro: '',
@@ -95,6 +96,32 @@ function validateRenderUrl(renderUrl) {
     }
   } catch (error) {
     return 'That Render billing URL does not look valid yet.';
+  }
+  return '';
+}
+
+function normalizeSiteDomain(siteDomain) {
+  const value = String(siteDomain || '').trim();
+  if (!value) return '';
+  const candidate = /^https?:\/\//i.test(value) ? value : `https://${value}`;
+  try {
+    const parsed = new URL(candidate);
+    return parsed.hostname.toLowerCase();
+  } catch (error) {
+    return value.toLowerCase().replace(/^https?:\/\//i, '').replace(/\/.*$/, '');
+  }
+}
+
+function validateSiteDomain(siteDomain) {
+  const normalized = normalizeSiteDomain(siteDomain);
+  if (!normalized) {
+    return 'Please enter the Netlify or live school site domain.';
+  }
+  if (normalized === 'localhost' || normalized === '127.0.0.1') {
+    return '';
+  }
+  if (!/^[a-z0-9.-]+\.[a-z]{2,}$/i.test(normalized)) {
+    return 'The school site domain should look like gcq-school.netlify.app.';
   }
   return '';
 }
@@ -346,6 +373,8 @@ function validateSetupInput(input, options = {}) {
   if (projectIdError) errors.push(projectIdError);
   const renderUrlError = validateRenderUrl(input.renderUrl);
   if (renderUrlError) errors.push(renderUrlError);
+  const siteDomainError = validateSiteDomain(input.siteDomain);
+  if (siteDomainError) errors.push(siteDomainError);
   errors.push(...validatePriceIds(input.priceIds));
   try {
     const serviceAccount = parseServiceAccount(input.serviceAccount);
@@ -366,6 +395,7 @@ function getRequiredServices(readinessTarget) {
   const base = [
     'serviceusage.googleapis.com',
     'firebase.googleapis.com',
+    'identitytoolkit.googleapis.com',
     'firebaserules.googleapis.com',
     'firestore.googleapis.com',
   ];
@@ -392,6 +422,7 @@ function loadDefaults() {
     },
     firebaseLocation: normalizeFirebaseLocation(fileDefaults.firebaseLocation),
     readinessTarget: normalizeReadinessTarget(fileDefaults.readinessTarget),
+    siteDomain: String(fileDefaults.siteDomain || '').trim(),
   };
 }
 
@@ -406,6 +437,7 @@ function saveDefaults(nextDefaults = {}) {
     },
     firebaseLocation: normalizeFirebaseLocation(nextDefaults.firebaseLocation || currentDefaults.firebaseLocation),
     readinessTarget: normalizeReadinessTarget(nextDefaults.readinessTarget || currentDefaults.readinessTarget),
+    siteDomain: normalizeSiteDomain(nextDefaults.siteDomain || currentDefaults.siteDomain),
   };
   writeJson(defaultsPath, merged);
   writeJson(priceIdsLocalPath, merged.priceIds);
@@ -432,6 +464,7 @@ function normalizeSchoolRecord(record = {}) {
     stripeCustomerId: record.stripeCustomerId || null,
     firebaseProjectId: String(record.firebaseProjectId || record.schoolId || '').trim(),
     firebaseServiceAccountPath: record.firebaseServiceAccountPath || '',
+    siteDomain: normalizeSiteDomain(record.siteDomain),
   };
 }
 
@@ -1306,6 +1339,112 @@ async function ensureStorageReady(projectId, serviceAccount, locationId, readine
   };
 }
 
+function getExpectedAuthorizedDomains(projectId, siteDomain) {
+  const domains = new Set([
+    'localhost',
+    '127.0.0.1',
+    `${projectId}.firebaseapp.com`,
+    `${projectId}.web.app`,
+  ]);
+  const normalizedSiteDomain = normalizeSiteDomain(siteDomain);
+  if (normalizedSiteDomain) {
+    domains.add(normalizedSiteDomain);
+  }
+  return Array.from(domains).filter(Boolean);
+}
+
+async function initializeFirebaseAuth(projectId, serviceAccount) {
+  const url = `https://identitytoolkit.googleapis.com/admin/v2/projects/${encodeURIComponent(projectId)}/identityPlatform:initializeAuth`;
+  return googleJsonRequest(url, serviceAccount, {
+    method: 'POST',
+    quotaProject: projectId,
+    body: {},
+  });
+}
+
+async function getFirebaseAuthConfig(projectId, serviceAccount) {
+  const url = `https://identitytoolkit.googleapis.com/admin/v2/projects/${encodeURIComponent(projectId)}/config`;
+  return googleJsonRequest(url, serviceAccount, {
+    quotaProject: projectId,
+  });
+}
+
+async function updateFirebaseAuthConfig(projectId, serviceAccount, body, updateMask) {
+  const url = `https://identitytoolkit.googleapis.com/admin/v2/projects/${encodeURIComponent(projectId)}/config?updateMask=${encodeURIComponent(updateMask)}`;
+  return googleJsonRequest(url, serviceAccount, {
+    method: 'PATCH',
+    quotaProject: projectId,
+    body,
+  });
+}
+
+function summarizeFirebaseAuthConfig(config = {}, siteDomain = '') {
+  const emailEnabled = config?.signIn?.email?.enabled === true;
+  const authorizedDomains = Array.isArray(config?.authorizedDomains) ? config.authorizedDomains : [];
+  const normalizedSiteDomain = normalizeSiteDomain(siteDomain);
+  const siteDomainAuthorized = normalizedSiteDomain
+    ? authorizedDomains.includes(normalizedSiteDomain)
+    : false;
+  return {
+    emailEnabled,
+    authorizedDomains,
+    siteDomainAuthorized,
+    siteDomain: normalizedSiteDomain,
+  };
+}
+
+async function ensureFirebaseAuthReady(projectId, serviceAccount, siteDomain) {
+  let config;
+  let initialized = false;
+
+  try {
+    config = await getFirebaseAuthConfig(projectId, serviceAccount);
+  } catch (error) {
+    const message = error.message || '';
+    if (error.status !== 404 && !/auth/i.test(message) && !/not found/i.test(message)) {
+      throw error;
+    }
+    await initializeFirebaseAuth(projectId, serviceAccount);
+    initialized = true;
+    config = await getFirebaseAuthConfig(projectId, serviceAccount);
+  }
+
+  const before = summarizeFirebaseAuthConfig(config, siteDomain);
+  const expectedDomains = getExpectedAuthorizedDomains(projectId, siteDomain);
+  const mergedDomains = Array.from(new Set([...(before.authorizedDomains || []), ...expectedDomains])).sort();
+  const needsEmail = !before.emailEnabled;
+  const needsDomains = expectedDomains.some((domain) => !before.authorizedDomains.includes(domain));
+
+  if (needsEmail || needsDomains) {
+    config = await updateFirebaseAuthConfig(
+      projectId,
+      serviceAccount,
+      {
+        signIn: {
+          ...(config.signIn || {}),
+          email: {
+            ...((config.signIn && config.signIn.email) || {}),
+            enabled: true,
+            passwordRequired: true,
+          },
+        },
+        authorizedDomains: mergedDomains,
+      },
+      'signIn.email,authorizedDomains'
+    );
+  }
+
+  const after = summarizeFirebaseAuthConfig(config, siteDomain);
+  return {
+    initialized,
+    before,
+    after,
+    expectedDomains,
+    emailChanged: needsEmail,
+    domainsChanged: needsDomains,
+  };
+}
+
 async function inspectFirebaseServices(projectId, serviceAccount) {
   const firestore = await getFirestoreDatabaseInfo(projectId, serviceAccount);
   let storageBucket = null;
@@ -1703,6 +1842,7 @@ async function runAutomaticSetup(input) {
   const firebaseLocation = normalizeFirebaseLocation(input.firebaseLocation);
   const defaults = saveDefaults({
     renderUrl: input.renderUrl,
+    siteDomain: input.siteDomain,
     priceIds: input.priceIds,
     lastProjectId: input.projectId,
     lastSchoolLabel: input.schoolLabel,
@@ -1740,6 +1880,7 @@ async function runAutomaticSetup(input) {
       stripeCustomerId: null,
       firebaseProjectId: input.projectId,
       firebaseServiceAccountPath: savedKey.relativeKeyPath,
+      siteDomain: input.siteDomain,
     },
     input.priceIds
   );
@@ -1870,6 +2011,7 @@ async function runAutomaticSetup(input) {
   }
 
   let firebaseServices;
+  let authProvisioning = null;
   try {
     firebaseServices = await inspectFirebaseServices(input.projectId, provisioningAuth);
     tasks.push(
@@ -1911,6 +2053,90 @@ async function runAutomaticSetup(input) {
       finalStatus: 'needs_attention',
       summary: 'Cloud Firestore is not ready for this school yet. Enable it first, then rerun the setup.',
     };
+  }
+
+  try {
+    authProvisioning = await ensureFirebaseAuthReady(input.projectId, provisioningAuth, input.siteDomain);
+    tasks.push(
+      makeTask(
+        'ensureAuth',
+        authProvisioning.initialized ? 'done' : 'already_done',
+        'Create or confirm Firebase Authentication',
+        authProvisioning.initialized
+          ? 'Firebase Authentication was initialized for this school project.'
+          : 'Firebase Authentication is already available for this school project.'
+      )
+    );
+    tasks.push(
+      makeTask(
+        'enableEmailPassword',
+        authProvisioning.emailChanged ? 'done' : 'already_done',
+        'Enable Email/Password sign-in',
+        authProvisioning.after.emailEnabled
+          ? (authProvisioning.emailChanged
+            ? 'Email/Password sign-in was enabled for this school.'
+            : 'Email/Password sign-in was already enabled for this school.')
+          : 'Email/Password sign-in is still not enabled.',
+        {
+          technicalDetails: JSON.stringify({
+            emailEnabled: authProvisioning.after.emailEnabled,
+          }, null, 2),
+        }
+      )
+    );
+    tasks.push(
+      makeTask(
+        'authorizeSchoolDomain',
+        authProvisioning.after.siteDomainAuthorized ? (authProvisioning.domainsChanged ? 'done' : 'already_done') : 'needs_attention',
+        'Authorize the school site domain for sign-in',
+        authProvisioning.after.siteDomainAuthorized
+          ? `${authProvisioning.after.siteDomain} is authorized in Firebase Authentication.`
+          : 'The school site domain is still not authorized for sign-in.',
+        {
+          actionHint: authProvisioning.after.siteDomainAuthorized ? '' : 'Check the Netlify/public school domain, then rerun the setup.',
+          technicalDetails: JSON.stringify({
+            expectedDomains: authProvisioning.expectedDomains,
+            authorizedDomains: authProvisioning.after.authorizedDomains,
+          }, null, 2),
+        }
+      )
+    );
+  } catch (error) {
+    tasks.push(
+      makeTask(
+        'ensureAuth',
+        'needs_attention',
+        'Create or confirm Firebase Authentication',
+        error.message || 'Firebase Authentication could not be prepared automatically.',
+        {
+          actionHint: 'This project may still need extra Firebase/Google setup permissions. If the school site already exists, also check the exact Netlify domain.',
+          technicalDetails: error.message || '',
+        }
+      )
+    );
+    tasks.push(
+      makeTask(
+        'enableEmailPassword',
+        'needs_attention',
+        'Enable Email/Password sign-in',
+        'Email/Password sign-in could not be confirmed automatically.',
+        {
+          technicalDetails: error.message || '',
+        }
+      )
+    );
+    tasks.push(
+      makeTask(
+        'authorizeSchoolDomain',
+        'needs_attention',
+        'Authorize the school site domain for sign-in',
+        'The school site domain could not be authorized automatically yet.',
+        {
+          actionHint: 'Check the school site domain carefully, then rerun the setup.',
+          technicalDetails: error.message || '',
+        }
+      )
+    );
   }
 
   const firestoreRulesBefore = await inspectRulesRelease(
@@ -2099,7 +2325,10 @@ async function runAutomaticSetup(input) {
     subscriptionStatus.exists &&
     subscriptionStatus.tier === 'pending' &&
     ensuredIndexes.missingCount === 0 &&
-    deployedFirestoreRules.after.matches
+    deployedFirestoreRules.after.matches &&
+    authProvisioning &&
+    authProvisioning.after.emailEnabled &&
+    authProvisioning.after.siteDomainAuthorized
   );
   const futureProReady = Boolean(
     readinessTarget !== 'pro' ||
@@ -2296,6 +2525,7 @@ async function recheckExistingSchool(projectId, options = {}) {
   }
 
   let firebaseServices;
+  let authProvisioning = null;
   try {
     firebaseServices = await inspectFirebaseServices(projectId, provisioningAuth);
     tasks.push(
@@ -2338,6 +2568,88 @@ async function recheckExistingSchool(projectId, options = {}) {
       finalStatus: 'needs_attention',
       summary: 'Cloud Firestore is not ready for this school yet.',
     };
+  }
+
+  try {
+    authProvisioning = await ensureFirebaseAuthReady(projectId, provisioningAuth, school.siteDomain);
+    tasks.push(
+      makeTask(
+        'ensureAuth',
+        authProvisioning.initialized ? 'done' : 'already_done',
+        'Create or confirm Firebase Authentication',
+        authProvisioning.initialized
+          ? 'Firebase Authentication was initialized for this school project.'
+          : 'Firebase Authentication is already available for this school project.'
+      )
+    );
+    tasks.push(
+      makeTask(
+        'enableEmailPassword',
+        authProvisioning.emailChanged ? 'done' : 'already_done',
+        'Enable Email/Password sign-in',
+        authProvisioning.after.emailEnabled
+          ? (authProvisioning.emailChanged
+            ? 'Email/Password sign-in was enabled for this school.'
+            : 'Email/Password sign-in was already enabled for this school.')
+          : 'Email/Password sign-in is still not enabled.',
+        {
+          technicalDetails: JSON.stringify({
+            emailEnabled: authProvisioning.after.emailEnabled,
+          }, null, 2),
+        }
+      )
+    );
+    tasks.push(
+      makeTask(
+        'authorizeSchoolDomain',
+        authProvisioning.after.siteDomainAuthorized ? (authProvisioning.domainsChanged ? 'done' : 'already_done') : 'needs_attention',
+        'Authorize the school site domain for sign-in',
+        authProvisioning.after.siteDomainAuthorized
+          ? `${authProvisioning.after.siteDomain} is authorized in Firebase Authentication.`
+          : 'The saved school site domain is still not authorized for sign-in.',
+        {
+          actionHint: authProvisioning.after.siteDomainAuthorized ? '' : 'Save the correct Netlify/public site domain for this school, then rerun the check.',
+          technicalDetails: JSON.stringify({
+            expectedDomains: authProvisioning.expectedDomains,
+            authorizedDomains: authProvisioning.after.authorizedDomains,
+          }, null, 2),
+        }
+      )
+    );
+  } catch (error) {
+    tasks.push(
+      makeTask(
+        'ensureAuth',
+        'needs_attention',
+        'Create or confirm Firebase Authentication',
+        error.message || 'Firebase Authentication could not be prepared automatically.',
+        {
+          technicalDetails: error.message || '',
+        }
+      )
+    );
+    tasks.push(
+      makeTask(
+        'enableEmailPassword',
+        'needs_attention',
+        'Enable Email/Password sign-in',
+        'Email/Password sign-in could not be confirmed automatically.',
+        {
+          technicalDetails: error.message || '',
+        }
+      )
+    );
+    tasks.push(
+      makeTask(
+        'authorizeSchoolDomain',
+        'needs_attention',
+        'Authorize the school site domain for sign-in',
+        'The saved school site domain could not be authorized automatically yet.',
+        {
+          technicalDetails: error.message || '',
+        }
+      )
+    );
   }
 
   let storageBucketName = '';
@@ -2522,6 +2834,9 @@ async function recheckExistingSchool(projectId, options = {}) {
   const ready = Boolean(
     subscription.exists &&
     renderOutput.renderJson &&
+    authProvisioning &&
+    authProvisioning.after.emailEnabled &&
+    authProvisioning.after.siteDomainAuthorized &&
     firestoreRulesCheck.exists &&
     firestoreRulesCheck.matches &&
     indexReport.missingCount === 0 &&

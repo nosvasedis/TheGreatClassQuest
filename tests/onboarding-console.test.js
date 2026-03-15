@@ -42,6 +42,7 @@ test('validateSetupInput accepts a complete matching setup payload', () => {
     schoolLabel: 'Volos Frontistirio',
     projectId: 'gcq-test-school',
     renderUrl: 'https://gcq-billing.onrender.com',
+    siteDomain: 'gcq-test-school.netlify.app',
     serviceAccount: JSON.stringify(fakeServiceAccount),
     priceIds: {
       starter: 'price_starter',
@@ -59,6 +60,7 @@ test('validateSetupInput rejects a mismatched service-account project', () => {
     schoolLabel: 'Volos Frontistirio',
     projectId: 'another-school',
     renderUrl: 'https://gcq-billing.onrender.com',
+    siteDomain: 'gcq-test-school.netlify.app',
     serviceAccount: JSON.stringify(fakeServiceAccount),
     priceIds: {
       starter: 'price_starter',

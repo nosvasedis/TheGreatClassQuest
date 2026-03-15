@@ -6,14 +6,19 @@
  */
 
 function isLocalHost() {
-    const host = window.location.hostname;
-    return (
+  const host = window.location.hostname;
+  return (
         window.location.protocol === 'file:' ||
         host === 'localhost' ||
         host === '127.0.0.1' ||
         host === '0.0.0.0' ||
         host.endsWith('.local')
-    );
+  );
+}
+
+function isTrustedDefaultHostedSite() {
+  const host = window.location.hostname.toLowerCase();
+  return host.endsWith('github.io');
 }
 
 function renderConfigRequiredScreen() {
@@ -55,7 +60,7 @@ fetch('./config.json')
     })
     .catch(() => {})
     .finally(() => {
-        if (!configLoaded && !isLocalHost()) {
+        if (!configLoaded && !isLocalHost() && !isTrustedDefaultHostedSite()) {
             renderConfigRequiredScreen();
             return;
         }

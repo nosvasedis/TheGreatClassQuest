@@ -281,6 +281,9 @@ export async function showTab(tabName) {
                             <span>${badgeEmoji} ${summary.badge}</span>
                             <span class="h-1 w-1 rounded-full bg-sky-400"></span>
                             <span>Current plan: ${pretty}</span>
+                            <button id="pricing-info-btn" class="ml-2 w-5 h-5 rounded-full bg-sky-200 hover:bg-sky-300 text-sky-600 flex items-center justify-center transition-colors" title="View all plans and pricing">
+                                <i class="fas fa-info text-xs"></i>
+                            </button>
                         </div>
                         <h3 class="font-title text-xl text-slate-800 mb-1">${summary.title}</h3>
                         <p class="text-sm text-slate-600">${summary.body}</p>

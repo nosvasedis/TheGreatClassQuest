@@ -199,6 +199,7 @@ export async function renderAdventureLog() {
                         ${keywordsHtml}
                     </div>
                     <div class="flex gap-2">
+                        ${canUseFeature('eliteAI') ? `<button class="log-edit-btn bubbly-button bg-indigo-100 text-indigo-700 w-8 h-8 rounded-full flex items-center justify-center" data-log-id="${log.id}" title="Edit Entry"><i class="fas fa-edit"></i></button>` : ''}
                         <button class="log-note-btn bubbly-button bg-blue-100 text-blue-700 w-8 h-8 rounded-full flex items-center justify-center" data-log-id="${log.id}" title="${log.note ? 'Edit Note' : 'Add Note'}"><i class="fas fa-pencil-alt"></i></button>
                         <button class="log-delete-btn bubbly-button bg-red-100 text-red-700 w-8 h-8 rounded-full flex items-center justify-center" data-log-id="${log.id}" title="Delete Log Entry"><i class="fas fa-trash-alt"></i></button>
                     </div>

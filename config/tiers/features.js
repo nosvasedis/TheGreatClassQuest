@@ -48,9 +48,9 @@ export const FEATURE_DEFINITIONS = {
     adventureLog: {
         name: 'Adventure Log',
         emoji: '📓',
-        description: 'Diary, Hall of Heroes, feed',
+        description: 'Manual diary entries, Hall of Heroes, teacher notes',
         tier: 'Pro',
-        teacherExplain: "The Adventure Log is the living memory of your class — a story-style diary feed where you log what happened each lesson, celebrate highlights, and build a beautiful visual timeline of the year. The Hall of Heroes displays your top performers. On Elite, AI generates the story summaries for you automatically! 🖊️✨",
+        teacherExplain: "The Adventure Log is your class's living memory — write manual diary entries about each lesson, celebrate highlights, and build a beautiful visual timeline of the year. The Hall of Heroes displays your top performers. Add personal notes to any entry to remember special moments. On Elite, upgrade to AI-powered automatic story generation with magical illustrations! �✨",
         studentExplain: "The Adventure Log is your class's story book! 📓 See what your teacher wrote about today's lesson, find YOUR name in the Hall of Heroes, and watch your class journey unfold like a real epic tale! 🏆"
     },
     schoolYearPlanner: {
@@ -80,9 +80,9 @@ export const FEATURE_DEFINITIONS = {
     eliteAI: {
         name: 'AI Magic ✨',
         emoji: '🤖',
-        description: 'AI summaries, Hero Chronicle Oracle, story images',
+        description: 'AI stories, editing, Hero Chronicle Oracle, story images',
         tier: 'Elite',
-        teacherExplain: "The Elite AI suite brings magic to your classroom: the Oracle inside Hero's Chronicle analyses individual student data and generates personalised reports (Parent Summary, Teacher Strategy, Strengths/Weaknesses, Goal Suggestion), the AI Story Writer generates adventure log entries automatically, and AI Story Images create beautiful illustrated covers for your class stories. Less admin, more inspiration — powered by Gemini AI. 🤖✨🎨",
+        teacherExplain: "The Elite AI suite brings magic to your classroom: automatic AI story generation for your Adventure Log with beautiful illustrations, full editing capability to refine AI-generated content, the Oracle inside Hero's Chronicle analyses individual student data and generates personalised reports (Parent Summary, Teacher Strategy, Strengths/Weaknesses, Goal Suggestion), and AI Story Images create beautiful illustrated covers for your class stories. Less admin, more inspiration — powered by Gemini AI. 🤖✨🎨",
         studentExplain: "Your teacher has an AI Oracle inside Hero's Chronicle! 🤖✨ The Oracle helps your teacher understand your progress and give you better support. It's like having a magical advisor watching over your hero's journey! 🌟"
     },
     familiars: {

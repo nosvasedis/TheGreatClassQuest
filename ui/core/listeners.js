@@ -39,6 +39,7 @@ import {
     saveAwardNote,
     saveAdventureLogNote,
     handleLogAdventure,
+    editAdventureLogEntry,
     deleteAdventureLog,
     handleBulkSaveTrial,
     handleSaveQuestAssignment,
@@ -792,6 +793,16 @@ export function setupUIListeners() {
             modals.showModal('Delete Holiday?', 'This will restore the calendar days.', () => handleDeleteHolidayRange(btn.dataset.id));
         }
     });
+
+    // Pricing Modal
+    document.addEventListener('click', (e) => {
+        if (e.target.closest('#pricing-info-btn')) {
+            document.getElementById('pricing-modal').classList.remove('hidden');
+        }
+        if (e.target.closest('#pricing-modal-close-btn')) {
+            document.getElementById('pricing-modal').classList.add('hidden');
+        }
+    });
     
     // Class End Dates Configuration
     document.getElementById('save-class-end-dates-btn').addEventListener('click', async () => {
@@ -872,11 +883,15 @@ export function setupUIListeners() {
     document.getElementById('adventure-log-feed').addEventListener('click', (e) => {
         const deleteBtn = e.target.closest('.log-delete-btn');
         const noteBtn = e.target.closest('.log-note-btn');
+        const editBtn = e.target.closest('.log-edit-btn');
         if (deleteBtn) {
             deleteAdventureLog(deleteBtn.dataset.logId);
         }
         if (noteBtn) {
             modals.openNoteModal(noteBtn.dataset.logId);
+        }
+        if (editBtn) {
+            editAdventureLogEntry(editBtn.dataset.logId);
         }
     });
     document.getElementById('note-cancel-btn').addEventListener('click', () => modals.hideModal('note-modal'));

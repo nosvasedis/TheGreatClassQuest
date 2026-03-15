@@ -299,19 +299,96 @@ export async function saveAdventureLogNote() {
     }
 }
 
-async function triggerNoteToast(logText, noteText) {
+export async function editAdventureLogEntry(logId) {
+    const { canUseFeature } = await import('../../utils/subscription.js');
     if (!canUseFeature('eliteAI')) {
-        showPraiseToast('Note saved — another moment in the chronicle!', '📝');
+        showToast('Editing entries is an Elite feature.', 'info');
         return;
     }
-    const systemPrompt = "You are the 'Quest Master's Assistant', a whimsical character in a classroom game. Your job is to read the teacher's note about a day's adventure and provide a short, encouraging, one-sentence comment. Do NOT use markdown. Be positive and brief.";
-    const userPrompt = `The AI's log said: "${logText}". The teacher added this note: "${noteText}". What is your one-sentence comment?`;
-    try {
-        const comment = await callGeminiApi(systemPrompt, userPrompt);
-        showPraiseToast(comment, '📝');
-    } catch (error) {
-        console.error("Note Toast AI error:", error);
+
+    const log = state.get('allAdventureLogs').find(l => l.id === logId);
+    if (!log) return;
+
+    const { showModal } = await import('../../ui/modals.js');
+    
+    const modalContent = `
+        <div class="p-6">
+            <h3 class="font-title text-2xl text-indigo-700 mb-4 text-center">Edit Adventure Log Entry</h3>
+            <div class="mb-4">
+                <label class="block text-sm font-medium text-gray-700 mb-2">Title:</label>
+                <input type="text" id="edit-log-title" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500" value="${log.title || ''}" maxlength="90">
+            </div>
+            <div class="mb-4">
+                <label class="block text-sm font-medium text-gray-700 mb-2">Story:</label>
+                <textarea id="edit-log-text" rows="8" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500">${log.text || ''}</textarea>
+            </div>
+            <div class="mb-4">
+                <label class="block text-sm font-medium text-gray-700 mb-2">Highlights (comma-separated):</label>
+                <input type="text" id="edit-log-highlights" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500" value="${(log.highlights || []).join(', ')}">
+            </div>
+            <div class="mb-4">
+                <label class="block text-sm font-medium text-gray-700 mb-2">Hero of the Day:</label>
+                <input type="text" id="edit-log-hero" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500" value="${log.hero || ''}">
+            </div>
+            <div class="flex gap-3">
+                <button type="button" id="save-edit-log-btn" class="flex-1 bg-indigo-500 hover:bg-indigo-600 text-white font-title py-2 rounded-lg bubbly-button">
+                    <i class="fas fa-save mr-2"></i> Save Changes
+                </button>
+                <button type="button" id="cancel-edit-log-btn" class="flex-1 bg-gray-500 hover:bg-gray-600 text-white font-title py-2 rounded-lg bubbly-button">
+                    Cancel
+                </button>
+            </div>
+        </div>
+    `;
+    
+    showModal('Edit Adventure Log Entry', modalContent, () => {}, '', true);
+    
+    // Add event listeners
+    document.getElementById('save-edit-log-btn').addEventListener('click', async () => await saveEditedLogEntry(logId));
+    document.getElementById('cancel-edit-log-btn').addEventListener('click', () => {
+        import('../../ui/modals.js').then(m => m.hideModal());
+    });
+}
+
+async function saveEditedLogEntry(logId) {
+    const title = document.getElementById('edit-log-title').value.trim();
+    const text = document.getElementById('edit-log-text').value.trim();
+    const highlightsText = document.getElementById('edit-log-highlights').value.trim();
+    const hero = document.getElementById('edit-log-hero').value.trim();
+    
+    if (!title || !text) {
+        showToast('Title and story cannot be empty.', 'error');
+        return;
     }
+    
+    try {
+        const highlights = highlightsText ? highlightsText.split(',').map(h => h.trim()).filter(h => h) : [];
+        const keywords = text.toLowerCase().split(' ').filter(w => w.length > 3).slice(0, 6);
+        
+        await updateDoc(doc(db, "artifacts/great-class-quest/public/data/adventure_logs", logId), {
+            title: title.slice(0, 90),
+            text: text,
+            highlights: highlights.slice(0, 4),
+            keywords: keywords.slice(0, 6),
+            hero: hero,
+            editedAt: serverTimestamp(),
+            editedBy: { uid: state.get('currentUserId'), name: state.get('currentTeacherName') }
+        });
+        
+        import('../../ui/modals.js').then(m => m.hideModal());
+        showToast('Adventure log entry updated!', 'success');
+        
+        // Refresh the log display
+        const { renderAdventureLog } = await import('../../ui/tabs/log.js');
+        await renderAdventureLog();
+    } catch (error) {
+        console.error("Error saving edited log:", error);
+        showToast('Failed to save changes. Please try again.', 'error');
+    }
+}
+
+async function triggerNoteToast(logText, noteText) {
+    showPraiseToast('Note saved — another moment in the chronicle!', '📝');
 }
 
 export async function saveAwardNote() {

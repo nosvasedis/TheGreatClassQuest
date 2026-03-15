@@ -10,7 +10,8 @@ export const optionsTabHTML = `
                         <p class="text-lg text-gray-600 mt-2">Manage your profile and access advanced tools.</p>
                     </div>
 
-                    <div id="options-tier-summary" class="mb-6"></div>
+                    <div id="options-tier-summary" class="mb-6 flex items-center justify-between">
+                    </div>
 
                     <div id="options-subscription-manage-wrap" class="mb-6 hidden">
                         <div class="bg-white rounded-2xl shadow-lg border-2 border-indigo-200 overflow-hidden">
@@ -320,6 +321,112 @@ export const optionsTabHTML = `
                                 <span id="app-tier-label" class="font-semibold block"></span>
                                 <span id="app-version-label" class="block mt-1"></span>
                             </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Pricing Comparison Modal -->
+            <div id="pricing-modal" class="fixed inset-0 bg-slate-950/60 z-[95] flex items-center justify-center p-4 hidden backdrop-blur-sm">
+                <div class="bg-white p-0 rounded-[1.8rem] shadow-2xl max-w-6xl w-full h-[85vh] pop-in border border-slate-200 flex flex-col overflow-hidden relative">
+                    <button id="pricing-modal-close-btn" class="premium-close-btn absolute top-4 right-4 bg-white/75 hover:bg-white text-slate-500 hover:text-rose-500 font-bold w-10 h-10 rounded-full bubbly-button z-50 transition-colors">&times;</button>
+                    
+                    <div class="bg-gradient-to-r from-indigo-600 to-purple-600 text-white p-6 text-center">
+                        <h2 class="font-title text-3xl mb-2">🏆 Choose Your Quest Plan</h2>
+                        <p class="text-indigo-100">Unlock powerful features to transform your English teaching adventure</p>
+                    </div>
+                    
+                    <div class="flex-grow overflow-y-auto p-6">
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                            <!-- Starter Tier -->
+                            <div class="bg-white rounded-2xl border-2 border-gray-200 shadow-lg overflow-hidden">
+                                <div class="bg-gradient-to-r from-gray-500 to-gray-600 text-white p-4 text-center">
+                                    <h3 class="font-title text-2xl mb-1">Starter</h3>
+                                    <div class="text-3xl font-bold mb-2">€20<span class="text-lg font-normal">/month</span></div>
+                                    <p class="text-gray-100 text-sm">Perfect for getting started</p>
+                                </div>
+                                <div class="p-4">
+                                    <h4 class="font-semibold text-gray-700 mb-3">Core Features:</h4>
+                                    <ul class="space-y-2 text-sm">
+                                        <li class="flex items-start gap-2"><i class="fas fa-check text-green-500 mt-0.5"></i><span>Star awarding system</span></li>
+                                        <li class="flex items-start gap-2"><i class="fas fa-check text-green-500 mt-0.5"></i><span>Monthly ceremonies</span></li>
+                                        <li class="flex items-start gap-2"><i class="fas fa-check text-green-500 mt-0.5"></i><span>Quest Assignment & Attendance</span></li>
+                                        <li class="flex items-start gap-2"><i class="fas fa-check text-green-500 mt-0.5"></i><span>Quest Bounties</span></li>
+                                        <li class="flex items-start gap-2"><i class="fas fa-check text-green-500 mt-0.5"></i><span>Basic Mystic Market</span></li>
+                                        <li class="flex items-start gap-2"><i class="fas fa-check text-green-500 mt-0.5"></i><span>Hero's Boon (peer gifts)</span></li>
+                                        <li class="flex items-start gap-2"><i class="fas fa-check text-green-500 mt-0.5"></i><span>Quest World Map</span></li>
+                                        <li class="flex items-start gap-2"><i class="fas fa-check text-green-500 mt-0.5"></i><span>Projector Mode</span></li>
+                                        <li class="flex items-start gap-2"><i class="fas fa-check text-green-500 mt-0.5"></i><span>Hero's Chronicle (notes only)</span></li>
+                                    </ul>
+                                </div>
+                            </div>
+                            
+                            <!-- Pro Tier -->
+                            <div class="bg-white rounded-2xl border-2 border-indigo-400 shadow-lg overflow-hidden relative">
+                                <div class="absolute top-0 right-0 bg-gradient-to-r from-indigo-500 to-purple-500 text-white text-xs px-3 py-1 rounded-bl-xl">MOST POPULAR</div>
+                                <div class="bg-gradient-to-r from-indigo-500 to-purple-500 text-white p-4 text-center">
+                                    <h3 class="font-title text-2xl mb-1">Pro</h3>
+                                    <div class="text-3xl font-bold mb-2">€40<span class="text-lg font-normal">/month</span></div>
+                                    <p class="text-indigo-100 text-sm">Complete classroom management</p>
+                                </div>
+                                <div class="p-4">
+                                    <h4 class="font-semibold text-gray-700 mb-3">All Starter +:</h4>
+                                    <ul class="space-y-2 text-sm">
+                                        <li class="flex items-start gap-2"><i class="fas fa-check text-green-500 mt-0.5"></i><span>🏰 Guilds system & sorting quiz</span></li>
+                                        <li class="flex items-start gap-2"><i class="fas fa-check text-green-500 mt-0.5"></i><span>⚔️ Hero Classes & Skill Tree</span></li>
+                                        <li class="flex items-start gap-2"><i class="fas fa-check text-green-500 mt-0.5"></i><span>📅 Calendar & Day Planner</span></li>
+                                        <li class="flex items-start gap-2"><i class="fas fa-check text-green-500 mt-0.5"></i><span>🗓️ School Year Planner</span></li>
+                                        <li class="flex items-start gap-2"><i class="fas fa-check text-green-500 mt-0.5"></i><span>📜 Scholar's Scroll (tests/dictations)</span></li>
+                                        <li class="flex items-start gap-2"><i class="fas fa-check text-green-500 mt-0.5"></i><span>📓 Adventure Log (manual entries)</span></li>
+                                        <li class="flex items-start gap-2"><i class="fas fa-check text-green-500 mt-0.5"></i><span>📋 Advanced Attendance Chronicle</span></li>
+                                        <li class="flex items-start gap-2"><i class="fas fa-check text-green-500 mt-0.5"></i><span>🔄 Make-up lesson tracking</span></li>
+                                        <li class="flex items-start gap-2"><i class="fas fa-check text-green-500 mt-0.5"></i><span>🏆 Hall of Heroes</span></li>
+                                    </ul>
+                                </div>
+                            </div>
+                            
+                            <!-- Elite Tier -->
+                            <div class="bg-white rounded-2xl border-2 border-purple-400 shadow-lg overflow-hidden">
+                                <div class="bg-gradient-to-r from-purple-500 to-pink-500 text-white p-4 text-center">
+                                    <h3 class="font-title text-2xl mb-1">Elite</h3>
+                                    <div class="text-3xl font-bold mb-2">€60<span class="text-lg font-normal">/month</span></div>
+                                    <p class="text-purple-100 text-sm">Ultimate AI-powered experience</p>
+                                </div>
+                                <div class="p-4">
+                                    <h4 class="font-semibold text-gray-700 mb-3">All Pro +:</h4>
+                                    <ul class="space-y-2 text-sm">
+                                        <li class="flex items-start gap-2"><i class="fas fa-check text-green-500 mt-0.5"></i><span>🤖 AI-powered Adventure Log</span></li>
+                                        <li class="flex items-start gap-2"><i class="fas fa-check text-green-500 mt-0.5"></i><span>✏️ Edit AI-generated entries</span></li>
+                                        <li class="flex items-start gap-2"><i class="fas fa-check text-green-500 mt-0.5"></i><span>📖 Story Weavers (collaborative)</span></li>
+                                        <li class="flex items-start gap-2"><i class="fas fa-check text-green-500 mt-0.5"></i><span>🔤 Word of the Day</span></li>
+                                        <li class="flex items-start gap-2"><i class="fas fa-check text-green-500 mt-0.5"></i><span>🐉 Familiars (magical companions)</span></li>
+                                        <li class="flex items-start gap-2"><i class="fas fa-check text-green-500 mt-0.5"></i><span>🔮 Hero's Chronicle Oracle</span></li>
+                                        <li class="flex items-start gap-2"><i class="fas fa-check text-green-500 mt-0.5"></i><span>🎭 AI avatars</span></li>
+                                        <li class="flex items-start gap-2"><i class="fas fa-check text-green-500 mt-0.5"></i><span>📄 AI reports & certificates</span></li>
+                                        <li class="flex items-start gap-2"><i class="fas fa-check text-green-500 mt-0.5"></i><span>🎨 AI story images</span></li>
+                                        <li class="flex items-start gap-2"><i class="fas fa-check text-green-500 mt-0.5"></i><span>🌟 Priority support</span></li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="mt-6 p-4 bg-gray-50 rounded-xl">
+                            <h4 class="font-semibold text-gray-700 mb-2">💡 Why upgrade?</h4>
+                            <p class="text-sm text-gray-600 mb-3">Each tier builds upon the previous one, giving you more powerful tools to engage your students and save time.</p>
+                            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+                                <div class="text-center">
+                                    <div class="text-2xl mb-1">🌱</div>
+                                    <strong>Starter:</strong> Perfect for testing the waters
+                                </div>
+                                <div class="text-center">
+                                    <div class="text-2xl mb-1">🚀</div>
+                                    <strong>Pro:</strong> Complete classroom ecosystem
+                                </div>
+                                <div class="text-center">
+                                    <div class="text-2xl mb-1">✨</div>
+                                    <strong>Elite:</strong> AI-powered magic that saves hours
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>

@@ -114,10 +114,13 @@ export async function handleLogAdventure() {
     if (!classId) return;
 
     const { canUseFeature } = await import('../../utils/subscription.js');
-    if (!canUseFeature('eliteAI')) {
+    const hasEliteAI = canUseFeature('eliteAI');
+    const hasAdventureLog = canUseFeature('adventureLog');
+
+    if (!hasAdventureLog) {
         const { showUpgradePrompt } = await import('../../utils/upgradePrompt.js');
         const { getUpgradeMessage } = await import('../../config/tiers/features.js');
-        showUpgradePrompt({ feature: 'AI Adventure Log', tier: 'Elite', message: getUpgradeMessage('Elite', 'adventureLog') });
+        showUpgradePrompt({ feature: 'Adventure Log', tier: 'Pro', message: getUpgradeMessage('Pro', 'adventureLog') });
         return;
     }
 
@@ -138,6 +141,16 @@ export async function handleLogAdventure() {
         return;
     }
 
+    if (hasEliteAI) {
+        // Elite: Use AI generation (current implementation)
+        await handleAILogAdventure(classId, classData);
+    } else {
+        // Pro: Use manual entry
+        await handleManualLogAdventure(classId, classData);
+    }
+}
+
+async function handleAILogAdventure(classId, classData) {
     const btn = document.getElementById('log-adventure-btn');
     btn.disabled = true;
     btn.innerHTML = `<i class="fas fa-spinner fa-spin mr-2"></i> Writing History...`;
@@ -149,17 +162,17 @@ export async function handleLogAdventure() {
     const ageGroup = getAgeGroupForLeague(league);
     const ageTier = _getAgeTierFromLeague(league);
 
-    const todaysAwards = state.get('allAwardLogs').filter(log => log.classId === classId && log.date === today);
+    const todaysAwards = state.get('allAwardLogs').filter(log => log.classId === classId && log.date === getTodayDateString());
     const monthKey = `${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, '0')}`;
     const classPathfinderBonus = Number(classData.teamQuestBonuses?.[monthKey]) || 0;
-    const pathfinderUsedToday = classData.lastPathfinderDate === today;
+    const pathfinderUsedToday = classData.lastPathfinderDate === getTodayDateString();
     const todaysPathfinderBonus = pathfinderUsedToday ? Math.max(10, classPathfinderBonus > 0 ? 10 : 0) : 0;
     const totalStars = todaysAwards.reduce((sum, award) => sum + (Number(award.stars) || 0), 0) + todaysPathfinderBonus;
     const uniqueReasons = [...new Set(todaysAwards.map(a => a.reason).filter(r => r && r !== 'marked_present'))];
     const reasonLabels = uniqueReasons.map(r => r.replace(/_/g, ' '));
     const topReasonsStr = reasonLabels.length > 0 ? reasonLabels.join(', ') : 'general excellence';
 
-    const attendanceRecords = state.get('allAttendanceRecords').filter(r => r.classId === classId && r.date === today);
+    const attendanceRecords = state.get('allAttendanceRecords').filter(r => r.classId === classId && r.date === getTodayDateString());
     const absentStudentIds = new Set(attendanceRecords.map(r => r.studentId));
     const classStudentsForAttendance = state.get('allStudents').filter(s => s.classId === classId);
     const presentStudents = classStudentsForAttendance.filter(s => !absentStudentIds.has(s.id));
@@ -178,9 +191,9 @@ export async function handleLogAdventure() {
         .sort((a, b) => (b.createdAt?.toMillis?.() || 0) - (a.createdAt?.toMillis?.() || 0));
     const latestAssignment = assignments[0];
     let assignmentContext = '';
-    if (latestAssignment?.testData && utils.datesMatch(latestAssignment.testData.date, today)) {
+    if (latestAssignment?.testData && utils.datesMatch(latestAssignment.testData.date, getTodayDateString())) {
         assignmentContext = `Today the class took the test "${latestAssignment.testData.title}".`;
-    } else if (latestAssignment?.createdAt?.toDate && utils.datesMatch(utils.getDDMMYYYY(latestAssignment.createdAt.toDate()), today)) {
+    } else if (latestAssignment?.createdAt?.toDate && utils.datesMatch(utils.getDDMMYYYY(latestAssignment.createdAt.toDate()), getTodayDateString())) {
         assignmentContext = `Next lesson quest assignment: "${latestAssignment.text}".`;
     }
 
@@ -232,7 +245,7 @@ Power-up context: ${powerUpContext || 'none'}`;
 
         await addDoc(collection(db, 'artifacts/great-class-quest/public/data/adventure_logs'), {
             classId,
-            date: today,
+            date: getTodayDateString(),
             title: diary.title,
             text: diary.entry,
             highlights: diary.highlights,
@@ -267,6 +280,109 @@ Power-up context: ${powerUpContext || 'none'}`;
         import('../../audio.js').then(m => m.stopWritingLoop());
         console.error(error);
         showToast('The Chronicler failed to write. Check connection.', 'error');
+    } finally {
+        btn.disabled = false;
+        btn.innerHTML = `<i class="fas fa-feather-alt mr-2"></i> Log Today's Adventure`;
+    }
+}
+
+async function handleManualLogAdventure(classId, classData) {
+    // Show manual entry modal
+    const { showModal } = await import('../../ui/modals.js');
+    
+    const modalContent = `
+        <div class="p-6">
+            <h3 class="font-title text-2xl text-teal-700 mb-4 text-center">Write Today's Adventure</h3>
+            <div class="mb-4">
+                <label class="block text-sm font-medium text-gray-700 mb-2">Title for today's entry:</label>
+                <input type="text" id="manual-log-title" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500" placeholder="e.g., A Day of Discovery">
+            </div>
+            <div class="mb-4">
+                <label class="block text-sm font-medium text-gray-700 mb-2">Today's adventure story:</label>
+                <textarea id="manual-log-text" rows="6" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500" placeholder="Write about today's lesson, achievements, and memorable moments..."></textarea>
+            </div>
+            <div class="mb-4">
+                <label class="block text-sm font-medium text-gray-700 mb-2">Highlights (optional, comma-separated):</label>
+                <input type="text" id="manual-log-highlights" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500" placeholder="e.g., Great participation, Creative answers, Team work">
+            </div>
+            <div class="flex gap-3">
+                <button type="button" id="save-manual-log-btn" class="flex-1 bg-teal-500 hover:bg-teal-600 text-white font-title py-2 rounded-lg bubbly-button">
+                    <i class="fas fa-save mr-2"></i> Save Entry
+                </button>
+                <button type="button" id="cancel-manual-log-btn" class="flex-1 bg-gray-500 hover:bg-gray-600 text-white font-title py-2 rounded-lg bubbly-button">
+                    Cancel
+                </button>
+            </div>
+        </div>
+    `;
+    
+    showModal('Manual Adventure Log Entry', modalContent, () => {}, '', true);
+    
+    // Add event listeners
+    document.getElementById('save-manual-log-btn').addEventListener('click', async () => await saveManualLogEntry(classId, classData));
+    document.getElementById('cancel-manual-log-btn').addEventListener('click', () => {
+        import('../../ui/modals.js').then(m => m.hideModal());
+    });
+}
+
+async function saveManualLogEntry(classId, classData) {
+    const title = document.getElementById('manual-log-title').value.trim();
+    const text = document.getElementById('manual-log-text').value.trim();
+    const highlightsText = document.getElementById('manual-log-highlights').value.trim();
+    
+    if (!title || !text) {
+        showToast('Please fill in both title and story.', 'error');
+        return;
+    }
+    
+    const btn = document.getElementById('log-adventure-btn');
+    btn.disabled = true;
+    btn.innerHTML = `<i class="fas fa-spinner fa-spin mr-2"></i> Saving...`;
+    
+    try {
+        const highlights = highlightsText ? highlightsText.split(',').map(h => h.trim()).filter(h => h) : [];
+        const keywords = text.toLowerCase().split(' ').filter(w => w.length > 3).slice(0, 6);
+        
+        // Select a simple hero of the day (top star earner)
+        const todaysAwards = state.get('allAwardLogs').filter(log => log.classId === classId && log.date === getTodayDateString());
+        const heroSelection = await _selectHeroOfTheDay(classId, classData, state.get('allStudents').filter(s => s.classId === classId));
+        
+        await addDoc(collection(db, 'artifacts/great-class-quest/public/data/adventure_logs'), {
+            classId,
+            date: getTodayDateString(),
+            title: title.slice(0, 90),
+            text: text,
+            highlights: highlights.slice(0, 4),
+            keywords: keywords.slice(0, 6),
+            hero: heroSelection.heroName,
+            heroStudentId: heroSelection.heroStudentId || null,
+            ageTier: _getAgeTierFromLeague(classData.questLevel),
+            imageUrl: null, // No image for manual entries
+            topReason: highlights[0] || 'excellence',
+            totalStars: todaysAwards.reduce((sum, award) => sum + (Number(award.stars) || 0), 0),
+            createdBy: { uid: state.get('currentUserId'), name: state.get('currentTeacherName') },
+            createdAt: serverTimestamp()
+        });
+        
+        import('../../ui/modals.js').then(m => m.hideModal());
+        showToast('Your adventure has been recorded!', 'success');
+        
+        if (heroSelection.heroStudentId) {
+            const heroStudent = state.get('allStudents').find(s => s.id === heroSelection.heroStudentId);
+            if (heroStudent) {
+                document.getElementById('hero-celebration-name').innerText = heroStudent.name;
+                document.getElementById('hero-celebration-reason').innerText = 'The Class Hero!';
+                const avatarEl = document.getElementById('hero-celebration-avatar');
+                avatarEl.innerHTML = heroStudent.avatar
+                    ? `<img src="${heroStudent.avatar}" class="w-full h-full object-cover rounded-full">`
+                    : `<span class="text-7xl font-bold text-indigo-50">${heroStudent.name.charAt(0)}</span>`;
+                import('../../ui/modals.js').then(m => m.showAnimatedModal('hero-celebration-modal'));
+                import('../../audio.js').then(m => m.playHeroFanfare());
+            }
+        }
+    } catch (error) {
+        console.error("Error saving manual log:", error);
+        showToast('Failed to save your entry. Please try again.', 'error');
     } finally {
         btn.disabled = false;
         btn.innerHTML = `<i class="fas fa-feather-alt mr-2"></i> Log Today's Adventure`;

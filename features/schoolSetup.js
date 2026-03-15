@@ -121,7 +121,7 @@ function populateSetupSelectors() {
             .map((logo) => `
                 <button
                     type="button"
-                    class="setup-logo-btn w-11 h-11 rounded-2xl border border-slate-200 bg-slate-50 text-2xl transition hover:bg-indigo-50 hover:border-indigo-300 bubbly-button"
+                    class="setup-logo-btn w-14 h-14 rounded-[1.35rem] border border-slate-200 bg-slate-50 text-[1.75rem] transition hover:bg-indigo-50 hover:border-indigo-300 bubbly-button shadow-sm"
                     data-logo="${logo}"
                     aria-label="Choose ${logo} as the class emoji"
                     title="${logo}"

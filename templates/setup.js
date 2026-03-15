@@ -101,9 +101,9 @@ export const setupHTML = `
                                         <div class="rounded-2xl border border-indigo-200 bg-white p-3">
                                             <div class="flex items-center justify-between gap-3 mb-3">
                                                 <p class="text-xs uppercase tracking-[0.2em] text-slate-400">Selected</p>
-                                                <div id="setup-class-logo-preview" class="w-11 h-11 rounded-2xl bg-indigo-100 text-indigo-700 border border-indigo-200 flex items-center justify-center text-2xl shadow-sm">📚</div>
+                                                <div id="setup-class-logo-preview" class="w-14 h-14 rounded-[1.35rem] bg-indigo-100 text-indigo-700 border border-indigo-200 flex items-center justify-center text-3xl shadow-sm">📚</div>
                                             </div>
-                                            <div id="setup-class-logo-grid" class="grid grid-cols-6 sm:grid-cols-8 gap-2 max-h-40 overflow-y-auto pr-1"></div>
+                                            <div id="setup-class-logo-grid" class="grid grid-cols-4 sm:grid-cols-5 gap-3 max-h-56 overflow-y-auto pr-1"></div>
                                         </div>
                                     </div>
                                 </div>

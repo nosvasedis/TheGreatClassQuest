@@ -188,6 +188,31 @@ function saveSchoolStripeCustomerId(schoolId, customerId) {
   }
 }
 
+function toIsoDateFromUnix(value) {
+  if (!value) return null;
+  return new Date(value * 1000).toISOString().slice(0, 10);
+}
+
+function summarizeInvoice(invoice) {
+  if (!invoice) return null;
+  const firstLine = invoice.lines?.data?.[0] || null;
+  return {
+    invoiceId: invoice.id,
+    number: invoice.number || '',
+    status: invoice.status || '',
+    currency: (invoice.currency || '').toLowerCase(),
+    amountPaid: invoice.amount_paid || 0,
+    amountDue: invoice.amount_due || 0,
+    paid: invoice.paid === true,
+    paidAt: toIsoDateFromUnix(invoice.status_transitions?.paid_at || invoice.created),
+    createdAt: toIsoDateFromUnix(invoice.created),
+    hostedInvoiceUrl: invoice.hosted_invoice_url || '',
+    description: invoice.description || firstLine?.description || '',
+    periodStart: toIsoDateFromUnix(firstLine?.period?.start),
+    periodEnd: toIsoDateFromUnix(firstLine?.period?.end),
+  };
+}
+
 // Create Checkout Session for a school upgrading to a tier
 app.post('/create-checkout-session', express.json(), async (req, res) => {
   const { schoolId, tier, successUrl, cancelUrl } = req.body || {};
@@ -269,7 +294,18 @@ app.get('/subscription-info', async (req, res) => {
   try {
     const customerId = await getCustomerIdForSchool(schoolId);
     if (!customerId) {
-      return res.json({ hasSubscription: false, tier: 'starter' });
+      return res.json({
+        hasSubscription: false,
+        tier: 'starter',
+        customerId: null,
+        hasPaidInvoices: false,
+        lifetimePaidAmount: 0,
+        lifetimePaidCount: 0,
+        firstPaidAt: null,
+        lastPaidAt: null,
+        recentPayments: [],
+        message: 'No Stripe customer or paid subscription was found for this school.',
+      });
     }
 
     const subs = await stripe.subscriptions.list({
@@ -279,14 +315,40 @@ app.get('/subscription-info', async (req, res) => {
       expand: ['data.items.data.price'],
     });
 
+    const invoices = await stripe.invoices.list({
+      customer: customerId,
+      limit: 100,
+    });
+
     // Prefer active/trialing; otherwise most recent by period end
     const sorted = subs.data
       .filter((s) => s.status !== 'incomplete_expired')
       .sort((a, b) => (b.current_period_end || 0) - (a.current_period_end || 0));
     const sub = sorted[0];
 
+    const allInvoices = invoices.data.map(summarizeInvoice).filter(Boolean);
+    const paidInvoices = allInvoices
+      .filter((invoice) => invoice.paid)
+      .sort((a, b) => new Date(b.paidAt || b.createdAt || 0).getTime() - new Date(a.paidAt || a.createdAt || 0).getTime());
+    const latestPaidInvoice = paidInvoices[0] || null;
+    const oldestPaidInvoice = paidInvoices[paidInvoices.length - 1] || null;
+    const lifetimePaidAmount = paidInvoices.reduce((sum, invoice) => sum + (invoice.amountPaid || 0), 0);
+
     if (!sub) {
-      return res.json({ hasSubscription: false, tier: 'starter' });
+      return res.json({
+        hasSubscription: false,
+        tier: 'starter',
+        customerId,
+        hasPaidInvoices: paidInvoices.length > 0,
+        lifetimePaidAmount,
+        lifetimePaidCount: paidInvoices.length,
+        firstPaidAt: oldestPaidInvoice?.paidAt || null,
+        lastPaidAt: latestPaidInvoice?.paidAt || null,
+        recentPayments: paidInvoices.slice(0, 8),
+        message: paidInvoices.length > 0
+          ? 'Stripe shows payment history for this school, but no current subscription is active.'
+          : 'Stripe has a customer record for this school, but no current subscription or paid invoice yet.',
+      });
     }
 
     let tier = null;
@@ -311,15 +373,41 @@ app.get('/subscription-info', async (req, res) => {
     const canceledAt = sub.canceled_at
       ? new Date(sub.canceled_at * 1000).toISOString().slice(0, 10)
       : null;
+    const subscriptionStartedAt = sub.start_date
+      ? new Date(sub.start_date * 1000).toISOString().slice(0, 10)
+      : toIsoDateFromUnix(sub.created);
+    const currentPrice = typeof priceRef === 'object' && priceRef
+      ? {
+          id: priceRef.id,
+          unitAmount: priceRef.unit_amount || 0,
+          currency: (priceRef.currency || '').toLowerCase(),
+          interval: priceRef.recurring?.interval || '',
+          intervalCount: priceRef.recurring?.interval_count || 1,
+          nickname: priceRef.nickname || '',
+        }
+      : null;
 
     return res.json({
       hasSubscription: true,
+      customerId,
       tier,
       status: sub.status,
       currentPeriodStart,
       currentPeriodEnd,
       cancelAtPeriodEnd: sub.cancel_at_period_end === true,
       canceledAt,
+      subscriptionStartedAt,
+      currentPrice,
+      hasPaidInvoices: paidInvoices.length > 0,
+      lifetimePaidAmount,
+      lifetimePaidCount: paidInvoices.length,
+      firstPaidAt: oldestPaidInvoice?.paidAt || null,
+      lastPaidAt: latestPaidInvoice?.paidAt || null,
+      latestPaidInvoice,
+      recentPayments: paidInvoices.slice(0, 8),
+      message: sub.cancel_at_period_end === true
+        ? 'Stripe shows a paid subscription that will end at the close of the current billing period.'
+        : 'Stripe shows an active paid subscription for this school.',
     });
   } catch (e) {
     console.error('Subscription info error:', e);

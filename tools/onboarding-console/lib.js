@@ -726,6 +726,59 @@ function formatSubscriptionSummary(subscription) {
   };
 }
 
+async function fetchBillingSubscriptionInfo(projectId) {
+  const configuredUrl = String(process.env.ONBOARDING_CONSOLE_BILLING_URL || loadDefaults().renderUrl || '').trim();
+  const checkedAt = new Date().toISOString();
+  if (!configuredUrl) {
+    return {
+      available: false,
+      checkedAt,
+      source: '',
+      message: 'Add your Render billing URL in this tool first if you want Stripe payment history here too.',
+    };
+  }
+
+  let baseUrl;
+  try {
+    baseUrl = new URL(configuredUrl);
+  } catch (error) {
+    return {
+      available: false,
+      checkedAt,
+      source: configuredUrl,
+      message: 'The saved billing URL is not valid, so Stripe payment details could not be checked.',
+    };
+  }
+
+  const requestUrl = new URL('/subscription-info', baseUrl);
+  requestUrl.searchParams.set('schoolId', projectId);
+
+  try {
+    const response = await fetch(requestUrl, {
+      headers: {
+        accept: 'application/json',
+      },
+    });
+    const payload = await response.json().catch(() => ({}));
+    if (!response.ok) {
+      throw new Error(payload.error || 'The billing server did not return subscription info.');
+    }
+    return {
+      available: true,
+      checkedAt,
+      source: baseUrl.origin,
+      ...payload,
+    };
+  } catch (error) {
+    return {
+      available: false,
+      checkedAt,
+      source: baseUrl.origin,
+      message: error.message || 'Stripe payment details could not be loaded from the billing server.',
+    };
+  }
+}
+
 async function getSavedSchoolDetails(projectId) {
   const schools = getSavedSchools();
   const school = schools.find((item) => item.schoolId === projectId || item.firebaseProjectId === projectId);
@@ -743,10 +796,12 @@ async function getSavedSchoolDetails(projectId) {
   }
   const serviceAccount = readJson(keyPath);
   const subscription = await readSubscriptionStatus(projectId, serviceAccount);
+  const billing = await fetchBillingSubscriptionInfo(projectId);
   return {
     school,
     serviceAccount,
     subscription: formatSubscriptionSummary(subscription),
+    billing,
   };
 }
 
@@ -756,9 +811,11 @@ async function updateSavedSchoolSubscription(projectId, input = {}) {
   const app = getAdminApp(projectId, details.serviceAccount);
   await app.firestore().collection('appConfig').doc('subscription').set(payload, { merge: false });
   const nextSubscription = await readSubscriptionStatus(projectId, details.serviceAccount);
+  const billing = await fetchBillingSubscriptionInfo(projectId);
   return {
     school: details.school,
     subscription: formatSubscriptionSummary(nextSubscription),
+    billing,
     message: 'The school subscription was updated successfully.',
   };
 }

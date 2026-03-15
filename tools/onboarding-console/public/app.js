@@ -55,10 +55,13 @@ const state = {
     notes: '',
   },
   manageDeleteConfirm: '',
+  manageSchoolSearch: '',
+  manageHelpOpen: false,
   isRunning: false,
   renderPasted: false,
   hostingProvider: 'netlify',
   hostingCompleted: createEmptyHostingChecklist(),
+  activity: null,
 };
 
 const taskIcons = {
@@ -143,6 +146,17 @@ function getHostingCompletionState() {
   return state.hostingCompleted[state.hostingProvider] === true;
 }
 
+function getVisibleManageSchools() {
+  const schools = state.bootstrap.schools || [];
+  const query = state.manageSchoolSearch.trim().toLowerCase();
+  if (!query) return schools;
+  return schools.filter((school) => {
+    const label = String(school.schoolLabel || '').toLowerCase();
+    const id = String(school.schoolId || '').toLowerCase();
+    return label.includes(query) || id.includes(query);
+  });
+}
+
 bootstrap().catch((error) => {
   app.innerHTML = `
     <section class="panel">
@@ -155,6 +169,12 @@ bootstrap().catch((error) => {
 });
 
 async function bootstrap() {
+  state.activity = {
+    tone: 'info',
+    title: 'Opening the onboarding console',
+    description: 'Loading your saved defaults, school list, and tool readiness checks.',
+    progress: 18,
+  };
   const data = await api('/api/bootstrap');
   state.bootstrap = data;
   state.form.schoolLabel = data.defaults.lastSchoolLabel || '';
@@ -171,39 +191,38 @@ async function bootstrap() {
   state.recheckSchoolId = data.schools[0]?.schoolId || '';
   state.manageSchoolId = data.schools[0]?.schoolId || '';
   state.loading = false;
+  state.activity = null;
   render();
 }
 
 function render() {
   if (state.loading) {
     app.innerHTML = `
-      <div class="loading-card">
-        <div class="spinner"></div>
-        <p>Loading your onboarding console...</p>
-      </div>
+      ${renderActivityBanner()}
+      ${renderLoadingCard('Loading your onboarding console...', 'Reading saved schools, defaults, and local setup status.')}
     `;
     return;
   }
 
   if (!state.mode) {
-    app.innerHTML = renderWelcome();
+    app.innerHTML = `${renderActivityBanner()}${renderWelcome()}`;
     bindWelcomeEvents();
     return;
   }
 
   if (state.mode === 'recheck') {
-    app.innerHTML = renderRecheck();
+    app.innerHTML = `${renderActivityBanner()}${renderRecheck()}`;
     bindRecheckEvents();
     return;
   }
 
   if (state.mode === 'manage') {
-    app.innerHTML = renderManageSchools();
+    app.innerHTML = `${renderActivityBanner()}${renderManageSchools()}`;
     bindManageEvents();
     return;
   }
 
-  app.innerHTML = renderNewSetup();
+  app.innerHTML = `${renderActivityBanner()}${renderNewSetup()}`;
   bindNewSetupEvents();
 }
 
@@ -273,7 +292,7 @@ function renderWelcome() {
 
           <article class="choice-card">
             <h3>Manage saved schools</h3>
-            <p>Open a school from your saved list, view its current subscription, and manually grant Starter, Pro, Elite, Pending, or Expired with an optional date range.</p>
+            <p>Open a school from your saved list, review its live access and payment timeline, and manually grant Starter, Pro, Elite, Pending, or Expired with an optional date range.</p>
             <button class="secondary-btn" data-action="start-manage">Manage Saved Schools</button>
           </article>
         </div>
@@ -283,12 +302,17 @@ function renderWelcome() {
 }
 
 function renderNewSetup() {
+  const setupProgress = Math.round(((state.step + 1) / stepMeta.length) * 100);
   return `
     <section class="step-layout">
       <aside class="progress-card panel">
         <p class="eyebrow">Setup path</p>
         <h2 class="panel-title">One clear step at a time</h2>
         <p class="small-note">You can go back safely at any point before the automatic setup step.</p>
+        <div class="inline-progress-summary">
+          <div class="activity-progress-bar"><span style="width:${setupProgress}%;"></span></div>
+          <strong>${setupProgress}% through the setup path</strong>
+        </div>
         <ol class="progress-list">
           ${stepMeta.map((item, index) => {
             const status = state.step > index ? 'done' : state.step === index ? 'active' : '';
@@ -546,7 +570,10 @@ function renderCurrentStep() {
       </button>
 
       <div style="height:18px;"></div>
-      ${state.setupResult ? renderTaskList(state.setupResult.tasks) : `
+      ${state.setupResult ? `
+        ${renderTaskProgress(state.setupResult.tasks, 'Automatic setup progress', 'Each safe setup task is tracked below so you can see what finished and what still needs attention.')}
+        ${renderTaskList(state.setupResult.tasks)}
+      ` : `
         <div class="empty-box">
           <strong>No tasks have run yet.</strong><br>
           When you click the button above, each setup task will appear here with a simple status and clear next steps.
@@ -648,6 +675,53 @@ function renderFinalStep(stepHeader) {
       <button class="secondary-btn" data-action="start-over">${ready ? 'Back to Home' : 'Back to Home'}</button>
       <button class="ghost-btn" data-action="back-step">Back</button>
     </div>
+  `;
+}
+
+function renderLoadingCard(title, description) {
+  return `
+    <div class="loading-card">
+      <div class="spinner"></div>
+      <p><strong>${escapeHtml(title)}</strong></p>
+      <p class="loading-card-copy">${escapeHtml(description)}</p>
+    </div>
+  `;
+}
+
+function renderActivityBanner() {
+  if (!state.activity) return '';
+  const progress = Math.max(6, Math.min(100, Number(state.activity.progress) || 0));
+  return `
+    <section class="activity-banner tone-${escapeHtml(state.activity.tone || 'info')}">
+      <div class="activity-banner-copy">
+        <p class="mini-label">In progress</p>
+        <h3>${escapeHtml(state.activity.title || 'Working')}</h3>
+        <p>${escapeHtml(state.activity.description || 'Please wait while the tool works through the next step.')}</p>
+      </div>
+      <div class="activity-banner-meter" aria-hidden="true">
+        <div class="activity-progress-bar"><span style="width:${progress}%;"></span></div>
+        <strong>${progress}%</strong>
+      </div>
+    </section>
+  `;
+}
+
+function renderTaskProgress(tasks = [], title, description) {
+  if (!Array.isArray(tasks) || !tasks.length) return '';
+  const completeCount = tasks.filter((task) => ['done', 'already_done'].includes(task.status)).length;
+  const progress = Math.round((completeCount / tasks.length) * 100);
+  return `
+    <section class="activity-banner tone-soft">
+      <div class="activity-banner-copy">
+        <p class="mini-label">Progress</p>
+        <h3>${escapeHtml(title)}</h3>
+        <p>${escapeHtml(description)}</p>
+      </div>
+      <div class="activity-banner-meter" aria-hidden="true">
+        <div class="activity-progress-bar"><span style="width:${progress}%;"></span></div>
+        <strong>${completeCount}/${tasks.length}</strong>
+      </div>
+    </section>
   `;
 }
 
@@ -797,6 +871,7 @@ function renderRecheck() {
           ${(() => {
             const selectedTarget = getSelectedHostingTarget(state.recheckResult.outputs);
             return `
+          ${renderTaskProgress(state.recheckResult.tasks, 'School check progress', 'This bar shows how many safe checks completed cleanly for the selected saved school.')}
           <div class="final-banner ${state.recheckResult.finalStatus === 'ready' ? 'ready' : 'needs_attention'}">
             <div class="final-icon"><i class="fas ${state.recheckResult.finalStatus === 'ready' ? 'fa-thumbs-up' : 'fa-triangle-exclamation'}"></i></div>
             <div class="final-copy">
@@ -847,6 +922,7 @@ function renderRecheck() {
 function renderManageSchools() {
   const details = state.manageSubscription;
   const subscription = details?.subscription || null;
+  const billing = details?.billing || null;
   const currentTier = subscription?.tier || 'missing';
   const effectiveTier = subscription?.effectiveTier || 'pending';
   const deleteReady = state.manageDeleteConfirm.trim() === state.manageSchoolId;
@@ -855,13 +931,23 @@ function renderManageSchools() {
   const effectiveMeta = manageTierMeta[effectiveTier] || manageTierMeta.pending;
   const selectedHostingLabel = hostingProviderLabels[state.hostingProvider] || 'Hosting';
   const schools = state.bootstrap.schools || [];
+  const visibleSchools = getVisibleManageSchools();
+  const selectedSchool = schools.find((school) => school.schoolId === state.manageSchoolId) || schools[0] || null;
+  const activeSinceLabel = getActiveSinceLabel(subscription?.startsAt || billing?.subscriptionStartedAt || billing?.firstPaidAt);
+  const remainingLabel = getRemainingAccessLabel(subscription?.endsAt || billing?.currentPeriodEnd);
+  const accessProgress = getDateRangeProgress(subscription?.startsAt || billing?.subscriptionStartedAt, subscription?.endsAt || billing?.currentPeriodEnd);
+  const paymentTone = getBillingTone(billing, effectiveMeta.tone);
+  const latestPaid = billing?.latestPaidInvoice || billing?.recentPayments?.[0] || null;
   return `
-    <section class="welcome-grid">
-      <div class="panel manage-hero-panel">
-        <div class="manage-hero-copy">
-          <p class="eyebrow">Saved school admin</p>
-          <h2 class="panel-title">Manage a saved school subscription</h2>
-          <p class="panel-subtitle">Pick a school, see its current status clearly, then grant the tier and date range you want without digging through technical text.</p>
+    <section class="manage-screen">
+      <div class="panel manage-hero-panel manage-top-panel">
+        <div class="manage-hero-head">
+          <div class="manage-hero-copy">
+            <p class="eyebrow">Saved school admin</p>
+            <h2 class="panel-title">Manage a saved school subscription</h2>
+            <p class="panel-subtitle">Switch schools quickly, see the payment story and access timeline, then update the live plan with a clear manual override.</p>
+          </div>
+          <button type="button" class="info-icon-btn" data-action="open-manage-help" aria-label="Open the manual school access guide">i</button>
         </div>
         <div class="manage-hero-orb" aria-hidden="true">
           <span>🏫</span>
@@ -872,102 +958,74 @@ function renderManageSchools() {
             You do not have any saved schools yet. Run the new school setup first, then this screen will let you manage them.
           </div>
         ` : `
-          <div class="manage-school-picker">
-            <div class="field-wrap manage-school-field">
-              <label for="manageSchool">Choose a saved school</label>
-              <select id="manageSchool">
-                ${schools.map((school) => `
-                  <option value="${escapeHtml(school.schoolId)}" ${state.manageSchoolId === school.schoolId ? 'selected' : ''}>
-                    ${escapeHtml(school.schoolLabel || school.schoolId)} (${escapeHtml(school.schoolId)})
-                  </option>
-                `).join('')}
-              </select>
-              <p class="field-hint">This list comes from your local saved billing records.</p>
+          <div class="manage-switcher-shell">
+            <div class="manage-current-school-card">
+              <p class="mini-label">Selected school</p>
+              <h3>${escapeHtml(selectedSchool?.schoolLabel || selectedSchool?.schoolId || 'Choose a saved school')}</h3>
+              <p>${escapeHtml(selectedSchool?.schoolId || 'Nothing selected yet')}</p>
+              <div class="manage-current-school-meta">
+                <span class="status-pill status-${details ? 'done' : 'waiting'}">${details ? 'Loaded' : 'Choose and load'}</span>
+                <span class="manage-inline-tier tone-${effectiveMeta.tone}">${escapeHtml(effectiveMeta.label)}</span>
+              </div>
             </div>
 
-            <div class="manage-school-actions">
-              <button class="secondary-btn" data-action="load-manage-school" ${state.manageLoading ? 'disabled' : ''}>${state.manageLoading ? 'Loading...' : 'Open This School'}</button>
-              <button class="ghost-btn" data-action="start-over">Back to Home</button>
+            <div class="manage-switcher-controls">
+              <div class="field-wrap manage-school-field">
+                <label for="manageSchoolSearch">Find a saved school</label>
+                <input id="manageSchoolSearch" type="text" value="${escapeHtml(state.manageSchoolSearch)}" placeholder="Search by school name or project ID">
+                <p class="field-hint">${visibleSchools.length} school${visibleSchools.length === 1 ? '' : 's'} match${visibleSchools.length === 1 ? 'es' : ''} your search.</p>
+              </div>
+
+              <div class="manage-school-picker">
+                <div class="field-wrap manage-school-field">
+                  <label for="manageSchool">Choose a saved school</label>
+                  <select id="manageSchool" ${visibleSchools.length ? '' : 'disabled'}>
+                    ${visibleSchools.map((school) => `
+                      <option value="${escapeHtml(school.schoolId)}" ${state.manageSchoolId === school.schoolId ? 'selected' : ''}>
+                        ${escapeHtml(school.schoolLabel || school.schoolId)} (${escapeHtml(school.schoolId)})
+                      </option>
+                    `).join('')}
+                  </select>
+                  <p class="field-hint">This list comes from your local saved billing records.</p>
+                </div>
+
+                <div class="manage-school-actions">
+                  <button class="secondary-btn" data-action="load-manage-school" ${state.manageLoading || !visibleSchools.length ? 'disabled' : ''}>${state.manageLoading ? 'Loading...' : details ? 'Refresh This School' : 'Open This School'}</button>
+                  <button class="ghost-btn" data-action="start-over">Back to Home</button>
+                </div>
+              </div>
             </div>
           </div>
 
-          <div class="manage-school-chip-grid">
-            ${schools.map((school) => `
-              <button
-                type="button"
-                class="manage-school-chip ${state.manageSchoolId === school.schoolId ? 'selected' : ''}"
-                data-action="pick-manage-school"
-                data-school-id="${escapeHtml(school.schoolId)}"
-              >
-                <span class="manage-school-chip-icon">${state.manageSchoolId === school.schoolId ? '✨' : '📘'}</span>
-                <span class="manage-school-chip-copy">
-                  <strong>${escapeHtml(school.schoolLabel || school.schoolId)}</strong>
-                  <small>${escapeHtml(school.schoolId)}</small>
-                </span>
-              </button>
-            `).join('')}
-          </div>
+          ${visibleSchools.length ? `
+            <div class="manage-school-chip-grid">
+              ${visibleSchools.map((school) => `
+                <button
+                  type="button"
+                  class="manage-school-chip ${state.manageSchoolId === school.schoolId ? 'selected' : ''}"
+                  data-action="pick-manage-school"
+                  data-school-id="${escapeHtml(school.schoolId)}"
+                >
+                  <span class="manage-school-chip-icon">${state.manageSchoolId === school.schoolId ? '✨' : '📘'}</span>
+                  <span class="manage-school-chip-copy">
+                    <strong>${escapeHtml(school.schoolLabel || school.schoolId)}</strong>
+                    <small>${escapeHtml(school.schoolId)}</small>
+                  </span>
+                </button>
+              `).join('')}
+            </div>
+          ` : `
+            <div class="empty-box" style="margin-top:18px;">
+              No saved schools matched that search. Try a shorter name or part of the Firebase project ID.
+            </div>
+          `}
         `}
       </div>
 
-      <div class="panel manage-help-panel">
-        <div class="manage-help-header">
-          <div>
-            <p class="mini-label">How This Works</p>
-            <h3>Manual school access, explained simply</h3>
-          </div>
-          <p>Use this area when you need to help one school directly, without guessing what the dates or tier change will do in the live app.</p>
-        </div>
-        <div class="manage-help-grid">
-          <article class="manage-help-card sunrise wide">
-            <div class="manage-help-top">
-              <span class="manage-help-icon">🪄</span>
-              <div>
-                <h4>What this really changes</h4>
-                <p class="manage-help-kicker">Live app access for this one school</p>
-              </div>
-            </div>
-            <div class="manage-help-split">
-              <p>This updates the school’s <strong>appConfig/subscription</strong> document in Firestore using the same plan rules the live app already understands.</p>
-              <div class="manage-help-note">
-                <strong>In plain English:</strong> whatever you save here is what the school app will read when deciding whether it should be Pending, Starter, Pro, Elite, or Expired.
-              </div>
-            </div>
-          </article>
-          <article class="manage-help-card sky">
-            <div class="manage-help-top">
-              <span class="manage-help-icon">🗓️</span>
-              <div>
-                <h4>What the dates do</h4>
-                <p class="manage-help-kicker">Dates control when access starts and ends</p>
-              </div>
-            </div>
-            <div class="manage-help-pill-row">
-              <span>Future start = Pending</span>
-              <span>Past end = Expired</span>
-            </div>
-            <p>A future start date keeps the school locked until that day. A passed end date means the school has already run out of access.</p>
-          </article>
-          <article class="manage-help-card mint">
-            <div class="manage-help-top">
-              <span class="manage-help-icon">🎁</span>
-              <div>
-                <h4>Helpful use cases</h4>
-                <p class="manage-help-kicker">Common quick fixes you may want</p>
-              </div>
-            </div>
-            <div class="manage-help-pill-row">
-              <span>30-day Pro gift</span>
-              <span>Elite for exam season</span>
-              <span>Back to Pending</span>
-            </div>
-            <p>Use it to gift 30 days of Pro, unlock Elite for exam season, or push a school back to Pending until payment is sorted out.</p>
-          </article>
-        </div>
-      </div>
+      ${state.manageHelpOpen ? renderManageHelpModal() : ''}
 
       ${details ? `
-        <div class="result-card manage-results" style="grid-column: 1 / -1;">
+        <div class="result-card manage-results">
           <div class="manage-status-hero tone-${effectiveMeta.tone}">
             <div class="manage-status-main">
               <div class="manage-status-badge">
@@ -978,6 +1036,13 @@ function renderManageSchools() {
                 </div>
               </div>
               <p class="manage-status-copy">${escapeHtml(subscription?.message || effectiveMeta.blurb)}</p>
+              <div class="manage-lifespan-bar">
+                <div class="activity-progress-bar"><span style="width:${accessProgress}%;"></span></div>
+                <div class="manage-lifespan-copy">
+                  <strong>${escapeHtml(activeSinceLabel)}</strong>
+                  <span>${escapeHtml(remainingLabel)}</span>
+                </div>
+              </div>
             </div>
             <div class="manage-status-side">
               <div class="manage-school-title">
@@ -990,7 +1055,7 @@ function renderManageSchools() {
             </div>
           </div>
 
-          <div class="manage-snapshot-grid">
+          <div class="manage-snapshot-grid manage-snapshot-grid-wide">
             <article class="manage-snapshot-card tone-${currentMeta.tone}">
               <div class="manage-snapshot-top">
                 <span class="manage-snapshot-emoji">${currentMeta.emoji}</span>
@@ -1022,15 +1087,73 @@ function renderManageSchools() {
                 <span>Ends</span>
                 <strong>${escapeHtml(formatDateForDisplay(subscription?.endsAt))}</strong>
               </div>
+              <div class="manage-date-line">
+                <span>Updated</span>
+                <strong>${escapeHtml(formatDateForDisplay(subscription?.updatedAt))}</strong>
+              </div>
+            </article>
+            <article class="manage-snapshot-card tone-${paymentTone}">
+              <div class="manage-snapshot-top">
+                <span class="manage-snapshot-emoji">${billing?.available ? (billing?.hasSubscription ? '💳' : '🧾') : '📡'}</span>
+                <div>
+                  <p class="pill-label">Stripe billing</p>
+                  <h4>${escapeHtml(getBillingHeadline(billing))}</h4>
+                </div>
+              </div>
+              <p>${escapeHtml(getBillingMessage(billing))}</p>
             </article>
           </div>
 
-          ${state.manageLoading ? `
-            <div class="loading-inline manage-loading-inline">
-              <div class="spinner"></div>
-              <p>Working on this school now...</p>
+          <section class="manage-card manage-finance-card">
+            <div class="manage-card-head">
+              <div>
+                <p class="mini-label">Economic control</p>
+                <h3>Payments, timing, and subscription health</h3>
+              </div>
             </div>
-          ` : ''}
+            <div class="manage-finance-grid">
+              <article class="manage-metric-card tone-${paymentTone}">
+                <p class="pill-label">Paid subscription</p>
+                <strong>${escapeHtml(billing?.available ? (billing?.hasSubscription ? 'Yes' : 'No active paid plan') : 'Unavailable')}</strong>
+                <span>${escapeHtml(billing?.status ? capitalize(billing.status) : 'Billing server check')}</span>
+              </article>
+              <article class="manage-metric-card tone-${paymentTone}">
+                <p class="pill-label">Current charge</p>
+                <strong>${escapeHtml(formatBillingPrice(billing?.currentPrice))}</strong>
+                <span>${escapeHtml(billing?.tier ? `${capitalize(billing.tier)} plan` : 'No Stripe plan saved')}</span>
+              </article>
+              <article class="manage-metric-card neutral">
+                <p class="pill-label">Active for</p>
+                <strong>${escapeHtml(activeSinceLabel)}</strong>
+                <span>${escapeHtml(formatDateForDisplay(subscription?.startsAt || billing?.subscriptionStartedAt || billing?.firstPaidAt))}</span>
+              </article>
+              <article class="manage-metric-card neutral">
+                <p class="pill-label">Time left</p>
+                <strong>${escapeHtml(remainingLabel)}</strong>
+                <span>${escapeHtml(formatDateForDisplay(subscription?.endsAt || billing?.currentPeriodEnd))}</span>
+              </article>
+              <article class="manage-metric-card tone-${paymentTone}">
+                <p class="pill-label">Total paid</p>
+                <strong>${escapeHtml(formatCurrencyMinor(billing?.lifetimePaidAmount, billing?.currentPrice?.currency || latestPaid?.currency))}</strong>
+                <span>${escapeHtml((billing?.lifetimePaidCount || 0) + ' payment' + ((billing?.lifetimePaidCount || 0) === 1 ? '' : 's'))}</span>
+              </article>
+              <article class="manage-metric-card tone-${paymentTone}">
+                <p class="pill-label">Last payment</p>
+                <strong>${escapeHtml(latestPaid ? formatCurrencyMinor(latestPaid.amountPaid, latestPaid.currency) : 'No paid invoice yet')}</strong>
+                <span>${escapeHtml(latestPaid?.paidAt ? formatDateForDisplay(latestPaid.paidAt) : 'Nothing recorded in Stripe')}</span>
+              </article>
+            </div>
+          </section>
+
+          <section class="manage-card manage-ledger-card">
+            <div class="manage-card-head">
+              <div>
+                <p class="mini-label">Payment timeline</p>
+                <h3>What they have paid</h3>
+              </div>
+            </div>
+            ${renderPaymentTimeline(billing)}
+          </section>
 
           <div class="manage-layout">
             <div class="manage-main-stack">
@@ -1177,9 +1300,203 @@ function renderManageSchools() {
             </div>
           </div>
         </div>
+      ` : schools.length ? `
+        <div class="panel manage-empty-state">
+          <h3>Choose a school to load its access and payment details</h3>
+          <p>The console will then show the live tier, the manual override dates, and the Stripe payment history if the billing server is reachable.</p>
+        </div>
       ` : ''}
     </section>
   `;
+}
+
+function renderManageHelpModal() {
+  return `
+    <div class="modal-backdrop" data-action="close-manage-help">
+      <div class="modal-panel manage-help-modal" role="dialog" aria-modal="true" aria-labelledby="manage-help-title" onclick="event.stopPropagation()">
+        <div class="manage-help-modal-head">
+          <div>
+            <p class="mini-label">How This Works</p>
+            <h3 id="manage-help-title">Manual school access, explained simply</h3>
+          </div>
+          <button type="button" class="info-icon-btn close" data-action="close-manage-help" aria-label="Close the manual school access guide">×</button>
+        </div>
+        <div class="manage-help-grid manage-help-grid-modal">
+          <article class="manage-help-card sunrise wide">
+            <div class="manage-help-top">
+              <span class="manage-help-icon">🪄</span>
+              <div>
+                <h4>What this really changes</h4>
+                <p class="manage-help-kicker">Live app access for this one school</p>
+              </div>
+            </div>
+            <div class="manage-help-split">
+              <p>This updates the school’s <strong>appConfig/subscription</strong> document in Firestore using the same plan rules the live app already understands.</p>
+              <div class="manage-help-note">
+                <strong>In plain English:</strong> whatever you save here is what the school app will read when deciding whether it should be Pending, Starter, Pro, Elite, or Expired.
+              </div>
+            </div>
+          </article>
+          <article class="manage-help-card sky">
+            <div class="manage-help-top">
+              <span class="manage-help-icon">🗓️</span>
+              <div>
+                <h4>What the dates do</h4>
+                <p class="manage-help-kicker">Dates control when access starts and ends</p>
+              </div>
+            </div>
+            <div class="manage-help-pill-row">
+              <span>Future start = Pending</span>
+              <span>Past end = Expired</span>
+            </div>
+            <p>A future start date keeps the school locked until that day. A passed end date means the school has already run out of access.</p>
+          </article>
+          <article class="manage-help-card mint">
+            <div class="manage-help-top">
+              <span class="manage-help-icon">🎁</span>
+              <div>
+                <h4>Helpful use cases</h4>
+                <p class="manage-help-kicker">Common quick fixes you may want</p>
+              </div>
+            </div>
+            <div class="manage-help-pill-row">
+              <span>30-day Pro gift</span>
+              <span>Elite for exam season</span>
+              <span>Back to Pending</span>
+            </div>
+            <p>Use it to gift 30 days of Pro, unlock Elite for exam season, or push a school back to Pending until payment is sorted out.</p>
+          </article>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+function renderPaymentTimeline(billing) {
+  if (!billing?.available) {
+    return `
+      <div class="empty-box">
+        <strong>Stripe payment history is not available right now.</strong><br>
+        ${escapeHtml(billing?.message || 'The billing server could not be reached for this school.')}
+      </div>
+    `;
+  }
+  if (!billing.recentPayments?.length) {
+    return `
+      <div class="empty-box">
+        <strong>No paid invoices were found yet.</strong><br>
+        Stripe is reachable, but there is no recorded paid invoice history for this school yet.
+      </div>
+    `;
+  }
+  return `
+    <div class="payment-timeline">
+      ${billing.recentPayments.map((invoice) => `
+        <article class="payment-timeline-item">
+          <div class="payment-timeline-icon">${invoice.paid ? '✓' : '•'}</div>
+          <div class="payment-timeline-copy">
+            <strong>${escapeHtml(formatCurrencyMinor(invoice.amountPaid, invoice.currency))}</strong>
+            <p>${escapeHtml(invoice.description || `${capitalize(billing.tier || 'school')} subscription payment`)}</p>
+            <small>${escapeHtml(formatDateForDisplay(invoice.paidAt || invoice.createdAt))}${invoice.periodStart || invoice.periodEnd ? ` • ${escapeHtml(formatPeriodLabel(invoice.periodStart, invoice.periodEnd))}` : ''}</small>
+          </div>
+          <div class="payment-timeline-meta">
+            <span class="status-pill status-${invoice.paid ? 'done' : 'waiting'}">${escapeHtml(invoice.status || (invoice.paid ? 'paid' : 'pending'))}</span>
+            ${invoice.hostedInvoiceUrl ? `<a class="ghost-link" href="${escapeHtml(invoice.hostedInvoiceUrl)}" target="_blank" rel="noreferrer">Invoice</a>` : ''}
+          </div>
+        </article>
+      `).join('')}
+    </div>
+  `;
+}
+
+function getBillingTone(billing, fallbackTone = 'pending') {
+  if (!billing?.available) return 'pending';
+  if (billing.hasSubscription) return 'pro';
+  if (billing.hasPaidInvoices) return 'starter';
+  return fallbackTone;
+}
+
+function getBillingHeadline(billing) {
+  if (!billing?.available) return 'Billing server unavailable';
+  if (billing.hasSubscription) return 'Paid subscription found';
+  if (billing.hasPaidInvoices) return 'Past payments found';
+  return 'No Stripe payments yet';
+}
+
+function getBillingMessage(billing) {
+  return billing?.message
+    || 'This card compares the Stripe side with the live access document.';
+}
+
+function getActiveSinceLabel(value) {
+  if (!value) return 'Start date not set';
+  const diff = getDayDiffFromNow(value);
+  if (diff === null) return 'Start date not clear';
+  if (diff < 0) return `Starts in ${Math.abs(diff)} day${Math.abs(diff) === 1 ? '' : 's'}`;
+  if (diff === 0) return 'Started today';
+  return `Active for ${diff} day${diff === 1 ? '' : 's'}`;
+}
+
+function getRemainingAccessLabel(value) {
+  if (!value) return 'No fixed end date';
+  const diff = getDayDiffFromNow(value);
+  if (diff === null) return 'End date not clear';
+  if (diff > 0) return `Ended ${Math.abs(diff)} day${Math.abs(diff) === 1 ? '' : 's'} ago`;
+  if (diff === 0) return 'Ends today';
+  return `${Math.abs(diff)} day${Math.abs(diff) === 1 ? '' : 's'} left`;
+}
+
+function getDateRangeProgress(startValue, endValue) {
+  const start = parseDate(startValue);
+  const end = parseDate(endValue);
+  if (!start || !end || end <= start) {
+    return start && start <= new Date() ? 100 : 12;
+  }
+  const now = Date.now();
+  if (now <= start.getTime()) return 0;
+  if (now >= end.getTime()) return 100;
+  return Math.max(4, Math.min(100, Math.round(((now - start.getTime()) / (end.getTime() - start.getTime())) * 100)));
+}
+
+function getDayDiffFromNow(value) {
+  const parsed = parseDate(value);
+  if (!parsed) return null;
+  const now = new Date();
+  const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const target = new Date(parsed.getFullYear(), parsed.getMonth(), parsed.getDate());
+  return Math.round((startOfToday.getTime() - target.getTime()) / 86400000);
+}
+
+function parseDate(value) {
+  if (!value) return null;
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) return null;
+  return parsed;
+}
+
+function formatBillingPrice(price) {
+  if (!price?.unitAmount && price?.unitAmount !== 0) return 'No Stripe price saved';
+  const interval = price.interval ? ` / ${price.intervalCount > 1 ? `${price.intervalCount} ${price.interval}s` : price.interval}` : '';
+  return `${formatCurrencyMinor(price.unitAmount, price.currency)}${interval}`;
+}
+
+function formatCurrencyMinor(amount, currency = 'eur') {
+  if (!Number.isFinite(amount)) return 'Not available';
+  try {
+    return new Intl.NumberFormat(undefined, {
+      style: 'currency',
+      currency: String(currency || 'eur').toUpperCase(),
+    }).format((amount || 0) / 100);
+  } catch (error) {
+    return `${((amount || 0) / 100).toFixed(2)} ${String(currency || '').toUpperCase()}`.trim();
+  }
+}
+
+function formatPeriodLabel(startValue, endValue) {
+  if (startValue && endValue) {
+    return `${formatDateForDisplay(startValue)} to ${formatDateForDisplay(endValue)}`;
+  }
+  return formatDateForDisplay(startValue || endValue);
 }
 
 function bindWelcomeEvents() {
@@ -1201,6 +1518,8 @@ function bindWelcomeEvents() {
     state.mode = 'manage';
     state.manageSubscription = null;
     state.manageDeleteConfirm = '';
+    state.manageSchoolSearch = '';
+    state.manageHelpOpen = false;
     render();
     if (state.manageSchoolId) {
       await loadManagedSchool();
@@ -1279,6 +1598,10 @@ function bindRecheckEvents() {
 
 function bindManageEvents() {
   bindStaticEvents();
+  document.getElementById('manageSchoolSearch')?.addEventListener('input', (event) => {
+    state.manageSchoolSearch = event.target.value;
+    render();
+  });
   document.getElementById('manageSchool')?.addEventListener('change', (event) => {
     state.manageSchoolId = event.target.value;
     state.manageDeleteConfirm = '';
@@ -1314,16 +1637,35 @@ function bindManageEvents() {
   });
   document.getElementById('manageDeleteConfirm')?.addEventListener('input', (event) => {
     state.manageDeleteConfirm = event.target.value;
-    render();
+    syncManageDeleteButtons();
   });
   document.querySelector('[data-action="load-manage-school"]')?.addEventListener('click', loadManagedSchool);
   document.querySelector('[data-action="save-manage-subscription"]')?.addEventListener('click', saveManagedSubscription);
   document.querySelector('[data-action="reset-manual-overrides"]')?.addEventListener('click', resetManualOverrides);
+  document.querySelector('[data-action="open-manage-help"]')?.addEventListener('click', () => {
+    state.manageHelpOpen = true;
+    render();
+  });
+  document.querySelectorAll('[data-action="close-manage-help"]').forEach((button) => {
+    button.addEventListener('click', () => {
+      state.manageHelpOpen = false;
+      render();
+    });
+  });
   document.querySelectorAll('[data-action="apply-days"]').forEach((button) => {
     button.addEventListener('click', () => applyManageDays(Number(button.getAttribute('data-days') || '0')));
   });
   document.querySelector('[data-action="delete-school-local"]')?.addEventListener('click', () => deleteManagedSchool(false));
   document.querySelector('[data-action="delete-school-project"]')?.addEventListener('click', () => deleteManagedSchool(true));
+}
+
+function syncManageDeleteButtons() {
+  const deleteReady = state.manageDeleteConfirm.trim() === state.manageSchoolId;
+  const localDeleteButton = document.querySelector('[data-action="delete-school-local"]');
+  const projectDeleteButton = document.querySelector('[data-action="delete-school-project"]');
+  const shouldDisable = !deleteReady || state.manageLoading;
+  if (localDeleteButton) localDeleteButton.disabled = shouldDisable;
+  if (projectDeleteButton) projectDeleteButton.disabled = shouldDisable;
 }
 
 function bindStaticEvents() {
@@ -1337,9 +1679,12 @@ function bindStaticEvents() {
       state.manageSubscription = null;
       state.manageLoading = false;
       state.manageDeleteConfirm = '';
+      state.manageSchoolSearch = '';
+      state.manageHelpOpen = false;
       state.isRunning = false;
       state.renderPasted = false;
       state.hostingCompleted = createEmptyHostingChecklist();
+      state.activity = null;
       render();
     });
   });
@@ -1352,8 +1697,11 @@ function bindStaticEvents() {
       state.manageSubscription = null;
       state.manageLoading = false;
       state.manageDeleteConfirm = '';
+      state.manageSchoolSearch = '';
+      state.manageHelpOpen = false;
       state.renderPasted = false;
       state.hostingCompleted = createEmptyHostingChecklist();
+      state.activity = null;
       render();
     });
   });
@@ -1464,6 +1812,13 @@ function bindStaticEvents() {
 }
 
 async function validateServiceAccount() {
+  state.activity = {
+    tone: 'info',
+    title: 'Checking the Firebase key',
+    description: 'Confirming that the service account is valid and belongs to the school project you typed.',
+    progress: 36,
+  };
+  render();
   try {
     const payload = {
       projectId: state.form.projectId.trim(),
@@ -1485,6 +1840,8 @@ async function validateServiceAccount() {
       matchesProject: false,
       message: error.message || 'The key could not be checked.',
     };
+  } finally {
+    state.activity = null;
   }
   render();
 }
@@ -1492,6 +1849,12 @@ async function validateServiceAccount() {
 async function runSetup() {
   state.isRunning = true;
   state.setupResult = null;
+  state.activity = {
+    tone: 'info',
+    title: 'Running automatic setup',
+    description: 'Working through Firebase, billing, rules, indexes, and hosting outputs for this school.',
+    progress: 62,
+  };
   render();
   try {
     const result = await api('/api/run-setup', {
@@ -1533,6 +1896,7 @@ async function runSetup() {
     };
   } finally {
     state.isRunning = false;
+    state.activity = null;
     render();
   }
 }
@@ -1551,6 +1915,13 @@ async function startBootstrapLogin() {
 
 async function refreshBootstrapStatus() {
   try {
+    state.activity = {
+      tone: 'info',
+      title: 'Refreshing Google login status',
+      description: 'Checking whether the local admin login is ready for school provisioning tasks.',
+      progress: 42,
+    };
+    render();
     state.bootstrap = await api('/api/bootstrap');
     render();
     const status = state.bootstrap.bootstrapAdmin || {};
@@ -1559,12 +1930,21 @@ async function refreshBootstrapStatus() {
       : `${status.message || 'Google admin login is still not ready.'}${status.technicalDetails ? `\n\nDetails: ${status.technicalDetails}` : ''}`);
   } catch (error) {
     window.alert(error.message || 'Google login status could not be refreshed.');
+  } finally {
+    state.activity = null;
   }
 }
 
 async function setBootstrapQuotaProject() {
   const projectId = state.form.projectId?.trim() || state.bootstrap.defaults?.lastProjectId || state.recheckSchoolId;
   try {
+    state.activity = {
+      tone: 'info',
+      title: 'Setting the Google quota project',
+      description: 'Linking the local Google admin login to the school project you are working on.',
+      progress: 48,
+    };
+    render();
     const result = await api('/api/set-bootstrap-quota-project', {
       method: 'POST',
       body: {
@@ -1576,6 +1956,8 @@ async function setBootstrapQuotaProject() {
     render();
   } catch (error) {
     window.alert(error.message || 'The Google login quota project could not be set.');
+  } finally {
+    state.activity = null;
   }
 }
 
@@ -1633,6 +2015,12 @@ async function downloadManagedHostingEnv() {
 async function runRecheck() {
   state.isRunning = true;
   state.recheckResult = null;
+  state.activity = {
+    tone: 'info',
+    title: 'Checking the saved school',
+    description: 'Rerunning the safe config, paywall, index, and hosting checks for the selected school.',
+    progress: 56,
+  };
   render();
   try {
     const result = await api('/api/recheck', {
@@ -1667,6 +2055,7 @@ async function runRecheck() {
     };
   } finally {
     state.isRunning = false;
+    state.activity = null;
     render();
   }
 }
@@ -1674,6 +2063,12 @@ async function runRecheck() {
 async function loadManagedSchool() {
   if (!state.manageSchoolId) return;
   state.manageLoading = true;
+  state.activity = {
+    tone: 'info',
+    title: 'Loading school subscription details',
+    description: 'Pulling the saved access document and checking the Stripe payment history for this school.',
+    progress: 44,
+  };
   render();
   try {
     const result = await api(`/api/school-subscription?projectId=${encodeURIComponent(state.manageSchoolId)}`);
@@ -1689,6 +2084,7 @@ async function loadManagedSchool() {
     window.alert(error.message || 'The school details could not be loaded.');
   } finally {
     state.manageLoading = false;
+    state.activity = null;
     render();
   }
 }
@@ -1696,6 +2092,12 @@ async function loadManagedSchool() {
 async function saveManagedSubscription() {
   if (!state.manageSchoolId) return;
   state.manageLoading = true;
+  state.activity = {
+    tone: 'info',
+    title: 'Saving the manual school access',
+    description: 'Updating the live access document so the school app sees the new plan and dates.',
+    progress: 82,
+  };
   render();
   try {
     const result = await api('/api/update-school-subscription', {
@@ -1721,6 +2123,7 @@ async function saveManagedSubscription() {
     window.alert(error.message || 'The subscription could not be saved.');
   } finally {
     state.manageLoading = false;
+    state.activity = null;
     render();
   }
 }
@@ -1755,6 +2158,14 @@ async function deleteManagedSchool(deleteProject) {
   if (!confirmed) return;
 
   state.manageLoading = true;
+  state.activity = {
+    tone: 'warning',
+    title: deleteProject ? 'Deleting the school project' : 'Removing the saved school',
+    description: deleteProject
+      ? 'Requesting project deletion and removing the school from your saved local list.'
+      : 'Removing only the local saved school record from this machine.',
+    progress: 88,
+  };
   render();
   try {
     const result = await api('/api/delete-saved-school', {
@@ -1777,6 +2188,7 @@ async function deleteManagedSchool(deleteProject) {
     window.alert(error.message || 'The school could not be deleted.');
   } finally {
     state.manageLoading = false;
+    state.activity = null;
     render();
   }
 }

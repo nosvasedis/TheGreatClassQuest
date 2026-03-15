@@ -16,6 +16,15 @@ function isLocalHost() {
   );
 }
 
+function isCanonicalHostedFallbackSite() {
+    const { hostname, pathname } = window.location;
+    const prefix = '/TheGreatClassQuest';
+    return (
+        hostname === 'nosvasedis.github.io' &&
+        (pathname === prefix || pathname === `${prefix}/` || pathname.startsWith(`${prefix}/`))
+    );
+}
+
 function renderConfigRequiredScreen() {
     const root = document.getElementById('app-root');
     if (!root) return;
@@ -55,7 +64,9 @@ fetch('./config.json')
     })
     .catch(() => {})
     .finally(() => {
-        if (!configLoaded && !isLocalHost()) {
+        // The maintainer's canonical GitHub Pages site intentionally matches
+        // the built-in Firebase fallback config in constants.js.
+        if (!configLoaded && !isLocalHost() && !isCanonicalHostedFallbackSite()) {
             renderConfigRequiredScreen();
             return;
         }

@@ -8,6 +8,7 @@
     "test": "node --test",
     "set-subscription": "node scripts/set-subscription.js",
     "onboard-school": "node billing/scripts/onboard-new-school.js",
+    "setup-school": "node scripts/billing-wizard.js",
     "ngrok": "ngrok http 3333"
   },
   "keywords": [],

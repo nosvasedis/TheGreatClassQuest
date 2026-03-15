@@ -25,6 +25,7 @@ function parseArgs() {
   const args = process.argv.slice(2);
   let projectId = null;
   let keyPath = null;
+  let pending = false;
   for (let i = 0; i < args.length; i++) {
     if (args[i] === '--project-id' && args[i + 1]) {
       projectId = args[i + 1];
@@ -32,9 +33,11 @@ function parseArgs() {
     } else if (args[i] === '--key' && args[i + 1]) {
       keyPath = args[i + 1];
       i++;
+    } else if (args[i] === '--pending') {
+      pending = true;
     }
   }
-  return { projectId, keyPath };
+  return { projectId, keyPath, pending };
 }
 
 function loadSchoolsConfig() {
@@ -76,11 +79,12 @@ function buildRenderJson(schoolsPath) {
 }
 
 async function main() {
-  const { projectId, keyPath } = parseArgs();
+  const { projectId, keyPath, pending } = parseArgs();
 
   if (!projectId || !keyPath) {
-    console.error('Usage: node billing/scripts/onboard-new-school.js --project-id <firebase-project-id> --key <path-to-service-account.json>');
-    console.error('Example: node billing/scripts/onboard-new-school.js --project-id my-school-prod --key ./Downloads/my-school-prod-firebase-adminsdk-xxx.json');
+    console.error('Usage: node billing/scripts/onboard-new-school.js --project-id <firebase-project-id> --key <path-to-service-account.json> [--pending]');
+    console.error('  --pending  Write appConfig/subscription as Pending (paywall: they must pay via Stripe before using the app). Omit to grant Starter immediately.');
+    console.error('Example: node billing/scripts/onboard-new-school.js --project-id my-school-prod --key ./Downloads/my-school-prod-firebase-adminsdk-xxx.json --pending');
     process.exit(1);
   }
 
@@ -123,13 +127,14 @@ async function main() {
     admin.initializeApp({ credential: admin.credential.cert(key) });
   }
   const db = admin.firestore();
-  const starterPath = join(repoRoot, 'config', 'tiers', 'starter.json');
-  if (!existsSync(starterPath)) {
-    console.warn('config/tiers/starter.json not found; skipping Firestore write.');
+  const tierFile = pending ? 'pending.json' : 'starter.json';
+  const tierPath = join(repoRoot, 'config', 'tiers', tierFile);
+  if (!existsSync(tierPath)) {
+    console.warn('config/tiers/' + tierFile + ' not found; skipping Firestore write.');
   } else {
-    const starter = JSON.parse(readFileSync(starterPath, 'utf8'));
-    await db.collection('appConfig').doc('subscription').set(starter);
-    console.log('Written appConfig/subscription (Starter) to Firestore for', projectId);
+    const preset = JSON.parse(readFileSync(tierPath, 'utf8'));
+    await db.collection('appConfig').doc('subscription').set(preset);
+    console.log('Written appConfig/subscription (' + (pending ? 'Pending' : 'Starter') + ') to Firestore for', projectId);
   }
 
   const renderJson = buildRenderJson(schoolsPath);

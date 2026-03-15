@@ -53,3 +53,6 @@ billing/HOW_TO_ADD_A_SCHOOL.md
 billing/ONBOARD_NEW_SCHOOL.md
 billing/schools.local.json
 billing/render-paste.txt
+billing/price-ids.local.json
+billing/NEXT_STEPS.txt
+tools/billing-config.local.json

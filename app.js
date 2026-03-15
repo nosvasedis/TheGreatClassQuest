@@ -22,7 +22,7 @@ function updateTierLabel() {
     const tierEl = document.getElementById('app-tier-label');
     if (!tierEl) return;
     const t = getTier();
-    const pretty = t === 'elite' ? 'Elite' : t === 'pro' ? 'Pro' : t === 'expired' ? 'Expired' : 'Starter';
+    const pretty = t === 'elite' ? 'Elite' : t === 'pro' ? 'Pro' : t === 'expired' ? 'Expired' : t === 'pending' ? 'Pending' : 'Starter';
     tierEl.textContent = `Plan: ${pretty}`;
 }
 window.addEventListener('gcq-subscription-updated', updateTierLabel);

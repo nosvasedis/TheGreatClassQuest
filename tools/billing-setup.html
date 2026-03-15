@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>GCQ Billing – Add a school (easy)</title>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+      max-width: 640px;
+      margin: 0 auto;
+      padding: 28px 24px;
+      background: linear-gradient(180deg, #f0f4ff 0%, #e8eef8 100%);
+      min-height: 100vh;
+      color: #1e293b;
+    }
+    h1 {
+      font-size: 1.6rem;
+      font-weight: 700;
+      color: #312e81;
+      margin: 0 0 6px 0;
+    }
+    .tagline {
+      color: #64748b;
+      font-size: 0.95rem;
+      margin-bottom: 24px;
+    }
+    .card {
+      background: #fff;
+      border-radius: 14px;
+      padding: 22px 24px;
+      margin-bottom: 20px;
+      box-shadow: 0 2px 8px rgba(49, 46, 129, 0.08);
+      border: 1px solid rgba(99, 102, 241, 0.12);
+    }
+    .card h2 {
+      font-size: 1rem;
+      font-weight: 600;
+      color: #4338ca;
+      margin: 0 0 14px 0;
+      padding-bottom: 8px;
+      border-bottom: 1px solid #e2e8f0;
+    }
+    .need-list {
+      background: #f8fafc;
+      border-radius: 10px;
+      padding: 14px 18px;
+      margin-bottom: 20px;
+      font-size: 0.9rem;
+      color: #475569;
+    }
+    .need-list strong { color: #334155; }
+    label {
+      display: block;
+      font-weight: 600;
+      font-size: 0.9rem;
+      margin-bottom: 6px;
+      color: #334155;
+    }
+    input[type="text"], input[type="file"], textarea {
+      width: 100%;
+      padding: 10px 12px;
+      border: 1px solid #cbd5e1;
+      border-radius: 8px;
+      font-size: 14px;
+      margin-bottom: 14px;
+    }
+    textarea {
+      min-height: 120px;
+      font-family: ui-monospace, monospace;
+      font-size: 12px;
+    }
+    .hint {
+      font-size: 0.8rem;
+      color: #64748b;
+      margin: -8px 0 12px 0;
+    }
+    .btn {
+      display: inline-block;
+      padding: 12px 20px;
+      border-radius: 10px;
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+      border: none;
+      text-align: center;
+    }
+    .btn-primary {
+      background: linear-gradient(135deg, #4f46e5 0%, #6366f1 100%);
+      color: #fff;
+      width: 100%;
+      margin-top: 8px;
+    }
+    .btn-primary:hover { opacity: 0.95; }
+    .btn-secondary {
+      background: #e2e8f0;
+      color: #475569;
+      font-size: 0.85rem;
+      padding: 8px 14px;
+      margin-right: 8px;
+      margin-top: 4px;
+    }
+    .btn-secondary:hover { background: #cbd5e1; }
+    .price-row { display: flex; gap: 12px; align-items: center; margin-bottom: 10px; }
+    .price-row label { margin: 0; min-width: 100px; }
+    .price-row input { margin-bottom: 0; flex: 1; }
+    .out-block {
+      background: #f1f5f9;
+      border: 1px solid #e2e8f0;
+      border-radius: 10px;
+      padding: 14px;
+      margin-top: 10px;
+      font-size: 11px;
+      font-family: ui-monospace, monospace;
+      white-space: pre-wrap;
+      word-break: break-all;
+      max-height: 180px;
+      overflow-y: auto;
+    }
+    .out-label {
+      font-weight: 600;
+      font-size: 0.9rem;
+      margin-top: 20px;
+      margin-bottom: 4px;
+      color: #334155;
+    }
+    .out-label:first-of-type { margin-top: 0; }
+    .copy-btn { margin-top: 8px; }
+    .success-msg { color: #059669; font-size: 0.85rem; margin-top: 4px; }
+    .steps-num { margin-top: 16px; padding-left: 20px; }
+    .steps-num li { margin-bottom: 10px; color: #475569; }
+    #results { display: none; }
+    .step-badge {
+      display: inline-block;
+      background: #4f46e5;
+      color: #fff;
+      font-size: 0.75rem;
+      font-weight: 600;
+      padding: 2px 8px;
+      border-radius: 6px;
+      margin-right: 8px;
+    }
+    input[type="file"] { padding: 8px; font-size: 13px; }
+  </style>
+</head>
+<body>
+  <h1>Add a school to billing</h1>
+  <p class="tagline">Fill the form once, then copy-paste the results into Render and Netlify. Everything runs in your browser; nothing is sent anywhere.</p>
+
+  <div class="need-list">
+    <strong>You need:</strong> Firebase project ID, the service account JSON file (from Firebase), your Render URL, and your Stripe Price IDs (Starter, Pro, Elite). If you saved your Price IDs here before, they’ll appear automatically.
+  </div>
+
+  <div class="card">
+    <h2>Step 1 – Fill in the details</h2>
+
+    <label for="projectId"><span class="step-badge">Required</span> Firebase project ID</label>
+    <input type="text" id="projectId" placeholder="e.g. gcq-school-mytown">
+    <p class="hint">Firebase Console → Project settings → under "Your apps"</p>
+
+    <label for="serviceAccount"><span class="step-badge">Required</span> Service account JSON (paste the whole file)</label>
+    <textarea id="serviceAccount" placeholder='Paste the entire content of the JSON file from Firebase → Project settings → Service accounts → Generate new private key.'></textarea>
+    <p class="hint">Keep it private; this page does not send data anywhere.</p>
+
+    <label for="renderUrl"><span class="step-badge">Required</span> Render billing server URL</label>
+    <input type="text" id="renderUrl" placeholder="https://your-billing.onrender.com">
+
+    <label>Stripe Price IDs (or load from file / use saved)</label>
+    <div class="price-row">
+      <label for="priceStarter">Starter</label>
+      <input type="text" id="priceStarter" placeholder="price_xxxx">
+    </div>
+    <div class="price-row">
+      <label for="pricePro">Pro</label>
+      <input type="text" id="pricePro" placeholder="price_xxxx">
+    </div>
+    <div class="price-row">
+      <label for="priceElite">Elite</label>
+      <input type="text" id="priceElite" placeholder="price_xxxx">
+    </div>
+    <p class="hint">Stripe → Product catalog → open each product → copy the Price ID.</p>
+    <button type="button" class="btn btn-secondary" id="btnLoadPrices">Load Price IDs from file</button>
+    <input type="file" id="filePrices" accept=".json" style="display:none">
+    <button type="button" class="btn btn-secondary" id="btnSavePrices">Save Price IDs in this browser</button>
+
+    <button type="button" class="btn btn-primary" id="btnGenerate">Generate configs</button>
+  </div>
+
+  <div class="card" id="results">
+    <h2>Step 2 – Copy these into Render and Netlify</h2>
+
+    <div class="out-label">1) Paste into Render → Environment → BILLING_SCHOOLS_JSON</div>
+    <div class="out-block" id="renderJson"></div>
+    <button type="button" class="btn btn-secondary copy-btn" data-copy="renderJson">Copy</button>
+    <span id="copy1" class="success-msg" style="display: none;">Copied.</span>
+
+    <div class="out-label">2) Add in Netlify → this school’s site → Environment variables</div>
+    <div class="out-block" id="netlifyVars"></div>
+    <button type="button" class="btn btn-secondary copy-btn" data-copy="netlifyVars">Copy</button>
+    <span id="copy2" class="success-msg" style="display: none;">Copied.</span>
+
+    <div class="out-label">3) Firestore (optional)</div>
+    <p class="hint">Only if you want to set “pending” by hand: Firebase → Firestore → collection <code>appConfig</code> → document <code>subscription</code> → paste below. Otherwise run <code>npm run setup-school</code> and it does this for you.</p>
+    <div class="out-block" id="firestore-json"></div>
+    <button type="button" class="btn btn-secondary copy-btn" data-copy="firestore-json">Copy</button>
+    <span id="copy3" class="success-msg" style="display: none;">Copied.</span>
+
+    <div class="out-label">What to do next</div>
+    <ul class="steps-num">
+      <li>Paste block 1 into Render → BILLING_SCHOOLS_JSON → Save → Deploy.</li>
+      <li>Add the two variables from block 2 in Netlify → Deploy site.</li>
+      <li>Done. New users will see “Choose a plan” until they pay.</li>
+    </ul>
+  </div>
+
+  <script>
+    const PENDING_PRESET = {"tier":"pending","maxTeachers":0,"maxClasses":0,"guilds":false,"adventureLog":false,"calendar":false,"schoolYearPlanner":false,"scholarScroll":false,"makeupTracking":false,"advancedAttendance":false,"storyWeavers":false,"heroProgression":false,"familiars":false,"eliteAI":false,"earlyAccess":false,"prioritySupport":false,"customFeatures":false};
+    const STORAGE_KEY = 'gcq_billing_price_ids';
+
+    function loadSavedPrices() {
+      try {
+        const s = localStorage.getItem(STORAGE_KEY);
+        if (!s) return;
+        const o = JSON.parse(s);
+        if (o.starter) document.getElementById('priceStarter').value = o.starter;
+        if (o.pro) document.getElementById('pricePro').value = o.pro;
+        if (o.elite) document.getElementById('priceElite').value = o.elite;
+      } catch (_) {}
+    }
+    loadSavedPrices();
+
+    document.getElementById('btnLoadPrices').onclick = function () { document.getElementById('filePrices').click(); };
+    document.getElementById('filePrices').onchange = function (e) {
+      const f = e.target.files && e.target.files[0];
+      if (!f) return;
+      const r = new FileReader();
+      r.onload = function () {
+        try {
+          const o = JSON.parse(r.result);
+          if (o.starter) document.getElementById('priceStarter').value = o.starter;
+          if (o.pro) document.getElementById('pricePro').value = o.pro;
+          if (o.elite) document.getElementById('priceElite').value = o.elite;
+        } catch (_) { alert('Could not read the file. Use a JSON file with starter, pro, elite keys.'); }
+      };
+      r.readAsText(f);
+      e.target.value = '';
+    };
+
+    document.getElementById('btnSavePrices').onclick = function () {
+      const o = {
+        starter: document.getElementById('priceStarter').value.trim(),
+        pro: document.getElementById('pricePro').value.trim(),
+        elite: document.getElementById('priceElite').value.trim()
+      };
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(o));
+      alert('Price IDs saved in this browser. They’ll appear next time you open this page.');
+    };
+
+    document.getElementById('btnGenerate').onclick = function () {
+      const projectId = document.getElementById('projectId').value.trim();
+      let serviceAccountRaw = document.getElementById('serviceAccount').value.trim();
+      const renderUrl = document.getElementById('renderUrl').value.trim().replace(/\/$/, '');
+      const priceStarter = document.getElementById('priceStarter').value.trim();
+      const pricePro = document.getElementById('pricePro').value.trim();
+      const priceElite = document.getElementById('priceElite').value.trim();
+
+      if (!projectId) { alert('Please enter the Firebase project ID.'); return; }
+
+      let keyObj = null;
+      try {
+        if (serviceAccountRaw) keyObj = JSON.parse(serviceAccountRaw);
+      } catch (e) {
+        alert('Service account JSON is not valid. Paste the entire file from Firebase.');
+        return;
+      }
+
+      const schools = [{ schoolId: projectId, firebaseProjectId: projectId, firebaseServiceAccountKey: keyObj || {} }];
+      const priceIds = {};
+      if (priceStarter) priceIds.starter = priceStarter;
+      if (pricePro) priceIds.pro = pricePro;
+      if (priceElite) priceIds.elite = priceElite;
+
+      document.getElementById('renderJson').textContent = JSON.stringify({ schools, priceIds });
+      document.getElementById('netlifyVars').textContent =
+        'GCQ_BILLING_BASE_URL = ' + (renderUrl || 'https://YOUR-RENDER-URL.onrender.com') + '\n' +
+        'GCQ_BILLING_SCHOOL_ID = ' + projectId;
+      document.getElementById('firestore-json').textContent = JSON.stringify(PENDING_PRESET, null, 2);
+      document.getElementById('results').style.display = 'block';
+    };
+
+    document.querySelectorAll('.copy-btn').forEach(function (btn) {
+      btn.onclick = function () {
+        const id = btn.getAttribute('data-copy');
+        const el = document.getElementById(id);
+        const successId = id === 'renderJson' ? 'copy1' : id === 'netlifyVars' ? 'copy2' : 'copy3';
+        navigator.clipboard.writeText(el.textContent).then(function () {
+          document.getElementById(successId).style.display = 'inline';
+          setTimeout(function () { document.getElementById(successId).style.display = 'none'; }, 2000);
+        });
+      };
+    });
+  </script>
+</body>
+</html>

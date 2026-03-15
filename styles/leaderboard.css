@@ -11,9 +11,16 @@
 /* --- NEW: Absence & Welcome Back Feature Styles (FIXED) --- */
 .student-cloud-card .card-content-wrapper {
     position: relative;
+    top: var(--award-content-shift-y, 1cm);
+    left: var(--award-content-shift-x, -0.5cm);
     z-index: 1;
     padding-bottom: 5rem;
     transition: all 0.3s ease-out;
+}
+
+.student-cloud-card {
+    --award-content-shift-y: 1cm;
+    --award-content-shift-x: -0.5cm;
 }
 .student-cloud-card.is-absent .card-content-wrapper,
 .student-cloud-card.is-absent .student-avatar-cloud,
@@ -33,11 +40,16 @@
 
 .absence-controls {
     position: absolute;
-    top: 1rem;
-    right: 1rem;
+    top: calc(1rem + var(--award-content-shift-y, 1cm));
+    right: calc(1rem - var(--award-content-shift-x, -0.5cm));
     display: flex;
     gap: 0.5rem;
     z-index: 20; /* Ensure buttons are on top of avatar */
+}
+
+.student-cloud-card .boon-btn {
+    top: calc(0.5rem + var(--award-content-shift-y, 1cm));
+    left: calc(3.5rem + var(--award-content-shift-x, -0.5cm));
 }
 .absence-btn {
     width: 2.5rem;

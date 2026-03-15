@@ -180,8 +180,8 @@
 /* Awards tab: direct emblem on avatar corner (no container chrome) */
 .award-guild-corner {
     position: absolute;
-    top: 24px;
-    left: calc(50% + 16px);
+    top: calc(24px + var(--award-content-shift-y, 1cm));
+    left: calc(50% + 16px + var(--award-content-shift-x, -0.5cm));
     z-index: 12;
     pointer-events: none;
 }
@@ -189,8 +189,8 @@
 /* Awards tab: level-up badge above the avatar (no wrap) */
 .award-level-up-overlay {
     position: absolute;
-    top: -22px;
-    left: 50%;
+    top: calc(-22px + var(--award-content-shift-y, 1cm));
+    left: calc(50% + var(--award-content-shift-x, -0.5cm));
     transform: translateX(-50%);
     width: 70px;
     height: 70px;

@@ -175,19 +175,58 @@
 }
 
 .cloud-bg-asset {
-    background-position: center 32%;
+    background-position: var(--cloud-pos-x, 50%) var(--cloud-pos-y, 32%);
     background-repeat: no-repeat;
     background-size: contain;
 }
 
-.cloud-bg-asset.award-cloud-a { background-image: url('../assets/award-clouds/cloud-a.png'); }
-.cloud-bg-asset.award-cloud-b { background-image: url('../assets/award-clouds/cloud-b.png'); }
-.cloud-bg-asset.award-cloud-c { background-image: url('../assets/award-clouds/cloud-c.png'); }
-.cloud-bg-asset.award-cloud-d { background-image: url('../assets/award-clouds/cloud-d.png'); }
-.cloud-bg-asset.award-cloud-e { background-image: url('../assets/award-clouds/cloud-e.png'); }
-.cloud-bg-asset.award-cloud-f { background-image: url('../assets/award-clouds/cloud-f.png'); }
-.cloud-bg-asset.award-cloud-g { background-image: url('../assets/award-clouds/cloud-g.png'); }
-.cloud-bg-asset.award-cloud-h { background-image: url('../assets/award-clouds/cloud-h.png'); }
+.cloud-bg-asset.award-cloud-a {
+    background-image: url('../assets/award-clouds/cloud-a.png');
+    --cloud-pos-x: 47.94%;
+    --cloud-pos-y: 33.12%;
+}
+
+.cloud-bg-asset.award-cloud-b {
+    background-image: url('../assets/award-clouds/cloud-b.png');
+    --cloud-pos-x: 49.69%;
+    --cloud-pos-y: 35.25%;
+}
+
+.cloud-bg-asset.award-cloud-c {
+    background-image: url('../assets/award-clouds/cloud-c.png');
+    --cloud-pos-x: 48.31%;
+    --cloud-pos-y: 40.19%;
+}
+
+.cloud-bg-asset.award-cloud-d {
+    background-image: url('../assets/award-clouds/cloud-d.png');
+    --cloud-pos-x: 51.62%;
+    --cloud-pos-y: 30.38%;
+}
+
+.cloud-bg-asset.award-cloud-e {
+    background-image: url('../assets/award-clouds/cloud-e.png');
+    --cloud-pos-x: 48.56%;
+    --cloud-pos-y: 34.69%;
+}
+
+.cloud-bg-asset.award-cloud-f {
+    background-image: url('../assets/award-clouds/cloud-f.png');
+    --cloud-pos-x: 48.81%;
+    --cloud-pos-y: 34.88%;
+}
+
+.cloud-bg-asset.award-cloud-g {
+    background-image: url('../assets/award-clouds/cloud-g.png');
+    --cloud-pos-x: 52.81%;
+    --cloud-pos-y: 31.81%;
+}
+
+.cloud-bg-asset.award-cloud-h {
+    background-image: url('../assets/award-clouds/cloud-h.png');
+    --cloud-pos-x: 50.69%;
+    --cloud-pos-y: 34.06%;
+}
 
 /* Reigning Prodigy: amber glow on the svg cloud */
 .award-reigning-prodigy .cloud-bg-svg {
@@ -206,8 +245,8 @@
 
 .student-avatar-cloud {
     position: absolute;
-    top: -30px;
-    left: 50%;
+    top: calc(-30px + var(--award-content-shift-y, 1cm));
+    left: calc(50% + var(--award-content-shift-x, -0.5cm));
     transform: translateX(-50%);
     width: 70px;
     height: 70px;
@@ -222,8 +261,8 @@
 
 .student-avatar-cloud-placeholder {
     position: absolute;
-    top: -30px;
-    left: 50%;
+    top: calc(-30px + var(--award-content-shift-y, 1cm));
+    left: calc(50% + var(--award-content-shift-x, -0.5cm));
     transform: translateX(-50%);
     width: 70px;
     height: 70px;

@@ -136,8 +136,8 @@ body.projector-mode .bounty-actions {
 /* --- COIN INDICATOR STYLES --- */
 .coin-pill {
     position: absolute;
-    top: 0; 
-    left: 50%; 
+    top: calc(0px + var(--award-content-shift-y, 1cm)); 
+    left: calc(50% + var(--award-content-shift-x, -0.5cm)); 
     margin-left: 40px; 
     transform: translateY(-50%);
     

@@ -48,10 +48,10 @@ export const FEATURE_DEFINITIONS = {
     adventureLog: {
         name: 'Adventure Log',
         emoji: '📓',
-        description: 'Manual diary entries, Hall of Heroes, teacher notes',
+        description: 'Manual diary entries, Hero of the Day, Hall of Heroes, teacher notes',
         tier: 'Pro',
-        teacherExplain: "The Adventure Log is your class's living memory — write manual diary entries about each lesson, celebrate highlights, and build a beautiful visual timeline of the year. The Hall of Heroes displays your top performers. Add personal notes to any entry to remember special moments. On Elite, upgrade to AI-powered automatic story generation with magical illustrations! �✨",
-        studentExplain: "The Adventure Log is your class's story book! 📓 See what your teacher wrote about today's lesson, find YOUR name in the Hall of Heroes, and watch your class journey unfold like a real epic tale! 🏆"
+        teacherExplain: "The Adventure Log is your class's living memory — write manual diary entries about each lesson, celebrate highlights, and build a beautiful visual timeline of the year. Each saved entry can crown a Hero of the Day, while the Hall of Heroes displays your bigger legends across time. Add personal notes to any entry to remember special moments. On Elite, upgrade to AI-powered automatic story generation with magical illustrations! ✨",
+        studentExplain: "The Adventure Log is your class's story book! 📓 See what your teacher wrote about today's lesson, discover who became Hero of the Day, find YOUR name in the Hall of Heroes, and watch your class journey unfold like a real epic tale! 🏆"
     },
     schoolYearPlanner: {
         name: 'School Year Planner',
@@ -152,6 +152,7 @@ export function getGuideSections(perspective) {
                 features: [
                     { emoji: '📅', name: 'Calendar & Day Planner', tier: 'pro', key: 'calendar', teacherExplain: FEATURE_DEFINITIONS.calendar.teacherExplain, why: 'Brings your teaching plan and the Quest world into perfect sync — no separate tools needed.' },
                     { emoji: '🗓️', name: 'School Year Planner', tier: 'pro', key: 'schoolYearPlanner', teacherExplain: FEATURE_DEFINITIONS.schoolYearPlanner.teacherExplain, why: 'One-time setup that makes the app smarter about your entire teaching year.' },
+                    { emoji: '👑', name: 'Hero of the Day', tier: 'pro', key: 'adventureLog', teacherExplain: "Each time you save an Adventure Log entry, the app crowns a Hero of the Day for that lesson and spotlights them across the class story. On Pro this pairs with your manual diary entry; on Elite it appears inside the AI-written chronicle too. 👑📓", why: 'Creates a daily spotlight moment without adding another decision for the teacher.' },
                     { emoji: '📓', name: 'Adventure Log', tier: 'pro', key: 'adventureLog', teacherExplain: FEATURE_DEFINITIONS.adventureLog.teacherExplain, why: 'Turns your lesson notes into a beautiful, shareable story your students will be proud of.' },
                 ]
             },
@@ -235,6 +236,7 @@ export function getGuideSections(perspective) {
             intro: "The Quest isn't just about lessons — it's about those legendary moments you remember forever!",
             features: [
                 { emoji: '🎉', name: 'Monthly Ceremonies', tier: 'starter', studentExplain: "At the end of each month, your class holds a ceremony! 🎉🏆 The app displays the top heroes, guild champions, and highlight moments in a beautiful, animated celebration — sometimes shown on the projector for the whole class to see. Will YOUR name be in the spotlight?", why: 'Your hard work deserves a real celebration every single month! 🌟' },
+                { emoji: '👑', name: 'Hero of the Day', tier: 'pro', studentExplain: "Every Adventure Log can crown a Hero of the Day — one student chosen to represent that lesson's adventure! 👑 If it is you, your name appears in the class chronicle and in special spotlight moments around the Quest.", why: 'A daily spotlight makes each lesson feel like it could become YOUR legendary moment.' },
                 { emoji: '🏆', name: 'Hall of Heroes', tier: 'pro', studentExplain: "The Hall of Heroes displays the greatest heroes in your class — students who showed outstanding performance, growth, or spirit. Getting featured in the Hall of Heroes is a true honour. It lives in the Adventure Log for everyone to see. 🏆👑", why: 'True legends get remembered — could your name be there? ✨' },
                 { emoji: '📅', name: 'Quest Events', tier: 'pro', studentExplain: "Your teacher plans special Quest Events — competitions, challenges, and celebrations baked into the Quest calendar! 📅🎊 Some events give bonus rewards, others unlock special ceremonies. Keep your eyes open for what\'s coming up!", why: "There's always something exciting to look forward to in the Quest! 🌟" },
                 { emoji: '📓', name: 'Adventure Log', tier: 'pro', studentExplain: FEATURE_DEFINITIONS.adventureLog.studentExplain, why: 'Your class story is being written every lesson — and you\'re in it! 📖' },
@@ -324,7 +326,7 @@ export function getTierSummary(rawTier) {
         return {
             badge: 'Pro Power',
             title: 'Pro unlocks guilds, planners and advanced logs.',
-            body: "You have access to Guilds, Hero Classes & Skill Tree progression, the Calendar & School Year Planner, Scholar's Scroll, and the full Adventure Log.",
+            body: "You have access to Guilds, Hero Classes & Skill Tree progression, the Calendar & School Year Planner, Scholar's Scroll, and the full Adventure Log with manual diary entries, Hero of the Day, and Hall of Heroes.",
             cta: 'Upgrade to Elite to add Story Weavers, Familiars, AI-assisted summaries, Hero\'s Chronicle Oracle, and early-access experiments.',
             isTopTier: false
         };
@@ -363,7 +365,7 @@ export function getTiersAtAGlance() {
         {
             tier: 'Pro',
             label: 'Pro',
-            bullets: "Adds Guilds, Hero Classes & Skill Tree progression, Calendar & School Year Planner, Scholar's Scroll, full Adventure Log (diary, Hall of Heroes)."
+            bullets: "Adds Guilds, Hero Classes & Skill Tree progression, Calendar & School Year Planner, Scholar's Scroll, full Adventure Log (manual diary, Hero of the Day, Hall of Heroes)."
         },
         {
             tier: 'Elite',
@@ -381,7 +383,7 @@ export function getTiersAtAGlance() {
 export function getLogTabCopy(hasAdventureLog) {
     if (hasAdventureLog) {
         return {
-            tagline: "A visual diary of your class's epic journey!",
+            tagline: "Write the chronicle, crown a Hero of the Day, and revisit your class legends.",
             upsellTitle: '',
             upsellBody: ''
         };

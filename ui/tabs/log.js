@@ -15,6 +15,37 @@ function classHasAwardedStarsToday(classId) {
     return studentsInClass.some(s => (Number(todaysStars[s.id]?.stars) || 0) > 0);
 }
 
+function inferAdventureLogEntryMode(log) {
+    const explicitMode = String(log?.entryMode || '').toLowerCase();
+    if (explicitMode === 'manual' || explicitMode === 'ai') return explicitMode;
+    return (log?.imageUrl || log?.imageBase64) ? 'ai' : 'manual';
+}
+
+function canEditAdventureLog(log) {
+    const entryMode = inferAdventureLogEntryMode(log);
+    return canUseFeature('eliteAI') || (entryMode === 'manual' && canUseFeature('adventureLog'));
+}
+
+function renderDiaryArtwork(log, entryMode) {
+    const imageSrc = log.imageUrl || log.imageBase64 || '';
+    if (imageSrc) {
+        return `<img src="${imageSrc}" alt="Image for ${(log.keywords || []).join(', ')}" class="diary-image">`;
+    }
+
+    const badgeLabel = entryMode === 'manual' ? 'Manual Chronicle' : 'Adventure Log';
+    return `
+        <div class="diary-image bg-gradient-to-br from-teal-100 via-cyan-50 to-amber-50 flex items-center justify-center">
+            <div class="text-center px-4">
+                <div class="inline-flex items-center justify-center w-16 h-16 rounded-full bg-white/80 text-teal-700 shadow-md mb-3">
+                    <i class="fas fa-feather-alt text-2xl"></i>
+                </div>
+                <div class="text-sm font-bold uppercase tracking-[0.18em] text-teal-700">${badgeLabel}</div>
+                <p class="text-sm text-gray-600 mt-2">Hero crowned and recorded by the teacher.</p>
+            </div>
+        </div>
+    `;
+}
+
 export async function renderAdventureLogTab() {
     const classSelect = document.getElementById('adventure-log-class-select');
     const monthFilter = document.getElementById('adventure-log-month-filter');
@@ -157,6 +188,7 @@ export async function renderAdventureLog() {
         const displayDate = dateObj ? dateObj.toLocaleDateString('en-GB', { weekday: 'long', month: 'long', day: 'numeric' }) : log.date;
         const title = log.title || 'Daily Chronicle';
         const heroLabel = log.hero || 'The Class Team';
+        const entryMode = inferAdventureLogEntryMode(log);
         const keywordsHtml = (log.keywords || []).map(kw => `<span class="diary-keyword">#${kw}</span>`).join('');
         const highlightsHtml = (log.highlights || []).slice(0, 4).map(h => `<span class="diary-highlight-chip">${h}</span>`).join('');
 
@@ -186,7 +218,7 @@ export async function renderAdventureLog() {
                 </div>
                 <div class="diary-body">
                     <div class="diary-image-container">
-                        <img src="${log.imageUrl || log.imageBase64 || ''}" alt="Image for ${(log.keywords || []).join(', ')}" class="diary-image">
+                        ${renderDiaryArtwork(log, entryMode)}
                     </div>
                     <div class="diary-text-content">
                         <p class="diary-text">${log.text}</p>
@@ -199,7 +231,7 @@ export async function renderAdventureLog() {
                         ${keywordsHtml}
                     </div>
                     <div class="flex gap-2">
-                        ${canUseFeature('eliteAI') ? `<button class="log-edit-btn bubbly-button bg-indigo-100 text-indigo-700 w-8 h-8 rounded-full flex items-center justify-center" data-log-id="${log.id}" title="Edit Entry"><i class="fas fa-edit"></i></button>` : ''}
+                        ${canEditAdventureLog(log) ? `<button class="log-edit-btn bubbly-button bg-indigo-100 text-indigo-700 w-8 h-8 rounded-full flex items-center justify-center" data-log-id="${log.id}" title="Edit Entry"><i class="fas fa-edit"></i></button>` : ''}
                         <button class="log-note-btn bubbly-button bg-blue-100 text-blue-700 w-8 h-8 rounded-full flex items-center justify-center" data-log-id="${log.id}" title="${log.note ? 'Edit Note' : 'Add Note'}"><i class="fas fa-sticky-note"></i></button>
                         <button class="log-delete-btn bubbly-button bg-red-100 text-red-700 w-8 h-8 rounded-full flex items-center justify-center" data-log-id="${log.id}" title="Delete Log Entry"><i class="fas fa-trash-alt"></i></button>
                     </div>

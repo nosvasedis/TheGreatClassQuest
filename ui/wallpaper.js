@@ -1324,7 +1324,11 @@ function getClassGoldRankingCard(classId) {
 function getReigningHeroCard(classId) {
     const hero = state.get('reigningHero');
     if (!hero) return null;
-    const logs = state.get('allAdventureLogs').filter(l => l.classId === classId && l.hero === hero.name);
+    const logs = state.get('allAdventureLogs').filter((l) => {
+        if (l.classId !== classId) return false;
+        if (l.heroStudentId && hero.id) return l.heroStudentId === hero.id;
+        return l.hero === hero.name;
+    });
     const lastLog = logs.sort((a, b) => (b.createdAt?.toMillis?.() || 0) - (a.createdAt?.toMillis?.() || 0))[0];
     if (!lastLog) return null;
     const avatar = hero.avatar

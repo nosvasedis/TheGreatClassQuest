@@ -300,14 +300,19 @@ export async function saveAdventureLogNote() {
 }
 
 export async function editAdventureLogEntry(logId) {
-    const { canUseFeature } = await import('../../utils/subscription.js');
-    if (!canUseFeature('eliteAI')) {
-        showToast('Editing entries is an Elite feature.', 'info');
-        return;
-    }
-
     const log = state.get('allAdventureLogs').find(l => l.id === logId);
     if (!log) return;
+    const entryMode = inferAdventureLogEntryMode(log);
+
+    if (!canEditAdventureLog(log)) {
+        showToast(
+            entryMode === 'ai'
+                ? 'AI-written Adventure Log entries can be edited on the Elite plan.'
+                : 'Manual Adventure Log entries can be edited on Pro or Elite.',
+            'info'
+        );
+        return;
+    }
 
     openAdventureLogEditor(logId, log);
 }
@@ -321,9 +326,37 @@ function escapeHtml(value) {
         .replace(/'/g, '&#39;');
 }
 
+function inferAdventureLogEntryMode(log) {
+    const explicitMode = String(log?.entryMode || '').toLowerCase();
+    if (explicitMode === 'manual' || explicitMode === 'ai') return explicitMode;
+    return (log?.imageUrl || log?.imageBase64) ? 'ai' : 'manual';
+}
+
+function canEditAdventureLog(log) {
+    return canUseFeature('eliteAI') || (inferAdventureLogEntryMode(log) === 'manual' && canUseFeature('adventureLog'));
+}
+
+function syncHeroLine(text, heroName) {
+    const storyText = String(text || '').trim();
+    const normalizedHeroName = String(heroName || 'The Class Team').trim() || 'The Class Team';
+    const heroLine = `Hero of the Day: ${normalizedHeroName}.`;
+    const heroLinePattern = /(^|\n{1,2})Hero of the Day:\s*[^\n]+/im;
+
+    if (!storyText) return heroLine;
+    if (heroLinePattern.test(storyText)) {
+        return storyText.replace(heroLinePattern, (match, prefix = '') => `${prefix}${heroLine}`);
+    }
+    return `${storyText}\n\n${heroLine}`;
+}
+
 function openAdventureLogEditor(logId, log) {
     const existing = document.getElementById('adventure-log-editor-modal');
     if (existing) existing.remove();
+    const entryMode = inferAdventureLogEntryMode(log);
+    const heroLabel = escapeHtml(log.hero || 'The Class Team');
+    const subtitle = entryMode === 'manual'
+        ? 'Refine your manual chronicle. The crowned hero stays locked in.'
+        : 'Polish the AI-written story, keep the magic, and publish your final version.';
 
     const overlay = document.createElement('div');
     overlay.id = 'adventure-log-editor-modal';
@@ -334,7 +367,7 @@ function openAdventureLogEditor(logId, log) {
                 <div>
                     <p class="adventure-log-editor-kicker">Adventure Log</p>
                     <h2 id="adventure-log-editor-title" class="adventure-log-editor-title">Edit Entry</h2>
-                    <p class="adventure-log-editor-subtitle">Polish the story, keep the magic, and publish your final version.</p>
+                    <p class="adventure-log-editor-subtitle">${subtitle}</p>
                 </div>
                 <button type="button" id="adventure-log-editor-close-btn" class="adventure-log-editor-close" aria-label="Close editor">
                     <i class="fas fa-times"></i>
@@ -356,8 +389,11 @@ function openAdventureLogEditor(logId, log) {
 
                 <div class="adventure-log-editor-grid">
                     <div class="adventure-log-editor-field">
-                        <label for="edit-log-hero">Hero of the Day</label>
-                        <input type="text" id="edit-log-hero" value="${escapeHtml(log.hero || '')}" placeholder="Student name">
+                        <label>Hero of the Day</label>
+                        <div class="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-amber-900 font-semibold">
+                            <i class="fas fa-crown mr-2 text-amber-500"></i>${heroLabel}
+                        </div>
+                        <p class="adventure-log-editor-hint">This hero is locked after the lesson is crowned.</p>
                     </div>
 
                     <div class="adventure-log-editor-field">
@@ -429,26 +465,35 @@ function openAdventureLogEditor(logId, log) {
 }
 
 async function saveEditedLogEntry(logId, rootEl = document) {
+    const log = state.get('allAdventureLogs').find(l => l.id === logId);
+    if (!log) return;
+
     const title = rootEl.querySelector('#edit-log-title').value.trim();
     const text = rootEl.querySelector('#edit-log-text').value.trim();
     const highlightsText = rootEl.querySelector('#edit-log-highlights').value.trim();
-    const hero = rootEl.querySelector('#edit-log-hero').value.trim();
     
     if (!title || !text) {
         showToast('Title and story cannot be empty.', 'error');
         return;
     }
+
+    if (!canEditAdventureLog(log)) {
+        showToast('You do not have permission to edit this Adventure Log entry.', 'error');
+        return;
+    }
     
     try {
+        const entryMode = inferAdventureLogEntryMode(log);
+        const finalText = entryMode === 'manual' ? syncHeroLine(text, log.hero || 'The Class Team') : text;
         const highlights = highlightsText ? highlightsText.split(',').map(h => h.trim()).filter(h => h) : [];
-        const keywords = text.toLowerCase().split(' ').filter(w => w.length > 3).slice(0, 6);
+        const keywords = finalText.toLowerCase().split(/\s+/).map(w => w.replace(/[^\p{L}\p{N}_-]/gu, '')).filter(w => w.length > 3).slice(0, 6);
         
         await updateDoc(doc(db, "artifacts/great-class-quest/public/data/adventure_logs", logId), {
             title: title.slice(0, 90),
-            text: text,
+            text: finalText,
             highlights: highlights.slice(0, 4),
             keywords: keywords.slice(0, 6),
-            hero: hero,
+            entryMode,
             editedAt: serverTimestamp(),
             editedBy: { uid: state.get('currentUserId'), name: state.get('currentTeacherName') }
         });

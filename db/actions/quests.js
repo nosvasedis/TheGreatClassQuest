@@ -150,6 +150,58 @@ export async function handleLogAdventure() {
     }
 }
 
+function buildAdventureLogKeywords(text) {
+    return String(text || '')
+        .toLowerCase()
+        .split(/\s+/)
+        .map(word => word.replace(/[^\p{L}\p{N}_-]/gu, ''))
+        .filter(word => word.length > 3)
+        .slice(0, 6);
+}
+
+function syncHeroLine(text, heroName) {
+    const storyText = String(text || '').trim();
+    const normalizedHeroName = String(heroName || 'The Class Team').trim() || 'The Class Team';
+    const heroLine = `Hero of the Day: ${normalizedHeroName}.`;
+    const heroLinePattern = /(^|\n{1,2})Hero of the Day:\s*[^\n]+/im;
+
+    if (!storyText) return heroLine;
+    if (heroLinePattern.test(storyText)) {
+        return storyText.replace(heroLinePattern, (match, prefix = '') => `${prefix}${heroLine}`);
+    }
+    return `${storyText}\n\n${heroLine}`;
+}
+
+function getPresentStudentsForClass(classId) {
+    const attendanceRecords = state.get('allAttendanceRecords').filter(r => r.classId === classId && r.date === getTodayDateString());
+    const absentStudentIds = new Set(attendanceRecords.map(r => r.studentId));
+    return state.get('allStudents').filter(s => s.classId === classId && !absentStudentIds.has(s.id));
+}
+
+async function showHeroOfTheDayReveal(heroStudentId, reasonText = 'The Class Hero!') {
+    if (!heroStudentId) return;
+
+    const heroStudent = state.get('allStudents').find(s => s.id === heroStudentId);
+    if (!heroStudent) return;
+
+    state.setReigningHero(heroStudent);
+    import('../../features/home.js').then(m => m.renderHomeTab()).catch(() => {});
+
+    document.getElementById('hero-celebration-name').innerText = heroStudent.name;
+    document.getElementById('hero-celebration-reason').innerText = reasonText;
+    const avatarEl = document.getElementById('hero-celebration-avatar');
+    avatarEl.innerHTML = heroStudent.avatar
+        ? `<img src="${heroStudent.avatar}" class="w-full h-full object-cover rounded-full">`
+        : `<span class="text-7xl font-bold text-indigo-50">${heroStudent.name.charAt(0)}</span>`;
+
+    const [{ showAnimatedModal }, audio] = await Promise.all([
+        import('../../ui/modals.js'),
+        import('../../audio.js')
+    ]);
+    showAnimatedModal('hero-celebration-modal');
+    audio.playHeroFanfare();
+}
+
 async function handleAILogAdventure(classId, classData) {
     const btn = document.getElementById('log-adventure-btn');
     btn.disabled = true;
@@ -252,6 +304,7 @@ Power-up context: ${powerUpContext || 'none'}`;
             keywords: diary.keywords,
             hero: heroOfTheDay,
             heroStudentId: heroStudentId || null,
+            entryMode: 'ai',
             ageTier,
             imageUrl,
             topReason: reasonLabels[0] || 'excellence',
@@ -263,19 +316,7 @@ Power-up context: ${powerUpContext || 'none'}`;
         import('../../audio.js').then(m => m.stopWritingLoop());
         showToast('The adventure has been chronicled!', 'success');
 
-        if (heroStudentId) {
-            const heroStudent = state.get('allStudents').find(s => s.id === heroStudentId);
-            if (heroStudent) {
-                document.getElementById('hero-celebration-name').innerText = heroStudent.name;
-                document.getElementById('hero-celebration-reason').innerText = 'The Class Hero!';
-                const avatarEl = document.getElementById('hero-celebration-avatar');
-                avatarEl.innerHTML = heroStudent.avatar
-                    ? `<img src="${heroStudent.avatar}" class="w-full h-full object-cover rounded-full">`
-                    : `<span class="text-7xl font-bold text-indigo-50">${heroStudent.name.charAt(0)}</span>`;
-                import('../../ui/modals.js').then(m => m.showAnimatedModal('hero-celebration-modal'));
-                import('../../audio.js').then(m => m.playHeroFanfare());
-            }
-        }
+        await showHeroOfTheDayReveal(heroStudentId, 'The Class Hero!');
     } catch (error) {
         import('../../audio.js').then(m => m.stopWritingLoop());
         console.error(error);
@@ -304,6 +345,7 @@ async function handleManualLogAdventure(classId, classData) {
             <div class="mb-4">
                 <label class="block text-sm font-medium text-gray-700 mb-2">Highlights (optional, comma-separated):</label>
                 <input type="text" id="manual-log-highlights" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500" placeholder="e.g., Great participation, Creative answers, Team work">
+                <p class="text-xs text-teal-700 mt-2">When you save, the app will crown today's Hero of the Day and add them to the chronicle automatically.</p>
             </div>
             <div class="flex gap-3">
                 <button type="button" id="save-manual-log-btn" class="flex-1 bg-teal-500 hover:bg-teal-600 text-white font-title py-2 rounded-lg bubbly-button">
@@ -335,57 +377,54 @@ async function saveManualLogEntry(classId, classData) {
         return;
     }
     
-    const btn = document.getElementById('log-adventure-btn');
-    btn.disabled = true;
-    btn.innerHTML = `<i class="fas fa-spinner fa-spin mr-2"></i> Saving...`;
-    
+    const logBtn = document.getElementById('log-adventure-btn');
+    const saveBtn = document.getElementById('save-manual-log-btn');
+    logBtn.disabled = true;
+    logBtn.innerHTML = `<i class="fas fa-spinner fa-spin mr-2"></i> Saving...`;
+    saveBtn.disabled = true;
+    saveBtn.innerHTML = `<i class="fas fa-crown mr-2"></i> Crowning Hero...`;
+
     try {
         const highlights = highlightsText ? highlightsText.split(',').map(h => h.trim()).filter(h => h) : [];
-        const keywords = text.toLowerCase().split(' ').filter(w => w.length > 3).slice(0, 6);
-        
-        // Select a simple hero of the day (top star earner)
         const todaysAwards = state.get('allAwardLogs').filter(log => log.classId === classId && log.date === getTodayDateString());
-        const heroSelection = await _selectHeroOfTheDay(classId, classData, state.get('allStudents').filter(s => s.classId === classId));
+        const presentStudents = getPresentStudentsForClass(classId);
+        const heroSelection = await _selectHeroOfTheDay(classId, classData, presentStudents);
+        const storyText = syncHeroLine(text, heroSelection.heroName);
+        const keywords = buildAdventureLogKeywords(storyText);
         
         await addDoc(collection(db, 'artifacts/great-class-quest/public/data/adventure_logs'), {
             classId,
             date: getTodayDateString(),
             title: title.slice(0, 90),
-            text: text,
+            text: storyText,
             highlights: highlights.slice(0, 4),
-            keywords: keywords.slice(0, 6),
+            keywords,
             hero: heroSelection.heroName,
             heroStudentId: heroSelection.heroStudentId || null,
+            entryMode: 'manual',
             ageTier: _getAgeTierFromLeague(classData.questLevel),
-            imageUrl: null, // No image for manual entries
+            imageUrl: null,
             topReason: highlights[0] || 'excellence',
             totalStars: todaysAwards.reduce((sum, award) => sum + (Number(award.stars) || 0), 0),
             createdBy: { uid: state.get('currentUserId'), name: state.get('currentTeacherName') },
             createdAt: serverTimestamp()
         });
         
-        import('../../ui/modals.js').then(m => m.hideModal());
+        const { hideModal } = await import('../../ui/modals.js');
+        hideModal();
         showToast('Your adventure has been recorded!', 'success');
-        
-        if (heroSelection.heroStudentId) {
-            const heroStudent = state.get('allStudents').find(s => s.id === heroSelection.heroStudentId);
-            if (heroStudent) {
-                document.getElementById('hero-celebration-name').innerText = heroStudent.name;
-                document.getElementById('hero-celebration-reason').innerText = 'The Class Hero!';
-                const avatarEl = document.getElementById('hero-celebration-avatar');
-                avatarEl.innerHTML = heroStudent.avatar
-                    ? `<img src="${heroStudent.avatar}" class="w-full h-full object-cover rounded-full">`
-                    : `<span class="text-7xl font-bold text-indigo-50">${heroStudent.name.charAt(0)}</span>`;
-                import('../../ui/modals.js').then(m => m.showAnimatedModal('hero-celebration-modal'));
-                import('../../audio.js').then(m => m.playHeroFanfare());
-            }
-        }
+
+        await showHeroOfTheDayReveal(heroSelection.heroStudentId, 'Crowned in today\'s chronicle!');
     } catch (error) {
         console.error("Error saving manual log:", error);
         showToast('Failed to save your entry. Please try again.', 'error');
     } finally {
-        btn.disabled = false;
-        btn.innerHTML = `<i class="fas fa-feather-alt mr-2"></i> Log Today's Adventure`;
+        logBtn.disabled = false;
+        logBtn.innerHTML = `<i class="fas fa-feather-alt mr-2"></i> Log Today's Adventure`;
+        if (saveBtn) {
+            saveBtn.disabled = false;
+            saveBtn.innerHTML = `<i class="fas fa-save mr-2"></i> Save Entry`;
+        }
     }
 }
 

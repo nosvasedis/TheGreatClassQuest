@@ -357,7 +357,16 @@ function updateReigningHero() {
         .sort((a, b) => (b.createdAt?.toMillis?.() || 0) - (a.createdAt?.toMillis?.() || 0));
 
     if (logs.length > 0) {
-        const lastHeroName = logs[0].hero;
+        const latestLog = logs[0];
+        if (latestLog.heroStudentId) {
+            state.reigningHero =
+                state.allStudents.find(s => s.id === latestLog.heroStudentId && s.classId === classId) ||
+                state.allStudents.find(s => s.id === latestLog.heroStudentId) ||
+                null;
+            if (state.reigningHero) return;
+        }
+
+        const lastHeroName = latestLog.hero;
         state.reigningHero = state.allStudents.find(s => s.name === lastHeroName && s.classId === classId) || null;
     } else {
         state.reigningHero = null;

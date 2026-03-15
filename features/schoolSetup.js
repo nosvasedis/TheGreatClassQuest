@@ -4,7 +4,7 @@ import { showToast } from '../ui/effects.js';
 import { classLogos, DEFAULT_SCHOOL_NAME, questLeagues } from '../constants.js';
 import * as utils from '../utils.js';
 import { callGeminiApi } from '../api.js';
-import { canUseFeature, getLimit } from '../utils/subscription.js';
+import { canUseFeature, getLimit, getTier, getSubscriptionSnapshot } from '../utils/subscription.js';
 import { markTeacherOnboardingComplete } from './teacherJourney.js';
 
 const PUBLIC_DATA_PATH = 'artifacts/great-class-quest/public/data';
@@ -167,6 +167,57 @@ function getSetupMaxClasses() {
     return liveLimit;
 }
 
+function getSetupTierLabel() {
+    const snapshot = getSubscriptionSnapshot();
+    const tier = getTier();
+    const pretty = tier === 'elite'
+        ? 'Elite'
+        : tier === 'pro'
+            ? 'Pro'
+            : tier === 'expired'
+                ? 'Expired'
+                : tier === 'pending'
+                    ? 'Pending'
+                    : 'Starter';
+    return snapshot?.isGracePeriod ? `${pretty} (Grace Day)` : pretty;
+}
+
+function renderSetupClassCapacity() {
+    const tierSummary = document.getElementById('setup-tier-summary');
+    const classLimitSummary = document.getElementById('setup-class-limit-summary');
+    const existingClassesSummary = document.getElementById('setup-existing-classes-summary');
+    const remainingClassesSummary = document.getElementById('setup-remaining-classes-summary');
+    const classLimitCopy = document.getElementById('setup-class-limit-copy');
+
+    const existingClasses = (state.get('allSchoolClasses') || []).length;
+    const draftClasses = setupDraftClasses.length;
+    const maxClasses = getSetupMaxClasses();
+    const remainingBeforeSave = maxClasses === null ? null : Math.max(maxClasses - existingClasses, 0);
+    const remainingAfterDrafts = maxClasses === null ? null : Math.max(maxClasses - existingClasses - draftClasses, 0);
+
+    if (tierSummary) tierSummary.textContent = getSetupTierLabel();
+    if (classLimitSummary) {
+        classLimitSummary.textContent = maxClasses === null ? 'Unlimited' : `${maxClasses} classes`;
+    }
+    if (existingClassesSummary) {
+        existingClassesSummary.textContent = String(existingClasses);
+    }
+    if (remainingClassesSummary) {
+        remainingClassesSummary.textContent = remainingAfterDrafts === null ? 'Unlimited' : String(remainingAfterDrafts);
+    }
+    if (classLimitCopy) {
+        if (maxClasses === null) {
+            classLimitCopy.textContent = setupContext.isFirstTeacher
+                ? `This school is on ${getSetupTierLabel()}, so you can create as many classes as you need. ${draftClasses > 0 ? `${draftClasses} draft ${draftClasses === 1 ? 'class is' : 'classes are'} queued below.` : 'Your class drafts will appear below.'}`
+                : `This school is on ${getSetupTierLabel()}, so the class limit is shared across all teachers and is currently unlimited. ${existingClasses} ${existingClasses === 1 ? 'class is' : 'classes are'} already saved in the school.`;
+        } else {
+            classLimitCopy.textContent = setupContext.isFirstTeacher
+                ? `This school is on ${getSetupTierLabel()}, which allows up to ${maxClasses} total classes. ${remainingAfterDrafts} ${remainingAfterDrafts === 1 ? 'slot remains' : 'slots remain'} after the draft classes in this setup.`
+                : `This school is on ${getSetupTierLabel()}, which allows up to ${maxClasses} total classes shared across all teachers. ${existingClasses} ${existingClasses === 1 ? 'class is' : 'classes are'} already saved, so you can add ${remainingBeforeSave} more${draftClasses > 0 ? ` before counting the ${draftClasses} draft ${draftClasses === 1 ? 'class' : 'classes'} below` : ''}.`;
+        }
+    }
+}
+
 function parseStudentNames(raw) {
     const seen = new Set();
     return raw
@@ -266,12 +317,15 @@ function renderSetupCopy() {
             graceBanner.classList.add('hidden');
         }
     }
+
+    renderSetupClassCapacity();
 }
 
 function renderSetupDraftClassesList() {
     const list = document.getElementById('setup-draft-classes-list');
     const count = document.getElementById('setup-draft-count');
     if (count) count.textContent = String(setupDraftClasses.length);
+    renderSetupClassCapacity();
     if (!list) return;
 
     if (setupDraftClasses.length === 0) {
@@ -652,6 +706,11 @@ function setupSetupListeners() {
             locationInput.value = formatLocationLabel(selectedSchoolWeatherLocation);
         }
         setSetupLocationStatus(selectedSchoolWeatherLocation);
+    });
+
+    window.addEventListener('gcq-subscription-updated', () => {
+        if (document.getElementById('setup-screen')?.classList.contains('hidden')) return;
+        renderSetupClassCapacity();
     });
 }
 

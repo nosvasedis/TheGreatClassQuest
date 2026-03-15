@@ -89,7 +89,7 @@ export const setupHTML = `
                             </div>
                         </div>
 
-                        <div class="grid grid-cols-1 2xl:grid-cols-[1.15fr_0.85fr] gap-6">
+                        <div class="space-y-6">
                             <div class="rounded-[1.5rem] bg-white border border-indigo-100 p-5">
                                 <div class="grid grid-cols-1 xl:grid-cols-[0.9fr_1.1fr] gap-4 mb-4">
                                     <div>
@@ -135,12 +135,33 @@ export const setupHTML = `
                             </div>
 
                             <div class="rounded-[1.5rem] bg-slate-900 text-white p-5 shadow-xl">
-                                <div class="flex items-center justify-between gap-3 mb-4">
+                                <div class="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between mb-4">
                                     <div>
                                         <p class="text-xs uppercase tracking-[0.25em] text-slate-400 mb-1">Ready To Save</p>
                                         <h3 class="font-title text-2xl">Your setup bundle</h3>
+                                        <p id="setup-class-limit-copy" class="text-sm text-slate-300 mt-2">GCQ will show the current school limits here.</p>
                                     </div>
-                                    <div id="setup-draft-count" class="min-w-12 h-12 rounded-2xl bg-white/10 border border-white/10 flex items-center justify-center font-title text-2xl">0</div>
+                                    <div class="flex items-center gap-3">
+                                        <div id="setup-draft-count" class="min-w-12 h-12 rounded-2xl bg-white/10 border border-white/10 flex items-center justify-center font-title text-2xl">0</div>
+                                    </div>
+                                </div>
+                                <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3 mb-4">
+                                    <div class="rounded-2xl border border-white/10 bg-white/5 px-4 py-3">
+                                        <p class="text-[11px] uppercase tracking-[0.24em] text-slate-400 font-black mb-1">Current plan</p>
+                                        <p id="setup-tier-summary" class="font-title text-xl text-white">Starter</p>
+                                    </div>
+                                    <div class="rounded-2xl border border-white/10 bg-white/5 px-4 py-3">
+                                        <p class="text-[11px] uppercase tracking-[0.24em] text-slate-400 font-black mb-1">School class limit</p>
+                                        <p id="setup-class-limit-summary" class="font-title text-xl text-white">6 classes</p>
+                                    </div>
+                                    <div class="rounded-2xl border border-white/10 bg-white/5 px-4 py-3">
+                                        <p class="text-[11px] uppercase tracking-[0.24em] text-slate-400 font-black mb-1">Already saved</p>
+                                        <p id="setup-existing-classes-summary" class="font-title text-xl text-white">0</p>
+                                    </div>
+                                    <div class="rounded-2xl border border-white/10 bg-white/5 px-4 py-3">
+                                        <p class="text-[11px] uppercase tracking-[0.24em] text-slate-400 font-black mb-1">You can still add</p>
+                                        <p id="setup-remaining-classes-summary" class="font-title text-xl text-white">6</p>
+                                    </div>
                                 </div>
                                 <div id="setup-draft-classes-list" class="space-y-3 max-h-[26rem] overflow-y-auto pr-1"></div>
                             </div>

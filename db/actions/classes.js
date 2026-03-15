@@ -87,6 +87,7 @@ export async function handleAddClass() {
         if (document.getElementById('logo-picker-btn')) document.getElementById('logo-picker-btn').innerText = '📚';
         if (document.getElementById('class-logo')) document.getElementById('class-logo').value = '📚';
         if (document.getElementById('class-name-suggestions')) document.getElementById('class-name-suggestions').innerHTML = '';
+        hideModal('create-class-modal');
     } catch (error) {
         console.error("Error adding class: ", error);
         showToast(`Error: ${error.message}`, 'error');

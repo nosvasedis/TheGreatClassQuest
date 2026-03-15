@@ -105,6 +105,9 @@ export function setupUIListeners() {
     document.getElementById('logo-picker-btn').addEventListener('click', () => modals.showLogoPicker('create'));
     document.getElementById('edit-logo-picker-btn').addEventListener('click', () => modals.showLogoPicker('edit'));
     document.getElementById('logo-picker-close-btn').addEventListener('click', () => modals.hideModal('logo-picker-modal'));
+    document.getElementById('open-create-class-modal-btn').addEventListener('click', modals.openCreateClassModal);
+    document.getElementById('create-class-close-btn').addEventListener('click', () => modals.hideModal('create-class-modal'));
+    document.getElementById('create-class-cancel-btn').addEventListener('click', () => modals.hideModal('create-class-modal'));
     if (modals.wireSortingQuizResultDone) modals.wireSortingQuizResultDone();
     document.getElementById('hero-stats-close-btn').addEventListener('click', () => modals.hideModal('hero-stats-modal'));
     document.getElementById('hall-of-heroes-btn').addEventListener('click', modals.openHallOfHeroes);

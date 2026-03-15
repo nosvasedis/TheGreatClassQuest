@@ -5,15 +5,17 @@ export const trophyRoomModalsHTML = `
     <div id="trophy-room-modal"
         class="fixed inset-0 bg-black bg-opacity-80 z-[80] flex items-center justify-center p-4 hidden">
         <div
-            class="bg-indigo-950 rounded-3xl shadow-2xl max-w-7xl w-full max-h-[95vh] flex flex-col pop-in border-4 border-amber-500 overflow-x-hidden overflow-y-auto relative">
+            class="bg-indigo-950 rounded-3xl shadow-2xl max-w-7xl w-full max-h-[95vh] flex flex-col pop-in border-4 border-amber-500 overflow-hidden relative">
             <button id="trophy-room-close-btn"
                 class="absolute top-4 right-4 text-white/50 hover:text-white text-3xl z-30 transition-colors">&times;</button>
-            <div class="bg-indigo-900/90 p-4 md:p-6 flex flex-col md:flex-row justify-between items-center border-b-4 border-amber-700/50 shadow-xl z-20 gap-4 backdrop-blur-md flex-shrink-0">
+            <div class="absolute inset-0 pointer-events-none opacity-20"
+                style="background: radial-gradient(circle at top, rgba(251,191,36,0.28), transparent 34%), radial-gradient(circle at bottom right, rgba(59,130,246,0.18), transparent 28%);"></div>
+            <div class="bg-indigo-900/90 p-4 md:p-6 flex flex-col md:flex-row justify-between items-center border-b-4 border-amber-700/50 shadow-xl z-20 gap-4 backdrop-blur-md flex-shrink-0 relative">
                 <div class="flex items-center gap-4">
                     <div class="text-5xl filter drop-shadow-lg">🏆</div>
                     <div>
                         <h2 class="font-title text-2xl md:text-4xl text-amber-400" style="text-shadow: 0 4px 0 #78350f;">Trophy Room</h2>
-                        <p class="text-indigo-200 text-sm font-bold uppercase tracking-widest opacity-80 mt-1">Treasures collected on the quest</p>
+                        <p class="text-indigo-200 text-sm font-bold uppercase tracking-widest opacity-80 mt-1">Character vault and collected relics</p>
                     </div>
                 </div>
                 <div class="flex items-center gap-3 bg-black/30 p-2 rounded-xl border border-amber-500/30">
@@ -24,7 +26,7 @@ export const trophyRoomModalsHTML = `
                     </select>
                 </div>
             </div>
-            <div id="trophy-room-content" class="flex-grow overflow-y-auto overflow-x-visible p-6 min-h-0 flex items-center justify-center custom-scrollbar relative z-10">
+            <div id="trophy-room-content" class="flex-grow overflow-y-auto p-4 md:p-6 min-h-0 flex items-start justify-center custom-scrollbar relative z-10">
             </div>
         </div>
     </div>

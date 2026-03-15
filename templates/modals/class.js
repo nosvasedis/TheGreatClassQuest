@@ -2,6 +2,118 @@
 // Edit class, logbook, history
 
 export const classModalsHTML = `
+    <div id="create-class-modal"
+        class="fixed inset-0 bg-black/65 backdrop-blur-sm z-[71] flex items-center justify-center p-4 hidden overflow-y-auto">
+        <form id="add-class-form"
+            class="bg-white p-6 md:p-8 rounded-[2rem] shadow-2xl max-w-2xl w-full pop-in border-[3px] border-green-300 my-8 relative overflow-hidden">
+            <div class="absolute inset-x-0 top-0 h-28 bg-gradient-to-r from-emerald-500/10 via-green-400/10 to-lime-400/10 pointer-events-none"></div>
+            <button type="button" id="create-class-close-btn"
+                class="absolute top-4 right-4 w-10 h-10 rounded-full bg-green-50 hover:bg-green-100 text-green-800 text-2xl leading-none bubbly-button">&times;</button>
+
+            <div class="relative">
+                <div class="text-center mb-6">
+                    <p class="text-[11px] uppercase tracking-[0.35em] font-black text-emerald-600 mb-2">Class Forge</p>
+                    <h2 class="font-title text-4xl text-green-700">Create a New Class</h2>
+                    <p class="text-gray-600 mt-2">Set the league, banner, and schedule without leaving your existing roster view.</p>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div class="md:col-span-2">
+                        <label for="class-name" class="block text-sm font-medium text-gray-700">Class Name
+                            (e.g., "The Star Seekers")</label>
+                        <div class="flex items-center gap-2 mt-1">
+                            <input type="text" id="class-name"
+                                class="block w-full px-4 py-3 border border-gray-300 rounded-xl shadow-sm focus:outline-none focus:ring-green-500 focus:border-green-500"
+                                autocomplete="off" required>
+                            <button type="button" id="generate-class-name-btn"
+                                class="bg-indigo-500 hover:bg-indigo-600 text-white font-bold py-3 px-4 rounded-xl bubbly-button disabled:opacity-50"
+                                title="Suggest names with AI">
+                                <i class="fas fa-magic"></i>
+                            </button>
+                        </div>
+                        <div id="class-name-suggestions" class="mt-2 flex flex-wrap gap-2"></div>
+                    </div>
+                    <div>
+                        <label for="class-level" class="block text-sm font-medium text-gray-700">Quest Level
+                            (League)</label>
+                        <select id="class-level"
+                            class="mt-1 block w-full px-4 py-3 border border-gray-300 bg-white rounded-xl shadow-sm focus:outline-none focus:ring-green-500 focus:border-green-500"
+                            required>
+                            <option value="" disabled selected>Select a league...</option>
+                            <option>Junior A</option>
+                            <option>Junior B</option>
+                            <option>A</option>
+                            <option>B</option>
+                            <option>C</option>
+                            <option>D</option>
+                        </select>
+                    </div>
+                    <div class="flex items-center gap-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Class Logo</label>
+                            <button type="button" id="logo-picker-btn"
+                                class="bg-gray-100 border border-gray-300 rounded-xl px-4 py-3 text-2xl bubbly-button">
+                                📚
+                            </button>
+                            <input type="hidden" id="class-logo" value="📚">
+                        </div>
+                    </div>
+                    <div class="md:col-span-2">
+                        <label class="block text-sm font-medium text-gray-700">Schedule Days</label>
+                        <div class="mt-2 flex flex-wrap gap-2">
+                            <label class="flex items-center space-x-2 bg-gray-50 px-3 py-2 rounded-full"><input
+                                    type="checkbox" name="schedule-day" value="1"
+                                    class="rounded text-green-600"> <span>Mon</span></label>
+                            <label class="flex items-center space-x-2 bg-gray-50 px-3 py-2 rounded-full"><input
+                                    type="checkbox" name="schedule-day" value="2"
+                                    class="rounded text-green-600"> <span>Tue</span></label>
+                            <label class="flex items-center space-x-2 bg-gray-50 px-3 py-2 rounded-full"><input
+                                    type="checkbox" name="schedule-day" value="3"
+                                    class="rounded text-green-600"> <span>Wed</span></label>
+                            <label class="flex items-center space-x-2 bg-gray-50 px-3 py-2 rounded-full"><input
+                                    type="checkbox" name="schedule-day" value="4"
+                                    class="rounded text-green-600"> <span>Thu</span></label>
+                            <label class="flex items-center space-x-2 bg-gray-50 px-3 py-2 rounded-full"><input
+                                    type="checkbox" name="schedule-day" value="5"
+                                    class="rounded text-green-600"> <span>Fri</span></label>
+                            <label class="flex items-center space-x-2 bg-gray-50 px-3 py-2 rounded-full"><input
+                                    type="checkbox" name="schedule-day" value="6"
+                                    class="rounded text-green-600"> <span>Sat</span></label>
+                            <label class="flex items-center space-x-2 bg-gray-50 px-3 py-2 rounded-full"><input
+                                    type="checkbox" name="schedule-day" value="0"
+                                    class="rounded text-green-600"> <span>Sun</span></label>
+                        </div>
+                    </div>
+                    <div class="md:col-span-2 flex items-center gap-4">
+                        <div class="flex-1">
+                            <label for="class-time-start"
+                                class="block text-sm font-medium text-gray-700">From</label>
+                            <input type="time" id="class-time-start"
+                                class="mt-1 block w-full px-4 py-3 border border-gray-300 rounded-xl shadow-sm focus:outline-none focus:ring-green-500 focus:border-green-500">
+                        </div>
+                        <div class="flex-1">
+                            <label for="class-time-end"
+                                class="block text-sm font-medium text-gray-700">To</label>
+                            <input type="time" id="class-time-end"
+                                class="mt-1 block w-full px-4 py-3 border border-gray-300 rounded-xl shadow-sm focus:outline-none focus:ring-green-500 focus:border-green-500">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="flex flex-col-reverse sm:flex-row gap-3 mt-8">
+                    <button type="button" id="create-class-cancel-btn"
+                        class="w-full sm:w-1/2 bg-gray-100 hover:bg-gray-200 text-gray-800 font-title text-lg py-3 rounded-xl bubbly-button">
+                        Cancel
+                    </button>
+                    <button type="submit"
+                        class="w-full sm:w-1/2 bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white font-title text-xl py-3 rounded-xl bubbly-button">
+                        <i class="fas fa-plus-circle"></i> Create Class
+                    </button>
+                </div>
+            </div>
+        </form>
+    </div>
+
     <div id="edit-class-modal"
         class="fixed inset-0 bg-black bg-opacity-50 z-[70] flex items-center justify-center p-4 hidden overflow-y-auto">
         <form id="edit-class-form"

@@ -17,7 +17,7 @@ export function renderManageClassesTab() {
     const list = document.getElementById('class-list');
     if (!list) return;
     if (state.get('allTeachersClasses').length === 0) {
-        list.innerHTML = `<p class="text-center text-gray-700 bg-white/50 p-4 rounded-2xl text-lg">You haven't created any classes yet. Add one above!</p>`;
+        list.innerHTML = `<p class="text-center text-gray-700 bg-white/50 p-4 rounded-2xl text-lg">You haven't created any classes yet. Open the Class Forge to add your first one.</p>`;
         return;
     }
     list.innerHTML = state.get('allTeachersClasses').sort((a, b) => a.name.localeCompare(b.name)).map(c => {

@@ -7,7 +7,7 @@ import * as tabs from '../ui/tabs.js';
 import * as modals from '../ui/modals.js';
 import { wrapAvatarWithLevelUpIndicator } from '../ui/core/avatar.js';
 import { callGeminiApi } from '../api.js';
-import { canUseFeature, getSubscriptionSnapshot, getTier } from '../utils/subscription.js';
+import { canUseFeature } from '../utils/subscription.js';
 import * as grandGuildCeremony from '../features/grandGuildCeremony.js';
 import { DEFAULT_SCHOOL_NAME } from '../constants.js';
 import { loadTeacherJourneyState, markTeacherGuideSeen } from './teacherJourney.js';
@@ -238,7 +238,6 @@ function getSkeleton() {
 function getGeneralDashboard(name, theme, spice) {
     const today = utils.getTodayDateString();
     const activeLeague = resolveActiveHomeLeague();
-    const activePlanLabel = getHomePlanLabel();
 
     const myClasses = state.get('allTeachersClasses') || [];
     const totalStudents = state.get('allStudents').length;
@@ -299,9 +298,6 @@ function getGeneralDashboard(name, theme, spice) {
         <div class="vibrant-card h-span-4 card-glass-white">
             <div class="flex items-center justify-between gap-3 p-4 pb-0">
                 <h3 class="text-xs font-bold text-slate-400 uppercase tracking-widest">Global Tools</h3>
-                <span class="text-[10px] font-bold uppercase tracking-[0.18em] px-3 py-1 rounded-full border bg-indigo-50 text-indigo-600 border-indigo-100">
-                    School Plan: ${activePlanLabel}
-                </span>
             </div>
             <div class="tools-grid-v2">
                 ${tools.map(t => `
@@ -653,22 +649,6 @@ function resolveActiveHomeLeague() {
     return null;
 }
 
-function getHomePlanLabel() {
-    const subscription = getSubscriptionSnapshot();
-    const runtimeTier = subscription?.tier || getTier();
-    const prettyTier = runtimeTier === 'elite'
-        ? 'Elite'
-        : runtimeTier === 'pro'
-            ? 'Pro'
-            : runtimeTier === 'expired'
-                ? 'Expired'
-                : runtimeTier === 'pending'
-                    ? 'Pending'
-                    : 'Starter';
-
-    return subscription?.isGracePeriod ? `${prettyTier} (Grace Day)` : prettyTier;
-}
-
 function getScheduleHtml(dateString, activeClassId) {
     const allSchoolClasses = state.get('allSchoolClasses') || [];
     const allScheduleOverrides = state.get('allScheduleOverrides') || [];
@@ -788,10 +768,38 @@ function attachListeners(container) {
         });
     });
     container.querySelectorAll('.shortcut-tab-btn').forEach(btn => btn.addEventListener('click', () => tabs.showTab(btn.dataset.target)));
-    container.querySelectorAll('.shortcut-action-btn').forEach(btn => btn.addEventListener('click', () => handleAction(btn.dataset.action, btn.dataset)));
+    container.querySelectorAll('.shortcut-action-btn').forEach(btn => btn.addEventListener('click', () => {
+        handleAction(btn.dataset.action, btn.dataset);
+    }));
 }
 
-function handleAction(action, data) {
+async function activateOptionsSubtab(key) {
+    await tabs.showTab('options-tab');
+
+    const button = document.querySelector(`.options-subtab-btn[data-options-tab="${key}"]`);
+    if (!button) return;
+
+    button.click();
+    button.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+}
+
+async function openCreateClassForm(scopedLeague) {
+    await tabs.showTab('my-classes-tab');
+
+    const levelSelect = document.getElementById('class-level');
+    if (levelSelect && scopedLeague) {
+        levelSelect.value = scopedLeague;
+        levelSelect.dispatchEvent(new Event('change', { bubbles: true }));
+    }
+
+    const classNameInput = document.getElementById('class-name');
+    if (classNameInput) {
+        classNameInput.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        classNameInput.focus();
+    }
+}
+
+async function handleAction(action, data) {
     const scopedLeague = (data?.league || '').trim();
     if (scopedLeague) {
         state.setGlobalSelectedLeague(scopedLeague, false);
@@ -803,17 +811,10 @@ function handleAction(action, data) {
         if (id) modals.openAttendanceChronicle(); else tabs.showTab('adventure-log-tab');
     }
     else if (action === 'open-team-history') modals.openHistoryModal('team', { league: scopedLeague || null });
-    else if (action === 'open-settings' || action === 'open-holidays') tabs.showTab('options-tab');
+    else if (action === 'open-settings') await activateOptionsSubtab('manage');
+    else if (action === 'open-holidays') await activateOptionsSubtab('planning');
     else if (action === 'open-student-ranks') modals.openStudentRankingsModal();
-    else if (action === 'create-class') {
-        tabs.showTab('my-classes-tab');
-        const levelSelect = document.getElementById('class-level');
-        if (levelSelect && scopedLeague) {
-            levelSelect.value = scopedLeague;
-            levelSelect.dispatchEvent(new Event('change'));
-        }
-        document.getElementById('class-name')?.focus();
-    }
+    else if (action === 'create-class') await openCreateClassForm(scopedLeague);
     else if (action === 'edit-class') modals.openEditClassModal(data.id);
     else if (action === 'open-report') modals.handleGenerateReport(data.id);
 }

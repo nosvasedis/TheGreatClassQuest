@@ -18,6 +18,7 @@ import * as utils from './utils.js';
 import { loadSubscription, hasActiveSubscription, getTier, getSubscriptionSnapshot, setSchoolGraceConfig } from './utils/subscription.js';
 import { showSetupScreen } from './features/schoolSetup.js';
 import { loadTeacherJourneyState, markTeacherOnboardingComplete, startSchoolGracePeriod } from './features/teacherJourney.js';
+import { requestCheckoutSession } from './utils/billingCheckout.js';
 
 function updateTierLabel() {
     const tierEl = document.getElementById('app-tier-label');
@@ -128,6 +129,7 @@ function showSubscribeScreen(loadingScreen, authScreen, options = {}) {
     const subscribeScreen = document.getElementById('subscribe-screen');
     const refreshHint = document.getElementById('subscribe-refresh-hint');
     const actions = document.getElementById('subscribe-actions');
+    const status = document.getElementById('subscribe-status');
     if (!subscribeScreen) return;
     if (appScreen) appScreen.classList.add('hidden');
     if (setupScreen) setupScreen.classList.add('hidden');
@@ -167,31 +169,32 @@ function showSubscribeScreen(loadingScreen, authScreen, options = {}) {
 
     if (billingUrl && schoolId) {
         const goCheckout = async (tier) => {
+            if (status) {
+                status.classList.add('hidden');
+                status.textContent = '';
+            }
             const btn = document.getElementById(`subscribe-${tier}-btn`);
             if (btn) {
                 btn.disabled = true;
-                btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> Loading...';
+                btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> Opening Stripe...';
             }
             try {
-                const res = await fetch(billingUrl + '/create-checkout-session', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        schoolId,
-                        tier,
-                        successUrl: window.location.href,
-                        cancelUrl: window.location.href
-                    })
+                const data = await requestCheckoutSession({
+                    billingBaseUrl: billingUrl,
+                    schoolId,
+                    tier,
+                    successUrl: window.location.href,
+                    cancelUrl: window.location.href
                 });
-                const data = await res.json();
-                if (data.url) {
-                    window.location.href = data.url;
-                } else {
-                    throw new Error(data.error || 'Checkout failed');
-                }
+                window.location.assign(data.url);
             } catch (e) {
                 console.error(e);
-                alert('Could not open checkout. Please try again or contact support.');
+                if (status) {
+                    status.textContent = e.message || 'Could not open checkout right now.';
+                    status.classList.remove('hidden');
+                } else {
+                    alert('Could not open checkout. Please try again or contact support.');
+                }
                 if (btn) {
                     btn.disabled = false;
                     btn.innerHTML = tier === 'starter' ? 'Choose Starter' : tier === 'pro' ? 'Choose Pro' : 'Choose Elite';

@@ -76,6 +76,7 @@ export const subscribeHTML = `
             </div>
 
             <div id="subscribe-actions" class="hidden"></div>
+            <p id="subscribe-status" class="text-sm text-rose-600 mt-4 text-center hidden" aria-live="polite"></p>
             <p id="subscribe-refresh-hint" class="text-sm text-gray-500 mt-6 text-center hidden">
                 <i class="fas fa-sync-alt mr-1"></i> Refresh this page after you've completed payment
             </p>

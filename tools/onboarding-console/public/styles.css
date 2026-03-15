@@ -544,6 +544,8 @@ body {
 
 .task-card {
   padding: 18px 18px 16px;
+  max-width: 100%;
+  min-width: 0;
 }
 
 .task-head {
@@ -556,6 +558,7 @@ body {
 .task-main {
   display: flex;
   gap: 14px;
+  min-width: 0;
 }
 
 .task-icon {
@@ -632,12 +635,16 @@ body {
 .details-content {
   padding: 0 14px 14px;
   color: #56718d;
+  max-width: 100%;
+  overflow-x: auto;
 }
 
 .details-content pre {
   margin: 0;
   white-space: pre-wrap;
+  overflow-wrap: anywhere;
   word-break: break-word;
+  max-width: 100%;
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
   font-size: 0.83rem;
 }

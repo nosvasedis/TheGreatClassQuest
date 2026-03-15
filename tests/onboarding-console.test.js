@@ -13,6 +13,7 @@ const {
   buildServiceUsageConsumerName,
   compareRequiredIndexes,
   formatNetlifyVariables,
+  summarizeGoogleErrorText,
 } = require('../tools/onboarding-console/lib');
 
 const billingKeysDir = path.join(__dirname, '..', 'billing', 'keys');
@@ -259,4 +260,21 @@ test('formatNetlifyVariables includes Firebase config and billing values', () =>
   assert.match(text, /GCQ_FIREBASE_API_KEY=api-key/);
   assert.match(text, /GCQ_BILLING_BASE_URL=https:\/\/gcq-billing.onrender.com/);
   assert.match(text, /GCQ_BILLING_SCHOOL_ID=gcq-test-school/);
+});
+
+test('summarizeGoogleErrorText shortens Google HTML error pages', () => {
+  const html = `
+    <!DOCTYPE html>
+    <html lang="en">
+      <title>Error 404 (Not Found)!!1</title>
+      <p>The requested URL <code>/v2/projects/gcq-test/identityPlatform:initializeAuth</code> was not found on this server.</p>
+    </html>
+  `;
+
+  const summary = summarizeGoogleErrorText(html, 'fallback');
+
+  assert.equal(
+    summary,
+    'Error 404 (Not Found)!!1. Requested URL: /v2/projects/gcq-test/identityPlatform:initializeAuth'
+  );
 });

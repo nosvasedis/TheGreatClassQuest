@@ -73,6 +73,16 @@ function normalizePriceIds(priceIds = {}) {
   };
 }
 
+function mergePriceIdsPreservingExisting(existingPriceIds = {}, incomingPriceIds = {}) {
+  const existing = normalizePriceIds(existingPriceIds);
+  const incoming = normalizePriceIds(incomingPriceIds);
+  return {
+    starter: incoming.starter || existing.starter || '',
+    pro: incoming.pro || existing.pro || '',
+    elite: incoming.elite || existing.elite || '',
+  };
+}
+
 function validateProjectId(projectId) {
   const value = String(projectId || '').trim();
   if (!value) {
@@ -408,6 +418,8 @@ function getRequiredServices(readinessTarget) {
 function loadDefaults() {
   const fileDefaults = loadJsonIfExists(defaultsPath, {});
   const localPriceIds = loadJsonIfExists(priceIdsLocalPath, {});
+  const editableSchoolsConfig = ensureEditableSchoolsConfig();
+  const savedSchoolPriceIds = normalizePriceIds(editableSchoolsConfig.data?.priceIds || {});
   const normalizedLocalPriceIds = normalizePriceIds(localPriceIds);
   const normalizedFilePriceIds = normalizePriceIds(fileDefaults.priceIds || {});
   return {
@@ -416,9 +428,9 @@ function loadDefaults() {
     priceIds: {
       ...clone(DEFAULT_DEFAULTS.priceIds),
       ...normalizedFilePriceIds,
-      starter: normalizedFilePriceIds.starter || normalizedLocalPriceIds.starter || '',
-      pro: normalizedFilePriceIds.pro || normalizedLocalPriceIds.pro || '',
-      elite: normalizedFilePriceIds.elite || normalizedLocalPriceIds.elite || '',
+      starter: normalizedFilePriceIds.starter || normalizedLocalPriceIds.starter || savedSchoolPriceIds.starter || '',
+      pro: normalizedFilePriceIds.pro || normalizedLocalPriceIds.pro || savedSchoolPriceIds.pro || '',
+      elite: normalizedFilePriceIds.elite || normalizedLocalPriceIds.elite || savedSchoolPriceIds.elite || '',
     },
     firebaseLocation: normalizeFirebaseLocation(fileDefaults.firebaseLocation),
     readinessTarget: normalizeReadinessTarget(fileDefaults.readinessTarget),
@@ -428,13 +440,11 @@ function loadDefaults() {
 
 function saveDefaults(nextDefaults = {}) {
   const currentDefaults = loadDefaults();
+  const mergedPriceIds = mergePriceIdsPreservingExisting(currentDefaults.priceIds, nextDefaults.priceIds || {});
   const merged = {
     ...currentDefaults,
     ...nextDefaults,
-    priceIds: {
-      ...currentDefaults.priceIds,
-      ...normalizePriceIds(nextDefaults.priceIds || {}),
-    },
+    priceIds: mergedPriceIds,
     firebaseLocation: normalizeFirebaseLocation(nextDefaults.firebaseLocation || currentDefaults.firebaseLocation),
     readinessTarget: normalizeReadinessTarget(nextDefaults.readinessTarget || currentDefaults.readinessTarget),
     siteDomain: normalizeSiteDomain(nextDefaults.siteDomain || currentDefaults.siteDomain),
@@ -848,13 +858,34 @@ async function googleJsonRequest(url, authInput, options = {}) {
     }
   }
   if (!response.ok) {
-    const detail = json && json.error ? json.error.message || JSON.stringify(json.error) : text || response.statusText;
+    const detail = json && json.error
+      ? json.error.message || JSON.stringify(json.error)
+      : summarizeGoogleErrorText(text, response.statusText);
     const err = new Error(detail || `Request failed with status ${response.status}`);
     err.status = response.status;
     err.payload = json;
     throw err;
   }
   return json;
+}
+
+function summarizeGoogleErrorText(text, fallback = '') {
+  const raw = String(text || '').trim();
+  if (!raw) {
+    return fallback;
+  }
+  if (!/<html/i.test(raw)) {
+    return raw;
+  }
+
+  const requestedUrlMatch = raw.match(/requested URL <code>([^<]+)<\/code>/i);
+  const titleMatch = raw.match(/<title>([^<]+)<\/title>/i);
+  const title = titleMatch ? titleMatch[1].trim() : 'Google returned an HTML error page';
+  const requestedUrl = requestedUrlMatch ? requestedUrlMatch[1].trim() : '';
+
+  return requestedUrl
+    ? `${title}. Requested URL: ${requestedUrl}`
+    : title;
 }
 
 async function getFirestoreDatabaseInfo(projectId, serviceAccount) {
@@ -1353,15 +1384,6 @@ function getExpectedAuthorizedDomains(projectId, siteDomain) {
   return Array.from(domains).filter(Boolean);
 }
 
-async function initializeFirebaseAuth(projectId, serviceAccount) {
-  const url = `https://identitytoolkit.googleapis.com/admin/v2/projects/${encodeURIComponent(projectId)}/identityPlatform:initializeAuth`;
-  return googleJsonRequest(url, serviceAccount, {
-    method: 'POST',
-    quotaProject: projectId,
-    body: {},
-  });
-}
-
 async function getFirebaseAuthConfig(projectId, serviceAccount) {
   const url = `https://identitytoolkit.googleapis.com/admin/v2/projects/${encodeURIComponent(projectId)}/config`;
   return googleJsonRequest(url, serviceAccount, {
@@ -1393,20 +1415,35 @@ function summarizeFirebaseAuthConfig(config = {}, siteDomain = '') {
   };
 }
 
+function isFirebaseAuthMissingError(error) {
+  const message = String(error?.message || '');
+  return error?.status === 404 || /configuration-not-found/i.test(message) || /not found/i.test(message);
+}
+
+function buildFirebaseAuthSetupError(error) {
+  const message = String(error?.message || '').trim();
+  if (/BILLING_NOT_ENABLED/i.test(message)) {
+    return new Error('The tool hit an Identity Platform billing-only API by mistake. Firebase Authentication itself does not need billing for this setup.');
+  }
+  if (isFirebaseAuthMissingError(error)) {
+    return new Error('Firebase Authentication has not been opened for this project yet. Open Firebase Console -> Authentication -> Get started once, then rerun the setup.');
+  }
+  return error;
+}
+
 async function ensureFirebaseAuthReady(projectId, serviceAccount, siteDomain) {
   let config;
   let initialized = false;
+  let hadConfig = true;
 
   try {
     config = await getFirebaseAuthConfig(projectId, serviceAccount);
   } catch (error) {
-    const message = error.message || '';
-    if (error.status !== 404 && !/auth/i.test(message) && !/not found/i.test(message)) {
-      throw error;
+    if (!isFirebaseAuthMissingError(error)) {
+      throw buildFirebaseAuthSetupError(error);
     }
-    await initializeFirebaseAuth(projectId, serviceAccount);
-    initialized = true;
-    config = await getFirebaseAuthConfig(projectId, serviceAccount);
+    hadConfig = false;
+    config = {};
   }
 
   const before = summarizeFirebaseAuthConfig(config, siteDomain);
@@ -1416,25 +1453,30 @@ async function ensureFirebaseAuthReady(projectId, serviceAccount, siteDomain) {
   const needsDomains = expectedDomains.some((domain) => !before.authorizedDomains.includes(domain));
 
   if (needsEmail || needsDomains) {
-    config = await updateFirebaseAuthConfig(
-      projectId,
-      serviceAccount,
-      {
-        signIn: {
-          ...(config.signIn || {}),
-          email: {
-            ...((config.signIn && config.signIn.email) || {}),
-            enabled: true,
-            passwordRequired: true,
+    try {
+      config = await updateFirebaseAuthConfig(
+        projectId,
+        serviceAccount,
+        {
+          signIn: {
+            ...(config.signIn || {}),
+            email: {
+              ...((config.signIn && config.signIn.email) || {}),
+              enabled: true,
+              passwordRequired: true,
+            },
           },
+          authorizedDomains: mergedDomains,
         },
-        authorizedDomains: mergedDomains,
-      },
-      'signIn.email,authorizedDomains'
-    );
+        'signIn.email,authorizedDomains'
+      );
+    } catch (error) {
+      throw buildFirebaseAuthSetupError(error);
+    }
   }
 
   const after = summarizeFirebaseAuthConfig(config, siteDomain);
+  initialized = !hadConfig && (after.emailEnabled || after.authorizedDomains.length > 0);
   return {
     initialized,
     before,
@@ -2920,6 +2962,7 @@ module.exports = {
   buildStorageReleaseName,
   extractProjectNumber,
   buildServiceUsageConsumerName,
+  summarizeGoogleErrorText,
   inspectBootstrapAdminAuth,
   inspectGcloudCli,
   startBootstrapAdminLogin,

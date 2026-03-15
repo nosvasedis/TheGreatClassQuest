@@ -34,8 +34,10 @@ export const authHTML = `
                             class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-sky-500"
                             autocomplete="new-password" required>
                     </div>
-                    <button type="submit"
-                        class="w-full bg-sky-500 hover:bg-sky-600 text-white font-title text-xl py-3 rounded-xl bubbly-button">Login</button>
+                    <button type="submit" id="login-submit-btn"
+                        class="w-full bg-sky-500 hover:bg-sky-600 text-white font-title text-xl py-3 rounded-xl bubbly-button flex items-center justify-center gap-2">
+                        <span class="auth-submit-label">Login</span>
+                    </button>
                 </form>
 
                 <form id="signup-form" class="hidden">
@@ -57,9 +59,10 @@ export const authHTML = `
                             class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-sky-500"
                             autocomplete="new-password" required>
                     </div>
-                    <button type="submit"
-                        class="w-full bg-emerald-500 hover:bg-emerald-600 text-white font-title text-xl py-3 rounded-xl bubbly-button">Sign
-                        Up</button>
+                    <button type="submit" id="signup-submit-btn"
+                        class="w-full bg-emerald-500 hover:bg-emerald-600 text-white font-title text-xl py-3 rounded-xl bubbly-button flex items-center justify-center gap-2">
+                        <span class="auth-submit-label">Sign Up</span>
+                    </button>
                 </form>
 
                 <p id="auth-error" class="text-sm text-red-600 mt-4 text-center h-4"></p>

@@ -8,6 +8,7 @@ const SUBSCRIPTION_PATH = 'appConfig/subscription';
 
 let subscriptionConfig = null;
 let subscriptionUnsubscribe = null;
+let schoolGraceConfig = null;
 
 function getTierDefaults(tier) {
     switch ((tier || '').toLowerCase()) {
@@ -88,6 +89,25 @@ function applySubscriptionSnapshot(snap) {
     if (typeof window !== 'undefined' && window.dispatchEvent) {
         window.dispatchEvent(new CustomEvent('gcq-subscription-updated', { detail: subscriptionConfig }));
     }
+}
+
+function getRuntimeSubscriptionConfig() {
+    if (!subscriptionConfig) return null;
+    if (subscriptionConfig.tier === 'pending' && schoolGraceConfig?.active) {
+        return {
+            ...getTierDefaults('starter'),
+            ...subscriptionConfig,
+            tier: 'starter',
+            effectiveTier: 'pending',
+            isGracePeriod: true,
+            graceEndsAt: schoolGraceConfig.endsAt || null
+        };
+    }
+    return {
+        ...subscriptionConfig,
+        isGracePeriod: false,
+        graceEndsAt: null
+    };
 }
 
 /**
@@ -210,8 +230,9 @@ function resolveSubscriptionConfig(rawConfig) {
  * @returns {boolean}
  */
 export function canUseFeature(featureFlag) {
-    if (!subscriptionConfig) return false;
-    const val = subscriptionConfig[featureFlag];
+    const activeConfig = getRuntimeSubscriptionConfig();
+    if (!activeConfig) return false;
+    const val = activeConfig[featureFlag];
     if (val === true) return true;
 
     // Backward compatibility: old Pro/Elite docs may not include this new flag yet.
@@ -233,8 +254,9 @@ export function canUseFeature(featureFlag) {
  * @returns {number|null}
  */
 export function getLimit(limitKey) {
-    if (!subscriptionConfig) return null;
-    const val = subscriptionConfig[limitKey];
+    const activeConfig = getRuntimeSubscriptionConfig();
+    if (!activeConfig) return null;
+    const val = activeConfig[limitKey];
     return val === undefined || val === null ? null : val;
 }
 
@@ -243,7 +265,7 @@ export function getLimit(limitKey) {
  * @returns {string} 'pending' | 'starter' | 'pro' | 'elite'
  */
 export function getTier() {
-    return subscriptionConfig?.tier || 'starter';
+    return getRuntimeSubscriptionConfig()?.tier || 'starter';
 }
 
 /**
@@ -254,6 +276,26 @@ export function getTier() {
 export function hasActiveSubscription() {
     const tier = getTier();
     return tier === 'starter' || tier === 'pro' || tier === 'elite';
+}
+
+export function getSubscriptionSnapshot() {
+    return getRuntimeSubscriptionConfig();
+}
+
+export function setSchoolGraceConfig(grace) {
+    const startsAt = grace?.startsAt ? new Date(grace.startsAt).getTime() : null;
+    const endsAt = grace?.endsAt ? new Date(grace.endsAt).getTime() : null;
+    schoolGraceConfig = {
+        startsAt: grace?.startsAt || null,
+        endsAt: grace?.endsAt || null,
+        active: Boolean(endsAt && endsAt > Date.now()),
+        expired: Boolean(endsAt && endsAt <= Date.now()),
+        used: Boolean(startsAt || endsAt)
+    };
+
+    if (typeof window !== 'undefined' && window.dispatchEvent) {
+        window.dispatchEvent(new CustomEvent('gcq-subscription-updated', { detail: getRuntimeSubscriptionConfig() }));
+    }
 }
 
 /**

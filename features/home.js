@@ -10,6 +10,7 @@ import { callGeminiApi } from '../api.js';
 import { canUseFeature } from '../utils/subscription.js';
 import * as grandGuildCeremony from '../features/grandGuildCeremony.js';
 import { DEFAULT_SCHOOL_NAME } from '../constants.js';
+import { loadTeacherJourneyState, markTeacherGuideSeen } from './teacherJourney.js';
 
 export { initializeHeaderQuote };
 
@@ -828,13 +829,22 @@ export function setupHomeListeners() {
         });
     }
 
-    // First-login auto-show: open guide once per browser session/device if not seen before
-    const GUIDE_SEEN_KEY = 'gcq_guide_seen';
-    if (!localStorage.getItem(GUIDE_SEEN_KEY)) {
-        setTimeout(() => {
-            modals.openAppInfoModal();
-            localStorage.setItem(GUIDE_SEEN_KEY, '1');
-        }, 900);
+}
+
+export async function maybeAutoShowGuideForTeacher(user) {
+    if (!user?.uid) return;
+
+    const teacherState = await loadTeacherJourneyState(user);
+    if (teacherState.guideShownAt) return;
+
+    setTimeout(() => {
+        modals.openAppInfoModal();
+    }, 900);
+
+    try {
+        await markTeacherGuideSeen(user);
+    } catch (error) {
+        console.warn('Could not mark guide as seen for teacher:', error);
     }
 }
 

@@ -17,6 +17,7 @@ function getDefaultState() {
     return {
         currentUserId: null,
         currentTeacherName: null,
+        schoolBillingGrace: null,
         schoolName: null,
         schoolWeatherLocation: null,
         allTeachersClasses: [],
@@ -137,6 +138,7 @@ export function resetState() {
 
 export function setCurrentUserId(id) { state.currentUserId = id; }
 export function setCurrentTeacherName(name) { state.currentTeacherName = name; }
+export function setSchoolBillingGrace(grace) { state.schoolBillingGrace = grace || null; }
 export function setSchoolName(name) { state.schoolName = name || null; }
 export function setSchoolWeatherLocation(location) { state.schoolWeatherLocation = location || null; }
 export function setAllTeachersClasses(classes) { state.allTeachersClasses = classes; }

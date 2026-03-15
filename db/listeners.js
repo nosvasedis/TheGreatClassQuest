@@ -27,11 +27,15 @@ import * as modals from '../ui/modals.js';
 import { renderHomeTab } from '../features/home.js';
 import { reconcileFamiliarLifecycle, shouldPassivelyReconcileFamiliar } from '../features/familiars.js';
 import { refreshSetupClassesList } from '../features/schoolSetup.js';
+import { setSchoolGraceConfig } from '../utils/subscription.js';
+import { parseGraceWindow } from '../features/teacherJourney.js';
 
 export function setupDataListeners(userId, dateString, onInitialDataReady) {
     let initialReadyFired = false;
+    let classesReady = false;
+    let schoolSettingsReady = false;
     function maybeFireInitialReady() {
-        if (typeof onInitialDataReady === 'function' && !initialReadyFired) {
+        if (typeof onInitialDataReady === 'function' && !initialReadyFired && classesReady && schoolSettingsReady) {
             initialReadyFired = true;
             onInitialDataReady();
         }
@@ -129,6 +133,7 @@ export function setupDataListeners(userId, dateString, onInitialDataReady) {
         const schoolClasses = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
         state.setAllSchoolClasses(schoolClasses);
         state.setAllTeachersClasses(schoolClasses.filter(c => c.createdBy?.uid === userId));
+        classesReady = true;
         maybeFireInitialReady();
         refreshSetupClassesList();
         findAndSetCurrentLeague();
@@ -383,6 +388,9 @@ export function setupDataListeners(userId, dateString, onInitialDataReady) {
             const data = docSnapshot.data();
             state.setSchoolHolidayRanges(data.ranges || []);
             state.setSchoolName(data.schoolName || null);
+            const graceWindow = parseGraceWindow(data);
+            state.setSchoolBillingGrace(graceWindow);
+            setSchoolGraceConfig(graceWindow);
             const weatherLocation = utils.normalizeWeatherLocation(data.weatherLocation);
             state.setSchoolWeatherLocation(weatherLocation);
             utils.setWeatherCoordinates(weatherLocation);
@@ -390,10 +398,14 @@ export function setupDataListeners(userId, dateString, onInitialDataReady) {
         } else {
             state.setSchoolHolidayRanges([]);
             state.setSchoolName(null);
+            state.setSchoolBillingGrace(null);
+            setSchoolGraceConfig(null);
             state.setSchoolWeatherLocation(null);
             utils.setWeatherCoordinates(null);
             applySchoolNameToDom(null);
         }
+        schoolSettingsReady = true;
+        maybeFireInitialReady();
         utils.fetchSolarCycle();
 
         // Refresh UI

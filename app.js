@@ -13,17 +13,19 @@ import { setupSounds, activateAudioContext } from './audio.js';
 import { updateDateTime, getTodayDateString, fetchSolarCycle } from './utils.js';
 import { archivePreviousDayStars } from './db/listeners.js';
 import { toggleWallpaperMode } from './ui/wallpaper.js';
-import { initializeHeaderQuote } from './features/home.js';
+import { initializeHeaderQuote, maybeAutoShowGuideForTeacher } from './features/home.js';
 import * as utils from './utils.js';
-import { loadSubscription, hasActiveSubscription, getTier } from './utils/subscription.js';
-import { isSetupNeeded, showSetupScreen } from './features/schoolSetup.js';
+import { loadSubscription, hasActiveSubscription, getTier, getSubscriptionSnapshot, setSchoolGraceConfig } from './utils/subscription.js';
+import { showSetupScreen } from './features/schoolSetup.js';
+import { loadTeacherJourneyState, markTeacherOnboardingComplete, startSchoolGracePeriod } from './features/teacherJourney.js';
 
 function updateTierLabel() {
     const tierEl = document.getElementById('app-tier-label');
     if (!tierEl) return;
+    const config = getSubscriptionSnapshot();
     const t = getTier();
     const pretty = t === 'elite' ? 'Elite' : t === 'pro' ? 'Pro' : t === 'expired' ? 'Expired' : t === 'pending' ? 'Pending' : 'Starter';
-    tierEl.textContent = `Plan: ${pretty}`;
+    tierEl.textContent = config?.isGracePeriod ? 'Plan: Starter (Grace Day)' : `Plan: ${pretty}`;
 }
 window.addEventListener('gcq-subscription-updated', updateTierLabel);
 
@@ -89,17 +91,79 @@ function onFirstUserGesture() {
     }
 }
 
-function showSubscribeScreen(loadingScreen, authScreen) {
+function setAuthSubmitLoading(mode, isLoading) {
+    const submitBtn = document.getElementById(mode === 'signup' ? 'signup-submit-btn' : 'login-submit-btn');
+    const toggleBtn = document.getElementById('toggle-auth-mode');
+    if (!submitBtn) return;
+
+    submitBtn.disabled = isLoading;
+    if (toggleBtn) toggleBtn.disabled = isLoading;
+    submitBtn.innerHTML = isLoading
+        ? `<i class="fas fa-spinner fa-spin"></i><span>${mode === 'signup' ? 'Creating your account...' : 'Signing you in...'}</span>`
+        : `<span class="auth-submit-label">${mode === 'signup' ? 'Sign Up' : 'Login'}</span>`;
+}
+
+function hideAuthScreen(authScreen) {
+    authScreen.classList.add('auth-screen-out');
+    setTimeout(() => {
+        authScreen.classList.add('hidden');
+        authScreen.classList.remove('auth-screen-out');
+    }, 500);
+}
+
+async function openMainAppForTeacher({ user, loadingScreen, authScreen, appScreen }) {
+    hideAuthScreen(authScreen);
+    appScreen.classList.remove('hidden');
+    appScreen.classList.add('app-screen-in');
+    setTimeout(() => appScreen.classList.remove('app-screen-in'), 500);
+    import('./ui/tabs.js').then((tabs) => tabs.showTab('about-tab'));
+    dismissLoadingAfterHomeIsReady(loadingScreen);
+    await maybeAutoShowGuideForTeacher(user);
+}
+
+function showSubscribeScreen(loadingScreen, authScreen, options = {}) {
     authScreen.classList.add('hidden');
+    const appScreen = document.getElementById('app-screen');
+    const setupScreen = document.getElementById('setup-screen');
     const subscribeScreen = document.getElementById('subscribe-screen');
     const refreshHint = document.getElementById('subscribe-refresh-hint');
+    const actions = document.getElementById('subscribe-actions');
     if (!subscribeScreen) return;
+    if (appScreen) appScreen.classList.add('hidden');
+    if (setupScreen) setupScreen.classList.add('hidden');
 
     const schoolId = BILLING_SCHOOL_ID || firebaseConfig?.projectId || '';
     const billingUrl = (BILLING_BASE_URL || '').replace(/\/$/, '');
 
     // Show refresh hint since buttons are now in the HTML template
     if (refreshHint) refreshHint.classList.remove('hidden');
+
+    if (actions) {
+        actions.classList.add('hidden');
+        actions.innerHTML = '';
+        if (options.canStartGrace || options.graceExpired) {
+            actions.classList.remove('hidden');
+            actions.innerHTML = `
+                <div class="rounded-2xl border ${options.graceExpired ? 'border-amber-200 bg-amber-50' : 'border-emerald-200 bg-emerald-50'} p-5 text-left">
+                    <h3 class="font-title text-2xl ${options.graceExpired ? 'text-amber-800' : 'text-emerald-800'} mb-2">
+                        ${options.graceExpired ? 'The 1-day grace period has ended' : 'Brand-new school? Start a 1-day grace period'}
+                    </h3>
+                    <p class="text-sm text-slate-700 leading-relaxed">
+                        ${options.graceExpired
+                            ? 'This school already used its free setup day. To unlock the app again, choose a plan below and complete payment.'
+                            : 'Use this only for the very first setup of a brand-new school. GCQ unlocks Starter-level access for 24 hours so the first teacher can set everything up before paying.'
+                        }
+                    </p>
+                    ${options.canStartGrace ? `
+                        <button type="button" id="subscribe-start-grace-btn" class="mt-4 bg-emerald-600 hover:bg-emerald-700 text-white font-title text-lg py-3 px-5 rounded-xl bubbly-button flex items-center gap-2">
+                            <i class="fas fa-hourglass-start"></i>
+                            <span>Start 1-Day Grace Period</span>
+                        </button>
+                    ` : ''}
+                </div>
+            `;
+        }
+    }
 
     if (billingUrl && schoolId) {
         const goCheckout = async (tier) => {
@@ -140,9 +204,9 @@ function showSubscribeScreen(loadingScreen, authScreen) {
         const proBtn = document.getElementById('subscribe-pro-btn');
         const eliteBtn = document.getElementById('subscribe-elite-btn');
 
-        if (starterBtn) starterBtn.addEventListener('click', () => goCheckout('starter'));
-        if (proBtn) proBtn.addEventListener('click', () => goCheckout('pro'));
-        if (eliteBtn) eliteBtn.addEventListener('click', () => goCheckout('elite'));
+        if (starterBtn) starterBtn.onclick = () => goCheckout('starter');
+        if (proBtn) proBtn.onclick = () => goCheckout('pro');
+        if (eliteBtn) eliteBtn.onclick = () => goCheckout('elite');
     } else {
         // Hide all plan buttons if billing is not configured
         const buttons = subscribeScreen.querySelectorAll('button[id^="subscribe-"]');
@@ -153,8 +217,71 @@ function showSubscribeScreen(loadingScreen, authScreen) {
         subscribeScreen.querySelector('.max-w-4xl').appendChild(msg);
     }
 
+    const graceBtn = document.getElementById('subscribe-start-grace-btn');
+    if (graceBtn && typeof options.onStartGrace === 'function') {
+        graceBtn.onclick = async () => {
+            graceBtn.disabled = true;
+            graceBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i><span>Opening your grace day...</span>';
+            try {
+                await options.onStartGrace();
+            } catch (error) {
+                console.error(error);
+                alert('Could not start the grace period right now. Please try again.');
+                graceBtn.disabled = false;
+                graceBtn.innerHTML = '<i class="fas fa-hourglass-start"></i><span>Start 1-Day Grace Period</span>';
+            }
+        };
+    }
+
     subscribeScreen.classList.remove('hidden');
     if (loadingScreen) animateLoadingScreenOut(loadingScreen);
+}
+
+async function routeAuthenticatedTeacher({ user, loadingScreen, authScreen, appScreen }) {
+    const teacherJourney = await loadTeacherJourneyState(user);
+    const allSchoolClasses = state.get('allSchoolClasses') || [];
+    const ownClasses = allSchoolClasses.filter((cls) => cls.createdBy?.uid === user.uid);
+    let needsTeacherSetup = teacherJourney.onboardingCompleted !== true;
+
+    if (needsTeacherSetup && ownClasses.length > 0) {
+        await markTeacherOnboardingComplete(user, { migratedFromExistingTeacherData: true });
+        needsTeacherSetup = false;
+    }
+
+    if (!hasActiveSubscription()) {
+        const schoolGrace = state.get('schoolBillingGrace');
+        const canStartGrace = !schoolGrace?.used && allSchoolClasses.length === 0;
+        showSubscribeScreen(loadingScreen, authScreen, {
+            canStartGrace,
+            graceExpired: Boolean(schoolGrace?.expired),
+            onStartGrace: async () => {
+                const graceWindow = await startSchoolGracePeriod();
+                state.setSchoolBillingGrace(graceWindow);
+                setSchoolGraceConfig(graceWindow);
+                await routeAuthenticatedTeacher({ user, loadingScreen, authScreen, appScreen });
+            }
+        });
+        return;
+    }
+
+    const isFirstTeacher = allSchoolClasses.length === 0;
+    const shouldCollectSchoolName = isFirstTeacher || !state.get('schoolName');
+
+    if (needsTeacherSetup) {
+        hideAuthScreen(authScreen);
+        showSetupScreen({
+            user,
+            isFirstTeacher,
+            shouldCollectSchoolName,
+            onComplete: async () => {
+                await openMainAppForTeacher({ user, loadingScreen, authScreen, appScreen });
+            }
+        });
+        animateLoadingScreenOut(loadingScreen);
+        return;
+    }
+
+    await openMainAppForTeacher({ user, loadingScreen, authScreen, appScreen });
 }
 
 function setupAuthListeners() {
@@ -186,10 +313,13 @@ function setupAuthListeners() {
         const password = document.getElementById('login-password').value;
         const errorEl = document.getElementById('auth-error');
         try {
+            setAuthSubmitLoading('login', true);
             await signInWithEmailAndPassword(auth, email, password);
             errorEl.innerText = '';
         } catch (error) {
             errorEl.innerText = error.message.replace('Firebase: ', '');
+        } finally {
+            setAuthSubmitLoading('login', false);
         }
     });
 
@@ -200,12 +330,15 @@ function setupAuthListeners() {
         const password = document.getElementById('signup-password').value;
         const errorEl = document.getElementById('auth-error');
         try {
+            setAuthSubmitLoading('signup', true);
             const userCredential = await createUserWithEmailAndPassword(auth, email, password);
             await updateProfile(userCredential.user, { displayName: name });
             state.set('currentTeacherName', name);
             errorEl.innerText = '';
         } catch (error) {
             errorEl.innerText = error.message.replace('Firebase: ', '');
+        } finally {
+            setAuthSubmitLoading('signup', false);
         }
     });
 
@@ -233,28 +366,8 @@ function setupAuthListeners() {
 
             await loadSubscription();
 
-            if (!hasActiveSubscription()) {
-                showSubscribeScreen(loadingScreen, authScreen);
-                return;
-            }
-
-            setupDataListeners(user.uid, newDate, function onInitialDataReady() {
-                authScreen.classList.add('auth-screen-out');
-                setTimeout(() => {
-                    authScreen.classList.add('hidden');
-                    authScreen.classList.remove('auth-screen-out');
-                }, 500);
-
-                if (isSetupNeeded()) {
-                    showSetupScreen();
-                    animateLoadingScreenOut(loadingScreen);
-                } else {
-                    appScreen.classList.remove('hidden');
-                    appScreen.classList.add('app-screen-in');
-                    setTimeout(() => appScreen.classList.remove('app-screen-in'), 500);
-                    import('./ui/tabs.js').then(tabs => tabs.showTab('about-tab'));
-                    dismissLoadingAfterHomeIsReady(loadingScreen);
-                }
+            setupDataListeners(user.uid, newDate, async function onInitialDataReady() {
+                await routeAuthenticatedTeacher({ user, loadingScreen, authScreen, appScreen });
             });
 
         } else {

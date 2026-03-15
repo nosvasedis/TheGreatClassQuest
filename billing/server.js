@@ -433,6 +433,25 @@ async function webhookHandler(req, res) {
 // Health
 app.get('/health', (req, res) => res.json({ ok: true }));
 
-app.listen(PORT, () => {
-  console.log('GCQ Billing listening on port', PORT);
-});
+// Export for testing
+export {
+  loadSchools,
+  loadTierPreset,
+  getSchoolById,
+  getSchoolByCustomerId,
+  getFirestoreForSchool,
+  saveSchoolStripeCustomerId,
+  getCustomerIdForSchool,
+  getOrCreatePortalConfiguration,
+  webhookHandler,
+  firebaseApps
+};
+
+// Start server if not in test mode
+if (process.env.NODE_ENV !== 'test') {
+  app.listen(PORT, () => {
+    console.log('GCQ Billing listening on port', PORT);
+  });
+}
+
+export default app;

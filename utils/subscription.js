@@ -58,10 +58,12 @@ export async function loadSubscription() {
 }
 
 function getStarterDefaults() {
+    // When subscription doc is missing, return "pending" to force payment
+    // This ensures new schools must subscribe before accessing the app
     return {
-        tier: 'starter',
-        maxTeachers: 3,
-        maxClasses: 6,
+        tier: 'pending',
+        maxTeachers: 0,
+        maxClasses: 0,
         guilds: false,
         adventureLog: false,
         calendar: false,

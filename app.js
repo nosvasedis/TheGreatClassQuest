@@ -92,28 +92,22 @@ function onFirstUserGesture() {
 function showSubscribeScreen(loadingScreen, authScreen) {
     authScreen.classList.add('hidden');
     const subscribeScreen = document.getElementById('subscribe-screen');
-    const actionsEl = document.getElementById('subscribe-actions');
     const refreshHint = document.getElementById('subscribe-refresh-hint');
-    const titleEl = subscribeScreen?.querySelector('h1');
-    const descEl = subscribeScreen?.querySelector('.text-gray-600');
-    if (!subscribeScreen || !actionsEl) return;
-
-    const expired = getTier() === 'expired';
-    if (titleEl) titleEl.textContent = expired ? 'Your subscription has ended' : 'Subscribe to get started';
-    if (descEl) descEl.textContent = expired ? 'Resubscribe to continue using The Great Class Quest.' : 'Choose a plan to unlock The Great Class Quest for your school.';
+    if (!subscribeScreen) return;
 
     const schoolId = BILLING_SCHOOL_ID || firebaseConfig?.projectId || '';
     const billingUrl = (BILLING_BASE_URL || '').replace(/\/$/, '');
 
-    if (billingUrl && schoolId) {
-        actionsEl.innerHTML = `
-            <button type="button" id="subscribe-starter-btn" class="w-full bg-indigo-500 hover:bg-indigo-600 text-white font-title text-xl py-3 rounded-xl mb-3">Subscribe to Starter</button>
-            <button type="button" id="subscribe-pro-btn" class="w-full bg-sky-500 hover:bg-sky-600 text-white font-title text-xl py-3 rounded-xl mb-3">Subscribe to Pro</button>
-            <button type="button" id="subscribe-elite-btn" class="w-full bg-emerald-500 hover:bg-emerald-600 text-white font-title text-xl py-3 rounded-xl">Subscribe to Elite</button>
-        `;
-        refreshHint.classList.remove('hidden');
+    // Show refresh hint since buttons are now in the HTML template
+    if (refreshHint) refreshHint.classList.remove('hidden');
 
+    if (billingUrl && schoolId) {
         const goCheckout = async (tier) => {
+            const btn = document.getElementById(`subscribe-${tier}-btn`);
+            if (btn) {
+                btn.disabled = true;
+                btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> Loading...';
+            }
             try {
                 const res = await fetch(billingUrl + '/create-checkout-session', {
                     method: 'POST',
@@ -126,19 +120,37 @@ function showSubscribeScreen(loadingScreen, authScreen) {
                     })
                 });
                 const data = await res.json();
-                if (data.url) window.location.href = data.url;
-                else actionsEl.insertAdjacentHTML('beforeend', `<p class="text-red-600 text-sm mt-2">${data.error || 'Checkout failed'}</p>`);
+                if (data.url) {
+                    window.location.href = data.url;
+                } else {
+                    throw new Error(data.error || 'Checkout failed');
+                }
             } catch (e) {
                 console.error(e);
-                actionsEl.insertAdjacentHTML('beforeend', '<p class="text-red-600 text-sm mt-2">Could not open checkout. Try again or contact support.</p>');
+                alert('Could not open checkout. Please try again or contact support.');
+                if (btn) {
+                    btn.disabled = false;
+                    btn.innerHTML = tier === 'starter' ? 'Choose Starter' : tier === 'pro' ? 'Choose Pro' : 'Choose Elite';
+                }
             }
         };
 
-        document.getElementById('subscribe-starter-btn').addEventListener('click', () => goCheckout('starter'));
-        document.getElementById('subscribe-pro-btn').addEventListener('click', () => goCheckout('pro'));
-        document.getElementById('subscribe-elite-btn').addEventListener('click', () => goCheckout('elite'));
+        // Attach listeners to the buttons in the template
+        const starterBtn = document.getElementById('subscribe-starter-btn');
+        const proBtn = document.getElementById('subscribe-pro-btn');
+        const eliteBtn = document.getElementById('subscribe-elite-btn');
+
+        if (starterBtn) starterBtn.addEventListener('click', () => goCheckout('starter'));
+        if (proBtn) proBtn.addEventListener('click', () => goCheckout('pro'));
+        if (eliteBtn) eliteBtn.addEventListener('click', () => goCheckout('elite'));
     } else {
-        actionsEl.innerHTML = '<p class="text-gray-600">Contact us to get started and choose your plan.</p>';
+        // Hide all plan buttons if billing is not configured
+        const buttons = subscribeScreen.querySelectorAll('button[id^="subscribe-"]');
+        buttons.forEach(btn => btn.classList.add('hidden'));
+        const msg = document.createElement('p');
+        msg.className = 'text-gray-600 text-center mt-4';
+        msg.textContent = 'Billing is not configured. Please contact support.';
+        subscribeScreen.querySelector('.max-w-4xl').appendChild(msg);
     }
 
     subscribeScreen.classList.remove('hidden');

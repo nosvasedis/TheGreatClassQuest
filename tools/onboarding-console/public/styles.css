@@ -1346,7 +1346,7 @@ body {
 }
 
 .manage-snapshot-grid-wide {
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
 }
 
 .manage-snapshot-card,
@@ -1648,7 +1648,7 @@ body {
 
 .manage-finance-grid {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
   gap: 12px;
 }
 
@@ -1683,6 +1683,14 @@ body {
 
 .manage-metric-card.tone-pending {
   background: linear-gradient(160deg, rgba(255, 246, 226, 0.98), rgba(255, 252, 241, 0.95));
+}
+
+.manage-metric-card.tone-elite {
+  background: linear-gradient(160deg, rgba(245, 235, 255, 0.98), rgba(255, 248, 254, 0.95));
+}
+
+.manage-metric-card.tone-expired {
+  background: linear-gradient(160deg, rgba(255, 234, 237, 0.98), rgba(255, 247, 247, 0.95));
 }
 
 .manage-metric-card.neutral {

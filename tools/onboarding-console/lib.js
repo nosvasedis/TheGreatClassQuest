@@ -19,6 +19,7 @@ const firestoreRulesPath = path.join(repoRoot, 'firestore.rules');
 const storageRulesPath = path.join(repoRoot, 'storage.rules');
 const tierConfigDir = path.join(repoRoot, 'config', 'tiers');
 const pendingTierPath = path.join(repoRoot, 'config', 'tiers', 'pending.json');
+const SCHOOL_SETTINGS_DOC = 'artifacts/great-class-quest/public/data/school_settings/holidays';
 
 const DEFAULT_DEFAULTS = {
   renderUrl: '',
@@ -726,6 +727,41 @@ function formatSubscriptionSummary(subscription) {
   };
 }
 
+function toIsoString(value) {
+  if (!value) return null;
+  if (typeof value === 'string') return value;
+  if (value?.toDate) return value.toDate().toISOString();
+  const parsed = new Date(value);
+  return Number.isNaN(parsed.getTime()) ? null : parsed.toISOString();
+}
+
+function formatGraceSummary(raw) {
+  const startsAt = toIsoString(raw?.onboardingGraceStartedAt);
+  const endsAt = toIsoString(raw?.onboardingGraceEndsAt);
+  const startMs = startsAt ? new Date(startsAt).getTime() : null;
+  const endMs = endsAt ? new Date(endsAt).getTime() : null;
+  const now = Date.now();
+  return {
+    startsAt,
+    endsAt,
+    active: Boolean(endMs && endMs > now),
+    expired: Boolean(endMs && endMs <= now),
+    used: Boolean(startMs || endMs),
+    remainingMs: endMs && endMs > now ? endMs - now : 0,
+    message: endMs && endMs > now
+      ? 'A grace period is active for this school right now.'
+      : startMs || endMs
+        ? 'This school has already used its grace period.'
+        : 'This school has not used its grace period yet.',
+  };
+}
+
+async function fetchGraceWindow(projectId, serviceAccount) {
+  const app = getAdminApp(projectId, serviceAccount);
+  const snap = await app.firestore().doc(SCHOOL_SETTINGS_DOC).get();
+  return formatGraceSummary(snap.exists ? snap.data() : null);
+}
+
 async function fetchBillingSubscriptionInfo(projectId) {
   const configuredUrl = String(process.env.ONBOARDING_CONSOLE_BILLING_URL || loadDefaults().renderUrl || '').trim();
   const checkedAt = new Date().toISOString();
@@ -797,11 +833,13 @@ async function getSavedSchoolDetails(projectId) {
   const serviceAccount = readJson(keyPath);
   const subscription = await readSubscriptionStatus(projectId, serviceAccount);
   const billing = await fetchBillingSubscriptionInfo(projectId);
+  const grace = await fetchGraceWindow(projectId, serviceAccount);
   return {
     school,
     serviceAccount,
     subscription: formatSubscriptionSummary(subscription),
     billing,
+    grace,
   };
 }
 
@@ -816,6 +854,7 @@ async function updateSavedSchoolSubscription(projectId, input = {}) {
     school: details.school,
     subscription: formatSubscriptionSummary(nextSubscription),
     billing,
+    grace: details.grace,
     message: 'The school subscription was updated successfully.',
   };
 }

@@ -37,6 +37,53 @@ function getLevelTier(questLevel) {
     if (questLevel === 'A' || questLevel === 'B') return 'mid';
     return 'senior';
 }
+
+const AI_CARD_TYPES = new Set([
+    'ai_fact_science', 'ai_fact_history', 'ai_fact_nature', 'ai_fact_geography',
+    'ai_fact_math', 'ai_did_you_know',
+    'ai_word', 'ai_joke', 'ai_riddle', 'ai_idiom', 'ai_brain_teaser', 'ai_tongue_twister'
+]);
+
+const CARD_FEATURE_REQUIREMENTS = {
+    ...Object.fromEntries([...AI_CARD_TYPES].map((type) => [type, 'eliteAI'])),
+    school_upcoming_event: 'calendar',
+    class_test_luck: 'scholarScroll',
+    upcoming_test_countdown: 'scholarScroll',
+    guild_leaderboard: 'guilds',
+    story_sentence: 'storyWeavers',
+    class_familiar_parade: 'familiars',
+    class_familiar_hatch_watch: 'familiars',
+    school_adventure_count: 'adventureLog',
+    reigning_hero_spotlight: 'adventureLog',
+    log: 'adventureLog'
+};
+
+function getCardBaseType(cardType) {
+    return String(cardType || '').split(':')[0];
+}
+
+function getWallpaperCapabilities() {
+    return {
+        guilds: canUseFeature('guilds'),
+        calendar: canUseFeature('calendar'),
+        scholarScroll: canUseFeature('scholarScroll'),
+        storyWeavers: canUseFeature('storyWeavers'),
+        familiars: canUseFeature('familiars'),
+        adventureLog: canUseFeature('adventureLog'),
+        eliteAI: canUseFeature('eliteAI')
+    };
+}
+
+function canRenderCardForTier(cardType, capabilities = getWallpaperCapabilities()) {
+    const requiredFeature = CARD_FEATURE_REQUIREMENTS[getCardBaseType(cardType)];
+    if (!requiredFeature) return true;
+    return capabilities[requiredFeature] === true;
+}
+
+function filterDeckForTier(cards, capabilities = getWallpaperCapabilities()) {
+    return cards.filter((cardType) => canRenderCardForTier(cardType, capabilities));
+}
+
 let directorTimeout = null;
 let wallpaperTimerInterval = null;
 let clockInterval = null;
@@ -259,6 +306,12 @@ async function initializeDailyAIContent() {
     const storageKey = `gcq_daily_ai_${today}`;
     if (localStorage.getItem(storageKey)) return;
 
+    // Non-Elite schools should not spend reads on AI content collections.
+    if (!canUseFeature('eliteAI')) {
+        localStorage.setItem(storageKey, "loaded");
+        return;
+    }
+
     const contentCollection = collection(db, "artifacts/great-class-quest/public/data/daily_ai_content");
     const q = query(contentCollection, where("date", "==", today));
     const snapshot = await getDocs(q);
@@ -268,10 +321,6 @@ async function initializeDailyAIContent() {
     const levelLabel = getLevelLabel(cls?.questLevel);
 
     if (snapshot.empty) {
-        if (!canUseFeature('eliteAI')) {
-            localStorage.setItem(storageKey, "loaded");
-            return;
-        }
         console.log("Generating fresh AI content for the day...");
         const systemPrompt = `You are a creative content engine for an English language school in Greece.
         Target audience: ${levelLabel}.
@@ -517,18 +566,19 @@ async function directorGameLoop() {
 
 async function selectNextCard(classId) {
     try {
-        let potentialCards = buildDeckList(classId);
+        const capabilities = getWallpaperCapabilities();
+        let potentialCards = buildDeckList(classId, capabilities);
         potentialCards = shuffleDeck(potentialCards);
 
         for (const cardType of potentialCards) {
             if (!hasBeenShownRecently(cardType)) {
-                const card = await safeHydrate(cardType, classId);
+                const card = await safeHydrate(cardType, classId, capabilities);
                 if (card) return card;
             }
         }
 
         for (const cardType of potentialCards) {
-            const card = await safeHydrate(cardType, classId);
+            const card = await safeHydrate(cardType, classId, capabilities);
             if (card) return card;
         }
 
@@ -540,16 +590,16 @@ async function selectNextCard(classId) {
     }
 }
 
-async function safeHydrate(type, classId) {
+async function safeHydrate(type, classId, capabilities) {
     try {
-        return await hydrateCard(type, classId);
+        return await hydrateCard(type, classId, capabilities);
     } catch (e) {
         console.warn(`Failed to hydrate card ${type}:`, e);
         return null;
     }
 }
 
-function buildDeckList(classId) {
+function buildDeckList(classId, capabilities = getWallpaperCapabilities()) {
     let list = [];
     const now = new Date();
     const dateMatch = `-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
@@ -621,7 +671,7 @@ function buildDeckList(classId) {
 
         // --- Upcoming Test Countdown (within 7 days but not today) ---
         const nextTest = state.get('allQuestAssignments').find(a => {
-            if (!a.classId === classId || !a.testData) return false;
+            if (a.classId !== classId || !a.testData) return false;
             const testDate = utils.parseFlexibleDate(a.testData.date);
             if (!testDate) return false;
             const diff = Math.ceil((testDate - now) / (1000 * 60 * 60 * 24));
@@ -703,10 +753,12 @@ function buildDeckList(classId) {
         }
     }
 
-    return shuffleDeck(list);
+    return shuffleDeck(filterDeckForTier(list, capabilities));
 }
 
-async function hydrateCard(type, classId) {
+async function hydrateCard(type, classId, capabilities = getWallpaperCapabilities()) {
+    if (!canRenderCardForTier(type, capabilities)) return null;
+
     const [baseType, dataId] = type.split(':');
     const baseObj = { id: type };
     let content = null;

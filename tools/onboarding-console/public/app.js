@@ -923,6 +923,7 @@ function renderManageSchools() {
   const details = state.manageSubscription;
   const subscription = details?.subscription || null;
   const billing = details?.billing || null;
+  const grace = details?.grace || null;
   const currentTier = subscription?.tier || 'missing';
   const effectiveTier = subscription?.effectiveTier || 'pending';
   const deleteReady = state.manageDeleteConfirm.trim() === state.manageSchoolId;
@@ -937,7 +938,10 @@ function renderManageSchools() {
   const remainingLabel = getRemainingAccessLabel(subscription?.endsAt || billing?.currentPeriodEnd);
   const accessProgress = getDateRangeProgress(subscription?.startsAt || billing?.subscriptionStartedAt, subscription?.endsAt || billing?.currentPeriodEnd);
   const paymentTone = getBillingTone(billing, effectiveMeta.tone);
+  const graceTone = getGraceTone(grace);
   const latestPaid = billing?.latestPaidInvoice || billing?.recentPayments?.[0] || null;
+  const graceStatus = getGraceStatusLabel(grace);
+  const graceWindowLabel = getGraceWindowLabel(grace);
   return `
     <section class="manage-screen">
       <div class="panel manage-hero-panel manage-top-panel">
@@ -1102,6 +1106,16 @@ function renderManageSchools() {
               </div>
               <p>${escapeHtml(getBillingMessage(billing))}</p>
             </article>
+            <article class="manage-snapshot-card tone-${graceTone}">
+              <div class="manage-snapshot-top">
+                <span class="manage-snapshot-emoji">${grace?.active ? '⏱️' : grace?.used ? '⌛' : '🌤️'}</span>
+                <div>
+                  <p class="pill-label">Grace period</p>
+                  <h4>${escapeHtml(graceStatus)}</h4>
+                </div>
+              </div>
+              <p>${escapeHtml(grace?.message || 'Grace-period status is not available.')}</p>
+            </article>
           </div>
 
           <section class="manage-card manage-finance-card">
@@ -1141,6 +1155,21 @@ function renderManageSchools() {
                 <p class="pill-label">Last payment</p>
                 <strong>${escapeHtml(latestPaid ? formatCurrencyMinor(latestPaid.amountPaid, latestPaid.currency) : 'No paid invoice yet')}</strong>
                 <span>${escapeHtml(latestPaid?.paidAt ? formatDateForDisplay(latestPaid.paidAt) : 'Nothing recorded in Stripe')}</span>
+              </article>
+              <article class="manage-metric-card tone-${graceTone}">
+                <p class="pill-label">Grace status</p>
+                <strong>${escapeHtml(graceStatus)}</strong>
+                <span>${escapeHtml(graceWindowLabel)}</span>
+              </article>
+              <article class="manage-metric-card tone-${graceTone}">
+                <p class="pill-label">Grace started</p>
+                <strong>${escapeHtml(formatDateForDisplay(grace?.startsAt))}</strong>
+                <span>${escapeHtml(grace?.used ? getActiveSinceLabel(grace?.startsAt) : 'No grace period has started yet')}</span>
+              </article>
+              <article class="manage-metric-card tone-${graceTone}">
+                <p class="pill-label">Grace ends</p>
+                <strong>${escapeHtml(formatDateForDisplay(grace?.endsAt))}</strong>
+                <span>${escapeHtml(getRemainingAccessLabel(grace?.endsAt))}</span>
               </article>
             </div>
           </section>
@@ -1426,6 +1455,27 @@ function getBillingHeadline(billing) {
 function getBillingMessage(billing) {
   return billing?.message
     || 'This card compares the Stripe side with the live access document.';
+}
+
+function getGraceTone(grace) {
+  if (grace?.active) return 'starter';
+  if (grace?.expired) return 'expired';
+  return 'pending';
+}
+
+function getGraceStatusLabel(grace) {
+  if (grace?.active) return 'Active now';
+  if (grace?.expired) return 'Used and ended';
+  if (grace?.used) return 'Used';
+  return 'Not used yet';
+}
+
+function getGraceWindowLabel(grace) {
+  if (!grace?.used) return 'The one-time setup grace period is still unused.';
+  if (grace?.active) {
+    return `Started ${formatDateForDisplay(grace.startsAt)} and ends ${formatDateForDisplay(grace.endsAt)}.`;
+  }
+  return `Started ${formatDateForDisplay(grace?.startsAt)} and ended ${formatDateForDisplay(grace?.endsAt)}.`;
 }
 
 function getActiveSinceLabel(value) {

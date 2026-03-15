@@ -12,7 +12,9 @@ const {
   buildStorageReleaseName,
   buildServiceUsageConsumerName,
   compareRequiredIndexes,
+  formatHostedEnvironmentVariables,
   formatNetlifyVariables,
+  buildHostingTargets,
   summarizeGoogleErrorText,
 } = require('../tools/onboarding-console/lib');
 
@@ -260,6 +262,47 @@ test('formatNetlifyVariables includes Firebase config and billing values', () =>
   assert.match(text, /GCQ_FIREBASE_API_KEY=api-key/);
   assert.match(text, /GCQ_BILLING_BASE_URL=https:\/\/gcq-billing.onrender.com/);
   assert.match(text, /GCQ_BILLING_SCHOOL_ID=gcq-test-school/);
+});
+
+test('formatHostedEnvironmentVariables matches the Netlify env format', () => {
+  const text = formatHostedEnvironmentVariables(
+    {
+      apiKey: 'api-key',
+      authDomain: 'gcq-test-school.firebaseapp.com',
+      projectId: 'gcq-test-school',
+      storageBucket: 'gcq-test-school.appspot.com',
+      messagingSenderId: '123456',
+      appId: '1:123456:web:abcdef',
+      measurementId: 'G-TEST123',
+    },
+    'https://gcq-billing.onrender.com',
+    'gcq-test-school'
+  );
+
+  assert.match(text, /GCQ_FIREBASE_PROJECT_ID=gcq-test-school/);
+  assert.match(text, /GCQ_BILLING_BASE_URL=https:\/\/gcq-billing.onrender.com/);
+});
+
+test('buildHostingTargets provides provider-specific instructions with shared env text', () => {
+  const targets = buildHostingTargets(
+    {
+      apiKey: 'api-key',
+      authDomain: 'gcq-test-school.firebaseapp.com',
+      projectId: 'gcq-test-school',
+      storageBucket: 'gcq-test-school.appspot.com',
+      messagingSenderId: '123456',
+      appId: '1:123456:web:abcdef',
+      measurementId: 'G-TEST123',
+    },
+    'https://gcq-billing.onrender.com',
+    'gcq-test-school'
+  );
+
+  assert.equal(targets.netlify.envText, targets.githubPages.envText);
+  assert.equal(targets.netlify.envText, targets.cloudflarePages.envText);
+  assert.equal(targets.netlify.envFilename, 'gcq-test-school.netlify.env');
+  assert.equal(targets.githubPages.envFilename, 'gcq-test-school.github-pages.env');
+  assert.match(targets.cloudflarePages.instructions.join(' '), /Build output directory: dist/);
 });
 
 test('summarizeGoogleErrorText shortens Google HTML error pages', () => {

@@ -900,6 +900,11 @@ export function setupUIListeners() {
     document.getElementById('award-note-confirm-btn').addEventListener('click', saveAwardNote);
     document.getElementById('quest-assignment-cancel-btn').addEventListener('click', () => modals.hideModal('quest-assignment-modal'));
     document.getElementById('quest-assignment-confirm-btn').addEventListener('click', handleSaveQuestAssignment);
+    document.getElementById('quest-test-toggle-btn').addEventListener('click', modals.toggleQuestTestPanel);
+    document.getElementById('quest-test-clear-btn').addEventListener('click', () => modals.clearQuestTestFields({ collapse: false }));
+    ['quest-test-date', 'quest-test-title', 'quest-test-curriculum'].forEach((id) => {
+        document.getElementById(id).addEventListener('input', modals.refreshQuestTestPanelSummary);
+    });
     document.getElementById('attendance-chronicle-btn').addEventListener('click', modals.openAttendanceChronicle);
     document.getElementById('attendance-chronicle-close-btn').addEventListener('click', () => modals.hideModal('attendance-chronicle-modal'));
 

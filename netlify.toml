@@ -1,8 +1,8 @@
 # Netlify: one site per school. Set env vars for that school's Firebase project.
-# Build only writes config.json from env; no other build step.
+# The shared static build writes config.json and stages dist for all supported hosts.
 [build]
-  command = "node scripts/write-config.js"
-  publish = "."
+  command = "node scripts/build-static-site.js"
+  publish = "dist"
 
 # Optional: redirect SPA if you add client-side routing later
 # [[redirects]]

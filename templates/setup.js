@@ -58,6 +58,17 @@ export const setupHTML = `
                             <div class="space-y-3 text-sm text-slate-700 leading-relaxed">
                                 <p>This setup screen is meant for a real teacher, not a programmer. Fill in the boxes, add your classes, and press one main button at the end.</p>
                                 <p>If the school is still on its first grace day, the app stays open temporarily. When that day ends, GCQ locks again until payment is completed.</p>
+                                <div id="setup-grace-banner" class="hidden rounded-[1.25rem] border border-emerald-200 bg-white/90 px-4 py-4 shadow-sm">
+                                    <p class="text-[11px] uppercase tracking-[0.24em] text-emerald-600 font-black mb-1">Grace Day Countdown</p>
+                                    <div class="flex items-center justify-between gap-3">
+                                        <div>
+                                            <p id="setup-grace-copy" class="text-sm text-slate-700">Finish setup before the timer ends so the school does not lock again.</p>
+                                        </div>
+                                        <div class="rounded-2xl bg-emerald-50 border border-emerald-200 px-3 py-2 min-w-[126px] text-center">
+                                            <p id="setup-grace-countdown" class="font-title text-xl text-emerald-800">24h 00m</p>
+                                        </div>
+                                    </div>
+                                </div>
                                 <p id="setup-ai-note" class="rounded-2xl bg-white/80 border border-amber-100 px-4 py-3">
                                     AI class-name suggestions wake up automatically only on the Elite plan.
                                 </p>

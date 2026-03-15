@@ -4,6 +4,7 @@
   "description": "The Great Class Quest",
   "scripts": {
     "dev": "npx serve -l 3000",
+    "build:static": "node scripts/build-static-site.js",
     "billing": "node billing/server.js",
     "test": "node --test",
     "set-subscription": "node scripts/set-subscription.js",

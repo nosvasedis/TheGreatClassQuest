@@ -24,6 +24,73 @@ function getTodayAssignmentChipText() {
     return `${dd}/${mm}/${yyyy}`;
 }
 
+function getQuestTestElements() {
+    return {
+        panel: document.getElementById('quest-test-panel'),
+        toggleBadge: document.getElementById('quest-test-toggle-badge'),
+        toggleCopy: document.getElementById('quest-test-toggle-copy'),
+        toggleIcon: document.getElementById('quest-test-toggle-icon'),
+        testDate: document.getElementById('quest-test-date'),
+        testTitle: document.getElementById('quest-test-title'),
+        testCurriculum: document.getElementById('quest-test-curriculum')
+    };
+}
+
+export function setQuestTestPanelExpanded(expanded) {
+    const { panel, toggleBadge, toggleCopy, toggleIcon } = getQuestTestElements();
+    if (panel) panel.classList.toggle('hidden', !expanded);
+    if (toggleBadge) toggleBadge.textContent = expanded ? 'Open' : 'Closed';
+    if (toggleCopy) {
+        toggleCopy.textContent = expanded
+            ? 'Add the test details that should appear alongside this assignment.'
+            : 'Add a test date, title, and topic when you want this assignment to lead into an upcoming test.';
+    }
+    if (toggleIcon) toggleIcon.classList.toggle('rotate-180', expanded);
+}
+
+export function refreshQuestTestPanelSummary() {
+    const { panel, testDate, testTitle, testCurriculum, toggleBadge, toggleCopy } = getQuestTestElements();
+    const hasTitle = !!testTitle?.value?.trim();
+    const hasDate = !!testDate?.value;
+    const hasCurriculum = !!testCurriculum?.value?.trim();
+    const hasAnyValue = hasTitle || hasDate || hasCurriculum;
+
+    if (toggleBadge) {
+        toggleBadge.textContent = hasAnyValue ? 'Planned' : (panel?.classList.contains('hidden') ? 'Closed' : 'Open');
+    }
+    if (toggleCopy) {
+        if (hasAnyValue) {
+            const pieces = [];
+            if (hasDate) pieces.push(testDate.value);
+            if (hasTitle) pieces.push(testTitle.value.trim());
+            if (hasCurriculum) pieces.push(testCurriculum.value.trim());
+            toggleCopy.textContent = pieces.join(' • ');
+        } else if (panel?.classList.contains('hidden')) {
+            toggleCopy.textContent = 'Add a test date, title, and topic when you want this assignment to lead into an upcoming test.';
+        } else {
+            toggleCopy.textContent = 'Add the test details that should appear alongside this assignment.';
+        }
+    }
+}
+
+export function clearQuestTestFields(options = {}) {
+    const { testDate, testTitle, testCurriculum } = getQuestTestElements();
+    if (testDate) testDate.value = '';
+    if (testTitle) testTitle.value = '';
+    if (testCurriculum) testCurriculum.value = '';
+    refreshQuestTestPanelSummary();
+    if (options.collapse !== false) {
+        setQuestTestPanelExpanded(false);
+    }
+}
+
+export function toggleQuestTestPanel() {
+    const panel = document.getElementById('quest-test-panel');
+    const nextExpanded = panel?.classList.contains('hidden');
+    setQuestTestPanelExpanded(Boolean(nextExpanded));
+    refreshQuestTestPanelSummary();
+}
+
 export function openEditStudentModal(studentId) {
     const student = state.get('allStudents').find(s => s.id === studentId);
     if (!student) return;
@@ -81,6 +148,7 @@ export async function openQuestAssignmentModal() {
 
     previousAssignmentTextEl.innerHTML = `<i class="fas fa-spinner fa-spin"></i>`;
     currentAssignmentTextarea.value = '';
+    clearQuestTestFields();
     if (dateChipEl) {
         const labelEl = dateChipEl.querySelector('span');
         if (labelEl) labelEl.textContent = getTodayAssignmentChipText();

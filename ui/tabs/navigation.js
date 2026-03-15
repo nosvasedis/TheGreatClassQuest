@@ -31,7 +31,7 @@ import {
 } from '../../db/actions/school.js';
 import { renderCalendarTab } from './selectors.js';
 import { renderIdeasTabSelects, renderStarManagerStudentSelect } from './ideas.js';
-import { canUseFeature, getTier } from '../../utils/subscription.js';
+import { canUseFeature, getTier, getSubscriptionSnapshot } from '../../utils/subscription.js';
 import { showUpgradePrompt } from '../../utils/upgradePrompt.js';
 import { GATED_TABS, TAB_FEATURE_FLAGS, getTierSummary, getUpgradeMessage } from '../../config/tiers/features.js';
 
@@ -298,6 +298,46 @@ export async function showTab(tabName) {
             `;
         }
 
+        const capitalizeTier = (tier) => {
+            const value = String(tier || '').trim().toLowerCase();
+            if (!value) return 'Unknown';
+            return value.charAt(0).toUpperCase() + value.slice(1);
+        };
+        const formatBillingDate = (iso) => {
+            if (!iso) return '';
+            const candidate = String(iso).includes('T') ? iso : `${iso}T12:00:00Z`;
+            const d = new Date(candidate);
+            return isNaN(d.getTime()) ? String(iso) : d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+        };
+        const formatRemaining = (iso) => {
+            if (!iso) return '';
+            const candidate = String(iso).includes('T') ? iso : `${iso}T12:00:00Z`;
+            const time = new Date(candidate).getTime();
+            if (Number.isNaN(time)) return '';
+            const diff = time - Date.now();
+            const days = Math.ceil(diff / 86400000);
+            if (days > 1) return `${days} days left`;
+            if (days === 1) return '1 day left';
+            if (days === 0) return 'ends today';
+            return '';
+        };
+        const buildFactPill = (label, text, tone = 'slate') => {
+            const tones = {
+                slate: 'bg-slate-50 border-slate-200 text-slate-700',
+                indigo: 'bg-indigo-50 border-indigo-200 text-indigo-700',
+                emerald: 'bg-emerald-50 border-emerald-200 text-emerald-700',
+                amber: 'bg-amber-50 border-amber-200 text-amber-700',
+                rose: 'bg-rose-50 border-rose-200 text-rose-700',
+            };
+            const cls = tones[tone] || tones.slate;
+            return `
+                <div class="rounded-xl border px-3 py-2 ${cls}">
+                    <p class="text-[11px] font-bold uppercase tracking-wide opacity-80 mb-0.5">${label}</p>
+                    <p class="text-sm font-medium">${text}</p>
+                </div>
+            `;
+        };
+
         let billingUrl = (constants.BILLING_BASE_URL || '').trim().replace(/\/$/, '');
         if (billingUrl && !/^https?:\/\//i.test(billingUrl)) billingUrl = 'https://' + billingUrl;
         const schoolId = constants.BILLING_SCHOOL_ID || constants.firebaseConfig?.projectId || '';
@@ -307,48 +347,88 @@ export async function showTab(tabName) {
             if (billingUrl && schoolId) {
                 manageWrap.classList.remove('hidden');
                 const detailsEl = document.getElementById('options-subscription-details');
-                const formatDate = (iso) => {
-                    if (!iso) return '';
-                    const d = new Date(iso + 'T12:00:00Z');
-                    return isNaN(d.getTime()) ? iso : d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
-                };
+                const factsEl = document.getElementById('options-subscription-facts');
+                const sourceEl = document.getElementById('options-subscription-source');
                 // Load accurate subscription details (period end, cancel-at-period-end, etc.)
                 (async () => {
-                    const fallbackTier = (() => {
-                        const t = getTier();
-                        return t ? t.charAt(0).toUpperCase() + t.slice(1) : null;
-                    })();
-                    const fallbackMsg = fallbackTier
-                        ? `${fallbackTier} • Restart the billing server to see renewal date.`
-                        : 'Subscription details unavailable.';
+                    const runtime = getSubscriptionSnapshot() || {};
+                    const runtimeTier = capitalizeTier(runtime?.tier || getTier());
+                    const manualControlled = Boolean(runtime?.source === 'manual' || runtime?.startsAt || runtime?.endsAt || runtime?.notes);
+                    const updateStatusCard = (stripeInfo = null, stripeError = false) => {
+                        const facts = [];
+
+                        if (runtime?.isGracePeriod && runtime?.graceEndsAt) {
+                            if (detailsEl) detailsEl.textContent = `Starter grace day is active until ${formatBillingDate(runtime.graceEndsAt)}.`;
+                            facts.push(buildFactPill('Access', `GCQ is temporarily unlocked for first-time setup.`, 'emerald'));
+                        } else if (runtime?.tier === 'expired') {
+                            if (detailsEl) detailsEl.textContent = runtime?.endsAt
+                                ? `${runtimeTier} access ended on ${formatBillingDate(runtime.endsAt)}.`
+                                : `${runtimeTier} access has ended.`;
+                        } else if (runtime?.tier === 'pending') {
+                            if (detailsEl) detailsEl.textContent = 'This school is currently locked behind the paywall.';
+                        } else if (detailsEl) {
+                            const endText = runtime?.endsAt ? ` until ${formatBillingDate(runtime.endsAt)}` : '';
+                            detailsEl.textContent = `${runtimeTier} access is active${endText}.`;
+                        }
+
+                        if (runtime?.startsAt) {
+                            facts.push(buildFactPill('Starts', formatBillingDate(runtime.startsAt), 'indigo'));
+                        }
+                        if (runtime?.endsAt && runtime?.tier !== 'expired') {
+                            const remaining = formatRemaining(runtime.endsAt);
+                            facts.push(buildFactPill('Current access window', `${formatBillingDate(runtime.endsAt)}${remaining ? ` • ${remaining}` : ''}`, runtime?.source === 'manual' ? 'amber' : 'indigo'));
+                        }
+                        if (runtime?.notes) {
+                            facts.push(buildFactPill('Admin note', runtime.notes, 'amber'));
+                        }
+
+                        if (stripeInfo?.hasSubscription && stripeInfo?.tier) {
+                            const stripeTier = capitalizeTier(stripeInfo.tier);
+                            const stripeEnd = formatBillingDate(stripeInfo.currentPeriodEnd);
+                            let stripeText = `${stripeTier} in Stripe`;
+                            if (stripeInfo.cancelAtPeriodEnd && stripeEnd) {
+                                stripeText += ` • ends ${stripeEnd}`;
+                            } else if (stripeEnd) {
+                                stripeText += ` • renews ${stripeEnd}`;
+                            } else {
+                                stripeText += ' • active';
+                            }
+                            facts.push(buildFactPill('Stripe', stripeText, 'emerald'));
+                        } else if (stripeError) {
+                            facts.push(buildFactPill('Stripe', 'Could not load live Stripe details right now.', 'rose'));
+                        } else {
+                            facts.push(buildFactPill('Stripe', 'No active paid subscription found in Stripe.', manualControlled ? 'amber' : 'slate'));
+                        }
+
+                        if (factsEl) {
+                            factsEl.innerHTML = facts.join('');
+                        }
+                        if (sourceEl) {
+                            if (manualControlled && stripeInfo?.hasSubscription) {
+                                sourceEl.textContent = 'Current app access includes a manual school override, while Stripe still shows a paid subscription separately.';
+                            } else if (manualControlled) {
+                                sourceEl.textContent = 'Current app access is being controlled by a manual school setting saved in Firestore.';
+                            } else if (stripeInfo?.hasSubscription) {
+                                sourceEl.textContent = 'Current app access matches the paid Stripe subscription.';
+                            } else {
+                                sourceEl.textContent = 'No Stripe subscription or manual access window is active right now.';
+                            }
+                        }
+                    };
+
+                    updateStatusCard(null, false);
                     try {
                         const r = await fetch(billingUrl + '/subscription-info?schoolId=' + encodeURIComponent(schoolId), {
                             headers: { 'ngrok-skip-browser-warning': '1' }
                         });
                         if (!r.ok) {
-                            if (detailsEl) detailsEl.textContent = fallbackMsg;
+                            updateStatusCard(null, true);
                             return;
                         }
                         const data = await r.json().catch(() => ({}));
-                        if (detailsEl) {
-                            if (!data.hasSubscription || !data.tier) {
-                                detailsEl.textContent = 'No active subscription.';
-                                return;
-                            }
-                            const tierCap = (data.tier || 'pro').charAt(0).toUpperCase() + (data.tier || '').slice(1);
-                            const endDate = formatDate(data.currentPeriodEnd);
-                            if (data.cancelAtPeriodEnd && endDate) {
-                                detailsEl.textContent = `${tierCap} • Cancels at end of period on ${endDate}.`;
-                            } else if (data.status === 'canceled' && data.canceledAt) {
-                                detailsEl.textContent = `${tierCap} • Ended on ${formatDate(data.canceledAt)}.`;
-                            } else if (endDate) {
-                                detailsEl.textContent = `${tierCap} • Renews on ${endDate}.`;
-                            } else {
-                                detailsEl.textContent = `${tierCap} • Active subscription.`;
-                            }
-                        }
+                        updateStatusCard(data, false);
                     } catch {
-                        if (detailsEl) detailsEl.textContent = fallbackMsg;
+                        updateStatusCard(null, true);
                     }
                 })();
                 // Health check: if billing server is unreachable, show hint and disable button

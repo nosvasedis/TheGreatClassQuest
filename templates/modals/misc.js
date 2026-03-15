@@ -130,26 +130,47 @@ export const miscModalsHTML = `
                 </div>
 
                 <!-- Test Scheduling Card -->
-                <div class="bg-gradient-to-r from-amber-50 to-orange-50 rounded-xl p-4 border border-amber-200">
-                    <h3 class="font-bold text-amber-800 mb-3 flex items-center gap-2">
-                        <i class="fas fa-calendar-check"></i> Schedule a Test (Optional)
-                    </h3>
-                    <div class="grid grid-cols-2 gap-3">
-                        <div>
-                            <label class="block text-xs font-bold text-amber-600 mb-1">Test Date</label>
-                            <input type="date" id="quest-test-date"
-                                class="w-full px-3 py-2 border-2 border-amber-200 rounded-lg focus:ring-2 focus:ring-amber-400 focus:border-amber-400">
+                <div class="rounded-2xl border border-amber-200 bg-gradient-to-br from-amber-50 via-orange-50 to-white shadow-sm overflow-hidden">
+                    <button id="quest-test-toggle-btn" type="button"
+                        class="w-full text-left px-4 py-4 flex items-center justify-between gap-4 hover:bg-white/40 transition-colors">
+                        <div class="flex items-start gap-3 min-w-0">
+                            <div class="w-11 h-11 rounded-2xl bg-amber-100 text-amber-700 flex items-center justify-center shadow-sm flex-shrink-0">
+                                <i class="fas fa-calendar-check"></i>
+                            </div>
+                            <div class="min-w-0">
+                                <h3 class="font-title text-xl text-amber-900">Schedule a Test</h3>
+                                <p id="quest-test-toggle-copy" class="text-sm text-amber-700 leading-relaxed">Add a test date, title, and topic when you want this assignment to lead into an upcoming test.</p>
+                            </div>
                         </div>
-                        <div>
-                            <label class="block text-xs font-bold text-amber-600 mb-1">Test Title</label>
-                            <input type="text" id="quest-test-title" placeholder="e.g. Unit 5 Review"
-                                class="w-full px-3 py-2 border-2 border-amber-200 rounded-lg focus:ring-2 focus:ring-amber-400 focus:border-amber-400">
+                        <div class="flex items-center gap-2 flex-shrink-0">
+                            <span id="quest-test-toggle-badge" class="px-3 py-1 rounded-full bg-white/80 border border-amber-200 text-[11px] font-bold uppercase tracking-wide text-amber-700">Closed</span>
+                            <i id="quest-test-toggle-icon" class="fas fa-chevron-down text-amber-500 transition-transform"></i>
                         </div>
-                        <div class="col-span-2">
-                            <label class="block text-xs font-bold text-amber-600 mb-1">Curriculum / Topics</label>
-                            <input type="text" id="quest-test-curriculum"
-                                placeholder="e.g. Past Simple, Vocabulary pg 40-45"
-                                class="w-full px-3 py-2 border-2 border-amber-200 rounded-lg focus:ring-2 focus:ring-amber-400 focus:border-amber-400">
+                    </button>
+                    <div id="quest-test-panel" class="hidden border-t border-amber-200/80 px-4 pb-4">
+                        <div class="pt-4 grid grid-cols-1 md:grid-cols-2 gap-3">
+                            <div>
+                                <label class="block text-xs font-bold text-amber-700 mb-1.5 uppercase tracking-wide">Test Date</label>
+                                <input type="date" id="quest-test-date"
+                                    class="w-full px-3 py-2.5 border-2 border-amber-200 rounded-xl bg-white shadow-sm focus:ring-2 focus:ring-amber-400 focus:border-amber-400">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-bold text-amber-700 mb-1.5 uppercase tracking-wide">Test Title</label>
+                                <input type="text" id="quest-test-title" placeholder="e.g. Unit 5 Review"
+                                    class="w-full px-3 py-2.5 border-2 border-amber-200 rounded-xl bg-white shadow-sm focus:ring-2 focus:ring-amber-400 focus:border-amber-400">
+                            </div>
+                            <div class="md:col-span-2">
+                                <label class="block text-xs font-bold text-amber-700 mb-1.5 uppercase tracking-wide">Curriculum / Topics</label>
+                                <input type="text" id="quest-test-curriculum"
+                                    placeholder="e.g. Past Simple, Vocabulary pg 40-45"
+                                    class="w-full px-3 py-2.5 border-2 border-amber-200 rounded-xl bg-white shadow-sm focus:ring-2 focus:ring-amber-400 focus:border-amber-400">
+                            </div>
+                        </div>
+                        <div class="mt-3 flex items-center justify-between gap-3 text-xs text-amber-700">
+                            <p id="quest-test-panel-hint">Leave this closed when the assignment does not include a test.</p>
+                            <button id="quest-test-clear-btn" type="button" class="font-bold px-3 py-1.5 rounded-full border border-amber-200 bg-white hover:bg-amber-50 transition-colors">
+                                Clear Test Plan
+                            </button>
                         </div>
                     </div>
                 </div>

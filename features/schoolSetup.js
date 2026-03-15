@@ -23,12 +23,31 @@ let listenersAttached = false;
 let locationSearchResults = [];
 let selectedSchoolWeatherLocation = null;
 let setupDraftClasses = [];
+let setupGraceTicker = null;
 let setupContext = {
     isFirstTeacher: false,
     shouldCollectSchoolName: false,
     onComplete: null,
     user: null
 };
+
+function clearSetupGraceTicker() {
+    if (setupGraceTicker) {
+        window.clearInterval(setupGraceTicker);
+        setupGraceTicker = null;
+    }
+}
+
+function formatGraceCountdown(endsAt) {
+    const endMs = new Date(endsAt || '').getTime();
+    if (Number.isNaN(endMs)) return '';
+    const diff = endMs - Date.now();
+    if (diff <= 0) return 'Expired';
+    const totalMinutes = Math.ceil(diff / 60000);
+    const hours = Math.floor(totalMinutes / 60);
+    const minutes = totalMinutes % 60;
+    return `${String(hours).padStart(2, '0')}h ${String(minutes).padStart(2, '0')}m`;
+}
 
 function formatLocationLabel(location) {
     if (!location) return '';
@@ -186,6 +205,10 @@ function renderSetupCopy() {
     const enterCopy = document.getElementById('setup-enter-copy');
     const schoolInput = document.getElementById('setup-school-name');
     const aiNote = document.getElementById('setup-ai-note');
+    const graceBanner = document.getElementById('setup-grace-banner');
+    const graceCopy = document.getElementById('setup-grace-copy');
+    const graceCountdown = document.getElementById('setup-grace-countdown');
+    const graceWindow = state.get('schoolBillingGrace');
 
     if (title) {
         title.textContent = setupContext.isFirstTeacher
@@ -217,6 +240,31 @@ function renderSetupCopy() {
         aiNote.innerHTML = canUseFeature('eliteAI')
             ? '<strong class="text-amber-800">Elite unlocked:</strong> AI class-name suggestions are ready for you.'
             : '<strong class="text-amber-800">Elite only:</strong> AI class-name suggestions wake up automatically on the Elite plan.';
+    }
+
+    clearSetupGraceTicker();
+    if (graceBanner && graceCopy && graceCountdown) {
+        if (graceWindow?.active && graceWindow?.endsAt) {
+            graceBanner.classList.remove('hidden');
+            graceCopy.textContent = 'Finish setup before the timer ends so the school does not lock again.';
+            const refreshGrace = () => {
+                graceCountdown.textContent = formatGraceCountdown(graceWindow.endsAt);
+                if (new Date(graceWindow.endsAt).getTime() <= Date.now()) {
+                    clearSetupGraceTicker();
+                }
+            };
+            refreshGrace();
+            setupGraceTicker = window.setInterval(() => {
+                const screen = document.getElementById('setup-screen');
+                if (!screen || screen.classList.contains('hidden')) {
+                    clearSetupGraceTicker();
+                    return;
+                }
+                refreshGrace();
+            }, 30000);
+        } else {
+            graceBanner.classList.add('hidden');
+        }
     }
 }
 
@@ -495,6 +543,7 @@ export function showSetupScreen(options = {}) {
 export function hideSetupScreen() {
     const setupEl = document.getElementById('setup-screen');
     const appEl = document.getElementById('app-screen');
+    clearSetupGraceTicker();
     if (setupEl) setupEl.classList.add('hidden');
     if (appEl) appEl.classList.remove('hidden');
 }

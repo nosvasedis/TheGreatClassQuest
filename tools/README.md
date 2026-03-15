@@ -24,7 +24,17 @@ This is the main noob-friendly setup quest. It:
 - checks and creates Firestore indexes
 - checks Firebase Storage and deploys Storage rules when a bucket exists
 - rebuilds the Render billing JSON
-- prepares the Netlify environment variables
+- prepares the hosting values for Netlify, GitHub Pages, and Cloudflare Pages
+
+## Hosting notes
+
+- Netlify uses `netlify.toml` and the shared static build command `node scripts/build-static-site.js`.
+- GitHub Pages uses the included workflow at `.github/workflows/deploy-github-pages.yml` and expects the `GCQ_*` values as repository Actions secrets.
+- Cloudflare Pages should use:
+  - Framework preset: `None`
+  - Build command: `node scripts/build-static-site.js`
+  - Build output directory: `dist`
+- All three hosting targets generate the same school-specific `config.json` from the `GCQ_*` values during build.
 
 ## Older helper: billing-setup.html
 

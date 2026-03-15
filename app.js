@@ -41,6 +41,81 @@ import {
 let soundSetupStarted = false;
 
 const HOME_READY_FALLBACK_MS = 4500;
+let subscribeGraceTicker = null;
+
+function clearSubscribeGraceTicker() {
+    if (subscribeGraceTicker) {
+        window.clearInterval(subscribeGraceTicker);
+        subscribeGraceTicker = null;
+    }
+}
+
+function formatRemainingTime(endsAt) {
+    const endMs = new Date(endsAt || '').getTime();
+    if (Number.isNaN(endMs)) return '';
+    const diff = endMs - Date.now();
+    if (diff <= 0) return 'Grace time has ended';
+
+    const totalMinutes = Math.ceil(diff / 60000);
+    const hours = Math.floor(totalMinutes / 60);
+    const minutes = totalMinutes % 60;
+    if (hours >= 24) {
+        const days = Math.floor(hours / 24);
+        const remHours = hours % 24;
+        return `${days}d ${String(remHours).padStart(2, '0')}h ${String(minutes).padStart(2, '0')}m`;
+    }
+    return `${String(hours).padStart(2, '0')}h ${String(minutes).padStart(2, '0')}m`;
+}
+
+function updateSubscribeGraceBanner(graceWindow, options = {}) {
+    const banner = document.getElementById('subscribe-grace-banner');
+    const title = document.getElementById('subscribe-grace-title');
+    const copy = document.getElementById('subscribe-grace-copy');
+    const countdown = document.getElementById('subscribe-grace-countdown');
+    const lead = document.getElementById('subscribe-status-lead');
+    const meta = document.getElementById('subscribe-status-meta');
+
+    clearSubscribeGraceTicker();
+
+    if (!banner || !title || !copy || !countdown || !lead || !meta) return;
+
+    if (graceWindow?.active && graceWindow?.endsAt) {
+        banner.classList.remove('hidden');
+        title.textContent = '1-day setup grace is active';
+        copy.textContent = 'The school is temporarily unlocked so the first teacher can finish setup before payment is required.';
+        lead.textContent = 'This brand-new school is currently inside its setup grace period. Finish setup before the timer runs out, or complete payment now to keep access seamless.';
+        meta.textContent = 'Grace timer is running';
+
+        const refresh = () => {
+            countdown.textContent = formatRemainingTime(graceWindow.endsAt);
+            if (new Date(graceWindow.endsAt).getTime() <= Date.now()) {
+                clearSubscribeGraceTicker();
+            }
+        };
+        refresh();
+        subscribeGraceTicker = window.setInterval(() => {
+            const subscribeScreen = document.getElementById('subscribe-screen');
+            if (!subscribeScreen || subscribeScreen.classList.contains('hidden')) {
+                clearSubscribeGraceTicker();
+                return;
+            }
+            refresh();
+        }, 30000);
+        return;
+    }
+
+    banner.classList.add('hidden');
+    if (options.graceExpired) {
+        lead.textContent = 'The school already used its 1-day setup grace period. Choose a plan below to unlock the app again.';
+        meta.textContent = 'Grace period already used';
+    } else if (options.canStartGrace) {
+        lead.textContent = 'Choose a plan to unlock your school’s adventure, or begin the first-day setup grace period if this is a brand-new school.';
+        meta.textContent = '1-day setup grace available';
+    } else {
+        lead.textContent = 'Choose a plan to unlock your school’s adventure.';
+        meta.textContent = 'Payment unlocks the Quest';
+    }
+}
 
 function animateLoadingScreenOut(loadingScreen) {
     if (!loadingScreen || loadingScreen.dataset.exiting === 'true') return;
@@ -133,6 +208,7 @@ function showSubscribeScreen(loadingScreen, authScreen, options = {}) {
     if (!subscribeScreen) return;
     if (appScreen) appScreen.classList.add('hidden');
     if (setupScreen) setupScreen.classList.add('hidden');
+    updateSubscribeGraceBanner(options.graceWindow, options);
 
     const schoolId = BILLING_SCHOOL_ID || firebaseConfig?.projectId || '';
     const billingUrl = (BILLING_BASE_URL || '').replace(/\/$/, '');
@@ -146,18 +222,29 @@ function showSubscribeScreen(loadingScreen, authScreen, options = {}) {
         if (options.canStartGrace || options.graceExpired) {
             actions.classList.remove('hidden');
             actions.innerHTML = `
-                <div class="rounded-2xl border ${options.graceExpired ? 'border-amber-200 bg-amber-50' : 'border-emerald-200 bg-emerald-50'} p-5 text-left">
-                    <h3 class="font-title text-2xl ${options.graceExpired ? 'text-amber-800' : 'text-emerald-800'} mb-2">
-                        ${options.graceExpired ? 'The 1-day grace period has ended' : 'Brand-new school? Start a 1-day grace period'}
-                    </h3>
-                    <p class="text-sm text-slate-700 leading-relaxed">
-                        ${options.graceExpired
-                            ? 'This school already used its free setup day. To unlock the app again, choose a plan below and complete payment.'
-                            : 'Use this only for the very first setup of a brand-new school. GCQ unlocks Starter-level access for 24 hours so the first teacher can set everything up before paying.'
-                        }
-                    </p>
+                <div class="rounded-[1.6rem] border ${options.graceExpired ? 'border-amber-200 bg-gradient-to-r from-amber-50 to-orange-50' : 'border-emerald-200 bg-gradient-to-r from-emerald-50 to-teal-50'} p-6 text-left shadow-sm">
+                    <div class="flex flex-col md:flex-row md:items-start md:justify-between gap-4">
+                        <div>
+                            <p class="text-xs uppercase tracking-[0.24em] font-black ${options.graceExpired ? 'text-amber-600' : 'text-emerald-600'} mb-2">
+                                ${options.graceExpired ? 'Grace finished' : 'First-day setup option'}
+                            </p>
+                            <h3 class="font-title text-2xl ${options.graceExpired ? 'text-amber-800' : 'text-emerald-800'} mb-2">
+                                ${options.graceExpired ? 'The 1-day grace period has ended' : 'Brand-new school? Start a 1-day grace period'}
+                            </h3>
+                            <p class="text-sm text-slate-700 leading-relaxed">
+                                ${options.graceExpired
+                                    ? 'This school already used its free setup day. To unlock the app again, choose a plan below and complete payment.'
+                                    : 'Use this only for the very first setup of a brand-new school. GCQ unlocks Starter-level access for 24 hours so the first teacher can set everything up before paying.'
+                                }
+                            </p>
+                        </div>
+                        <div class="rounded-2xl ${options.graceExpired ? 'bg-white/85 border border-amber-200 text-amber-700' : 'bg-white/85 border border-emerald-200 text-emerald-700'} px-4 py-3 min-w-[220px] shadow-sm">
+                            <p class="text-[11px] uppercase tracking-[0.24em] font-black mb-1">What it means</p>
+                            <p class="text-sm font-medium">${options.graceExpired ? 'Payment is now required before the app can open again.' : 'You get one temporary 24-hour setup window for this school.'}</p>
+                        </div>
+                    </div>
                     ${options.canStartGrace ? `
-                        <button type="button" id="subscribe-start-grace-btn" class="mt-4 bg-emerald-600 hover:bg-emerald-700 text-white font-title text-lg py-3 px-5 rounded-xl bubbly-button flex items-center gap-2">
+                        <button type="button" id="subscribe-start-grace-btn" class="mt-5 bg-emerald-600 hover:bg-emerald-700 text-white font-title text-lg py-3 px-5 rounded-xl bubbly-button flex items-center gap-2 shadow-md">
                             <i class="fas fa-hourglass-start"></i>
                             <span>Start 1-Day Grace Period</span>
                         </button>
@@ -257,6 +344,7 @@ async function routeAuthenticatedTeacher({ user, loadingScreen, authScreen, appS
         showSubscribeScreen(loadingScreen, authScreen, {
             canStartGrace,
             graceExpired: Boolean(schoolGrace?.expired),
+            graceWindow: schoolGrace,
             onStartGrace: async () => {
                 const graceWindow = await startSchoolGracePeriod();
                 state.setSchoolBillingGrace(graceWindow);

@@ -16,11 +16,6 @@ function isLocalHost() {
   );
 }
 
-function isTrustedDefaultHostedSite() {
-  const host = window.location.hostname.toLowerCase();
-  return host.endsWith('github.io');
-}
-
 function renderConfigRequiredScreen() {
     const root = document.getElementById('app-root');
     if (!root) return;
@@ -33,11 +28,11 @@ function renderConfigRequiredScreen() {
                 </div>
                 <h1 class="font-title text-4xl text-sky-700 mb-3">This School Site Is Not Configured Yet</h1>
                 <p class="text-gray-600 text-lg leading-relaxed mb-6">
-                    This Netlify site is missing its generated <code>config.json</code>, so GCQ stopped before connecting to the wrong Firebase school.
+                    This hosted school site is missing its generated <code>config.json</code>, so GCQ stopped before connecting to the wrong Firebase school.
                 </p>
                 <div class="text-left bg-sky-50 border border-sky-100 rounded-2xl p-5 text-sm text-slate-700">
-                    <p class="font-semibold text-sky-800 mb-2">Fix in Netlify:</p>
-                    <p>Add the required school environment variables, redeploy, and let the build create <code>config.json</code>.</p>
+                    <p class="font-semibold text-sky-800 mb-2">Fix in your hosting provider:</p>
+                    <p>Add the required school environment variables or GitHub Actions secrets, redeploy, and let the build create <code>config.json</code>.</p>
                     <p class="mt-3">Required vars: <code>GCQ_FIREBASE_API_KEY</code>, <code>GCQ_FIREBASE_AUTH_DOMAIN</code>, <code>GCQ_FIREBASE_PROJECT_ID</code>, <code>GCQ_FIREBASE_APP_ID</code>, plus the other school config values from the onboarding console.</p>
                 </div>
             </div>
@@ -60,7 +55,7 @@ fetch('./config.json')
     })
     .catch(() => {})
     .finally(() => {
-        if (!configLoaded && !isLocalHost() && !isTrustedDefaultHostedSite()) {
+        if (!configLoaded && !isLocalHost()) {
             renderConfigRequiredScreen();
             return;
         }

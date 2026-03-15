@@ -23,6 +23,8 @@ export const optionsTabHTML = `
                                 <div>
                                     <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Current status</p>
                                     <p id="options-subscription-details" class="text-sm text-gray-800 font-medium" aria-live="polite">Loading subscription…</p>
+                                    <div id="options-subscription-facts" class="mt-3 space-y-2"></div>
+                                    <p id="options-subscription-source" class="mt-3 text-xs text-gray-500">Checking Stripe and school access settings…</p>
                                 </div>
                                 <div class="bg-gray-50 rounded-xl p-3 border border-gray-100">
                                     <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">In Stripe you can</p>

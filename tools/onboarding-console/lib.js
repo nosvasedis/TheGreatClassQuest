@@ -125,13 +125,13 @@ function normalizeSiteDomain(siteDomain) {
 function validateSiteDomain(siteDomain) {
   const normalized = normalizeSiteDomain(siteDomain);
   if (!normalized) {
-    return 'Please enter the Netlify or live school site domain.';
+    return 'Please enter the live school site domain for this host.';
   }
   if (normalized === 'localhost' || normalized === '127.0.0.1') {
     return '';
   }
   if (!/^[a-z0-9.-]+\.[a-z]{2,}$/i.test(normalized)) {
-    return 'The school site domain should look like gcq-school.netlify.app.';
+    return 'The school site domain should look like gcq-school.netlify.app, your-school.pages.dev, or your-user.github.io.';
   }
   return '';
 }
@@ -1752,7 +1752,7 @@ async function fetchFirebaseWebAppConfig(projectId, serviceAccount) {
   };
 }
 
-function formatNetlifyVariables(webConfig, renderUrl, projectId) {
+function formatHostedEnvironmentVariables(webConfig, renderUrl, projectId) {
   if (!webConfig) return '';
   const lines = [
     `GCQ_FIREBASE_API_KEY=${webConfig.apiKey || ''}`,
@@ -1766,6 +1766,65 @@ function formatNetlifyVariables(webConfig, renderUrl, projectId) {
     `GCQ_BILLING_SCHOOL_ID=${projectId}`,
   ];
   return lines.join('\n');
+}
+
+function formatNetlifyVariables(webConfig, renderUrl, projectId) {
+  return formatHostedEnvironmentVariables(webConfig, renderUrl, projectId);
+}
+
+function buildHostingTargets(webConfig, renderUrl, projectId) {
+  const envText = formatHostedEnvironmentVariables(webConfig, renderUrl, projectId);
+  return {
+    netlify: {
+      key: 'netlify',
+      label: 'Netlify',
+      envText,
+      envFilename: `${projectId}.netlify.env`,
+      intro:
+        'Open the school site in Netlify, add these environment variables, then redeploy the site.',
+      instructions: [
+        'Site configuration -> Environment variables -> add every GCQ_* value below',
+        'Build command: node scripts/build-static-site.js',
+        'Publish directory: dist',
+      ],
+      confirmLabel: 'I pasted these into Netlify',
+      copyLabel: 'Copy Netlify Values',
+      downloadLabel: 'Download Netlify .env',
+    },
+    githubPages: {
+      key: 'githubPages',
+      label: 'GitHub Pages',
+      envText,
+      envFilename: `${projectId}.github-pages.env`,
+      intro:
+        'Add these as GitHub Actions repository secrets, then let the included workflow build and publish the school site.',
+      instructions: [
+        'Repository -> Settings -> Secrets and variables -> Actions -> create one repository secret for each GCQ_* value below',
+        'Repository -> Settings -> Pages -> Build and deployment -> Source: GitHub Actions',
+        'Commit and push with .github/workflows/deploy-github-pages.yml in the repo',
+      ],
+      confirmLabel: 'I added these GitHub Pages secrets',
+      copyLabel: 'Copy GitHub Pages Values',
+      downloadLabel: 'Download GitHub Pages env',
+    },
+    cloudflarePages: {
+      key: 'cloudflarePages',
+      label: 'Cloudflare Pages',
+      envText,
+      envFilename: `${projectId}.cloudflare-pages.env`,
+      intro:
+        'Open the school project in Cloudflare Pages, add these environment variables, then redeploy with the build settings below.',
+      instructions: [
+        'Settings -> Environment variables -> add every GCQ_* value below',
+        'Framework preset: None',
+        'Build command: node scripts/build-static-site.js',
+        'Build output directory: dist',
+      ],
+      confirmLabel: 'I pasted these into Cloudflare Pages',
+      copyLabel: 'Copy Cloudflare Pages Values',
+      downloadLabel: 'Download Cloudflare Pages env',
+    },
+  };
 }
 
 function capitalize(value) {
@@ -2135,7 +2194,7 @@ async function runAutomaticSetup(input) {
           ? `${authProvisioning.after.siteDomain} is authorized in Firebase Authentication.`
           : 'The school site domain is still not authorized for sign-in.',
         {
-          actionHint: authProvisioning.after.siteDomainAuthorized ? '' : 'Check the Netlify/public school domain, then rerun the setup.',
+          actionHint: authProvisioning.after.siteDomainAuthorized ? '' : 'Check the public school domain for this hosting provider, then rerun the setup.',
           technicalDetails: JSON.stringify({
             expectedDomains: authProvisioning.expectedDomains,
             authorizedDomains: authProvisioning.after.authorizedDomains,
@@ -2151,7 +2210,7 @@ async function runAutomaticSetup(input) {
         'Create or confirm Firebase Authentication',
         error.message || 'Firebase Authentication could not be prepared automatically.',
         {
-          actionHint: 'This project may still need extra Firebase/Google setup permissions. If the school site already exists, also check the exact Netlify domain.',
+          actionHint: 'This project may still need extra Firebase/Google setup permissions. If the school site already exists, also check the exact public host/domain.',
           technicalDetails: error.message || '',
         }
       )
@@ -2343,11 +2402,11 @@ async function runAutomaticSetup(input) {
 
   tasks.push(
     makeTask(
-      'netlifyOutput',
+      'hostingOutput',
       webConfigResult.ok ? 'done' : 'needs_attention',
-      'Prepare the Netlify values',
+      'Prepare the hosting values',
       webConfigResult.ok
-        ? 'The Firebase and billing values for Netlify are ready to copy.'
+        ? 'The Firebase and billing values for Netlify, GitHub Pages, and Cloudflare Pages are ready to copy.'
         : webConfigResult.message,
       {
         actionHint: webConfigResult.actionHint,
@@ -2404,6 +2463,8 @@ async function runAutomaticSetup(input) {
     tasks,
     outputs: {
       renderJson: renderOutput.renderJson,
+      hostingTargets: buildHostingTargets(webConfigResult.config, input.renderUrl, input.projectId),
+      hostingEnvVars: formatHostedEnvironmentVariables(webConfigResult.config, input.renderUrl, input.projectId),
       netlifyVars: formatNetlifyVariables(webConfigResult.config, input.renderUrl, input.projectId),
       webConfig: webConfigResult.config,
       renderPath: renderOutput.path,
@@ -2412,9 +2473,9 @@ async function runAutomaticSetup(input) {
     finalStatus: coreReady && futureProReady ? 'ready' : 'needs_attention',
     summary: coreReady
       ? readinessTarget === 'pro'
-        ? 'This school is ready for Pro or Elite. Paste the Render and Netlify values, deploy both, and you are done.'
+        ? 'This school is ready for Pro or Elite. Paste the Render value, configure your hosting provider, and you are done.'
         : futureProReady
-          ? 'This school is ready for Starter. Paste the Render and Netlify values, deploy both, and you are done.'
+          ? 'This school is ready for Starter. Paste the Render value, configure your hosting provider, and you are done.'
           : 'This school is ready for Starter flow. Later, when the school upgrades, rerun the setup with “Pro / Elite ready” and the tool will prepare Firebase Storage too.'
       : 'The setup is close, but one thing still needs attention before the school is fully ready.',
   };
@@ -2650,7 +2711,7 @@ async function recheckExistingSchool(projectId, options = {}) {
           ? `${authProvisioning.after.siteDomain} is authorized in Firebase Authentication.`
           : 'The saved school site domain is still not authorized for sign-in.',
         {
-          actionHint: authProvisioning.after.siteDomainAuthorized ? '' : 'Save the correct Netlify/public site domain for this school, then rerun the check.',
+          actionHint: authProvisioning.after.siteDomainAuthorized ? '' : 'Save the correct public school domain for this host, then rerun the check.',
           technicalDetails: JSON.stringify({
             expectedDomains: authProvisioning.expectedDomains,
             authorizedDomains: authProvisioning.after.authorizedDomains,
@@ -2908,6 +2969,8 @@ async function recheckExistingSchool(projectId, options = {}) {
     tasks,
     outputs: {
       renderJson: renderOutput.renderJson,
+      hostingTargets: buildHostingTargets(webConfigResult.config, defaults.renderUrl, projectId),
+      hostingEnvVars: formatHostedEnvironmentVariables(webConfigResult.config, defaults.renderUrl, projectId),
       netlifyVars: formatNetlifyVariables(webConfigResult.config, defaults.renderUrl, projectId),
       webConfig: webConfigResult.config,
       renderPath: renderOutput.path,
@@ -2977,7 +3040,9 @@ module.exports = {
   loadRequiredIndexes,
   normalizeIndex,
   compareRequiredIndexes,
+  formatHostedEnvironmentVariables,
   formatNetlifyVariables,
+  buildHostingTargets,
   fetchFirebaseWebAppConfig,
   inspectFirestoreIndexes,
   ensureFirestoreIndexes,

@@ -1,8 +1,8 @@
 /**
- * Writes config.json from environment variables (for Netlify / per-school deployments).
- * Set these in Netlify: GCQ_FIREBASE_API_KEY, GCQ_FIREBASE_AUTH_DOMAIN, GCQ_FIREBASE_PROJECT_ID,
- * GCQ_FIREBASE_STORAGE_BUCKET, GCQ_FIREBASE_MESSAGING_SENDER_ID, GCQ_FIREBASE_APP_ID, GCQ_FIREBASE_MEASUREMENT_ID
- * If any are missing, config.json is not written and the app uses the default in constants.js.
+ * Writes config.json from environment variables for hosted school deployments.
+ * Supported hosts include Netlify, GitHub Pages, and Cloudflare Pages.
+ * If required values are missing, config.json is not written and the app uses the default in constants.js.
+ * Override the output path with GCQ_CONFIG_OUTPUT_PATH when a build should emit config.json somewhere else.
  */
 
 const fs = require('fs');
@@ -31,6 +31,7 @@ const config = {
   billingBaseUrl: env.GCQ_BILLING_BASE_URL || '',
   billingSchoolId: env.GCQ_BILLING_SCHOOL_ID || firebaseConfig.projectId || ''
 };
-const outPath = path.join(process.cwd(), 'config.json');
+const outPath = path.resolve(process.cwd(), env.GCQ_CONFIG_OUTPUT_PATH || 'config.json');
+fs.mkdirSync(path.dirname(outPath), { recursive: true });
 fs.writeFileSync(outPath, JSON.stringify(config, null, 2), 'utf8');
-console.log('write-config: wrote config.json for project', firebaseConfig.projectId);
+console.log('write-config: wrote config.json for project', firebaseConfig.projectId, 'at', outPath);

@@ -1,4 +1,18 @@
 const app = document.getElementById('app');
+const hostingProviderOrder = ['netlify', 'githubPages', 'cloudflarePages'];
+const hostingProviderLabels = {
+  netlify: 'Netlify',
+  githubPages: 'GitHub Pages',
+  cloudflarePages: 'Cloudflare Pages',
+};
+
+function createEmptyHostingChecklist() {
+  return {
+    netlify: false,
+    githubPages: false,
+    cloudflarePages: false,
+  };
+}
 
 const stepMeta = [
   { key: 'details', label: 'About the school', icon: 'fa-school' },
@@ -43,7 +57,8 @@ const state = {
   manageDeleteConfirm: '',
   isRunning: false,
   renderPasted: false,
-  netlifyPasted: false,
+  hostingProvider: 'netlify',
+  hostingCompleted: createEmptyHostingChecklist(),
 };
 
 const taskIcons = {
@@ -66,7 +81,7 @@ const taskIcons = {
   ensureStorage: 'fa-photo-film',
   deployStorageRules: 'fa-cloud-arrow-up',
   renderOutput: 'fa-cloud-arrow-up',
-  netlifyOutput: 'fa-globe',
+  hostingOutput: 'fa-globe',
   finalHealth: 'fa-heart-circle-check',
   savedSchool: 'fa-folder-open',
   subscriptionCheck: 'fa-receipt',
@@ -110,6 +125,23 @@ const manageTierMeta = {
     blurb: 'No saved subscription document was found yet.',
   },
 };
+
+function getHostingTargets(outputs) {
+  const targets = outputs?.hostingTargets || {};
+  return hostingProviderOrder
+    .map((key) => targets[key])
+    .filter((target) => target && target.envText);
+}
+
+function getSelectedHostingTarget(outputs) {
+  const targets = getHostingTargets(outputs);
+  if (!targets.length) return null;
+  return targets.find((target) => target.key === state.hostingProvider) || targets[0];
+}
+
+function getHostingCompletionState() {
+  return state.hostingCompleted[state.hostingProvider] === true;
+}
 
 bootstrap().catch((error) => {
   app.innerHTML = `
@@ -229,7 +261,7 @@ function renderWelcome() {
         <div class="choice-grid">
           <article class="choice-card">
             <h3>Set up a brand-new school</h3>
-            <p>Use the guided wizard, let the console do the automatic checks, then paste the final values into Render and Netlify.</p>
+            <p>Use the guided wizard, let the console do the automatic checks, then paste the final values into Render and your hosting provider.</p>
             <button class="primary-btn" data-action="start-new">Start Setup</button>
           </article>
 
@@ -349,7 +381,7 @@ function renderCurrentStep() {
           </article>
           <article class="helper-card">
             <h4>What should I put as the school site domain?</h4>
-            <p>Use the exact public school site hostname, usually the Netlify domain like <strong>gcq-test-school.netlify.app</strong>. This lets the tool authorize that domain for Firebase sign-in automatically.</p>
+            <p>Use the exact public school site hostname, such as <strong>gcq-test-school.netlify.app</strong>, <strong>your-school.pages.dev</strong>, or <strong>your-user.github.io</strong>. This lets the tool authorize that domain for Firebase sign-in automatically.</p>
           </article>
           <article class="helper-card">
             <h4>What happens when I click?</h4>
@@ -539,11 +571,12 @@ function renderCurrentStep() {
 
 function renderFinalStep(stepHeader) {
   const result = state.setupResult;
-  const ready = result?.finalStatus === 'ready' && state.renderPasted && state.netlifyPasted;
+  const selectedTarget = getSelectedHostingTarget(result?.outputs);
+  const ready = result?.finalStatus === 'ready' && state.renderPasted && getHostingCompletionState();
   const bannerStatus = result?.finalStatus === 'ready' ? 'ready' : 'needs_attention';
   return `
     ${stepHeader}
-    <p class="step-subtitle">These are the last two things you need to do. Copy each block exactly as shown, paste it in the right place, then deploy.</p>
+    <p class="step-subtitle">These are the last two things you need to do. Copy the Render value, choose your hosting provider, then finish that provider’s final setup.</p>
 
     ${result ? `
       <div class="final-banner ${bannerStatus}">
@@ -574,18 +607,24 @@ function renderFinalStep(stepHeader) {
       <section class="giant-output">
         <div class="output-head">
           <div>
-            <h3>Step 2: Paste these into Netlify</h3>
-            <p>Open the school site in Netlify -> Site configuration -> Environment variables, then add these values and deploy the site.</p>
+            <h3>Step 2: Configure ${escapeHtml(selectedTarget?.label || 'hosting')}</h3>
+            <p>${escapeHtml(selectedTarget?.intro || 'The hosting setup details will appear here after automatic setup runs.')}</p>
           </div>
           <div class="button-row">
-            <button class="copy-btn" data-copy="netlifyVars" ${!result?.outputs?.netlifyVars ? 'disabled' : ''}>Copy Netlify Values</button>
-            <button class="secondary-btn" data-action="download-netlify-inline" ${!result?.outputs?.netlifyVars ? 'disabled' : ''}>Download .env File</button>
+            <button class="copy-btn" data-copy="hostingEnv" ${!selectedTarget?.envText ? 'disabled' : ''}>${escapeHtml(selectedTarget?.copyLabel || 'Copy Hosting Values')}</button>
+            <button class="secondary-btn" data-action="download-hosting-inline" ${!selectedTarget?.envText ? 'disabled' : ''}>${escapeHtml(selectedTarget?.downloadLabel || 'Download hosting env')}</button>
           </div>
         </div>
-        <pre class="output-box">${escapeHtml(result?.outputs?.netlifyVars || 'The Netlify values will appear here after automatic setup runs.')}</pre>
+        ${renderHostingProviderPicker(result?.outputs)}
+        ${selectedTarget?.instructions?.length ? `
+          <ul class="bullet-list" style="margin-top:16px;">
+            ${selectedTarget.instructions.map((item) => `<li><i class="fas fa-check-circle"></i><span>${escapeHtml(item)}</span></li>`).join('')}
+          </ul>
+        ` : ''}
+        <pre class="output-box">${escapeHtml(selectedTarget?.envText || 'The hosting values will appear here after automatic setup runs.')}</pre>
         <label class="checkline">
-          <input type="checkbox" data-toggle="netlify-pasted" ${state.netlifyPasted ? 'checked' : ''}>
-          I pasted these into Netlify
+          <input type="checkbox" data-toggle="hosting-completed" ${getHostingCompletionState() ? 'checked' : ''}>
+          ${escapeHtml(selectedTarget?.confirmLabel || 'I finished the hosting setup')}
         </label>
       </section>
     </div>
@@ -596,7 +635,7 @@ function renderFinalStep(stepHeader) {
         <div class="quest-complete-copy">
           <p class="eyebrow">Quest Complete</p>
           <h3>This school is fully ready.</h3>
-          <p>Render is updated, Netlify is prepared, and this onboarding run is complete. You can move on to the next school whenever you want.</p>
+          <p>Render is updated, ${escapeHtml(selectedTarget?.label || 'your hosting provider')} is prepared, and this onboarding run is complete. You can move on to the next school whenever you want.</p>
         </div>
         <div class="button-row">
           <button class="primary-btn" data-action="finish-quest">Finish This School</button>
@@ -649,6 +688,25 @@ function renderTaskList(tasks) {
           </article>
         `;
       }).join('')}
+    </div>
+  `;
+}
+
+function renderHostingProviderPicker(outputs, includeFallback = false) {
+  const targets = getHostingTargets(outputs);
+  const options = targets.length
+    ? targets.map((target) => ({ key: target.key, label: target.label }))
+    : includeFallback
+      ? hostingProviderOrder.map((key) => ({ key, label: hostingProviderLabels[key] || key }))
+      : [];
+  if (!options.length) return '';
+  return `
+    <div class="button-row" style="margin-top:16px;">
+      ${options.map((target) => `
+        <button class="${state.hostingProvider === target.key ? 'primary-btn' : 'secondary-btn'}" data-action="pick-hosting-provider" data-provider="${escapeHtml(target.key)}">
+          ${escapeHtml(target.label)}
+        </button>
+      `).join('')}
     </div>
   `;
 }
@@ -736,6 +794,9 @@ function renderRecheck() {
 
       ${state.recheckResult ? `
         <div class="result-card" style="grid-column: 1 / -1;">
+          ${(() => {
+            const selectedTarget = getSelectedHostingTarget(state.recheckResult.outputs);
+            return `
           <div class="final-banner ${state.recheckResult.finalStatus === 'ready' ? 'ready' : 'needs_attention'}">
             <div class="final-icon"><i class="fas ${state.recheckResult.finalStatus === 'ready' ? 'fa-thumbs-up' : 'fa-triangle-exclamation'}"></i></div>
             <div class="final-copy">
@@ -758,17 +819,25 @@ function renderRecheck() {
             <section class="giant-output">
               <div class="output-head">
                 <div>
-                  <h3>Netlify values</h3>
-                  <p>This is the current set of values for the school site in Netlify.</p>
+                  <h3>${escapeHtml(selectedTarget?.label || 'Hosting')} values</h3>
+                  <p>${escapeHtml(selectedTarget?.intro || 'This is the current hosting configuration for the school site.')}</p>
                 </div>
                 <div class="button-row">
-                  <button class="copy-btn" data-copy="netlifyVars" ${!state.recheckResult.outputs.netlifyVars ? 'disabled' : ''}>Copy Netlify Values</button>
-                  <button class="secondary-btn" data-action="download-netlify-saved" ${!state.recheckResult.outputs.netlifyVars ? 'disabled' : ''}>Download .env File</button>
+                  <button class="copy-btn" data-copy="hostingEnv" ${!selectedTarget?.envText ? 'disabled' : ''}>${escapeHtml(selectedTarget?.copyLabel || 'Copy Hosting Values')}</button>
+                  <button class="secondary-btn" data-action="download-hosting-saved" ${!selectedTarget?.envText ? 'disabled' : ''}>${escapeHtml(selectedTarget?.downloadLabel || 'Download hosting env')}</button>
                 </div>
               </div>
-              <pre class="output-box">${escapeHtml(state.recheckResult.outputs.netlifyVars || 'No Netlify values available yet.')}</pre>
+              ${renderHostingProviderPicker(state.recheckResult.outputs)}
+              ${selectedTarget?.instructions?.length ? `
+                <ul class="bullet-list" style="margin-top:16px;">
+                  ${selectedTarget.instructions.map((item) => `<li><i class="fas fa-check-circle"></i><span>${escapeHtml(item)}</span></li>`).join('')}
+                </ul>
+              ` : ''}
+              <pre class="output-box">${escapeHtml(selectedTarget?.envText || 'No hosting values available yet.')}</pre>
             </section>
           </div>
+            `;
+          })()}
         </div>
       ` : ''}
     </section>
@@ -784,6 +853,7 @@ function renderManageSchools() {
   const selectedMeta = manageTierMeta[state.manageForm.tier] || manageTierMeta.pending;
   const currentMeta = manageTierMeta[currentTier] || manageTierMeta.missing;
   const effectiveMeta = manageTierMeta[effectiveTier] || manageTierMeta.pending;
+  const selectedHostingLabel = hostingProviderLabels[state.hostingProvider] || 'Hosting';
   const schools = state.bootstrap.schools || [];
   return `
     <section class="welcome-grid">
@@ -841,18 +911,57 @@ function renderManageSchools() {
       </div>
 
       <div class="panel manage-help-panel">
+        <div class="manage-help-header">
+          <div>
+            <p class="mini-label">How This Works</p>
+            <h3>Manual school access, explained simply</h3>
+          </div>
+          <p>Use this area when you need to help one school directly, without guessing what the dates or tier change will do in the live app.</p>
+        </div>
         <div class="manage-help-grid">
-          <article class="manage-help-card sunrise">
-            <h4>What this really changes</h4>
-            <p>This updates the school’s <strong>appConfig/subscription</strong> document in Firestore using the same plan rules the live app already understands.</p>
+          <article class="manage-help-card sunrise wide">
+            <div class="manage-help-top">
+              <span class="manage-help-icon">🪄</span>
+              <div>
+                <h4>What this really changes</h4>
+                <p class="manage-help-kicker">Live app access for this one school</p>
+              </div>
+            </div>
+            <div class="manage-help-split">
+              <p>This updates the school’s <strong>appConfig/subscription</strong> document in Firestore using the same plan rules the live app already understands.</p>
+              <div class="manage-help-note">
+                <strong>In plain English:</strong> whatever you save here is what the school app will read when deciding whether it should be Pending, Starter, Pro, Elite, or Expired.
+              </div>
+            </div>
           </article>
           <article class="manage-help-card sky">
-            <h4>What the dates do</h4>
-            <p>A future start date makes the school stay <strong>Pending</strong> until that day. A passed end date makes the school behave as <strong>Expired</strong>.</p>
+            <div class="manage-help-top">
+              <span class="manage-help-icon">🗓️</span>
+              <div>
+                <h4>What the dates do</h4>
+                <p class="manage-help-kicker">Dates control when access starts and ends</p>
+              </div>
+            </div>
+            <div class="manage-help-pill-row">
+              <span>Future start = Pending</span>
+              <span>Past end = Expired</span>
+            </div>
+            <p>A future start date keeps the school locked until that day. A passed end date means the school has already run out of access.</p>
           </article>
           <article class="manage-help-card mint">
-            <h4>Helpful use cases</h4>
-            <p>Gift 30 days of Pro, unlock Elite for exam season, or push a school back to Pending until payment is sorted.</p>
+            <div class="manage-help-top">
+              <span class="manage-help-icon">🎁</span>
+              <div>
+                <h4>Helpful use cases</h4>
+                <p class="manage-help-kicker">Common quick fixes you may want</p>
+              </div>
+            </div>
+            <div class="manage-help-pill-row">
+              <span>30-day Pro gift</span>
+              <span>Elite for exam season</span>
+              <span>Back to Pending</span>
+            </div>
+            <p>Use it to gift 30 days of Pro, unlock Elite for exam season, or push a school back to Pending until payment is sorted out.</p>
           </article>
         </div>
       </div>
@@ -876,7 +985,8 @@ function renderManageSchools() {
                 <h4>${escapeHtml(details.school.schoolLabel || details.school.schoolId)}</h4>
                 <p>${escapeHtml(details.school.schoolId)}</p>
               </div>
-              <button class="secondary-btn" data-action="download-netlify-managed">Download Netlify .env</button>
+              ${renderHostingProviderPicker(null, true)}
+              <button class="secondary-btn" data-action="download-hosting-managed">${escapeHtml(`Download ${selectedHostingLabel} env`)}</button>
             </div>
           </div>
 
@@ -1079,7 +1189,7 @@ function bindWelcomeEvents() {
     state.step = 0;
     state.setupResult = null;
     state.renderPasted = false;
-    state.netlifyPasted = false;
+    state.hostingCompleted = createEmptyHostingChecklist();
     render();
   });
   document.querySelector('[data-action="start-recheck"]')?.addEventListener('click', () => {
@@ -1209,7 +1319,6 @@ function bindManageEvents() {
   document.querySelector('[data-action="load-manage-school"]')?.addEventListener('click', loadManagedSchool);
   document.querySelector('[data-action="save-manage-subscription"]')?.addEventListener('click', saveManagedSubscription);
   document.querySelector('[data-action="reset-manual-overrides"]')?.addEventListener('click', resetManualOverrides);
-  document.querySelector('[data-action="download-netlify-managed"]')?.addEventListener('click', downloadManagedNetlifyEnv);
   document.querySelectorAll('[data-action="apply-days"]').forEach((button) => {
     button.addEventListener('click', () => applyManageDays(Number(button.getAttribute('data-days') || '0')));
   });
@@ -1230,7 +1339,7 @@ function bindStaticEvents() {
       state.manageDeleteConfirm = '';
       state.isRunning = false;
       state.renderPasted = false;
-      state.netlifyPasted = false;
+      state.hostingCompleted = createEmptyHostingChecklist();
       render();
     });
   });
@@ -1244,7 +1353,7 @@ function bindStaticEvents() {
       state.manageLoading = false;
       state.manageDeleteConfirm = '';
       state.renderPasted = false;
-      state.netlifyPasted = false;
+      state.hostingCompleted = createEmptyHostingChecklist();
       render();
     });
   });
@@ -1254,7 +1363,7 @@ function bindStaticEvents() {
       state.step = 0;
       state.setupResult = null;
       state.renderPasted = false;
-      state.netlifyPasted = false;
+      state.hostingCompleted = createEmptyHostingChecklist();
       state.serviceAccountSummary = null;
       state.form.schoolLabel = '';
       state.form.projectId = '';
@@ -1317,26 +1426,39 @@ function bindStaticEvents() {
     render();
   });
   document.querySelector('[data-action="run-recheck"]')?.addEventListener('click', runRecheck);
+  document.querySelectorAll('[data-action="pick-hosting-provider"]').forEach((button) => {
+    button.addEventListener('click', () => {
+      state.hostingProvider = button.getAttribute('data-provider') || 'netlify';
+      render();
+    });
+  });
   document.querySelectorAll('[data-copy]').forEach((button) => {
     button.addEventListener('click', async () => {
       const field = button.getAttribute('data-copy');
-      const source = state.mode === 'recheck' ? state.recheckResult?.outputs?.[field] : state.setupResult?.outputs?.[field];
+      const outputs = state.mode === 'recheck' ? state.recheckResult?.outputs : state.setupResult?.outputs;
+      const selectedTarget = getSelectedHostingTarget(outputs);
+      const source = field === 'hostingEnv'
+        ? selectedTarget?.envText
+        : outputs?.[field];
       if (!source) return;
       await navigator.clipboard.writeText(source);
       button.textContent = 'Copied';
       setTimeout(() => {
-        button.textContent = field === 'renderJson' ? 'Copy Render Value' : 'Copy Netlify Values';
+        button.textContent = field === 'renderJson'
+          ? 'Copy Render Value'
+          : (selectedTarget?.copyLabel || 'Copy Hosting Values');
       }, 1400);
     });
   });
-  document.querySelector('[data-action="download-netlify-inline"]')?.addEventListener('click', downloadInlineNetlifyEnv);
-  document.querySelector('[data-action="download-netlify-saved"]')?.addEventListener('click', downloadSavedNetlifyEnv);
+  document.querySelector('[data-action="download-hosting-inline"]')?.addEventListener('click', downloadInlineHostingEnv);
+  document.querySelector('[data-action="download-hosting-saved"]')?.addEventListener('click', downloadSavedHostingEnv);
+  document.querySelector('[data-action="download-hosting-managed"]')?.addEventListener('click', downloadManagedHostingEnv);
   document.querySelector('[data-toggle="render-pasted"]')?.addEventListener('change', (event) => {
     state.renderPasted = event.target.checked;
     render();
   });
-  document.querySelector('[data-toggle="netlify-pasted"]')?.addEventListener('change', (event) => {
-    state.netlifyPasted = event.target.checked;
+  document.querySelector('[data-toggle="hosting-completed"]')?.addEventListener('change', (event) => {
+    state.hostingCompleted[state.hostingProvider] = event.target.checked;
     render();
   });
 }
@@ -1388,7 +1510,7 @@ async function runSetup() {
     state.setupResult = result;
     state.bootstrap = await api('/api/bootstrap');
     state.renderPasted = false;
-    state.netlifyPasted = false;
+    state.hostingCompleted = createEmptyHostingChecklist();
   } catch (error) {
     state.setupResult = {
       finalStatus: 'needs_attention',
@@ -1405,6 +1527,7 @@ async function runSetup() {
       ],
       outputs: {
         renderJson: '',
+        hostingTargets: {},
         netlifyVars: '',
       },
     };
@@ -1468,40 +1591,42 @@ function downloadTextFile(filename, content) {
   setTimeout(() => URL.revokeObjectURL(url), 500);
 }
 
-async function downloadInlineNetlifyEnv() {
+async function downloadInlineHostingEnv() {
   const projectId = state.form.projectId.trim() || 'school';
-  const content = state.setupResult?.outputs?.netlifyVars || '';
+  const target = getSelectedHostingTarget(state.setupResult?.outputs);
+  const content = target?.envText || '';
   if (!content) return;
-  downloadTextFile(`${projectId}.netlify.env`, content + '\n');
+  downloadTextFile(target?.envFilename || `${projectId}.${state.hostingProvider}.env`, content + '\n');
 }
 
-async function downloadSavedNetlifyEnv() {
+async function downloadSavedHostingEnv() {
   if (!state.recheckSchoolId) return;
   try {
-    const response = await fetch(`/api/download-netlify-env?projectId=${encodeURIComponent(state.recheckSchoolId)}&mode=saved`);
+    const response = await fetch(`/api/download-hosting-env?projectId=${encodeURIComponent(state.recheckSchoolId)}&provider=${encodeURIComponent(state.hostingProvider)}&mode=saved`);
     if (!response.ok) {
       const payload = await response.json().catch(() => ({}));
-      throw new Error(payload.error || 'The Netlify env file could not be downloaded.');
+      throw new Error(payload.error || 'The hosting env file could not be downloaded.');
     }
     const text = await response.text();
-    downloadTextFile(`${state.recheckSchoolId}.netlify.env`, text);
+    const target = getSelectedHostingTarget(state.recheckResult?.outputs);
+    downloadTextFile(target?.envFilename || `${state.recheckSchoolId}.${state.hostingProvider}.env`, text);
   } catch (error) {
-    window.alert(error.message || 'The Netlify env file could not be downloaded.');
+    window.alert(error.message || 'The hosting env file could not be downloaded.');
   }
 }
 
-async function downloadManagedNetlifyEnv() {
+async function downloadManagedHostingEnv() {
   if (!state.manageSchoolId) return;
   try {
-    const response = await fetch(`/api/download-netlify-env?projectId=${encodeURIComponent(state.manageSchoolId)}&mode=saved`);
+    const response = await fetch(`/api/download-hosting-env?projectId=${encodeURIComponent(state.manageSchoolId)}&provider=${encodeURIComponent(state.hostingProvider)}&mode=saved`);
     if (!response.ok) {
       const payload = await response.json().catch(() => ({}));
-      throw new Error(payload.error || 'The Netlify env file could not be downloaded.');
+      throw new Error(payload.error || 'The hosting env file could not be downloaded.');
     }
     const text = await response.text();
-    downloadTextFile(`${state.manageSchoolId}.netlify.env`, text);
+    downloadTextFile(`${state.manageSchoolId}.${state.hostingProvider}.env`, text);
   } catch (error) {
-    window.alert(error.message || 'The Netlify env file could not be downloaded.');
+    window.alert(error.message || 'The hosting env file could not be downloaded.');
   }
 }
 
@@ -1536,6 +1661,7 @@ async function runRecheck() {
       ],
       outputs: {
         renderJson: '',
+        hostingTargets: {},
         netlifyVars: '',
       },
     };
@@ -1666,7 +1792,7 @@ function detailsErrors() {
       : 'Please enter the full Render billing URL.',
     siteDomain: isValidHostedDomain(state.form.siteDomain.trim())
       ? ''
-      : 'Please enter the live school site domain, such as gcq-test-school.netlify.app.',
+      : 'Please enter the live school site domain, such as gcq-test-school.netlify.app or your-school.pages.dev.',
   };
 }
 

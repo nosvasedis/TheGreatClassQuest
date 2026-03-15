@@ -168,10 +168,10 @@ async function handleGetSchoolSubscription(req, res, requestUrl) {
   sendJson(res, 200, result);
 }
 
-async function handleDownloadNetlifyEnv(req, res, requestUrl) {
+async function handleDownloadHostingEnv(req, res, requestUrl) {
   const projectId = String(requestUrl.searchParams.get('projectId') || '').trim();
+  const provider = String(requestUrl.searchParams.get('provider') || 'netlify').trim();
   const mode = String(requestUrl.searchParams.get('mode') || 'saved').trim();
-  let content = '';
 
   if (mode === 'saved') {
     if (!projectId) {
@@ -180,15 +180,23 @@ async function handleDownloadNetlifyEnv(req, res, requestUrl) {
     }
     const details = await getSavedSchoolDetails(projectId);
     const result = await recheckExistingSchool(projectId, {});
-    content = result.outputs?.netlifyVars || '';
+    const target = result.outputs?.hostingTargets?.[provider] || null;
+    const content = target?.envText || '';
     if (!content) {
-      throw new Error('Netlify values are not ready for this saved school yet.');
+      throw new Error(`${provider} values are not ready for this saved school yet.`);
     }
-    sendDownload(res, `${details.school.schoolId}.netlify.env`, content + '\n');
+    const filename = target?.envFilename || `${details.school.schoolId}.${provider}.env`;
+    sendDownload(res, filename, content + '\n');
     return;
   }
 
-  sendJson(res, 400, { ok: false, error: 'That Netlify download mode is not supported.' });
+  sendJson(res, 400, { ok: false, error: 'That hosting download mode is not supported.' });
+}
+
+async function handleDownloadNetlifyEnv(req, res, requestUrl) {
+  const bridgedUrl = new URL(requestUrl.toString());
+  bridgedUrl.searchParams.set('provider', 'netlify');
+  await handleDownloadHostingEnv(req, res, bridgedUrl);
 }
 
 async function handleUpdateSchoolSubscription(req, res) {
@@ -226,6 +234,10 @@ function createServer() {
       }
       if (req.method === 'GET' && pathname === '/api/download-netlify-env') {
         await handleDownloadNetlifyEnv(req, res, requestUrl);
+        return;
+      }
+      if (req.method === 'GET' && pathname === '/api/download-hosting-env') {
+        await handleDownloadHostingEnv(req, res, requestUrl);
         return;
       }
       if (req.method === 'POST' && pathname === '/api/validate-service-account') {

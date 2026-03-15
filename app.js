@@ -304,7 +304,7 @@ function showSubscribeScreen(loadingScreen, authScreen, options = {}) {
         const msg = document.createElement('p');
         msg.className = 'text-gray-600 text-center mt-4';
         msg.textContent = 'Billing is not configured. Please contact support.';
-        subscribeScreen.querySelector('.max-w-4xl').appendChild(msg);
+        subscribeScreen.querySelector('.max-w-6xl')?.appendChild(msg);
     }
 
     const graceBtn = document.getElementById('subscribe-start-grace-btn');

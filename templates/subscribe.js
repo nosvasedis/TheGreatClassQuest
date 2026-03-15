@@ -3,67 +3,68 @@
 
 export const subscribeHTML = `
     <div id="subscribe-screen"
-        class="fixed inset-0 z-40 flex items-center justify-center p-4 hidden"
+        class="fixed inset-0 z-40 hidden overflow-y-auto"
         style="background:
             radial-gradient(circle at top, rgba(255,244,201,0.95) 0%, rgba(196,225,255,0.92) 30%, rgba(148,163,255,0.94) 100%),
             linear-gradient(135deg, #c7d2fe 0%, #a5b4fc 100%);">
-        <div class="w-full max-w-6xl bg-white/95 backdrop-blur p-8 md:p-10 rounded-[2rem] shadow-2xl border border-white/70 overflow-hidden relative">
-            <div class="absolute -top-16 -right-12 w-48 h-48 rounded-full bg-amber-200/40 blur-3xl pointer-events-none"></div>
-            <div class="absolute -bottom-20 -left-16 w-56 h-56 rounded-full bg-cyan-200/40 blur-3xl pointer-events-none"></div>
+        <div class="min-h-full w-full flex items-start justify-center p-4 md:p-6 lg:p-8">
+            <div class="w-full max-w-6xl my-4 bg-white/95 backdrop-blur p-6 md:p-8 lg:p-10 rounded-[2rem] shadow-2xl border border-white/70 overflow-hidden relative">
+                <div class="absolute -top-16 -right-12 w-48 h-48 rounded-full bg-amber-200/40 blur-3xl pointer-events-none"></div>
+                <div class="absolute -bottom-20 -left-16 w-56 h-56 rounded-full bg-cyan-200/40 blur-3xl pointer-events-none"></div>
 
-            <div class="grid grid-cols-1 xl:grid-cols-[1.1fr_0.9fr] gap-8 items-start mb-8 relative">
-                <div>
-                    <div class="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-indigo-100 text-indigo-700 font-bold text-sm shadow-sm border border-indigo-200 mb-4">
-                        <span>🗝️ School unlock portal</span>
-                        <span class="w-1.5 h-1.5 rounded-full bg-indigo-400"></span>
-                        <span id="subscribe-status-meta">Payment or grace unlocks the Quest</span>
-                    </div>
-                    <h1 class="font-title text-4xl md:text-5xl text-indigo-800 mb-3 leading-tight">Welcome to The Great Class Quest</h1>
-                    <p id="subscribe-status-lead" class="text-slate-600 text-lg leading-relaxed max-w-2xl">Choose a plan to unlock your school’s adventure, or begin the first-day setup grace period if this is a brand-new school.</p>
+                <div class="grid grid-cols-1 xl:grid-cols-[1.1fr_0.9fr] gap-8 items-start mb-8 relative">
+                    <div>
+                        <div class="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-indigo-100 text-indigo-700 font-bold text-sm shadow-sm border border-indigo-200 mb-4">
+                            <span>🗝️ School unlock portal</span>
+                            <span class="w-1.5 h-1.5 rounded-full bg-indigo-400"></span>
+                            <span id="subscribe-status-meta">Payment or grace unlocks the Quest</span>
+                        </div>
+                        <h1 class="font-title text-4xl md:text-5xl text-indigo-800 mb-3 leading-tight">Welcome to The Great Class Quest</h1>
+                        <p id="subscribe-status-lead" class="text-slate-600 text-lg leading-relaxed max-w-2xl">Choose a plan to unlock your school’s adventure, or begin the first-day setup grace period if this is a brand-new school.</p>
 
-                    <div id="subscribe-grace-banner" class="hidden mt-5 rounded-[1.5rem] border border-emerald-200 bg-gradient-to-r from-emerald-50 to-teal-50 px-5 py-4 shadow-sm">
-                        <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-                            <div>
-                                <p class="text-xs uppercase tracking-[0.25em] text-emerald-600 font-black mb-1">Grace Time</p>
-                                <h3 id="subscribe-grace-title" class="font-title text-2xl text-emerald-800">1-day setup grace is active</h3>
-                                <p id="subscribe-grace-copy" class="text-sm text-emerald-800/80 mt-1">Use this time to set up the school before payment is required.</p>
+                        <div id="subscribe-grace-banner" class="hidden mt-5 rounded-[1.5rem] border border-emerald-200 bg-gradient-to-r from-emerald-50 to-teal-50 px-5 py-4 shadow-sm">
+                            <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                                <div>
+                                    <p class="text-xs uppercase tracking-[0.25em] text-emerald-600 font-black mb-1">Grace Time</p>
+                                    <h3 id="subscribe-grace-title" class="font-title text-2xl text-emerald-800">1-day setup grace is active</h3>
+                                    <p id="subscribe-grace-copy" class="text-sm text-emerald-800/80 mt-1">Use this time to set up the school before payment is required.</p>
+                                </div>
+                                <div class="rounded-2xl bg-white/85 border border-emerald-200 px-4 py-3 min-w-[220px] text-center shadow-sm">
+                                    <p class="text-[11px] uppercase tracking-[0.24em] text-emerald-500 font-black mb-1">Remaining Time</p>
+                                    <p id="subscribe-grace-countdown" class="font-title text-2xl text-emerald-800">24h 00m</p>
+                                </div>
                             </div>
-                            <div class="rounded-2xl bg-white/85 border border-emerald-200 px-4 py-3 min-w-[220px] text-center shadow-sm">
-                                <p class="text-[11px] uppercase tracking-[0.24em] text-emerald-500 font-black mb-1">Remaining Time</p>
-                                <p id="subscribe-grace-countdown" class="font-title text-2xl text-emerald-800">24h 00m</p>
+                        </div>
+                    </div>
+
+                    <div class="rounded-[1.75rem] bg-gradient-to-br from-slate-900 via-indigo-950 to-slate-900 text-white p-6 shadow-2xl border border-white/10">
+                        <p class="text-xs uppercase tracking-[0.25em] text-white/60 font-black mb-3">What unlocks right away</p>
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                            <div class="rounded-2xl bg-white/10 border border-white/10 px-4 py-4">
+                                <div class="text-2xl mb-2">🏫</div>
+                                <h3 class="font-title text-xl">School Setup</h3>
+                                <p class="text-sm text-white/75 mt-1">Create the school, add classes, and paste students into GCQ beautifully.</p>
+                            </div>
+                            <div class="rounded-2xl bg-white/10 border border-white/10 px-4 py-4">
+                                <div class="text-2xl mb-2">🔐</div>
+                                <h3 class="font-title text-xl">Stripe-secure billing</h3>
+                                <p class="text-sm text-white/75 mt-1">Plans, invoices, upgrades, and payment methods stay inside Stripe.</p>
+                            </div>
+                            <div class="rounded-2xl bg-white/10 border border-white/10 px-4 py-4">
+                                <div class="text-2xl mb-2">📈</div>
+                                <h3 class="font-title text-xl">Tier-based limits</h3>
+                                <p class="text-sm text-white/75 mt-1">Starter, Pro, and Elite all enforce the right limits and features automatically.</p>
+                            </div>
+                            <div class="rounded-2xl bg-white/10 border border-white/10 px-4 py-4">
+                                <div class="text-2xl mb-2">✨</div>
+                                <h3 class="font-title text-xl">Magic that scales</h3>
+                                <p class="text-sm text-white/75 mt-1">Start simple, then unlock guilds, avatars, AI, and the rest when the school grows.</p>
                             </div>
                         </div>
                     </div>
                 </div>
 
-                <div class="rounded-[1.75rem] bg-gradient-to-br from-slate-900 via-indigo-950 to-slate-900 text-white p-6 shadow-2xl border border-white/10">
-                    <p class="text-xs uppercase tracking-[0.25em] text-white/60 font-black mb-3">What unlocks right away</p>
-                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                        <div class="rounded-2xl bg-white/10 border border-white/10 px-4 py-4">
-                            <div class="text-2xl mb-2">🏫</div>
-                            <h3 class="font-title text-xl">School Setup</h3>
-                            <p class="text-sm text-white/75 mt-1">Create the school, add classes, and paste students into GCQ beautifully.</p>
-                        </div>
-                        <div class="rounded-2xl bg-white/10 border border-white/10 px-4 py-4">
-                            <div class="text-2xl mb-2">🔐</div>
-                            <h3 class="font-title text-xl">Stripe-secure billing</h3>
-                            <p class="text-sm text-white/75 mt-1">Plans, invoices, upgrades, and payment methods stay inside Stripe.</p>
-                        </div>
-                        <div class="rounded-2xl bg-white/10 border border-white/10 px-4 py-4">
-                            <div class="text-2xl mb-2">📈</div>
-                            <h3 class="font-title text-xl">Tier-based limits</h3>
-                            <p class="text-sm text-white/75 mt-1">Starter, Pro, and Elite all enforce the right limits and features automatically.</p>
-                        </div>
-                        <div class="rounded-2xl bg-white/10 border border-white/10 px-4 py-4">
-                            <div class="text-2xl mb-2">✨</div>
-                            <h3 class="font-title text-xl">Magic that scales</h3>
-                            <p class="text-sm text-white/75 mt-1">Start simple, then unlock guilds, avatars, AI, and the rest when the school grows.</p>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8 relative">
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8 relative">
                 <!-- Starter Plan -->
                 <div class="bg-gradient-to-b from-slate-50 to-white rounded-[1.75rem] border-2 border-slate-200 p-6 flex flex-col shadow-lg">
                     <div class="text-center mb-4">
@@ -130,22 +131,23 @@ export const subscribeHTML = `
                 </div>
             </div>
 
-            <div id="subscribe-actions" class="hidden"></div>
-            <div class="mt-6 rounded-[1.5rem] border border-slate-200 bg-slate-50/80 px-5 py-4 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-                <div>
-                    <p class="text-xs uppercase tracking-[0.2em] text-slate-500 font-black mb-1">Secure Billing Promise</p>
-                    <p class="text-sm text-slate-600">Stripe handles payment securely. GCQ only uses the result to unlock the correct school tier.</p>
+                <div id="subscribe-actions" class="hidden"></div>
+                <div class="mt-6 rounded-[1.5rem] border border-slate-200 bg-slate-50/80 px-5 py-4 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                    <div>
+                        <p class="text-xs uppercase tracking-[0.2em] text-slate-500 font-black mb-1">Secure Billing Promise</p>
+                        <p class="text-sm text-slate-600">Stripe handles payment securely. GCQ only uses the result to unlock the correct school tier.</p>
+                    </div>
+                    <div class="flex flex-wrap gap-2 text-xs font-bold text-slate-600">
+                        <span class="px-3 py-1 rounded-full bg-white border border-slate-200">Upgrade anytime</span>
+                        <span class="px-3 py-1 rounded-full bg-white border border-slate-200">Manage in Stripe</span>
+                        <span class="px-3 py-1 rounded-full bg-white border border-slate-200">Access updates automatically</span>
+                    </div>
                 </div>
-                <div class="flex flex-wrap gap-2 text-xs font-bold text-slate-600">
-                    <span class="px-3 py-1 rounded-full bg-white border border-slate-200">Upgrade anytime</span>
-                    <span class="px-3 py-1 rounded-full bg-white border border-slate-200">Manage in Stripe</span>
-                    <span class="px-3 py-1 rounded-full bg-white border border-slate-200">Access updates automatically</span>
-                </div>
+                <p id="subscribe-status" class="text-sm text-rose-600 mt-4 text-center hidden" aria-live="polite"></p>
+                <p id="subscribe-refresh-hint" class="text-sm text-gray-500 mt-6 text-center hidden">
+                    <i class="fas fa-sync-alt mr-1"></i> Refresh this page after you've completed payment
+                </p>
             </div>
-            <p id="subscribe-status" class="text-sm text-rose-600 mt-4 text-center hidden" aria-live="polite"></p>
-            <p id="subscribe-refresh-hint" class="text-sm text-gray-500 mt-6 text-center hidden">
-                <i class="fas fa-sync-alt mr-1"></i> Refresh this page after you've completed payment
-            </p>
         </div>
     </div>
 `;

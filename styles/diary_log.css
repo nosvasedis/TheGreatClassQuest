@@ -173,3 +173,231 @@
     display: none;
 }
 
+/* --- Adventure Log Editor Redesign --- */
+body.adventure-log-editor-open {
+    overflow: hidden;
+}
+
+.adventure-log-editor-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 120;
+    padding: 1rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background:
+        radial-gradient(circle at 20% 20%, rgba(14, 116, 144, 0.28), transparent 45%),
+        radial-gradient(circle at 80% 15%, rgba(251, 146, 60, 0.3), transparent 42%),
+        linear-gradient(145deg, rgba(17, 24, 39, 0.72), rgba(12, 74, 110, 0.8));
+    backdrop-filter: blur(8px);
+}
+
+.adventure-log-editor-sheet {
+    width: min(920px, 100%);
+    max-height: min(90vh, 860px);
+    display: flex;
+    flex-direction: column;
+    border-radius: 1.5rem;
+    border: 1px solid rgba(255, 255, 255, 0.35);
+    background:
+        linear-gradient(170deg, rgba(255, 255, 255, 0.98), rgba(247, 250, 252, 0.96));
+    box-shadow:
+        0 24px 48px rgba(2, 6, 23, 0.3),
+        0 2px 0 rgba(255, 255, 255, 0.65) inset;
+    overflow: hidden;
+    animation: adventure-log-editor-in 240ms ease-out;
+}
+
+@keyframes adventure-log-editor-in {
+    from {
+        opacity: 0;
+        transform: translateY(20px) scale(0.98);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+
+.adventure-log-editor-header {
+    display: flex;
+    justify-content: space-between;
+    gap: 1rem;
+    align-items: flex-start;
+    padding: 1.25rem 1.35rem 1rem;
+    background: linear-gradient(115deg, #0f766e, #155e75);
+    color: #f8fafc;
+}
+
+.adventure-log-editor-kicker {
+    font-size: 0.72rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    font-weight: 800;
+    opacity: 0.85;
+}
+
+.adventure-log-editor-title {
+    font-family: 'Fredoka One', cursive;
+    font-size: clamp(1.5rem, 2.8vw, 2rem);
+    margin: 0.2rem 0 0;
+    line-height: 1.15;
+}
+
+.adventure-log-editor-subtitle {
+    margin-top: 0.35rem;
+    font-size: 0.92rem;
+    color: rgba(241, 245, 249, 0.92);
+}
+
+.adventure-log-editor-close {
+    width: 2.35rem;
+    height: 2.35rem;
+    border-radius: 999px;
+    border: 1px solid rgba(255, 255, 255, 0.35);
+    color: #f8fafc;
+    background: rgba(255, 255, 255, 0.18);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: transform 0.16s ease, background-color 0.16s ease;
+}
+
+.adventure-log-editor-close:hover {
+    background: rgba(255, 255, 255, 0.28);
+    transform: translateY(-1px);
+}
+
+.adventure-log-editor-body {
+    padding: 1.15rem 1.35rem;
+    overflow: auto;
+    display: grid;
+    gap: 0.95rem;
+}
+
+.adventure-log-editor-field label {
+    display: block;
+    margin-bottom: 0.4rem;
+    color: #0f172a;
+    font-size: 0.88rem;
+    font-weight: 700;
+}
+
+.adventure-log-editor-field input,
+.adventure-log-editor-field textarea {
+    width: 100%;
+    border: 1px solid #cbd5e1;
+    border-radius: 0.9rem;
+    background: #ffffff;
+    color: #0f172a;
+    padding: 0.72rem 0.86rem;
+    outline: none;
+    transition: border-color 0.16s ease, box-shadow 0.16s ease;
+}
+
+.adventure-log-editor-field textarea {
+    resize: vertical;
+    min-height: 180px;
+    line-height: 1.5;
+}
+
+.adventure-log-editor-field input:focus,
+.adventure-log-editor-field textarea:focus {
+    border-color: #0891b2;
+    box-shadow: 0 0 0 3px rgba(8, 145, 178, 0.18);
+}
+
+.adventure-log-editor-hint {
+    margin-top: 0.35rem;
+    font-size: 0.76rem;
+    color: #64748b;
+}
+
+.adventure-log-editor-hint.limit {
+    color: #b45309;
+    font-weight: 700;
+}
+
+.adventure-log-editor-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 0.85rem;
+}
+
+.adventure-log-editor-footer {
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.65rem;
+    padding: 1rem 1.35rem 1.2rem;
+    border-top: 1px solid #e2e8f0;
+    background: linear-gradient(180deg, #ffffff, #f8fafc);
+}
+
+.adventure-log-editor-btn {
+    border: none;
+    border-radius: 0.85rem;
+    font-weight: 700;
+    padding: 0.7rem 1rem;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    transition: transform 0.16s ease, opacity 0.16s ease, box-shadow 0.16s ease;
+}
+
+.adventure-log-editor-btn:hover {
+    transform: translateY(-1px);
+}
+
+.adventure-log-editor-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none;
+}
+
+.adventure-log-editor-btn.secondary {
+    background: #e2e8f0;
+    color: #334155;
+}
+
+.adventure-log-editor-btn.primary {
+    background: linear-gradient(115deg, #0ea5a4, #0284c7);
+    color: #ffffff;
+    box-shadow: 0 10px 20px rgba(2, 132, 199, 0.25);
+}
+
+@media (min-width: 760px) {
+    .adventure-log-editor-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+@media (max-width: 640px) {
+    .adventure-log-editor-overlay {
+        padding: 0.55rem;
+    }
+
+    .adventure-log-editor-sheet {
+        max-height: 96vh;
+        border-radius: 1.1rem;
+    }
+
+    .adventure-log-editor-header,
+    .adventure-log-editor-body,
+    .adventure-log-editor-footer {
+        padding-left: 0.9rem;
+        padding-right: 0.9rem;
+    }
+
+    .adventure-log-editor-footer {
+        flex-direction: column-reverse;
+    }
+
+    .adventure-log-editor-btn {
+        width: 100%;
+        justify-content: center;
+    }
+}
+

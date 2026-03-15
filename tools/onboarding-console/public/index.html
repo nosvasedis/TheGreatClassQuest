@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>GCQ Onboarding Console</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600&family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+  <div class="sky-orb orb-left"></div>
+  <div class="sky-orb orb-right"></div>
+  <div class="shell">
+    <header class="hero">
+      <div class="hero-badge-row">
+        <span class="hero-badge"><i class="fas fa-house-laptop"></i> Runs only on your machine</span>
+        <span class="hero-badge"><i class="fas fa-shield-heart"></i> Safe to rerun</span>
+        <span class="hero-badge"><i class="fas fa-wand-magic-sparkles"></i> Friendly setup quest</span>
+      </div>
+      <div class="hero-copy">
+        <p class="eyebrow">GCQ School Setup Quest</p>
+        <h1>Set up a new school without thinking like a programmer.</h1>
+        <p class="hero-text">
+          This console helps you prepare a school so Firebase, payments, Firestore indexes,
+          Render, and Netlify are all lined up properly. Nothing here goes into the live teacher app.
+        </p>
+      </div>
+    </header>
+
+    <main id="app" class="app-shell">
+      <div class="loading-card">
+        <div class="spinner"></div>
+        <p>Loading your onboarding console...</p>
+      </div>
+    </main>
+  </div>
+
+  <script type="module" src="/app.js"></script>
+</body>
+</html>

@@ -1,14 +1,30 @@
-# GCQ Billing tools
+# GCQ onboarding tools
 
-## billing-setup.html
+## Recommended: onboarding console
 
-**Open this file in your browser** (double-click or drag into Chrome/Firefox/Safari).
+Run this from the project root:
 
-- No install, no terminal.
-- Fill in the form (Firebase project ID, service account JSON, Render URL, Stripe Price IDs).
-- Click **Generate configs**.
-- Copy each block into **Render** (BILLING_SCHOOLS_JSON) and **Netlify** (environment variables). Optionally paste the Firestore JSON if you set “pending” by hand.
+```bash
+npm run onboarding-console
+```
 
-Everything runs in your browser; nothing is sent to any server.
+Then open the local address shown in the terminal, usually:
 
-For the full automated flow (including writing “pending” to Firestore), use **`npm run setup-school`** in the project root instead — see **docs/STRIPE_SETUP_SIMPLE.md**.
+```text
+http://127.0.0.1:3020
+```
+
+This is the main noob-friendly setup quest. It:
+
+- saves the school in your local billing records
+- stores the Firebase key safely on your machine
+- writes the school subscription as `pending`
+- checks and creates Firestore indexes
+- rebuilds the Render billing JSON
+- prepares the Netlify environment variables
+
+## Older helper: billing-setup.html
+
+You can still open **`tools/billing-setup.html`** directly in the browser if you only want a quick copy-paste generator.
+
+That older helper does **not** do the full automatic setup. It only prepares values for manual copy-paste.

@@ -309,76 +309,130 @@ export async function editAdventureLogEntry(logId) {
     const log = state.get('allAdventureLogs').find(l => l.id === logId);
     if (!log) return;
 
-    const { showModal } = await import('../../ui/modals.js');
-
-    const modalContent = `
-        <div class="p-6 max-w-2xl mx-auto">
-            <div class="text-center mb-6">
-                <div class="inline-flex items-center justify-center w-16 h-16 rounded-full bg-gradient-to-br from-indigo-100 to-purple-100 mb-3">
-                    <i class="fas fa-pen-fancy text-2xl text-indigo-600"></i>
-                </div>
-                <h3 class="font-title text-2xl text-indigo-700">Edit Adventure Log Entry</h3>
-                <p class="text-sm text-gray-500 mt-1">Refine your class story</p>
-            </div>
-
-            <div class="space-y-5">
-                <div>
-                    <label class="block text-sm font-semibold text-gray-700 mb-2">
-                        <i class="fas fa-heading text-indigo-500 mr-1"></i> Title
-                    </label>
-                    <input type="text" id="edit-log-title" class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all" value="${log.title || ''}" maxlength="90" placeholder="Enter a captivating title...">
-                </div>
-
-                <div>
-                    <label class="block text-sm font-semibold text-gray-700 mb-2">
-                        <i class="fas fa-book-open text-indigo-500 mr-1"></i> Story
-                    </label>
-                    <textarea id="edit-log-text" rows="10" class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all resize-none" placeholder="Write the adventure story...">${log.text || ''}</textarea>
-                </div>
-
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                        <label class="block text-sm font-semibold text-gray-700 mb-2">
-                            <i class="fas fa-star text-amber-500 mr-1"></i> Highlights
-                        </label>
-                        <input type="text" id="edit-log-highlights" class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-all" value="${(log.highlights || []).join(', ')}" placeholder="e.g. Amazing teamwork, Great creativity">
-                        <p class="text-xs text-gray-400 mt-1">Separate with commas</p>
-                    </div>
-
-                    <div>
-                        <label class="block text-sm font-semibold text-gray-700 mb-2">
-                            <i class="fas fa-crown text-amber-500 mr-1"></i> Hero of the Day
-                        </label>
-                        <input type="text" id="edit-log-hero" class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-all" value="${log.hero || ''}" placeholder="Student name...">
-                    </div>
-                </div>
-            </div>
-
-            <div class="flex gap-3 mt-8">
-                <button type="button" id="save-edit-log-btn" class="flex-1 bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 text-white font-title py-3 rounded-xl bubbly-button shadow-lg">
-                    <i class="fas fa-save mr-2"></i> Save Changes
-                </button>
-                <button type="button" id="cancel-edit-log-btn" class="flex-1 bg-gray-200 hover:bg-gray-300 text-gray-700 font-title py-3 rounded-xl bubbly-button">
-                    <i class="fas fa-times mr-2"></i> Cancel
-                </button>
-            </div>
-        </div>
-    `;
-
-    showModal('Edit Adventure Log Entry', modalContent, () => {}, '', true);
-
-    // Add event listeners
-    document.getElementById('save-edit-log-btn').addEventListener('click', async () => await saveEditedLogEntry(logId));
-    document.getElementById('cancel-edit-log-btn').addEventListener('click', () => {
-        import('../../ui/modals.js').then(m => m.hideModal());
-    });
+    openAdventureLogEditor(logId, log);
 }
 
-async function saveEditedLogEntry(logId) {
-    const title = document.getElementById('edit-log-title').value.trim();
-    const text = document.getElementById('edit-log-text').value.trim();
-    const highlightsText = document.getElementById('edit-log-highlights').value.trim();
-    const hero = document.getElementById('edit-log-hero').value.trim();
+function escapeHtml(value) {
+    return String(value || '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+}
+
+function openAdventureLogEditor(logId, log) {
+    const existing = document.getElementById('adventure-log-editor-modal');
+    if (existing) existing.remove();
+
+    const overlay = document.createElement('div');
+    overlay.id = 'adventure-log-editor-modal';
+    overlay.className = 'adventure-log-editor-overlay';
+    overlay.innerHTML = `
+        <section class="adventure-log-editor-sheet" role="dialog" aria-modal="true" aria-labelledby="adventure-log-editor-title">
+            <header class="adventure-log-editor-header">
+                <div>
+                    <p class="adventure-log-editor-kicker">Adventure Log</p>
+                    <h2 id="adventure-log-editor-title" class="adventure-log-editor-title">Edit Entry</h2>
+                    <p class="adventure-log-editor-subtitle">Polish the story, keep the magic, and publish your final version.</p>
+                </div>
+                <button type="button" id="adventure-log-editor-close-btn" class="adventure-log-editor-close" aria-label="Close editor">
+                    <i class="fas fa-times"></i>
+                </button>
+            </header>
+
+            <div class="adventure-log-editor-body">
+                <div class="adventure-log-editor-field">
+                    <label for="edit-log-title">Title</label>
+                    <input type="text" id="edit-log-title" maxlength="90" value="${escapeHtml(log.title || '')}" placeholder="Enter a clear, memorable title">
+                    <p id="edit-log-title-counter" class="adventure-log-editor-hint">0 / 90</p>
+                </div>
+
+                <div class="adventure-log-editor-field">
+                    <label for="edit-log-text">Story</label>
+                    <textarea id="edit-log-text" rows="10" placeholder="Write what happened in this lesson...">${escapeHtml(log.text || '')}</textarea>
+                    <p class="adventure-log-editor-hint">Tip: Use Cmd/Ctrl + Enter to save quickly.</p>
+                </div>
+
+                <div class="adventure-log-editor-grid">
+                    <div class="adventure-log-editor-field">
+                        <label for="edit-log-hero">Hero of the Day</label>
+                        <input type="text" id="edit-log-hero" value="${escapeHtml(log.hero || '')}" placeholder="Student name">
+                    </div>
+
+                    <div class="adventure-log-editor-field">
+                        <label for="edit-log-highlights">Highlights</label>
+                        <input type="text" id="edit-log-highlights" value="${escapeHtml((log.highlights || []).join(', '))}" placeholder="Teamwork, Creativity, Confidence">
+                        <p class="adventure-log-editor-hint">Use commas to separate up to 4 highlights.</p>
+                    </div>
+                </div>
+            </div>
+
+            <footer class="adventure-log-editor-footer">
+                <button type="button" id="cancel-edit-log-btn" class="adventure-log-editor-btn secondary">Cancel</button>
+                <button type="button" id="save-edit-log-btn" class="adventure-log-editor-btn primary">
+                    <i class="fas fa-save"></i>
+                    Save Changes
+                </button>
+            </footer>
+        </section>
+    `;
+
+    document.body.appendChild(overlay);
+    document.body.classList.add('adventure-log-editor-open');
+
+    const titleInput = overlay.querySelector('#edit-log-title');
+    const storyInput = overlay.querySelector('#edit-log-text');
+    const counter = overlay.querySelector('#edit-log-title-counter');
+    const closeBtn = overlay.querySelector('#adventure-log-editor-close-btn');
+    const cancelBtn = overlay.querySelector('#cancel-edit-log-btn');
+    const saveBtn = overlay.querySelector('#save-edit-log-btn');
+
+    const updateCounter = () => {
+        const len = titleInput.value.length;
+        counter.textContent = `${len} / 90`;
+        counter.classList.toggle('limit', len > 80);
+    };
+
+    const closeEditor = () => {
+        document.removeEventListener('keydown', onEscape);
+        document.body.classList.remove('adventure-log-editor-open');
+        overlay.remove();
+    };
+
+    const onEscape = (event) => {
+        if (event.key === 'Escape') {
+            event.preventDefault();
+            closeEditor();
+        }
+        if ((event.metaKey || event.ctrlKey) && event.key === 'Enter') {
+            event.preventDefault();
+            saveBtn.click();
+        }
+    };
+
+    overlay.addEventListener('click', (event) => {
+        if (event.target === overlay) closeEditor();
+    });
+    closeBtn.addEventListener('click', closeEditor);
+    cancelBtn.addEventListener('click', closeEditor);
+    saveBtn.addEventListener('click', async () => {
+        saveBtn.disabled = true;
+        await saveEditedLogEntry(logId, overlay);
+        if (document.body.contains(overlay)) saveBtn.disabled = false;
+    });
+    titleInput.addEventListener('input', updateCounter);
+    document.addEventListener('keydown', onEscape);
+
+    updateCounter();
+    requestAnimationFrame(() => titleInput.focus());
+}
+
+async function saveEditedLogEntry(logId, rootEl = document) {
+    const title = rootEl.querySelector('#edit-log-title').value.trim();
+    const text = rootEl.querySelector('#edit-log-text').value.trim();
+    const highlightsText = rootEl.querySelector('#edit-log-highlights').value.trim();
+    const hero = rootEl.querySelector('#edit-log-hero').value.trim();
     
     if (!title || !text) {
         showToast('Title and story cannot be empty.', 'error');
@@ -398,8 +452,12 @@ async function saveEditedLogEntry(logId) {
             editedAt: serverTimestamp(),
             editedBy: { uid: state.get('currentUserId'), name: state.get('currentTeacherName') }
         });
-        
-        import('../../ui/modals.js').then(m => m.hideModal());
+
+        const overlay = document.getElementById('adventure-log-editor-modal');
+        if (overlay) {
+            document.body.classList.remove('adventure-log-editor-open');
+            overlay.remove();
+        }
         showToast('Adventure log entry updated!', 'success');
         
         // Refresh the log display

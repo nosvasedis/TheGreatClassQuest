@@ -89,9 +89,9 @@ export const setupHTML = `
                             </div>
                         </div>
 
-                        <div class="grid grid-cols-1 xl:grid-cols-[1.15fr_0.85fr] gap-6">
+                        <div class="grid grid-cols-1 2xl:grid-cols-[1.15fr_0.85fr] gap-6">
                             <div class="rounded-[1.5rem] bg-white border border-indigo-100 p-5">
-                                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                                <div class="grid grid-cols-1 xl:grid-cols-[0.9fr_1.1fr] gap-4 mb-4">
                                     <div>
                                         <label class="block text-sm font-bold text-slate-700 mb-2" for="setup-class-level">League</label>
                                         <select id="setup-class-level" class="w-full px-4 py-3 border border-indigo-200 rounded-2xl focus:ring-2 focus:ring-indigo-500 bg-white"></select>

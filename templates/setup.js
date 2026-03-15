@@ -56,7 +56,7 @@ export const setupHTML = `
                                 <i class="fas fa-sparkles text-amber-500"></i> Gentle Reminder
                             </h2>
                             <div class="space-y-3 text-sm text-slate-700 leading-relaxed">
-                                <p>This setup screen is meant for a real teacher, not a programmer. Fill in the boxes, add your classes, and press one main button at the end.</p>
+                                <p>Fill in the boxes, add your classes, and press one main button at the end.</p>
                                 <p>If the school is still on its first grace day, the app stays open temporarily. When that day ends, GCQ locks again until payment is completed.</p>
                                 <div id="setup-grace-banner" class="hidden rounded-[1.25rem] border border-emerald-200 bg-white/90 px-4 py-4 shadow-sm">
                                     <p class="text-[11px] uppercase tracking-[0.24em] text-emerald-600 font-black mb-1">Grace Day Countdown</p>

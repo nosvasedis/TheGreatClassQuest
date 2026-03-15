@@ -310,39 +310,63 @@ export async function editAdventureLogEntry(logId) {
     if (!log) return;
 
     const { showModal } = await import('../../ui/modals.js');
-    
+
     const modalContent = `
-        <div class="p-6">
-            <h3 class="font-title text-2xl text-indigo-700 mb-4 text-center">Edit Adventure Log Entry</h3>
-            <div class="mb-4">
-                <label class="block text-sm font-medium text-gray-700 mb-2">Title:</label>
-                <input type="text" id="edit-log-title" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500" value="${log.title || ''}" maxlength="90">
+        <div class="p-6 max-w-2xl mx-auto">
+            <div class="text-center mb-6">
+                <div class="inline-flex items-center justify-center w-16 h-16 rounded-full bg-gradient-to-br from-indigo-100 to-purple-100 mb-3">
+                    <i class="fas fa-pen-fancy text-2xl text-indigo-600"></i>
+                </div>
+                <h3 class="font-title text-2xl text-indigo-700">Edit Adventure Log Entry</h3>
+                <p class="text-sm text-gray-500 mt-1">Refine your class story</p>
             </div>
-            <div class="mb-4">
-                <label class="block text-sm font-medium text-gray-700 mb-2">Story:</label>
-                <textarea id="edit-log-text" rows="8" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500">${log.text || ''}</textarea>
+
+            <div class="space-y-5">
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700 mb-2">
+                        <i class="fas fa-heading text-indigo-500 mr-1"></i> Title
+                    </label>
+                    <input type="text" id="edit-log-title" class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all" value="${log.title || ''}" maxlength="90" placeholder="Enter a captivating title...">
+                </div>
+
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700 mb-2">
+                        <i class="fas fa-book-open text-indigo-500 mr-1"></i> Story
+                    </label>
+                    <textarea id="edit-log-text" rows="10" class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all resize-none" placeholder="Write the adventure story...">${log.text || ''}</textarea>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-semibold text-gray-700 mb-2">
+                            <i class="fas fa-star text-amber-500 mr-1"></i> Highlights
+                        </label>
+                        <input type="text" id="edit-log-highlights" class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-all" value="${(log.highlights || []).join(', ')}" placeholder="e.g. Amazing teamwork, Great creativity">
+                        <p class="text-xs text-gray-400 mt-1">Separate with commas</p>
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-semibold text-gray-700 mb-2">
+                            <i class="fas fa-crown text-amber-500 mr-1"></i> Hero of the Day
+                        </label>
+                        <input type="text" id="edit-log-hero" class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-all" value="${log.hero || ''}" placeholder="Student name...">
+                    </div>
+                </div>
             </div>
-            <div class="mb-4">
-                <label class="block text-sm font-medium text-gray-700 mb-2">Highlights (comma-separated):</label>
-                <input type="text" id="edit-log-highlights" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500" value="${(log.highlights || []).join(', ')}">
-            </div>
-            <div class="mb-4">
-                <label class="block text-sm font-medium text-gray-700 mb-2">Hero of the Day:</label>
-                <input type="text" id="edit-log-hero" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500" value="${log.hero || ''}">
-            </div>
-            <div class="flex gap-3">
-                <button type="button" id="save-edit-log-btn" class="flex-1 bg-indigo-500 hover:bg-indigo-600 text-white font-title py-2 rounded-lg bubbly-button">
+
+            <div class="flex gap-3 mt-8">
+                <button type="button" id="save-edit-log-btn" class="flex-1 bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 text-white font-title py-3 rounded-xl bubbly-button shadow-lg">
                     <i class="fas fa-save mr-2"></i> Save Changes
                 </button>
-                <button type="button" id="cancel-edit-log-btn" class="flex-1 bg-gray-500 hover:bg-gray-600 text-white font-title py-2 rounded-lg bubbly-button">
-                    Cancel
+                <button type="button" id="cancel-edit-log-btn" class="flex-1 bg-gray-200 hover:bg-gray-300 text-gray-700 font-title py-3 rounded-xl bubbly-button">
+                    <i class="fas fa-times mr-2"></i> Cancel
                 </button>
             </div>
         </div>
     `;
-    
+
     showModal('Edit Adventure Log Entry', modalContent, () => {}, '', true);
-    
+
     // Add event listeners
     document.getElementById('save-edit-log-btn').addEventListener('click', async () => await saveEditedLogEntry(logId));
     document.getElementById('cancel-edit-log-btn').addEventListener('click', () => {

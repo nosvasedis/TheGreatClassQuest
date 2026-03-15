@@ -1216,14 +1216,6 @@ function renderManageSchools() {
                     `;
                   }).join('')}
                 </div>
-                <div class="field-wrap compact">
-                  <label for="manageTier">Or use the dropdown</label>
-                  <select id="manageTier">
-                    ${['pending', 'starter', 'pro', 'elite', 'expired'].map((tier) => `
-                      <option value="${tier}" ${state.manageForm.tier === tier ? 'selected' : ''}>${capitalize(tier)}</option>
-                    `).join('')}
-                  </select>
-                </div>
               </section>
 
               <section class="manage-card">
@@ -1665,10 +1657,6 @@ function bindManageEvents() {
       state.manageSubscription = null;
       render();
     });
-  });
-  document.getElementById('manageTier')?.addEventListener('change', (event) => {
-    state.manageForm.tier = event.target.value;
-    render();
   });
   document.querySelectorAll('[data-action="pick-manage-tier"]').forEach((button) => {
     button.addEventListener('click', () => {

@@ -11,7 +11,7 @@ import { canUseFeature } from '../utils/subscription.js';
 import * as grandGuildCeremony from '../features/grandGuildCeremony.js';
 import { DEFAULT_SCHOOL_NAME } from '../constants.js';
 import { loadTeacherJourneyState, markTeacherGuideSeen } from './teacherJourney.js';
-import { getNextAssessmentOccurrenceForToday } from './assessmentConfig.js';
+import { getNextAssessmentOccurrenceForToday, getUpcomingScheduledAssessment } from './assessmentConfig.js';
 
 export { initializeHeaderQuote };
 
@@ -362,51 +362,29 @@ function getActiveDashboard(classData, name, theme, spice) {
     const lastAssignment = state.get('allQuestAssignments')
         .filter(a => a.classId === classId)
         .sort((a, b) => (b.createdAt?.toMillis ? b.createdAt.toMillis() : 0) - (a.createdAt?.toMillis ? a.createdAt.toMillis() : 0))[0];
+    const scheduledTestStatus = canUseFeature('scholarScroll') ? getUpcomingScheduledAssessment(classId) : null;
 
     let assignmentText = lastAssignment ? lastAssignment.text : "No active homework.";
 
-    // Append Test Info if available
-    if (lastAssignment && lastAssignment.testData) {
-        // Use smart parser to handle YYYY-MM-DD safely
-        const tDate = utils.parseFlexibleDate(lastAssignment.testData.date);
-
-        let dateDisplay = 'Upcoming';
-        let badgeColor = 'bg-red-50 text-red-600 border-red-100'; // Default styling
-        let icon = 'exclamation-circle';
-
-        if (tDate) {
-            // Logic to determine Today vs Tomorrow
-            const checkNow = new Date();
-            checkNow.setHours(0, 0, 0, 0); // Reset time to midnight
-
-            // Clone date to ensure we don't mutate original if used elsewhere
-            const checkTest = new Date(tDate);
-            checkTest.setHours(0, 0, 0, 0); // Reset time to midnight
-
-            // Calculate difference in Days
-            const diffTime = checkTest - checkNow;
-            const diffDays = Math.round(diffTime / (1000 * 60 * 60 * 24));
-
-            if (diffDays < 0) {
-                // Past test - should ideally be cleared, but just in case
-                dateDisplay = "Past Due";
-            } else if (diffDays === 0) {
-                dateDisplay = "TODAY!";
-                badgeColor = "bg-red-600 text-white border-red-700 shadow-md animate-pulse"; // Urgent style
-                icon = "bell";
-            } else if (diffDays === 1) {
-                dateDisplay = "Tomorrow";
-            } else {
-                dateDisplay = tDate.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
-            }
-        }
-
+    if (scheduledTestStatus) {
+        const badgePalettes = {
+            red: 'bg-red-600 text-white border-red-700 shadow-md animate-pulse',
+            rose: 'bg-rose-100 text-rose-700 border-rose-200',
+            orange: 'bg-amber-100 text-amber-800 border-amber-200',
+            emerald: 'bg-emerald-100 text-emerald-700 border-emerald-200',
+            slate: 'bg-slate-100 text-slate-700 border-slate-200',
+            amber: 'bg-red-50 text-red-600 border-red-100'
+        };
+        const badgeColor = badgePalettes[scheduledTestStatus.tone] || badgePalettes.amber;
         assignmentText = `
             <div class="flex flex-col gap-1">
-                <span>${lastAssignment.text}</span>
+                <span>${lastAssignment?.text || 'Scheduled assessment ahead.'}</span>
                 <span class="text-xs font-bold px-2 py-1 rounded border ${badgeColor} self-start flex items-center gap-1 mt-1">
-                    <i class="fas fa-${icon}"></i> TEST: ${lastAssignment.testData.title} (${dateDisplay})
+                    <i class="fas fa-${scheduledTestStatus.icon}"></i>
+                    <span>${scheduledTestStatus.testData.title}</span>
+                    <span class="opacity-80">• ${scheduledTestStatus.statusLabel}</span>
                 </span>
+                <span class="text-[11px] text-slate-500 mt-0.5">${scheduledTestStatus.detailLabel} • ${scheduledTestStatus.chipLabel}</span>
             </div>`;
     }
 
@@ -968,14 +946,23 @@ function getReminderPills(classId) {
         const todaysTests = getNextAssessmentOccurrenceForToday(classId);
         todaysTests.forEach((assignment) => {
             const classLine = assignment.classData ? `${assignment.classData.logo || '📚'} ${assignment.classData.name}` : 'Today';
+            const pillPalettes = {
+                red: 'from-red-600 to-rose-600 border-white/40',
+                rose: 'from-rose-500 to-pink-500 border-white/40',
+                orange: 'from-amber-500 to-orange-500 border-white/40',
+                emerald: 'from-emerald-500 to-teal-500 border-white/40',
+                slate: 'from-slate-500 to-slate-600 border-white/40',
+                amber: 'from-rose-500 to-red-500 border-white/40'
+            };
+            const pillGradient = pillPalettes[assignment.tone] || pillPalettes.amber;
             pills.push(`
-                <div class="date-pill bg-gradient-to-r from-rose-500 to-red-500 text-white shadow-lg flex items-center gap-2 px-4 py-2 rounded-full transition-transform hover:scale-105 cursor-default border-2 border-white/40">
-                    <i class="fas fa-file-alt"></i>
+                <div class="date-pill bg-gradient-to-r ${pillGradient} text-white shadow-lg flex items-center gap-2 px-4 py-2 rounded-full transition-transform hover:scale-105 cursor-default border-2">
+                    <i class="fas fa-${assignment.icon}"></i>
                     <div class="flex flex-col leading-none">
-                        <span class="text-[10px] uppercase font-black tracking-wide opacity-80">${classId ? 'Test Today' : classLine}</span>
+                        <span class="text-[10px] uppercase font-black tracking-wide opacity-80">${classId ? assignment.statusLabel : classLine}</span>
                         <span class="font-bold">${assignment.testData?.title || 'Scheduled Test'}</span>
                     </div>
-                    <span class="bg-white/20 px-2 py-1 rounded-full text-[10px] font-black uppercase">Today</span>
+                    <span class="bg-white/20 px-2 py-1 rounded-full text-[10px] font-black uppercase">${assignment.chipLabel}</span>
                 </div>
             `);
         });

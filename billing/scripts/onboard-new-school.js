@@ -15,11 +15,18 @@
 import { readFileSync, writeFileSync, existsSync, mkdirSync, copyFileSync } from 'fs';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
+import { createRequire } from 'module';
 import admin from 'firebase-admin';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const billingDir = join(__dirname, '..');
 const repoRoot = join(billingDir, '..');
+const require = createRequire(import.meta.url);
+const {
+  buildFirestoreReleaseName,
+  deployRulesRelease,
+  firestoreRulesPath,
+} = require('../../tools/onboarding-console/lib.js');
 
 function parseArgs() {
   const args = process.argv.slice(2);
@@ -135,6 +142,18 @@ async function main() {
     const preset = JSON.parse(readFileSync(tierPath, 'utf8'));
     await db.collection('appConfig').doc('subscription').set(preset);
     console.log('Written appConfig/subscription (' + (pending ? 'Pending' : 'Starter') + ') to Firestore for', projectId);
+  }
+
+  if (existsSync(firestoreRulesPath)) {
+    const rulesDeployment = await deployRulesRelease(
+      projectId,
+      buildFirestoreReleaseName(projectId),
+      firestoreRulesPath,
+      key
+    );
+    console.log(rulesDeployment.message);
+  } else {
+    console.warn('firestore.rules not found; skipping Firestore rules deployment.');
   }
 
   const renderJson = buildRenderJson(schoolsPath);

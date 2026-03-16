@@ -20,6 +20,7 @@ import {
     getAssessmentValueLabel,
     getNearestQualitativeLabel,
     getNormalizedPercentForScore,
+    getUpcomingScheduledAssessment,
     getWeightedAcademicAverage
 } from './assessmentConfig.js';
 
@@ -90,44 +91,37 @@ function renderScrollDashboard(classId) {
     let testAlert = document.getElementById('scroll-test-alert');
     if (testAlert) testAlert.remove(); // Clear previous to prevent duplicates
 
-    const now = new Date();
-    now.setHours(0, 0, 0, 0);
-
-    // Find the nearest upcoming test
-    const upcomingTest = state.get('allQuestAssignments')
-        .filter(a => a.classId === classId && a.testData)
-        .map(a => ({
-            ...a,
-            parsedDate: utils.parseFlexibleDate(a.testData.date)
-        }))
-        .filter(a => a.parsedDate && a.parsedDate >= now)
-        .sort((a, b) => a.parsedDate - b.parsedDate)[0];
+    const upcomingTest = getUpcomingScheduledAssessment(classId);
 
     if (upcomingTest) {
-        const dateDisplay = upcomingTest.parsedDate.toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long' });
-        const isToday = utils.datesMatch(upcomingTest.testData.date, utils.getTodayDateString());
-
-        // Calculate difference in days by stripping time
-        const d1 = new Date(now).setHours(0, 0, 0, 0);
-        const d2 = new Date(upcomingTest.parsedDate).setHours(0, 0, 0, 0);
-        const daysLeft = Math.round((d2 - d1) / (1000 * 60 * 60 * 24));
-
-        const timeText = isToday ? "TODAY!" : (daysLeft === 1 ? "Tomorrow" : `in ${daysLeft} days`);
-
+        const toneClasses = {
+            red: { bg: 'from-red-50 to-white', border: 'border-red-500', heading: 'text-red-800', body: 'text-red-600', icon: 'text-red-200' },
+            rose: { bg: 'from-rose-50 to-white', border: 'border-rose-500', heading: 'text-rose-800', body: 'text-rose-600', icon: 'text-rose-200' },
+            orange: { bg: 'from-amber-50 to-white', border: 'border-amber-500', heading: 'text-amber-800', body: 'text-amber-700', icon: 'text-amber-200' },
+            emerald: { bg: 'from-emerald-50 to-white', border: 'border-emerald-500', heading: 'text-emerald-800', body: 'text-emerald-700', icon: 'text-emerald-200' },
+            slate: { bg: 'from-slate-50 to-white', border: 'border-slate-400', heading: 'text-slate-800', body: 'text-slate-600', icon: 'text-slate-200' },
+            amber: { bg: 'from-amber-50 to-white', border: 'border-amber-500', heading: 'text-amber-800', body: 'text-amber-700', icon: 'text-amber-200' }
+        };
+        const palette = toneClasses[upcomingTest.tone] || toneClasses.amber;
         testAlert = document.createElement('div');
         testAlert.id = 'scroll-test-alert';
-        testAlert.className = "mb-4 bg-gradient-to-r from-red-50 to-white border-l-4 border-red-500 p-4 rounded-r-lg shadow-sm flex items-center justify-between";
+        testAlert.className = `mb-4 bg-gradient-to-r ${palette.bg} ${palette.border} border-l-4 p-4 rounded-r-2xl shadow-sm flex items-center justify-between gap-4`;
         testAlert.innerHTML = `
             <div>
-                <h4 class="font-bold text-red-800 text-lg flex items-center gap-2">
-                    <i class="fas fa-file-alt"></i> Upcoming Test: ${upcomingTest.testData.title}
+                <div class="inline-flex items-center gap-2 rounded-full bg-white/80 px-3 py-1 text-[11px] font-black uppercase tracking-[0.2em] ${palette.body}">
+                    <i class="fas fa-${upcomingTest.icon}"></i>
+                    <span>${upcomingTest.statusLabel}</span>
+                </div>
+                <h4 class="font-bold ${palette.heading} text-lg flex items-center gap-2 mt-3">
+                    <i class="fas fa-file-alt"></i> ${upcomingTest.testData.title}
                 </h4>
-                <p class="text-sm text-red-600 ml-6">
-                    <span class="font-semibold">${dateDisplay}</span> (${timeText})
+                <p class="text-sm ${palette.body} ml-6">
+                    <span class="font-semibold">${upcomingTest.detailLabel}</span>
+                    <span class="ml-1">• ${upcomingTest.chipLabel}</span>
                     ${upcomingTest.testData.curriculum ? `<br><span class="text-gray-500 text-xs mt-1 block">Topics: ${upcomingTest.testData.curriculum}</span>` : ''}
                 </p>
             </div>
-            <div class="text-3xl text-red-200"><i class="fas fa-clock"></i></div>
+            <div class="text-3xl ${palette.icon}"><i class="fas fa-${upcomingTest.icon}"></i></div>
         `;
         // Insert it at the very top of the dashboard content
         dashboard.prepend(testAlert);

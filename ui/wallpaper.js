@@ -7,6 +7,7 @@ import { canUseFeature } from '../utils/subscription.js';
 import * as constants from '../constants.js';
 import { renderFamiliarSprite } from '../features/familiars.js';
 import { getEggAlertState } from '../features/familiarProgression.mjs';
+import { getNextAssessmentOccurrenceForToday, getUpcomingScheduledAssessment } from '../features/assessmentConfig.js';
 
 // Proper Fisher-Yates shuffle for true variety
 function shuffleDeck(array) {
@@ -665,19 +666,15 @@ function buildDeckList(classId, capabilities = getWallpaperCapabilities()) {
         const scores = state.get('allStudentScores');
 
         // --- Test Today: big luck boost ---
-        const hasTestToday = state.get('allQuestAssignments').some(a =>
-            a.classId === classId && a.testData && utils.datesMatch(a.testData.date, todayStr));
+        const hasTestToday = getNextAssessmentOccurrenceForToday(classId).some((item) =>
+            item.phase === 'later_today' || item.phase === 'today' || item.phase === 'in_progress');
         if (hasTestToday) list.push('class_test_luck', 'class_test_luck', 'class_test_luck');
 
         // --- Upcoming Test Countdown (within 7 days but not today) ---
-        const nextTest = state.get('allQuestAssignments').find(a => {
-            if (a.classId !== classId || !a.testData) return false;
-            const testDate = utils.parseFlexibleDate(a.testData.date);
-            if (!testDate) return false;
-            const diff = Math.ceil((testDate - now) / (1000 * 60 * 60 * 24));
-            return diff > 0 && diff <= 7;
-        });
-        if (nextTest) list.push('upcoming_test_countdown', 'upcoming_test_countdown');
+        const nextTest = getUpcomingScheduledAssessment(classId);
+        if (nextTest && nextTest.dayDiff > 0 && nextTest.dayDiff <= 7) {
+            list.push('upcoming_test_countdown', 'upcoming_test_countdown');
+        }
 
         // STUDENT SPOTLIGHTS (Filter out absents)
         const absents = state.get('allAttendanceRecords')
@@ -1682,15 +1679,9 @@ function getMathChallengeCard(questLevel) {
 
 // ─── Upcoming Test Countdown ───────────────────────────────────────────────────
 function getUpcomingTestCountdownCard(classId, questLevel) {
-    const now = new Date();
-    const assignments = state.get('allQuestAssignments');
-    const upcoming = assignments
-        .filter(a => a.classId === classId && a.testData)
-        .map(a => ({ ...a, testDate: utils.parseFlexibleDate(a.testData.date) }))
-        .filter(a => a.testDate && a.testDate > now)
-        .sort((a, b) => a.testDate - b.testDate)[0];
-    if (!upcoming) return null;
-    const days = Math.ceil((upcoming.testDate - now) / (1000 * 60 * 60 * 24));
+    const upcoming = getUpcomingScheduledAssessment(classId);
+    if (!upcoming || upcoming.dayDiff < 1) return null;
+    const days = upcoming.dayDiff;
     const tier = getLevelTier(questLevel);
     const msgs = {
         junior: [`Only ${days} days until your test! You've got this! 💪`, `${days} more sleeps until the test – keep practising! 🌟`],
@@ -1706,6 +1697,7 @@ function getUpcomingTestCountdownCard(classId, questLevel) {
             <h3 class="font-title text-5xl text-amber-900">${days} Day${days > 1 ? 's' : ''}</h3>
             <p class="text-amber-700 font-bold text-xl mt-2">${msg}</p>
             <p class="text-amber-600 font-bold mt-2">📖 "${upcoming.testData.title}"</p>
+            <p class="text-amber-500 font-bold mt-1">${upcoming.detailLabel}</p>
         </div>`,
         css: 'float-card-gold'
     };
@@ -1782,10 +1774,9 @@ function getMotivationCard(questLevel) {
 
 // ─── Updated getTestLuckCard (level-aware) ────────────────────────────────────
 function getTestLuckCard(classId, questLevel) {
-    const todayStr = utils.getTodayDateString();
-    const test = state.get('allQuestAssignments').find(a =>
-        a.classId === classId && a.testData && utils.datesMatch(a.testData.date, todayStr));
-    const title = test ? test.testData.title : 'The Big Exam';
+    const test = getUpcomingScheduledAssessment(classId) || getNextAssessmentOccurrenceForToday(classId)[0] || null;
+    if (!test || !test.isToday || test.phase === 'completed_today' || test.phase === 'window_passed') return null;
+    const title = test.testData.title || 'The Big Exam';
     const tier = getLevelTier(questLevel);
     const msgs = {
         junior: ['You\'ve been working hard – that means you\'re ready! ⭐', 'Just do your best and you\'ll be amazing! 🌟', 'Breathe in, breathe out, and show what you know! 🍀'],
@@ -1793,7 +1784,7 @@ function getTestLuckCard(classId, questLevel) {
         senior: ['Trust your preparation. Stay calm, think carefully, and execute.', 'Anxiety is just excitement without the breath – breathe, and begin.', 'You\'ve done the work. Now demonstrate it.']
     };
     const students = state.get('allStudents').filter(s => s.classId === classId);
-    const todayLog = state.get('allAttendanceRecords').filter(r => r.classId === classId && r.date === todayStr).map(r => r.studentId);
+    const todayLog = state.get('allAttendanceRecords').filter(r => r.classId === classId && r.date === utils.getTodayDateString()).map(r => r.studentId);
     const presentNames = students.filter(s => todayLog.includes(s.id)).map(s => s.name.split(' ')[0]);
     const namesList = presentNames.length > 0 ? presentNames.slice(0, 5).join(', ') + (presentNames.length > 5 ? ' & more!' : '') : 'Everyone';
 
@@ -1808,6 +1799,7 @@ function getTestLuckCard(classId, questLevel) {
             <p class="text-white/90 text-xl font-bold mb-1">${namesList}</p>
             <p class="font-title text-2xl text-yellow-300" style="text-shadow:0 2px 4px rgba(0,0,0,0.5);">${title}</p>
             <p class="text-white/80 text-xl font-bold mt-3">${msg}</p>
+            <p class="text-white/70 text-base font-bold mt-2">${test.statusLabel} • ${test.chipLabel}</p>
         </div>`,
         css: 'float-card-red'
     };

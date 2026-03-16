@@ -306,28 +306,254 @@ export function qualifiesForHighScore(scoreRecord, type = scoreRecord?.type || '
     return normalized >= 95;
 }
 
+function buildDateTimeForLesson(dateString, timeString, fallbackHour = 12, fallbackMinute = 0) {
+    const parsed = utils.parseFlexibleDate(dateString);
+    if (!parsed) return null;
+    const output = new Date(parsed);
+    if (typeof timeString === 'string' && /^\d{2}:\d{2}$/.test(timeString)) {
+        const [hours, minutes] = timeString.split(':').map(Number);
+        output.setHours(hours, minutes, 0, 0);
+        return output;
+    }
+    output.setHours(fallbackHour, fallbackMinute, 0, 0);
+    return output;
+}
+
+function formatClockTime(dateValue) {
+    if (!(dateValue instanceof Date) || Number.isNaN(dateValue.getTime())) return '';
+    return dateValue.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
+}
+
+function getRelativeTimeLabel(targetDate, now = new Date()) {
+    if (!(targetDate instanceof Date) || Number.isNaN(targetDate.getTime())) return '';
+    const diffMs = targetDate.getTime() - now.getTime();
+    const diffMinutes = Math.round(diffMs / 60000);
+    const absMinutes = Math.abs(diffMinutes);
+    if (absMinutes < 1) return 'right now';
+    if (absMinutes < 60) return diffMinutes > 0 ? `in ${absMinutes} min` : `${absMinutes} min ago`;
+    const hours = Math.floor(absMinutes / 60);
+    const minutes = absMinutes % 60;
+    const hourText = `${hours}h${minutes ? ` ${minutes}m` : ''}`;
+    return diffMinutes > 0 ? `in ${hourText}` : `${hourText} ago`;
+}
+
+function getAssessmentScoreMatches(assignment, type = 'test') {
+    const scheduledDate = assignment?.testData?.date;
+    const scheduledTitle = String(assignment?.testData?.title || '').trim();
+    return (state.get('allWrittenScores') || []).filter((score) => {
+        if (score.classId !== assignment.classId || score.type !== type) return false;
+        if (!utils.datesMatch(score.date, scheduledDate)) return false;
+        if (type !== 'test') return true;
+        return String(score.title || '').trim() === scheduledTitle;
+    });
+}
+
+function dedupeScheduledAssignments(assignments = []) {
+    const seen = new Map();
+    assignments.forEach((assignment) => {
+        const key = `${assignment.classId}__${assignment.testData?.date || ''}__${assignment.testData?.title || ''}`;
+        if (!seen.has(key)) {
+            seen.set(key, assignment);
+        }
+    });
+    return [...seen.values()];
+}
+
+export function getScheduledAssessmentStatus(assignment, options = {}) {
+    if (!assignment?.testData?.date) return null;
+    const now = options.now instanceof Date ? options.now : new Date();
+    const type = options.type || 'test';
+    const schoolClasses = state.get('allSchoolClasses') || [];
+    const classData = options.classData || schoolClasses.find((item) => item.id === assignment.classId) || null;
+    const scheduledDate = utils.parseFlexibleDate(assignment.testData.date);
+    if (!scheduledDate) return null;
+
+    const todayKey = utils.getTodayDateString();
+    const isToday = utils.datesMatch(assignment.testData.date, todayKey);
+    const startAt = buildDateTimeForLesson(assignment.testData.date, classData?.timeStart, 12, 0);
+    const endAt = buildDateTimeForLesson(
+        assignment.testData.date,
+        classData?.timeEnd,
+        startAt ? startAt.getHours() + 1 : 13,
+        startAt ? startAt.getMinutes() : 0
+    );
+    const matchingScores = getAssessmentScoreMatches(assignment, type);
+    const classStudents = (state.get('allStudents') || []).filter((student) => student.classId === assignment.classId);
+    const attendanceForDate = (state.get('allAttendanceRecords') || []).filter((record) =>
+        record.classId === assignment.classId && utils.datesMatch(record.date, assignment.testData.date)
+    );
+    const absentStudentIds = new Set(attendanceForDate.map((record) => record.studentId));
+    const expectedScoreCount = attendanceForDate.length > 0
+        ? classStudents.filter((student) => !absentStudentIds.has(student.id)).length
+        : classStudents.length;
+    const hasResults = matchingScores.length > 0;
+    const isConcluded = expectedScoreCount > 0 ? matchingScores.length >= expectedScoreCount : hasResults;
+
+    const dateOnly = new Date(scheduledDate);
+    dateOnly.setHours(0, 0, 0, 0);
+    const todayOnly = new Date(now);
+    todayOnly.setHours(0, 0, 0, 0);
+    const dayDiff = Math.round((dateOnly.getTime() - todayOnly.getTime()) / 86400000);
+
+    let phase = 'scheduled';
+    if (isConcluded) {
+        phase = isToday ? 'completed_today' : 'completed';
+    } else if (dayDiff < 0) {
+        phase = 'missed';
+    } else if (isToday) {
+        if (startAt && endAt) {
+            if (now < startAt) phase = 'later_today';
+            else if (now > endAt) phase = 'window_passed';
+            else phase = 'in_progress';
+        } else {
+            phase = 'today';
+        }
+    } else if (dayDiff === 1) {
+        phase = 'tomorrow';
+    }
+
+    const dateLabel = scheduledDate.toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long' });
+    const timeRangeLabel = startAt && endAt ? `${formatClockTime(startAt)}-${formatClockTime(endAt)}` : '';
+
+    let statusLabel = 'Upcoming';
+    let detailLabel = dateLabel;
+    let chipLabel = dayDiff > 1 ? `In ${dayDiff} days` : 'Scheduled';
+    let tone = 'amber';
+    let icon = 'clock';
+
+    if (phase === 'later_today') {
+        statusLabel = 'Later Today';
+        detailLabel = timeRangeLabel ? `${dateLabel} • ${timeRangeLabel}` : dateLabel;
+        chipLabel = startAt ? `Starts ${getRelativeTimeLabel(startAt, now)}` : 'Today';
+        tone = 'rose';
+        icon = 'hourglass-start';
+    } else if (phase === 'in_progress') {
+        statusLabel = 'Live Now';
+        detailLabel = timeRangeLabel ? `${dateLabel} • ${timeRangeLabel}` : `${dateLabel} • Class in progress`;
+        chipLabel = endAt ? `Ends ${formatClockTime(endAt)}` : 'Happening now';
+        tone = 'red';
+        icon = 'bolt';
+    } else if (phase === 'window_passed') {
+        statusLabel = 'Lesson Finished';
+        detailLabel = timeRangeLabel ? `${dateLabel} • ${timeRangeLabel}` : dateLabel;
+        chipLabel = 'Log results';
+        tone = 'orange';
+        icon = 'clipboard-check';
+    } else if (phase === 'completed_today') {
+        statusLabel = 'Completed Today';
+        detailLabel = timeRangeLabel ? `${dateLabel} • ${timeRangeLabel}` : dateLabel;
+        chipLabel = `${matchingScores.length}/${expectedScoreCount || matchingScores.length} logged`;
+        tone = 'emerald';
+        icon = 'check-circle';
+    } else if (phase === 'completed') {
+        statusLabel = 'Completed';
+        detailLabel = timeRangeLabel ? `${dateLabel} • ${timeRangeLabel}` : dateLabel;
+        chipLabel = `${matchingScores.length}/${expectedScoreCount || matchingScores.length} logged`;
+        tone = 'emerald';
+        icon = 'check-circle';
+    } else if (phase === 'missed') {
+        statusLabel = 'Date Passed';
+        detailLabel = timeRangeLabel ? `${dateLabel} • ${timeRangeLabel}` : dateLabel;
+        chipLabel = matchingScores.length > 0
+            ? `${matchingScores.length}/${expectedScoreCount || matchingScores.length} logged`
+            : 'No results logged';
+        tone = 'slate';
+        icon = 'calendar-times';
+    } else if (phase === 'today') {
+        statusLabel = 'Today';
+        detailLabel = dateLabel;
+        chipLabel = matchingScores.length > 0
+            ? `${matchingScores.length}/${expectedScoreCount || matchingScores.length} logged`
+            : 'Scheduled today';
+        tone = 'rose';
+        icon = 'calendar-day';
+    } else if (phase === 'tomorrow') {
+        statusLabel = 'Tomorrow';
+        detailLabel = timeRangeLabel ? `${dateLabel} • ${timeRangeLabel}` : dateLabel;
+        chipLabel = 'Tomorrow';
+        tone = 'amber';
+        icon = 'calendar-day';
+    } else {
+        statusLabel = 'Upcoming';
+        detailLabel = timeRangeLabel ? `${dateLabel} • ${timeRangeLabel}` : dateLabel;
+        chipLabel = dayDiff > 1 ? `In ${dayDiff} days` : 'Scheduled';
+        tone = 'amber';
+        icon = 'clock';
+    }
+
+    if ((phase === 'later_today' || phase === 'in_progress' || phase === 'window_passed') && matchingScores.length > 0) {
+        chipLabel = `${matchingScores.length}/${expectedScoreCount || matchingScores.length} logged`;
+    }
+
+    return {
+        ...assignment,
+        classData,
+        scheduledDate,
+        startAt,
+        endAt,
+        isToday,
+        dayDiff,
+        phase,
+        hasResults,
+        isConcluded,
+        matchingScores,
+        scoreCount: matchingScores.length,
+        expectedScoreCount,
+        dateLabel,
+        timeRangeLabel,
+        statusLabel,
+        detailLabel,
+        chipLabel,
+        tone,
+        icon
+    };
+}
+
+export function getUpcomingScheduledAssessment(classId = null) {
+    const myClassIds = new Set((state.get('allTeachersClasses') || []).map((item) => item.id));
+    const assignments = dedupeScheduledAssignments(
+        (state.get('allQuestAssignments') || [])
+            .filter((assignment) => assignment.testData)
+            .filter((assignment) => myClassIds.has(assignment.classId))
+            .filter((assignment) => !classId || assignment.classId === classId)
+    );
+
+    return assignments
+        .map((assignment) => getScheduledAssessmentStatus(assignment))
+        .filter(Boolean)
+        .filter((status) => status.phase !== 'completed' && status.phase !== 'completed_today')
+        .sort((a, b) => {
+            const priority = {
+                in_progress: 0,
+                later_today: 1,
+                today: 2,
+                window_passed: 3,
+                tomorrow: 4,
+                scheduled: 5,
+                missed: 6
+            };
+            const phaseDiff = (priority[a.phase] ?? 99) - (priority[b.phase] ?? 99);
+            if (phaseDiff !== 0) return phaseDiff;
+            const timeA = a.startAt?.getTime() || a.scheduledDate?.getTime() || Number.MAX_SAFE_INTEGER;
+            const timeB = b.startAt?.getTime() || b.scheduledDate?.getTime() || Number.MAX_SAFE_INTEGER;
+            if (timeA !== timeB) return timeA - timeB;
+            return (a.classData?.name || '').localeCompare(b.classData?.name || '');
+        })[0] || null;
+}
+
 export function getNextAssessmentOccurrenceForToday(classId = null) {
     const today = utils.getTodayDateString();
     const myClassIds = new Set((state.get('allTeachersClasses') || []).map((item) => item.id));
-    const schoolClasses = state.get('allSchoolClasses') || [];
-    const assignments = (state.get('allQuestAssignments') || [])
+    const assignments = dedupeScheduledAssignments((state.get('allQuestAssignments') || [])
         .filter((assignment) => assignment.testData && utils.datesMatch(assignment.testData.date, today))
         .filter((assignment) => myClassIds.has(assignment.classId))
-        .filter((assignment) => !classId || assignment.classId === classId);
+        .filter((assignment) => !classId || assignment.classId === classId));
 
-    const deduped = new Map();
-    assignments.forEach((assignment) => {
-        const key = `${assignment.classId}__${assignment.testData?.date || today}__${assignment.testData?.title || ''}`;
-        if (!deduped.has(key)) {
-            const classData = schoolClasses.find((item) => item.id === assignment.classId);
-            deduped.set(key, {
-                ...assignment,
-                classData
-            });
-        }
-    });
-
-    return [...deduped.values()].sort((a, b) => {
+    return assignments
+        .map((assignment) => getScheduledAssessmentStatus(assignment))
+        .filter(Boolean)
+        .filter((status) => status.phase !== 'completed_today')
+        .sort((a, b) => {
         const timeA = a.classData?.timeStart || '99:99';
         const timeB = b.classData?.timeStart || '99:99';
         if (timeA !== timeB) return timeA.localeCompare(timeB);

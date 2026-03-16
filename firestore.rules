@@ -44,7 +44,7 @@ service cloud.firestore {
         (collection == 'world_boss' && request.auth.uid != null) ||
         (collection == 'hero_chronicle_notes' && request.resource.data.teacherId == request.auth.uid) ||
         (collection == 'quest_history' && isOwner(request.resource.data)) ||
-        (collection == 'school_settings') ||
+        (collection == 'school_settings' && docId == 'holidays') ||
         (collection == 'daily_ai_content' && isOwner(request.resource.data)) ||
         (collection == 'daily_cache') ||
         (collection == 'guild_scores' && request.auth.uid != null) ||
@@ -74,7 +74,7 @@ service cloud.firestore {
           )
         ) ||
         (collection == 'hero_chronicle_notes' && resource.data.teacherId == request.auth.uid) ||
-        (collection == 'school_settings') ||
+        (collection == 'school_settings' && docId == 'holidays') ||
         (collection == 'daily_ai_content' && isOwner(resource.data)) ||
         (collection == 'daily_cache') ||
         (collection == 'guild_scores' && request.auth.uid != null) ||
@@ -87,7 +87,7 @@ service cloud.firestore {
         (collection == 'written_scores' && request.auth.uid == resource.data.teacherId) ||
         (collection == 'schedule_overrides' && isOwner(resource.data)) ||
         (collection == 'hero_chronicle_notes' && resource.data.teacherId == request.auth.uid) ||
-        (collection == 'school_settings') ||
+        (collection == 'school_settings' && docId == 'holidays') ||
         (collection == 'daily_ai_content' && isOwner(resource.data)) ||
         (collection == 'quest_bounties' && isOwner(resource.data)) ||
         (collection == 'shop_items' && isOwner(resource.data)) ||

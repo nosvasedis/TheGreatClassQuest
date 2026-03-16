@@ -92,11 +92,15 @@ export function renderAssessmentOptionsUi() {
     const schoolDefaults = getSchoolAssessmentDefaults();
     defaultsContainer.innerHTML = getAssessmentDefaultsEditorHtml(schoolDefaults);
 
-    const classes = (state.get('allSchoolClasses') || []).slice().sort((a, b) => a.name.localeCompare(b.name));
+    const allSchoolClasses = state.get('allSchoolClasses') || [];
+    const classes = (state.get('allTeachersClasses') || []).slice().sort((a, b) => a.name.localeCompare(b.name));
+    const hiddenClassCount = Math.max(0, allSchoolClasses.length - classes.length);
     if (classes.length === 0) {
         classesContainer.innerHTML = `<div class="rounded-2xl border border-dashed border-indigo-200 bg-white px-4 py-5 text-center text-sm text-slate-500">Create a class first to manage per-class overrides.</div>`;
     } else {
-        classesContainer.innerHTML = classes.map((classData) => getAssessmentConfigCardHtml(
+        classesContainer.innerHTML = `
+            ${hiddenClassCount > 0 ? `<div class="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">School defaults apply to every class. Per-class overrides can only be edited for the ${classes.length === 1 ? 'class' : 'classes'} you own.</div>` : ''}
+            ${classes.map((classData) => getAssessmentConfigCardHtml(
             classData.assessmentConfig || normalizeClassAssessmentConfig(null, classData.questLevel),
             `options-class-${classData.id}`,
             {
@@ -105,7 +109,8 @@ export function renderAssessmentOptionsUi() {
                 title: `${classData.logo || '📚'} ${classData.name}`,
                 description: `${classData.questLevel || 'League'} class`
             }
-        )).join('');
+        )).join('')}
+        `;
     }
 
     wireAssessmentEditor(defaultsContainer);
@@ -132,12 +137,12 @@ export async function handleSaveAssessmentSettingsFromOptions() {
         const batch = writeBatch(db);
         const settingsRef = doc(db, `${PUBLIC_DATA_PATH}/school_settings`, 'holidays');
         batch.set(settingsRef, { assessmentDefaultsByLeague: schoolDefaults }, { merge: true });
-        const updatedClasses = (state.get('allSchoolClasses') || []).map((classData) => ({ ...classData }));
+        const updatedSchoolClasses = (state.get('allSchoolClasses') || []).map((classData) => ({ ...classData }));
 
         classesContainer.querySelectorAll('[data-assessment-card]').forEach((card) => {
             const classId = (card.dataset.cardKey || '').replace('options-class-', '');
             if (!classId) return;
-            const classData = updatedClasses.find((item) => item.id === classId);
+            const classData = updatedSchoolClasses.find((item) => item.id === classId);
             if (!classData) return;
             const assessmentConfig = normalizeClassAssessmentConfig(
                 readAssessmentCardValue(card, { allowInherit: true }),
@@ -149,7 +154,8 @@ export async function handleSaveAssessmentSettingsFromOptions() {
 
         await batch.commit();
         state.setSchoolAssessmentDefaults(schoolDefaults);
-        state.setAllSchoolClasses(updatedClasses);
+        state.setAllSchoolClasses(updatedSchoolClasses);
+        state.setAllTeachersClasses(updatedSchoolClasses.filter((classData) => classData.createdBy?.uid === state.get('currentUserId')));
         showToast('Assessment settings updated!', 'success');
     } catch (error) {
         console.error('Error saving assessment settings:', error);

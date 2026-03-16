@@ -93,7 +93,7 @@ export function showAnimatedModal(modalId) {
 }
 
 
-export function showModal(title, message, onConfirm, confirmText = 'Confirm', cancelText = 'Cancel') {
+export function showModal(title, message, onConfirm, confirmText = 'Confirm', cancelText = 'Cancel', onCancel = null) {
     document.getElementById('modal-title').innerText = title;
     document.getElementById('modal-message').innerHTML = message;
     const confirmBtn = document.getElementById('modal-confirm-btn');
@@ -103,9 +103,16 @@ export function showModal(title, message, onConfirm, confirmText = 'Confirm', ca
 
     const newConfirmBtn = confirmBtn.cloneNode(true);
     confirmBtn.parentNode.replaceChild(newConfirmBtn, confirmBtn);
+    const newCancelBtn = cancelBtn.cloneNode(true);
+    cancelBtn.parentNode.replaceChild(newCancelBtn, cancelBtn);
     newConfirmBtn.addEventListener('click', () => {
         playSound('click');
         if (onConfirm) onConfirm();
+        hideModal('confirmation-modal');
+    });
+    newCancelBtn.addEventListener('click', () => {
+        playSound('click');
+        if (onCancel) onCancel();
         hideModal('confirmation-modal');
     });
     showAnimatedModal('confirmation-modal');

@@ -1,9 +1,22 @@
 import { db } from '../../firebase.js';
-import { doc, setDoc } from 'https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js';
+import { doc, setDoc, writeBatch } from 'https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js';
 import * as state from '../../state.js';
 import { showToast } from '../../ui/effects.js';
 import { DEFAULT_SCHOOL_NAME } from '../../constants.js';
 import * as utils from '../../utils.js';
+import { canUseFeature } from '../../utils/subscription.js';
+import {
+    getSchoolAssessmentDefaults,
+    normalizeAssessmentDefaultsByLeague,
+    normalizeClassAssessmentConfig
+} from '../../features/assessmentConfig.js';
+import {
+    getAssessmentConfigCardHtml,
+    getAssessmentDefaultsEditorHtml,
+    readAssessmentCardValue,
+    readAssessmentDefaultsFromContainer,
+    wireAssessmentEditor
+} from '../../ui/assessmentEditor.js';
 
 const PUBLIC_DATA_PATH = 'artifacts/great-class-quest/public/data';
 let optionsLocationSearchResults = [];
@@ -68,6 +81,85 @@ export function initializeSchoolLocationOptionsUi() {
     }
     optionsLocationSearchResults = [];
     setOptionsLocationStatus(current);
+}
+
+export function renderAssessmentOptionsUi() {
+    if (!canUseFeature('scholarScroll')) return;
+    const defaultsContainer = document.getElementById('options-assessment-defaults-editor');
+    const classesContainer = document.getElementById('options-class-assessment-editor');
+    if (!defaultsContainer || !classesContainer) return;
+
+    const schoolDefaults = getSchoolAssessmentDefaults();
+    defaultsContainer.innerHTML = getAssessmentDefaultsEditorHtml(schoolDefaults);
+
+    const classes = (state.get('allSchoolClasses') || []).slice().sort((a, b) => a.name.localeCompare(b.name));
+    if (classes.length === 0) {
+        classesContainer.innerHTML = `<div class="rounded-2xl border border-dashed border-indigo-200 bg-white px-4 py-5 text-center text-sm text-slate-500">Create a class first to manage per-class overrides.</div>`;
+    } else {
+        classesContainer.innerHTML = classes.map((classData) => getAssessmentConfigCardHtml(
+            classData.assessmentConfig || normalizeClassAssessmentConfig(null, classData.questLevel),
+            `options-class-${classData.id}`,
+            {
+                allowInherit: true,
+                questLevel: classData.questLevel,
+                title: `${classData.logo || '📚'} ${classData.name}`,
+                description: `${classData.questLevel || 'League'} class`
+            }
+        )).join('');
+    }
+
+    wireAssessmentEditor(defaultsContainer);
+    wireAssessmentEditor(classesContainer);
+}
+
+export async function handleSaveAssessmentSettingsFromOptions() {
+    if (!canUseFeature('scholarScroll')) {
+        showToast("Assessment settings are available on Pro and Elite.", 'info');
+        return;
+    }
+    const defaultsContainer = document.getElementById('options-assessment-defaults-editor');
+    const classesContainer = document.getElementById('options-class-assessment-editor');
+    if (!defaultsContainer || !classesContainer) return;
+
+    const saveBtn = document.getElementById('save-assessment-settings-btn');
+    if (saveBtn) {
+        saveBtn.disabled = true;
+        saveBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> Saving...';
+    }
+
+    try {
+        const schoolDefaults = normalizeAssessmentDefaultsByLeague(readAssessmentDefaultsFromContainer(defaultsContainer));
+        const batch = writeBatch(db);
+        const settingsRef = doc(db, `${PUBLIC_DATA_PATH}/school_settings`, 'holidays');
+        batch.set(settingsRef, { assessmentDefaultsByLeague: schoolDefaults }, { merge: true });
+        const updatedClasses = (state.get('allSchoolClasses') || []).map((classData) => ({ ...classData }));
+
+        classesContainer.querySelectorAll('[data-assessment-card]').forEach((card) => {
+            const classId = (card.dataset.cardKey || '').replace('options-class-', '');
+            if (!classId) return;
+            const classData = updatedClasses.find((item) => item.id === classId);
+            if (!classData) return;
+            const assessmentConfig = normalizeClassAssessmentConfig(
+                readAssessmentCardValue(card, { allowInherit: true }),
+                classData.questLevel
+            );
+            classData.assessmentConfig = assessmentConfig;
+            batch.set(doc(db, `${PUBLIC_DATA_PATH}/classes`, classId), { assessmentConfig }, { merge: true });
+        });
+
+        await batch.commit();
+        state.setSchoolAssessmentDefaults(schoolDefaults);
+        state.setAllSchoolClasses(updatedClasses);
+        showToast('Assessment settings updated!', 'success');
+    } catch (error) {
+        console.error('Error saving assessment settings:', error);
+        showToast('Could not save assessment settings. Please try again.', 'error');
+    } finally {
+        if (saveBtn) {
+            saveBtn.disabled = false;
+            saveBtn.innerHTML = '<i class="fas fa-save mr-2"></i> Save Assessment Settings';
+        }
+    }
 }
 
 export async function handleSaveSchoolNameFromOptions() {
@@ -229,4 +321,3 @@ export async function handleSaveSchoolLocationFromOptions() {
         }
     }
 }
-

@@ -25,6 +25,7 @@ import { canUseFeature } from '../../utils/subscription.js';
 import { getAgeGroupForLeague, getStartOfMonthString, getTodayDateString, compressImageBase64, simpleHashCode, parseFlexibleDate } from '../../utils.js';
 import { playSound } from '../../audio.js';
 import { reconcileFamiliarLifecycle } from '../../features/familiars.js';
+import { createAssessmentScorePayload, getNormalizedPercentForScore, qualifiesForHighScore } from '../../features/assessmentConfig.js';
 // GUILD_IDS not needed at module level but kept for reference
 
 // --- THE ECONOMY (SHOP & INVENTORY) ---
@@ -268,7 +269,7 @@ export async function handleBulkSaveTrial() {
     const modal = document.getElementById('bulk-trial-modal');
     const classId = modal.dataset.classId;
     const type = modal.dataset.type;
-    const isJunior = modal.dataset.isJunior === 'true';
+    const classData = state.get('allSchoolClasses').find((item) => item.id === classId);
 
     const date = document.getElementById('bulk-trial-date').value;
     const title = document.getElementById('bulk-trial-name').value.trim();
@@ -316,26 +317,16 @@ export async function handleBulkSaveTrial() {
 
             if (!val) return;
 
-            const maxScore = (isJunior && type === 'test') ? 40 : 100;
-
-            let scoreData = {
+            const scoreData = createAssessmentScorePayload({
                 studentId,
                 classId,
-                date,
                 type,
-                title: type === 'test' ? title : null,
+                title,
                 teacherId: state.get('currentUserId'),
-                notes: null,
-                scoreNumeric: null,
-                scoreQualitative: null,
-                maxScore: maxScore
-            };
-
-            if (isJunior && type === 'dictation') {
-                scoreData.scoreQualitative = val;
-            } else {
-                scoreData.scoreNumeric = parseInt(val, 10);
-            }
+                date,
+                value: val,
+                classData
+            });
 
             savedScoresData.push({ ...scoreData, id: trialId || 'new' });
 
@@ -344,20 +335,12 @@ export async function handleBulkSaveTrial() {
             let isEligible = false;
 
             if (type === 'test') {
-                const threshold = isJunior ? 38 : 96;
-                if (scoreData.scoreNumeric >= threshold) {
+                if (qualifiesForHighScore(scoreData, 'test', classData)) {
                     bonusAmount = 1;
                     isEligible = true;
                 }
             } else if (type === 'dictation') {
-                let isHighDictation = false;
-                if (isJunior) {
-                    if (val === 'Great!!!') isHighDictation = true;
-                } else {
-                    if ((scoreData.scoreNumeric / maxScore) * 100 > 85) isHighDictation = true;
-                }
-
-                if (isHighDictation) {
+                if (qualifiesForHighScore(scoreData, 'dictation', classData)) {
                     potentialStarfallStudents.push({ studentId, type: 'dictation', bonusAmount: 0.5 });
                 }
             }
@@ -385,16 +368,16 @@ export async function handleBulkSaveTrial() {
 
             // --- PERSONAL BEST CHECK ---
             savedScoresData.forEach(savedScore => {
-                if (savedScore.type === 'test' && savedScore.scoreNumeric !== null) {
+                if (savedScore.type === 'test') {
                     const studentId = savedScore.studentId;
                     const student = state.get('allStudents').find(s => s.id === studentId);
-                    const newScorePercent = (savedScore.scoreNumeric / savedScore.maxScore) * 100;
+                    const newScorePercent = getNormalizedPercentForScore(savedScore, classData) || 0;
 
                     const previousScores = state.get('allWrittenScores')
                         .filter(s => s.studentId === studentId && s.type === 'test' && s.id !== savedScore.id);
 
                     const maxPreviousScore = previousScores.length > 0
-                        ? Math.max(...previousScores.map(s => (s.scoreNumeric / s.maxScore) * 100))
+                        ? Math.max(...previousScores.map(s => getNormalizedPercentForScore(s, classData) || 0))
                         : 0;
 
                     if (newScorePercent > maxPreviousScore && maxPreviousScore > 0) {
@@ -429,11 +412,7 @@ export async function handleBulkSaveTrial() {
                     });
 
                     let highCount = 1; // Current one counts
-                    if (isJunior) {
-                        highCount += studentScoresThisMonth.filter(s => s.scoreQualitative === 'Great!!!').length;
-                    } else {
-                        highCount += studentScoresThisMonth.filter(s => (s.scoreNumeric / s.maxScore) * 100 > 85).length;
-                    }
+                    highCount += studentScoresThisMonth.filter(s => qualifiesForHighScore(s, 'dictation', classData)).length;
 
                     if (highCount >= 3) {
                         const bonusLogsThisMonth = state.get('allAwardLogs').filter(log => {

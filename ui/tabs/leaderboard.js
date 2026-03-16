@@ -11,6 +11,7 @@ import { renderFamiliarSprite } from '../../features/familiars.js';
 import { getEggAlertState } from '../../features/familiarProgression.mjs';
 import { wrapAvatarWithLevelUpIndicator } from '../core/avatar.js';
 import { canUseFeature } from '../../utils/subscription.js';
+import { getNormalizedPercentForScore } from '../../features/assessmentConfig.js';
 
 // --- REIGNING PRODIGY CACHE ---
 // Fetches previous month's award logs once per session (cached by monthKey).
@@ -62,9 +63,8 @@ async function getReigningProdigies() {
                 });
                 let acadSum = 0;
                 sScores.forEach(sc => {
-                    if (sc.maxScore) acadSum += (sc.scoreNumeric / sc.maxScore) * 100;
-                    else if (sc.scoreQualitative === 'Great!!!') acadSum += 100;
-                    else if (sc.scoreQualitative === 'Great!!') acadSum += 75;
+                    const normalized = getNormalizedPercentForScore(sc);
+                    if (Number.isFinite(normalized)) acadSum += normalized;
                 });
                 const academicAvg = sScores.length > 0 ? acadSum / sScores.length : 0;
                 return { id: s.id, monthlyStars: totalStars, count3, count2, uniqueReasons: reasons.size, academicAvg };
@@ -622,17 +622,14 @@ export async function renderStudentLeaderboardTab() {
         const topSkill = topReasonEntry ? topReasonEntry[0] : null;
 
         // D. Academic Avg
-        let acadSum = 0;
-        let acadCount = 0;
-        studentScores.forEach(s => {
+            let acadSum = 0;
+            let acadCount = 0;
+            studentScores.forEach(s => {
             if (!s.date) return;
             const sDate = utils.parseFlexibleDate(s.date);
             if (!sDate || (sDate.getMonth() !== currentMonthIndex || sDate.getFullYear() !== currentYear)) return;
             {
-                let val = 0;
-                if (s.maxScore > 0 && s.scoreNumeric !== null) val = (s.scoreNumeric / s.maxScore) * 100;
-                else if (s.scoreQualitative === "Great!!!") val = 100;
-                else if (s.scoreQualitative === "Great!!") val = 75;
+                const val = getNormalizedPercentForScore(s) || 0;
                 if (val > 0) { acadSum += val; acadCount++; }
             }
         });

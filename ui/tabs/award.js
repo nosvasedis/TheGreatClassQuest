@@ -5,6 +5,7 @@ import { HERO_CLASSES } from '../../features/heroClasses.js';
 import { getGuildBadgeHtml } from '../../features/guilds.js';
 import { getHeroTitle, HERO_SKILL_TREE } from '../../features/heroSkillTree.js';
 import { canUseFeature } from '../../utils/subscription.js';
+import { getNormalizedPercentForScore } from '../../features/assessmentConfig.js';
 
 // --- REIGNING PRODIGY CACHE (previous month, with tie-breaker) ---
 let _awardProdigyCacheKey = null;
@@ -50,9 +51,8 @@ async function getReigningProdigyForClass(classId) {
                     });
                     let acadSum = 0;
                     sScores.forEach(sc => {
-                        if (sc.maxScore) acadSum += (sc.scoreNumeric / sc.maxScore) * 100;
-                        else if (sc.scoreQualitative === 'Great!!!') acadSum += 100;
-                        else if (sc.scoreQualitative === 'Great!!') acadSum += 75;
+                        const normalized = getNormalizedPercentForScore(sc);
+                        if (Number.isFinite(normalized)) acadSum += normalized;
                     });
                     return { id: s.id, monthlyStars: totalStars, count3, count2, uniqueReasons: reasons.size, academicAvg: sScores.length > 0 ? acadSum / sScores.length : 0 };
                 }).filter(s => s.monthlyStars > 0);

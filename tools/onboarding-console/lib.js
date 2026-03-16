@@ -756,10 +756,58 @@ function formatGraceSummary(raw) {
   };
 }
 
+function summarizeAssessmentDefaults(raw) {
+  const defaults = raw && typeof raw === 'object' ? raw.assessmentDefaultsByLeague : null;
+  if (!defaults || typeof defaults !== 'object') {
+    return {
+      configured: false,
+      leagueCount: 0,
+      leagues: [],
+      message: 'No custom assessment defaults are saved yet.',
+    };
+  }
+
+  const leagues = Object.entries(defaults)
+    .filter(([, value]) => value && typeof value === 'object')
+    .map(([league, value]) => {
+      const tests = value.tests && typeof value.tests === 'object' ? value.tests : null;
+      const dictations = value.dictations && typeof value.dictations === 'object' ? value.dictations : null;
+      const describeScheme = (scheme) => {
+        if (!scheme || typeof scheme !== 'object') return 'not set';
+        if (scheme.mode === 'qualitative') {
+          const count = Array.isArray(scheme.scale) ? scheme.scale.filter((entry) => entry && entry.label).length : 0;
+          return `${count || 0} labels`;
+        }
+        const maxScore = Number(scheme.maxScore);
+        return Number.isFinite(maxScore) && maxScore > 0 ? `/${maxScore}` : 'numeric';
+      };
+      return {
+        league,
+        tests: describeScheme(tests),
+        dictations: describeScheme(dictations),
+      };
+    });
+
+  return {
+    configured: leagues.length > 0,
+    leagueCount: leagues.length,
+    leagues,
+    message: leagues.length > 0
+      ? `Assessment defaults are saved for ${leagues.length} league${leagues.length === 1 ? '' : 's'}.`
+      : 'No custom assessment defaults are saved yet.',
+  };
+}
+
 async function fetchGraceWindow(projectId, serviceAccount) {
   const app = getAdminApp(projectId, serviceAccount);
   const snap = await app.firestore().doc(SCHOOL_SETTINGS_DOC).get();
   return formatGraceSummary(snap.exists ? snap.data() : null);
+}
+
+async function fetchAssessmentDefaultsSummary(projectId, serviceAccount) {
+  const app = getAdminApp(projectId, serviceAccount);
+  const snap = await app.firestore().doc(SCHOOL_SETTINGS_DOC).get();
+  return summarizeAssessmentDefaults(snap.exists ? snap.data() : null);
 }
 
 async function fetchBillingSubscriptionInfo(projectId) {
@@ -834,12 +882,14 @@ async function getSavedSchoolDetails(projectId) {
   const subscription = await readSubscriptionStatus(projectId, serviceAccount);
   const billing = await fetchBillingSubscriptionInfo(projectId);
   const grace = await fetchGraceWindow(projectId, serviceAccount);
+  const assessmentSummary = await fetchAssessmentDefaultsSummary(projectId, serviceAccount);
   return {
     school,
     serviceAccount,
     subscription: formatSubscriptionSummary(subscription),
     billing,
     grace,
+    assessmentSummary,
   };
 }
 
@@ -3121,6 +3171,7 @@ module.exports = {
   buildStorageReleaseName,
   extractProjectNumber,
   buildServiceUsageConsumerName,
+  summarizeAssessmentDefaults,
   summarizeGoogleErrorText,
   inspectBootstrapAdminAuth,
   inspectGcloudCli,

@@ -942,6 +942,7 @@ function renderManageSchools() {
   const latestPaid = billing?.latestPaidInvoice || billing?.recentPayments?.[0] || null;
   const graceStatus = getGraceStatusLabel(grace);
   const graceWindowLabel = getGraceWindowLabel(grace);
+  const assessmentSummary = details?.assessmentSummary || null;
   return `
     <section class="manage-screen">
       <div class="panel manage-hero-panel manage-top-panel">
@@ -1116,7 +1117,37 @@ function renderManageSchools() {
               </div>
               <p>${escapeHtml(grace?.message || 'Grace-period status is not available.')}</p>
             </article>
+            <article class="manage-snapshot-card neutral">
+              <div class="manage-snapshot-top">
+                <span class="manage-snapshot-emoji">${assessmentSummary?.configured ? '📝' : '📄'}</span>
+                <div>
+                  <p class="pill-label">Assessment setup</p>
+                  <h4>${escapeHtml(assessmentSummary?.configured ? `${assessmentSummary.leagueCount} leagues saved` : 'Using legacy defaults')}</h4>
+                </div>
+              </div>
+              <p>${escapeHtml(assessmentSummary?.message || 'Assessment defaults are not available for this school.')}</p>
+            </article>
           </div>
+
+          ${assessmentSummary?.configured ? `
+            <section class="manage-card">
+              <div class="manage-card-head">
+                <div>
+                  <p class="mini-label">Assessment defaults</p>
+                  <h3>Saved grading setup by league</h3>
+                </div>
+              </div>
+              <div class="manage-finance-grid">
+                ${assessmentSummary.leagues.map((entry) => `
+                  <article class="manage-metric-card neutral">
+                    <p class="pill-label">${escapeHtml(entry.league)}</p>
+                    <strong>Tests: ${escapeHtml(entry.tests)}</strong>
+                    <span>Dictations: ${escapeHtml(entry.dictations)}</span>
+                  </article>
+                `).join('')}
+              </div>
+            </section>
+          ` : ''}
 
           <section class="manage-card manage-finance-card">
             <div class="manage-card-head">

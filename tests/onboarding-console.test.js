@@ -15,6 +15,7 @@ const {
   formatHostedEnvironmentVariables,
   formatNetlifyVariables,
   buildHostingTargets,
+  summarizeAssessmentDefaults,
   summarizeGoogleErrorText,
 } = require('../tools/onboarding-console/lib');
 
@@ -242,6 +243,42 @@ test('buildManualSubscriptionPayload adds optional dates and notes', () => {
   assert.equal(payload.notes, 'Gifted for spring term');
   assert.match(payload.startsAt, /^2026-03-20T/);
   assert.match(payload.endsAt, /^2026-04-20T/);
+});
+
+test('summarizeAssessmentDefaults reports saved grading schemes without rejecting extra school settings fields', () => {
+  const result = summarizeAssessmentDefaults({
+    schoolName: 'Volos Frontistirio',
+    weatherLocation: { name: 'Volos' },
+    assessmentDefaultsByLeague: {
+      'Junior A': {
+        tests: { mode: 'numeric', maxScore: 40 },
+        dictations: {
+          mode: 'qualitative',
+          scale: [
+            { id: 'great_3', label: 'Great!!!', normalizedPercent: 100 },
+            { id: 'great_2', label: 'Great!!', normalizedPercent: 75 },
+          ],
+        },
+      },
+      A: {
+        tests: { mode: 'numeric', maxScore: 100 },
+        dictations: { mode: 'numeric', maxScore: 20 },
+      },
+    },
+  });
+
+  assert.equal(result.configured, true);
+  assert.equal(result.leagueCount, 2);
+  assert.deepEqual(result.leagues[0], {
+    league: 'Junior A',
+    tests: '/40',
+    dictations: '2 labels',
+  });
+  assert.deepEqual(result.leagues[1], {
+    league: 'A',
+    tests: '/100',
+    dictations: '/20',
+  });
 });
 
 test('formatNetlifyVariables includes Firebase config and billing values', () => {

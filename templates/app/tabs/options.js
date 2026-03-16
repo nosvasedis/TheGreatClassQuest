@@ -55,6 +55,9 @@ export const optionsTabHTML = `
                         <button type="button" class="options-subtab-btn" data-options-tab="profile">
                             <i class="fas fa-user mr-1.5"></i> Profile
                         </button>
+                        <button type="button" class="options-subtab-btn" data-options-tab="assessments">
+                            <i class="fas fa-clipboard-check mr-1.5"></i> Assessments
+                        </button>
                         <button type="button" class="options-subtab-btn" data-options-tab="danger">
                             <i class="fas fa-shield-alt mr-1.5"></i> Danger
                         </button>
@@ -297,6 +300,25 @@ export const optionsTabHTML = `
                                         </button>
                                     </div>
                                 </div>
+                            </div>
+
+                            <div class="bg-white p-6 rounded-3xl shadow-lg border-4 border-fuchsia-300 space-y-4 hidden" data-options-section="assessments">
+                                <div class="text-center">
+                                    <h2 class="font-title text-3xl text-fuchsia-700">Assessment Settings</h2>
+                                    <p class="text-sm text-slate-500 mt-2">Set school-wide league defaults and decide which classes inherit them or use custom grading.</p>
+                                </div>
+                                <div class="rounded-[1.5rem] border border-fuchsia-100 bg-fuchsia-50/60 p-5">
+                                    <h3 class="font-title text-2xl text-fuchsia-800 mb-3">School defaults by league</h3>
+                                    <div id="options-assessment-defaults-editor" class="space-y-4"></div>
+                                </div>
+                                <div class="rounded-[1.5rem] border border-indigo-100 bg-indigo-50/60 p-5">
+                                    <h3 class="font-title text-2xl text-indigo-800 mb-3">Per-class overrides</h3>
+                                    <div id="options-class-assessment-editor" class="space-y-4"></div>
+                                </div>
+                                <button id="save-assessment-settings-btn"
+                                    class="w-full bg-fuchsia-600 hover:bg-fuchsia-700 text-white font-title text-xl py-3 rounded-xl bubbly-button flex items-center justify-center">
+                                    <i class="fas fa-save mr-2"></i> Save Assessment Settings
+                                </button>
                             </div>
 
                             <div class="bg-white p-6 rounded-3xl shadow-lg border-4 border-red-300 space-y-4" data-options-section="danger">

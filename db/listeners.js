@@ -393,6 +393,7 @@ export function setupDataListeners(userId, dateString, onInitialDataReady) {
             setSchoolGraceConfig(graceWindow);
             const weatherLocation = utils.normalizeWeatherLocation(data.weatherLocation);
             state.setSchoolWeatherLocation(weatherLocation);
+            state.setSchoolAssessmentDefaults(data.assessmentDefaultsByLeague || null);
             utils.setWeatherCoordinates(weatherLocation);
             applySchoolNameToDom(data.schoolName);
         } else {
@@ -401,6 +402,7 @@ export function setupDataListeners(userId, dateString, onInitialDataReady) {
             state.setSchoolBillingGrace(null);
             setSchoolGraceConfig(null);
             state.setSchoolWeatherLocation(null);
+            state.setSchoolAssessmentDefaults(null);
             utils.setWeatherCoordinates(null);
             applySchoolNameToDom(null);
         }

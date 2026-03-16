@@ -20,6 +20,7 @@ function getDefaultState() {
         schoolBillingGrace: null,
         schoolName: null,
         schoolWeatherLocation: null,
+        schoolAssessmentDefaults: null,
         allTeachersClasses: [],
         allSchoolClasses: [],
         allStudents: [],
@@ -141,6 +142,7 @@ export function setCurrentTeacherName(name) { state.currentTeacherName = name; }
 export function setSchoolBillingGrace(grace) { state.schoolBillingGrace = grace || null; }
 export function setSchoolName(name) { state.schoolName = name || null; }
 export function setSchoolWeatherLocation(location) { state.schoolWeatherLocation = location || null; }
+export function setSchoolAssessmentDefaults(defaults) { state.schoolAssessmentDefaults = defaults || null; }
 export function setAllTeachersClasses(classes) { state.allTeachersClasses = classes; }
 export function setAllSchoolClasses(classes) { state.allSchoolClasses = classes; }
 export function setAllStudents(students) { state.allStudents = students; updateReigningHero(); }

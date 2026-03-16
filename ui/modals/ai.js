@@ -8,6 +8,7 @@ import { ensureHistoryLoaded } from '../../db/actions.js';
 import { isSpeaking, speakText, stopSpeech, isTtsSupported } from '../../features/tts.js';
 import { requireEliteAI } from '../../utils/upgradePrompt.js';
 import { canUseFeature } from '../../utils/subscription.js';
+import { getNormalizedPercentForScore } from '../../features/assessmentConfig.js';
 
 // --- AI & REPORTING MODALS ---
 
@@ -240,8 +241,8 @@ export async function openMilestoneModal(markerElement) {
     });
     let totalScorePercent = 0, scoreCount = 0;
     classTrials.forEach(s => {
-        if (s.scoreNumeric !== null) { totalScorePercent += (s.scoreNumeric / s.maxScore) * 100; scoreCount++; }
-        else if (s.scoreQualitative === "Great!!!") { totalScorePercent += 100; scoreCount++; }
+        const normalized = getNormalizedPercentForScore(s);
+        if (Number.isFinite(normalized)) { totalScorePercent += normalized; scoreCount++; }
     });
     const trialMastery = scoreCount > 0 ? (totalScorePercent / scoreCount).toFixed(0) : "N/A";
 

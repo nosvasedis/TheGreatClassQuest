@@ -7,6 +7,7 @@ import { handleUseItem, isItemUsable } from '../../features/powerUps.js';
 const MODAL_ID = 'trophy-room-modal';
 const CONTENT_ID = 'trophy-room-content';
 const STUDENT_SELECT_ID = 'trophy-room-student-select';
+const trophyRoomFeedback = new Map();
 
 document.addEventListener('clarity-glimmer', (e) => {
     const { studentId, itemIndex } = e.detail || {};
@@ -86,6 +87,41 @@ export function renderTrophyRoomContent(studentId) {
     const avatarHtml = student?.avatar
         ? `<img src="${student.avatar}" alt="" class="trophy-room-avatar">`
         : `<div class="trophy-room-avatar-placeholder">${(student?.name || '?').charAt(0)}</div>`;
+    const feedback = trophyRoomFeedback.get(studentId) || null;
+
+    const activeEffects = [];
+    if (scoreData?.hasGildedEffect) {
+        activeEffects.push({ icon: '✨', title: 'Gilded Star Ready', body: 'The next star will pay triple Gold.' });
+    }
+    if (scoreData?.luckDate) {
+        activeEffects.push({ icon: '🍀', title: 'Luck Stored', body: `Ready for the next lesson on ${scoreData.luckDate}.` });
+    }
+    if (scoreData?.starfallCatalystActive) {
+        activeEffects.push({ icon: '📜', title: 'Starfall Catalyst', body: 'The next high-score bonus will be doubled.' });
+    }
+    if (scoreData?.pendingHeroStatus) {
+        activeEffects.push({ icon: '🎭', title: 'Protagonist Mask', body: 'The next Story Log will feature this student as the hero.' });
+    }
+
+    const activeEffectsHtml = activeEffects.length > 0
+        ? `
+            <div class="mt-5">
+                <p class="trophy-room-panel-kicker mb-2">Active Effects</p>
+                <div class="flex flex-wrap gap-2">
+                    ${activeEffects.map((effect) => `
+                        <div class="rounded-2xl border border-emerald-400/30 bg-emerald-500/10 px-3 py-2 text-left">
+                            <div class="text-xs font-black uppercase tracking-wide text-emerald-200">${effect.icon} ${effect.title}</div>
+                            <div class="text-xs text-indigo-100 mt-1">${effect.body}</div>
+                        </div>
+                    `).join('')}
+                </div>
+            </div>
+        `
+        : `
+            <div class="mt-5 rounded-2xl border border-white/10 bg-black/15 px-4 py-3 text-sm text-indigo-200">
+                No active relic effects right now. Use an item to arm the next magical bonus.
+            </div>
+        `;
 
     const featuredHtml = featuredItem
         ? (() => {
@@ -158,6 +194,12 @@ export function renderTrophyRoomContent(studentId) {
         <div class="trophy-room-shell" data-student-id="${studentId}">
             <section class="trophy-room-hero-panel">
                 <div class="trophy-room-panel-kicker">Adventurer Profile</div>
+                ${feedback ? `
+                    <div class="mb-4 rounded-2xl border border-amber-300/30 bg-amber-400/10 px-4 py-3 text-left">
+                        <div class="text-xs font-black uppercase tracking-wide text-amber-200">${feedback.icon || '✨'} ${feedback.title || 'Relic Activated'}</div>
+                        <div class="text-sm text-indigo-100 mt-1">${feedback.body || ''}</div>
+                    </div>
+                ` : ''}
                 ${featuredHtml}
                 <div class="trophy-room-avatar-stage">
                     <div class="trophy-room-avatar-aura" aria-hidden="true"></div>
@@ -174,6 +216,7 @@ export function renderTrophyRoomContent(studentId) {
                         <span class="trophy-room-stat-pill"><i class="fas fa-bolt"></i> ${usableCount} Active</span>
                         <span class="trophy-room-stat-pill"><i class="fas fa-gem"></i> ${collectibleCount} Collectibles</span>
                     </div>
+                    ${activeEffectsHtml}
                 </div>
             </section>
             <section class="trophy-room-inventory-panel">
@@ -205,8 +248,10 @@ export function renderTrophyRoomContent(studentId) {
             if (row) row.classList.add('opacity-60');
 
             try {
-                await handleUseItem(studentIdBtn, itemIndex);
-                // handleUseItem updates state and removes item; re-render to show updated list
+                const result = await handleUseItem(studentIdBtn, itemIndex);
+                if (result?.success && result.feedback) {
+                    trophyRoomFeedback.set(studentIdBtn, result.feedback);
+                }
                 renderTrophyRoomContent(document.getElementById(STUDENT_SELECT_ID)?.value || studentIdBtn);
             } catch (_) {
                 btn.disabled = false;

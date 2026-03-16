@@ -6,6 +6,18 @@ import * as utils from '../utils.js';
 import { callGeminiApi } from '../api.js';
 import { canUseFeature, getLimit, getTier, getSubscriptionSnapshot } from '../utils/subscription.js';
 import { markTeacherOnboardingComplete } from './teacherJourney.js';
+import {
+    getSchoolAssessmentDefaults,
+    normalizeClassAssessmentConfig,
+    normalizeAssessmentDefaultsByLeague
+} from './assessmentConfig.js';
+import {
+    getAssessmentConfigCardHtml,
+    getAssessmentDefaultsEditorHtml,
+    readAssessmentCardValue,
+    readAssessmentDefaultsFromContainer,
+    wireAssessmentEditor
+} from '../ui/assessmentEditor.js';
 
 const PUBLIC_DATA_PATH = 'artifacts/great-class-quest/public/data';
 const SCORE_DEFAULTS = {
@@ -23,6 +35,7 @@ let listenersAttached = false;
 let locationSearchResults = [];
 let selectedSchoolWeatherLocation = null;
 let setupDraftClasses = [];
+let setupAssessmentDefaults = {};
 let setupGraceTicker = null;
 let setupContext = {
     isFirstTeacher: false,
@@ -132,6 +145,23 @@ function populateSetupSelectors() {
     }
 
     setSelectedSetupLogo(getSelectedSetupLogo() || '📚');
+}
+
+function renderSetupAssessmentDefaultsEditor() {
+    const container = document.getElementById('setup-assessment-defaults-editor');
+    if (!container) return;
+    container.innerHTML = getAssessmentDefaultsEditorHtml(setupAssessmentDefaults);
+    wireAssessmentEditor(container);
+}
+
+function hasAssessmentAccess() {
+    return canUseFeature('scholarScroll');
+}
+
+function syncSetupAssessmentVisibility() {
+    const section = document.getElementById('setup-assessment-section');
+    if (!section) return;
+    section.classList.toggle('hidden', !hasAssessmentAccess());
 }
 
 function getSelectedSetupLogo() {
@@ -355,8 +385,20 @@ function renderSetupDraftClassesList() {
                     : '<span class="px-3 py-1 rounded-full bg-white/10 border border-white/10 text-xs text-slate-300">No students yet</span>'
                 }
             </div>
+            <div class="mt-4">
+                ${hasAssessmentAccess() ? getAssessmentConfigCardHtml(draft.assessmentConfig || normalizeClassAssessmentConfig(null, draft.questLevel), `setup-draft-${index}`, {
+                    allowInherit: true,
+                    questLevel: draft.questLevel,
+                    title: 'Assessment override',
+                    description: 'Leave this on school defaults unless this class needs a custom test or dictation scale.'
+                }) : ''}
+            </div>
         </article>
     `).join('');
+
+    if (hasAssessmentAccess()) {
+        wireAssessmentEditor(list);
+    }
 }
 
 function setInviteLink() {
@@ -503,7 +545,13 @@ function handleAddDraftClass() {
         return;
     }
 
-    setupDraftClasses.push({ name, questLevel, logo, students });
+    setupDraftClasses.push({
+        name,
+        questLevel,
+        logo,
+        students,
+        assessmentConfig: normalizeClassAssessmentConfig({ inheritSchoolDefaults: true }, questLevel)
+    });
     renderSetupDraftClassesList();
     resetClassDraftForm();
     document.getElementById('setup-enter-hint')?.classList.add('hidden');
@@ -523,12 +571,33 @@ async function persistSetupBundle() {
     const batch = writeBatch(db);
     const settingsRef = doc(db, `${PUBLIC_DATA_PATH}/school_settings`, 'holidays');
     const settingsPayload = {};
+    const assessmentEnabled = hasAssessmentAccess();
+    const assessmentContainer = document.getElementById('setup-assessment-defaults-editor');
+    const currentAssessmentDefaults = assessmentEnabled
+        ? (assessmentContainer
+            ? readAssessmentDefaultsFromContainer(assessmentContainer)
+            : normalizeAssessmentDefaultsByLeague(setupAssessmentDefaults))
+        : normalizeAssessmentDefaultsByLeague(setupAssessmentDefaults);
+
+    if (assessmentEnabled) {
+        document.querySelectorAll('#setup-draft-classes-list [data-assessment-card]').forEach((card) => {
+            const index = Number(card.dataset.cardKey?.replace('setup-draft-', ''));
+            if (!Number.isInteger(index) || !setupDraftClasses[index]) return;
+            setupDraftClasses[index].assessmentConfig = normalizeClassAssessmentConfig(
+                readAssessmentCardValue(card, { allowInherit: true }),
+                setupDraftClasses[index].questLevel
+            );
+        });
+    }
 
     if (setupContext.shouldCollectSchoolName && rawName) {
         settingsPayload.schoolName = rawName;
     }
     if (normalizedLocation) {
         settingsPayload.weatherLocation = normalizedLocation;
+    }
+    if (assessmentEnabled) {
+        settingsPayload.assessmentDefaultsByLeague = currentAssessmentDefaults;
     }
     if (Object.keys(settingsPayload).length > 0) {
         batch.set(settingsRef, settingsPayload, { merge: true });
@@ -546,6 +615,7 @@ async function persistSetupBundle() {
             scheduleDays: [],
             timeStart: '',
             timeEnd: '',
+            assessmentConfig: draft.assessmentConfig,
             createdBy,
             createdAt: serverTimestamp()
         });
@@ -577,6 +647,7 @@ export function showSetupScreen(options = {}) {
         user: options.user || null
     };
     setupDraftClasses = [];
+    setupAssessmentDefaults = getSchoolAssessmentDefaults();
 
     const setupEl = document.getElementById('setup-screen');
     const appEl = document.getElementById('app-screen');
@@ -587,6 +658,10 @@ export function showSetupScreen(options = {}) {
 
     populateSetupSelectors();
     renderSetupCopy();
+    syncSetupAssessmentVisibility();
+    if (hasAssessmentAccess()) {
+        renderSetupAssessmentDefaultsEditor();
+    }
     renderSetupDraftClassesList();
     prefillSetupLocationFromState();
     setInviteLink();

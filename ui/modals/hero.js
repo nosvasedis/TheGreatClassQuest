@@ -5,6 +5,12 @@ import { HERO_CLASSES } from '../../features/heroClasses.js';
 import { getHeroTitle, HERO_SKILL_TREE } from '../../features/heroSkillTree.js';
 import { showAnimatedModal } from './base.js';
 import { callGeminiApi } from '../../api.js';
+import {
+    getAssessmentAverage,
+    getAssessmentValueLabel,
+    getNormalizedPercentForScore,
+    getQualitativeDistribution
+} from '../../features/assessmentConfig.js';
 
 /** Shows the hero level-up celebration modal. Called after a student levels up in the skill tree. */
 export function showHeroLevelUpCelebration({ studentId, studentName, newHeroLevel, heroClass }) {
@@ -69,7 +75,6 @@ nameEl.innerHTML = `${heroIcon} ${student.name}`;
     }
 
     const classData = state.get('allSchoolClasses').find(c => c.id === student.classId);
-    const isJunior = classData && (classData.questLevel === 'Junior A' || classData.questLevel === 'Junior B');
     
     const studentScores = state.get('allWrittenScores').filter(s => s.studentId === studentId);
     const studentTestScores = studentScores.filter(s => s.type === 'test');
@@ -77,53 +82,41 @@ nameEl.innerHTML = `${heroIcon} ${student.name}`;
     const totalTests = studentTestScores.length;
     const totalDictations = studentDictationScores.length;
 
-    let avgTestScore = null;
-    if (totalTests > 0) {
-        avgTestScore = studentTestScores.reduce((sum, s) => sum + (s.scoreNumeric / s.maxScore) * 100, 0) / totalTests;
-    }
+    const avgTestScore = getAssessmentAverage(studentTestScores, classData);
 
     let bestTest = null;
     if (totalTests > 0) {
         bestTest = studentTestScores.reduce((best, current) => {
-            const bestScore = best.scoreNumeric / best.maxScore;
-            const currentScore = current.scoreNumeric / current.maxScore;
+            const bestScore = getNormalizedPercentForScore(best, classData) || 0;
+            const currentScore = getNormalizedPercentForScore(current, classData) || 0;
             return currentScore > bestScore ? current : best;
         });
     }
     
     let dictationStatHtml = '';
-    if (isJunior) {
-        const dictationCounts = studentDictationScores.reduce((acc, s) => {
-            if (s.scoreQualitative) acc[s.scoreQualitative] = (acc[s.scoreQualitative] || 0) + 1;
-            return acc;
-        }, {});
-        const dictationOrder = ["Great!!!", "Great!!", "Great!", "Nice Try!"];
-        const dictationSummary = dictationOrder
-            .filter(key => dictationCounts[key])
-            .map(key => `${dictationCounts[key]}x ${key}`)
-            .join(', ');
-        if (dictationSummary) {
+    if (totalDictations > 0) {
+        const qualitativeCounts = getQualitativeDistribution(studentDictationScores, classData);
+        const labels = Object.keys(qualitativeCounts);
+        const avgDictationScore = getAssessmentAverage(studentDictationScores, classData);
+        if (labels.length > 0) {
+            const dictationSummary = labels
+                .map((label) => `${qualitativeCounts[label]}x ${label}`)
+                .join(', ');
             dictationStatHtml = `<div class="hero-stat-item">
                 <div class="icon text-blue-400"><i class="fas fa-microphone-alt"></i></div>
                 <div class="text">
                     <div class="title">Dictation Results</div>
-                    <div class="value">${dictationSummary}</div>
+                    <div class="value">${dictationSummary}${avgDictationScore !== null ? ` • ${avgDictationScore.toFixed(0)}%` : ''}</div>
                 </div>
             </div>`;
-        }
-    } else { // Is Senior
-        if (totalDictations > 0) {
-            const seniorDictations = studentDictationScores.filter(s => s.scoreNumeric !== null);
-            if (seniorDictations.length > 0) {
-                const avgDictationScore = seniorDictations.reduce((sum, s) => sum + (s.scoreNumeric / s.maxScore) * 100, 0) / seniorDictations.length;
-                dictationStatHtml = `<div class="hero-stat-item">
-                    <div class="icon text-blue-400"><i class="fas fa-microphone-alt"></i></div>
-                    <div class="text">
-                        <div class="title">Average Dictation Score</div>
-                        <div class="value">${avgDictationScore.toFixed(1)}%</div>
-                    </div>
-                </div>`;
-            }
+        } else if (avgDictationScore !== null) {
+            dictationStatHtml = `<div class="hero-stat-item">
+                <div class="icon text-blue-400"><i class="fas fa-microphone-alt"></i></div>
+                <div class="text">
+                    <div class="title">Average Dictation Score</div>
+                    <div class="value">${avgDictationScore.toFixed(1)}%</div>
+                </div>
+            </div>`;
         }
     }
 
@@ -150,12 +143,12 @@ nameEl.innerHTML = `${heroIcon} ${student.name}`;
     statsHtml += dictationStatHtml;
 
     if (bestTest) {
-        const bestScorePercent = (bestTest.scoreNumeric / bestTest.maxScore * 100).toFixed(0);
+        const bestScorePercent = (getNormalizedPercentForScore(bestTest, classData) || 0).toFixed(0);
         statsHtml += `<div class="hero-stat-item">
             <div class="icon text-amber-400"><i class="fas fa-award"></i></div>
             <div class="text">
                 <div class="title">Best Test Performance</div>
-                <div class="value">${bestScorePercent}% on "${bestTest.title}"</div>
+                <div class="value">${bestScorePercent}% on "${bestTest.title || getAssessmentValueLabel(bestTest)}"</div>
             </div>
         </div>`;
     }
@@ -182,12 +175,10 @@ nameEl.innerHTML = `${heroIcon} ${student.name}`;
             
             const sortedScores = [...studentScores].sort((a, b) => (utils.parseFlexibleDate(a.date) || 0) - (utils.parseFlexibleDate(b.date) || 0));
             const labels = sortedScores.map(s => (utils.parseFlexibleDate(s.date) || new Date()).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }));
-            const dictationMap = { "Great!!!": 100, "Great!!": 75, "Great!": 50, "Nice Try!": 25 };
-
-            const testData = sortedScores.map(s => s.type === 'test' ? (s.scoreNumeric / s.maxScore) * 100 : null);
+            const testData = sortedScores.map(s => s.type === 'test' ? (getNormalizedPercentForScore(s, classData) || null) : null);
             const dictationData = sortedScores.map(s => {
                 if (s.type !== 'dictation') return null;
-                return s.scoreQualitative ? dictationMap[s.scoreQualitative] : (s.scoreNumeric / s.maxScore) * 100;
+                return getNormalizedPercentForScore(s, classData) || null;
             });
 
             heroStatsChart = new Chart(canvas, {
@@ -212,7 +203,8 @@ nameEl.innerHTML = `${heroIcon} ${student.name}`;
                                     if (context.parsed.y !== null) {
                                         const originalScore = sortedScores[context.dataIndex];
                                         if(originalScore.type === 'dictation' && originalScore.scoreQualitative) {
-                                            label += originalScore.scoreQualitative;
+                                            const normalized = getNormalizedPercentForScore(originalScore, classData) || 0;
+                                            label += `${originalScore.scoreQualitative} (${normalized.toFixed(0)}%)`;
                                         } else {
                                             label += context.parsed.y.toFixed(1) + '%';
                                         }

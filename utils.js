@@ -297,6 +297,39 @@ export function getPreviousLessonDate(classId, allSchoolClasses) {
     return null;
 }
 
+function isLessonBlockedByHoliday(date, schoolHolidayRanges = []) {
+    return (schoolHolidayRanges || []).some((range) => {
+        if (!range?.start || !range?.end) return false;
+        const start = parseFlexibleDate(range.start);
+        const end = parseFlexibleDate(range.end);
+        if (!start || !end) return false;
+        start.setHours(0, 0, 0, 0);
+        end.setHours(23, 59, 59, 999);
+        return date >= start && date <= end;
+    });
+}
+
+export function getNextLessonDate(classId, allSchoolClasses, allScheduleOverrides = [], schoolHolidayRanges = [], fromDate = new Date()) {
+    const classData = (allSchoolClasses || []).find((item) => item.id === classId);
+    if (!classData?.scheduleDays?.length) return null;
+
+    const checkDate = parseFlexibleDate(fromDate) || new Date();
+    checkDate.setHours(0, 0, 0, 0);
+    checkDate.setDate(checkDate.getDate() + 1);
+
+    for (let i = 0; i < 45; i++) {
+        const dateString = getDDMMYYYY(checkDate);
+        const classesOnDay = getClassesOnDay(dateString, allSchoolClasses || [], allScheduleOverrides || []);
+        const isScheduled = classesOnDay.some((item) => item.id === classId);
+        if (isScheduled && !isLessonBlockedByHoliday(checkDate, schoolHolidayRanges)) {
+            return dateString;
+        }
+        checkDate.setDate(checkDate.getDate() + 1);
+    }
+
+    return null;
+}
+
 export function debounce(func, wait) {
     let timeout;
 
@@ -569,12 +602,24 @@ export function calculateStudentStats(studentId, relevantLogs, relevantScores) {
     const sScores = (relevantScores || []).filter(sc => sc.studentId === studentId);
     let acadSum = 0;
     sScores.forEach(sc => {
-        if (sc.scoreNumeric !== null && sc.maxScore) {
+        if (Number.isFinite(Number(sc.normalizedPercent))) {
+            acadSum += Number(sc.normalizedPercent);
+        } else if (sc.scoreNumeric !== null && sc.maxScore) {
             acadSum += (Number(sc.scoreNumeric) / Number(sc.maxScore)) * 100;
-        } else if (sc.scoreQualitative === 'Great!!!') {
-            acadSum += 100;
-        } else if (sc.scoreQualitative === 'Great!!') {
-            acadSum += 75;
+        } else if (sc.scoreQualitative) {
+            const snapshotScale = Array.isArray(sc.gradingSnapshot?.scale) ? sc.gradingSnapshot.scale : [];
+            const match = snapshotScale.find((entry) => entry?.label === sc.scoreQualitative);
+            if (match && Number.isFinite(Number(match.normalizedPercent))) {
+                acadSum += Number(match.normalizedPercent);
+            } else if (sc.scoreQualitative === 'Great!!!') {
+                acadSum += 100;
+            } else if (sc.scoreQualitative === 'Great!!') {
+                acadSum += 75;
+            } else if (sc.scoreQualitative === 'Great!') {
+                acadSum += 50;
+            } else if (sc.scoreQualitative === 'Nice Try!') {
+                acadSum += 25;
+            }
         }
     });
     const academicAvg = sScores.length > 0 ? acadSum / sScores.length : 0;

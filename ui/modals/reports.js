@@ -8,6 +8,7 @@ import { showAnimatedModal } from './base.js';
 import { ensureHistoryLoaded } from '../../db/actions.js';
 import { callGeminiApi } from '../../api.js';
 import { requireEliteAI } from '../../utils/upgradePrompt.js';
+import { getAssessmentValueLabel, getNormalizedPercentForScore } from '../../features/assessmentConfig.js';
 
 export async function handleGenerateReport(classId) {
     if (!requireEliteAI({ feature: 'Weekly report' })) return;
@@ -30,7 +31,7 @@ export async function handleGenerateReport(classId) {
     
     const academicScores = state.get('allWrittenScores').filter(score => score.classId === classId && score.date >= oneWeekAgoStr);
     const academicNotes = academicScores.filter(s => s.note).map(s => `For a ${s.type} on ${s.date}, a note said: "${s.note}"`).join('. ');
-    const academicSummary = academicScores.map(s => `A ${s.type} score of ${s.scoreNumeric || s.scoreQualitative}`).join(', ');
+    const academicSummary = academicScores.map(s => `A ${s.type} score of ${getAssessmentValueLabel(s)}${Number.isFinite(Number(s.normalizedPercent)) ? ` (${Number(s.normalizedPercent).toFixed(0)}%)` : ''}`).join(', ');
 
     const systemPrompt = "You are the 'Quest Master,' a helpful AI assistant. You write encouraging, insightful reports for teachers. Do not use markdown. Format your response into two paragraphs with clear headings. The first paragraph is a 'Weekly Summary,' and the second is a 'Suggested Mini-Quest.' Your analysis must be based on ALL provided data: behavioral (stars) and academic (scores), including any teacher notes.";
     const userPrompt = `Class "${classData.name}" (League: ${classData.questLevel}) this week:
@@ -305,8 +306,8 @@ export async function handleGenerateCertificate(studentId) {
     document.getElementById('cert-date').style.borderTopColor = randomStyle.borderColor;
 
     const academicScores = state.get('allWrittenScores').filter(score => score.studentId === studentId && score.date >= startOfMonth);
-    const topScore = academicScores.sort((a, b) => (b.scoreNumeric / b.maxScore) - (a.scoreNumeric / a.scoreNumeric))[0];
-    const topScoreString = topScore ? `a top score of ${topScore.scoreNumeric || topScore.scoreQualitative}` : "";
+    const topScore = [...academicScores].sort((a, b) => (getNormalizedPercentForScore(b) || 0) - (getNormalizedPercentForScore(a) || 0))[0];
+    const topScoreString = topScore ? `a top score of ${getAssessmentValueLabel(topScore)}` : "";
     const academicNotes = academicScores.filter(s => s.note).map(s => `(Academic note: '${s.note}')`).join(' ');
 
     // Decorative flair row under the AI text (simple icon shapes tuned by age band)
@@ -398,4 +399,3 @@ export async function downloadCertificateAsPdf() {
         btn.innerHTML = `<i class="fas fa-download mr-2"></i> Download as PDF`;
     }
 }
-

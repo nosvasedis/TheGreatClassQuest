@@ -24,6 +24,8 @@ import { renderAwardStarsTab } from './award.js';
 import { renderAdventureLogTab } from './log.js';
 import {
     handleSaveSchoolNameFromOptions,
+    renderAssessmentOptionsUi,
+    handleSaveAssessmentSettingsFromOptions,
     initializeSchoolLocationOptionsUi,
     handleSearchSchoolLocationFromOptions,
     handleSchoolLocationResultChange,
@@ -164,7 +166,13 @@ export async function showTab(tabName) {
     }
 
     if (tabId === 'reward-ideas-tab') renderIdeasTabSelects();
-        if (tabId === 'options-tab') {
+    if (tabId === 'options-tab') {
+        const hasAssessmentAccess = canUseFeature('scholarScroll');
+        const assessmentsBtn = document.querySelector('.options-subtab-btn[data-options-tab="assessments"]');
+        const assessmentsSection = document.querySelector('[data-options-section="assessments"]');
+        assessmentsBtn?.classList.toggle('hidden', !hasAssessmentAccess);
+        assessmentsSection?.classList.toggle('hidden', !hasAssessmentAccess);
+
         // Load holidays and the new economy selector
         import('../core.js').then(m => {
             if (m.renderHolidayList) m.renderHolidayList();
@@ -184,6 +192,9 @@ export async function showTab(tabName) {
             schoolInput.value = state.get('schoolName') || constants.DEFAULT_SCHOOL_NAME;
         }
         initializeSchoolLocationOptionsUi();
+        if (hasAssessmentAccess) {
+            renderAssessmentOptionsUi();
+        }
 
         // Options subtabs: beautiful bar, active state, tier-aware Planning
         if (!window.__optionsSubtabsWired) {
@@ -202,6 +213,9 @@ export async function showTab(tabName) {
                     sec.classList.toggle('hidden', !isVisible);
                     sec.classList.toggle('options-section-visible', isVisible);
                 });
+                if (key === 'assessments' && hasAssessmentAccess) {
+                    renderAssessmentOptionsUi();
+                }
                 // Tier: Planning is Pro+. Show locked card or real content
                 const hasPlanning = canUseFeature('schoolYearPlanner');
                 if (planningLocked) planningLocked.classList.toggle('hidden', hasPlanning || key !== 'planning');
@@ -251,6 +265,12 @@ export async function showTab(tabName) {
             if (saveSchoolLocationBtn) {
                 saveSchoolLocationBtn.addEventListener('click', () => {
                     handleSaveSchoolLocationFromOptions();
+                });
+            }
+            const saveAssessmentSettingsBtn = document.getElementById('save-assessment-settings-btn');
+            if (saveAssessmentSettingsBtn) {
+                saveAssessmentSettingsBtn.addEventListener('click', () => {
+                    handleSaveAssessmentSettingsFromOptions();
                 });
             }
             activate('manage');

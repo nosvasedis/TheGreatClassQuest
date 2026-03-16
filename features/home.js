@@ -11,6 +11,7 @@ import { canUseFeature } from '../utils/subscription.js';
 import * as grandGuildCeremony from '../features/grandGuildCeremony.js';
 import { DEFAULT_SCHOOL_NAME } from '../constants.js';
 import { loadTeacherJourneyState, markTeacherGuideSeen } from './teacherJourney.js';
+import { getNextAssessmentOccurrenceForToday } from './assessmentConfig.js';
 
 export { initializeHeaderQuote };
 
@@ -962,6 +963,23 @@ function getReminderPills(classId) {
             `);
         }
     });
+
+    if (canUseFeature('scholarScroll')) {
+        const todaysTests = getNextAssessmentOccurrenceForToday(classId);
+        todaysTests.forEach((assignment) => {
+            const classLine = assignment.classData ? `${assignment.classData.logo || '📚'} ${assignment.classData.name}` : 'Today';
+            pills.push(`
+                <div class="date-pill bg-gradient-to-r from-rose-500 to-red-500 text-white shadow-lg flex items-center gap-2 px-4 py-2 rounded-full transition-transform hover:scale-105 cursor-default border-2 border-white/40">
+                    <i class="fas fa-file-alt"></i>
+                    <div class="flex flex-col leading-none">
+                        <span class="text-[10px] uppercase font-black tracking-wide opacity-80">${classId ? 'Test Today' : classLine}</span>
+                        <span class="font-bold">${assignment.testData?.title || 'Scheduled Test'}</span>
+                    </div>
+                    <span class="bg-white/20 px-2 py-1 rounded-full text-[10px] font-black uppercase">Today</span>
+                </div>
+            `);
+        });
+    }
 
     // 2. CEREMONY REMINDER (Restored)
     if (classId) {

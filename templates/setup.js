@@ -168,6 +168,21 @@ export const setupHTML = `
                         </div>
                     </section>
 
+                    <section id="setup-assessment-section" class="rounded-[1.75rem] border border-fuchsia-100 bg-fuchsia-50/70 p-6 md:p-8">
+                        <div class="flex flex-col gap-3 md:flex-row md:items-end md:justify-between mb-5">
+                            <div>
+                                <h2 class="font-title text-3xl text-fuchsia-800 flex items-center gap-2">
+                                    <i class="fas fa-clipboard-check text-fuchsia-500"></i> Assessment setup
+                                </h2>
+                                <p class="text-slate-600 mt-2">Choose how each league is graded for tests and dictations. Draft classes can inherit these rules or override them inside their card below.</p>
+                            </div>
+                            <div class="rounded-2xl bg-white/80 border border-fuchsia-100 px-4 py-3 text-sm text-slate-600">
+                                <span class="font-semibold text-fuchsia-700">Important:</span> Word scales can carry custom percentages so GCQ charts and rankings stay fair.
+                            </div>
+                        </div>
+                        <div id="setup-assessment-defaults-editor" class="space-y-4"></div>
+                    </section>
+
                     <section class="rounded-[1.5rem] border border-emerald-100 bg-emerald-50/70 p-6">
                         <h2 class="font-title text-2xl text-emerald-800 mb-3 flex items-center gap-2">
                             <i class="fas fa-user-plus text-emerald-500"></i> Invite other teachers later

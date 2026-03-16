@@ -14,6 +14,14 @@ import { playSound } from '../audio.js';
 import * as modals from '../ui/modals.js';
 import { wrapAvatarWithLevelUpIndicator } from '../ui/core/avatar.js';
 import { HERO_CLASSES } from '../features/heroClasses.js';
+import {
+    getAssessmentAverage,
+    getAssessmentSchemeForClass,
+    getAssessmentValueLabel,
+    getNearestQualitativeLabel,
+    getNormalizedPercentForScore,
+    getWeightedAcademicAverage
+} from './assessmentConfig.js';
 
 
 // --- TAB RENDERING ---
@@ -73,7 +81,8 @@ function renderScrollDashboard(classId) {
         return scoreDate >= threeMonthsAgo;
     });
     const classData = state.get('allSchoolClasses').find(c => c.id === classId);
-    const isJunior = classData && (classData.questLevel === 'Junior A' || classData.questLevel === 'Junior B');
+    const testScheme = getAssessmentSchemeForClass(classData, 'test');
+    const dictationScheme = getAssessmentSchemeForClass(classData, 'dictation');
 
     const statsContainer = document.getElementById('scroll-stats-cards');
     // --- NEW: Upcoming Test Indicator ---
@@ -125,36 +134,17 @@ function renderScrollDashboard(classId) {
     }
     const chartContainer = document.getElementById('scroll-performance-chart');
 
-    const dictationMap = { "Great!!!": 4, "Great!!": 3, "Great!": 2, "Nice Try!": 1 };
-
-    const testScores = scoresForClass.filter(s => s.type === 'test' && s.scoreNumeric !== null);
+    const testScores = scoresForClass.filter(s => s.type === 'test');
     const dictationScores = scoresForClass.filter(s => s.type === 'dictation');
 
     // --- Calculate Averages ---
-    const testAvg = testScores.length > 0
-        ? (testScores.reduce((sum, s) => sum + (s.scoreNumeric / s.maxScore) * 100, 0) / testScores.length)
-        : null;
-
-    let avgDictationDisplay = '--';
-    if (isJunior) {
-        const juniorDictations = dictationScores.filter(s => s.scoreQualitative);
-        const avgDictationValue = juniorDictations.length > 0
-            ? (juniorDictations.reduce((sum, s) => sum + dictationMap[s.scoreQualitative], 0) / juniorDictations.length)
-            : null;
-        if (avgDictationValue !== null) {
-            const dictationEntries = Object.entries(dictationMap);
-            const closest = dictationEntries.reduce((prev, curr) => Math.abs(curr[1] - avgDictationValue) < Math.abs(prev[1] - avgDictationValue) ? curr : prev);
-            avgDictationDisplay = closest[0];
-        }
-    } else {
-        const seniorDictations = dictationScores.filter(s => s.scoreNumeric !== null);
-        const avgSeniorDictation = seniorDictations.length > 0
-            ? (seniorDictations.reduce((sum, s) => sum + (s.scoreNumeric / s.maxScore) * 100, 0) / seniorDictations.length)
-            : null;
-        if (avgSeniorDictation !== null) {
-            avgDictationDisplay = `${avgSeniorDictation.toFixed(0)}%`;
-        }
-    }
+    const testAvg = getAssessmentAverage(testScores, classData);
+    const dictationAvg = getAssessmentAverage(dictationScores, classData);
+    const avgDictationDisplay = dictationAvg === null
+        ? '--'
+        : (dictationScheme.mode === 'qualitative'
+            ? `${getNearestQualitativeLabel(dictationScheme, dictationAvg)} (${dictationAvg.toFixed(0)}%)`
+            : `${dictationAvg.toFixed(0)}%`);
 
     let topScholars = [];
     if (studentsInClass.length > 0 && scoresForClass.length > 0) {
@@ -163,9 +153,7 @@ function renderScrollDashboard(classId) {
             const studentDictationScores = dictationScores.filter(s => s.studentId === student.id);
             if (studentTestScores.length === 0 && studentDictationScores.length === 0) return null;
 
-            const avg = isJunior
-                ? calculateJuniorTreasureRank(studentTestScores, studentDictationScores).value
-                : calculateSeniorAverage(studentTestScores, studentDictationScores);
+            const avg = getWeightedAcademicAverage(studentTestScores, studentDictationScores, classData);
 
             return { name: student.name, avg };
         }).filter(Boolean);
@@ -196,15 +184,10 @@ function renderScrollDashboard(classId) {
         const studentTestScores = scoresForClass.filter(s => s.studentId === student.id && s.type === 'test');
         const studentDictationScores = scoresForClass.filter(s => s.studentId === student.id && s.type === 'dictation');
 
-        let performance = { value: 0, display: '--' };
-        if (studentTestScores.length > 0 || studentDictationScores.length > 0) {
-            if (isJunior) {
-                performance = calculateJuniorTreasureRank(studentTestScores, studentDictationScores);
-            } else {
-                const avg = calculateSeniorAverage(studentTestScores, studentDictationScores);
-                performance = { value: avg, display: `${avg.toFixed(1)}%` };
-            }
-        }
+        const avg = getWeightedAcademicAverage(studentTestScores, studentDictationScores, classData);
+        const performance = (studentTestScores.length > 0 || studentDictationScores.length > 0)
+            ? { value: avg, display: `${avg.toFixed(1)}%` }
+            : { value: 0, display: '--' };
         return { student, performance };
     }).sort((a, b) => b.performance.value - a.performance.value);
 
@@ -220,8 +203,7 @@ function renderScrollDashboard(classId) {
                 : `<div class="student-avatar enlargeable-avatar flex items-center justify-center bg-gray-300 text-gray-600 font-bold">${student.name.charAt(0)}</div>`;
             const avatarHtml = wrapAvatarWithLevelUpIndicator(avatarInner, pendingSkill);
 
-            const maxVal = isJunior ? 4 : 100;
-            const percentage = (performance.value / maxVal) * 100;
+            const percentage = performance.value;
             let tier = 'low';
             if (percentage >= 80) tier = 'high';
             else if (percentage >= 50) tier = 'mid';
@@ -271,8 +253,7 @@ export function openBulkLogModal(classId, type) {
     const classData = state.get('allSchoolClasses').find(c => c.id === classId);
     const students = state.get('allStudents').filter(s => s.classId === classId).sort((a, b) => a.name.localeCompare(b.name));
     if (!classData) return;
-
-    const isJunior = classData.questLevel === 'Junior A' || classData.questLevel === 'Junior B';
+    const assessmentScheme = getAssessmentSchemeForClass(classData, type);
 
     const todayStr = utils.getTodayDateString();
     const scheduledTest = state.get('allQuestAssignments').find(a =>
@@ -280,10 +261,6 @@ export function openBulkLogModal(classId, type) {
         a.testData &&
         utils.datesMatch(a.testData.date, todayStr)
     );
-
-    if (scheduledTest && type === 'test') {
-        document.getElementById('bulk-trial-name').value = scheduledTest.testData.title;
-    }
 
     // UI Setup
     document.getElementById('bulk-trial-title').innerText = type === 'dictation' ? 'Log Dictation' : 'Log Test';
@@ -312,6 +289,9 @@ export function openBulkLogModal(classId, type) {
     const titleWrapper = document.getElementById('bulk-trial-title-wrapper');
     const titleInput = document.getElementById('bulk-trial-name');
     titleInput.value = '';
+    if (scheduledTest && type === 'test') {
+        titleInput.value = scheduledTest.testData.title;
+    }
 
     if (type === 'test') {
         titleWrapper.classList.remove('hidden');
@@ -330,7 +310,7 @@ export function openBulkLogModal(classId, type) {
 
         students.forEach(student => {
             const isAbsent = attendance.some(r => r.studentId === student.id);
-            listContainer.innerHTML += renderStudentBulkRow(student, type, isJunior, isAbsent);
+            listContainer.innerHTML += renderStudentBulkRow(student, assessmentScheme, isAbsent);
         });
     }
 
@@ -363,30 +343,27 @@ export function openBulkLogModal(classId, type) {
 
     document.getElementById('bulk-trial-modal').dataset.classId = classId;
     document.getElementById('bulk-trial-modal').dataset.type = type;
-    document.getElementById('bulk-trial-modal').dataset.isJunior = isJunior;
+    document.getElementById('bulk-trial-modal').dataset.gradingMode = assessmentScheme.mode;
 
     modals.showAnimatedModal('bulk-trial-modal');
 }
 
-function renderStudentBulkRow(student, type, isJunior, isAbsent) {
+function renderStudentBulkRow(student, scheme, isAbsent) {
     const avatarHtml = student.avatar
         ? `<img src="${student.avatar}" class="w-10 h-10 rounded-full object-cover border border-gray-200 student-avatar">`
         : `<div class="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center text-gray-500 font-bold student-avatar">${student.name.charAt(0)}</div>`;
 
     let inputHtml = '';
 
-    if (isJunior && type === 'dictation') {
+    if (scheme.mode === 'qualitative') {
         inputHtml = `
             <select class="bulk-grade-input w-full p-2 border border-gray-300 rounded-md bg-white focus:ring-2 focus:ring-blue-400 outline-none" ${isAbsent ? 'disabled' : ''}>
                 <option value="" selected disabled>Select Grade...</option>
-                <option value="Great!!!">Great!!! (Excellent)</option>
-                <option value="Great!!">Great!!</option>
-                <option value="Great!">Great!</option>
-                <option value="Nice Try!">Nice Try!</option>
+                ${(scheme.scale || []).map((entry) => `<option value="${entry.label}">${entry.label} (${entry.normalizedPercent}%)</option>`).join('')}
             </select>
         `;
     } else {
-        const maxScore = (isJunior && type === 'test') ? 40 : 100;
+        const maxScore = Number(scheme.maxScore) || 100;
         inputHtml = `
             <div class="relative">
                 <input type="number" class="bulk-grade-input w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-400 outline-none" 
@@ -648,16 +625,13 @@ function renderTrialHistoryItem(score) {
     if (!student) return '';
 
     let scoreDisplay = '';
-    // This part for Junior Dictations remains the same.
     if (score.scoreQualitative) {
         scoreDisplay = `<span class="font-title text-lg text-blue-600">${score.scoreQualitative}</span>`;
     }
-    // This is the part we are changing.
     else if (score.scoreNumeric !== null && score.maxScore) {
-        const scorePercent = (score.scoreNumeric / score.maxScore) * 100;
+        const scorePercent = getNormalizedPercentForScore(score) || 0;
         const colorClass = scorePercent >= 80 ? 'text-green-600' : scorePercent >= 60 ? 'text-yellow-600' : 'text-red-600';
-        // We now display the raw score, but keep the color from the percentage!
-        scoreDisplay = `<span class="font-title text-lg ${colorClass}">${score.scoreNumeric}<span class="text-sm text-gray-500"> / ${score.maxScore}</span></span>`;
+        scoreDisplay = `<span class="font-title text-lg ${colorClass}">${getAssessmentValueLabel(score)}<span class="text-sm text-gray-500"> • ${scorePercent.toFixed(0)}%</span></span>`;
     }
 
     const isOwner = score.teacherId === state.get('currentUserId');
@@ -681,7 +655,7 @@ export function openSingleTrialEditModal(classId, trialId) {
     if (!score) return;
 
     const classData = state.get('allSchoolClasses').find(c => c.id === classId);
-    const isJunior = classData.questLevel === 'Junior A' || classData.questLevel === 'Junior B';
+    const assessmentScheme = getAssessmentSchemeForClass(classData, score.type);
 
     const modal = document.getElementById('bulk-trial-modal');
 
@@ -713,7 +687,7 @@ export function openSingleTrialEditModal(classId, trialId) {
 
     const student = state.get('allStudents').find(s => s.id === score.studentId);
     if (student) {
-        const rowHtml = renderStudentBulkRow(student, score.type, isJunior, false);
+        const rowHtml = renderStudentBulkRow(student, assessmentScheme, false);
         listContainer.innerHTML = rowHtml;
 
         const input = listContainer.querySelector('.bulk-grade-input');
@@ -726,7 +700,7 @@ export function openSingleTrialEditModal(classId, trialId) {
 
     modal.dataset.classId = classId;
     modal.dataset.type = score.type;
-    modal.dataset.isJunior = isJunior;
+    modal.dataset.gradingMode = assessmentScheme.mode;
 
     const saveBtn = document.getElementById('bulk-trial-save-btn');
     const newSaveBtn = saveBtn.cloneNode(true);
@@ -736,32 +710,6 @@ export function openSingleTrialEditModal(classId, trialId) {
     document.getElementById('bulk-trial-close-btn').onclick = () => modals.hideModal('bulk-trial-modal');
 }
 
-
-// --- HELPER CALCULATIONS ---
-
-function calculateJuniorTreasureRank(testScores, dictationScores) {
-    const dictationMap = { "Great!!!": 4, "Great!!": 3, "Great!": 2, "Nice Try!": 1 };
-    const testAvg = testScores.length > 0 ? (testScores.reduce((sum, s) => sum + (s.scoreNumeric / s.maxScore), 0) / testScores.length) * 4 : 0;
-    const dictationAvg = dictationScores.length > 0 ? dictationScores.reduce((sum, s) => sum + dictationMap[s.scoreQualitative], 0) / dictationScores.length : 0;
-    let finalScore;
-    if (testScores.length > 0 && dictationScores.length > 0) { finalScore = (testAvg * 0.6) + (dictationAvg * 0.4); }
-    else { finalScore = Math.max(testAvg, dictationAvg); }
-    let display = '--';
-    if (finalScore > 3.5) display = '💎 Diamond Explorer';
-    else if (finalScore > 2.7) display = '👑 Gold Seeker';
-    else if (finalScore > 1.8) display = '🏆 Silver Adventurer';
-    else if (finalScore > 0) display = '🧭 Bronze Pathfinder';
-    return { value: finalScore, display: display };
-}
-
-function calculateSeniorAverage(testScores, dictationScores) {
-    const testAvg = testScores.length > 0 ? (testScores.reduce((sum, s) => sum + (s.scoreNumeric / s.maxScore), 0) / testScores.length) * 100 : 0;
-    const dictationAvg = dictationScores.length > 0 ? (dictationScores.reduce((sum, s) => sum + (s.scoreNumeric / s.maxScore), 0) / dictationScores.length) * 100 : 0;
-    let weightedAvg;
-    if (testScores.length > 0 && dictationScores.length > 0) { weightedAvg = (testAvg * 0.6) + (dictationAvg * 0.4); }
-    else { weightedAvg = Math.max(testAvg, dictationAvg); }
-    return weightedAvg;
-}
 
 // --- NEW: MAKEUP / MISSING WORK LOGIC ---
 
@@ -928,7 +876,7 @@ function renderMissingWorkDashboard(classId) {
 function openMakeupModal(classId, studentId, type, title) {
     const classData = state.get('allSchoolClasses').find(c => c.id === classId);
     const student = state.get('allStudents').find(s => s.id === studentId);
-    const isJunior = classData.questLevel === 'Junior A' || classData.questLevel === 'Junior B';
+    const assessmentScheme = getAssessmentSchemeForClass(classData, type);
 
     // Reuse Bulk Modal DOM but configure for single makeup
     const modal = document.getElementById('bulk-trial-modal');
@@ -963,17 +911,14 @@ function openMakeupModal(classId, studentId, type, title) {
         : `<div class="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center text-gray-500 font-bold">${student.name.charAt(0)}</div>`;
 
     let inputHtml = '';
-    if (isJunior && type === 'dictation') {
+    if (assessmentScheme.mode === 'qualitative') {
         inputHtml = `
             <select class="bulk-grade-input w-full p-2 border border-gray-300 rounded-md bg-white focus:ring-2 focus:ring-blue-400 outline-none">
                 <option value="" selected disabled>Select Grade...</option>
-                <option value="Great!!!">Great!!!</option>
-                <option value="Great!!">Great!!</option>
-                <option value="Great!">Great!</option>
-                <option value="Nice Try!">Nice Try!</option>
+                ${(assessmentScheme.scale || []).map((entry) => `<option value="${entry.label}">${entry.label} (${entry.normalizedPercent}%)</option>`).join('')}
             </select>`;
     } else {
-        const maxScore = (isJunior && type === 'test') ? 40 : 100;
+        const maxScore = Number(assessmentScheme.maxScore) || 100;
         inputHtml = `
             <div class="relative">
                 <input type="number" class="bulk-grade-input w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-400 outline-none" 
@@ -1000,7 +945,7 @@ function openMakeupModal(classId, studentId, type, title) {
     // Set modal datasets for saving
     modal.dataset.classId = classId;
     modal.dataset.type = type;
-    modal.dataset.isJunior = isJunior;
+    modal.dataset.gradingMode = assessmentScheme.mode;
 
     // Bind Save Button
     const saveBtn = document.getElementById('bulk-trial-save-btn');

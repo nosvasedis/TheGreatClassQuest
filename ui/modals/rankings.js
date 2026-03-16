@@ -1,6 +1,7 @@
 // /ui/modals/rankings.js
 import * as state from '../../state.js';
 import * as utils from '../../utils.js';
+import { getNormalizedPercentForScore } from '../../features/assessmentConfig.js';
 import * as constants from '../../constants.js';
 import { showAnimatedModal } from './base.js';
 import { showToast } from '../effects.js';
@@ -166,9 +167,8 @@ export async function openStudentRankingsModal(resetDate = true) {
 
             let acadSum = 0;
             sScores.forEach(sc => {
-                if (sc.scoreNumeric !== null && sc.maxScore) acadSum += (sc.scoreNumeric / sc.maxScore) * 100;
-                else if (sc.scoreQualitative === 'Great!!!') acadSum += 100;
-                else if (sc.scoreQualitative === 'Great!!') acadSum += 75;
+                const normalized = getNormalizedPercentForScore(sc);
+                if (Number.isFinite(normalized)) acadSum += normalized;
             });
             const academicAvg = sScores.length > 0 ? acadSum / sScores.length : 0;
 
@@ -810,9 +810,8 @@ export async function renderProdigyHistory(classId) {
 
             let acadSum = 0;
             sScores.forEach(sc => {
-                if (sc.maxScore) acadSum += (sc.scoreNumeric / sc.maxScore) * 100;
-                else if (sc.scoreQualitative === "Great!!!") acadSum += 100;
-                else if (sc.scoreQualitative === "Great!!") acadSum += 75;
+                const normalized = getNormalizedPercentForScore(sc);
+                if (Number.isFinite(normalized)) acadSum += normalized;
             });
             const academicAvg = sScores.length > 0 ? (acadSum / sScores.length) : 0;
 

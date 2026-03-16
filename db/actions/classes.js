@@ -24,6 +24,7 @@ import { simpleHashCode } from '../../utils.js';
 import { getLimit } from '../../utils/subscription.js';
 import { showUpgradePrompt } from '../../utils/upgradePrompt.js';
 import { getUpgradeMessage } from '../../config/tiers/features.js';
+import { normalizeClassAssessmentConfig } from '../../features/assessmentConfig.js';
 
 const publicDataPath = 'artifacts/great-class-quest/public/data';
 
@@ -45,6 +46,7 @@ export async function createClass(data) {
         scheduleDays,
         timeStart,
         timeEnd,
+        assessmentConfig: normalizeClassAssessmentConfig({ inheritSchoolDefaults: true }, questLevel),
         color: randomColor,
         createdBy: { uid: state.get('currentUserId'), name: state.get('currentTeacherName') },
         createdAt: serverTimestamp()

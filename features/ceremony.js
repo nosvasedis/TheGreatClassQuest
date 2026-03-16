@@ -8,6 +8,7 @@ import { fetchLogsForMonth } from '../db/queries.js';
 import { callGeminiApi } from '../api.js';
 import { canUseFeature } from '../utils/subscription.js';
 import * as utils from '../utils.js';
+import { getNormalizedPercentForScore } from './assessmentConfig.js';
 
 // --- LOCAL STATE ---
 let ceremonyData = {
@@ -254,9 +255,8 @@ async function loadDataAndAdvance() {
             });
             let acadSum = 0;
             sScores.forEach(sc => {
-                if (sc.scoreNumeric !== null && sc.maxScore) acadSum += (sc.scoreNumeric/sc.maxScore)*100;
-                else if (sc.scoreQualitative === 'Great!!!') acadSum += 100;
-                else if (sc.scoreQualitative === 'Great!!') acadSum += 75;
+                const normalized = getNormalizedPercentForScore(sc);
+                if (Number.isFinite(normalized)) acadSum += normalized;
             });
             const academicAvg = sScores.length > 0 ? acadSum / sScores.length : 0;
 

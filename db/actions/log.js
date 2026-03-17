@@ -534,8 +534,8 @@ export async function saveAwardNote() {
     }
 }
 
-export async function handleMarkAbsent(studentId, classId, isAbsent) {
-    const today = getTodayDateString();
+export async function handleMarkAbsent(studentId, classId, isAbsent, targetDate = getTodayDateString()) {
+    const today = targetDate || getTodayDateString();
     const publicDataPath = "artifacts/great-class-quest/public/data";
     const attendanceCollectionRef = collection(db, `${publicDataPath}/attendance`);
 
@@ -604,7 +604,7 @@ export async function handleMarkAbsent(studentId, classId, isAbsent) {
                 }
             });
             
-            showToast(`Marked absent. Removed stars for today.`, 'info');
+            showToast(today === getTodayDateString() ? `Marked absent for today.` : `Marked absent on ${today}.`, 'info');
 
         } else {
             // Mark Present (Undo) Logic: Just delete attendance record
@@ -613,7 +613,7 @@ export async function handleMarkAbsent(studentId, classId, isAbsent) {
                 snapshot.forEach(doc => batch.delete(doc.ref));
                 await batch.commit();
             }
-            showToast(`Marked present.`, 'success');
+            showToast(today === getTodayDateString() ? `Marked present.` : `Marked present on ${today}.`, 'success');
         }
 
     } catch (error) {

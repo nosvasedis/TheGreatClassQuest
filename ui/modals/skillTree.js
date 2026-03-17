@@ -17,6 +17,29 @@ import { requireProHeroProgression } from '../../utils/upgradePrompt.js';
 
 const publicDataPath = 'artifacts/great-class-quest/public/data';
 
+function syncLocalStudentScore(studentId, updatedScore) {
+    const allScores = state.get('allStudentScores') || [];
+    state.setAllStudentScores(allScores.map((score) => score.id === studentId ? updatedScore : score));
+}
+
+async function refreshVisibleSkillIndicators() {
+    const tabs = await import('../tabs.js');
+    const activeRenderers = [
+        ['award-stars-tab', () => tabs.renderAwardStarsStudentList?.(state.get('globalSelectedClassId'), false)],
+        ['manage-students-tab', () => tabs.renderManageStudentsTab?.()],
+        ['student-leaderboard-tab', () => tabs.renderStudentLeaderboardTab?.()],
+        ['class-leaderboard-tab', () => tabs.renderClassLeaderboardTab?.()]
+    ];
+
+    activeRenderers.forEach(([tabId, render]) => {
+        const tab = document.getElementById(tabId);
+        if (tab && !tab.classList.contains('hidden')) render();
+    });
+
+    const { renderHomeTab } = await import('../../features/home.js');
+    renderHomeTab();
+}
+
 // ─── OPEN ─────────────────────────────────────────────────────────────────────
 
 export function openSkillTreeModal(studentId) {
@@ -224,11 +247,14 @@ async function _handleChooseSkill(studentId, branchId, levelIndex, heroClass, tr
                 pendingSkillChoice: false
             });
 
+            const updatedScore = { ...scoreData, heroSkills: currentSkills, pendingSkillChoice: false };
+            syncLocalStudentScore(studentId, updatedScore);
+            refreshVisibleSkillIndicators().catch((error) => console.warn('Could not refresh skill indicators:', error));
+
             playSound('magic_chime');
             showToast(`Skill unlocked: ${branch.name}!`, 'success');
 
-            // Re-render the tree with updated state (listener will update allStudentScores)
-            const updatedScore = { ...scoreData, heroSkills: currentSkills, pendingSkillChoice: false };
+            // Re-render the tree with updated state (listener will still reconcile allStudentScores)
             const student = state.get('allStudents').find(s => s.id === studentId);
             _renderTree(student, updatedScore, heroClass, tree);
         } catch (err) {

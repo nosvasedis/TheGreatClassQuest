@@ -13,6 +13,7 @@ import {
     runTransaction,
     writeBatch,
     serverTimestamp,
+    increment,
     orderBy,
     limit
 } from '../../firebase.js';
@@ -172,6 +173,28 @@ function syncHeroLine(text, heroName) {
     return `${storyText}\n\n${heroLine}`;
 }
 
+async function saveAdventureLogWithHeroWin(logPayload, heroStudentId = null) {
+    const publicDataPath = 'artifacts/great-class-quest/public/data';
+    const logRef = doc(collection(db, `${publicDataPath}/adventure_logs`));
+
+    await runTransaction(db, async (transaction) => {
+        transaction.set(logRef, logPayload);
+
+        if (!heroStudentId) return;
+
+        const scoreRef = doc(db, `${publicDataPath}/student_scores`, heroStudentId);
+        const scoreDoc = await transaction.get(scoreRef);
+
+        if (scoreDoc.exists()) {
+            transaction.update(scoreRef, { heroOfDayWins: increment(1) });
+        } else {
+            transaction.set(scoreRef, { heroOfDayWins: 1 }, { merge: true });
+        }
+    });
+
+    return logRef.id;
+}
+
 function getPresentStudentsForClass(classId) {
     const attendanceRecords = state.get('allAttendanceRecords').filter(r => r.classId === classId && r.date === getTodayDateString());
     const absentStudentIds = new Set(attendanceRecords.map(r => r.studentId));
@@ -295,7 +318,7 @@ Power-up context: ${powerUpContext || 'none'}`;
         const { uploadImageToStorage } = await import('../../utils.js');
         const imageUrl = await uploadImageToStorage(compressed, `adventure_logs/${state.get('currentUserId')}/${Date.now()}.jpg`);
 
-        await addDoc(collection(db, 'artifacts/great-class-quest/public/data/adventure_logs'), {
+        await saveAdventureLogWithHeroWin({
             classId,
             date: getTodayDateString(),
             title: diary.title,
@@ -311,7 +334,7 @@ Power-up context: ${powerUpContext || 'none'}`;
             totalStars,
             createdBy: { uid: state.get('currentUserId'), name: state.get('currentTeacherName') },
             createdAt: serverTimestamp()
-        });
+        }, heroStudentId);
 
         import('../../audio.js').then(m => m.stopWritingLoop());
         showToast('The adventure has been chronicled!', 'success');
@@ -392,7 +415,7 @@ async function saveManualLogEntry(classId, classData) {
         const storyText = syncHeroLine(text, heroSelection.heroName);
         const keywords = buildAdventureLogKeywords(storyText);
         
-        await addDoc(collection(db, 'artifacts/great-class-quest/public/data/adventure_logs'), {
+        await saveAdventureLogWithHeroWin({
             classId,
             date: getTodayDateString(),
             title: title.slice(0, 90),
@@ -408,7 +431,7 @@ async function saveManualLogEntry(classId, classData) {
             totalStars: todaysAwards.reduce((sum, award) => sum + (Number(award.stars) || 0), 0),
             createdBy: { uid: state.get('currentUserId'), name: state.get('currentTeacherName') },
             createdAt: serverTimestamp()
-        });
+        }, heroSelection.heroStudentId);
         
         const { hideModal } = await import('../../ui/modals.js');
         hideModal();

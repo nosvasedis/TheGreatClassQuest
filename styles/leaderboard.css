@@ -43,8 +43,11 @@
     top: calc(1rem + var(--award-content-shift-y, 1cm));
     right: calc(1rem - var(--award-content-shift-x, -0.5cm));
     display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-end;
     gap: 0.5rem;
     z-index: 20; /* Ensure buttons are on top of avatar */
+    max-width: 8.75rem;
 }
 
 .student-cloud-card .boon-btn {
@@ -67,6 +70,9 @@
 .absence-btn:hover {
     background-color: #d1d5db;
     transform: scale(1.1);
+}
+.absence-btn--today {
+    box-shadow: 0 8px 18px -12px rgba(217, 119, 6, 0.9);
 }
 @keyframes rainbow-glow {
     0%, 100% {

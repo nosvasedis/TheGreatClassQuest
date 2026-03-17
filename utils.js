@@ -262,41 +262,6 @@ export function getClassesOnDay(dateString, allSchoolClasses, allScheduleOverrid
     return classes.sort((a, b) => (a.timeStart || '99:99').localeCompare(b.timeStart || '99:99'));
 }
 
-export function getLastLessonDate(classId, allSchoolClasses) {
-    const classData = allSchoolClasses.find(c => c.id === classId);
-    if (!classData || !classData.scheduleDays || classData.scheduleDays.length === 0) {
-        return getTodayDateString();
-    }
-
-    let checkDate = new Date();
-    // Check today first, then go back
-    for (let i = 0; i < 7; i++) {
-        if (classData.scheduleDays.includes(checkDate.getDay().toString())) {
-            return getDDMMYYYY(checkDate);
-        }
-        checkDate.setDate(checkDate.getDate() - 1);
-    }
-    return getTodayDateString();
-}
-
-export function getPreviousLessonDate(classId, allSchoolClasses) {
-    const classData = allSchoolClasses.find(c => c.id === classId);
-    if (!classData || !classData.scheduleDays || classData.scheduleDays.length === 0) {
-        return null;
-    }
-
-    let checkDate = new Date();
-    checkDate.setDate(checkDate.getDate() - 1);
-
-    for (let i = 0; i < 14; i++) {
-        if (classData.scheduleDays.includes(checkDate.getDay().toString())) {
-            return getDDMMYYYY(checkDate);
-        }
-        checkDate.setDate(checkDate.getDate() - 1);
-    }
-    return null;
-}
-
 function isLessonBlockedByHoliday(date, schoolHolidayRanges = []) {
     return (schoolHolidayRanges || []).some((range) => {
         if (!range?.start || !range?.end) return false;
@@ -309,25 +274,133 @@ function isLessonBlockedByHoliday(date, schoolHolidayRanges = []) {
     });
 }
 
-export function getNextLessonDate(classId, allSchoolClasses, allScheduleOverrides = [], schoolHolidayRanges = [], fromDate = new Date()) {
+export function doesClassMeetOnDate(classId, dateInput, allSchoolClasses = [], allScheduleOverrides = [], schoolHolidayRanges = []) {
     const classData = (allSchoolClasses || []).find((item) => item.id === classId);
-    if (!classData?.scheduleDays?.length) return null;
+    const targetDate = parseFlexibleDate(dateInput);
+    if (!classData || !targetDate) return false;
 
+    const dateString = getDDMMYYYY(targetDate);
+    if (isLessonBlockedByHoliday(targetDate, schoolHolidayRanges)) {
+        return false;
+    }
+
+    const overridesForDay = (allScheduleOverrides || []).filter((override) =>
+        override.date === dateString && override.classId === classId
+    );
+
+    if (overridesForDay.some((override) => override.type === 'cancelled')) {
+        return false;
+    }
+
+    if (overridesForDay.some((override) => override.type === 'one-time')) {
+        return true;
+    }
+
+    const dayOfWeek = targetDate.getDay().toString();
+    return Array.isArray(classData.scheduleDays) && classData.scheduleDays.includes(dayOfWeek);
+}
+
+export function getLastLessonDate(classId, allSchoolClasses, allScheduleOverrides = [], schoolHolidayRanges = []) {
+    for (let i = 0; i < 45; i++) {
+        const checkDate = new Date();
+        checkDate.setHours(0, 0, 0, 0);
+        checkDate.setDate(checkDate.getDate() - i);
+        if (doesClassMeetOnDate(classId, checkDate, allSchoolClasses, allScheduleOverrides, schoolHolidayRanges)) {
+            return getDDMMYYYY(checkDate);
+        }
+    }
+    return getTodayDateString();
+}
+
+export function getPreviousLessonDate(classId, allSchoolClasses, allScheduleOverrides = [], schoolHolidayRanges = []) {
+    for (let i = 1; i <= 45; i++) {
+        const checkDate = new Date();
+        checkDate.setHours(0, 0, 0, 0);
+        checkDate.setDate(checkDate.getDate() - i);
+        if (doesClassMeetOnDate(classId, checkDate, allSchoolClasses, allScheduleOverrides, schoolHolidayRanges)) {
+            return getDDMMYYYY(checkDate);
+        }
+    }
+    return null;
+}
+
+export function getNextLessonDate(classId, allSchoolClasses, allScheduleOverrides = [], schoolHolidayRanges = [], fromDate = new Date()) {
     const checkDate = parseFlexibleDate(fromDate) || new Date();
     checkDate.setHours(0, 0, 0, 0);
     checkDate.setDate(checkDate.getDate() + 1);
 
     for (let i = 0; i < 45; i++) {
-        const dateString = getDDMMYYYY(checkDate);
-        const classesOnDay = getClassesOnDay(dateString, allSchoolClasses || [], allScheduleOverrides || []);
-        const isScheduled = classesOnDay.some((item) => item.id === classId);
-        if (isScheduled && !isLessonBlockedByHoliday(checkDate, schoolHolidayRanges)) {
-            return dateString;
+        if (doesClassMeetOnDate(classId, checkDate, allSchoolClasses, allScheduleOverrides, schoolHolidayRanges)) {
+            return getDDMMYYYY(checkDate);
         }
         checkDate.setDate(checkDate.getDate() + 1);
     }
 
     return null;
+}
+
+export function getHeroLegendTierInfo(heroOfDayWins = 0) {
+    const wins = Number(heroOfDayWins) || 0;
+
+    if (wins >= 10) {
+        return {
+            key: 'mythic',
+            label: 'Mythic Legend',
+            extraDiscount: 15,
+            minWins: 10,
+            nextThreshold: null,
+            accent: 'from-fuchsia-500 to-indigo-600'
+        };
+    }
+
+    if (wins >= 5) {
+        return {
+            key: 'golden',
+            label: 'Golden Legend',
+            extraDiscount: 10,
+            minWins: 5,
+            nextThreshold: 10,
+            accent: 'from-amber-400 to-orange-500'
+        };
+    }
+
+    if (wins >= 3) {
+        return {
+            key: 'rising',
+            label: 'Rising Legend',
+            extraDiscount: 5,
+            minWins: 3,
+            nextThreshold: 5,
+            accent: 'from-sky-400 to-cyan-500'
+        };
+    }
+
+    return {
+        key: 'none',
+        label: 'Future Legend',
+        extraDiscount: 0,
+        minWins: 0,
+        nextThreshold: 3,
+        accent: 'from-slate-300 to-slate-500'
+    };
+}
+
+export function getSeasonalShopPriceMeta(basePrice, { isReigningHero = false, heroOfDayWins = 0 } = {}) {
+    const safeBasePrice = Number(basePrice) || 0;
+    const legendTier = getHeroLegendTierInfo(heroOfDayWins);
+    const heroDiscount = isReigningHero ? 25 : 0;
+    const legendDiscount = legendTier.extraDiscount || 0;
+    const totalDiscount = Math.min(40, heroDiscount + legendDiscount);
+    const finalPrice = Math.max(0, Math.floor(safeBasePrice * ((100 - totalDiscount) / 100)));
+
+    return {
+        basePrice: safeBasePrice,
+        finalPrice,
+        totalDiscount,
+        heroDiscount,
+        legendDiscount,
+        legendTier
+    };
 }
 
 export function debounce(func, wait) {

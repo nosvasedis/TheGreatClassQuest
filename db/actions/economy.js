@@ -22,7 +22,7 @@ import { showToast } from '../../ui/effects.js';
 import { callGeminiApi, callCloudflareAiImageApi } from '../../api.js';
 import { requireEliteAI } from '../../utils/upgradePrompt.js';
 import { canUseFeature } from '../../utils/subscription.js';
-import { getAgeGroupForLeague, getStartOfMonthString, getTodayDateString, compressImageBase64, simpleHashCode, parseFlexibleDate } from '../../utils.js';
+import { getAgeGroupForLeague, getStartOfMonthString, getTodayDateString, compressImageBase64, simpleHashCode, parseFlexibleDate, getSeasonalShopPriceMeta } from '../../utils.js';
 import { playSound } from '../../audio.js';
 import { reconcileFamiliarLifecycle } from '../../features/familiars.js';
 import { createAssessmentScorePayload, getNormalizedPercentForScore, qualifiesForHighScore } from '../../features/assessmentConfig.js';
@@ -469,10 +469,20 @@ export async function handleBuyItem(studentId, itemId) {
     let finalPrice = item.price;
     const reigningHero = state.get('reigningHero');
     const isHero = reigningHero && reigningHero.id === studentId;
+    const scoreData = state.get('allStudentScores').find((score) => score.id === studentId);
+    const heroOfDayWins = scoreData?.heroOfDayWins || 0;
 
     // Discount applies ONLY to Seasonal items (not Legendary)
     if (isHero && !isLegendary) {
-        finalPrice = Math.floor(item.price * 0.75); // 25% Discount
+        finalPrice = getSeasonalShopPriceMeta(item.price, {
+            isReigningHero: true,
+            heroOfDayWins
+        }).finalPrice;
+    } else if (!isLegendary) {
+        finalPrice = getSeasonalShopPriceMeta(item.price, {
+            isReigningHero: false,
+            heroOfDayWins
+        }).finalPrice;
     }
 
     // 2. UI Pre-check and Optimistic Update preparation

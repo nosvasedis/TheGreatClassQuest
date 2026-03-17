@@ -176,8 +176,18 @@ export function renderAwardStarsStudentList(selectedClassId, fullRender = true) 
         if (studentsInClass.length === 0) {
             listContainer.innerHTML = `<p class="text-sm text-center text-gray-700 bg-white/70 backdrop-blur-sm p-4 rounded-2xl col-span-full">No students in this class. Add some in "My Classes"!</p>`;
         } else {
-            const previousLessonDate = utils.getPreviousLessonDate(selectedClassId, state.get('allSchoolClasses'));
+            const allSchoolClasses = state.get('allSchoolClasses');
+            const allScheduleOverrides = state.get('allScheduleOverrides');
+            const schoolHolidayRanges = state.get('schoolHolidayRanges');
+            const previousLessonDate = utils.getPreviousLessonDate(selectedClassId, allSchoolClasses, allScheduleOverrides, schoolHolidayRanges);
             const today = utils.getTodayDateString();
+            const classHasLessonToday = utils.doesClassMeetOnDate(
+                selectedClassId,
+                today,
+                allSchoolClasses,
+                allScheduleOverrides,
+                schoolHolidayRanges
+            );
 
             // --- REIGNING PRODIGY (previous month's winner) — crown watermark on card only ---
             const prodigySet = await getReigningProdigyForClass(selectedClassId);
@@ -224,18 +234,21 @@ export function renderAwardStarsStudentList(selectedClassId, fullRender = true) 
                             <button class="absence-btn bg-green-200 text-green-700 hover:bg-green-300" data-action="mark-present" title="Undo: Mark as Present">
                                 <i class="fas fa-user-check pointer-events-none"></i>
                             </button>`;
-                    } else {
+                    } else if (classHasLessonToday) {
                         absenceButtonHtml = `
                             <button class="absence-btn bg-green-200 text-green-700 hover:bg-green-300" data-action="mark-present" title="Mark as Present">
                                 <i class="fas fa-user-check pointer-events-none"></i>
                             </button>
                             <button class="welcome-back-btn" data-action="welcome-back" title="Welcome Back Bonus!">
                                 <i class="fas fa-hand-sparkles pointer-events-none"></i>
+                            </button>
+                            <button class="absence-btn absence-btn--today bg-amber-100 text-amber-700 hover:bg-amber-200" data-action="mark-absent" title="Mark Absent Today">
+                                <i class="fas fa-calendar-xmark pointer-events-none"></i>
                             </button>`;
                     }
                 }
                 else {
-                    if (!isCardLocked) {
+                    if (!isCardLocked && classHasLessonToday) {
                         absenceButtonHtml = `
                             <button class="absence-btn" data-action="mark-absent" title="Mark as Absent">
                                 <i class="fas fa-user-slash pointer-events-none"></i>
@@ -425,12 +438,24 @@ export function updateAwardCardState(studentId, starsToday, reason) {
     if (starsToday >= 0) {
         studentCard.classList.remove('is-absent');
         if (absenceControls) {
+            const student = state.get('allStudents').find((item) => item.id === studentId);
+            const classHasLessonToday = student
+                ? utils.doesClassMeetOnDate(
+                    student.classId,
+                    utils.getTodayDateString(),
+                    state.get('allSchoolClasses'),
+                    state.get('allScheduleOverrides'),
+                    state.get('schoolHolidayRanges')
+                )
+                : false;
             // Re-render controls to show "Mark Absent" again
-            absenceControls.innerHTML = `
-                <button class="absence-btn" data-action="mark-absent" title="Mark as Absent">
-                    <i class="fas fa-user-slash pointer-events-none"></i>
-                </button>
-            `;
+            absenceControls.innerHTML = classHasLessonToday
+                ? `
+                    <button class="absence-btn" data-action="mark-absent" title="Mark as Absent">
+                        <i class="fas fa-user-slash pointer-events-none"></i>
+                    </button>
+                `
+                : '';
         }
     }
 }

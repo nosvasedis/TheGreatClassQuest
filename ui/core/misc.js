@@ -53,31 +53,11 @@ export function findAndSetCurrentLeague(shouldRender = true) {
 }
 
 export function updateStudentCardAttendanceState(studentId, isAbsent) {
-    const studentCard = document.querySelector(`.student-cloud-card[data-studentid="${studentId}"]`);
-    if (!studentCard) return;
-    studentCard.classList.toggle('is-absent', isAbsent);
-    const controlsDiv = studentCard.querySelector('.absence-controls');
-    if (!controlsDiv) return;
-    const student = state.get('allStudents').find(s => s.id === studentId);
-    if (!student) return;
-    const studentClass = state.get('allSchoolClasses').find(c => c.id === student.classId);
-    const isLessonToday = (studentClass?.scheduleDays || []).includes(new Date().getDay().toString());
-    const welcomeBackVisible = isAbsent && isLessonToday;
-    if (isAbsent) {
-        controlsDiv.innerHTML = `
-            <button class="absence-btn bg-green-200 text-green-700 hover:bg-green-300" data-action="mark-present" title="Mark as Present">
-                <i class="fas fa-user-check pointer-events-none"></i>
-            </button>
-            <button class="welcome-back-btn ${welcomeBackVisible ? '' : 'hidden'}" data-action="welcome-back" title="Welcome Back Bonus!">
-                <i class="fas fa-hand-sparkles pointer-events-none"></i>
-            </button>
-        `;
-    } else {
-        controlsDiv.innerHTML = `
-            <button class="absence-btn" data-action="mark-absent" title="Mark as Absent">
-                <i class="fas fa-user-slash pointer-events-none"></i>
-            </button>
-        `;
+    const awardTab = document.getElementById('award-stars-tab');
+    if (awardTab && !awardTab.classList.contains('hidden')) {
+        import('../tabs.js').then((tabs) => {
+            tabs.renderAwardStarsStudentList?.(state.get('globalSelectedClassId'), false);
+        }).catch((error) => console.warn('Could not refresh award cards after attendance change:', error));
     }
 }
 

@@ -58,8 +58,11 @@ export async function renderAttendanceChronicle(classId) {
     thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
 
     const viewMonthStart = new Date(currentYear, currentMonth, 1);
+    const now = new Date();
+    const isCurrentMonthView = currentYear === now.getFullYear() && currentMonth === now.getMonth();
+    const isEditableMonth = isCurrentMonthView;
     
-    if (viewMonthStart >= thirtyDaysAgo) {
+    if (isEditableMonth) {
         // Use real-time state
         attendanceRecords = state.get('allAttendanceRecords').filter(r => r.classId === classId);
     } else {
@@ -69,29 +72,16 @@ export async function renderAttendanceChronicle(classId) {
     }
 
     // 3. Filter lesson dates for this specific month
-    const scheduledDaysOfWeek = classData.scheduleDays || [];
     const lessonDates = [];
-    
-    // Generate all days in the month that match the schedule
+    const allScheduleOverrides = state.get('allScheduleOverrides') || [];
+    const schoolHolidayRanges = state.get('schoolHolidayRanges') || [];
+
+    // Generate all real lesson dates in the month using the shared lesson helper
     let loopDate = new Date(currentYear, currentMonth, 1);
-    const overrides = state.get('allScheduleOverrides') || [];
 
     while (loopDate.getMonth() === currentMonth) {
-        const dayOfWeek = loopDate.getDay().toString();
-        const dateStr = utils.getDDMMYYYY(loopDate);
-        
-        // Check if this specific date has a "cancelled" override
-        const isCancelled = overrides.some(o => 
-            o.classId === classId && 
-            o.date === dateStr && 
-            o.type === 'cancelled'
-        );
-
-        if (scheduledDaysOfWeek.includes(dayOfWeek) && !isCancelled) {
-            // Don't show future dates
-            if (loopDate <= new Date()) {
-                lessonDates.push(dateStr);
-            }
+        if (loopDate <= new Date() && utils.doesClassMeetOnDate(classId, loopDate, state.get('allSchoolClasses'), allScheduleOverrides, schoolHolidayRanges)) {
+            lessonDates.push(utils.getDDMMYYYY(loopDate));
         }
         loopDate.setDate(loopDate.getDate() + 1);
     }
@@ -125,56 +115,122 @@ export async function renderAttendanceChronicle(classId) {
             return acc;
         }, {});
 
-        html += `<div class="overflow-x-auto rounded-lg border border-gray-200 shadow-sm"><table class="w-full border-collapse bg-white"><thead><tr class="bg-gray-100 text-gray-600 text-sm uppercase tracking-wider">
-            <th class="p-3 font-semibold text-left border-b sticky left-0 bg-gray-100 z-10 shadow-sm">Student</th>`;
+        const attendanceByDate = attendanceRecords.reduce((acc, record) => {
+            acc[record.date] = (acc[record.date] || 0) + 1;
+            return acc;
+        }, {});
+
+        const studentSummaries = studentsInClass.map((student) => {
+            const absenceCount = attendanceByStudent[student.id]?.size || 0;
+            const presentCount = Math.max(0, lessonDates.length - absenceCount);
+            const attendanceRate = lessonDates.length > 0 ? ((presentCount / lessonDates.length) * 100).toFixed(0) : '100';
+            return {
+                studentId: student.id,
+                absenceCount,
+                presentCount,
+                attendanceRate
+            };
+        });
+
+        const totalPossible = studentsInClass.length * lessonDates.length;
+        const totalAbsences = studentSummaries.reduce((sum, student) => sum + student.absenceCount, 0);
+        const attendanceRate = totalPossible > 0 ? ((totalPossible - totalAbsences) / totalPossible * 100).toFixed(1) : '100.0';
+        const perfectAttendees = studentSummaries.filter((student) => student.absenceCount === 0).length;
+
+        html += `
+            <div class="attendance-chronicle-summary-grid">
+                <div class="attendance-summary-card attendance-summary-card--emerald">
+                    <div class="attendance-summary-label">Monthly Attendance</div>
+                    <div class="attendance-summary-value">${attendanceRate}%</div>
+                    <div class="attendance-summary-meta">${studentsInClass.length} students tracked</div>
+                </div>
+                <div class="attendance-summary-card attendance-summary-card--blue">
+                    <div class="attendance-summary-label">Lessons Held</div>
+                    <div class="attendance-summary-value">${lessonDates.length}</div>
+                    <div class="attendance-summary-meta">Includes one-off lesson dates</div>
+                </div>
+                <div class="attendance-summary-card attendance-summary-card--rose">
+                    <div class="attendance-summary-label">Total Absences</div>
+                    <div class="attendance-summary-value">${totalAbsences}</div>
+                    <div class="attendance-summary-meta">Across all students this month</div>
+                </div>
+                <div class="attendance-summary-card attendance-summary-card--amber">
+                    <div class="attendance-summary-label">Perfect Attendees</div>
+                    <div class="attendance-summary-value">${perfectAttendees}</div>
+                    <div class="attendance-summary-meta">No absences this month</div>
+                </div>
+            </div>
+            <div class="attendance-chronicle-toolbar">
+                <div class="attendance-chronicle-legend">
+                    <span class="attendance-legend-pill attendance-legend-pill--present"><i class="fas fa-check"></i> Present</span>
+                    <span class="attendance-legend-pill attendance-legend-pill--absent"><i class="fas fa-times"></i> Absent</span>
+                </div>
+                <div class="attendance-chronicle-mode ${isEditableMonth ? 'is-live' : 'is-readonly'}">
+                    ${isEditableMonth ? '<i class="fas fa-pen"></i> Live month: tap to edit attendance' : '<i class="fas fa-lock"></i> Archive view: attendance is read-only'}
+                </div>
+            </div>
+        `;
+
+        html += `<div class="attendance-chronicle-table-wrap"><table class="attendance-chronicle-table"><thead><tr>
+            <th class="attendance-student-col">Student</th>`;
         
         lessonDates.forEach(dateStr => {
             const d = utils.parseDDMMYYYY(dateStr);
-            // MODIFIED: Added delete button to header
-            html += `<th class="p-3 font-semibold text-center border-b min-w-[60px] align-top">
-                <div class="attendance-header-container">
-                    <span>${d.getDate()}</span>
-                    <button class="delete-column-btn" data-date="${dateStr}" data-class-id="${classId}" title="Remove this day (Holiday/Cancelled)">
+            const absentCount = attendanceByDate[dateStr] || 0;
+            html += `<th class="attendance-date-col">
+                <div class="attendance-date-chip">
+                    <span class="attendance-date-chip-day">${d.getDate()}</span>
+                    <span class="attendance-date-chip-weekday">${d.toLocaleDateString('en-GB', { weekday: 'short' })}</span>
+                    <span class="attendance-date-chip-meta">${absentCount} absent</span>
+                    <button class="delete-column-btn" data-date="${dateStr}" data-class-id="${classId}" title="Remove this day (Holiday/Cancelled)" ${!isEditableMonth ? 'disabled' : ''}>
                         <i class="fas fa-trash-alt"></i>
                     </button>
                 </div>
             </th>`;
         });
-        html += `</tr></thead><tbody>`;
+        html += `<th class="attendance-summary-col">Absences</th><th class="attendance-summary-col">Attendance %</th></tr></thead><tbody>`;
 
         studentsInClass.forEach((student, index) => {
-            const rowBg = index % 2 === 0 ? 'bg-white' : 'bg-gray-50';
-            html += `<tr class="${rowBg} hover:bg-gray-100 transition-colors">
-                <td class="p-3 font-medium text-gray-800 border-r sticky left-0 ${rowBg} z-10">${student.name}</td>`;
+            const rowSummary = studentSummaries.find((item) => item.studentId === student.id) || { absenceCount: 0, attendanceRate: '100' };
+            const avatarHtml = student.avatar
+                ? `<img src="${student.avatar}" alt="${student.name}" class="attendance-student-avatar">`
+                : `<div class="attendance-student-avatar attendance-student-avatar--placeholder">${student.name.charAt(0).toUpperCase()}</div>`;
+
+            html += `<tr class="attendance-row ${index % 2 === 0 ? 'attendance-row--even' : 'attendance-row--odd'}">
+                <td class="attendance-student-col attendance-student-cell">
+                    <div class="attendance-student-meta">
+                        ${avatarHtml}
+                        <div>
+                            <div class="attendance-student-name">${student.name}</div>
+                            <div class="attendance-student-subtitle">${rowSummary.presentCount} present lessons</div>
+                        </div>
+                    </div>
+                </td>`;
             
             lessonDates.forEach(dateStr => {
                 const isAbsent = attendanceByStudent[student.id]?.has(dateStr);
-                const isEditable = viewMonthStart >= thirtyDaysAgo; 
 
-                html += `<td class="p-3 text-center border-r border-gray-100">
-                    <button class="attendance-status-btn w-6 h-6 rounded-full transition-transform transform hover:scale-110 focus:outline-none shadow-sm ${isAbsent ? 'status-absent bg-red-500' : 'status-present bg-green-500'}" 
+                html += `<td class="attendance-status-cell">
+                    <button class="attendance-status-btn ${isAbsent ? 'status-absent bg-red-500' : 'status-present bg-green-500'}" 
                             data-student-id="${student.id}" 
                             data-date="${dateStr}" 
-                            ${!isEditable ? 'disabled style="cursor: default; opacity: 0.7;"' : ''}
+                            ${!isEditableMonth ? 'disabled' : ''}
                             title="${isAbsent ? 'Absent' : 'Present'}">
                             ${isAbsent ? '<i class="fas fa-times text-white text-xs"></i>' : '<i class="fas fa-check text-white text-xs"></i>'}
                     </button>
                 </td>`;
             });
-            html += `</tr>`;
+            html += `
+                <td class="attendance-summary-cell">
+                    <span class="attendance-count-pill">${rowSummary.absenceCount}</span>
+                </td>
+                <td class="attendance-summary-cell">
+                    <span class="attendance-rate-pill ${Number(rowSummary.attendanceRate) >= 90 ? 'is-strong' : ''}">${rowSummary.attendanceRate}%</span>
+                </td>
+            </tr>`;
         });
 
         html += `</tbody></table></div>`;
-        
-        const totalPossible = studentsInClass.length * lessonDates.length;
-        let totalAbsences = 0;
-        Object.values(attendanceByStudent).forEach(set => totalAbsences += set.size); 
-        
-        const attendanceRate = totalPossible > 0 ? ((totalPossible - totalAbsences) / totalPossible * 100).toFixed(1) : 100;
-
-        html += `<div class="mt-4 text-right text-sm text-gray-500">
-            Monthly Attendance Rate: <span class="font-bold ${attendanceRate > 90 ? 'text-green-600' : 'text-amber-600'}">${attendanceRate}%</span>
-        </div>`;
 
         contentEl.innerHTML = html;
     }
@@ -188,7 +244,7 @@ export async function renderAttendanceChronicle(classId) {
     });
 
     // NEW: Listeners for removing columns with Holiday option
-    contentEl.querySelectorAll('.delete-column-btn').forEach(btn => {
+    contentEl.querySelectorAll('.delete-column-btn:not(:disabled)').forEach(btn => {
         btn.addEventListener('click', (e) => {
             const dateStr = e.currentTarget.dataset.date;
             const cId = e.currentTarget.dataset.classId;
@@ -250,7 +306,7 @@ async function toggleAttendanceRecord(button) {
     button.innerHTML = !isCurrentlyAbsent ? '<i class="fas fa-times text-white text-xs"></i>' : '<i class="fas fa-check text-white text-xs"></i>';
 
     try {
-        await handleMarkAbsent(studentId, student.classId, !isCurrentlyAbsent);
+        await handleMarkAbsent(studentId, student.classId, !isCurrentlyAbsent, date);
     } catch (error) {
         button.classList.toggle('status-absent', isCurrentlyAbsent);
         button.classList.toggle('status-present', !isCurrentlyAbsent);

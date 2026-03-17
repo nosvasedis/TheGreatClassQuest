@@ -233,6 +233,16 @@ export function setupDataListeners(userId, dateString, onInitialDataReady) {
             }
         });
 
+        const awardTab = document.getElementById('award-stars-tab');
+        if (awardTab && !awardTab.classList.contains('hidden')) {
+            renderAwardStarsStudentList(state.get('globalSelectedClassId'), false);
+        }
+
+        const manageStudentsTab = document.getElementById('manage-students-tab');
+        if (manageStudentsTab && !manageStudentsTab.classList.contains('hidden')) {
+            renderManageStudentsTab();
+        }
+
         renderStudentLeaderboardTab();
         renderClassLeaderboardTab();
 
@@ -330,7 +340,12 @@ export function setupDataListeners(userId, dateString, onInitialDataReady) {
             const attendanceData = change.doc.data();
             const student = state.get('allStudents').find(s => s.id === attendanceData.studentId);
             if (student) {
-                const lastLessonDate = utils.getLastLessonDate(student.classId, state.get('allSchoolClasses'));
+                const lastLessonDate = utils.getLastLessonDate(
+                    student.classId,
+                    state.get('allSchoolClasses'),
+                    state.get('allScheduleOverrides'),
+                    state.get('schoolHolidayRanges')
+                );
                 // If the change is relevant to the most recent lesson, update the UI immediately
                 if (attendanceData.date === lastLessonDate) {
                     updateStudentCardAttendanceState(attendanceData.studentId, change.type !== 'removed');

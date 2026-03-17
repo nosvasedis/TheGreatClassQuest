@@ -4,6 +4,7 @@ import { showToast } from '../effects.js';
 import * as modals from '../modals.js';
 import { canUseFeature } from '../../utils/subscription.js';
 import { FAMILIAR_TYPES, FAMILIAR_LEVEL_THRESHOLDS, buildFamiliarInitData } from '../../features/familiars.js';
+import { getSeasonalShopPriceMeta } from '../../utils.js';
 
 // --- SHOP UI LOGIC ---
 
@@ -197,8 +198,10 @@ export async function updateShopStudentDisplay(studentId) {
     
     // Reset visual effects
     shopHeader.classList.remove('ring-4', 'ring-amber-400', 'bg-amber-50', 'rounded-xl', 'p-2');
-    const existingBadge = document.getElementById('shop-hero-badge');
-    if(existingBadge) existingBadge.remove();
+    const existingHeroBadge = document.getElementById('shop-hero-badge');
+    if (existingHeroBadge) existingHeroBadge.remove();
+    const existingLegendBadge = document.getElementById('shop-legend-badge');
+    if (existingLegendBadge) existingLegendBadge.remove();
 
     if (!studentId) {
         goldDisplay.innerText = "0 🪙";
@@ -215,6 +218,7 @@ export async function updateShopStudentDisplay(studentId) {
     const gold = scoreData && scoreData.gold !== undefined ? scoreData.gold : (scoreData?.totalStars || 0);
     const inventory = scoreData?.inventory || [];
     const student = state.get('allStudents').find(s => s.id === studentId);
+    const heroOfDayWins = scoreData?.heroOfDayWins || 0;
 
     // --- CHECK HERO STATUS ---
     const reigningHero = state.get('reigningHero');
@@ -227,6 +231,15 @@ export async function updateShopStudentDisplay(studentId) {
         badge.id = 'shop-hero-badge';
         badge.className = 'w-full text-center bg-gradient-to-r from-amber-400 to-orange-500 text-white font-bold text-sm uppercase tracking-widest py-1 rounded shadow-md mb-2 animate-pulse';
         badge.innerHTML = '<i class="fas fa-crown mr-2"></i>HERO OF THE DAY<i class="fas fa-crown ml-2"></i>';
+        shopHeader.insertBefore(badge, shopHeader.firstChild);
+    }
+
+    const legendMeta = getSeasonalShopPriceMeta(100, { isReigningHero: false, heroOfDayWins });
+    if (legendMeta.legendDiscount > 0) {
+        const badge = document.createElement('div');
+        badge.id = 'shop-legend-badge';
+        badge.className = 'w-full text-center bg-gradient-to-r from-indigo-500 to-fuchsia-500 text-white font-bold text-sm py-1 rounded shadow-md mb-2';
+        badge.innerHTML = `<i class="fas fa-trophy mr-2"></i>${legendMeta.legendTier.label} • ${legendMeta.legendDiscount}% Seasonal Discount`;
         shopHeader.insertBefore(badge, shopHeader.firstChild);
     }
 
@@ -263,10 +276,17 @@ export async function updateShopStudentDisplay(studentId) {
         let finalPrice = basePrice;
         let discountLabel = "";
 
-        // Apply Discount (Seasonal Only for Hero)
-        if (isHero && !isLegendary) {
-            finalPrice = Math.floor(basePrice * 0.75);
-            discountLabel = " (Hero -25%)";
+        if (!isLegendary) {
+            const priceMeta = getSeasonalShopPriceMeta(basePrice, {
+                isReigningHero: !!isHero,
+                heroOfDayWins
+            });
+            finalPrice = priceMeta.finalPrice;
+
+            const discountParts = [];
+            if (priceMeta.heroDiscount > 0) discountParts.push(`Hero -${priceMeta.heroDiscount}%`);
+            if (priceMeta.legendDiscount > 0) discountParts.push(`${priceMeta.legendTier.label} -${priceMeta.legendDiscount}%`);
+            discountLabel = discountParts.length ? ` (${discountParts.join(' + ')})` : "";
         }
 
         // Familiar egg buttons

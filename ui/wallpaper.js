@@ -488,7 +488,7 @@ async function directorGameLoop() {
             if (timeLeftMs > 0) {
                 const minutes = Math.floor(timeLeftMs / 60000);
                 const seconds = Math.floor((timeLeftMs % 60000) / 1000);
-                const timeDisplay = `${minutes}:${String(seconds).padStart(2, '0')}`;
+                const legacyTimeDisplay = `${minutes}:${String(seconds).padStart(2, '0')}`;
 
                 // Color Logic
                 let cssClass = 'float-card-indigo'; // Default
@@ -511,7 +511,7 @@ async function directorGameLoop() {
                                     <h3 class="font-title text-lg text-white leading-tight truncate max-w-[150px]">${activeTimer.title}</h3>
                                 </div>
                             </div>
-                            <div class="font-title text-5xl text-white drop-shadow-md leading-none font-variant-numeric:tabular-nums">${timeDisplay}</div>
+                            <div class="font-title text-5xl text-white drop-shadow-md leading-none font-variant-numeric:tabular-nums">${legacyTimeDisplay}</div>
                         </div>
                     </div>`;
                 const tone = getWallpaperTimerTone(activeTimer.deadline);

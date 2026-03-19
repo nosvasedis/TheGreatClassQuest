@@ -51,24 +51,28 @@ function renderConfigRequiredScreen() {
 
 let configLoaded = false;
 
-fetch('./config.json')
-    .then((r) => (r.ok ? r.json() : Promise.reject()))
-    .then((c) => {
-        const firebase = c.firebaseConfig || c;
-        if (firebase && firebase.apiKey && firebase.projectId && firebase.appId) {
-            window.__GCQ_FIREBASE_CONFIG__ = firebase;
-            configLoaded = true;
-        }
-        if (c.billingBaseUrl) window.__GCQ_BILLING_BASE_URL__ = c.billingBaseUrl;
-        if (c.billingSchoolId) window.__GCQ_BILLING_SCHOOL_ID__ = c.billingSchoolId;
-    })
-    .catch(() => {})
-    .finally(() => {
-        // The maintainer's canonical GitHub Pages site intentionally matches
-        // the built-in Firebase fallback config in constants.js.
-        if (!configLoaded && !isLocalHost() && !isCanonicalHostedFallbackSite()) {
-            renderConfigRequiredScreen();
-            return;
-        }
-        import('./app.js');
-    });
+if (isLocalHost()) {
+    import('./app.js');
+} else {
+    fetch('./config.json')
+        .then((r) => (r.ok ? r.json() : Promise.reject()))
+        .then((c) => {
+            const firebase = c.firebaseConfig || c;
+            if (firebase && firebase.apiKey && firebase.projectId && firebase.appId) {
+                window.__GCQ_FIREBASE_CONFIG__ = firebase;
+                configLoaded = true;
+            }
+            if (c.billingBaseUrl) window.__GCQ_BILLING_BASE_URL__ = c.billingBaseUrl;
+            if (c.billingSchoolId) window.__GCQ_BILLING_SCHOOL_ID__ = c.billingSchoolId;
+        })
+        .catch(() => {})
+        .finally(() => {
+            // The maintainer's canonical GitHub Pages site intentionally matches
+            // the built-in Firebase fallback config in constants.js.
+            if (!configLoaded && !isCanonicalHostedFallbackSite()) {
+                renderConfigRequiredScreen();
+                return;
+            }
+            import('./app.js');
+        });
+}

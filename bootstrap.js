@@ -51,7 +51,7 @@ function renderConfigRequiredScreen() {
 
 let configLoaded = false;
 
-if (isLocalHost()) {
+if (isLocalHost() || isCanonicalHostedFallbackSite()) {
     import('./app.js');
 } else {
     fetch('./config.json')
@@ -67,9 +67,7 @@ if (isLocalHost()) {
         })
         .catch(() => {})
         .finally(() => {
-            // The maintainer's canonical GitHub Pages site intentionally matches
-            // the built-in Firebase fallback config in constants.js.
-            if (!configLoaded && !isCanonicalHostedFallbackSite()) {
+            if (!configLoaded) {
                 renderConfigRequiredScreen();
                 return;
             }

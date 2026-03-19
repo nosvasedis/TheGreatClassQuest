@@ -20,6 +20,33 @@ const publicDataPath = 'artifacts/great-class-quest/public/data';
 const familiarOps = new Map();
 const MAX_SPRITE_GENERATION_ATTEMPTS = 3;
 const SPRITE_VALIDATION_SIZE = 128;
+const FAMILIAR_ART_DIRECTIONS = {
+    emberfang: {
+        1: { subject: 'a baby fire dragon hatchling', body: 'round chibi body, stubby legs, tiny wings, short snout', palette: 'warm reds, ember orange, soft gold highlights', features: 'bright orange eyes, small horns, flame-tipped tail', pose: 'standing in a proud but cute three-quarter pose' },
+        2: { subject: 'a young flame drake', body: 'sleek medium chibi drake body with broader chest and stronger wings', palette: 'deep red scales, orange membranes, amber glow accents', features: 'confident glowing eyes, sharper horns, brighter flame tail', pose: 'balanced action-ready stance with wings slightly open' },
+        3: { subject: 'a mini inferno dragon', body: 'compact powerful dragon with large wings and regal posture', palette: 'dark crimson, molten orange, ember gold', features: 'intense glowing eyes, pronounced horns, flame patterns across the body', pose: 'heroic legendary stance, majestic and imposing but still cute' }
+    },
+    frostpaw: {
+        1: { subject: 'a tiny arctic fox cub spirit', body: 'soft fluffy chibi fox body with oversized tail', palette: 'snow white, icy blue, pale silver', features: 'ice-blue eyes, frosted tail tip, soft ear fluff', pose: 'sitting calmly with head slightly tilted' },
+        2: { subject: 'an elegant snow fox spirit', body: 'slender chibi fox with graceful legs and flowing tail', palette: 'white fur, glacier blue, cool teal accents', features: 'bright teal eyes, crystalline ear tips, frosted paws', pose: 'poised standing pose with gentle motion in the tail' },
+        3: { subject: 'a majestic frost guardian fox', body: 'larger guardian fox silhouette with ornate tail and proud chest', palette: 'icy white, aurora blue, crystal cyan', features: 'large crystal-like wing forms, glowing markings, luminous eyes', pose: 'regal guardian stance, centered and noble' }
+    },
+    thornback: {
+        1: { subject: 'a tiny mossy forest toad', body: 'round squat chibi toad body with short limbs', palette: 'leaf green, moss green, earthy brown', features: 'amber eyes, moss patches, small leaf crest', pose: 'grounded squat pose, sturdy and adorable' },
+        2: { subject: 'a bark bear cub', body: 'chunky bear-like chibi body with thick arms and sturdy paws', palette: 'bark brown, moss green, muted amber', features: 'bark-textured fur, leaf tufts, root-like markings', pose: 'firm forward-facing stance with weight and stability' },
+        3: { subject: 'an ancient treant familiar', body: 'compact treant guardian body with root legs and broad shoulders', palette: 'oak brown, forest green, glowing sap green', features: 'glowing green eyes, leafy crown, mushrooms and bark details', pose: 'towering centered stance, ancient and protective' }
+    },
+    veilshade: {
+        1: { subject: 'a tiny shadow wisp creature', body: 'small ghost-cat silhouette with soft rounded form', palette: 'deep charcoal, violet glow, smoky gray', features: 'glowing purple eyes, wispy tail, soft spectral edges', pose: 'floating centered pose with a readable silhouette' },
+        2: { subject: 'a phantom cat familiar', body: 'sleek feline chibi body with low stalking posture', palette: 'midnight black, violet, silver mist', features: 'glowing paw tips, luminous eyes, shadow tail', pose: 'quiet stalking pose with elegant tension' },
+        3: { subject: 'a void stalker familiar', body: 'panther-like chibi shadow beast with broad shoulders and long tail', palette: 'black-violet shadow, glowing amethyst core, dusky silver', features: 'spectral claws, luminous eyes, mysterious inner glow', pose: 'legendary crouched hero pose, intense and centered' }
+    },
+    sparkling: {
+        1: { subject: 'a tiny sun sprite creature', body: 'small round chibi body with tiny wings', palette: 'sun gold, honey yellow, peach light', features: 'bright cheerful eyes, glowing feather tufts, soft radiant tail', pose: 'light hovering pose, joyful and centered' },
+        2: { subject: 'a dawn fairy familiar', body: 'slim fairy-like chibi body with elegant wings', palette: 'gold, peach, warm coral, sunrise cream', features: 'luminous wings, warm glow accents, graceful feather shapes', pose: 'gentle floating pose with confident warmth' },
+        3: { subject: 'a solar phoenix familiar', body: 'small majestic phoenix with proud chest and wide wings', palette: 'brilliant gold, warm orange, rose sunrise tones', features: 'radiant eyes, flame-tipped feathers, glowing tail plumes', pose: 'heroic phoenix stance, uplifting and inspiring' }
+    }
+};
 
 export { FAMILIAR_LEVEL_THRESHOLDS };
 
@@ -128,20 +155,19 @@ export const FAMILIAR_TYPES = {
 export async function generateFamiliarSpriteSheet(typeId, level, variant = null) {
     const type = FAMILIAR_TYPES[typeId];
     if (!type) throw new Error(`Unknown familiar type: ${typeId}`);
-    const basePrompt = type.spritePrompts[level];
-    if (!basePrompt) throw new Error(`No prompt for ${typeId} level ${level}`);
+    const artDirection = FAMILIAR_ART_DIRECTIONS[typeId]?.[level];
+    if (!artDirection) throw new Error(`No art direction for ${typeId} level ${level}`);
     let lastError = null;
 
     for (let attempt = 0; attempt < MAX_SPRITE_GENERATION_ATTEMPTS; attempt += 1) {
         try {
-            const prompt = _buildSpritePrompt(basePrompt, variant, attempt);
-            const negativePrompt = _buildSpriteNegativePrompt(attempt);
+            const prompt = _buildFamiliarPortraitPrompt(type, artDirection, level, variant, attempt);
+            const negativePrompt = _buildFamiliarPortraitNegativePrompt(type, level, attempt);
             const base64 = await callCloudflareAiImageApi(prompt, negativePrompt, {
-                mode: 'sprite',
                 width: 512,
                 height: 512,
-                num_steps: 20,
-                guidance: 8
+                num_steps: 28,
+                guidance: 7.5
             });
             const normalized = await _normalizeAndValidateSingleSprite(base64);
             const { uploadImageToStorage } = await import('../utils.js');
@@ -156,46 +182,65 @@ export async function generateFamiliarSpriteSheet(typeId, level, variant = null)
     throw new Error(lastError?.message || 'The generated Familiar art did not look like one clean sprite.');
 }
 
-function _buildSpritePrompt(basePrompt, variant, attempt = 0) {
-    const cleanedBasePrompt = _sanitizeSingleSpritePromptDetails(String(basePrompt || '')
-        .replace(/^2D game sprite sheet,\s*exactly 4 frames in a single horizontal row on a pure white background,\s*/i, '2D game creature sprite art on a pure white background, ')
-        .replace(/frame 1:.*$/i, '')
-        .replace(/consistent character across all frames/gi, 'consistent character design')
-        .replace(/consistent character/gi, 'consistent character design'));
+function _buildFamiliarPortraitPrompt(type, artDirection, level, variant, attempt = 0) {
     const variantPrompt = variant?.promptFlavor
-        ? `same familiar variant identity, ${variant.promptFlavor}`
-        : 'same familiar identity';
+        ? `Variant identity details: ${variant.promptFlavor}. Keep these markings subtle but clearly visible on the same single creature.`
+        : 'Variant identity details: use one consistent magical companion design.';
     const retryPrompt = attempt > 0
-        ? `IMPORTANT RETRY FIX: the previous image was rejected because it looked cluttered or like repeated pieces. Draw one single familiar only, centered and large, with one clear silhouette.`
+        ? 'Retry correction: the previous result looked like a collage, tiled sheet, or multiple creatures. Produce one single centered familiar only.'
         : '';
 
     return [
-        cleanedBasePrompt,
+        `Create one single illustrated familiar character portrait for a school rewards app.`,
+        `Subject: ${artDirection.subject}.`,
+        `Evolution stage: level ${level}, ${type.levelNames[level - 1] || 'evolved familiar'}.`,
+        `Personality: ${type.personality}.`,
+        `Species theme: ${type.desc}.`,
+        `Body design: ${artDirection.body}.`,
+        `Color palette: ${artDirection.palette}.`,
+        `Key visible features: ${artDirection.features}.`,
+        `Pose: ${artDirection.pose}.`,
         variantPrompt,
-        'IMPORTANT: create one single retro 2D game familiar sprite asset.',
-        'Exactly one creature only.',
-        'Centered, large, readable silhouette.',
-        'Square composition.',
-        'Plain pure white background only.',
-        'No floating particles, no sparkles, no smoke wisps, no aura, no magic ring, no detached effects.',
-        'No repeated rows, no tiled pattern, no many tiny copies, no texture atlas, no abstract streaks, no scenery.',
-        'No frame strip, no panel layout, no contact sheet, no animation sheet.',
+        `Style: clean 2D digital character illustration, chibi proportions, readable silhouette, polished game mascot design, not pixel art.`,
+        `Composition: square image, single creature centered, full body visible, large subject filling about 70 to 80 percent of the frame, plain white background, no scenery.`,
+        `Rendering goals: crisp edges, clear anatomy, appealing expression, simple readable shape, high contrast from the white background.`,
+        `Output rules: exactly one character, no frame sheet, no contact sheet, no repeated copies, no split panels, no text, no logo, no UI elements.`,
         retryPrompt
-    ].filter(Boolean).join(', ');
+    ].filter(Boolean).join(' ');
 }
 
-function _buildSpriteNegativePrompt(attempt = 0) {
-    const retryPenalty = attempt > 0 ? ', tiled pattern, repeating strips, rows of duplicates, many copies of creature, cluttered silhouette' : '';
-    return `realistic photo, 3d render, text, watermark, blurry, low quality, extra limbs, deformed, multiple characters, collage, comic page, border grid, background scene, props, texture sheet, abstract pattern, frame strip, animation sheet, particles, sparkles, smoke trail, glow aura, magic circle, detached debris${retryPenalty}`;
-}
-
-function _sanitizeSingleSpritePromptDetails(prompt) {
-    return String(prompt || '')
-        .replace(/\b(?:sparkles?|snowflakes?|smoke puff|smoke|mist|trail|burst|shockwave|ring|leaf storm|fire puff|fire trail|glow(?:ing)? runes?|halo)\b[^,]*,?\s*/gi, '')
-        .replace(/\s+,/g, ',')
-        .replace(/,+/g, ',')
-        .replace(/,\s*$/, '')
-        .trim();
+function _buildFamiliarPortraitNegativePrompt(type, level, attempt = 0) {
+    const retryPenalty = attempt > 0 ? ', mosaic, tiled image, duplicate character, contact sheet, collage layout' : '';
+    return [
+        'multiple characters',
+        'two creatures',
+        'crowd',
+        'collage',
+        'mosaic',
+        'contact sheet',
+        'sprite sheet',
+        'animation sheet',
+        'panel layout',
+        'grid',
+        'comic page',
+        'background scene',
+        'landscape',
+        'room interior',
+        'props',
+        'text',
+        'watermark',
+        'logo',
+        'border',
+        'cropped body',
+        'cut off wings',
+        'cut off tail',
+        'extra limbs',
+        'deformed anatomy',
+        'photorealistic',
+        '3d render',
+        'blurry',
+        'low detail'
+    ].join(', ') + retryPenalty;
 }
 
 async function _normalizeAndValidateSingleSprite(base64) {

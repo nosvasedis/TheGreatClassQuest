@@ -4,7 +4,7 @@
 import * as state from '../../state.js';
 import { db, auth } from '../../firebase.js';
 import { signOut } from 'https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js';
-import { doc, collection, query, where, getDocs, runTransaction, increment, serverTimestamp } from 'https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js';
+import { doc, collection, query, where, getDocs, runTransaction, serverTimestamp } from 'https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js';
 import { handleAddHolidayRange, handleDeleteHolidayRange } from '../../db/actions.js';
 import { setupHomeListeners } from '../../features/home.js';
 
@@ -52,7 +52,10 @@ import {
     handleCancelLesson,
     handleEndStory,
     addOrUpdateHeroChronicleNote,
-    deleteHeroChronicleNote
+    deleteHeroChronicleNote,
+    applyReasonAwardScoreTransaction,
+    applyAwardOutwardSkillEffects,
+    showHeroLevelUpCelebration
 } from '../../db/actions.js';
 import { handleBestowBoon } from '../../features/boons.js';
 import { handleAvatarClick } from './avatar.js';
@@ -611,25 +614,20 @@ export function setupUIListeners() {
 
                 try {
                     const publicDataPath = "artifacts/great-class-quest/public/data";
+                    let levelUpInfo = null;
                     await runTransaction(db, async (transaction) => {
                         const scoreRef = doc(db, `${publicDataPath}/student_scores`, studentId);
                         const newLogRef = doc(collection(db, `${publicDataPath}/award_log`));
 
-                        // Update Scores
                         const scoreDoc = await transaction.get(scoreRef);
-                        if (!scoreDoc.exists()) {
-                            transaction.set(scoreRef, {
-                                totalStars: stars, monthlyStars: stars, gold: stars,
-                                lastMonthlyResetDate: utils.getStartOfMonthString(),
-                                createdBy: { uid: state.get('currentUserId'), name: state.get('currentTeacherName') }
-                            });
-                        } else {
-                            transaction.update(scoreRef, {
-                                totalStars: increment(stars),
-                                monthlyStars: increment(stars),
-                                gold: increment(stars)
-                            });
-                        }
+                        ({ levelUpInfo } = applyReasonAwardScoreTransaction(transaction, {
+                            scoreRef,
+                            studentId,
+                            studentData: student,
+                            scoreData: scoreDoc.exists() ? scoreDoc.data() : null,
+                            reason: 'welcome_back',
+                            awardedStars: stars
+                        }));
 
                         // Create Log
                         const logData = {
@@ -648,8 +646,10 @@ export function setupUIListeners() {
                         });
                     });
 
+                    applyAwardOutwardSkillEffects(studentId, student.classId, 'welcome_back', stars).catch((e) => console.warn('Welcome back outward skill effect failed:', e));
                     showWelcomeBackMessage(firstName, stars);
                     reconcileFamiliarLifecycle(studentId, { announce: true, source: 'welcome-back' }).catch((e) => console.warn('Welcome back familiar reconciliation failed:', e));
+                    showHeroLevelUpCelebration(levelUpInfo);
 
                 } catch (error) {
                     console.error("Welcome back bonus failed:", error);

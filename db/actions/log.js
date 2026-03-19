@@ -24,6 +24,7 @@ import { canUseFeature } from '../../utils/subscription.js';
 import { handleStoryWeaversClassSelect } from '../../features/storyWeaver.js';
 import { getTodayDateString, parseFlexibleDate } from '../../utils.js';
 import { reconcileFamiliarLifecycle } from '../../features/familiars.js';
+import { applyAwardOutwardSkillEffects, applyReasonAwardScoreTransaction, showHeroLevelUpCelebration } from './stars.js';
 
 export async function addOrUpdateHeroChronicleNote(studentId, noteText, category, noteId = null) {
     if (!studentId || !noteText || !category) {
@@ -190,14 +191,14 @@ export async function handleAwardBonusStar(studentId, bonusAmount, trialType) {
     playSound('star3');
     const student = state.get('allStudents').find(s => s.id === studentId);
     if (!student) return;
+    let levelUpInfo = null;
+    let finalBonus = bonusAmount;
 
     try {
         await runTransaction(db, async (transaction) => {
             const publicDataPath = "artifacts/great-class-quest/public/data";
             const scoreRef = doc(db, `${publicDataPath}/student_scores`, studentId);
             const scoreDoc = await transaction.get(scoreRef);
-            
-            let finalBonus = bonusAmount;
 
             if (scoreDoc.exists()) {
                 const currentScoreData = scoreDoc.data();
@@ -208,10 +209,14 @@ export async function handleAwardBonusStar(studentId, bonusAmount, trialType) {
                 }
             }
 
-            transaction.update(scoreRef, {
-                totalStars: increment(finalBonus),
-                monthlyStars: increment(finalBonus)
-            });
+            ({ levelUpInfo } = applyReasonAwardScoreTransaction(transaction, {
+                scoreRef,
+                studentId,
+                studentData: student,
+                scoreData: scoreDoc.exists() ? scoreDoc.data() : null,
+                reason: 'scholar_s_bonus',
+                awardedStars: finalBonus
+            }));
 
             const newLogRef = doc(collection(db, `${publicDataPath}/award_log`));
             const logData = {
@@ -227,7 +232,9 @@ export async function handleAwardBonusStar(studentId, bonusAmount, trialType) {
             };
             transaction.set(newLogRef, logData);
         });
+        applyAwardOutwardSkillEffects(studentId, student.classId, 'scholar_s_bonus', finalBonus).catch((e) => console.warn('Scholar outward skill effect failed:', e));
         reconcileFamiliarLifecycle(studentId, { announce: true, source: 'trial-bonus' }).catch((e) => console.warn('Trial familiar reconciliation failed:', e));
+        showHeroLevelUpCelebration(levelUpInfo);
         showToast(`✨ A Bonus has been bestowed upon ${student.name}! ✨`, 'success');
     } catch (error) {
         console.error("Scholar's Bonus transaction failed:", error);
@@ -237,40 +244,50 @@ export async function handleAwardBonusStar(studentId, bonusAmount, trialType) {
 
 export async function handleBatchAwardBonus(students) {
     playSound('star3');
-    const batch = writeBatch(db);
     const publicDataPath = "artifacts/great-class-quest/public/data";
     const today = getTodayDateString();
-
-    students.forEach(({studentId, bonusAmount, trialType}) => {
-        const student = state.get('allStudents').find(s => s.id === studentId);
-        if (!student) return;
-
-        const scoreRef = doc(db, `${publicDataPath}/student_scores`, studentId);
-        batch.update(scoreRef, {
-            totalStars: increment(bonusAmount),
-            monthlyStars: increment(bonusAmount)
-        });
-
-        const newLogRef = doc(collection(db, `${publicDataPath}/award_log`));
-        const logData = {
-            studentId,
-            classId: student.classId,
-            teacherId: state.get('currentUserId'),
-            stars: bonusAmount,
-            reason: "scholar_s_bonus",
-            note: `Awarded for exceptional performance on a ${trialType}.`,
-            date: today,
-            createdAt: serverTimestamp(),
-            createdBy: { uid: state.get('currentUserId'), name: state.get('currentTeacherName') }
-        };
-        batch.set(newLogRef, logData);
-    });
+    const levelUps = [];
 
     try {
-        await batch.commit();
-        students.forEach(({ studentId }) => {
+        for (const { studentId, bonusAmount, trialType } of students) {
+            const student = state.get('allStudents').find(s => s.id === studentId);
+            if (!student) continue;
+
+            let levelUpInfo = null;
+            await runTransaction(db, async (transaction) => {
+                const scoreRef = doc(db, `${publicDataPath}/student_scores`, studentId);
+                const scoreDoc = await transaction.get(scoreRef);
+
+                ({ levelUpInfo } = applyReasonAwardScoreTransaction(transaction, {
+                    scoreRef,
+                    studentId,
+                    studentData: student,
+                    scoreData: scoreDoc.exists() ? scoreDoc.data() : null,
+                    reason: 'scholar_s_bonus',
+                    awardedStars: bonusAmount
+                }));
+
+                const newLogRef = doc(collection(db, `${publicDataPath}/award_log`));
+                const logData = {
+                    studentId,
+                    classId: student.classId,
+                    teacherId: state.get('currentUserId'),
+                    stars: bonusAmount,
+                    reason: "scholar_s_bonus",
+                    note: `Awarded for exceptional performance on a ${trialType}.`,
+                    date: today,
+                    createdAt: serverTimestamp(),
+                    createdBy: { uid: state.get('currentUserId'), name: state.get('currentTeacherName') }
+                };
+                transaction.set(newLogRef, logData);
+            });
+
+            if (levelUpInfo) levelUps.push(levelUpInfo);
+            applyAwardOutwardSkillEffects(studentId, student.classId, 'scholar_s_bonus', bonusAmount).catch((e) => console.warn('Batch scholar outward skill effect failed:', e));
             reconcileFamiliarLifecycle(studentId, { announce: true, source: 'trial-batch-bonus' }).catch((e) => console.warn('Batch familiar reconciliation failed:', e));
-        });
+        }
+
+        levelUps.forEach(showHeroLevelUpCelebration);
         showToast(`✨ ${students.length} Scholars received their bonus stars! ✨`, 'success');
     } catch (error) {
         console.error("Batch Scholar's Bonus failed:", error);

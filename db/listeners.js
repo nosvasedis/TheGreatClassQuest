@@ -34,11 +34,20 @@ export function setupDataListeners(userId, dateString, onInitialDataReady) {
     let initialReadyFired = false;
     let classesReady = false;
     let schoolSettingsReady = false;
+    let specialHeroProgressionReconciled = false;
     function maybeFireInitialReady() {
         if (typeof onInitialDataReady === 'function' && !initialReadyFired && classesReady && schoolSettingsReady) {
             initialReadyFired = true;
             onInitialDataReady();
         }
+    }
+    function maybeReconcileSpecialHeroProgression() {
+        if (specialHeroProgressionReconciled) return;
+        if (!state.get('allStudents').length || !state.get('allStudentScores').length) return;
+        specialHeroProgressionReconciled = true;
+        import('./actions.js')
+            .then(actions => actions.reconcileScholarAndNomadProgressFromLogs())
+            .catch((error) => console.warn('Special hero progression reconciliation failed:', error));
     }
 
     // Clear previous listeners
@@ -157,6 +166,7 @@ export function setupDataListeners(userId, dateString, onInitialDataReady) {
     state.setUnsubscribeStudents(onSnapshot(studentsQuery, (snapshot) => {
         const allStudents = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
         state.setAllStudents(allStudents.sort((a, b) => a.name.localeCompare(b.name)));
+        maybeReconcileSpecialHeroProgression();
 
         renderStudentLeaderboardTab();
         renderClassLeaderboardTab();
@@ -180,6 +190,7 @@ export function setupDataListeners(userId, dateString, onInitialDataReady) {
         const currentMonthStart = getStartOfMonthString();
         const allStudentScores = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
         state.setAllStudentScores(allStudentScores);
+        maybeReconcileSpecialHeroProgression();
 
         snapshot.docChanges().forEach(change => {
             if (change.type === "added" || change.type === "modified") {

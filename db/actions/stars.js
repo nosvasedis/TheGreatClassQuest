@@ -264,13 +264,140 @@ export async function setStudentStarsForToday(studentId, starValue, reason = nul
 
         // --- Hero Level-Up Celebration (after successful transaction) ---
         if (levelUpInfo) {
-            playHeroFanfare();
-            import('../../ui/modals/hero.js').then(m => m.showHeroLevelUpCelebration(levelUpInfo));
+            showHeroLevelUpCelebration(levelUpInfo);
         }
 
     } catch (error) {
         console.error('Star update transaction failed:', error);
         showToast('Error saving stars! Please try again.', 'error');
+    }
+}
+
+export function applyReasonAwardScoreTransaction(transaction, {
+    scoreRef,
+    studentId,
+    studentData,
+    scoreData = null,
+    reason,
+    awardedStars
+}) {
+    const heroProgressionEnabled = canUseFeature('heroProgression');
+    const currentTotalStars = Number(scoreData?.totalStars) || 0;
+    const currentMonthlyStars = Number(scoreData?.monthlyStars) || 0;
+    const safeCurrentGold = typeof scoreData?.gold === 'number' ? scoreData.gold : currentTotalStars;
+    const currentStarsByReason = scoreData?.starsByReason || {};
+    const currentHeroLevel = scoreData?.heroLevel || 0;
+
+    const { goldChange, bonusStars } = heroProgressionEnabled
+        ? calculateHeroGold(studentData, reason, awardedStars, scoreData)
+        : { goldChange: awardedStars, bonusStars: 0 };
+
+    const totalStarsDelta = awardedStars + bonusStars;
+    const nextScoreData = {
+        totalStars: currentTotalStars + totalStarsDelta,
+        monthlyStars: currentMonthlyStars + totalStarsDelta,
+        gold: safeCurrentGold + goldChange
+    };
+
+    let levelUpInfo = null;
+    const heroClass = studentData?.heroClass;
+    const classReason = getHeroReason(heroClass);
+
+    if (heroProgressionEnabled && heroClass && classReason && reason === classReason && awardedStars > 0) {
+        const newReasonStars = (currentStarsByReason[classReason] || 0) + awardedStars;
+        nextScoreData.starsByReason = {
+            ...currentStarsByReason,
+            [classReason]: newReasonStars
+        };
+
+        const newHeroLevel = computeHeroLevel(heroClass, newReasonStars);
+        nextScoreData.heroLevel = newHeroLevel;
+
+        if (newHeroLevel > currentHeroLevel) {
+            nextScoreData.pendingSkillChoice = true;
+            levelUpInfo = { studentId, studentName: studentData.name, newHeroLevel, heroClass };
+        }
+    }
+
+    if (scoreData) {
+        transaction.update(scoreRef, nextScoreData);
+    } else {
+        transaction.set(scoreRef, {
+            inventory: [],
+            starsByReason: {},
+            heroLevel: 0,
+            heroSkills: [],
+            pendingSkillChoice: false,
+            lastMonthlyResetDate: getStartOfMonthString(),
+            createdBy: {
+                uid: studentData?.createdBy?.uid || state.get('currentUserId'),
+                name: studentData?.createdBy?.name || state.get('currentTeacherName')
+            },
+            ...nextScoreData
+        });
+    }
+
+    return { levelUpInfo, totalStarsDelta };
+}
+
+export function showHeroLevelUpCelebration(levelUpInfo) {
+    if (!levelUpInfo) return;
+    playHeroFanfare();
+    import('../../ui/modals/hero.js').then(m => m.showHeroLevelUpCelebration(levelUpInfo));
+}
+
+export function applyAwardOutwardSkillEffects(studentId, classId, reason, awardedStars) {
+    if (!studentId || !classId || !reason || awardedStars <= 0) return Promise.resolve();
+    return _applyOutwardSkillEffects(studentId, classId, reason, awardedStars);
+}
+
+export async function reconcileScholarAndNomadProgressFromLogs() {
+    if (!canUseFeature('heroProgression')) return;
+
+    const targetStudents = state.get('allStudents').filter(student => ['Scholar', 'Nomad'].includes(student.heroClass));
+    if (targetStudents.length === 0) return;
+
+    const publicDataPath = 'artifacts/great-class-quest/public/data';
+    const scoresById = new Map(state.get('allStudentScores').map(score => [score.id, score]));
+    const batch = writeBatch(db);
+    let hasUpdates = false;
+
+    for (const student of targetStudents) {
+        const scoreData = scoresById.get(student.id);
+        if (!scoreData) continue;
+
+        const reason = getHeroReason(student.heroClass);
+        if (!reason) continue;
+
+        const logsSnapshot = await getDocs(query(
+            collection(db, `${publicDataPath}/award_log`),
+            where('studentId', '==', student.id),
+            where('reason', '==', reason)
+        ));
+
+        const reasonStars = logsSnapshot.docs.reduce((total, logDoc) => total + (Number(logDoc.data().stars) || 0), 0);
+        const expectedLevel = computeHeroLevel(student.heroClass, reasonStars);
+        const currentReasonStars = scoreData.starsByReason?.[reason] || 0;
+        const currentLevel = scoreData.heroLevel || 0;
+
+        if (Math.abs(currentReasonStars - reasonStars) < 0.0001 && currentLevel === expectedLevel) continue;
+
+        const scoreRef = doc(db, `${publicDataPath}/student_scores`, student.id);
+        const scorePatch = {
+            [`starsByReason.${reason}`]: reasonStars,
+            heroLevel: expectedLevel
+        };
+
+        if (expectedLevel > currentLevel) {
+            scorePatch.pendingSkillChoice = true;
+        }
+
+        batch.update(scoreRef, scorePatch);
+        hasUpdates = true;
+    }
+
+    if (hasUpdates) {
+        await batch.commit();
     }
 }
 

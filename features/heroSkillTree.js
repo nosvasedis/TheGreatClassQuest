@@ -278,7 +278,7 @@ export const HERO_SKILL_TREE = {
         titles: ['Scribe', 'Research Mentor', 'Grand Scholar'],
         levels: [
             {
-                threshold: 20,
+                threshold: 10,
                 branches: [
                     { id: 'scholar_1a', name: 'Academic Edge', icon: '📝',
                       desc: 'Earn +4 Gold whenever you receive a Scholar Bonus star.',
@@ -289,7 +289,7 @@ export const HERO_SKILL_TREE = {
                 ]
             },
             {
-                threshold: 60,
+                threshold: 20,
                 branches: [
                     { id: 'scholar_2a', name: 'Research Grant', icon: '🔬',
                       desc: 'Earn +7 Gold whenever you receive a Scholar Bonus star.',
@@ -300,7 +300,7 @@ export const HERO_SKILL_TREE = {
                 ]
             },
             {
-                threshold: 110,
+                threshold: 30,
                 branches: [
                     { id: 'scholar_5a', name: "Grand Scholar's Mark", icon: '🌟',
                       desc: '+10 Gold when you earn Scholar Bonus AND +4 Gold to all guildmates earning it.',
@@ -386,7 +386,7 @@ export const HERO_SKILL_TREE = {
         titles: ['Wanderer', 'Pathfinder', 'Legendary Nomad'],
         levels: [
             {
-                threshold: 20,
+                threshold: 10,
                 branches: [
                     { id: 'nomad_1a', name: 'Road Ready', icon: '🥾',
                       desc: 'Earn +4 Gold whenever you receive a Welcome Back star.',
@@ -397,7 +397,7 @@ export const HERO_SKILL_TREE = {
                 ]
             },
             {
-                threshold: 60,
+                threshold: 20,
                 branches: [
                     { id: 'nomad_4a', name: 'Trail Blazer', icon: '🌄',
                       desc: '+5 Gold to a random classmate every time you earn a Welcome Back star.',
@@ -408,7 +408,7 @@ export const HERO_SKILL_TREE = {
                 ]
             },
             {
-                threshold: 110,
+                threshold: 30,
                 branches: [
                     { id: 'nomad_5a', name: "Legendary Nomad's Path", icon: '🌟',
                       desc: '+10 Gold when you earn Welcome Back AND +4 Gold to all guildmates earning it.',

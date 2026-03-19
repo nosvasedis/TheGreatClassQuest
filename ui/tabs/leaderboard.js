@@ -887,10 +887,10 @@ export async function renderStudentLeaderboardTab() {
                     <div class="relative rounded-2xl p-4 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 ${cardBg} flex justify-between items-center gap-4">
                         ${bgTrophy}
                         <div class="flex items-center gap-4 z-10">
-                            <div class="flex-shrink-0 relative">
+                            <div class="flex-shrink-0 relative hero-challenge-avatar-wrap">
                                 <div class="absolute -top-3 -left-2 w-8 h-8 rounded-full ${rankColor} flex items-center justify-center font-title text-sm z-10 border-2 border-white shadow-sm">${currentRank}</div>
                                 ${getAvatarHtml(s, "w-16 h-16")}
-                                ${s.familiar ? `<div class="familiar-chip">${renderFamiliarSprite(s.familiar, 'small', s.id)}</div>` : ''}
+                                ${s.familiar ? `<div class="familiar-chip hero-challenge-familiar-chip">${renderFamiliarSprite(s.familiar, 'small', s.id)}</div>` : ''}
                             </div>
                             <div class="min-w-0">
                                 <h4 class="font-title text-xl ${nameColor} truncate leading-tight mb-1 flex items-center flex-wrap gap-1.5">

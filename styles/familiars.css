@@ -183,3 +183,18 @@
     position: relative;
     display: inline-block;
 }
+
+/* Hero's Challenge: keep familiar visible but out of the avatar's face */
+.hero-challenge-avatar-wrap {
+    overflow: visible;
+}
+
+.hero-challenge-familiar-chip {
+    left: -8px;
+    right: auto;
+    bottom: -8px;
+    z-index: 6;
+    transform: scale(0.72);
+    transform-origin: bottom left;
+    pointer-events: none;
+}

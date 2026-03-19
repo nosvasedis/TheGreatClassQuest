@@ -187,7 +187,7 @@ function _buildFamiliarPortraitPrompt(type, artDirection, level, variant, attemp
         ? `Variant identity details: ${variant.promptFlavor}. Keep these markings subtle but clearly visible on the same single creature.`
         : 'Variant identity details: use one consistent magical companion design.';
     const retryPrompt = attempt > 0
-        ? 'Retry correction: the previous result looked like a collage, tiled sheet, or multiple creatures. Produce one single centered familiar only.'
+        ? 'Retry correction: the previous result looked like a collage, tiled sheet, multiple creatures, or included text. Produce one single centered familiar only, shown from one angle only.'
         : '';
 
     return [
@@ -202,15 +202,15 @@ function _buildFamiliarPortraitPrompt(type, artDirection, level, variant, attemp
         `Pose: ${artDirection.pose}.`,
         variantPrompt,
         `Style: clean 2D digital character illustration, chibi proportions, readable silhouette, polished game mascot design, not pixel art.`,
-        `Composition: square image, single creature centered, full body visible, large subject filling about 70 to 80 percent of the frame, plain white background, no scenery.`,
+        `Composition: square image, single creature centered, full body visible, large subject filling about 70 to 80 percent of the frame, plain white background, no scenery, one pose only, one viewing angle only.`,
         `Rendering goals: crisp edges, clear anatomy, appealing expression, simple readable shape, high contrast from the white background.`,
-        `Output rules: exactly one character, no frame sheet, no contact sheet, no repeated copies, no split panels, no text, no logo, no UI elements.`,
+        `Output rules: exactly one character, no frame sheet, no contact sheet, no repeated copies, no split panels, no turnaround sheet, no model sheet, no multiple angles, no text, no letters, no words, no captions, no logo, no UI elements.`,
         retryPrompt
     ].filter(Boolean).join(' ');
 }
 
 function _buildFamiliarPortraitNegativePrompt(type, level, attempt = 0) {
-    const retryPenalty = attempt > 0 ? ', mosaic, tiled image, duplicate character, contact sheet, collage layout' : '';
+    const retryPenalty = attempt > 0 ? ', mosaic, tiled image, duplicate character, contact sheet, collage layout, text label, character turnaround' : '';
     return [
         'multiple characters',
         'two creatures',
@@ -220,6 +220,12 @@ function _buildFamiliarPortraitNegativePrompt(type, level, attempt = 0) {
         'contact sheet',
         'sprite sheet',
         'animation sheet',
+        'model sheet',
+        'turnaround sheet',
+        'character sheet',
+        'multiple angles',
+        'side view',
+        'front view and side view',
         'panel layout',
         'grid',
         'comic page',
@@ -228,6 +234,11 @@ function _buildFamiliarPortraitNegativePrompt(type, level, attempt = 0) {
         'room interior',
         'props',
         'text',
+        'letters',
+        'words',
+        'caption',
+        'label',
+        'title text',
         'watermark',
         'logo',
         'border',
@@ -298,7 +309,105 @@ function _validateSingleSpriteImage(img) {
         return { ok: false, reason: 'Could not inspect generated sprite image.' };
     }
 
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.drawImage(img, 0, 0);
+    const { data, width, height } = ctx.getImageData(0, 0, canvas.width, canvas.height);
+    const sceneStats = _measureSingleSubjectLayout(data, width, height);
+    if (sceneStats.componentCount >= 4 && sceneStats.largestComponentRatio < 0.58) {
+        return { ok: false, reason: 'Generated image looks like a multi-view sheet instead of one familiar.' };
+    }
+    if (sceneStats.captionBandScore >= 3) {
+        return { ok: false, reason: 'Generated image includes text or a caption-like label.' };
+    }
+
     return { ok: true };
+}
+
+function _measureSingleSubjectLayout(data, width, height) {
+    const gridW = 28;
+    const gridH = 28;
+    const cells = new Array(gridW * gridH).fill(false);
+
+    for (let gy = 0; gy < gridH; gy += 1) {
+        const yStart = Math.floor((gy / gridH) * height);
+        const yEnd = Math.max(yStart + 1, Math.floor(((gy + 1) / gridH) * height));
+        for (let gx = 0; gx < gridW; gx += 1) {
+            const xStart = Math.floor((gx / gridW) * width);
+            const xEnd = Math.max(xStart + 1, Math.floor(((gx + 1) / gridW) * width));
+            let found = false;
+            for (let y = yStart; y < yEnd && !found; y += 1) {
+                for (let x = xStart; x < xEnd; x += 1) {
+                    const idx = (y * width + x) * 4;
+                    if (_isForegroundPixel(data[idx], data[idx + 1], data[idx + 2], data[idx + 3])) {
+                        found = true;
+                        break;
+                    }
+                }
+            }
+            if (found) cells[(gy * gridW) + gx] = true;
+        }
+    }
+
+    const visited = new Array(cells.length).fill(false);
+    let componentCount = 0;
+    let occupied = 0;
+    let largest = 0;
+
+    for (let i = 0; i < cells.length; i += 1) {
+        if (!cells[i]) continue;
+        occupied += 1;
+        if (visited[i]) continue;
+        componentCount += 1;
+        let size = 0;
+        const stack = [i];
+        visited[i] = true;
+
+        while (stack.length) {
+            const current = stack.pop();
+            size += 1;
+            const x = current % gridW;
+            const y = Math.floor(current / gridW);
+            const neighbors = [[x - 1, y], [x + 1, y], [x, y - 1], [x, y + 1]];
+            for (const [nx, ny] of neighbors) {
+                if (nx < 0 || ny < 0 || nx >= gridW || ny >= gridH) continue;
+                const next = (ny * gridW) + nx;
+                if (!cells[next] || visited[next]) continue;
+                visited[next] = true;
+                stack.push(next);
+            }
+        }
+
+        if (size > largest) largest = size;
+    }
+
+    let captionBandScore = 0;
+    const captionStartRow = Math.floor(height * 0.76);
+    for (let y = captionStartRow; y < height; y += 2) {
+        let transitions = 0;
+        let occupiedPixels = 0;
+        let prev = false;
+        for (let x = 0; x < width; x += 1) {
+            const idx = (y * width + x) * 4;
+            const isForeground = _isForegroundPixel(data[idx], data[idx + 1], data[idx + 2], data[idx + 3]);
+            if (isForeground) occupiedPixels += 1;
+            if (x > 0 && isForeground !== prev) transitions += 1;
+            prev = isForeground;
+        }
+        const occupancyRatio = occupiedPixels / Math.max(1, width);
+        if (transitions >= 12 && occupancyRatio > 0.08 && occupancyRatio < 0.55) captionBandScore += 1;
+    }
+
+    return {
+        componentCount,
+        largestComponentRatio: largest / Math.max(1, occupied),
+        captionBandScore
+    };
+}
+
+function _isForegroundPixel(r, g, b, a) {
+    if (a < 24) return false;
+    return !(r > 245 && g > 245 && b > 245);
 }
 
 // ─── RECONCILIATION ──────────────────────────────────────────────────────────

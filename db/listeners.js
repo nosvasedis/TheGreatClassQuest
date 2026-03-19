@@ -23,6 +23,7 @@ import { updateCeremonyStatus } from '../features/ceremony.js';
 import * as utils from '../utils.js';
 import { competitionStart, DEFAULT_SCHOOL_NAME } from '../constants.js';
 import * as modals from '../ui/modals.js';
+import { renderFamiliarOptionsUi } from '../features/familiars.js';
 import { renderHomeTab } from '../features/home.js';
 import { reconcileFamiliarLifecycle, shouldPassivelyReconcileFamiliar } from '../features/familiars.js';
 import { refreshSetupClassesList } from '../features/schoolSetup.js';
@@ -145,7 +146,10 @@ export function setupDataListeners(userId, dateString, onInitialDataReady) {
         renderIdeasTabSelects();
         renderAdventureLogTab();
         renderScholarsScrollTab();
-        if (!document.getElementById('options-tab').classList.contains('hidden')) renderStarManagerStudentSelect();
+        if (!document.getElementById('options-tab').classList.contains('hidden')) {
+            renderStarManagerStudentSelect();
+            renderFamiliarOptionsUi();
+        }
         updateCeremonyStatus();
         renderHomeTab(); // Also update home tab when classes load/change
     }, (error) => console.error("Error listening to classes:", error)));
@@ -159,7 +163,10 @@ export function setupDataListeners(userId, dateString, onInitialDataReady) {
         renderManageStudentsTab();
         renderAwardStarsStudentList(state.get('globalSelectedClassId'));
         renderScholarsScrollTab(state.get('globalSelectedClassId'));
-        if (!document.getElementById('options-tab').classList.contains('hidden')) renderStarManagerStudentSelect();
+        if (!document.getElementById('options-tab').classList.contains('hidden')) {
+            renderStarManagerStudentSelect();
+            renderFamiliarOptionsUi();
+        }
         renderHomeTab(); // Update home tab (student count changes)
         // --- NEW: Check for missing genders in background ---
         // Debounce this slightly so it doesn't fire while typing a new name
@@ -239,6 +246,9 @@ export function setupDataListeners(userId, dateString, onInitialDataReady) {
 
         renderStudentLeaderboardTab();
         renderClassLeaderboardTab();
+        if (!document.getElementById('options-tab').classList.contains('hidden')) {
+            renderFamiliarOptionsUi();
+        }
 
         // --- ADDED LINE ---
         import('../features/home.js').then(m => m.renderHomeTab());

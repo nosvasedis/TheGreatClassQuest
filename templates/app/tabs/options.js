@@ -189,6 +189,31 @@ export const optionsTabHTML = `
                                     </div>
                                 </div>
                             </div>
+
+                            <div class="bg-white p-6 rounded-3xl shadow-lg border-4 border-rose-300 space-y-4" data-options-section="manage">
+                                <div class="text-center">
+                                    <div class="text-4xl mb-2">🧬</div>
+                                    <h2 class="font-title text-3xl text-rose-700">Familiar Sprite Forge</h2>
+                                    <p class="text-sm text-gray-500">Regenerate a Familiar sprite when the saved sheet looks wrong.</p>
+                                </div>
+                                <div class="space-y-3">
+                                    <div>
+                                        <label for="familiar-maintenance-student-select" class="block text-sm font-medium text-gray-700 mb-1">Select Student</label>
+                                        <select id="familiar-maintenance-student-select"
+                                            class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-rose-500 bg-white">
+                                            <option value="">Loading familiars...</option>
+                                        </select>
+                                    </div>
+                                    <div id="familiar-maintenance-status" class="rounded-2xl border border-rose-100 bg-rose-50/70 px-4 py-3 text-sm text-rose-900">
+                                        Choose a student to inspect or regenerate their Familiar sprite.
+                                    </div>
+                                    <button id="familiar-regenerate-btn"
+                                        class="w-full bg-rose-500 hover:bg-rose-600 text-white font-title text-lg py-3 rounded-xl bubbly-button disabled:opacity-50 disabled:cursor-not-allowed"
+                                        disabled>
+                                        <i class="fas fa-wand-sparkles mr-2"></i> Regenerate Current Familiar Sprite
+                                    </button>
+                                </div>
+                            </div>
                             
                             <div class="space-y-6" data-options-section="planning">
                                 <div id="options-planning-locked" class="options-tier-locked hidden">

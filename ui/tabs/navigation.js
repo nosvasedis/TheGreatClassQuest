@@ -36,6 +36,7 @@ import { renderIdeasTabSelects, renderStarManagerStudentSelect } from './ideas.j
 import { canUseFeature, getTier, getSubscriptionSnapshot } from '../../utils/subscription.js';
 import { showUpgradePrompt } from '../../utils/upgradePrompt.js';
 import { GATED_TABS, TAB_FEATURE_FLAGS, getTierSummary, getUpgradeMessage } from '../../config/tiers/features.js';
+import { renderFamiliarOptionsUi } from '../../features/familiars.js';
 
 // --- TAB NAVIGATION ---
 
@@ -183,6 +184,7 @@ export async function showTab(tabName) {
 
         // FIX: Call this directly (it is defined in this file, not core.js)
         renderStarManagerStudentSelect();
+        renderFamiliarOptionsUi();
 
         const teacherInput = document.getElementById('teacher-name-input');
         if (teacherInput) {

@@ -56,7 +56,11 @@ import {
 } from '../../db/actions.js';
 import { handleBestowBoon } from '../../features/boons.js';
 import { handleAvatarClick } from './avatar.js';
-import { reconcileFamiliarLifecycle } from '../../features/familiars.js';
+import {
+    reconcileFamiliarLifecycle,
+    updateFamiliarOptionsState,
+    handleRegenerateFamiliarFromOptions
+} from '../../features/familiars.js';
 
 // --- MAIN UI EVENT LISTENERS SETUP ---
 
@@ -783,6 +787,8 @@ export function setupUIListeners() {
     document.getElementById('star-manager-add-btn').addEventListener('click', handleAddStarsManually);
     document.getElementById('star-manager-purge-btn').addEventListener('click', handlePurgeStudentStars);
     document.getElementById('star-manager-override-btn').addEventListener('click', handleSetStudentScores);
+    document.getElementById('familiar-maintenance-student-select').addEventListener('change', updateFamiliarOptionsState);
+    document.getElementById('familiar-regenerate-btn').addEventListener('click', handleRegenerateFamiliarFromOptions);
     document.getElementById('purge-logs-btn').addEventListener('click', () => {
         modals.showModal('Purge All My Logs?', 'Are you sure you want to delete all your historical award log entries? This cannot be undone.', () => handlePurgeAwardLogs());
     });

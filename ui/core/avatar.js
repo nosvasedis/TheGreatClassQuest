@@ -189,7 +189,7 @@ export function handleAvatarClick(e) {
         // FAMILIAR companion display
         let familiarHtml = '';
         if (studentId && scoreData?.familiar) {
-            const spriteHtml = renderFamiliarSprite(scoreData.familiar, 'medium', studentId);
+            const spriteHtml = renderFamiliarSprite(scoreData.familiar, 'small', studentId);
             familiarHtml = `<div class="enlargeable-familiar familiar-enlarged-companion mt-[-20px] z-[103]" data-student-id="${studentId}">${spriteHtml}</div>`;
         }
 

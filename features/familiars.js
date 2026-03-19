@@ -18,6 +18,9 @@ import { getFamiliarVariant, normalizeFamiliarName } from './familiarIdentity.mj
 
 const publicDataPath = 'artifacts/great-class-quest/public/data';
 const familiarOps = new Map();
+const SPRITE_FRAME_COUNT = 4;
+const MAX_SPRITE_GENERATION_ATTEMPTS = 3;
+const SPRITE_VALIDATION_SIZE = 128;
 
 export { FAMILIAR_LEVEL_THRESHOLDS };
 
@@ -128,35 +131,248 @@ export async function generateFamiliarSpriteSheet(typeId, level, variant = null)
     if (!type) throw new Error(`Unknown familiar type: ${typeId}`);
     const basePrompt = type.spritePrompts[level];
     if (!basePrompt) throw new Error(`No prompt for ${typeId} level ${level}`);
-    const prompt = variant?.promptFlavor
-        ? `${basePrompt}, same familiar variant identity across all frames, ${variant.promptFlavor}`
-        : basePrompt;
+    let lastError = null;
 
-    const base64 = await callCloudflareAiImageApi(prompt, 'realistic photo, 3d render, text, watermark, blurry, extra limbs, deformed');
-    const compressed = await _compressSpriteSheet(base64);
-    const { uploadImageToStorage } = await import('../utils.js');
-    const url = await uploadImageToStorage(compressed, `familiars/${typeId}_level${level}_${Date.now()}.webp`);
-    return url;
+    for (let attempt = 0; attempt < MAX_SPRITE_GENERATION_ATTEMPTS; attempt += 1) {
+        try {
+            const prompt = _buildSpritePrompt(basePrompt, variant, attempt);
+            const negativePrompt = _buildSpriteNegativePrompt(attempt);
+            const base64 = await callCloudflareAiImageApi(prompt, negativePrompt);
+            const normalized = await _normalizeAndValidateSpriteSheet(base64);
+            const { uploadImageToStorage } = await import('../utils.js');
+            const url = await uploadImageToStorage(normalized, `familiars/${typeId}_level${level}_${Date.now()}.webp`);
+            return url;
+        } catch (error) {
+            lastError = error;
+            console.warn(`Familiar sprite attempt ${attempt + 1} failed:`, error);
+        }
+    }
+
+    throw new Error(lastError?.message || 'The generated sprite sheet did not look like a usable 4-frame Familiar sprite.');
 }
 
-async function _compressSpriteSheet(base64) {
+function _buildSpritePrompt(basePrompt, variant, attempt = 0) {
+    const variantPrompt = variant?.promptFlavor
+        ? `same familiar variant identity across all frames, ${variant.promptFlavor}`
+        : 'same familiar identity across all frames';
+    const retryPrompt = attempt > 0
+        ? `IMPORTANT RETRY FIX: the previous image was rejected because it looked like a tiled strip or multiple tiny copies. Draw one single familiar only in each frame, centered and large.`
+        : '';
+
+    return [
+        basePrompt,
+        variantPrompt,
+        'IMPORTANT: create a retro 2D game sprite sheet asset.',
+        'Exactly 4 square animation frames in a single horizontal row.',
+        'One single familiar only per frame, centered, large, readable silhouette.',
+        'Plain pure white background only.',
+        'No repeated rows, no tiled pattern, no many tiny copies, no texture atlas, no abstract streaks, no scenery.',
+        'Each frame must show the same character in a slightly different pose for animation.',
+        retryPrompt
+    ].filter(Boolean).join(', ');
+}
+
+function _buildSpriteNegativePrompt(attempt = 0) {
+    const retryPenalty = attempt > 0 ? ', tiled pattern, repeating strips, rows of duplicates, many copies of creature' : '';
+    return `realistic photo, 3d render, text, watermark, blurry, low quality, extra limbs, deformed, multiple characters, collage, comic page, border grid, background scene, props, texture sheet, abstract pattern${retryPenalty}`;
+}
+
+async function _normalizeAndValidateSpriteSheet(base64) {
     return new Promise((resolve, reject) => {
         const img = new Image();
         img.src = base64;
         img.onload = () => {
-            const targetH = 128;
-            const scale = targetH / img.height;
-            const targetW = Math.round(img.width * scale);
+            const validation = _validateSpriteSheetImage(img);
+            if (!validation.ok) {
+                reject(new Error(validation.reason));
+                return;
+            }
+
+            const targetH = SPRITE_VALIDATION_SIZE;
+            const targetW = targetH * SPRITE_FRAME_COUNT;
             const canvas = document.createElement('canvas');
             canvas.width = targetW;
             canvas.height = targetH;
             const ctx = canvas.getContext('2d');
+            if (!ctx) {
+                reject(new Error('Could not create sprite canvas.'));
+                return;
+            }
+            ctx.fillStyle = '#ffffff';
+            ctx.fillRect(0, 0, targetW, targetH);
             ctx.imageSmoothingEnabled = false;
             ctx.drawImage(img, 0, 0, targetW, targetH);
             resolve(canvas.toDataURL('image/webp', 0.9));
         };
         img.onerror = reject;
     });
+}
+
+function _validateSpriteSheetImage(img) {
+    const aspectRatio = img.width / Math.max(1, img.height);
+    if (aspectRatio < 3.2 || aspectRatio > 4.8) {
+        return { ok: false, reason: 'Generated image is not a horizontal 4-frame sprite sheet.' };
+    }
+
+    const frameWidth = Math.floor(img.width / SPRITE_FRAME_COUNT);
+    if (frameWidth < 24 || img.height < 24) {
+        return { ok: false, reason: 'Generated sprite sheet is too small to use.' };
+    }
+
+    const canvas = document.createElement('canvas');
+    canvas.width = img.width;
+    canvas.height = img.height;
+    const ctx = canvas.getContext('2d', { willReadFrequently: true });
+    if (!ctx) {
+        return { ok: false, reason: 'Could not inspect generated sprite sheet.' };
+    }
+
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.drawImage(img, 0, 0);
+    const { data, width, height } = ctx.getImageData(0, 0, canvas.width, canvas.height);
+
+    for (let frameIndex = 0; frameIndex < SPRITE_FRAME_COUNT; frameIndex += 1) {
+        const frameStartX = frameIndex * frameWidth;
+        const stats = _collectFrameStats(data, width, height, frameStartX, frameWidth);
+        if (!stats.valid) return { ok: false, reason: stats.reason };
+    }
+
+    return { ok: true };
+}
+
+function _collectFrameStats(data, width, height, frameStartX, frameWidth) {
+    let foregroundCount = 0;
+    let minX = frameWidth;
+    let maxX = -1;
+    let minY = height;
+    let maxY = -1;
+    let horizontalEdgeHits = 0;
+    let verticalEdgeHits = 0;
+
+    for (let y = 0; y < height; y += 1) {
+        for (let localX = 0; localX < frameWidth; localX += 1) {
+            const x = frameStartX + localX;
+            const idx = (y * width + x) * 4;
+            if (!_isForegroundPixel(data[idx], data[idx + 1], data[idx + 2], data[idx + 3])) continue;
+
+            foregroundCount += 1;
+            if (localX < minX) minX = localX;
+            if (localX > maxX) maxX = localX;
+            if (y < minY) minY = y;
+            if (y > maxY) maxY = y;
+            if (localX <= 1 || localX >= frameWidth - 2) horizontalEdgeHits += 1;
+            if (y <= 1 || y >= height - 2) verticalEdgeHits += 1;
+        }
+    }
+
+    const frameArea = frameWidth * height;
+    const coverage = foregroundCount / Math.max(1, frameArea);
+    if (coverage < 0.02) {
+        return { valid: false, reason: 'Generated sprite frame is too empty.' };
+    }
+    if (coverage > 0.48) {
+        return { valid: false, reason: 'Generated sprite frame is too busy and does not resemble a single sprite.' };
+    }
+
+    const bboxWidthRatio = (maxX - minX + 1) / Math.max(1, frameWidth);
+    const bboxHeightRatio = (maxY - minY + 1) / Math.max(1, height);
+    if (bboxWidthRatio > 0.86 || bboxHeightRatio > 0.95) {
+        return { valid: false, reason: 'Generated frame spreads across the whole cell like a texture strip.' };
+    }
+
+    const centerX = ((minX + maxX) / 2) / Math.max(1, frameWidth);
+    const centerY = ((minY + maxY) / 2) / Math.max(1, height);
+    if (Math.abs(centerX - 0.5) > 0.28 || Math.abs(centerY - 0.52) > 0.3) {
+        return { valid: false, reason: 'Generated sprite is not centered in the frame.' };
+    }
+
+    if ((horizontalEdgeHits / foregroundCount) > 0.18 || (verticalEdgeHits / foregroundCount) > 0.14) {
+        return { valid: false, reason: 'Generated frame looks clipped or tiled against the borders.' };
+    }
+
+    const shapeStats = _measureFrameShapeComplexity(data, width, height, frameStartX, frameWidth);
+    if (shapeStats.componentCount > 12) {
+        return { valid: false, reason: 'Generated frame contains too many disconnected pieces.' };
+    }
+    if (shapeStats.largestComponentRatio < 0.35) {
+        return { valid: false, reason: 'Generated frame does not contain one clear main creature silhouette.' };
+    }
+
+    return { valid: true };
+}
+
+function _measureFrameShapeComplexity(data, width, height, frameStartX, frameWidth) {
+    const gridW = 24;
+    const gridH = 24;
+    const cells = new Array(gridW * gridH).fill(false);
+
+    for (let gy = 0; gy < gridH; gy += 1) {
+        const yStart = Math.floor((gy / gridH) * height);
+        const yEnd = Math.max(yStart + 1, Math.floor(((gy + 1) / gridH) * height));
+        for (let gx = 0; gx < gridW; gx += 1) {
+            const xStart = frameStartX + Math.floor((gx / gridW) * frameWidth);
+            const xEnd = frameStartX + Math.max(Math.floor(((gx + 1) / gridW) * frameWidth), Math.floor((gx / gridW) * frameWidth) + 1);
+            let foundForeground = false;
+
+            for (let y = yStart; y < yEnd && !foundForeground; y += 1) {
+                for (let x = xStart; x < xEnd; x += 1) {
+                    const idx = (y * width + x) * 4;
+                    if (_isForegroundPixel(data[idx], data[idx + 1], data[idx + 2], data[idx + 3])) {
+                        foundForeground = true;
+                        break;
+                    }
+                }
+            }
+
+            if (foundForeground) cells[(gy * gridW) + gx] = true;
+        }
+    }
+
+    const visited = new Array(cells.length).fill(false);
+    let componentCount = 0;
+    let occupied = 0;
+    let largest = 0;
+
+    for (let i = 0; i < cells.length; i += 1) {
+        if (!cells[i]) continue;
+        occupied += 1;
+        if (visited[i]) continue;
+        componentCount += 1;
+        let componentSize = 0;
+        const stack = [i];
+        visited[i] = true;
+
+        while (stack.length) {
+            const current = stack.pop();
+            componentSize += 1;
+            const x = current % gridW;
+            const y = Math.floor(current / gridW);
+            const neighbors = [
+                [x - 1, y], [x + 1, y], [x, y - 1], [x, y + 1]
+            ];
+
+            for (const [nx, ny] of neighbors) {
+                if (nx < 0 || ny < 0 || nx >= gridW || ny >= gridH) continue;
+                const next = (ny * gridW) + nx;
+                if (!cells[next] || visited[next]) continue;
+                visited[next] = true;
+                stack.push(next);
+            }
+        }
+
+        if (componentSize > largest) largest = componentSize;
+    }
+
+    return {
+        componentCount,
+        largestComponentRatio: largest / Math.max(1, occupied)
+    };
+}
+
+function _isForegroundPixel(r, g, b, a) {
+    if (a < 24) return false;
+    return !(r > 242 && g > 242 && b > 242);
 }
 
 // ─── RECONCILIATION ──────────────────────────────────────────────────────────
@@ -219,6 +435,38 @@ export function reconcileFamiliarLifecycle(studentId, options = {}) {
 }
 
 export function retryFamiliarSpriteGeneration(studentId) {
+    return reconcileFamiliarLifecycle(studentId, { announce: false, source: 'retry', forceRetry: true });
+}
+
+export async function regenerateCurrentFamiliarSprite(studentId) {
+    const scoreRef = doc(db, `${publicDataPath}/student_scores`, studentId);
+    const scoreSnap = await getDoc(scoreRef);
+    if (!scoreSnap.exists()) throw new Error('Student score record not found.');
+
+    const familiar = scoreSnap.data()?.familiar;
+    if (!familiar || familiar.state !== 'alive' || !(familiar.level > 0)) {
+        throw new Error('This student does not have a hatched Familiar to regenerate.');
+    }
+
+    await updateDoc(scoreRef, {
+        [`familiar.spriteSheets.${familiar.level}`]: null,
+        'familiar.generationStatus': 'idle',
+        'familiar.generationLevel': null,
+        'familiar.generationError': null,
+        'familiar.generationUpdatedAt': serverTimestamp()
+    });
+
+    _patchLocalFamiliarState(studentId, (current) => ({
+        ...current,
+        spriteSheets: {
+            ...(current.spriteSheets || {}),
+            [current.level]: null
+        },
+        generationStatus: 'idle',
+        generationLevel: null,
+        generationError: null
+    }));
+
     return reconcileFamiliarLifecycle(studentId, { announce: false, source: 'retry', forceRetry: true });
 }
 
@@ -570,6 +818,9 @@ export function openFamiliarStatsOverlay(studentId) {
                     </button>
                 </div>
                 <div class="text-[10px] text-white/35 mt-2">Variant: ${safeVariantLabel}</div>
+                <button type="button" class="fam-regenerate-btn mt-3 w-full rounded-lg bg-rose-500 hover:bg-rose-400 text-white font-bold text-sm py-2" data-student-id="${studentId}">
+                    Regenerate Sprite
+                </button>
             </div>` : `
             <div class="bg-white/5 rounded-xl p-3 mb-4 text-left">
                 <div class="text-xs text-white/40 uppercase tracking-wider mb-1">Naming</div>
@@ -608,6 +859,24 @@ export function openFamiliarStatsOverlay(studentId) {
             await retryFamiliarSpriteGeneration(studentId);
             closeOverlay();
             setTimeout(() => openFamiliarStatsOverlay(studentId), 200);
+        });
+    }
+
+    const regenerateBtn = overlay.querySelector('.fam-regenerate-btn');
+    if (regenerateBtn) {
+        regenerateBtn.addEventListener('click', async (e) => {
+            e.stopPropagation();
+            regenerateBtn.disabled = true;
+            regenerateBtn.textContent = 'Regenerating...';
+            try {
+                await regenerateCurrentFamiliarSprite(studentId);
+            } catch (error) {
+                console.error('Familiar sprite regeneration failed:', error);
+                showToast(error.message || 'Could not regenerate this Familiar sprite.', 'error');
+            } finally {
+                closeOverlay();
+                setTimeout(() => openFamiliarStatsOverlay(studentId), 200);
+            }
         });
     }
 
@@ -656,6 +925,98 @@ export async function saveFamiliarName(studentId, rawName) {
 
     _patchLocalFamiliarState(studentId, (familiar) => ({ ...familiar, name }));
     showToast(name ? `Familiar named "${name}"!` : 'Familiar name cleared.', 'success');
+}
+
+export function renderFamiliarOptionsUi() {
+    const select = document.getElementById('familiar-maintenance-student-select');
+    const status = document.getElementById('familiar-maintenance-status');
+    const button = document.getElementById('familiar-regenerate-btn');
+    if (!select || !status || !button) return;
+
+    const currentValue = select.value;
+    select.innerHTML = '<option value="">Select a student with a Familiar...</option>';
+
+    const teacherClassIds = new Set((state.get('allTeachersClasses') || []).map((item) => item.id));
+    const students = (state.get('allStudents') || [])
+        .filter((student) => teacherClassIds.has(student.classId))
+        .filter((student) => state.get('allStudentScores').some((score) => score.id === student.id && score.familiar))
+        .sort((a, b) => a.name.localeCompare(b.name));
+
+    for (const student of students) {
+        const option = document.createElement('option');
+        option.value = student.id;
+        option.textContent = student.name;
+        select.appendChild(option);
+    }
+
+    select.value = students.some((student) => student.id === currentValue) ? currentValue : '';
+    updateFamiliarOptionsState();
+}
+
+export function updateFamiliarOptionsState() {
+    const select = document.getElementById('familiar-maintenance-student-select');
+    const status = document.getElementById('familiar-maintenance-status');
+    const button = document.getElementById('familiar-regenerate-btn');
+    if (!select || !status || !button) return;
+
+    const studentId = select.value;
+    if (!studentId) {
+        status.textContent = 'Choose a student to inspect or regenerate their Familiar sprite.';
+        button.disabled = true;
+        return;
+    }
+
+    const student = state.get('allStudents').find((item) => item.id === studentId);
+    const familiar = state.get('allStudentScores').find((item) => item.id === studentId)?.familiar;
+    if (!student || !familiar) {
+        status.textContent = 'No Familiar data found for this student.';
+        button.disabled = true;
+        return;
+    }
+
+    const typeDef = FAMILIAR_TYPES[familiar.typeId];
+    const currentSprite = familiar.level > 0 ? familiar.spriteSheets?.[familiar.level] : null;
+    const generationText = familiar.generationStatus === 'generating'
+        ? 'Generating right now.'
+        : familiar.generationStatus === 'failed'
+            ? `Last attempt failed: ${familiar.generationError || 'unknown error'}`
+            : currentSprite
+                ? 'Current sprite is saved.'
+                : 'No sprite saved for the current level yet.';
+    const stageText = familiar.state === 'egg'
+        ? 'Egg stage'
+        : `${typeDef?.name || 'Familiar'} • Level ${familiar.level || 1}`;
+
+    status.textContent = `${student.name}: ${stageText}. ${generationText}`;
+    button.disabled = familiar.state !== 'alive' || familiar.generationStatus === 'generating';
+}
+
+export async function handleRegenerateFamiliarFromOptions() {
+    const select = document.getElementById('familiar-maintenance-student-select');
+    const button = document.getElementById('familiar-regenerate-btn');
+    if (!select || !button) return;
+
+    const studentId = select.value;
+    if (!studentId) {
+        showToast('Choose a student first.', 'error');
+        return;
+    }
+
+    const student = state.get('allStudents').find((item) => item.id === studentId);
+    button.disabled = true;
+    const originalLabel = button.innerHTML;
+    button.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> Regenerating...';
+
+    try {
+        await regenerateCurrentFamiliarSprite(studentId);
+        showToast(`Started a new Familiar sprite generation for ${student?.name || 'this student'}.`, 'success');
+    } catch (error) {
+        console.error('Familiar sprite regeneration failed:', error);
+        showToast(error.message || 'Could not regenerate the Familiar sprite.', 'error');
+    } finally {
+        button.innerHTML = originalLabel;
+        updateFamiliarOptionsState();
+    }
 }
 
 function _patchLocalFamiliarState(studentId, patcher) {

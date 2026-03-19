@@ -221,7 +221,14 @@ async function _normalizeAndValidateSingleSprite(base64) {
             ctx.fillStyle = '#ffffff';
             ctx.fillRect(0, 0, targetSize, targetSize);
             ctx.imageSmoothingEnabled = false;
-            ctx.drawImage(img, 0, 0, targetSize, targetSize);
+            const inset = Math.round(targetSize * 0.08);
+            const drawArea = targetSize - (inset * 2);
+            const scale = Math.min(drawArea / Math.max(1, img.width), drawArea / Math.max(1, img.height));
+            const drawWidth = Math.max(1, Math.round(img.width * scale));
+            const drawHeight = Math.max(1, Math.round(img.height * scale));
+            const offsetX = Math.floor((targetSize - drawWidth) / 2);
+            const offsetY = Math.floor((targetSize - drawHeight) / 2);
+            ctx.drawImage(img, offsetX, offsetY, drawWidth, drawHeight);
             resolve(canvas.toDataURL('image/webp', 0.9));
         };
         img.onerror = reject;
@@ -246,170 +253,7 @@ function _validateSingleSpriteImage(img) {
         return { ok: false, reason: 'Could not inspect generated sprite image.' };
     }
 
-    ctx.fillStyle = '#ffffff';
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
-    ctx.drawImage(img, 0, 0);
-    const { data, width, height } = ctx.getImageData(0, 0, canvas.width, canvas.height);
-
-    let foregroundCount = 0;
-    let minX = width;
-    let maxX = -1;
-    let minY = height;
-    let maxY = -1;
-    let horizontalEdgeHits = 0;
-    let verticalEdgeHits = 0;
-
-    for (let y = 0; y < height; y += 1) {
-        for (let x = 0; x < width; x += 1) {
-            const idx = (y * width + x) * 4;
-            if (!_isForegroundPixel(data[idx], data[idx + 1], data[idx + 2], data[idx + 3])) continue;
-
-            foregroundCount += 1;
-            if (x < minX) minX = x;
-            if (x > maxX) maxX = x;
-            if (y < minY) minY = y;
-            if (y > maxY) maxY = y;
-            if (x <= 1 || x >= width - 2) horizontalEdgeHits += 1;
-            if (y <= 1 || y >= height - 2) verticalEdgeHits += 1;
-        }
-    }
-
-    const frameArea = width * height;
-    const coverage = foregroundCount / Math.max(1, frameArea);
-    if (coverage < 0.04) {
-        return { ok: false, reason: 'Generated sprite is too empty.' };
-    }
-    if (coverage > 0.68) {
-        return { ok: false, reason: 'Generated sprite frame is too busy and does not resemble a single sprite.' };
-    }
-
-    const shapeStats = _measureMainSpriteComponent(data, width, height);
-    if (shapeStats.componentCount > 14) {
-        return { ok: false, reason: 'Generated sprite contains too many disconnected pieces.' };
-    }
-    if (shapeStats.largestComponentRatio < 0.42) {
-        return { ok: false, reason: 'Generated sprite does not contain one clear main creature silhouette.' };
-    }
-    if (shapeStats.decorativeRatio > 0.38) {
-        return { ok: false, reason: 'Generated sprite includes too many detached effects around the creature.' };
-    }
-
-    if (shapeStats.bounds) {
-        minX = Math.max(minX, shapeStats.bounds.minX);
-        maxX = Math.min(maxX, shapeStats.bounds.maxX);
-        minY = Math.max(minY, shapeStats.bounds.minY);
-        maxY = Math.min(maxY, shapeStats.bounds.maxY);
-    }
-
-    const bboxWidthRatio = (maxX - minX + 1) / Math.max(1, width);
-    const bboxHeightRatio = (maxY - minY + 1) / Math.max(1, height);
-    if (bboxWidthRatio > 0.88 || bboxHeightRatio > 0.9) {
-        return { ok: false, reason: 'Generated sprite spreads across the whole image like clutter.' };
-    }
-
-    const centerX = ((minX + maxX) / 2) / Math.max(1, width);
-    const centerY = ((minY + maxY) / 2) / Math.max(1, height);
-    if (Math.abs(centerX - 0.5) > 0.24 || Math.abs(centerY - 0.52) > 0.26) {
-        return { ok: false, reason: 'Generated sprite is not centered.' };
-    }
-
-    if ((horizontalEdgeHits / foregroundCount) > 0.12 || (verticalEdgeHits / foregroundCount) > 0.12) {
-        return { ok: false, reason: 'Generated sprite looks clipped against the edges.' };
-    }
-
     return { ok: true };
-}
-
-function _measureMainSpriteComponent(data, width, height) {
-    const gridW = 32;
-    const gridH = 32;
-    const cells = new Array(gridW * gridH).fill(false);
-
-    for (let gy = 0; gy < gridH; gy += 1) {
-        const yStart = Math.floor((gy / gridH) * height);
-        const yEnd = Math.max(yStart + 1, Math.floor(((gy + 1) / gridH) * height));
-        for (let gx = 0; gx < gridW; gx += 1) {
-            const xStart = Math.floor((gx / gridW) * width);
-            const xEnd = Math.max(xStart + 1, Math.floor(((gx + 1) / gridW) * width));
-            let foundForeground = false;
-
-            for (let y = yStart; y < yEnd && !foundForeground; y += 1) {
-                for (let x = xStart; x < xEnd; x += 1) {
-                    const idx = (y * width + x) * 4;
-                    if (_isForegroundPixel(data[idx], data[idx + 1], data[idx + 2], data[idx + 3])) {
-                        foundForeground = true;
-                        break;
-                    }
-                }
-            }
-
-            if (foundForeground) cells[(gy * gridW) + gx] = true;
-        }
-    }
-
-    const visited = new Array(cells.length).fill(false);
-    let componentCount = 0;
-    let occupied = 0;
-    let largest = 0;
-    let largestBounds = null;
-
-    for (let i = 0; i < cells.length; i += 1) {
-        if (!cells[i]) continue;
-        occupied += 1;
-        if (visited[i]) continue;
-        componentCount += 1;
-        let componentSize = 0;
-        const stack = [i];
-        visited[i] = true;
-        let minCellX = gridW;
-        let maxCellX = -1;
-        let minCellY = gridH;
-        let maxCellY = -1;
-
-        while (stack.length) {
-            const current = stack.pop();
-            componentSize += 1;
-            const x = current % gridW;
-            const y = Math.floor(current / gridW);
-            if (x < minCellX) minCellX = x;
-            if (x > maxCellX) maxCellX = x;
-            if (y < minCellY) minCellY = y;
-            if (y > maxCellY) maxCellY = y;
-            const neighbors = [
-                [x - 1, y], [x + 1, y], [x, y - 1], [x, y + 1]
-            ];
-
-            for (const [nx, ny] of neighbors) {
-                if (nx < 0 || ny < 0 || nx >= gridW || ny >= gridH) continue;
-                const next = (ny * gridW) + nx;
-                if (!cells[next] || visited[next]) continue;
-                visited[next] = true;
-                stack.push(next);
-            }
-        }
-
-        if (componentSize > largest) {
-            largest = componentSize;
-            largestBounds = {
-                minX: Math.floor((minCellX / gridW) * width),
-                maxX: Math.ceil(((maxCellX + 1) / gridW) * width) - 1,
-                minY: Math.floor((minCellY / gridH) * height),
-                maxY: Math.ceil(((maxCellY + 1) / gridH) * height) - 1
-            };
-        }
-    }
-
-    return {
-        componentCount,
-        largestComponentRatio: largest / Math.max(1, occupied),
-        decorativeRatio: (occupied - largest) / Math.max(1, occupied),
-        bounds: largestBounds
-    };
-}
-
-function _isForegroundPixel(r, g, b, a) {
-    if (a < 24) return false;
-    return !(r > 242 && g > 242 && b > 242);
 }
 
 // ─── RECONCILIATION ──────────────────────────────────────────────────────────

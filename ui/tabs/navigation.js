@@ -20,7 +20,7 @@ import { generateLeagueMapHtml } from '../../features/worldMap.js';
 import { renderClassLeaderboardTab, renderStudentLeaderboardTab } from './leaderboard.js';
 import { renderGuildsTab } from './guilds.js';
 import { renderManageClassesTab, renderManageStudentsTab } from './classes.js';
-import { renderAwardStarsTab } from './award.js';
+import { renderAwardStarsTab, resetAwardCardVisualSession } from './award.js';
 import { renderAdventureLogTab } from './log.js';
 import {
     handleSaveSchoolNameFromOptions,
@@ -138,6 +138,7 @@ export async function showTab(tabName) {
 
     if (tabId === 'award-stars-tab') {
         const { findAndSetCurrentClass } = await import('../core.js');
+        resetAwardCardVisualSession();
         // First render with whatever state we have
         renderAwardStarsTab();
         // Then try to find the current class based on time, which will trigger a re-render via state.js if found

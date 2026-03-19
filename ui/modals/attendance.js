@@ -13,6 +13,52 @@ import { getUpgradeMessage } from '../../config/tiers/features.js';
 
 // --- REVAMPED ATTENDANCE CHRONICLE MODAL ---
 
+let attendanceChronicleRefreshTimer = null;
+
+function getAttendanceChronicleModal() {
+    return document.getElementById('attendance-chronicle-modal');
+}
+
+function getAttendanceViewMonthKey(date = state.get('attendanceViewDate')) {
+    return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+}
+
+function syncAttendanceChronicleModalState(classId, isEditableMonth) {
+    const modal = getAttendanceChronicleModal();
+    if (!modal) return;
+    modal.dataset.classId = classId || '';
+    modal.dataset.viewMonthKey = getAttendanceViewMonthKey();
+    modal.dataset.isLiveMonth = isEditableMonth ? 'true' : 'false';
+}
+
+export function isLiveAttendanceChronicleOpen() {
+    const modal = getAttendanceChronicleModal();
+    return Boolean(
+        modal &&
+        !modal.classList.contains('hidden') &&
+        modal.dataset.isLiveMonth === 'true' &&
+        modal.dataset.classId
+    );
+}
+
+export function scheduleAttendanceChronicleRefresh() {
+    if (!isLiveAttendanceChronicleOpen()) return;
+    const modal = getAttendanceChronicleModal();
+    const classId = modal?.dataset.classId;
+    if (!classId) return;
+
+    if (attendanceChronicleRefreshTimer) {
+        window.clearTimeout(attendanceChronicleRefreshTimer);
+    }
+
+    attendanceChronicleRefreshTimer = window.setTimeout(() => {
+        attendanceChronicleRefreshTimer = null;
+        renderAttendanceChronicle(classId).catch((error) => {
+            console.warn('Could not refresh Attendance Chronicle live view:', error);
+        });
+    }, 90);
+}
+
 export async function openAttendanceChronicle() {
     if (!canUseFeature('advancedAttendance')) {
         showUpgradePrompt('Pro', { message: getUpgradeMessage('Pro', 'advancedAttendance') });
@@ -28,6 +74,7 @@ export async function openAttendanceChronicle() {
     document.getElementById('attendance-chronicle-title').innerHTML = `${classData.logo} Attendance Chronicle`;
     document.getElementById('attendance-chronicle-content').innerHTML = `<p class="text-center py-8"><i class="fas fa-spinner fa-spin mr-2"></i>Loading attendance records...</p>`;
     showAnimatedModal('attendance-chronicle-modal');
+    syncAttendanceChronicleModalState(classId, true);
 
     await renderAttendanceChronicle(classId);
 }
@@ -61,6 +108,7 @@ export async function renderAttendanceChronicle(classId) {
     const now = new Date();
     const isCurrentMonthView = currentYear === now.getFullYear() && currentMonth === now.getMonth();
     const isEditableMonth = isCurrentMonthView;
+    syncAttendanceChronicleModalState(classId, isEditableMonth);
     
     if (isEditableMonth) {
         // Use real-time state

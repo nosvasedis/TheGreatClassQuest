@@ -8,6 +8,7 @@ import * as constants from '../constants.js';
 import { renderFamiliarSprite } from '../features/familiars.js';
 import { getEggAlertState } from '../features/familiarProgression.mjs';
 import { getNextAssessmentOccurrenceForToday, getUpcomingScheduledAssessment } from '../features/assessmentConfig.js';
+import { getClassQuestProgressData, getQuestMapZoneForProgressPercent } from '../features/worldMap.js';
 
 // Proper Fisher-Yates shuffle for true variety
 function shuffleDeck(array) {
@@ -105,6 +106,52 @@ let solarData = {
     sunset: new Date().setHours(20, 30, 0, 0)
 };
 
+const clockHandAngles = {
+    hour: null,
+    minute: null,
+    second: null
+};
+
+function resetWallpaperClockHandAngles() {
+    clockHandAngles.hour = null;
+    clockHandAngles.minute = null;
+    clockHandAngles.second = null;
+}
+
+function setContinuousClockRotation(hand, key, angle) {
+    if (!hand) return;
+    let nextAngle = angle;
+    const previous = clockHandAngles[key];
+    if (previous !== null) {
+        while (nextAngle < previous) nextAngle += 360;
+    }
+    clockHandAngles[key] = nextAngle;
+    hand.style.transform = `rotate(${nextAngle}deg)`;
+}
+
+function getWallpaperTimerTone(deadline) {
+    const tone = utils.getCountdownTone(deadline);
+    if (tone === 'critical') {
+        return {
+            cardClass: 'float-card-red animate-pulse',
+            icon: '🔥',
+            accent: 'text-rose-100'
+        };
+    }
+    if (tone === 'warning') {
+        return {
+            cardClass: 'float-card-orange',
+            icon: '⏳',
+            accent: 'text-amber-100'
+        };
+    }
+    return {
+        cardClass: 'float-card-indigo',
+        icon: '⏰',
+        accent: 'text-sky-100'
+    };
+}
+
 export function toggleWallpaperMode() {
     const wallpaperEl = document.getElementById('dynamic-wallpaper-screen');
     const isHidden = wallpaperEl.classList.contains('hidden') || wallpaperEl.classList.contains('wallpaper-exit');
@@ -148,6 +195,7 @@ export function toggleWallpaperMode() {
             clearTimeout(directorTimeout);
             if (wallpaperTimerInterval) clearInterval(wallpaperTimerInterval);
             clearInterval(clockInterval);
+            resetWallpaperClockHandAngles();
             document.getElementById('wall-floating-area').innerHTML = '';
             document.getElementById('wall-quote-container').style.opacity = '0';
         }, 600);
@@ -198,9 +246,9 @@ function startWallpaperClock() {
             const hourDeg = (h * 30) + (m * 0.5) + (s * (0.5 / 60)); // 30° per hour + minute/second offset
             const minuteDeg = (m * 6) + (s * 0.1);                       // 6° per minute + second offset
             const secondDeg = s * 6;                                       // 6° per second
-            clockHour.style.transform = `rotate(${hourDeg}deg)`;
-            clockMinute.style.transform = `rotate(${minuteDeg}deg)`;
-            clockSecond.style.transform = `rotate(${secondDeg}deg)`;
+            setContinuousClockRotation(clockHour, 'hour', hourDeg);
+            setContinuousClockRotation(clockMinute, 'minute', minuteDeg);
+            setContinuousClockRotation(clockSecond, 'second', secondDeg);
         }
 
         // 2. Check Night Mode from Global State (Fixes Issue #2)
@@ -464,6 +512,26 @@ async function directorGameLoop() {
                                 </div>
                             </div>
                             <div class="font-title text-5xl text-white drop-shadow-md leading-none font-variant-numeric:tabular-nums">${timeDisplay}</div>
+                        </div>
+                    </div>`;
+                const tone = getWallpaperTimerTone(activeTimer.deadline);
+                const timeDisplay = utils.formatCountdownClock(activeTimer.deadline, { expiredLabel: '00:00:00' });
+                const urgencyLabel = utils.formatCountdownCompact(activeTimer.deadline, 'Expired');
+                timerOverlay.innerHTML = `
+                    <div class="wallpaper-float-card ${tone.cardClass} !w-auto !min-w-[360px] !rounded-[28px] !p-5 shadow-2xl border-4" style="position: relative; transform: none; animation: none;">
+                        <div class="flex items-center justify-between gap-6">
+                            <div class="flex items-center gap-4">
+                                <div class="flex h-16 w-16 items-center justify-center rounded-2xl bg-white/15 text-4xl shadow-inner shadow-white/10">${tone.icon}</div>
+                                <div class="text-left">
+                                    <div class="text-[10px] font-black uppercase tracking-[0.28em] text-white/70 leading-none mb-2">Timed Quest</div>
+                                    <h3 class="font-title text-2xl text-white leading-tight truncate max-w-[180px]">${activeTimer.title}</h3>
+                                    <div class="mt-2 text-sm font-bold ${tone.accent}">Clock pressure is active</div>
+                                </div>
+                            </div>
+                            <div class="text-right">
+                                <div class="font-title text-5xl text-white drop-shadow-md leading-none font-variant-numeric:tabular-nums">${timeDisplay}</div>
+                                <div class="mt-2 text-xs font-black uppercase tracking-[0.24em] text-white/65">${urgencyLabel}</div>
+                            </div>
                         </div>
                     </div>`;
             } else {
@@ -1242,17 +1310,17 @@ function getQuestMapPositionCard(classId) {
         'C': { zone: 'The Storm Peaks', icon: '⛰️', desc: 'Near the top – keep climbing!' },
         'D': { zone: 'The Sky Citadel', icon: '🏰', desc: 'Elite territory, champion!' }
     };
-    const zone = mapZones[cls.questLevel] || mapZones['A'];
-    const students = state.get('allStudents').filter(s => s.classId === classId);
-    const scores = state.get('allStudentScores');
-    const totalStars = students.reduce((sum, s) => { const sc = scores.find(x => x.id === s.id); return sum + (sc?.monthlyStars || 0); }, 0);
+    const progress = getClassQuestProgressData(cls);
+    const zone = getQuestMapZoneForProgressPercent(progress.pct);
+    const totalStars = progress.starsDisplay;
     return {
         html: `<div class="text-center w-full">
             <div class="badge-pill bg-emerald-100 text-emerald-800">Quest Map Position</div>
             <div class="text-7xl my-4">${zone.icon}</div>
-            <h3 class="font-title text-3xl text-emerald-900">${zone.zone}</h3>
+            <h3 class="font-title text-3xl text-emerald-900">${zone.label}</h3>
             <p class="text-emerald-600 font-bold text-lg mt-1">${zone.desc}</p>
             <div class="mt-4 bg-emerald-100 rounded-xl p-3">
+                <p class="text-emerald-800 font-bold">${progress.progressDisplay}% progress &nbsp;|&nbsp; Goal: ${progress.goal}</p>
                 <p class="text-emerald-800 font-bold">League: ${cls.questLevel} &nbsp;|&nbsp; ${totalStars} ⭐ this month</p>
             </div>
         </div>`,
@@ -1683,6 +1751,7 @@ function getUpcomingTestCountdownCard(classId, questLevel) {
     if (!upcoming || upcoming.dayDiff < 1) return null;
     const days = upcoming.dayDiff;
     const tier = getLevelTier(questLevel);
+    const countdownTarget = upcoming.startAt || upcoming.scheduledDate || null;
     const msgs = {
         junior: [`Only ${days} days until your test! You've got this! 💪`, `${days} more sleeps until the test – keep practising! 🌟`],
         mid: [`Test in ${days} day${days > 1 ? 's' : ''}! Time to review your notes!`, `${days} day countdown to "${upcoming.testData.title}" – start preparing!`],
@@ -1695,6 +1764,7 @@ function getUpcomingTestCountdownCard(classId, questLevel) {
             <div class="badge-pill bg-amber-100 text-amber-800">⏰ Test Countdown</div>
             <div class="text-8xl my-4 animate-bounce-slow">📝</div>
             <h3 class="font-title text-5xl text-amber-900">${days} Day${days > 1 ? 's' : ''}</h3>
+            ${countdownTarget ? `<p class="mt-3 text-sm font-black uppercase tracking-[0.28em] text-amber-500">${utils.formatCountdownCompact(countdownTarget, 'Today')}</p>` : ''}
             <p class="text-amber-700 font-bold text-xl mt-2">${msg}</p>
             <p class="text-amber-600 font-bold mt-2">📖 "${upcoming.testData.title}"</p>
             <p class="text-amber-500 font-bold mt-1">${upcoming.detailLabel}</p>
@@ -2003,7 +2073,7 @@ function getRecentAwardCard(classId, logId) {
 }
 
 function getClassBountyCard(classId) {
-    const bounty = state.get('allQuestBounties').find(b => b.classId === classId && b.status === 'active');
+    const bounty = state.get('allQuestBounties').find(b => b.classId === classId && b.status === 'active' && b.type === 'standard');
     if (!bounty) return null;
 
     const pct = Math.round((bounty.currentProgress / bounty.target) * 100);

@@ -2,6 +2,89 @@
 import * as state from '../state.js'; // Import state to get live scores
 import * as utils from '../utils.js';
 
+export const QUEST_MAP_ZONES = [
+    {
+        id: 'bronze',
+        minPercent: 0,
+        label: 'Bronze Meadows',
+        icon: '🌿',
+        desc: 'The first stretch of the adventure road.',
+        glow: 'shadow-[0_0_10px_rgba(165,180,252,0.5)]',
+        animationClass: 'animate-bounce-slow'
+    },
+    {
+        id: 'silver',
+        minPercent: 30,
+        label: 'Silver Peaks',
+        icon: '🏔️',
+        desc: 'Steady climbers reach the high passes.',
+        glow: 'shadow-[0_0_10px_rgba(125,211,252,0.5)] border-sky-200',
+        animationClass: 'animate-bounce-slow'
+    },
+    {
+        id: 'gold',
+        minPercent: 60,
+        label: 'Golden Citadel',
+        icon: '🏰',
+        desc: 'The citadel opens to classes on a streak.',
+        glow: 'shadow-[0_0_12px_rgba(251,191,36,0.6)] border-amber-300',
+        animationClass: 'animate-bounce-slow'
+    },
+    {
+        id: 'crystal',
+        minPercent: 85,
+        label: 'Crystal Realm',
+        icon: '💎',
+        desc: 'Top-tier champions sparkle at the summit.',
+        glow: 'shadow-[0_0_15px_rgba(216,180,254,0.8)] border-purple-300',
+        animationClass: 'animate-pulse'
+    }
+];
+
+export function getQuestMapZoneForProgressPercent(progressPercent = 0) {
+    const safePercent = Number.isFinite(progressPercent) ? progressPercent : 0;
+    return QUEST_MAP_ZONES.reduce((current, zone) => (
+        safePercent >= zone.minPercent ? zone : current
+    ), QUEST_MAP_ZONES[0]);
+}
+
+export function getClassQuestProgressData(classroom, students = null, allScores = null) {
+    if (!classroom) {
+        return {
+            liveMonthlyStars: 0,
+            classQuestBonus: 0,
+            goal: 18,
+            pct: 0,
+            progressDisplay: '0.0',
+            starsDisplay: '0'
+        };
+    }
+
+    const classStudents = Array.isArray(students)
+        ? students
+        : state.get('allStudents').filter((student) => student.classId === classroom.id);
+    const scores = Array.isArray(allScores) ? allScores : (state.get('allStudentScores') || []);
+    const fallbackTotals = utils.getClassMonthlyQuestStars(classroom, classStudents, scores);
+    const liveMonthlyStars = Number.isFinite(classroom.currentMonthlyStars)
+        ? Number(classroom.currentMonthlyStars)
+        : fallbackTotals.totalStars;
+    const classQuestBonus = Number.isFinite(classroom.classQuestBonus)
+        ? Number(classroom.classQuestBonus)
+        : fallbackTotals.classBonus;
+    const goal = classroom.goals?.diamond || 18;
+    const rawPct = goal > 0 ? (liveMonthlyStars / goal) * 100 : 0;
+    const pct = Math.min(100, Math.max(0, rawPct));
+
+    return {
+        liveMonthlyStars,
+        classQuestBonus,
+        goal,
+        pct,
+        progressDisplay: pct.toFixed(1),
+        starsDisplay: liveMonthlyStars % 1 !== 0 ? liveMonthlyStars.toFixed(1) : liveMonthlyStars.toFixed(0)
+    };
+}
+
 export function generateLeagueMapHtml(classes) {
     const W = 1000;
     const H = 562;
@@ -14,15 +97,14 @@ export function generateLeagueMapHtml(classes) {
     let mapItems = classes.map(c => {
         const students = state.get('allStudents').filter(s => s.classId === c.id);
         const allScores = state.get('allStudentScores') || [];
-        const fallbackTotals = utils.getClassMonthlyQuestStars(c, students, allScores);
-        const liveMonthlyStars = Number.isFinite(c.currentMonthlyStars) ? Number(c.currentMonthlyStars) : fallbackTotals.totalStars;
-        const classQuestBonus = Number.isFinite(c.classQuestBonus) ? Number(c.classQuestBonus) : fallbackTotals.classBonus;
-
-        const starsDisplay = liveMonthlyStars % 1 !== 0 ? liveMonthlyStars.toFixed(1) : liveMonthlyStars.toFixed(0);
-        const goal = c.goals?.diamond || 18;
-        const rawPct = goal > 0 ? (liveMonthlyStars / goal) * 100 : 0;
-        const pct = Math.min(100, Math.max(0, rawPct));
-        const progressDisplay = pct.toFixed(1);
+        const {
+            liveMonthlyStars,
+            classQuestBonus,
+            starsDisplay,
+            goal,
+            pct,
+            progressDisplay
+        } = getClassQuestProgressData(c, students, allScores);
 
         // Get ideal position on the curve
         const pos = getComplexPathPoint(pct / 100);
@@ -83,21 +165,7 @@ export function generateLeagueMapHtml(classes) {
         const { c, pct, x, y, isLeader, progressDisplay, starsDisplay, goal, displayLevel, classQuestBonus } = item;
 
         // Determine Zone Styles
-        let currentZone = "Bronze Meadows";
-        let zoneGlow = "shadow-[0_0_10px_rgba(165,180,252,0.5)]";
-        let animationClass = "animate-bounce-slow";
-
-        if (pct >= 85) {
-            currentZone = "Crystal Realm";
-            zoneGlow = "shadow-[0_0_15px_rgba(216,180,254,0.8)] border-purple-300";
-            animationClass = "animate-pulse"; 
-        } else if (pct >= 60) {
-            currentZone = "Golden Citadel";
-            zoneGlow = "shadow-[0_0_12px_rgba(251,191,36,0.6)] border-amber-300";
-        } else if (pct >= 30) {
-            currentZone = "Silver Peaks";
-            zoneGlow = "shadow-[0_0_10px_rgba(125,211,252,0.5)] border-sky-200";
-        }
+        const zone = getQuestMapZoneForProgressPercent(pct);
 
         // Smart Tooltip Positioning based on map location
         const topPct = (y / H) * 100;
@@ -117,7 +185,7 @@ export function generateLeagueMapHtml(classes) {
                 
                 <div class="absolute -bottom-2 left-1/2 -translate-x-1/2 w-8 h-2 bg-black/20 rounded-full blur-sm transition-all group-hover:w-12 group-hover:opacity-40"></div>
 
-                <div class="pin-head w-full h-full rounded-full border-2 bg-white flex items-center justify-center text-2xl shadow-lg transition-all ${zoneGlow} ${animationClass} overflow-hidden relative">
+                <div class="pin-head w-full h-full rounded-full border-2 bg-white flex items-center justify-center text-2xl shadow-lg transition-all ${zone.glow} ${zone.animationClass} overflow-hidden relative">
                     <div class="absolute inset-0 bg-gradient-to-tr from-transparent via-white/40 to-transparent pointer-events-none"></div>
                     <span class="filter drop-shadow-sm z-10 transform scale-110">${c.logo}</span>
                     
@@ -132,7 +200,7 @@ export function generateLeagueMapHtml(classes) {
                 </div>
                 
                 <div class="flex justify-between items-center mb-1 text-xs">
-                    <span class="font-bold text-indigo-900 uppercase tracking-wide">${currentZone}</span>
+                    <span class="font-bold text-indigo-900 uppercase tracking-wide">${zone.label}</span>
                     <span class="bg-gray-100 text-gray-600 px-1.5 rounded font-bold">Lvl ${displayLevel}</span>
                 </div>
                 

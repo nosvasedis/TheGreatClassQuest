@@ -52,14 +52,14 @@ function clearSetupGraceTicker() {
 }
 
 function formatGraceCountdown(endsAt) {
-    const endMs = new Date(endsAt || '').getTime();
-    if (Number.isNaN(endMs)) return '';
-    const diff = endMs - Date.now();
-    if (diff <= 0) return 'Expired';
-    const totalMinutes = Math.ceil(diff / 60000);
-    const hours = Math.floor(totalMinutes / 60);
-    const minutes = totalMinutes % 60;
-    return `${String(hours).padStart(2, '0')}h ${String(minutes).padStart(2, '0')}m`;
+    const compact = utils.formatCountdownCompact(endsAt, 'Expired');
+    const tone = utils.getCountdownTone(endsAt);
+    const toneClass = tone === 'critical'
+        ? 'bg-rose-100 text-rose-700 border-rose-200'
+        : tone === 'warning'
+            ? 'bg-amber-100 text-amber-700 border-amber-200'
+            : 'bg-emerald-100 text-emerald-700 border-emerald-200';
+    return `<span class="inline-flex items-center gap-2 rounded-full border px-3 py-1 ${toneClass}"><i class="fas fa-hourglass-half"></i><span>${compact}</span></span>`;
 }
 
 function formatLocationLabel(location) {
@@ -329,7 +329,7 @@ function renderSetupCopy() {
             graceBanner.classList.remove('hidden');
             graceCopy.textContent = 'Finish setup before the timer ends so the school does not lock again.';
             const refreshGrace = () => {
-                graceCountdown.textContent = formatGraceCountdown(graceWindow.endsAt);
+                graceCountdown.innerHTML = formatGraceCountdown(graceWindow.endsAt);
                 if (new Date(graceWindow.endsAt).getTime() <= Date.now()) {
                     clearSetupGraceTicker();
                 }

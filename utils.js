@@ -8,6 +8,82 @@ export function simpleHashCode(str) {
     return Math.abs(hash);
 }
 
+export function getCountdownParts(endsAt, nowMs = Date.now()) {
+    const endMs = new Date(endsAt || '').getTime();
+    if (Number.isNaN(endMs)) {
+        return {
+            valid: false,
+            expired: true,
+            totalMs: 0,
+            days: 0,
+            hours: 0,
+            minutes: 0,
+            seconds: 0
+        };
+    }
+
+    const diff = Math.max(0, endMs - nowMs);
+    const totalSeconds = Math.floor(diff / 1000);
+    const days = Math.floor(totalSeconds / 86400);
+    const hours = Math.floor((totalSeconds % 86400) / 3600);
+    const minutes = Math.floor((totalSeconds % 3600) / 60);
+    const seconds = totalSeconds % 60;
+
+    return {
+        valid: true,
+        expired: diff <= 0,
+        totalMs: diff,
+        totalSeconds,
+        days,
+        hours,
+        minutes,
+        seconds
+    };
+}
+
+export function formatCountdownCompact(endsAt, expiredLabel = 'Expired') {
+    const parts = getCountdownParts(endsAt);
+    if (!parts.valid) return '';
+    if (parts.expired) return expiredLabel;
+    if (parts.days > 0) {
+        return `${parts.days}d ${String(parts.hours).padStart(2, '0')}h ${String(parts.minutes).padStart(2, '0')}m`;
+    }
+    const totalHours = Math.floor(parts.totalSeconds / 3600);
+    return `${String(totalHours).padStart(2, '0')}h ${String(parts.minutes).padStart(2, '0')}m`;
+}
+
+export function formatCountdownClock(endsAt, options = {}) {
+    const {
+        expiredLabel = '00:00',
+        includeSeconds = true,
+        allowDays = true
+    } = options;
+    const parts = getCountdownParts(endsAt);
+    if (!parts.valid) return '';
+    if (parts.expired) return expiredLabel;
+
+    if (allowDays && parts.days > 0) {
+        return includeSeconds
+            ? `${parts.days}d ${String(parts.hours).padStart(2, '0')}:${String(parts.minutes).padStart(2, '0')}:${String(parts.seconds).padStart(2, '0')}`
+            : `${parts.days}d ${String(parts.hours).padStart(2, '0')}:${String(parts.minutes).padStart(2, '0')}`;
+    }
+
+    const totalHours = Math.floor(parts.totalSeconds / 3600);
+    if (includeSeconds) {
+        return `${String(totalHours).padStart(2, '0')}:${String(parts.minutes).padStart(2, '0')}:${String(parts.seconds).padStart(2, '0')}`;
+    }
+    return `${String(totalHours).padStart(2, '0')}:${String(parts.minutes).padStart(2, '0')}`;
+}
+
+export function getCountdownTone(endsAt) {
+    const parts = getCountdownParts(endsAt);
+    if (!parts.valid || parts.expired) return 'expired';
+    if (parts.totalMs <= 60000) return 'critical';
+    if (parts.totalMs <= 180000) return 'urgent';
+    if (parts.totalMs <= 900000) return 'active';
+    return 'calm';
+}
+
 const DEFAULT_WEATHER_LOCATION = {
     name: 'Athens',
     admin1: 'Attica',

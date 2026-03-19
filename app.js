@@ -51,20 +51,14 @@ function clearSubscribeGraceTicker() {
 }
 
 function formatRemainingTime(endsAt) {
-    const endMs = new Date(endsAt || '').getTime();
-    if (Number.isNaN(endMs)) return '';
-    const diff = endMs - Date.now();
-    if (diff <= 0) return 'Grace time has ended';
-
-    const totalMinutes = Math.ceil(diff / 60000);
-    const hours = Math.floor(totalMinutes / 60);
-    const minutes = totalMinutes % 60;
-    if (hours >= 24) {
-        const days = Math.floor(hours / 24);
-        const remHours = hours % 24;
-        return `${days}d ${String(remHours).padStart(2, '0')}h ${String(minutes).padStart(2, '0')}m`;
-    }
-    return `${String(hours).padStart(2, '0')}h ${String(minutes).padStart(2, '0')}m`;
+    const compact = utils.formatCountdownCompact(endsAt, 'Grace time has ended');
+    const tone = utils.getCountdownTone(endsAt);
+    const toneClass = tone === 'critical'
+        ? 'bg-rose-100 text-rose-700 border-rose-200'
+        : tone === 'warning'
+            ? 'bg-amber-100 text-amber-700 border-amber-200'
+            : 'bg-emerald-100 text-emerald-700 border-emerald-200';
+    return `<span class="inline-flex items-center gap-2 rounded-full border px-3 py-1 ${toneClass}"><i class="fas fa-hourglass-half"></i><span>${compact}</span></span>`;
 }
 
 function updateSubscribeGraceBanner(graceWindow, options = {}) {
@@ -87,7 +81,7 @@ function updateSubscribeGraceBanner(graceWindow, options = {}) {
         meta.textContent = 'Grace timer is running';
 
         const refresh = () => {
-            countdown.textContent = formatRemainingTime(graceWindow.endsAt);
+            countdown.innerHTML = formatRemainingTime(graceWindow.endsAt);
             if (new Date(graceWindow.endsAt).getTime() <= Date.now()) {
                 clearSubscribeGraceTicker();
             }

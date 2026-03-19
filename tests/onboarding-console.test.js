@@ -358,3 +358,11 @@ test('summarizeGoogleErrorText shortens Google HTML error pages', () => {
     'Error 404 (Not Found)!!1. Requested URL: /v2/projects/gcq-test/identityPlatform:initializeAuth'
   );
 });
+
+test('storage rules allow authenticated Familiar sprite uploads', () => {
+  const storageRulesPath = path.join(__dirname, '..', 'storage.rules');
+  const rules = fs.readFileSync(storageRulesPath, 'utf8');
+
+  assert.match(rules, /match \/familiars\/\{allPaths=\*\*\}/);
+  assert.match(rules, /match \/familiars\/\{allPaths=\*\*\}[\s\S]*allow read, write: if request\.auth != null;/);
+});

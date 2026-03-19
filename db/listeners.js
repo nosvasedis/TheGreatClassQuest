@@ -16,7 +16,6 @@ import {
     renderTrialHistoryContent
 } from '../features/scholarScroll.js';
 import { updateStudentCardAttendanceState, findAndSetCurrentClass } from '../ui/core.js';
-import { updateStudentCardAttendanceState as updateTabAttendance } from '../ui/tabs.js'; // Explicit import to avoid naming collision if needed
 import { findAndSetCurrentLeague } from '../ui/core.js';
 import { checkAndResetMonthlyStars } from './actions.js';
 import { renderStoryArchive } from '../features/storyWeaver.js';
@@ -233,11 +232,6 @@ export function setupDataListeners(userId, dateString, onInitialDataReady) {
             }
         });
 
-        const awardTab = document.getElementById('award-stars-tab');
-        if (awardTab && !awardTab.classList.contains('hidden')) {
-            renderAwardStarsStudentList(state.get('globalSelectedClassId'), false);
-        }
-
         const manageStudentsTab = document.getElementById('manage-students-tab');
         if (manageStudentsTab && !manageStudentsTab.classList.contains('hidden')) {
             renderManageStudentsTab();
@@ -353,14 +347,7 @@ export function setupDataListeners(userId, dateString, onInitialDataReady) {
             }
         });
 
-        // If the attendance modal is open, and we are viewing the current month, refresh it
-        const modal = document.getElementById('attendance-chronicle-modal');
-        if (modal && !modal.classList.contains('hidden')) {
-            // We'll handle this refresh logic more robustly in modals.js, 
-            // but simple re-render triggers here if needed.
-            // For now, we rely on the Modal's internal state to trigger updates or 
-            // just let the 'on-demand' logic handle older months.
-        }
+        modals.scheduleAttendanceChronicleRefresh?.();
     }, (error) => console.error("Error listening to attendance:", error)));
 
     state.setUnsubscribeScheduleOverrides(onSnapshot(overridesQuery, (snapshot) => {

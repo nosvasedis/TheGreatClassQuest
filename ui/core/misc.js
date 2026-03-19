@@ -56,7 +56,7 @@ export function updateStudentCardAttendanceState(studentId, isAbsent) {
     const awardTab = document.getElementById('award-stars-tab');
     if (awardTab && !awardTab.classList.contains('hidden')) {
         import('../tabs.js').then((tabs) => {
-            tabs.renderAwardStarsStudentList?.(state.get('globalSelectedClassId'), false);
+            tabs.updateStudentCardAttendanceState?.(studentId, isAbsent);
         }).catch((error) => console.warn('Could not refresh award cards after attendance change:', error));
     }
 }
@@ -150,6 +150,11 @@ export function renderClassEndDatesList() {
             </div>
         `;
     }).join('');
+    container.innerHTML = bounties.map((bounty) => (
+        bounty.type === 'timer'
+            ? renderTimerBountyCard(bounty)
+            : renderStarBountyCard(bounty)
+    )).join('');
 }
 
 /**
@@ -227,6 +232,101 @@ export async function saveClassEndDates() {
 }
 
 // --- BOUNTY LOGIC ---
+
+function getTimerToneMeta(deadline) {
+    const tone = utils.getCountdownTone(deadline);
+    if (tone === 'critical') {
+        return {
+            shellClass: 'from-rose-600 via-red-500 to-orange-400 border-rose-200/80 shadow-[0_20px_45px_rgba(225,29,72,0.28)]',
+            badgeClass: 'bg-white/18 text-rose-50 border border-white/20',
+            timerClass: 'text-white drop-shadow-[0_4px_14px_rgba(255,255,255,0.3)]',
+            icon: 'fa-fire'
+        };
+    }
+    if (tone === 'warning') {
+        return {
+            shellClass: 'from-amber-500 via-orange-400 to-rose-400 border-amber-100/80 shadow-[0_20px_45px_rgba(251,146,60,0.24)]',
+            badgeClass: 'bg-white/18 text-amber-50 border border-white/20',
+            timerClass: 'text-white',
+            icon: 'fa-hourglass-half'
+        };
+    }
+    return {
+        shellClass: 'from-sky-600 via-indigo-500 to-violet-500 border-sky-100/80 shadow-[0_20px_45px_rgba(79,70,229,0.24)]',
+        badgeClass: 'bg-white/18 text-sky-50 border border-white/20',
+        timerClass: 'text-white',
+        icon: 'fa-clock'
+    };
+}
+
+function renderTimerBountyCard(bounty) {
+    const tone = getTimerToneMeta(bounty.deadline);
+    return `
+        <div class="bounty-card mb-4 overflow-hidden rounded-[28px] border bg-gradient-to-br ${tone.shellClass} p-5 text-white">
+            <div class="flex items-start justify-between gap-4">
+                <div class="flex min-w-0 items-center gap-4">
+                    <div class="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-white/15 text-2xl shadow-inner shadow-white/10">
+                        <i class="fas ${tone.icon}"></i>
+                    </div>
+                    <div class="min-w-0">
+                        <div class="inline-flex items-center gap-2 rounded-full px-3 py-1 text-[10px] font-black uppercase tracking-[0.28em] ${tone.badgeClass}">
+                            Timed Quest
+                        </div>
+                        <h4 class="mt-3 truncate font-title text-2xl leading-tight">${bounty.title}</h4>
+                        <p class="mt-1 text-sm font-semibold text-white/75">Race the clock before this challenge fades.</p>
+                    </div>
+                </div>
+                <button class="delete-bounty-btn rounded-full bg-black/15 px-3 py-2 text-white/70 transition hover:bg-black/25 hover:text-white" data-id="${bounty.id}" title="Cancel Timer">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="mt-5 flex items-end justify-between gap-4 rounded-[22px] bg-black/15 px-4 py-3 backdrop-blur-sm">
+                <div>
+                    <div class="text-[10px] font-black uppercase tracking-[0.28em] text-white/60">Time Remaining</div>
+                    <span class="bounty-timer mt-2 block font-title text-4xl leading-none ${tone.timerClass}" data-deadline="${bounty.deadline}">${utils.formatCountdownClock(bounty.deadline, { expiredLabel: '00:00:00' })}</span>
+                </div>
+                <div class="text-right text-xs font-bold uppercase tracking-[0.2em] text-white/65">
+                    <div>Urgency</div>
+                    <div class="mt-2 text-lg tracking-normal text-white">${utils.formatCountdownCompact(bounty.deadline, 'Expired')}</div>
+                </div>
+            </div>
+        </div>`;
+}
+
+function renderStarBountyCard(bounty) {
+    const progressPercent = Math.min(100, (bounty.currentProgress / bounty.target) * 100);
+    const isReady = bounty.currentProgress >= bounty.target;
+    const actionBtn = isReady
+        ? `<button class="claim-bounty-btn rounded-full bg-emerald-500 px-4 py-2 text-xs font-black uppercase tracking-[0.2em] text-white shadow-lg shadow-emerald-500/30 transition hover:scale-105" data-id="${bounty.id}" data-reward="${bounty.reward}">Claim</button>`
+        : `<span class="rounded-full bg-amber-100 px-3 py-1 text-xs font-black uppercase tracking-[0.18em] text-amber-700">${bounty.currentProgress}/${bounty.target} Stars</span>`;
+
+    return `
+        <div class="bounty-card mb-4 overflow-hidden rounded-[28px] border border-amber-200/80 bg-[radial-gradient(circle_at_top_left,_rgba(255,255,255,0.95),_rgba(255,251,235,0.98)_48%,_rgba(254,243,199,0.96))] p-4 shadow-[0_18px_40px_rgba(251,191,36,0.16)]">
+            <div class="flex items-start gap-4">
+                <div class="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-amber-300 via-yellow-300 to-orange-300 text-3xl text-amber-900 shadow-[inset_0_1px_0_rgba(255,255,255,0.7),0_10px_18px_rgba(245,158,11,0.22)]">
+                    <i class="fas fa-stars"></i>
+                </div>
+                <div class="min-w-0 flex-1">
+                    <div class="flex items-start justify-between gap-3">
+                        <div class="min-w-0">
+                            <div class="inline-flex items-center rounded-full bg-amber-100 px-3 py-1 text-[10px] font-black uppercase tracking-[0.28em] text-amber-700">Star Bounty</div>
+                            <h4 class="mt-3 truncate font-title text-2xl leading-tight text-slate-800">${bounty.title}</h4>
+                        </div>
+                        <button class="delete-bounty-btn rounded-full bg-slate-200/70 px-3 py-2 text-slate-500 transition hover:bg-red-50 hover:text-red-500" data-id="${bounty.id}" title="Delete Bounty">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                    <div class="mt-4 overflow-hidden rounded-full bg-slate-200">
+                        <div class="h-3 rounded-full bg-gradient-to-r from-amber-400 via-yellow-400 to-orange-400 transition-all duration-1000" style="width: ${progressPercent}%"></div>
+                    </div>
+                    <div class="mt-3 flex items-center justify-between gap-3">
+                        <p class="text-sm font-bold text-slate-500">Reward: <span class="text-slate-700">${bounty.reward}</span></p>
+                        ${actionBtn}
+                    </div>
+                </div>
+            </div>
+        </div>`;
+}
 
 export function renderActiveBounties() {
     const container = document.getElementById('bounty-board-container');
@@ -315,10 +415,7 @@ function startBountyTimer() {
                 el.classList.add('text-red-500');
                 // Could trigger a reload here to mark visually as expired
             } else {
-                const h = Math.floor(diff / (1000 * 60 * 60));
-                const m = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
-                const s = Math.floor((diff % (1000 * 60)) / 1000);
-                el.innerText = `${h.toString().padStart(2,'0')}:${m.toString().padStart(2,'0')}:${s.toString().padStart(2,'0')}`;
+                el.innerText = utils.formatCountdownClock(el.dataset.deadline, { expiredLabel: '00:00:00' });
             }
         });
     };

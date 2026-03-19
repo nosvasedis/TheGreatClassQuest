@@ -2051,7 +2051,7 @@ function summarizeStorageRulesResult(bucketName, result) {
       'Check Storage bucket and rules',
       'No Firebase Storage bucket was found for this project.',
       {
-        actionHint: 'This is okay for paywall and Starter setup, but Pro/Elite image features will need Firebase Storage enabled later.',
+        actionHint: 'This is okay for paywall and Starter setup, but Pro/Elite image features like avatars, story images, and Familiar sprites will need Firebase Storage enabled later.',
       }
     );
   }
@@ -2269,7 +2269,7 @@ async function runAutomaticSetup(input) {
         'Cloud Firestore is enabled for this project and can be reached.',
         {
           actionHint: firebaseServices.storageMissing
-            ? 'Firebase Storage is not set up yet. That is okay for paywall and Starter setup, but Pro/Elite image features will need it later.'
+            ? 'Firebase Storage is not set up yet. That is okay for paywall and Starter setup, but Pro/Elite image features and Familiar sprites will need it later.'
             : '',
         }
       )
@@ -2485,7 +2485,7 @@ async function runAutomaticSetup(input) {
     'Check Storage bucket and rules',
     'No Firebase Storage bucket was found for this project.',
     {
-      actionHint: 'This is okay for paywall and Starter setup, but Pro/Elite image features will need Firebase Storage enabled later.',
+      actionHint: 'This is okay for paywall and Starter setup, but Pro/Elite image features and Familiar sprites will need Firebase Storage enabled later.',
     }
   );
 
@@ -2510,7 +2510,7 @@ async function runAutomaticSetup(input) {
       'Deploy Storage rules',
       deployedStorageRules.message,
       {
-        actionHint: 'Storage is mainly needed for Pro/Elite image features such as avatars and story images.',
+        actionHint: 'Storage is mainly needed for Pro/Elite image features such as avatars, story images, and Familiar sprites.',
         technicalDetails: JSON.stringify({
           bucket: storageBucketName,
           beforeMatched: deployedStorageRules.before.matches,
@@ -2589,16 +2589,16 @@ async function runAutomaticSetup(input) {
       'Run the final health check',
       coreReady
         ? readinessTarget === 'pro'
-          ? 'This school is ready, including the Storage pieces needed for Pro/Elite image features.'
+          ? 'This school is ready, including the Storage pieces needed for Pro/Elite image features and Familiar sprites.'
           : futureProReady
             ? 'This school is ready for paywall and Starter flow.'
-            : 'This school is ready for paywall and Starter flow. Create Firebase Storage later before using Pro/Elite image features.'
+            : 'This school is ready for paywall and Starter flow. Create Firebase Storage later before using Pro/Elite image features or Familiar sprites.'
         : 'Almost ready: one or more setup checks still need attention before this school is fully ready.',
       {
         actionHint: coreReady
           ? readinessTarget === 'pro'
             ? ''
-            : 'When you are ready to sell Pro/Elite image features, rerun the setup with “Pro / Elite ready” and the tool will prepare Firebase Storage too.'
+            : 'When you are ready to sell Pro/Elite image features, rerun the setup with “Pro / Elite ready” and the tool will prepare Firebase Storage for avatars, story images, and Familiar sprites too.'
           : 'Look at the tasks above marked “Needs attention” or “Working”, then rerun the check.',
       }
     )
@@ -2785,7 +2785,7 @@ async function recheckExistingSchool(projectId, options = {}) {
         'Cloud Firestore is enabled for this project and can be reached.',
         {
           actionHint: firebaseServices.storageMissing
-            ? 'Firebase Storage is not set up yet. That is okay for paywall and Starter flow, but Pro/Elite image features will need it later.'
+            ? 'Firebase Storage is not set up yet. That is okay for paywall and Starter flow, but Pro/Elite image features and Familiar sprites will need it later.'
             : '',
         }
       )
@@ -3041,7 +3041,7 @@ async function recheckExistingSchool(projectId, options = {}) {
           'Deploy Storage rules',
           deployedStorageRules.message,
           {
-            actionHint: 'Storage is mainly needed for Pro/Elite image features.',
+            actionHint: 'Storage is mainly needed for Pro/Elite image features and Familiar sprites.',
           }
         )
       );
@@ -3058,7 +3058,7 @@ async function recheckExistingSchool(projectId, options = {}) {
           : 'Starter flow does not require Firebase Storage yet.',
         {
           actionHint: readinessTarget === 'pro'
-            ? 'Pro/Elite image features need Firebase Storage.'
+            ? 'Pro/Elite image features and Familiar sprites need Firebase Storage.'
             : 'When a school upgrades later, rerun this tool with “Pro / Elite ready”.',
         }
       )

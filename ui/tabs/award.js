@@ -10,6 +10,9 @@ import { getNormalizedPercentForScore } from '../../features/assessmentConfig.js
 // --- REIGNING PRODIGY CACHE (previous month, with tie-breaker) ---
 let _awardProdigyCacheKey = null;
 let _awardProdigyCache = {}; // classId -> Set<studentId>
+let awardVisualSessionId = 0;
+let awardVisualClassId = null;
+const awardVisualCache = new Map();
 
 async function getReigningProdigyForClass(classId) {
     const now = new Date();
@@ -101,6 +104,149 @@ function getCloudBackgroundHtml(cloudClass) {
     return `<div class="cloud-bg-svg cloud-bg-asset ${safeClass}" aria-hidden="true"></div>`;
 }
 
+export function resetAwardCardVisualSession() {
+    awardVisualSessionId += 1;
+    awardVisualClassId = null;
+    awardVisualCache.clear();
+}
+
+function ensureAwardVisualSession(classId) {
+    if (awardVisualClassId === classId) return;
+    awardVisualSessionId += 1;
+    awardVisualClassId = classId || null;
+    awardVisualCache.clear();
+}
+
+function getAwardCardVisualState(classId, studentId) {
+    ensureAwardVisualSession(classId);
+    const cacheKey = `${classId}:${studentId}`;
+    if (awardVisualCache.has(cacheKey)) return awardVisualCache.get(cacheKey);
+
+    const hash = utils.simpleHashCode(`${awardVisualSessionId}:${cacheKey}`);
+    const visualState = {
+        cloudAsset: AWARD_CLOUD_BACKGROUNDS[hash % AWARD_CLOUD_BACKGROUNDS.length],
+        floatDuration: (4 + ((hash % 400) / 100)).toFixed(2)
+    };
+    awardVisualCache.set(cacheKey, visualState);
+    return visualState;
+}
+
+function getAwardAttendanceState(studentId) {
+    const student = state.get('allStudents').find((item) => item.id === studentId);
+    if (!student) {
+        return {
+            student: null,
+            isVisuallyAbsent: false,
+            isMarkedAbsentToday: false,
+            classHasLessonToday: false
+        };
+    }
+
+    const today = utils.getTodayDateString();
+    const reasonToday = state.get('todaysStars')[studentId]?.reason;
+    const starsToday = Number(state.get('todaysStars')[studentId]?.stars || 0);
+    const previousLessonDate = utils.getPreviousLessonDate(
+        student.classId,
+        state.get('allSchoolClasses'),
+        state.get('allScheduleOverrides'),
+        state.get('schoolHolidayRanges')
+    );
+    const isMarkedAbsentToday = state.get('allAttendanceRecords').some((record) => record.studentId === studentId && record.date === today);
+    const wasAbsentLastTime = previousLessonDate
+        ? state.get('allAttendanceRecords').some((record) => record.studentId === studentId && record.date === previousLessonDate)
+        : false;
+    const isPresentToday = starsToday > 0 || reasonToday === 'marked_present' || reasonToday === 'welcome_back';
+
+    return {
+        student,
+        isVisuallyAbsent: isMarkedAbsentToday || (wasAbsentLastTime && !isPresentToday),
+        isMarkedAbsentToday,
+        classHasLessonToday: utils.doesClassMeetOnDate(
+            student.classId,
+            today,
+            state.get('allSchoolClasses'),
+            state.get('allScheduleOverrides'),
+            state.get('schoolHolidayRanges')
+        )
+    };
+}
+
+function buildAbsenceControlsHtml({ isVisuallyAbsent, isMarkedAbsentToday, classHasLessonToday, isCardLocked }) {
+    if (isVisuallyAbsent) {
+        if (isMarkedAbsentToday) {
+            return `
+                <button class="absence-btn bg-green-200 text-green-700 hover:bg-green-300" data-action="mark-present" title="Undo: Mark as Present">
+                    <i class="fas fa-user-check pointer-events-none"></i>
+                </button>`;
+        }
+
+        if (classHasLessonToday) {
+            return `
+                <button class="absence-btn bg-green-200 text-green-700 hover:bg-green-300" data-action="mark-present" title="Mark as Present">
+                    <i class="fas fa-user-check pointer-events-none"></i>
+                </button>
+                <button class="welcome-back-btn" data-action="welcome-back" title="Welcome Back Bonus!">
+                    <i class="fas fa-hand-sparkles pointer-events-none"></i>
+                </button>
+                <button class="absence-btn absence-btn--today bg-amber-100 text-amber-700 hover:bg-amber-200" data-action="mark-absent" title="Mark Absent Today">
+                    <i class="fas fa-calendar-xmark pointer-events-none"></i>
+                </button>`;
+        }
+
+        return '';
+    }
+
+    if (!isCardLocked && classHasLessonToday) {
+        return `
+            <button class="absence-btn" data-action="mark-absent" title="Mark as Absent">
+                <i class="fas fa-user-slash pointer-events-none"></i>
+            </button>`;
+    }
+
+    return '';
+}
+
+function applyAwardCardLockState(studentCard, starsToday, reason) {
+    const undoBtn = studentCard.querySelector('.post-award-undo-btn');
+    const reasonSelector = studentCard.querySelector('.reason-selector');
+    const starSelector = studentCard.querySelector('.star-selector-container');
+    const shouldLock = starsToday > 0 && reason !== 'welcome_back';
+
+    if (shouldLock) {
+        undoBtn?.classList.remove('hidden');
+        reasonSelector?.classList.add('pointer-events-none', 'opacity-50');
+        starSelector?.classList.remove('visible');
+        reasonSelector?.querySelectorAll('.reason-btn.active').forEach((button) => button.classList.remove('active'));
+    } else {
+        undoBtn?.classList.add('hidden');
+        reasonSelector?.classList.remove('pointer-events-none', 'opacity-50');
+    }
+
+    return shouldLock;
+}
+
+function applyAttendanceStateToCard(studentCard, studentId, reason = null, starsToday = null) {
+    const attendanceState = getAwardAttendanceState(studentId);
+    if (!attendanceState.student) return;
+
+    const effectiveStarsToday = starsToday == null
+        ? Number(state.get('todaysStars')[studentId]?.stars || 0)
+        : Number(starsToday);
+    const effectiveReason = reason == null
+        ? state.get('todaysStars')[studentId]?.reason || null
+        : reason;
+    const isCardLocked = effectiveStarsToday > 0 && effectiveReason !== 'welcome_back';
+
+    studentCard.classList.toggle('is-absent', attendanceState.isVisuallyAbsent);
+    const absenceControls = studentCard.querySelector('.absence-controls');
+    if (absenceControls) {
+        absenceControls.innerHTML = buildAbsenceControlsHtml({
+            ...attendanceState,
+            isCardLocked
+        });
+    }
+}
+
 export function renderAwardStarsTab() {
     const dropdownList = document.getElementById('award-class-list');
     const studentListContainer = document.getElementById('award-stars-student-list');
@@ -164,6 +310,8 @@ export function renderAwardStarsStudentList(selectedClassId, fullRender = true) 
             return;
         }
 
+        ensureAwardVisualSession(selectedClassId);
+
         let studentsInClass = state.get('allStudents').filter(s => s.classId === selectedClassId);
 
         if (fullRender) {
@@ -216,7 +364,8 @@ export function renderAwardStarsStudentList(selectedClassId, fullRender = true) 
                 const monthlyStars = scoreData.monthlyStars || 0;
                 const starsToday = state.get('todaysStars')[s.id]?.stars || 0;
                 const reasonToday = state.get('todaysStars')[s.id]?.reason;
-                const cloudAsset = AWARD_CLOUD_BACKGROUNDS[Math.floor(Math.random() * AWARD_CLOUD_BACKGROUNDS.length)];
+                const visualState = getAwardCardVisualState(selectedClassId, s.id);
+                const cloudAsset = visualState.cloudAsset;
                 const reigningHeroEmoji = s.gender === 'girl' ? '👸' : '🫅';
 
                 const isMarkedAbsentToday = state.get('allAttendanceRecords').some(r => r.studentId === s.id && r.date === today);
@@ -310,7 +459,7 @@ export function renderAwardStarsStudentList(selectedClassId, fullRender = true) 
                 }
 
                 return `
-               <div class="student-cloud-card ${isVisuallyAbsent ? 'is-absent' : ''} ${isReigningHero ? 'reigning-hero-card' : ''} ${prodigySet.has(s.id) ? 'award-reigning-prodigy' : ''}" data-studentid="${s.id}" style="animation: float-card ${4 + Math.random() * 4}s ease-in-out infinite;">
+               <div class="student-cloud-card ${isVisuallyAbsent ? 'is-absent' : ''} ${isReigningHero ? 'reigning-hero-card' : ''} ${prodigySet.has(s.id) ? 'award-reigning-prodigy' : ''}" data-studentid="${s.id}" style="animation: float-card ${visualState.floatDuration}s ease-in-out infinite;">
                ${getCloudBackgroundHtml(cloudAsset)}
                <div class="absence-controls">
                ${absenceButtonHtml}
@@ -391,11 +540,12 @@ export function renderAwardStarsStudentList(selectedClassId, fullRender = true) 
 export function updateStudentCardAttendanceState(studentId, isAbsent) {
     const selectedClassId = state.get('globalSelectedClassId');
     const student = state.get('allStudents').find(s => s.id === studentId);
+    const studentCard = document.querySelector(`.student-cloud-card[data-studentid="${studentId}"]`);
 
-    if (student && student.classId === selectedClassId) {
+    if (student && student.classId === selectedClassId && studentCard) {
         const activeTab = document.querySelector('.app-tab:not(.hidden)');
         if (activeTab && activeTab.id === 'award-stars-tab') {
-            renderAwardStarsStudentList(selectedClassId, false);
+            applyAttendanceStateToCard(studentCard, studentId);
         }
     }
 }
@@ -414,48 +564,6 @@ export function updateAwardCardState(studentId, starsToday, reason) {
         }
     }
 
-    const undoBtn = studentCard.querySelector(`#post-award-undo-${studentId}`);
-    const reasonSelector = studentCard.querySelector('.reason-selector');
-    const starSelector = studentCard.querySelector('.star-selector-container');
-    const absenceControls = studentCard.querySelector('.absence-controls');
-
-    // Logic: Card locks ONLY if stars > 0 AND the reason is NOT 'welcome_back'
-    const shouldLock = starsToday > 0 && reason !== 'welcome_back';
-
-    if (shouldLock) {
-        undoBtn?.classList.remove('hidden');
-        reasonSelector?.classList.add('pointer-events-none', 'opacity-50');
-        starSelector?.classList.remove('visible');
-        reasonSelector?.querySelectorAll('.reason-btn.active').forEach(b => b.classList.remove('active'));
-    } else {
-        // If not locked (either 0 stars OR welcome_back), enable controls
-        undoBtn?.classList.add('hidden'); // Hide general undo
-        reasonSelector?.classList.remove('pointer-events-none', 'opacity-50');
-    }
-
-    // If we have 0 stars (unlocked), we are present, so remove absent visual
-    // (Unless we are specifically marked absent, but this function usually runs after awarding stars)
-    if (starsToday >= 0) {
-        studentCard.classList.remove('is-absent');
-        if (absenceControls) {
-            const student = state.get('allStudents').find((item) => item.id === studentId);
-            const classHasLessonToday = student
-                ? utils.doesClassMeetOnDate(
-                    student.classId,
-                    utils.getTodayDateString(),
-                    state.get('allSchoolClasses'),
-                    state.get('allScheduleOverrides'),
-                    state.get('schoolHolidayRanges')
-                )
-                : false;
-            // Re-render controls to show "Mark Absent" again
-            absenceControls.innerHTML = classHasLessonToday
-                ? `
-                    <button class="absence-btn" data-action="mark-absent" title="Mark as Absent">
-                        <i class="fas fa-user-slash pointer-events-none"></i>
-                    </button>
-                `
-                : '';
-        }
-    }
+    applyAwardCardLockState(studentCard, starsToday, reason);
+    applyAttendanceStateToCard(studentCard, studentId, reason, starsToday);
 }

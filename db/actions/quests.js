@@ -178,17 +178,22 @@ async function saveAdventureLogWithHeroWin(logPayload, heroStudentId = null) {
     const logRef = doc(collection(db, `${publicDataPath}/adventure_logs`));
 
     await runTransaction(db, async (transaction) => {
+        let scoreRef = null;
+        let scoreDoc = null;
+
+        if (heroStudentId) {
+            scoreRef = doc(db, `${publicDataPath}/student_scores`, heroStudentId);
+            scoreDoc = await transaction.get(scoreRef);
+        }
+
         transaction.set(logRef, logPayload);
 
-        if (!heroStudentId) return;
-
-        const scoreRef = doc(db, `${publicDataPath}/student_scores`, heroStudentId);
-        const scoreDoc = await transaction.get(scoreRef);
-
-        if (scoreDoc.exists()) {
-            transaction.update(scoreRef, { heroOfDayWins: increment(1) });
-        } else {
-            transaction.set(scoreRef, { heroOfDayWins: 1 }, { merge: true });
+        if (heroStudentId && scoreRef) {
+            if (scoreDoc?.exists()) {
+                transaction.update(scoreRef, { heroOfDayWins: increment(1) });
+            } else {
+                transaction.set(scoreRef, { heroOfDayWins: 1 }, { merge: true });
+            }
         }
     });
 
@@ -303,48 +308,70 @@ Assignment/Test context: ${assignmentContext || 'none'}
 Power-up context: ${powerUpContext || 'none'}`;
 
     try {
-        const rawResponse = await callGeminiApi(systemPrompt, userPrompt);
+        let rawResponse = '';
+        try {
+            rawResponse = await callGeminiApi(systemPrompt, userPrompt);
+        } catch (error) {
+            console.error('Chronicler text generation failed:', error);
+            showToast('The Chronicler could not write today\'s chronicle.', 'error');
+            return;
+        }
+
         const diary = _parseDiaryJson(rawResponse, {
             defaultTitle: `${classData.name} Chronicle`,
             defaultEntry: rawResponse,
             fallbackKeywords: reasonLabels
         });
 
-        await new Promise(r => setTimeout(r, 120));
-        const imagePrompt = `Whimsical storybook illustration for classroom diary. Title: "${diary.title}". Scene: ${diary.entry}. Hero focus: ${heroOfTheDay}. Watercolor, magical, uplifting, no text.`;
-        const imageBase64 = await callCloudflareAiImageApi(imagePrompt);
-        const compressed = await compressImageBase64(imageBase64);
+        let imageUrl = null;
+        let imageFailed = false;
+        try {
+            await new Promise(r => setTimeout(r, 120));
+            const imagePrompt = `Whimsical storybook illustration for classroom diary. Title: "${diary.title}". Scene: ${diary.entry}. Hero focus: ${heroOfTheDay}. Watercolor, magical, uplifting, no text.`;
+            const imageBase64 = await callCloudflareAiImageApi(imagePrompt);
+            const compressed = await compressImageBase64(imageBase64);
 
-        const { uploadImageToStorage } = await import('../../utils.js');
-        const imageUrl = await uploadImageToStorage(compressed, `adventure_logs/${state.get('currentUserId')}/${Date.now()}.jpg`);
+            const { uploadImageToStorage } = await import('../../utils.js');
+            imageUrl = await uploadImageToStorage(compressed, `adventure_logs/${state.get('currentUserId')}/${Date.now()}.jpg`);
+        } catch (error) {
+            imageFailed = true;
+            console.error('Chronicler artwork generation/upload failed:', error);
+        }
 
-        await saveAdventureLogWithHeroWin({
-            classId,
-            date: getTodayDateString(),
-            title: diary.title,
-            text: diary.entry,
-            highlights: diary.highlights,
-            keywords: diary.keywords,
-            hero: heroOfTheDay,
-            heroStudentId: heroStudentId || null,
-            entryMode: 'ai',
-            ageTier,
-            imageUrl,
-            topReason: reasonLabels[0] || 'excellence',
-            totalStars,
-            createdBy: { uid: state.get('currentUserId'), name: state.get('currentTeacherName') },
-            createdAt: serverTimestamp()
-        }, heroStudentId);
+        try {
+            await saveAdventureLogWithHeroWin({
+                classId,
+                date: getTodayDateString(),
+                title: diary.title,
+                text: diary.entry,
+                highlights: diary.highlights,
+                keywords: diary.keywords,
+                hero: heroOfTheDay,
+                heroStudentId: heroStudentId || null,
+                entryMode: 'ai',
+                ageTier,
+                imageUrl,
+                topReason: reasonLabels[0] || 'excellence',
+                totalStars,
+                createdBy: { uid: state.get('currentUserId'), name: state.get('currentTeacherName') },
+                createdAt: serverTimestamp()
+            }, heroStudentId);
+        } catch (error) {
+            console.error('Chronicler save failed:', error);
+            showToast('The Chronicler wrote the entry, but saving it failed.', 'error');
+            return;
+        }
 
-        import('../../audio.js').then(m => m.stopWritingLoop());
-        showToast('The adventure has been chronicled!', 'success');
+        showToast(
+            imageFailed
+                ? 'The chronicle was saved without artwork because the image step failed.'
+                : 'The adventure has been chronicled!',
+            imageFailed ? 'info' : 'success'
+        );
 
         await showHeroOfTheDayReveal(heroStudentId, 'The Class Hero!');
-    } catch (error) {
-        import('../../audio.js').then(m => m.stopWritingLoop());
-        console.error(error);
-        showToast('The Chronicler failed to write. Check connection.', 'error');
     } finally {
+        import('../../audio.js').then(m => m.stopWritingLoop());
         btn.disabled = false;
         btn.innerHTML = `<i class="fas fa-feather-alt mr-2"></i> Log Today's Adventure`;
     }

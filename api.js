@@ -63,10 +63,11 @@ export async function callGeminiApi(systemPrompt, userPrompt) {
     }
 }
 
-export async function callCloudflareAiImageApi(prompt, negativePrompt = "") {
+export async function callCloudflareAiImageApi(prompt, negativePrompt = "", options = {}) {
     const payload = {
         prompt: prompt,
-        negative_prompt: negativePrompt || "text, watermark, blurry, low quality" // Default safety net
+        negative_prompt: negativePrompt || "text, watermark, blurry, low quality", // Default safety net
+        ...options
     };
     try {
         const response = await fetch(cloudflareWorkerUrl, {

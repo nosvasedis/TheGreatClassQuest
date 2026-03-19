@@ -137,7 +137,13 @@ export async function generateFamiliarSpriteSheet(typeId, level, variant = null)
         try {
             const prompt = _buildSpritePrompt(basePrompt, variant, attempt);
             const negativePrompt = _buildSpriteNegativePrompt(attempt);
-            const base64 = await callCloudflareAiImageApi(prompt, negativePrompt);
+            const base64 = await callCloudflareAiImageApi(prompt, negativePrompt, {
+                mode: 'sprite',
+                width: 1024,
+                height: 256,
+                num_steps: 30,
+                guidance: 8
+            });
             const normalized = await _normalizeAndValidateSpriteSheet(base64);
             const { uploadImageToStorage } = await import('../utils.js');
             const url = await uploadImageToStorage(normalized, `familiars/${typeId}_level${level}_${Date.now()}.webp`);

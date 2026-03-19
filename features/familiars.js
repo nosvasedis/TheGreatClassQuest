@@ -166,7 +166,7 @@ export async function generateFamiliarSpriteSheet(typeId, level, variant = null)
             const base64 = await callCloudflareAiImageApi(prompt, negativePrompt, {
                 width: 512,
                 height: 512,
-                num_steps: 28,
+                num_steps: 20,
                 guidance: 7.5
             });
             const normalized = await _normalizeAndValidateSingleSprite(base64);

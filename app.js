@@ -173,6 +173,15 @@ function setAuthSubmitLoading(mode, isLoading) {
         : `<span class="auth-submit-label">${mode === 'signup' ? 'Sign Up' : 'Login'}</span>`;
 }
 
+function beginAuthSubmit(mode) {
+    setAuthSubmitLoading(mode, true);
+}
+
+function resetAuthSubmitState() {
+    setAuthSubmitLoading('login', false);
+    setAuthSubmitLoading('signup', false);
+}
+
 function hideAuthScreen(authScreen) {
     authScreen.classList.add('auth-screen-out');
     setTimeout(() => {
@@ -186,12 +195,15 @@ async function openMainAppForTeacher({ user, loadingScreen, authScreen, appScree
     appScreen.classList.remove('hidden');
     appScreen.classList.add('app-screen-in');
     setTimeout(() => appScreen.classList.remove('app-screen-in'), 500);
-    import('./ui/tabs.js').then((tabs) => tabs.showTab('about-tab'));
+    const tabs = await import('./ui/tabs.js');
+    await tabs.showTab('about-tab');
+    resetAuthSubmitState();
     dismissLoadingAfterHomeIsReady(loadingScreen);
     await maybeAutoShowGuideForTeacher(user);
 }
 
 function showSubscribeScreen(loadingScreen, authScreen, options = {}) {
+    resetAuthSubmitState();
     authScreen.classList.add('hidden');
     const appScreen = document.getElementById('app-screen');
     const setupScreen = document.getElementById('setup-screen');
@@ -354,6 +366,7 @@ async function routeAuthenticatedTeacher({ user, loadingScreen, authScreen, appS
 
     if (needsTeacherSetup) {
         hideAuthScreen(authScreen);
+        resetAuthSubmitState();
         showSetupScreen({
             user,
             isFirstTeacher,
@@ -398,13 +411,12 @@ function setupAuthListeners() {
         const password = document.getElementById('login-password').value;
         const errorEl = document.getElementById('auth-error');
         try {
-            setAuthSubmitLoading('login', true);
-            await signInWithEmailAndPassword(auth, email, password);
+            beginAuthSubmit('login');
             errorEl.innerText = '';
+            await signInWithEmailAndPassword(auth, email, password);
         } catch (error) {
+            resetAuthSubmitState();
             errorEl.innerText = error.message.replace('Firebase: ', '');
-        } finally {
-            setAuthSubmitLoading('login', false);
         }
     });
 
@@ -415,15 +427,14 @@ function setupAuthListeners() {
         const password = document.getElementById('signup-password').value;
         const errorEl = document.getElementById('auth-error');
         try {
-            setAuthSubmitLoading('signup', true);
+            beginAuthSubmit('signup');
+            errorEl.innerText = '';
             const userCredential = await createUserWithEmailAndPassword(auth, email, password);
             await updateProfile(userCredential.user, { displayName: name });
             state.set('currentTeacherName', name);
-            errorEl.innerText = '';
         } catch (error) {
+            resetAuthSubmitState();
             errorEl.innerText = error.message.replace('Firebase: ', '');
-        } finally {
-            setAuthSubmitLoading('signup', false);
         }
     });
 
@@ -456,6 +467,7 @@ function setupAuthListeners() {
             });
 
         } else {
+            resetAuthSubmitState();
             state.resetState();
             appScreen.classList.add('hidden');
             const subScreen = document.getElementById('subscribe-screen');

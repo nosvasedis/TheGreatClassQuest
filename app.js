@@ -508,7 +508,8 @@ async function initApp() {
 
         // Audio is initialized on first user gesture (mousedown/touchstart) to satisfy browser autoplay policy
 
-        utils.fetchSolarCycle(); // Fetch sunrise/sunset times
+        // Solar sync should wait for school settings so we do not
+        // fetch once for the Athens fallback and again for the saved school.
 
     } catch (error) {
         console.error("Application initialization failed:", error);

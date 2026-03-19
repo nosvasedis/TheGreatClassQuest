@@ -314,7 +314,6 @@ export async function handleSaveSchoolLocationFromOptions() {
         await setDoc(settingsRef, { weatherLocation: selected }, { merge: true });
         state.setSchoolWeatherLocation(selected);
         utils.setWeatherCoordinates(selected);
-        utils.fetchSolarCycle();
         setOptionsLocationStatus(selected);
         showToast('School weather location updated!', 'success');
     } catch (e) {

@@ -157,11 +157,11 @@ export async function generateFamiliarSpriteSheet(typeId, level, variant = null)
 }
 
 function _buildSpritePrompt(basePrompt, variant, attempt = 0) {
-    const cleanedBasePrompt = String(basePrompt || '')
+    const cleanedBasePrompt = _sanitizeSingleSpritePromptDetails(String(basePrompt || '')
         .replace(/^2D game sprite sheet,\s*exactly 4 frames in a single horizontal row on a pure white background,\s*/i, '2D game creature sprite art on a pure white background, ')
         .replace(/frame 1:.*$/i, '')
         .replace(/consistent character across all frames/gi, 'consistent character design')
-        .replace(/consistent character/gi, 'consistent character design');
+        .replace(/consistent character/gi, 'consistent character design'));
     const variantPrompt = variant?.promptFlavor
         ? `same familiar variant identity, ${variant.promptFlavor}`
         : 'same familiar identity';
@@ -177,6 +177,7 @@ function _buildSpritePrompt(basePrompt, variant, attempt = 0) {
         'Centered, large, readable silhouette.',
         'Square composition.',
         'Plain pure white background only.',
+        'No floating particles, no sparkles, no smoke wisps, no aura, no magic ring, no detached effects.',
         'No repeated rows, no tiled pattern, no many tiny copies, no texture atlas, no abstract streaks, no scenery.',
         'No frame strip, no panel layout, no contact sheet, no animation sheet.',
         retryPrompt
@@ -185,7 +186,16 @@ function _buildSpritePrompt(basePrompt, variant, attempt = 0) {
 
 function _buildSpriteNegativePrompt(attempt = 0) {
     const retryPenalty = attempt > 0 ? ', tiled pattern, repeating strips, rows of duplicates, many copies of creature, cluttered silhouette' : '';
-    return `realistic photo, 3d render, text, watermark, blurry, low quality, extra limbs, deformed, multiple characters, collage, comic page, border grid, background scene, props, texture sheet, abstract pattern, frame strip, animation sheet${retryPenalty}`;
+    return `realistic photo, 3d render, text, watermark, blurry, low quality, extra limbs, deformed, multiple characters, collage, comic page, border grid, background scene, props, texture sheet, abstract pattern, frame strip, animation sheet, particles, sparkles, smoke trail, glow aura, magic circle, detached debris${retryPenalty}`;
+}
+
+function _sanitizeSingleSpritePromptDetails(prompt) {
+    return String(prompt || '')
+        .replace(/\b(?:sparkles?|snowflakes?|smoke puff|smoke|mist|trail|burst|shockwave|ring|leaf storm|fire puff|fire trail|glow(?:ing)? runes?|halo)\b[^,]*,?\s*/gi, '')
+        .replace(/\s+,/g, ',')
+        .replace(/,+/g, ',')
+        .replace(/,\s*$/, '')
+        .trim();
 }
 
 async function _normalizeAndValidateSingleSprite(base64) {
@@ -269,8 +279,26 @@ function _validateSingleSpriteImage(img) {
     if (coverage < 0.04) {
         return { ok: false, reason: 'Generated sprite is too empty.' };
     }
-    if (coverage > 0.55) {
+    if (coverage > 0.68) {
         return { ok: false, reason: 'Generated sprite frame is too busy and does not resemble a single sprite.' };
+    }
+
+    const shapeStats = _measureMainSpriteComponent(data, width, height);
+    if (shapeStats.componentCount > 14) {
+        return { ok: false, reason: 'Generated sprite contains too many disconnected pieces.' };
+    }
+    if (shapeStats.largestComponentRatio < 0.42) {
+        return { ok: false, reason: 'Generated sprite does not contain one clear main creature silhouette.' };
+    }
+    if (shapeStats.decorativeRatio > 0.38) {
+        return { ok: false, reason: 'Generated sprite includes too many detached effects around the creature.' };
+    }
+
+    if (shapeStats.bounds) {
+        minX = Math.max(minX, shapeStats.bounds.minX);
+        maxX = Math.min(maxX, shapeStats.bounds.maxX);
+        minY = Math.max(minY, shapeStats.bounds.minY);
+        maxY = Math.min(maxY, shapeStats.bounds.maxY);
     }
 
     const bboxWidthRatio = (maxX - minX + 1) / Math.max(1, width);
@@ -289,28 +317,20 @@ function _validateSingleSpriteImage(img) {
         return { ok: false, reason: 'Generated sprite looks clipped against the edges.' };
     }
 
-    const shapeStats = _measureFrameShapeComplexity(data, width, height, 0, width);
-    if (shapeStats.componentCount > 10) {
-        return { ok: false, reason: 'Generated sprite contains too many disconnected pieces.' };
-    }
-    if (shapeStats.largestComponentRatio < 0.42) {
-        return { ok: false, reason: 'Generated sprite does not contain one clear main creature silhouette.' };
-    }
-
     return { ok: true };
 }
 
-function _measureFrameShapeComplexity(data, width, height, frameStartX, frameWidth) {
-    const gridW = 24;
-    const gridH = 24;
+function _measureMainSpriteComponent(data, width, height) {
+    const gridW = 32;
+    const gridH = 32;
     const cells = new Array(gridW * gridH).fill(false);
 
     for (let gy = 0; gy < gridH; gy += 1) {
         const yStart = Math.floor((gy / gridH) * height);
         const yEnd = Math.max(yStart + 1, Math.floor(((gy + 1) / gridH) * height));
         for (let gx = 0; gx < gridW; gx += 1) {
-            const xStart = frameStartX + Math.floor((gx / gridW) * frameWidth);
-            const xEnd = frameStartX + Math.max(Math.floor(((gx + 1) / gridW) * frameWidth), Math.floor((gx / gridW) * frameWidth) + 1);
+            const xStart = Math.floor((gx / gridW) * width);
+            const xEnd = Math.max(xStart + 1, Math.floor(((gx + 1) / gridW) * width));
             let foundForeground = false;
 
             for (let y = yStart; y < yEnd && !foundForeground; y += 1) {
@@ -331,6 +351,7 @@ function _measureFrameShapeComplexity(data, width, height, frameStartX, frameWid
     let componentCount = 0;
     let occupied = 0;
     let largest = 0;
+    let largestBounds = null;
 
     for (let i = 0; i < cells.length; i += 1) {
         if (!cells[i]) continue;
@@ -340,12 +361,20 @@ function _measureFrameShapeComplexity(data, width, height, frameStartX, frameWid
         let componentSize = 0;
         const stack = [i];
         visited[i] = true;
+        let minCellX = gridW;
+        let maxCellX = -1;
+        let minCellY = gridH;
+        let maxCellY = -1;
 
         while (stack.length) {
             const current = stack.pop();
             componentSize += 1;
             const x = current % gridW;
             const y = Math.floor(current / gridW);
+            if (x < minCellX) minCellX = x;
+            if (x > maxCellX) maxCellX = x;
+            if (y < minCellY) minCellY = y;
+            if (y > maxCellY) maxCellY = y;
             const neighbors = [
                 [x - 1, y], [x + 1, y], [x, y - 1], [x, y + 1]
             ];
@@ -359,12 +388,22 @@ function _measureFrameShapeComplexity(data, width, height, frameStartX, frameWid
             }
         }
 
-        if (componentSize > largest) largest = componentSize;
+        if (componentSize > largest) {
+            largest = componentSize;
+            largestBounds = {
+                minX: Math.floor((minCellX / gridW) * width),
+                maxX: Math.ceil(((maxCellX + 1) / gridW) * width) - 1,
+                minY: Math.floor((minCellY / gridH) * height),
+                maxY: Math.ceil(((maxCellY + 1) / gridH) * height) - 1
+            };
+        }
     }
 
     return {
         componentCount,
-        largestComponentRatio: largest / Math.max(1, occupied)
+        largestComponentRatio: largest / Math.max(1, occupied),
+        decorativeRatio: (occupied - largest) / Math.max(1, occupied),
+        bounds: largestBounds
     };
 }
 

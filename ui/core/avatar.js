@@ -190,7 +190,7 @@ export function handleAvatarClick(e) {
         let familiarHtml = '';
         if (studentId && scoreData?.familiar) {
             const spriteHtml = renderFamiliarSprite(scoreData.familiar, 'small', studentId);
-            familiarHtml = `<div class="enlargeable-familiar familiar-enlarged-companion mt-[-20px] z-[103]" data-student-id="${studentId}">${spriteHtml}</div>`;
+            familiarHtml = `<div class="enlargeable-familiar familiar-enlarged-companion absolute top-[126px] left-[calc(50%+62px)] z-[103]" data-student-id="${studentId}">${spriteHtml}</div>`;
         }
 
         // INVENTORY UI

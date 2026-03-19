@@ -818,9 +818,11 @@ export function openFamiliarStatsOverlay(studentId) {
                     </button>
                 </div>
                 <div class="text-[10px] text-white/35 mt-2">Variant: ${safeVariantLabel}</div>
-                <button type="button" class="fam-regenerate-btn mt-3 w-full rounded-lg bg-rose-500 hover:bg-rose-400 text-white font-bold text-sm py-2" data-student-id="${studentId}">
-                    Regenerate Sprite
-                </button>
+                <div class="mt-3 flex justify-end">
+                    <button type="button" class="fam-regenerate-btn rounded-full border border-white/12 bg-white/8 px-3 py-1.5 text-[11px] font-bold uppercase tracking-[0.18em] text-white/70 hover:bg-white/12 hover:text-white" data-student-id="${studentId}">
+                        Regenerate Sprite
+                    </button>
+                </div>
             </div>` : `
             <div class="bg-white/5 rounded-xl p-3 mb-4 text-left">
                 <div class="text-xs text-white/40 uppercase tracking-wider mb-1">Naming</div>

@@ -141,7 +141,7 @@ export async function generateFamiliarSpriteSheet(typeId, level, variant = null)
                 mode: 'sprite',
                 width: 1024,
                 height: 256,
-                num_steps: 30,
+                num_steps: 20,
                 guidance: 8
             });
             const normalized = await _normalizeAndValidateSpriteSheet(base64);

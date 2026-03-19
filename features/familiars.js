@@ -18,7 +18,6 @@ import { getFamiliarVariant, normalizeFamiliarName } from './familiarIdentity.mj
 
 const publicDataPath = 'artifacts/great-class-quest/public/data';
 const familiarOps = new Map();
-const SPRITE_FRAME_COUNT = 4;
 const MAX_SPRITE_GENERATION_ATTEMPTS = 3;
 const SPRITE_VALIDATION_SIZE = 128;
 
@@ -139,12 +138,12 @@ export async function generateFamiliarSpriteSheet(typeId, level, variant = null)
             const negativePrompt = _buildSpriteNegativePrompt(attempt);
             const base64 = await callCloudflareAiImageApi(prompt, negativePrompt, {
                 mode: 'sprite',
-                width: 1024,
-                height: 256,
+                width: 512,
+                height: 512,
                 num_steps: 20,
                 guidance: 8
             });
-            const normalized = await _normalizeAndValidateSpriteSheet(base64);
+            const normalized = await _normalizeAndValidateSingleSprite(base64);
             const { uploadImageToStorage } = await import('../utils.js');
             const url = await uploadImageToStorage(normalized, `familiars/${typeId}_level${level}_${Date.now()}.webp`);
             return url;
@@ -154,75 +153,79 @@ export async function generateFamiliarSpriteSheet(typeId, level, variant = null)
         }
     }
 
-    throw new Error(lastError?.message || 'The generated sprite sheet did not look like a usable 4-frame Familiar sprite.');
+    throw new Error(lastError?.message || 'The generated Familiar art did not look like one clean sprite.');
 }
 
 function _buildSpritePrompt(basePrompt, variant, attempt = 0) {
+    const cleanedBasePrompt = String(basePrompt || '')
+        .replace(/^2D game sprite sheet,\s*exactly 4 frames in a single horizontal row on a pure white background,\s*/i, '2D game creature sprite art on a pure white background, ')
+        .replace(/frame 1:.*$/i, '')
+        .replace(/consistent character across all frames/gi, 'consistent character design')
+        .replace(/consistent character/gi, 'consistent character design');
     const variantPrompt = variant?.promptFlavor
-        ? `same familiar variant identity across all frames, ${variant.promptFlavor}`
-        : 'same familiar identity across all frames';
+        ? `same familiar variant identity, ${variant.promptFlavor}`
+        : 'same familiar identity';
     const retryPrompt = attempt > 0
-        ? `IMPORTANT RETRY FIX: the previous image was rejected because it looked like a tiled strip or multiple tiny copies. Draw one single familiar only in each frame, centered and large.`
+        ? `IMPORTANT RETRY FIX: the previous image was rejected because it looked cluttered or like repeated pieces. Draw one single familiar only, centered and large, with one clear silhouette.`
         : '';
 
     return [
-        basePrompt,
+        cleanedBasePrompt,
         variantPrompt,
-        'IMPORTANT: create a retro 2D game sprite sheet asset.',
-        'Exactly 4 square animation frames in a single horizontal row.',
-        'One single familiar only per frame, centered, large, readable silhouette.',
+        'IMPORTANT: create one single retro 2D game familiar sprite asset.',
+        'Exactly one creature only.',
+        'Centered, large, readable silhouette.',
+        'Square composition.',
         'Plain pure white background only.',
         'No repeated rows, no tiled pattern, no many tiny copies, no texture atlas, no abstract streaks, no scenery.',
-        'Each frame must show the same character in a slightly different pose for animation.',
+        'No frame strip, no panel layout, no contact sheet, no animation sheet.',
         retryPrompt
     ].filter(Boolean).join(', ');
 }
 
 function _buildSpriteNegativePrompt(attempt = 0) {
-    const retryPenalty = attempt > 0 ? ', tiled pattern, repeating strips, rows of duplicates, many copies of creature' : '';
-    return `realistic photo, 3d render, text, watermark, blurry, low quality, extra limbs, deformed, multiple characters, collage, comic page, border grid, background scene, props, texture sheet, abstract pattern${retryPenalty}`;
+    const retryPenalty = attempt > 0 ? ', tiled pattern, repeating strips, rows of duplicates, many copies of creature, cluttered silhouette' : '';
+    return `realistic photo, 3d render, text, watermark, blurry, low quality, extra limbs, deformed, multiple characters, collage, comic page, border grid, background scene, props, texture sheet, abstract pattern, frame strip, animation sheet${retryPenalty}`;
 }
 
-async function _normalizeAndValidateSpriteSheet(base64) {
+async function _normalizeAndValidateSingleSprite(base64) {
     return new Promise((resolve, reject) => {
         const img = new Image();
         img.src = base64;
         img.onload = () => {
-            const validation = _validateSpriteSheetImage(img);
+            const validation = _validateSingleSpriteImage(img);
             if (!validation.ok) {
                 reject(new Error(validation.reason));
                 return;
             }
 
-            const targetH = SPRITE_VALIDATION_SIZE;
-            const targetW = targetH * SPRITE_FRAME_COUNT;
+            const targetSize = SPRITE_VALIDATION_SIZE;
             const canvas = document.createElement('canvas');
-            canvas.width = targetW;
-            canvas.height = targetH;
+            canvas.width = targetSize;
+            canvas.height = targetSize;
             const ctx = canvas.getContext('2d');
             if (!ctx) {
                 reject(new Error('Could not create sprite canvas.'));
                 return;
             }
             ctx.fillStyle = '#ffffff';
-            ctx.fillRect(0, 0, targetW, targetH);
+            ctx.fillRect(0, 0, targetSize, targetSize);
             ctx.imageSmoothingEnabled = false;
-            ctx.drawImage(img, 0, 0, targetW, targetH);
+            ctx.drawImage(img, 0, 0, targetSize, targetSize);
             resolve(canvas.toDataURL('image/webp', 0.9));
         };
         img.onerror = reject;
     });
 }
 
-function _validateSpriteSheetImage(img) {
+function _validateSingleSpriteImage(img) {
     const aspectRatio = img.width / Math.max(1, img.height);
-    if (aspectRatio < 3.2 || aspectRatio > 4.8) {
-        return { ok: false, reason: 'Generated image is not a horizontal 4-frame sprite sheet.' };
+    if (aspectRatio < 0.75 || aspectRatio > 1.33) {
+        return { ok: false, reason: 'Generated image is not a square single-sprite image.' };
     }
 
-    const frameWidth = Math.floor(img.width / SPRITE_FRAME_COUNT);
-    if (frameWidth < 24 || img.height < 24) {
-        return { ok: false, reason: 'Generated sprite sheet is too small to use.' };
+    if (img.width < 48 || img.height < 48) {
+        return { ok: false, reason: 'Generated sprite image is too small to use.' };
     }
 
     const canvas = document.createElement('canvas');
@@ -230,7 +233,7 @@ function _validateSpriteSheetImage(img) {
     canvas.height = img.height;
     const ctx = canvas.getContext('2d', { willReadFrequently: true });
     if (!ctx) {
-        return { ok: false, reason: 'Could not inspect generated sprite sheet.' };
+        return { ok: false, reason: 'Could not inspect generated sprite image.' };
     }
 
     ctx.fillStyle = '#ffffff';
@@ -238,18 +241,8 @@ function _validateSpriteSheetImage(img) {
     ctx.drawImage(img, 0, 0);
     const { data, width, height } = ctx.getImageData(0, 0, canvas.width, canvas.height);
 
-    for (let frameIndex = 0; frameIndex < SPRITE_FRAME_COUNT; frameIndex += 1) {
-        const frameStartX = frameIndex * frameWidth;
-        const stats = _collectFrameStats(data, width, height, frameStartX, frameWidth);
-        if (!stats.valid) return { ok: false, reason: stats.reason };
-    }
-
-    return { ok: true };
-}
-
-function _collectFrameStats(data, width, height, frameStartX, frameWidth) {
     let foregroundCount = 0;
-    let minX = frameWidth;
+    let minX = width;
     let maxX = -1;
     let minY = height;
     let maxY = -1;
@@ -257,55 +250,54 @@ function _collectFrameStats(data, width, height, frameStartX, frameWidth) {
     let verticalEdgeHits = 0;
 
     for (let y = 0; y < height; y += 1) {
-        for (let localX = 0; localX < frameWidth; localX += 1) {
-            const x = frameStartX + localX;
+        for (let x = 0; x < width; x += 1) {
             const idx = (y * width + x) * 4;
             if (!_isForegroundPixel(data[idx], data[idx + 1], data[idx + 2], data[idx + 3])) continue;
 
             foregroundCount += 1;
-            if (localX < minX) minX = localX;
-            if (localX > maxX) maxX = localX;
+            if (x < minX) minX = x;
+            if (x > maxX) maxX = x;
             if (y < minY) minY = y;
             if (y > maxY) maxY = y;
-            if (localX <= 1 || localX >= frameWidth - 2) horizontalEdgeHits += 1;
+            if (x <= 1 || x >= width - 2) horizontalEdgeHits += 1;
             if (y <= 1 || y >= height - 2) verticalEdgeHits += 1;
         }
     }
 
-    const frameArea = frameWidth * height;
+    const frameArea = width * height;
     const coverage = foregroundCount / Math.max(1, frameArea);
-    if (coverage < 0.02) {
-        return { valid: false, reason: 'Generated sprite frame is too empty.' };
+    if (coverage < 0.04) {
+        return { ok: false, reason: 'Generated sprite is too empty.' };
     }
-    if (coverage > 0.48) {
-        return { valid: false, reason: 'Generated sprite frame is too busy and does not resemble a single sprite.' };
+    if (coverage > 0.55) {
+        return { ok: false, reason: 'Generated sprite frame is too busy and does not resemble a single sprite.' };
     }
 
-    const bboxWidthRatio = (maxX - minX + 1) / Math.max(1, frameWidth);
+    const bboxWidthRatio = (maxX - minX + 1) / Math.max(1, width);
     const bboxHeightRatio = (maxY - minY + 1) / Math.max(1, height);
-    if (bboxWidthRatio > 0.86 || bboxHeightRatio > 0.95) {
-        return { valid: false, reason: 'Generated frame spreads across the whole cell like a texture strip.' };
+    if (bboxWidthRatio > 0.88 || bboxHeightRatio > 0.9) {
+        return { ok: false, reason: 'Generated sprite spreads across the whole image like clutter.' };
     }
 
-    const centerX = ((minX + maxX) / 2) / Math.max(1, frameWidth);
+    const centerX = ((minX + maxX) / 2) / Math.max(1, width);
     const centerY = ((minY + maxY) / 2) / Math.max(1, height);
-    if (Math.abs(centerX - 0.5) > 0.28 || Math.abs(centerY - 0.52) > 0.3) {
-        return { valid: false, reason: 'Generated sprite is not centered in the frame.' };
+    if (Math.abs(centerX - 0.5) > 0.24 || Math.abs(centerY - 0.52) > 0.26) {
+        return { ok: false, reason: 'Generated sprite is not centered.' };
     }
 
-    if ((horizontalEdgeHits / foregroundCount) > 0.18 || (verticalEdgeHits / foregroundCount) > 0.14) {
-        return { valid: false, reason: 'Generated frame looks clipped or tiled against the borders.' };
+    if ((horizontalEdgeHits / foregroundCount) > 0.12 || (verticalEdgeHits / foregroundCount) > 0.12) {
+        return { ok: false, reason: 'Generated sprite looks clipped against the edges.' };
     }
 
-    const shapeStats = _measureFrameShapeComplexity(data, width, height, frameStartX, frameWidth);
-    if (shapeStats.componentCount > 12) {
-        return { valid: false, reason: 'Generated frame contains too many disconnected pieces.' };
+    const shapeStats = _measureFrameShapeComplexity(data, width, height, 0, width);
+    if (shapeStats.componentCount > 10) {
+        return { ok: false, reason: 'Generated sprite contains too many disconnected pieces.' };
     }
-    if (shapeStats.largestComponentRatio < 0.35) {
-        return { valid: false, reason: 'Generated frame does not contain one clear main creature silhouette.' };
+    if (shapeStats.largestComponentRatio < 0.42) {
+        return { ok: false, reason: 'Generated sprite does not contain one clear main creature silhouette.' };
     }
 
-    return { valid: true };
+    return { ok: true };
 }
 
 function _measureFrameShapeComplexity(data, width, height, frameStartX, frameWidth) {
@@ -399,6 +391,7 @@ export function buildFamiliarInitData(typeId, currentTotalStars, studentId = '')
         generationLevel: null,
         generationError: null,
         generationUpdatedAt: null,
+        spriteFormat: 'single',
         schemaVersion: 2
     };
 }
@@ -559,6 +552,7 @@ async function _generateCurrentStageSprite(scoreRef, studentId, familiar, sprite
         const url = await generateFamiliarSpriteSheet(familiar.typeId, spriteLevel, variant);
         await updateDoc(scoreRef, {
             [`familiar.spriteSheets.${spriteLevel}`]: url,
+            'familiar.spriteFormat': 'single',
             'familiar.generationStatus': 'idle',
             'familiar.generationLevel': null,
             'familiar.generationError': null,
@@ -592,6 +586,7 @@ function _buildMigrationUpdates(familiar, studentId = '') {
     if (!('generationLevel' in familiar)) updates['familiar.generationLevel'] = null;
     if (!('generationError' in familiar)) updates['familiar.generationError'] = null;
     if (!('generationUpdatedAt' in familiar)) updates['familiar.generationUpdatedAt'] = null;
+    if (!('spriteFormat' in familiar)) updates['familiar.spriteFormat'] = 'sheet4';
     if (!familiar.spriteSheets) {
         updates['familiar.spriteSheets'] = { 1: null, 2: null, 3: null };
     }
@@ -678,13 +673,17 @@ export function renderFamiliarSprite(familiar, size = 'small', studentId = '') {
 
     const spriteUrl = familiar.spriteSheets?.[familiar.level] || null;
     if (spriteUrl) {
+        const spriteFormat = familiar.spriteFormat || 'sheet4';
+        const spriteStyle = spriteFormat === 'single'
+            ? `width:${px}px;height:${px}px;background-image:url('${spriteUrl}');background-size:100% 100%;background-position:center center;image-rendering:pixelated;`
+            : `width:${px}px;height:${px}px;background-image:url('${spriteUrl}');background-size:400% 100%;background-position:0 0;animation:fam-sprite-walk 0.6s steps(4, end) infinite;image-rendering:pixelated;`;
         return `
             <div class="familiar-container ${typeDef.animClass} enlargeable-familiar"
                  data-student-id="${studentId}"
                  style="width:${px}px;height:${px}px;flex-shrink:0;"
                  title="${safeSubtitle} — ${escapeHtml(typeDef.levelNames[(familiar.level || 1) - 1])}">
                 <div class="familiar-sprite"
-                     style="width:${px}px;height:${px}px;background-image:url('${spriteUrl}');background-size:400% 100%;image-rendering:pixelated;">
+                     style="${spriteStyle}">
                 </div>
             </div>`;
     }

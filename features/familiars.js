@@ -861,8 +861,8 @@ export function openFamiliarStatsOverlay(studentId) {
                 </div>
                 <div class="text-[10px] text-white/35 mt-2">Variant: ${safeVariantLabel}</div>
                 <div class="mt-3 flex justify-end">
-                    <button type="button" class="fam-regenerate-btn rounded-full border border-white/12 bg-white/8 px-3 py-1.5 text-[11px] font-bold uppercase tracking-[0.18em] text-white/70 hover:bg-white/12 hover:text-white" data-student-id="${studentId}">
-                        Regenerate Sprite
+                    <button type="button" class="fam-regenerate-btn rounded-full border border-white/12 bg-white/8 w-8 h-8 flex items-center justify-center text-white/70 hover:bg-white/12 hover:text-white transition-colors" data-student-id="${studentId}" title="Regenerate Sprite">
+                        <i class="fas fa-sync text-xs"></i>
                     </button>
                 </div>
             </div>` : `
@@ -911,7 +911,7 @@ export function openFamiliarStatsOverlay(studentId) {
         regenerateBtn.addEventListener('click', async (e) => {
             e.stopPropagation();
             regenerateBtn.disabled = true;
-            regenerateBtn.textContent = 'Regenerating...';
+            regenerateBtn.innerHTML = '<i class="fas fa-spinner fa-spin text-xs"></i>';
             try {
                 await regenerateCurrentFamiliarSprite(studentId);
             } catch (error) {

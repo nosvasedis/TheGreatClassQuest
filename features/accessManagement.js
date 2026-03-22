@@ -5,7 +5,7 @@ import {
 } from '../firebase.js';
 import * as state from '../state.js';
 import { canUseFeature } from '../utils/subscription.js';
-import { createOrReplaceSecretaryAccess, createParentAccess, disableParentAccess, disableSecretaryAccess, publishParentHomework, resetParentAccessPassword } from '../utils/adminRuntime.js';
+import { createOrReplaceSecretaryAccess, createParentAccess, disableParentAccess, disableSecretaryAccess, resetParentAccessPassword } from '../utils/adminRuntime.js';
 import { showToast } from '../ui/effects.js';
 
 const PUBLIC_DATA_PATH = 'artifacts/great-class-quest/public/data';
@@ -121,15 +121,6 @@ function renderParentAccessCard() {
                             <button type="button" id="options-parent-create-btn" class="px-5 py-3 rounded-2xl bg-sky-600 hover:bg-sky-700 text-white font-bold">Save Parent Account</button>
                             <button type="button" id="options-parent-reset-btn" class="px-5 py-3 rounded-2xl bg-amber-100 hover:bg-amber-200 text-amber-800 font-bold ${link ? '' : 'hidden'}">Reset Password</button>
                             <button type="button" id="options-parent-disable-btn" class="px-5 py-3 rounded-2xl bg-rose-100 hover:bg-rose-200 text-rose-700 font-bold ${link ? '' : 'hidden'}">Disable</button>
-                        </div>
-                        <div class="rounded-2xl border border-emerald-100 bg-emerald-50 px-4 py-4">
-                            <p class="text-sm font-semibold text-emerald-900 mb-2">Quick Homework Share</p>
-                            <div class="grid gap-3 md:grid-cols-[180px_minmax(0,1fr)]">
-                                <input id="options-parent-homework-date" type="date" class="px-4 py-3 border border-emerald-200 rounded-2xl bg-white">
-                                <input id="options-parent-homework-title" type="text" class="px-4 py-3 border border-emerald-200 rounded-2xl bg-white" placeholder="Homework title">
-                            </div>
-                            <textarea id="options-parent-homework-body" class="w-full mt-3 px-4 py-3 border border-emerald-200 rounded-2xl bg-white" rows="4" placeholder="What should the parent know for the next lesson?"></textarea>
-                            <button type="button" id="options-parent-homework-btn" class="mt-3 px-5 py-3 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold">Publish Homework</button>
                         </div>
                     </div>
                 </div>
@@ -332,37 +323,5 @@ export function wireAccessCenterEvents() {
             return;
         }
 
-        if (event.target.closest('#options-parent-homework-btn')) {
-            const button = event.target.closest('#options-parent-homework-btn');
-            if (!selectedStudent) {
-                showToast('Choose a student first.', 'info');
-                return;
-            }
-            const lessonDate = document.getElementById('options-parent-homework-date')?.value?.trim();
-            const title = document.getElementById('options-parent-homework-title')?.value?.trim();
-            const body = document.getElementById('options-parent-homework-body')?.value?.trim();
-            if (!lessonDate || !title || !body) {
-                showToast('Add the date, title, and homework details first.', 'error');
-                return;
-            }
-            try {
-                setBusyState(button, true, 'Publishing Homework...');
-                await publishParentHomework({
-                    studentId: selectedStudent.id,
-                    classId: selectedStudent.classId,
-                    lessonDate,
-                    title,
-                    body
-                });
-                showToast('Homework published for the parent portal.', 'success');
-                document.getElementById('options-parent-homework-title').value = '';
-                document.getElementById('options-parent-homework-body').value = '';
-            } catch (error) {
-                console.error('Could not publish homework:', error);
-                showToast(error?.message || 'Could not publish homework.', 'error');
-            } finally {
-                setBusyState(button, false);
-            }
-        }
     });
 }

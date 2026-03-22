@@ -46,6 +46,10 @@ export function publishParentHomework(payload) {
     return callAdmin('publishParentHomework', payload);
 }
 
+export function syncQuestAssignmentToParentHomework(payload) {
+    return callAdmin('syncQuestAssignmentToParentHomework', payload);
+}
+
 export function backfillRoleAccessData(payload = {}) {
     return callAdmin('backfillRoleAccessData', payload);
 }

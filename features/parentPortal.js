@@ -128,12 +128,13 @@ function renderOverview() {
 
 function renderHomework() {
     const items = state.get('currentParentHomework') || [];
+    const item = items[0] || null;
     return `
         <article class="parent-card">
-            <p class="parent-card__title">Homework For Upcoming Lessons</p>
+            <p class="parent-card__title">Latest Homework</p>
             <div class="parent-list">
-                ${items.length
-                    ? items.map((item) => `
+                ${item
+                    ? `
                         <div class="parent-list-item">
                             <div class="flex items-center justify-between gap-3">
                                 <div class="font-semibold text-slate-800">${escapeHtml(item.title || 'Homework')}</div>
@@ -141,8 +142,8 @@ function renderHomework() {
                             </div>
                             <div class="text-sm text-slate-600 mt-2 whitespace-pre-wrap">${escapeHtml(item.body || '')}</div>
                         </div>
-                    `).join('')
-                    : '<div class="parent-empty">No homework has been published yet.</div>'
+                    `
+                    : '<div class="parent-empty">No homework has been assigned yet.</div>'
                 }
             </div>
         </article>

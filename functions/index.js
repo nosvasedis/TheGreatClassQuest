@@ -29,6 +29,23 @@ function buildSyntheticRoleEmail(role, username) {
   return `${role}.${sanitizeUsername(username)}@${getProjectId().toLowerCase()}.gcq.local`;
 }
 
+function mapAdminAuthError(error, fallbackMessage) {
+  const code = String(error?.code || '');
+  if (code === 'auth/email-already-exists') {
+    return new HttpsError('already-exists', 'That username is already in use.');
+  }
+  if (code === 'auth/user-not-found') {
+    return new HttpsError('not-found', 'That login account no longer exists and needs to be recreated.');
+  }
+  if (code === 'auth/invalid-password' || code === 'auth/password-too-short') {
+    return new HttpsError('invalid-argument', 'Use a stronger password with at least 6 characters.');
+  }
+  if (code === 'auth/invalid-email') {
+    return new HttpsError('invalid-argument', 'That username could not be turned into a valid login email.');
+  }
+  return new HttpsError('internal', fallbackMessage);
+}
+
 async function requireAuthedCaller(request) {
   if (!request.auth?.uid) {
     throw new HttpsError('unauthenticated', 'You must be signed in first.');
@@ -84,9 +101,33 @@ async function requireStudentManager(request, studentId) {
   return { caller, student };
 }
 
+async function requireClassManager(request, classId) {
+  const caller = await requireAuthedCaller(request);
+  const classSnap = await db.doc(`${PUBLIC_DATA_PATH}/classes/${classId}`).get();
+  if (!classSnap.exists) {
+    throw new HttpsError('not-found', 'That class could not be found.');
+  }
+  const classData = { id: classSnap.id, ...classSnap.data() };
+  const isSecretary = caller.profile.role === 'secretary';
+  const isAdmin = caller.profile.schoolAdmin === true;
+  if (!isSecretary && !isAdmin && classData.createdBy?.uid !== caller.uid) {
+    throw new HttpsError('permission-denied', 'You can only manage homework sync for your own classes.');
+  }
+  return { caller, classData };
+}
+
 async function getParentLink(studentId) {
   const snap = await db.doc(`${PUBLIC_DATA_PATH}/parent_links/${studentId}`).get();
   return snap.exists ? { id: snap.id, ...snap.data() } : null;
+}
+
+async function getUserByEmail(email) {
+  try {
+    return await auth.getUserByEmail(email);
+  } catch (error) {
+    if (String(error?.code || '') === 'auth/user-not-found') return null;
+    throw error;
+  }
 }
 
 async function getScore(studentId) {
@@ -135,6 +176,7 @@ async function countPublishedHomework(studentId) {
   const snap = await db.collection(`${PUBLIC_DATA_PATH}/parent_homework`)
     .where('studentId', '==', studentId)
     .where('status', '==', 'published')
+    .where('sourceType', '==', 'quest-assignment')
     .get();
   return snap.size;
 }
@@ -196,6 +238,72 @@ async function upsertParentSnapshot(studentId, extra = {}) {
   const payload = await buildParentSnapshot(studentId, extra);
   await db.doc(`${PUBLIC_DATA_PATH}/parent_snapshots/${studentId}`).set(payload, { merge: true });
   return payload;
+}
+
+async function resolveRoleUser({ desiredUid = null, email, password, displayName, roleLabel }) {
+  const existingByEmail = await getUserByEmail(email);
+
+  if (desiredUid) {
+    try {
+      await auth.updateUser(desiredUid, {
+        email,
+        password,
+        displayName,
+        disabled: false
+      });
+      return desiredUid;
+    } catch (error) {
+      const code = String(error?.code || '');
+      if (code === 'auth/user-not-found') {
+        if (existingByEmail && existingByEmail.uid !== desiredUid) {
+          throw new HttpsError('already-exists', `That ${roleLabel} username is already linked to another account.`);
+        }
+        desiredUid = null;
+      } else if (code === 'auth/email-already-exists') {
+        if (existingByEmail && existingByEmail.uid !== desiredUid) {
+          throw new HttpsError('already-exists', `That ${roleLabel} username is already linked to another account.`);
+        }
+      } else {
+        throw mapAdminAuthError(error, `Could not update the ${roleLabel} account.`);
+      }
+    }
+  }
+
+  if (existingByEmail) {
+    throw new HttpsError('already-exists', `That ${roleLabel} username is already in use.`);
+  }
+
+  try {
+    const userRecord = await auth.createUser({ email, password, displayName });
+    return userRecord.uid;
+  } catch (error) {
+    throw mapAdminAuthError(error, `Could not create the ${roleLabel} account.`);
+  }
+}
+
+function normalizeHomeworkTitleFromAssignment(className, testData) {
+  if (String(testData?.title || '').trim()) {
+    return `Quest Assignment: ${String(testData.title).trim()}`;
+  }
+  if (String(className || '').trim()) {
+    return `${String(className).trim()} Homework`;
+  }
+  return 'Quest Assignment';
+}
+
+function normalizeHomeworkBodyFromAssignment(text, testData) {
+  const bodyParts = [];
+  const assignmentText = String(text || '').trim();
+  if (assignmentText) bodyParts.push(assignmentText);
+
+  if (testData?.date && testData?.title) {
+    bodyParts.push(`Upcoming test: ${String(testData.title).trim()} on ${String(testData.date).trim()}.`);
+    if (String(testData.curriculum || '').trim()) {
+      bodyParts.push(`Curriculum: ${String(testData.curriculum).trim()}`);
+    }
+  }
+
+  return bodyParts.join('\n\n').trim();
 }
 
 function buildThreadId(studentId, threadType) {
@@ -295,23 +403,14 @@ exports.createParentAccess = callable(async (request) => {
   const { caller, student } = await requireStudentManager(request, studentId);
   const link = await getParentLink(studentId);
   const email = buildSyntheticRoleEmail('parent', username);
-
-  let parentUid = link?.parentUid || null;
-  if (parentUid) {
-    await auth.updateUser(parentUid, {
-      email,
-      password,
-      displayName: `Parent of ${student.name}`,
-      disabled: false
-    });
-  } else {
-    const userRecord = await auth.createUser({
-      email,
-      password,
-      displayName: `Parent of ${student.name}`
-    });
-    parentUid = userRecord.uid;
-  }
+  const displayName = `Parent of ${student.name}`;
+  const parentUid = await resolveRoleUser({
+    desiredUid: link?.parentUid || null,
+    email,
+    password,
+    displayName,
+    roleLabel: 'parent'
+  });
 
   await db.doc(`${PUBLIC_DATA_PATH}/parent_links/${studentId}`).set({
     studentId,
@@ -326,7 +425,7 @@ exports.createParentAccess = callable(async (request) => {
 
   await db.collection(PROFILE_COLLECTION).doc(parentUid).set({
     role: 'parent',
-    displayName: `Parent of ${student.name}`,
+    displayName,
     loginMode: 'username',
     status: 'active',
     schoolAdmin: false,
@@ -391,23 +490,13 @@ exports.createOrReplaceSecretaryAccess = callable(async (request) => {
   const secretaryRef = db.doc(`${PUBLIC_DATA_PATH}/school_roles/secretary`);
   const existing = await secretaryRef.get();
   const email = buildSyntheticRoleEmail('secretary', username);
-  let secretaryUid = existing.exists ? existing.data().uid : null;
-
-  if (secretaryUid) {
-    await auth.updateUser(secretaryUid, {
-      email,
-      password,
-      displayName: 'School Secretary',
-      disabled: false
-    });
-  } else {
-    const record = await auth.createUser({
-      email,
-      password,
-      displayName: 'School Secretary'
-    });
-    secretaryUid = record.uid;
-  }
+  const secretaryUid = await resolveRoleUser({
+    desiredUid: existing.exists ? existing.data().uid : null,
+    email,
+    password,
+    displayName: 'School Secretary',
+    roleLabel: 'secretary'
+  });
 
   await secretaryRef.set({
     uid: secretaryUid,
@@ -531,6 +620,71 @@ exports.publishParentHomework = callable(async (request) => {
   }
 
   return { ok: true };
+});
+
+exports.syncQuestAssignmentToParentHomework = callable(async (request) => {
+  await requireFeatureEnabled('parentAccess');
+  const classId = String(request.data?.classId || '').trim();
+  const text = String(request.data?.text || '').trim();
+  const lessonDate = String(request.data?.lessonDate || '').trim();
+  const title = String(request.data?.title || '').trim();
+  const testData = request.data?.testData && typeof request.data.testData === 'object'
+    ? request.data.testData
+    : null;
+
+  if (!classId || !text) {
+    throw new HttpsError('invalid-argument', 'Class and assignment text are required.');
+  }
+
+  const { caller, classData } = await requireClassManager(request, classId);
+  const className = classData.name || '';
+  const effectiveLessonDate = lessonDate || String(testData?.date || '').trim();
+  const effectiveTitle = title || normalizeHomeworkTitleFromAssignment(className, testData);
+  const effectiveBody = normalizeHomeworkBodyFromAssignment(text, testData);
+
+  if (!effectiveLessonDate || !effectiveBody) {
+    throw new HttpsError('invalid-argument', 'A lesson date and assignment details are required for the parent portal.');
+  }
+
+  const studentsSnap = await db.collection(`${PUBLIC_DATA_PATH}/students`)
+    .where('classId', '==', classId)
+    .get();
+
+  let syncedCount = 0;
+  for (const studentDoc of studentsSnap.docs) {
+    const studentId = studentDoc.id;
+    const existingSnap = await db.collection(`${PUBLIC_DATA_PATH}/parent_homework`)
+      .where('studentId', '==', studentId)
+      .where('sourceType', '==', 'quest-assignment')
+      .where('sourceClassId', '==', classId)
+      .limit(1)
+      .get();
+
+    const payload = {
+      studentId,
+      classId,
+      lessonDate: effectiveLessonDate,
+      title: effectiveTitle,
+      body: effectiveBody,
+      status: 'published',
+      sourceType: 'quest-assignment',
+      sourceClassId: classId,
+      sourceTestDate: String(testData?.date || '').trim() || null,
+      publishedBy: { uid: caller.uid, role: caller.profile.role || 'teacher' },
+      publishedAt: FieldValue.serverTimestamp(),
+      updatedAt: FieldValue.serverTimestamp()
+    };
+
+    if (existingSnap.empty) {
+      await db.collection(`${PUBLIC_DATA_PATH}/parent_homework`).add(payload);
+    } else {
+      await existingSnap.docs[0].ref.set(payload, { merge: true });
+    }
+    await upsertParentSnapshot(studentId);
+    syncedCount += 1;
+  }
+
+  return { ok: true, syncedCount };
 });
 
 exports.postCommunicationMessage = callable(async (request) => {

@@ -238,8 +238,9 @@
   position: fixed;
   inset: 0;
   background:
-    radial-gradient(circle at top left, rgba(14, 165, 233, 0.16), transparent 26%),
-    linear-gradient(180deg, #e2e8f0 0%, #f8fafc 100%);
+    radial-gradient(circle at top left, rgba(245, 158, 11, 0.22), transparent 26%),
+    radial-gradient(circle at top right, rgba(56, 189, 248, 0.14), transparent 28%),
+    linear-gradient(180deg, #f5efe3 0%, #eef4ff 42%, #edf7f2 100%);
   z-index: 56;
   display: grid;
   grid-template-columns: 320px minmax(0, 1fr);
@@ -247,15 +248,18 @@
 
 .secretary-shell__rail {
   padding: 1.4rem 1rem;
-  background: linear-gradient(180deg, #0f172a 0%, #1e293b 100%);
+  background:
+    radial-gradient(circle at top, rgba(250, 204, 21, 0.18), transparent 26%),
+    linear-gradient(180deg, #10233f 0%, #173256 46%, #21446b 100%);
   color: white;
   display: flex;
   flex-direction: column;
   gap: 1rem;
+  border-right: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 .secretary-shell__subtitle {
-  color: rgba(255, 255, 255, 0.72);
+  color: rgba(255, 248, 220, 0.82);
 }
 
 .secretary-shell__nav {
@@ -265,14 +269,16 @@
 
 .secretary-nav-btn {
   text-align: left;
-  color: rgba(255, 255, 255, 0.78);
-  background: rgba(255, 255, 255, 0.06);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  color: rgba(255, 255, 255, 0.86);
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  box-shadow: 0 8px 20px rgba(15, 23, 42, 0.15);
 }
 
 .secretary-nav-btn-active {
-  background: linear-gradient(135deg, #38bdf8, #14b8a6);
-  color: #082f49;
+  background: linear-gradient(135deg, #fde68a, #f59e0b);
+  color: #4a2400;
+  box-shadow: 0 16px 30px rgba(245, 158, 11, 0.28);
 }
 
 .secretary-shell__footer {
@@ -282,8 +288,9 @@
 }
 
 .secretary-shell__secondary-btn {
-  background: rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.14);
   color: white;
+  border: 1px solid rgba(255, 255, 255, 0.12);
 }
 
 .secretary-shell__main {
@@ -295,23 +302,712 @@
   display: flex;
   gap: 0.75rem;
   width: 100%;
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  padding: 0.35rem;
+  border-radius: 1.5rem;
+  background: rgba(255, 255, 255, 0.56);
+  backdrop-filter: blur(14px);
+  border: 1px solid rgba(255, 255, 255, 0.72);
+  box-shadow: 0 14px 32px rgba(15, 23, 42, 0.08);
 }
 
 .secretary-shell__filters input {
   flex: 1;
   border-radius: 999px;
-  border: 1px solid rgba(148, 163, 184, 0.45);
-  background: rgba(255, 255, 255, 0.85);
+  border: 1px solid rgba(196, 181, 253, 0.45);
+  background: rgba(255, 255, 255, 0.92);
   padding: 0.8rem 1rem;
+  color: #0f172a;
 }
 
 .secretary-panel {
   margin-top: 1rem;
-  border-radius: 2rem;
-  background: rgba(255, 255, 255, 0.86);
-  border: 1px solid rgba(203, 213, 225, 0.9);
+  border-radius: 2.25rem;
+  background: rgba(255, 255, 255, 0.72);
+  border: 1px solid rgba(255, 255, 255, 0.8);
   padding: 1rem;
   box-shadow: 0 16px 40px rgba(15, 23, 42, 0.08);
+  backdrop-filter: blur(12px);
+}
+
+.secretary-hero {
+  display: grid;
+  grid-template-columns: minmax(0, 1.2fr) minmax(320px, 0.95fr);
+  gap: 1rem;
+  padding: 1.2rem;
+  border-radius: 1.8rem;
+  background:
+    radial-gradient(circle at top left, rgba(255, 255, 255, 0.86), transparent 38%),
+    linear-gradient(135deg, rgba(30, 64, 175, 0.92), rgba(15, 118, 110, 0.9));
+  color: white;
+  box-shadow: 0 24px 48px rgba(30, 64, 175, 0.18);
+}
+
+.secretary-hero__eyebrow,
+.secretary-card__eyebrow {
+  text-transform: uppercase;
+  letter-spacing: 0.18em;
+  font-size: 0.72rem;
+  font-weight: 900;
+}
+
+.secretary-hero__eyebrow {
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.secretary-hero__title {
+  font-family: 'Cinzel Decorative', cursive;
+  font-size: clamp(1.9rem, 3vw, 3rem);
+  line-height: 1.08;
+  max-width: 16ch;
+}
+
+.secretary-hero__body {
+  margin-top: 0.9rem;
+  max-width: 62ch;
+  color: rgba(239, 246, 255, 0.9);
+}
+
+.secretary-hero__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-top: 1.25rem;
+}
+
+.secretary-hero__primary,
+.secretary-hero__secondary,
+.secretary-chip-btn,
+.secretary-inline-link,
+.secretary-operation-tile,
+.secretary-thread-spark {
+  transition: transform 0.18s ease, box-shadow 0.18s ease, background 0.18s ease;
+}
+
+.secretary-hero__primary,
+.secretary-hero__secondary {
+  border: 0;
+  border-radius: 999px;
+  padding: 0.9rem 1.2rem;
+  font-weight: 800;
+}
+
+.secretary-hero__primary {
+  background: linear-gradient(135deg, #fff7d6, #fde68a);
+  color: #7c2d12;
+  box-shadow: 0 12px 30px rgba(250, 204, 21, 0.28);
+}
+
+.secretary-hero__secondary {
+  background: rgba(255, 255, 255, 0.14);
+  color: white;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+}
+
+.secretary-hero__primary:hover,
+.secretary-hero__secondary:hover,
+.secretary-chip-btn:hover,
+.secretary-inline-link:hover,
+.secretary-operation-tile:hover,
+.secretary-thread-spark:hover {
+  transform: translateY(-1px);
+}
+
+.secretary-hero__ledger {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.8rem;
+}
+
+.secretary-ledger-card {
+  padding: 1rem;
+  border-radius: 1.4rem;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  backdrop-filter: blur(10px);
+  background: rgba(255, 255, 255, 0.14);
+}
+
+.secretary-ledger-card--sky {
+  background: linear-gradient(180deg, rgba(186, 230, 253, 0.36), rgba(255, 255, 255, 0.12));
+}
+
+.secretary-ledger-card--emerald {
+  background: linear-gradient(180deg, rgba(167, 243, 208, 0.36), rgba(255, 255, 255, 0.12));
+}
+
+.secretary-ledger-card--amber {
+  background: linear-gradient(180deg, rgba(253, 230, 138, 0.42), rgba(255, 255, 255, 0.12));
+}
+
+.secretary-ledger-card--violet {
+  background: linear-gradient(180deg, rgba(221, 214, 254, 0.36), rgba(255, 255, 255, 0.12));
+}
+
+.secretary-ledger-card__label {
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.16em;
+  font-weight: 800;
+  color: rgba(255, 255, 255, 0.72);
+}
+
+.secretary-ledger-card__value,
+.secretary-card__metric {
+  font-family: 'Cinzel Decorative', cursive;
+  font-size: clamp(1.8rem, 2.4vw, 2.4rem);
+  margin-top: 0.45rem;
+}
+
+.secretary-ledger-card__meta {
+  margin-top: 0.35rem;
+  color: rgba(255, 255, 255, 0.78);
+  font-size: 0.86rem;
+}
+
+.secretary-overview-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.15fr) minmax(280px, 0.85fr) minmax(280px, 0.85fr);
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+.secretary-card {
+  border-radius: 1.7rem;
+  background:
+    radial-gradient(circle at top left, rgba(255, 255, 255, 0.88), transparent 46%),
+    rgba(255, 255, 255, 0.94);
+  border: 1px solid rgba(224, 231, 255, 0.8);
+  box-shadow: 0 12px 28px rgba(15, 23, 42, 0.06);
+  padding: 1.05rem;
+}
+
+.secretary-card--featured {
+  background:
+    radial-gradient(circle at top right, rgba(253, 230, 138, 0.35), transparent 30%),
+    linear-gradient(180deg, #fffdf8, #ffffff);
+}
+
+.secretary-card--mini {
+  min-height: 168px;
+}
+
+.secretary-card__header {
+  display: flex;
+  gap: 0.8rem;
+  align-items: flex-start;
+  justify-content: space-between;
+  margin-bottom: 0.9rem;
+}
+
+.secretary-card__header--conversation {
+  margin-bottom: 1.2rem;
+}
+
+.secretary-card__eyebrow {
+  color: #b45309;
+}
+
+.secretary-card__title {
+  font-size: 1.35rem;
+}
+
+.secretary-card__badge {
+  flex-shrink: 0;
+  padding: 0.45rem 0.8rem;
+  border-radius: 999px;
+  background: #eff6ff;
+  color: #1d4ed8;
+  font-size: 0.82rem;
+  font-weight: 800;
+}
+
+.secretary-pulse-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.85rem;
+}
+
+.secretary-pulse-chip {
+  display: flex;
+  gap: 0.8rem;
+  align-items: flex-start;
+  padding: 0.95rem 1rem;
+  border-radius: 1.2rem;
+  background: #f8fafc;
+  border: 1px solid rgba(226, 232, 240, 0.92);
+}
+
+.secretary-pulse-chip i {
+  width: 2.3rem;
+  height: 2.3rem;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #dbeafe, #bfdbfe);
+  color: #1d4ed8;
+}
+
+.secretary-pulse-chip strong,
+.secretary-inline-note strong {
+  display: block;
+  color: #0f172a;
+}
+
+.secretary-pulse-chip span,
+.secretary-inline-note {
+  color: #475569;
+  font-size: 0.9rem;
+}
+
+.secretary-stack {
+  display: grid;
+  gap: 0.85rem;
+}
+
+.secretary-feed-item,
+.secretary-academic-row,
+.secretary-thread-btn,
+.secretary-class-card,
+.secretary-student-card,
+.secretary-inline-note {
+  border-radius: 1.25rem;
+  border: 1px solid rgba(226, 232, 240, 0.95);
+  background: rgba(248, 250, 252, 0.92);
+}
+
+.secretary-feed-item {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  gap: 0.9rem;
+  align-items: center;
+  padding: 0.95rem 1rem;
+}
+
+.secretary-feed-item__icon {
+  width: 2.55rem;
+  height: 2.55rem;
+  border-radius: 1rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #e0f2fe, #dbeafe);
+  color: #0369a1;
+}
+
+.secretary-inline-link {
+  border: 0;
+  background: transparent;
+  color: #2563eb;
+  font-weight: 800;
+}
+
+.secretary-class-grid,
+.secretary-student-grid {
+  display: grid;
+  gap: 1rem;
+}
+
+.secretary-class-grid {
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+}
+
+.secretary-class-card,
+.secretary-student-card {
+  padding: 1rem;
+  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.04);
+}
+
+.secretary-class-card {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 1rem;
+}
+
+.secretary-class-card__crest {
+  width: 4rem;
+  height: 4rem;
+  border-radius: 1.35rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #dbeafe, #fae8ff);
+  font-size: 1.8rem;
+}
+
+.secretary-class-card__title,
+.secretary-student-card__name {
+  font-family: 'Fredoka One', cursive;
+  color: #0f172a;
+  font-size: 1.18rem;
+}
+
+.secretary-class-card__subtitle,
+.secretary-student-card__meta,
+.secretary-thread-btn__meta,
+.secretary-academic-row__meta {
+  color: #64748b;
+  font-size: 0.88rem;
+  margin-top: 0.2rem;
+}
+
+.secretary-class-card__stats,
+.secretary-student-card__facts {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.7rem;
+  margin-top: 0.95rem;
+}
+
+.secretary-class-card__stats div,
+.secretary-student-card__facts div {
+  padding: 0.75rem;
+  border-radius: 1rem;
+  background: white;
+  border: 1px solid rgba(226, 232, 240, 0.9);
+}
+
+.secretary-class-card__stats strong,
+.secretary-student-card__facts strong {
+  display: block;
+  color: #0f172a;
+}
+
+.secretary-class-card__stats span,
+.secretary-student-card__facts span,
+.secretary-thread-btn__preview {
+  color: #64748b;
+  font-size: 0.82rem;
+}
+
+.secretary-class-card__schedule {
+  margin-top: 0.85rem;
+  font-size: 0.9rem;
+  color: #475569;
+}
+
+.secretary-chip-btn {
+  border: 0;
+  border-radius: 999px;
+  padding: 0.65rem 0.95rem;
+  background: #e0f2fe;
+  color: #075985;
+  font-weight: 800;
+}
+
+.secretary-chip-btn--emerald {
+  background: #dcfce7;
+  color: #166534;
+}
+
+.secretary-chip-btn--violet {
+  background: #ede9fe;
+  color: #5b21b6;
+}
+
+.secretary-student-card {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 1rem;
+}
+
+.secretary-student-card__avatar {
+  width: 4rem;
+  height: 4rem;
+  border-radius: 1.2rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #bfdbfe, #a7f3d0);
+  color: #134e4a;
+  font-weight: 900;
+  font-size: 1.1rem;
+}
+
+.secretary-student-card__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.65rem;
+  margin-top: 1rem;
+}
+
+.secretary-academic-list {
+  display: grid;
+  gap: 0.8rem;
+}
+
+.secretary-academic-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.95rem 1rem;
+}
+
+.secretary-academic-row__title,
+.secretary-thread-btn__title {
+  font-weight: 800;
+  color: #0f172a;
+}
+
+.secretary-academic-row__badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+  justify-content: flex-end;
+}
+
+.secretary-score-pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 2rem;
+  padding: 0.35rem 0.75rem;
+  border-radius: 999px;
+  background: linear-gradient(135deg, #dbeafe, #e0e7ff);
+  color: #1d4ed8;
+  font-size: 0.82rem;
+  font-weight: 800;
+}
+
+.secretary-score-pill--soft {
+  background: #f8fafc;
+  color: #334155;
+  border: 1px solid rgba(203, 213, 225, 0.8);
+}
+
+.secretary-message-layout {
+  display: grid;
+  grid-template-columns: minmax(290px, 380px) minmax(0, 1fr);
+  gap: 1rem;
+}
+
+.secretary-list--threads {
+  max-height: 72vh;
+  overflow-y: auto;
+}
+
+.secretary-thread-btn,
+.secretary-thread-spark {
+  width: 100%;
+  text-align: left;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 0.85rem;
+  padding: 0.9rem;
+}
+
+.secretary-thread-btn {
+  border: 1px solid rgba(226, 232, 240, 0.95);
+}
+
+.secretary-thread-btn-active {
+  background: linear-gradient(180deg, #eff6ff, #f8fafc);
+  border-color: #60a5fa;
+  box-shadow: 0 12px 24px rgba(59, 130, 246, 0.12);
+}
+
+.secretary-thread-btn__icon,
+.secretary-thread-sigil,
+.secretary-thread-spark__icon {
+  width: 2.8rem;
+  height: 2.8rem;
+  border-radius: 1rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+}
+
+.secretary-thread-btn__icon--sky,
+.secretary-thread-sigil--sky,
+.secretary-thread-spark__icon--sky {
+  background: linear-gradient(135deg, #38bdf8, #0284c7);
+}
+
+.secretary-thread-btn__icon--emerald,
+.secretary-thread-sigil--emerald,
+.secretary-thread-spark__icon--emerald {
+  background: linear-gradient(135deg, #34d399, #059669);
+}
+
+.secretary-thread-btn__icon--amber,
+.secretary-thread-sigil--amber,
+.secretary-thread-spark__icon--amber {
+  background: linear-gradient(135deg, #fbbf24, #d97706);
+}
+
+.secretary-thread-btn__icon--rose,
+.secretary-thread-sigil--rose,
+.secretary-thread-spark__icon--rose {
+  background: linear-gradient(135deg, #fb7185, #e11d48);
+}
+
+.secretary-thread-btn__icon--violet,
+.secretary-thread-sigil--violet,
+.secretary-thread-spark__icon--violet {
+  background: linear-gradient(135deg, #a78bfa, #7c3aed);
+}
+
+.secretary-thread-btn__icon--indigo,
+.secretary-thread-sigil--indigo,
+.secretary-thread-spark__icon--indigo {
+  background: linear-gradient(135deg, #818cf8, #4f46e5);
+}
+
+.secretary-thread-btn__icon--slate,
+.secretary-thread-sigil--slate,
+.secretary-thread-spark__icon--slate {
+  background: linear-gradient(135deg, #94a3b8, #475569);
+}
+
+.secretary-message-stack {
+  display: grid;
+  gap: 0.8rem;
+  max-height: 56vh;
+  overflow-y: auto;
+  padding-right: 0.1rem;
+}
+
+.secretary-message-bubble {
+  padding: 0.9rem 1rem;
+  border-radius: 1.2rem 1.2rem 1.2rem 0.45rem;
+  background: #f8fafc;
+  border: 1px solid rgba(226, 232, 240, 0.95);
+}
+
+.secretary-message-bubble--own {
+  background: linear-gradient(180deg, #eff6ff, #f5f3ff);
+  border-color: rgba(129, 140, 248, 0.4);
+}
+
+.secretary-message-bubble__meta {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.8rem;
+  color: #64748b;
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+
+.secretary-message-bubble__body {
+  margin-top: 0.45rem;
+  color: #334155;
+  white-space: pre-wrap;
+}
+
+.secretary-composer {
+  margin-top: 1rem;
+  padding: 1rem;
+  border-radius: 1.35rem;
+  background: linear-gradient(180deg, #fffdf8, #ffffff);
+  border: 1px solid rgba(253, 230, 138, 0.55);
+}
+
+.secretary-composer__topline,
+.secretary-settings-actions,
+.secretary-composer__actions {
+  display: flex;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.secretary-composer__actions {
+  justify-content: flex-end;
+  margin-top: 0.85rem;
+}
+
+.secretary-field {
+  display: grid;
+  gap: 0.45rem;
+  width: 100%;
+}
+
+.secretary-field span {
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.16em;
+  font-weight: 900;
+  color: #64748b;
+}
+
+.secretary-field input,
+.secretary-field select,
+.secretary-field textarea {
+  width: 100%;
+  border-radius: 1rem;
+  border: 1px solid rgba(196, 181, 253, 0.3);
+  background: white;
+  padding: 0.85rem 0.95rem;
+  color: #0f172a;
+}
+
+.secretary-field textarea {
+  min-height: 140px;
+}
+
+.secretary-settings-form {
+  display: grid;
+  gap: 0.95rem;
+}
+
+.secretary-ops-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.85rem;
+}
+
+.secretary-operation-tile {
+  border: 1px solid rgba(226, 232, 240, 0.95);
+  border-radius: 1.25rem;
+  background: #f8fafc;
+  padding: 1rem;
+  text-align: left;
+  display: grid;
+  gap: 0.35rem;
+}
+
+.secretary-operation-tile i {
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: 0.95rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #dbeafe, #ede9fe);
+  color: #4338ca;
+}
+
+.secretary-operation-tile span {
+  font-weight: 800;
+  color: #0f172a;
+}
+
+.secretary-operation-tile small {
+  color: #64748b;
+}
+
+.secretary-assessment-preview {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 0.8rem;
+}
+
+.secretary-assessment-preview__item {
+  display: grid;
+  gap: 0.2rem;
+  padding: 0.9rem 1rem;
+  border-radius: 1.1rem;
+  background: #f8fafc;
+  border: 1px solid rgba(226, 232, 240, 0.95);
+}
+
+.secretary-empty--large {
+  min-height: 360px;
+  display: grid;
+  place-content: center;
 }
 
 @media (max-width: 1024px) {
@@ -327,6 +1023,12 @@
     grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 
+  .secretary-hero,
+  .secretary-overview-grid,
+  .secretary-message-layout {
+    grid-template-columns: 1fr;
+  }
+
   .parent-overview-grid,
   .parent-message-layout {
     grid-template-columns: 1fr;
@@ -339,8 +1041,31 @@
   }
 
   .secretary-shell__filters,
-  .parent-shell__header {
+  .parent-shell__header,
+  .secretary-settings-actions,
+  .secretary-composer__topline {
     flex-direction: column;
+  }
+
+  .secretary-pulse-grid,
+  .secretary-hero__ledger,
+  .secretary-class-card__stats,
+  .secretary-student-card__facts,
+  .secretary-ops-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .secretary-class-card,
+  .secretary-student-card,
+  .secretary-feed-item,
+  .secretary-thread-btn,
+  .secretary-thread-spark {
+    grid-template-columns: 1fr;
+  }
+
+  .secretary-academic-row {
+    flex-direction: column;
+    align-items: flex-start;
   }
 
   .parent-shell__actions {

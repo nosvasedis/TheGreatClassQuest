@@ -1,6 +1,6 @@
 // /db/listeners.js
 
-import { db, collection, query, where, onSnapshot, orderBy, doc, getDocs, writeBatch, collectionGroup } from '../firebase.js';
+import { db, collection, query, where, onSnapshot, orderBy, doc, getDocs, writeBatch, collectionGroup, limit } from '../firebase.js';
 import * as state from '../state.js';
 import { getStartOfMonthString, getTodayDateString } from '../utils.js';
 import {
@@ -124,7 +124,14 @@ export function setupParentSession(userId, profile, onInitialDataReady) {
     };
 
     const parentSnapshotRef = doc(db, `${publicDataPath}/parent_snapshots`, studentId);
-    const homeworkQuery = query(collection(db, `${publicDataPath}/parent_homework`), where('studentId', '==', studentId), orderBy('lessonDate', 'asc'));
+    const homeworkQuery = query(
+        collection(db, `${publicDataPath}/parent_homework`),
+        where('studentId', '==', studentId),
+        where('sourceType', '==', 'quest-assignment'),
+        where('status', '==', 'published'),
+        orderBy('updatedAt', 'desc'),
+        limit(1)
+    );
     const schoolSettingsQuery = doc(db, `${publicDataPath}/school_settings`, 'holidays');
 
     state.setUnsubscribeParentSnapshot(onSnapshot(parentSnapshotRef, (snapshot) => {

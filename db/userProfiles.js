@@ -56,6 +56,7 @@ export async function ensureTeacherUserProfile(user) {
         status: profile.status,
         schoolAdmin: false,
         linkedStudentId: null,
+        createdBy: null,
         createdAt: serverTimestamp(),
         lastSeenAt: serverTimestamp()
     }, { merge: true });

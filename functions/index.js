@@ -1,5 +1,6 @@
 const admin = require('firebase-admin');
-const { onCall, HttpsError } = require('firebase-functions/v2/https');
+const functionsV1 = require('firebase-functions/v1');
+const { HttpsError } = require('firebase-functions/v1/https');
 
 admin.initializeApp();
 
@@ -55,11 +56,13 @@ async function requireFeatureEnabled(featureKey) {
 }
 
 function callable(handler) {
-  return onCall({
-    region: FUNCTIONS_REGION,
-    invoker: 'public',
-    cors: true
-  }, handler);
+  return functionsV1.region(FUNCTIONS_REGION).https.onCall(async (data, context) => {
+    return handler({
+      data,
+      auth: context.auth || null,
+      rawRequest: context.rawRequest || null
+    });
+  });
 }
 
 async function getStudent(studentId) {

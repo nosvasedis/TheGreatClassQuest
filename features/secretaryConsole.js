@@ -165,35 +165,39 @@ function renderOverviewSection() {
     return `
         <section class="secretary-hero">
             <div class="secretary-hero__copy">
-                <p class="secretary-hero__eyebrow">Elite Oversight</p>
-                <h2 class="secretary-hero__title">A front-office view that actually controls the school day.</h2>
-                <p class="secretary-hero__body">Track classes, intervene in academics, monitor family communication, and manage the school's grading framework without dropping into a bare admin list.</p>
+                <p class="secretary-hero__eyebrow">🏫 Welcome to the Grand Registry</p>
+                <h2 class="secretary-hero__title">Your school, beautifully in command.</h2>
+                <p class="secretary-hero__body">Monitor every class and hero at a glance, review academic progress, keep families informed, and govern the grading framework — all from one elegant console.</p>
                 <div class="secretary-hero__actions">
                     <button type="button" class="secretary-hero__primary" data-secretary-tab-link="communications">
-                        <i class="fas fa-comments mr-2"></i>Open Communications
+                        <i class="fas fa-comments"></i> Family Inbox
                     </button>
                     <button type="button" class="secretary-hero__secondary" data-secretary-tab-link="settings">
-                        <i class="fas fa-sliders mr-2"></i>Open Governance
+                        <i class="fas fa-sliders-h"></i> Governance
                     </button>
                 </div>
             </div>
             <div class="secretary-hero__ledger">
                 <div class="secretary-ledger-card secretary-ledger-card--sky">
+                    <span class="secretary-ledger-card__emoji">🏫</span>
                     <div class="secretary-ledger-card__label">Classes</div>
                     <div class="secretary-ledger-card__value">${classes.length}</div>
                     <div class="secretary-ledger-card__meta">Live across every league</div>
                 </div>
                 <div class="secretary-ledger-card secretary-ledger-card--emerald">
-                    <div class="secretary-ledger-card__label">Students</div>
+                    <span class="secretary-ledger-card__emoji">🎓</span>
+                    <div class="secretary-ledger-card__label">Heroes</div>
                     <div class="secretary-ledger-card__value">${students.length}</div>
                     <div class="secretary-ledger-card__meta">Roster in one place</div>
                 </div>
                 <div class="secretary-ledger-card secretary-ledger-card--amber">
+                    <span class="secretary-ledger-card__emoji">⭐</span>
                     <div class="secretary-ledger-card__label">Total Stars</div>
                     <div class="secretary-ledger-card__value">${totalStars}</div>
                     <div class="secretary-ledger-card__meta">Schoolwide hero progress</div>
                 </div>
                 <div class="secretary-ledger-card secretary-ledger-card--violet">
+                    <span class="secretary-ledger-card__emoji">💰</span>
                     <div class="secretary-ledger-card__label">Treasury</div>
                     <div class="secretary-ledger-card__value">${totalGold}</div>
                     <div class="secretary-ledger-card__meta">Combined student gold</div>
@@ -210,28 +214,28 @@ function renderOverviewSection() {
                     </div>
                 </div>
                 <div class="secretary-pulse-grid">
-                    <div class="secretary-pulse-chip">
+                    <div class="secretary-pulse-chip secretary-pulse-chip--sky">
                         <i class="fas fa-pen-nib"></i>
                         <div>
                             <strong>${writtenScores.length}</strong>
                             <span>recorded assessments in the current feed</span>
                         </div>
                     </div>
-                    <div class="secretary-pulse-chip">
+                    <div class="secretary-pulse-chip secretary-pulse-chip--emerald">
                         <i class="fas fa-book-open"></i>
                         <div>
                             <strong>${notes.length}</strong>
                             <span>hero chronicle notes visible schoolwide</span>
                         </div>
                     </div>
-                    <div class="secretary-pulse-chip">
+                    <div class="secretary-pulse-chip secretary-pulse-chip--violet">
                         <i class="fas fa-comments"></i>
                         <div>
                             <strong>${threads.length}</strong>
                             <span>parent communication threads in motion</span>
                         </div>
                     </div>
-                    <div class="secretary-pulse-chip">
+                    <div class="secretary-pulse-chip secretary-pulse-chip--rose">
                         <i class="fas fa-user-clock"></i>
                         <div>
                             <strong>${attendance.length}</strong>
@@ -366,8 +370,8 @@ function renderStudentSection() {
         <article class="secretary-card">
             <div class="secretary-card__header">
                 <div>
-                    <p class="secretary-card__eyebrow">Student Ledger</p>
-                    <h3 class="secretary-card__title">Students with the right details at first glance</h3>
+                    <p class="secretary-card__eyebrow">Hero Roster</p>
+                    <h3 class="secretary-card__title">Every adventurer, stats at a glance</h3>
                 </div>
                 <div class="secretary-card__badge">${students.length} visible</div>
             </div>
@@ -378,9 +382,11 @@ function renderStudentSection() {
                         const score = scoreMap.get(student.id) || {};
                         const latestScore = latestScores.get(student.id);
                         const thread = threads.find((item) => item.studentId === student.id);
+                        const avatarColors = ['sky','violet','emerald','rose','amber','indigo'];
+                        const avatarVariant = avatarColors[student.name.charCodeAt(0) % avatarColors.length];
                         return `
                             <article class="secretary-student-card">
-                                <div class="secretary-student-card__avatar">${escapeHtml(initials(student.name))}</div>
+                                <div class="secretary-student-card__avatar secretary-avatar--${avatarVariant}">${escapeHtml(initials(student.name))}</div>
                                 <div class="secretary-student-card__content">
                                     <div class="flex items-start justify-between gap-3">
                                         <div>
@@ -427,22 +433,22 @@ function renderAcademicSection() {
         <div class="grid gap-5">
             <div class="secretary-stat-grid">
                 <article class="secretary-card secretary-card--mini">
-                    <p class="secretary-card__eyebrow">Assessments Loaded</p>
+                    <p class="secretary-card__eyebrow">📝 Assessments Loaded</p>
                     <h3 class="secretary-card__metric">${scores.length}</h3>
                     <p class="text-sm text-slate-500">Recent written score records schoolwide</p>
                 </article>
                 <article class="secretary-card secretary-card--mini">
-                    <p class="secretary-card__eyebrow">Average Normalized</p>
+                    <p class="secretary-card__eyebrow">📊 Average Normalized</p>
                     <h3 class="secretary-card__metric">${escapeHtml(averagePercent)}</h3>
                     <p class="text-sm text-slate-500">Cross-mode comparison across numeric and word scales</p>
                 </article>
                 <article class="secretary-card secretary-card--mini">
-                    <p class="secretary-card__eyebrow">Numeric Records</p>
+                    <p class="secretary-card__eyebrow">🔢 Numeric Records</p>
                     <h3 class="secretary-card__metric">${numericScores.length}</h3>
                     <p class="text-sm text-slate-500">Traditional score entries</p>
                 </article>
                 <article class="secretary-card secretary-card--mini">
-                    <p class="secretary-card__eyebrow">Word Scale Records</p>
+                    <p class="secretary-card__eyebrow">💬 Word Scale Records</p>
                     <h3 class="secretary-card__metric">${qualitativeScores}</h3>
                     <p class="text-sm text-slate-500">Qualitative grading entries</p>
                 </article>
@@ -498,8 +504,8 @@ function renderCommunicationSection() {
             <article class="secretary-card">
                 <div class="secretary-card__header">
                     <div>
-                        <p class="secretary-card__eyebrow">Thread Navigator</p>
-                        <h3 class="secretary-card__title">Inbox with context</h3>
+                        <p class="secretary-card__eyebrow">Family Inbox</p>
+                        <h3 class="secretary-card__title">Every parent thread, in one place</h3>
                     </div>
                     <div class="secretary-card__badge">${threads.length} threads</div>
                 </div>
@@ -655,23 +661,23 @@ function renderSettingsSection() {
                     </div>
                     <div class="secretary-ops-grid">
                         <button type="button" id="secretary-run-backfill-btn" class="secretary-operation-tile">
-                            <i class="fas fa-shuffle"></i>
-                            <span>Refresh parent snapshots</span>
+                            <i class="fas fa-rotate"></i>
+                            <span>🔄 Refresh Snapshots</span>
                             <small>Rebuild parent-safe summaries for every student.</small>
                         </button>
                         <button type="button" class="secretary-operation-tile" data-secretary-tab-link="academics">
                             <i class="fas fa-scroll"></i>
-                            <span>Audit academics</span>
+                            <span>🔍 Audit Academics</span>
                             <small>Jump into the schoolwide assessment feed.</small>
                         </button>
                         <button type="button" class="secretary-operation-tile" data-secretary-tab-link="communications">
                             <i class="fas fa-envelope-open-text"></i>
-                            <span>Answer families</span>
+                            <span>📬 Answer Families</span>
                             <small>Reply directly inside any parent thread.</small>
                         </button>
                         <button type="button" class="secretary-operation-tile" data-secretary-tab-link="students">
-                            <i class="fas fa-user-gear"></i>
-                            <span>Inspect students</span>
+                            <i class="fas fa-users"></i>
+                            <span>👥 Hero Roster</span>
                             <small>Open the roster with edit and chronicle shortcuts.</small>
                         </button>
                     </div>

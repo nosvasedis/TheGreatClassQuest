@@ -33,6 +33,36 @@ function getParentSnapshot() {
     return state.get('currentParentSnapshot') || {};
 }
 
+function threadTone(threadType) {
+    const t = (threadType || '').toLowerCase();
+    if (t.includes('meeting') || t.includes('request')) return 'amber';
+    if (t.includes('concern') || t.includes('issue')) return 'rose';
+    if (t.includes('praise') || t.includes('celebr')) return 'emerald';
+    if (t.includes('general') || t.includes('message')) return 'sky';
+    return 'violet';
+}
+
+function threadIcon(threadType) {
+    const t = (threadType || '').toLowerCase();
+    if (t.includes('meeting') || t.includes('request')) return 'fa-calendar-check';
+    if (t.includes('concern') || t.includes('issue')) return 'fa-exclamation-circle';
+    if (t.includes('praise') || t.includes('celebr')) return 'fa-star';
+    return 'fa-comment-dots';
+}
+
+function celebrationVariant(i) {
+    return ['gold', 'rose', 'teal'][i % 3];
+}
+
+function celebrationEmoji(item) {
+    const t = (item.reason || item.title || '').toLowerCase();
+    if (t.includes('star') || t.includes('award')) return '⭐';
+    if (t.includes('attend')) return '📅';
+    if (t.includes('test') || t.includes('grade')) return '📝';
+    if (t.includes('help') || t.includes('kind')) return '🤝';
+    return '🎉';
+}
+
 function renderOverview() {
     const snapshot = getParentSnapshot();
     const studentName = snapshot.studentName || 'Your hero';
@@ -44,77 +74,83 @@ function renderOverview() {
     return `
         <div class="parent-overview-grid">
             <article class="parent-card parent-card--hero">
-                <p class="parent-card__title">${escapeHtml(studentName)}</p>
-                <p class="text-sm text-slate-500 mt-1">${escapeHtml(className)}</p>
-                <div class="mt-4 flex items-center gap-4">
-                    <div class="w-20 h-20 rounded-[1.6rem] bg-gradient-to-br from-blue-500 to-teal-500 text-white flex items-center justify-center text-3xl font-title shadow-lg">
-                        ${escapeHtml((studentName || '?').charAt(0).toUpperCase())}
-                    </div>
-                    <div class="space-y-1">
-                        <div class="text-sm text-slate-500">Hero Level</div>
-                        <div class="font-title text-3xl text-blue-900">${Number(progress.heroLevel || 0)}</div>
-                        <div class="text-xs text-slate-500">${escapeHtml(snapshot.heroClass || 'Growing hero')}</div>
+                <div style="display:flex;gap:1rem;align-items:center;margin-bottom:1.25rem;">
+                    <div class="parent-hero-avatar">${escapeHtml((studentName || '?').charAt(0).toUpperCase())}</div>
+                    <div>
+                        <p class="parent-card__title">${escapeHtml(studentName)}</p>
+                        <p style="color:#92400e;font-size:0.9rem;margin-top:0.25rem;">${escapeHtml(className)}</p>
+                        <p style="color:#a8a29e;font-size:0.8rem;margin-top:0.2rem;">${escapeHtml(snapshot.heroClass || 'Growing adventurer')}</p>
                     </div>
                 </div>
-                <div class="parent-stat-grid mt-5">
-                    <div class="parent-list-item">
-                        <div class="text-xs uppercase tracking-wide text-slate-400">Total Stars</div>
-                        <div class="font-title text-2xl text-amber-600">${Number(progress.totalStars || 0)}</div>
+                <div class="parent-stat-grid">
+                    <div class="parent-stat-badge parent-stat-badge--stars">
+                        <span class="parent-stat-badge__emoji">⭐</span>
+                        <span class="parent-stat-badge__label">Total Stars</span>
+                        <span class="parent-stat-badge__value">${Number(progress.totalStars || 0)}</span>
                     </div>
-                    <div class="parent-list-item">
-                        <div class="text-xs uppercase tracking-wide text-slate-400">Monthly Stars</div>
-                        <div class="font-title text-2xl text-indigo-600">${Number(progress.monthlyStars || 0)}</div>
+                    <div class="parent-stat-badge parent-stat-badge--monthly">
+                        <span class="parent-stat-badge__emoji">🌟</span>
+                        <span class="parent-stat-badge__label">This Month</span>
+                        <span class="parent-stat-badge__value">${Number(progress.monthlyStars || 0)}</span>
                     </div>
-                    <div class="parent-list-item">
-                        <div class="text-xs uppercase tracking-wide text-slate-400">Attendance</div>
-                        <div class="font-title text-2xl text-emerald-600">${escapeHtml(snapshot.attendanceSummary?.rateLabel || 'N/A')}</div>
+                    <div class="parent-stat-badge parent-stat-badge--attend">
+                        <span class="parent-stat-badge__emoji">📅</span>
+                        <span class="parent-stat-badge__label">Attendance</span>
+                        <span class="parent-stat-badge__value" style="font-size:1.3rem;">${escapeHtml(snapshot.attendanceSummary?.rateLabel || 'N/A')}</span>
                     </div>
-                    <div class="parent-list-item">
-                        <div class="text-xs uppercase tracking-wide text-slate-400">Homework</div>
-                        <div class="font-title text-2xl text-sky-600">${Number(snapshot.homeworkCount || 0)}</div>
+                    <div class="parent-stat-badge parent-stat-badge--hw">
+                        <span class="parent-stat-badge__emoji">📚</span>
+                        <span class="parent-stat-badge__label">Homework</span>
+                        <span class="parent-stat-badge__value">${Number(snapshot.homeworkCount || 0)}</span>
                     </div>
                 </div>
             </article>
             <div class="grid gap-4">
                 <article class="parent-card">
-                    <p class="parent-card__title">Academic Snapshot</p>
-                    <div class="parent-stat-grid mt-4">
-                        <div class="parent-list-item">
-                            <div class="text-xs uppercase tracking-wide text-slate-400">Latest Test</div>
-                            <div class="font-semibold text-slate-800">${escapeHtml(snapshot.latestGrade?.label || 'No test yet')}</div>
+                    <p class="parent-card__title" style="margin-bottom:0.85rem;">✏️ Academic Snapshot</p>
+                    <div class="parent-stat-grid">
+                        <div class="parent-stat-badge parent-stat-badge--stars" style="grid-column:span 1">
+                            <span class="parent-stat-badge__emoji">📝</span>
+                            <span class="parent-stat-badge__label">Latest Test</span>
+                            <span class="parent-stat-badge__value" style="font-size:1.15rem;">${escapeHtml(snapshot.latestGrade?.label || '—')}</span>
                         </div>
-                        <div class="parent-list-item">
-                            <div class="text-xs uppercase tracking-wide text-slate-400">Average</div>
-                            <div class="font-semibold text-slate-800">${escapeHtml(snapshot.gradeAverageLabel || 'N/A')}</div>
+                        <div class="parent-stat-badge parent-stat-badge--monthly" style="grid-column:span 1">
+                            <span class="parent-stat-badge__emoji">📊</span>
+                            <span class="parent-stat-badge__label">Average</span>
+                            <span class="parent-stat-badge__value" style="font-size:1.15rem;">${escapeHtml(snapshot.gradeAverageLabel || 'N/A')}</span>
                         </div>
-                        <div class="parent-list-item">
-                            <div class="text-xs uppercase tracking-wide text-slate-400">Next Lesson</div>
-                            <div class="font-semibold text-slate-800">${escapeHtml(snapshot.nextLessonLabel || 'Not scheduled')}</div>
+                        <div class="parent-stat-badge parent-stat-badge--teal" style="grid-column:span 2">
+                            <span class="parent-stat-badge__emoji">🗓️</span>
+                            <span class="parent-stat-badge__label">Next Lesson</span>
+                            <span class="parent-stat-badge__value" style="font-size:1rem;">${escapeHtml(snapshot.nextLessonLabel || 'Not scheduled')}</span>
                         </div>
                     </div>
                 </article>
                 <article class="parent-card">
-                    <p class="parent-card__title">Recent Celebrations</p>
+                    <p class="parent-card__title" style="margin-bottom:0.85rem;">🎊 Recent Celebrations</p>
                     <div class="parent-list">
                         ${recentCelebrations.length
-                            ? recentCelebrations.slice(0, 4).map((item) => `
-                                <div class="parent-list-item">
-                                    <div class="font-semibold text-slate-800">${escapeHtml(item.title || item.reason || 'Celebration')}</div>
-                                    <div class="text-sm text-slate-500 mt-1">${escapeHtml(item.description || '')}</div>
+                            ? recentCelebrations.slice(0, 4).map((item, i) => `
+                                <div class="parent-celebration-chip parent-celebration-chip--${celebrationVariant(i)}">
+                                    <span class="parent-celebration-chip__emoji">${celebrationEmoji(item)}</span>
+                                    <div>
+                                        <div style="font-weight:800;color:#1e293b;font-size:0.95rem;">${escapeHtml(item.title || item.reason || 'Celebration')}</div>
+                                        ${item.description ? `<div style="color:#78716c;font-size:0.84rem;margin-top:0.2rem;">${escapeHtml(item.description)}</div>` : ''}
+                                    </div>
                                 </div>
                             `).join('')
-                            : '<div class="parent-empty">New celebrations will appear here.</div>'
+                            : '<div class="parent-empty">New celebrations will appear here ✨</div>'
                         }
                     </div>
                 </article>
                 <article class="parent-card">
-                    <p class="parent-card__title">Published Notes</p>
+                    <p class="parent-card__title" style="margin-bottom:0.85rem;">📖 Teacher's Notes</p>
                     <div class="parent-list">
                         ${publishedNotes.length
                             ? publishedNotes.slice(0, 4).map((item) => `
                                 <div class="parent-list-item">
-                                    <div class="text-xs uppercase tracking-wide text-slate-400">${escapeHtml(item.label || 'Teacher note')}</div>
-                                    <div class="text-sm text-slate-700 mt-1">${escapeHtml(item.body || item.text || '')}</div>
+                                    <div style="font-size:0.72rem;text-transform:uppercase;letter-spacing:0.14em;color:#92400e;font-weight:800;">${escapeHtml(item.label || 'Teacher note')}</div>
+                                    <div style="color:#44403c;font-size:0.9rem;margin-top:0.3rem;line-height:1.55;">${escapeHtml(item.body || item.text || '')}</div>
                                 </div>
                             `).join('')
                             : '<div class="parent-empty">No published notes yet.</div>'
@@ -131,19 +167,19 @@ function renderHomework() {
     const item = items[0] || null;
     return `
         <article class="parent-card">
-            <p class="parent-card__title">Latest Homework</p>
+            <p class="parent-card__title" style="margin-bottom:0.85rem;">📜 Today's Quest Scroll</p>
             <div class="parent-list">
                 ${item
                     ? `
-                        <div class="parent-list-item">
-                            <div class="flex items-center justify-between gap-3">
-                                <div class="font-semibold text-slate-800">${escapeHtml(item.title || 'Homework')}</div>
-                                <div class="text-xs text-slate-400">${escapeHtml(formatFlexibleDate(item.lessonDate))}</div>
+                        <div class="parent-list-item" style="background:linear-gradient(135deg,#fffbeb,#fef3c7);border-color:rgba(252,211,77,0.4);">
+                            <div style="display:flex;align-items:center;justify-content:space-between;gap:0.75rem;">
+                                <div style="font-family:'Fredoka One',cursive;color:#7c2d12;font-size:1.1rem;">${escapeHtml(item.title || 'Homework')}</div>
+                                <div style="font-size:0.78rem;color:#92400e;font-weight:700;background:rgba(253,230,138,0.6);padding:0.3rem 0.7rem;border-radius:999px;white-space:nowrap;">${escapeHtml(formatFlexibleDate(item.lessonDate))}</div>
                             </div>
-                            <div class="text-sm text-slate-600 mt-2 whitespace-pre-wrap">${escapeHtml(item.body || '')}</div>
+                            <div style="color:#44403c;font-size:0.93rem;margin-top:0.75rem;white-space:pre-wrap;line-height:1.6;">${escapeHtml(item.body || '')}</div>
                         </div>
                     `
-                    : '<div class="parent-empty">No homework has been assigned yet.</div>'
+                    : '<div class="parent-empty">No homework assigned yet — enjoy the adventure! 🌟</div>'
                 }
             </div>
         </article>
@@ -157,38 +193,39 @@ function renderProgress() {
     return `
         <div class="grid gap-4">
             <article class="parent-card">
-                <p class="parent-card__title">Grades & Academics</p>
+                <p class="parent-card__title" style="margin-bottom:0.85rem;">⭐ Academic Journey</p>
                 <div class="parent-list">
                     ${gradeHistory.length
                         ? gradeHistory.slice(0, 8).map((item) => `
-                            <div class="parent-list-item">
-                                <div class="flex items-center justify-between gap-3">
-                                    <div>
-                                        <div class="font-semibold text-slate-800">${escapeHtml(item.title || item.type || 'Assessment')}</div>
-                                        <div class="text-xs text-slate-400">${escapeHtml(formatFlexibleDate(item.date))}</div>
-                                    </div>
-                                    <div class="font-title text-xl text-blue-700">${escapeHtml(item.scoreLabel || item.label || 'N/A')}</div>
+                            <div class="parent-list-item" style="display:flex;align-items:center;justify-content:space-between;gap:0.75rem;">
+                                <div>
+                                    <div style="font-weight:800;color:#1e293b;">${escapeHtml(item.title || item.type || 'Assessment')}</div>
+                                    <div style="font-size:0.78rem;color:#92400e;margin-top:0.15rem;">${escapeHtml(formatFlexibleDate(item.date))}</div>
                                 </div>
+                                <div style="font-family:'Fredoka One',cursive;font-size:1.35rem;color:#1d4ed8;background:linear-gradient(135deg,#dbeafe,#e0e7ff);padding:0.3rem 0.9rem;border-radius:999px;white-space:nowrap;">${escapeHtml(item.scoreLabel || item.label || 'N/A')}</div>
                             </div>
                         `).join('')
-                        : '<div class="parent-empty">Published grades will appear here.</div>'
+                        : '<div class="parent-empty">Published grades will appear here 📊</div>'
                     }
                 </div>
             </article>
             <article class="parent-card">
-                <p class="parent-card__title">Attendance Summary</p>
-                <div class="parent-stat-grid mt-4">
-                    <div class="parent-list-item">
-                        <div class="text-xs uppercase tracking-wide text-slate-400">Rate</div>
-                        <div class="font-title text-2xl text-emerald-600">${escapeHtml(attendance.rateLabel || 'N/A')}</div>
+                <p class="parent-card__title" style="margin-bottom:0.85rem;">📅 Adventure Log</p>
+                <div class="parent-stat-grid">
+                    <div class="parent-stat-badge parent-stat-badge--attend">
+                        <span class="parent-stat-badge__emoji">✅</span>
+                        <span class="parent-stat-badge__label">Rate</span>
+                        <span class="parent-stat-badge__value" style="font-size:1.25rem;">${escapeHtml(attendance.rateLabel || 'N/A')}</span>
                     </div>
-                    <div class="parent-list-item">
-                        <div class="text-xs uppercase tracking-wide text-slate-400">Lessons Held</div>
-                        <div class="font-title text-2xl text-sky-600">${Number(attendance.lessonsHeld || 0)}</div>
+                    <div class="parent-stat-badge parent-stat-badge--hw">
+                        <span class="parent-stat-badge__emoji">🏫</span>
+                        <span class="parent-stat-badge__label">Lessons</span>
+                        <span class="parent-stat-badge__value">${Number(attendance.lessonsHeld || 0)}</span>
                     </div>
-                    <div class="parent-list-item">
-                        <div class="text-xs uppercase tracking-wide text-slate-400">Absences</div>
-                        <div class="font-title text-2xl text-rose-600">${Number(attendance.absences || 0)}</div>
+                    <div class="parent-stat-badge parent-stat-badge--rose" style="border-color:rgba(252,165,165,0.6);background:linear-gradient(160deg,#fff1f2,#ffffff);">
+                        <span class="parent-stat-badge__emoji">😶</span>
+                        <span class="parent-stat-badge__label">Absences</span>
+                        <span class="parent-stat-badge__value">${Number(attendance.absences || 0)}</span>
                     </div>
                 </div>
             </article>
@@ -201,45 +238,56 @@ function renderMessages() {
     const selectedThreadId = state.get('currentCommunicationThreadId');
     const activeThread = threads.find((thread) => thread.id === selectedThreadId) || threads[0] || null;
     const messages = state.get('currentCommunicationMessages') || [];
+    const profile = state.get('currentUserProfile');
+
     return `
         <div class="parent-message-layout">
             <article class="parent-card">
-                <p class="parent-card__title">Inbox</p>
+                <p class="parent-card__title" style="margin-bottom:0.85rem;">💌 Your Inbox</p>
                 <div class="parent-list">
                     ${threads.length
-                        ? threads.map((thread) => `
+                        ? threads.map((thread) => {
+                            const tone = threadTone(thread.threadType);
+                            const icon = threadIcon(thread.threadType);
+                            return `
                             <button type="button" class="parent-thread-btn ${thread.id === activeThread?.id ? 'parent-thread-btn-active' : ''}" data-parent-thread-id="${thread.id}">
-                                <div class="parent-list-item">
-                                    <div class="font-semibold text-slate-800">${escapeHtml(thread.threadType || 'Message')}</div>
-                                    <div class="text-xs text-slate-400 mt-1">${escapeHtml(formatFlexibleDate(thread.lastMessageAt))}</div>
-                                    <div class="text-sm text-slate-500 mt-2">${escapeHtml(thread.previewText || thread.status || '')}</div>
+                                <div class="parent-list-item" style="display:grid;grid-template-columns:auto 1fr;gap:0.85rem;align-items:start;">
+                                    <span class="parent-thread-icon tone-${tone}"><i class="fas ${icon}" style="font-size:0.9rem;"></i></span>
+                                    <div>
+                                        <div style="font-family:'Fredoka One',cursive;color:#1e293b;font-size:1rem;">${escapeHtml(thread.threadType || 'Message')}</div>
+                                        <div style="font-size:0.76rem;color:#92400e;margin-top:0.15rem;">${escapeHtml(formatFlexibleDate(thread.lastMessageAt))}</div>
+                                        ${thread.previewText ? `<div style="font-size:0.82rem;color:#78716c;margin-top:0.3rem;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;">${escapeHtml(thread.previewText)}</div>` : ''}
+                                    </div>
                                 </div>
-                            </button>
-                        `).join('')
-                        : '<div class="parent-empty">No messages yet.</div>'
+                            </button>`;
+                        }).join('')
+                        : '<div class="parent-empty">No messages yet 📭</div>'
                     }
                 </div>
             </article>
             <article class="parent-card">
-                <p class="parent-card__title">${escapeHtml(activeThread?.threadType || 'Conversation')}</p>
-                <div class="parent-list">
+                <p class="parent-card__title" style="margin-bottom:0.85rem;">💬 ${escapeHtml(activeThread?.threadType || 'Conversation')}</p>
+                <div class="parent-message-stack">
                     ${messages.length
-                        ? messages.map((message) => `
-                            <div class="parent-list-item">
-                                <div class="flex items-center justify-between gap-3">
-                                    <div class="font-semibold text-slate-800">${escapeHtml(message.authorRole || 'School')}</div>
-                                    <div class="text-xs text-slate-400">${escapeHtml(formatFlexibleDate(message.createdAt))}</div>
+                        ? messages.map((message) => {
+                            const isOwn = message.authorRole === 'parent' || message.authorRole === 'Parent';
+                            const authorLabel = isOwn ? 'You' : (message.authorRole === 'teacher' || message.authorRole === 'Teacher' ? 'Teacher' : 'Your School');
+                            return `
+                            <div class="parent-message-bubble${isOwn ? ' parent-message-bubble--own' : ''}">
+                                <div class="parent-message-bubble__meta">
+                                    <span>${escapeHtml(authorLabel)}</span>
+                                    <span>${escapeHtml(formatFlexibleDate(message.createdAt))}</span>
                                 </div>
-                                <div class="text-sm text-slate-600 mt-2 whitespace-pre-wrap">${escapeHtml(message.body || '')}</div>
-                            </div>
-                        `).join('')
-                        : '<div class="parent-empty">Select a conversation to see replies.</div>'
+                                <div class="parent-message-bubble__body">${escapeHtml(message.body || '')}</div>
+                            </div>`;
+                        }).join('')
+                        : '<div class="parent-empty">Select a conversation to read messages 💌</div>'
                     }
                 </div>
-                <form id="parent-message-form" class="parent-composer mt-4 ${activeThread ? '' : 'hidden'}">
-                    <textarea id="parent-message-text" placeholder="Reply to the school..."></textarea>
-                    <div class="flex justify-end mt-3">
-                        <button type="submit">Send Reply</button>
+                <form id="parent-message-form" class="parent-composer ${activeThread ? '' : 'hidden'}">
+                    <textarea id="parent-message-text" placeholder="Write a message to the school..."></textarea>
+                    <div style="display:flex;justify-content:flex-end;margin-top:0.75rem;">
+                        <button type="submit" class="parent-composer-send-btn">📩 Send Message</button>
                     </div>
                 </form>
             </article>

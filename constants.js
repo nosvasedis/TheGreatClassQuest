@@ -28,6 +28,8 @@ export const OPENROUTER_MODEL = "arcee-ai/trinity-large-preview:free";
 export const BILLING_BASE_URL = (typeof window !== 'undefined' && window.__GCQ_BILLING_BASE_URL__) || '';
 /** Billing: school id passed to create-checkout-session. If empty, uses firebaseConfig.projectId. */
 export const BILLING_SCHOOL_ID = (typeof window !== 'undefined' && window.__GCQ_BILLING_SCHOOL_ID__) || '';
+/** Firebase Functions region for the privileged admin runtime. */
+export const FIREBASE_FUNCTIONS_REGION = (typeof window !== 'undefined' && window.__GCQ_FIREBASE_FUNCTIONS_REGION__) || 'europe-west1';
 
 export const questLeagues = ['Junior A', 'Junior B', 'A', 'B', 'C', 'D']; 
 

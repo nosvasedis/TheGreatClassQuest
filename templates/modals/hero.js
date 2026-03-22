@@ -165,6 +165,10 @@ export const heroModalsHTML = `
                             class="ai-insight-btn bg-indigo-100 text-indigo-800 p-2 rounded-lg bubbly-button text-sm font-semibold"><i
                                 class="fas fa-bullseye mr-1"></i> Goal Suggestion</button>
                     </div>
+                    <button id="hero-chronicle-publish-parent-btn"
+                        class="w-full mb-4 bg-emerald-100 hover:bg-emerald-200 text-emerald-800 p-3 rounded-xl bubbly-button text-sm font-semibold border border-emerald-200">
+                        <i class="fas fa-paper-plane mr-2"></i> Publish Parent Summary To Portal
+                    </button>
                     <div id="hero-chronicle-ai-output"
                         class="flex-grow bg-indigo-50 p-4 rounded-lg border border-indigo-200 overflow-y-auto">
                         <p class="text-center text-indigo-700">Select a counsel type to receive the Oracle's wisdom.</p>

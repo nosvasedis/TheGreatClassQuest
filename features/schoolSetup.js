@@ -18,6 +18,7 @@ import {
     readAssessmentDefaultsFromContainer,
     wireAssessmentEditor
 } from '../ui/assessmentEditor.js';
+import { createOrReplaceSecretaryAccess } from '../utils/adminRuntime.js';
 
 const PUBLIC_DATA_PATH = 'artifacts/great-class-quest/public/data';
 const SCORE_DEFAULTS = {
@@ -290,6 +291,8 @@ function renderSetupCopy() {
     const graceCopy = document.getElementById('setup-grace-copy');
     const graceCountdown = document.getElementById('setup-grace-countdown');
     const graceWindow = state.get('schoolBillingGrace');
+    const rolesSection = document.getElementById('setup-roles-section');
+    const secretaryCard = document.getElementById('setup-secretary-card');
 
     if (title) {
         title.textContent = setupContext.isFirstTeacher
@@ -316,6 +319,12 @@ function renderSetupCopy() {
         enterCopy.textContent = setupContext.isFirstTeacher
             ? 'GCQ will save the school details, create your first classes, add the students, and open the app.'
             : 'GCQ will create your classes, add the students, and open the app for you.';
+    }
+    if (rolesSection) {
+        rolesSection.classList.toggle('hidden', !setupContext.isFirstTeacher);
+    }
+    if (secretaryCard) {
+        secretaryCard.classList.toggle('hidden', !(setupContext.isFirstTeacher && canUseFeature('secretaryAccess')));
     }
     if (aiNote) {
         aiNote.innerHTML = canUseFeature('eliteAI')
@@ -637,6 +646,15 @@ async function persistSetupBundle() {
     });
 
     await batch.commit();
+
+    const secretaryUsername = document.getElementById('setup-secretary-username')?.value?.trim();
+    const secretaryPassword = document.getElementById('setup-secretary-password')?.value?.trim();
+    if (setupContext.isFirstTeacher && canUseFeature('secretaryAccess') && secretaryUsername && secretaryPassword) {
+        await createOrReplaceSecretaryAccess({
+            username: secretaryUsername,
+            password: secretaryPassword
+        });
+    }
 }
 
 export function showSetupScreen(options = {}) {

@@ -30,7 +30,136 @@ import { refreshSetupClassesList } from '../features/schoolSetup.js';
 import { setSchoolGraceConfig } from '../utils/subscription.js';
 import { parseGraceWindow } from '../features/teacherJourney.js';
 
-export function setupDataListeners(userId, dateString, onInitialDataReady) {
+function clearDataListeners() {
+    state.get('unsubscribeClasses')();
+    state.get('unsubscribeStudents')();
+    state.get('unsubscribeStudentScores')();
+    state.get('unsubscribeTodaysStars')();
+    state.get('unsubscribeAwardLogs')();
+    state.get('unsubscribeQuestEvents')();
+    state.get('unsubscribeAdventureLogs')();
+    state.get('unsubscribeQuestAssignments')();
+    state.get('unsubscribeCompletedStories')();
+    state.get('unsubscribeWrittenScores')();
+    state.get('unsubscribeAttendance')();
+    state.get('unsubscribeScheduleOverrides')();
+    state.get('unsubscribeHeroChronicleNotes')();
+    state.get('unsubscribeSchoolSettings')();
+    state.get('unsubscribeQuestBounties')();
+    state.get('unsubscribeGuildScores')();
+    state.get('unsubscribeGuildChampions')();
+    state.get('unsubscribeParentSnapshot')();
+    state.get('unsubscribeParentHomework')();
+    state.get('unsubscribeCommunicationThreads')();
+    state.get('unsubscribeCommunicationMessages')();
+}
+
+export function watchCommunicationThread(threadId) {
+    state.get('unsubscribeCommunicationMessages')();
+    state.setCurrentCommunicationThreadId(threadId || null);
+    state.setCurrentCommunicationMessages([]);
+    if (!threadId) return;
+
+    const publicDataPath = "artifacts/great-class-quest/public/data";
+    const messagesQuery = query(
+        collection(db, `${publicDataPath}/communication_messages`),
+        where('threadId', '==', threadId),
+        orderBy('createdAt', 'desc')
+    );
+    state.setUnsubscribeCommunicationMessages(onSnapshot(messagesQuery, (snapshot) => {
+        state.setCurrentCommunicationMessages(snapshot.docs.map((docSnap) => ({ id: docSnap.id, ...docSnap.data() })).reverse());
+        if (!document.getElementById('parent-screen')?.classList.contains('hidden')) {
+            import('../features/parentPortal.js').then((module) => module.renderParentPortal());
+        }
+        if (!document.getElementById('secretary-screen')?.classList.contains('hidden')) {
+            import('../features/secretaryConsole.js').then((module) => module.renderSecretaryConsole());
+        }
+    }, (error) => console.error("Error listening to communication_messages:", error)));
+}
+
+function subscribeCommunicationThreads({ userId, isSecretary = false }) {
+    const publicDataPath = "artifacts/great-class-quest/public/data";
+    const threadsQuery = isSecretary
+        ? query(collection(db, `${publicDataPath}/communication_threads`), orderBy('lastMessageAt', 'desc'))
+        : query(collection(db, `${publicDataPath}/communication_threads`), where('participantUids', 'array-contains', userId), orderBy('lastMessageAt', 'desc'));
+
+    state.setUnsubscribeCommunicationThreads(onSnapshot(threadsQuery, (snapshot) => {
+        const threads = snapshot.docs.map((docSnap) => ({ id: docSnap.id, ...docSnap.data() }));
+        state.setCurrentCommunicationThreads(threads);
+        const activeThreadId = state.get('currentCommunicationThreadId');
+        if (!activeThreadId && threads[0]?.id) {
+            watchCommunicationThread(threads[0].id);
+        } else if (activeThreadId && !threads.find((item) => item.id === activeThreadId)) {
+            watchCommunicationThread(threads[0]?.id || null);
+        }
+        if (!document.getElementById('parent-screen')?.classList.contains('hidden')) {
+            import('../features/parentPortal.js').then((module) => module.renderParentPortal());
+        }
+        if (!document.getElementById('secretary-screen')?.classList.contains('hidden')) {
+            import('../features/secretaryConsole.js').then((module) => module.renderSecretaryConsole());
+        }
+    }, (error) => console.error("Error listening to communication_threads:", error)));
+}
+
+export function setupParentSession(userId, profile, onInitialDataReady) {
+    clearDataListeners();
+
+    const publicDataPath = "artifacts/great-class-quest/public/data";
+    const studentId = profile?.linkedStudentId;
+    if (!studentId) {
+        state.setCurrentParentSnapshot(null);
+        state.setCurrentParentHomework([]);
+        state.setCurrentCommunicationThreads([]);
+        state.setCurrentCommunicationMessages([]);
+        if (typeof onInitialDataReady === 'function') onInitialDataReady();
+        return;
+    }
+
+    let snapshotReady = false;
+    let schoolSettingsReady = false;
+    const maybeReady = () => {
+        if (snapshotReady && schoolSettingsReady && typeof onInitialDataReady === 'function') {
+            onInitialDataReady();
+        }
+    };
+
+    const parentSnapshotRef = doc(db, `${publicDataPath}/parent_snapshots`, studentId);
+    const homeworkQuery = query(collection(db, `${publicDataPath}/parent_homework`), where('studentId', '==', studentId), orderBy('lessonDate', 'asc'));
+    const schoolSettingsQuery = doc(db, `${publicDataPath}/school_settings`, 'holidays');
+
+    state.setUnsubscribeParentSnapshot(onSnapshot(parentSnapshotRef, (snapshot) => {
+        state.setCurrentParentSnapshot(snapshot.exists() ? { id: snapshot.id, ...snapshot.data() } : null);
+        snapshotReady = true;
+        maybeReady();
+        import('../features/parentPortal.js').then((module) => module.renderParentPortal());
+    }, (error) => console.error('Error listening to parent snapshot:', error)));
+
+    state.setUnsubscribeParentHomework(onSnapshot(homeworkQuery, (snapshot) => {
+        state.setCurrentParentHomework(snapshot.docs.map((docSnap) => ({ id: docSnap.id, ...docSnap.data() })));
+        import('../features/parentPortal.js').then((module) => module.renderParentPortal());
+    }, (error) => console.error('Error listening to parent homework:', error)));
+
+    state.setUnsubscribeSchoolSettings(onSnapshot(schoolSettingsQuery, (docSnapshot) => {
+        if (docSnapshot.exists()) {
+            const data = docSnapshot.data();
+            state.setSchoolName(data.schoolName || null);
+            state.setSchoolHolidayRanges(data.ranges || []);
+            const weatherLocation = utils.normalizeWeatherLocation(data.weatherLocation);
+            state.setSchoolWeatherLocation(weatherLocation);
+            utils.setWeatherCoordinates(weatherLocation);
+            document.querySelectorAll('[data-school-name]').forEach((el) => {
+                el.textContent = data.schoolName || DEFAULT_SCHOOL_NAME;
+            });
+        }
+        schoolSettingsReady = true;
+        maybeReady();
+    }));
+
+    subscribeCommunicationThreads({ userId, isSecretary: false });
+}
+
+export function setupDataListeners(userId, dateString, onInitialDataReady, options = {}) {
+    const isSecretary = options.role === 'secretary';
     let initialReadyFired = false;
     let classesReady = false;
     let schoolSettingsReady = false;
@@ -50,23 +179,7 @@ export function setupDataListeners(userId, dateString, onInitialDataReady) {
             .catch((error) => console.warn('Special hero progression reconciliation failed:', error));
     }
 
-    // Clear previous listeners
-    state.get('unsubscribeClasses')();
-    state.get('unsubscribeStudents')();
-    state.get('unsubscribeStudentScores')();
-    state.get('unsubscribeTodaysStars')();
-    state.get('unsubscribeAwardLogs')();
-    state.get('unsubscribeQuestEvents')();
-    state.get('unsubscribeAdventureLogs')();
-    state.get('unsubscribeQuestAssignments')();
-    state.get('unsubscribeCompletedStories')();
-    state.get('unsubscribeWrittenScores')();
-    state.get('unsubscribeAttendance')();
-    state.get('unsubscribeScheduleOverrides')();
-    state.get('unsubscribeHeroChronicleNotes')();
-    state.get('unsubscribeSchoolSettings')();
-    state.get('unsubscribeQuestBounties')();
-    state.get('unsubscribeGuildScores')();
+    clearDataListeners();
 
     const publicDataPath = "artifacts/great-class-quest/public/data";
 
@@ -85,12 +198,20 @@ export function setupDataListeners(userId, dateString, onInitialDataReady) {
     const scoresQuery = query(collection(db, `${publicDataPath}/student_scores`));
     const todaysStarsQuery = query(collection(db, `${publicDataPath}/today_stars`), where('teacherId', '==', userId), where('date', '==', dateString));
     const questEventsQuery = query(collection(db, `${publicDataPath}/quest_events`));
-    const questAssignmentsQuery = query(collection(db, `${publicDataPath}/quest_assignments`), where('createdBy.uid', '==', userId));
+    const questAssignmentsQuery = isSecretary
+        ? query(collection(db, `${publicDataPath}/quest_assignments`))
+        : query(collection(db, `${publicDataPath}/quest_assignments`), where('createdBy.uid', '==', userId));
     const completedStoriesQuery = query(collection(db, `${publicDataPath}/completed_stories`), orderBy('completedAt', 'desc'));
     const overridesQuery = query(collection(db, `${publicDataPath}/schedule_overrides`));
-    const heroChronicleNotesQuery = query(collection(db, `${publicDataPath}/hero_chronicle_notes`), where('teacherId', '==', userId));
-    const questBountiesQuery = query(collection(db, `${publicDataPath}/quest_bounties`), where('createdBy.uid', '==', userId));
-    const shopItemsQuery = query(collection(db, `${publicDataPath}/shop_items`), where('teacherId', '==', userId));
+    const heroChronicleNotesQuery = isSecretary
+        ? query(collection(db, `${publicDataPath}/hero_chronicle_notes`))
+        : query(collection(db, `${publicDataPath}/hero_chronicle_notes`), where('teacherId', '==', userId));
+    const questBountiesQuery = isSecretary
+        ? query(collection(db, `${publicDataPath}/quest_bounties`))
+        : query(collection(db, `${publicDataPath}/quest_bounties`), where('createdBy.uid', '==', userId));
+    const shopItemsQuery = isSecretary
+        ? query(collection(db, `${publicDataPath}/shop_items`))
+        : query(collection(db, `${publicDataPath}/shop_items`), where('teacherId', '==', userId));
     const schoolSettingsQuery = doc(db, `${publicDataPath}/school_settings`, 'holidays');
     const guildScoresQuery = query(collection(db, `${publicDataPath}/guild_scores`));
 
@@ -113,22 +234,26 @@ export function setupDataListeners(userId, dateString, onInitialDataReady) {
     );
 
     // REVAMP: Attendance now only fetches the last 30 days real-time. Older data is fetched on demand.
-    const attendanceQuery = query(
-        collection(db, `${publicDataPath}/attendance`),
-        where('markedBy.uid', '==', userId), // Only my attendance records
-        where('createdAt', '>=', thirtyDaysAgo)
-    );
+    const attendanceQuery = isSecretary
+        ? query(collection(db, `${publicDataPath}/attendance`), where('createdAt', '>=', thirtyDaysAgo))
+        : query(
+            collection(db, `${publicDataPath}/attendance`),
+            where('markedBy.uid', '==', userId),
+            where('createdAt', '>=', thirtyDaysAgo)
+        );
 
     const threeMonthsAgo = new Date();
     threeMonthsAgo.setMonth(threeMonthsAgo.getMonth() - 3);
     const threeMonthsAgoString = threeMonthsAgo.toISOString().split('T')[0];
 
-    const writtenScoresQuery = query(
-        collection(db, `${publicDataPath}/written_scores`),
-        where('teacherId', '==', userId), // Only load MY grading papers
-        where('date', '>=', threeMonthsAgoString),
-        orderBy('date', 'desc')
-    );
+    const writtenScoresQuery = isSecretary
+        ? query(collection(db, `${publicDataPath}/written_scores`), where('date', '>=', threeMonthsAgoString))
+        : query(
+            collection(db, `${publicDataPath}/written_scores`),
+            where('teacherId', '==', userId),
+            where('date', '>=', threeMonthsAgoString),
+            orderBy('date', 'desc')
+        );
 
     function applySchoolNameToDom(name) {
         const display = name || DEFAULT_SCHOOL_NAME;
@@ -141,7 +266,7 @@ export function setupDataListeners(userId, dateString, onInitialDataReady) {
     state.setUnsubscribeClasses(onSnapshot(classesQuery, (snapshot) => {
         const schoolClasses = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
         state.setAllSchoolClasses(schoolClasses);
-        state.setAllTeachersClasses(schoolClasses.filter(c => c.createdBy?.uid === userId));
+        state.setAllTeachersClasses(isSecretary ? schoolClasses : schoolClasses.filter(c => c.createdBy?.uid === userId));
         classesReady = true;
         maybeFireInitialReady();
         refreshSetupClassesList();
@@ -465,6 +590,8 @@ export function setupDataListeners(userId, dateString, onInitialDataReady) {
         state.setGuildChampions(champions);
         renderStudentLeaderboardTab();
     }, (error) => console.error("Error listening to guild_champions:", error)));
+
+    subscribeCommunicationThreads({ userId, isSecretary });
 }
 
 export async function archivePreviousDayStars(userId, todayDateString) {

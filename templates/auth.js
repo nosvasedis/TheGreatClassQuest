@@ -20,13 +20,27 @@ export const authHTML = `
             </h1>
 
             <div id="login-form-container" class="bg-white p-8 rounded-3xl shadow-2xl pop-in">
-                <h2 id="auth-title" class="font-title text-3xl text-sky-700 text-center mb-6">Teacher Login</h2>
+                <div class="flex items-center justify-center mb-6">
+                    <div id="auth-role-switcher" class="inline-flex rounded-2xl bg-sky-50 border border-sky-100 p-1 gap-1">
+                        <button type="button" class="auth-role-btn auth-role-btn-active" data-auth-role="teacher">Teacher</button>
+                        <button type="button" class="auth-role-btn" data-auth-role="parent">Parent</button>
+                        <button type="button" class="auth-role-btn" data-auth-role="secretary">Secretary</button>
+                    </div>
+                </div>
+                <h2 id="auth-title" class="font-title text-3xl text-sky-700 text-center mb-2">Teacher Login</h2>
+                <p id="auth-subtitle" class="text-center text-sm text-slate-500 mb-6">Teachers sign in with email. Parent and secretary accounts use usernames created by the school.</p>
                 <form id="login-form">
-                    <div class="mb-4">
-                        <label for="login-email" class="block text-sm font-bold text-gray-700 mb-2">Email</label>
+                    <div class="mb-4" id="login-email-wrap">
+                        <label for="login-email" id="login-email-label" class="block text-sm font-bold text-gray-700 mb-2">Email</label>
                         <input type="email" id="login-email"
                             class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-sky-500"
                             autocomplete="off" required>
+                    </div>
+                    <div class="mb-4 hidden" id="login-username-wrap">
+                        <label for="login-username" class="block text-sm font-bold text-gray-700 mb-2">Username</label>
+                        <input type="text" id="login-username"
+                            class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-sky-500"
+                            autocomplete="off">
                     </div>
                     <div class="mb-6">
                         <label for="login-password" class="block text-sm font-bold text-gray-700 mb-2">Password</label>

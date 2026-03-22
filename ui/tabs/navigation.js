@@ -37,6 +37,7 @@ import { canUseFeature, getTier, getSubscriptionSnapshot } from '../../utils/sub
 import { showUpgradePrompt } from '../../utils/upgradePrompt.js';
 import { GATED_TABS, TAB_FEATURE_FLAGS, getTierSummary, getUpgradeMessage } from '../../config/tiers/features.js';
 import { renderFamiliarOptionsUi } from '../../features/familiars.js';
+import { renderAccessCenterUi, wireAccessCenterEvents } from '../../features/accessManagement.js';
 
 // --- TAB NAVIGATION ---
 
@@ -170,10 +171,15 @@ export async function showTab(tabName) {
     if (tabId === 'reward-ideas-tab') renderIdeasTabSelects();
     if (tabId === 'options-tab') {
         const hasAssessmentAccess = canUseFeature('scholarScroll');
+        const hasAccessCenter = canUseFeature('parentAccess') || canUseFeature('secretaryAccess') || state.get('currentUserRole') === 'secretary' || state.get('isSchoolAdmin');
         const assessmentsBtn = document.querySelector('.options-subtab-btn[data-options-tab="assessments"]');
         const assessmentsSection = document.querySelector('[data-options-section="assessments"]');
+        const accessBtn = document.querySelector('.options-subtab-btn[data-options-tab="access"]');
+        const accessSection = document.querySelector('[data-options-section="access"]');
         assessmentsBtn?.classList.toggle('hidden', !hasAssessmentAccess);
         assessmentsSection?.classList.toggle('hidden', !hasAssessmentAccess);
+        accessBtn?.classList.toggle('hidden', !hasAccessCenter);
+        accessSection?.classList.toggle('hidden', !hasAccessCenter);
 
         // Load holidays and the new economy selector
         import('../core.js').then(m => {
@@ -198,10 +204,14 @@ export async function showTab(tabName) {
         if (hasAssessmentAccess) {
             renderAssessmentOptionsUi();
         }
+        if (hasAccessCenter) {
+            renderAccessCenterUi();
+        }
 
         // Options subtabs: beautiful bar, active state, tier-aware Planning
         if (!window.__optionsSubtabsWired) {
             window.__optionsSubtabsWired = true;
+            wireAccessCenterEvents();
             const buttons = document.querySelectorAll('.options-subtab-btn');
             const sections = document.querySelectorAll('[data-options-section]');
             const planningLocked = document.getElementById('options-planning-locked');
@@ -218,6 +228,9 @@ export async function showTab(tabName) {
                 });
                 if (key === 'assessments' && hasAssessmentAccess) {
                     renderAssessmentOptionsUi();
+                }
+                if (key === 'access' && hasAccessCenter) {
+                    renderAccessCenterUi();
                 }
                 // Tier: Planning is Pro+. Show locked card or real content
                 const hasPlanning = canUseFeature('schoolYearPlanner');

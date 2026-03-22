@@ -29,7 +29,8 @@ if (missing.length) {
 const config = {
   firebaseConfig,
   billingBaseUrl: env.GCQ_BILLING_BASE_URL || '',
-  billingSchoolId: env.GCQ_BILLING_SCHOOL_ID || firebaseConfig.projectId || ''
+  billingSchoolId: env.GCQ_BILLING_SCHOOL_ID || firebaseConfig.projectId || '',
+  functionsRegion: env.GCQ_FIREBASE_FUNCTIONS_REGION || 'europe-west1'
 };
 const outPath = path.resolve(process.cwd(), env.GCQ_CONFIG_OUTPUT_PATH || 'config.json');
 fs.mkdirSync(path.dirname(outPath), { recursive: true });

@@ -12,6 +12,8 @@
   "storyWeavers": true,
   "heroProgression": true,
   "familiars": true,
+  "parentAccess": true,
+  "secretaryAccess": true,
   "eliteAI": true,
   "earlyAccess": true,
   "prioritySupport": true,

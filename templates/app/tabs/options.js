@@ -58,6 +58,9 @@ export const optionsTabHTML = `
                         <button type="button" class="options-subtab-btn" data-options-tab="assessments">
                             <i class="fas fa-clipboard-check mr-1.5"></i> Assessments
                         </button>
+                        <button type="button" class="options-subtab-btn" data-options-tab="access">
+                            <i class="fas fa-user-shield mr-1.5"></i> Access
+                        </button>
                         <button type="button" class="options-subtab-btn" data-options-tab="danger">
                             <i class="fas fa-shield-alt mr-1.5"></i> Danger
                         </button>
@@ -275,6 +278,14 @@ export const optionsTabHTML = `
                                         </button>
                                     </div>
                                 </div>
+                            </div>
+
+                            <div class="space-y-6 hidden" data-options-section="access">
+                                <div class="bg-gradient-to-r from-sky-50 via-white to-violet-50 border border-sky-100 rounded-3xl p-6 shadow-sm">
+                                    <h2 class="font-title text-3xl text-sky-800">Role Access Center</h2>
+                                    <p class="text-sm text-slate-500 mt-2">Create parent usernames, manage secretary access, and publish parent-friendly updates.</p>
+                                </div>
+                                <div id="options-access-content"></div>
                             </div>
 
                             <div class="bg-white p-6 rounded-3xl shadow-lg border-4 border-blue-300 space-y-4" data-options-section="profile">

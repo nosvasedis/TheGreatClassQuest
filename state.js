@@ -17,10 +17,23 @@ function getDefaultState() {
     return {
         currentUserId: null,
         currentTeacherName: null,
+        currentUserRole: 'teacher',
+        currentUserProfile: null,
+        isSchoolAdmin: false,
         schoolBillingGrace: null,
         schoolName: null,
         schoolWeatherLocation: null,
         schoolAssessmentDefaults: null,
+        currentParentSnapshot: null,
+        currentParentHomework: [],
+        currentCommunicationThreads: [],
+        currentCommunicationMessages: [],
+        currentCommunicationThreadId: null,
+        secretaryView: {
+            classFilter: '',
+            studentFilter: '',
+            communicationStatus: 'open'
+        },
         allTeachersClasses: [],
         allSchoolClasses: [],
         allStudents: [],
@@ -104,7 +117,11 @@ function getDefaultState() {
         unsubscribeQuestBounties: () => { }, // Listener unsubscribe
         unsubscribeSchoolSettings: () => { }, // Listener for settings
         unsubscribeGuildScores: () => { },
-        unsubscribeGuildChampions: () => { }
+        unsubscribeGuildChampions: () => { },
+        unsubscribeParentSnapshot: () => { },
+        unsubscribeParentHomework: () => { },
+        unsubscribeCommunicationThreads: () => { },
+        unsubscribeCommunicationMessages: () => { }
     };
 }
 
@@ -139,10 +156,19 @@ export function resetState() {
 
 export function setCurrentUserId(id) { state.currentUserId = id; }
 export function setCurrentTeacherName(name) { state.currentTeacherName = name; }
+export function setCurrentUserRole(role) { state.currentUserRole = role || 'teacher'; }
+export function setCurrentUserProfile(profile) { state.currentUserProfile = profile || null; }
+export function setIsSchoolAdmin(value) { state.isSchoolAdmin = Boolean(value); }
 export function setSchoolBillingGrace(grace) { state.schoolBillingGrace = grace || null; }
 export function setSchoolName(name) { state.schoolName = name || null; }
 export function setSchoolWeatherLocation(location) { state.schoolWeatherLocation = location || null; }
 export function setSchoolAssessmentDefaults(defaults) { state.schoolAssessmentDefaults = defaults || null; }
+export function setCurrentParentSnapshot(snapshot) { state.currentParentSnapshot = snapshot || null; }
+export function setCurrentParentHomework(items) { state.currentParentHomework = items || []; }
+export function setCurrentCommunicationThreads(threads) { state.currentCommunicationThreads = threads || []; }
+export function setCurrentCommunicationMessages(messages) { state.currentCommunicationMessages = messages || []; }
+export function setCurrentCommunicationThreadId(id) { state.currentCommunicationThreadId = id || null; }
+export function setSecretaryView(next) { state.secretaryView = { ...state.secretaryView, ...(next || {}) }; }
 export function setAllTeachersClasses(classes) { state.allTeachersClasses = classes; }
 export function setAllSchoolClasses(classes) { state.allSchoolClasses = classes; }
 export function setAllStudents(students) { state.allStudents = students; updateReigningHero(); }
@@ -311,6 +337,10 @@ export function setUnsubscribeGuildScores(func) { state.unsubscribeGuildScores =
 export function setGuildChampions(champions) { state.guildChampions = champions; }
 export function setUnsubscribeGuildChampions(func) { state.unsubscribeGuildChampions = func; }
 export function setCurrentShopItems(items) { state.currentShopItems = items; }
+export function setUnsubscribeParentSnapshot(func) { state.unsubscribeParentSnapshot = func; }
+export function setUnsubscribeParentHomework(func) { state.unsubscribeParentHomework = func; }
+export function setUnsubscribeCommunicationThreads(func) { state.unsubscribeCommunicationThreads = func; }
+export function setUnsubscribeCommunicationMessages(func) { state.unsubscribeCommunicationMessages = func; }
 
 // Helper to fetch history (internal use)
 export async function fetchMonthlyHistory(monthKey) {

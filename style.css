@@ -123,3 +123,6 @@
 
 /* 37. Grand Guild Ceremony: ultimate end-of-year celebration styles */
 @import url('./styles/grandGuildCeremony.css');
+
+/* 38. Role-aware screens: parent portal, secretary console, access center */
+@import url('./styles/roles.css');

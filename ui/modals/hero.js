@@ -5,6 +5,7 @@ import { HERO_CLASSES } from '../../features/heroClasses.js';
 import { getHeroTitle, HERO_SKILL_TREE } from '../../features/heroSkillTree.js';
 import { showAnimatedModal } from './base.js';
 import { callGeminiApi } from '../../api.js';
+import { showToast } from '../effects.js';
 import {
     getAssessmentAverage,
     getAssessmentValueLabel,
@@ -44,6 +45,7 @@ export function showHeroLevelUpCelebration({ studentId, studentName, newHeroLeve
 
 import { getTier, canUseFeature } from '../../utils/subscription.js';
 import { getTierTagline, getTierSummary, getGuideSections } from '../../config/tiers/features.js';
+import { publishParentSummary as publishParentSummaryToRuntime } from '../../utils/adminRuntime.js';
 import { requireEliteAI } from '../../utils/upgradePrompt.js';
 
 // --- CORRECTED & ENHANCED HERO STATS MODAL ---
@@ -327,15 +329,31 @@ export function setupNoteForEditing(noteId) {
     document.getElementById('hero-chronicle-note-text').focus();
 }
 
-export async function generateAIInsight(studentId, insightType) {
-    if (!requireEliteAI({ feature: 'The Oracle' })) return;
+function buildInsightPrompts(studentName) {
+    return {
+        parent: {
+            persona: "You are a thoughtful educational psychologist writing a summary for a parent-teacher meeting. Your tone is balanced, positive, and constructive. Use clear, jargon-free language.",
+            task: `Summarize the student's progress. Structure your response with clear headings in markdown: '### Key Strengths' and '### Areas for Growth'. Under each, provide 2-3 bullet points. Conclude with a positive, encouraging sentence.`
+        },
+        teacher: {
+            persona: "You are an experienced teaching coach and mentor providing confidential advice to another teacher. Your tone is practical, supportive, and insightful.",
+            task: `Analyze the student's complete record and provide actionable strategies. Structure your response with clear headings in markdown: '### In-Classroom Strategies', '### Motivation Techniques', and '### Potential Challenges to Watch For'. Provide 2-3 specific, bulleted suggestions under each heading.`
+        },
+        analysis: {
+            persona: "You are a concise data analyst summarizing student performance patterns. Your tone is objective and direct.",
+            task: `Identify key patterns from the data. Structure your response with two markdown lists: '### Key Strengths' and '### Areas to Develop'. Provide 3-4 bullet points for each, citing specific data types (e.g., 'academic scores', 'behavior notes') where patterns emerge.`
+        },
+        goal: {
+            persona: "You are a goal-setting expert for students, focusing on SMART (Specific, Measurable, Achievable, Relevant, Time-bound) goals. Your tone is positive and forward-looking.",
+            task: `Based on the student's record, suggest ONE specific and achievable goal for the upcoming month. Explain the goal and why it's relevant in a single paragraph. Do not use markdown.`
+        }
+    };
+}
+
+function collectStudentInsightData(studentId) {
     const student = state.get('allStudents').find(s => s.id === studentId);
-    if (!student) return;
+    if (!student) return null;
 
-    const outputEl = document.getElementById('hero-chronicle-ai-output');
-    outputEl.innerHTML = `<p class="text-center text-indigo-700"><i class="fas fa-spinner fa-spin mr-2"></i>The Oracle is consulting the records...</p>`;
-
-    // 1. Gather all data
     const notes = state.get('allHeroChronicleNotes')
         .filter(n => n.studentId === studentId)
         .sort((a, b) => (a.createdAt?.toDate() || new Date()) - (b.createdAt?.toDate() || new Date()))
@@ -354,28 +372,16 @@ export async function generateAIInsight(studentId, insightType) {
         .map(l => `[${l.date}] Awarded ${l.stars} star(s) for ${l.reason}. Note: ${l.note || 'N/A'}`)
         .join('\n');
 
-    // 2. Select prompt based on type
-    let systemPrompt = "";
-    const prompts = {
-        parent: {
-            persona: "You are a thoughtful educational psychologist writing a summary for a parent-teacher meeting. Your tone is balanced, positive, and constructive. Use clear, jargon-free language.",
-            task: `Summarize the student's progress. Structure your response with clear headings in markdown: '### Key Strengths' and '### Areas for Growth'. Under each, provide 2-3 bullet points. Conclude with a positive, encouraging sentence.`
-        },
-        teacher: {
-            persona: "You are an experienced teaching coach and mentor providing confidential advice to another teacher. Your tone is practical, supportive, and insightful.",
-            task: `Analyze the student's complete record and provide actionable strategies. Structure your response with clear headings in markdown: '### In-Classroom Strategies', '### Motivation Techniques', and '### Potential Challenges to Watch For'. Provide 2-3 specific, bulleted suggestions under each heading.`
-        },
-        analysis: {
-            persona: "You are a concise data analyst summarizing student performance patterns. Your tone is objective and direct.",
-            task: `Identify key patterns from the data. Structure your response with two markdown lists: '### Key Strengths' and '### Areas to Develop'. Provide 3-4 bullet points for each, citing specific data types (e.g., 'academic scores', 'behavior notes') where patterns emerge.`
-        },
-        goal: {
-            persona: "You are a goal-setting expert for students, focusing on SMART (Specific, Measurable, Achievable, Relevant, Time-bound) goals. Your tone is positive and forward-looking.",
-            task: `Based on the student's record, suggest ONE specific and achievable goal for the upcoming month. Explain the goal and why it's relevant in a single paragraph. Do not use markdown.`
-        }
-    };
-    systemPrompt = `${prompts[insightType].persona} Your task is to analyze a comprehensive record for a student named ${student.name} and generate a specific type of summary. ${prompts[insightType].task}`;
-    
+    return { student, notes, academicScores, behavioralAwards };
+}
+
+async function requestAIInsight(studentId, insightType) {
+    const insightData = collectStudentInsightData(studentId);
+    if (!insightData) return '';
+    const { student, notes, academicScores, behavioralAwards } = insightData;
+    const prompts = buildInsightPrompts(student.name);
+    const prompt = prompts[insightType];
+    const systemPrompt = `${prompt.persona} Your task is to analyze a comprehensive record for a student named ${student.name} and generate a specific type of summary. ${prompt.task}`;
     const userPrompt = `Here is the complete record for ${student.name}:
     
     --- TEACHER'S PRIVATE NOTES ---
@@ -389,8 +395,19 @@ export async function generateAIInsight(studentId, insightType) {
 
     Please generate the requested summary.`;
 
+    return callGeminiApi(systemPrompt, userPrompt);
+}
+
+export async function generateAIInsight(studentId, insightType) {
+    if (!requireEliteAI({ feature: 'The Oracle' })) return;
+    const student = state.get('allStudents').find(s => s.id === studentId);
+    if (!student) return;
+
+    const outputEl = document.getElementById('hero-chronicle-ai-output');
+    outputEl.innerHTML = `<p class="text-center text-indigo-700"><i class="fas fa-spinner fa-spin mr-2"></i>The Oracle is consulting the records...</p>`;
+
     try {
-        const insight = await callGeminiApi(systemPrompt, userPrompt);
+        const insight = await requestAIInsight(studentId, insightType);
         // Basic markdown to HTML conversion
         let htmlInsight = insight
             .replace(/\*\*\*(.*?)\*\*\*/g, '<b>$1</b>') // Handle ***bold***
@@ -402,6 +419,33 @@ export async function generateAIInsight(studentId, insightType) {
     } catch (error) {
         console.error("AI Insight Error:", error);
         outputEl.innerHTML = `<p class="text-center text-red-500">The Oracle could not process the records at this time. Please try again later.</p>`;
+    }
+}
+
+export async function publishParentSummary(studentId) {
+    if (!requireEliteAI({ feature: 'The Oracle' })) return;
+    const outputEl = document.getElementById('hero-chronicle-ai-output');
+    const publishBtn = document.getElementById('hero-chronicle-publish-parent-btn');
+    if (publishBtn) {
+        publishBtn.disabled = true;
+        publishBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Publishing...';
+    }
+    outputEl.innerHTML = `<p class="text-center text-indigo-700"><i class="fas fa-spinner fa-spin mr-2"></i>Preparing a parent-safe summary...</p>`;
+
+    try {
+        const summary = await requestAIInsight(studentId, 'parent');
+        await publishParentSummaryToRuntime({ studentId, summary });
+        outputEl.innerHTML = `<div class="text-sm text-emerald-800 whitespace-pre-wrap">${summary}</div>`;
+        showToast('Parent summary published to the portal.', 'success');
+    } catch (error) {
+        console.error('Could not publish parent summary:', error);
+        outputEl.innerHTML = `<p class="text-center text-red-500">The summary could not be published right now.</p>`;
+        showToast(error?.message || 'Could not publish the parent summary.', 'error');
+    } finally {
+        if (publishBtn) {
+            publishBtn.disabled = false;
+            publishBtn.innerHTML = '<i class="fas fa-paper-plane mr-2"></i> Publish Parent Summary To Portal';
+        }
     }
 }
 

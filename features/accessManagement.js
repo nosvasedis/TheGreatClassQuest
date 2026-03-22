@@ -16,6 +16,19 @@ let accessData = {
     secretaryRole: null
 };
 
+function setBusyState(button, isBusy, busyLabel, idleHtml = null) {
+    if (!button) return;
+    if (!button.dataset.idleHtml) {
+        button.dataset.idleHtml = idleHtml || button.innerHTML;
+    }
+    button.disabled = isBusy;
+    button.classList.toggle('opacity-70', isBusy);
+    button.classList.toggle('cursor-wait', isBusy);
+    button.innerHTML = isBusy
+        ? `<i class="fas fa-spinner fa-spin mr-2"></i>${escapeHtml(busyLabel)}`
+        : button.dataset.idleHtml;
+}
+
 function escapeHtml(value) {
     return String(value || '')
         .replace(/&/g, '&amp;')
@@ -211,6 +224,7 @@ export function wireAccessCenterEvents() {
         const currentLink = selectedStudent ? accessData.parentLinksByStudent[selectedStudent.id] : null;
 
         if (event.target.closest('#options-parent-create-btn')) {
+            const button = event.target.closest('#options-parent-create-btn');
             if (!selectedStudent) {
                 showToast('Choose a student first.', 'info');
                 return;
@@ -222,6 +236,7 @@ export function wireAccessCenterEvents() {
                 return;
             }
             try {
+                setBusyState(button, true, 'Saving Parent Account...');
                 await createParentAccess({
                     studentId: selectedStudent.id,
                     classId: selectedStudent.classId,
@@ -234,11 +249,14 @@ export function wireAccessCenterEvents() {
             } catch (error) {
                 console.error('Could not save parent access:', error);
                 showToast(error?.message || 'Could not save the parent account.', 'error');
+            } finally {
+                setBusyState(button, false);
             }
             return;
         }
 
         if (event.target.closest('#options-parent-reset-btn')) {
+            const button = event.target.closest('#options-parent-reset-btn');
             if (!selectedStudent || !currentLink) return;
             const password = document.getElementById('options-parent-password')?.value?.trim();
             if (!password) {
@@ -246,30 +264,38 @@ export function wireAccessCenterEvents() {
                 return;
             }
             try {
+                setBusyState(button, true, 'Resetting Password...');
                 await resetParentAccessPassword({ studentId: selectedStudent.id, password });
                 showToast('Parent password reset.', 'success');
                 document.getElementById('options-parent-password').value = '';
             } catch (error) {
                 console.error('Could not reset parent password:', error);
                 showToast(error?.message || 'Could not reset the parent password.', 'error');
+            } finally {
+                setBusyState(button, false);
             }
             return;
         }
 
         if (event.target.closest('#options-parent-disable-btn')) {
+            const button = event.target.closest('#options-parent-disable-btn');
             if (!selectedStudent || !currentLink) return;
             try {
+                setBusyState(button, true, 'Disabling Parent Access...');
                 await disableParentAccess({ studentId: selectedStudent.id });
                 showToast('Parent access disabled.', 'success');
                 await renderAccessCenterUi();
             } catch (error) {
                 console.error('Could not disable parent access:', error);
                 showToast(error?.message || 'Could not disable parent access.', 'error');
+            } finally {
+                setBusyState(button, false);
             }
             return;
         }
 
         if (event.target.closest('#options-secretary-create-btn')) {
+            const button = event.target.closest('#options-secretary-create-btn');
             const username = document.getElementById('options-secretary-username')?.value?.trim();
             const password = document.getElementById('options-secretary-password')?.value?.trim();
             if (!username || !password) {
@@ -277,29 +303,37 @@ export function wireAccessCenterEvents() {
                 return;
             }
             try {
+                setBusyState(button, true, 'Saving Secretary Account...');
                 await createOrReplaceSecretaryAccess({ username, password });
                 showToast('Secretary account saved.', 'success');
                 await renderAccessCenterUi();
             } catch (error) {
                 console.error('Could not save secretary account:', error);
                 showToast(error?.message || 'Could not save the secretary account.', 'error');
+            } finally {
+                setBusyState(button, false);
             }
             return;
         }
 
         if (event.target.closest('#options-secretary-disable-btn')) {
+            const button = event.target.closest('#options-secretary-disable-btn');
             try {
+                setBusyState(button, true, 'Disabling Secretary Access...');
                 await disableSecretaryAccess({});
                 showToast('Secretary access disabled.', 'success');
                 await renderAccessCenterUi();
             } catch (error) {
                 console.error('Could not disable secretary access:', error);
                 showToast(error?.message || 'Could not disable the secretary account.', 'error');
+            } finally {
+                setBusyState(button, false);
             }
             return;
         }
 
         if (event.target.closest('#options-parent-homework-btn')) {
+            const button = event.target.closest('#options-parent-homework-btn');
             if (!selectedStudent) {
                 showToast('Choose a student first.', 'info');
                 return;
@@ -312,6 +346,7 @@ export function wireAccessCenterEvents() {
                 return;
             }
             try {
+                setBusyState(button, true, 'Publishing Homework...');
                 await publishParentHomework({
                     studentId: selectedStudent.id,
                     classId: selectedStudent.classId,
@@ -325,6 +360,8 @@ export function wireAccessCenterEvents() {
             } catch (error) {
                 console.error('Could not publish homework:', error);
                 showToast(error?.message || 'Could not publish homework.', 'error');
+            } finally {
+                setBusyState(button, false);
             }
         }
     });

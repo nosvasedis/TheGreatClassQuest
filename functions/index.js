@@ -55,7 +55,11 @@ async function requireFeatureEnabled(featureKey) {
 }
 
 function callable(handler) {
-  return onCall({ region: FUNCTIONS_REGION }, handler);
+  return onCall({
+    region: FUNCTIONS_REGION,
+    invoker: 'public',
+    cors: true
+  }, handler);
 }
 
 async function getStudent(studentId) {

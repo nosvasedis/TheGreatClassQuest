@@ -47,23 +47,13 @@ export async function handleSaveQuestAssignment() {
     try {
         const publicDataPath = "artifacts/great-class-quest/public/data";
 
-        // 1. Fetch the EXISTING assignment to see if there is a future test we need to keep
-        const q = query(
-            collection(db, `${publicDataPath}/quest_assignments`),
-            where("classId", "==", classId),
-            where("createdBy.uid", "==", state.get('currentUserId')),
-            orderBy("createdAt", "desc"), // Get latest first
-            limit(1)
-        );
-        const snapshot = await getDocs(q);
+        // 1. Look up existing assignments from already-loaded state (avoids a slow Firestore query)
+        const existingDocs = (state.get('allQuestAssignments') || [])
+            .filter(a => a.classId === classId && a.createdBy?.uid === state.get('currentUserId'))
+            .sort((a, b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0));
 
         let testDataToSave = null;
-        let existingTest = null;
-
-        // Extract existing test if available
-        if (!snapshot.empty) {
-            existingTest = snapshot.docs[0].data().testData;
-        }
+        const existingTest = existingDocs.length > 0 ? existingDocs[0].testData : null;
 
         // LOGIC: Determine which Test Data to use
         if (formTestDate && formTestTitle) {
@@ -79,14 +69,13 @@ export async function handleSaveQuestAssignment() {
             // Keep it if it is Today or in the Future
             if (oldTestDate >= today) {
                 testDataToSave = existingTest;
-                console.log("Preserving existing upcoming test:", existingTest.title);
             }
         }
 
         const batch = writeBatch(db);
 
-        // Clean up old assignments to keep DB tidy (optional, but good for cleanliness)
-        snapshot.forEach(doc => batch.delete(doc.ref));
+        // Clean up old assignments using IDs from state (no extra Firestore read needed)
+        existingDocs.forEach(a => batch.delete(doc(db, `${publicDataPath}/quest_assignments`, a.id)));
 
         const newDocRef = doc(collection(db, `${publicDataPath}/quest_assignments`));
         batch.set(newDocRef, {

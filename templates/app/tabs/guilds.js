@@ -5,7 +5,7 @@ export const guildsTabHTML = `
 
                 <!-- Title above the framed scene -->
                 <div class="guild-hall-header text-center">
-                    <div class="guild-hall-crest">🛡️</div>
+                    <i class="fas fa-shield-alt text-violet-600 text-5xl floating-icon"></i>
                     <h2 class="font-title guild-hall-title">Guild Hall</h2>
                     <p class="guild-hall-subtitle">
                         Every star fills your guild's crystal.

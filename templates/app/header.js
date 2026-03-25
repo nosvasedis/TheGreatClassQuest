@@ -40,6 +40,11 @@ export const headerHTML = `
                             title="Projector Mode" aria-label="Toggle Projector Mode">
                             <i class="fas fa-tv text-xs"></i>
                         </button>
+                        <button id="secretary-console-btn"
+                            class="hidden hover:bg-white/40 text-white w-8 h-8 rounded-full bubbly-button transition-colors duration-300 flex items-center justify-center border border-white/30"
+                            title="Secretary Console" aria-label="Open Secretary Console">
+                            <i class="fas fa-building-shield text-xs"></i>
+                        </button>
                         <button id="logout-btn"
                             class="bg-red-500/80 hover:bg-red-500 text-white w-8 h-8 rounded-full bubbly-button flex items-center justify-center border border-white/30"
                             title="Logout" aria-label="Logout">

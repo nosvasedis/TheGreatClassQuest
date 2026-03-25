@@ -22,6 +22,7 @@ import { showToast } from '../../ui/effects.js';
 import * as utils from '../../utils.js';
 import { getTodayDateString, getAgeGroupForLeague, compressImageBase64 } from '../../utils.js';
 import { callGeminiApi, callCloudflareAiImageApi } from '../../api.js';
+import { syncQuestAssignmentToParentHomework } from '../../utils/adminRuntime.js';
 
 // --- REVAMPED: QUEST ASSIGNMENT (SINGLE ENTRY) ---
 
@@ -33,6 +34,9 @@ export async function handleSaveQuestAssignment() {
     const formTestDate = document.getElementById('quest-test-date').value;
     const formTestTitle = document.getElementById('quest-test-title').value;
     const formCurriculum = document.getElementById('quest-test-curriculum').value;
+    const classData = state.get('allSchoolClasses').find((item) => item.id === classId)
+        || state.get('allTeachersClasses').find((item) => item.id === classId)
+        || null;
 
     if (!rawText) {
         showToast("Please write an assignment before saving.", "info");
@@ -87,6 +91,19 @@ export async function handleSaveQuestAssignment() {
         });
 
         await batch.commit();
+        try {
+            await syncQuestAssignmentToParentHomework({
+                classId,
+                text,
+                lessonDate: testDataToSave?.date || getTodayDateString(),
+                title: testDataToSave?.title || (classData?.name ? `${classData.name} Homework` : 'Quest Assignment'),
+                testData: testDataToSave
+            });
+        } catch (syncError) {
+            console.error('Error syncing quest assignment to parent homework:', syncError);
+            showToast('Quest assignment saved, but parent homework did not sync.', 'error');
+            return;
+        }
         showToast("Quest assignment updated!", "success");
         import('../../ui/modals.js').then(m => m.hideModal('quest-assignment-modal'));
 

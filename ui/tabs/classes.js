@@ -12,6 +12,7 @@ import { HERO_CLASSES } from '../../features/heroClasses.js';
 import { canUseFeature } from '../../utils/subscription.js';
 import { showUpgradePrompt } from '../../utils/upgradePrompt.js';
 import { getUpgradeMessage } from '../../config/tiers/features.js';
+import { openAccessCenterForStudent } from '../../features/accessManagement.js';
 
 export function renderManageClassesTab() {
     const list = document.getElementById('class-list');
@@ -162,6 +163,9 @@ export function renderManageStudentsTab() {
                     <button data-id="${s.id}" class="hero-chronicle-btn w-7 h-7 flex items-center justify-center bg-green-100 hover:bg-green-200 text-green-700 rounded-full bubbly-button transition-colors" title="Hero's Chronicle">
                         <i class="fas fa-book-reader" style="font-size:10px;"></i>
                     </button>
+                    <button data-id="${s.id}" class="parent-access-student-btn w-7 h-7 flex items-center justify-center bg-sky-100 hover:bg-sky-200 text-sky-700 rounded-full bubbly-button transition-colors" title="Parent Access">
+                        <i class="fas fa-user-shield" style="font-size:10px;"></i>
+                    </button>
                     <button data-id="${s.id}" class="${avatarMakerBtnCls}" title="${eliteAiEnabled ? 'Create/Edit Avatar' : 'Elite plan: Avatar Forge'}">
                         <i class="fas fa-user-astronaut" style="font-size:10px;"></i>
                     </button>
@@ -202,6 +206,11 @@ export function renderManageStudentsTab() {
     }));
     list.querySelectorAll('.move-student-btn').forEach(btn => btn.addEventListener('click', () => modals.openMoveStudentModal(btn.dataset.id)));
     list.querySelectorAll('.hero-chronicle-btn').forEach(btn => btn.addEventListener('click', () => modals.openHeroChronicleModal(btn.dataset.id)));
+    list.querySelectorAll('.parent-access-student-btn').forEach(btn => btn.addEventListener('click', async () => {
+        openAccessCenterForStudent(btn.dataset.id);
+        await showTab('options-tab');
+        document.querySelector('.options-subtab-btn[data-options-tab="access"]')?.click();
+    }));
     list.querySelectorAll('.guild-quiz-btn').forEach(btn => btn.addEventListener('click', () => {
         if (!guildsEnabled) {
             showUpgradePrompt({

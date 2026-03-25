@@ -376,8 +376,9 @@ function renderCurrentStep() {
             <select id="readinessTarget">
               <option value="starter" ${state.form.readinessTarget === 'starter' ? 'selected' : ''}>Starter / paywall only</option>
               <option value="pro" ${state.form.readinessTarget === 'pro' ? 'selected' : ''}>Pro / Elite ready</option>
+              <option value="admin" ${state.form.readinessTarget === 'admin' ? 'selected' : ''}>Parent access + Secretary ready</option>
             </select>
-            <p class="field-hint">Starter keeps things lighter. Pro / Elite ready also prepares Firebase Storage for image features.</p>
+            <p class="field-hint">Starter keeps things lighter. Pro / Elite ready adds Storage. Parent access + Secretary ready also prepares the Cloud Functions admin runtime and extra APIs for role-based access.</p>
           </div>
 
           <div class="field-wrap">
@@ -816,8 +817,9 @@ function renderRecheck() {
               <select id="savedReadinessTarget">
                 <option value="starter" ${state.form.readinessTarget === 'starter' ? 'selected' : ''}>Starter / paywall only</option>
                 <option value="pro" ${state.form.readinessTarget === 'pro' ? 'selected' : ''}>Pro / Elite ready</option>
+                <option value="admin" ${state.form.readinessTarget === 'admin' ? 'selected' : ''}>Parent access + Secretary ready</option>
               </select>
-              <p class="field-hint">Use Pro / Elite ready later when an existing school upgrades and now needs Storage image features.</p>
+              <p class="field-hint">Use the admin option when the school now needs parent usernames, secretary access, and the Functions-based role runtime.</p>
             </div>
 
             <div class="field-wrap">

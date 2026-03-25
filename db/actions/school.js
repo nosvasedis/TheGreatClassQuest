@@ -17,6 +17,7 @@ import {
     readAssessmentDefaultsFromContainer,
     wireAssessmentEditor
 } from '../../ui/assessmentEditor.js';
+import { ROLE_SECRETARY } from '../../utils/roles.js';
 
 const PUBLIC_DATA_PATH = 'artifacts/great-class-quest/public/data';
 let optionsLocationSearchResults = [];
@@ -93,7 +94,8 @@ export function renderAssessmentOptionsUi() {
     defaultsContainer.innerHTML = getAssessmentDefaultsEditorHtml(schoolDefaults);
 
     const allSchoolClasses = state.get('allSchoolClasses') || [];
-    const classes = (state.get('allTeachersClasses') || []).slice().sort((a, b) => a.name.localeCompare(b.name));
+    const isSecretary = state.get('currentUserRole') === ROLE_SECRETARY;
+    const classes = (isSecretary ? allSchoolClasses : (state.get('allTeachersClasses') || [])).slice().sort((a, b) => a.name.localeCompare(b.name));
     const hiddenClassCount = Math.max(0, allSchoolClasses.length - classes.length);
     if (classes.length === 0) {
         classesContainer.innerHTML = `<div class="rounded-2xl border border-dashed border-indigo-200 bg-white px-4 py-5 text-center text-sm text-slate-500">Create a class first to manage per-class overrides.</div>`;
@@ -155,7 +157,7 @@ export async function handleSaveAssessmentSettingsFromOptions() {
         await batch.commit();
         state.setSchoolAssessmentDefaults(schoolDefaults);
         state.setAllSchoolClasses(updatedSchoolClasses);
-        state.setAllTeachersClasses(updatedSchoolClasses.filter((classData) => classData.createdBy?.uid === state.get('currentUserId')));
+        state.setAllTeachersClasses(isSecretary ? updatedSchoolClasses : updatedSchoolClasses.filter((classData) => classData.createdBy?.uid === state.get('currentUserId')));
         showToast('Assessment settings updated!', 'success');
     } catch (error) {
         console.error('Error saving assessment settings:', error);

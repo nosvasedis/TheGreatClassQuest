@@ -1040,6 +1040,10 @@ export function setupUIListeners() {
             modals.generateAIInsight(studentId, insightType);
         });
     });
+    document.getElementById('hero-chronicle-publish-parent-btn')?.addEventListener('click', () => {
+        const studentId = document.getElementById('hero-chronicle-modal').dataset.studentId;
+        modals.publishParentSummary(studentId);
+    });
 
     // Initialize Home/Info Listeners
     setupHomeListeners();

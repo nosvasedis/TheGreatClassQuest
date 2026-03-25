@@ -8,6 +8,7 @@ import { db, auth } from './firebase.js';
 import { firebaseConfig, BILLING_BASE_URL, BILLING_SCHOOL_ID } from './constants.js';
 import * as state from './state.js';
 import { setupDataListeners } from './db/listeners.js';
+import { setupParentSession, watchCommunicationThread } from './db/listeners.js';
 import { setupUIListeners } from './ui/core.js';
 import { setupSounds, activateAudioContext } from './audio.js';
 import { updateDateTime, getTodayDateString, fetchSolarCycle } from './utils.js';
@@ -15,10 +16,15 @@ import { archivePreviousDayStars } from './db/listeners.js';
 import { toggleWallpaperMode } from './ui/wallpaper.js';
 import { initializeHeaderQuote, maybeAutoShowGuideForTeacher } from './features/home.js';
 import * as utils from './utils.js';
-import { loadSubscription, hasActiveSubscription, getTier, getSubscriptionSnapshot, setSchoolGraceConfig } from './utils/subscription.js';
+import { loadSubscription, hasActiveSubscription, canUseFeature, getTier, getSubscriptionSnapshot, setSchoolGraceConfig } from './utils/subscription.js';
 import { showSetupScreen } from './features/schoolSetup.js';
 import { loadTeacherJourneyState, markTeacherOnboardingComplete, startSchoolGracePeriod } from './features/teacherJourney.js';
 import { requestCheckoutSession } from './utils/billingCheckout.js';
+import { ensureTeacherUserProfile, loadUserProfile, touchCurrentUserProfile } from './db/userProfiles.js';
+import { claimFoundingSchoolAdmin } from './utils/adminRuntime.js';
+import { buildSyntheticRoleEmail, getRoleFromSyntheticEmail, getRoleLabel, getRoleLoginDescription, isRoleLogin, normalizeUsername, ROLE_PARENT, ROLE_SECRETARY, ROLE_TEACHER } from './utils/roles.js';
+import { renderParentPortal, activateParentTab, wireParentPortalListeners } from './features/parentPortal.js';
+import { renderSecretaryConsole, activateSecretaryTab, wireSecretaryConsoleListeners } from './features/secretaryConsole.js';
 
 function updateTierLabel() {
     const tierEl = document.getElementById('app-tier-label');
@@ -39,6 +45,8 @@ import {
 } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
 
 let soundSetupStarted = false;
+let activeAuthRole = ROLE_TEACHER;
+let activeAuthMode = 'login';
 
 const HOME_READY_FALLBACK_MS = 4500;
 let subscribeGraceTicker = null;
@@ -190,7 +198,19 @@ function hideAuthScreen(authScreen) {
     }, 500);
 }
 
+function hideAllExperienceScreens() {
+    document.getElementById('parent-screen')?.classList.add('hidden');
+    document.getElementById('secretary-screen')?.classList.add('hidden');
+    document.getElementById('app-screen')?.classList.add('hidden');
+    document.getElementById('setup-screen')?.classList.add('hidden');
+}
+
+function setSecretaryReturnButtonVisible(isVisible) {
+    document.getElementById('secretary-console-btn')?.classList.toggle('hidden', !isVisible);
+}
+
 async function openMainAppForTeacher({ user, loadingScreen, authScreen, appScreen }) {
+    hideAllExperienceScreens();
     hideAuthScreen(authScreen);
     appScreen.classList.remove('hidden');
     appScreen.classList.add('app-screen-in');
@@ -199,7 +219,32 @@ async function openMainAppForTeacher({ user, loadingScreen, authScreen, appScree
     await tabs.showTab('about-tab');
     resetAuthSubmitState();
     dismissLoadingAfterHomeIsReady(loadingScreen);
-    await maybeAutoShowGuideForTeacher(user);
+    if (state.get('currentUserRole') === ROLE_TEACHER) {
+        await maybeAutoShowGuideForTeacher(user);
+    }
+}
+
+async function openParentPortal({ loadingScreen, authScreen }) {
+    hideAllExperienceScreens();
+    hideAuthScreen(authScreen);
+    const parentScreen = document.getElementById('parent-screen');
+    if (parentScreen) parentScreen.classList.remove('hidden');
+    activateParentTab('overview');
+    renderParentPortal();
+    resetAuthSubmitState();
+    animateLoadingScreenOut(loadingScreen);
+}
+
+async function openSecretaryConsole({ loadingScreen, authScreen }) {
+    hideAllExperienceScreens();
+    hideAuthScreen(authScreen);
+    const secretaryScreen = document.getElementById('secretary-screen');
+    if (secretaryScreen) secretaryScreen.classList.remove('hidden');
+    activateSecretaryTab('overview');
+    renderSecretaryConsole();
+    setSecretaryReturnButtonVisible(true);
+    resetAuthSubmitState();
+    animateLoadingScreenOut(loadingScreen);
 }
 
 function showSubscribeScreen(loadingScreen, authScreen, options = {}) {
@@ -361,6 +406,23 @@ async function routeAuthenticatedTeacher({ user, loadingScreen, authScreen, appS
         return;
     }
 
+    if (!state.get('isSchoolAdmin')) {
+        try {
+            const adminClaim = await claimFoundingSchoolAdmin();
+            if (adminClaim?.schoolAdmin) {
+                state.setIsSchoolAdmin(true);
+                state.setCurrentUserProfile({
+                    ...(state.get('currentUserProfile') || {}),
+                    schoolAdmin: true
+                });
+            }
+        } catch (error) {
+            if (error?.code !== 'functions/failed-precondition' && error?.code !== 'failed-precondition') {
+                console.warn('Could not auto-claim school admin:', error);
+            }
+        }
+    }
+
     const isFirstTeacher = allSchoolClasses.length === 0;
     const shouldCollectSchoolName = isFirstTeacher || !state.get('schoolName');
 
@@ -382,38 +444,124 @@ async function routeAuthenticatedTeacher({ user, loadingScreen, authScreen, appS
     await openMainAppForTeacher({ user, loadingScreen, authScreen, appScreen });
 }
 
+async function routeAuthenticatedSecretary({ user, loadingScreen, authScreen }) {
+    if (!hasActiveSubscription() || !canUseFeature('secretaryAccess')) {
+        showSubscribeScreen(loadingScreen, authScreen, {
+            canStartGrace: false,
+            graceExpired: false,
+            graceWindow: state.get('schoolBillingGrace')
+        });
+        return;
+    }
+    await openSecretaryConsole({ loadingScreen, authScreen });
+}
+
+async function routeAuthenticatedParent({ loadingScreen, authScreen }) {
+    if (!hasActiveSubscription() || !canUseFeature('parentAccess')) {
+        showSubscribeScreen(loadingScreen, authScreen, {
+            canStartGrace: false,
+            graceExpired: false,
+            graceWindow: state.get('schoolBillingGrace')
+        });
+        return;
+    }
+    await openParentPortal({ loadingScreen, authScreen });
+}
+
+function getRoleAwareLoginIdentifier() {
+    if (isRoleLogin(activeAuthRole)) {
+        const username = normalizeUsername(document.getElementById('login-username')?.value || '');
+        return {
+            identifier: buildSyntheticRoleEmail(activeAuthRole, username),
+            rawUsername: username
+        };
+    }
+
+    return {
+        identifier: document.getElementById('login-email')?.value?.trim() || '',
+        rawUsername: ''
+    };
+}
+
+function syncAuthRoleUi() {
+    const title = document.getElementById('auth-title');
+    const subtitle = document.getElementById('auth-subtitle');
+    const toggleBtn = document.getElementById('toggle-auth-mode');
+    const loginEmailWrap = document.getElementById('login-email-wrap');
+    const loginUsernameWrap = document.getElementById('login-username-wrap');
+    const loginEmail = document.getElementById('login-email');
+    const loginUsername = document.getElementById('login-username');
+    const signupForm = document.getElementById('signup-form');
+    const loginForm = document.getElementById('login-form');
+
+    document.querySelectorAll('.auth-role-btn').forEach((btn) => {
+        btn.classList.toggle('auth-role-btn-active', btn.dataset.authRole === activeAuthRole);
+    });
+
+    if (title) {
+        title.innerText = `${getRoleLabel(activeAuthRole)} ${activeAuthMode === 'signup' ? 'Sign Up' : 'Login'}`;
+    }
+    if (subtitle) {
+        subtitle.innerText = getRoleLoginDescription(activeAuthRole);
+    }
+
+    const roleUsesUsername = isRoleLogin(activeAuthRole);
+    loginEmailWrap?.classList.toggle('hidden', roleUsesUsername);
+    loginUsernameWrap?.classList.toggle('hidden', !roleUsesUsername);
+    if (loginEmail) loginEmail.required = !roleUsesUsername;
+    if (loginUsername) loginUsername.required = roleUsesUsername;
+
+    if (activeAuthRole !== ROLE_TEACHER) {
+        activeAuthMode = 'login';
+        signupForm?.classList.add('hidden');
+        loginForm?.classList.remove('hidden');
+        toggleBtn?.classList.add('hidden');
+    } else {
+        toggleBtn?.classList.remove('hidden');
+        const isSignup = activeAuthMode === 'signup';
+        loginForm?.classList.toggle('hidden', isSignup);
+        signupForm?.classList.toggle('hidden', !isSignup);
+        if (toggleBtn) {
+            toggleBtn.innerText = isSignup ? 'Already have an account? Login' : 'Need an account? Sign Up';
+        }
+    }
+}
+
+function setAuthRole(role) {
+    activeAuthRole = role || ROLE_TEACHER;
+    syncAuthRoleUi();
+}
+
+function setAuthMode(mode) {
+    activeAuthMode = mode === 'signup' ? 'signup' : 'login';
+    syncAuthRoleUi();
+}
+
 function setupAuthListeners() {
     document.body.addEventListener('mousedown', onFirstUserGesture, { once: true });
     document.body.addEventListener('touchstart', onFirstUserGesture, { once: true });
 
-    document.getElementById('toggle-auth-mode').addEventListener('click', (e) => {
-        const login = document.getElementById('login-form');
-        const signup = document.getElementById('signup-form');
-        const title = document.getElementById('auth-title');
-        const toggleBtn = document.getElementById('toggle-auth-mode');
+    document.querySelectorAll('.auth-role-btn').forEach((btn) => {
+        btn.addEventListener('click', () => setAuthRole(btn.dataset.authRole || ROLE_TEACHER));
+    });
 
-        if (login.classList.contains('hidden')) {
-            login.classList.remove('hidden');
-            signup.classList.add('hidden');
-            title.innerText = 'Teacher Login';
-            toggleBtn.innerText = 'Need an account? Sign Up';
-        } else {
-            login.classList.add('hidden');
-            signup.classList.remove('hidden');
-            title.innerText = 'Teacher Sign Up';
-            toggleBtn.innerText = 'Already have an account? Login';
-        }
+    document.getElementById('toggle-auth-mode').addEventListener('click', (e) => {
+        if (activeAuthRole !== ROLE_TEACHER) return;
+        setAuthMode(activeAuthMode === 'signup' ? 'login' : 'signup');
     });
 
     document.getElementById('login-form').addEventListener('submit', async (e) => {
         e.preventDefault();
-        const email = document.getElementById('login-email').value;
+        const { identifier, rawUsername } = getRoleAwareLoginIdentifier();
         const password = document.getElementById('login-password').value;
         const errorEl = document.getElementById('auth-error');
         try {
             beginAuthSubmit('login');
             errorEl.innerText = '';
-            await signInWithEmailAndPassword(auth, email, password);
+            if (isRoleLogin(activeAuthRole) && !rawUsername) {
+                throw new Error('Please enter your username.');
+            }
+            await signInWithEmailAndPassword(auth, identifier, password);
         } catch (error) {
             resetAuthSubmitState();
             errorEl.innerText = error.message.replace('Firebase: ', '');
@@ -445,7 +593,7 @@ function setupAuthListeners() {
 
         if (user) {
             state.set('currentUserId', user.uid);
-            state.set('currentTeacherName', user.displayName);
+            state.set('currentTeacherName', user.displayName || user.email || '');
 
             initializeHeaderQuote();
 
@@ -461,18 +609,49 @@ function setupAuthListeners() {
             }
 
             await loadSubscription();
+            let profile = await loadUserProfile(user);
+            if (!profile) {
+                const inferredRole = getRoleFromSyntheticEmail(user.email);
+                if (inferredRole) {
+                    resetAuthSubmitState();
+                    document.getElementById('auth-error').innerText = `This ${getRoleLabel(inferredRole).toLowerCase()} account is missing its access profile. Recreate it from the teacher access screen.`;
+                    await signOut(auth);
+                    return;
+                }
+                profile = await ensureTeacherUserProfile(user);
+            }
+            await touchCurrentUserProfile(user);
+            state.setCurrentUserProfile(profile);
+            state.setCurrentUserRole(profile.role || ROLE_TEACHER);
+            state.setIsSchoolAdmin(profile.schoolAdmin === true);
+            state.setCurrentTeacherName(profile.displayName || user.displayName || user.email || '');
 
-            setupDataListeners(user.uid, newDate, async function onInitialDataReady() {
-                await routeAuthenticatedTeacher({ user, loadingScreen, authScreen, appScreen });
-            });
+            if ((profile.role || ROLE_TEACHER) === ROLE_PARENT) {
+                setupParentSession(user.uid, profile, async () => {
+                    await routeAuthenticatedParent({ loadingScreen, authScreen });
+                });
+            } else {
+                setupDataListeners(user.uid, newDate, async function onInitialDataReady() {
+                    if ((profile.role || ROLE_TEACHER) === ROLE_SECRETARY) {
+                        await routeAuthenticatedSecretary({ user, loadingScreen, authScreen });
+                    } else {
+                        await routeAuthenticatedTeacher({ user, loadingScreen, authScreen, appScreen });
+                    }
+                }, { role: profile.role || ROLE_TEACHER, profile });
+            }
 
         } else {
             resetAuthSubmitState();
             state.resetState();
             appScreen.classList.add('hidden');
+            document.getElementById('parent-screen')?.classList.add('hidden');
+            document.getElementById('secretary-screen')?.classList.add('hidden');
             const subScreen = document.getElementById('subscribe-screen');
             if (subScreen) subScreen.classList.add('hidden');
             authScreen.classList.remove('hidden');
+            setSecretaryReturnButtonVisible(false);
+            setAuthRole(ROLE_TEACHER);
+            setAuthMode('login');
             animateLoadingScreenOut(loadingScreen);
         }
     });
@@ -483,6 +662,21 @@ async function initApp() {
         document.querySelectorAll('input').forEach(input => input.setAttribute('autocomplete', 'off'));
 
         setupAuthListeners();
+        wireParentPortalListeners({
+            onLogout: async () => signOut(auth),
+            onRefresh: () => renderParentPortal(),
+            onSelectThread: (threadId) => watchCommunicationThread(threadId)
+        });
+        wireSecretaryConsoleListeners({
+            onLogout: async () => signOut(auth),
+            onOpenTeacherView: async () => {
+                document.getElementById('secretary-screen')?.classList.add('hidden');
+                document.getElementById('app-screen')?.classList.remove('hidden');
+                const tabs = await import('./ui/tabs.js');
+                await tabs.showTab('about-tab');
+            },
+            onSelectThread: (threadId) => watchCommunicationThread(threadId)
+        });
 
         // --- FIXED SECTION START ---
         // Dynamic Wallpaper Toggle Listeners
@@ -502,6 +696,12 @@ async function initApp() {
         // --- FIXED SECTION END ---
 
         setupUIListeners();
+        document.getElementById('secretary-console-btn')?.addEventListener('click', () => {
+            document.getElementById('app-screen')?.classList.add('hidden');
+            document.getElementById('secretary-screen')?.classList.remove('hidden');
+            activateSecretaryTab('overview');
+            renderSecretaryConsole();
+        });
 
         updateDateTime();
         setInterval(updateDateTime, 1000);
@@ -517,4 +717,6 @@ async function initApp() {
     }
 }
 
+setAuthRole(ROLE_TEACHER);
+setAuthMode('login');
 initApp();

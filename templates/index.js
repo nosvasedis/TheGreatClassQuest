@@ -5,6 +5,7 @@ import { authHTML } from './auth.js';
 import { subscribeHTML } from './subscribe.js';
 import { setupHTML } from './setup.js';
 import { appHTML } from './app/index.js';
+import { roleShellsHTML } from './roles.js';
 import { allModalsHTML } from './modals/index.js';
 
 export function injectHTML() {
@@ -14,5 +15,6 @@ export function injectHTML() {
         subscribeHTML +
         setupHTML +
         appHTML +
+        roleShellsHTML +
         allModalsHTML;
 }

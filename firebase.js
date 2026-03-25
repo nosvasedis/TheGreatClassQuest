@@ -37,8 +37,12 @@ import {
     uploadString, 
     getDownloadURL 
 } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-storage.js";
+import {
+    getFunctions,
+    httpsCallable
+} from "https://www.gstatic.com/firebasejs/11.6.1/firebase-functions.js";
 
-import { firebaseConfig } from './constants.js';
+import { firebaseConfig, FIREBASE_FUNCTIONS_REGION } from './constants.js';
 
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
@@ -46,6 +50,7 @@ const auth = getAuth(app);
 const db = getFirestore(app);
 // NEW: Initialize Storage
 const storage = getStorage(app);
+const functions = getFunctions(app, FIREBASE_FUNCTIONS_REGION);
 
 // Export the initialized services and functions
 export {
@@ -53,6 +58,7 @@ export {
     auth,
     db,
     storage, // NEW: Export storage
+    functions,
     // Auth functions
     createUserWithEmailAndPassword,
     signInWithEmailAndPassword,
@@ -84,4 +90,7 @@ export {
     ref,
     uploadString,
     getDownloadURL
+    ,
+    // Functions
+    httpsCallable
 };

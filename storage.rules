@@ -2,28 +2,54 @@ rules_version = '2';
 
 service firebase.storage {
   match /b/{bucket}/o {
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function profilePath() {
+      return /databases/(default)/documents/user_profiles/$(request.auth.uid);
+    }
+
+    function hasProfile() {
+      return signedIn() && firestore.exists(profilePath());
+    }
+
+    function currentRole() {
+      return hasProfile() ? firestore.get(profilePath()).data.role : 'teacher';
+    }
+
+    function isStaff() {
+      return signedIn() && (currentRole() == 'teacher' || currentRole() == 'secretary');
+    }
+
     match /adventure_logs/{userId}/{allPaths=**} {
-      allow read, write: if request.auth != null && request.auth.uid == userId;
+      allow read: if signedIn();
+      allow write: if signedIn() && (request.auth.uid == userId || currentRole() == 'secretary');
     }
 
     match /avatars/{allPaths=**} {
-      allow read, write: if request.auth != null;
+      allow read: if signedIn();
+      allow write: if isStaff();
     }
 
     match /story_images/{allPaths=**} {
-      allow read, write: if request.auth != null;
+      allow read: if signedIn();
+      allow write: if isStaff();
     }
 
     match /pet_images/{allPaths=**} {
-      allow read, write: if request.auth != null;
+      allow read: if signedIn();
+      allow write: if isStaff();
     }
 
     match /shop_items/{allPaths=**} {
-      allow read, write: if request.auth != null;
+      allow read: if signedIn();
+      allow write: if isStaff();
     }
 
     match /familiars/{allPaths=**} {
-      allow read, write: if request.auth != null;
+      allow read: if signedIn();
+      allow write: if isStaff();
     }
 
     match /{allPaths=**} {

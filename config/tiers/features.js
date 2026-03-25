@@ -92,6 +92,22 @@ export const FEATURE_DEFINITIONS = {
         tier: 'Elite',
         teacherExplain: "Each student adopts a Familiar — a magical creature egg that hatches and evolves as they earn stars. Familiars grow through multiple stages and are completely unique to each student. It's a powerful long-term engagement hook that makes kids actually excited to come to English class. 🐉🥚",
         studentExplain: "Your Familiar is your magical companion — it starts as an egg and hatches and evolves as you earn stars! 🐉🥚 Every Familiar is unique. Feed it with your hard work and watch it grow into something spectacular. Don't let it down — it's counting on you!"
+    },
+    parentAccess: {
+        name: 'Parent Portal',
+        emoji: '👨‍👩‍👧',
+        description: 'Curated parent access, homework, and family messaging',
+        tier: 'Pro',
+        teacherExplain: "Create one parent login per student and let families follow progress in a calm, parent-safe portal. Share homework, parent summaries, celebrations, and structured school communication without exposing confidential teacher notes. Perfect for keeping families involved without adding chaos. 👨‍👩‍👧📘",
+        studentExplain: "Your family can follow your progress, homework, and special moments in a safe portal made just for them. They get to see your growth, cheer you on, and stay connected to your Quest journey! 🌟"
+    },
+    secretaryAccess: {
+        name: 'Secretary Console',
+        emoji: '🏛️',
+        description: 'School-wide admin access with full oversight',
+        tier: 'Elite',
+        teacherExplain: "Elite schools can create a dedicated secretary account with school-wide visibility. The secretary can review every class, student, score, note, communication thread, and grading setup across the whole school from a dedicated command console. 🏛️🗂️",
+        studentExplain: "Your school office can keep the whole Quest organised behind the scenes — classes, messages, and records all stay in sync for every hero. 🏛️"
     }
 };
 
@@ -317,7 +333,7 @@ export function getTierSummary(rawTier) {
         return {
             badge: 'Top Tier',
             title: 'You are on Elite — the full magical toolkit.',
-            body: 'All AI-powered features unlocked: Hero\'s Chronicle Oracle, AI avatars, AI reports & certificates, AI story images, AI adventure log writer, plus Story Weavers, Familiars, full analytics, planning, guilds and every classroom magic trick.',
+            body: 'All AI-powered features unlocked: Hero\'s Chronicle Oracle, AI avatars, AI reports & certificates, AI story images, AI adventure log writer, plus Story Weavers, Familiars, parent portal, secretary console, full analytics, planning, guilds and every classroom magic trick.',
             cta: 'Thank you for being a founding legend of The Great Class Quest.',
             isTopTier: true
         };
@@ -335,7 +351,7 @@ export function getTierSummary(rawTier) {
         badge: 'Starter',
         title: 'Starter keeps things simple and safe.',
         body: 'Perfect for trying the core experience: award stars, run ceremonies, use Quest Assignment & Attendance, Bounties, and the Mystic Market.',
-        cta: 'Upgrade to Pro to unlock guilds, hero classes, planners, story tools and the full Adventure Log — or go straight to Elite for AI-powered features like avatars, reports, and Hero\'s Chronicle Oracle.',
+        cta: 'Upgrade to Pro to unlock guilds, hero classes, planners, story tools, the full Adventure Log, and the parent portal — or go straight to Elite for AI-powered features, the secretary console, and school-wide admin controls.',
         isTopTier: false
     };
 }
@@ -370,7 +386,7 @@ export function getTiersAtAGlance() {
         {
             tier: 'Elite',
             label: 'Elite',
-            bullets: 'Everything in Pro plus Story Weavers (collaborative stories & Word of the Day), Familiars (magical companion eggs), AI-powered features: Hero\'s Chronicle Oracle (AI insights), AI avatars, AI reports & certificates, AI story images, AI adventure log writer, AI seasonal shop (monthly themed treasures), early-access experiments and priority support.'
+            bullets: 'Everything in Pro plus Story Weavers (collaborative stories & Word of the Day), Familiars (magical companion eggs), the secretary console, AI-powered features: Hero\'s Chronicle Oracle (AI insights), AI avatars, AI reports & certificates, AI story images, AI adventure log writer, AI seasonal shop (monthly themed treasures), early-access experiments and priority support.'
         }
     ];
 }

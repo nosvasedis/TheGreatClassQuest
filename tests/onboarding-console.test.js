@@ -11,6 +11,8 @@ const {
   buildFirestoreReleaseName,
   buildStorageReleaseName,
   buildServiceUsageConsumerName,
+  normalizeReadinessTarget,
+  getRequiredServices,
   compareRequiredIndexes,
   formatHostedEnvironmentVariables,
   formatNetlifyVariables,
@@ -317,7 +319,18 @@ test('formatHostedEnvironmentVariables matches the Netlify env format', () => {
   );
 
   assert.match(text, /GCQ_FIREBASE_PROJECT_ID=gcq-test-school/);
+  assert.match(text, /GCQ_FIREBASE_FUNCTIONS_REGION=europe-west1/);
   assert.match(text, /GCQ_BILLING_BASE_URL=https:\/\/gcq-billing.onrender.com/);
+});
+
+test('admin readiness target enables storage and functions services', () => {
+  assert.equal(normalizeReadinessTarget('admin'), 'admin');
+  assert.equal(normalizeReadinessTarget('elite'), 'pro');
+
+  const services = getRequiredServices('admin');
+  assert.ok(services.includes('firebasestorage.googleapis.com'));
+  assert.ok(services.includes('cloudfunctions.googleapis.com'));
+  assert.ok(services.includes('run.googleapis.com'));
 });
 
 test('buildHostingTargets provides provider-specific instructions with shared env text', () => {
@@ -359,10 +372,11 @@ test('summarizeGoogleErrorText shortens Google HTML error pages', () => {
   );
 });
 
-test('storage rules allow authenticated Familiar sprite uploads', () => {
+test('storage rules reserve Familiar sprite uploads for staff roles', () => {
   const storageRulesPath = path.join(__dirname, '..', 'storage.rules');
   const rules = fs.readFileSync(storageRulesPath, 'utf8');
 
   assert.match(rules, /match \/familiars\/\{allPaths=\*\*\}/);
-  assert.match(rules, /match \/familiars\/\{allPaths=\*\*\}[\s\S]*allow read, write: if request\.auth != null;/);
+  assert.match(rules, /function isStaff\(\)/);
+  assert.match(rules, /match \/familiars\/\{allPaths=\*\*\}[\s\S]*allow write: if isStaff\(\);/);
 });

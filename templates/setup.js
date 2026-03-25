@@ -183,6 +183,37 @@ export const setupHTML = `
                         <div id="setup-assessment-defaults-editor" class="space-y-4"></div>
                     </section>
 
+                    <section id="setup-roles-section" class="rounded-[1.75rem] border border-violet-100 bg-violet-50/70 p-6 md:p-8">
+                        <div class="flex flex-col gap-3 md:flex-row md:items-start md:justify-between mb-5">
+                            <div>
+                                <h2 class="font-title text-3xl text-violet-800 flex items-center gap-2">
+                                    <i class="fas fa-user-shield text-violet-500"></i> School roles
+                                </h2>
+                                <p class="text-slate-600 mt-2">Parent access becomes available after students exist. If this school is on Elite and you want it now, you can also create the school secretary account below.</p>
+                            </div>
+                            <div class="rounded-2xl bg-white/80 border border-violet-100 px-4 py-3 text-sm text-slate-600 max-w-sm">
+                                <span class="font-semibold text-violet-700">Parent Portal:</span> one account per student, created later from Options → Access.<br>
+                                <span class="font-semibold text-violet-700">Secretary:</span> Elite-only schoolwide admin account.
+                            </div>
+                        </div>
+                        <div id="setup-secretary-card" class="hidden rounded-[1.5rem] bg-white border border-violet-100 p-5">
+                            <h3 class="font-title text-2xl text-violet-800 mb-2">Optional secretary account</h3>
+                            <p class="text-sm text-slate-500 mb-4">Leave this empty if you want to create the secretary later from the Access Center.</p>
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div>
+                                    <label class="block text-sm font-bold text-slate-700 mb-2" for="setup-secretary-username">Secretary username</label>
+                                    <input type="text" id="setup-secretary-username" placeholder="e.g. frontoffice"
+                                        class="w-full px-4 py-3 border border-violet-200 rounded-2xl focus:ring-2 focus:ring-violet-500 bg-white">
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-bold text-slate-700 mb-2" for="setup-secretary-password">Secretary password</label>
+                                    <input type="password" id="setup-secretary-password" placeholder="Create a password"
+                                        class="w-full px-4 py-3 border border-violet-200 rounded-2xl focus:ring-2 focus:ring-violet-500 bg-white">
+                                </div>
+                            </div>
+                        </div>
+                    </section>
+
                     <section class="rounded-[1.5rem] border border-emerald-100 bg-emerald-50/70 p-6">
                         <h2 class="font-title text-2xl text-emerald-800 mb-3 flex items-center gap-2">
                             <i class="fas fa-user-plus text-emerald-500"></i> Invite other teachers later

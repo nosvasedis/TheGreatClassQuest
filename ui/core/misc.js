@@ -150,11 +150,6 @@ export function renderClassEndDatesList() {
             </div>
         `;
     }).join('');
-    container.innerHTML = bounties.map((bounty) => (
-        bounty.type === 'timer'
-            ? renderTimerBountyCard(bounty)
-            : renderStarBountyCard(bounty)
-    )).join('');
 }
 
 /**

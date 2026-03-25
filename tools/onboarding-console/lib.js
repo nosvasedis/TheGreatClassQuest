@@ -161,7 +161,26 @@ function validateSchoolLabel(label) {
 }
 
 function normalizeReadinessTarget(value) {
-  return value === 'pro' || value === 'elite' ? 'pro' : 'starter';
+  const target = String(value || '').trim().toLowerCase();
+  if (target === 'admin' || target === 'secretary' || target === 'role-access') return 'admin';
+  if (target === 'pro' || target === 'elite') return 'pro';
+  return 'starter';
+}
+
+function targetNeedsStorage(readinessTarget) {
+  const target = normalizeReadinessTarget(readinessTarget);
+  return target === 'pro' || target === 'admin';
+}
+
+function targetNeedsAdminRuntime(readinessTarget) {
+  return normalizeReadinessTarget(readinessTarget) === 'admin';
+}
+
+function describeReadinessTarget(readinessTarget) {
+  const target = normalizeReadinessTarget(readinessTarget);
+  if (target === 'admin') return 'Parent access + Secretary ready';
+  if (target === 'pro') return 'Pro / Elite ready';
+  return 'Starter / paywall only';
 }
 
 function normalizeFirebaseLocation(value) {
@@ -410,8 +429,18 @@ function getRequiredServices(readinessTarget) {
     'firebaserules.googleapis.com',
     'firestore.googleapis.com',
   ];
-  if (target === 'pro') {
+  if (targetNeedsStorage(target)) {
     base.push('firebasestorage.googleapis.com');
+  }
+  if (targetNeedsAdminRuntime(target)) {
+    base.push(
+      'cloudfunctions.googleapis.com',
+      'cloudbuild.googleapis.com',
+      'artifactregistry.googleapis.com',
+      'run.googleapis.com',
+      'eventarc.googleapis.com',
+      'pubsub.googleapis.com'
+    );
   }
   return base;
 }
@@ -1491,7 +1520,7 @@ async function ensureStorageReady(projectId, serviceAccount, locationId, readine
       target,
     };
   } catch (error) {
-    if (target !== 'pro') {
+    if (!targetNeedsStorage(target)) {
       return {
         status: 'skipped',
         storageBucket: null,
@@ -1908,6 +1937,7 @@ function formatHostedEnvironmentVariables(webConfig, renderUrl, projectId) {
     `GCQ_FIREBASE_MESSAGING_SENDER_ID=${webConfig.messagingSenderId || ''}`,
     `GCQ_FIREBASE_APP_ID=${webConfig.appId || ''}`,
     `GCQ_FIREBASE_MEASUREMENT_ID=${webConfig.measurementId || ''}`,
+    'GCQ_FIREBASE_FUNCTIONS_REGION=europe-west1',
     `GCQ_BILLING_BASE_URL=${String(renderUrl || '').trim().replace(/\/$/, '')}`,
     `GCQ_BILLING_SCHOOL_ID=${projectId}`,
   ];
@@ -2181,7 +2211,9 @@ async function runAutomaticSetup(input) {
         'enableApis',
         'done',
         'Enable the Google and Firebase services this school needs',
-        readinessTarget === 'pro'
+        targetNeedsAdminRuntime(readinessTarget)
+          ? 'The required Google/Firebase services were enabled for paywall, Firestore, Storage, and the admin runtime needed for parent and secretary access.'
+          : targetNeedsStorage(readinessTarget)
           ? 'The required Google/Firebase services were enabled for paywall, Firestore, rules, and Pro/Elite storage features.'
           : 'The required Google/Firebase services were enabled for paywall, Firestore, and rules.',
         {
@@ -2578,7 +2610,7 @@ async function runAutomaticSetup(input) {
     authProvisioning.after.siteDomainAuthorized
   );
   const futureProReady = Boolean(
-    readinessTarget !== 'pro' ||
+    !targetNeedsStorage(readinessTarget) ||
     (storageBucketName && storageRulesStatus.status !== 'needs_attention')
   );
 
@@ -2588,7 +2620,9 @@ async function runAutomaticSetup(input) {
       coreReady ? 'done' : 'needs_attention',
       'Run the final health check',
       coreReady
-        ? readinessTarget === 'pro'
+        ? targetNeedsAdminRuntime(readinessTarget)
+          ? 'This school is ready for role-based access, including Storage and the admin runtime needed for parent and secretary accounts.'
+          : targetNeedsStorage(readinessTarget)
           ? 'This school is ready, including the Storage pieces needed for Pro/Elite image features and Familiar sprites.'
           : futureProReady
             ? 'This school is ready for paywall and Starter flow.'
@@ -2596,7 +2630,9 @@ async function runAutomaticSetup(input) {
         : 'Almost ready: one or more setup checks still need attention before this school is fully ready.',
       {
         actionHint: coreReady
-          ? readinessTarget === 'pro'
+          ? targetNeedsAdminRuntime(readinessTarget)
+            ? ''
+            : targetNeedsStorage(readinessTarget)
             ? ''
             : 'When you are ready to sell Pro/Elite image features, rerun the setup with “Pro / Elite ready” and the tool will prepare Firebase Storage for avatars, story images, and Familiar sprites too.'
           : 'Look at the tasks above marked “Needs attention” or “Working”, then rerun the check.',
@@ -2618,7 +2654,9 @@ async function runAutomaticSetup(input) {
     },
     finalStatus: coreReady && futureProReady ? 'ready' : 'needs_attention',
     summary: coreReady
-      ? readinessTarget === 'pro'
+      ? targetNeedsAdminRuntime(readinessTarget)
+        ? 'This school is ready for parent access and the secretary console. Paste the Render value, configure your hosting provider, and you are done.'
+        : targetNeedsStorage(readinessTarget)
         ? 'This school is ready for Pro or Elite. Paste the Render value, configure your hosting provider, and you are done.'
         : futureProReady
           ? 'This school is ready for Starter. Paste the Render value, configure your hosting provider, and you are done.'
@@ -2723,7 +2761,9 @@ async function recheckExistingSchool(projectId, options = {}) {
         'enableApis',
         'done',
         'Enable the Google and Firebase services this school needs',
-        readinessTarget === 'pro'
+        targetNeedsAdminRuntime(readinessTarget)
+          ? 'The required Google/Firebase services were enabled or already ready for the parent/secretary admin runtime.'
+          : targetNeedsStorage(readinessTarget)
           ? 'The required Google/Firebase services were enabled or already ready for Pro/Elite features.'
           : 'The required Google/Firebase services were enabled or already ready for Starter flow.',
         {
@@ -2915,7 +2955,7 @@ async function recheckExistingSchool(projectId, options = {}) {
             ? `A Firebase Storage bucket was created for this school in ${firebaseLocation}.`
             : 'The Firebase Storage bucket already exists for this school.',
         {
-          actionHint: readinessTarget === 'pro'
+          actionHint: targetNeedsStorage(readinessTarget)
             ? 'Pro and Elite image features need Storage to exist.'
             : '',
         }
@@ -2930,16 +2970,16 @@ async function recheckExistingSchool(projectId, options = {}) {
     tasks.push(
       makeTask(
         'ensureStorage',
-        readinessTarget === 'pro' ? 'needs_attention' : 'already_done',
+        targetNeedsStorage(readinessTarget) ? 'needs_attention' : 'already_done',
         'Create or confirm the Firebase Storage bucket',
-        readinessTarget === 'pro'
+        targetNeedsStorage(readinessTarget)
           ? (error.message || 'The Firebase Storage bucket could not be created automatically.')
           : 'Starter flow does not require Firebase Storage yet.',
         {
-          actionHint: readinessTarget === 'pro'
+          actionHint: targetNeedsStorage(readinessTarget)
             ? 'This often means billing/Blaze is not enabled yet for this Firebase project.'
             : '',
-          technicalDetails: readinessTarget === 'pro' ? (error.message || '') : '',
+          technicalDetails: targetNeedsStorage(readinessTarget) ? (error.message || '') : '',
         }
       )
     );
@@ -3051,13 +3091,13 @@ async function recheckExistingSchool(projectId, options = {}) {
     tasks.push(
       makeTask(
         'storageRules',
-        readinessTarget === 'pro' ? 'needs_attention' : 'already_done',
+        targetNeedsStorage(readinessTarget) ? 'needs_attention' : 'already_done',
         'Check Storage bucket and rules',
-        readinessTarget === 'pro'
+        targetNeedsStorage(readinessTarget)
           ? 'No Firebase Storage bucket was found for this project.'
           : 'Starter flow does not require Firebase Storage yet.',
         {
-          actionHint: readinessTarget === 'pro'
+          actionHint: targetNeedsStorage(readinessTarget)
             ? 'Pro/Elite image features and Familiar sprites need Firebase Storage.'
             : 'When a school upgrades later, rerun this tool with “Pro / Elite ready”.',
         }
@@ -3090,7 +3130,7 @@ async function recheckExistingSchool(projectId, options = {}) {
     firestoreRulesCheck.matches &&
     indexReport.missingCount === 0 &&
     webConfigResult.ok &&
-    (readinessTarget !== 'pro' || Boolean(storageBucketName))
+    (!targetNeedsStorage(readinessTarget) || Boolean(storageBucketName))
   );
 
   tasks.push(
@@ -3099,7 +3139,9 @@ async function recheckExistingSchool(projectId, options = {}) {
       ready ? 'done' : 'needs_attention',
       'Run the final health check',
       ready
-        ? readinessTarget === 'pro'
+        ? targetNeedsAdminRuntime(readinessTarget)
+          ? 'This saved school looks ready for parent access and the secretary console, including the admin runtime.'
+          : targetNeedsStorage(readinessTarget)
           ? 'This saved school looks ready for Pro/Elite, including Storage.'
           : 'This saved school looks ready for Starter flow.'
         : 'This school still needs attention before it is fully ready.',
@@ -3124,7 +3166,9 @@ async function recheckExistingSchool(projectId, options = {}) {
     },
     finalStatus: ready ? 'ready' : 'needs_attention',
     summary: ready
-      ? readinessTarget === 'pro'
+      ? targetNeedsAdminRuntime(readinessTarget)
+        ? 'This school looks ready for parent access and the secretary console.'
+        : targetNeedsStorage(readinessTarget)
         ? 'This school looks ready for Pro or Elite.'
         : 'This school looks ready for Starter flow.'
       : 'This school still needs attention.',
@@ -3171,6 +3215,8 @@ module.exports = {
   buildStorageReleaseName,
   extractProjectNumber,
   buildServiceUsageConsumerName,
+  normalizeReadinessTarget,
+  getRequiredServices,
   summarizeAssessmentDefaults,
   summarizeGoogleErrorText,
   inspectBootstrapAdminAuth,

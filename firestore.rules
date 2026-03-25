@@ -1,119 +1,271 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function profilePath() {
+      return /databases/$(database)/documents/user_profiles/$(request.auth.uid);
+    }
+
+    function hasProfile() {
+      return signedIn() && exists(profilePath());
+    }
+
+    function currentProfile() {
+      return hasProfile() ? get(profilePath()).data : null;
+    }
+
+    function currentRole() {
+      return hasProfile() ? currentProfile().role : 'teacher';
+    }
+
+    function isTeacher() {
+      return signedIn() && currentRole() == 'teacher';
+    }
+
+    function isParent() {
+      return signedIn() && currentRole() == 'parent';
+    }
+
+    function isSecretary() {
+      return signedIn() && currentRole() == 'secretary';
+    }
+
+    function isSchoolAdmin() {
+      return signedIn() && hasProfile() && currentProfile().schoolAdmin == true;
+    }
+
+    function isStaff() {
+      return isTeacher() || isSecretary();
+    }
+
+    function isParentLinkedTo(studentId) {
+      return isParent() && hasProfile() && currentProfile().linkedStudentId == studentId;
+    }
+
+    function studentPath(studentId) {
+      return /databases/$(database)/documents/artifacts/great-class-quest/public/data/students/$(studentId);
+    }
+
+    function studentExists(studentId) {
+      return exists(studentPath(studentId));
+    }
+
+    function studentDoc(studentId) {
+      return get(studentPath(studentId)).data;
+    }
+
+    function ownsStudent(studentId) {
+      return signedIn() && studentExists(studentId) && studentDoc(studentId).createdBy.uid == request.auth.uid;
+    }
+
+    function canManageStudent(studentId) {
+      return isSecretary() || isSchoolAdmin() || ownsStudent(studentId);
+    }
+
+    function canReadParentStudent(studentId) {
+      return signedIn() && (
+        isSecretary() ||
+        isSchoolAdmin() ||
+        ownsStudent(studentId) ||
+        isParentLinkedTo(studentId)
+      );
+    }
+
+    function threadPath(threadId) {
+      return /databases/$(database)/documents/artifacts/great-class-quest/public/data/communication_threads/$(threadId);
+    }
+
+    function threadExists(threadId) {
+      return exists(threadPath(threadId));
+    }
+
+    function threadDoc(threadId) {
+      return get(threadPath(threadId)).data;
+    }
+
+    function isThreadParticipant(threadId) {
+      return signedIn() && threadExists(threadId) && threadDoc(threadId).participantUids.hasAny([request.auth.uid]);
+    }
+
     match /appConfig/subscription {
-      allow read: if request.auth != null;
+      allow read: if signedIn();
       allow write: if false;
     }
 
-    function isOwner(docData) {
-      return request.auth.uid == docData.createdBy.uid;
-    }
-
-    function isMarker(docData) {
-      return request.auth.uid == docData.markedBy.uid;
+    match /user_profiles/{userId} {
+      allow read: if signedIn() && (
+        request.auth.uid == userId ||
+        isSecretary() ||
+        isSchoolAdmin()
+      );
+      allow create: if signedIn() &&
+        request.auth.uid == userId &&
+        request.resource.data.role == 'teacher' &&
+        request.resource.data.loginMode == 'email' &&
+        request.resource.data.status == 'active' &&
+        request.resource.data.schoolAdmin == false &&
+        request.resource.data.linkedStudentId == null;
+      allow update: if signedIn() &&
+        request.auth.uid == userId &&
+        request.resource.data.role == resource.data.role &&
+        request.resource.data.loginMode == resource.data.loginMode &&
+        request.resource.data.status == resource.data.status &&
+        request.resource.data.schoolAdmin == resource.data.schoolAdmin &&
+        request.resource.data.linkedStudentId == resource.data.linkedStudentId &&
+        request.resource.data.createdAt == resource.data.createdAt;
+      allow delete: if false;
     }
 
     match /teacher_metadata/{userId} {
-      allow read, write: if request.auth != null && request.auth.uid == userId;
+      allow read: if signedIn() && (request.auth.uid == userId || isSecretary() || isSchoolAdmin());
+      allow write: if signedIn() && request.auth.uid == userId;
+    }
+
+    match /artifacts/great-class-quest/public/data/school_roles/{docId} {
+      allow read: if signedIn() && (isStaff() || isSchoolAdmin());
+      allow write: if false;
+    }
+
+    match /artifacts/great-class-quest/public/data/parent_snapshots/{studentId} {
+      allow read: if canReadParentStudent(studentId);
+      allow write: if false;
+    }
+
+    match /artifacts/great-class-quest/public/data/parent_links/{studentId} {
+      allow read: if canManageStudent(studentId);
+      allow write: if false;
+    }
+
+    match /artifacts/great-class-quest/public/data/parent_homework/{docId} {
+      allow read: if signedIn() && (
+        isSecretary() ||
+        isSchoolAdmin() ||
+        isParentLinkedTo(resource.data.studentId) ||
+        ownsStudent(resource.data.studentId)
+      );
+      allow create, update, delete: if false;
+    }
+
+    match /artifacts/great-class-quest/public/data/communication_threads/{threadId} {
+      allow read: if signedIn() && (
+        isSecretary() ||
+        isSchoolAdmin() ||
+        isThreadParticipant(threadId) ||
+        ownsStudent(resource.data.studentId)
+      );
+      allow create, update: if false;
+      allow delete: if false;
+    }
+
+    match /artifacts/great-class-quest/public/data/communication_messages/{messageId} {
+      allow read: if signedIn() && (
+        isSecretary() ||
+        isSchoolAdmin() ||
+        isThreadParticipant(resource.data.threadId) ||
+        ownsStudent(resource.data.studentId)
+      );
+      allow create: if false;
+      allow update, delete: if false;
     }
 
     match /artifacts/great-class-quest/public/data/{collection}/{docId} {
-      allow read: if request.auth != null && (
-        collection != 'hero_chronicle_notes' ||
-        (collection == 'hero_chronicle_notes' && resource.data.teacherId == request.auth.uid)
+      allow read: if signedIn() && (
+        isStaff() ||
+        isSchoolAdmin() ||
+        (collection == 'school_settings') ||
+        (collection == 'guild_scores' && isParent()) ||
+        (collection == 'guild_champions' && isParent())
       );
 
-      allow create: if request.auth != null && (
-        (collection == 'classes' && isOwner(request.resource.data)) ||
-        (collection == 'students' && isOwner(request.resource.data)) ||
-        (collection == 'student_scores' && isOwner(request.resource.data)) ||
-        (collection == 'award_log' && isOwner(request.resource.data)) ||
-        (collection == 'today_stars' && request.auth.uid == request.resource.data.teacherId) ||
-        (collection == 'adventure_logs' && isOwner(request.resource.data)) ||
-        (collection == 'quest_events' && isOwner(request.resource.data)) ||
-        (collection == 'quest_assignments' && isOwner(request.resource.data)) ||
-        (collection == 'quest_bounties' && isOwner(request.resource.data)) ||
-        (collection == 'shop_items' && isOwner(request.resource.data)) ||
-        (collection == 'written_scores' && request.auth.uid == request.resource.data.teacherId) ||
-        (collection == 'story_data' && isOwner(request.resource.data)) ||
-        (collection == 'completed_stories' && isOwner(request.resource.data)) ||
-        (collection == 'attendance' && isMarker(request.resource.data)) ||
-        (collection == 'schedule_overrides' && isOwner(request.resource.data)) ||
-        (collection == 'class_shields' && isOwner(request.resource.data)) ||
-        (collection == 'world_boss' && request.auth.uid != null) ||
+      allow create: if signedIn() && (
+        isSecretary() ||
+        isSchoolAdmin() ||
+        (collection == 'classes' && request.resource.data.createdBy.uid == request.auth.uid) ||
+        (collection == 'students' && request.resource.data.createdBy.uid == request.auth.uid) ||
+        (collection == 'student_scores' && request.resource.data.createdBy.uid == request.auth.uid) ||
+        (collection == 'award_log' && request.resource.data.createdBy.uid == request.auth.uid) ||
+        (collection == 'today_stars' && request.resource.data.teacherId == request.auth.uid) ||
+        (collection == 'adventure_logs' && request.resource.data.createdBy.uid == request.auth.uid) ||
+        (collection == 'quest_events' && request.resource.data.createdBy.uid == request.auth.uid) ||
+        (collection == 'quest_assignments' && request.resource.data.createdBy.uid == request.auth.uid) ||
+        (collection == 'quest_bounties' && request.resource.data.createdBy.uid == request.auth.uid) ||
+        (collection == 'shop_items' && request.resource.data.teacherId == request.auth.uid) ||
+        (collection == 'written_scores' && request.resource.data.teacherId == request.auth.uid) ||
+        (collection == 'story_data' && request.resource.data.createdBy.uid == request.auth.uid) ||
+        (collection == 'completed_stories' && request.resource.data.createdBy.uid == request.auth.uid) ||
+        (collection == 'attendance' && request.resource.data.markedBy.uid == request.auth.uid) ||
+        (collection == 'schedule_overrides' && request.resource.data.createdBy.uid == request.auth.uid) ||
+        (collection == 'class_shields' && request.resource.data.createdBy.uid == request.auth.uid) ||
+        (collection == 'world_boss') ||
         (collection == 'hero_chronicle_notes' && request.resource.data.teacherId == request.auth.uid) ||
-        (collection == 'quest_history' && isOwner(request.resource.data)) ||
+        (collection == 'quest_history' && request.resource.data.createdBy.uid == request.auth.uid) ||
         (collection == 'school_settings' && docId == 'holidays') ||
-        (collection == 'daily_ai_content' && isOwner(request.resource.data)) ||
+        (collection == 'daily_ai_content' && request.resource.data.createdBy.uid == request.auth.uid) ||
         (collection == 'daily_cache') ||
-        (collection == 'guild_scores' && request.auth.uid != null) ||
-        (collection == 'guild_champions' && request.auth.uid != null)
+        (collection == 'guild_scores') ||
+        (collection == 'guild_champions')
       );
 
-      allow update: if request.auth != null && (
-        (collection == 'classes' && isOwner(resource.data) && !('createdBy' in request.resource.data.diff(resource.data).affectedKeys())) ||
-        (collection == 'student_scores' && get(/databases/$(database)/documents/artifacts/great-class-quest/public/data/students/$(docId)).data.createdBy.uid == request.auth.uid) ||
-        (collection == 'today_stars' && request.auth.uid == resource.data.teacherId) ||
-        (collection == 'award_log' && isOwner(resource.data)) ||
-        (collection == 'adventure_logs' && isOwner(resource.data)) ||
-        (collection == 'story_data' && isOwner(resource.data)) ||
-        (collection == 'quest_bounties' && isOwner(resource.data)) ||
-        (collection == 'shop_items' && isOwner(resource.data)) ||
-        (collection == 'world_boss' && request.auth.uid != null) ||
-        (collection == 'class_shields' && isOwner(resource.data)) ||
-        (collection == 'written_scores' && request.auth.uid == resource.data.teacherId) ||
-        (collection == 'students' &&
-          (
-            (isOwner(resource.data) && !('createdBy' in request.resource.data.diff(resource.data).affectedKeys())) ||
-            (
-              request.resource.data.diff(resource.data).affectedKeys().hasOnly(['classId', 'createdBy']) &&
-              get(/databases/$(database)/documents/artifacts/great-class-quest/public/data/classes/$(request.resource.data.classId)).data.createdBy.uid == request.auth.uid &&
-              request.resource.data.createdBy.uid == get(/databases/$(database)/documents/artifacts/great-class-quest/public/data/classes/$(request.resource.data.classId)).data.createdBy.uid
-            )
-          )
-        ) ||
+      allow update: if signedIn() && (
+        isSecretary() ||
+        isSchoolAdmin() ||
+        (collection == 'classes' && resource.data.createdBy.uid == request.auth.uid) ||
+        (collection == 'student_scores' && studentExists(docId) && studentDoc(docId).createdBy.uid == request.auth.uid) ||
+        (collection == 'today_stars' && resource.data.teacherId == request.auth.uid) ||
+        (collection == 'award_log' && resource.data.createdBy.uid == request.auth.uid) ||
+        (collection == 'adventure_logs' && resource.data.createdBy.uid == request.auth.uid) ||
+        (collection == 'story_data' && resource.data.createdBy.uid == request.auth.uid) ||
+        (collection == 'quest_bounties' && resource.data.createdBy.uid == request.auth.uid) ||
+        (collection == 'shop_items' && resource.data.teacherId == request.auth.uid) ||
+        (collection == 'class_shields' && resource.data.createdBy.uid == request.auth.uid) ||
+        (collection == 'written_scores' && resource.data.teacherId == request.auth.uid) ||
+        (collection == 'students' && resource.data.createdBy.uid == request.auth.uid) ||
         (collection == 'hero_chronicle_notes' && resource.data.teacherId == request.auth.uid) ||
         (collection == 'school_settings' && docId == 'holidays') ||
-        (collection == 'daily_ai_content' && isOwner(resource.data)) ||
+        (collection == 'daily_ai_content' && resource.data.createdBy.uid == request.auth.uid) ||
         (collection == 'daily_cache') ||
-        (collection == 'guild_scores' && request.auth.uid != null) ||
-        (collection == 'guild_champions' && request.auth.uid != null)
+        (collection == 'guild_scores') ||
+        (collection == 'guild_champions') ||
+        (collection == 'world_boss')
       );
 
-      allow delete: if request.auth != null && (
-        isOwner(resource.data) ||
-        (collection == 'attendance' && isMarker(resource.data)) ||
-        (collection == 'written_scores' && request.auth.uid == resource.data.teacherId) ||
-        (collection == 'schedule_overrides' && isOwner(resource.data)) ||
+      allow delete: if signedIn() && (
+        isSecretary() ||
+        isSchoolAdmin() ||
+        resource.data.createdBy.uid == request.auth.uid ||
+        (collection == 'attendance' && resource.data.markedBy.uid == request.auth.uid) ||
+        (collection == 'written_scores' && resource.data.teacherId == request.auth.uid) ||
+        (collection == 'schedule_overrides' && resource.data.createdBy.uid == request.auth.uid) ||
         (collection == 'hero_chronicle_notes' && resource.data.teacherId == request.auth.uid) ||
         (collection == 'school_settings' && docId == 'holidays') ||
-        (collection == 'daily_ai_content' && isOwner(resource.data)) ||
-        (collection == 'quest_bounties' && isOwner(resource.data)) ||
-        (collection == 'shop_items' && isOwner(resource.data)) ||
-        (collection == 'class_shields' && isOwner(resource.data)) ||
-        (collection == 'class_sanctuaries' && isOwner(resource.data)) ||
+        (collection == 'daily_ai_content' && resource.data.createdBy.uid == request.auth.uid) ||
+        (collection == 'quest_bounties' && resource.data.createdBy.uid == request.auth.uid) ||
+        (collection == 'shop_items' && resource.data.teacherId == request.auth.uid) ||
+        (collection == 'class_shields' && resource.data.createdBy.uid == request.auth.uid) ||
+        (collection == 'class_sanctuaries' && resource.data.createdBy.uid == request.auth.uid) ||
         (collection == 'daily_cache')
       );
     }
 
     match /{path=**}/monthly_history/{monthId} {
-      allow read: if request.auth != null;
+      allow read: if isStaff() || isSchoolAdmin();
     }
 
     match /artifacts/great-class-quest/public/data/student_scores/{studentId}/monthly_history/{monthId} {
-      allow write: if request.auth != null &&
-        get(/databases/$(database)/documents/artifacts/great-class-quest/public/data/students/$(studentId)).data.createdBy.uid == request.auth.uid;
+      allow write: if canManageStudent(studentId);
     }
 
     match /artifacts/great-class-quest/public/data/story_data/{classId}/story_history/{historyId} {
-      allow read, write: if request.auth != null;
-      allow delete: if request.auth != null;
+      allow read, write: if isStaff() || isSchoolAdmin();
+      allow delete: if isStaff() || isSchoolAdmin();
     }
 
     match /artifacts/great-class-quest/public/data/completed_stories/{storyId}/chapters/{chapterId} {
-      allow read: if request.auth != null;
-      allow write, delete: if request.auth != null;
+      allow read: if isStaff() || isSchoolAdmin();
+      allow write, delete: if isStaff() || isSchoolAdmin();
     }
   }
 }

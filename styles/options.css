@@ -76,6 +76,16 @@
     border-bottom-color: #1d4ed8;
 }
 
+.options-subtab-btn[data-options-tab="assessments"].options-subtab-active {
+    background: linear-gradient(to top, #0f766e, #2dd4bf);
+    border-bottom-color: #115e59;
+}
+
+.options-subtab-btn[data-options-tab="access"].options-subtab-active {
+    background: linear-gradient(to top, #4f46e5, #818cf8);
+    border-bottom-color: #3730a3;
+}
+
 .options-subtab-btn[data-options-tab="danger"].options-subtab-active {
     background: linear-gradient(to top, #dc2626, #f87171);
     border-bottom-color: #991b1b;

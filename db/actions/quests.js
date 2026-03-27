@@ -91,21 +91,34 @@ export async function handleSaveQuestAssignment() {
         });
 
         await batch.commit();
-        try {
-            await syncQuestAssignmentToParentHomework({
-                classId,
-                text,
-                lessonDate: testDataToSave?.date || getTodayDateString(),
-                title: testDataToSave?.title || (classData?.name ? `${classData.name} Homework` : 'Quest Assignment'),
-                testData: testDataToSave
-            });
-        } catch (syncError) {
-            console.error('Error syncing quest assignment to parent homework:', syncError);
-            showToast('Quest assignment saved, but parent homework did not sync.', 'error');
-            return;
-        }
+
+        const optimisticAssignment = {
+            id: newDocRef.id,
+            classId,
+            text,
+            testData: testDataToSave,
+            createdAt: { seconds: Math.floor(Date.now() / 1000) },
+            createdBy: { uid: state.get('currentUserId'), name: state.get('currentTeacherName') }
+        };
+        const existingAssignmentIds = new Set(existingDocs.map(a => a.id));
+        const nextAssignments = (state.get('allQuestAssignments') || [])
+            .filter((assignment) => !existingAssignmentIds.has(assignment.id))
+            .concat(optimisticAssignment);
+        state.setAllQuestAssignments(nextAssignments);
+
         showToast("Quest assignment updated!", "success");
         import('../../ui/modals.js').then(m => m.hideModal('quest-assignment-modal'));
+
+        syncQuestAssignmentToParentHomework({
+            classId,
+            text,
+            lessonDate: testDataToSave?.date || getTodayDateString(),
+            title: testDataToSave?.title || (classData?.name ? `${classData.name} Homework` : 'Quest Assignment'),
+            testData: testDataToSave
+        }).catch((syncError) => {
+            console.error('Error syncing quest assignment to parent homework:', syncError);
+            showToast('Quest assignment saved, but parent homework did not sync.', 'error');
+        });
 
     } catch (error) {
         console.error("Error updating quest assignment:", error);

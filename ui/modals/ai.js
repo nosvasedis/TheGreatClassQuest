@@ -7,7 +7,6 @@ import { callGeminiApi } from '../../api.js';
 import { ensureHistoryLoaded } from '../../db/actions.js';
 import { isSpeaking, speakText, stopSpeech, isTtsSupported } from '../../features/tts.js';
 import { requireEliteAI } from '../../utils/upgradePrompt.js';
-import { canUseFeature } from '../../utils/subscription.js';
 import { getNormalizedPercentForScore } from '../../features/assessmentConfig.js';
 
 // --- AI & REPORTING MODALS ---
@@ -346,31 +345,13 @@ export async function openMilestoneModal(markerElement) {
 }
 
 export async function showWelcomeBackMessage(firstName, stars) {
-    const modal = document.getElementById('welcome-back-modal');
     const messageEl = document.getElementById('welcome-back-message');
     const starsEl = document.getElementById('welcome-back-stars');
 
     starsEl.textContent = stars;
     showAnimatedModal('welcome-back-modal');
 
-    // Starter & Pro: generic welcome back (no AI). Elite: personalized AI message.
-    if (!canUseFeature('eliteAI')) {
-        messageEl.textContent = `We're so glad you're back, ${firstName}!`;
-        setTimeout(() => hideModal('welcome-back-modal'), 4000);
-        return;
-    }
-
-    messageEl.innerHTML = `<i class="fas fa-spinner fa-spin"></i>`;
-
-    const systemPrompt = "You are the 'Quest Master' in a fun classroom game. You speak in short, exciting, single sentences. Do NOT use markdown or asterisks. Your job is to give a unique, positive welcome back message to a student who was absent. It must be one sentence only.";
-    const userPrompt = `Generate a one-sentence welcome back message for a student named ${firstName}.`;
-
-    try {
-        const message = await callGeminiApi(systemPrompt, userPrompt);
-        messageEl.textContent = message;
-    } catch (e) {
-        messageEl.textContent = `We're so glad you're back, ${firstName}!`;
-    }
+    messageEl.textContent = `We're so glad you're back, ${firstName}!`;
 
     setTimeout(() => {
         hideModal('welcome-back-modal');

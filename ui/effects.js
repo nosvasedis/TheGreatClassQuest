@@ -1,6 +1,4 @@
-import { callGeminiApi } from '../api.js';
 import * as state from '../state.js';
-import { canUseFeature } from '../utils/subscription.js';
 
 export function showToast(message, type = 'info', duration = 3000) {
     const container = document.getElementById('toast-container');
@@ -61,24 +59,7 @@ export async function showWelcomeBackMessage(firstName, stars) {
     starsEl.textContent = stars;
     modal.classList.remove('hidden');
 
-    // Starter & Pro: generic welcome back (no AI). Elite: personalized AI message.
-    if (!canUseFeature('eliteAI')) {
-        messageEl.textContent = `We're so glad you're back, ${firstName}!`;
-        setTimeout(() => document.getElementById('welcome-back-modal').classList.add('hidden'), 4000);
-        return;
-    }
-
-    messageEl.innerHTML = `<i class="fas fa-spinner fa-spin"></i>`;
-
-    const systemPrompt = "You are the 'Quest Master' in a fun classroom game. You speak in short, exciting, single sentences. Do NOT use markdown or asterisks. Your job is to give a unique, positive welcome back message to a student who was absent. It must be one sentence only.";
-    const userPrompt = `Generate a one-sentence welcome back message for a student named ${firstName}.`;
-
-    try {
-        const message = await callGeminiApi(systemPrompt, userPrompt);
-        messageEl.textContent = message;
-    } catch (e) {
-        messageEl.textContent = `We're so glad you're back, ${firstName}!`;
-    }
+    messageEl.textContent = `We're so glad you're back, ${firstName}!`;
 
     setTimeout(() => {
         document.getElementById('welcome-back-modal').classList.add('hidden'); // Simplified hideModal

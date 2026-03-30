@@ -122,6 +122,33 @@ function renderTeacherBoonStudentGrid() {
     }
 }
 
+function syncTeacherBoonStudentSelection() {
+    const grid = document.getElementById('teacher-boon-student-grid');
+    if (!grid) return;
+    const selected = teacherBoonModalState.selectedStudentId;
+    grid.querySelectorAll('[data-teacher-boon-student]').forEach((btn) => {
+        btn.classList.toggle('is-selected', btn.dataset.teacherBoonStudent === selected);
+    });
+}
+
+function syncTeacherBoonStarsSelection() {
+    const container = document.getElementById('teacher-boon-stars');
+    if (!container) return;
+    const n = Number(teacherBoonModalState.selectedStars) || 0;
+    container.querySelectorAll('[data-teacher-boon-stars]').forEach((btn) => {
+        btn.classList.toggle('is-selected', Number(btn.dataset.teacherBoonStars) === n);
+    });
+}
+
+function syncTeacherBoonPresetsSelection() {
+    const container = document.getElementById('teacher-boon-presets');
+    if (!container) return;
+    const key = teacherBoonModalState.selectedPresetKey;
+    container.querySelectorAll('[data-teacher-boon-preset]').forEach((btn) => {
+        btn.classList.toggle('is-selected', btn.dataset.teacherBoonPreset === key);
+    });
+}
+
 function renderTeacherBoonStars() {
     const container = document.getElementById('teacher-boon-stars');
     if (!container) return;
@@ -374,7 +401,9 @@ export function wireTeacherBoonModal() {
         if (studentBtn && !isTeacherBoonReadOnly()) {
             teacherBoonModalState.selectedStudentId = studentBtn.dataset.teacherBoonStudent;
             playSound('click');
-            renderTeacherBoonModal();
+            syncTeacherBoonStudentSelection();
+            scrollCarouselToStudent(teacherBoonModalState.selectedStudentId);
+            renderTeacherBoonSummary();
             return;
         }
 
@@ -382,7 +411,8 @@ export function wireTeacherBoonModal() {
         if (starBtn && !isTeacherBoonReadOnly()) {
             teacherBoonModalState.selectedStars = Number(starBtn.dataset.teacherBoonStars);
             playSound('star2');
-            renderTeacherBoonModal();
+            syncTeacherBoonStarsSelection();
+            renderTeacherBoonSummary();
             return;
         }
 
@@ -390,7 +420,8 @@ export function wireTeacherBoonModal() {
         if (presetBtn && !isTeacherBoonReadOnly()) {
             teacherBoonModalState.selectedPresetKey = presetBtn.dataset.teacherBoonPreset;
             playSound('click');
-            renderTeacherBoonModal();
+            syncTeacherBoonPresetsSelection();
+            renderTeacherBoonSummary();
         }
     });
 }

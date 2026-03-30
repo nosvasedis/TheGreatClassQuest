@@ -294,6 +294,10 @@ async function submitTeacherBoon() {
 
         playSound('ceremony');
 
+        // Hide the launch button immediately — don't wait for the Firestore snapshot
+        const launchBtn = document.getElementById('open-teacher-boon-btn');
+        if (launchBtn) launchBtn.classList.add('hidden');
+
         setTimeout(() => {
             hideTeacherBoonSuccessOverlay();
             hideModal('teacher-boon-modal');

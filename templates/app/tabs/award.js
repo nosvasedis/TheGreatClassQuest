@@ -37,7 +37,6 @@ export const awardTabHTML = `
                             <span class="teacher-boon-launch-btn__shimmer" aria-hidden="true"></span>
                             <span class="teacher-boon-launch-btn__orb" aria-hidden="true"></span>
                             <i class="fas fa-wand-magic-sparkles teacher-boon-launch-btn__icon" aria-hidden="true"></i>
-                            <span class="teacher-boon-launch-btn__eyebrow">Monthly Magic</span>
                             <span class="teacher-boon-launch-btn__label">Teacher Boon</span>
                         </button>
                     </div>

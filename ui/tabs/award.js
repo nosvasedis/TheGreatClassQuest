@@ -196,31 +196,24 @@ function sortStudentsByAwardOrder(classId, students) {
 
 function renderTeacherBoonLaunchState(selectedClassId) {
     const launchBtn = document.getElementById('open-teacher-boon-btn');
-    const launchBadge = document.getElementById('teacher-boon-launch-badge');
-    if (!launchBtn || !launchBadge) return;
+    if (!launchBtn) return;
 
-    const shouldShow = Boolean(selectedClassId) && utils.isTeacherBoonWindow();
-    launchBtn.classList.toggle('hidden', !shouldShow);
-
-    if (!shouldShow) {
-        launchBtn.classList.remove('is-bestowed');
-        launchBadge.classList.add('hidden');
+    const inWindow = Boolean(selectedClassId) && utils.isTeacherBoonWindow();
+    if (!inWindow) {
+        launchBtn.classList.add('hidden');
         return;
     }
 
     const classData = state.get('allSchoolClasses').find((item) => item.id === selectedClassId);
     const existingBoon = classData ? getTeacherBoonForMonth(classData, utils.getLocalMonthKey()) : null;
 
-    launchBtn.classList.toggle('is-bestowed', Boolean(existingBoon));
-    launchBadge.classList.toggle('hidden', !existingBoon);
-    launchBtn.title = existingBoon
-        ? 'Open this month\'s recorded Teacher Boon'
-        : 'Bestow the monthly Teacher Boon';
-
-    const eyebrow = launchBtn.querySelector('.teacher-boon-launch-btn__eyebrow');
-    if (eyebrow) {
-        eyebrow.textContent = existingBoon ? 'Chronicle Sealed' : 'Monthly Magic';
+    // Hide completely once the boon has been bestowed this month
+    if (existingBoon) {
+        launchBtn.classList.add('hidden');
+        return;
     }
+
+    launchBtn.classList.remove('hidden');
 }
 
 function buildAbsenceControlsHtml({ isVisuallyAbsent, isMarkedAbsentToday, classHasLessonToday, isCardLocked }) {

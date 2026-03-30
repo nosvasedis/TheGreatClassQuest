@@ -5,6 +5,8 @@ import { showToast } from '../effects.js';
 import { hideModal, showAnimatedModal } from './base.js';
 import { TEACHER_BOON_PRESETS, awardTeacherBoon, formatTeacherBoonReason, getTeacherBoonForMonth } from '../../features/boons.js';
 
+const RANK_MEDALS = ['🥇', '🥈', '🥉'];
+
 const teacherBoonModalState = {
     classId: null,
     selectedStudentId: null,
@@ -20,7 +22,12 @@ function getTeacherBoonClassData() {
 }
 
 function getTeacherBoonStudents() {
-    return state.get('allStudents').filter((student) => student.classId === teacherBoonModalState.classId);
+    const students = state.get('allStudents').filter((student) => student.classId === teacherBoonModalState.classId);
+    return students.sort((a, b) => {
+        const aScore = Number((getTeacherBoonScore(a.id)).monthlyStars) || 0;
+        const bScore = Number((getTeacherBoonScore(b.id)).monthlyStars) || 0;
+        return bScore - aScore;
+    });
 }
 
 function getTeacherBoonScore(studentId) {
@@ -43,11 +50,26 @@ function getTeacherBoonFinalReason() {
     return preset?.label || '';
 }
 
+function getTeacherBoonSelectedPreset() {
+    return TEACHER_BOON_PRESETS.find((item) => item.key === teacherBoonModalState.selectedPresetKey) || null;
+}
+
 function hideTeacherBoonSuccessOverlay() {
     const overlay = document.getElementById('teacher-boon-success-overlay');
     if (!overlay) return;
     overlay.classList.add('hidden');
     overlay.classList.remove('teacher-boon-success-overlay--visible');
+}
+
+function scrollCarouselToStudent(studentId) {
+    const carousel = document.getElementById('teacher-boon-student-grid');
+    if (!carousel) return;
+    const card = carousel.querySelector(`[data-teacher-boon-student="${studentId}"]`);
+    if (card) {
+        requestAnimationFrame(() => {
+            card.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+        });
+    }
 }
 
 function renderTeacherBoonStudentGrid() {
@@ -59,18 +81,22 @@ function renderTeacherBoonStudentGrid() {
         grid.innerHTML = `
             <div class="teacher-boon-empty-state">
                 <div class="teacher-boon-empty-icon">🌙</div>
-                <div class="teacher-boon-empty-title">No students are ready for this boon yet.</div>
+                <div class="teacher-boon-empty-title">No champions await</div>
                 <div class="teacher-boon-empty-copy">Add students to the selected class to bestow the monthly boon.</div>
             </div>
         `;
         return;
     }
 
-    grid.innerHTML = students.map((student) => {
+    grid.innerHTML = students.map((student, index) => {
         const scoreData = getTeacherBoonScore(student.id);
         const monthlyStars = Number(scoreData.monthlyStars) || 0;
-        const totalStars = Number(scoreData.totalStars) || 0;
         const isSelected = teacherBoonModalState.selectedStudentId === student.id;
+        const rank = index + 1;
+        const rankBadge = rank <= 3
+            ? `<span class="teacher-boon-student-rank teacher-boon-student-rank--medal">${RANK_MEDALS[rank - 1]}</span>`
+            : `<span class="teacher-boon-student-rank teacher-boon-student-rank--number">${rank}</span>`;
+
         const avatar = student.avatar
             ? `<img src="${student.avatar}" alt="${student.name}" class="teacher-boon-student-avatar">`
             : `<div class="teacher-boon-student-avatar teacher-boon-student-avatar--placeholder">${student.name.charAt(0)}</div>`;
@@ -83,20 +109,17 @@ function renderTeacherBoonStudentGrid() {
                 type="button"
             >
                 <div class="teacher-boon-student-aura"></div>
+                ${rankBadge}
                 ${avatar}
-                <div class="teacher-boon-student-meta">
-                    <div class="teacher-boon-student-name">${student.name}</div>
-                    <div class="teacher-boon-student-stats">
-                        <span>${monthlyStars} this month</span>
-                        <span>${totalStars} total</span>
-                    </div>
-                </div>
-                <div class="teacher-boon-student-select">
-                    ${isSelected ? 'Chosen' : 'Choose'}
-                </div>
+                <div class="teacher-boon-student-name">${student.name}</div>
+                <div class="teacher-boon-student-stats">⭐ ${monthlyStars} this month</div>
             </button>
         `;
     }).join('');
+
+    if (teacherBoonModalState.selectedStudentId) {
+        scrollCarouselToStudent(teacherBoonModalState.selectedStudentId);
+    }
 }
 
 function renderTeacherBoonStars() {
@@ -146,6 +169,7 @@ function renderTeacherBoonSummary() {
     const classData = getTeacherBoonClassData();
     const selectedStudent = getTeacherBoonSelectedStudent();
     const finalReason = getTeacherBoonFinalReason();
+    const selectedPreset = getTeacherBoonSelectedPreset();
     const boonDate = new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
     const isReady = Boolean(selectedStudent && teacherBoonModalState.selectedStars && finalReason);
     const readOnly = isTeacherBoonReadOnly();
@@ -157,7 +181,7 @@ function renderTeacherBoonSummary() {
     customReasonInput.value = teacherBoonModalState.customReason;
     customReasonInput.placeholder = readOnly
         ? 'This boon has already been written into the class chronicle.'
-        : 'Optional custom reason that will appear in the ceremony reveal...';
+        : 'Write your own legendary reason...';
 
     if (readOnly) {
         const existingStudent = state.get('allStudents').find((student) => student.id === teacherBoonModalState.existingBoon.studentId);
@@ -166,8 +190,8 @@ function renderTeacherBoonSummary() {
             <div class="teacher-boon-banner teacher-boon-banner--readonly">
                 <div class="teacher-boon-banner-icon">📜</div>
                 <div>
-                    <div class="teacher-boon-banner-title">This month&apos;s Teacher Boon has already been bestowed.</div>
-                    <div class="teacher-boon-banner-copy">${existingStudent?.name || 'A student'} received ${teacherBoonModalState.existingBoon.stars} star${teacherBoonModalState.existingBoon.stars === 1 ? '' : 's'} for ${readOnlyReason}.</div>
+                    <div class="teacher-boon-banner-title">This month&apos;s Teacher Boon has been sealed.</div>
+                    <div class="teacher-boon-banner-copy">${existingStudent?.name || 'A hero'} received ${teacherBoonModalState.existingBoon.stars} star${teacherBoonModalState.existingBoon.stars === 1 ? '' : 's'} for ${readOnlyReason}.</div>
                 </div>
             </div>
         `;
@@ -176,35 +200,56 @@ function renderTeacherBoonSummary() {
             <div class="teacher-boon-banner">
                 <div class="teacher-boon-banner-icon">✨</div>
                 <div>
-                    <div class="teacher-boon-banner-title">One monthly boon per class</div>
-                    <div class="teacher-boon-banner-copy">Choose the hero, the stars, and the reason that will appear during the ceremony reveal.</div>
+                    <div class="teacher-boon-banner-title">One legendary boon per class each moon</div>
+                    <div class="teacher-boon-banner-copy">Choose your champion, the stars, and the virtue for the ceremony reveal.</div>
                 </div>
             </div>
         `;
     }
 
-    summary.innerHTML = selectedStudent
-        ? `
-            <div class="teacher-boon-summary-card">
-                <div class="teacher-boon-summary-kicker">${readOnly ? 'Recorded Boon' : 'Ceremony Preview'}</div>
+    const starIcons = teacherBoonModalState.selectedStars
+        ? Array.from({ length: teacherBoonModalState.selectedStars }, (_, i) =>
+            `<span class="teacher-boon-summary-star-icon">⭐</span>`
+        ).join('')
+        : '';
+
+    const virtueBadge = selectedPreset
+        ? `<div class="teacher-boon-summary-virtue-badge">${selectedPreset.icon} ${selectedPreset.label}</div>`
+        : '';
+
+    if (selectedStudent) {
+        const avatar = selectedStudent.avatar
+            ? `<img src="${selectedStudent.avatar}" alt="${selectedStudent.name}" class="teacher-boon-summary-avatar">`
+            : `<div class="teacher-boon-summary-avatar teacher-boon-summary-avatar--placeholder">${selectedStudent.name.charAt(0)}</div>`;
+
+        summary.innerHTML = `
+            <div class="teacher-boon-summary-card ${isReady ? 'teacher-boon-summary-card--ready' : ''}">
+                <div class="teacher-boon-summary-kicker">${readOnly ? 'Sealed Chronicle' : 'Ceremony Preview'}</div>
+                ${avatar}
                 <div class="teacher-boon-summary-name">${selectedStudent.name}</div>
-                <div class="teacher-boon-summary-stars">${teacherBoonModalState.selectedStars || 0} Star${teacherBoonModalState.selectedStars === 1 ? '' : 's'}</div>
-                <div class="teacher-boon-summary-reason">${finalReason || 'Choose a reason to complete the boon.'}</div>
+                <div class="teacher-boon-summary-stars">${starIcons || '—'}</div>
+                ${virtueBadge}
+                <div class="teacher-boon-summary-reason">${finalReason ? `"${finalReason}"` : 'Choose a virtue to complete the prophecy.'}</div>
                 <div class="teacher-boon-summary-date">${readOnly ? 'Already sealed in the class chronicle' : `Will be sealed on ${boonDate}`}</div>
             </div>
-        `
-        : `
+        `;
+    } else {
+        summary.innerHTML = `
             <div class="teacher-boon-summary-card teacher-boon-summary-card--empty">
                 <div class="teacher-boon-summary-kicker">Ceremony Preview</div>
-                <div class="teacher-boon-summary-reason">Choose a student, stars, and a reason to craft the monthly boon.</div>
+                <div class="teacher-boon-summary-reason">Select a champion, stars, and a virtue to reveal the prophecy.</div>
             </div>
         `;
+    }
 
     cancelBtn.textContent = readOnly ? 'Close' : 'Cancel';
     confirmBtn.disabled = readOnly || !isReady || teacherBoonModalState.isSubmitting;
-    confirmBtn.innerHTML = teacherBoonModalState.isSubmitting
-        ? '<i class="fas fa-circle-notch fa-spin mr-2"></i>Weaving the boon...'
-        : '<i class="fas fa-wand-magic-sparkles mr-2"></i>Bestow Monthly Boon';
+    confirmBtn.querySelector('.teacher-boon-confirm-btn__glow')?.classList.toggle('hidden', !isReady || readOnly);
+
+    const confirmLabel = teacherBoonModalState.isSubmitting
+        ? '<i class="fas fa-circle-notch fa-spin"></i> Weaving the boon...'
+        : '<span class="teacher-boon-confirm-btn__glow"></span><i class="fas fa-wand-magic-sparkles"></i> Bestow Monthly Boon';
+    confirmBtn.innerHTML = confirmLabel;
 }
 
 function renderTeacherBoonModal() {
@@ -220,7 +265,7 @@ async function submitTeacherBoon() {
     const selectedStudent = getTeacherBoonSelectedStudent();
     const finalReason = getTeacherBoonFinalReason();
     if (!teacherBoonModalState.classId || !selectedStudent || !teacherBoonModalState.selectedStars || !finalReason) {
-        showToast('Choose the student, stars, and reason first.', 'info');
+        showToast('Choose the champion, stars, and virtue first.', 'info');
         return;
     }
 
@@ -247,10 +292,12 @@ async function submitTeacherBoon() {
             requestAnimationFrame(() => overlay.classList.add('teacher-boon-success-overlay--visible'));
         }
 
+        playSound('ceremony');
+
         setTimeout(() => {
             hideTeacherBoonSuccessOverlay();
             hideModal('teacher-boon-modal');
-        }, 1700);
+        }, 2200);
     } catch (error) {
         teacherBoonModalState.isSubmitting = false;
         renderTeacherBoonSummary();
@@ -292,6 +339,13 @@ export function openTeacherBoonModal() {
     showAnimatedModal('teacher-boon-modal');
 }
 
+function scrollCarousel(direction) {
+    const carousel = document.getElementById('teacher-boon-student-grid');
+    if (!carousel) return;
+    const cardWidth = carousel.querySelector('.teacher-boon-student-btn')?.offsetWidth || 180;
+    carousel.scrollBy({ left: direction * (cardWidth + 16), behavior: 'smooth' });
+}
+
 export function wireTeacherBoonModal() {
     const modal = document.getElementById('teacher-boon-modal');
     if (!modal || modal.dataset.wired === 'true') return;
@@ -304,6 +358,9 @@ export function wireTeacherBoonModal() {
         teacherBoonModalState.customReason = event.target.value || '';
         renderTeacherBoonSummary();
     });
+
+    document.getElementById('teacher-boon-carousel-prev')?.addEventListener('click', () => scrollCarousel(-1));
+    document.getElementById('teacher-boon-carousel-next')?.addEventListener('click', () => scrollCarousel(1));
 
     modal.addEventListener('click', (event) => {
         if (event.target === modal) {

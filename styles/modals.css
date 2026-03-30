@@ -54,6 +54,9 @@
     max-width: 34rem;
 }
 
+/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+   TEACHER BOON — Launch Button
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
 .teacher-boon-launch-btn {
     position: relative;
     overflow: hidden;
@@ -68,13 +71,11 @@
     box-shadow: 0 18px 36px rgba(124, 58, 237, 0.28);
     transition: transform 160ms ease, box-shadow 160ms ease, filter 160ms ease;
 }
-
 .teacher-boon-launch-btn:hover {
     transform: translateY(-2px) scale(1.02);
     box-shadow: 0 24px 42px rgba(124, 58, 237, 0.34);
     filter: saturate(1.06);
 }
-
 .teacher-boon-launch-btn__orb {
     position: absolute;
     inset: auto auto -1.2rem -1rem;
@@ -84,7 +85,6 @@
     background: radial-gradient(circle, rgba(255,255,255,0.82), rgba(255,255,255,0));
     pointer-events: none;
 }
-
 .teacher-boon-launch-btn__content {
     position: relative;
     z-index: 1;
@@ -93,7 +93,6 @@
     align-items: flex-start;
     gap: 0.2rem;
 }
-
 .teacher-boon-launch-btn__eyebrow {
     font-size: 0.68rem;
     letter-spacing: 0.22em;
@@ -101,13 +100,11 @@
     opacity: 0.78;
     font-weight: 800;
 }
-
 .teacher-boon-launch-btn__label {
     font-family: 'Fredoka One', cursive;
     font-size: 1.15rem;
     line-height: 1.1;
 }
-
 .teacher-boon-launch-btn__badge {
     position: absolute;
     top: 0.8rem;
@@ -122,7 +119,6 @@
     letter-spacing: 0.12em;
     text-transform: uppercase;
 }
-
 .teacher-boon-launch-btn.is-bestowed {
     background:
         radial-gradient(circle at top left, rgba(255,255,255,0.95), rgba(255,255,255,0) 46%),
@@ -130,39 +126,82 @@
     box-shadow: 0 18px 36px rgba(20, 83, 45, 0.3);
 }
 
+/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+   TEACHER BOON — Shell & Backdrop
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
 .teacher-boon-shell {
     position: relative;
     width: min(72rem, 96vw);
     max-height: 92vh;
     overflow: hidden;
     border-radius: 2rem;
-    border: 1px solid rgba(255,255,255,0.16);
+    border: 1px solid rgba(255,255,255,0.18);
     background:
-        radial-gradient(circle at top, rgba(255,255,255,0.18), rgba(255,255,255,0) 34%),
-        linear-gradient(160deg, #0f172a 0%, #312e81 46%, #7c3aed 100%);
-    box-shadow: 0 32px 80px rgba(2, 6, 23, 0.55);
+        radial-gradient(circle at top, rgba(255,255,255,0.12), rgba(255,255,255,0) 34%),
+        linear-gradient(160deg, #0c0e24 0%, #1e1b4b 36%, #4c1d95 68%, #7c3aed 100%);
+    box-shadow:
+        0 32px 80px rgba(2, 6, 23, 0.6),
+        inset 0 1px 0 rgba(255,255,255,0.12);
     color: white;
     display: flex;
     flex-direction: column;
 }
-
 .teacher-boon-shell__backdrop {
     position: absolute;
     inset: 0;
     pointer-events: none;
     background:
-        radial-gradient(circle at 15% 18%, rgba(255,255,255,0.18), rgba(255,255,255,0) 24%),
-        radial-gradient(circle at 82% 14%, rgba(251,191,36,0.24), rgba(251,191,36,0) 20%),
-        radial-gradient(circle at 74% 78%, rgba(236,72,153,0.28), rgba(236,72,153,0) 28%);
+        radial-gradient(circle at 12% 15%, rgba(251,191,36,0.18), rgba(251,191,36,0) 22%),
+        radial-gradient(circle at 85% 10%, rgba(236,72,153,0.2), rgba(236,72,153,0) 18%),
+        radial-gradient(circle at 50% 90%, rgba(124,58,237,0.22), rgba(124,58,237,0) 26%),
+        radial-gradient(circle at 74% 55%, rgba(56,189,248,0.14), rgba(56,189,248,0) 20%);
+    animation: teacher-boon-backdrop-drift 12s ease-in-out infinite alternate;
 }
-
 .teacher-boon-shell--readonly .teacher-boon-shell__backdrop {
     background:
         radial-gradient(circle at 14% 18%, rgba(255,255,255,0.14), rgba(255,255,255,0) 24%),
         radial-gradient(circle at 82% 14%, rgba(45,212,191,0.18), rgba(45,212,191,0) 20%),
         radial-gradient(circle at 74% 78%, rgba(56,189,248,0.22), rgba(56,189,248,0) 28%);
+    animation: none;
+}
+@keyframes teacher-boon-backdrop-drift {
+    0%   { opacity: 0.85; }
+    100% { opacity: 1; }
 }
 
+/* Floating Sparkle Particles */
+.teacher-boon-shell__sparkles {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    z-index: 0;
+    overflow: hidden;
+}
+.teacher-boon-sparkle {
+    position: absolute;
+    width: 4px;
+    height: 4px;
+    border-radius: 9999px;
+    background: #fcd34d;
+    box-shadow: 0 0 6px 2px rgba(251,191,36,0.5);
+    animation: teacher-boon-float 6s ease-in-out infinite;
+    opacity: 0;
+}
+.teacher-boon-sparkle--1 { left: 8%; top: 20%; animation-delay: 0s; animation-duration: 7s; }
+.teacher-boon-sparkle--2 { left: 25%; top: 65%; animation-delay: 1.2s; animation-duration: 5.5s; }
+.teacher-boon-sparkle--3 { left: 72%; top: 12%; animation-delay: 2.4s; animation-duration: 6s; }
+.teacher-boon-sparkle--4 { left: 88%; top: 50%; animation-delay: 0.6s; animation-duration: 8s; }
+.teacher-boon-sparkle--5 { left: 55%; top: 82%; animation-delay: 3s; animation-duration: 5s; }
+@keyframes teacher-boon-float {
+    0%   { opacity: 0; transform: translateY(0) scale(0.6); }
+    20%  { opacity: 0.9; }
+    80%  { opacity: 0.9; }
+    100% { opacity: 0; transform: translateY(-40px) scale(1.2); }
+}
+
+/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+   TEACHER BOON — Close Button
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
 .teacher-boon-close-btn {
     position: absolute;
     top: 1rem;
@@ -170,464 +209,888 @@
     z-index: 4;
     width: 2.6rem;
     height: 2.6rem;
-    border: 0;
+    border: 1px solid rgba(255,255,255,0.15);
     border-radius: 9999px;
-    background: rgba(255,255,255,0.12);
+    background: rgba(255,255,255,0.08);
+    backdrop-filter: blur(8px);
     color: white;
     font-size: 1.8rem;
     line-height: 1;
+    transition: background 160ms ease, transform 160ms ease;
+    cursor: pointer;
+}
+.teacher-boon-close-btn:hover {
+    background: rgba(255,255,255,0.18);
+    transform: scale(1.08);
 }
 
+/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+   TEACHER BOON — Entrance Animations
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
+.teacher-boon-entrance {
+    opacity: 0;
+    transform: translateY(14px);
+    animation: teacher-boon-entrance-in 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+.teacher-boon-entrance--1 { animation-delay: 0.05s; }
+.teacher-boon-entrance--2 { animation-delay: 0.12s; }
+.teacher-boon-entrance--3 { animation-delay: 0.2s; }
+.teacher-boon-entrance--4 { animation-delay: 0.3s; }
+.teacher-boon-entrance--5 { animation-delay: 0.4s; }
+.teacher-boon-entrance--6 { animation-delay: 0.48s; }
+@keyframes teacher-boon-entrance-in {
+    to { opacity: 1; transform: translateY(0); }
+}
+
+/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+   TEACHER BOON — Header
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
 .teacher-boon-header,
 .teacher-boon-content,
 .teacher-boon-footer {
     position: relative;
     z-index: 1;
 }
-
 .teacher-boon-header {
     display: flex;
     align-items: center;
     gap: 1.2rem;
-    padding: 1.6rem 1.6rem 1rem;
+    padding: 1.6rem 1.6rem 0.8rem;
 }
-
 .teacher-boon-header__crest {
-    width: 4.5rem;
-    height: 4.5rem;
+    position: relative;
+    width: 5rem;
+    height: 5rem;
     border-radius: 1.5rem;
     display: grid;
     place-items: center;
-    font-size: 2rem;
-    background: rgba(255,255,255,0.14);
-    box-shadow: inset 0 1px 0 rgba(255,255,255,0.24), 0 16px 30px rgba(15, 23, 42, 0.28);
+    font-size: 2.2rem;
+    background:
+        radial-gradient(circle, rgba(251,191,36,0.22), rgba(124,58,237,0.18)),
+        rgba(255,255,255,0.1);
+    box-shadow:
+        inset 0 1px 0 rgba(255,255,255,0.24),
+        0 16px 30px rgba(15, 23, 42, 0.28),
+        0 0 24px rgba(251,191,36,0.18);
 }
-
+.teacher-boon-header__crest-icon {
+    position: relative;
+    z-index: 1;
+    animation: teacher-boon-crest-pulse 3s ease-in-out infinite;
+}
+.teacher-boon-header__crest-ring {
+    position: absolute;
+    inset: -4px;
+    border-radius: 1.7rem;
+    border: 2px solid rgba(251,191,36,0.35);
+    animation: teacher-boon-crest-ring 4s ease-in-out infinite;
+}
+@keyframes teacher-boon-crest-pulse {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.08); }
+}
+@keyframes teacher-boon-crest-ring {
+    0%, 100% { opacity: 0.4; transform: scale(1); }
+    50% { opacity: 0.8; transform: scale(1.06); }
+}
 .teacher-boon-header__eyebrow,
 .teacher-boon-section__eyebrow,
 .teacher-boon-summary-kicker {
     text-transform: uppercase;
-    letter-spacing: 0.2em;
-    font-size: 0.68rem;
+    letter-spacing: 0.22em;
+    font-size: 0.65rem;
     font-weight: 800;
-    opacity: 0.76;
+    opacity: 0.72;
 }
-
 .teacher-boon-header__title {
     margin: 0.15rem 0 0;
     font-family: 'Fredoka One', cursive;
     font-size: clamp(2rem, 3vw, 3rem);
     line-height: 0.95;
+    background: linear-gradient(135deg, #fcd34d, #f472b6, #a78bfa);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
 }
-
 .teacher-boon-header__class {
     margin: 0.45rem 0 0;
     color: rgba(255,255,255,0.82);
     font-size: 0.95rem;
 }
 
+/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+   TEACHER BOON — Content & Sections
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
 .teacher-boon-content {
-    padding: 0 1.6rem 1rem;
+    padding: 0 1.6rem 0.6rem;
     overflow-y: auto;
 }
-
 .teacher-boon-section {
-    margin-bottom: 1rem;
+    margin-bottom: 1.1rem;
 }
-
 .teacher-boon-section__heading {
     display: flex;
     align-items: center;
     gap: 0.85rem;
-    margin-bottom: 0.8rem;
+    margin-bottom: 0.85rem;
 }
-
 .teacher-boon-section__icon {
     width: 2.6rem;
     height: 2.6rem;
     border-radius: 9999px;
     display: grid;
     place-items: center;
-    background: rgba(255,255,255,0.12);
+    background: rgba(255,255,255,0.1);
+    border: 1px solid rgba(255,255,255,0.1);
     font-size: 1.2rem;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
 }
-
 .teacher-boon-section__title {
     margin: 0.1rem 0 0;
     font-family: 'Fredoka One', cursive;
     font-size: 1.2rem;
 }
 
+/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+   TEACHER BOON — Banner
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
 .teacher-boon-banner {
     display: flex;
     align-items: center;
     gap: 0.85rem;
-    padding: 1rem 1.05rem;
+    padding: 0.9rem 1.05rem;
     border-radius: 1.3rem;
-    background: rgba(255,255,255,0.1);
-    border: 1px solid rgba(255,255,255,0.16);
-    margin-bottom: 1rem;
+    background: rgba(255,255,255,0.07);
+    border: 1px solid rgba(255,255,255,0.12);
+    margin-bottom: 0.8rem;
+    backdrop-filter: blur(6px);
 }
-
 .teacher-boon-banner--readonly {
     background: rgba(15, 118, 110, 0.18);
     border-color: rgba(125, 211, 252, 0.24);
 }
-
 .teacher-boon-banner-icon {
-    width: 2.8rem;
-    height: 2.8rem;
+    width: 2.6rem;
+    height: 2.6rem;
     border-radius: 9999px;
     display: grid;
     place-items: center;
-    background: rgba(255,255,255,0.15);
-    font-size: 1.15rem;
+    background: rgba(255,255,255,0.12);
+    font-size: 1.1rem;
     flex-shrink: 0;
 }
-
 .teacher-boon-banner-title {
     font-weight: 800;
-    margin-bottom: 0.15rem;
+    font-size: 0.92rem;
+    margin-bottom: 0.1rem;
 }
-
 .teacher-boon-banner-copy {
-    color: rgba(255,255,255,0.8);
-    font-size: 0.9rem;
+    color: rgba(255,255,255,0.76);
+    font-size: 0.84rem;
     line-height: 1.4;
 }
 
-.teacher-boon-student-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr));
-    gap: 0.85rem;
-}
-
-.teacher-boon-student-btn {
+/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+   TEACHER BOON — Student Carousel
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
+.teacher-boon-carousel-wrapper {
     position: relative;
-    overflow: hidden;
-    border: 1px solid rgba(255,255,255,0.18);
-    border-radius: 1.35rem;
-    padding: 1rem;
-    background: rgba(15, 23, 42, 0.28);
-    color: white;
-    text-align: left;
     display: flex;
     align-items: center;
-    gap: 0.85rem;
-    transition: transform 160ms ease, border-color 160ms ease, box-shadow 160ms ease;
+    gap: 0;
 }
+.teacher-boon-carousel {
+    display: flex;
+    gap: 1rem;
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    scroll-behavior: smooth;
+    -webkit-overflow-scrolling: touch;
+    padding: 0.8rem 0.5rem 1rem;
+    mask-image: linear-gradient(to right, transparent, black 2.5rem, black calc(100% - 2.5rem), transparent);
+    -webkit-mask-image: linear-gradient(to right, transparent, black 2.5rem, black calc(100% - 2.5rem), transparent);
+    scrollbar-width: none;
+}
+.teacher-boon-carousel::-webkit-scrollbar {
+    display: none;
+}
+.teacher-boon-carousel-arrow {
+    position: absolute;
+    z-index: 3;
+    width: 2.4rem;
+    height: 2.4rem;
+    border: 1px solid rgba(255,255,255,0.2);
+    border-radius: 9999px;
+    background: rgba(15, 23, 42, 0.65);
+    backdrop-filter: blur(10px);
+    color: rgba(255,255,255,0.9);
+    font-size: 0.8rem;
+    display: grid;
+    place-items: center;
+    cursor: pointer;
+    transition: transform 160ms ease, background 160ms ease, box-shadow 160ms ease;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.3);
+}
+.teacher-boon-carousel-arrow:hover {
+    transform: scale(1.12);
+    background: rgba(124, 58, 237, 0.55);
+    box-shadow: 0 6px 20px rgba(124,58,237,0.35);
+}
+.teacher-boon-carousel-arrow--prev { left: -0.3rem; }
+.teacher-boon-carousel-arrow--next { right: -0.3rem; }
 
-.teacher-boon-student-btn:hover:not(:disabled),
+/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+   TEACHER BOON — Student Hero Cards
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
+.teacher-boon-student-btn {
+    position: relative;
+    flex: 0 0 11rem;
+    scroll-snap-align: center;
+    overflow: hidden;
+    border: 2px solid rgba(255,255,255,0.12);
+    border-radius: 1.5rem;
+    padding: 1.1rem 0.8rem 0.9rem;
+    background:
+        radial-gradient(circle at 50% 20%, rgba(255,255,255,0.08), rgba(255,255,255,0) 60%),
+        rgba(15, 23, 42, 0.4);
+    color: white;
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.5rem;
+    transition: transform 300ms cubic-bezier(0.34, 1.56, 0.64, 1),
+                border-color 200ms ease,
+                box-shadow 300ms ease;
+    cursor: pointer;
+    backdrop-filter: blur(6px);
+    animation: teacher-boon-card-appear 0.45s cubic-bezier(0.34, 1.56, 0.64, 1) backwards;
+}
+.teacher-boon-student-btn:nth-child(1)  { animation-delay: 0.08s; }
+.teacher-boon-student-btn:nth-child(2)  { animation-delay: 0.14s; }
+.teacher-boon-student-btn:nth-child(3)  { animation-delay: 0.2s; }
+.teacher-boon-student-btn:nth-child(4)  { animation-delay: 0.26s; }
+.teacher-boon-student-btn:nth-child(5)  { animation-delay: 0.32s; }
+.teacher-boon-student-btn:nth-child(6)  { animation-delay: 0.38s; }
+.teacher-boon-student-btn:nth-child(7)  { animation-delay: 0.44s; }
+.teacher-boon-student-btn:nth-child(8)  { animation-delay: 0.5s; }
+.teacher-boon-student-btn:nth-child(9)  { animation-delay: 0.56s; }
+.teacher-boon-student-btn:nth-child(10) { animation-delay: 0.62s; }
+.teacher-boon-student-btn:nth-child(n+11) { animation-delay: 0.68s; }
+@keyframes teacher-boon-card-appear {
+    from {
+        opacity: 0;
+        transform: translateY(18px) scale(0.92);
+    }
+}
+.teacher-boon-student-btn:hover:not(:disabled) {
+    transform: translateY(-4px) scale(1.04);
+    border-color: rgba(251,191,36,0.5);
+    box-shadow: 0 16px 40px rgba(124,58,237,0.25), 0 0 18px rgba(251,191,36,0.15);
+}
 .teacher-boon-student-btn.is-selected {
-    transform: translateY(-2px);
-    border-color: rgba(252, 211, 77, 0.72);
-    box-shadow: 0 14px 34px rgba(15, 23, 42, 0.22);
+    transform: translateY(-4px) scale(1.06);
+    border-color: rgba(251,191,36,0.85);
+    box-shadow:
+        0 0 0 3px rgba(251,191,36,0.25),
+        0 18px 44px rgba(124,58,237,0.3),
+        0 0 28px rgba(251,191,36,0.2);
+    background:
+        radial-gradient(circle at 50% 20%, rgba(251,191,36,0.14), rgba(251,191,36,0) 60%),
+        rgba(15, 23, 42, 0.5);
 }
-
 .teacher-boon-student-btn:disabled {
     cursor: default;
 }
-
 .teacher-boon-student-aura {
     position: absolute;
-    inset: auto auto -1.8rem -1.8rem;
-    width: 5rem;
-    height: 5rem;
+    inset: auto 50%;
+    bottom: -1.5rem;
+    width: 6rem;
+    height: 6rem;
+    margin-left: -3rem;
     border-radius: 9999px;
-    background: radial-gradient(circle, rgba(251,191,36,0.36), rgba(251,191,36,0));
+    background: radial-gradient(circle, rgba(124,58,237,0.3), rgba(124,58,237,0));
     pointer-events: none;
+    transition: opacity 300ms ease;
+}
+.teacher-boon-student-btn.is-selected .teacher-boon-student-aura {
+    background: radial-gradient(circle, rgba(251,191,36,0.45), rgba(251,191,36,0));
+    animation: teacher-boon-aura-glow 2s ease-in-out infinite;
+}
+@keyframes teacher-boon-aura-glow {
+    0%, 100% { opacity: 0.6; transform: scale(0.95); }
+    50% { opacity: 1; transform: scale(1.1); }
 }
 
+/* Rank Badge */
+.teacher-boon-student-rank {
+    position: absolute;
+    top: 0.5rem;
+    right: 0.5rem;
+    z-index: 2;
+    min-width: 1.6rem;
+    height: 1.6rem;
+    border-radius: 9999px;
+    display: grid;
+    place-items: center;
+    font-size: 0.72rem;
+    font-weight: 800;
+    line-height: 1;
+    border: 1px solid rgba(255,255,255,0.2);
+}
+.teacher-boon-student-rank--medal {
+    font-size: 1rem;
+    background: none;
+    border: none;
+}
+.teacher-boon-student-rank--number {
+    background: rgba(255,255,255,0.12);
+    color: rgba(255,255,255,0.8);
+    font-family: 'Fredoka One', cursive;
+    font-size: 0.7rem;
+    padding: 0 0.3rem;
+}
+
+/* Avatar */
 .teacher-boon-student-avatar {
     position: relative;
     z-index: 1;
-    width: 3.7rem;
-    height: 3.7rem;
-    border-radius: 1.15rem;
+    width: 4.4rem;
+    height: 4.4rem;
+    border-radius: 50%;
     object-fit: cover;
-    border: 3px solid rgba(255,255,255,0.75);
-    box-shadow: 0 10px 20px rgba(15, 23, 42, 0.25);
+    border: 3px solid rgba(255,255,255,0.65);
+    box-shadow: 0 8px 20px rgba(15, 23, 42, 0.3);
+    transition: border-color 200ms ease, box-shadow 200ms ease;
 }
-
+.teacher-boon-student-btn.is-selected .teacher-boon-student-avatar {
+    border-color: rgba(251,191,36,0.8);
+    box-shadow: 0 6px 24px rgba(251,191,36,0.3), 0 0 16px rgba(251,191,36,0.15);
+}
 .teacher-boon-student-avatar--placeholder {
     display: grid;
     place-items: center;
     background: linear-gradient(135deg, #f472b6, #8b5cf6);
     font-family: 'Fredoka One', cursive;
+    font-size: 1.4rem;
 }
 
-.teacher-boon-student-meta {
-    position: relative;
-    z-index: 1;
-    min-width: 0;
-    flex: 1;
-}
-
+/* Student Meta */
 .teacher-boon-student-name {
-    font-weight: 800;
-}
-
-.teacher-boon-student-stats {
-    margin-top: 0.2rem;
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.35rem 0.75rem;
-    font-size: 0.78rem;
-    color: rgba(255,255,255,0.72);
-}
-
-.teacher-boon-student-select {
-    position: relative;
-    z-index: 1;
-    border-radius: 9999px;
-    background: rgba(255,255,255,0.1);
-    padding: 0.35rem 0.7rem;
-    font-size: 0.7rem;
-    font-weight: 800;
-    letter-spacing: 0.12em;
-    text-transform: uppercase;
-}
-
-.teacher-boon-grid {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 1rem;
-}
-
-.teacher-boon-stars,
-.teacher-boon-presets {
-    display: grid;
-    gap: 0.7rem;
-}
-
-.teacher-boon-star-btn,
-.teacher-boon-preset-btn {
-    border: 1px solid rgba(255,255,255,0.14);
-    border-radius: 1.15rem;
-    background: rgba(255,255,255,0.08);
-    color: white;
-    padding: 0.95rem 1rem;
-    text-align: left;
-    transition: transform 160ms ease, border-color 160ms ease, background 160ms ease;
-}
-
-.teacher-boon-star-btn:hover:not(:disabled),
-.teacher-boon-preset-btn:hover:not(:disabled),
-.teacher-boon-star-btn.is-selected,
-.teacher-boon-preset-btn.is-selected {
-    transform: translateY(-2px);
-    border-color: rgba(251,191,36,0.75);
-    background: rgba(255,255,255,0.14);
-}
-
-.teacher-boon-star-btn:disabled,
-.teacher-boon-preset-btn:disabled {
-    cursor: default;
-}
-
-.teacher-boon-star-btn-label {
-    display: block;
-    font-weight: 800;
-}
-
-.teacher-boon-star-btn-stars {
-    display: block;
-    margin-top: 0.25rem;
-    font-size: 1.05rem;
-}
-
-.teacher-boon-preset-btn {
-    display: flex;
-    align-items: center;
-    gap: 0.7rem;
-    font-weight: 700;
-}
-
-.teacher-boon-preset-icon {
-    width: 2rem;
-    height: 2rem;
-    border-radius: 9999px;
-    display: grid;
-    place-items: center;
-    background: rgba(255,255,255,0.12);
-    flex-shrink: 0;
-}
-
-.teacher-boon-custom-label {
-    display: block;
-    margin: 0.9rem 0 0.35rem;
-    font-size: 0.8rem;
-    font-weight: 700;
-    color: rgba(255,255,255,0.76);
-}
-
-.teacher-boon-custom-reason {
-    width: 100%;
-    border: 1px solid rgba(255,255,255,0.16);
-    border-radius: 1.15rem;
-    background: rgba(15, 23, 42, 0.34);
-    color: white;
-    padding: 0.9rem 1rem;
-    resize: vertical;
-    min-height: 5.6rem;
-}
-
-.teacher-boon-custom-reason:disabled {
-    opacity: 0.7;
-}
-
-.teacher-boon-summary-card {
-    border-radius: 1.5rem;
-    background: linear-gradient(135deg, rgba(251,191,36,0.16), rgba(255,255,255,0.12));
-    border: 1px solid rgba(251,191,36,0.3);
-    padding: 1.1rem 1.15rem;
-}
-
-.teacher-boon-summary-card--empty {
-    background: rgba(255,255,255,0.08);
-    border-color: rgba(255,255,255,0.14);
-}
-
-.teacher-boon-summary-name {
-    margin-top: 0.4rem;
     font-family: 'Fredoka One', cursive;
-    font-size: 1.5rem;
+    font-size: 0.88rem;
+    line-height: 1.15;
+    margin-top: 0.15rem;
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
-
-.teacher-boon-summary-stars {
-    margin-top: 0.3rem;
-    font-size: 0.9rem;
-    font-weight: 800;
+.teacher-boon-student-stats {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    padding: 0.2rem 0.55rem;
+    border-radius: 9999px;
+    background: rgba(251,191,36,0.12);
+    border: 1px solid rgba(251,191,36,0.2);
+    font-size: 0.7rem;
+    font-weight: 700;
     color: #fcd34d;
 }
 
-.teacher-boon-summary-reason {
-    margin-top: 0.55rem;
-    font-size: 0.95rem;
-    line-height: 1.45;
-    color: rgba(255,255,255,0.86);
+/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+   TEACHER BOON — Two-Column Grid (Stars + Presets)
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
+.teacher-boon-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 1.2rem;
 }
 
-.teacher-boon-summary-date {
-    margin-top: 0.55rem;
-    font-size: 0.76rem;
-    letter-spacing: 0.12em;
+/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+   TEACHER BOON — Star Orbs
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
+.teacher-boon-stars {
+    display: flex;
+    gap: 0.8rem;
+}
+.teacher-boon-star-btn {
+    position: relative;
+    flex: 1;
+    border: 2px solid rgba(251,191,36,0.18);
+    border-radius: 1.4rem;
+    background:
+        radial-gradient(circle at 50% 30%, rgba(251,191,36,0.08), rgba(251,191,36,0) 70%),
+        rgba(15, 23, 42, 0.35);
+    color: white;
+    padding: 1rem 0.6rem;
+    text-align: center;
+    cursor: pointer;
+    transition: transform 300ms cubic-bezier(0.34, 1.56, 0.64, 1),
+                border-color 200ms ease,
+                box-shadow 300ms ease,
+                background 200ms ease;
+    overflow: hidden;
+}
+.teacher-boon-star-btn::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: 1.4rem;
+    background: radial-gradient(circle at 50% 50%, rgba(251,191,36,0.2), rgba(251,191,36,0) 70%);
+    opacity: 0;
+    transition: opacity 300ms ease;
+}
+.teacher-boon-star-btn:hover:not(:disabled) {
+    transform: translateY(-3px) scale(1.05);
+    border-color: rgba(251,191,36,0.55);
+    box-shadow: 0 12px 28px rgba(251,191,36,0.2);
+}
+.teacher-boon-star-btn:hover:not(:disabled)::before {
+    opacity: 1;
+}
+.teacher-boon-star-btn.is-selected {
+    transform: translateY(-3px) scale(1.07);
+    border-color: rgba(251,191,36,0.85);
+    background:
+        radial-gradient(circle at 50% 30%, rgba(251,191,36,0.22), rgba(251,191,36,0) 70%),
+        rgba(15, 23, 42, 0.5);
+    box-shadow:
+        0 0 0 3px rgba(251,191,36,0.2),
+        0 14px 36px rgba(251,191,36,0.25),
+        0 0 22px rgba(251,191,36,0.15);
+    animation: teacher-boon-star-selected 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+.teacher-boon-star-btn.is-selected::before {
+    opacity: 1;
+}
+@keyframes teacher-boon-star-selected {
+    0% { transform: translateY(-3px) scale(0.92); }
+    60% { transform: translateY(-3px) scale(1.1); }
+    100% { transform: translateY(-3px) scale(1.07); }
+}
+.teacher-boon-star-btn:disabled {
+    cursor: default;
+}
+.teacher-boon-star-btn-label {
+    position: relative;
+    z-index: 1;
+    display: block;
+    font-weight: 800;
+    font-size: 0.82rem;
     text-transform: uppercase;
-    color: rgba(255,255,255,0.64);
+    letter-spacing: 0.08em;
+}
+.teacher-boon-star-btn-stars {
+    position: relative;
+    z-index: 1;
+    display: block;
+    margin-top: 0.35rem;
+    font-size: 1.3rem;
+    transition: transform 200ms ease;
+}
+.teacher-boon-star-btn.is-selected .teacher-boon-star-btn-stars {
+    animation: teacher-boon-star-bounce 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+@keyframes teacher-boon-star-bounce {
+    0% { transform: scale(0.7); }
+    60% { transform: scale(1.2); }
+    100% { transform: scale(1); }
 }
 
+/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+   TEACHER BOON — Virtue Cards (Presets)
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
+.teacher-boon-presets {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0.65rem;
+}
+.teacher-boon-preset-btn {
+    position: relative;
+    border: 2px solid rgba(255,255,255,0.1);
+    border-radius: 1.2rem;
+    background: rgba(255,255,255,0.05);
+    color: white;
+    padding: 0.75rem 0.5rem;
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.35rem;
+    font-weight: 700;
+    font-size: 0.78rem;
+    cursor: pointer;
+    transition: transform 300ms cubic-bezier(0.34, 1.56, 0.64, 1),
+                border-color 200ms ease,
+                box-shadow 300ms ease,
+                background 200ms ease;
+    overflow: hidden;
+}
+.teacher-boon-preset-btn:hover:not(:disabled) {
+    transform: translateY(-3px) scale(1.04);
+    border-color: rgba(255,255,255,0.3);
+    box-shadow: 0 10px 24px rgba(124,58,237,0.2);
+    background: rgba(255,255,255,0.1);
+}
+.teacher-boon-preset-btn.is-selected {
+    transform: translateY(-3px) scale(1.06);
+    box-shadow:
+        0 0 0 2px rgba(255,255,255,0.15),
+        0 12px 32px rgba(124,58,237,0.25);
+    animation: teacher-boon-virtue-pop 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+/* Per-preset accent colors on selection */
+.teacher-boon-preset-btn.is-selected[data-teacher-boon-preset="leadership"]       { border-color: #f472b6; box-shadow: 0 0 0 2px rgba(244,114,182,0.2), 0 12px 32px rgba(244,114,182,0.2); background: rgba(244,114,182,0.12); }
+.teacher-boon-preset-btn.is-selected[data-teacher-boon-preset="perseverance"]     { border-color: #fb923c; box-shadow: 0 0 0 2px rgba(251,146,60,0.2), 0 12px 32px rgba(251,146,60,0.2); background: rgba(251,146,60,0.12); }
+.teacher-boon-preset-btn.is-selected[data-teacher-boon-preset="kindness"]         { border-color: #f9a8d4; box-shadow: 0 0 0 2px rgba(249,168,212,0.2), 0 12px 32px rgba(249,168,212,0.2); background: rgba(249,168,212,0.12); }
+.teacher-boon-preset-btn.is-selected[data-teacher-boon-preset="bravery"]          { border-color: #38bdf8; box-shadow: 0 0 0 2px rgba(56,189,248,0.2), 0 12px 32px rgba(56,189,248,0.2); background: rgba(56,189,248,0.12); }
+.teacher-boon-preset-btn.is-selected[data-teacher-boon-preset="helping_others"]   { border-color: #34d399; box-shadow: 0 0 0 2px rgba(52,211,153,0.2), 0 12px 32px rgba(52,211,153,0.2); background: rgba(52,211,153,0.12); }
+.teacher-boon-preset-btn.is-selected[data-teacher-boon-preset="remarkable_growth"]{ border-color: #a78bfa; box-shadow: 0 0 0 2px rgba(167,139,250,0.2), 0 12px 32px rgba(167,139,250,0.2); background: rgba(167,139,250,0.12); }
+
+@keyframes teacher-boon-virtue-pop {
+    0% { transform: translateY(-3px) scale(0.9); }
+    60% { transform: translateY(-3px) scale(1.09); }
+    100% { transform: translateY(-3px) scale(1.06); }
+}
+.teacher-boon-preset-btn:disabled {
+    cursor: default;
+}
+.teacher-boon-preset-icon {
+    width: 2.4rem;
+    height: 2.4rem;
+    border-radius: 9999px;
+    display: grid;
+    place-items: center;
+    background: rgba(255,255,255,0.1);
+    font-size: 1.15rem;
+    border: 1px solid rgba(255,255,255,0.08);
+    transition: box-shadow 200ms ease, transform 200ms ease;
+}
+.teacher-boon-preset-btn.is-selected .teacher-boon-preset-icon {
+    box-shadow: 0 0 12px rgba(255,255,255,0.15);
+    transform: scale(1.08);
+}
+
+/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+   TEACHER BOON — Custom Reason
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
+.teacher-boon-custom-label {
+    display: block;
+    margin: 0.8rem 0 0.3rem;
+    font-size: 0.78rem;
+    font-weight: 700;
+    color: rgba(255,255,255,0.68);
+}
+.teacher-boon-custom-reason {
+    width: 100%;
+    border: 1px solid rgba(255,255,255,0.12);
+    border-radius: 1rem;
+    background: rgba(15, 23, 42, 0.4);
+    color: white;
+    padding: 0.75rem 0.9rem;
+    resize: vertical;
+    min-height: 3.6rem;
+    font-size: 0.88rem;
+    transition: border-color 200ms ease, box-shadow 200ms ease;
+}
+.teacher-boon-custom-reason:focus {
+    outline: none;
+    border-color: rgba(167,139,250,0.5);
+    box-shadow: 0 0 0 3px rgba(167,139,250,0.12);
+}
+.teacher-boon-custom-reason:disabled {
+    opacity: 0.6;
+}
+
+/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+   TEACHER BOON — Summary / Ceremony Preview
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
+.teacher-boon-summary-card {
+    position: relative;
+    border-radius: 1.5rem;
+    padding: 1.2rem 1.3rem;
+    text-align: center;
+    overflow: hidden;
+    background:
+        radial-gradient(circle at 50% 0%, rgba(251,191,36,0.14), rgba(251,191,36,0) 50%),
+        linear-gradient(135deg, rgba(124,58,237,0.15), rgba(236,72,153,0.1));
+    border: 1px solid rgba(251,191,36,0.28);
+    transition: box-shadow 400ms ease, border-color 300ms ease;
+}
+.teacher-boon-summary-card--ready {
+    border-color: rgba(251,191,36,0.55);
+    box-shadow: 0 0 24px rgba(251,191,36,0.15);
+    animation: teacher-boon-ready-pulse 2.5s ease-in-out infinite;
+}
+@keyframes teacher-boon-ready-pulse {
+    0%, 100% { box-shadow: 0 0 24px rgba(251,191,36,0.12); }
+    50% { box-shadow: 0 0 36px rgba(251,191,36,0.25); }
+}
+.teacher-boon-summary-card--empty {
+    background: rgba(255,255,255,0.05);
+    border-color: rgba(255,255,255,0.1);
+    text-align: center;
+}
+.teacher-boon-summary-avatar {
+    width: 3.4rem;
+    height: 3.4rem;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 3px solid rgba(251,191,36,0.6);
+    margin: 0 auto 0.5rem;
+    display: block;
+    box-shadow: 0 4px 16px rgba(251,191,36,0.2);
+}
+.teacher-boon-summary-avatar--placeholder {
+    display: grid;
+    place-items: center;
+    background: linear-gradient(135deg, #f472b6, #8b5cf6);
+    font-family: 'Fredoka One', cursive;
+    font-size: 1.2rem;
+    color: white;
+}
+.teacher-boon-summary-name {
+    font-family: 'Fredoka One', cursive;
+    font-size: 1.55rem;
+    background: linear-gradient(135deg, #fcd34d, #f472b6);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+.teacher-boon-summary-stars {
+    margin-top: 0.35rem;
+    font-size: 1.2rem;
+    letter-spacing: 0.15em;
+    transition: transform 200ms ease;
+}
+.teacher-boon-summary-stars .teacher-boon-summary-star-icon {
+    display: inline-block;
+    animation: teacher-boon-summary-star-pop 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) backwards;
+}
+.teacher-boon-summary-stars .teacher-boon-summary-star-icon:nth-child(1) { animation-delay: 0s; }
+.teacher-boon-summary-stars .teacher-boon-summary-star-icon:nth-child(2) { animation-delay: 0.1s; }
+.teacher-boon-summary-stars .teacher-boon-summary-star-icon:nth-child(3) { animation-delay: 0.2s; }
+@keyframes teacher-boon-summary-star-pop {
+    from { opacity: 0; transform: scale(0.3) rotate(-15deg); }
+}
+.teacher-boon-summary-reason {
+    margin-top: 0.6rem;
+    font-size: 0.92rem;
+    line-height: 1.45;
+    color: rgba(255,255,255,0.84);
+    font-style: italic;
+}
+.teacher-boon-summary-virtue-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    padding: 0.2rem 0.65rem;
+    border-radius: 9999px;
+    background: rgba(255,255,255,0.1);
+    border: 1px solid rgba(255,255,255,0.15);
+    font-size: 0.75rem;
+    font-weight: 700;
+    margin-top: 0.5rem;
+}
+.teacher-boon-summary-date {
+    margin-top: 0.5rem;
+    font-size: 0.72rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: rgba(255,255,255,0.55);
+}
+
+/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+   TEACHER BOON — Footer
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
 .teacher-boon-footer {
     display: flex;
     justify-content: flex-end;
     gap: 0.75rem;
-    padding: 1rem 1.6rem 1.4rem;
+    padding: 0.8rem 1.6rem 1.3rem;
+    border-top: 1px solid rgba(255,255,255,0.06);
 }
-
 .teacher-boon-cancel-btn,
 .teacher-boon-confirm-btn {
     border: 0;
     border-radius: 9999px;
     padding: 0.95rem 1.3rem;
     font-weight: 800;
-    transition: transform 160ms ease, filter 160ms ease, opacity 160ms ease;
+    cursor: pointer;
+    transition: transform 200ms cubic-bezier(0.34, 1.56, 0.64, 1),
+                filter 160ms ease,
+                opacity 160ms ease,
+                box-shadow 200ms ease;
 }
-
 .teacher-boon-cancel-btn {
-    background: rgba(255,255,255,0.12);
+    background: rgba(255,255,255,0.08);
+    border: 1px solid rgba(255,255,255,0.12);
     color: white;
 }
-
+.teacher-boon-cancel-btn:hover {
+    background: rgba(255,255,255,0.14);
+    transform: translateY(-1px);
+}
 .teacher-boon-confirm-btn {
-    background: linear-gradient(135deg, #f97316, #ec4899);
+    position: relative;
+    overflow: hidden;
+    background: linear-gradient(135deg, #f97316, #ec4899, #7c3aed);
+    background-size: 200% 100%;
     color: white;
     min-width: 15rem;
     box-shadow: 0 16px 28px rgba(236, 72, 153, 0.24);
+    animation: teacher-boon-confirm-shimmer 4s ease infinite;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
 }
-
+.teacher-boon-confirm-btn__glow {
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(circle at 30% 50%, rgba(255,255,255,0.2), rgba(255,255,255,0) 60%);
+    pointer-events: none;
+}
+@keyframes teacher-boon-confirm-shimmer {
+    0%, 100% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+}
 .teacher-boon-confirm-btn:disabled {
-    opacity: 0.5;
+    opacity: 0.45;
     box-shadow: none;
+    animation: none;
 }
-
-.teacher-boon-cancel-btn:hover,
 .teacher-boon-confirm-btn:hover:not(:disabled) {
-    transform: translateY(-1px);
+    transform: translateY(-2px) scale(1.03);
+    box-shadow: 0 20px 36px rgba(236, 72, 153, 0.3);
 }
 
+/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+   TEACHER BOON — Empty State
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
 .teacher-boon-empty-state {
     border-radius: 1.4rem;
-    border: 1px dashed rgba(255,255,255,0.18);
-    padding: 1.4rem;
+    border: 2px dashed rgba(255,255,255,0.14);
+    padding: 1.8rem 1.4rem;
     text-align: center;
-    color: rgba(255,255,255,0.78);
-    background: rgba(255,255,255,0.06);
+    color: rgba(255,255,255,0.7);
+    background: rgba(255,255,255,0.04);
 }
-
 .teacher-boon-empty-icon {
-    font-size: 2.4rem;
-    margin-bottom: 0.45rem;
+    font-size: 2.8rem;
+    margin-bottom: 0.5rem;
+    animation: teacher-boon-float 4s ease-in-out infinite;
 }
-
 .teacher-boon-empty-title {
-    font-weight: 800;
+    font-family: 'Fredoka One', cursive;
+    font-size: 1.05rem;
 }
-
 .teacher-boon-empty-copy {
-    margin-top: 0.25rem;
-    font-size: 0.9rem;
+    margin-top: 0.3rem;
+    font-size: 0.88rem;
 }
 
+/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+   TEACHER BOON — Success Overlay & Confetti
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
 .teacher-boon-success-overlay {
     position: absolute;
     inset: 0;
     z-index: 5;
     display: grid;
     place-items: center;
-    background: rgba(15, 23, 42, 0.46);
+    background: rgba(15, 23, 42, 0.55);
+    backdrop-filter: blur(4px);
     opacity: 0;
     pointer-events: none;
-    transition: opacity 220ms ease;
+    transition: opacity 300ms ease;
 }
-
 .teacher-boon-success-overlay--visible {
     opacity: 1;
+    pointer-events: auto;
 }
-
 .teacher-boon-success-overlay__burst {
     position: absolute;
-    width: 20rem;
-    height: 20rem;
+    width: 24rem;
+    height: 24rem;
     border-radius: 9999px;
-    background: radial-gradient(circle, rgba(251,191,36,0.5), rgba(251,191,36,0));
-    animation: teacher-boon-burst 1.2s ease-in-out infinite;
+    background: radial-gradient(circle, rgba(251,191,36,0.5), rgba(244,114,182,0.2) 50%, rgba(251,191,36,0) 70%);
+    animation: teacher-boon-burst 1.5s ease-in-out infinite;
 }
-
 .teacher-boon-success-overlay__card {
     position: relative;
-    width: min(24rem, 84vw);
+    width: min(26rem, 86vw);
     text-align: center;
-    border-radius: 1.8rem;
-    padding: 1.5rem 1.2rem;
-    background: linear-gradient(135deg, rgba(251,191,36,0.92), rgba(244,114,182,0.92));
+    border-radius: 2rem;
+    padding: 2rem 1.5rem;
+    background:
+        radial-gradient(circle at 50% 0%, rgba(255,255,255,0.15), rgba(255,255,255,0) 50%),
+        linear-gradient(135deg, rgba(251,191,36,0.92), rgba(244,114,182,0.92));
     color: white;
-    box-shadow: 0 28px 60px rgba(15, 23, 42, 0.28);
+    box-shadow:
+        0 32px 70px rgba(15, 23, 42, 0.35),
+        0 0 40px rgba(251,191,36,0.2);
+    animation: teacher-boon-success-card-in 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) 0.1s backwards;
 }
-
+@keyframes teacher-boon-success-card-in {
+    from { opacity: 0; transform: scale(0.8) translateY(20px); }
+}
 .teacher-boon-success-overlay__icon {
-    font-size: 2.2rem;
-    margin-bottom: 0.45rem;
+    font-size: 3rem;
+    margin-bottom: 0.5rem;
+    animation: teacher-boon-float 3s ease-in-out infinite;
 }
-
 .teacher-boon-success-overlay__title {
     font-family: 'Fredoka One', cursive;
-    font-size: 1.8rem;
+    font-size: 2rem;
 }
-
 .teacher-boon-success-overlay__copy {
-    margin-top: 0.35rem;
+    margin-top: 0.4rem;
     font-weight: 600;
+    font-size: 0.95rem;
+    opacity: 0.9;
 }
 
+/* Confetti */
+.teacher-boon-success-confetti {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    overflow: hidden;
+}
+.teacher-boon-confetti {
+    position: absolute;
+    width: 8px;
+    height: 8px;
+    border-radius: 2px;
+    top: -10px;
+    animation: teacher-boon-confetti-fall 2.5s ease-in forwards;
+    opacity: 0;
+}
+.teacher-boon-success-overlay--visible .teacher-boon-confetti {
+    opacity: 1;
+}
+.teacher-boon-confetti--1  { left: 8%;  background: #fbbf24; animation-delay: 0.1s; animation-duration: 2.2s; }
+.teacher-boon-confetti--2  { left: 18%; background: #f472b6; animation-delay: 0.3s; animation-duration: 2.6s; }
+.teacher-boon-confetti--3  { left: 30%; background: #a78bfa; animation-delay: 0.15s; animation-duration: 2.4s; }
+.teacher-boon-confetti--4  { left: 42%; background: #34d399; animation-delay: 0.45s; animation-duration: 2.1s; }
+.teacher-boon-confetti--5  { left: 54%; background: #38bdf8; animation-delay: 0.2s; animation-duration: 2.7s; }
+.teacher-boon-confetti--6  { left: 64%; background: #fbbf24; animation-delay: 0.5s; animation-duration: 2.3s; }
+.teacher-boon-confetti--7  { left: 74%; background: #f472b6; animation-delay: 0.35s; animation-duration: 2.5s; }
+.teacher-boon-confetti--8  { left: 84%; background: #a78bfa; animation-delay: 0.25s; animation-duration: 2.0s; }
+.teacher-boon-confetti--9  { left: 38%; background: #fb923c; animation-delay: 0.55s; animation-duration: 2.8s; }
+.teacher-boon-confetti--10 { left: 92%; background: #34d399; animation-delay: 0.4s; animation-duration: 2.2s; }
+@keyframes teacher-boon-confetti-fall {
+    0%   { transform: translateY(0) rotate(0deg); opacity: 1; }
+    100% { transform: translateY(calc(100vh)) rotate(720deg); opacity: 0.3; }
+}
+
+/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+   TEACHER BOON — Prodigy Count (kept)
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
 .teacher-boon-prodigy-count {
     display: inline-flex;
     align-items: baseline;
@@ -639,14 +1102,12 @@
     background: rgba(251, 191, 36, 0.12);
     box-shadow: 0 10px 24px rgba(251, 191, 36, 0.16);
 }
-
 .teacher-boon-prodigy-count__value {
     font-family: 'Fredoka One', cursive;
     font-size: 1.15rem;
     line-height: 1;
     color: #fbbf24;
 }
-
 .teacher-boon-prodigy-count__label {
     font-size: 0.74rem;
     font-weight: 800;
@@ -655,14 +1116,23 @@
     color: rgba(255,255,255,0.82);
 }
 
+/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+   TEACHER BOON — Keyframes
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
 @keyframes teacher-boon-burst {
-    0%, 100% { transform: scale(0.9); opacity: 0.65; }
-    50% { transform: scale(1.08); opacity: 1; }
+    0%, 100% { transform: scale(0.85); opacity: 0.6; }
+    50% { transform: scale(1.15); opacity: 1; }
 }
 
+/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+   TEACHER BOON — Responsive
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
 @media (max-width: 900px) {
     .teacher-boon-grid {
         grid-template-columns: 1fr;
+    }
+    .teacher-boon-presets {
+        grid-template-columns: repeat(3, 1fr);
     }
 }
 
@@ -670,17 +1140,24 @@
     .teacher-boon-shell {
         width: 100%;
         max-height: 94vh;
+        border-radius: 1.5rem;
     }
-
     .teacher-boon-header {
         padding-top: 1.4rem;
         padding-right: 3.6rem;
     }
-
+    .teacher-boon-student-btn {
+        flex: 0 0 9.5rem;
+    }
+    .teacher-boon-presets {
+        grid-template-columns: repeat(2, 1fr);
+    }
+    .teacher-boon-stars {
+        flex-direction: column;
+    }
     .teacher-boon-footer {
         flex-direction: column-reverse;
     }
-
     .teacher-boon-confirm-btn {
         min-width: 0;
         width: 100%;

@@ -33,9 +33,12 @@ export const awardTabHTML = `
                         <button id="open-teacher-boon-btn"
                             class="teacher-boon-launch-btn hidden"
                             type="button"
-                            title="Bestow the monthly Teacher Boon">
+                            title="Teacher Boon">
+                            <span class="teacher-boon-launch-btn__glow" aria-hidden="true"></span>
+                            <span class="teacher-boon-launch-btn__sparkle teacher-boon-launch-btn__sparkle--a" aria-hidden="true">✦</span>
+                            <span class="teacher-boon-launch-btn__sparkle teacher-boon-launch-btn__sparkle--b" aria-hidden="true">✧</span>
+                            <span class="teacher-boon-launch-btn__sparkle teacher-boon-launch-btn__sparkle--c" aria-hidden="true">✦</span>
                             <span class="teacher-boon-launch-btn__shimmer" aria-hidden="true"></span>
-                            <span class="teacher-boon-launch-btn__orb" aria-hidden="true"></span>
                             <i class="fas fa-wand-magic-sparkles teacher-boon-launch-btn__icon" aria-hidden="true"></i>
                             <span class="teacher-boon-launch-btn__label">Teacher Boon</span>
                         </button>

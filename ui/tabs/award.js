@@ -6,7 +6,7 @@ import { getGuildBadgeHtml } from '../../features/guilds.js';
 import { getHeroTitle, HERO_SKILL_TREE } from '../../features/heroSkillTree.js';
 import { canUseFeature } from '../../utils/subscription.js';
 import { getNormalizedPercentForScore } from '../../features/assessmentConfig.js';
-import { getTeacherBoonForMonth } from '../../features/boons.js';
+import { getClassDataById, getTeacherBoonForMonth } from '../../features/boons.js';
 
 // --- REIGNING PRODIGY CACHE (previous month, with tie-breaker) ---
 let _awardProdigyCacheKey = null;
@@ -204,7 +204,7 @@ function renderTeacherBoonLaunchState(selectedClassId) {
         return;
     }
 
-    const classData = state.get('allSchoolClasses').find((item) => item.id === selectedClassId);
+    const classData = getClassDataById(selectedClassId);
     const existingBoon = classData ? getTeacherBoonForMonth(classData, utils.getLocalMonthKey()) : null;
 
     // Hide completely once the boon has been bestowed this month

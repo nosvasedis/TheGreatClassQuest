@@ -433,8 +433,8 @@ export const miscModalsHTML = `
                 </div>
                 <div class="teacher-boon-success-overlay__card">
                     <div class="teacher-boon-success-overlay__icon">✨</div>
-                    <div class="teacher-boon-success-overlay__title">Boon Bestowed!</div>
-                    <div class="teacher-boon-success-overlay__copy">The ceremony scroll has been sealed with magic.</div>
+                    <div class="teacher-boon-success-overlay__title">Teacher Boon</div>
+                    <div class="teacher-boon-success-overlay__copy">Saved.</div>
                 </div>
             </div>
 
@@ -446,7 +446,6 @@ export const miscModalsHTML = `
                     <span class="teacher-boon-header__crest-ring"></span>
                 </div>
                 <div class="teacher-boon-header__text">
-                    <div class="teacher-boon-header__eyebrow">Teacher&apos;s Choice</div>
                     <h2 class="teacher-boon-header__title">Teacher Boon</h2>
                     <p id="teacher-boon-class-name" class="teacher-boon-header__class">Selected class</p>
                 </div>
@@ -457,10 +456,9 @@ export const miscModalsHTML = `
 
                 <section class="teacher-boon-section teacher-boon-entrance teacher-boon-entrance--3">
                     <div class="teacher-boon-section__heading">
-                        <span class="teacher-boon-section__icon">⚔️</span>
+                        <span class="teacher-boon-section__icon">⭐</span>
                         <div>
-                            <div class="teacher-boon-section__eyebrow">Quest Leaderboard</div>
-                            <h3 class="teacher-boon-section__title">Choose Your Champion</h3>
+                            <h3 class="teacher-boon-section__title">Student</h3>
                         </div>
                     </div>
                     <div class="teacher-boon-carousel-wrapper">
@@ -479,8 +477,7 @@ export const miscModalsHTML = `
                         <div class="teacher-boon-section__heading">
                             <span class="teacher-boon-section__icon">✦</span>
                             <div>
-                                <div class="teacher-boon-section__eyebrow">Power Level</div>
-                                <h3 class="teacher-boon-section__title">Award Stars</h3>
+                                <h3 class="teacher-boon-section__title">Stars</h3>
                             </div>
                         </div>
                         <div id="teacher-boon-stars" class="teacher-boon-stars"></div>
@@ -488,24 +485,22 @@ export const miscModalsHTML = `
 
                     <section class="teacher-boon-section">
                         <div class="teacher-boon-section__heading">
-                            <span class="teacher-boon-section__icon">🏛️</span>
+                            <span class="teacher-boon-section__icon">💫</span>
                             <div>
-                                <div class="teacher-boon-section__eyebrow">Virtue</div>
-                                <h3 class="teacher-boon-section__title">Choose the Virtue</h3>
+                                <h3 class="teacher-boon-section__title">Reason</h3>
                             </div>
                         </div>
                         <div id="teacher-boon-presets" class="teacher-boon-presets"></div>
-                        <label class="teacher-boon-custom-label" for="teacher-boon-custom-reason">✎ Custom inscription (optional)</label>
-                        <textarea id="teacher-boon-custom-reason" class="teacher-boon-custom-reason" rows="2" placeholder="Write your own legendary reason..."></textarea>
+                        <label class="teacher-boon-custom-label" for="teacher-boon-custom-reason">Note (optional)</label>
+                        <textarea id="teacher-boon-custom-reason" class="teacher-boon-custom-reason" rows="2" placeholder="Add a short note…"></textarea>
                     </section>
                 </div>
 
                 <section class="teacher-boon-section teacher-boon-entrance teacher-boon-entrance--5">
                     <div class="teacher-boon-section__heading">
-                        <span class="teacher-boon-section__icon">🔮</span>
+                        <span class="teacher-boon-section__icon">🌟</span>
                         <div>
-                            <div class="teacher-boon-section__eyebrow">The Prophecy</div>
-                            <h3 class="teacher-boon-section__title">Ceremony Preview</h3>
+                            <h3 class="teacher-boon-section__title">Teacher Boon</h3>
                         </div>
                     </div>
                     <div id="teacher-boon-selected-summary"></div>
@@ -517,7 +512,7 @@ export const miscModalsHTML = `
                 <button id="teacher-boon-confirm-btn" class="teacher-boon-confirm-btn" type="button">
                     <span class="teacher-boon-confirm-btn__glow"></span>
                     <i class="fas fa-wand-magic-sparkles"></i>
-                    Bestow Monthly Boon
+                    Bestow Teacher Boon
                 </button>
             </div>
         </div>

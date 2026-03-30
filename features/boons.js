@@ -26,6 +26,14 @@ export function getTeacherBoonForMonth(classData, monthKey = utils.getLocalMonth
     return classData?.teacherBoons?.[monthKey] || null;
 }
 
+/** Prefer school list, then the teacher’s class list (same fields, avoids stale slice edge cases). */
+export function getClassDataById(classId) {
+    if (!classId) return null;
+    const schoolClasses = state.get('allSchoolClasses') || [];
+    const teachersClasses = state.get('allTeachersClasses') || [];
+    return schoolClasses.find((c) => c.id === classId) || teachersClasses.find((c) => c.id === classId) || null;
+}
+
 export function formatTeacherBoonReason(boon) {
     return String(boon?.reasonText || boon?.presetLabel || '').trim();
 }

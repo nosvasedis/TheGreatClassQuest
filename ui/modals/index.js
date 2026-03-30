@@ -16,3 +16,4 @@ export * from './rankings.js';
 export * from './trophyRoom.js';
 export * from './sortingQuiz.js';
 export * from './guildHeroes.js';
+export * from './teacherBoon.js';

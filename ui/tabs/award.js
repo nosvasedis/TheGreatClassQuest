@@ -6,6 +6,7 @@ import { getGuildBadgeHtml } from '../../features/guilds.js';
 import { getHeroTitle, HERO_SKILL_TREE } from '../../features/heroSkillTree.js';
 import { canUseFeature } from '../../utils/subscription.js';
 import { getNormalizedPercentForScore } from '../../features/assessmentConfig.js';
+import { getTeacherBoonForMonth } from '../../features/boons.js';
 
 // --- REIGNING PRODIGY CACHE (previous month, with tie-breaker) ---
 let _awardProdigyCacheKey = null;
@@ -13,6 +14,7 @@ let _awardProdigyCache = {}; // classId -> Set<studentId>
 let awardVisualSessionId = 0;
 let awardVisualClassId = null;
 const awardVisualCache = new Map();
+const awardStudentOrderCache = new Map();
 
 async function getReigningProdigyForClass(classId) {
     const now = new Date();
@@ -171,6 +173,56 @@ function getAwardAttendanceState(studentId) {
     };
 }
 
+function cacheAwardStudentOrder(classId, students) {
+    if (!classId) return;
+    awardStudentOrderCache.set(classId, students.map((student) => student.id));
+}
+
+function sortStudentsByAwardOrder(classId, students) {
+    const cachedOrder = awardStudentOrderCache.get(classId);
+    if (!cachedOrder?.length) {
+        cacheAwardStudentOrder(classId, students);
+        return students;
+    }
+
+    const orderIndex = new Map(cachedOrder.map((studentId, index) => [studentId, index]));
+    return [...students].sort((a, b) => {
+        const aIndex = orderIndex.has(a.id) ? orderIndex.get(a.id) : Number.MAX_SAFE_INTEGER;
+        const bIndex = orderIndex.has(b.id) ? orderIndex.get(b.id) : Number.MAX_SAFE_INTEGER;
+        if (aIndex !== bIndex) return aIndex - bIndex;
+        return a.name.localeCompare(b.name);
+    });
+}
+
+function renderTeacherBoonLaunchState(selectedClassId) {
+    const launchBtn = document.getElementById('open-teacher-boon-btn');
+    const launchBadge = document.getElementById('teacher-boon-launch-badge');
+    if (!launchBtn || !launchBadge) return;
+
+    const shouldShow = Boolean(selectedClassId) && utils.isTeacherBoonWindow();
+    launchBtn.classList.toggle('hidden', !shouldShow);
+
+    if (!shouldShow) {
+        launchBtn.classList.remove('is-bestowed');
+        launchBadge.classList.add('hidden');
+        return;
+    }
+
+    const classData = state.get('allSchoolClasses').find((item) => item.id === selectedClassId);
+    const existingBoon = classData ? getTeacherBoonForMonth(classData, utils.getLocalMonthKey()) : null;
+
+    launchBtn.classList.toggle('is-bestowed', Boolean(existingBoon));
+    launchBadge.classList.toggle('hidden', !existingBoon);
+    launchBtn.title = existingBoon
+        ? 'Open this month\'s recorded Teacher Boon'
+        : 'Bestow the monthly Teacher Boon';
+
+    const eyebrow = launchBtn.querySelector('.teacher-boon-launch-btn__eyebrow');
+    if (eyebrow) {
+        eyebrow.textContent = existingBoon ? 'Chronicle Sealed' : 'Monthly Magic';
+    }
+}
+
 function buildAbsenceControlsHtml({ isVisuallyAbsent, isMarkedAbsentToday, classHasLessonToday, isCardLocked }) {
     if (isVisuallyAbsent) {
         if (isMarkedAbsentToday) {
@@ -247,7 +299,10 @@ function applyAttendanceStateToCard(studentCard, studentId, reason = null, stars
     }
 }
 
-export function renderAwardStarsTab() {
+export function renderAwardStarsTab(options = {}) {
+    const { preserveStudentOrder = false } = typeof options === 'boolean'
+        ? { preserveStudentOrder: options }
+        : options;
     const dropdownList = document.getElementById('award-class-list');
     const studentListContainer = document.getElementById('award-stars-student-list');
     if (!dropdownList) return;
@@ -261,6 +316,7 @@ export function renderAwardStarsTab() {
         document.getElementById('selected-class-level').innerText = 'Create one in "My Classes"';
         document.getElementById('selected-class-logo').innerText = '😢';
         studentListContainer.innerHTML = `<p class="text-center text-gray-700 bg-white/70 backdrop-blur-sm p-4 rounded-2xl text-lg col-span-full">You must create a class first.</p>`;
+        renderTeacherBoonLaunchState(null);
         return;
     }
 
@@ -282,19 +338,22 @@ export function renderAwardStarsTab() {
             document.getElementById('selected-class-name').innerText = selectedClass.name;
             document.getElementById('selected-class-level').innerText = selectedClass.questLevel;
             document.getElementById('selected-class-logo').innerText = selectedClass.logo;
-            renderAwardStarsStudentList(selectedClassId);
+            renderTeacherBoonLaunchState(selectedClassId);
+            renderAwardStarsStudentList(selectedClassId, !preserveStudentOrder);
         } else {
             // Class might have been deleted but ID still in localStorage
             document.getElementById('selected-class-name').innerText = 'Select a class...';
             document.getElementById('selected-class-level').innerText = '';
             document.getElementById('selected-class-logo').innerText = '❓';
             studentListContainer.innerHTML = `<p class="text-center text-gray-700 bg-white/70 backdrop-blur-sm p-4 rounded-2xl text-lg col-span-full">Please select a class above to award stars.</p>`;
+            renderTeacherBoonLaunchState(null);
         }
     } else {
         document.getElementById('selected-class-name').innerText = 'Select a class...';
         document.getElementById('selected-class-level').innerText = '';
         document.getElementById('selected-class-logo').innerText = '❓';
         studentListContainer.innerHTML = `<p class="text-center text-gray-700 bg-white/70 backdrop-blur-sm p-4 rounded-2xl text-lg col-span-full">Please select a class above to award stars.</p>`;
+        renderTeacherBoonLaunchState(null);
     }
 }
 
@@ -319,6 +378,9 @@ export function renderAwardStarsStudentList(selectedClassId, fullRender = true) 
                 const j = Math.floor(Math.random() * (i + 1));
                 [studentsInClass[i], studentsInClass[j]] = [studentsInClass[j], studentsInClass[i]];
             }
+            cacheAwardStudentOrder(selectedClassId, studentsInClass);
+        } else {
+            studentsInClass = sortStudentsByAwardOrder(selectedClassId, studentsInClass);
         }
 
         if (studentsInClass.length === 0) {

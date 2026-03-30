@@ -287,7 +287,7 @@ export async function renderClassLeaderboardTab() {
             </div>`;
         }
 
-        const skillIcons = { teamwork: 'users', creativity: 'lightbulb', respect: 'hand-holding-heart', focus: 'brain', scholar_s_bonus: 'scroll', welcome_back: 'door-open' };
+        const skillIcons = { teamwork: 'users', creativity: 'lightbulb', respect: 'hand-holding-heart', focus: 'brain', scholar_s_bonus: 'scroll', welcome_back: 'door-open', teacher_boon: 'wand-magic-sparkles' };
         const skillName = c.topSkill.replace(/_/g, ' ');
 
         const avgStars = c.studentCount > 0 ? (c.currentMonthlyStars / c.studentCount).toFixed(1) : 0;
@@ -690,6 +690,7 @@ export async function renderStudentLeaderboardTab() {
         welcome_back: { icon: 'fa-hand-sparkles', color: 'bg-cyan-100 text-cyan-700', name: 'Back!' },
         story_weaver: { icon: 'fa-feather-alt', color: 'bg-cyan-100 text-cyan-700', name: 'Story' },
         scholar_s_bonus: { icon: 'fa-graduation-cap', color: 'bg-amber-100 text-amber-800', name: 'Scholar' },
+        teacher_boon: { icon: 'fa-wand-magic-sparkles', color: 'bg-fuchsia-100 text-fuchsia-700', name: 'Teacher Boon' },
         pathfinder_map: { icon: 'fa-map', color: 'bg-indigo-100 text-indigo-700', name: 'Pathfinder' }
     };
 

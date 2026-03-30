@@ -929,6 +929,123 @@ export function openZoneOverviewModal(zoneType) {
 
 // Local state for navigation
 let prodigyViewDate = new Date();
+const PRODIGY_ARCHIVE_START = new Date('2025-11-01');
+const prodigyCountsCache = new Map();
+
+function buildProdigyMonthOutcome(students, monthlyLogs, allScores, viewYear, viewMonthIndex) {
+    const studentStats = students.map((student) => {
+        const studentLogs = monthlyLogs.filter((log) => log.studentId === student.id);
+        const totalStars = studentLogs.reduce((sum, log) => sum + (Number(log.stars) || 0), 0);
+
+        let count3 = 0;
+        let count2 = 0;
+        const reasons = new Set();
+
+        studentLogs.forEach((log) => {
+            if (log.stars >= 3) count3++;
+            else if (log.stars >= 2) count2++;
+            if (log.reason) reasons.add(log.reason);
+        });
+
+        const studentScores = allScores.filter((score) => {
+            const scoreDate = utils.parseFlexibleDate(score.date);
+            return score.studentId === student.id
+                && scoreDate
+                && scoreDate.getMonth() === viewMonthIndex
+                && scoreDate.getFullYear() === viewYear;
+        });
+
+        let academicSum = 0;
+        studentScores.forEach((score) => {
+            const normalized = getNormalizedPercentForScore(score);
+            if (Number.isFinite(normalized)) academicSum += normalized;
+        });
+
+        return {
+            ...student,
+            monthlyStars: totalStars,
+            stats: {
+                count3,
+                count2,
+                academicAvg: studentScores.length > 0 ? (academicSum / studentScores.length) : 0,
+                uniqueReasons: reasons.size
+            }
+        };
+    });
+
+    studentStats.sort((a, b) => {
+        if (b.monthlyStars !== a.monthlyStars) return b.monthlyStars - a.monthlyStars;
+        if (b.stats.count3 !== a.stats.count3) return b.stats.count3 - a.stats.count3;
+        if (b.stats.count2 !== a.stats.count2) return b.stats.count2 - a.stats.count2;
+        if (b.stats.uniqueReasons !== a.stats.uniqueReasons) return b.stats.uniqueReasons - a.stats.uniqueReasons;
+        return b.stats.academicAvg - a.stats.academicAvg;
+    });
+
+    const topStudent = studentStats[0];
+    if (!topStudent || topStudent.monthlyStars === 0) {
+        return { studentStats, winners: [], topStudent: null };
+    }
+
+    const winners = studentStats.filter((student) => {
+        if (student.monthlyStars !== topStudent.monthlyStars) return false;
+        if (student.stats.count3 !== topStudent.stats.count3) return false;
+        if (student.stats.count2 !== topStudent.stats.count2) return false;
+        if (student.stats.uniqueReasons !== topStudent.stats.uniqueReasons) return false;
+        if (topStudent.stats.academicAvg === 0 && student.stats.academicAvg > 0) return false;
+        if (Math.abs(student.stats.academicAvg - topStudent.stats.academicAvg) > 0.5) return false;
+        return true;
+    });
+
+    return { studentStats, winners, topStudent };
+}
+
+async function getProdigyCountsForClass(classId) {
+    if (prodigyCountsCache.has(classId)) return prodigyCountsCache.get(classId);
+
+    const students = state.get('allStudents').filter((student) => student.classId === classId);
+    const allScores = state.get('allWrittenScores').filter((score) => score.classId === classId);
+    const monthCursor = new Date(PRODIGY_ARCHIVE_START.getFullYear(), PRODIGY_ARCHIVE_START.getMonth(), 1);
+    const lastCompletedMonth = new Date();
+    lastCompletedMonth.setDate(1);
+    lastCompletedMonth.setMonth(lastCompletedMonth.getMonth() - 1);
+    const monthRequests = [];
+
+    while (monthCursor <= lastCompletedMonth) {
+        monthRequests.push({
+            year: monthCursor.getFullYear(),
+            monthIndex: monthCursor.getMonth(),
+            month: monthCursor.getMonth() + 1,
+            monthKey: `${monthCursor.getFullYear()}-${String(monthCursor.getMonth() + 1).padStart(2, '0')}`
+        });
+        monthCursor.setMonth(monthCursor.getMonth() + 1);
+    }
+
+    const { fetchLogsForMonth } = await import('../../db/queries.js');
+    const monthLogs = await Promise.all(monthRequests.map(async ({ year, month }) => {
+        try {
+            return await fetchLogsForMonth(year, month);
+        } catch (error) {
+            console.error('Prodigy monthly archive fetch failed:', error);
+            return [];
+        }
+    }));
+
+    const winCounts = new Map();
+    const winnersByMonth = new Map();
+
+    monthRequests.forEach((request, index) => {
+        const logsForClass = monthLogs[index].filter((log) => log.classId === classId);
+        const { winners } = buildProdigyMonthOutcome(students, logsForClass, allScores, request.year, request.monthIndex);
+        winnersByMonth.set(request.monthKey, winners.map((winner) => winner.id));
+        winners.forEach((winner) => {
+            winCounts.set(winner.id, (winCounts.get(winner.id) || 0) + 1);
+        });
+    });
+
+    const result = { winCounts, winnersByMonth };
+    prodigyCountsCache.set(classId, result);
+    return result;
+}
 
 export async function openProdigyModal() {
     const classSelect = document.getElementById('prodigy-class-select');
@@ -985,7 +1102,7 @@ export async function renderProdigyHistory(classId) {
     // 2. Navigation Limits
     const now = new Date();
     const canGoForward = (new Date(viewYear, viewMonthIndex + 1, 1) < new Date(now.getFullYear(), now.getMonth(), 1));
-    const canGoBack = (new Date(viewYear, viewMonthIndex, 1) > new Date('2025-11-01'));
+    const canGoBack = (new Date(viewYear, viewMonthIndex, 1) > PRODIGY_ARCHIVE_START);
 
     // 3. Build Header
     let html = `
@@ -1026,6 +1143,7 @@ export async function renderProdigyHistory(classId) {
 
     const allScores = state.get('allWrittenScores').filter(s => s.classId === classId);
     const students = state.get('allStudents').filter(s => s.classId === classId);
+    const { winCounts } = await getProdigyCountsForClass(classId);
 
     if (monthlyLogs.length === 0) {
         html += `
@@ -1035,73 +1153,11 @@ export async function renderProdigyHistory(classId) {
                 <p class="text-indigo-400">No stars were recorded in ${monthName}.</p>
             </div>`;
     } else {
-        // 5. Calculate Stats
-        const studentStats = students.map(s => {
-            const sLogs = monthlyLogs.filter(l => l.studentId === s.id);
-            const totalStars = sLogs.reduce((sum, l) => sum + l.stars, 0);
-
-            let count3 = 0, count2 = 0;
-            const reasons = new Set();
-            sLogs.forEach(l => {
-                if (l.stars >= 3) count3++;
-                else if (l.stars >= 2) count2++;
-                if (l.reason) reasons.add(l.reason);
-            });
-
-            const sScores = allScores.filter(sc => {
-                const scDate = utils.parseFlexibleDate(sc.date);
-                return sc.studentId === s.id && scDate && scDate.getMonth() === viewMonthIndex && scDate.getFullYear() === viewYear;
-            });
-
-            let acadSum = 0;
-            sScores.forEach(sc => {
-                const normalized = getNormalizedPercentForScore(sc);
-                if (Number.isFinite(normalized)) acadSum += normalized;
-            });
-            const academicAvg = sScores.length > 0 ? (acadSum / sScores.length) : 0;
-
-            return {
-                ...s,
-                monthlyStars: totalStars,
-                stats: { count3, count2, academicAvg, uniqueReasons: reasons.size }
-            };
-        });
-
-        // 6. SORT: EXACT MATCH to Leaderboard/Ceremony
-        // Order: Stars -> 3Stars -> 2Stars -> Unique Skills -> Academic
-        studentStats.sort((a, b) => {
-            if (b.monthlyStars !== a.monthlyStars) return b.monthlyStars - a.monthlyStars;
-            if (b.stats.count3 !== a.stats.count3) return b.stats.count3 - a.stats.count3;
-            if (b.stats.count2 !== a.stats.count2) return b.stats.count2 - a.stats.count2;
-            if (b.stats.uniqueReasons !== a.stats.uniqueReasons) return b.stats.uniqueReasons - a.stats.uniqueReasons;
-            return b.stats.academicAvg - a.stats.academicAvg;
-        });
-
-        const topStudent = studentStats[0];
+        const { studentStats, topStudent, winners } = buildProdigyMonthOutcome(students, monthlyLogs, allScores, viewYear, viewMonthIndex);
 
         if (!topStudent || topStudent.monthlyStars === 0) {
             html += `<div class="text-center py-12 text-indigo-300">No stars awarded this month.</div>`;
         } else {
-            // --- TIE DETECTION ---
-            const winners = studentStats.filter(s => {
-                // 1. Must equal top stars
-                if (s.monthlyStars !== topStudent.monthlyStars) return false;
-
-                // 2. Must equal top stats counts
-                if (s.stats.count3 !== topStudent.stats.count3) return false;
-                if (s.stats.count2 !== topStudent.stats.count2) return false;
-                if (s.stats.uniqueReasons !== topStudent.stats.uniqueReasons) return false;
-
-                // 3. Academic Tie-Breaker (Allow 0.5% tolerance for floating point math)
-                // If top student has 0 academic score, we strictly require 0.
-                if (topStudent.stats.academicAvg === 0 && s.stats.academicAvg > 0) return false;
-
-                // Otherwise check difference
-                if (Math.abs(s.stats.academicAvg - topStudent.stats.academicAvg) > 0.5) return false;
-
-                return true;
-            });
-
             // Adjust Layout
             const isTie = winners.length > 1;
             const containerClass = isTie ? "flex flex-wrap justify-center gap-8" : "flex justify-center";
@@ -1144,6 +1200,7 @@ export async function renderProdigyHistory(classId) {
                 let badgeIcon = "❤️";
                 if (winner.stats.academicAvg >= 90) { badgeText = `Quiz Master (${winner.stats.academicAvg.toFixed(0)}%)`; badgeIcon = "🧠"; }
                 else if (winner.stats.academicAvg > 0) { badgeText = `Academic Star (${winner.stats.academicAvg.toFixed(0)}%)`; badgeIcon = "📝"; }
+                const timesCrowned = winCounts.get(winner.id) || 1;
 
                 // Confetti CSS
                 const confettiHtml = Array.from({ length: 15 }).map((_, i) => {
@@ -1164,6 +1221,11 @@ export async function renderProdigyHistory(classId) {
                         <!-- Badge -->
                         <div class="bg-gradient-to-r from-amber-400 to-yellow-300 text-amber-900 px-6 py-1.5 rounded-full font-black uppercase tracking-widest shadow-lg shadow-amber-500/20 mb-6 transform hover:scale-105 transition-transform cursor-default relative z-20 text-xs sm:text-sm">
                             <i class="fas fa-crown mr-1"></i>${titleText}
+                        </div>
+
+                        <div class="teacher-boon-prodigy-count">
+                            <span class="teacher-boon-prodigy-count__value">${timesCrowned}x</span>
+                            <span class="teacher-boon-prodigy-count__label">Prodigy</span>
                         </div>
 
                         <!-- Avatar -->

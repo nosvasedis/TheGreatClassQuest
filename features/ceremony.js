@@ -9,6 +9,7 @@ import { callGeminiApi } from '../api.js';
 import { canUseFeature } from '../utils/subscription.js';
 import * as utils from '../utils.js';
 import { getNormalizedPercentForScore } from './assessmentConfig.js';
+import { formatTeacherBoonReason, getTeacherBoonForMonth } from './boons.js';
 
 // --- LOCAL STATE ---
 let ceremonyData = {
@@ -62,6 +63,21 @@ function existedByMonthEnd(record, monthKey) {
 function formatPercent(value) {
     const numeric = Number(value);
     return Number.isFinite(numeric) ? numeric.toFixed(0) : '0';
+}
+
+function getTeacherBoonCeremonyMarkup(teacherBoon, options = {}) {
+    if (!teacherBoon) return '';
+    const { compact = false } = options;
+    const stars = Number(teacherBoon.stars) || 0;
+    const reasonText = formatTeacherBoonReason(teacherBoon);
+
+    return `
+        <div class="teacher-boon-ceremony-ribbon ${compact ? 'teacher-boon-ceremony-ribbon--compact' : ''}">
+            <div class="teacher-boon-ceremony-ribbon__kicker">Teacher Boon</div>
+            <div class="teacher-boon-ceremony-ribbon__stars">${'⭐'.repeat(Math.max(1, stars))}</div>
+            <div class="teacher-boon-ceremony-ribbon__reason">${reasonText}</div>
+        </div>
+    `;
 }
 
 // --- 1. STATUS & INITIALIZATION ---
@@ -235,6 +251,8 @@ async function loadDataAndAdvance() {
 
         // 3. PREPARE STUDENTS
         const studentsInClass = allStudents.filter(s => s.classId === ceremonyData.classId && existedByMonthEnd(s, ceremonyData.monthKey));
+        const ceremonyClass = state.get('allSchoolClasses').find((item) => item.id === ceremonyData.classId);
+        const monthlyTeacherBoon = getTeacherBoonForMonth(ceremonyClass, ceremonyData.monthKey);
         const allWrittenScores = state.get('allWrittenScores') || []; 
 
         let studentStats = studentsInClass.map(s => {
@@ -265,7 +283,10 @@ async function loadDataAndAdvance() {
                 name: s.name,
                 avatar: s.avatar,
                 score,
-                stats: { count3, count2, academicAvg, uniqueReasons: reasons.size }
+                stats: { count3, count2, academicAvg, uniqueReasons: reasons.size },
+                teacherBoon: monthlyTeacherBoon?.studentId === s.id
+                    ? { ...monthlyTeacherBoon, reasonText: formatTeacherBoonReason(monthlyTeacherBoon) }
+                    : null
             };
         });
 
@@ -523,6 +544,7 @@ function renderCard(entry, type) {
              <span class="text-sm font-semibold text-gray-500 uppercase tracking-wide mt-1">${entry.studentCount} Students</span>
              <span class="text-amber-500 font-extrabold text-3xl mt-2 drop-shadow-sm">${formatPercent(entry.progress)}%</span>
            </div>`;
+    const teacherBoonHtml = isStudent ? getTeacherBoonCeremonyMarkup(entry.teacherBoon) : '';
     // Check if this card belongs to the class currently using the app
     const isMyClass = !isStudent && entry.id === ceremonyData.currentAppClassId;
     const myClassBadge = isMyClass 
@@ -539,6 +561,7 @@ function renderCard(entry, type) {
             ${imageHtml}
             <h3 class="font-title text-4xl text-gray-800 mb-2 truncate px-2 leading-tight">${entry.name}</h3>
             <div class="mt-2">${subText}</div>
+            ${teacherBoonHtml}
         </div>
     `;
     
@@ -589,13 +612,14 @@ function createFaceOff(entry, realRank, position, entryType) {
 
     const div = document.createElement('div');
     div.className = `ceremony-display-card ceremony-card face-off relative`;
-    
-    div.id = `showdown-card-${position}`; 
-    div.dataset.rank = realRank; 
-    div.dataset.name = entry.name; 
+
+    div.id = `showdown-card-${position}`;
+    div.dataset.rank = realRank;
+    div.dataset.name = entry.name;
     div.dataset.score = entry.score;
     div.dataset.id = entry.id;
-    
+    div.dataset.teacherBoonReason = entry.teacherBoon?.reasonText || '';
+
     const isStudent = entryType === 'student';
     
     const imageHtml = !isStudent
@@ -611,6 +635,7 @@ function createFaceOff(entry, realRank, position, entryType) {
              <span class="text-xs text-gray-500 uppercase">${entry.studentCount} Students</span>
              <span class="text-3xl text-amber-600 font-bold mt-1">${formatPercent(entry.progress)}%</span>
            </div>`;
+    const teacherBoonHtml = isStudent ? getTeacherBoonCeremonyMarkup(entry.teacherBoon, { compact: true }) : '';
 
     div.innerHTML = `
         <div class="rank-badge absolute -top-8 left-1/2 transform -translate-x-1/2 text-6xl drop-shadow-md z-20 transition-all duration-500 opacity-0">
@@ -622,6 +647,7 @@ function createFaceOff(entry, realRank, position, entryType) {
             <div class="star-count opacity-0 blur-sm transition-all duration-500">
                 ${scoreDisplay}
             </div>
+            ${teacherBoonHtml}
         </div>
     `;
     return div;

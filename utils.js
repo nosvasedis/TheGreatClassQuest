@@ -1,3 +1,5 @@
+import { getLocalMonthKey, isTeacherBoonWindow } from './utils/teacherBoonWindow.mjs';
+
 export function simpleHashCode(str) {
     let hash = 0;
     for (let i = 0; i < str.length; i++) {
@@ -264,6 +266,8 @@ export function getStartOfMonthString() {
     const monthStr = month < 10 ? '0' + month : month;
     return `${year}-${monthStr}-01`;
 }
+
+export { getLocalMonthKey, isTeacherBoonWindow };
 
 export function blobToBase64(blob) {
     return new Promise((resolve, reject) => {

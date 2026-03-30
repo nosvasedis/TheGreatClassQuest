@@ -283,7 +283,7 @@ export function setupDataListeners(userId, dateString, onInitialDataReady, optio
         renderClassLeaderboardTab();
         renderManageClassesTab();
         renderCalendarTab();
-        renderAwardStarsTab();
+        renderAwardStarsTab({ preserveStudentOrder: true });
         renderIdeasTabSelects();
         renderAdventureLogTab();
         renderScholarsScrollTab();
@@ -303,7 +303,7 @@ export function setupDataListeners(userId, dateString, onInitialDataReady, optio
         renderStudentLeaderboardTab();
         renderClassLeaderboardTab();
         renderManageStudentsTab();
-        renderAwardStarsStudentList(state.get('globalSelectedClassId'));
+        renderAwardStarsStudentList(state.get('globalSelectedClassId'), false);
         renderScholarsScrollTab(state.get('globalSelectedClassId'));
         if (!document.getElementById('options-tab').classList.contains('hidden')) {
             renderStarManagerStudentSelect();

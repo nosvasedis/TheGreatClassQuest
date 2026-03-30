@@ -10,23 +10,38 @@ export const awardTabHTML = `
                         <p class="text-lg text-gray-600 mt-2">Recognize your students' excellence and effort.</p>
                     </div>
 
-                    <div id="award-class-dropdown" class="relative max-w-md mx-auto mb-6">
-                        <button id="award-class-dropdown-btn"
-                            class="w-full flex items-center justify-between p-4 rounded-2xl border-4 border-rose-300 bg-white shadow-lg bubbly-button">
-                            <span class="flex items-center gap-3">
-                                <span id="selected-class-logo" class="text-4xl"></span>
-                                <div class="text-left">
-                                    <div id="selected-class-name" class="font-bold text-lg text-rose-800">Select a
-                                        class...</div>
-                                    <div id="selected-class-level" class="text-sm text-rose-500 -mt-1"></div>
-                                </div>
-                            </span>
-                            <i class="fas fa-chevron-down text-rose-500 transition-transform"></i>
-                        </button>
-                        <div id="award-class-dropdown-panel"
-                            class="absolute top-full left-0 right-0 mt-2 bg-white rounded-2xl shadow-2xl z-20 hidden overflow-hidden border-2 border-rose-200">
-                            <div id="award-class-list" class="max-h-64 overflow-y-auto"></div>
+                    <div class="award-stars-toolbar mb-6">
+                        <div id="award-class-dropdown" class="relative award-stars-toolbar-main">
+                            <button id="award-class-dropdown-btn"
+                                class="w-full flex items-center justify-between p-4 rounded-2xl border-4 border-rose-300 bg-white shadow-lg bubbly-button">
+                                <span class="flex items-center gap-3">
+                                    <span id="selected-class-logo" class="text-4xl"></span>
+                                    <div class="text-left">
+                                        <div id="selected-class-name" class="font-bold text-lg text-rose-800">Select a
+                                            class...</div>
+                                        <div id="selected-class-level" class="text-sm text-rose-500 -mt-1"></div>
+                                    </div>
+                                </span>
+                                <i class="fas fa-chevron-down text-rose-500 transition-transform"></i>
+                            </button>
+                            <div id="award-class-dropdown-panel"
+                                class="absolute top-full left-0 right-0 mt-2 bg-white rounded-2xl shadow-2xl z-20 hidden overflow-hidden border-2 border-rose-200">
+                                <div id="award-class-list" class="max-h-64 overflow-y-auto"></div>
+                            </div>
                         </div>
+
+                        <button id="open-teacher-boon-btn"
+                            class="teacher-boon-launch-btn hidden"
+                            type="button">
+                            <span class="teacher-boon-launch-btn__orb"></span>
+                            <span class="teacher-boon-launch-btn__content">
+                                <span class="teacher-boon-launch-btn__eyebrow">Monthly Magic</span>
+                                <span class="teacher-boon-launch-btn__label">
+                                    <i class="fas fa-wand-magic-sparkles mr-2"></i>Teacher Boon
+                                </span>
+                            </span>
+                            <span id="teacher-boon-launch-badge" class="teacher-boon-launch-btn__badge hidden">Bestowed</span>
+                        </button>
                     </div>
 
                     <div class="flex justify-center mb-6">

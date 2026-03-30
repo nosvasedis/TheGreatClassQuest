@@ -177,6 +177,7 @@ function renderClassOverview(data) {
         welcome_back: { icon: 'fa-hand-sparkles', color: 'text-cyan-500', name: 'Welcome Back' },
         story_weaver: { icon: 'fa-feather-alt', color: 'text-cyan-600', name: 'Story Weaver' },
         scholar_s_bonus: { icon: 'fa-graduation-cap', color: 'text-amber-700', name: 'Scholar\'s Bonus' },
+        teacher_boon: { icon: 'fa-wand-magic-sparkles', color: 'text-fuchsia-500', name: 'Teacher Boon' },
         pathfinder_map: { icon: 'fa-map', color: 'text-indigo-500', name: 'Pathfinder Map' }
     };
 
@@ -268,6 +269,7 @@ function renderStudentDetails(data, studentId) {
         welcome_back: { icon: 'fa-hand-sparkles', color: 'text-cyan-500', name: 'Welcome Back' },
         story_weaver: { icon: 'fa-feather-alt', color: 'text-cyan-600', name: 'Story Weaver' },
         scholar_s_bonus: { icon: 'fa-graduation-cap', color: 'text-amber-700', name: 'Scholar\'s Bonus' },
+        teacher_boon: { icon: 'fa-wand-magic-sparkles', color: 'text-fuchsia-500', name: 'Teacher Boon' },
         pathfinder_map: { icon: 'fa-map', color: 'text-indigo-500', name: 'Pathfinder Map' }
     };
 

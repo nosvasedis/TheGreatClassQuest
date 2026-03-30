@@ -403,4 +403,88 @@ export const miscModalsHTML = `
             </div>
         </div>
     </div>
+
+    <div id="teacher-boon-modal"
+        class="fixed inset-0 bg-slate-950/70 z-[95] flex items-center justify-center p-4 hidden backdrop-blur-md">
+        <div id="teacher-boon-shell"
+            class="teacher-boon-shell pop-in">
+            <div class="teacher-boon-shell__backdrop"></div>
+            <div id="teacher-boon-success-overlay" class="teacher-boon-success-overlay hidden">
+                <div class="teacher-boon-success-overlay__burst"></div>
+                <div class="teacher-boon-success-overlay__card">
+                    <div class="teacher-boon-success-overlay__icon">✨</div>
+                    <div class="teacher-boon-success-overlay__title">Monthly Boon Bestowed</div>
+                    <div class="teacher-boon-success-overlay__copy">The ceremony scroll has been updated.</div>
+                </div>
+            </div>
+
+            <button id="teacher-boon-close-btn" class="teacher-boon-close-btn" type="button">&times;</button>
+
+            <div class="teacher-boon-header">
+                <div class="teacher-boon-header__crest">🌠</div>
+                <div class="teacher-boon-header__text">
+                    <div class="teacher-boon-header__eyebrow">Teacher&apos;s Choice</div>
+                    <h2 class="teacher-boon-header__title">Teacher Boon</h2>
+                    <p id="teacher-boon-class-name" class="teacher-boon-header__class">Selected class</p>
+                </div>
+            </div>
+
+            <div class="teacher-boon-content">
+                <div id="teacher-boon-status-banner"></div>
+
+                <section class="teacher-boon-section">
+                    <div class="teacher-boon-section__heading">
+                        <span class="teacher-boon-section__icon">🧑‍🎓</span>
+                        <div>
+                            <div class="teacher-boon-section__eyebrow">Step 1</div>
+                            <h3 class="teacher-boon-section__title">Choose the student</h3>
+                        </div>
+                    </div>
+                    <div id="teacher-boon-student-grid" class="teacher-boon-student-grid"></div>
+                </section>
+
+                <div class="teacher-boon-grid">
+                    <section class="teacher-boon-section">
+                        <div class="teacher-boon-section__heading">
+                            <span class="teacher-boon-section__icon">⭐</span>
+                            <div>
+                                <div class="teacher-boon-section__eyebrow">Step 2</div>
+                                <h3 class="teacher-boon-section__title">Choose the stars</h3>
+                            </div>
+                        </div>
+                        <div id="teacher-boon-stars" class="teacher-boon-stars"></div>
+                    </section>
+
+                    <section class="teacher-boon-section">
+                        <div class="teacher-boon-section__heading">
+                            <span class="teacher-boon-section__icon">📜</span>
+                            <div>
+                                <div class="teacher-boon-section__eyebrow">Step 3</div>
+                                <h3 class="teacher-boon-section__title">Choose the reason</h3>
+                            </div>
+                        </div>
+                        <div id="teacher-boon-presets" class="teacher-boon-presets"></div>
+                        <label class="teacher-boon-custom-label" for="teacher-boon-custom-reason">Optional custom reason</label>
+                        <textarea id="teacher-boon-custom-reason" class="teacher-boon-custom-reason" rows="3"></textarea>
+                    </section>
+                </div>
+
+                <section class="teacher-boon-section">
+                    <div class="teacher-boon-section__heading">
+                        <span class="teacher-boon-section__icon">🎭</span>
+                        <div>
+                            <div class="teacher-boon-section__eyebrow">Ceremony</div>
+                            <h3 class="teacher-boon-section__title">Preview</h3>
+                        </div>
+                    </div>
+                    <div id="teacher-boon-selected-summary"></div>
+                </section>
+            </div>
+
+            <div class="teacher-boon-footer">
+                <button id="teacher-boon-cancel-btn" class="teacher-boon-cancel-btn" type="button">Cancel</button>
+                <button id="teacher-boon-confirm-btn" class="teacher-boon-confirm-btn" type="button">Bestow Monthly Boon</button>
+            </div>
+        </div>
+    </div>
 `;

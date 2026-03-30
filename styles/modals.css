@@ -41,3 +41,648 @@
     font-size: 2.25rem; 
 }
 
+.award-stars-toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: stretch;
+    justify-content: center;
+    gap: 1rem;
+}
+
+.award-stars-toolbar-main {
+    flex: 1 1 24rem;
+    max-width: 34rem;
+}
+
+.teacher-boon-launch-btn {
+    position: relative;
+    overflow: hidden;
+    min-width: 15rem;
+    border: 0;
+    border-radius: 1.6rem;
+    padding: 1rem 1.15rem;
+    background:
+        radial-gradient(circle at top left, rgba(255,255,255,0.95), rgba(255,255,255,0) 46%),
+        linear-gradient(135deg, #312e81 0%, #7c3aed 48%, #ec4899 100%);
+    color: white;
+    box-shadow: 0 18px 36px rgba(124, 58, 237, 0.28);
+    transition: transform 160ms ease, box-shadow 160ms ease, filter 160ms ease;
+}
+
+.teacher-boon-launch-btn:hover {
+    transform: translateY(-2px) scale(1.02);
+    box-shadow: 0 24px 42px rgba(124, 58, 237, 0.34);
+    filter: saturate(1.06);
+}
+
+.teacher-boon-launch-btn__orb {
+    position: absolute;
+    inset: auto auto -1.2rem -1rem;
+    width: 4.5rem;
+    height: 4.5rem;
+    border-radius: 9999px;
+    background: radial-gradient(circle, rgba(255,255,255,0.82), rgba(255,255,255,0));
+    pointer-events: none;
+}
+
+.teacher-boon-launch-btn__content {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.2rem;
+}
+
+.teacher-boon-launch-btn__eyebrow {
+    font-size: 0.68rem;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    opacity: 0.78;
+    font-weight: 800;
+}
+
+.teacher-boon-launch-btn__label {
+    font-family: 'Fredoka One', cursive;
+    font-size: 1.15rem;
+    line-height: 1.1;
+}
+
+.teacher-boon-launch-btn__badge {
+    position: absolute;
+    top: 0.8rem;
+    right: 0.9rem;
+    z-index: 1;
+    border-radius: 9999px;
+    background: rgba(255,255,255,0.18);
+    border: 1px solid rgba(255,255,255,0.25);
+    padding: 0.25rem 0.6rem;
+    font-size: 0.65rem;
+    font-weight: 800;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+}
+
+.teacher-boon-launch-btn.is-bestowed {
+    background:
+        radial-gradient(circle at top left, rgba(255,255,255,0.95), rgba(255,255,255,0) 46%),
+        linear-gradient(135deg, #14532d 0%, #0f766e 48%, #0ea5e9 100%);
+    box-shadow: 0 18px 36px rgba(20, 83, 45, 0.3);
+}
+
+.teacher-boon-shell {
+    position: relative;
+    width: min(72rem, 96vw);
+    max-height: 92vh;
+    overflow: hidden;
+    border-radius: 2rem;
+    border: 1px solid rgba(255,255,255,0.16);
+    background:
+        radial-gradient(circle at top, rgba(255,255,255,0.18), rgba(255,255,255,0) 34%),
+        linear-gradient(160deg, #0f172a 0%, #312e81 46%, #7c3aed 100%);
+    box-shadow: 0 32px 80px rgba(2, 6, 23, 0.55);
+    color: white;
+    display: flex;
+    flex-direction: column;
+}
+
+.teacher-boon-shell__backdrop {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background:
+        radial-gradient(circle at 15% 18%, rgba(255,255,255,0.18), rgba(255,255,255,0) 24%),
+        radial-gradient(circle at 82% 14%, rgba(251,191,36,0.24), rgba(251,191,36,0) 20%),
+        radial-gradient(circle at 74% 78%, rgba(236,72,153,0.28), rgba(236,72,153,0) 28%);
+}
+
+.teacher-boon-shell--readonly .teacher-boon-shell__backdrop {
+    background:
+        radial-gradient(circle at 14% 18%, rgba(255,255,255,0.14), rgba(255,255,255,0) 24%),
+        radial-gradient(circle at 82% 14%, rgba(45,212,191,0.18), rgba(45,212,191,0) 20%),
+        radial-gradient(circle at 74% 78%, rgba(56,189,248,0.22), rgba(56,189,248,0) 28%);
+}
+
+.teacher-boon-close-btn {
+    position: absolute;
+    top: 1rem;
+    right: 1rem;
+    z-index: 4;
+    width: 2.6rem;
+    height: 2.6rem;
+    border: 0;
+    border-radius: 9999px;
+    background: rgba(255,255,255,0.12);
+    color: white;
+    font-size: 1.8rem;
+    line-height: 1;
+}
+
+.teacher-boon-header,
+.teacher-boon-content,
+.teacher-boon-footer {
+    position: relative;
+    z-index: 1;
+}
+
+.teacher-boon-header {
+    display: flex;
+    align-items: center;
+    gap: 1.2rem;
+    padding: 1.6rem 1.6rem 1rem;
+}
+
+.teacher-boon-header__crest {
+    width: 4.5rem;
+    height: 4.5rem;
+    border-radius: 1.5rem;
+    display: grid;
+    place-items: center;
+    font-size: 2rem;
+    background: rgba(255,255,255,0.14);
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.24), 0 16px 30px rgba(15, 23, 42, 0.28);
+}
+
+.teacher-boon-header__eyebrow,
+.teacher-boon-section__eyebrow,
+.teacher-boon-summary-kicker {
+    text-transform: uppercase;
+    letter-spacing: 0.2em;
+    font-size: 0.68rem;
+    font-weight: 800;
+    opacity: 0.76;
+}
+
+.teacher-boon-header__title {
+    margin: 0.15rem 0 0;
+    font-family: 'Fredoka One', cursive;
+    font-size: clamp(2rem, 3vw, 3rem);
+    line-height: 0.95;
+}
+
+.teacher-boon-header__class {
+    margin: 0.45rem 0 0;
+    color: rgba(255,255,255,0.82);
+    font-size: 0.95rem;
+}
+
+.teacher-boon-content {
+    padding: 0 1.6rem 1rem;
+    overflow-y: auto;
+}
+
+.teacher-boon-section {
+    margin-bottom: 1rem;
+}
+
+.teacher-boon-section__heading {
+    display: flex;
+    align-items: center;
+    gap: 0.85rem;
+    margin-bottom: 0.8rem;
+}
+
+.teacher-boon-section__icon {
+    width: 2.6rem;
+    height: 2.6rem;
+    border-radius: 9999px;
+    display: grid;
+    place-items: center;
+    background: rgba(255,255,255,0.12);
+    font-size: 1.2rem;
+}
+
+.teacher-boon-section__title {
+    margin: 0.1rem 0 0;
+    font-family: 'Fredoka One', cursive;
+    font-size: 1.2rem;
+}
+
+.teacher-boon-banner {
+    display: flex;
+    align-items: center;
+    gap: 0.85rem;
+    padding: 1rem 1.05rem;
+    border-radius: 1.3rem;
+    background: rgba(255,255,255,0.1);
+    border: 1px solid rgba(255,255,255,0.16);
+    margin-bottom: 1rem;
+}
+
+.teacher-boon-banner--readonly {
+    background: rgba(15, 118, 110, 0.18);
+    border-color: rgba(125, 211, 252, 0.24);
+}
+
+.teacher-boon-banner-icon {
+    width: 2.8rem;
+    height: 2.8rem;
+    border-radius: 9999px;
+    display: grid;
+    place-items: center;
+    background: rgba(255,255,255,0.15);
+    font-size: 1.15rem;
+    flex-shrink: 0;
+}
+
+.teacher-boon-banner-title {
+    font-weight: 800;
+    margin-bottom: 0.15rem;
+}
+
+.teacher-boon-banner-copy {
+    color: rgba(255,255,255,0.8);
+    font-size: 0.9rem;
+    line-height: 1.4;
+}
+
+.teacher-boon-student-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr));
+    gap: 0.85rem;
+}
+
+.teacher-boon-student-btn {
+    position: relative;
+    overflow: hidden;
+    border: 1px solid rgba(255,255,255,0.18);
+    border-radius: 1.35rem;
+    padding: 1rem;
+    background: rgba(15, 23, 42, 0.28);
+    color: white;
+    text-align: left;
+    display: flex;
+    align-items: center;
+    gap: 0.85rem;
+    transition: transform 160ms ease, border-color 160ms ease, box-shadow 160ms ease;
+}
+
+.teacher-boon-student-btn:hover:not(:disabled),
+.teacher-boon-student-btn.is-selected {
+    transform: translateY(-2px);
+    border-color: rgba(252, 211, 77, 0.72);
+    box-shadow: 0 14px 34px rgba(15, 23, 42, 0.22);
+}
+
+.teacher-boon-student-btn:disabled {
+    cursor: default;
+}
+
+.teacher-boon-student-aura {
+    position: absolute;
+    inset: auto auto -1.8rem -1.8rem;
+    width: 5rem;
+    height: 5rem;
+    border-radius: 9999px;
+    background: radial-gradient(circle, rgba(251,191,36,0.36), rgba(251,191,36,0));
+    pointer-events: none;
+}
+
+.teacher-boon-student-avatar {
+    position: relative;
+    z-index: 1;
+    width: 3.7rem;
+    height: 3.7rem;
+    border-radius: 1.15rem;
+    object-fit: cover;
+    border: 3px solid rgba(255,255,255,0.75);
+    box-shadow: 0 10px 20px rgba(15, 23, 42, 0.25);
+}
+
+.teacher-boon-student-avatar--placeholder {
+    display: grid;
+    place-items: center;
+    background: linear-gradient(135deg, #f472b6, #8b5cf6);
+    font-family: 'Fredoka One', cursive;
+}
+
+.teacher-boon-student-meta {
+    position: relative;
+    z-index: 1;
+    min-width: 0;
+    flex: 1;
+}
+
+.teacher-boon-student-name {
+    font-weight: 800;
+}
+
+.teacher-boon-student-stats {
+    margin-top: 0.2rem;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.35rem 0.75rem;
+    font-size: 0.78rem;
+    color: rgba(255,255,255,0.72);
+}
+
+.teacher-boon-student-select {
+    position: relative;
+    z-index: 1;
+    border-radius: 9999px;
+    background: rgba(255,255,255,0.1);
+    padding: 0.35rem 0.7rem;
+    font-size: 0.7rem;
+    font-weight: 800;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+}
+
+.teacher-boon-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 1rem;
+}
+
+.teacher-boon-stars,
+.teacher-boon-presets {
+    display: grid;
+    gap: 0.7rem;
+}
+
+.teacher-boon-star-btn,
+.teacher-boon-preset-btn {
+    border: 1px solid rgba(255,255,255,0.14);
+    border-radius: 1.15rem;
+    background: rgba(255,255,255,0.08);
+    color: white;
+    padding: 0.95rem 1rem;
+    text-align: left;
+    transition: transform 160ms ease, border-color 160ms ease, background 160ms ease;
+}
+
+.teacher-boon-star-btn:hover:not(:disabled),
+.teacher-boon-preset-btn:hover:not(:disabled),
+.teacher-boon-star-btn.is-selected,
+.teacher-boon-preset-btn.is-selected {
+    transform: translateY(-2px);
+    border-color: rgba(251,191,36,0.75);
+    background: rgba(255,255,255,0.14);
+}
+
+.teacher-boon-star-btn:disabled,
+.teacher-boon-preset-btn:disabled {
+    cursor: default;
+}
+
+.teacher-boon-star-btn-label {
+    display: block;
+    font-weight: 800;
+}
+
+.teacher-boon-star-btn-stars {
+    display: block;
+    margin-top: 0.25rem;
+    font-size: 1.05rem;
+}
+
+.teacher-boon-preset-btn {
+    display: flex;
+    align-items: center;
+    gap: 0.7rem;
+    font-weight: 700;
+}
+
+.teacher-boon-preset-icon {
+    width: 2rem;
+    height: 2rem;
+    border-radius: 9999px;
+    display: grid;
+    place-items: center;
+    background: rgba(255,255,255,0.12);
+    flex-shrink: 0;
+}
+
+.teacher-boon-custom-label {
+    display: block;
+    margin: 0.9rem 0 0.35rem;
+    font-size: 0.8rem;
+    font-weight: 700;
+    color: rgba(255,255,255,0.76);
+}
+
+.teacher-boon-custom-reason {
+    width: 100%;
+    border: 1px solid rgba(255,255,255,0.16);
+    border-radius: 1.15rem;
+    background: rgba(15, 23, 42, 0.34);
+    color: white;
+    padding: 0.9rem 1rem;
+    resize: vertical;
+    min-height: 5.6rem;
+}
+
+.teacher-boon-custom-reason:disabled {
+    opacity: 0.7;
+}
+
+.teacher-boon-summary-card {
+    border-radius: 1.5rem;
+    background: linear-gradient(135deg, rgba(251,191,36,0.16), rgba(255,255,255,0.12));
+    border: 1px solid rgba(251,191,36,0.3);
+    padding: 1.1rem 1.15rem;
+}
+
+.teacher-boon-summary-card--empty {
+    background: rgba(255,255,255,0.08);
+    border-color: rgba(255,255,255,0.14);
+}
+
+.teacher-boon-summary-name {
+    margin-top: 0.4rem;
+    font-family: 'Fredoka One', cursive;
+    font-size: 1.5rem;
+}
+
+.teacher-boon-summary-stars {
+    margin-top: 0.3rem;
+    font-size: 0.9rem;
+    font-weight: 800;
+    color: #fcd34d;
+}
+
+.teacher-boon-summary-reason {
+    margin-top: 0.55rem;
+    font-size: 0.95rem;
+    line-height: 1.45;
+    color: rgba(255,255,255,0.86);
+}
+
+.teacher-boon-summary-date {
+    margin-top: 0.55rem;
+    font-size: 0.76rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: rgba(255,255,255,0.64);
+}
+
+.teacher-boon-footer {
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.75rem;
+    padding: 1rem 1.6rem 1.4rem;
+}
+
+.teacher-boon-cancel-btn,
+.teacher-boon-confirm-btn {
+    border: 0;
+    border-radius: 9999px;
+    padding: 0.95rem 1.3rem;
+    font-weight: 800;
+    transition: transform 160ms ease, filter 160ms ease, opacity 160ms ease;
+}
+
+.teacher-boon-cancel-btn {
+    background: rgba(255,255,255,0.12);
+    color: white;
+}
+
+.teacher-boon-confirm-btn {
+    background: linear-gradient(135deg, #f97316, #ec4899);
+    color: white;
+    min-width: 15rem;
+    box-shadow: 0 16px 28px rgba(236, 72, 153, 0.24);
+}
+
+.teacher-boon-confirm-btn:disabled {
+    opacity: 0.5;
+    box-shadow: none;
+}
+
+.teacher-boon-cancel-btn:hover,
+.teacher-boon-confirm-btn:hover:not(:disabled) {
+    transform: translateY(-1px);
+}
+
+.teacher-boon-empty-state {
+    border-radius: 1.4rem;
+    border: 1px dashed rgba(255,255,255,0.18);
+    padding: 1.4rem;
+    text-align: center;
+    color: rgba(255,255,255,0.78);
+    background: rgba(255,255,255,0.06);
+}
+
+.teacher-boon-empty-icon {
+    font-size: 2.4rem;
+    margin-bottom: 0.45rem;
+}
+
+.teacher-boon-empty-title {
+    font-weight: 800;
+}
+
+.teacher-boon-empty-copy {
+    margin-top: 0.25rem;
+    font-size: 0.9rem;
+}
+
+.teacher-boon-success-overlay {
+    position: absolute;
+    inset: 0;
+    z-index: 5;
+    display: grid;
+    place-items: center;
+    background: rgba(15, 23, 42, 0.46);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 220ms ease;
+}
+
+.teacher-boon-success-overlay--visible {
+    opacity: 1;
+}
+
+.teacher-boon-success-overlay__burst {
+    position: absolute;
+    width: 20rem;
+    height: 20rem;
+    border-radius: 9999px;
+    background: radial-gradient(circle, rgba(251,191,36,0.5), rgba(251,191,36,0));
+    animation: teacher-boon-burst 1.2s ease-in-out infinite;
+}
+
+.teacher-boon-success-overlay__card {
+    position: relative;
+    width: min(24rem, 84vw);
+    text-align: center;
+    border-radius: 1.8rem;
+    padding: 1.5rem 1.2rem;
+    background: linear-gradient(135deg, rgba(251,191,36,0.92), rgba(244,114,182,0.92));
+    color: white;
+    box-shadow: 0 28px 60px rgba(15, 23, 42, 0.28);
+}
+
+.teacher-boon-success-overlay__icon {
+    font-size: 2.2rem;
+    margin-bottom: 0.45rem;
+}
+
+.teacher-boon-success-overlay__title {
+    font-family: 'Fredoka One', cursive;
+    font-size: 1.8rem;
+}
+
+.teacher-boon-success-overlay__copy {
+    margin-top: 0.35rem;
+    font-weight: 600;
+}
+
+.teacher-boon-prodigy-count {
+    display: inline-flex;
+    align-items: baseline;
+    gap: 0.35rem;
+    margin-bottom: 1rem;
+    padding: 0.38rem 0.85rem;
+    border-radius: 9999px;
+    border: 1px solid rgba(251, 191, 36, 0.35);
+    background: rgba(251, 191, 36, 0.12);
+    box-shadow: 0 10px 24px rgba(251, 191, 36, 0.16);
+}
+
+.teacher-boon-prodigy-count__value {
+    font-family: 'Fredoka One', cursive;
+    font-size: 1.15rem;
+    line-height: 1;
+    color: #fbbf24;
+}
+
+.teacher-boon-prodigy-count__label {
+    font-size: 0.74rem;
+    font-weight: 800;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: rgba(255,255,255,0.82);
+}
+
+@keyframes teacher-boon-burst {
+    0%, 100% { transform: scale(0.9); opacity: 0.65; }
+    50% { transform: scale(1.08); opacity: 1; }
+}
+
+@media (max-width: 900px) {
+    .teacher-boon-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 640px) {
+    .teacher-boon-shell {
+        width: 100%;
+        max-height: 94vh;
+    }
+
+    .teacher-boon-header {
+        padding-top: 1.4rem;
+        padding-right: 3.6rem;
+    }
+
+    .teacher-boon-footer {
+        flex-direction: column-reverse;
+    }
+
+    .teacher-boon-confirm-btn {
+        min-width: 0;
+        width: 100%;
+    }
+}

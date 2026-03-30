@@ -461,7 +461,6 @@ export async function checkAndRecordQuestCompletion(classId) {
         });
 
         await batch.commit();
-        showToast(`Quest Complete! History recorded.`, 'success');
         playSound('magic_chime');
     }
 }

@@ -521,6 +521,42 @@ header h1.font-title::after {
     transform: scale(1.02);
 }
 
+.teacher-boon-ceremony-ribbon {
+    margin: 1rem auto 0;
+    max-width: 18rem;
+    padding: 0.8rem 0.95rem;
+    border-radius: 1.15rem;
+    background: linear-gradient(135deg, rgba(124, 58, 237, 0.1), rgba(244, 114, 182, 0.16));
+    border: 1px solid rgba(244, 114, 182, 0.28);
+    box-shadow: 0 14px 28px rgba(124, 58, 237, 0.12);
+}
+
+.teacher-boon-ceremony-ribbon--compact {
+    margin-top: 0.8rem;
+    max-width: 15rem;
+    padding: 0.65rem 0.8rem;
+}
+
+.teacher-boon-ceremony-ribbon__kicker {
+    font-size: 0.68rem;
+    font-weight: 800;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: #7c3aed;
+}
+
+.teacher-boon-ceremony-ribbon__stars {
+    margin-top: 0.25rem;
+    font-size: 0.92rem;
+}
+
+.teacher-boon-ceremony-ribbon__reason {
+    margin-top: 0.3rem;
+    font-weight: 700;
+    line-height: 1.35;
+    color: #4c1d95;
+}
+
 .cli-rank {
     width: 3rem;
     height: 3rem;
@@ -693,4 +729,3 @@ header h1.font-title::after {
         width: min(92vw, 440px);
     }
 }
-

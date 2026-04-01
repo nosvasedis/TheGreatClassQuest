@@ -87,14 +87,17 @@ export async function handleBestowBoon(senderId, receiverId) {
 
 export async function awardTeacherBoon({ classId, studentId, stars, presetKey, customReason = '' }) {
     const numericStars = Number(stars);
+    const trimmedCustomReason = String(customReason || '').trim();
     if (!classId || !studentId) throw new Error('Choose a class and student first.');
-    if (![1, 2, 3].includes(numericStars)) throw new Error('Teacher Boon stars must be 1, 2, or 3.');
+    if (numericStars !== 2) throw new Error('Teacher Boon always awards 2 stars.');
     if (!utils.isTeacherBoonWindow()) throw new Error('Teacher Boon is only available during the last 3 days of the month.');
 
     const preset = getTeacherBoonPreset(presetKey);
-    if (!preset) throw new Error('Choose a reason for the Teacher Boon.');
+    if (!preset && !trimmedCustomReason) throw new Error('Choose a reason for the Teacher Boon.');
 
-    const reasonText = String(customReason || '').trim() || preset.label;
+    const reasonText = trimmedCustomReason || preset.label;
+    const storedPresetKey = preset?.key || 'custom';
+    const storedPresetLabel = preset?.label || 'Custom Reason';
     const today = utils.getTodayDateString();
     const monthKey = utils.getLocalMonthKey();
     const publicDataPath = 'artifacts/great-class-quest/public/data';
@@ -123,8 +126,8 @@ export async function awardTeacherBoon({ classId, studentId, stars, presetKey, c
         const teacherBoon = {
             studentId,
             stars: numericStars,
-            presetKey: preset.key,
-            presetLabel: preset.label,
+            presetKey: storedPresetKey,
+            presetLabel: storedPresetLabel,
             reasonText,
             awardedAt: serverTimestamp(),
             awardedBy
@@ -158,8 +161,8 @@ export async function awardTeacherBoon({ classId, studentId, stars, presetKey, c
             createdBy: awardedBy,
             teacherBoon: {
                 monthKey,
-                presetKey: preset.key,
-                presetLabel: preset.label,
+                presetKey: storedPresetKey,
+                presetLabel: storedPresetLabel,
                 reasonText
             }
         });
@@ -183,8 +186,8 @@ export async function awardTeacherBoon({ classId, studentId, stars, presetKey, c
         monthKey,
         studentId,
         stars: numericStars,
-        presetKey: preset.key,
-        presetLabel: preset.label,
+        presetKey: storedPresetKey,
+        presetLabel: storedPresetLabel,
         reasonText,
         awardedBy: { uid: state.get('currentUserId'), name: state.get('currentTeacherName') }
     };

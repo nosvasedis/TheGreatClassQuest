@@ -84,14 +84,14 @@ function _renderOverviewCards(payload) {
                     data-guild-switch="${g.guildId}"
                     style="--gh-primary:${g.colors.primary};--gh-glow:${g.colors.glow};--gh-secondary:${g.colors.secondary};">
                 <div class="guild-heroes-overview-head">
-                    <span class="guild-heroes-rank">#${g.comparison.rankByPerCapita}</span>
+                    <span class="guild-heroes-rank">#${g.comparison.rankByGuildPower}</span>
                     <span class="guild-heroes-name">${_guildEmblem(g)} ${_escapeHtml(g.guildName)}</span>
                 </div>
                 <div class="guild-heroes-overview-body">
                     ${_heroAvatar(champ, g.colors.primary)}
                     <div class="guild-heroes-overview-meta">
-                        <div class="guild-heroes-overview-line"><strong>${_fmtNumber(g.totals.totalStars)}</strong> total ⭐</div>
-                        <div class="guild-heroes-overview-line">${champ ? `${_escapeHtml(champ.name)} · ${_fmtNumber(champ.monthlyStars)}⭐` : 'No monthly champion yet'}</div>
+                        <div class="guild-heroes-overview-line"><strong>${Math.round(g.totals.guildPower)}</strong> ⚡ Power · <strong>${_fmtNumber(g.totals.totalGlory)}</strong> ⚜️ Glory</div>
+                        <div class="guild-heroes-overview-line">${g.totals.momentumArrow} ${champ ? `${_escapeHtml(champ.name)} · ${_fmtNumber(champ.monthlyStars)}⭐` : 'No monthly champion yet'}</div>
                     </div>
                 </div>
             </button>`;
@@ -124,11 +124,14 @@ function _renderViewTabs() {
 function _renderKpis(guild) {
     return `
         <div class="guild-heroes-kpis">
-            <div class="guild-heroes-kpi"><span>Total Stars</span><strong>${_fmtNumber(guild.totals.totalStars)}</strong></div>
-            <div class="guild-heroes-kpi"><span>Monthly Stars</span><strong>${_fmtNumber(guild.totals.monthlyStars)}</strong></div>
-            <div class="guild-heroes-kpi"><span>Members</span><strong>${_fmtNumber(guild.totals.memberCount)}</strong></div>
-            <div class="guild-heroes-kpi"><span>Per Member</span><strong>${_fmtOne(guild.totals.perCapitaStars)}⭐</strong></div>
-            <div class="guild-heroes-kpi"><span>Month / Member</span><strong>${_fmtOne(guild.totals.monthlyPerCapitaStars)}⭐</strong></div>
+            <div class="guild-heroes-kpi"><span>⚡ Guild Power</span><strong>${Math.round(guild.totals.guildPower)}</strong></div>
+            <div class="guild-heroes-kpi"><span>⚜️ Total Glory</span><strong>${_fmtNumber(guild.totals.totalGlory)}</strong></div>
+            <div class="guild-heroes-kpi"><span>⚜️ / Member</span><strong>${_fmtOne(guild.totals.perCapitaGlory)}</strong></div>
+            <div class="guild-heroes-kpi"><span>${guild.totals.momentumArrow} Momentum</span><strong>${_fmtOne(guild.totals.momentumScore)}</strong></div>
+            <div class="guild-heroes-kpi"><span>🔥 Activity</span><strong>${_fmtOne(guild.totals.activityScore)}</strong></div>
+            <div class="guild-heroes-kpi"><span>⚜️ This Week</span><strong>${_fmtNumber(guild.totals.weeklyGlory)}</strong></div>
+            <div class="guild-heroes-kpi"><span>⭐ Total Stars</span><strong>${_fmtNumber(guild.totals.totalStars)}</strong></div>
+            <div class="guild-heroes-kpi"><span>👥 Members</span><strong>${_fmtNumber(guild.totals.memberCount)}</strong></div>
         </div>
     `;
 }
@@ -136,14 +139,18 @@ function _renderKpis(guild) {
 function _renderOverviewView(payload, guild) {
     const leader = payload.guilds[0];
     const rivalryLine = leader && leader.guildId !== guild.guildId
-        ? `Rivalry: ${_escapeHtml(guild.guildName)} trails ${_escapeHtml(leader.guildName)} by ${_fmtOne(guild.comparison.deltaToLeaderPerCapita)} per-member stars.`
-        : `${_escapeHtml(guild.guildName)} is currently leading the guild race.`;
+        ? `Rivalry: ${_escapeHtml(guild.guildName)} trails ${_escapeHtml(leader.guildName)} by ${_fmtNumber(guild.comparison.deltaToLeaderGlory)} Glory.`
+        : `${_escapeHtml(guild.guildName)} is currently leading the guild race!`;
+    const mover = payload.overview?.biggestMover;
+    const active = payload.overview?.mostActive;
     return `
         ${_renderKpis(guild)}
         <section class="guild-heroes-fancy-banner">
             <div class="title">Guild Storyline</div>
             <p>${rivalryLine}</p>
             <p>Top 3 heroes carry <strong>${_fmtOne(guild.breakdown.top3SharePct)}%</strong> of this guild's total power.</p>
+            ${mover ? `<p>📈 <strong>${_escapeHtml(mover.guildName)}</strong> is this week's biggest mover (${_fmtOne(mover.momentumPct)}% momentum).</p>` : ''}
+            ${active ? `<p>🔥 <strong>${_escapeHtml(active.guildName)}</strong> has the highest activity score (${_fmtOne(active.activityScore)}).</p>` : ''}
         </section>
     `;
 }
@@ -286,7 +293,7 @@ function _renderHealthView(payload, guild) {
         : '<li>No hero class mix data yet.</li>';
 
     const rivalryLine = leader && leader.guildId !== guild.guildId
-        ? `Needs ${_fmtOne(guild.comparison.deltaToLeaderPerCapita)} per-member stars to match #1 ${_escapeHtml(leader.guildName)}.`
+        ? `Needs ${_fmtNumber(guild.comparison.deltaToLeaderGlory)} more Glory to match #1 ${_escapeHtml(leader.guildName)}.`
         : 'Holding first place. Defend the lead!';
 
     return `
@@ -322,8 +329,19 @@ function _renderHealthView(payload, guild) {
                 <div class="guild-heroes-health-metric">
                     <div class="icon">🏆</div>
                     <div class="info">
-                        <div class="label">Guild Rank</div>
-                        <div class="value">#${_fmtNumber(guild.comparison.rankByPerCapita)} by per-member stars</div>
+                        <div class="label">Guild Power Rank</div>
+                        <div class="value">#${_fmtNumber(guild.comparison.rankByGuildPower)} by ⚡ Guild Power</div>
+                    </div>
+                </div>
+                
+                <div class="guild-heroes-health-metric">
+                    <div class="icon">${guild.totals.momentumArrow}</div>
+                    <div class="info">
+                        <div class="label">Momentum</div>
+                        <div class="value">${_fmtOne(guild.totals.momentumScore)} score · ${_fmtOne(guild.totals.momentumPct)}% week-over-week</div>
+                        <div class="guild-heroes-health-bar">
+                            <div class="guild-heroes-health-fill" style="width: ${Math.min(Math.max(guild.totals.momentumPct, 0), 100)}%"></div>
+                        </div>
                     </div>
                 </div>
                 
@@ -354,7 +372,7 @@ function _renderBody(payload) {
     }
 
     _selectedGuildId = guild.guildId;
-    if (subtitle) subtitle.textContent = `${guild.guildName} · Rank #${guild.comparison.rankByPerCapita} · Snapshot ${payload.generatedAtMonthKey}`;
+    if (subtitle) subtitle.textContent = `${guild.guildName} · Power Rank #${guild.comparison.rankByGuildPower} · Snapshot ${payload.generatedAtMonthKey}`;
 
     if (_activeView === 'champions') content.innerHTML = _renderChampionsView(guild);
     else if (_activeView === 'top') content.innerHTML = _renderTopHeroesView(guild);

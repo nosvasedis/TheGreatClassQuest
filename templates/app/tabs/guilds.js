@@ -5,11 +5,11 @@ export const guildsTabHTML = `
 
                 <!-- Title above the framed scene -->
                 <div class="guild-hall-header text-center">
-                    <i class="fas fa-shield-alt text-violet-600 text-5xl floating-icon"></i>
+                    <i class="fas fa-shield-alt text-amber-500 text-5xl floating-icon"></i>
                     <h2 class="font-title guild-hall-title">Guild Hall</h2>
                     <p class="guild-hall-subtitle">
-                        Every star fills your guild's crystal.
-                        The brightest guild in June wins the <strong>Grand Guild Ceremony</strong>! ✨
+                        Every star earns ⚜️ Glory for your guild.
+                        The mightiest guild in June wins the <strong>Grand Guild Ceremony</strong>! ✨
                     </p>
                 </div>
 
@@ -55,7 +55,7 @@ export const guildsTabHTML = `
                 </div>
 
                 <!-- Fortune's Wheel Button (Pro+, once per week per class) -->
-                <div id="fortunes-wheel-section" class="hidden text-center mt-6">
+                <div id="fortunes-wheel-section" class="text-center mt-6" style="display:none;">
                     <button id="fortunes-wheel-btn" type="button"
                         class="bubbly-button bg-gradient-to-r from-violet-600 to-purple-500 text-white font-title text-lg py-3 px-7 rounded-full shadow-[0_0_24px_rgba(124,58,237,0.5)] hover:scale-105 transition-transform border-2 border-white/20">
                         <span class="mr-1">⚜️</span> Spin Fortune's Wheel

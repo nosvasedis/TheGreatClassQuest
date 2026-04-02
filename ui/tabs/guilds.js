@@ -522,24 +522,41 @@ async function _wireFortunesWheel() {
     const statusEl = document.getElementById('fortunes-wheel-status');
     if (!section || !btn) return;
 
-    // Only show for Pro+ (guilds already gated, but double-check)
+    // Only show for users who manage the class
     const role = state.get('role');
-    if (role !== 'teacher' && role !== 'admin') return;
+    const isManager = role === 'teacher' || role === 'admin' || role === 'secretary';
+    if (!isManager) {
+        section.style.display = 'none';
+        return;
+    }
+
+    // Always show the section for teachers — even before classId is loaded
+    section.style.display = '';
 
     const classId = state.get('classId');
-    if (!classId) return;
+    if (!classId) {
+        btn.disabled = true;
+        btn.classList.add('opacity-50');
+        if (statusEl) statusEl.textContent = 'Select a class to unlock the wheel.';
+        return;
+    }
 
-    section.classList.remove('hidden');
-
-    const canSpin = await canSpinThisWeek(classId);
-    if (canSpin) {
+    try {
+        const canSpin = await canSpinThisWeek(classId);
+        if (canSpin) {
+            btn.disabled = false;
+            btn.classList.remove('opacity-50');
+            if (statusEl) statusEl.textContent = 'Ready to spin — once per week per class.';
+        } else {
+            btn.disabled = true;
+            btn.classList.add('opacity-50');
+            if (statusEl) statusEl.textContent = 'Already spun this week! ✓';
+        }
+    } catch (err) {
+        console.warn('Fortune\'s Wheel status check failed:', err);
         btn.disabled = false;
         btn.classList.remove('opacity-50');
         if (statusEl) statusEl.textContent = 'Ready to spin — once per week per class.';
-    } else {
-        btn.disabled = true;
-        btn.classList.add('opacity-50');
-        if (statusEl) statusEl.textContent = 'Already spun this week! ✓';
     }
 
     // Late-bind listeners

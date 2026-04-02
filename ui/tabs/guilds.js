@@ -531,13 +531,13 @@ async function _wireFortunesWheel() {
         if (classId) {
             const canSpin = await canSpinThisWeek(classId);
             statusMsg = canSpin
-                ? '✨ The wheel awaits your command — once per week per class.'
-                : '✓ Already spun this week! Return next week for another spin.';
+                ? 'The wheel is awake now. This class is in its final lesson before the weekend.'
+                : 'The wheel opens only during this class\'s final lesson of the week before the weekend.';
         } else {
-            statusMsg = '🔮 The wheel is ready… select a class to reveal your fate.';
+            statusMsg = 'Select a class to see when the relic may awaken.';
         }
     } catch (_) {
-        statusMsg = '⚜️ Fortune\'s Wheel awaits…';
+        statusMsg = 'Fortune\'s Wheel awaits the proper lesson window.';
     }
 
     if (statusEl) statusEl.textContent = statusMsg;

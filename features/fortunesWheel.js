@@ -6,6 +6,7 @@ import { GLORY_PER_STAR, WHEEL_RARITY_WEIGHTS, WHEEL_RARITY_CONFIG, JUNIOR_LEAGU
 import { adjustGuildGlory, applyGloryModifier, saveFortuneWheelResult, hasSpunThisWeek } from '../db/actions/guilds.js';
 import { getISOWeekKey } from './guildScoring.js';
 import { playSound } from '../audio.js';
+import { evaluateWheelAvailability } from '../utils/fortuneWheelEligibility.mjs';
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // SEGMENT CATALOG
@@ -323,7 +324,17 @@ export function spinWheel(segmentCount) {
 export async function canSpinThisWeek(classId) {
     if (!classId) return false;
     const alreadySpun = await hasSpunThisWeek(classId);
-    return !alreadySpun;
+    if (alreadySpun) return false;
+
+    const availability = evaluateWheelAvailability(classId, {
+        now: new Date(),
+        allSchoolClasses: state.get('allSchoolClasses') || [],
+        allScheduleOverrides: state.get('allScheduleOverrides') || [],
+        schoolHolidayRanges: state.get('schoolHolidayRanges') || [],
+        alreadySpun,
+    });
+
+    return availability.allowed;
 }
 
 /**
@@ -390,78 +401,119 @@ export function drawWheel(canvas, segments, rotationAngle, guildDef) {
     const ctx = canvas.getContext('2d');
     const size = canvas.width;
     const center = size / 2;
-    const radius = center - 12;
+    const radius = center - 20;
     const segCount = segments.length;
     const segAngle = TAU / segCount;
 
     ctx.clearRect(0, 0, size, size);
+    const aura = ctx.createRadialGradient(center, center, radius * 0.16, center, center, radius * 1.12);
+    aura.addColorStop(0, `${guildDef?.glow || '#a78bfa'}55`);
+    aura.addColorStop(0.55, 'rgba(50, 20, 95, 0.24)');
+    aura.addColorStop(1, 'rgba(6, 3, 20, 0)');
+    ctx.fillStyle = aura;
+    ctx.fillRect(0, 0, size, size);
+
     ctx.save();
     ctx.translate(center, center);
     ctx.rotate(rotationAngle);
 
-    // Draw segments
+    const wheelDisc = ctx.createRadialGradient(0, 0, radius * 0.05, 0, 0, radius);
+    wheelDisc.addColorStop(0, 'rgba(255,255,255,0.16)');
+    wheelDisc.addColorStop(0.45, 'rgba(75, 25, 125, 0.08)');
+    wheelDisc.addColorStop(1, 'rgba(10, 4, 26, 0.42)');
+    ctx.beginPath();
+    ctx.arc(0, 0, radius, 0, TAU);
+    ctx.fillStyle = wheelDisc;
+    ctx.fill();
+
     for (let i = 0; i < segCount; i++) {
         const seg = segments[i];
         const startAngle = i * segAngle;
         const endAngle = startAngle + segAngle;
         const rarityConf = WHEEL_RARITY_CONFIG[seg.rarity] || WHEEL_RARITY_CONFIG.common;
+        const gradient = ctx.createLinearGradient(
+            Math.cos(startAngle) * radius,
+            Math.sin(startAngle) * radius,
+            Math.cos(endAngle) * radius,
+            Math.sin(endAngle) * radius
+        );
+        gradient.addColorStop(0, rarityConf.bg);
+        gradient.addColorStop(0.5, `${rarityConf.bg}dd`);
+        gradient.addColorStop(1, rarityConf.color);
 
-        // Segment fill
         ctx.beginPath();
         ctx.moveTo(0, 0);
         ctx.arc(0, 0, radius, startAngle, endAngle);
         ctx.closePath();
-        ctx.fillStyle = rarityConf.bg;
+        ctx.fillStyle = gradient;
         ctx.fill();
 
-        // Segment border
-        ctx.strokeStyle = rarityConf.color;
-        ctx.lineWidth = 1.5;
+        ctx.strokeStyle = `${rarityConf.color}bb`;
+        ctx.lineWidth = Math.max(2, size / 180);
         ctx.stroke();
 
-        // Label (emoji + short name)
         ctx.save();
         ctx.rotate(startAngle + segAngle / 2);
         ctx.textAlign = 'right';
-        ctx.fillStyle = '#ffffff';
-        ctx.font = `bold ${Math.max(9, Math.floor(size / 42))}px system-ui, sans-serif`;
-        const label = `${seg.emoji} ${seg.label}`;
-        const maxLabelLen = 16;
-        const truncated = label.length > maxLabelLen ? label.substring(0, maxLabelLen - 1) + '…' : label;
-        ctx.fillText(truncated, radius - 14, 4);
+        ctx.textBaseline = 'middle';
+        const labelRadius = radius - Math.max(40, size * 0.1);
+        const label = String(seg.label || '');
+        const maxLabelLen = size > 500 ? 18 : 14;
+        const truncated = label.length > maxLabelLen ? `${label.slice(0, maxLabelLen - 1)}...` : label;
+
+        ctx.fillStyle = 'rgba(255,255,255,0.95)';
+        ctx.shadowColor = 'rgba(7, 2, 18, 0.55)';
+        ctx.shadowBlur = Math.max(8, size / 60);
+        ctx.font = `700 ${Math.max(12, Math.floor(size / 31))}px Georgia, serif`;
+        ctx.fillText(seg.emoji || '*', labelRadius, -Math.max(16, size * 0.03));
+        ctx.font = `700 ${Math.max(10, Math.floor(size / 36))}px "Trebuchet MS", system-ui, sans-serif`;
+        ctx.fillText(truncated, labelRadius, Math.max(10, size * 0.025));
         ctx.restore();
     }
 
-    // Center circle (guild emblem area)
-    const innerRadius = radius * 0.22;
+    ctx.beginPath();
+    ctx.arc(0, 0, radius + 5, 0, TAU);
+    ctx.strokeStyle = 'rgba(248, 210, 122, 0.3)';
+    ctx.lineWidth = Math.max(8, size / 70);
+    ctx.stroke();
+
+    ctx.beginPath();
+    ctx.arc(0, 0, radius + 14, 0, TAU);
+    ctx.strokeStyle = `${guildDef?.glow || '#a78bfa'}44`;
+    ctx.lineWidth = Math.max(10, size / 56);
+    ctx.stroke();
+
+    const innerRadius = radius * 0.24;
     ctx.beginPath();
     ctx.arc(0, 0, innerRadius, 0, TAU);
     const primary = guildDef?.primary || '#7c3aed';
     const secondary = guildDef?.secondary || '#a78bfa';
     const grad = ctx.createRadialGradient(0, 0, 0, 0, 0, innerRadius);
-    grad.addColorStop(0, secondary);
-    grad.addColorStop(1, primary);
+    grad.addColorStop(0, '#ffdca8');
+    grad.addColorStop(0.2, secondary);
+    grad.addColorStop(0.78, primary);
+    grad.addColorStop(1, '#2a0b46');
     ctx.fillStyle = grad;
     ctx.fill();
-    ctx.strokeStyle = 'rgba(255,255,255,0.5)';
-    ctx.lineWidth = 3;
+    ctx.strokeStyle = 'rgba(255, 236, 196, 0.72)';
+    ctx.lineWidth = Math.max(5, size / 110);
     ctx.stroke();
 
-    // Guild emoji in center
+    ctx.beginPath();
+    ctx.arc(0, 0, innerRadius * 0.73, 0, TAU);
+    ctx.strokeStyle = 'rgba(255,255,255,0.26)';
+    ctx.lineWidth = Math.max(2, size / 190);
+    ctx.stroke();
+
     ctx.fillStyle = '#fff';
-    ctx.font = `${Math.floor(innerRadius * 1.1)}px system-ui`;
+    ctx.shadowColor = `${guildDef?.glow || '#a78bfa'}cc`;
+    ctx.shadowBlur = Math.max(16, size / 35);
+    ctx.font = `${Math.floor(innerRadius * 1.08)}px system-ui`;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    ctx.fillText(guildDef?.emoji || '⚜️', 0, 2);
+    ctx.fillText(guildDef?.emoji || '*', 0, 2);
 
     ctx.restore();
-
-    // Outer ring glow
-    ctx.beginPath();
-    ctx.arc(center, center, radius + 4, 0, TAU);
-    ctx.strokeStyle = (guildDef?.glow || '#a78bfa') + '88';
-    ctx.lineWidth = 6;
-    ctx.stroke();
 }
 
 /**
@@ -594,38 +646,33 @@ function _populateClassSelector(selectedClassId) {
  * Core availability check + render. Called on open and whenever the class selector changes.
  */
 async function _evaluateAndRender(classId, leagueLevel) {
-    // ── Determine availability ──────────────────────────────────────────────
-    let blocked = false;
-    let blockedTitle = '';
-    let blockedMessage = '';
-    let blockedEmoji = '\ud83d\udd2e'; // 🔮
+    const allSchoolClasses = state.get('allSchoolClasses') || [];
+    const allScheduleOverrides = state.get('allScheduleOverrides') || [];
+    const schoolHolidayRanges = state.get('schoolHolidayRanges') || [];
 
-    if (!classId) {
-        blocked = true;
-        blockedTitle = 'The Stars Are Not Yet Aligned';
-        blockedEmoji = '\u2728'; // ✨
-        blockedMessage = 'Choose a class from the selector above \u2014 each class gets one spin of destiny per week!';
-    } else {
-        try {
-            const alreadySpun = await hasSpunThisWeek(classId);
-            if (alreadySpun) {
-                blocked = true;
-                blockedTitle = 'The Wheel Rests\u2026';
-                blockedEmoji = '\u23f3'; // ⏳
-                blockedMessage = "Fortune\u2019s Wheel has already been spun for this class this week. The ancient magic needs time to recharge \u2014 return next week for another spin of destiny!";
-            }
-        } catch (err) {
-            console.warn('Wheel availability check failed:', err);
-            // Allow spin on error \u2014 better to try than block
-        }
+    let alreadySpun = false;
+    try {
+        alreadySpun = classId ? await hasSpunThisWeek(classId) : false;
+    } catch (err) {
+        console.warn('Wheel availability check failed:', err);
     }
 
-    if (blocked) {
-        _renderLockedState(blockedTitle, blockedMessage, blockedEmoji);
+    const availability = evaluateWheelAvailability(classId, {
+        now: new Date(),
+        allSchoolClasses,
+        allScheduleOverrides,
+        schoolHolidayRanges,
+        alreadySpun,
+    });
+
+    _renderAvailability(availability);
+
+    if (!availability.allowed) {
+        _wheelState = { active: false, classId: null, leagueLevel: null, guildOrder: [], currentGuildIndex: 0, segments: [], results: [], phase: 'idle' };
+        _renderLockedState(availability);
         return;
     }
 
-    // ── Proceed with normal spin flow ───────────────────────────────────────
     _wheelState = {
         active: true,
         classId,
@@ -645,35 +692,52 @@ async function _evaluateAndRender(classId, leagueLevel) {
 /**
  * Render a beautiful "locked" state inside the modal when the wheel can't be spun.
  */
-function _renderLockedState(title, message, emoji) {
-    const headerEl = document.getElementById('fw-guild-header');
-    if (headerEl) headerEl.innerHTML = '';
+function _renderAvailability(availability) {
+    const root = document.getElementById('fw-availability');
+    const titleEl = document.getElementById('fw-availability-title');
+    const messageEl = document.getElementById('fw-availability-message');
+    const metaEl = document.getElementById('fw-availability-meta');
+    if (!root || !titleEl || !messageEl || !metaEl) return;
 
-    // Hide canvas, show locked message in result area
+    root.dataset.state = availability.code || 'locked';
+    titleEl.textContent = availability.title || 'Fortune awaits';
+    messageEl.textContent = availability.message || '';
+    metaEl.textContent = availability.meta || '';
+    metaEl.classList.toggle('hidden', !availability.meta);
+}
+
+function _renderLockedState(title, message, emoji) {
+    const availability = typeof title === 'object'
+        ? title
+        : { title, message, emoji, code: 'locked' };
+
     const canvasWrap = document.getElementById('fw-canvas-wrap');
     if (canvasWrap) canvasWrap.classList.add('hidden');
+    const stageFrame = document.getElementById('fw-stage-frame');
+    if (stageFrame) stageFrame.classList.add('is-locked');
 
     const summaryEl = document.getElementById('fw-summary');
     if (summaryEl) summaryEl.classList.add('hidden');
 
     const resultEl = document.getElementById('fw-result');
     if (resultEl) {
+        const orb = availability.emoji
+            || (availability.code === 'already_spun' ? '⌛' : availability.code === 'outside_lesson' ? '🕰️' : '✦');
         resultEl.innerHTML = `
             <div class="fw-locked-state">
-                <div class="fw-locked-sparkles" aria-hidden="true">&#10022; &#10023; &#10022; &#10023; &#10022;</div>
-                <div class="fw-locked-orb">${emoji}</div>
-                <h3 class="fw-locked-title">${title}</h3>
-                <p class="fw-locked-message">${message}</p>
+                <div class="fw-locked-sparkles" aria-hidden="true">✦ ✧ ✦ ✧ ✦</div>
+                <div class="fw-locked-orb">${orb}</div>
+                <h3 class="fw-locked-title">${availability.title}</h3>
+                <p class="fw-locked-message">${availability.message}</p>
+                ${availability.meta ? `<p class="fw-locked-meta">${availability.meta}</p>` : ''}
                 <div class="fw-locked-divider">
-                    <span>&#10022;</span><span class="fw-locked-gem">&#10070;</span><span>&#10022;</span>
+                    <span>✦</span><span class="fw-locked-gem">◈</span><span>✦</span>
                 </div>
             </div>`;
         resultEl.classList.remove('hidden');
     }
 
-    // Hide action buttons except close
-    const spinBtn = document.getElementById('fw-spin-btn');
-    if (spinBtn) spinBtn.classList.add('hidden');
+    _updateSpinButton(true, availability.code === 'already_spun' ? 'Recharging' : 'Await Final Lesson');
     const nextBtn = document.getElementById('fw-next-btn');
     if (nextBtn) nextBtn.classList.add('hidden');
     const doneBtn = document.getElementById('fw-done-btn');
@@ -693,7 +757,7 @@ export async function triggerSpin() {
     const segments = _wheelState.segments;
     const winnerIndex = spinWheel(segments.length);
 
-    _updateSpinButton(true);
+    _updateSpinButton(true, 'Spinning...');
 
     // Animate
     await animateWheelSpin(canvas, segments, winnerIndex, guildDef, () => {
@@ -767,26 +831,26 @@ function _renderWheelPhase() {
             <span class="fw-guild-progress">Guild ${guildNum} of ${_wheelState.guildOrder.length}</span>`;
     }
 
-    // Draw initial wheel
+    const stageFrame = document.getElementById('fw-stage-frame');
+    if (stageFrame) stageFrame.classList.remove('is-locked');
+
     const canvasWrap = document.getElementById('fw-canvas-wrap');
     if (canvasWrap) canvasWrap.classList.remove('hidden');
     const canvas = document.getElementById('fortunes-wheel-canvas');
     if (canvas) {
         const dpr = window.devicePixelRatio || 1;
-        const displaySize = Math.min(420, Math.max(300, canvas.parentElement?.clientWidth || 360));
+        const displaySize = Math.min(620, Math.max(360, canvas.parentElement?.clientWidth || 520));
         canvas.style.width = `${displaySize}px`;
         canvas.style.height = `${displaySize}px`;
         canvas.width = displaySize * dpr;
         canvas.height = displaySize * dpr;
         canvas.getContext('2d').scale(dpr, dpr);
-        // Reset canvas logical size for drawWheel
         canvas.width = displaySize;
         canvas.height = displaySize;
         drawWheel(canvas, _wheelState.segments, 0, guildDef);
     }
 
-    // Show spin button, hide others
-    _updateSpinButton(false);
+    _updateSpinButton(false, 'Spin the Wheel');
     const resultEl = document.getElementById('fw-result');
     if (resultEl) resultEl.classList.add('hidden');
     const nextBtn = document.getElementById('fw-next-btn');
@@ -795,15 +859,19 @@ function _renderWheelPhase() {
     if (doneBtn) doneBtn.classList.add('hidden');
     const summaryEl = document.getElementById('fw-summary');
     if (summaryEl) summaryEl.classList.add('hidden');
-    const spinBtn = document.getElementById('fw-spin-btn');
-    if (spinBtn) spinBtn.classList.remove('hidden');
 }
 
-function _updateSpinButton(disabled) {
+function _updateSpinButton(disabled, label = 'Spin the Wheel') {
     const spinBtn = document.getElementById('fw-spin-btn');
     if (!spinBtn) return;
     spinBtn.disabled = disabled;
-    spinBtn.textContent = disabled ? '🌀 Spinning…' : '🎰 Spin!';
+    spinBtn.classList.toggle('is-busy', disabled && label === 'Spinning...');
+    const labelEl = spinBtn.querySelector('.fw-btn__label');
+    if (labelEl) {
+        labelEl.textContent = label;
+    } else {
+        spinBtn.textContent = label;
+    }
 }
 
 function _renderWheelResult(segment, result, guildDef) {
@@ -824,9 +892,7 @@ function _renderWheelResult(segment, result, guildDef) {
         </div>`;
     resultEl.classList.remove('hidden');
 
-    // Hide spin, show next/done
-    const spinBtn = document.getElementById('fw-spin-btn');
-    if (spinBtn) spinBtn.classList.add('hidden');
+    _updateSpinButton(true, 'Fate Revealed');
 
     if (_wheelState.currentGuildIndex < _wheelState.guildOrder.length - 1) {
         const nextBtn = document.getElementById('fw-next-btn');
@@ -847,10 +913,12 @@ function _renderWheelSummary() {
 
     const canvasWrap = document.getElementById('fw-canvas-wrap');
     if (canvasWrap) canvasWrap.classList.add('hidden');
+    const stageFrame = document.getElementById('fw-stage-frame');
+    if (stageFrame) stageFrame.classList.add('is-locked');
     const resultEl = document.getElementById('fw-result');
     if (resultEl) resultEl.classList.add('hidden');
     const headerEl = document.getElementById('fw-guild-header');
-    if (headerEl) headerEl.innerHTML = '<span class="fw-summary-title">⚜️ Fortune\'s Wheel — Results ⚜️</span>';
+    if (headerEl) headerEl.innerHTML = '<span class="fw-summary-title">Fortune\'s Wheel Results</span>';
 
     const nextBtn = document.getElementById('fw-next-btn');
     if (nextBtn) nextBtn.classList.add('hidden');
@@ -874,7 +942,7 @@ function _renderWheelSummary() {
 
     const doneBtn = document.getElementById('fw-done-btn');
     if (doneBtn) {
-        doneBtn.textContent = '✨ Done!';
+        doneBtn.textContent = 'Close the Relic';
         doneBtn.classList.remove('hidden');
         doneBtn.onclick = () => closeFortunesWheel();
     }

@@ -175,7 +175,7 @@ function renderShopItemCard(item, isLegendary) {
             </div>
             <div class="p-4 flex-grow flex flex-col">
                 <h3 class="font-title text-xl text-amber-300 leading-tight mb-1">${item.name}</h3>
-                <p class="text-indigo-300 text-xs mb-3 line-clamp-2 flex-grow">${item.description}</p>
+                <p class="text-indigo-300 text-xs mb-3 line-clamp-3 flex-grow">${item.description}</p>
                 <div class="flex justify-between items-center mt-auto pt-3 border-t border-indigo-800">
                     <div class="shop-price-display flex items-center gap-1 font-bold text-white text-lg" data-item-id="${item.id}" data-base-price="${item.price}">
                         <span class="shop-price-value">${item.price}</span>

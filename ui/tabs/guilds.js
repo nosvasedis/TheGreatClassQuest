@@ -522,42 +522,29 @@ async function _wireFortunesWheel() {
     const statusEl = document.getElementById('fortunes-wheel-status');
     if (!section || !btn) return;
 
-    // Only show for users who manage the class
-    const role = state.get('role');
-    const isManager = role === 'teacher' || role === 'admin' || role === 'secretary';
-    if (!isManager) {
-        section.style.display = 'none';
-        return;
-    }
-
-    // Always show the section for teachers — even before classId is loaded
-    section.style.display = '';
-
+    // Section is always visible — the button always opens the modal.
+    // The modal itself handles gating (locked state, lesson check, spin check).
     const classId = state.get('classId');
-    if (!classId) {
-        btn.disabled = true;
-        btn.classList.add('opacity-50');
-        if (statusEl) statusEl.textContent = 'Select a class to unlock the wheel.';
-        return;
-    }
+    let statusMsg = '';
 
     try {
-        const canSpin = await canSpinThisWeek(classId);
-        if (canSpin) {
-            btn.disabled = false;
-            btn.classList.remove('opacity-50');
-            if (statusEl) statusEl.textContent = 'Ready to spin — once per week per class.';
+        if (classId) {
+            const canSpin = await canSpinThisWeek(classId);
+            statusMsg = canSpin
+                ? '✨ The wheel awaits your command — once per week per class.'
+                : '✓ Already spun this week! Return next week for another spin.';
         } else {
-            btn.disabled = true;
-            btn.classList.add('opacity-50');
-            if (statusEl) statusEl.textContent = 'Already spun this week! ✓';
+            statusMsg = '🔮 The wheel is ready… select a class to reveal your fate.';
         }
-    } catch (err) {
-        console.warn('Fortune\'s Wheel status check failed:', err);
-        btn.disabled = false;
-        btn.classList.remove('opacity-50');
-        if (statusEl) statusEl.textContent = 'Ready to spin — once per week per class.';
+    } catch (_) {
+        statusMsg = '⚜️ Fortune\'s Wheel awaits…';
     }
+
+    if (statusEl) statusEl.textContent = statusMsg;
+
+    // Button is NEVER disabled — always opens the modal
+    btn.disabled = false;
+    btn.classList.remove('opacity-50');
 
     // Late-bind listeners
     if (!btn._fwWired) {

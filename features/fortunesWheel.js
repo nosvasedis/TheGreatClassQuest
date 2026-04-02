@@ -6,7 +6,6 @@ import { GLORY_PER_STAR, WHEEL_RARITY_WEIGHTS, WHEEL_RARITY_CONFIG, JUNIOR_LEAGU
 import { adjustGuildGlory, applyGloryModifier, saveFortuneWheelResult, hasSpunThisWeek } from '../db/actions/guilds.js';
 import { getISOWeekKey } from './guildScoring.js';
 import { playSound } from '../audio.js';
-import { showToast } from '../ui/effects.js';
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // SEGMENT CATALOG
@@ -544,17 +543,50 @@ let _wheelState = {
 export function getWheelState() { return _wheelState; }
 
 /**
- * Open the Fortune's Wheel modal and set up the session.
+ * Open the Fortune's Wheel modal. ALWAYS opens — shows a locked/unavailable
+ * state with a gameified message if conditions aren't met.
  * @param {string} classId
  * @param {string} leagueLevel
  */
 export async function openFortunesWheel(classId, leagueLevel) {
-    const canSpin = await canSpinThisWeek(classId);
-    if (!canSpin) {
-        showToast('Fortune\'s Wheel has already been spun this week for this class! ✓', 'info');
+    const modal = document.getElementById('fortunes-wheel-modal');
+    if (!modal) return;
+
+    // Always show the modal first
+    modal.classList.remove('hidden');
+
+    // ── Determine availability ──────────────────────────────────────────────
+    let blocked = false;
+    let blockedTitle = '';
+    let blockedMessage = '';
+    let blockedEmoji = '🔮';
+
+    if (!classId) {
+        blocked = true;
+        blockedTitle = 'The Stars Are Not Yet Aligned';
+        blockedEmoji = '🌌';
+        blockedMessage = 'Select a class from your quest board before the Wheel will reveal its secrets. Each class spins once per week — choose wisely!';
+    } else {
+        try {
+            const alreadySpun = await hasSpunThisWeek(classId);
+            if (alreadySpun) {
+                blocked = true;
+                blockedTitle = 'The Wheel Rests…';
+                blockedEmoji = '⏳';
+                blockedMessage = 'Fortune\'s Wheel has already been spun for this class this week. The ancient magic needs time to recharge — return next week for another spin of destiny!';
+            }
+        } catch (err) {
+            console.warn('Wheel availability check failed:', err);
+            // Allow spin on error — better to try than block
+        }
+    }
+
+    if (blocked) {
+        _renderLockedState(blockedTitle, blockedMessage, blockedEmoji);
         return;
     }
 
+    // ── Proceed with normal spin flow ───────────────────────────────────────
     _wheelState = {
         active: true,
         classId,
@@ -568,13 +600,42 @@ export async function openFortunesWheel(classId, leagueLevel) {
 
     // Generate first guild's segments
     _wheelState.segments = generateWheelSegments(leagueLevel);
+    _renderWheelPhase();
+}
 
-    // Show modal
-    const modal = document.getElementById('fortunes-wheel-modal');
-    if (modal) {
-        modal.classList.remove('hidden');
-        _renderWheelPhase();
+/**
+ * Render a beautiful "locked" state inside the modal when the wheel can't be spun.
+ */
+function _renderLockedState(title, message, emoji) {
+    const headerEl = document.getElementById('fw-guild-header');
+    if (headerEl) headerEl.innerHTML = '';
+
+    // Hide canvas, show locked message in result area
+    const canvasWrap = document.getElementById('fw-canvas-wrap');
+    if (canvasWrap) canvasWrap.classList.add('hidden');
+
+    const summaryEl = document.getElementById('fw-summary');
+    if (summaryEl) summaryEl.classList.add('hidden');
+
+    const resultEl = document.getElementById('fw-result');
+    if (resultEl) {
+        resultEl.innerHTML = `
+            <div class="fw-locked-state">
+                <div class="fw-locked-orb">${emoji}</div>
+                <h3 class="fw-locked-title">${title}</h3>
+                <p class="fw-locked-message">${message}</p>
+                <div class="fw-locked-ornament">✦ ✧ ✦</div>
+            </div>`;
+        resultEl.classList.remove('hidden');
     }
+
+    // Hide action buttons except close
+    const spinBtn = document.getElementById('fw-spin-btn');
+    if (spinBtn) spinBtn.classList.add('hidden');
+    const nextBtn = document.getElementById('fw-next-btn');
+    if (nextBtn) nextBtn.classList.add('hidden');
+    const doneBtn = document.getElementById('fw-done-btn');
+    if (doneBtn) doneBtn.classList.add('hidden');
 }
 
 /**
@@ -665,6 +726,8 @@ function _renderWheelPhase() {
     }
 
     // Draw initial wheel
+    const canvasWrap = document.getElementById('fw-canvas-wrap');
+    if (canvasWrap) canvasWrap.classList.remove('hidden');
     const canvas = document.getElementById('fortunes-wheel-canvas');
     if (canvas) {
         const dpr = window.devicePixelRatio || 1;

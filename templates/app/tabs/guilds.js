@@ -55,7 +55,7 @@ export const guildsTabHTML = `
                 </div>
 
                 <!-- Fortune's Wheel Button (Pro+, once per week per class) -->
-                <div id="fortunes-wheel-section" class="text-center mt-6" style="display:none;">
+                <div id="fortunes-wheel-section" class="text-center mt-6">
                     <button id="fortunes-wheel-btn" type="button"
                         class="bubbly-button bg-gradient-to-r from-violet-600 to-purple-500 text-white font-title text-lg py-3 px-7 rounded-full shadow-[0_0_24px_rgba(124,58,237,0.5)] hover:scale-105 transition-transform border-2 border-white/20">
                         <span class="mr-1">⚜️</span> Spin Fortune's Wheel

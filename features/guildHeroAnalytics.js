@@ -2,7 +2,7 @@
 // Aggregates guild hero analytics from in-memory state.
 
 import * as state from '../state.js';
-import { getGuildLeaderboardData } from './guildScoring.js';
+import { getGuildLeaderboardData, getMomentumArrow } from './guildScoring.js';
 import { GUILD_IDS, getGuildById } from './guilds.js';
 
 /**
@@ -175,7 +175,16 @@ export function getGuildHeroAnalytics() {
                 monthlyStars: Number(lb.monthlyStars) || 0,
                 memberCount: Number(lb.memberCount) || 0,
                 perCapitaStars: Number(lb.perCapitaStars) || 0,
-                monthlyPerCapitaStars: Number(lb.monthlyPerCapitaStars) || 0
+                monthlyPerCapitaStars: Number(lb.monthlyPerCapitaStars) || 0,
+                // Glory & Power metrics
+                totalGlory: Number(lb.totalGlory) || 0,
+                perCapitaGlory: Number(lb.perCapitaGlory) || 0,
+                guildPower: Number(lb.guildPower) || 0,
+                momentumScore: Number(lb.momentumScore) || 0,
+                momentumPct: Number(lb.momentumPct) || 0,
+                momentumArrow: getMomentumArrow(lb.momentumPct || 0),
+                activityScore: Number(lb.activityScore) || 0,
+                weeklyGlory: Number(lb.weeklyGlory) || 0,
             },
             champions: {
                 monthlyChampion: _pickMonthlyChampion(guildChampions[guildId], heroesByMonthly),
@@ -193,12 +202,17 @@ export function getGuildHeroAnalytics() {
             comparison: {
                 rankByPerCapita: lb.rankByPerCapita || GUILD_IDS.length,
                 deltaToLeaderPerCapita: leader ? Math.round(((leader.perCapitaStars || 0) - (lb.perCapitaStars || 0)) * 10) / 10 : 0,
-                deltaToLeaderTotal: leader ? Math.max(0, (leader.totalStars || 0) - (lb.totalStars || 0)) : 0
+                deltaToLeaderTotal: leader ? Math.max(0, (leader.totalStars || 0) - (lb.totalStars || 0)) : 0,
+                rankByGuildPower: 0, // Set after sort
+                deltaToLeaderGlory: leader ? Math.max(0, (leader.totalGlory || 0) - (lb.totalGlory || 0)) : 0
             }
         };
     }).sort((a, b) =>
-        a.comparison.rankByPerCapita - b.comparison.rankByPerCapita || b.totals.totalStars - a.totals.totalStars
+        b.totals.guildPower - a.totals.guildPower || b.totals.perCapitaGlory - a.totals.perCapitaGlory || b.totals.totalStars - a.totals.totalStars
     );
+
+    // Set rankByGuildPower after sort
+    guilds.forEach((g, idx) => { g.comparison.rankByGuildPower = idx + 1; });
 
     const overallTopChampion = guilds
         .map(g => g.champions.allTimeChampion)
@@ -218,13 +232,19 @@ export function getGuildHeroAnalytics() {
         }
     }
 
+    // Find biggest mover (highest positive momentum) and most active guild this week
+    const biggestMover = [...guilds].sort((a, b) => (b.totals.momentumPct || 0) - (a.totals.momentumPct || 0))[0] || null;
+    const mostActive = [...guilds].sort((a, b) => (b.totals.activityScore || 0) - (a.totals.activityScore || 0))[0] || null;
+
     return {
         generatedAtMonthKey: _getCurrentMonthKey(),
         guilds,
         overview: {
             leaderGuildId: guilds[0]?.guildId || null,
             overallTopChampion,
-            closestRace
+            closestRace,
+            biggestMover: biggestMover ? { guildId: biggestMover.guildId, guildName: biggestMover.guildName, momentumPct: biggestMover.totals.momentumPct } : null,
+            mostActive: mostActive ? { guildId: mostActive.guildId, guildName: mostActive.guildName, activityScore: mostActive.totals.activityScore } : null,
         }
     };
 }

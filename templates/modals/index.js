@@ -14,6 +14,7 @@ import { miscModalsHTML } from './misc.js';
 import { sortingQuizModalsHTML } from './sortingQuiz.js';
 import { skillTreeModalHTML } from './skillTree.js';
 import { guildHeroesModalHTML } from './guildHeroes.js';
+import { fortunesWheelModalHTML } from './fortunesWheel.js';
 
 export const allModalsHTML =
     baseModalsHTML +
@@ -29,4 +30,5 @@ export const allModalsHTML =
     miscModalsHTML +
     sortingQuizModalsHTML +
     skillTreeModalHTML +
-    guildHeroesModalHTML;
+    guildHeroesModalHTML +
+    fortunesWheelModalHTML;

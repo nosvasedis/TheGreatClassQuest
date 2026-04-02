@@ -1,0 +1,322 @@
+/* styles/fortunes_wheel.css — Fortune's Wheel modal styles */
+
+/* ── Backdrop ────────────────────────────────────────────────────────────── */
+
+.fw-backdrop {
+    position: fixed;
+    inset: 0;
+    background: radial-gradient(ellipse at center, rgba(15, 5, 40, 0.92) 0%, rgba(5, 2, 20, 0.97) 100%);
+    z-index: -1;
+}
+
+/* ── Card / Shell ────────────────────────────────────────────────────────── */
+
+.fw-card {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.75rem;
+    max-width: 520px;
+    width: 100%;
+    max-height: 96vh;
+    overflow-y: auto;
+    padding: 1.25rem 1rem 1rem;
+    border-radius: 1.25rem;
+    background: linear-gradient(145deg, rgba(30, 15, 60, 0.85) 0%, rgba(15, 8, 35, 0.90) 100%);
+    border: 1px solid rgba(167, 139, 250, 0.25);
+    backdrop-filter: blur(18px);
+    box-shadow:
+        0 0 40px rgba(124, 58, 237, 0.20),
+        0 0 80px rgba(124, 58, 237, 0.10),
+        inset 0 1px 0 rgba(255, 255, 255, 0.06);
+}
+
+/* ── Header ──────────────────────────────────────────────────────────────── */
+
+.fw-header { text-align: center; width: 100%; }
+
+.fw-title {
+    margin: 0;
+    font-size: 1.5rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    color: #e2d6ff;
+    text-shadow: 0 0 12px rgba(167, 139, 250, 0.50);
+}
+
+.fw-guild-header {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    margin-top: 0.5rem;
+    font-size: 0.95rem;
+    flex-wrap: wrap;
+}
+
+.fw-guild-emoji { font-size: 1.6rem; }
+
+.fw-guild-name { font-weight: 700; font-size: 1.15rem; }
+
+.fw-guild-progress {
+    font-size: 0.8rem;
+    color: rgba(255, 255, 255, 0.45);
+    margin-left: 0.25rem;
+}
+
+.fw-summary-title {
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: #e2d6ff;
+    text-shadow: 0 0 10px rgba(167, 139, 250, 0.40);
+}
+
+/* ── Canvas Wrapper ──────────────────────────────────────────────────────── */
+
+.fw-canvas-wrap {
+    position: relative;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    width: 100%;
+    max-width: 420px;
+}
+
+.fw-canvas {
+    display: block;
+    border-radius: 50%;
+    box-shadow: 0 0 30px rgba(124, 58, 237, 0.25);
+}
+
+/* Pointer arrow (top center) */
+.fw-pointer {
+    position: absolute;
+    top: -14px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 2rem;
+    color: #facc15;
+    text-shadow: 0 2px 6px rgba(0, 0, 0, 0.6);
+    z-index: 2;
+    animation: fw-pointer-bounce 1.2s ease-in-out infinite;
+    pointer-events: none;
+}
+
+@keyframes fw-pointer-bounce {
+    0%, 100% { transform: translateX(-50%) translateY(0); }
+    50%      { transform: translateX(-50%) translateY(5px); }
+}
+
+/* ── Result Card ─────────────────────────────────────────────────────────── */
+
+.fw-result { width: 100%; max-width: 420px; }
+
+.fw-result-card {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 1.25rem 1rem;
+    border-radius: 1rem;
+    border: 2px solid;
+    background: linear-gradient(160deg, rgba(30, 15, 60, 0.80), rgba(15, 8, 35, 0.90));
+    backdrop-filter: blur(12px);
+    text-align: center;
+    animation: fw-result-appear 0.5s ease-out;
+}
+
+@keyframes fw-result-appear {
+    from { opacity: 0; transform: scale(0.85) translateY(12px); }
+    to   { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+.fw-result-rarity {
+    display: inline-block;
+    padding: 0.15rem 0.65rem;
+    border-radius: 999px;
+    font-size: 0.72rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    border: 1px solid;
+}
+
+.fw-result-emoji { font-size: 2.5rem; line-height: 1; }
+
+.fw-result-title {
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: #fff;
+}
+
+.fw-result-description {
+    font-size: 0.9rem;
+    color: rgba(255, 255, 255, 0.75);
+    max-width: 320px;
+}
+
+.fw-result-glory {
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: #facc15;
+    text-shadow: 0 0 6px rgba(250, 204, 21, 0.40);
+}
+
+.fw-result-glory--negative {
+    color: #f87171;
+    text-shadow: 0 0 6px rgba(248, 113, 113, 0.40);
+}
+
+.fw-result-students {
+    font-size: 0.8rem;
+    color: rgba(255, 255, 255, 0.50);
+}
+
+/* ── Summary ─────────────────────────────────────────────────────────────── */
+
+.fw-summary { width: 100%; }
+
+.fw-summary-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.75rem;
+}
+
+.fw-summary-card {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.3rem;
+    padding: 0.85rem 0.6rem;
+    border-radius: 0.85rem;
+    border: 1.5px solid;
+    background: rgba(20, 10, 45, 0.70);
+    text-align: center;
+    animation: fw-result-appear 0.4s ease-out both;
+}
+
+.fw-summary-card:nth-child(1) { animation-delay: 0s; }
+.fw-summary-card:nth-child(2) { animation-delay: 0.1s; }
+.fw-summary-card:nth-child(3) { animation-delay: 0.2s; }
+.fw-summary-card:nth-child(4) { animation-delay: 0.3s; }
+
+.fw-summary-guild-name {
+    font-weight: 700;
+    font-size: 0.95rem;
+}
+
+.fw-summary-segment {
+    font-size: 0.85rem;
+    color: rgba(255, 255, 255, 0.90);
+}
+
+.fw-summary-rarity {
+    font-size: 0.7rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+}
+
+.fw-summary-desc {
+    font-size: 0.75rem;
+    color: rgba(255, 255, 255, 0.55);
+}
+
+.fw-summary-glory {
+    font-size: 1rem;
+    font-weight: 700;
+    color: #facc15;
+}
+
+/* ── Buttons ─────────────────────────────────────────────────────────────── */
+
+.fw-footer {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.75rem;
+    margin-top: 0.25rem;
+    flex-wrap: wrap;
+}
+
+.fw-btn {
+    padding: 0.6rem 1.5rem;
+    border: none;
+    border-radius: 0.65rem;
+    font-size: 1rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.fw-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.fw-btn--spin {
+    background: linear-gradient(135deg, #7c3aed, #a78bfa);
+    color: #fff;
+    box-shadow: 0 0 16px rgba(124, 58, 237, 0.35);
+    font-size: 1.15rem;
+    padding: 0.75rem 2rem;
+}
+
+.fw-btn--spin:hover:not(:disabled) {
+    background: linear-gradient(135deg, #6d28d9, #8b5cf6);
+    box-shadow: 0 0 24px rgba(124, 58, 237, 0.50);
+    transform: scale(1.04);
+}
+
+.fw-btn--next {
+    background: linear-gradient(135deg, #0ea5e9, #38bdf8);
+    color: #fff;
+    box-shadow: 0 0 12px rgba(14, 165, 233, 0.30);
+}
+
+.fw-btn--next:hover {
+    transform: scale(1.03);
+    box-shadow: 0 0 20px rgba(14, 165, 233, 0.45);
+}
+
+.fw-btn--done {
+    background: linear-gradient(135deg, #10b981, #34d399);
+    color: #fff;
+    box-shadow: 0 0 12px rgba(16, 185, 129, 0.30);
+}
+
+.fw-btn--done:hover {
+    transform: scale(1.03);
+    box-shadow: 0 0 20px rgba(16, 185, 129, 0.45);
+}
+
+.fw-btn--close {
+    position: absolute;
+    top: 0.6rem;
+    right: 0.6rem;
+    padding: 0.3rem 0.6rem;
+    font-size: 1.1rem;
+    background: rgba(255, 255, 255, 0.06);
+    color: rgba(255, 255, 255, 0.45);
+    border-radius: 0.5rem;
+    line-height: 1;
+}
+
+.fw-btn--close:hover {
+    background: rgba(255, 255, 255, 0.12);
+    color: rgba(255, 255, 255, 0.80);
+}
+
+/* ── Responsive ──────────────────────────────────────────────────────────── */
+
+@media (max-width: 480px) {
+    .fw-card { padding: 1rem 0.6rem 0.75rem; }
+    .fw-title { font-size: 1.2rem; }
+    .fw-summary-grid { grid-template-columns: 1fr; }
+    .fw-btn--spin { font-size: 1rem; padding: 0.6rem 1.5rem; }
+}
+
+@media (min-width: 640px) {
+    .fw-card { padding: 1.5rem 1.5rem 1.25rem; }
+}

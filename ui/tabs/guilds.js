@@ -3,6 +3,9 @@
 import { getGuildLeaderboardData } from '../../features/guildScoring.js';
 import { getGuildById, getGuildEmblemUrl, GUILD_IDS, GUILDS } from '../../features/guilds.js';
 import { openGuildHeroesModal } from '../modals/guildHeroes.js';
+import { openFortunesWheel, advanceWheel, triggerSpin, closeFortunesWheel, canSpinThisWeek } from '../../features/fortunesWheel.js';
+import { GLORY_EMOJI } from '../../constants.js';
+import * as state from '../../state.js';
 
 // ─── Sound cache ─────────────────────────────────────────────────────────────
 const _audioCache = {};
@@ -345,8 +348,15 @@ export function renderGuildsTab() {
             perCapitaStars: found?.perCapitaStars || 0,
             monthlyPerCapitaStars: found?.monthlyPerCapitaStars || 0,
             topContributors: found?.topContributors || [],
+            // Glory & Power fields
+            totalGlory: found?.totalGlory || 0,
+            weeklyGlory: found?.weeklyGlory || 0,
+            perCapitaGlory: found?.perCapitaGlory || 0,
+            guildPower: found?.guildPower || 0,
+            momentumArrow: found?.momentumArrow || '—',
+            activityScore: found?.activityScore || 0,
         };
-    }).sort((a, b) => b.perCapitaStars - a.perCapitaStars || b.totalStars - a.totalStars);
+    }).sort((a, b) => b.guildPower - a.guildPower || b.perCapitaGlory - a.perCapitaGlory || b.perCapitaStars - a.perCapitaStars);
 
     const maxStars = Math.max(...displayData.map(g => g.totalStars)) || 1;
     const rankEmoji = ['🥇', '🥈', '🥉', '4️⃣'];
@@ -358,9 +368,9 @@ export function renderGuildsTab() {
         const secondary = guild?.secondary || '#9ca3af';
         const glow = guild?.glow || primary;
         const emoji = guild?.emoji || '⚔️';
-        // Fill based on cumulative per-capita (fairest metric), leader gets 90%
-        const maxPerCapita = Math.max(...displayData.map(g => g.perCapitaStars)) || 1;
-        const fillPct = Math.max(5, Math.round((g.perCapitaStars / maxPerCapita) * 90));
+        // Fill based on Guild Power (composite score), leader gets 90%
+        const maxPower = Math.max(...displayData.map(g => g.guildPower)) || 1;
+        const fillPct = Math.max(5, Math.round((g.guildPower / maxPower) * 90));
 
         const emblemHtml = emblemUrl
             ? `<img src="${emblemUrl}" alt="${g.guildName}" class="guild-crystal-emblem"
@@ -441,11 +451,11 @@ export function renderGuildsTab() {
 
                 <!-- ── Bottom stats ── -->
                 <div class="guild-crystal-count" style="color:${primary};">
-                    <span class="guild-crystal-count-num">${g.perCapitaStars.toFixed(1)}</span>
-                    <span class="guild-crystal-count-label">⭐ / member total</span>
+                    <span class="guild-crystal-count-num">${Math.round(g.guildPower)}</span>
+                    <span class="guild-crystal-count-label">⚡ Guild Power</span>
                 </div>
                 <div class="guild-crystal-members" style="opacity:0.65;">
-                    ${g.totalStars.toLocaleString()} total ⭐ · ${g.memberCount} member${g.memberCount === 1 ? '' : 's'}
+                    ${g.perCapitaGlory.toFixed(1)} ${GLORY_EMOJI}/member · ${g.momentumArrow} · ${g.memberCount} member${g.memberCount === 1 ? '' : 's'}
                 </div>
 
                 ${topHtml}
@@ -496,4 +506,95 @@ export function renderGuildsTab() {
     arena.addEventListener('keydown', (e) => {
         if (e.key === 'Enter' || e.key === ' ') handleGuildActivate(e);
     });
+
+    // ── Fortune's Wheel button ────────────────────────────────────────────────
+    _wireFortunesWheel();
+
+    // ── Fortune's Log ─────────────────────────────────────────────────────────
+    _renderFortunesLog();
+}
+
+// ─── Fortune's Wheel wiring ──────────────────────────────────────────────────
+
+async function _wireFortunesWheel() {
+    const section = document.getElementById('fortunes-wheel-section');
+    const btn = document.getElementById('fortunes-wheel-btn');
+    const statusEl = document.getElementById('fortunes-wheel-status');
+    if (!section || !btn) return;
+
+    // Only show for Pro+ (guilds already gated, but double-check)
+    const role = state.get('role');
+    if (role !== 'teacher' && role !== 'admin') return;
+
+    const classId = state.get('classId');
+    if (!classId) return;
+
+    section.classList.remove('hidden');
+
+    const canSpin = await canSpinThisWeek(classId);
+    if (canSpin) {
+        btn.disabled = false;
+        btn.classList.remove('opacity-50');
+        if (statusEl) statusEl.textContent = 'Ready to spin — once per week per class.';
+    } else {
+        btn.disabled = true;
+        btn.classList.add('opacity-50');
+        if (statusEl) statusEl.textContent = 'Already spun this week! ✓';
+    }
+
+    // Late-bind listeners
+    if (!btn._fwWired) {
+        btn._fwWired = true;
+        btn.addEventListener('click', () => {
+            const cid = state.get('classId');
+            const league = state.get('leagueLevel') || state.get('league') || 'B';
+            openFortunesWheel(cid, league);
+        });
+    }
+
+    // Wire modal action buttons (once)
+    _wireWheelModalButtons();
+}
+
+function _wireWheelModalButtons() {
+    const modal = document.getElementById('fortunes-wheel-modal');
+    if (!modal || modal._fwWired) return;
+    modal._fwWired = true;
+
+    document.getElementById('fw-spin-btn')?.addEventListener('click', () => triggerSpin());
+    document.getElementById('fw-next-btn')?.addEventListener('click', () => advanceWheel());
+    document.getElementById('fw-close-btn')?.addEventListener('click', () => closeFortunesWheel());
+}
+
+// ─── Fortune's Log ───────────────────────────────────────────────────────────
+
+function _renderFortunesLog() {
+    const section = document.getElementById('fortunes-log-section');
+    const listEl = document.getElementById('fortunes-log-list');
+    if (!section || !listEl) return;
+
+    const logs = state.get('fortuneWheelLog') || [];
+    if (logs.length === 0) return;
+
+    section.classList.remove('hidden');
+
+    listEl.innerHTML = logs.map(entry => {
+        const date = entry.spunAt?.toDate ? entry.spunAt.toDate() : new Date(entry.spunAt);
+        const dateStr = date.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+        const results = entry.results || [];
+        return `
+            <div class="p-2 rounded-lg bg-white/5 border border-violet-500/10">
+                <div class="text-xs opacity-50 mb-1">${dateStr} — Week ${entry.weekKey || '?'}</div>
+                <div class="flex flex-wrap gap-2">
+                    ${results.map(r => {
+                        const gDef = getGuildById(r.guildId);
+                        return `<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs"
+                                    style="background:${gDef?.primary || '#666'}22;color:${gDef?.primary || '#ccc'};">
+                                    ${gDef?.emoji || '⚔️'} ${r.segmentLabel || r.segmentId}
+                                    ${r.gloryDelta ? `<span class="opacity-60">(${r.gloryDelta >= 0 ? '+' : ''}${r.gloryDelta}⚜️)</span>` : ''}
+                                </span>`;
+                    }).join('')}
+                </div>
+            </div>`;
+    }).join('');
 }

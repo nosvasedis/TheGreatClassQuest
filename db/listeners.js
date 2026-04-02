@@ -48,6 +48,7 @@ function clearDataListeners() {
     state.get('unsubscribeQuestBounties')();
     state.get('unsubscribeGuildScores')();
     state.get('unsubscribeGuildChampions')();
+    state.get('unsubscribeFortuneWheelLog')();
     state.get('unsubscribeParentSnapshot')();
     state.get('unsubscribeParentHomework')();
     state.get('unsubscribeCommunicationThreads')();
@@ -582,6 +583,10 @@ export function setupDataListeners(userId, dateString, onInitialDataReady, optio
         const allGuildScores = {};
         snapshot.docs.forEach(d => { allGuildScores[d.id] = { id: d.id, ...d.data() }; });
         state.setAllGuildScores(allGuildScores);
+        // One-time Glory migration for guilds without Glory fields
+        import('../features/guildScoring.js').then(m => m.migrateGuildGloryIfNeeded());
+        // Check weekly reset
+        import('../features/guildScoring.js').then(m => m.checkAndPerformWeeklyGloryReset());
         renderStudentLeaderboardTab();
     }, (error) => console.error("Error listening to guild_scores:", error)));
 
@@ -597,6 +602,17 @@ export function setupDataListeners(userId, dateString, onInitialDataReady, optio
         state.setGuildChampions(champions);
         renderStudentLeaderboardTab();
     }, (error) => console.error("Error listening to guild_champions:", error)));
+
+    // Fortune's Wheel Log — recent spins for all classes (limit 20)
+    const wheelLogQuery = query(
+        collection(db, `${publicDataPath}/fortune_wheel_log`),
+        orderBy('spunAt', 'desc'),
+        limit(20)
+    );
+    state.setUnsubscribeFortuneWheelLog(onSnapshot(wheelLogQuery, (snapshot) => {
+        const log = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
+        state.setFortuneWheelLog(log);
+    }, (error) => console.error("Error listening to fortune_wheel_log:", error)));
 
     subscribeCommunicationThreads({ userId, isSecretary });
 }

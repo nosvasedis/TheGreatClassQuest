@@ -74,6 +74,8 @@ function getDefaultState() {
         studentLeaderboardDisplay: 'individual', // 'individual' | 'guild'
         allGuildScores: {},
         guildChampions: {}, // keyed by guildId → { studentId, studentName, avatar, monthlyStars }
+        fortuneWheelLog: [], // Recent wheel results for current viewed class
+        unsubscribeFortuneWheelLog: () => { },
         allMonthlyHistory: {},
         currentlySelectedDayCell: null,
         currentLogFilter: { classId: null, month: '' },
@@ -336,6 +338,8 @@ export function setUnsubscribeQuestBounties(func) { state.unsubscribeQuestBounti
 export function setUnsubscribeGuildScores(func) { state.unsubscribeGuildScores = func; }
 export function setGuildChampions(champions) { state.guildChampions = champions; }
 export function setUnsubscribeGuildChampions(func) { state.unsubscribeGuildChampions = func; }
+export function setFortuneWheelLog(log) { state.fortuneWheelLog = log || []; }
+export function setUnsubscribeFortuneWheelLog(func) { state.unsubscribeFortuneWheelLog = func; }
 export function setCurrentShopItems(items) { state.currentShopItems = items; }
 export function setUnsubscribeParentSnapshot(func) { state.unsubscribeParentSnapshot = func; }
 export function setUnsubscribeParentHomework(func) { state.unsubscribeParentHomework = func; }

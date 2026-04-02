@@ -33,6 +33,36 @@ export const FIREBASE_FUNCTIONS_REGION = (typeof window !== 'undefined' && windo
 
 export const questLeagues = ['Junior A', 'Junior B', 'A', 'B', 'C', 'D']; 
 
+// ─── Glory Currency (Guild scoring) ──────────────────────────────────────────
+export const GLORY_PER_STAR = 2;
+export const GLORY_EMOJI = '⚜️';
+
+/** Composite Guild Power weights (must sum to 1.0) */
+export const GUILD_POWER_WEIGHTS = { glory: 0.50, momentum: 0.30, activity: 0.20 };
+
+/** Fortune's Wheel segment rarity weights (probability out of 100) */
+export const WHEEL_RARITY_WEIGHTS = {
+    common:    40,
+    uncommon:  25,
+    rare:      20,
+    epic:      10,
+    legendary:  3,
+    cursed:     2,
+};
+
+/** Rarity display config */
+export const WHEEL_RARITY_CONFIG = {
+    common:    { label: 'Common',    color: '#3b82f6', bg: '#1e3a5f', glow: '#3b82f680' },
+    uncommon:  { label: 'Uncommon',  color: '#22c55e', bg: '#14532d', glow: '#22c55e80' },
+    rare:      { label: 'Rare',      color: '#a855f7', bg: '#3b0764', glow: '#a855f780' },
+    epic:      { label: 'Epic',      color: '#f97316', bg: '#7c2d12', glow: '#f9731680' },
+    legendary: { label: 'Legendary', color: '#eab308', bg: '#713f12', glow: '#eab30880' },
+    cursed:    { label: 'Cursed',    color: '#ef4444', bg: '#450a0a', glow: '#ef444480' },
+};
+
+/** Junior leagues (no cursed or harsh negative segments) */
+export const JUNIOR_LEAGUES = ['Junior A', 'Junior B'];
+
 export const classLogos = [
     '⭐', '🚀', '💡', '🏆', '📚', '🧭', '🧪', '🧠', '🧩', '🗺️',
     '🦁', '🐲', '🦄', '🤖', '👑', '💎', '🎨', '💻', '📈', '🌍',

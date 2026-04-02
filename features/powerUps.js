@@ -10,10 +10,13 @@ export const LEGENDARY_ARTIFACTS = [
     { id: 'leg_gilded', name: 'Scroll of the Gilded Star', price: 20, description: '3x Gold for the next star you earn.', icon: '✨' },
     { id: 'leg_hourglass', name: 'Time Warp Hourglass', price: 25, description: 'Adds +5m to any active class Bounty Timers.', icon: '⏳' },
     { id: 'leg_luck', name: 'Elixir of Luck', price: 30, description: '20% chance for +1 star during your NEXT lesson.', icon: '🍀' },
+    { id: 'leg_glory_banner', name: 'Banner of Glory', price: 35, description: 'Your next 3 stars each give +1 bonus Glory to your guild.', icon: '⚜️' },
     { id: 'leg_banner', name: "The Herald's Banner", price: 40, description: 'Broadcasts a school-wide victory celebration!', icon: '📢' },
     { id: 'leg_catalyst', name: 'The Starfall Catalyst', price: 50, description: 'Double the stars for your next high test score.', icon: '📜' },
+    { id: 'leg_glory_chalice', name: 'Chalice of Radiance', price: 55, description: "All guildmates' next star gives +1 bonus Glory. One-time guild-wide effect.", icon: '🏆' },
     { id: 'leg_pathfinder', name: 'The Pathfinder’s Map', price: 60, description: 'Instant +10 Stars for the Team Quest. (Class Limit: 1/month)', icon: '🗺️' },
-    { id: 'leg_protagonist', name: 'The Mask of the Protagonist', price: 75, description: 'Guarantees you are the Hero in the next Story Log.', icon: '🎭' }
+    { id: 'leg_protagonist', name: 'The Mask of the Protagonist', price: 75, description: 'Guarantees you are the Hero in the next Story Log.', icon: '🎭' },
+    { id: 'leg_glory_crown', name: 'Crown of the Eternal', price: 90, description: "Your guild's Glory generation is DOUBLED for the rest of the day!", icon: '👑' }
 ];
 
 export function isItemUsable(itemName) {
@@ -221,6 +224,73 @@ const POWER_UP_EFFECTS = {
                 icon: '🎭',
                 title: 'Next story hero locked in',
                 body: `${student.name} will be the guaranteed protagonist of the next story log.`
+            }
+        };
+    },
+    'Banner of Glory': async (student, classData, context) => {
+        context.transaction.update(context.scoreRef, { gloryBannerCharges: 3 });
+        return {
+            success: true,
+            scorePatch: { gloryBannerCharges: 3 },
+            feedback: {
+                icon: '⚜️',
+                title: 'Banner raised!',
+                body: `${student.name}'s next 3 stars will each give +1 bonus Glory to the guild.`
+            }
+        };
+    },
+    'Chalice of Radiance': async (student, classData, context) => {
+        const guildId = student.guildId;
+        if (!guildId) {
+            return { success: false, errorMessage: 'This student is not in a guild.' };
+        }
+        const expiresAt = Date.now() + 24 * 60 * 60 * 1000; // 24 hours from now
+        const guildRef = doc(db, 'artifacts/great-class-quest/public/data/guild_scores', guildId);
+        context.transaction.update(guildRef, {
+            chaliceActive: true,
+            chaliceExpiresAt: expiresAt,
+        });
+        return {
+            success: true,
+            feedback: {
+                icon: '🏆',
+                title: 'Chalice activated!',
+                body: `All members of ${student.name}'s guild will earn +1 bonus Glory on their next star!`
+            },
+            localAfterCommit: () => {
+                showPraiseToast(`${student.name} activated the Chalice of Radiance! 🏆 +1 Glory for the whole guild!`, '🏆');
+            }
+        };
+    },
+    'Crown of the Eternal': async (student, classData, context) => {
+        const guildId = student.guildId;
+        if (!guildId) {
+            return { success: false, errorMessage: 'This student is not in a guild.' };
+        }
+        const now = new Date();
+        const endOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
+        const expiresAt = endOfDay.getTime();
+        const modifier = {
+            type: 'multiply',
+            factor: 2,
+            expiresAt,
+            label: 'Crown of the Eternal (2× Glory)',
+            createdAt: Date.now(),
+        };
+        const guildRef = doc(db, 'artifacts/great-class-quest/public/data/guild_scores', guildId);
+        const { arrayUnion } = await import('../firebase.js');
+        context.transaction.update(guildRef, {
+            gloryModifiers: arrayUnion(modifier),
+        });
+        return {
+            success: true,
+            feedback: {
+                icon: '👑',
+                title: 'Crown of the Eternal activated!',
+                body: `${student.name}'s guild now earns DOUBLE Glory for the rest of today!`
+            },
+            localAfterCommit: () => {
+                showPraiseToast(`${student.name} crowned their guild with eternal glory! 👑 2× Glory until midnight!`, '👑');
             }
         };
     }

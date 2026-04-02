@@ -328,6 +328,7 @@ async function gatherGuildData(classIds) {
     // Get all students in participating classes
     const ceremonyStudents = state.get('allStudents').filter(s => classIds.includes(s.classId));
     const allScores = state.get('allStudentScores');
+    const allGuildScores = state.get('allGuildScores') || {};
     
     // Calculate guild totals
     const guildTotals = {};
@@ -352,24 +353,29 @@ async function gatherGuildData(classIds) {
         });
     });
     
-    // Create final rankings
+    // Create final rankings — now using Guild Power (composite) for fairness
     guildData.finalRankings = Object.entries(guildTotals)
         .map(([guildId, totalStars]) => {
             const guild = getGuildById(guildId);
             const members = guildMembers[guildId] || [];
             const topContributor = members.sort((a, b) => b.totalStars - a.totalStars)[0];
+            const gDoc = allGuildScores[guildId] || {};
+            const totalGlory = Number(gDoc.totalGlory) || (totalStars * 2);
+            const perCapitaGlory = members.length > 0 ? Math.round((totalGlory / members.length) * 10) / 10 : 0;
             
             return {
                 guildId,
                 guildName: guild?.name || 'Unknown Guild',
                 guildEmoji: guild?.emoji || '⚔️',
                 totalStars,
+                totalGlory,
+                perCapitaGlory,
                 memberCount: members.length,
                 topContributor,
                 members
             };
         })
-        .sort((a, b) => b.totalStars - a.totalStars)
+        .sort((a, b) => b.perCapitaGlory - a.perCapitaGlory || b.totalGlory - a.totalGlory)
         .map((guild, index) => ({
             ...guild,
             rank: index + 1

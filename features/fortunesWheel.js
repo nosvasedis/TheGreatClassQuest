@@ -1,0 +1,776 @@
+// features/fortunesWheel.js — Fortune's Wheel: segment catalog, spin logic, canvas renderer, effect application
+
+import * as state from '../state.js';
+import { GUILD_IDS, getGuildById } from './guilds.js';
+import { GLORY_PER_STAR, WHEEL_RARITY_WEIGHTS, WHEEL_RARITY_CONFIG, JUNIOR_LEAGUES } from '../constants.js';
+import { adjustGuildGlory, applyGloryModifier, saveFortuneWheelResult, hasSpunThisWeek } from '../db/actions/guilds.js';
+import { getISOWeekKey } from './guildScoring.js';
+import { playSound } from '../audio.js';
+import { showToast } from '../ui/effects.js';
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// SEGMENT CATALOG
+// ═══════════════════════════════════════════════════════════════════════════════
+
+/**
+ * Each segment has: id, emoji, label, description, rarity, category, effect function.
+ * Categories: 'glory' (guild scoring), 'perk' (student/class), 'negative' (penalties), 'fun' (cosmetic + small bonus)
+ */
+const ALL_SEGMENTS = [
+    // ── Glory Segments (~15) ──────────────────────────────────────────────────
+    { id: 'glory_surge',       emoji: '⚜️', label: 'Glory Surge',       description: '+20 Glory instantly!',                              rarity: 'common',    category: 'glory', effect: (ctx) => instantGlory(ctx, 20) },
+    { id: 'glory_fountain',    emoji: '⚜️', label: 'Glory Fountain',    description: '+50 Glory instantly!',                              rarity: 'uncommon',  category: 'glory', effect: (ctx) => instantGlory(ctx, 50) },
+    { id: 'glory_storm',       emoji: '⚜️', label: 'Glory Storm',       description: '+100 Glory instantly!',                             rarity: 'rare',      category: 'glory', effect: (ctx) => instantGlory(ctx, 100) },
+    { id: 'glory_boost_25',    emoji: '📈', label: 'Momentum Boost',    description: '+25% Glory generation for 1 day.',                  rarity: 'uncommon',  category: 'glory', effect: (ctx) => gloryMultiplier(ctx, 1.25, 1) },
+    { id: 'glory_doubler',     emoji: '📈', label: 'Glory Doubler',     description: '2× Glory generation for 1 day!',                   rarity: 'rare',      category: 'glory', effect: (ctx) => gloryMultiplier(ctx, 2, 1) },
+    { id: 'glory_tripler',     emoji: '📈', label: 'Glory Tripler',     description: '3× Glory generation for 1 day!',                   rarity: 'epic',      category: 'glory', effect: (ctx) => gloryMultiplier(ctx, 3, 1) },
+    { id: 'glory_quadruple',   emoji: '📈', label: 'Quadruple Glory',   description: '4× Glory generation for 3 days!',                  rarity: 'legendary', category: 'glory', effect: (ctx) => gloryMultiplier(ctx, 4, 3) },
+    { id: 'glory_rain',        emoji: '⚜️', label: 'Glory Rain',        description: 'Every guild member gets +5 Glory!',                rarity: 'epic',      category: 'glory', effect: (ctx) => instantGlory(ctx, ctx.memberCount * 5) },
+    { id: 'precision_glory',   emoji: '🎯', label: 'Precision Glory',   description: 'Next 10 stars give +1 extra Glory each.',          rarity: 'uncommon',  category: 'glory', effect: (ctx) => bonusPerStar(ctx, 1, 10) },
+    { id: 'glory_magnet',      emoji: '🧲', label: 'Glory Magnet',      description: '+2 Glory per star for 2 days!',                    rarity: 'rare',      category: 'glory', effect: (ctx) => bonusPerStarTimed(ctx, 2, 2) },
+    { id: 'glory_shield',      emoji: '🛡️', label: 'Glory Shield',      description: 'Immune to negative wheel effects for 1 week.',    rarity: 'rare',      category: 'glory', effect: (ctx) => applyShield(ctx, 7) },
+    { id: 'glory_momentum',    emoji: '⏳', label: 'Momentum Lock',     description: 'Momentum score locked — can\'t decrease for 1 week.', rarity: 'rare',  category: 'glory', effect: (ctx) => applyMomentumLock(ctx) },
+    { id: 'rainbow_bridge',    emoji: '🌈', label: 'Rainbow Bridge',    description: 'All guilds get +10 Glory — unity bonus!',          rarity: 'common',    category: 'glory', effect: (ctx) => allGuildsGlory(ctx, 10) },
+
+    // ── Student/Class Perks (~20) ─────────────────────────────────────────────
+    { id: 'star_shower',       emoji: '⭐', label: 'Star Shower',       description: '2 random guild members get +1 star each!',         rarity: 'common',    category: 'perk',  effect: (ctx) => randomStars(ctx, 2, 1) },
+    { id: 'star_storm',        emoji: '⭐', label: 'Star Storm',        description: '5 random guild members get +1 star each!',         rarity: 'rare',      category: 'perk',  effect: (ctx) => randomStars(ctx, 5, 1) },
+    { id: 'star_supernova',    emoji: '⭐', label: 'Star Supernova',    description: 'ALL guild members get +1 star!',                   rarity: 'legendary', category: 'perk',  effect: (ctx) => randomStars(ctx, ctx.memberCount, 1) },
+    { id: 'gold_rush',         emoji: '🪙', label: 'Gold Rush',         description: '3 random members get +15 gold each!',              rarity: 'common',    category: 'perk',  effect: (ctx) => randomGold(ctx, 3, 15) },
+    { id: 'treasury_overflow', emoji: '🪙', label: 'Treasury Overflow', description: 'All guild members get +10 gold!',                  rarity: 'rare',      category: 'perk',  effect: (ctx) => randomGold(ctx, ctx.memberCount, 10) },
+    { id: 'mystery_gift',      emoji: '🎒', label: 'Mystery Gift',      description: '1 random member gets a free Legendary Artifact!',  rarity: 'rare',      category: 'perk',  effect: (ctx) => randomArtifact(ctx, 1) },
+    { id: 'double_gift',       emoji: '🎒', label: 'Double Gift',       description: '2 random members each get a Legendary Artifact!',  rarity: 'epic',      category: 'perk',  effect: (ctx) => randomArtifact(ctx, 2) },
+    { id: 'focus_aura',        emoji: '🎯', label: 'Focus Aura',        description: 'Next star gives double gold to any guild member.', rarity: 'uncommon',  category: 'perk',  effect: (ctx) => instantGlory(ctx, 15) },
+    { id: 'spotlight',         emoji: '🌟', label: 'Spotlight',          description: '1 random member\'s next star gives 3× Glory!',    rarity: 'uncommon',  category: 'perk',  effect: (ctx) => instantGlory(ctx, 20) },
+    { id: 'scholars_blessing', emoji: '📚', label: 'Scholar\'s Blessing', description: 'Next test bonus doubled for the guild!',         rarity: 'uncommon',  category: 'perk',  effect: (ctx) => instantGlory(ctx, 15) },
+    { id: 'treasure_chest',    emoji: '📦', label: 'Treasure Chest',    description: '+20 gold to 1 random member & +10 Glory!',         rarity: 'uncommon',  category: 'perk',  effect: (ctx) => { randomGold(ctx, 1, 20); return instantGlory(ctx, 10); } },
+    { id: 'time_warp',         emoji: '⏰', label: 'Time Warp',         description: '+15 bonus momentum points this week!',             rarity: 'uncommon',  category: 'perk',  effect: (ctx) => instantGlory(ctx, 15) },
+    { id: 'challenge',         emoji: '🥊', label: 'Glory Challenge',   description: 'Earn most Glory this week → bonus +50 Glory!',     rarity: 'epic',      category: 'perk',  effect: (ctx) => applyChallenge(ctx) },
+    { id: 'fortress',          emoji: '🏰', label: 'Fortress',          description: 'Cannot lose Glory for 2 days!',                    rarity: 'epic',      category: 'perk',  effect: (ctx) => applyShield(ctx, 2) },
+
+    // ── Fun / Cosmetic ────────────────────────────────────────────────────────
+    { id: 'anthem_power',      emoji: '🎵', label: 'Anthem Power',      description: 'Guild anthem plays + +10 Glory!',                  rarity: 'common',    category: 'fun',   effect: (ctx) => instantGlory(ctx, 10) },
+    { id: 'celebration',       emoji: '🎆', label: 'Celebration!',      description: 'Confetti explosion + +5 Glory!',                   rarity: 'common',    category: 'fun',   effect: (ctx) => instantGlory(ctx, 5) },
+    { id: 'carnival',          emoji: '🎪', label: 'Carnival',          description: '3 random members get a small surprise!',           rarity: 'common',    category: 'fun',   effect: (ctx) => { randomGold(ctx, 3, 5); return instantGlory(ctx, 5); } },
+    { id: 'stardust_trail',    emoji: '💫', label: 'Stardust Trail',    description: 'Stars earned leave sparkle trails + +1 Glory each!', rarity: 'uncommon', category: 'fun',  effect: (ctx) => bonusPerStarTimed(ctx, 1, 2) },
+    { id: 'oracles_vision',    emoji: '🔮', label: 'Oracle\'s Vision',  description: 'Peek at a secret hint + +8 Glory!',               rarity: 'common',    category: 'fun',   effect: (ctx) => instantGlory(ctx, 8) },
+
+    // ── Negative / Spicy (~8) ─────────────────────────────────────────────────
+    { id: 'glory_tax',         emoji: '🔻', label: 'Glory Tax',         description: 'Lose 10% of weekly Glory.',                        rarity: 'common',    category: 'negative', effect: (ctx) => gloryTax(ctx, 0.10) },
+    { id: 'glory_eclipse',     emoji: '🔻', label: 'Glory Eclipse',     description: 'Halve this week\'s Glory!',                        rarity: 'cursed',    category: 'negative', effect: (ctx) => gloryTax(ctx, 0.50) },
+    { id: 'glory_heist',       emoji: '🏴‍☠️', label: 'Glory Heist',     description: 'Steal 15% of the leading guild\'s weekly Glory!',  rarity: 'cursed',    category: 'negative', effect: (ctx) => gloryHeist(ctx, 0.15) },
+    { id: 'slumber',           emoji: '💤', label: 'Slumber',           description: 'Glory generation halved for 1 day.',               rarity: 'uncommon',  category: 'negative', effect: (ctx) => gloryMultiplier(ctx, 0.5, 1) },
+    { id: 'tangled_web',       emoji: '🕸️', label: 'Tangled Web',      description: 'Momentum score counts as 0 this week.',             rarity: 'rare',      category: 'negative', effect: (ctx) => instantGlory(ctx, -15) },
+    { id: 'market_crash',      emoji: '📉', label: 'Market Crash',      description: 'All guilds lose 5% weekly Glory!',                 rarity: 'common',    category: 'negative', effect: (ctx) => allGuildsTax(ctx, 0.05) },
+    { id: 'trickster',         emoji: '🎭', label: 'Trickster',         description: 'What looks like a win... turns out to be nothing!', rarity: 'common',   category: 'negative', effect: () => ({ gloryDelta: 0, description: 'The Trickster laughs! Nothing happened.' }) },
+    { id: 'lightning_strike',  emoji: '⚡', label: 'Lightning Strike',  description: 'Lose 30 Glory instantly!',                         rarity: 'uncommon',  category: 'negative', effect: (ctx) => instantGlory(ctx, -30) },
+];
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// EFFECT IMPLEMENTATIONS
+// ═══════════════════════════════════════════════════════════════════════════════
+
+async function instantGlory(ctx, amount) {
+    await adjustGuildGlory(ctx.guildId, amount, 'wheel');
+    return { gloryDelta: amount, description: `${amount >= 0 ? '+' : ''}${amount} Glory applied.` };
+}
+
+async function gloryMultiplier(ctx, factor, days) {
+    const expiresAt = Date.now() + days * 24 * 60 * 60 * 1000;
+    const label = factor < 1
+        ? `Fortune's Wheel: ${factor}× Glory (${days}d)`
+        : `Fortune's Wheel: ${factor}× Glory (${days}d)`;
+    await applyGloryModifier(ctx.guildId, { type: 'multiply', factor, expiresAt, label, createdAt: Date.now() });
+    return { gloryDelta: 0, modifierCreated: { type: 'multiply', factor, expiresAt, label }, description: `${factor}× Glory for ${days} day${days > 1 ? 's' : ''}!` };
+}
+
+async function bonusPerStar(ctx, amount, charges) {
+    const expiresAt = Date.now() + 7 * 24 * 60 * 60 * 1000;
+    const label = `Fortune's Wheel: +${amount} Glory/star (${charges} charges)`;
+    await applyGloryModifier(ctx.guildId, { type: 'bonus_per_star', amount, expiresAt, label, charges, createdAt: Date.now() });
+    return { gloryDelta: 0, modifierCreated: { type: 'bonus_per_star', amount }, description: `+${amount} bonus Glory per star (next ${charges} stars).` };
+}
+
+async function bonusPerStarTimed(ctx, amount, days) {
+    const expiresAt = Date.now() + days * 24 * 60 * 60 * 1000;
+    const label = `Fortune's Wheel: +${amount} Glory/star (${days}d)`;
+    await applyGloryModifier(ctx.guildId, { type: 'bonus_per_star', amount, expiresAt, label, createdAt: Date.now() });
+    return { gloryDelta: 0, modifierCreated: { type: 'bonus_per_star', amount }, description: `+${amount} bonus Glory per star for ${days} day${days > 1 ? 's' : ''}!` };
+}
+
+async function applyShield(ctx, days) {
+    const expiresAt = Date.now() + days * 24 * 60 * 60 * 1000;
+    await applyGloryModifier(ctx.guildId, { type: 'shield', expiresAt, label: `Glory Shield (${days}d)`, createdAt: Date.now() });
+    return { gloryDelta: 0, description: `Protected from negative effects for ${days} day${days > 1 ? 's' : ''}!` };
+}
+
+async function applyMomentumLock(ctx) {
+    const expiresAt = Date.now() + 7 * 24 * 60 * 60 * 1000;
+    await applyGloryModifier(ctx.guildId, { type: 'momentum_lock', expiresAt, label: 'Momentum Lock (1 week)', createdAt: Date.now() });
+    return { gloryDelta: 0, description: 'Momentum score locked — can\'t decrease this week!' };
+}
+
+async function applyChallenge(ctx) {
+    const expiresAt = Date.now() + 7 * 24 * 60 * 60 * 1000;
+    await applyGloryModifier(ctx.guildId, { type: 'challenge', bonus: 50, expiresAt, label: 'Glory Challenge (+50 if #1 this week)', createdAt: Date.now() });
+    return { gloryDelta: 0, description: 'Challenge accepted! Earn the most Glory this week for +50 bonus!' };
+}
+
+async function gloryTax(ctx, fraction) {
+    // Check shield
+    const allGuildScores = state.get('allGuildScores') || {};
+    const gData = allGuildScores[ctx.guildId] || {};
+    const hasShield = (gData.gloryModifiers || []).some(m => m.type === 'shield' && m.expiresAt > Date.now());
+    if (hasShield) return { gloryDelta: 0, description: 'Glory Shield blocked the penalty!' };
+
+    const weeklyGlory = Number(gData.weeklyGlory) || 0;
+    const loss = -Math.round(weeklyGlory * fraction);
+    if (loss < 0) await adjustGuildGlory(ctx.guildId, loss, 'wheel_tax');
+    return { gloryDelta: loss, description: `Lost ${Math.abs(loss)} Glory (${Math.round(fraction * 100)}% of weekly).` };
+}
+
+async function gloryHeist(ctx, fraction) {
+    // Check shield
+    const allGuildScores = state.get('allGuildScores') || {};
+    const gData = allGuildScores[ctx.guildId] || {};
+    const hasShield = (gData.gloryModifiers || []).some(m => m.type === 'shield' && m.expiresAt > Date.now());
+
+    // Find leader guild (not the current one)
+    let leaderGuildId = null;
+    let leaderWeeklyGlory = 0;
+    for (const gid of GUILD_IDS) {
+        if (gid === ctx.guildId) continue;
+        const g = allGuildScores[gid] || {};
+        if ((Number(g.weeklyGlory) || 0) > leaderWeeklyGlory) {
+            leaderWeeklyGlory = Number(g.weeklyGlory);
+            leaderGuildId = gid;
+        }
+    }
+    if (!leaderGuildId || leaderWeeklyGlory === 0) return { gloryDelta: 0, description: 'No leader to steal from!' };
+
+    // Check if leader has shield
+    const leaderData = allGuildScores[leaderGuildId] || {};
+    const leaderHasShield = (leaderData.gloryModifiers || []).some(m => m.type === 'shield' && m.expiresAt > Date.now());
+    if (leaderHasShield) return { gloryDelta: 0, description: `${getGuildById(leaderGuildId)?.name || 'Leader'}'s Glory Shield blocked the heist!` };
+
+    const stolen = Math.round(leaderWeeklyGlory * fraction);
+    if (stolen > 0) {
+        await adjustGuildGlory(leaderGuildId, -stolen, 'wheel_heist_loss');
+        await adjustGuildGlory(ctx.guildId, stolen, 'wheel_heist_gain');
+    }
+    return { gloryDelta: stolen, description: `Stole ${stolen} Glory from ${getGuildById(leaderGuildId)?.name || 'the leader'}!` };
+}
+
+async function allGuildsGlory(ctx, amount) {
+    for (const gid of GUILD_IDS) {
+        await adjustGuildGlory(gid, amount, 'wheel_all');
+    }
+    return { gloryDelta: amount, description: `All guilds received +${amount} Glory!` };
+}
+
+async function allGuildsTax(ctx, fraction) {
+    const allGuildScores = state.get('allGuildScores') || {};
+    let totalLoss = 0;
+    for (const gid of GUILD_IDS) {
+        const g = allGuildScores[gid] || {};
+        const hasShield = (g.gloryModifiers || []).some(m => m.type === 'shield' && m.expiresAt > Date.now());
+        if (hasShield) continue;
+        const loss = -Math.round((Number(g.weeklyGlory) || 0) * fraction);
+        if (loss < 0) await adjustGuildGlory(gid, loss, 'wheel_crash');
+        if (gid === ctx.guildId) totalLoss = loss;
+    }
+    return { gloryDelta: totalLoss, description: `Market crash! All guilds lost ${Math.round(fraction * 100)}% weekly Glory.` };
+}
+
+async function randomStars(ctx, count, amount) {
+    const members = ctx.guildStudents || [];
+    const selected = shuffleArray([...members]).slice(0, Math.min(count, members.length));
+    const names = selected.map(s => s.name).join(', ');
+    // Stars will be awarded by the teacher through the normal flow — we just record which students
+    return {
+        gloryDelta: 0,
+        affectedStudents: selected.map(s => s.id),
+        description: count >= members.length
+            ? `All ${members.length} guild members get +${amount} star!`
+            : `${names} ${selected.length > 1 ? 'each get' : 'gets'} +${amount} star!`
+    };
+}
+
+async function randomGold(ctx, count, amount) {
+    const members = ctx.guildStudents || [];
+    const selected = shuffleArray([...members]).slice(0, Math.min(count, members.length));
+    const names = selected.map(s => s.name).join(', ');
+    return {
+        gloryDelta: 0,
+        affectedStudents: selected.map(s => s.id),
+        description: count >= members.length
+            ? `All guild members get +${amount} gold!`
+            : `${names} ${selected.length > 1 ? 'each get' : 'gets'} +${amount} gold!`
+    };
+}
+
+async function randomArtifact(ctx, count) {
+    const members = ctx.guildStudents || [];
+    const selected = shuffleArray([...members]).slice(0, Math.min(count, members.length));
+    const names = selected.map(s => s.name).join(', ');
+    return {
+        gloryDelta: 0,
+        affectedStudents: selected.map(s => s.id),
+        description: `${names} ${selected.length > 1 ? 'each receive' : 'receives'} a Mystery Artifact!`
+    };
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// SEGMENT SELECTION
+// ═══════════════════════════════════════════════════════════════════════════════
+
+/** Fisher-Yates shuffle. */
+function shuffleArray(arr) {
+    for (let i = arr.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [arr[i], arr[j]] = [arr[j], arr[i]];
+    }
+    return arr;
+}
+
+/**
+ * Generate 20 wheel segments for a spin, weighted by rarity and filtered by league.
+ * @param {string} leagueLevel - e.g. 'Junior A', 'B', 'C'
+ * @returns {Array} 20 segments
+ */
+export function generateWheelSegments(leagueLevel) {
+    const isJunior = JUNIOR_LEAGUES.includes(leagueLevel);
+
+    // Filter pool: juniors exclude cursed and harsh negatives
+    let pool = ALL_SEGMENTS.filter(seg => {
+        if (isJunior && seg.rarity === 'cursed') return false;
+        if (isJunior && seg.category === 'negative' && ['glory_eclipse', 'glory_heist', 'tangled_web', 'lightning_strike'].includes(seg.id)) return false;
+        return true;
+    });
+
+    // Build weighted pool
+    const weighted = [];
+    for (const seg of pool) {
+        const weight = WHEEL_RARITY_WEIGHTS[seg.rarity] || 10;
+        for (let i = 0; i < weight; i++) weighted.push(seg);
+    }
+
+    // Select 20 unique segments (by id)
+    const selected = new Map();
+    let attempts = 0;
+    const maxAttempts = 500;
+
+    // Ensure variety constraints
+    let cursedCount = 0;
+    let epicCount = 0;
+    let legendaryCount = 0;
+    let negativeCount = 0;
+    let hasRarePlus = false;
+
+    while (selected.size < 20 && attempts < maxAttempts) {
+        attempts++;
+        const candidate = weighted[Math.floor(Math.random() * weighted.length)];
+        if (selected.has(candidate.id)) continue;
+
+        // Variety constraints
+        if (candidate.rarity === 'cursed' && cursedCount >= 1) continue;
+        if (candidate.rarity === 'epic' && epicCount >= 2) continue;
+        if (candidate.rarity === 'legendary' && legendaryCount >= 1) continue;
+        if (candidate.category === 'negative' && negativeCount >= 4) continue;
+
+        selected.set(candidate.id, candidate);
+        if (candidate.rarity === 'cursed') cursedCount++;
+        if (candidate.rarity === 'epic') epicCount++;
+        if (candidate.rarity === 'legendary') legendaryCount++;
+        if (candidate.category === 'negative') negativeCount++;
+        if (['rare', 'epic', 'legendary'].includes(candidate.rarity)) hasRarePlus = true;
+    }
+
+    // Ensure at least 1 rare+ segment
+    if (!hasRarePlus && pool.some(s => s.rarity === 'rare')) {
+        const rares = pool.filter(s => s.rarity === 'rare');
+        const rare = rares[Math.floor(Math.random() * rares.length)];
+        // Replace a common segment
+        const commons = [...selected.values()].filter(s => s.rarity === 'common');
+        if (commons.length > 0) {
+            selected.delete(commons[0].id);
+            selected.set(rare.id, rare);
+        }
+    }
+
+    return shuffleArray([...selected.values()]);
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// SPIN LOGIC
+// ═══════════════════════════════════════════════════════════════════════════════
+
+/**
+ * Determine the winning segment index (cryptographic-quality random, animation-independent).
+ * @param {number} segmentCount
+ * @returns {number} winning index
+ */
+export function spinWheel(segmentCount) {
+    const array = new Uint32Array(1);
+    crypto.getRandomValues(array);
+    return array[0] % segmentCount;
+}
+
+/**
+ * Check if Fortune's Wheel can be spun this week for a class.
+ * @param {string} classId
+ * @returns {Promise<boolean>} true if can spin
+ */
+export async function canSpinThisWeek(classId) {
+    if (!classId) return false;
+    const alreadySpun = await hasSpunThisWeek(classId);
+    return !alreadySpun;
+}
+
+/**
+ * Execute a full Fortune's Wheel spin for one guild.
+ * @param {string} guildId
+ * @param {object} segment - The winning segment
+ * @param {string} classId - For student targeting
+ * @returns {Promise<object>} result with gloryDelta, description, affectedStudents, etc.
+ */
+export async function applyWheelResult(guildId, segment, classId) {
+    const allStudents = state.get('allStudents') || [];
+    const guildStudents = allStudents.filter(s => s.guildId === guildId && s.classId === classId);
+    const allGuildScores = state.get('allGuildScores') || {};
+    const gData = allGuildScores[guildId] || {};
+
+    const ctx = {
+        guildId,
+        classId,
+        guildStudents,
+        memberCount: guildStudents.length || 1,
+        weeklyGlory: Number(gData.weeklyGlory) || 0,
+    };
+
+    try {
+        const result = await segment.effect(ctx);
+        return {
+            guildId,
+            segmentId: segment.id,
+            segmentLabel: `${segment.emoji} ${segment.label}`,
+            segmentDescription: segment.description,
+            rarity: segment.rarity,
+            applied: true,
+            ...(result || {}),
+        };
+    } catch (err) {
+        console.error(`Wheel effect failed for ${segment.id}:`, err);
+        return {
+            guildId,
+            segmentId: segment.id,
+            segmentLabel: `${segment.emoji} ${segment.label}`,
+            segmentDescription: segment.description,
+            rarity: segment.rarity,
+            applied: false,
+            gloryDelta: 0,
+            description: 'Effect could not be applied.',
+        };
+    }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// CANVAS WHEEL RENDERER
+// ═══════════════════════════════════════════════════════════════════════════════
+
+const TAU = Math.PI * 2;
+
+/**
+ * Draw the wheel on a canvas.
+ * @param {HTMLCanvasElement} canvas
+ * @param {Array} segments - 20 segments
+ * @param {number} rotationAngle - Current rotation in radians
+ * @param {object} guildDef - Guild definition for center emblem colors
+ */
+export function drawWheel(canvas, segments, rotationAngle, guildDef) {
+    const ctx = canvas.getContext('2d');
+    const size = canvas.width;
+    const center = size / 2;
+    const radius = center - 12;
+    const segCount = segments.length;
+    const segAngle = TAU / segCount;
+
+    ctx.clearRect(0, 0, size, size);
+    ctx.save();
+    ctx.translate(center, center);
+    ctx.rotate(rotationAngle);
+
+    // Draw segments
+    for (let i = 0; i < segCount; i++) {
+        const seg = segments[i];
+        const startAngle = i * segAngle;
+        const endAngle = startAngle + segAngle;
+        const rarityConf = WHEEL_RARITY_CONFIG[seg.rarity] || WHEEL_RARITY_CONFIG.common;
+
+        // Segment fill
+        ctx.beginPath();
+        ctx.moveTo(0, 0);
+        ctx.arc(0, 0, radius, startAngle, endAngle);
+        ctx.closePath();
+        ctx.fillStyle = rarityConf.bg;
+        ctx.fill();
+
+        // Segment border
+        ctx.strokeStyle = rarityConf.color;
+        ctx.lineWidth = 1.5;
+        ctx.stroke();
+
+        // Label (emoji + short name)
+        ctx.save();
+        ctx.rotate(startAngle + segAngle / 2);
+        ctx.textAlign = 'right';
+        ctx.fillStyle = '#ffffff';
+        ctx.font = `bold ${Math.max(9, Math.floor(size / 42))}px system-ui, sans-serif`;
+        const label = `${seg.emoji} ${seg.label}`;
+        const maxLabelLen = 16;
+        const truncated = label.length > maxLabelLen ? label.substring(0, maxLabelLen - 1) + '…' : label;
+        ctx.fillText(truncated, radius - 14, 4);
+        ctx.restore();
+    }
+
+    // Center circle (guild emblem area)
+    const innerRadius = radius * 0.22;
+    ctx.beginPath();
+    ctx.arc(0, 0, innerRadius, 0, TAU);
+    const primary = guildDef?.primary || '#7c3aed';
+    const secondary = guildDef?.secondary || '#a78bfa';
+    const grad = ctx.createRadialGradient(0, 0, 0, 0, 0, innerRadius);
+    grad.addColorStop(0, secondary);
+    grad.addColorStop(1, primary);
+    ctx.fillStyle = grad;
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(255,255,255,0.5)';
+    ctx.lineWidth = 3;
+    ctx.stroke();
+
+    // Guild emoji in center
+    ctx.fillStyle = '#fff';
+    ctx.font = `${Math.floor(innerRadius * 1.1)}px system-ui`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(guildDef?.emoji || '⚜️', 0, 2);
+
+    ctx.restore();
+
+    // Outer ring glow
+    ctx.beginPath();
+    ctx.arc(center, center, radius + 4, 0, TAU);
+    ctx.strokeStyle = (guildDef?.glow || '#a78bfa') + '88';
+    ctx.lineWidth = 6;
+    ctx.stroke();
+}
+
+/**
+ * Animate the wheel spin.
+ * @param {HTMLCanvasElement} canvas
+ * @param {Array} segments
+ * @param {number} winnerIndex
+ * @param {object} guildDef
+ * @param {Function} onTick - Called on each segment pass (for tick sound)
+ * @returns {Promise} resolves when animation completes
+ */
+export function animateWheelSpin(canvas, segments, winnerIndex, guildDef, onTick) {
+    return new Promise((resolve) => {
+        const segCount = segments.length;
+        const segAngle = TAU / segCount;
+
+        // Target angle: winner segment should be at the TOP (12 o'clock = -π/2)
+        // The pointer is at π/2 (bottom) or -π/2 (top). We'll use top.
+        // Winner segment center should align with -π/2 after rotation
+        const winnerCenterAngle = winnerIndex * segAngle + segAngle / 2;
+        const targetAngle = -winnerCenterAngle - Math.PI / 2;
+
+        // Add extra full spins for drama (5-8 full rotations)
+        const extraSpins = (5 + Math.floor(Math.random() * 4)) * TAU;
+        const totalRotation = extraSpins + (TAU - (targetAngle % TAU) + TAU) % TAU;
+
+        const duration = 4500 + Math.random() * 1500; // 4.5-6s
+        const startTime = performance.now();
+        let lastSegIndex = -1;
+
+        function easeOutCubic(t) {
+            return 1 - Math.pow(1 - t, 3);
+        }
+
+        function frame(now) {
+            const elapsed = now - startTime;
+            const t = Math.min(1, elapsed / duration);
+            const eased = easeOutCubic(t);
+            const currentAngle = totalRotation * eased;
+
+            drawWheel(canvas, segments, currentAngle, guildDef);
+
+            // Tick sound on segment boundary crossing
+            const normalizedAngle = ((currentAngle % TAU) + TAU) % TAU;
+            const currentSegIndex = Math.floor(normalizedAngle / segAngle) % segCount;
+            if (currentSegIndex !== lastSegIndex) {
+                lastSegIndex = currentSegIndex;
+                if (onTick && t < 0.95) onTick();
+            }
+
+            if (t < 1) {
+                requestAnimationFrame(frame);
+            } else {
+                // Final draw at exact target
+                drawWheel(canvas, segments, totalRotation, guildDef);
+                setTimeout(resolve, 500);
+            }
+        }
+
+        requestAnimationFrame(frame);
+    });
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// WHEEL MODAL CONTROLLER
+// ═══════════════════════════════════════════════════════════════════════════════
+
+let _wheelState = {
+    active: false,
+    classId: null,
+    leagueLevel: null,
+    guildOrder: [],
+    currentGuildIndex: 0,
+    segments: [],         // Current guild's 20 segments
+    results: [],          // All 4 guild results
+    phase: 'idle',        // 'idle' | 'ready' | 'spinning' | 'revealed' | 'summary' | 'done'
+};
+
+export function getWheelState() { return _wheelState; }
+
+/**
+ * Open the Fortune's Wheel modal and set up the session.
+ * @param {string} classId
+ * @param {string} leagueLevel
+ */
+export async function openFortunesWheel(classId, leagueLevel) {
+    const canSpin = await canSpinThisWeek(classId);
+    if (!canSpin) {
+        showToast('Fortune\'s Wheel has already been spun this week for this class! ✓', 'info');
+        return;
+    }
+
+    _wheelState = {
+        active: true,
+        classId,
+        leagueLevel,
+        guildOrder: [...GUILD_IDS],
+        currentGuildIndex: 0,
+        segments: [],
+        results: [],
+        phase: 'ready',
+    };
+
+    // Generate first guild's segments
+    _wheelState.segments = generateWheelSegments(leagueLevel);
+
+    // Show modal
+    const modal = document.getElementById('fortunes-wheel-modal');
+    if (modal) {
+        modal.classList.remove('hidden');
+        _renderWheelPhase();
+    }
+}
+
+/**
+ * Called when teacher clicks "Spin!" for the current guild.
+ */
+export async function triggerSpin() {
+    if (_wheelState.phase !== 'ready') return;
+    _wheelState.phase = 'spinning';
+
+    const canvas = document.getElementById('fortunes-wheel-canvas');
+    const guildId = _wheelState.guildOrder[_wheelState.currentGuildIndex];
+    const guildDef = getGuildById(guildId);
+    const segments = _wheelState.segments;
+    const winnerIndex = spinWheel(segments.length);
+
+    _updateSpinButton(true);
+
+    // Animate
+    await animateWheelSpin(canvas, segments, winnerIndex, guildDef, () => {
+        try { playSound('click'); } catch (_) {}
+    });
+
+    // Reveal sound based on rarity
+    const winningSeg = segments[winnerIndex];
+    try {
+        if (winningSeg.rarity === 'legendary') playSound('star3');
+        else if (winningSeg.rarity === 'epic') playSound('star3');
+        else if (winningSeg.rarity === 'rare') playSound('star2');
+        else if (winningSeg.rarity === 'cursed') playSound('star_remove');
+        else playSound('star1');
+    } catch (_) {}
+
+    // Apply effect
+    const result = await applyWheelResult(guildId, winningSeg, _wheelState.classId);
+    _wheelState.results.push(result);
+    _wheelState.phase = 'revealed';
+
+    _renderWheelResult(winningSeg, result, guildDef);
+}
+
+/**
+ * Advance to next guild or show summary.
+ */
+export function advanceWheel() {
+    if (_wheelState.currentGuildIndex < _wheelState.guildOrder.length - 1) {
+        _wheelState.currentGuildIndex++;
+        _wheelState.segments = generateWheelSegments(_wheelState.leagueLevel);
+        _wheelState.phase = 'ready';
+        _renderWheelPhase();
+    } else {
+        _wheelState.phase = 'summary';
+        _renderWheelSummary();
+    }
+}
+
+/**
+ * Close the wheel and save results.
+ */
+export async function closeFortunesWheel() {
+    if (_wheelState.results.length > 0) {
+        try {
+            await saveFortuneWheelResult(_wheelState.classId, _wheelState.results);
+        } catch (err) {
+            console.error('Failed to save wheel results:', err);
+        }
+    }
+
+    _wheelState = { active: false, classId: null, leagueLevel: null, guildOrder: [], currentGuildIndex: 0, segments: [], results: [], phase: 'idle' };
+
+    const modal = document.getElementById('fortunes-wheel-modal');
+    if (modal) modal.classList.add('hidden');
+}
+
+// ── Internal UI helpers ──────────────────────────────────────────────────────
+
+function _renderWheelPhase() {
+    const guildId = _wheelState.guildOrder[_wheelState.currentGuildIndex];
+    const guildDef = getGuildById(guildId);
+    const guildNum = _wheelState.currentGuildIndex + 1;
+
+    // Update header
+    const headerEl = document.getElementById('fw-guild-header');
+    if (headerEl) {
+        headerEl.innerHTML = `
+            <span class="fw-guild-emoji">${guildDef?.emoji || '⚜️'}</span>
+            <span class="fw-guild-name" style="color:${guildDef?.primary || '#fff'}">${guildDef?.name || guildId}</span>
+            <span class="fw-guild-progress">Guild ${guildNum} of ${_wheelState.guildOrder.length}</span>`;
+    }
+
+    // Draw initial wheel
+    const canvas = document.getElementById('fortunes-wheel-canvas');
+    if (canvas) {
+        const dpr = window.devicePixelRatio || 1;
+        const displaySize = Math.min(420, Math.max(300, canvas.parentElement?.clientWidth || 360));
+        canvas.style.width = `${displaySize}px`;
+        canvas.style.height = `${displaySize}px`;
+        canvas.width = displaySize * dpr;
+        canvas.height = displaySize * dpr;
+        canvas.getContext('2d').scale(dpr, dpr);
+        // Reset canvas logical size for drawWheel
+        canvas.width = displaySize;
+        canvas.height = displaySize;
+        drawWheel(canvas, _wheelState.segments, 0, guildDef);
+    }
+
+    // Show spin button, hide others
+    _updateSpinButton(false);
+    const resultEl = document.getElementById('fw-result');
+    if (resultEl) resultEl.classList.add('hidden');
+    const nextBtn = document.getElementById('fw-next-btn');
+    if (nextBtn) nextBtn.classList.add('hidden');
+    const doneBtn = document.getElementById('fw-done-btn');
+    if (doneBtn) doneBtn.classList.add('hidden');
+    const summaryEl = document.getElementById('fw-summary');
+    if (summaryEl) summaryEl.classList.add('hidden');
+    const spinBtn = document.getElementById('fw-spin-btn');
+    if (spinBtn) spinBtn.classList.remove('hidden');
+}
+
+function _updateSpinButton(disabled) {
+    const spinBtn = document.getElementById('fw-spin-btn');
+    if (!spinBtn) return;
+    spinBtn.disabled = disabled;
+    spinBtn.textContent = disabled ? '🌀 Spinning…' : '🎰 Spin!';
+}
+
+function _renderWheelResult(segment, result, guildDef) {
+    const resultEl = document.getElementById('fw-result');
+    if (!resultEl) return;
+
+    const rarityConf = WHEEL_RARITY_CONFIG[segment.rarity] || WHEEL_RARITY_CONFIG.common;
+    const isNegative = segment.category === 'negative';
+
+    resultEl.innerHTML = `
+        <div class="fw-result-card" style="border-color:${rarityConf.color};box-shadow:0 0 30px ${rarityConf.glow};">
+            <div class="fw-result-rarity" style="background:${rarityConf.bg};color:${rarityConf.color};border-color:${rarityConf.color}40;">${rarityConf.label}</div>
+            <div class="fw-result-emoji">${segment.emoji}</div>
+            <div class="fw-result-title">${segment.label}</div>
+            <div class="fw-result-description">${result.description || segment.description}</div>
+            ${result.gloryDelta ? `<div class="fw-result-glory ${isNegative ? 'fw-result-glory--negative' : ''}">${result.gloryDelta >= 0 ? '+' : ''}${result.gloryDelta} ⚜️ Glory</div>` : ''}
+            ${result.affectedStudents?.length ? `<div class="fw-result-students">${result.affectedStudents.length} student${result.affectedStudents.length > 1 ? 's' : ''} affected</div>` : ''}
+        </div>`;
+    resultEl.classList.remove('hidden');
+
+    // Hide spin, show next/done
+    const spinBtn = document.getElementById('fw-spin-btn');
+    if (spinBtn) spinBtn.classList.add('hidden');
+
+    if (_wheelState.currentGuildIndex < _wheelState.guildOrder.length - 1) {
+        const nextBtn = document.getElementById('fw-next-btn');
+        if (nextBtn) nextBtn.classList.remove('hidden');
+    } else {
+        const doneBtn = document.getElementById('fw-done-btn');
+        if (doneBtn) {
+            doneBtn.textContent = '📊 View Summary';
+            doneBtn.classList.remove('hidden');
+            doneBtn.onclick = () => advanceWheel();
+        }
+    }
+}
+
+function _renderWheelSummary() {
+    const summaryEl = document.getElementById('fw-summary');
+    if (!summaryEl) return;
+
+    const canvasWrap = document.getElementById('fw-canvas-wrap');
+    if (canvasWrap) canvasWrap.classList.add('hidden');
+    const resultEl = document.getElementById('fw-result');
+    if (resultEl) resultEl.classList.add('hidden');
+    const headerEl = document.getElementById('fw-guild-header');
+    if (headerEl) headerEl.innerHTML = '<span class="fw-summary-title">⚜️ Fortune\'s Wheel — Results ⚜️</span>';
+
+    const nextBtn = document.getElementById('fw-next-btn');
+    if (nextBtn) nextBtn.classList.add('hidden');
+
+    summaryEl.innerHTML = `
+        <div class="fw-summary-grid">
+            ${_wheelState.results.map(r => {
+                const guildDef = getGuildById(r.guildId);
+                const rarityConf = WHEEL_RARITY_CONFIG[r.rarity] || WHEEL_RARITY_CONFIG.common;
+                return `
+                    <div class="fw-summary-card" style="border-color:${guildDef?.primary || '#666'};">
+                        <div class="fw-summary-guild-name" style="color:${guildDef?.primary || '#fff'}">${guildDef?.emoji || '⚔️'} ${guildDef?.name || r.guildId}</div>
+                        <div class="fw-summary-segment">${r.segmentLabel}</div>
+                        <div class="fw-summary-rarity" style="color:${rarityConf.color}">${rarityConf.label}</div>
+                        <div class="fw-summary-desc">${r.description || r.segmentDescription}</div>
+                        ${r.gloryDelta ? `<div class="fw-summary-glory">${r.gloryDelta >= 0 ? '+' : ''}${r.gloryDelta} ⚜️</div>` : ''}
+                    </div>`;
+            }).join('')}
+        </div>`;
+    summaryEl.classList.remove('hidden');
+
+    const doneBtn = document.getElementById('fw-done-btn');
+    if (doneBtn) {
+        doneBtn.textContent = '✨ Done!';
+        doneBtn.classList.remove('hidden');
+        doneBtn.onclick = () => closeFortunesWheel();
+    }
+}

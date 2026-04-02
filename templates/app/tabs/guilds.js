@@ -54,6 +54,25 @@ export const guildsTabHTML = `
                     <div id="guilds-leaderboard-list" class="guild-hall-scene-content"></div>
                 </div>
 
+                <!-- Fortune's Wheel Button (Pro+, once per week per class) -->
+                <div id="fortunes-wheel-section" class="hidden text-center mt-6">
+                    <button id="fortunes-wheel-btn" type="button"
+                        class="bubbly-button bg-gradient-to-r from-violet-600 to-purple-500 text-white font-title text-lg py-3 px-7 rounded-full shadow-[0_0_24px_rgba(124,58,237,0.5)] hover:scale-105 transition-transform border-2 border-white/20">
+                        <span class="mr-1">⚜️</span> Spin Fortune's Wheel
+                    </button>
+                    <p id="fortunes-wheel-status" class="text-xs mt-2 opacity-60"></p>
+                </div>
+
+                <!-- Fortune's Log (recent wheel results) -->
+                <div id="fortunes-log-section" class="hidden mt-6 w-full max-w-2xl mx-auto">
+                    <details class="group">
+                        <summary class="cursor-pointer select-none text-sm font-semibold text-violet-300 hover:text-violet-200 transition-colors">
+                            📜 Fortune's Log <span class="text-xs opacity-50">(recent spins)</span>
+                        </summary>
+                        <div id="fortunes-log-list" class="mt-3 space-y-2 text-sm"></div>
+                    </details>
+                </div>
+
                 <!-- Grand Guild Ceremony Button (shown on ceremony day) -->
                 <div id="grand-guild-ceremony-btn-guilds" class="hidden text-center mt-6">
                     <button onclick="startGrandGuildCeremony()" 

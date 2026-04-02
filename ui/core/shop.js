@@ -160,7 +160,7 @@ export function renderShopUI() {
 function renderShopItemCard(item, isLegendary) {
     const badge = isLegendary 
         ? `<div class="absolute top-2 right-2 z-10 bg-indigo-600 text-white text-[10px] font-bold px-2 py-1 rounded shadow transform -rotate-2 border border-indigo-400">ARTIFACT</div>`
-        : `<div class="absolute top-2 right-2 z-10 bg-red-500 text-white text-[10px] font-bold px-2 py-1 rounded shadow transform rotate-3 border border-red-400">ONLY 1 LEFT!</div>`;
+        : '';
 
     const imageHtml = item.image 
         ? `<img src="${item.image}" class="relative w-full h-full object-contain filter drop-shadow-md group-hover:scale-110 transition-transform duration-500">`
@@ -177,8 +177,8 @@ function renderShopItemCard(item, isLegendary) {
                 <h3 class="font-title text-xl text-amber-300 leading-tight mb-1">${item.name}</h3>
                 <p class="text-indigo-300 text-xs mb-3 line-clamp-2 flex-grow">${item.description}</p>
                 <div class="flex justify-between items-center mt-auto pt-3 border-t border-indigo-800">
-                    <div class="flex items-center gap-1 font-bold text-white text-lg">
-                        <span>${item.price}</span>
+                    <div class="shop-price-display flex items-center gap-1 font-bold text-white text-lg" data-item-id="${item.id}" data-base-price="${item.price}">
+                        <span class="shop-price-value">${item.price}</span>
                         <span>🪙</span>
                     </div>
                     <button class="shop-buy-btn bg-indigo-600 hover:bg-indigo-500 disabled:bg-indigo-900 disabled:text-indigo-500 disabled:cursor-not-allowed text-white text-xs font-bold py-2 px-4 rounded-lg uppercase tracking-wider transition-colors" 
@@ -210,6 +210,11 @@ export async function updateShopStudentDisplay(studentId) {
             btn.innerText = "Select Student";
             btn.classList.remove('bg-green-600', 'bg-red-500', 'bg-indigo-600');
             btn.classList.add('bg-indigo-600');
+        });
+        // Reset price displays to base price
+        document.querySelectorAll('.shop-price-display').forEach(el => {
+            const basePrice = el.dataset.basePrice;
+            if (basePrice) el.innerHTML = `<span class="shop-price-value">${basePrice}</span> <span>🪙</span>`;
         });
         return;
     }
@@ -258,6 +263,9 @@ export async function updateShopStudentDisplay(studentId) {
     const pathfinderHeldBySomeone = classScores.some(sc => sc.inventory?.some(i => i.id === 'leg_pathfinder'));
     const pathfinderLockedForClass = pathfinderBonusThisMonth >= 10 || pathfinderHeldBySomeone;
 
+    // LIMIT CHECK 3: Mask of the Protagonist (1 per student per month)
+    const protagonistThisMonth = inventory.some(i => i.id === 'leg_protagonist' && i.acquiredAt && i.acquiredAt.startsWith(currentMonthKey));
+
     // Update UI Display
     goldDisplay.innerText = `${gold} 🪙`;
 
@@ -274,7 +282,7 @@ export async function updateShopStudentDisplay(studentId) {
         }
 
         let finalPrice = basePrice;
-        let discountLabel = "";
+        let hasDiscount = false;
 
         if (!isLegendary) {
             const priceMeta = getSeasonalShopPriceMeta(basePrice, {
@@ -282,11 +290,17 @@ export async function updateShopStudentDisplay(studentId) {
                 heroOfDayWins
             });
             finalPrice = priceMeta.finalPrice;
+            hasDiscount = priceMeta.totalDiscount > 0;
+        }
 
-            const discountParts = [];
-            if (priceMeta.heroDiscount > 0) discountParts.push(`Hero -${priceMeta.heroDiscount}%`);
-            if (priceMeta.legendDiscount > 0) discountParts.push(`${priceMeta.legendTier.label} -${priceMeta.legendDiscount}%`);
-            discountLabel = discountParts.length ? ` (${discountParts.join(' + ')})` : "";
+        // --- UPDATE CARD PRICE DISPLAY ---
+        const priceDisplay = document.querySelector(`.shop-price-display[data-item-id="${itemId}"]`);
+        if (priceDisplay) {
+            if (hasDiscount && finalPrice < basePrice) {
+                priceDisplay.innerHTML = `<span class="line-through text-indigo-400 text-sm">${basePrice}</span> <span class="text-amber-300 text-lg">${finalPrice}</span> <span>🪙</span>`;
+            } else {
+                priceDisplay.innerHTML = `<span class="shop-price-value">${basePrice}</span> <span>🪙</span>`;
+            }
         }
 
         // Familiar egg buttons
@@ -328,9 +342,14 @@ export async function updateShopStudentDisplay(studentId) {
             btn.innerText = "Class limit reached";
             btn.classList.add('bg-red-500');
         }
+        else if (itemId === 'leg_protagonist' && protagonistThisMonth) {
+            btn.disabled = true;
+            btn.innerText = "Limit: 1/month";
+            btn.classList.add('bg-red-500');
+        }
         else if (gold >= finalPrice) {
             btn.disabled = false;
-            btn.innerText = `Buy ${finalPrice}🪙${discountLabel}`;
+            btn.innerText = `Buy ${finalPrice}🪙`;
             btn.classList.add('bg-indigo-600');
         } 
         else {

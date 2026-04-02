@@ -397,34 +397,54 @@ export function renderAwardStarsStudentList(selectedClassId, fullRender = true) 
 
             // --- 1. PRE-CALCULATE BOON ELIGIBILITY ---
             const allScores = state.get('allStudentScores');
+            // Build score lookup map for O(1) access in leaderboard + card loop
+            const scoreMap = new Map();
+            for (let i = 0; i < allScores.length; i++) scoreMap.set(allScores[i].id, allScores[i]);
             // Map students to scores
             const leaderboard = studentsInClass.map(s => {
-                const sc = allScores.find(score => score.id === s.id);
+                const sc = scoreMap.get(s.id);
                 return { id: s.id, stars: sc ? (Number(sc.monthlyStars) || 0) : 0 };
             });
             // Sort ascending (Lowest stars first)
             leaderboard.sort((a, b) => a.stars - b.stars);
             // Identify Bottom 3 IDs
-            const bottomThreeIds = leaderboard.slice(0, 3).map(x => x.id);
+            const bottomThreeIds = new Set(leaderboard.slice(0, 3).map(x => x.id));
             // Identify Ties
             const scoreCounts = {};
             leaderboard.forEach(x => { scoreCounts[x.stars] = (scoreCounts[x.stars] || 0) + 1; });
+            // Build leaderboard map for O(1) lookup
+            const leaderboardMap = new Map();
+            leaderboard.forEach(x => leaderboardMap.set(x.id, x));
+
+            // --- HOIST state lookups outside the loop for O(1) access ---
+            const reigningHero = state.get('reigningHero');
+            const todaysStarsMap = state.get('todaysStars');
+            const attendanceRecords = state.get('allAttendanceRecords');
+
+            // Build attendance lookup sets for O(1) checks
+            const absentTodaySet = new Set();
+            const absentPrevSet = new Set();
+            for (let i = 0; i < attendanceRecords.length; i++) {
+                const r = attendanceRecords[i];
+                if (r.date === today) absentTodaySet.add(r.studentId);
+                if (previousLessonDate && r.date === previousLessonDate) absentPrevSet.add(r.studentId);
+            }
 
             listContainer.innerHTML = studentsInClass.map((s, index) => {
-                const reigningHero = state.get('reigningHero');
                 const isReigningHero = reigningHero && reigningHero.id === s.id;
-                const scoreData = state.get('allStudentScores').find(score => score.id === s.id) || {};
+                const scoreData = scoreMap.get(s.id) || {};
                 const totalStars = scoreData.totalStars || 0;
                 const goldCount = scoreData.gold !== undefined ? scoreData.gold : (scoreData.totalStars || 0);
                 const monthlyStars = scoreData.monthlyStars || 0;
-                const starsToday = state.get('todaysStars')[s.id]?.stars || 0;
-                const reasonToday = state.get('todaysStars')[s.id]?.reason;
+                const todayEntry = todaysStarsMap[s.id];
+                const starsToday = todayEntry?.stars || 0;
+                const reasonToday = todayEntry?.reason;
                 const visualState = getAwardCardVisualState(selectedClassId, s.id);
                 const cloudAsset = visualState.cloudAsset;
                 const reigningHeroEmoji = s.gender === 'girl' ? '👸' : '🫅';
 
-                const isMarkedAbsentToday = state.get('allAttendanceRecords').some(r => r.studentId === s.id && r.date === today);
-                const wasAbsentLastTime = previousLessonDate && state.get('allAttendanceRecords').some(r => r.studentId === s.id && r.date === previousLessonDate);
+                const isMarkedAbsentToday = absentTodaySet.has(s.id);
+                const wasAbsentLastTime = previousLessonDate && absentPrevSet.has(s.id);
 
                 const isPresentToday = starsToday > 0 || reasonToday === 'marked_present' || reasonToday === 'welcome_back';
                 const isVisuallyAbsent = isMarkedAbsentToday || (wasAbsentLastTime && !isPresentToday);
@@ -494,8 +514,8 @@ export function renderAwardStarsStudentList(selectedClassId, fullRender = true) 
 
                 // --- BOON BUTTON VISUAL LOGIC ---
                 // Check eligibility based on the pre-calculated leaderboard
-                const myLeaderboardData = leaderboard.find(x => x.id === s.id);
-                const isEligible = bottomThreeIds.includes(s.id) || (myLeaderboardData && scoreCounts[myLeaderboardData.stars] > 1);
+                const myLeaderboardData = leaderboardMap.get(s.id);
+                const isEligible = bottomThreeIds.has(s.id) || (myLeaderboardData && scoreCounts[myLeaderboardData.stars] > 1);
 
                 let boonBtnHtml = '';
                 if (isEligible) {
@@ -586,7 +606,7 @@ export function renderAwardStarsStudentList(selectedClassId, fullRender = true) 
             renderContent();
             listContainer.classList.remove('fade-out');
             listContainer.classList.add('fade-in');
-        }, 300);
+        }, 120);
     } else {
         renderContent();
     }

@@ -729,10 +729,11 @@ export function setupUIListeners() {
 
             triggerAwardEffects(starBtn, starValue);
 
-            await setStudentStarsForToday(studentId, starValue, reason);
+            // Optimistic UI update — respond instantly, DB transaction runs in background
             triggerDynamicPraise(student.name, starValue, reason);
+            tabs.updateAwardCardState(studentId, starValue, reason);
 
-            tabs.updateAwardCardState(studentId, state.get('todaysStars')[studentId]?.stars || starValue, reason);
+            setStudentStarsForToday(studentId, starValue, reason);
 
             // --- BIRTHDAY CHECK ---
             if (utils.isSpecialOccasion(student.birthday, schedule)) {

@@ -513,6 +513,13 @@ export async function handleBuyItem(studentId, itemId) {
 
             if (currentDbGold < finalPrice) throw "Not enough gold!";
 
+            // Mask of the Protagonist: 1 per student per month
+            if (itemId === 'leg_protagonist') {
+                const currentMonthKey = new Date().toISOString().substring(0, 7);
+                const alreadyBoughtThisMonth = currentInventory.some(i => i.id === 'leg_protagonist' && i.acquiredAt && i.acquiredAt.startsWith(currentMonthKey));
+                if (alreadyBoughtThisMonth) throw "You can only buy the Mask of the Protagonist once per month!";
+            }
+
             newGoldBalance = currentDbGold - finalPrice; // Calculate for UI
 
             transaction.update(scoreRef, {

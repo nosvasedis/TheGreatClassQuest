@@ -524,7 +524,7 @@ async function _wireFortunesWheel() {
 
     // Section is always visible — the button always opens the modal.
     // The modal itself handles gating (locked state, lesson check, spin check).
-    const classId = state.get('classId');
+    const classId = state.get('globalSelectedClassId');
     let statusMsg = '';
 
     try {
@@ -550,8 +550,10 @@ async function _wireFortunesWheel() {
     if (!btn._fwWired) {
         btn._fwWired = true;
         btn.addEventListener('click', () => {
-            const cid = state.get('classId');
-            const league = state.get('leagueLevel') || state.get('league') || 'B';
+            const cid = state.get('globalSelectedClassId');
+            const allClasses = state.get('allTeachersClasses') || [];
+            const cls = allClasses.find(c => c.id === cid) || null;
+            const league = cls?.questLevel || state.get('globalSelectedLeague') || 'B';
             openFortunesWheel(cid, league);
         });
     }

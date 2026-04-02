@@ -21,15 +21,17 @@
     width: 100%;
     max-height: 96vh;
     overflow-y: auto;
-    padding: 1.25rem 1rem 1rem;
-    border-radius: 1.25rem;
-    background: linear-gradient(145deg, rgba(30, 15, 60, 0.85) 0%, rgba(15, 8, 35, 0.90) 100%);
-    border: 1px solid rgba(167, 139, 250, 0.25);
-    backdrop-filter: blur(18px);
+    padding: 1.5rem 1.25rem 1.25rem;
+    border-radius: 1.5rem;
+    /* Solid dark-purple — no transparency issues */
+    background: linear-gradient(160deg, #1b0b42 0%, #0e0620 55%, #17093a 100%);
+    border: 1.5px solid rgba(167, 139, 250, 0.40);
     box-shadow:
-        0 0 40px rgba(124, 58, 237, 0.20),
-        0 0 80px rgba(124, 58, 237, 0.10),
-        inset 0 1px 0 rgba(255, 255, 255, 0.06);
+        0 0 0 1px rgba(167, 139, 250, 0.10),
+        0 0 50px rgba(124, 58, 237, 0.35),
+        0 0 100px rgba(124, 58, 237, 0.15),
+        inset 0 1px 0 rgba(255, 255, 255, 0.09),
+        inset 0 0 60px rgba(124, 58, 237, 0.07);
 }
 
 /* ── Header ──────────────────────────────────────────────────────────────── */
@@ -39,10 +41,13 @@
 .fw-title {
     margin: 0;
     font-size: 1.5rem;
-    font-weight: 700;
-    letter-spacing: 0.04em;
-    color: #e2d6ff;
-    text-shadow: 0 0 12px rgba(167, 139, 250, 0.50);
+    font-weight: 800;
+    letter-spacing: 0.05em;
+    background: linear-gradient(135deg, #fde68a 0%, #c4b5fd 45%, #a78bfa 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    filter: drop-shadow(0 0 10px rgba(167, 139, 250, 0.40));
 }
 
 .fw-guild-header {
@@ -70,6 +75,53 @@
     font-weight: 700;
     color: #e2d6ff;
     text-shadow: 0 0 10px rgba(167, 139, 250, 0.40);
+}
+
+/* ── Class Selector ──────────────────────────────────────────────────────── */
+
+.fw-class-selector-wrap {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    width: 100%;
+    max-width: 420px;
+    padding: 0.45rem 0.75rem;
+    border-radius: 0.85rem;
+    background: rgba(167, 139, 250, 0.07);
+    border: 1px solid rgba(167, 139, 250, 0.22);
+}
+
+.fw-class-selector-label {
+    flex-shrink: 0;
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: rgba(196, 181, 253, 0.65);
+    white-space: nowrap;
+}
+
+.fw-class-selector-select {
+    flex: 1;
+    min-width: 0;
+    background: transparent;
+    border: none;
+    outline: none;
+    color: #e9d5ff;
+    font-size: 0.88rem;
+    font-weight: 600;
+    cursor: pointer;
+    appearance: none;
+    -webkit-appearance: none;
+    padding-right: 1.25rem;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' fill='none'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%23a78bfa' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 0 center;
+}
+
+.fw-class-selector-select option {
+    background: #1b0b42;
+    color: #e9d5ff;
 }
 
 /* ── Canvas Wrapper ──────────────────────────────────────────────────────── */
@@ -314,46 +366,73 @@
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 0.85rem;
-    padding: 2.5rem 1.5rem;
+    gap: 1.1rem;
+    padding: 2rem 1.5rem 1.75rem;
     text-align: center;
-    animation: fw-result-appear 0.6s ease-out;
+    width: 100%;
+    animation: fw-result-appear 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.fw-locked-sparkles {
+    font-size: 0.8rem;
+    letter-spacing: 0.55em;
+    color: rgba(167, 139, 250, 0.35);
+    animation: fw-sparkle-pulse 2.4s ease-in-out infinite alternate;
+    user-select: none;
+}
+
+@keyframes fw-sparkle-pulse {
+    from { opacity: 0.25; letter-spacing: 0.45em; }
+    to   { opacity: 0.65; letter-spacing: 0.65em; }
 }
 
 .fw-locked-orb {
-    font-size: 4rem;
+    font-size: 5.5rem;
     line-height: 1;
-    filter: grayscale(0.2);
-    animation: fw-locked-float 3s ease-in-out infinite;
+    animation: fw-locked-float 3.5s ease-in-out infinite;
+    filter: drop-shadow(0 0 18px rgba(167, 139, 250, 0.55))
+            drop-shadow(0 0 40px rgba(124, 58, 237, 0.30));
 }
 
 @keyframes fw-locked-float {
-    0%, 100% { transform: translateY(0) scale(1); }
-    50%      { transform: translateY(-8px) scale(1.06); }
+    0%, 100% { transform: translateY(0)   scale(1);    filter: drop-shadow(0 0 14px rgba(167,139,250,0.40)); }
+    50%       { transform: translateY(-12px) scale(1.06); filter: drop-shadow(0 0 32px rgba(167,139,250,0.75)); }
 }
 
 .fw-locked-title {
     margin: 0;
-    font-size: 1.3rem;
-    font-weight: 700;
-    color: #c4b5fd;
-    text-shadow: 0 0 12px rgba(196, 181, 253, 0.30);
+    font-size: 1.45rem;
+    font-weight: 800;
+    background: linear-gradient(135deg, #ede9fe 0%, #a78bfa 55%, #c4b5fd 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
     letter-spacing: 0.02em;
+    filter: drop-shadow(0 1px 8px rgba(167,139,250,0.25));
 }
 
 .fw-locked-message {
     margin: 0;
-    font-size: 0.9rem;
-    line-height: 1.55;
-    color: rgba(255, 255, 255, 0.60);
+    font-size: 0.92rem;
+    line-height: 1.65;
+    color: rgba(196, 181, 253, 0.72);
     max-width: 340px;
 }
 
-.fw-locked-ornament {
-    font-size: 0.85rem;
-    color: rgba(167, 139, 250, 0.35);
-    letter-spacing: 0.4em;
+.fw-locked-divider {
+    display: flex;
+    align-items: center;
+    gap: 0.65rem;
     margin-top: 0.25rem;
+    color: rgba(167, 139, 250, 0.30);
+    font-size: 0.8rem;
+    letter-spacing: 0.08em;
+    user-select: none;
+}
+
+.fw-locked-gem {
+    color: rgba(196, 181, 253, 0.50);
+    font-size: 1rem;
 }
 
 /* ── Responsive ──────────────────────────────────────────────────────────── */

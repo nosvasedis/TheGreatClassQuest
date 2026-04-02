@@ -545,8 +545,8 @@ export function getWheelState() { return _wheelState; }
 /**
  * Open the Fortune's Wheel modal. ALWAYS opens — shows a locked/unavailable
  * state with a gameified message if conditions aren't met.
- * @param {string} classId
- * @param {string} leagueLevel
+ * @param {string|null} classId   — pre-selects a class; falls back to globalSelectedClassId
+ * @param {string|null} leagueLevel — optional hint; derived from class if omitted
  */
 export async function openFortunesWheel(classId, leagueLevel) {
     const modal = document.getElementById('fortunes-wheel-modal');
@@ -555,29 +555,68 @@ export async function openFortunesWheel(classId, leagueLevel) {
     // Always show the modal first
     modal.classList.remove('hidden');
 
+    // ── Resolve class ───────────────────────────────────────────────────────
+    const resolvedClassId = classId || state.get('globalSelectedClassId') || '';
+    _populateClassSelector(resolvedClassId);
+
+    const allClasses = state.get('allTeachersClasses') || [];
+    const selectedClass = allClasses.find(c => c.id === resolvedClassId) || null;
+    const resolvedLeague = leagueLevel || selectedClass?.questLevel || state.get('globalSelectedLeague') || 'B';
+
+    await _evaluateAndRender(resolvedClassId || null, resolvedLeague);
+}
+
+/**
+ * Populate (or re-populate) the in-modal class selector and wire its change event.
+ */
+function _populateClassSelector(selectedClassId) {
+    const select = document.getElementById('fw-class-select');
+    if (!select) return;
+
+    const classes = (state.get('allTeachersClasses') || [])
+        .sort((a, b) => a.name.localeCompare(b.name));
+
+    select.innerHTML = '<option value="">\u2014 Select a class \u2014</option>' +
+        classes.map(c =>
+            `<option value="${c.id}"${c.id === selectedClassId ? ' selected' : ''}>${c.logo} ${c.name} (${c.questLevel})</option>`
+        ).join('');
+
+    // Re-wire (safe to overwrite)
+    select.onchange = async () => {
+        const newId = select.value;
+        const cls = (state.get('allTeachersClasses') || []).find(c => c.id === newId) || null;
+        const league = cls?.questLevel || state.get('globalSelectedLeague') || 'B';
+        await _evaluateAndRender(newId || null, league);
+    };
+}
+
+/**
+ * Core availability check + render. Called on open and whenever the class selector changes.
+ */
+async function _evaluateAndRender(classId, leagueLevel) {
     // ── Determine availability ──────────────────────────────────────────────
     let blocked = false;
     let blockedTitle = '';
     let blockedMessage = '';
-    let blockedEmoji = '🔮';
+    let blockedEmoji = '\ud83d\udd2e'; // 🔮
 
     if (!classId) {
         blocked = true;
         blockedTitle = 'The Stars Are Not Yet Aligned';
-        blockedEmoji = '🌌';
-        blockedMessage = 'Select a class from your quest board before the Wheel will reveal its secrets. Each class spins once per week — choose wisely!';
+        blockedEmoji = '\u2728'; // ✨
+        blockedMessage = 'Choose a class from the selector above \u2014 each class gets one spin of destiny per week!';
     } else {
         try {
             const alreadySpun = await hasSpunThisWeek(classId);
             if (alreadySpun) {
                 blocked = true;
-                blockedTitle = 'The Wheel Rests…';
-                blockedEmoji = '⏳';
-                blockedMessage = 'Fortune\'s Wheel has already been spun for this class this week. The ancient magic needs time to recharge — return next week for another spin of destiny!';
+                blockedTitle = 'The Wheel Rests\u2026';
+                blockedEmoji = '\u23f3'; // ⏳
+                blockedMessage = "Fortune\u2019s Wheel has already been spun for this class this week. The ancient magic needs time to recharge \u2014 return next week for another spin of destiny!";
             }
         } catch (err) {
             console.warn('Wheel availability check failed:', err);
-            // Allow spin on error — better to try than block
+            // Allow spin on error \u2014 better to try than block
         }
     }
 
@@ -621,10 +660,13 @@ function _renderLockedState(title, message, emoji) {
     if (resultEl) {
         resultEl.innerHTML = `
             <div class="fw-locked-state">
+                <div class="fw-locked-sparkles" aria-hidden="true">&#10022; &#10023; &#10022; &#10023; &#10022;</div>
                 <div class="fw-locked-orb">${emoji}</div>
                 <h3 class="fw-locked-title">${title}</h3>
                 <p class="fw-locked-message">${message}</p>
-                <div class="fw-locked-ornament">✦ ✧ ✦</div>
+                <div class="fw-locked-divider">
+                    <span>&#10022;</span><span class="fw-locked-gem">&#10070;</span><span>&#10022;</span>
+                </div>
             </div>`;
         resultEl.classList.remove('hidden');
     }

@@ -16,6 +16,14 @@ export const fortunesWheelModalHTML = `
                 <div id="fw-guild-header" class="fw-guild-header"></div>
             </div>
 
+            <!-- Class Selector -->
+            <div id="fw-class-selector-wrap" class="fw-class-selector-wrap">
+                <label for="fw-class-select" class="fw-class-selector-label">&#127775; Class</label>
+                <select id="fw-class-select" class="fw-class-selector-select">
+                    <option value="">&#8212; Select a class &#8212;</option>
+                </select>
+            </div>
+
             <!-- Wheel Canvas Area -->
             <div id="fw-canvas-wrap" class="fw-canvas-wrap">
                 <div class="fw-pointer" aria-hidden="true">▼</div>

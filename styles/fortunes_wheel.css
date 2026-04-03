@@ -202,7 +202,6 @@
     grid-template-rows: minmax(0, auto) auto auto;
     gap: 0.85rem;
     min-height: 0;
-    overflow: hidden;
 }
 
 .fw-class-selector-wrap {
@@ -453,7 +452,7 @@
 }
 
 .fw-stage-frame.is-locked {
-    min-height: clamp(340px, calc(100dvh - 360px), 450px);
+    min-height: clamp(250px, calc(100dvh - 430px), 340px);
 }
 
 .fw-stage-frame.is-locked .fw-stage-aura,
@@ -532,7 +531,9 @@
 .fw-result,
 .fw-summary {
     width: 100%;
-    margin-top: 0.35rem;
+    margin-top: 0.8rem;
+    position: relative;
+    z-index: 1;
 }
 
 .fw-result-card {

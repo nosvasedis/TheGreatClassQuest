@@ -5,7 +5,7 @@ import { GUILD_IDS, getGuildById } from './guilds.js';
 import { GLORY_PER_STAR, WHEEL_RARITY_WEIGHTS, WHEEL_RARITY_CONFIG, JUNIOR_LEAGUES } from '../constants.js';
 import { adjustGuildGlory, applyGloryModifier, saveFortuneWheelResult, hasSpunThisWeek } from '../db/actions/guilds.js';
 import { getISOWeekKey } from './guildScoring.js';
-import { playSound } from '../audio.js';
+import { playSound, playHeroFanfare } from '../audio.js';
 import { evaluateWheelAvailability } from '../utils/fortuneWheelEligibility.mjs';
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -38,8 +38,12 @@ const ALL_SEGMENTS = [
     { id: 'star_supernova',    emoji: '⭐', label: 'Star Supernova',    description: 'ALL guild members get +1 star!',                   rarity: 'legendary', category: 'perk',  effect: (ctx) => randomStars(ctx, ctx.memberCount, 1) },
     { id: 'gold_rush',         emoji: '🪙', label: 'Gold Rush',         description: '3 random members get +15 gold each!',              rarity: 'common',    category: 'perk',  effect: (ctx) => randomGold(ctx, 3, 15) },
     { id: 'treasury_overflow', emoji: '🪙', label: 'Treasury Overflow', description: 'All guild members get +10 gold!',                  rarity: 'rare',      category: 'perk',  effect: (ctx) => randomGold(ctx, ctx.memberCount, 10) },
+    { id: 'gold_rush_extreme', emoji: '💰', label: 'Gold Rush Extreme', description: 'All guild members get +50 gold!',                  rarity: 'epic',      category: 'perk',  effect: (ctx) => randomGold(ctx, ctx.memberCount, 50) },
     { id: 'mystery_gift',      emoji: '🎒', label: 'Mystery Gift',      description: '1 random member gets a free Legendary Artifact!',  rarity: 'rare',      category: 'perk',  effect: (ctx) => randomArtifact(ctx, 1) },
     { id: 'double_gift',       emoji: '🎒', label: 'Double Gift',       description: '2 random members each get a Legendary Artifact!',  rarity: 'epic',      category: 'perk',  effect: (ctx) => randomArtifact(ctx, 2) },
+    { id: 'artifact_rain',     emoji: '🎁', label: 'Artifact Rain',     description: 'ALL guild members get a Mystery Artifact!',        rarity: 'legendary', category: 'perk',  effect: (ctx) => randomArtifact(ctx, ctx.memberCount) },
+    { id: 'teachers_favor',    emoji: '🍎', label: 'Teacher\'s Favor',  description: '1 random member gets +2 stars and +30 gold!',      rarity: 'epic',      category: 'perk',  effect: (ctx) => teachersFavor(ctx) },
+    { id: 'glory_blackhole',   emoji: '🌌', label: 'Glory Blackhole',   description: 'Lose 10 Glory, but ALL members get +25 gold!',     rarity: 'rare',      category: 'perk',  effect: (ctx) => gloryBlackhole(ctx) },
     { id: 'focus_aura',        emoji: '🎯', label: 'Focus Aura',        description: 'Next star gives double gold to any guild member.', rarity: 'uncommon',  category: 'perk',  effect: (ctx) => instantGlory(ctx, 15) },
     { id: 'spotlight',         emoji: '🌟', label: 'Spotlight',          description: '1 random member\'s next star gives 3× Glory!',    rarity: 'uncommon',  category: 'perk',  effect: (ctx) => instantGlory(ctx, 20) },
     { id: 'scholars_blessing', emoji: '📚', label: 'Scholar\'s Blessing', description: 'Next test bonus doubled for the guild!',         rarity: 'uncommon',  category: 'perk',  effect: (ctx) => instantGlory(ctx, 15) },
@@ -216,7 +220,30 @@ async function randomArtifact(ctx, count) {
     return {
         gloryDelta: 0,
         affectedStudents: selected.map(s => s.id),
-        description: `${names} ${selected.length > 1 ? 'each receive' : 'receives'} a Mystery Artifact!`
+        description: count >= members.length
+            ? `All guild members receive a Mystery Artifact!`
+            : `${names} ${selected.length > 1 ? 'each receive' : 'receives'} a Mystery Artifact!`
+    };
+}
+
+async function teachersFavor(ctx) {
+    const members = ctx.guildStudents || [];
+    if (members.length === 0) return { gloryDelta: 0, description: 'No students to receive favor.' };
+    const selected = shuffleArray([...members])[0];
+    return {
+        gloryDelta: 0,
+        affectedStudents: [selected.id],
+        description: `${selected.name} receives +2 stars and +30 gold from the Teacher's Favor!`
+    };
+}
+
+async function gloryBlackhole(ctx) {
+    const members = ctx.guildStudents || [];
+    await adjustGuildGlory(ctx.guildId, -10, 'wheel_blackhole');
+    return {
+        gloryDelta: -10,
+        affectedStudents: members.map(s => s.id),
+        description: `Lost 10 Glory to the Blackhole, but all members get +25 gold!`
     };
 }
 
@@ -407,8 +434,8 @@ export function drawWheel(canvas, segments, rotationAngle, guildDef) {
 
     ctx.clearRect(0, 0, size, size);
     const aura = ctx.createRadialGradient(center, center, radius * 0.16, center, center, radius * 1.12);
-    aura.addColorStop(0, `${guildDef?.glow || '#a78bfa'}55`);
-    aura.addColorStop(0.55, 'rgba(50, 20, 95, 0.24)');
+    aura.addColorStop(0, `${guildDef?.glow || '#a78bfa'}66`);
+    aura.addColorStop(0.55, 'rgba(50, 20, 95, 0.35)');
     aura.addColorStop(1, 'rgba(6, 3, 20, 0)');
     ctx.fillStyle = aura;
     ctx.fillRect(0, 0, size, size);
@@ -417,10 +444,22 @@ export function drawWheel(canvas, segments, rotationAngle, guildDef) {
     ctx.translate(center, center);
     ctx.rotate(rotationAngle);
 
+    // Outer glowing rim
+    ctx.beginPath();
+    ctx.arc(0, 0, radius + 8, 0, TAU);
+    const rimGrad = ctx.createLinearGradient(-radius, -radius, radius, radius);
+    rimGrad.addColorStop(0, 'rgba(255, 236, 196, 0.8)');
+    rimGrad.addColorStop(0.5, 'rgba(218, 165, 32, 0.6)');
+    rimGrad.addColorStop(1, 'rgba(255, 236, 196, 0.8)');
+    ctx.strokeStyle = rimGrad;
+    ctx.lineWidth = Math.max(12, size / 50);
+    ctx.stroke();
+
+    // Wheel background disc
     const wheelDisc = ctx.createRadialGradient(0, 0, radius * 0.05, 0, 0, radius);
-    wheelDisc.addColorStop(0, 'rgba(255,255,255,0.16)');
-    wheelDisc.addColorStop(0.45, 'rgba(75, 25, 125, 0.08)');
-    wheelDisc.addColorStop(1, 'rgba(10, 4, 26, 0.42)');
+    wheelDisc.addColorStop(0, 'rgba(255,255,255,0.2)');
+    wheelDisc.addColorStop(0.45, 'rgba(75, 25, 125, 0.12)');
+    wheelDisc.addColorStop(1, 'rgba(10, 4, 26, 0.5)');
     ctx.beginPath();
     ctx.arc(0, 0, radius, 0, TAU);
     ctx.fillStyle = wheelDisc;
@@ -431,14 +470,11 @@ export function drawWheel(canvas, segments, rotationAngle, guildDef) {
         const startAngle = i * segAngle;
         const endAngle = startAngle + segAngle;
         const rarityConf = WHEEL_RARITY_CONFIG[seg.rarity] || WHEEL_RARITY_CONFIG.common;
-        const gradient = ctx.createLinearGradient(
-            Math.cos(startAngle) * radius,
-            Math.sin(startAngle) * radius,
-            Math.cos(endAngle) * radius,
-            Math.sin(endAngle) * radius
-        );
+        
+        // Wedge gradient
+        const gradient = ctx.createRadialGradient(0, 0, radius * 0.2, 0, 0, radius);
         gradient.addColorStop(0, rarityConf.bg);
-        gradient.addColorStop(0.5, `${rarityConf.bg}dd`);
+        gradient.addColorStop(0.7, `${rarityConf.bg}ee`);
         gradient.addColorStop(1, rarityConf.color);
 
         ctx.beginPath();
@@ -448,8 +484,17 @@ export function drawWheel(canvas, segments, rotationAngle, guildDef) {
         ctx.fillStyle = gradient;
         ctx.fill();
 
-        ctx.strokeStyle = `${rarityConf.color}bb`;
-        ctx.lineWidth = Math.max(2, size / 180);
+        // Inner shadow effect for wedges
+        ctx.strokeStyle = 'rgba(0, 0, 0, 0.2)';
+        ctx.lineWidth = 1;
+        ctx.stroke();
+
+        // Wedge borders
+        ctx.beginPath();
+        ctx.moveTo(0, 0);
+        ctx.lineTo(Math.cos(startAngle) * radius, Math.sin(startAngle) * radius);
+        ctx.strokeStyle = `${rarityConf.color}dd`;
+        ctx.lineWidth = Math.max(2, size / 160);
         ctx.stroke();
 
         ctx.save();
@@ -462,56 +507,61 @@ export function drawWheel(canvas, segments, rotationAngle, guildDef) {
         const truncated = label.length > maxLabelLen ? `${label.slice(0, maxLabelLen - 1)}...` : label;
 
         ctx.fillStyle = 'rgba(255,255,255,0.95)';
-        ctx.shadowColor = 'rgba(7, 2, 18, 0.55)';
-        ctx.shadowBlur = Math.max(8, size / 60);
-        ctx.font = `700 ${Math.max(12, Math.floor(size / 31))}px Georgia, serif`;
+        ctx.shadowColor = 'rgba(0, 0, 0, 0.8)';
+        ctx.shadowBlur = Math.max(6, size / 70);
+        ctx.font = `700 ${Math.max(14, Math.floor(size / 28))}px Georgia, serif`;
         ctx.fillText(seg.emoji || '*', labelRadius, -Math.max(16, size * 0.03));
-        ctx.font = `700 ${Math.max(10, Math.floor(size / 36))}px "Trebuchet MS", system-ui, sans-serif`;
+        ctx.font = `700 ${Math.max(11, Math.floor(size / 34))}px "Trebuchet MS", system-ui, sans-serif`;
         ctx.fillText(truncated, labelRadius, Math.max(10, size * 0.025));
         ctx.restore();
     }
 
+    // Center Logo / Emblem
+    const innerRadius = radius * 0.28;
+    
+    // Center glowing aura
     ctx.beginPath();
-    ctx.arc(0, 0, radius + 5, 0, TAU);
-    ctx.strokeStyle = 'rgba(248, 210, 122, 0.3)';
-    ctx.lineWidth = Math.max(8, size / 70);
-    ctx.stroke();
+    ctx.arc(0, 0, innerRadius + 15, 0, TAU);
+    const centerAura = ctx.createRadialGradient(0, 0, innerRadius, 0, 0, innerRadius + 15);
+    centerAura.addColorStop(0, `${guildDef?.glow || '#a78bfa'}99`);
+    centerAura.addColorStop(1, 'rgba(0,0,0,0)');
+    ctx.fillStyle = centerAura;
+    ctx.fill();
 
-    ctx.beginPath();
-    ctx.arc(0, 0, radius + 14, 0, TAU);
-    ctx.strokeStyle = `${guildDef?.glow || '#a78bfa'}44`;
-    ctx.lineWidth = Math.max(10, size / 56);
-    ctx.stroke();
-
-    const innerRadius = radius * 0.24;
+    // Center metallic rim
     ctx.beginPath();
     ctx.arc(0, 0, innerRadius, 0, TAU);
     const primary = guildDef?.primary || '#7c3aed';
     const secondary = guildDef?.secondary || '#a78bfa';
     const grad = ctx.createRadialGradient(0, 0, 0, 0, 0, innerRadius);
-    grad.addColorStop(0, '#ffdca8');
-    grad.addColorStop(0.2, secondary);
-    grad.addColorStop(0.78, primary);
-    grad.addColorStop(1, '#2a0b46');
+    grad.addColorStop(0, '#ffffff');
+    grad.addColorStop(0.3, secondary);
+    grad.addColorStop(0.8, primary);
+    grad.addColorStop(1, '#1a0536');
     ctx.fillStyle = grad;
     ctx.fill();
-    ctx.strokeStyle = 'rgba(255, 236, 196, 0.72)';
-    ctx.lineWidth = Math.max(5, size / 110);
+    
+    const innerRimGrad = ctx.createLinearGradient(-innerRadius, -innerRadius, innerRadius, innerRadius);
+    innerRimGrad.addColorStop(0, '#fff');
+    innerRimGrad.addColorStop(0.5, '#ffdca8');
+    innerRimGrad.addColorStop(1, '#8c6222');
+    ctx.strokeStyle = innerRimGrad;
+    ctx.lineWidth = Math.max(6, size / 90);
     ctx.stroke();
 
     ctx.beginPath();
-    ctx.arc(0, 0, innerRadius * 0.73, 0, TAU);
-    ctx.strokeStyle = 'rgba(255,255,255,0.26)';
+    ctx.arc(0, 0, innerRadius * 0.75, 0, TAU);
+    ctx.strokeStyle = 'rgba(255,255,255,0.4)';
     ctx.lineWidth = Math.max(2, size / 190);
     ctx.stroke();
 
     ctx.fillStyle = '#fff';
-    ctx.shadowColor = `${guildDef?.glow || '#a78bfa'}cc`;
-    ctx.shadowBlur = Math.max(16, size / 35);
-    ctx.font = `${Math.floor(innerRadius * 1.08)}px system-ui`;
+    ctx.shadowColor = `${guildDef?.glow || '#a78bfa'}ee`;
+    ctx.shadowBlur = Math.max(20, size / 25);
+    ctx.font = `${Math.floor(innerRadius * 1.15)}px system-ui`;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    ctx.fillText(guildDef?.emoji || '*', 0, 2);
+    ctx.fillText(guildDef?.emoji || '*', 0, 4);
 
     ctx.restore();
 }
@@ -544,14 +594,14 @@ export function animateWheelSpin(canvas, segments, winnerIndex, guildDef, onTick
         const startTime = performance.now();
         let lastSegIndex = -1;
 
-        function easeOutCubic(t) {
-            return 1 - Math.pow(1 - t, 3);
+        function easeOutQuart(t) {
+            return 1 - Math.pow(1 - t, 4);
         }
 
         function frame(now) {
             const elapsed = now - startTime;
             const t = Math.min(1, elapsed / duration);
-            const eased = easeOutCubic(t);
+            const eased = easeOutQuart(t);
             const currentAngle = totalRotation * eased;
 
             drawWheel(canvas, segments, currentAngle, guildDef);
@@ -561,7 +611,7 @@ export function animateWheelSpin(canvas, segments, winnerIndex, guildDef, onTick
             const currentSegIndex = Math.floor(normalizedAngle / segAngle) % segCount;
             if (currentSegIndex !== lastSegIndex) {
                 lastSegIndex = currentSegIndex;
-                if (onTick && t < 0.95) onTick();
+                if (onTick && t < 0.98) onTick();
             }
 
             if (t < 1) {
@@ -569,7 +619,7 @@ export function animateWheelSpin(canvas, segments, winnerIndex, guildDef, onTick
             } else {
                 // Final draw at exact target
                 drawWheel(canvas, segments, totalRotation, guildDef);
-                setTimeout(resolve, 500);
+                setTimeout(resolve, 600);
             }
         }
 
@@ -785,9 +835,9 @@ export async function triggerSpin() {
     // Reveal sound based on rarity
     const winningSeg = segments[winnerIndex];
     try {
-        if (winningSeg.rarity === 'legendary') playSound('star3');
-        else if (winningSeg.rarity === 'epic') playSound('star3');
-        else if (winningSeg.rarity === 'rare') playSound('star2');
+        if (winningSeg.rarity === 'legendary') playHeroFanfare();
+        else if (winningSeg.rarity === 'epic') playSound('familiar_levelup');
+        else if (winningSeg.rarity === 'rare') playSound('magic_chime');
         else if (winningSeg.rarity === 'cursed') playSound('star_remove');
         else playSound('star1');
     } catch (_) {}
@@ -887,7 +937,7 @@ function _sizeAndRenderWheel() {
     // Fit-first for 13–17" laptop heights, with minimum size fallback.
     const widthBudget = Math.min(parentWidth, window.innerWidth * 0.56);
     const heightBudget = Math.max(320, stageHeight - 44);
-    const displaySize = Math.round(Math.max(320, Math.min(620, widthBudget, heightBudget)));
+    const displaySize = Math.round(Math.max(280, Math.min(620, widthBudget, heightBudget)));
 
     canvas.style.width = `${displaySize}px`;
     canvas.style.height = `${displaySize}px`;

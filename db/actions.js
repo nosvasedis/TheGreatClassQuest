@@ -5,7 +5,9 @@ import {
     collection,
     writeBatch,
     serverTimestamp,
-    increment
+    increment,
+    getDoc,
+    deleteField
 } from '../firebase.js';
 import * as state from '../state.js';
 import { showToast, showPraiseToast } from '../ui/effects.js';
@@ -29,25 +31,34 @@ export async function awardStoryWeaverBonusStarToClass(classId) {
         const batch = writeBatch(db);
         const publicDataPath = "artifacts/great-class-quest/public/data";
 
-        studentsInClass.forEach(student => {
+        for (const student of studentsInClass) {
             const scoreRef = doc(db, `${publicDataPath}/student_scores`, student.id);
-            batch.update(scoreRef, {
-                monthlyStars: increment(0.5),
-                totalStars: increment(0.5)
-            });
+            const scoreSnap = await getDoc(scoreRef);
+            const scoreData = scoreSnap.exists() ? scoreSnap.data() : {};
+            const doubleNext = scoreData.storyWeaverDoubleNext === true;
+            const starAmount = doubleNext ? 1 : 0.5;
+
+            const scoreUpdate = {
+                monthlyStars: increment(starAmount),
+                totalStars: increment(starAmount)
+            };
+            if (doubleNext) {
+                scoreUpdate.storyWeaverDoubleNext = deleteField();
+            }
+            batch.update(scoreRef, scoreUpdate);
 
             const logRef = doc(collection(db, `${publicDataPath}/award_log`));
             batch.set(logRef, {
                 studentId: student.id,
                 classId: classId,
                 teacherId: state.get('currentUserId'),
-                stars: 0.5,
+                stars: starAmount,
                 reason: "story_weaver",
                 date: getTodayDateString(),
                 createdAt: serverTimestamp(),
                 createdBy: { uid: state.get('currentUserId'), name: state.get('currentTeacherName') }
             });
-        });
+        }
 
         await batch.commit();
         studentsInClass.forEach((student) => {

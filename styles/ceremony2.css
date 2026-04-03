@@ -505,8 +505,29 @@ header h1.font-title::after {
     overflow-y: auto;
 }
 
+.ceremony-teacher-boon-reveal--hidden {
+    opacity: 0;
+    max-height: 0;
+    overflow: hidden;
+    margin: 0 !important;
+    pointer-events: none;
+    transition: opacity 0.45s ease, max-height 0.45s ease;
+}
+
+.ceremony-teacher-boon-reveal:not(.ceremony-teacher-boon-reveal--hidden) {
+    transition: opacity 0.45s ease, max-height 0.45s ease;
+}
+
+.ceremony-leaderboard-boon-row {
+    flex: 1 1 100%;
+    display: flex;
+    justify-content: center;
+    margin-top: 0.5rem;
+}
+
 .ceremony-leaderboard-item {
     display: flex;
+    flex-wrap: wrap;
     align-items: center;
     background: rgba(255, 255, 255, 0.9);
     margin-bottom: 0.75rem;

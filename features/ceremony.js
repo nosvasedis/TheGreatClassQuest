@@ -635,7 +635,9 @@ function createFaceOff(entry, realRank, position, entryType) {
              <span class="text-xs text-gray-500 uppercase">${entry.studentCount} Students</span>
              <span class="text-3xl text-amber-600 font-bold mt-1">${formatPercent(entry.progress)}%</span>
            </div>`;
-    const teacherBoonHtml = isStudent ? getTeacherBoonCeremonyMarkup(entry.teacherBoon, { compact: true }) : '';
+    const teacherBoonWrapped = isStudent && entry.teacherBoon
+        ? `<div class="ceremony-teacher-boon-reveal ceremony-teacher-boon-reveal--hidden">${getTeacherBoonCeremonyMarkup(entry.teacherBoon, { compact: true })}</div>`
+        : '';
 
     div.innerHTML = `
         <div class="rank-badge absolute -top-8 left-1/2 transform -translate-x-1/2 text-6xl drop-shadow-md z-20 transition-all duration-500 opacity-0">
@@ -647,7 +649,7 @@ function createFaceOff(entry, realRank, position, entryType) {
             <div class="star-count opacity-0 blur-sm transition-all duration-500">
                 ${scoreDisplay}
             </div>
-            ${teacherBoonHtml}
+            ${teacherBoonWrapped}
         </div>
     `;
     return div;
@@ -713,6 +715,11 @@ function handleDramaticReveal() {
             if(scoreEl) {
                 scoreEl.classList.remove('opacity-0', 'blur-sm');
                 scoreEl.classList.add('opacity-100');
+            }
+
+            const boonReveal = card.querySelector('.ceremony-teacher-boon-reveal');
+            if (boonReveal) {
+                boonReveal.classList.remove('ceremony-teacher-boon-reveal--hidden');
             }
 
             const r = parseInt(card.dataset.rank);
@@ -781,6 +788,11 @@ function renderFinalLeaderboard() {
             ? `<img src="${s.avatar}" class="cli-avatar">`
             : `<div class="cli-avatar bg-indigo-100 flex items-center justify-center text-indigo-500 font-bold text-xl">${s.name.charAt(0)}</div>`;
 
+        const showDelayedBoon = (rank === 1 || rank === 2) && s.teacherBoon;
+        const boonRowHtml = showDelayedBoon
+            ? `<div class="ceremony-leaderboard-boon-row ceremony-teacher-boon-reveal ceremony-teacher-boon-reveal--hidden">${getTeacherBoonCeremonyMarkup(s.teacherBoon, { compact: true })}</div>`
+            : '';
+
         html += `
             <div class="ceremony-leaderboard-item" style="animation-delay: ${index * 0.1}s">
                 <div class="cli-rank ${rankClass}">${rankContent}</div>
@@ -790,12 +802,23 @@ function renderFinalLeaderboard() {
                     <div class="cli-stats">High Skill: ${s.stats.uniqueReasons} types</div>
                 </div>
                 <div class="cli-stars">${s.score} ⭐</div>
+                ${boonRowHtml}
             </div>
         `;
     });
     
     container.innerHTML = html;
     stage.appendChild(container);
+
+    queue.forEach((s, index) => {
+        if (!((s.rank === 1 || s.rank === 2) && s.teacherBoon)) return;
+        const item = container.children[index];
+        const boonRow = item?.querySelector('.ceremony-leaderboard-boon-row');
+        if (!boonRow) return;
+        setTimeout(() => {
+            boonRow.classList.remove('ceremony-teacher-boon-reveal--hidden');
+        }, index * 100 + 350);
+    });
     
     // Trigger confetti again for effect
     triggerConfetti(); 

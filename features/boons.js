@@ -1,5 +1,5 @@
 // /features/boons.js
-import { db, doc, runTransaction, increment, serverTimestamp, collection } from '../firebase.js';
+import { db, doc, runTransaction, increment, serverTimestamp, collection, deleteField } from '../firebase.js';
 import * as state from '../state.js';
 import { showToast, showPraiseToast } from '../ui/effects.js';
 import { playSound } from '../audio.js';
@@ -53,11 +53,20 @@ export async function handleBestowBoon(senderId, receiverId) {
             const receiverScoreRef = doc(db, "artifacts/great-class-quest/public/data/student_scores", receiverId);
 
             const senderDoc = await transaction.get(senderScoreRef);
-            const currentGold = (senderDoc.data()?.gold !== undefined) ? senderDoc.data().gold : (senderDoc.data()?.totalStars || 0);
+            const senderData = senderDoc.data() || {};
+            const currentGold = (senderData.gold !== undefined) ? senderData.gold : (senderData.totalStars || 0);
+            const freeBoonUses = Number(senderData.peerBoonFreeUses) || 0;
 
-            if (currentGold < 15) throw "Not enough Gold!";
-
-            transaction.update(senderScoreRef, { gold: increment(-15) });
+            if (freeBoonUses > 0) {
+                if (freeBoonUses <= 1) {
+                    transaction.update(senderScoreRef, { peerBoonFreeUses: deleteField() });
+                } else {
+                    transaction.update(senderScoreRef, { peerBoonFreeUses: freeBoonUses - 1 });
+                }
+            } else {
+                if (currentGold < 15) throw "Not enough Gold!";
+                transaction.update(senderScoreRef, { gold: increment(-15) });
+            }
             transaction.update(receiverScoreRef, {
                 totalStars: increment(0.5),
                 monthlyStars: increment(0.5)

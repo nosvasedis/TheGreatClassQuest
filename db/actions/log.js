@@ -22,7 +22,7 @@ import { callGeminiApi } from '../../api.js';
 import { playSound } from '../../audio.js';
 import { canUseFeature } from '../../utils/subscription.js';
 import { handleStoryWeaversClassSelect } from '../../features/storyWeaver.js';
-import { getTodayDateString, parseFlexibleDate } from '../../utils.js';
+import { getTodayDateString, parseFlexibleDate, normalizeToDateString } from '../../utils.js';
 import { reconcileFamiliarLifecycle } from '../../features/familiars.js';
 import { applyAwardOutwardSkillEffects, applyReasonAwardScoreTransaction, showHeroLevelUpCelebration } from './stars.js';
 
@@ -551,8 +551,13 @@ export async function saveAwardNote() {
     }
 }
 
-export async function handleMarkAbsent(studentId, classId, isAbsent, targetDate = getTodayDateString()) {
-    const today = targetDate || getTodayDateString();
+/**
+ * @param {{ silent?: boolean }} [options] - If silent, skip success toasts (for bulk operations).
+ * @returns {Promise<'marked_absent'|'already_absent'|'marked_present'|undefined>}
+ */
+export async function handleMarkAbsent(studentId, classId, isAbsent, targetDate = getTodayDateString(), options = {}) {
+    const silent = !!options.silent;
+    const today = normalizeToDateString(targetDate) || targetDate || getTodayDateString();
     const publicDataPath = "artifacts/great-class-quest/public/data";
     const attendanceCollectionRef = collection(db, `${publicDataPath}/attendance`);
 
@@ -571,7 +576,7 @@ export async function handleMarkAbsent(studentId, classId, isAbsent, targetDate 
             // 3. Remove logs for today (award_log)
             // 4. Decrement student_scores
             
-            if (!snapshot.empty) return; // Already marked absent
+            if (!snapshot.empty) return 'already_absent';
             
             await runTransaction(db, async (transaction) => {
                 // 1. Create Attendance Record
@@ -621,7 +626,10 @@ export async function handleMarkAbsent(studentId, classId, isAbsent, targetDate 
                 }
             });
             
-            showToast(today === getTodayDateString() ? `Marked absent for today.` : `Marked absent on ${today}.`, 'info');
+            if (!silent) {
+                showToast(today === getTodayDateString() ? `Marked absent for today.` : `Marked absent on ${today}.`, 'info');
+            }
+            return 'marked_absent';
 
         } else {
             // Mark Present (Undo) Logic: Just delete attendance record
@@ -630,13 +638,17 @@ export async function handleMarkAbsent(studentId, classId, isAbsent, targetDate 
                 snapshot.forEach(doc => batch.delete(doc.ref));
                 await batch.commit();
             }
-            showToast(today === getTodayDateString() ? `Marked present.` : `Marked present on ${today}.`, 'success');
+            if (!silent) {
+                showToast(today === getTodayDateString() ? `Marked present.` : `Marked present on ${today}.`, 'success');
+            }
+            return 'marked_present';
         }
 
     } catch (error) {
         console.error("Error updating attendance:", error);
         showToast("Failed to update attendance record.", "error");
     }
+    return undefined;
 }
 
 export async function handleAddQuestEvent() {

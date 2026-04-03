@@ -16,7 +16,11 @@ export const LEGENDARY_ARTIFACTS = [
     { id: 'leg_glory_chalice', name: 'Chalice of Radiance', price: 55, description: "All guildmates' next star gives +1 bonus Glory. One-time guild-wide effect.", icon: '🏆' },
     { id: 'leg_pathfinder', name: 'The Pathfinder’s Map', price: 60, description: 'Instant +10 Stars for the Team Quest. (Class Limit: 1/month)', icon: '🗺️' },
     { id: 'leg_protagonist', name: 'The Mask of the Protagonist', price: 75, description: 'Guarantees you are the Hero in the next Story Log. (Limit: 1/month)', icon: '🎭' },
-    { id: 'leg_glory_crown', name: 'Crown of the Eternal', price: 90, description: "Your guild's Glory generation is DOUBLED for the rest of the day!", icon: '👑' }
+    { id: 'leg_glory_crown', name: 'Crown of the Eternal', price: 90, description: "Your guild's Glory generation is DOUBLED for the rest of the day!", icon: '👑' },
+    { id: 'leg_aurum', name: 'Aurum Satchel', price: 32, description: 'Instant +32 Gold — no star required.', icon: '💰' },
+    { id: 'leg_bulwark', name: 'Bulwark Crest', price: 48, description: 'Your guild gains a Glory Shield for 7 days (blocks negative wheel effects).', icon: '🛡️' },
+    { id: 'leg_quill', name: "Archivist's Quill", price: 62, description: 'Your next Story Weaver class bonus awards you 1 star instead of 0.5.', icon: '✒️' },
+    { id: 'leg_compassion', name: 'Compassion Token', price: 55, description: "Your next Hero's Boon costs 0 Gold (one free gift).", icon: '💝' }
 ];
 
 export function isItemUsable(itemName) {
@@ -291,6 +295,71 @@ const POWER_UP_EFFECTS = {
             },
             localAfterCommit: () => {
                 showPraiseToast(`${student.name} crowned their guild with eternal glory! 👑 2× Glory until midnight!`, '👑');
+            }
+        };
+    },
+    'Aurum Satchel': async (student, classData, context) => {
+        const bonusGold = 32;
+        context.transaction.update(context.scoreRef, { gold: increment(bonusGold) });
+        const curGold = typeof context.scoreData.gold === 'number' ? context.scoreData.gold : (Number(context.scoreData.totalStars) || 0);
+        return {
+            success: true,
+            scorePatch: { gold: curGold + bonusGold },
+            feedback: {
+                icon: '💰',
+                title: 'Gold secured',
+                body: `${student.name} gained ${bonusGold} Gold instantly.`
+            }
+        };
+    },
+    'Bulwark Crest': async (student, classData, context) => {
+        const guildId = student.guildId;
+        if (!guildId) {
+            return { success: false, errorMessage: 'This student is not in a guild.' };
+        }
+        const expiresAt = Date.now() + 7 * 24 * 60 * 60 * 1000;
+        const modifier = {
+            type: 'shield',
+            expiresAt,
+            label: 'Bulwark Crest (7d)',
+            createdAt: Date.now()
+        };
+        const guildRef = doc(db, 'artifacts/great-class-quest/public/data/guild_scores', guildId);
+        const { arrayUnion } = await import('../firebase.js');
+        context.transaction.update(guildRef, {
+            gloryModifiers: arrayUnion(modifier)
+        });
+        return {
+            success: true,
+            feedback: {
+                icon: '🛡️',
+                title: 'Guild shield raised',
+                body: `${student.name}'s guild is protected from negative Fortune's Wheel effects for 7 days.`
+            }
+        };
+    },
+    "Archivist's Quill": async (student, classData, context) => {
+        context.transaction.update(context.scoreRef, { storyWeaverDoubleNext: true });
+        return {
+            success: true,
+            scorePatch: { storyWeaverDoubleNext: true },
+            feedback: {
+                icon: '✒️',
+                title: 'Quill charged',
+                body: `${student.name}'s next Story Weaver bonus will be worth double stars.`
+            }
+        };
+    },
+    'Compassion Token': async (student, classData, context) => {
+        context.transaction.update(context.scoreRef, { peerBoonFreeUses: increment(1) });
+        const nextUses = (Number(context.scoreData.peerBoonFreeUses) || 0) + 1;
+        return {
+            success: true,
+            scorePatch: { peerBoonFreeUses: nextUses },
+            feedback: {
+                icon: '💝',
+                title: 'Compassion ready',
+                body: `${student.name} has a free Hero's Boon to give (${nextUses} use${nextUses === 1 ? '' : 's'}).`
             }
         };
     }

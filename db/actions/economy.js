@@ -18,11 +18,12 @@ import {
     limit
 } from '../../firebase.js';
 import * as state from '../../state.js';
-import { showToast } from '../../ui/effects.js';
+import { showToast, showPraiseToast } from '../../ui/effects.js';
 import { callGeminiApi, callCloudflareAiImageApi } from '../../api.js';
 import { requireEliteAI } from '../../utils/upgradePrompt.js';
 import { canUseFeature } from '../../utils/subscription.js';
-import { getAgeGroupForLeague, getStartOfMonthString, getTodayDateString, compressImageBase64, simpleHashCode, parseFlexibleDate, getSeasonalShopPriceMeta } from '../../utils.js';
+import { getAgeGroupForLeague, getStartOfMonthString, getTodayDateString, compressImageBase64, simpleHashCode, parseFlexibleDate, getSeasonalShopPriceMeta, normalizeToDateString } from '../../utils.js';
+import { handleMarkAbsent } from './log.js';
 import { playSound } from '../../audio.js';
 import { reconcileFamiliarLifecycle } from '../../features/familiars.js';
 import { createAssessmentScorePayload, getNormalizedPercentForScore, qualifiesForHighScore } from '../../features/assessmentConfig.js';
@@ -296,8 +297,17 @@ export async function handleBulkSaveTrial() {
     const scoresCollection = collection(db, `${publicDataPath}/written_scores`);
 
     let operationsCount = 0;
+    const absentStudentIds = [];
     const potentialStarfallStudents = [];
     const savedScoresData = []; // Collection for personal best check
+
+    const canonicalDate = normalizeToDateString(date);
+    if (!canonicalDate) {
+        showToast('Invalid date selected.', 'error');
+        btn.disabled = false;
+        btn.innerHTML = `<i class="fas fa-save mr-2"></i> Save All`;
+        return;
+    }
 
     try {
         rows.forEach(row => {
@@ -308,6 +318,7 @@ export async function handleBulkSaveTrial() {
             const val = input.value;
 
             if (isAbsent) {
+                absentStudentIds.push(studentId);
                 if (trialId) {
                     batch.delete(doc(scoresCollection, trialId));
                     operationsCount++;
@@ -359,8 +370,24 @@ export async function handleBulkSaveTrial() {
             operationsCount++;
         });
 
-        if (operationsCount > 0) {
+        const shouldCommitBatch = operationsCount > 0;
+        if (!shouldCommitBatch && absentStudentIds.length === 0) {
+            showToast('No changes to save.', 'info');
+            import('../../ui/modals.js').then(m => m.hideModal('bulk-trial-modal'));
+            return;
+        }
+
+        if (shouldCommitBatch) {
             await batch.commit();
+        }
+
+        let absentApplied = 0;
+        for (const sid of absentStudentIds) {
+            const absentResult = await handleMarkAbsent(sid, classId, true, canonicalDate, { silent: true });
+            if (absentResult === 'marked_absent') absentApplied++;
+        }
+
+        if (shouldCommitBatch) {
             showToast('All grades saved successfully!', 'success');
 
             // Dynamic import to avoid circular dependency issues
@@ -434,9 +461,16 @@ export async function handleBulkSaveTrial() {
                 }, 500);
             }
 
-        } else {
-            showToast('No changes to save.', 'info');
+        } else if (absentStudentIds.length > 0) {
             import('../../ui/modals.js').then(m => m.hideModal('bulk-trial-modal'));
+        }
+
+        if (absentStudentIds.length > 0) {
+            if (absentApplied > 0) {
+                showToast(`Marked ${absentApplied} student(s) absent in attendance.`, 'success');
+            } else if (!shouldCommitBatch) {
+                showToast('Absent students were already recorded in attendance.', 'info');
+            }
         }
 
     } catch (error) {

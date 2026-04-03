@@ -570,6 +570,20 @@ function _wireWheelModalButtons() {
     document.getElementById('fw-spin-btn')?.addEventListener('click', () => triggerSpin());
     document.getElementById('fw-next-btn')?.addEventListener('click', () => advanceWheel());
     document.getElementById('fw-close-btn')?.addEventListener('click', () => closeFortunesWheel());
+
+    modal.addEventListener('click', (e) => {
+        const target = e.target;
+        if (!(target instanceof HTMLElement)) return;
+        if (target.id === 'fortunes-wheel-modal' || target.classList.contains('fw-backdrop')) {
+            closeFortunesWheel();
+        }
+    });
+
+    document.addEventListener('keydown', (e) => {
+        if (e.key !== 'Escape') return;
+        if (modal.classList.contains('hidden')) return;
+        closeFortunesWheel();
+    });
 }
 
 // ─── Fortune's Log ───────────────────────────────────────────────────────────

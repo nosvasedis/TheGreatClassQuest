@@ -591,6 +591,7 @@ let _wheelState = {
     results: [],          // All 4 guild results
     phase: 'idle',        // 'idle' | 'ready' | 'spinning' | 'revealed' | 'summary' | 'done'
 };
+let _wheelResizeWired = false;
 
 export function getWheelState() { return _wheelState; }
 
@@ -606,6 +607,8 @@ export async function openFortunesWheel(classId, leagueLevel) {
 
     // Always show the modal first
     modal.classList.remove('hidden');
+    modal.classList.add('is-open');
+    _wireWheelResize();
 
     // ── Resolve class ───────────────────────────────────────────────────────
     const resolvedClassId = classId || state.get('globalSelectedClassId') || '';
@@ -616,6 +619,15 @@ export async function openFortunesWheel(classId, leagueLevel) {
     const resolvedLeague = leagueLevel || selectedClass?.questLevel || state.get('globalSelectedLeague') || 'B';
 
     await _evaluateAndRender(resolvedClassId || null, resolvedLeague);
+}
+
+function _wireWheelResize() {
+    if (_wheelResizeWired) return;
+    _wheelResizeWired = true;
+    window.addEventListener('resize', () => {
+        if (_wheelState.phase !== 'ready' && _wheelState.phase !== 'spinning') return;
+        _sizeAndRenderWheel();
+    });
 }
 
 /**
@@ -714,7 +726,10 @@ function _renderLockedState(title, message, emoji) {
     const canvasWrap = document.getElementById('fw-canvas-wrap');
     if (canvasWrap) canvasWrap.classList.add('hidden');
     const stageFrame = document.getElementById('fw-stage-frame');
-    if (stageFrame) stageFrame.classList.add('is-locked');
+    if (stageFrame) {
+        stageFrame.classList.add('is-locked');
+        stageFrame.classList.remove('is-spinning');
+    }
 
     const summaryEl = document.getElementById('fw-summary');
     if (summaryEl) summaryEl.classList.add('hidden');
@@ -756,6 +771,8 @@ export async function triggerSpin() {
     const guildDef = getGuildById(guildId);
     const segments = _wheelState.segments;
     const winnerIndex = spinWheel(segments.length);
+    const stageFrame = document.getElementById('fw-stage-frame');
+    if (stageFrame) stageFrame.classList.add('is-spinning');
 
     _updateSpinButton(true, 'Spinning...');
 
@@ -763,6 +780,7 @@ export async function triggerSpin() {
     await animateWheelSpin(canvas, segments, winnerIndex, guildDef, () => {
         try { playSound('click'); } catch (_) {}
     });
+    if (stageFrame) stageFrame.classList.remove('is-spinning');
 
     // Reveal sound based on rarity
     const winningSeg = segments[winnerIndex];
@@ -812,7 +830,10 @@ export async function closeFortunesWheel() {
     _wheelState = { active: false, classId: null, leagueLevel: null, guildOrder: [], currentGuildIndex: 0, segments: [], results: [], phase: 'idle' };
 
     const modal = document.getElementById('fortunes-wheel-modal');
-    if (modal) modal.classList.add('hidden');
+    if (modal) {
+        modal.classList.remove('is-open');
+        modal.classList.add('hidden');
+    }
 }
 
 // ── Internal UI helpers ──────────────────────────────────────────────────────
@@ -832,23 +853,14 @@ function _renderWheelPhase() {
     }
 
     const stageFrame = document.getElementById('fw-stage-frame');
-    if (stageFrame) stageFrame.classList.remove('is-locked');
+    if (stageFrame) {
+        stageFrame.classList.remove('is-locked');
+        stageFrame.classList.remove('is-spinning');
+    }
 
     const canvasWrap = document.getElementById('fw-canvas-wrap');
     if (canvasWrap) canvasWrap.classList.remove('hidden');
-    const canvas = document.getElementById('fortunes-wheel-canvas');
-    if (canvas) {
-        const dpr = window.devicePixelRatio || 1;
-        const displaySize = Math.min(620, Math.max(360, canvas.parentElement?.clientWidth || 520));
-        canvas.style.width = `${displaySize}px`;
-        canvas.style.height = `${displaySize}px`;
-        canvas.width = displaySize * dpr;
-        canvas.height = displaySize * dpr;
-        canvas.getContext('2d').scale(dpr, dpr);
-        canvas.width = displaySize;
-        canvas.height = displaySize;
-        drawWheel(canvas, _wheelState.segments, 0, guildDef);
-    }
+    _sizeAndRenderWheel();
 
     _updateSpinButton(false, 'Spin the Wheel');
     const resultEl = document.getElementById('fw-result');
@@ -859,6 +871,29 @@ function _renderWheelPhase() {
     if (doneBtn) doneBtn.classList.add('hidden');
     const summaryEl = document.getElementById('fw-summary');
     if (summaryEl) summaryEl.classList.add('hidden');
+}
+
+function _sizeAndRenderWheel() {
+    const canvas = document.getElementById('fortunes-wheel-canvas');
+    if (!canvas || !_wheelState.segments?.length) return;
+    const guildId = _wheelState.guildOrder[_wheelState.currentGuildIndex];
+    const guildDef = getGuildById(guildId);
+
+    const stageFrame = document.getElementById('fw-stage-frame');
+    const stageRect = stageFrame?.getBoundingClientRect();
+    const parentWidth = canvas.parentElement?.clientWidth || 520;
+    const stageHeight = stageRect?.height || window.innerHeight * 0.58;
+
+    // Fit-first for 13–17" laptop heights, with minimum size fallback.
+    const widthBudget = Math.min(parentWidth, window.innerWidth * 0.56);
+    const heightBudget = Math.max(320, stageHeight - 44);
+    const displaySize = Math.round(Math.max(320, Math.min(620, widthBudget, heightBudget)));
+
+    canvas.style.width = `${displaySize}px`;
+    canvas.style.height = `${displaySize}px`;
+    canvas.width = displaySize;
+    canvas.height = displaySize;
+    drawWheel(canvas, _wheelState.segments, 0, guildDef);
 }
 
 function _updateSpinButton(disabled, label = 'Spin the Wheel') {

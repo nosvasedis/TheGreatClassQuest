@@ -450,17 +450,17 @@ export function drawWheel(canvas, segments, rotationAngle, guildDef) {
     const ctx = canvas.getContext('2d');
     const size = canvas.width;
     const center = size / 2;
-    const radius = center - 24; // slightly smaller to allow for a thick glow rim
+    const radius = center - 24; 
     const segCount = segments.length;
     const segAngle = TAU / segCount;
 
     ctx.clearRect(0, 0, size, size);
 
-    // Deep space aura behind the wheel
+    // Bright celestial aura behind the wheel
     const aura = ctx.createRadialGradient(center, center, radius * 0.2, center, center, size / 2);
-    aura.addColorStop(0, `${guildDef?.glow || '#a78bfa'}99`);
-    aura.addColorStop(0.5, 'rgba(50, 20, 95, 0.4)');
-    aura.addColorStop(1, 'rgba(0, 0, 0, 0)');
+    aura.addColorStop(0, `rgba(255, 255, 255, 0.9)`);
+    aura.addColorStop(0.5, 'rgba(253, 230, 138, 0.4)');
+    aura.addColorStop(1, 'rgba(255, 255, 255, 0)');
     ctx.fillStyle = aura;
     ctx.fillRect(0, 0, size, size);
 
@@ -468,30 +468,30 @@ export function drawWheel(canvas, segments, rotationAngle, guildDef) {
     ctx.translate(center, center);
     ctx.rotate(rotationAngle);
 
-    // Thick metallic and glowing outer rim
+    // Bright Golden thick outer rim
     ctx.beginPath();
     ctx.arc(0, 0, radius + 12, 0, TAU);
     const rimGrad = ctx.createLinearGradient(-radius, -radius, radius, radius);
-    rimGrad.addColorStop(0, '#ffdca8');
-    rimGrad.addColorStop(0.2, '#ffb347');
-    rimGrad.addColorStop(0.5, '#fff9ea');
-    rimGrad.addColorStop(0.8, '#ffb347');
-    rimGrad.addColorStop(1, '#ffdca8');
+    rimGrad.addColorStop(0, '#FEF3C7');
+    rimGrad.addColorStop(0.2, '#F59E0B');
+    rimGrad.addColorStop(0.5, '#FFFBEB');
+    rimGrad.addColorStop(0.8, '#D97706');
+    rimGrad.addColorStop(1, '#FEF3C7');
     ctx.strokeStyle = rimGrad;
     ctx.lineWidth = Math.max(16, size / 35);
     ctx.stroke();
 
-    // Darker inner rim line for depth
+    // Lighter inner rim line for depth
     ctx.beginPath();
     ctx.arc(0, 0, radius + 2, 0, TAU);
-    ctx.strokeStyle = 'rgba(50, 20, 10, 0.8)';
+    ctx.strokeStyle = 'rgba(217, 119, 6, 0.8)';
     ctx.lineWidth = 4;
     ctx.stroke();
 
-    // Wheel background disc
+    // Wheel background disc (bright instead of dark)
     ctx.beginPath();
     ctx.arc(0, 0, radius, 0, TAU);
-    ctx.fillStyle = '#110a1f';
+    ctx.fillStyle = '#FFFFFF';
     ctx.fill();
 
     for (let i = 0; i < segCount; i++) {
@@ -500,11 +500,10 @@ export function drawWheel(canvas, segments, rotationAngle, guildDef) {
         const endAngle = startAngle + segAngle;
         const rarityConf = WHEEL_RARITY_CONFIG[seg.rarity] || WHEEL_RARITY_CONFIG.common;
         
-        // Dynamic wedge gradient for a glossy, 3D feel
+        // Vibrant wedge gradient
         const gradient = ctx.createRadialGradient(0, 0, radius * 0.1, 0, 0, radius);
-        // We use slightly darker tones at the center, glowing at the edge
         gradient.addColorStop(0, rarityConf.bg);
-        gradient.addColorStop(0.6, `${rarityConf.bg}ee`);
+        gradient.addColorStop(0.6, rarityConf.bg);
         gradient.addColorStop(1, rarityConf.color);
 
         ctx.beginPath();
@@ -514,60 +513,52 @@ export function drawWheel(canvas, segments, rotationAngle, guildDef) {
         ctx.fillStyle = gradient;
         ctx.fill();
 
-        // Highlighting edge (inner shadow / glossy top)
+        // Highlighting edge
         ctx.beginPath();
         ctx.arc(0, 0, radius, startAngle, endAngle);
-        ctx.strokeStyle = 'rgba(255, 255, 255, 0.15)';
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)';
         ctx.lineWidth = 6;
         ctx.stroke();
 
-        // Wedge dividing borders (metallic)
+        // Wedge dividing borders (bright gold)
         ctx.beginPath();
         ctx.moveTo(0, 0);
         ctx.lineTo(Math.cos(startAngle) * radius, Math.sin(startAngle) * radius);
         const borderGrad = ctx.createLinearGradient(0, 0, Math.cos(startAngle) * radius, Math.sin(startAngle) * radius);
-        borderGrad.addColorStop(0, 'rgba(255, 215, 0, 0.1)');
-        borderGrad.addColorStop(1, 'rgba(255, 215, 0, 0.6)');
+        borderGrad.addColorStop(0, 'rgba(255, 255, 255, 0.8)');
+        borderGrad.addColorStop(1, 'rgba(245, 158, 11, 0.8)');
         ctx.strokeStyle = borderGrad;
         ctx.lineWidth = Math.max(2, size / 150);
         ctx.stroke();
 
         // Draw Text & Emoji
         ctx.save();
-        // Rotate to the center of the segment
         ctx.rotate(startAngle + segAngle / 2);
         
         const label = String(seg.label || '');
-        const maxTextWidth = radius * 0.45; // Max width for text block
+        const maxTextWidth = radius * 0.45;
         
-        // Prepare text styles
         const fontSize = Math.max(12, Math.floor(size / 38));
-        ctx.font = `700 ${fontSize}px "Trebuchet MS", system-ui, sans-serif`;
-        ctx.fillStyle = 'rgba(255, 255, 255, 0.95)';
+        ctx.font = `700 ${fontSize}px "Fredoka One", "Trebuchet MS", system-ui, sans-serif`;
+        ctx.fillStyle = '#FFFFFF';
         ctx.textAlign = 'right';
         ctx.textBaseline = 'middle';
-        ctx.shadowColor = 'rgba(0, 0, 0, 0.9)';
-        ctx.shadowBlur = 6;
+        ctx.shadowColor = 'rgba(0, 0, 0, 0.4)';
+        ctx.shadowBlur = 4;
         ctx.shadowOffsetX = 1;
         ctx.shadowOffsetY = 1;
 
-        // Wrap the text
         const lines = wrapText(ctx, label, maxTextWidth);
         const lineHeight = fontSize * 1.2;
         const totalTextHeight = lines.length * lineHeight;
         
-        // Base radius for content positioning (outer edge moving inward)
         const contentRadius = radius - Math.max(30, size * 0.08);
-        
-        // Draw emoji closer to the edge
         const emojiFontSize = Math.max(16, Math.floor(size / 24));
         ctx.font = `${emojiFontSize}px system-ui`;
-        // if text is very long, push emoji further out, else normal
         const emojiRadius = contentRadius;
         ctx.fillText(seg.emoji || '*', emojiRadius, 0);
 
-        // Draw wrapped text starting slightly inside of the emoji
-        ctx.font = `800 ${fontSize}px "Trebuchet MS", system-ui, sans-serif`;
+        ctx.font = `800 ${fontSize}px "Fredoka One", "Trebuchet MS", system-ui, sans-serif`;
         const textStartRadius = emojiRadius - emojiFontSize * 1.2;
         const startY = -(totalTextHeight / 2) + (lineHeight / 2);
 

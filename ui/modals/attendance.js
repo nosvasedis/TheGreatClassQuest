@@ -111,8 +111,12 @@ export async function renderAttendanceChronicle(classId) {
     syncAttendanceChronicleModalState(classId, isEditableMonth);
     
     if (isEditableMonth) {
-        // Use real-time state
-        attendanceRecords = state.get('allAttendanceRecords').filter(r => r.classId === classId);
+        // Use real-time state, but filter to only records within the viewed month
+        attendanceRecords = state.get('allAttendanceRecords').filter(r => {
+            if (r.classId !== classId) return false;
+            const rDate = utils.parseDDMMYYYY(r.date);
+            return rDate && rDate.getMonth() === currentMonth && rDate.getFullYear() === currentYear;
+        });
     } else {
         // Fetch on demand
         contentEl.innerHTML = `<div class="text-center py-8 text-gray-500"><i class="fas fa-spinner fa-spin mr-2"></i>Fetching historical data for ${monthName}...</div>`;

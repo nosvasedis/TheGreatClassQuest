@@ -499,25 +499,14 @@ export async function handleBuyItem(studentId, itemId) {
 
     if (!item) return;
 
-    // --- NEW: Hero of the Day Discount Logic ---
-    let finalPrice = item.price;
+    // --- NEW: Hero of the Day + Voucher Discount Logic ---
     const reigningHero = state.get('reigningHero');
     const isHero = reigningHero && reigningHero.id === studentId;
     const scoreData = state.get('allStudentScores').find((score) => score.id === studentId);
     const heroOfDayWins = scoreData?.heroOfDayWins || 0;
-
-    // Discount applies ONLY to Seasonal items (not Legendary)
-    if (isHero && !isLegendary) {
-        finalPrice = getSeasonalShopPriceMeta(item.price, {
-            isReigningHero: true,
-            heroOfDayWins
-        }).finalPrice;
-    } else if (!isLegendary) {
-        finalPrice = getSeasonalShopPriceMeta(item.price, {
-            isReigningHero: false,
-            heroOfDayWins
-        }).finalPrice;
-    }
+    const currentMonthKey = new Date().toISOString().substring(0, 7);
+    let finalPrice = item.price;
+    let voucherUsed = false;
 
     // 2. UI Pre-check and Optimistic Update preparation
     const buyBtn = document.querySelector(`.shop-buy-btn[data-id="${itemId}"]`);
@@ -528,6 +517,7 @@ export async function handleBuyItem(studentId, itemId) {
 
     try {
         let newGoldBalance = 0;
+        let appliedFinalPrice = item.price;
 
         await runTransaction(db, async (transaction) => {
             const scoreDoc = await transaction.get(scoreRef);
@@ -545,19 +535,36 @@ export async function handleBuyItem(studentId, itemId) {
             const currentDbGold = data.gold !== undefined ? data.gold : (data.totalStars || 0);
             const currentInventory = data.inventory || [];
 
-            if (currentDbGold < finalPrice) throw "Not enough gold!";
+            let calculatedPrice = item.price;
+
+            if (!isLegendary) {
+                calculatedPrice = getSeasonalShopPriceMeta(item.price, {
+                    isReigningHero: !!isHero,
+                    heroOfDayWins
+                }).finalPrice;
+            }
+
+            const aurumVoucherPercent = Number(data.aurumVoucherPercent) || 0;
+            const hasAurumVoucher = data.aurumVoucherMonth === currentMonthKey && aurumVoucherPercent > 0;
+            if (hasAurumVoucher) {
+                calculatedPrice = Math.max(1, Math.round(calculatedPrice * ((100 - aurumVoucherPercent) / 100)));
+            }
+
+            appliedFinalPrice = calculatedPrice;
+            finalPrice = calculatedPrice;
+
+            if (currentDbGold < calculatedPrice) throw "Not enough gold!";
 
             // Mask of the Protagonist: 1 per student per month
             if (itemId === 'leg_protagonist') {
-                const currentMonthKey = new Date().toISOString().substring(0, 7);
                 const alreadyBoughtThisMonth = currentInventory.some(i => i.id === 'leg_protagonist' && i.acquiredAt && i.acquiredAt.startsWith(currentMonthKey));
                 if (alreadyBoughtThisMonth) throw "You can only buy the Mask of the Protagonist once per month!";
             }
 
-            newGoldBalance = currentDbGold - finalPrice; // Calculate for UI
+            newGoldBalance = currentDbGold - calculatedPrice; // Calculate for UI
 
-            transaction.update(scoreRef, {
-                gold: increment(-finalPrice),
+            const nextUpdate = {
+                gold: increment(-calculatedPrice),
                 inventory: [...currentInventory, {
                     id: item.id,
                     name: item.name,
@@ -566,7 +573,15 @@ export async function handleBuyItem(studentId, itemId) {
                     description: item.description,
                     acquiredAt: new Date().toISOString()
                 }]
-            });
+            };
+
+            if (hasAurumVoucher) {
+                nextUpdate.aurumVoucherPercent = 0;
+                nextUpdate.aurumVoucherMonth = null;
+                voucherUsed = true;
+            }
+
+            transaction.update(scoreRef, nextUpdate);
         });
 
         // --- SUCCESS: Update UI Immediately ---
@@ -591,13 +606,13 @@ export async function handleBuyItem(studentId, itemId) {
             itemName: item.name,
             itemDescription: item.description || 'A rare artifact for your collection!',
             itemVisualHtml: item.icon ? item.icon : (item.image ? `<img src="${item.image}" class="w-16 h-16 object-contain mx-auto">` : '🎁'),
-            finalPrice,
+            finalPrice: appliedFinalPrice,
             newGoldBalance,
             studentName: student.name,
             cta: 'Awesome!'
         });
         if (!popupShown) {
-            showToast(`${student.name} bought "${item.name}" for ${finalPrice}🪙.`, 'success');
+            showToast(`${student.name} bought "${item.name}" for ${appliedFinalPrice}🪙${voucherUsed ? ' (Aurum discount applied)' : ''}.`, 'success');
         }
 
         // --- FIX: Update Local State Immediately ---
@@ -616,6 +631,10 @@ export async function handleBuyItem(studentId, itemId) {
                 description: item.description,
                 acquiredAt: new Date().toISOString()
             });
+            if (voucherUsed) {
+                allScores[studentIndex].aurumVoucherPercent = 0;
+                allScores[studentIndex].aurumVoucherMonth = null;
+            }
             state.setAllStudentScores(allScores);
         }
 
@@ -816,6 +835,9 @@ export async function handleBuyFamiliarEgg(studentId, typeId) {
     try {
         let newGoldBalance = 0;
         let familiarData = null;
+        let finalPrice = typeDef.price;
+        let voucherUsed = false;
+        const currentMonthKey = new Date().toISOString().substring(0, 7);
         await runTransaction(db, async (transaction) => {
             const scoreDoc = await transaction.get(scoreRef);
             if (!scoreDoc.exists()) throw new Error('Score document not found.');
@@ -824,14 +846,27 @@ export async function handleBuyFamiliarEgg(studentId, typeId) {
             if (scoreData.familiar) throw new Error('This student already owns a Familiar!');
 
             const currentGold = typeof scoreData.gold === 'number' ? scoreData.gold : (scoreData.totalStars || 0);
-            if (currentGold < typeDef.price) throw new Error(`Not enough Gold! Need ${typeDef.price}🪙.`);
-            newGoldBalance = currentGold - typeDef.price;
+            const aurumVoucherPercent = Number(scoreData.aurumVoucherPercent) || 0;
+            const hasAurumVoucher = scoreData.aurumVoucherMonth === currentMonthKey && aurumVoucherPercent > 0;
+            finalPrice = hasAurumVoucher
+                ? Math.max(1, Math.round(typeDef.price * ((100 - aurumVoucherPercent) / 100)))
+                : typeDef.price;
+            if (currentGold < finalPrice) throw new Error(`Not enough Gold! Need ${finalPrice}🪙.`);
+            newGoldBalance = currentGold - finalPrice;
             familiarData = buildFamiliarInitData(typeId, scoreData.totalStars || 0, studentId);
 
-            transaction.update(scoreRef, {
+            const scoreUpdate = {
                 gold: newGoldBalance,
                 familiar: familiarData
-            });
+            };
+
+            if (hasAurumVoucher) {
+                scoreUpdate.aurumVoucherPercent = 0;
+                scoreUpdate.aurumVoucherMonth = null;
+                voucherUsed = true;
+            }
+
+            transaction.update(scoreRef, scoreUpdate);
         });
 
         playSound('cash');
@@ -840,7 +875,7 @@ export async function handleBuyFamiliarEgg(studentId, typeId) {
             itemName: `${typeDef.name} Egg`,
             itemDescription: `A new companion has joined ${student.name}. Earn ${20} stars to hatch it!`,
             itemVisualHtml: `<div class="text-6xl familiar-egg-wobble" style="filter:drop-shadow(0 0 12px ${typeDef.eggColor});">🥚</div>`,
-            finalPrice: typeDef.price,
+            finalPrice,
             newGoldBalance,
             studentName: student.name,
             cta: 'Egg Acquired!'
@@ -857,6 +892,10 @@ export async function handleBuyFamiliarEgg(studentId, typeId) {
                 gold: newGoldBalance,
                 familiar: familiarData
             };
+            if (voucherUsed) {
+                allScores[idx].aurumVoucherPercent = 0;
+                allScores[idx].aurumVoucherMonth = null;
+            }
             state.setAllStudentScores(allScores);
         }
         import('../../ui/core.js').then(m => m.updateShopStudentDisplay(studentId));

@@ -17,7 +17,7 @@ export const LEGENDARY_ARTIFACTS = [
     { id: 'leg_pathfinder', name: 'The Pathfinder’s Map', price: 60, description: 'Instant +10 Stars for the Team Quest. (Class Limit: 1/month)', icon: '🗺️' },
     { id: 'leg_protagonist', name: 'The Mask of the Protagonist', price: 75, description: 'Guarantees you are the Hero in the next Story Log. (Limit: 1/month)', icon: '🎭' },
     { id: 'leg_glory_crown', name: 'Crown of the Eternal', price: 90, description: "Your guild's Glory generation is DOUBLED for the rest of the day!", icon: '👑' },
-    { id: 'leg_aurum', name: 'Aurum Satchel', price: 32, description: 'Instant +32 Gold — no star required.', icon: '💰' },
+    { id: 'leg_aurum', name: 'Aurum Satchel', price: 32, description: 'Grants 50% off your next Mystic Market purchase this month.', icon: '💰' },
     { id: 'leg_bulwark', name: 'Bulwark Crest', price: 48, description: 'Your guild gains a Glory Shield for 7 days (blocks negative wheel effects).', icon: '🛡️' },
     { id: 'leg_quill', name: "Archivist's Quill", price: 62, description: 'Your next Story Weaver class bonus awards you 1 star instead of 0.5.', icon: '✒️' },
     { id: 'leg_compassion', name: 'Compassion Token', price: 55, description: "Your next Hero's Boon costs 0 Gold (one free gift).", icon: '💝' }
@@ -299,16 +299,22 @@ const POWER_UP_EFFECTS = {
         };
     },
     'Aurum Satchel': async (student, classData, context) => {
-        const bonusGold = 32;
-        context.transaction.update(context.scoreRef, { gold: increment(bonusGold) });
-        const curGold = typeof context.scoreData.gold === 'number' ? context.scoreData.gold : (Number(context.scoreData.totalStars) || 0);
+        const monthKey = utils.getMonthKey(new Date());
+        const voucherPercent = 50;
+        context.transaction.update(context.scoreRef, {
+            aurumVoucherPercent: voucherPercent,
+            aurumVoucherMonth: monthKey
+        });
         return {
             success: true,
-            scorePatch: { gold: curGold + bonusGold },
+            scorePatch: {
+                aurumVoucherPercent: voucherPercent,
+                aurumVoucherMonth: monthKey
+            },
             feedback: {
                 icon: '💰',
-                title: 'Gold secured',
-                body: `${student.name} gained ${bonusGold} Gold instantly.`
+                title: 'Voucher activated',
+                body: `${student.name} now has 50% off their next Mystic Market purchase this month.`
             }
         };
     },

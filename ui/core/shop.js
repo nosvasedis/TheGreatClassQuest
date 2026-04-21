@@ -74,7 +74,7 @@ export function renderShopUI() {
 
     // 2. Get Legendary Artifacts (from our new file)
     import('../../features/powerUps.js').then(m => {
-        const artifacts = m.LEGENDARY_ARTIFACTS;
+        const artifacts = [...m.LEGENDARY_ARTIFACTS].sort((a, b) => (a.price - b.price) || a.name.localeCompare(b.name));
         
         if (seasonalItems.length === 0 && artifacts.length === 0) {
             container.innerHTML = '';
@@ -224,6 +224,9 @@ export async function updateShopStudentDisplay(studentId) {
     const inventory = scoreData?.inventory || [];
     const student = state.get('allStudents').find(s => s.id === studentId);
     const heroOfDayWins = scoreData?.heroOfDayWins || 0;
+    const currentMonthKey = new Date().toISOString().substring(0, 7);
+    const aurumVoucherPercent = Number(scoreData?.aurumVoucherPercent) || 0;
+    const hasAurumVoucher = scoreData?.aurumVoucherMonth === currentMonthKey && aurumVoucherPercent > 0;
 
     // --- CHECK HERO STATUS ---
     const reigningHero = state.get('reigningHero');
@@ -249,7 +252,6 @@ export async function updateShopStudentDisplay(studentId) {
     }
 
     // LIMIT CHECK 1: Individual Legendary limit (2 per month)
-    const currentMonthKey = new Date().toISOString().substring(0, 7);
     const legendariesThisMonth = inventory.filter(i => i.id && i.id.startsWith('leg_') && i.acquiredAt && i.acquiredAt.startsWith(currentMonthKey));
     const legLimitReached = legendariesThisMonth.length >= 2;
 
@@ -271,11 +273,14 @@ export async function updateShopStudentDisplay(studentId) {
 
     buyBtns.forEach(btn => {
         const itemId = btn.dataset.id;
+        const isFamiliar = btn.dataset.type === 'familiar';
         const isLegendary = btn.dataset.type === 'legendary';
         
         // --- PRICE CALCULATION ---
         let basePrice = 10;
-        if (isLegendary) {
+        if (isFamiliar) {
+            basePrice = parseInt(btn.dataset.price || '40');
+        } else if (isLegendary) {
             basePrice = LEGENDARY_ARTIFACTS.find(a => a.id === itemId)?.price || 0;
         } else {
             basePrice = state.get('currentShopItems').find(i => i.id === itemId)?.price || 10;
@@ -284,13 +289,18 @@ export async function updateShopStudentDisplay(studentId) {
         let finalPrice = basePrice;
         let hasDiscount = false;
 
-        if (!isLegendary) {
+        if (!isLegendary && !isFamiliar) {
             const priceMeta = getSeasonalShopPriceMeta(basePrice, {
                 isReigningHero: !!isHero,
                 heroOfDayWins
             });
             finalPrice = priceMeta.finalPrice;
             hasDiscount = priceMeta.totalDiscount > 0;
+        }
+
+        if (hasAurumVoucher) {
+            finalPrice = Math.max(1, Math.round(finalPrice * ((100 - aurumVoucherPercent) / 100)));
+            hasDiscount = true;
         }
 
         // --- UPDATE CARD PRICE DISPLAY ---
@@ -306,19 +316,18 @@ export async function updateShopStudentDisplay(studentId) {
         // Familiar egg buttons
         if (btn.dataset.type === 'familiar') {
             const hasFamiliar = !!scoreData?.familiar;
-            const price = parseInt(btn.dataset.price || '40');
             btn.classList.remove('bg-green-600', 'bg-red-500', 'bg-indigo-600', 'bg-gray-500');
             if (hasFamiliar) {
                 btn.disabled = true;
                 btn.innerText = 'Already Owned';
                 btn.classList.add('bg-green-600');
-            } else if (gold >= price) {
+            } else if (gold >= finalPrice) {
                 btn.disabled = false;
-                btn.innerText = `Buy ${price}🪙`;
+                btn.innerText = 'BUY';
                 btn.classList.add('bg-purple-600');
             } else {
                 btn.disabled = true;
-                btn.innerText = `Need ${price}🪙`;
+                btn.innerText = 'BUY';
                 btn.classList.add('bg-gray-500');
             }
             return;
@@ -349,12 +358,12 @@ export async function updateShopStudentDisplay(studentId) {
         }
         else if (gold >= finalPrice) {
             btn.disabled = false;
-            btn.innerText = `Buy ${finalPrice}🪙`;
+            btn.innerText = 'BUY';
             btn.classList.add('bg-indigo-600');
         } 
         else {
             btn.disabled = true;
-            btn.innerText = `Need ${finalPrice}🪙`;
+            btn.innerText = 'BUY';
             btn.classList.add('bg-gray-500');
         }
     });
@@ -379,7 +388,7 @@ function renderFamiliarEggCard(fType) {
                     <div>📛 Forms: ${fType.levelNames.map(n => `<strong class="text-purple-300">${n}</strong>`).join(' → ')}</div>
                 </div>
                 <div class="flex justify-between items-center mt-auto pt-3 border-t border-purple-800">
-                    <div class="flex items-center gap-1 font-bold text-white text-lg">
+                    <div class="shop-price-display flex items-center gap-1 font-bold text-white text-lg" data-item-id="${fType.id}" data-base-price="${fType.price}">
                         <span>${fType.price}</span>
                         <span>🪙</span>
                     </div>

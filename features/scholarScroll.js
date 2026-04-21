@@ -700,6 +700,10 @@ export function openSingleTrialEditModal(classId, trialId) {
     const newSaveBtn = saveBtn.cloneNode(true);
     saveBtn.parentNode.replaceChild(newSaveBtn, saveBtn);
 
+    import('../db/actions.js').then(actions => {
+        newSaveBtn.addEventListener('click', actions.handleBulkSaveTrial);
+    });
+
     modals.showAnimatedModal('bulk-trial-modal');
     document.getElementById('bulk-trial-close-btn').onclick = () => modals.hideModal('bulk-trial-modal');
 }

@@ -418,6 +418,28 @@ export async function applyWheelResult(guildId, segment, classId) {
 const TAU = Math.PI * 2;
 
 /**
+ * Wrap text to fit within a given max width
+ */
+function wrapText(ctx, text, maxWidth) {
+    const words = text.split(' ');
+    const lines = [];
+    let currentLine = words[0];
+
+    for (let i = 1; i < words.length; i++) {
+        const word = words[i];
+        const width = ctx.measureText(currentLine + " " + word).width;
+        if (width < maxWidth) {
+            currentLine += " " + word;
+        } else {
+            lines.push(currentLine);
+            currentLine = word;
+        }
+    }
+    lines.push(currentLine);
+    return lines;
+}
+
+/**
  * Draw the wheel on a canvas.
  * @param {HTMLCanvasElement} canvas
  * @param {Array} segments - 20 segments
@@ -428,15 +450,17 @@ export function drawWheel(canvas, segments, rotationAngle, guildDef) {
     const ctx = canvas.getContext('2d');
     const size = canvas.width;
     const center = size / 2;
-    const radius = center - 20;
+    const radius = center - 24; // slightly smaller to allow for a thick glow rim
     const segCount = segments.length;
     const segAngle = TAU / segCount;
 
     ctx.clearRect(0, 0, size, size);
-    const aura = ctx.createRadialGradient(center, center, radius * 0.16, center, center, radius * 1.12);
-    aura.addColorStop(0, `${guildDef?.glow || '#a78bfa'}66`);
-    aura.addColorStop(0.55, 'rgba(50, 20, 95, 0.35)');
-    aura.addColorStop(1, 'rgba(6, 3, 20, 0)');
+
+    // Deep space aura behind the wheel
+    const aura = ctx.createRadialGradient(center, center, radius * 0.2, center, center, size / 2);
+    aura.addColorStop(0, `${guildDef?.glow || '#a78bfa'}99`);
+    aura.addColorStop(0.5, 'rgba(50, 20, 95, 0.4)');
+    aura.addColorStop(1, 'rgba(0, 0, 0, 0)');
     ctx.fillStyle = aura;
     ctx.fillRect(0, 0, size, size);
 
@@ -444,25 +468,30 @@ export function drawWheel(canvas, segments, rotationAngle, guildDef) {
     ctx.translate(center, center);
     ctx.rotate(rotationAngle);
 
-    // Outer glowing rim
+    // Thick metallic and glowing outer rim
     ctx.beginPath();
-    ctx.arc(0, 0, radius + 8, 0, TAU);
+    ctx.arc(0, 0, radius + 12, 0, TAU);
     const rimGrad = ctx.createLinearGradient(-radius, -radius, radius, radius);
-    rimGrad.addColorStop(0, 'rgba(255, 236, 196, 0.8)');
-    rimGrad.addColorStop(0.5, 'rgba(218, 165, 32, 0.6)');
-    rimGrad.addColorStop(1, 'rgba(255, 236, 196, 0.8)');
+    rimGrad.addColorStop(0, '#ffdca8');
+    rimGrad.addColorStop(0.2, '#ffb347');
+    rimGrad.addColorStop(0.5, '#fff9ea');
+    rimGrad.addColorStop(0.8, '#ffb347');
+    rimGrad.addColorStop(1, '#ffdca8');
     ctx.strokeStyle = rimGrad;
-    ctx.lineWidth = Math.max(12, size / 50);
+    ctx.lineWidth = Math.max(16, size / 35);
+    ctx.stroke();
+
+    // Darker inner rim line for depth
+    ctx.beginPath();
+    ctx.arc(0, 0, radius + 2, 0, TAU);
+    ctx.strokeStyle = 'rgba(50, 20, 10, 0.8)';
+    ctx.lineWidth = 4;
     ctx.stroke();
 
     // Wheel background disc
-    const wheelDisc = ctx.createRadialGradient(0, 0, radius * 0.05, 0, 0, radius);
-    wheelDisc.addColorStop(0, 'rgba(255,255,255,0.2)');
-    wheelDisc.addColorStop(0.45, 'rgba(75, 25, 125, 0.12)');
-    wheelDisc.addColorStop(1, 'rgba(10, 4, 26, 0.5)');
     ctx.beginPath();
     ctx.arc(0, 0, radius, 0, TAU);
-    ctx.fillStyle = wheelDisc;
+    ctx.fillStyle = '#110a1f';
     ctx.fill();
 
     for (let i = 0; i < segCount; i++) {
@@ -471,10 +500,11 @@ export function drawWheel(canvas, segments, rotationAngle, guildDef) {
         const endAngle = startAngle + segAngle;
         const rarityConf = WHEEL_RARITY_CONFIG[seg.rarity] || WHEEL_RARITY_CONFIG.common;
         
-        // Wedge gradient
-        const gradient = ctx.createRadialGradient(0, 0, radius * 0.2, 0, 0, radius);
+        // Dynamic wedge gradient for a glossy, 3D feel
+        const gradient = ctx.createRadialGradient(0, 0, radius * 0.1, 0, 0, radius);
+        // We use slightly darker tones at the center, glowing at the edge
         gradient.addColorStop(0, rarityConf.bg);
-        gradient.addColorStop(0.7, `${rarityConf.bg}ee`);
+        gradient.addColorStop(0.6, `${rarityConf.bg}ee`);
         gradient.addColorStop(1, rarityConf.color);
 
         ctx.beginPath();
@@ -484,35 +514,67 @@ export function drawWheel(canvas, segments, rotationAngle, guildDef) {
         ctx.fillStyle = gradient;
         ctx.fill();
 
-        // Inner shadow effect for wedges
-        ctx.strokeStyle = 'rgba(0, 0, 0, 0.2)';
-        ctx.lineWidth = 1;
+        // Highlighting edge (inner shadow / glossy top)
+        ctx.beginPath();
+        ctx.arc(0, 0, radius, startAngle, endAngle);
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.15)';
+        ctx.lineWidth = 6;
         ctx.stroke();
 
-        // Wedge borders
+        // Wedge dividing borders (metallic)
         ctx.beginPath();
         ctx.moveTo(0, 0);
         ctx.lineTo(Math.cos(startAngle) * radius, Math.sin(startAngle) * radius);
-        ctx.strokeStyle = `${rarityConf.color}dd`;
-        ctx.lineWidth = Math.max(2, size / 160);
+        const borderGrad = ctx.createLinearGradient(0, 0, Math.cos(startAngle) * radius, Math.sin(startAngle) * radius);
+        borderGrad.addColorStop(0, 'rgba(255, 215, 0, 0.1)');
+        borderGrad.addColorStop(1, 'rgba(255, 215, 0, 0.6)');
+        ctx.strokeStyle = borderGrad;
+        ctx.lineWidth = Math.max(2, size / 150);
         ctx.stroke();
 
+        // Draw Text & Emoji
         ctx.save();
+        // Rotate to the center of the segment
         ctx.rotate(startAngle + segAngle / 2);
+        
+        const label = String(seg.label || '');
+        const maxTextWidth = radius * 0.45; // Max width for text block
+        
+        // Prepare text styles
+        const fontSize = Math.max(12, Math.floor(size / 38));
+        ctx.font = `700 ${fontSize}px "Trebuchet MS", system-ui, sans-serif`;
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.95)';
         ctx.textAlign = 'right';
         ctx.textBaseline = 'middle';
-        const labelRadius = radius - Math.max(40, size * 0.1);
-        const label = String(seg.label || '');
-        const maxLabelLen = size > 500 ? 18 : 14;
-        const truncated = label.length > maxLabelLen ? `${label.slice(0, maxLabelLen - 1)}...` : label;
+        ctx.shadowColor = 'rgba(0, 0, 0, 0.9)';
+        ctx.shadowBlur = 6;
+        ctx.shadowOffsetX = 1;
+        ctx.shadowOffsetY = 1;
 
-        ctx.fillStyle = 'rgba(255,255,255,0.95)';
-        ctx.shadowColor = 'rgba(0, 0, 0, 0.8)';
-        ctx.shadowBlur = Math.max(6, size / 70);
-        ctx.font = `700 ${Math.max(14, Math.floor(size / 28))}px Georgia, serif`;
-        ctx.fillText(seg.emoji || '*', labelRadius, -Math.max(16, size * 0.03));
-        ctx.font = `700 ${Math.max(11, Math.floor(size / 34))}px "Trebuchet MS", system-ui, sans-serif`;
-        ctx.fillText(truncated, labelRadius, Math.max(10, size * 0.025));
+        // Wrap the text
+        const lines = wrapText(ctx, label, maxTextWidth);
+        const lineHeight = fontSize * 1.2;
+        const totalTextHeight = lines.length * lineHeight;
+        
+        // Base radius for content positioning (outer edge moving inward)
+        const contentRadius = radius - Math.max(30, size * 0.08);
+        
+        // Draw emoji closer to the edge
+        const emojiFontSize = Math.max(16, Math.floor(size / 24));
+        ctx.font = `${emojiFontSize}px system-ui`;
+        // if text is very long, push emoji further out, else normal
+        const emojiRadius = contentRadius;
+        ctx.fillText(seg.emoji || '*', emojiRadius, 0);
+
+        // Draw wrapped text starting slightly inside of the emoji
+        ctx.font = `800 ${fontSize}px "Trebuchet MS", system-ui, sans-serif`;
+        const textStartRadius = emojiRadius - emojiFontSize * 1.2;
+        const startY = -(totalTextHeight / 2) + (lineHeight / 2);
+
+        for (let j = 0; j < lines.length; j++) {
+            ctx.fillText(lines[j], textStartRadius, startY + (j * lineHeight));
+        }
+
         ctx.restore();
     }
 
@@ -581,45 +643,58 @@ export function animateWheelSpin(canvas, segments, winnerIndex, guildDef, onTick
         const segAngle = TAU / segCount;
 
         // Target angle: winner segment should be at the TOP (12 o'clock = -π/2)
-        // The pointer is at π/2 (bottom) or -π/2 (top). We'll use top.
-        // Winner segment center should align with -π/2 after rotation
         const winnerCenterAngle = winnerIndex * segAngle + segAngle / 2;
         const targetAngle = -winnerCenterAngle - Math.PI / 2;
 
-        // Add extra full spins for drama (5-8 full rotations)
-        const extraSpins = (5 + Math.floor(Math.random() * 4)) * TAU;
+        // Add extra full spins for drama (8-12 full rotations for a high energy spin)
+        const extraSpins = (8 + Math.floor(Math.random() * 4)) * TAU;
         const totalRotation = extraSpins + (TAU - (targetAngle % TAU) + TAU) % TAU;
 
-        const duration = 4500 + Math.random() * 1500; // 4.5-6s
+        const duration = 6500 + Math.random() * 1500; // 6.5-8s for maximum suspense
         const startTime = performance.now();
         let lastSegIndex = -1;
 
-        function easeOutQuart(t) {
-            return 1 - Math.pow(1 - t, 4);
+        // Custom easing: slight back-in (wind up) then long smooth ease-out
+        function customSpinEase(t) {
+            const c1 = 1.70158;
+            const c3 = c1 + 1;
+            
+            // Wind up
+            if (t < 0.1) {
+                const normalizedT = t / 0.1;
+                return -0.05 * Math.sin(normalizedT * Math.PI); 
+            }
+            // Fast spin and slow down
+            const pt = (t - 0.1) / 0.9;
+            return 1 - Math.pow(1 - pt, 5); // easeOutQuint
         }
 
         function frame(now) {
             const elapsed = now - startTime;
             const t = Math.min(1, elapsed / duration);
-            const eased = easeOutQuart(t);
+            const eased = customSpinEase(t);
             const currentAngle = totalRotation * eased;
 
             drawWheel(canvas, segments, currentAngle, guildDef);
 
             // Tick sound on segment boundary crossing
-            const normalizedAngle = ((currentAngle % TAU) + TAU) % TAU;
-            const currentSegIndex = Math.floor(normalizedAngle / segAngle) % segCount;
-            if (currentSegIndex !== lastSegIndex) {
-                lastSegIndex = currentSegIndex;
-                if (onTick && t < 0.98) onTick();
+            // Only play tick if we're moving forward
+            if (t >= 0.1) {
+                const normalizedAngle = ((currentAngle % TAU) + TAU) % TAU;
+                const currentSegIndex = Math.floor(normalizedAngle / segAngle) % segCount;
+                if (currentSegIndex !== lastSegIndex) {
+                    lastSegIndex = currentSegIndex;
+                    // Play sound slightly less often near the end for dramatic effect
+                    if (onTick && t < 0.99) onTick();
+                }
             }
 
             if (t < 1) {
                 requestAnimationFrame(frame);
             } else {
-                // Final draw at exact target
+                // Final draw at exact target with a flash
                 drawWheel(canvas, segments, totalRotation, guildDef);
-                setTimeout(resolve, 600);
+                setTimeout(resolve, 800); // Dramatic pause before result
             }
         }
 

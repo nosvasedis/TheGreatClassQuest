@@ -387,12 +387,12 @@
 }
 
 .fw-canvas-wrap-centered {
-    position: relative;
-    width: 90%;
-    height: 90%;
+    position: absolute;
+    inset: 0;
     border-radius: 50%;
-    background: radial-gradient(circle at center, rgba(255,255,255,0.3), rgba(255,255,255,0.04) 56%, rgba(255,255,255,0.02) 100%);
-    box-shadow: 0 26px 70px rgba(0, 0, 0, 0.4), inset 0 0 0 10px rgba(255,255,255,0.06);
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
 .fw-canvas-bright {
@@ -424,10 +424,10 @@
 
 .fw-guild-emblem-orb {
     position: absolute;
-    inset: 50%;
+    inset: 0;
     width: 118px;
     height: 118px;
-    transform: translate(-50%, -50%);
+    margin: auto;
     border-radius: 50%;
     background: radial-gradient(circle, rgba(255,255,255,0.24), rgba(255,255,255,0.06));
     border: 1px solid rgba(255,255,255,0.14);
@@ -439,8 +439,8 @@
 }
 
 @keyframes fw-emblem-pulse {
-    0%, 100% { box-shadow: 0 0 28px rgba(255,255,255,0.12); transform: translate(-50%, -50%) scale(1); }
-    50% { box-shadow: 0 0 40px rgba(251,191,36,0.18); transform: translate(-50%, -50%) scale(1.03); }
+    0%, 100% { box-shadow: 0 0 28px rgba(255,255,255,0.12); transform: scale(1); }
+    50% { box-shadow: 0 0 40px rgba(251,191,36,0.18); transform: scale(1.03); }
 }
 
 .fw-guild-emblem-orb.is-empty {
@@ -702,6 +702,16 @@
 .fw-summary-board {
     border-radius: 1.25rem;
     padding: 1.1rem;
+    position: relative;
+    overflow: hidden;
+}
+
+.fw-result-card::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(135deg, rgba(255,255,255,0.1) 0%, transparent 50%, rgba(255,255,255,0.05) 100%);
+    pointer-events: none;
 }
 
 .fw-result-header {
@@ -709,6 +719,8 @@
     align-items: center;
     justify-content: space-between;
     gap: 0.8rem;
+    position: relative;
+    z-index: 1;
 }
 
 .fw-result-rarity {
@@ -720,6 +732,12 @@
     font-weight: 900;
     letter-spacing: 0.1em;
     text-transform: uppercase;
+    animation: fw-rarity-glow 2s ease-in-out infinite;
+}
+
+@keyframes fw-rarity-glow {
+    0%, 100% { filter: brightness(1); }
+    50% { filter: brightness(1.2); }
 }
 
 .fw-result-guild {
@@ -740,9 +758,18 @@
 
 .fw-result-title {
     margin-top: 1rem;
-    font-size: 1.8rem;
+    font-size: 2.2rem;
     line-height: 1.05;
     color: #fff7d6;
+    text-shadow: 0 4px 20px rgba(251, 191, 36, 0.4);
+    position: relative;
+    z-index: 1;
+    animation: fw-title-appear 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
+@keyframes fw-title-appear {
+    0% { opacity: 0; transform: scale(0.8) translateY(10px); }
+    100% { opacity: 1; transform: scale(1) translateY(0); }
 }
 
 .fw-result-description {
@@ -750,6 +777,8 @@
     color: rgba(255,255,255,0.74);
     font-size: 0.98rem;
     line-height: 1.6;
+    position: relative;
+    z-index: 1;
 }
 
 .fw-result-glory,
@@ -763,6 +792,12 @@
     color: #fcd34d;
     font-size: 0.86rem;
     font-weight: 800;
+    animation: fw-badge-pop 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) 0.2s both;
+}
+
+@keyframes fw-badge-pop {
+    0% { opacity: 0; transform: scale(0.5); }
+    100% { opacity: 1; transform: scale(1); }
 }
 
 .fw-result-glory--negative,

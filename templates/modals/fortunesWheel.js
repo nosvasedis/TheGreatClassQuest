@@ -64,12 +64,6 @@ export const fortunesWheelModalHTML = `
                             </div>
                         </div>
 
-                        <div class="fw-side-panel fw-side-panel--oracle">
-                            <div class="fw-side-panel__eyebrow">Ceremonial Guidance</div>
-                            <div class="fw-side-panel__title">Stage each guild clearly</div>
-                            <p class="fw-side-panel__copy">The relic now guides the teacher through all four guilds with a larger stage, clearer progress, and a proper reveal moment after each spin.</p>
-                        </div>
-
                         <div id="fw-result" class="fw-result-floating hidden"></div>
                         <div id="fw-summary" class="fw-summary-floating hidden"></div>
 

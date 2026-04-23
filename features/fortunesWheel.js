@@ -615,6 +615,143 @@ export function drawWheel(canvas, segments, rotationAngle, guildDef) {
     ctx.restore();
 }
 
+// ═══════════════════════════════════════════════════════════════════════════════
+// WHEEL RESULT REVEAL EFFECTS
+// ═══════════════════════════════════════════════════════════════════════════════
+
+function triggerWheelRevealEffects(rarity, isNegative) {
+    const stageFrame = document.getElementById('fw-stage-frame');
+    if (!stageFrame) return;
+    const rect = stageFrame.getBoundingClientRect();
+    const x = rect.left + rect.width / 2;
+    const y = rect.top + rect.height / 2;
+
+    if (rarity === 'legendary') {
+        triggerLegendaryReveal(x, y, isNegative);
+    } else if (rarity === 'epic') {
+        triggerEpicReveal(x, y, isNegative);
+    } else if (rarity === 'rare') {
+        triggerRareReveal(x, y);
+    } else if (rarity === 'cursed') {
+        triggerCursedReveal(x, y);
+    } else {
+        triggerCommonReveal(x, y);
+    }
+}
+
+function triggerLegendaryReveal(x, y, isNegative) {
+    const flash = document.createElement('div');
+    flash.className = 'screen-flash';
+    flash.style.setProperty('--flash-color', isNegative ? 'rgba(127, 29, 29, 0.45)' : 'rgba(251, 191, 36, 0.5)');
+    document.body.appendChild(flash);
+    flash.addEventListener('animationend', () => flash.remove());
+
+    for (let i = 0; i < 3; i++) {
+        setTimeout(() => {
+            const shockwave = document.createElement('div');
+            shockwave.className = 'shockwave';
+            shockwave.style.left = `${x}px`;
+            shockwave.style.top = `${y}px`;
+            shockwave.style.setProperty('--shockwave-color', isNegative ? 'rgba(220, 38, 38, 0.7)' : 'rgba(251, 191, 36, 0.8)');
+            document.body.appendChild(shockwave);
+            shockwave.addEventListener('animationend', () => shockwave.remove());
+        }, i * 150);
+    }
+
+    const emojis = isNegative ? ['💀', '⚰️', '🌑', '💀', '🔥'] : ['⭐', '✨', '🌟', '💫', '🏆', '⚜️', '👑'];
+    triggerEmojiRain(x, y, emojis, 35);
+}
+
+function triggerEpicReveal(x, y, isNegative) {
+    const flash = document.createElement('div');
+    flash.className = 'screen-flash';
+    flash.style.setProperty('--flash-color', isNegative ? 'rgba(127, 29, 29, 0.35)' : 'rgba(168, 85, 247, 0.4)');
+    document.body.appendChild(flash);
+    flash.addEventListener('animationend', () => flash.remove());
+
+    const shockwave = document.createElement('div');
+    shockwave.className = 'shockwave';
+    shockwave.style.left = `${x}px`;
+    shockwave.style.top = `${y}px`;
+    shockwave.style.setProperty('--shockwave-color', isNegative ? 'rgba(220, 38, 38, 0.6)' : 'rgba(168, 85, 247, 0.7)');
+    document.body.appendChild(shockwave);
+    shockwave.addEventListener('animationend', () => shockwave.remove());
+
+    const emojis = isNegative ? ['🔻', '⚡', '💔'] : ['🌟', '✨', '💫', '🎁'];
+    triggerEmojiRain(x, y, emojis, 22);
+}
+
+function triggerRareReveal(x, y) {
+    const flash = document.createElement('div');
+    flash.className = 'screen-flash';
+    flash.style.setProperty('--flash-color', 'rgba(59, 130, 246, 0.35)');
+    document.body.appendChild(flash);
+    flash.addEventListener('animationend', () => flash.remove());
+
+    const shockwave = document.createElement('div');
+    shockwave.className = 'shockwave';
+    shockwave.style.left = `${x}px`;
+    shockwave.style.top = `${y}px`;
+    shockwave.style.setProperty('--shockwave-color', 'rgba(96, 165, 250, 0.6)');
+    document.body.appendChild(shockwave);
+    shockwave.addEventListener('animationend', () => shockwave.remove());
+
+    const emojis = ['✨', '⭐', '💫'];
+    triggerEmojiRain(x, y, emojis, 14);
+}
+
+function triggerCursedReveal(x, y) {
+    const flash = document.createElement('div');
+    flash.className = 'screen-flash';
+    flash.style.setProperty('--flash-color', 'rgba(127, 29, 29, 0.5)');
+    document.body.appendChild(flash);
+    flash.addEventListener('animationend', () => flash.remove());
+
+    for (let i = 0; i < 2; i++) {
+        setTimeout(() => {
+            const shockwave = document.createElement('div');
+            shockwave.className = 'shockwave';
+            shockwave.style.left = `${x}px`;
+            shockwave.style.top = `${y}px`;
+            shockwave.style.setProperty('--shockwave-color', 'rgba(185, 28, 28, 0.7)');
+            document.body.appendChild(shockwave);
+            shockwave.addEventListener('animationend', () => shockwave.remove());
+        }, i * 200);
+    }
+
+    triggerEmojiRain(x, y, ['⚡', '💀', '🌑', '🔻'], 18);
+}
+
+function triggerCommonReveal(x, y) {
+    triggerEmojiRain(x, y, ['✨', '⭐', '💫'], 8);
+}
+
+function triggerEmojiRain(x, y, emojis, count) {
+    for (let i = 0; i < count; i++) {
+        const star = document.createElement('div');
+        star.className = 'star-rain-element';
+        star.textContent = emojis[Math.floor(Math.random() * emojis.length)];
+        const sz = 16 + Math.random() * 22;
+        const ws = (Math.random() - 0.5) * 120;
+        const we = (Math.random() - 0.5) * 160;
+        const fd = 120 + Math.random() * 220;
+        const rot = (Math.random() - 0.5) * 720;
+        const dur = 0.75 + Math.random() * 0.8;
+        const startX = x + (Math.random() - 0.5) * 200;
+        star.style.left = `${startX}px`;
+        star.style.top = `${y}px`;
+        star.style.setProperty('--size', `${sz}px`);
+        star.style.setProperty('--ws', `${ws}px`);
+        star.style.setProperty('--we', `${we}px`);
+        star.style.setProperty('--fd', `${fd}px`);
+        star.style.setProperty('--rot', `${rot}deg`);
+        star.style.setProperty('--duration', `${dur}s`);
+        star.style.animationDelay = `${Math.random() * 0.3}s`;
+        document.body.appendChild(star);
+        star.addEventListener('animationend', () => star.remove());
+    }
+}
+
 /**
  * Animate the wheel spin.
  * @param {HTMLCanvasElement} canvas
@@ -667,7 +804,8 @@ export function animateWheelSpin(canvas, segments, winnerIndex, guildDef, onTick
             // Tick sound on segment boundary crossing
             // Only play tick if we're moving forward
             if (t >= 0.1) {
-                const normalizedAngle = ((currentAngle % TAU) + TAU) % TAU;
+                // Offset by -π/2 because pointer is at 12 o'clock (top), not 3 o'clock
+                const normalizedAngle = (((currentAngle % TAU) + TAU) % TAU + Math.PI / 2) % TAU;
                 const currentSegIndex = Math.floor(normalizedAngle / segAngle) % segCount;
                 if (currentSegIndex !== lastSegIndex) {
                     lastSegIndex = currentSegIndex;
@@ -903,6 +1041,9 @@ export async function triggerSpin() {
         else if (winningSeg.rarity === 'cursed') playSound('star_remove');
         else playSound('star1');
     } catch (_) {}
+
+    // Trigger WOW visual effects based on rarity
+    triggerWheelRevealEffects(winningSeg.rarity, winningSeg.category === 'negative');
 
     // Apply effect
     const result = await applyWheelResult(guildId, winningSeg, _wheelState.classId);

@@ -22,7 +22,7 @@ export const firebaseConfig =
 export const cloudflareWorkerUrl = 'https://great-class-quest-ai-proxy.nvasedis-cc5.workers.dev';
 export const workerBaseUrl = 'https://great-class-quest-ai-proxy.nvasedis-cc5.workers.dev';
 export const geminiApiUrl = workerBaseUrl; 
-export const OPENROUTER_MODEL = "google/gemma-4-31b-it:free";
+export const OPENROUTER_MODEL = "z-ai/glm-4.5-air:free";
 
 /** Billing: base URL of your billing backend (Stripe checkout). When set, upgrade prompts show an "Upgrade" button that redirects to Stripe. Leave empty to keep "Contact me to upgrade". */
 export const BILLING_BASE_URL = (typeof window !== 'undefined' && window.__GCQ_BILLING_BASE_URL__) || '';

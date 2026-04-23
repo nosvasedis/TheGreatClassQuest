@@ -8,7 +8,8 @@ import {
     renderAdventureLogTab, renderStudentLeaderboardTab, renderManageStudentsTab,
     renderAwardStarsStudentList, renderCalendarTab, renderStarManagerStudentSelect,
     renderAdventureLog,
-    updateAwardCardState
+    updateAwardCardState,
+    updateAwardBoonButtons
 } from '../ui/tabs.js';
 
 import {
@@ -358,6 +359,13 @@ export function setupDataListeners(userId, dateString, onInitialDataReady, optio
                     }
                 }
 
+                // Also update the shop gold display if this student is selected in the shop
+                const shopStudentSelect = document.getElementById('shop-student-select');
+                const shopGoldEl = document.getElementById('shop-student-gold');
+                if (shopGoldEl && shopStudentSelect && shopStudentSelect.value === studentId) {
+                    shopGoldEl.innerText = `${newGold} 🪙`;
+                }
+
                 if (monthlyEl && monthlyEl.textContent != newMonthly) {
                     monthlyEl.textContent = newMonthly;
                     const bubble = monthlyEl.closest('.counter-bubble');
@@ -393,6 +401,9 @@ export function setupDataListeners(userId, dateString, onInitialDataReady, optio
         if (!document.getElementById('options-tab').classList.contains('hidden')) {
             renderFamiliarOptionsUi();
         }
+
+        // Update boon buttons in award tab when leaderboard changes
+        updateAwardBoonButtons(state.get('globalSelectedClassId'));
 
         // --- ADDED LINE ---
         import('../features/home.js').then(m => m.renderHomeTab());
@@ -440,6 +451,8 @@ export function setupDataListeners(userId, dateString, onInitialDataReady, optio
         });
         state.setTodaysAwardLogs(newTodaysAwardLogs);
         renderCalendarTab();
+        // Refresh boon button states when a peer boon is given (daily limit changes)
+        updateAwardBoonButtons(state.get('globalSelectedClassId'));
     }, (error) => console.error("Error listening to award logs:", error)));
 
     state.setUnsubscribeQuestEvents(onSnapshot(questEventsQuery, (snapshot) => {

@@ -642,3 +642,66 @@ export function updateAwardCardState(studentId, starsToday, reason) {
     applyAwardCardLockState(studentCard, starsToday, reason);
     applyAttendanceStateToCard(studentCard, studentId, reason, starsToday);
 }
+
+/**
+ * Re-calculates boon eligibility from current state and updates all .boon-btn elements
+ * in the award tab in-place. Also refreshes the teacher boon launch button.
+ * Safe to call whenever scores or award-logs change.
+ */
+export function updateAwardBoonButtons(selectedClassId) {
+    if (!selectedClassId) return;
+
+    const awardStarsTab = document.getElementById('award-stars-tab');
+    if (!awardStarsTab || awardStarsTab.classList.contains('hidden')) return;
+
+    const studentsInClass = state.get('allStudents').filter(s => s.classId === selectedClassId);
+    if (!studentsInClass.length) return;
+
+    // Re-calculate leaderboard from current scores
+    const allScores = state.get('allStudentScores');
+    const scoreMap = new Map();
+    for (const sc of allScores) scoreMap.set(sc.id, sc);
+
+    const leaderboard = studentsInClass.map(s => {
+        const sc = scoreMap.get(s.id);
+        return { id: s.id, stars: sc ? (Number(sc.monthlyStars) || 0) : 0 };
+    });
+    leaderboard.sort((a, b) => a.stars - b.stars);
+    const bottomThreeIds = new Set(leaderboard.slice(0, 3).map(x => x.id));
+    const scoreCounts = {};
+    leaderboard.forEach(x => { scoreCounts[x.stars] = (scoreCounts[x.stars] || 0) + 1; });
+    const leaderboardMap = new Map();
+    leaderboard.forEach(x => leaderboardMap.set(x.id, x));
+
+    // Check daily boon limit (2 peer boons per class per day)
+    const today = utils.getTodayDateString();
+    const classBoonsToday = state.get('allAwardLogs').filter(l =>
+        l.classId === selectedClassId &&
+        l.date === today &&
+        l.reason === 'peer_boon'
+    ).length;
+    const dailyLimitReached = classBoonsToday >= 2;
+
+    // Update each boon button in the DOM
+    document.querySelectorAll('.boon-btn[data-receiver-id]').forEach(btn => {
+        const receiverId = btn.dataset.receiverId;
+        const myLeaderboardData = leaderboardMap.get(receiverId);
+        const isEligible = !dailyLimitReached && (
+            bottomThreeIds.has(receiverId) ||
+            (myLeaderboardData && scoreCounts[myLeaderboardData.stars] > 1)
+        );
+
+        if (isEligible) {
+            btn.className = 'boon-btn absolute top-2 left-14 w-8 h-8 rounded-full bg-rose-100 text-rose-500 hover:bg-rose-200 transition-colors shadow-sm border border-rose-200 z-30';
+            btn.title = 'Bestow Hero\'s Boon';
+            btn.innerHTML = '<i class="fas fa-heart"></i>';
+        } else {
+            btn.className = 'boon-btn absolute top-2 left-14 w-8 h-8 rounded-full bg-gray-100 text-gray-300 border border-gray-200 z-30 cursor-not-allowed opacity-60';
+            btn.title = dailyLimitReached ? 'Daily boon limit reached (2/day)' : 'Not eligible for Boon';
+            btn.innerHTML = '<i class="fas fa-heart-broken"></i>';
+        }
+    });
+
+    // Refresh teacher boon launch button
+    renderTeacherBoonLaunchState(selectedClassId);
+}

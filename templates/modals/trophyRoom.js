@@ -59,7 +59,7 @@ export const trophyRoomModalsHTML = `
                     </button>
 
                     <div class="flex items-center gap-3 bg-black/30 p-2 rounded-xl border border-indigo-500/30">
-                        <div class="text-right hidden lg:block">
+                        <div class="text-right">
                             <p class="text-indigo-300 text-[10px] uppercase font-bold">Purse</p>
                             <p id="shop-student-gold"
                                 class="font-title text-2xl text-yellow-400 leading-none whitespace-nowrap">0 🪙</p>

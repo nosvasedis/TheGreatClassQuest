@@ -55,13 +55,26 @@ export const guildsTabHTML = `
                 </div>
 
                 <!-- Fortune's Wheel Ritual Panel -->
-                <section id="fortunes-wheel-section" class="guild-fortune-panel mt-6" aria-labelledby="fortunes-wheel-panel-title">
+                <section id="fortunes-wheel-section" class="guild-fortune-panel mt-6" data-expanded="false" aria-labelledby="fortunes-wheel-panel-title">
                     <div class="guild-fortune-panel__backdrop" aria-hidden="true"></div>
                     <div class="guild-fortune-panel__particles" aria-hidden="true">
                         <span></span><span></span><span></span><span></span><span></span><span></span>
                     </div>
 
-                    <div class="guild-fortune-panel__body">
+                    <button id="fortunes-wheel-toggle" type="button" class="guild-fortune-panel__toggle" aria-expanded="false" aria-controls="fortunes-wheel-panel-body">
+                        <span class="guild-fortune-panel__toggle-copy">
+                            <span class="guild-fortune-panel__toggle-kicker">Guild Hall Ritual</span>
+                            <span class="guild-fortune-panel__toggle-title font-title">Wheel of Fortune</span>
+                        </span>
+                        <span class="guild-fortune-panel__toggle-state">
+                            <span id="fortunes-wheel-window" class="guild-fortune-panel__status-pill">Awaiting a class</span>
+                            <span class="guild-fortune-panel__toggle-icon" aria-hidden="true">
+                                <i class="fa-solid fa-chevron-down"></i>
+                            </span>
+                        </span>
+                    </button>
+
+                    <div id="fortunes-wheel-panel-body" class="guild-fortune-panel__body hidden">
                         <div class="guild-fortune-panel__lead">
                             <div class="guild-fortune-panel__kicker">Fortune Relic</div>
                             <h3 id="fortunes-wheel-panel-title" class="guild-fortune-panel__title font-title">Wheel of Fortune Ceremony</h3>
@@ -70,7 +83,6 @@ export const guildsTabHTML = `
                             </p>
 
                             <div class="guild-fortune-panel__meta">
-                                <div id="fortunes-wheel-window" class="guild-fortune-panel__status-pill">Awaiting a class</div>
                                 <div id="fortunes-wheel-class" class="guild-fortune-panel__class-pill">No class selected</div>
                             </div>
 

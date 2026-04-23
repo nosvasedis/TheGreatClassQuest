@@ -83,6 +83,23 @@
     margin: 0 auto;
     overflow-y: auto;
     overflow-x: hidden;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(251, 191, 36, 0.45) rgba(255,255,255,0.06);
+}
+
+.fw-content-unified::-webkit-scrollbar {
+    width: 12px;
+}
+
+.fw-content-unified::-webkit-scrollbar-track {
+    background: rgba(255,255,255,0.04);
+    border-radius: 999px;
+}
+
+.fw-content-unified::-webkit-scrollbar-thumb {
+    background: linear-gradient(180deg, rgba(251, 191, 36, 0.6), rgba(219, 39, 119, 0.6));
+    border-radius: 999px;
+    border: 2px solid rgba(9, 11, 23, 0.72);
 }
 
 .fw-header-floating {
@@ -132,6 +149,7 @@
     gap: 1.2rem;
     align-items: stretch;
     min-height: 0;
+    flex: 1 1 auto;
 }
 
 .fw-stage-column,
@@ -272,10 +290,10 @@
     position: relative;
     display: grid;
     place-items: center;
-    min-height: clamp(420px, 56vh, 700px);
+    min-height: clamp(320px, 46vh, 560px);
     margin-top: 0.95rem;
     border-radius: 1.6rem;
-    padding: 1rem;
+    padding: 0.8rem;
 }
 
 .fw-stage-frame-borderless {
@@ -391,6 +409,7 @@
     display: grid;
     gap: 0.95rem;
     align-content: start;
+    grid-template-rows: auto auto auto auto 1fr auto;
 }
 
 .fw-side-panel {
@@ -467,7 +486,7 @@
 }
 
 .fw-controls-floating {
-    margin-top: auto;
+    margin-top: 0;
     padding: 1rem;
     border-radius: 1.3rem;
 }
@@ -822,9 +841,14 @@
 
     .fw-side-column {
         grid-template-columns: repeat(2, minmax(0, 1fr));
+        grid-template-rows: none;
     }
 
     .fw-side-panel--oracle {
+        grid-column: 1 / -1;
+    }
+
+    .fw-controls-floating {
         grid-column: 1 / -1;
     }
 }

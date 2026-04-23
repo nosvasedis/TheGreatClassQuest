@@ -72,31 +72,31 @@ export const fortunesWheelModalHTML = `
 
                         <div id="fw-result" class="fw-result-floating hidden"></div>
                         <div id="fw-summary" class="fw-summary-floating hidden"></div>
+
+                        <footer class="fw-controls-floating">
+                            <div class="fw-controls-row">
+                                <div id="fw-class-selector-wrap" class="fw-pill-selector">
+                                    <label for="fw-class-select" class="sr-only">Class</label>
+                                    <select id="fw-class-select" class="fw-select-clean">
+                                        <option value="">— Select a class —</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="fw-actions-centered">
+                                <button id="fw-spin-btn" type="button" class="bubbly-button fw-btn-primary">
+                                    <span class="fw-btn-primary__label font-title">Spin the Wheel</span>
+                                    <span class="fw-btn-primary__sub">The relic chooses a fate</span>
+                                </button>
+                                <button id="fw-next-btn" type="button" class="bubbly-button fw-btn-secondary hidden">
+                                    <span class="font-title">Present Next Guild</span>
+                                </button>
+                                <button id="fw-done-btn" type="button" class="bubbly-button fw-btn-success hidden">
+                                    <span class="font-title">Close Ceremony</span>
+                                </button>
+                            </div>
+                        </footer>
                     </aside>
                 </div>
-
-                <footer class="fw-controls-floating">
-                    <div class="fw-controls-row">
-                        <div id="fw-class-selector-wrap" class="fw-pill-selector">
-                            <label for="fw-class-select" class="sr-only">Class</label>
-                            <select id="fw-class-select" class="fw-select-clean">
-                                <option value="">— Select a class —</option>
-                            </select>
-                        </div>
-                    </div>
-                    <div class="fw-actions-centered">
-                        <button id="fw-spin-btn" type="button" class="bubbly-button fw-btn-primary">
-                            <span class="fw-btn-primary__label font-title">Spin the Wheel</span>
-                            <span class="fw-btn-primary__sub">The relic chooses a fate</span>
-                        </button>
-                        <button id="fw-next-btn" type="button" class="bubbly-button fw-btn-secondary hidden">
-                            <span class="font-title">Present Next Guild</span>
-                        </button>
-                        <button id="fw-done-btn" type="button" class="bubbly-button fw-btn-success hidden">
-                            <span class="font-title">Close Ceremony</span>
-                        </button>
-                    </div>
-                </footer>
             </div>
         </div>
     </div>

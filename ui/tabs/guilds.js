@@ -519,10 +519,12 @@ export function renderGuildsTab() {
 async function _wireFortunesWheel() {
     const section = document.getElementById('fortunes-wheel-section');
     const btn = document.getElementById('fortunes-wheel-btn');
+    const toggleBtn = document.getElementById('fortunes-wheel-toggle');
+    const bodyEl = document.getElementById('fortunes-wheel-panel-body');
     const statusEl = document.getElementById('fortunes-wheel-status');
     const windowEl = document.getElementById('fortunes-wheel-window');
     const classEl = document.getElementById('fortunes-wheel-class');
-    if (!section || !btn) return;
+    if (!section || !btn || !toggleBtn || !bodyEl) return;
 
     // Section is always visible — the button always opens the modal.
     // The modal itself handles gating (locked state, lesson check, spin check).
@@ -565,6 +567,16 @@ async function _wireFortunesWheel() {
             : 'No class selected';
     }
     section.dataset.state = statusTone;
+
+    if (!toggleBtn._fwToggleWired) {
+        toggleBtn._fwToggleWired = true;
+        toggleBtn.addEventListener('click', () => {
+            const isExpanded = section.dataset.expanded === 'true';
+            section.dataset.expanded = isExpanded ? 'false' : 'true';
+            toggleBtn.setAttribute('aria-expanded', String(!isExpanded));
+            bodyEl.classList.toggle('hidden', isExpanded);
+        });
+    }
 
     // Button is NEVER disabled — always opens the modal
     btn.disabled = false;

@@ -224,6 +224,63 @@
         0 20px 60px rgba(5, 8, 20, 0.35);
 }
 
+.guild-fortune-panel__toggle {
+    position: relative;
+    z-index: 1;
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 1.15rem 1.3rem;
+    background: transparent;
+    border: none;
+    color: inherit;
+    text-align: left;
+    cursor: pointer;
+}
+
+.guild-fortune-panel__toggle-copy {
+    display: grid;
+    gap: 0.22rem;
+}
+
+.guild-fortune-panel__toggle-kicker {
+    color: rgba(255,255,255,0.58);
+    font-size: 0.72rem;
+    font-weight: 800;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+}
+
+.guild-fortune-panel__toggle-title {
+    color: #fff7d6;
+    font-size: clamp(1.4rem, 2vw, 2rem);
+    line-height: 1;
+}
+
+.guild-fortune-panel__toggle-state {
+    display: flex;
+    align-items: center;
+    gap: 0.85rem;
+}
+
+.guild-fortune-panel__toggle-icon {
+    width: 2.75rem;
+    height: 2.75rem;
+    border-radius: 999px;
+    display: grid;
+    place-items: center;
+    border: 1px solid rgba(255,255,255,0.12);
+    background: rgba(15, 23, 42, 0.45);
+    color: rgba(255,255,255,0.86);
+    transition: transform 0.2s ease;
+}
+
+.guild-fortune-panel[data-expanded="true"] .guild-fortune-panel__toggle-icon {
+    transform: rotate(180deg);
+}
+
 .guild-fortune-panel__backdrop,
 .guild-fortune-panel__particles {
     position: absolute;
@@ -271,6 +328,10 @@
     gap: 1.5rem;
     align-items: stretch;
     padding: 1.4rem;
+}
+
+.guild-fortune-panel[data-expanded="false"] .guild-fortune-panel__body {
+    display: none;
 }
 
 .guild-fortune-panel__lead,
@@ -588,6 +649,16 @@
 }
 
 @media (max-width: 640px) {
+    .guild-fortune-panel__toggle {
+        align-items: start;
+        flex-direction: column;
+    }
+
+    .guild-fortune-panel__toggle-state {
+        width: 100%;
+        justify-content: space-between;
+    }
+
     .guild-fortune-panel__body,
     .guild-fortune-panel__lead,
     .guild-fortune-panel__preview {

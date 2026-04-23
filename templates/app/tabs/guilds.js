@@ -77,9 +77,9 @@ export const guildsTabHTML = `
                     <div id="fortunes-wheel-panel-body" class="guild-fortune-panel__body hidden">
                         <div class="guild-fortune-panel__lead">
                             <div class="guild-fortune-panel__kicker">Fortune Relic</div>
-                            <h3 id="fortunes-wheel-panel-title" class="guild-fortune-panel__title font-title">Wheel of Fortune Ceremony</h3>
+                            <h3 id="fortunes-wheel-panel-title" class="guild-fortune-panel__title font-title">Fortune's Wheel Ritual</h3>
                             <p class="guild-fortune-panel__description">
-                                Open the relic when the final lesson of the week begins and guide every guild through its ceremonial spin.
+                                Open the ancient relic when the final lesson of the week begins. Guide each guild through the mystical wheel to reveal their fortune.
                             </p>
 
                             <div class="guild-fortune-panel__meta">
@@ -90,8 +90,9 @@ export const guildsTabHTML = `
 
                             <div class="guild-fortune-panel__actions">
                                 <button id="fortunes-wheel-btn" type="button" class="guild-fortune-panel__cta bubbly-button">
-                                    <span class="guild-fortune-panel__cta-label font-title">Begin the Ceremony</span>
-                                    <span class="guild-fortune-panel__cta-subtitle">Spin each guild through the relic</span>
+                                    <span class="guild-fortune-panel__cta-icon"><i class="fa-solid fa-dharma"></i></span>
+                                    <span class="guild-fortune-panel__cta-label font-title">Open Fortune's Wheel</span>
+                                    <span class="guild-fortune-panel__cta-subtitle">Begin the ritual ceremony</span>
                                 </button>
                             </div>
                         </div>
@@ -110,7 +111,14 @@ export const guildsTabHTML = `
                                         <div class="guild-fortune-ledger__eyebrow">Recent Omens</div>
                                         <div class="guild-fortune-ledger__title">Fortune Ledger</div>
                                     </div>
-                                    <div class="guild-fortune-ledger__note">Latest class rituals</div>
+                                    <div class="guild-fortune-ledger__controls">
+                                        <button id="fortune-ledger-prev" type="button" class="guild-fortune-ledger__nav" aria-label="Previous entries" disabled>
+                                            <i class="fa-solid fa-chevron-up"></i>
+                                        </button>
+                                        <button id="fortune-ledger-next" type="button" class="guild-fortune-ledger__nav" aria-label="Next entries" disabled>
+                                            <i class="fa-solid fa-chevron-down"></i>
+                                        </button>
+                                    </div>
                                 </div>
                                 <div id="fortunes-log-list" class="guild-fortune-ledger__list"></div>
                             </div>

@@ -511,6 +511,7 @@ export function renderGuildsTab() {
     _wireFortunesWheel();
 
     // ── Fortune's Log ─────────────────────────────────────────────────────────
+    _initFortuneLedgerNav();
     _renderFortunesLog();
 }
 
@@ -684,6 +685,9 @@ function _wireWheelModalButtons() {
 
 // ─── Fortune's Log ───────────────────────────────────────────────────────────
 
+let _fortuneLedgerPage = 0;
+const _fortuneLedgerPageSize = 3;
+
 function _renderFortunesLog() {
     const section = document.getElementById('fortunes-log-section');
     const listEl = document.getElementById('fortunes-log-list');
@@ -696,10 +700,17 @@ function _renderFortunesLog() {
                 <div class="guild-fortune-ledger__empty-title">No recent rituals</div>
                 <p class="guild-fortune-ledger__empty-copy">When a class completes the ceremony, the latest guild omens will appear here.</p>
             </div>`;
+        _updateLedgerNavButtons(0, 0);
         return;
     }
 
-    listEl.innerHTML = logs.map(entry => {
+    // Calculate pagination
+    const start = _fortuneLedgerPage * _fortuneLedgerPageSize;
+    const end = start + _fortuneLedgerPageSize;
+    const pagedLogs = logs.slice(start, end);
+    const totalPages = Math.ceil(logs.length / _fortuneLedgerPageSize);
+
+    listEl.innerHTML = pagedLogs.map(entry => {
         const date = entry.spunAt?.toDate ? entry.spunAt.toDate() : new Date(entry.spunAt);
         const dateStr = date.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
         const results = entry.results || [];
@@ -734,4 +745,37 @@ function _renderFortunesLog() {
                 </div>
             </article>`;
     }).join('');
+
+    _updateLedgerNavButtons(_fortuneLedgerPage, totalPages);
+}
+
+function _updateLedgerNavButtons(currentPage, totalPages) {
+    const prevBtn = document.getElementById('fortune-ledger-prev');
+    const nextBtn = document.getElementById('fortune-ledger-next');
+    if (!prevBtn || !nextBtn) return;
+
+    prevBtn.disabled = currentPage === 0;
+    nextBtn.disabled = currentPage >= totalPages - 1 || totalPages === 0;
+}
+
+function _initFortuneLedgerNav() {
+    const prevBtn = document.getElementById('fortune-ledger-prev');
+    const nextBtn = document.getElementById('fortune-ledger-next');
+    if (!prevBtn || !nextBtn) return;
+
+    prevBtn.addEventListener('click', () => {
+        if (_fortuneLedgerPage > 0) {
+            _fortuneLedgerPage--;
+            _renderFortunesLog();
+        }
+    });
+
+    nextBtn.addEventListener('click', () => {
+        const logs = state.get('fortuneWheelLog') || [];
+        const totalPages = Math.ceil(logs.length / _fortuneLedgerPageSize);
+        if (_fortuneLedgerPage < totalPages - 1) {
+            _fortuneLedgerPage++;
+            _renderFortunesLog();
+        }
+    });
 }

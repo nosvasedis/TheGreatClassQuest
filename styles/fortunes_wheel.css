@@ -125,13 +125,23 @@
 
 .fw-main-layout {
     display: grid;
-    grid-template-columns: 1fr 380px;
-    gap: 1.5rem;
+    grid-template-columns: minmax(420px, 1.1fr) minmax(340px, 420px);
+    gap: 1.75rem;
     flex: 1;
     min-height: 0;
-    max-width: 1400px;
+    max-width: 1480px;
     margin: 0 auto;
     width: 100%;
+    align-items: start;
+}
+
+@media (max-width: 1200px) {
+    .fw-main-layout {
+        grid-template-columns: 1fr;
+        gap: 1.5rem;
+        max-height: calc(100dvh - 8rem);
+        overflow-y: auto;
+    }
 }
 
 .fw-stage-section {
@@ -271,17 +281,23 @@
     align-items: center;
     justify-content: center;
     min-height: 0;
-    padding: 1rem;
+    padding: 0.5rem;
 }
 
 .fw-stage-frame {
     position: relative;
     width: 100%;
-    max-width: 520px;
+    max-width: 480px;
     aspect-ratio: 1;
     display: flex;
     align-items: center;
     justify-content: center;
+}
+
+@media (min-width: 1400px) {
+    .fw-stage-frame {
+        max-width: 520px;
+    }
 }
 
 .fw-stage-aura-bright {
@@ -396,11 +412,34 @@
     display: flex;
     flex-direction: column;
     gap: 1rem;
-    padding: 1rem;
-    border-radius: 1.2rem;
-    background: linear-gradient(180deg, rgba(255,255,255,0.04), rgba(255,255,255,0.02));
-    border: 1px solid rgba(255,255,255,0.06);
+    padding: 1.15rem;
+    border-radius: 1.25rem;
+    background: linear-gradient(180deg, rgba(255,255,255,0.05), rgba(255,255,255,0.025));
+    border: 1px solid rgba(255,255,255,0.08);
+    max-height: calc(100dvh - 12rem);
     overflow-y: auto;
+    box-shadow: 
+        inset 0 1px 0 rgba(255, 255, 255, 0.08),
+        0 16px 40px rgba(2, 6, 23, 0.3);
+}
+
+/* Custom scrollbar for controls section */
+.fw-controls-section::-webkit-scrollbar {
+    width: 6px;
+}
+
+.fw-controls-section::-webkit-scrollbar-track {
+    background: rgba(255, 255, 255, 0.02);
+    border-radius: 3px;
+}
+
+.fw-controls-section::-webkit-scrollbar-thumb {
+    background: rgba(251, 191, 36, 0.3);
+    border-radius: 3px;
+}
+
+.fw-controls-section::-webkit-scrollbar-thumb:hover {
+    background: rgba(251, 191, 36, 0.5);
 }
 
 .fw-class-selector {
@@ -410,11 +449,12 @@
 }
 
 .fw-class-label {
-    color: rgba(255,255,255,0.6);
+    color: rgba(251, 191, 36, 0.8);
     font-size: 0.72rem;
     font-weight: 800;
-    letter-spacing: 0.12em;
+    letter-spacing: 0.14em;
     text-transform: uppercase;
+    text-shadow: 0 0 12px rgba(251, 191, 36, 0.3);
 }
 
 .fw-select-wrapper {
@@ -423,88 +463,145 @@
 
 .fw-custom-select {
     width: 100%;
-    padding: 0.85rem 2.5rem 0.85rem 1rem;
-    border: 1px solid rgba(255,255,255,0.12);
-    border-radius: 0.75rem;
-    background: rgba(8, 15, 31, 0.6);
-    color: #fff;
-    font-size: 0.95rem;
-    font-weight: 600;
+    padding: 0.95rem 2.8rem 0.95rem 1.15rem;
+    border: 1.5px solid rgba(251, 191, 36, 0.2);
+    border-radius: 0.85rem;
+    background: linear-gradient(135deg, rgba(251, 191, 36, 0.08), rgba(217, 119, 6, 0.06));
+    color: #fff7d6;
+    font-size: 1rem;
+    font-weight: 700;
     cursor: pointer;
     outline: none;
     appearance: none;
+    box-shadow: 
+        inset 0 1px 0 rgba(255, 255, 255, 0.12),
+        inset 0 -20px 30px rgba(251, 191, 36, 0.03),
+        0 8px 24px rgba(2, 6, 23, 0.25);
     transition: all 220ms ease;
+    letter-spacing: 0.01em;
 }
 
 .fw-custom-select:hover {
-    border-color: rgba(251, 191, 36, 0.35);
-    background: rgba(8, 15, 31, 0.8);
+    border-color: rgba(251, 191, 36, 0.45);
+    background: linear-gradient(135deg, rgba(251, 191, 36, 0.12), rgba(217, 119, 6, 0.1));
+    transform: translateY(-1px);
+    box-shadow: 
+        inset 0 1px 0 rgba(255, 255, 255, 0.15),
+        inset 0 -20px 30px rgba(251, 191, 36, 0.05),
+        0 12px 32px rgba(251, 191, 36, 0.18);
 }
 
 .fw-custom-select:focus {
-    border-color: rgba(251, 191, 36, 0.5);
-    box-shadow: 0 0 0 3px rgba(251, 191, 36, 0.15);
+    border-color: rgba(251, 191, 36, 0.6);
+    background: linear-gradient(135deg, rgba(251, 191, 36, 0.14), rgba(217, 119, 6, 0.12));
+    box-shadow: 
+        0 0 0 4px rgba(251, 191, 36, 0.18),
+        inset 0 1px 0 rgba(255, 255, 255, 0.15),
+        inset 0 -20px 30px rgba(251, 191, 36, 0.06),
+        0 12px 32px rgba(251, 191, 36, 0.22);
 }
 
 .fw-custom-select option {
-    background: #1a1a2e;
-    color: #fff;
-    padding: 0.5rem;
+    background: linear-gradient(135deg, #1a1a2e 0%, #0f1729 100%);
+    color: #fff7d6;
+    padding: 0.75rem 1rem;
+    font-weight: 600;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.fw-custom-select option:hover,
+.fw-custom-select option:focus,
+.fw-custom-select option:checked {
+    background: linear-gradient(135deg, rgba(251, 191, 36, 0.2), rgba(217, 119, 6, 0.15));
+    color: #fcd34d;
+    font-weight: 700;
 }
 
 .fw-select-arrow {
     position: absolute;
-    right: 0.75rem;
+    right: 1rem;
     top: 50%;
     transform: translateY(-50%);
-    color: rgba(255,255,255,0.5);
+    color: rgba(251, 191, 36, 0.7);
     pointer-events: none;
-    font-size: 0.8rem;
+    font-size: 0.85rem;
+    transition: all 220ms ease;
+}
+
+.fw-custom-select:hover + .fw-select-arrow {
+    color: #fcd34d;
+    transform: translateY(-50%) scale(1.1);
+}
+
+.fw-custom-select:focus + .fw-select-arrow {
+    color: #fbbf24;
 }
 
 .fw-availability-card {
-    padding: 1rem;
+    padding: 1.15rem 1.25rem;
     border-radius: 1rem;
-    background: rgba(8, 15, 31, 0.5);
-    border: 1px solid rgba(255,255,255,0.08);
+    background: linear-gradient(135deg, rgba(15, 23, 42, 0.6), rgba(8, 15, 31, 0.5));
+    border: 1px solid rgba(255,255,255,0.1);
+    box-shadow: 
+        inset 0 1px 0 rgba(255,255,255,0.08),
+        0 8px 24px rgba(2, 6, 23, 0.25);
+    transition: all 220ms ease;
 }
 
 .fw-availability-title {
     color: #fff7d6;
-    font-size: 1rem;
+    font-size: 1.05rem;
     font-weight: 800;
+    letter-spacing: 0.01em;
 }
 
 .fw-availability-message {
-    margin-top: 0.35rem;
-    color: rgba(255,255,255,0.65);
-    font-size: 0.85rem;
-    line-height: 1.5;
+    margin-top: 0.5rem;
+    color: rgba(255,255,255,0.7);
+    font-size: 0.88rem;
+    line-height: 1.6;
 }
 
 .fw-availability-meta {
-    margin-top: 0.6rem;
+    margin-top: 0.75rem;
+    padding: 0.5rem 0.8rem;
+    border-radius: 0.6rem;
+    background: rgba(251, 191, 36, 0.08);
+    border: 1px solid rgba(251, 191, 36, 0.2);
     color: #fcd34d;
-    font-size: 0.75rem;
+    font-size: 0.78rem;
     font-weight: 700;
+    letter-spacing: 0.02em;
 }
 
 .fw-availability-card[data-state="ready"] {
-    background: rgba(5, 150, 105, 0.12);
-    border-color: rgba(52, 211, 153, 0.25);
+    background: linear-gradient(135deg, rgba(5, 150, 105, 0.15), rgba(4, 120, 87, 0.12));
+    border-color: rgba(52, 211, 153, 0.3);
+    box-shadow: 
+        inset 0 1px 0 rgba(52, 211, 153, 0.15),
+        0 8px 24px rgba(5, 150, 105, 0.2),
+        0 0 32px rgba(52, 211, 153, 0.12);
 }
 
 .fw-availability-card[data-state="ready"] .fw-availability-title {
-    color: #bbf7d0;
+    color: #d1fae5;
+    text-shadow: 0 0 16px rgba(52, 211, 153, 0.3);
+}
+
+.fw-availability-card[data-state="ready"] .fw-availability-message {
+    color: rgba(209, 250, 229, 0.85);
 }
 
 .fw-availability-card[data-state="already_spun"] {
-    background: rgba(30, 64, 175, 0.15);
-    border-color: rgba(96, 165, 250, 0.25);
+    background: linear-gradient(135deg, rgba(30, 64, 175, 0.18), rgba(29, 78, 216, 0.12));
+    border-color: rgba(96, 165, 250, 0.3);
+    box-shadow: 
+        inset 0 1px 0 rgba(96, 165, 250, 0.12),
+        0 8px 24px rgba(30, 64, 175, 0.18);
 }
 
 .fw-availability-card[data-state="already_spun"] .fw-availability-title {
-    color: #bfdbfe;
+    color: #dbeafe;
 }
 
 .fw-actions {

@@ -192,6 +192,55 @@ function syncHeroLine(text, heroName) {
     return `${storyText}\n\n${heroLine}`;
 }
 
+function buildChroniclerFallbackDiary({
+    className,
+    heroOfTheDay,
+    attendanceText,
+    totalStars,
+    topReasonsStr,
+    storyContext,
+    assignmentContext,
+    powerUpContext,
+    reasonLabels
+}) {
+    const highlights = [
+        `${totalStars} stars earned`,
+        `Skills shown: ${topReasonsStr}`,
+        `Hero of the Day: ${heroOfTheDay}`
+    ];
+
+    if (storyContext) highlights.push('Story Weavers progress noted');
+    if (assignmentContext) highlights.push('Quest planning captured');
+
+    const narrativeBits = [
+        `${className} continued the class quest with steady effort and focus.`,
+        attendanceText,
+        `The team earned ${totalStars} stars through ${topReasonsStr}.`,
+        `Hero of the Day: ${heroOfTheDay}.`
+    ];
+
+    if (storyContext) narrativeBits.push(storyContext);
+    if (assignmentContext) narrativeBits.push(assignmentContext);
+    if (powerUpContext) narrativeBits.push(powerUpContext);
+
+    const keywords = [
+        ...reasonLabels,
+        'hero_of_the_day',
+        'class_quest',
+        'teamwork'
+    ]
+        .map(k => String(k).toLowerCase().replace(/\s+/g, '_'))
+        .filter(Boolean)
+        .slice(0, 6);
+
+    return {
+        title: `${className} Chronicle`,
+        entry: narrativeBits.join(' '),
+        highlights: highlights.slice(0, 4),
+        keywords
+    };
+}
+
 async function saveAdventureLogWithHeroWin(logPayload, heroStudentId = null) {
     const publicDataPath = 'artifacts/great-class-quest/public/data';
     const logRef = doc(collection(db, `${publicDataPath}/adventure_logs`));
@@ -326,14 +375,59 @@ Story context: ${storyContext || 'none'}
 Assignment/Test context: ${assignmentContext || 'none'}
 Power-up context: ${powerUpContext || 'none'}`;
 
+    const cooldownKey = 'gcq_chronicler_ai_cooldown_until';
+
     try {
         let rawResponse = '';
-        try {
-            rawResponse = await callGeminiApi(systemPrompt, userPrompt);
-        } catch (error) {
-            console.error('Chronicler text generation failed:', error);
-            showToast('The Chronicler could not write today\'s chronicle.', 'error');
-            return;
+        const cooldownUntil = Number(localStorage.getItem(cooldownKey) || 0);
+        const cooldownActive = Number.isFinite(cooldownUntil) && Date.now() < cooldownUntil;
+
+        if (cooldownActive) {
+            const fallbackDiary = buildChroniclerFallbackDiary({
+                className: classData.name,
+                heroOfTheDay,
+                attendanceText,
+                totalStars,
+                topReasonsStr,
+                storyContext,
+                assignmentContext,
+                powerUpContext,
+                reasonLabels
+            });
+            rawResponse = JSON.stringify(fallbackDiary);
+            showToast('Chronicler AI is resting after rate limits. Saved a classic chronicle instead.', 'info');
+        } else {
+            try {
+                rawResponse = await callGeminiApi(systemPrompt, userPrompt);
+                localStorage.removeItem(cooldownKey);
+            } catch (error) {
+                console.error('Chronicler text generation failed:', error);
+                const isRateLimited = /status\s*429/i.test(String(error?.message || ''));
+                if (isRateLimited) {
+                    const cooldownMs = 5 * 60 * 1000;
+                    localStorage.setItem(cooldownKey, String(Date.now() + cooldownMs));
+                }
+
+                const fallbackDiary = buildChroniclerFallbackDiary({
+                    className: classData.name,
+                    heroOfTheDay,
+                    attendanceText,
+                    totalStars,
+                    topReasonsStr,
+                    storyContext,
+                    assignmentContext,
+                    powerUpContext,
+                    reasonLabels
+                });
+                rawResponse = JSON.stringify(fallbackDiary);
+
+                showToast(
+                    isRateLimited
+                        ? 'Chronicler AI hit rate limits. Saved a classic chronicle instead.'
+                        : 'Chronicler AI was unavailable. Saved a classic chronicle instead.',
+                    'info'
+                );
+            }
         }
 
         const diary = _parseDiaryJson(rawResponse, {

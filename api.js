@@ -1,32 +1,61 @@
 import { blobToBase64 } from './utils.js';
 import { geminiApiUrl, OPENROUTER_MODEL, cloudflareWorkerUrl } from './constants.js';
 
-async function fetchWithBackoff(url, options, retries = 3, delay = 2000) { // Increased start delay
-    try {
-        const response = await fetch(url, options);
-        if (!response.ok) {
-            // Specifically handle 429 (Too Many Requests) or Server Errors
-            if (response.status === 429 || response.status >= 500) {
-                if (retries > 0) {
-                    console.warn(`API Error ${response.status}. Retrying in ${delay}ms...`);
-                    await new Promise(res => setTimeout(res, delay));
-                    // Exponential backoff: 2s -> 4s -> 8s
-                    return fetchWithBackoff(url, options, retries - 1, delay * 2);
-                }
+function parseRetryAfterMs(response) {
+    const retryAfter = response.headers.get('Retry-After');
+    if (!retryAfter) return null;
+
+    const asSeconds = Number(retryAfter);
+    if (Number.isFinite(asSeconds)) {
+        return Math.max(0, asSeconds * 1000);
+    }
+
+    const asDateMs = Date.parse(retryAfter);
+    if (Number.isFinite(asDateMs)) {
+        return Math.max(0, asDateMs - Date.now());
+    }
+
+    return null;
+}
+
+async function fetchWithBackoff(url, options, retries = 3, baseDelay = 2000) {
+    let attempt = 0;
+
+    while (attempt <= retries) {
+        try {
+            const response = await fetch(url, options);
+            if (response.ok) return response;
+
+            const isRetryableStatus = response.status === 429 || response.status >= 500;
+            const hasRetriesLeft = attempt < retries;
+
+            if (!isRetryableStatus || !hasRetriesLeft) {
+                throw new Error(`API failed with status ${response.status}`);
             }
-            throw new Error(`API failed with status ${response.status}`);
-        }
-        return response;
-    } catch (error) {
-         if (retries > 0) {
-            console.warn("Network error, retrying...", error);
-            await new Promise(res => setTimeout(res, delay));
-            return fetchWithBackoff(url, options, retries - 1, delay * 2);
-        } else {
-            console.error('Fetch exhausted retries:', error);
-            throw error;
+
+            const retryAfterMs = parseRetryAfterMs(response);
+            const expDelayMs = baseDelay * Math.pow(2, attempt);
+            const jitterMs = Math.floor(Math.random() * 500);
+            const waitMs = Math.max(retryAfterMs || 0, expDelayMs + jitterMs);
+
+            console.warn(`API Error ${response.status}. Retrying in ${waitMs}ms...`);
+            await new Promise((res) => setTimeout(res, waitMs));
+            attempt += 1;
+        } catch (error) {
+            const hasRetriesLeft = attempt < retries;
+            if (!hasRetriesLeft) {
+                console.error('Fetch exhausted retries:', error);
+                throw error;
+            }
+
+            const waitMs = baseDelay * Math.pow(2, attempt) + Math.floor(Math.random() * 500);
+            console.warn('Network error, retrying...', error);
+            await new Promise((res) => setTimeout(res, waitMs));
+            attempt += 1;
         }
     }
+
+    throw new Error('API failed after retries.');
 }
 
 export async function callGeminiApi(systemPrompt, userPrompt) {

@@ -20,19 +20,52 @@ let renderDebounce = null;
 let currentRenderedViewId = null;
 let hasPlayedInitialHomeEntrance = false;
 
+const FALLBACK_QUOTES = {
+    quote_header: "Every great quest starts with one brave step.",
+    quote_widget: "Curiosity turns every day into an adventure.",
+    default: "The adventure begins with a single step."
+};
+
+let dailySpiceState = {
+    day: null,
+    value: null,
+    promise: null
+};
+
+const dailyContentInFlight = new Map();
+
 // --- 1. DAILY SPICE (Cached AI) ---
 async function fetchDailySpice() {
-    // We fetch two DISTINCT items: one for header, one for the dashboard widget
-    const [headerQuote, weatherQuote] = await Promise.all([
-        getAICachedContent('quote_header'),   // Unique key for header
-        getAICachedContent('quote_widget')    // Unique key for weather widget
-    ]);
+    const todayKey = new Date().toISOString().split('T')[0];
 
-    updateHeaderQuote(headerQuote); // Update header immediately
+    if (dailySpiceState.day === todayKey && dailySpiceState.value) {
+        updateHeaderQuote(dailySpiceState.value.headerQuote);
+        return dailySpiceState.value;
+    }
 
-    return {
-        quote: weatherQuote, // Return the second quote for the widget
-    };
+    if (dailySpiceState.promise) {
+        return dailySpiceState.promise;
+    }
+
+    dailySpiceState.promise = (async () => {
+        // Fetch sequentially to reduce rate-limit spikes on free model tiers.
+        const headerQuote = await getAICachedContent('quote_header');
+        const weatherQuote = await getAICachedContent('quote_widget');
+
+        const value = {
+            headerQuote,
+            quote: weatherQuote
+        };
+
+        dailySpiceState.day = todayKey;
+        dailySpiceState.value = value;
+        updateHeaderQuote(headerQuote);
+        return value;
+    })().finally(() => {
+        dailySpiceState.promise = null;
+    });
+
+    return dailySpiceState.promise;
 }
 
 function initializeHeaderQuote() {
@@ -1170,50 +1203,86 @@ function getReminderPills(classId) {
 async function getAICachedContent(type) {
     const todayKey = new Date().toISOString().split('T')[0];
     const docId = `daily_content_${todayKey}_${type}`;
+    const localKey = `gcq_daily_content_${docId}`;
 
-    // 1. Check Firebase First (Shared Cache)
     try {
-        const docRef = doc(db, "artifacts/great-class-quest/public/data/daily_cache", docId);
-        const docSnap = await getDoc(docRef);
-
-        if (docSnap.exists()) {
-            return docSnap.data().content;
-        }
+        const localCached = localStorage.getItem(localKey);
+        if (localCached) return localCached;
     } catch (e) {
-        console.warn("Cache fetch skipped, trying generation.");
+        console.warn("Local quote cache read failed.", e);
     }
 
-    // 2. Generate if not found (Elite only)
-    if (!canUseFeature('eliteAI')) {
-        return "The adventure begins with a single step.";
+    if (dailyContentInFlight.has(docId)) {
+        return dailyContentInFlight.get(docId);
     }
-    try {
-        let systemPrompt = "You are a wise sage for a classroom. Generate a short, inspiring quote (max 10 words). No markdown. Just the text.";
-        let userPrompt = "Generate a quote.";
 
-        if (type === 'quote_header') {
-            userPrompt = "Generate a short quote about new beginnings or focus.";
-        } else if (type === 'quote_widget') {
-            userPrompt = "Generate a short quote about curiosity or nature.";
-        }
+    const fallback = FALLBACK_QUOTES[type] || FALLBACK_QUOTES.default;
 
-        const content = await callGeminiApi(systemPrompt, userPrompt);
-
-        // 3. Save to Firebase (So others don't have to generate)
+    const requestPromise = (async () => {
+        // 1. Check Firebase First (Shared Cache)
         try {
-            const { setDoc } = await import('https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js');
-            await setDoc(doc(db, "artifacts/great-class-quest/public/data/daily_cache", docId), {
-                content: content,
-                date: todayKey,
-                type: type
-            });
-        } catch (e) { console.error("Failed to save to cache", e); }
+            const docRef = doc(db, "artifacts/great-class-quest/public/data/daily_cache", docId);
+            const docSnap = await getDoc(docRef);
 
-        return content;
-    } catch (e) {
-        console.error(e);
-        return "The adventure begins with a single step.";
-    }
+            if (docSnap.exists()) {
+                const content = docSnap.data().content;
+                try {
+                    localStorage.setItem(localKey, content);
+                } catch (e) {
+                    console.warn("Local quote cache write failed.", e);
+                }
+                return content;
+            }
+        } catch (e) {
+            console.warn("Cache fetch skipped, trying generation.");
+        }
+
+        // 2. Generate if not found (Elite only)
+        if (!canUseFeature('eliteAI')) {
+            return fallback;
+        }
+
+        try {
+            const systemPrompt = "You are a wise sage for a classroom. Generate a short, inspiring quote (max 10 words). No markdown. Just the text.";
+            let userPrompt = "Generate a quote.";
+
+            if (type === 'quote_header') {
+                userPrompt = "Generate a short quote about new beginnings or focus.";
+            } else if (type === 'quote_widget') {
+                userPrompt = "Generate a short quote about curiosity or nature.";
+            }
+
+            const content = await callGeminiApi(systemPrompt, userPrompt);
+
+            // 3. Save to Firebase (So others don't have to generate)
+            try {
+                const { setDoc } = await import('https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js');
+                await setDoc(doc(db, "artifacts/great-class-quest/public/data/daily_cache", docId), {
+                    content: content,
+                    date: todayKey,
+                    type: type
+                });
+            } catch (e) {
+                console.error("Failed to save to cache", e);
+            }
+
+            try {
+                localStorage.setItem(localKey, content);
+            } catch (e) {
+                console.warn("Local quote cache write failed.", e);
+            }
+
+            return content;
+        } catch (e) {
+            console.error(e);
+            return fallback;
+        }
+    })().finally(() => {
+        dailyContentInFlight.delete(docId);
+    });
+
+    dailyContentInFlight.set(docId, requestPromise);
+    return requestPromise;
 }
 
 async function fetchWeatherData() {

@@ -305,6 +305,11 @@ async function handleAILogAdventure(classId, classData) {
 
     import('../../audio.js').then(m => m.playWritingLoop());
 
+    // Kick off the hero-rotation DB read immediately so it runs in parallel
+    // with all the synchronous state data collection below.
+    const _heroClassRef = doc(db, 'artifacts/great-class-quest/public/data/classes', classId);
+    const _heroClassDocPromise = getDoc(_heroClassRef);
+
     const nowObj = new Date();
     const league = classData.questLevel;
     const ageGroup = getAgeGroupForLeague(league);
@@ -327,7 +332,7 @@ async function handleAILogAdventure(classId, classData) {
     const absentNames = classStudentsForAttendance.filter(s => absentStudentIds.has(s.id)).map(s => s.name.split(' ')[0]).join(', ');
     const attendanceText = absentNames ? `We missed our friends: ${absentNames}.` : 'The entire party was present!';
 
-    const heroSelection = await _selectHeroOfTheDay(classId, classData, presentStudents);
+    const heroSelection = await _selectHeroOfTheDay(classId, presentStudents, _heroClassRef, _heroClassDocPromise);
     const heroOfTheDay = heroSelection.heroName;
     const heroStudentId = heroSelection.heroStudentId;
 
@@ -347,23 +352,23 @@ async function handleAILogAdventure(classId, classData) {
 
     const powerUpContext = pathfinderUsedToday ? "A Pathfinder's Map was used today." : '';
 
-    const systemPrompt = `You are The Chronicler, writing a class diary.
-Return ONLY valid JSON:
-{
-  "title": "short title",
-  "entry": "5-7 lines as one paragraph with sentence breaks.",
-  "highlights": ["short highlight", "short highlight", "short highlight"],
-  "keywords": ["keyword", "keyword", "keyword"]
-}
-Rules:
-- Audience age group: ${ageGroup}
-- Tone by tier:
-  - junior: vivid, simple words, warm encouragement.
-  - mid: energetic and reflective.
-  - senior: richer language, still classroom-safe and encouraging.
-- Mention Hero of the Day naturally.
-- Include attendance, skills shown, and important class events when provided.
-- No markdown. No extra keys.`;
+    const systemPrompt = `You are The Chronicler, a classroom diary writer. Your ONLY output must be a single valid JSON object — nothing else.
+
+JSON STRUCTURE (copy exactly, fill in values):
+{"title":"...","entry":"...","highlights":["...","...","..."],"keywords":["...","...","..."]}
+
+STRICT RULES:
+- Output ONLY the JSON object. No markdown, no code fences, no explanation before or after.
+- ALL four keys must be present: title, entry, highlights, keywords.
+- Every string value MUST be wrapped in double-quotes.
+- The "entry" value is ONE paragraph (4-6 sentences). No line breaks inside it. Escape any double-quote inside with \\".
+- "title": max 8 words.
+- "highlights": exactly 3 short strings.
+- "keywords": 3-5 lowercase single-word strings.
+- Audience age group: ${ageGroup}.
+- Tone: ${ageTier === 'junior' ? 'warm, simple, vivid' : ageTier === 'mid' ? 'energetic and reflective' : 'rich language, encouraging'}.
+- Mention the Hero of the Day naturally in the entry.
+- Weave in attendance, skills, and events from the context provided.`;
 
     const userPrompt = `Tier: ${ageTier}
 Class: ${classData.name}
@@ -551,7 +556,8 @@ async function saveManualLogEntry(classId, classData) {
         const highlights = highlightsText ? highlightsText.split(',').map(h => h.trim()).filter(h => h) : [];
         const todaysAwards = state.get('allAwardLogs').filter(log => log.classId === classId && log.date === getTodayDateString());
         const presentStudents = getPresentStudentsForClass(classId);
-        const heroSelection = await _selectHeroOfTheDay(classId, classData, presentStudents);
+        const _manualClassRef = doc(db, 'artifacts/great-class-quest/public/data/classes', classId);
+        const heroSelection = await _selectHeroOfTheDay(classId, presentStudents, _manualClassRef, getDoc(_manualClassRef));
         const storyText = syncHeroLine(text, heroSelection.heroName);
         const keywords = buildAdventureLogKeywords(storyText);
         
@@ -612,14 +618,39 @@ function _parseDiaryJson(raw, { defaultTitle, defaultEntry, fallbackKeywords = [
         const firstBrace = cleaned.indexOf('{');
         const lastBrace = cleaned.lastIndexOf('}');
         if (firstBrace === -1 || lastBrace === -1 || lastBrace <= firstBrace) return result;
-        const parsed = JSON.parse(cleaned.slice(firstBrace, lastBrace + 1));
-        if (typeof parsed.title === 'string' && parsed.title.trim()) result.title = parsed.title.trim().slice(0, 90);
-        if (typeof parsed.entry === 'string' && parsed.entry.trim()) result.entry = parsed.entry.trim();
-        if (Array.isArray(parsed.highlights)) {
-            result.highlights = parsed.highlights.map(h => String(h).trim()).filter(Boolean).slice(0, 4);
+        const jsonSlice = cleaned.slice(firstBrace, lastBrace + 1);
+
+        let parsed = null;
+
+        // Attempt 1: direct parse
+        try { parsed = JSON.parse(jsonSlice); } catch (_) {}
+
+        // Attempt 2: replace literal newlines inside the slice (Gemma sometimes emits them)
+        if (!parsed) {
+            try { parsed = JSON.parse(jsonSlice.replace(/\n/g, ' ').replace(/\r/g, '')); } catch (_) {}
         }
-        if (Array.isArray(parsed.keywords)) {
-            result.keywords = parsed.keywords.map(k => String(k).toLowerCase().trim().replace(/\s+/g, '_')).filter(Boolean).slice(0, 6);
+
+        // Attempt 3: quote any unquoted entry value
+        // Handles:  "entry": Some text here, "highlights"
+        if (!parsed) {
+            try {
+                const repaired = jsonSlice.replace(
+                    /"entry"\s*:\s*([^"\[{\n][^}]*?)(?=\s*,\s*"(?:highlights|keywords)")/s,
+                    (_m, val) => `"entry": "${val.trim().replace(/"/g, '\\"')}"`
+                );
+                parsed = JSON.parse(repaired);
+            } catch (_) {}
+        }
+
+        if (parsed) {
+            if (typeof parsed.title === 'string' && parsed.title.trim()) result.title = parsed.title.trim().slice(0, 90);
+            if (typeof parsed.entry === 'string' && parsed.entry.trim()) result.entry = parsed.entry.trim();
+            if (Array.isArray(parsed.highlights)) {
+                result.highlights = parsed.highlights.map(h => String(h).trim()).filter(Boolean).slice(0, 4);
+            }
+            if (Array.isArray(parsed.keywords)) {
+                result.keywords = parsed.keywords.map(k => String(k).toLowerCase().trim().replace(/\s+/g, '_')).filter(Boolean).slice(0, 6);
+            }
         }
     } catch (_) {
         // Keep safe fallback.
@@ -627,54 +658,44 @@ function _parseDiaryJson(raw, { defaultTitle, defaultEntry, fallbackKeywords = [
     return result;
 }
 
-async function _selectHeroOfTheDay(classId, classData, presentStudents) {
+// classRef and classDocPromise are pre-created by the caller so the DB read
+// runs in parallel with synchronous data collection, not sequentially before the AI call.
+async function _selectHeroOfTheDay(classId, presentStudents, classRef, classDocPromise) {
     if (!presentStudents.length) return { heroName: 'The Class Team', heroStudentId: null };
 
     const presentIds = presentStudents.map(s => s.id);
     const presentSet = new Set(presentIds);
     const allScores = state.get('allStudentScores');
 
-    // Check for a student with pendingHeroStatus (teacher-designated special hero)
     const protagonist = presentStudents.find(s => (allScores.find(sc => sc.id === s.id)?.pendingHeroStatus === true));
 
-    let chosenId = null;
-    const classRef = doc(db, 'artifacts/great-class-quest/public/data/classes', classId);
-
-    // --- READ FRESH from Firestore to avoid stale heroRotation in allTeachersClasses state ---
-    const classDoc = await getDoc(classRef);
+    // Await the already-in-flight DB read (likely already resolved by now)
+    const classDoc = await classDocPromise;
     const freshRotation = classDoc.exists() ? (classDoc.data().heroRotation || {}) : {};
 
-    // Filter cycleHeroIds to only include students currently present
     let cycleHeroIds = Array.isArray(freshRotation.cycleHeroIds)
         ? freshRotation.cycleHeroIds.filter(id => presentSet.has(id))
         : [];
     const lastHeroId = freshRotation.lastHeroId || null;
 
+    let chosenId;
     if (protagonist) {
         chosenId = protagonist.id;
+        // Fire-and-forget: clear the flag — does not need to block the AI call
         const protagonistScoreRef = doc(db, 'artifacts/great-class-quest/public/data/student_scores', protagonist.id);
-        await updateDoc(protagonistScoreRef, { pendingHeroStatus: false });
+        updateDoc(protagonistScoreRef, { pendingHeroStatus: false }).catch(e =>
+            console.error('Failed to clear pendingHeroStatus:', e));
     } else {
-        // Find students NOT yet used in this rotation cycle
         let unused = presentIds.filter(id => !cycleHeroIds.includes(id));
-
-        // All present students have had a turn — reset cycle
-        if (unused.length === 0) {
-            cycleHeroIds = [];
-            unused = [...presentIds];
-        }
-
-        // Always exclude the previous hero to prevent back-to-back repeats
+        if (unused.length === 0) { cycleHeroIds = []; unused = [...presentIds]; }
         let candidates = unused;
         if (lastHeroId && candidates.length > 1) {
             const filtered = candidates.filter(id => id !== lastHeroId);
             candidates = filtered.length ? filtered : candidates;
         }
-
         chosenId = candidates[Math.floor(Math.random() * candidates.length)];
     }
 
-    // Record this student as used in the current cycle
     if (!cycleHeroIds.includes(chosenId)) cycleHeroIds.push(chosenId);
 
     const newRotation = {
@@ -684,10 +705,7 @@ async function _selectHeroOfTheDay(classId, classData, presentStudents) {
         updatedAt: serverTimestamp()
     };
 
-    // Persist updated rotation to Firestore
-    await updateDoc(classRef, { heroRotation: newRotation });
-
-    // Update local state so within the same session it reflects the new rotation immediately
+    // Update local state immediately (optimistic)
     const allTeachersClasses = state.get('allTeachersClasses');
     const classIndex = allTeachersClasses.findIndex(c => c.id === classId);
     if (classIndex !== -1) {
@@ -697,6 +715,10 @@ async function _selectHeroOfTheDay(classId, classData, presentStudents) {
         };
         state.setAllTeachersClasses(allTeachersClasses);
     }
+
+    // Fire-and-forget: persist rotation — runs in parallel with the AI call
+    updateDoc(classRef, { heroRotation: newRotation }).catch(e =>
+        console.error('Failed to persist hero rotation:', e));
 
     const student = presentStudents.find(s => s.id === chosenId) || state.get('allStudents').find(s => s.id === chosenId);
     return { heroName: student?.name || 'The Class Team', heroStudentId: student?.id || null };

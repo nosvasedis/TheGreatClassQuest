@@ -222,6 +222,15 @@
         inset 0 1px 0 rgba(255,255,255,0.08),
         inset 0 -30px 60px rgba(10, 10, 30, 0.35),
         0 20px 60px rgba(5, 8, 20, 0.35);
+    transition: box-shadow 260ms ease, border-color 260ms ease, transform 260ms ease;
+}
+
+.guild-fortune-panel:hover {
+    transform: translateY(-1px);
+    box-shadow:
+        inset 0 1px 0 rgba(255,255,255,0.08),
+        inset 0 -30px 60px rgba(10, 10, 30, 0.35),
+        0 26px 76px rgba(5, 8, 20, 0.42);
 }
 
 .guild-fortune-panel__toggle {
@@ -238,6 +247,11 @@
     color: inherit;
     text-align: left;
     cursor: pointer;
+    transition: background 220ms ease;
+}
+
+.guild-fortune-panel__toggle:hover {
+    background: linear-gradient(90deg, rgba(255,255,255,0.03), rgba(255,255,255,0.06), rgba(255,255,255,0.03));
 }
 
 .guild-fortune-panel__toggle-copy {
@@ -274,7 +288,12 @@
     border: 1px solid rgba(255,255,255,0.12);
     background: rgba(15, 23, 42, 0.45);
     color: rgba(255,255,255,0.86);
-    transition: transform 0.2s ease;
+    transition: transform 260ms cubic-bezier(0.22, 1, 0.36, 1), background 200ms ease, border-color 200ms ease;
+}
+
+.guild-fortune-panel__toggle:hover .guild-fortune-panel__toggle-icon {
+    background: rgba(251, 191, 36, 0.12);
+    border-color: rgba(251, 191, 36, 0.26);
 }
 
 .guild-fortune-panel[data-expanded="true"] .guild-fortune-panel__toggle-icon {
@@ -328,10 +347,33 @@
     gap: 1.5rem;
     align-items: stretch;
     padding: 1.4rem;
+    overflow: clip;
+    transform-origin: top center;
+    transition:
+        height 420ms cubic-bezier(0.22, 1, 0.36, 1),
+        opacity 280ms ease,
+        transform 420ms cubic-bezier(0.22, 1, 0.36, 1);
 }
 
-.guild-fortune-panel[data-expanded="false"] .guild-fortune-panel__body {
-    display: none;
+.guild-fortune-panel__body.is-expanding > *,
+.guild-fortune-panel[data-expanded="true"] .guild-fortune-panel__body > * {
+    animation: guild-fortune-panel-rise 520ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.guild-fortune-panel__body.is-expanding > *:nth-child(2),
+.guild-fortune-panel[data-expanded="true"] .guild-fortune-panel__body > *:nth-child(2) {
+    animation-delay: 60ms;
+}
+
+@keyframes guild-fortune-panel-rise {
+    from {
+        opacity: 0;
+        transform: translateY(16px) scale(0.985);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
 }
 
 .guild-fortune-panel__lead,
@@ -401,6 +443,7 @@
     background: rgba(15, 23, 42, 0.5);
     font-size: 0.88rem;
     font-weight: 700;
+    transition: background 220ms ease, border-color 220ms ease, transform 220ms ease;
 }
 
 .guild-fortune-panel__status-pill[data-state="ready"] {
@@ -438,6 +481,13 @@
     border: 1px solid rgba(255,255,255,0.18) !important;
     background: linear-gradient(135deg, #f59e0b, #f97316 42%, #db2777 100%) !important;
     box-shadow: 0 18px 36px rgba(217, 119, 6, 0.28), 0 0 0 1px rgba(255,255,255,0.06);
+    transition: transform 200ms ease, box-shadow 220ms ease, filter 220ms ease;
+}
+
+.guild-fortune-panel__cta:hover {
+    transform: translateY(-2px) scale(1.01);
+    box-shadow: 0 24px 48px rgba(217, 119, 6, 0.34), 0 0 0 1px rgba(255,255,255,0.08);
+    filter: saturate(1.08);
 }
 
 .guild-fortune-panel__cta-label {
@@ -476,6 +526,12 @@
     border: 1px solid rgba(255,255,255,0.14);
     background: rgba(15,23,42,0.45);
     box-shadow: 0 12px 24px rgba(2,6,23,0.32);
+    transition: transform 240ms ease, box-shadow 240ms ease, filter 240ms ease;
+}
+
+.guild-fortune-panel__sigil:hover {
+    transform: translateY(-4px) scale(1.03);
+    filter: saturate(1.08);
 }
 
 .guild-fortune-panel__sigil--dragon { box-shadow: 0 12px 24px rgba(220, 38, 38, 0.24); }
@@ -529,6 +585,13 @@
     border-radius: 1rem;
     background: linear-gradient(180deg, rgba(255,255,255,0.05), rgba(255,255,255,0.02));
     border: 1px solid rgba(255,255,255,0.08);
+    transition: transform 220ms ease, border-color 220ms ease, box-shadow 220ms ease;
+}
+
+.guild-fortune-ledger__entry:hover {
+    transform: translateY(-2px);
+    border-color: rgba(251, 191, 36, 0.18);
+    box-shadow: 0 16px 28px rgba(2, 6, 23, 0.18);
 }
 
 .guild-fortune-ledger__entry-topline {
@@ -583,6 +646,26 @@
     border-radius: 0.95rem;
     background: linear-gradient(135deg, color-mix(in srgb, var(--guild-primary) 16%, rgba(255,255,255,0.04)), rgba(255,255,255,0.03));
     border: 1px solid color-mix(in srgb, var(--guild-primary) 28%, rgba(255,255,255,0.08));
+    transition: transform 200ms ease, border-color 200ms ease, background 200ms ease;
+}
+
+.guild-fortune-ledger__result:hover {
+    transform: translateX(3px);
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .guild-fortune-panel,
+    .guild-fortune-panel__toggle,
+    .guild-fortune-panel__toggle-icon,
+    .guild-fortune-panel__body,
+    .guild-fortune-panel__cta,
+    .guild-fortune-panel__sigil,
+    .guild-fortune-ledger__entry,
+    .guild-fortune-ledger__result,
+    .guild-fortune-panel__particles span {
+        animation: none !important;
+        transition: none !important;
+    }
 }
 
 .guild-fortune-ledger__result-badge .guild-badge {

@@ -572,9 +572,7 @@ async function _wireFortunesWheel() {
         toggleBtn._fwToggleWired = true;
         toggleBtn.addEventListener('click', () => {
             const isExpanded = section.dataset.expanded === 'true';
-            section.dataset.expanded = isExpanded ? 'false' : 'true';
-            toggleBtn.setAttribute('aria-expanded', String(!isExpanded));
-            bodyEl.classList.toggle('hidden', isExpanded);
+            _toggleFortunePanel(section, toggleBtn, bodyEl, !isExpanded);
         });
     }
 
@@ -595,6 +593,69 @@ async function _wireFortunesWheel() {
 
     // Wire modal action buttons (once)
     _wireWheelModalButtons();
+}
+
+function _toggleFortunePanel(section, toggleBtn, bodyEl, shouldExpand) {
+    if (bodyEl.dataset.animating === 'true') return;
+
+    toggleBtn.setAttribute('aria-expanded', String(shouldExpand));
+    section.dataset.expanded = shouldExpand ? 'true' : 'false';
+
+    if (shouldExpand) {
+        bodyEl.classList.remove('hidden');
+        bodyEl.dataset.animating = 'true';
+        bodyEl.classList.remove('is-collapsing');
+        bodyEl.classList.add('is-expanding', 'is-animating');
+        bodyEl.style.height = '0px';
+        bodyEl.style.opacity = '0';
+        bodyEl.style.transform = 'translateY(-10px) scale(0.985)';
+
+        requestAnimationFrame(() => {
+            const targetHeight = bodyEl.scrollHeight;
+            bodyEl.style.height = `${targetHeight}px`;
+            bodyEl.style.opacity = '1';
+            bodyEl.style.transform = 'translateY(0) scale(1)';
+        });
+
+        const onExpandEnd = (event) => {
+            if (event.propertyName !== 'height') return;
+            bodyEl.style.height = 'auto';
+            bodyEl.style.opacity = '';
+            bodyEl.style.transform = '';
+            bodyEl.dataset.animating = 'false';
+            bodyEl.classList.remove('is-expanding', 'is-animating');
+            bodyEl.removeEventListener('transitionend', onExpandEnd);
+        };
+
+        bodyEl.addEventListener('transitionend', onExpandEnd);
+        return;
+    }
+
+    bodyEl.dataset.animating = 'true';
+    bodyEl.classList.remove('is-expanding');
+    bodyEl.classList.add('is-collapsing', 'is-animating');
+    bodyEl.style.height = `${bodyEl.scrollHeight}px`;
+    bodyEl.style.opacity = '1';
+    bodyEl.style.transform = 'translateY(0) scale(1)';
+
+    requestAnimationFrame(() => {
+        bodyEl.style.height = '0px';
+        bodyEl.style.opacity = '0';
+        bodyEl.style.transform = 'translateY(-10px) scale(0.985)';
+    });
+
+    const onCollapseEnd = (event) => {
+        if (event.propertyName !== 'height') return;
+        bodyEl.classList.add('hidden');
+        bodyEl.dataset.animating = 'false';
+        bodyEl.classList.remove('is-collapsing', 'is-animating');
+        bodyEl.style.height = '';
+        bodyEl.style.opacity = '';
+        bodyEl.style.transform = '';
+        bodyEl.removeEventListener('transitionend', onCollapseEnd);
+    };
+
+    bodyEl.addEventListener('transitionend', onCollapseEnd);
 }
 
 function _wireWheelModalButtons() {

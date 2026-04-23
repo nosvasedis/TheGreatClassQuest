@@ -1,6 +1,27 @@
 import { blobToBase64 } from './utils.js';
 import { geminiApiUrl, OPENROUTER_MODEL, cloudflareWorkerUrl } from './constants.js';
 
+const GEMINI_REQUEST_SPACING_MS = 1200;
+
+let geminiQueue = Promise.resolve();
+let lastGeminiRequestStartedAt = 0;
+
+async function enqueueGeminiRequest(task) {
+    const runTask = async () => {
+        const waitMs = Math.max(0, GEMINI_REQUEST_SPACING_MS - (Date.now() - lastGeminiRequestStartedAt));
+        if (waitMs > 0) {
+            await new Promise((res) => setTimeout(res, waitMs));
+        }
+
+        lastGeminiRequestStartedAt = Date.now();
+        return task();
+    };
+
+    const queuedTask = geminiQueue.then(runTask, runTask);
+    geminiQueue = queuedTask.catch(() => {});
+    return queuedTask;
+}
+
 function parseRetryAfterMs(response) {
     const retryAfter = response.headers.get('Retry-After');
     if (!retryAfter) return null;
@@ -69,12 +90,13 @@ export async function callGeminiApi(systemPrompt, userPrompt) {
     };
 
     try {
-        // 2. Call YOUR Worker (No API Key sent here!)
-        const response = await fetchWithBackoff(geminiApiUrl, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(payload)
-        });
+        const response = await enqueueGeminiRequest(() =>
+            fetchWithBackoff(geminiApiUrl, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            })
+        );
 
         if (!response.ok) throw new Error(`Proxy error! status: ${response.status}`);
 

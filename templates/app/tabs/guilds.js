@@ -54,24 +54,57 @@ export const guildsTabHTML = `
                     <div id="guilds-leaderboard-list" class="guild-hall-scene-content"></div>
                 </div>
 
-                <!-- Fortune's Wheel Button (Pro+, once per week per class) -->
-                <div id="fortunes-wheel-section" class="text-center mt-6">
-                    <button id="fortunes-wheel-btn" type="button"
-                        class="bubbly-button bg-gradient-to-r from-violet-600 to-purple-500 text-white font-title text-lg py-3 px-7 rounded-full shadow-[0_0_24px_rgba(124,58,237,0.5)] hover:scale-105 transition-transform border-2 border-white/20">
-                        <span class="mr-1">⚜️</span> Spin Fortune's Wheel
-                    </button>
-                    <p id="fortunes-wheel-status" class="text-xs mt-2 opacity-60"></p>
-                </div>
+                <!-- Fortune's Wheel Ritual Panel -->
+                <section id="fortunes-wheel-section" class="guild-fortune-panel mt-6" aria-labelledby="fortunes-wheel-panel-title">
+                    <div class="guild-fortune-panel__backdrop" aria-hidden="true"></div>
+                    <div class="guild-fortune-panel__particles" aria-hidden="true">
+                        <span></span><span></span><span></span><span></span><span></span><span></span>
+                    </div>
 
-                <!-- Fortune's Log (recent wheel results) -->
-                <div id="fortunes-log-section" class="hidden mt-6 w-full max-w-2xl mx-auto">
-                    <details class="group">
-                        <summary class="cursor-pointer select-none text-sm font-semibold text-violet-300 hover:text-violet-200 transition-colors">
-                            📜 Fortune's Log <span class="text-xs opacity-50">(recent spins)</span>
-                        </summary>
-                        <div id="fortunes-log-list" class="mt-3 space-y-2 text-sm"></div>
-                    </details>
-                </div>
+                    <div class="guild-fortune-panel__body">
+                        <div class="guild-fortune-panel__lead">
+                            <div class="guild-fortune-panel__kicker">Fortune Relic</div>
+                            <h3 id="fortunes-wheel-panel-title" class="guild-fortune-panel__title font-title">Wheel of Fortune Ceremony</h3>
+                            <p class="guild-fortune-panel__description">
+                                Open the relic when the final lesson of the week begins and guide every guild through its ceremonial spin.
+                            </p>
+
+                            <div class="guild-fortune-panel__meta">
+                                <div id="fortunes-wheel-window" class="guild-fortune-panel__status-pill">Awaiting a class</div>
+                                <div id="fortunes-wheel-class" class="guild-fortune-panel__class-pill">No class selected</div>
+                            </div>
+
+                            <p id="fortunes-wheel-status" class="guild-fortune-panel__status-copy"></p>
+
+                            <div class="guild-fortune-panel__actions">
+                                <button id="fortunes-wheel-btn" type="button" class="guild-fortune-panel__cta bubbly-button">
+                                    <span class="guild-fortune-panel__cta-label font-title">Begin the Ceremony</span>
+                                    <span class="guild-fortune-panel__cta-subtitle">Spin each guild through the relic</span>
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="guild-fortune-panel__preview">
+                            <div class="guild-fortune-panel__sigils" aria-hidden="true">
+                                <img src="./assets/dragonflame.webp" alt="" class="guild-fortune-panel__sigil guild-fortune-panel__sigil--dragon">
+                                <img src="./assets/grizzlymight.webp" alt="" class="guild-fortune-panel__sigil guild-fortune-panel__sigil--grizzly">
+                                <img src="./assets/owlwisdom.webp" alt="" class="guild-fortune-panel__sigil guild-fortune-panel__sigil--owl">
+                                <img src="./assets/phoenixrising.webp" alt="" class="guild-fortune-panel__sigil guild-fortune-panel__sigil--phoenix">
+                            </div>
+
+                            <div id="fortunes-log-section" class="guild-fortune-ledger">
+                                <div class="guild-fortune-ledger__header">
+                                    <div>
+                                        <div class="guild-fortune-ledger__eyebrow">Recent Omens</div>
+                                        <div class="guild-fortune-ledger__title">Fortune Ledger</div>
+                                    </div>
+                                    <div class="guild-fortune-ledger__note">Latest class rituals</div>
+                                </div>
+                                <div id="fortunes-log-list" class="guild-fortune-ledger__list"></div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
 
                 <!-- Grand Guild Ceremony Button (shown on ceremony day) -->
                 <div id="grand-guild-ceremony-btn-guilds" class="hidden text-center mt-6">

@@ -1,7 +1,7 @@
 // features/fortunesWheel.js — Fortune's Wheel: segment catalog, spin logic, canvas renderer, effect application
 
 import * as state from '../state.js';
-import { GUILD_IDS, getGuildById } from './guilds.js';
+import { GUILD_IDS, getGuildById, getGuildEmblemUrl } from './guilds.js';
 import { GLORY_PER_STAR, WHEEL_RARITY_WEIGHTS, WHEEL_RARITY_CONFIG, JUNIOR_LEAGUES } from '../constants.js';
 import { adjustGuildGlory, applyGloryModifier, saveFortuneWheelResult, hasSpunThisWeek } from '../db/actions/guilds.js';
 import { getISOWeekKey } from './guildScoring.js';
@@ -531,7 +531,7 @@ export function drawWheel(canvas, segments, rotationAngle, guildDef) {
         ctx.lineWidth = Math.max(2, size / 150);
         ctx.stroke();
 
-        // Draw Text & Emoji
+        // Draw segment label
         ctx.save();
         ctx.rotate(startAngle + segAngle / 2);
         
@@ -552,14 +552,8 @@ export function drawWheel(canvas, segments, rotationAngle, guildDef) {
         const lineHeight = fontSize * 1.2;
         const totalTextHeight = lines.length * lineHeight;
         
-        const contentRadius = radius - Math.max(30, size * 0.08);
-        const emojiFontSize = Math.max(16, Math.floor(size / 24));
-        ctx.font = `${emojiFontSize}px system-ui`;
-        const emojiRadius = contentRadius;
-        ctx.fillText(seg.emoji || '*', emojiRadius, 0);
-
         ctx.font = `800 ${fontSize}px "Fredoka One", "Trebuchet MS", system-ui, sans-serif`;
-        const textStartRadius = emojiRadius - emojiFontSize * 1.2;
+        const textStartRadius = radius - Math.max(34, size * 0.12);
         const startY = -(totalTextHeight / 2) + (lineHeight / 2);
 
         for (let j = 0; j < lines.length; j++) {
@@ -608,13 +602,15 @@ export function drawWheel(canvas, segments, rotationAngle, guildDef) {
     ctx.lineWidth = Math.max(2, size / 190);
     ctx.stroke();
 
-    ctx.fillStyle = '#fff';
-    ctx.shadowColor = `${guildDef?.glow || '#a78bfa'}ee`;
-    ctx.shadowBlur = Math.max(20, size / 25);
-    ctx.font = `${Math.floor(innerRadius * 1.15)}px system-ui`;
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.fillText(guildDef?.emoji || '*', 0, 4);
+    ctx.beginPath();
+    ctx.arc(0, 0, innerRadius * 0.52, 0, TAU);
+    ctx.fillStyle = 'rgba(255,255,255,0.16)';
+    ctx.fill();
+
+    ctx.beginPath();
+    ctx.arc(0, 0, innerRadius * 0.18, 0, TAU);
+    ctx.fillStyle = '#fff7d6';
+    ctx.fill();
 
     ctx.restore();
 }
@@ -852,21 +848,21 @@ function _renderLockedState(title, message, emoji) {
 
     const resultEl = document.getElementById('fw-result');
     if (resultEl) {
-        const orb = availability.emoji
-            || (availability.code === 'already_spun' ? '⌛' : availability.code === 'outside_lesson' ? '🕰️' : '✦');
         resultEl.innerHTML = `
             <div class="fw-locked-state">
-                <div class="fw-locked-sparkles" aria-hidden="true">✦ ✧ ✦ ✧ ✦</div>
-                <div class="fw-locked-orb">${orb}</div>
+                <div class="fw-locked-sparkles" aria-hidden="true"></div>
+                <div class="fw-locked-orb"></div>
                 <h3 class="fw-locked-title">${availability.title}</h3>
                 <p class="fw-locked-message">${availability.message}</p>
                 ${availability.meta ? `<p class="fw-locked-meta">${availability.meta}</p>` : ''}
-                <div class="fw-locked-divider">
-                    <span>✦</span><span class="fw-locked-gem">◈</span><span>✦</span>
-                </div>
+                <div class="fw-locked-divider"></div>
             </div>`;
         resultEl.classList.remove('hidden');
     }
+
+    _setStageEmblem(null);
+    _renderGuildProgress();
+    _setStageCaption('The relic remains sealed until the proper class and lesson window align.');
 
     _updateSpinButton(true, availability.code === 'already_spun' ? 'Recharging' : 'Await Final Lesson');
     const nextBtn = document.getElementById('fw-next-btn');
@@ -958,15 +954,26 @@ function _renderWheelPhase() {
     const guildId = _wheelState.guildOrder[_wheelState.currentGuildIndex];
     const guildDef = getGuildById(guildId);
     const guildNum = _wheelState.currentGuildIndex + 1;
+    const emblemUrl = getGuildEmblemUrl(guildId);
 
     // Update header
     const headerEl = document.getElementById('fw-guild-header');
     if (headerEl) {
         headerEl.innerHTML = `
-            <span class="fw-guild-emoji">${guildDef?.emoji || '⚜️'}</span>
-            <span class="fw-guild-name" style="color:${guildDef?.primary || '#fff'}">${guildDef?.name || guildId}</span>
-            <span class="fw-guild-progress">Guild ${guildNum} of ${_wheelState.guildOrder.length}</span>`;
+            <div class="fw-guild-banner" style="--guild-primary:${guildDef?.primary || '#fff'};--guild-secondary:${guildDef?.secondary || '#ddd'};">
+                <div class="fw-guild-banner__crest">
+                    ${emblemUrl ? `<img src="${emblemUrl}" alt="${guildDef?.name || guildId}" class="fw-guild-banner__crest-image">` : `<span class="fw-guild-banner__crest-fallback">${guildNum}</span>`}
+                </div>
+                <div class="fw-guild-banner__copy">
+                    <div class="fw-guild-banner__eyebrow">Guild ${guildNum} of ${_wheelState.guildOrder.length}</div>
+                    <div class="fw-guild-banner__name">${guildDef?.name || guildId}</div>
+                </div>
+            </div>`;
     }
+
+    _renderGuildProgress();
+    _setStageEmblem(guildId);
+    _setStageCaption(`${guildDef?.name || 'This guild'} steps onto the relic stage. Spin to reveal its weekly omen.`);
 
     const stageFrame = document.getElementById('fw-stage-frame');
     if (stageFrame) {
@@ -978,7 +985,7 @@ function _renderWheelPhase() {
     if (canvasWrap) canvasWrap.classList.remove('hidden');
     _sizeAndRenderWheel();
 
-    _updateSpinButton(false, 'Spin the Wheel');
+    _updateSpinButton(false, 'Spin This Guild', 'The relic chooses a fate');
     const resultEl = document.getElementById('fw-result');
     if (resultEl) resultEl.classList.add('hidden');
     const nextBtn = document.getElementById('fw-next-btn');
@@ -997,13 +1004,12 @@ function _sizeAndRenderWheel() {
 
     const stageFrame = document.getElementById('fw-stage-frame');
     const stageRect = stageFrame?.getBoundingClientRect();
-    const parentWidth = canvas.parentElement?.clientWidth || 520;
-    const stageHeight = stageRect?.height || window.innerHeight * 0.58;
+    const parentWidth = canvas.parentElement?.clientWidth || 620;
+    const stageHeight = stageRect?.height || window.innerHeight * 0.62;
 
-    // Fit-first for 13–17" laptop heights, with minimum size fallback.
-    const widthBudget = Math.min(parentWidth, window.innerWidth * 0.56);
-    const heightBudget = Math.max(320, stageHeight - 44);
-    const displaySize = Math.round(Math.max(280, Math.min(620, widthBudget, heightBudget)));
+    const widthBudget = Math.min(parentWidth, window.innerWidth * 0.5);
+    const heightBudget = Math.max(360, stageHeight - 36);
+    const displaySize = Math.round(Math.max(320, Math.min(640, widthBudget, heightBudget)));
 
     canvas.style.width = `${displaySize}px`;
     canvas.style.height = `${displaySize}px`;
@@ -1012,17 +1018,15 @@ function _sizeAndRenderWheel() {
     drawWheel(canvas, _wheelState.segments, 0, guildDef);
 }
 
-function _updateSpinButton(disabled, label = 'Spin the Wheel') {
+function _updateSpinButton(disabled, label = 'Spin the Wheel', sublabel = 'The relic chooses a fate') {
     const spinBtn = document.getElementById('fw-spin-btn');
     if (!spinBtn) return;
     spinBtn.disabled = disabled;
     spinBtn.classList.toggle('is-busy', disabled && label === 'Spinning...');
-    const labelEl = spinBtn.querySelector('.fw-btn__label');
-    if (labelEl) {
-        labelEl.textContent = label;
-    } else {
-        spinBtn.textContent = label;
-    }
+    const labelEl = spinBtn.querySelector('.fw-btn-primary__label');
+    const subEl = spinBtn.querySelector('.fw-btn-primary__sub');
+    if (labelEl) labelEl.textContent = label;
+    if (subEl) subEl.textContent = sublabel;
 }
 
 function _renderWheelResult(segment, result, guildDef) {
@@ -1031,11 +1035,17 @@ function _renderWheelResult(segment, result, guildDef) {
 
     const rarityConf = WHEEL_RARITY_CONFIG[segment.rarity] || WHEEL_RARITY_CONFIG.common;
     const isNegative = segment.category === 'negative';
+    const emblemUrl = getGuildEmblemUrl(guildDef?.id);
 
     resultEl.innerHTML = `
         <div class="fw-result-card" style="border-color:${rarityConf.color};box-shadow:0 0 30px ${rarityConf.glow};">
-            <div class="fw-result-rarity" style="background:${rarityConf.bg};color:${rarityConf.color};border-color:${rarityConf.color}40;">${rarityConf.label}</div>
-            <div class="fw-result-emoji">${segment.emoji}</div>
+            <div class="fw-result-header">
+                <div class="fw-result-rarity" style="background:${rarityConf.bg};color:${rarityConf.color};border-color:${rarityConf.color}40;">${rarityConf.label}</div>
+                <div class="fw-result-guild">
+                    ${emblemUrl ? `<img src="${emblemUrl}" alt="${guildDef?.name || result.guildId}" class="fw-result-guild__image">` : ''}
+                    <span class="fw-result-guild__name">${guildDef?.name || result.guildId}</span>
+                </div>
+            </div>
             <div class="fw-result-title">${segment.label}</div>
             <div class="fw-result-description">${result.description || segment.description}</div>
             ${result.gloryDelta ? `<div class="fw-result-glory ${isNegative ? 'fw-result-glory--negative' : ''}">${result.gloryDelta >= 0 ? '+' : ''}${result.gloryDelta} ⚜️ Glory</div>` : ''}
@@ -1043,15 +1053,19 @@ function _renderWheelResult(segment, result, guildDef) {
         </div>`;
     resultEl.classList.remove('hidden');
 
-    _updateSpinButton(true, 'Fate Revealed');
+    _setStageCaption(`${guildDef?.name || 'The guild'} has received ${segment.label}. Advance when you are ready for the next reveal.`);
+    _updateSpinButton(true, 'Fate Revealed', 'Prepare the next presentation');
 
     if (_wheelState.currentGuildIndex < _wheelState.guildOrder.length - 1) {
         const nextBtn = document.getElementById('fw-next-btn');
-        if (nextBtn) nextBtn.classList.remove('hidden');
+        if (nextBtn) {
+            nextBtn.innerHTML = '<span class="font-title">Present Next Guild</span>';
+            nextBtn.classList.remove('hidden');
+        }
     } else {
         const doneBtn = document.getElementById('fw-done-btn');
         if (doneBtn) {
-            doneBtn.textContent = '📊 View Summary';
+            doneBtn.innerHTML = '<span class="font-title">Reveal Final Ledger</span>';
             doneBtn.classList.remove('hidden');
             doneBtn.onclick = () => advanceWheel();
         }
@@ -1069,32 +1083,101 @@ function _renderWheelSummary() {
     const resultEl = document.getElementById('fw-result');
     if (resultEl) resultEl.classList.add('hidden');
     const headerEl = document.getElementById('fw-guild-header');
-    if (headerEl) headerEl.innerHTML = '<span class="fw-summary-title">Fortune\'s Wheel Results</span>';
+    if (headerEl) headerEl.innerHTML = '<div class="fw-guild-banner fw-guild-banner--summary"><div class="fw-guild-banner__copy"><div class="fw-guild-banner__eyebrow">Ceremony Complete</div><div class="fw-guild-banner__name">Fortune Ledger</div></div></div>';
+
+    _renderGuildProgress(true);
+    _setStageEmblem(null);
+    _setStageCaption('All omens have been revealed. Review the final ledger before closing the ceremony.');
 
     const nextBtn = document.getElementById('fw-next-btn');
     if (nextBtn) nextBtn.classList.add('hidden');
 
     summaryEl.innerHTML = `
-        <div class="fw-summary-grid">
+        <div class="fw-summary-board">
+            <div class="fw-summary-board__header">
+                <div>
+                    <div class="fw-summary-board__eyebrow">Weekly Outcome</div>
+                    <div class="fw-summary-board__title">Guild Fortune Ledger</div>
+                </div>
+            </div>
+            <div class="fw-summary-grid">
             ${_wheelState.results.map(r => {
                 const guildDef = getGuildById(r.guildId);
                 const rarityConf = WHEEL_RARITY_CONFIG[r.rarity] || WHEEL_RARITY_CONFIG.common;
+                const emblemUrl = getGuildEmblemUrl(r.guildId);
                 return `
                     <div class="fw-summary-card" style="border-color:${guildDef?.primary || '#666'};">
-                        <div class="fw-summary-guild-name" style="color:${guildDef?.primary || '#fff'}">${guildDef?.emoji || '⚔️'} ${guildDef?.name || r.guildId}</div>
+                        <div class="fw-summary-guild-name" style="color:${guildDef?.primary || '#fff'}">
+                            ${emblemUrl ? `<img src="${emblemUrl}" alt="${guildDef?.name || r.guildId}" class="fw-summary-guild-emblem">` : ''}
+                            <span>${guildDef?.name || r.guildId}</span>
+                        </div>
                         <div class="fw-summary-segment">${r.segmentLabel}</div>
                         <div class="fw-summary-rarity" style="color:${rarityConf.color}">${rarityConf.label}</div>
                         <div class="fw-summary-desc">${r.description || r.segmentDescription}</div>
                         ${r.gloryDelta ? `<div class="fw-summary-glory">${r.gloryDelta >= 0 ? '+' : ''}${r.gloryDelta} ⚜️</div>` : ''}
                     </div>`;
             }).join('')}
+            </div>
         </div>`;
     summaryEl.classList.remove('hidden');
 
     const doneBtn = document.getElementById('fw-done-btn');
     if (doneBtn) {
-        doneBtn.textContent = 'Close the Relic';
+        doneBtn.innerHTML = '<span class="font-title">Close the Relic</span>';
         doneBtn.classList.remove('hidden');
         doneBtn.onclick = () => closeFortunesWheel();
     }
+
+    _updateSpinButton(true, 'Ceremony Complete', 'Review the final ledger');
+}
+
+function _renderGuildProgress(allComplete = false) {
+    const progressEl = document.getElementById('fw-progress');
+    if (!progressEl) return;
+
+    progressEl.innerHTML = _wheelState.guildOrder.map((guildId, index) => {
+        const guildDef = getGuildById(guildId);
+        const emblemUrl = getGuildEmblemUrl(guildId);
+        const stateName = allComplete
+            ? 'complete'
+            : index < _wheelState.currentGuildIndex
+                ? 'complete'
+                : index === _wheelState.currentGuildIndex && _wheelState.phase !== 'summary'
+                    ? 'current'
+                    : 'upcoming';
+        return `
+            <div class="fw-progress-pill" data-state="${stateName}" style="--guild-primary:${guildDef?.primary || '#999'};">
+                <div class="fw-progress-pill__crest">
+                    ${emblemUrl ? `<img src="${emblemUrl}" alt="${guildDef?.name || guildId}" class="fw-progress-pill__image">` : `<span>${index + 1}</span>`}
+                </div>
+                <div class="fw-progress-pill__copy">
+                    <div class="fw-progress-pill__step">Guild ${index + 1}</div>
+                    <div class="fw-progress-pill__name">${guildDef?.name || guildId}</div>
+                </div>
+            </div>`;
+    }).join('');
+}
+
+function _setStageEmblem(guildId) {
+    const imageEl = document.getElementById('fw-guild-emblem-image');
+    const orbEl = document.querySelector('.fw-guild-emblem-orb');
+    if (!imageEl || !orbEl) return;
+
+    const emblemUrl = guildId ? getGuildEmblemUrl(guildId) : '';
+    if (!emblemUrl) {
+        imageEl.removeAttribute('src');
+        imageEl.alt = '';
+        orbEl.classList.add('is-empty');
+        return;
+    }
+
+    const guildDef = getGuildById(guildId);
+    imageEl.src = emblemUrl;
+    imageEl.alt = guildDef?.name || guildId;
+    orbEl.classList.remove('is-empty');
+}
+
+function _setStageCaption(text) {
+    const captionEl = document.getElementById('fw-stage-caption');
+    if (captionEl) captionEl.textContent = text;
 }

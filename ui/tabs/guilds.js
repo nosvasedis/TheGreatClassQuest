@@ -1,7 +1,7 @@
 // /ui/tabs/guilds.js — Guild Hall: crystal-column rankings, lore overlay, guild sounds, anthem modal
 
 import { getGuildLeaderboardData } from '../../features/guildScoring.js';
-import { getGuildById, getGuildEmblemUrl, GUILD_IDS, GUILDS } from '../../features/guilds.js';
+import { getGuildBadgeHtml, getGuildById, getGuildEmblemUrl, GUILD_IDS, GUILDS } from '../../features/guilds.js';
 import { openGuildHeroesModal } from '../modals/guildHeroes.js';
 import { openFortunesWheel, advanceWheel, triggerSpin, closeFortunesWheel, canSpinThisWeek } from '../../features/fortunesWheel.js';
 import { GLORY_EMOJI } from '../../constants.js';
@@ -520,27 +520,51 @@ async function _wireFortunesWheel() {
     const section = document.getElementById('fortunes-wheel-section');
     const btn = document.getElementById('fortunes-wheel-btn');
     const statusEl = document.getElementById('fortunes-wheel-status');
+    const windowEl = document.getElementById('fortunes-wheel-window');
+    const classEl = document.getElementById('fortunes-wheel-class');
     if (!section || !btn) return;
 
     // Section is always visible — the button always opens the modal.
     // The modal itself handles gating (locked state, lesson check, spin check).
     const classId = state.get('globalSelectedClassId');
+    const allClasses = state.get('allTeachersClasses') || [];
+    const selectedClass = allClasses.find(c => c.id === classId) || null;
     let statusMsg = '';
+    let statusTone = 'waiting';
+    let windowMsg = 'Awaiting a class';
 
     try {
         if (classId) {
             const canSpin = await canSpinThisWeek(classId);
-            statusMsg = canSpin
-                ? 'The wheel is awake now. This class is in its final lesson before the weekend.'
-                : 'The wheel opens only during this class\'s final lesson of the week before the weekend.';
+            if (canSpin) {
+                statusMsg = 'The relic is awake. This class is in its final lesson before the weekend, so the ceremony can begin now.';
+                statusTone = 'ready';
+                windowMsg = 'Ritual window open';
+            } else {
+                statusMsg = 'The relic opens only during this class\'s final lesson of the week before the weekend.';
+                statusTone = 'locked';
+                windowMsg = 'Waiting for final lesson';
+            }
         } else {
-            statusMsg = 'Select a class to see when the relic may awaken.';
+            statusMsg = 'Select a class to see when the relic may awaken and who will step onto the ceremonial stage.';
         }
     } catch (_) {
         statusMsg = 'Fortune\'s Wheel awaits the proper lesson window.';
+        statusTone = 'locked';
+        windowMsg = 'Ritual window unknown';
     }
 
     if (statusEl) statusEl.textContent = statusMsg;
+    if (windowEl) {
+        windowEl.textContent = windowMsg;
+        windowEl.dataset.state = statusTone;
+    }
+    if (classEl) {
+        classEl.textContent = selectedClass
+            ? `${selectedClass.logo || 'Class'} ${selectedClass.name} · League ${selectedClass.questLevel || 'B'}`
+            : 'No class selected';
+    }
+    section.dataset.state = statusTone;
 
     // Button is NEVER disabled — always opens the modal
     btn.disabled = false;
@@ -551,7 +575,6 @@ async function _wireFortunesWheel() {
         btn._fwWired = true;
         btn.addEventListener('click', () => {
             const cid = state.get('globalSelectedClassId');
-            const allClasses = state.get('allTeachersClasses') || [];
             const cls = allClasses.find(c => c.id === cid) || null;
             const league = cls?.questLevel || state.get('globalSelectedLeague') || 'B';
             openFortunesWheel(cid, league);
@@ -594,27 +617,48 @@ function _renderFortunesLog() {
     if (!section || !listEl) return;
 
     const logs = state.get('fortuneWheelLog') || [];
-    if (logs.length === 0) return;
-
-    section.classList.remove('hidden');
+    if (logs.length === 0) {
+        listEl.innerHTML = `
+            <div class="guild-fortune-ledger__empty">
+                <div class="guild-fortune-ledger__empty-title">No recent rituals</div>
+                <p class="guild-fortune-ledger__empty-copy">When a class completes the ceremony, the latest guild omens will appear here.</p>
+            </div>`;
+        return;
+    }
 
     listEl.innerHTML = logs.map(entry => {
         const date = entry.spunAt?.toDate ? entry.spunAt.toDate() : new Date(entry.spunAt);
         const dateStr = date.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
         const results = entry.results || [];
+        const totalGlorySwing = results.reduce((sum, result) => sum + (Number(result.gloryDelta) || 0), 0);
         return `
-            <div class="p-2 rounded-lg bg-white/5 border border-violet-500/10">
-                <div class="text-xs opacity-50 mb-1">${dateStr} — Week ${entry.weekKey || '?'}</div>
-                <div class="flex flex-wrap gap-2">
+            <article class="guild-fortune-ledger__entry">
+                <div class="guild-fortune-ledger__entry-topline">
+                    <div>
+                        <div class="guild-fortune-ledger__entry-date">${dateStr}</div>
+                        <div class="guild-fortune-ledger__entry-week">Week ${entry.weekKey || '?'}</div>
+                    </div>
+                    <div class="guild-fortune-ledger__entry-swing ${totalGlorySwing < 0 ? 'guild-fortune-ledger__entry-swing--negative' : ''}">
+                        ${totalGlorySwing >= 0 ? '+' : ''}${totalGlorySwing} ${GLORY_EMOJI}
+                    </div>
+                </div>
+                <div class="guild-fortune-ledger__entry-results">
                     ${results.map(r => {
                         const gDef = getGuildById(r.guildId);
-                        return `<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs"
-                                    style="background:${gDef?.primary || '#666'}22;color:${gDef?.primary || '#ccc'};">
-                                    ${gDef?.emoji || '⚔️'} ${r.segmentLabel || r.segmentId}
-                                    ${r.gloryDelta ? `<span class="opacity-60">(${r.gloryDelta >= 0 ? '+' : ''}${r.gloryDelta}⚜️)</span>` : ''}
-                                </span>`;
+                        const badgeHtml = getGuildBadgeHtml(r.guildId, 'w-8 h-8');
+                        return `
+                            <div class="guild-fortune-ledger__result" style="--guild-primary:${gDef?.primary || '#666'};--guild-secondary:${gDef?.secondary || '#999'};">
+                                <div class="guild-fortune-ledger__result-badge">${badgeHtml}</div>
+                                <div class="guild-fortune-ledger__result-copy">
+                                    <div class="guild-fortune-ledger__result-guild">${gDef?.name || r.guildId}</div>
+                                    <div class="guild-fortune-ledger__result-label">${r.segmentLabel || r.segmentId}</div>
+                                </div>
+                                <div class="guild-fortune-ledger__result-impact ${Number(r.gloryDelta) < 0 ? 'guild-fortune-ledger__result-impact--negative' : ''}">
+                                    ${r.gloryDelta ? `${r.gloryDelta >= 0 ? '+' : ''}${r.gloryDelta} ${GLORY_EMOJI}` : 'Effect'}
+                                </div>
+                            </div>`;
                     }).join('')}
                 </div>
-            </div>`;
+            </article>`;
     }).join('');
 }

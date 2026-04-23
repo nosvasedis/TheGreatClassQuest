@@ -202,6 +202,414 @@
 
 
 /* ═══════════════════════════════════════════════════════════════════════════
+   FORTUNE RELIC PANEL
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.guild-fortune-panel {
+    position: relative;
+    max-width: min(1140px, calc(100% - 1rem));
+    margin-left: auto;
+    margin-right: auto;
+    overflow: hidden;
+    border-radius: 1.6rem;
+    border: 1px solid rgba(255, 255, 255, 0.14);
+    background:
+        radial-gradient(circle at 15% 15%, rgba(251, 191, 36, 0.16), transparent 28%),
+        radial-gradient(circle at 85% 20%, rgba(190, 24, 93, 0.18), transparent 25%),
+        radial-gradient(circle at 50% 100%, rgba(30, 64, 175, 0.28), transparent 55%),
+        linear-gradient(145deg, rgba(14, 16, 35, 0.96), rgba(35, 16, 72, 0.96) 48%, rgba(15, 23, 42, 0.98));
+    box-shadow:
+        inset 0 1px 0 rgba(255,255,255,0.08),
+        inset 0 -30px 60px rgba(10, 10, 30, 0.35),
+        0 20px 60px rgba(5, 8, 20, 0.35);
+}
+
+.guild-fortune-panel__backdrop,
+.guild-fortune-panel__particles {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+}
+
+.guild-fortune-panel__backdrop {
+    background:
+        radial-gradient(circle at center, rgba(255,255,255,0.06), transparent 38%),
+        linear-gradient(90deg, transparent, rgba(255,255,255,0.06), transparent);
+    opacity: 0.8;
+}
+
+.guild-fortune-panel__particles span {
+    position: absolute;
+    bottom: -20px;
+    width: 7px;
+    height: 7px;
+    border-radius: 999px;
+    background: rgba(251, 191, 36, 0.85);
+    box-shadow: 0 0 14px rgba(251, 191, 36, 0.7);
+    animation: guild-fortune-embers 8s linear infinite;
+    opacity: 0;
+}
+
+.guild-fortune-panel__particles span:nth-child(1) { left: 9%; animation-delay: 0s; }
+.guild-fortune-panel__particles span:nth-child(2) { left: 21%; animation-delay: 1.2s; background: rgba(244, 114, 182, 0.75); }
+.guild-fortune-panel__particles span:nth-child(3) { left: 42%; animation-delay: 2.7s; }
+.guild-fortune-panel__particles span:nth-child(4) { left: 61%; animation-delay: 0.9s; background: rgba(96, 165, 250, 0.8); }
+.guild-fortune-panel__particles span:nth-child(5) { left: 78%; animation-delay: 3.1s; }
+.guild-fortune-panel__particles span:nth-child(6) { left: 90%; animation-delay: 4.4s; background: rgba(248, 113, 113, 0.82); }
+
+@keyframes guild-fortune-embers {
+    0% { transform: translateY(0) scale(0.8); opacity: 0; }
+    10% { opacity: 1; }
+    100% { transform: translateY(-250px) scale(1.15); opacity: 0; }
+}
+
+.guild-fortune-panel__body {
+    position: relative;
+    z-index: 1;
+    display: grid;
+    grid-template-columns: minmax(0, 1.05fr) minmax(320px, 0.95fr);
+    gap: 1.5rem;
+    align-items: stretch;
+    padding: 1.4rem;
+}
+
+.guild-fortune-panel__lead,
+.guild-fortune-panel__preview {
+    position: relative;
+    border-radius: 1.3rem;
+    padding: 1.4rem;
+    background: rgba(255,255,255,0.05);
+    border: 1px solid rgba(255,255,255,0.08);
+    backdrop-filter: blur(10px);
+}
+
+.guild-fortune-panel__lead {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    min-height: 100%;
+}
+
+.guild-fortune-panel__kicker {
+    display: inline-flex;
+    align-self: flex-start;
+    margin-bottom: 0.8rem;
+    padding: 0.4rem 0.8rem;
+    border-radius: 999px;
+    background: rgba(251, 191, 36, 0.12);
+    color: #fcd34d;
+    font-size: 0.72rem;
+    font-weight: 800;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+}
+
+.guild-fortune-panel__title {
+    margin: 0;
+    font-size: clamp(1.9rem, 4vw, 3rem);
+    line-height: 0.98;
+    color: #fff7d6;
+    text-shadow: 0 6px 24px rgba(251, 191, 36, 0.15);
+}
+
+.guild-fortune-panel__description {
+    margin: 0.8rem 0 0;
+    max-width: 36rem;
+    color: rgba(255,255,255,0.75);
+    font-size: 1rem;
+    line-height: 1.65;
+}
+
+.guild-fortune-panel__meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    margin-top: 1.15rem;
+}
+
+.guild-fortune-panel__status-pill,
+.guild-fortune-panel__class-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    min-height: 44px;
+    padding: 0.7rem 0.95rem;
+    border-radius: 999px;
+    border: 1px solid rgba(255,255,255,0.12);
+    color: rgba(255,255,255,0.92);
+    background: rgba(15, 23, 42, 0.5);
+    font-size: 0.88rem;
+    font-weight: 700;
+}
+
+.guild-fortune-panel__status-pill[data-state="ready"] {
+    background: rgba(5, 150, 105, 0.18);
+    border-color: rgba(52, 211, 153, 0.35);
+    color: #bbf7d0;
+}
+
+.guild-fortune-panel__status-pill[data-state="locked"] {
+    background: rgba(127, 29, 29, 0.2);
+    border-color: rgba(248, 113, 113, 0.28);
+    color: #fecaca;
+}
+
+.guild-fortune-panel__status-copy {
+    margin: 1rem 0 0;
+    color: rgba(255,255,255,0.82);
+    font-size: 0.95rem;
+    line-height: 1.7;
+}
+
+.guild-fortune-panel__actions {
+    margin-top: 1.35rem;
+}
+
+.guild-fortune-panel__cta {
+    display: inline-flex;
+    flex-direction: column;
+    align-items: flex-start;
+    justify-content: center;
+    gap: 0.2rem;
+    min-width: min(100%, 320px);
+    padding: 1rem 1.25rem !important;
+    border-radius: 1.15rem !important;
+    border: 1px solid rgba(255,255,255,0.18) !important;
+    background: linear-gradient(135deg, #f59e0b, #f97316 42%, #db2777 100%) !important;
+    box-shadow: 0 18px 36px rgba(217, 119, 6, 0.28), 0 0 0 1px rgba(255,255,255,0.06);
+}
+
+.guild-fortune-panel__cta-label {
+    display: block;
+    color: #fff;
+    font-size: 1.1rem;
+    letter-spacing: 0.01em;
+}
+
+.guild-fortune-panel__cta-subtitle {
+    display: block;
+    color: rgba(255,255,255,0.82);
+    font-size: 0.8rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+}
+
+.guild-fortune-panel__preview {
+    display: grid;
+    gap: 1rem;
+    align-content: start;
+}
+
+.guild-fortune-panel__sigils {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 0.85rem;
+}
+
+.guild-fortune-panel__sigil {
+    width: 100%;
+    aspect-ratio: 1;
+    object-fit: cover;
+    border-radius: 1rem;
+    border: 1px solid rgba(255,255,255,0.14);
+    background: rgba(15,23,42,0.45);
+    box-shadow: 0 12px 24px rgba(2,6,23,0.32);
+}
+
+.guild-fortune-panel__sigil--dragon { box-shadow: 0 12px 24px rgba(220, 38, 38, 0.24); }
+.guild-fortune-panel__sigil--grizzly { box-shadow: 0 12px 24px rgba(217, 119, 6, 0.22); }
+.guild-fortune-panel__sigil--owl { box-shadow: 0 12px 24px rgba(59, 130, 246, 0.22); }
+.guild-fortune-panel__sigil--phoenix { box-shadow: 0 12px 24px rgba(236, 72, 153, 0.22); }
+
+.guild-fortune-ledger {
+    display: flex;
+    flex-direction: column;
+    min-height: 100%;
+    padding: 1rem;
+    border-radius: 1rem;
+    background: rgba(6, 10, 26, 0.52);
+    border: 1px solid rgba(255,255,255,0.08);
+}
+
+.guild-fortune-ledger__header {
+    display: flex;
+    align-items: end;
+    justify-content: space-between;
+    gap: 0.75rem;
+    padding-bottom: 0.85rem;
+    border-bottom: 1px solid rgba(255,255,255,0.08);
+}
+
+.guild-fortune-ledger__eyebrow,
+.guild-fortune-ledger__note {
+    color: rgba(255,255,255,0.55);
+    font-size: 0.72rem;
+    font-weight: 800;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+}
+
+.guild-fortune-ledger__title {
+    margin-top: 0.2rem;
+    color: #fff;
+    font-size: 1rem;
+    font-weight: 800;
+}
+
+.guild-fortune-ledger__list {
+    display: grid;
+    gap: 0.8rem;
+    margin-top: 0.95rem;
+}
+
+.guild-fortune-ledger__entry {
+    padding: 0.9rem;
+    border-radius: 1rem;
+    background: linear-gradient(180deg, rgba(255,255,255,0.05), rgba(255,255,255,0.02));
+    border: 1px solid rgba(255,255,255,0.08);
+}
+
+.guild-fortune-ledger__entry-topline {
+    display: flex;
+    align-items: start;
+    justify-content: space-between;
+    gap: 1rem;
+    margin-bottom: 0.8rem;
+}
+
+.guild-fortune-ledger__entry-date {
+    color: #fff7d6;
+    font-size: 0.95rem;
+    font-weight: 800;
+}
+
+.guild-fortune-ledger__entry-week {
+    margin-top: 0.15rem;
+    color: rgba(255,255,255,0.55);
+    font-size: 0.76rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
+
+.guild-fortune-ledger__entry-swing {
+    flex-shrink: 0;
+    padding: 0.45rem 0.7rem;
+    border-radius: 999px;
+    background: rgba(5, 150, 105, 0.14);
+    color: #bbf7d0;
+    font-size: 0.8rem;
+    font-weight: 800;
+}
+
+.guild-fortune-ledger__entry-swing--negative {
+    background: rgba(127, 29, 29, 0.22);
+    color: #fecaca;
+}
+
+.guild-fortune-ledger__entry-results {
+    display: grid;
+    gap: 0.65rem;
+}
+
+.guild-fortune-ledger__result {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    gap: 0.75rem;
+    align-items: center;
+    padding: 0.65rem 0.7rem;
+    border-radius: 0.95rem;
+    background: linear-gradient(135deg, color-mix(in srgb, var(--guild-primary) 16%, rgba(255,255,255,0.04)), rgba(255,255,255,0.03));
+    border: 1px solid color-mix(in srgb, var(--guild-primary) 28%, rgba(255,255,255,0.08));
+}
+
+.guild-fortune-ledger__result-badge .guild-badge {
+    width: 2.25rem;
+    height: 2.25rem;
+}
+
+.guild-fortune-ledger__result-guild {
+    color: rgba(255,255,255,0.6);
+    font-size: 0.7rem;
+    font-weight: 800;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+}
+
+.guild-fortune-ledger__result-label {
+    color: #fff;
+    font-size: 0.9rem;
+    font-weight: 800;
+}
+
+.guild-fortune-ledger__result-impact {
+    padding: 0.42rem 0.6rem;
+    border-radius: 999px;
+    background: rgba(255,255,255,0.08);
+    color: #e0f2fe;
+    font-size: 0.76rem;
+    font-weight: 800;
+    white-space: nowrap;
+}
+
+.guild-fortune-ledger__result-impact--negative {
+    background: rgba(127, 29, 29, 0.24);
+    color: #fecaca;
+}
+
+.guild-fortune-ledger__empty {
+    display: grid;
+    place-items: center;
+    min-height: 220px;
+    padding: 1rem;
+    border-radius: 1rem;
+    border: 1px dashed rgba(255,255,255,0.12);
+    text-align: center;
+}
+
+.guild-fortune-ledger__empty-title {
+    color: #fff7d6;
+    font-weight: 800;
+}
+
+.guild-fortune-ledger__empty-copy {
+    margin: 0.45rem 0 0;
+    max-width: 20rem;
+    color: rgba(255,255,255,0.65);
+    font-size: 0.92rem;
+    line-height: 1.6;
+}
+
+@media (max-width: 980px) {
+    .guild-fortune-panel__body {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 640px) {
+    .guild-fortune-panel__body,
+    .guild-fortune-panel__lead,
+    .guild-fortune-panel__preview {
+        padding: 1rem;
+    }
+
+    .guild-fortune-panel__sigils {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .guild-fortune-ledger__result {
+        grid-template-columns: auto minmax(0, 1fr);
+    }
+
+    .guild-fortune-ledger__result-impact {
+        grid-column: 1 / -1;
+        justify-self: start;
+    }
+}
+
+
+/* ═══════════════════════════════════════════════════════════════════════════
    CRYSTAL TOWER RANKINGS
    ═══════════════════════════════════════════════════════════════════════════ */
 

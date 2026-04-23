@@ -1234,31 +1234,27 @@ function _renderWheelSummary() {
     if (nextBtn) nextBtn.classList.add('hidden');
 
     summaryEl.innerHTML = `
-        <div class="fw-summary-board">
-            <div class="fw-summary-board__header">
-                <div>
-                    <div class="fw-summary-board__eyebrow">Weekly Outcome</div>
-                    <div class="fw-summary-board__title">Guild Fortune Ledger</div>
-                </div>
-            </div>
-            <div class="fw-summary-grid">
-            ${_wheelState.results.map(r => {
-                const guildDef = getGuildById(r.guildId);
-                const rarityConf = WHEEL_RARITY_CONFIG[r.rarity] || WHEEL_RARITY_CONFIG.common;
-                const emblemUrl = getGuildEmblemUrl(r.guildId);
-                return `
-                    <div class="fw-summary-card" style="border-color:${guildDef?.primary || '#666'};">
-                        <div class="fw-summary-guild-name" style="color:${guildDef?.primary || '#fff'}">
-                            ${emblemUrl ? `<img src="${emblemUrl}" alt="${guildDef?.name || r.guildId}" class="fw-summary-guild-emblem">` : ''}
-                            <span>${guildDef?.name || r.guildId}</span>
-                        </div>
-                        <div class="fw-summary-segment">${r.segmentLabel}</div>
-                        <div class="fw-summary-rarity" style="color:${rarityConf.color}">${rarityConf.label}</div>
-                        <div class="fw-summary-desc">${r.description || r.segmentDescription}</div>
-                        ${r.gloryDelta ? `<div class="fw-summary-glory">${r.gloryDelta >= 0 ? '+' : ''}${r.gloryDelta} ⚜️</div>` : ''}
-                    </div>`;
-            }).join('')}
-            </div>
+        <div class="fw-summary-header">
+            <div class="fw-summary-eyebrow">Weekly Outcome</div>
+            <div class="fw-summary-title">Guild Fortune Ledger</div>
+        </div>
+        <div class="fw-summary-grid">
+        ${_wheelState.results.map(r => {
+            const guildDef = getGuildById(r.guildId);
+            const rarityConf = WHEEL_RARITY_CONFIG[r.rarity] || WHEEL_RARITY_CONFIG.common;
+            const emblemUrl = getGuildEmblemUrl(r.guildId);
+            return `
+                <div class="fw-summary-item" style="border-color:${guildDef?.primary || '#666'};">
+                    <div class="fw-summary-guild" style="color:${guildDef?.primary || '#fff'}">
+                        ${emblemUrl ? `<img src="${emblemUrl}" alt="${guildDef?.name || r.guildId}" class="fw-summary-emblem">` : ''}
+                        <span>${guildDef?.name || r.guildId}</span>
+                    </div>
+                    <div class="fw-summary-result">${r.segmentLabel}</div>
+                    <div class="fw-summary-rarity" style="color:${rarityConf.color}">${rarityConf.label}</div>
+                    <div class="fw-summary-desc">${r.description || r.segmentDescription}</div>
+                    ${r.gloryDelta ? `<div class="fw-result-glory ${r.gloryDelta < 0 ? 'fw-result-glory--negative' : ''}">${r.gloryDelta >= 0 ? '+' : ''}${r.gloryDelta} ⚜️</div>` : ''}
+                </div>`;
+        }).join('')}
         </div>`;
     summaryEl.classList.remove('hidden');
 

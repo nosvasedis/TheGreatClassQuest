@@ -39,6 +39,12 @@ function parseRetryAfterMs(response) {
     return null;
 }
 
+function createTimeoutError(timeoutMs) {
+    const error = new Error(`Request timed out after ${timeoutMs}ms`);
+    error.name = 'TimeoutError';
+    return error;
+}
+
 async function fetchWithBackoff(url, options, config = {}) {
     const {
         retries = 3,
@@ -49,19 +55,33 @@ async function fetchWithBackoff(url, options, config = {}) {
 
     while (attempt <= retries) {
         let timeoutId = null;
+        let abortCleanup = null;
 
         try {
-            const controller = typeof AbortController !== 'undefined' && timeoutMs > 0
+            const controller = typeof AbortController !== 'undefined' && (timeoutMs > 0 || options?.signal)
                 ? new AbortController()
                 : null;
+
+            if (controller && options?.signal) {
+                if (options.signal.aborted) {
+                    controller.abort(options.signal.reason ?? new DOMException('Request aborted', 'AbortError'));
+                } else {
+                    const forwardAbort = () => {
+                        controller.abort(options.signal.reason ?? new DOMException('Request aborted', 'AbortError'));
+                    };
+                    options.signal.addEventListener('abort', forwardAbort, { once: true });
+                    abortCleanup = () => options.signal.removeEventListener('abort', forwardAbort);
+                }
+            }
+
             const requestOptions = controller ? { ...options, signal: controller.signal } : options;
 
-            if (controller) {
-                timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+            if (controller && timeoutMs > 0 && !controller.signal.aborted) {
+                const timeoutError = createTimeoutError(timeoutMs);
+                timeoutId = setTimeout(() => controller.abort(timeoutError), timeoutMs);
             }
 
             const response = await fetch(url, requestOptions);
-            if (timeoutId) clearTimeout(timeoutId);
 
             if (response.ok) return response;
 
@@ -81,17 +101,31 @@ async function fetchWithBackoff(url, options, config = {}) {
             await new Promise((res) => setTimeout(res, waitMs));
             attempt += 1;
         } catch (error) {
-            if (timeoutId) clearTimeout(timeoutId);
+            const normalizedError = error?.name === 'AbortError' && options?.signal?.aborted
+                ? (options.signal.reason ?? error)
+                : error?.name === 'AbortError' && typeof AbortController !== 'undefined'
+                    ? error
+                    : error;
+            const isTimeout = normalizedError?.name === 'TimeoutError';
+            const isCallerAbort = options?.signal?.aborted && !isTimeout;
+
+            if (isCallerAbort) {
+                throw normalizedError;
+            }
+
             const hasRetriesLeft = attempt < retries;
             if (!hasRetriesLeft) {
-                console.error('Fetch exhausted retries:', error);
-                throw error;
+                console.error(isTimeout ? 'Fetch exhausted retries after timeout:' : 'Fetch exhausted retries:', normalizedError);
+                throw normalizedError;
             }
 
             const waitMs = baseDelay * Math.pow(2, attempt) + Math.floor(Math.random() * 500);
-            console.warn('Network error, retrying...', error);
+            console.warn(isTimeout ? `Request timed out after ${timeoutMs}ms, retrying...` : 'Network error, retrying...', normalizedError);
             await new Promise((res) => setTimeout(res, waitMs));
             attempt += 1;
+        } finally {
+            if (timeoutId) clearTimeout(timeoutId);
+            if (abortCleanup) abortCleanup();
         }
     }
 

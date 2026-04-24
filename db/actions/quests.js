@@ -428,7 +428,7 @@ Power-up context: ${powerUpContext || 'none'}`;
                 rawResponse = await callGeminiApi(systemPrompt, userPrompt, {
                     retries: 1,
                     baseDelay: 700,
-                    timeoutMs: 8000
+                    timeoutMs: 15000
                 });
                 localStorage.removeItem(cooldownKey);
             } catch (error) {

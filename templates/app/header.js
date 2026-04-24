@@ -15,7 +15,7 @@ export const headerHTML = `
                     <h1 id="main-app-title" class="font-title text-2xl text-white sm:text-4xl">The Great Class Quest</h1>
                 </div>
                 <div id="header-quote-container"
-                    class="hidden md:inline-flex items-center gap-3 bg-white/20 backdrop-blur-sm border border-white/30 rounded-full px-4 py-1.5 shadow-md mt-2">
+                    class="hidden self-start md:inline-flex items-center gap-3 bg-white/20 backdrop-blur-sm border border-white/30 rounded-full px-4 py-1.5 shadow-md mt-2">
                     <span class="text-lg text-white/80">✨</span>
                     <p id="header-quote-text" class="font-title text-sm text-white tracking-wide"
                         style="text-shadow: 0 1px 3px rgba(0,0,0,0.2);">Loading wisdom...</p>

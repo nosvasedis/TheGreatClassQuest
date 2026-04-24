@@ -89,11 +89,10 @@ export const guildsTabHTML = `
                             <p id="fortunes-wheel-status" class="guild-fortune-panel__status-copy"></p>
 
                             <div class="guild-fortune-panel__actions">
-                                <button id="fortunes-wheel-btn" type="button" class="guild-fortune-panel__cta bubbly-button">
-                                    <span class="guild-fortune-panel__cta-icon"><i class="fa-solid fa-dharma"></i></span>
-                                    <span class="guild-fortune-panel__cta-label font-title">Open Fortune's Wheel</span>
-                                    <span class="guild-fortune-panel__cta-subtitle">Begin the ritual ceremony</span>
+                                <button id="fortunes-wheel-btn" type="button" class="guild-fortune-panel__cta guild-fortune-panel__cta--circle bubbly-button" aria-label="Open Fortune's Wheel">
+                                    <span class="guild-fortune-panel__cta-icon"><i class="fa-solid fa-dharmachakra"></i></span>
                                 </button>
+                                <div class="guild-fortune-panel__cta-caption font-title">Open Fortune's Wheel</div>
                             </div>
                         </div>
 

@@ -56,14 +56,16 @@ export async function handleBestowBoon(senderId, receiverId) {
             const senderData = senderDoc.data() || {};
             const currentGold = (senderData.gold !== undefined) ? senderData.gold : (senderData.totalStars || 0);
             const freeBoonUses = Number(senderData.peerBoonFreeUses) || 0;
+            const monthKey = utils.getLocalMonthKey();
+            const isMonthFree = senderData.peerBoonFreeMonthKey === monthKey;
 
-            if (freeBoonUses > 0) {
+            if (!isMonthFree && freeBoonUses > 0) {
                 if (freeBoonUses <= 1) {
                     transaction.update(senderScoreRef, { peerBoonFreeUses: deleteField() });
                 } else {
                     transaction.update(senderScoreRef, { peerBoonFreeUses: freeBoonUses - 1 });
                 }
-            } else {
+            } else if (!isMonthFree) {
                 if (currentGold < 15) throw "Not enough Gold!";
                 transaction.update(senderScoreRef, { gold: increment(-15) });
             }

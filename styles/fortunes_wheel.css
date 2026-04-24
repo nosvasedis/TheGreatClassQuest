@@ -1012,6 +1012,20 @@
     }
 }
 
+@media (max-height: 820px) {
+    .fw-content-unified {
+        overflow-y: auto;
+    }
+
+    .fw-controls-section {
+        max-height: none;
+    }
+
+    .fw-main-layout {
+        align-items: stretch;
+    }
+}
+
 @media (prefers-reduced-motion: reduce) {
     .fw-card,
     .fw-header-floating,

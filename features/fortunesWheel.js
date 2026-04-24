@@ -445,8 +445,9 @@ function wrapText(ctx, text, maxWidth) {
  * @param {Array} segments - 20 segments
  * @param {number} rotationAngle - Current rotation in radians
  * @param {object} guildDef - Guild definition for center emblem colors
+ * @param {number|null} highlightIndex - Optional segment index to glow
  */
-export function drawWheel(canvas, segments, rotationAngle, guildDef) {
+export function drawWheel(canvas, segments, rotationAngle, guildDef, highlightIndex = null) {
     const ctx = canvas.getContext('2d');
     const size = canvas.width;
     const center = size / 2;
@@ -560,6 +561,29 @@ export function drawWheel(canvas, segments, rotationAngle, guildDef) {
             ctx.fillText(lines[j], textStartRadius, startY + (j * lineHeight));
         }
 
+        ctx.restore();
+    }
+
+    if (Number.isInteger(highlightIndex) && highlightIndex >= 0 && highlightIndex < segCount) {
+        const seg = segments[highlightIndex];
+        const rarityConf = WHEEL_RARITY_CONFIG[seg?.rarity] || WHEEL_RARITY_CONFIG.common;
+        const startAngle = highlightIndex * segAngle;
+        const endAngle = startAngle + segAngle;
+
+        ctx.save();
+        ctx.beginPath();
+        ctx.moveTo(0, 0);
+        ctx.arc(0, 0, radius, startAngle, endAngle);
+        ctx.closePath();
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.14)';
+        ctx.shadowColor = rarityConf.glow || 'rgba(251, 191, 36, 0.55)';
+        ctx.shadowBlur = Math.max(18, size / 18);
+        ctx.fill();
+
+        ctx.shadowBlur = 0;
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.92)';
+        ctx.lineWidth = Math.max(10, size / 55);
+        ctx.stroke();
         ctx.restore();
     }
 
@@ -772,7 +796,8 @@ export function animateWheelSpin(canvas, segments, winnerIndex, guildDef, onTick
 
         // Add extra full spins for drama (8-12 full rotations for a high energy spin)
         const extraSpins = (8 + Math.floor(Math.random() * 4)) * TAU;
-        const totalRotation = extraSpins + (TAU - (targetAngle % TAU) + TAU) % TAU;
+        const normalizedTarget = ((targetAngle % TAU) + TAU) % TAU;
+        const totalRotation = extraSpins + normalizedTarget;
 
         const duration = 6500 + Math.random() * 1500; // 6.5-8s for maximum suspense
         const startTime = performance.now();
@@ -817,9 +842,8 @@ export function animateWheelSpin(canvas, segments, winnerIndex, guildDef, onTick
             if (t < 1) {
                 requestAnimationFrame(frame);
             } else {
-                // Final draw at exact target with a flash
-                drawWheel(canvas, segments, totalRotation, guildDef);
-                setTimeout(resolve, 800); // Dramatic pause before result
+                drawWheel(canvas, segments, totalRotation, guildDef, winnerIndex);
+                setTimeout(() => resolve({ rotationAngle: totalRotation }), 800);
             }
         }
 
@@ -840,6 +864,8 @@ let _wheelState = {
     segments: [],         // Current guild's 20 segments
     results: [],          // All 4 guild results
     phase: 'idle',        // 'idle' | 'ready' | 'spinning' | 'revealed' | 'summary' | 'done'
+    winnerIndex: null,
+    rotationAngle: 0,
 };
 let _wheelResizeWired = false;
 
@@ -875,7 +901,7 @@ function _wireWheelResize() {
     if (_wheelResizeWired) return;
     _wheelResizeWired = true;
     window.addEventListener('resize', () => {
-        if (_wheelState.phase !== 'ready' && _wheelState.phase !== 'spinning') return;
+        if (_wheelState.phase !== 'ready' && _wheelState.phase !== 'spinning' && _wheelState.phase !== 'revealed') return;
         _sizeAndRenderWheel();
     });
 }
@@ -930,7 +956,7 @@ async function _evaluateAndRender(classId, leagueLevel) {
     _renderAvailability(availability);
 
     if (!availability.allowed) {
-        _wheelState = { active: false, classId: null, leagueLevel: null, guildOrder: [], currentGuildIndex: 0, segments: [], results: [], phase: 'idle' };
+        _wheelState = { active: false, classId: null, leagueLevel: null, guildOrder: [], currentGuildIndex: 0, segments: [], results: [], phase: 'idle', winnerIndex: null, rotationAngle: 0 };
         _renderLockedState(availability);
         return;
     }
@@ -944,6 +970,8 @@ async function _evaluateAndRender(classId, leagueLevel) {
         segments: [],
         results: [],
         phase: 'ready',
+        winnerIndex: null,
+        rotationAngle: 0,
     };
 
     // Generate first guild's segments
@@ -1015,6 +1043,8 @@ function _renderLockedState(title, message, emoji) {
 export async function triggerSpin() {
     if (_wheelState.phase !== 'ready') return;
     _wheelState.phase = 'spinning';
+    _wheelState.winnerIndex = null;
+    _wheelState.rotationAngle = 0;
 
     const canvas = document.getElementById('fortunes-wheel-canvas');
     const guildId = _wheelState.guildOrder[_wheelState.currentGuildIndex];
@@ -1027,10 +1057,12 @@ export async function triggerSpin() {
     _updateSpinButton(true, 'Spinning...');
 
     // Animate
-    await animateWheelSpin(canvas, segments, winnerIndex, guildDef, () => {
+    const anim = await animateWheelSpin(canvas, segments, winnerIndex, guildDef, () => {
         try { playSound('click'); } catch (_) {}
     });
     if (stageFrame) stageFrame.classList.remove('is-spinning');
+    _wheelState.winnerIndex = winnerIndex;
+    _wheelState.rotationAngle = anim?.rotationAngle || 0;
 
     // Reveal sound based on rarity
     const winningSeg = segments[winnerIndex];
@@ -1061,6 +1093,8 @@ export function advanceWheel() {
         _wheelState.currentGuildIndex++;
         _wheelState.segments = generateWheelSegments(_wheelState.leagueLevel);
         _wheelState.phase = 'ready';
+        _wheelState.winnerIndex = null;
+        _wheelState.rotationAngle = 0;
         _renderWheelPhase();
     } else {
         _wheelState.phase = 'summary';
@@ -1080,7 +1114,7 @@ export async function closeFortunesWheel() {
         }
     }
 
-    _wheelState = { active: false, classId: null, leagueLevel: null, guildOrder: [], currentGuildIndex: 0, segments: [], results: [], phase: 'idle' };
+    _wheelState = { active: false, classId: null, leagueLevel: null, guildOrder: [], currentGuildIndex: 0, segments: [], results: [], phase: 'idle', winnerIndex: null, rotationAngle: 0 };
 
     const modal = document.getElementById('fortunes-wheel-modal');
     if (modal) {
@@ -1143,20 +1177,20 @@ function _sizeAndRenderWheel() {
     const guildId = _wheelState.guildOrder[_wheelState.currentGuildIndex];
     const guildDef = getGuildById(guildId);
 
-    const stageFrame = document.getElementById('fw-stage-frame');
-    const stageRect = stageFrame?.getBoundingClientRect();
-    const parentWidth = canvas.parentElement?.clientWidth || 620;
-    const stageHeight = stageRect?.height || window.innerHeight * 0.62;
-
-    const widthBudget = Math.min(parentWidth, window.innerWidth * 0.5);
-    const heightBudget = Math.max(360, stageHeight - 36);
-    const displaySize = Math.round(Math.max(320, Math.min(640, widthBudget, heightBudget)));
+    const parentEl = canvas.parentElement;
+    const parentWidth = parentEl?.clientWidth || 620;
+    const parentHeight = parentEl?.clientHeight || parentWidth;
+    const available = Math.min(parentWidth, parentHeight);
+    const displaySize = Math.round(Math.min(640, available));
+    if (!displaySize || displaySize < 10) return;
 
     canvas.style.width = `${displaySize}px`;
     canvas.style.height = `${displaySize}px`;
     canvas.width = displaySize;
     canvas.height = displaySize;
-    drawWheel(canvas, _wheelState.segments, 0, guildDef);
+    const rotation = _wheelState.phase === 'revealed' ? (_wheelState.rotationAngle || 0) : 0;
+    const highlightIndex = _wheelState.phase === 'revealed' ? _wheelState.winnerIndex : null;
+    drawWheel(canvas, _wheelState.segments, rotation, guildDef, highlightIndex);
 }
 
 function _updateSpinButton(disabled, label = 'Spin the Wheel', sublabel = 'The relic chooses a fate') {

@@ -20,7 +20,7 @@ export const LEGENDARY_ARTIFACTS = [
     { id: 'leg_aurum', name: 'Aurum Satchel', price: 32, description: 'Grants 50% off your next Mystic Market purchase this month.', icon: '💰' },
     { id: 'leg_bulwark', name: 'Bulwark Crest', price: 48, description: 'Your guild gains a Glory Shield for 7 days (blocks negative wheel effects).', icon: '🛡️' },
     { id: 'leg_quill', name: "Archivist's Quill", price: 62, description: 'Your next Story Weaver class bonus awards you 1 star instead of 0.5.', icon: '✒️' },
-    { id: 'leg_compassion', name: 'Compassion Token', price: 55, description: "Your next Hero's Boon costs 0 Gold (one free gift).", icon: '💝' }
+    { id: 'leg_compassion', name: 'Compassion Token', price: 55, description: "Hero's Boon costs 0 Gold for the rest of this month.", icon: '💝' }
 ];
 
 export function isItemUsable(itemName) {
@@ -357,15 +357,15 @@ const POWER_UP_EFFECTS = {
         };
     },
     'Compassion Token': async (student, classData, context) => {
-        context.transaction.update(context.scoreRef, { peerBoonFreeUses: increment(1) });
-        const nextUses = (Number(context.scoreData.peerBoonFreeUses) || 0) + 1;
+        const monthKey = utils.getLocalMonthKey();
+        context.transaction.update(context.scoreRef, { peerBoonFreeMonthKey: monthKey });
         return {
             success: true,
-            scorePatch: { peerBoonFreeUses: nextUses },
+            scorePatch: { peerBoonFreeMonthKey: monthKey },
             feedback: {
                 icon: '💝',
                 title: 'Compassion ready',
-                body: `${student.name} has a free Hero's Boon to give (${nextUses} use${nextUses === 1 ? '' : 's'}).`
+                body: `${student.name} can bestow Hero's Boons for free for the rest of this month.`
             }
         };
     }

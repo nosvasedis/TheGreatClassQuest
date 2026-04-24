@@ -114,6 +114,8 @@ export function playSound(sound) {
     let playTime = Math.max(now + 0.05, lastSoundTime + 0.1);
     
     // 3. Update tracker
+    const maxLead = sound === 'click' ? 0.12 : 0.35;
+    playTime = Math.min(playTime, now + maxLead);
     lastSoundTime = playTime;
 
     try {

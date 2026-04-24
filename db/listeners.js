@@ -601,6 +601,10 @@ export function setupDataListeners(userId, dateString, onInitialDataReady, optio
         // Check weekly reset
         import('../features/guildScoring.js').then(m => m.checkAndPerformWeeklyGloryReset());
         renderStudentLeaderboardTab();
+        const guildsTab = document.getElementById('guilds-tab');
+        if (guildsTab && !guildsTab.classList.contains('hidden')) {
+            import('../ui/tabs/guilds.js').then(m => m.renderGuildsTab());
+        }
     }, (error) => console.error("Error listening to guild_scores:", error)));
 
     // Guild Champions — current month
@@ -625,6 +629,10 @@ export function setupDataListeners(userId, dateString, onInitialDataReady, optio
     state.setUnsubscribeFortuneWheelLog(onSnapshot(wheelLogQuery, (snapshot) => {
         const log = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
         state.setFortuneWheelLog(log);
+        const guildsTab = document.getElementById('guilds-tab');
+        if (guildsTab && !guildsTab.classList.contains('hidden')) {
+            import('../ui/tabs/guilds.js').then(m => m.renderGuildsTab());
+        }
     }, (error) => console.error("Error listening to fortune_wheel_log:", error)));
 
     subscribeCommunicationThreads({ userId, isSecretary });

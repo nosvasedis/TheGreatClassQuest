@@ -4,7 +4,10 @@ import * as state from '../state.js';
 import { GUILD_IDS, getGuildById, getGuildEmblemUrl } from './guilds.js';
 import { GLORY_PER_STAR, WHEEL_RARITY_WEIGHTS, WHEEL_RARITY_CONFIG, JUNIOR_LEAGUES } from '../constants.js';
 import { adjustGuildGlory, applyGloryModifier, saveFortuneWheelResult, hasSpunThisWeek } from '../db/actions/guilds.js';
-import { getISOWeekKey } from './guildScoring.js';
+import { getISOWeekKey, updateGuildScores, adjustGuildScoresForWheel } from './guildScoring.js';
+import { applyWheelStudentEffects, applyClassQuestBonusDelta } from '../db/actions/fortuneWheelEffects.js';
+import { checkBountyProgress } from '../db/actions/bounties.js';
+import { checkAndRecordQuestCompletion } from '../db/actions/stars.js';
 import { playSound, playHeroFanfare } from '../audio.js';
 import { evaluateWheelAvailability } from '../utils/fortuneWheelEligibility.mjs';
 
@@ -31,6 +34,8 @@ const ALL_SEGMENTS = [
     { id: 'glory_shield',      emoji: '🛡️', label: 'Glory Shield',      description: 'Immune to negative wheel effects for 1 week.',    rarity: 'rare',      category: 'glory', effect: (ctx) => applyShield(ctx, 7) },
     { id: 'glory_momentum',    emoji: '⏳', label: 'Momentum Lock',     description: 'Momentum score locked — can\'t decrease for 1 week.', rarity: 'rare',  category: 'glory', effect: (ctx) => applyMomentumLock(ctx) },
     { id: 'rainbow_bridge',    emoji: '🌈', label: 'Rainbow Bridge',    description: 'All guilds get +10 Glory — unity bonus!',          rarity: 'common',    category: 'glory', effect: (ctx) => allGuildsGlory(ctx, 10) },
+    { id: 'glory_windfall',    emoji: '⚜️', label: 'Glory Windfall',    description: '+200 Glory instantly!',                             rarity: 'epic',      category: 'glory', effect: (ctx) => instantGlory(ctx, 200) },
+    { id: 'glory_miracle',     emoji: '👑', label: 'Glory Miracle',     description: '+400 Glory instantly!',                             rarity: 'mythic',    category: 'glory', effect: (ctx) => instantGlory(ctx, 400) },
 
     // ── Student/Class Perks (~20) ─────────────────────────────────────────────
     { id: 'star_shower',       emoji: '⭐', label: 'Star Shower',       description: '2 random guild members get +1 star each!',         rarity: 'common',    category: 'perk',  effect: (ctx) => randomStars(ctx, 2, 1) },
@@ -44,13 +49,18 @@ const ALL_SEGMENTS = [
     { id: 'artifact_rain',     emoji: '🎁', label: 'Artifact Rain',     description: 'ALL guild members get a Mystery Artifact!',        rarity: 'legendary', category: 'perk',  effect: (ctx) => randomArtifact(ctx, ctx.memberCount) },
     { id: 'teachers_favor',    emoji: '🍎', label: 'Teacher\'s Favor',  description: '1 random member gets +2 stars and +30 gold!',      rarity: 'epic',      category: 'perk',  effect: (ctx) => teachersFavor(ctx) },
     { id: 'glory_blackhole',   emoji: '🌌', label: 'Glory Blackhole',   description: 'Lose 10 Glory, but ALL members get +25 gold!',     rarity: 'rare',      category: 'perk',  effect: (ctx) => gloryBlackhole(ctx) },
-    { id: 'focus_aura',        emoji: '🎯', label: 'Focus Aura',        description: 'Next star gives double gold to any guild member.', rarity: 'uncommon',  category: 'perk',  effect: (ctx) => instantGlory(ctx, 15) },
-    { id: 'spotlight',         emoji: '🌟', label: 'Spotlight',          description: '1 random member\'s next star gives 3× Glory!',    rarity: 'uncommon',  category: 'perk',  effect: (ctx) => instantGlory(ctx, 20) },
-    { id: 'scholars_blessing', emoji: '📚', label: 'Scholar\'s Blessing', description: 'Next test bonus doubled for the guild!',         rarity: 'uncommon',  category: 'perk',  effect: (ctx) => instantGlory(ctx, 15) },
+    { id: 'focus_aura',        emoji: '🎯', label: 'Focus Aura',        description: '+1 star to 1 random member!',                      rarity: 'uncommon',  category: 'perk',  effect: (ctx) => randomStars(ctx, 1, 1) },
+    { id: 'spotlight',         emoji: '🌟', label: 'Spotlight',         description: '1 random member receives a Legendary Artifact!',   rarity: 'uncommon',  category: 'perk',  effect: (ctx) => randomArtifact(ctx, 1) },
+    { id: 'scholars_blessing', emoji: '📚', label: 'Scholar\'s Blessing', description: '+5 Team Quest bonus stars (this month)!',        rarity: 'uncommon',  category: 'perk',  effect: (ctx) => classQuestBonus(ctx, 5) },
     { id: 'treasure_chest',    emoji: '📦', label: 'Treasure Chest',    description: '+20 gold to 1 random member & +10 Glory!',         rarity: 'uncommon',  category: 'perk',  effect: (ctx) => { randomGold(ctx, 1, 20); return instantGlory(ctx, 10); } },
-    { id: 'time_warp',         emoji: '⏰', label: 'Time Warp',         description: '+15 bonus momentum points this week!',             rarity: 'uncommon',  category: 'perk',  effect: (ctx) => instantGlory(ctx, 15) },
+    { id: 'time_warp',         emoji: '⏰', label: 'Time Warp',          description: '+10 Team Quest bonus stars (this month)!',        rarity: 'uncommon',  category: 'perk',  effect: (ctx) => classQuestBonus(ctx, 10) },
     { id: 'challenge',         emoji: '🥊', label: 'Glory Challenge',   description: 'Earn most Glory this week → bonus +50 Glory!',     rarity: 'epic',      category: 'perk',  effect: (ctx) => applyChallenge(ctx) },
     { id: 'fortress',          emoji: '🏰', label: 'Fortress',          description: 'Cannot lose Glory for 2 days!',                    rarity: 'epic',      category: 'perk',  effect: (ctx) => applyShield(ctx, 2) },
+    { id: 'quest_surge',       emoji: '🗺️', label: 'Quest Surge',       description: '+15 Team Quest bonus stars (this month)!',         rarity: 'rare',      category: 'perk',  effect: (ctx) => classQuestBonus(ctx, 15) },
+    { id: 'aurum_sprinkle',    emoji: '🪙', label: 'Aurum Sprinkle',     description: '5 random members get +5 gold each!',              rarity: 'common',    category: 'perk',  effect: (ctx) => randomGold(ctx, 5, 5) },
+    { id: 'aurum_blossom',     emoji: '🪙', label: 'Aurum Blossom',      description: '3 random members get +20 gold each!',             rarity: 'uncommon',  category: 'perk',  effect: (ctx) => randomGold(ctx, 3, 20) },
+    { id: 'star_burst',        emoji: '⭐', label: 'Star Burst',         description: '3 random members get +1 star each!',              rarity: 'rare',      category: 'perk',  effect: (ctx) => randomStars(ctx, 3, 1) },
+    { id: 'mythic_relic',      emoji: '🏆', label: 'Relic of Triumph',   description: '+30 Team Quest bonus stars & +1 Artifact (5 students)!', rarity: 'mythic', category: 'perk', effect: (ctx) => mythicRelic(ctx) },
 
     // ── Fun / Cosmetic ────────────────────────────────────────────────────────
     { id: 'anthem_power',      emoji: '🎵', label: 'Anthem Power',      description: 'Guild anthem plays + +10 Glory!',                  rarity: 'common',    category: 'fun',   effect: (ctx) => instantGlory(ctx, 10) },
@@ -64,10 +74,14 @@ const ALL_SEGMENTS = [
     { id: 'glory_eclipse',     emoji: '🔻', label: 'Glory Eclipse',     description: 'Halve this week\'s Glory!',                        rarity: 'cursed',    category: 'negative', effect: (ctx) => gloryTax(ctx, 0.50) },
     { id: 'glory_heist',       emoji: '🏴‍☠️', label: 'Glory Heist',     description: 'Steal 15% of the leading guild\'s weekly Glory!',  rarity: 'cursed',    category: 'negative', effect: (ctx) => gloryHeist(ctx, 0.15) },
     { id: 'slumber',           emoji: '💤', label: 'Slumber',           description: 'Glory generation halved for 1 day.',               rarity: 'uncommon',  category: 'negative', effect: (ctx) => gloryMultiplier(ctx, 0.5, 1) },
-    { id: 'tangled_web',       emoji: '🕸️', label: 'Tangled Web',      description: 'Momentum score counts as 0 this week.',             rarity: 'rare',      category: 'negative', effect: (ctx) => instantGlory(ctx, -15) },
+    { id: 'tangled_web',       emoji: '🕸️', label: 'Tangled Web',       description: '-5 Team Quest bonus stars (this month)!',          rarity: 'rare',      category: 'negative', effect: (ctx) => classQuestBonus(ctx, -5) },
     { id: 'market_crash',      emoji: '📉', label: 'Market Crash',      description: 'All guilds lose 5% weekly Glory!',                 rarity: 'common',    category: 'negative', effect: (ctx) => allGuildsTax(ctx, 0.05) },
     { id: 'trickster',         emoji: '🎭', label: 'Trickster',         description: 'What looks like a win... turns out to be nothing!', rarity: 'common',   category: 'negative', effect: () => ({ gloryDelta: 0, description: 'The Trickster laughs! Nothing happened.' }) },
     { id: 'lightning_strike',  emoji: '⚡', label: 'Lightning Strike',  description: 'Lose 30 Glory instantly!',                         rarity: 'uncommon',  category: 'negative', effect: (ctx) => instantGlory(ctx, -30) },
+    { id: 'aurum_tax',         emoji: '🧾', label: 'Aurum Tax',          description: '3 random members lose 10 gold each!',             rarity: 'uncommon',  category: 'negative', effect: (ctx) => randomGold(ctx, 3, -10) },
+    { id: 'artifact_plunder',  emoji: '🪓', label: 'Artifact Plunder',  description: '1 random member loses 1 artifact!',               rarity: 'rare',      category: 'negative', effect: (ctx) => randomArtifactLoss(ctx, 1, 1) },
+    { id: 'star_snatch',       emoji: '🕯️', label: 'Star Snatch',       description: '1 random member loses 1 star...',                  rarity: 'cursed',    category: 'negative', effect: (ctx) => randomStars(ctx, 1, -1) },
+    { id: 'mythic_calamity',   emoji: '☄️', label: 'Calamity',          description: '-100 Glory, -10 Team Quest bonus, 3 artifacts lost...', rarity: 'mythic', category: 'negative', effect: (ctx) => mythicCalamity(ctx) },
 ];
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -188,62 +202,214 @@ async function allGuildsTax(ctx, fraction) {
 
 async function randomStars(ctx, count, amount) {
     const members = ctx.guildStudents || [];
-    const selected = shuffleArray([...members]).slice(0, Math.min(count, members.length));
-    const names = selected.map(s => s.name).join(', ');
-    // Stars will be awarded by the teacher through the normal flow — we just record which students
+    if (members.length === 0) return { gloryDelta: 0, description: 'No students were present for this guild.' };
+
+    const outcome = await applyWheelStudentEffects({
+        classId: ctx.classId,
+        students: members,
+        count,
+        starsDelta: amount,
+        note: amount < 0 ? 'Wheel star curse' : 'Wheel star blessing'
+    });
+
+    if (outcome.affectedStudents?.length) {
+        if (amount > 0) {
+            for (const sid of outcome.affectedStudents) await updateGuildScores(sid, amount);
+            await checkBountyProgress(ctx.classId, amount * outcome.affectedStudents.length);
+        } else if (amount < 0) {
+            for (const sid of outcome.affectedStudents) await adjustGuildScoresForWheel(sid, amount);
+        }
+        await checkAndRecordQuestCompletion(ctx.classId).catch(() => {});
+    }
+
+    const affected = members.filter(s => outcome.affectedStudents.includes(s.id));
+    const names = affected.map(s => s.name).join(', ');
+
     return {
         gloryDelta: 0,
-        affectedStudents: selected.map(s => s.id),
+        ...outcome,
         description: count >= members.length
-            ? `All ${members.length} guild members get +${amount} star!`
-            : `${names} ${selected.length > 1 ? 'each get' : 'gets'} +${amount} star!`
+            ? `All ${members.length} guild members ${amount >= 0 ? `gain ${amount} star` : `lose ${Math.abs(amount)} star`}!`
+            : `${names} ${affected.length > 1 ? 'each' : ''} ${amount >= 0 ? `gain ${amount} star` : `loses ${Math.abs(amount)} star`}.`
     };
 }
 
 async function randomGold(ctx, count, amount) {
     const members = ctx.guildStudents || [];
-    const selected = shuffleArray([...members]).slice(0, Math.min(count, members.length));
-    const names = selected.map(s => s.name).join(', ');
+    if (members.length === 0) return { gloryDelta: 0, description: 'No students were present for this guild.' };
+
+    const outcome = await applyWheelStudentEffects({
+        classId: ctx.classId,
+        students: members,
+        count,
+        goldDelta: amount,
+        note: amount < 0 ? 'Wheel gold tax' : 'Wheel gold blessing'
+    });
+
+    const affected = members.filter(s => outcome.affectedStudents.includes(s.id));
+    const names = affected.map(s => s.name).join(', ');
+
     return {
         gloryDelta: 0,
-        affectedStudents: selected.map(s => s.id),
+        ...outcome,
         description: count >= members.length
-            ? `All guild members get +${amount} gold!`
-            : `${names} ${selected.length > 1 ? 'each get' : 'gets'} +${amount} gold!`
+            ? `All guild members ${amount >= 0 ? `gain ${amount} gold` : `lose ${Math.abs(amount)} gold`}!`
+            : `${names} ${affected.length > 1 ? 'each' : ''} ${amount >= 0 ? `gain ${amount} gold` : `lose ${Math.abs(amount)} gold`}.`
     };
 }
 
 async function randomArtifact(ctx, count) {
     const members = ctx.guildStudents || [];
-    const selected = shuffleArray([...members]).slice(0, Math.min(count, members.length));
-    const names = selected.map(s => s.name).join(', ');
+    if (members.length === 0) return { gloryDelta: 0, description: 'No students were present for this guild.' };
+
+    const outcome = await applyWheelStudentEffects({
+        classId: ctx.classId,
+        students: members,
+        count,
+        artifactsGrantCount: 1,
+        note: 'Wheel artifact blessing'
+    });
+
+    const affected = members.filter(s => outcome.affectedStudents.includes(s.id));
+    const names = affected.map(s => s.name).join(', ');
+
     return {
         gloryDelta: 0,
-        affectedStudents: selected.map(s => s.id),
+        ...outcome,
         description: count >= members.length
-            ? `All guild members receive a Mystery Artifact!`
-            : `${names} ${selected.length > 1 ? 'each receive' : 'receives'} a Mystery Artifact!`
+            ? `All guild members receive an artifact!`
+            : `${names} ${affected.length > 1 ? 'each receive' : 'receives'} an artifact!`
     };
 }
 
 async function teachersFavor(ctx) {
     const members = ctx.guildStudents || [];
     if (members.length === 0) return { gloryDelta: 0, description: 'No students to receive favor.' };
-    const selected = shuffleArray([...members])[0];
+    const outcome = await applyWheelStudentEffects({
+        classId: ctx.classId,
+        students: members,
+        count: 1,
+        starsDelta: 2,
+        goldDelta: 30,
+        note: 'Teacher’s Favor'
+    });
+
+    const sid = outcome.affectedStudents?.[0];
+    if (sid) {
+        await updateGuildScores(sid, 2);
+        await checkBountyProgress(ctx.classId, 2);
+        await checkAndRecordQuestCompletion(ctx.classId).catch(() => {});
+    }
+
+    const student = members.find(s => s.id === sid);
     return {
         gloryDelta: 0,
-        affectedStudents: [selected.id],
-        description: `${selected.name} receives +2 stars and +30 gold from the Teacher's Favor!`
+        ...outcome,
+        description: student ? `${student.name} receives +2 stars and +30 gold from the Teacher's Favor!` : `A student receives +2 stars and +30 gold from the Teacher's Favor!`
     };
 }
 
 async function gloryBlackhole(ctx) {
     const members = ctx.guildStudents || [];
     await adjustGuildGlory(ctx.guildId, -10, 'wheel_blackhole');
+    if (members.length === 0) return { gloryDelta: -10, description: `Lost 10 Glory to the Blackhole.` };
+    const outcome = await applyWheelStudentEffects({
+        classId: ctx.classId,
+        students: members,
+        count: members.length,
+        goldDelta: 25,
+        note: 'Glory Blackhole payout'
+    });
+
     return {
         gloryDelta: -10,
-        affectedStudents: members.map(s => s.id),
+        ...outcome,
         description: `Lost 10 Glory to the Blackhole, but all members get +25 gold!`
+    };
+}
+
+async function randomArtifactLoss(ctx, studentCount, removeCountPerStudent) {
+    const members = ctx.guildStudents || [];
+    if (members.length === 0) return { gloryDelta: 0, description: 'No students were present for this guild.' };
+
+    const outcome = await applyWheelStudentEffects({
+        classId: ctx.classId,
+        students: members,
+        count: studentCount,
+        artifactsRemoveCount: removeCountPerStudent,
+        note: 'Wheel artifact loss'
+    });
+
+    const affected = members.filter(s => outcome.affectedStudents.includes(s.id));
+    const names = affected.map(s => s.name).join(', ');
+
+    return {
+        gloryDelta: 0,
+        ...outcome,
+        description: affected.length > 0
+            ? `${names} ${affected.length > 1 ? 'each lose' : 'loses'} an artifact!`
+            : 'A mysterious force tried to steal an artifact... but none were found.'
+    };
+}
+
+async function classQuestBonus(ctx, delta) {
+    const outcome = await applyClassQuestBonusDelta(ctx.classId, delta, 'Wheel quest effect');
+    if (outcome.classQuestDelta) await checkAndRecordQuestCompletion(ctx.classId).catch(() => {});
+    return {
+        gloryDelta: 0,
+        ...outcome,
+        description: outcome.classQuestDelta >= 0
+            ? `The class gains +${outcome.classQuestDelta} Team Quest bonus star${outcome.classQuestDelta === 1 ? '' : 's'} this month!`
+            : `The class loses ${Math.abs(outcome.classQuestDelta)} Team Quest bonus star${Math.abs(outcome.classQuestDelta) === 1 ? '' : 's'} this month...`
+    };
+}
+
+async function mythicRelic(ctx) {
+    const quest = await applyClassQuestBonusDelta(ctx.classId, 30, 'Relic of Triumph');
+    const artifacts = await applyWheelStudentEffects({
+        classId: ctx.classId,
+        students: ctx.guildStudents || [],
+        count: 5,
+        artifactsGrantCount: 1,
+        note: 'Relic of Triumph artifacts'
+    });
+
+    if (quest.classQuestDelta) await checkAndRecordQuestCompletion(ctx.classId).catch(() => {});
+
+    return {
+        gloryDelta: 0,
+        classQuestDelta: quest.classQuestDelta || 0,
+        affectedStudents: artifacts.affectedStudents || [],
+        artifactsGranted: artifacts.artifactsGranted || 0,
+        artifactsRemoved: 0,
+        starsDelta: 0,
+        goldDelta: 0,
+        description: `The Relic of Triumph surges: +${quest.classQuestDelta || 0} Team Quest bonus stars, plus artifacts for ${artifacts.affectedStudents?.length || 0} students!`
+    };
+}
+
+async function mythicCalamity(ctx) {
+    await adjustGuildGlory(ctx.guildId, -100, 'wheel_mythic_calamity');
+    const quest = await applyClassQuestBonusDelta(ctx.classId, -10, 'Calamity');
+    const artifacts = await applyWheelStudentEffects({
+        classId: ctx.classId,
+        students: ctx.guildStudents || [],
+        count: 3,
+        artifactsRemoveCount: 1,
+        note: 'Calamity artifact loss'
+    });
+
+    if (quest.classQuestDelta) await checkAndRecordQuestCompletion(ctx.classId).catch(() => {});
+
+    return {
+        gloryDelta: -100,
+        classQuestDelta: quest.classQuestDelta || 0,
+        affectedStudents: artifacts.affectedStudents || [],
+        artifactsGranted: 0,
+        artifactsRemoved: artifacts.artifactsRemoved || 0,
+        starsDelta: 0,
+        goldDelta: 0,
+        description: `Calamity strikes: -100 Glory, ${quest.classQuestDelta ? `${quest.classQuestDelta} Team Quest bonus` : 'no quest change'}, and artifacts vanish...`
     };
 }
 
@@ -270,8 +436,9 @@ export function generateWheelSegments(leagueLevel) {
 
     // Filter pool: juniors exclude cursed and harsh negatives
     let pool = ALL_SEGMENTS.filter(seg => {
+        if (isJunior && seg.rarity === 'mythic') return false;
         if (isJunior && seg.rarity === 'cursed') return false;
-        if (isJunior && seg.category === 'negative' && ['glory_eclipse', 'glory_heist', 'tangled_web', 'lightning_strike'].includes(seg.id)) return false;
+        if (isJunior && seg.category === 'negative' && ['glory_eclipse', 'glory_heist', 'tangled_web', 'lightning_strike', 'star_snatch', 'mythic_calamity'].includes(seg.id)) return false;
         return true;
     });
 
@@ -291,6 +458,7 @@ export function generateWheelSegments(leagueLevel) {
     let cursedCount = 0;
     let epicCount = 0;
     let legendaryCount = 0;
+    let mythicCount = 0;
     let negativeCount = 0;
     let hasRarePlus = false;
 
@@ -301,6 +469,7 @@ export function generateWheelSegments(leagueLevel) {
 
         // Variety constraints
         if (candidate.rarity === 'cursed' && cursedCount >= 1) continue;
+        if (candidate.rarity === 'mythic' && mythicCount >= 1) continue;
         if (candidate.rarity === 'epic' && epicCount >= 2) continue;
         if (candidate.rarity === 'legendary' && legendaryCount >= 1) continue;
         if (candidate.category === 'negative' && negativeCount >= 4) continue;
@@ -309,18 +478,19 @@ export function generateWheelSegments(leagueLevel) {
         if (candidate.rarity === 'cursed') cursedCount++;
         if (candidate.rarity === 'epic') epicCount++;
         if (candidate.rarity === 'legendary') legendaryCount++;
+        if (candidate.rarity === 'mythic') mythicCount++;
         if (candidate.category === 'negative') negativeCount++;
-        if (['rare', 'epic', 'legendary'].includes(candidate.rarity)) hasRarePlus = true;
+        if (['rare', 'epic', 'legendary', 'mythic'].includes(candidate.rarity)) hasRarePlus = true;
     }
 
     // Ensure at least 1 rare+ segment
-    if (!hasRarePlus && pool.some(s => s.rarity === 'rare')) {
-        const rares = pool.filter(s => s.rarity === 'rare');
+    if (!hasRarePlus && pool.some(s => ['rare', 'epic', 'legendary', 'mythic'].includes(s.rarity))) {
+        const rares = pool.filter(s => ['rare', 'epic', 'legendary', 'mythic'].includes(s.rarity));
         const rare = rares[Math.floor(Math.random() * rares.length)];
         // Replace a common segment
-        const commons = [...selected.values()].filter(s => s.rarity === 'common');
-        if (commons.length > 0) {
-            selected.delete(commons[0].id);
+        const replaceable = [...selected.values()].filter(s => s.rarity === 'common' || s.rarity === 'uncommon');
+        if (replaceable.length > 0) {
+            selected.delete(replaceable[0].id);
             selected.set(rare.id, rare);
         }
     }
@@ -650,7 +820,9 @@ function triggerWheelRevealEffects(rarity, isNegative) {
     const x = rect.left + rect.width / 2;
     const y = rect.top + rect.height / 2;
 
-    if (rarity === 'legendary') {
+    if (rarity === 'mythic') {
+        triggerMythicReveal(x, y, isNegative);
+    } else if (rarity === 'legendary') {
         triggerLegendaryReveal(x, y, isNegative);
     } else if (rarity === 'epic') {
         triggerEpicReveal(x, y, isNegative);
@@ -661,6 +833,12 @@ function triggerWheelRevealEffects(rarity, isNegative) {
     } else {
         triggerCommonReveal(x, y);
     }
+}
+
+function triggerMythicReveal(x, y, isNegative) {
+    triggerLegendaryReveal(x, y, isNegative);
+    const emojis = isNegative ? ['☄️', '🌑', '⚰️', '💀', '🔥', '🕯️'] : ['🏆', '👑', '⚜️', '✨', '💎', '🌟', '🗺️', '🎁'];
+    triggerEmojiRain(x, y, emojis, 55);
 }
 
 function triggerLegendaryReveal(x, y, isNegative) {
@@ -1067,7 +1245,8 @@ export async function triggerSpin() {
     // Reveal sound based on rarity
     const winningSeg = segments[winnerIndex];
     try {
-        if (winningSeg.rarity === 'legendary') playHeroFanfare();
+        if (winningSeg.rarity === 'mythic') playHeroFanfare();
+        else if (winningSeg.rarity === 'legendary') playHeroFanfare();
         else if (winningSeg.rarity === 'epic') playSound('familiar_levelup');
         else if (winningSeg.rarity === 'rare') playSound('magic_chime');
         else if (winningSeg.rarity === 'cursed') playSound('star_remove');
@@ -1224,6 +1403,10 @@ function _renderWheelResult(segment, result, guildDef) {
             <div class="fw-result-title">${segment.label}</div>
             <div class="fw-result-description">${result.description || segment.description}</div>
             ${result.gloryDelta ? `<div class="fw-result-glory ${isNegative ? 'fw-result-glory--negative' : ''}">${result.gloryDelta >= 0 ? '+' : ''}${result.gloryDelta} ⚜️ Glory</div>` : ''}
+            ${result.goldDelta ? `<div class="fw-result-glory ${result.goldDelta < 0 ? 'fw-result-glory--negative' : ''}">${result.goldDelta >= 0 ? '+' : ''}${result.goldDelta} 🪙 Gold</div>` : ''}
+            ${result.starsDelta ? `<div class="fw-result-glory ${result.starsDelta < 0 ? 'fw-result-glory--negative' : ''}">${result.starsDelta >= 0 ? '+' : ''}${result.starsDelta} ⭐ Stars</div>` : ''}
+            ${result.classQuestDelta ? `<div class="fw-result-glory ${result.classQuestDelta < 0 ? 'fw-result-glory--negative' : ''}">${result.classQuestDelta >= 0 ? '+' : ''}${result.classQuestDelta} 🗺️ Quest</div>` : ''}
+            ${(result.artifactsGranted || result.artifactsRemoved) ? `<div class="fw-result-glory ${(result.artifactsRemoved || 0) > 0 ? 'fw-result-glory--negative' : ''}">${result.artifactsGranted ? `+${result.artifactsGranted}` : ''}${result.artifactsGranted && result.artifactsRemoved ? ' / ' : ''}${result.artifactsRemoved ? `-${result.artifactsRemoved}` : ''} 🎒 Artifacts</div>` : ''}
             ${result.affectedStudents?.length ? `<div class="fw-result-students">${result.affectedStudents.length} student${result.affectedStudents.length > 1 ? 's' : ''} affected</div>` : ''}
         </div>`;
     resultEl.classList.remove('hidden');
@@ -1287,6 +1470,10 @@ function _renderWheelSummary() {
                     <div class="fw-summary-rarity" style="color:${rarityConf.color}">${rarityConf.label}</div>
                     <div class="fw-summary-desc">${r.description || r.segmentDescription}</div>
                     ${r.gloryDelta ? `<div class="fw-result-glory ${r.gloryDelta < 0 ? 'fw-result-glory--negative' : ''}">${r.gloryDelta >= 0 ? '+' : ''}${r.gloryDelta} ⚜️</div>` : ''}
+                    ${r.goldDelta ? `<div class="fw-result-glory ${r.goldDelta < 0 ? 'fw-result-glory--negative' : ''}">${r.goldDelta >= 0 ? '+' : ''}${r.goldDelta} 🪙</div>` : ''}
+                    ${r.starsDelta ? `<div class="fw-result-glory ${r.starsDelta < 0 ? 'fw-result-glory--negative' : ''}">${r.starsDelta >= 0 ? '+' : ''}${r.starsDelta} ⭐</div>` : ''}
+                    ${r.classQuestDelta ? `<div class="fw-result-glory ${r.classQuestDelta < 0 ? 'fw-result-glory--negative' : ''}">${r.classQuestDelta >= 0 ? '+' : ''}${r.classQuestDelta} 🗺️</div>` : ''}
+                    ${(r.artifactsGranted || r.artifactsRemoved) ? `<div class="fw-result-glory ${(r.artifactsRemoved || 0) > 0 ? 'fw-result-glory--negative' : ''}">${r.artifactsGranted ? `+${r.artifactsGranted}` : ''}${r.artifactsGranted && r.artifactsRemoved ? ' / ' : ''}${r.artifactsRemoved ? `-${r.artifactsRemoved}` : ''} 🎒</div>` : ''}
                 </div>`;
         }).join('')}
         </div>`;

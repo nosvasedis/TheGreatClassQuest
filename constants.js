@@ -47,6 +47,7 @@ export const WHEEL_RARITY_WEIGHTS = {
     rare:      20,
     epic:      10,
     legendary:  3,
+    mythic:     1,
     cursed:     2,
 };
 
@@ -57,6 +58,7 @@ export const WHEEL_RARITY_CONFIG = {
     rare:      { label: 'Rare',      color: '#a855f7', bg: '#3b0764', glow: '#a855f780' },
     epic:      { label: 'Epic',      color: '#f97316', bg: '#7c2d12', glow: '#f9731680' },
     legendary: { label: 'Legendary', color: '#eab308', bg: '#713f12', glow: '#eab30880' },
+    mythic:    { label: 'Mythic',    color: '#22d3ee', bg: '#083344', glow: '#22d3ee80' },
     cursed:    { label: 'Cursed',    color: '#ef4444', bg: '#450a0a', glow: '#ef444480' },
 };
 

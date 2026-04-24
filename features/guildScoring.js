@@ -124,6 +124,28 @@ export async function updateGuildScores(studentId, starDelta) {
     _trackWeeklyActiveMember(guildId, studentId);
 }
 
+export async function adjustGuildScoresForWheel(studentId, starDelta) {
+    if (!studentId || starDelta >= 0) return;
+    const students = state.get('allStudents') || [];
+    const student = students.find((s) => s.id === studentId);
+    const guildId = student?.guildId;
+    if (!guildId || !GUILD_IDS.includes(guildId)) return;
+
+    const gloryDelta = starDelta * GLORY_PER_STAR;
+    const guildRef = doc(db, `${publicDataPath}/guild_scores`, guildId);
+    try {
+        await updateDoc(guildRef, {
+            totalStars: increment(starDelta),
+            totalGlory: increment(gloryDelta),
+            monthlyGlory: increment(gloryDelta),
+            weeklyGlory: increment(gloryDelta),
+            lastUpdated: serverTimestamp(),
+        });
+    } catch (err) {
+        console.error('adjustGuildScoresForWheel failed:', err);
+    }
+}
+
 /** Track unique active members this week (fire-and-forget). */
 async function _trackWeeklyActiveMember(guildId, studentId) {
     try {

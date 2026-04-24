@@ -241,6 +241,28 @@ function buildChroniclerFallbackDiary({
     };
 }
 
+async function generateAdventureLogArtwork(logId, diary, heroOfTheDay) {
+    const imagePrompt = `Whimsical storybook illustration for classroom diary. Title: "${diary.title}". Scene: ${diary.entry}. Hero focus: ${heroOfTheDay}. Watercolor, magical, uplifting, no text.`;
+    const imageBase64 = await callCloudflareAiImageApi(
+        imagePrompt,
+        '',
+        {},
+        { retries: 0, timeoutMs: 12000, baseDelay: 600 }
+    );
+    const compressed = await compressImageBase64(imageBase64);
+
+    const { uploadImageToStorage } = await import('../../utils.js');
+    const imageUrl = await uploadImageToStorage(compressed, `adventure_logs/${state.get('currentUserId')}/${logId}.jpg`);
+
+    const logRef = doc(db, 'artifacts/great-class-quest/public/data/adventure_logs', logId);
+    await updateDoc(logRef, {
+        imageUrl,
+        artworkUpdatedAt: serverTimestamp()
+    });
+
+    return imageUrl;
+}
+
 async function saveAdventureLogWithHeroWin(logPayload, heroStudentId = null) {
     const publicDataPath = 'artifacts/great-class-quest/public/data';
     const logRef = doc(collection(db, `${publicDataPath}/adventure_logs`));
@@ -403,7 +425,11 @@ Power-up context: ${powerUpContext || 'none'}`;
             showToast('Chronicler AI is resting after rate limits. Saved a classic chronicle instead.', 'info');
         } else {
             try {
-                rawResponse = await callGeminiApi(systemPrompt, userPrompt);
+                rawResponse = await callGeminiApi(systemPrompt, userPrompt, {
+                    retries: 1,
+                    baseDelay: 700,
+                    timeoutMs: 8000
+                });
                 localStorage.removeItem(cooldownKey);
             } catch (error) {
                 console.error('Chronicler text generation failed:', error);
@@ -441,23 +467,8 @@ Power-up context: ${powerUpContext || 'none'}`;
             fallbackKeywords: reasonLabels
         });
 
-        let imageUrl = null;
-        let imageFailed = false;
         try {
-            await new Promise(r => setTimeout(r, 120));
-            const imagePrompt = `Whimsical storybook illustration for classroom diary. Title: "${diary.title}". Scene: ${diary.entry}. Hero focus: ${heroOfTheDay}. Watercolor, magical, uplifting, no text.`;
-            const imageBase64 = await callCloudflareAiImageApi(imagePrompt);
-            const compressed = await compressImageBase64(imageBase64);
-
-            const { uploadImageToStorage } = await import('../../utils.js');
-            imageUrl = await uploadImageToStorage(compressed, `adventure_logs/${state.get('currentUserId')}/${Date.now()}.jpg`);
-        } catch (error) {
-            imageFailed = true;
-            console.error('Chronicler artwork generation/upload failed:', error);
-        }
-
-        try {
-            await saveAdventureLogWithHeroWin({
+            const logId = await saveAdventureLogWithHeroWin({
                 classId,
                 date: getTodayDateString(),
                 title: diary.title,
@@ -468,24 +479,23 @@ Power-up context: ${powerUpContext || 'none'}`;
                 heroStudentId: heroStudentId || null,
                 entryMode: 'ai',
                 ageTier,
-                imageUrl,
+                imageUrl: null,
                 topReason: reasonLabels[0] || 'excellence',
                 totalStars,
                 createdBy: { uid: state.get('currentUserId'), name: state.get('currentTeacherName') },
                 createdAt: serverTimestamp()
             }, heroStudentId);
+
+            generateAdventureLogArtwork(logId, diary, heroOfTheDay).catch((error) => {
+                console.error('Chronicler artwork generation/upload failed:', error);
+            });
         } catch (error) {
             console.error('Chronicler save failed:', error);
             showToast('The Chronicler wrote the entry, but saving it failed.', 'error');
             return;
         }
 
-        showToast(
-            imageFailed
-                ? 'The chronicle was saved without artwork because the image step failed.'
-                : 'The adventure has been chronicled!',
-            imageFailed ? 'info' : 'success'
-        );
+        showToast('The adventure has been chronicled. Artwork will appear when ready.', 'success');
 
         await showHeroOfTheDayReveal(heroStudentId, 'The Class Hero!');
     } finally {

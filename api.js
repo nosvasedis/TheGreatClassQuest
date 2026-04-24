@@ -39,12 +39,30 @@ function parseRetryAfterMs(response) {
     return null;
 }
 
-async function fetchWithBackoff(url, options, retries = 3, baseDelay = 2000) {
+async function fetchWithBackoff(url, options, config = {}) {
+    const {
+        retries = 3,
+        baseDelay = 2000,
+        timeoutMs = 20000
+    } = config;
     let attempt = 0;
 
     while (attempt <= retries) {
+        let timeoutId = null;
+
         try {
-            const response = await fetch(url, options);
+            const controller = typeof AbortController !== 'undefined' && timeoutMs > 0
+                ? new AbortController()
+                : null;
+            const requestOptions = controller ? { ...options, signal: controller.signal } : options;
+
+            if (controller) {
+                timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+            }
+
+            const response = await fetch(url, requestOptions);
+            if (timeoutId) clearTimeout(timeoutId);
+
             if (response.ok) return response;
 
             const isRetryableStatus = response.status === 429 || response.status >= 500;
@@ -63,6 +81,7 @@ async function fetchWithBackoff(url, options, retries = 3, baseDelay = 2000) {
             await new Promise((res) => setTimeout(res, waitMs));
             attempt += 1;
         } catch (error) {
+            if (timeoutId) clearTimeout(timeoutId);
             const hasRetriesLeft = attempt < retries;
             if (!hasRetriesLeft) {
                 console.error('Fetch exhausted retries:', error);
@@ -79,7 +98,7 @@ async function fetchWithBackoff(url, options, retries = 3, baseDelay = 2000) {
     throw new Error('API failed after retries.');
 }
 
-export async function callGeminiApi(systemPrompt, userPrompt) {
+export async function callGeminiApi(systemPrompt, userPrompt, requestOptions = {}) {
     // 1. Prepare Payload for OpenRouter (via Worker)
     const payload = {
         model: OPENROUTER_MODEL, 
@@ -95,7 +114,7 @@ export async function callGeminiApi(systemPrompt, userPrompt) {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(payload)
-            })
+            }, requestOptions)
         );
 
         if (!response.ok) throw new Error(`Proxy error! status: ${response.status}`);
@@ -114,19 +133,23 @@ export async function callGeminiApi(systemPrompt, userPrompt) {
     }
 }
 
-export async function callCloudflareAiImageApi(prompt, negativePrompt = "", options = {}) {
+export async function callCloudflareAiImageApi(prompt, negativePrompt = "", options = {}, requestOptions = {}) {
     const payload = {
         prompt: prompt,
         negative_prompt: negativePrompt || "text, watermark, blurry, low quality", // Default safety net
         ...options
     };
     try {
-        const response = await fetch(cloudflareWorkerUrl, {
+        const response = await fetchWithBackoff(cloudflareWorkerUrl, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
             },
             body: JSON.stringify(payload)
+        }, {
+            retries: requestOptions.retries ?? 1,
+            baseDelay: requestOptions.baseDelay ?? 1200,
+            timeoutMs: requestOptions.timeoutMs ?? 20000
         });
 
         if (!response.ok) {

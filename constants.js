@@ -39,12 +39,36 @@ function normalizeAiProvider(definition, fallback = {}) {
 }
 
 const defaultAiPrimaryProvider = normalizeAiProvider({
-    id: 'gcq-primary',
-    label: 'GCQ Primary Proxy',
+    id: 'gcq-primary-gemma-4-31b',
+    label: 'GCQ - Gemma 4 31B',
     url: geminiApiUrl,
-    model: OPENROUTER_MODEL,
+    model: 'google/gemma-4-31b-it:free',
     payloadMode: 'openrouter'
 });
+
+const defaultAiBackupProviders = [
+    normalizeAiProvider({
+        id: 'gcq-backup-nemotron',
+        label: 'GCQ - Nemotron 30B Reasoning',
+        url: geminiApiUrl,
+        model: 'nvidia/nemotron-3-nano-omni-30b-a3b-reasoning:free',
+        payloadMode: 'openrouter'
+    }),
+    normalizeAiProvider({
+        id: 'gcq-backup-minimax',
+        label: 'GCQ - MiniMax 2.5',
+        url: geminiApiUrl,
+        model: 'minimax/minimax-m2.5:free',
+        payloadMode: 'openrouter'
+    }),
+    normalizeAiProvider({
+        id: 'gcq-backup-gemma-4-26b',
+        label: 'GCQ - Gemma 4 26B A4B',
+        url: geminiApiUrl,
+        model: 'google/gemma-4-26b-a4b-it:free',
+        payloadMode: 'openrouter'
+    })
+];
 
 const configuredAiProviders = Array.isArray(runtimeAiTextConfig.providers)
     ? runtimeAiTextConfig.providers
@@ -57,11 +81,18 @@ export const AI_TEXT_PROVIDERS = (() => {
     const providers = [];
     const seen = new Set();
 
-    for (const providerDef of [defaultAiPrimaryProvider, ...configuredAiProviders.map((provider, index) => normalizeAiProvider(provider, {
-        id: index === 0 ? 'gcq-primary-runtime' : 'gcq-backup-runtime',
-        label: index === 0 ? 'GCQ Runtime Primary' : 'GCQ Runtime Backup',
-        payloadMode: 'openrouter'
-    }))].filter(Boolean)) {
+    // Primary provider first, then backups, then runtime config
+    const allProviders = [
+        defaultAiPrimaryProvider,
+        ...defaultAiBackupProviders,
+        ...configuredAiProviders.map((provider, index) => normalizeAiProvider(provider, {
+            id: index === 0 ? 'gcq-runtime-primary' : 'gcq-runtime-backup',
+            label: index === 0 ? 'GCQ Runtime Primary' : 'GCQ Runtime Backup',
+            payloadMode: 'openrouter'
+        }))
+    ].filter(Boolean);
+
+    for (const providerDef of allProviders) {
         const key = `${providerDef.id}::${providerDef.url}::${providerDef.model}`;
         if (seen.has(key)) continue;
         seen.add(key);

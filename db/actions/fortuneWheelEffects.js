@@ -91,9 +91,16 @@ export async function applyWheelStudentEffects({
     let artifactsRemoved = 0;
 
     await runTransaction(db, async (transaction) => {
+        const scoreSnapshots = new Map();
         for (const studentId of affectedStudentIds) {
             const scoreRef = doc(db, `${publicDataPath}/student_scores`, studentId);
             const scoreSnap = await transaction.get(scoreRef);
+            scoreSnapshots.set(studentId, { scoreRef, scoreSnap });
+        }
+
+        for (const studentId of affectedStudentIds) {
+            const { scoreRef, scoreSnap } = scoreSnapshots.get(studentId) || {};
+            if (!scoreRef || !scoreSnap) continue;
             const scoreData = ensureScoreDoc(transaction, scoreRef, studentId, scoreSnap.exists() ? scoreSnap.data() : null);
 
             const currentTotalStars = Number(scoreData.totalStars) || 0;

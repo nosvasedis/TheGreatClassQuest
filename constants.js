@@ -23,6 +23,53 @@ export const cloudflareWorkerUrl = 'https://great-class-quest-ai-proxy.nvasedis-
 export const workerBaseUrl = 'https://great-class-quest-ai-proxy.nvasedis-cc5.workers.dev';
 export const geminiApiUrl = workerBaseUrl; 
 export const OPENROUTER_MODEL = "z-ai/glm-4.5-air:free";
+const runtimeAiTextConfig = (typeof window !== 'undefined' && window.__GCQ_AI_TEXT_CONFIG__) || {};
+
+function normalizeAiProvider(definition, fallback = {}) {
+    if (!definition || typeof definition !== 'object') return null;
+    const url = String(definition.url || fallback.url || '').trim();
+    if (!url) return null;
+    return {
+        id: String(definition.id || fallback.id || 'ai-provider').trim() || 'ai-provider',
+        label: String(definition.label || fallback.label || definition.id || 'AI Provider').trim() || 'AI Provider',
+        url,
+        model: String(definition.model || fallback.model || OPENROUTER_MODEL).trim() || OPENROUTER_MODEL,
+        payloadMode: String(definition.payloadMode || fallback.payloadMode || 'openrouter').trim() || 'openrouter'
+    };
+}
+
+const defaultAiPrimaryProvider = normalizeAiProvider({
+    id: 'gcq-primary',
+    label: 'GCQ Primary Proxy',
+    url: geminiApiUrl,
+    model: OPENROUTER_MODEL,
+    payloadMode: 'openrouter'
+});
+
+const configuredAiProviders = Array.isArray(runtimeAiTextConfig.providers)
+    ? runtimeAiTextConfig.providers
+    : [
+        runtimeAiTextConfig.primary,
+        runtimeAiTextConfig.backup
+    ].filter(Boolean);
+
+export const AI_TEXT_PROVIDERS = (() => {
+    const providers = [];
+    const seen = new Set();
+
+    for (const providerDef of [defaultAiPrimaryProvider, ...configuredAiProviders.map((provider, index) => normalizeAiProvider(provider, {
+        id: index === 0 ? 'gcq-primary-runtime' : 'gcq-backup-runtime',
+        label: index === 0 ? 'GCQ Runtime Primary' : 'GCQ Runtime Backup',
+        payloadMode: 'openrouter'
+    }))].filter(Boolean)) {
+        const key = `${providerDef.id}::${providerDef.url}::${providerDef.model}`;
+        if (seen.has(key)) continue;
+        seen.add(key);
+        providers.push(providerDef);
+    }
+
+    return providers;
+})();
 
 /** Billing: base URL of your billing backend (Stripe checkout). When set, upgrade prompts show an "Upgrade" button that redirects to Stripe. Leave empty to keep "Contact me to upgrade". */
 export const BILLING_BASE_URL = (typeof window !== 'undefined' && window.__GCQ_BILLING_BASE_URL__) || '';

@@ -65,6 +65,7 @@ if (isLocalHost() || isCanonicalHostedFallbackSite()) {
             if (c.billingBaseUrl) window.__GCQ_BILLING_BASE_URL__ = c.billingBaseUrl;
             if (c.billingSchoolId) window.__GCQ_BILLING_SCHOOL_ID__ = c.billingSchoolId;
             if (c.functionsRegion) window.__GCQ_FIREBASE_FUNCTIONS_REGION__ = c.functionsRegion;
+            if (c.aiTextConfig) window.__GCQ_AI_TEXT_CONFIG__ = c.aiTextConfig;
         })
         .catch(() => {})
         .finally(() => {

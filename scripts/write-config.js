@@ -30,7 +30,25 @@ const config = {
   firebaseConfig,
   billingBaseUrl: env.GCQ_BILLING_BASE_URL || '',
   billingSchoolId: env.GCQ_BILLING_SCHOOL_ID || firebaseConfig.projectId || '',
-  functionsRegion: env.GCQ_FIREBASE_FUNCTIONS_REGION || 'europe-west1'
+  functionsRegion: env.GCQ_FIREBASE_FUNCTIONS_REGION || 'europe-west1',
+  aiTextConfig: {
+    providers: [
+      {
+        id: 'gcq-primary',
+        label: 'GCQ Primary Proxy',
+        url: env.GCQ_AI_PRIMARY_URL || '',
+        model: env.GCQ_AI_PRIMARY_MODEL || '',
+        payloadMode: 'openrouter'
+      },
+      {
+        id: 'gcq-backup',
+        label: 'GCQ Backup Proxy',
+        url: env.GCQ_AI_BACKUP_URL || '',
+        model: env.GCQ_AI_BACKUP_MODEL || '',
+        payloadMode: 'openrouter'
+      }
+    ].filter((provider) => provider.url)
+  }
 };
 const outPath = path.resolve(process.cwd(), env.GCQ_CONFIG_OUTPUT_PATH || 'config.json');
 fs.mkdirSync(path.dirname(outPath), { recursive: true });

@@ -125,11 +125,11 @@
 
 .fw-main-layout {
     display: grid;
-    grid-template-columns: minmax(420px, 1.1fr) minmax(340px, 420px);
+    grid-template-columns: minmax(360px, 1.15fr) minmax(300px, 400px);
     gap: 1.75rem;
     flex: 1;
     min-height: 0;
-    max-width: 1480px;
+    max-width: 1420px;
     margin: 0 auto;
     width: 100%;
     align-items: start;
@@ -149,6 +149,14 @@
     flex-direction: column;
     gap: 0.75rem;
     min-height: 0;
+}
+
+.fw-controls-section {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    min-height: 0;
+    align-self: stretch;
 }
 
 .fw-guild-header-pill {
@@ -708,6 +716,53 @@
     border-color: rgba(220, 38, 38, 0.4);
 }
 
+.fw-reveal-layer {
+    position: absolute;
+    inset: 0;
+    z-index: 12;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: clamp(1rem, 2vw, 2rem);
+}
+
+.fw-reveal-layer__backdrop {
+    position: absolute;
+    inset: 0;
+    background:
+        radial-gradient(circle at 50% 16%, rgba(251, 191, 36, 0.24), transparent 28%),
+        rgba(3, 7, 18, 0.66);
+    backdrop-filter: blur(10px);
+}
+
+.fw-reveal-layer__shell {
+    position: relative;
+    z-index: 1;
+    width: min(680px, 100%);
+    max-height: min(88vh, 860px);
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    align-items: stretch;
+}
+
+.fw-reveal-card {
+    overflow: auto;
+    border-radius: 1.5rem;
+}
+
+.fw-reveal-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.85rem;
+    flex-wrap: wrap;
+}
+
+.fw-reveal-actions .fw-btn-secondary,
+.fw-reveal-actions .fw-btn-success {
+    min-width: 220px;
+}
+
 .fw-result-card {
     padding: 1rem;
     border-radius: 1rem;
@@ -729,6 +784,65 @@
     inset: 0;
     background: linear-gradient(135deg, rgba(255,255,255,0.08) 0%, transparent 50%);
     pointer-events: none;
+}
+
+.fw-result-card--overlay {
+    padding: clamp(1.2rem, 2vw, 1.9rem);
+    border-width: 1px;
+    background:
+        radial-gradient(circle at top, rgba(255,255,255,0.12), transparent 42%),
+        linear-gradient(145deg, rgba(12, 17, 32, 0.95), rgba(25, 18, 45, 0.94));
+    box-shadow:
+        0 26px 80px rgba(2, 6, 23, 0.55),
+        0 0 0 1px rgba(255,255,255,0.06);
+}
+
+.fw-result-card--overlay .fw-result-title {
+    font-size: clamp(1.8rem, 3.6vw, 2.5rem);
+}
+
+.fw-result-card--overlay .fw-result-description {
+    font-size: 1rem;
+    max-width: 52ch;
+}
+
+.fw-result-impact-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 0.7rem;
+    margin-top: 1rem;
+    position: relative;
+    z-index: 1;
+}
+
+.fw-result-impact-tile {
+    border-radius: 1rem;
+    padding: 0.85rem 0.9rem;
+    background: rgba(255,255,255,0.06);
+    border: 1px solid rgba(255,255,255,0.08);
+}
+
+.fw-result-impact-tile__label {
+    color: rgba(255,255,255,0.52);
+    font-size: 0.7rem;
+    font-weight: 800;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+}
+
+.fw-result-impact-tile__value {
+    margin-top: 0.35rem;
+    color: #fff;
+    font-size: 1.1rem;
+    font-weight: 800;
+}
+
+.fw-result-impact-tile__value--negative {
+    color: #fecaca;
+}
+
+.fw-result-card--overlay .fw-result-students {
+    margin-left: 0;
 }
 
 .fw-result-header {
@@ -971,7 +1085,7 @@
 
     .fw-controls-section {
         order: 2;
-        max-height: 45vh;
+        max-height: none;
     }
 
     .fw-wheel-container {
@@ -979,7 +1093,7 @@
     }
 
     .fw-stage-frame {
-        max-width: 400px;
+        max-width: min(520px, 100%);
     }
 }
 
@@ -998,6 +1112,11 @@
 
     .fw-stage-frame {
         max-width: 300px;
+    }
+
+    .fw-reveal-actions .fw-btn-secondary,
+    .fw-reveal-actions .fw-btn-success {
+        min-width: 100%;
     }
 
     .fw-guild-emblem-orb {

@@ -21,8 +21,10 @@ import * as state from '../../state.js';
 import { showToast } from '../../ui/effects.js';
 import * as utils from '../../utils.js';
 import { getTodayDateString, getAgeGroupForLeague, compressImageBase64 } from '../../utils.js';
-import { callGeminiApi, callCloudflareAiImageApi } from '../../api.js';
+import { callGeminiApi, callGeminiApiDetailed, callCloudflareAiImageApi } from '../../api.js';
 import { syncQuestAssignmentToParentHomework } from '../../utils/adminRuntime.js';
+
+const ADVENTURE_LOG_AI_RETRY_DELAYS_MS = [30000, 90000, 240000];
 
 // --- REVAMPED: QUEST ASSIGNMENT (SINGLE ENTRY) ---
 
@@ -192,53 +194,194 @@ function syncHeroLine(text, heroName) {
     return `${storyText}\n\n${heroLine}`;
 }
 
-function buildChroniclerFallbackDiary({
+function buildAdventureLogPlaceholder({
     className,
     heroOfTheDay,
-    attendanceText,
     totalStars,
     topReasonsStr,
-    storyContext,
-    assignmentContext,
-    powerUpContext,
     reasonLabels
 }) {
+    const title = `${className} Chronicle`;
+    const entry = `${className}'s chronicle is being woven by the Chronicler. Hero of the Day: ${heroOfTheDay}. ${totalStars} stars were earned through ${topReasonsStr}.`;
     const highlights = [
         `${totalStars} stars earned`,
         `Skills shown: ${topReasonsStr}`,
         `Hero of the Day: ${heroOfTheDay}`
-    ];
-
-    if (storyContext) highlights.push('Story Weavers progress noted');
-    if (assignmentContext) highlights.push('Quest planning captured');
-
-    const narrativeBits = [
-        `${className} continued the class quest with steady effort and focus.`,
-        attendanceText,
-        `The team earned ${totalStars} stars through ${topReasonsStr}.`,
-        `Hero of the Day: ${heroOfTheDay}.`
-    ];
-
-    if (storyContext) narrativeBits.push(storyContext);
-    if (assignmentContext) narrativeBits.push(assignmentContext);
-    if (powerUpContext) narrativeBits.push(powerUpContext);
-
+    ].slice(0, 3);
     const keywords = [
         ...reasonLabels,
+        'chronicle',
         'hero_of_the_day',
-        'class_quest',
-        'teamwork'
+        'class_quest'
     ]
-        .map(k => String(k).toLowerCase().replace(/\s+/g, '_'))
+        .map((keyword) => String(keyword).toLowerCase().replace(/\s+/g, '_'))
         .filter(Boolean)
         .slice(0, 6);
 
     return {
-        title: `${className} Chronicle`,
-        entry: narrativeBits.join(' '),
-        highlights: highlights.slice(0, 4),
+        title,
+        entry,
+        highlights,
         keywords
     };
+}
+
+function describeAdventureLogGenerationStatus(status) {
+    switch (status) {
+        case 'retrying':
+            return 'The Chronicler is trying another path to finish this entry.';
+        case 'pending':
+            return 'The entry is saved and waiting for the Chronicler to finish it.';
+        case 'failed':
+            return 'The Chronicler could not finish this entry yet.';
+        case 'ready':
+            return 'The Chronicler has completed this entry.';
+        case 'generating':
+        default:
+            return 'The Chronicler is weaving this entry right now.';
+    }
+}
+
+async function updateAdventureLogGenerationState(logId, updates) {
+    const logRef = doc(db, 'artifacts/great-class-quest/public/data/adventure_logs', logId);
+    await updateDoc(logRef, updates);
+}
+
+function buildAdventureLogAiPrompts({
+    ageGroup,
+    ageTier,
+    classData,
+    totalStars,
+    topReasonsStr,
+    heroOfTheDay,
+    attendanceText,
+    storyContext,
+    assignmentContext,
+    powerUpContext
+}) {
+    const systemPrompt = `You are The Chronicler, a classroom diary writer. Your ONLY output must be a single valid JSON object — nothing else.
+
+JSON STRUCTURE (copy exactly, fill in values):
+{"title":"...","entry":"...","highlights":["...","...","..."],"keywords":["...","...","..."]}
+
+STRICT RULES:
+- Output ONLY the JSON object. No markdown, no code fences, no explanation before or after.
+- ALL four keys must be present: title, entry, highlights, keywords.
+- Every string value MUST be wrapped in double-quotes.
+- The "entry" value is ONE paragraph (4-6 sentences). No line breaks inside it. Escape any double-quote inside with \\".
+- "title": max 8 words.
+- "highlights": exactly 3 short strings.
+- "keywords": 3-5 lowercase single-word strings.
+- Audience age group: ${ageGroup}.
+- Tone: ${ageTier === 'junior' ? 'warm, simple, vivid' : ageTier === 'mid' ? 'energetic and reflective' : 'rich language, encouraging'}.
+- Mention the Hero of the Day naturally in the entry.
+- Weave in attendance, skills, and events from the context provided.`;
+
+    const userPrompt = `Tier: ${ageTier}
+Class: ${classData.name}
+Stars earned today: ${totalStars}
+Skills shown: ${topReasonsStr}
+Hero of the day: ${heroOfTheDay}
+Attendance: ${attendanceText}
+Story context: ${storyContext || 'none'}
+Assignment/Test context: ${assignmentContext || 'none'}
+Power-up context: ${powerUpContext || 'none'}`;
+
+    return { systemPrompt, userPrompt };
+}
+
+async function finalizeAdventureLogGeneration({
+    logId,
+    aiPrompts,
+    classData,
+    heroOfTheDay,
+    ageTier,
+    reasonLabels,
+    totalStars,
+    attemptNumber = 1,
+    allowArtwork = true
+}) {
+    const aiResult = await callGeminiApiDetailed(aiPrompts.systemPrompt, aiPrompts.userPrompt, {
+        retries: 1,
+        baseDelay: 700,
+        timeoutMs: 15000
+    });
+
+    const diary = _parseDiaryJson(aiResult.content, {
+        defaultTitle: `${classData.name} Chronicle`,
+        defaultEntry: aiResult.content,
+        fallbackKeywords: reasonLabels
+    });
+
+    await updateAdventureLogGenerationState(logId, {
+        title: diary.title,
+        text: diary.entry,
+        highlights: diary.highlights,
+        keywords: diary.keywords,
+        ageTier,
+        totalStars,
+        generationStatus: 'ready',
+        generationProvider: aiResult.providerId || 'unknown',
+        generationAttempts: attemptNumber,
+        pendingRetryAt: null,
+        generationError: '',
+        generationUpdatedAt: serverTimestamp(),
+        generationSummary: describeAdventureLogGenerationStatus('ready')
+    });
+
+    if (allowArtwork) {
+        generateAdventureLogArtwork(logId, diary, heroOfTheDay).catch((error) => {
+            console.error('Chronicler artwork generation/upload failed:', error);
+        });
+    }
+
+    return { diary, aiResult };
+}
+
+function scheduleAdventureLogRetry(payload, delayMs, retryIndex) {
+    window.setTimeout(async () => {
+        try {
+            await updateAdventureLogGenerationState(payload.logId, {
+                generationStatus: 'retrying',
+                pendingRetryAt: null,
+                generationUpdatedAt: serverTimestamp(),
+                generationSummary: describeAdventureLogGenerationStatus('retrying')
+            });
+
+            await finalizeAdventureLogGeneration({
+                ...payload,
+                attemptNumber: payload.initialAttemptNumber + retryIndex + 1,
+                allowArtwork: true
+            });
+
+            showToast('The Chronicler finished a pending adventure log.', 'success');
+        } catch (error) {
+            console.error(`Chronicler retry ${retryIndex + 1} failed:`, error);
+            const nextDelay = ADVENTURE_LOG_AI_RETRY_DELAYS_MS[retryIndex + 1];
+            if (nextDelay) {
+                const pendingUntil = new Date(Date.now() + nextDelay).toISOString();
+                await updateAdventureLogGenerationState(payload.logId, {
+                    generationStatus: 'pending',
+                    pendingRetryAt: pendingUntil,
+                    generationAttempts: payload.initialAttemptNumber + retryIndex + 1,
+                    generationError: String(error?.message || 'AI generation is still unavailable.'),
+                    generationUpdatedAt: serverTimestamp(),
+                    generationSummary: describeAdventureLogGenerationStatus('pending')
+                });
+                scheduleAdventureLogRetry(payload, nextDelay, retryIndex + 1);
+                return;
+            }
+
+            await updateAdventureLogGenerationState(payload.logId, {
+                generationStatus: 'failed',
+                generationAttempts: payload.initialAttemptNumber + retryIndex + 1,
+                generationError: String(error?.message || 'AI generation failed.'),
+                pendingRetryAt: null,
+                generationUpdatedAt: serverTimestamp(),
+                generationSummary: describeAdventureLogGenerationStatus('failed')
+            });
+        }
+    }, delayMs);
 }
 
 async function generateAdventureLogArtwork(logId, diary, heroOfTheDay) {
@@ -374,130 +517,96 @@ async function handleAILogAdventure(classId, classData) {
 
     const powerUpContext = pathfinderUsedToday ? "A Pathfinder's Map was used today." : '';
 
-    const systemPrompt = `You are The Chronicler, a classroom diary writer. Your ONLY output must be a single valid JSON object — nothing else.
-
-JSON STRUCTURE (copy exactly, fill in values):
-{"title":"...","entry":"...","highlights":["...","...","..."],"keywords":["...","...","..."]}
-
-STRICT RULES:
-- Output ONLY the JSON object. No markdown, no code fences, no explanation before or after.
-- ALL four keys must be present: title, entry, highlights, keywords.
-- Every string value MUST be wrapped in double-quotes.
-- The "entry" value is ONE paragraph (4-6 sentences). No line breaks inside it. Escape any double-quote inside with \\".
-- "title": max 8 words.
-- "highlights": exactly 3 short strings.
-- "keywords": 3-5 lowercase single-word strings.
-- Audience age group: ${ageGroup}.
-- Tone: ${ageTier === 'junior' ? 'warm, simple, vivid' : ageTier === 'mid' ? 'energetic and reflective' : 'rich language, encouraging'}.
-- Mention the Hero of the Day naturally in the entry.
-- Weave in attendance, skills, and events from the context provided.`;
-
-    const userPrompt = `Tier: ${ageTier}
-Class: ${classData.name}
-Stars earned today: ${totalStars}
-Skills shown: ${topReasonsStr}
-Hero of the day: ${heroOfTheDay}
-Attendance: ${attendanceText}
-Story context: ${storyContext || 'none'}
-Assignment/Test context: ${assignmentContext || 'none'}
-Power-up context: ${powerUpContext || 'none'}`;
-
-    const cooldownKey = 'gcq_chronicler_ai_cooldown_until';
+    const aiPrompts = buildAdventureLogAiPrompts({
+        ageGroup,
+        ageTier,
+        classData,
+        totalStars,
+        topReasonsStr,
+        heroOfTheDay,
+        attendanceText,
+        storyContext,
+        assignmentContext,
+        powerUpContext
+    });
+    const placeholderDiary = buildAdventureLogPlaceholder({
+        className: classData.name,
+        heroOfTheDay,
+        totalStars,
+        topReasonsStr,
+        reasonLabels
+    });
 
     try {
-        let rawResponse = '';
-        const cooldownUntil = Number(localStorage.getItem(cooldownKey) || 0);
-        const cooldownActive = Number.isFinite(cooldownUntil) && Date.now() < cooldownUntil;
+        const logId = await saveAdventureLogWithHeroWin({
+            classId,
+            date: getTodayDateString(),
+            title: placeholderDiary.title,
+            text: placeholderDiary.entry,
+            highlights: placeholderDiary.highlights,
+            keywords: placeholderDiary.keywords,
+            hero: heroOfTheDay,
+            heroStudentId: heroStudentId || null,
+            entryMode: 'ai',
+            ageTier,
+            imageUrl: null,
+            topReason: reasonLabels[0] || 'excellence',
+            totalStars,
+            generationStatus: 'generating',
+            generationProvider: '',
+            generationAttempts: 0,
+            pendingRetryAt: null,
+            generationError: '',
+            generationSummary: describeAdventureLogGenerationStatus('generating'),
+            generationUpdatedAt: serverTimestamp(),
+            createdBy: { uid: state.get('currentUserId'), name: state.get('currentTeacherName') },
+            createdAt: serverTimestamp()
+        }, heroStudentId);
 
-        if (cooldownActive) {
-            const fallbackDiary = buildChroniclerFallbackDiary({
-                className: classData.name,
-                heroOfTheDay,
-                attendanceText,
-                totalStars,
-                topReasonsStr,
-                storyContext,
-                assignmentContext,
-                powerUpContext,
-                reasonLabels
-            });
-            rawResponse = JSON.stringify(fallbackDiary);
-            showToast('Chronicler AI is resting after rate limits. Saved a classic chronicle instead.', 'info');
-        } else {
-            try {
-                rawResponse = await callGeminiApi(systemPrompt, userPrompt, {
-                    retries: 1,
-                    baseDelay: 700,
-                    timeoutMs: 15000
-                });
-                localStorage.removeItem(cooldownKey);
-            } catch (error) {
-                console.error('Chronicler text generation failed:', error);
-                const isRateLimited = /status\s*429/i.test(String(error?.message || ''));
-                if (isRateLimited) {
-                    const cooldownMs = 5 * 60 * 1000;
-                    localStorage.setItem(cooldownKey, String(Date.now() + cooldownMs));
-                }
-
-                const fallbackDiary = buildChroniclerFallbackDiary({
-                    className: classData.name,
-                    heroOfTheDay,
-                    attendanceText,
-                    totalStars,
-                    topReasonsStr,
-                    storyContext,
-                    assignmentContext,
-                    powerUpContext,
-                    reasonLabels
-                });
-                rawResponse = JSON.stringify(fallbackDiary);
-
-                showToast(
-                    isRateLimited
-                        ? 'Chronicler AI hit rate limits. Saved a classic chronicle instead.'
-                        : 'Chronicler AI was unavailable. Saved a classic chronicle instead.',
-                    'info'
-                );
-            }
-        }
-
-        const diary = _parseDiaryJson(rawResponse, {
-            defaultTitle: `${classData.name} Chronicle`,
-            defaultEntry: rawResponse,
-            fallbackKeywords: reasonLabels
-        });
+        showToast('The Chronicler has started weaving today\'s entry.', 'info');
+        await showHeroOfTheDayReveal(heroStudentId, 'The Class Hero!');
 
         try {
-            const logId = await saveAdventureLogWithHeroWin({
-                classId,
-                date: getTodayDateString(),
-                title: diary.title,
-                text: diary.entry,
-                highlights: diary.highlights,
-                keywords: diary.keywords,
-                hero: heroOfTheDay,
-                heroStudentId: heroStudentId || null,
-                entryMode: 'ai',
+            await finalizeAdventureLogGeneration({
+                logId,
+                aiPrompts,
+                classData,
+                heroOfTheDay,
                 ageTier,
-                imageUrl: null,
-                topReason: reasonLabels[0] || 'excellence',
+                reasonLabels,
                 totalStars,
-                createdBy: { uid: state.get('currentUserId'), name: state.get('currentTeacherName') },
-                createdAt: serverTimestamp()
-            }, heroStudentId);
-
-            generateAdventureLogArtwork(logId, diary, heroOfTheDay).catch((error) => {
-                console.error('Chronicler artwork generation/upload failed:', error);
+                attemptNumber: 1,
+                allowArtwork: true
             });
+            showToast('The adventure has been chronicled. Artwork will appear when ready.', 'success');
         } catch (error) {
-            console.error('Chronicler save failed:', error);
-            showToast('The Chronicler wrote the entry, but saving it failed.', 'error');
-            return;
+            console.error('Chronicler text generation failed:', error);
+            const firstRetryDelay = ADVENTURE_LOG_AI_RETRY_DELAYS_MS[0] || null;
+            await updateAdventureLogGenerationState(logId, {
+                generationStatus: firstRetryDelay ? 'pending' : 'failed',
+                generationAttempts: 1,
+                generationError: String(error?.message || 'AI generation failed.'),
+                pendingRetryAt: firstRetryDelay ? new Date(Date.now() + firstRetryDelay).toISOString() : null,
+                generationUpdatedAt: serverTimestamp(),
+                generationSummary: describeAdventureLogGenerationStatus(firstRetryDelay ? 'pending' : 'failed')
+            });
+
+            if (firstRetryDelay) {
+                scheduleAdventureLogRetry({
+                    logId,
+                    aiPrompts,
+                    classData,
+                    heroOfTheDay,
+                    ageTier,
+                    reasonLabels,
+                    totalStars,
+                    initialAttemptNumber: 1
+                }, firstRetryDelay, 0);
+                showToast('Chronicler AI is busy. The entry is saved and will retry automatically.', 'info');
+            } else {
+                showToast('Chronicler AI could not finish this entry yet.', 'error');
+            }
         }
-
-        showToast('The adventure has been chronicled. Artwork will appear when ready.', 'success');
-
-        await showHeroOfTheDayReveal(heroStudentId, 'The Class Hero!');
     } finally {
         import('../../audio.js').then(m => m.stopWritingLoop());
         btn.disabled = false;

@@ -26,21 +26,52 @@ function canEditAdventureLog(log) {
     return canUseFeature('eliteAI') || (entryMode === 'manual' && canUseFeature('adventureLog'));
 }
 
+function getAdventureLogGenerationBadge(log) {
+    const status = String(log?.generationStatus || '').toLowerCase();
+    if (!status || status === 'ready') return '';
+
+    const statusMap = {
+        generating: { label: 'Generating', className: 'bg-sky-100 text-sky-700' },
+        retrying: { label: 'Retrying', className: 'bg-amber-100 text-amber-700' },
+        pending: { label: 'Pending AI', className: 'bg-violet-100 text-violet-700' },
+        failed: { label: 'Needs Retry', className: 'bg-rose-100 text-rose-700' }
+    };
+    const meta = statusMap[status] || statusMap.pending;
+    return `<span class="inline-flex items-center rounded-full px-3 py-1 text-[11px] font-bold uppercase tracking-[0.14em] ${meta.className}">${meta.label}</span>`;
+}
+
 function renderDiaryArtwork(log, entryMode) {
     const imageSrc = log.imageUrl || log.imageBase64 || '';
     if (imageSrc) {
         return `<img src="${imageSrc}" alt="Image for ${(log.keywords || []).join(', ')}" class="diary-image">`;
     }
 
-    const badgeLabel = entryMode === 'manual' ? 'Manual Chronicle' : 'Adventure Log';
+    const status = String(log?.generationStatus || '').toLowerCase();
+    const isWaitingOnAi = entryMode === 'ai' && status && status !== 'ready' && status !== 'failed';
+    const badgeLabel = entryMode === 'manual'
+        ? 'Manual Chronicle'
+        : isWaitingOnAi
+            ? 'AI Chronicle'
+            : 'Adventure Log';
+    const helperCopy = entryMode === 'manual'
+        ? 'Hero crowned and recorded by the teacher.'
+        : status === 'retrying'
+            ? 'The Chronicler is trying another route now.'
+            : status === 'pending'
+                ? 'Saved safely. The Chronicler will retry automatically.'
+                : status === 'failed'
+                    ? 'The AI chronicle did not finish yet.'
+                    : isWaitingOnAi
+                        ? 'The Chronicler is weaving today\'s artwork and story.'
+                        : 'Hero crowned and chronicled by the app.';
     return `
         <div class="diary-image bg-gradient-to-br from-teal-100 via-cyan-50 to-amber-50 flex items-center justify-center">
             <div class="text-center px-4">
                 <div class="inline-flex items-center justify-center w-16 h-16 rounded-full bg-white/80 text-teal-700 shadow-md mb-3">
-                    <i class="fas fa-feather-alt text-2xl"></i>
+                    <i class="fas ${isWaitingOnAi ? 'fa-spinner fa-spin' : status === 'failed' ? 'fa-hourglass-end' : 'fa-feather-alt'} text-2xl"></i>
                 </div>
                 <div class="text-sm font-bold uppercase tracking-[0.18em] text-teal-700">${badgeLabel}</div>
-                <p class="text-sm text-gray-600 mt-2">Hero crowned and recorded by the teacher.</p>
+                <p class="text-sm text-gray-600 mt-2">${helperCopy}</p>
             </div>
         </div>
     `;
@@ -210,10 +241,13 @@ export async function renderAdventureLog() {
                         <h3 class="diary-date">${displayDate}</h3>
                         <p class="diary-title">${title}</p>
                     </div>
-                    <div class="diary-hero bg-gradient-to-r from-amber-400 to-orange-500 text-white shadow-md">
-                        <i class="fas fa-crown mr-1"></i> 
-                        <span class="uppercase tracking-tighter text-[10px] opacity-90 mr-1">Hero:</span>
-                        ${heroLabel}
+                    <div class="flex flex-col items-end gap-2">
+                        ${getAdventureLogGenerationBadge(log)}
+                        <div class="diary-hero bg-gradient-to-r from-amber-400 to-orange-500 text-white shadow-md">
+                            <i class="fas fa-crown mr-1"></i> 
+                            <span class="uppercase tracking-tighter text-[10px] opacity-90 mr-1">Hero:</span>
+                            ${heroLabel}
+                        </div>
                     </div>
                 </div>
                 <div class="diary-body">

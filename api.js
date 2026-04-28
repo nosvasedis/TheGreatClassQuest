@@ -1,5 +1,5 @@
 import { blobToBase64 } from './utils.js';
-import { geminiApiUrl, OPENROUTER_MODEL, cloudflareWorkerUrl } from './constants.js';
+import { AI_TEXT_PROVIDERS, OPENROUTER_MODEL, cloudflareWorkerUrl } from './constants.js';
 
 const GEMINI_REQUEST_SPACING_MS = 1200;
 
@@ -43,6 +43,123 @@ function createTimeoutError(timeoutMs) {
     const error = new Error(`Request timed out after ${timeoutMs}ms`);
     error.name = 'TimeoutError';
     return error;
+}
+
+function classifyProviderFailure(error) {
+    const message = String(error?.message || '');
+    const isRateLimited = /status\s*429/i.test(message);
+    const isServerFailure = /status\s*5\d{2}/i.test(message);
+    const isTimeout = error?.name === 'TimeoutError';
+    return {
+        isRateLimited,
+        isServerFailure,
+        isTimeout,
+        isRetryable: isRateLimited || isServerFailure || isTimeout
+    };
+}
+
+function buildProviderPayload(provider, systemPrompt, userPrompt) {
+    const payloadMode = provider?.payloadMode || 'openrouter';
+    if (payloadMode === 'openrouter') {
+        return {
+            model: provider?.model || OPENROUTER_MODEL,
+            messages: [
+                { role: 'system', content: systemPrompt },
+                { role: 'user', content: userPrompt }
+            ]
+        };
+    }
+
+    return {
+        model: provider?.model || OPENROUTER_MODEL,
+        messages: [
+            { role: 'system', content: systemPrompt },
+            { role: 'user', content: userPrompt }
+        ]
+    };
+}
+
+function extractProviderText(result) {
+    const directText = result?.text;
+    if (typeof directText === 'string' && directText.trim()) return directText.trim();
+
+    const openRouterText = result?.choices?.[0]?.message?.content;
+    if (typeof openRouterText === 'string' && openRouterText.trim()) return openRouterText.trim();
+
+    if (Array.isArray(openRouterText)) {
+        const merged = openRouterText
+            .map((part) => typeof part?.text === 'string' ? part.text : '')
+            .join('')
+            .trim();
+        if (merged) return merged;
+    }
+
+    const geminiText = result?.candidates?.[0]?.content?.parts
+        ?.map((part) => typeof part?.text === 'string' ? part.text : '')
+        .join('')
+        .trim();
+    if (geminiText) return geminiText;
+
+    throw new Error('Invalid AI response structure');
+}
+
+async function requestTextFromProvider(provider, systemPrompt, userPrompt, requestOptions = {}) {
+    const response = await enqueueGeminiRequest(() =>
+        fetchWithBackoff(provider.url, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(buildProviderPayload(provider, systemPrompt, userPrompt))
+        }, requestOptions)
+    );
+
+    if (!response.ok) {
+        throw new Error(`Provider ${provider.id} failed with status ${response.status}`);
+    }
+
+    const result = await response.json();
+    return {
+        providerId: provider.id,
+        providerLabel: provider.label,
+        content: extractProviderText(result)
+    };
+}
+
+export async function callGeminiApiDetailed(systemPrompt, userPrompt, requestOptions = {}) {
+    const providers = AI_TEXT_PROVIDERS.filter((provider) => provider?.url);
+    if (providers.length === 0) {
+        throw new Error('No AI text providers are configured.');
+    }
+
+    const failures = [];
+
+    for (const provider of providers) {
+        try {
+            const result = await requestTextFromProvider(provider, systemPrompt, userPrompt, requestOptions);
+            return {
+                ...result,
+                providerFailures: failures
+            };
+        } catch (error) {
+            const failureMeta = classifyProviderFailure(error);
+            failures.push({
+                providerId: provider.id,
+                providerLabel: provider.label,
+                message: String(error?.message || 'Unknown AI provider error'),
+                ...failureMeta
+            });
+        }
+    }
+
+    const aggregateError = new Error(
+        failures.length > 0
+            ? failures.map((failure) => `${failure.providerLabel}: ${failure.message}`).join(' | ')
+            : 'AI request failed.'
+    );
+    aggregateError.name = 'AiProviderChainError';
+    aggregateError.providerFailures = failures;
+    aggregateError.isRateLimited = failures.some((failure) => failure.isRateLimited);
+    aggregateError.isRetryable = failures.some((failure) => failure.isRetryable);
+    throw aggregateError;
 }
 
 async function fetchWithBackoff(url, options, config = {}) {
@@ -133,34 +250,9 @@ async function fetchWithBackoff(url, options, config = {}) {
 }
 
 export async function callGeminiApi(systemPrompt, userPrompt, requestOptions = {}) {
-    // 1. Prepare Payload for OpenRouter (via Worker)
-    const payload = {
-        model: OPENROUTER_MODEL, 
-        messages: [
-            { role: "system", content: systemPrompt },
-            { role: "user", content: userPrompt }
-        ]
-    };
-
     try {
-        const response = await enqueueGeminiRequest(() =>
-            fetchWithBackoff(geminiApiUrl, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload)
-            }, requestOptions)
-        );
-
-        if (!response.ok) throw new Error(`Proxy error! status: ${response.status}`);
-
-        const result = await response.json();
-        
-        // 3. Extract content (OpenRouter structure)
-        const content = result.choices?.[0]?.message?.content;
-        
-        if (content) return content;
-        else throw new Error('Invalid AI response structure');
-
+        const result = await callGeminiApiDetailed(systemPrompt, userPrompt, requestOptions);
+        return result.content;
     } catch (error) {
         console.error('Error in callGeminiApi (Proxy):', error);
         throw error;

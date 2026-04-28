@@ -14,6 +14,21 @@ export const fortunesWheelModalHTML = `
                 <i class="fa-solid fa-xmark"></i>
             </button>
 
+            <div id="fw-reveal-layer" class="fw-reveal-layer hidden" aria-live="polite">
+                <div class="fw-reveal-layer__backdrop"></div>
+                <div class="fw-reveal-layer__shell">
+                    <div id="fw-reveal-card" class="fw-reveal-card"></div>
+                    <div class="fw-reveal-actions">
+                        <button id="fw-reveal-secondary-btn" type="button" class="bubbly-button fw-btn-secondary hidden">
+                            <span class="font-title">Close</span>
+                        </button>
+                        <button id="fw-reveal-primary-btn" type="button" class="bubbly-button fw-btn-success hidden">
+                            <span class="font-title">Continue</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
             <div class="fw-atmosphere" aria-hidden="true">
                 <div class="fw-atmosphere__halo"></div>
                 <div class="fw-atmosphere__veil"></div>

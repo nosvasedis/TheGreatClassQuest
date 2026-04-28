@@ -576,7 +576,7 @@ export async function applyWheelResult(guildId, segment, classId) {
             rarity: segment.rarity,
             applied: false,
             gloryDelta: 0,
-            description: 'Effect could not be applied.',
+            description: `Effect could not be applied${err?.message ? `: ${err.message}` : '.'}`,
         };
     }
 }
@@ -1175,6 +1175,7 @@ function _renderAvailability(availability) {
 }
 
 function _renderLockedState(title, message, emoji) {
+    _hideResultReveal();
     const availability = typeof title === 'object'
         ? title
         : { title, message, emoji, code: 'locked' };
@@ -1300,11 +1301,13 @@ export async function closeFortunesWheel() {
         modal.classList.remove('is-open');
         modal.classList.add('hidden');
     }
+    _hideResultReveal();
 }
 
 // ── Internal UI helpers ──────────────────────────────────────────────────────
 
 function _renderWheelPhase() {
+    _hideResultReveal();
     const guildId = _wheelState.guildOrder[_wheelState.currentGuildIndex];
     const guildDef = getGuildById(guildId);
     const guildNum = _wheelState.currentGuildIndex + 1;
@@ -1383,16 +1386,81 @@ function _updateSpinButton(disabled, label = 'Spin the Wheel', sublabel = 'The r
     if (subEl) subEl.textContent = sublabel;
 }
 
+function _hideResultReveal() {
+    const revealLayer = document.getElementById('fw-reveal-layer');
+    const revealCard = document.getElementById('fw-reveal-card');
+    const primaryBtn = document.getElementById('fw-reveal-primary-btn');
+    const secondaryBtn = document.getElementById('fw-reveal-secondary-btn');
+    if (revealLayer) revealLayer.classList.add('hidden');
+    if (revealCard) revealCard.innerHTML = '';
+    if (primaryBtn) {
+        primaryBtn.classList.add('hidden');
+        primaryBtn.onclick = null;
+    }
+    if (secondaryBtn) {
+        secondaryBtn.classList.add('hidden');
+        secondaryBtn.onclick = null;
+    }
+}
+
+function _showResultReveal({ cardHtml, primaryAction = null, secondaryAction = null }) {
+    const revealLayer = document.getElementById('fw-reveal-layer');
+    const revealCard = document.getElementById('fw-reveal-card');
+    const primaryBtn = document.getElementById('fw-reveal-primary-btn');
+    const secondaryBtn = document.getElementById('fw-reveal-secondary-btn');
+    if (!revealLayer || !revealCard || !primaryBtn || !secondaryBtn) return;
+
+    revealCard.innerHTML = cardHtml;
+
+    if (primaryAction) {
+        primaryBtn.classList.remove('hidden');
+        primaryBtn.innerHTML = `<span class="font-title">${primaryAction.label}</span>`;
+        primaryBtn.onclick = primaryAction.onClick;
+    } else {
+        primaryBtn.classList.add('hidden');
+        primaryBtn.onclick = null;
+    }
+
+    if (secondaryAction) {
+        secondaryBtn.classList.remove('hidden');
+        secondaryBtn.innerHTML = `<span class="font-title">${secondaryAction.label}</span>`;
+        secondaryBtn.onclick = secondaryAction.onClick;
+    } else {
+        secondaryBtn.classList.add('hidden');
+        secondaryBtn.onclick = null;
+    }
+
+    revealLayer.classList.remove('hidden');
+}
+
 function _renderWheelResult(segment, result, guildDef) {
-    const resultEl = document.getElementById('fw-result');
-    if (!resultEl) return;
-
     const rarityConf = WHEEL_RARITY_CONFIG[segment.rarity] || WHEEL_RARITY_CONFIG.common;
-    const isNegative = segment.category === 'negative';
     const emblemUrl = getGuildEmblemUrl(guildDef?.id);
+    const impactTiles = [
+        result.gloryDelta ? `<div class="fw-result-impact-tile">
+                <div class="fw-result-impact-tile__label">Glory</div>
+                <div class="fw-result-impact-tile__value ${result.gloryDelta < 0 ? 'fw-result-impact-tile__value--negative' : ''}">${result.gloryDelta >= 0 ? '+' : ''}${result.gloryDelta} ⚜️</div>
+            </div>` : '',
+        result.goldDelta ? `<div class="fw-result-impact-tile">
+                <div class="fw-result-impact-tile__label">Gold</div>
+                <div class="fw-result-impact-tile__value ${result.goldDelta < 0 ? 'fw-result-impact-tile__value--negative' : ''}">${result.goldDelta >= 0 ? '+' : ''}${result.goldDelta} 🪙</div>
+            </div>` : '',
+        result.starsDelta ? `<div class="fw-result-impact-tile">
+                <div class="fw-result-impact-tile__label">Stars</div>
+                <div class="fw-result-impact-tile__value ${result.starsDelta < 0 ? 'fw-result-impact-tile__value--negative' : ''}">${result.starsDelta >= 0 ? '+' : ''}${result.starsDelta} ⭐</div>
+            </div>` : '',
+        result.classQuestDelta ? `<div class="fw-result-impact-tile">
+                <div class="fw-result-impact-tile__label">Quest Bonus</div>
+                <div class="fw-result-impact-tile__value ${result.classQuestDelta < 0 ? 'fw-result-impact-tile__value--negative' : ''}">${result.classQuestDelta >= 0 ? '+' : ''}${result.classQuestDelta} 🗺️</div>
+            </div>` : '',
+        (result.artifactsGranted || result.artifactsRemoved) ? `<div class="fw-result-impact-tile">
+                <div class="fw-result-impact-tile__label">Artifacts</div>
+                <div class="fw-result-impact-tile__value ${(result.artifactsRemoved || 0) > 0 ? 'fw-result-impact-tile__value--negative' : ''}">${result.artifactsGranted ? `+${result.artifactsGranted}` : '0'}${result.artifactsRemoved ? ` / -${result.artifactsRemoved}` : ''} 🎒</div>
+            </div>` : ''
+    ].filter(Boolean).join('');
 
-    resultEl.innerHTML = `
-        <div class="fw-result-card" style="border-color:${rarityConf.color};box-shadow:0 0 30px ${rarityConf.glow};">
+    const cardHtml = `
+        <div class="fw-result-card fw-result-card--overlay" style="border-color:${rarityConf.color};box-shadow:0 0 38px ${rarityConf.glow};">
             <div class="fw-result-header">
                 <div class="fw-result-rarity" style="background:${rarityConf.bg};color:${rarityConf.color};border-color:${rarityConf.color}40;">${rarityConf.label}</div>
                 <div class="fw-result-guild">
@@ -1402,37 +1470,40 @@ function _renderWheelResult(segment, result, guildDef) {
             </div>
             <div class="fw-result-title">${segment.label}</div>
             <div class="fw-result-description">${result.description || segment.description}</div>
-            ${result.gloryDelta ? `<div class="fw-result-glory ${isNegative ? 'fw-result-glory--negative' : ''}">${result.gloryDelta >= 0 ? '+' : ''}${result.gloryDelta} ⚜️ Glory</div>` : ''}
-            ${result.goldDelta ? `<div class="fw-result-glory ${result.goldDelta < 0 ? 'fw-result-glory--negative' : ''}">${result.goldDelta >= 0 ? '+' : ''}${result.goldDelta} 🪙 Gold</div>` : ''}
-            ${result.starsDelta ? `<div class="fw-result-glory ${result.starsDelta < 0 ? 'fw-result-glory--negative' : ''}">${result.starsDelta >= 0 ? '+' : ''}${result.starsDelta} ⭐ Stars</div>` : ''}
-            ${result.classQuestDelta ? `<div class="fw-result-glory ${result.classQuestDelta < 0 ? 'fw-result-glory--negative' : ''}">${result.classQuestDelta >= 0 ? '+' : ''}${result.classQuestDelta} 🗺️ Quest</div>` : ''}
-            ${(result.artifactsGranted || result.artifactsRemoved) ? `<div class="fw-result-glory ${(result.artifactsRemoved || 0) > 0 ? 'fw-result-glory--negative' : ''}">${result.artifactsGranted ? `+${result.artifactsGranted}` : ''}${result.artifactsGranted && result.artifactsRemoved ? ' / ' : ''}${result.artifactsRemoved ? `-${result.artifactsRemoved}` : ''} 🎒 Artifacts</div>` : ''}
+            ${impactTiles ? `<div class="fw-result-impact-grid">${impactTiles}</div>` : ''}
             ${result.affectedStudents?.length ? `<div class="fw-result-students">${result.affectedStudents.length} student${result.affectedStudents.length > 1 ? 's' : ''} affected</div>` : ''}
         </div>`;
-    resultEl.classList.remove('hidden');
 
     _setStageCaption(`${guildDef?.name || 'The guild'} has received ${segment.label}. Advance when you are ready for the next reveal.`);
     _updateSpinButton(true, 'Fate Revealed', 'Prepare the next presentation');
-
-    if (_wheelState.currentGuildIndex < _wheelState.guildOrder.length - 1) {
-        const nextBtn = document.getElementById('fw-next-btn');
-        if (nextBtn) {
-            nextBtn.innerHTML = '<span class="font-title">Present Next Guild</span>';
-            nextBtn.classList.remove('hidden');
-        }
-    } else {
-        const doneBtn = document.getElementById('fw-done-btn');
-        if (doneBtn) {
-            doneBtn.innerHTML = '<span class="font-title">Reveal Final Ledger</span>';
-            doneBtn.classList.remove('hidden');
-            doneBtn.onclick = () => advanceWheel();
-        }
-    }
+    _showResultReveal({
+        cardHtml,
+        secondaryAction: {
+            label: 'Close the Relic',
+            onClick: () => closeFortunesWheel()
+        },
+        primaryAction: _wheelState.currentGuildIndex < _wheelState.guildOrder.length - 1
+            ? {
+                label: 'Present Next Guild',
+                onClick: () => {
+                    _hideResultReveal();
+                    advanceWheel();
+                }
+            }
+            : {
+                label: 'Reveal Final Ledger',
+                onClick: () => {
+                    _hideResultReveal();
+                    advanceWheel();
+                }
+            }
+    });
 }
 
 function _renderWheelSummary() {
     const summaryEl = document.getElementById('fw-summary');
     if (!summaryEl) return;
+    _hideResultReveal();
 
     const canvasWrap = document.getElementById('fw-canvas-wrap');
     if (canvasWrap) canvasWrap.classList.add('hidden');

@@ -595,8 +595,6 @@ function setupAuthListeners() {
             state.set('currentUserId', user.uid);
             state.set('currentTeacherName', user.displayName || user.email || '');
 
-            initializeHeaderQuote();
-
             if (document.getElementById('teacher-name-input')) {
                 document.getElementById('teacher-name-input').value = user.displayName || '';
             }
@@ -609,6 +607,7 @@ function setupAuthListeners() {
             }
 
             await loadSubscription();
+            initializeHeaderQuote();
             let profile = await loadUserProfile(user);
             if (!profile) {
                 const inferredRole = getRoleFromSyntheticEmail(user.email);

@@ -361,7 +361,7 @@ function renderStudentBulkRow(student, scheme, isAbsent) {
         inputHtml = `
             <div class="relative">
                 <input type="number" class="bulk-grade-input w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-400 outline-none" 
-                    placeholder="0-${maxScore}" min="0" max="${maxScore}" ${isAbsent ? 'disabled' : ''}>
+                    placeholder="0-${maxScore}" min="0" max="${maxScore}" ${isAbsent ? 'disabled' : ''} onwheel="this.blur()">
                 <span class="absolute right-3 top-2 text-gray-400 text-sm">/${maxScore}</span>
             </div>
         `;
@@ -920,7 +920,7 @@ function openMakeupModal(classId, studentId, type, title) {
         inputHtml = `
             <div class="relative">
                 <input type="number" class="bulk-grade-input w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-400 outline-none" 
-                    placeholder="Score" min="0" max="${maxScore}">
+                    placeholder="Score" min="0" max="${maxScore}" onwheel="this.blur()">
                 <span class="absolute right-3 top-2 text-gray-400 text-sm">/${maxScore}</span>
             </div>`;
     }

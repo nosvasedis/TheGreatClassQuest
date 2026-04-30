@@ -9,6 +9,7 @@ import { renderFamiliarSprite } from '../features/familiars.js';
 import { getEggAlertState } from '../features/familiarProgression.mjs';
 import { getNextAssessmentOccurrenceForToday, getUpcomingScheduledAssessment } from '../features/assessmentConfig.js';
 import { getClassQuestProgressData, getQuestMapZoneForProgressPercent } from '../features/worldMap.js';
+import { fetchDailySpice } from '../features/home.js';
 
 // Proper Fisher-Yates shuffle for true variety
 function shuffleDeck(array) {
@@ -176,6 +177,7 @@ export function toggleWallpaperMode() {
         initSeasonalAtmosphere();
         initializeDailyAIContent();
         directorGameLoop();
+        initializeWallpaperQuote();
 
     } else {
         isRunning = false;
@@ -348,6 +350,22 @@ function hasBeenShownRecently(cardId) {
     const duration = getCooldownForType(cardId);
     const recent = history.find(h => h.id === cardId && (now - h.time) < duration);
     return !!recent;
+}
+
+async function initializeWallpaperQuote() {
+    try {
+        const spice = await fetchDailySpice();
+        const quote = spice?.quote || spice?.headerQuote;
+        if (!quote) return;
+        const textEl = document.getElementById('wall-quote-text');
+        const container = document.getElementById('wall-quote-container');
+        if (textEl && container) {
+            textEl.innerText = `"${quote}"`;
+            container.style.opacity = '1';
+        }
+    } catch (e) {
+        console.warn('Wallpaper quote failed to load:', e);
+    }
 }
 
 async function initializeDailyAIContent() {

@@ -13,7 +13,7 @@ import { DEFAULT_SCHOOL_NAME } from '../constants.js';
 import { loadTeacherJourneyState, markTeacherGuideSeen } from './teacherJourney.js';
 import { getNextAssessmentOccurrenceForToday, getUpcomingScheduledAssessment } from './assessmentConfig.js';
 
-export { initializeHeaderQuote };
+export { initializeHeaderQuote, fetchDailySpice };
 
 let homeInterval = null;
 let renderDebounce = null;

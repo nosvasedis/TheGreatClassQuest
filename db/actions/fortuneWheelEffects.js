@@ -89,6 +89,8 @@ export async function applyWheelStudentEffects({
 
     let artifactsGranted = 0;
     let artifactsRemoved = 0;
+    /** @type {Array<{id:string, name:string, icon:string, description:string}>} */
+    const grantedArtifactsList = [];
 
     await runTransaction(db, async (transaction) => {
         const scoreSnapshots = new Map();
@@ -135,6 +137,7 @@ export async function applyWheelStudentEffects({
                         description: pick.description,
                         acquiredAt: new Date().toISOString()
                     }];
+                    grantedArtifactsList.push({ id: pick.id, name: pick.name, icon: pick.icon || '🎒', description: pick.description });
                     artifactsGranted += 1;
                 }
             }
@@ -176,7 +179,8 @@ export async function applyWheelStudentEffects({
         starsDelta: totalStarsDelta,
         goldDelta: totalGoldDelta,
         artifactsGranted,
-        artifactsRemoved
+        artifactsRemoved,
+        grantedArtifacts: grantedArtifactsList
     };
 }
 

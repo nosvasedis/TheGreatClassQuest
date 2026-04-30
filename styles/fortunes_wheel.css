@@ -129,18 +129,32 @@
     gap: 1.75rem;
     flex: 1;
     min-height: 0;
+    height: 100%;
     max-width: 1420px;
     margin: 0 auto;
     width: 100%;
-    align-items: start;
+    align-items: stretch;
 }
 
 @media (max-width: 1200px) {
+    .fw-card {
+        overflow-y: auto;
+    }
+    .fw-content-unified {
+        height: auto;
+        min-height: 100dvh;
+        overflow: visible;
+    }
     .fw-main-layout {
         grid-template-columns: 1fr;
-        gap: 1.5rem;
-        max-height: calc(100dvh - 8rem);
-        overflow-y: auto;
+        gap: 1.25rem;
+        height: auto;
+        max-height: none;
+        overflow: visible;
+    }
+    .fw-controls-section {
+        max-height: none;
+        overflow-y: visible;
     }
 }
 
@@ -149,6 +163,7 @@
     flex-direction: column;
     gap: 0.75rem;
     min-height: 0;
+    height: 100%;
 }
 
 .fw-controls-section {
@@ -290,12 +305,14 @@
     justify-content: center;
     min-height: 0;
     padding: 0.5rem;
+    overflow: hidden;
 }
 
 .fw-stage-frame {
     position: relative;
     width: 100%;
     max-width: 480px;
+    max-height: 100%;
     aspect-ratio: 1;
     display: flex;
     align-items: center;
@@ -424,7 +441,7 @@
     border-radius: 1.25rem;
     background: linear-gradient(180deg, rgba(255,255,255,0.05), rgba(255,255,255,0.025));
     border: 1px solid rgba(255,255,255,0.08);
-    max-height: calc(100dvh - 12rem);
+    max-height: 100%;
     overflow-y: auto;
     box-shadow: 
         inset 0 1px 0 rgba(255, 255, 255, 0.08),
@@ -745,10 +762,13 @@
     flex-direction: column;
     gap: 1rem;
     align-items: stretch;
+    overflow: hidden;
 }
 
 .fw-reveal-card {
-    overflow: auto;
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
     border-radius: 1.5rem;
 }
 
@@ -1310,6 +1330,72 @@
     animation: fw-orb-pulse 1.4s ease-in-out infinite;
 }
 
+/* ── Artifact showcase ───────────────────────────────────────────────────── */
+.fw-result-artifacts-header {
+    margin-top: 0.85rem;
+    font-size: 0.68rem;
+    font-weight: 900;
+    letter-spacing: 0.13em;
+    text-transform: uppercase;
+    color: var(--rarity-color);
+    text-align: center;
+    opacity: 0.85;
+}
+
+.fw-result-artifacts-showcase {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 0.45rem;
+    margin-top: 0.55rem;
+    position: relative;
+    z-index: 1;
+    animation: fw-badge-pop 0.45s cubic-bezier(0.34, 1.56, 0.64, 1) 0.18s both;
+}
+
+.fw-result-artifact-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.32rem 0.75rem 0.32rem 0.5rem;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.07);
+    border: 1px solid var(--rarity-color);
+    box-shadow: 0 0 10px var(--rarity-glow);
+    font-size: 0.8rem;
+    font-weight: 700;
+    color: rgba(255, 255, 255, 0.9);
+    white-space: nowrap;
+    transition: transform 180ms ease;
+}
+
+.fw-result-artifact-pill:hover {
+    transform: translateY(-2px);
+}
+
+.fw-result-artifact-pill__icon {
+    font-size: 1.1rem;
+    line-height: 1;
+    flex-shrink: 0;
+}
+
+.fw-result-artifact-pill__name {
+    color: #fff;
+    font-weight: 800;
+}
+
+.fw-result-artifact-overflow {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.32rem 0.65rem;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    font-size: 0.78rem;
+    font-weight: 700;
+    color: rgba(255, 255, 255, 0.5);
+}
+
 .fw-locked-state {
     padding: 1.5rem;
     border-radius: 1rem;
@@ -1368,11 +1454,12 @@
 @media (max-width: 1100px) {
     .fw-main-layout {
         grid-template-columns: 1fr;
-        grid-template-rows: auto 1fr;
+        grid-template-rows: auto auto;
     }
 
     .fw-stage-section {
         order: 1;
+        height: auto;
     }
 
     .fw-controls-section {
@@ -1381,11 +1468,12 @@
     }
 
     .fw-wheel-container {
-        min-height: 320px;
+        min-height: 280px;
     }
 
     .fw-stage-frame {
         max-width: min(520px, 100%);
+        max-height: min(520px, 70vw);
     }
 }
 
@@ -1424,16 +1512,108 @@
 }
 
 @media (max-height: 820px) {
+    .fw-header-floating {
+        padding: 0.15rem 0;
+    }
+    .fw-kicker {
+        font-size: 0.62rem;
+        padding: 0.25rem 0.6rem;
+    }
+    .fw-title {
+        font-size: clamp(1.5rem, 2.5vw, 2rem);
+        margin-top: 0.25rem;
+    }
     .fw-content-unified {
-        overflow-y: auto;
+        gap: 0.6rem;
+        padding-top: 0.75rem;
+        padding-bottom: 1rem;
     }
-
+    .fw-stage-section {
+        gap: 0.5rem;
+    }
+    .fw-guild-header-pill {
+        padding: 0.5rem 0.8rem;
+    }
+    .fw-guild-banner__crest {
+        width: 42px;
+        height: 42px;
+    }
+    .fw-guild-banner__crest-image {
+        width: 34px;
+        height: 34px;
+    }
+    .fw-progress-rail {
+        padding: 0.35rem;
+        gap: 0.3rem;
+    }
+    .fw-progress-pill {
+        padding: 0.35rem 0.4rem;
+    }
+    .fw-progress-pill__crest {
+        width: 28px;
+        height: 28px;
+    }
+    .fw-progress-pill__name {
+        font-size: 0.72rem;
+    }
+    .fw-stage-caption {
+        padding: 0.5rem 0.8rem;
+        font-size: 0.8rem;
+    }
     .fw-controls-section {
-        max-height: none;
+        gap: 0.75rem;
+        padding: 0.9rem;
     }
+    .fw-reveal-layer__shell {
+        max-height: min(94vh, 860px);
+    }
+}
 
-    .fw-main-layout {
-        align-items: stretch;
+@media (max-height: 700px) {
+    .fw-kicker {
+        display: none;
+    }
+    .fw-title {
+        font-size: clamp(1.2rem, 2vw, 1.6rem);
+        margin-top: 0;
+    }
+    .fw-header-floating {
+        padding: 0.05rem 0;
+    }
+    .fw-content-unified {
+        gap: 0.4rem;
+        padding: 0.5rem 1.25rem 0.75rem;
+    }
+    .fw-stage-section {
+        gap: 0.35rem;
+    }
+    .fw-guild-header-pill {
+        padding: 0.38rem 0.65rem;
+    }
+    .fw-guild-banner__crest {
+        width: 34px;
+        height: 34px;
+    }
+    .fw-guild-banner__name {
+        font-size: 1rem;
+    }
+    .fw-progress-rail {
+        padding: 0.25rem;
+        gap: 0.2rem;
+    }
+    .fw-progress-pill__crest {
+        width: 24px;
+        height: 24px;
+    }
+    .fw-progress-pill__step {
+        display: none;
+    }
+    .fw-stage-caption {
+        padding: 0.35rem 0.65rem;
+        font-size: 0.75rem;
+    }
+    .fw-reveal-layer__shell {
+        max-height: min(96vh, 860px);
     }
 }
 

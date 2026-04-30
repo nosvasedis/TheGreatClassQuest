@@ -1469,6 +1469,11 @@ function _renderWheelResult(segment, result, guildDef) {
     }
 
     // ── Impact stat tiles ─────────────────────────────────────────────────
+    // Artifacts get their own showcase block below, so only show the generic
+    // tile for removal events (no names available to show) or when no granted list.
+    const showArtifactTile = (result.artifactsRemoved || 0) > 0 ||
+        ((result.artifactsGranted || 0) > 0 && !(result.grantedArtifacts?.length));
+
     const statDefs = [
         result.gloryDelta
             ? { icon: '⚜️', label: 'Glory',       displayStr: `${result.gloryDelta >= 0 ? '+' : ''}${result.gloryDelta}`,           isNeg: result.gloryDelta < 0 }
@@ -1482,7 +1487,7 @@ function _renderWheelResult(segment, result, guildDef) {
         result.classQuestDelta
             ? { icon: '🗺️', label: 'Quest Bonus', displayStr: `${result.classQuestDelta >= 0 ? '+' : ''}${result.classQuestDelta}`, isNeg: result.classQuestDelta < 0 }
             : null,
-        (result.artifactsGranted || result.artifactsRemoved)
+        showArtifactTile
             ? { icon: '🎒', label: 'Artifacts',
                 displayStr: `${result.artifactsGranted ? `+${result.artifactsGranted}` : ''}${result.artifactsGranted && result.artifactsRemoved ? ' / ' : ''}${result.artifactsRemoved ? `-${result.artifactsRemoved}` : ''}`,
                 isNeg: (result.artifactsRemoved || 0) > (result.artifactsGranted || 0) }
@@ -1501,6 +1506,38 @@ function _renderWheelResult(segment, result, guildDef) {
            <div class="fw-result-impact-grid">${statsHtml}</div>`
         : '';
 
+    // ── Artifact showcase (when specific artifacts were granted) ──────────
+    let artifactShowcaseHtml = '';
+    const grantedArtifacts = result.grantedArtifacts || [];
+    if (grantedArtifacts.length > 0) {
+        // Deduplicate by id and show each unique artifact once with a count
+        const counts = new Map();
+        for (const a of grantedArtifacts) {
+            const key = a.id;
+            if (counts.has(key)) {
+                counts.get(key).count += 1;
+            } else {
+                counts.set(key, { ...a, count: 1 });
+            }
+        }
+        const unique = [...counts.values()];
+        const MAX_SHOWN = 4;
+        const shownArtifacts = unique.slice(0, MAX_SHOWN);
+        const overflowCount = unique.length - MAX_SHOWN;
+        const pills = shownArtifacts.map(a => `
+            <div class="fw-result-artifact-pill">
+                <span class="fw-result-artifact-pill__icon">${a.icon}</span>
+                <span class="fw-result-artifact-pill__name">${a.name}${a.count > 1 ? ` ×${a.count}` : ''}</span>
+            </div>`).join('');
+        const overflowPill = overflowCount > 0
+            ? `<div class="fw-result-artifact-overflow">+${overflowCount} more</div>`
+            : '';
+        artifactShowcaseHtml = `
+            <div class="fw-result-divider"></div>
+            <div class="fw-result-artifacts-header">🎒 Artifacts Received</div>
+            <div class="fw-result-artifacts-showcase">${pills}${overflowPill}</div>`;
+    }
+
     // ── Full card HTML ────────────────────────────────────────────────────
     const cardHtml = `
         <div class="fw-result-card fw-result-card--v2"
@@ -1515,6 +1552,7 @@ function _renderWheelResult(segment, result, guildDef) {
             <div class="fw-result-title">${segment.label}</div>
             <div class="fw-result-description">${result.description || segment.description}</div>
             ${statsBlockHtml}
+            ${artifactShowcaseHtml}
             ${studentChipsHtml}
         </div>`;
 

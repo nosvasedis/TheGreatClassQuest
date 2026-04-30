@@ -236,8 +236,9 @@ export function stopWritingLoop() {
     if (writingLoop) {
         writingLoop.dispose();
         writingLoop = null;
-        // Do not stop Transport here if drumRoll is also running, but usually they are exclusive.
-        // Safer to just dispose the loop.
+        if (!drumRollLoop) {
+            Tone.Transport.stop();
+        }
     }
 }
 

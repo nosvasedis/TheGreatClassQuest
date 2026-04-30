@@ -563,23 +563,28 @@ async function handleAILogAdventure(classId, classData) {
             createdAt: serverTimestamp()
         }, heroStudentId);
 
-        showToast('The Chronicler has started weaving today\'s entry.', 'info');
         await showHeroOfTheDayReveal(heroStudentId, 'The Class Hero!');
 
-        try {
-            await finalizeAdventureLogGeneration({
-                logId,
-                aiPrompts,
-                classData,
-                heroOfTheDay,
-                ageTier,
-                reasonLabels,
-                totalStars,
-                attemptNumber: 1,
-                allowArtwork: true
-            });
+        // The ceremony is complete — stop the writing loop and restore the button now,
+        // before AI generation which runs fully in the background.
+        import('../../audio.js').then(m => m.stopWritingLoop());
+        btn.disabled = false;
+        btn.innerHTML = `<i class="fas fa-feather-alt mr-2"></i> Log Today's Adventure`;
+
+        // Fire-and-forget: AI text + artwork generation runs in the background.
+        finalizeAdventureLogGeneration({
+            logId,
+            aiPrompts,
+            classData,
+            heroOfTheDay,
+            ageTier,
+            reasonLabels,
+            totalStars,
+            attemptNumber: 1,
+            allowArtwork: true
+        }).then(() => {
             showToast('The adventure has been chronicled. Artwork will appear when ready.', 'success');
-        } catch (error) {
+        }).catch(async (error) => {
             console.error('Chronicler text generation failed:', error);
             const firstRetryDelay = ADVENTURE_LOG_AI_RETRY_DELAYS_MS[0] || null;
             await updateAdventureLogGenerationState(logId, {
@@ -606,8 +611,10 @@ async function handleAILogAdventure(classId, classData) {
             } else {
                 showToast('Chronicler AI could not finish this entry yet.', 'error');
             }
-        }
-    } finally {
+        });
+    } catch (error) {
+        console.error('Chronicler log adventure failed:', error);
+        showToast('Something went wrong. Please try again.', 'error');
         import('../../audio.js').then(m => m.stopWritingLoop());
         btn.disabled = false;
         btn.innerHTML = `<i class="fas fa-feather-alt mr-2"></i> Log Today's Adventure`;

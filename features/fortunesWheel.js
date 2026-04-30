@@ -1403,7 +1403,7 @@ function _hideResultReveal() {
     }
 }
 
-function _showResultReveal({ cardHtml, primaryAction = null, secondaryAction = null }) {
+function _showResultReveal({ cardHtml, rarityGlow = null, primaryAction = null, secondaryAction = null }) {
     const revealLayer = document.getElementById('fw-reveal-layer');
     const revealCard = document.getElementById('fw-reveal-card');
     const primaryBtn = document.getElementById('fw-reveal-primary-btn');
@@ -1411,6 +1411,12 @@ function _showResultReveal({ cardHtml, primaryAction = null, secondaryAction = n
     if (!revealLayer || !revealCard || !primaryBtn || !secondaryBtn) return;
 
     revealCard.innerHTML = cardHtml;
+
+    // Tint the backdrop to the rarity glow colour
+    const backdrop = revealLayer.querySelector('.fw-reveal-layer__backdrop');
+    if (backdrop) {
+        backdrop.style.setProperty('--backdrop-glow', rarityGlow || 'rgba(251,191,36,0.24)');
+    }
 
     if (primaryAction) {
         primaryBtn.classList.remove('hidden');
@@ -1436,48 +1442,87 @@ function _showResultReveal({ cardHtml, primaryAction = null, secondaryAction = n
 function _renderWheelResult(segment, result, guildDef) {
     const rarityConf = WHEEL_RARITY_CONFIG[segment.rarity] || WHEEL_RARITY_CONFIG.common;
     const emblemUrl = getGuildEmblemUrl(guildDef?.id);
-    const impactTiles = [
-        result.gloryDelta ? `<div class="fw-result-impact-tile">
-                <div class="fw-result-impact-tile__label">Glory</div>
-                <div class="fw-result-impact-tile__value ${result.gloryDelta < 0 ? 'fw-result-impact-tile__value--negative' : ''}">${result.gloryDelta >= 0 ? '+' : ''}${result.gloryDelta} ⚜️</div>
-            </div>` : '',
-        result.goldDelta ? `<div class="fw-result-impact-tile">
-                <div class="fw-result-impact-tile__label">Gold</div>
-                <div class="fw-result-impact-tile__value ${result.goldDelta < 0 ? 'fw-result-impact-tile__value--negative' : ''}">${result.goldDelta >= 0 ? '+' : ''}${result.goldDelta} 🪙</div>
-            </div>` : '',
-        result.starsDelta ? `<div class="fw-result-impact-tile">
-                <div class="fw-result-impact-tile__label">Stars</div>
-                <div class="fw-result-impact-tile__value ${result.starsDelta < 0 ? 'fw-result-impact-tile__value--negative' : ''}">${result.starsDelta >= 0 ? '+' : ''}${result.starsDelta} ⭐</div>
-            </div>` : '',
-        result.classQuestDelta ? `<div class="fw-result-impact-tile">
-                <div class="fw-result-impact-tile__label">Quest Bonus</div>
-                <div class="fw-result-impact-tile__value ${result.classQuestDelta < 0 ? 'fw-result-impact-tile__value--negative' : ''}">${result.classQuestDelta >= 0 ? '+' : ''}${result.classQuestDelta} 🗺️</div>
-            </div>` : '',
-        (result.artifactsGranted || result.artifactsRemoved) ? `<div class="fw-result-impact-tile">
-                <div class="fw-result-impact-tile__label">Artifacts</div>
-                <div class="fw-result-impact-tile__value ${(result.artifactsRemoved || 0) > 0 ? 'fw-result-impact-tile__value--negative' : ''}">${result.artifactsGranted ? `+${result.artifactsGranted}` : '0'}${result.artifactsRemoved ? ` / -${result.artifactsRemoved}` : ''} 🎒</div>
-            </div>` : ''
-    ].filter(Boolean).join('');
 
+    // ── Resolve affected student objects ─────────────────────────────────
+    const allStudents = state.get('allStudents') || [];
+    const affectedStudentIds = result.affectedStudents || [];
+    const affectedStudents = affectedStudentIds
+        .map(id => allStudents.find(s => s.id === id))
+        .filter(Boolean);
+
+    // ── Student chips HTML ────────────────────────────────────────────────
+    let studentChipsHtml = '';
+    if (affectedStudents.length > 0) {
+        const MAX_SHOWN = 3;
+        const shown = affectedStudents.slice(0, MAX_SHOWN);
+        const overflow = affectedStudents.length - MAX_SHOWN;
+        const chips = shown.map(s => {
+            const avatarHtml = s.avatar
+                ? `<img src="${s.avatar}" class="fw-result-student-avatar" alt="${s.name}">`
+                : `<span class="fw-result-student-avatar--initial">${s.name.charAt(0).toUpperCase()}</span>`;
+            return `<div class="fw-result-student-chip">${avatarHtml}<span>${s.name}</span></div>`;
+        }).join('');
+        const overflowChip = overflow > 0
+            ? `<div class="fw-result-student-overflow">+${overflow} more</div>`
+            : '';
+        studentChipsHtml = `<div class="fw-result-student-row">${chips}${overflowChip}</div>`;
+    }
+
+    // ── Impact stat tiles ─────────────────────────────────────────────────
+    const statDefs = [
+        result.gloryDelta
+            ? { icon: '⚜️', label: 'Glory',       displayStr: `${result.gloryDelta >= 0 ? '+' : ''}${result.gloryDelta}`,           isNeg: result.gloryDelta < 0 }
+            : null,
+        result.goldDelta
+            ? { icon: '🪙', label: 'Gold',        displayStr: `${result.goldDelta >= 0 ? '+' : ''}${result.goldDelta}`,             isNeg: result.goldDelta < 0 }
+            : null,
+        result.starsDelta
+            ? { icon: '⭐', label: 'Stars',       displayStr: `${result.starsDelta >= 0 ? '+' : ''}${result.starsDelta}`,           isNeg: result.starsDelta < 0 }
+            : null,
+        result.classQuestDelta
+            ? { icon: '🗺️', label: 'Quest Bonus', displayStr: `${result.classQuestDelta >= 0 ? '+' : ''}${result.classQuestDelta}`, isNeg: result.classQuestDelta < 0 }
+            : null,
+        (result.artifactsGranted || result.artifactsRemoved)
+            ? { icon: '🎒', label: 'Artifacts',
+                displayStr: `${result.artifactsGranted ? `+${result.artifactsGranted}` : ''}${result.artifactsGranted && result.artifactsRemoved ? ' / ' : ''}${result.artifactsRemoved ? `-${result.artifactsRemoved}` : ''}`,
+                isNeg: (result.artifactsRemoved || 0) > (result.artifactsGranted || 0) }
+            : null,
+    ].filter(Boolean);
+
+    const statsHtml = statDefs.map((s, i) => `
+        <div class="fw-result-stat" style="animation-delay:${(0.05 + i * 0.07).toFixed(2)}s">
+            <div class="fw-result-stat__icon">${s.icon}</div>
+            <div class="fw-result-stat__value ${s.isNeg ? 'fw-result-stat__value--negative' : ''}">${s.displayStr}</div>
+            <div class="fw-result-stat__label">${s.label}</div>
+        </div>`).join('');
+
+    const statsBlockHtml = statsHtml
+        ? `<div class="fw-result-divider"></div>
+           <div class="fw-result-impact-grid">${statsHtml}</div>`
+        : '';
+
+    // ── Full card HTML ────────────────────────────────────────────────────
     const cardHtml = `
-        <div class="fw-result-card fw-result-card--overlay" style="border-color:${rarityConf.color};box-shadow:0 0 38px ${rarityConf.glow};">
-            <div class="fw-result-header">
-                <div class="fw-result-rarity" style="background:${rarityConf.bg};color:${rarityConf.color};border-color:${rarityConf.color}40;">${rarityConf.label}</div>
-                <div class="fw-result-guild">
-                    ${emblemUrl ? `<img src="${emblemUrl}" alt="${guildDef?.name || result.guildId}" class="fw-result-guild__image">` : ''}
-                    <span class="fw-result-guild__name">${guildDef?.name || result.guildId}</span>
-                </div>
+        <div class="fw-result-card fw-result-card--v2"
+             data-rarity="${segment.rarity}"
+             style="--rarity-color:${rarityConf.color};--rarity-glow:${rarityConf.glow};--rarity-bg:${rarityConf.bg};border-color:${rarityConf.color};">
+            <div class="fw-result-ribbon">${rarityConf.label}</div>
+            <div class="fw-result-emoji-orb">${segment.emoji}</div>
+            <div class="fw-result-guild-row">
+                ${emblemUrl ? `<img src="${emblemUrl}" alt="${guildDef?.name || ''}" class="fw-result-guild-row__image">` : ''}
+                <span class="fw-result-guild-row__name">${guildDef?.name || result.guildId}</span>
             </div>
             <div class="fw-result-title">${segment.label}</div>
             <div class="fw-result-description">${result.description || segment.description}</div>
-            ${impactTiles ? `<div class="fw-result-impact-grid">${impactTiles}</div>` : ''}
-            ${result.affectedStudents?.length ? `<div class="fw-result-students">${result.affectedStudents.length} student${result.affectedStudents.length > 1 ? 's' : ''} affected</div>` : ''}
+            ${statsBlockHtml}
+            ${studentChipsHtml}
         </div>`;
 
     _setStageCaption(`${guildDef?.name || 'The guild'} has received ${segment.label}. Advance when you are ready for the next reveal.`);
     _updateSpinButton(true, 'Fate Revealed', 'Prepare the next presentation');
     _showResultReveal({
         cardHtml,
+        rarityGlow: rarityConf.glow,
         secondaryAction: {
             label: 'Close the Relic',
             onClick: () => closeFortunesWheel()
@@ -1498,6 +1543,14 @@ function _renderWheelResult(segment, result, guildDef) {
                 }
             }
     });
+
+    // ── Secondary sounds (staggered after the rarity sound that plays at spin-stop) ──
+    if ((result.starsDelta || 0) > 0)               setTimeout(() => playSound('star2'),        400);
+    if ((result.goldDelta || 0) > 0)                setTimeout(() => playSound('cash'),         600);
+    if ((result.artifactsGranted || 0) > 0)         setTimeout(() => playSound('magic_chime'),  800);
+    if ((result.starsDelta || 0) < 0 || (result.artifactsRemoved || 0) > 0) {
+        setTimeout(() => playSound('star_remove'), 400);
+    }
 }
 
 function _renderWheelSummary() {

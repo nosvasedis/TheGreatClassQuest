@@ -730,9 +730,10 @@
     position: absolute;
     inset: 0;
     background:
-        radial-gradient(circle at 50% 16%, rgba(251, 191, 36, 0.24), transparent 28%),
-        rgba(3, 7, 18, 0.66);
-    backdrop-filter: blur(10px);
+        radial-gradient(circle at 50% 16%, var(--backdrop-glow, rgba(251, 191, 36, 0.24)), transparent 32%),
+        rgba(3, 7, 18, 0.72);
+    backdrop-filter: blur(12px);
+    transition: background 0.4s ease;
 }
 
 .fw-reveal-layer__shell {
@@ -1016,6 +1017,297 @@
     color: rgba(255,255,255,0.6);
     font-size: 0.75rem;
     line-height: 1.4;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   RESULT CARD v2 — redesigned dramatic reveal
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.fw-result-card--v2 {
+    --rarity-color: #3b82f6;
+    --rarity-glow: rgba(59, 130, 246, 0.5);
+    --rarity-bg: rgba(30, 58, 95, 0.6);
+
+    padding: clamp(1.5rem, 2.5vw, 2.2rem);
+    padding-top: clamp(2rem, 3vw, 2.8rem);
+    border-width: 1.5px;
+    text-align: center;
+    background:
+        radial-gradient(ellipse at 50% 0%, var(--rarity-bg) 0%, transparent 60%),
+        linear-gradient(160deg, rgba(10, 14, 28, 0.97), rgba(18, 12, 35, 0.96));
+    box-shadow:
+        0 32px 90px rgba(2, 6, 23, 0.65),
+        0 0 0 1.5px rgba(255, 255, 255, 0.07),
+        inset 0 1px 0 rgba(255, 255, 255, 0.1);
+    animation: fw-result-pop-v2 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
+@keyframes fw-result-pop-v2 {
+    from { opacity: 0; transform: scale(0.88) translateY(16px); }
+    to   { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+/* Rarity ribbon — absolute centered at top */
+.fw-result-ribbon {
+    position: absolute;
+    top: -1px;
+    left: 50%;
+    transform: translateX(-50%);
+    padding: 0.28rem 1.1rem;
+    border-radius: 0 0 0.9rem 0.9rem;
+    font-size: 0.62rem;
+    font-weight: 900;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    background: var(--rarity-bg);
+    color: var(--rarity-color);
+    border: 1.5px solid var(--rarity-color);
+    border-top: none;
+    white-space: nowrap;
+    animation: fw-rarity-glow 2s ease-in-out infinite;
+}
+
+/* Emoji orb */
+.fw-result-emoji-orb {
+    width: 96px;
+    height: 96px;
+    margin: 1.4rem auto 0;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 3rem;
+    line-height: 1;
+    background: radial-gradient(circle at 38% 32%, rgba(255, 255, 255, 0.16), var(--rarity-bg) 72%);
+    border: 2px solid var(--rarity-color);
+    box-shadow: 0 0 28px var(--rarity-glow), inset 0 1px 0 rgba(255, 255, 255, 0.15);
+    animation: fw-orb-pulse 3s ease-in-out infinite;
+    position: relative;
+    z-index: 1;
+}
+
+@keyframes fw-orb-pulse {
+    0%, 100% { box-shadow: 0 0 22px var(--rarity-glow), inset 0 1px 0 rgba(255, 255, 255, 0.15); }
+    50%       { box-shadow: 0 0 52px var(--rarity-glow), inset 0 1px 0 rgba(255, 255, 255, 0.15); }
+}
+
+/* Guild row — centered */
+.fw-result-guild-row {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.55rem;
+    margin-top: 1rem;
+    position: relative;
+    z-index: 1;
+}
+
+.fw-result-guild-row__image {
+    width: 34px;
+    height: 34px;
+    border-radius: 9px;
+    object-fit: cover;
+    border: 1.5px solid var(--rarity-color);
+    box-shadow: 0 0 10px var(--rarity-glow);
+}
+
+.fw-result-guild-row__name {
+    font-size: 0.82rem;
+    font-weight: 900;
+    color: var(--rarity-color);
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+}
+
+/* Title override for v2 */
+.fw-result-card--v2 .fw-result-title {
+    margin-top: 0.6rem;
+    font-size: clamp(1.9rem, 4vw, 2.65rem);
+    text-align: center;
+    color: var(--rarity-color);
+    text-shadow: 0 0 32px var(--rarity-glow), 0 3px 12px rgba(0, 0, 0, 0.5);
+}
+
+/* Description override for v2 */
+.fw-result-card--v2 .fw-result-description {
+    text-align: center;
+    font-style: italic;
+    font-size: 0.93rem;
+    margin-top: 0.4rem;
+    color: rgba(255, 255, 255, 0.7);
+    max-width: 44ch;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+/* Decorative divider */
+.fw-result-divider {
+    margin: 1.1rem auto 0;
+    width: 75%;
+    height: 1px;
+    position: relative;
+    z-index: 1;
+    background: linear-gradient(90deg, transparent, var(--rarity-color), transparent);
+    opacity: 0.45;
+}
+
+/* Stat grid override for v2 */
+.fw-result-card--v2 .fw-result-impact-grid {
+    grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+    gap: 0.55rem;
+    margin-top: 0.8rem;
+}
+
+/* Individual stat tile */
+.fw-result-stat {
+    border-radius: 0.9rem;
+    padding: 0.85rem 0.65rem 0.75rem;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.18rem;
+    animation: fw-badge-pop 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+
+.fw-result-stat__icon {
+    font-size: 1.45rem;
+    line-height: 1;
+}
+
+.fw-result-stat__value {
+    font-size: 1.4rem;
+    font-weight: 900;
+    color: var(--rarity-color);
+    line-height: 1.1;
+}
+
+.fw-result-stat__value--negative {
+    color: #fca5a5;
+}
+
+.fw-result-stat__label {
+    font-size: 0.62rem;
+    font-weight: 800;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: rgba(255, 255, 255, 0.42);
+}
+
+/* ── Affected student chips ──────────────────────────────────────────────── */
+.fw-result-student-row {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 0.5rem;
+    margin-top: 1rem;
+    position: relative;
+    z-index: 1;
+    animation: fw-badge-pop 0.45s cubic-bezier(0.34, 1.56, 0.64, 1) 0.22s both;
+}
+
+.fw-result-student-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.38rem;
+    padding: 0.28rem 0.65rem 0.28rem 0.28rem;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.07);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    font-size: 0.78rem;
+    font-weight: 700;
+    color: rgba(255, 255, 255, 0.85);
+    white-space: nowrap;
+}
+
+.fw-result-student-avatar {
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 1.5px solid var(--rarity-color);
+    flex-shrink: 0;
+}
+
+.fw-result-student-avatar--initial {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    background: var(--rarity-bg);
+    border: 1.5px solid var(--rarity-color);
+    font-size: 0.72rem;
+    font-weight: 900;
+    color: var(--rarity-color);
+    flex-shrink: 0;
+}
+
+.fw-result-student-overflow {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.28rem 0.65rem;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.07);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    font-size: 0.78rem;
+    font-weight: 700;
+    color: rgba(255, 255, 255, 0.55);
+}
+
+/* ── Rarity-specific extras ──────────────────────────────────────────────── */
+
+/* Legendary & Mythic: shimmer sweep */
+.fw-result-card--v2[data-rarity="legendary"]::after,
+.fw-result-card--v2[data-rarity="mythic"]::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(
+        108deg,
+        transparent 30%,
+        rgba(255, 255, 255, 0.07) 50%,
+        transparent 70%
+    );
+    background-size: 200% 100%;
+    animation: fw-shimmer-sweep 2.6s ease-in-out infinite;
+    pointer-events: none;
+    border-radius: inherit;
+    z-index: 0;
+}
+
+@keyframes fw-shimmer-sweep {
+    0%   { background-position: 200% 0; }
+    100% { background-position: -200% 0; }
+}
+
+/* Mythic: pulsing border glow */
+.fw-result-card--v2[data-rarity="mythic"] {
+    animation: fw-result-pop-v2 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) forwards,
+               fw-mythic-pulse 2.8s ease-in-out 0.6s infinite;
+}
+
+@keyframes fw-mythic-pulse {
+    0%, 100% { box-shadow: 0 32px 90px rgba(2,6,23,0.65), 0 0 0 1.5px rgba(255,255,255,0.07), 0 0 38px var(--rarity-glow); }
+    50%       { box-shadow: 0 32px 90px rgba(2,6,23,0.65), 0 0 0 1.5px rgba(255,255,255,0.07), 0 0 90px var(--rarity-glow); }
+}
+
+/* Cursed: shake on entry + red orb pulse */
+.fw-result-card--v2[data-rarity="cursed"] {
+    animation: fw-result-pop-v2 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) forwards,
+               fw-curse-shake 0.55s cubic-bezier(0.36, 0.07, 0.19, 0.97) 0.5s both;
+}
+
+@keyframes fw-curse-shake {
+    0%, 100% { transform: translateX(0); }
+    15%, 55%, 95% { transform: translateX(-5px); }
+    35%, 75%      { transform: translateX(5px); }
+}
+
+.fw-result-card--v2[data-rarity="cursed"] .fw-result-emoji-orb {
+    animation: fw-orb-pulse 1.4s ease-in-out infinite;
 }
 
 .fw-locked-state {

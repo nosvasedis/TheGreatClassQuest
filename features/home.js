@@ -1252,7 +1252,8 @@ async function getAICachedContent(type) {
                 userPrompt = "Generate a short quote about curiosity or nature.";
             }
 
-            const content = await callGeminiApi(systemPrompt, userPrompt);
+            // Limit retries to 1 for quote requests — rate limits won't clear in seconds
+            const content = await callGeminiApi(systemPrompt, userPrompt, { retries: 1, baseDelay: 1000 });
 
             // 3. Save to Firebase (So others don't have to generate)
             try {
@@ -1275,6 +1276,8 @@ async function getAICachedContent(type) {
             return content;
         } catch (e) {
             console.error(e);
+            // Cache the fallback locally so we don't re-hit the rate-limited API later today
+            try { localStorage.setItem(localKey, fallback); } catch (_) {}
             return fallback;
         }
     })().finally(() => {

@@ -173,6 +173,23 @@ export function setupDataListeners(userId, dateString, onInitialDataReady, optio
     let classesReady = false;
     let schoolSettingsReady = false;
     let specialHeroProgressionReconciled = false;
+
+    // --- Performance helpers ---
+    // Returns true only if a tab element is currently visible (not hidden).
+    // This lets listeners skip re-rendering tabs the user isn't looking at;
+    // showTab() already re-renders on navigation so nothing is missed.
+    function isTabVisible(tabId) {
+        return !document.getElementById(tabId)?.classList.contains('hidden');
+    }
+
+    // Phase 5: Per-student throttle for passive familiar reconciliation.
+    // Avoids firing reconcileFamiliarLifecycle() for every student on initial load.
+    const familiarReconcileLastRun = new Map();
+    const FAMILIAR_RECONCILE_COOLDOWN_MS = 60_000;
+
+    // Phase 6: One-time guard for guild glory migration per session.
+    let gloryMigrationChecked = false;
+
     function maybeFireInitialReady() {
         if (typeof onInitialDataReady === 'function' && !initialReadyFired && classesReady && schoolSettingsReady) {
             initialReadyFired = true;
@@ -210,7 +227,7 @@ export function setupDataListeners(userId, dateString, onInitialDataReady, optio
     const questAssignmentsQuery = isSecretary
         ? query(collection(db, `${publicDataPath}/quest_assignments`))
         : query(collection(db, `${publicDataPath}/quest_assignments`), where('createdBy.uid', '==', userId));
-    const completedStoriesQuery = query(collection(db, `${publicDataPath}/completed_stories`), orderBy('completedAt', 'desc'));
+    const completedStoriesQuery = query(collection(db, `${publicDataPath}/completed_stories`), orderBy('completedAt', 'desc'), limit(100));
     const overridesQuery = query(collection(db, `${publicDataPath}/schedule_overrides`));
     const heroChronicleNotesQuery = isSecretary
         ? query(collection(db, `${publicDataPath}/hero_chronicle_notes`))
@@ -282,19 +299,19 @@ export function setupDataListeners(userId, dateString, onInitialDataReady, optio
         findAndSetCurrentLeague();
         // Smart class selector - find active class if there's an active lesson
         findAndSetCurrentClass();
-        renderClassLeaderboardTab();
-        renderManageClassesTab();
-        renderCalendarTab();
-        renderAwardStarsTab({ preserveStudentOrder: true });
-        renderIdeasTabSelects();
-        renderAdventureLogTab();
-        renderScholarsScrollTab();
+        if (isTabVisible('class-leaderboard-tab')) renderClassLeaderboardTab();
+        if (isTabVisible('my-classes-tab')) renderManageClassesTab();
+        if (isTabVisible('calendar-tab')) renderCalendarTab();
+        if (isTabVisible('award-stars-tab')) renderAwardStarsTab({ preserveStudentOrder: true });
+        if (isTabVisible('reward-ideas-tab')) renderIdeasTabSelects();
+        if (isTabVisible('adventure-log-tab')) renderAdventureLogTab();
+        if (isTabVisible('scholars-scroll-tab')) renderScholarsScrollTab();
         if (!document.getElementById('options-tab').classList.contains('hidden')) {
             renderStarManagerStudentSelect();
             renderFamiliarOptionsUi();
         }
         updateCeremonyStatus();
-        renderHomeTab(); // Also update home tab when classes load/change
+        renderHomeTab(); // Always update — home is the default active tab
     }, (error) => console.error("Error listening to classes:", error)));
 
     state.setUnsubscribeStudents(onSnapshot(studentsQuery, (snapshot) => {
@@ -302,16 +319,16 @@ export function setupDataListeners(userId, dateString, onInitialDataReady, optio
         state.setAllStudents(allStudents.sort((a, b) => a.name.localeCompare(b.name)));
         maybeReconcileSpecialHeroProgression();
 
-        renderStudentLeaderboardTab();
-        renderClassLeaderboardTab();
-        renderManageStudentsTab();
-        renderAwardStarsStudentList(state.get('globalSelectedClassId'), false);
-        renderScholarsScrollTab(state.get('globalSelectedClassId'));
+        if (isTabVisible('student-leaderboard-tab')) renderStudentLeaderboardTab();
+        if (isTabVisible('class-leaderboard-tab')) renderClassLeaderboardTab();
+        if (isTabVisible('manage-students-tab')) renderManageStudentsTab();
+        if (isTabVisible('award-stars-tab')) renderAwardStarsStudentList(state.get('globalSelectedClassId'), false);
+        if (isTabVisible('scholars-scroll-tab')) renderScholarsScrollTab(state.get('globalSelectedClassId'));
         if (!document.getElementById('options-tab').classList.contains('hidden')) {
             renderStarManagerStudentSelect();
             renderFamiliarOptionsUi();
         }
-        renderHomeTab(); // Update home tab (student count changes)
+        renderHomeTab(); // Always update — home is the default active tab
         // --- NEW: Check for missing genders in background ---
         // Debounce this slightly so it doesn't fire while typing a new name
         if (window.genderCheckTimeout) clearTimeout(window.genderCheckTimeout);
@@ -386,7 +403,13 @@ export function setupDataListeners(userId, dateString, onInitialDataReady, optio
 
                 const ownerUid = scoreData.createdBy?.uid || state.get('allStudents').find((s) => s.id === studentId)?.createdBy?.uid;
                 if (ownerUid === userId && shouldPassivelyReconcileFamiliar(scoreData)) {
-                    reconcileFamiliarLifecycle(studentId, { announce: false, source: 'listener-passive' }).catch((e) => console.warn('Passive familiar reconciliation failed:', e));
+                    // Throttle: only reconcile each student's familiar once per minute to avoid
+                    // firing for every student simultaneously on initial load.
+                    const lastRun = familiarReconcileLastRun.get(studentId) || 0;
+                    if (Date.now() - lastRun >= FAMILIAR_RECONCILE_COOLDOWN_MS) {
+                        familiarReconcileLastRun.set(studentId, Date.now());
+                        reconcileFamiliarLifecycle(studentId, { announce: false, source: 'listener-passive' }).catch((e) => console.warn('Passive familiar reconciliation failed:', e));
+                    }
                 }
             }
         });
@@ -396,8 +419,8 @@ export function setupDataListeners(userId, dateString, onInitialDataReady, optio
             renderManageStudentsTab();
         }
 
-        renderStudentLeaderboardTab();
-        renderClassLeaderboardTab();
+        if (isTabVisible('student-leaderboard-tab')) renderStudentLeaderboardTab();
+        if (isTabVisible('class-leaderboard-tab')) renderClassLeaderboardTab();
         if (!document.getElementById('options-tab').classList.contains('hidden')) {
             renderFamiliarOptionsUi();
         }
@@ -405,7 +428,6 @@ export function setupDataListeners(userId, dateString, onInitialDataReady, optio
         // Update boon buttons in award tab when leaderboard changes
         updateAwardBoonButtons(state.get('globalSelectedClassId'));
 
-        // --- ADDED LINE ---
         import('../features/home.js').then(m => m.renderHomeTab());
     }, (error) => console.error("Error listening to student_scores:", error)));
 
@@ -450,14 +472,14 @@ export function setupDataListeners(userId, dateString, onInitialDataReady, optio
             newTodaysAwardLogs[log.studentId] = log.id;
         });
         state.setTodaysAwardLogs(newTodaysAwardLogs);
-        renderCalendarTab();
+        if (isTabVisible('calendar-tab')) renderCalendarTab();
         // Refresh boon button states when a peer boon is given (daily limit changes)
         updateAwardBoonButtons(state.get('globalSelectedClassId'));
     }, (error) => console.error("Error listening to award logs:", error)));
 
     state.setUnsubscribeQuestEvents(onSnapshot(questEventsQuery, (snapshot) => {
         state.setAllQuestEvents(snapshot.docs.map(d => ({ id: d.id, ...d.data() })));
-        renderCalendarTab();
+        if (isTabVisible('calendar-tab')) renderCalendarTab();
     }, (error) => console.error("Error listening to quest events:", error)));
 
     state.setUnsubscribeAdventureLogs(onSnapshot(adventureLogsQuery, (snapshot) => {
@@ -596,11 +618,14 @@ export function setupDataListeners(userId, dateString, onInitialDataReady, optio
         const allGuildScores = {};
         snapshot.docs.forEach(d => { allGuildScores[d.id] = { id: d.id, ...d.data() }; });
         state.setAllGuildScores(allGuildScores);
-        // One-time Glory migration for guilds without Glory fields
-        import('../features/guildScoring.js').then(m => m.migrateGuildGloryIfNeeded());
+        // One-time Glory migration per session (guard prevents repeat on every snapshot)
+        if (!gloryMigrationChecked) {
+            gloryMigrationChecked = true;
+            import('../features/guildScoring.js').then(m => m.migrateGuildGloryIfNeeded());
+        }
         // Check weekly reset
         import('../features/guildScoring.js').then(m => m.checkAndPerformWeeklyGloryReset());
-        renderStudentLeaderboardTab();
+        if (isTabVisible('student-leaderboard-tab')) renderStudentLeaderboardTab();
         const guildsTab = document.getElementById('guilds-tab');
         if (guildsTab && !guildsTab.classList.contains('hidden')) {
             import('../ui/tabs/guilds.js').then(m => m.renderGuildsTab());
@@ -617,7 +642,7 @@ export function setupDataListeners(userId, dateString, onInitialDataReady, optio
         const champions = {};
         snapshot.docs.forEach(d => { champions[d.data().guildId] = { ...d.data() }; });
         state.setGuildChampions(champions);
-        renderStudentLeaderboardTab();
+        if (isTabVisible('student-leaderboard-tab')) renderStudentLeaderboardTab();
     }, (error) => console.error("Error listening to guild_champions:", error)));
 
     // Fortune's Wheel Log — recent spins for all classes (limit 20)

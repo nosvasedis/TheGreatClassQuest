@@ -600,7 +600,9 @@ function setupAuthListeners() {
             }
 
             const newDate = getTodayDateString();
-            await archivePreviousDayStars(user.uid, newDate);
+            // Fire-and-forget: archival only deletes stale docs — no effect on current session.
+            // Running it non-blocking avoids delaying setupDataListeners() by 200–700ms.
+            archivePreviousDayStars(user.uid, newDate).catch(console.error);
             if (newDate !== state.get('todaysStarsDate')) {
                 state.set('todaysStars', {});
                 state.set('todaysStarsDate', newDate);

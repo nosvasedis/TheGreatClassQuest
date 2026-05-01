@@ -29,18 +29,18 @@
 
 @keyframes cloud-edge-breathe {
     0%, 100% {
-        transform: scale(1.45) skew(0deg, 0deg);
+        transform: scale(1.45) rotate(-0.45deg) skew(0deg, 0deg);
         background-position: var(--cloud-pos-x, 50%) var(--cloud-pos-y, 32%);
     }
 
-    45% {
-        transform: scale(1.468) skew(-0.45deg, 0.2deg);
-        background-position: calc(var(--cloud-pos-x, 50%) - 0.35%) calc(var(--cloud-pos-y, 32%) + 0.28%);
+    35% {
+        transform: scale(1.462) rotate(0.42deg) skew(-0.2deg, 0.08deg);
+        background-position: calc(var(--cloud-pos-x, 50%) - 0.22%) calc(var(--cloud-pos-y, 32%) + 0.16%);
     }
 
-    70% {
-        transform: scale(1.456) skew(0.28deg, -0.14deg);
-        background-position: calc(var(--cloud-pos-x, 50%) + 0.22%) calc(var(--cloud-pos-y, 32%) - 0.18%);
+    68% {
+        transform: scale(1.452) rotate(-0.12deg) skew(0.16deg, -0.06deg);
+        background-position: calc(var(--cloud-pos-x, 50%) + 0.16%) calc(var(--cloud-pos-y, 32%) - 0.12%);
     }
 }
 
@@ -219,14 +219,13 @@
     pointer-events: none;
     opacity: var(--cloud-opacity, 1);
     filter:
-        grayscale(1)
-        saturate(var(--cloud-saturation, 0.08))
-        sepia(var(--cloud-warmth, 0.02))
+        saturate(var(--cloud-saturation, 0.72))
+        sepia(var(--cloud-warmth, 0))
         hue-rotate(var(--cloud-hue, 0deg))
-        brightness(var(--cloud-brightness, 1.19))
-        contrast(var(--cloud-contrast, 0.84))
-        drop-shadow(0 16px 24px rgba(96, 111, 139, 0.08))
-        drop-shadow(0 5px 10px rgba(40, 52, 72, 0.06));
+        brightness(var(--cloud-brightness, 1.09))
+        contrast(var(--cloud-contrast, 0.68))
+        drop-shadow(0 16px 24px rgba(116, 136, 170, 0.06))
+        drop-shadow(0 4px 8px rgba(55, 70, 96, 0.045));
     animation: cloud-edge-breathe var(--cloud-breathe-duration, 8.6s) ease-in-out infinite;
     transform: scale(1.45);
     transform-origin: 50% 32%;
@@ -243,9 +242,9 @@
     background-image: url('../assets/award-clouds/cloud-a.png');
     --cloud-pos-x: 47.94%;
     --cloud-pos-y: 33.12%;
-    --cloud-brightness: 1.2;
-    --cloud-contrast: 0.84;
-    --cloud-hue: -8deg;
+    --cloud-brightness: 1.08;
+    --cloud-contrast: 0.66;
+    --cloud-hue: -3deg;
     --cloud-breathe-duration: 8.4s;
 }
 
@@ -253,8 +252,8 @@
     background-image: url('../assets/award-clouds/cloud-b.png');
     --cloud-pos-x: 49.69%;
     --cloud-pos-y: 35.25%;
-    --cloud-brightness: 1.23;
-    --cloud-contrast: 0.8;
+    --cloud-brightness: 1.1;
+    --cloud-contrast: 0.64;
     --cloud-breathe-duration: 9.1s;
 }
 
@@ -262,10 +261,10 @@
     background-image: url('../assets/award-clouds/cloud-c.png');
     --cloud-pos-x: 48.31%;
     --cloud-pos-y: 40.19%;
-    --cloud-brightness: 1.18;
-    --cloud-contrast: 0.85;
-    --cloud-warmth: 0.05;
-    --cloud-hue: 8deg;
+    --cloud-brightness: 1.08;
+    --cloud-contrast: 0.68;
+    --cloud-warmth: 0.015;
+    --cloud-hue: 4deg;
     --cloud-breathe-duration: 8.8s;
 }
 
@@ -273,10 +272,10 @@
     background-image: url('../assets/award-clouds/cloud-d.png');
     --cloud-pos-x: 51.62%;
     --cloud-pos-y: 30.38%;
-    --cloud-brightness: 1.22;
-    --cloud-contrast: 0.82;
-    --cloud-saturation: 0.06;
-    --cloud-hue: -14deg;
+    --cloud-brightness: 1.1;
+    --cloud-contrast: 0.65;
+    --cloud-saturation: 0.62;
+    --cloud-hue: -6deg;
     --cloud-breathe-duration: 9.5s;
 }
 
@@ -284,9 +283,9 @@
     background-image: url('../assets/award-clouds/cloud-e.png');
     --cloud-pos-x: 48.56%;
     --cloud-pos-y: 34.69%;
-    --cloud-brightness: 1.19;
-    --cloud-contrast: 0.86;
-    --cloud-warmth: 0.04;
+    --cloud-brightness: 1.08;
+    --cloud-contrast: 0.69;
+    --cloud-warmth: 0.012;
     --cloud-breathe-duration: 8.2s;
 }
 
@@ -294,9 +293,9 @@
     background-image: url('../assets/award-clouds/cloud-f.png');
     --cloud-pos-x: 48.81%;
     --cloud-pos-y: 34.88%;
-    --cloud-brightness: 1.24;
-    --cloud-contrast: 0.79;
-    --cloud-saturation: 0.05;
+    --cloud-brightness: 1.1;
+    --cloud-contrast: 0.63;
+    --cloud-saturation: 0.6;
     --cloud-breathe-duration: 9.3s;
 }
 
@@ -304,9 +303,9 @@
     background-image: url('../assets/award-clouds/cloud-g.png');
     --cloud-pos-x: 52.81%;
     --cloud-pos-y: 31.81%;
-    --cloud-brightness: 1.17;
-    --cloud-contrast: 0.86;
-    --cloud-hue: 12deg;
+    --cloud-brightness: 1.07;
+    --cloud-contrast: 0.69;
+    --cloud-hue: 5deg;
     --cloud-opacity: 0.98;
     --cloud-breathe-duration: 8.9s;
 }
@@ -315,24 +314,23 @@
     background-image: url('../assets/award-clouds/cloud-h.png');
     --cloud-pos-x: 50.69%;
     --cloud-pos-y: 34.06%;
-    --cloud-brightness: 1.21;
-    --cloud-contrast: 0.82;
-    --cloud-hue: -5deg;
+    --cloud-brightness: 1.09;
+    --cloud-contrast: 0.65;
+    --cloud-hue: -2deg;
     --cloud-breathe-duration: 9.7s;
 }
 
 /* Reigning Prodigy: amber glow on the svg cloud */
 .award-reigning-prodigy .cloud-bg-svg {
     filter:
-        grayscale(1)
-        saturate(var(--cloud-saturation, 0.08))
-        sepia(var(--cloud-warmth, 0.02))
+        saturate(var(--cloud-saturation, 0.72))
+        sepia(var(--cloud-warmth, 0))
         hue-rotate(var(--cloud-hue, 0deg))
-        brightness(var(--cloud-brightness, 1.19))
-        contrast(var(--cloud-contrast, 0.84))
-        drop-shadow(0 0 18px rgba(251, 191, 36, 0.58))
-        drop-shadow(0 16px 24px rgba(96, 111, 139, 0.08))
-        drop-shadow(0 5px 10px rgba(40, 52, 72, 0.06));
+        brightness(var(--cloud-brightness, 1.09))
+        contrast(var(--cloud-contrast, 0.68))
+        drop-shadow(0 0 16px rgba(251, 191, 36, 0.46))
+        drop-shadow(0 16px 24px rgba(116, 136, 170, 0.06))
+        drop-shadow(0 4px 8px rgba(55, 70, 96, 0.045));
 }
 
 /* Reigning Hero: animated green glow on the svg cloud */
@@ -345,28 +343,26 @@
 @keyframes hero-cloud-glow {
     0%, 100% {
         filter:
-            grayscale(1)
-            saturate(var(--cloud-saturation, 0.08))
-            sepia(var(--cloud-warmth, 0.02))
+            saturate(var(--cloud-saturation, 0.72))
+            sepia(var(--cloud-warmth, 0))
             hue-rotate(var(--cloud-hue, 0deg))
-            brightness(var(--cloud-brightness, 1.19))
-            contrast(var(--cloud-contrast, 0.84))
-            drop-shadow(0 0 15px rgba(34, 197, 94, 0.52))
-            drop-shadow(0 16px 24px rgba(96, 111, 139, 0.08))
-            drop-shadow(0 5px 10px rgba(40, 52, 72, 0.06));
+            brightness(var(--cloud-brightness, 1.09))
+            contrast(var(--cloud-contrast, 0.68))
+            drop-shadow(0 0 13px rgba(34, 197, 94, 0.42))
+            drop-shadow(0 16px 24px rgba(116, 136, 170, 0.06))
+            drop-shadow(0 4px 8px rgba(55, 70, 96, 0.045));
     }
     50% {
         filter:
-            grayscale(1)
-            saturate(var(--cloud-saturation, 0.08))
-            sepia(var(--cloud-warmth, 0.02))
+            saturate(var(--cloud-saturation, 0.72))
+            sepia(var(--cloud-warmth, 0))
             hue-rotate(var(--cloud-hue, 0deg))
-            brightness(var(--cloud-brightness, 1.19))
-            contrast(var(--cloud-contrast, 0.84))
-            drop-shadow(0 0 28px rgba(34, 197, 94, 0.82))
-            drop-shadow(0 0 48px rgba(34, 197, 94, 0.24))
-            drop-shadow(0 16px 24px rgba(96, 111, 139, 0.08))
-            drop-shadow(0 5px 10px rgba(40, 52, 72, 0.07));
+            brightness(var(--cloud-brightness, 1.09))
+            contrast(var(--cloud-contrast, 0.68))
+            drop-shadow(0 0 24px rgba(34, 197, 94, 0.7))
+            drop-shadow(0 0 42px rgba(34, 197, 94, 0.2))
+            drop-shadow(0 16px 24px rgba(116, 136, 170, 0.06))
+            drop-shadow(0 4px 8px rgba(55, 70, 96, 0.05));
     }
 }
 
@@ -374,7 +370,7 @@
     .cloud-bg-svg,
     .reigning-hero-card .cloud-bg-svg {
         animation: none;
-        transform: scale(1.45);
+        transform: scale(1.45) rotate(0deg);
         background-position: var(--cloud-pos-x, 50%) var(--cloud-pos-y, 32%);
         will-change: auto;
     }

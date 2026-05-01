@@ -1,18 +1,48 @@
 /* --- CEREMONY FEATURE STYLES --- */
 
-/* Pulsing Nav Button */
-@keyframes ceremony-pulse {
+/* Star Ring on Home Button when ceremony is ready */
+@keyframes ceremony-star-orbit {
+    from { transform: rotate(0deg) translateX(28px) rotate(0deg); }
+    to { transform: rotate(360deg) translateX(28px) rotate(-360deg); }
+}
+
+@keyframes ceremony-ring-breathe {
     0%, 100% {
-        box-shadow: 0 0 15px rgba(255, 255, 255, 0.8), 0 2px 4px rgba(0,0,0,0.4);
-        transform: scale(1);
+        box-shadow:
+            0 0 4px rgba(251, 191, 36, 0.08),
+            0 0 12px rgba(251, 191, 36, 0.04),
+            inset 0 1px 0 rgba(255,255,255,0.28),
+            0 3px 6px rgba(0,0,0,0.12);
     }
     50% {
-        box-shadow: 0 0 30px #FBBF24, 0 0 15px #FFFFFF, 0 4px 8px rgba(0,0,0,0.4);
-        transform: scale(1.05);
+        box-shadow:
+            0 0 6px rgba(251, 191, 36, 0.2),
+            0 0 18px rgba(251, 191, 36, 0.1),
+            inset 0 1px 0 rgba(255,255,255,0.28),
+            0 3px 6px rgba(0,0,0,0.12);
     }
 }
-.ceremony-ready-pulse {
-    animation: ceremony-pulse 2s ease-in-out infinite;
+
+.nav-button[data-tab="about-tab"].ceremony-star-ring {
+    animation: ceremony-ring-breathe 4s ease-in-out infinite;
+}
+
+.nav-button[data-tab="about-tab"].ceremony-star-ring::before,
+.nav-button[data-tab="about-tab"].ceremony-star-ring::after {
+    content: '✦';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    font-size: 7px;
+    color: rgba(251, 191, 36, 0.45);
+    animation: ceremony-star-orbit 10s linear infinite;
+    pointer-events: none;
+    z-index: 2;
+    text-shadow: 0 0 4px rgba(251, 191, 36, 0.2);
+}
+
+.nav-button[data-tab="about-tab"].ceremony-star-ring::after {
+    animation-delay: -5s;
 }
 
 /* Day Planner Modal Tabs */

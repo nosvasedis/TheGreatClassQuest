@@ -85,11 +85,13 @@ function getTeacherBoonCeremonyMarkup(teacherBoon, options = {}) {
 export function updateCeremonyStatus() {
     const teamQuestBtn = document.querySelector('.nav-button[data-tab="class-leaderboard-tab"]');
     const heroChallengeBtn = document.querySelector('.nav-button[data-tab="student-leaderboard-tab"]');
+    const homeBtn = document.querySelector('.nav-button[data-tab="about-tab"]');
     
-    if (!teamQuestBtn || !heroChallengeBtn) return;
+    if (!teamQuestBtn || !heroChallengeBtn || !homeBtn) return;
     
     teamQuestBtn.classList.remove('ceremony-ready-pulse');
     heroChallengeBtn.classList.remove('ceremony-ready-pulse');
+    homeBtn.classList.remove('ceremony-star-ring');
 
     const currentClassId = state.get('globalSelectedClassId');
     if (!currentClassId) return;
@@ -108,8 +110,7 @@ export function updateCeremonyStatus() {
     const currentMonthKey = now.toISOString().substring(0, 7);
     
     if (!isComplete && monthKey !== currentMonthKey && existedByMonthEnd(classData, monthKey)) {
-        teamQuestBtn.classList.add('ceremony-ready-pulse');
-        heroChallengeBtn.classList.add('ceremony-ready-pulse');
+        homeBtn.classList.add('ceremony-star-ring');
     }
 }
 

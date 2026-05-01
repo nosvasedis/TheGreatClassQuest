@@ -704,8 +704,15 @@ async function initApp() {
             renderSecretaryConsole();
         });
 
-        updateDateTime();
-        setInterval(updateDateTime, 1000);
+        let clockInterval = setInterval(updateDateTime, 1000);
+        document.addEventListener('visibilitychange', () => {
+            if (document.hidden) {
+                clearInterval(clockInterval);
+            } else {
+                updateDateTime();
+                clockInterval = setInterval(updateDateTime, 1000);
+            }
+        });
 
         // Audio is initialized on first user gesture (mousedown/touchstart) to satisfy browser autoplay policy
 

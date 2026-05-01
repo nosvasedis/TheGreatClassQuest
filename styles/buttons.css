@@ -219,11 +219,6 @@
     pointer-events: none;
     opacity: var(--cloud-opacity, 1);
     filter:
-        saturate(var(--cloud-saturation, 0.72))
-        sepia(var(--cloud-warmth, 0))
-        hue-rotate(var(--cloud-hue, 0deg))
-        brightness(var(--cloud-brightness, 1.09))
-        contrast(var(--cloud-contrast, 0.68))
         drop-shadow(0 16px 24px rgba(116, 136, 170, 0.06))
         drop-shadow(0 4px 8px rgba(55, 70, 96, 0.045));
     animation: cloud-edge-breathe var(--cloud-breathe-duration, 8.6s) ease-in-out infinite;
@@ -242,9 +237,6 @@
     background-image: url('../assets/award-clouds/cloud-a.png');
     --cloud-pos-x: 47.94%;
     --cloud-pos-y: 33.12%;
-    --cloud-brightness: 1.08;
-    --cloud-contrast: 0.66;
-    --cloud-hue: -3deg;
     --cloud-breathe-duration: 8.4s;
 }
 
@@ -252,8 +244,6 @@
     background-image: url('../assets/award-clouds/cloud-b.png');
     --cloud-pos-x: 49.69%;
     --cloud-pos-y: 35.25%;
-    --cloud-brightness: 1.1;
-    --cloud-contrast: 0.64;
     --cloud-breathe-duration: 9.1s;
 }
 
@@ -261,10 +251,6 @@
     background-image: url('../assets/award-clouds/cloud-c.png');
     --cloud-pos-x: 48.31%;
     --cloud-pos-y: 40.19%;
-    --cloud-brightness: 1.08;
-    --cloud-contrast: 0.68;
-    --cloud-warmth: 0.015;
-    --cloud-hue: 4deg;
     --cloud-breathe-duration: 8.8s;
 }
 
@@ -272,10 +258,6 @@
     background-image: url('../assets/award-clouds/cloud-d.png');
     --cloud-pos-x: 51.62%;
     --cloud-pos-y: 30.38%;
-    --cloud-brightness: 1.1;
-    --cloud-contrast: 0.65;
-    --cloud-saturation: 0.62;
-    --cloud-hue: -6deg;
     --cloud-breathe-duration: 9.5s;
 }
 
@@ -283,9 +265,6 @@
     background-image: url('../assets/award-clouds/cloud-e.png');
     --cloud-pos-x: 48.56%;
     --cloud-pos-y: 34.69%;
-    --cloud-brightness: 1.08;
-    --cloud-contrast: 0.69;
-    --cloud-warmth: 0.012;
     --cloud-breathe-duration: 8.2s;
 }
 
@@ -293,9 +272,6 @@
     background-image: url('../assets/award-clouds/cloud-f.png');
     --cloud-pos-x: 48.81%;
     --cloud-pos-y: 34.88%;
-    --cloud-brightness: 1.1;
-    --cloud-contrast: 0.63;
-    --cloud-saturation: 0.6;
     --cloud-breathe-duration: 9.3s;
 }
 
@@ -303,9 +279,6 @@
     background-image: url('../assets/award-clouds/cloud-g.png');
     --cloud-pos-x: 52.81%;
     --cloud-pos-y: 31.81%;
-    --cloud-brightness: 1.07;
-    --cloud-contrast: 0.69;
-    --cloud-hue: 5deg;
     --cloud-opacity: 0.98;
     --cloud-breathe-duration: 8.9s;
 }
@@ -314,20 +287,12 @@
     background-image: url('../assets/award-clouds/cloud-h.png');
     --cloud-pos-x: 50.69%;
     --cloud-pos-y: 34.06%;
-    --cloud-brightness: 1.09;
-    --cloud-contrast: 0.65;
-    --cloud-hue: -2deg;
     --cloud-breathe-duration: 9.7s;
 }
 
 /* Reigning Prodigy: amber glow on the svg cloud */
 .award-reigning-prodigy .cloud-bg-svg {
     filter:
-        saturate(var(--cloud-saturation, 0.72))
-        sepia(var(--cloud-warmth, 0))
-        hue-rotate(var(--cloud-hue, 0deg))
-        brightness(var(--cloud-brightness, 1.09))
-        contrast(var(--cloud-contrast, 0.68))
         drop-shadow(0 0 16px rgba(251, 191, 36, 0.46))
         drop-shadow(0 16px 24px rgba(116, 136, 170, 0.06))
         drop-shadow(0 4px 8px rgba(55, 70, 96, 0.045));
@@ -343,22 +308,12 @@
 @keyframes hero-cloud-glow {
     0%, 100% {
         filter:
-            saturate(var(--cloud-saturation, 0.72))
-            sepia(var(--cloud-warmth, 0))
-            hue-rotate(var(--cloud-hue, 0deg))
-            brightness(var(--cloud-brightness, 1.09))
-            contrast(var(--cloud-contrast, 0.68))
             drop-shadow(0 0 13px rgba(34, 197, 94, 0.42))
             drop-shadow(0 16px 24px rgba(116, 136, 170, 0.06))
             drop-shadow(0 4px 8px rgba(55, 70, 96, 0.045));
     }
     50% {
         filter:
-            saturate(var(--cloud-saturation, 0.72))
-            sepia(var(--cloud-warmth, 0))
-            hue-rotate(var(--cloud-hue, 0deg))
-            brightness(var(--cloud-brightness, 1.09))
-            contrast(var(--cloud-contrast, 0.68))
             drop-shadow(0 0 24px rgba(34, 197, 94, 0.7))
             drop-shadow(0 0 42px rgba(34, 197, 94, 0.2))
             drop-shadow(0 16px 24px rgba(116, 136, 170, 0.06))

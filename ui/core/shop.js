@@ -41,6 +41,14 @@ export function initializeShopTab() {
     document.getElementById('shop-student-select').innerHTML = `<option value="">Select Shopper...</option>`;
     document.getElementById('shop-student-gold').innerText = "0 🪙";
 
+    // Populate Class Select
+    const classSelect = document.getElementById('shop-class-select');
+    if (classSelect) {
+        const allClasses = state.get('allTeachersClasses');
+        classSelect.innerHTML = `<option value="">Select a class...</option>` +
+            allClasses.sort((a,b) => a.name.localeCompare(b.name)).map(c => `<option value="${c.id}" ${c.id === classId ? 'selected' : ''}>${c.name}</option>`).join('');
+    }
+
     // 3. Filter Students (Only show MY students in this League)
     // FIX: Use 'allTeachersClasses' instead of 'allSchoolClasses'
     const myClassesInLeague = state.get('allTeachersClasses').filter(c => c.questLevel === league);
@@ -197,7 +205,14 @@ export async function updateShopStudentDisplay(studentId) {
     const goldDisplay = document.getElementById('shop-student-gold');
     const buyBtns = document.querySelectorAll('.shop-buy-btn');
     const shopHeader = document.getElementById('shop-student-select').parentElement; // Get container for visual effects
+    const container = document.getElementById('shop-items-container');
     
+    if (container) {
+        container.style.transition = 'opacity 0.2s';
+        container.style.opacity = '0';
+        await new Promise(r => setTimeout(r, 200));
+    }
+
     // Reset visual effects
     shopHeader.classList.remove('ring-4', 'ring-amber-400', 'bg-amber-50', 'rounded-xl', 'p-2');
     const existingHeroBadge = document.getElementById('shop-hero-badge');
@@ -216,8 +231,14 @@ export async function updateShopStudentDisplay(studentId) {
         // Reset price displays to base price
         document.querySelectorAll('.shop-price-display').forEach(el => {
             const basePrice = el.dataset.basePrice;
-            if (basePrice) el.innerHTML = `<span class="shop-price-value">${basePrice}</span> <span>🪙</span>`;
+            const card = el.closest('.shop-item-card');
+            if (card) {
+                card.classList.remove('ring-4', 'ring-amber-400', 'shadow-[0_0_30px_rgba(251,191,36,0.6)]', 'transform', 'scale-105', 'z-10');
+                card.classList.add('hover:-translate-y-2');
+            }
+            if (basePrice) el.innerHTML = `<span class="shop-price-value text-xl">${basePrice}</span> <span>🪙</span>`;
         });
+        if (container) container.style.opacity = '1';
         return;
     }
 
@@ -308,10 +329,19 @@ export async function updateShopStudentDisplay(studentId) {
         // --- UPDATE CARD PRICE DISPLAY ---
         const priceDisplay = document.querySelector(`.shop-price-display[data-item-id="${itemId}"]`);
         if (priceDisplay) {
+            const card = priceDisplay.closest('.shop-item-card');
             if (hasDiscount && finalPrice < basePrice) {
-                priceDisplay.innerHTML = `<span class="line-through text-indigo-400 text-sm">${basePrice}</span> <span class="text-amber-300 text-lg">${finalPrice}</span> <span>🪙</span>`;
+                if (card) {
+                    card.classList.add('ring-4', 'ring-amber-400', 'shadow-[0_0_30px_rgba(251,191,36,0.6)]', 'transform', 'scale-105', 'z-10');
+                    card.classList.remove('hover:-translate-y-2');
+                }
+                priceDisplay.innerHTML = `<span class="line-through text-fuchsia-400/70 text-sm mr-2">${basePrice}</span> <span class="text-amber-400 text-2xl drop-shadow-md animate-pulse">${finalPrice}</span> <span>🪙</span>`;
             } else {
-                priceDisplay.innerHTML = `<span class="shop-price-value">${basePrice}</span> <span>🪙</span>`;
+                if (card) {
+                    card.classList.remove('ring-4', 'ring-amber-400', 'shadow-[0_0_30px_rgba(251,191,36,0.6)]', 'transform', 'scale-105', 'z-10');
+                    card.classList.add('hover:-translate-y-2');
+                }
+                priceDisplay.innerHTML = `<span class="shop-price-value text-xl">${basePrice}</span> <span>🪙</span>`;
             }
         }
 
@@ -369,6 +399,10 @@ export async function updateShopStudentDisplay(studentId) {
             btn.classList.add('bg-gray-500');
         }
     });
+
+    if (container) {
+        container.style.opacity = '1';
+    }
 }
 
 function renderFamiliarEggCard(fType) {

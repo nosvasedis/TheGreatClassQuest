@@ -91,7 +91,7 @@
     width: 100%;
     height: 100dvh;
     padding: 1rem 1.5rem 1.5rem;
-    overflow: hidden;
+    overflow-y: auto;
 }
 
 .fw-header-floating {
@@ -487,8 +487,12 @@
 }
 
 .fw-custom-select {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
     width: 100%;
-    padding: 0.95rem 2.8rem 0.95rem 1.15rem;
+    padding: 0.95rem 1.15rem;
     border: 1.5px solid rgba(251, 191, 36, 0.2);
     border-radius: 0.85rem;
     background: linear-gradient(135deg, rgba(251, 191, 36, 0.08), rgba(217, 119, 6, 0.06));
@@ -497,13 +501,15 @@
     font-weight: 700;
     cursor: pointer;
     outline: none;
-    appearance: none;
+    font-family: inherit;
+    text-align: left;
     box-shadow: 
         inset 0 1px 0 rgba(255, 255, 255, 0.12),
         inset 0 -20px 30px rgba(251, 191, 36, 0.03),
         0 8px 24px rgba(2, 6, 23, 0.25);
     transition: all 220ms ease;
     letter-spacing: 0.01em;
+    user-select: none;
 }
 
 .fw-custom-select:hover {
@@ -516,7 +522,7 @@
         0 12px 32px rgba(251, 191, 36, 0.18);
 }
 
-.fw-custom-select:focus {
+.fw-custom-select:focus-visible {
     border-color: rgba(251, 191, 36, 0.6);
     background: linear-gradient(135deg, rgba(251, 191, 36, 0.14), rgba(217, 119, 6, 0.12));
     box-shadow: 
@@ -526,39 +532,98 @@
         0 12px 32px rgba(251, 191, 36, 0.22);
 }
 
-.fw-custom-select option {
-    background: linear-gradient(135deg, #1a1a2e 0%, #0f1729 100%);
-    color: #fff7d6;
-    padding: 0.75rem 1rem;
-    font-weight: 600;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+/* Custom dropdown menu */
+.fw-custom-dropdown {
+    position: absolute;
+    top: calc(100% + 4px);
+    left: 0;
+    width: 100%;
+    max-height: 260px;
+    overflow-y: auto;
+    background: linear-gradient(180deg, #1a1a2e 0%, #0f1729 100%);
+    border: 1.5px solid rgba(251, 191, 36, 0.3);
+    border-radius: 0.75rem;
+    box-shadow: 
+        0 12px 40px rgba(2, 6, 23, 0.6),
+        0 0 0 1px rgba(251, 191, 36, 0.1);
+    z-index: 50;
+    opacity: 0;
+    visibility: hidden;
+    transform: translateY(-6px);
+    transition: opacity 200ms ease, transform 200ms ease, visibility 200ms ease;
 }
 
-.fw-custom-select option:hover,
-.fw-custom-select option:focus,
-.fw-custom-select option:checked {
-    background: linear-gradient(135deg, rgba(251, 191, 36, 0.2), rgba(217, 119, 6, 0.15));
+.fw-custom-dropdown.is-open {
+    opacity: 1;
+    visibility: visible;
+    transform: translateY(0);
+}
+
+.fw-custom-dropdown::-webkit-scrollbar {
+    width: 5px;
+}
+
+.fw-custom-dropdown::-webkit-scrollbar-track {
+    background: rgba(255, 255, 255, 0.02);
+    border-radius: 3px;
+}
+
+.fw-custom-dropdown::-webkit-scrollbar-thumb {
+    background: rgba(251, 191, 36, 0.3);
+    border-radius: 3px;
+}
+
+.fw-custom-dropdown::-webkit-scrollbar-thumb:hover {
+    background: rgba(251, 191, 36, 0.5);
+}
+
+.fw-custom-dropdown__option {
+    padding: 0.75rem 1.15rem;
+    color: rgba(255, 247, 214, 0.85);
+    font-size: 0.95rem;
+    font-weight: 600;
+    cursor: pointer;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+    transition: all 140ms ease;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.fw-custom-dropdown__option:last-child {
+    border-bottom: none;
+}
+
+.fw-custom-dropdown__option:hover {
+    background: linear-gradient(135deg, rgba(251, 191, 36, 0.18), rgba(217, 119, 6, 0.12));
+    color: #fcd34d;
+}
+
+.fw-custom-dropdown__option.is-selected {
+    background: linear-gradient(135deg, rgba(251, 191, 36, 0.22), rgba(217, 119, 6, 0.16));
     color: #fcd34d;
     font-weight: 700;
 }
 
+.fw-custom-dropdown__option.is-highlighted {
+    background: linear-gradient(135deg, rgba(251, 191, 36, 0.12), rgba(217, 119, 6, 0.08));
+    color: #fff7d6;
+}
+
 .fw-select-arrow {
-    position: absolute;
-    right: 1rem;
-    top: 50%;
-    transform: translateY(-50%);
+    flex-shrink: 0;
     color: rgba(251, 191, 36, 0.7);
     pointer-events: none;
     font-size: 0.85rem;
     transition: all 220ms ease;
 }
 
-.fw-custom-select:hover + .fw-select-arrow {
+.fw-custom-select:hover .fw-select-arrow {
     color: #fcd34d;
-    transform: translateY(-50%) scale(1.1);
+    transform: scale(1.1);
 }
 
-.fw-custom-select:focus + .fw-select-arrow {
+.fw-custom-select:focus-visible .fw-select-arrow {
     color: #fbbf24;
 }
 

@@ -1087,25 +1087,133 @@ function _wireWheelResize() {
 /**
  * Populate (or re-populate) the in-modal class selector and wire its change event.
  */
+let _fwDropdownWired = false;
 function _populateClassSelector(selectedClassId) {
-    const select = document.getElementById('fw-class-select');
-    if (!select) return;
+    const trigger = document.getElementById('fw-class-select-trigger');
+    const menu = document.getElementById('fw-class-select-menu');
+    const textEl = document.getElementById('fw-class-select-text');
+    if (!trigger || !menu || !textEl) return;
 
     const classes = (state.get('allTeachersClasses') || [])
         .sort((a, b) => a.name.localeCompare(b.name));
 
-    select.innerHTML = '<option value="">\u2014 Select a class \u2014</option>' +
-        classes.map(c =>
-            `<option value="${c.id}"${c.id === selectedClassId ? ' selected' : ''}>${c.logo} ${c.name} (${c.questLevel})</option>`
-        ).join('');
+    // Repopulate options every time
+    menu.innerHTML = classes.map(c =>
+        `<div class="fw-custom-dropdown__option${c.id === selectedClassId ? ' is-selected' : ''}" data-value="${c.id}" role="option" aria-selected="${c.id === selectedClassId ? 'true' : 'false'}">${c.logo} ${c.name} (${c.questLevel})</div>`
+    ).join('');
 
-    // Re-wire (safe to overwrite)
-    select.onchange = async () => {
-        const newId = select.value;
+    // Set trigger text
+    const selectedClass = classes.find(c => c.id === selectedClassId);
+    textEl.textContent = selectedClass ? `${selectedClass.logo} ${selectedClass.name} (${selectedClass.questLevel})` : '\u2014 Choose a class \u2014';
+
+    // Wire events only once
+    if (_fwDropdownWired) return;
+    _fwDropdownWired = true;
+
+    // Helper to select a class
+    const selectValue = async (newId) => {
         const cls = (state.get('allTeachersClasses') || []).find(c => c.id === newId) || null;
+        textEl.textContent = cls
+            ? `${cls.logo} ${cls.name} (${cls.questLevel})`
+            : '\u2014 Choose a class \u2014';
+        menu.querySelectorAll('.fw-custom-dropdown__option').forEach(opt => {
+            opt.classList.toggle('is-selected', opt.dataset.value === newId);
+            opt.setAttribute('aria-selected', opt.dataset.value === newId);
+        });
+        _fwCloseDropdown();
         const league = cls?.questLevel || state.get('globalSelectedLeague') || 'B';
         await _evaluateAndRender(newId || null, league);
     };
+
+    const _fwToggleDropdown = () => {
+        if (menu.classList.contains('is-open')) {
+            _fwCloseDropdown();
+        } else {
+            _fwOpenDropdown();
+        }
+    };
+
+    const _fwOpenDropdown = () => {
+        menu.classList.add('is-open');
+        trigger.setAttribute('aria-expanded', 'true');
+        const selected = menu.querySelector('.is-selected');
+        if (selected) {
+            selected.classList.add('is-highlighted');
+            selected.scrollIntoView({ block: 'nearest' });
+        }
+    };
+
+    const _fwCloseDropdown = () => {
+        menu.classList.remove('is-open');
+        trigger.setAttribute('aria-expanded', 'false');
+        menu.querySelectorAll('.fw-custom-dropdown__option').forEach(opt => {
+            opt.classList.remove('is-highlighted');
+        });
+    };
+
+    // Trigger click
+    trigger.addEventListener('click', (e) => {
+        e.stopPropagation();
+        _fwToggleDropdown();
+    });
+
+    // Option clicks
+    menu.addEventListener('click', async (e) => {
+        const option = e.target.closest('.fw-custom-dropdown__option');
+        if (!option) return;
+        await selectValue(option.dataset.value);
+    });
+
+    // Mouse hover for highlight
+    menu.addEventListener('mouseover', (e) => {
+        const option = e.target.closest('.fw-custom-dropdown__option');
+        if (!option) return;
+        menu.querySelectorAll('.fw-custom-dropdown__option').forEach(opt => {
+            opt.classList.remove('is-highlighted');
+        });
+        option.classList.add('is-highlighted');
+    });
+
+    // Keyboard on trigger: Enter/Space to toggle, Escape to close
+    trigger.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            _fwToggleDropdown();
+        }
+    });
+
+    // Close on outside click
+    const _fwOutsideClick = (e) => {
+        if (!menu.classList.contains('is-open')) return;
+        const wrapper = trigger.closest('.fw-select-wrapper');
+        if (wrapper && wrapper.contains(e.target)) return;
+        _fwCloseDropdown();
+    };
+    document.addEventListener('click', _fwOutsideClick);
+
+    // Global Escape to close dropdown
+    const _fwGlobalEscape = (e) => {
+        if (!menu.classList.contains('is-open')) return;
+        if (e.key === 'Escape') {
+            _fwCloseDropdown();
+            trigger.focus();
+        }
+    };
+    document.addEventListener('keydown', _fwGlobalEscape);
+
+    // Cleanup on modal close
+    const modal = trigger.closest('#fortunes-wheel-modal');
+    if (modal) {
+        const observer = new MutationObserver(() => {
+            if (modal.classList.contains('hidden')) {
+                _fwCloseDropdown();
+                document.removeEventListener('click', _fwOutsideClick);
+                document.removeEventListener('keydown', _fwGlobalEscape);
+                observer.disconnect();
+            }
+        });
+        observer.observe(modal, { attributes: true, attributeFilter: ['class'] });
+    }
 }
 
 /**

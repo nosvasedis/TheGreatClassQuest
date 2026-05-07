@@ -399,6 +399,13 @@ export function setupUIListeners() {
         });
     }
 
+    const shopClassSelect = document.getElementById('shop-class-select');
+    if (shopClassSelect) {
+        shopClassSelect.addEventListener('change', (e) => {
+            state.setGlobalSelectedClass(e.target.value, true);
+        });
+    }
+
     const shopItemsContainer = document.getElementById('shop-items-container');
     if (shopItemsContainer) {
         shopItemsContainer.addEventListener('click', (e) => {

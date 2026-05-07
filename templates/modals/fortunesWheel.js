@@ -70,12 +70,13 @@ export const fortunesWheelModalHTML = `
 
                     <aside class="fw-controls-section">
                         <div class="fw-class-selector">
-                            <label for="fw-class-select" class="fw-class-label">Select Class</label>
+                            <label id="fw-class-label" class="fw-class-label">Select Class</label>
                             <div class="fw-select-wrapper">
-                                <select id="fw-class-select" class="fw-custom-select">
-                                    <option value="">— Choose a class —</option>
-                                </select>
-                                <div class="fw-select-arrow"><i class="fa-solid fa-chevron-down"></i></div>
+                                <button type="button" id="fw-class-select-trigger" class="fw-custom-select" aria-haspopup="listbox" aria-expanded="false" aria-labelledby="fw-class-label">
+                                    <span id="fw-class-select-text">— Choose a class —</span>
+                                    <span class="fw-select-arrow"><i class="fa-solid fa-chevron-down"></i></span>
+                                </button>
+                                <div id="fw-class-select-menu" class="fw-custom-dropdown" role="listbox" aria-labelledby="fw-class-label"></div>
                             </div>
                         </div>
 

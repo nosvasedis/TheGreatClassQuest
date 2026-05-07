@@ -15,6 +15,10 @@ export const navHTML = `
                 <i class="fas fa-user-graduate icon"></i>
                 <span class="text">Hero's Challenge</span>
             </button>
+            <button class="nav-button nav-color-fuchsia" data-tab="shop-tab">
+                <i class="fas fa-store icon"></i>
+                <span class="text">Shop</span>
+            </button>
             <button class="nav-button nav-color-guild" data-tab="guilds-tab">
                 <i class="fas fa-shield-alt icon"></i>
                 <span class="text">Guilds</span>
@@ -42,10 +46,6 @@ export const navHTML = `
             <button class="nav-button nav-color-indigo" data-tab="reward-ideas-tab">
                 <i class="fas fa-feather-alt icon"></i>
                 <span class="text">Story Weavers</span>
-            </button>
-            <button class="nav-button nav-color-pink" data-tab="shop-tab">
-                <i class="fas fa-store icon"></i>
-                <span class="text">Shop</span>
             </button>
 
             <button class="nav-tab hidden" data-tab="manage-students-tab"></button>

@@ -125,6 +125,8 @@
 .nav-color-scroll.active { --tw-gradient-from: #f59e0b; --tw-gradient-to: #fbbf24; }
 .nav-color-guild { background-image: linear-gradient(to top, var(--tw-gradient-stops)); --tw-gradient-from: #c2410c; --tw-gradient-to: #f97316; --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to); border-bottom-color: #7c2d12; }
 .nav-color-guild.active { --tw-gradient-from: #ea580c; --tw-gradient-to: #fb923c; }
+.nav-color-fuchsia { background-image: linear-gradient(to top, var(--tw-gradient-stops)); --tw-gradient-from: #d946ef; --tw-gradient-to: #e879f9; --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to); border-bottom-color: #a21caf; }
+.nav-color-fuchsia.active { --tw-gradient-from: #e879f9; --tw-gradient-to: #f0abfc; }
 
 /* New Header with Swirling Clouds */
 @keyframes swirl {

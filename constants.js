@@ -22,8 +22,15 @@ export const firebaseConfig =
 export const cloudflareWorkerUrl = 'https://great-class-quest-ai-proxy.nvasedis-cc5.workers.dev';
 export const workerBaseUrl = 'https://great-class-quest-ai-proxy.nvasedis-cc5.workers.dev';
 export const geminiApiUrl = workerBaseUrl; 
-export const OPENROUTER_MODEL = 'openrouter/auto';
+export const OPENROUTER_MODEL = 'z-ai/glm-4.5-air:free';
 const runtimeAiTextConfig = (typeof window !== 'undefined' && window.__GCQ_AI_TEXT_CONFIG__) || {};
+
+function toFreeModel(modelId) {
+    const model = String(modelId || '').trim();
+    if (!model) return OPENROUTER_MODEL;
+    if (model.endsWith(':free')) return model;
+    return OPENROUTER_MODEL;
+}
 
 function normalizeAiProvider(definition, fallback = {}) {
     if (!definition || typeof definition !== 'object') return null;
@@ -33,14 +40,14 @@ function normalizeAiProvider(definition, fallback = {}) {
         id: String(definition.id || fallback.id || 'ai-provider').trim() || 'ai-provider',
         label: String(definition.label || fallback.label || definition.id || 'AI Provider').trim() || 'AI Provider',
         url,
-        model: String(definition.model || fallback.model || OPENROUTER_MODEL).trim() || OPENROUTER_MODEL,
+        model: toFreeModel(definition.model || fallback.model || OPENROUTER_MODEL),
         payloadMode: String(definition.payloadMode || fallback.payloadMode || 'openrouter').trim() || 'openrouter'
     };
 }
 
 const defaultAiPrimaryProvider = normalizeAiProvider({
-    id: 'gcq-primary-openrouter-auto',
-    label: 'GCQ - OpenRouter Auto',
+    id: 'gcq-primary-glm-4.5-air-free',
+    label: 'GCQ - GLM 4.5 Air Free',
     url: geminiApiUrl,
     model: OPENROUTER_MODEL,
     payloadMode: 'openrouter'

@@ -146,11 +146,26 @@ function classifyProviderFailure(error) {
     };
 }
 
+function resolveFreeModelId(providerModel) {
+    const model = String(providerModel || OPENROUTER_MODEL || '').trim();
+    if (!model) {
+        throw new Error('No model configured for AI provider.');
+    }
+    if (!model.endsWith(':free')) {
+        const error = new Error(`Blocked non-free model id: ${model}`);
+        error.name = 'NonFreeModelBlockedError';
+        error.isRetryable = false;
+        throw error;
+    }
+    return model;
+}
+
 function buildProviderPayload(provider, systemPrompt, userPrompt) {
     const payloadMode = provider?.payloadMode || 'openrouter';
+    const modelId = resolveFreeModelId(provider?.model);
     if (payloadMode === 'openrouter') {
         return {
-            model: provider?.model || OPENROUTER_MODEL,
+            model: modelId,
             messages: [
                 { role: 'system', content: systemPrompt },
                 { role: 'user', content: userPrompt }
@@ -159,7 +174,7 @@ function buildProviderPayload(provider, systemPrompt, userPrompt) {
     }
 
     return {
-        model: provider?.model || OPENROUTER_MODEL,
+        model: modelId,
         messages: [
             { role: 'system', content: systemPrompt },
             { role: 'user', content: userPrompt }

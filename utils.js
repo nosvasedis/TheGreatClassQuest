@@ -302,9 +302,63 @@ export function compressImageBase64(base64, maxWidth = 512, maxHeight = 512, qua
             canvas.width = width;
             canvas.height = height;
             const ctx = canvas.getContext('2d');
+            // Fill a light background before exporting as JPEG so transparent PNGs
+            // don't become black after alpha is removed.
+            ctx.fillStyle = '#ffffff';
+            ctx.fillRect(0, 0, width, height);
             ctx.drawImage(img, 0, 0, width, height);
 
             resolve(canvas.toDataURL('image/jpeg', quality));
+        };
+        img.onerror = (error) => reject(error);
+    });
+}
+
+export function isLikelyBlackImageBase64(base64, options = {}) {
+    const {
+        sampleStep = 8,
+        darkThreshold = 14,
+        darkPixelRatioThreshold = 0.95
+    } = options;
+
+    return new Promise((resolve, reject) => {
+        const img = new Image();
+        img.src = base64;
+        img.onload = () => {
+            try {
+                const canvas = document.createElement('canvas');
+                const width = Math.max(1, img.width);
+                const height = Math.max(1, img.height);
+                canvas.width = width;
+                canvas.height = height;
+
+                const ctx = canvas.getContext('2d', { willReadFrequently: true });
+                ctx.drawImage(img, 0, 0, width, height);
+
+                const { data } = ctx.getImageData(0, 0, width, height);
+                let sampled = 0;
+                let darkPixels = 0;
+
+                const stride = Math.max(4, sampleStep * 4);
+                for (let i = 0; i < data.length; i += stride) {
+                    const r = data[i];
+                    const g = data[i + 1];
+                    const b = data[i + 2];
+                    const luminance = 0.2126 * r + 0.7152 * g + 0.0722 * b;
+                    sampled += 1;
+                    if (luminance <= darkThreshold) darkPixels += 1;
+                }
+
+                if (sampled === 0) {
+                    resolve(false);
+                    return;
+                }
+
+                const darkRatio = darkPixels / sampled;
+                resolve(darkRatio >= darkPixelRatioThreshold);
+            } catch (error) {
+                reject(error);
+            }
         };
         img.onerror = (error) => reject(error);
     });

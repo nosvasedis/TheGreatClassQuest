@@ -22,7 +22,7 @@ import { showToast, showPraiseToast } from '../../ui/effects.js';
 import { callGeminiApi, callCloudflareAiImageApi } from '../../api.js';
 import { requireEliteAI } from '../../utils/upgradePrompt.js';
 import { canUseFeature } from '../../utils/subscription.js';
-import { getAgeGroupForLeague, getStartOfMonthString, getTodayDateString, compressImageBase64, simpleHashCode, parseFlexibleDate, getSeasonalShopPriceMeta, normalizeToDateString } from '../../utils.js';
+import { getAgeGroupForLeague, getStartOfMonthString, getTodayDateString, compressImageBase64, isLikelyBlackImageBase64, simpleHashCode, parseFlexibleDate, getSeasonalShopPriceMeta, normalizeToDateString } from '../../utils.js';
 import { handleMarkAbsent } from './log.js';
 import { playSound } from '../../audio.js';
 import { reconcileFamiliarLifecycle } from '../../features/familiars.js';
@@ -299,8 +299,24 @@ export async function handleGenerateShopStock() {
                     // FIX: Aggressive Anti-Texture Negative Prompt
                     const negativePrompt = "pattern, texture, wallpaper, seamless, repeating, tiling, grid, background, scenery, landscape, text, watermark, blurry, noise, cropped, multiple objects, pile, heap";
 
-                    const base64 = await callCloudflareAiImageApi(positivePrompt, negativePrompt);
-                    const compressed = await compressImageBase64(base64, 256, 256);
+                    let base64 = await callCloudflareAiImageApi(positivePrompt, negativePrompt);
+                    let compressed = await compressImageBase64(base64, 256, 256);
+
+                    if (await isLikelyBlackImageBase64(compressed)) {
+                        console.warn('Detected mostly black shop image. Retrying with brighter fallback prompt...', item.name);
+                        const fallbackPrompt = `(single isolated object) of ((${item.name})), bright studio lighting, high contrast, vivid colors, pure white background, centered, full shot, clean icon style`;
+                        const fallbackNegative = `${negativePrompt}, black background, dark background, silhouette, underexposed, dim lighting, monochrome black`;
+                        base64 = await callCloudflareAiImageApi(fallbackPrompt, fallbackNegative, {
+                            num_steps: 36,
+                            guidance: 8.5
+                        });
+                        compressed = await compressImageBase64(base64, 256, 256, 0.82);
+
+                        if (await isLikelyBlackImageBase64(compressed)) {
+                            throw new Error('Generated image remained mostly black after fallback retry.');
+                        }
+                    }
+
                     const path = `shop_items/${state.get('currentUserId')}/${monthKey}_${simpleHashCode(item.name)}_${Date.now()}.jpg`;
                     const url = await uploadImageToStorage(compressed, path);
 

@@ -12,20 +12,16 @@ export const shopTabHTML = `
                     </div>
 
                     <!-- Controls Bar (Glassmorphism) -->
-                    <div class="bg-white/70 backdrop-blur-sm p-4 rounded-2xl shadow-lg flex flex-wrap items-center justify-center mb-8 gap-4 md:gap-6 relative z-20">
+                    <div class="shop-controls-bar bg-white/70 backdrop-blur-sm p-4 rounded-2xl shadow-lg flex flex-wrap items-center justify-center lg:flex-nowrap lg:justify-between mb-8 gap-4 md:gap-6 relative z-20">
                         
                         <div class="shop-class-shell flex items-center gap-3 bg-white/70 p-2.5 rounded-xl border-2 border-fuchsia-200 shadow-inner w-full md:w-auto">
-                            <div class="shop-class-display">
-                                <span id="shop-class-icon" class="shop-class-display__icon">🏫</span>
-                                <span id="shop-class-name" class="shop-class-display__text">All classes in selected league</span>
-                            </div>
                             <select id="shop-class-select"
                                 class="shop-class-select bg-white border-2 border-fuchsia-300 text-fuchsia-900 text-sm font-bold rounded-lg focus:ring-fuchsia-500 focus:border-fuchsia-500 block w-full md:w-auto p-2.5 outline-none shadow-sm min-w-[200px] transition-all">
                                 <option value="">Select a class...</option>
                             </select>
                         </div>
 
-                        <div class="flex items-center gap-4 bg-white/60 p-2 rounded-xl border-2 border-fuchsia-200 shadow-inner w-full md:w-auto">
+                        <div class="shop-student-shell flex items-center gap-4 bg-white/60 p-2 rounded-xl border-2 border-fuchsia-200 shadow-inner w-full md:w-auto">
                             <div class="text-right flex-1 md:flex-none">
                                 <p class="text-fuchsia-800 text-[10px] uppercase font-bold tracking-wider">Purse</p>
                                 <p id="shop-student-gold"
@@ -38,7 +34,7 @@ export const shopTabHTML = `
                         </div>
 
                         <button id="generate-shop-btn"
-                            class="hidden font-title text-lg bg-gradient-to-r from-fuchsia-500 to-purple-600 text-white py-3 px-6 rounded-xl shadow-lg border-2 border-fuchsia-400 bubbly-button transform hover:scale-105 inline-flex items-center shrink-0">
+                            class="hidden shop-restock-btn font-title text-lg bg-gradient-to-r from-fuchsia-500 to-purple-600 text-white py-3 px-6 rounded-xl shadow-lg border-2 border-fuchsia-400 bubbly-button transform hover:scale-105 inline-flex items-center shrink-0">
                             <i class="fas fa-sync-alt mr-2"></i> Restock Market
                         </button>
 

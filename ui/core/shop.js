@@ -52,12 +52,6 @@ export function initializeShopTab() {
                 .join('');
     }
 
-    const selectedClass = allClasses.find(c => c.id === classId) || null;
-    const classIconEl = document.getElementById('shop-class-icon');
-    const classNameEl = document.getElementById('shop-class-name');
-    if (classIconEl) classIconEl.innerText = selectedClass?.logo || '🏫';
-    if (classNameEl) classNameEl.innerText = selectedClass ? `${selectedClass.name} • ${selectedClass.questLevel}` : 'All classes in selected league';
-
     // 3. Filter Students
     // If a specific class is selected, scope to that class; otherwise fall back to league.
     const myClassesInLeague = allClasses.filter(c => c.questLevel === league);
@@ -232,7 +226,7 @@ export async function updateShopStudentDisplay(studentId) {
 
     // Reset visual effects
     shopHeader.className = shopHeader.className.replace(/ring-[a-z]+-\d+/g, '').replace(/bg-[a-z]+-50/g, '').trim();
-    shopHeader.classList.remove('ring-4', 'rounded-xl', 'p-2');
+    shopHeader.classList.remove('ring-4', 'ring-2', 'rounded-xl', 'p-2');
     const existingHeroBadge = document.getElementById('shop-hero-badge');
     if (existingHeroBadge) existingHeroBadge.remove();
     const existingLegendBadge = document.getElementById('shop-legend-badge');
@@ -279,19 +273,19 @@ export async function updateShopStudentDisplay(studentId) {
 
     if (isHero) {
         // Add Hero Visuals
-        shopHeader.classList.add('ring-4', activeGlowTheme.ring, 'bg-red-50', 'rounded-xl', 'p-2', 'transition-all');
+        shopHeader.classList.add('ring-2', activeGlowTheme.ring, 'transition-all');
         const badge = document.createElement('div');
         badge.id = 'shop-hero-badge';
-        badge.className = `w-full text-center bg-gradient-to-r ${activeGlowTheme.gradient} text-white font-bold text-sm uppercase tracking-widest py-1 rounded shadow-md mb-2 animate-pulse`;
-        badge.innerHTML = '<i class="fas fa-crown mr-2"></i>HERO OF THE DAY<i class="fas fa-crown ml-2"></i>';
-        shopHeader.insertBefore(badge, shopHeader.firstChild);
+        badge.className = `shop-status-badge bg-gradient-to-r ${activeGlowTheme.gradient} text-white ${isMythic ? 'animate-pulse' : ''}`;
+        badge.innerHTML = '<i class="fas fa-crown"></i><span>Hero of the Day</span>';
+        shopHeader.appendChild(badge);
     } else if (legendMeta.legendDiscount > 0) {
-        shopHeader.classList.add('ring-4', activeGlowTheme.ring, 'bg-slate-50', 'rounded-xl', 'p-2', 'transition-all');
+        shopHeader.classList.add('ring-2', activeGlowTheme.ring, 'transition-all');
         const badge = document.createElement('div');
         badge.id = 'shop-legend-badge';
-        badge.className = `w-full text-center bg-gradient-to-r ${activeGlowTheme.gradient} text-white font-bold text-sm py-1 rounded shadow-md mb-2 ${isMythic ? 'animate-pulse' : ''}`;
-        badge.innerHTML = `<i class="fas fa-trophy mr-2"></i>${legendMeta.legendTier.label} • ${legendMeta.legendDiscount}% Seasonal Discount`;
-        shopHeader.insertBefore(badge, shopHeader.firstChild);
+        badge.className = `shop-status-badge bg-gradient-to-r ${activeGlowTheme.gradient} text-white ${isMythic ? 'animate-pulse' : ''}`;
+        badge.innerHTML = `<i class="fas fa-trophy"></i><span>${legendMeta.legendTier.label} ${legendMeta.legendDiscount}% off</span>`;
+        shopHeader.appendChild(badge);
     }
 
     // LIMIT CHECK 1: Individual Legendary limit (2 per month)

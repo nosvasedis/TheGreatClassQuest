@@ -115,44 +115,47 @@ body.projector-mode .bounty-actions {
     background: linear-gradient(135deg, rgba(255, 255, 255, 0.9) 0%, rgba(253, 242, 248, 0.92) 100%);
 }
 
-.shop-class-display {
-    display: inline-flex;
+.shop-controls-bar {
     align-items: center;
-    gap: 0.55rem;
-    min-width: 210px;
-    max-width: 320px;
-    padding: 0.45rem 0.65rem;
-    border-radius: 0.7rem;
-    border: 1px solid rgba(217, 70, 239, 0.25);
-    background: linear-gradient(135deg, rgba(244, 114, 182, 0.12) 0%, rgba(232, 121, 249, 0.06) 100%);
 }
 
-.shop-class-display__icon {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    width: 1.9rem;
-    height: 1.9rem;
-    border-radius: 999px;
-    background: #fff;
-    border: 1px solid rgba(217, 70, 239, 0.2);
-    box-shadow: 0 3px 10px rgba(192, 38, 211, 0.14);
-    font-size: 1rem;
+.shop-student-shell {
+    position: relative;
+    overflow: visible;
 }
 
-.shop-class-display__text {
-    color: #86198f;
-    font-weight: 800;
-    font-size: 0.72rem;
-    line-height: 1.2;
-    letter-spacing: 0.01em;
+.shop-restock-btn {
+    align-self: stretch;
     white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
+}
+
+.shop-status-badge {
+    position: absolute;
+    top: -0.6rem;
+    right: 0.75rem;
+    z-index: 6;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    padding: 0.18rem 0.5rem;
+    border-radius: 999px;
+    border: 1px solid rgba(255, 255, 255, 0.55);
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.18);
+    font-size: 0.64rem;
+    font-weight: 900;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+    line-height: 1;
+    pointer-events: none;
+}
+
+.shop-status-badge i {
+    font-size: 0.58rem;
 }
 
 .shop-class-select {
     min-width: 220px;
+    width: 100%;
 }
 
 @media (max-width: 768px) {
@@ -162,14 +165,35 @@ body.projector-mode .bounty-actions {
         align-items: stretch;
     }
 
-    .shop-class-display {
-        max-width: none;
-        width: 100%;
-    }
-
     .shop-class-select {
         min-width: 0;
         width: 100%;
+    }
+
+    .shop-restock-btn {
+        width: 100%;
+        justify-content: center;
+        align-self: auto;
+    }
+
+    .shop-status-badge {
+        right: 0.55rem;
+        top: -0.5rem;
+        font-size: 0.58rem;
+        padding: 0.16rem 0.42rem;
+    }
+}
+
+@media (min-width: 1024px) {
+    .shop-controls-bar {
+        display: grid;
+        grid-template-columns: minmax(250px, 1fr) minmax(300px, 1.1fr) auto;
+        gap: 1rem;
+        justify-items: stretch;
+    }
+
+    .shop-restock-btn {
+        justify-self: end;
     }
 }
 

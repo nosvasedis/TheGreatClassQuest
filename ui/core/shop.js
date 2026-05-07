@@ -206,15 +206,24 @@ export async function updateShopStudentDisplay(studentId) {
     const buyBtns = document.querySelectorAll('.shop-buy-btn');
     const shopHeader = document.getElementById('shop-student-select').parentElement; // Get container for visual effects
     const container = document.getElementById('shop-items-container');
-    
-    if (container) {
-        container.style.transition = 'opacity 0.2s';
-        container.style.opacity = '0';
-        await new Promise(r => setTimeout(r, 200));
-    }
+
+    const glowMap = {
+        hero: { gradient: 'from-red-500 to-orange-500', ring: 'ring-red-500', shadow: 'shadow-[0_0_40px_rgba(239,68,68,0.6)]', text: 'text-red-400' },
+        mythic: { gradient: 'from-fuchsia-500 to-indigo-600', ring: 'ring-fuchsia-500', shadow: 'shadow-[0_0_40px_rgba(217,70,239,0.6)]', text: 'text-fuchsia-400' },
+        golden: { gradient: 'from-amber-400 to-orange-500', ring: 'ring-amber-400', shadow: 'shadow-[0_0_40px_rgba(251,191,36,0.6)]', text: 'text-amber-400' },
+        rising: { gradient: 'from-sky-400 to-cyan-500', ring: 'ring-sky-400', shadow: 'shadow-[0_0_40px_rgba(56,189,248,0.6)]', text: 'text-sky-400' },
+        none: { gradient: 'from-slate-400 to-slate-500', ring: 'ring-slate-400', shadow: 'shadow-[0_0_30px_rgba(148,163,184,0.6)]', text: 'text-slate-400' }
+    };
+
+    // Trigger magical reflow effect on header
+    shopHeader.classList.remove('scale-105', 'animate-pulse');
+    void shopHeader.offsetWidth;
+    shopHeader.classList.add('transition-all', 'duration-500', 'scale-105');
+    setTimeout(() => shopHeader.classList.remove('scale-105'), 500);
 
     // Reset visual effects
-    shopHeader.classList.remove('ring-4', 'ring-amber-400', 'bg-amber-50', 'rounded-xl', 'p-2');
+    shopHeader.className = shopHeader.className.replace(/ring-[a-z]+-\d+/g, '').replace(/bg-[a-z]+-50/g, '').trim();
+    shopHeader.classList.remove('ring-4', 'rounded-xl', 'p-2');
     const existingHeroBadge = document.getElementById('shop-hero-badge');
     if (existingHeroBadge) existingHeroBadge.remove();
     const existingLegendBadge = document.getElementById('shop-legend-badge');
@@ -233,12 +242,12 @@ export async function updateShopStudentDisplay(studentId) {
             const basePrice = el.dataset.basePrice;
             const card = el.closest('.shop-item-card');
             if (card) {
-                card.classList.remove('ring-4', 'ring-amber-400', 'shadow-[0_0_30px_rgba(251,191,36,0.6)]', 'transform', 'scale-105', 'z-10');
+                card.className = card.className.replace(/ring-[a-z]+-\d+/g, '').replace(/shadow-\[.*?\]/g, '').trim();
+                card.classList.remove('ring-4', 'transform', 'scale-105', 'z-10');
                 card.classList.add('hover:-translate-y-2');
             }
             if (basePrice) el.innerHTML = `<span class="shop-price-value text-xl">${basePrice}</span> <span>🪙</span>`;
         });
-        if (container) container.style.opacity = '1';
         return;
     }
 
@@ -255,21 +264,23 @@ export async function updateShopStudentDisplay(studentId) {
     const reigningHero = state.get('reigningHero');
     const isHero = reigningHero && reigningHero.id === studentId;
 
+    const legendMeta = getSeasonalShopPriceMeta(100, { isReigningHero: false, heroOfDayWins });
+    const isMythic = legendMeta.legendTier.key === 'mythic';
+    const activeGlowTheme = isHero ? glowMap.hero : (glowMap[legendMeta.legendTier.key] || glowMap.none);
+
     if (isHero) {
         // Add Hero Visuals
-        shopHeader.classList.add('ring-4', 'ring-amber-400', 'bg-amber-50', 'rounded-xl', 'p-2', 'transition-all');
+        shopHeader.classList.add('ring-4', activeGlowTheme.ring, 'bg-red-50', 'rounded-xl', 'p-2', 'transition-all');
         const badge = document.createElement('div');
         badge.id = 'shop-hero-badge';
-        badge.className = 'w-full text-center bg-gradient-to-r from-amber-400 to-orange-500 text-white font-bold text-sm uppercase tracking-widest py-1 rounded shadow-md mb-2 animate-pulse';
+        badge.className = `w-full text-center bg-gradient-to-r ${activeGlowTheme.gradient} text-white font-bold text-sm uppercase tracking-widest py-1 rounded shadow-md mb-2 animate-pulse`;
         badge.innerHTML = '<i class="fas fa-crown mr-2"></i>HERO OF THE DAY<i class="fas fa-crown ml-2"></i>';
         shopHeader.insertBefore(badge, shopHeader.firstChild);
-    }
-
-    const legendMeta = getSeasonalShopPriceMeta(100, { isReigningHero: false, heroOfDayWins });
-    if (legendMeta.legendDiscount > 0) {
+    } else if (legendMeta.legendDiscount > 0) {
+        shopHeader.classList.add('ring-4', activeGlowTheme.ring, 'bg-slate-50', 'rounded-xl', 'p-2', 'transition-all');
         const badge = document.createElement('div');
         badge.id = 'shop-legend-badge';
-        badge.className = 'w-full text-center bg-gradient-to-r from-indigo-500 to-fuchsia-500 text-white font-bold text-sm py-1 rounded shadow-md mb-2';
+        badge.className = `w-full text-center bg-gradient-to-r ${activeGlowTheme.gradient} text-white font-bold text-sm py-1 rounded shadow-md mb-2 ${isMythic ? 'animate-pulse' : ''}`;
         badge.innerHTML = `<i class="fas fa-trophy mr-2"></i>${legendMeta.legendTier.label} • ${legendMeta.legendDiscount}% Seasonal Discount`;
         shopHeader.insertBefore(badge, shopHeader.firstChild);
     }
@@ -330,15 +341,21 @@ export async function updateShopStudentDisplay(studentId) {
         const priceDisplay = document.querySelector(`.shop-price-display[data-item-id="${itemId}"]`);
         if (priceDisplay) {
             const card = priceDisplay.closest('.shop-item-card');
+            
+            // Clean up old glow classes
+            if (card) {
+                card.className = card.className.replace(/ring-[a-z]+-\d+/g, '').replace(/shadow-\[.*?\]/g, '').trim();
+                card.classList.remove('ring-4', 'transform', 'scale-105', 'z-10');
+            }
+
             if (hasDiscount && finalPrice < basePrice) {
                 if (card) {
-                    card.classList.add('ring-4', 'ring-amber-400', 'shadow-[0_0_30px_rgba(251,191,36,0.6)]', 'transform', 'scale-105', 'z-10');
+                    card.classList.add('ring-4', activeGlowTheme.ring, activeGlowTheme.shadow, 'transform', 'scale-105', 'z-10', 'transition-all', 'duration-500');
                     card.classList.remove('hover:-translate-y-2');
                 }
-                priceDisplay.innerHTML = `<span class="line-through text-fuchsia-400/70 text-sm mr-2">${basePrice}</span> <span class="text-amber-400 text-2xl drop-shadow-md animate-pulse">${finalPrice}</span> <span>🪙</span>`;
+                priceDisplay.innerHTML = `<span class="line-through text-fuchsia-400/70 text-sm mr-2">${basePrice}</span> <span class="${activeGlowTheme.text} text-3xl font-extrabold drop-shadow-[0_0_10px_currentColor] animate-bounce">${finalPrice}</span> <span>🪙</span>`;
             } else {
                 if (card) {
-                    card.classList.remove('ring-4', 'ring-amber-400', 'shadow-[0_0_30px_rgba(251,191,36,0.6)]', 'transform', 'scale-105', 'z-10');
                     card.classList.add('hover:-translate-y-2');
                 }
                 priceDisplay.innerHTML = `<span class="shop-price-value text-xl">${basePrice}</span> <span>🪙</span>`;
@@ -399,10 +416,6 @@ export async function updateShopStudentDisplay(studentId) {
             btn.classList.add('bg-gray-500');
         }
     });
-
-    if (container) {
-        container.style.opacity = '1';
-    }
 }
 
 function renderFamiliarEggCard(fType) {

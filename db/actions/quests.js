@@ -563,11 +563,13 @@ async function handleAILogAdventure(classId, classData) {
             createdAt: serverTimestamp()
         }, heroStudentId);
 
+        // Stop the writing loop before the hero reveal so the fanfare
+        // always plays cleanly on a silent audio context.
+        const _audio = await import('../../audio.js');
+        _audio.stopWritingLoop();
+
         await showHeroOfTheDayReveal(heroStudentId, 'The Class Hero!');
 
-        // The ceremony is complete — stop the writing loop and restore the button now,
-        // before AI generation which runs fully in the background.
-        import('../../audio.js').then(m => m.stopWritingLoop());
         btn.disabled = false;
         btn.innerHTML = `<i class="fas fa-feather-alt mr-2"></i> Log Today's Adventure`;
 

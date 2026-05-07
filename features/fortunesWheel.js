@@ -1275,6 +1275,12 @@ function _renderAvailability(availability) {
     const metaEl = document.getElementById('fw-availability-meta');
     if (!root || !titleEl || !messageEl || !metaEl) return;
 
+    if (!availability.allowed) {
+        root.classList.add('hidden');
+        return;
+    }
+
+    root.classList.remove('hidden');
     root.dataset.state = availability.code || 'locked';
     titleEl.textContent = availability.title || 'Fortune awaits';
     messageEl.textContent = availability.message || '';

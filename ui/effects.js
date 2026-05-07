@@ -192,9 +192,9 @@ export function triggerAwardEffects(button, starCount) {
     };
 
     const effectConfig = {
-        1: { particles: 15, size: [2, 5], distance: [30, 60] },
-        2: { particles: 30, size: [3, 7], distance: [50, 100], shockwave: 'rgba(216, 180, 254, 0.7)' },
-        3: { particles: 105, size: [4, 10], distance: [100, 210], flash: 'rgba(249, 115, 22, 0.35)', shockwave: 'rgba(251, 191, 36, 0.88)' }
+        1: { particles: 10, size: [2, 5], distance: [30, 60] },
+        2: { particles: 18, size: [3, 7], distance: [50, 100], shockwave: 'rgba(216, 180, 254, 0.7)' },
+        3: { particles: 40, size: [4, 10], distance: [100, 210], flash: 'rgba(249, 115, 22, 0.35)', shockwave: 'rgba(251, 191, 36, 0.88)' }
     };
 
     const config = effectConfig[starCount];
@@ -265,8 +265,8 @@ export function triggerAwardEffects(button, starCount) {
         }, 190);
 
         // Star emoji rain
-        const starEmojis = ['⭐', '✨', '🌟', '💫', '⭐', '🌟'];
-        for (let i = 0; i < 24; i++) {
+        const starEmojis = ['⭐', '✨', '🌟', '💫'];
+        for (let i = 0; i < 10; i++) {
             const star = document.createElement('div');
             star.className = 'star-rain-element';
             star.textContent = starEmojis[Math.floor(Math.random() * starEmojis.length)];

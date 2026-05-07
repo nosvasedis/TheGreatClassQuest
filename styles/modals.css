@@ -209,21 +209,18 @@
 }
 
 @keyframes teacher-boon-launch-shimmer {
-    0%   { background-position: -120% 0; }
-    100% { background-position: 220% 0; }
+    0%, 100% { opacity: 0.55; }
+    50%      { opacity: 0.85; }
 }
 
 @keyframes teacher-boon-launch-sparkle {
-    0%, 100% { opacity: 0.35; transform: scale(0.85) rotate(0deg); }
-    40% { opacity: 1; transform: scale(1.25) rotate(15deg); }
-    70% { opacity: 0.65; transform: scale(1) rotate(-8deg); }
+    0%, 100% { opacity: 0.35; }
+    50%      { opacity: 0.9; }
 }
 
 @keyframes teacher-boon-launch-wand {
-    0%, 100% { transform: rotate(0deg) translateY(0); }
-    25% { transform: rotate(-12deg) translateY(-1px); }
-    55% { transform: rotate(10deg) translateY(1px); }
-    75% { transform: rotate(-4deg); }
+    0%, 100% { transform: rotate(0deg); }
+    50%      { transform: rotate(8deg); }
 }
 
 /* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━

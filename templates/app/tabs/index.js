@@ -11,6 +11,7 @@ import { scrollTabHTML } from './scroll.js';
 import { calendarTabHTML } from './calendar.js';
 import { ideasTabHTML } from './ideas.js';
 import { optionsTabHTML } from './options.js';
+import { shopTabHTML } from './shop.js';
 
 export const mainContentHTML = `
         <main class="flex-1 overflow-y-auto p-4 md:p-6">
@@ -26,5 +27,6 @@ export const mainContentHTML = `
             ${calendarTabHTML}
             ${ideasTabHTML}
             ${optionsTabHTML}
+            ${shopTabHTML}
         </main>
 `;

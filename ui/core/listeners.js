@@ -22,7 +22,7 @@ import * as ceremony from '../../features/ceremony.js';
 import * as utils from '../../utils.js';
 import { playSound } from '../../audio.js';
 import { showToast, triggerAwardEffects, triggerDynamicPraise, showWelcomeBackMessage, createFloatingHearts } from '../effects.js';
-import { openShopModal, updateShopStudentDisplay } from './shop.js';
+import { updateShopStudentDisplay } from './shop.js';
 import { confirmWord, handleWordInputChange, updateStudentCardAttendanceState } from './misc.js';
 import {
     handleAddClass,
@@ -103,6 +103,14 @@ export function setupUIListeners() {
         playSound('click');
         await signOut(auth);
     });
+
+    const headerSettingsBtn = document.getElementById('header-settings-btn');
+    if (headerSettingsBtn) {
+        headerSettingsBtn.addEventListener('click', () => {
+            tabs.showTab('options-tab');
+            playSound('click');
+        });
+    }
 
     // Modals & Pickers
     document.getElementById('modal-cancel-btn').addEventListener('click', () => modals.hideModal('confirmation-modal'));
@@ -346,10 +354,7 @@ export function setupUIListeners() {
     });
 
     // Shop Listeners
-    const openShopBtn = document.getElementById('open-shop-btn');
-    if (openShopBtn) {
-        openShopBtn.addEventListener('click', openShopModal); // Direct function reference
-    }
+
 
     // --- Prodigy Button Listener ---
     const openProdigyBtn = document.getElementById('open-prodigy-btn');
@@ -361,10 +366,7 @@ export function setupUIListeners() {
         modals.renderProdigyHistory(e.target.value);
     });
 
-    const shopCloseBtn = document.getElementById('shop-close-btn');
-    if (shopCloseBtn) {
-        shopCloseBtn.addEventListener('click', () => modals.hideModal('shop-modal'));
-    }
+
 
     // Trophy Room
     const openTrophyRoomBtn = document.getElementById('open-trophy-room-btn');

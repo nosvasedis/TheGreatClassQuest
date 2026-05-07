@@ -8,7 +8,7 @@ import { getSeasonalShopPriceMeta } from '../../utils.js';
 
 // --- SHOP UI LOGIC ---
 
-export function openShopModal() {
+export function initializeShopTab() {
     // 1. Determine Context
     let league = state.get('globalSelectedLeague');
     let classId = state.get('globalSelectedClassId');
@@ -21,6 +21,9 @@ export function openShopModal() {
 
     if (!league) {
         showToast("Please select a League or Class first to enter the correct market.", "error");
+        // Clear shop or show empty state
+        document.getElementById('shop-items-container').innerHTML = '';
+        document.getElementById('shop-empty-state').classList.remove('hidden');
         return;
     }
 
@@ -52,7 +55,6 @@ export function openShopModal() {
         validStudents.map(s => `<option value="${s.id}">${s.name}</option>`).join('');
 
     renderShopUI();
-    modals.showAnimatedModal('shop-modal');
 }
 
 export function renderShopUI() {

@@ -168,6 +168,10 @@ export async function showTab(tabName) {
         renderHomeTab();
     }
 
+    if (tabId === 'shop-tab') {
+        import('../core/shop.js').then(m => m.initializeShopTab());
+    }
+
     if (tabId === 'reward-ideas-tab') renderIdeasTabSelects();
     if (tabId === 'options-tab') {
         const hasAssessmentAccess = canUseFeature('scholarScroll');

@@ -45,6 +45,11 @@ export const headerHTML = `
                             title="Secretary Console" aria-label="Open Secretary Console">
                             <i class="fas fa-building-shield text-xs"></i>
                         </button>
+                        <button id="header-settings-btn"
+                            class="hover:bg-white/40 text-white h-7 w-7 rounded-full bubbly-button transition-colors duration-300 flex items-center justify-center border border-white/30 sm:h-8 sm:w-8"
+                            title="Settings" aria-label="Settings">
+                            <i class="fas fa-cog text-xs"></i>
+                        </button>
                         <button id="logout-btn"
                             class="bg-red-500/80 hover:bg-red-500 text-white h-7 w-7 rounded-full bubbly-button flex items-center justify-center border border-white/30 sm:h-8 sm:w-8"
                             title="Logout" aria-label="Logout">

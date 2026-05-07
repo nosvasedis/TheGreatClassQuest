@@ -155,12 +155,19 @@ export const trophyRoomModalsHTML = `
                     <span class="font-bold text-indigo-200">Student Name</span>'s inventory
                 </p>
 
-                <!-- Close button -->
-                <button id="shop-purchase-close-btn"
-                    class="w-full bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-white font-bold py-3 px-6 rounded-xl shadow-lg transition-all duration-200 hover:scale-[1.02] active:scale-[0.98] mb-3"
-                    style="box-shadow: 0 4px 20px rgba(16,185,129,0.35);">
-                    <i class="fas fa-check mr-2"></i>Awesome!
-                </button>
+                <!-- Action buttons -->
+                <div class="flex flex-col gap-3 mb-3">
+                    <button id="shop-purchase-use-btn"
+                        class="hidden bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-white font-bold py-3 px-6 rounded-xl shadow-lg transition-all duration-200 hover:scale-[1.02] active:scale-[0.98]"
+                        style="box-shadow: 0 4px 20px rgba(251,146,60,0.35);">
+                        <i class="fas fa-bolt mr-2"></i>Use Now
+                    </button>
+                    <button id="shop-purchase-close-btn"
+                        class="w-full bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-white font-bold py-3 px-6 rounded-xl shadow-lg transition-all duration-200 hover:scale-[1.02] active:scale-[0.98]"
+                        style="box-shadow: 0 4px 20px rgba(16,185,129,0.35);">
+                        <i class="fas fa-check mr-2"></i>Awesome!
+                    </button>
+                </div>
 
                 <!-- Auto-close progress bar -->
                 <div class="h-1 bg-white/10 rounded-full overflow-hidden">

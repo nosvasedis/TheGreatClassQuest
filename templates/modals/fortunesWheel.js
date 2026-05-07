@@ -85,6 +85,11 @@ export const fortunesWheelModalHTML = `
                             <div id="fw-availability-meta" class="fw-availability-meta"></div>
                         </div>
 
+                        <div id="fw-guild-members" class="fw-guild-members-panel" aria-live="polite">
+                            <div class="fw-guild-members__header">Active Guild Members</div>
+                            <div class="fw-guild-members__empty">Choose a class to view guild members for each turn.</div>
+                        </div>
+
                         <div id="fw-result" class="fw-result-card hidden"></div>
                         <div id="fw-summary" class="fw-summary-card hidden"></div>
 

@@ -1143,7 +1143,7 @@ async function _evaluateAndRender(classId, leagueLevel) {
         active: true,
         classId,
         leagueLevel,
-        guildOrder: [...GUILD_IDS],
+        guildOrder: shuffleArray([...GUILD_IDS]),
         currentGuildIndex: 0,
         segments: [],
         results: [],
@@ -1207,6 +1207,7 @@ function _renderLockedState(title, message, emoji) {
 
     _setStageEmblem(null);
     _renderGuildProgress();
+    _renderCurrentGuildMembers();
     _setStageCaption('The relic remains sealed until the proper class and lesson window align.');
 
     _updateSpinButton(true, availability.code === 'already_spun' ? 'Recharging' : 'Await Final Lesson');
@@ -1214,6 +1215,41 @@ function _renderLockedState(title, message, emoji) {
     if (nextBtn) nextBtn.classList.add('hidden');
     const doneBtn = document.getElementById('fw-done-btn');
     if (doneBtn) doneBtn.classList.add('hidden');
+}
+
+function _renderCurrentGuildMembers() {
+    const panel = document.getElementById('fw-guild-members');
+    if (!panel) return;
+
+    const guildId = _wheelState.guildOrder[_wheelState.currentGuildIndex];
+    if (!_wheelState.active || !_wheelState.classId || !guildId) {
+        panel.innerHTML = `
+            <div class="fw-guild-members__header">Active Guild Members</div>
+            <div class="fw-guild-members__empty">Choose a class to view guild members for each turn.</div>`;
+        return;
+    }
+
+    const guildDef = getGuildById(guildId);
+    const students = (state.get('allStudents') || [])
+        .filter(student => student.classId === _wheelState.classId && student.guildId === guildId)
+        .sort((a, b) => (a.name || '').localeCompare(b.name || ''));
+
+    const rosterHtml = students.length > 0
+        ? students.map(student => {
+            const avatarHtml = student.avatar
+                ? `<img src="${student.avatar}" alt="${student.name}" class="fw-guild-members__avatar">`
+                : `<span class="fw-guild-members__initial">${(student.name || '?').charAt(0).toUpperCase()}</span>`;
+            return `
+                <div class="fw-guild-members__item">
+                    <div class="fw-guild-members__visual">${avatarHtml}</div>
+                    <div class="fw-guild-members__name">${student.name || 'Unknown Student'}</div>
+                </div>`;
+        }).join('')
+        : '<div class="fw-guild-members__empty">No students from this guild are in the selected class.</div>';
+
+    panel.innerHTML = `
+        <div class="fw-guild-members__header">${guildDef?.name || 'Active Guild'} Members</div>
+        <div class="fw-guild-members__list">${rosterHtml}</div>`;
 }
 
 /**
@@ -1295,6 +1331,7 @@ export async function closeFortunesWheel() {
     }
 
     _wheelState = { active: false, classId: null, leagueLevel: null, guildOrder: [], currentGuildIndex: 0, segments: [], results: [], phase: 'idle', winnerIndex: null, rotationAngle: 0 };
+    _renderCurrentGuildMembers();
 
     const modal = document.getElementById('fortunes-wheel-modal');
     if (modal) {
@@ -1329,6 +1366,7 @@ function _renderWheelPhase() {
     }
 
     _renderGuildProgress();
+    _renderCurrentGuildMembers();
     _setStageEmblem(guildId);
     _setStageCaption(`${guildDef?.name || 'This guild'} steps onto the relic stage. Spin to reveal its weekly omen.`);
 

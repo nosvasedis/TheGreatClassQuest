@@ -27,6 +27,7 @@ import { handleMarkAbsent } from './log.js';
 import { playSound } from '../../audio.js';
 import { reconcileFamiliarLifecycle } from '../../features/familiars.js';
 import { createAssessmentScorePayload, getNormalizedPercentForScore, qualifiesForHighScore } from '../../features/assessmentConfig.js';
+import { handleUseItem, isItemUsable } from '../../features/powerUps.js';
 // GUILD_IDS not needed at module level but kept for reference
 
 // --- THE ECONOMY (SHOP & INVENTORY) ---
@@ -68,7 +69,16 @@ function animateShopGoldChange(newGoldBalance, durationMs = 650) {
     requestAnimationFrame(step);
 }
 
-function showShopPurchasePopup({ itemName, itemDescription, itemVisualHtml, finalPrice, newGoldBalance, studentName, cta = 'Awesome!' }) {
+function showShopPurchasePopup({
+    itemName,
+    itemDescription,
+    itemVisualHtml,
+    finalPrice,
+    newGoldBalance,
+    studentName,
+    cta = 'Awesome!',
+    useContext = null
+}) {
     const purchaseModal = document.getElementById('shop-purchase-modal');
     if (!purchaseModal) return false;
 
@@ -92,15 +102,65 @@ function showShopPurchasePopup({ itemName, itemDescription, itemVisualHtml, fina
     }
 
     const closeBtn = document.getElementById('shop-purchase-close-btn');
+    const useBtn = document.getElementById('shop-purchase-use-btn');
     let autoCloseTimer = null;
+    let useInFlight = false;
     const closeModal = () => {
+        if (useInFlight) return;
         clearTimeout(autoCloseTimer);
         purchaseModal.classList.add('hidden');
+        if (useBtn) {
+            useBtn.disabled = false;
+            useBtn.innerHTML = '<i class="fas fa-bolt mr-2"></i>Use Now';
+        }
         if (timerBar) {
             timerBar.style.transition = 'none';
             timerBar.style.width = '100%';
         }
     };
+
+    if (useBtn) {
+        useBtn.classList.add('hidden');
+        useBtn.onclick = null;
+        useBtn.disabled = false;
+        useBtn.innerHTML = '<i class="fas fa-bolt mr-2"></i>Use Now';
+    }
+
+    const canUseNow = Boolean(
+        useContext &&
+        useContext.studentId &&
+        Number.isInteger(useContext.itemIndex) && useContext.itemIndex >= 0 &&
+        isItemUsable(useContext.itemName)
+    );
+
+    if (canUseNow && useBtn) {
+        useBtn.classList.remove('hidden');
+        useBtn.onclick = async () => {
+            if (useInFlight) return;
+            useInFlight = true;
+            clearTimeout(autoCloseTimer);
+            useBtn.disabled = true;
+            useBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Using...';
+
+            try {
+                const result = await handleUseItem(useContext.studentId, useContext.itemIndex);
+                if (result?.success) {
+                    useInFlight = false;
+                    closeModal();
+                    return;
+                }
+            } catch (error) {
+                console.error('Use from purchase modal failed:', error);
+            } finally {
+                useInFlight = false;
+            }
+
+            useBtn.disabled = false;
+            useBtn.innerHTML = '<i class="fas fa-bolt mr-2"></i>Use Now';
+            autoCloseTimer = setTimeout(closeModal, 3000);
+        };
+    }
+
     closeBtn.onclick = closeModal;
     autoCloseTimer = setTimeout(closeModal, 3000);
     return true;
@@ -518,6 +578,7 @@ export async function handleBuyItem(studentId, itemId) {
     try {
         let newGoldBalance = 0;
         let appliedFinalPrice = item.price;
+        let purchasedItemIndex = -1;
 
         await runTransaction(db, async (transaction) => {
             const scoreDoc = await transaction.get(scoreRef);
@@ -534,6 +595,7 @@ export async function handleBuyItem(studentId, itemId) {
             const data = scoreDoc.data();
             const currentDbGold = data.gold !== undefined ? data.gold : (data.totalStars || 0);
             const currentInventory = data.inventory || [];
+            purchasedItemIndex = currentInventory.length;
 
             let calculatedPrice = item.price;
 
@@ -609,6 +671,11 @@ export async function handleBuyItem(studentId, itemId) {
             finalPrice: appliedFinalPrice,
             newGoldBalance,
             studentName: student.name,
+            useContext: {
+                studentId,
+                itemIndex: purchasedItemIndex,
+                itemName: item.name
+            },
             cta: 'Awesome!'
         });
         if (!popupShown) {
@@ -628,6 +695,7 @@ export async function handleBuyItem(studentId, itemId) {
                 id: item.id,
                 name: item.name,
                 image: item.image || null,
+                icon: item.icon || null,
                 description: item.description,
                 acquiredAt: new Date().toISOString()
             });

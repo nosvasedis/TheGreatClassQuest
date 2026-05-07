@@ -1,14 +1,36 @@
 import { blobToBase64 } from './utils.js';
 import { AI_TEXT_PROVIDERS, OPENROUTER_MODEL, cloudflareWorkerUrl } from './constants.js';
 
-const GEMINI_REQUEST_SPACING_MS = 1200;
+const GEMINI_REQUEST_SPACING_MS = 5000; // Increased from 1200ms to 5 seconds
 const DEFAULT_TIMEOUT_MS = 10000;
 const FAST_TIMEOUT_MS = 5000;
-const CIRCUIT_BREAK_THRESHOLD = 3;
-const CIRCUIT_COOLDOWN_MS = 120000;
+const CIRCUIT_BREAK_THRESHOLD = 2; // Lowered from 3 to be more conservative
+const CIRCUIT_COOLDOWN_MS = 300000; // Increased from 120s to 5 minutes
+const PROVIDER_RATE_LIMIT_COOLDOWN_MS = 60000; // 1 minute per-provider rate limit cooldown
 
 let geminiQueue = Promise.resolve();
 let lastGeminiRequestStartedAt = 0;
+
+// ─── Provider-level rate limit tracking ──────────────────────────────────────
+let _providerRateLimits = new Map(); // { providerId => { rateLimitedAt: timestamp, retryAfterMs: number } }
+
+function recordProviderRateLimit(providerId, retryAfterMs = null) {
+    _providerRateLimits.set(providerId, {
+        rateLimitedAt: Date.now(),
+        retryAfterMs: retryAfterMs || PROVIDER_RATE_LIMIT_COOLDOWN_MS
+    });
+}
+
+function isProviderRateLimited(providerId) {
+    const record = _providerRateLimits.get(providerId);
+    if (!record) return false;
+    const elapsed = Date.now() - record.rateLimitedAt;
+    return elapsed < record.retryAfterMs;
+}
+
+function clearProviderRateLimit(providerId) {
+    _providerRateLimits.delete(providerId);
+}
 
 // ─── Circuit Breaker ──────────────────────────────────────────────────────────
 let _circuitState = { consecutiveFailures: 0, openedAt: 0 };
@@ -171,17 +193,39 @@ export async function callGeminiApiDetailed(systemPrompt, userPrompt, requestOpt
     }
 
     const failures = [];
+    let hasRateLimitFailure = false;
 
     for (const provider of providers) {
+        // Skip providers that are currently rate limited
+        if (isProviderRateLimited(provider.id)) {
+            failures.push({
+                providerId: provider.id,
+                providerLabel: provider.label,
+                message: 'Provider is rate limited, skipping',
+                isRateLimited: true,
+                isRetryable: false
+            });
+            continue;
+        }
+
         try {
             const result = await requestTextFromProvider(provider, systemPrompt, userPrompt, requestOptions);
             recordAiSuccess();
+            // Clear rate limit on success
+            clearProviderRateLimit(provider.id);
             return {
                 ...result,
                 providerFailures: failures
             };
         } catch (error) {
             const failureMeta = classifyProviderFailure(error);
+            
+            // Track rate limit failures at provider level
+            if (failureMeta.isRateLimited) {
+                hasRateLimitFailure = true;
+                recordProviderRateLimit(provider.id);
+            }
+
             failures.push({
                 providerId: provider.id,
                 providerLabel: provider.label,
@@ -192,6 +236,12 @@ export async function callGeminiApiDetailed(systemPrompt, userPrompt, requestOpt
     }
 
     recordAiFailure();
+    
+    // If we hit rate limits, be extra conservative with circuit breaker
+    if (hasRateLimitFailure) {
+        recordAiFailure(); // Record extra failure to trigger circuit break faster
+    }
+
     const aggregateError = new Error(
         failures.length > 0
             ? failures.map((failure) => `${failure.providerLabel}: ${failure.message}`).join(' | ')
@@ -206,8 +256,8 @@ export async function callGeminiApiDetailed(systemPrompt, userPrompt, requestOpt
 
 async function fetchWithBackoff(url, options, config = {}) {
     const {
-        retries = 3,
-        baseDelay = 2000,
+        retries = 1, // Reduced from 3 to 1 for free models — they have strict rate limits
+        baseDelay = 3000, // Increased from 2000ms to 3 seconds
         timeoutMs = DEFAULT_TIMEOUT_MS
     } = config;
     let attempt = 0;
@@ -256,7 +306,12 @@ async function fetchWithBackoff(url, options, config = {}) {
             const jitterMs = Math.floor(Math.random() * 500);
             const waitMs = Math.max(retryAfterMs || 0, expDelayMs + jitterMs);
 
-            console.warn(`API Error ${response.status}. Retrying in ${waitMs}ms...`);
+            // For 429, log more aggressively
+            if (response.status === 429) {
+                console.warn(`⚠️ RATE LIMITED (429). Waiting ${waitMs}ms before retry...`, { attempt, maxRetries: retries });
+            } else {
+                console.warn(`API Error ${response.status}. Retrying in ${waitMs}ms...`);
+            }
             await new Promise((res) => setTimeout(res, waitMs));
             attempt += 1;
         } catch (error) {

@@ -22,7 +22,7 @@ export const firebaseConfig =
 export const cloudflareWorkerUrl = 'https://great-class-quest-ai-proxy.nvasedis-cc5.workers.dev';
 export const workerBaseUrl = 'https://great-class-quest-ai-proxy.nvasedis-cc5.workers.dev';
 export const geminiApiUrl = workerBaseUrl; 
-export const OPENROUTER_MODEL = "z-ai/glm-4.5-air:free";
+export const OPENROUTER_MODEL = 'openrouter/auto';
 const runtimeAiTextConfig = (typeof window !== 'undefined' && window.__GCQ_AI_TEXT_CONFIG__) || {};
 
 function normalizeAiProvider(definition, fallback = {}) {
@@ -39,36 +39,14 @@ function normalizeAiProvider(definition, fallback = {}) {
 }
 
 const defaultAiPrimaryProvider = normalizeAiProvider({
-    id: 'gcq-primary-gemma-4-31b',
-    label: 'GCQ - Gemma 4 31B',
+    id: 'gcq-primary-openrouter-auto',
+    label: 'GCQ - OpenRouter Auto',
     url: geminiApiUrl,
-    model: 'google/gemma-4-31b-it:free',
+    model: OPENROUTER_MODEL,
     payloadMode: 'openrouter'
 });
 
-const defaultAiBackupProviders = [
-    normalizeAiProvider({
-        id: 'gcq-backup-nemotron',
-        label: 'GCQ - Nemotron 30B Reasoning',
-        url: geminiApiUrl,
-        model: 'nvidia/nemotron-3-nano-omni-30b-a3b-reasoning:free',
-        payloadMode: 'openrouter'
-    }),
-    normalizeAiProvider({
-        id: 'gcq-backup-minimax',
-        label: 'GCQ - MiniMax 2.5',
-        url: geminiApiUrl,
-        model: 'minimax/minimax-m2.5:free',
-        payloadMode: 'openrouter'
-    }),
-    normalizeAiProvider({
-        id: 'gcq-backup-gemma-4-26b',
-        label: 'GCQ - Gemma 4 26B A4B',
-        url: geminiApiUrl,
-        model: 'google/gemma-4-26b-a4b-it:free',
-        payloadMode: 'openrouter'
-    })
-];
+const defaultAiBackupProviders = [];
 
 const configuredAiProviders = Array.isArray(runtimeAiTextConfig.providers)
     ? runtimeAiTextConfig.providers

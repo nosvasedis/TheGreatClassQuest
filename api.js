@@ -2,14 +2,16 @@ import { blobToBase64 } from './utils.js';
 import { AI_TEXT_PROVIDERS, OPENROUTER_MODEL, cloudflareWorkerUrl } from './constants.js';
 
 const GEMINI_REQUEST_SPACING_MS = 5000; // Increased from 1200ms to 5 seconds
-const DEFAULT_TIMEOUT_MS = 10000;
-const FAST_TIMEOUT_MS = 5000;
+const DEFAULT_TIMEOUT_MS = 30000;
+const FAST_TIMEOUT_MS = 10000;
 const CIRCUIT_BREAK_THRESHOLD = 2; // Lowered from 3 to be more conservative
 const CIRCUIT_COOLDOWN_MS = 300000; // Increased from 120s to 5 minutes
 const PROVIDER_RATE_LIMIT_COOLDOWN_MS = 60000; // 1 minute per-provider rate limit cooldown
+const GLOBAL_RATE_LIMIT_COOLDOWN_MS = 60000;
 
 let geminiQueue = Promise.resolve();
 let lastGeminiRequestStartedAt = 0;
+let _globalRateLimitUntil = 0;
 
 // ─── Provider-level rate limit tracking ──────────────────────────────────────
 let _providerRateLimits = new Map(); // { providerId => { rateLimitedAt: timestamp, retryAfterMs: number } }
@@ -30,6 +32,23 @@ function isProviderRateLimited(providerId) {
 
 function clearProviderRateLimit(providerId) {
     _providerRateLimits.delete(providerId);
+}
+
+function recordGlobalRateLimit(retryAfterMs = null) {
+    const cooldownMs = Math.max(0, retryAfterMs || GLOBAL_RATE_LIMIT_COOLDOWN_MS);
+    _globalRateLimitUntil = Math.max(_globalRateLimitUntil, Date.now() + cooldownMs);
+}
+
+function getGlobalRateLimitRemainingMs() {
+    return Math.max(0, _globalRateLimitUntil - Date.now());
+}
+
+function isGlobalRateLimited() {
+    return getGlobalRateLimitRemainingMs() > 0;
+}
+
+function clearGlobalRateLimit() {
+    _globalRateLimitUntil = 0;
 }
 
 // ─── Circuit Breaker ──────────────────────────────────────────────────────────
@@ -105,9 +124,18 @@ function createTimeoutError(timeoutMs) {
     return error;
 }
 
+function createRateLimitError(retryAfterMs = null) {
+    const retryMs = Math.max(0, retryAfterMs || 0);
+    const error = new Error(`API failed with status 429${retryMs > 0 ? ` (retry after ${retryMs}ms)` : ''}`);
+    error.name = 'RateLimitError';
+    error.status = 429;
+    error.retryAfterMs = retryMs > 0 ? retryMs : undefined;
+    return error;
+}
+
 function classifyProviderFailure(error) {
     const message = String(error?.message || '');
-    const isRateLimited = /status\s*429/i.test(message);
+    const isRateLimited = error?.status === 429 || error?.name === 'RateLimitError' || /status\s*429/i.test(message);
     const isServerFailure = /status\s*5\d{2}/i.test(message);
     const isTimeout = error?.name === 'TimeoutError';
     return {
@@ -186,6 +214,10 @@ async function requestTextFromProvider(provider, systemPrompt, userPrompt, reque
 
 export async function callGeminiApiDetailed(systemPrompt, userPrompt, requestOptions = {}) {
     if (isAiCircuitOpen()) throw createCircuitBreakerError();
+    if (isGlobalRateLimited()) {
+        const waitMs = getGlobalRateLimitRemainingMs();
+        throw createRateLimitError(waitMs);
+    }
 
     const providers = AI_TEXT_PROVIDERS.filter((provider) => provider?.url);
     if (providers.length === 0) {
@@ -213,6 +245,7 @@ export async function callGeminiApiDetailed(systemPrompt, userPrompt, requestOpt
             recordAiSuccess();
             // Clear rate limit on success
             clearProviderRateLimit(provider.id);
+            clearGlobalRateLimit();
             return {
                 ...result,
                 providerFailures: failures
@@ -223,7 +256,9 @@ export async function callGeminiApiDetailed(systemPrompt, userPrompt, requestOpt
             // Track rate limit failures at provider level
             if (failureMeta.isRateLimited) {
                 hasRateLimitFailure = true;
-                recordProviderRateLimit(provider.id);
+                const retryAfterMs = Number.isFinite(error?.retryAfterMs) ? error.retryAfterMs : null;
+                recordProviderRateLimit(provider.id, retryAfterMs);
+                recordGlobalRateLimit(retryAfterMs);
             }
 
             failures.push({
@@ -232,6 +267,11 @@ export async function callGeminiApiDetailed(systemPrompt, userPrompt, requestOpt
                 message: String(error?.message || 'Unknown AI provider error'),
                 ...failureMeta
             });
+
+            // 429 usually applies account-wide for free-tier usage. Stop chain to avoid bursts.
+            if (failureMeta.isRateLimited) {
+                break;
+            }
         }
     }
 
@@ -298,6 +338,9 @@ async function fetchWithBackoff(url, options, config = {}) {
             const hasRetriesLeft = attempt < retries;
 
             if (!isRetryableStatus || !hasRetriesLeft) {
+                if (response.status === 429) {
+                    throw createRateLimitError(parseRetryAfterMs(response));
+                }
                 throw new Error(`API failed with status ${response.status}`);
             }
 

@@ -31,6 +31,7 @@ import { handleUseItem, isItemUsable } from '../../features/powerUps.js';
 // GUILD_IDS not needed at module level but kept for reference
 
 // --- THE ECONOMY (SHOP & INVENTORY) ---
+let isGeneratingShopStock = false;
 
 function animateShopGoldChange(newGoldBalance, durationMs = 650) {
     const goldDisplay = document.getElementById('shop-student-gold');
@@ -167,7 +168,14 @@ function showShopPurchasePopup({
 }
 
 export async function handleGenerateShopStock() {
+    if (isGeneratingShopStock) {
+        showToast('Shop restock is already running. Please wait.', 'info');
+        return;
+    }
+
     if (!requireEliteAI({ feature: 'Shop item generator' })) return;
+
+    isGeneratingShopStock = true;
     // 1. Determine Context (League)
     let league = state.get('globalSelectedLeague');
 
@@ -321,6 +329,7 @@ export async function handleGenerateShopStock() {
         console.error("Shop generation failed:", error);
         showToast('The Merchant got lost. Try again.', 'error');
     } finally {
+        isGeneratingShopStock = false;
         btn.disabled = false;
         loader.classList.add('hidden');
     }

@@ -10,6 +10,11 @@ import { getEggAlertState } from '../features/familiarProgression.mjs';
 import { getNextAssessmentOccurrenceForToday, getUpcomingScheduledAssessment } from '../features/assessmentConfig.js';
 import { getClassQuestProgressData, getQuestMapZoneForProgressPercent } from '../features/worldMap.js';
 import { fetchDailySpice } from '../features/home.js';
+import { getWallpaperContext } from '../utils/wallpaperContext.mjs';
+import { createWallpaperCardRegistry } from '../utils/wallpaperCardRegistry.mjs';
+import { getWallpaperScenePlacement } from '../utils/wallpaperScene.mjs';
+import { applyWallpaperFamilyWeights } from '../utils/wallpaperDeck.mjs';
+import { createWallpaperRepeatGuard } from '../utils/wallpaperDeck.mjs';
 
 // Proper Fisher-Yates shuffle for true variety
 function shuffleDeck(array) {
@@ -61,6 +66,93 @@ const CARD_FEATURE_REQUIREMENTS = {
     log: 'adventureLog'
 };
 
+const WALLPAPER_CARD_FAMILIES = {
+    spotlight: [
+        'stu_spotlight',
+        'stu_funfact'
+    ],
+    achievements: [
+        'top_student_monthly',
+        'top_student_daily',
+        'reigning_hero_spotlight',
+        'lesson_milestone'
+    ],
+    knowledge: [
+        'ai_fact_science', 'ai_fact_history', 'ai_fact_nature', 'ai_fact_geography',
+        'ai_fact_math', 'ai_did_you_know', 'ai_word', 'ai_joke', 'ai_riddle',
+        'ai_idiom', 'ai_brain_teaser', 'ai_tongue_twister',
+        'this_day_history', 'world_record', 'study_tip', 'thought_experiment',
+        'emoji_riddle', 'math_challenge'
+    ],
+    narrative: [
+        'story_sentence',
+        'school_adventure_count',
+        'log'
+    ],
+    wellness: [
+        'mindfulness'
+    ],
+    atmosphere: [
+        'season_visual',
+        'weather',
+        'motivation_poster'
+    ],
+    context: [
+        'fun_english_phrase',
+        'context_morning',
+        'context_afternoon',
+        'context_night',
+        'context_monday',
+        'context_friday'
+    ],
+    timekeeping: [
+        'timekeeper',
+        'next_lesson',
+        'class_test_luck'
+    ],
+    progress: [
+        'school_pulse',
+        'class_quest',
+        'class_bounty'
+    ],
+    treasury: [
+        'treasury_school',
+        'treasury_class'
+    ],
+    attendance: [
+        'streak',
+        'attendance_summary',
+        'school_avg_attendance'
+    ],
+    calendar: [
+        'school_upcoming_event',
+        'holiday',
+        'pre_holiday_hype',
+        'post_holiday_welcome',
+        'upcoming_test_countdown'
+    ],
+    leaderboards: [
+        'school_leader_top3',
+        'school_top_student',
+        'school_gold_leader',
+        'class_rank_vs_school',
+        'class_gold_ranking',
+        'class_gold_top_trio'
+    ],
+    awards: [
+        'recent_award',
+        'bday',
+        'name'
+    ],
+    guilds: [
+        'guild_leaderboard'
+    ],
+    familiars: [
+        'class_familiar_parade',
+        'class_familiar_hatch_watch'
+    ]
+};
+
 function getCardBaseType(cardType) {
     return String(cardType || '').split(':')[0];
 }
@@ -106,6 +198,77 @@ let solarData = {
     sunrise: new Date().setHours(6, 30, 0, 0),
     sunset: new Date().setHours(20, 30, 0, 0)
 };
+
+const wallpaperCardRegistry = createWallpaperCardRegistry({
+    getSchoolPulseCard,
+    getTreasuryCard,
+    getClassQuestCard,
+    getAttendanceStreakCard,
+    getClassAttendanceCard,
+    getSchoolAttendanceCard,
+    getClassBountyCard,
+    getRandomLeagueRaceCard,
+    getSchoolActiveBountiesCard,
+    getSchoolAdventureCountCard,
+    getGiantClockCard,
+    getAIFromDB,
+    getThisDayInHistoryCard,
+    getWorldRecordCard,
+    getStudyTipCard,
+    getThoughtExperimentCard,
+    getEmojiRiddleCard,
+    getMathChallengeCard,
+    getGreekNamedayCard,
+    getOrthodoxCalendarCard,
+    getStoryCard,
+    getAbsentHeroesCard,
+    getMindfulnessCard,
+    getQuestMapPositionCard,
+    getReigningHeroCard,
+    getLessonMilestoneCard,
+    getClassSeasonSnapshotCard,
+    getStudentSpotlightCard,
+    getStudentFunFactCard,
+    getSpecificLogCard,
+    getTopMonthlyStudentCard,
+    getTopDailyStudentCard,
+    getSeasonalCard,
+    getWeatherCard,
+    getMotivationCard,
+    getFunEnglishPhraseCard,
+    getContextCard,
+    getTimekeeperCard,
+    getNextLessonCard,
+    getTestLuckCard,
+    getBirthdayCard,
+    getNamedayCard,
+    getRecentAwardCard,
+    getNextHolidayCard,
+    getPreHolidayHypeCard,
+    getPostHolidayWelcomeCard,
+    getSchoolUpcomingEventCard,
+    getUpcomingTestCountdownCard,
+    getSchoolLeaderboardCard,
+    getSchoolTopStudentCard,
+    getSchoolGoldLeaderCard,
+    getClassRankVsSchoolCard,
+    getClassGoldRankingCard,
+    getClassGoldTopTrioCard,
+    getGuildLeaderboardCard,
+    getClassFamiliarParadeCard,
+    getClassFamiliarHatchWatchCard
+});
+
+const wallpaperSceneState = {
+    familyCounters: {}
+};
+
+const wallpaperRepeatGuard = createWallpaperRepeatGuard({
+    getHistory,
+    getCardCooldown: getCooldownForType,
+    getDefinition: (cardType) => wallpaperCardRegistry.getDefinition(cardType),
+    getFamilyCooldown
+});
 
 const clockHandAngles = {
     hour: null,
@@ -153,12 +316,225 @@ function getWallpaperTimerTone(deadline) {
     };
 }
 
+function getWallpaperSceneLabel(context) {
+    if (context.isHoliday) return 'Holiday Atmosphere';
+    if (context.holidayPhase === 'upcoming' && Number.isFinite(context.daysUntilNextHoliday)) {
+        return `${context.daysUntilNextHoliday} Day${context.daysUntilNextHoliday === 1 ? '' : 's'} To Holiday`;
+    }
+    if (context.isOffDay) return 'Off-Day Panorama';
+
+    if (context.mode === 'class') {
+        if (context.lessonPhase === 'opening') return 'Opening Ritual';
+        if (context.lessonPhase === 'winddown') return 'Victory Winddown';
+        return 'Quest In Motion';
+    }
+
+    return 'Live Quest Network';
+}
+
+function getLeadingGuildSnapshot() {
+    const allStudentScores = state.get('allStudentScores') || [];
+    const allStudents = state.get('allStudents') || [];
+    const guildMeta = {
+        dragon_flame: { name: 'Dragon Flame', emoji: '🔥' },
+        grizzly_might: { name: 'Grizzly Might', emoji: '🐻' },
+        owl_wisdom: { name: 'Owl Wisdom', emoji: '🦉' },
+        phoenix_rising: { name: 'Phoenix Rising', emoji: '🦅' }
+    };
+
+    const ranked = Object.entries(guildMeta).map(([guildId, meta]) => {
+        const members = allStudents.filter((student) => student.guildId === guildId);
+        const memberCount = members.length || 1;
+        const monthlyStars = members.reduce((sum, student) => {
+            const score = allStudentScores.find((item) => item.id === student.id);
+            return sum + (Number(score?.monthlyStars) || 0);
+        }, 0);
+
+        return {
+            ...meta,
+            perCapita: Math.round((monthlyStars / memberCount) * 10) / 10
+        };
+    }).sort((left, right) => right.perCapita - left.perCapita);
+
+    return ranked[0] || null;
+}
+
+function buildWallpaperRailItems(context) {
+    const allStudents = state.get('allStudents') || [];
+    const allStudentScores = state.get('allStudentScores') || [];
+    const left = [];
+    const right = [];
+
+    if (context.mode === 'class' && context.activeClassId) {
+        const classData = state.get('allSchoolClasses').find((item) => item.id === context.activeClassId);
+        const classStudents = allStudents.filter((student) => student.classId === context.activeClassId);
+        const { totalStars: monthlyStars } = utils.getClassMonthlyQuestStars(classData, classStudents, allStudentScores);
+        const goal = classData
+            ? utils.calculateMonthlyClassGoal(classData, classStudents.length, state.get('schoolHolidayRanges'), state.get('allScheduleOverrides'))
+            : 0;
+        const questProgress = goal > 0 ? Math.min(100, Math.round((monthlyStars / goal) * 100)) : 0;
+        const absentCount = (state.get('allAttendanceRecords') || []).filter((record) =>
+            record.classId === context.activeClassId && record.date === context.todayStr
+        ).length;
+        const presentCount = Math.max(0, classStudents.length - absentCount);
+        const attendancePct = classStudents.length > 0 ? Math.round((presentCount / classStudents.length) * 100) : 0;
+        const treasury = classStudents.reduce((sum, student) => {
+            const score = allStudentScores.find((item) => item.id === student.id);
+            return sum + (Number(score?.gold) || Number(score?.totalStars) || 0);
+        }, 0);
+        const familiarReadyCount = classStudents.reduce((sum, student) => {
+            const score = allStudentScores.find((item) => item.id === student.id) || {};
+            const familiar = score.familiar;
+            if (!familiar) return sum;
+            const eggAlert = getEggAlertState(familiar, score.totalStars || 0);
+            return sum + (eggAlert?.kind === 'ready' ? 1 : 0);
+        }, 0);
+
+        left.push(
+            { icon: '🗺️', value: `${questProgress}%`, label: 'Quest Progress', meta: `${monthlyStars.toLocaleString()} stars this month` },
+            { icon: '🎒', value: `${attendancePct}%`, label: 'Attendance', meta: `${presentCount}/${classStudents.length || 0} heroes present` }
+        );
+        right.push(
+            { icon: '💰', value: treasury.toLocaleString(), label: 'Treasury', meta: 'Class coins and rewards' },
+            { icon: '🐾', value: classStudents.length.toString(), label: 'Familiars', meta: familiarReadyCount > 0 ? `${familiarReadyCount} ready to hatch` : 'Companions on watch' }
+        );
+    } else {
+        const totalStars = allStudentScores.reduce((sum, score) => sum + (Number(score.totalStars) || 0), 0);
+        const totalGold = allStudentScores.reduce((sum, score) => sum + (Number(score.gold) || Number(score.totalStars) || 0), 0);
+        const guildLeader = getLeadingGuildSnapshot();
+
+        left.push(
+            { icon: '⭐', value: totalStars.toLocaleString(), label: 'School Pulse', meta: 'Total stars earned' },
+            { icon: '🏛️', value: `${context.todayClasses.length}`, label: context.isOffDay ? 'Off-Day' : 'Classes Today', meta: context.isOffDay ? 'The school is resting today' : 'Live lessons on the schedule' }
+        );
+        right.push(
+            { icon: '💰', value: totalGold.toLocaleString(), label: 'Treasury', meta: 'School-wide coin total' },
+            guildLeader
+                ? { icon: guildLeader.emoji, value: `${guildLeader.perCapita}`, label: 'Guild Lead', meta: guildLeader.name }
+                : { icon: '⚔️', value: '0', label: 'Guild Lead', meta: 'Guild race warming up' }
+        );
+    }
+
+    if (context.isHoliday && context.activeHoliday?.name) {
+        right.unshift({
+            icon: '🎉',
+            value: context.activeHoliday.name,
+            label: 'Holiday',
+            meta: 'Live seasonal atmosphere'
+        });
+    } else if (context.holidayPhase === 'upcoming' && Number.isFinite(context.daysUntilNextHoliday)) {
+        right.unshift({
+            icon: '📅',
+            value: `${context.daysUntilNextHoliday}d`,
+            label: 'Holiday Countdown',
+            meta: context.nextHoliday?.name || 'Upcoming break'
+        });
+    }
+
+    return {
+        left: left.slice(0, 3),
+        right: right.slice(0, 3)
+    };
+}
+
+function renderWallpaperRail(context) {
+    const leftRail = document.getElementById('wall-left-rail');
+    const rightRail = document.getElementById('wall-right-rail');
+    if (!leftRail || !rightRail) return;
+
+    const renderChip = (item) => `
+        <div class="wall-rail-chip">
+            <div class="wall-rail-chip-icon">${item.icon}</div>
+            <div class="wall-rail-chip-value">${item.value}</div>
+            <div class="wall-rail-chip-label">${item.label}</div>
+            <div class="wall-rail-chip-meta">${item.meta}</div>
+        </div>`;
+
+    const rail = buildWallpaperRailItems(context);
+    leftRail.innerHTML = rail.left.map(renderChip).join('');
+    rightRail.innerHTML = rail.right.map(renderChip).join('');
+}
+
+function buildWallpaperRibbonItems(context) {
+    const items = [];
+    const activeTimers = (state.get('allQuestBounties') || []).filter((bounty) => bounty.status === 'active');
+
+    items.push({
+        icon: context.mode === 'class' ? '🧭' : '🏫',
+        label: 'Mode',
+        value: context.mode === 'class' ? 'Class Focus' : 'School Overview'
+    });
+
+    if (context.mode === 'class' && context.activeClass?.timeEnd) {
+        items.push({
+            icon: '⏱️',
+            label: 'Lesson Phase',
+            value: context.lessonPhase === 'opening'
+                ? 'Opening Ritual'
+                : context.lessonPhase === 'winddown'
+                    ? 'Victory Winddown'
+                    : 'Quest In Motion'
+        });
+    }
+
+    if (context.holidayPhase === 'active' && context.activeHoliday?.name) {
+        items.push({ icon: '🎉', label: 'Holiday', value: context.activeHoliday.name });
+    } else if (context.holidayPhase === 'upcoming' && Number.isFinite(context.daysUntilNextHoliday)) {
+        items.push({ icon: '📅', label: 'Countdown', value: `${context.daysUntilNextHoliday}d to ${context.nextHoliday?.name || 'break'}` });
+    }
+
+    items.push({
+        icon: activeTimers.length > 0 ? '🔥' : '✨',
+        label: 'Active Bounties',
+        value: `${activeTimers.length} live`
+    });
+
+    return items.slice(0, 4);
+}
+
+function renderWallpaperRibbon(context) {
+    const ribbon = document.getElementById('wall-top-ribbon');
+    if (!ribbon) return;
+
+    ribbon.innerHTML = buildWallpaperRibbonItems(context).map((item) => `
+        <div class="wall-top-ribbon-chip">
+            <div class="wall-top-ribbon-icon">${item.icon}</div>
+            <div>
+                <div class="wall-top-ribbon-label">${item.label}</div>
+                <div class="wall-top-ribbon-value">${item.value}</div>
+            </div>
+        </div>`).join('');
+}
+
+function applyWallpaperSceneContext(context) {
+    const screen = document.getElementById('dynamic-wallpaper-screen');
+    if (!screen) return;
+
+    screen.dataset.wallMode = context.mode;
+    screen.dataset.holidayPhase = context.holidayPhase;
+    screen.classList.toggle('wall-mode-class', context.mode === 'class');
+    screen.classList.toggle('wall-mode-school', context.mode === 'school');
+    screen.classList.toggle('wall-holiday-active', context.holidayPhase === 'active');
+    screen.classList.toggle('wall-holiday-upcoming', context.holidayPhase === 'upcoming');
+    screen.classList.toggle('wall-off-day', context.isOffDay);
+
+    const modePill = document.getElementById('wall-mode-pill');
+    const scenePill = document.getElementById('wall-scene-pill');
+    if (!modePill || !scenePill) return;
+
+    modePill.classList.remove('hidden');
+    scenePill.classList.remove('hidden');
+    modePill.textContent = context.mode === 'class' ? 'Live Class Focus' : 'School Overview';
+    scenePill.textContent = getWallpaperSceneLabel(context);
+}
+
 export function toggleWallpaperMode() {
     const wallpaperEl = document.getElementById('dynamic-wallpaper-screen');
     const isHidden = wallpaperEl.classList.contains('hidden') || wallpaperEl.classList.contains('wallpaper-exit');
 
     if (isHidden) {
         isRunning = true;
+        wallpaperSceneState.familyCounters = {};
         wallpaperEl.classList.remove('hidden');
         wallpaperEl.classList.remove('wallpaper-exit');
         wallpaperEl.classList.add('wallpaper-enter');
@@ -199,6 +575,9 @@ export function toggleWallpaperMode() {
             clearInterval(clockInterval);
             resetWallpaperClockHandAngles();
             document.getElementById('wall-floating-area').innerHTML = '';
+            document.getElementById('wall-left-rail').innerHTML = '';
+            document.getElementById('wall-right-rail').innerHTML = '';
+            document.getElementById('wall-top-ribbon').innerHTML = '';
             document.getElementById('wall-quote-container').style.opacity = '0';
         }, 600);
     }
@@ -235,6 +614,13 @@ function startWallpaperClock() {
     const update = () => {
         if (!isRunning) return;
         const now = new Date();
+        const wallpaperContext = getWallpaperContext({
+            manualClassId: state.get('globalSelectedClassId'),
+            isProgrammaticSelection: state.get('isProgrammaticSelection'),
+            allSchoolClasses: state.get('allSchoolClasses'),
+            allScheduleOverrides: state.get('allScheduleOverrides'),
+            schoolHolidayRanges: state.get('schoolHolidayRanges')
+        }, now);
         const h = now.getHours() % 12;
         const m = now.getMinutes();
         const s = now.getSeconds();
@@ -278,7 +664,10 @@ function startWallpaperClock() {
         timeEl.className = 'font-title text-[9rem] text-white leading-none transition-colors duration-1000';
         dateEl.className = 'font-title text-4xl text-white/95 mt-2 mb-6 tracking-wide transition-colors duration-1000';
 
-        const currentClass = identifyCurrentClass();
+        const currentClass = wallpaperContext.activeClass;
+        applyWallpaperSceneContext(wallpaperContext);
+        renderWallpaperRail(wallpaperContext);
+        renderWallpaperRibbon(wallpaperContext);
 
         if (currentClass) {
             if (hubName.dataset.currentId !== currentClass.id) {
@@ -302,14 +691,13 @@ function startWallpaperClock() {
 }
 
 function identifyCurrentClass() {
-    const manualId = state.get('globalSelectedClassId');
-    if (manualId && !state.get('isProgrammaticSelection')) return state.get('allSchoolClasses').find(c => c.id === manualId);
-
-    const now = new Date();
-    const todayStr = utils.getTodayDateString();
-    const currentTime = now.toTimeString().slice(0, 5);
-    const todaysClasses = utils.getClassesOnDay(todayStr, state.get('allSchoolClasses'), state.get('allScheduleOverrides'));
-    return todaysClasses.find(c => c.timeStart && c.timeEnd && currentTime >= c.timeStart && currentTime <= c.timeEnd) || null;
+    return getWallpaperContext({
+        manualClassId: state.get('globalSelectedClassId'),
+        isProgrammaticSelection: state.get('isProgrammaticSelection'),
+        allSchoolClasses: state.get('allSchoolClasses'),
+        allScheduleOverrides: state.get('allScheduleOverrides'),
+        schoolHolidayRanges: state.get('schoolHolidayRanges')
+    }).activeClass;
 }
 
 function getSession() {
@@ -329,7 +717,7 @@ function getHistory() {
 
 function addToHistory(cardId) {
     let history = getHistory();
-    history.push({ id: cardId, time: Date.now() });
+    history.push({ id: cardId, family: wallpaperCardRegistry.getDefinition(cardId)?.family || null, time: Date.now() });
     if (history.length > MEMORY_LIMIT) history = history.slice(history.length - MEMORY_LIMIT);
     localStorage.setItem(HISTORY_KEY, JSON.stringify(history));
 }
@@ -344,12 +732,21 @@ function getCooldownForType(type) {
     return 15 * 60 * 1000;
 }
 
+function getFamilyCooldown(family, cardType) {
+    if (!family) return 0;
+    if (family === 'calendar') return 8 * 60 * 1000;
+    if (family === 'leaderboards') return 6 * 60 * 1000;
+    if (family === 'awards') return 5 * 60 * 1000;
+    if (family === 'progress') return 4 * 60 * 1000;
+    if (family === 'familiars') return 5 * 60 * 1000;
+    if (family === 'attendance') return 4 * 60 * 1000;
+    if (family === 'treasury') return 4 * 60 * 1000;
+    if (String(cardType || '').startsWith('ai_')) return 5 * 60 * 1000;
+    return 0;
+}
+
 function hasBeenShownRecently(cardId) {
-    const history = getHistory();
-    const now = Date.now();
-    const duration = getCooldownForType(cardId);
-    const recent = history.find(h => h.id === cardId && (now - h.time) < duration);
-    return !!recent;
+    return wallpaperRepeatGuard.hasBeenShownRecently(cardId);
 }
 
 async function initializeWallpaperQuote() {
@@ -689,53 +1086,50 @@ async function safeHydrate(type, classId, capabilities) {
 function buildDeckList(classId, capabilities = getWallpaperCapabilities()) {
     let list = [];
     const now = new Date();
+    const wallpaperContext = getWallpaperContext({
+        manualClassId: classId,
+        isProgrammaticSelection: true,
+        allSchoolClasses: state.get('allSchoolClasses'),
+        allScheduleOverrides: state.get('allScheduleOverrides'),
+        schoolHolidayRanges: state.get('schoolHolidayRanges')
+    }, now);
     const dateMatch = `-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
-    const hour = now.getHours();
-    const dayOfWeek = now.getDay(); // 0=Sun, 1=Mon, ..., 5=Fri, 6=Sat
-    const todayStr = utils.getTodayDateString();
-
-    // --- Determine lesson phase for time-aware card weighting ---
-    // We detect how far into the current lesson we are
-    let lessonPhase = 'main'; // 'opening', 'main', 'winddown'
-    if (classId) {
-        const cls = state.get('allSchoolClasses').find(c => c.id === classId);
-        if (cls?.timeStart) {
-            const [sh, sm] = cls.timeStart.split(':').map(Number);
-            const lessonStartMs = sh * 60 + sm;
-            const nowMs = now.getHours() * 60 + now.getMinutes();
-            const minIntoLesson = nowMs - lessonStartMs;
-            if (minIntoLesson < 20) lessonPhase = 'opening';
-            else if (minIntoLesson >= 70) lessonPhase = 'winddown';
-        }
-    }
+    const { hour, dayOfWeek, todayStr, lessonPhase } = wallpaperContext;
 
     // --- 1. THE "ALWAYS FRESH" GLOBAL POOL ---
     const globalPool = [
-        'school_pulse', 'treasury_school', 'school_leader_top3',
+        ...WALLPAPER_CARD_FAMILIES.progress.filter((cardType) => cardType === 'school_pulse'),
+        ...WALLPAPER_CARD_FAMILIES.treasury.filter((cardType) => cardType === 'treasury_school'),
+        'school_leader_top3',
         'school_active_bounties', 'school_adventure_count', 'school_upcoming_event',
-        'season_visual', 'motivation_poster', 'school_top_student', 'school_gold_leader',
-        'school_avg_attendance',
+        ...WALLPAPER_CARD_FAMILIES.atmosphere.filter((cardType) => cardType !== 'weather'),
+        'school_top_student', 'school_gold_leader',
+        ...WALLPAPER_CARD_FAMILIES.attendance.filter((cardType) => cardType === 'school_avg_attendance'),
         // AI-generated variety
-        'ai_fact_science', 'ai_fact_history', 'ai_fact_nature', 'ai_fact_geography',
-        'ai_fact_math', 'ai_did_you_know',
-        'ai_word', 'ai_joke', 'ai_riddle', 'ai_idiom', 'ai_brain_teaser', 'ai_tongue_twister',
+        ...WALLPAPER_CARD_FAMILIES.knowledge.filter((cardType) => cardType.startsWith('ai_')),
         // Contextual trivia
-        'weather', 'holiday', 'this_day_history', 'world_record',
-        'study_tip', 'thought_experiment', 'emoji_riddle', 'math_challenge',
+        ...WALLPAPER_CARD_FAMILIES.atmosphere.filter((cardType) => cardType === 'weather'),
+        'holiday',
+        ...WALLPAPER_CARD_FAMILIES.knowledge.filter((cardType) => !cardType.startsWith('ai_')),
         'greek_nameday_today', 'orthodox_calendar',
         // New cards
-        'guild_leaderboard', 'fun_english_phrase'
+        ...WALLPAPER_CARD_FAMILIES.guilds,
+        ...WALLPAPER_CARD_FAMILIES.context.filter((cardType) => cardType === 'fun_english_phrase')
     ];
 
     // --- 2. THE CLASS-SPECIFIC POOL ---
     const classPool = [
-        'class_quest', 'treasury_class', 'streak', 'timekeeper',
-        'story_sentence', 'class_bounty', 'next_lesson',
-        'attendance_summary', 'absent_heroes', 'mindfulness',
+        ...WALLPAPER_CARD_FAMILIES.progress.filter((cardType) => cardType === 'class_quest' || cardType === 'class_bounty'),
+        ...WALLPAPER_CARD_FAMILIES.treasury.filter((cardType) => cardType === 'treasury_class'),
+        ...WALLPAPER_CARD_FAMILIES.attendance.filter((cardType) => cardType === 'streak' || cardType === 'attendance_summary'),
+        ...WALLPAPER_CARD_FAMILIES.timekeeping.filter((cardType) => cardType === 'timekeeper' || cardType === 'next_lesson'),
+        ...WALLPAPER_CARD_FAMILIES.narrative.filter((cardType) => cardType === 'story_sentence'),
+        'absent_heroes', 'mindfulness',
         'quest_map_position', 'class_rank_vs_school', 'class_gold_ranking',
         'reigning_hero_spotlight', 'lesson_milestone',
         // New cards
-        'class_familiar_parade', 'class_familiar_hatch_watch', 'class_gold_top_trio'
+        ...WALLPAPER_CARD_FAMILIES.familiars,
+        'class_gold_top_trio'
     ];
 
     if (!classId) {
@@ -826,17 +1220,18 @@ function buildDeckList(classId, capabilities = getWallpaperCapabilities()) {
     if (dayOfWeek === 5) list.push('context_friday', 'context_friday'); // Friday gets double
 
     // Pre-holiday hype (within 7 days of a holiday)
-    const nextHoliday = (state.get('schoolHolidayRanges') || [])
-        .filter(h => new Date(h.start) >= now)
-        .sort((a, b) => new Date(a.start) - new Date(b.start))[0];
-    if (nextHoliday) {
-        const daysToHoliday = Math.ceil((new Date(nextHoliday.start) - now) / (1000 * 60 * 60 * 24));
-        if (daysToHoliday <= 7 && daysToHoliday > 0) {
-            list.push('pre_holiday_hype', 'pre_holiday_hype');
-        }
+    if (wallpaperContext.holidayPhase === 'upcoming') {
+        list.push('pre_holiday_hype', 'pre_holiday_hype');
     }
 
-    return shuffleDeck(filterDeckForTier(list, capabilities));
+    const tierFilteredList = filterDeckForTier(list, capabilities);
+    const weightedList = applyWallpaperFamilyWeights(
+        tierFilteredList,
+        wallpaperContext,
+        (cardType) => wallpaperCardRegistry.getDefinition(cardType)
+    );
+
+    return shuffleDeck(weightedList);
 }
 
 async function hydrateCard(type, classId, capabilities = getWallpaperCapabilities()) {
@@ -850,102 +1245,11 @@ async function hydrateCard(type, classId, capabilities = getWallpaperCapabilitie
     const cls = classId ? state.get('allSchoolClasses').find(c => c.id === classId) : null;
     const questLevel = cls?.questLevel || null;
 
-    if (baseType === 'bday') content = getBirthdayCard(dataId);
-    else if (baseType === 'name') content = getNamedayCard(dataId);
-    else if (baseType === 'stu_spotlight') content = getStudentSpotlightCard(dataId, questLevel);
-    else if (baseType === 'stu_funfact') content = getStudentFunFactCard(dataId, classId, questLevel);
-    else if (baseType === 'log') content = getSpecificLogCard(dataId);
-    else if (baseType === 'top_student_monthly') content = getTopMonthlyStudentCard(classId, dataId);
-    else if (baseType === 'top_student_daily') content = getTopDailyStudentCard(classId, dataId);
-    else if (baseType === 'recent_award') content = getRecentAwardCard(classId, dataId);
-    else {
-        switch (type) {
-            // --- School-wide cards ---
-            case 'school_pulse': content = getSchoolPulseCard(); break;
-            case 'treasury_school': content = getTreasuryCard(null); break;
-            case 'league_race': content = getRandomLeagueRaceCard(); break;
-            case 'school_leader_top3': content = getSchoolLeaderboardCard(); break;
-            case 'school_active_bounties': content = getSchoolActiveBountiesCard(); break;
-            case 'school_adventure_count': content = getSchoolAdventureCountCard(); break;
-            case 'school_upcoming_event': content = getSchoolUpcomingEventCard(); break;
-            case 'school_top_student': content = getSchoolTopStudentCard(); break;
-            case 'school_avg_attendance': content = getSchoolAttendanceCard(); break;
-            case 'school_gold_leader': content = getSchoolGoldLeaderCard(); break;
-
-            // --- Static/generated visual cards ---
-            case 'season_visual': content = getSeasonalCard(); break;
-            case 'giant_clock': content = getGiantClockCard(); break;
-            case 'motivation_poster': content = getMotivationCard(questLevel); break;
-            case 'holiday': content = getNextHolidayCard(); break;
-            case 'weather': content = getWeatherCard(); break;
-            case 'class_test_luck': content = getTestLuckCard(classId, questLevel); break;
-            case 'upcoming_test_countdown': content = getUpcomingTestCountdownCard(classId, questLevel); break;
-            case 'pre_holiday_hype': content = getPreHolidayHypeCard(); break;
-
-            // --- AI-generated knowledge cards ---
-            case 'ai_fact_science': content = await getAIFromDB('fact_science'); break;
-            case 'ai_fact_history': content = await getAIFromDB('fact_history'); break;
-            case 'ai_fact_nature': content = await getAIFromDB('fact_nature'); break;
-            case 'ai_fact_geography': content = await getAIFromDB('fact_geography'); break;
-            case 'ai_fact_math': content = await getAIFromDB('fact_math'); break;
-            case 'ai_did_you_know': content = await getAIFromDB('did_you_know'); break;
-            case 'ai_joke': content = await getAIFromDB('joke'); break;
-            case 'ai_riddle': content = await getAIFromDB('riddle'); break;
-            case 'ai_brain_teaser': content = await getAIFromDB('brain_teaser'); break;
-            case 'ai_word': content = await getAIFromDB('word'); break;
-            case 'ai_idiom': content = await getAIFromDB('idiom'); break;
-            case 'ai_tongue_twister': content = await getAIFromDB('tongue_twister'); break;
-
-            // --- Hardcoded knowledge & trivia ---
-            case 'this_day_history': content = getThisDayInHistoryCard(questLevel); break;
-            case 'world_record': content = getWorldRecordCard(questLevel); break;
-            case 'study_tip': content = getStudyTipCard(questLevel); break;
-            case 'thought_experiment': content = getThoughtExperimentCard(questLevel); break;
-            case 'emoji_riddle': content = getEmojiRiddleCard(questLevel); break;
-            case 'math_challenge': content = getMathChallengeCard(questLevel); break;
-            case 'greek_nameday_today': content = getGreekNamedayCard(); break;
-            case 'orthodox_calendar': content = getOrthodoxCalendarCard(); break;
-
-            // --- Class-specific cards ---
-            case 'class_quest': content = getClassQuestCard(classId); break;
-            case 'treasury_class': content = getTreasuryCard(classId); break;
-            case 'streak': content = getAttendanceStreakCard(classId); break;
-            case 'timekeeper': content = getTimekeeperCard(classId); break;
-            case 'story_sentence': content = getStoryCard(classId, 'text'); break;
-            case 'class_bounty': content = getClassBountyCard(classId); break;
-            case 'next_lesson': content = getNextLessonCard(classId); break;
-            case 'attendance_summary': content = getClassAttendanceCard(classId); break;
-            case 'absent_heroes': content = getAbsentHeroesCard(classId); break;
-            case 'mindfulness': content = getMindfulnessCard(questLevel); break;
-            case 'quest_map_position': content = getQuestMapPositionCard(classId); break;
-            case 'class_rank_vs_school': content = getClassRankVsSchoolCard(classId); break;
-            case 'class_gold_ranking': content = getClassGoldRankingCard(classId); break;
-            case 'reigning_hero_spotlight': content = getReigningHeroCard(classId); break;
-            case 'lesson_milestone': content = getLessonMilestoneCard(classId); break;
-            // New class cards
-            case 'class_familiar_parade': content = getClassFamiliarParadeCard(classId); break;
-            case 'class_familiar_hatch_watch': content = getClassFamiliarHatchWatchCard(classId); break;
-            case 'class_gold_top_trio': content = getClassGoldTopTrioCard(classId); break;
-
-            // --- Context cards ---
-            case 'context_morning': content = getContextCard('morning', questLevel); break;
-            case 'context_afternoon': content = getContextCard('afternoon', questLevel); break;
-            case 'context_night': content = getContextCard('night', questLevel); break;
-            case 'context_monday': content = getContextCard('monday', questLevel); break;
-            case 'context_friday': content = getContextCard('friday', questLevel); break;
-            case 'post_holiday_welcome': content = getPostHolidayWelcomeCard(); break;
-            case 'class_season_snapshot': content = getClassSeasonSnapshotCard(classId); break;
-            // New global cards
-            case 'guild_leaderboard': content = getGuildLeaderboardCard(); break;
-            case 'fun_english_phrase': content = getFunEnglishPhraseCard(questLevel); break;
-
-
-            default: content = getSchoolPulseCard();
-        }
+    const registryCard = await wallpaperCardRegistry.hydrate(type, { classId, questLevel, capabilities });
+    if (registryCard) {
+        return { ...baseObj, ...registryCard };
     }
-
-    if (!content) return null;
-    return { ...baseObj, ...content };
+    return { ...baseObj, ...getSchoolPulseCard() };
 }
 
 // ─── Guild Leaderboard ────────────────────────────────────────────────────────
@@ -2466,23 +2770,22 @@ function getSchoolAttendanceCard() {
 
 function spawnCard(container, card) {
     const el = document.createElement('div');
-    el.className = `wallpaper-float-card ${card.css} absolute`;
+    const family = card.family || 'general';
+    const currentCount = wallpaperSceneState.familyCounters[family] || 0;
+    const placement = getWallpaperScenePlacement(card, wallpaperSceneState);
+    wallpaperSceneState.familyCounters[family] = currentCount + 1;
+
+    el.className = `wallpaper-float-card ${card.css} ${placement.tierClassName} absolute`;
     el.innerHTML = card.html;
     el.dataset.cardId = card.id;
+    el.dataset.cardFamily = family;
+    el.dataset.cardTier = card.sizeTier || 'standard';
+    el.dataset.cardZone = placement.zoneName;
 
-    const zones = [
-        { top: '8%', left: '5%', bottom: 'auto', right: 'auto' },
-        { top: '8%', right: '5%', bottom: 'auto', left: 'auto' },
-        { bottom: '10%', left: '5%', top: 'auto', right: 'auto' },
-        { bottom: '10%', right: '5%', top: 'auto', left: 'auto' }
-    ];
-
-    const pos = zones[Math.floor(Math.random() * zones.length)];
-
-    el.style.top = pos.top;
-    el.style.bottom = pos.bottom;
-    el.style.left = pos.left;
-    el.style.right = pos.right;
+    el.style.top = placement.style.top;
+    el.style.bottom = placement.style.bottom;
+    el.style.left = placement.style.left;
+    el.style.right = placement.style.right;
 
     el.style.opacity = '0';
     el.style.transform = 'translateY(50px) scale(0.9)';
@@ -2492,7 +2795,7 @@ function spawnCard(container, card) {
     void el.offsetWidth;
 
     el.style.opacity = '1';
-    el.style.transform = 'translateY(0) scale(1) rotate(' + (Math.random() * 2 - 1) + 'deg)';
+    el.style.transform = `translateY(0) scale(1) rotate(${placement.rotation}deg)`;
 
     if (card.timedBlurAnswer) {
         const answerBlock = el.querySelector('.wallpaper-card-answer-blur');

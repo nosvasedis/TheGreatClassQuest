@@ -4,6 +4,7 @@
 import { db, doc, getDoc, updateDoc, serverTimestamp } from '../firebase.js';
 import * as state from '../state.js';
 import { callCloudflareAiImageApi } from '../api.js';
+import { canUseFeature } from '../utils/subscription.js';
 import { playSound } from '../audio.js';
 import { showToast } from '../ui/effects.js';
 import {
@@ -153,6 +154,8 @@ export const FAMILIAR_TYPES = {
 // ─── SPRITE GENERATION ───────────────────────────────────────────────────────
 
 export async function generateFamiliarSpriteSheet(typeId, level, variant = null) {
+    if (!canUseFeature('eliteAI')) throw new Error('AI image generation requires Elite tier');
+
     const type = FAMILIAR_TYPES[typeId];
     if (!type) throw new Error(`Unknown familiar type: ${typeId}`);
     const artDirection = FAMILIAR_ART_DIRECTIONS[typeId]?.[level];

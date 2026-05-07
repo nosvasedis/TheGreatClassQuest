@@ -2,9 +2,47 @@ import { blobToBase64 } from './utils.js';
 import { AI_TEXT_PROVIDERS, OPENROUTER_MODEL, cloudflareWorkerUrl } from './constants.js';
 
 const GEMINI_REQUEST_SPACING_MS = 1200;
+const DEFAULT_TIMEOUT_MS = 10000;
+const FAST_TIMEOUT_MS = 5000;
+const CIRCUIT_BREAK_THRESHOLD = 3;
+const CIRCUIT_COOLDOWN_MS = 120000;
 
 let geminiQueue = Promise.resolve();
 let lastGeminiRequestStartedAt = 0;
+
+// ─── Circuit Breaker ──────────────────────────────────────────────────────────
+let _circuitState = { consecutiveFailures: 0, openedAt: 0 };
+
+function isAiCircuitOpen() {
+    const { consecutiveFailures, openedAt } = _circuitState;
+    if (consecutiveFailures >= CIRCUIT_BREAK_THRESHOLD) {
+        const elapsed = Date.now() - openedAt;
+        if (elapsed < CIRCUIT_COOLDOWN_MS) return true;
+        _circuitState.consecutiveFailures = 0;
+        _circuitState.openedAt = 0;
+    }
+    return false;
+}
+
+function recordAiSuccess() {
+    _circuitState.consecutiveFailures = 0;
+    _circuitState.openedAt = 0;
+}
+
+function recordAiFailure() {
+    if (_circuitState.consecutiveFailures === 0) {
+        _circuitState.openedAt = Date.now();
+    }
+    _circuitState.consecutiveFailures += 1;
+}
+
+function createCircuitBreakerError() {
+    const remaining = Math.max(0, Math.ceil((CIRCUIT_COOLDOWN_MS - (Date.now() - _circuitState.openedAt)) / 1000));
+    const error = new Error(`AI circuit breaker open — ${_circuitState.consecutiveFailures} consecutive failures, retry in ~${remaining}s`);
+    error.name = 'CircuitBreakerError';
+    error.isCircuitBreaker = true;
+    return error;
+}
 
 async function enqueueGeminiRequest(task) {
     const runTask = async () => {
@@ -125,6 +163,8 @@ async function requestTextFromProvider(provider, systemPrompt, userPrompt, reque
 }
 
 export async function callGeminiApiDetailed(systemPrompt, userPrompt, requestOptions = {}) {
+    if (isAiCircuitOpen()) throw createCircuitBreakerError();
+
     const providers = AI_TEXT_PROVIDERS.filter((provider) => provider?.url);
     if (providers.length === 0) {
         throw new Error('No AI text providers are configured.');
@@ -135,6 +175,7 @@ export async function callGeminiApiDetailed(systemPrompt, userPrompt, requestOpt
     for (const provider of providers) {
         try {
             const result = await requestTextFromProvider(provider, systemPrompt, userPrompt, requestOptions);
+            recordAiSuccess();
             return {
                 ...result,
                 providerFailures: failures
@@ -150,6 +191,7 @@ export async function callGeminiApiDetailed(systemPrompt, userPrompt, requestOpt
         }
     }
 
+    recordAiFailure();
     const aggregateError = new Error(
         failures.length > 0
             ? failures.map((failure) => `${failure.providerLabel}: ${failure.message}`).join(' | ')
@@ -166,7 +208,7 @@ async function fetchWithBackoff(url, options, config = {}) {
     const {
         retries = 3,
         baseDelay = 2000,
-        timeoutMs = 20000
+        timeoutMs = DEFAULT_TIMEOUT_MS
     } = config;
     let attempt = 0;
 
@@ -260,9 +302,11 @@ export async function callGeminiApi(systemPrompt, userPrompt, requestOptions = {
 }
 
 export async function callCloudflareAiImageApi(prompt, negativePrompt = "", options = {}, requestOptions = {}) {
+    if (isAiCircuitOpen()) throw createCircuitBreakerError();
+
     const payload = {
         prompt: prompt,
-        negative_prompt: negativePrompt || "text, watermark, blurry, low quality", // Default safety net
+        negative_prompt: negativePrompt || "text, watermark, blurry, low quality",
         ...options
     };
     try {
@@ -273,9 +317,9 @@ export async function callCloudflareAiImageApi(prompt, negativePrompt = "", opti
             },
             body: JSON.stringify(payload)
         }, {
-            retries: requestOptions.retries ?? 1,
-            baseDelay: requestOptions.baseDelay ?? 1200,
-            timeoutMs: requestOptions.timeoutMs ?? 20000
+            retries: requestOptions.retries ?? 2,
+            baseDelay: requestOptions.baseDelay ?? 1500,
+            timeoutMs: requestOptions.timeoutMs ?? DEFAULT_TIMEOUT_MS
         });
 
         if (!response.ok) {
@@ -284,9 +328,12 @@ export async function callCloudflareAiImageApi(prompt, negativePrompt = "", opti
         }
 
         const imageBlob = await response.blob();
-        return await blobToBase64(imageBlob);
+        const result = await blobToBase64(imageBlob);
+        recordAiSuccess();
+        return result;
 
     } catch (error) {
+        recordAiFailure();
         console.error('Error in callCloudflareAiImageApi:', error);
         throw error;
     }

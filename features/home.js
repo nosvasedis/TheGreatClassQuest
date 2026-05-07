@@ -219,8 +219,14 @@ async function executeRenderHome() {
     theme.greetingGradient = greetingGradient;
     theme.nameGradient = "from-slate-700 to-slate-500";
 
-    // --- STEP 4: FETCH SPICE & RENDER ---
-    const spice = await fetchDailySpice();
+    // --- STEP 4: FETCH SPICE & RENDER (non-blocking) ---
+    const fallbackSpice = { headerQuote: FALLBACK_QUOTES.quote_header, quote: FALLBACK_QUOTES.quote_widget };
+    fetchDailySpice().then(spice => {
+        const weatherQuoteEl = document.querySelector('[data-spice-quote]');
+        if (weatherQuoteEl) weatherQuoteEl.innerText = `"${spice.quote}"`;
+    }).catch(() => {});
+
+    const spice = fallbackSpice;
 
     const allClasses = state.get('allSchoolClasses') || [];
     let viewId = 'general';
@@ -583,7 +589,7 @@ function getLayout(name, theme, spice, selector, row2, row3) {
                 </div>
                 <div class="relative z-10 text-right mt-auto pt-4">
                     <div class="text-xs font-bold opacity-75 uppercase mb-1">Daily Wisdom</div>
-                    <div class="text-sm font-medium leading-tight font-serif italic">"${spice.quote}"</div>
+                    <div class="text-sm font-medium leading-tight font-serif italic" data-spice-quote>"${spice.quote}"</div>
                 </div>
             </div>
 
@@ -1253,7 +1259,7 @@ async function getAICachedContent(type) {
             }
 
             // Limit retries to 1 for quote requests — rate limits won't clear in seconds
-            const content = await callGeminiApi(systemPrompt, userPrompt, { retries: 1, baseDelay: 1000 });
+            const content = await callGeminiApi(systemPrompt, userPrompt, { retries: 1, baseDelay: 500, timeoutMs: 5000 });
 
             // 3. Save to Firebase (So others don't have to generate)
             try {

@@ -10,6 +10,7 @@ import * as modals from '../ui/modals.js';
 import { showToast } from '../ui/effects.js';
 import { playSound } from '../audio.js';
 import { callGeminiApi, callCloudflareAiImageApi } from '../api.js';
+import { canUseFeature } from '../utils/subscription.js';
 import { simpleHashCode, compressImageBase64, getAgeGroupForLeague } from '../utils.js';
 import * as constants from '../constants.js';
 import { awardStoryWeaverBonusStarToClass, handleDeleteCompletedStory } from '../db/actions.js';
@@ -111,6 +112,10 @@ export function hideWordEditorControls(isLocked = false) {
 // --- CORE GAME ACTIONS ---
 
 export async function handleSuggestWord() {
+    if (!canUseFeature('eliteAI')) {
+        showToast("AI features require the Elite tier.", "error");
+        return;
+    }
     playSound('magic_chime');
     const classId = document.getElementById('story-weavers-class-select').value;
     const classData = state.get('allTeachersClasses').find(c => c.id === classId);
@@ -146,6 +151,10 @@ export function openStoryInputModal() {
 }
 
 export async function handleLockInSentence() {
+    if (!canUseFeature('eliteAI')) {
+        showToast("AI image generation requires Elite tier.", "error");
+        return;
+    }
     const classId = document.getElementById('story-weavers-class-select').value;
     const wordOfTheDay = state.get('storyWeaverLockedWord');
     const newSentence = document.getElementById('story-input-textarea').value.trim();

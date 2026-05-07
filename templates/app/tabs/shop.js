@@ -14,9 +14,13 @@ export const shopTabHTML = `
                     <!-- Controls Bar (Glassmorphism) -->
                     <div class="bg-white/70 backdrop-blur-sm p-4 rounded-2xl shadow-lg flex flex-wrap items-center justify-center mb-8 gap-4 md:gap-6 relative z-20">
                         
-                        <div class="flex items-center gap-4 bg-white/60 p-2 rounded-xl border-2 border-fuchsia-200 shadow-inner w-full md:w-auto">
+                        <div class="shop-class-shell flex items-center gap-3 bg-white/70 p-2.5 rounded-xl border-2 border-fuchsia-200 shadow-inner w-full md:w-auto">
+                            <div class="shop-class-display">
+                                <span id="shop-class-icon" class="shop-class-display__icon">🏫</span>
+                                <span id="shop-class-name" class="shop-class-display__text">All classes in selected league</span>
+                            </div>
                             <select id="shop-class-select"
-                                class="bg-white border-2 border-fuchsia-300 text-fuchsia-900 text-sm font-bold rounded-lg focus:ring-fuchsia-500 focus:border-fuchsia-500 block w-full md:w-auto p-2.5 outline-none shadow-sm min-w-[200px] transition-all">
+                                class="shop-class-select bg-white border-2 border-fuchsia-300 text-fuchsia-900 text-sm font-bold rounded-lg focus:ring-fuchsia-500 focus:border-fuchsia-500 block w-full md:w-auto p-2.5 outline-none shadow-sm min-w-[200px] transition-all">
                                 <option value="">Select a class...</option>
                             </select>
                         </div>

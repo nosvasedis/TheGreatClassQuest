@@ -12,10 +12,11 @@ export function initializeShopTab() {
     // 1. Determine Context
     let league = state.get('globalSelectedLeague');
     let classId = state.get('globalSelectedClassId');
+    const allClasses = state.get('allTeachersClasses') || [];
 
     // If viewing Hero Stats for a specific student, try to get their class/league
     if (!league && classId) {
-        const cls = state.get('allTeachersClasses').find(c => c.id === classId);
+        const cls = allClasses.find(c => c.id === classId);
         if (cls) league = cls.questLevel;
     }
 
@@ -44,15 +45,23 @@ export function initializeShopTab() {
     // Populate Class Select
     const classSelect = document.getElementById('shop-class-select');
     if (classSelect) {
-        const allClasses = state.get('allTeachersClasses');
         classSelect.innerHTML = `<option value="">Select a class...</option>` +
-            allClasses.sort((a,b) => a.name.localeCompare(b.name)).map(c => `<option value="${c.id}" ${c.id === classId ? 'selected' : ''}>${c.name}</option>`).join('');
+            [...allClasses]
+                .sort((a,b) => a.name.localeCompare(b.name))
+                .map(c => `<option value="${c.id}" ${c.id === classId ? 'selected' : ''}>${c.logo || '🏫'} ${c.name}</option>`)
+                .join('');
     }
 
-    // 3. Filter Students (Only show MY students in this League)
-    // FIX: Use 'allTeachersClasses' instead of 'allSchoolClasses'
-    const myClassesInLeague = state.get('allTeachersClasses').filter(c => c.questLevel === league);
-    const myClassIds = myClassesInLeague.map(c => c.id);
+    const selectedClass = allClasses.find(c => c.id === classId) || null;
+    const classIconEl = document.getElementById('shop-class-icon');
+    const classNameEl = document.getElementById('shop-class-name');
+    if (classIconEl) classIconEl.innerText = selectedClass?.logo || '🏫';
+    if (classNameEl) classNameEl.innerText = selectedClass ? `${selectedClass.name} • ${selectedClass.questLevel}` : 'All classes in selected league';
+
+    // 3. Filter Students
+    // If a specific class is selected, scope to that class; otherwise fall back to league.
+    const myClassesInLeague = allClasses.filter(c => c.questLevel === league);
+    const myClassIds = classId ? [classId] : myClassesInLeague.map(c => c.id);
     
     const validStudents = state.get('allStudents')
         .filter(s => myClassIds.includes(s.classId))
@@ -71,9 +80,9 @@ export function renderShopUI() {
     const currentMonthKey = new Date().toISOString().substring(0, 7);
     
     let league = state.get('globalSelectedLeague');
-    if (!league) {
-        const classId = state.get('globalSelectedClassId');
-        const cls = state.get('allSchoolClasses').find(c => c.id === classId);
+    const classId = state.get('globalSelectedClassId');
+    if (!league && classId) {
+        const cls = state.get('allTeachersClasses').find(c => c.id === classId);
         if (cls) league = cls.questLevel;
     }
 

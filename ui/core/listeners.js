@@ -403,6 +403,7 @@ export function setupUIListeners() {
     if (shopClassSelect) {
         shopClassSelect.addEventListener('change', (e) => {
             state.setGlobalSelectedClass(e.target.value, true);
+            import('./shop.js').then(m => m.initializeShopTab());
         });
     }
 

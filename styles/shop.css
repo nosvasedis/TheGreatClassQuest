@@ -111,6 +111,68 @@ body.projector-mode .bounty-actions {
     cursor: not-allowed;
 }
 
+.shop-class-shell {
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.9) 0%, rgba(253, 242, 248, 0.92) 100%);
+}
+
+.shop-class-display {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.55rem;
+    min-width: 210px;
+    max-width: 320px;
+    padding: 0.45rem 0.65rem;
+    border-radius: 0.7rem;
+    border: 1px solid rgba(217, 70, 239, 0.25);
+    background: linear-gradient(135deg, rgba(244, 114, 182, 0.12) 0%, rgba(232, 121, 249, 0.06) 100%);
+}
+
+.shop-class-display__icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 1.9rem;
+    height: 1.9rem;
+    border-radius: 999px;
+    background: #fff;
+    border: 1px solid rgba(217, 70, 239, 0.2);
+    box-shadow: 0 3px 10px rgba(192, 38, 211, 0.14);
+    font-size: 1rem;
+}
+
+.shop-class-display__text {
+    color: #86198f;
+    font-weight: 800;
+    font-size: 0.72rem;
+    line-height: 1.2;
+    letter-spacing: 0.01em;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.shop-class-select {
+    min-width: 220px;
+}
+
+@media (max-width: 768px) {
+    .shop-class-shell {
+        width: 100%;
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .shop-class-display {
+        max-width: none;
+        width: 100%;
+    }
+
+    .shop-class-select {
+        min-width: 0;
+        width: 100%;
+    }
+}
+
 /* Inventory Grid in Hero Modal */
 .inventory-grid {
     display: grid;

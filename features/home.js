@@ -49,14 +49,9 @@ async function fetchDailySpice() {
     }
 
     dailySpiceState.promise = (async () => {
-        // Fetch sequentially to reduce rate-limit spikes on free model tiers.
         const headerQuote = await getAICachedContent('quote_header');
-        const weatherQuote = await getAICachedContent('quote_widget');
 
-        const value = {
-            headerQuote,
-            quote: weatherQuote
-        };
+        const value = { headerQuote };
 
         dailySpiceState.day = todayKey;
         dailySpiceState.value = value;
@@ -221,13 +216,10 @@ async function executeRenderHome() {
     theme.nameGradient = "from-slate-700 to-slate-500";
 
     // --- STEP 4: FETCH SPICE & RENDER (non-blocking) ---
-    const fallbackSpice = { headerQuote: FALLBACK_QUOTES.quote_header, quote: FALLBACK_QUOTES.quote_widget };
-    fetchDailySpice().then(spice => {
-        const weatherQuoteEl = document.querySelector('[data-spice-quote]');
-        if (weatherQuoteEl) weatherQuoteEl.innerText = `"${spice.quote}"`;
+    const spice = { headerQuote: FALLBACK_QUOTES.quote_header };
+    fetchDailySpice().then(s => {
+        updateHeaderQuote(s.headerQuote);
     }).catch(() => {});
-
-    const spice = fallbackSpice;
 
     const allClasses = state.get('allSchoolClasses') || [];
     let viewId = 'general';
@@ -250,7 +242,7 @@ async function executeRenderHome() {
     if (isViewChange) container.innerHTML = `<div class="home-fade w-full h-full">${contentHtml}</div>`;
     else container.innerHTML = `<div class="w-full h-full">${contentHtml}</div>`;
 
-    // Async: check quiz state and potentially swap Daily Wisdom for Quiz button
+    // Async: inject quiz button into weather card footer if applicable
     injectQuizButton();
 
     const isInitialHomeRender = !hasPlayedInitialHomeEntrance;
@@ -311,7 +303,7 @@ function getGeneralDashboard(name, theme, spice) {
     ].filter(tool => !tool.featureFlag || canUseFeature(tool.featureFlag));
 
     return getLayout(
-        name, theme, spice, getSelector(null),
+        name, theme, getSelector(null),
         `
         <div class="vibrant-card h-span-6 stat-card-pop card-gradient-sun">
             <span class="text-xs font-bold text-amber-600 uppercase tracking-widest mb-2"><i class="fas fa-star mr-1"></i> School Stars</span>
@@ -466,7 +458,7 @@ function getActiveDashboard(classData, name, theme, spice) {
     const skillData = getTopSkillHtml(topSkill);
 
     return getLayout(
-        name, theme, spice, getSelector(classId),
+        name, theme, getSelector(classId),
         `
         <div class="vibrant-card h-span-8 p-6 flex flex-col justify-center relative overflow-hidden card-gradient-sky">
             <div class="absolute -right-4 -top-4 text-9xl opacity-5 pointer-events-none">${classData.logo}</div>
@@ -555,7 +547,7 @@ function getActiveDashboard(classData, name, theme, spice) {
     );
 }
 
-function getLayout(name, theme, spice, selector, row2, row3) {
+function getLayout(name, theme, selector, row2, row3) {
     return `
     <div class="w-full max-w-7xl mx-auto p-4">
         <div class="horizons-grid">
@@ -592,8 +584,6 @@ function getLayout(name, theme, spice, selector, row2, row3) {
                     <div class="text-xl font-bold uppercase tracking-widest opacity-90">${theme.weatherText}</div>
                 </div>
                 <div id="weather-card-footer" class="relative z-10 text-right mt-auto pt-4" data-quiz-class="${state.get('globalSelectedClassId') || ''}">
-                    <div class="text-xs font-bold opacity-75 uppercase mb-1">Daily Wisdom</div>
-                    <div class="text-sm font-medium leading-tight font-serif italic" data-spice-quote>"${spice.quote}"</div>
                 </div>
             </div>
 
@@ -887,7 +877,7 @@ async function injectQuizButton() {
         const quizState = await shouldShowQuizButton(classId);
 
         if (quizState === 'show') {
-            // Replace Daily Wisdom with Quiz button
+            // Show Quiz button
             const quiz = await import('../db/actions/quizOfTheWeek.js').then(m =>
                 m.getQuizForClass(classId)
             );
@@ -919,7 +909,7 @@ async function injectQuizButton() {
                 import('../ui/modals.js').then(m => m.openQuizModal(classId));
             });
         }
-        // For all other states (not_first_lesson, outside_time, etc.), leave Daily Wisdom as is
+        // For all other states (not_first_lesson, outside_time, etc.), footer stays empty
     } catch (e) {
         console.warn('Quiz button injection failed:', e);
     }

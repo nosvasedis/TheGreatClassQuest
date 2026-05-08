@@ -52,7 +52,7 @@ const ALL_SEGMENTS = [
     { id: 'focus_aura',        emoji: '🎯', label: 'Focus Aura',        description: '+1 star to 1 random member!',                      rarity: 'uncommon',  category: 'perk',  effect: (ctx) => randomStars(ctx, 1, 1) },
     { id: 'spotlight',         emoji: '🌟', label: 'Spotlight',         description: '1 random member receives a Legendary Artifact!',   rarity: 'uncommon',  category: 'perk',  effect: (ctx) => randomArtifact(ctx, 1) },
     { id: 'scholars_blessing', emoji: '📚', label: 'Scholar\'s Blessing', description: '+5 Team Quest bonus stars (this month)!',        rarity: 'uncommon',  category: 'perk',  effect: (ctx) => classQuestBonus(ctx, 5) },
-    { id: 'treasure_chest',    emoji: '📦', label: 'Treasure Chest',    description: '+20 gold to 1 random member & +10 Glory!',         rarity: 'uncommon',  category: 'perk',  effect: (ctx) => { randomGold(ctx, 1, 20); return instantGlory(ctx, 10); } },
+    { id: 'treasure_chest',    emoji: '📦', label: 'Treasure Chest',    description: '+20 gold to 1 random member & +10 Glory!',         rarity: 'uncommon',  category: 'perk',  effect: async (ctx) => { const g = await randomGold(ctx, 1, 20); const gl = await instantGlory(ctx, 10); const student = (ctx.guildStudents || []).find(s => s.id === (g.affectedStudents || [])[0]); return { ...g, gloryDelta: gl.gloryDelta, description: student ? `${student.name} receives +20 gold, and the guild earns +10 Glory!` : 'A guild member receives +20 gold, and the guild earns +10 Glory!' }; } },
     { id: 'time_warp',         emoji: '⏰', label: 'Time Warp',          description: '+10 Team Quest bonus stars (this month)!',        rarity: 'uncommon',  category: 'perk',  effect: (ctx) => classQuestBonus(ctx, 10) },
     { id: 'challenge',         emoji: '🥊', label: 'Glory Challenge',   description: 'Earn most Glory this week → bonus +50 Glory!',     rarity: 'epic',      category: 'perk',  effect: (ctx) => applyChallenge(ctx) },
     { id: 'fortress',          emoji: '🏰', label: 'Fortress',          description: 'Cannot lose Glory for 2 days!',                    rarity: 'epic',      category: 'perk',  effect: (ctx) => applyShield(ctx, 2) },
@@ -65,7 +65,7 @@ const ALL_SEGMENTS = [
     // ── Fun / Cosmetic ────────────────────────────────────────────────────────
     { id: 'anthem_power',      emoji: '🎵', label: 'Anthem Power',      description: 'Guild anthem plays + +10 Glory!',                  rarity: 'common',    category: 'fun',   effect: (ctx) => instantGlory(ctx, 10) },
     { id: 'celebration',       emoji: '🎆', label: 'Celebration!',      description: 'Confetti explosion + +5 Glory!',                   rarity: 'common',    category: 'fun',   effect: (ctx) => instantGlory(ctx, 5) },
-    { id: 'carnival',          emoji: '🎪', label: 'Carnival',          description: '3 random members get a small surprise!',           rarity: 'common',    category: 'fun',   effect: (ctx) => { randomGold(ctx, 3, 5); return instantGlory(ctx, 5); } },
+    { id: 'carnival',          emoji: '🎪', label: 'Carnival',          description: '3 random members get a small surprise!',           rarity: 'common',    category: 'fun',   effect: async (ctx) => { const g = await randomGold(ctx, 3, 5); const gl = await instantGlory(ctx, 5); return { ...g, gloryDelta: gl.gloryDelta, description: '3 guild members each receive +5 gold — the Carnival arrives! +5 Glory to the guild!' }; } },
     { id: 'stardust_trail',    emoji: '💫', label: 'Stardust Trail',    description: 'Stars earned leave sparkle trails + +1 Glory each!', rarity: 'uncommon', category: 'fun',  effect: (ctx) => bonusPerStarTimed(ctx, 1, 2) },
     { id: 'oracles_vision',    emoji: '🔮', label: 'Oracle\'s Vision',  description: 'Peek at a secret hint + +8 Glory!',               rarity: 'common',    category: 'fun',   effect: (ctx) => instantGlory(ctx, 8) },
 
@@ -1553,9 +1553,17 @@ function _hideResultReveal() {
         secondaryBtn.classList.add('hidden');
         secondaryBtn.onclick = null;
     }
+    // Clean up rarity theming from the shell
+    const shell = revealLayer?.querySelector('.fw-reveal-layer__shell');
+    if (shell) {
+        delete shell.dataset.rarity;
+        shell.style.removeProperty('--shell-rarity-color');
+        shell.style.removeProperty('--shell-rarity-glow');
+        shell.style.removeProperty('--shell-rarity-bg');
+    }
 }
 
-function _showResultReveal({ cardHtml, rarityGlow = null, primaryAction = null, secondaryAction = null }) {
+function _showResultReveal({ cardHtml, rarity = 'common', rarityColor = null, rarityGlow = null, rarityBg = null, primaryAction = null, secondaryAction = null }) {
     const revealLayer = document.getElementById('fw-reveal-layer');
     const revealCard = document.getElementById('fw-reveal-card');
     const primaryBtn = document.getElementById('fw-reveal-primary-btn');
@@ -1563,6 +1571,15 @@ function _showResultReveal({ cardHtml, rarityGlow = null, primaryAction = null, 
     if (!revealLayer || !revealCard || !primaryBtn || !secondaryBtn) return;
 
     revealCard.innerHTML = cardHtml;
+
+    // Apply rarity theming to the shell (the framed outer container)
+    const shell = revealLayer.querySelector('.fw-reveal-layer__shell');
+    if (shell) {
+        shell.dataset.rarity = rarity;
+        if (rarityColor) shell.style.setProperty('--shell-rarity-color', rarityColor);
+        if (rarityGlow)  shell.style.setProperty('--shell-rarity-glow',  rarityGlow);
+        if (rarityBg)    shell.style.setProperty('--shell-rarity-bg',    rarityBg);
+    }
 
     // Tint the backdrop to the rarity glow colour
     const backdrop = revealLayer.querySelector('.fw-reveal-layer__backdrop');
@@ -1712,7 +1729,10 @@ function _renderWheelResult(segment, result, guildDef) {
     _updateSpinButton(true, 'Fate Revealed', 'Prepare the next presentation');
     _showResultReveal({
         cardHtml,
+        rarity: segment.rarity,
+        rarityColor: rarityConf.color,
         rarityGlow: rarityConf.glow,
+        rarityBg: rarityConf.bg,
         secondaryAction: {
             label: 'Close the Relic',
             onClick: () => closeFortunesWheel()

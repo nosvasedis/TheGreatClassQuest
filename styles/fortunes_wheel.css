@@ -894,23 +894,162 @@
 }
 
 .fw-reveal-layer__shell {
+    --shell-rarity-color: rgba(251, 191, 36, 0.7);
+    --shell-rarity-glow:  rgba(251, 191, 36, 0.4);
+    --shell-rarity-bg:    rgba(113, 63, 18, 0.3);
+
     position: relative;
     z-index: 1;
-    width: min(680px, 100%);
-    max-height: min(88vh, 860px);
+    width: min(700px, 100%);
+    max-height: min(88vh, 900px);
     display: flex;
     flex-direction: column;
-    gap: 1rem;
+    gap: 0.85rem;
     align-items: stretch;
     overflow: hidden;
+
+    /* Beautiful solid rarity-colored border frame */
+    border: 3px solid var(--shell-rarity-color);
+    border-radius: 1.75rem;
+    padding: 0.85rem;
+
+    /* Layered glow: inner glow + outer bloom + deep shadow */
+    box-shadow:
+        inset 0 0 28px color-mix(in srgb, var(--shell-rarity-glow) 50%, transparent),
+        0 0 0 1px rgba(255, 255, 255, 0.06),
+        0 0 60px var(--shell-rarity-glow),
+        0 0 120px color-mix(in srgb, var(--shell-rarity-glow) 40%, transparent),
+        0 40px 100px rgba(2, 6, 23, 0.75);
+
+    /* Rarity-tinted dark glass background */
+    background:
+        radial-gradient(ellipse at 50% 0%, var(--shell-rarity-bg) 0%, transparent 55%),
+        linear-gradient(160deg, rgba(10, 14, 28, 0.97) 0%, rgba(14, 10, 28, 0.98) 100%);
+
+    /* Entry spring animation */
+    animation: fw-shell-enter 0.55s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+
+/* Glowing top-center accent bar */
+.fw-reveal-layer__shell::before {
+    content: '';
+    position: absolute;
+    top: -3px;
+    left: 15%;
+    width: 70%;
+    height: 3px;
+    background: linear-gradient(90deg, transparent, var(--shell-rarity-color), transparent);
+    border-radius: 0 0 4px 4px;
+    filter: blur(1px);
+    animation: fw-shell-topbar-pulse 2.5s ease-in-out infinite;
+    pointer-events: none;
+    z-index: 2;
+}
+
+@keyframes fw-shell-enter {
+    from {
+        opacity: 0;
+        transform: scale(0.87) translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1) translateY(0);
+    }
+}
+
+@keyframes fw-shell-topbar-pulse {
+    0%, 100% { opacity: 0.6; filter: blur(1px); }
+    50%       { opacity: 1;   filter: blur(2px); }
+}
+
+/* ── Rarity-specific shell extras ──────────────────────────────────────────── */
+
+/* Legendary & Mythic: shimmer sweep on the shell frame */
+.fw-reveal-layer__shell[data-rarity="legendary"]::after,
+.fw-reveal-layer__shell[data-rarity="mythic"]::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(
+        115deg,
+        transparent 25%,
+        rgba(255, 255, 255, 0.06) 48%,
+        transparent 72%
+    );
+    background-size: 220% 100%;
+    animation: fw-shell-shimmer 2.4s ease-in-out infinite;
+    pointer-events: none;
+    border-radius: inherit;
+    z-index: 0;
+}
+
+@keyframes fw-shell-shimmer {
+    0%   { background-position: 220% 0; }
+    100% { background-position: -220% 0; }
+}
+
+/* Mythic: add continuous border glow pulse on top of entry */
+.fw-reveal-layer__shell[data-rarity="mythic"] {
+    animation: fw-shell-enter 0.55s cubic-bezier(0.34, 1.56, 0.64, 1) both,
+               fw-shell-mythic-pulse 2.6s ease-in-out 0.6s infinite;
+}
+
+@keyframes fw-shell-mythic-pulse {
+    0%, 100% {
+        box-shadow:
+            inset 0 0 28px color-mix(in srgb, var(--shell-rarity-glow) 50%, transparent),
+            0 0 0 1px rgba(255, 255, 255, 0.06),
+            0 0 60px var(--shell-rarity-glow),
+            0 0 120px color-mix(in srgb, var(--shell-rarity-glow) 40%, transparent),
+            0 40px 100px rgba(2, 6, 23, 0.75);
+    }
+    50% {
+        box-shadow:
+            inset 0 0 50px color-mix(in srgb, var(--shell-rarity-glow) 65%, transparent),
+            0 0 0 1px rgba(255, 255, 255, 0.09),
+            0 0 100px var(--shell-rarity-glow),
+            0 0 200px color-mix(in srgb, var(--shell-rarity-glow) 50%, transparent),
+            0 40px 100px rgba(2, 6, 23, 0.75);
+    }
+}
+
+/* Cursed: shake animation on entry */
+.fw-reveal-layer__shell[data-rarity="cursed"] {
+    animation: fw-shell-enter 0.55s cubic-bezier(0.34, 1.56, 0.64, 1) both,
+               fw-shell-curse-shake 0.65s cubic-bezier(0.36, 0.07, 0.19, 0.97) 0.5s both;
+}
+
+@keyframes fw-shell-curse-shake {
+    0%, 100% { transform: translateX(0); }
+    15%, 55%, 95% { transform: translateX(-6px); }
+    35%, 75%      { transform: translateX(6px); }
 }
 
 .fw-reveal-card {
     flex: 1;
     min-height: 0;
     overflow-y: auto;
-    border-radius: 1.5rem;
+    border-radius: 1.25rem;
+    position: relative;
+    z-index: 1;
 }
+
+/* Rarity-tinted scrollbar in the result card scroller */
+.fw-reveal-card::-webkit-scrollbar {
+    width: 5px;
+}
+
+.fw-reveal-card::-webkit-scrollbar-track {
+    background: rgba(255, 255, 255, 0.02);
+    border-radius: 3px;
+}
+
+.fw-reveal-card::-webkit-scrollbar-thumb {
+    background: var(--shell-rarity-color, rgba(251, 191, 36, 0.4));
+    border-radius: 3px;
+    opacity: 0.6;
+}
+
 
 .fw-reveal-actions {
     display: flex;
@@ -1318,12 +1457,13 @@
     margin-top: 0.8rem;
 }
 
-/* Individual stat tile */
+/* Individual stat tile — rarity-tinted border */
 .fw-result-stat {
     border-radius: 0.9rem;
     padding: 0.85rem 0.65rem 0.75rem;
-    background: rgba(255, 255, 255, 0.05);
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    background: color-mix(in srgb, var(--rarity-bg) 30%, rgba(255, 255, 255, 0.04));
+    border: 1px solid color-mix(in srgb, var(--rarity-color) 40%, rgba(255, 255, 255, 0.08));
+    box-shadow: 0 0 12px color-mix(in srgb, var(--rarity-glow) 25%, transparent);
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -1710,6 +1850,8 @@
     }
     .fw-reveal-layer__shell {
         max-height: min(94vh, 860px);
+        padding: 0.65rem;
+        gap: 0.65rem;
     }
 }
 
@@ -1758,6 +1900,9 @@
     }
     .fw-reveal-layer__shell {
         max-height: min(96vh, 860px);
+        padding: 0.5rem;
+        gap: 0.5rem;
+        border-radius: 1.25rem;
     }
 }
 
@@ -1777,7 +1922,10 @@
     .fw-btn-secondary,
     .fw-btn-success,
     .fw-progress-pill,
-    .fw-atmosphere__sparks span {
+    .fw-atmosphere__sparks span,
+    .fw-reveal-layer__shell,
+    .fw-reveal-layer__shell::before,
+    .fw-reveal-layer__shell::after {
         animation: none !important;
         transition: none !important;
     }

@@ -29,128 +29,12 @@ function getTierDefaults(tier) {
                 familiars: false,
                 parentAccess: false,
                 secretaryAccess: false,
-                eliteAI: false,
-                earlyAccess: false,
-                prioritySupport: false,
-                customFeatures: false
-            };
-        case 'pro':
-            return {
-                tier: 'pro',
-                maxTeachers: 6,
-                maxClasses: 10,
-                guilds: true,
-                adventureLog: true,
-                calendar: true,
-                schoolYearPlanner: true,
-                scholarScroll: true,
-                makeupTracking: true,
-                advancedAttendance: true,
-                storyWeavers: false,
-                heroProgression: true,
-                familiars: false,
-                parentAccess: true,
-                secretaryAccess: false,
-                eliteAI: false,
-                earlyAccess: false,
-                prioritySupport: false,
-                customFeatures: false
-            };
-        case 'elite':
-            return {
-                tier: 'elite',
-                maxTeachers: null,
-                maxClasses: null,
-                guilds: true,
-                adventureLog: true,
-                calendar: true,
-                schoolYearPlanner: true,
-                scholarScroll: true,
-                makeupTracking: true,
-                advancedAttendance: true,
-                storyWeavers: true,
-                heroProgression: true,
-                familiars: true,
-                parentAccess: true,
-                secretaryAccess: true,
-                eliteAI: true,
-                earlyAccess: true,
-                prioritySupport: true,
-                customFeatures: true
-            };
-        case 'expired':
-            return getExpiredDefaults();
-        case 'pending':
-        default:
-            return getStarterDefaults();
-    }
-}
-
-function applySubscriptionSnapshot(snap) {
-    if (snap.exists()) {
-        subscriptionConfig = resolveSubscriptionConfig(snap.data());
-    } else {
-        subscriptionConfig = getStarterDefaults();
-    }
-    if (typeof window !== 'undefined' && window.dispatchEvent) {
-        window.dispatchEvent(new CustomEvent('gcq-subscription-updated', { detail: subscriptionConfig }));
-    }
-}
-
-function getRuntimeSubscriptionConfig() {
-    if (!subscriptionConfig) return null;
-    if (subscriptionConfig.tier === 'pending' && schoolGraceConfig?.active) {
-        return {
-            ...getTierDefaults('starter'),
-            ...subscriptionConfig,
-            tier: 'starter',
-            effectiveTier: 'pending',
-            isGracePeriod: true,
-            graceEndsAt: schoolGraceConfig.endsAt || null
-        };
-    }
-    return {
-        ...subscriptionConfig,
-        isGracePeriod: false,
-        graceEndsAt: null
-    };
-}
-
-/**
- * Load subscription doc from Firestore and keep listening so tier updates (e.g. after Stripe upgrade) apply without refresh.
- * Call once after auth (e.g. with or after setupDataListeners).
- * @returns {Promise<object>} The subscription data, or Starter defaults if missing
- */
-export async function loadSubscription() {
-    if (subscriptionUnsubscribe) {
-        subscriptionUnsubscribe();
-        subscriptionUnsubscribe = null;
-    }
-    try {
-        const ref = doc(db, SUBSCRIPTION_PATH);
-        await new Promise((resolve) => {
-            let resolved = false;
-            subscriptionUnsubscribe = onSnapshot(ref, (snap) => {
-                applySubscriptionSnapshot(snap);
-                if (!resolved) {
-                    resolved = true;
-                    resolve();
-                }
-            }, (err) => {
-                console.warn('GCQ: Subscription listener failed:', err?.code || err?.message || err);
-                subscriptionConfig = getStarterDefaults();
-                if (!resolved) {
-                    resolved = true;
-                    resolve();
-                }
-            });
-        });
-        return subscriptionConfig;
-    } catch (e) {
-        console.warn('GCQ: Subscription load failed (Plan will show as Starter). If you set Elite, check Firestore Rules allow read on appConfig/subscription:', e?.code || e?.message || e);
-        subscriptionConfig = getStarterDefaults();
-    }
-    return subscriptionConfig;
+        eliteAI: false,
+        earlyAccess: false,
+        prioritySupport: false,
+        customFeatures: false,
+        quizOfTheWeek: false
+    };  // getExpiredDefaults
 }
 
 function getStarterDefaults() {
@@ -175,7 +59,8 @@ function getStarterDefaults() {
         eliteAI: false,
         earlyAccess: false,
         prioritySupport: false,
-        customFeatures: false
+        customFeatures: false,
+        quizOfTheWeek: false
     };
 }
 

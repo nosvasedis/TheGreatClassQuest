@@ -448,7 +448,27 @@ export function extractJsonFromAiText(text) {
         } catch (_) { /* fall through */ }
     }
 
-    // 5. Nothing worked — throw a descriptive error
+    // 5. Try to find the first valid JSON array/object anywhere in the string
+    for (let i = 0; i < cleaned.length; i++) {
+        if (cleaned[i] === '[') {
+            for (let j = cleaned.length - 1; j > i; j--) {
+                if (cleaned[j] === ']') {
+                    try {
+                        return JSON.parse(cleaned.slice(i, j + 1));
+                    } catch (_) { /* keep searching */ }
+                }
+            }
+        } else if (cleaned[i] === '{') {
+            for (let j = cleaned.length - 1; j > i; j--) {
+                if (cleaned[j] === '}') {
+                    try {
+                        return JSON.parse(cleaned.slice(i, j + 1));
+                    } catch (_) { /* keep searching */ }
+                }
+            }
+        }
+    }
+    // 6. Nothing worked — throw a descriptive error
     throw new SyntaxError(`Could not extract JSON from AI response: ${cleaned.slice(0, 120)}`);
 }
 

@@ -61,6 +61,9 @@ export const optionsTabHTML = `
                         <button type="button" class="options-subtab-btn" data-options-tab="access">
                             <i class="fas fa-user-shield mr-1.5"></i> Access
                         </button>
+                        <button type="button" class="options-subtab-btn" data-options-tab="quiz">
+                            <i class="fas fa-circle-question mr-1.5"></i> Quiz
+                        </button>
                         <button type="button" class="options-subtab-btn" data-options-tab="danger">
                             <i class="fas fa-shield-alt mr-1.5"></i> Danger
                         </button>
@@ -355,6 +358,72 @@ export const optionsTabHTML = `
                                     class="w-full bg-fuchsia-600 hover:bg-fuchsia-700 text-white font-title text-xl py-3 rounded-xl bubbly-button flex items-center justify-center">
                                     <i class="fas fa-save mr-2"></i> Save Assessment Settings
                                 </button>
+                            </div>
+
+                            <!-- Quiz of the Week section -->
+                            <div class="space-y-6" data-options-section="quiz">
+                                <div id="options-quiz-locked" class="options-tier-locked hidden">
+                                    <div class="options-tier-locked-icon">❓</div>
+                                    <div class="options-tier-locked-title">Quiz of the Week</div>
+                                    <p class="options-tier-locked-text">AI-powered weekly quizzes are available on the Elite plan.</p>
+                                    <span class="options-tier-locked-badge">Elite</span>
+                                </div>
+                                <div id="options-quiz-content" class="flex flex-col gap-8 hidden">
+                                    <div class="bg-white p-6 rounded-3xl shadow-lg border-4 border-amber-300 space-y-4">
+                                        <div class="text-center">
+                                            <div class="text-5xl mb-2">❓</div>
+                                            <h2 class="font-title text-3xl text-amber-700">Quiz of the Week</h2>
+                                            <p class="text-sm text-gray-500">Set this week's curriculum and let AI generate a fun quiz for your students.</p>
+                                        </div>
+
+                                        <div class="space-y-3">
+                                            <label class="block text-sm font-medium text-gray-700">Select Class</label>
+                                            <select id="quiz-class-select" class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-500 bg-white">
+                                                <option value="">Choose a class...</option>
+                                            </select>
+                                        </div>
+
+                                        <div class="space-y-3">
+                                            <label class="block text-sm font-medium text-gray-700">Curriculum Type</label>
+                                            <select id="quiz-curriculum-type" class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-500 bg-white">
+                                                <option value="grammar">Grammar</option>
+                                                <option value="vocabulary">Vocabulary</option>
+                                                <option value="mix" selected>Mix (Grammar + Vocabulary)</option>
+                                            </select>
+                                        </div>
+
+                                        <div class="space-y-3" id="quiz-categories-wrap">
+                                            <label class="block text-sm font-medium text-gray-700">Categories / Topics (select all that apply)</label>
+                                            <div id="quiz-categories-chips" class="flex flex-wrap gap-2">
+                                            </div>
+                                        </div>
+
+                                        <div class="space-y-3">
+                                            <label class="block text-sm font-medium text-gray-700">Keywords / Specific Topics</label>
+                                            <textarea id="quiz-keywords" rows="3" class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-500 resize-none" placeholder="e.g. Past Simple, irregular verbs, classroom objects, food vocabulary..."></textarea>
+                                            <p class="text-xs text-gray-400">Be as broad or specific as you like. The AI will generate age-appropriate questions from your input.</p>
+                                        </div>
+
+                                        <button id="quiz-generate-btn"
+                                            class="w-full bg-amber-500 hover:bg-amber-600 text-white font-title text-xl py-3 rounded-xl bubbly-button flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed"
+                                            disabled>
+                                            <i class="fas fa-wand-magic-sparkles mr-2"></i> Generate Quiz
+                                        </button>
+
+                                        <div id="quiz-status-area" class="hidden bg-amber-50 rounded-xl border border-amber-200 p-4 space-y-2">
+                                            <div class="flex items-center gap-2">
+                                                <span id="quiz-status-icon" class="text-xl">⏳</span>
+                                                <span id="quiz-status-text" class="font-semibold text-amber-800">Generating quiz...</span>
+                                            </div>
+                                            <div id="quiz-status-details" class="text-sm text-amber-700"></div>
+                                        </div>
+
+                                        <div id="quiz-history-area" class="hidden space-y-3 pt-4 border-t border-amber-100">
+                                            <h3 class="font-title text-lg text-amber-700">Recent Quiz History</h3>
+                                            <div id="quiz-history-list" class="space-y-2"></div>
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
 
                             <div class="bg-white p-6 rounded-3xl shadow-lg border-4 border-red-300 space-y-4" data-options-section="danger">

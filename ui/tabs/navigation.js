@@ -176,14 +176,19 @@ export async function showTab(tabName) {
     if (tabId === 'options-tab') {
         const hasAssessmentAccess = canUseFeature('scholarScroll');
         const hasAccessCenter = canUseFeature('parentAccess') || canUseFeature('secretaryAccess') || state.get('currentUserRole') === 'secretary' || state.get('isSchoolAdmin');
+        const hasQuizFeature = canUseFeature('quizOfTheWeek');
         const assessmentsBtn = document.querySelector('.options-subtab-btn[data-options-tab="assessments"]');
         const assessmentsSection = document.querySelector('[data-options-section="assessments"]');
         const accessBtn = document.querySelector('.options-subtab-btn[data-options-tab="access"]');
         const accessSection = document.querySelector('[data-options-section="access"]');
+        const quizBtn = document.querySelector('.options-subtab-btn[data-options-tab="quiz"]');
+        const quizSection = document.querySelector('[data-options-section="quiz"]');
         assessmentsBtn?.classList.toggle('hidden', !hasAssessmentAccess);
         assessmentsSection?.classList.toggle('hidden', !hasAssessmentAccess);
         accessBtn?.classList.toggle('hidden', !hasAccessCenter);
         accessSection?.classList.toggle('hidden', !hasAccessCenter);
+        quizBtn?.classList.toggle('hidden', !hasQuizFeature);
+        quizSection?.classList.toggle('hidden', !hasQuizFeature);
 
         // Load holidays and the new economy selector
         import('../core.js').then(m => {
@@ -235,6 +240,9 @@ export async function showTab(tabName) {
                 }
                 if (key === 'access' && hasAccessCenter) {
                     renderAccessCenterUi();
+                }
+                if (key === 'quiz' && hasQuizFeature) {
+                    renderQuizOptionsUi();
                 }
                 // Tier: Planning is Pro+. Show locked card or real content
                 const hasPlanning = canUseFeature('schoolYearPlanner');
@@ -526,6 +534,206 @@ export async function showTab(tabName) {
             } else {
                 manageWrap.classList.add('hidden');
             }
+        }
+    }
+}
+
+// =============================================================================
+// Quiz of the Week Options UI
+// =============================================================================
+
+const GRAMMAR_CATEGORIES = [
+    'Tenses', 'Parts of Speech', 'Conditionals', 'Prepositions',
+    'Articles', 'Modal Verbs', 'Passive Voice', 'Reported Speech',
+    'Question Formation', 'Comparatives & Superlatives', 'Phrasal Verbs',
+    'Relative Clauses', 'Conjunctions', 'Gerunds & Infinitives'
+];
+
+const VOCABULARY_CATEGORIES = [
+    'Classroom Objects', 'Animals', 'Food & Drinks', 'Weather & Seasons',
+    'Family & Friends', 'Body Parts', 'Clothes', 'Transportation',
+    'Hobbies & Sports', 'Jobs & Professions', 'House & Furniture',
+    'Nature & Environment', 'Technology', 'Emotions & Feelings',
+    'Daily Routines', 'Travel & Holidays', 'Health & Sickness'
+];
+
+const MIX_CATEGORIES = [
+    'Tenses', 'Parts of Speech', 'Prepositions', 'Articles',
+    'Classroom Objects', 'Animals', 'Food & Drinks', 'Weather & Seasons',
+    'Family & Friends', 'Body Parts', 'Daily Routines', 'Travel & Holidays',
+    'Hobbies & Sports', 'Jobs & Professions', 'Modal Verbs', 'Question Formation'
+];
+
+function getCategoriesForType(type) {
+    if (type === 'grammar') return GRAMMAR_CATEGORIES;
+    if (type === 'vocabulary') return VOCABULARY_CATEGORIES;
+    return MIX_CATEGORIES;
+}
+
+async function renderQuizOptionsUi() {
+    const quizContent = document.getElementById('options-quiz-content');
+    const quizLocked = document.getElementById('options-quiz-locked');
+    const hasQuiz = canUseFeature('quizOfTheWeek');
+
+    if (quizLocked) quizLocked.classList.toggle('hidden', hasQuiz);
+    if (quizContent) quizContent.classList.toggle('hidden', !hasQuiz);
+    if (!hasQuiz) return;
+
+    const classSelect = document.getElementById('quiz-class-select');
+    const typeSelect = document.getElementById('quiz-curriculum-type');
+    const categoriesChips = document.getElementById('quiz-categories-chips');
+    const keywordsInput = document.getElementById('quiz-keywords');
+    const generateBtn = document.getElementById('quiz-generate-btn');
+    const statusArea = document.getElementById('quiz-status-area');
+    const statusIcon = document.getElementById('quiz-status-icon');
+    const statusText = document.getElementById('quiz-status-text');
+    const statusDetails = document.getElementById('quiz-status-details');
+    const historyArea = document.getElementById('quiz-history-area');
+    const historyList = document.getElementById('quiz-history-list');
+
+    // Populate class selector
+    const classes = (state.get('allTeachersClasses') || []).sort((a, b) => a.name.localeCompare(b.name));
+    if (classSelect) {
+        classSelect.innerHTML = '<option value="">Choose a class...</option>' +
+            classes.map(c => `<option value="${c.id}">${c.logo || ''} ${c.name} (${c.questLevel || ''})</option>`).join('');
+    }
+
+    function renderCategories() {
+        if (!categoriesChips) return;
+        const type = typeSelect?.value || 'mix';
+        const categories = getCategoriesForType(type);
+        categoriesChips.innerHTML = categories.map(cat => `
+            <label class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-gray-100 rounded-full cursor-pointer hover:bg-amber-100 transition-colors text-sm">
+                <input type="checkbox" value="${cat}" class="quiz-category-checkbox rounded" />
+                <span>${cat}</span>
+            </label>
+        `).join('');
+    }
+
+    // Initialize categories
+    renderCategories();
+
+    // Wire type change
+    typeSelect?.addEventListener('change', () => {
+        renderCategories();
+    });
+
+    // Wire class selector change — check existing quiz
+    classSelect?.addEventListener('change', async () => {
+        const classId = classSelect.value;
+        if (!classId) {
+            generateBtn.disabled = true;
+            statusArea?.classList.add('hidden');
+            historyArea?.classList.add('hidden');
+            return;
+        }
+        generateBtn.disabled = false;
+        await refreshQuizStatus(classId);
+    });
+
+    // Generate button
+    generateBtn?.addEventListener('click', async () => {
+        const classId = classSelect?.value;
+        if (!classId) return;
+
+        const selectedCategories = [...document.querySelectorAll('.quiz-category-checkbox:checked')].map(cb => cb.value);
+        const type = typeSelect?.value || 'mix';
+        const keywords = keywordsInput?.value?.trim() || '';
+
+        if (selectedCategories.length === 0 && !keywords) {
+            return;
+        }
+
+        const classData = classes.find(c => c.id === classId);
+        const questLevel = classData?.questLevel || 'A';
+
+        generateBtn.disabled = true;
+        generateBtn.innerHTML = '<i class="fas fa-spinner fa-pulse mr-2"></i> Generating...';
+        statusArea?.classList.remove('hidden');
+        if (statusIcon) statusIcon.innerText = '🤖';
+        if (statusText) statusText.innerText = 'AI is generating questions...';
+        if (statusDetails) statusDetails.innerText = 'This may take 30-60 seconds.';
+
+        try {
+            const { saveQuizCurriculum, generateQuizQuestions } = await import('../../db/actions/quizOfTheWeek.js');
+
+            await saveQuizCurriculum(classId, {
+                type,
+                categories: selectedCategories,
+                keywords,
+                questLevel
+            });
+
+            if (statusIcon) statusIcon.innerText = '⏳';
+            if (statusText) statusText.innerText = 'Creating quiz questions...';
+
+            const result = await generateQuizQuestions(classId);
+
+            if (statusIcon) statusIcon.innerText = '✅';
+            if (statusText) statusText.innerText = 'Quiz ready!';
+            if (statusDetails) statusDetails.innerText = `${result.questionCount} questions generated (${result.imageCount} with images). The quiz button will appear on the class's first lesson day.`;
+
+            await refreshQuizStatus(classId);
+
+        } catch (e) {
+            console.error('Quiz generation failed:', e);
+            if (statusIcon) statusIcon.innerText = '❌';
+            if (statusText) statusText.innerText = 'Generation failed.';
+            if (statusDetails) statusDetails.innerText = String(e.message || '').slice(0, 200);
+        }
+
+        generateBtn.disabled = false;
+        generateBtn.innerHTML = '<i class="fas fa-wand-magic-sparkles mr-2"></i> Generate Quiz';
+    });
+
+    async function refreshQuizStatus(classId) {
+        try {
+            const { getQuizForClass, getQuizHistory } = await import('../../db/actions/quizOfTheWeek.js');
+            const quiz = await getQuizForClass(classId);
+
+            if (quiz) {
+                statusArea?.classList.remove('hidden');
+                const statusLabels = {
+                    pending: { icon: '📝', text: 'Curriculum set. Not yet generated.' },
+                    generating: { icon: '⏳', text: 'Generating quiz...' },
+                    ready: { icon: '✅', text: `Quiz ready! ${quiz.questions?.length || 0} questions.` },
+                    active: { icon: '🟢', text: `Quiz active! ${quiz.questions?.length || 0} questions.` },
+                    completed: { icon: '🏆', text: `Completed — ${quiz.results?.tier?.toUpperCase() || ''} (${quiz.results?.firstTryCorrectPct || 0}%)` }
+                };
+                const label = statusLabels[quiz.status] || { icon: '📋', text: 'Quiz status: ' + quiz.status };
+                if (statusIcon) statusIcon.innerText = label.icon;
+                if (statusText) statusText.innerText = label.text;
+                if (statusDetails) statusDetails.innerText = quiz.curriculum
+                    ? `Curriculum: ${quiz.curriculum.type.toUpperCase()} — ${(quiz.curriculum.categories || []).join(', ') || (quiz.curriculum.keywords || '')}`
+                    : '';
+            } else {
+                statusArea?.classList.remove('hidden');
+                if (statusIcon) statusIcon.innerText = '📋';
+                if (statusText) statusText.innerText = 'No quiz set for this week.';
+                if (statusDetails) statusDetails.innerText = 'Fill in the curriculum above and click "Generate Quiz".';
+            }
+
+            // Load history
+            const history = await getQuizHistory(classId, 5);
+            if (history && history.length > 0) {
+                historyArea?.classList.remove('hidden');
+                if (historyList) {
+                    historyList.innerHTML = history.map(h => `
+                        <div class="flex items-center justify-between bg-white rounded-lg p-3 border border-amber-100">
+                            <div>
+                                <span class="font-semibold text-sm text-amber-800">Week ${h.weekKey}</span>
+                                <span class="text-xs text-gray-500 ml-2">${h.results?.tier?.toUpperCase() || 'N/A'} — ${h.results?.firstTryCorrectPct || 0}%</span>
+                            </div>
+                            <span class="text-xs text-gray-400">${h.results?.totalQuestions || 0} Q</span>
+                        </div>
+                    `).join('');
+                }
+            } else {
+                historyArea?.classList.add('hidden');
+            }
+
+        } catch (e) {
+            console.warn('Failed to refresh quiz status:', e);
         }
     }
 }

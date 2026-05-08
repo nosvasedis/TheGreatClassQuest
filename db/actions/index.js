@@ -11,3 +11,4 @@ export * from './log.js';
 export * from './bounties.js';
 export * from './economy.js';
 export * from './guilds.js';
+export * from './quizOfTheWeek.js';

@@ -12,6 +12,7 @@ import * as grandGuildCeremony from '../features/grandGuildCeremony.js';
 import { DEFAULT_SCHOOL_NAME } from '../constants.js';
 import { loadTeacherJourneyState, markTeacherGuideSeen } from './teacherJourney.js';
 import { getNextAssessmentOccurrenceForToday, getUpcomingScheduledAssessment } from './assessmentConfig.js';
+import { shouldShowQuizButton } from './quizOfTheWeek.js';
 
 export { initializeHeaderQuote, fetchDailySpice };
 
@@ -248,6 +249,9 @@ async function executeRenderHome() {
 
     if (isViewChange) container.innerHTML = `<div class="home-fade w-full h-full">${contentHtml}</div>`;
     else container.innerHTML = `<div class="w-full h-full">${contentHtml}</div>`;
+
+    // Async: check quiz state and potentially swap Daily Wisdom for Quiz button
+    injectQuizButton();
 
     const isInitialHomeRender = !hasPlayedInitialHomeEntrance;
     if (isInitialHomeRender) {
@@ -587,7 +591,7 @@ function getLayout(name, theme, spice, selector, row2, row3) {
                     <div class="text-6xl font-title drop-shadow-md mb-2">${theme.temp}</div>
                     <div class="text-xl font-bold uppercase tracking-widest opacity-90">${theme.weatherText}</div>
                 </div>
-                <div class="relative z-10 text-right mt-auto pt-4">
+                <div id="weather-card-footer" class="relative z-10 text-right mt-auto pt-4" data-quiz-class="${activeClassId || ''}">
                     <div class="text-xs font-bold opacity-75 uppercase mb-1">Daily Wisdom</div>
                     <div class="text-sm font-medium leading-tight font-serif italic" data-spice-quote>"${spice.quote}"</div>
                 </div>
@@ -866,6 +870,59 @@ function startHomeSmartLogic() {
     // Run immediately on load, then every 60 seconds
     checkLogic();
     homeInterval = setInterval(checkLogic, 60000);
+}
+
+async function injectQuizButton() {
+    const footer = document.getElementById('weather-card-footer');
+    if (!footer) return;
+
+    const classId = footer.dataset.quizClass || '';
+
+    if (!classId) {
+        // No class selected — no quiz button
+        return;
+    }
+
+    try {
+        const quizState = await shouldShowQuizButton(classId);
+
+        if (quizState === 'show') {
+            // Replace Daily Wisdom with Quiz button
+            const quiz = await import('../db/actions/quizOfTheWeek.js').then(m =>
+                m.getQuizForClass(classId)
+            );
+            const questionCount = quiz?.questions?.length || '?';
+
+            footer.innerHTML = `
+                <div class="quiz-week-btn-wrap">
+                    <button class="quiz-week-btn bubbly-button" id="quiz-week-trigger-btn" title="Open Quiz of the Week">
+                        <i class="fas fa-circle-question"></i>
+                    </button>
+                    <span class="quiz-week-btn-label">Quiz of<br/>the Week</span>
+                    <span class="quiz-week-btn-badge">${questionCount}</span>
+                </div>`;
+
+            document.getElementById('quiz-week-trigger-btn')?.addEventListener('click', () => {
+                import('../ui/modals.js').then(m => m.openQuizModal(classId));
+            });
+        } else if (quizState === 'completed') {
+            // Show completed state with results button
+            footer.innerHTML = `
+                <div class="quiz-week-btn-wrap">
+                    <button class="quiz-week-btn quiz-btn-completed bubbly-button" id="quiz-week-trigger-btn" title="View Quiz Results">
+                        <i class="fas fa-circle-check"></i>
+                    </button>
+                    <span class="quiz-week-btn-label">Results</span>
+                </div>`;
+
+            document.getElementById('quiz-week-trigger-btn')?.addEventListener('click', () => {
+                import('../ui/modals.js').then(m => m.openQuizModal(classId));
+            });
+        }
+        // For all other states (not_first_lesson, outside_time, etc.), leave Daily Wisdom as is
+    } catch (e) {
+        console.warn('Quiz button injection failed:', e);
+    }
 }
 
 export function setupHomeListeners() {

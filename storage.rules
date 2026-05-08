@@ -52,6 +52,11 @@ service firebase.storage {
       allow write: if isStaff();
     }
 
+    match /quiz_images/{allPaths=**} {
+      allow read: if signedIn();
+      allow write: if isStaff();
+    }
+
     match /{allPaths=**} {
       allow read, write: if false;
     }

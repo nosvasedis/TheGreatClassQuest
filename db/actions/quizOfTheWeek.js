@@ -189,26 +189,29 @@ export async function generateQuizQuestions(classId) {
             question: q.question || '',
             options: q.type === 'mcq' ? (q.options || ['A', 'B', 'C', 'D']) : [],
             correctIndex: q.type === 'mcq' ? Math.max(0, Math.min(3, q.correctIndex || 0)) : null,
-            correctAnswer: q.correctAnswer || (q.type === 'mcq' ? (q.options || [])[q.correctIndex || 0] : ''),
+            correctAnswer: q.correctAnswer || (q.type === 'mcq' ? ((q.options || [])[q.correctIndex || 0] || '') : ''),
             imagePrompt: q.type === 'image' ? q.imagePrompt || '' : '',
             imageUrl: null,
             explanation: q.explanation || ''
         }));
 
-        // Generate images for image-type questions in background
+        // Generate images for image-type questions and upload to Storage
+        const { uploadImageToStorage } = await import('../../utils.js');
         const imagePromises = processed.map(async (q) => {
             if (q.type === 'image' && q.imagePrompt) {
                 try {
                     const ageStyle = IMAGE_AGE_PROMPTS[quiz.questLevel] || IMAGE_AGE_PROMPTS['A'];
                     const fullPrompt = `${q.imagePrompt}, ${ageStyle}`;
-                    q.imageUrl = await callCloudflareAiImageApi(fullPrompt, '', {}, { retries: 1, timeoutMs: 30000 });
+                    const base64 = await callCloudflareAiImageApi(fullPrompt, '', {}, { retries: 1, timeoutMs: 30000 });
+                    const storagePath = `quiz_images/${state.get('currentUserId')}/${quizDocId(classId)}_${q.id}.jpg`;
+                    q.imageUrl = await uploadImageToStorage(base64, storagePath);
                 } catch (e) {
                     console.warn('Quiz image generation failed for question:', q.id, e);
                 }
             }
         });
 
-        await Promise.allSettled(imagePromises.map(p => p.catch(e => console.warn(e))));
+        await Promise.allSettled(imagePromises);
 
         await updateQuizStatus(classId, 'ready', processed);
         return { success: true, questionCount: processed.length, imageCount: processed.filter(q => q.imageUrl).length };

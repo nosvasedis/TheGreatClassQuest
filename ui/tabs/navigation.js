@@ -542,32 +542,245 @@ export async function showTab(tabName) {
 // Quiz of the Week Options UI
 // =============================================================================
 
-const GRAMMAR_CATEGORIES = [
-    'Tenses', 'Parts of Speech', 'Conditionals', 'Prepositions',
-    'Articles', 'Modal Verbs', 'Passive Voice', 'Reported Speech',
-    'Question Formation', 'Comparatives & Superlatives', 'Phrasal Verbs',
-    'Relative Clauses', 'Conjunctions', 'Gerunds & Infinitives'
-];
+// Categories organised by quest level so suggestions are age-appropriate.
+// Junior A = 7-8 yrs, Junior B = 8-9, A = 9-10, B = 10-11, C = 11-12, D = 12-13
+const GRAMMAR_CATEGORIES = {
+    'Junior A': [
+        'Simple Present (I play / she plays)',
+        'Is / Am / Are',
+        'Singular & Plural',
+        'Colors & Shapes',
+        'Yes / No Questions',
+        'Action Verbs (basic)',
+        'Alphabet & Spelling'
+    ],
+    'Junior B': [
+        'Simple Present',
+        'Simple Past (basic — was/were/did)',
+        'Can / Can\'t',
+        'Have / Has',
+        'Articles (a / an)',
+        'Singular & Plural',
+        'Yes / No Questions',
+        'Prepositions (in / on / under)'
+    ],
+    'A': [
+        'Simple Present',
+        'Simple Past',
+        'Present Continuous',
+        'There is / There are',
+        'Articles (a / an / the)',
+        'Prepositions (in / on / at / under / next to)',
+        'Comparatives (bigger, smaller, faster)',
+        'Can / Could',
+        'Wh- Questions (What, Where, Who, When)',
+        'Imperatives',
+        'Possessive Adjectives (my, your, his, her)'
+    ],
+    'B': [
+        'Present Simple & Continuous',
+        'Past Simple & Continuous',
+        'Future (will / going to)',
+        'Prepositions of Time & Place',
+        'Articles',
+        'Comparatives & Superlatives',
+        'Question Formation',
+        'Can / Should / Must',
+        'Conjunctions (and / but / because / so)',
+        'Countable & Uncountable Nouns',
+        'Adverbs of Frequency (always, often, never)'
+    ],
+    'C': [
+        'Present Perfect',
+        'Past Simple vs Present Perfect',
+        'Future Forms (will / going to / present continuous)',
+        '1st Conditional (If … will)',
+        'Modal Verbs (can / could / must / should / might)',
+        'Passive Voice (basic)',
+        'Relative Clauses (who / which / that)',
+        'Prepositions',
+        'Question Tags',
+        'Reported Speech (basic)',
+        'Gerunds vs Infinitives (intro)',
+        'Conjunctions & Connectors'
+    ],
+    'D': [
+        'All Tenses Review',
+        '1st & 2nd Conditionals',
+        'Modal Verbs (full range)',
+        'Passive Voice',
+        'Reported Speech',
+        'Relative Clauses',
+        'Gerunds & Infinitives',
+        'Phrasal Verbs',
+        'Question Formation',
+        'Conjunctions & Discourse Markers',
+        'Emphasis & Inversion'
+    ]
+};
 
-const VOCABULARY_CATEGORIES = [
-    'Classroom Objects', 'Animals', 'Food & Drinks', 'Weather & Seasons',
-    'Family & Friends', 'Body Parts', 'Clothes', 'Transportation',
-    'Hobbies & Sports', 'Jobs & Professions', 'House & Furniture',
-    'Nature & Environment', 'Technology', 'Emotions & Feelings',
-    'Daily Routines', 'Travel & Holidays', 'Health & Sickness'
-];
+const VOCABULARY_CATEGORIES = {
+    'Junior A': [
+        'Animals',
+        'Colors & Shapes',
+        'Numbers (1–20)',
+        'Body Parts',
+        'Classroom Objects',
+        'Toys & Games',
+        'Food (basic)',
+        'Family Members',
+        'Action Verbs (basic)'
+    ],
+    'Junior B': [
+        'Animals (farm, wild, pets)',
+        'Food & Drinks',
+        'Classroom Objects',
+        'Body Parts',
+        'Family & Friends',
+        'Colors & Numbers',
+        'Daily Actions (eat, sleep, play, run)',
+        'Clothes',
+        'Weather & Seasons (basic)'
+    ],
+    'A': [
+        'Animals',
+        'Food & Drinks',
+        'Weather & Seasons',
+        'Sports & Hobbies',
+        'House & Rooms',
+        'Means of Transport',
+        'School Subjects',
+        'Daily Routines',
+        'Clothes & Accessories',
+        'Feelings & Emotions (basic)',
+        'Days, Months & Time'
+    ],
+    'B': [
+        'Food & Nutrition',
+        'Sports & Hobbies',
+        'Transport & Travel',
+        'Jobs & Professions',
+        'Nature & Environment',
+        'Health & Body',
+        'Technology (basic — computer, phone, internet)',
+        'Holidays & Celebrations',
+        'Emotions & Personality',
+        'Shopping & Money',
+        'House & Furniture',
+        'Daily Routines'
+    ],
+    'C': [
+        'Environment & Nature',
+        'Technology & Media',
+        'Sports & Fitness',
+        'Travel & Tourism',
+        'Health & Medicine',
+        'Jobs & Careers',
+        'Food & Nutrition',
+        'Emotions & Character Traits',
+        'Culture & Traditions',
+        'Clothes & Fashion',
+        'Science & Discovery',
+        'Social Media & Communication'
+    ],
+    'D': [
+        'Environment & Climate Change',
+        'Technology & Innovation',
+        'Global Issues & Current Events',
+        'Health & Medicine',
+        'Media & Communication',
+        'Arts & Culture',
+        'Science & Discovery',
+        'Society & Everyday Life',
+        'Business & Economy (basic)',
+        'Idioms & Everyday Expressions',
+        'Academic & Formal Vocabulary',
+        'Compound Words & Word Formation'
+    ]
+};
 
-const MIX_CATEGORIES = [
-    'Tenses', 'Parts of Speech', 'Prepositions', 'Articles',
-    'Classroom Objects', 'Animals', 'Food & Drinks', 'Weather & Seasons',
-    'Family & Friends', 'Body Parts', 'Daily Routines', 'Travel & Holidays',
-    'Hobbies & Sports', 'Jobs & Professions', 'Modal Verbs', 'Question Formation'
-];
+const MIX_CATEGORIES = {
+    'Junior A': [
+        'Animals',
+        'Colors & Shapes',
+        'Classroom Objects',
+        'Is / Am / Are',
+        'Family Members',
+        'Body Parts',
+        'Simple Present',
+        'Food (basic)',
+        'Singular & Plural'
+    ],
+    'Junior B': [
+        'Animals',
+        'Food & Drinks',
+        'Simple Present',
+        'Can / Can\'t',
+        'Family & Friends',
+        'Body Parts',
+        'Daily Actions',
+        'Clothes',
+        'Have / Has',
+        'Weather & Seasons (basic)'
+    ],
+    'A': [
+        'Animals',
+        'Food & Drinks',
+        'Weather & Seasons',
+        'Simple Past',
+        'Present Continuous',
+        'Sports & Hobbies',
+        'Daily Routines',
+        'Prepositions',
+        'Means of Transport',
+        'Comparatives'
+    ],
+    'B': [
+        'Past Simple & Continuous',
+        'Future Forms',
+        'Food & Travel',
+        'Sports & Hobbies',
+        'Comparatives & Superlatives',
+        'Jobs & Professions',
+        'Modal Verbs (can / should / must)',
+        'Health & Body',
+        'Question Formation',
+        'Nature & Environment'
+    ],
+    'C': [
+        'All Tenses',
+        'Environment & Nature',
+        '1st Conditional',
+        'Technology & Media',
+        'Modal Verbs',
+        'Travel & Tourism',
+        'Passive Voice (basic)',
+        'Health & Medicine',
+        'Relative Clauses',
+        'Sports & Fitness',
+        'Emotions & Character Traits'
+    ],
+    'D': [
+        'Modal Verbs',
+        'Passive Voice',
+        'Global Issues',
+        'Reported Speech',
+        'Idioms & Expressions',
+        'Conditionals',
+        'Technology & Innovation',
+        'Phrasal Verbs',
+        'Gerunds & Infinitives',
+        'Media & Society',
+        'Academic Vocabulary',
+        'Arts & Culture'
+    ]
+};
 
-function getCategoriesForType(type) {
-    if (type === 'grammar') return GRAMMAR_CATEGORIES;
-    if (type === 'vocabulary') return VOCABULARY_CATEGORIES;
-    return MIX_CATEGORIES;
+function getCategoriesForType(type, level) {
+    const lvl = level || 'A';
+    if (type === 'grammar') return GRAMMAR_CATEGORIES[lvl] || GRAMMAR_CATEGORIES['A'];
+    if (type === 'vocabulary') return VOCABULARY_CATEGORIES[lvl] || VOCABULARY_CATEGORIES['A'];
+    return MIX_CATEGORIES[lvl] || MIX_CATEGORIES['A'];
 }
 
 async function renderQuizOptionsUi() {
@@ -601,7 +814,10 @@ async function renderQuizOptionsUi() {
     function renderCategories() {
         if (!categoriesChips) return;
         const type = typeSelect?.value || 'mix';
-        const categories = getCategoriesForType(type);
+        const classId = classSelect?.value;
+        const classData = classes.find(c => c.id === classId);
+        const level = classData?.questLevel || 'A';
+        const categories = getCategoriesForType(type, level);
         categoriesChips.innerHTML = categories.map(cat => `
             <label class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-gray-100 rounded-full cursor-pointer hover:bg-amber-100 transition-colors text-sm">
                 <input type="checkbox" value="${cat}" class="quiz-category-checkbox rounded" />
@@ -625,9 +841,11 @@ async function renderQuizOptionsUi() {
             generateBtn.disabled = true;
             statusArea?.classList.add('hidden');
             historyArea?.classList.add('hidden');
+            renderCategories(); // reset chips to default level
             return;
         }
         generateBtn.disabled = false;
+        renderCategories(); // re-render with new class's level
         await refreshQuizStatus(classId);
     });
 

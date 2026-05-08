@@ -22,7 +22,7 @@ export const firebaseConfig =
 export const cloudflareWorkerUrl = 'https://great-class-quest-ai-proxy.nvasedis-cc5.workers.dev';
 export const workerBaseUrl = 'https://great-class-quest-ai-proxy.nvasedis-cc5.workers.dev';
 export const geminiApiUrl = workerBaseUrl; 
-export const OPENROUTER_MODEL = 'z-ai/glm-4.5-air:free';
+export const OPENROUTER_MODEL = 'meta-llama/llama-3.3-70b-instruct:free';
 const runtimeAiTextConfig = (typeof window !== 'undefined' && window.__GCQ_AI_TEXT_CONFIG__) || {};
 
 function toFreeModel(modelId) {
@@ -45,8 +45,8 @@ function normalizeAiProvider(definition, fallback = {}) {
 }
 
 const defaultAiPrimaryProvider = normalizeAiProvider({
-    id: 'gcq-primary-glm-4-5-air-free',
-    label: 'GCQ - GLM-4.5 Air Free',
+    id: 'gcq-primary-llama-3-3-70b-instruct-free',
+    label: 'GCQ - Meta Llama 3.3 70B Instruct Free',
     url: geminiApiUrl,
     model: OPENROUTER_MODEL,
     payloadMode: 'openrouter'

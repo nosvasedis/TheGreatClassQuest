@@ -22,7 +22,7 @@ export const firebaseConfig =
 export const cloudflareWorkerUrl = 'https://great-class-quest-ai-proxy.nvasedis-cc5.workers.dev';
 export const workerBaseUrl = 'https://great-class-quest-ai-proxy.nvasedis-cc5.workers.dev';
 export const geminiApiUrl = workerBaseUrl; 
-export const OPENROUTER_MODEL = 'qwen/qwen3-next-80b-a3b-instruct:free';
+export const OPENROUTER_MODEL = 'inclusionai/ring-2.6-1t:free';
 const runtimeAiTextConfig = (typeof window !== 'undefined' && window.__GCQ_AI_TEXT_CONFIG__) || {};
 
 function toFreeModel(modelId) {
@@ -45,8 +45,8 @@ function normalizeAiProvider(definition, fallback = {}) {
 }
 
 const defaultAiPrimaryProvider = normalizeAiProvider({
-    id: 'gcq-primary-qwen3-next-80b-a3b-instruct-free',
-    label: 'GCQ - Qwen3 Next 80B A3B Instruct Free',
+    id: 'gcq-primary-ring-2-6-1t-free',
+    label: 'GCQ - InclusionAI Ring 2.6 1T Free',
     url: geminiApiUrl,
     model: OPENROUTER_MODEL,
     payloadMode: 'openrouter'

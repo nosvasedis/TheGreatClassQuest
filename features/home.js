@@ -1258,8 +1258,9 @@ async function getAICachedContent(type) {
                 userPrompt = "Generate a short quote about curiosity or nature.";
             }
 
-            // Limit retries to 1 for quote requests — rate limits won't clear in seconds
-            const content = await callGeminiApi(systemPrompt, userPrompt, { retries: 1, baseDelay: 500, timeoutMs: 5000 });
+            // Quotes can take >5s because the worker may throttle upstream requests.
+            // Keep retries low, but allow enough time for a real response.
+            const content = await callGeminiApi(systemPrompt, userPrompt, { retries: 1, baseDelay: 500, timeoutMs: 20000 });
 
             // 3. Save to Firebase (So others don't have to generate)
             try {

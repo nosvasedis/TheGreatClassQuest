@@ -93,30 +93,35 @@ function renderQuestion(questionData, qs) {
     const isFill = q.type === 'fill';
     const isMcq = q.type === 'mcq';
 
-    let questionMiddleHTML = '';
-    if (isImage && q.imageUrl) {
-        questionMiddleHTML = `
-            <div class="quiz-question-area">
-                <img src="${q.imageUrl}" class="quiz-question-image" alt="Question image" />
-                <div class="quiz-question-text">${q.question}</div>
-            </div>`;
-    } else if (isImage) {
-        questionMiddleHTML = `
-            <div class="quiz-question-area">
-                <div class="quiz-question-emoji">🖼️</div>
-                <div class="quiz-question-text">${q.question}</div>
-            </div>`;
-    } else if (isFill) {
-        questionMiddleHTML = `
-            <div class="quiz-question-area">
-                <div class="quiz-question-text">${q.question}</div>
+    const fillInputHTML = `
                 <div class="quiz-fill-input-wrap">
                     <input type="text" class="quiz-fill-input" id="quiz-fill-answer" placeholder="Type your answer..." autocomplete="off" />
                     <button class="quiz-fill-submit bubbly-button" id="quiz-fill-submit-btn">
                         <i class="fas fa-check"></i>
                     </button>
                 </div>
-                <div id="quiz-fill-feedback" class="quiz-explanation hidden"></div>
+                <div id="quiz-fill-feedback" class="quiz-explanation hidden"></div>`;
+
+    let questionMiddleHTML = '';
+    if (isImage && q.imageUrl) {
+        questionMiddleHTML = `
+            <div class="quiz-question-area">
+                <img src="${q.imageUrl}" class="quiz-question-image" alt="Question image" />
+                <div class="quiz-question-text">${q.question}</div>
+                ${fillInputHTML}
+            </div>`;
+    } else if (isImage) {
+        questionMiddleHTML = `
+            <div class="quiz-question-area">
+                <div class="quiz-question-emoji">🖼️</div>
+                <div class="quiz-question-text">${q.question}</div>
+                ${fillInputHTML}
+            </div>`;
+    } else if (isFill) {
+        questionMiddleHTML = `
+            <div class="quiz-question-area">
+                <div class="quiz-question-text">${q.question}</div>
+                ${fillInputHTML}
             </div>`;
     } else {
         const labels = ['A', 'B', 'C', 'D'];
@@ -295,15 +300,14 @@ function wireAnswerListeners(question) {
         ? question.options?.[question.correctIndex]
         : question.correctAnswer;
 
-    if (isFill) {
+    if (isFill || isImage) {
         document.getElementById('quiz-fill-submit-btn')?.addEventListener('click', () => handleFillAnswer(correctAnswer, question.explanation));
         document.getElementById('quiz-fill-answer')?.addEventListener('keydown', (e) => {
             if (e.key === 'Enter') handleFillAnswer(correctAnswer, question.explanation);
         });
     }
 
-    if (isMcq || isImage) {
-        // For image questions, treat as MCQ since we need to render answer options
+    if (isMcq) {
         document.querySelectorAll('.quiz-answer-btn').forEach(btn => {
             btn.addEventListener('click', () => handleMcqAnswer(btn, question));
         });
@@ -387,25 +391,20 @@ function showNextAction(isCorrect, result) {
     if (!nextBtn) return;
 
     const isComplete = result?.isComplete || false;
+    nextBtn.classList.remove('hidden');
 
-    if (isCorrect || isComplete) {
-        nextBtn.classList.remove('hidden');
-        if (isComplete) {
-            nextBtn.innerHTML = '<i class="fas fa-trophy mr-2"></i> See Results!';
-            nextBtn.addEventListener('click', async () => {
-                const final = await finalizeQuiz(currentClassId);
-                renderResultsScreen(final);
-            }, { once: true });
-        } else {
-            nextBtn.innerHTML = '<i class="fas fa-arrow-right mr-2"></i> Next Question';
-            nextBtn.addEventListener('click', () => showNextQuestion(), { once: true });
-        }
-    }
-
-    // In rare error case where result is null but we need to proceed
-    if (!result && isCorrect) {
-        nextBtn.classList.remove('hidden');
-        nextBtn.innerHTML = '<i class="fas fa-arrow-right mr-2"></i> Continue';
+    if (isComplete) {
+        nextBtn.innerHTML = '<i class="fas fa-trophy mr-2"></i> See Results!';
+        nextBtn.addEventListener('click', async () => {
+            const final = await finalizeQuiz(currentClassId);
+            renderResultsScreen(final);
+        }, { once: true });
+    } else if (isCorrect) {
+        nextBtn.innerHTML = '<i class="fas fa-arrow-right mr-2"></i> Next Question';
+        nextBtn.addEventListener('click', () => showNextQuestion(), { once: true });
+    } else {
+        // Wrong answer — pass to next student (or skip if all students exhausted)
+        nextBtn.innerHTML = '<i class="fas fa-user-group mr-2"></i> Try Another Student';
         nextBtn.addEventListener('click', () => showNextQuestion(), { once: true });
     }
 }

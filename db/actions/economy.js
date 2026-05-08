@@ -257,7 +257,7 @@ export async function handleGenerateShopStock() {
             languageInstruction = "Use exciting English (10-13yo). Max 10 words.";
         }
 
-        const systemPrompt = `You are a creative RPG item generator for a school app. 
+        const systemPrompt = `You are a JSON generator API for a school RPG app. You output ONLY raw valid JSON — no explanations, no reasoning, no markdown, no commentary before or after.
         Target Audience: ${league} students (approx age ${ageCategory}).
         Theme: ${seasonContext}.
         
@@ -268,10 +268,9 @@ export async function handleGenerateShopStock() {
            - 5 "Rare" items: 35-50 Gold (Requires saving for 2-3 months).
            - 5 "Legendary" items: 80-120 Gold (Long-term "End of Term" trophies).
         3. DESCRIPTIONS: ${languageInstruction}
-        4. Output Format: A valid JSON array of objects: [{"name": "string", "desc": "string", "price": number}].
-        Do NOT use markdown.`;
+        4. Output ONLY this JSON structure, nothing else: [{"name": "string", "desc": "string", "price": number}, ...]`;
 
-        const jsonString = await callGeminiApi(systemPrompt, "Generate the JSON list now. Output ONLY the raw JSON array, nothing else.", { jsonMode: true });
+        const jsonString = await callGeminiApi(systemPrompt, "Output the JSON array now.", { jsonMode: true });
         let itemsData = [];
         try {
             itemsData = extractJsonFromAiText(jsonString);

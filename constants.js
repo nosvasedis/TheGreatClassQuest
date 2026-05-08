@@ -22,7 +22,7 @@ export const firebaseConfig =
 export const cloudflareWorkerUrl = 'https://great-class-quest-ai-proxy.nvasedis-cc5.workers.dev';
 export const workerBaseUrl = 'https://great-class-quest-ai-proxy.nvasedis-cc5.workers.dev';
 export const geminiApiUrl = workerBaseUrl; 
-export const OPENROUTER_MODEL = 'minimax/minimax-m2.5:free';
+export const OPENROUTER_MODEL = 'nousresearch/hermes-3-405b-instruct:free';
 const runtimeAiTextConfig = (typeof window !== 'undefined' && window.__GCQ_AI_TEXT_CONFIG__) || {};
 
 function toFreeModel(modelId) {
@@ -46,26 +46,33 @@ function normalizeAiProvider(definition, fallback = {}) {
 }
 
 const defaultAiPrimaryProvider = normalizeAiProvider({
-    id: 'gcq-primary-minimax',
-    label: 'GCQ - MiniMax M2.5',
+    id: 'gcq-primary-hermes-3-405b',
+    label: 'GCQ - Hermes 3 405B Instruct',
     url: geminiApiUrl,
-    model: 'minimax/minimax-m2.5:free',
+    model: 'nousresearch/hermes-3-405b-instruct:free',
     payloadMode: 'openrouter'
 });
 
 const defaultAiBackupProviders = [
     normalizeAiProvider({
+        id: 'gcq-backup-cobuddy',
+        label: 'GCQ - Baidu CoBuddy',
+        url: geminiApiUrl,
+        model: 'baidu/qianfan-cobuddy:free',
+        payloadMode: 'openrouter'
+    }),
+    normalizeAiProvider({
+        id: 'gcq-backup-minimax',
+        label: 'GCQ - MiniMax M2.5',
+        url: geminiApiUrl,
+        model: 'minimax/minimax-m2.5:free',
+        payloadMode: 'openrouter'
+    }),
+    normalizeAiProvider({
         id: 'gcq-backup-llama-3-3-70b',
         label: 'GCQ - Llama 3.3 70B',
         url: geminiApiUrl,
         model: 'meta-llama/llama-3.3-70b-instruct:free',
-        payloadMode: 'openrouter'
-    }),
-    normalizeAiProvider({
-        id: 'gcq-backup-gemma-4-31b',
-        label: 'GCQ - Gemma 4 31B',
-        url: geminiApiUrl,
-        model: 'google/gemma-4-31b-it:free',
         payloadMode: 'openrouter'
     })
 ].filter(Boolean);

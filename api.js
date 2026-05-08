@@ -1,8 +1,8 @@
 import { blobToBase64 } from './utils.js';
 import { AI_TEXT_PROVIDERS, OPENROUTER_MODEL, cloudflareWorkerUrl } from './constants.js';
 
-const GEMINI_REQUEST_SPACING_MS = 5000; // Increased from 1200ms to 5 seconds
-const DEFAULT_TIMEOUT_MS = 30000;
+const GEMINI_REQUEST_SPACING_MS = 2000;
+const DEFAULT_TIMEOUT_MS = 60000;
 const FAST_TIMEOUT_MS = 10000;
 const CIRCUIT_BREAK_THRESHOLD = 2; // Lowered from 3 to be more conservative
 const CIRCUIT_COOLDOWN_MS = 300000; // Increased from 120s to 5 minutes

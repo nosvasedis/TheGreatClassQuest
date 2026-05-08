@@ -10,6 +10,8 @@ import { getEggAlertState } from '../features/familiarProgression.mjs';
 import { getNextAssessmentOccurrenceForToday, getUpcomingScheduledAssessment } from '../features/assessmentConfig.js';
 import { getClassQuestProgressData, getQuestMapZoneForProgressPercent } from '../features/worldMap.js';
 import { fetchDailySpice } from '../features/home.js';
+import { getGuildById, getGuildEmblemUrl } from '../features/guilds.js';
+import { getGuildLeaderboardData } from '../features/guildScoring.js';
 import { getWallpaperContext } from '../utils/wallpaperContext.mjs';
 import { createWallpaperCardRegistry } from '../utils/wallpaperCardRegistry.mjs';
 import { getWallpaperScenePlacement } from '../utils/wallpaperScene.mjs';
@@ -333,30 +335,90 @@ function getWallpaperSceneLabel(context) {
 }
 
 function getLeadingGuildSnapshot() {
-    const allStudentScores = state.get('allStudentScores') || [];
-    const allStudents = state.get('allStudents') || [];
-    const guildMeta = {
-        dragon_flame: { name: 'Dragon Flame', emoji: '🔥' },
-        grizzly_might: { name: 'Grizzly Might', emoji: '🐻' },
-        owl_wisdom: { name: 'Owl Wisdom', emoji: '🦉' },
-        phoenix_rising: { name: 'Phoenix Rising', emoji: '🦅' }
+    const ranked = getGuildLeaderboardData();
+    const leader = ranked[0];
+    if (!leader) return null;
+
+    const guild = getGuildById(leader.guildId);
+    return {
+        guildId: leader.guildId,
+        name: leader.guildName,
+        emoji: guild?.emoji || '⚔️',
+        guildPower: Math.round(leader.guildPower || 0),
+        perCapitaGlory: Math.round((leader.perCapitaGlory || 0) * 10) / 10,
+        emblemHtml: getGuildEmblemHtml(leader.guildId, leader.guildName, 'wall-guild-emblem')
     };
+}
 
-    const ranked = Object.entries(guildMeta).map(([guildId, meta]) => {
-        const members = allStudents.filter((student) => student.guildId === guildId);
-        const memberCount = members.length || 1;
-        const monthlyStars = members.reduce((sum, student) => {
-            const score = allStudentScores.find((item) => item.id === student.id);
-            return sum + (Number(score?.monthlyStars) || 0);
-        }, 0);
+function getGuildEmblemHtml(guildId, guildName, className = 'wall-guild-emblem') {
+    const emblemUrl = getGuildEmblemUrl(guildId);
+    const guild = getGuildById(guildId);
+    const fallback = guild?.emoji || guildName?.charAt(0) || '⚔️';
 
-        return {
-            ...meta,
-            perCapita: Math.round((monthlyStars / memberCount) * 10) / 10
-        };
-    }).sort((left, right) => right.perCapita - left.perCapita);
+    if (emblemUrl) {
+        return `<img src="${emblemUrl}" alt="${guildName || guild?.name || guildId}" class="${className}">`;
+    }
 
-    return ranked[0] || null;
+    return `<span class="${className} ${className}--fallback" style="--guild-fallback:${guild?.primary || '#6b7280'}">${fallback}</span>`;
+}
+
+function getWallpaperSchoolSigilHtml(className = 'wall-school-sigil') {
+    const schoolName = state.get('schoolName') || constants.DEFAULT_SCHOOL_NAME;
+    const initials = schoolName
+        .split(/\s+/)
+        .map((part) => part.trim().charAt(0))
+        .filter(Boolean)
+        .slice(0, 2)
+        .join('')
+        .toUpperCase() || 'GC';
+
+    return `<span class="${className}" aria-hidden="true">${initials}</span>`;
+}
+
+function getWallpaperClassSigilHtml(classData, className = 'wall-class-sigil') {
+    const logo = classData?.logo || '•';
+    return `<span class="${className}" aria-hidden="true">${logo}</span>`;
+}
+
+function getWallpaperCountSigilHtml(value, className = 'wall-count-sigil') {
+    return `<span class="${className}" aria-hidden="true">${value}</span>`;
+}
+
+function getWallpaperClassStackHtml(classes = [], className = 'wall-class-stack') {
+    const visible = classes.filter(Boolean).slice(0, 3);
+    if (!visible.length) {
+        return getWallpaperSchoolSigilHtml();
+    }
+
+    return `<span class="${className}">${visible.map((classData) => `
+        <span class="wall-class-stack__item" title="${classData.name || ''}">${classData.logo || '•'}</span>
+    `).join('')}</span>`;
+}
+
+function getWallpaperAvatarStackHtml(students = [], className = 'wall-avatar-stack') {
+    const visible = students.filter(Boolean).slice(0, 3);
+    if (!visible.length) {
+        return getWallpaperCountSigilHtml('0');
+    }
+
+    return `<span class="${className}">${visible.map((student) => student.avatar
+        ? `<img src="${student.avatar}" alt="${student.name}" class="wall-avatar-stack__item" title="${student.name}">`
+        : `<span class="wall-avatar-stack__item wall-avatar-stack__item--fallback" title="${student.name}">${student.name?.charAt(0) || '?'}</span>`
+    ).join('')}</span>`;
+}
+
+function getWallpaperLeadFamiliarHtml(students = [], allStudentScores = []) {
+    const studentWithFamiliar = students.find((student) => {
+        const score = allStudentScores.find((item) => item.id === student.id);
+        return score?.familiar;
+    });
+
+    if (!studentWithFamiliar) {
+        return getWallpaperCountSigilHtml('F', 'wall-count-sigil wall-count-sigil--soft');
+    }
+
+    const score = allStudentScores.find((item) => item.id === studentWithFamiliar.id);
+    return `<span class="wall-familiar-sigil">${renderFamiliarSprite(score.familiar, 'small', studentWithFamiliar.id)}</span>`;
 }
 
 function buildWallpaperRailItems(context) {
@@ -369,6 +431,8 @@ function buildWallpaperRailItems(context) {
         const classData = state.get('allSchoolClasses').find((item) => item.id === context.activeClassId);
         const classStudents = allStudents.filter((student) => student.classId === context.activeClassId);
         const { totalStars: monthlyStars } = utils.getClassMonthlyQuestStars(classData, classStudents, allStudentScores);
+        const progressData = classData ? getClassQuestProgressData(classData, classStudents, allStudentScores) : { pct: 0 };
+        const questZone = getQuestMapZoneForProgressPercent(progressData.pct || 0);
         const goal = classData
             ? utils.calculateMonthlyClassGoal(classData, classStudents.length, state.get('schoolHolidayRanges'), state.get('allScheduleOverrides'))
             : 0;
@@ -391,12 +455,12 @@ function buildWallpaperRailItems(context) {
         }, 0);
 
         left.push(
-            { icon: '🗺️', value: `${questProgress}%`, label: 'Quest Progress', meta: `${monthlyStars.toLocaleString()} stars this month` },
-            { icon: '🎒', value: `${attendancePct}%`, label: 'Attendance', meta: `${presentCount}/${classStudents.length || 0} heroes present` }
+            { iconHtml: getWallpaperClassSigilHtml(classData, 'wall-class-sigil wall-class-sigil--quest'), value: `${questProgress}%`, label: 'Quest Progress', meta: `${monthlyStars.toLocaleString()} stars · ${questZone.label}` },
+            { iconHtml: getWallpaperAvatarStackHtml(classStudents), value: `${attendancePct}%`, label: 'Attendance', meta: `${presentCount}/${classStudents.length || 0} heroes present` }
         );
         right.push(
-            { icon: '💰', value: treasury.toLocaleString(), label: 'Treasury', meta: 'Class coins and rewards' },
-            { icon: '🐾', value: classStudents.length.toString(), label: 'Familiars', meta: familiarReadyCount > 0 ? `${familiarReadyCount} ready to hatch` : 'Companions on watch' }
+            { iconHtml: getWallpaperCountSigilHtml('G', 'wall-count-sigil wall-count-sigil--gold'), value: treasury.toLocaleString(), label: 'Treasury', meta: 'Class coins and rewards' },
+            { iconHtml: getWallpaperLeadFamiliarHtml(classStudents, allStudentScores), value: classStudents.length.toString(), label: 'Familiars', meta: familiarReadyCount > 0 ? `${familiarReadyCount} ready to hatch` : 'Companions on watch' }
         );
     } else {
         const totalStars = allStudentScores.reduce((sum, score) => sum + (Number(score.totalStars) || 0), 0);
@@ -404,27 +468,27 @@ function buildWallpaperRailItems(context) {
         const guildLeader = getLeadingGuildSnapshot();
 
         left.push(
-            { icon: '⭐', value: totalStars.toLocaleString(), label: 'School Pulse', meta: 'Total stars earned' },
-            { icon: '🏛️', value: `${context.todayClasses.length}`, label: context.isOffDay ? 'Off-Day' : 'Classes Today', meta: context.isOffDay ? 'The school is resting today' : 'Live lessons on the schedule' }
+            { iconHtml: getWallpaperSchoolSigilHtml(), value: totalStars.toLocaleString(), label: 'School Pulse', meta: 'Total stars earned' },
+            { iconHtml: getWallpaperClassStackHtml(context.todayClasses), value: `${context.todayClasses.length}`, label: context.isOffDay ? 'Off-Day' : 'Classes Today', meta: context.isOffDay ? 'The school is resting today' : 'Live lessons on the schedule' }
         );
         right.push(
-            { icon: '💰', value: totalGold.toLocaleString(), label: 'Treasury', meta: 'School-wide coin total' },
+            { iconHtml: getWallpaperCountSigilHtml('G', 'wall-count-sigil wall-count-sigil--gold'), value: totalGold.toLocaleString(), label: 'Treasury', meta: 'School-wide coin total' },
             guildLeader
-                ? { icon: guildLeader.emoji, value: `${guildLeader.perCapita}`, label: 'Guild Lead', meta: guildLeader.name }
-                : { icon: '⚔️', value: '0', label: 'Guild Lead', meta: 'Guild race warming up' }
+                ? { iconHtml: guildLeader.emblemHtml, value: `${guildLeader.guildPower}`, label: 'Guild Lead', meta: `${guildLeader.name} · ${guildLeader.perCapitaGlory} glory/member` }
+                : { iconHtml: getWallpaperCountSigilHtml('G', 'wall-count-sigil wall-count-sigil--soft'), value: '0', label: 'Guild Lead', meta: 'Guild race warming up' }
         );
     }
 
     if (context.isHoliday && context.activeHoliday?.name) {
         right.unshift({
-            icon: '🎉',
+            iconHtml: getWallpaperCountSigilHtml(context.activeHoliday.name.slice(0, 2).toUpperCase(), 'wall-count-sigil wall-count-sigil--festival'),
             value: context.activeHoliday.name,
             label: 'Holiday',
             meta: 'Live seasonal atmosphere'
         });
     } else if (context.holidayPhase === 'upcoming' && Number.isFinite(context.daysUntilNextHoliday)) {
         right.unshift({
-            icon: '📅',
+            iconHtml: getWallpaperCountSigilHtml(context.daysUntilNextHoliday, 'wall-count-sigil wall-count-sigil--countdown'),
             value: `${context.daysUntilNextHoliday}d`,
             label: 'Holiday Countdown',
             meta: context.nextHoliday?.name || 'Upcoming break'
@@ -444,7 +508,7 @@ function renderWallpaperRail(context) {
 
     const renderChip = (item) => `
         <div class="wall-rail-chip">
-            <div class="wall-rail-chip-icon">${item.icon}</div>
+            <div class="wall-rail-chip-icon">${item.iconHtml || item.icon}</div>
             <div class="wall-rail-chip-value">${item.value}</div>
             <div class="wall-rail-chip-label">${item.label}</div>
             <div class="wall-rail-chip-meta">${item.meta}</div>
@@ -460,14 +524,19 @@ function buildWallpaperRibbonItems(context) {
     const activeTimers = (state.get('allQuestBounties') || []).filter((bounty) => bounty.status === 'active');
 
     items.push({
-        icon: context.mode === 'class' ? '🧭' : '🏫',
+        iconHtml: context.mode === 'class'
+            ? getWallpaperClassSigilHtml(context.activeClass, 'wall-class-sigil wall-class-sigil--mini')
+            : getWallpaperSchoolSigilHtml('wall-school-sigil wall-school-sigil--mini'),
         label: 'Mode',
         value: context.mode === 'class' ? 'Class Focus' : 'School Overview'
     });
 
     if (context.mode === 'class' && context.activeClass?.timeEnd) {
         items.push({
-            icon: '⏱️',
+            iconHtml: getWallpaperCountSigilHtml(
+                context.lessonPhase === 'opening' ? 'OP' : context.lessonPhase === 'winddown' ? 'WD' : 'ON',
+                'wall-count-sigil wall-count-sigil--mini'
+            ),
             label: 'Lesson Phase',
             value: context.lessonPhase === 'opening'
                 ? 'Opening Ritual'
@@ -478,13 +547,21 @@ function buildWallpaperRibbonItems(context) {
     }
 
     if (context.holidayPhase === 'active' && context.activeHoliday?.name) {
-        items.push({ icon: '🎉', label: 'Holiday', value: context.activeHoliday.name });
+        items.push({
+            iconHtml: getWallpaperCountSigilHtml(context.activeHoliday.name.slice(0, 2).toUpperCase(), 'wall-count-sigil wall-count-sigil--mini wall-count-sigil--festival'),
+            label: 'Holiday',
+            value: context.activeHoliday.name
+        });
     } else if (context.holidayPhase === 'upcoming' && Number.isFinite(context.daysUntilNextHoliday)) {
-        items.push({ icon: '📅', label: 'Countdown', value: `${context.daysUntilNextHoliday}d to ${context.nextHoliday?.name || 'break'}` });
+        items.push({
+            iconHtml: getWallpaperCountSigilHtml(context.daysUntilNextHoliday, 'wall-count-sigil wall-count-sigil--mini wall-count-sigil--countdown'),
+            label: 'Countdown',
+            value: `${context.daysUntilNextHoliday}d to ${context.nextHoliday?.name || 'break'}`
+        });
     }
 
     items.push({
-        icon: activeTimers.length > 0 ? '🔥' : '✨',
+        iconHtml: getWallpaperCountSigilHtml(activeTimers.length, 'wall-count-sigil wall-count-sigil--mini wall-count-sigil--alert'),
         label: 'Active Bounties',
         value: `${activeTimers.length} live`
     });
@@ -498,7 +575,7 @@ function renderWallpaperRibbon(context) {
 
     ribbon.innerHTML = buildWallpaperRibbonItems(context).map((item) => `
         <div class="wall-top-ribbon-chip">
-            <div class="wall-top-ribbon-icon">${item.icon}</div>
+            <div class="wall-top-ribbon-icon">${item.iconHtml || item.icon}</div>
             <div>
                 <div class="wall-top-ribbon-label">${item.label}</div>
                 <div class="wall-top-ribbon-value">${item.value}</div>
@@ -672,7 +749,7 @@ function startWallpaperClock() {
         if (currentClass) {
             if (hubName.dataset.currentId !== currentClass.id) {
                 state.setGlobalSelectedClass(currentClass.id);
-                hubName.innerHTML = `<span class="mr-3 text-5xl align-middle">${currentClass.logo}</span>${currentClass.name}`;
+                hubName.innerHTML = `${getWallpaperClassSigilHtml(currentClass, 'wall-class-sigil wall-hub-sigil')}<span>${currentClass.name}</span>`;
                 hubLevel.innerText = `Quest League: ${currentClass.questLevel}`;
                 hubName.dataset.currentId = currentClass.id;
             }
@@ -680,7 +757,7 @@ function startWallpaperClock() {
             if (hubName.dataset.currentId !== 'global') {
                 state.setGlobalSelectedClass(null);
                 const schoolName = state.get('schoolName') || constants.DEFAULT_SCHOOL_NAME;
-                hubName.innerHTML = `<span class="mr-3 text-5xl">🏫</span>${schoolName}`;
+                hubName.innerHTML = `${getWallpaperSchoolSigilHtml('wall-school-sigil wall-hub-sigil')}<span>${schoolName}</span>`;
                 hubLevel.innerText = "Global Quest Network";
                 hubName.dataset.currentId = 'global';
             }
@@ -970,8 +1047,7 @@ async function directorGameLoop() {
                         <p class="text-3xl text-white font-serif italic">"Pencils down, heroes!"</p>
                     </div>`;
                 const el = spawnCard(container, { html, css: 'float-card-purple', id: 'timer_end' });
-                el.style.top = '50%'; el.style.left = '50%';
-                el.style.transform = 'translate(-50%, -50%) scale(1.2)';
+                el.style.transform = 'scale(1)';
 
                 // Pause director briefly then resume
                 clearTimeout(directorTimeout);
@@ -1253,45 +1329,25 @@ async function hydrateCard(type, classId, capabilities = getWallpaperCapabilitie
 
 // ─── Guild Leaderboard ────────────────────────────────────────────────────────
 function getGuildLeaderboardCard() {
-    const allGuildScores = state.get('allGuildScores') || {};
-    const allStudents = state.get('allStudents') || [];
-    const allStudentScores = state.get('allStudentScores') || [];
-    const guildIds = ['dragon_flame', 'grizzly_might', 'owl_wisdom', 'phoenix_rising'];
-    const guildMeta = {
-        dragon_flame: { name: 'Dragon Flame', emoji: '🔥', color: '#ef4444' },
-        grizzly_might: { name: 'Grizzly Might', emoji: '🐻', color: '#d97706' },
-        owl_wisdom: { name: 'Owl Wisdom', emoji: '🦉', color: '#3b82f6' },
-        phoenix_rising: { name: 'Phoenix Rising', emoji: '🦅', color: '#ec4899' },
-    };
-
-    const guilds = guildIds.map(gid => {
-        const scoreDoc = allGuildScores[gid] || {};
-        const members = allStudents.filter(s => s.guildId === gid);
-        const memberCount = members.length || 1;
-        const monthlyStars = members.reduce((sum, s) => {
-            const sc = allStudentScores.find(sc => sc.id === s.id);
-            return sum + (Number(sc?.monthlyStars) || 0);
-        }, 0);
-        const perCapita = Math.round((monthlyStars / memberCount) * 10) / 10;
-        const meta = guildMeta[gid] || { name: gid, emoji: '⚔️', color: '#9ca3af' };
-        return { gid, name: meta.name, emoji: meta.emoji, color: meta.color, monthlyStars, memberCount, perCapita };
-    }).sort((a, b) => b.perCapita - a.perCapita);
-
-    const maxPerCapita = Math.max(...guilds.map(g => g.perCapita)) || 1;
-    const rankEmoji = ['🥇', '🥈', '🥉', '4️⃣'];
+    const guilds = getGuildLeaderboardData();
+    const maxPower = Math.max(...guilds.map((guild) => guild.guildPower)) || 1;
+    const rankLabels = ['#1', '#2', '#3', '#4'];
 
     const rows = guilds.map((g, i) => {
-        const barWidth = Math.max(8, Math.round((g.perCapita / maxPerCapita) * 100));
+        const guild = getGuildById(g.guildId);
+        const color = guild?.primary || '#9ca3af';
+        const barWidth = Math.max(8, Math.round(((g.guildPower || 0) / maxPower) * 100));
         return `<div class="flex items-center gap-3 mb-2">
-            <span class="text-xl w-7 text-center">${rankEmoji[i]}</span>
-            <span class="text-2xl">${g.emoji}</span>
+            <span class="wallpaper-rank-chip">${rankLabels[i] || `#${i + 1}`}</span>
+            ${getGuildEmblemHtml(g.guildId, g.guildName, 'wallpaper-guild-row-emblem')}
             <div class="flex-1">
                 <div class="flex justify-between items-center mb-0.5">
-                    <span class="font-bold text-sm" style="color:${g.color}">${g.name}</span>
-                    <span class="text-xs font-bold opacity-70">${g.perCapita} ⭐/member</span>
+                    <span class="font-bold text-sm" style="color:${color}">${g.guildName}</span>
+                    <span class="text-xs font-bold opacity-70">${Math.round(g.guildPower || 0)} power</span>
                 </div>
+                <div class="text-[0.65rem] font-bold uppercase tracking-[0.2em] text-slate-500 mb-1">${(g.perCapitaGlory || 0).toFixed(1)} glory/member · ${g.memberCount} heroes</div>
                 <div class="h-2 rounded-full bg-white/10 overflow-hidden">
-                    <div class="h-full rounded-full" style="width:${barWidth}%;background:${g.color};"></div>
+                    <div class="h-full rounded-full" style="width:${barWidth}%;background:${color};"></div>
                 </div>
             </div>
         </div>`;
@@ -1299,8 +1355,8 @@ function getGuildLeaderboardCard() {
 
     return {
         html: `<div class="w-full px-2">
-            <div class="badge-pill bg-purple-100 text-purple-800">⚔️ Guild Rankings</div>
-            <p class="text-purple-600 text-xs font-bold uppercase tracking-widest mt-2 mb-4">Per-member this month</p>
+            <div class="badge-pill bg-purple-100 text-purple-800">Guild Rankings</div>
+            <p class="text-purple-600 text-xs font-bold uppercase tracking-widest mt-2 mb-4">Live guild power leaderboard</p>
             ${rows}
         </div>`,
         css: 'float-card-purple'
@@ -2774,27 +2830,24 @@ function spawnCard(container, card) {
     const placement = getWallpaperScenePlacement(card, wallpaperSceneState);
     wallpaperSceneState.familyCounters[family] = currentCount + 1;
 
-    el.className = `wallpaper-float-card ${card.css} ${placement.tierClassName} absolute`;
+    const isOverlayCard = card.id === 'timer_end';
+
+    el.className = `wallpaper-float-card wallpaper-stage-card ${card.css} ${placement.tierClassName}${isOverlayCard ? ' wallpaper-stage-card--overlay' : ''}`;
     el.innerHTML = card.html;
     el.dataset.cardId = card.id;
     el.dataset.cardFamily = family;
     el.dataset.cardTier = card.sizeTier || 'standard';
     el.dataset.cardZone = placement.zoneName;
 
-    el.style.top = placement.style.top;
-    el.style.bottom = placement.style.bottom;
-    el.style.left = placement.style.left;
-    el.style.right = placement.style.right;
-
     el.style.opacity = '0';
-    el.style.transform = 'translateY(50px) scale(0.9)';
+    el.style.transform = isOverlayCard ? 'scale(1.02)' : 'translateY(24px) scale(0.985)';
 
     container.appendChild(el);
 
     void el.offsetWidth;
 
     el.style.opacity = '1';
-    el.style.transform = `translateY(0) scale(1) rotate(${placement.rotation}deg)`;
+    el.style.transform = 'translateY(0) scale(1)';
 
     if (card.timedBlurAnswer) {
         const answerBlock = el.querySelector('.wallpaper-card-answer-blur');

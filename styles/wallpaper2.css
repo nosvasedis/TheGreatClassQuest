@@ -80,6 +80,41 @@
     align-items: flex-end;
 }
 
+.wall-feature-stage {
+    position: absolute;
+    top: 21%;
+    right: max(17rem, 19vw);
+    width: min(35vw, 560px);
+    min-height: 350px;
+    padding: 0.85rem;
+    border-radius: 2.6rem;
+    border: 1px solid rgba(255, 255, 255, 0.34);
+    background: rgba(255, 255, 255, 0.14);
+    backdrop-filter: blur(18px);
+    -webkit-backdrop-filter: blur(18px);
+    box-shadow: 0 24px 48px rgba(15, 23, 42, 0.16);
+    display: flex;
+    align-items: stretch;
+    justify-content: center;
+    overflow: hidden;
+}
+
+.wall-feature-stage:empty::before {
+    content: 'Rotating Quest Panel';
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    min-height: 320px;
+    border-radius: 2rem;
+    border: 1px dashed rgba(255, 255, 255, 0.24);
+    color: rgba(255, 255, 255, 0.55);
+    font-family: 'Fredoka One', cursive;
+    font-size: 1rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+}
+
 .wall-top-ribbon {
     position: absolute;
     top: 1.4rem;
@@ -111,11 +146,165 @@
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    width: 2.1rem;
+    width: 2.4rem;
     height: 2.1rem;
     border-radius: 9999px;
     background: rgba(255, 255, 255, 0.18);
     font-size: 1rem;
+}
+
+.wall-school-sigil,
+.wall-class-sigil,
+.wall-count-sigil {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 2.7rem;
+    height: 2.7rem;
+    border-radius: 1rem;
+    border: 1px solid rgba(255, 255, 255, 0.58);
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.34), rgba(255, 255, 255, 0.14));
+    box-shadow: 0 10px 24px rgba(15, 23, 42, 0.16);
+    color: white;
+    font-family: 'Fredoka One', cursive;
+    font-size: 1rem;
+    line-height: 1;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    flex-shrink: 0;
+}
+
+.wall-class-sigil {
+    font-size: 1.45rem;
+}
+
+.wall-school-sigil--mini,
+.wall-class-sigil--mini,
+.wall-count-sigil--mini {
+    width: 2.15rem;
+    height: 2.15rem;
+    border-radius: 0.85rem;
+    font-size: 0.8rem;
+}
+
+.wall-school-sigil--mini {
+    font-size: 0.7rem;
+}
+
+.wall-class-sigil--mini {
+    font-size: 1.1rem;
+}
+
+.wall-hub-sigil {
+    width: 3.25rem;
+    height: 3.25rem;
+    border-radius: 1.15rem;
+    margin-right: 0.9rem;
+    font-size: 1.8rem;
+    vertical-align: middle;
+}
+
+.wall-count-sigil--gold {
+    background: linear-gradient(135deg, rgba(251, 191, 36, 0.65), rgba(245, 158, 11, 0.35));
+    color: #fff7d6;
+}
+
+.wall-count-sigil--festival {
+    background: linear-gradient(135deg, rgba(244, 114, 182, 0.55), rgba(251, 191, 36, 0.32));
+}
+
+.wall-count-sigil--countdown {
+    background: linear-gradient(135deg, rgba(56, 189, 248, 0.55), rgba(99, 102, 241, 0.3));
+}
+
+.wall-count-sigil--alert {
+    background: linear-gradient(135deg, rgba(248, 113, 113, 0.58), rgba(251, 191, 36, 0.26));
+}
+
+.wall-count-sigil--soft {
+    color: rgba(255, 255, 255, 0.88);
+}
+
+.wall-class-stack,
+.wall-avatar-stack {
+    display: inline-flex;
+    align-items: center;
+    padding-left: 0.35rem;
+}
+
+.wall-class-stack__item,
+.wall-avatar-stack__item {
+    width: 2rem;
+    height: 2rem;
+    margin-left: -0.35rem;
+    border-radius: 9999px;
+    border: 2px solid rgba(255, 255, 255, 0.82);
+    background: rgba(255, 255, 255, 0.92);
+    box-shadow: 0 8px 18px rgba(15, 23, 42, 0.12);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    object-fit: cover;
+    color: #334155;
+    font-family: 'Fredoka One', cursive;
+    font-size: 1rem;
+    line-height: 1;
+}
+
+.wall-avatar-stack__item--fallback {
+    background: linear-gradient(135deg, rgba(129, 140, 248, 0.24), rgba(255, 255, 255, 0.92));
+}
+
+.wall-familiar-sigil {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 2.5rem;
+    min-height: 2.5rem;
+}
+
+.wall-guild-emblem,
+.wallpaper-guild-row-emblem {
+    width: 2.6rem;
+    height: 2.6rem;
+    border-radius: 9999px;
+    object-fit: cover;
+    border: 2px solid rgba(255, 255, 255, 0.68);
+    box-shadow: 0 10px 24px rgba(15, 23, 42, 0.18);
+    flex-shrink: 0;
+}
+
+.wallpaper-guild-row-emblem {
+    width: 2.15rem;
+    height: 2.15rem;
+}
+
+.wallpaper-rank-chip {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 2.25rem;
+    height: 2rem;
+    padding: 0 0.45rem;
+    border-radius: 9999px;
+    border: 1px solid rgba(148, 163, 184, 0.25);
+    background: rgba(255, 255, 255, 0.78);
+    color: #475569;
+    font-size: 0.78rem;
+    font-weight: 900;
+    letter-spacing: 0.08em;
+    flex-shrink: 0;
+}
+
+.wall-guild-emblem--fallback,
+.wallpaper-guild-row-emblem--fallback {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: color-mix(in srgb, var(--guild-fallback) 18%, white);
+    color: var(--guild-fallback);
+    font-size: 1.2rem;
+    font-weight: 800;
 }
 
 .wall-top-ribbon-label {
@@ -275,6 +464,45 @@
     animation: float-bob-v2 60s ease-in-out infinite; 
 }
 
+.wallpaper-stage-card {
+    position: relative;
+    width: 100%;
+    max-width: none;
+    min-height: 320px;
+    left: auto;
+    right: auto;
+    top: auto;
+    bottom: auto;
+    margin: 0;
+    border-radius: 2rem;
+    animation: none !important;
+    box-shadow:
+        0 18px 40px rgba(15, 23, 42, 0.18),
+        0 0 0 2px rgba(255, 255, 255, 0.34) inset;
+}
+
+.wallpaper-stage-card.wallpaper-card-tier-compact,
+.wallpaper-stage-card.wallpaper-card-tier-standard,
+.wallpaper-stage-card.wallpaper-card-tier-feature {
+    width: 100%;
+    max-width: none;
+    min-height: 320px;
+}
+
+.wallpaper-stage-card[data-card-family="knowledge"],
+.wallpaper-stage-card[data-card-family="context"],
+.wallpaper-stage-card[data-card-family="atmosphere"] {
+    min-height: 340px;
+}
+
+.wallpaper-stage-card--overlay {
+    position: absolute;
+    inset: 0.85rem;
+    width: auto;
+    min-height: auto;
+    display: flex;
+}
+
 .wallpaper-float-card[data-card-zone="sky-left"],
 .wallpaper-float-card[data-card-zone="sky-right"] {
     animation-name: sky-drift-v2;
@@ -336,11 +564,40 @@
         bottom: 7% !important;
         transform: translateX(-50%) translateY(40px) scale(0.9) !important;
     }
+
+    .wall-feature-stage {
+        width: min(92vw, 520px);
+        min-height: 300px;
+        bottom: 13%;
+        padding: 0.7rem;
+    }
+
+    .wallpaper-stage-card,
+    .wallpaper-stage-card.wallpaper-card-tier-compact,
+    .wallpaper-stage-card.wallpaper-card-tier-standard,
+    .wallpaper-stage-card.wallpaper-card-tier-feature {
+        width: 100% !important;
+        max-width: none !important;
+        min-height: 286px;
+        left: auto !important;
+        right: auto !important;
+        top: auto !important;
+        bottom: auto !important;
+    }
 }
 
 @media (max-width: 1200px) {
     .wall-side-rail {
         display: none;
+    }
+
+    .wall-feature-stage {
+        top: auto;
+        left: 50%;
+        right: auto;
+        bottom: 14%;
+        transform: translateX(-50%);
+        width: min(82vw, 640px);
     }
 }
 

@@ -92,7 +92,7 @@ export const wallpaperHTML = `
             </div>
         </div>
 
-        <div id="wall-floating-area" class="absolute inset-0 pointer-events-none z-20"></div>
+        <div id="wall-floating-area" class="wall-feature-stage pointer-events-none z-20"></div>
 
         <div id="wall-left-rail" class="wall-side-rail wall-side-rail-left pointer-events-none z-30"></div>
         <div id="wall-right-rail" class="wall-side-rail wall-side-rail-right pointer-events-none z-30"></div>

@@ -22,7 +22,7 @@ export const firebaseConfig =
 export const cloudflareWorkerUrl = 'https://great-class-quest-ai-proxy.nvasedis-cc5.workers.dev';
 export const workerBaseUrl = 'https://great-class-quest-ai-proxy.nvasedis-cc5.workers.dev';
 export const geminiApiUrl = workerBaseUrl; 
-export const OPENROUTER_MODEL = 'google/gemini-3.1-flash-lite-preview';
+export const OPENROUTER_MODEL = 'deepseek/deepseek-v4-flash';
 const runtimeAiTextConfig = (typeof window !== 'undefined' && window.__GCQ_AI_TEXT_CONFIG__) || {};
 
 function toFreeModel(modelId) {
@@ -45,19 +45,19 @@ function normalizeAiProvider(definition, fallback = {}) {
 }
 
 const defaultAiPrimaryProvider = normalizeAiProvider({
-    id: 'gcq-primary-gemini-3-1-flash-lite',
-    label: 'GCQ - Gemini 3.1 Flash Lite',
+    id: 'gcq-primary-deepseek-v4-flash',
+    label: 'GCQ - DeepSeek V4 Flash',
     url: geminiApiUrl,
-    model: 'google/gemini-3.1-flash-lite-preview',
+    model: 'deepseek/deepseek-v4-flash',
     payloadMode: 'openrouter'
 });
 
 const defaultAiBackupProviders = [
     normalizeAiProvider({
-        id: 'gcq-backup-gemini-2-flash-lite',
-        label: 'GCQ - Gemini 2.0 Flash Lite',
+        id: 'gcq-backup-gemini-3-1-flash-lite',
+        label: 'GCQ - Gemini 3.1 Flash Lite',
         url: geminiApiUrl,
-        model: 'google/gemini-2.0-flash-lite',
+        model: 'google/gemini-3.1-flash-lite-preview',
         payloadMode: 'openrouter'
     })
 ].filter(Boolean);

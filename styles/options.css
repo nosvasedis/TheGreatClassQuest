@@ -81,6 +81,11 @@
     border-bottom-color: #115e59;
 }
 
+.options-subtab-btn[data-options-tab="quiz"].options-subtab-active {
+    background: linear-gradient(to top, #b45309, #fbbf24);
+    border-bottom-color: #92400e;
+}
+
 .options-subtab-btn[data-options-tab="access"].options-subtab-active {
     background: linear-gradient(to top, #4f46e5, #818cf8);
     border-bottom-color: #3730a3;

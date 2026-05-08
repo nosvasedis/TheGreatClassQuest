@@ -113,7 +113,10 @@ const AGE_PROMPTS = {
 };
 
 function buildGenerationPrompt() {
-    return `You are a JSON API. Respond ONLY with a valid JSON object. No markdown, no explanation, no extra text.`;
+    return `You are a JSON API for an English language teaching application.
+Your ONLY job is to output a single valid JSON object — no markdown, no code fences, no prose, no explanation.
+The JSON object MUST have exactly one top-level key: "questions", whose value is a JSON array.
+Do NOT wrap it in any other key. Do NOT add any text before or after the JSON.`;
 }
 
 function buildGenerationUserPrompt(curriculum, questLevel) {
@@ -125,41 +128,19 @@ function buildGenerationUserPrompt(curriculum, questLevel) {
     const keywords = curriculum.keywords || '';
 
     return `Create a weekly English quiz for ${ageDesc}.
-Topic: ${typeLabel}.
-${categoriesList ? `Categories: ${categoriesList}.` : ''}
-${keywords ? `Keywords: "${keywords}".` : ''}
+Subject: ${typeLabel}.
+${categoriesList ? `Topics: ${categoriesList}.` : ''}
+${keywords ? `Specific focus: "${keywords}".` : ''}
 
-Generate 5 to 10 questions. Mix these question types:
-- "mcq": 4-option multiple choice
-- "fill": fill-in-the-blank (one word or short phrase answer)
-- "image": describe an image for an AI image generator, then ask what is shown
+Rules:
+- Generate exactly 7 questions (no more, no less).
+- Use only these two question types: "mcq" (4-option multiple choice) and "fill" (fill-in-the-blank with ONE correct word or short phrase).
+- Make every question directly relevant to the topics/focus listed above.
+- Keep language appropriate for ${ageDesc}.
+- Do NOT produce any text outside the JSON object.
 
-Return a JSON object with this exact shape:
-{
-  "questions": [
-    {
-      "type": "mcq",
-      "question": "question text",
-      "options": ["option A", "option B", "option C", "option D"],
-      "correctIndex": 0,
-      "correctAnswer": "option A",
-      "explanation": "why this is correct"
-    },
-    {
-      "type": "fill",
-      "question": "The cat sat on the ___.",
-      "correctAnswer": "mat",
-      "explanation": "brief explanation"
-    },
-    {
-      "type": "image",
-      "question": "What animal is shown?",
-      "imagePrompt": "a friendly golden retriever dog sitting in a sunny park, colorful cartoon style",
-      "correctAnswer": "dog",
-      "explanation": "brief explanation"
-    }
-  ]
-}`;
+Output this exact JSON shape (nothing else):
+{"questions":[{"type":"mcq","question":"...","options":["A","B","C","D"],"correctIndex":0,"correctAnswer":"A","explanation":"..."},{"type":"fill","question":"She ___ born in 2010.","correctAnswer":"was","explanation":"..."}]}`;
 }
 
 const IMAGE_AGE_PROMPTS = {
@@ -170,6 +151,31 @@ const IMAGE_AGE_PROMPTS = {
     'C': 'detailed illustration for students aged 11-12, thought-provoking and mature visual style',
     'D': 'high quality illustration for students aged 12-13, sophisticated and nuanced visual style'
 };
+
+// Recursively search a parsed object for the first array whose items look like questions.
+function deepFindQuestions(obj, depth = 0) {
+    if (depth > 4 || obj === null || typeof obj !== 'object') return [];
+    if (Array.isArray(obj)) {
+        // If every item has a 'question' or 'type' field, treat as questions array
+        if (obj.length > 0 && obj.every(item => item && (item.question || item.type))) return obj;
+        for (const item of obj) {
+            const found = deepFindQuestions(item, depth + 1);
+            if (found.length > 0) return found;
+        }
+        return [];
+    }
+    for (const key of Object.keys(obj)) {
+        const val = obj[key];
+        if (Array.isArray(val) && val.length > 0 && val.every(item => item && (item.question || item.type))) {
+            return val;
+        }
+        if (val && typeof val === 'object') {
+            const found = deepFindQuestions(val, depth + 1);
+            if (found.length > 0) return found;
+        }
+    }
+    return [];
+}
 
 export async function generateQuizQuestions(classId) {
     const quiz = await getQuizForClass(classId);
@@ -182,11 +188,23 @@ export async function generateQuizQuestions(classId) {
         const userPrompt = buildGenerationUserPrompt(quiz.curriculum, quiz.questLevel);
 
         const aiResult = await callGeminiApi(systemPrompt, userPrompt, { retries: 2, baseDelay: 1000, timeoutMs: 60000 });
-        const parsed = extractJsonFromAiText(aiResult);
-        // Accept both { questions: [...] } wrapper and bare array
-        let questions = Array.isArray(parsed) ? parsed : (Array.isArray(parsed?.questions) ? parsed.questions : []);
+        let parsed;
+        try {
+            parsed = extractJsonFromAiText(aiResult);
+        } catch (parseErr) {
+            console.error('Quiz JSON parse failed. Raw AI response:', aiResult);
+            throw new Error(`AI response could not be parsed as JSON. Raw: ${String(aiResult).slice(0, 200)}`);
+        }
 
-        if (questions.length === 0) throw new Error('AI generated no questions');
+        // Accept { questions: [...] }, a bare array, or a deeply-nested questions key
+        let questions = Array.isArray(parsed)
+            ? parsed
+            : (Array.isArray(parsed?.questions) ? parsed.questions : deepFindQuestions(parsed));
+
+        if (questions.length === 0) {
+            console.error('Quiz: no questions found. Raw AI response:', aiResult, 'Parsed:', parsed);
+            throw new Error('AI generated no questions. Raw response logged to console.');
+        }
 
         const processed = questions.slice(0, 10).map((q, i) => ({
             id: `q${i + 1}`,

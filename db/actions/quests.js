@@ -423,7 +423,9 @@ async function finalizeAdventureLogGeneration({
     const aiResult = await callGeminiApiDetailed(aiPrompts.systemPrompt, aiPrompts.userPrompt, {
         retries: 1,
         baseDelay: 700,
-        timeoutMs: 15000
+        // The Worker may throttle before calling OpenRouter, and free models can be slow.
+        // Give the Chronicler enough time to actually complete.
+        timeoutMs: 35000
     });
 
     const diary = _parseDiaryJson(aiResult.content, {

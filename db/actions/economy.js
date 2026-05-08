@@ -1026,7 +1026,7 @@ export async function resolveMissingGenders() {
     const userPrompt = `Classify these students: ${JSON.stringify(listToAnalyze)}`;
 
     try {
-        const jsonStr = await callGeminiApi(systemPrompt, userPrompt, { jsonMode: true });
+        const jsonStr = await callGeminiApi(systemPrompt, userPrompt);
         const resultMap = extractJsonFromAiText(jsonStr);
 
         // 4. Batch Save to Firebase

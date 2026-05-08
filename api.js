@@ -151,12 +151,6 @@ function resolveFreeModelId(providerModel) {
     if (!model) {
         throw new Error('No model configured for AI provider.');
     }
-    if (!model.endsWith(':free')) {
-        const error = new Error(`Blocked non-free model id: ${model}`);
-        error.name = 'NonFreeModelBlockedError';
-        error.isRetryable = false;
-        throw error;
-    }
     return model;
 }
 

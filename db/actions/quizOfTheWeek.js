@@ -176,7 +176,7 @@ export async function generateQuizQuestions(classId) {
         const systemPrompt = buildGenerationPrompt();
         const userPrompt = buildGenerationUserPrompt(quiz.curriculum, quiz.questLevel);
 
-        const aiResult = await callGeminiApi(systemPrompt, userPrompt, { retries: 2, baseDelay: 1000, timeoutMs: 60000, jsonMode: true });
+        const aiResult = await callGeminiApi(systemPrompt, userPrompt, { retries: 2, baseDelay: 1000, timeoutMs: 60000 });
         const parsed = extractJsonFromAiText(aiResult);
         // Accept both { questions: [...] } wrapper and bare array
         let questions = Array.isArray(parsed) ? parsed : (Array.isArray(parsed?.questions) ? parsed.questions : []);

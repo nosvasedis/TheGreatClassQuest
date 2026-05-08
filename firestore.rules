@@ -207,7 +207,8 @@ service cloud.firestore {
         (collection == 'daily_cache') ||
         (collection == 'quiz_of_the_week' && request.resource.data.createdBy.uid == request.auth.uid) ||
         (collection == 'guild_scores') ||
-        (collection == 'guild_champions')
+        (collection == 'guild_champions') ||
+        (collection == 'world_boss')
       );
 
       allow update: if signedIn() && (
@@ -228,6 +229,7 @@ service cloud.firestore {
         (collection == 'school_settings' && docId == 'holidays') ||
         (collection == 'daily_ai_content' && resource.data.createdBy.uid == request.auth.uid) ||
         (collection == 'daily_cache') ||
+        (collection == 'quiz_of_the_week' && resource.data.createdBy.uid == request.auth.uid) ||
         (collection == 'guild_scores') ||
         (collection == 'guild_champions') ||
         (collection == 'world_boss')
@@ -249,6 +251,16 @@ service cloud.firestore {
         (collection == 'class_sanctuaries' && resource.data.createdBy.uid == request.auth.uid) ||
         (collection == 'daily_cache')
       );
+    }
+
+    match /artifacts/great-class-quest/public/data/quiz_of_the_week/{quizDocId}/attempts/{attemptId} {
+      allow read: if isStaff() || isSchoolAdmin();
+      allow create: if signedIn() && (
+        isStaff() ||
+        isSchoolAdmin() ||
+        request.resource.data.teacherId == request.auth.uid
+      );
+      allow update, delete: if false;
     }
 
     match /{path=**}/monthly_history/{monthId} {

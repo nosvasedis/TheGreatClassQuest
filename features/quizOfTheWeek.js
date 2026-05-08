@@ -384,13 +384,10 @@ export function resetQuiz(classId) {
 // 4. UTILITY — format date for override lookup
 // =============================================================================
 
-// formatDateKey helper not built into utils.js — patch it
-if (!utils.formatDateKey) {
-    utils.formatDateKey = function (date) {
-        const d = new Date(date);
-        const dd = String(d.getDate()).padStart(2, '0');
-        const mm = String(d.getMonth() + 1).padStart(2, '0');
-        const yyyy = d.getFullYear();
-        return `${dd}-${mm}-${yyyy}`;
-    };
+function formatDateKey(date) {
+    const d = new Date(date);
+    const dd = String(d.getDate()).padStart(2, '0');
+    const mm = String(d.getMonth() + 1).padStart(2, '0');
+    const yyyy = d.getFullYear();
+    return `${dd}-${mm}-${yyyy}`;
 }

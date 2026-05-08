@@ -591,7 +591,7 @@ function getLayout(name, theme, spice, selector, row2, row3) {
                     <div class="text-6xl font-title drop-shadow-md mb-2">${theme.temp}</div>
                     <div class="text-xl font-bold uppercase tracking-widest opacity-90">${theme.weatherText}</div>
                 </div>
-                <div id="weather-card-footer" class="relative z-10 text-right mt-auto pt-4" data-quiz-class="${activeClassId || ''}">
+                <div id="weather-card-footer" class="relative z-10 text-right mt-auto pt-4" data-quiz-class="${state.get('globalSelectedClassId') || ''}">
                     <div class="text-xs font-bold opacity-75 uppercase mb-1">Daily Wisdom</div>
                     <div class="text-sm font-medium leading-tight font-serif italic" data-spice-quote>"${spice.quote}"</div>
                 </div>

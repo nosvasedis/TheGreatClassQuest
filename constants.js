@@ -22,7 +22,7 @@ export const firebaseConfig =
 export const cloudflareWorkerUrl = 'https://great-class-quest-ai-proxy.nvasedis-cc5.workers.dev';
 export const workerBaseUrl = 'https://great-class-quest-ai-proxy.nvasedis-cc5.workers.dev';
 export const geminiApiUrl = workerBaseUrl; 
-export const OPENROUTER_MODEL = 'z-ai/glm-4.5-air:free';
+export const OPENROUTER_MODEL = 'nvidia/nemotron-3-nano-omni-30b-a3b-reasoning:free';
 const runtimeAiTextConfig = (typeof window !== 'undefined' && window.__GCQ_AI_TEXT_CONFIG__) || {};
 
 function toFreeModel(modelId) {
@@ -46,14 +46,36 @@ function normalizeAiProvider(definition, fallback = {}) {
 }
 
 const defaultAiPrimaryProvider = normalizeAiProvider({
-    id: 'gcq-primary-glm-4.5-air-free',
-    label: 'GCQ - GLM 4.5 Air Free',
+    id: 'gcq-primary-nemotron-3-nano-omni-30b-a3b-reasoning-free',
+    label: 'GCQ - Nemotron 3 Nano Omni 30B A3B Reasoning Free',
     url: geminiApiUrl,
     model: OPENROUTER_MODEL,
     payloadMode: 'openrouter'
 });
 
-const defaultAiBackupProviders = [];
+const defaultAiBackupProviders = [
+    normalizeAiProvider({
+        id: 'gcq-backup-hy3-preview-free',
+        label: 'GCQ - Tencent HY3 Preview Free',
+        url: geminiApiUrl,
+        model: 'tencent/hy3-preview:free',
+        payloadMode: 'openrouter'
+    }),
+    normalizeAiProvider({
+        id: 'gcq-backup-gemma-4-26b-a4b-it-free',
+        label: 'GCQ - Gemma 4 26B A4B IT Free',
+        url: geminiApiUrl,
+        model: 'google/gemma-4-26b-a4b-it:free',
+        payloadMode: 'openrouter'
+    }),
+    normalizeAiProvider({
+        id: 'gcq-backup-gemma-4-31b-it-free',
+        label: 'GCQ - Gemma 4 31B IT Free',
+        url: geminiApiUrl,
+        model: 'google/gemma-4-31b-it:free',
+        payloadMode: 'openrouter'
+    })
+].filter(Boolean);
 
 const configuredAiProviders = Array.isArray(runtimeAiTextConfig.providers)
     ? runtimeAiTextConfig.providers

@@ -425,7 +425,8 @@ async function finalizeAdventureLogGeneration({
         baseDelay: 700,
         // The Worker may throttle before calling OpenRouter, and free models can be slow.
         // Give the Chronicler enough time to actually complete.
-        timeoutMs: 35000
+        timeoutMs: 35000,
+        jsonMode: true
     });
 
     // Never persist raw model output as the diary entry (prevents "thoughts"/instructions leakage).
@@ -463,7 +464,8 @@ async function finalizeAdventureLogGeneration({
             const repairResult = await callGeminiApiDetailed(repair.systemPrompt, repair.userPrompt, {
                 retries: 0,
                 baseDelay: 0,
-                timeoutMs: 35000
+                timeoutMs: 35000,
+                jsonMode: true
             });
             lastRaw = repairResult.content;
 

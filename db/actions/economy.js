@@ -271,7 +271,7 @@ export async function handleGenerateShopStock() {
         4. Output Format: A valid JSON array of objects: [{"name": "string", "desc": "string", "price": number}].
         Do NOT use markdown.`;
 
-        const jsonString = await callGeminiApi(systemPrompt, "Generate the JSON list now. Output ONLY the raw JSON array, nothing else.");
+        const jsonString = await callGeminiApi(systemPrompt, "Generate the JSON list now. Output ONLY the raw JSON array, nothing else.", { jsonMode: true });
         let itemsData = [];
         try {
             itemsData = extractJsonFromAiText(jsonString);
@@ -279,7 +279,8 @@ export async function handleGenerateShopStock() {
             console.error("JSON Parse failed, retrying...");
             const fixedJson = await callGeminiApi(
                 "You must output ONLY a valid JSON array. No explanation, no markdown. Fix and return this JSON array:",
-                jsonString
+                jsonString,
+                { jsonMode: true }
             );
             itemsData = extractJsonFromAiText(fixedJson);
         }
@@ -1027,7 +1028,7 @@ export async function resolveMissingGenders() {
     const userPrompt = `Classify these students: ${JSON.stringify(listToAnalyze)}`;
 
     try {
-        const jsonStr = await callGeminiApi(systemPrompt, userPrompt);
+        const jsonStr = await callGeminiApi(systemPrompt, userPrompt, { jsonMode: true });
         const resultMap = extractJsonFromAiText(jsonStr);
 
         // 4. Batch Save to Firebase

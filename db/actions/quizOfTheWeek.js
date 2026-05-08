@@ -107,7 +107,11 @@ const AGE_PROMPTS = {
     'D': 'students aged 12-13 (advanced vocabulary, challenging content okay)'
 };
 
-function buildGenerationPrompt(curriculum, questLevel) {
+function buildGenerationPrompt() {
+    return `You are a JSON API. Respond ONLY with a valid JSON object. No markdown, no explanation, no extra text.`;
+}
+
+function buildGenerationUserPrompt(curriculum, questLevel) {
     const ageDesc = AGE_PROMPTS[questLevel] || AGE_PROMPTS['A'];
     const typeLabel = curriculum.type === 'grammar' ? 'English Grammar' :
         curriculum.type === 'vocabulary' ? 'English Vocabulary' :
@@ -115,29 +119,41 @@ function buildGenerationPrompt(curriculum, questLevel) {
     const categoriesList = (curriculum.categories || []).join(', ');
     const keywords = curriculum.keywords || '';
 
-    return `You are an expert English teacher creating a weekly quiz for ${ageDesc}.
-Topic area: ${typeLabel}.
-${categoriesList ? `The teacher selected these categories: ${categoriesList}.` : ''}
-${keywords ? `The teacher provided these keywords/topics: "${keywords}".` : ''}
+    return `Create a weekly English quiz for ${ageDesc}.
+Topic: ${typeLabel}.
+${categoriesList ? `Categories: ${categoriesList}.` : ''}
+${keywords ? `Keywords: "${keywords}".` : ''}
 
-Create between 5 and 10 quiz questions. Vary the question types among:
-- "mcq": multiple choice with 4 options (A, B, C, D)
-- "fill": fill-in-the-blank (student types the answer)
-- "image": image identification (describe an image that should be generated)
+Generate 5 to 10 questions. Mix these question types:
+- "mcq": 4-option multiple choice
+- "fill": fill-in-the-blank (one word or short phrase answer)
+- "image": describe an image for an AI image generator, then ask what is shown
 
-For "image" type questions, write a DETAILED image prompt that could be sent to an AI image generator. Make it vivid, describing the scene, colors, and key elements clearly.
-
-All questions must be age-appropriate for ${ageDesc}. Use vocabulary and concepts suitable for this age group.
-
-Return ONLY a valid JSON array of question objects. No markdown, no explanation. Each question object:
+Return a JSON object with this exact shape:
 {
-  "type": "mcq" | "fill" | "image",
-  "question": "the question text",
-  "options": ["A", "B", "C", "D"],  // for mcq only
-  "correctIndex": 0,                // for mcq only (0-based)
-  "correctAnswer": "the answer",    // for fill and image
-  "imagePrompt": "detailed prompt", // for image only
-  "explanation": "brief explanation of the correct answer"
+  "questions": [
+    {
+      "type": "mcq",
+      "question": "question text",
+      "options": ["option A", "option B", "option C", "option D"],
+      "correctIndex": 0,
+      "correctAnswer": "option A",
+      "explanation": "why this is correct"
+    },
+    {
+      "type": "fill",
+      "question": "The cat sat on the ___.",
+      "correctAnswer": "mat",
+      "explanation": "brief explanation"
+    },
+    {
+      "type": "image",
+      "question": "What animal is shown?",
+      "imagePrompt": "a friendly golden retriever dog sitting in a sunny park, colorful cartoon style",
+      "correctAnswer": "dog",
+      "explanation": "brief explanation"
+    }
+  ]
 }`;
 }
 
@@ -157,15 +173,14 @@ export async function generateQuizQuestions(classId) {
     await updateQuizStatus(classId, 'generating');
 
     try {
-        const systemPrompt = buildGenerationPrompt(quiz.curriculum, quiz.questLevel);
-        const userPrompt = `Create a quiz for ${quiz.curriculum.type || 'general'} English. Generate 5-10 questions.`;
+        const systemPrompt = buildGenerationPrompt();
+        const userPrompt = buildGenerationUserPrompt(quiz.curriculum, quiz.questLevel);
 
-        const aiResult = await callGeminiApi(systemPrompt, userPrompt, { retries: 2, baseDelay: 1000, timeoutMs: 60000 });
-        let questions = extractJsonFromAiText(aiResult);
+        const aiResult = await callGeminiApi(systemPrompt, userPrompt, { retries: 2, baseDelay: 1000, timeoutMs: 60000, jsonMode: true });
+        const parsed = extractJsonFromAiText(aiResult);
+        // Accept both { questions: [...] } wrapper and bare array
+        let questions = Array.isArray(parsed) ? parsed : (Array.isArray(parsed?.questions) ? parsed.questions : []);
 
-        if (!Array.isArray(questions)) {
-            questions = Array.isArray(questions.questions) ? questions.questions : [];
-        }
         if (questions.length === 0) throw new Error('AI generated no questions');
 
         const processed = questions.slice(0, 10).map((q, i) => ({

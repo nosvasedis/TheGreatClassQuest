@@ -160,26 +160,20 @@ function resolveFreeModelId(providerModel) {
     return model;
 }
 
-function buildProviderPayload(provider, systemPrompt, userPrompt) {
+function buildProviderPayload(provider, systemPrompt, userPrompt, requestOptions = {}) {
     const payloadMode = provider?.payloadMode || 'openrouter';
     const modelId = resolveFreeModelId(provider?.model);
-    if (payloadMode === 'openrouter') {
-        return {
-            model: modelId,
-            messages: [
-                { role: 'system', content: systemPrompt },
-                { role: 'user', content: userPrompt }
-            ]
-        };
-    }
-
-    return {
+    const base = {
         model: modelId,
         messages: [
             { role: 'system', content: systemPrompt },
             { role: 'user', content: userPrompt }
         ]
     };
+    if (requestOptions.jsonMode) {
+        base.response_format = { type: 'json_object' };
+    }
+    return base;
 }
 
 function extractProviderText(result) {
@@ -211,7 +205,7 @@ async function requestTextFromProvider(provider, systemPrompt, userPrompt, reque
         fetchWithBackoff(provider.url, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(buildProviderPayload(provider, systemPrompt, userPrompt))
+            body: JSON.stringify(buildProviderPayload(provider, systemPrompt, userPrompt, requestOptions))
         }, requestOptions)
     );
 

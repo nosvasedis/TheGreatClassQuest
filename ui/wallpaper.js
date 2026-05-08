@@ -806,7 +806,7 @@ async function initializeDailyAIContent() {
         Content must be kid-friendly, educational, and fun. No markdown. Return ONLY the JSON array.`;
 
         try {
-            const jsonStr = await callGeminiApi(systemPrompt, "Generate 30 items now. Output ONLY the raw JSON array.");
+            const jsonStr = await callGeminiApi(systemPrompt, "Generate 30 items now. Output ONLY the raw JSON array.", { jsonMode: true });
             const items = extractJsonFromAiText(jsonStr);
 
             const batch = writeBatch(db);

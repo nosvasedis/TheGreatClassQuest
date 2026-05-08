@@ -93,6 +93,7 @@ export async function renderAttendanceChronicle(classId) {
     const currentMonth = viewDate.getMonth();
     const currentYear = viewDate.getFullYear();
     const monthName = viewDate.toLocaleString('en-GB', { month: 'long', year: 'numeric' });
+    const todayKey = utils.getDDMMYYYY(new Date());
 
     // 1. Determine if we can go back/forward
     const competitionStart = constants.competitionStart;
@@ -229,11 +230,12 @@ export async function renderAttendanceChronicle(classId) {
         lessonDates.forEach(dateStr => {
             const d = utils.parseDDMMYYYY(dateStr);
             const absentCount = attendanceByDate[dateStr] || 0;
-            html += `<th class="attendance-date-col">
-                <div class="attendance-date-chip">
+            const isToday = dateStr === todayKey;
+            html += `<th class="attendance-date-col ${isToday ? 'attendance-date-col--today' : ''}">
+                <div class="attendance-date-chip ${isToday ? 'attendance-date-chip--today' : ''}">
                     <span class="attendance-date-chip-day">${d.getDate()}</span>
                     <span class="attendance-date-chip-weekday">${d.toLocaleDateString('en-GB', { weekday: 'short' })}</span>
-                    <span class="attendance-date-chip-meta">${absentCount} absent</span>
+                    <span class="attendance-date-chip-meta">${isToday ? 'Today' : `${absentCount} absent`}</span>
                     <button class="delete-column-btn" data-date="${dateStr}" data-class-id="${classId}" title="Remove this day (Holiday/Cancelled)" ${!isEditableMonth ? 'disabled' : ''}>
                         <i class="fas fa-trash-alt"></i>
                     </button>
@@ -261,8 +263,9 @@ export async function renderAttendanceChronicle(classId) {
             
             lessonDates.forEach(dateStr => {
                 const isAbsent = attendanceByStudent[student.id]?.has(dateStr);
+                const isToday = dateStr === todayKey;
 
-                html += `<td class="attendance-status-cell">
+                html += `<td class="attendance-status-cell ${isToday ? 'attendance-status-cell--today' : ''}">
                     <button class="attendance-status-btn ${isAbsent ? 'status-absent bg-red-500' : 'status-present bg-green-500'}" 
                             data-student-id="${student.id}" 
                             data-date="${dateStr}" 

@@ -1,10 +1,10 @@
 const ZONES = {
-    'sky-left': { top: '7%', left: '4.5%', bottom: 'auto', right: 'auto' },
-    'sky-right': { top: '8%', left: 'auto', bottom: 'auto', right: '4.5%' },
-    'horizon-left': { top: '28%', left: '4%', bottom: 'auto', right: 'auto' },
-    'horizon-right': { top: '28%', left: 'auto', bottom: 'auto', right: '4%' },
-    'harbor-left': { top: 'auto', left: '5%', bottom: '9%', right: 'auto' },
-    'harbor-right': { top: 'auto', left: 'auto', bottom: '9%', right: '5%' }
+    'sky-left': { top: '13%', left: '20%', bottom: 'auto', right: 'auto' },
+    'sky-right': { top: '13%', left: 'auto', bottom: 'auto', right: '20%' },
+    'horizon-left': { top: '34%', left: '16%', bottom: 'auto', right: 'auto' },
+    'horizon-right': { top: '34%', left: 'auto', bottom: 'auto', right: '16%' },
+    'harbor-left': { top: 'auto', left: '18%', bottom: '12%', right: 'auto' },
+    'harbor-right': { top: 'auto', left: 'auto', bottom: '12%', right: '18%' }
 };
 
 const TIER_CLASS_NAMES = {

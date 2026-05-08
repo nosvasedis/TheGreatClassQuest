@@ -92,11 +92,11 @@ export const wallpaperHTML = `
             </div>
         </div>
 
-        <div id="wall-floating-area" class="absolute inset-0 pointer-events-none z-30"></div>
+        <div id="wall-floating-area" class="absolute inset-0 pointer-events-none z-20"></div>
 
-        <div id="wall-left-rail" class="wall-side-rail wall-side-rail-left pointer-events-none z-20"></div>
-        <div id="wall-right-rail" class="wall-side-rail wall-side-rail-right pointer-events-none z-20"></div>
-        <div id="wall-top-ribbon" class="wall-top-ribbon pointer-events-none z-20"></div>
+        <div id="wall-left-rail" class="wall-side-rail wall-side-rail-left pointer-events-none z-30"></div>
+        <div id="wall-right-rail" class="wall-side-rail wall-side-rail-right pointer-events-none z-30"></div>
+        <div id="wall-top-ribbon" class="wall-top-ribbon pointer-events-none z-30"></div>
 
         <div id="wall-quote-container"
             class="absolute bottom-8 left-0 right-0 text-center z-40 transition-opacity duration-1000 opacity-0 px-4">

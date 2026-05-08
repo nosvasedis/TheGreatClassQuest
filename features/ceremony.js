@@ -80,6 +80,21 @@ function getTeacherBoonCeremonyMarkup(teacherBoon, options = {}) {
     `;
 }
 
+function setCeremonyViewMode(mode) {
+    const screen = document.getElementById('ceremony-screen');
+    if (!screen) return;
+
+    screen.classList.remove(
+        'ceremony-view--intro',
+        'ceremony-view--classes',
+        'ceremony-view--transition',
+        'ceremony-view--students',
+        'ceremony-view--final',
+        'ceremony-view--outro'
+    );
+    screen.classList.add(`ceremony-view--${mode}`);
+}
+
 // --- 1. STATUS & INITIALIZATION ---
 
 export function updateCeremonyStatus() {
@@ -167,6 +182,7 @@ export function startCeremony(params) {
     screen.classList.remove('ceremony-phase-suspense', 'ceremony-phase-reveal');
     stage.innerHTML = '';
     aiBox.style.opacity = '0';
+    setCeremonyViewMode('intro');
     
     title.innerHTML = formatTitleHtml("The Great Class Quest");
     subtitle.innerHTML = formatTitleHtml(`${params.monthName} Ceremony`);
@@ -344,6 +360,7 @@ function advanceCeremony() {
 
     // --- PHASE 1: CLASSES ---
     if (ceremonyData.phase === 'class_reveal') {
+        setCeremonyViewMode('classes');
         const queue = ceremonyData.classQueue;
         
         if (!queue || queue.length === 0) {
@@ -389,16 +406,26 @@ function advanceCeremony() {
 
     // --- PHASE 1.5: CLASS SHOWDOWN DONE ---
     else if (ceremonyData.phase === 'class_showdown_done') {
+        setCeremonyViewMode('transition');
         ceremonyData.phase = 'transition';
         advanceCeremony();
     }
 
     // --- PHASE 2: TRANSITION ---
     else if (ceremonyData.phase === 'transition') {
+        setCeremonyViewMode('transition');
         stopAllCeremonyAudio();
         setTimeout(() => { playCeremonyMusic(); }, 500);
 
-        stage.innerHTML = `<div class="text-white text-center animate-pulse"><i class="fas fa-user-astronaut text-9xl mb-4"></i><h2 class="font-title text-5xl">Hero's Challenge</h2></div>`;
+        stage.innerHTML = `
+            <div class="ceremony-transition-panel ceremony-card-enter">
+                <div class="ceremony-transition-panel__orb"></div>
+                <div class="ceremony-transition-panel__kicker">The torches turn inward</div>
+                <i class="fas fa-user-astronaut ceremony-transition-panel__icon"></i>
+                <h2 class="font-title ceremony-transition-panel__title">Hero's Challenge</h2>
+                <p class="ceremony-transition-panel__text">The class banners fade and the bravest scholars step into the spotlight.</p>
+            </div>
+        `;
         title.innerHTML = formatTitleHtml("Individual Honors");
         subtitle.innerHTML = formatTitleHtml("Who went above and beyond?");
         aiBox.style.opacity = '0';
@@ -410,6 +437,7 @@ function advanceCeremony() {
         
     // --- PHASE 3: STUDENTS ---
     else if (ceremonyData.phase === 'student_reveal') {
+        setCeremonyViewMode('students');
         const queue = ceremonyData.studentQueue;
         
         if (!queue || queue.length === 0) {
@@ -475,6 +503,7 @@ function advanceCeremony() {
 
     // --- PHASE 3.5: STUDENT SHOWDOWN DONE ---
     else if (ceremonyData.phase === 'student_showdown_done') {
+        setCeremonyViewMode('final');
         ceremonyData.phase = 'final_leaderboard';
         // Auto-advance to render the board immediately
         advanceCeremony(); 
@@ -482,6 +511,7 @@ function advanceCeremony() {
 
     // --- PHASE 3.6: FINAL LEADERBOARD (NEW) ---
     else if (ceremonyData.phase === 'final_leaderboard') {
+        setCeremonyViewMode('final');
         stage.innerHTML = '';
         renderFinalLeaderboard();
         
@@ -495,6 +525,7 @@ function advanceCeremony() {
 
     // --- PHASE 4: END ---
     else if (ceremonyData.phase === 'end') {
+        setCeremonyViewMode('outro');
         saveCeremonyComplete();
         
         stage.innerHTML = `
@@ -523,6 +554,8 @@ function advanceCeremony() {
 function renderCard(entry, type) {
     const stage = document.getElementById('ceremony-stage-area');
     const isStudent = type === 'student';
+    const accentLabel = isStudent ? 'Hero Spotlight' : 'League Spotlight';
+    const accentIcon = isStudent ? 'fa-sparkles' : 'fa-shield-cat';
     
     let borderColor = 'border-gray-300';
     let extraClass = '';
@@ -545,6 +578,27 @@ function renderCard(entry, type) {
              <span class="text-sm font-semibold text-gray-500 uppercase tracking-wide mt-1">${entry.studentCount} Students</span>
              <span class="text-amber-500 font-extrabold text-3xl mt-2 drop-shadow-sm">${formatPercent(entry.progress)}%</span>
            </div>`;
+    const detailChips = isStudent
+        ? `
+            <div class="ceremony-card-metrics">
+                <span class="ceremony-card-metric"><i class="fas fa-star"></i>${entry.stats.count3} epic moments</span>
+                <span class="ceremony-card-metric"><i class="fas fa-wand-magic-sparkles"></i>${entry.stats.uniqueReasons} strengths</span>
+                <span class="ceremony-card-metric"><i class="fas fa-book-open"></i>${Math.round(entry.stats.academicAvg || 0)}% scholar power</span>
+            </div>
+        `
+        : `
+            <div class="ceremony-card-metrics">
+                <span class="ceremony-card-metric"><i class="fas fa-layer-group"></i>League ${entry.questLevel || ceremonyData.league}</span>
+                <span class="ceremony-card-metric"><i class="fas fa-mountain-sun"></i>Tier ${entry.level}</span>
+                <span class="ceremony-card-metric"><i class="fas fa-users"></i>${entry.studentCount} heroes</span>
+            </div>
+            <div class="ceremony-card-progress">
+                <div class="ceremony-card-progress__track">
+                    <div class="ceremony-card-progress__fill" style="width: ${Math.min(100, Math.max(0, entry.progress))}%"></div>
+                </div>
+                <div class="ceremony-card-progress__meta">${formatPercent(entry.progress)}% of ${entry.goal || 0} star goal</div>
+            </div>
+        `;
     const teacherBoonHtml = isStudent ? getTeacherBoonCeremonyMarkup(entry.teacherBoon) : '';
     // Check if this card belongs to the class currently using the app
     const isMyClass = !isStudent && entry.id === ceremonyData.currentAppClassId;
@@ -552,16 +606,19 @@ function renderCard(entry, type) {
         ? `<div class="absolute top-2 right-2 bg-gradient-to-r from-indigo-500 to-purple-600 text-white text-xs font-bold px-3 py-1 rounded-full shadow-lg border border-white/50 animate-pulse z-30">YOU</div>` 
         : '';
     const card = document.createElement('div');
-    card.className = `ceremony-display-card ceremony-card-enter ${borderColor} ${extraClass}`;
+    card.className = `ceremony-display-card ceremony-card-enter ceremony-display-card--${type} ${borderColor} ${extraClass}`;
     card.innerHTML = `
+        <div class="ceremony-card-aura"></div>
         <div class="absolute -top-5 left-1/2 transform -translate-x-1/2 z-20">
             ${rankBadge}
         </div>
         ${myClassBadge}
-        <div class="mt-4">
+        <div class="mt-4 ceremony-card-shell">
+            <div class="ceremony-card-kicker"><i class="fas ${accentIcon}"></i>${accentLabel}</div>
             ${imageHtml}
             <h3 class="font-title text-4xl text-gray-800 mb-2 truncate px-2 leading-tight">${entry.name}</h3>
             <div class="mt-2">${subText}</div>
+            ${detailChips}
             ${teacherBoonHtml}
         </div>
     `;
@@ -612,7 +669,7 @@ function createFaceOff(entry, realRank, position, entryType) {
     if (!entry) return document.createElement('div');
 
     const div = document.createElement('div');
-    div.className = `ceremony-display-card ceremony-card face-off relative`;
+    div.className = `ceremony-display-card ceremony-card ceremony-display-card--${entryType} face-off relative`;
 
     div.id = `showdown-card-${position}`;
     div.dataset.rank = realRank;
@@ -636,20 +693,37 @@ function createFaceOff(entry, realRank, position, entryType) {
              <span class="text-xs text-gray-500 uppercase">${entry.studentCount} Students</span>
              <span class="text-3xl text-amber-600 font-bold mt-1">${formatPercent(entry.progress)}%</span>
            </div>`;
+    const faceOffKicker = isStudent ? 'Hero Duel' : 'League Duel';
+    const faceOffMetrics = isStudent
+        ? `
+            <div class="ceremony-card-metrics ceremony-card-metrics--compact">
+                <span class="ceremony-card-metric"><i class="fas fa-star"></i>${entry.stats.count3}</span>
+                <span class="ceremony-card-metric"><i class="fas fa-wand-magic-sparkles"></i>${entry.stats.uniqueReasons}</span>
+            </div>
+        `
+        : `
+            <div class="ceremony-card-metrics ceremony-card-metrics--compact">
+                <span class="ceremony-card-metric"><i class="fas fa-layer-group"></i>${entry.questLevel || ceremonyData.league}</span>
+                <span class="ceremony-card-metric"><i class="fas fa-users"></i>${entry.studentCount}</span>
+            </div>
+        `;
     const teacherBoonWrapped = isStudent && entry.teacherBoon
         ? `<div class="ceremony-teacher-boon-reveal ceremony-teacher-boon-reveal--hidden">${getTeacherBoonCeremonyMarkup(entry.teacherBoon, { compact: true })}</div>`
         : '';
 
     div.innerHTML = `
+        <div class="ceremony-card-aura"></div>
         <div class="rank-badge absolute -top-8 left-1/2 transform -translate-x-1/2 text-6xl drop-shadow-md z-20 transition-all duration-500 opacity-0">
             ${realRank === 1 ? '🥇' : '🥈'}
         </div>
-        <div class="mt-6">
+        <div class="mt-6 ceremony-card-shell">
+            <div class="ceremony-card-kicker">${faceOffKicker}</div>
             ${imageHtml}
             <h3 class="font-title text-3xl text-gray-700 mb-2 truncate px-2 leading-tight">${entry.name}</h3>
             <div class="star-count opacity-0 blur-sm transition-all duration-500">
                 ${scoreDisplay}
             </div>
+            ${faceOffMetrics}
             ${teacherBoonWrapped}
         </div>
     `;
@@ -674,6 +748,7 @@ function handleDramaticReveal() {
     playDrumRoll();
 
     cards.forEach(card => card.classList.add('tension-active'));
+    const finishedClassShowdown = ceremonyData.phase === 'class_showdown';
 
     setTimeout(() => {
         stopDrumRoll();
@@ -750,15 +825,14 @@ function handleDramaticReveal() {
             triggerAICommentary(phaseType, { id: cardRight.dataset.id, name: cardRight.dataset.name, score: cardRight.dataset.score });
         }
 
-        if (ceremonyData.phase === 'class_showdown') {
+        if (finishedClassShowdown) {
             ceremonyData.phase = 'class_showdown_done'; 
         } else {
             ceremonyData.phase = 'student_showdown_done'; 
         }
 
         btn.disabled = false;
-        // FIX: Change button directly to final step
-        btn.innerText = "Show Final Standings";
+        btn.innerText = finishedClassShowdown ? 'Begin Hero Reveal' : 'Show Final Standings';
         btn.onclick = advanceCeremony; 
 
     }, 3000); 

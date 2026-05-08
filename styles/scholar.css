@@ -227,6 +227,28 @@ optgroup {
     gap: 0.2rem;
 }
 
+.attendance-date-col--today {
+    background: linear-gradient(180deg, rgba(255, 251, 235, 0.98), rgba(254, 243, 199, 0.98)) !important;
+    box-shadow: inset 0 -1px 0 rgba(245, 158, 11, 0.16);
+}
+
+.attendance-date-chip--today {
+    position: relative;
+    padding: 0.35rem 0.45rem 0.25rem;
+    border-radius: 1rem;
+    background: linear-gradient(180deg, rgba(251, 191, 36, 0.2), rgba(249, 115, 22, 0.12));
+    box-shadow: 0 16px 28px -24px rgba(217, 119, 6, 0.9);
+}
+
+.attendance-date-chip--today::after {
+    content: '';
+    position: absolute;
+    inset: -0.2rem;
+    border-radius: 1.15rem;
+    border: 2px solid rgba(245, 158, 11, 0.55);
+    pointer-events: none;
+}
+
 .attendance-date-chip-day {
     font-family: 'Fredoka One', cursive;
     font-size: 1.25rem;
@@ -244,6 +266,15 @@ optgroup {
 .attendance-date-chip-meta {
     font-size: 0.68rem;
     color: #64748b;
+}
+
+.attendance-date-chip--today .attendance-date-chip-day {
+    color: #9a3412;
+}
+
+.attendance-date-chip--today .attendance-date-chip-weekday,
+.attendance-date-chip--today .attendance-date-chip-meta {
+    color: #b45309;
 }
 
 .delete-column-btn {
@@ -322,6 +353,11 @@ optgroup {
 .attendance-status-cell,
 .attendance-summary-cell {
     padding: 0.85rem 0.45rem;
+}
+
+.attendance-status-cell--today {
+    background: linear-gradient(180deg, rgba(255, 251, 235, 0.74), rgba(254, 243, 199, 0.92)) !important;
+    box-shadow: inset 0 0 0 1px rgba(251, 191, 36, 0.18);
 }
 
 .attendance-status-btn {

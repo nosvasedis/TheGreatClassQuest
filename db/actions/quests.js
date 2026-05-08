@@ -448,29 +448,36 @@ async function finalizeAdventureLogGeneration({
 
     // If the model leaked thoughts/instructions or broke JSON, do one immediate "repair" retry.
     if (!_looksLikeValidDiary(finalDiary)) {
-        const repair = _buildDiaryRepairPrompts({
-            rawModelOutput: aiResult.content,
-            ageTier,
-            className: classData.name,
-            date: getTodayDateString(),
-            heroOfTheDay
-        });
+        const date = getTodayDateString();
+        let lastRaw = aiResult.content;
 
-        const repairResult = await callGeminiApiDetailed(repair.systemPrompt, repair.userPrompt, {
-            retries: 0,
-            baseDelay: 0,
-            timeoutMs: 35000
-        });
+        for (let i = 0; i < 2; i += 1) {
+            const repair = _buildDiaryRepairPrompts({
+                rawModelOutput: lastRaw,
+                ageTier,
+                className: classData.name,
+                date,
+                heroOfTheDay
+            });
 
-        const repairedDiary = _parseDiaryJson(repairResult.content, {
-            defaultTitle: placeholder.title,
-            defaultEntry: placeholder.entry,
-            fallbackHighlights: placeholder.highlights,
-            fallbackKeywords: placeholder.keywords
-        });
+            const repairResult = await callGeminiApiDetailed(repair.systemPrompt, repair.userPrompt, {
+                retries: 0,
+                baseDelay: 0,
+                timeoutMs: 35000
+            });
+            lastRaw = repairResult.content;
 
-        if (_looksLikeValidDiary(repairedDiary)) {
-            finalDiary = repairedDiary;
+            const repairedDiary = _parseDiaryJson(repairResult.content, {
+                defaultTitle: placeholder.title,
+                defaultEntry: placeholder.entry,
+                fallbackHighlights: placeholder.highlights,
+                fallbackKeywords: placeholder.keywords
+            });
+
+            if (_looksLikeValidDiary(repairedDiary)) {
+                finalDiary = repairedDiary;
+                break;
+            }
         }
     }
 
@@ -958,9 +965,20 @@ function _parseDiaryJson(raw, { defaultTitle, defaultEntry, fallbackHighlights =
 function _looksLikeValidDiary(diary) {
     if (!diary || typeof diary !== 'object') return false;
     const titleOk = typeof diary.title === 'string' && diary.title.trim().length > 0;
-    const entryOk = typeof diary.entry === 'string' && diary.entry.trim().length > 0;
-    const highlightsOk = Array.isArray(diary.highlights) && diary.highlights.length === 3;
-    const keywordsOk = Array.isArray(diary.keywords) && diary.keywords.length >= 3 && diary.keywords.length <= 5;
+    const entry = typeof diary.entry === 'string' ? diary.entry.trim() : '';
+    const entryOkBasic = entry.length >= 80 && !/\n|\r/.test(entry);
+    // Count sentence-ish endings. This is heuristic but catches "...." and ultra-short junk.
+    const sentenceCount = entry ? (entry.match(/[.!?](\s|$)/g) || []).length : 0;
+    const entryOk = entryOkBasic && sentenceCount >= 3;
+    const highlightsOk =
+        Array.isArray(diary.highlights) &&
+        diary.highlights.length === 3 &&
+        diary.highlights.every((h) => typeof h === 'string' && h.trim().length > 0);
+    const keywordsOk =
+        Array.isArray(diary.keywords) &&
+        diary.keywords.length >= 3 &&
+        diary.keywords.length <= 5 &&
+        diary.keywords.every((k) => typeof k === 'string' && /^[a-z0-9_]+$/.test(k));
     return titleOk && entryOk && highlightsOk && keywordsOk;
 }
 

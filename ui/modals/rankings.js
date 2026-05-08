@@ -794,6 +794,7 @@ export function openZoneOverviewModal(zoneType) {
         const info = {
             name: c.name,
             logo: c.logo,
+            level: c.questLevel,
             progress: progressPct,
             stars: currentMonthlyStars,
             questBonus: classQuestBonus,
@@ -872,7 +873,13 @@ export function openZoneOverviewModal(zoneType) {
                                 
                                 <div class="flex-grow min-w-0">
                                     <div class="flex justify-between items-center mb-2">
-                                        <div class="font-title text-xl text-gray-800 truncate tracking-tight">${c.name}</div>
+                                        <div>
+                                            <div class="font-title text-xl text-gray-800 truncate tracking-tight">${c.name}</div>
+                                            <div class="inline-flex items-center gap-2 mt-1 px-3 py-1 rounded-full bg-white/80 border border-white/70 text-[10px] font-black uppercase tracking-[0.22em] text-slate-500 shadow-sm">
+                                                <i class="fas fa-layer-group text-amber-500"></i>
+                                                Level ${c.level || 'Unknown'}
+                                            </div>
+                                        </div>
                                         ${badge}
                                     </div>
                                     

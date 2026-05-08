@@ -910,6 +910,7 @@ export function setupUIListeners() {
         const deleteBtn = e.target.closest('.log-delete-btn');
         const noteBtn = e.target.closest('.log-note-btn');
         const editBtn = e.target.closest('.log-edit-btn');
+        const retryBtn = e.target.closest('.log-retry-btn');
         if (deleteBtn) {
             deleteAdventureLog(deleteBtn.dataset.logId);
         }
@@ -918,6 +919,9 @@ export function setupUIListeners() {
         }
         if (editBtn) {
             editAdventureLogEntry(editBtn.dataset.logId);
+        }
+        if (retryBtn) {
+            import('../../db/actions.js').then((a) => a.retryAdventureLogGeneration(retryBtn.dataset.logId));
         }
     });
     document.getElementById('note-cancel-btn').addEventListener('click', () => modals.hideModal('note-modal'));

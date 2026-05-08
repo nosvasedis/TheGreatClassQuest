@@ -40,6 +40,13 @@ function getAdventureLogGenerationBadge(log) {
     return `<span class="inline-flex items-center rounded-full px-3 py-1 text-[11px] font-bold uppercase tracking-[0.14em] ${meta.className}">${meta.label}</span>`;
 }
 
+function shouldShowAdventureLogRetry(log) {
+    const entryMode = inferAdventureLogEntryMode(log);
+    if (entryMode !== 'ai') return false;
+    const status = String(log?.generationStatus || '').toLowerCase();
+    return status === 'pending' || status === 'failed';
+}
+
 function renderDiaryArtwork(log, entryMode) {
     const imageSrc = log.imageUrl || log.imageBase64 || '';
     if (imageSrc) {
@@ -265,6 +272,7 @@ export async function renderAdventureLog() {
                         ${keywordsHtml}
                     </div>
                     <div class="flex gap-2">
+                        ${shouldShowAdventureLogRetry(log) ? `<button class="log-retry-btn bubbly-button bg-amber-100 text-amber-800 w-8 h-8 rounded-full flex items-center justify-center" data-log-id="${log.id}" title="Retry AI"><i class="fas fa-rotate-right"></i></button>` : ''}
                         ${canEditAdventureLog(log) ? `<button class="log-edit-btn bubbly-button bg-indigo-100 text-indigo-700 w-8 h-8 rounded-full flex items-center justify-center" data-log-id="${log.id}" title="Edit Entry"><i class="fas fa-edit"></i></button>` : ''}
                         <button class="log-note-btn bubbly-button bg-blue-100 text-blue-700 w-8 h-8 rounded-full flex items-center justify-center" data-log-id="${log.id}" title="${log.note ? 'Edit Note' : 'Add Note'}"><i class="fas fa-sticky-note"></i></button>
                         <button class="log-delete-btn bubbly-button bg-red-100 text-red-700 w-8 h-8 rounded-full flex items-center justify-center" data-log-id="${log.id}" title="Delete Log Entry"><i class="fas fa-trash-alt"></i></button>

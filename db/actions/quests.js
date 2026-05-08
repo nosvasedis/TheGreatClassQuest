@@ -290,6 +290,125 @@ Power-up context: ${powerUpContext || 'none'}`;
     return { systemPrompt, userPrompt };
 }
 
+function buildAdventureLogRetryPromptsFromLog(log, classData) {
+    const ageTier = String(log?.ageTier || '').trim() || _getAgeTierFromLeague(classData?.questLevel || '');
+    const heroOfTheDay = String(log?.hero || '').trim() || 'The Class Team';
+    const totalStars = Number(log?.totalStars) || 0;
+    const keywords = Array.isArray(log?.keywords) ? log.keywords.join(', ') : '';
+    const highlights = Array.isArray(log?.highlights) ? log.highlights.join(', ') : '';
+    const previousText = String(log?.text || '').trim();
+    const previousTitle = String(log?.title || '').trim();
+    const lastError = String(log?.generationError || '').trim();
+
+    const systemPrompt = `You are The Chronicler, a classroom diary writer. Your ONLY output must be a single valid JSON object — nothing else.
+
+JSON STRUCTURE (copy exactly, fill in values):
+{"title":"...","entry":"...","highlights":["...","...","..."],"keywords":["...","...","..."]}
+
+STRICT RULES:
+- Output ONLY the JSON object. No markdown, no code fences, no explanation before or after.
+- ALL four keys must be present: title, entry, highlights, keywords.
+- Every string value MUST be wrapped in double-quotes.
+- The "entry" value is ONE paragraph (4-6 sentences). No line breaks inside it. Escape any double-quote inside with \\".
+- "title": max 8 words.
+- "highlights": exactly 3 short strings.
+- "keywords": 3-5 lowercase single-word strings.
+- Tone: ${ageTier === 'junior' ? 'warm, simple, vivid' : ageTier === 'mid' ? 'energetic and reflective' : 'rich language, encouraging'}.
+- Mention the Hero of the Day naturally in the entry.
+- If prior text exists, rewrite it into a cleaner diary entry rather than inventing a totally new day.`;
+
+    const userPrompt = `Retry request for an Adventure Log entry.
+Tier: ${ageTier}
+Class: ${classData?.name || 'Unknown Class'}
+Date: ${String(log?.date || '')}
+Stars earned: ${totalStars}
+Hero of the day: ${heroOfTheDay}
+Known keywords: ${keywords || 'none'}
+Known highlights: ${highlights || 'none'}
+Previous title: ${previousTitle || 'none'}
+Previous text: ${previousText || 'none'}
+Last error (if any): ${lastError || 'none'}`;
+
+    return { systemPrompt, userPrompt, ageTier, heroOfTheDay, totalStars };
+}
+
+export async function retryAdventureLogGeneration(logId, options = {}) {
+    const { allowArtwork = true } = options || {};
+    if (!logId) return;
+
+    const existing = (state.get('allAdventureLogs') || []).find((l) => l.id === logId) || null;
+    const logRef = doc(db, 'artifacts/great-class-quest/public/data/adventure_logs', logId);
+    let resolvedLog = existing;
+    if (!resolvedLog) {
+        const snap = await getDoc(logRef);
+        if (!snap.exists()) {
+            showToast('Could not find that Adventure Log entry.', 'error');
+            return;
+        }
+        resolvedLog = { id: snap.id, ...snap.data() };
+    }
+    if (!resolvedLog) {
+        showToast('Could not find that Adventure Log entry.', 'error');
+        return;
+    }
+
+    const entryMode = String(resolvedLog?.entryMode || '').toLowerCase();
+    if (entryMode !== 'ai') {
+        showToast('Only AI-written Adventure Log entries can be retried.', 'info');
+        return;
+    }
+
+    const classId = resolvedLog.classId;
+    const classData = state.get('allSchoolClasses').find((c) => c.id === classId)
+        || state.get('allTeachersClasses').find((c) => c.id === classId)
+        || null;
+    if (!classData) {
+        showToast('Could not load class data to retry this entry.', 'error');
+        return;
+    }
+
+    const retryMeta = buildAdventureLogRetryPromptsFromLog(resolvedLog, classData);
+
+    await updateAdventureLogGenerationState(logId, {
+        generationStatus: 'retrying',
+        pendingRetryAt: null,
+        generationError: '',
+        generationUpdatedAt: serverTimestamp(),
+        generationSummary: describeAdventureLogGenerationStatus('retrying')
+    });
+
+    try {
+        const reasonLabels = Array.isArray(resolvedLog?.keywords) ? resolvedLog.keywords : [];
+        const alreadyHasArtwork = !!resolvedLog.imageUrl;
+        const shouldAllowArtwork = allowArtwork && !alreadyHasArtwork;
+
+        await finalizeAdventureLogGeneration({
+            logId,
+            aiPrompts: { systemPrompt: retryMeta.systemPrompt, userPrompt: retryMeta.userPrompt },
+            classData,
+            heroOfTheDay: retryMeta.heroOfTheDay,
+            ageTier: retryMeta.ageTier,
+            reasonLabels,
+            totalStars: retryMeta.totalStars,
+            attemptNumber: (Number(resolvedLog.generationAttempts) || 0) + 1,
+            allowArtwork: shouldAllowArtwork
+        });
+
+        showToast('Retry succeeded — the Chronicler updated this entry.', 'success');
+    } catch (error) {
+        console.error('Manual chronicler retry failed:', error);
+        await updateAdventureLogGenerationState(logId, {
+            generationStatus: 'failed',
+            generationAttempts: (Number(resolvedLog.generationAttempts) || 0) + 1,
+            generationError: String(error?.message || 'AI generation failed.'),
+            pendingRetryAt: null,
+            generationUpdatedAt: serverTimestamp(),
+            generationSummary: describeAdventureLogGenerationStatus('failed')
+        });
+        showToast('Retry failed. Please try again later.', 'error');
+    }
+}
+
 async function finalizeAdventureLogGeneration({
     logId,
     aiPrompts,

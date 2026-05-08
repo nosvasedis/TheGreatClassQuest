@@ -797,10 +797,12 @@ async function renderQuizOptionsUi() {
     const categoriesChips = document.getElementById('quiz-categories-chips');
     const keywordsInput = document.getElementById('quiz-keywords');
     const generateBtn = document.getElementById('quiz-generate-btn');
+    const validationMsg = document.getElementById('quiz-validation-msg');
     const statusArea = document.getElementById('quiz-status-area');
     const statusIcon = document.getElementById('quiz-status-icon');
     const statusText = document.getElementById('quiz-status-text');
     const statusDetails = document.getElementById('quiz-status-details');
+    const resetBtn = document.getElementById('quiz-reset-btn');
     const historyArea = document.getElementById('quiz-history-area');
     const historyList = document.getElementById('quiz-history-list');
 
@@ -834,9 +836,10 @@ async function renderQuizOptionsUi() {
         renderCategories();
     });
 
-    // Wire class selector change — check existing quiz
+    // Wire class selector change — check existing quiz, pre-fill curriculum
     classSelect?.addEventListener('change', async () => {
         const classId = classSelect.value;
+        if (validationMsg) { validationMsg.classList.add('hidden'); validationMsg.textContent = ''; }
         if (!classId) {
             generateBtn.disabled = true;
             statusArea?.classList.add('hidden');
@@ -846,6 +849,31 @@ async function renderQuizOptionsUi() {
         }
         generateBtn.disabled = false;
         renderCategories(); // re-render with new class's level
+
+        // Pre-fill form from any existing curriculum for this class this week
+        try {
+            const { getQuizForClass } = await import('../../db/actions/quizOfTheWeek.js');
+            const existingQuiz = await getQuizForClass(classId);
+            if (existingQuiz?.curriculum) {
+                const c = existingQuiz.curriculum;
+                if (typeSelect && c.type) {
+                    typeSelect.value = c.type;
+                    renderCategories(); // re-render chips for the stored type + level
+                }
+                // Tick the stored categories
+                if (c.categories?.length) {
+                    document.querySelectorAll('.quiz-category-checkbox').forEach(cb => {
+                        cb.checked = c.categories.includes(cb.value);
+                    });
+                }
+                if (keywordsInput && c.keywords != null) {
+                    keywordsInput.value = c.keywords;
+                }
+            }
+        } catch (e) {
+            // Non-fatal: just leave form as-is
+        }
+
         await refreshQuizStatus(classId);
     });
 
@@ -858,7 +886,13 @@ async function renderQuizOptionsUi() {
         const type = typeSelect?.value || 'mix';
         const keywords = keywordsInput?.value?.trim() || '';
 
+        if (validationMsg) { validationMsg.classList.add('hidden'); validationMsg.textContent = ''; }
+
         if (selectedCategories.length === 0 && !keywords) {
+            if (validationMsg) {
+                validationMsg.textContent = 'Please select at least one category or enter keywords before generating.';
+                validationMsg.classList.remove('hidden');
+            }
             return;
         }
 
@@ -924,11 +958,16 @@ async function renderQuizOptionsUi() {
                 if (statusDetails) statusDetails.innerText = quiz.curriculum
                     ? `Curriculum: ${quiz.curriculum.type.toUpperCase()} — ${(quiz.curriculum.categories || []).join(', ') || (quiz.curriculum.keywords || '')}`
                     : '';
+
+                // Show reset button for any non-completed quiz
+                const canReset = quiz.status !== 'completed' && quiz.status !== 'active';
+                if (resetBtn) resetBtn.classList.toggle('hidden', !canReset);
             } else {
                 statusArea?.classList.remove('hidden');
                 if (statusIcon) statusIcon.innerText = '📋';
                 if (statusText) statusText.innerText = 'No quiz set for this week.';
                 if (statusDetails) statusDetails.innerText = 'Fill in the curriculum above and click "Generate Quiz".';
+                if (resetBtn) resetBtn.classList.add('hidden');
             }
 
             // Load history
@@ -954,4 +993,30 @@ async function renderQuizOptionsUi() {
             console.warn('Failed to refresh quiz status:', e);
         }
     }
+
+    // Reset (delete) button
+    resetBtn?.addEventListener('click', async () => {
+        const classId = classSelect?.value;
+        if (!classId) return;
+        if (!confirm('Delete this week\'s quiz for this class? You can then set a new curriculum and regenerate.')) return;
+
+        resetBtn.disabled = true;
+        resetBtn.innerHTML = '<i class="fas fa-spinner fa-pulse mr-1"></i> Deleting...';
+        try {
+            const { deleteQuizForClass } = await import('../../db/actions/quizOfTheWeek.js');
+            await deleteQuizForClass(classId);
+
+            // Clear form to fresh state
+            if (typeSelect) typeSelect.value = 'mix';
+            renderCategories();
+            if (keywordsInput) keywordsInput.value = '';
+            if (validationMsg) { validationMsg.classList.add('hidden'); validationMsg.textContent = ''; }
+            statusArea?.classList.add('hidden');
+        } catch (e) {
+            console.error('Failed to delete quiz:', e);
+            alert('Failed to delete quiz: ' + (e.message || 'Unknown error'));
+        }
+        resetBtn.disabled = false;
+        resetBtn.innerHTML = '<i class="fas fa-trash-alt mr-1"></i> Delete &amp; Reset This Week\'s Quiz';
+    });
 }

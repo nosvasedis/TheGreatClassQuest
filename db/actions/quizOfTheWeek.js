@@ -1,4 +1,4 @@
-import { db, doc, setDoc, getDoc, getDocs, collection, writeBatch, serverTimestamp, increment, arrayUnion, runTransaction, where, query } from '../../firebase.js';
+import { db, doc, setDoc, getDoc, getDocs, collection, writeBatch, serverTimestamp, increment, arrayUnion, runTransaction, where, query, deleteDoc } from '../../firebase.js';
 import * as state from '../../state.js';
 import { getTodayDateString } from '../../utils.js';
 import { getISOWeekKey } from '../../features/guildScoring.js';
@@ -80,6 +80,11 @@ export async function markQuizCompleted(classId, results) {
         completedAt: serverTimestamp(),
         updatedAt: serverTimestamp()
     }, { merge: true });
+}
+
+export async function deleteQuizForClass(classId) {
+    const ref = quizDocRef(classId);
+    await deleteDoc(ref);
 }
 
 export async function getQuizHistory(classId, limitCount = 5) {

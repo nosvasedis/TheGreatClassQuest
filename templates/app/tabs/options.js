@@ -410,12 +410,18 @@ export const optionsTabHTML = `
                                             <i class="fas fa-wand-magic-sparkles mr-2"></i> Generate Quiz
                                         </button>
 
+                                        <p id="quiz-validation-msg" class="hidden text-sm text-red-600 font-medium text-center"></p>
+
                                         <div id="quiz-status-area" class="hidden bg-amber-50 rounded-xl border border-amber-200 p-4 space-y-2">
                                             <div class="flex items-center gap-2">
                                                 <span id="quiz-status-icon" class="text-xl">⏳</span>
                                                 <span id="quiz-status-text" class="font-semibold text-amber-800">Generating quiz...</span>
                                             </div>
                                             <div id="quiz-status-details" class="text-sm text-amber-700"></div>
+                                            <button id="quiz-reset-btn"
+                                                class="hidden mt-2 w-full text-sm text-red-600 hover:text-red-800 border border-red-200 hover:border-red-400 rounded-lg py-1.5 transition-colors">
+                                                <i class="fas fa-trash-alt mr-1"></i> Delete &amp; Reset This Week's Quiz
+                                            </button>
                                         </div>
 
                                         <div id="quiz-history-area" class="hidden space-y-3 pt-4 border-t border-amber-100">

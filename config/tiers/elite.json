@@ -17,5 +17,6 @@
   "eliteAI": true,
   "earlyAccess": true,
   "prioritySupport": true,
-  "customFeatures": true
+  "customFeatures": true,
+  "quizOfTheWeek": true
 }

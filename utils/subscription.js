@@ -254,6 +254,10 @@ export function canUseFeature(featureFlag) {
         const tier = getTier();
         return tier === 'elite';
     }
+    if (featureFlag === 'quizOfTheWeek' && val === undefined) {
+        const tier = getTier();
+        return tier === 'elite';
+    }
 
     return false;
 }

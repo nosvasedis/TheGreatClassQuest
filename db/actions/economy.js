@@ -19,7 +19,7 @@ import {
 } from '../../firebase.js';
 import * as state from '../../state.js';
 import { showToast, showPraiseToast } from '../../ui/effects.js';
-import { callGeminiApi, callCloudflareAiImageApi } from '../../api.js';
+import { callGeminiApi, callCloudflareAiImageApi, extractJsonFromAiText } from '../../api.js';
 import { requireEliteAI } from '../../utils/upgradePrompt.js';
 import { canUseFeature } from '../../utils/subscription.js';
 import { getAgeGroupForLeague, getStartOfMonthString, getTodayDateString, compressImageBase64, isLikelyBlackImageBase64, simpleHashCode, parseFlexibleDate, getSeasonalShopPriceMeta, normalizeToDateString } from '../../utils.js';
@@ -271,15 +271,17 @@ export async function handleGenerateShopStock() {
         4. Output Format: A valid JSON array of objects: [{"name": "string", "desc": "string", "price": number}].
         Do NOT use markdown.`;
 
-        const jsonString = await callGeminiApi(systemPrompt, "Generate the JSON list now.");
-        const cleanJson = jsonString.replace(/```json|```/g, '').trim();
+        const jsonString = await callGeminiApi(systemPrompt, "Generate the JSON list now. Output ONLY the raw JSON array, nothing else.");
         let itemsData = [];
         try {
-            itemsData = JSON.parse(cleanJson);
+            itemsData = extractJsonFromAiText(jsonString);
         } catch (e) {
             console.error("JSON Parse failed, retrying...");
-            const fixedJson = await callGeminiApi("Fix this JSON:", cleanJson);
-            itemsData = JSON.parse(fixedJson.replace(/```json|```/g, '').trim());
+            const fixedJson = await callGeminiApi(
+                "You must output ONLY a valid JSON array. No explanation, no markdown. Fix and return this JSON array:",
+                jsonString
+            );
+            itemsData = extractJsonFromAiText(fixedJson);
         }
 
         // --- STEP 2: GENERATE IMAGES & SAVE ---
@@ -1026,8 +1028,7 @@ export async function resolveMissingGenders() {
 
     try {
         const jsonStr = await callGeminiApi(systemPrompt, userPrompt);
-        const cleanJson = jsonStr.replace(/```json|```/g, '').trim();
-        const resultMap = JSON.parse(cleanJson);
+        const resultMap = extractJsonFromAiText(jsonStr);
 
         // 4. Batch Save to Firebase
         const batch = writeBatch(db);

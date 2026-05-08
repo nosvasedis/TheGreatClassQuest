@@ -2,7 +2,7 @@ import { db } from '../firebase.js';
 import { collection, query, where, getDocs, addDoc, writeBatch, serverTimestamp, orderBy, limit, doc } from 'https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js';
 import * as state from '../state.js';
 import * as utils from '../utils.js';
-import { callGeminiApi } from '../api.js';
+import { callGeminiApi, extractJsonFromAiText } from '../api.js';
 import { canUseFeature } from '../utils/subscription.js';
 import * as constants from '../constants.js';
 import { renderFamiliarSprite } from '../features/familiars.js';
@@ -806,9 +806,8 @@ async function initializeDailyAIContent() {
         Content must be kid-friendly, educational, and fun. No markdown. Return ONLY the JSON array.`;
 
         try {
-            const jsonStr = await callGeminiApi(systemPrompt, "Generate 30 items now.");
-            const cleanJson = jsonStr.replace(/```json|```/g, '').trim();
-            const items = JSON.parse(cleanJson);
+            const jsonStr = await callGeminiApi(systemPrompt, "Generate 30 items now. Output ONLY the raw JSON array.");
+            const items = extractJsonFromAiText(jsonStr);
 
             const batch = writeBatch(db);
             const teacherId = state.get('currentUserId');

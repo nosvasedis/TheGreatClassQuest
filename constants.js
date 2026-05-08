@@ -22,7 +22,7 @@ export const firebaseConfig =
 export const cloudflareWorkerUrl = 'https://great-class-quest-ai-proxy.nvasedis-cc5.workers.dev';
 export const workerBaseUrl = 'https://great-class-quest-ai-proxy.nvasedis-cc5.workers.dev';
 export const geminiApiUrl = workerBaseUrl; 
-export const OPENROUTER_MODEL = 'nvidia/nemotron-3-super-120b-a12b:free';
+export const OPENROUTER_MODEL = 'z-ai/glm-4.5-air:free';
 const runtimeAiTextConfig = (typeof window !== 'undefined' && window.__GCQ_AI_TEXT_CONFIG__) || {};
 
 function toFreeModel(modelId) {
@@ -45,8 +45,8 @@ function normalizeAiProvider(definition, fallback = {}) {
 }
 
 const defaultAiPrimaryProvider = normalizeAiProvider({
-    id: 'gcq-primary-nemotron-3-super-120b-a12b-free',
-    label: 'GCQ - Nemotron 3 Super 120B A12B Free',
+    id: 'gcq-primary-glm-4-5-air-free',
+    label: 'GCQ - GLM-4.5 Air Free',
     url: geminiApiUrl,
     model: OPENROUTER_MODEL,
     payloadMode: 'openrouter'

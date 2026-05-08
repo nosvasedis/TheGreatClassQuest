@@ -414,6 +414,44 @@ export async function callGeminiApi(systemPrompt, userPrompt, requestOptions = {
     }
 }
 
+/**
+ * Extracts the first valid JSON array or object from an AI response string.
+ * Strips markdown fences and any preamble/postamble text the model may have added.
+ * @param {string} text - Raw AI response text.
+ * @returns {any} Parsed JSON value.
+ * @throws {SyntaxError} If no valid JSON structure is found.
+ */
+export function extractJsonFromAiText(text) {
+    // 1. Strip markdown code fences
+    let cleaned = text.replace(/```json\s*/gi, '').replace(/```\s*/g, '').trim();
+
+    // 2. Try parsing the cleaned string directly first
+    try {
+        return JSON.parse(cleaned);
+    } catch (_) { /* fall through */ }
+
+    // 3. Extract the outermost [...] array
+    const arrStart = cleaned.indexOf('[');
+    const arrEnd = cleaned.lastIndexOf(']');
+    if (arrStart !== -1 && arrEnd > arrStart) {
+        try {
+            return JSON.parse(cleaned.slice(arrStart, arrEnd + 1));
+        } catch (_) { /* fall through */ }
+    }
+
+    // 4. Extract the outermost {...} object
+    const objStart = cleaned.indexOf('{');
+    const objEnd = cleaned.lastIndexOf('}');
+    if (objStart !== -1 && objEnd > objStart) {
+        try {
+            return JSON.parse(cleaned.slice(objStart, objEnd + 1));
+        } catch (_) { /* fall through */ }
+    }
+
+    // 5. Nothing worked — throw a descriptive error
+    throw new SyntaxError(`Could not extract JSON from AI response: ${cleaned.slice(0, 120)}`);
+}
+
 export async function callCloudflareAiImageApi(prompt, negativePrompt = "", options = {}, requestOptions = {}) {
     if (isAiCircuitOpen()) throw createCircuitBreakerError();
 

@@ -22,13 +22,14 @@ export const firebaseConfig =
 export const cloudflareWorkerUrl = 'https://great-class-quest-ai-proxy.nvasedis-cc5.workers.dev';
 export const workerBaseUrl = 'https://great-class-quest-ai-proxy.nvasedis-cc5.workers.dev';
 export const geminiApiUrl = workerBaseUrl; 
-export const OPENROUTER_MODEL = 'inclusionai/ring-2.6-1t:free';
+export const OPENROUTER_MODEL = 'minimax/minimax-m2.5:free';
 const runtimeAiTextConfig = (typeof window !== 'undefined' && window.__GCQ_AI_TEXT_CONFIG__) || {};
 
 function toFreeModel(modelId) {
-    // Enforce a single, known-good OpenRouter free model everywhere.
-    // Any runtime overrides are ignored to prevent multi-model retries / rate spikes.
-    return OPENROUTER_MODEL;
+    const m = String(modelId || OPENROUTER_MODEL || '').trim();
+    // Only allow free-tier models (must end in :free)
+    if (!m.endsWith(':free')) return OPENROUTER_MODEL;
+    return m;
 }
 
 function normalizeAiProvider(definition, fallback = {}) {
@@ -45,14 +46,29 @@ function normalizeAiProvider(definition, fallback = {}) {
 }
 
 const defaultAiPrimaryProvider = normalizeAiProvider({
-    id: 'gcq-primary-ring-2-6-1t-free',
-    label: 'GCQ - InclusionAI Ring 2.6 1T Free',
+    id: 'gcq-primary-minimax',
+    label: 'GCQ - MiniMax M2.5',
     url: geminiApiUrl,
-    model: OPENROUTER_MODEL,
+    model: 'minimax/minimax-m2.5:free',
     payloadMode: 'openrouter'
 });
 
-const defaultAiBackupProviders = [];
+const defaultAiBackupProviders = [
+    normalizeAiProvider({
+        id: 'gcq-backup-llama-3-3-70b',
+        label: 'GCQ - Llama 3.3 70B',
+        url: geminiApiUrl,
+        model: 'meta-llama/llama-3.3-70b-instruct:free',
+        payloadMode: 'openrouter'
+    }),
+    normalizeAiProvider({
+        id: 'gcq-backup-gemma-4-31b',
+        label: 'GCQ - Gemma 4 31B',
+        url: geminiApiUrl,
+        model: 'google/gemma-4-31b-it:free',
+        payloadMode: 'openrouter'
+    })
+].filter(Boolean);
 
 const configuredAiProviders = Array.isArray(runtimeAiTextConfig.providers)
     ? runtimeAiTextConfig.providers
@@ -65,9 +81,10 @@ export const AI_TEXT_PROVIDERS = (() => {
     const providers = [];
     const seen = new Set();
 
-    // Primary provider first, then (optional) runtime config.
+    // Primary provider first, then backup providers, then (optional) runtime config.
     const allProviders = [
         defaultAiPrimaryProvider,
+        ...defaultAiBackupProviders,
         ...configuredAiProviders.map((provider, index) => normalizeAiProvider(provider, {
             id: index === 0 ? 'gcq-runtime-primary' : 'gcq-runtime-backup',
             label: index === 0 ? 'GCQ Runtime Primary' : 'GCQ Runtime Backup',

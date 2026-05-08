@@ -180,7 +180,8 @@ function extractProviderText(result) {
     const directText = result?.text;
     if (typeof directText === 'string' && directText.trim()) return directText.trim();
 
-    const openRouterText = result?.choices?.[0]?.message?.content;
+    const message = result?.choices?.[0]?.message;
+    const openRouterText = message?.content;
     if (typeof openRouterText === 'string' && openRouterText.trim()) return openRouterText.trim();
 
     if (Array.isArray(openRouterText)) {
@@ -190,6 +191,11 @@ function extractProviderText(result) {
             .trim();
         if (merged) return merged;
     }
+
+    // Thinking models (e.g. MiniMax, DeepSeek-R1) may return content=null with
+    // the actual answer in reasoning_content or thinking_content.
+    const reasoningText = message?.reasoning_content || message?.thinking_content;
+    if (typeof reasoningText === 'string' && reasoningText.trim()) return reasoningText.trim();
 
     const geminiText = result?.candidates?.[0]?.content?.parts
         ?.map((part) => typeof part?.text === 'string' ? part.text : '')

@@ -55,10 +55,10 @@ const defaultAiPrimaryProvider = normalizeAiProvider({
 
 const defaultAiBackupProviders = [
     normalizeAiProvider({
-        id: 'gcq-backup-cobuddy',
-        label: 'GCQ - Baidu CoBuddy',
+        id: 'gcq-backup-ring-2-6-1t',
+        label: 'GCQ - InclusionAI Ring 2.6 1T',
         url: geminiApiUrl,
-        model: 'baidu/qianfan-cobuddy:free',
+        model: 'inclusionai/ring-2.6-1t:free',
         payloadMode: 'openrouter'
     }),
     normalizeAiProvider({
@@ -66,13 +66,6 @@ const defaultAiBackupProviders = [
         label: 'GCQ - MiniMax M2.5',
         url: geminiApiUrl,
         model: 'minimax/minimax-m2.5:free',
-        payloadMode: 'openrouter'
-    }),
-    normalizeAiProvider({
-        id: 'gcq-backup-llama-3-3-70b',
-        label: 'GCQ - Llama 3.3 70B',
-        url: geminiApiUrl,
-        model: 'meta-llama/llama-3.3-70b-instruct:free',
         payloadMode: 'openrouter'
     })
 ].filter(Boolean);

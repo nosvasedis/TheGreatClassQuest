@@ -134,13 +134,14 @@ ${keywords ? `Specific focus: "${keywords}".` : ''}
 
 Rules:
 - Generate exactly 7 questions (no more, no less).
-- Use only these two question types: "mcq" (4-option multiple choice) and "fill" (fill-in-the-blank with ONE correct word or short phrase).
+- Use these question types: "mcq" (4-option multiple choice), "fill" (fill-in-the-blank, ONE correct word or short phrase), and optionally "image" (show an image and ask what it is).
+- Include at most 2 "image" questions; the rest should be "mcq" or "fill".
 - Make every question directly relevant to the topics/focus listed above.
 - Keep language appropriate for ${ageDesc}.
 - Do NOT produce any text outside the JSON object.
 
 Output this exact JSON shape (nothing else):
-{"questions":[{"type":"mcq","question":"...","options":["A","B","C","D"],"correctIndex":0,"correctAnswer":"A","explanation":"..."},{"type":"fill","question":"She ___ born in 2010.","correctAnswer":"was","explanation":"..."}]}`;
+{"questions":[{"type":"mcq","question":"...","options":["A","B","C","D"],"correctIndex":0,"correctAnswer":"A","explanation":"..."},{"type":"fill","question":"She ___ born in 2010.","correctAnswer":"was","explanation":"..."},{"type":"image","question":"What number is shown?","imagePrompt":"the word 'third' written as a numeral 3rd on a colorful card, cartoon style, no other text","correctAnswer":"third","explanation":"..."}]}`;
 }
 
 const IMAGE_AGE_PROMPTS = {

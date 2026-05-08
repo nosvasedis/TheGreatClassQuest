@@ -428,17 +428,57 @@ async function finalizeAdventureLogGeneration({
         timeoutMs: 35000
     });
 
-    const diary = _parseDiaryJson(aiResult.content, {
-        defaultTitle: `${classData.name} Chronicle`,
-        defaultEntry: aiResult.content,
-        fallbackKeywords: reasonLabels
+    // Never persist raw model output as the diary entry (prevents "thoughts"/instructions leakage).
+    // If the model fails to produce valid JSON, fall back to a safe placeholder entry.
+    const placeholder = buildAdventureLogPlaceholder({
+        className: classData.name,
+        heroOfTheDay,
+        totalStars,
+        topReasonsStr: (reasonLabels || []).join(', ') || 'general excellence',
+        reasonLabels: reasonLabels || []
     });
 
+    const diary = _parseDiaryJson(aiResult.content, {
+        defaultTitle: placeholder.title,
+        defaultEntry: placeholder.entry,
+        fallbackHighlights: placeholder.highlights,
+        fallbackKeywords: placeholder.keywords
+    });
+    let finalDiary = diary;
+
+    // If the model leaked thoughts/instructions or broke JSON, do one immediate "repair" retry.
+    if (!_looksLikeValidDiary(finalDiary)) {
+        const repair = _buildDiaryRepairPrompts({
+            rawModelOutput: aiResult.content,
+            ageTier,
+            className: classData.name,
+            date: getTodayDateString(),
+            heroOfTheDay
+        });
+
+        const repairResult = await callGeminiApiDetailed(repair.systemPrompt, repair.userPrompt, {
+            retries: 0,
+            baseDelay: 0,
+            timeoutMs: 35000
+        });
+
+        const repairedDiary = _parseDiaryJson(repairResult.content, {
+            defaultTitle: placeholder.title,
+            defaultEntry: placeholder.entry,
+            fallbackHighlights: placeholder.highlights,
+            fallbackKeywords: placeholder.keywords
+        });
+
+        if (_looksLikeValidDiary(repairedDiary)) {
+            finalDiary = repairedDiary;
+        }
+    }
+
     await updateAdventureLogGenerationState(logId, {
-        title: diary.title,
-        text: diary.entry,
-        highlights: diary.highlights,
-        keywords: diary.keywords,
+        title: finalDiary.title,
+        text: finalDiary.entry,
+        highlights: finalDiary.highlights,
+        keywords: finalDiary.keywords,
         ageTier,
         totalStars,
         generationStatus: 'ready',
@@ -451,12 +491,12 @@ async function finalizeAdventureLogGeneration({
     });
 
     if (allowArtwork) {
-        generateAdventureLogArtwork(logId, diary, heroOfTheDay).catch((error) => {
+        generateAdventureLogArtwork(logId, finalDiary, heroOfTheDay).catch((error) => {
             console.error('Chronicler artwork generation/upload failed:', error);
         });
     }
 
-    return { diary, aiResult };
+    return { diary: finalDiary, aiResult };
 }
 
 function scheduleAdventureLogRetry(payload, delayMs, retryIndex) {
@@ -853,13 +893,18 @@ function _getAgeTierFromLeague(league) {
     return 'senior';
 }
 
-function _parseDiaryJson(raw, { defaultTitle, defaultEntry, fallbackKeywords = [] }) {
+function _parseDiaryJson(raw, { defaultTitle, defaultEntry, fallbackHighlights = [], fallbackKeywords = [] }) {
     const safeEntry = String(defaultEntry || '').replace(/```/g, '').trim();
     const result = {
         title: defaultTitle,
         entry: safeEntry || 'Today was a bright step forward on our class quest.',
-        highlights: [],
-        keywords: fallbackKeywords.slice(0, 4).map(k => String(k).toLowerCase().replace(/\s+/g, '_'))
+        highlights: Array.isArray(fallbackHighlights)
+            ? fallbackHighlights.map(h => String(h).trim()).filter(Boolean).slice(0, 3)
+            : [],
+        keywords: fallbackKeywords
+            .map(k => String(k).toLowerCase().trim().replace(/\s+/g, '_'))
+            .filter(Boolean)
+            .slice(0, 5)
     };
 
     try {
@@ -895,16 +940,59 @@ function _parseDiaryJson(raw, { defaultTitle, defaultEntry, fallbackKeywords = [
             if (typeof parsed.title === 'string' && parsed.title.trim()) result.title = parsed.title.trim().slice(0, 90);
             if (typeof parsed.entry === 'string' && parsed.entry.trim()) result.entry = parsed.entry.trim();
             if (Array.isArray(parsed.highlights)) {
-                result.highlights = parsed.highlights.map(h => String(h).trim()).filter(Boolean).slice(0, 4);
+                result.highlights = parsed.highlights.map(h => String(h).trim()).filter(Boolean).slice(0, 3);
             }
             if (Array.isArray(parsed.keywords)) {
-                result.keywords = parsed.keywords.map(k => String(k).toLowerCase().trim().replace(/\s+/g, '_')).filter(Boolean).slice(0, 6);
+                result.keywords = parsed.keywords
+                    .map(k => String(k).toLowerCase().trim().replace(/\s+/g, '_'))
+                    .filter(Boolean)
+                    .slice(0, 5);
             }
         }
     } catch (_) {
         // Keep safe fallback.
     }
     return result;
+}
+
+function _looksLikeValidDiary(diary) {
+    if (!diary || typeof diary !== 'object') return false;
+    const titleOk = typeof diary.title === 'string' && diary.title.trim().length > 0;
+    const entryOk = typeof diary.entry === 'string' && diary.entry.trim().length > 0;
+    const highlightsOk = Array.isArray(diary.highlights) && diary.highlights.length === 3;
+    const keywordsOk = Array.isArray(diary.keywords) && diary.keywords.length >= 3 && diary.keywords.length <= 5;
+    return titleOk && entryOk && highlightsOk && keywordsOk;
+}
+
+function _buildDiaryRepairPrompts({ rawModelOutput, ageTier, className, date, heroOfTheDay }) {
+    const systemPrompt = `You are The Chronicler, a classroom diary writer. Your ONLY output must be a single valid JSON object — nothing else.
+
+JSON STRUCTURE (copy exactly, fill in values):
+{"title":"...","entry":"...","highlights":["...","...","..."],"keywords":["...","...","..."]}
+
+STRICT RULES:
+- Output ONLY the JSON object. No markdown, no code fences, no explanation before or after.
+- ALL four keys must be present: title, entry, highlights, keywords.
+- Every string value MUST be wrapped in double-quotes.
+- The "entry" value is ONE paragraph (4-6 sentences). No line breaks inside it. Escape any double-quote inside with \\".
+- "title": max 8 words.
+- "highlights": exactly 3 short strings.
+- "keywords": 3-5 lowercase single-word strings (use underscores for multi-word concepts).
+- Tone: ${ageTier === 'junior' ? 'warm, simple, vivid' : ageTier === 'mid' ? 'energetic and reflective' : 'rich language, encouraging'}.
+- Mention the Hero of the Day naturally in the entry.`;
+
+    const userPrompt = `Your previous output was INVALID because it contained extra text or invalid JSON.
+Fix it now and return ONLY the corrected JSON object.
+
+Context:
+Class: ${className}
+Date: ${date}
+Hero of the Day: ${heroOfTheDay}
+
+Invalid output to fix:
+${String(rawModelOutput || '').slice(0, 6000)}`;
+
+    return { systemPrompt, userPrompt };
 }
 
 // classRef and classDocPromise are pre-created by the caller so the DB read

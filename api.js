@@ -213,7 +213,9 @@ async function requestTextFromProvider(provider, systemPrompt, userPrompt, reque
     );
 
     if (!response.ok) {
-        throw new Error(`Provider ${provider.id} failed with status ${response.status}`);
+        const detail = await response.text().catch(() => '');
+        console.error(`Provider ${provider.id} failed with status ${response.status}:`, detail);
+        throw new Error(`Provider ${provider.id} failed with status ${response.status}: ${detail}`);
     }
 
     const result = await response.json();

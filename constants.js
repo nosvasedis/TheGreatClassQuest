@@ -22,13 +22,12 @@ export const firebaseConfig =
 export const cloudflareWorkerUrl = 'https://great-class-quest-ai-proxy.nvasedis-cc5.workers.dev';
 export const workerBaseUrl = 'https://great-class-quest-ai-proxy.nvasedis-cc5.workers.dev';
 export const geminiApiUrl = workerBaseUrl; 
-export const OPENROUTER_MODEL = 'nvidia/nemotron-3-nano-omni-30b-a3b-reasoning:free';
+export const OPENROUTER_MODEL = 'nvidia/nemotron-3-super-120b-a12b:free';
 const runtimeAiTextConfig = (typeof window !== 'undefined' && window.__GCQ_AI_TEXT_CONFIG__) || {};
 
 function toFreeModel(modelId) {
-    const model = String(modelId || '').trim();
-    if (!model) return OPENROUTER_MODEL;
-    if (model.endsWith(':free')) return model;
+    // Enforce a single, known-good OpenRouter free model everywhere.
+    // Any runtime overrides are ignored to prevent multi-model retries / rate spikes.
     return OPENROUTER_MODEL;
 }
 
@@ -46,36 +45,14 @@ function normalizeAiProvider(definition, fallback = {}) {
 }
 
 const defaultAiPrimaryProvider = normalizeAiProvider({
-    id: 'gcq-primary-nemotron-3-nano-omni-30b-a3b-reasoning-free',
-    label: 'GCQ - Nemotron 3 Nano Omni 30B A3B Reasoning Free',
+    id: 'gcq-primary-nemotron-3-super-120b-a12b-free',
+    label: 'GCQ - Nemotron 3 Super 120B A12B Free',
     url: geminiApiUrl,
     model: OPENROUTER_MODEL,
     payloadMode: 'openrouter'
 });
 
-const defaultAiBackupProviders = [
-    normalizeAiProvider({
-        id: 'gcq-backup-hy3-preview-free',
-        label: 'GCQ - Tencent HY3 Preview Free',
-        url: geminiApiUrl,
-        model: 'tencent/hy3-preview:free',
-        payloadMode: 'openrouter'
-    }),
-    normalizeAiProvider({
-        id: 'gcq-backup-gemma-4-26b-a4b-it-free',
-        label: 'GCQ - Gemma 4 26B A4B IT Free',
-        url: geminiApiUrl,
-        model: 'google/gemma-4-26b-a4b-it:free',
-        payloadMode: 'openrouter'
-    }),
-    normalizeAiProvider({
-        id: 'gcq-backup-gemma-4-31b-it-free',
-        label: 'GCQ - Gemma 4 31B IT Free',
-        url: geminiApiUrl,
-        model: 'google/gemma-4-31b-it:free',
-        payloadMode: 'openrouter'
-    })
-].filter(Boolean);
+const defaultAiBackupProviders = [];
 
 const configuredAiProviders = Array.isArray(runtimeAiTextConfig.providers)
     ? runtimeAiTextConfig.providers
@@ -88,10 +65,9 @@ export const AI_TEXT_PROVIDERS = (() => {
     const providers = [];
     const seen = new Set();
 
-    // Primary provider first, then backups, then runtime config
+    // Primary provider first, then (optional) runtime config.
     const allProviders = [
         defaultAiPrimaryProvider,
-        ...defaultAiBackupProviders,
         ...configuredAiProviders.map((provider, index) => normalizeAiProvider(provider, {
             id: index === 0 ? 'gcq-runtime-primary' : 'gcq-runtime-backup',
             label: index === 0 ? 'GCQ Runtime Primary' : 'GCQ Runtime Backup',

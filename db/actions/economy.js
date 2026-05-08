@@ -270,7 +270,7 @@ export async function handleGenerateShopStock() {
         3. DESCRIPTIONS: ${languageInstruction}
         4. Output ONLY this JSON structure, nothing else: [{"name": "string", "desc": "string", "price": number}, ...]`;
 
-        const jsonString = await callGeminiApi(systemPrompt, "Output the JSON array now.", { jsonMode: true });
+        const jsonString = await callGeminiApi(systemPrompt, "Output the JSON array now.");
         let itemsData = [];
         try {
             itemsData = extractJsonFromAiText(jsonString);
@@ -278,8 +278,7 @@ export async function handleGenerateShopStock() {
             console.error("JSON Parse failed, retrying...");
             const fixedJson = await callGeminiApi(
                 "You must output ONLY a valid JSON array. No explanation, no markdown. Fix and return this JSON array:",
-                jsonString,
-                { jsonMode: true }
+                jsonString
             );
             itemsData = extractJsonFromAiText(fixedJson);
         }

@@ -170,9 +170,6 @@ function buildProviderPayload(provider, systemPrompt, userPrompt, requestOptions
             { role: 'user', content: userPrompt }
         ]
     };
-    if (requestOptions.jsonMode) {
-        base.response_format = { type: 'json_object' };
-    }
     return base;
 }
 

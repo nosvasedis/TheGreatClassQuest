@@ -205,6 +205,7 @@ service cloud.firestore {
         (collection == 'school_settings' && docId == 'holidays') ||
         (collection == 'daily_ai_content' && request.resource.data.createdBy.uid == request.auth.uid) ||
         (collection == 'daily_cache') ||
+        (collection == 'quiz_of_the_week' && request.resource.data.createdBy.uid == request.auth.uid) ||
         (collection == 'guild_scores') ||
         (collection == 'guild_champions')
       );

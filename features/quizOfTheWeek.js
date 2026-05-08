@@ -375,7 +375,6 @@ export async function finalizeQuiz(classId) {
         return results;
     }
 }
-}
 
 export function resetQuiz(classId) {
     delete quizState[classId];

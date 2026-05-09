@@ -437,7 +437,7 @@
     position: relative;
     z-index: 3;
     font-family: 'Fredoka One', cursive !important;
-    font-size: clamp(1.5rem, 4vw, 2.2rem) !important;
+    font-size: clamp(2.15rem, 6.1vw, 3.45rem) !important;
     color: #0f4c81 !important;
     letter-spacing: 0.02em !important;
     text-align: center !important;
@@ -447,11 +447,11 @@
 
 .loading-subtitle {
     font-family: 'Fredoka One', cursive;
-    font-size: clamp(0.8rem, 2.2vw, 1.02rem);
-    letter-spacing: 0.05em;
+    font-size: clamp(0.58rem, 1.4vw, 0.8rem);
+    letter-spacing: 0.07em;
     color: #0e7490;
     text-transform: uppercase;
-    opacity: 0.88;
+    opacity: 0.84;
     margin-bottom: 0.1rem;
     text-align: center;
 }
@@ -469,28 +469,34 @@
     margin: 0.2rem 0 0.2rem;
 }
 
-@keyframes load-star-pulse {
+@keyframes load-logo-pulse {
     0%, 100% {
         transform: scale(1);
-        filter: drop-shadow(0 0 15px #fbbf24);
+        filter: drop-shadow(0 0 16px rgba(251, 191, 36, 0.44));
     }
     50% {
-        transform: scale(1.13);
-        filter: drop-shadow(0 0 39px #f59e0b);
+        transform: scale(1.09);
+        filter: drop-shadow(0 0 38px rgba(245, 158, 11, 0.54));
     }
 }
 
-.loading-center-star {
-    width: 122px !important;
-    height: 122px !important;
+.loading-center-logo {
+    width: 128px !important;
+    height: 128px !important;
     display: flex !important;
     align-items: center !important;
     justify-content: center !important;
-    font-size: 5rem !important;
-    color: #fbbf24 !important;
-    animation: load-star-pulse 2s ease-in-out infinite !important;
+    animation: load-logo-pulse 2.2s ease-in-out infinite !important;
     z-index: 10;
     margin: 0 auto !important;
+}
+
+.loading-center-logo img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    user-select: none;
+    pointer-events: none;
 }
 
 .loading-simple-ring {

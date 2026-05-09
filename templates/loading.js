@@ -90,8 +90,8 @@ export const loadingHTML = `
             <div class="loading-subtitle">Every Great Quest Starts With One Brave Step</div>
 
             <div class="loading-spinner-wrap">
-                <div class="loading-center-star">
-                    <i class="fas fa-star"></i>
+                <div class="loading-center-logo" aria-hidden="true">
+                    <img src="assets/great-class-quest-logo.svg" alt="" />
                 </div>
                 <div class="loading-simple-ring"></div>
             </div>
@@ -151,42 +151,62 @@ export function initLoadingAtmosphere() {
 
     if (cloudArtLayer) {
         cloudArtLayer.innerHTML = '';
-        const cloudCount = 30;
-        // Divide the sky into evenly spaced vertical bands so clouds are
-        // naturally spread from top to bottom rather than randomly clustered.
-        const bandHeight = 100 / cloudCount;
+
+        // Real skies have clouds concentrated in the upper portion with a few
+        // larger, more prominent ones lower down — not evenly spread top to bottom.
+        // We build three loose groups and let randomness mix them naturally.
+        const cloudCount = 32;
+
         for (let index = 0; index < cloudCount; index += 1) {
             const cloud = document.createElement('span');
-            // Pick a different asset for each cloud — avoid two identical
-            // clouds next to each other by offsetting the index.
-            const asset = cloudAssets[(index * 3 + randomInt(2)) % cloudAssets.length];
+
+            // Cycle through all 8 cloud assets so every image appears at least
+            // 4 times but no two consecutive clouds share the same image.
+            const asset = cloudAssets[(index * 3 + randomInt(3)) % cloudAssets.length];
             const isRightward = index % 2 === 0;
-            // Top: within this cloud's vertical band + a small random wobble.
-            const bandTop = index * bandHeight + randomRange(0, bandHeight * 0.7);
-            // Depth layers: clouds near the top are farther away (smaller, more
-            // transparent) and those near the bottom are closer (larger, more opaque).
-            const depthT = index / (cloudCount - 1);          // 0 = top, 1 = bottom
-            const sizePx = Math.round(180 + depthT * 360 + randomRange(-40, 40));
-            const opacity = (0.35 + depthT * 0.5 + randomRange(-0.08, 0.08)).toFixed(2);
-            const durationS = (220 - depthT * 90 + randomRange(-15, 15)).toFixed(1);
-            // Stagger delay across the full animation range so they are already
-            // mid-journey when the page loads.
-            const delayS = (randomRange(0, parseFloat(durationS))).toFixed(1);
+
+            // Vertical placement — three weighted zones:
+            //   ~60 % in the upper sky  (top 0 – 48 %)
+            //   ~28 % in the mid sky    (48 – 72 %)
+            //   ~12 % as foreground     (72 – 90 %)
+            let topPercent;
+            const roll = Math.random();
+            if (roll < 0.60) {
+                topPercent = randomRange(1, 48);
+            } else if (roll < 0.88) {
+                topPercent = randomRange(48, 72);
+            } else {
+                topPercent = randomRange(72, 90);
+            }
+
+            // Depth impression: clouds higher up are farther away
+            // (smaller, more transparent, slower drift).
+            const depthT = topPercent / 90;   // 0 = top horizon, 1 = bottom
+            const sizePx = Math.round(140 + depthT * 440 + randomRange(-30, 30));
+            const opacity = Math.min(0.92, 0.22 + depthT * 0.66 + randomRange(-0.05, 0.05)).toFixed(2);
+            const durationS = (250 - depthT * 120 + randomRange(-18, 18)).toFixed(1);
+            const scaleV = (0.76 + depthT * 0.4 + randomRange(-0.04, 0.04)).toFixed(2);
+
+            // Negative delay = cloud is already mid-flight when the page loads,
+            // giving an instant sky feel instead of all clouds starting from the edge.
+            const delayS = randomRange(0, parseFloat(durationS)).toFixed(1);
 
             cloud.className = 'loading-cloud-art';
             cloud.style.backgroundImage = `url('${asset}')`;
-            cloud.style.top = `${Math.max(-3, Math.min(96, bandTop)).toFixed(1)}%`;
-            cloud.style.left = `${randomRange(-10, 80).toFixed(1)}%`;
+            cloud.style.top = `${topPercent.toFixed(1)}%`;
+            // Spread left across the full width so clouds don't bunch on entry.
+            cloud.style.left = `${randomRange(0, 75).toFixed(1)}%`;
             cloud.style.width = `${sizePx}px`;
             cloud.style.opacity = opacity;
             cloud.style.animationName = isRightward ? 'loading-cloud-right' : 'loading-cloud-left';
             cloud.style.animationDuration = `${durationS}s`;
             cloud.style.animationDelay = `-${delayS}s`;
-            cloud.style.setProperty('--offset', `${randomRange(-38, 38).toFixed(1)}vw`);
-            cloud.style.setProperty('--scale', `${(0.85 + depthT * 0.3 + randomRange(-0.06, 0.06)).toFixed(2)}`);
-            cloud.style.setProperty('--depth', `${Math.round(-300 + depthT * 310)}px`);
-            cloud.style.setProperty('--fromY', `${randomRange(-8, 8).toFixed(1)}px`);
-            cloud.style.setProperty('--toY', `${randomRange(-8, 8).toFixed(1)}px`);
+            cloud.style.animationTimingFunction = 'linear';
+            cloud.style.animationIterationCount = 'infinite';
+            cloud.style.setProperty('--offset', `${randomRange(-28, 28).toFixed(1)}vw`);
+            cloud.style.setProperty('--scale', scaleV);
+            cloud.style.setProperty('--fromY', `${randomRange(-6, 6).toFixed(1)}px`);
+            cloud.style.setProperty('--toY', `${randomRange(-6, 6).toFixed(1)}px`);
             cloudArtLayer.appendChild(cloud);
         }
     }

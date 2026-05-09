@@ -155,22 +155,39 @@
 @keyframes loading-outline-gold-glow {
     0%, 100% {
         text-shadow:
-            0 0 14px rgba(253, 224, 71, 0.44),
-            0 0 30px rgba(245, 158, 11, 0.3),
-            0 0 52px rgba(251, 191, 36, 0.18);
+            /* tight multi-directional halo — legibility outline */
+            -1px -1px 0 rgba(0, 0, 0, 0.88),
+             1px -1px 0 rgba(0, 0, 0, 0.88),
+            -1px  1px 0 rgba(0, 0, 0, 0.88),
+             1px  1px 0 rgba(0, 0, 0, 0.88),
+            /* stacked depth layers — 3D raised feel */
+             0  2px 0 rgba(0, 0, 0, 0.72),
+             0  4px 0 rgba(0, 0, 0, 0.44),
+             0  6px 0 rgba(0, 0, 0, 0.22),
+            /* soft drop shadow */
+             0  9px 16px rgba(0, 0, 0, 0.3),
+            /* golden glow */
+             0  0  22px rgba(253, 224, 71, 0.28),
+             0  0  44px rgba(245, 158, 11, 0.14);
     }
     50% {
         text-shadow:
-            0 0 18px rgba(253, 224, 71, 0.58),
-            0 0 38px rgba(245, 158, 11, 0.42),
-            0 0 68px rgba(251, 191, 36, 0.24);
+            -1px -1px 0 rgba(0, 0, 0, 0.88),
+             1px -1px 0 rgba(0, 0, 0, 0.88),
+            -1px  1px 0 rgba(0, 0, 0, 0.88),
+             1px  1px 0 rgba(0, 0, 0, 0.88),
+             0  2px 0 rgba(0, 0, 0, 0.72),
+             0  4px 0 rgba(0, 0, 0, 0.44),
+             0  6px 0 rgba(0, 0, 0, 0.22),
+             0  9px 16px rgba(0, 0, 0, 0.3),
+            /* glow pulses on the beat */
+             0  0  32px rgba(253, 224, 71, 0.54),
+             0  0  62px rgba(245, 158, 11, 0.26);
     }
 }
 
 #loading-screen.loading-final-moment .loading-title {
     color: #ffffff !important;
-    -webkit-text-stroke: 3px rgba(0, 0, 0, 0.94);
-    paint-order: stroke fill;
     animation: loading-outline-gold-glow 1.2s ease-in-out infinite;
     /* Slide the title down so it sits just above the bloomed greeting */
     transform: translateY(6rem);
@@ -192,7 +209,5 @@
     letter-spacing: 0.03em;
     font-size: clamp(1.9rem, 7vw, 3.9rem);
     line-height: 1.08;
-    -webkit-text-stroke: 3px rgba(0, 0, 0, 0.96);
-    paint-order: stroke fill;
     animation: loading-outline-gold-glow 1.2s ease-in-out infinite;
 }

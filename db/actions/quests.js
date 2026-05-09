@@ -257,7 +257,10 @@ function buildAdventureLogAiPrompts({
     attendanceText,
     storyContext,
     assignmentContext,
-    powerUpContext
+    powerUpContext,
+    guildContext,
+    wheelContext,
+    boonContext
 }) {
     const systemPrompt = `You are The Chronicler, a classroom diary writer. Your ONLY output must be a single valid JSON object — nothing else.
 
@@ -285,7 +288,10 @@ Hero of the day: ${heroOfTheDay}
 Attendance: ${attendanceText}
 Story context: ${storyContext || 'none'}
 Assignment/Test context: ${assignmentContext || 'none'}
-Power-up context: ${powerUpContext || 'none'}`;
+Power-up context: ${powerUpContext || 'none'}
+Guild standings: ${guildContext || 'none'}
+Fortune's Wheel: ${wheelContext || 'none'}
+Boon awarded: ${boonContext || 'none'}`;
 
     return { systemPrompt, userPrompt };
 }
@@ -687,6 +693,52 @@ async function handleAILogAdventure(classId, classData) {
 
     const powerUpContext = pathfinderUsedToday ? "A Pathfinder's Map was used today." : '';
 
+    // Guild standings — find the leading guild among guilds present in this class
+    const allGuildScores = state.get('allGuildScores') || {};
+    const classGuildIds = [...new Set((state.get('allStudents') || []).filter(s => s.classId === classId).map(s => s.guildId).filter(Boolean))];
+    const classGuildScores = classGuildIds
+        .map(gid => ({ guildId: gid, ...(allGuildScores[gid] || {}) }))
+        .filter(g => g.guildName)
+        .sort((a, b) => (b.monthlyGlory || 0) - (a.monthlyGlory || 0));
+    let guildContext = '';
+    if (classGuildScores.length >= 2) {
+        const leader = classGuildScores[0];
+        const runnerUp = classGuildScores[1];
+        const gap = (leader.monthlyGlory || 0) - (runnerUp.monthlyGlory || 0);
+        guildContext = `${leader.guildName} leads the guild standings this month (${leader.monthlyGlory || 0} glory, ${gap} ahead of ${runnerUp.guildName}).`;
+    } else if (classGuildScores.length === 1) {
+        guildContext = `${classGuildScores[0].guildName} is the only guild active this month.`;
+    }
+
+    // Fortune's Wheel — if spun today for this class
+    const wheelLog = state.get('fortuneWheelLog') || [];
+    const todayWheelSpins = wheelLog.filter(entry => {
+        if (entry.classId !== classId) return false;
+        const spunAt = entry.spunAt?.toDate ? entry.spunAt.toDate() : (entry.spunAt ? new Date(entry.spunAt) : null);
+        return spunAt && spunAt.toDateString() === nowObj.toDateString();
+    });
+    let wheelContext = '';
+    if (todayWheelSpins.length > 0) {
+        const outcomes = todayWheelSpins.flatMap(s => s.results || []);
+        const labels = [...new Set(outcomes.map(r => r.segmentLabel).filter(Boolean))];
+        wheelContext = labels.length > 0
+            ? `Fortune's Wheel was spun today. Outcomes: ${labels.join(', ')}.`
+            : "Fortune's Wheel was spun today.";
+    }
+
+    // Boons — Teacher's Boon or Peer Boon awarded today
+    const todaysBoons = todaysAwards.filter(l => l.reason === 'teacher_boon' || l.reason === 'peer_boon');
+    let boonContext = '';
+    if (todaysBoons.length > 0) {
+        const recipients = [...new Set(todaysBoons.map(b => b.studentName?.split(' ')[0]).filter(Boolean))];
+        const hasPeer = todaysBoons.some(b => b.reason === 'peer_boon');
+        const hasTeacher = todaysBoons.some(b => b.reason === 'teacher_boon');
+        const boonType = hasTeacher && hasPeer ? "Teacher's Boon and Peer Boon" : hasTeacher ? "Teacher's Boon" : 'Peer Boon';
+        boonContext = recipients.length > 0
+            ? `${boonType} was bestowed on ${recipients.join(', ')}.`
+            : `${boonType} was bestowed today.`;
+    }
+
     const aiPrompts = buildAdventureLogAiPrompts({
         ageGroup,
         ageTier,
@@ -697,7 +749,10 @@ async function handleAILogAdventure(classId, classData) {
         attendanceText,
         storyContext,
         assignmentContext,
-        powerUpContext
+        powerUpContext,
+        guildContext,
+        wheelContext,
+        boonContext
     });
     const placeholderDiary = buildAdventureLogPlaceholder({
         className: classData.name,

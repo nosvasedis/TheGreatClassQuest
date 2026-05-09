@@ -876,6 +876,25 @@ export function setupUIListeners() {
         });
     }
 
+    // Hero's Challenge expand toggle (reveals view/metric switchers)
+    const hcExpandToggle = document.getElementById('hc-expand-toggle');
+    if (hcExpandToggle) {
+        hcExpandToggle.addEventListener('click', () => {
+            const switcher = document.getElementById('student-view-switcher');
+            const chevron = hcExpandToggle.querySelector('.hc-chevron');
+            const isExpanded = hcExpandToggle.getAttribute('aria-expanded') === 'true';
+            if (isExpanded) {
+                switcher.classList.remove('is-open');
+                hcExpandToggle.setAttribute('aria-expanded', 'false');
+                chevron.style.transform = '';
+            } else {
+                switcher.classList.add('is-open');
+                hcExpandToggle.setAttribute('aria-expanded', 'true');
+                chevron.style.transform = 'rotate(180deg)';
+            }
+        });
+    }
+
     // Leaderboard View Switchers
     document.getElementById('view-by-league').addEventListener('click', () => {
         state.set('studentLeaderboardView', 'league');

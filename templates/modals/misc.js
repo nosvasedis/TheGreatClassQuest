@@ -28,7 +28,7 @@ export const miscModalsHTML = `
 
     <div id="milestone-details-modal"
         class="fixed inset-0 bg-black bg-opacity-50 z-[70] flex items-center justify-center p-4 hidden">
-        <div class="bg-white p-6 md:p-8 rounded-3xl shadow-2xl max-w-4xl w-full pop-in border-4 border-blue-300">
+        <div class="bg-white p-6 md:p-8 rounded-3xl shadow-2xl max-w-4xl w-full pop-in border-4 border-blue-300 max-h-[90vh] overflow-y-auto">
             <div class="flex justify-between items-center mb-4">
                 <h2 id="milestone-modal-title" class="font-title text-2xl md:text-3xl text-blue-700">Milestone Progress
                 </h2>

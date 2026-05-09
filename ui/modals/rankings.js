@@ -794,7 +794,7 @@ export function openZoneOverviewModal(zoneType) {
         const info = {
             name: c.name,
             logo: c.logo,
-            level: c.questLevel,
+            level: (c.difficultyLevel || 0) + 1,
             progress: progressPct,
             stars: currentMonthlyStars,
             questBonus: classQuestBonus,

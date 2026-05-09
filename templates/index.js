@@ -1,6 +1,6 @@
 // templates/index.js
 
-import { loadingHTML } from './loading.js';
+import { loadingHTML, initLoadingTips } from './loading.js';
 import { authHTML } from './auth.js';
 import { subscribeHTML } from './subscribe.js';
 import { setupHTML } from './setup.js';
@@ -17,4 +17,7 @@ export function injectHTML() {
         appHTML +
         roleShellsHTML +
         allModalsHTML;
+
+    // Start rotating fun tips on the loading screen
+    initLoadingTips();
 }

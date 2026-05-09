@@ -1,6 +1,7 @@
 // /app.js
 
 import { injectHTML } from './templates/index.js';
+import { personalizeLoadingScreen } from './templates/loading.js';
 injectHTML();
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
@@ -626,6 +627,7 @@ function setupAuthListeners() {
             state.setCurrentUserRole(profile.role || ROLE_TEACHER);
             state.setIsSchoolAdmin(profile.schoolAdmin === true);
             state.setCurrentTeacherName(profile.displayName || user.displayName || user.email || '');
+            personalizeLoadingScreen(profile.displayName || user.displayName || '', profile.role || ROLE_TEACHER);
 
             if ((profile.role || ROLE_TEACHER) === ROLE_PARENT) {
                 setupParentSession(user.uid, profile, async () => {

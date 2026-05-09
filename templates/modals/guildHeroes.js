@@ -7,13 +7,12 @@ export const guildHeroesModalHTML = `
             <button id="guild-heroes-close-btn" class="guild-heroes-close-btn" aria-label="Close">✕</button>
 
             <div class="guild-heroes-header">
-                <h3 id="guild-heroes-title" class="font-title guild-heroes-title">Guild Heroes Analytics</h3>
+                <h3 id="guild-heroes-title" class="font-title guild-heroes-title">Guild spotlight</h3>
                 <p id="guild-heroes-subtitle" class="guild-heroes-subtitle"></p>
             </div>
 
             <div id="guild-heroes-overview" class="guild-heroes-overview"></div>
-            <div id="guild-heroes-tabs" class="guild-heroes-tabs"></div>
-            <div id="guild-heroes-view-tabs" class="guild-heroes-view-tabs"></div>
+            <div id="guild-heroes-view-tabs" class="guild-heroes-view-tabs" role="tablist" aria-label="Guild spotlight sections"></div>
             <div id="guild-heroes-content" class="guild-heroes-content"></div>
         </div>
     </div>

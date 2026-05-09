@@ -410,13 +410,20 @@ export function renderGuildsTab() {
             perCapitaStars: found?.perCapitaStars || 0,
             monthlyPerCapitaStars: found?.monthlyPerCapitaStars || 0,
             topContributors: found?.topContributors || [],
-            // Glory & Power fields
+            // Glory & Power fields (must mirror getGuildLeaderboardData / calculateGuildPower)
             totalGlory: found?.totalGlory || 0,
             weeklyGlory: found?.weeklyGlory || 0,
+            previousWeekGlory: found?.previousWeekGlory || 0,
             perCapitaGlory: found?.perCapitaGlory || 0,
             guildPower: found?.guildPower || 0,
-            momentumArrow: found?.momentumArrow || '—',
-            activityScore: found?.activityScore || 0,
+            gloryScore: found?.gloryScore ?? 0,
+            momentumScore: found?.momentumScore ?? 0,
+            momentumPct: Number.isFinite(Number(found?.momentumPct))
+                ? Math.round(Number(found.momentumPct))
+                : 0,
+            momentumArrow: found?.momentumArrow || '➡️',
+            activityScore: found?.activityScore ?? 0,
+            gloryModifiers: found?.gloryModifiers || [],
         };
     }).sort((a, b) => b.guildPower - a.guildPower || b.perCapitaGlory - a.perCapitaGlory || b.perCapitaStars - a.perCapitaStars);
 
@@ -536,18 +543,21 @@ export function renderGuildsTab() {
                         <button class="guild-power-info-btn" type="button" aria-label="Explain Guild Power" data-guild-power-info="true">?</button>
                     </span>
                 </div>
-                <div class="guild-crystal-metrics" style="--metric-color:${primary};">
-                    <div class="guild-crystal-metric" title="Glory per member">
-                        <div class="k">⚜️/member</div>
-                        <div class="v">${g.perCapitaGlory.toFixed(1)}</div>
+                <div class="guild-crystal-metrics" style="--guild-metric-accent:${primary};">
+                    <div class="guild-crystal-metric">
+                        <div class="guild-crystal-metric__label">Glory per member</div>
+                        <div class="guild-crystal-metric__value">${g.perCapitaGlory.toFixed(1)} <span class="guild-crystal-metric__unit">${GLORY_EMOJI}</span></div>
+                        <div class="guild-crystal-metric__hint">Average ⚜️ across roster</div>
                     </div>
-                    <div class="guild-crystal-metric" title="Momentum: week-over-week Glory change">
-                        <div class="k">${g.momentumArrow} Momentum</div>
-                        <div class="v">${Number.isFinite(g.momentumPct) ? `${g.momentumPct >= 0 ? '+' : ''}${g.momentumPct}%` : '—'}</div>
+                    <div class="guild-crystal-metric">
+                        <div class="guild-crystal-metric__label">Weekly momentum</div>
+                        <div class="guild-crystal-metric__value">${g.momentumArrow} ${g.momentumPct >= 0 ? '+' : ''}${g.momentumPct}%</div>
+                        <div class="guild-crystal-metric__hint">This week vs last week’s Glory</div>
                     </div>
-                    <div class="guild-crystal-metric" title="Activity score: active members this week">
-                        <div class="k">🔥 Activity</div>
-                        <div class="v">${Number.isFinite(g.activityScore) ? `${Math.round(g.activityScore)}%` : '—'}</div>
+                    <div class="guild-crystal-metric">
+                        <div class="guild-crystal-metric__label">Weekly activity</div>
+                        <div class="guild-crystal-metric__value">${Math.round(Number(g.activityScore) || 0)}%</div>
+                        <div class="guild-crystal-metric__hint">Members active this week</div>
                     </div>
                 </div>
                 <div class="guild-crystal-members" style="opacity:0.65;">

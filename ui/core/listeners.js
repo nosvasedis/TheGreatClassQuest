@@ -432,6 +432,7 @@ export function setupUIListeners() {
             }
             const buyBtn = e.target.closest('.shop-buy-btn');
             if (buyBtn) {
+                buyBtn.disabled = true;
                 const studentId = document.getElementById('shop-student-select').value;
                 const itemId = buyBtn.dataset.id;
                 const itemType = buyBtn.dataset.type;

@@ -300,7 +300,7 @@ export async function updateShopStudentDisplay(studentId) {
     
     const classStudents = state.get('allStudents').filter(s => s.classId === student.classId);
     const classScores = state.get('allStudentScores').filter(sc => classStudents.some(cs => cs.id === sc.id));
-    const pathfinderHeldBySomeone = classScores.some(sc => sc.inventory?.some(i => i.id === 'leg_pathfinder'));
+    const pathfinderHeldBySomeone = classScores.some(sc => sc.inventory?.some(i => i.id === 'leg_pathfinder' && i.acquiredAt && i.acquiredAt.startsWith(currentMonthKey)));
     const pathfinderLockedForClass = pathfinderBonusThisMonth >= 10 || pathfinderHeldBySomeone;
 
     // LIMIT CHECK 3: Mask of the Protagonist (1 per student per month)

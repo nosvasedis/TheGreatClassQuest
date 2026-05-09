@@ -122,7 +122,16 @@ const ALL_SEGMENTS = [
 // EFFECT IMPLEMENTATIONS
 // ═══════════════════════════════════════════════════════════════════════════════
 
+function _hasActiveShield(guildId) {
+    const allGuildScores = state.get('allGuildScores') || {};
+    const gData = allGuildScores[guildId] || {};
+    return (gData.gloryModifiers || []).some(m => m.type === 'shield' && m.expiresAt > Date.now());
+}
+
 async function instantGlory(ctx, amount) {
+    if (amount < 0 && _hasActiveShield(ctx.guildId)) {
+        return { gloryDelta: 0, description: 'Glory Shield blocked the penalty!' };
+    }
     await adjustGuildGlory(ctx.guildId, amount, 'wheel');
     return { gloryDelta: amount, description: `${amount >= 0 ? '+' : ''}${amount} Glory applied.` };
 }
@@ -344,6 +353,9 @@ async function teachersFavor(ctx) {
 }
 
 async function gloryBlackhole(ctx) {
+    if (_hasActiveShield(ctx.guildId)) {
+        return { gloryDelta: 0, description: 'Glory Shield blocked the Blackhole!' };
+    }
     const members = ctx.guildStudents || [];
     await adjustGuildGlory(ctx.guildId, -10, 'wheel_blackhole');
     if (members.length === 0) return { gloryDelta: -10, description: `Lost 10 Glory to the Blackhole.` };
@@ -423,6 +435,9 @@ async function mythicRelic(ctx) {
 }
 
 async function mythicCalamity(ctx) {
+    if (_hasActiveShield(ctx.guildId)) {
+        return { gloryDelta: 0, description: 'Glory Shield blocked the Calamity!' };
+    }
     await adjustGuildGlory(ctx.guildId, -100, 'wheel_mythic_calamity');
     const quest = await applyClassQuestBonusDelta(ctx.classId, -10, 'Calamity');
     const artifacts = await applyWheelStudentEffects({
@@ -1078,6 +1093,7 @@ let _wheelState = {
     phase: 'idle',        // 'idle' | 'ready' | 'spinning' | 'revealed' | 'summary' | 'done'
     winnerIndex: null,
     rotationAngle: 0,
+    _aborting: false,
 };
 let _wheelResizeWired = false;
 
@@ -1427,6 +1443,15 @@ export async function triggerSpin() {
     _wheelState.winnerIndex = winnerIndex;
     _wheelState.rotationAngle = anim?.rotationAngle || 0;
 
+    // Guard: if the modal was closed during the spin animation, abort cleanly
+    if (_wheelState._aborting) {
+        _wheelState = { active: false, classId: null, leagueLevel: null, guildOrder: [], currentGuildIndex: 0, segments: [], results: [], phase: 'idle', winnerIndex: null, rotationAngle: 0, _aborting: false };
+        const modal = document.getElementById('fortunes-wheel-modal');
+        if (modal) { modal.classList.remove('is-open'); modal.classList.add('hidden'); }
+        _hideResultReveal();
+        return;
+    }
+
     // Reveal sound based on rarity
     const winningSeg = segments[winnerIndex];
     try {
@@ -1479,7 +1504,12 @@ export function advanceWheel() {
  * Close the wheel and save results.
  */
 export async function closeFortunesWheel() {
-    if (_wheelState.results.length > 0) {
+    // If a spin animation is in progress, flag it to abort after animation completes
+    if (_wheelState.phase === 'spinning') {
+        _wheelState._aborting = true;
+        return;
+    }
+    if (_wheelState.classId && _wheelState.results.length > 0) {
         try {
             await saveFortuneWheelResult(_wheelState.classId, _wheelState.results);
         } catch (err) {

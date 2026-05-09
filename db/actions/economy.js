@@ -649,6 +649,16 @@ export async function handleBuyItem(studentId, itemId) {
                 if (alreadyBoughtThisMonth) throw "You can only buy the Mask of the Protagonist once per month!";
             }
 
+            // Pathfinder Map: 1 per class per month (enforced inside transaction)
+            if (itemId === 'leg_pathfinder' && student.classId) {
+                const classDocRef = doc(db, `${publicDataPath}/classes`, student.classId);
+                const classDoc = await transaction.get(classDocRef);
+                if (classDoc.exists()) {
+                    const bonuses = classDoc.data().teamQuestBonuses || {};
+                    if ((bonuses[currentMonthKey] || 0) >= 10) throw "A Pathfinder Map was already used in your class this month!";
+                }
+            }
+
             newGoldBalance = currentDbGold - calculatedPrice; // Calculate for UI
 
             const nextUpdate = {
@@ -950,7 +960,7 @@ export async function handleBuyFamiliarEgg(studentId, typeId) {
             familiarData = buildFamiliarInitData(typeId, scoreData.totalStars || 0, studentId);
 
             const scoreUpdate = {
-                gold: newGoldBalance,
+                gold: increment(-finalPrice),
                 familiar: familiarData
             };
 

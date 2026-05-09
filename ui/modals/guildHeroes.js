@@ -1,17 +1,19 @@
-// /ui/modals/guildHeroes.js
+// /ui/modals/guildHeroes.js — Guild spotlight modal (tabbed, plain-language copy)
 
 import { getGuildHeroAnalytics } from '../../features/guildHeroAnalytics.js';
 import { getGuildEmblemUrl } from '../../features/guilds.js';
 import { hideModal, showAnimatedModal } from './base.js';
 import * as state from '../../state.js';
+import { GLORY_EMOJI } from '../../constants.js';
 
 let _wired = false;
 let _selectedGuildId = null;
-let _activeView = 'overview';
+/** @type {'glance'|'heroes'|'wheel'|'together'} */
+let _activeView = 'glance';
 let _unsubscribeRealtime = null;
 let _cachedPayload = null;
 let _rosterSearch = '';
-let _rosterSort = 'total_desc'; // total_desc | month_desc | name_asc | class_asc
+let _rosterSort = 'total_desc';
 
 function _escapeHtml(value) {
     return String(value || '')
@@ -36,29 +38,13 @@ function _heroAvatar(hero, fallbackColor) {
     return `<div class="guild-heroes-avatar fallback" style="background:${fallbackColor || '#64748b'};">${_escapeHtml((hero.name || '?').charAt(0))}</div>`;
 }
 
-function _allHeroesAcrossGuilds(payload) {
-    return payload.guilds.flatMap((g) =>
-        g.heroesAll.map((h) => ({
-            ...h,
-            guildId: g.guildId,
-            guildName: g.guildName,
-            guildEmoji: g.emoji,
-            guildColors: g.colors
-        }))
-    ).sort((a, b) => b.totalStars - a.totalStars || b.monthlyStars - a.monthlyStars || a.name.localeCompare(b.name));
-}
-
-function _allHeroesForSelectedGuild(guild) {
-    return guild.heroesAll;
-}
-
 function _guildEmblem(guild) {
     const emblemUrl = getGuildEmblemUrl(guild.guildId);
     if (emblemUrl) {
-        return `<img src="${emblemUrl}" alt="${_escapeHtml(guild.guildName)}" class="guild-heroes-emblem-mini" 
+        return `<img src="${emblemUrl}" alt="${_escapeHtml(guild.guildName)}" class="guild-heroes-emblem-mini"
                 style="border-color:${guild.colors.primary}; box-shadow: 0 0 8px ${guild.colors.glow}77;">`;
     }
-    return `<div class="guild-heroes-emblem-mini guild-heroes-emblem-fallback" 
+    return `<div class="guild-heroes-emblem-mini guild-heroes-emblem-fallback"
                 style="background:linear-gradient(135deg,${guild.colors.primary},${guild.colors.secondary}); box-shadow:0 0 8px ${guild.colors.glow}77;">
                 <span>${_escapeHtml(guild.emoji)}</span>
             </div>`;
@@ -67,16 +53,31 @@ function _guildEmblem(guild) {
 function _renderGuildRoleBadges(hero, guild) {
     if (!hero || !guild) return '';
     const badges = [];
-
     if (guild.champions.monthlyChampion?.studentId === hero.studentId) {
         badges.push(`<span class="guild-heroes-role-badge champion">⚔️ Champion</span>`);
     }
     if (guild.champions.allTimeChampion?.studentId === hero.studentId) {
         badges.push(`<span class="guild-heroes-role-badge top-hero">🏅 Top Hero</span>`);
     }
-
     if (!badges.length) return '';
     return `<div class="guild-heroes-role-badges">${badges.join('')}</div>`;
+}
+
+function _momentumSentence(guild) {
+    const pct = Number(guild.totals.momentumPct) || 0;
+    const arrow = guild.totals.momentumArrow || '';
+    if (Math.abs(pct) < 0.5) return `${arrow} About the same Glory pace as last week.`;
+    const dir = pct > 0 ? 'up' : 'down';
+    return `${arrow} Glory is ${dir} about ${_fmtOne(Math.abs(pct))}% compared to last week.`;
+}
+
+function _rankPhrase(guild, payload) {
+    const r = guild.comparison.rankByGuildPower;
+    const leader = payload.guilds[0];
+    if (!leader) return '';
+    if (guild.guildId === leader.guildId) return `Your guild is #1 for Guild Power right now.`;
+    const gap = guild.comparison.deltaToLeaderGlory || 0;
+    return `#${r} of ${payload.guilds.length}. About ${_fmtNumber(gap)} ${GLORY_EMOJI} behind ${leader.guildName}.`;
 }
 
 function _renderOverviewCards(payload) {
@@ -85,7 +86,7 @@ function _renderOverviewCards(payload) {
     wrap.innerHTML = payload.guilds.map((g) => {
         const champ = g.champions.monthlyChampion;
         return `
-            <button class="guild-heroes-overview-card ${g.guildId === _selectedGuildId ? 'active' : ''}"
+            <button type="button" class="guild-heroes-overview-card ${g.guildId === _selectedGuildId ? 'active' : ''}"
                     data-guild-switch="${g.guildId}"
                     style="--gh-primary:${g.colors.primary};--gh-glow:${g.colors.glow};--gh-secondary:${g.colors.secondary};">
                 <div class="guild-heroes-overview-head">
@@ -95,50 +96,29 @@ function _renderOverviewCards(payload) {
                 <div class="guild-heroes-overview-body">
                     ${_heroAvatar(champ, g.colors.primary)}
                     <div class="guild-heroes-overview-meta">
-                        <div class="guild-heroes-overview-line"><strong>${Math.round(g.totals.guildPower)}</strong> ⚡ Power · <strong>${_fmtNumber(g.totals.totalGlory)}</strong> ⚜️ Glory</div>
-                        <div class="guild-heroes-overview-line">${g.totals.momentumArrow} ${champ ? `${_escapeHtml(champ.name)} · ${_fmtNumber(champ.monthlyStars)}⭐` : 'No monthly champion yet'}</div>
+                        <div class="guild-heroes-overview-line"><strong>${Math.round(g.totals.guildPower)}</strong> power · <strong>${_fmtNumber(g.totals.totalGlory)}</strong> ${GLORY_EMOJI}</div>
+                        <div class="guild-heroes-overview-line">${champ ? `${_escapeHtml(champ.name)} · ${_fmtNumber(champ.monthlyStars)}⭐ this month` : 'Pick your guild above'}</div>
                     </div>
                 </div>
             </button>`;
     }).join('');
 }
 
-function _renderGuildTabs(payload) {
-    // Guild tabs removed - using overview cards only for guild selection
-    const tabs = document.getElementById('guild-heroes-tabs');
-    if (tabs) tabs.innerHTML = '';
-}
-
 function _renderViewTabs() {
     const tabs = document.getElementById('guild-heroes-view-tabs');
     if (!tabs) return;
     const options = [
-        ['overview', '✨ Snapshot'],
-        ['champions', '👑 Champions'],
-        ['top', '⚔️ Top Heroes'],
-        ['all', '📋 Roster'],
-        ['health', '📊 Team Health']
+        ['glance', '✨ At a glance'],
+        ['heroes', '⚔️ Heroes'],
+        ['wheel', '🎡 Wheel'],
+        ['together', '🤝 Our team']
     ];
     tabs.innerHTML = options.map(([id, label]) => `
-        <button class="guild-heroes-view-tab ${_activeView === id ? 'active' : ''}" data-view-switch="${id}">
+        <button type="button" role="tab" class="guild-heroes-view-tab ${_activeView === id ? 'active' : ''}"
+                data-view-switch="${id}" aria-selected="${_activeView === id ? 'true' : 'false'}">
             ${label}
         </button>
     `).join('');
-}
-
-function _renderKpis(guild) {
-    return `
-        <div class="guild-heroes-kpis">
-            <div class="guild-heroes-kpi"><span>⚡ Guild Power</span><strong>${Math.round(guild.totals.guildPower)}</strong></div>
-            <div class="guild-heroes-kpi"><span>⚜️ Total Glory</span><strong>${_fmtNumber(guild.totals.totalGlory)}</strong></div>
-            <div class="guild-heroes-kpi"><span>⚜️ / Member</span><strong>${_fmtOne(guild.totals.perCapitaGlory)}</strong></div>
-            <div class="guild-heroes-kpi"><span>${guild.totals.momentumArrow} Momentum</span><strong>${_fmtOne(guild.totals.momentumScore)}</strong></div>
-            <div class="guild-heroes-kpi"><span>🔥 Activity</span><strong>${_fmtOne(guild.totals.activityScore)}</strong></div>
-            <div class="guild-heroes-kpi"><span>⚜️ This Week</span><strong>${_fmtNumber(guild.totals.weeklyGlory)}</strong></div>
-            <div class="guild-heroes-kpi"><span>⭐ Total Stars</span><strong>${_fmtNumber(guild.totals.totalStars)}</strong></div>
-            <div class="guild-heroes-kpi"><span>👥 Members</span><strong>${_fmtNumber(guild.totals.memberCount)}</strong></div>
-        </div>
-    `;
 }
 
 function _renderWheelPanel(guild) {
@@ -149,19 +129,19 @@ function _renderWheelPanel(guild) {
 
     const modsHtml = activeMods.length
         ? `<div class="gh-wheel-mods">
-                ${activeMods.slice(0, 6).map(m => {
+                ${activeMods.slice(0, 8).map(m => {
                     const ms = Math.max(0, (Number(m.expiresAt) || 0) - now);
                     const hrs = Math.floor(ms / 3_600_000);
                     const mins = Math.floor((ms % 3_600_000) / 60_000);
                     const eta = hrs > 0 ? `${hrs}h ${mins}m` : `${Math.max(mins, 1)}m`;
-                    const label = _escapeHtml(m.label || m.type || 'Effect');
+                    const label = _escapeHtml(m.label || m.type || 'Boost');
                     return `<div class="gh-wheel-mod">
                         <div class="t">${label}</div>
-                        <div class="s">⏳ ${eta} left</div>
+                        <div class="s">${eta} left</div>
                     </div>`;
                 }).join('')}
            </div>`
-        : `<div class="gh-wheel-empty">No active Wheel modifiers right now.</div>`;
+        : `<div class="gh-wheel-empty">No lucky boosts active right now — spin the Wheel when it opens!</div>`;
 
     const logs = state.get('fortuneWheelLog') || [];
     const omenRows = logs.flatMap(entry => {
@@ -172,11 +152,10 @@ function _renderWheelPanel(guild) {
             .filter(r => r?.guildId === guild.guildId)
             .map(r => ({
                 dateStr,
-                weekKey: entry.weekKey || '',
-                segmentLabel: r.segmentLabel || r.segmentId || 'Omen',
+                segmentLabel: r.segmentLabel || r.segmentId || 'Spin',
                 gloryDelta: Number(r.gloryDelta) || 0
             }));
-    }).slice(0, 6);
+    }).slice(0, 8);
 
     const omensHtml = omenRows.length
         ? `<div class="gh-wheel-omens">
@@ -184,141 +163,129 @@ function _renderWheelPanel(guild) {
                     <div class="gh-wheel-omen">
                         <div class="a">
                             <div class="t">${_escapeHtml(o.segmentLabel)}</div>
-                            <div class="s">${_escapeHtml(o.dateStr)}${o.weekKey ? ` · ${_escapeHtml(o.weekKey)}` : ''}</div>
+                            <div class="s">${_escapeHtml(o.dateStr)}</div>
                         </div>
                         <div class="b ${o.gloryDelta < 0 ? 'neg' : 'pos'}">
-                            ${o.gloryDelta === 0 ? '—' : `${o.gloryDelta > 0 ? '+' : ''}${o.gloryDelta} ⚜️`}
+                            ${o.gloryDelta === 0 ? '—' : `${o.gloryDelta > 0 ? '+' : ''}${o.gloryDelta} ${GLORY_EMOJI}`}
                         </div>
                     </div>
                 `).join('')}
            </div>`
-        : `<div class="gh-wheel-empty">No recent omens for this guild yet.</div>`;
+        : `<div class="gh-wheel-empty">No Wheel results for this guild yet.</div>`;
 
     return `
-        <div class="gh-wheel-panel">
-            <div class="gh-wheel-panel__head">
-                <div class="gh-wheel-panel__title">Wheel of Fortune</div>
-                <div class="gh-wheel-panel__subtitle">Recent omens and active modifiers for this guild</div>
-            </div>
+        <div class="gh-wheel-panel gh-wheel-panel--modal">
             <div class="gh-wheel-panel__grid">
                 <section class="gh-wheel-card">
-                    <div class="h">🧿 Recent Omens</div>
+                    <div class="h">Recent spins</div>
                     ${omensHtml}
                 </section>
                 <section class="gh-wheel-card">
-                    <div class="h">✨ Active Modifiers</div>
+                    <div class="h">Active boosts</div>
                     ${modsHtml}
                 </section>
             </div>
-        </div>
-    `;
+        </div>`;
 }
 
-function _renderOverviewView(payload, guild) {
-    const leader = payload.guilds[0];
-    const rivalryLine = leader && leader.guildId !== guild.guildId
-        ? `Rivalry: ${_escapeHtml(guild.guildName)} trails ${_escapeHtml(leader.guildName)} by ${_fmtNumber(guild.comparison.deltaToLeaderGlory)} Glory.`
-        : `${_escapeHtml(guild.guildName)} is currently leading the guild race!`;
-    const mover = payload.overview?.biggestMover;
-    const active = payload.overview?.mostActive;
+function _renderGlanceView(payload, guild) {
+    const t = guild.totals;
+    const activityPct = Math.round(Number(t.activityScore) || 0);
     return `
-        ${_renderKpis(guild)}
-        <div class="gh-snapshot-grid">
-            <section class="guild-heroes-fancy-banner">
-                <div class="title">Guild Storyline</div>
-                <p>${rivalryLine}</p>
-                <p>Top 3 heroes carry <strong>${_fmtOne(guild.breakdown.top3SharePct)}%</strong> of this guild's total power.</p>
-                ${mover ? `<p>📈 <strong>${_escapeHtml(mover.guildName)}</strong> is this week's biggest mover (${_fmtOne(mover.momentumPct)}% momentum).</p>` : ''}
-                ${active ? `<p>🔥 <strong>${_escapeHtml(active.guildName)}</strong> has the highest activity score (${_fmtOne(active.activityScore)}).</p>` : ''}
-            </section>
-            ${_renderWheelPanel(guild)}
-        </div>
-    `;
+        <div class="gh-spotlight">
+            <div class="gh-spotlight-hero" style="--gh-spot:${guild.colors.primary};--gh-spot-glow:${guild.colors.glow};">
+                <div class="gh-spotlight-hero__icon">${_guildEmblem(guild)}</div>
+                <div class="gh-spotlight-hero__text">
+                    <div class="gh-spotlight-hero__name">${_escapeHtml(guild.guildName)}</div>
+                    <p class="gh-spotlight-hero__lede">${_rankPhrase(guild, payload)}</p>
+                </div>
+            </div>
+            <div class="gh-stat-grid">
+                <div class="gh-stat-tile">
+                    <span class="gh-stat-tile__label">Guild Power</span>
+                    <span class="gh-stat-tile__value">${Math.round(t.guildPower)}</span>
+                    <span class="gh-stat-tile__hint">Overall strength score</span>
+                </div>
+                <div class="gh-stat-tile">
+                    <span class="gh-stat-tile__label">Total ${GLORY_EMOJI}</span>
+                    <span class="gh-stat-tile__value">${_fmtNumber(t.totalGlory)}</span>
+                    <span class="gh-stat-tile__hint">${_fmtOne(t.perCapitaGlory)} per hero on average</span>
+                </div>
+                <div class="gh-stat-tile">
+                    <span class="gh-stat-tile__label">Weekly pace</span>
+                    <span class="gh-stat-tile__value">${t.momentumArrow} ${_fmtOne(Math.abs(t.momentumPct))}%</span>
+                    <span class="gh-stat-tile__hint">${_momentumSentence(guild)}</span>
+                </div>
+                <div class="gh-stat-tile">
+                    <span class="gh-stat-tile__label">Showing up</span>
+                    <span class="gh-stat-tile__value">${activityPct}%</span>
+                    <span class="gh-stat-tile__hint">Heroes who earned stars this week</span>
+                </div>
+            </div>
+            <p class="gh-soft-note">${_fmtNumber(t.weeklyGlory)} ${GLORY_EMOJI} earned this week · ${_fmtNumber(t.memberCount)} heroes in the guild</p>
+        </div>`;
 }
 
-function _renderChampionsView(guild) {
+function _renderChampionCards(guild) {
     const monthlyChampion = guild.champions.monthlyChampion;
     const allTimeChampion = guild.champions.allTimeChampion;
     return `
-        <div class="guild-heroes-champions">
-            <div class="guild-heroes-champion-card" style="--gh-primary:${guild.colors.primary};--gh-secondary:${guild.colors.secondary};">
-                <div class="label">Monthly Champion</div>
-                <div class="body">
-                    ${_heroAvatar(monthlyChampion, guild.colors.primary)}
-                    <div>
-                        <div class="name">${monthlyChampion ? _escapeHtml(monthlyChampion.name) : 'No champion yet'}</div>
-                        <div class="meta">${monthlyChampion ? `${_fmtNumber(monthlyChampion.monthlyStars)}⭐ this month` : 'Awaiting first monthly stars'}</div>
-                    </div>
-                </div>
-            </div>
-            <div class="guild-heroes-champion-card" style="--gh-primary:${guild.colors.secondary};--gh-secondary:${guild.colors.primary};">
-                <div class="label">All-Time Top Champion</div>
-                <div class="body">
-                    ${_heroAvatar(allTimeChampion, guild.colors.secondary)}
-                    <div>
-                        <div class="name">${allTimeChampion ? _escapeHtml(allTimeChampion.name) : 'No champion yet'}</div>
-                        <div class="meta">${allTimeChampion ? `${_fmtNumber(allTimeChampion.totalStars)}⭐ total` : 'Awaiting first total stars'}</div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    `;
-}
-
-function _renderTopHeroesView(guild) {
-    const maxStars = guild.heroesTop.length ? Math.max(...guild.heroesTop.map(h => h.totalStars)) : 1;
-    
-    const rows = guild.heroesTop.length
-        ? guild.heroesTop.map((h, idx) => {
-            const rankClass = idx === 0 ? 'top-1' : idx === 1 ? 'top-2' : idx === 2 ? 'top-3' : '';
-            const badgeClass = idx === 0 ? 'gold' : idx === 1 ? 'silver' : idx === 2 ? 'bronze' : 'other';
-            const rankIcon = idx === 0 ? '👑' : idx === 1 ? '🥈' : idx === 2 ? '🥉' : `#${idx + 1}`;
-            const progressPct = maxStars > 0 ? (h.totalStars / maxStars) * 100 : 0;
-            
-            return `
-                <div class="guild-heroes-leaderboard-item ${rankClass}">
-                    <div class="guild-heroes-rank-badge ${badgeClass}">${rankIcon}</div>
-                    ${_heroAvatar(h, guild.colors.primary)}
-                    <div class="guild-heroes-hero-info">
-                        <div class="name">${_escapeHtml(h.name)}</div>
-                        ${_renderGuildRoleBadges(h, guild)}
-                        <div class="meta">${_escapeHtml(h.heroClass)} · ${_escapeHtml(h.className)}</div>
-                        <div class="guild-heroes-progress-bar">
-                            <div class="guild-heroes-progress-fill" style="width: ${progressPct}%"></div>
+        <div class="gh-heroes-section">
+            <h4 class="gh-section-title">Standouts</h4>
+            <div class="guild-heroes-champions">
+                <div class="guild-heroes-champion-card" style="--gh-primary:${guild.colors.primary};--gh-secondary:${guild.colors.secondary};">
+                    <div class="label">Star of the month</div>
+                    <div class="body">
+                        ${_heroAvatar(monthlyChampion, guild.colors.primary)}
+                        <div>
+                            <div class="name">${monthlyChampion ? _escapeHtml(monthlyChampion.name) : 'Waiting for the first star earners'}</div>
+                            <div class="meta">${monthlyChampion ? `${_fmtNumber(monthlyChampion.monthlyStars)}⭐ this month` : ''}</div>
                         </div>
                     </div>
-                    <div class="guild-heroes-stat">
-                        <div class="value">${_fmtNumber(h.totalStars)}</div>
-                        <div class="label">Total ⭐</div>
-                    </div>
-                    <div class="guild-heroes-stat">
-                        <div class="value">${_fmtNumber(h.monthlyStars)}</div>
-                        <div class="label">Month ⭐</div>
-                    </div>
-                    <div class="guild-heroes-stat">
-                        <div class="value">${_fmtOne(h.contributionPct)}%</div>
-                        <div class="label">Share</div>
+                </div>
+                <div class="guild-heroes-champion-card" style="--gh-primary:${guild.colors.secondary};--gh-secondary:${guild.colors.primary};">
+                    <div class="label">All-time strongest</div>
+                    <div class="body">
+                        ${_heroAvatar(allTimeChampion, guild.colors.secondary)}
+                        <div>
+                            <div class="name">${allTimeChampion ? _escapeHtml(allTimeChampion.name) : 'No totals yet'}</div>
+                            <div class="meta">${allTimeChampion ? `${_fmtNumber(allTimeChampion.totalStars)}⭐ lifetime` : ''}</div>
+                        </div>
                     </div>
                 </div>
-            `;
-        }).join('')
-        : `<div class="guild-heroes-empty">No heroes in this guild yet. Be the first!</div>`;
-
-    return `
-        <div class="guild-heroes-leaderboard">
-            <div class="guild-heroes-leaderboard-header">
-                <h4>⚔️ Top Heroes of ${_escapeHtml(guild.guildName)}</h4>
             </div>
-            <div class="guild-heroes-leaderboard-list">
-                ${rows}
-            </div>
-        </div>
-    `;
+        </div>`;
 }
 
-function _renderAllHeroesView(payload, guild) {
-    const selected = _allHeroesForSelectedGuild(guild);
+function _renderTopHeroesCompact(guild) {
+    const maxStars = guild.heroesTop.length ? Math.max(...guild.heroesTop.map(h => h.totalStars)) : 1;
+    const rows = guild.heroesTop.length
+        ? guild.heroesTop.map((h, idx) => {
+            const rankIcon = idx === 0 ? '👑' : idx === 1 ? '🥈' : idx === 2 ? '🥉' : `#${idx + 1}`;
+            const progressPct = maxStars > 0 ? (h.totalStars / maxStars) * 100 : 0;
+            return `
+                <div class="gh-top-row">
+                    <span class="gh-top-rank">${rankIcon}</span>
+                    ${_heroAvatar(h, guild.colors.primary)}
+                    <div class="gh-top-info">
+                        <div class="gh-top-name">${_escapeHtml(h.name)}</div>
+                        <div class="gh-top-meta">${_escapeHtml(h.className)}</div>
+                        <div class="gh-top-bar"><span style="width:${progressPct}%"></span></div>
+                    </div>
+                    <div class="gh-top-stars">${_fmtNumber(h.totalStars)}⭐</div>
+                </div>`;
+        }).join('')
+        : `<div class="guild-heroes-empty">No heroes in this guild yet.</div>`;
 
+    return `
+        <div class="gh-heroes-section">
+            <h4 class="gh-section-title">Star leaders</h4>
+            <div class="gh-top-list">${rows}</div>
+        </div>`;
+}
+
+function _renderRosterSection(payload, guild) {
+    const selected = guild.heroesAll;
     const q = String(_rosterSearch || '').trim().toLowerCase();
     const filtered = q
         ? selected.filter(h => {
@@ -337,7 +304,7 @@ function _renderAllHeroesView(payload, guild) {
     } else {
         sorted.sort((a, b) => b.totalStars - a.totalStars || b.monthlyStars - a.monthlyStars || a.name.localeCompare(b.name));
     }
-    
+
     const selectedRows = sorted.length
         ? sorted.map((h, idx) => {
             const badgeClass = idx === 0 ? 'gold' : idx === 1 ? 'silver' : idx === 2 ? 'bronze' : 'other';
@@ -358,116 +325,74 @@ function _renderAllHeroesView(payload, guild) {
                         <div class="value">${_fmtNumber(h.monthlyStars)}</div>
                         <div class="label">Month ⭐</div>
                     </div>
-                </div>
-            `;
+                </div>`;
         }).join('')
-        : `<div class="guild-heroes-empty">${q ? 'No matching heroes.' : 'No heroes in this guild yet.'}</div>`;
+        : `<div class="guild-heroes-empty">${q ? 'No names match.' : 'No heroes yet.'}</div>`;
 
     return `
-        <div class="guild-heroes-leaderboard">
-            <div class="guild-heroes-leaderboard-header">
-                <div class="gh-roster-head">
-                    <h4>📋 ${_escapeHtml(guild.guildName)} Roster</h4>
-                    <div class="gh-roster-controls">
-                        <input class="gh-roster-search" type="search" value="${_escapeHtml(_rosterSearch)}" placeholder="Search heroes…" data-roster-search="true" />
-                        <select class="gh-roster-sort" data-roster-sort="true">
-                            <option value="total_desc" ${_rosterSort === 'total_desc' ? 'selected' : ''}>Sort: Total ⭐</option>
-                            <option value="month_desc" ${_rosterSort === 'month_desc' ? 'selected' : ''}>Sort: Month ⭐</option>
-                            <option value="name_asc" ${_rosterSort === 'name_asc' ? 'selected' : ''}>Sort: Name</option>
-                            <option value="class_asc" ${_rosterSort === 'class_asc' ? 'selected' : ''}>Sort: Class</option>
-                        </select>
-                    </div>
+        <div class="gh-heroes-section">
+            <div class="gh-roster-head">
+                <h4 class="gh-section-title gh-section-title--inline">Everyone</h4>
+                <div class="gh-roster-controls">
+                    <input class="gh-roster-search" type="search" value="${_escapeHtml(_rosterSearch)}" placeholder="Find a hero…" data-roster-search="true" aria-label="Search roster" />
+                    <select class="gh-roster-sort" data-roster-sort="true" aria-label="Sort roster">
+                        <option value="total_desc" ${_rosterSort === 'total_desc' ? 'selected' : ''}>Most stars (all time)</option>
+                        <option value="month_desc" ${_rosterSort === 'month_desc' ? 'selected' : ''}>Most stars (month)</option>
+                        <option value="name_asc" ${_rosterSort === 'name_asc' ? 'selected' : ''}>Name A–Z</option>
+                        <option value="class_asc" ${_rosterSort === 'class_asc' ? 'selected' : ''}>Class</option>
+                    </select>
                 </div>
             </div>
-            <div class="guild-heroes-leaderboard-list">
-                ${selectedRows}
-            </div>
-        </div>
-    `;
+            <div class="guild-heroes-leaderboard-list gh-roster-list">${selectedRows}</div>
+        </div>`;
 }
 
-function _renderHealthView(payload, guild) {
-    const leader = payload.guilds[0];
-    const activeRate = guild.breakdown.activeRatePct || 0;
-    const top3Share = guild.breakdown.top3SharePct || 0;
-    
-    const classContrib = guild.breakdown.classContributions.length
-        ? guild.breakdown.classContributions.slice(0, 8).map(c =>
-            `<li>${_escapeHtml(c.className)}: <strong>${_fmtNumber(c.totalStars)}⭐</strong> (${_fmtOne(c.sharePct)}%)</li>`
-        ).join('')
-        : '<li>No class contribution data yet.</li>';
-        
-    const heroClassMix = guild.breakdown.heroClassMix.length
-        ? guild.breakdown.heroClassMix.map(c =>
-            `<li>${_escapeHtml(c.heroClass)}: <strong>${_fmtNumber(c.count)}</strong></li>`
-        ).join('')
-        : '<li>No hero class mix data yet.</li>';
+function _renderHeroesView(payload, guild) {
+    return `
+        <div class="gh-heroes-stack">
+            ${_renderChampionCards(guild)}
+            ${_renderTopHeroesCompact(guild)}
+            ${_renderRosterSection(payload, guild)}
+        </div>`;
+}
 
-    const rivalryLine = leader && leader.guildId !== guild.guildId
-        ? `Needs ${_fmtNumber(guild.comparison.deltaToLeaderGlory)} more Glory to match #1 ${_escapeHtml(leader.guildName)}.`
-        : 'Holding first place. Defend the lead!';
+function _renderTogetherView(payload, guild) {
+    const leader = payload.guilds[0];
+    const active = guild.breakdown.activeHeroes || 0;
+    const members = guild.totals.memberCount || 0;
+    const rate = members > 0 ? Math.round((active / members) * 100) : 0;
+    const top3 = guild.breakdown.top3SharePct || 0;
+
+    const classBars = guild.breakdown.classContributions.length
+        ? guild.breakdown.classContributions.slice(0, 6).map(c => `
+            <div class="gh-class-row">
+                <span class="gh-class-name">${_escapeHtml(c.className)}</span>
+                <div class="gh-class-track"><span style="width:${Math.min(c.sharePct, 100)}%"></span></div>
+                <span class="gh-class-pct">${_fmtOne(c.sharePct)}%</span>
+            </div>`).join('')
+        : `<p class="gh-soft-note">Class splits will show up once heroes earn stars.</p>`;
+
+    const chase = leader && leader.guildId !== guild.guildId
+        ? `To catch <strong>${_escapeHtml(leader.guildName)}</strong>, earn about <strong>${_fmtNumber(guild.comparison.deltaToLeaderGlory)}</strong> more ${GLORY_EMOJI} as a guild.`
+        : `<strong>${_escapeHtml(guild.guildName)}</strong> is out front — keep the hall cheering!`;
 
     return `
-        <div class="guild-heroes-grid">
-            <div class="guild-heroes-health-card">
-                <h4>💚 Team Health Metrics</h4>
-                
-                <div class="guild-heroes-health-metric">
-                    <div class="icon">⚡</div>
-                    <div class="info">
-                        <div class="label">Active Heroes This Month</div>
-                        <div class="value">${_fmtNumber(guild.breakdown.activeHeroes)} / ${_fmtNumber(guild.totals.memberCount)}</div>
-                        <div class="guild-heroes-health-bar">
-                            <div class="guild-heroes-health-fill" style="width: ${activeRate}%"></div>
-                        </div>
-                    </div>
-                    <div class="guild-heroes-stat">
-                        <div class="value">${_fmtOne(activeRate)}%</div>
-                    </div>
-                </div>
-                
-                <div class="guild-heroes-health-metric">
-                    <div class="icon">⭐</div>
-                    <div class="info">
-                        <div class="label">Top 3 Heroes Power Share</div>
-                        <div class="value">${_fmtOne(top3Share)}% of guild total</div>
-                        <div class="guild-heroes-health-bar">
-                            <div class="guild-heroes-health-fill" style="width: ${Math.min(top3Share, 100)}%"></div>
-                        </div>
-                    </div>
-                </div>
-                
-                <div class="guild-heroes-health-metric">
-                    <div class="icon">🏆</div>
-                    <div class="info">
-                        <div class="label">Guild Power Rank</div>
-                        <div class="value">#${_fmtNumber(guild.comparison.rankByGuildPower)} by ⚡ Guild Power</div>
-                    </div>
-                </div>
-                
-                <div class="guild-heroes-health-metric">
-                    <div class="icon">${guild.totals.momentumArrow}</div>
-                    <div class="info">
-                        <div class="label">Momentum</div>
-                        <div class="value">${_fmtOne(guild.totals.momentumScore)} score · ${_fmtOne(guild.totals.momentumPct)}% week-over-week</div>
-                        <div class="guild-heroes-health-bar">
-                            <div class="guild-heroes-health-fill" style="width: ${Math.min(Math.max(guild.totals.momentumPct, 0), 100)}%"></div>
-                        </div>
-                    </div>
-                </div>
-                
-                <div class="guild-heroes-rivalry">${rivalryLine}</div>
+        <div class="gh-together">
+            <div class="gh-together-card">
+                <h4 class="gh-section-title">Who’s playing this month</h4>
+                <p class="gh-together-lede">${active} of ${members} heroes earned at least one star · ${rate}% joined in</p>
+                <div class="gh-together-bar"><span style="width:${rate}%"></span></div>
             </div>
-            
-            <div class="guild-heroes-panel">
-                <h4>📊 Class Breakdown</h4>
-                <h5>Class Contributions</h5>
-                <ul class="guild-heroes-bullets">${classContrib}</ul>
-                <h5>Hero Class Mix</h5>
-                <ul class="guild-heroes-bullets">${heroClassMix}</ul>
+            <div class="gh-together-card">
+                <h4 class="gh-section-title">Star balance</h4>
+                <p class="gh-together-lede">Your top three heroes hold about <strong>${_fmtOne(top3)}%</strong> of the guild’s total stars.</p>
             </div>
-        </div>
-    `;
+            <div class="gh-together-card">
+                <h4 class="gh-section-title">Stars by class</h4>
+                <div class="gh-class-list">${classBars}</div>
+            </div>
+            <p class="gh-together-foot">${chase}</p>
+        </div>`;
 }
 
 function _renderBody(payload) {
@@ -477,26 +402,28 @@ function _renderBody(payload) {
 
     const guild = payload.guilds.find(g => g.guildId === _selectedGuildId) || payload.guilds[0];
     if (!guild) {
-        content.innerHTML = `<div class="guild-heroes-empty">No guild data available yet.</div>`;
+        content.innerHTML = `<div class="guild-heroes-empty">No guild data yet.</div>`;
         if (subtitle) subtitle.textContent = '';
         return;
     }
 
     _selectedGuildId = guild.guildId;
-    if (subtitle) subtitle.textContent = `${guild.guildName} · Power Rank #${guild.comparison.rankByGuildPower} · Snapshot ${payload.generatedAtMonthKey}`;
+    if (subtitle) {
+        subtitle.innerHTML = `<span class="gh-sub-pill" style="--gh-pill:${guild.colors.primary};">${_escapeHtml(guild.guildName)}</span><span class="gh-sub-muted">Power rank #${guild.comparison.rankByGuildPower}</span>`;
+    }
 
-    if (_activeView === 'champions') content.innerHTML = _renderChampionsView(guild);
-    else if (_activeView === 'top') content.innerHTML = _renderTopHeroesView(guild);
-    else if (_activeView === 'all') content.innerHTML = _renderAllHeroesView(payload, guild);
-    else if (_activeView === 'health') content.innerHTML = _renderHealthView(payload, guild);
-    else content.innerHTML = _renderOverviewView(payload, guild);
+    if (_activeView === 'heroes') content.innerHTML = _renderHeroesView(payload, guild);
+    else if (_activeView === 'wheel') content.innerHTML = _renderWheelPanel(guild);
+    else if (_activeView === 'together') content.innerHTML = _renderTogetherView(payload, guild);
+    else content.innerHTML = _renderGlanceView(payload, guild);
 }
 
 function _renderAll(payload) {
     if (!payload.guilds.length) return;
-    if (!_selectedGuildId || !payload.guilds.find(g => g.guildId === _selectedGuildId)) _selectedGuildId = payload.guilds[0].guildId;
+    if (!_selectedGuildId || !payload.guilds.find(g => g.guildId === _selectedGuildId)) {
+        _selectedGuildId = payload.guilds[0].guildId;
+    }
     _renderOverviewCards(payload);
-    _renderGuildTabs(payload);
     _renderViewTabs();
     _renderBody(payload);
 }
@@ -505,17 +432,14 @@ function _startRealtimeIfOpen() {
     const modal = document.getElementById('guild-heroes-modal');
     if (!modal || modal.classList.contains('hidden')) return;
 
-    // Tear down any previous subscription
     if (_unsubscribeRealtime) {
         try { _unsubscribeRealtime(); } catch (_) { }
         _unsubscribeRealtime = null;
     }
 
-    // Subscribe to state keys that affect analytics
     _unsubscribeRealtime = state.subscribe(
         ['allGuildScores', 'allStudents', 'allStudentScores', 'guildChampions', 'fortuneWheelLog', 'allSchoolClasses'],
         () => {
-            // Only recompute when open; otherwise keep it cheap
             const m = document.getElementById('guild-heroes-modal');
             if (!m || m.classList.contains('hidden')) return;
             _cachedPayload = getGuildHeroAnalytics();
@@ -548,12 +472,11 @@ function _wireListeners() {
         }
         const viewBtn = e.target.closest('[data-view-switch]');
         if (viewBtn) {
-            _activeView = viewBtn.dataset.viewSwitch || 'overview';
+            _activeView = /** @type {typeof _activeView} */ (viewBtn.dataset.viewSwitch || 'glance');
             _renderAll(_cachedPayload || getGuildHeroAnalytics());
         }
     });
 
-    // Input events (roster search/sort)
     modal.addEventListener('input', (e) => {
         const target = e.target;
         if (!(target instanceof HTMLElement)) return;
@@ -577,7 +500,6 @@ function _wireListeners() {
         hideModal('guild-heroes-modal');
     });
 
-    // Cleanup when modal is hidden (handles close from other codepaths too)
     const observer = new MutationObserver(() => {
         if (modal.classList.contains('hidden')) {
             _stopRealtime();
@@ -591,7 +513,9 @@ export function openGuildHeroesModal(initialGuildId) {
     _cachedPayload = getGuildHeroAnalytics();
     const payload = _cachedPayload;
     _selectedGuildId = initialGuildId || payload.guilds[0]?.guildId || null;
-    _activeView = 'overview';
+    _activeView = 'glance';
+    _rosterSearch = '';
+    _rosterSort = 'total_desc';
     _renderAll(payload);
     showAnimatedModal('guild-heroes-modal');
     _startRealtimeIfOpen();

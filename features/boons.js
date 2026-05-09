@@ -1,5 +1,5 @@
 // /features/boons.js
-import { db, doc, runTransaction, increment, serverTimestamp, collection, deleteField } from '../firebase.js';
+import { db, doc, runTransaction, increment, serverTimestamp, collection, query, where, getDocs, deleteField } from '../firebase.js';
 import * as state from '../state.js';
 import { showToast, showPraiseToast } from '../ui/effects.js';
 import { playSound } from '../audio.js';
@@ -46,6 +46,20 @@ export async function handleBestowBoon(senderId, receiverId) {
 
     const sender = state.get('allStudents').find(s => s.id === senderId);
     const receiver = state.get('allStudents').find(s => s.id === receiverId);
+
+    // Enforce 2-per-class-per-day peer boon limit before entering the transaction
+    const todayStr = utils.getTodayDateString();
+    const logsQuery = query(
+        collection(db, 'artifacts/great-class-quest/public/data/award_log'),
+        where('classId', '==', receiver.classId),
+        where('date', '==', todayStr),
+        where('reason', '==', 'peer_boon')
+    );
+    const existingSnap = await getDocs(logsQuery);
+    if (existingSnap.size >= 2) {
+        showToast('Daily boon limit reached — max 2 per class per day!', 'error');
+        return;
+    }
 
     try {
         await runTransaction(db, async (transaction) => {

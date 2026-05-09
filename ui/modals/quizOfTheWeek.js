@@ -345,7 +345,7 @@ async function handleFillAnswer(correctAnswer, explanation) {
     if (!input || !feedbackEl) return;
 
     const userAnswer = input.value.trim();
-    const isCorrect = userAnswer.toLowerCase() === (correctAnswer || '').toLowerCase();
+    const isCorrect = userAnswer.toLowerCase() === (correctAnswer || '').trim().toLowerCase();
 
     if (submitBtn) submitBtn.disabled = true;
     if (input) input.disabled = true;
@@ -472,10 +472,7 @@ export async function openQuizModal(classId) {
 
 export function closeQuizModal() {
     hideModal(MODAL_ID);
-    if (currentClassId) {
-        resetQuiz(currentClassId);
-        currentClassId = null;
-    }
+    currentClassId = null;
 }
 
 // =============================================================================

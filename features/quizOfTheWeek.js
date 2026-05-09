@@ -346,7 +346,7 @@ export async function finalizeQuiz(classId) {
 
     for (const attempt of qs.attempts) {
         allParticipating.add(attempt.studentId);
-        if (attempt.correct) {
+        if (attempt.correct && !correctStudents.includes(attempt.studentId)) {
             correctStudents.push(attempt.studentId);
         }
     }

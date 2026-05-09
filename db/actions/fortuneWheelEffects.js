@@ -107,7 +107,7 @@ export async function applyWheelStudentEffects({
 
             const currentTotalStars = Number(scoreData.totalStars) || 0;
             const currentMonthlyStars = Number(scoreData.monthlyStars) || 0;
-            const currentGold = typeof scoreData.gold === 'number' ? scoreData.gold : currentTotalStars;
+            const currentGold = typeof scoreData.gold === 'number' ? scoreData.gold : 0;
             const currentInventory = Array.isArray(scoreData.inventory) ? [...scoreData.inventory] : [];
 
             const next = {};

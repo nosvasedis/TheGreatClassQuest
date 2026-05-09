@@ -131,7 +131,18 @@ export async function adjustGuildScoresForWheel(studentId, starDelta) {
     const guildId = student?.guildId;
     if (!guildId || !GUILD_IDS.includes(guildId)) return;
 
-    const gloryDelta = starDelta * GLORY_PER_STAR;
+    const allGuildScores = state.get('allGuildScores') || {};
+    const guildData = allGuildScores[guildId] || {};
+    const now = Date.now();
+    const modifiers = (guildData.gloryModifiers || []).filter(m => m.expiresAt > now);
+    let gloryDelta = starDelta * GLORY_PER_STAR;
+    for (const mod of modifiers) {
+        if (mod.type === 'multiply') {
+            gloryDelta = Math.round(gloryDelta * mod.factor);
+        } else if (mod.type === 'bonus_per_star') {
+            gloryDelta += mod.amount * starDelta;
+        }
+    }
     const guildRef = doc(db, `${publicDataPath}/guild_scores`, guildId);
     try {
         await updateDoc(guildRef, {

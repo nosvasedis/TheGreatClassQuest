@@ -1,12 +1,24 @@
 <div align="center">
 
-# ⭐ The Great Class Quest 🚀
+<p>
+  <img src="assets/great-class-quest-logo.svg" alt="The Great Class Quest logo" width="132" />
+</p>
 
-### The Ultimate Gamified Classroom Management System
+<h1>⭐ The Great Class Quest 🚀</h1>
 
-![Shield](https://img.shields.io/badge/Designed%20For-Teachers%20%26%20Students-blueviolet) ![Shield](https://img.shields.io/badge/Platform-Web%20Browser-blue) ![Shield](https://img.shields.io/badge/Focus-Positive%20Reinforcement-brightgreen) ![Shield](https://img.shields.io/badge/Status-Live-success) ![Shield](https://img.shields.io/badge/Economy-Gold%20%26%20Artifacts-orange) ![Shield](https://img.shields.io/badge/AI-Gemini%20Powered-4285F4) ![Shield](https://img.shields.io/badge/Data-Firebase%20Firestore-FFCA28)
+<p><strong>The Ultimate Gamified Classroom Management System</strong></p>
 
-> **"Turn every lesson into a quest, every challenge into a milestone, and every student into a hero."**
+<p>
+  <img alt="Designed for Teachers and Students" src="https://img.shields.io/badge/Designed%20For-Teachers%20%26%20Students-blueviolet" />
+  <img alt="Platform Web Browser" src="https://img.shields.io/badge/Platform-Web%20Browser-blue" />
+  <img alt="Focus Positive Reinforcement" src="https://img.shields.io/badge/Focus-Positive%20Reinforcement-brightgreen" />
+  <img alt="Status Live" src="https://img.shields.io/badge/Status-Live-success" />
+  <img alt="Economy Gold and Artifacts" src="https://img.shields.io/badge/Economy-Gold%20%26%20Artifacts-orange" />
+  <img alt="AI Gemini Powered" src="https://img.shields.io/badge/AI-Gemini%20Powered-4285F4" />
+  <img alt="Data Firebase Firestore" src="https://img.shields.io/badge/Data-Firebase%20Firestore-FFCA28" />
+</p>
+
+<p><em>"Turn every lesson into a quest, every challenge into a milestone, and every student into a hero."</em></p>
 
 </div>
 

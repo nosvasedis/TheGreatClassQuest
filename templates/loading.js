@@ -23,6 +23,7 @@ const LOADING_TIPS = [
 
 let _tipIntervalId = null;
 let _stagedPersonalization = null;
+const LOADING_LOGO_URL = new URL('../assets/great-class-quest-logo.svg', import.meta.url).href;
 
 function randomInt(max) {
     return Math.floor(Math.random() * max);
@@ -91,7 +92,7 @@ export const loadingHTML = `
 
             <div class="loading-spinner-wrap">
                 <div class="loading-center-logo" aria-hidden="true">
-                    <img src="assets/great-class-quest-logo.svg" alt="" />
+                    <img src="${LOADING_LOGO_URL}" alt="" />
                 </div>
                 <div class="loading-simple-ring"></div>
             </div>

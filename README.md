@@ -241,6 +241,15 @@ The **Home** tab is your command center and adapts to **weather** and **time of 
 
 ---
 
+## ❓ Quiz of the Week (Elite)
+
+**Quiz of the Week** is a weekly, class-by-class curriculum quiz that runs like a fun game show. The teacher selects the focus (grammar/vocabulary/mix + topics/keywords), the app generates the questions, and the quiz appears automatically on the class’s **first lesson day of the week** (during lesson time). Students are picked at random to answer, and the class earns rewards based on first-try accuracy.
+
+- **Configure & generate**: Options → **Quiz of the Week**
+- **Play / view results**: Home dashboard (class selected) → **Quiz of the Week** button (only appears when eligible)
+
+---
+
 ## 📅 Calendar & Planner
 
 - **Month grid:** Shows which days have lessons (from class schedules + **one-time overrides**). **School holidays** and **cancelled days** are themed (e.g. Winter Break, No School). Click a day → **Day Planner**.

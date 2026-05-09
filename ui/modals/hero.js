@@ -588,6 +588,7 @@ export function openAppInfoModal() {
         const nextEmoji = rawTier === 'pro' ? '🤖✨' : '⚡🏰';
         const nextPerks = rawTier === 'pro'
             ? [
+                '❓ Quiz of the Week — a weekly curriculum review game-show',
                 '🤖 AI Oracle — personalised class insights automatically',
                 '✍️ AI Adventure Log Writer — logs generated after each lesson',
                 '🎨 AI Story Images — illustrated covers for your class stories',

@@ -108,6 +108,14 @@ export const FEATURE_DEFINITIONS = {
         tier: 'Elite',
         teacherExplain: "Elite schools can create a dedicated secretary account with school-wide visibility. The secretary can review every class, student, score, note, communication thread, and grading setup across the whole school from a dedicated command console. 🏛️🗂️",
         studentExplain: "Your school office can keep the whole Quest organised behind the scenes — classes, messages, and records all stay in sync for every hero. 🏛️"
+    },
+    quizOfTheWeek: {
+        name: 'Quiz of the Week',
+        emoji: '❓',
+        description: 'Weekly curriculum quiz game-show',
+        tier: 'Elite',
+        teacherExplain: "Quiz of the Week is a weekly, class-by-class curriculum quiz that runs like a fun game show. You pick the focus (grammar/vocabulary/mix + topics/keywords), the app generates the questions, and the quiz appears automatically on the class's first lesson of the week (during lesson time). Students are picked at random to answer, and the class earns rewards based on first-try accuracy. It’s perfect for quick review and building routine accountability — without grading paperwork. ❓🏆",
+        studentExplain: "Quiz of the Week is your class’s weekly challenge! ❓ Your teacher sets the topics and the Quest generates questions for you. Heroes get picked at random to answer — and if your class does well, you unlock rewards. It feels like a game show, but it’s really making your English stronger every week. 🏆"
     }
 };
 
@@ -154,6 +162,7 @@ export function getGuideSections(perspective) {
                 intro: 'Beautiful, clear academic tracking that turns boring grade records into a living progress story for each student.',
                 features: [
                     { emoji: '📜', name: "Scholar's Scroll", tier: 'pro', key: 'scholarScroll', teacherExplain: FEATURE_DEFINITIONS.scholarScroll.teacherExplain, why: "Replaces paper grade sheets with a visual, satisfying record system you'll actually want to open." },
+                    { emoji: '❓', name: "Quiz of the Week", tier: 'elite', key: 'quizOfTheWeek', teacherExplain: FEATURE_DEFINITIONS.quizOfTheWeek.teacherExplain, why: 'A weekly review ritual that feels like a game show — not a test.' },
                     { emoji: '📓', name: "Hero's Chronicle", tier: 'starter', teacherExplain: "Hero's Chronicle is your private notebook for each student — accessible from My Classes → Students → Chronicle button. Add notes by category (General, Academic, Behavioral, Social, Goals), track progress over time, and keep everything in one place. On Elite tier, the Oracle AI can analyse your notes plus trial scores and star awards to generate Parent Summaries, Teacher Strategies, Strengths/Weaknesses analyses, and Goal Suggestions. 📓✨", why: 'Keep detailed records without drowning in paperwork — and let AI help you spot patterns on Elite.' },
                     { emoji: '🔄', name: 'Make-up Tracking', tier: 'pro', key: 'makeupTracking', teacherExplain: FEATURE_DEFINITIONS.makeupTracking.teacherExplain, why: 'Perfect for private English schools with flexible scheduling — nothing slips through the cracks.' },
                     { emoji: '📋', name: 'Advanced Attendance', tier: 'pro', key: 'advancedAttendance', teacherExplain: FEATURE_DEFINITIONS.advancedAttendance.teacherExplain, why: 'Professional-grade records that protect you and inform parents with clarity.' },
@@ -238,6 +247,7 @@ export function getGuideSections(perspective) {
             color: 'teal',
             intro: 'English class becomes an actual adventure — stories, vocabulary, challenges, and achievements that are genuinely exciting.',
             features: [
+                { emoji: '❓', name: 'Quiz of the Week', tier: 'elite', key: 'quizOfTheWeek', studentExplain: FEATURE_DEFINITIONS.quizOfTheWeek.studentExplain, why: 'A weekly challenge that helps you remember what you learned — and win rewards!' },
                 { emoji: '📖', name: 'Story Weavers', tier: 'elite', studentExplain: FEATURE_DEFINITIONS.storyWeavers.studentExplain, why: "Your sentences become part of a REAL story your whole class writes together! ✍️" },
                 { emoji: '💬', name: 'Word of the Day', tier: 'elite', studentExplain: "Every lesson there\'s a special Word of the Day! 💬📚 Learn it, use it in conversation or writing, and earn bonus stars. It's a tiny challenge that builds your vocabulary into something superpower-level by the end of the year!", why: 'Small daily words = huge vocabulary by the end of the year. 🌟' },
                 { emoji: '📜', name: "Scholar's Scroll", tier: 'pro', studentExplain: FEATURE_DEFINITIONS.scholarScroll.studentExplain, why: 'Watching your own scores improve is incredibly motivating! 📈' },
@@ -386,7 +396,7 @@ export function getTiersAtAGlance() {
         {
             tier: 'Elite',
             label: 'Elite',
-            bullets: 'Everything in Pro plus Story Weavers (collaborative stories & Word of the Day), Familiars (magical companion eggs), the secretary console, AI-powered features: Hero\'s Chronicle Oracle (AI insights), AI avatars, AI reports & certificates, AI story images, AI adventure log writer, AI seasonal shop (monthly themed treasures), early-access experiments and priority support.'
+            bullets: 'Everything in Pro plus Quiz of the Week (weekly curriculum quiz), Story Weavers (collaborative stories & Word of the Day), Familiars (magical companion eggs), the secretary console, AI-powered features: Hero\'s Chronicle Oracle (AI insights), AI avatars, AI reports & certificates, AI story images, AI adventure log writer, AI seasonal shop (monthly themed treasures), early-access experiments and priority support.'
         }
     ];
 }

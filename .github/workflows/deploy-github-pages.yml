@@ -48,8 +48,14 @@ jobs:
       - name: Build static site
         run: npm run build:static
 
+      - name: Verify dist output
+        run: |
+          test -d dist
+          test -f dist/index.html
+          echo "dist directory ready for upload"
+
       - name: Upload Pages artifact
-        uses: actions/upload-pages-artifact@v3
+        uses: actions/upload-pages-artifact@v4
         with:
           path: dist
 

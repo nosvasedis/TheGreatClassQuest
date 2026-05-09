@@ -40,28 +40,6 @@ export const loadingHTML = `
         <div class="loading-sky-glow" aria-hidden="true"></div>
         <div class="loading-sun" aria-hidden="true"></div>
 
-        <!-- Floating clouds -->
-        <div class="loading-clouds" aria-hidden="true">
-            <span class="loading-cloud lc-1"><i class="fas fa-cloud"></i></span>
-            <span class="loading-cloud lc-2"><i class="fas fa-cloud-meatball"></i></span>
-            <span class="loading-cloud lc-3"><i class="fas fa-cloud"></i></span>
-            <span class="loading-cloud lc-4"><i class="fas fa-cloud-meatball"></i></span>
-            <span class="loading-cloud lc-5"><i class="fas fa-cloud"></i></span>
-            <span class="loading-cloud lc-6"><i class="fas fa-cloud"></i></span>
-            <span class="loading-cloud lc-7"><i class="fas fa-cloud-meatball"></i></span>
-            <span class="loading-cloud lc-8"><i class="fas fa-cloud"></i></span>
-            <span class="loading-cloud lc-9"><i class="fas fa-cloud"></i></span>
-            <span class="loading-cloud lc-10"><i class="fas fa-cloud-meatball"></i></span>
-            <span class="loading-cloud lc-11"><i class="fas fa-cloud-sun"></i></span>
-            <span class="loading-cloud lc-12"><i class="fas fa-cloud-rain"></i></span>
-            <span class="loading-cloud lc-13"><i class="fas fa-cloud-moon"></i></span>
-            <span class="loading-cloud lc-14"><i class="fas fa-cloud-sun-rain"></i></span>
-            <span class="loading-cloud lc-15"><i class="fas fa-cloud"></i></span>
-            <span class="loading-cloud lc-16"><i class="fas fa-cloud-meatball"></i></span>
-            <span class="loading-cloud lc-17"><i class="fas fa-cloud-sun"></i></span>
-            <span class="loading-cloud lc-18"><i class="fas fa-cloud-rain"></i></span>
-        </div>
-
         <!-- Giant painted cloud assets for a true sky-world feel -->
         <div class="loading-cloud-art-layer" aria-hidden="true">
             <span class="loading-cloud-art lca-1"></span>
@@ -158,30 +136,43 @@ export function initLoadingTips() {
  * Randomize cloud/icon motion so each loading screen has a fresh sky composition.
  */
 export function initLoadingAtmosphere() {
-    const cloudIcons = ['fa-cloud', 'fa-cloud-meatball', 'fa-cloud-sun', 'fa-cloud-rain', 'fa-cloud-moon', 'fa-cloud-sun-rain'];
-
-    const clouds = Array.from(document.querySelectorAll('.loading-cloud'));
-    clouds.forEach((cloud) => {
-        const icon = cloud.querySelector('i');
-        if (icon) {
-            icon.className = `fas ${cloudIcons[randomInt(cloudIcons.length)]}`;
-        }
-
-        const base = parseFloat(getComputedStyle(cloud).animationDuration) || 120;
-        const duration = base * randomRange(0.88, 1.2);
-        cloud.style.animationDuration = `${duration.toFixed(2)}s`;
-        cloud.style.animationDelay = `-${randomRange(8, 220).toFixed(2)}s`;
-        cloud.style.setProperty('--fromY', `${randomRange(-4, 4).toFixed(1)}px`);
-        cloud.style.setProperty('--toY', `${randomRange(-9, 9).toFixed(1)}px`);
-    });
-
     const cloudArt = Array.from(document.querySelectorAll('.loading-cloud-art'));
-    cloudArt.forEach((cloud) => {
-        const base = parseFloat(getComputedStyle(cloud).animationDuration) || 160;
-        const duration = base * randomRange(0.9, 1.16);
-        cloud.style.animationDuration = `${duration.toFixed(2)}s`;
-        cloud.style.animationDelay = `-${randomRange(12, 260).toFixed(2)}s`;
-    });
+    const cloudArtLayer = document.querySelector('.loading-cloud-art-layer');
+    const cloudAssets = [
+        '../assets/award-clouds/cloud-a.png',
+        '../assets/award-clouds/cloud-b.png',
+        '../assets/award-clouds/cloud-c.png',
+        '../assets/award-clouds/cloud-d.png',
+        '../assets/award-clouds/cloud-e.png',
+        '../assets/award-clouds/cloud-f.png',
+        '../assets/award-clouds/cloud-g.png',
+        '../assets/award-clouds/cloud-h.png'
+    ];
+
+    if (cloudArtLayer) {
+        cloudArtLayer.innerHTML = '';
+        const cloudCount = 24;
+        for (let index = 0; index < cloudCount; index += 1) {
+            const cloud = document.createElement('span');
+            const asset = cloudAssets[randomInt(cloudAssets.length)];
+            const isRightward = index % 2 === 0;
+            cloud.className = 'loading-cloud-art';
+            cloud.style.backgroundImage = `url('${asset}')`;
+            cloud.style.top = `${randomRange(-2, 92).toFixed(2)}%`;
+            cloud.style.left = `${randomRange(-8, 82).toFixed(2)}%`;
+            cloud.style.width = `${randomRange(200, 560).toFixed(0)}px`;
+            cloud.style.opacity = randomRange(0.42, 0.9).toFixed(2);
+            cloud.style.animationName = isRightward ? 'loading-cloud-right' : 'loading-cloud-left';
+            cloud.style.animationDuration = `${randomRange(120, 250).toFixed(2)}s`;
+            cloud.style.animationDelay = `-${randomRange(0, 280).toFixed(2)}s`;
+            cloud.style.setProperty('--offset', `${randomRange(-42, 42).toFixed(1)}vw`);
+            cloud.style.setProperty('--scale', `${randomRange(0.82, 1.24).toFixed(2)}`);
+            cloud.style.setProperty('--depth', `${randomRange(-320, 18).toFixed(0)}px`);
+            cloud.style.setProperty('--fromY', `${randomRange(-10, 10).toFixed(1)}px`);
+            cloud.style.setProperty('--toY', `${randomRange(-10, 10).toFixed(1)}px`);
+            cloudArtLayer.appendChild(cloud);
+        }
+    }
 
     const journeyIcons = Array.from(document.querySelectorAll('.loading-journey-icon'));
     journeyIcons.forEach((iconWrap) => {

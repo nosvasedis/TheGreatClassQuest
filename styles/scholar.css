@@ -30,17 +30,6 @@
     padding: 1.1rem 1rem 0.6rem;
 }
 
-.ss-hero::after {
-    content: '';
-    position: absolute;
-    left: 50%;
-    bottom: 0;
-    width: min(460px, 82%);
-    height: 2px;
-    transform: translateX(-50%);
-    background: linear-gradient(90deg, rgba(236, 72, 153, 0), rgba(236, 72, 153, 0.5), rgba(168, 85, 247, 0.55), rgba(236, 72, 153, 0));
-}
-
 .ss-hero-subtitle {
     max-width: 760px;
     margin-inline: auto;
@@ -705,6 +694,54 @@ optgroup {
 }
 #log-trial-modal {
     z-index: 72; /* Higher than history modal */
+}
+
+/* --- RADICAL REDESIGN: Performance Chart Section Header & Container --- */
+#scroll-performance-chart {
+    background: linear-gradient(to bottom, rgba(255,255,255,0.4), rgba(255,255,255,0.2));
+    backdrop-filter: blur(2px);
+    padding: 0.5rem 0.25rem;
+    border-radius: 1rem;
+}
+
+#scroll-dashboard-content > div:has(#scroll-performance-chart) {
+    background: linear-gradient(135deg, #ffffff 0%, #faf9ff 50%, #f8f7ff 100%);
+    padding: 1.5rem;
+    border-radius: 1.5rem;
+    border: 1px solid #ede9fe;
+    box-shadow: 0 20px 40px -28px rgba(109, 40, 217, 0.2),
+                0 0 1px rgba(109, 40, 217, 0.1);
+    transition: all 0.3s ease;
+}
+
+#scroll-dashboard-content > div:has(#scroll-performance-chart):hover {
+    border-color: #ddd6fe;
+    box-shadow: 0 24px 48px -24px rgba(109, 40, 217, 0.25),
+                0 0 2px rgba(109, 40, 217, 0.15);
+}
+
+#scroll-dashboard-content > div:has(#scroll-performance-chart) h3 {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 0.7rem;
+    background: linear-gradient(135deg, #6d28d9, #7c3aed);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    padding-bottom: 1.2rem;
+    border-bottom: 2px solid;
+    border-image: linear-gradient(90deg, #a78bfa, #c4b5fd) 1;
+    margin-bottom: 1.2rem !important;
+}
+
+#scroll-dashboard-content > div:has(#scroll-performance-chart) h3::before {
+    content: '📊';
+    font-size: 1.4rem;
+    -webkit-text-fill-color: unset;
+    background: linear-gradient(135deg, #f59e0b, #fbbf24);
+    -webkit-background-clip: unset;
+    background-clip: unset;
 }
 
 #trial-history-view-toggle .toggle-btn {

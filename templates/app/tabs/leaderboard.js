@@ -15,11 +15,11 @@ export const leaderboardTabHTML = `
                     <div id="current-month-quest-title" class="quest-month-banner mb-4">
                         <!-- Floating watermark icons -->
                         <div class="quest-banner-watermarks" aria-hidden="true">
-                            <i class="fas fa-star qbw-icon" style="left:6%;top:18%;font-size:2rem;animation-duration:5s;animation-delay:0s;"></i>
-                            <i class="fas fa-shield-alt qbw-icon" style="left:19%;top:55%;font-size:2.8rem;animation-duration:4.5s;animation-delay:0.8s;"></i>
-                            <i class="fas fa-route qbw-icon" style="left:38%;top:20%;font-size:2rem;animation-duration:6s;animation-delay:1.6s;"></i>
-                            <i class="fas fa-flag-checkered qbw-icon" style="right:16%;top:50%;font-size:2.4rem;animation-duration:4.8s;animation-delay:0.4s;"></i>
-                            <i class="fas fa-star qbw-icon" style="right:5%;top:12%;font-size:1.6rem;animation-duration:5.5s;animation-delay:1.2s;"></i>
+                            <i class="fas fa-star qbw-icon" style="left:6%;top:20%;font-size:2rem;--qbw-duration:8.8s;--qbw-delay:-1.8s;--qbw-drift-x:7px;--qbw-drift-y:11px;--qbw-tilt:3deg;"></i>
+                            <i class="fas fa-shield-alt qbw-icon" style="left:18%;top:58%;font-size:2.6rem;--qbw-duration:10.2s;--qbw-delay:-3.7s;--qbw-drift-x:8px;--qbw-drift-y:12px;--qbw-tilt:4deg;--qbw-pulse-duration:6.6s;"></i>
+                            <i class="fas fa-route qbw-icon" style="left:39%;top:24%;font-size:2rem;--qbw-duration:11.4s;--qbw-delay:-2.4s;--qbw-drift-x:9px;--qbw-drift-y:10px;--qbw-tilt:2deg;"></i>
+                            <i class="fas fa-flag-checkered qbw-icon" style="right:16%;top:53%;font-size:2.35rem;--qbw-duration:9.6s;--qbw-delay:-4.1s;--qbw-drift-x:7px;--qbw-drift-y:9px;--qbw-tilt:3.5deg;"></i>
+                            <i class="fas fa-star qbw-icon" style="right:6%;top:15%;font-size:1.7rem;--qbw-duration:10.8s;--qbw-delay:-5.3s;--qbw-drift-x:6px;--qbw-drift-y:8px;--qbw-tilt:2.5deg;--qbw-pulse-duration:7.4s;"></i>
                         </div>
                         <!-- Flanking emblems -->
                         <div class="quest-banner-side">
@@ -63,7 +63,7 @@ export const leaderboardTabHTML = `
                 <div class="hc-fab-cluster hc-fab-cluster--left">
                     <button id="open-prodigy-btn"
                         class="hc-fab bubbly-button"
-                        style="background: linear-gradient(135deg, #f59e0b, #fbbf24); border: 2px solid #d97706; color: white;">
+                        style="background: linear-gradient(135deg, #7c3aed 0%, #9333ea 55%, #c026d3 100%); border: 2px solid rgba(196, 181, 253, 0.75); color: white;">
                         <i class="fas fa-crown hc-fab-icon"></i>
                         <span class="hc-fab-label">Hall of Prodigies</span>
                     </button>
@@ -72,7 +72,7 @@ export const leaderboardTabHTML = `
                 <div class="hc-fab-cluster hc-fab-cluster--right">
                     <button id="open-trophy-room-btn"
                         class="hc-fab hc-fab--right bubbly-button"
-                        style="background: linear-gradient(135deg, #10b981, #0d9488); border: 2px solid #059669; color: white;">
+                        style="background: linear-gradient(135deg, #f59e0b 0%, #f97316 55%, #ea580c 100%); border: 2px solid rgba(253, 186, 116, 0.75); color: white;">
                         <i class="fas fa-trophy hc-fab-icon"></i>
                         <span class="hc-fab-label">Trophy Room</span>
                     </button>

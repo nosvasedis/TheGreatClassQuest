@@ -166,17 +166,23 @@ function renderScrollDashboard(classId) {
     const topScholarsDisplay = topScholars.length > 0 ? topScholars.map(s => s.name).join(', ') : '--';
 
     statsContainer.innerHTML = `
-        <div class="scroll-stat-card">
-            <p class="text-sm font-bold text-amber-800">Class Avg (Test)</p>
-            <p class="font-title text-4xl text-green-600">${testAvg !== null ? testAvg.toFixed(0) + '%' : '--'}</p>
+        <div class="scroll-stat-card scroll-insight-card">
+            <div class="scroll-insight-icon">📊</div>
+            <p class="text-sm font-bold text-indigo-700">Test Performance</p>
+            <p class="font-title text-3xl text-green-600 mb-1">${testAvg !== null ? testAvg.toFixed(0) + '%' : '--'}</p>
+            <p class="text-xs text-gray-600">${testAvg && testAvg >= 80 ? '✨ Excelling' : testAvg && testAvg >= 60 ? '📈 Strong' : '🎯 Developing'}</p>
         </div>
-        <div class="scroll-stat-card">
-            <p class="text-sm font-bold text-amber-800">Class Avg (Dictation)</p>
-            <p class="font-title text-4xl text-blue-600">${avgDictationDisplay}</p>
+        <div class="scroll-stat-card scroll-insight-card">
+            <div class="scroll-insight-icon">🎤</div>
+            <p class="text-sm font-bold text-indigo-700">Dictation Trend</p>
+            <p class="font-title text-3xl text-blue-600 mb-1">${avgDictationDisplay}</p>
+            <p class="text-xs text-gray-600">${dictationAvg && dictationAvg >= 80 ? '✨ Strong' : dictationAvg && dictationAvg >= 60 ? '📈 Good' : '🎯 Developing'}</p>
         </div>
-        <div class="scroll-stat-card">
-            <p class="text-sm font-bold text-amber-800">Top Scholar(s)</p>
-            <p class="font-title text-2xl text-purple-700" title="${topScholarsDisplay}">${topScholarsDisplay}</p>
+        <div class="scroll-stat-card scroll-insight-card">
+            <div class="scroll-insight-icon">⭐</div>
+            <p class="text-sm font-bold text-indigo-700">Top Scholar(s)</p>
+            <p class="font-title text-lg text-purple-700" title="${topScholarsDisplay}">${topScholarsDisplay}</p>
+            <p class="text-xs text-gray-600 mt-2">Leading the class 👑</p>
         </div>
     `;
 
@@ -199,8 +205,8 @@ function renderScrollDashboard(classId) {
             const scoreData = state.get('allStudentScores').find(sc => sc.id === student.id);
             const pendingSkill = !!scoreData?.pendingSkillChoice;
             const avatarInner = student.avatar
-                ? `<img src="${student.avatar}" alt="${student.name}" class="student-avatar enlargeable-avatar">`
-                : `<div class="student-avatar enlargeable-avatar flex items-center justify-center bg-gray-300 text-gray-600 font-bold">${student.name.charAt(0)}</div>`;
+                ? `<img src="${student.avatar}" alt="${student.name}" class="student-avatar enlargeable-avatar" data-student-id="${student.id}">`
+                : `<div class="student-avatar enlargeable-avatar flex items-center justify-center bg-gray-300 text-gray-600 font-bold" data-student-id="${student.id}">${student.name.charAt(0)}</div>`;
             const avatarHtml = wrapAvatarWithLevelUpIndicator(avatarInner, pendingSkill);
 
             const percentage = performance.value;
@@ -209,13 +215,13 @@ function renderScrollDashboard(classId) {
             else if (percentage >= 50) tier = 'mid';
 
             return `
-    <div class="chart-row">
-        <div class="hero-stats-avatar-trigger cursor-pointer" data-student-id="${student.id}">
+    <div class="chart-row" data-score-tier="${tier}">
+        <div class="chart-avatar-wrapper">
             ${avatarHtml}
         </div>
-        <div class="chart-label">
-    ${student.heroClass && HERO_CLASSES[student.heroClass] ? HERO_CLASSES[student.heroClass].icon : ''} ${student.name}
-</div>
+        <div class="chart-label student-analytics-trigger cursor-pointer" data-student-id="${student.id}">
+            ${student.heroClass && HERO_CLASSES[student.heroClass] ? HERO_CLASSES[student.heroClass].icon : ''} ${student.name}
+        </div>
         <div class="chart-bar-wrapper">
             <div class="chart-bar" data-score-tier="${tier}" style="width: ${percentage}%; animation-delay: ${Math.random() * 0.2}s;">
                 <span>${performance.display}</span>

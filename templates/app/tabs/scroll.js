@@ -1,10 +1,11 @@
 // templates/app/tabs/scroll.js
+import { studentAnalyticsModalHTML } from '../modals/studentAnalytics.js';
 
 export const scrollTabHTML = `
             <div id="scholars-scroll-tab" class="app-tab hidden">
                 <div class="ss-fab-cluster ss-fab-cluster--left" aria-hidden="true">
                     <button id="view-trial-history-fab"
-                        class="ss-fab ss-fab--left bg-gradient-to-br from-indigo-600 via-indigo-500 to-blue-500 text-white border-indigo-300/70"
+                        class="ss-fab ss-fab--left bg-gradient-to-br from-sky-600 via-blue-500 to-indigo-500 text-white border-sky-300/70"
                         disabled>
                         <span class="ss-fab-icon"><i class="fas fa-history"></i></span>
                         <span class="ss-fab-label">View History</span>
@@ -13,7 +14,7 @@ export const scrollTabHTML = `
 
                 <div class="ss-fab-cluster ss-fab-cluster--right" aria-hidden="true">
                     <button id="log-trial-fab"
-                        class="ss-fab ss-fab--right bg-gradient-to-br from-violet-600 via-purple-600 to-fuchsia-500 text-white border-violet-300/70"
+                        class="ss-fab ss-fab--right bg-gradient-to-br from-pink-600 via-rose-500 to-fuchsia-500 text-white border-pink-300/70"
                         disabled>
                         <span class="ss-fab-icon"><i class="fas fa-feather-alt"></i></span>
                         <span class="ss-fab-label">Log New Trial</span>
@@ -64,5 +65,9 @@ export const scrollTabHTML = `
                         Please select a class to view their academic progress.
                     </div>
                 </div>
+
+                <!-- Student Analytics Modal -->
+                ${studentAnalyticsModalHTML}
             </div>
 `;
+

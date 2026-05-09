@@ -536,8 +536,8 @@ body.adventure-log-editor-open {
 }
 
 .al-fab-icon {
-    font-size: 1.4rem;
-    filter: drop-shadow(0 1px 3px rgba(0,0,0,0.2));
+    font-size: 1.35rem;
+    filter: drop-shadow(0 1px 3px rgba(0, 0, 0, 0.25));
     flex-shrink: 0;
 }
 
@@ -547,7 +547,7 @@ body.adventure-log-editor-open {
     letter-spacing: 0.02em;
     line-height: 1.2;
     text-align: left;
-    text-shadow: 0 1px 3px rgba(0,0,0,0.25);
+    text-shadow: 0 1px 3px rgba(0, 0, 0, 0.22);
     white-space: nowrap;
 }
 

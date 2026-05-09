@@ -33,109 +33,153 @@
    AVATAR FORGE MODAL — Dark Forge Theme
    ═══════════════════════════════════════ */
 
-/* Step wrapper card */
-.avatar-forge-step {
-    background: rgba(255, 255, 255, 0.04);
-    border: 1px solid rgba(255, 255, 255, 0.08);
-    border-radius: 1rem;
-    padding: 0.875rem 1rem;
-}
-
-/* Numbered step badge (purple→blue gradient pill) */
-.avatar-step-number {
-    width: 22px;
-    height: 22px;
-    background: linear-gradient(135deg, #7c3aed, #2563eb);
-    color: white;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 0.68rem;
-    font-weight: 800;
-    flex-shrink: 0;
-    box-shadow: 0 0 10px rgba(124, 58, 237, 0.55);
-}
-
-/* Option pill buttons — dark ghost style */
-.avatar-maker-option-btn {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.3rem;
-    padding: 0.35rem 0.75rem;
-    border-radius: 9999px;
-    font-weight: 600;
-    font-size: 0.8rem;
-    cursor: pointer;
-    transition: all 140ms ease-out;
-    border: 1.5px solid rgba(255, 255, 255, 0.1);
-    background-color: rgba(255, 255, 255, 0.07);
-    color: #c4b5fd;
-    box-shadow: none;
-    white-space: nowrap;
-}
-.avatar-maker-option-btn:hover {
-    background-color: rgba(255, 255, 255, 0.14);
-    border-color: rgba(139, 92, 246, 0.55);
-    color: white;
-    transform: scale(1.04);
-}
-.avatar-maker-option-btn.selected {
-    background: linear-gradient(135deg, rgba(124,58,237,0.38), rgba(37,99,235,0.38));
-    border-color: #7c3aed;
-    color: white;
-    box-shadow: 0 0 14px rgba(124, 58, 237, 0.5), inset 0 0 6px rgba(124, 58, 237, 0.15);
-    transform: scale(1.06);
-}
-
-/* Color swatch button specifics */
-.avatar-color-btn {
-    padding-left: 0.5rem !important;
-    padding-right: 0.75rem !important;
-}
-.avatar-color-swatch {
-    width: 13px;
-    height: 13px;
-    border-radius: 50%;
-    flex-shrink: 0;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.5);
-    border: 1px solid rgba(255,255,255,0.2);
-    display: inline-block;
-}
-
-/* Preview display area */
-#avatar-display-area {
-    width: 200px;
-    height: 200px;
-    background: rgba(0, 0, 0, 0.35);
+/* Forge Card Styling */
+.avatar-forge-card {
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.05);
     border-radius: 1.5rem;
-    border: 2px solid rgba(139, 92, 246, 0.3);
-    box-shadow:
-        0 0 40px rgba(124, 58, 237, 0.12),
-        inset 0 0 24px rgba(0, 0, 0, 0.25);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    overflow: hidden;
+    padding: 1.5rem;
+    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
     position: relative;
-    flex-shrink: 0;
+    overflow: hidden;
 }
-#avatar-display-area img {
+.avatar-forge-card:hover {
+    background: rgba(255, 255, 255, 0.05);
+    border-color: rgba(139, 92, 246, 0.2);
+    transform: translateY(-2px);
+    box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.5);
+}
+.avatar-forge-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
     width: 100%;
     height: 100%;
-    object-fit: cover;
-    border-radius: 1.35rem;
+    background: radial-gradient(circle at top left, rgba(139, 92, 246, 0.1), transparent 70%);
+    opacity: 0;
+    transition: opacity 0.4s;
+}
+.avatar-forge-card:hover::before {
+    opacity: 1;
 }
 
-/* Forge animation keyframes */
-@keyframes avatar-forge-bounce {
-    0%, 100% { transform: translateY(0) rotate(-5deg);  }
-    50%       { transform: translateY(-6px) rotate(5deg); }
+/* Step Badge */
+.avatar-step-badge {
+    width: 32px;
+    height: 32px;
+    background: linear-gradient(135deg, #7c3aed, #4f46e5);
+    color: white;
+    border-radius: 0.75rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.875rem;
+    font-weight: 900;
+    box-shadow: 0 0 20px rgba(124, 58, 237, 0.3);
+    border: 1px solid rgba(255, 255, 255, 0.2);
 }
-@keyframes forge-pulse {
-    0%, 100% { opacity: 1;   }
-    50%       { opacity: 0.5; }
+
+/* Option Buttons */
+.avatar-maker-option-btn {
+    position: relative;
+    padding: 0.625rem 1rem;
+    border-radius: 1rem;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    color: rgba(255, 255, 255, 0.6);
+    font-size: 0.75rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    tracking: 0.05em;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
 }
+.avatar-maker-option-btn:hover {
+    background: rgba(255, 255, 255, 0.1);
+    border-color: rgba(255, 255, 255, 0.2);
+    color: white;
+    transform: scale(1.05);
+}
+.avatar-maker-option-btn.selected {
+    background: linear-gradient(135deg, rgba(124, 58, 237, 0.2), rgba(79, 70, 229, 0.2));
+    border-color: #8b5cf6;
+    color: white;
+    box-shadow: 0 0 20px rgba(139, 92, 246, 0.3), inset 0 0 10px rgba(139, 92, 246, 0.2);
+}
+.avatar-maker-option-btn.selected::after {
+    content: '';
+    position: absolute;
+    inset: -1px;
+    border-radius: 1rem;
+    background: linear-gradient(135deg, #8b5cf6, #6366f1);
+    -webkit-mask: 
+       linear-gradient(#fff 0 0) content-box, 
+       linear-gradient(#fff 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+    padding: 1px;
+    pointer-events: none;
+}
+
+/* Color Swatch */
+.avatar-color-swatch {
+    width: 14px;
+    height: 14px;
+    border-radius: 4px;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+/* Animations */
+@keyframes spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+
+@keyframes float {
+    0%, 100% { transform: translateY(0) rotate(0deg); }
+    50% { transform: translateY(-10px) rotate(5deg); }
+}
+
+@keyframes scanline {
+    from { transform: translateY(-100%); }
+    to { transform: translateY(1000%); }
+}
+
+@keyframes shine {
+    0% { left: -100%; }
+    100% { left: 100%; }
+}
+
+@keyframes loading-bar {
+    0% { transform: translateX(-100%); }
+    50% { transform: translateX(100%); }
+    100% { transform: translateX(-100%); }
+}
+
+.animate-float {
+    animation: float 4s ease-in-out infinite;
+}
+
+/* Scrollbar */
+.custom-scrollbar::-webkit-scrollbar {
+    width: 6px;
+}
+.custom-scrollbar::-webkit-scrollbar-track {
+    background: transparent;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 10px;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 255, 255, 0.2);
+}
+
 
 /* ═══════════════════════════════════════
    LEVEL-UP INDICATOR (pending skill choice)

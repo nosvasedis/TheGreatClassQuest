@@ -1207,6 +1207,11 @@ export function setupUIListeners() {
 
     // Hero's Chronicle Modal Listeners
     document.getElementById('hero-chronicle-close-btn').addEventListener('click', () => modals.hideModal('hero-chronicle-modal'));
+    
+    // Tab Switching
+    document.getElementById('chronicle-tab-notes').addEventListener('click', () => modals.switchHeroChronicleTab('notes'));
+    document.getElementById('chronicle-tab-oracle').addEventListener('click', () => modals.switchHeroChronicleTab('oracle'));
+
     document.getElementById('hero-chronicle-note-form').addEventListener('submit', (e) => {
         e.preventDefault();
         const studentId = document.getElementById('hero-chronicle-modal').dataset.studentId;

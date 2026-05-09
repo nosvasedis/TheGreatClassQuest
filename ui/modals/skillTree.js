@@ -61,21 +61,26 @@ export function openSkillTreeModal(studentId) {
 
     // Apply class theme
     if (tree) {
-        panel.style.background = `linear-gradient(160deg, ${tree.auraColor}22 0%, #1e1b4b 40%, #0f0e1a 100%)`;
-        panel.style.border = `2px solid ${tree.auraColor}55`;
-        header.style.background = `linear-gradient(90deg, ${tree.auraColor}33 0%, transparent 100%)`;
-        document.getElementById('skill-tree-progress-bar').style.background = tree.auraColor;
+        panel.style.background = `linear-gradient(165deg, ${tree.auraColor}33 0%, #0f172a 60%, #020617 100%)`;
+        panel.style.borderColor = `${tree.auraColor}44`;
+        document.getElementById('skill-tree-class-icon-glow').style.background = tree.auraColor;
+        document.getElementById('skill-tree-class-bg-icon').textContent = classInfo?.icon || '⭐';
+        document.getElementById('skill-tree-class-bg-icon').style.color = tree.auraColor;
+        document.getElementById('skill-tree-progress-bar').style.background = `linear-gradient(90deg, ${tree.auraColor}aa, ${tree.auraColor})`;
+        document.getElementById('skill-tree-progress-bar').style.boxShadow = `0 0 15px ${tree.auraColor}66`;
     } else {
-        panel.style.background = 'linear-gradient(160deg, #1e1b4b 0%, #0f0e1a 100%)';
-        panel.style.border = '2px solid #4f46e530';
-        header.style.background = '';
+        panel.style.background = 'linear-gradient(165deg, #1e1b4b 0%, #0f172a 60%, #020617 100%)';
+        panel.style.borderColor = '#ffffff10';
+        document.getElementById('skill-tree-class-icon-glow').style.background = '#6366f1';
+        document.getElementById('skill-tree-class-bg-icon').textContent = '🧭';
+        document.getElementById('skill-tree-class-bg-icon').style.color = '#ffffff10';
         document.getElementById('skill-tree-progress-bar').style.background = '#6366f1';
     }
 
     // Header info
     document.getElementById('skill-tree-class-icon').textContent = classInfo?.icon || '⭐';
     document.getElementById('skill-tree-modal-title').textContent = heroClass || 'No Class Chosen';
-    document.getElementById('skill-tree-student-name').textContent = student.name;
+    document.querySelector('#skill-tree-student-name .student-name-text').textContent = student.name;
 
     _renderTree(student, scoreData, heroClass, tree);
     showAnimatedModal('skill-tree-modal');
@@ -104,14 +109,14 @@ function _renderTree(student, scoreData, heroClass, tree) {
         const segmentDone = starsInReason - prevThreshold;
         const pct = Math.min(100, Math.max(0, Math.round((segmentDone / segmentTotal) * 100)));
         progressBar.style.width = pct + '%';
-        levelLabel.textContent = currentLevel > 0 ? `${getHeroTitle(heroClass, currentLevel)} — Level ${currentLevel}` : 'No level yet';
+        levelLabel.textContent = currentLevel > 0 ? `${getHeroTitle(heroClass, currentLevel)}` : 'Initiate';
         const needed = starsToNextLevel(heroClass, currentLevel, starsInReason);
         const reasonLabel = getReasonDisplayName(reason);
-        progressText.textContent = `${starsInReason} ${reasonLabel} stars · ${needed} to Level ${currentLevel + 1}`;
+        progressText.textContent = `Lvl ${currentLevel} · ${starsInReason} ${reasonLabel} · ${needed} to next level`;
     } else if (tree && currentLevel >= maxLevel) {
         progressBar.style.width = '100%';
-        levelLabel.textContent = `${getHeroTitle(heroClass, maxLevel)} — MAX LEVEL`;
-        progressText.textContent = `${starsInReason} ${getReasonDisplayName(reason)} stars — Legendary!`;
+        levelLabel.textContent = `${getHeroTitle(heroClass, maxLevel)}`;
+        progressText.textContent = `${starsInReason} ${getReasonDisplayName(reason)} stars — MAX LEVEL REACHED`;
     } else {
         progressBar.style.width = '0%';
         levelLabel.textContent = 'No class chosen';
@@ -122,10 +127,10 @@ function _renderTree(student, scoreData, heroClass, tree) {
 
     if (!tree) {
         content.innerHTML = `
-            <div class="text-center py-12 text-white/50">
-                <div class="text-6xl mb-4">🧭</div>
-                <p class="text-lg font-bold text-white/60">This student hasn't chosen a Hero Class yet.</p>
-                <p class="text-sm mt-2">Edit the student to assign a class first.</p>
+            <div class="text-center py-16 text-white/50">
+                <div class="text-7xl mb-6 filter drop-shadow-2xl">🧭</div>
+                <p class="text-xl font-title text-white/80">Path Unchosen</p>
+                <p class="text-sm mt-3 text-white/40 max-w-xs mx-auto">This student hasn't stepped onto a hero's path yet. Assign a Hero Class in their settings to begin.</p>
             </div>`;
         return;
     }
@@ -135,55 +140,74 @@ function _renderTree(student, scoreData, heroClass, tree) {
         const isUnlocked = starsInReason >= lvl.threshold;
         const chosenSkillId = heroSkills[idx] || null;
         const needsChoice = isUnlocked && !chosenSkillId;
-        const isCurrentPending = pendingChoice && levelNumber === currentLevel && needsChoice;
+        const isCurrentPending = pendingChoice && levelNumber === (heroSkills.length + 1) && needsChoice;
 
         const connectorHtml = idx < tree.levels.length - 1
-            ? `<div class="flex justify-center my-1"><div class="w-0.5 h-6 ${isUnlocked ? 'bg-white/30' : 'bg-white/10'}"></div></div>`
+            ? `<div class="flex justify-center my-2"><div class="w-1 h-12 rounded-full ${isUnlocked ? 'bg-gradient-to-b from-white/30 to-white/10' : 'bg-white/5 shadow-inner'}"></div></div>`
             : '';
 
         const titleLabel = getHeroTitle(heroClass, levelNumber);
         const thresholdLabel = `${lvl.threshold} ${getReasonDisplayName(reason)} stars`;
 
         return `
-            <div class="skill-tree-level-node ${isUnlocked ? '' : 'opacity-50'}" data-level="${levelNumber}">
+            <div class="skill-tree-level-node group ${isUnlocked ? 'is-unlocked' : 'is-locked opacity-60'}" data-level="${levelNumber}">
                 <!-- Level header row -->
-                <div class="flex items-center gap-3 mb-3">
-                    <div class="w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold flex-shrink-0 border-2
-                        ${isUnlocked ? 'bg-white/20 border-white/40 text-white' : 'bg-white/5 border-white/15 text-white/30'}">
-                        ${levelNumber}
+                <div class="flex items-center gap-4 mb-5">
+                    <div class="relative w-12 h-12 flex-shrink-0">
+                        <div class="absolute inset-0 rounded-xl rotate-45 transition-all duration-500
+                            ${isUnlocked ? 'bg-white/10 border border-white/20 scale-100' : 'bg-black/40 border border-white/5 scale-90'}"></div>
+                        <div class="relative flex items-center justify-center h-full text-lg font-title
+                            ${isUnlocked ? 'text-white' : 'text-white/30'}">
+                            ${levelNumber}
+                        </div>
                     </div>
                     <div class="flex-1 min-w-0">
-                        <div class="flex items-center gap-2 flex-wrap">
-                            <span class="font-title text-base text-white ${isUnlocked ? '' : 'opacity-40'}">${titleLabel}</span>
-                            ${isUnlocked ? `<span class="text-[10px] px-1.5 py-0.5 rounded-full bg-white/10 text-white/60 font-bold uppercase">Unlocked</span>` : `<span class="text-[10px] px-1.5 py-0.5 rounded-full bg-white/5 text-white/25 font-bold uppercase">🔒 ${thresholdLabel}</span>`}
-                            ${isCurrentPending ? `<span class="text-[10px] px-2 py-0.5 rounded-full font-bold uppercase animate-pulse" style="background:${tree.auraColor}44;color:${tree.auraColor}">Choose Now!</span>` : ''}
+                        <div class="flex flex-col">
+                            <h3 class="font-title text-xl text-white flex items-center gap-3">
+                                ${titleLabel}
+                                ${isUnlocked ? '<i class="fas fa-check-circle text-[10px] text-green-400 opacity-60"></i>' : '<i class="fas fa-lock text-[10px] opacity-30"></i>'}
+                            </h3>
+                            <div class="flex items-center gap-2 mt-1">
+                                ${isUnlocked 
+                                    ? `<span class="text-[9px] px-2 py-0.5 rounded-md bg-white/10 text-white/60 font-bold uppercase tracking-wider">Unlocked</span>` 
+                                    : `<span class="text-[9px] px-2 py-0.5 rounded-md bg-black/40 text-white/30 font-bold uppercase tracking-wider border border-white/5">Requires ${thresholdLabel}</span>`
+                                }
+                                ${isCurrentPending ? `<span class="text-[9px] px-2 py-0.5 rounded-md font-bold uppercase tracking-wider animate-pulse shadow-[0_0_10px_rgba(255,255,255,0.2)]" style="background:${tree.auraColor};color:white">Level Up! Choice Pending</span>` : ''}
+                            </div>
                         </div>
                     </div>
                 </div>
 
                 <!-- Branch cards -->
-                <div class="grid grid-cols-2 gap-3">
+                <div class="grid grid-cols-2 gap-4">
                     ${lvl.branches.map(branch => {
                         const isChosen = chosenSkillId === branch.id;
-                        const canChoose = isUnlocked && !chosenSkillId;
+                        const canChoose = isUnlocked && !chosenSkillId && (idx === 0 || !!heroSkills[idx-1]);
+                        
                         return `
-                            <div class="skill-branch-card relative rounded-2xl p-3 border-2 transition-all duration-200 cursor-default
+                            <div class="skill-branch-card group/card relative rounded-[1.5rem] p-4 border transition-all duration-500
                                 ${isChosen
-                                    ? `border-2 shadow-lg`
+                                    ? `is-active border-2 shadow-[0_10px_30px_-10px_rgba(0,0,0,0.5)]`
                                     : canChoose
-                                        ? 'border-white/20 bg-white/5 hover:border-white/40 hover:bg-white/10 cursor-pointer'
-                                        : 'border-white/10 bg-white/3'
+                                        ? 'is-available border-white/10 bg-white/5 hover:bg-white/10 cursor-pointer hover:-translate-y-1 hover:shadow-xl'
+                                        : 'is-unavailable border-white/5 bg-black/20 grayscale-[0.8] opacity-50'
                                 }"
-                                style="${isChosen ? `border-color:${tree.auraColor};background:${tree.auraColor}22;box-shadow:${tree.auraGlow}` : ''}"
+                                style="${isChosen ? `border-color:${tree.auraColor};background:linear-gradient(135deg, ${tree.auraColor}22, ${tree.auraColor}11);box-shadow:inset 0 0 20px ${tree.auraColor}11` : ''}"
                                 data-branch-id="${branch.id}"
                                 data-student-id="${student.id}"
                                 data-level-index="${idx}"
                                 ${canChoose ? 'role="button" tabindex="0"' : ''}>
-                                <div class="text-2xl mb-1.5">${branch.icon}</div>
-                                <div class="font-bold text-sm text-white leading-tight mb-1">${branch.name}</div>
-                                <div class="text-xs text-white/55 leading-snug">${branch.desc}</div>
-                                ${isChosen ? `<div class="absolute top-2 right-2 text-xs font-bold rounded-full px-1.5 py-0.5" style="background:${tree.auraColor};color:white">✓ Active</div>` : ''}
-                                ${canChoose ? `<div class="mt-2 text-xs font-bold text-center py-1 rounded-lg bg-white/10 hover:bg-white/20 transition-colors" style="color:${tree.auraColor}">Choose →</div>` : ''}
+                                
+                                <div class="relative w-12 h-12 flex items-center justify-center rounded-2xl bg-black/40 border border-white/10 mb-3 group-hover/card:scale-110 transition-transform duration-500">
+                                    <div class="text-3xl filter drop-shadow-md">${branch.icon}</div>
+                                    ${isChosen ? `<div class="absolute -top-1 -right-1 w-4 h-4 rounded-full flex items-center justify-center text-[8px]" style="background:${tree.auraColor}"><i class="fas fa-check"></i></div>` : ''}
+                                </div>
+                                
+                                <div class="font-title text-sm text-white leading-tight mb-1.5 group-hover/card:text-white transition-colors">${branch.name}</div>
+                                <div class="text-[11px] text-white/50 leading-relaxed line-clamp-3 group-hover/card:text-white/70 transition-colors">${branch.desc}</div>
+                                
+                                ${isChosen ? `<div class="mt-3 flex items-center gap-2"><div class="h-1 flex-1 rounded-full overflow-hidden bg-white/10"><div class="h-full w-full" style="background:${tree.auraColor}"></div></div><span class="text-[8px] font-bold uppercase tracking-widest text-white/40">Active</span></div>` : ''}
+                                ${canChoose ? `<div class="mt-4 py-2 rounded-xl text-center text-[10px] font-bold uppercase tracking-widest border border-dashed border-white/20 group-hover/card:border-solid group-hover/card:bg-white group-hover/card:text-black transition-all">Select Skill</div>` : ''}
                             </div>`;
                     }).join('')}
                 </div>
@@ -191,6 +215,7 @@ function _renderTree(student, scoreData, heroClass, tree) {
             ${connectorHtml}
         `;
     }).join('');
+
 
     // Bind choose-skill clicks
     content.querySelectorAll('.skill-branch-card[role="button"]').forEach(card => {
@@ -216,24 +241,63 @@ async function _handleChooseSkill(studentId, branchId, levelIndex, heroClass, tr
     if (!branch) return;
 
     const confirmEl = document.createElement('div');
-    confirmEl.className = 'fixed inset-0 z-[100] flex items-center justify-center bg-black/70 pop-in';
+    confirmEl.className = 'fixed inset-0 z-[100] flex items-center justify-center bg-black/0 backdrop-blur-0 p-4 transition-all duration-300';
     confirmEl.innerHTML = `
-        <div class="bg-gray-900 rounded-2xl p-6 max-w-sm w-full mx-4 border-2 shadow-2xl" style="border-color:${tree.auraColor}">
-            <div class="text-4xl text-center mb-3">${branch.icon}</div>
-            <h3 class="font-title text-xl text-white text-center mb-2">${branch.name}</h3>
-            <p class="text-sm text-white/60 text-center mb-5">${branch.desc}</p>
-            <p class="text-xs text-white/40 text-center mb-5 italic">This choice is permanent for this level.</p>
-            <div class="flex gap-3">
-                <button id="skill-confirm-cancel" class="flex-1 py-2 rounded-xl bg-white/10 text-white/60 font-bold text-sm hover:bg-white/20 transition-colors">Cancel</button>
-                <button id="skill-confirm-ok" class="flex-1 py-2 rounded-xl font-bold text-sm text-white transition-colors hover:opacity-80" style="background:${tree.auraColor}">Confirm Choice</button>
+        <div class="confirm-card relative bg-[#0f172a] rounded-[2.5rem] p-8 max-w-sm w-full border border-white/10 shadow-[0_20px_50px_rgba(0,0,0,0.5)] overflow-hidden pop-in modal-origin-start">
+            <!-- Background Glow -->
+            <div class="absolute -top-20 -left-20 w-40 h-40 blur-[80px] opacity-30" style="background:${tree.auraColor}"></div>
+            
+            <div class="relative z-10">
+                <div class="w-20 h-20 mx-auto flex items-center justify-center rounded-3xl bg-black/40 border border-white/10 text-5xl mb-6 shadow-inner">
+                    ${branch.icon}
+                </div>
+                
+                <div class="text-center mb-6">
+                    <p class="text-[10px] font-bold uppercase tracking-[0.2em] text-white/40 mb-2">Confirm Awakening</p>
+                    <h3 class="font-title text-2xl text-white mb-2">${branch.name}</h3>
+                    <p class="text-xs text-white/60 leading-relaxed">${branch.desc}</p>
+                </div>
+                
+                <div class="bg-black/30 rounded-2xl p-4 mb-8 border border-white/5">
+                    <p class="text-[10px] text-white/30 text-center italic leading-tight">
+                        Choose wisely, Hero. This skill will become a permanent part of your legend.
+                    </p>
+                </div>
+                
+                <div class="flex flex-col gap-3">
+                    <button id="skill-confirm-ok" class="w-full py-4 rounded-2xl font-bold text-sm text-white transition-all hover:scale-[1.02] active:scale-[0.98] shadow-lg" style="background:${tree.auraColor}">
+                        Commit to this Path
+                    </button>
+                    <button id="skill-confirm-cancel" class="w-full py-3 rounded-2xl text-white/40 font-bold text-xs hover:text-white/60 transition-colors">
+                        Reconsider
+                    </button>
+                </div>
             </div>
         </div>`;
+
     document.body.appendChild(confirmEl);
 
+    // Animate in
+    requestAnimationFrame(() => {
+        confirmEl.classList.replace('bg-black/0', 'bg-black/80');
+        confirmEl.classList.replace('backdrop-blur-0', 'backdrop-blur-sm');
+        confirmEl.querySelector('.confirm-card').classList.remove('modal-origin-start');
+    });
+
     await new Promise(resolve => {
-        confirmEl.querySelector('#skill-confirm-cancel').addEventListener('click', () => { confirmEl.remove(); resolve(false); });
-        confirmEl.querySelector('#skill-confirm-ok').addEventListener('click', () => { confirmEl.remove(); resolve(true); });
+        const close = (result) => {
+            confirmEl.classList.replace('bg-black/80', 'bg-black/0');
+            confirmEl.classList.replace('backdrop-blur-sm', 'backdrop-blur-0');
+            confirmEl.querySelector('.confirm-card').classList.add('modal-origin-start');
+            setTimeout(() => {
+                confirmEl.remove();
+                resolve(result);
+            }, 300);
+        };
+        confirmEl.querySelector('#skill-confirm-cancel').addEventListener('click', () => close(false));
+        confirmEl.querySelector('#skill-confirm-ok').addEventListener('click', () => close(true));
     }).then(async confirmed => {
+
         if (!confirmed) return;
 
         try {

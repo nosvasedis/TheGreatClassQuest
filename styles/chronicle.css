@@ -1,0 +1,100 @@
+/* styles/chronicle.css */
+
+/* Tab Buttons */
+.hero-chronicle-tab-btn {
+    color: rgba(255, 255, 255, 0.6);
+}
+
+.hero-chronicle-tab-btn.active {
+    background-color: white;
+    color: #059669; /* emerald-600 */
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.hero-chronicle-tab-btn:not(.active):hover {
+    color: white;
+    background-color: rgba(255, 255, 255, 0.1);
+}
+
+/* AI Response Container */
+.ai-response-container {
+    animation: slide-up-fade 0.5s ease-out;
+}
+
+@keyframes slide-up-fade {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Rich Text Styling in AI Output */
+.rich-text h4 {
+    position: relative;
+    padding-left: 0.5rem;
+}
+
+.rich-text h4::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0.25rem;
+    bottom: 0.25rem;
+    width: 4px;
+    background: #6366f1; /* indigo-500 */
+    border-radius: 2px;
+    opacity: 0.5;
+}
+
+.rich-text li {
+    transition: transform 0.2s;
+}
+
+.rich-text li:hover {
+    transform: translateX(4px);
+}
+
+/* Note Feed Scrollbar */
+#hero-chronicle-notes-feed::-webkit-scrollbar {
+    width: 6px;
+}
+
+#hero-chronicle-notes-feed::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+#hero-chronicle-notes-feed::-webkit-scrollbar-thumb {
+    background: #e2e8f0;
+    border-radius: 10px;
+}
+
+#hero-chronicle-notes-feed::-webkit-scrollbar-thumb:hover {
+    background: #cbd5e1;
+}
+
+/* Edit/Delete Button Animations */
+.edit-chronicle-note-btn:active, .delete-chronicle-note-btn:active {
+    transform: scale(0.9);
+}
+
+/* Pulse for Oracle Badge */
+#oracle-status-badge span {
+    box-shadow: 0 0 0 0 rgba(99, 102, 241, 0.4);
+    animation: oracle-badge-pulse 2s infinite;
+}
+
+@keyframes oracle-badge-pulse {
+    0% {
+        box-shadow: 0 0 0 0 rgba(99, 102, 241, 0.4);
+    }
+    70% {
+        box-shadow: 0 0 0 6px rgba(99, 102, 241, 0);
+    }
+    100% {
+        box-shadow: 0 0 0 0 rgba(99, 102, 241, 0);
+    }
+}

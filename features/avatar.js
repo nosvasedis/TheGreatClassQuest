@@ -81,9 +81,13 @@ export function openAvatarMaker(studentId) {
         `<button class="avatar-maker-option-btn" data-value="${a.value}">${a.icon} ${a.value}</button>`
     ).join('');
 
-    // Reset step checkmarks
+    // Reset step checkmarks and dots
     ['creature', 'color', 'accessory'].forEach(p => {
-        document.getElementById(`step-${p}-check`)?.classList.add('hidden');
+        const check = document.getElementById(`step-${p}-check`);
+        if (check) check.style.opacity = '0';
+        
+        const dot = document.getElementById(`step-${p}-dot`);
+        if (dot) dot.classList.replace('bg-purple-500', 'bg-white/10');
     });
 
     const placeholder = document.getElementById('avatar-maker-placeholder');
@@ -103,7 +107,31 @@ export function openAvatarMaker(studentId) {
     document.getElementById('avatar-generate-btn').disabled = true;
     document.getElementById('avatar-post-generation-btns').classList.add('hidden');
 
+    createForgeParticles();
     modals.showAnimatedModal('avatar-maker-modal');
+}
+
+function createForgeParticles() {
+    const container = document.getElementById('forge-particles-container');
+    if (!container) return;
+    container.innerHTML = '';
+    const count = 20;
+    for (let i = 0; i < count; i++) {
+        const p = document.createElement('div');
+        const size = Math.random() * 4 + 2;
+        p.className = 'absolute bg-orange-500/40 rounded-full blur-[1px]';
+        p.style.width = `${size}px`;
+        p.style.height = `${size}px`;
+        p.style.left = `${Math.random() * 100}%`;
+        p.style.top = `${Math.random() * 100}%`;
+        p.style.opacity = Math.random();
+        
+        const duration = Math.random() * 10 + 5;
+        const delay = Math.random() * 5;
+        p.style.animation = `float ${duration}s ease-in-out ${delay}s infinite`;
+        
+        container.appendChild(p);
+    }
 }
 
 export function handleAvatarOptionSelect(event, pool) {
@@ -117,11 +145,19 @@ export function handleAvatarOptionSelect(event, pool) {
 
     avatarMakerData[pool] = btn.dataset.value;
 
-    // Light up the step checkmark
-    document.getElementById(`step-${pool}-check`)?.classList.remove('hidden');
+    // Light up the step checkmark and dot
+    const check = document.getElementById(`step-${pool}-check`);
+    if (check) check.style.opacity = '1';
+    
+    const dot = document.getElementById(`step-${pool}-dot`);
+    if (dot) {
+        dot.classList.remove('bg-white/10');
+        dot.classList.add('bg-purple-500', 'shadow-[0_0_10px_#a855f7]');
+    }
 
     if (avatarMakerData.creature && avatarMakerData.color && avatarMakerData.accessory) {
         document.getElementById('avatar-generate-btn').disabled = false;
+        playSound('magic_chime_short');
     }
 }
 

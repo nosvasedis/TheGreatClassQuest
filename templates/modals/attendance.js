@@ -187,7 +187,7 @@ export const attendanceModalsHTML = `
     </div>
 
     <div style="position: fixed; left: -9999px; top: -9999px;">
-        <div id="certificate-template">
+        <div id="certificate-template" style="width: 800px; height: 600px; display: flex; flex-direction: column; padding: 25px 35px; background-color: white; border: 20px solid; box-sizing: border-box; position: relative; overflow: hidden;">
 
             <!-- Corner ornaments (border-color set by JS) -->
             <div id="cert-corner-tl" style="position:absolute;top:14px;left:14px;width:26px;height:26px;border-top:2px solid;border-left:2px solid;border-radius:3px 0 0 0;opacity:0.5;pointer-events:none;"></div>
@@ -200,46 +200,47 @@ export const attendanceModalsHTML = `
                 <div style="display:flex; align-items:center; justify-content:center; gap:10px; margin-bottom:2px;">
                     <div id="cert-icon" style="font-size:44px; line-height:1;"></div>
                 </div>
-                <h1 id="cert-title" style="font-family:'Fredoka One',cursive; font-size:36px; margin:0; line-height:1.1;"></h1>
-                <p style="font-size:10.5px; margin:3px 0 0; letter-spacing:0.15em; text-transform:uppercase; opacity:0.65;">
+                <h1 id="cert-title" style="font-family:'Fredoka One',cursive; font-size:32px; margin:0; line-height:1.1;"></h1>
+                <p style="font-size:10px; margin:1px 0 0; letter-spacing:0.15em; text-transform:uppercase; opacity:0.65;">
                     The Great Class Quest &nbsp;•&nbsp; Hero Certificate
                 </p>
             </div>
 
             <!-- Divider 1 -->
-            <div style="width:100%; display:flex; align-items:center; gap:10px; margin:9px 0 6px; flex-shrink:0; opacity:0.3;">
+            <div style="width:100%; display:flex; align-items:center; gap:8px; margin:4px 0 2px; flex-shrink:0; opacity:0.3;">
                 <div style="flex:1; border-top:1px solid rgba(0,0,0,0.6);"></div>
-                <span style="font-size:12px; color:rgba(0,0,0,0.5);">✦</span>
+                <span style="font-size:10px; color:rgba(0,0,0,0.5);">✦</span>
                 <div style="flex:1; border-top:1px solid rgba(0,0,0,0.6);"></div>
             </div>
 
             <!-- Proudly Presented To + Name -->
-            <div style="flex-shrink:0; text-align:center; margin-bottom:4px;">
-                <p style="font-size:11px; text-transform:uppercase; letter-spacing:0.2em; opacity:0.58; margin:0 0 3px;">Proudly Presented To</p>
-                <p id="cert-student-name" style="font-family:'Fredoka One',cursive; font-size:46px; margin:0; line-height:1.2;"></p>
+            <div style="flex-shrink:0; text-align:center; margin-bottom:2px; display:flex; flex-direction:column; align-items:center;">
+                <img id="cert-avatar" src="" style="display:none; width:60px; height:60px; border-radius:9999px; border:3px solid white; box-shadow:0 3px 10px rgba(0,0,0,0.12); object-fit:cover; margin-bottom:5px;">
+                <p style="font-size:9.5px; text-transform:uppercase; letter-spacing:0.2em; opacity:0.58; margin:0 0 1px;">Proudly Presented To</p>
+                <p id="cert-student-name" style="font-family:'Fredoka One',cursive; font-size:40px; margin:0; line-height:1.05;"></p>
             </div>
 
-            <!-- Badges row: class, guild, hero, stars, league, virtue (kept in a single row) -->
-            <div id="cert-badges" style="display:flex; flex-wrap:nowrap; justify-content:center; align-items:stretch; gap:6px; margin:22px 0 12px; font-size:11px; font-weight:600; flex-shrink:0; max-width:100%;">
-                <span id="cert-class-name"   class="cert-pill" style="display:inline-flex; align-items:center; justify-content:center; height:26px; padding:0 12px; border-radius:9999px; white-space:nowrap; box-sizing:border-box;"></span>
-                <span id="cert-guild-pill"   class="cert-pill" style="display:inline-flex; align-items:center; justify-content:center; height:26px; padding:0 12px; border-radius:9999px; white-space:nowrap; box-sizing:border-box;"></span>
-                <span id="cert-hero-pill"    class="cert-pill" style="display:inline-flex; align-items:center; justify-content:center; height:26px; padding:0 12px; border-radius:9999px; white-space:nowrap; box-sizing:border-box;"></span>
-                <span id="cert-stars-pill"   class="cert-pill" style="display:inline-flex; align-items:center; justify-content:center; height:26px; padding:0 12px; border-radius:9999px; white-space:nowrap; box-sizing:border-box;"></span>
-                <span id="cert-league-pill"  class="cert-pill" style="display:inline-flex; align-items:center; justify-content:center; height:26px; padding:0 12px; border-radius:9999px; white-space:nowrap; box-sizing:border-box;"></span>
-                <span id="cert-virtue-pill"  class="cert-pill" style="display:inline-flex; align-items:center; justify-content:center; height:26px; padding:0 12px; border-radius:9999px; white-space:nowrap; box-sizing:border-box;"></span>
+            <!-- Badges row -->
+            <div id="cert-badges" style="display:flex; flex-wrap:wrap; justify-content:center; align-items:center; gap:4px; margin:6px 0 6px; font-size:9px; font-weight:700; flex-shrink:0; max-width:96%; margin-left:auto; margin-right:auto;">
+                <span id="cert-class-name"   class="cert-pill" style="display:inline-flex; align-items:center; justify-content:center; height:24px; padding:0 10px; border-radius:9999px; white-space:nowrap; box-sizing:border-box;"></span>
+                <span id="cert-guild-pill"   class="cert-pill" style="display:inline-flex; align-items:center; justify-content:center; height:24px; padding:0 10px; border-radius:9999px; white-space:nowrap; box-sizing:border-box;"></span>
+                <span id="cert-hero-pill"    class="cert-pill" style="display:inline-flex; align-items:center; justify-content:center; height:24px; padding:0 10px; border-radius:9999px; white-space:nowrap; box-sizing:border-box;"></span>
+                <span id="cert-stars-pill"   class="cert-pill" style="display:inline-flex; align-items:center; justify-content:center; height:24px; padding:0 10px; border-radius:9999px; white-space:nowrap; box-sizing:border-box;"></span>
+                <span id="cert-league-pill"  class="cert-pill" style="display:inline-flex; align-items:center; justify-content:center; height:24px; padding:0 10px; border-radius:9999px; white-space:nowrap; box-sizing:border-box;"></span>
+                <span id="cert-virtue-pill"  class="cert-pill" style="display:inline-flex; align-items:center; justify-content:center; height:24px; padding:0 10px; border-radius:9999px; white-space:nowrap; box-sizing:border-box;"></span>
             </div>
 
             <!-- AI-generated certificate text -->
-            <div id="cert-text" style="font-size:16.5px; text-align:center; line-height:1.62; max-width:86%; flex-shrink:0; font-style:italic;"></div>
+            <div id="cert-text" style="font-size:14.5px; text-align:center; line-height:1.45; max-width:90%; flex-shrink:0; font-style:italic; margin: 0 auto;"></div>
 
             <!-- Decorative flair row under the main text -->
-            <div id="cert-flair-row" style="margin-top:8px; display:flex; justify-content:center; gap:8px; flex-shrink:0;"></div>
+            <div id="cert-flair-row" style="margin-top:4px; display:flex; justify-content:center; gap:8px; flex-shrink:0;"></div>
 
             <!-- Meta stats line -->
-            <div id="cert-meta" style="font-size:10.5px; margin-top:4px; opacity:0.52; text-align:center; flex-shrink:0; letter-spacing:0.06em;"></div>
+            <div id="cert-meta" style="font-size:10px; margin-top:2px; opacity:0.52; text-align:center; flex-shrink:0; letter-spacing:0.06em;"></div>
 
             <!-- Flex spacer — pushes footer down -->
-            <div style="flex:1; min-height:6px;"></div>
+            <div style="flex:1;"></div>
 
             <!-- Divider 2 -->
             <div style="width:100%; display:flex; align-items:center; gap:10px; margin-bottom:9px; flex-shrink:0; opacity:0.3;">
@@ -248,22 +249,22 @@ export const attendanceModalsHTML = `
                 <div style="flex:1; border-top:1px solid rgba(0,0,0,0.6);"></div>
             </div>
 
-            <!-- Footer: guild emblem + teacher | school | date + avatar -->
-            <div style="width:100%; display:flex; justify-content:space-between; align-items:flex-end; flex-shrink:0;">
-                <div style="display:flex; align-items:flex-end; gap:8px;">
-                    <img id="cert-guild-emblem" src="" style="display:none; width:50px; height:50px; border-radius:9999px; border:3px solid white; box-shadow:0 2px 8px rgba(0,0,0,0.22); object-fit:cover; flex-shrink:0;">
-                    <div style="text-align:center; min-width:150px;">
-                        <p id="cert-teacher-name" style="font-weight:700; font-size:13px; border-top-width:2px; border-top-style:solid; padding-top:5px; margin:0;"></p>
-                        <p style="font-size:10px; margin-top:2px; opacity:0.55;">Quest Facilitator</p>
+            <!-- Footer: guild emblem + teacher | school | date + app logo -->
+            <div style="width:100%; display:flex; justify-content:space-between; align-items:flex-end; flex-shrink:0; margin-top: auto;">
+                <div style="display:flex; align-items:flex-end; gap:6px;">
+                    <img id="cert-guild-emblem" src="" style="display:none; width:42px; height:42px; border-radius:9999px; border:3px solid white; box-shadow:0 2px 8px rgba(0,0,0,0.22); object-fit:cover; flex-shrink:0;">
+                    <div style="text-align:center; min-width:120px;">
+                        <p id="cert-teacher-name" style="font-weight:700; font-size:11.5px; border-top-width:2px; border-top-style:solid; padding-top:3px; margin:0;"></p>
+                        <p style="font-size:8.5px; margin-top:1px; opacity:0.55;">Quest Facilitator</p>
                     </div>
                 </div>
-                <div style="text-align:center; font-size:9.5px; opacity:0.38; flex:1; padding:0 8px;" data-school-name>Your School</div>
-                <div style="display:flex; align-items:flex-end; gap:8px;">
-                    <div style="text-align:center; min-width:150px;">
-                        <p id="cert-date" style="font-weight:700; font-size:13px; border-top-width:2px; border-top-style:solid; padding-top:5px; margin:0;"></p>
-                        <p style="font-size:10px; margin-top:2px; opacity:0.55;">Date of Issue</p>
+                <div style="text-align:center; font-size:8.5px; opacity:0.38; flex:1; padding:0 8px; margin-bottom: 4px;" data-school-name>Your School</div>
+                <div style="display:flex; align-items:flex-end; gap:6px;">
+                    <div style="text-align:center; min-width:120px;">
+                        <p id="cert-date" style="font-weight:700; font-size:11.5px; border-top-width:2px; border-top-style:solid; padding-top:3px; margin:0;"></p>
+                        <p style="font-size:8.5px; margin-top:1px; opacity:0.55;">Date of Issue</p>
                     </div>
-                    <img id="cert-avatar" src="" style="display:none; width:50px; height:50px; border-radius:9999px; border:3px solid white; box-shadow:0 2px 8px rgba(0,0,0,0.22); object-fit:cover; flex-shrink:0;">
+                    <img id="cert-app-logo" src="assets/great-class-quest-logo.svg" style="width:42px; height:42px; object-fit:contain; flex-shrink:0;">
                 </div>
             </div>
 

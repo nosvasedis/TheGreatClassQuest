@@ -272,41 +272,118 @@ export function openHeroChronicleModal(studentId) {
     const modal = document.getElementById('hero-chronicle-modal');
     modal.dataset.studentId = studentId;
 
-    document.getElementById('hero-chronicle-student-name').innerText = `for ${student.name}`;
+    // Set student name
+    document.getElementById('hero-chronicle-student-name').innerText = `Archived Deeds of ${student.name}`;
+    
+    // Inject Avatar
+    const avatarContainer = document.getElementById('hero-chronicle-avatar');
+    if (student.avatar) {
+        avatarContainer.innerHTML = `<img src="${student.avatar}" class="w-full h-full object-cover" alt="${student.name}">`;
+    } else {
+        avatarContainer.innerHTML = `<span class="font-title text-emerald-600">${student.name.charAt(0)}</span>`;
+    }
+
+    // Reset Tabs
+    switchHeroChronicleTab('notes');
     
     resetHeroChronicleForm();
     renderHeroChronicleContent(studentId);
     
     // Reset AI output
-    document.getElementById('hero-chronicle-ai-output').innerHTML = `<p class="text-center text-indigo-700">Select a counsel type to receive the Oracle's wisdom.</p>`;
+    document.getElementById('hero-chronicle-ai-output').innerHTML = `
+        <div class="h-full flex flex-col items-center justify-center text-center space-y-4">
+            <div class="w-24 h-24 bg-indigo-50 rounded-full flex items-center justify-center text-5xl opacity-40">🔮</div>
+            <p class="text-slate-400 font-medium max-w-xs">Select a counsel type to receive the Oracle's wisdom.</p>
+        </div>
+    `;
 
     showAnimatedModal('hero-chronicle-modal');
 }
 
+export function switchHeroChronicleTab(tabId) {
+    const notesTab = document.getElementById('hero-chronicle-content-notes');
+    const oracleTab = document.getElementById('hero-chronicle-content-oracle');
+    const notesBtn = document.getElementById('chronicle-tab-notes');
+    const oracleBtn = document.getElementById('chronicle-tab-oracle');
+
+    if (tabId === 'notes') {
+        notesTab.classList.remove('hidden');
+        oracleTab.classList.add('hidden');
+        notesBtn.classList.add('active');
+        oracleBtn.classList.remove('active');
+    } else {
+        notesTab.classList.add('hidden');
+        oracleTab.classList.remove('hidden');
+        notesBtn.classList.remove('active');
+        oracleBtn.classList.add('active');
+    }
+}
+
 export function renderHeroChronicleContent(studentId) {
     const notesFeed = document.getElementById('hero-chronicle-notes-feed');
+    const noteCountEl = document.getElementById('chronicle-note-count');
     const notes = state.get('allHeroChronicleNotes')
         .filter(n => n.studentId === studentId)
         .sort((a, b) => b.createdAt.toDate() - a.createdAt.toDate());
 
+    if (noteCountEl) noteCountEl.textContent = `${notes.length} ${notes.length === 1 ? 'Note' : 'Notes'}`;
+
     if (notes.length === 0) {
-        notesFeed.innerHTML = `<p class="text-center text-gray-500 p-4">No notes have been added for this student yet.</p>`;
+        notesFeed.innerHTML = `
+            <div class="h-48 flex flex-col items-center justify-center text-slate-400 opacity-60">
+                <i class="fas fa-feather-pointed text-4xl mb-3"></i>
+                <p class="font-medium italic">The chronicle is empty...</p>
+            </div>
+        `;
         return;
     }
 
-    notesFeed.innerHTML = notes.map(note => `
-        <div class="bg-white p-3 rounded-md shadow-sm border">
-            <div class="flex justify-between items-center text-xs text-gray-500 mb-1">
-                <span class="font-bold">${note.category}</span>
-                <span>${(note.createdAt ? note.createdAt.toDate() : new Date()).toLocaleDateString('en-GB')}</span>
+    const categoryIcons = {
+        'General': 'fa-bookmark',
+        'Academic': 'fa-graduation-cap',
+        'Behavior': 'fa-masks-theater',
+        'Social': 'fa-comments',
+        'Goals': 'fa-bullseye'
+    };
+
+    const categoryColors = {
+        'General': 'bg-slate-100 text-slate-600',
+        'Academic': 'bg-blue-100 text-blue-600',
+        'Behavior': 'bg-purple-100 text-purple-600',
+        'Social': 'bg-pink-100 text-pink-600',
+        'Goals': 'bg-emerald-100 text-emerald-600'
+    };
+
+    notesFeed.innerHTML = notes.map(note => {
+        const icon = categoryIcons[note.category] || 'fa-bookmark';
+        const colors = categoryColors[note.category] || 'bg-slate-100 text-slate-600';
+        const dateStr = (note.createdAt ? note.createdAt.toDate() : new Date()).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+        
+        return `
+            <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-100 group hover:border-emerald-200 transition-all">
+                <div class="flex justify-between items-start mb-3">
+                    <div class="flex items-center gap-2">
+                        <div class="w-8 h-8 rounded-lg ${colors} flex items-center justify-center text-xs">
+                            <i class="fas ${icon}"></i>
+                        </div>
+                        <div>
+                            <div class="text-[10px] font-black uppercase tracking-widest leading-tight">${note.category}</div>
+                            <div class="text-[10px] text-slate-400 font-bold">${dateStr}</div>
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <button class="edit-chronicle-note-btn w-7 h-7 flex items-center justify-center rounded-lg hover:bg-emerald-50 text-emerald-600 transition-colors" data-note-id="${note.id}" title="Edit Entry">
+                            <i class="fas fa-pen-to-square text-xs"></i>
+                        </button>
+                        <button class="delete-chronicle-note-btn w-7 h-7 flex items-center justify-center rounded-lg hover:bg-rose-50 text-rose-500 transition-colors" data-note-id="${note.id}" title="Delete Entry">
+                            <i class="fas fa-trash-can text-xs"></i>
+                        </button>
+                    </div>
+                </div>
+                <p class="text-slate-700 text-sm leading-relaxed whitespace-pre-wrap font-medium">${note.noteText}</p>
             </div>
-            <p class="text-gray-800 whitespace-pre-wrap">${note.noteText}</p>
-            <div class="text-right mt-2">
-                <button class="edit-chronicle-note-btn text-blue-500 hover:underline text-xs mr-2" data-note-id="${note.id}">Edit</button>
-                <button class="delete-chronicle-note-btn text-red-500 hover:underline text-xs" data-note-id="${note.id}">Delete</button>
-            </div>
-        </div>
-    `).join('');
+        `;
+    }).join('');
 }
 
 export function resetHeroChronicleForm() {
@@ -404,7 +481,12 @@ export async function generateAIInsight(studentId, insightType) {
     if (!student) return;
 
     const outputEl = document.getElementById('hero-chronicle-ai-output');
-    outputEl.innerHTML = `<p class="text-center text-indigo-700"><i class="fas fa-spinner fa-spin mr-2"></i>The Oracle is consulting the records...</p>`;
+    outputEl.innerHTML = `
+        <div class="h-full flex flex-col items-center justify-center text-center space-y-4">
+            <i class="fas fa-wand-sparkles text-5xl text-indigo-400 animate-pulse"></i>
+            <p class="text-indigo-600 font-bold animate-pulse">The Oracle is consulting the records...</p>
+        </div>
+    `;
 
     try {
         const insight = await requestAIInsight(studentId, insightType);
@@ -412,13 +494,20 @@ export async function generateAIInsight(studentId, insightType) {
         let htmlInsight = insight
             .replace(/\*\*\*(.*?)\*\*\*/g, '<b>$1</b>') // Handle ***bold***
             .replace(/\*\*(.*?)\*\*/g, '<b>$1</b>')   // Handle **bold**
-            .replace(/### (.*?)\n/g, '<h4 class="font-bold text-indigo-800 mt-3 mb-1">$1</h4>')
-            .replace(/\* (.*?)\n/g, '<li class="ml-4">$1</li>')
+            .replace(/### (.*?)\n/g, '<h4 class="font-title text-xl text-indigo-700 mt-6 mb-3 flex items-center gap-2"><i class="fas fa-sparkles text-indigo-300 text-sm"></i>$1</h4>')
+            .replace(/\* (.*?)\n/g, '<li class="ml-2 mb-2 flex items-start gap-2"><i class="fas fa-check-circle text-emerald-500 mt-1 text-xs flex-shrink-0"></i><span>$1</span></li>')
             .replace(/(\n)/g, '<br>');
-        outputEl.innerHTML = `<ul>${htmlInsight}</ul>`;
+            
+        outputEl.innerHTML = `<div class="ai-response-container animate-fade-in"><ul class="list-none">${htmlInsight}</ul></div>`;
     } catch (error) {
         console.error("AI Insight Error:", error);
-        outputEl.innerHTML = `<p class="text-center text-red-500">The Oracle could not process the records at this time. Please try again later.</p>`;
+        outputEl.innerHTML = `
+            <div class="h-full flex flex-col items-center justify-center text-center space-y-4">
+                <i class="fas fa-cloud-bolt text-5xl text-rose-400"></i>
+                <p class="text-rose-500 font-bold">The Oracle could not process the records at this time.</p>
+                <button onclick="location.reload()" class="text-xs bg-slate-100 hover:bg-slate-200 px-4 py-2 rounded-full font-bold transition-colors">Retry Connection</button>
+            </div>
+        `;
     }
 }
 

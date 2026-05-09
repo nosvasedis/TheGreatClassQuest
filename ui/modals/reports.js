@@ -9,6 +9,10 @@ import { ensureHistoryLoaded } from '../../db/actions.js';
 import { callGeminiApi } from '../../api.js';
 import { requireEliteAI } from '../../utils/upgradePrompt.js';
 import { getAssessmentValueLabel, getNormalizedPercentForScore } from '../../features/assessmentConfig.js';
+import { showToast } from '../effects.js';
+
+let currentCertStudentId = null;
+let currentCertScope = 'monthly';
 
 export async function handleGenerateReport(classId) {
     if (!requireEliteAI({ feature: 'Weekly report' })) return;
@@ -63,18 +67,122 @@ Write a 2-paragraph summary highlighting connections between behavior and academ
     }
 }
 
-export async function handleGenerateCertificate(studentId) {
-    if (!requireEliteAI({ feature: 'Certificate text' })) return;
+export async function handleGenerateCertificate(studentId, scope = 'monthly') {
     await ensureHistoryLoaded();
-    const student = state.get('allStudents').find(s => s.id === studentId);
-    const studentClass = state.get('allSchoolClasses').find(c => c.id === student.classId);
+    
+    if (studentId) currentCertStudentId = studentId;
+    currentCertScope = scope;
+    
+    const student = state.get('allStudents').find(s => s.id === currentCertStudentId);
+    const studentClass = state.get('allSchoolClasses').find(c => c.id === student?.classId);
+    if (!student || !studentClass) return;
+
+    // Update Tab UI
+    const tabMonthly = document.getElementById('cert-tab-monthly');
+    const tabAllTime = document.getElementById('cert-tab-alltime');
+    
+    if (tabMonthly && tabAllTime) {
+        if (currentCertScope === 'monthly') {
+            tabMonthly.className = 'flex-1 py-2.5 rounded-xl font-title text-sm transition-all bubbly-button bg-white text-indigo-600 shadow-sm';
+            tabAllTime.className = 'flex-1 py-2.5 rounded-xl font-title text-sm transition-all bubbly-button text-indigo-400 hover:text-indigo-600';
+        } else {
+            tabAllTime.className = 'flex-1 py-2.5 rounded-xl font-title text-sm transition-all bubbly-button bg-white text-indigo-600 shadow-sm';
+            tabMonthly.className = 'flex-1 py-2.5 rounded-xl font-title text-sm transition-all bubbly-button text-indigo-400 hover:text-indigo-600';
+        }
+
+        tabMonthly.onclick = () => handleGenerateCertificate(null, 'monthly');
+        tabAllTime.onclick = () => handleGenerateCertificate(null, 'alltime');
+    }
+
+    const contentEl = document.getElementById('certificate-modal-content');
+    const downloadBtn = document.getElementById('download-certificate-btn');
+    
+    // Initial state (Not auto-generating) - Immersive "Mystic Forge" look
+    contentEl.innerHTML = `
+        <div class="w-full py-2 animate-fade-in">
+            <div class="relative flex flex-col items-center">
+                <!-- Decorative background elements -->
+                <div class="absolute inset-0 bg-gradient-to-b from-indigo-50/20 to-purple-50/20 rounded-3xl -z-10"></div>
+                <div class="absolute top-0 left-0 w-full h-full opacity-[0.03] pointer-events-none" style="background-image: url('https://www.transparenttextures.com/patterns/cubes.png');"></div>
+
+                <div class="relative mb-6">
+                    <div class="absolute inset-0 bg-indigo-500/20 blur-2xl rounded-full animate-pulse"></div>
+                    <div class="relative w-28 h-28 rounded-[2rem] bg-white p-1 shadow-2xl rotate-3 hover:rotate-0 transition-transform duration-500">
+                        <img src="${student.avatar || ''}" class="w-full h-full rounded-[1.8rem] object-cover ${student.avatar ? '' : 'hidden'}">
+                        <div class="absolute -bottom-3 -right-3 w-12 h-12 bg-gradient-to-br from-indigo-600 to-purple-700 text-white rounded-2xl flex items-center justify-center shadow-lg border-4 border-white transform -rotate-6">
+                            <i class="fas fa-quill-magic text-xl"></i>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="text-center space-y-2 mb-8">
+                    <h3 class="font-title text-3xl text-indigo-900 tracking-tight">Forge ${student.name}'s Legacy</h3>
+                    <div class="flex items-center justify-center gap-3">
+                        <span class="h-px w-8 bg-indigo-200"></span>
+                        <span class="text-xs font-black uppercase tracking-widest text-indigo-500/80">${currentCertScope === 'monthly' ? 'Monthly Achievement' : "Grand Hero's Journey"}</span>
+                        <span class="h-px w-8 bg-indigo-200"></span>
+                    </div>
+                    <p class="text-indigo-600/70 text-sm max-w-xs mx-auto pt-2 leading-relaxed font-medium">
+                        The Oracle is ready to weave ${student.name}'s deeds into a masterpiece. 
+                        Choose your mode and let the magic begin.
+                    </p>
+                </div>
+
+                <div class="grid grid-cols-2 gap-4 w-full max-w-md mb-8">
+                    <div class="bg-white/40 backdrop-blur-sm p-4 rounded-2xl border border-white/60 flex flex-col items-center text-center">
+                        <i class="fas fa-star text-amber-500 mb-1"></i>
+                        <span class="text-[10px] font-black text-indigo-400 uppercase tracking-tighter">Stars Earned</span>
+                        <span class="text-lg font-title text-indigo-900">${currentCertScope === 'monthly' ? 'This Month' : 'Total'}</span>
+                    </div>
+                    <div class="bg-white/40 backdrop-blur-sm p-4 rounded-2xl border border-white/60 flex flex-col items-center text-center">
+                        <i class="fas fa-shield-halved text-indigo-500 mb-1"></i>
+                        <span class="text-[10px] font-black text-indigo-400 uppercase tracking-tighter">Class Level</span>
+                        <span class="text-lg font-title text-indigo-900">${studentClass.questLevel || 'League'}</span>
+                    </div>
+                </div>
+
+                <button id="generate-cert-btn" class="group relative bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white font-title text-2xl py-4 px-12 rounded-[1.5rem] shadow-xl shadow-indigo-200/50 transition-all hover:scale-[1.03] active:scale-[0.97] overflow-hidden">
+                    <div class="absolute inset-0 bg-white/10 translate-y-full group-hover:translate-y-0 transition-transform duration-300"></div>
+                    <span class="relative flex items-center gap-3">
+                        <i class="fas fa-wand-sparkles text-xl animate-bounce"></i>
+                        Forge Certificate
+                    </span>
+                </button>
+            </div>
+        </div>
+    `;
+    
+    const genBtn = document.getElementById('generate-cert-btn');
+    if (genBtn) genBtn.onclick = () => executeCertificateGeneration();
+    
+    downloadBtn.classList.add('hidden');
+    showAnimatedModal('certificate-modal');
+}
+
+export async function executeCertificateGeneration() {
+    if (!requireEliteAI({ feature: 'Certificate text' })) return;
+    
+    const student = state.get('allStudents').find(s => s.id === currentCertStudentId);
+    const studentClass = state.get('allSchoolClasses').find(c => c.id === student?.classId);
     if (!student || !studentClass) return;
 
     const contentEl = document.getElementById('certificate-modal-content');
     const downloadBtn = document.getElementById('download-certificate-btn');
-    contentEl.innerHTML = `<p class="text-center"><i class="fas fa-spinner fa-spin mr-2"></i> Generating unique certificate...</p>`;
-    downloadBtn.classList.add('hidden');
-    showAnimatedModal('certificate-modal');
+
+    contentEl.innerHTML = `
+        <div class="flex flex-col items-center gap-4 py-8">
+            <div class="relative">
+                <div class="w-20 h-20 rounded-full border-4 border-indigo-200 border-t-indigo-600 animate-spin"></div>
+                <div class="absolute inset-0 flex items-center justify-center">
+                    <i class="fas fa-magic text-2xl text-indigo-500 animate-pulse"></i>
+                </div>
+            </div>
+            <div>
+                <p class="text-xl font-title text-indigo-900">${currentCertScope === 'monthly' ? 'Crafting Achievement...' : 'Sealing the Legend...'}</p>
+                <p class="text-sm text-indigo-600/70 font-semibold uppercase tracking-wider">Consulting the Oracle</p>
+            </div>
+        </div>
+    `;
 
     const ageCategory = utils.getAgeCategoryForLeague(studentClass.questLevel);
     let stylePool = constants.midCertificateStyles;
@@ -116,30 +224,40 @@ export async function handleGenerateCertificate(studentId) {
         : (heroClassId || 'Novice');
 
     // Extra progression data for richer certificate
-    const scoreData = state.get('allStudentScores').find(sc => sc.id === studentId);
+    const scoreData = state.get('allStudentScores').find(sc => sc.id === currentCertStudentId);
     const heroLevel = scoreData?.heroLevel || 0;
     const totalStarsAllTime = scoreData?.totalStars || 0;
 
     const startOfMonth = new Date(new Date().setDate(1)).toLocaleDateString('en-GB');
-    const logs = state.get('allAwardLogs').filter(log => log.studentId === studentId && log.teacherId === state.get('currentUserId') && log.date >= startOfMonth);
-    const monthlyStars = logs.reduce((sum, log) => sum + log.stars, 0);
-    const topReason = Object.entries(logs.reduce((acc, log) => {
+    const allLogs = state.get('allAwardLogs').filter(log => log.studentId === currentCertStudentId && log.teacherId === state.get('currentUserId'));
+    
+    let scopeLogs = [];
+    if (currentCertScope === 'monthly') {
+        scopeLogs = allLogs.filter(log => log.date >= startOfMonth);
+    } else {
+        scopeLogs = allLogs;
+    }
+
+    const scopeStars = scopeLogs.reduce((sum, log) => sum + log.stars, 0);
+    const topReason = Object.entries(scopeLogs.reduce((acc, log) => {
         acc[log.reason] = (acc[log.reason] || 0) + 1;
         return acc;
     }, {})).sort((a, b) => b[1] - a[1])[0]?.[0] || 'all-around excellence';
 
     // Crest icon + title colours
-    document.getElementById('cert-icon').innerText = randomStyle.icon;
+    document.getElementById('cert-icon').innerText = currentCertScope === 'monthly' ? randomStyle.icon : '🏆';
     document.getElementById('cert-icon').style.color = randomStyle.borderColor;
     const titleEl = document.getElementById('cert-title');
     titleEl.style.color = randomStyle.titleColor;
     // Slightly different title flavour for older students
-    if (ageCategory === 'senior') {
-        titleEl.innerText = 'Quest Certificate of Achievement';
-    } else if (ageCategory === 'junior') {
-        titleEl.innerText = 'Hero of the Quest';
+    if (currentCertScope === 'monthly') {
+        if (ageCategory === 'senior') titleEl.innerText = 'Quest Certificate of Achievement';
+        else if (ageCategory === 'junior') titleEl.innerText = 'Hero of the Quest';
+        else titleEl.innerText = 'Great Class Quest Certificate';
     } else {
-        titleEl.innerText = 'Great Class Quest Certificate';
+        if (ageCategory === 'senior') titleEl.innerText = "Legend's Grand Achievement";
+        else if (ageCategory === 'junior') titleEl.innerText = 'Ultimate Quest Hero';
+        else titleEl.innerText = 'Master of The Great Quest';
     }
 
     // Hero-class pill colors (by role / theme)
@@ -260,7 +378,7 @@ export async function handleGenerateCertificate(studentId) {
 
     const starsPillEl = document.getElementById('cert-stars-pill');
     if (starsPillEl) {
-        starsPillEl.innerText = `⭐ ${monthlyStars} Stars This Month`;
+        starsPillEl.innerText = currentCertScope === 'monthly' ? `⭐ ${scopeStars} Stars This Month` : `⭐ ${scopeStars} Total Stars`;
         starsPillEl.style.background = 'linear-gradient(135deg, #d97706 0%, #f59e0b 100%)';
         starsPillEl.style.color = '#fff';
         starsPillEl.style.border = '1px solid rgba(255,255,255,0.4)';
@@ -320,10 +438,10 @@ export async function handleGenerateCertificate(studentId) {
     document.getElementById('cert-teacher-name').style.borderTopColor = randomStyle.borderColor;
     document.getElementById('cert-date').style.borderTopColor = randomStyle.borderColor;
 
-    const academicScores = state.get('allWrittenScores').filter(score => score.studentId === studentId && score.date >= startOfMonth);
-    const topScore = [...academicScores].sort((a, b) => (getNormalizedPercentForScore(b) || 0) - (getNormalizedPercentForScore(a) || 0))[0];
+    const scopeAcademicLogs = state.get('allWrittenScores').filter(score => score.studentId === currentCertStudentId && (currentCertScope === 'monthly' ? score.date >= startOfMonth : true));
+    const topScore = [...scopeAcademicLogs].sort((a, b) => (getNormalizedPercentForScore(b) || 0) - (getNormalizedPercentForScore(a) || 0))[0];
     const topScoreString = topScore ? `a top score of ${getAssessmentValueLabel(topScore)}` : "";
-    const academicNotes = academicScores.filter(s => s.note).map(s => `(Academic note: '${s.note}')`).join(' ');
+    const academicNotes = scopeAcademicLogs.filter(s => s.note).map(s => `(Academic note: '${s.note}')`).join(' ');
 
     // Decorative flair row under the AI text (simple icon shapes tuned by age band)
     const flairRowEl = document.getElementById('cert-flair-row');
@@ -362,28 +480,69 @@ export async function handleGenerateCertificate(studentId) {
 
     let systemPrompt = "";
     if (ageCategory === 'junior') {
-        systemPrompt = "You are an AI writing for a young child's (ages 7-9) fantasy classroom achievement certificate in a world called 'The Great Class Quest'. Use very simple English, short sentences, and a cheerful, magical tone. Mention the child as a hero in their guild and class (for example 'Dragon Flame Guild' or 'Grizzly Might'), and optionally their hero role. Do NOT use markdown. Write 1-2 very short sentences (max ~12 words each). You may use 1-2 fun emojis (like ⭐, 🐻, 📚) that fit the data. Focus on encouragement, effort, and being a kind teammate.";
+        systemPrompt = `You are an AI writing for a young child's (ages 7-9) fantasy classroom achievement certificate in a world called 'The Great Class Quest'.
+        Current Scope: ${currentCertScope === 'monthly' ? 'Monthly Achievement' : 'Grand Hero Journey (End of Year)'}.
+        Use very simple English, short sentences, and a cheerful, magical tone. Mention the child as a hero in their guild and class. Do NOT use markdown. Write 1-2 very short sentences. Focus on ${currentCertScope === 'monthly' ? 'this month\'s efforts' : 'their entire journey as a legend'}.`;
     } else if (ageCategory === 'mid') {
-        systemPrompt = "You are an AI writing for a pre-teen's (ages 9-12) fantasy RPG-themed certificate in a classroom game called 'The Great Class Quest'. Use positive, encouraging language that sounds cool and acknowledges their effort over the month. Do NOT use markdown. Write 2 brief, well-structured sentences. If available, weave in their guild name, guild values (traits), and hero role, and connect stars and scores to the idea of quests, guild races, or the Hero's Challenge. You may use 1-3 fitting emojis that match the data (shields, stars, books, etc.).";
+        systemPrompt = `You are an AI writing for a pre-teen's (ages 9-12) fantasy RPG-themed certificate.
+        Current Scope: ${currentCertScope === 'monthly' ? 'Monthly Achievement' : 'Grand Hero Journey (End of Year)'}.
+        Use positive, encouraging language that sounds cool. Do NOT use markdown. Write 2 brief sentences. Connect their ${currentCertScope === 'monthly' ? 'monthly stars' : 'long-term legendary status'} to their growth.`;
     } else {
-        systemPrompt = "You are an AI writing for a teenager's (ages 12+) fantasy-themed certificate. The student is an English language learner playing in a classroom RPG called 'The Great Class Quest'. Use clear, positive, and inspiring language, avoiding overly complex vocabulary and not sounding childish. Do NOT use markdown. Write 2 brief, powerful sentences that respect their effort. Where appropriate, briefly reference their guild, hero role, and how their stars and academic work show growth on their quests. Emojis are optional; if you use them, use at most one subtle emoji.";
+        systemPrompt = `You are an AI writing for a teenager's (ages 12+) fantasy-themed certificate.
+        Current Scope: ${currentCertScope === 'monthly' ? 'Monthly Achievement' : 'Grand Hero Journey (End of Year)'}.
+        Use clear, positive, and inspiring language. Do NOT use markdown. Write 2 brief, powerful sentences. Acknowledge ${currentCertScope === 'monthly' ? 'this month\'s progress' : 'their overall mastery and dedication throughout the quest'}.`;
     }
 
     const userPrompt = `Write a short certificate message for ${student.name}.
 They are in class "${studentClass.name}" (League: ${studentClass.questLevel}).
 Guild: ${guildName || 'None yet'}${guildEmoji ? ` (${guildEmoji})` : ''}. Guild motto: "${guildMotto || 'None'}". Guild traits: ${guildTraits || 'None'}.
 Hero role: ${heroLabel}${heroLevel > 0 ? ` (Hero Level ${heroLevel})` : ''}.
-This month they showed great ${topReason}, earned ${monthlyStars} stars${totalStarsAllTime > 0 ? ` (${totalStarsAllTime} total stars on their journey)` : ''}, and achieved ${topScoreString || 'good results on their trials'}.
+Period: ${currentCertScope === 'monthly' ? 'this past month' : 'the entire year'}.
+They showed great ${topReason}, earned ${scopeStars} stars${totalStarsAllTime > 0 ? ` (${totalStarsAllTime} total stars on their journey)` : ''}, and achieved ${topScoreString || 'good results on their trials'}.
 Teacher's academic notes: ${academicNotes || 'None'}.
 Keep it brief but vivid, so it feels like a moment from their adventure in The Great Class Quest.`;
 
     try {
         const text = await callGeminiApi(systemPrompt, userPrompt);
-        contentEl.innerHTML = `<p class="text-lg text-center p-4">${text}</p>`;
+        contentEl.innerHTML = `
+            <div class="w-full space-y-6 animate-fade-in">
+                <div class="flex flex-col items-center">
+                    <div class="relative mb-4">
+                        <div class="absolute inset-0 bg-indigo-500/20 blur-xl rounded-full animate-pulse"></div>
+                        <img src="${student.avatar || ''}" class="relative w-24 h-24 rounded-full border-4 border-white shadow-xl object-cover ${student.avatar ? '' : 'hidden'}">
+                        <div class="absolute -bottom-2 -right-2 bg-gradient-to-br from-amber-400 to-orange-500 text-white w-10 h-10 rounded-full flex items-center justify-center shadow-lg border-4 border-white">
+                            <i class="fas fa-star"></i>
+                        </div>
+                    </div>
+                    <h3 class="text-3xl font-title text-indigo-900 mb-1">${student.name}</h3>
+                    <div class="px-4 py-1.5 rounded-full bg-indigo-100 text-indigo-700 text-xs font-black uppercase tracking-widest border border-indigo-200/50">
+                        ${heroLabel}
+                    </div>
+                </div>
+                
+                <div class="relative px-8 py-6 bg-indigo-50/50 rounded-3xl border border-indigo-100 italic text-indigo-900/90 text-lg leading-relaxed text-center quote-container">
+                    <i class="fas fa-quote-left absolute top-4 left-4 text-indigo-200 text-2xl"></i>
+                    ${text}
+                    <i class="fas fa-quote-right absolute bottom-4 right-4 text-indigo-200 text-2xl"></i>
+                </div>
+                
+                <div class="flex justify-center gap-3">
+                    <div class="flex flex-col items-center">
+                        <span class="text-[10px] font-black text-indigo-400 uppercase tracking-tighter">${currentCertScope === 'monthly' ? 'Monthly Stars' : 'Total Stars'}</span>
+                        <span class="text-xl font-title text-amber-600">${scopeStars}</span>
+                    </div>
+                    <div class="w-px h-8 bg-indigo-100 self-center"></div>
+                    <div class="flex flex-col items-center">
+                        <span class="text-[10px] font-black text-indigo-400 uppercase tracking-tighter">Level</span>
+                        <span class="text-xl font-title text-indigo-600">${heroLevel}</span>
+                    </div>
+                </div>
+            </div>
+        `;
         document.getElementById('cert-student-name').innerText = student.name;
         document.getElementById('cert-text').innerText = text;
         document.getElementById('cert-teacher-name').innerText = state.get('currentTeacherName');
-        document.getElementById('cert-date').innerText = new Date().toLocaleDateString('en-GB', { month: 'long', day: 'numeric', year: 'numeric' });
+        document.getElementById('cert-date').innerText = currentCertScope === 'monthly' ? new Date().toLocaleDateString('en-GB', { month: 'long', day: 'numeric', year: 'numeric' }) : `End of Year ${new Date().getFullYear()}`;
         downloadBtn.classList.remove('hidden');
     } catch (error) {
         console.error("AI Certificate Generation Error:", error);
@@ -400,12 +559,57 @@ export async function downloadCertificateAsPdf() {
     const certificateElement = document.getElementById('certificate-template');
     const studentName = document.getElementById('cert-student-name').innerText;
 
+    // Robust Image-to-DataURL conversion helper
+    const toDataURL = async (url) => {
+        if (!url) return '';
+        try {
+            const response = await fetch(url);
+            const blob = await response.blob();
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onloadend = () => resolve(reader.result);
+                reader.onerror = reject;
+                reader.readAsDataURL(blob);
+            });
+        } catch (e) {
+            console.warn("Could not convert image to DataURL:", url, e);
+            return url; // Fallback to original URL
+        }
+    };
+
     try {
-        const canvas = await html2canvas(certificateElement, { scale: 2, useCORS: true });
+        // Pre-convert all key images to DataURLs to ensure html2canvas sees them
+        const avatarImg = document.getElementById('cert-avatar');
+        const emblemImg = document.getElementById('cert-guild-emblem');
+        const logoImg = document.getElementById('cert-app-logo');
+
+        if (avatarImg && avatarImg.src && !avatarImg.src.startsWith('data:')) {
+            avatarImg.src = await toDataURL(avatarImg.src);
+        }
+        if (emblemImg && emblemImg.src && !emblemImg.src.startsWith('data:')) {
+            emblemImg.src = await toDataURL(emblemImg.src);
+        }
+        if (logoImg && logoImg.src && !logoImg.src.startsWith('data:')) {
+            logoImg.src = await toDataURL(logoImg.src);
+        }
+
+        // Wait a tiny bit for the DOM to settle with the new DataURLs
+        await new Promise(r => setTimeout(r, 300));
+        
+        const canvas = await html2canvas(certificateElement, { 
+            scale: 2, 
+            useCORS: true,
+            allowTaint: true,
+            logging: false,
+            backgroundColor: '#ffffff'
+        });
+        
         const imgData = canvas.toDataURL('image/png');
         const pdf = new jsPDF({ orientation: 'landscape', unit: 'px', format: [800, 600] });
         pdf.addImage(imgData, 'PNG', 0, 0, 800, 600);
-        pdf.save(`${studentName}_Certificate_of_Achievement.pdf`);
+        
+        const fileSuffix = currentCertScope === 'monthly' ? 'Monthly_Quest' : 'Legends_Journey';
+        pdf.save(`${studentName}_${fileSuffix}.pdf`);
     } catch (error) {
         console.error("Error generating PDF:", error);
         showToast('Could not generate PDF.', 'error');

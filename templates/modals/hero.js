@@ -104,76 +104,196 @@ export const heroModalsHTML = `
     </div>
 
     <div id="hero-chronicle-modal"
-        class="fixed inset-0 bg-black bg-opacity-50 z-[72] flex items-center justify-center p-4 hidden">
+        class="fixed inset-0 bg-black/60 z-[72] flex items-center justify-center p-4 hidden backdrop-blur-md">
         <div
-            class="bg-white p-6 md:p-8 rounded-3xl shadow-2xl max-w-6xl w-full pop-in border-4 border-green-300 flex flex-col max-h-[90vh]">
-            <div class="flex justify-between items-start mb-4 flex-shrink-0">
-                <div>
-                    <h2 id="hero-chronicle-title" class="font-title text-2xl md:text-3xl text-green-700">Hero's
-                        Chronicle</h2>
-                    <p id="hero-chronicle-student-name" class="font-semibold text-lg text-gray-600 -mt-1"></p>
+            class="bg-slate-50 rounded-[2.5rem] shadow-2xl max-w-5xl w-full pop-in border-4 border-white flex flex-col max-h-[90vh] overflow-hidden">
+            
+            <!-- Premium Header Section -->
+            <div class="relative bg-gradient-to-r from-emerald-600 to-teal-700 p-6 text-white flex-shrink-0 overflow-hidden">
+                <div class="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full -mr-20 -mt-20 blur-3xl pointer-events-none"></div>
+                <div class="absolute bottom-0 left-0 w-48 h-48 bg-emerald-400/20 rounded-full -ml-20 -mb-20 blur-2xl pointer-events-none"></div>
+                
+                <div class="relative flex items-center justify-between">
+                    <div class="flex items-center gap-4">
+                        <div id="hero-chronicle-avatar" class="w-16 h-16 rounded-2xl border-2 border-white/30 bg-white/20 flex items-center justify-center text-3xl shadow-inner overflow-hidden">
+                            <!-- Avatar injected here -->
+                        </div>
+                        <div>
+                            <h2 class="font-title text-3xl drop-shadow-md">Hero's Chronicle</h2>
+                            <p id="hero-chronicle-student-name" class="text-emerald-100 font-bold uppercase tracking-widest text-xs opacity-90"></p>
+                        </div>
+                    </div>
+                    
+                    <div class="flex items-center gap-4">
+                        <!-- Tab Navigation -->
+                        <div class="flex bg-black/20 p-1 rounded-2xl backdrop-blur-sm">
+                            <button id="chronicle-tab-notes" class="hero-chronicle-tab-btn active px-5 py-2 rounded-xl text-sm font-black uppercase tracking-wider transition-all flex items-center gap-2">
+                                <i class="fas fa-book-open"></i>
+                                <span>Notes</span>
+                            </button>
+                            <button id="chronicle-tab-oracle" class="hero-chronicle-tab-btn px-5 py-2 rounded-xl text-sm font-black uppercase tracking-wider transition-all flex items-center gap-2">
+                                <i class="fas fa-wand-sparkles"></i>
+                                <span>The Oracle</span>
+                            </button>
+                        </div>
+                        
+                        <button id="hero-chronicle-close-btn"
+                            class="bg-white/10 hover:bg-white/20 text-white w-10 h-10 rounded-full flex items-center justify-center transition-colors">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
                 </div>
-                <button id="hero-chronicle-close-btn"
-                    class="bg-gray-200 hover:bg-gray-300 text-gray-800 font-bold w-10 h-10 rounded-full bubbly-button flex-shrink-0">&times;</button>
             </div>
 
-            <div class="flex flex-col md:flex-row gap-6 min-h-0">
-                <div class="md:w-1/2 flex flex-col min-h-0">
-                    <h3 class="font-title text-xl text-gray-700 mb-2 flex-shrink-0">Teacher's Logbook</h3>
-                    <div id="hero-chronicle-notes-feed"
-                        class="flex-grow space-y-3 overflow-y-auto pr-2 bg-gray-50 p-3 rounded-lg border">
+            <!-- Main Content Area -->
+            <div class="flex-grow overflow-hidden relative flex flex-col bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] bg-fixed">
+                
+                <!-- Tab 1: Chronicle (Notes) -->
+                <div id="hero-chronicle-content-notes" class="flex flex-col h-full p-6 gap-6">
+                    <div class="flex flex-col md:flex-row gap-6 h-full min-h-0">
+                        <!-- Left: Feed -->
+                        <div class="flex-grow flex flex-col min-h-0">
+                             <div class="flex items-center justify-between mb-3 px-2">
+                                <h3 class="text-xs font-black text-slate-400 uppercase tracking-[0.2em] flex items-center gap-2">
+                                    <i class="fas fa-stream"></i> History of Deeds
+                                </h3>
+                                <span id="chronicle-note-count" class="text-[10px] bg-slate-200 text-slate-500 px-2 py-0.5 rounded-full font-bold">0 Notes</span>
+                            </div>
+                            <div id="hero-chronicle-notes-feed"
+                                class="flex-grow space-y-4 overflow-y-auto pr-2 custom-scrollbar p-1">
+                                <!-- Notes injected here -->
+                            </div>
+                        </div>
+
+                        <!-- Right: Add Note Form -->
+                        <div class="md:w-80 flex-shrink-0">
+                            <div class="bg-white rounded-3xl p-6 shadow-sm border border-slate-200 sticky top-0">
+                                <h3 class="text-sm font-black text-emerald-600 uppercase tracking-widest mb-4 flex items-center gap-2">
+                                    <i class="fas fa-plus-circle"></i> New Entry
+                                </h3>
+                                
+                                <form id="hero-chronicle-note-form" class="space-y-4">
+                                    <input type="hidden" id="hero-chronicle-note-id">
+                                    
+                                    <div>
+                                        <label class="block text-[10px] font-black text-slate-400 uppercase tracking-wider mb-1.5 ml-1">Focus Category</label>
+                                        <select id="hero-chronicle-note-category"
+                                            class="w-full px-4 py-2.5 bg-slate-50 border-2 border-slate-100 rounded-2xl focus:border-emerald-400 outline-none font-bold text-sm text-slate-700 transition-colors cursor-pointer">
+                                            <option value="General">📓 General</option>
+                                            <option value="Academic">🎓 Academic</option>
+                                            <option value="Behavior">🎭 Behavior</option>
+                                            <option value="Social">💬 Social</option>
+                                            <option value="Goals">🎯 Goals</option>
+                                        </select>
+                                    </div>
+
+                                    <div>
+                                        <label class="block text-[10px] font-black text-slate-400 uppercase tracking-wider mb-1.5 ml-1">Observations</label>
+                                        <textarea id="hero-chronicle-note-text" rows="5"
+                                            class="w-full p-4 bg-slate-50 border-2 border-slate-100 rounded-2xl focus:border-emerald-400 outline-none font-medium text-sm text-slate-700 transition-colors resize-none"
+                                            placeholder="What happened on today's quest?"></textarea>
+                                    </div>
+
+                                    <div class="pt-2">
+                                        <button type="submit"
+                                            class="w-full bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white font-title text-lg py-3 rounded-2xl shadow-lg shadow-emerald-100 transition-all active:scale-95">
+                                            Record Entry
+                                        </button>
+                                        <button type="button" id="hero-chronicle-cancel-edit-btn"
+                                            class="hidden w-full mt-2 bg-slate-100 hover:bg-slate-200 text-slate-500 font-bold py-2 rounded-xl text-sm transition-colors">
+                                            Cancel Editing
+                                        </button>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
                     </div>
-                    <form id="hero-chronicle-note-form" class="mt-4 pt-4 border-t flex-shrink-0">
-                        <input type="hidden" id="hero-chronicle-note-id">
-                        <div class="flex items-center gap-2 mb-2">
-                            <label for="hero-chronicle-note-category" class="font-semibold text-sm">Category:</label>
-                            <select id="hero-chronicle-note-category"
-                                class="flex-grow border border-gray-300 rounded-md px-2 py-1 text-sm">
-                                <option>General</option>
-                                <option>Behavior</option>
-                                <option>Academic</option>
-                                <option>Social</option>
-                            </select>
-                        </div>
-                        <textarea id="hero-chronicle-note-text" rows="3"
-                            class="w-full p-2 border border-gray-300 rounded-md shadow-sm"
-                            placeholder="Add a new note..."></textarea>
-                        <div class="flex items-center gap-2 mt-2">
-                            <button type="submit"
-                                class="w-full bg-green-500 hover:bg-green-600 text-white font-title py-2 rounded-lg bubbly-button">Save
-                                Note</button>
-                            <button type="button" id="hero-chronicle-cancel-edit-btn"
-                                class="hidden w-full bg-gray-200 text-gray-700 font-title py-2 rounded-lg bubbly-button">Cancel
-                                Edit</button>
-                        </div>
-                    </form>
                 </div>
 
-                <div class="md:w-1/2 flex flex-col">
-                    <h3 class="font-title text-xl text-indigo-700 mb-2">The Oracle's Counsel</h3>
-                    <div class="grid grid-cols-2 gap-2 mb-4">
-                        <button data-type="parent"
-                            class="ai-insight-btn bg-indigo-100 text-indigo-800 p-2 rounded-lg bubbly-button text-sm font-semibold"><i
-                                class="fas fa-user-friends mr-1"></i> Parent Summary</button>
-                        <button data-type="teacher"
-                            class="ai-insight-btn bg-indigo-100 text-indigo-800 p-2 rounded-lg bubbly-button text-sm font-semibold"><i
-                                class="fas fa-chalkboard-teacher mr-1"></i> Teacher Strategy</button>
-                        <button data-type="analysis"
-                            class="ai-insight-btn bg-indigo-100 text-indigo-800 p-2 rounded-lg bubbly-button text-sm font-semibold"><i
-                                class="fas fa-chart-pie mr-1"></i> Strengths/Weaknesses</button>
-                        <button data-type="goal"
-                            class="ai-insight-btn bg-indigo-100 text-indigo-800 p-2 rounded-lg bubbly-button text-sm font-semibold"><i
-                                class="fas fa-bullseye mr-1"></i> Goal Suggestion</button>
-                    </div>
-                    <button id="hero-chronicle-publish-parent-btn"
-                        class="w-full mb-4 bg-emerald-100 hover:bg-emerald-200 text-emerald-800 p-3 rounded-xl bubbly-button text-sm font-semibold border border-emerald-200">
-                        <i class="fas fa-paper-plane mr-2"></i> Publish Parent Summary To Portal
-                    </button>
-                    <div id="hero-chronicle-ai-output"
-                        class="flex-grow bg-indigo-50 p-4 rounded-lg border border-indigo-200 overflow-y-auto">
-                        <p class="text-center text-indigo-700">Select a counsel type to receive the Oracle's wisdom.</p>
+                <!-- Tab 2: The Oracle (AI) -->
+                <div id="hero-chronicle-content-oracle" class="hidden flex flex-col h-full p-6 gap-6">
+                    <div class="flex flex-col md:flex-row gap-6 h-full min-h-0">
+                        <!-- Left: Controls -->
+                        <div class="md:w-72 flex-shrink-0 space-y-4">
+                            <div class="bg-indigo-900 rounded-[2rem] p-6 text-white shadow-xl relative overflow-hidden">
+                                <div class="absolute -top-10 -right-10 w-32 h-32 bg-indigo-500/20 rounded-full blur-2xl"></div>
+                                <h3 class="relative z-10 text-sm font-black text-indigo-300 uppercase tracking-[0.2em] mb-4 flex items-center gap-2">
+                                    <i class="fas fa-sparkles"></i> Oracle's Gaze
+                                </h3>
+                                
+                                <div class="relative z-10 space-y-3">
+                                    <button data-type="parent"
+                                        class="ai-insight-btn w-full bg-white/10 hover:bg-white/20 p-3 rounded-2xl transition-all flex items-center gap-3 border border-white/10 group">
+                                        <div class="w-10 h-10 rounded-xl bg-indigo-500/30 flex items-center justify-center text-lg group-hover:scale-110 transition-transform">👪</div>
+                                        <div class="text-left">
+                                            <div class="text-sm font-black leading-tight">Parent Summary</div>
+                                            <div class="text-[10px] text-indigo-200">Balanced & Constructive</div>
+                                        </div>
+                                    </button>
+                                    
+                                    <button data-type="teacher"
+                                        class="ai-insight-btn w-full bg-white/10 hover:bg-white/20 p-3 rounded-2xl transition-all flex items-center gap-3 border border-white/10 group">
+                                        <div class="w-10 h-10 rounded-xl bg-indigo-500/30 flex items-center justify-center text-lg group-hover:scale-110 transition-transform">🧑‍🏫</div>
+                                        <div class="text-left">
+                                            <div class="text-sm font-black leading-tight">Teacher Strategy</div>
+                                            <div class="text-[10px] text-indigo-200">Actionable Classroom Tips</div>
+                                        </div>
+                                    </button>
+                                    
+                                    <button data-type="analysis"
+                                        class="ai-insight-btn w-full bg-white/10 hover:bg-white/20 p-3 rounded-2xl transition-all flex items-center gap-3 border border-white/10 group">
+                                        <div class="w-10 h-10 rounded-xl bg-indigo-500/30 flex items-center justify-center text-lg group-hover:scale-110 transition-transform">📊</div>
+                                        <div class="text-left">
+                                            <div class="text-sm font-black leading-tight">Traits & Trends</div>
+                                            <div class="text-[10px] text-indigo-200">Strengths/Weaknesses</div>
+                                        </div>
+                                    </button>
+                                    
+                                    <button data-type="goal"
+                                        class="ai-insight-btn w-full bg-white/10 hover:bg-white/20 p-3 rounded-2xl transition-all flex items-center gap-3 border border-white/10 group">
+                                        <div class="w-10 h-10 rounded-xl bg-indigo-500/30 flex items-center justify-center text-lg group-hover:scale-110 transition-transform">🎯</div>
+                                        <div class="text-left">
+                                            <div class="text-sm font-black leading-tight">Hero's Goal</div>
+                                            <div class="text-[10px] text-indigo-200">SMART Monthly Targets</div>
+                                        </div>
+                                    </button>
+                                </div>
+                            </div>
+                            
+                            <button id="hero-chronicle-publish-parent-btn"
+                                class="w-full bg-emerald-50 hover:bg-emerald-100 text-emerald-700 p-4 rounded-[1.5rem] transition-all flex flex-col items-center gap-1 border-2 border-dashed border-emerald-200 group">
+                                <div class="w-10 h-10 rounded-full bg-emerald-500 text-white flex items-center justify-center text-lg group-hover:scale-110 transition-transform shadow-md">
+                                    <i class="fas fa-paper-plane"></i>
+                                </div>
+                                <span class="text-xs font-black uppercase tracking-widest mt-1">Publish to Portal</span>
+                                <span class="text-[10px] opacity-60">Visible to Parents</span>
+                            </button>
+                        </div>
+
+                        <!-- Right: AI Display -->
+                        <div class="flex-grow flex flex-col min-h-0 h-full">
+                            <div class="flex items-center justify-between mb-3 px-2 flex-shrink-0">
+                                <h3 class="text-xs font-black text-slate-400 uppercase tracking-[0.2em] flex items-center gap-2">
+                                    <i class="fas fa-comment-dots"></i> The Oracle's Response
+                                </h3>
+                                <div id="oracle-status-badge" class="flex items-center gap-1.5 px-2 py-0.5 bg-indigo-100 text-indigo-600 rounded-full text-[10px] font-black uppercase tracking-wider">
+                                    <span class="w-1.5 h-1.5 bg-indigo-500 rounded-full animate-pulse"></span>
+                                    Elite AI Active
+                                </div>
+                            </div>
+                            <div class="flex-grow min-h-0 relative">
+                                <div id="hero-chronicle-ai-output"
+                                    class="absolute inset-0 bg-white rounded-[2rem] p-8 shadow-inner border border-slate-100 overflow-y-auto rich-text custom-scrollbar">
+                                    <div class="h-full flex flex-col items-center justify-center text-center space-y-4">
+                                        <div class="w-24 h-24 bg-slate-50 rounded-full flex items-center justify-center text-5xl opacity-40">🔮</div>
+                                        <p class="text-slate-400 font-medium max-w-xs">Consult the records by selecting a counsel type on the left.</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
+
             </div>
         </div>
     </div>

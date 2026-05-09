@@ -36,19 +36,63 @@ export const reportsModalsHTML = `
     </div>
 
     <div id="certificate-modal"
-        class="fixed inset-0 bg-black bg-opacity-50 z-[70] flex items-center justify-center p-4 hidden">
-        <div class="bg-white p-6 md:p-8 rounded-3xl shadow-2xl max-w-2xl w-full pop-in border-4 border-indigo-300">
-            <div class="flex justify-between items-center mb-4">
-                <h2 class="font-title text-2xl md:text-3xl text-indigo-700">Certificate of Achievement</h2>
-                <button id="certificate-modal-close-btn"
-                    class="bg-gray-200 hover:bg-gray-300 text-gray-800 font-bold w-10 h-10 rounded-full bubbly-button">&times;</button>
+        class="fixed inset-0 bg-black/60 backdrop-blur-sm z-[70] flex items-center justify-center p-4 hidden">
+        <div class="relative bg-white/80 backdrop-blur-2xl p-8 md:p-10 rounded-[2.5rem] shadow-2xl max-w-2xl w-full pop-in border border-white/50 overflow-hidden">
+            <!-- Decorative Elements -->
+            <div class="absolute -top-24 -left-24 w-64 h-64 bg-indigo-400/20 rounded-full blur-3xl pointer-events-none"></div>
+            <div class="absolute -bottom-24 -right-24 w-64 h-64 bg-purple-400/20 rounded-full blur-3xl pointer-events-none"></div>
+            
+            <div class="relative z-10">
+                <!-- Header -->
+                <div class="flex justify-between items-start mb-8">
+                    <div class="flex items-center gap-4">
+                        <div class="w-16 h-16 rounded-2xl bg-gradient-to-br from-indigo-500 to-purple-600 shadow-lg shadow-indigo-200 flex items-center justify-center transform -rotate-3 hover:rotate-0 transition-transform">
+                            <i class="fas fa-award text-3xl text-white"></i>
+                        </div>
+                        <div>
+                            <h2 class="font-title text-3xl md:text-4xl text-indigo-900 tracking-wide">Achievement</h2>
+                            <p class="text-sm font-bold uppercase tracking-widest text-indigo-600/80 mt-1">Hero Certificate</p>
+                        </div>
+                    </div>
+                    <button id="certificate-modal-close-btn"
+                        class="bg-white/50 hover:bg-white text-indigo-800 border border-indigo-100 font-bold w-12 h-12 rounded-full bubbly-button transition-all shadow-sm flex items-center justify-center text-xl">
+                        &times;
+                    </button>
+                </div>
+
+                <!-- Tabs -->
+                <div class="flex gap-2 mb-6 bg-indigo-50/50 p-1.5 rounded-2xl border border-indigo-100">
+                    <button id="cert-tab-monthly" class="flex-1 py-2.5 rounded-xl font-title text-sm transition-all bubbly-button bg-white text-indigo-600 shadow-sm">
+                        <i class="fas fa-calendar-alt mr-2"></i> Monthly Quest
+                    </button>
+                    <button id="cert-tab-alltime" class="flex-1 py-2.5 rounded-xl font-title text-sm transition-all bubbly-button text-indigo-400 hover:text-indigo-600">
+                        <i class="fas fa-scroll mr-2"></i> Legend's Journey
+                    </button>
+                </div>
+
+                <!-- Content Area -->
+                <div id="certificate-modal-content"
+                    class="space-y-6 bg-white/60 p-6 md:p-8 rounded-[2rem] border border-white shadow-inner min-h-[300px] flex flex-col items-center justify-center text-center">
+                    <div class="flex flex-col items-center gap-6 py-4">
+                        <div class="w-24 h-24 rounded-3xl bg-gradient-to-br from-indigo-100 to-purple-100 flex items-center justify-center shadow-inner border border-indigo-200/50">
+                            <i class="fas fa-magic text-4xl text-indigo-400"></i>
+                        </div>
+                        <div>
+                            <h3 class="font-title text-2xl text-indigo-900 mb-2">Ready to Forge</h3>
+                            <p class="text-indigo-600/70 max-w-xs mx-auto">Select a quest mode and click below to consult the Oracle and craft this hero's certificate.</p>
+                        </div>
+                        <button id="generate-cert-btn" class="bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white font-title text-xl py-3 px-10 rounded-2xl bubbly-button shadow-lg shadow-indigo-200/50 transition-all hover:scale-[1.05] active:scale-[0.95]">
+                            <i class="fas fa-wand-sparkles mr-2"></i> Forge Certificate
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Action Button -->
+                <button id="download-certificate-btn"
+                    class="w-full mt-8 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white font-title text-xl py-4 rounded-2xl bubbly-button hidden shadow-lg shadow-indigo-200/50 transition-all hover:scale-[1.02] active:scale-[0.98]">
+                    <i class="fas fa-download mr-2"></i> Download as PDF
+                </button>
             </div>
-            <div id="certificate-modal-content"
-                class="space-y-4 max-h-[70vh] overflow-y-auto pr-2 bg-indigo-50 p-4 rounded-lg"></div>
-            <button id="download-certificate-btn"
-                class="w-full mt-4 bg-indigo-500 hover:bg-indigo-600 text-white font-title text-lg py-3 rounded-xl bubbly-button hidden">
-                <i class="fas fa-download mr-2"></i> Download as PDF
-            </button>
         </div>
     </div>
 `;

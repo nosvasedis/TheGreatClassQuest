@@ -5,7 +5,7 @@ export const optionsTabHTML = `
                 <div class="max-w-4xl mx-auto">
                     <div class="text-center mb-8">
                         <i class="fas fa-cog text-gray-600 text-5xl floating-icon"></i>
-                        <h2 class="font-title text-5xl text-gray-700 mt-2"
+                        <h2 class="font-title text-5xl text-gray-700 mt-2 bottom-nav-tab-title"
                             style="text-shadow: 0 2px 4px rgba(0,0,0,0.1);">Options & Settings</h2>
                         <p class="text-lg text-gray-600 mt-2">Manage your profile and access advanced tools.</p>
                     </div>
@@ -681,6 +681,7 @@ export const optionsTabHTML = `
                                 <div class="p-4">
                                     <h4 class="font-semibold text-gray-700 mb-3">All Pro +:</h4>
                                     <ul class="space-y-2 text-sm">
+                                        <li class="flex items-start gap-2"><i class="fas fa-check text-green-500 mt-0.5"></i><span>🏆 AI-powered Quiz of the Week</span></li>
                                         <li class="flex items-start gap-2"><i class="fas fa-check text-green-500 mt-0.5"></i><span>🤖 AI-powered Adventure Log</span></li>
                                         <li class="flex items-start gap-2"><i class="fas fa-check text-green-500 mt-0.5"></i><span>✏️ Edit AI-generated entries</span></li>
                                         <li class="flex items-start gap-2"><i class="fas fa-check text-green-500 mt-0.5"></i><span>📖 Story Weavers (collaborative)</span></li>

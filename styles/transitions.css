@@ -191,8 +191,13 @@ main {
     .loading-stage,
     .loading-cloud,
     .loading-cloud-art,
+    .loading-journey-icon,
+    .loading-journey-icon i,
+    .loading-sun,
+    .loading-sun::after,
     .loading-particle,
     .loading-title,
+    #loading-greeting-text,
     #home-dashboard-container.home-intro-root.home-intro-visible,
     #home-dashboard-container.home-intro-root.home-intro-visible .horizons-grid > * {
         animation-duration: 1ms !important;

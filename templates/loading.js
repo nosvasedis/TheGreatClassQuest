@@ -7,6 +7,18 @@ const LOADING_TIPS = [
     'Rare boons await those who master their skills.',
     'Every great quest begins with a single step forward.',
     'Scholar\u2019s Scroll tracks every hero\u2019s growth over time.',
+    'Class streaks grow when daily quests are completed together.',
+    'Adventure Log keeps your class story alive, one day at a time.',
+    'Power-Ups can shift the tide for your guild at the perfect moment.',
+    'Sorting heroes into balanced guilds creates stronger teamwork.',
+    'Quiz of the Week is a fast way to earn extra class glory.',
+    'Familiars level up as heroes stay active in their learning journey.',
+    'Boon windows reward consistency, teamwork, and daily momentum.',
+    'The world map celebrates every milestone your class unlocks.',
+    'Assessment moments are easier when heroes prep as a guild.',
+    'Great classrooms rise when curiosity leads the quest.',
+    'Teacher Journey has smart checkpoints for your next best step.',
+    'Small daily wins stack into legendary school adventures.',
 ];
 
 let _tipIntervalId = null;
@@ -18,19 +30,20 @@ export const loadingHTML = `
         style="background: linear-gradient(to bottom, #F0F9FF 0%, #E0F2FE 50%, #D6F9E3 100%);">
 
         <div class="loading-sky-glow" aria-hidden="true"></div>
+        <div class="loading-sun" aria-hidden="true"></div>
 
         <!-- Floating clouds -->
         <div class="loading-clouds" aria-hidden="true">
             <span class="loading-cloud lc-1"><i class="fas fa-cloud"></i></span>
-            <span class="loading-cloud lc-2"><i class="fas fa-cloud"></i></span>
+            <span class="loading-cloud lc-2"><i class="fas fa-cloud-meatball"></i></span>
             <span class="loading-cloud lc-3"><i class="fas fa-cloud"></i></span>
-            <span class="loading-cloud lc-4"><i class="fas fa-cloud"></i></span>
+            <span class="loading-cloud lc-4"><i class="fas fa-cloud-meatball"></i></span>
             <span class="loading-cloud lc-5"><i class="fas fa-cloud"></i></span>
             <span class="loading-cloud lc-6"><i class="fas fa-cloud"></i></span>
-            <span class="loading-cloud lc-7"><i class="fas fa-cloud"></i></span>
+            <span class="loading-cloud lc-7"><i class="fas fa-cloud-meatball"></i></span>
             <span class="loading-cloud lc-8"><i class="fas fa-cloud"></i></span>
             <span class="loading-cloud lc-9"><i class="fas fa-cloud"></i></span>
-            <span class="loading-cloud lc-10"><i class="fas fa-cloud"></i></span>
+            <span class="loading-cloud lc-10"><i class="fas fa-cloud-meatball"></i></span>
         </div>
 
         <!-- Giant painted cloud assets for a true sky-world feel -->
@@ -43,6 +56,22 @@ export const loadingHTML = `
             <span class="loading-cloud-art lca-6"></span>
             <span class="loading-cloud-art lca-7"></span>
             <span class="loading-cloud-art lca-8"></span>
+        </div>
+
+        <!-- Journey icons inspired by app features -->
+        <div class="loading-journey-icons" aria-hidden="true">
+            <span class="loading-journey-icon ji-1"><i class="fas fa-book-open"></i></span>
+            <span class="loading-journey-icon ji-2"><i class="fas fa-compass"></i></span>
+            <span class="loading-journey-icon ji-3"><i class="fas fa-scroll"></i></span>
+            <span class="loading-journey-icon ji-4"><i class="fas fa-crown"></i></span>
+            <span class="loading-journey-icon ji-5"><i class="fas fa-wand-sparkles"></i></span>
+            <span class="loading-journey-icon ji-6"><i class="fas fa-shield-halved"></i></span>
+            <span class="loading-journey-icon ji-7"><i class="fas fa-trophy"></i></span>
+            <span class="loading-journey-icon ji-8"><i class="fas fa-gem"></i></span>
+            <span class="loading-journey-icon ji-9"><i class="fas fa-feather"></i></span>
+            <span class="loading-journey-icon ji-10"><i class="fas fa-star"></i></span>
+            <span class="loading-journey-icon ji-11"><i class="fas fa-map"></i></span>
+            <span class="loading-journey-icon ji-12"><i class="fas fa-rocket"></i></span>
         </div>
 
         <!-- Sparkle particles -->
@@ -60,7 +89,7 @@ export const loadingHTML = `
         <!-- Center content -->
         <div class="loading-stage">
             <div class="loading-title">The Great Class Quest</div>
-            <div class="loading-subtitle">Every Great Quest Starts With One Brave Step.</div>
+            <div class="loading-subtitle">Every Great Quest Starts With One Brave Step</div>
 
             <div class="loading-spinner-wrap">
                 <div class="loading-center-star">

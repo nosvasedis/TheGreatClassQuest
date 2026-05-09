@@ -59,10 +59,96 @@
 
 .loading-clouds {
     z-index: 1;
+    opacity: 1;
+    transition: opacity 680ms ease, transform 680ms ease, filter 680ms ease;
 }
 
 .loading-cloud-art-layer {
     z-index: 2;
+    opacity: 1;
+    transition: opacity 680ms ease, transform 680ms ease, filter 680ms ease;
+}
+
+.loading-sun {
+    position: absolute;
+    top: 11%;
+    left: 50%;
+    width: clamp(150px, 20vw, 280px);
+    height: clamp(150px, 20vw, 280px);
+    transform: translateX(-50%) translateY(26px) scale(0.7);
+    opacity: 0;
+    pointer-events: none;
+    z-index: 3;
+    transition: opacity 640ms ease, transform 720ms cubic-bezier(0.2, 0.8, 0.2, 1), filter 720ms ease;
+}
+
+.loading-sun::before,
+.loading-sun::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: 50%;
+}
+
+.loading-sun::before {
+    background:
+        radial-gradient(circle at 50% 45%, #fef9c3 0%, #fde047 28%, #f59e0b 58%, rgba(245, 158, 11, 0) 74%);
+    box-shadow:
+        0 0 46px rgba(253, 224, 71, 0.72),
+        0 0 90px rgba(251, 191, 36, 0.56);
+}
+
+.loading-sun::after {
+    inset: -24%;
+    background:
+        conic-gradient(from 0deg,
+            rgba(253, 224, 71, 0) 0deg,
+            rgba(253, 224, 71, 0.7) 14deg,
+            rgba(253, 224, 71, 0) 28deg,
+            rgba(251, 191, 36, 0.7) 42deg,
+            rgba(251, 191, 36, 0) 56deg,
+            rgba(245, 158, 11, 0.64) 70deg,
+            rgba(245, 158, 11, 0) 84deg,
+            rgba(253, 224, 71, 0.7) 98deg,
+            rgba(253, 224, 71, 0) 112deg,
+            rgba(251, 191, 36, 0.7) 126deg,
+            rgba(251, 191, 36, 0) 140deg,
+            rgba(245, 158, 11, 0.64) 154deg,
+            rgba(245, 158, 11, 0) 168deg,
+            rgba(253, 224, 71, 0.7) 182deg,
+            rgba(253, 224, 71, 0) 196deg,
+            rgba(251, 191, 36, 0.7) 210deg,
+            rgba(251, 191, 36, 0) 224deg,
+            rgba(245, 158, 11, 0.64) 238deg,
+            rgba(245, 158, 11, 0) 252deg,
+            rgba(253, 224, 71, 0.7) 266deg,
+            rgba(253, 224, 71, 0) 280deg,
+            rgba(251, 191, 36, 0.7) 294deg,
+            rgba(251, 191, 36, 0) 308deg,
+            rgba(245, 158, 11, 0.64) 322deg,
+            rgba(245, 158, 11, 0) 336deg,
+            rgba(253, 224, 71, 0.7) 350deg,
+            rgba(253, 224, 71, 0) 360deg);
+    filter: blur(1.2px);
+    animation: loading-sun-rays-spin 16s linear infinite;
+}
+
+@keyframes loading-sun-rays-spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+
+#loading-screen.loading-final-moment .loading-clouds,
+#loading-screen.loading-final-moment .loading-cloud-art-layer {
+    opacity: 0;
+    filter: blur(3px);
+    transform: scale(1.04);
+}
+
+#loading-screen.loading-final-moment .loading-sun {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0) scale(1);
+    filter: drop-shadow(0 0 42px rgba(253, 224, 71, 0.68));
 }
 
 .loading-cloud,
@@ -75,6 +161,10 @@
     color: rgba(255, 255, 255, 0.94);
     text-shadow: 0 16px 30px rgba(14, 116, 144, 0.2);
     filter: saturate(1.04);
+}
+
+.loading-cloud .fa-cloud-meatball {
+    transform: scale(1.12, 0.94);
 }
 
 .loading-cloud i {
@@ -120,16 +210,16 @@
     animation-iteration-count: infinite;
 }
 
-.lc-1 { top: 5%;  font-size: clamp(4rem, 7.5vw, 7rem);  --offset: -22vw; --scale: 0.86; --depth: -260px; --fromY: 0px;  --toY: -8px; animation-duration: 118s; animation-delay: -70s; }
-.lc-2 { top: 11%; font-size: clamp(4.5rem, 8.5vw, 7.6rem); --offset: 8vw;   --scale: 0.92; --depth: -200px; --fromY: -4px; --toY: 6px;  animation-duration: 106s; animation-delay: -35s; }
-.lc-3 { top: 19%; font-size: clamp(4.2rem, 7.8vw, 7.1rem); --offset: 31vw;  --scale: 0.94; --depth: -160px; --fromY: 1px;  --toY: -6px; animation-duration: 98s;  animation-delay: -82s; }
-.lc-4 { top: 30%; font-size: clamp(5.2rem, 9vw, 8.2rem);   --offset: -5vw;  --scale: 1.02; --depth: -120px; --fromY: -3px; --toY: 7px;  animation-duration: 90s;  animation-delay: -54s; }
-.lc-5 { top: 40%; font-size: clamp(5.8rem, 10vw, 8.8rem);  --offset: -32vw; --scale: 1.1;  --depth: -80px;  --fromY: 2px;  --toY: -9px; animation-duration: 82s;  animation-delay: -61s; }
-.lc-6 { top: 52%; font-size: clamp(5.4rem, 9.8vw, 8.5rem); --offset: 21vw;  --scale: 1.08; --depth: -54px;  --fromY: -2px; --toY: 8px;  animation-duration: 78s;  animation-delay: -33s; }
-.lc-7 { top: 62%; font-size: clamp(6rem, 10.6vw, 9.3rem);  --offset: -14vw; --scale: 1.14; --depth: -28px;  --fromY: 0px;  --toY: -8px; animation-duration: 72s;  animation-delay: -65s; }
-.lc-8 { top: 73%; font-size: clamp(6.4rem, 11vw, 9.8rem);  --offset: 27vw;  --scale: 1.22; --depth: -8px;   --fromY: -1px; --toY: 8px;  animation-duration: 66s;  animation-delay: -18s; }
-.lc-9 { top: 82%; font-size: clamp(6.2rem, 10.8vw, 10rem); --offset: -6vw;  --scale: 1.2;  --depth: 0px;    --fromY: 1px;  --toY: -6px; animation-duration: 63s;  animation-delay: -47s; }
-.lc-10 { top: 88%; font-size: clamp(5.8rem, 10vw, 9.3rem); --offset: 38vw;  --scale: 1.1;  --depth: 12px;   --fromY: -2px; --toY: 6px;  animation-duration: 58s;  animation-delay: -29s; }
+.lc-1 { top: 4%;  font-size: clamp(3.9rem, 7.2vw, 6.8rem); --offset: -36vw; --scale: 0.82; --depth: -280px; --fromY: 0px;  --toY: -7px; animation-duration: 128s; animation-delay: -72s; }
+.lc-2 { top: 14%; font-size: clamp(4.4rem, 8.2vw, 7.4rem); --offset: 14vw;  --scale: 0.88; --depth: -230px; --fromY: -3px; --toY: 6px;  animation-duration: 114s; animation-delay: -43s; }
+.lc-3 { top: 24%; font-size: clamp(4.3rem, 7.9vw, 7.2rem); --offset: 42vw;  --scale: 0.94; --depth: -180px; --fromY: 1px;  --toY: -6px; animation-duration: 102s; animation-delay: -86s; }
+.lc-4 { top: 34%; font-size: clamp(5rem, 8.8vw, 8.1rem);   --offset: -18vw; --scale: 1;    --depth: -136px; --fromY: -2px; --toY: 6px;  animation-duration: 94s;  animation-delay: -56s; }
+.lc-5 { top: 46%; font-size: clamp(5.6rem, 9.8vw, 8.7rem); --offset: -44vw; --scale: 1.08; --depth: -96px;  --fromY: 2px;  --toY: -8px; animation-duration: 86s;  animation-delay: -64s; }
+.lc-6 { top: 57%; font-size: clamp(5.2rem, 9.4vw, 8.3rem); --offset: 29vw;  --scale: 1.06; --depth: -64px;  --fromY: -2px; --toY: 7px;  animation-duration: 80s;  animation-delay: -36s; }
+.lc-7 { top: 69%; font-size: clamp(5.9rem, 10.3vw, 9.1rem); --offset: -22vw; --scale: 1.12; --depth: -36px;  --fromY: 1px;  --toY: -8px; animation-duration: 74s;  animation-delay: -68s; }
+.lc-8 { top: 79%; font-size: clamp(6.2rem, 10.8vw, 9.7rem); --offset: 33vw;  --scale: 1.2;  --depth: -14px;  --fromY: -1px; --toY: 8px;  animation-duration: 68s;  animation-delay: -21s; }
+.lc-9 { top: 89%; font-size: clamp(6rem, 10.5vw, 9.8rem);  --offset: -12vw; --scale: 1.18; --depth: 4px;    --fromY: 1px;  --toY: -6px; animation-duration: 64s;  animation-delay: -50s; }
+.lc-10 { top: 95%; font-size: clamp(5.6rem, 9.9vw, 9.1rem); --offset: 45vw;  --scale: 1.08; --depth: 16px;   --fromY: -2px; --toY: 6px;  animation-duration: 60s;  animation-delay: -31s; }
 
 /* Painted cloud assets are used as the far atmospheric lane */
 .loading-cloud-art {
@@ -166,6 +256,85 @@
 .lca-6 { top: 63%; --offset: 11vw;  --scale: 1.1;  --depth: -160px; --fromY: -1px; --toY: 3px;  animation-duration: 116s; animation-delay: -63s; background-image: url('../assets/award-clouds/cloud-f.png'); }
 .lca-7 { top: 74%; --offset: -7vw;  --scale: 1.06; --depth: -130px; --fromY: 2px;  --toY: -3px; animation-duration: 112s; animation-delay: -36s; background-image: url('../assets/award-clouds/cloud-g.png'); }
 .lca-8 { top: 84%; --offset: 26vw;  --scale: 0.98; --depth: -110px; --fromY: -2px; --toY: 3px;  animation-duration: 108s; animation-delay: -74s; background-image: url('../assets/award-clouds/cloud-h.png'); }
+
+.loading-journey-icons {
+    position: absolute;
+    inset: 0;
+    z-index: 3;
+    pointer-events: none;
+    overflow: hidden;
+    opacity: 0.9;
+    transition: opacity 560ms ease;
+}
+
+.loading-journey-icon {
+    position: absolute;
+    will-change: transform;
+    filter: drop-shadow(0 6px 12px rgba(15, 23, 42, 0.18));
+    animation: loading-journey-sway 7.2s ease-in-out infinite;
+}
+
+.loading-journey-icon i {
+    display: block;
+    animation: loading-journey-spin 12s linear infinite;
+}
+
+@keyframes loading-journey-sway {
+    0%, 100% { transform: translateY(0) scale(var(--iconScale, 1)); }
+    50% { transform: translateY(-12px) scale(calc(var(--iconScale, 1) * 1.06)); }
+}
+
+@keyframes loading-journey-spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+
+@keyframes loading-icon-right {
+    from {
+        transform: translate3d(calc(-150vw + var(--iOffset, 0vw)), var(--iFromY, 0px), var(--iDepth, 0px));
+    }
+    to {
+        transform: translate3d(calc(150vw + var(--iOffset, 0vw)), var(--iToY, -5px), var(--iDepth, 0px));
+    }
+}
+
+@keyframes loading-icon-left {
+    from {
+        transform: translate3d(calc(150vw + var(--iOffset, 0vw)), var(--iFromY, 0px), var(--iDepth, 0px));
+    }
+    to {
+        transform: translate3d(calc(-150vw + var(--iOffset, 0vw)), var(--iToY, 5px), var(--iDepth, 0px));
+    }
+}
+
+.ji-1, .ji-3, .ji-5, .ji-7, .ji-9, .ji-11 {
+    animation-name: loading-icon-right, loading-journey-sway;
+    animation-timing-function: linear, ease-in-out;
+    animation-iteration-count: infinite, infinite;
+}
+
+.ji-2, .ji-4, .ji-6, .ji-8, .ji-10, .ji-12 {
+    animation-name: loading-icon-left, loading-journey-sway;
+    animation-timing-function: linear, ease-in-out;
+    animation-iteration-count: infinite, infinite;
+}
+
+.ji-1  { top: 7%;  color: #0284c7; --iOffset: -18vw; --iDepth: -120px; --iFromY: 0px;  --iToY: -5px; --iconScale: 0.9;  font-size: clamp(1.1rem, 1.8vw, 1.65rem); animation-duration: 88s, 7.4s; animation-delay: -62s, -1.3s; }
+.ji-2  { top: 14%; color: #f97316; --iOffset: 24vw;  --iDepth: -100px; --iFromY: -2px; --iToY: 4px;  --iconScale: 1;    font-size: clamp(1.2rem, 2vw, 1.78rem); animation-duration: 81s, 6.8s; animation-delay: -38s, -2.1s; }
+.ji-3  { top: 22%; color: #8b5cf6; --iOffset: -30vw; --iDepth: -82px;  --iFromY: 1px;  --iToY: -4px; --iconScale: 0.94; font-size: clamp(1rem, 1.7vw, 1.6rem); animation-duration: 92s, 7.9s; animation-delay: -71s, -1.7s; }
+.ji-4  { top: 30%; color: #f59e0b; --iOffset: 12vw;  --iDepth: -70px;  --iFromY: -1px; --iToY: 5px;  --iconScale: 1.02; font-size: clamp(1.25rem, 2.1vw, 1.9rem); animation-duration: 78s, 6.6s; animation-delay: -29s, -2.6s; }
+.ji-5  { top: 38%; color: #ec4899; --iOffset: 33vw;  --iDepth: -58px;  --iFromY: 2px;  --iToY: -5px; --iconScale: 1.08; font-size: clamp(1.2rem, 2vw, 1.84rem); animation-duration: 84s, 7.1s; animation-delay: -66s, -0.9s; }
+.ji-6  { top: 47%; color: #0891b2; --iOffset: -10vw; --iDepth: -44px;  --iFromY: -2px; --iToY: 5px;  --iconScale: 0.92; font-size: clamp(1.1rem, 1.9vw, 1.7rem); animation-duration: 74s, 6.4s; animation-delay: -34s, -1.4s; }
+.ji-7  { top: 56%; color: #eab308; --iOffset: -40vw; --iDepth: -30px;  --iFromY: 1px;  --iToY: -4px; --iconScale: 1.04; font-size: clamp(1.22rem, 2vw, 1.86rem); animation-duration: 90s, 7.8s; animation-delay: -79s, -2.2s; }
+.ji-8  { top: 65%; color: #10b981; --iOffset: 26vw;  --iDepth: -18px;  --iFromY: -1px; --iToY: 5px;  --iconScale: 1.02; font-size: clamp(1.2rem, 2vw, 1.84rem); animation-duration: 76s, 6.7s; animation-delay: -43s, -1.8s; }
+.ji-9  { top: 73%; color: #6366f1; --iOffset: -20vw; --iDepth: -6px;   --iFromY: 1px;  --iToY: -3px; --iconScale: 0.96; font-size: clamp(1.05rem, 1.8vw, 1.68rem); animation-duration: 86s, 7.3s; animation-delay: -58s, -1.1s; }
+.ji-10 { top: 81%; color: #ef4444; --iOffset: 35vw;  --iDepth: 4px;    --iFromY: -2px; --iToY: 4px;  --iconScale: 1.1;  font-size: clamp(1.2rem, 2vw, 1.9rem); animation-duration: 80s, 6.5s; animation-delay: -27s, -2.4s; }
+.ji-11 { top: 89%; color: #14b8a6; --iOffset: -6vw;  --iDepth: 10px;   --iFromY: 1px;  --iToY: -4px; --iconScale: 0.94; font-size: clamp(1.1rem, 1.8vw, 1.66rem); animation-duration: 93s, 8.1s; animation-delay: -69s, -1.5s; }
+.ji-12 { top: 95%; color: #06b6d4; --iOffset: 44vw;  --iDepth: 16px;   --iFromY: -2px; --iToY: 5px;  --iconScale: 1.08; font-size: clamp(1.25rem, 2.1vw, 1.95rem); animation-duration: 82s, 6.9s; animation-delay: -46s, -2s; }
+
+#loading-screen.loading-final-moment .loading-journey-icons {
+    opacity: 0.32;
+}
 
 /* Sparkle particles */
 .loading-particles {

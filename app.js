@@ -125,7 +125,7 @@ function animateLoadingScreenOut(loadingScreen) {
 
     loadingScreen.dataset.exiting = 'true';
     const revealedPersonalization = revealStagedLoadingPersonalization();
-    const exitDelayMs = revealedPersonalization ? 260 : 0;
+    const exitDelayMs = revealedPersonalization ? 1350 : 0;
 
     if (revealedPersonalization) {
         loadingScreen.classList.add('loading-final-moment');

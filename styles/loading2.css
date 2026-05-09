@@ -64,6 +64,24 @@
     text-shadow: 0 0 14px rgba(59, 130, 246, 0.25);
 }
 
+@keyframes loading-greeting-wow-glow {
+    0%,
+    100% {
+        text-shadow:
+            0 0 16px rgba(255, 255, 255, 0.75),
+            0 0 24px rgba(253, 224, 71, 0.58),
+            0 0 42px rgba(245, 158, 11, 0.48);
+        transform: scale(1);
+    }
+    50% {
+        text-shadow:
+            0 0 24px rgba(255, 255, 255, 0.9),
+            0 0 38px rgba(253, 224, 71, 0.78),
+            0 0 62px rgba(245, 158, 11, 0.66);
+        transform: scale(1.045);
+    }
+}
+
 /* ── Rotating Tip Text ──────────────────────────────────────── */
 
 .loading-tip {
@@ -92,4 +110,10 @@
 
 .loading-final-moment .loading-stage::before {
     background: radial-gradient(ellipse at center, rgba(255, 255, 255, 0.8) 0%, rgba(224, 242, 254, 0.24) 62%, rgba(224, 242, 254, 0) 82%);
+}
+
+#loading-screen.loading-final-moment #loading-greeting-text {
+    color: #fef9c3;
+    letter-spacing: 0.03em;
+    animation: loading-greeting-wow-glow 1.2s ease-in-out infinite;
 }

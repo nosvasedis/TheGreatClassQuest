@@ -37,7 +37,7 @@ export const reportsModalsHTML = `
 
     <div id="certificate-modal"
         class="fixed inset-0 bg-black/60 backdrop-blur-sm z-[70] flex items-center justify-center p-4 hidden">
-        <div class="relative bg-white/80 backdrop-blur-2xl p-8 md:p-10 rounded-[2.5rem] shadow-2xl max-w-2xl w-full pop-in border border-white/50 overflow-hidden">
+        <div class="relative bg-white/80 backdrop-blur-2xl p-8 md:p-10 rounded-[2.5rem] shadow-2xl max-w-2xl w-full pop-in border border-white/50 flex flex-col max-h-[95vh] overflow-hidden">
             <!-- Decorative Elements -->
             <div class="absolute -top-24 -left-24 w-64 h-64 bg-indigo-400/20 rounded-full blur-3xl pointer-events-none"></div>
             <div class="absolute -bottom-24 -right-24 w-64 h-64 bg-purple-400/20 rounded-full blur-3xl pointer-events-none"></div>
@@ -72,7 +72,7 @@ export const reportsModalsHTML = `
 
                 <!-- Content Area -->
                 <div id="certificate-modal-content"
-                    class="space-y-6 bg-white/60 p-6 md:p-8 rounded-[2rem] border border-white shadow-inner min-h-[300px] flex flex-col items-center justify-center text-center">
+                    class="space-y-6 bg-white/60 p-6 md:p-8 rounded-[2rem] border border-white shadow-inner flex-grow overflow-y-auto custom-scrollbar flex flex-col items-center justify-center text-center">
                     <div class="flex flex-col items-center gap-6 py-4">
                         <div class="w-24 h-24 rounded-3xl bg-gradient-to-br from-indigo-100 to-purple-100 flex items-center justify-center shadow-inner border border-indigo-200/50">
                             <i class="fas fa-magic text-4xl text-indigo-400"></i>

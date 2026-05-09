@@ -99,7 +99,7 @@ export async function handleGenerateCertificate(studentId, scope = 'monthly') {
     
     // Initial state (Not auto-generating) - Immersive "Mystic Forge" look
     contentEl.innerHTML = `
-        <div class="w-full py-2 animate-fade-in">
+        <div class="w-full py-6 min-h-[350px] flex flex-col justify-center animate-fade-in">
             <div class="relative flex flex-col items-center">
                 <!-- Decorative background elements -->
                 <div class="absolute inset-0 bg-gradient-to-b from-indigo-50/20 to-purple-50/20 rounded-3xl -z-10"></div>
@@ -563,7 +563,10 @@ export async function downloadCertificateAsPdf() {
     const toDataURL = async (url) => {
         if (!url) return '';
         try {
-            const response = await fetch(url);
+            // Ensure absolute URL for fetch if it's relative
+            const absoluteUrl = url.startsWith('http') ? url : window.location.origin + (url.startsWith('/') ? '' : '/') + url;
+            const response = await fetch(absoluteUrl);
+            if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
             const blob = await response.blob();
             return new Promise((resolve, reject) => {
                 const reader = new FileReader();
@@ -573,7 +576,7 @@ export async function downloadCertificateAsPdf() {
             });
         } catch (e) {
             console.warn("Could not convert image to DataURL:", url, e);
-            return url; // Fallback to original URL
+            return url; 
         }
     };
 

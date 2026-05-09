@@ -261,6 +261,7 @@ function applyAwardCardLockState(studentCard, starsToday, reason) {
         undoBtn?.classList.remove('hidden');
         reasonSelector?.classList.add('pointer-events-none', 'opacity-50');
         starSelector?.classList.remove('visible');
+        starSelector?.removeAttribute('data-aura');
         reasonSelector?.querySelectorAll('.reason-btn.active').forEach((button) => button.classList.remove('active'));
     } else {
         undoBtn?.classList.add('hidden');
@@ -564,35 +565,66 @@ export function renderAwardStarsStudentList(selectedClassId, fullRender = true) 
                             <span class="crown-icon">👑</span>
                             <span class="prodigy-text">Reigning Prodigy</span>
                         </div>` : ''}
-                        <div class="flex gap-2 text-center justify-center items-center p-2">
-                            <div class="counter-bubble w-20 h-20 flex flex-col items-center justify-center bg-pink-300 rounded-full shadow-md border-b-4 border-pink-400 text-pink-900 transform transition-transform hover:scale-105">
-                                <span class="text-xs font-bold">TODAY</span>
-                                <span class="font-title text-3xl" id="today-stars-${s.id}">${starsToday}</span>
-                                <i class="fas fa-star text-xs -mt-1"></i>
+                        <div class="award-counters-row">
+                            <div class="counter-bubble counter-bubble--today">
+                                <span class="counter-bubble__ring"></span>
+                                <span class="counter-bubble__label">TODAY</span>
+                                <span class="counter-bubble__value font-title" id="today-stars-${s.id}">${starsToday}</span>
+                                <i class="fas fa-star counter-bubble__icon"></i>
                             </div>
-                            <div class="counter-bubble w-20 h-20 flex flex-col items-center justify-center bg-yellow-300 rounded-full shadow-md border-b-4 border-yellow-400 text-yellow-900 transform transition-transform hover:scale-105">
-                                <span class="text-xs font-bold">MONTH</span>
-                                <span class="font-title text-3xl" id="monthly-stars-${s.id}">${monthlyStars}</span>
-                                <i class="fas fa-star text-xs -mt-1"></i>
+                            <div class="counter-bubble counter-bubble--month">
+                                <span class="counter-bubble__ring"></span>
+                                <span class="counter-bubble__label">MONTH</span>
+                                <span class="counter-bubble__value font-title" id="monthly-stars-${s.id}">${monthlyStars}</span>
+                                <i class="fas fa-star counter-bubble__icon"></i>
                             </div>
-                            <div class="counter-bubble w-20 h-20 flex flex-col items-center justify-center bg-cyan-300 rounded-full shadow-md border-b-4 border-cyan-400 text-cyan-900 transform transition-transform hover:scale-105">
-                                <span class="text-xs font-bold">TOTAL</span>
-                                <span class="font-title text-3xl" id="total-stars-${s.id}">${totalStars}</span>
-                                <i class="fas fa-star text-xs -mt-1"></i>
+                            <div class="counter-bubble counter-bubble--total">
+                                <span class="counter-bubble__ring"></span>
+                                <span class="counter-bubble__label">TOTAL</span>
+                                <span class="counter-bubble__value font-title" id="total-stars-${s.id}">${totalStars}</span>
+                                <i class="fas fa-star counter-bubble__icon"></i>
                             </div>
                         </div>
                         <div class="reason-selector flex justify-center items-center gap-2 ${isCardLocked ? 'pointer-events-none opacity-50' : ''}">
-                            <button class="reason-btn bubbly-button p-3 rounded-full bg-gray-100 hover:bg-purple-200" data-reason="teamwork" title="Teamwork"><i class="fas fa-users text-purple-600 pointer-events-none"></i></button>
-                            <button class="reason-btn bubbly-button p-3 rounded-full bg-gray-100 hover:bg-pink-200" data-reason="creativity" title="Creativity"><i class="fas fa-lightbulb text-pink-600 pointer-events-none"></i></button>
-                            <button class="reason-btn bubbly-button p-3 rounded-full bg-gray-100 hover:bg-green-200" data-reason="respect" title="Respect"><i class="fas fa-hands-helping text-green-600 pointer-events-none"></i></button>
-                            <button class="reason-btn bubbly-button p-3 rounded-full bg-gray-100 hover:bg-yellow-200" data-reason="focus" title="Focus/Effort"><i class="fas fa-brain text-yellow-600 pointer-events-none"></i></button>
+                            <button class="reason-btn bubbly-button reason-btn--teamwork" data-reason="teamwork" title="Teamwork">
+                                <span class="reason-btn__shimmer" aria-hidden="true"></span>
+                                <i class="fas fa-users pointer-events-none"></i>
+                                <span class="reason-btn__label">Teamwork</span>
+                            </button>
+                            <button class="reason-btn bubbly-button reason-btn--creativity" data-reason="creativity" title="Creativity">
+                                <span class="reason-btn__shimmer" aria-hidden="true"></span>
+                                <i class="fas fa-lightbulb pointer-events-none"></i>
+                                <span class="reason-btn__label">Creativity</span>
+                            </button>
+                            <button class="reason-btn bubbly-button reason-btn--respect" data-reason="respect" title="Respect">
+                                <span class="reason-btn__shimmer" aria-hidden="true"></span>
+                                <i class="fas fa-hands-helping pointer-events-none"></i>
+                                <span class="reason-btn__label">Respect</span>
+                            </button>
+                            <button class="reason-btn bubbly-button reason-btn--focus" data-reason="focus" title="Focus/Effort">
+                                <span class="reason-btn__shimmer" aria-hidden="true"></span>
+                                <i class="fas fa-brain pointer-events-none"></i>
+                                <span class="reason-btn__label">Focus</span>
+                            </button>
                         </div>
                         <div class="star-selector-container flex items-center justify-center">
-                            <button data-stars="1" class="star-award-btn star-btn-1"><i class="fas fa-star"></i></button>
+                            <button data-stars="1" class="star-award-btn star-btn-1">
+                                <span class="star-btn__shine" aria-hidden="true"></span>
+                                <span class="star-btn__badge">1</span>
+                                <i class="fas fa-star"></i>
+                            </button>
                             <span class="star-divider" aria-hidden="true"></span>
-                            <button data-stars="2" class="star-award-btn star-btn-2"><i class="fas fa-star"></i><i class="fas fa-star"></i></button>
+                            <button data-stars="2" class="star-award-btn star-btn-2">
+                                <span class="star-btn__shine" aria-hidden="true"></span>
+                                <span class="star-btn__badge">2</span>
+                                <i class="fas fa-star"></i><i class="fas fa-star"></i>
+                            </button>
                             <span class="star-divider" aria-hidden="true"></span>
-                            <button data-stars="3" class="star-award-btn star-btn-3"><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i></button>
+                            <button data-stars="3" class="star-award-btn star-btn-3">
+                                <span class="star-btn__shine" aria-hidden="true"></span>
+                                <span class="star-btn__badge">3</span>
+                                <i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i>
+                            </button>
                         </div>
                     </div>
                 </div></div>`;

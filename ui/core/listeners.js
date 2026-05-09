@@ -844,10 +844,12 @@ export function setupUIListeners() {
             if (reasonBtn.classList.contains('active')) {
                 reasonBtn.classList.remove('active');
                 starSelector.classList.remove('visible');
+                starSelector.removeAttribute('data-aura');
             } else {
                 allReasonBtns.forEach(btn => btn.classList.remove('active'));
                 reasonBtn.classList.add('active');
                 starSelector.classList.add('visible');
+                starSelector.setAttribute('data-aura', reasonBtn.dataset.reason);
                 reasonBtn.classList.add('animate-reason-select');
 
                 // Dynamic sparkle animation position

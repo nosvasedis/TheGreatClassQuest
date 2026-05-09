@@ -1,29 +1,131 @@
+/* ─── REASON BUTTONS: Premium Pill Design ─── */
 .reason-selector .reason-btn {
-    transition: all 0.2s ease-out;
+    position: relative;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.15rem;
+    padding: 0.5rem 0.65rem 0.4rem;
+    min-width: 3.2rem;
+    border-radius: 0.85rem;
+    border: 2px solid rgba(0, 0, 0, 0.06);
+    background: rgba(255, 255, 255, 0.72);
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+    box-shadow:
+        0 2px 8px rgba(0, 0, 0, 0.06),
+        inset 0 1px 0 rgba(255, 255, 255, 0.7);
+    transition: all 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+    cursor: pointer;
 }
 
+.reason-selector .reason-btn i {
+    font-size: 1.15rem;
+    transition: color 0.2s, transform 0.2s, text-shadow 0.2s;
+}
+
+.reason-selector .reason-btn .reason-btn__label {
+    font-family: 'Fredoka One', cursive;
+    font-size: 0.55rem;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    opacity: 0.65;
+    transition: opacity 0.2s;
+}
+
+.reason-selector .reason-btn:hover {
+    transform: scale(1.08) translateY(-2px);
+    box-shadow:
+        0 6px 18px rgba(0, 0, 0, 0.1),
+        inset 0 1px 0 rgba(255, 255, 255, 0.8);
+}
+
+.reason-selector .reason-btn:hover .reason-btn__label {
+    opacity: 1;
+}
+
+/* Shimmer layer */
+.reason-btn__shimmer {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(
+        120deg,
+        transparent 30%,
+        rgba(255, 255, 255, 0.45) 50%,
+        transparent 70%
+    );
+    background-size: 250% 100%;
+    opacity: 0;
+    transition: opacity 0.3s;
+    pointer-events: none;
+}
+
+.reason-selector .reason-btn:hover .reason-btn__shimmer {
+    opacity: 1;
+    animation: reason-shimmer-slide 1.2s ease-in-out;
+}
+
+@keyframes reason-shimmer-slide {
+    0%   { background-position: 200% 0; }
+    100% { background-position: -50% 0; }
+}
+
+/* ── Color Variants (inactive) ── */
+.reason-btn--teamwork i  { color: #8b5cf6; }
+.reason-btn--creativity i { color: #ec4899; }
+.reason-btn--respect i   { color: #22c55e; }
+.reason-btn--focus i     { color: #d97706; }
+
+.reason-btn--teamwork .reason-btn__label  { color: #7c3aed; }
+.reason-btn--creativity .reason-btn__label { color: #db2777; }
+.reason-btn--respect .reason-btn__label   { color: #16a34a; }
+.reason-btn--focus .reason-btn__label     { color: #b45309; }
+
+.reason-btn--teamwork:hover  { border-color: rgba(139, 92, 246, 0.35); background: rgba(139, 92, 246, 0.1); }
+.reason-btn--creativity:hover { border-color: rgba(236, 72, 153, 0.35); background: rgba(236, 72, 153, 0.1); }
+.reason-btn--respect:hover   { border-color: rgba(34, 197, 94, 0.35); background: rgba(34, 197, 94, 0.1); }
+.reason-btn--focus:hover     { border-color: rgba(217, 119, 6, 0.35); background: rgba(217, 119, 6, 0.1); }
+
+/* ── Active State ── */
 .reason-selector .reason-btn.active {
-    transform: scale(1.1);
+    transform: scale(1.12) translateY(-3px);
+    border-color: transparent;
+    box-shadow:
+        0 4px 14px rgba(0, 0, 0, 0.12),
+        0 0 0 2px rgba(255, 255, 255, 0.4);
 }
 
 .reason-selector .reason-btn.active i {
     color: white;
+    text-shadow: 0 1px 3px rgba(0, 0, 0, 0.25);
+    transform: scale(1.1);
+}
+
+.reason-selector .reason-btn.active .reason-btn__label {
+    color: rgba(255, 255, 255, 0.9);
+    opacity: 1;
 }
 
 .reason-selector .reason-btn[data-reason="teamwork"].active {
-    background-color: #8b5cf6;
+    background: linear-gradient(135deg, #8b5cf6, #6d28d9);
+    box-shadow: 0 4px 16px rgba(139, 92, 246, 0.45), 0 0 0 2px rgba(255, 255, 255, 0.3);
 }
 
 .reason-selector .reason-btn[data-reason="creativity"].active {
-    background-color: #ec4899;
+    background: linear-gradient(135deg, #ec4899, #db2777);
+    box-shadow: 0 4px 16px rgba(236, 72, 153, 0.45), 0 0 0 2px rgba(255, 255, 255, 0.3);
 }
 
 .reason-selector .reason-btn[data-reason="respect"].active {
-    background-color: #22c55e;
+    background: linear-gradient(135deg, #22c55e, #16a34a);
+    box-shadow: 0 4px 16px rgba(34, 197, 94, 0.45), 0 0 0 2px rgba(255, 255, 255, 0.3);
 }
 
 .reason-selector .reason-btn[data-reason="focus"].active {
-    background-color: #eab308;
+    background: linear-gradient(135deg, #f59e0b, #d97706);
+    box-shadow: 0 4px 16px rgba(245, 158, 11, 0.45), 0 0 0 2px rgba(255, 255, 255, 0.3);
 }
 
 /* Star button strip: absolutely positioned so it NEVER changes the card's height.

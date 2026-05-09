@@ -5,7 +5,7 @@ export const calendarTabHTML = `
                 <div class="max-w-7xl mx-auto">
                     <div class="text-center mb-6">
                         <i class="fas fa-calendar-alt text-blue-600 text-5xl floating-icon"></i>
-                        <h2 class="font-title text-5xl text-blue-700 mt-2"
+                        <h2 class="font-title text-5xl text-blue-700 mt-2 bottom-nav-tab-title"
                             style="text-shadow: 0 2px 4px rgba(0,0,0,0.1);">Quest Calendar</h2>
                         <p class="text-lg text-gray-600 mt-2">View your schedule and plan special Quest Events.</p>
                     </div>

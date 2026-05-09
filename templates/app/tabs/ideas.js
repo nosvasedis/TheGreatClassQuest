@@ -5,7 +5,7 @@ export const ideasTabHTML = `
                 <div class="max-w-5xl mx-auto">
                     <div class="text-center mb-6">
                         <i class="fas fa-feather-alt text-cyan-500 text-5xl floating-icon"></i>
-                        <h2 class="font-title text-5xl text-cyan-700 mt-2"
+                        <h2 class="font-title text-5xl text-cyan-700 mt-2 bottom-nav-tab-title"
                             style="text-shadow: 0 2px 4px rgba(0,0,0,0.1);">Story Weavers</h2>
                         <p class="text-lg text-gray-600 mt-2">Collaborative class storytelling with AI-powered word suggestions and illustrations.</p>
                     </div>

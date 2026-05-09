@@ -114,6 +114,8 @@ export async function renderAdventureLogTab() {
     const logBtn = document.getElementById('log-adventure-btn');
     const hallBtn = document.getElementById('hall-of-heroes-btn');
     const feedEl = document.getElementById('adventure-log-feed');
+    const hasAdvancedAttendance = canUseFeature('advancedAttendance');
+    
     if (logBtn) {
         logBtn.style.display = hasAdventureLog ? '' : 'none';
         logBtn.disabled = !classVal || !classHasAwardedStarsToday(classVal);
@@ -124,12 +126,17 @@ export async function renderAdventureLogTab() {
     }
     if (feedEl) feedEl.style.display = hasAdventureLog ? '' : 'none';
     if (monthFilter) monthFilter.style.display = hasAdventureLog ? '' : 'none';
-    document.getElementById('quest-assignment-btn').disabled = !classVal;
-    const attendanceChronicleBtn = document.getElementById('attendance-chronicle-btn');
-    const hasAdvancedAttendance = canUseFeature('advancedAttendance');
-    if (attendanceChronicleBtn) {
-        attendanceChronicleBtn.style.display = hasAdvancedAttendance ? '' : 'none';
-        attendanceChronicleBtn.disabled = !classVal;
+    
+    // ─── FAB BUTTON STATES ────────────────────────────────────────────────────
+    const questAssignmentFab = document.getElementById('quest-assignment-fab');
+    if (questAssignmentFab) {
+        questAssignmentFab.disabled = !classVal;
+    }
+    
+    const attendanceFab = document.getElementById('attendance-fab');
+    if (attendanceFab) {
+        attendanceFab.style.display = hasAdvancedAttendance ? '' : 'none';
+        attendanceFab.disabled = !classVal;
     }
 
     const monthVal = monthFilter.value;

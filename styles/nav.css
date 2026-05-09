@@ -150,3 +150,40 @@
 .cloud-fast {
     animation-duration: 35s;
 }
+
+/* Bottom-nav tab title underline treatment */
+.bottom-nav-tab-title {
+    position: relative;
+    display: inline-block;
+    padding-bottom: 0.26rem;
+    --tab-underline-rgb: 99, 102, 241;
+}
+
+.bottom-nav-tab-title::after {
+    content: '';
+    position: absolute;
+    left: 0.4rem;
+    right: 0.4rem;
+    bottom: 0;
+    height: 2px;
+    border-radius: 9999px;
+    opacity: 0.56;
+    transform: scaleX(0.9);
+    background: linear-gradient(
+        90deg,
+        rgba(var(--tab-underline-rgb), 0),
+        rgba(var(--tab-underline-rgb), 0.72),
+        rgba(var(--tab-underline-rgb), 0)
+    );
+}
+
+#class-leaderboard-tab .bottom-nav-tab-title { --tab-underline-rgb: 217, 119, 6; }
+#student-leaderboard-tab .bottom-nav-tab-title { --tab-underline-rgb: 126, 34, 206; }
+#shop-tab .bottom-nav-tab-title { --tab-underline-rgb: 192, 38, 211; }
+#guilds-tab .bottom-nav-tab-title { --tab-underline-rgb: 194, 65, 12; }
+#my-classes-tab .bottom-nav-tab-title { --tab-underline-rgb: 21, 128, 61; }
+#award-stars-tab .bottom-nav-tab-title { --tab-underline-rgb: 190, 24, 93; }
+#adventure-log-tab .bottom-nav-tab-title { --tab-underline-rgb: 13, 148, 136; }
+#scholars-scroll-tab .bottom-nav-tab-title { --tab-underline-rgb: 190, 24, 93; }
+#calendar-tab .bottom-nav-tab-title { --tab-underline-rgb: 29, 78, 216; }
+#reward-ideas-tab .bottom-nav-tab-title { --tab-underline-rgb: 14, 116, 144; }

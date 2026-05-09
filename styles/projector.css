@@ -18,14 +18,18 @@ body.projector-mode #add-student-form,
 body.projector-mode #award-class-dropdown-btn,
 body.projector-mode #log-adventure-btn,
 body.projector-mode #quest-assignment-btn,
+body.projector-mode #quest-assignment-fab,
 body.projector-mode #attendance-chronicle-btn,
+body.projector-mode #attendance-fab,
 body.projector-mode #gemini-idea-btn,
 body.projector-mode .absence-controls,
 body.projector-mode .post-award-undo-btn,
 body.projector-mode .edit-trial-btn,
 body.projector-mode .delete-trial-btn,
 body.projector-mode #log-trial-btn,
-body.projector-mode #view-trial-history-btn {
+body.projector-mode #view-trial-history-btn,
+body.projector-mode #log-trial-fab,
+body.projector-mode #view-trial-history-fab {
     display: none !important;
 }
 

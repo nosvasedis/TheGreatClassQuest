@@ -18,12 +18,21 @@ export const trophyRoomModalsHTML = `
                         <p class="text-indigo-200 text-sm font-bold uppercase tracking-widest opacity-80 mt-1">Character vault and collected relics</p>
                     </div>
                 </div>
-                <div class="flex items-center gap-3 bg-black/30 p-2 rounded-xl border border-amber-500/30">
-                    <p class="text-indigo-300 text-[10px] uppercase font-bold hidden sm:block">Adventurer</p>
-                    <select id="trophy-room-student-select"
-                        class="bg-indigo-900/50 border border-amber-500/50 text-white text-sm font-bold rounded-lg focus:ring-amber-500 focus:border-amber-500 block p-2.5 outline-none min-w-[180px]">
-                        <option value="">Choose adventurer...</option>
-                    </select>
+                <div class="flex items-center gap-3 bg-black/30 p-2 rounded-xl border border-amber-500/30 flex-wrap justify-end">
+                    <div class="flex items-center gap-2">
+                        <p class="text-indigo-300 text-[10px] uppercase font-bold hidden sm:block">Class</p>
+                        <select id="trophy-room-class-select"
+                            class="bg-indigo-900/50 border border-amber-500/50 text-white text-sm font-bold rounded-lg focus:ring-amber-500 focus:border-amber-500 block p-2.5 outline-none min-w-[160px]">
+                            <option value="">All classes</option>
+                        </select>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <p class="text-indigo-300 text-[10px] uppercase font-bold hidden sm:block">Adventurer</p>
+                        <select id="trophy-room-student-select"
+                            class="bg-indigo-900/50 border border-amber-500/50 text-white text-sm font-bold rounded-lg focus:ring-amber-500 focus:border-amber-500 block p-2.5 outline-none min-w-[180px]">
+                            <option value="">Choose adventurer...</option>
+                        </select>
+                    </div>
                 </div>
             </div>
             <div id="trophy-room-content" class="flex-grow overflow-y-auto p-4 md:p-6 min-h-0 flex items-start justify-center custom-scrollbar relative z-10">

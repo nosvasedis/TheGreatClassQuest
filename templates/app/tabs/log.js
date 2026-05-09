@@ -2,52 +2,93 @@
 
 export const logTabHTML = `
             <div id="adventure-log-tab" class="app-tab hidden">
+                <!-- ═════════════════════════════════════════════════════════════════
+                     FLOATING ACTION BUTTONS (Left & Right)
+                     ═════════════════════════════════════════════════════════════════ -->
+                <!-- FAB — LEFT CORNER (Quest Assignment) -->
+                <div class="al-fab-cluster al-fab-cluster--left">
+                    <button id="quest-assignment-fab"
+                        class="al-fab bubbly-button al-fab--left"
+                        style="background: linear-gradient(135deg, #4f46e5, #6366f1); border: 2px solid #4338ca; color: white;"
+                        title="Quest Assignment">
+                        <i class="fas fa-scroll al-fab-icon"></i>
+                        <span class="al-fab-label">Quest Assignment</span>
+                    </button>
+                </div>
+
+                <!-- FAB — RIGHT CORNER (Attendance) -->
+                <div class="al-fab-cluster al-fab-cluster--right">
+                    <button id="attendance-fab"
+                        class="al-fab bubbly-button al-fab--right"
+                        style="background: linear-gradient(135deg, #0d9488, #14b8a6); border: 2px solid #0f766e; color: white;"
+                        title="Attendance">
+                        <i class="fas fa-user-check al-fab-icon"></i>
+                        <span class="al-fab-label">Attendance</span>
+                    </button>
+                </div>
+
                 <div class="max-w-4xl mx-auto">
-                    <div class="text-center mb-6">
+                    <!-- ═══════════════════════════════════════════════════════════════
+                         HERO TITLE SECTION
+                         ═══════════════════════════════════════════════════════════════ -->
+                    <div class="text-center mb-8">
                         <i class="fas fa-book-open text-teal-500 text-5xl floating-icon"></i>
-                        <h2 class="font-title text-5xl text-teal-700 mt-2"
+                        <h2 class="font-title text-5xl text-teal-700 mt-2 bottom-nav-tab-title"
                             style="text-shadow: 0 2px 4px rgba(0,0,0,0.1);">Adventure Log</h2>
                         <p id="adventure-log-tagline" class="text-lg text-gray-600 mt-2">A visual diary of your class's epic journey!</p>
                     </div>
 
-                    <div class="bg-white p-4 rounded-2xl shadow-lg border-2 border-gray-100 flex flex-col gap-4 mb-6">
-                        <div class="flex flex-col sm:flex-row items-center justify-start gap-4 w-full">
-                            <select id="adventure-log-class-select"
-                                class="w-full sm:w-auto flex-grow px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 bg-white text-lg">
-                                <option value="">Select a class to view its log...</option>
-                            </select>
-                            <select id="adventure-log-month-filter"
-                                class="w-full sm:w-auto px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 bg-white text-lg"></select>
+                    <!-- ═══════════════════════════════════════════════════════════════
+                         ENHANCED CONTROLS SECTION
+                         ═══════════════════════════════════════════════════════════════ -->
+                    <div class="al-controls-card">
+                        <!-- Row 1: Class & Month Selectors -->
+                        <div class="al-controls-row">
+                            <div class="al-selector-group">
+                                <label for="adventure-log-class-select" class="al-selector-label">
+                                    <i class="fas fa-chalkboard text-teal-600"></i> Class
+                                </label>
+                                <select id="adventure-log-class-select" class="al-selector">
+                                    <option value="">Select a class to view its log...</option>
+                                </select>
+                            </div>
+                            <div class="al-selector-group">
+                                <label for="adventure-log-month-filter" class="al-selector-label">
+                                    <i class="fas fa-calendar text-teal-600"></i> Month
+                                </label>
+                                <select id="adventure-log-month-filter" class="al-selector"></select>
+                            </div>
                         </div>
-                        <div class="flex flex-col sm:flex-row items-center justify-center gap-4 w-full">
+
+                        <!-- Row 2: Primary Actions -->
+                        <div class="al-controls-row al-primary-actions">
                             <button id="log-adventure-btn"
-                                class="w-full sm:w-auto bg-teal-500 hover:bg-teal-600 text-white font-title text-xl py-3 px-6 rounded-lg bubbly-button disabled:opacity-50"
+                                class="al-primary-btn al-primary-btn--log bubbly-button"
                                 disabled>
-                                <i class="fas fa-feather-alt mr-2"></i> Log Today's Adventure
-                            </button>
-                            <button id="quest-assignment-btn"
-                                class="w-full sm:w-auto bg-indigo-500 hover:bg-indigo-600 text-white font-title text-xl py-3 px-6 rounded-lg bubbly-button disabled:opacity-50"
-                                disabled>
-                                <i class="fas fa-scroll mr-2"></i> Quest Assignment
-                            </button>
-                            <button id="attendance-chronicle-btn"
-                                class="w-full sm:w-auto bg-gray-500 hover:bg-gray-600 text-white font-title text-xl py-3 px-6 rounded-lg bubbly-button disabled:opacity-50"
-                                disabled>
-                                <i class="fas fa-user-check mr-2"></i> Attendance
+                                <i class="fas fa-feather-alt"></i>
+                                <span>Log Today's Adventure</span>
                             </button>
                             <button id="hall-of-heroes-btn"
-                                class="w-full sm:w-auto bg-gradient-to-r from-rose-500 to-red-600 hover:from-rose-600 hover:to-red-700 text-white font-title text-xl py-3 px-6 rounded-lg bubbly-button shadow-lg transition-all disabled:opacity-50 disabled:grayscale"
+                                class="al-primary-btn al-primary-btn--heroes bubbly-button"
                                 disabled>
-                                <i class="fas fa-crown mr-2"></i> Hall of Heroes
+                                <i class="fas fa-crown"></i>
+                                <span>Hall of Heroes</span>
                             </button>
                         </div>
                     </div>
 
-                    <div id="adventure-log-feed" class="space-y-6 max-h-[60vh] overflow-y-auto p-2"></div>
-                    <div id="adventure-log-upsell" class="hidden bg-gradient-to-br from-teal-50 to-indigo-50 border-2 border-teal-200 rounded-2xl p-6 text-center max-w-xl mx-auto">
-                        <p id="adventure-log-upsell-title" class="font-title text-xl text-teal-800 mb-2"></p>
-                        <p id="adventure-log-upsell-body" class="text-gray-600 mb-4"></p>
-                        <p class="text-sm text-gray-500">See Options for your plan and upgrade path.</p>
+                    <!-- ═══════════════════════════════════════════════════════════════
+                         LOG FEED (Unified Timeline)
+                         ═══════════════════════════════════════════════════════════════ -->
+                    <div id="adventure-log-feed" class="al-log-feed"></div>
+
+                    <!-- ═══════════════════════════════════════════════════════════════
+                         UPSELL (Subscription Messaging)
+                         ═══════════════════════════════════════════════════════════════ -->
+                    <div id="adventure-log-upsell" class="al-upsell hidden">
+                        <p id="adventure-log-upsell-title" class="al-upsell-title"></p>
+                        <p id="adventure-log-upsell-body" class="al-upsell-body"></p>
+                        <p class="al-upsell-footer">See Options for your plan and upgrade path.</p>
                     </div>
                 </div>
             </div>

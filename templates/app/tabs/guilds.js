@@ -6,7 +6,7 @@ export const guildsTabHTML = `
                 <!-- Title above the framed scene -->
                 <div class="guild-hall-header text-center">
                     <i class="fas fa-shield-alt text-amber-500 text-5xl floating-icon"></i>
-                    <h2 class="font-title guild-hall-title">Guild Hall</h2>
+                    <h2 class="font-title guild-hall-title bottom-nav-tab-title">Guild Hall</h2>
                     <p class="guild-hall-subtitle">
                         Every star earns ⚜️ Glory for your guild.
                         The mightiest guild in June wins the <strong>Grand Guild Ceremony</strong>! ✨

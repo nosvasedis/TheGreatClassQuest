@@ -5,7 +5,7 @@ export const leaderboardTabHTML = `
                 <div class="max-w-7xl mx-auto">
                     <div class="text-center mb-4">
                         <i class="fas fa-route text-amber-600 text-5xl floating-icon"></i>
-                        <h2 class="font-title text-5xl text-amber-700 mt-2"
+                        <h2 class="font-title text-5xl text-amber-700 mt-2 bottom-nav-tab-title"
                             style="text-shadow: 0 2px 4px rgba(0,0,0,0.1);">Team Quest</h2>
                         <p class="text-lg text-gray-600 mt-2">Race against other classes in your league toward the
                             finish line!</p>
@@ -81,7 +81,7 @@ export const leaderboardTabHTML = `
                 <div class="max-w-4xl mx-auto">
                     <div class="text-center mb-4">
                         <i class="fas fa-user-shield text-purple-600 text-5xl floating-icon"></i>
-                        <h2 class="font-title text-5xl text-purple-700 mt-2"
+                        <h2 class="font-title text-5xl text-purple-700 mt-2 bottom-nav-tab-title"
                             style="text-shadow: 0 2px 4px rgba(0,0,0,0.1);">Hero's Challenge</h2>
                         <p class="text-lg text-gray-600 mt-2">Rise through the ranks and become a legend!</p>
                     </div>

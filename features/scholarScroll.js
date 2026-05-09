@@ -30,6 +30,8 @@ import {
 export function renderScholarsScrollTab(selectedClassId = null) {
     const classSelect = document.getElementById('scroll-class-select');
     if (!classSelect) return;
+    const logTrialFab = document.getElementById('log-trial-fab');
+    const viewHistoryFab = document.getElementById('view-trial-history-fab');
 
     const currentVal = selectedClassId || state.get('globalSelectedClassId');
     const optionsHtml = state.get('allTeachersClasses').sort((a, b) => a.name.localeCompare(b.name)).map(c => `<option value="${c.id}">${c.logo} ${c.name}</option>`).join('');
@@ -52,6 +54,8 @@ export function renderScholarsScrollTab(selectedClassId = null) {
         // Enable buttons
         document.getElementById('log-trial-btn').disabled = false;
         document.getElementById('view-trial-history-btn').disabled = false;
+        if (logTrialFab) logTrialFab.disabled = false;
+        if (viewHistoryFab) viewHistoryFab.disabled = false;
 
         // Render Content
         renderScrollDashboard(currentVal);
@@ -64,6 +68,8 @@ export function renderScholarsScrollTab(selectedClassId = null) {
         // Disable buttons
         document.getElementById('log-trial-btn').disabled = true;
         document.getElementById('view-trial-history-btn').disabled = true;
+        if (logTrialFab) logTrialFab.disabled = true;
+        if (viewHistoryFab) viewHistoryFab.disabled = true;
 
         document.getElementById('scroll-dashboard-content').classList.add('hidden');
         document.getElementById('scroll-placeholder').classList.remove('hidden');

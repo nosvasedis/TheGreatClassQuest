@@ -6,8 +6,58 @@ import { handleUseItem, isItemUsable } from '../../features/powerUps.js';
 
 const MODAL_ID = 'trophy-room-modal';
 const CONTENT_ID = 'trophy-room-content';
+const CLASS_SELECT_ID = 'trophy-room-class-select';
 const STUDENT_SELECT_ID = 'trophy-room-student-select';
 const trophyRoomFeedback = new Map();
+
+function getTrophyRoomClasses() {
+    return [...(state.get('allTeachersClasses') || [])].sort((a, b) => a.name.localeCompare(b.name));
+}
+
+function buildTrophyRoomStudentsByClass(classId = '') {
+    const classes = getTrophyRoomClasses();
+    const allowedClassIds = classId
+        ? new Set([classId])
+        : new Set(classes.map((c) => c.id));
+    return (state.get('allStudents') || [])
+        .filter((student) => allowedClassIds.has(student.classId))
+        .sort((a, b) => a.name.localeCompare(b.name));
+}
+
+function populateTrophyRoomClassSelect(preferredClassId = '') {
+    const classSelectEl = document.getElementById(CLASS_SELECT_ID);
+    if (!classSelectEl) return '';
+
+    const classes = getTrophyRoomClasses();
+    classSelectEl.innerHTML = '<option value="">All classes</option>' +
+        classes.map((c) => `<option value="${c.id}">${c.logo || '📚'} ${c.name}</option>`).join('');
+
+    const selectedClassId = preferredClassId && classes.some((c) => c.id === preferredClassId)
+        ? preferredClassId
+        : '';
+    classSelectEl.value = selectedClassId;
+    return selectedClassId;
+}
+
+function populateTrophyRoomStudentSelect({ classId = '', selectedStudentId = '' } = {}) {
+    const studentSelectEl = document.getElementById(STUDENT_SELECT_ID);
+    if (!studentSelectEl) return '';
+
+    const validStudents = buildTrophyRoomStudentsByClass(classId);
+    studentSelectEl.innerHTML = '<option value="">Choose adventurer...</option>' +
+        validStudents.map((s) => `<option value="${s.id}">${s.name}</option>`).join('');
+
+    const nextSelectedId = selectedStudentId && validStudents.some((s) => s.id === selectedStudentId)
+        ? selectedStudentId
+        : '';
+    studentSelectEl.value = nextSelectedId;
+    return nextSelectedId;
+}
+
+export function handleTrophyRoomClassChange(classId) {
+    populateTrophyRoomStudentSelect({ classId, selectedStudentId: '' });
+    renderTrophyRoomContent('');
+}
 
 document.addEventListener('clarity-glimmer', (e) => {
     const { studentId, itemIndex } = e.detail || {};
@@ -27,35 +77,19 @@ document.addEventListener('clarity-glimmer', (e) => {
  * @param {string} [preselectedStudentId] - If provided, this student is selected and their inventory shown.
  */
 export function openTrophyRoomModal(preselectedStudentId = null) {
-    const league = state.get('globalSelectedLeague');
-    const classId = state.get('globalSelectedClassId');
-    let leagueResolved = league;
-    if (!leagueResolved && classId) {
-        const cls = state.get('allSchoolClasses').find(c => c.id === classId) || state.get('allTeachersClasses').find(c => c.id === classId);
-        if (cls) leagueResolved = cls.questLevel;
-    }
+    const allStudents = state.get('allStudents') || [];
+    const preselectedStudent = preselectedStudentId
+        ? allStudents.find((s) => s.id === preselectedStudentId)
+        : null;
+    const globalClassId = state.get('globalSelectedClassId') || '';
+    const defaultClassId = preselectedStudent?.classId || globalClassId || '';
+    const selectedClassId = populateTrophyRoomClassSelect(defaultClassId);
+    const selectedStudentId = populateTrophyRoomStudentSelect({
+        classId: selectedClassId,
+        selectedStudentId: preselectedStudent?.id || ''
+    });
 
-    const myClasses = leagueResolved
-        ? state.get('allTeachersClasses').filter(c => c.questLevel === leagueResolved)
-        : state.get('allTeachersClasses');
-    const myClassIds = myClasses.map(c => c.id);
-    const validStudents = state.get('allStudents')
-        .filter(s => myClassIds.includes(s.classId))
-        .sort((a, b) => a.name.localeCompare(b.name));
-
-    const selectEl = document.getElementById(STUDENT_SELECT_ID);
-    if (!selectEl) return;
-
-    selectEl.innerHTML = '<option value="">Choose adventurer...</option>' +
-        validStudents.map(s => `<option value="${s.id}">${s.name}</option>`).join('');
-
-    if (preselectedStudentId && validStudents.some(s => s.id === preselectedStudentId)) {
-        selectEl.value = preselectedStudentId;
-    } else {
-        selectEl.value = '';
-    }
-
-    renderTrophyRoomContent(selectEl.value);
+    renderTrophyRoomContent(selectedStudentId);
     showAnimatedModal(MODAL_ID);
 }
 

@@ -65,6 +65,127 @@ import {
     handleRegenerateFamiliarFromOptions
 } from '../../features/familiars.js';
 
+// --- ADVENTURE LOG & HERO'S CHALLENGE FAB EDGE-HOVER REVEAL ---
+function setupAdventureLogFabReveal() {
+    const alLeftCluster = document.querySelector('.al-fab-cluster--left');
+    const alRightCluster = document.querySelector('.al-fab-cluster--right');
+    const hcLeftCluster = document.querySelector('.hc-fab-cluster--left');
+    const hcRightCluster = document.querySelector('.hc-fab-cluster--right');
+    const ssLeftCluster = document.querySelector('.ss-fab-cluster--left');
+    const ssRightCluster = document.querySelector('.ss-fab-cluster--right');
+    
+    // Edge detection zones
+    const LEFT_EDGE_ZONE = 180;  // pixels from left edge
+    const RIGHT_EDGE_ZONE = 180; // pixels from right edge
+    let lastMouseX = window.innerWidth / 2;
+    let revealTimeout;
+
+    function updateFabVisibility() {
+        const isNearLeftEdge = lastMouseX < LEFT_EDGE_ZONE;
+        const isNearRightEdge = lastMouseX > window.innerWidth - RIGHT_EDGE_ZONE;
+
+        clearTimeout(revealTimeout);
+
+        if (isNearLeftEdge || isNearRightEdge) {
+            revealTimeout = setTimeout(() => {
+                if (alLeftCluster) alLeftCluster.classList.add('revealed');
+                if (alRightCluster) alRightCluster.classList.add('revealed');
+                if (hcLeftCluster) hcLeftCluster.classList.add('revealed');
+                if (hcRightCluster) hcRightCluster.classList.add('revealed');
+                if (ssLeftCluster) ssLeftCluster.classList.add('revealed');
+                if (ssRightCluster) ssRightCluster.classList.add('revealed');
+            }, 40);
+        } else {
+            if (alLeftCluster) alLeftCluster.classList.remove('revealed');
+            if (alRightCluster) alRightCluster.classList.remove('revealed');
+            if (hcLeftCluster) hcLeftCluster.classList.remove('revealed');
+            if (hcRightCluster) hcRightCluster.classList.remove('revealed');
+            if (ssLeftCluster) ssLeftCluster.classList.remove('revealed');
+            if (ssRightCluster) ssRightCluster.classList.remove('revealed');
+        }
+    }
+
+    document.addEventListener('mousemove', (e) => {
+        lastMouseX = e.clientX;
+        updateFabVisibility();
+    });
+
+    // Adventure Log FABs
+    if (alLeftCluster) {
+        alLeftCluster.addEventListener('mouseenter', () => {
+            clearTimeout(revealTimeout);
+            alLeftCluster.classList.add('revealed');
+        });
+        alLeftCluster.addEventListener('mouseleave', () => {
+            if (lastMouseX >= LEFT_EDGE_ZONE) {
+                alLeftCluster.classList.remove('revealed');
+            }
+        });
+    }
+
+    if (alRightCluster) {
+        alRightCluster.addEventListener('mouseenter', () => {
+            clearTimeout(revealTimeout);
+            alRightCluster.classList.add('revealed');
+        });
+        alRightCluster.addEventListener('mouseleave', () => {
+            if (lastMouseX <= window.innerWidth - RIGHT_EDGE_ZONE) {
+                alRightCluster.classList.remove('revealed');
+            }
+        });
+    }
+
+    // Hero's Challenge FABs
+    if (hcLeftCluster) {
+        hcLeftCluster.addEventListener('mouseenter', () => {
+            clearTimeout(revealTimeout);
+            hcLeftCluster.classList.add('revealed');
+        });
+        hcLeftCluster.addEventListener('mouseleave', () => {
+            if (lastMouseX >= LEFT_EDGE_ZONE) {
+                hcLeftCluster.classList.remove('revealed');
+            }
+        });
+    }
+
+    if (hcRightCluster) {
+        hcRightCluster.addEventListener('mouseenter', () => {
+            clearTimeout(revealTimeout);
+            hcRightCluster.classList.add('revealed');
+        });
+        hcRightCluster.addEventListener('mouseleave', () => {
+            if (lastMouseX <= window.innerWidth - RIGHT_EDGE_ZONE) {
+                hcRightCluster.classList.remove('revealed');
+            }
+        });
+    }
+
+    // Scholar's Scroll FABs
+    if (ssLeftCluster) {
+        ssLeftCluster.addEventListener('mouseenter', () => {
+            clearTimeout(revealTimeout);
+            ssLeftCluster.classList.add('revealed');
+        });
+        ssLeftCluster.addEventListener('mouseleave', () => {
+            if (lastMouseX >= LEFT_EDGE_ZONE) {
+                ssLeftCluster.classList.remove('revealed');
+            }
+        });
+    }
+
+    if (ssRightCluster) {
+        ssRightCluster.addEventListener('mouseenter', () => {
+            clearTimeout(revealTimeout);
+            ssRightCluster.classList.add('revealed');
+        });
+        ssRightCluster.addEventListener('mouseleave', () => {
+            if (lastMouseX <= window.innerWidth - RIGHT_EDGE_ZONE) {
+                ssRightCluster.classList.remove('revealed');
+            }
+        });
+    }
+}
+
 // --- MAIN UI EVENT LISTENERS SETUP ---
 
 export function setupUIListeners() {
@@ -381,6 +502,12 @@ export function setupUIListeners() {
     if (trophyRoomStudentSelect) {
         trophyRoomStudentSelect.addEventListener('change', (e) => {
             modals.renderTrophyRoomContent(e.target.value);
+        });
+    }
+    const trophyRoomClassSelect = document.getElementById('trophy-room-class-select');
+    if (trophyRoomClassSelect) {
+        trophyRoomClassSelect.addEventListener('change', (e) => {
+            modals.handleTrophyRoomClassChange(e.target.value);
         });
     }
 
@@ -935,7 +1062,13 @@ export function setupUIListeners() {
         tabs.renderAdventureLog();
     });
     document.getElementById('log-adventure-btn').addEventListener('click', handleLogAdventure);
-    document.getElementById('quest-assignment-btn').addEventListener('click', modals.openQuestAssignmentModal);
+    
+    // ─── QUEST ASSIGNMENT: Old button + new FAB ────────────────────────────
+    const questAssignmentBtn = document.getElementById('quest-assignment-btn');
+    if (questAssignmentBtn) questAssignmentBtn.addEventListener('click', modals.openQuestAssignmentModal);
+    const questAssignmentFab = document.getElementById('quest-assignment-fab');
+    if (questAssignmentFab) questAssignmentFab.addEventListener('click', modals.openQuestAssignmentModal);
+    
     document.getElementById('adventure-log-feed').addEventListener('click', (e) => {
         const deleteBtn = e.target.closest('.log-delete-btn');
         const noteBtn = e.target.closest('.log-note-btn');
@@ -965,8 +1098,15 @@ export function setupUIListeners() {
     ['quest-test-date', 'quest-test-title', 'quest-test-curriculum'].forEach((id) => {
         document.getElementById(id).addEventListener('input', modals.refreshQuestTestPanelSummary);
     });
-    document.getElementById('attendance-chronicle-btn').addEventListener('click', modals.openAttendanceChronicle);
+    
+    // ─── ATTENDANCE: Old button + new FAB ────────────────────────────────────
+    const attendanceChronicleBtn = document.getElementById('attendance-chronicle-btn');
+    if (attendanceChronicleBtn) attendanceChronicleBtn.addEventListener('click', modals.openAttendanceChronicle);
+    const attendanceFab = document.getElementById('attendance-fab');
+    if (attendanceFab) attendanceFab.addEventListener('click', modals.openAttendanceChronicle);
+    
     document.getElementById('attendance-chronicle-close-btn').addEventListener('click', () => modals.hideModal('attendance-chronicle-modal'));
+
 
     // Scholar's Scroll
     document.getElementById('scroll-class-select').addEventListener('change', (e) => {
@@ -976,6 +1116,10 @@ export function setupUIListeners() {
 
     // NEW: Replaced log-trial-btn listener to open the trial type modal via scholarScroll helper
     document.getElementById('log-trial-btn').addEventListener('click', () => scholarScroll.openTrialTypeModal(document.getElementById('scroll-class-select').value));
+    const logTrialFab = document.getElementById('log-trial-fab');
+    if (logTrialFab) {
+        logTrialFab.addEventListener('click', () => scholarScroll.openTrialTypeModal(document.getElementById('scroll-class-select').value));
+    }
 
     // NEW: Bulk Save listener
     document.getElementById('bulk-trial-save-btn').addEventListener('click', handleBulkSaveTrial);
@@ -983,6 +1127,10 @@ export function setupUIListeners() {
     document.getElementById('trial-type-cancel-btn').addEventListener('click', () => modals.hideModal('trial-type-modal'));
 
     document.getElementById('view-trial-history-btn').addEventListener('click', () => scholarScroll.openTrialHistoryModal(document.getElementById('scroll-class-select').value));
+    const viewTrialHistoryFab = document.getElementById('view-trial-history-fab');
+    if (viewTrialHistoryFab) {
+        viewTrialHistoryFab.addEventListener('click', () => scholarScroll.openTrialHistoryModal(document.getElementById('scroll-class-select').value));
+    }
     document.getElementById('trial-history-close-btn').addEventListener('click', () => modals.hideModal('trial-history-modal'));
     document.getElementById('starfall-cancel-btn').addEventListener('click', () => modals.hideModal('starfall-modal'));
 
@@ -1124,6 +1272,9 @@ export function setupUIListeners() {
             if (e.target === heroLevelUpModal) modals.hideModal('hero-level-up-modal');
         });
     }
+
+    // ─── Setup Adventure Log FAB Edge-Hover Reveal ────────────────────────────
+    setupAdventureLogFabReveal();
 
     // Skill Tree Modal close
     const skillTreeCloseBtn = document.getElementById('skill-tree-close-btn');

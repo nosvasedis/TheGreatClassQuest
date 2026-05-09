@@ -254,17 +254,11 @@ export async function openStudentRankingsModal(resetDate = true) {
     renderContent('global');
 }
 
-// Internal state for the Hall of Heroes month-browsing
-let hallOfHeroesViewDate = new Date();
-let hallOfHeroesMode = 'gallery';
+// Hall of Heroes now focuses on all-time legends only.
 
 export async function openHallOfHeroes() {
     const classId = document.getElementById('adventure-log-class-select').value;
     if (!classId) { showToast("Select a class first!", "info"); return; }
-
-    // Reset view to the current month when opening
-    hallOfHeroesViewDate = new Date();
-    hallOfHeroesMode = 'gallery';
 
     const modal = document.getElementById('history-modal');
     const selectEl = document.getElementById('history-month-select');
@@ -398,10 +392,6 @@ async function renderHallOfHeroesContent(classId) {
     const contentEl = document.getElementById('history-modal-content');
     const modalTitle = document.querySelector('#history-modal h2');
 
-    const monthName = hallOfHeroesViewDate.toLocaleString('en-GB', { month: 'long', year: 'numeric' });
-    const currentMonth = hallOfHeroesViewDate.getMonth();
-    const currentYear = hallOfHeroesViewDate.getFullYear();
-
     modalTitle.innerHTML = `<i class="fas fa-crown text-amber-500 mr-3"></i>${classData.name} Heroes`;
     contentEl.innerHTML = `
         <div class="text-center py-16 text-gray-500">
@@ -411,222 +401,110 @@ async function renderHallOfHeroesContent(classId) {
 
     let html = `
         <div class="flex flex-wrap items-center justify-between gap-3 mb-5">
-            <div class="inline-flex bg-slate-100 p-1 rounded-full border border-slate-200 shadow-inner">
-                <button id="hall-mode-gallery" class="px-4 py-2 rounded-full text-sm font-bold transition-all ${hallOfHeroesMode === 'gallery' ? 'bg-white text-indigo-700 shadow-sm' : 'text-slate-500'}">
-                    <i class="fas fa-images mr-2"></i>Gallery
-                </button>
-                <button id="hall-mode-legends" class="px-4 py-2 rounded-full text-sm font-bold transition-all ${hallOfHeroesMode === 'legends' ? 'bg-white text-amber-700 shadow-sm' : 'text-slate-500'}">
-                    <i class="fas fa-trophy mr-2"></i>Legends
-                </button>
+            <div class="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-amber-50 text-amber-700 border border-amber-200 font-bold text-sm">
+                <i class="fas fa-star"></i> All-time Hero of the Day totals
             </div>
-            ${hallOfHeroesMode === 'gallery' ? `
-                <div class="flex items-center justify-between bg-indigo-50 p-3 rounded-2xl border-2 border-indigo-100 min-w-[260px]">
-                    <button id="hero-prev-month" class="w-10 h-10 rounded-full bg-white text-indigo-600 shadow hover:bg-indigo-100 transition-colors flex items-center justify-center">
-                        <i class="fas fa-chevron-left"></i>
-                    </button>
-                    <span class="font-title text-xl text-indigo-900">${monthName}</span>
-                    <button id="hero-next-month" class="w-10 h-10 rounded-full bg-white text-indigo-600 shadow hover:bg-indigo-100 transition-colors flex items-center justify-center">
-                        <i class="fas fa-chevron-right"></i>
-                    </button>
-                </div>
-            ` : `
-                <div class="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-amber-50 text-amber-700 border border-amber-200 font-bold text-sm">
-                    <i class="fas fa-star"></i> All-time Hero of the Day totals
-                </div>
-            `}
         </div>
     `;
 
-    if (hallOfHeroesMode === 'gallery') {
-        let monthlyLogs = [];
-        const thirtyDaysAgo = new Date();
-        thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-        const viewMonthStart = new Date(currentYear, currentMonth, 1);
+    const { legendRows, allLogs } = await buildHallLegendRows(classId);
+    const crownedHeroes = legendRows.filter((row) => row.wins > 0);
+    const topLegend = crownedHeroes[0] || null;
 
-        if (viewMonthStart >= thirtyDaysAgo) {
-            monthlyLogs = state.get('allAdventureLogs').filter(l => {
-                const d = utils.parseDDMMYYYY(l.date);
-                return l.classId === classId && d.getMonth() === currentMonth && d.getFullYear() === currentYear;
-            });
-        } else {
-            try {
-                const { fetchAdventureLogsForMonth } = await import('../../db/queries.js');
-                monthlyLogs = await fetchAdventureLogsForMonth(classId, currentYear, currentMonth + 1);
-            } catch (error) {
-                console.error("Historical fetch failed:", error);
-                monthlyLogs = [];
-            }
-        }
+    html += `
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+            <div class="rounded-3xl p-5 bg-gradient-to-br from-indigo-600 to-sky-500 text-white shadow-lg">
+                <div class="text-xs uppercase tracking-[0.2em] font-black opacity-80">Heroes Crowned</div>
+                <div class="font-title text-4xl mt-2">${allLogs.length}</div>
+                <div class="text-sm opacity-80 mt-1">Adventure Log victories recorded</div>
+            </div>
+            <div class="rounded-3xl p-5 bg-gradient-to-br from-amber-400 to-orange-500 text-white shadow-lg">
+                <div class="text-xs uppercase tracking-[0.2em] font-black opacity-80">Class Legends</div>
+                <div class="font-title text-4xl mt-2">${crownedHeroes.length}</div>
+                <div class="text-sm opacity-80 mt-1">Students with at least one crown</div>
+            </div>
+            <div class="rounded-3xl p-5 bg-gradient-to-br from-fuchsia-500 to-violet-600 text-white shadow-lg">
+                <div class="text-xs uppercase tracking-[0.2em] font-black opacity-80">Top Legend</div>
+                <div class="font-title text-3xl mt-2">${topLegend ? topLegend.student.name.split(' ')[0] : 'None yet'}</div>
+                <div class="text-sm opacity-80 mt-1">${topLegend ? `${topLegend.wins} hero crowns` : 'No hero crowns recorded yet'}</div>
+            </div>
+        </div>
+    `;
 
-        monthlyLogs.sort((a, b) => utils.parseDDMMYYYY(b.date) - utils.parseDDMMYYYY(a.date));
+    if (!crownedHeroes.length) {
+        html += `
+            <div class="text-center py-16 opacity-60">
+                <div class="text-7xl mb-4">🏛️</div>
+                <p class="font-bold text-gray-500 text-lg">No class legends yet.</p>
+                <p class="text-sm text-gray-400 mt-2">Save Adventure Logs to start building the Hall.</p>
+            </div>`;
+    } else {
+        html += `<div class="grid grid-cols-1 lg:grid-cols-2 gap-5 pb-10">`;
 
-        if (monthlyLogs.length === 0) {
+        crownedHeroes.forEach((row, index) => {
+            const heroClass = row.student.heroClass;
+            const heroIcon = heroClass ? (HERO_CLASSES[heroClass]?.icon || '⭐') : '⭐';
+            const avatarHtml = row.student.avatar
+                ? `<img src="${row.student.avatar}" class="w-20 h-20 rounded-3xl object-cover border-4 border-white shadow-lg">`
+                : `<div class="w-20 h-20 rounded-3xl bg-gradient-to-br from-indigo-500 to-fuchsia-500 text-white text-3xl font-bold flex items-center justify-center border-4 border-white shadow-lg">${row.student.name.charAt(0)}</div>`;
+            const latestDate = row.latestDate
+                ? row.latestDate.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
+                : 'No date';
+            const nextTierText = row.nextThreshold
+                ? `${Math.max(0, row.nextThreshold - row.wins)} more to ${utils.getHeroLegendTierInfo(row.nextThreshold).label}`
+                : 'Highest legend rank achieved';
+
             html += `
-                <div class="text-center py-16 opacity-50">
-                    <div class="text-6xl mb-4">📜</div>
-                    <p class="font-bold text-gray-500">No heroes were crowned in ${monthName}.</p>
-                </div>`;
-        } else {
-            html += `<div class="grid grid-cols-1 md:grid-cols-2 gap-6 pb-10">`;
-
-            monthlyLogs.forEach(log => {
-                const dateStr = utils.parseDDMMYYYY(log.date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
-                const student = state.get('allStudents').find(s => s.id === log.heroStudentId) || state.get('allStudents').find(s => s.name === log.hero && s.classId === classId);
-                const avatarHtml = student?.avatar
-                    ? `<img src="${student.avatar}" class="w-14 h-14 rounded-full border-4 border-white shadow-md object-cover">`
-                    : `<div class="w-14 h-14 rounded-full bg-indigo-500 border-4 border-white shadow-md flex items-center justify-center text-white font-bold">${String(log.hero || 'H').charAt(0)}</div>`;
-                const artwork = log.imageUrl
-                    ? `<img src="${log.imageUrl}" class="w-full h-full object-cover grayscale-[30%] group-hover:grayscale-0 transition-all">`
-                    : `<div class="w-full h-full bg-gradient-to-br from-indigo-200 via-violet-100 to-amber-100"></div>`;
-
-                html += `
-                    <div class="bg-white rounded-3xl shadow-lg border border-gray-100 overflow-hidden group hover:scale-[1.02] transition-transform">
-                        <div class="h-32 w-full relative">
-                            ${artwork}
-                            <div class="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent"></div>
-                            <div class="absolute bottom-2 left-3 text-white text-[10px] font-black uppercase tracking-tighter">${dateStr}</div>
-                        </div>
-                        
-                        <div class="p-4 pt-0 relative">
-                            <div class="absolute -top-7 right-4">
+                <article class="rounded-[2rem] overflow-hidden shadow-xl border border-white/70 bg-white">
+                    <div class="p-5 text-white bg-gradient-to-r ${row.tier.accent}">
+                        <div class="flex items-start justify-between gap-4">
+                            <div class="flex items-center gap-4">
                                 ${avatarHtml}
+                                <div>
+                                    <div class="text-xs uppercase tracking-[0.2em] font-black opacity-80">Rank #${index + 1}</div>
+                                    <h3 class="font-title text-3xl leading-none mt-1">${row.student.name}</h3>
+                                    <div class="mt-2 inline-flex items-center gap-2 bg-white/20 px-3 py-1 rounded-full text-sm font-bold">
+                                        <span>${heroIcon}</span>
+                                        <span>${row.tier.label}</span>
+                                    </div>
+                                </div>
                             </div>
-                            
-                            <div class="mt-4">
-                                <h4 class="font-title text-xl text-indigo-900 leading-tight mb-1">${log.hero}</h4>
+                            <div class="text-right">
+                                <div class="text-xs uppercase tracking-[0.18em] font-black opacity-75">Wins</div>
+                                <div class="font-title text-5xl leading-none">${row.wins}</div>
                             </div>
                         </div>
                     </div>
-                `;
-            });
-            html += `</div>`;
-        }
-    } else {
-        const { legendRows, allLogs } = await buildHallLegendRows(classId);
-        const crownedHeroes = legendRows.filter((row) => row.wins > 0);
-        const topLegend = crownedHeroes[0] || null;
-
-        html += `
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-                <div class="rounded-3xl p-5 bg-gradient-to-br from-indigo-600 to-sky-500 text-white shadow-lg">
-                    <div class="text-xs uppercase tracking-[0.2em] font-black opacity-80">Heroes Crowned</div>
-                    <div class="font-title text-4xl mt-2">${allLogs.length}</div>
-                    <div class="text-sm opacity-80 mt-1">Adventure Log victories recorded</div>
-                </div>
-                <div class="rounded-3xl p-5 bg-gradient-to-br from-amber-400 to-orange-500 text-white shadow-lg">
-                    <div class="text-xs uppercase tracking-[0.2em] font-black opacity-80">Class Legends</div>
-                    <div class="font-title text-4xl mt-2">${crownedHeroes.length}</div>
-                    <div class="text-sm opacity-80 mt-1">Students with at least one crown</div>
-                </div>
-                <div class="rounded-3xl p-5 bg-gradient-to-br from-fuchsia-500 to-violet-600 text-white shadow-lg">
-                    <div class="text-xs uppercase tracking-[0.2em] font-black opacity-80">Top Legend</div>
-                    <div class="font-title text-3xl mt-2">${topLegend ? topLegend.student.name.split(' ')[0] : 'None yet'}</div>
-                    <div class="text-sm opacity-80 mt-1">${topLegend ? `${topLegend.wins} hero crowns` : 'No hero crowns recorded yet'}</div>
-                </div>
-            </div>
-        `;
-
-        if (!crownedHeroes.length) {
-            html += `
-                <div class="text-center py-16 opacity-60">
-                    <div class="text-7xl mb-4">🏛️</div>
-                    <p class="font-bold text-gray-500 text-lg">No class legends yet.</p>
-                    <p class="text-sm text-gray-400 mt-2">Save Adventure Logs to start building the Hall.</p>
-                </div>`;
-        } else {
-            html += `<div class="grid grid-cols-1 lg:grid-cols-2 gap-5 pb-10">`;
-
-            crownedHeroes.forEach((row, index) => {
-                const heroClass = row.student.heroClass;
-                const heroIcon = heroClass ? (HERO_CLASSES[heroClass]?.icon || '⭐') : '⭐';
-                const avatarHtml = row.student.avatar
-                    ? `<img src="${row.student.avatar}" class="w-20 h-20 rounded-3xl object-cover border-4 border-white shadow-lg">`
-                    : `<div class="w-20 h-20 rounded-3xl bg-gradient-to-br from-indigo-500 to-fuchsia-500 text-white text-3xl font-bold flex items-center justify-center border-4 border-white shadow-lg">${row.student.name.charAt(0)}</div>`;
-                const latestDate = row.latestDate
-                    ? row.latestDate.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
-                    : 'No date';
-                const nextTierText = row.nextThreshold
-                    ? `${Math.max(0, row.nextThreshold - row.wins)} more to ${utils.getHeroLegendTierInfo(row.nextThreshold).label}`
-                    : 'Highest legend rank achieved';
-
-                html += `
-                    <article class="rounded-[2rem] overflow-hidden shadow-xl border border-white/70 bg-white">
-                        <div class="p-5 text-white bg-gradient-to-r ${row.tier.accent}">
-                            <div class="flex items-start justify-between gap-4">
-                                <div class="flex items-center gap-4">
-                                    ${avatarHtml}
-                                    <div>
-                                        <div class="text-xs uppercase tracking-[0.2em] font-black opacity-80">Rank #${index + 1}</div>
-                                        <h3 class="font-title text-3xl leading-none mt-1">${row.student.name}</h3>
-                                        <div class="mt-2 inline-flex items-center gap-2 bg-white/20 px-3 py-1 rounded-full text-sm font-bold">
-                                            <span>${heroIcon}</span>
-                                            <span>${row.tier.label}</span>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="text-right">
-                                    <div class="text-xs uppercase tracking-[0.18em] font-black opacity-75">Wins</div>
-                                    <div class="font-title text-5xl leading-none">${row.wins}</div>
-                                </div>
+                    <div class="p-5">
+                        <div class="grid grid-cols-2 gap-3 mb-4">
+                            <div class="rounded-2xl bg-slate-50 border border-slate-200 p-4">
+                                <div class="text-[11px] uppercase tracking-[0.16em] font-black text-slate-500">Latest Crown</div>
+                                <div class="font-bold text-slate-800 mt-2">${latestDate}</div>
+                            </div>
+                            <div class="rounded-2xl bg-amber-50 border border-amber-200 p-4">
+                                <div class="text-[11px] uppercase tracking-[0.16em] font-black text-amber-600">Seasonal Shop Perk</div>
+                                <div class="font-bold text-amber-900 mt-2">+${row.tier.extraDiscount}% legend discount</div>
                             </div>
                         </div>
-                        <div class="p-5">
-                            <div class="grid grid-cols-2 gap-3 mb-4">
-                                <div class="rounded-2xl bg-slate-50 border border-slate-200 p-4">
-                                    <div class="text-[11px] uppercase tracking-[0.16em] font-black text-slate-500">Latest Crown</div>
-                                    <div class="font-bold text-slate-800 mt-2">${latestDate}</div>
-                                </div>
-                                <div class="rounded-2xl bg-amber-50 border border-amber-200 p-4">
-                                    <div class="text-[11px] uppercase tracking-[0.16em] font-black text-amber-600">Seasonal Shop Perk</div>
-                                    <div class="font-bold text-amber-900 mt-2">+${row.tier.extraDiscount}% legend discount</div>
-                                </div>
+                        <div class="rounded-2xl bg-slate-900 p-4 text-white">
+                            <div class="flex items-center justify-between text-xs uppercase tracking-[0.16em] font-black text-white/70 mb-2">
+                                <span>Next Milestone</span>
+                                <span>${row.progressPercent}%</span>
                             </div>
-                            <div class="rounded-2xl bg-slate-900 p-4 text-white">
-                                <div class="flex items-center justify-between text-xs uppercase tracking-[0.16em] font-black text-white/70 mb-2">
-                                    <span>Next Milestone</span>
-                                    <span>${row.progressPercent}%</span>
-                                </div>
-                                <div class="h-3 rounded-full bg-white/10 overflow-hidden">
-                                    <div class="h-full bg-gradient-to-r from-amber-300 to-white" style="width:${row.progressPercent}%"></div>
-                                </div>
-                                <div class="text-sm text-white/80 mt-3">${nextTierText}</div>
+                            <div class="h-3 rounded-full bg-white/10 overflow-hidden">
+                                <div class="h-full bg-gradient-to-r from-amber-300 to-white" style="width:${row.progressPercent}%"></div>
                             </div>
+                            <div class="text-sm text-white/80 mt-3">${nextTierText}</div>
                         </div>
-                    </article>
-                `;
-            });
+                    </div>
+                </article>
+            `;
+        });
 
-            html += `</div>`;
-        }
+        html += `</div>`;
     }
 
     contentEl.innerHTML = html;
-
-    document.getElementById('hall-mode-gallery').onclick = () => {
-        hallOfHeroesMode = 'gallery';
-        renderHallOfHeroesContent(classId);
-    };
-    document.getElementById('hall-mode-legends').onclick = () => {
-        hallOfHeroesMode = 'legends';
-        renderHallOfHeroesContent(classId);
-    };
-
-    const prevBtn = document.getElementById('hero-prev-month');
-    if (prevBtn) {
-        prevBtn.onclick = () => {
-            hallOfHeroesViewDate.setMonth(hallOfHeroesViewDate.getMonth() - 1);
-            renderHallOfHeroesContent(classId);
-        };
-    }
-
-    const nextBtn = document.getElementById('hero-next-month');
-    if (nextBtn) {
-        nextBtn.onclick = () => {
-            if (hallOfHeroesViewDate.getMonth() === new Date().getMonth() && hallOfHeroesViewDate.getFullYear() === new Date().getFullYear()) return;
-            hallOfHeroesViewDate.setMonth(hallOfHeroesViewDate.getMonth() + 1);
-            renderHallOfHeroesContent(classId);
-        };
-    }
 }
 
 export function openBestowBoonModal(receiverId) {
@@ -835,6 +713,15 @@ export function openZoneOverviewModal(zoneType) {
         let icon = type === 'done' ? '✅' : (type === 'near' ? '🔥' : '🔭');
         let titleColor = type === 'done' ? 'text-green-600' : 'text-gray-500';
 
+        const lvlStyles = {
+            1: { color: "bg-teal-100 text-teal-800 border-teal-200", icon: "🌱" },
+            2: { color: "bg-cyan-100 text-cyan-800 border-cyan-200", icon: "💧" },
+            3: { color: "bg-blue-100 text-blue-800 border-blue-200", icon: "🛡️" },
+            4: { color: "bg-indigo-100 text-indigo-800 border-indigo-200", icon: "🔮" },
+            5: { color: "bg-orange-100 text-orange-800 border-orange-200", icon: "🔥" },
+            6: { color: "bg-rose-100 text-rose-800 border-rose-200", icon: "🐉" }
+        };
+
         return `
             <div class="mb-8 animate-fade-in">
                 <div class="flex items-center gap-3 mb-4 pl-2">
@@ -861,6 +748,8 @@ export function openZoneOverviewModal(zoneType) {
 
             const starsFormatted = formatStarValue(c.stars);
             const barFill = Math.min(100, (c.progress / config.pct) * 100);
+            const levelValue = Number(c.level) || 1;
+            const levelStyle = lvlStyles[levelValue] || lvlStyles[1];
 
             return `
                         <div class="group relative p-5 rounded-[2rem] ${cardStyle} ${glowEffect} shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 overflow-hidden">
@@ -875,9 +764,8 @@ export function openZoneOverviewModal(zoneType) {
                                     <div class="flex justify-between items-center mb-2">
                                         <div>
                                             <div class="font-title text-xl text-gray-800 truncate tracking-tight">${c.name}</div>
-                                            <div class="inline-flex items-center gap-2 mt-1 px-3 py-1 rounded-full bg-white/80 border border-white/70 text-[10px] font-black uppercase tracking-[0.22em] text-slate-500 shadow-sm">
-                                                <i class="fas fa-layer-group text-amber-500"></i>
-                                                Level ${c.level || 'Unknown'}
+                                            <div class="inline-flex items-center gap-2 mt-1 px-3 py-1 rounded-md text-xs font-bold border shadow-sm ${levelStyle.color}">
+                                                ${levelStyle.icon} Level ${levelValue}
                                             </div>
                                         </div>
                                         ${badge}

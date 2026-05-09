@@ -21,6 +21,15 @@ export function initializeShopTab() {
     }
 
     if (!league) {
+        // Still populate the class selector so the user can choose one
+        const classSelect = document.getElementById('shop-class-select');
+        if (classSelect) {
+            classSelect.innerHTML = `<option value="">Select a class...</option>` +
+                [...allClasses]
+                    .sort((a,b) => a.name.localeCompare(b.name))
+                    .map(c => `<option value="${c.id}" ${c.id === classId ? 'selected' : ''}>${c.logo || '🏫'} ${c.name}</option>`)
+                    .join('');
+        }
         const shopCurtain = document.getElementById('shop-curtain');
         if (shopCurtain) shopCurtain.classList.remove('hidden');
         document.getElementById('shop-items-container').innerHTML = '';

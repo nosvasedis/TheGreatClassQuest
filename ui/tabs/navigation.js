@@ -896,9 +896,13 @@ async function renderQuizOptionsUi() {
         showClassMeta(classData);
         cardCurriculum?.classList.remove('qow-card-disabled');
         generateBtn.disabled = false;
+
+        // Always reset form to a clean slate before pre-filling
+        setActivePill('mix');
+        if (keywordsInput) keywordsInput.value = '';
         renderCategories();
 
-        // Pre-fill from existing curriculum
+        // Pre-fill from existing curriculum (if any)
         try {
             const { getQuizForClass } = await import('../../db/actions/quizOfTheWeek.js');
             const existingQuiz = await getQuizForClass(classId);

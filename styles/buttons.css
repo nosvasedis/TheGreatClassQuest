@@ -70,20 +70,16 @@
         0 3px 10px var(--cb-shadow),
         inset 0 -3px 6px var(--cb-inner-shadow),
         inset 0 1px 0 rgba(255, 255, 255, 0.55);
-    transition: transform 0.28s cubic-bezier(0.34, 1.56, 0.64, 1),
-                box-shadow 0.28s ease-out;
+    transition: transform 0.28s cubic-bezier(0.34, 1.56, 0.64, 1);
+    will-change: transform;
     cursor: default;
 }
 
 .counter-bubble:hover {
     transform: scale(1.08) translateY(-2px);
-    box-shadow:
-        0 6px 18px var(--cb-shadow),
-        inset 0 -3px 6px var(--cb-inner-shadow),
-        inset 0 1px 0 rgba(255, 255, 255, 0.65);
 }
 
-/* Animated gradient ring */
+/* Gradient ring — only animates on hover to save GPU */
 .counter-bubble__ring {
     position: absolute;
     inset: -3px;
@@ -97,11 +93,12 @@
     z-index: -1;
     opacity: 0;
     transition: opacity 0.3s;
-    animation: counter-ring-spin 4s linear infinite;
+    will-change: transform, opacity;
 }
 
 .counter-bubble:hover .counter-bubble__ring {
     opacity: 0.6;
+    animation: counter-ring-spin 4s linear infinite;
 }
 
 @keyframes counter-ring-spin {
@@ -177,7 +174,8 @@
 .star-award-btn {
     font-family: 'Fredoka One', cursive;
     color: white;
-    transition: all 180ms cubic-bezier(0.34, 1.56, 0.64, 1);
+    transition: transform 180ms cubic-bezier(0.34, 1.56, 0.64, 1),
+                box-shadow 180ms ease-out;
     transform: none;
     display: flex;
     align-items: center;
@@ -189,6 +187,7 @@
     cursor: pointer;
     border: none;
     border-bottom: 3px solid rgba(0, 0, 0, 0.18);
+    will-change: transform;
 }
 
 /* Number badge — floating counter inside each button */
@@ -251,9 +250,7 @@
 
 /* ─── ★ 1 — Frosted Glass Token ─── */
 .star-btn-1 {
-    background: linear-gradient(145deg, rgba(148, 163, 184, 0.85), rgba(100, 116, 139, 0.92));
-    backdrop-filter: blur(4px);
-    -webkit-backdrop-filter: blur(4px);
+    background: linear-gradient(145deg, rgba(148, 163, 184, 0.92), rgba(100, 116, 139, 0.95));
     border-bottom-color: #475569;
     font-size: 1.1rem;
     padding: 0.55rem 0.9rem;
@@ -423,79 +420,55 @@
 }
 
 /* ═══════════════════════════════════════════════
-   REASON-BASED AURA — tints star buttons
-   to match the chosen reason color
+   REASON-BASED AURA — backlight glow behind
+   all star buttons, colored per reason
    ═══════════════════════════════════════════════ */
 
-/* Default aura vars (no reason selected) */
-.star-selector-container {
-    --aura-color: rgba(168, 85, 247, 0.4);
-    --aura-glow:  rgba(168, 85, 247, 0.0);
-    --aura-tint:  transparent;
+/* Aura background-color per reason (plain colors — transition natively) */
+.star-selector-container[data-aura="teamwork"]  { --aura-bg: rgba(139, 92, 246, 0.45);  --aura-div: rgba(139, 92, 246, 0.55); }
+.star-selector-container[data-aura="creativity"]{ --aura-bg: rgba(236, 72, 153, 0.45);  --aura-div: rgba(236, 72, 153, 0.55); }
+.star-selector-container[data-aura="respect"]   { --aura-bg: rgba(34, 197, 94, 0.45);   --aura-div: rgba(34, 197, 94, 0.55);  }
+.star-selector-container[data-aura="focus"]     { --aura-bg: rgba(217, 119, 6, 0.45);   --aura-div: rgba(217, 119, 6, 0.55);  }
+
+/* The backlight — a soft radial glow behind all buttons (no filter:blur) */
+.star-selector-container::before {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 140%;
+    height: 350%;
+    transform: translate(-50%, -50%);
+    border-radius: 50%;
+    background: radial-gradient(
+        ellipse at center,
+        var(--aura-bg, transparent) 0%,
+        transparent 65%
+    );
+    opacity: 0;
+    z-index: -1;
+    pointer-events: none;
+    transition: opacity 0.4s ease-out;
+    will-change: opacity, transform;
 }
 
-/* Aura color per reason */
-.star-selector-container[data-aura="teamwork"] {
-    --aura-color: rgba(139, 92, 246, 0.5);
-    --aura-glow:  rgba(139, 92, 246, 0.18);
-    --aura-tint:  rgba(139, 92, 246, 0.08);
+.star-selector-container[data-aura]::before {
+    opacity: 1;
+    animation: aura-flicker 4.5s ease-in-out infinite;
 }
 
-.star-selector-container[data-aura="creativity"] {
-    --aura-color: rgba(236, 72, 153, 0.5);
-    --aura-glow:  rgba(236, 72, 153, 0.18);
-    --aura-tint:  rgba(236, 72, 153, 0.08);
-}
-
-.star-selector-container[data-aura="respect"] {
-    --aura-color: rgba(34, 197, 94, 0.5);
-    --aura-glow:  rgba(34, 197, 94, 0.18);
-    --aura-tint:  rgba(34, 197, 94, 0.08);
-}
-
-.star-selector-container[data-aura="focus"] {
-    --aura-color: rgba(217, 119, 6, 0.5);
-    --aura-glow:  rgba(217, 119, 6, 0.18);
-    --aura-tint:  rgba(217, 119, 6, 0.08);
-}
-
-/* Apply aura glow to all star buttons when a reason is active */
-.star-selector-container[data-aura] .star-award-btn {
-    box-shadow:
-        0 0 10px var(--aura-glow),
-        0 3px 8px rgba(0, 0, 0, 0.1),
-        inset 0 1px 0 rgba(255, 255, 255, 0.25);
-    transition: all 180ms cubic-bezier(0.34, 1.56, 0.64, 1),
-                box-shadow 0.4s ease-out;
-}
-
-.star-selector-container[data-aura] .star-award-btn:hover {
-    box-shadow:
-        0 0 18px var(--aura-glow),
-        0 6px 14px rgba(0, 0, 0, 0.12),
-        inset 0 1px 0 rgba(255, 255, 255, 0.35);
-}
-
-/* 3-star override: merge its own glow with the aura */
-.star-selector-container[data-aura] .star-btn-3 {
-    box-shadow:
-        0 0 10px var(--aura-glow),
-        0 3px 12px rgba(249, 115, 22, 0.3),
-        inset 0 1px 0 rgba(255, 255, 255, 0.3),
-        inset 0 -2px 6px rgba(194, 65, 12, 0.12);
-}
-
-.star-selector-container[data-aura] .star-btn-3:hover {
-    box-shadow:
-        0 0 22px var(--aura-glow),
-        0 0 28px rgba(251, 191, 36, 0.7),
-        0 10px 22px -4px rgba(0, 0, 0, 0.2),
-        inset 0 1px 0 rgba(255, 255, 255, 0.4);
+/* Gentle candlelight flicker — barely perceptible living glow */
+@keyframes aura-flicker {
+    0%, 100% { opacity: 0.85; transform: translate(-50%, -50%) scale(1);      }
+    20%      { opacity: 1;    transform: translate(-50%, -50%) scale(1.03);   }
+    45%      { opacity: 0.78; transform: translate(-50%, -50%) scale(0.97);   }
+    70%      { opacity: 0.95; transform: translate(-50%, -50%) scale(1.02);   }
+    90%      { opacity: 0.82; transform: translate(-50%, -50%) scale(0.99);   }
 }
 
 /* Tint the star dividers to match the aura */
 .star-selector-container[data-aura] .star-divider {
-    background: linear-gradient(to bottom, transparent, var(--aura-color), transparent);
+    background: linear-gradient(to bottom, transparent, var(--aura-div, rgba(168, 85, 247, 0.4)), transparent);
     transition: background 0.35s ease-out;
 }
 
@@ -518,12 +491,12 @@
 #award-stars-tab.award-scroll-pause .teacher-boon-launch-btn__shimmer,
 #award-stars-tab.award-scroll-pause .teacher-boon-launch-btn__sparkle,
 #award-stars-tab.award-scroll-pause .teacher-boon-launch-btn__icon,
-#award-stars-tab.award-scroll-pause .counter-bubble__ring {
+#award-stars-tab.award-scroll-pause .counter-bubble__ring,
+#award-stars-tab.award-scroll-pause .star-selector-container::before {
     animation-play-state: paused !important;
 }
 
-/* 6-card stagger pattern for a less repetitive, cloud-like formation (grid children are .award-card-mount wrappers) */
-#award-stars-student-list > .award-card-mount:nth-child(6n + 1) {
+/* 6-card stagger pattern for a less repetitive, cloud-like formation (grid children are .award-card-mount wrappers) */#award-stars-student-list > .award-card-mount:nth-child(6n + 1) {
     margin-top: -1.05rem;
     margin-left: -0.8rem;
 }
@@ -564,6 +537,7 @@
     flex-direction: column;
     gap: 0.75rem;
     overflow: visible;
+    contain: layout style;
 }
 
 /* Static cloud art background injected as first child */

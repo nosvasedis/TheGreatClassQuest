@@ -24,6 +24,14 @@ const LOADING_TIPS = [
 let _tipIntervalId = null;
 let _stagedPersonalization = null;
 
+function randomInt(max) {
+    return Math.floor(Math.random() * max);
+}
+
+function randomRange(min, max) {
+    return min + (Math.random() * (max - min));
+}
+
 export const loadingHTML = `
     <div id="loading-screen"
         class="fixed inset-0 flex flex-col items-center justify-center z-[60] transition-opacity duration-500"
@@ -116,15 +124,67 @@ export function initLoadingTips() {
     if (_tipIntervalId) {
         clearInterval(_tipIntervalId);
     }
-    let i = 0;
+    let i = randomInt(LOADING_TIPS.length);
+    tipEl.textContent = LOADING_TIPS[i];
+
     _tipIntervalId = setInterval(() => {
-        i = (i + 1) % LOADING_TIPS.length;
+        let next = i;
+        while (next === i && LOADING_TIPS.length > 1) {
+            next = randomInt(LOADING_TIPS.length);
+        }
+        i = next;
+
         tipEl.classList.add('loading-tip-fade');
         setTimeout(() => {
             tipEl.textContent = LOADING_TIPS[i];
             tipEl.classList.remove('loading-tip-fade');
         }, 350);
     }, 3200);
+}
+
+/**
+ * Randomize cloud/icon motion so each loading screen has a fresh sky composition.
+ */
+export function initLoadingAtmosphere() {
+    const cloudIcons = ['fa-cloud', 'fa-cloud-meatball'];
+
+    const clouds = Array.from(document.querySelectorAll('.loading-cloud'));
+    clouds.forEach((cloud) => {
+        const icon = cloud.querySelector('i');
+        if (icon) {
+            icon.className = `fas ${cloudIcons[randomInt(cloudIcons.length)]}`;
+        }
+
+        const base = parseFloat(getComputedStyle(cloud).animationDuration) || 120;
+        const duration = base * randomRange(0.88, 1.2);
+        cloud.style.animationDuration = `${duration.toFixed(2)}s`;
+        cloud.style.animationDelay = `-${randomRange(8, 220).toFixed(2)}s`;
+        cloud.style.setProperty('--fromY', `${randomRange(-4, 4).toFixed(1)}px`);
+        cloud.style.setProperty('--toY', `${randomRange(-9, 9).toFixed(1)}px`);
+    });
+
+    const cloudArt = Array.from(document.querySelectorAll('.loading-cloud-art'));
+    cloudArt.forEach((cloud) => {
+        const base = parseFloat(getComputedStyle(cloud).animationDuration) || 160;
+        const duration = base * randomRange(0.9, 1.16);
+        cloud.style.animationDuration = `${duration.toFixed(2)}s`;
+        cloud.style.animationDelay = `-${randomRange(12, 260).toFixed(2)}s`;
+    });
+
+    const journeyIcons = Array.from(document.querySelectorAll('.loading-journey-icon'));
+    journeyIcons.forEach((iconWrap) => {
+        const base = parseFloat(getComputedStyle(iconWrap).animationDuration) || 82;
+        const duration = base * randomRange(0.92, 1.14);
+        iconWrap.style.animationDuration = `${duration.toFixed(2)}s`;
+        iconWrap.style.animationDelay = `-${randomRange(10, 180).toFixed(2)}s`;
+
+        const icon = iconWrap.querySelector('i');
+        if (icon) {
+            const twirlDuration = randomRange(9.5, 14.5);
+            icon.style.animationDuration = `${twirlDuration.toFixed(2)}s`;
+            icon.style.animationDelay = `-${randomRange(0, 8).toFixed(2)}s`;
+        }
+    });
 }
 
 function buildPersonalizedCopy(name, role) {

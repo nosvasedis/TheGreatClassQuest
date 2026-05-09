@@ -119,9 +119,10 @@
     pointer-events: none;
     z-index: -1;
     background:
-        radial-gradient(ellipse at 92% 0%, rgba(253, 224, 71, 0.52) 0%, rgba(253, 224, 71, 0.26) 20%, rgba(253, 224, 71, 0) 62%),
-        linear-gradient(140deg, rgba(255, 255, 255, 0) 44%, rgba(255, 255, 255, 0.38) 72%, rgba(255, 255, 255, 0) 100%);
-    filter: blur(3px);
+        radial-gradient(ellipse at 95% 0%, rgba(253, 224, 71, 0.46) 0%, rgba(253, 224, 71, 0.18) 24%, rgba(253, 224, 71, 0) 62%),
+        radial-gradient(ellipse at 86% 8%, rgba(255, 255, 255, 0.52) 0%, rgba(255, 255, 255, 0.22) 18%, rgba(255, 255, 255, 0) 58%),
+        radial-gradient(ellipse at 62% 36%, rgba(255, 255, 255, 0.28) 0%, rgba(255, 255, 255, 0.08) 28%, rgba(255, 255, 255, 0) 62%);
+    filter: blur(5px);
 }
 
 .loading-final-moment .loading-spinner-wrap {
@@ -136,8 +137,21 @@
     transition: opacity 280ms ease;
 }
 
+#loading-screen.loading-final-moment .loading-greeting {
+    position: absolute;
+    left: 50%;
+    top: 56%;
+    width: min(92vw, 820px);
+    margin-top: 0;
+    transform: translate(-50%, -50%);
+    text-align: center;
+    z-index: 9;
+}
+
 #loading-screen.loading-final-moment #loading-greeting-text {
     color: #fef9c3;
     letter-spacing: 0.03em;
+    font-size: clamp(1.9rem, 7vw, 3.9rem);
+    line-height: 1.08;
     animation: loading-greeting-wow-glow 1.2s ease-in-out infinite;
 }

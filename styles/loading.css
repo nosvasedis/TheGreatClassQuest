@@ -172,6 +172,18 @@
     display: block;
 }
 
+/* Subtle per-lane shaping so clouds do not all look identical */
+.lc-1 i { transform: scale(1.16, 0.86); }
+.lc-2 i { transform: scale(1.22, 0.9); }
+.lc-3 i { transform: scale(1.06, 0.82); }
+.lc-4 i { transform: scale(1.18, 0.88); }
+.lc-5 i { transform: scale(1.28, 0.92); }
+.lc-6 i { transform: scale(1.12, 0.84); }
+.lc-7 i { transform: scale(1.2, 0.9); }
+.lc-8 i { transform: scale(1.14, 0.86); }
+.lc-9 i { transform: scale(1.24, 0.94); }
+.lc-10 i { transform: scale(1.1, 0.82); }
+
 @keyframes loading-cloud-right {
     from {
         transform: translate3d(calc(-170vw + var(--offset, 0vw)), var(--fromY, 0px), var(--depth, 0px)) scale(var(--scale, 1));
@@ -211,16 +223,16 @@
     animation-iteration-count: infinite;
 }
 
-.lc-1 { top: 4%;  font-size: clamp(3.9rem, 7.2vw, 6.8rem); --offset: -36vw; --scale: 0.82; --depth: -280px; --fromY: 0px;  --toY: -7px; animation-duration: 128s; animation-delay: -72s; }
-.lc-2 { top: 14%; font-size: clamp(4.4rem, 8.2vw, 7.4rem); --offset: 14vw;  --scale: 0.88; --depth: -230px; --fromY: -3px; --toY: 6px;  animation-duration: 114s; animation-delay: -43s; }
-.lc-3 { top: 24%; font-size: clamp(4.3rem, 7.9vw, 7.2rem); --offset: 42vw;  --scale: 0.94; --depth: -180px; --fromY: 1px;  --toY: -6px; animation-duration: 102s; animation-delay: -86s; }
-.lc-4 { top: 34%; font-size: clamp(5rem, 8.8vw, 8.1rem);   --offset: -18vw; --scale: 1;    --depth: -136px; --fromY: -2px; --toY: 6px;  animation-duration: 94s;  animation-delay: -56s; }
-.lc-5 { top: 46%; font-size: clamp(5.6rem, 9.8vw, 8.7rem); --offset: -44vw; --scale: 1.08; --depth: -96px;  --fromY: 2px;  --toY: -8px; animation-duration: 86s;  animation-delay: -64s; }
-.lc-6 { top: 57%; font-size: clamp(5.2rem, 9.4vw, 8.3rem); --offset: 29vw;  --scale: 1.06; --depth: -64px;  --fromY: -2px; --toY: 7px;  animation-duration: 80s;  animation-delay: -36s; }
-.lc-7 { top: 69%; font-size: clamp(5.9rem, 10.3vw, 9.1rem); --offset: -22vw; --scale: 1.12; --depth: -36px;  --fromY: 1px;  --toY: -8px; animation-duration: 74s;  animation-delay: -68s; }
-.lc-8 { top: 79%; font-size: clamp(6.2rem, 10.8vw, 9.7rem); --offset: 33vw;  --scale: 1.2;  --depth: -14px;  --fromY: -1px; --toY: 8px;  animation-duration: 68s;  animation-delay: -21s; }
-.lc-9 { top: 89%; font-size: clamp(6rem, 10.5vw, 9.8rem);  --offset: -12vw; --scale: 1.18; --depth: 4px;    --fromY: 1px;  --toY: -6px; animation-duration: 64s;  animation-delay: -50s; }
-.lc-10 { top: 95%; font-size: clamp(5.6rem, 9.9vw, 9.1rem); --offset: 45vw;  --scale: 1.08; --depth: 16px;   --fromY: -2px; --toY: 6px;  animation-duration: 60s;  animation-delay: -31s; }
+.lc-1 { top: 4%;  font-size: clamp(3.9rem, 7.2vw, 6.8rem); --offset: -36vw; --scale: 0.82; --depth: -280px; --fromY: 0px;  --toY: -7px; animation-duration: 166s; animation-delay: -72s; }
+.lc-2 { top: 14%; font-size: clamp(4.4rem, 8.2vw, 7.4rem); --offset: 14vw;  --scale: 0.88; --depth: -230px; --fromY: -3px; --toY: 6px;  animation-duration: 148s; animation-delay: -43s; }
+.lc-3 { top: 24%; font-size: clamp(4.3rem, 7.9vw, 7.2rem); --offset: 42vw;  --scale: 0.94; --depth: -180px; --fromY: 1px;  --toY: -6px; animation-duration: 132s; animation-delay: -86s; }
+.lc-4 { top: 34%; font-size: clamp(5rem, 8.8vw, 8.1rem);   --offset: -18vw; --scale: 1;    --depth: -136px; --fromY: -2px; --toY: 6px;  animation-duration: 122s;  animation-delay: -56s; }
+.lc-5 { top: 46%; font-size: clamp(5.6rem, 9.8vw, 8.7rem); --offset: -44vw; --scale: 1.08; --depth: -96px;  --fromY: 2px;  --toY: -8px; animation-duration: 112s;  animation-delay: -64s; }
+.lc-6 { top: 57%; font-size: clamp(5.2rem, 9.4vw, 8.3rem); --offset: 29vw;  --scale: 1.06; --depth: -64px;  --fromY: -2px; --toY: 7px;  animation-duration: 104s;  animation-delay: -36s; }
+.lc-7 { top: 69%; font-size: clamp(5.9rem, 10.3vw, 9.1rem); --offset: -22vw; --scale: 1.12; --depth: -36px;  --fromY: 1px;  --toY: -8px; animation-duration: 96s;  animation-delay: -68s; }
+.lc-8 { top: 79%; font-size: clamp(6.2rem, 10.8vw, 9.7rem); --offset: 33vw;  --scale: 1.2;  --depth: -14px;  --fromY: -1px; --toY: 8px;  animation-duration: 88s;  animation-delay: -21s; }
+.lc-9 { top: 89%; font-size: clamp(6rem, 10.5vw, 9.8rem);  --offset: -12vw; --scale: 1.18; --depth: 4px;    --fromY: 1px;  --toY: -6px; animation-duration: 84s;  animation-delay: -50s; }
+.lc-10 { top: 95%; font-size: clamp(5.6rem, 9.9vw, 9.1rem); --offset: 45vw;  --scale: 1.08; --depth: 16px;   --fromY: -2px; --toY: 6px;  animation-duration: 78s;  animation-delay: -31s; }
 
 /* Painted cloud assets are used as the far atmospheric lane */
 .loading-cloud-art {
@@ -249,14 +261,14 @@
     animation-name: loading-cloud-left;
 }
 
-.lca-1 { top: 2%;  --offset: -28vw; --scale: 0.94; --depth: -300px; --fromY: 0px;  --toY: -4px; animation-duration: 144s; animation-delay: -71s; background-image: url('../assets/award-clouds/cloud-a.png'); }
-.lca-2 { top: 9%;  --offset: 17vw;  --scale: 0.98; --depth: -280px; --fromY: -1px; --toY: 4px;  animation-duration: 138s; animation-delay: -44s; background-image: url('../assets/award-clouds/cloud-b.png'); }
-.lca-3 { top: 26%; --offset: -12vw; --scale: 0.98; --depth: -250px; --fromY: 1px;  --toY: -3px; animation-duration: 130s; animation-delay: -96s; background-image: url('../assets/award-clouds/cloud-c.png'); }
-.lca-4 { top: 36%; --offset: 34vw;  --scale: 1.04; --depth: -220px; --fromY: -2px; --toY: 4px;  animation-duration: 126s; animation-delay: -59s; background-image: url('../assets/award-clouds/cloud-d.png'); }
-.lca-5 { top: 51%; --offset: -33vw; --scale: 1.08; --depth: -190px; --fromY: 1px;  --toY: -4px; animation-duration: 120s; animation-delay: -88s; background-image: url('../assets/award-clouds/cloud-e.png'); }
-.lca-6 { top: 63%; --offset: 11vw;  --scale: 1.1;  --depth: -160px; --fromY: -1px; --toY: 3px;  animation-duration: 116s; animation-delay: -63s; background-image: url('../assets/award-clouds/cloud-f.png'); }
-.lca-7 { top: 74%; --offset: -7vw;  --scale: 1.06; --depth: -130px; --fromY: 2px;  --toY: -3px; animation-duration: 112s; animation-delay: -36s; background-image: url('../assets/award-clouds/cloud-g.png'); }
-.lca-8 { top: 84%; --offset: 26vw;  --scale: 0.98; --depth: -110px; --fromY: -2px; --toY: 3px;  animation-duration: 108s; animation-delay: -74s; background-image: url('../assets/award-clouds/cloud-h.png'); }
+.lca-1 { top: 2%;  --offset: -28vw; --scale: 0.94; --depth: -300px; --fromY: 0px;  --toY: -4px; animation-duration: 188s; animation-delay: -71s; background-image: url('../assets/award-clouds/cloud-a.png'); }
+.lca-2 { top: 9%;  --offset: 17vw;  --scale: 0.98; --depth: -280px; --fromY: -1px; --toY: 4px;  animation-duration: 180s; animation-delay: -44s; background-image: url('../assets/award-clouds/cloud-b.png'); }
+.lca-3 { top: 26%; --offset: -12vw; --scale: 0.98; --depth: -250px; --fromY: 1px;  --toY: -3px; animation-duration: 170s; animation-delay: -96s; background-image: url('../assets/award-clouds/cloud-c.png'); }
+.lca-4 { top: 36%; --offset: 34vw;  --scale: 1.04; --depth: -220px; --fromY: -2px; --toY: 4px;  animation-duration: 164s; animation-delay: -59s; background-image: url('../assets/award-clouds/cloud-d.png'); }
+.lca-5 { top: 51%; --offset: -33vw; --scale: 1.08; --depth: -190px; --fromY: 1px;  --toY: -4px; animation-duration: 156s; animation-delay: -88s; background-image: url('../assets/award-clouds/cloud-e.png'); }
+.lca-6 { top: 63%; --offset: 11vw;  --scale: 1.1;  --depth: -160px; --fromY: -1px; --toY: 3px;  animation-duration: 150s; animation-delay: -63s; background-image: url('../assets/award-clouds/cloud-f.png'); }
+.lca-7 { top: 74%; --offset: -7vw;  --scale: 1.06; --depth: -130px; --fromY: 2px;  --toY: -3px; animation-duration: 144s; animation-delay: -36s; background-image: url('../assets/award-clouds/cloud-g.png'); }
+.lca-8 { top: 84%; --offset: 26vw;  --scale: 0.98; --depth: -110px; --fromY: -2px; --toY: 3px;  animation-duration: 138s; animation-delay: -74s; background-image: url('../assets/award-clouds/cloud-h.png'); }
 
 .loading-journey-icons {
     position: absolute;

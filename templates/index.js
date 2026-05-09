@@ -1,6 +1,6 @@
 // templates/index.js
 
-import { loadingHTML, initLoadingTips } from './loading.js';
+import { loadingHTML, initLoadingAtmosphere, initLoadingTips } from './loading.js';
 import { authHTML } from './auth.js';
 import { subscribeHTML } from './subscribe.js';
 import { setupHTML } from './setup.js';
@@ -17,6 +17,9 @@ export function injectHTML() {
         appHTML +
         roleShellsHTML +
         allModalsHTML;
+
+    // Randomize the sky scene so each loading feels fresh
+    initLoadingAtmosphere();
 
     // Start rotating fun tips on the loading screen
     initLoadingTips();

@@ -17,7 +17,45 @@ export const loadingHTML = `
         class="fixed inset-0 flex flex-col items-center justify-center z-[60] transition-opacity duration-500"
         style="background: linear-gradient(to bottom, #F0F9FF 0%, #E0F2FE 50%, #D6F9E3 100%);">
 
-        <!-- Floating sparkle particles (absolutely positioned, don't affect layout flow) -->
+        <div class="loading-sky-glow" aria-hidden="true"></div>
+
+        <!-- Floating clouds -->
+        <div class="loading-clouds" aria-hidden="true">
+            <span class="loading-cloud lc-1"><i class="fas fa-cloud"></i></span>
+            <span class="loading-cloud lc-2"><i class="fas fa-cloud"></i></span>
+            <span class="loading-cloud lc-3"><i class="fas fa-cloud"></i></span>
+            <span class="loading-cloud lc-4"><i class="fas fa-cloud"></i></span>
+            <span class="loading-cloud lc-5"><i class="fas fa-cloud"></i></span>
+            <span class="loading-cloud lc-6"><i class="fas fa-cloud"></i></span>
+            <span class="loading-cloud lc-7"><i class="fas fa-cloud"></i></span>
+            <span class="loading-cloud lc-8"><i class="fas fa-cloud"></i></span>
+            <span class="loading-cloud lc-9"><i class="fas fa-cloud"></i></span>
+            <span class="loading-cloud lc-10"><i class="fas fa-cloud"></i></span>
+        </div>
+
+        <!-- Airborne magical icons -->
+        <div class="loading-air-icons" aria-hidden="true">
+            <span class="loading-air-icon li-1"><i class="fas fa-star"></i></span>
+            <span class="loading-air-icon li-2"><i class="fas fa-book-open"></i></span>
+            <span class="loading-air-icon li-3"><i class="fas fa-feather"></i></span>
+            <span class="loading-air-icon li-4"><i class="fas fa-shield-halved"></i></span>
+            <span class="loading-air-icon li-5"><i class="fas fa-scroll"></i></span>
+            <span class="loading-air-icon li-6"><i class="fas fa-trophy"></i></span>
+            <span class="loading-air-icon li-7"><i class="fas fa-wand-sparkles"></i></span>
+            <span class="loading-air-icon li-8"><i class="fas fa-compass"></i></span>
+            <span class="loading-air-icon li-9"><i class="fas fa-crown"></i></span>
+            <span class="loading-air-icon li-10"><i class="fas fa-gem"></i></span>
+            <span class="loading-air-icon li-11"><i class="fas fa-star"></i></span>
+            <span class="loading-air-icon li-12"><i class="fas fa-book-open"></i></span>
+            <span class="loading-air-icon li-13"><i class="fas fa-feather"></i></span>
+            <span class="loading-air-icon li-14"><i class="fas fa-shield-halved"></i></span>
+            <span class="loading-air-icon li-15"><i class="fas fa-scroll"></i></span>
+            <span class="loading-air-icon li-16"><i class="fas fa-trophy"></i></span>
+            <span class="loading-air-icon li-17"><i class="fas fa-wand-sparkles"></i></span>
+            <span class="loading-air-icon li-18"><i class="fas fa-compass"></i></span>
+        </div>
+
+        <!-- Sparkle particles -->
         <div class="loading-particles" aria-hidden="true">
             <span class="loading-particle lp-1"><i class="fas fa-star"></i></span>
             <span class="loading-particle lp-2"><i class="fas fa-star"></i></span>
@@ -29,12 +67,13 @@ export const loadingHTML = `
             <span class="loading-particle lp-8"><i class="fas fa-star"></i></span>
         </div>
 
-        <!-- 3D stage card with integrated hierarchy -->
+        <!-- Center content -->
         <div class="loading-stage">
-            <div class="loading-watermark loading-watermark-left" aria-hidden="true">GCQ</div>
-            <div class="loading-watermark loading-watermark-right" aria-hidden="true">ADVENTURE</div>
+            <div class="loading-watermark loading-watermark-left" aria-hidden="true">HERO ACADEMY</div>
+            <div class="loading-watermark loading-watermark-right" aria-hidden="true">THE GREAT CLASS QUEST</div>
 
             <div class="loading-title">The Great Class Quest</div>
+            <div class="loading-subtitle">Sky Campus Is Gathering Your Heroes</div>
 
             <div class="loading-spinner-wrap">
                 <div class="loading-center-star">

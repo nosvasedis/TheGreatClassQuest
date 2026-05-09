@@ -1,5 +1,99 @@
 
-/* --- NEW: STUDENT LEADERBOARD CARD REVAMP --- */
+/* ─── QUEST MONTH BANNER ──────────────────────────────────────────────────── */
+@keyframes quest-banner-shimmer {
+    0%, 100% { opacity: 1; text-shadow: 0 0 8px rgba(255,255,255,0.4); }
+    50%       { opacity: 0.88; text-shadow: 0 0 18px rgba(255,255,255,0.7); }
+}
+
+.quest-month-banner {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    border-radius: 1.1rem;
+    padding: 0.85rem 1.5rem;
+    background: linear-gradient(100deg, #f59e0b 0%, #f97316 55%, #ea580c 100%);
+    color: white;
+    box-shadow: 0 6px 20px rgba(234, 88, 12, 0.35), inset 0 1px 0 rgba(255,255,255,0.2);
+    position: relative;
+    overflow: hidden;
+}
+/* Subtle light sweep across the banner */
+.quest-month-banner::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(105deg, rgba(255,255,255,0.15) 0%, transparent 50%);
+    pointer-events: none;
+}
+
+.quest-banner-side {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 1rem;
+    opacity: 0.75;
+}
+.quest-banner-side i { filter: drop-shadow(0 1px 2px rgba(0,0,0,0.2)); }
+
+.quest-banner-center {
+    font-family: var(--font-title, 'MedievalSharp', serif);
+    font-size: 1.6rem;
+    letter-spacing: 0.04em;
+    text-shadow: 0 2px 6px rgba(0,0,0,0.25);
+    animation: quest-banner-shimmer 3s ease-in-out infinite;
+    flex: 1;
+    text-align: center;
+}
+
+/* ─── HERO'S CHALLENGE FLOATING ACTION BUTTONS ────────────────────────────── */
+.hc-fab-cluster {
+    position: fixed;
+    right: 1.1rem;
+    top: 50%;
+    transform: translateY(-50%);
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    z-index: 50;
+}
+
+.hc-fab {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.3rem;
+    width: 3.4rem;
+    min-height: 3.4rem;
+    border-radius: 1rem;
+    box-shadow: 0 4px 14px rgba(0,0,0,0.22);
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+    padding: 0.5rem 0.35rem;
+    cursor: pointer;
+}
+.hc-fab:hover {
+    transform: scale(1.1) translateY(-2px);
+    box-shadow: 0 8px 22px rgba(0,0,0,0.28);
+}
+.hc-fab:active {
+    transform: scale(0.96);
+}
+.hc-fab-icon {
+    font-size: 1.2rem;
+    filter: drop-shadow(0 1px 2px rgba(0,0,0,0.2));
+}
+.hc-fab-label {
+    font-size: 0.6rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    line-height: 1;
+    text-align: center;
+    opacity: 0.92;
+}
+
+/* ─── NEW: STUDENT LEADERBOARD CARD REVAMP ───────────────────────────────── */
 @keyframes float-leaderboard-card {
     0%, 100% { transform: translateY(0); }
     50% { transform: translateY(-3px); }

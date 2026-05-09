@@ -296,17 +296,12 @@
         drop-shadow(0 4px 8px rgba(55, 70, 96, 0.045));
 }
 
-/* Reigning Hero: animated green glow via box-shadow on card (much cheaper than filter) */
-.reigning-hero-card {
-    animation: hero-card-glow 2.5s ease-in-out infinite;
-}
-
-@keyframes hero-card-glow {
-    0%, 100% { box-shadow: 0 0 20px rgba(34, 197, 94, 0.25), 0 0 40px rgba(34, 197, 94, 0.08); }
-    50%      { box-shadow: 0 0 32px rgba(34, 197, 94, 0.45), 0 0 60px rgba(34, 197, 94, 0.15); }
-}
-
+/* Reigning Hero: green glow on the svg cloud */
 .reigning-hero-card .cloud-bg-svg {
+    filter:
+        drop-shadow(0 0 16px rgba(34, 197, 94, 0.46))
+        drop-shadow(0 16px 24px rgba(116, 136, 170, 0.06))
+        drop-shadow(0 4px 8px rgba(55, 70, 96, 0.045));
     animation: cloud-edge-breathe var(--cloud-breathe-duration, 8.6s) ease-in-out infinite;
 }
 
@@ -315,10 +310,6 @@
         animation: none;
         transform: scale(1.45);
         background-position: var(--cloud-pos-x, 50%) var(--cloud-pos-y, 32%);
-    }
-    .reigning-hero-card {
-        animation: none;
-        box-shadow: 0 0 20px rgba(34, 197, 94, 0.25);
     }
     .reigning-hero-card .cloud-bg-svg {
         animation: none;

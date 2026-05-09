@@ -112,6 +112,30 @@
     background: radial-gradient(ellipse at center, rgba(255, 255, 255, 0.8) 0%, rgba(224, 242, 254, 0.24) 62%, rgba(224, 242, 254, 0) 82%);
 }
 
+.loading-final-moment .loading-stage::after {
+    content: '';
+    position: absolute;
+    inset: -10% -5% -6% -6%;
+    pointer-events: none;
+    z-index: -1;
+    background:
+        radial-gradient(ellipse at 92% 0%, rgba(253, 224, 71, 0.52) 0%, rgba(253, 224, 71, 0.26) 20%, rgba(253, 224, 71, 0) 62%),
+        linear-gradient(140deg, rgba(255, 255, 255, 0) 44%, rgba(255, 255, 255, 0.38) 72%, rgba(255, 255, 255, 0) 100%);
+    filter: blur(3px);
+}
+
+.loading-final-moment .loading-spinner-wrap {
+    opacity: 0;
+    transform: scale(0.68);
+    filter: blur(4px);
+    transition: opacity 340ms ease, transform 340ms ease, filter 340ms ease;
+}
+
+.loading-final-moment .loading-text {
+    opacity: 0.28;
+    transition: opacity 280ms ease;
+}
+
 #loading-screen.loading-final-moment #loading-greeting-text {
     color: #fef9c3;
     letter-spacing: 0.03em;

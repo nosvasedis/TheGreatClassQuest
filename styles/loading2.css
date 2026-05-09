@@ -42,21 +42,32 @@
 /* ── Personalised Greeting ──────────────────────────────────── */
 
 .loading-greeting {
-    /* Reserve space even before the text appears to prevent layout shift */
-    min-height: 2.2rem;
-    width: 100%;
+    /* Absolutely centred within .loading-stage so the bloom origin is exactly
+       where the star spinner sits — top:50%/left:50% of the stage = screen centre. */
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: min(92vw, 820px);
     text-align: center;
+    margin-top: 0;
+    z-index: 9;
+    pointer-events: none;
+
+    /* Bloom start: invisible, tiny, blurry */
     opacity: 0;
-    transform: scale(0.18);
+    transform: translate(-50%, -50%) scale(0.06);
     transform-origin: center center;
-    filter: blur(7px);
-    margin-top: 0.25rem;
-    transition: opacity 0.55s ease, transform 0.72s cubic-bezier(0.2, 0.9, 0.2, 1), filter 0.72s ease;
+    filter: blur(10px);
+
+    transition:
+        opacity 0.65s ease,
+        transform 0.85s cubic-bezier(0.12, 0.9, 0.18, 1),
+        filter 0.85s ease;
 }
 
 .loading-greeting.loading-greeting-visible {
     opacity: 1;
-    transform: scale(1);
+    transform: translate(-50%, -50%) scale(1);
     filter: blur(0);
 }
 
@@ -161,18 +172,18 @@
     -webkit-text-stroke: 3px rgba(0, 0, 0, 0.94);
     paint-order: stroke fill;
     animation: loading-outline-gold-glow 1.2s ease-in-out infinite;
-    transform: translateY(18px);
-    margin-bottom: 0.2rem !important;
+    /* Slide the title down so it sits just above the bloomed greeting */
+    transform: translateY(6rem);
+    margin-bottom: 0 !important;
+    /* Don't fight the animation keyframes — only transition the transform */
+    transition: transform 0.7s cubic-bezier(0.25, 0.9, 0.25, 1);
 }
 
+/* Greeting final-moment: keep it centred — the position was already set above.
+   Only override text appearance. */
 #loading-screen.loading-final-moment .loading-greeting {
-    position: absolute;
-    left: 50%;
-    top: 60%;
-    width: min(92vw, 820px);
-    margin-top: 0;
-    transform: translate(-50%, -50%);
-    text-align: center;
+    /* position/top/left/transform intentionally NOT overridden here.
+       The bloom plays from the same absolute-within-stage centre. */
     z-index: 9;
 }
 

@@ -151,25 +151,42 @@ export function initLoadingAtmosphere() {
 
     if (cloudArtLayer) {
         cloudArtLayer.innerHTML = '';
-        const cloudCount = 24;
+        const cloudCount = 30;
+        // Divide the sky into evenly spaced vertical bands so clouds are
+        // naturally spread from top to bottom rather than randomly clustered.
+        const bandHeight = 100 / cloudCount;
         for (let index = 0; index < cloudCount; index += 1) {
             const cloud = document.createElement('span');
-            const asset = cloudAssets[randomInt(cloudAssets.length)];
+            // Pick a different asset for each cloud — avoid two identical
+            // clouds next to each other by offsetting the index.
+            const asset = cloudAssets[(index * 3 + randomInt(2)) % cloudAssets.length];
             const isRightward = index % 2 === 0;
+            // Top: within this cloud's vertical band + a small random wobble.
+            const bandTop = index * bandHeight + randomRange(0, bandHeight * 0.7);
+            // Depth layers: clouds near the top are farther away (smaller, more
+            // transparent) and those near the bottom are closer (larger, more opaque).
+            const depthT = index / (cloudCount - 1);          // 0 = top, 1 = bottom
+            const sizePx = Math.round(180 + depthT * 360 + randomRange(-40, 40));
+            const opacity = (0.35 + depthT * 0.5 + randomRange(-0.08, 0.08)).toFixed(2);
+            const durationS = (220 - depthT * 90 + randomRange(-15, 15)).toFixed(1);
+            // Stagger delay across the full animation range so they are already
+            // mid-journey when the page loads.
+            const delayS = (randomRange(0, parseFloat(durationS))).toFixed(1);
+
             cloud.className = 'loading-cloud-art';
             cloud.style.backgroundImage = `url('${asset}')`;
-            cloud.style.top = `${randomRange(-2, 92).toFixed(2)}%`;
-            cloud.style.left = `${randomRange(-8, 82).toFixed(2)}%`;
-            cloud.style.width = `${randomRange(200, 560).toFixed(0)}px`;
-            cloud.style.opacity = randomRange(0.42, 0.9).toFixed(2);
+            cloud.style.top = `${Math.max(-3, Math.min(96, bandTop)).toFixed(1)}%`;
+            cloud.style.left = `${randomRange(-10, 80).toFixed(1)}%`;
+            cloud.style.width = `${sizePx}px`;
+            cloud.style.opacity = opacity;
             cloud.style.animationName = isRightward ? 'loading-cloud-right' : 'loading-cloud-left';
-            cloud.style.animationDuration = `${randomRange(120, 250).toFixed(2)}s`;
-            cloud.style.animationDelay = `-${randomRange(0, 280).toFixed(2)}s`;
-            cloud.style.setProperty('--offset', `${randomRange(-42, 42).toFixed(1)}vw`);
-            cloud.style.setProperty('--scale', `${randomRange(0.82, 1.24).toFixed(2)}`);
-            cloud.style.setProperty('--depth', `${randomRange(-320, 18).toFixed(0)}px`);
-            cloud.style.setProperty('--fromY', `${randomRange(-10, 10).toFixed(1)}px`);
-            cloud.style.setProperty('--toY', `${randomRange(-10, 10).toFixed(1)}px`);
+            cloud.style.animationDuration = `${durationS}s`;
+            cloud.style.animationDelay = `-${delayS}s`;
+            cloud.style.setProperty('--offset', `${randomRange(-38, 38).toFixed(1)}vw`);
+            cloud.style.setProperty('--scale', `${(0.85 + depthT * 0.3 + randomRange(-0.06, 0.06)).toFixed(2)}`);
+            cloud.style.setProperty('--depth', `${Math.round(-300 + depthT * 310)}px`);
+            cloud.style.setProperty('--fromY', `${randomRange(-8, 8).toFixed(1)}px`);
+            cloud.style.setProperty('--toY', `${randomRange(-8, 8).toFixed(1)}px`);
             cloudArtLayer.appendChild(cloud);
         }
     }

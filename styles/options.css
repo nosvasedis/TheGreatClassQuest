@@ -151,3 +151,584 @@
     margin-left: auto;
     margin-right: auto;
 }
+
+/* =============================================================================
+   Quiz of the Week — Teacher Setup Panel (Options tab)
+   ============================================================================= */
+
+@keyframes qow-fade-in {
+    from { opacity: 0; transform: translateY(10px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes qow-shimmer {
+    0%   { background-position: -400px 0; }
+    100% { background-position: 400px 0; }
+}
+
+@keyframes qow-gen-bar {
+    0%   { width: 5%; }
+    40%  { width: 55%; }
+    80%  { width: 82%; }
+    100% { width: 96%; }
+}
+
+@keyframes qow-pop {
+    0%   { transform: scale(0.92); opacity: 0; }
+    70%  { transform: scale(1.04); }
+    100% { transform: scale(1);   opacity: 1; }
+}
+
+/* ── Panel wrapper ── */
+.qow-panel {
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+    animation: qow-fade-in 0.35s ease-out;
+}
+
+/* ── Hero header ── */
+.qow-hero {
+    position: relative;
+    background: linear-gradient(135deg, #fffbeb 0%, #fef3c7 60%, #fde68a 100%);
+    border: 2px solid #fbbf24;
+    border-radius: 1.5rem;
+    padding: 1.4rem 1.5rem;
+    display: flex;
+    align-items: center;
+    gap: 1.1rem;
+    overflow: hidden;
+    box-shadow: 0 4px 20px rgba(251,191,36,0.18);
+}
+
+.qow-hero-sparkle {
+    position: absolute;
+    top: 0.6rem;
+    right: 1rem;
+    font-size: 1.4rem;
+    opacity: 0.35;
+    pointer-events: none;
+}
+
+.qow-hero-icon {
+    font-size: 2.8rem;
+    flex-shrink: 0;
+    filter: drop-shadow(0 2px 6px rgba(0,0,0,0.12));
+}
+
+.qow-hero-title {
+    font-family: 'Fredoka One', cursive;
+    font-size: 1.65rem;
+    color: #92400e;
+    line-height: 1.15;
+}
+
+.qow-hero-sub {
+    font-size: 0.82rem;
+    color: #78350f;
+    line-height: 1.45;
+    margin-top: 0.2rem;
+    opacity: 0.85;
+}
+
+/* ── How-it-works steps ── */
+.qow-steps-row {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+}
+
+.qow-step {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.3rem;
+    background: white;
+    border: 1.5px solid #fde68a;
+    border-radius: 1rem;
+    padding: 0.7rem 0.9rem;
+    min-width: 5.5rem;
+    text-align: center;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+}
+
+.qow-step-num {
+    width: 1.4rem;
+    height: 1.4rem;
+    background: linear-gradient(135deg, #f59e0b, #d97706);
+    color: white;
+    border-radius: 9999px;
+    font-size: 0.75rem;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 1px 4px rgba(217,119,6,0.4);
+}
+
+.qow-step-icon  { font-size: 1.5rem; }
+
+.qow-step-label {
+    font-size: 0.7rem;
+    color: #78350f;
+    font-weight: 600;
+    line-height: 1.3;
+}
+
+.qow-step-arrow {
+    color: #d97706;
+    font-size: 1.2rem;
+    opacity: 0.6;
+}
+
+/* ── Cards (Step 1, Step 2) ── */
+.qow-card {
+    background: white;
+    border: 2px solid #fde68a;
+    border-radius: 1.35rem;
+    padding: 1.25rem 1.4rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.85rem;
+    box-shadow: 0 3px 14px rgba(0,0,0,0.06);
+    transition: border-color 0.25s, box-shadow 0.25s, opacity 0.25s;
+}
+
+.qow-card-disabled {
+    opacity: 0.45;
+    pointer-events: none;
+}
+
+.qow-card-header {
+    display: flex;
+    align-items: center;
+    gap: 0.65rem;
+}
+
+.qow-card-badge {
+    background: linear-gradient(135deg, #f59e0b, #d97706);
+    color: white;
+    font-size: 0.68rem;
+    font-weight: 700;
+    padding: 0.2rem 0.55rem;
+    border-radius: 0.5rem;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    border-bottom: 2px solid #92400e;
+    flex-shrink: 0;
+}
+
+.qow-card-title {
+    font-family: 'Fredoka One', cursive;
+    font-size: 1.05rem;
+    color: #78350f;
+}
+
+/* ── Class select ── */
+.qow-select {
+    width: 100%;
+    padding: 0.75rem 1rem;
+    border: 1.5px solid #fcd34d;
+    border-radius: 0.85rem;
+    background: #fffbeb;
+    color: #1c1917;
+    font-size: 0.95rem;
+    outline: none;
+    transition: border-color 0.2s, box-shadow 0.2s;
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='%23d97706'%3E%3Cpath fill-rule='evenodd' d='M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z' clip-rule='evenodd'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 0.75rem center;
+    background-size: 1.1rem;
+}
+
+.qow-select:focus {
+    border-color: #f59e0b;
+    box-shadow: 0 0 0 3px rgba(245,158,11,0.18);
+}
+
+/* Class meta (level badge + schedule) */
+.qow-class-meta {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    padding: 0.55rem 0.85rem;
+    background: #fffbeb;
+    border: 1px solid #fde68a;
+    border-radius: 0.75rem;
+    animation: qow-pop 0.3s ease-out;
+}
+
+.qow-level-badge {
+    font-family: 'Fredoka One', cursive;
+    font-size: 0.78rem;
+    background: linear-gradient(135deg, #8b5cf6, #7c3aed);
+    color: white;
+    padding: 0.15rem 0.55rem;
+    border-radius: 0.5rem;
+    border-bottom: 2px solid #5b21b6;
+}
+
+.qow-class-meta-text {
+    font-size: 0.78rem;
+    color: #92400e;
+}
+
+/* ── Type pills ── */
+.qow-type-pills {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.qow-type-pill {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.25rem;
+    padding: 0.65rem 0.5rem;
+    border-radius: 1rem;
+    border: 2px solid #fde68a;
+    background: #fffbeb;
+    cursor: pointer;
+    transition: all 0.18s ease;
+}
+
+.qow-type-pill:hover {
+    border-color: #f59e0b;
+    background: #fef3c7;
+    transform: translateY(-2px);
+}
+
+.qow-type-pill-active {
+    border-color: #f59e0b;
+    background: linear-gradient(135deg, #fef3c7, #fde68a);
+    box-shadow: 0 3px 10px rgba(245,158,11,0.25);
+}
+
+.qow-type-pill-icon  { font-size: 1.35rem; }
+.qow-type-pill-label { font-size: 0.72rem; font-weight: 700; color: #78350f; }
+
+/* ── Section labels ── */
+.qow-section-label {
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: #92400e;
+    margin-bottom: 0.4rem;
+}
+
+/* ── Category chips ── */
+.qow-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+}
+
+.qow-chip-label {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.35rem 0.75rem;
+    border-radius: 9999px;
+    border: 1.5px solid #fcd34d;
+    background: white;
+    cursor: pointer;
+    font-size: 0.78rem;
+    color: #78350f;
+    transition: all 0.15s ease;
+    user-select: none;
+}
+
+.qow-chip-label:hover {
+    border-color: #f59e0b;
+    background: #fef3c7;
+}
+
+.qow-chip-label:has(input:checked) {
+    background: linear-gradient(135deg, #fef3c7, #fde68a);
+    border-color: #f59e0b;
+    color: #78350f;
+    font-weight: 600;
+    box-shadow: 0 2px 6px rgba(245,158,11,0.2);
+}
+
+.qow-chip-check {
+    width: 0.85rem;
+    height: 0.85rem;
+    accent-color: #f59e0b;
+}
+
+/* ── Keywords textarea ── */
+.qow-categories-wrap,
+.qow-keywords-wrap { display: flex; flex-direction: column; }
+
+.qow-textarea {
+    width: 100%;
+    padding: 0.7rem 0.9rem;
+    border: 1.5px solid #fcd34d;
+    border-radius: 0.85rem;
+    background: #fffbeb;
+    color: #1c1917;
+    font-size: 0.88rem;
+    resize: none;
+    outline: none;
+    transition: border-color 0.2s, box-shadow 0.2s;
+    font-family: inherit;
+    line-height: 1.5;
+}
+
+.qow-textarea:focus {
+    border-color: #f59e0b;
+    box-shadow: 0 0 0 3px rgba(245,158,11,0.15);
+}
+
+.qow-textarea::placeholder { color: #d97706; opacity: 0.55; }
+
+/* ── Validation message ── */
+.qow-validation {
+    font-size: 0.82rem;
+    color: #dc2626;
+    font-weight: 600;
+    text-align: center;
+    background: #fef2f2;
+    border: 1.5px solid #fca5a5;
+    border-radius: 0.75rem;
+    padding: 0.55rem 1rem;
+    animation: qow-pop 0.25s ease-out;
+}
+
+/* ── Generate button ── */
+.qow-generate-btn {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.6rem;
+    padding: 1rem 1.5rem;
+    background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+    border: none;
+    border-bottom: 4px solid #92400e;
+    border-radius: 1.2rem;
+    color: white;
+    font-family: 'Fredoka One', cursive;
+    font-size: 1.2rem;
+    cursor: pointer;
+    transition: transform 0.15s ease, box-shadow 0.15s ease, opacity 0.2s;
+    box-shadow: 0 4px 18px rgba(245,158,11,0.35);
+}
+
+.qow-generate-btn i { font-size: 1.15rem; }
+
+.qow-generate-btn:not(:disabled):hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(245,158,11,0.45);
+}
+
+.qow-generate-btn:not(:disabled):active {
+    transform: translateY(1px);
+    border-bottom-width: 2px;
+}
+
+.qow-generate-btn:disabled {
+    opacity: 0.42;
+    cursor: not-allowed;
+    box-shadow: none;
+}
+
+/* ── Status banner ── */
+.qow-status {
+    border-radius: 1.25rem;
+    border: 2px solid #fde68a;
+    background: linear-gradient(135deg, #fffbeb, #fef9ee);
+    padding: 1.1rem 1.25rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    box-shadow: 0 3px 12px rgba(251,191,36,0.15);
+    animation: qow-pop 0.3s ease-out;
+}
+
+.qow-status-top {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.85rem;
+}
+
+.qow-status-emoji {
+    font-size: 2rem;
+    flex-shrink: 0;
+    line-height: 1;
+}
+
+.qow-status-body { flex: 1; }
+
+.qow-status-title {
+    font-family: 'Fredoka One', cursive;
+    font-size: 1.05rem;
+    color: #78350f;
+    line-height: 1.2;
+}
+
+.qow-status-sub {
+    font-size: 0.78rem;
+    color: #92400e;
+    margin-top: 0.2rem;
+    opacity: 0.85;
+    line-height: 1.4;
+}
+
+/* Status variant colours */
+.qow-status.qow-status-ready  { border-color: #86efac; background: linear-gradient(135deg, #f0fdf4, #dcfce7); }
+.qow-status.qow-status-ready .qow-status-title  { color: #14532d; }
+.qow-status.qow-status-ready .qow-status-sub    { color: #166534; }
+
+.qow-status.qow-status-active { border-color: #6ee7b7; background: linear-gradient(135deg, #ecfdf5, #d1fae5); }
+.qow-status.qow-status-active .qow-status-title { color: #065f46; }
+
+.qow-status.qow-status-done   { border-color: #c4b5fd; background: linear-gradient(135deg, #f5f3ff, #ede9fe); }
+.qow-status.qow-status-done .qow-status-title   { color: #3b0764; }
+.qow-status.qow-status-done .qow-status-sub     { color: #5b21b6; }
+
+.qow-status.qow-status-error  { border-color: #fca5a5; background: linear-gradient(135deg, #fff1f2, #fee2e2); }
+.qow-status.qow-status-error .qow-status-title  { color: #7f1d1d; }
+
+/* Status pill badge */
+.qow-status-pill {
+    font-family: 'Fredoka One', cursive;
+    font-size: 0.72rem;
+    padding: 0.2rem 0.6rem;
+    border-radius: 0.5rem;
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+
+.qow-pill-ready    { background: #bbf7d0; color: #14532d; border: 1px solid #86efac; }
+.qow-pill-active   { background: #a7f3d0; color: #065f46; border: 1px solid #6ee7b7; }
+.qow-pill-done     { background: #ddd6fe; color: #3b0764; border: 1px solid #c4b5fd; }
+.qow-pill-pending  { background: #fef9c3; color: #78350f; border: 1px solid #fde047; }
+
+/* ── Generation progress bar ── */
+.qow-gen-progress {
+    display: flex;
+    flex-direction: column;
+    gap: 0.55rem;
+}
+
+.qow-gen-progress-track {
+    height: 0.45rem;
+    background: rgba(245,158,11,0.18);
+    border-radius: 9999px;
+    overflow: hidden;
+}
+
+.qow-gen-progress-fill {
+    height: 100%;
+    width: 5%;
+    background: linear-gradient(to right, #fbbf24, #f59e0b, #d97706);
+    border-radius: 9999px;
+    animation: qow-gen-bar 55s ease-in-out forwards;
+}
+
+.qow-gen-steps {
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+}
+
+.qow-gen-step {
+    font-size: 0.72rem;
+    padding: 0.2rem 0.6rem;
+    border-radius: 9999px;
+    background: rgba(245,158,11,0.1);
+    color: #92400e;
+    border: 1px solid rgba(245,158,11,0.25);
+    opacity: 0.45;
+    transition: opacity 0.4s, background 0.4s;
+}
+
+.qow-gen-step.active {
+    opacity: 1;
+    background: rgba(245,158,11,0.2);
+    border-color: #f59e0b;
+    font-weight: 600;
+}
+
+.qow-gen-step.done {
+    opacity: 0.75;
+    background: rgba(74,222,128,0.15);
+    border-color: rgba(74,222,128,0.4);
+    color: #14532d;
+}
+
+/* ── Reset button ── */
+.qow-reset-btn {
+    width: 100%;
+    padding: 0.55rem 1rem;
+    background: none;
+    border: 1.5px dashed #fca5a5;
+    border-radius: 0.75rem;
+    color: #ef4444;
+    font-size: 0.8rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.15s, border-color 0.15s, color 0.15s;
+}
+
+.qow-reset-btn:hover {
+    background: #fef2f2;
+    border-color: #ef4444;
+    color: #b91c1c;
+}
+
+/* ── History ── */
+.qow-history {
+    background: white;
+    border: 2px solid #fde68a;
+    border-radius: 1.25rem;
+    padding: 1rem 1.25rem;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.04);
+}
+
+.qow-history-header {
+    font-family: 'Fredoka One', cursive;
+    font-size: 1rem;
+    color: #92400e;
+    margin-bottom: 0.65rem;
+    display: flex;
+    align-items: center;
+}
+
+.qow-history-list { display: flex; flex-direction: column; gap: 0.5rem; }
+
+.qow-history-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.55rem 0.85rem;
+    background: #fffbeb;
+    border: 1px solid #fde68a;
+    border-radius: 0.75rem;
+    gap: 0.5rem;
+}
+
+.qow-history-week  { font-weight: 700; font-size: 0.8rem; color: #78350f; }
+.qow-history-tier  { font-size: 0.75rem; color: #92400e; }
+.qow-history-pct   { font-family: 'Fredoka One', cursive; font-size: 0.9rem; color: #d97706; }
+.qow-history-q     { font-size: 0.72rem; color: #a16207; opacity: 0.7; }
+
+.qow-tier-badge {
+    display: inline-block;
+    font-size: 0.68rem;
+    font-weight: 700;
+    padding: 0.12rem 0.45rem;
+    border-radius: 0.4rem;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+.qow-tier-legendary { background: #fef9c3; color: #854d0e; border: 1px solid #fde047; }
+.qow-tier-epic      { background: #fae8ff; color: #701a75; border: 1px solid #e879f9; }
+.qow-tier-rare      { background: #e0f2fe; color: #0c4a6e; border: 1px solid #38bdf8; }
+.qow-tier-common    { background: #f1f5f9; color: #475569; border: 1px solid #cbd5e1; }
+.qow-tier-heroic    { background: #fef3c7; color: #78350f; border: 1px solid #fbbf24; }

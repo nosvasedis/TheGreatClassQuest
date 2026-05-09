@@ -368,67 +368,140 @@ export const optionsTabHTML = `
                                     <p class="options-tier-locked-text">AI-powered weekly quizzes are available on the Elite plan.</p>
                                     <span class="options-tier-locked-badge">Elite</span>
                                 </div>
-                                <div id="options-quiz-content" class="flex flex-col gap-8 hidden">
-                                    <div class="bg-white p-6 rounded-3xl shadow-lg border-4 border-amber-300 space-y-4">
-                                        <div class="text-center">
-                                            <div class="text-5xl mb-2">❓</div>
-                                            <h2 class="font-title text-3xl text-amber-700">Quiz of the Week</h2>
-                                            <p class="text-sm text-gray-500">Set this week's curriculum and let AI generate a fun quiz for your students.</p>
-                                        </div>
+                                <div id="options-quiz-content" class="qow-panel hidden">
 
-                                        <div class="space-y-3">
-                                            <label class="block text-sm font-medium text-gray-700">Select Class</label>
-                                            <select id="quiz-class-select" class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-500 bg-white">
-                                                <option value="">Choose a class...</option>
-                                            </select>
-                                        </div>
-
-                                        <div class="space-y-3">
-                                            <label class="block text-sm font-medium text-gray-700">Curriculum Type</label>
-                                            <select id="quiz-curriculum-type" class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-500 bg-white">
-                                                <option value="grammar">Grammar</option>
-                                                <option value="vocabulary">Vocabulary</option>
-                                                <option value="mix" selected>Mix (Grammar + Vocabulary)</option>
-                                            </select>
-                                        </div>
-
-                                        <div class="space-y-3" id="quiz-categories-wrap">
-                                            <label class="block text-sm font-medium text-gray-700">Categories / Topics (select all that apply)</label>
-                                            <div id="quiz-categories-chips" class="flex flex-wrap gap-2">
-                                            </div>
-                                        </div>
-
-                                        <div class="space-y-3">
-                                            <label class="block text-sm font-medium text-gray-700">Keywords / Specific Topics</label>
-                                            <textarea id="quiz-keywords" rows="3" class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-500 resize-none" placeholder="e.g. Past Simple, irregular verbs, classroom objects, food vocabulary..."></textarea>
-                                            <p class="text-xs text-gray-400">Be as broad or specific as you like. The AI will generate age-appropriate questions from your input.</p>
-                                        </div>
-
-                                        <button id="quiz-generate-btn"
-                                            class="w-full bg-amber-500 hover:bg-amber-600 text-white font-title text-xl py-3 rounded-xl bubbly-button flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed"
-                                            disabled>
-                                            <i class="fas fa-wand-magic-sparkles mr-2"></i> Generate Quiz
-                                        </button>
-
-                                        <p id="quiz-validation-msg" class="hidden text-sm text-red-600 font-medium text-center"></p>
-
-                                        <div id="quiz-status-area" class="hidden bg-amber-50 rounded-xl border border-amber-200 p-4 space-y-2">
-                                            <div class="flex items-center gap-2">
-                                                <span id="quiz-status-icon" class="text-xl">⏳</span>
-                                                <span id="quiz-status-text" class="font-semibold text-amber-800">Generating quiz...</span>
-                                            </div>
-                                            <div id="quiz-status-details" class="text-sm text-amber-700"></div>
-                                            <button id="quiz-reset-btn"
-                                                class="hidden mt-2 w-full text-sm text-red-600 hover:text-red-800 border border-red-200 hover:border-red-400 rounded-lg py-1.5 transition-colors">
-                                                <i class="fas fa-trash-alt mr-1"></i> Delete &amp; Reset This Week's Quiz
-                                            </button>
-                                        </div>
-
-                                        <div id="quiz-history-area" class="hidden space-y-3 pt-4 border-t border-amber-100">
-                                            <h3 class="font-title text-lg text-amber-700">Recent Quiz History</h3>
-                                            <div id="quiz-history-list" class="space-y-2"></div>
+                                    <!-- ── HERO HEADER ── -->
+                                    <div class="qow-hero">
+                                        <div class="qow-hero-sparkle" aria-hidden="true">✨</div>
+                                        <div class="qow-hero-icon">🏆</div>
+                                        <div>
+                                            <h2 class="qow-hero-title">Quiz of the Week</h2>
+                                            <p class="qow-hero-sub">AI generates a tailored quiz for your class each week — multiple choice, fill-in-the-blank, and image questions.</p>
                                         </div>
                                     </div>
+
+                                    <!-- ── HOW IT WORKS ── -->
+                                    <div class="qow-steps-row">
+                                        <div class="qow-step">
+                                            <div class="qow-step-num">1</div>
+                                            <div class="qow-step-icon">🎓</div>
+                                            <div class="qow-step-label">Pick your class &amp; topic</div>
+                                        </div>
+                                        <div class="qow-step-arrow">→</div>
+                                        <div class="qow-step">
+                                            <div class="qow-step-num">2</div>
+                                            <div class="qow-step-icon">🤖</div>
+                                            <div class="qow-step-label">AI generates questions</div>
+                                        </div>
+                                        <div class="qow-step-arrow">→</div>
+                                        <div class="qow-step">
+                                            <div class="qow-step-num">3</div>
+                                            <div class="qow-step-icon">🎮</div>
+                                            <div class="qow-step-label">Play live in class!</div>
+                                        </div>
+                                    </div>
+
+                                    <!-- ── STEP 1 — CLASS ── -->
+                                    <div class="qow-card" id="qow-card-class">
+                                        <div class="qow-card-header">
+                                            <span class="qow-card-badge">Step 1</span>
+                                            <span class="qow-card-title"><i class="fas fa-users mr-2 text-amber-500"></i>Which class is this for?</span>
+                                        </div>
+                                        <select id="quiz-class-select" class="qow-select">
+                                            <option value="">— Choose a class —</option>
+                                        </select>
+                                        <div id="qow-class-meta" class="qow-class-meta hidden">
+                                            <span id="qow-class-level-badge" class="qow-level-badge"></span>
+                                            <span id="qow-class-meta-text" class="qow-class-meta-text"></span>
+                                        </div>
+                                    </div>
+
+                                    <!-- ── STEP 2 — CURRICULUM ── -->
+                                    <div class="qow-card qow-card-disabled" id="qow-card-curriculum">
+                                        <div class="qow-card-header">
+                                            <span class="qow-card-badge">Step 2</span>
+                                            <span class="qow-card-title"><i class="fas fa-book-open mr-2 text-amber-500"></i>Set the Curriculum</span>
+                                        </div>
+
+                                        <!-- Type pills -->
+                                        <div class="qow-type-pills" id="qow-type-pills">
+                                            <button class="qow-type-pill" data-type="grammar">
+                                                <span class="qow-type-pill-icon">📐</span>
+                                                <span class="qow-type-pill-label">Grammar</span>
+                                            </button>
+                                            <button class="qow-type-pill qow-type-pill-active" data-type="mix">
+                                                <span class="qow-type-pill-icon">🔀</span>
+                                                <span class="qow-type-pill-label">Mix</span>
+                                            </button>
+                                            <button class="qow-type-pill" data-type="vocabulary">
+                                                <span class="qow-type-pill-icon">📚</span>
+                                                <span class="qow-type-pill-label">Vocabulary</span>
+                                            </button>
+                                        </div>
+                                        <!-- hidden select still used as source of truth -->
+                                        <select id="quiz-curriculum-type" class="hidden">
+                                            <option value="grammar">Grammar</option>
+                                            <option value="vocabulary">Vocabulary</option>
+                                            <option value="mix" selected>Mix</option>
+                                        </select>
+
+                                        <div id="quiz-categories-wrap" class="qow-categories-wrap">
+                                            <p class="qow-section-label"><i class="fas fa-tags mr-1"></i> Suggested topics <span class="text-gray-400 font-normal">(tick what you're covering)</span></p>
+                                            <div id="quiz-categories-chips" class="qow-chips"></div>
+                                        </div>
+
+                                        <div class="qow-keywords-wrap">
+                                            <p class="qow-section-label"><i class="fas fa-pen mr-1"></i> Custom focus <span class="text-gray-400 font-normal">(optional — override or supplement the chips)</span></p>
+                                            <textarea id="quiz-keywords" class="qow-textarea" rows="2"
+                                                placeholder="e.g. ordinal numbers 1st–10th, was/were in past sentences…"></textarea>
+                                        </div>
+                                    </div>
+
+                                    <!-- ── VALIDATION MSG ── -->
+                                    <p id="quiz-validation-msg" class="qow-validation hidden"></p>
+
+                                    <!-- ── GENERATE BUTTON ── -->
+                                    <button id="quiz-generate-btn" class="qow-generate-btn" disabled>
+                                        <i class="fas fa-wand-magic-sparkles"></i>
+                                        <span id="quiz-generate-btn-label">Generate This Week's Quiz</span>
+                                    </button>
+
+                                    <!-- ── STATUS BANNER ── -->
+                                    <div id="quiz-status-area" class="qow-status hidden">
+                                        <div class="qow-status-top">
+                                            <span id="quiz-status-icon" class="qow-status-emoji">⏳</span>
+                                            <div class="qow-status-body">
+                                                <div id="quiz-status-text" class="qow-status-title">Generating…</div>
+                                                <div id="quiz-status-details" class="qow-status-sub"></div>
+                                            </div>
+                                            <div id="qow-status-badge" class="qow-status-pill hidden"></div>
+                                        </div>
+                                        <!-- Animated generation progress bar (shown during generation) -->
+                                        <div id="qow-gen-progress" class="qow-gen-progress hidden">
+                                            <div class="qow-gen-progress-track">
+                                                <div class="qow-gen-progress-fill"></div>
+                                            </div>
+                                            <div class="qow-gen-steps">
+                                                <span id="qow-gstep-1" class="qow-gen-step active">🤖 Crafting questions</span>
+                                                <span id="qow-gstep-2" class="qow-gen-step">🖼️ Generating images</span>
+                                                <span id="qow-gstep-3" class="qow-gen-step">✅ Saving to class</span>
+                                            </div>
+                                        </div>
+                                        <button id="quiz-reset-btn"
+                                            class="qow-reset-btn hidden">
+                                            <i class="fas fa-rotate-left mr-1"></i> Delete &amp; Reset This Week's Quiz
+                                        </button>
+                                    </div>
+
+                                    <!-- ── HISTORY ── -->
+                                    <div id="quiz-history-area" class="qow-history hidden">
+                                        <div class="qow-history-header">
+                                            <i class="fas fa-clock-rotate-left mr-2 text-amber-500"></i>
+                                            <span class="font-title text-amber-700">Recent Quizzes</span>
+                                        </div>
+                                        <div id="quiz-history-list" class="qow-history-list"></div>
+                                    </div>
+
                                 </div>
                             </div>
 

@@ -4,9 +4,9 @@ export const scrollTabHTML = `
             <div id="scholars-scroll-tab" class="app-tab hidden">
                 <div class="max-w-6xl mx-auto">
                     <div class="text-center mb-6">
-                        <i class="fas fa-scroll text-amber-800 text-5xl floating-icon"
+                        <i class="fas fa-scroll text-pink-700 text-5xl floating-icon"
                             style="animation-delay: -1s;"></i>
-                        <h2 class="font-title text-5xl text-amber-800 mt-2"
+                        <h2 class="font-title text-5xl text-pink-700 mt-2"
                             style="text-shadow: 0 2px 4px rgba(0,0,0,0.1);">The Scholar's Scroll</h2>
                         <p class="text-lg text-gray-600 mt-2">Chronicle the Trials of Knowledge and celebrate academic
                             triumphs!</p>

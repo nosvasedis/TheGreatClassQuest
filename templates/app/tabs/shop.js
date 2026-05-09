@@ -5,8 +5,8 @@ export const shopTabHTML = `
                 <div class="max-w-7xl mx-auto">
                     <!-- Tab Header -->
                     <div class="text-center mb-6">
-                        <i class="fas fa-store text-fuchsia-600 text-5xl floating-icon"></i>
-                        <h2 id="shop-title" class="font-title text-5xl text-fuchsia-700 mt-2"
+                        <i class="fas fa-store text-lime-600 text-5xl floating-icon"></i>
+                        <h2 id="shop-title" class="font-title text-5xl text-lime-700 mt-2"
                             style="text-shadow: 0 2px 4px rgba(0,0,0,0.1);">The Mystic Market</h2>
                         <p id="shop-month" class="text-lg text-gray-600 mt-2 font-bold uppercase tracking-widest"></p>
                     </div>

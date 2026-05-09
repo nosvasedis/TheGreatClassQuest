@@ -792,27 +792,55 @@ async function renderQuizOptionsUi() {
     if (quizContent) quizContent.classList.toggle('hidden', !hasQuiz);
     if (!hasQuiz) return;
 
-    const classSelect = document.getElementById('quiz-class-select');
-    const typeSelect = document.getElementById('quiz-curriculum-type');
+    const classSelect    = document.getElementById('quiz-class-select');
+    const typeSelect     = document.getElementById('quiz-curriculum-type');  // hidden <select>
+    const typePillsWrap  = document.getElementById('qow-type-pills');
     const categoriesChips = document.getElementById('quiz-categories-chips');
-    const keywordsInput = document.getElementById('quiz-keywords');
-    const generateBtn = document.getElementById('quiz-generate-btn');
-    const validationMsg = document.getElementById('quiz-validation-msg');
-    const statusArea = document.getElementById('quiz-status-area');
-    const statusIcon = document.getElementById('quiz-status-icon');
-    const statusText = document.getElementById('quiz-status-text');
-    const statusDetails = document.getElementById('quiz-status-details');
-    const resetBtn = document.getElementById('quiz-reset-btn');
-    const historyArea = document.getElementById('quiz-history-area');
-    const historyList = document.getElementById('quiz-history-list');
+    const keywordsInput  = document.getElementById('quiz-keywords');
+    const generateBtn    = document.getElementById('quiz-generate-btn');
+    const generateLabel  = document.getElementById('quiz-generate-btn-label');
+    const validationMsg  = document.getElementById('quiz-validation-msg');
+    const statusArea     = document.getElementById('quiz-status-area');
+    const statusIcon     = document.getElementById('quiz-status-icon');
+    const statusText     = document.getElementById('quiz-status-text');
+    const statusDetails  = document.getElementById('quiz-status-details');
+    const statusBadge    = document.getElementById('qow-status-badge');
+    const genProgress    = document.getElementById('qow-gen-progress');
+    const genStep1       = document.getElementById('qow-gstep-1');
+    const genStep2       = document.getElementById('qow-gstep-2');
+    const genStep3       = document.getElementById('qow-gstep-3');
+    const resetBtn       = document.getElementById('quiz-reset-btn');
+    const historyArea    = document.getElementById('quiz-history-area');
+    const historyList    = document.getElementById('quiz-history-list');
+    const cardCurriculum = document.getElementById('qow-card-curriculum');
+    const classMeta      = document.getElementById('qow-class-meta');
+    const classLevelBadge = document.getElementById('qow-class-level-badge');
+    const classMetaText  = document.getElementById('qow-class-meta-text');
 
     // Populate class selector
     const classes = (state.get('allTeachersClasses') || []).sort((a, b) => a.name.localeCompare(b.name));
     if (classSelect) {
-        classSelect.innerHTML = '<option value="">Choose a class...</option>' +
+        classSelect.innerHTML = '<option value="">— Choose a class —</option>' +
             classes.map(c => `<option value="${c.id}">${c.logo || ''} ${c.name} (${c.questLevel || ''})</option>`).join('');
     }
 
+    // ── Type pills ──────────────────────────────────────────────────────────
+    function setActivePill(type) {
+        if (!typePillsWrap) return;
+        typePillsWrap.querySelectorAll('.qow-type-pill').forEach(btn => {
+            btn.classList.toggle('qow-type-pill-active', btn.dataset.type === type);
+        });
+        if (typeSelect) typeSelect.value = type;
+    }
+
+    typePillsWrap?.querySelectorAll('.qow-type-pill').forEach(btn => {
+        btn.addEventListener('click', () => {
+            setActivePill(btn.dataset.type);
+            renderCategories();
+        });
+    });
+
+    // ── Category chips ───────────────────────────────────────────────────────
     function renderCategories() {
         if (!categoriesChips) return;
         const type = typeSelect?.value || 'mix';
@@ -821,63 +849,75 @@ async function renderQuizOptionsUi() {
         const level = classData?.questLevel || 'A';
         const categories = getCategoriesForType(type, level);
         categoriesChips.innerHTML = categories.map(cat => `
-            <label class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-gray-100 rounded-full cursor-pointer hover:bg-amber-100 transition-colors text-sm">
-                <input type="checkbox" value="${cat}" class="quiz-category-checkbox rounded" />
+            <label class="qow-chip-label">
+                <input type="checkbox" value="${cat}" class="qow-chip-check quiz-category-checkbox" />
                 <span>${cat}</span>
             </label>
         `).join('');
     }
 
-    // Initialize categories
     renderCategories();
 
-    // Wire type change
-    typeSelect?.addEventListener('change', () => {
-        renderCategories();
-    });
+    // ── Class selector ───────────────────────────────────────────────────────
+    function showClassMeta(classData) {
+        if (!classData || !classMeta) return;
+        const days = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+        const scheduleStr = (classData.scheduleDays || [])
+            .map(d => days[d] || d).join(', ');
+        const timeStr = classData.timeStart
+            ? `${classData.timeStart}${classData.timeEnd ? '–' + classData.timeEnd : ''}`
+            : '';
+        if (classLevelBadge) classLevelBadge.textContent = `Level ${classData.questLevel || '?'}`;
+        if (classMetaText) {
+            classMetaText.textContent = [scheduleStr, timeStr].filter(Boolean).join(' · ');
+        }
+        classMeta.classList.remove('hidden');
+    }
 
-    // Wire class selector change — check existing quiz, pre-fill curriculum
+    function hideClassMeta() {
+        classMeta?.classList.add('hidden');
+    }
+
     classSelect?.addEventListener('change', async () => {
         const classId = classSelect.value;
         if (validationMsg) { validationMsg.classList.add('hidden'); validationMsg.textContent = ''; }
+
         if (!classId) {
             generateBtn.disabled = true;
+            cardCurriculum?.classList.add('qow-card-disabled');
             statusArea?.classList.add('hidden');
             historyArea?.classList.add('hidden');
-            renderCategories(); // reset chips to default level
+            hideClassMeta();
+            renderCategories();
             return;
         }
-        generateBtn.disabled = false;
-        renderCategories(); // re-render with new class's level
 
-        // Pre-fill form from any existing curriculum for this class this week
+        const classData = classes.find(c => c.id === classId);
+        showClassMeta(classData);
+        cardCurriculum?.classList.remove('qow-card-disabled');
+        generateBtn.disabled = false;
+        renderCategories();
+
+        // Pre-fill from existing curriculum
         try {
             const { getQuizForClass } = await import('../../db/actions/quizOfTheWeek.js');
             const existingQuiz = await getQuizForClass(classId);
             if (existingQuiz?.curriculum) {
                 const c = existingQuiz.curriculum;
-                if (typeSelect && c.type) {
-                    typeSelect.value = c.type;
-                    renderCategories(); // re-render chips for the stored type + level
-                }
-                // Tick the stored categories
+                if (c.type) { setActivePill(c.type); renderCategories(); }
                 if (c.categories?.length) {
                     document.querySelectorAll('.quiz-category-checkbox').forEach(cb => {
                         cb.checked = c.categories.includes(cb.value);
                     });
                 }
-                if (keywordsInput && c.keywords != null) {
-                    keywordsInput.value = c.keywords;
-                }
+                if (keywordsInput && c.keywords != null) keywordsInput.value = c.keywords;
             }
-        } catch (e) {
-            // Non-fatal: just leave form as-is
-        }
+        } catch (_) { /* non-fatal */ }
 
         await refreshQuizStatus(classId);
     });
 
-    // Generate button
+    // ── Generate button ──────────────────────────────────────────────────────
     generateBtn?.addEventListener('click', async () => {
         const classId = classSelect?.value;
         if (!classId) return;
@@ -890,7 +930,7 @@ async function renderQuizOptionsUi() {
 
         if (selectedCategories.length === 0 && !keywords) {
             if (validationMsg) {
-                validationMsg.textContent = 'Please select at least one category or enter keywords before generating.';
+                validationMsg.textContent = 'Please tick at least one topic or write a custom focus before generating.';
                 validationMsg.classList.remove('hidden');
             }
             return;
@@ -899,44 +939,90 @@ async function renderQuizOptionsUi() {
         const classData = classes.find(c => c.id === classId);
         const questLevel = classData?.questLevel || 'A';
 
+        // ── Show generation UI ──
         generateBtn.disabled = true;
-        generateBtn.innerHTML = '<i class="fas fa-spinner fa-pulse mr-2"></i> Generating...';
-        statusArea?.classList.remove('hidden');
-        if (statusIcon) statusIcon.innerText = '🤖';
-        if (statusText) statusText.innerText = 'AI is generating questions...';
-        if (statusDetails) statusDetails.innerText = 'This may take 30-60 seconds.';
+        if (generateLabel) generateLabel.textContent = 'Generating…';
+        generateBtn.querySelector('i').className = 'fas fa-spinner fa-spin';
+
+        setStatusState('generating');
+        if (genProgress) genProgress.classList.remove('hidden');
+        // Restart progress bar animation
+        if (genProgress) {
+            const fill = genProgress.querySelector('.qow-gen-progress-fill');
+            if (fill) { fill.style.animation = 'none'; void fill.offsetHeight; fill.style.animation = ''; }
+        }
+        setGenStep(1);
 
         try {
             const { saveQuizCurriculum, generateQuizQuestions } = await import('../../db/actions/quizOfTheWeek.js');
 
-            await saveQuizCurriculum(classId, {
-                type,
-                categories: selectedCategories,
-                keywords,
-                questLevel
-            });
+            await saveQuizCurriculum(classId, { type, categories: selectedCategories, keywords, questLevel });
 
-            if (statusIcon) statusIcon.innerText = '⏳';
-            if (statusText) statusText.innerText = 'Creating quiz questions...';
-
+            setGenStep(2);
             const result = await generateQuizQuestions(classId);
+            setGenStep(3);
 
-            if (statusIcon) statusIcon.innerText = '✅';
-            if (statusText) statusText.innerText = 'Quiz ready!';
-            if (statusDetails) statusDetails.innerText = `${result.questionCount} questions generated (${result.imageCount} with images). The quiz button will appear on the class's first lesson day.`;
+            // Small pause so the teacher sees "Saving" before we switch
+            await new Promise(r => setTimeout(r, 700));
+
+            if (genProgress) genProgress.classList.add('hidden');
+            setStatusState('ready', {
+                text: `Quiz ready! ${result.questionCount} questions${result.imageCount ? ` (${result.imageCount} with images)` : ''}.`,
+                sub: `The play button will appear on the class's first lesson day of the week. ✨`
+            });
 
             await refreshQuizStatus(classId);
 
         } catch (e) {
             console.error('Quiz generation failed:', e);
-            if (statusIcon) statusIcon.innerText = '❌';
-            if (statusText) statusText.innerText = 'Generation failed.';
-            if (statusDetails) statusDetails.innerText = String(e.message || '').slice(0, 200);
+            if (genProgress) genProgress.classList.add('hidden');
+            setStatusState('error', {
+                text: 'Generation failed.',
+                sub: String(e.message || '').slice(0, 180)
+            });
         }
 
         generateBtn.disabled = false;
-        generateBtn.innerHTML = '<i class="fas fa-wand-magic-sparkles mr-2"></i> Generate Quiz';
+        if (generateLabel) generateLabel.textContent = 'Re-generate Quiz';
+        generateBtn.querySelector('i').className = 'fas fa-rotate-right';
     });
+
+    // ── Helpers: set status state ────────────────────────────────────────────
+    function setStatusState(type, opts = {}) {
+        if (!statusArea) return;
+        statusArea.classList.remove('hidden', 'qow-status-ready', 'qow-status-active', 'qow-status-done', 'qow-status-error');
+
+        const map = {
+            generating: { emoji: '🤖', title: opts.text || 'AI is crafting questions…',
+                          sub: opts.sub || 'This takes 30–60 seconds. Please wait.', cls: '' },
+            ready:      { emoji: '✅', title: opts.text || 'Quiz ready!',
+                          sub: opts.sub || 'The play button appears on the first lesson day.', cls: 'qow-status-ready' },
+            active:     { emoji: '🟢', title: opts.text || 'Quiz is live!',
+                          sub: opts.sub || 'Students can play now.', cls: 'qow-status-active' },
+            completed:  { emoji: '🏆', title: opts.text || 'Quiz completed!',
+                          sub: opts.sub || 'See results below.', cls: 'qow-status-done' },
+            pending:    { emoji: '📝', title: opts.text || 'Curriculum saved — not yet generated.',
+                          sub: opts.sub || 'Hit "Generate" when ready.', cls: '' },
+            error:      { emoji: '❌', title: opts.text || 'Something went wrong.',
+                          sub: opts.sub || '', cls: 'qow-status-error' },
+        };
+        const cfg = map[type] || map.pending;
+        if (statusIcon)   statusIcon.textContent  = cfg.emoji;
+        if (statusText)   statusText.textContent  = cfg.title;
+        if (statusDetails) statusDetails.textContent = cfg.sub;
+        if (cfg.cls) statusArea.classList.add(cfg.cls);
+        if (statusBadge) statusBadge.classList.add('hidden');
+    }
+
+    function setGenStep(n) {
+        [genStep1, genStep2, genStep3].forEach((el, i) => {
+            if (!el) return;
+            el.classList.remove('active', 'done');
+            if (i + 1 < n) el.classList.add('done');
+            else if (i + 1 === n) el.classList.add('active');
+        });
+    }
+
 
     async function refreshQuizStatus(classId) {
         try {
@@ -944,46 +1030,94 @@ async function renderQuizOptionsUi() {
             const quiz = await getQuizForClass(classId);
 
             if (quiz) {
-                statusArea?.classList.remove('hidden');
-                const statusLabels = {
-                    pending: { icon: '📝', text: 'Curriculum set. Not yet generated.' },
-                    generating: { icon: '⏳', text: 'Generating quiz...' },
-                    ready: { icon: '✅', text: `Quiz ready! ${quiz.questions?.length || 0} questions.` },
-                    active: { icon: '🟢', text: `Quiz active! ${quiz.questions?.length || 0} questions.` },
-                    completed: { icon: '🏆', text: `Completed — ${quiz.results?.tier?.toUpperCase() || ''} (${quiz.results?.firstTryCorrectPct || 0}%)` }
-                };
-                const label = statusLabels[quiz.status] || { icon: '📋', text: 'Quiz status: ' + quiz.status };
-                if (statusIcon) statusIcon.innerText = label.icon;
-                if (statusText) statusText.innerText = label.text;
-                if (statusDetails) statusDetails.innerText = quiz.curriculum
-                    ? `Curriculum: ${quiz.curriculum.type.toUpperCase()} — ${(quiz.curriculum.categories || []).join(', ') || (quiz.curriculum.keywords || '')}`
-                    : '';
+                const qCount = quiz.questions?.length || 0;
+                const tierEmoji = { legendary: '👑', epic: '🌟', rare: '💎', common: '🎯', heroic: '🛡️' };
 
-                // Show reset button for any non-completed quiz
-                const canReset = quiz.status !== 'completed' && quiz.status !== 'active';
+                const statusMap = {
+                    pending: {
+                        type: 'pending',
+                        text: 'Curriculum saved — quiz not yet generated.',
+                        sub: 'Hit "Generate" to create the questions.',
+                        badge: null
+                    },
+                    generating: {
+                        type: 'generating',
+                        text: 'Generating quiz…',
+                        sub: 'This may take 30–60 seconds.',
+                        badge: null
+                    },
+                    ready: {
+                        type: 'ready',
+                        text: `Quiz ready — ${qCount} question${qCount !== 1 ? 's' : ''}!`,
+                        sub: quiz.curriculum
+                            ? `${quiz.curriculum.type?.toUpperCase()} · ${(quiz.curriculum.categories || []).join(', ') || quiz.curriculum.keywords || ''}`
+                            : 'The play button will appear on the first lesson day. ✨',
+                        badge: { label: '✅ Ready', cls: 'qow-pill-ready' }
+                    },
+                    active: {
+                        type: 'active',
+                        text: `Quiz is live! ${qCount} questions available.`,
+                        sub: 'Students can play right now from the dashboard.',
+                        badge: { label: '🟢 Live', cls: 'qow-pill-active' }
+                    },
+                    completed: {
+                        type: 'completed',
+                        text: `Quiz completed ${tierEmoji[quiz.results?.tier] || '🏆'} ${(quiz.results?.tier || '').toUpperCase()}`,
+                        sub: `${quiz.results?.firstTryCorrectPct ?? 0}% first-try accuracy · ${qCount} questions`,
+                        badge: { label: '🏆 Done', cls: 'qow-pill-done' }
+                    }
+                };
+
+                const cfg = statusMap[quiz.status] || { type: 'pending', text: 'Quiz status: ' + quiz.status, sub: '' };
+                setStatusState(cfg.type, { text: cfg.text, sub: cfg.sub });
+
+                // Show status badge pill
+                if (statusBadge && cfg.badge) {
+                    statusBadge.textContent = cfg.badge.label;
+                    statusBadge.className = `qow-status-pill ${cfg.badge.cls}`;
+                    statusBadge.classList.remove('hidden');
+                } else if (statusBadge) {
+                    statusBadge.classList.add('hidden');
+                }
+
+                // Show reset button only for pending/ready states
+                const canReset = quiz.status === 'pending' || quiz.status === 'ready';
                 if (resetBtn) resetBtn.classList.toggle('hidden', !canReset);
+
+                // Update generate button label
+                if (generateLabel && (quiz.status === 'ready' || quiz.status === 'pending')) {
+                    generateLabel.textContent = 'Re-generate Quiz';
+                    const icon = generateBtn?.querySelector('i');
+                    if (icon) icon.className = 'fas fa-rotate-right';
+                }
             } else {
-                statusArea?.classList.remove('hidden');
-                if (statusIcon) statusIcon.innerText = '📋';
-                if (statusText) statusText.innerText = 'No quiz set for this week.';
-                if (statusDetails) statusDetails.innerText = 'Fill in the curriculum above and click "Generate Quiz".';
+                setStatusState('pending', {
+                    text: 'No quiz set for this week.',
+                    sub: 'Select your topics above and hit Generate!'
+                });
                 if (resetBtn) resetBtn.classList.add('hidden');
+                if (statusBadge) statusBadge.classList.add('hidden');
             }
 
-            // Load history
+            // ── History ──────────────────────────────────────────────────────
             const history = await getQuizHistory(classId, 5);
-            if (history && history.length > 0) {
+            if (history?.length) {
                 historyArea?.classList.remove('hidden');
                 if (historyList) {
-                    historyList.innerHTML = history.map(h => `
-                        <div class="flex items-center justify-between bg-white rounded-lg p-3 border border-amber-100">
-                            <div>
-                                <span class="font-semibold text-sm text-amber-800">Week ${h.weekKey}</span>
-                                <span class="text-xs text-gray-500 ml-2">${h.results?.tier?.toUpperCase() || 'N/A'} — ${h.results?.firstTryCorrectPct || 0}%</span>
-                            </div>
-                            <span class="text-xs text-gray-400">${h.results?.totalQuestions || 0} Q</span>
-                        </div>
-                    `).join('');
+                    const tierEmoji = { legendary: '👑', epic: '🌟', rare: '💎', common: '🎯', heroic: '🛡️' };
+                    const tierCls   = { legendary: 'qow-tier-legendary', epic: 'qow-tier-epic', rare: 'qow-tier-rare', common: 'qow-tier-common', heroic: 'qow-tier-heroic' };
+                    historyList.innerHTML = history.map(h => {
+                        const tier = h.results?.tier || 'common';
+                        const pct  = h.results?.firstTryCorrectPct ?? 0;
+                        const qc   = h.results?.totalQuestions || 0;
+                        return `
+                        <div class="qow-history-item">
+                            <span class="qow-history-week">Week ${h.weekKey}</span>
+                            <span class="qow-tier-badge ${tierCls[tier] || 'qow-tier-common'}">${tierEmoji[tier] || ''} ${tier.toUpperCase()}</span>
+                            <span class="qow-history-pct">${pct}%</span>
+                            <span class="qow-history-q">${qc} Q</span>
+                        </div>`;
+                    }).join('');
                 }
             } else {
                 historyArea?.classList.add('hidden');
@@ -994,29 +1128,32 @@ async function renderQuizOptionsUi() {
         }
     }
 
-    // Reset (delete) button
+    // ── Reset (delete) button ────────────────────────────────────────────────
     resetBtn?.addEventListener('click', async () => {
         const classId = classSelect?.value;
         if (!classId) return;
-        if (!confirm('Delete this week\'s quiz for this class? You can then set a new curriculum and regenerate.')) return;
+        if (!confirm("Delete this week's quiz for this class? You can then re-generate with a new or updated curriculum.")) return;
 
         resetBtn.disabled = true;
-        resetBtn.innerHTML = '<i class="fas fa-spinner fa-pulse mr-1"></i> Deleting...';
+        resetBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-1"></i> Deleting…';
         try {
             const { deleteQuizForClass } = await import('../../db/actions/quizOfTheWeek.js');
             await deleteQuizForClass(classId);
 
-            // Clear form to fresh state
-            if (typeSelect) typeSelect.value = 'mix';
+            // Reset form
+            setActivePill('mix');
             renderCategories();
             if (keywordsInput) keywordsInput.value = '';
             if (validationMsg) { validationMsg.classList.add('hidden'); validationMsg.textContent = ''; }
             statusArea?.classList.add('hidden');
+            if (generateLabel) generateLabel.textContent = 'Generate This Week\'s Quiz';
+            const icon = generateBtn?.querySelector('i');
+            if (icon) icon.className = 'fas fa-wand-magic-sparkles';
         } catch (e) {
             console.error('Failed to delete quiz:', e);
             alert('Failed to delete quiz: ' + (e.message || 'Unknown error'));
         }
         resetBtn.disabled = false;
-        resetBtn.innerHTML = '<i class="fas fa-trash-alt mr-1"></i> Delete &amp; Reset This Week\'s Quiz';
+        resetBtn.innerHTML = '<i class="fas fa-rotate-left mr-1"></i> Delete &amp; Reset This Week\'s Quiz';
     });
 }

@@ -15,7 +15,7 @@ export const navHTML = `
                 <i class="fas fa-user-graduate icon"></i>
                 <span class="text">Hero's Challenge</span>
             </button>
-            <button class="nav-button nav-color-fuchsia" data-tab="shop-tab">
+            <button class="nav-button nav-color-lime" data-tab="shop-tab">
                 <i class="fas fa-store icon"></i>
                 <span class="text">Shop</span>
             </button>
@@ -35,7 +35,7 @@ export const navHTML = `
                 <i class="fas fa-book-open icon"></i>
                 <span class="text">Log</span>
             </button>
-            <button class="nav-button nav-color-scroll" data-tab="scholars-scroll-tab">
+            <button class="nav-button nav-color-pink" data-tab="scholars-scroll-tab">
                 <i class="fas fa-scroll icon"></i>
                 <span class="text">Scroll</span>
             </button>

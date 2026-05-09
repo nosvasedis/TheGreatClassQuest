@@ -163,28 +163,7 @@ function renderScrollDashboard(classId) {
             topScholars = studentAverages.filter(s => s.avg === maxAvg);
         }
     }
-    const topScholarsDisplay = topScholars.length > 0 ? topScholars.map(s => s.name).join(', ') : '--';
-
-    statsContainer.innerHTML = `
-        <div class="scroll-stat-card scroll-insight-card">
-            <div class="scroll-insight-icon">📊</div>
-            <p class="text-sm font-bold text-indigo-700">Test Performance</p>
-            <p class="font-title text-3xl text-green-600 mb-1">${testAvg !== null ? testAvg.toFixed(0) + '%' : '--'}</p>
-            <p class="text-xs text-gray-600">${testAvg && testAvg >= 80 ? '✨ Excelling' : testAvg && testAvg >= 60 ? '📈 Strong' : '🎯 Developing'}</p>
-        </div>
-        <div class="scroll-stat-card scroll-insight-card">
-            <div class="scroll-insight-icon">🎤</div>
-            <p class="text-sm font-bold text-indigo-700">Dictation Trend</p>
-            <p class="font-title text-3xl text-blue-600 mb-1">${avgDictationDisplay}</p>
-            <p class="text-xs text-gray-600">${dictationAvg && dictationAvg >= 80 ? '✨ Strong' : dictationAvg && dictationAvg >= 60 ? '📈 Good' : '🎯 Developing'}</p>
-        </div>
-        <div class="scroll-stat-card scroll-insight-card">
-            <div class="scroll-insight-icon">⭐</div>
-            <p class="text-sm font-bold text-indigo-700">Top Scholar(s)</p>
-            <p class="font-title text-lg text-purple-700" title="${topScholarsDisplay}">${topScholarsDisplay}</p>
-            <p class="text-xs text-gray-600 mt-2">Leading the class 👑</p>
-        </div>
-    `;
+    // Stat cards deprecated - removed as per v2 cleanup
 
     const studentPerformanceData = studentsInClass.map(student => {
         const studentTestScores = scoresForClass.filter(s => s.studentId === student.id && s.type === 'test');
@@ -219,7 +198,7 @@ function renderScrollDashboard(classId) {
         <div class="chart-avatar-wrapper">
             ${avatarHtml}
         </div>
-        <div class="chart-label student-analytics-trigger cursor-pointer" data-student-id="${student.id}">
+        <div class="chart-label cursor-pointer" data-student-id="${student.id}">
             ${student.heroClass && HERO_CLASSES[student.heroClass] ? HERO_CLASSES[student.heroClass].icon : ''} ${student.name}
         </div>
         <div class="chart-bar-wrapper">

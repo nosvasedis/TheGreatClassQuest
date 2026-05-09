@@ -61,9 +61,6 @@
 /* 15. Scholar's Scroll: starfall, chart bars, trial history, bulk-log */
 @import url('./styles/scholar.css');
 
-/* 15b. Student Analytics Modal: performance charts, AI analysis, chat interface */
-@import url('./styles/student_analytics.css');
-
 /* 16. Overview modal stat cards, overview-tab-btn */
 @import url('./styles/overview.css');
 

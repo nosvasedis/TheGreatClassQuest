@@ -1,5 +1,4 @@
 // templates/app/tabs/scroll.js
-import { studentAnalyticsModalHTML } from '../../modals/studentAnalytics.js';
 
 export const scrollTabHTML = `
             <div id="scholars-scroll-tab" class="app-tab hidden">
@@ -65,9 +64,6 @@ export const scrollTabHTML = `
                         Please select a class to view their academic progress.
                     </div>
                 </div>
-
-                <!-- Student Analytics Modal -->
-                ${studentAnalyticsModalHTML}
             </div>
 `;
 

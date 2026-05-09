@@ -59,12 +59,16 @@ export function scheduleAttendanceChronicleRefresh() {
     }, 90);
 }
 
-export async function openAttendanceChronicle() {
+export async function openAttendanceChronicle(explicitClassId) {
     if (!canUseFeature('advancedAttendance')) {
         showUpgradePrompt('Pro', { message: getUpgradeMessage('Pro', 'advancedAttendance') });
         return;
     }
-    const classId = document.getElementById('adventure-log-class-select').value;
+    const selectEl = document.getElementById('adventure-log-class-select');
+    const classId = explicitClassId || selectEl?.value;
+    if (explicitClassId && selectEl && [...selectEl.options].some(o => o.value === explicitClassId)) {
+        selectEl.value = explicitClassId;
+    }
     const classData = state.get('allTeachersClasses').find(c => c.id === classId);
     if (!classData) return;
 

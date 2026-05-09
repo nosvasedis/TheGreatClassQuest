@@ -190,13 +190,6 @@ function setupAdventureLogFabReveal() {
 
 export function setupUIListeners() {
     document.body.addEventListener('click', (e) => {
-        const analyticsTrigger = e.target.closest('.student-analytics-trigger');
-        if (analyticsTrigger) {
-            e.stopPropagation();
-            const studentId = analyticsTrigger.dataset.studentId;
-            modals.openStudentAnalyticsModal(studentId, analyticsTrigger);
-            return;
-        }
         const heroStatsTrigger = e.target.closest('.hero-stats-avatar-trigger');
         if (heroStatsTrigger) {
             e.stopPropagation();
@@ -254,7 +247,6 @@ export function setupUIListeners() {
     if (modals.wireSortingQuizResultDone) modals.wireSortingQuizResultDone();
     if (modals.wireTeacherBoonModal) modals.wireTeacherBoonModal();
     document.getElementById('hero-stats-close-btn').addEventListener('click', () => modals.hideModal('hero-stats-modal'));
-    document.getElementById('student-analytics-close-btn').addEventListener('click', () => modals.hideModal('student-analytics-modal'));
     document.getElementById('hall-of-heroes-btn').addEventListener('click', modals.openHallOfHeroes);
 
     // Class & Student Management

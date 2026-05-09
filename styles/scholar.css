@@ -735,15 +735,6 @@ optgroup {
     margin-bottom: 1.2rem !important;
 }
 
-#scroll-dashboard-content > div:has(#scroll-performance-chart) h3::before {
-    content: '📊';
-    font-size: 1.4rem;
-    -webkit-text-fill-color: unset;
-    background: linear-gradient(135deg, #f59e0b, #fbbf24);
-    -webkit-background-clip: unset;
-    background-clip: unset;
-}
-
 #trial-history-view-toggle .toggle-btn {
     font-family: 'Fredoka One', cursive;
     padding: 0.5rem 1.5rem;

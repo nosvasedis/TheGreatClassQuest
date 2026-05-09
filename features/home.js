@@ -271,6 +271,20 @@ function getSkeleton() {
     return `<div class="animate-pulse space-y-6 max-w-7xl mx-auto p-4"><div class="grid grid-cols-12 gap-6"><div class="h-48 bg-gray-200 rounded-3xl col-span-8"></div><div class="h-48 bg-gray-200 rounded-3xl col-span-4"></div></div><div class="grid grid-cols-12 gap-6"><div class="h-40 bg-gray-200 rounded-3xl col-span-4"></div><div class="h-40 bg-gray-200 rounded-3xl col-span-4"></div><div class="h-40 bg-gray-200 rounded-3xl col-span-4"></div></div></div>`;
 }
 
+function patchHomeChronicleStory(classId, story) {
+    if (state.get('globalSelectedClassId') !== classId) return;
+    const root = document.getElementById('home-dashboard-container');
+    if (!root) return;
+    const wordEl = root.querySelector('[data-home-story-word]');
+    const textEl = root.querySelector('[data-home-story-text]');
+    if (wordEl && story?.currentWord != null) {
+        wordEl.textContent = `Story: ${story.currentWord}`;
+    }
+    if (textEl && story?.currentSentence != null) {
+        textEl.textContent = `"...${story.currentSentence}..."`;
+    }
+}
+
 function getGeneralDashboard(name, theme, spice) {
     const today = utils.getTodayDateString();
     const activeLeague = resolveActiveHomeLeague();
@@ -377,7 +391,7 @@ function getActiveDashboard(classData, name, theme, spice) {
     if (goal < 18) goal = 18; // Shared safety floor
     const progress = Math.min(100, (monthlyStarsWithBonus / goal) * 100).toFixed(0);
 
-    // FIX: Fetch story data directly if missing, instead of relying on the Ideas tab UI
+    // Fetch story when missing; patch chronicle text only (avoid full home DOM swap / flash)
     if (!state.get('currentStoryData')[classId]) {
         const storyRef = doc(db, `artifacts/great-class-quest/public/data/story_data`, classId);
         getDoc(storyRef).then((docSnap) => {
@@ -385,8 +399,7 @@ function getActiveDashboard(classData, name, theme, spice) {
                 const currentData = state.get('currentStoryData');
                 currentData[classId] = docSnap.data();
                 state.setCurrentStoryData(currentData);
-                // Trigger a re-render to update the text immediately
-                renderHomeTab();
+                patchHomeChronicleStory(classId, docSnap.data());
             }
         }).catch(err => console.log("Silent story fetch error", err));
     }
@@ -519,9 +532,9 @@ function getActiveDashboard(classData, name, theme, spice) {
                 <div class="chronicle-item chronicle-story">
                     <div class="flex items-center gap-2 mb-2">
                         <div class="bg-white/80 p-1.5 rounded-lg text-cyan-600"><i class="fas fa-feather-alt"></i></div>
-                        <span class="text-xs font-bold text-cyan-700 uppercase">Story: ${storyWord}</span>
+                        <span class="text-xs font-bold text-cyan-700 uppercase" data-home-story-word>Story: ${storyWord}</span>
                     </div>
-                    <p class="text-sm text-cyan-900 font-serif italic leading-snug line-clamp-3">${storyText}</p>
+                    <p class="text-sm text-cyan-900 font-serif italic leading-snug line-clamp-3" data-home-story-text>${storyText}</p>
                 </div>
 
                 <div class="chronicle-item chronicle-log">
@@ -820,7 +833,7 @@ async function handleAction(action, data) {
     if (action === 'open-day-planner') modals.openDayPlannerModal(utils.getTodayDateString(), document.body);
     else if (action === 'open-attendance') {
         const id = state.get('globalSelectedClassId');
-        if (id) modals.openAttendanceChronicle(); else tabs.showTab('adventure-log-tab');
+        if (id) modals.openAttendanceChronicle(id); else tabs.showTab('adventure-log-tab');
     }
     else if (action === 'open-team-history') modals.openHistoryModal('team', { league: scopedLeague || null });
     else if (action === 'open-settings') await activateOptionsSubtab('manage');

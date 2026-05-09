@@ -18,4 +18,4 @@ export * from './sortingQuiz.js';
 export * from './guildHeroes.js';
 export * from './teacherBoon.js';
 export * from './quizOfTheWeek.js';
-export * from './studentAnalytics.js';
+

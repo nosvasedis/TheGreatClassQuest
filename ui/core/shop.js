@@ -30,6 +30,11 @@ export function initializeShopTab() {
                 .join('');
     }
 
+    // Always show the current month — must happen before any early return
+    const monthName = new Date().toLocaleString('en-US', { month: 'long' });
+    const shopMonthEl = document.getElementById('shop-month');
+    if (shopMonthEl) shopMonthEl.innerText = monthName;
+
     // The shop requires an explicit class selection — show curtain whenever none is active
     if (!classId) {
         const shopCurtain = document.getElementById('shop-curtain');
@@ -45,9 +50,7 @@ export function initializeShopTab() {
     if (shopCurtain) shopCurtain.classList.add('hidden');
 
     // 2. Set UI Text
-    const monthName = new Date().toLocaleString('en-US', { month: 'long' });
     document.getElementById('shop-title').innerText = "The Mystic Market"; // Title is now static
-    document.getElementById('shop-month').innerText = monthName; // Month has its own element
 
     const restockBtn = document.getElementById('generate-shop-btn');
     if (restockBtn) {

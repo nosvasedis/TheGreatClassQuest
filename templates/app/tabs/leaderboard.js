@@ -59,16 +59,19 @@ export const leaderboardTabHTML = `
             </div>
 
             <div id="student-leaderboard-tab" class="app-tab hidden" style="position: relative;">
-                <!-- Floating Action Buttons — LEFT SIDE -->
-                <div class="hc-fab-cluster">
+                <!-- FAB — LEFT CORNER -->
+                <div class="hc-fab-cluster hc-fab-cluster--left">
                     <button id="open-prodigy-btn"
                         class="hc-fab bubbly-button"
                         style="background: linear-gradient(135deg, #f59e0b, #fbbf24); border: 2px solid #d97706; color: white;">
                         <i class="fas fa-crown hc-fab-icon"></i>
                         <span class="hc-fab-label">Hall of Prodigies</span>
                     </button>
+                </div>
+                <!-- FAB — RIGHT CORNER -->
+                <div class="hc-fab-cluster hc-fab-cluster--right">
                     <button id="open-trophy-room-btn"
-                        class="hc-fab bubbly-button"
+                        class="hc-fab hc-fab--right bubbly-button"
                         style="background: linear-gradient(135deg, #10b981, #0d9488); border: 2px solid #059669; color: white;">
                         <i class="fas fa-trophy hc-fab-icon"></i>
                         <span class="hc-fab-label">Trophy Room</span>

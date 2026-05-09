@@ -11,31 +11,39 @@ export const shopTabHTML = `
                         <p id="shop-month" class="text-lg text-gray-600 mt-2 font-bold uppercase tracking-widest"></p>
                     </div>
 
-                    <!-- Controls Bar (Glassmorphism) -->
-                    <div class="shop-controls-bar bg-white/70 backdrop-blur-sm p-4 rounded-2xl shadow-lg flex flex-wrap items-center justify-center lg:flex-nowrap lg:justify-between mb-8 gap-4 md:gap-6 relative z-20">
-                        
-                        <div class="shop-class-shell flex items-center gap-3 bg-white/70 p-2.5 rounded-xl border-2 border-fuchsia-200 shadow-inner w-full md:w-auto">
-                            <select id="shop-class-select"
-                                class="shop-class-select bg-white border-2 border-fuchsia-300 text-fuchsia-900 text-sm font-bold rounded-lg focus:ring-fuchsia-500 focus:border-fuchsia-500 block w-full md:w-auto p-2.5 outline-none shadow-sm min-w-[200px] transition-all">
-                                <option value="">Select a class...</option>
+                    <!-- Controls Bar -->
+                    <div class="shop-controls-bar bg-white/70 backdrop-blur-sm px-5 py-3.5 rounded-2xl shadow-lg flex items-center justify-center lg:justify-between gap-3 mb-8 flex-wrap relative z-20">
+
+                        <!-- Class Selector Pill -->
+                        <div class="shop-selector-pill shop-selector-pill--class">
+                            <i class="fas fa-users shop-sel-icon text-fuchsia-400"></i>
+                            <select id="shop-class-select" class="shop-sel-select text-fuchsia-900">
+                                <option value="">Choose a class...</option>
                             </select>
+                            <i class="fas fa-chevron-down shop-sel-arrow text-fuchsia-300"></i>
                         </div>
 
-                        <div class="shop-student-shell flex items-center gap-4 bg-white/60 p-2 rounded-xl border-2 border-fuchsia-200 shadow-inner w-full md:w-auto">
-                            <div class="text-right flex-1 md:flex-none">
-                                <p class="text-fuchsia-800 text-[10px] uppercase font-bold tracking-wider">Purse</p>
-                                <p id="shop-student-gold"
-                                    class="font-title text-2xl text-amber-500 leading-none whitespace-nowrap drop-shadow-sm">0 🪙</p>
-                            </div>
-                            <select id="shop-student-select"
-                                class="bg-white border-2 border-fuchsia-300 text-fuchsia-900 text-sm font-bold rounded-lg focus:ring-fuchsia-500 focus:border-fuchsia-500 block w-full md:w-auto p-2.5 outline-none shadow-sm min-w-[220px] transition-all">
+                        <div class="hidden sm:block h-8 w-px bg-fuchsia-200 shrink-0"></div>
+
+                        <!-- Student Selector Pill (this element is shopHeader for badge/ring effects) -->
+                        <div class="shop-selector-pill shop-selector-pill--student">
+                            <i class="fas fa-hat-wizard shop-sel-icon text-purple-400"></i>
+                            <select id="shop-student-select" class="shop-sel-select text-purple-900">
                                 <option value="">Choose your adventurer...</option>
                             </select>
+                            <i class="fas fa-chevron-down shop-sel-arrow text-purple-300"></i>
                         </div>
 
+                        <!-- Gold Chip -->
+                        <div class="shop-gold-chip shrink-0">
+                            <i class="fas fa-coins text-amber-400 text-sm"></i>
+                            <p id="shop-student-gold" class="font-title text-xl text-amber-500 leading-none whitespace-nowrap">0 🪙</p>
+                        </div>
+
+                        <!-- Restock Button -->
                         <button id="generate-shop-btn"
-                            class="hidden shop-restock-btn font-title text-lg bg-gradient-to-r from-fuchsia-500 to-purple-600 text-white py-3 px-6 rounded-xl shadow-lg border-2 border-fuchsia-400 bubbly-button transform hover:scale-105 inline-flex items-center shrink-0">
-                            <i class="fas fa-sync-alt mr-2"></i> Restock Market
+                            class="hidden shop-restock-btn font-title text-base bg-gradient-to-r from-fuchsia-500 to-purple-600 text-white py-2.5 px-5 rounded-xl shadow-lg border-2 border-fuchsia-400 bubbly-button inline-flex items-center gap-2 shrink-0">
+                            <i class="fas fa-sync-alt"></i> Restock
                         </button>
 
                     </div>

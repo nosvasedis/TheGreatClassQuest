@@ -125,22 +125,49 @@
     color: white;
     display: flex;
     flex-direction: column;
-    padding: 2rem;
+    justify-content: space-between;
+    padding: 1.5rem;
     position: relative;
     overflow: hidden;
     border-radius: 1.75rem;
     isolation: isolate;
 }
 
+/* Soft inner glow overlay */
 .weather-card::before {
     content: '';
     position: absolute;
     inset: 0;
-    background: radial-gradient(ellipse at center, rgba(255,255,255,0.15) 0%, transparent 70%);
+    background: radial-gradient(ellipse at 50% 40%, rgba(255,255,255,0.18) 0%, transparent 65%);
     pointer-events: none;
     z-index: 1;
 }
 
+/* Decorative spinning icon — top-right */
+.weather-sun {
+    position: absolute;
+    top: -1rem;
+    right: -1rem;
+    font-size: 7.5rem;
+    color: rgba(255,255,255,0.15);
+    animation: spin-sun 30s linear infinite;
+    z-index: 0;
+    filter: blur(1px);
+}
+
+/* Decorative floating cloud — bottom-left */
+.weather-cloud {
+    position: absolute;
+    bottom: -1rem;
+    left: -0.75rem;
+    font-size: 5.5rem;
+    color: rgba(255,255,255,0.12);
+    animation: float-cloud 6s ease-in-out infinite;
+    z-index: 0;
+    filter: blur(1px);
+}
+
+/* Centered content block */
 .weather-info {
     flex: 1;
     display: flex;
@@ -148,18 +175,18 @@
     align-items: center;
     justify-content: center;
     text-align: center;
-    gap: 0.5rem;
-    padding: 1rem 0;
+    gap: 0.4rem;
+    padding: 0.75rem 0;
     position: relative;
     z-index: 2;
-    text-shadow: 0 2px 8px rgba(0,0,0,0.15);
+    text-shadow: 0 2px 10px rgba(0,0,0,0.2);
 }
 
 /* Weather Themes */
-.w-morning { background: linear-gradient(135deg, #FF9A9E 0%, #FECFEF 100%); }
-.w-day { background: linear-gradient(135deg, #4FACFE 0%, #00F2FE 100%); }
+.w-day    { background: linear-gradient(135deg, #48b1f3 0%, #06c3ff 100%); }
+.w-night  { background: linear-gradient(135deg, #0f172a 0%, #1e3a5f 100%); }
+.w-morning { background: linear-gradient(135deg, #f7b733 0%, #fc4a1a 100%); }
 .w-evening { background: linear-gradient(135deg, #667EEA 0%, #764BA2 100%); }
-.w-night { background: linear-gradient(135deg, #0f172a 0%, #312e81 100%); }
 
 /* FIX 3: Roster Wiggle Animation */
 .roster-avatar {
@@ -177,9 +204,28 @@
     border-color: #818CF8;
 }
 
-/* FIX 5: Tool Button Hover Colors */
-/* Default hover */
-.tool-btn-pop:hover { background: white; color: #4F46E5; }
+/* Tool Buttons — base + hover */
+.tool-btn-pop {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    aspect-ratio: 1;
+    background: #F1F5F9;
+    border-radius: 1.25rem;
+    color: #64748B;
+    border: 2px solid transparent;
+    transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+    cursor: pointer;
+}
+.tool-btn-pop i { font-size: 1.8rem; margin-bottom: 0.25rem; }
+.tool-btn-pop span { font-size: 0.7rem; font-weight: 800; }
+.tool-btn-pop:hover {
+    transform: scale(1.1);
+    background: white;
+    box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1);
+    color: #4F46E5;
+}
 
 /* Specific Hovers based on target/action */
 .tool-btn-pop[data-target="class-leaderboard-tab"]:hover { background: #fffbeb; color: #d97706; border-color: #fcd34d; } /* Amber */

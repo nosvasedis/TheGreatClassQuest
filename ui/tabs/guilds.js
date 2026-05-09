@@ -67,6 +67,9 @@ function _openPowerExplainer() {
     document.getElementById('guild-power-explainer-overlay')?.classList.remove('hidden');
 }
 
+/** When true, detailed stats panels are visible for every guild column */
+let _guildHallStatsExpanded = false;
+
 // ─── Sound cache ─────────────────────────────────────────────────────────────
 const _audioCache = {};
 function playGuildSound(guildId) {
@@ -370,18 +373,22 @@ function wireGuildLoreListeners() {
 // ─── Main render ─────────────────────────────────────────────────────────────
 function _getChampionHtml(gData, primary, glow) {
     const champ = gData?.topContributors?.[0];
-    if (!champ) return '';
+    if (!champ) {
+        return '<div class="guild-crystal-champion-slot guild-crystal-champion-slot--empty" aria-hidden="true"></div>';
+    }
     const avatarHtml = champ.avatar
         ? `<img src="${champ.avatar}" class="w-8 h-8 rounded-full object-cover border-2 flex-shrink-0" style="border-color:${primary}">`
         : `<div class="w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold text-white flex-shrink-0" style="background:${primary}">${champ.name?.charAt(0) || '?'}</div>`;
     return `
-        <div class="guild-crystal-champion mt-3 flex items-center gap-2 px-3 py-2 rounded-xl border" style="border-color:${primary}44;background:${glow}11;">
-            <span class="text-sm">⚔️</span>
-            ${avatarHtml}
-            <div class="min-w-0">
-                <div class="text-[10px] font-bold uppercase tracking-wider opacity-60" style="color:${primary}">Top Champion</div>
-                <div class="text-xs font-bold truncate text-white">${champ.name}</div>
-                <div class="text-[10px]" style="color:rgba(255,255,255,0.78)">${champ.totalStars} ⭐ total</div>
+        <div class="guild-crystal-champion-slot">
+            <div class="guild-crystal-champion mt-0 flex items-center gap-2 px-3 py-2 rounded-xl border" style="border-color:${primary}44;background:${glow}11;">
+                <span class="text-sm">⚔️</span>
+                ${avatarHtml}
+                <div class="min-w-0">
+                    <div class="text-[10px] font-bold uppercase tracking-wider opacity-60" style="color:${primary}">Top Champion</div>
+                    <div class="text-xs font-bold truncate text-white">${champ.name}</div>
+                    <div class="text-[10px]" style="color:rgba(255,255,255,0.78)">${champ.totalStars} ⭐ total</div>
+                </div>
             </div>
         </div>`;
 }
@@ -449,28 +456,24 @@ export function renderGuildsTab() {
                    <span style="font-size:2rem">${emoji}</span>
                </div>`;
 
-        const topHtml = g.topContributors.length
-            ? `<div class="guild-crystal-heroes">
-                   <div class="guild-top-heroes-header">
-                       <span class="guild-top-heroes-title">⚔️ Top Heroes</span>
-                       <button class="guild-info-btn" data-top-heroes-guild="${g.guildId}" title="View Guild Analytics">
-                           ℹ️
-                       </button>
-                   </div>
-                   ${g.topContributors.slice(0, 3).map(c => `
+        const topHeroesBody = g.topContributors.length
+            ? g.topContributors.slice(0, 3).map(c => `
                        <span class="guild-crystal-hero-chip" style="color:${primary};border-color:${primary}33;">
                            ${c.name}
                            <span style="opacity:0.65;font-size:0.6rem">${c.totalStars}⭐ total</span>
-                       </span>`).join('')}
-               </div>`
-            : `<div class="guild-crystal-heroes">
+                       </span>`).join('')
+            : `<span class="guild-crystal-heroes-label">No heroes yet</span>`;
+
+        const topHtml = `
+            <div class="guild-crystal-heroes guild-crystal-heroes--balanced">
                    <div class="guild-top-heroes-header">
                        <span class="guild-top-heroes-title">⚔️ Top Heroes</span>
-                       <button class="guild-info-btn" data-top-heroes-guild="${g.guildId}" title="View Guild Analytics">
-                           ℹ️
-                       </button>
+                       <button type="button" class="guild-power-info-btn guild-analytics-info-btn"
+                               data-top-heroes-guild="${g.guildId}"
+                               title="Guild spotlight"
+                               aria-label="Open guild spotlight">i</button>
                    </div>
-                   <span class="guild-crystal-heroes-label" style="opacity:0.45">No heroes yet</span>
+                   <div class="guild-crystal-heroes-chips">${topHeroesBody}</div>
                </div>`;
 
         const now = Date.now();
@@ -480,15 +483,16 @@ export function renderGuildsTab() {
             .filter(Boolean);
         const shownMods = modLabels.slice(0, 2);
         const overflowMods = Math.max(0, modLabels.length - shownMods.length);
-        const modsHtml = modLabels.length
-            ? `<div class="guild-crystal-effects">
+        const modsChipsInner = modLabels.length
+            ? `${shownMods.map(lbl => `<span class="guild-crystal-effect-chip" title="${lbl}">${lbl}</span>`).join('')}
+               ${overflowMods > 0 ? `<span class="guild-crystal-effect-chip guild-crystal-effect-chip--more" title="${overflowMods} more effects active">+${overflowMods}</span>` : ''}`
+            : `<span class="guild-crystal-effects__empty">None active</span>`;
+
+        const modsHtml = `
+            <div class="guild-crystal-effects guild-crystal-effects--balanced">
                     <div class="guild-crystal-effects__label">Wheel effects</div>
-                    <div class="guild-crystal-effects__chips">
-                        ${shownMods.map(lbl => `<span class="guild-crystal-effect-chip" title="${lbl}">${lbl}</span>`).join('')}
-                        ${overflowMods > 0 ? `<span class="guild-crystal-effect-chip guild-crystal-effect-chip--more" title="${overflowMods} more effects active">+${overflowMods}</span>` : ''}
-                    </div>
-               </div>`
-            : '';
+                    <div class="guild-crystal-effects__chips">${modsChipsInner}</div>
+               </div>`;
 
         return `
             <div class="guild-crystal-col" data-guild="${g.guildId}">
@@ -543,34 +547,75 @@ export function renderGuildsTab() {
                         <button class="guild-power-info-btn" type="button" aria-label="Explain Guild Power" data-guild-power-info="true">?</button>
                     </span>
                 </div>
-                <div class="guild-crystal-metrics" style="--guild-metric-accent:${primary};">
-                    <div class="guild-crystal-metric">
-                        <div class="guild-crystal-metric__label">Glory per member</div>
-                        <div class="guild-crystal-metric__value">${g.perCapitaGlory.toFixed(1)} <span class="guild-crystal-metric__unit">${GLORY_EMOJI}</span></div>
-                        <div class="guild-crystal-metric__hint">Average ⚜️ across roster</div>
-                    </div>
-                    <div class="guild-crystal-metric">
-                        <div class="guild-crystal-metric__label">Weekly momentum</div>
-                        <div class="guild-crystal-metric__value">${g.momentumArrow} ${g.momentumPct >= 0 ? '+' : ''}${g.momentumPct}%</div>
-                        <div class="guild-crystal-metric__hint">This week vs last week’s Glory</div>
-                    </div>
-                    <div class="guild-crystal-metric">
-                        <div class="guild-crystal-metric__label">Weekly activity</div>
-                        <div class="guild-crystal-metric__value">${Math.round(Number(g.activityScore) || 0)}%</div>
-                        <div class="guild-crystal-metric__hint">Members active this week</div>
-                    </div>
-                </div>
-                <div class="guild-crystal-members" style="opacity:0.65;">
-                    ${g.memberCount} member${g.memberCount === 1 ? '' : 's'} · ${Math.round(g.weeklyGlory || 0)} ${GLORY_EMOJI} this week
-                </div>
-                ${modsHtml}
 
-                ${topHtml}
-                ${_getChampionHtml(g, primary, glow)}
+                <div id="guild-crystal-details-${g.guildId}" class="guild-crystal-details" hidden>
+                    <div class="guild-crystal-details-inner">
+                        <div class="guild-crystal-metrics" style="--guild-metric-accent:${primary};">
+                            <div class="guild-crystal-metric">
+                                <div class="guild-crystal-metric__label">Glory per member</div>
+                                <div class="guild-crystal-metric__value">${g.perCapitaGlory.toFixed(1)} <span class="guild-crystal-metric__unit">${GLORY_EMOJI}</span></div>
+                                <div class="guild-crystal-metric__hint">Average ⚜️ across roster</div>
+                            </div>
+                            <div class="guild-crystal-metric">
+                                <div class="guild-crystal-metric__label">Weekly momentum</div>
+                                <div class="guild-crystal-metric__value">${g.momentumArrow} ${g.momentumPct >= 0 ? '+' : ''}${g.momentumPct}%</div>
+                                <div class="guild-crystal-metric__hint">This week vs last week’s Glory</div>
+                            </div>
+                            <div class="guild-crystal-metric">
+                                <div class="guild-crystal-metric__label">Weekly activity</div>
+                                <div class="guild-crystal-metric__value">${Math.round(Number(g.activityScore) || 0)}%</div>
+                                <div class="guild-crystal-metric__hint">Members active this week</div>
+                            </div>
+                        </div>
+                        <div class="guild-crystal-members" style="opacity:0.65;">
+                            ${g.memberCount} member${g.memberCount === 1 ? '' : 's'} · ${Math.round(g.weeklyGlory || 0)} ${GLORY_EMOJI} this week
+                        </div>
+                        ${modsHtml}
+                        ${topHtml}
+                        ${_getChampionHtml(g, primary, glow)}
+                    </div>
+                </div>
             </div>`;
     });
 
-    list.innerHTML = `<div class="guild-crystal-arena">${columns.join('')}</div>`;
+    list.innerHTML = `
+        <div class="guild-crystal-hall">
+            <div class="guild-crystal-expand-all-wrap">
+                <button type="button"
+                        id="guild-stats-expand-toggle"
+                        class="guild-crystal-expand-btn guild-crystal-expand-btn--global"
+                        aria-expanded="${_guildHallStatsExpanded ? 'true' : 'false'}"
+                        aria-label="${_guildHallStatsExpanded ? 'Hide' : 'Show'} detailed guild stats for all guilds">
+                    <span class="guild-crystal-expand-btn__text">Guild stats</span>
+                    <span class="guild-crystal-expand-btn__chev" aria-hidden="true">${_guildHallStatsExpanded ? '▲' : '▼'}</span>
+                </button>
+            </div>
+            <div class="guild-crystal-arena${_guildHallStatsExpanded ? ' guild-crystal-arena--stats-expanded' : ''}">${columns.join('')}</div>
+        </div>`;
+
+    list.querySelectorAll('.guild-crystal-details').forEach((panel) => {
+        panel.hidden = !_guildHallStatsExpanded;
+    });
+    list.querySelector('.guild-crystal-expand-all-wrap')?.classList.toggle('guild-crystal-expand-all-wrap--open', _guildHallStatsExpanded);
+
+    const expandToggle = list.querySelector('#guild-stats-expand-toggle');
+    expandToggle?.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        _guildHallStatsExpanded = !_guildHallStatsExpanded;
+        list.querySelectorAll('.guild-crystal-details').forEach((panel) => {
+            panel.hidden = !_guildHallStatsExpanded;
+        });
+        expandToggle.setAttribute('aria-expanded', _guildHallStatsExpanded ? 'true' : 'false');
+        expandToggle.setAttribute(
+            'aria-label',
+            _guildHallStatsExpanded ? 'Hide detailed guild stats for all guilds' : 'Show detailed guild stats for all guilds'
+        );
+        const chev = expandToggle.querySelector('.guild-crystal-expand-btn__chev');
+        if (chev) chev.textContent = _guildHallStatsExpanded ? '▲' : '▼';
+        list.querySelector('.guild-crystal-arena')?.classList.toggle('guild-crystal-arena--stats-expanded', _guildHallStatsExpanded);
+        list.querySelector('.guild-crystal-expand-all-wrap')?.classList.toggle('guild-crystal-expand-all-wrap--open', _guildHallStatsExpanded);
+    });
 
     // ── Animate crystal fills in ──────────────────────────────────────────────
     requestAnimationFrame(() => {
@@ -593,7 +638,7 @@ export function renderGuildsTab() {
             _openPowerExplainer();
             return;
         }
-        const infoBtn = e.target.closest('.guild-info-btn');
+        const infoBtn = e.target.closest('[data-top-heroes-guild]');
         if (infoBtn) {
             e.stopPropagation();
             openGuildHeroesModal(infoBtn.dataset.topHeroesGuild);

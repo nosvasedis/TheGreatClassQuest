@@ -10,6 +10,9 @@
 /* 1. Base: Fonts, body, core animations, pop-in/out, date-time */
 @import url('./styles/base.css');
 
+/* 1b. Global fluffy scrollbars (Firefox + WebKit); light default + dark-panel variants */
+@import url('./styles/scrollbars.css');
+
 /* 2. Navigation bar, nav-button, nav-color-* classes, cloud swirl header */
 @import url('./styles/nav.css');
 
@@ -81,6 +84,9 @@
 
 /* 22. Hero stats modal: hero-avatar-float, hero-stat-item */
 @import url('./styles/hero_stats.css');
+
+/* 22b. Student analytics modal: tabs, charts, heatmap, exports */
+@import url('./styles/student_analytics.css');
 
 /* 23. Bulk trial log modal: bulk-log-item, toggle-absent-btn */
 @import url('./styles/bulk_trial.css');

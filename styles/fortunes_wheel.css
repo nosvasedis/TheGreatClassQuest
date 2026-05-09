@@ -448,25 +448,6 @@
         0 16px 40px rgba(2, 6, 23, 0.3);
 }
 
-/* Custom scrollbar for controls section */
-.fw-controls-section::-webkit-scrollbar {
-    width: 6px;
-}
-
-.fw-controls-section::-webkit-scrollbar-track {
-    background: rgba(255, 255, 255, 0.02);
-    border-radius: 3px;
-}
-
-.fw-controls-section::-webkit-scrollbar-thumb {
-    background: rgba(251, 191, 36, 0.3);
-    border-radius: 3px;
-}
-
-.fw-controls-section::-webkit-scrollbar-thumb:hover {
-    background: rgba(251, 191, 36, 0.5);
-}
-
 .fw-class-selector {
     display: flex;
     flex-direction: column;
@@ -557,24 +538,6 @@
     opacity: 1;
     visibility: visible;
     transform: translateY(0);
-}
-
-.fw-custom-dropdown::-webkit-scrollbar {
-    width: 5px;
-}
-
-.fw-custom-dropdown::-webkit-scrollbar-track {
-    background: rgba(255, 255, 255, 0.02);
-    border-radius: 3px;
-}
-
-.fw-custom-dropdown::-webkit-scrollbar-thumb {
-    background: rgba(251, 191, 36, 0.3);
-    border-radius: 3px;
-}
-
-.fw-custom-dropdown::-webkit-scrollbar-thumb:hover {
-    background: rgba(251, 191, 36, 0.5);
 }
 
 .fw-custom-dropdown__option {
@@ -1033,23 +996,6 @@
     position: relative;
     z-index: 1;
 }
-
-/* Rarity-tinted scrollbar in the result card scroller */
-.fw-reveal-card::-webkit-scrollbar {
-    width: 5px;
-}
-
-.fw-reveal-card::-webkit-scrollbar-track {
-    background: rgba(255, 255, 255, 0.02);
-    border-radius: 3px;
-}
-
-.fw-reveal-card::-webkit-scrollbar-thumb {
-    background: var(--shell-rarity-color, rgba(251, 191, 36, 0.4));
-    border-radius: 3px;
-    opacity: 0.6;
-}
-
 
 .fw-reveal-actions {
     display: flex;

@@ -31,17 +31,17 @@
 | [Project Overview](#-project-overview) | What the app is and who it's for |
 | [The Quest Master's Philosophy](#-the-quest-masters-philosophy) | Four pedagogical pillars |
 | [Navigation at a Glance](#-navigation-at-a-glance) | All main tabs and what they do |
-| [Core Gameplay Loop](#-core-gameplay-loop) | Setup → Award → Log |
-| [The Economy System](#-the-economy-system-gold--shop) | Gold, Mystic Market, Legendary Artifacts, Hero Classes (Pro+), Boons, Familiars |
+| [Core Gameplay Loop](#-core-gameplay-loop) | Setup → Award Stars → Adventure Log |
+| [The Economy System](#-the-economy-system-gold--mystic-market) | Gold, Mystic Market, Legendary Artifacts, Hero Classes (Pro+), Boons, Familiars |
 | [Home Dashboard](#-home-dashboard) | Weather, schedule, tools, class/school view |
 | [Team Quest](#-team-quest) | League map, monthly goals, ceremony |
-| [Hero's Challenge](#-heros-challenge) | Leaderboard, shop, Hero Stats, Prodigy, certificates |
-| [Guilds & Factions](#-guilds--factions) | Guild houses, sorting quiz, year-long race |
+| [Hero's Challenge](#-heros-challenge) | Leaderboard, Mystic Market, Hero Stats, Prodigy, certificates |
+| [Guilds & Factions](#-guilds--factions) | Guild Hall tab, houses, sorting quiz, year-long race |
 | [My Classes & Roster](#-my-classes--roster) | Classes, students, reports, certificates |
 | [Award Stars](#-award-stars) | Reasons, effects, bounties, Hero's Boon |
 | [Adventure Log](#-adventure-log) | AI diary, story image, Quest Events |
 | [Scholar's Scroll](#-scholars-scroll) | Tests, dictations, Starfall, makeup, performance chart |
-| [Calendar & Planner](#-calendar--planner) | Schedule, cancellations, holidays, Quest Events |
+| [Quest Calendar & Planner](#-quest-calendar--planner) | Schedule, cancellations, holidays, Quest Events |
 | [Live Classroom: Wallpaper Mode](#-live-classroom-wallpaper-mode) | The Director, cards, clock, celebrations |
 | [Quest Bounties](#-quest-bounties) | Short-term group challenges |
 | [Special Quest Types](#-special-quest-types) | Vocabulary Vault, Unbroken Chain, and more |
@@ -82,13 +82,14 @@ The app is built on four pedagogical pillars:
 |-----|---------|
 | **Home** | Dashboard: weather, time greeting, school/class stats, today’s schedule, quick actions (Team History, Holiday, Planner, Report, etc.). |
 | **Team Quest** | Class leaderboard, **League Map** (journey from Bronze Meadows to Crystal Realm), monthly goal (adjusted for holidays/cancellations), **Monthly Award Ceremony**. |
-| **Hero's Challenge** | Student leaderboard with **Individual / Guild** toggle; **Shop** (Mystic Market) and **Trophy Room** (view a student’s full collection + inventory); Hero Stats modal, **Prodigy of the Month** archive, certificates. Click an avatar → enlarged avatar (Familiar, Inventory, link to Trophy Room). |
-| **Guilds** | **Guild Hall**: crystal columns for all four guilds (Total Stars, member count, top contributors). **This Month's Champion** per guild. Tap emblem for lore; play guild **anthem** (karaoke-style). |
+| **Hero's Challenge** | Student leaderboard with **Individual / Guild** toggle; **Trophy Room** (full collection + inventory); Hero Stats modal, **Prodigy of the Month** archive, certificates. Click an avatar → enlarged avatar (Familiar, Inventory, link to Trophy Room). |
+| **Mystic Market** | Spend Gold on seasonal items (Elite: AI **Restock**), **Legendary Artifacts**, and **Familiar** eggs. Class + student selectors; magical storefront UI. |
+| **Guild Hall** | Crystal columns for all four guilds (Total Stars, member count, top contributors). **This Month's Champion** per guild. Tap emblem for lore; play guild **anthem** (karaoke-style). |
 | **My Classes** | Create/edit classes (name, logo, schedule, Quest League). Click **Students** → **Manage Students** (roster with per-student **Skill Tree**, **Hero's Chronicle**, **Avatar Forge**, **Certificate**, **Move Student**, **Guild Quiz** if no guild). **Report** (AI class summary). |
-| **Award** | Award stars (Teamwork, Creativity, Respect, Focus, etc.), **Quest Bounties**, **Hero's Boon**. Sounds and particle effects. |
-| **Adventure Log** | **Log Today's Adventure** (AI diary + storybook image), view past entries. Buttons: **Quest Assignment**, **Attendance** (Attendance Chronicle), **Hall of Heroes** (Prodigy archive). **Quest Events** are scheduled from Calendar → Day Planner. |
+| **Award Stars** | Award stars (Teamwork, Creativity, Respect, Focus, etc.), **Quest Bounties**, **Hero's Boon**. Sounds and particle effects. |
+| **Adventure Log** | **Log Today's Adventure** (AI diary + storybook image), view past entries. Buttons: **Quest Assignment**, **Attendance** (Attendance Chronicle), **Hall of Heroes** (Prodigy archive). **Quest Events** are scheduled from **Quest Calendar** → Day Planner. |
 | **Scholar's Scroll** | **Tests** and **Dictations**, **Starfall** on high scores, **Makeup Work** flags, **Performance Chart**, upcoming test alert. |
-| **Calendar** | Month view, **Day Planner** (see/cancel/add lessons, mark holiday, add **Quest Events**). Holiday/cancellation themes. |
+| **Quest Calendar** | Month view, **Day Planner** (see/cancel/add lessons, mark holiday, add **Quest Events**). Holiday/cancellation themes. |
 | **Story Weavers** | Collaborative story + Word of the Day + AI art. |
 | **Options** | **Star Manager**, **Coin Purse Manager**, **School Year Planner** (holidays), Profile (display name), **Danger Zone** (purge/erase). |
 
@@ -101,25 +102,25 @@ The app is built on four pedagogical pillars:
 - **Roster:** Add students; each has Total Stars, Monthly Stars, Gold, Inventory, **Hero Class**, avatar, birthday, nameday.
 - **Personalization:** Edit student → Birthday, **Nameday** (with **AI Nameday Lookup** for Greek Orthodox Εορτολόγιο), **Hero Class** (Pro+, optional lock).
 
-### 2. The Daily Session (**Award**)
+### 2. The Daily Session (**Award Stars**)
 - Choose student + reason (Teamwork, Creativity, Respect, Focus, Welcome Back, Scholar's Bonus, Story Weaver, etc.).
 - **Visual feedback:** Particle effects + unique sound (e.g. Magic Chime).
 - Data (timestamp, reason, value) is written to Firestore; on **Pro+**, **Hero Class** can grant **+10 Gold** for matching reason and additional bonuses from that hero’s **Skill Tree** (e.g. extra Gold, bonus stars, guild-wide perks).
 
-### 3. The End-of-Day Ritual (**Log**)
+### 3. The End-of-Day Ritual (**Adventure Log**)
 - **"Log Today's Adventure"** sends the day’s events to the AI.
 - AI writes a whimsical diary entry; an AI image generator creates a **storybook-style** illustration.
 - Entry is stored and can be revisited; **Pathfinder's Map** and **Mask of the Protagonist** can be reflected in the narrative.
 
 ---
 
-## 💰 The Economy System: Gold & Shop
+## 💰 The Economy System: Gold & Mystic Market
 
 ### 🪙 Gold Coins
 - **Earning:** 1 Star = 1 Gold. **Bonus Gold:** e.g. "2x Days," **Hero Class** match (+10, Pro+), **Hero Skill Tree** perks (extra Gold or bonus stars when the student plays to their class’s strength, Pro+), **Scroll of the Gilded Star** (3× next star).
 - **Spending** Gold does **not** lower Leaderboard rank (Total Stars are separate).
 
-### 🎪 The Mystic Market (Hero's Challenge → Shop)
+### 🎪 Mystic Market (Hero's Challenge)
 - **Seasonal stock:** AI generates ~15 items per month by season and league (e.g. Ice Sword in winter; Junior = toys/stickers, Senior = RPG-style artifacts).
 - **Legendary Artifacts:** Always available; fixed list of **power-ups** (see below). Different purchase limits (e.g. 2 Legendary per student per month; Pathfinder’s Map 1 per class per month).
 - **Purchase:** Up to **2 items per month** per student (seasonal); Legendary limits apply per type. Items appear in the student’s **Inventory** and in the **Enlarged Avatar** pop-up.
@@ -163,7 +164,7 @@ Students can spend Gold on **Familiar Eggs** in the **Mystic Market**. Each stud
 - **Sounds & Feel:** Hatching and evolution trigger dedicated **sound cues** and celebratory toasts, turning long-term consistency into a visible, emotionally resonant payoff.
 
 ### 🎁 Hero's Boon
-From the **Award** tab, a student can **Bestow a Boon** on another (cost: **15 Gold**). The receiver gets **+0.5 Stars** (Total + Monthly); the giver gets peer recognition. Builds generosity and community.
+From the **Award Stars** tab, a student can **Bestow a Boon** on another (cost: **15 Gold**). The receiver gets **+0.5 Stars** (Total + Monthly); the giver gets peer recognition. Builds generosity and community.
 
 ---
 
@@ -175,7 +176,7 @@ The **Home** tab is your command center and adapts to **weather** and **time of 
 - **Time-based greeting:** Good Morning / Afternoon / Evening / Night with matching gradient.
 - **View modes:**
   - **No class selected:** School-wide stats (School Stars, Heroes count, Treasury), **Global Tools** (Hero Ranks, New Class, **Team History**, **Holiday**, **Plan**, Setup), and **School Schedule** for today.
-  - **Class selected:** That class’s monthly stars, goal (holiday/cancellation-adjusted), progress bar, **last story sentence**, quick actions (**Report**, Award, Log, etc.), **today’s schedule**, and class-specific widgets.
+  - **Class selected:** That class’s monthly stars, goal (holiday/cancellation-adjusted), progress bar, **last story sentence**, quick actions (**Report**, **Award Stars**, **Adventure Log**, etc.), **today’s schedule**, and class-specific widgets.
 - **Shortcuts:** Open **Team History**, **Day Planner**, **Holiday** (Options), **Report** (class), **Settings** (Options).
 
 ---
@@ -191,7 +192,7 @@ The **Home** tab is your command center and adapts to **weather** and **time of 
 ## 🏆 Hero's Challenge
 
 - **Student Leaderboard:** Ranks by Total Stars (and/or Monthly); avatars with **Hero Class aura ring**, Gold, and (optionally) their animated **Familiar** companion. Click student → **Hero Stats** modal or **enlarged avatar** (avatar + Familiar + **Inventory**, link to **Trophy Room**).
-- **Shop & Trophy Room:** **Shop** opens the **Mystic Market**. **Trophy Room** shows a student's full **Inventory** (and access to shop); also openable from the enlarged avatar via "See full collection →".
+- **Mystic Market & Trophy Room:** Use **Mystic Market** (bottom nav) to browse and buy with Gold. **Trophy Room** shows a student's full **Inventory** (and access to the market); also openable from the enlarged avatar via "See full collection →".
 - **Hero Stats Modal:** Avatar, name, Hero Class, **Trials Logged**, **Average Test Score**, **Best Test**, dictation summary (Junior: qualitative; Senior: average %). **Performance chart** (test/dictation over time). Links to **Hero's Chronicle** and **Certificate**.
 - **Prodigy of the Month / Hall of Heroes:** Archive of past **Prodigy** (and Co-Prodigy) with month selector; open from Hero's Challenge, Home, or **Adventure Log** tab (**Hall of Heroes** button).
 - **Certificates:** **Generate Certificate** (from roster or Hero Stats) → AI writes a unique paragraph from top reason + monthly stars; PDF download with avatar and themed style (Junior/Mid/Senior).
@@ -200,6 +201,8 @@ The **Home** tab is your command center and adapts to **weather** and **time of 
 ---
 
 ## 🏰 Guilds & Factions
+
+*Opened from the bottom nav as **Guild Hall**.*
 
 - **Four Guilds:** Every student can belong to one of four guilds, each with its own emblem and theme:
   - **Dragon Flame** – courage, boldness, fiery energy.
@@ -228,7 +231,7 @@ The **Home** tab is your command center and adapts to **weather** and **time of 
 
 - **Reasons:** Teamwork, Creativity, Respect, Focus, Welcome Back, Scholar's Bonus, Story Weaver, Correction, etc. On **Pro+**, **Hero Class** adds +10 Gold when reason matches, and may add extra Gold or bonus stars if the student has unlocked matching **Skill Tree** perks.
 - **Effects:** Click award → particle burst + sound (e.g. Magic Chime). **Clarity** (Crystal of Clarity) shows a pulsing gem on the card.
-- **Quest Bounties:** “Post a Bounty” → set **Target** (e.g. 20 stars), **Time limit**, **Reward** (e.g. 5 mins free time). Progress bar on Award screen and **Wallpaper Mode**; victory fanfare when target is hit. **Time Warp Hourglass** adds +5 minutes to active timers.
+- **Quest Bounties:** “Post a Bounty” → set **Target** (e.g. 20 stars), **Time limit**, **Reward** (e.g. 5 mins free time). Progress bar on **Award Stars** and **Wallpaper Mode**; victory fanfare when target is hit. **Time Warp Hourglass** adds +5 minutes to active timers.
 - **Hero's Boon:** Button to bestow Boon on another student (cost 15 Gold; receiver +0.5 Stars).
 
 ---
@@ -240,7 +243,7 @@ The **Home** tab is your command center and adapts to **weather** and **time of 
 - **Quest Assignment:** Schedule or view **Quest Assignments** (special tasks linked to the log).
 - **Attendance:** Opens **Attendance Chronicle** (month × students matrix, mark present/absent, monthly %).
 - **Hall of Heroes:** Opens the **Prodigy of the Month** archive (past class heroes by month).
-- **Quest Events:** From **Calendar** → Day Planner → **Quest Event** tab: schedule a **Special Quest** (Vocabulary Vault, Unbroken Chain, Grammar Guardians, Scribe’s Sketch, Five-Sentence Saga) with date, type, and parameters (e.g. completion bonus, goal target). Events show on calendar and can influence goals/logs.
+- **Quest Events:** From **Quest Calendar** → Day Planner → **Quest Event** tab: schedule a **Special Quest** (Vocabulary Vault, Unbroken Chain, Grammar Guardians, Scribe’s Sketch, Five-Sentence Saga) with date, type, and parameters (e.g. completion bonus, goal target). Events show on the calendar and can influence goals/logs.
 
 ---
 
@@ -262,7 +265,7 @@ The **Home** tab is your command center and adapts to **weather** and **time of 
 
 ---
 
-## 📅 Calendar & Planner
+## 📅 Quest Calendar & Planner
 
 - **Month grid:** Shows which days have lessons (from class schedules + **one-time overrides**). **School holidays** and **cancelled days** are themed (e.g. Winter Break, No School). Click a day → **Day Planner**.
 - **Day Planner – Schedule:** List of classes scheduled that day; **Cancel** (for your classes) or **Add one-time lesson**. Cancellations and one-time lessons are **Schedule Overrides** and affect **monthly goal** and calendar styling.
@@ -298,13 +301,13 @@ The **Home** tab is your command center and adapts to **weather** and **time of 
 
 - **Concept:** Short-term group challenge: reach **X stars** in **Y minutes** for a **reward** (e.g. 5 mins free time).
 - **Config:** Target, time limit, reward text. **Time Warp Hourglass** adds +5 minutes to active timers.
-- **Display:** Progress bar on **Award** screen and in **Wallpaper Mode**. **Win:** Fanfare and bounty marked completed.
+- **Display:** Progress bar on **Award Stars** and in **Wallpaper Mode**. **Win:** Fanfare and bounty marked completed.
 
 ---
 
 ## 🗓️ Special Quest Types (Rules & Mechanics)
 
-*Scheduled via **Calendar** → Day Planner → **Quest Event**.*
+*Scheduled via **Quest Calendar** → Day Planner → **Quest Event**.*
 
 | Quest | Objective | Mechanics |
 |-------|-----------|-----------|

@@ -117,12 +117,17 @@ export async function handleEndStory() {
 
             const batch = writeBatch(db);
             const newArchiveDocRef = doc(collection(db, `${publicDataPath}/completed_stories`));
+            const firstChapter = storyChapters[0] || {};
+            const coverImageUrl = firstChapter.imageUrl || null;
+            const coverImageBase64 = !coverImageUrl ? (firstChapter.imageBase64 || null) : null;
             
             batch.set(newArchiveDocRef, {
                 title: storyTitle,
                 classId: classId,
                 className: classData.name,
                 classLogo: classData.logo,
+                coverImageUrl,
+                coverImageBase64,
                 completedAt: serverTimestamp(),
                 createdBy: { uid: state.get('currentUserId'), name: state.get('currentTeacherName') }
             });

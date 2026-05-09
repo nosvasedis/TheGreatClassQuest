@@ -46,6 +46,7 @@ function clearDataListeners() {
     state.get('unsubscribeScheduleOverrides')();
     state.get('unsubscribeHeroChronicleNotes')();
     state.get('unsubscribeSchoolSettings')();
+    state.get('unsubscribeTeacherSettings')();
     state.get('unsubscribeQuestBounties')();
     state.get('unsubscribeGuildScores')();
     state.get('unsubscribeGuildChampions')();
@@ -208,6 +209,20 @@ export function setupDataListeners(userId, dateString, onInitialDataReady, optio
     clearDataListeners();
 
     const publicDataPath = "artifacts/great-class-quest/public/data";
+
+    // --- Teacher profile/settings doc (holds schoolYearSettings.classEndDates, grandCeremonyHistory, etc.) ---
+    // The doc may not exist yet for first-time teachers; treat that as empty settings.
+    // We don't gate maybeFireInitialReady() on this — it's a small, optional read.
+    if (!isSecretary) {
+        const teacherDocRef = doc(db, `${publicDataPath}/teachers`, userId);
+        state.setUnsubscribeTeacherSettings(onSnapshot(teacherDocRef, (snap) => {
+            state.setTeacherSettings(snap.exists() ? snap.data() : {});
+            // Refresh Grand Guild Ceremony buttons since they depend on classEndDates.
+            import('../features/grandGuildCeremony.js')
+                .then(m => m.updateCeremonyButtons?.())
+                .catch(() => { /* feature may be lazy-loaded later */ });
+        }, (error) => console.error('Error listening to teacher settings:', error)));
+    }
 
     // --- Time-bounded Definitions ---
     const thirtyDaysAgo = new Date();

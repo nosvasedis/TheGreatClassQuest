@@ -122,6 +122,11 @@
     z-index: 30;
 }
 
+/* Home stat tiles (School Stars / Heroes / Treasury): keep tinted gradients — no glass wash */
+.vibrant-card.stat-card-pop::before {
+    opacity: 0;
+}
+
 /* Date Pill Styling */
 .date-pill {
     padding: 0.5rem 1.5rem;
@@ -222,22 +227,22 @@
     border-color: rgba(74, 222, 128, 0.35);
 }
 
-/* General Tools Hover Colors - Enhanced */
-.tool-btn-pop[data-action="open-global-ranks"]:hover { 
-    background: linear-gradient(135deg, #fdf4ff 0%, #fae8ff 100%); 
-    color: #c026d3; 
+/* Global Tools — match data-action values from features/home.js getGeneralDashboard */
+.tool-btn-pop[data-action="open-student-ranks"]:hover {
+    background: linear-gradient(135deg, #fdf4ff 0%, #fae8ff 100%);
+    color: #c026d3;
     border-color: #f0abfc;
     box-shadow: 0 8px 25px -5px rgba(192, 38, 211, 0.3);
 }
-.tool-btn-pop[data-action="create-class"]:hover { 
-    background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%); 
-    color: #16a34a; 
+.tool-btn-pop[data-action="create-class"]:hover {
+    background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);
+    color: #16a34a;
     border-color: #86efac;
     box-shadow: 0 8px 25px -5px rgba(22, 163, 74, 0.3);
 }
-.tool-btn-pop[data-action="open-history"]:hover { 
-    background: linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%); 
-    color: #d97706; 
+.tool-btn-pop[data-action="open-team-history"]:hover {
+    background: linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%);
+    color: #d97706;
     border-color: #fcd34d;
     box-shadow: 0 8px 25px -5px rgba(217, 119, 6, 0.3);
 }
@@ -430,41 +435,60 @@
     animation: wiggle 0.5s ease-in-out;
 }
 
-/* Specific Hovers - Enhanced */
-.tool-btn-pop[data-target="class-leaderboard-tab"]:hover { 
-    background: linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%); 
-    color: #d97706; 
+/* Class Actions & shared tab shortcuts — tint + glow (match Global Tools polish) */
+.tool-btn-pop[data-target="class-leaderboard-tab"]:hover {
+    background: linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%);
+    color: #d97706;
     border-color: #fcd34d;
+    box-shadow: 0 8px 25px -5px rgba(217, 119, 6, 0.35);
 }
-.tool-btn-pop[data-target="student-leaderboard-tab"]:hover { 
-    background: linear-gradient(135deg, #faf5ff 0%, #f3e8ff 100%); 
-    color: #7e22ce; 
+.tool-btn-pop[data-target="student-leaderboard-tab"]:hover {
+    background: linear-gradient(135deg, #faf5ff 0%, #f3e8ff 100%);
+    color: #7e22ce;
     border-color: #d8b4fe;
+    box-shadow: 0 8px 25px -5px rgba(126, 34, 206, 0.3);
 }
-.tool-btn-pop[data-target="award-stars-tab"]:hover { 
-    background: linear-gradient(135deg, #fff1f2 0%, #ffe4e6 100%); 
-    color: #be123c; 
+.tool-btn-pop[data-target="award-stars-tab"]:hover {
+    background: linear-gradient(135deg, #fff1f2 0%, #ffe4e6 100%);
+    color: #be123c;
     border-color: #fda4af;
+    box-shadow: 0 8px 25px -5px rgba(190, 18, 60, 0.28);
 }
-.tool-btn-pop[data-target="adventure-log-tab"]:hover { 
-    background: linear-gradient(135deg, #f0fdfa 0%, #ccfbf1 100%); 
-    color: #0f766e; 
+.tool-btn-pop[data-target="adventure-log-tab"]:hover {
+    background: linear-gradient(135deg, #f0fdfa 0%, #ccfbf1 100%);
+    color: #0f766e;
     border-color: #99f6e4;
+    box-shadow: 0 8px 25px -5px rgba(15, 118, 110, 0.3);
 }
-.tool-btn-pop[data-target="scholars-scroll-tab"]:hover { 
-    background: linear-gradient(135deg, #fff7ed 0%, #ffedd5 100%); 
-    color: #9a3412; 
+.tool-btn-pop[data-target="scholars-scroll-tab"]:hover {
+    background: linear-gradient(135deg, #fff7ed 0%, #ffedd5 100%);
+    color: #9a3412;
     border-color: #fdba74;
+    box-shadow: 0 8px 25px -5px rgba(154, 52, 18, 0.3);
 }
-.tool-btn-pop[data-target="reward-ideas-tab"]:hover { 
-    background: linear-gradient(135deg, #eef2ff 0%, #e0e7ff 100%); 
-    color: #4338ca; 
+.tool-btn-pop[data-target="reward-ideas-tab"]:hover {
+    background: linear-gradient(135deg, #eef2ff 0%, #e0e7ff 100%);
+    color: #4338ca;
     border-color: #a5b4fc;
+    box-shadow: 0 8px 25px -5px rgba(67, 56, 202, 0.3);
 }
-.tool-btn-pop[data-action="open-report"]:hover { 
-    background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%); 
-    color: #15803d; 
+.tool-btn-pop[data-action="open-report"]:hover {
+    background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);
+    color: #15803d;
     border-color: #86efac;
+    box-shadow: 0 8px 25px -5px rgba(21, 128, 61, 0.28);
+}
+.tool-btn-pop[data-action="open-attendance"]:hover {
+    background: linear-gradient(135deg, #ecfeff 0%, #cffafe 100%);
+    color: #0e7490;
+    border-color: #67e8f9;
+    box-shadow: 0 8px 25px -5px rgba(14, 116, 144, 0.32);
+}
+.tool-btn-pop[data-action="edit-class"]:hover {
+    background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
+    color: #0369a1;
+    border-color: #7dd3fc;
+    box-shadow: 0 8px 25px -5px rgba(3, 105, 161, 0.28);
 }
 
 /* 5. ROW 1: GREETING CARD - ENHANCED */
@@ -516,21 +540,8 @@
     position: relative;
     overflow: hidden;
 }
-.stat-card-pop::before {
-    content: '';
-    position: absolute;
-    inset: 0;
-    opacity: 0;
-    transition: opacity 0.4s;
-}
-.stat-card-pop:hover::before {
-    opacity: 1;
-}
 .stat-card-pop:hover {
-    background: linear-gradient(145deg, #ffffff 0%, #f1f5f9 100%);
-    border-color: #e2e8f0;
-    transform: translateY(-6px) scale(1.03);
-    box-shadow: 0 20px 40px -10px rgba(0,0,0,0.12);
+    transform: translateY(-4px) scale(1.03);
 }
 .stat-value-big {
     font-family: 'Fredoka One', cursive;
@@ -788,12 +799,7 @@
     max-height: 160px;
     overflow-y: auto;
     padding-right: 0.5rem;
-    scrollbar-width: thin;
-    scrollbar-color: #A5B4FC #E0E7FF;
 }
-.roster-list::-webkit-scrollbar { width: 6px; }
-.roster-list::-webkit-scrollbar-track { background: linear-gradient(180deg, #E0E7FF 0%, #f8fafc 100%); }
-.roster-list::-webkit-scrollbar-thumb { background-color: #A5B4FC; border-radius: 6px; }
 
 .roster-item {
     display: flex;

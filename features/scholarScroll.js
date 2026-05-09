@@ -137,6 +137,21 @@ function renderScrollDashboard(classId) {
     const testScores = scoresForClass.filter(s => s.type === 'test');
     const dictationScores = scoresForClass.filter(s => s.type === 'dictation');
 
+    const testsByStudentId = new Map();
+    const dictationsByStudentId = new Map();
+    for (const s of scoresForClass) {
+        if (s.type === 'test') {
+            if (!testsByStudentId.has(s.studentId)) testsByStudentId.set(s.studentId, []);
+            testsByStudentId.get(s.studentId).push(s);
+        } else if (s.type === 'dictation') {
+            if (!dictationsByStudentId.has(s.studentId)) dictationsByStudentId.set(s.studentId, []);
+            dictationsByStudentId.get(s.studentId).push(s);
+        }
+    }
+    const scoreMetaByStudentId = new Map(
+        (state.get('allStudentScores') || []).map(sc => [sc.id, sc])
+    );
+
     // --- Calculate Averages ---
     const testAvg = getAssessmentAverage(testScores, classData);
     const dictationAvg = getAssessmentAverage(dictationScores, classData);
@@ -149,8 +164,8 @@ function renderScrollDashboard(classId) {
     let topScholars = [];
     if (studentsInClass.length > 0 && scoresForClass.length > 0) {
         const studentAverages = studentsInClass.map(student => {
-            const studentTestScores = testScores.filter(s => s.studentId === student.id);
-            const studentDictationScores = dictationScores.filter(s => s.studentId === student.id);
+            const studentTestScores = testsByStudentId.get(student.id) || [];
+            const studentDictationScores = dictationsByStudentId.get(student.id) || [];
             if (studentTestScores.length === 0 && studentDictationScores.length === 0) return null;
 
             const avg = getWeightedAcademicAverage(studentTestScores, studentDictationScores, classData);
@@ -166,8 +181,8 @@ function renderScrollDashboard(classId) {
     // Stat cards deprecated - removed as per v2 cleanup
 
     const studentPerformanceData = studentsInClass.map(student => {
-        const studentTestScores = scoresForClass.filter(s => s.studentId === student.id && s.type === 'test');
-        const studentDictationScores = scoresForClass.filter(s => s.studentId === student.id && s.type === 'dictation');
+        const studentTestScores = testsByStudentId.get(student.id) || [];
+        const studentDictationScores = dictationsByStudentId.get(student.id) || [];
 
         const avg = getWeightedAcademicAverage(studentTestScores, studentDictationScores, classData);
         const performance = (studentTestScores.length > 0 || studentDictationScores.length > 0)
@@ -180,8 +195,8 @@ function renderScrollDashboard(classId) {
     if (studentPerformanceData.length === 0 || studentPerformanceData.every(d => d.performance.value === 0)) {
         chartContainer.innerHTML = `<p class="text-center text-gray-400 p-8">Log some trials to see the performance chart!</p>`;
     } else {
-        chartContainer.innerHTML = `<div class="performance-chart-container">${studentPerformanceData.map(({ student, performance }) => {
-            const scoreData = state.get('allStudentScores').find(sc => sc.id === student.id);
+        chartContainer.innerHTML = `<div class="performance-chart-container">${studentPerformanceData.map(({ student, performance }, rowIndex) => {
+            const scoreData = scoreMetaByStudentId.get(student.id);
             const pendingSkill = !!scoreData?.pendingSkillChoice;
             const avatarInner = student.avatar
                 ? `<img src="${student.avatar}" alt="${student.name}" class="student-avatar enlargeable-avatar" data-student-id="${student.id}">`
@@ -194,15 +209,18 @@ function renderScrollDashboard(classId) {
             else if (percentage >= 50) tier = 'mid';
 
             return `
-    <div class="chart-row" data-score-tier="${tier}">
+    <div class="chart-row" data-score-tier="${tier}" style="--chart-stagger: ${rowIndex * 0.02}s">
         <div class="chart-avatar-wrapper">
             ${avatarHtml}
         </div>
-        <div class="chart-label cursor-pointer" data-student-id="${student.id}">
+        <button type="button"
+            class="chart-label chart-label-button cursor-pointer"
+            data-student-id="${student.id}"
+            aria-label="Open analytics for ${student.name}">
             ${student.heroClass && HERO_CLASSES[student.heroClass] ? HERO_CLASSES[student.heroClass].icon : ''} ${student.name}
-        </div>
+        </button>
         <div class="chart-bar-wrapper">
-            <div class="chart-bar" data-score-tier="${tier}" style="width: ${percentage}%; animation-delay: ${Math.random() * 0.2}s;">
+            <div class="chart-bar" data-score-tier="${tier}" style="width: ${percentage}%;">
                 <span>${performance.display}</span>
             </div>
         </div>
@@ -288,7 +306,13 @@ export function openBulkLogModal(classId, type) {
     listContainer.innerHTML = '';
 
     if (students.length === 0) {
-        listContainer.innerHTML = `<p class="col-span-full text-center text-gray-500">No students found in this class.</p>`;
+        listContainer.innerHTML = `
+            <div class="col-span-full rounded-3xl border border-amber-200/70 bg-white/70 p-8 text-center shadow-sm">
+                <div class="text-5xl mb-3">🧭</div>
+                <p class="font-title text-2xl text-amber-900">No students found</p>
+                <p class="text-sm text-amber-900/60 font-semibold mt-1">Add students to this class to start logging trials.</p>
+            </div>
+        `;
     } else {
         const today = utils.getTodayDateString();
         const attendance = state.get('allAttendanceRecords').filter(r => r.classId === classId && r.date === today);
@@ -335,14 +359,14 @@ export function openBulkLogModal(classId, type) {
 
 function renderStudentBulkRow(student, scheme, isAbsent) {
     const avatarHtml = student.avatar
-        ? `<img src="${student.avatar}" class="w-10 h-10 rounded-full object-cover border border-gray-200 student-avatar">`
-        : `<div class="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center text-gray-500 font-bold student-avatar">${student.name.charAt(0)}</div>`;
+        ? `<img src="${student.avatar}" class="w-11 h-11 rounded-full object-cover border-2 border-white shadow-sm ring-1 ring-amber-200/60 student-avatar">`
+        : `<div class="w-11 h-11 rounded-full bg-gradient-to-br from-amber-100 to-orange-100 flex items-center justify-center text-amber-800 font-black shadow-sm ring-1 ring-amber-200/60 student-avatar">${student.name.charAt(0)}</div>`;
 
     let inputHtml = '';
 
     if (scheme.mode === 'qualitative') {
         inputHtml = `
-            <select class="bulk-grade-input w-full p-2 border border-gray-300 rounded-md bg-white focus:ring-2 focus:ring-blue-400 outline-none" ${isAbsent ? 'disabled' : ''}>
+            <select class="bulk-grade-input w-full p-2.5 border border-amber-200/80 rounded-xl bg-white/80 focus:ring-2 focus:ring-amber-400 outline-none shadow-sm" ${isAbsent ? 'disabled' : ''}>
                 <option value="" selected disabled>Select Grade...</option>
                 ${(scheme.scale || []).map((entry) => `<option value="${entry.label}">${entry.label} (${entry.normalizedPercent}%)</option>`).join('')}
             </select>
@@ -351,27 +375,27 @@ function renderStudentBulkRow(student, scheme, isAbsent) {
         const maxScore = Number(scheme.maxScore) || 100;
         inputHtml = `
             <div class="relative">
-                <input type="number" class="bulk-grade-input w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-400 outline-none" 
+                <input type="number" class="bulk-grade-input w-full p-2.5 border border-amber-200/80 rounded-xl bg-white/80 focus:ring-2 focus:ring-amber-400 outline-none shadow-sm" 
                     placeholder="0-${maxScore}" min="0" max="${maxScore}" ${isAbsent ? 'disabled' : ''} onwheel="this.blur()">
-                <span class="absolute right-3 top-2 text-gray-400 text-sm">/${maxScore}</span>
+                <span class="absolute right-3 top-2.5 text-amber-900/45 text-sm font-bold">/${maxScore}</span>
             </div>
         `;
     }
 
     const buttonClass = isAbsent
         ? 'is-absent bg-red-500 text-white hover:bg-red-600'
-        : 'bg-green-500 text-white hover:bg-green-600';
+        : 'bg-emerald-500 text-white hover:bg-emerald-600';
 
     return `
-        <div class="bulk-log-item bg-white p-3 rounded-xl shadow-sm flex items-center gap-3 ${isAbsent ? 'absent' : ''}" data-student-id="${student.id}">
+        <div class="bulk-log-item bg-white/80 p-4 rounded-2xl shadow-sm flex items-center gap-3 border border-amber-200/60 hover:border-amber-300 hover:shadow-md transition-all ${isAbsent ? 'absent' : ''}" data-student-id="${student.id}">
             ${avatarHtml}
             <div class="flex-grow min-w-0">
                 <p class="font-bold text-gray-800 truncate">${student.name}</p>
-                <button class="toggle-absent-btn text-xs px-2 py-1 rounded-full mt-1 ${buttonClass}" tabindex="-1">
+                <button type="button" class="toggle-absent-btn text-xs px-2.5 py-1.5 rounded-full mt-1 ${buttonClass} shadow-sm transition-all focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-amber-400">
                     ${isAbsent ? '<i class="fas fa-user-slash"></i> Absent' : '<i class="fas fa-user-check"></i> Present'}
                 </button>
             </div>
-            <div class="w-32 grade-input-wrapper">
+            <div class="w-36 grade-input-wrapper">
                 ${inputHtml}
             </div>
         </div>
@@ -394,8 +418,8 @@ export async function openTrialHistoryModal(classId) {
     // 1. Reset Toggle Buttons
     const viewToggleContainer = document.getElementById('trial-history-view-toggle');
     viewToggleContainer.innerHTML = `
-        <button data-view="test" class="toggle-btn active-toggle"><i class="fas fa-file-alt mr-2"></i>Tests</button>
-        <button data-view="dictation" class="toggle-btn"><i class="fas fa-microphone-alt mr-2"></i>Dictations</button>
+        <button data-view="test" class="toggle-btn active-toggle px-4 py-2 rounded-xl font-bold text-sm transition-all"><i class="fas fa-file-alt mr-2"></i>Tests</button>
+        <button data-view="dictation" class="toggle-btn px-4 py-2 rounded-xl font-bold text-sm transition-all"><i class="fas fa-microphone-alt mr-2"></i>Dictations</button>
     `;
 
     viewToggleContainer.querySelectorAll('.toggle-btn').forEach(btn => {
@@ -427,7 +451,7 @@ export async function openTrialHistoryModal(classId) {
 
     // Reset container with a loading state
     actionsContainer.innerHTML = `
-        <div class="flex items-center gap-2 bg-amber-100 text-amber-900 px-3 py-1.5 rounded-lg border border-amber-300 shadow-sm opacity-70">
+        <div class="flex items-center gap-2 bg-purple-100 text-purple-900 px-3 py-1.5 rounded-xl border border-purple-200 shadow-sm opacity-70">
             <i class="fas fa-spinner fa-spin text-sm"></i>
             <span class="text-xs font-bold uppercase tracking-wider">Locating Archives...</span>
         </div>`;
@@ -457,18 +481,18 @@ export async function openTrialHistoryModal(classId) {
             // Render The Beautiful Dropdown
             actionsContainer.innerHTML = `
                 <div class="relative group">
-                    <div class="flex items-center bg-white border-2 border-amber-300 rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-all">
-                        <div class="bg-amber-100 px-3 py-2 border-r border-amber-200">
-                            <i class="fas fa-history text-amber-700"></i>
+                    <div class="flex items-center bg-white border border-purple-200 rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-all">
+                        <div class="bg-purple-50 px-3 py-2 border-r border-purple-100">
+                            <i class="fas fa-history text-purple-600"></i>
                         </div>
-                        <select id="trial-history-month-select" class="pl-2 pr-8 py-2 bg-transparent text-amber-900 font-bold text-sm outline-none cursor-pointer appearance-none min-w-[140px]">
+                        <select id="trial-history-month-select" class="pl-3 pr-8 py-2 bg-transparent text-purple-900 font-bold text-sm outline-none cursor-pointer appearance-none min-w-[140px]">
                             <option value="">Load Past Month...</option>
                             ${historicalMonths.map(m => {
                 const d = new Date(m + '-02');
                 return `<option value="${m}">${d.toLocaleString('en-GB', { month: 'long', year: 'numeric' })}</option>`;
             }).join('')}
                         </select>
-                        <div class="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-amber-500 text-xs">
+                        <div class="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-purple-400 text-xs group-hover:text-purple-600 transition-colors">
                             <i class="fas fa-chevron-down"></i>
                         </div>
                     </div>
@@ -583,19 +607,35 @@ export function renderTrialHistoryContent(classId, view) {
             const dateObj = utils.parseFlexibleDate(date);
             const displayDate = dateObj ? dateObj.toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'short' }) : date;
 
-            return `<div class="bg-white/50 rounded-lg p-2 mb-2">
-                        <div class="date-group-header flex justify-between items-center">
-                            <span>${displayDate}</span>
-                            <span class="text-sm font-normal text-gray-500">${title}</span>
+            return `<div class="mb-5 last:mb-0 relative">
+                        <div class="flex items-center gap-3 mb-3 pl-2">
+                            <div class="flex flex-col items-center justify-center w-12 h-12 rounded-xl bg-gradient-to-b from-purple-100 to-white border border-purple-200 shadow-sm text-center leading-none">
+                                <span class="text-[10px] font-bold text-purple-600 uppercase tracking-wider mb-0.5">${displayDate.substring(0,3)}</span>
+                                <span class="text-lg font-black text-purple-900 font-title">${dateObj ? dateObj.getDate() : ''}</span>
+                            </div>
+                            <div>
+                                <span class="font-bold text-gray-700">${dateObj ? dateObj.toLocaleDateString('en-GB', { weekday: 'long', month: 'long', year: 'numeric' }) : date}</span>
+                                <div class="text-xs font-semibold text-purple-600 bg-purple-100 px-2.5 py-0.5 rounded-full inline-block mt-0.5 border border-purple-200 shadow-sm">${title}</div>
+                            </div>
                         </div>
-                        <div class="space-y-1 mt-1">${dateScoresHtml}</div>
+                        <div class="space-y-2 pl-4 ml-8 relative before:absolute before:left-0 before:top-2 before:bottom-2 before:w-0.5 before:bg-purple-100">${dateScoresHtml}</div>
                     </div>`;
         }).join('');
 
         return `
-            <details class="month-group bg-white/30 rounded-lg mb-2" data-month-key="${currentMonthKey}" open>
-                <summary class="font-title text-xl text-amber-800 p-3 cursor-pointer hover:bg-white/50 rounded-t-lg transition-colors">${monthName}</summary>
-                <div class="p-2">
+            <details class="group month-group bg-white/80 backdrop-blur-sm rounded-2xl mb-4 shadow-sm border border-purple-100 overflow-hidden transition-all hover:shadow-md" data-month-key="${currentMonthKey}" open>
+                <summary class="flex items-center justify-between font-title text-xl text-purple-900 p-4 cursor-pointer bg-gradient-to-r from-purple-50/50 to-fuchsia-50/50 hover:from-purple-100/50 hover:to-fuchsia-100/50 transition-colors list-none select-none" style="list-style: none;">
+                    <div class="flex items-center gap-3">
+                        <div class="w-8 h-8 rounded-full bg-purple-200/50 flex items-center justify-center text-purple-700">
+                            <i class="fas fa-calendar-alt text-sm"></i>
+                        </div>
+                        ${monthName}
+                    </div>
+                    <div class="text-purple-400 group-open:rotate-180 transition-transform duration-300">
+                        <i class="fas fa-chevron-down"></i>
+                    </div>
+                </summary>
+                <div class="p-4 pt-4 border-t border-purple-100/50">
                     ${monthScoresHtml}
                 </div>
             </details>
@@ -610,24 +650,49 @@ function renderTrialHistoryItem(score) {
     if (!student) return '';
 
     let scoreDisplay = '';
+    let scorePercent = 0;
+    let colorClass = 'text-blue-600';
+    let bgClass = 'bg-blue-50';
+    let borderClass = 'border-blue-200';
+
     if (score.scoreQualitative) {
-        scoreDisplay = `<span class="font-title text-lg text-blue-600">${score.scoreQualitative}</span>`;
+        scoreDisplay = `<span class="font-title text-lg leading-none">${score.scoreQualitative}</span>`;
     }
     else if (score.scoreNumeric !== null && score.maxScore) {
-        const scorePercent = getNormalizedPercentForScore(score) || 0;
-        const colorClass = scorePercent >= 80 ? 'text-green-600' : scorePercent >= 60 ? 'text-yellow-600' : 'text-red-600';
-        scoreDisplay = `<span class="font-title text-lg ${colorClass}">${getAssessmentValueLabel(score)}<span class="text-sm text-gray-500"> • ${scorePercent.toFixed(0)}%</span></span>`;
+        scorePercent = getNormalizedPercentForScore(score) || 0;
+        if (scorePercent >= 80) { colorClass = 'text-emerald-700'; bgClass = 'bg-emerald-50'; borderClass = 'border-emerald-200'; }
+        else if (scorePercent >= 60) { colorClass = 'text-amber-700'; bgClass = 'bg-amber-50'; borderClass = 'border-amber-200'; }
+        else { colorClass = 'text-rose-700'; bgClass = 'bg-rose-50'; borderClass = 'border-rose-200'; }
+        
+        scoreDisplay = `<span class="font-title text-lg leading-none">${getAssessmentValueLabel(score)}</span>
+                        <span class="text-xs font-bold opacity-70 ml-1.5 mt-0.5">${scorePercent.toFixed(0)}%</span>`;
     }
 
     const isOwner = score.teacherId === state.get('currentUserId');
+    const avatarHtml = student.avatar
+        ? `<img src="${student.avatar}" class="w-9 h-9 rounded-full object-cover border-2 border-white shadow-sm shrink-0">`
+        : `<div class="w-9 h-9 rounded-full bg-gradient-to-br from-purple-100 to-indigo-100 flex items-center justify-center text-purple-700 font-bold shadow-sm border-2 border-white shrink-0">${student.name.charAt(0)}</div>`;
 
     return `
-        <div class="trial-history-item flex items-center justify-between p-2 bg-white rounded shadow-sm border-l-2 border-amber-200">
-            <span class="font-semibold text-gray-700">${student.name}</span>
-            <div class="flex items-center gap-3">
-                ${scoreDisplay}
-                ${isOwner ? `<button data-trial-id="${score.id}" class="edit-trial-btn text-blue-400 hover:text-blue-600" title="Edit"><i class="fas fa-pencil-alt"></i></button>` : ''}
-                ${isOwner ? `<button data-trial-id="${score.id}" class="delete-trial-btn text-red-400 hover:text-red-600" title="Delete"><i class="fas fa-trash-alt"></i></button>` : ''}
+        <div class="trial-history-item relative flex items-center justify-between p-3 bg-white rounded-xl shadow-sm border border-gray-100 hover:border-purple-300 hover:shadow-md transition-all duration-200 group/item">
+            <div class="absolute left-0 top-0 bottom-0 w-1.5 rounded-l-xl ${scorePercent >= 80 ? 'bg-emerald-400' : scorePercent >= 60 ? 'bg-amber-400' : scorePercent > 0 ? 'bg-rose-400' : 'bg-blue-400'}"></div>
+            
+            <div class="flex items-center gap-3 pl-3">
+                ${avatarHtml}
+                <span class="font-bold text-gray-800">${student.name}</span>
+            </div>
+            
+            <div class="flex items-center gap-4">
+                <div class="flex items-center justify-center px-3 py-1.5 rounded-lg ${bgClass} ${borderClass} border ${colorClass}">
+                    ${scoreDisplay}
+                </div>
+                
+                ${isOwner ? `
+                <div class="flex items-center gap-1 opacity-0 group-hover/item:opacity-100 transition-opacity">
+                    <button data-trial-id="${score.id}" class="edit-trial-btn w-8 h-8 rounded-full bg-blue-50 text-blue-600 hover:bg-blue-100 hover:scale-110 transition-all flex items-center justify-center shadow-sm" title="Edit"><i class="fas fa-pencil-alt text-sm"></i></button>
+                    <button data-trial-id="${score.id}" class="delete-trial-btn w-8 h-8 rounded-full bg-red-50 text-red-600 hover:bg-red-100 hover:scale-110 transition-all flex items-center justify-center shadow-sm" title="Delete"><i class="fas fa-trash-alt text-sm"></i></button>
+                </div>
+                ` : '<div class="w-[72px]"></div>'}
             </div>
         </div>
     `;
@@ -896,13 +961,13 @@ function openMakeupModal(classId, studentId, type, title) {
 
     // Simplified Row Generation for Makeup
     const avatarHtml = student.avatar
-        ? `<img src="${student.avatar}" class="w-10 h-10 rounded-full object-cover border border-gray-200">`
-        : `<div class="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center text-gray-500 font-bold">${student.name.charAt(0)}</div>`;
+        ? `<img src="${student.avatar}" class="w-11 h-11 rounded-full object-cover border-2 border-white shadow-sm ring-1 ring-amber-200/60">`
+        : `<div class="w-11 h-11 rounded-full bg-gradient-to-br from-amber-100 to-orange-100 flex items-center justify-center text-amber-800 font-black shadow-sm ring-1 ring-amber-200/60">${student.name.charAt(0)}</div>`;
 
     let inputHtml = '';
     if (assessmentScheme.mode === 'qualitative') {
         inputHtml = `
-            <select class="bulk-grade-input w-full p-2 border border-gray-300 rounded-md bg-white focus:ring-2 focus:ring-blue-400 outline-none">
+            <select class="bulk-grade-input w-full p-2.5 border border-amber-200/80 rounded-xl bg-white/80 focus:ring-2 focus:ring-amber-400 outline-none shadow-sm">
                 <option value="" selected disabled>Select Grade...</option>
                 ${(assessmentScheme.scale || []).map((entry) => `<option value="${entry.label}">${entry.label} (${entry.normalizedPercent}%)</option>`).join('')}
             </select>`;
@@ -910,22 +975,22 @@ function openMakeupModal(classId, studentId, type, title) {
         const maxScore = Number(assessmentScheme.maxScore) || 100;
         inputHtml = `
             <div class="relative">
-                <input type="number" class="bulk-grade-input w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-400 outline-none" 
+                <input type="number" class="bulk-grade-input w-full p-2.5 border border-amber-200/80 rounded-xl bg-white/80 focus:ring-2 focus:ring-amber-400 outline-none shadow-sm" 
                     placeholder="Score" min="0" max="${maxScore}" onwheel="this.blur()">
-                <span class="absolute right-3 top-2 text-gray-400 text-sm">/${maxScore}</span>
+                <span class="absolute right-3 top-2.5 text-amber-900/45 text-sm font-bold">/${maxScore}</span>
             </div>`;
     }
 
     listContainer.innerHTML = `
-        <div class="bulk-log-item bg-white p-3 rounded-xl shadow-sm flex items-center gap-3" data-student-id="${student.id}">
+        <div class="bulk-log-item bg-white/80 p-4 rounded-2xl shadow-sm flex items-center gap-3 border border-amber-200/60 hover:border-amber-300 hover:shadow-md transition-all" data-student-id="${student.id}">
             ${avatarHtml}
             <div class="flex-grow min-w-0">
                 <p class="font-bold text-gray-800 truncate">${student.name}</p>
-                <span class="text-xs text-green-600 bg-green-100 px-2 py-1 rounded-full">Taking Makeup</span>
+                <span class="text-xs text-emerald-700 bg-emerald-100 px-2 py-1 rounded-full font-bold">Taking Makeup</span>
                 <!-- Hidden absent button for logic compatibility -->
                 <button class="toggle-absent-btn hidden" tabindex="-1"></button>
             </div>
-            <div class="w-32 grade-input-wrapper">
+            <div class="w-36 grade-input-wrapper">
                 ${inputHtml}
             </div>
         </div>

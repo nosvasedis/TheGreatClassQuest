@@ -737,30 +737,6 @@ body.adventure-log-editor-open {
     margin-bottom: 2rem;
 }
 
-/* Enhanced Scrollbar */
-.al-log-feed::-webkit-scrollbar {
-    width: 6px;
-}
-
-.al-log-feed::-webkit-scrollbar-track {
-    background: transparent;
-}
-
-.al-log-feed::-webkit-scrollbar-thumb {
-    background-color: #5eead4;
-    border-radius: 20px;
-}
-
-.al-log-feed::-webkit-scrollbar-thumb:hover {
-    background-color: #0d9488;
-}
-
-/* Firefox scrollbar */
-.al-log-feed {
-    scrollbar-width: thin;
-    scrollbar-color: #5eead4 transparent;
-}
-
 /* ─── DIARY PAGE ENHANCEMENTS ────────────────────────────────────────────────── */
 .diary-page {
     background: linear-gradient(135deg, #fffbf0 0%, #fef3c7 50%, #faf5f0 100%);

@@ -71,10 +71,20 @@ export const optionsTabHTML = `
 
                     <div class="space-y-8">
 
-                            <div class="bg-white p-6 rounded-3xl shadow-lg border-4 border-amber-300 space-y-6" data-options-section="manage">
-                                <h2 class="font-title text-3xl text-amber-700 mb-2 text-center">Student Star Manager
-                                </h2>
-                                <div id="star-manager-form" class="space-y-4">
+                            <div class="relative overflow-hidden rounded-[2rem] border border-amber-200 bg-white shadow-lg p-6 md:p-8 space-y-6" data-options-section="manage">
+                                <div class="absolute -top-10 -right-10 w-40 h-40 bg-gradient-to-br from-amber-200 to-orange-200 rounded-full blur-3xl opacity-50 pointer-events-none"></div>
+                                <div class="absolute -bottom-10 -left-10 w-40 h-40 bg-gradient-to-tr from-yellow-100 to-amber-100 rounded-full blur-3xl opacity-50 pointer-events-none"></div>
+                                
+                                <div class="relative z-10 flex flex-col md:flex-row items-center gap-6 mb-2">
+                                    <div class="flex-shrink-0 w-20 h-20 bg-gradient-to-br from-amber-400 to-orange-500 rounded-2xl flex items-center justify-center shadow-xl shadow-amber-500/30 floating-icon">
+                                        <i class="fas fa-star text-white text-4xl"></i>
+                                    </div>
+                                    <div class="text-center md:text-left flex-1">
+                                        <h2 class="font-title text-3xl text-amber-800 mb-1">Student Star Manager</h2>
+                                        <p class="text-gray-500 text-sm">Add historical awards or manually override current student scores.</p>
+                                    </div>
+                                </div>
+                                <div id="star-manager-form" class="space-y-4 relative z-10">
                                     <div>
                                         <label for="star-manager-student-select"
                                             class="block text-sm font-medium text-gray-700 mb-1">Select Student</label>
@@ -159,14 +169,20 @@ export const optionsTabHTML = `
                                 </div>
                             </div>
                             
-                            <div class="bg-white p-6 rounded-3xl shadow-lg border-4 border-yellow-400 space-y-6" data-options-section="manage">
-                                <div class="text-center">
-                                    <div class="text-4xl mb-2">💰</div>
-                                    <h2 class="font-title text-3xl text-yellow-700">Coin Purse Manager</h2>
-                                    <p class="text-sm text-gray-500">Fix balances or reward custom gold amounts.</p>
+                            <div class="relative overflow-hidden rounded-[2rem] border border-yellow-200 bg-white shadow-lg p-6 md:p-8 space-y-6" data-options-section="manage">
+                                <div class="absolute -top-10 -right-10 w-40 h-40 bg-gradient-to-br from-yellow-200 to-amber-200 rounded-full blur-3xl opacity-50 pointer-events-none"></div>
+                                
+                                <div class="relative z-10 flex flex-col md:flex-row items-center gap-6">
+                                    <div class="flex-shrink-0 w-20 h-20 bg-gradient-to-br from-yellow-400 to-amber-500 rounded-2xl flex items-center justify-center shadow-xl shadow-yellow-500/30 floating-icon">
+                                        <div class="text-4xl">💰</div>
+                                    </div>
+                                    <div class="text-center md:text-left flex-1">
+                                        <h2 class="font-title text-3xl text-yellow-800 mb-1">Coin Purse Manager</h2>
+                                        <p class="text-sm text-gray-500">Fix balances or reward custom gold amounts.</p>
+                                    </div>
                                 </div>
 
-                                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 relative z-10">
                                     <div class="md:col-span-2">
                                         <label class="block text-sm font-medium text-gray-700 mb-1">Select
                                             Student</label>
@@ -196,13 +212,19 @@ export const optionsTabHTML = `
                                 </div>
                             </div>
 
-                            <div class="bg-white p-6 rounded-3xl shadow-lg border-4 border-rose-300 space-y-4" data-options-section="manage">
-                                <div class="text-center">
-                                    <div class="text-4xl mb-2">🧬</div>
-                                    <h2 class="font-title text-3xl text-rose-700">Familiar Sprite Forge</h2>
-                                    <p class="text-sm text-gray-500">Regenerate a Familiar sprite when the saved sheet looks wrong.</p>
+                            <div class="relative overflow-hidden rounded-[2rem] border border-rose-200 bg-white shadow-lg p-6 md:p-8 space-y-6" data-options-section="manage">
+                                <div class="absolute -top-10 -right-10 w-40 h-40 bg-gradient-to-br from-rose-200 to-pink-200 rounded-full blur-3xl opacity-50 pointer-events-none"></div>
+                                
+                                <div class="relative z-10 flex flex-col md:flex-row items-center gap-6">
+                                    <div class="flex-shrink-0 w-20 h-20 bg-gradient-to-br from-rose-400 to-pink-500 rounded-2xl flex items-center justify-center shadow-xl shadow-rose-500/30 floating-icon">
+                                        <div class="text-4xl">🧬</div>
+                                    </div>
+                                    <div class="text-center md:text-left flex-1">
+                                        <h2 class="font-title text-3xl text-rose-800 mb-1">Familiar Sprite Forge</h2>
+                                        <p class="text-sm text-gray-500">Regenerate a Familiar sprite when the saved sheet looks wrong.</p>
+                                    </div>
                                 </div>
-                                <div class="space-y-3">
+                                <div class="space-y-3 relative z-10">
                                     <div>
                                         <label for="familiar-maintenance-student-select" class="block text-sm font-medium text-gray-700 mb-1">Select Student</label>
                                         <select id="familiar-maintenance-student-select"
@@ -229,12 +251,18 @@ export const optionsTabHTML = `
                                     <span class="options-tier-locked-badge">Pro</span>
                                 </div>
                                 <div id="options-planning-content" class="flex flex-col gap-8">
-                                    <div class="bg-white p-6 rounded-3xl shadow-lg border-4 border-pink-300 space-y-4">
-                                        <h2 class="font-title text-3xl text-pink-700 text-center">School Year Planner</h2>
-                                        <p class="text-sm text-gray-500 text-center">Set school-wide holidays (Christmas,
-                                            Easter) to overshadow the calendar.</p>
+                                    <div class="relative overflow-hidden rounded-[2rem] border border-pink-200 bg-white shadow-lg p-6 md:p-8 space-y-4">
+                                        <div class="absolute -top-10 -right-10 w-40 h-40 bg-gradient-to-br from-pink-200 to-rose-200 rounded-full blur-3xl opacity-50 pointer-events-none"></div>
+                                        
+                                        <div class="relative z-10 flex flex-col items-center mb-4">
+                                            <div class="w-16 h-16 bg-gradient-to-br from-pink-400 to-rose-500 rounded-full flex items-center justify-center shadow-lg shadow-pink-500/30 mb-3 floating-icon">
+                                                <i class="fas fa-calendar-alt text-white text-2xl"></i>
+                                            </div>
+                                            <h2 class="font-title text-3xl text-pink-800 text-center">School Year Planner</h2>
+                                            <p class="text-sm text-gray-500 text-center mt-1">Set school-wide holidays (Christmas, Easter) to overshadow the calendar.</p>
+                                        </div>
 
-                                        <div class="grid grid-cols-2 gap-2">
+                                        <div class="grid grid-cols-2 gap-2 relative z-10">
                                             <div class="col-span-2">
                                                 <label class="block text-xs font-bold text-gray-500">Holiday Name</label>
                                                 <input type="text" id="holiday-name" placeholder="e.g. Christmas Break"
@@ -267,11 +295,18 @@ export const optionsTabHTML = `
                                     </div>
                                     
                                     <!-- Class End Dates Configuration -->
-                                    <div class="bg-white p-6 rounded-3xl shadow-lg border-4 border-purple-300 space-y-4">
-                                        <h2 class="font-title text-3xl text-purple-700 text-center">Class End Dates</h2>
-                                        <p class="text-sm text-gray-500 text-center">Set the last lesson date for each class. The Grand Guild Ceremony will activate on these dates.</p>
+                                    <div class="relative overflow-hidden rounded-[2rem] border border-purple-200 bg-white shadow-lg p-6 md:p-8 space-y-4">
+                                        <div class="absolute -top-10 -left-10 w-40 h-40 bg-gradient-to-br from-purple-200 to-indigo-200 rounded-full blur-3xl opacity-50 pointer-events-none"></div>
+                                        
+                                        <div class="relative z-10 flex flex-col items-center mb-4">
+                                            <div class="w-16 h-16 bg-gradient-to-br from-purple-500 to-indigo-600 rounded-full flex items-center justify-center shadow-lg shadow-purple-500/30 mb-3 floating-icon">
+                                                <i class="fas fa-flag-checkered text-white text-2xl"></i>
+                                            </div>
+                                            <h2 class="font-title text-3xl text-purple-800 text-center">Class End Dates</h2>
+                                            <p class="text-sm text-gray-500 text-center mt-1">Set the last lesson date for each class. The Grand Guild Ceremony will activate on these dates.</p>
+                                        </div>
 
-                                        <div id="class-end-dates-list" class="space-y-3 max-h-60 overflow-y-auto">
+                                        <div id="class-end-dates-list" class="space-y-3 max-h-60 overflow-y-auto relative z-10">
                                             <!-- Class end dates will be populated here by JavaScript -->
                                         </div>
                                         
@@ -284,16 +319,40 @@ export const optionsTabHTML = `
                             </div>
 
                             <div class="space-y-6 hidden" data-options-section="access">
-                                <div class="bg-gradient-to-r from-sky-50 via-white to-violet-50 border border-sky-100 rounded-3xl p-6 shadow-sm">
-                                    <h2 class="font-title text-3xl text-sky-800">Role Access Center</h2>
-                                    <p class="text-sm text-slate-500 mt-2">Create parent usernames, manage secretary access, and publish parent-friendly updates.</p>
+                                <div class="relative overflow-hidden rounded-[2rem] border border-indigo-100 bg-white shadow-lg p-8">
+                                    <!-- Decorative background elements -->
+                                    <div class="absolute -top-10 -right-10 w-40 h-40 bg-gradient-to-br from-indigo-200 to-purple-200 rounded-full blur-3xl opacity-50 pointer-events-none"></div>
+                                    <div class="absolute -bottom-10 -left-10 w-40 h-40 bg-gradient-to-tr from-sky-200 to-cyan-200 rounded-full blur-3xl opacity-50 pointer-events-none"></div>
+                                    
+                                    <div class="relative z-10 flex flex-col md:flex-row items-center gap-6">
+                                        <div class="flex-shrink-0 w-24 h-24 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-2xl flex items-center justify-center shadow-xl shadow-indigo-500/30 floating-icon">
+                                            <i class="fas fa-user-shield text-white text-4xl"></i>
+                                        </div>
+                                        <div class="text-center md:text-left flex-1">
+                                            <div class="inline-flex items-center gap-2 px-3 py-1 bg-indigo-50 text-indigo-600 rounded-full text-xs font-bold uppercase tracking-wider mb-2 border border-indigo-100">
+                                                <i class="fas fa-lock"></i> Security & Roles
+                                            </div>
+                                            <h2 class="font-title text-4xl text-gray-800 mb-2">Role Access Center</h2>
+                                            <p class="text-gray-500 leading-relaxed max-w-2xl">
+                                                Manage your school's digital boundaries. Create parent usernames, grant secretary access, and publish parent-friendly updates with ease.
+                                            </p>
+                                        </div>
+                                    </div>
                                 </div>
-                                <div id="options-access-content"></div>
+                                <div id="options-access-content" class="space-y-6"></div>
                             </div>
 
-                            <div class="bg-white p-6 rounded-3xl shadow-lg border-4 border-blue-300 space-y-4" data-options-section="profile">
-                                <h2 class="font-title text-3xl text-blue-700 text-center">Profile Settings</h2>
-                                <div>
+                            <div class="relative overflow-hidden rounded-[2rem] border border-blue-200 bg-white shadow-lg p-6 md:p-8 space-y-6" data-options-section="profile">
+                                <div class="absolute -top-10 -right-10 w-40 h-40 bg-gradient-to-br from-blue-200 to-cyan-200 rounded-full blur-3xl opacity-50 pointer-events-none"></div>
+                                <div class="absolute -bottom-10 -left-10 w-40 h-40 bg-gradient-to-tr from-sky-100 to-blue-100 rounded-full blur-3xl opacity-50 pointer-events-none"></div>
+                                
+                                <div class="relative z-10 flex flex-col items-center mb-6">
+                                    <div class="w-20 h-20 bg-gradient-to-br from-blue-500 to-cyan-600 rounded-2xl flex items-center justify-center shadow-xl shadow-blue-500/30 mb-4 floating-icon">
+                                        <i class="fas fa-user-circle text-white text-4xl"></i>
+                                    </div>
+                                    <h2 class="font-title text-3xl text-blue-800 text-center">Profile Settings</h2>
+                                </div>
+                                <div class="relative z-10">
                                     <label for="teacher-name-input"
                                         class="block text-sm font-medium text-gray-700 mb-1">Your Display Name</label>
                                     <input type="text" id="teacher-name-input"
@@ -341,12 +400,20 @@ export const optionsTabHTML = `
                                 </div>
                             </div>
 
-                            <div class="bg-white p-6 rounded-3xl shadow-lg border-4 border-fuchsia-300 space-y-4 hidden" data-options-section="assessments">
-                                <div class="text-center">
-                                    <h2 class="font-title text-3xl text-fuchsia-700">Assessment Settings</h2>
-                                    <p class="text-sm text-slate-500 mt-2">Set school-wide league defaults and decide which classes inherit them or use custom grading.</p>
+                            <div class="relative overflow-hidden rounded-[2rem] border border-fuchsia-200 bg-white shadow-lg p-6 md:p-8 space-y-6 hidden" data-options-section="assessments">
+                                <div class="absolute -top-10 -right-10 w-40 h-40 bg-gradient-to-br from-fuchsia-200 to-pink-200 rounded-full blur-3xl opacity-50 pointer-events-none"></div>
+                                <div class="absolute -bottom-10 -left-10 w-40 h-40 bg-gradient-to-tr from-purple-100 to-fuchsia-100 rounded-full blur-3xl opacity-50 pointer-events-none"></div>
+                                
+                                <div class="relative z-10 flex flex-col md:flex-row items-center gap-6 mb-4">
+                                    <div class="flex-shrink-0 w-20 h-20 bg-gradient-to-br from-fuchsia-500 to-purple-600 rounded-2xl flex items-center justify-center shadow-xl shadow-fuchsia-500/30 floating-icon">
+                                        <i class="fas fa-clipboard-check text-white text-4xl"></i>
+                                    </div>
+                                    <div class="text-center md:text-left flex-1">
+                                        <h2 class="font-title text-3xl text-fuchsia-800 mb-1">Assessment Settings</h2>
+                                        <p class="text-sm text-slate-500">Set school-wide league defaults and decide which classes inherit them or use custom grading.</p>
+                                    </div>
                                 </div>
-                                <div class="rounded-[1.5rem] border border-fuchsia-100 bg-fuchsia-50/60 p-5">
+                                <div class="relative z-10 rounded-[1.5rem] border border-fuchsia-100 bg-fuchsia-50/60 p-5">
                                     <h3 class="font-title text-2xl text-fuchsia-800 mb-3">School defaults by league</h3>
                                     <div id="options-assessment-defaults-editor" class="space-y-4"></div>
                                 </div>
@@ -368,15 +435,20 @@ export const optionsTabHTML = `
                                     <p class="options-tier-locked-text">AI-powered weekly quizzes are available on the Elite plan.</p>
                                     <span class="options-tier-locked-badge">Elite</span>
                                 </div>
-                                <div id="options-quiz-content" class="qow-panel hidden">
+                                <div id="options-quiz-content" class="qow-panel hidden relative overflow-hidden rounded-[2rem] border border-amber-200 bg-white shadow-lg p-6 md:p-8 space-y-6">
+                                    <!-- Decorative background elements -->
+                                    <div class="absolute -top-10 -right-10 w-40 h-40 bg-gradient-to-br from-amber-200 to-orange-200 rounded-full blur-3xl opacity-50 pointer-events-none"></div>
+                                    <div class="absolute -bottom-10 -left-10 w-40 h-40 bg-gradient-to-tr from-yellow-100 to-amber-100 rounded-full blur-3xl opacity-50 pointer-events-none"></div>
 
                                     <!-- ── HERO HEADER ── -->
-                                    <div class="qow-hero">
-                                        <div class="qow-hero-sparkle" aria-hidden="true">✨</div>
-                                        <div class="qow-hero-icon">🏆</div>
-                                        <div>
-                                            <h2 class="qow-hero-title">Quiz of the Week</h2>
-                                            <p class="qow-hero-sub">AI generates a tailored quiz for your class each week — multiple choice, fill-in-the-blank, and image questions.</p>
+                                    <div class="relative z-10 flex flex-col md:flex-row items-center gap-6 mb-2">
+                                        <div class="flex-shrink-0 w-20 h-20 bg-gradient-to-br from-amber-400 to-orange-500 rounded-2xl flex items-center justify-center shadow-xl shadow-amber-500/30 floating-icon relative">
+                                            <i class="fas fa-trophy text-white text-4xl"></i>
+                                            <div class="absolute -top-2 -right-2 text-2xl" aria-hidden="true">✨</div>
+                                        </div>
+                                        <div class="text-center md:text-left flex-1">
+                                            <h2 class="font-title text-3xl text-amber-800 mb-1">Quiz of the Week</h2>
+                                            <p class="text-sm text-gray-500">AI generates a tailored quiz for your class each week — multiple choice, fill-in-the-blank, and image questions.</p>
                                         </div>
                                     </div>
 
@@ -505,11 +577,18 @@ export const optionsTabHTML = `
                                 </div>
                             </div>
 
-                            <div class="bg-white p-6 rounded-3xl shadow-lg border-4 border-red-300 space-y-4" data-options-section="danger">
-                                <h2 class="font-title text-3xl text-red-700 text-center">Danger Zone</h2>
-                                <div class="space-y-4">
-                                    <p class="text-sm text-gray-600 text-center">These actions are permanent and can
-                                        result in data loss. Proceed with caution.</p>
+                            <div class="relative overflow-hidden rounded-[2rem] border border-red-200 bg-white shadow-lg p-6 md:p-8 space-y-6" data-options-section="danger">
+                                <div class="absolute -top-10 -right-10 w-40 h-40 bg-gradient-to-br from-red-200 to-orange-200 rounded-full blur-3xl opacity-50 pointer-events-none"></div>
+                                <div class="absolute -bottom-10 -left-10 w-40 h-40 bg-gradient-to-tr from-rose-100 to-red-100 rounded-full blur-3xl opacity-50 pointer-events-none"></div>
+                                
+                                <div class="relative z-10 flex flex-col items-center mb-6">
+                                    <div class="w-20 h-20 bg-gradient-to-br from-red-500 to-rose-600 rounded-2xl flex items-center justify-center shadow-xl shadow-red-500/30 mb-4 animate-pulse">
+                                        <i class="fas fa-exclamation-triangle text-white text-4xl"></i>
+                                    </div>
+                                    <h2 class="font-title text-3xl text-red-800 text-center">Danger Zone</h2>
+                                    <p class="text-sm text-gray-600 text-center mt-2 max-w-md">These actions are permanent and can result in data loss. Proceed with extreme caution.</p>
+                                </div>
+                                <div class="space-y-4 relative z-10">
                                     <button id="star-manager-purge-btn"
                                         class="w-full bg-red-600 hover:bg-red-700 text-white font-title text-lg py-2 rounded-xl bubbly-button"
                                         disabled>

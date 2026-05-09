@@ -3,14 +3,17 @@
 export const guildsTabHTML = `
             <div id="guilds-tab" class="app-tab hidden">
 
-                <!-- Title above the framed scene -->
-                <div class="guild-hall-header text-center">
-                    <i class="fas fa-shield-alt text-amber-500 text-5xl floating-icon"></i>
-                    <h2 class="font-title guild-hall-title bottom-nav-tab-title">Guild Hall</h2>
-                    <p class="guild-hall-subtitle">
-                        Every star earns ⚜️ Glory for your guild.
-                        The mightiest guild in June wins the <strong>Grand Guild Ceremony</strong>! ✨
-                    </p>
+                <!-- Title above the framed scene (layout matches other app-tab headers) -->
+                <div class="max-w-7xl mx-auto">
+                    <div class="text-center mb-6">
+                        <i class="fas fa-shield-alt text-amber-500 text-5xl floating-icon"></i>
+                        <h2 class="font-title text-5xl guild-hall-title mt-2 bottom-nav-tab-title"
+                            style="text-shadow: 0 2px 4px rgba(0,0,0,0.1);">Guild Hall</h2>
+                        <p class="text-lg text-gray-600 mt-2">
+                            Every star earns ⚜️ Glory for your guild.
+                            The mightiest guild in June wins the <strong>Grand Guild Ceremony</strong>! ✨
+                        </p>
+                    </div>
                 </div>
 
                 <!-- Framed hall scene (pure CSS, no image) -->

@@ -19,6 +19,7 @@ function getDefaultState() {
         currentTeacherName: null,
         currentUserRole: 'teacher',
         currentUserProfile: null,
+        teacherSettings: {},
         isSchoolAdmin: false,
         schoolBillingGrace: null,
         schoolName: null,
@@ -118,6 +119,7 @@ function getDefaultState() {
         currentShopItems: [], // Store this month's shop items
         unsubscribeQuestBounties: () => { }, // Listener unsubscribe
         unsubscribeSchoolSettings: () => { }, // Listener for settings
+        unsubscribeTeacherSettings: () => { }, // Listener for the current teacher's profile doc (schoolYearSettings, etc.)
         unsubscribeGuildScores: () => { },
         unsubscribeGuildChampions: () => { },
         unsubscribeParentSnapshot: () => { },
@@ -196,6 +198,8 @@ export function setCurrentUserId(id) { state.currentUserId = id; }
 export function setCurrentTeacherName(name) { state.currentTeacherName = name; }
 export function setCurrentUserRole(role) { state.currentUserRole = role || 'teacher'; }
 export function setCurrentUserProfile(profile) { state.currentUserProfile = profile || null; }
+export function setTeacherSettings(settings) { state.teacherSettings = settings || {}; _notify('teacherSettings'); }
+export function setUnsubscribeTeacherSettings(func) { state.unsubscribeTeacherSettings = func; }
 export function setIsSchoolAdmin(value) { state.isSchoolAdmin = Boolean(value); }
 export function setSchoolBillingGrace(grace) { state.schoolBillingGrace = grace || null; }
 export function setSchoolName(name) { state.schoolName = name || null; }

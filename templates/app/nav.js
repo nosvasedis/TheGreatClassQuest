@@ -17,11 +17,11 @@ export const navHTML = `
             </button>
             <button class="nav-button nav-color-lime" data-tab="shop-tab">
                 <i class="fas fa-store icon"></i>
-                <span class="text">Shop</span>
+                <span class="text">Mystic Market</span>
             </button>
             <button class="nav-button nav-color-guild" data-tab="guilds-tab">
                 <i class="fas fa-shield-alt icon"></i>
-                <span class="text">Guilds</span>
+                <span class="text">Guild Hall</span>
             </button>
             <button class="nav-button nav-color-green" data-tab="my-classes-tab">
                 <i class="fas fa-chalkboard-teacher icon"></i>
@@ -29,19 +29,19 @@ export const navHTML = `
             </button>
             <button class="nav-button nav-color-rose" data-tab="award-stars-tab">
                 <i class="fas fa-star icon"></i>
-                <span class="text">Award</span>
+                <span class="text">Award Stars</span>
             </button>
             <button class="nav-button nav-color-teal" data-tab="adventure-log-tab">
                 <i class="fas fa-book-open icon"></i>
-                <span class="text">Log</span>
+                <span class="text">Adventure Log</span>
             </button>
             <button class="nav-button nav-color-pink" data-tab="scholars-scroll-tab">
                 <i class="fas fa-scroll icon"></i>
-                <span class="text">Scroll</span>
+                <span class="text">Scholar's Scroll</span>
             </button>
             <button class="nav-button nav-color-blue" data-tab="calendar-tab">
                 <i class="fas fa-calendar-alt icon"></i>
-                <span class="text">Calendar</span>
+                <span class="text">Quest Calendar</span>
             </button>
             <button class="nav-button nav-color-indigo" data-tab="reward-ideas-tab">
                 <i class="fas fa-feather-alt icon"></i>

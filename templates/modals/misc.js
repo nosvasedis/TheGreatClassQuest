@@ -230,34 +230,7 @@ export const miscModalsHTML = `
         </div>
     </div>
 
-    <div id="overview-modal"
-        class="fixed inset-0 bg-black bg-opacity-50 z-[71] flex items-center justify-center p-4 hidden">
-        <div
-            class="bg-white p-6 md:p-8 rounded-3xl shadow-2xl max-w-4xl w-full pop-in border-4 border-purple-300 flex flex-col">
-            <div class="flex justify-between items-center mb-4">
-                <h2 id="overview-modal-title" class="font-title text-2xl md:text-3xl text-purple-700">Quest Overview
-                </h2>
-                <button id="overview-modal-close-btn"
-                    class="bg-gray-200 hover:bg-gray-300 text-gray-800 font-bold w-10 h-10 rounded-full bubbly-button">&times;</button>
-            </div>
 
-            <div class="border-b border-gray-200 mb-4">
-                <nav id="overview-modal-tabs" class="-mb-px flex space-x-6">
-                    <button data-view="class"
-                        class="overview-tab-btn whitespace-nowrap py-3 px-1 border-b-4 font-semibold text-lg border-purple-500 text-purple-600">
-                        <i class="fas fa-users mr-2"></i>Class Overview
-                    </button>
-                    <button data-view="student"
-                        class="overview-tab-btn whitespace-nowrap py-3 px-1 border-b-4 font-semibold text-lg border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300">
-                        <i class="fas fa-user-graduate mr-2"></i>Student Overviews
-                    </button>
-                </nav>
-            </div>
-
-            <div id="overview-modal-content" class="space-y-4 max-h-[60vh] overflow-y-auto pr-2">
-            </div>
-        </div>
-    </div>
 
     <div id="create-bounty-modal"
         class="fixed inset-0 bg-black bg-opacity-50 z-[72] flex items-center justify-center p-4 hidden">

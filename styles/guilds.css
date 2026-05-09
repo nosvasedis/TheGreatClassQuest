@@ -25,10 +25,7 @@
     padding-bottom: 2rem;
 }
 
-/* ── Header: title above the scene ─────────────────────────────────────────── */
-.guild-hall-header {
-    padding: 1.25rem 1rem 1rem;
-}
+/* ── Header: title above the scene (title size/spacing uses shared text-5xl + mt-2 like other tabs) ── */
 .guild-hall-crest {
     font-size: 3rem;
     line-height: 1;
@@ -40,20 +37,13 @@
     to   { filter: drop-shadow(0 0 22px rgba(245,158,11,0.8)); transform: scale(1.05); }
 }
 .guild-hall-title {
-    font-size: clamp(1.8rem, 5vw, 2.8rem);
     background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 40%, #c084fc 100%);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
-    margin-top: 0.15rem;
     letter-spacing: 0.03em;
+    /* Gradient fill replaces solid tab color; keep a light edge read like other tab titles */
     filter: drop-shadow(0 1px 3px rgba(0,0,0,0.15));
-}
-.guild-hall-subtitle {
-    color: #6b7280;
-    font-size: 0.82rem;
-    margin-top: 0.35rem;
-    line-height: 1.5;
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
@@ -690,25 +680,6 @@
     margin-top: 0.95rem;
     overflow-y: auto;
     padding-right: 0.5rem;
-}
-
-/* Custom scrollbar for ledger */
-.guild-fortune-ledger__list::-webkit-scrollbar {
-    width: 6px;
-}
-
-.guild-fortune-ledger__list::-webkit-scrollbar-track {
-    background: rgba(255, 255, 255, 0.02);
-    border-radius: 3px;
-}
-
-.guild-fortune-ledger__list::-webkit-scrollbar-thumb {
-    background: rgba(251, 191, 36, 0.3);
-    border-radius: 3px;
-}
-
-.guild-fortune-ledger__list::-webkit-scrollbar-thumb:hover {
-    background: rgba(251, 191, 36, 0.5);
 }
 
 .guild-fortune-ledger__entry {
@@ -1682,8 +1653,6 @@
     color: #fff;
     text-align: center;
     border: 1.5px solid rgba(255,255,255,0.2);
-    scrollbar-width: thin;
-    scrollbar-color: rgba(255,255,255,0.2) transparent;
 }
 .guild-anthem-card::before {
     content: '';

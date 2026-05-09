@@ -7,44 +7,48 @@ export const shopTabHTML = `
                     <div class="text-center mb-6">
                         <i class="fas fa-store text-fuchsia-600 text-5xl floating-icon"></i>
                         <h2 id="shop-title" class="font-title text-5xl text-fuchsia-700 mt-2 bottom-nav-tab-title"
-                            style="text-shadow: 0 2px 4px rgba(0,0,0,0.1);">The Mystic Market</h2>
+                            style="text-shadow: 0 2px 4px rgba(0,0,0,0.1);">Mystic Market</h2>
                         <p id="shop-month" class="text-lg text-gray-600 mt-2 font-bold uppercase tracking-widest"></p>
                     </div>
 
-                    <!-- Controls Bar -->
-                    <div class="shop-controls-bar bg-white/70 backdrop-blur-sm px-5 py-3.5 rounded-2xl shadow-lg flex items-center justify-center lg:justify-between gap-3 mb-8 flex-wrap relative z-20">
+                    <!-- Controls Bar: primary cluster (class → shopper) stays left; gold/restock stay right — avoids flex-center jump when state changes -->
+                    <div class="shop-controls-bar bg-white/70 backdrop-blur-sm px-5 py-3.5 rounded-2xl shadow-lg flex flex-wrap items-center gap-3 mb-8 relative z-20 w-full max-w-full">
 
-                        <!-- Class Selector Pill -->
-                        <div class="shop-selector-pill shop-selector-pill--class">
-                            <i class="fas fa-users shop-sel-icon text-fuchsia-400"></i>
-                            <select id="shop-class-select" class="shop-sel-select text-fuchsia-900">
-                                <option value="">Choose a class...</option>
-                            </select>
-                            <i class="fas fa-chevron-down shop-sel-arrow text-fuchsia-300"></i>
+                        <div class="shop-controls-primary flex items-center gap-3 flex-wrap min-w-0 flex-1">
+                            <!-- Class Selector Pill -->
+                            <div class="shop-selector-pill shop-selector-pill--class">
+                                <i class="fas fa-users shop-sel-icon text-fuchsia-400"></i>
+                                <select id="shop-class-select" class="shop-sel-select text-fuchsia-900">
+                                    <option value="">Choose a class...</option>
+                                </select>
+                                <i class="fas fa-chevron-down shop-sel-arrow text-fuchsia-300"></i>
+                            </div>
+
+                            <div class="hidden sm:block h-8 w-px bg-fuchsia-200 shrink-0"></div>
+
+                            <!-- Student Selector Pill (this element is shopHeader for badge/ring effects) -->
+                            <div class="shop-selector-pill shop-selector-pill--student">
+                                <i class="fas fa-hat-wizard shop-sel-icon text-purple-400"></i>
+                                <select id="shop-student-select" class="shop-sel-select text-purple-900">
+                                    <option value="">Choose your adventurer...</option>
+                                </select>
+                                <i class="fas fa-chevron-down shop-sel-arrow text-purple-300"></i>
+                            </div>
                         </div>
 
-                        <div class="hidden sm:block h-8 w-px bg-fuchsia-200 shrink-0"></div>
+                        <div class="shop-controls-actions flex items-center gap-3 shrink-0 ml-auto">
+                            <!-- Gold Chip -->
+                            <div class="shop-gold-chip shrink-0">
+                                <i class="fas fa-coins text-amber-400 text-sm"></i>
+                                <p id="shop-student-gold" class="font-title text-xl text-amber-500 leading-none whitespace-nowrap">0 🪙</p>
+                            </div>
 
-                        <!-- Student Selector Pill (this element is shopHeader for badge/ring effects) -->
-                        <div class="shop-selector-pill shop-selector-pill--student">
-                            <i class="fas fa-hat-wizard shop-sel-icon text-purple-400"></i>
-                            <select id="shop-student-select" class="shop-sel-select text-purple-900">
-                                <option value="">Choose your adventurer...</option>
-                            </select>
-                            <i class="fas fa-chevron-down shop-sel-arrow text-purple-300"></i>
+                            <!-- Restock Button -->
+                            <button id="generate-shop-btn"
+                                class="hidden shop-restock-btn font-title text-base bg-gradient-to-r from-fuchsia-500 to-purple-600 text-white py-2.5 px-5 rounded-xl shadow-lg border-2 border-fuchsia-400 bubbly-button inline-flex items-center gap-2 shrink-0">
+                                <i class="fas fa-sync-alt"></i> Restock
+                            </button>
                         </div>
-
-                        <!-- Gold Chip -->
-                        <div class="shop-gold-chip shrink-0">
-                            <i class="fas fa-coins text-amber-400 text-sm"></i>
-                            <p id="shop-student-gold" class="font-title text-xl text-amber-500 leading-none whitespace-nowrap">0 🪙</p>
-                        </div>
-
-                        <!-- Restock Button -->
-                        <button id="generate-shop-btn"
-                            class="hidden shop-restock-btn font-title text-base bg-gradient-to-r from-fuchsia-500 to-purple-600 text-white py-2.5 px-5 rounded-xl shadow-lg border-2 border-fuchsia-400 bubbly-button inline-flex items-center gap-2 shrink-0">
-                            <i class="fas fa-sync-alt"></i> Restock
-                        </button>
 
                     </div>
 

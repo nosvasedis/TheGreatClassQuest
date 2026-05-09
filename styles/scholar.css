@@ -698,8 +698,7 @@ optgroup {
 
 /* --- RADICAL REDESIGN: Performance Chart Section Header & Container --- */
 #scroll-performance-chart {
-    background: linear-gradient(to bottom, rgba(255,255,255,0.4), rgba(255,255,255,0.2));
-    backdrop-filter: blur(2px);
+    background: linear-gradient(to bottom, rgba(255, 255, 255, 0.85), rgba(250, 249, 255, 0.65));
     padding: 0.5rem 0.25rem;
     border-radius: 1rem;
 }
@@ -711,7 +710,7 @@ optgroup {
     border: 1px solid #ede9fe;
     box-shadow: 0 20px 40px -28px rgba(109, 40, 217, 0.2),
                 0 0 1px rgba(109, 40, 217, 0.1);
-    transition: all 0.3s ease;
+    transition: border-color 0.25s ease, box-shadow 0.25s ease;
 }
 
 #scroll-dashboard-content > div:has(#scroll-performance-chart):hover {
@@ -737,117 +736,44 @@ optgroup {
 
 #trial-history-view-toggle .toggle-btn {
     font-family: 'Fredoka One', cursive;
-    padding: 0.5rem 1.5rem;
-    border-radius: 9999px;
-    font-size: 1.125rem;
-    color: #9A3412; /* amber-800 */
-    transition: all 200ms ease-out;
-    cursor: pointer;
+    color: #a855f7; /* purple-500 */
     position: relative;
+    overflow: hidden;
 }
 
-#trial-history-view-toggle .toggle-btn::after {
+#trial-history-view-toggle .toggle-btn::before {
     content: '';
     position: absolute;
-    left: 0.95rem;
-    right: 0.95rem;
-    bottom: 0.33rem;
-    height: 2px;
-    border-radius: 9999px;
-    opacity: 0.32;
-    transform: scaleX(0.86);
-    transition: opacity 200ms ease-out, transform 200ms ease-out;
+    inset: 0;
+    background: linear-gradient(135deg, rgba(168, 85, 247, 0.1), rgba(217, 70, 239, 0.1));
+    opacity: 0;
+    transition: opacity 200ms ease;
+    border-radius: inherit;
 }
 
-#trial-history-view-toggle .toggle-btn[data-view="test"] {
-    color: #166534;
-}
-
-#trial-history-view-toggle .toggle-btn[data-view="dictation"] {
-    color: #1e40af;
-}
-
-#trial-history-view-toggle .toggle-btn[data-view="test"]::after {
-    background: linear-gradient(90deg, rgba(34, 197, 94, 0), rgba(34, 197, 94, 0.72), rgba(34, 197, 94, 0));
-}
-
-#trial-history-view-toggle .toggle-btn[data-view="dictation"]::after {
-    background: linear-gradient(90deg, rgba(59, 130, 246, 0), rgba(59, 130, 246, 0.72), rgba(59, 130, 246, 0));
-}
-
-#trial-history-view-toggle .toggle-btn:hover::after {
-    opacity: 0.58;
-    transform: scaleX(0.98);
+#trial-history-view-toggle .toggle-btn:hover::before {
+    opacity: 1;
 }
 
 #trial-history-view-toggle .toggle-btn.active-toggle {
-    background-color: #F59E0B; /* amber-500 */
+    background-color: #9333ea; /* purple-600 */
     color: white;
-    box-shadow: 0 4px 10px rgba(245, 158, 11, 0.4);
+    box-shadow: 0 4px 14px rgba(147, 51, 234, 0.4);
     transform: scale(1.05);
 }
 
 #trial-history-view-toggle .toggle-btn.active-toggle[data-view="test"] {
-    background: linear-gradient(135deg, #16a34a, #22c55e);
-    box-shadow: 0 4px 10px rgba(34, 197, 94, 0.4);
+    background: linear-gradient(135deg, #10b981, #059669); /* emerald */
+    box-shadow: 0 4px 14px rgba(16, 185, 129, 0.4);
 }
 
 #trial-history-view-toggle .toggle-btn.active-toggle[data-view="dictation"] {
-    background: linear-gradient(135deg, #2563eb, #3b82f6);
-    box-shadow: 0 4px 10px rgba(59, 130, 246, 0.4);
-}
-
-#trial-history-view-toggle .toggle-btn.active-toggle::after {
-    opacity: 0.95;
-    transform: scaleX(1);
+    background: linear-gradient(135deg, #3b82f6, #2563eb); /* blue */
+    box-shadow: 0 4px 14px rgba(59, 130, 246, 0.4);
 }
 
 .trial-history-item {
-    background-color: white;
-    padding: 1rem;
-    border-radius: 1rem;
-    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-    border-left-width: 6px;
-    border-color: #FCD34D; /* amber-300 */
-    display: flex;
-    align-items: center;
-    gap: 1rem;
-    transition: all 200ms ease-out;
-}
-.trial-history-item:hover {
-    transform: translateY(-3px);
-    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
-    border-color: #FBBF24; /* amber-400 */
+    cursor: default;
 }
 
-.delete-trial-btn, .edit-trial-btn {
-    opacity: 0.5;
-}
-.trial-history-item:hover .delete-trial-btn, .trial-history-item:hover .edit-trial-btn {
-    opacity: 1;
-}
-.edit-trial-btn { background-color: #dbeafe; color: #1e40af; }
-
-details.month-group {
-    border: 1px solid #e5e7eb;
-    border-radius: 0.75rem;
-    overflow: hidden;
-}
-details.month-group summary {
-    background-color: #f9fafb;
-    border-bottom: 1px solid #e5e7eb;
-}
-details.month-group[open] summary {
-    border-bottom-color: transparent;
-}
-
-/* FIX #1: Trial History Date Grouping */
-.date-group-header {
-    font-weight: 600;
-    color: #4b5563; /* gray-600 */
-    padding: 0.5rem;
-    background-color: #f3f4f6; /* gray-100 */
-    border-radius: 0.5rem;
-    margin-top: 0.5rem;
-}
 

@@ -534,6 +534,7 @@ export function renderAwardStarsStudentList(selectedClassId, fullRender = true) 
                 }
 
                 return `
+               <div class="award-card-mount tab-mount-rise" style="--tab-rise-delay: ${Math.min(index * 38, 620)}ms">
                <div class="student-cloud-card ${isVisuallyAbsent ? 'is-absent' : ''} ${isReigningHero ? 'reigning-hero-card' : ''} ${prodigySet.has(s.id) ? 'award-reigning-prodigy' : ''}" data-studentid="${s.id}" style="animation: float-card ${visualState.floatDuration}s ease-in-out infinite;">
                ${getCloudBackgroundHtml(cloudAsset)}
                <div class="absence-controls">
@@ -594,7 +595,7 @@ export function renderAwardStarsStudentList(selectedClassId, fullRender = true) 
                             <button data-stars="3" class="star-award-btn star-btn-3"><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i></button>
                         </div>
                     </div>
-                </div>`;
+                </div></div>`;
             }).join('');
         }
     };

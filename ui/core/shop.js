@@ -55,7 +55,7 @@ export function initializeShopTab() {
     if (shopCurtain) shopCurtain.classList.add('hidden');
 
     // 2. Set UI Text
-    document.getElementById('shop-title').innerText = "The Mystic Market"; // Title is now static
+    document.getElementById('shop-title').innerText = "Mystic Market"; // Title is now static
 
     const restockBtn = document.getElementById('generate-shop-btn');
     if (restockBtn) {

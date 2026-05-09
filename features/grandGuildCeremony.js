@@ -2,7 +2,7 @@
 // The ultimate SUPER END OF YEAR ceremony celebrating ALL competition levels
 
 import { db } from '../firebase.js';
-import { updateDoc, doc, getDoc } from 'https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js';
+import { updateDoc, doc, getDoc, setDoc } from 'https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js';
 import * as state from '../state.js';
 import { playSound, ceremonyMusic, winnerFanfare, showdownSting, fadeCeremonyMusic, stopAllCeremonyAudio, playCeremonyMusic, playDrumRoll, stopDrumRoll, playWinnerFanfare } from '../audio.js';
 import { fetchLogsForMonth } from '../db/queries.js';
@@ -1079,9 +1079,9 @@ async function saveCeremonyCompletion() {
             ceremonyVersion: '2026'
         };
         
-        await updateDoc(teacherRef, {
-            [`grandCeremonyHistory.${ceremonyDate}`]: ceremonyData
-        });
+        await setDoc(teacherRef, {
+            grandCeremonyHistory: { [ceremonyDate]: ceremonyData }
+        }, { merge: true });
         
         // Save per-class ceremony data
         for (const classId of participatingClasses) {

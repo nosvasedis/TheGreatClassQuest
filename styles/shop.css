@@ -138,6 +138,14 @@ body.projector-mode .bounty-actions {
     align-items: center;
 }
 
+/* Keep selectors left-aligned and actions right-aligned at all breakpoints (no justify-center jump). */
+.shop-controls-primary {
+    justify-content: flex-start;
+}
+.shop-controls-actions {
+    justify-content: flex-end;
+}
+
 .shop-student-shell {
     position: relative;
     overflow: visible;
@@ -260,13 +268,7 @@ body.projector-mode .bounty-actions {
 
 @media (min-width: 1024px) {
     .shop-controls-bar {
-        display: flex;
         flex-wrap: nowrap;
-        justify-content: space-between;
-    }
-
-    .shop-restock-btn {
-        margin-left: auto;
     }
 }
 

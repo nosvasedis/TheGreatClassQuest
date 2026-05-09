@@ -350,6 +350,7 @@ export async function renderClassLeaderboardTab() {
             `).join('') : '<span class="text-xs text-gray-400 italic">No heroes yet</span>';
 
         return `
+        <div class="tab-mount-rise" style="--tab-rise-delay: ${Math.min(index * 55, 800)}ms">
         <div class="bg-white rounded-[2.5rem] shadow-xl border-4 border-indigo-50 overflow-hidden mb-6 transition-all hover:shadow-2xl hover:border-indigo-200 group pop-in">
             <div class="${headerColor} p-6 flex flex-col md:flex-row items-center justify-between gap-4">
                 <div class="flex items-center gap-5">
@@ -421,6 +422,7 @@ export async function renderClassLeaderboardTab() {
                     </div>
                 </div>
             </div>
+        </div>
         </div>`;
     }).join('');
 
@@ -535,6 +537,13 @@ export async function renderStudentLeaderboardTab() {
     if (!league) {
         list.innerHTML = `<div class="max-w-xl mx-auto"><p class="text-center text-gray-700 bg-white/50 p-6 rounded-2xl text-lg">Please select a league to view the leaderboard.</p></div>`;
         return;
+    }
+
+    // Update the month name in the title
+    const heroMonthNameEl = document.getElementById('hero-month-name');
+    if (heroMonthNameEl) {
+        const monthName = new Date().toLocaleString('en-US', { month: 'long' });
+        heroMonthNameEl.textContent = monthName;
     }
 
     const classesInLeague = state.get('allSchoolClasses').filter(c => c.questLevel === league);
@@ -799,7 +808,8 @@ export async function renderStudentLeaderboardTab() {
             else if (currentRank === 3) { cardClasses = "bg-gradient-to-r from-orange-50 to-white border-l-4 border-orange-400 shadow-sm"; rankBadge = `<div class="text-3xl">🥉</div>`; }
 
             outputHtml += `
-                <div class="student-leaderboard-card relative p-3 rounded-xl mb-3 flex items-center justify-between transition-all ${cardClasses}">
+                <div class="tab-mount-rise mb-3" style="--tab-rise-delay: ${Math.min(index * 42, 720)}ms">
+                <div class="student-leaderboard-card relative p-3 rounded-xl flex items-center justify-between transition-all ${cardClasses}">
                     <div class="flex items-center gap-3 md:gap-4 overflow-hidden">
                         <div class="flex-shrink-0 w-8 text-center">${rankBadge}</div>
                         <div class="flex-shrink-0">${getAvatarHtml(s)}</div>
@@ -824,7 +834,7 @@ export async function renderStudentLeaderboardTab() {
                             <div class="text-[10px] text-gray-400 font-bold uppercase tracking-wider">Stars</div>
                         </div>
                     </div>
-                </div>`;
+                </div></div>`;
         });
 
     } else {
@@ -841,6 +851,7 @@ export async function renderStudentLeaderboardTab() {
         const nameSort = (a, b) => classesMap[a].name.localeCompare(classesMap[b].name);
         const sortedClassIds = [...myClassIds.sort(nameSort), ...otherClassIds.sort(nameSort)];
 
+        let hcRiseSeq = 0;
         for (const classId of sortedClassIds) {
             const classData = classesMap[classId];
 
@@ -850,7 +861,7 @@ export async function renderStudentLeaderboardTab() {
             const randomGradient = constants.titleGradients[utils.simpleHashCode(classData.name) % constants.titleGradients.length];
 
             outputHtml += `
-            <div class="mt-10 mb-6 text-center">
+            <div class="tab-mount-rise mt-10 mb-6 text-center" style="--tab-rise-delay: ${Math.min(hcRiseSeq++ * 40, 680)}ms">
                 <div class="inline-flex items-center gap-3 px-6 py-2 rounded-2xl bg-white shadow-sm border border-gray-100 transform hover:scale-105 transition-transform duration-300">
                     <span class="text-4xl filter drop-shadow-md">${classData.logo}</span>
                     <h3 class="font-title text-3xl tracking-wide text-transparent bg-clip-text bg-gradient-to-r ${randomGradient}" style="filter: drop-shadow(0 1px 1px rgba(0,0,0,0.05));">${classData.name}</h3>
@@ -884,6 +895,7 @@ export async function renderStudentLeaderboardTab() {
                 else if (currentRank === 3) { cardBg = "bg-gradient-to-br from-white to-orange-50 border-b-4 border-orange-400 ring-2 ring-orange-100"; rankColor = "bg-orange-400 text-white shadow-md"; nameColor = "text-orange-900"; starColor = "text-orange-600"; bgTrophy = `<div class="absolute top-0 right-0 p-3 opacity-20 text-5xl pointer-events-none text-orange-300"><i class="fas fa-trophy"></i></div>`; }
 
                 outputHtml += `
+                    <div class="tab-mount-rise" style="--tab-rise-delay: ${Math.min(hcRiseSeq++ * 38, 760)}ms">
                     <div class="relative rounded-2xl p-4 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 ${cardBg} flex justify-between items-center gap-4">
                         ${bgTrophy}
                         <div class="flex items-center gap-4 z-10">
@@ -910,7 +922,7 @@ export async function renderStudentLeaderboardTab() {
                             </div>
                             <div class="flex flex-wrap justify-end gap-1 max-w-[200px]">${getPillsHtml(s)}</div>
                         </div>
-                    </div>`;
+                    </div></div>`;
             });
             outputHtml += `</div>`;
         }

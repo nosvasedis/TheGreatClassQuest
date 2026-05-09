@@ -287,9 +287,10 @@ export function revealStagedLoadingPersonalization() {
     if (stageEl) stageEl.classList.add('loading-stage-reveal');
 
     if (tipEl) {
+        const tipText = _stagedPersonalization.tip;
         tipEl.classList.add('loading-tip-fade');
         setTimeout(() => {
-            tipEl.textContent = _stagedPersonalization.tip;
+            tipEl.textContent = tipText;
             tipEl.classList.remove('loading-tip-fade');
         }, 350);
     }

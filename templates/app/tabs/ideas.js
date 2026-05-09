@@ -2,85 +2,138 @@
 
 export const ideasTabHTML = `
             <div id="reward-ideas-tab" class="app-tab hidden">
-                <div class="max-w-5xl mx-auto">
+                <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 pb-10">
                     <div class="text-center mb-6">
                         <i class="fas fa-feather-alt text-cyan-500 text-5xl floating-icon"></i>
                         <h2 class="font-title text-5xl text-cyan-700 mt-2 bottom-nav-tab-title"
                             style="text-shadow: 0 2px 4px rgba(0,0,0,0.1);">Story Weavers</h2>
                         <p class="text-lg text-gray-600 mt-2">Collaborative class storytelling with AI-powered word suggestions and illustrations.</p>
                     </div>
-                    <div class="grid grid-cols-1 gap-8">
-                        <div class="bg-white p-6 rounded-3xl shadow-lg border-4 border-cyan-300 space-y-4">
-                            <div class="mb-2">
-                                <label for="story-weavers-class-select"
-                                    class="block text-sm font-medium text-gray-700 mb-1">Select class to play:</label>
-                                <select id="story-weavers-class-select"
-                                    class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500 bg-white">
-                                    <option value="">Select a class...</option>
-                                </select>
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-8">
+                        <div class="bg-white/80 backdrop-blur rounded-3xl shadow-sm ring-1 ring-black/5 border border-cyan-100 p-5 sm:p-6">
+                            <div class="flex items-start justify-between gap-4">
+                                <div class="min-w-0">
+                                    <h3 class="font-title text-2xl text-slate-800">Current Chronicle</h3>
+                                    <p class="text-sm text-slate-500 mt-1">Illustration and the latest line of the story.</p>
+                                </div>
+                                <button id="story-weavers-reveal-btn"
+                                    class="inline-flex items-center gap-2 px-3 py-2 rounded-xl text-sm font-semibold text-cyan-800 bg-cyan-50 hover:bg-cyan-100 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-500 focus-visible:ring-offset-2"
+                                    aria-label="Reveal story to class">
+                                    <i class="fas fa-eye" aria-hidden="true"></i>
+                                    <span class="hidden sm:inline">Reveal</span>
+                                </button>
                             </div>
 
-                            <div id="story-weavers-main-content" class="hidden flex flex-col">
-                                <div class="flex flex-col items-center justify-center text-center">
-                                    <div id="story-weavers-image-container">
-                                        <img id="story-weavers-image" src="" alt="Story illustration"
-                                            class="hidden pop-in">
-                                        <div id="story-weavers-image-loader" class="text-gray-400 text-center hidden">
-                                            <i class="fas fa-paint-brush fa-spin text-3xl"></i>
-                                            <p class="text-sm mt-2">The Chronicler is illustrating...</p>
-                                        </div>
-                                        <div id="story-weavers-image-placeholder" class="text-gray-400 text-center">
-                                            <i class="fas fa-book-reader text-4xl"></i>
-                                            <p class="text-sm mt-2">The story awaits its illustration!</p>
-                                        </div>
+                            <div id="story-weavers-main-content" class="hidden mt-5">
+                                <div id="story-weavers-image-container" class="story-weavers-image-frame">
+                                    <img id="story-weavers-image" src="" alt="Story illustration" class="hidden pop-in" decoding="async" width="520" height="347">
+                                    <div id="story-weavers-image-loader" class="text-slate-400 text-center hidden">
+                                        <i class="fas fa-paint-brush fa-spin text-3xl" aria-hidden="true"></i>
+                                        <p class="text-sm mt-2">The Chronicler is illustrating...</p>
                                     </div>
-                                    <p id="story-weavers-text" class="w-full p-2 max-h-28 overflow-y-auto"></p>
-                                    <button id="story-weavers-reveal-btn"
-                                        class="mt-2 text-sm text-cyan-600 hover:underline"><i class="fas fa-eye"></i>
-                                        Reveal Story to Class</button>
+                                    <div id="story-weavers-image-placeholder" class="text-slate-400 text-center">
+                                        <i class="fas fa-book-reader text-4xl" aria-hidden="true"></i>
+                                        <p class="text-sm mt-2">The story awaits its illustration!</p>
+                                    </div>
                                 </div>
 
-                                <div class="mt-4 pt-4 border-t-2 border-gray-200">
-                                    <h3 class="font-bold text-gray-600 text-center mb-2">Game Master's Desk</h3>
-                                    <div class="flex items-center gap-2 mb-3">
-                                        <input type="text" id="story-weavers-word-input"
-                                            class="flex-grow px-3 py-2 border border-gray-300 rounded-md shadow-sm transition-colors"
-                                            placeholder="Today's Word of the Day..." autocomplete="off">
-                                        <button id="story-weavers-confirm-word-btn"
-                                            class="bg-green-200 text-green-700 w-10 h-10 rounded-full bubbly-button flex-shrink-0 hidden"
-                                            title="Lock in word"><i class="fas fa-check"></i></button>
-                                        <button id="story-weavers-clear-word-btn"
-                                            class="bg-red-200 text-red-700 w-10 h-10 rounded-full bubbly-button flex-shrink-0 hidden"
-                                            title="Clear word"><i class="fas fa-times"></i></button>
-                                        <button id="story-weavers-suggest-word-btn"
-                                            class="bg-indigo-200 text-indigo-700 w-10 h-10 rounded-full bubbly-button flex-shrink-0"
-                                            title="Suggest a word with AI"><i class="fas fa-magic"></i></button>
-                                    </div>
-                                    <div class="flex gap-2">
-                                        <button id="story-weavers-lock-in-btn"
-                                            class="w-full bg-cyan-500 hover:bg-cyan-600 text-white font-title text-lg py-2 rounded-xl bubbly-button disabled:opacity-50 disabled:cursor-not-allowed">
-                                            Continue...
-                                        </button>
-                                        <button id="story-weavers-end-btn"
-                                            class="w-full bg-rose-500 hover:bg-rose-600 text-white font-title text-lg py-2 rounded-xl bubbly-button disabled:opacity-50">
-                                            The End
-                                        </button>
-                                    </div>
-                                    <div class="flex justify-between mt-3">
-                                        <button id="story-weavers-history-btn"
-                                            class="text-sm text-gray-500 hover:underline"><i class="fas fa-scroll"></i>
-                                            Current Story</button>
-                                        <button id="story-weavers-archive-btn"
-                                            class="text-sm text-indigo-500 hover:underline"><i
-                                                class="fas fa-book-dead"></i> Story Archive</button>
-                                        <button id="story-weavers-reset-btn"
-                                            class="text-sm text-red-500 hover:underline"><i class="fas fa-undo"></i>
-                                            Start New</button>
+                                <div class="mt-4">
+                                    <p class="text-xs font-semibold tracking-wide text-slate-500">LATEST LINE</p>
+                                    <p id="story-weavers-text" class="story-weavers-story-text mt-2"></p>
+                                </div>
+                            </div>
+
+                            <div id="story-weavers-placeholder" class="flex items-center justify-center py-10">
+                                <div class="text-center max-w-sm">
+                                    <p class="text-slate-600 font-semibold">Select a class to begin your chronicle.</p>
+                                    <p class="text-slate-500 text-sm mt-1">You can still browse the storybook archive below.</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="bg-white/80 backdrop-blur rounded-3xl shadow-sm ring-1 ring-black/5 border border-cyan-100 p-5 sm:p-6">
+                            <div>
+                                <h3 class="font-title text-2xl text-slate-800">Game Master Controls</h3>
+                                <p class="text-sm text-slate-500 mt-1">Choose a class, set the Word of the Day, and continue the tale.</p>
+                            </div>
+
+                            <div class="mt-5">
+                                <label for="story-weavers-class-select" class="block text-sm font-semibold text-slate-700">Class</label>
+                                <div class="mt-1 bg-gradient-to-r from-cyan-100 to-teal-100 p-[1px] rounded-2xl shadow-sm">
+                                    <div class="relative rounded-2xl bg-white/80">
+                                        <select id="story-weavers-class-select"
+                                            class="w-full appearance-none px-4 py-3 pr-11 border border-transparent rounded-2xl bg-transparent hover:bg-white focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 transition-colors font-semibold text-slate-800">
+                                            <option value="">Select a class...</option>
+                                        </select>
+                                        <div class="pointer-events-none absolute inset-y-0 right-3 flex items-center text-slate-400">
+                                            <i class="fas fa-chevron-down" aria-hidden="true"></i>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
-                            <div id="story-weavers-placeholder" class="flex items-center justify-center py-8">
-                                <p class="text-center text-gray-500">Select a class to begin your chronicle!</p>
+
+                            <div class="mt-5">
+                                <div class="flex items-center justify-between gap-3">
+                                    <label for="story-weavers-word-input" class="block text-sm font-semibold text-slate-700">Word of the Day</label>
+                                    <button id="story-weavers-suggest-word-btn"
+                                        class="inline-flex items-center gap-2 px-3 py-2 rounded-xl text-sm font-semibold text-indigo-800 bg-indigo-50 hover:bg-indigo-100 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2"
+                                        title="Suggest a word with AI" aria-label="Suggest a word with AI">
+                                        <i class="fas fa-wand-magic-sparkles" aria-hidden="true"></i>
+                                        <span class="hidden sm:inline">Suggest</span>
+                                    </button>
+                                </div>
+
+                                <div class="mt-2 flex items-center gap-2">
+                                    <input type="text" id="story-weavers-word-input"
+                                        class="flex-grow px-3.5 py-2.5 border border-slate-200 rounded-xl shadow-sm bg-white/70 focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 transition-colors"
+                                        placeholder="e.g., mysterious" autocomplete="off" inputmode="text" aria-label="Word of the Day">
+
+                                    <button id="story-weavers-confirm-word-btn"
+                                        class="w-11 h-11 rounded-xl bg-emerald-50 text-emerald-700 hover:bg-emerald-100 transition-colors bubbly-button flex-shrink-0 hidden focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2"
+                                        title="Lock in word" aria-label="Lock in word">
+                                        <i class="fas fa-check" aria-hidden="true"></i>
+                                    </button>
+                                    <button id="story-weavers-clear-word-btn"
+                                        class="w-11 h-11 rounded-xl bg-rose-50 text-rose-700 hover:bg-rose-100 transition-colors bubbly-button flex-shrink-0 hidden focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-500 focus-visible:ring-offset-2"
+                                        title="Clear word" aria-label="Clear word">
+                                        <i class="fas fa-times" aria-hidden="true"></i>
+                                    </button>
+                                </div>
+                            </div>
+
+                            <div class="mt-6 grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                <button id="story-weavers-lock-in-btn"
+                                    class="w-full bg-cyan-600 hover:bg-cyan-700 text-white font-title text-lg py-3 rounded-2xl bubbly-button disabled:opacity-50 disabled:cursor-not-allowed focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-500 focus-visible:ring-offset-2">
+                                    Continue...
+                                </button>
+                                <button id="story-weavers-end-btn"
+                                    class="w-full bg-rose-600 hover:bg-rose-700 text-white font-title text-lg py-3 rounded-2xl bubbly-button disabled:opacity-50 disabled:cursor-not-allowed focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-500 focus-visible:ring-offset-2">
+                                    The End
+                                </button>
+                            </div>
+
+                            <div class="mt-5 flex items-center gap-2 overflow-x-auto pb-1">
+                                <button id="story-weavers-history-btn"
+                                    class="inline-flex flex-shrink-0 items-center gap-2 px-3.5 py-2 rounded-2xl text-sm font-semibold text-slate-800 bg-white/70 hover:bg-white shadow-sm ring-1 ring-slate-200 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-500 focus-visible:ring-offset-2 whitespace-nowrap">
+                                    <span class="w-8 h-8 rounded-xl bg-gradient-to-br from-cyan-100 to-teal-100 flex items-center justify-center text-cyan-800 ring-1 ring-cyan-200">
+                                        <i class="fas fa-scroll" aria-hidden="true"></i>
+                                    </span>
+                                    Current Story
+                                </button>
+                                <button id="story-weavers-archive-btn"
+                                    class="inline-flex flex-shrink-0 items-center gap-2 px-3.5 py-2 rounded-2xl text-sm font-semibold text-indigo-900 bg-indigo-50 hover:bg-indigo-100 shadow-sm ring-1 ring-indigo-200 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 whitespace-nowrap">
+                                    <span class="w-8 h-8 rounded-xl bg-gradient-to-br from-indigo-100 to-purple-100 flex items-center justify-center text-indigo-800 ring-1 ring-indigo-200">
+                                        <i class="fas fa-book-open" aria-hidden="true"></i>
+                                    </span>
+                                    View Archive
+                                </button>
+                                <button id="story-weavers-reset-btn"
+                                    class="inline-flex flex-shrink-0 items-center gap-2 px-3.5 py-2 rounded-2xl text-sm font-semibold text-rose-900 bg-rose-50 hover:bg-rose-100 shadow-sm ring-1 ring-rose-200 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-500 focus-visible:ring-offset-2 whitespace-nowrap">
+                                    <span class="w-8 h-8 rounded-xl bg-gradient-to-br from-rose-100 to-orange-100 flex items-center justify-center text-rose-800 ring-1 ring-rose-200">
+                                        <i class="fas fa-undo" aria-hidden="true"></i>
+                                    </span>
+                                    Start New
+                                </button>
                             </div>
                         </div>
                     </div>

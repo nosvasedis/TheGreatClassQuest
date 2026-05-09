@@ -608,12 +608,6 @@
     }
 }
 
-/* Scrollbar specific for Dashboard */
-.custom-scrollbar::-webkit-scrollbar { width: 8px; }
-.custom-scrollbar::-webkit-scrollbar-track { background: rgba(0,0,0,0.05); }
-.custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
-.custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
-
 /* --- V5.7: HOME DASHBOARD REVAMP --- */
 
 /* Staggered Animations */

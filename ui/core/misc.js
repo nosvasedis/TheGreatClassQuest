@@ -2,7 +2,7 @@
 
 import * as state from '../../state.js';
 import { db } from '../../firebase.js';
-import { doc, updateDoc } from 'https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js';
+import { doc, updateDoc, setDoc } from 'https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js';
 import * as utils from '../../utils.js';
 import { showToast } from '../effects.js';
 import { renderClassLeaderboardTab, renderStudentLeaderboardTab } from '../tabs.js';
@@ -197,11 +197,13 @@ export async function saveClassEndDates() {
     });
     
     try {
-        // Update teacher profile with class end dates
+        // Update teacher profile with class end dates.
+        // Use setDoc with merge:true so the doc is created if it doesn't yet exist
+        // (updateDoc throws "No document to update" for first-time teachers).
         const teacherRef = doc(db, 'artifacts/great-class-quest/public/data/teachers', teacherId);
-        await updateDoc(teacherRef, {
-            'schoolYearSettings.classEndDates': classEndDates
-        });
+        await setDoc(teacherRef, {
+            schoolYearSettings: { classEndDates }
+        }, { merge: true });
         
         // Update local state
         const currentSettings = state.get('teacherSettings') || {};

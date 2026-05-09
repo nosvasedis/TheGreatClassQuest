@@ -3,69 +3,133 @@
 
 export const attendanceModalsHTML = `
     <div id="trial-type-modal"
-        class="fixed inset-0 bg-black bg-opacity-50 z-[72] flex items-center justify-center p-4 hidden">
-        <div class="bg-white p-8 rounded-3xl shadow-2xl max-w-2xl w-full pop-in border-4 border-amber-300 text-center">
-            <h2 class="font-title text-4xl text-amber-800 mb-2">Choose Your Challenge</h2>
-            <p class="text-gray-600 mb-8">What kind of trial are we logging today?</p>
+        class="fixed inset-0 bg-black/60 backdrop-blur-sm z-[72] flex items-center justify-center p-4 hidden">
+        <div class="relative bg-gradient-to-br from-white via-amber-50 to-orange-50 rounded-[2rem] shadow-2xl max-w-2xl w-full pop-in border border-amber-200/80 overflow-hidden text-center"
+            style="box-shadow: 0 0 0 2px rgba(251,191,36,0.35), 0 28px 80px rgba(0,0,0,0.45), inset 0 1px 0 rgba(255,255,255,0.8);">
 
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <button id="select-dictation-btn"
-                    class="flex flex-col items-center justify-center p-8 rounded-2xl border-4 border-blue-200 bg-blue-50 hover:bg-blue-100 hover:border-blue-400 hover:shadow-xl transition-all duration-200 bubbly-button group">
-                    <i
-                        class="fas fa-microphone-alt text-6xl text-blue-400 mb-4 group-hover:text-blue-600 group-hover:scale-110 transition-transform"></i>
-                    <span class="font-title text-3xl text-blue-800">Dictation</span>
-                </button>
+            <div class="absolute inset-0 pointer-events-none opacity-40"
+                style="background: radial-gradient(circle at 22% 12%, rgba(251,191,36,0.35), transparent 45%), radial-gradient(circle at 90% 80%, rgba(249,115,22,0.18), transparent 55%);"></div>
 
-                <button id="select-test-btn"
-                    class="flex flex-col items-center justify-center p-8 rounded-2xl border-4 border-green-200 bg-green-50 hover:bg-green-100 hover:border-green-400 hover:shadow-xl transition-all duration-200 bubbly-button group">
-                    <i
-                        class="fas fa-file-alt text-6xl text-green-400 mb-4 group-hover:text-green-600 group-hover:scale-110 transition-transform"></i>
-                    <span class="font-title text-3xl text-green-800">Test</span>
+            <div class="relative z-10 p-8">
+                <div class="flex items-center justify-center gap-3 mb-2">
+                    <div class="w-12 h-12 rounded-2xl bg-gradient-to-br from-amber-400 to-orange-400 text-white flex items-center justify-center shadow-lg"
+                        style="box-shadow: 0 10px 30px rgba(251,146,60,0.35);">
+                        <i class="fas fa-map-signs text-xl"></i>
+                    </div>
+                </div>
+                <h2 class="font-title text-4xl text-amber-900 leading-tight">Choose Your Challenge</h2>
+                <p class="text-amber-900/60 font-semibold mt-2 mb-7">What kind of trial are we logging today?</p>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+                    <button id="select-dictation-btn" type="button"
+                        class="group relative overflow-hidden rounded-3xl border border-amber-200/80 bg-white/70 p-6 text-left shadow-sm hover:shadow-lg transition-all duration-200 hover:-translate-y-0.5 focus:outline-none focus:ring-2 focus:ring-amber-400 bubbly-button">
+                        <div class="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity"
+                            style="background: radial-gradient(circle at 30% 20%, rgba(59,130,246,0.18), transparent 55%);"></div>
+                        <div class="relative flex items-center gap-4">
+                            <div class="w-14 h-14 rounded-2xl bg-gradient-to-br from-sky-500 to-blue-600 text-white flex items-center justify-center shadow-lg flex-shrink-0"
+                                style="box-shadow: 0 12px 30px rgba(37,99,235,0.28);">
+                                <i class="fas fa-microphone-alt text-2xl"></i>
+                            </div>
+                            <div class="min-w-0">
+                                <div class="text-[11px] font-black uppercase tracking-[0.22em] text-blue-700/70">Option</div>
+                                <div class="font-title text-3xl text-blue-900 leading-tight">Dictation</div>
+                                <div class="text-sm text-blue-900/60 font-semibold mt-1">Quick entries • qualitative or numeric</div>
+                            </div>
+                            <div class="ml-auto text-blue-700/40 group-hover:text-blue-700/70 transition-colors">
+                                <i class="fas fa-arrow-right"></i>
+                            </div>
+                        </div>
+                    </button>
+
+                    <button id="select-test-btn" type="button"
+                        class="group relative overflow-hidden rounded-3xl border border-amber-200/80 bg-white/70 p-6 text-left shadow-sm hover:shadow-lg transition-all duration-200 hover:-translate-y-0.5 focus:outline-none focus:ring-2 focus:ring-amber-400 bubbly-button">
+                        <div class="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity"
+                            style="background: radial-gradient(circle at 30% 20%, rgba(16,185,129,0.18), transparent 55%);"></div>
+                        <div class="relative flex items-center gap-4">
+                            <div class="w-14 h-14 rounded-2xl bg-gradient-to-br from-emerald-500 to-teal-600 text-white flex items-center justify-center shadow-lg flex-shrink-0"
+                                style="box-shadow: 0 12px 30px rgba(16,185,129,0.26);">
+                                <i class="fas fa-file-alt text-2xl"></i>
+                            </div>
+                            <div class="min-w-0">
+                                <div class="text-[11px] font-black uppercase tracking-[0.22em] text-emerald-700/70">Option</div>
+                                <div class="font-title text-3xl text-emerald-900 leading-tight">Test</div>
+                                <div class="text-sm text-emerald-900/60 font-semibold mt-1">Optional title • bulk entry</div>
+                            </div>
+                            <div class="ml-auto text-emerald-700/40 group-hover:text-emerald-700/70 transition-colors">
+                                <i class="fas fa-arrow-right"></i>
+                            </div>
+                        </div>
+                    </button>
+                </div>
+
+                <button id="trial-type-cancel-btn" type="button"
+                    class="mt-7 px-4 py-2 rounded-xl font-bold text-amber-900/70 hover:text-red-700 bg-white/60 hover:bg-red-50 border border-amber-200/70 hover:border-red-200 transition-all bubbly-button">
+                    Cancel
                 </button>
             </div>
-
-            <button id="trial-type-cancel-btn"
-                class="mt-8 text-gray-500 hover:text-gray-800 font-semibold underline">Cancel</button>
         </div>
     </div>
 
     <div id="bulk-trial-modal"
-        class="fixed inset-0 bg-black bg-opacity-50 z-[73] flex items-center justify-center p-4 hidden">
-        <div
-            class="bg-white rounded-3xl shadow-2xl max-w-5xl w-full h-[90vh] flex flex-col pop-in border-4 border-amber-300 overflow-hidden">
+        class="fixed inset-0 bg-black/60 backdrop-blur-sm z-[73] flex items-center justify-center p-4 hidden">
+        <div class="relative bg-gradient-to-br from-white via-amber-50 to-orange-50 rounded-[2rem] shadow-2xl max-w-5xl w-full h-[90vh] flex flex-col pop-in border border-amber-200/80 overflow-hidden"
+            style="box-shadow: 0 0 0 2px rgba(251,191,36,0.35), 0 28px 80px rgba(0,0,0,0.45), inset 0 1px 0 rgba(255,255,255,0.8);">
 
-            <div
-                class="bg-amber-50 p-6 border-b-2 border-amber-100 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-                <div>
-                    <h2 id="bulk-trial-title" class="font-title text-3xl text-amber-800">Log Results</h2>
-                    <p id="bulk-trial-subtitle" class="text-amber-600 font-semibold"></p>
-                </div>
-                <div class="flex flex-wrap gap-4 items-end">
-                    <div>
-                        <label class="block text-xs font-bold text-gray-500 uppercase">Date</label>
-                        <input type="date" id="bulk-trial-date"
-                            class="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-400 outline-none">
+            <div class="absolute inset-0 pointer-events-none opacity-40"
+                style="background: radial-gradient(circle at 20% 10%, rgba(251,191,36,0.35), transparent 45%), radial-gradient(circle at 90% 70%, rgba(249,115,22,0.18), transparent 55%);"></div>
+
+            <div class="relative z-10 px-6 pt-6 pb-5 border-b border-amber-200/70 bg-white/55 backdrop-blur-md flex flex-col gap-4 flex-shrink-0">
+                <div class="flex flex-col md:flex-row md:items-start md:justify-between gap-4">
+                    <div class="flex items-start gap-3 min-w-0">
+                        <div class="w-12 h-12 rounded-2xl bg-gradient-to-br from-amber-400 to-orange-400 text-white flex items-center justify-center shadow-lg flex-shrink-0"
+                            style="box-shadow: 0 10px 30px rgba(251,146,60,0.35);">
+                            <i class="fas fa-feather-alt text-xl"></i>
+                        </div>
+                        <div class="min-w-0">
+                            <h2 id="bulk-trial-title" class="font-title text-3xl text-amber-900 leading-tight">Log Results</h2>
+                            <p id="bulk-trial-subtitle" class="text-amber-700 font-semibold truncate"></p>
+                            <div class="mt-2 inline-flex items-center gap-2 rounded-full bg-white/80 px-3 py-1.5 border border-amber-200/70 text-amber-900 shadow-sm">
+                                <i class="fas fa-calendar-alt text-amber-500"></i>
+                                <span id="bulk-trial-date-display" class="text-xs font-black tracking-widest">--/--/----</span>
+                            </div>
+                        </div>
                     </div>
-                    <div id="bulk-trial-title-wrapper" class="hidden">
-                        <label class="block text-xs font-bold text-gray-500 uppercase">Title</label>
-                        <input type="text" id="bulk-trial-name" placeholder="e.g. Unit 5 Quiz"
-                            class="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-400 outline-none w-48 md:w-64">
+
+                    <div class="flex flex-wrap gap-3 items-end justify-end">
+                        <div>
+                            <label class="block text-[11px] font-black text-amber-900/70 uppercase tracking-widest mb-1">Date</label>
+                            <input type="date" id="bulk-trial-date"
+                                class="px-3.5 py-2.5 border border-amber-200/80 rounded-xl bg-white/80 focus:ring-2 focus:ring-amber-400 outline-none shadow-sm">
+                        </div>
+                        <div id="bulk-trial-title-wrapper" class="hidden">
+                            <label class="block text-[11px] font-black text-amber-900/70 uppercase tracking-widest mb-1">Title</label>
+                            <input type="text" id="bulk-trial-name" placeholder="e.g. Unit 5 Quiz"
+                                class="px-3.5 py-2.5 border border-amber-200/80 rounded-xl bg-white/80 focus:ring-2 focus:ring-amber-400 outline-none shadow-sm w-52 md:w-72">
+                        </div>
                     </div>
-                    <button id="bulk-trial-save-btn"
-                        class="bg-amber-500 hover:bg-amber-600 text-white font-title text-xl py-2 px-8 rounded-xl bubbly-button shadow-md">
-                        <i class="fas fa-save mr-2"></i> Save All
-                    </button>
                 </div>
+                <p class="text-xs text-amber-900/60 font-semibold">
+                    Tip: Mark a student absent to skip grading them.
+                </p>
             </div>
 
-            <div class="flex-grow overflow-y-auto p-6 bg-gray-50">
+            <div class="relative z-10 flex-grow overflow-y-auto p-6 bg-gradient-to-b from-white/30 to-orange-50/50">
                 <div id="bulk-student-list" class="grid grid-cols-1 md:grid-cols-2 gap-4"></div>
             </div>
 
-            <div class="p-4 border-t border-gray-200 bg-white flex justify-between items-center">
-                <span class="text-xs text-gray-400" data-school-name>Your School</span>
-                <button id="bulk-trial-close-btn"
-                    class="text-gray-500 hover:text-red-500 font-bold px-4">Cancel</button>
+            <div class="relative z-10 p-4 md:p-5 border-t border-amber-200/70 bg-white/60 backdrop-blur-md flex justify-between items-center gap-3 flex-shrink-0">
+                <span class="text-xs text-amber-900/40 font-semibold" data-school-name>Your School</span>
+                <div class="flex items-center gap-2">
+                    <button id="bulk-trial-close-btn"
+                        class="px-4 py-2 rounded-xl font-bold text-amber-900/70 hover:text-red-700 bg-white/60 hover:bg-red-50 border border-amber-200/70 hover:border-red-200 transition-all bubbly-button">
+                        Cancel
+                    </button>
+                    <button id="bulk-trial-save-btn"
+                        class="bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-white font-title text-xl py-2.5 px-8 rounded-xl shadow-lg transition-all duration-200 hover:scale-[1.02] active:scale-[0.98] bubbly-button"
+                        style="box-shadow: 0 10px 30px rgba(251,146,60,0.35);">
+                        <i class="fas fa-save mr-2"></i> Save All
+                    </button>
+                </div>
             </div>
         </div>
     </div>
@@ -86,23 +150,38 @@ export const attendanceModalsHTML = `
     </div>
 
     <div id="trial-history-modal"
-        class="fixed inset-0 bg-black bg-opacity-50 z-[71] flex items-center justify-center p-4 hidden">
+        class="fixed inset-0 bg-black/60 backdrop-blur-sm z-[71] flex items-center justify-center p-4 hidden">
         <div
-            class="bg-gradient-to-br from-amber-50 to-orange-100 p-6 md:p-8 rounded-3xl shadow-2xl max-w-4xl w-full pop-in border-4 border-amber-300 flex flex-col">
-            <div class="flex justify-between items-center mb-4">
-                <h2 id="trial-history-title" class="font-title text-2xl md:text-3xl text-amber-800">Trial History</h2>
-                <button id="trial-history-close-btn"
-                    class="bg-amber-200 hover:bg-amber-300 text-amber-800 font-bold w-10 h-10 rounded-full bubbly-button">&times;</button>
-            </div>
-            <div id="trial-history-controls-container" class="flex justify-between items-center mb-4">
-                <div id="trial-history-view-toggle"
-                    class="inline-flex items-center bg-white/50 p-1 rounded-full border-2 border-amber-200 shadow-inner">
+            class="relative bg-gradient-to-br from-indigo-50 via-purple-50 to-fuchsia-50 p-6 md:p-8 rounded-[2.5rem] shadow-2xl max-w-5xl w-full pop-in border border-purple-200 flex flex-col h-[85vh] overflow-hidden"
+            style="box-shadow: 0 0 0 2px rgba(168,85,247,0.35), 0 28px 80px rgba(0,0,0,0.45), inset 0 1px 0 rgba(255,255,255,0.8);">
+            
+            <div class="absolute inset-0 pointer-events-none opacity-40"
+                style="background: radial-gradient(circle at 20% 10%, rgba(168,85,247,0.15), transparent 45%), radial-gradient(circle at 90% 70%, rgba(217,70,239,0.1), transparent 55%);"></div>
+
+            <div class="relative z-10 flex justify-between items-start mb-6 border-b border-purple-200/60 pb-4 shrink-0">
+                <div class="flex items-center gap-4">
+                    <div class="w-14 h-14 rounded-2xl bg-gradient-to-br from-purple-500 to-fuchsia-500 text-white flex items-center justify-center shadow-lg shrink-0"
+                        style="box-shadow: 0 10px 30px rgba(168,85,247,0.4);">
+                        <i class="fas fa-scroll text-2xl"></i>
+                    </div>
+                    <div>
+                        <h2 id="trial-history-title" class="font-title text-3xl md:text-4xl text-purple-900 leading-tight">Trial History</h2>
+                        <p class="text-purple-700/70 font-semibold text-sm">Review past performance</p>
+                    </div>
                 </div>
-                <div id="trial-history-actions" class="flex items-center gap-2 flex-wrap justify-end">
+                <button id="trial-history-close-btn"
+                    class="text-purple-900/50 hover:text-purple-900 text-2xl w-10 h-10 rounded-full flex items-center justify-center bg-white/60 hover:bg-white/80 border border-purple-200/80 shadow-sm transition-all bubbly-button shrink-0">&times;</button>
+            </div>
+            
+            <div id="trial-history-controls-container" class="relative z-10 flex flex-col sm:flex-row gap-4 sm:justify-between sm:items-center mb-6 bg-white/60 p-2 rounded-2xl border border-purple-100 shadow-sm backdrop-blur-sm shrink-0">
+                <div id="trial-history-view-toggle"
+                    class="flex items-center gap-1 bg-purple-50/50 p-1.5 rounded-xl border border-purple-100 shadow-inner w-full sm:w-auto">
+                </div>
+                <div id="trial-history-actions" class="flex items-center gap-2 flex-wrap justify-end w-full sm:w-auto">
                 </div>
             </div>
             <div id="trial-history-content"
-                class="space-y-3 max-h-[60vh] overflow-y-auto p-2 flex-grow bg-white/30 rounded-lg">
+                class="relative z-10 space-y-4 overflow-y-auto p-2 pr-4 flex-grow rounded-xl scrollbar-custom">
             </div>
         </div>
     </div>

@@ -25,7 +25,7 @@ export const scrollTabHTML = `
                         <i class="fas fa-scroll text-pink-700 text-5xl floating-icon"
                             style="animation-delay: -1s;"></i>
                         <h2 class="font-title text-5xl text-pink-700 mt-2 bottom-nav-tab-title"
-                            style="text-shadow: 0 2px 4px rgba(0,0,0,0.1);">The Scholar's Scroll</h2>
+                            style="text-shadow: 0 2px 4px rgba(0,0,0,0.1);">Scholar's Scroll</h2>
                         <p class="ss-hero-subtitle text-lg text-gray-600 mt-2">Chronicle the Trials of Knowledge and celebrate academic
                             triumphs!</p>
                     </div>

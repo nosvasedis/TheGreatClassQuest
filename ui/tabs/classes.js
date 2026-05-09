@@ -25,20 +25,39 @@ export function renderManageClassesTab() {
         const schedule = (c.scheduleDays || []).map(d => ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'][d]).join(', ');
         const time = (c.timeStart && c.timeEnd) ? `${c.timeStart} - ${c.timeEnd}` : 'No time set';
         return `
-            <div class="bg-white p-4 rounded-2xl shadow-lg border-2 border-gray-100 transform transition hover:shadow-xl hover:scale-[1.02]">
-                <div class="flex items-start justify-between">
+            <div class="relative bg-white/70 backdrop-blur-xl p-6 rounded-[2rem] shadow-lg border border-teal-100 transform transition hover:shadow-xl hover:-translate-y-1 overflow-hidden group">
+                <div class="absolute -right-12 -top-12 w-40 h-40 bg-teal-400/20 rounded-full blur-3xl group-hover:scale-110 transition-transform duration-700"></div>
+                <div class="absolute -left-12 -bottom-12 w-32 h-32 bg-cyan-400/20 rounded-full blur-3xl group-hover:scale-110 transition-transform duration-700"></div>
+                
+                <div class="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
                     <div class="flex-1">
-                        <h3 class="font-bold text-2xl text-gray-800">${c.logo || '📚'} ${c.name}</h3>
-                        <p class="text-sm text-green-700 font-semibold">${c.questLevel || 'Uncategorized'}</p>
-                        <p class="text-sm text-gray-500"><i class="fas fa-calendar-day mr-1"></i> ${schedule || 'No days set'}</p>
-                        <p class="text-sm text-gray-500"><i class="fas fa-clock mr-1"></i> ${time}</p>
+                        <div class="flex items-center gap-4 mb-2">
+                            <span class="text-5xl drop-shadow-md floating-icon transition-transform duration-300 group-hover:scale-110">${c.logo || '📚'}</span>
+                            <div>
+                                <h3 class="font-title text-3xl text-gray-800 tracking-wide">${c.name}</h3>
+                                <p class="text-xs text-teal-600 font-bold uppercase tracking-widest mt-0.5">${c.questLevel || 'Uncategorized'}</p>
+                            </div>
+                        </div>
+                        
+                        <div class="flex flex-wrap gap-3 mt-4 text-sm font-semibold text-gray-600">
+                            <span class="bg-white/80 backdrop-blur-sm px-3.5 py-1.5 rounded-xl shadow-sm border border-gray-100 flex items-center gap-2"><i class="fas fa-calendar-day text-teal-500"></i> ${schedule || 'No days set'}</span>
+                            <span class="bg-white/80 backdrop-blur-sm px-3.5 py-1.5 rounded-xl shadow-sm border border-gray-100 flex items-center gap-2"><i class="fas fa-clock text-teal-500"></i> ${time}</span>
+                        </div>
                     </div>
-                    <div class="flex flex-col sm:flex-row gap-2">
-                        <button data-id="${c.id}" class="report-class-btn bg-green-100 text-green-800 font-bold py-2 px-4 rounded-full bubbly-button"><i class="fas fa-magic mr-0 sm:mr-2"></i><span class="hidden sm:inline">Report</span></button>
-                        <button data-id="${c.id}" class="overview-class-btn bg-purple-100 text-purple-800 font-bold py-2 px-4 rounded-full bubbly-button"><i class="fas fa-chart-line mr-0 sm:mr-2"></i><span class="hidden sm:inline">Overview</span></button>
-                        <button data-id="${c.id}" class="edit-class-btn bg-cyan-100 text-cyan-800 font-bold py-2 px-4 rounded-full bubbly-button"><i class="fas fa-pencil-alt mr-0 sm:mr-2"></i><span class="hidden sm:inline">Edit</span></button>
-                        <button data-id="${c.id}" data-name="${c.name.replace(/'/g, "\\'")}" class="manage-students-btn bg-teal-100 text-teal-800 font-bold py-2 px-4 rounded-full bubbly-button"><i class="fas fa-users mr-0 sm:mr-2"></i><span class="hidden sm:inline">Students</span></button>
-                        <button data-id="${c.id}" class="delete-class-btn bg-red-100 text-red-800 font-bold py-2 px-4 rounded-full bubbly-button"><i class="fas fa-trash-alt mr-0 sm:mr-2"></i><span class="hidden sm:inline">Delete</span></button>
+                    
+                    <div class="flex flex-wrap md:flex-nowrap md:flex-col lg:flex-row justify-end gap-2.5 mt-2 md:mt-0">
+                        <button data-id="${c.id}" class="report-class-btn bg-gradient-to-r from-emerald-100 to-green-100 text-green-800 hover:from-emerald-200 hover:to-green-200 border border-green-200 font-bold py-2.5 px-5 rounded-2xl shadow-sm bubbly-button transition-all flex items-center justify-center gap-2">
+                            <i class="fas fa-magic"></i><span class="hidden sm:inline">Report</span>
+                        </button>
+                        <button data-id="${c.id}" class="edit-class-btn bg-gradient-to-r from-cyan-100 to-blue-100 text-blue-800 hover:from-cyan-200 hover:to-blue-200 border border-blue-200 font-bold py-2.5 px-5 rounded-2xl shadow-sm bubbly-button transition-all flex items-center justify-center gap-2">
+                            <i class="fas fa-pencil-alt"></i><span class="hidden sm:inline">Edit</span>
+                        </button>
+                        <button data-id="${c.id}" data-name="${c.name.replace(/'/g, "\\'")}" class="manage-students-btn bg-gradient-to-r from-teal-400 to-emerald-500 hover:from-teal-500 hover:to-emerald-600 text-white border border-teal-400 font-bold py-2.5 px-6 rounded-2xl shadow-md bubbly-button transition-all flex items-center justify-center gap-2">
+                            <i class="fas fa-users"></i><span class="hidden sm:inline">Students</span>
+                        </button>
+                        <button data-id="${c.id}" class="delete-class-btn bg-white text-red-500 hover:bg-red-50 hover:text-red-600 border border-red-200 font-bold w-12 h-12 rounded-2xl shadow-sm bubbly-button transition-all flex items-center justify-center flex-shrink-0">
+                            <i class="fas fa-trash-alt"></i>
+                        </button>
                     </div>
                 </div>
             </div>`;
@@ -53,7 +72,6 @@ export function renderManageClassesTab() {
     list.querySelectorAll('.delete-class-btn').forEach(btn => btn.addEventListener('click', () => modals.showModal('Delete Class?', 'Are you sure you want to delete this class and all its students? This cannot be undone.', () => deleteClass(btn.dataset.id))));
     list.querySelectorAll('.edit-class-btn').forEach(btn => btn.addEventListener('click', () => modals.openEditClassModal(btn.dataset.id)));
     list.querySelectorAll('.report-class-btn').forEach(btn => btn.addEventListener('click', () => modals.handleGenerateReport(btn.dataset.id)));
-    list.querySelectorAll('.overview-class-btn').forEach(btn => btn.addEventListener('click', () => modals.openOverviewModal(btn.dataset.id)));
 }
 
 export function renderManageStudentsTab() {

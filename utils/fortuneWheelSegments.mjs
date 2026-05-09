@@ -65,11 +65,26 @@ export function generateWheelSegmentsFromPool(leagueLevel, allSegments, rarityWe
 
   if (!hasRarePlus && pool.some(s => ['rare', 'epic', 'legendary', 'mythic'].includes(s.rarity))) {
     const rares = pool.filter(s => ['rare', 'epic', 'legendary', 'mythic'].includes(s.rarity));
-    const rare = rares[Math.floor(Math.random() * rares.length)];
     const replaceable = [...selected.values()].filter(s => s.rarity === 'common' || s.rarity === 'uncommon');
-    if (replaceable.length > 0 && rare) {
-      selected.delete(replaceable[0].id);
-      selected.set(rare.id, rare);
+    if (replaceable.length > 0) {
+      const tryCount = Math.min(64, rares.length);
+      for (let i = 0; i < tryCount; i += 1) {
+        const rare = rares[Math.floor(Math.random() * rares.length)];
+        if (!rare || selected.has(rare.id)) continue;
+
+        const wouldExceedNegative = rare.category === 'negative' && negativeCount >= maxNegative;
+        if (wouldExceedNegative) {
+          const replaceableNegative = replaceable.find(s => s.category === 'negative');
+          if (!replaceableNegative) continue;
+          selected.delete(replaceableNegative.id);
+          selected.set(rare.id, rare);
+          break;
+        }
+
+        selected.delete(replaceable[0].id);
+        selected.set(rare.id, rare);
+        break;
+      }
     }
   }
 

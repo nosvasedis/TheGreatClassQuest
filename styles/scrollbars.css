@@ -1,0 +1,169 @@
+/**
+ * App-wide scrollbars — soft “fluffy” pills (Fredoka / pastel game UI).
+ * Firefox: scrollbar-color. WebKit: rounded tracks + gradient thumbs + inset highlights.
+ * Dark surfaces (wheel, prodigy, guild ledger) use a warm gold variant so bars stay legible.
+ */
+
+:root {
+    --app-scrollbar-size: 11px;
+    --app-scrollbar-track-top: #eef2ff;
+    --app-scrollbar-track-bottom: #f8fafc;
+    --app-scrollbar-thumb-top: #ede9fe;
+    --app-scrollbar-thumb-mid: #c4b5fd;
+    --app-scrollbar-thumb-bottom: #a78bfa;
+    --app-scrollbar-thumb-hover-top: #ddd6fe;
+    --app-scrollbar-thumb-hover-mid: #a78bfa;
+    --app-scrollbar-thumb-hover-bottom: #8b5cf6;
+    --app-scrollbar-thumb-active: #7c3aed;
+    --app-scrollbar-fg-firefox: #c4b5fd;
+    --app-scrollbar-bg-firefox: #eef2ff;
+}
+
+/* ----- Default: light pastel (most of the app) ----- */
+* {
+    scrollbar-width: thin;
+    scrollbar-color: var(--app-scrollbar-fg-firefox) var(--app-scrollbar-bg-firefox);
+}
+
+*::-webkit-scrollbar {
+    width: var(--app-scrollbar-size);
+    height: var(--app-scrollbar-size);
+}
+
+*::-webkit-scrollbar-track {
+    background: linear-gradient(
+        180deg,
+        var(--app-scrollbar-track-top) 0%,
+        var(--app-scrollbar-track-bottom) 100%
+    );
+    border-radius: 999px;
+    margin-block: 4px;
+    margin-inline: 2px;
+}
+
+*::-webkit-scrollbar-thumb {
+    border-radius: 999px;
+    background: linear-gradient(
+        180deg,
+        var(--app-scrollbar-thumb-top) 0%,
+        var(--app-scrollbar-thumb-mid) 42%,
+        var(--app-scrollbar-thumb-bottom) 100%
+    );
+    border: 3px solid var(--app-scrollbar-track-bottom);
+    box-shadow:
+        0 1px 4px rgba(139, 92, 246, 0.2),
+        inset 0 1px 0 rgba(255, 255, 255, 0.75);
+}
+
+*::-webkit-scrollbar-thumb:hover {
+    background: linear-gradient(
+        180deg,
+        var(--app-scrollbar-thumb-hover-top) 0%,
+        var(--app-scrollbar-thumb-hover-mid) 45%,
+        var(--app-scrollbar-thumb-hover-bottom) 100%
+    );
+    box-shadow:
+        0 2px 8px rgba(139, 92, 246, 0.28),
+        inset 0 1px 0 rgba(255, 255, 255, 0.65);
+}
+
+*::-webkit-scrollbar-thumb:active {
+    background: linear-gradient(
+        180deg,
+        var(--app-scrollbar-thumb-hover-mid) 0%,
+        var(--app-scrollbar-thumb-active) 100%
+    );
+}
+
+*::-webkit-scrollbar-corner {
+    background: transparent;
+}
+
+/* ----- Dark / cinematic panels: warm gold fluffy thumb ----- */
+.fw-controls-section,
+.fw-custom-dropdown,
+.fw-reveal-card,
+.guild-fortune-ledger__list,
+#prodigy-content {
+    scrollbar-color: rgba(253, 230, 138, 0.95) rgba(15, 23, 42, 0.45);
+}
+
+.fw-controls-section::-webkit-scrollbar-track,
+.fw-custom-dropdown::-webkit-scrollbar-track,
+.fw-reveal-card::-webkit-scrollbar-track,
+.guild-fortune-ledger__list::-webkit-scrollbar-track,
+#prodigy-content::-webkit-scrollbar-track {
+    background: linear-gradient(
+        180deg,
+        rgba(15, 23, 42, 0.55) 0%,
+        rgba(30, 27, 75, 0.35) 100%
+    );
+    border-radius: 999px;
+}
+
+.fw-controls-section::-webkit-scrollbar-thumb,
+.fw-custom-dropdown::-webkit-scrollbar-thumb,
+.fw-reveal-card::-webkit-scrollbar-thumb,
+.guild-fortune-ledger__list::-webkit-scrollbar-thumb,
+#prodigy-content::-webkit-scrollbar-thumb {
+    background: linear-gradient(
+        180deg,
+        #fde68a 0%,
+        #fbbf24 45%,
+        #d97706 100%
+    );
+    border: 3px solid rgba(15, 23, 42, 0.5);
+    box-shadow:
+        0 1px 5px rgba(251, 191, 36, 0.35),
+        inset 0 1px 0 rgba(255, 255, 255, 0.55);
+}
+
+.fw-controls-section::-webkit-scrollbar-thumb:hover,
+.fw-custom-dropdown::-webkit-scrollbar-thumb:hover,
+.fw-reveal-card::-webkit-scrollbar-thumb:hover,
+.guild-fortune-ledger__list::-webkit-scrollbar-thumb:hover,
+#prodigy-content::-webkit-scrollbar-thumb:hover {
+    background: linear-gradient(
+        180deg,
+        #fef3c7 0%,
+        #f59e0b 50%,
+        #b45309 100%
+    );
+    box-shadow:
+        0 2px 10px rgba(251, 191, 36, 0.45),
+        inset 0 1px 0 rgba(255, 255, 255, 0.45);
+}
+
+/* Guild anthem card: frosted light thumb on deep panel */
+.guild-anthem-card {
+    scrollbar-color: rgba(255, 255, 255, 0.65) rgba(0, 0, 0, 0.25);
+}
+
+.guild-anthem-card::-webkit-scrollbar-track {
+    background: linear-gradient(
+        180deg,
+        rgba(0, 0, 0, 0.25) 0%,
+        rgba(30, 27, 75, 0.2) 100%
+    );
+    border-radius: 999px;
+}
+
+.guild-anthem-card::-webkit-scrollbar-thumb {
+    background: linear-gradient(
+        180deg,
+        rgba(255, 255, 255, 0.95) 0%,
+        rgba(226, 232, 240, 0.85) 100%
+    );
+    border: 3px solid rgba(15, 23, 42, 0.35);
+    box-shadow:
+        0 1px 4px rgba(0, 0, 0, 0.2),
+        inset 0 1px 0 rgba(255, 255, 255, 0.9);
+}
+
+.guild-anthem-card::-webkit-scrollbar-thumb:hover {
+    background: linear-gradient(
+        180deg,
+        #ffffff 0%,
+        #e2e8f0 100%
+    );
+}

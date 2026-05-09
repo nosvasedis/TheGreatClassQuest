@@ -197,6 +197,13 @@ export function setupUIListeners() {
             modals.openHeroStatsModal(studentId, heroStatsTrigger);
             return;
         }
+        const analyticsTrigger = e.target.closest('.chart-label-button');
+        if (analyticsTrigger) {
+            e.stopPropagation();
+            const studentId = analyticsTrigger.dataset.studentId;
+            modals.openStudentAnalyticsModal(studentId, analyticsTrigger);
+            return;
+        }
         handleAvatarClick(e);
         let target = e.target;
         while (target && target !== document.body) {
@@ -1150,6 +1157,8 @@ export function setupUIListeners() {
     document.getElementById('story-history-close-btn').addEventListener('click', () => modals.hideModal('story-history-modal'));
     document.getElementById('story-archive-close-btn').addEventListener('click', () => modals.hideModal('story-archive-modal'));
     document.getElementById('storybook-viewer-close-btn').addEventListener('click', () => modals.hideModal('storybook-viewer-modal'));
+    document.getElementById('story-archive-search').addEventListener('input', storyWeaver.handleStoryArchiveSearchInput);
+    document.getElementById('story-archive-sort').addEventListener('change', storyWeaver.handleStoryArchiveFilterChange);
     document.getElementById('story-archive-list').addEventListener('click', (e) => {
         const viewBtn = e.target.closest('.view-storybook-btn');
         if (viewBtn) {
@@ -1189,23 +1198,7 @@ export function setupUIListeners() {
         }
     });
     document.getElementById('download-certificate-btn').addEventListener('click', downloadCertificateAsPdf);
-    document.getElementById('overview-modal-close-btn').addEventListener('click', () => modals.hideModal('overview-modal'));
-    document.getElementById('overview-modal-tabs').addEventListener('click', (e) => {
-        const btn = e.target.closest('.overview-tab-btn');
-        if (btn) {
-            const classId = document.getElementById('overview-modal').dataset.classId;
-            const view = btn.dataset.view;
 
-            document.querySelectorAll('.overview-tab-btn').forEach(b => {
-                b.classList.remove('border-purple-500', 'text-purple-600');
-                b.classList.add('border-transparent', 'text-gray-500');
-            });
-            btn.classList.add('border-purple-500', 'text-purple-600');
-            btn.classList.remove('border-transparent', 'text-gray-500');
-
-            modals.renderOverviewContent(classId, view);
-        }
-    });
 
     // Hero's Chronicle Modal Listeners
     document.getElementById('hero-chronicle-close-btn').addEventListener('click', () => modals.hideModal('hero-chronicle-modal'));

@@ -54,7 +54,7 @@ export const aiModalsHTML = `
                 <button id="story-history-close-btn"
                     class="premium-close-btn bg-gray-200 hover:bg-gray-300 text-gray-800 font-bold w-10 h-10 rounded-full bubbly-button">&times;</button>
             </div>
-            <div id="story-history-content" class="space-y-4 max-h-[60vh] overflow-y-auto pr-2 flex-grow"></div>
+            <div id="story-history-content" class="story-weavers-chapter-grid max-h-[60vh] overflow-y-auto pr-2 flex-grow"></div>
         </div>
     </div>
 
@@ -67,8 +67,26 @@ export const aiModalsHTML = `
                 <button id="story-archive-close-btn"
                     class="premium-close-btn bg-gray-200 hover:bg-gray-300 text-gray-800 font-bold w-10 h-10 rounded-full bubbly-button">&times;</button>
             </div>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-3 mb-4">
+                <div>
+                    <label for="story-archive-search" class="block text-sm font-semibold text-slate-700">Search</label>
+                    <input id="story-archive-search" type="search"
+                        class="mt-1 w-full px-3.5 py-2.5 border border-slate-200 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-colors"
+                        placeholder="Title or class…" autocomplete="off">
+                </div>
+                <div>
+                    <label for="story-archive-sort" class="block text-sm font-semibold text-slate-700">Sort</label>
+                    <select id="story-archive-sort"
+                        class="mt-1 w-full px-3.5 py-2.5 border border-slate-200 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-colors"
+                        aria-label="Sort storybooks">
+                        <option value="newest">Newest</option>
+                        <option value="oldest">Oldest</option>
+                        <option value="title">Title A–Z</option>
+                    </select>
+                </div>
+            </div>
             <div id="story-archive-list"
-                class="space-y-3 max-h-[60vh] overflow-y-auto p-2 flex-grow bg-gray-50 rounded-lg"></div>
+                class="story-weavers-archive-grid max-h-[60vh] overflow-y-auto p-2 flex-grow bg-gray-50 rounded-2xl"></div>
         </div>
     </div>
 
@@ -85,7 +103,7 @@ export const aiModalsHTML = `
                     class="premium-close-btn bg-gray-200 hover:bg-gray-300 text-gray-800 font-bold w-10 h-10 rounded-full bubbly-button flex-shrink-0">&times;</button>
             </div>
             <div id="storybook-viewer-content"
-                class="space-y-4 max-h-[60vh] overflow-y-auto pr-2 flex-grow bg-gray-50 p-4 rounded-lg"></div>
+                class="story-weavers-chapter-grid max-h-[60vh] overflow-y-auto pr-2 flex-grow bg-gray-50 p-4 rounded-2xl"></div>
             <div class="flex gap-2 mt-4">
                 <button id="storybook-viewer-play-btn"
                     class="w-full bg-amber-500 hover:bg-amber-600 text-white font-title text-lg py-3 rounded-xl bubbly-button">

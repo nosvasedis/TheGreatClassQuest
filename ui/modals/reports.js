@@ -33,7 +33,7 @@ export async function handleGenerateReport(classId) {
     const academicNotes = academicScores.filter(s => s.note).map(s => `For a ${s.type} on ${s.date}, a note said: "${s.note}"`).join('. ');
     const academicSummary = academicScores.map(s => `A ${s.type} score of ${getAssessmentValueLabel(s)}${Number.isFinite(Number(s.normalizedPercent)) ? ` (${Number(s.normalizedPercent).toFixed(0)}%)` : ''}`).join(', ');
 
-    const systemPrompt = "You are the 'Quest Master,' a helpful AI assistant. You write encouraging, insightful reports for teachers. Do not use markdown. Format your response into two paragraphs with clear headings. The first paragraph is a 'Weekly Summary,' and the second is a 'Suggested Mini-Quest.' Your analysis must be based on ALL provided data: behavioral (stars) and academic (scores), including any teacher notes.";
+    const systemPrompt = "You are the 'Quest Master,' a helpful AI assistant. You write encouraging, insightful reports for teachers. Format your response beautifully using markdown, with clear headings (##) for 'Weekly Summary' and 'Suggested Mini-Quest'. Use bold text (**) for emphasis on important metrics or traits. Your analysis must be based on ALL provided data: behavioral (stars) and academic (scores), including any teacher notes.";
     const userPrompt = `Class "${classData.name}" (League: ${classData.questLevel}) this week:
 - Behavior Data: Earned ${totalStars} stars. Breakdown: ${reasonsString || 'None'}. Notes: ${behaviorNotes || 'None'}.
 - Academic Data: Recent scores: ${academicSummary || 'None'}. Notes on scores: ${academicNotes || 'None'}.
@@ -41,10 +41,25 @@ Write a 2-paragraph summary highlighting connections between behavior and academ
     
     try {
         const report = await callGeminiApi(systemPrompt, userPrompt);
-        contentEl.innerHTML = `<h3 class="font-title text-2xl text-green-600 mb-2">${classData.logo} ${classData.name}</h3>` + report.replace(/\n\n/g, '<br><br>').replace(/\n/g, '<br>');
+        const htmlReport = typeof marked !== 'undefined' ? marked.parse(report) : report.replace(/\n\n/g, '<br><br>').replace(/\n/g, '<br>');
+        contentEl.innerHTML = `
+            <div class="flex items-center gap-3 mb-6 pb-4 border-b border-emerald-100">
+                <span class="text-4xl drop-shadow-md">${classData.logo}</span>
+                <h3 class="font-title text-3xl text-emerald-700">${classData.name}</h3>
+            </div>
+            <div class="prose prose-emerald prose-lg max-w-none prose-headings:font-title prose-headings:text-emerald-800 prose-p:text-gray-700 prose-strong:text-emerald-700 prose-ul:text-gray-700">
+                ${htmlReport}
+            </div>
+        `;
     } catch (error) {
         console.error("AI Report Generation Error:", error);
-        contentEl.innerHTML = `<p class="text-red-600">The Quest Master is currently on another adventure. Please try again later.</p>`;
+        contentEl.innerHTML = `
+            <div class="flex flex-col items-center justify-center py-10 text-center">
+                <i class="fas fa-exclamation-triangle text-4xl text-rose-400 mb-4 animate-pulse"></i>
+                <h3 class="font-title text-2xl text-rose-600 mb-2">The Oracle is resting</h3>
+                <p class="text-gray-600">The Quest Master is currently on another adventure. Please try again later.</p>
+            </div>
+        `;
     }
 }
 

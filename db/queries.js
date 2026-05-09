@@ -58,6 +58,29 @@ export async function fetchAllTrialsForClass(classId) {
 }
 
 /**
+ * Fetches every written score document for one student (full history).
+ * Uses composite index: studentId + date desc.
+ * @param {string} studentId
+ * @returns {Promise<Array<{ id: string } & Record<string, unknown>>}
+ */
+export async function fetchAllWrittenScoresForStudent(studentId) {
+    const publicDataPath = "artifacts/great-class-quest/public/data";
+    const scoresQuery = query(
+        collection(db, `${publicDataPath}/written_scores`),
+        where("studentId", "==", studentId),
+        orderBy("date", "desc")
+    );
+
+    try {
+        const snapshot = await getDocs(scoresQuery);
+        return snapshot.docs.map((docSnap) => ({ id: docSnap.id, ...docSnap.data() }));
+    } catch (error) {
+        console.error("Error fetching all written scores for student:", error);
+        return [];
+    }
+}
+
+/**
  * CORRECTED: Fetches all award log entries for a specific month using a Timestamp query.
  * @param {number} year 
  * @param {number} month (1-12)

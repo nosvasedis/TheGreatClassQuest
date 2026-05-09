@@ -78,12 +78,36 @@ export const leaderboardTabHTML = `
                     </button>
                 </div>
 
-                <div class="max-w-4xl mx-auto">
+                <div class="max-w-7xl mx-auto">
                     <div class="text-center mb-4">
                         <i class="fas fa-user-shield text-purple-600 text-5xl floating-icon"></i>
                         <h2 class="font-title text-5xl text-purple-700 mt-2 bottom-nav-tab-title"
                             style="text-shadow: 0 2px 4px rgba(0,0,0,0.1);">Hero's Challenge</h2>
                         <p class="text-lg text-gray-600 mt-2">Rise through the ranks and become a legend!</p>
+                    </div>
+
+                    <!-- Hero Month Banner -->
+                    <div id="current-month-hero-title" class="hero-month-banner mb-4">
+                        <!-- Floating watermark icons -->
+                        <div class="quest-banner-watermarks" aria-hidden="true">
+                            <i class="fas fa-star qbw-icon" style="left:6%;top:20%;font-size:2rem;--qbw-duration:8.8s;--qbw-delay:-1.8s;--qbw-drift-x:7px;--qbw-drift-y:11px;--qbw-tilt:3deg;"></i>
+                            <i class="fas fa-user-shield qbw-icon" style="left:18%;top:58%;font-size:2.6rem;--qbw-duration:10.2s;--qbw-delay:-3.7s;--qbw-drift-x:8px;--qbw-drift-y:12px;--qbw-tilt:4deg;--qbw-pulse-duration:6.6s;"></i>
+                            <i class="fas fa-crown qbw-icon" style="left:39%;top:24%;font-size:2rem;--qbw-duration:11.4s;--qbw-delay:-2.4s;--qbw-drift-x:9px;--qbw-drift-y:10px;--qbw-tilt:2deg;"></i>
+                            <i class="fas fa-medal qbw-icon" style="right:16%;top:53%;font-size:2.35rem;--qbw-duration:9.6s;--qbw-delay:-4.1s;--qbw-drift-x:7px;--qbw-drift-y:9px;--qbw-tilt:3.5deg;"></i>
+                            <i class="fas fa-star qbw-icon" style="right:6%;top:15%;font-size:1.7rem;--qbw-duration:10.8s;--qbw-delay:-5.3s;--qbw-drift-x:6px;--qbw-drift-y:8px;--qbw-tilt:2.5deg;--qbw-pulse-duration:7.4s;"></i>
+                        </div>
+                        <!-- Flanking emblems -->
+                        <div class="quest-banner-side">
+                            <i class="fas fa-star" style="font-size:1.3rem;"></i>
+                            <i class="fas fa-user-shield" style="font-size:1rem;"></i>
+                        </div>
+                        <div class="quest-banner-center">
+                            <span id="hero-month-name">February</span>
+                        </div>
+                        <div class="quest-banner-side">
+                            <i class="fas fa-medal" style="font-size:1rem;"></i>
+                            <i class="fas fa-star" style="font-size:1.3rem;"></i>
+                        </div>
                     </div>
 
                     <!-- Compact Controls Card -->
@@ -136,7 +160,9 @@ export const leaderboardTabHTML = `
                             </div>
                         </div>
                     </div>
+                </div>
 
+                <div class="max-w-4xl mx-auto">
                     <div id="student-leaderboard-list" class="space-y-4"></div>
                 </div>
             </div>

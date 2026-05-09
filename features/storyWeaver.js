@@ -22,7 +22,6 @@ export function handleStoryWeaversClassSelect() {
     const classId = document.getElementById('story-weavers-class-select').value;
     const mainContent = document.getElementById('story-weavers-main-content');
     const placeholder = document.getElementById('story-weavers-placeholder');
-    const ideaForgeGrid = document.querySelector('#reward-ideas-tab .grid');
     
     const unsubscribeStoryData = state.get('unsubscribeStoryData');
     const currentUnsub = unsubscribeStoryData.current;
@@ -36,7 +35,6 @@ export function handleStoryWeaversClassSelect() {
     if (classId) {
         mainContent.classList.remove('hidden');
         placeholder.classList.add('hidden');
-        if (ideaForgeGrid) ideaForgeGrid.classList.add('story-weavers-active');
         
         const storyDocRef = doc(db, `artifacts/great-class-quest/public/data/story_data`, classId);
         unsubscribeStoryData.current = onSnapshot(storyDocRef, (doc) => {
@@ -47,8 +45,9 @@ export function handleStoryWeaversClassSelect() {
     } else {
         mainContent.classList.add('hidden');
         placeholder.classList.remove('hidden');
-        if (ideaForgeGrid) ideaForgeGrid.classList.remove('story-weavers-active');
     }
+
+    renderStoryArchive();
 }
 
 function renderStoryWeaversUI(classId) {
@@ -270,11 +269,14 @@ export async function handleShowStoryHistory() {
         } else {
             contentEl.innerHTML = snapshot.docs.map((doc, index) => {
                 const data = doc.data();
+                const sentence = escapeHtml(data.sentence || '');
+                const word = escapeHtml(data.word || 'N/A');
+                const imgSrc = escapeHtml(data.imageUrl || data.imageBase64 || '');
                 return `<div class="story-history-card">
-                            <img src="${data.imageUrl || data.imageBase64}" alt="Chapter ${index + 1} illustration">
+                            <img src="${imgSrc}" alt="Chapter ${index + 1} illustration" loading="lazy" decoding="async" width="150" height="150">
                             <div class="text-content">
-                                <p class="text-xs text-gray-500 font-bold">CHAPTER ${index + 1} (Word: <span class="text-cyan-600">${data.word || 'N/A'}</span>)</p>
-                                <p class="text-gray-800 mt-2 flex-grow">${data.sentence}</p>
+                                <p class="text-xs text-gray-500 font-bold">CHAPTER ${index + 1} (Word: <span class="text-cyan-600">${word}</span>)</p>
+                                <p class="text-gray-800 mt-2 flex-grow">${sentence}</p>
                             </div>
                         </div>`;
             }).join('');
@@ -310,30 +312,179 @@ export function handleResetStory() {
 
 // --- ARCHIVE & STORYBOOK ---
 
+function debounce(fn, waitMs) {
+    let timeoutId;
+    return (...args) => {
+        window.clearTimeout(timeoutId);
+        timeoutId = window.setTimeout(() => fn(...args), waitMs);
+    };
+}
+
+function escapeHtml(value) {
+    return String(value ?? '')
+        .replaceAll('&', '&amp;')
+        .replaceAll('<', '&lt;')
+        .replaceAll('>', '&gt;')
+        .replaceAll('"', '&quot;')
+        .replaceAll("'", '&#039;');
+}
+
+/** Ensures &lt;img&gt; nodes have finished loading before html2canvas runs (needed for remote URLs). */
+function waitForImages(root) {
+    const imgs = Array.from(root.querySelectorAll('img'));
+    return Promise.all(
+        imgs.map(
+            (img) =>
+                new Promise((resolve) => {
+                    if (img.complete && img.naturalHeight > 0) {
+                        resolve();
+                        return;
+                    }
+                    const done = () => resolve();
+                    img.addEventListener('load', done, { once: true });
+                    img.addEventListener('error', done, { once: true });
+                    window.setTimeout(done, 20000);
+                })
+        )
+    );
+}
+
+function getTimestampMillis(ts) {
+    try {
+        if (!ts) return 0;
+        if (typeof ts.toMillis === 'function') return ts.toMillis();
+        if (typeof ts.toDate === 'function') return ts.toDate().getTime();
+        return 0;
+    } catch {
+        return 0;
+    }
+}
+
+const debouncedRenderStoryArchive = debounce(() => renderStoryArchive(), 140);
+const storybookCoverInflight = new Set();
+
+export function handleStoryArchiveSearchInput() {
+    debouncedRenderStoryArchive();
+}
+
+export function handleStoryArchiveFilterChange() {
+    renderStoryArchive();
+}
+
 export function openStoryArchiveModal() {
     renderStoryArchive();
     modals.showAnimatedModal('story-archive-modal');
+    document.getElementById('story-archive-search')?.focus();
 }
 
 export function renderStoryArchive() {
-    const listEl = document.getElementById('story-archive-list');
-    const allCompletedStories = state.get('allCompletedStories');
-    if (allCompletedStories.length === 0) {
-        listEl.innerHTML = `<p class="text-center text-gray-500 py-8">You have no completed storybooks yet. Finish a story to see it here!</p>`;
+    const allCompletedStories = state.get('allCompletedStories') || [];
+    const selectedClassId = document.getElementById('story-weavers-class-select')?.value || '';
+
+    renderArchiveSurface({
+        listEl: document.getElementById('story-archive-list'),
+        searchEl: document.getElementById('story-archive-search'),
+        sortEl: document.getElementById('story-archive-sort'),
+        stories: allCompletedStories,
+        selectedClassId
+    });
+}
+
+function renderArchiveSurface({ listEl, searchEl, sortEl, stories, selectedClassId, limit }) {
+    if (!listEl) return;
+
+    const queryText = (searchEl?.value || '').trim().toLowerCase();
+    const sortMode = sortEl?.value || 'newest';
+
+    let filtered = stories.slice();
+    if (selectedClassId) filtered = filtered.filter(s => s.classId === selectedClassId);
+    if (queryText) {
+        filtered = filtered.filter(s => {
+            const haystack = `${s.title || ''} ${s.className || ''}`.toLowerCase();
+            return haystack.includes(queryText);
+        });
+    }
+
+    filtered.sort((a, b) => {
+        if (sortMode === 'title') return (a.title || '').localeCompare(b.title || '');
+        const aTime = getTimestampMillis(a.completedAt);
+        const bTime = getTimestampMillis(b.completedAt);
+        if (sortMode === 'oldest') return aTime - bTime;
+        return bTime - aTime;
+    });
+
+    const visibleStories = typeof limit === 'number' ? filtered.slice(0, limit) : filtered;
+
+    if (stories.length === 0) {
+        listEl.innerHTML = `<div class="text-center text-slate-500 py-10">You have no completed storybooks yet. Finish a story to see it here!</div>`;
         return;
     }
-    listEl.innerHTML = allCompletedStories.map(story => `
-        <div class="completed-storybook-item border-indigo-300">
-            <div>
-                <h3 class="font-bold text-lg text-indigo-800">${story.title}</h3>
-                <p class="text-sm text-gray-600">A story by <span class="font-semibold">${story.classLogo} ${story.className}</span></p>
-                <p class="text-xs text-gray-400">Completed on ${story.completedAt?.toDate().toLocaleDateString() || 'a while ago'}</p>
-            </div>
-            <div class="flex gap-2">
-                <button class="view-storybook-btn bg-indigo-100 text-indigo-700 w-10 h-10 rounded-full bubbly-button" data-story-id="${story.id}"><i class="fas fa-book-open"></i></button>
-            </div>
-        </div>
-    `).join('');
+
+    if (visibleStories.length === 0) {
+        listEl.innerHTML = selectedClassId
+            ? `<div class="text-center text-slate-500 py-10">No storybooks for this class yet.</div>`
+            : `<div class="text-center text-slate-500 py-10">No matching storybooks.</div>`;
+        return;
+    }
+
+    visibleStories.forEach((s) => {
+        if (!s?.id) return;
+        if (s.coverImageUrl || s.coverImageBase64) return;
+        ensureStorybookCover(s.id);
+    });
+
+    listEl.innerHTML = visibleStories.map(story => {
+        const title = escapeHtml(story.title || 'Untitled Story');
+        const classLine = escapeHtml(`${story.classLogo || ''} ${story.className || ''}`.trim() || 'Unknown class');
+        const completedDate = story.completedAt?.toDate?.().toLocaleDateString?.() || '';
+        const completedText = completedDate ? `Completed ${escapeHtml(completedDate)}` : 'Completed earlier';
+        const coverUrl = story.coverImageUrl || story.coverImageBase64 || '';
+
+        const cover = coverUrl
+            ? `<img src="${escapeHtml(coverUrl)}" alt="" loading="lazy" decoding="async" class="story-weavers-archive-cover" />`
+            : `<div class="story-weavers-archive-cover story-weavers-archive-cover--placeholder" aria-hidden="true">
+                    <i class="fas fa-feather-alt text-white/85 text-2xl"></i>
+               </div>`;
+
+        return `
+            <button type="button"
+                class="story-weavers-archive-tile view-storybook-btn"
+                data-story-id="${escapeHtml(story.id)}"
+                aria-label="Open storybook: ${title}">
+                <div class="story-weavers-archive-cover-wrap">
+                    ${cover}
+                </div>
+                <div class="story-weavers-archive-body">
+                    <div class="story-weavers-archive-title">${title}</div>
+                    <div class="story-weavers-archive-meta">${classLine}</div>
+                    <div class="story-weavers-archive-submeta">${completedText}</div>
+                </div>
+            </button>
+        `;
+    }).join('');
+}
+
+async function ensureStorybookCover(storyId) {
+    if (storybookCoverInflight.has(storyId)) return;
+    storybookCoverInflight.add(storyId);
+    try {
+        const chaptersQuery = query(
+            collection(db, `artifacts/great-class-quest/public/data/completed_stories/${storyId}/chapters`),
+            orderBy('chapterNumber', 'asc'),
+            limit(1)
+        );
+        const snapshot = await getDocs(chaptersQuery);
+        const first = snapshot.docs[0]?.data?.();
+        const coverImageUrl = first?.imageUrl || null;
+        const coverImageBase64 = !coverImageUrl ? (first?.imageBase64 || null) : null;
+        if (!coverImageUrl && !coverImageBase64) return;
+
+        const storyDocRef = doc(db, `artifacts/great-class-quest/public/data/completed_stories`, storyId);
+        await updateDoc(storyDocRef, { coverImageUrl, coverImageBase64 });
+    } catch {
+    } finally {
+        storybookCoverInflight.delete(storyId);
+    }
 }
 
 export async function openStorybookViewer(storyId) {
@@ -370,14 +521,20 @@ export async function openStorybookViewer(storyId) {
 
         story.chapters = chapters;
 
-        contentEl.innerHTML = chapters.map((chapter) => `
-            <div class="story-history-card">
-                <img src="${chapter.imageUrl || chapter.imageBase64}" alt="Chapter ${chapter.chapterNumber} illustration">
-                <div class="text-content">
-                    <p class="text-xs text-gray-500 font-bold">CHAPTER ${chapter.chapterNumber}</p>
-                    <p class="text-gray-800 mt-2 flex-grow">${chapter.sentence}</p>
+        contentEl.innerHTML = chapters.map((chapter) => {
+            const chapterNumber = Number(chapter.chapterNumber) || 0;
+            const imgSrc = escapeHtml(chapter.imageUrl || chapter.imageBase64 || '');
+            const sentence = escapeHtml(chapter.sentence || '');
+            return `
+                <div class="story-history-card">
+                    <img src="${imgSrc}" alt="Chapter ${chapterNumber} illustration" loading="lazy" decoding="async" width="150" height="150">
+                    <div class="text-content">
+                        <p class="text-xs text-gray-500 font-bold">CHAPTER ${chapterNumber}</p>
+                        <p class="text-gray-800 mt-2 flex-grow">${sentence}</p>
+                    </div>
                 </div>
-            </div>`).join('');
+            `;
+        }).join('');
 
         document.getElementById('storybook-viewer-print-btn').onclick = () => handlePrintStorybook(storyId);
         document.getElementById('storybook-viewer-print-btn').disabled = false;
@@ -429,22 +586,33 @@ async function handlePrintStorybook(storyId) {
     }
 
     const btn = document.getElementById('storybook-viewer-print-btn');
-    btn.disabled = true;btn.innerHTML = `<i class="fas fa-spinner fa-spin mr-2"></i> Assembling...`;
+    btn.disabled = true;
+    btn.innerHTML = `<i class="fas fa-spinner fa-spin mr-2"></i> Assembling...`;
 
     try {
         const theme = constants.storybookThemes[simpleHashCode(story.title) % constants.storybookThemes.length];
-        const storyPages = story.chapters.map(chapter => `
+        const storyPages = story.chapters.map((chapter) => {
+            const imgSrcRaw = chapter.imageUrl || chapter.imageBase64 || '';
+            const escapedSrc = escapeHtml(imgSrcRaw);
+            const sentence = escapeHtml(chapter.sentence || '');
+            const pageNum = escapeHtml(String(chapter.chapterNumber ?? ''));
+            const remoteAttr = /^https?:\/\//i.test(imgSrcRaw) ? ' crossorigin="anonymous"' : '';
+            const imageInner = imgSrcRaw
+                ? `<img src="${escapedSrc}" alt=""${remoteAttr} style="max-width: 100%; max-height: 100%; object-fit: contain;">`
+                : `<div style="display:flex;align-items:center;justify-content:center;width:100%;height:100%;color:${theme.textColor};opacity:0.45;font-family:${theme.bodyFont};font-size:18px;">No illustration</div>`;
+            return `
             <div style="width: 800px; height: 600px; display: flex; flex-direction: column; padding: 40px; background-color: ${theme.bg}; border: 10px solid ${theme.border}; box-sizing: border-box; page-break-after: always;">
                 <div style="width: 100%; height: 350px; border-radius: 10px; border: 3px solid ${theme.border}; background-color: #fff; display: flex; align-items: center; justify-content: center; overflow: hidden;">
-                    <img src="${chapter.imageBase64}" style="max-width: 100%; max-height: 100%; object-fit: contain;">
+                    ${imageInner}
                 </div>
-                <p style="text-align: center; font-family: ${theme.bodyFont}; font-size: 22px; color: ${theme.textColor}; margin-top: 20px; flex-grow: 1; font-weight: ${theme.fontWeight || 'normal'};">${chapter.sentence}</p>
-                <p style="text-align: right; font-size: 14px; color: ${theme.textColor}; opacity: 0.7;">- Page ${chapter.chapterNumber} -</p>
-            </div>`);
+                <p style="text-align: center; font-family: ${theme.bodyFont}; font-size: 22px; color: ${theme.textColor}; margin-top: 20px; flex-grow: 1; font-weight: ${theme.fontWeight || 'normal'};">${sentence}</p>
+                <p style="text-align: right; font-size: 14px; color: ${theme.textColor}; opacity: 0.7;">- Page ${pageNum} -</p>
+            </div>`;
+        });
 
         const titlePage = `
             <div style="width: 800px; height: 600px; display: flex; flex-direction: column; justify-content: center; align-items: center; padding: 40px; background-color: ${theme.bg}; border: 10px solid ${theme.border}; box-sizing: border-box; page-break-after: always;">
-                <h1 style="font-family: ${theme.titleFont}; font-size: 50px; color: ${theme.titleColor}; text-align: center;">${story.title}</h1>
+                <h1 style="font-family: ${theme.titleFont}; font-size: 50px; color: ${theme.titleColor}; text-align: center;">${escapeHtml(story.title)}</h1>
                 <h2 style="font-family: ${theme.titleFont}; font-size: 30px; color: ${theme.textColor}; text-align: center; margin-top: 10px;">A Story Weavers Adventure</h2>
             </div>`;
 
@@ -468,8 +636,23 @@ async function handlePrintStorybook(storyId) {
         const pdf = new jsPDF({ orientation: 'landscape', unit: 'px', format: [800, 600] });
 
         const pages = printContainer.children;
+        const canvasOpts = {
+            scale: 3,
+            useCORS: true,
+            allowTaint: false,
+            backgroundColor: null,
+            logging: false,
+            imageTimeout: 25000
+        };
         for (let i = 0; i < pages.length; i++) {
-            const canvas = await html2canvas(pages[i], { scale: 2 });
+            const pageEl = pages[i];
+            await waitForImages(pageEl);
+            try {
+                if (document.fonts) await document.fonts.ready;
+            } catch (_) {
+                /* ignore */
+            }
+            const canvas = await html2canvas(pageEl, canvasOpts);
             const imgData = canvas.toDataURL('image/png');
             if (i > 0) pdf.addPage([800, 600], 'landscape');
             pdf.addImage(imgData, 'PNG', 0, 0, 800, 600);

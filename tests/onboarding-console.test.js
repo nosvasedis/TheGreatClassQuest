@@ -301,6 +301,7 @@ test('formatNetlifyVariables includes Firebase config and billing values', () =>
   assert.match(text, /GCQ_FIREBASE_API_KEY=api-key/);
   assert.match(text, /GCQ_BILLING_BASE_URL=https:\/\/gcq-billing.onrender.com/);
   assert.match(text, /GCQ_BILLING_SCHOOL_ID=gcq-test-school/);
+  assert.match(text, /GCQ_CERTIFICATE_IMAGE_PROXY_URL=https:\/\/great-class-quest-storage-proxy\.nvasedis-cc5\.workers\.dev/);
 });
 
 test('formatHostedEnvironmentVariables matches the Netlify env format', () => {
@@ -321,6 +322,7 @@ test('formatHostedEnvironmentVariables matches the Netlify env format', () => {
   assert.match(text, /GCQ_FIREBASE_PROJECT_ID=gcq-test-school/);
   assert.match(text, /GCQ_FIREBASE_FUNCTIONS_REGION=europe-west1/);
   assert.match(text, /GCQ_BILLING_BASE_URL=https:\/\/gcq-billing.onrender.com/);
+  assert.match(text, /GCQ_CERTIFICATE_IMAGE_PROXY_URL=https:\/\/great-class-quest-storage-proxy\.nvasedis-cc5\.workers\.dev/);
 });
 
 test('admin readiness target enables storage and functions services', () => {

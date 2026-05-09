@@ -24,6 +24,7 @@ const SCHOOL_SETTINGS_DOC = 'artifacts/great-class-quest/public/data/school_sett
 const DEFAULT_DEFAULTS = {
   renderUrl: '',
   siteDomain: '',
+  certificateImageProxyUrl: 'https://great-class-quest-storage-proxy.nvasedis-cc5.workers.dev',
   priceIds: {
     starter: '',
     pro: '',
@@ -1929,6 +1930,12 @@ async function fetchFirebaseWebAppConfig(projectId, serviceAccount) {
 
 function formatHostedEnvironmentVariables(webConfig, renderUrl, projectId) {
   if (!webConfig) return '';
+  const certificateProxyUrl = String(
+    process.env.ONBOARDING_CONSOLE_CERTIFICATE_PROXY_URL ||
+    loadDefaults().certificateImageProxyUrl ||
+    'https://great-class-quest-storage-proxy.nvasedis-cc5.workers.dev'
+  ).trim();
+
   const lines = [
     `GCQ_FIREBASE_API_KEY=${webConfig.apiKey || ''}`,
     `GCQ_FIREBASE_AUTH_DOMAIN=${webConfig.authDomain || ''}`,
@@ -1940,6 +1947,7 @@ function formatHostedEnvironmentVariables(webConfig, renderUrl, projectId) {
     'GCQ_FIREBASE_FUNCTIONS_REGION=europe-west1',
     `GCQ_BILLING_BASE_URL=${String(renderUrl || '').trim().replace(/\/$/, '')}`,
     `GCQ_BILLING_SCHOOL_ID=${projectId}`,
+    `GCQ_CERTIFICATE_IMAGE_PROXY_URL=${certificateProxyUrl}`,
   ];
   return lines.join('\n');
 }

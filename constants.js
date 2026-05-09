@@ -21,6 +21,9 @@ export const firebaseConfig =
 
 export const cloudflareWorkerUrl = 'https://great-class-quest-ai-proxy.nvasedis-cc5.workers.dev';
 export const workerBaseUrl = 'https://great-class-quest-ai-proxy.nvasedis-cc5.workers.dev';
+export const certificateImageProxyUrl =
+    (typeof window !== 'undefined' && window.__GCQ_CERTIFICATE_IMAGE_PROXY_URL__) ||
+    'https://great-class-quest-storage-proxy.nvasedis-cc5.workers.dev';
 export const geminiApiUrl = workerBaseUrl; 
 export const OPENROUTER_MODEL = 'deepseek/deepseek-v4-flash';
 const runtimeAiTextConfig = (typeof window !== 'undefined' && window.__GCQ_AI_TEXT_CONFIG__) || {};

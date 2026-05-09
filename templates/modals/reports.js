@@ -71,7 +71,7 @@ export const reportsModalsHTML = `
 
             <!-- Content Area -->
             <div id="certificate-modal-content"
-                class="relative z-10 space-y-6 bg-white/60 p-6 md:p-8 rounded-[2rem] border border-white shadow-inner flex-grow overflow-y-auto custom-scrollbar flex flex-col items-center justify-center text-center">
+                class="relative z-10 space-y-6 bg-white/60 p-6 md:p-8 rounded-[2rem] border border-white shadow-inner flex-grow overflow-y-auto custom-scrollbar flex flex-col items-center text-center">
                 <!-- Content will be injected here -->
             </div>
 

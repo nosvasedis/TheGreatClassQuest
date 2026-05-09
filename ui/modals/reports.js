@@ -10,6 +10,7 @@ import { callGeminiApi } from '../../api.js';
 import { requireEliteAI } from '../../utils/upgradePrompt.js';
 import { getAssessmentValueLabel, getNormalizedPercentForScore } from '../../features/assessmentConfig.js';
 import { showToast } from '../effects.js';
+import { auth } from '../../firebase.js';
 
 let currentCertStudentId = null;
 let currentCertScope = 'monthly';
@@ -154,6 +155,8 @@ export async function handleGenerateCertificate(studentId, scope = 'monthly') {
     
     const genBtn = document.getElementById('generate-cert-btn');
     if (genBtn) genBtn.onclick = () => executeCertificateGeneration();
+
+    contentEl.scrollTop = 0;
     
     downloadBtn.classList.add('hidden');
     showAnimatedModal('certificate-modal');
@@ -183,6 +186,7 @@ export async function executeCertificateGeneration() {
             </div>
         </div>
     `;
+    contentEl.scrollTop = 0;
 
     const ageCategory = utils.getAgeCategoryForLeague(studentClass.questLevel);
     let stylePool = constants.midCertificateStyles;
@@ -203,6 +207,8 @@ export async function executeCertificateGeneration() {
 
     const certAvatarEl = document.getElementById('cert-avatar');
     if (student.avatar) {
+        certAvatarEl.loading = 'eager';
+        certAvatarEl.decoding = 'sync';
         certAvatarEl.src = student.avatar;
         certAvatarEl.style.display = 'block';
     } else {
@@ -211,7 +217,9 @@ export async function executeCertificateGeneration() {
 
     const certLogoEl = document.getElementById('cert-app-logo');
     if (certLogoEl) {
-        certLogoEl.src = new URL('assets/great-class-quest-logo.svg', window.location.href).toString();
+        certLogoEl.loading = 'eager';
+        certLogoEl.decoding = 'sync';
+        certLogoEl.src = new URL('../../assets/great-class-quest-logo.svg', import.meta.url).toString();
         certLogoEl.style.display = 'block';
     }
 
@@ -432,6 +440,8 @@ export async function executeCertificateGeneration() {
     if (emblemEl) {
         const emblemUrl = guildId ? getGuildEmblemUrl(guildId) : '';
         if (emblemUrl) {
+            emblemEl.loading = 'eager';
+            emblemEl.decoding = 'sync';
             emblemEl.src = emblemUrl;
             emblemEl.style.display = 'block';
         } else {
@@ -545,6 +555,7 @@ Keep it brief but vivid, so it feels like a moment from their adventure in The G
                 </div>
             </div>
         `;
+        contentEl.scrollTop = 0;
         document.getElementById('cert-student-name').innerText = student.name;
         document.getElementById('cert-text').innerText = text;
         document.getElementById('cert-teacher-name').innerText = state.get('currentTeacherName');
@@ -564,6 +575,8 @@ export async function downloadCertificateAsPdf() {
     const { jsPDF } = window.jspdf;
     const certificateElement = document.getElementById('certificate-template');
     const studentName = document.getElementById('cert-student-name').innerText;
+    let captureHost = null;
+    let captureTemplate = null;
 
     const waitForImageReady = (imgEl) => new Promise((resolve) => {
         if (!imgEl || !imgEl.src || imgEl.style.display === 'none') {
@@ -577,23 +590,87 @@ export async function downloadCertificateAsPdf() {
         const done = () => resolve();
         imgEl.addEventListener('load', done, { once: true });
         imgEl.addEventListener('error', done, { once: true });
+        window.setTimeout(done, 4000);
     });
+
+    const loadImageElement = (src) => new Promise((resolve, reject) => {
+        const img = new Image();
+        img.onload = () => resolve(img);
+        img.onerror = (err) => reject(err);
+        img.src = src;
+    });
+
+    const toPngDataURL = async (src, options = {}) => {
+        if (!src) return '';
+        const { circle = false } = options;
+        try {
+            const resolved = await toDataURL(src);
+            const loaded = await loadImageElement(resolved || src);
+            const canvas = document.createElement('canvas');
+            const sourceWidth = Math.max(1, loaded.naturalWidth || loaded.width || 1);
+            const sourceHeight = Math.max(1, loaded.naturalHeight || loaded.height || 1);
+            const size = Math.max(1, Math.min(sourceWidth, sourceHeight));
+            canvas.width = circle ? size : sourceWidth;
+            canvas.height = circle ? size : sourceHeight;
+            const ctx = canvas.getContext('2d');
+            ctx.imageSmoothingEnabled = true;
+            ctx.imageSmoothingQuality = 'high';
+
+            if (circle) {
+                const sx = Math.max(0, (sourceWidth - size) / 2);
+                const sy = Math.max(0, (sourceHeight - size) / 2);
+                ctx.beginPath();
+                ctx.arc(size / 2, size / 2, size / 2, 0, Math.PI * 2);
+                ctx.closePath();
+                ctx.clip();
+                ctx.drawImage(loaded, sx, sy, size, size, 0, 0, size, size);
+            } else {
+                ctx.drawImage(loaded, 0, 0, canvas.width, canvas.height);
+            }
+
+            return canvas.toDataURL('image/png');
+        } catch (_) {
+            return '';
+        }
+    };
 
     // Robust Image-to-DataURL conversion helper
     const toDataURL = async (url) => {
         if (!url) return '';
         if (url.startsWith('data:')) return url;
+
+        const blobToDataURL = (blob) => new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onloadend = () => resolve(reader.result);
+            reader.onerror = reject;
+            reader.readAsDataURL(blob);
+        });
+
+        const isFirebaseStorageUrl = url.startsWith('gs://') || url.includes('firebasestorage.googleapis.com');
+        if (isFirebaseStorageUrl && constants.certificateImageProxyUrl) {
+            const workerProxyUrl = `${constants.certificateImageProxyUrl}/storage-proxy?url=${encodeURIComponent(url)}`;
+            try {
+                const idToken = await auth?.currentUser?.getIdToken?.().catch(() => '');
+                const proxiedResponse = await fetch(workerProxyUrl, {
+                    headers: idToken ? { 'x-firebase-token': idToken } : {},
+                });
+                if (!proxiedResponse.ok) {
+                    throw new Error(`Proxy status ${proxiedResponse.status}`);
+                }
+                const proxiedBlob = await proxiedResponse.blob();
+                return await blobToDataURL(proxiedBlob);
+            } catch (proxyError) {
+                console.warn('Worker storage proxy unavailable for image URL:', url, proxyError);
+                return url;
+            }
+        }
+
         try {
             const absoluteUrl = new URL(url, window.location.href).toString();
             const response = await fetch(absoluteUrl);
             if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
             const blob = await response.blob();
-            return new Promise((resolve, reject) => {
-                const reader = new FileReader();
-                reader.onloadend = () => resolve(reader.result);
-                reader.onerror = reject;
-                reader.readAsDataURL(blob);
-            });
+            return await blobToDataURL(blob);
         } catch (e) {
             console.warn("Could not convert image to DataURL:", url, e);
             return url; 
@@ -601,11 +678,37 @@ export async function downloadCertificateAsPdf() {
     };
 
     try {
+        // Render from a detached clone to avoid visual changes in the live modal.
+        captureHost = document.createElement('div');
+        captureHost.style.position = 'fixed';
+        captureHost.style.left = '-10000px';
+        captureHost.style.top = '0';
+        captureHost.style.width = '1px';
+        captureHost.style.height = '1px';
+        captureHost.style.overflow = 'hidden';
+        captureHost.style.pointerEvents = 'none';
+        captureHost.style.zIndex = '-1';
+
+        captureTemplate = certificateElement.cloneNode(true);
+        captureHost.appendChild(captureTemplate);
+        document.body.appendChild(captureHost);
+
         // Pre-convert all key images to DataURLs to ensure html2canvas sees them
-        const avatarImg = document.getElementById('cert-avatar');
-        const emblemImg = document.getElementById('cert-guild-emblem');
-        const logoImg = document.getElementById('cert-app-logo');
+        const avatarImg = captureTemplate.querySelector('#cert-avatar');
+        const emblemImg = captureTemplate.querySelector('#cert-guild-emblem');
+        const logoImg = captureTemplate.querySelector('#cert-app-logo');
+        const modalAvatarImg = document.querySelector('#certificate-modal-content img[src]');
         const imageNodes = [avatarImg, emblemImg, logoImg].filter(Boolean);
+
+        if (avatarImg && modalAvatarImg?.src) {
+            avatarImg.src = modalAvatarImg.currentSrc || modalAvatarImg.src;
+            avatarImg.style.display = 'block';
+        }
+
+        imageNodes.forEach((img) => {
+            img.loading = 'eager';
+            img.decoding = 'sync';
+        });
 
         if (avatarImg && avatarImg.src && !avatarImg.src.startsWith('data:')) {
             avatarImg.src = await toDataURL(avatarImg.src);
@@ -619,8 +722,8 @@ export async function downloadCertificateAsPdf() {
 
         await Promise.all(imageNodes.map(waitForImageReady));
         
-        const canvas = await html2canvas(certificateElement, { 
-            scale: 2, 
+        const canvas = await html2canvas(captureTemplate, { 
+            scale: 3,
             useCORS: true,
             allowTaint: false,
             logging: false,
@@ -631,6 +734,35 @@ export async function downloadCertificateAsPdf() {
         const imgData = canvas.toDataURL('image/png');
         const pdf = new jsPDF({ orientation: 'landscape', unit: 'px', format: [800, 600] });
         pdf.addImage(imgData, 'PNG', 0, 0, 800, 600);
+
+        const certRect = captureTemplate.getBoundingClientRect();
+        const scaleX = certRect.width ? 800 / certRect.width : 1;
+        const scaleY = certRect.height ? 600 / certRect.height : 1;
+        const stampIds = ['cert-avatar', 'cert-app-logo', 'cert-guild-emblem'];
+
+        for (const id of stampIds) {
+            const el = captureTemplate.querySelector(`#${id}`);
+            if (!el || !el.src || el.style.display === 'none') continue;
+            let sourceForStamp = el.currentSrc || el.src;
+            if (id === 'cert-avatar' && modalAvatarImg?.src) {
+                sourceForStamp = modalAvatarImg.currentSrc || modalAvatarImg.src || sourceForStamp;
+            }
+
+            const pngData = await toPngDataURL(sourceForStamp, { circle: id === 'cert-avatar' });
+            if (!pngData) continue;
+
+            const box = el.getBoundingClientRect();
+            const x = (box.left - certRect.left) * scaleX;
+            const y = (box.top - certRect.top) * scaleY;
+            const w = box.width * scaleX;
+            const h = box.height * scaleY;
+
+            try {
+                pdf.addImage(pngData, 'PNG', x, y, w, h);
+            } catch (_) {
+                // Ignore stamp failures so base PDF still downloads.
+            }
+        }
         
         const fileSuffix = currentCertScope === 'monthly' ? 'Monthly_Quest' : 'Legends_Journey';
         pdf.save(`${studentName}_${fileSuffix}.pdf`);
@@ -638,6 +770,10 @@ export async function downloadCertificateAsPdf() {
         console.error("Error generating PDF:", error);
         showToast('Could not generate PDF.', 'error');
     } finally {
+        if (captureHost && captureHost.parentNode) {
+            captureHost.parentNode.removeChild(captureHost);
+        }
+
         btn.disabled = false;
         btn.innerHTML = `<i class="fas fa-download mr-2"></i> Download as PDF`;
     }

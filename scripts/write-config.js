@@ -31,6 +31,7 @@ const config = {
   billingBaseUrl: env.GCQ_BILLING_BASE_URL || '',
   billingSchoolId: env.GCQ_BILLING_SCHOOL_ID || firebaseConfig.projectId || '',
   functionsRegion: env.GCQ_FIREBASE_FUNCTIONS_REGION || 'europe-west1',
+  certificateImageProxyUrl: env.GCQ_CERTIFICATE_IMAGE_PROXY_URL || '',
   aiTextConfig: {
     providers: [
       {

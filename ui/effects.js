@@ -2,18 +2,24 @@ import * as state from '../state.js';
 
 export function showToast(message, type = 'info', duration = 3000) {
     const container = document.getElementById('toast-container');
+
+    let iconHtml;
+    if (type === 'success') { iconHtml = '<i class="fas fa-check-circle"></i>'; }
+    else if (type === 'error') { iconHtml = '<i class="fas fa-exclamation-triangle"></i>'; }
+    else { iconHtml = '<i class="fas fa-info-circle"></i>'; }
+
     const toast = document.createElement('div');
-    let bgColor, icon;
-    if (type === 'success') { bgColor = 'bg-green-500'; icon = '<i class="fas fa-check-circle"></i>'; }
-    else if (type === 'error') { bgColor = 'bg-red-500'; icon = '<i class="fas fa-exclamation-triangle"></i>'; }
-    else { bgColor = 'bg-blue-500'; icon = '<i class="fas fa-info-circle"></i>'; }
-    toast.className = `transform transition-all duration-300 ease-out translate-y-[-20px] opacity-0 ${bgColor} text-white font-bold py-3 px-5 rounded-lg shadow-lg flex items-center space-x-3 pointer-events-auto ml-auto`;
-    toast.innerHTML = `<span>${icon}</span><span>${message}</span>`;
+    toast.className = `app-toast toast-${type} ml-auto`;
+    toast.innerHTML = `
+        <div class="app-toast-icon-wrap">${iconHtml}</div>
+        <span class="app-toast-message">${message}</span>
+        <div class="app-toast-progress" style="animation-duration:${duration}ms"></div>
+    `;
     container.appendChild(toast);
-    setTimeout(() => toast.classList.remove('translate-y-[-20px]', 'opacity-0'), 10);
+
     setTimeout(() => {
-        toast.classList.add('opacity-0');
-        setTimeout(() => toast.remove(), 300);
+        toast.classList.add('toast-hiding');
+        setTimeout(() => toast.remove(), 320);
     }, duration);
 }
 
@@ -30,7 +36,7 @@ export function showPraiseToast(message, icon = '✨') {
             <div class="praise-toast-icon">${icon}</div>
             <div class="praise-toast-text">${message}</div>
         </div>
-        <button class="absolute top-2 right-3 text-gray-400 hover:text-gray-600 text-lg">&times;</button>
+        <button class="absolute top-2 right-3 text-amber-400 hover:text-amber-600 text-lg leading-none">&times;</button>
     `;
 
     wrapper.appendChild(toast);

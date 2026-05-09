@@ -41,7 +41,18 @@ export const shopTabHTML = `
                     </div>
 
                     <!-- Shop Content Area (Dark Magical Theme) -->
-                    <div class="relative bg-indigo-950 border-4 border-indigo-900/50 rounded-[2rem] p-6 md:p-10 shadow-[0_20px_50px_rgba(30,27,75,0.5)] overflow-hidden min-h-[500px]">
+                    <div id="shop-window" class="relative bg-indigo-950 border-4 border-indigo-900/50 rounded-[2rem] p-6 md:p-10 shadow-[0_20px_50px_rgba(30,27,75,0.5)] overflow-hidden min-h-[500px]">
+
+                        <!-- Shop Curtain (shown when no class is selected) -->
+                        <div id="shop-curtain" class="absolute inset-0 z-40 flex flex-col items-center justify-center rounded-[2rem] overflow-hidden">
+                            <div class="absolute inset-0" style="background: linear-gradient(135deg, rgba(15,10,60,0.97) 0%, rgba(30,27,75,0.97) 100%);"></div>
+                            <div class="absolute inset-0 pointer-events-none" style="background-image: radial-gradient(circle at 30% 40%, rgba(139,92,246,0.25) 0%, transparent 55%), radial-gradient(circle at 70% 60%, rgba(217,70,239,0.18) 0%, transparent 55%);"></div>
+                            <div class="relative z-10 text-center px-8">
+                                <div class="text-8xl mb-6 floating-icon" style="filter: drop-shadow(0 0 24px rgba(139,92,246,0.6));">🔮</div>
+                                <h3 class="font-title text-4xl text-indigo-200 mb-3">The Market Awaits</h3>
+                                <p class="text-indigo-400/80 text-lg max-w-sm mx-auto">Choose a class above to lift the veil and reveal the Mystic Market's wares.</p>
+                            </div>
+                        </div>
                         
                         <!-- Magical Background Elements -->
                         <div class="absolute inset-0 opacity-10 pointer-events-none"

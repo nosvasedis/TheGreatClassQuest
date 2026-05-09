@@ -21,12 +21,17 @@ export function initializeShopTab() {
     }
 
     if (!league) {
-        showToast("Please select a League or Class first to enter the correct market.", "error");
-        // Clear shop or show empty state
+        const shopCurtain = document.getElementById('shop-curtain');
+        if (shopCurtain) shopCurtain.classList.remove('hidden');
         document.getElementById('shop-items-container').innerHTML = '';
-        document.getElementById('shop-empty-state').classList.remove('hidden');
+        document.getElementById('shop-items-container').classList.add('hidden');
+        document.getElementById('shop-empty-state').classList.add('hidden');
         return;
     }
+
+    // Hide curtain now that a class is selected
+    const shopCurtain = document.getElementById('shop-curtain');
+    if (shopCurtain) shopCurtain.classList.add('hidden');
 
     // 2. Set UI Text
     const monthName = new Date().toLocaleString('en-US', { month: 'long' });
@@ -97,45 +102,41 @@ export function renderShopUI() {
             emptyState.classList.add('hidden');
             container.classList.remove('hidden');
 
-            let html = `
+            const canUseAI = canUseFeature('eliteAI');
+            const monthLabel = new Date().toLocaleString('en-US', {month: 'long'});
+
+            const legendarySection = `
                 <div class="col-span-full mb-4 border-b-2 border-indigo-500/30 pb-2">
                     <h3 class="font-title text-2xl text-indigo-300 flex items-center gap-2">
                         <i class="fas fa-scroll"></i> Legendary Artifacts
                         <span class="text-xs bg-indigo-500/20 px-2 py-1 rounded text-indigo-400 font-sans uppercase">Limit: 2 per month</span>
                     </h3>
                 </div>
-            `;
+            ` + artifacts.map(item => renderShopItemCard(item, true)).join('');
 
-            html += artifacts.map(item => renderShopItemCard(item, true)).join('');
+            const noSeasonalHtml = canUseAI
+                ? `<div class="col-span-full p-4 rounded-2xl bg-amber-900/20 border border-amber-500/30 border-dashed text-center">
+                        <p class="text-amber-300/70 text-sm">No seasonal items yet this month. Click <strong>Restock</strong> to generate AI-crafted treasures! ✨</p>
+                    </div>`
+                : `<div class="col-span-full p-4 rounded-2xl bg-amber-900/20 border-2 border-amber-500/40 border-dashed text-center">
+                        <p class="text-amber-300 font-title text-lg mb-1">🌟 Seasonal Treasures</p>
+                        <p class="text-amber-400/80 text-sm">Seasonal items are AI-generated each month and are available on the Elite plan. Upgrade to unlock monthly themed treasures for your students!</p>
+                        <button type="button" class="shop-upgrade-seasonal-btn mt-3 text-amber-400 hover:text-amber-300 text-sm font-bold underline">Upgrade to Elite</button>
+                    </div>`;
 
-            html += `
-                <div class="col-span-full mt-8 mb-4 border-b-2 border-amber-500/30 pb-2">
+            const seasonalSection = `
+                <div class="col-span-full ${canUseAI ? '' : 'mt-8 '}mb-4 border-b-2 border-amber-500/30 pb-2">
                     <h3 class="font-title text-2xl text-amber-300 flex items-center gap-2">
                         <i class="fas fa-leaf"></i> Seasonal Treasures
-                        <span class="text-xs bg-amber-500/20 px-2 py-1 rounded text-amber-400 font-sans uppercase">Month: ${new Date().toLocaleString('en-US', {month: 'long'})}</span>
+                        <span class="text-xs bg-amber-500/20 px-2 py-1 rounded text-amber-400 font-sans uppercase">Month: ${monthLabel}</span>
                     </h3>
                 </div>
-            `;
+            ` + (seasonalItems.length === 0 ? noSeasonalHtml : seasonalItems.map(item => renderShopItemCard(item, false)).join(''));
 
-            if (seasonalItems.length === 0) {
-                if (canUseFeature('eliteAI')) {
-                    html += `
-                        <div class="col-span-full p-4 rounded-2xl bg-amber-900/20 border border-amber-500/30 border-dashed text-center">
-                            <p class="text-amber-300/70 text-sm">No seasonal items yet this month. Click <strong>Restock</strong> to generate AI-crafted treasures! ✨</p>
-                        </div>
-                    `;
-                } else {
-                    html += `
-                        <div class="col-span-full p-4 rounded-2xl bg-amber-900/20 border-2 border-amber-500/40 border-dashed text-center">
-                            <p class="text-amber-300 font-title text-lg mb-1">🌟 Seasonal Treasures</p>
-                            <p class="text-amber-400/80 text-sm">Seasonal items are AI-generated each month and are available on the Elite plan. Upgrade to unlock monthly themed treasures for your students!</p>
-                            <button type="button" class="shop-upgrade-seasonal-btn mt-3 text-amber-400 hover:text-amber-300 text-sm font-bold underline">Upgrade to Elite</button>
-                        </div>
-                    `;
-                }
-            } else {
-                html += seasonalItems.map(item => renderShopItemCard(item, false)).join('');
-            }
+            // For AI-enabled tiers: Seasonal first, then Legendary. Otherwise keep original order.
+            let html = canUseAI
+                ? seasonalSection + `<div class="col-span-full mt-8"></div>` + legendarySection
+                : legendarySection + `<div class="col-span-full mt-8"></div>` + seasonalSection;
 
             // ─── Familiar Eggs section (Elite only) ────────────────────────────
             if (canUseFeature('familiars')) {

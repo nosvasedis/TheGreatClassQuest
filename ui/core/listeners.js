@@ -402,6 +402,16 @@ export function setupUIListeners() {
     const shopClassSelect = document.getElementById('shop-class-select');
     if (shopClassSelect) {
         shopClassSelect.addEventListener('change', (e) => {
+            // Trigger a subtle "window refresh" animation when switching between classes
+            if (e.target.value) {
+                const shopWindow = document.getElementById('shop-window');
+                if (shopWindow) {
+                    shopWindow.classList.remove('shop-window-switching');
+                    void shopWindow.offsetWidth; // force reflow to restart animation
+                    shopWindow.classList.add('shop-window-switching');
+                    shopWindow.addEventListener('animationend', () => shopWindow.classList.remove('shop-window-switching'), { once: true });
+                }
+            }
             state.setGlobalSelectedClass(e.target.value, true);
             import('./shop.js').then(m => m.initializeShopTab());
         });

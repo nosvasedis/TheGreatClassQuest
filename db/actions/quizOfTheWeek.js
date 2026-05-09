@@ -138,10 +138,11 @@ Rules:
 - Include at most 2 "image" questions; the rest should be "mcq" or "fill".
 - Make every question directly relevant to the topics/focus listed above.
 - Keep language appropriate for ${ageDesc}.
+- Keep explanations very short (max 10 words each).
 - Do NOT produce any text outside the JSON object.
 
 Output this exact JSON shape (nothing else):
-{"questions":[{"type":"mcq","question":"...","options":["A","B","C","D"],"correctIndex":0,"correctAnswer":"A","explanation":"..."},{"type":"fill","question":"She ___ born in 2010.","correctAnswer":"was","explanation":"..."},{"type":"image","question":"What number is shown?","imagePrompt":"the word 'third' written as a numeral 3rd on a colorful card, cartoon style, no other text","correctAnswer":"third","explanation":"..."}]}`;
+{"questions":[{"type":"mcq","question":"...","options":["A","B","C","D"],"correctIndex":0,"correctAnswer":"A","explanation":"short reason"},{"type":"fill","question":"She ___ born in 2010.","correctAnswer":"was","explanation":"past tense of be"},{"type":"image","question":"What number is shown?","imagePrompt":"the word 'third' as numeral 3rd on a colorful card, cartoon style","correctAnswer":"third","explanation":"ordinal number"}]}`;
 }
 
 const IMAGE_AGE_PROMPTS = {
@@ -178,6 +179,31 @@ function deepFindQuestions(obj, depth = 0) {
     return [];
 }
 
+// Walk the raw AI text character-by-character and recover every complete {…} object
+// that looks like a question. Handles truncated responses gracefully.
+function extractPartialQuestions(rawText) {
+    const found = [];
+    let depth = 0;
+    let start = -1;
+    for (let i = 0; i < rawText.length; i++) {
+        const ch = rawText[i];
+        if (ch === '{') {
+            if (depth === 0) start = i;
+            depth++;
+        } else if (ch === '}') {
+            depth--;
+            if (depth === 0 && start !== -1) {
+                try {
+                    const obj = JSON.parse(rawText.slice(start, i + 1));
+                    if (obj && obj.type && obj.question) found.push(obj);
+                } catch (_) { /* incomplete or invalid — skip */ }
+                start = -1;
+            }
+        }
+    }
+    return found;
+}
+
 export async function generateQuizQuestions(classId) {
     const quiz = await getQuizForClass(classId);
     if (!quiz || !quiz.curriculum) throw new Error('No quiz curriculum found');
@@ -189,22 +215,28 @@ export async function generateQuizQuestions(classId) {
         const userPrompt = buildGenerationUserPrompt(quiz.curriculum, quiz.questLevel);
 
         const aiResult = await callGeminiApi(systemPrompt, userPrompt, { retries: 2, baseDelay: 1000, timeoutMs: 60000 });
-        let parsed;
+        let parsed = null;
         try {
             parsed = extractJsonFromAiText(aiResult);
         } catch (parseErr) {
-            console.error('Quiz JSON parse failed. Raw AI response:', aiResult);
-            throw new Error(`AI response could not be parsed as JSON. Raw: ${String(aiResult).slice(0, 200)}`);
+            // JSON couldn't be parsed at all — fall through to partial recovery below
         }
 
-        // Accept { questions: [...] }, a bare array, or a deeply-nested questions key
-        let questions = Array.isArray(parsed)
-            ? parsed
-            : (Array.isArray(parsed?.questions) ? parsed.questions : deepFindQuestions(parsed));
+        // Accept { questions: [...] }, a bare array, a deeply-nested questions key,
+        // or — if the response was truncated — recover all complete question objects.
+        let questions = parsed == null ? [] :
+            Array.isArray(parsed)
+                ? parsed
+                : (Array.isArray(parsed?.questions) ? parsed.questions : deepFindQuestions(parsed));
 
         if (questions.length === 0) {
-            console.error('Quiz: no questions found. Raw AI response:', aiResult, 'Parsed:', parsed);
-            throw new Error('AI generated no questions. Raw response logged to console.');
+            // Last resort: scan the raw string for complete question objects
+            questions = extractPartialQuestions(aiResult);
+        }
+
+        if (questions.length < 3) {
+            console.error('Quiz: not enough questions recovered. Raw AI response:', aiResult, 'Parsed:', parsed, 'Recovered:', questions);
+            throw new Error(`Only ${questions.length} question(s) recovered from AI response (need at least 3). Raw response logged to console.`);
         }
 
         const processed = questions.slice(0, 10).map((q, i) => ({

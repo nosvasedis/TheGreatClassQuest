@@ -71,6 +71,25 @@ body.projector-mode .bounty-actions {
 }
 
 /* --- SHOP STYLES --- */
+
+/* Curtain overlay shown when no class is selected */
+#shop-curtain {
+    transition: opacity 0.4s ease;
+}
+#shop-curtain.hidden {
+    display: none;
+}
+
+/* Animation when switching classes */
+@keyframes shop-window-refresh {
+    0%   { opacity: 1; filter: brightness(1) saturate(1); }
+    25%  { opacity: 0.5; filter: brightness(0.55) saturate(1.8); }
+    100% { opacity: 1; filter: brightness(1) saturate(1); }
+}
+.shop-window-switching {
+    animation: shop-window-refresh 0.4s ease-out;
+}
+
 .shop-item-card {
     background: rgba(30, 27, 75, 0.8); /* indigo-950 */
     border: 2px solid #4f46e5; /* indigo-600 */

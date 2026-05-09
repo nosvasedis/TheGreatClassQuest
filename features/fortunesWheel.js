@@ -11,6 +11,40 @@ import { checkAndRecordQuestCompletion } from '../db/actions/stars.js';
 import { playSound, playHeroFanfare } from '../audio.js';
 import { evaluateWheelAvailability } from '../utils/fortuneWheelEligibility.mjs';
 
+function _optimisticallyApplyWheelResultToState({ guildId, gloryDelta = 0, modifierCreated = null, segmentId = '' }) {
+    if (!guildId) return;
+    const allGuildScores = state.get('allGuildScores') || {};
+    if (!allGuildScores || typeof allGuildScores !== 'object') return;
+
+    const applyTo = (gid) => {
+        const current = allGuildScores[gid] || { id: gid };
+        const next = { ...current };
+        if (gloryDelta) {
+            next.totalGlory = (Number(next.totalGlory) || 0) + Number(gloryDelta);
+            next.weeklyGlory = (Number(next.weeklyGlory) || 0) + Number(gloryDelta);
+            next.monthlyGlory = (Number(next.monthlyGlory) || 0) + Number(gloryDelta);
+        }
+        if (modifierCreated && typeof modifierCreated === 'object') {
+            const arr = Array.isArray(next.gloryModifiers) ? [...next.gloryModifiers] : [];
+            arr.push(modifierCreated);
+            next.gloryModifiers = arr;
+        }
+        return next;
+    };
+
+    const seg = String(segmentId || '');
+    // Simple known all-guild glory effect
+    if (seg === 'rainbow_bridge') {
+        const nextAll = { ...allGuildScores };
+        for (const gid of GUILD_IDS) nextAll[gid] = applyTo(gid);
+        state.setAllGuildScores(nextAll);
+        return;
+    }
+
+    if (!allGuildScores[guildId]) return;
+    state.setAllGuildScores({ ...allGuildScores, [guildId]: applyTo(guildId) });
+}
+
 // ═══════════════════════════════════════════════════════════════════════════════
 // SEGMENT CATALOG
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -1411,6 +1445,15 @@ export async function triggerSpin() {
     const result = await applyWheelResult(guildId, winningSeg, _wheelState.classId);
     _wheelState.results.push(result);
     _wheelState.phase = 'revealed';
+
+    // Optimistic UI/state refresh (Firestore will still confirm truth shortly)
+    _optimisticallyApplyWheelResultToState({ ...result, segmentId: winningSeg?.id });
+    try {
+        const guildsTab = document.getElementById('guilds-tab');
+        if (guildsTab && !guildsTab.classList.contains('hidden')) {
+            import('../ui/tabs/guilds.js').then(m => m.renderGuildsTab());
+        }
+    } catch (_) { }
 
     _renderWheelResult(winningSeg, result, guildDef);
 }

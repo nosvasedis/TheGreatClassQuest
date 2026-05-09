@@ -7,6 +7,66 @@ import { openFortunesWheel, advanceWheel, triggerSpin, closeFortunesWheel, canSp
 import { GLORY_EMOJI } from '../../constants.js';
 import * as state from '../../state.js';
 
+// ─── Guild Power explainer overlay ───────────────────────────────────────────
+let _powerExplainerWired = false;
+function _ensurePowerExplainerOverlay() {
+    if (_powerExplainerWired) return;
+    _powerExplainerWired = true;
+
+    // Create once (in case the template doesn't include it)
+    if (!document.getElementById('guild-power-explainer-overlay')) {
+        const el = document.createElement('div');
+        el.id = 'guild-power-explainer-overlay';
+        el.className = 'guild-power-explainer-overlay hidden';
+        el.innerHTML = `
+            <div class="guild-power-explainer-bg" data-gpex-close="true"></div>
+            <div class="guild-power-explainer-card pop-in" role="dialog" aria-modal="true" aria-label="Guild Power explained">
+                <button class="guild-power-explainer-close" data-gpex-close="true" aria-label="Close">✕</button>
+                <div class="guild-power-explainer-title font-title">⚡ Guild Power</div>
+                <p class="guild-power-explainer-copy">
+                    Guild Power is a live composite score that helps compare guild momentum fairly, even when guild sizes differ.
+                </p>
+                <div class="guild-power-explainer-grid">
+                    <div class="guild-power-explainer-item">
+                        <div class="k">⚜️ Glory per member</div>
+                        <div class="v">Most important input</div>
+                    </div>
+                    <div class="guild-power-explainer-item">
+                        <div class="k">📈 Momentum</div>
+                        <div class="v">Week-over-week Glory change</div>
+                    </div>
+                    <div class="guild-power-explainer-item">
+                        <div class="k">🔥 Activity</div>
+                        <div class="v">Active heroes this week</div>
+                    </div>
+                </div>
+                <div class="guild-power-explainer-note">
+                    Wheel effects can instantly change Glory and also add temporary modifiers that alter how future stars generate Glory.
+                </div>
+            </div>
+        `;
+        document.body.appendChild(el);
+    }
+
+    const overlay = document.getElementById('guild-power-explainer-overlay');
+    if (!overlay) return;
+
+    const close = () => overlay.classList.add('hidden');
+    overlay.addEventListener('click', (e) => {
+        const target = e.target;
+        if (!(target instanceof HTMLElement)) return;
+        if (target.dataset.gpexClose === 'true') close();
+    });
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') close();
+    });
+}
+
+function _openPowerExplainer() {
+    _ensurePowerExplainerOverlay();
+    document.getElementById('guild-power-explainer-overlay')?.classList.remove('hidden');
+}
+
 // ─── Sound cache ─────────────────────────────────────────────────────────────
 const _audioCache = {};
 function playGuildSound(guildId) {
@@ -330,6 +390,8 @@ export function renderGuildsTab() {
     const list = document.getElementById('guilds-leaderboard-list');
     if (!list) return;
 
+    _ensurePowerExplainerOverlay();
+
     wireGuildLoreListeners();
     wireAnthemListeners();
 
@@ -404,6 +466,23 @@ export function renderGuildsTab() {
                    <span class="guild-crystal-heroes-label" style="opacity:0.45">No heroes yet</span>
                </div>`;
 
+        const now = Date.now();
+        const activeMods = (g.gloryModifiers || []).filter(m => (Number(m.expiresAt) || 0) > now);
+        const modLabels = activeMods
+            .map(m => String(m.label || m.type || 'Effect'))
+            .filter(Boolean);
+        const shownMods = modLabels.slice(0, 2);
+        const overflowMods = Math.max(0, modLabels.length - shownMods.length);
+        const modsHtml = modLabels.length
+            ? `<div class="guild-crystal-effects">
+                    <div class="guild-crystal-effects__label">Wheel effects</div>
+                    <div class="guild-crystal-effects__chips">
+                        ${shownMods.map(lbl => `<span class="guild-crystal-effect-chip" title="${lbl}">${lbl}</span>`).join('')}
+                        ${overflowMods > 0 ? `<span class="guild-crystal-effect-chip guild-crystal-effect-chip--more" title="${overflowMods} more effects active">+${overflowMods}</span>` : ''}
+                    </div>
+               </div>`
+            : '';
+
         return `
             <div class="guild-crystal-col" data-guild="${g.guildId}">
 
@@ -452,11 +531,29 @@ export function renderGuildsTab() {
                 <!-- ── Bottom stats ── -->
                 <div class="guild-crystal-count" style="color:${primary};">
                     <span class="guild-crystal-count-num">${Math.round(g.guildPower)}</span>
-                    <span class="guild-crystal-count-label">⚡ Guild Power</span>
+                    <span class="guild-crystal-count-label">
+                        ⚡ Guild Power
+                        <button class="guild-power-info-btn" type="button" aria-label="Explain Guild Power" data-guild-power-info="true">?</button>
+                    </span>
+                </div>
+                <div class="guild-crystal-metrics" style="--metric-color:${primary};">
+                    <div class="guild-crystal-metric" title="Glory per member">
+                        <div class="k">⚜️/member</div>
+                        <div class="v">${g.perCapitaGlory.toFixed(1)}</div>
+                    </div>
+                    <div class="guild-crystal-metric" title="Momentum: week-over-week Glory change">
+                        <div class="k">${g.momentumArrow} Momentum</div>
+                        <div class="v">${Number.isFinite(g.momentumPct) ? `${g.momentumPct >= 0 ? '+' : ''}${g.momentumPct}%` : '—'}</div>
+                    </div>
+                    <div class="guild-crystal-metric" title="Activity score: active members this week">
+                        <div class="k">🔥 Activity</div>
+                        <div class="v">${Number.isFinite(g.activityScore) ? `${Math.round(g.activityScore)}%` : '—'}</div>
+                    </div>
                 </div>
                 <div class="guild-crystal-members" style="opacity:0.65;">
-                    ${g.perCapitaGlory.toFixed(1)} ${GLORY_EMOJI}/member · ${g.momentumArrow} · ${g.memberCount} member${g.memberCount === 1 ? '' : 's'}
+                    ${g.memberCount} member${g.memberCount === 1 ? '' : 's'} · ${Math.round(g.weeklyGlory || 0)} ${GLORY_EMOJI} this week
                 </div>
+                ${modsHtml}
 
                 ${topHtml}
                 ${_getChampionHtml(g, primary, glow)}
@@ -480,6 +577,12 @@ export function renderGuildsTab() {
     if (!arena) return;
 
     const handleGuildActivate = (e) => {
+        const powerInfoBtn = e.target.closest?.('[data-guild-power-info="true"]');
+        if (powerInfoBtn) {
+            e.stopPropagation();
+            _openPowerExplainer();
+            return;
+        }
         const infoBtn = e.target.closest('.guild-info-btn');
         if (infoBtn) {
             e.stopPropagation();

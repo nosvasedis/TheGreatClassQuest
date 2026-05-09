@@ -130,6 +130,41 @@ function getDefaultState() {
 // --- Initialize State ---
 state = getDefaultState();
 
+// --- Subscriptions (lightweight pub/sub) ---
+// Used by UI surfaces (e.g., modals) that need to live-update while open.
+const _subscribers = new Map(); // key -> Set<Function>
+
+function _notify(key) {
+    const set = _subscribers.get(key);
+    if (!set || set.size === 0) return;
+    // Copy to avoid mutation during iteration
+    [...set].forEach((cb) => {
+        try { cb(state[key]); } catch (err) { console.warn('state subscriber error:', err); }
+    });
+}
+
+/**
+ * Subscribe to changes for one or more state keys.
+ * @param {string|string[]} keys
+ * @param {(value:any)=>void} callback
+ * @returns {()=>void} unsubscribe
+ */
+export function subscribe(keys, callback) {
+    const list = Array.isArray(keys) ? keys : [keys];
+    for (const key of list) {
+        if (!_subscribers.has(key)) _subscribers.set(key, new Set());
+        _subscribers.get(key).add(callback);
+    }
+    return () => {
+        for (const key of list) {
+            const set = _subscribers.get(key);
+            if (!set) continue;
+            set.delete(callback);
+            if (set.size === 0) _subscribers.delete(key);
+        }
+    };
+}
+
 // --- Core Functions ---
 
 export function get(key) {
@@ -139,6 +174,7 @@ export function get(key) {
 export function set(key, value) {
     if (key in state) {
         state[key] = value;
+        _notify(key);
     } else {
         console.warn(`Attempted to set unknown state key: ${key}`);
     }
@@ -172,9 +208,9 @@ export function setCurrentCommunicationMessages(messages) { state.currentCommuni
 export function setCurrentCommunicationThreadId(id) { state.currentCommunicationThreadId = id || null; }
 export function setSecretaryView(next) { state.secretaryView = { ...state.secretaryView, ...(next || {}) }; }
 export function setAllTeachersClasses(classes) { state.allTeachersClasses = classes; }
-export function setAllSchoolClasses(classes) { state.allSchoolClasses = classes; }
-export function setAllStudents(students) { state.allStudents = students; updateReigningHero(); }
-export function setAllStudentScores(scores) { state.allStudentScores = scores; }
+export function setAllSchoolClasses(classes) { state.allSchoolClasses = classes; _notify('allSchoolClasses'); }
+export function setAllStudents(students) { state.allStudents = students; updateReigningHero(); _notify('allStudents'); }
+export function setAllStudentScores(scores) { state.allStudentScores = scores; _notify('allStudentScores'); }
 export function setAllAwardLogs(logs) { state.allAwardLogs = logs; }
 export function setAllAdventureLogs(logs) { state.allAdventureLogs = logs; updateReigningHero(); }
 export function setAllQuestEvents(events) { state.allQuestEvents = events; }
@@ -306,7 +342,7 @@ export function setCurrentManagingClassId(id) { state.currentManagingClassId = i
 export function setStudentLeaderboardView(view) { state.studentLeaderboardView = view; }
 export function setStudentStarMetric(metric) { state.studentStarMetric = metric; }
 export function setStudentLeaderboardDisplay(display) { state.studentLeaderboardDisplay = display; }
-export function setAllGuildScores(scores) { state.allGuildScores = scores; }
+export function setAllGuildScores(scores) { state.allGuildScores = scores; _notify('allGuildScores'); }
 export function setAllMonthlyHistory(history) { state.allMonthlyHistory = history; }
 export function setCurrentlySelectedDayCell(cell) { state.currentlySelectedDayCell = cell; }
 export function setCurrentLogFilter(filter) { state.currentLogFilter = filter; }
@@ -336,9 +372,9 @@ export function setUnsubscribeHeroChronicleNotes(func) { state.unsubscribeHeroCh
 export function setAllQuestBounties(bounties) { state.allQuestBounties = bounties; }
 export function setUnsubscribeQuestBounties(func) { state.unsubscribeQuestBounties = func; }
 export function setUnsubscribeGuildScores(func) { state.unsubscribeGuildScores = func; }
-export function setGuildChampions(champions) { state.guildChampions = champions; }
+export function setGuildChampions(champions) { state.guildChampions = champions; _notify('guildChampions'); }
 export function setUnsubscribeGuildChampions(func) { state.unsubscribeGuildChampions = func; }
-export function setFortuneWheelLog(log) { state.fortuneWheelLog = log || []; }
+export function setFortuneWheelLog(log) { state.fortuneWheelLog = log || []; _notify('fortuneWheelLog'); }
 export function setUnsubscribeFortuneWheelLog(func) { state.unsubscribeFortuneWheelLog = func; }
 export function setCurrentShopItems(items) { state.currentShopItems = items; }
 export function setUnsubscribeParentSnapshot(func) { state.unsubscribeParentSnapshot = func; }

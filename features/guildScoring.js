@@ -244,6 +244,9 @@ export function calculateGuildPower(guildData, maxPerCapitaGlory) {
     const weeklyGlory = Number(guildData.weeklyGlory) || 0;
     const previousWeekGlory = Number(guildData.previousWeekGlory) || 0;
     const weeklyActiveMembers = Number(guildData.weeklyActiveMembers) || 0;
+    const now = Date.now();
+    const activeModifiers = (guildData.gloryModifiers || []).filter(m => (Number(m.expiresAt) || 0) > now);
+    const hasMomentumLock = activeModifiers.some(m => m.type === 'momentum_lock');
 
     // 1. Glory Score: per-capita Glory normalized against leader (0-100)
     const perCapitaGlory = totalGlory / memberCount;
@@ -251,17 +254,19 @@ export function calculateGuildPower(guildData, maxPerCapitaGlory) {
     const gloryScore = Math.min(100, (perCapitaGlory / normalizedMax) * 100);
 
     // 2. Momentum Score: week-over-week change (0-100)
-    // -100% change = 0, 0% change = 50, +100% change = 100, clamped [-100%, +200%]
+    // -100% change = 0, 0% change = 50, +100% change = 100 (clamped [-100%, +100%])
     let momentumPct = 0;
     if (previousWeekGlory > 0) {
         momentumPct = ((weeklyGlory - previousWeekGlory) / previousWeekGlory) * 100;
     } else if (weeklyGlory > 0) {
         momentumPct = 100; // First week with activity = strong positive signal
     }
-    // Clamp to [-100, +200]
-    momentumPct = Math.max(-100, Math.min(200, momentumPct));
-    // Map [-100, +200] → [0, 100]
-    const momentumScore = ((momentumPct + 100) / 300) * 100;
+    // Wheel effect: Momentum Lock prevents negative momentum while active
+    if (hasMomentumLock) momentumPct = Math.max(0, momentumPct);
+    // Clamp to [-100, +100] for an intuitive scale and UI expectations
+    momentumPct = Math.max(-100, Math.min(100, momentumPct));
+    // Map [-100, +100] → [0, 100] (so 0% change = 50)
+    const momentumScore = (momentumPct + 100) / 2;
 
     // 3. Activity Score: weekly active members / total members (0-100)
     const activityScore = Math.min(100, (weeklyActiveMembers / memberCount) * 100);

@@ -3,10 +3,15 @@
 import { getGuildHeroAnalytics } from '../../features/guildHeroAnalytics.js';
 import { getGuildEmblemUrl } from '../../features/guilds.js';
 import { hideModal, showAnimatedModal } from './base.js';
+import * as state from '../../state.js';
 
 let _wired = false;
 let _selectedGuildId = null;
 let _activeView = 'overview';
+let _unsubscribeRealtime = null;
+let _cachedPayload = null;
+let _rosterSearch = '';
+let _rosterSort = 'total_desc'; // total_desc | month_desc | name_asc | class_asc
 
 function _escapeHtml(value) {
     return String(value || '')
@@ -136,6 +141,79 @@ function _renderKpis(guild) {
     `;
 }
 
+function _renderWheelPanel(guild) {
+    const now = Date.now();
+    const activeMods = (state.get('allGuildScores')?.[guild.guildId]?.gloryModifiers || [])
+        .filter(m => (Number(m.expiresAt) || 0) > now)
+        .sort((a, b) => (Number(a.expiresAt) || 0) - (Number(b.expiresAt) || 0));
+
+    const modsHtml = activeMods.length
+        ? `<div class="gh-wheel-mods">
+                ${activeMods.slice(0, 6).map(m => {
+                    const ms = Math.max(0, (Number(m.expiresAt) || 0) - now);
+                    const hrs = Math.floor(ms / 3_600_000);
+                    const mins = Math.floor((ms % 3_600_000) / 60_000);
+                    const eta = hrs > 0 ? `${hrs}h ${mins}m` : `${Math.max(mins, 1)}m`;
+                    const label = _escapeHtml(m.label || m.type || 'Effect');
+                    return `<div class="gh-wheel-mod">
+                        <div class="t">${label}</div>
+                        <div class="s">⏳ ${eta} left</div>
+                    </div>`;
+                }).join('')}
+           </div>`
+        : `<div class="gh-wheel-empty">No active Wheel modifiers right now.</div>`;
+
+    const logs = state.get('fortuneWheelLog') || [];
+    const omenRows = logs.flatMap(entry => {
+        const spunAt = entry.spunAt?.toDate ? entry.spunAt.toDate() : (entry.spunAt ? new Date(entry.spunAt) : null);
+        const dateStr = spunAt ? spunAt.toLocaleDateString(undefined, { month: 'short', day: 'numeric' }) : '';
+        const results = Array.isArray(entry.results) ? entry.results : [];
+        return results
+            .filter(r => r?.guildId === guild.guildId)
+            .map(r => ({
+                dateStr,
+                weekKey: entry.weekKey || '',
+                segmentLabel: r.segmentLabel || r.segmentId || 'Omen',
+                gloryDelta: Number(r.gloryDelta) || 0
+            }));
+    }).slice(0, 6);
+
+    const omensHtml = omenRows.length
+        ? `<div class="gh-wheel-omens">
+                ${omenRows.map(o => `
+                    <div class="gh-wheel-omen">
+                        <div class="a">
+                            <div class="t">${_escapeHtml(o.segmentLabel)}</div>
+                            <div class="s">${_escapeHtml(o.dateStr)}${o.weekKey ? ` · ${_escapeHtml(o.weekKey)}` : ''}</div>
+                        </div>
+                        <div class="b ${o.gloryDelta < 0 ? 'neg' : 'pos'}">
+                            ${o.gloryDelta === 0 ? '—' : `${o.gloryDelta > 0 ? '+' : ''}${o.gloryDelta} ⚜️`}
+                        </div>
+                    </div>
+                `).join('')}
+           </div>`
+        : `<div class="gh-wheel-empty">No recent omens for this guild yet.</div>`;
+
+    return `
+        <div class="gh-wheel-panel">
+            <div class="gh-wheel-panel__head">
+                <div class="gh-wheel-panel__title">Wheel of Fortune</div>
+                <div class="gh-wheel-panel__subtitle">Recent omens and active modifiers for this guild</div>
+            </div>
+            <div class="gh-wheel-panel__grid">
+                <section class="gh-wheel-card">
+                    <div class="h">🧿 Recent Omens</div>
+                    ${omensHtml}
+                </section>
+                <section class="gh-wheel-card">
+                    <div class="h">✨ Active Modifiers</div>
+                    ${modsHtml}
+                </section>
+            </div>
+        </div>
+    `;
+}
+
 function _renderOverviewView(payload, guild) {
     const leader = payload.guilds[0];
     const rivalryLine = leader && leader.guildId !== guild.guildId
@@ -145,13 +223,16 @@ function _renderOverviewView(payload, guild) {
     const active = payload.overview?.mostActive;
     return `
         ${_renderKpis(guild)}
-        <section class="guild-heroes-fancy-banner">
-            <div class="title">Guild Storyline</div>
-            <p>${rivalryLine}</p>
-            <p>Top 3 heroes carry <strong>${_fmtOne(guild.breakdown.top3SharePct)}%</strong> of this guild's total power.</p>
-            ${mover ? `<p>📈 <strong>${_escapeHtml(mover.guildName)}</strong> is this week's biggest mover (${_fmtOne(mover.momentumPct)}% momentum).</p>` : ''}
-            ${active ? `<p>🔥 <strong>${_escapeHtml(active.guildName)}</strong> has the highest activity score (${_fmtOne(active.activityScore)}).</p>` : ''}
-        </section>
+        <div class="gh-snapshot-grid">
+            <section class="guild-heroes-fancy-banner">
+                <div class="title">Guild Storyline</div>
+                <p>${rivalryLine}</p>
+                <p>Top 3 heroes carry <strong>${_fmtOne(guild.breakdown.top3SharePct)}%</strong> of this guild's total power.</p>
+                ${mover ? `<p>📈 <strong>${_escapeHtml(mover.guildName)}</strong> is this week's biggest mover (${_fmtOne(mover.momentumPct)}% momentum).</p>` : ''}
+                ${active ? `<p>🔥 <strong>${_escapeHtml(active.guildName)}</strong> has the highest activity score (${_fmtOne(active.activityScore)}).</p>` : ''}
+            </section>
+            ${_renderWheelPanel(guild)}
+        </div>
     `;
 }
 
@@ -237,9 +318,28 @@ function _renderTopHeroesView(guild) {
 
 function _renderAllHeroesView(payload, guild) {
     const selected = _allHeroesForSelectedGuild(guild);
+
+    const q = String(_rosterSearch || '').trim().toLowerCase();
+    const filtered = q
+        ? selected.filter(h => {
+            const hay = `${h.name || ''} ${h.heroClass || ''} ${h.className || ''}`.toLowerCase();
+            return hay.includes(q);
+        })
+        : selected;
+
+    const sorted = [...filtered];
+    if (_rosterSort === 'month_desc') {
+        sorted.sort((a, b) => b.monthlyStars - a.monthlyStars || b.totalStars - a.totalStars || a.name.localeCompare(b.name));
+    } else if (_rosterSort === 'name_asc') {
+        sorted.sort((a, b) => a.name.localeCompare(b.name) || b.totalStars - a.totalStars);
+    } else if (_rosterSort === 'class_asc') {
+        sorted.sort((a, b) => a.className.localeCompare(b.className) || a.name.localeCompare(b.name));
+    } else {
+        sorted.sort((a, b) => b.totalStars - a.totalStars || b.monthlyStars - a.monthlyStars || a.name.localeCompare(b.name));
+    }
     
-    const selectedRows = selected.length
-        ? selected.map((h, idx) => {
+    const selectedRows = sorted.length
+        ? sorted.map((h, idx) => {
             const badgeClass = idx === 0 ? 'gold' : idx === 1 ? 'silver' : idx === 2 ? 'bronze' : 'other';
             return `
                 <div class="guild-heroes-leaderboard-item">
@@ -261,12 +361,23 @@ function _renderAllHeroesView(payload, guild) {
                 </div>
             `;
         }).join('')
-        : `<div class="guild-heroes-empty">No heroes in this guild yet.</div>`;
+        : `<div class="guild-heroes-empty">${q ? 'No matching heroes.' : 'No heroes in this guild yet.'}</div>`;
 
     return `
         <div class="guild-heroes-leaderboard">
             <div class="guild-heroes-leaderboard-header">
-                <h4>📋 ${_escapeHtml(guild.guildName)} Roster</h4>
+                <div class="gh-roster-head">
+                    <h4>📋 ${_escapeHtml(guild.guildName)} Roster</h4>
+                    <div class="gh-roster-controls">
+                        <input class="gh-roster-search" type="search" value="${_escapeHtml(_rosterSearch)}" placeholder="Search heroes…" data-roster-search="true" />
+                        <select class="gh-roster-sort" data-roster-sort="true">
+                            <option value="total_desc" ${_rosterSort === 'total_desc' ? 'selected' : ''}>Sort: Total ⭐</option>
+                            <option value="month_desc" ${_rosterSort === 'month_desc' ? 'selected' : ''}>Sort: Month ⭐</option>
+                            <option value="name_asc" ${_rosterSort === 'name_asc' ? 'selected' : ''}>Sort: Name</option>
+                            <option value="class_asc" ${_rosterSort === 'class_asc' ? 'selected' : ''}>Sort: Class</option>
+                        </select>
+                    </div>
+                </div>
             </div>
             <div class="guild-heroes-leaderboard-list">
                 ${selectedRows}
@@ -390,6 +501,36 @@ function _renderAll(payload) {
     _renderBody(payload);
 }
 
+function _startRealtimeIfOpen() {
+    const modal = document.getElementById('guild-heroes-modal');
+    if (!modal || modal.classList.contains('hidden')) return;
+
+    // Tear down any previous subscription
+    if (_unsubscribeRealtime) {
+        try { _unsubscribeRealtime(); } catch (_) { }
+        _unsubscribeRealtime = null;
+    }
+
+    // Subscribe to state keys that affect analytics
+    _unsubscribeRealtime = state.subscribe(
+        ['allGuildScores', 'allStudents', 'allStudentScores', 'guildChampions', 'fortuneWheelLog', 'allSchoolClasses'],
+        () => {
+            // Only recompute when open; otherwise keep it cheap
+            const m = document.getElementById('guild-heroes-modal');
+            if (!m || m.classList.contains('hidden')) return;
+            _cachedPayload = getGuildHeroAnalytics();
+            _renderAll(_cachedPayload);
+        }
+    );
+}
+
+function _stopRealtime() {
+    if (_unsubscribeRealtime) {
+        try { _unsubscribeRealtime(); } catch (_) { }
+        _unsubscribeRealtime = null;
+    }
+}
+
 function _wireListeners() {
     const modal = document.getElementById('guild-heroes-modal');
     if (!modal || _wired) return;
@@ -402,13 +543,31 @@ function _wireListeners() {
         const guildBtn = e.target.closest('[data-guild-switch]');
         if (guildBtn) {
             _selectedGuildId = guildBtn.dataset.guildSwitch;
-            _renderAll(getGuildHeroAnalytics());
+            _renderAll(_cachedPayload || getGuildHeroAnalytics());
             return;
         }
         const viewBtn = e.target.closest('[data-view-switch]');
         if (viewBtn) {
             _activeView = viewBtn.dataset.viewSwitch || 'overview';
-            _renderAll(getGuildHeroAnalytics());
+            _renderAll(_cachedPayload || getGuildHeroAnalytics());
+        }
+    });
+
+    // Input events (roster search/sort)
+    modal.addEventListener('input', (e) => {
+        const target = e.target;
+        if (!(target instanceof HTMLElement)) return;
+        if (target.dataset.rosterSearch === 'true') {
+            _rosterSearch = target.value || '';
+            _renderAll(_cachedPayload || getGuildHeroAnalytics());
+        }
+    });
+    modal.addEventListener('change', (e) => {
+        const target = e.target;
+        if (!(target instanceof HTMLElement)) return;
+        if (target.dataset.rosterSort === 'true') {
+            _rosterSort = target.value || 'total_desc';
+            _renderAll(_cachedPayload || getGuildHeroAnalytics());
         }
     });
 
@@ -417,13 +576,23 @@ function _wireListeners() {
         if (modal.classList.contains('hidden')) return;
         hideModal('guild-heroes-modal');
     });
+
+    // Cleanup when modal is hidden (handles close from other codepaths too)
+    const observer = new MutationObserver(() => {
+        if (modal.classList.contains('hidden')) {
+            _stopRealtime();
+        }
+    });
+    observer.observe(modal, { attributes: true, attributeFilter: ['class'] });
 }
 
 export function openGuildHeroesModal(initialGuildId) {
     _wireListeners();
-    const payload = getGuildHeroAnalytics();
+    _cachedPayload = getGuildHeroAnalytics();
+    const payload = _cachedPayload;
     _selectedGuildId = initialGuildId || payload.guilds[0]?.guildId || null;
     _activeView = 'overview';
     _renderAll(payload);
     showAnimatedModal('guild-heroes-modal');
+    _startRealtimeIfOpen();
 }

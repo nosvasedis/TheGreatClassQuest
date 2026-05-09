@@ -1209,10 +1209,199 @@
     letter-spacing: 0.06em;
     text-transform: uppercase;
 }
+.guild-power-info-btn {
+    display: inline-grid;
+    place-items: center;
+    margin-left: 0.35rem;
+    width: 18px;
+    height: 18px;
+    border-radius: 9999px;
+    border: 1px solid rgba(255,255,255,0.22);
+    background: rgba(255,255,255,0.08);
+    color: rgba(255,255,255,0.8);
+    font-weight: 800;
+    font-size: 0.62rem;
+    cursor: pointer;
+    padding: 0;
+    transition: transform 160ms ease, background 160ms ease, border-color 160ms ease;
+}
+.guild-power-info-btn:hover {
+    transform: translateY(-1px) scale(1.06);
+    background: rgba(255,255,255,0.14);
+    border-color: rgba(255,255,255,0.35);
+}
 .guild-crystal-members {
     font-size: 0.72rem;
     color: rgba(255,255,255,0.4);
     margin-top: 0.15rem;
+}
+
+/* ── Power breakdown metrics ─────────────────────────────────────────────── */
+.guild-crystal-metrics {
+    width: 100%;
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0.35rem;
+    margin-top: 0.55rem;
+}
+.guild-crystal-metric {
+    border: 1px solid rgba(255,255,255,0.10);
+    background: rgba(0,0,0,0.18);
+    border-radius: 0.75rem;
+    padding: 0.45rem 0.5rem;
+    text-align: center;
+    min-width: 0;
+}
+.guild-crystal-metric .k {
+    font-size: 0.56rem;
+    color: rgba(255,255,255,0.55);
+    font-weight: 800;
+    letter-spacing: 0.10em;
+    text-transform: uppercase;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.guild-crystal-metric .v {
+    margin-top: 0.18rem;
+    font-size: 0.86rem;
+    color: rgba(255,255,255,0.9);
+    font-weight: 900;
+    font-family: 'Fredoka One', cursive;
+}
+
+/* ── Active Wheel effects chips ───────────────────────────────────────────── */
+.guild-crystal-effects {
+    width: 100%;
+    margin-top: 0.45rem;
+    display: grid;
+    gap: 0.25rem;
+}
+.guild-crystal-effects__label {
+    font-size: 0.56rem;
+    color: rgba(255,255,255,0.55);
+    font-weight: 800;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    text-align: center;
+}
+.guild-crystal-effects__chips {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 0.35rem;
+}
+.guild-crystal-effect-chip {
+    max-width: 170px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: 0.62rem;
+    font-weight: 800;
+    padding: 0.18rem 0.55rem;
+    border-radius: 9999px;
+    border: 1px solid rgba(255,255,255,0.16);
+    background: rgba(255,255,255,0.08);
+    color: rgba(255,255,255,0.85);
+}
+.guild-crystal-effect-chip--more {
+    background: rgba(251, 191, 36, 0.14);
+    border-color: rgba(251, 191, 36, 0.26);
+    color: #fcd34d;
+}
+
+/* ── Guild Power explainer overlay ────────────────────────────────────────── */
+.guild-power-explainer-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 230;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1.25rem;
+}
+.guild-power-explainer-overlay.hidden { display: none; }
+.guild-power-explainer-bg {
+    position: absolute;
+    inset: 0;
+    background: rgba(5, 2, 18, 0.72);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+}
+.guild-power-explainer-card {
+    position: relative;
+    z-index: 1;
+    width: min(520px, 100%);
+    border-radius: 1.75rem;
+    padding: 1.5rem 1.35rem 1.25rem;
+    border: 1.5px solid rgba(255,255,255,0.18);
+    background: linear-gradient(145deg, rgba(15, 23, 42, 0.96), rgba(88, 28, 135, 0.62));
+    color: rgba(255,255,255,0.92);
+    box-shadow: 0 28px 70px rgba(0,0,0,0.55), 0 0 80px rgba(124,58,237,0.18);
+}
+.guild-power-explainer-close {
+    position: absolute;
+    top: 0.85rem;
+    right: 0.9rem;
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    border: none;
+    background: rgba(255,255,255,0.16);
+    color: rgba(255,255,255,0.9);
+    cursor: pointer;
+    transition: transform 160ms ease, background 160ms ease;
+}
+.guild-power-explainer-close:hover { transform: scale(1.06); background: rgba(255,255,255,0.24); }
+.guild-power-explainer-title {
+    margin: 0.2rem 0 0.55rem;
+    font-size: 1.6rem;
+    color: #fff7d6;
+    text-shadow: 0 8px 26px rgba(251,191,36,0.12);
+}
+.guild-power-explainer-copy {
+    margin: 0;
+    color: rgba(255,255,255,0.82);
+    font-size: 0.95rem;
+    line-height: 1.65;
+}
+.guild-power-explainer-grid {
+    margin-top: 1rem;
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0.6rem;
+}
+.guild-power-explainer-item {
+    border-radius: 1rem;
+    padding: 0.8rem 0.75rem;
+    border: 1px solid rgba(255,255,255,0.12);
+    background: rgba(255,255,255,0.06);
+}
+.guild-power-explainer-item .k {
+    font-size: 0.7rem;
+    font-weight: 900;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: rgba(255,255,255,0.86);
+}
+.guild-power-explainer-item .v {
+    margin-top: 0.35rem;
+    color: rgba(255,255,255,0.72);
+    font-size: 0.82rem;
+    line-height: 1.45;
+}
+.guild-power-explainer-note {
+    margin-top: 0.95rem;
+    padding-top: 0.9rem;
+    border-top: 1px solid rgba(255,255,255,0.10);
+    color: rgba(255,255,255,0.72);
+    font-size: 0.85rem;
+    line-height: 1.55;
+}
+@media (max-width: 680px) {
+    .guild-power-explainer-grid {
+        grid-template-columns: 1fr;
+    }
 }
 
 /* Top heroes */
@@ -1254,6 +1443,7 @@
     .guild-crystal-header     { min-height: 150px; }
     .guild-crystal-emblem,
     .guild-crystal-emblem-fallback { width: 84px; height: 84px; }
+    .guild-crystal-metrics { grid-template-columns: 1fr; }
 }
 
 
@@ -2367,6 +2557,183 @@
 .guild-heroes-fancy-banner p strong {
     color: #4f46e5;
     font-family: 'Fredoka One', cursive;
+}
+
+/* ─── Snapshot layout + Wheel panel ───────────────────────────────────────── */
+.gh-snapshot-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 1rem;
+}
+@media (min-width: 980px) {
+    .gh-snapshot-grid {
+        grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+        align-items: start;
+    }
+}
+
+.gh-wheel-panel {
+    border: 2px solid #e5e7eb;
+    border-radius: 1rem;
+    background: #ffffff;
+    padding: 1rem;
+}
+.gh-wheel-panel__head {
+    margin-bottom: 0.75rem;
+}
+.gh-wheel-panel__title {
+    font-family: 'Fredoka One', cursive;
+    font-size: 1rem;
+    color: #4f46e5;
+}
+.gh-wheel-panel__subtitle {
+    margin-top: 0.25rem;
+    font-size: 0.82rem;
+    color: #6b7280;
+}
+.gh-wheel-panel__grid {
+    display: grid;
+    gap: 0.75rem;
+    grid-template-columns: 1fr;
+}
+@media (min-width: 560px) {
+    .gh-wheel-panel__grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+.gh-wheel-card {
+    border-radius: 0.9rem;
+    border: 1px solid #e5e7eb;
+    background: #f9fafb;
+    padding: 0.75rem;
+    min-height: 140px;
+}
+.gh-wheel-card .h {
+    font-family: 'Fredoka One', cursive;
+    font-size: 0.78rem;
+    color: #4f46e5;
+    margin-bottom: 0.55rem;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+}
+.gh-wheel-empty {
+    color: #9ca3af;
+    font-size: 0.82rem;
+    font-style: italic;
+    padding: 0.5rem 0.25rem;
+}
+.gh-wheel-omens,
+.gh-wheel-mods {
+    display: grid;
+    gap: 0.5rem;
+}
+.gh-wheel-omen {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 0.65rem;
+    align-items: center;
+    padding: 0.55rem 0.6rem;
+    background: #ffffff;
+    border: 1px solid #e5e7eb;
+    border-radius: 0.75rem;
+}
+.gh-wheel-omen .t {
+    font-size: 0.86rem;
+    font-weight: 800;
+    color: #111827;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.gh-wheel-omen .s {
+    margin-top: 0.15rem;
+    font-size: 0.72rem;
+    color: #9ca3af;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.gh-wheel-omen .b {
+    font-family: 'Fredoka One', cursive;
+    font-size: 0.9rem;
+    padding: 0.2rem 0.55rem;
+    border-radius: 9999px;
+    border: 1px solid #e5e7eb;
+    background: #f3f4f6;
+    color: #374151;
+    white-space: nowrap;
+}
+.gh-wheel-omen .b.pos {
+    background: rgba(5, 150, 105, 0.12);
+    border-color: rgba(5, 150, 105, 0.25);
+    color: #065f46;
+}
+.gh-wheel-omen .b.neg {
+    background: rgba(127, 29, 29, 0.10);
+    border-color: rgba(127, 29, 29, 0.22);
+    color: #7f1d1d;
+}
+.gh-wheel-mod {
+    display: flex;
+    justify-content: space-between;
+    gap: 0.65rem;
+    align-items: start;
+    padding: 0.55rem 0.6rem;
+    background: #ffffff;
+    border: 1px solid #e5e7eb;
+    border-radius: 0.75rem;
+}
+.gh-wheel-mod .t {
+    font-size: 0.82rem;
+    font-weight: 800;
+    color: #111827;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.gh-wheel-mod .s {
+    font-size: 0.74rem;
+    color: #6b7280;
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+
+/* ─── Roster controls ─────────────────────────────────────────────────────── */
+.gh-roster-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+}
+.gh-roster-controls {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+}
+.gh-roster-search {
+    min-width: 220px;
+    border-radius: 9999px;
+    border: 2px solid #e5e7eb;
+    padding: 0.45rem 0.75rem;
+    font-size: 0.85rem;
+    background: #ffffff;
+    color: #111827;
+}
+.gh-roster-search:focus {
+    outline: none;
+    border-color: #c7d2fe;
+    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15);
+}
+.gh-roster-sort {
+    border-radius: 9999px;
+    border: 2px solid #e5e7eb;
+    padding: 0.45rem 0.7rem;
+    font-size: 0.85rem;
+    background: #ffffff;
+    color: #111827;
 }
 
 /* ─── Champions View ─── */

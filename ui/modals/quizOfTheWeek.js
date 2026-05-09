@@ -179,6 +179,9 @@ function renderQuestion(questionData, qs) {
             <button class="quiz-next-btn bubbly-button hidden" id="quiz-next-btn">
                 <i class="fas fa-arrow-right mr-2"></i> Next Question
             </button>
+            <button class="quiz-skip-btn bubbly-button" id="quiz-skip-btn" style="background:rgba(255,255,255,0.08);color:rgba(255,255,255,0.5);font-size:0.75rem;padding:0.35rem 0.9rem;">
+                <i class="fas fa-forward mr-1"></i> Skip
+            </button>
         </div>
     `;
 
@@ -312,6 +315,19 @@ function wireAnswerListeners(question) {
             btn.addEventListener('click', () => handleMcqAnswer(btn, question));
         });
     }
+
+    document.getElementById('quiz-skip-btn')?.addEventListener('click', () => {
+        const progress = skipQuestion(currentClassId);
+        if (!progress) return;
+        if (progress.isComplete) {
+            finalizeQuiz(currentClassId).then(results => {
+                if (results) renderResultsScreen(results);
+            });
+        } else {
+            const next = getCurrentQuestion(currentClassId);
+            if (next) renderQuestion(next);
+        }
+    });
 }
 
 async function handleMcqAnswer(btn, question) {
@@ -334,7 +350,7 @@ async function handleMcqAnswer(btn, question) {
         showExplanation(question.explanation || 'Not quite. Let\'s try again!');
     }
 
-    const result = await handleAnswer(currentClassId, answerIndex, isCorrect);
+    const result = await handleAnswer(currentClassId, btn.dataset.answerText || String(answerIndex), isCorrect);
     showNextAction(isCorrect, result);
 }
 
@@ -389,6 +405,9 @@ function showExplanation(text) {
 function showNextAction(isCorrect, result) {
     const nextBtn = document.getElementById('quiz-next-btn');
     if (!nextBtn) return;
+
+    // Hide skip once an answer has been submitted
+    document.getElementById('quiz-skip-btn')?.classList.add('hidden');
 
     const isComplete = result?.isComplete || false;
     nextBtn.classList.remove('hidden');

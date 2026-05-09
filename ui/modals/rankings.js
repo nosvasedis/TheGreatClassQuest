@@ -998,8 +998,6 @@ function buildProdigyMonthOutcome(students, monthlyLogs, allScores, viewYear, vi
         if (student.stats.count3 !== topStudent.stats.count3) return false;
         if (student.stats.count2 !== topStudent.stats.count2) return false;
         if (student.stats.uniqueReasons !== topStudent.stats.uniqueReasons) return false;
-        if (topStudent.stats.academicAvg === 0 && student.stats.academicAvg > 0) return false;
-        if (Math.abs(student.stats.academicAvg - topStudent.stats.academicAvg) > 0.5) return false;
         return true;
     });
 

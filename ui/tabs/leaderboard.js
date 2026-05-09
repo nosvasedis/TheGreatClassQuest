@@ -87,8 +87,7 @@ async function getReigningProdigies() {
                 s.monthlyStars === top.monthlyStars &&
                 s.count3 === top.count3 &&
                 s.count2 === top.count2 &&
-                s.uniqueReasons === top.uniqueReasons &&
-                Math.abs(s.academicAvg - top.academicAvg) <= 0.5
+                s.uniqueReasons === top.uniqueReasons
             );
 
             result[classId] = new Set(winners.map(w => w.id));

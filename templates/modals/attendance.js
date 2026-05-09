@@ -214,14 +214,14 @@ export const attendanceModalsHTML = `
             </div>
 
             <!-- Proudly Presented To + Name -->
-            <div style="flex-shrink:0; text-align:center; margin-bottom:2px; display:flex; flex-direction:column; align-items:center;">
+            <div style="flex-shrink:0; text-align:center; margin-bottom:4px; display:flex; flex-direction:column; align-items:center;">
                 <img id="cert-avatar" src="" style="display:none; width:60px; height:60px; border-radius:9999px; border:3px solid white; box-shadow:0 3px 10px rgba(0,0,0,0.12); object-fit:cover; margin-bottom:5px;">
                 <p style="font-size:9.5px; text-transform:uppercase; letter-spacing:0.2em; opacity:0.58; margin:0 0 1px;">Proudly Presented To</p>
-                <p id="cert-student-name" style="font-family:'Fredoka One',cursive; font-size:40px; margin:0; line-height:1.05;"></p>
+                <p id="cert-student-name" style="font-family:'Fredoka One',cursive; font-size:40px; margin:0 0 2px; line-height:1.05;"></p>
             </div>
 
             <!-- Badges row -->
-            <div id="cert-badges" style="display:flex; flex-wrap:wrap; justify-content:center; align-items:center; gap:4px; margin:6px 0 6px; font-size:9px; font-weight:700; flex-shrink:0; max-width:96%; margin-left:auto; margin-right:auto;">
+            <div id="cert-badges" style="display:flex; flex-wrap:wrap; justify-content:center; align-items:center; gap:6px; margin:10px 0 6px; font-size:9px; font-weight:700; flex-shrink:0; max-width:96%; margin-left:auto; margin-right:auto;">
                 <span id="cert-class-name"   class="cert-pill" style="display:inline-flex; align-items:center; justify-content:center; height:24px; padding:0 10px; border-radius:9999px; white-space:nowrap; box-sizing:border-box;"></span>
                 <span id="cert-guild-pill"   class="cert-pill" style="display:inline-flex; align-items:center; justify-content:center; height:24px; padding:0 10px; border-radius:9999px; white-space:nowrap; box-sizing:border-box;"></span>
                 <span id="cert-hero-pill"    class="cert-pill" style="display:inline-flex; align-items:center; justify-content:center; height:24px; padding:0 10px; border-radius:9999px; white-space:nowrap; box-sizing:border-box;"></span>

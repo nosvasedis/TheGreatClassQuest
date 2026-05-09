@@ -209,6 +209,12 @@ export async function executeCertificateGeneration() {
         certAvatarEl.style.display = 'none';
     }
 
+    const certLogoEl = document.getElementById('cert-app-logo');
+    if (certLogoEl) {
+        certLogoEl.src = new URL('assets/great-class-quest-logo.svg', window.location.href).toString();
+        certLogoEl.style.display = 'block';
+    }
+
     // --- Guild & Hero data for styling and wording ---
     const guildId = student.guildId;
     const guild = guildId ? getGuildById(guildId) : null;
@@ -559,12 +565,26 @@ export async function downloadCertificateAsPdf() {
     const certificateElement = document.getElementById('certificate-template');
     const studentName = document.getElementById('cert-student-name').innerText;
 
+    const waitForImageReady = (imgEl) => new Promise((resolve) => {
+        if (!imgEl || !imgEl.src || imgEl.style.display === 'none') {
+            resolve();
+            return;
+        }
+        if (imgEl.complete && imgEl.naturalWidth > 0) {
+            resolve();
+            return;
+        }
+        const done = () => resolve();
+        imgEl.addEventListener('load', done, { once: true });
+        imgEl.addEventListener('error', done, { once: true });
+    });
+
     // Robust Image-to-DataURL conversion helper
     const toDataURL = async (url) => {
         if (!url) return '';
+        if (url.startsWith('data:')) return url;
         try {
-            // Ensure absolute URL for fetch if it's relative
-            const absoluteUrl = url.startsWith('http') ? url : window.location.origin + (url.startsWith('/') ? '' : '/') + url;
+            const absoluteUrl = new URL(url, window.location.href).toString();
             const response = await fetch(absoluteUrl);
             if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
             const blob = await response.blob();
@@ -585,6 +605,7 @@ export async function downloadCertificateAsPdf() {
         const avatarImg = document.getElementById('cert-avatar');
         const emblemImg = document.getElementById('cert-guild-emblem');
         const logoImg = document.getElementById('cert-app-logo');
+        const imageNodes = [avatarImg, emblemImg, logoImg].filter(Boolean);
 
         if (avatarImg && avatarImg.src && !avatarImg.src.startsWith('data:')) {
             avatarImg.src = await toDataURL(avatarImg.src);
@@ -596,14 +617,14 @@ export async function downloadCertificateAsPdf() {
             logoImg.src = await toDataURL(logoImg.src);
         }
 
-        // Wait a tiny bit for the DOM to settle with the new DataURLs
-        await new Promise(r => setTimeout(r, 300));
+        await Promise.all(imageNodes.map(waitForImageReady));
         
         const canvas = await html2canvas(certificateElement, { 
             scale: 2, 
             useCORS: true,
-            allowTaint: true,
+            allowTaint: false,
             logging: false,
+            imageTimeout: 20000,
             backgroundColor: '#ffffff'
         });
         

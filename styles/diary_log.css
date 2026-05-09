@@ -1158,3 +1158,51 @@ body.adventure-log-editor-open {
 .diary-page.pop-in-start {
     animation: al-diary-pop-in 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
 }
+/* --- Notebook Style for Quest Assignment (Projector Friendly) --- */
+.notebook-container {
+    background-color: #fff;
+    background-image: linear-gradient(rgba(0, 0, 0, 0.05) 1px, transparent 1px);
+    background-size: 100% 2.6rem;
+    line-height: 2.6rem;
+    position: relative;
+    padding: 3rem 1.5rem 1rem 4.5rem;
+    border-radius: 2.5rem;
+    box-shadow: 0 15px 35px rgba(0,0,0,0.06);
+    border: 2px solid #e2e8f0;
+    transition: border-color 0.3s ease, box-shadow 0.3s ease;
+}
+
+.notebook-container:focus-within {
+    border-color: #a855f7; /* Purple-500 */
+    box-shadow: 0 20px 40px rgba(168, 85, 247, 0.08);
+}
+
+.notebook-container::before {
+    content: '';
+    position: absolute;
+    left: 3.5rem;
+    top: 0;
+    bottom: 0;
+    width: 2px;
+    background-color: rgba(255, 0, 0, 0.15);
+}
+
+.notebook-textarea {
+    width: 100%;
+    background: transparent;
+    border: none;
+    outline: none;
+    resize: none;
+    font-family: 'Lora', serif;
+    font-size: 1.4rem;
+    font-weight: 500;
+    line-height: 2.6rem;
+    color: #1e293b;
+    padding: 0;
+    margin: 0;
+}
+
+.notebook-textarea:focus {
+    box-shadow: none;
+    outline: none;
+}

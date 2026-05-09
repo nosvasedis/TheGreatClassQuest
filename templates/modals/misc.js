@@ -88,104 +88,150 @@ export const miscModalsHTML = `
     </div>
 
     <div id="quest-assignment-modal"
-        class="fixed inset-0 bg-black bg-opacity-50 z-[72] flex items-center justify-center p-4 hidden">
-        <div class="bg-white rounded-3xl shadow-2xl max-w-lg w-full pop-in border-4 border-indigo-300 flex flex-col max-h-[90vh]">
-            <!-- Header -->
-            <div class="p-6 pb-4 border-b border-indigo-100 flex-shrink-0">
-                <div class="flex items-center justify-center gap-3">
-                    <div class="text-4xl">📜</div>
-                    <h2 class="font-title text-2xl text-indigo-700">Quest Board</h2>
+        class="fixed inset-0 bg-black bg-opacity-60 z-[72] flex items-center justify-center p-4 hidden backdrop-blur-md">
+        <div class="bg-white rounded-[2.5rem] shadow-2xl max-w-4xl w-full pop-in border-4 border-indigo-400 flex flex-col max-h-[90vh] overflow-hidden">
+            
+            <!-- Premium Header -->
+            <div class="relative bg-gradient-to-r from-indigo-600 via-purple-600 to-indigo-700 p-8 text-white flex-shrink-0">
+                <div class="absolute top-0 left-0 w-full h-full opacity-10 pointer-events-none bg-[url('https://www.transparenttextures.com/patterns/cubes.png')]"></div>
+                <div class="relative flex items-center justify-between">
+                    <div class="flex items-center gap-4">
+                        <div class="w-16 h-16 bg-white/20 backdrop-blur-md rounded-2xl flex items-center justify-center text-4xl shadow-inner border border-white/30">
+                            📝
+                        </div>
+                        <div>
+                            <h2 class="font-title text-4xl drop-shadow-md">Quest Board</h2>
+                            <p class="text-indigo-100 font-bold uppercase tracking-widest text-xs opacity-80">Assign Today's Challenge</p>
+                        </div>
+                    </div>
+                    
+                    <div class="flex items-center gap-3">
+                        <button id="open-quest-test-modal-btn" type="button"
+                            class="bg-amber-400 hover:bg-amber-300 text-amber-900 font-bold px-5 py-2.5 rounded-full flex items-center gap-2 shadow-lg transition-all active:scale-95 text-sm">
+                            <i class="fas fa-calendar-check"></i>
+                            <span>Schedule Test</span>
+                            <span id="quest-header-test-badge" class="hidden ml-1 px-1.5 py-0.5 bg-amber-900 text-amber-100 text-[10px] rounded-full">!</span>
+                        </button>
+                        
+                        <button id="quest-assignment-close-x-btn"
+                            class="bg-white/10 hover:bg-white/20 text-white w-10 h-10 rounded-full flex items-center justify-center transition-colors">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
                 </div>
             </div>
             
-            <!-- Scrollable Content -->
-            <div class="flex-1 overflow-y-auto p-6 pt-4 space-y-4">
+            <!-- Content -->
+            <div class="flex-1 overflow-y-auto p-8 space-y-8 bg-slate-50/50">
                 <input type="hidden" id="quest-assignment-class-id">
 
-                <!-- Previous Assignment Card -->
-                <div class="bg-gradient-to-r from-indigo-50 to-purple-50 rounded-xl p-4 border border-indigo-200">
-                    <h3 class="text-xs font-bold text-indigo-500 uppercase tracking-wider mb-2 flex items-center gap-2">
-                        <i class="fas fa-history"></i> Previous Assignment
-                    </h3>
-                    <div id="previous-assignment-text" class="text-sm text-gray-700 italic">
-                        Loading previous assignment...
-                    </div>
-                </div>
-
-                <!-- New Assignment Section -->
-                <div class="space-y-3">
-                    <label for="quest-assignment-textarea" class="block text-sm font-bold text-gray-700 flex items-center gap-2">
-                        <i class="fas fa-edit text-indigo-500"></i> Assignment for Next Lesson:
-                    </label>
-                    <div class="relative">
-                        <div id="quest-assignment-date-chip"
-                            class="pointer-events-none absolute top-2 left-3 inline-flex items-center gap-1 rounded-full border border-indigo-200 bg-indigo-50 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-indigo-600">
-                            <i class="fas fa-calendar-day"></i>
-                            <span>DD/MM/YYYY</span>
-                        </div>
-                        <textarea id="quest-assignment-textarea" rows="4"
-                            class="w-full px-4 pt-9 pb-3 border-2 border-indigo-200 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:border-indigo-400 resize-none"
-                            placeholder="Enter homework, topics to review, or any notes for the class..."></textarea>
-                    </div>
-                </div>
-
-                <!-- Test Scheduling Card -->
-                <div class="rounded-2xl border border-amber-200 bg-gradient-to-br from-amber-50 via-orange-50 to-white shadow-sm overflow-hidden">
-                    <button id="quest-test-toggle-btn" type="button"
-                        class="w-full text-left px-4 py-4 flex items-center justify-between gap-4 hover:bg-white/40 transition-colors">
-                        <div class="flex items-start gap-3 min-w-0">
-                            <div class="w-11 h-11 rounded-2xl bg-amber-100 text-amber-700 flex items-center justify-center shadow-sm flex-shrink-0">
-                                <i class="fas fa-calendar-check"></i>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                    <!-- Left Column: Previous Assignment -->
+                    <div class="flex flex-col h-full">
+                         <h3 class="text-sm font-black text-indigo-400 uppercase tracking-[0.2em] mb-4 flex items-center gap-2">
+                            <i class="fas fa-history"></i> Previous Assignment
+                        </h3>
+                        <div class="flex-1 bg-white rounded-3xl p-6 border-2 border-indigo-50 shadow-sm relative overflow-hidden group">
+                            <div class="absolute -bottom-6 -right-6 opacity-[0.08] group-hover:opacity-15 transition-all duration-700 group-hover:scale-110 group-hover:-rotate-12 rotate-[-15deg] pointer-events-none">
+                                <i class="fas fa-clipboard-list text-[10rem] text-indigo-900"></i>
                             </div>
-                            <div class="min-w-0">
-                                <h3 class="font-title text-xl text-amber-900">Schedule a Test</h3>
-                                <p id="quest-test-toggle-copy" class="text-sm text-amber-700 leading-relaxed">Add a test date, title, and topic when you want this assignment to lead into an upcoming test.</p>
+                            <div id="previous-assignment-text" class="relative z-10 text-gray-600 leading-relaxed min-h-[150px]">
+                                Loading previous assignment...
                             </div>
                         </div>
-                        <div class="flex items-center gap-2 flex-shrink-0">
-                            <span id="quest-test-toggle-badge" class="px-3 py-1 rounded-full bg-white/80 border border-amber-200 text-[11px] font-bold uppercase tracking-wide text-amber-700">Closed</span>
-                            <i id="quest-test-toggle-icon" class="fas fa-chevron-down text-amber-500 transition-transform"></i>
+                    </div>
+
+                    <!-- Right Column: New Assignment -->
+                    <div class="flex flex-col h-full">
+                        <div class="flex items-center justify-between mb-4">
+                            <h3 class="text-sm font-black text-purple-400 uppercase tracking-[0.2em] flex items-center gap-2">
+                                <i class="fas fa-pen-nib"></i> Next Assignment
+                            </h3>
                         </div>
+                        
+                        <!-- Redesigned Centered Date Badge -->
+                        <div class="flex justify-center -mb-5 relative z-20">
+                            <div id="quest-assignment-date-chip"
+                                class="inline-flex items-center gap-2.5 rounded-2xl border-2 border-purple-200 bg-white px-6 py-2 text-base font-black uppercase tracking-[0.1em] text-purple-600 shadow-xl ring-8 ring-slate-50/50">
+                                <i class="fas fa-calendar-day text-lg"></i>
+                                <span>DD/MM/YYYY</span>
+                            </div>
+                        </div>
+
+                        <!-- Notebook Container -->
+                        <div class="flex-1 notebook-container group">
+                            <textarea id="quest-assignment-textarea" rows="8"
+                                class="notebook-textarea"
+                                placeholder=""></textarea>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Test Summary (Optional) -->
+                <div id="quest-test-summary-card" class="hidden bg-gradient-to-br from-amber-50 to-orange-50 border-2 border-amber-200 rounded-3xl p-6 flex items-center justify-between gap-6 shadow-sm">
+                    <div class="flex items-center gap-4">
+                        <div class="w-14 h-14 bg-amber-100 text-amber-600 rounded-2xl flex items-center justify-center text-2xl shadow-sm">
+                            <i class="fas fa-bolt"></i>
+                        </div>
+                        <div>
+                            <p class="text-xs font-black text-amber-600 uppercase tracking-widest">Upcoming Challenge</p>
+                            <h4 id="quest-test-summary-title" class="font-title text-2xl text-amber-900">Unit 5 Final Test</h4>
+                            <p id="quest-test-summary-details" class="text-amber-700 font-bold">15/05/2024 • Grammar & Vocab</p>
+                        </div>
+                    </div>
+                    <button id="edit-quest-test-btn" class="bg-white hover:bg-amber-50 text-amber-600 font-bold px-6 py-2.5 rounded-xl border-2 border-amber-100 transition-all shadow-sm">
+                        Edit Test
                     </button>
-                    <div id="quest-test-panel" class="hidden border-t border-amber-200/80 px-4 pb-4">
-                        <div class="pt-4 grid grid-cols-1 md:grid-cols-2 gap-3">
-                            <div>
-                                <label class="block text-xs font-bold text-amber-700 mb-1.5 uppercase tracking-wide">Test Date</label>
-                                <input type="date" id="quest-test-date"
-                                    class="w-full px-3 py-2.5 border-2 border-amber-200 rounded-xl bg-white shadow-sm focus:ring-2 focus:ring-amber-400 focus:border-amber-400">
-                            </div>
-                            <div>
-                                <label class="block text-xs font-bold text-amber-700 mb-1.5 uppercase tracking-wide">Test Title</label>
-                                <input type="text" id="quest-test-title" placeholder="e.g. Unit 5 Review"
-                                    class="w-full px-3 py-2.5 border-2 border-amber-200 rounded-xl bg-white shadow-sm focus:ring-2 focus:ring-amber-400 focus:border-amber-400">
-                            </div>
-                            <div class="md:col-span-2">
-                                <label class="block text-xs font-bold text-amber-700 mb-1.5 uppercase tracking-wide">Curriculum / Topics</label>
-                                <input type="text" id="quest-test-curriculum"
-                                    placeholder="e.g. Past Simple, Vocabulary pg 40-45"
-                                    class="w-full px-3 py-2.5 border-2 border-amber-200 rounded-xl bg-white shadow-sm focus:ring-2 focus:ring-amber-400 focus:border-amber-400">
-                            </div>
-                        </div>
-                        <div class="mt-3 flex items-center justify-between gap-3 text-xs text-amber-700">
-                            <p id="quest-test-panel-hint">Leave this closed when the assignment does not include a test.</p>
-                            <button id="quest-test-clear-btn" type="button" class="font-bold px-3 py-1.5 rounded-full border border-amber-200 bg-white hover:bg-amber-50 transition-colors">
-                                Clear Test Plan
-                            </button>
-                        </div>
-                    </div>
                 </div>
             </div>
 
-            <!-- Footer Buttons -->
-            <div class="p-6 pt-4 border-t border-gray-100 flex-shrink-0">
-                <div class="flex gap-3">
+            <!-- Footer -->
+            <div class="p-8 bg-white border-t border-gray-100 flex-shrink-0">
+                <div class="flex gap-4 max-w-2xl mx-auto">
                     <button id="quest-assignment-cancel-btn"
-                        class="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold py-3 px-6 rounded-xl transition-colors">
-                        <i class="fas fa-times mr-2"></i>Cancel
+                        class="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-500 font-bold py-4 px-8 rounded-2xl transition-all active:scale-95">
+                        Cancel
                     </button>
                     <button id="quest-assignment-confirm-btn"
-                        class="flex-1 bg-gradient-to-r from-indigo-500 to-purple-500 hover:from-indigo-600 hover:to-purple-600 text-white font-bold py-3 px-6 rounded-xl shadow-lg transition-all">
-                        <i class="fas fa-save mr-2"></i>Save Assignment
+                        class="flex-[2] bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white font-title text-xl py-4 px-8 rounded-2xl shadow-lg shadow-indigo-200 transition-all active:scale-95">
+                        <i class="fas fa-save mr-2"></i>Save Quest Board
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- New Test Modal -->
+    <div id="quest-test-modal"
+        class="fixed inset-0 bg-black bg-opacity-60 z-[75] flex items-center justify-center p-4 hidden backdrop-blur-sm">
+        <div class="bg-white rounded-3xl shadow-2xl max-w-md w-full pop-in border-4 border-amber-300 overflow-hidden">
+            <div class="bg-gradient-to-r from-amber-400 to-orange-500 p-6 text-center text-white">
+                <div class="text-5xl mb-2">📅</div>
+                <h2 class="font-title text-3xl">Schedule a Test</h2>
+                <p class="text-amber-100 font-bold uppercase tracking-widest text-xs">Prepare the Challenge</p>
+            </div>
+            <div class="p-8 space-y-4">
+                <div>
+                    <label class="block text-xs font-bold text-amber-700 mb-1.5 uppercase tracking-wide">Test Date</label>
+                    <input type="date" id="quest-test-date"
+                        class="w-full px-4 py-3 border-2 border-amber-100 rounded-2xl focus:ring-2 focus:ring-amber-400 outline-none bg-amber-50/30 font-bold">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-amber-700 mb-1.5 uppercase tracking-wide">Test Title</label>
+                    <input type="text" id="quest-test-title" placeholder="e.g. Unit 5 Review"
+                        class="w-full px-4 py-3 border-2 border-amber-100 rounded-2xl focus:ring-2 focus:ring-amber-400 outline-none bg-amber-50/30 font-bold">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-amber-700 mb-1.5 uppercase tracking-wide">Curriculum / Topics</label>
+                    <input type="text" id="quest-test-curriculum" placeholder="e.g. Past Simple, Vocabulary pg 40-45"
+                        class="w-full px-4 py-3 border-2 border-amber-100 rounded-2xl focus:ring-2 focus:ring-amber-400 outline-none bg-amber-50/30 font-bold">
+                </div>
+                <div class="pt-4 flex gap-3">
+                    <button id="quest-test-clear-btn" type="button" class="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-500 font-bold py-3 rounded-2xl transition-colors">
+                        Clear
+                    </button>
+                    <button id="quest-test-done-btn" class="flex-[2] bg-amber-500 hover:bg-amber-600 text-white font-title text-xl py-3 px-8 rounded-2xl shadow-lg transition-all active:scale-95">
+                        Done
                     </button>
                 </div>
             </div>

@@ -26,49 +26,43 @@ function getTodayAssignmentChipText() {
 
 function getQuestTestElements() {
     return {
-        panel: document.getElementById('quest-test-panel'),
-        toggleBadge: document.getElementById('quest-test-toggle-badge'),
-        toggleCopy: document.getElementById('quest-test-toggle-copy'),
-        toggleIcon: document.getElementById('quest-test-toggle-icon'),
         testDate: document.getElementById('quest-test-date'),
         testTitle: document.getElementById('quest-test-title'),
-        testCurriculum: document.getElementById('quest-test-curriculum')
+        testCurriculum: document.getElementById('quest-test-curriculum'),
+        summaryCard: document.getElementById('quest-test-summary-card'),
+        summaryTitle: document.getElementById('quest-test-summary-title'),
+        summaryDetails: document.getElementById('quest-test-summary-details'),
+        headerBadge: document.getElementById('quest-header-test-badge')
     };
 }
 
-export function setQuestTestPanelExpanded(expanded) {
-    const { panel, toggleBadge, toggleCopy, toggleIcon } = getQuestTestElements();
-    if (panel) panel.classList.toggle('hidden', !expanded);
-    if (toggleBadge) toggleBadge.textContent = expanded ? 'Open' : 'Closed';
-    if (toggleCopy) {
-        toggleCopy.textContent = expanded
-            ? 'Add the test details that should appear alongside this assignment.'
-            : 'Add a test date, title, and topic when you want this assignment to lead into an upcoming test.';
+export function setQuestTestModalVisible(visible) {
+    if (visible) {
+        showAnimatedModal('quest-test-modal');
+    } else {
+        hideModal('quest-test-modal');
     }
-    if (toggleIcon) toggleIcon.classList.toggle('rotate-180', expanded);
 }
 
 export function refreshQuestTestPanelSummary() {
-    const { panel, testDate, testTitle, testCurriculum, toggleBadge, toggleCopy } = getQuestTestElements();
+    const { testDate, testTitle, testCurriculum, summaryCard, summaryTitle, summaryDetails, headerBadge } = getQuestTestElements();
     const hasTitle = !!testTitle?.value?.trim();
     const hasDate = !!testDate?.value;
-    const hasCurriculum = !!testCurriculum?.value?.trim();
-    const hasAnyValue = hasTitle || hasDate || hasCurriculum;
+    const hasAnyValue = hasTitle || hasDate;
 
-    if (toggleBadge) {
-        toggleBadge.textContent = hasAnyValue ? 'Planned' : (panel?.classList.contains('hidden') ? 'Closed' : 'Open');
-    }
-    if (toggleCopy) {
-        if (hasAnyValue) {
+    if (summaryCard) summaryCard.classList.toggle('hidden', !hasAnyValue);
+    if (headerBadge) headerBadge.classList.toggle('hidden', !hasAnyValue);
+
+    if (hasAnyValue) {
+        if (summaryTitle) summaryTitle.textContent = testTitle.value.trim() || 'Untitled Test';
+        if (summaryDetails) {
             const pieces = [];
-            if (hasDate) pieces.push(testDate.value);
-            if (hasTitle) pieces.push(testTitle.value.trim());
-            if (hasCurriculum) pieces.push(testCurriculum.value.trim());
-            toggleCopy.textContent = pieces.join(' • ');
-        } else if (panel?.classList.contains('hidden')) {
-            toggleCopy.textContent = 'Add a test date, title, and topic when you want this assignment to lead into an upcoming test.';
-        } else {
-            toggleCopy.textContent = 'Add the test details that should appear alongside this assignment.';
+            if (hasDate) {
+                const d = utils.parseFlexibleDate(testDate.value);
+                pieces.push(d ? d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }) : testDate.value);
+            }
+            if (testCurriculum?.value?.trim()) pieces.push(testCurriculum.value.trim());
+            summaryDetails.textContent = pieces.join(' • ');
         }
     }
 }
@@ -79,16 +73,13 @@ export function clearQuestTestFields(options = {}) {
     if (testTitle) testTitle.value = '';
     if (testCurriculum) testCurriculum.value = '';
     refreshQuestTestPanelSummary();
-    if (options.collapse !== false) {
-        setQuestTestPanelExpanded(false);
+    if (options.hide !== false) {
+        setQuestTestModalVisible(false);
     }
 }
 
 export function toggleQuestTestPanel() {
-    const panel = document.getElementById('quest-test-panel');
-    const nextExpanded = panel?.classList.contains('hidden');
-    setQuestTestPanelExpanded(Boolean(nextExpanded));
-    refreshQuestTestPanelSummary();
+    setQuestTestModalVisible(true);
 }
 
 export function openEditStudentModal(studentId) {
@@ -180,24 +171,67 @@ export async function openQuestAssignmentModal() {
             const lastAssignmentDoc = snapshot.docs[0];
             const lastAssignment = lastAssignmentDoc.data();
 
-            // --- NEW: Test Badge Logic ---
+            // --- NEW: Test Badge Logic (Redesigned & Intelligent) ---
             let testBadgeHtml = '';
             if (lastAssignment.testData) {
                 const tDate = utils.parseFlexibleDate(lastAssignment.testData.date);
-                const dateDisplay = tDate ? tDate.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' }) : 'Date TBD';
+                const today = new Date();
+                today.setHours(0, 0, 0, 0);
                 
-                testBadgeHtml = `
-                    <div class="mb-3 bg-red-50 border border-red-200 rounded-lg p-3 flex items-start gap-3">
-                        <div class="bg-red-100 text-red-600 rounded-full w-8 h-8 flex items-center justify-center flex-shrink-0">
-                            <i class="fas fa-exclamation"></i>
-                        </div>
-                        <div>
-                            <h4 class="font-bold text-red-800 text-sm uppercase tracking-wide">Test Scheduled</h4>
-                            <p class="font-bold text-gray-800 text-lg leading-tight">${lastAssignment.testData.title}</p>
-                            <p class="text-red-600 text-sm mt-1"><i class="fas fa-calendar-alt mr-1"></i> ${dateDisplay}</p>
-                            ${lastAssignment.testData.curriculum ? `<p class="text-gray-500 text-xs mt-1">Topic: ${lastAssignment.testData.curriculum}</p>` : ''}
-                        </div>
-                    </div>`;
+                const isPast = tDate && tDate < today;
+                
+                // Check if results were logged for this specific test
+                const allScores = state.get('allWrittenScores') || [];
+                const testTitle = (lastAssignment.testData.title || '').trim().toLowerCase();
+                const hasResults = allScores.some(s => 
+                    s.classId === lastAssignment.classId && 
+                    s.type === 'test' && 
+                    (s.title || '').trim().toLowerCase() === testTitle
+                );
+
+                if (hasResults) {
+                    // COMPLETED STATE: Show premium green badge
+                    testBadgeHtml = `
+                        <div class="mb-6 bg-gradient-to-r from-emerald-50/80 to-white border-l-4 border-emerald-500 rounded-r-2xl p-4 shadow-sm flex items-center justify-between group pop-in">
+                            <div class="flex items-start gap-4">
+                                <div class="w-12 h-12 bg-emerald-100 text-emerald-600 rounded-xl flex items-center justify-center text-xl shadow-sm">
+                                    <i class="fas fa-check-circle"></i>
+                                </div>
+                                <div>
+                                    <div class="inline-flex items-center gap-1.5 rounded-full bg-emerald-100/50 px-2.5 py-0.5 text-[10px] font-black uppercase tracking-wider text-emerald-700 mb-1">
+                                        <i class="fas fa-medal text-[9px]"></i>
+                                        <span>Test Completed</span>
+                                    </div>
+                                    <h4 class="font-bold text-emerald-900 text-lg leading-tight">${lastAssignment.testData.title}</h4>
+                                    <p class="text-emerald-600/70 text-[10px] font-black mt-1 uppercase tracking-[0.1em]">All results have been recorded</p>
+                                </div>
+                            </div>
+                        </div>`;
+                } else if (!isPast) {
+                    // UPCOMING STATE: Show premium amber badge
+                    const dateDisplay = tDate ? tDate.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' }) : 'Date TBD';
+                    testBadgeHtml = `
+                        <div class="mb-6 bg-gradient-to-r from-amber-50/80 to-white border-l-4 border-amber-500 rounded-r-2xl p-4 shadow-sm flex items-center justify-between group pop-in">
+                            <div class="flex items-start gap-4">
+                                <div class="w-12 h-12 bg-amber-100 text-amber-600 rounded-xl flex items-center justify-center text-xl shadow-sm animate-pulse">
+                                    <i class="fas fa-bolt"></i>
+                                </div>
+                                <div>
+                                    <div class="inline-flex items-center gap-1.5 rounded-full bg-amber-100/50 px-2.5 py-0.5 text-[10px] font-black uppercase tracking-wider text-amber-700 mb-1">
+                                        <i class="fas fa-calendar-alt text-[9px]"></i>
+                                        <span>Test Scheduled</span>
+                                    </div>
+                                    <h4 class="font-bold text-amber-900 text-lg leading-tight">${lastAssignment.testData.title}</h4>
+                                    <p class="text-amber-600/70 text-sm font-bold mt-1 tracking-tight">${dateDisplay}</p>
+                                    ${lastAssignment.testData.curriculum ? `<p class="text-gray-400 text-[10px] font-black mt-1.5 uppercase tracking-widest opacity-80">Topics: ${lastAssignment.testData.curriculum}</p>` : ''}
+                                </div>
+                            </div>
+                        </div>`;
+                } else {
+                    // PASSED BUT NO RESULTS: Intelligently hide (as requested) or show very subtle hint
+                    // Based on "intelligently NOT show ... by checking results", we hide it if passed and no results.
+                    testBadgeHtml = '';
+                }
             }
             
             // --- SMART FORMATTER START ---
@@ -237,18 +271,27 @@ export async function openQuestAssignmentModal() {
                 return `<div class="space-y-1 mt-2">${html}</div>`;
             };
             
-            const formattedContent = formatAssignmentText(lastAssignment.text);
+            const formattedContent = formatAssignmentText(lastAssignment.text || '');
+            const dateStr = utils.getDDMMYYYY(lastAssignment.createdAt?.toDate ? lastAssignment.createdAt.toDate() : lastAssignment.createdAt);
 
-           previousAssignmentTextEl.innerHTML = `
-            <div class="w-full">
-                ${testBadgeHtml} 
-                ${formattedContent}
-                </div>
-                <div class="mt-3 flex justify-end">
-                    <button id="edit-last-assignment-btn" class="text-xs text-blue-500 hover:text-blue-700 font-bold bg-blue-50 px-3 py-1 rounded-full transition-colors border border-blue-100">
-                        <i class="fas fa-pencil-alt mr-1"></i>Edit
+            previousAssignmentTextEl.innerHTML = `
+                <div class="relative mb-6">
+                    <div class="flex items-center gap-2 mb-1">
+                         <div class="w-8 h-8 rounded-lg bg-indigo-50 text-indigo-400 flex items-center justify-center text-xs shadow-sm border border-indigo-100/50">
+                            <i class="fas fa-calendar-alt"></i>
+                        </div>
+                        <span class="text-[11px] font-black text-indigo-300 uppercase tracking-[0.15em]">${dateStr}</span>
+                    </div>
+                    
+                    <button id="edit-last-assignment-btn" 
+                        class="absolute top-0 right-0 group/edit w-10 h-10 bg-white hover:bg-indigo-600 text-indigo-400 hover:text-white rounded-2xl flex items-center justify-center transition-all duration-300 shadow-sm border border-indigo-50 hover:border-indigo-600 active:scale-95 z-20"
+                        title="Edit Previous Assignment">
+                        <i class="fas fa-pen-nib text-sm transition-transform group-hover/edit:rotate-12"></i>
                     </button>
                 </div>
+
+                ${testBadgeHtml}
+                <div class="prose prose-indigo max-w-none text-gray-600 leading-relaxed selection:bg-indigo-100">${formattedContent}</div>
             `;
             // --- SMART FORMATTER END ---
 
@@ -256,6 +299,15 @@ export async function openQuestAssignmentModal() {
                 currentAssignmentTextarea.value = stripLegacyAssignmentDatePrefix(lastAssignment.text || '');
                 modal.dataset.editingId = lastAssignmentDoc.id;
                 document.getElementById('quest-assignment-confirm-btn').innerText = 'Update Assignment';
+                
+                if (lastAssignment.testData) {
+                    const { testDate, testTitle, testCurriculum } = getQuestTestElements();
+                    if (testDate) testDate.value = lastAssignment.testData.date || '';
+                    if (testTitle) testTitle.value = lastAssignment.testData.title || '';
+                    if (testCurriculum) testCurriculum.value = lastAssignment.testData.curriculum || '';
+                    refreshQuestTestPanelSummary();
+                }
+
                 currentAssignmentTextarea.focus();
             };
         } else {

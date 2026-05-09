@@ -11,7 +11,7 @@ export const logTabHTML = `
                         class="al-fab bubbly-button al-fab--left"
                         style="background: linear-gradient(135deg, #0d9488 0%, #14b8a6 55%, #06b6d4 100%); border: 2px solid rgba(94, 234, 212, 0.75); color: white;"
                         title="Quest Assignment">
-                        <i class="fas fa-scroll al-fab-icon"></i>
+                        <i class="fas fa-clipboard-list al-fab-icon"></i>
                         <span class="al-fab-label">Quest Assignment</span>
                     </button>
                 </div>

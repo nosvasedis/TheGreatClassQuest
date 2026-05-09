@@ -1101,9 +1101,12 @@ export function setupUIListeners() {
     document.getElementById('award-note-cancel-btn').addEventListener('click', () => modals.hideModal('award-note-modal'));
     document.getElementById('award-note-confirm-btn').addEventListener('click', saveAwardNote);
     document.getElementById('quest-assignment-cancel-btn').addEventListener('click', () => modals.hideModal('quest-assignment-modal'));
+    document.getElementById('quest-assignment-close-x-btn').addEventListener('click', () => modals.hideModal('quest-assignment-modal'));
     document.getElementById('quest-assignment-confirm-btn').addEventListener('click', handleSaveQuestAssignment);
-    document.getElementById('quest-test-toggle-btn').addEventListener('click', modals.toggleQuestTestPanel);
-    document.getElementById('quest-test-clear-btn').addEventListener('click', () => modals.clearQuestTestFields({ collapse: false }));
+    document.getElementById('open-quest-test-modal-btn').addEventListener('click', () => modals.setQuestTestModalVisible(true));
+    document.getElementById('edit-quest-test-btn').addEventListener('click', () => modals.setQuestTestModalVisible(true));
+    document.getElementById('quest-test-done-btn').addEventListener('click', () => modals.setQuestTestModalVisible(false));
+    document.getElementById('quest-test-clear-btn').addEventListener('click', () => modals.clearQuestTestFields({ hide: true }));
     ['quest-test-date', 'quest-test-title', 'quest-test-curriculum'].forEach((id) => {
         document.getElementById(id).addEventListener('input', modals.refreshQuestTestPanelSummary);
     });

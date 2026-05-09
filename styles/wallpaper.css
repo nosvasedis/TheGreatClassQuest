@@ -179,22 +179,6 @@
     box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.1);
 }
 
-#dynamic-wallpaper-screen.wall-mode-class .wall-center-hub {
-    box-shadow: 0 12px 40px rgba(56, 189, 248, 0.16);
-}
-
-#dynamic-wallpaper-screen.wall-mode-school .wall-center-hub {
-    box-shadow: 0 12px 40px rgba(99, 102, 241, 0.16);
-}
-
-#dynamic-wallpaper-screen.wall-holiday-active .wall-center-hub {
-    box-shadow: 0 16px 44px rgba(245, 158, 11, 0.22);
-}
-
-#dynamic-wallpaper-screen.wall-holiday-upcoming .wall-center-hub {
-    box-shadow: 0 14px 42px rgba(236, 72, 153, 0.2);
-}
-
 /* Night Mode: Deep Indigo Glass (Instead of faded white) */
 .is-night .wall-center-hub {
     background: rgba(15, 23, 42, 0.5) !important;
@@ -202,14 +186,6 @@
     border-color: rgba(99, 102, 241, 0.3) !important;
     /* Faint Indigo Border */
     box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.5) !important;
-}
-
-.is-night #dynamic-wallpaper-screen.wall-mode-class .wall-center-hub {
-    box-shadow: 0 14px 42px rgba(8, 47, 73, 0.55) !important;
-}
-
-.is-night #dynamic-wallpaper-screen.wall-holiday-active .wall-center-hub {
-    box-shadow: 0 16px 46px rgba(120, 53, 15, 0.52) !important;
 }
 
 /* 6. Text Shadows */

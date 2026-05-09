@@ -40,10 +40,6 @@ export const wallpaperHTML = `
 
         <div id="wall-center-hub"
             class="z-20 text-center relative p-10 rounded-[3rem] wall-center-hub hub-breathe transition-all duration-1000">
-            <div id="wall-context-strip" class="mb-5 flex flex-wrap items-center justify-center gap-3 px-4">
-                <div id="wall-mode-pill" class="wall-context-pill hidden"></div>
-                <div id="wall-scene-pill" class="wall-context-pill hidden"></div>
-            </div>
             <h1 id="wall-time" class="font-title text-[9rem] text-white leading-none drop-shadow-xl"
                 style="text-shadow: 4px 4px 0 rgba(0,0,0,0.15);">12:00</h1>
             <h2 id="wall-date" class="font-title text-4xl text-white/95 mt-2 mb-6 tracking-wide drop-shadow-md">Monday,
@@ -92,11 +88,7 @@ export const wallpaperHTML = `
             </div>
         </div>
 
-        <div id="wall-floating-area" class="wall-feature-stage pointer-events-none z-20"></div>
-
-        <div id="wall-left-rail" class="wall-side-rail wall-side-rail-left pointer-events-none z-30"></div>
-        <div id="wall-right-rail" class="wall-side-rail wall-side-rail-right pointer-events-none z-30"></div>
-        <div id="wall-top-ribbon" class="wall-top-ribbon pointer-events-none z-30"></div>
+        <div id="wall-floating-area" class="absolute inset-0 pointer-events-none z-30"></div>
 
         <div id="wall-quote-container"
             class="absolute bottom-8 left-0 right-0 text-center z-40 transition-opacity duration-1000 opacity-0 px-4">

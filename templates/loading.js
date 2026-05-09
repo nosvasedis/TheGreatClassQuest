@@ -139,14 +139,14 @@ export function initLoadingAtmosphere() {
     const cloudArt = Array.from(document.querySelectorAll('.loading-cloud-art'));
     const cloudArtLayer = document.querySelector('.loading-cloud-art-layer');
     const cloudAssets = [
-        '../assets/award-clouds/cloud-a.png',
-        '../assets/award-clouds/cloud-b.png',
-        '../assets/award-clouds/cloud-c.png',
-        '../assets/award-clouds/cloud-d.png',
-        '../assets/award-clouds/cloud-e.png',
-        '../assets/award-clouds/cloud-f.png',
-        '../assets/award-clouds/cloud-g.png',
-        '../assets/award-clouds/cloud-h.png'
+        new URL('../assets/award-clouds/cloud-a.png', import.meta.url).href,
+        new URL('../assets/award-clouds/cloud-b.png', import.meta.url).href,
+        new URL('../assets/award-clouds/cloud-c.png', import.meta.url).href,
+        new URL('../assets/award-clouds/cloud-d.png', import.meta.url).href,
+        new URL('../assets/award-clouds/cloud-e.png', import.meta.url).href,
+        new URL('../assets/award-clouds/cloud-f.png', import.meta.url).href,
+        new URL('../assets/award-clouds/cloud-g.png', import.meta.url).href,
+        new URL('../assets/award-clouds/cloud-h.png', import.meta.url).href
     ];
 
     if (cloudArtLayer) {

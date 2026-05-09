@@ -47,14 +47,17 @@
     width: 100%;
     text-align: center;
     opacity: 0;
-    transform: translateY(6px);
+    transform: scale(0.18);
+    transform-origin: center center;
+    filter: blur(7px);
     margin-top: 0.25rem;
-    transition: opacity 0.55s ease, transform 0.55s ease;
+    transition: opacity 0.55s ease, transform 0.72s cubic-bezier(0.2, 0.9, 0.2, 1), filter 0.72s ease;
 }
 
 .loading-greeting.loading-greeting-visible {
     opacity: 1;
-    transform: translateY(0);
+    transform: scale(1);
+    filter: blur(0);
 }
 
 #loading-greeting-text {
@@ -158,12 +161,14 @@
     -webkit-text-stroke: 3px rgba(0, 0, 0, 0.94);
     paint-order: stroke fill;
     animation: loading-outline-gold-glow 1.2s ease-in-out infinite;
+    transform: translateY(18px);
+    margin-bottom: 0.2rem !important;
 }
 
 #loading-screen.loading-final-moment .loading-greeting {
     position: absolute;
     left: 50%;
-    top: 56%;
+    top: 60%;
     width: min(92vw, 820px);
     margin-top: 0;
     transform: translate(-50%, -50%);

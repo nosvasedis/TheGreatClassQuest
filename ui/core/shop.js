@@ -20,16 +20,18 @@ export function initializeShopTab() {
         if (cls) league = cls.questLevel;
     }
 
-    if (!league) {
-        // Still populate the class selector so the user can choose one
-        const classSelect = document.getElementById('shop-class-select');
-        if (classSelect) {
-            classSelect.innerHTML = `<option value="">Select a class...</option>` +
-                [...allClasses]
-                    .sort((a,b) => a.name.localeCompare(b.name))
-                    .map(c => `<option value="${c.id}" ${c.id === classId ? 'selected' : ''}>${c.logo || '🏫'} ${c.name}</option>`)
-                    .join('');
-        }
+    // Always populate the class selector so the user can make/change a selection
+    const classSelect = document.getElementById('shop-class-select');
+    if (classSelect) {
+        classSelect.innerHTML = `<option value="">Select a class...</option>` +
+            [...allClasses]
+                .sort((a,b) => a.name.localeCompare(b.name))
+                .map(c => `<option value="${c.id}" ${c.id === classId ? 'selected' : ''}>${c.logo || '🏫'} ${c.name}</option>`)
+                .join('');
+    }
+
+    // The shop requires an explicit class selection — show curtain whenever none is active
+    if (!classId) {
         const shopCurtain = document.getElementById('shop-curtain');
         if (shopCurtain) shopCurtain.classList.remove('hidden');
         document.getElementById('shop-items-container').innerHTML = '';
@@ -56,18 +58,7 @@ export function initializeShopTab() {
     document.getElementById('shop-student-select').innerHTML = `<option value="">Select Shopper...</option>`;
     document.getElementById('shop-student-gold').innerText = "0 🪙";
 
-    // Populate Class Select
-    const classSelect = document.getElementById('shop-class-select');
-    if (classSelect) {
-        classSelect.innerHTML = `<option value="">Select a class...</option>` +
-            [...allClasses]
-                .sort((a,b) => a.name.localeCompare(b.name))
-                .map(c => `<option value="${c.id}" ${c.id === classId ? 'selected' : ''}>${c.logo || '🏫'} ${c.name}</option>`)
-                .join('');
-    }
-
     // 3. Filter Students
-    // If a specific class is selected, scope to that class; otherwise fall back to league.
     const myClassesInLeague = allClasses.filter(c => c.questLevel === league);
     const myClassIds = classId ? [classId] : myClassesInLeague.map(c => c.id);
     

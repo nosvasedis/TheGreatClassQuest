@@ -579,9 +579,9 @@ function getLayout(name, theme, selector, row2, row3) {
                 <i class="fas ${theme.weatherIcon} weather-sun"></i>
                 <i class="fas fa-cloud weather-cloud"></i>
                 
-                <div class="relative z-10">
-                    <div class="text-6xl font-title drop-shadow-md mb-2">${theme.temp}</div>
-                    <div class="text-xl font-bold uppercase tracking-widest opacity-90">${theme.weatherText}</div>
+                <div class="weather-info">
+                    <div class="text-7xl font-title">${theme.temp}</div>
+                    <div class="text-2xl font-bold uppercase tracking-widest opacity-95">${theme.weatherText}</div>
                 </div>
                 <div id="weather-card-footer" class="relative z-10 text-right mt-auto pt-4" data-quiz-class="${state.get('globalSelectedClassId') || ''}">
                 </div>

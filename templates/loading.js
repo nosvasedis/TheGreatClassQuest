@@ -33,6 +33,20 @@ export const loadingHTML = `
             <span class="loading-cloud lc-10"><i class="fas fa-cloud"></i></span>
         </div>
 
+        <!-- Big colorful icon watermarks -->
+        <div class="loading-air-watermarks" aria-hidden="true">
+            <span class="loading-air-watermark lw-1"><i class="fas fa-crown"></i></span>
+            <span class="loading-air-watermark lw-2"><i class="fas fa-book-open"></i></span>
+            <span class="loading-air-watermark lw-3"><i class="fas fa-wand-sparkles"></i></span>
+            <span class="loading-air-watermark lw-4"><i class="fas fa-gem"></i></span>
+            <span class="loading-air-watermark lw-5"><i class="fas fa-scroll"></i></span>
+            <span class="loading-air-watermark lw-6"><i class="fas fa-compass"></i></span>
+            <span class="loading-air-watermark lw-7"><i class="fas fa-shield-halved"></i></span>
+            <span class="loading-air-watermark lw-8"><i class="fas fa-trophy"></i></span>
+            <span class="loading-air-watermark lw-9"><i class="fas fa-star"></i></span>
+            <span class="loading-air-watermark lw-10"><i class="fas fa-feather"></i></span>
+        </div>
+
         <!-- Airborne magical icons -->
         <div class="loading-air-icons" aria-hidden="true">
             <span class="loading-air-icon li-1"><i class="fas fa-star"></i></span>
@@ -69,9 +83,6 @@ export const loadingHTML = `
 
         <!-- Center content -->
         <div class="loading-stage">
-            <div class="loading-watermark loading-watermark-left" aria-hidden="true">HERO ACADEMY</div>
-            <div class="loading-watermark loading-watermark-right" aria-hidden="true">THE GREAT CLASS QUEST</div>
-
             <div class="loading-title">The Great Class Quest</div>
             <div class="loading-subtitle">Sky Campus Is Gathering Your Heroes</div>
 
@@ -113,8 +124,10 @@ export function initLoadingTips() {
 
 function buildPersonalizedCopy(name, role) {
     const HONORIFICS = /^(mr|mrs|ms|miss|dr|prof|rev|sir|lord|lady)\.?$/i;
-    const nameParts = (name || '').trim().split(/\s+/).filter(Boolean);
+    const displayName = (name || '').trim().replace(/\s+/g, ' ');
+    const nameParts = displayName.split(/\s+/).filter(Boolean);
     const firstName = nameParts.find(p => !HONORIFICS.test(p)) || '';
+    const formalLabel = displayName || firstName;
 
     switch (role) {
         case 'student':
@@ -124,17 +137,17 @@ function buildPersonalizedCopy(name, role) {
             };
         case 'parent':
             return {
-                greeting: firstName ? `Welcome back, ${firstName}!` : 'Welcome back!',
+                greeting: formalLabel ? `Welcome back, ${formalLabel}!` : 'Welcome back!',
                 tip: "Check in on your hero's progress and adventure log."
             };
         case 'secretary':
             return {
-                greeting: firstName ? `Welcome, ${firstName}!` : 'Welcome!',
+                greeting: formalLabel ? `Welcome, ${formalLabel}!` : 'Welcome!',
                 tip: 'The school records and hero roster are ready.'
             };
         default:
             return {
-                greeting: firstName ? `Welcome back, ${firstName}!` : 'Welcome back!',
+                greeting: formalLabel ? `Welcome back, ${formalLabel}!` : 'Welcome back!',
                 tip: "Your class is ready for today's quest. Let's go!"
             };
     }

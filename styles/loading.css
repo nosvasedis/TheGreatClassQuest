@@ -82,29 +82,42 @@
     border: 1px dashed rgba(14, 116, 144, 0.16);
 }
 
-.loading-watermark {
+/* Big icon watermark layer */
+.loading-air-watermarks {
     position: absolute;
-    font-family: 'Fredoka One', cursive;
-    font-size: clamp(0.56rem, 1.4vw, 0.86rem);
-    letter-spacing: 0.2em;
-    color: rgba(14, 116, 144, 0.18);
-    text-transform: uppercase;
+    inset: 0;
+    z-index: 1;
     pointer-events: none;
-    user-select: none;
-    z-index: 2;
+    overflow: hidden;
 }
 
-.loading-watermark-left {
-    left: 1.35rem;
-    top: 1.1rem;
-    transform: rotate(-10deg);
+.loading-air-watermark {
+    position: absolute;
+    opacity: 0.24;
+    filter: saturate(1.18) drop-shadow(0 12px 24px rgba(14, 116, 144, 0.14));
+    mix-blend-mode: multiply;
+    animation: icon-watermark-drift 9s ease-in-out infinite;
 }
 
-.loading-watermark-right {
-    right: 1.35rem;
-    bottom: 1.25rem;
-    transform: rotate(9deg);
+.loading-air-watermark i {
+    font-size: clamp(2.5rem, 8vw, 5.2rem);
 }
+
+@keyframes icon-watermark-drift {
+    0%, 100% { transform: translateY(0) rotate(0deg) scale(1); }
+    50% { transform: translateY(-14px) rotate(7deg) scale(1.07); }
+}
+
+.lw-1 { top: 6%; left: 8%; color: #F59E0B; animation-duration: 10.2s; }
+.lw-2 { top: 10%; right: 12%; color: #0EA5E9; animation-duration: 9.3s; animation-delay: 0.8s; }
+.lw-3 { top: 28%; left: 4%; color: #A855F7; animation-duration: 8.5s; animation-delay: 1.1s; }
+.lw-4 { top: 30%; right: 6%; color: #10B981; animation-duration: 9.8s; animation-delay: 1.6s; }
+.lw-5 { bottom: 30%; left: 9%; color: #F97316; animation-duration: 10.5s; animation-delay: 0.4s; }
+.lw-6 { bottom: 29%; right: 11%; color: #3B82F6; animation-duration: 8.9s; animation-delay: 1.4s; }
+.lw-7 { bottom: 9%; left: 18%; color: #14B8A6; animation-duration: 9.9s; animation-delay: 2s; }
+.lw-8 { bottom: 7%; right: 17%; color: #EAB308; animation-duration: 10.8s; animation-delay: 1.2s; }
+.lw-9 { top: 49%; left: 45%; color: #F43F5E; animation-duration: 9.6s; animation-delay: 0.7s; }
+.lw-10 { top: 58%; right: 33%; color: #8B5CF6; animation-duration: 8.7s; animation-delay: 1.9s; }
 
 /* Title zone */
 @keyframes load-title-glow {
@@ -183,8 +196,8 @@
 
 .loading-air-icon {
     position: absolute;
-    color: rgba(14, 116, 144, 0.52);
-    text-shadow: 0 0 12px rgba(255, 255, 255, 0.7);
+    opacity: 0.62;
+    text-shadow: 0 0 14px rgba(255, 255, 255, 0.85);
     animation: icon-float 5.2s ease-in-out infinite;
 }
 
@@ -193,24 +206,24 @@
     50% { transform: translateY(-10px) rotate(8deg) scale(1.08); opacity: 0.75; }
 }
 
-.li-1 { top: 16%; left: 10%; font-size: 0.92rem; animation-duration: 4.9s; }
-.li-2 { top: 14%; left: 34%; font-size: 1rem; animation-duration: 5.8s; animation-delay: 0.9s; }
-.li-3 { top: 22%; left: 52%; font-size: 0.86rem; animation-duration: 4.5s; animation-delay: 0.6s; }
-.li-4 { top: 12%; right: 20%; font-size: 1.06rem; animation-duration: 5.7s; animation-delay: 1.4s; }
-.li-5 { top: 25%; right: 9%; font-size: 0.95rem; animation-duration: 4.8s; animation-delay: 0.2s; }
-.li-6 { top: 39%; left: 7%; font-size: 1rem; animation-duration: 5.5s; animation-delay: 1.8s; }
-.li-7 { top: 36%; left: 25%; font-size: 1.08rem; animation-duration: 4.7s; animation-delay: 1.1s; }
-.li-8 { top: 42%; left: 45%; font-size: 0.88rem; animation-duration: 5.4s; animation-delay: 0.35s; }
-.li-9 { top: 34%; right: 26%; font-size: 0.92rem; animation-duration: 4.9s; animation-delay: 0.8s; }
-.li-10 { top: 48%; right: 7%; font-size: 1.02rem; animation-duration: 5.9s; animation-delay: 0.4s; }
-.li-11 { bottom: 36%; left: 15%; font-size: 0.83rem; animation-duration: 5.2s; animation-delay: 0.7s; }
-.li-12 { bottom: 31%; left: 38%; font-size: 1rem; animation-duration: 4.6s; animation-delay: 1.5s; }
-.li-13 { bottom: 35%; left: 57%; font-size: 0.9rem; animation-duration: 5.3s; animation-delay: 0.3s; }
-.li-14 { bottom: 29%; right: 24%; font-size: 0.96rem; animation-duration: 4.8s; animation-delay: 1.2s; }
-.li-15 { bottom: 24%; right: 11%; font-size: 0.85rem; animation-duration: 5.6s; animation-delay: 0.95s; }
-.li-16 { bottom: 16%; left: 23%; font-size: 1.08rem; animation-duration: 5.1s; animation-delay: 1.6s; }
-.li-17 { bottom: 12%; left: 48%; font-size: 0.92rem; animation-duration: 4.7s; animation-delay: 0.55s; }
-.li-18 { bottom: 10%; right: 18%; font-size: 1rem; animation-duration: 5.8s; animation-delay: 1.3s; }
+.li-1 { top: 16%; left: 10%; font-size: 1.5rem; color: #F59E0B; animation-duration: 4.9s; }
+.li-2 { top: 14%; left: 34%; font-size: 1.6rem; color: #0EA5E9; animation-duration: 5.8s; animation-delay: 0.9s; }
+.li-3 { top: 22%; left: 52%; font-size: 1.35rem; color: #A855F7; animation-duration: 4.5s; animation-delay: 0.6s; }
+.li-4 { top: 12%; right: 20%; font-size: 1.7rem; color: #10B981; animation-duration: 5.7s; animation-delay: 1.4s; }
+.li-5 { top: 25%; right: 9%; font-size: 1.45rem; color: #F97316; animation-duration: 4.8s; animation-delay: 0.2s; }
+.li-6 { top: 39%; left: 7%; font-size: 1.62rem; color: #3B82F6; animation-duration: 5.5s; animation-delay: 1.8s; }
+.li-7 { top: 36%; left: 25%; font-size: 1.8rem; color: #EC4899; animation-duration: 4.7s; animation-delay: 1.1s; }
+.li-8 { top: 42%; left: 45%; font-size: 1.4rem; color: #14B8A6; animation-duration: 5.4s; animation-delay: 0.35s; }
+.li-9 { top: 34%; right: 26%; font-size: 1.55rem; color: #F43F5E; animation-duration: 4.9s; animation-delay: 0.8s; }
+.li-10 { top: 48%; right: 7%; font-size: 1.7rem; color: #8B5CF6; animation-duration: 5.9s; animation-delay: 0.4s; }
+.li-11 { bottom: 36%; left: 15%; font-size: 1.35rem; color: #06B6D4; animation-duration: 5.2s; animation-delay: 0.7s; }
+.li-12 { bottom: 31%; left: 38%; font-size: 1.6rem; color: #F59E0B; animation-duration: 4.6s; animation-delay: 1.5s; }
+.li-13 { bottom: 35%; left: 57%; font-size: 1.42rem; color: #22C55E; animation-duration: 5.3s; animation-delay: 0.3s; }
+.li-14 { bottom: 29%; right: 24%; font-size: 1.58rem; color: #F97316; animation-duration: 4.8s; animation-delay: 1.2s; }
+.li-15 { bottom: 24%; right: 11%; font-size: 1.35rem; color: #6366F1; animation-duration: 5.6s; animation-delay: 0.95s; }
+.li-16 { bottom: 16%; left: 23%; font-size: 1.8rem; color: #EAB308; animation-duration: 5.1s; animation-delay: 1.6s; }
+.li-17 { bottom: 12%; left: 48%; font-size: 1.48rem; color: #EF4444; animation-duration: 4.7s; animation-delay: 0.55s; }
+.li-18 { bottom: 10%; right: 18%; font-size: 1.66rem; color: #0EA5E9; animation-duration: 5.8s; animation-delay: 1.3s; }
 
 /* Sparkle particles */
 .loading-particles {
@@ -340,7 +353,7 @@
         font-size: 4.35rem !important;
     }
 
-    .loading-watermark {
-        font-size: 0.56rem;
+    .loading-air-watermark i {
+        font-size: clamp(2.2rem, 12vw, 4.4rem);
     }
 }

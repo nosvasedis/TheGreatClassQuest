@@ -52,6 +52,14 @@ export const loadingHTML = `
             <span class="loading-cloud lc-8"><i class="fas fa-cloud"></i></span>
             <span class="loading-cloud lc-9"><i class="fas fa-cloud"></i></span>
             <span class="loading-cloud lc-10"><i class="fas fa-cloud-meatball"></i></span>
+            <span class="loading-cloud lc-11"><i class="fas fa-cloud-sun"></i></span>
+            <span class="loading-cloud lc-12"><i class="fas fa-cloud-rain"></i></span>
+            <span class="loading-cloud lc-13"><i class="fas fa-cloud-moon"></i></span>
+            <span class="loading-cloud lc-14"><i class="fas fa-cloud-sun-rain"></i></span>
+            <span class="loading-cloud lc-15"><i class="fas fa-cloud"></i></span>
+            <span class="loading-cloud lc-16"><i class="fas fa-cloud-meatball"></i></span>
+            <span class="loading-cloud lc-17"><i class="fas fa-cloud-sun"></i></span>
+            <span class="loading-cloud lc-18"><i class="fas fa-cloud-rain"></i></span>
         </div>
 
         <!-- Giant painted cloud assets for a true sky-world feel -->
@@ -64,6 +72,10 @@ export const loadingHTML = `
             <span class="loading-cloud-art lca-6"></span>
             <span class="loading-cloud-art lca-7"></span>
             <span class="loading-cloud-art lca-8"></span>
+            <span class="loading-cloud-art lca-9"></span>
+            <span class="loading-cloud-art lca-10"></span>
+            <span class="loading-cloud-art lca-11"></span>
+            <span class="loading-cloud-art lca-12"></span>
         </div>
 
         <!-- Journey icons inspired by app features -->
@@ -146,7 +158,7 @@ export function initLoadingTips() {
  * Randomize cloud/icon motion so each loading screen has a fresh sky composition.
  */
 export function initLoadingAtmosphere() {
-    const cloudIcons = ['fa-cloud', 'fa-cloud-meatball'];
+    const cloudIcons = ['fa-cloud', 'fa-cloud-meatball', 'fa-cloud-sun', 'fa-cloud-rain', 'fa-cloud-moon', 'fa-cloud-sun-rain'];
 
     const clouds = Array.from(document.querySelectorAll('.loading-cloud'));
     clouds.forEach((cloud) => {

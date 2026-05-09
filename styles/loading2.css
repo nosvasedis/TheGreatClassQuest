@@ -186,6 +186,12 @@
     transition: transform 0.7s cubic-bezier(0.25, 0.9, 0.25, 1);
 }
 
+#loading-screen .loading-stage.loading-stage-reveal .loading-title,
+#loading-screen .loading-stage:has(.loading-greeting.loading-greeting-visible) .loading-title {
+    color: #ffffff !important;
+    animation: loading-depth-gold-glow 1.2s ease-in-out infinite;
+}
+
 /* Greeting final-moment: keep it centred — the position was already set above.
    Only override text appearance. */
 #loading-screen.loading-final-moment .loading-greeting {

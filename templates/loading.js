@@ -274,6 +274,7 @@ export function revealStagedLoadingPersonalization() {
     const greetingEl   = document.getElementById('loading-greeting');
     const greetingText = document.getElementById('loading-greeting-text');
     const tipEl        = document.getElementById('loading-tip');
+    const stageEl      = document.querySelector('.loading-stage');
     if (!greetingEl || !greetingText || !_stagedPersonalization) return false;
 
     if (_tipIntervalId) {
@@ -283,6 +284,7 @@ export function revealStagedLoadingPersonalization() {
 
     greetingText.textContent = _stagedPersonalization.greeting;
     greetingEl.classList.add('loading-greeting-visible');
+    if (stageEl) stageEl.classList.add('loading-stage-reveal');
 
     if (tipEl) {
         tipEl.classList.add('loading-tip-fade');

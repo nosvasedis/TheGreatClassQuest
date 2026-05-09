@@ -37,6 +37,11 @@ export function initializeShopTab() {
 
     // The shop requires an explicit class selection — show curtain whenever none is active
     if (!classId) {
+        const shopStudentSelect = document.getElementById('shop-student-select');
+        if (shopStudentSelect) shopStudentSelect.innerHTML = `<option value="">Select Shopper...</option>`;
+        const shopStudentGold = document.getElementById('shop-student-gold');
+        if (shopStudentGold) shopStudentGold.innerText = "0 🪙";
+
         const shopCurtain = document.getElementById('shop-curtain');
         if (shopCurtain) shopCurtain.classList.remove('hidden');
         document.getElementById('shop-items-container').innerHTML = '';

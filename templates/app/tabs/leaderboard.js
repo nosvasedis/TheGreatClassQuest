@@ -58,7 +58,7 @@ export const leaderboardTabHTML = `
                 </div>
             </div>
 
-            <div id="student-leaderboard-tab" class="app-tab hidden" style="position: relative;">
+            <div id="student-leaderboard-tab" class="app-tab hidden">
                 <!-- FAB — LEFT CORNER -->
                 <div class="hc-fab-cluster hc-fab-cluster--left">
                     <button id="open-prodigy-btn"

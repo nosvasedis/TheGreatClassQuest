@@ -146,6 +146,34 @@ function getHostingCompletionState() {
   return state.hostingCompleted[state.hostingProvider] === true;
 }
 
+function getEnvValueFromText(envText, key) {
+  const text = String(envText || '');
+  if (!text || !key) return '';
+  const prefix = `${key}=`;
+  const line = text
+    .split(/\r?\n/)
+    .find((entry) => entry.trim().startsWith(prefix));
+  return line ? line.trim().slice(prefix.length).trim() : '';
+}
+
+function renderCertificateProxyRequirement(envText) {
+  const key = 'GCQ_CERTIFICATE_IMAGE_PROXY_URL';
+  const value = getEnvValueFromText(envText, key);
+  if (!value) {
+    return `
+      <p class="field-hint" style="margin-top:12px;">
+        <strong>Certificate PDF requirement:</strong> Missing <code>${key}</code> in this hosting config.
+      </p>
+    `;
+  }
+
+  return `
+    <p class="field-hint" style="margin-top:12px;">
+      <strong>Certificate PDF requirement:</strong> <code>${key}</code> is configured for avatar-safe PDF exports.
+    </p>
+  `;
+}
+
 function getVisibleManageSchools() {
   const schools = state.bootstrap.schools || [];
   const query = state.manageSchoolSearch.trim().toLowerCase();
@@ -649,6 +677,7 @@ function renderFinalStep(stepHeader) {
             ${selectedTarget.instructions.map((item) => `<li><i class="fas fa-check-circle"></i><span>${escapeHtml(item)}</span></li>`).join('')}
           </ul>
         ` : ''}
+        ${renderCertificateProxyRequirement(selectedTarget?.envText)}
         <pre class="output-box">${escapeHtml(selectedTarget?.envText || 'The hosting values will appear here after automatic setup runs.')}</pre>
         <label class="checkline">
           <input type="checkbox" data-toggle="hosting-completed" ${getHostingCompletionState() ? 'checked' : ''}>
@@ -910,6 +939,7 @@ function renderRecheck() {
                   ${selectedTarget.instructions.map((item) => `<li><i class="fas fa-check-circle"></i><span>${escapeHtml(item)}</span></li>`).join('')}
                 </ul>
               ` : ''}
+              ${renderCertificateProxyRequirement(selectedTarget?.envText)}
               <pre class="output-box">${escapeHtml(selectedTarget?.envText || 'No hosting values available yet.')}</pre>
             </section>
           </div>

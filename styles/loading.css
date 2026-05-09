@@ -1,195 +1,247 @@
+/* --- LOADING STAGE (3D + WATERMARKS) --- */
 
-/* --- MAGICAL LOADING SCREEN --- */
+#loading-screen {
+    position: relative;
+    overflow: hidden;
+    perspective: 1200px;
+}
 
-/* ── Floating Particle Stars ───────────────────────────────── */
+/* Soft ambient halos in the background */
+#loading-screen::before,
+#loading-screen::after {
+    content: '';
+    position: absolute;
+    border-radius: 50%;
+    filter: blur(2px);
+    pointer-events: none;
+    z-index: 0;
+}
 
+#loading-screen::before {
+    width: min(72vw, 780px);
+    height: min(72vw, 780px);
+    top: -22%;
+    left: -12%;
+    background: radial-gradient(circle, rgba(56, 189, 248, 0.20) 0%, rgba(56, 189, 248, 0) 68%);
+}
+
+#loading-screen::after {
+    width: min(66vw, 720px);
+    height: min(66vw, 720px);
+    right: -10%;
+    bottom: -26%;
+    background: radial-gradient(circle, rgba(16, 185, 129, 0.22) 0%, rgba(16, 185, 129, 0) 72%);
+}
+
+/* 3D card that keeps all visible content properly grouped */
+.loading-stage {
+    position: relative;
+    z-index: 2;
+    width: min(92vw, 640px);
+    min-height: min(86vh, 590px);
+    padding: clamp(1.2rem, 2.5vw, 1.9rem) clamp(1.2rem, 3.2vw, 2.4rem);
+    border-radius: 2rem;
+    border: 1px solid rgba(255, 255, 255, 0.72);
+    background:
+        linear-gradient(160deg, rgba(255, 255, 255, 0.86) 0%, rgba(240, 249, 255, 0.78) 42%, rgba(236, 253, 245, 0.75) 100%);
+    box-shadow:
+        0 35px 80px rgba(14, 116, 144, 0.22),
+        inset 0 1px 0 rgba(255, 255, 255, 0.92),
+        inset 0 -20px 45px rgba(14, 165, 233, 0.08);
+    transform: rotateX(4.5deg) translateY(-6px);
+    backdrop-filter: blur(6px);
+
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.55rem;
+}
+
+.loading-stage::before {
+    content: '';
+    position: absolute;
+    inset: 0.9rem;
+    border-radius: 1.5rem;
+    pointer-events: none;
+    border: 1px solid rgba(14, 165, 233, 0.10);
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.45);
+}
+
+/* Watermark labels integrated with the stage */
+.loading-watermark {
+    position: absolute;
+    font-family: 'Cinzel Decorative', cursive;
+    font-size: clamp(0.64rem, 1.6vw, 0.9rem);
+    letter-spacing: 0.30em;
+    color: rgba(14, 116, 144, 0.16);
+    text-transform: uppercase;
+    pointer-events: none;
+    user-select: none;
+    z-index: 1;
+}
+
+.loading-watermark-left {
+    left: 1.2rem;
+    top: 1.1rem;
+    transform: rotate(-11deg);
+}
+
+.loading-watermark-right {
+    right: 1rem;
+    bottom: 1.5rem;
+    transform: rotate(11deg);
+}
+
+/* Floating particle stars */
 .loading-particles {
     position: absolute;
     inset: 0;
     pointer-events: none;
     overflow: hidden;
+    z-index: 1;
 }
 
 .loading-particle {
     position: absolute;
     color: #FBBF24;
-    animation: load-particle-float 3s ease-in-out infinite;
+    opacity: 0.35;
+    text-shadow: 0 0 12px rgba(251, 191, 36, 0.46);
+    animation: load-particle-float 3.4s ease-in-out infinite;
 }
 
 @keyframes load-particle-float {
-    0%, 100% { opacity: 0.12; transform: translateY(0)   scale(1);    }
-    50%       { opacity: 0.65; transform: translateY(-9px) scale(1.15); }
+    0%, 100% { opacity: 0.12; transform: translateY(0) scale(1); }
+    50% { opacity: 0.72; transform: translateY(-9px) scale(1.16); }
 }
 
-/* Individual particle placement & timing variation */
-.lp-1 { top: 8%;     left: 7%;   font-size: 0.70rem; animation-duration: 3.2s; animation-delay: 0.0s; }
-.lp-2 { top: 13%;    right: 9%;  font-size: 1.00rem; animation-duration: 2.8s; animation-delay: 0.6s; }
-.lp-3 { top: 40%;    left: 4%;   font-size: 0.50rem; animation-duration: 3.5s; animation-delay: 1.1s; }
-.lp-4 { top: 30%;    right: 6%;  font-size: 0.80rem; animation-duration: 2.5s; animation-delay: 1.7s; }
-.lp-5 { bottom: 24%; left: 9%;   font-size: 0.60rem; animation-duration: 3.8s; animation-delay: 0.4s; }
-.lp-6 { bottom: 18%; right: 7%;  font-size: 0.90rem; animation-duration: 3.0s; animation-delay: 1.3s; }
-.lp-7 { bottom: 40%; left: 17%;  font-size: 0.50rem; animation-duration: 2.9s; animation-delay: 0.9s; }
-.lp-8 { top: 60%;    right: 14%; font-size: 0.70rem; animation-duration: 3.4s; animation-delay: 2.0s; }
+.lp-1 { top: 10%; left: 7%; font-size: 0.70rem; animation-duration: 3.1s; animation-delay: 0.0s; }
+.lp-2 { top: 15%; right: 10%; font-size: 1.00rem; animation-duration: 2.9s; animation-delay: 0.55s; }
+.lp-3 { top: 38%; left: 5%; font-size: 0.52rem; animation-duration: 3.6s; animation-delay: 1.0s; }
+.lp-4 { top: 31%; right: 6%; font-size: 0.78rem; animation-duration: 2.6s; animation-delay: 1.6s; }
+.lp-5 { bottom: 22%; left: 9%; font-size: 0.64rem; animation-duration: 3.8s; animation-delay: 0.35s; }
+.lp-6 { bottom: 18%; right: 8%; font-size: 0.92rem; animation-duration: 3.0s; animation-delay: 1.3s; }
+.lp-7 { bottom: 39%; left: 16%; font-size: 0.50rem; animation-duration: 3.2s; animation-delay: 0.8s; }
+.lp-8 { top: 58%; right: 15%; font-size: 0.72rem; animation-duration: 3.4s; animation-delay: 1.95s; }
 
-/* ── Game Title ─────────────────────────────────────────────── */
-
+/* Title */
 @keyframes load-title-glow {
-    0%   { text-shadow: 0 0 14px rgba(251, 191, 36, 0.35), 0 1px 2px rgba(0,0,0,0.08); }
-    100% { text-shadow: 0 0 32px rgba(251, 191, 36, 0.85), 0 1px 2px rgba(0,0,0,0.08); }
+    0% {
+        text-shadow: 0 0 16px rgba(251, 191, 36, 0.34), 0 1px 2px rgba(15, 23, 42, 0.08);
+    }
+    100% {
+        text-shadow: 0 0 34px rgba(251, 191, 36, 0.86), 0 1px 2px rgba(15, 23, 42, 0.08);
+    }
 }
 
 .loading-title {
+    position: relative;
+    z-index: 2;
     font-family: 'Cinzel Decorative', cursive !important;
     font-weight: 700 !important;
-    font-size: clamp(0.78rem, 2.2vw, 1.35rem) !important;
-    color: #92400E !important;           /* amber-800 — warm & regal */
-    letter-spacing: 0.04em !important;
+    font-size: clamp(1rem, 3.3vw, 1.65rem) !important;
+    color: #7C2D12 !important;
+    letter-spacing: 0.045em !important;
     text-align: center !important;
-    padding: 0 1.5rem !important;
-    margin-bottom: 0.25rem !important;
+    margin: 0.4rem 0 0.15rem !important;
     animation: load-title-glow 3s ease-in-out infinite alternate !important;
 }
 
-/* 1. Center Star Pulse */
+/* Spinner */
+.loading-spinner-wrap {
+    position: relative;
+    width: 200px;
+    height: 200px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    z-index: 2;
+    margin: 0.15rem 0 0.2rem;
+}
+
 @keyframes load-star-pulse {
-    0%, 100% { transform: scale(1); filter: drop-shadow(0 0 15px #FBBF24); }
-    50% { transform: scale(1.15); filter: drop-shadow(0 0 40px #F59E0B); }
+    0%, 100% {
+        transform: scale(1);
+        filter: drop-shadow(0 0 15px #FBBF24);
+    }
+    50% {
+        transform: scale(1.13);
+        filter: drop-shadow(0 0 39px #F59E0B);
+    }
 }
 
-/* 1. Center Star - Geometric Fix */
-/* 1. Center Star - Geometric Lock */
 .loading-center-star {
-    width: 120px !important;  /* Fixed square box */
-    height: 120px !important;
-    
-    /* Perfect Center of the Box */
+    width: 122px !important;
+    height: 122px !important;
     display: flex !important;
     align-items: center !important;
     justify-content: center !important;
-    
-    font-size: 5rem !important; /* Font fits inside box */
+    font-size: 5rem !important;
     color: #FBBF24 !important;
-    
     animation: load-star-pulse 2s ease-in-out infinite !important;
     z-index: 10;
-    margin: 0 auto !important; /* Force center if parent allows */
+    margin: 0 auto !important;
 }
 
-/* 2. Beautiful Glowing Ring */
 .loading-simple-ring {
     position: absolute;
-    /* Perfect Center */
     top: 50%;
     left: 50%;
-    
-    /* Size */
-    width: 170px; 
-    height: 170px;
-    
-    /* Outer Ring Style */
-    border: 5px solid rgba(251, 191, 36, 0.1); /* Very Faint Track */
-    border-top: 5px solid #FBBF24;             /* Solid Gold Spinner */
+    width: 172px;
+    height: 172px;
+    border: 5px solid rgba(251, 191, 36, 0.12);
+    border-top: 5px solid #FBBF24;
     border-radius: 50%;
-    
-    /* The Magical Glow */
     filter: drop-shadow(0 0 10px #F59E0B);
-    
     z-index: 5;
-    /* Animation includes centering translate to keep it locked in place */
     animation: ring-spin-center 3s linear infinite;
 }
 
-/* Inner Counter-Ring (Adds complexity and beauty) */
 .loading-simple-ring::after {
     content: '';
     position: absolute;
-    /* Inset by 15px to create a smaller ring inside */
-    top: 15px; left: 15px; right: 15px; bottom: 15px;
-    
+    top: 15px;
+    left: 15px;
+    right: 15px;
+    bottom: 15px;
     border: 4px solid rgba(251, 191, 36, 0.1);
-    border-bottom: 4px solid #FDE047; /* Brighter Yellow/Gold */
+    border-bottom: 4px solid #FDE047;
     border-radius: 50%;
-    
-    /* Spin faster in the opposite direction */
     animation: ring-spin-normal 1.5s linear infinite reverse;
 }
 
-/* Keyframe for the Main Ring (Must preserve centering) */
 @keyframes ring-spin-center {
     from { transform: translate(-50%, -50%) rotate(0deg); }
-    to   { transform: translate(-50%, -50%) rotate(360deg); }
+    to { transform: translate(-50%, -50%) rotate(360deg); }
 }
 
-/* Keyframe for the Inner Ring (Rotates relative to parent) */
 @keyframes ring-spin-normal {
     from { transform: rotate(0deg); }
-    to   { transform: rotate(360deg); }
+    to { transform: rotate(360deg); }
 }
 
-    width: 120px !important;  /* Fixed square box */
-    height: 120px !important;
-    
-    /* Perfect Center of the Box */
-    display: flex !important;
-    align-items: center !important;
-    justify-content: center !important;
-    
-    font-size: 5rem !important; /* Font fits inside box */
-    color: #FBBF24 !important;
-    
-    animation: load-star-pulse 2s ease-in-out infinite !important;
-    z-index: 10;
-    margin: 0 auto !important; /* Force center if parent allows */
-}
+@media (max-width: 640px) {
+    .loading-stage {
+        width: min(95vw, 520px);
+        min-height: min(84vh, 540px);
+        padding: 1.2rem 1rem;
+        transform: rotateX(0deg) translateY(0);
+    }
 
-/* 2. Beautiful Glowing Ring */
-.loading-simple-ring {
-    position: absolute;
-    /* Perfect Center */
-    top: 50%;
-    left: 50%;
-    
-    /* Size */
-    width: 170px; 
-    height: 170px;
-    
-    /* Outer Ring Style */
-    border: 5px solid rgba(251, 191, 36, 0.1); /* Very Faint Track */
-    border-top: 5px solid #FBBF24;             /* Solid Gold Spinner */
-    border-radius: 50%;
-    
-    /* The Magical Glow */
-    filter: drop-shadow(0 0 10px #F59E0B);
-    
-    z-index: 5;
-    /* Animation includes centering translate to keep it locked in place */
-    animation: ring-spin-center 3s linear infinite;
-}
+    .loading-spinner-wrap {
+        width: 180px;
+        height: 180px;
+    }
 
-/* Inner Counter-Ring (Adds complexity and beauty) */
-.loading-simple-ring::after {
-    content: '';
-    position: absolute;
-    /* Inset by 15px to create a smaller ring inside */
-    top: 15px; left: 15px; right: 15px; bottom: 15px;
-    
-    border: 4px solid rgba(251, 191, 36, 0.1);
-    border-bottom: 4px solid #FDE047; /* Brighter Yellow/Gold */
-    border-radius: 50%;
-    
-    /* Spin faster in the opposite direction */
-    animation: ring-spin-normal 1.5s linear infinite reverse;
-}
+    .loading-simple-ring {
+        width: 154px;
+        height: 154px;
+    }
 
-/* Keyframe for the Main Ring (Must preserve centering) */
-@keyframes ring-spin-center {
-    from { transform: translate(-50%, -50%) rotate(0deg); }
-    to   { transform: translate(-50%, -50%) rotate(360deg); }
+    .loading-center-star {
+        width: 108px !important;
+        height: 108px !important;
+        font-size: 4.35rem !important;
+    }
 }
-
-/* Keyframe for the Inner Ring (Rotates relative to parent) */
-@keyframes ring-spin-normal {
-    from { transform: rotate(0deg); }
-    to   { transform: rotate(360deg); }
-}
-

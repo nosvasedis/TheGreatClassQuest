@@ -1,7 +1,7 @@
 // /app.js
 
 import { injectHTML } from './templates/index.js';
-import { personalizeLoadingScreen } from './templates/loading.js';
+import { stageLoadingPersonalization, revealStagedLoadingPersonalization } from './templates/loading.js';
 injectHTML();
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
@@ -124,7 +124,16 @@ function animateLoadingScreenOut(loadingScreen) {
     if (!loadingScreen || loadingScreen.dataset.exiting === 'true') return;
 
     loadingScreen.dataset.exiting = 'true';
-    loadingScreen.classList.add('loading-screen-exit');
+    const revealedPersonalization = revealStagedLoadingPersonalization();
+    const exitDelayMs = revealedPersonalization ? 260 : 0;
+
+    if (revealedPersonalization) {
+        loadingScreen.classList.add('loading-final-moment');
+    }
+
+    setTimeout(() => {
+        loadingScreen.classList.add('loading-screen-exit');
+    }, exitDelayMs);
 
     const finishExit = () => {
         loadingScreen.classList.add('opacity-0', 'pointer-events-none', 'hidden');
@@ -140,7 +149,7 @@ function animateLoadingScreenOut(loadingScreen) {
     setTimeout(() => {
         loadingScreen.removeEventListener('animationend', onExitAnimationEnd);
         finishExit();
-    }, 1100);
+    }, 1100 + exitDelayMs);
 }
 
 function dismissLoadingAfterHomeIsReady(loadingScreen) {
@@ -627,7 +636,7 @@ function setupAuthListeners() {
             state.setCurrentUserRole(profile.role || ROLE_TEACHER);
             state.setIsSchoolAdmin(profile.schoolAdmin === true);
             state.setCurrentTeacherName(profile.displayName || user.displayName || user.email || '');
-            personalizeLoadingScreen(profile.displayName || user.displayName || '', profile.role || ROLE_TEACHER);
+            stageLoadingPersonalization(profile.displayName || user.displayName || '', profile.role || ROLE_TEACHER);
 
             if ((profile.role || ROLE_TEACHER) === ROLE_PARENT) {
                 setupParentSession(user.uid, profile, async () => {

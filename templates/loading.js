@@ -33,6 +33,18 @@ export const loadingHTML = `
             <span class="loading-cloud lc-10"><i class="fas fa-cloud"></i></span>
         </div>
 
+        <!-- Giant painted cloud assets for a true sky-world feel -->
+        <div class="loading-cloud-art-layer" aria-hidden="true">
+            <span class="loading-cloud-art lca-1"></span>
+            <span class="loading-cloud-art lca-2"></span>
+            <span class="loading-cloud-art lca-3"></span>
+            <span class="loading-cloud-art lca-4"></span>
+            <span class="loading-cloud-art lca-5"></span>
+            <span class="loading-cloud-art lca-6"></span>
+            <span class="loading-cloud-art lca-7"></span>
+            <span class="loading-cloud-art lca-8"></span>
+        </div>
+
         <!-- Big colorful icon watermarks -->
         <div class="loading-air-watermarks" aria-hidden="true">
             <span class="loading-air-watermark lw-1"><i class="fas fa-crown"></i></span>
@@ -84,7 +96,7 @@ export const loadingHTML = `
         <!-- Center content -->
         <div class="loading-stage">
             <div class="loading-title">The Great Class Quest</div>
-            <div class="loading-subtitle">Sky Campus Is Gathering Your Heroes</div>
+            <div class="loading-subtitle">Every Great Quest Starts With One Brave Step.</div>
 
             <div class="loading-spinner-wrap">
                 <div class="loading-center-star">

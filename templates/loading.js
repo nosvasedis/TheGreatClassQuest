@@ -45,42 +45,6 @@ export const loadingHTML = `
             <span class="loading-cloud-art lca-8"></span>
         </div>
 
-        <!-- Big colorful icon watermarks -->
-        <div class="loading-air-watermarks" aria-hidden="true">
-            <span class="loading-air-watermark lw-1"><i class="fas fa-crown"></i></span>
-            <span class="loading-air-watermark lw-2"><i class="fas fa-book-open"></i></span>
-            <span class="loading-air-watermark lw-3"><i class="fas fa-wand-sparkles"></i></span>
-            <span class="loading-air-watermark lw-4"><i class="fas fa-gem"></i></span>
-            <span class="loading-air-watermark lw-5"><i class="fas fa-scroll"></i></span>
-            <span class="loading-air-watermark lw-6"><i class="fas fa-compass"></i></span>
-            <span class="loading-air-watermark lw-7"><i class="fas fa-shield-halved"></i></span>
-            <span class="loading-air-watermark lw-8"><i class="fas fa-trophy"></i></span>
-            <span class="loading-air-watermark lw-9"><i class="fas fa-star"></i></span>
-            <span class="loading-air-watermark lw-10"><i class="fas fa-feather"></i></span>
-        </div>
-
-        <!-- Airborne magical icons -->
-        <div class="loading-air-icons" aria-hidden="true">
-            <span class="loading-air-icon li-1"><i class="fas fa-star"></i></span>
-            <span class="loading-air-icon li-2"><i class="fas fa-book-open"></i></span>
-            <span class="loading-air-icon li-3"><i class="fas fa-feather"></i></span>
-            <span class="loading-air-icon li-4"><i class="fas fa-shield-halved"></i></span>
-            <span class="loading-air-icon li-5"><i class="fas fa-scroll"></i></span>
-            <span class="loading-air-icon li-6"><i class="fas fa-trophy"></i></span>
-            <span class="loading-air-icon li-7"><i class="fas fa-wand-sparkles"></i></span>
-            <span class="loading-air-icon li-8"><i class="fas fa-compass"></i></span>
-            <span class="loading-air-icon li-9"><i class="fas fa-crown"></i></span>
-            <span class="loading-air-icon li-10"><i class="fas fa-gem"></i></span>
-            <span class="loading-air-icon li-11"><i class="fas fa-star"></i></span>
-            <span class="loading-air-icon li-12"><i class="fas fa-book-open"></i></span>
-            <span class="loading-air-icon li-13"><i class="fas fa-feather"></i></span>
-            <span class="loading-air-icon li-14"><i class="fas fa-shield-halved"></i></span>
-            <span class="loading-air-icon li-15"><i class="fas fa-scroll"></i></span>
-            <span class="loading-air-icon li-16"><i class="fas fa-trophy"></i></span>
-            <span class="loading-air-icon li-17"><i class="fas fa-wand-sparkles"></i></span>
-            <span class="loading-air-icon li-18"><i class="fas fa-compass"></i></span>
-        </div>
-
         <!-- Sparkle particles -->
         <div class="loading-particles" aria-hidden="true">
             <span class="loading-particle lp-1"><i class="fas fa-star"></i></span>

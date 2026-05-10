@@ -3,15 +3,58 @@
 .fw-backdrop {
     position: fixed;
     inset: 0;
-    background: radial-gradient(circle at top, rgba(250, 204, 21, 0.14), transparent 20%), rgba(2, 6, 23, 0.85);
-    backdrop-filter: blur(10px);
+    background: 
+        radial-gradient(circle at 50% -20%, rgba(251, 191, 36, 0.18), transparent 50%),
+        radial-gradient(circle at 0% 100%, rgba(30, 64, 175, 0.12), transparent 40%),
+        radial-gradient(circle at 100% 100%, rgba(190, 24, 93, 0.12), transparent 40%),
+        rgba(2, 6, 23, 0.88);
+    backdrop-filter: blur(14px) saturate(1.8);
     z-index: -1;
-    animation: fw-backdrop-fade 0.35s ease-out forwards;
+    animation: fw-backdrop-fade 0.55s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+.fw-backdrop.fw-backdrop--exit {
+    animation: fw-backdrop-fade-out 0.42s cubic-bezier(0.55, 0.06, 0.68, 0.19) forwards;
 }
 
 @keyframes fw-backdrop-fade {
     from { opacity: 0; }
     to { opacity: 1; }
+}
+
+@keyframes fw-backdrop-fade-out {
+    from { opacity: 1; }
+    to { opacity: 0; }
+}
+
+@keyframes fw-relic-open {
+    0% {
+        opacity: 0;
+        transform: scale(0.94) translateY(36px);
+        filter: blur(10px);
+    }
+    65% {
+        opacity: 1;
+        filter: blur(0);
+    }
+    100% {
+        opacity: 1;
+        transform: scale(1) translateY(0);
+        filter: blur(0);
+    }
+}
+
+@keyframes fw-relic-close {
+    0% {
+        opacity: 1;
+        transform: scale(1) translateY(0);
+        filter: blur(0);
+    }
+    100% {
+        opacity: 0;
+        transform: scale(0.96) translateY(28px);
+        filter: blur(8px);
+    }
 }
 
 .fw-card {
@@ -20,22 +63,50 @@
     min-height: 100dvh;
     overflow: hidden;
     background:
-        radial-gradient(circle at top, rgba(251, 191, 36, 0.2), transparent 30%),
-        radial-gradient(circle at 15% 18%, rgba(30, 64, 175, 0.25), transparent 30%),
-        radial-gradient(circle at 82% 14%, rgba(190, 24, 93, 0.2), transparent 28%),
-        linear-gradient(155deg, #090b17 0%, #180d2c 38%, #101727 72%, #090d18 100%);
+        radial-gradient(circle at 50% 0%, rgba(251, 191, 36, 0.15), transparent 40%),
+        radial-gradient(circle at 10% 20%, rgba(59, 130, 246, 0.1), transparent 35%),
+        radial-gradient(circle at 90% 20%, rgba(236, 72, 153, 0.08), transparent 35%),
+        linear-gradient(165deg, #070912 0%, #0f0a1e 35%, #0a0d18 75%, #05070a 100%);
     color: #fff;
-    animation: fw-card-enter 460ms cubic-bezier(0.22, 1, 0.36, 1) both;
+    box-shadow: inset 0 0 100px rgba(0,0,0,0.4);
+    /* Enter/exit motion: fw-relic-* keyframes + showAnimatedModal / hideModal in ui/modals/base.js */
 }
 
-@keyframes fw-card-enter {
-    from {
-        opacity: 0;
-        transform: translateY(22px) scale(0.985);
-    }
-    to {
+/* guilds.css defines .pop-in { animation: quiz-pop-in } later in the cascade — fortune wheel uses fw-relic-* via base.js */
+#fortunes-wheel-modal .fw-card.pop-in {
+    animation: none;
+    transition: none;
+    transform-origin: 50% 42%;
+    will-change: transform, opacity, filter;
+    opacity: 1;
+    transform: scale(1) translateZ(0);
+}
+
+#fortunes-wheel-modal .fw-card.fw-card--enter {
+    animation: fw-relic-open 0.58s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+#fortunes-wheel-modal .fw-card.fw-card--exit {
+    animation: fw-relic-close 0.4s cubic-bezier(0.55, 0.06, 0.68, 0.19) both;
+    pointer-events: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    #fortunes-wheel-modal .fw-card.fw-card--enter,
+    #fortunes-wheel-modal .fw-card.fw-card--exit {
+        animation: none;
+        filter: none !important;
+        transform: none !important;
         opacity: 1;
-        transform: translateY(0) scale(1);
+    }
+    #fortunes-wheel-modal .fw-card.fw-card--exit {
+        opacity: 0;
+        transition: opacity 0.2s ease-out;
+    }
+    .fw-backdrop.fw-backdrop--exit {
+        animation: none;
+        opacity: 0;
+        transition: opacity 0.2s ease-out;
     }
 }
 
@@ -103,24 +174,40 @@
 .fw-kicker {
     display: inline-flex;
     align-items: center;
-    gap: 0.5rem;
-    padding: 0.35rem 0.75rem;
+    gap: 0.6rem;
+    padding: 0.45rem 1rem;
     border-radius: 999px;
-    background: rgba(251, 191, 36, 0.12);
-    border: 1px solid rgba(251, 191, 36, 0.25);
+    background: rgba(251, 191, 36, 0.08);
+    border: 1px solid rgba(251, 191, 36, 0.2);
     color: #fcd34d;
-    font-size: 0.7rem;
+    font-size: 0.72rem;
     font-weight: 800;
-    letter-spacing: 0.14em;
+    letter-spacing: 0.18em;
     text-transform: uppercase;
+    box-shadow: 0 0 20px rgba(251, 191, 36, 0.1);
+    backdrop-filter: blur(4px);
+}
+
+.fw-kicker i {
+    filter: drop-shadow(0 0 5px rgba(251, 191, 36, 0.5));
+    animation: fw-kicker-sparkle 3s ease-in-out infinite;
+}
+
+@keyframes fw-kicker-sparkle {
+    0%, 100% { opacity: 0.7; transform: scale(1); }
+    50% { opacity: 1; transform: scale(1.2) rotate(15deg); }
 }
 
 .fw-title {
-    margin: 0.5rem 0 0;
-    font-size: clamp(1.8rem, 3vw, 2.8rem);
-    line-height: 1;
-    color: #fff7d6;
-    text-shadow: 0 4px 20px rgba(251, 191, 36, 0.2);
+    margin: 0.6rem 0 0;
+    font-size: clamp(2rem, 4vw, 3.2rem);
+    line-height: 0.95;
+    color: #fff;
+    background: linear-gradient(to bottom, #fff 30%, #fef3c7 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    text-shadow: 0 10px 30px rgba(251, 191, 36, 0.25);
+    filter: drop-shadow(0 4px 12px rgba(0,0,0,0.5));
 }
 
 .fw-main-layout {
@@ -174,13 +261,19 @@
     align-self: stretch;
 }
 
+.fw-guild-header-pill:empty,
+.fw-progress-rail:empty {
+    display: none;
+}
+
 .fw-guild-header-pill {
     flex-shrink: 0;
-    padding: 0.75rem 1rem;
-    border-radius: 1rem;
-    background: linear-gradient(135deg, rgba(255,255,255,0.06), rgba(255,255,255,0.03));
-    border: 1px solid rgba(255,255,255,0.08);
-    box-shadow: 0 8px 32px rgba(2, 6, 23, 0.3);
+    padding: 1rem 1.25rem;
+    border-radius: 1.25rem;
+    background: linear-gradient(135deg, rgba(255,255,255,0.08), rgba(255,255,255,0.04));
+    border: 1px solid rgba(255,255,255,0.12);
+    backdrop-filter: blur(8px);
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
 }
 
 .fw-guild-banner {
@@ -231,11 +324,12 @@
     flex-shrink: 0;
     display: grid;
     grid-template-columns: repeat(4, 1fr);
-    gap: 0.5rem;
-    padding: 0.6rem;
-    border-radius: 1rem;
-    background: linear-gradient(135deg, rgba(255,255,255,0.04), rgba(255,255,255,0.02));
-    border: 1px solid rgba(255,255,255,0.06);
+    gap: 0.6rem;
+    padding: 0.75rem;
+    border-radius: 1.25rem;
+    background: linear-gradient(135deg, rgba(255,255,255,0.05), rgba(255,255,255,0.02));
+    border: 1px solid rgba(255,255,255,0.1);
+    backdrop-filter: blur(4px);
 }
 
 .fw-progress-pill {
@@ -317,6 +411,7 @@
     display: flex;
     align-items: center;
     justify-content: center;
+    filter: drop-shadow(0 20px 50px rgba(0,0,0,0.6));
 }
 
 @media (min-width: 1400px) {
@@ -345,12 +440,14 @@
 }
 
 .fw-stage-ring--outer {
-    inset: 0;
-    border-color: rgba(251, 191, 36, 0.2);
+    inset: -2%;
+    border-color: rgba(251, 191, 36, 0.25);
+    box-shadow: 0 0 40px rgba(251, 191, 36, 0.05);
 }
 
 .fw-stage-ring--inner {
-    inset: 8%;
+    inset: 6%;
+    border-color: rgba(255, 255, 255, 0.1);
 }
 
 .fw-canvas-wrap {
@@ -371,17 +468,29 @@
 
 .fw-pointer-bright {
     position: absolute;
-    top: -14px;
+    top: -20px;
     left: 50%;
     transform: translateX(-50%);
-    width: 0;
-    height: 0;
-    border-left: 20px solid transparent;
-    border-right: 20px solid transparent;
-    border-bottom: 42px solid #fbbf24;
-    filter: drop-shadow(0 6px 10px rgba(0,0,0,0.4));
-    z-index: 6;
+    width: 44px;
+    height: 52px;
+    background: linear-gradient(135deg, #fcd34d, #d97706);
+    clip-path: polygon(50% 100%, 0% 0%, 100% 0%);
+    filter: drop-shadow(0 8px 12px rgba(0,0,0,0.5));
+    z-index: 10;
     animation: fw-pointer-idle 2s ease-in-out infinite;
+}
+
+.fw-pointer-bright::after {
+    content: '';
+    position: absolute;
+    top: 2px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 36px;
+    height: 40px;
+    background: linear-gradient(135deg, #fffbeb, #fbbf24);
+    clip-path: polygon(50% 100%, 0% 0%, 100% 0%);
+    opacity: 0.8;
 }
 
 @keyframes fw-pointer-idle {
@@ -436,158 +545,17 @@
 .fw-controls-section {
     display: flex;
     flex-direction: column;
-    gap: 1rem;
-    padding: 1.15rem;
-    border-radius: 1.25rem;
-    background: linear-gradient(180deg, rgba(255,255,255,0.05), rgba(255,255,255,0.025));
-    border: 1px solid rgba(255,255,255,0.08);
+    gap: 1.25rem;
+    padding: 1.5rem;
+    border-radius: 1.5rem;
+    background: linear-gradient(165deg, rgba(255,255,255,0.06), rgba(255,255,255,0.02));
+    border: 1px solid rgba(255,255,255,0.1);
+    backdrop-filter: blur(10px);
     max-height: 100%;
     overflow-y: auto;
     box-shadow: 
-        inset 0 1px 0 rgba(255, 255, 255, 0.08),
-        0 16px 40px rgba(2, 6, 23, 0.3);
-}
-
-.fw-class-selector {
-    display: flex;
-    flex-direction: column;
-    gap: 0.5rem;
-}
-
-.fw-class-label {
-    color: rgba(251, 191, 36, 0.8);
-    font-size: 0.72rem;
-    font-weight: 800;
-    letter-spacing: 0.14em;
-    text-transform: uppercase;
-    text-shadow: 0 0 12px rgba(251, 191, 36, 0.3);
-}
-
-.fw-select-wrapper {
-    position: relative;
-}
-
-.fw-custom-select {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 0.5rem;
-    width: 100%;
-    padding: 0.95rem 1.15rem;
-    border: 1.5px solid rgba(251, 191, 36, 0.2);
-    border-radius: 0.85rem;
-    background: linear-gradient(135deg, rgba(251, 191, 36, 0.08), rgba(217, 119, 6, 0.06));
-    color: #fff7d6;
-    font-size: 1rem;
-    font-weight: 700;
-    cursor: pointer;
-    outline: none;
-    font-family: inherit;
-    text-align: left;
-    box-shadow: 
-        inset 0 1px 0 rgba(255, 255, 255, 0.12),
-        inset 0 -20px 30px rgba(251, 191, 36, 0.03),
-        0 8px 24px rgba(2, 6, 23, 0.25);
-    transition: all 220ms ease;
-    letter-spacing: 0.01em;
-    user-select: none;
-}
-
-.fw-custom-select:hover {
-    border-color: rgba(251, 191, 36, 0.45);
-    background: linear-gradient(135deg, rgba(251, 191, 36, 0.12), rgba(217, 119, 6, 0.1));
-    transform: translateY(-1px);
-    box-shadow: 
-        inset 0 1px 0 rgba(255, 255, 255, 0.15),
-        inset 0 -20px 30px rgba(251, 191, 36, 0.05),
-        0 12px 32px rgba(251, 191, 36, 0.18);
-}
-
-.fw-custom-select:focus-visible {
-    border-color: rgba(251, 191, 36, 0.6);
-    background: linear-gradient(135deg, rgba(251, 191, 36, 0.14), rgba(217, 119, 6, 0.12));
-    box-shadow: 
-        0 0 0 4px rgba(251, 191, 36, 0.18),
-        inset 0 1px 0 rgba(255, 255, 255, 0.15),
-        inset 0 -20px 30px rgba(251, 191, 36, 0.06),
-        0 12px 32px rgba(251, 191, 36, 0.22);
-}
-
-/* Custom dropdown menu */
-.fw-custom-dropdown {
-    position: absolute;
-    top: calc(100% + 4px);
-    left: 0;
-    width: 100%;
-    max-height: 260px;
-    overflow-y: auto;
-    background: linear-gradient(180deg, #1a1a2e 0%, #0f1729 100%);
-    border: 1.5px solid rgba(251, 191, 36, 0.3);
-    border-radius: 0.75rem;
-    box-shadow: 
-        0 12px 40px rgba(2, 6, 23, 0.6),
-        0 0 0 1px rgba(251, 191, 36, 0.1);
-    z-index: 50;
-    opacity: 0;
-    visibility: hidden;
-    transform: translateY(-6px);
-    transition: opacity 200ms ease, transform 200ms ease, visibility 200ms ease;
-}
-
-.fw-custom-dropdown.is-open {
-    opacity: 1;
-    visibility: visible;
-    transform: translateY(0);
-}
-
-.fw-custom-dropdown__option {
-    padding: 0.75rem 1.15rem;
-    color: rgba(255, 247, 214, 0.85);
-    font-size: 0.95rem;
-    font-weight: 600;
-    cursor: pointer;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.04);
-    transition: all 140ms ease;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-}
-
-.fw-custom-dropdown__option:last-child {
-    border-bottom: none;
-}
-
-.fw-custom-dropdown__option:hover {
-    background: linear-gradient(135deg, rgba(251, 191, 36, 0.18), rgba(217, 119, 6, 0.12));
-    color: #fcd34d;
-}
-
-.fw-custom-dropdown__option.is-selected {
-    background: linear-gradient(135deg, rgba(251, 191, 36, 0.22), rgba(217, 119, 6, 0.16));
-    color: #fcd34d;
-    font-weight: 700;
-}
-
-.fw-custom-dropdown__option.is-highlighted {
-    background: linear-gradient(135deg, rgba(251, 191, 36, 0.12), rgba(217, 119, 6, 0.08));
-    color: #fff7d6;
-}
-
-.fw-select-arrow {
-    flex-shrink: 0;
-    color: rgba(251, 191, 36, 0.7);
-    pointer-events: none;
-    font-size: 0.85rem;
-    transition: all 220ms ease;
-}
-
-.fw-custom-select:hover .fw-select-arrow {
-    color: #fcd34d;
-    transform: scale(1.1);
-}
-
-.fw-custom-select:focus-visible .fw-select-arrow {
-    color: #fbbf24;
+        inset 0 1px 0 rgba(255, 255, 255, 0.1),
+        0 20px 50px rgba(0, 0, 0, 0.4);
 }
 
 .fw-availability-card {
@@ -1188,11 +1156,13 @@
 }
 
 .fw-summary-card {
-    padding: 1rem;
-    border-radius: 1rem;
-    background: linear-gradient(135deg, rgba(255,255,255,0.05), rgba(255,255,255,0.02));
-    border: 1px solid rgba(255,255,255,0.06);
-    animation: fw-result-pop 0.45s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+    padding: 1.5rem;
+    border-radius: 1.5rem;
+    background: linear-gradient(135deg, rgba(255,255,255,0.06), rgba(255,255,255,0.02));
+    border: 1px solid rgba(255,255,255,0.1);
+    backdrop-filter: blur(10px);
+    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.4);
+    animation: fw-result-pop 0.6s cubic-bezier(0.17, 0.84, 0.44, 1) forwards;
 }
 
 .fw-summary-header {
@@ -1221,10 +1191,18 @@
 }
 
 .fw-summary-item {
-    padding: 0.75rem;
-    border-radius: 0.75rem;
-    border: 1px solid rgba(255,255,255,0.06);
-    background: rgba(8, 15, 31, 0.4);
+    padding: 1rem;
+    border-radius: 1.1rem;
+    border: 1px solid rgba(255,255,255,0.08);
+    background: rgba(15, 23, 42, 0.5);
+    backdrop-filter: blur(4px);
+    transition: transform 0.2s ease, background 0.2s ease;
+}
+
+.fw-summary-item:hover {
+    transform: translateY(-2px);
+    background: rgba(15, 23, 42, 0.7);
+    border-color: rgba(255, 255, 255, 0.15);
 }
 
 .fw-summary-guild {
@@ -1273,22 +1251,24 @@
     --rarity-glow: rgba(59, 130, 246, 0.5);
     --rarity-bg: rgba(30, 58, 95, 0.6);
 
-    padding: clamp(1.5rem, 2.5vw, 2.2rem);
-    padding-top: clamp(2rem, 3vw, 2.8rem);
-    border-width: 1.5px;
+    padding: clamp(1.8rem, 3vw, 2.5rem);
+    padding-top: clamp(2.2rem, 3.5vw, 3rem);
+    border-width: 2px;
     text-align: center;
+    border-radius: 2rem;
     background:
-        radial-gradient(ellipse at 50% 0%, var(--rarity-bg) 0%, transparent 60%),
-        linear-gradient(160deg, rgba(10, 14, 28, 0.97), rgba(18, 12, 35, 0.96));
+        radial-gradient(ellipse at 50% 0%, var(--rarity-bg) 0%, transparent 70%),
+        linear-gradient(165deg, rgba(10, 14, 28, 0.98), rgba(18, 12, 35, 0.98));
+    backdrop-filter: blur(12px);
     box-shadow:
-        0 32px 90px rgba(2, 6, 23, 0.65),
-        0 0 0 1.5px rgba(255, 255, 255, 0.07),
-        inset 0 1px 0 rgba(255, 255, 255, 0.1);
-    animation: fw-result-pop-v2 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+        0 40px 100px rgba(0, 0, 0, 0.7),
+        0 0 0 1px rgba(255, 255, 255, 0.1),
+        inset 0 1px 0 rgba(255, 255, 255, 0.15);
+    animation: fw-result-pop-v2 0.6s cubic-bezier(0.17, 0.84, 0.44, 1) both;
 }
 
 @keyframes fw-result-pop-v2 {
-    from { opacity: 0; transform: scale(0.88) translateY(16px); }
+    from { opacity: 0; transform: scale(0.85) translateY(30px); }
     to   { opacity: 1; transform: scale(1) translateY(0); }
 }
 
@@ -1314,18 +1294,21 @@
 
 /* Emoji orb */
 .fw-result-emoji-orb {
-    width: 96px;
-    height: 96px;
-    margin: 1.4rem auto 0;
+    width: 110px;
+    height: 110px;
+    margin: 1.6rem auto 0;
     border-radius: 50%;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 3rem;
+    font-size: 3.5rem;
     line-height: 1;
-    background: radial-gradient(circle at 38% 32%, rgba(255, 255, 255, 0.16), var(--rarity-bg) 72%);
-    border: 2px solid var(--rarity-color);
-    box-shadow: 0 0 28px var(--rarity-glow), inset 0 1px 0 rgba(255, 255, 255, 0.15);
+    background: radial-gradient(circle at 35% 35%, rgba(255, 255, 255, 0.25), var(--rarity-bg) 75%);
+    border: 2.5px solid var(--rarity-color);
+    box-shadow: 
+        0 0 40px var(--rarity-glow),
+        inset 0 2px 4px rgba(255, 255, 255, 0.3),
+        inset 0 -4px 10px rgba(0, 0, 0, 0.2);
     animation: fw-orb-pulse 3s ease-in-out infinite;
     position: relative;
     z-index: 1;
@@ -1405,16 +1388,23 @@
 
 /* Individual stat tile — rarity-tinted border */
 .fw-result-stat {
-    border-radius: 0.9rem;
-    padding: 0.85rem 0.65rem 0.75rem;
-    background: color-mix(in srgb, var(--rarity-bg) 30%, rgba(255, 255, 255, 0.04));
-    border: 1px solid color-mix(in srgb, var(--rarity-color) 40%, rgba(255, 255, 255, 0.08));
-    box-shadow: 0 0 12px color-mix(in srgb, var(--rarity-glow) 25%, transparent);
+    border-radius: 1.25rem;
+    padding: 1rem 0.75rem;
+    background: linear-gradient(145deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.02));
+    border: 1px solid color-mix(in srgb, var(--rarity-color) 30%, rgba(255, 255, 255, 0.1));
+    backdrop-filter: blur(4px);
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2);
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 0.18rem;
-    animation: fw-badge-pop 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+    gap: 0.25rem;
+    transition: transform 0.2s ease;
+    animation: fw-badge-pop 0.5s cubic-bezier(0.17, 0.84, 0.44, 1) both;
+}
+
+.fw-result-stat:hover {
+    transform: translateY(-4px) scale(1.05);
+    background: rgba(255, 255, 255, 0.08);
 }
 
 .fw-result-stat__icon {

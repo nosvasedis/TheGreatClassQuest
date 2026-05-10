@@ -228,13 +228,12 @@ function openAnthemModal(guildId) {
     const primary = guild?.primary || '#7c3aed';
     const secondary = guild?.secondary || '#a78bfa';
     const glow = guild?.glow || primary;
-    const emoji = guild?.emoji || '🎵';
 
     card.style.background = `linear-gradient(160deg, ${primary} 0%, ${secondary} 65%, ${primary}cc 100%)`;
     card.style.boxShadow = `0 0 0 1.5px rgba(255,255,255,0.2), 0 32px 80px rgba(0,0,0,0.7), 0 0 80px ${glow}55`;
 
     const titleEl = document.getElementById('guild-anthem-title');
-    if (titleEl) titleEl.textContent = `${emoji} ${guild?.name || guildId} Anthem`;
+    if (titleEl) titleEl.textContent = `${guild?.name || guildId} Anthem`;
 
     const lyricsEl = document.getElementById('guild-anthem-lyrics');
     if (lyricsEl && guild?.anthemLyrics) {
@@ -292,7 +291,6 @@ function openGuildLore(guildId, gData) {
     const primary = guild?.primary || '#7c3aed';
     const secondary = guild?.secondary || '#a78bfa';
     const glow = guild?.glow || primary;
-    const emoji = guild?.emoji || '⚔️';
     const motto = guild?.motto || '';
     const traits = guild?.traits || [];
 
@@ -304,12 +302,13 @@ function openGuildLore(guildId, gData) {
     // Emblem
     const emblemWrap = document.getElementById('guild-lore-emblem-wrap');
     if (emblemWrap) {
+        const loreInitial = String(guild?.name || guildId || '?').trim().charAt(0).toUpperCase() || '?';
         emblemWrap.innerHTML = emblemUrl
             ? `<img src="${emblemUrl}" alt="${guild?.name}" class="guild-lore-emblem"
                     style="border-color: rgba(255,255,255,0.5); box-shadow: 0 0 40px ${glow}cc, 0 0 80px ${glow}55;">`
             : `<div class="guild-lore-emblem guild-lore-emblem-fallback"
                     style="background: rgba(255,255,255,0.15);">
-                    <span style="font-size:3.5rem">${emoji}</span>
+                    <span class="guild-lore-emblem-initial" style="font-size:2.5rem;font-weight:800;color:${primary}">${loreInitial}</span>
                </div>`;
     }
 
@@ -320,7 +319,10 @@ function openGuildLore(guildId, gData) {
     const traitsEl = document.getElementById('guild-lore-traits');
     const statsEl = document.getElementById('guild-lore-stats');
 
-    if (emojiEl) emojiEl.textContent = emoji;
+    if (emojiEl) {
+        emojiEl.textContent = '';
+        emojiEl.hidden = true;
+    }
     if (nameEl) nameEl.textContent = guild?.name || guildId;
     if (mottoEl) mottoEl.textContent = `"${motto}"`;
     if (traitsEl) {
@@ -382,7 +384,7 @@ function _getChampionHtml(gData, primary, glow) {
     return `
         <div class="guild-crystal-champion-slot">
             <div class="guild-crystal-champion mt-0 flex items-center gap-2 px-3 py-2 rounded-xl border" style="border-color:${primary}44;background:${glow}11;">
-                <span class="text-sm">⚔️</span>
+                <span class="guild-crystal-champion-icon text-sm" aria-hidden="true"><i class="fas fa-medal" style="color:${primary}"></i></span>
                 ${avatarHtml}
                 <div class="min-w-0">
                     <div class="text-[10px] font-bold uppercase tracking-wider opacity-60" style="color:${primary}">Top Champion</div>
@@ -434,8 +436,7 @@ export function renderGuildsTab() {
         };
     }).sort((a, b) => b.guildPower - a.guildPower || b.perCapitaGlory - a.perCapitaGlory || b.perCapitaStars - a.perCapitaStars);
 
-    const maxStars = Math.max(...displayData.map(g => g.totalStars)) || 1;
-    const rankEmoji = ['🥇', '🥈', '🥉', '4️⃣'];
+    const rankLabels = ['1st', '2nd', '3rd', '4th'];
 
     const columns = displayData.map((g, index) => {
         const guild = getGuildById(g.guildId);
@@ -443,7 +444,7 @@ export function renderGuildsTab() {
         const primary = guild?.primary || '#6b7280';
         const secondary = guild?.secondary || '#9ca3af';
         const glow = guild?.glow || primary;
-        const emoji = guild?.emoji || '⚔️';
+        const initial = String(g.guildName || g.guildId || '?').trim().charAt(0).toUpperCase() || '?';
         // Fill based on Guild Power (composite score), leader gets 90%
         const maxPower = Math.max(...displayData.map(g => g.guildPower)) || 1;
         const fillPct = Math.max(5, Math.round((g.guildPower / maxPower) * 90));
@@ -453,7 +454,7 @@ export function renderGuildsTab() {
                     style="border-color:${primary}; box-shadow: 0 0 16px ${glow}77;">`
             : `<div class="guild-crystal-emblem guild-crystal-emblem-fallback"
                     style="background:linear-gradient(135deg,${primary},${secondary}); box-shadow:0 0 16px ${glow}77;">
-                   <span style="font-size:2rem">${emoji}</span>
+                   <span class="guild-crystal-emblem-initial" style="color:${primary}">${initial}</span>
                </div>`;
 
         const topHeroesBody = g.topContributors.length
@@ -467,7 +468,7 @@ export function renderGuildsTab() {
         const topHtml = `
             <div class="guild-crystal-heroes guild-crystal-heroes--balanced">
                    <div class="guild-top-heroes-header">
-                       <span class="guild-top-heroes-title">⚔️ Top Heroes</span>
+                       <span class="guild-top-heroes-title"><i class="fas fa-users" aria-hidden="true"></i> Top Heroes</span>
                        <button type="button" class="guild-power-info-btn guild-analytics-info-btn"
                                data-top-heroes-guild="${g.guildId}"
                                title="Guild spotlight"
@@ -498,7 +499,7 @@ export function renderGuildsTab() {
             <div class="guild-crystal-col is-rank-${index + 1}" data-guild="${g.guildId}">
 
                 <!-- ── Rank ── -->
-                <div class="guild-crystal-rank">${rankEmoji[index] || `#${index + 1}`}</div>
+                <div class="guild-crystal-rank"><span class="guild-crystal-rank__label">${rankLabels[index] || `#${index + 1}`}</span></div>
 
                 <!-- ── Header section (fixed min-height so all columns align at tube start) ── -->
                 <div class="guild-crystal-header">
@@ -512,9 +513,9 @@ export function renderGuildsTab() {
                         <div class="guild-emblem-ring" style="border-color:${glow};box-shadow:0 0 24px ${glow}88;"></div>
                         <button class="guild-anthem-btn" data-anthem-guild="${g.guildId}"
                                 aria-label="Play ${g.guildName} anthem"
-                                style="--anthem-color:${primary};--anthem-glow:${glow};">🎵</button>
+                                style="--anthem-color:${primary};--anthem-glow:${glow};"><i class="fas fa-music" aria-hidden="true"></i></button>
                     </div>
-                    <div class="guild-crystal-name" style="color:${primary};">${emoji} ${g.guildName}</div>
+                    <div class="guild-crystal-name" style="color:${primary};">${g.guildName}</div>
                 </div>
 
                 <!-- ── Crystal tube (fixed height, fills from bottom) ── -->
@@ -583,7 +584,22 @@ export function renderGuildsTab() {
     list.innerHTML = `
         <div class="guild-crystal-hall">
             <div class="guild-crystal-arena-header">
-                <h2 class="guild-crystal-arena-title font-title">Guild Hall Standings</h2>
+                <div class="guild-crystal-fortune-wrap">
+                    <button type="button"
+                            id="fortunes-wheel-btn"
+                            class="guild-crystal-expand-btn guild-crystal-expand-btn--fortune"
+                            data-fw-state="waiting"
+                            aria-label="Open Fortune's Wheel. Select a class to see when the ritual window opens.">
+                        <div class="guild-crystal-expand-btn__icon">
+                            <i class="fa-solid fa-dharmachakra"></i>
+                        </div>
+                        <span class="guild-crystal-expand-btn__col">
+                            <span class="guild-crystal-expand-btn__text">Fortune's Wheel</span>
+                            <span id="fortunes-wheel-window" class="guild-crystal-expand-btn__sub" data-state="waiting">Awaiting a class</span>
+                        </span>
+                    </button>
+                </div>
+                <h2 class="guild-crystal-arena-title font-title">Standings</h2>
                 <div class="guild-crystal-expand-all-wrap">
                     <button type="button"
                             id="guild-stats-expand-toggle"
@@ -679,8 +695,30 @@ export function renderGuildsTab() {
     _wireFortunesWheel();
 
     // ── Fortune's Log ─────────────────────────────────────────────────────────
+    _initFortuneLedgerCollapse();
     _initFortuneLedgerNav();
     _renderFortunesLog();
+}
+
+function _initFortuneLedgerCollapse() {
+    const toggle = document.getElementById('fortune-ledger-toggle');
+    const panel = document.getElementById('fortune-ledger-panel');
+    const root = document.getElementById('fortunes-wheel-section');
+    if (!toggle || !panel || !root) return;
+    if (toggle._fortuneLedgerCollapseWired) return;
+    toggle._fortuneLedgerCollapseWired = true;
+
+    const apply = (open) => {
+        toggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+        panel.hidden = !open;
+        root.dataset.ledgerExpanded = open ? 'true' : 'false';
+    };
+
+    toggle.addEventListener('click', () => {
+        apply(toggle.getAttribute('aria-expanded') !== 'true');
+    });
+
+    apply(false);
 }
 
 // ─── Fortune's Wheel wiring ──────────────────────────────────────────────────
@@ -688,15 +726,11 @@ export function renderGuildsTab() {
 async function _wireFortunesWheel() {
     const section = document.getElementById('fortunes-wheel-section');
     const btn = document.getElementById('fortunes-wheel-btn');
-    const toggleBtn = document.getElementById('fortunes-wheel-toggle');
-    const bodyEl = document.getElementById('fortunes-wheel-panel-body');
     const statusEl = document.getElementById('fortunes-wheel-status');
     const windowEl = document.getElementById('fortunes-wheel-window');
     const classEl = document.getElementById('fortunes-wheel-class');
-    if (!section || !btn || !toggleBtn || !bodyEl) return;
+    if (!section || !btn) return;
 
-    // Section is always visible — the button always opens the modal.
-    // The modal itself handles gating (locked state, lesson check, spin check).
     const classId = state.get('globalSelectedClassId');
     const allClasses = state.get('allTeachersClasses') || [];
     const selectedClass = allClasses.find(c => c.id === classId) || null;
@@ -708,21 +742,21 @@ async function _wireFortunesWheel() {
         if (classId) {
             const canSpin = await canSpinThisWeek(classId);
             if (canSpin) {
-                statusMsg = 'The relic is awake. This class is in its final lesson before the weekend, so the ceremony can begin now.';
+                statusMsg = 'This class is in its final lesson before the weekend — you can run the wheel now.';
                 statusTone = 'ready';
-                windowMsg = 'Ritual window open';
+                windowMsg = 'Open now — final lesson';
             } else {
-                statusMsg = 'The relic opens only during this class\'s final lesson of the week before the weekend.';
+                statusMsg = 'The wheel unlocks only during this class\'s final lesson of the week (before the weekend).';
                 statusTone = 'locked';
-                windowMsg = 'Waiting for final lesson';
+                windowMsg = 'Not in ritual window';
             }
         } else {
-            statusMsg = 'Select a class to see when the relic may awaken and who will step onto the ceremonial stage.';
+            statusMsg = 'Choose a class above to see when the ritual window opens and to run the wheel for that class.';
         }
     } catch (_) {
-        statusMsg = 'Fortune\'s Wheel awaits the proper lesson window.';
+        statusMsg = 'Fortune\'s Wheel follows your class schedule; details will appear when a class is selected.';
         statusTone = 'locked';
-        windowMsg = 'Ritual window unknown';
+        windowMsg = 'Schedule unavailable';
     }
 
     if (statusEl) statusEl.textContent = statusMsg;
@@ -730,101 +764,39 @@ async function _wireFortunesWheel() {
         windowEl.textContent = windowMsg;
         windowEl.dataset.state = statusTone;
     }
+    btn.dataset.fwState = statusTone;
+
+    const ariaReady = statusTone === 'ready'
+        ? 'Open Fortune\'s Wheel — ritual window is open for the selected class.'
+        : 'Open Fortune\'s Wheel. Review schedule and spin when the ritual window opens.';
+    btn.setAttribute('aria-label', ariaReady);
+    btn.title = statusMsg || windowMsg;
+
     if (classEl) {
         classEl.textContent = selectedClass
-            ? `${selectedClass.logo || 'Class'} ${selectedClass.name} · League ${selectedClass.questLevel || 'B'}`
+            ? `${selectedClass.name} · League ${selectedClass.questLevel || 'B'}`
             : 'No class selected';
+    }
+    const barMeta = document.getElementById('fortune-ledger-bar-meta');
+    if (barMeta) {
+        const logs = state.get('fortuneWheelLog') || [];
+        const n = logs.length;
+        const bits = [];
+        if (selectedClass) bits.push(selectedClass.name);
+        bits.push(windowMsg);
+        if (n > 0) bits.push(`${n} ritual${n === 1 ? '' : 's'} on record`);
+        barMeta.textContent = bits.join(' · ');
     }
     section.dataset.state = statusTone;
 
-    if (!toggleBtn._fwToggleWired) {
-        toggleBtn._fwToggleWired = true;
-        toggleBtn.addEventListener('click', () => {
-            const isExpanded = section.dataset.expanded === 'true';
-            _toggleFortunePanel(section, toggleBtn, bodyEl, !isExpanded);
-        });
-    }
-
-    // Button is NEVER disabled — always opens the modal
-    btn.disabled = false;
-    btn.classList.remove('opacity-50');
-
-    // Late-bind listeners
     if (!btn._fwWired) {
         btn._fwWired = true;
         btn.addEventListener('click', () => {
-            const cid = state.get('globalSelectedClassId');
-            const cls = allClasses.find(c => c.id === cid) || null;
-            const league = cls?.questLevel || state.get('globalSelectedLeague') || 'B';
-            openFortunesWheel(cid, league);
+            openFortunesWheel();
         });
     }
 
-    // Wire modal action buttons (once)
     _wireWheelModalButtons();
-}
-
-function _toggleFortunePanel(section, toggleBtn, bodyEl, shouldExpand) {
-    if (bodyEl.dataset.animating === 'true') return;
-
-    toggleBtn.setAttribute('aria-expanded', String(shouldExpand));
-    section.dataset.expanded = shouldExpand ? 'true' : 'false';
-
-    if (shouldExpand) {
-        bodyEl.classList.remove('hidden');
-        bodyEl.dataset.animating = 'true';
-        bodyEl.classList.remove('is-collapsing');
-        bodyEl.classList.add('is-expanding', 'is-animating');
-        bodyEl.style.height = '0px';
-        bodyEl.style.opacity = '0';
-        bodyEl.style.transform = 'translateY(-10px) scale(0.985)';
-
-        requestAnimationFrame(() => {
-            const targetHeight = bodyEl.scrollHeight;
-            bodyEl.style.height = `${targetHeight}px`;
-            bodyEl.style.opacity = '1';
-            bodyEl.style.transform = 'translateY(0) scale(1)';
-        });
-
-        const onExpandEnd = (event) => {
-            if (event.propertyName !== 'height') return;
-            bodyEl.style.height = 'auto';
-            bodyEl.style.opacity = '';
-            bodyEl.style.transform = '';
-            bodyEl.dataset.animating = 'false';
-            bodyEl.classList.remove('is-expanding', 'is-animating');
-            bodyEl.removeEventListener('transitionend', onExpandEnd);
-        };
-
-        bodyEl.addEventListener('transitionend', onExpandEnd);
-        return;
-    }
-
-    bodyEl.dataset.animating = 'true';
-    bodyEl.classList.remove('is-expanding');
-    bodyEl.classList.add('is-collapsing', 'is-animating');
-    bodyEl.style.height = `${bodyEl.scrollHeight}px`;
-    bodyEl.style.opacity = '1';
-    bodyEl.style.transform = 'translateY(0) scale(1)';
-
-    requestAnimationFrame(() => {
-        bodyEl.style.height = '0px';
-        bodyEl.style.opacity = '0';
-        bodyEl.style.transform = 'translateY(-10px) scale(0.985)';
-    });
-
-    const onCollapseEnd = (event) => {
-        if (event.propertyName !== 'height') return;
-        bodyEl.classList.add('hidden');
-        bodyEl.dataset.animating = 'false';
-        bodyEl.classList.remove('is-collapsing', 'is-animating');
-        bodyEl.style.height = '';
-        bodyEl.style.opacity = '';
-        bodyEl.style.transform = '';
-        bodyEl.removeEventListener('transitionend', onCollapseEnd);
-    };
-
-    bodyEl.addEventListener('transitionend', onCollapseEnd);
 }
 
 function _wireWheelModalButtons() {
@@ -930,6 +902,8 @@ function _initFortuneLedgerNav() {
     const prevBtn = document.getElementById('fortune-ledger-prev');
     const nextBtn = document.getElementById('fortune-ledger-next');
     if (!prevBtn || !nextBtn) return;
+    if (prevBtn._ledgerNavWired) return;
+    prevBtn._ledgerNavWired = true;
 
     prevBtn.addEventListener('click', () => {
         if (_fortuneLedgerPage > 0) {

@@ -297,56 +297,29 @@ export function renderAwardStarsTab(options = {}) {
     const { preserveStudentOrder = false } = typeof options === 'boolean'
         ? { preserveStudentOrder: options }
         : options;
-    const dropdownList = document.getElementById('award-class-list');
     const studentListContainer = document.getElementById('award-stars-student-list');
-    if (!dropdownList) return;
+    if (!studentListContainer) return;
 
     const selectedClassId = state.get('globalSelectedClassId');
     const allTeachersClasses = state.get('allTeachersClasses');
 
     if (allTeachersClasses.length === 0) {
-        dropdownList.innerHTML = '';
-        document.getElementById('selected-class-name').innerText = 'No classes created';
-        document.getElementById('selected-class-level').innerText = 'Create one in "My Classes"';
-        document.getElementById('selected-class-logo').innerText = '😢';
         studentListContainer.innerHTML = `<p class="text-center text-gray-700 bg-white/70 backdrop-blur-sm p-4 rounded-2xl text-lg col-span-full">You must create a class first.</p>`;
         renderTeacherBoonLaunchState(null);
         return;
     }
 
-    dropdownList.innerHTML = allTeachersClasses
-        .sort((a, b) => a.name.localeCompare(b.name))
-        .map(c => `
-        <div class="award-class-item flex items-center gap-3 p-3 hover:bg-rose-50 cursor-pointer" data-id="${c.id}">
-            <span class="text-3xl">${c.logo}</span>
-            <div class="text-left">
-                <div class="font-bold text-md text-rose-800">${c.name}</div>
-                <div class="text-xs text-rose-500 -mt-1">${c.questLevel}</div>
-            </div>
-        </div>
-    `).join('');
-
     if (selectedClassId) {
         const selectedClass = allTeachersClasses.find(c => c.id === selectedClassId);
         if (selectedClass) {
-            document.getElementById('selected-class-name').innerText = selectedClass.name;
-            document.getElementById('selected-class-level').innerText = selectedClass.questLevel;
-            document.getElementById('selected-class-logo').innerText = selectedClass.logo;
             renderTeacherBoonLaunchState(selectedClassId);
             renderAwardStarsStudentList(selectedClassId, !preserveStudentOrder);
         } else {
-            // Class might have been deleted but ID still in localStorage
-            document.getElementById('selected-class-name').innerText = 'Select a class...';
-            document.getElementById('selected-class-level').innerText = '';
-            document.getElementById('selected-class-logo').innerText = '❓';
-            studentListContainer.innerHTML = `<p class="text-center text-gray-700 bg-white/70 backdrop-blur-sm p-4 rounded-2xl text-lg col-span-full">Please select a class above to award stars.</p>`;
+            studentListContainer.innerHTML = `<p class="text-center text-gray-700 bg-white/70 backdrop-blur-sm p-4 rounded-2xl text-lg col-span-full">Choose a class from the header to award stars.</p>`;
             renderTeacherBoonLaunchState(null);
         }
     } else {
-        document.getElementById('selected-class-name').innerText = 'Select a class...';
-        document.getElementById('selected-class-level').innerText = '';
-        document.getElementById('selected-class-logo').innerText = '❓';
-        studentListContainer.innerHTML = `<p class="text-center text-gray-700 bg-white/70 backdrop-blur-sm p-4 rounded-2xl text-lg col-span-full">Please select a class above to award stars.</p>`;
+        studentListContainer.innerHTML = `<p class="text-center text-gray-700 bg-white/70 backdrop-blur-sm p-4 rounded-2xl text-lg col-span-full">Choose a class from the header to award stars.</p>`;
         renderTeacherBoonLaunchState(null);
     }
 }
@@ -359,7 +332,7 @@ export function renderAwardStarsStudentList(selectedClassId, fullRender = true) 
         const heroProgressionEnabled = canUseFeature('heroProgression');
 
         if (!selectedClassId) {
-            listContainer.innerHTML = `<p class="text-center text-gray-700 bg-white/70 backdrop-blur-sm p-4 rounded-2xl text-lg col-span-full">Please select a class above to award stars.</p>`;
+            listContainer.innerHTML = `<p class="text-center text-gray-700 bg-white/70 backdrop-blur-sm p-4 rounded-2xl text-lg col-span-full">Choose a class from the header to award stars.</p>`;
             return;
         }
 

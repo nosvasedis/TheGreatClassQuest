@@ -57,8 +57,8 @@ export function evaluateWheelAvailability(classId, options = {}) {
     return {
       allowed: false,
       code: 'no_class',
-      title: 'Choose a class to consult the relic',
-      message: 'Select a class to reveal when the wheel may be awakened.',
+      title: 'Choose a class in the header',
+      message: 'Pick your class above to see when the wheel may be awakened.',
       meta: '',
       selectedClass: null,
       lastLessonOfWeek: null,

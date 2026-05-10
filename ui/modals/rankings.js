@@ -257,14 +257,17 @@ export async function openStudentRankingsModal(resetDate = true) {
 // Hall of Heroes now focuses on all-time legends only.
 
 export async function openHallOfHeroes() {
-    const classId = document.getElementById('adventure-log-class-select').value;
-    if (!classId) { showToast("Select a class first!", "info"); return; }
+    const classId = state.get('globalSelectedClassId');
+    if (!classId) { showToast("Choose a class from the header first!", "info"); return; }
 
     const modal = document.getElementById('history-modal');
-    const selectEl = document.getElementById('history-month-select');
+    document.getElementById('history-timeline-section')?.classList.add('hidden');
 
-    // Setup Modal appearance
-    selectEl.classList.add('hidden');
+    // Setup Modal appearance (legacy month select removed from template)
+    document.getElementById('history-month-select')?.classList.add('hidden');
+    
+    // Custom appearance for Hall of Heroes
+    modal.classList.add('hall-of-heroes-theme');
     showAnimatedModal('history-modal');
 
     renderHallOfHeroesContent(classId);
@@ -392,41 +395,71 @@ async function renderHallOfHeroesContent(classId) {
     const contentEl = document.getElementById('history-modal-content');
     const modalTitle = document.querySelector('#history-modal h2');
 
-    modalTitle.innerHTML = `<i class="fas fa-crown text-amber-500 mr-3"></i>${classData.name} Heroes`;
-    contentEl.innerHTML = `
-        <div class="text-center py-16 text-gray-500">
-            <i class="fas fa-spinner fa-spin mr-2"></i>
-            Opening the Hall of Heroes...
-        </div>`;
-
-    let html = `
-        <div class="flex flex-wrap items-center justify-between gap-3 mb-5">
-            <div class="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-amber-50 text-amber-700 border border-amber-200 font-bold text-sm">
-                <i class="fas fa-star"></i> All-time Hero of the Day totals
+    modalTitle.innerHTML = `
+        <div class="flex items-center gap-4">
+            <div class="w-12 h-12 bg-amber-100 rounded-2xl flex items-center justify-center shadow-inner border border-amber-200">
+                <i class="fas fa-crown text-2xl text-amber-600"></i>
             </div>
-        </div>
-    `;
+            <div>
+                <h2 class="font-title text-3xl text-slate-800 tracking-tight">${classData.name} Legends</h2>
+                <div class="flex items-center gap-2 text-amber-600 text-[10px] font-black uppercase tracking-[0.2em]">
+                    <span class="w-2 h-2 bg-amber-400 rounded-full animate-pulse"></span>
+                    Hall of Heroes
+                </div>
+            </div>
+        </div>`;
+    contentEl.innerHTML = `
+        <div class="flex flex-col items-center justify-center py-20">
+            <div class="relative">
+                <div class="absolute inset-0 bg-amber-400/20 blur-2xl rounded-full animate-pulse"></div>
+                <i class="fas fa-monument fa-spin-pulse text-6xl text-amber-500 relative z-10"></i>
+            </div>
+            <p class="mt-6 font-title text-2xl text-slate-700">Opening the Golden Gates...</p>
+            <p class="text-slate-400 font-medium">Assembling the legendary roster of ${classData.name}</p>
+        </div>`;
 
     const { legendRows, allLogs } = await buildHallLegendRows(classId);
     const crownedHeroes = legendRows.filter((row) => row.wins > 0);
     const topLegend = crownedHeroes[0] || null;
 
-    html += `
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-            <div class="rounded-3xl p-5 bg-gradient-to-br from-indigo-600 to-sky-500 text-white shadow-lg">
-                <div class="text-xs uppercase tracking-[0.2em] font-black opacity-80">Heroes Crowned</div>
-                <div class="font-title text-4xl mt-2">${allLogs.length}</div>
-                <div class="text-sm opacity-80 mt-1">Adventure Log victories recorded</div>
+    let html = `
+        <div class="relative overflow-hidden rounded-[3rem] bg-gradient-to-br from-sky-400 via-indigo-400 to-indigo-500 p-8 md:p-10 text-white shadow-2xl mb-12 border-4 border-white ring-1 ring-sky-100 group">
+            <!-- Atmospheric Background Decor -->
+            <div class="absolute inset-0 pointer-events-none">
+                <div class="absolute top-0 right-0 w-96 h-96 bg-white/20 blur-[100px] rounded-full"></div>
+                <div class="absolute bottom-0 left-0 w-96 h-96 bg-indigo-200/20 blur-[100px] rounded-full"></div>
             </div>
-            <div class="rounded-3xl p-5 bg-gradient-to-br from-amber-400 to-orange-500 text-white shadow-lg">
-                <div class="text-xs uppercase tracking-[0.2em] font-black opacity-80">Class Legends</div>
-                <div class="font-title text-4xl mt-2">${crownedHeroes.length}</div>
-                <div class="text-sm opacity-80 mt-1">Students with at least one crown</div>
+
+            <div class="relative z-10">
+                <div class="flex flex-col lg:flex-row justify-between items-center gap-10">
+                    <div class="text-center lg:text-left flex-1">
+                        <div class="inline-flex items-center gap-2 px-6 py-2.5 rounded-full bg-white/20 backdrop-blur-md text-white border border-white/30 font-black text-[10px] uppercase tracking-widest mb-6">
+                            <i class="fas fa-sparkles"></i> The Eternal Registry
+                        </div>
+                        <h3 class="font-title text-4xl md:text-5xl leading-tight mb-3 tracking-tight">Legends of the Realm</h3>
+                        <p class="text-white/80 font-medium text-lg leading-relaxed max-w-xl">Celebrating every "Hero of the Day" recorded in our history. Their names are carved into the annals of glory forever.</p>
+                    </div>
+                    
+                    <div class="grid grid-cols-2 sm:grid-cols-3 gap-4 w-full lg:w-auto">
+                        <div class="bg-white/10 backdrop-blur-xl rounded-[2rem] p-5 border border-white/20 text-center shadow-lg">
+                            <div class="text-[9px] font-black text-white/70 uppercase tracking-widest mb-1.5">Total Crowns</div>
+                            <div class="font-title text-4xl text-white">${allLogs.length}</div>
+                        </div>
+                        <div class="bg-white/10 backdrop-blur-xl rounded-[2rem] p-5 border border-white/20 text-center shadow-lg">
+                            <div class="text-[9px] font-black text-white/70 uppercase tracking-widest mb-1.5">Crowned Heroes</div>
+                            <div class="font-title text-4xl text-white">${crownedHeroes.length}</div>
+                        </div>
+                        <div class="bg-white/10 backdrop-blur-xl rounded-[2rem] p-5 border border-white/20 text-center col-span-2 sm:col-span-1 shadow-lg">
+                            <div class="text-[9px] font-black text-white/70 uppercase tracking-widest mb-1.5">Top Legend</div>
+                            <div class="font-title text-2xl text-amber-300 truncate">${topLegend ? topLegend.student.name.split(' ')[0] : 'None'}</div>
+                        </div>
+                    </div>
+                </div>
             </div>
-            <div class="rounded-3xl p-5 bg-gradient-to-br from-fuchsia-500 to-violet-600 text-white shadow-lg">
-                <div class="text-xs uppercase tracking-[0.2em] font-black opacity-80">Top Legend</div>
-                <div class="font-title text-3xl mt-2">${topLegend ? topLegend.student.name.split(' ')[0] : 'None yet'}</div>
-                <div class="text-sm opacity-80 mt-1">${topLegend ? `${topLegend.wins} hero crowns` : 'No hero crowns recorded yet'}</div>
+
+            <!-- Background Flourish -->
+            <div class="absolute -right-12 -bottom-12 text-white/10 text-[15rem] pointer-events-none transform rotate-12">
+                <i class="fas fa-monument"></i>
             </div>
         </div>
     `;
@@ -445,56 +478,62 @@ async function renderHallOfHeroesContent(classId) {
             const heroClass = row.student.heroClass;
             const heroIcon = heroClass ? (HERO_CLASSES[heroClass]?.icon || '⭐') : '⭐';
             const avatarHtml = row.student.avatar
-                ? `<img src="${row.student.avatar}" class="w-20 h-20 rounded-3xl object-cover border-4 border-white shadow-lg">`
-                : `<div class="w-20 h-20 rounded-3xl bg-gradient-to-br from-indigo-500 to-fuchsia-500 text-white text-3xl font-bold flex items-center justify-center border-4 border-white shadow-lg">${row.student.name.charAt(0)}</div>`;
+                ? `<img src="${row.student.avatar}" class="w-24 h-24 rounded-3xl object-cover border-4 border-white shadow-2xl relative z-10 transform group-hover/card:scale-110 group-hover/card:rotate-2 transition-transform duration-500">`
+                : `<div class="w-24 h-24 rounded-3xl bg-gradient-to-br from-slate-700 to-slate-900 text-white text-4xl font-title flex items-center justify-center border-4 border-white shadow-2xl relative z-10 transform group-hover/card:scale-110 group-hover/card:rotate-2 transition-transform duration-500">${row.student.name.charAt(0)}</div>`;
             const latestDate = row.latestDate
                 ? row.latestDate.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
                 : 'No date';
             const nextTierText = row.nextThreshold
-                ? `${Math.max(0, row.nextThreshold - row.wins)} more to ${utils.getHeroLegendTierInfo(row.nextThreshold).label}`
-                : 'Highest legend rank achieved';
+                ? `Next Goal: ${utils.getHeroLegendTierInfo(row.nextThreshold).label} (${Math.max(0, row.nextThreshold - row.wins)} crowns away)`
+                : 'Maximum legend rank achieved';
 
             html += `
-                <article class="rounded-[2rem] overflow-hidden shadow-xl border border-white/70 bg-white">
-                    <div class="p-5 text-white bg-gradient-to-r ${row.tier.accent}">
-                        <div class="flex items-start justify-between gap-4">
-                            <div class="flex items-center gap-4">
-                                ${avatarHtml}
+                <article class="group/card relative rounded-[3rem] overflow-hidden shadow-sm border border-slate-100 bg-white transition-all duration-700 hover:-translate-y-2 hover:shadow-2xl hover:shadow-sky-500/10 flex flex-col">
+                    <!-- Fluffy Tier Aura -->
+                    <div class="absolute -right-20 -top-20 w-48 h-48 bg-gradient-to-br ${row.tier.accent} opacity-0 group-hover/card:opacity-10 blur-[60px] rounded-full transition-opacity duration-700"></div>
+
+                    <div class="p-8 flex flex-col h-full relative z-10">
+                        <div class="flex items-start justify-between mb-8">
+                            <div class="flex items-center gap-6">
+                                <div class="relative">
+                                    <div class="absolute inset-0 bg-slate-200 blur-2xl opacity-0 group-hover/card:opacity-20 rounded-full transition-opacity"></div>
+                                    ${avatarHtml}
+                                    <div class="absolute -bottom-2 -right-2 w-10 h-10 bg-white rounded-2xl shadow-xl border border-slate-100 flex items-center justify-center text-xl transform group-hover/card:rotate-12 transition-transform duration-500">
+                                        ${heroIcon}
+                                    </div>
+                                </div>
                                 <div>
-                                    <div class="text-xs uppercase tracking-[0.2em] font-black opacity-80">Rank #${index + 1}</div>
-                                    <h3 class="font-title text-3xl leading-none mt-1">${row.student.name}</h3>
-                                    <div class="mt-2 inline-flex items-center gap-2 bg-white/20 px-3 py-1 rounded-full text-sm font-bold">
-                                        <span>${heroIcon}</span>
-                                        <span>${row.tier.label}</span>
+                                    <div class="text-[10px] uppercase tracking-[0.25em] font-black text-slate-400 mb-1.5">Rank #${index + 1}</div>
+                                    <h4 class="font-title text-3xl text-slate-800 tracking-tight mb-1 group-hover/card:text-indigo-600 transition-colors">${row.student.name}</h4>
+                                    <div class="flex items-center gap-2">
+                                        <span class="px-3 py-1 rounded-full bg-slate-50 text-slate-500 text-[10px] font-black uppercase tracking-widest border border-slate-100">${heroClass || 'Novice'}</span>
+                                        <span class="w-1 h-1 bg-slate-200 rounded-full"></span>
+                                        <span class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Since ${latestDate}</span>
                                     </div>
                                 </div>
                             </div>
+
                             <div class="text-right">
-                                <div class="text-xs uppercase tracking-[0.18em] font-black opacity-75">Wins</div>
-                                <div class="font-title text-5xl leading-none">${row.wins}</div>
+                            <div class="rounded-2xl bg-amber-50 border border-amber-200 p-5 group-hover/card:bg-amber-100/50 transition-colors">
+                                <div class="text-[10px] uppercase tracking-[0.2em] font-black text-amber-600 mb-2">Legend Perk</div>
+                                <div class="font-title text-xl text-amber-900 leading-none">+${row.tier.extraDiscount}% Shop Perk</div>
                             </div>
                         </div>
-                    </div>
-                    <div class="p-5">
-                        <div class="grid grid-cols-2 gap-3 mb-4">
-                            <div class="rounded-2xl bg-slate-50 border border-slate-200 p-4">
-                                <div class="text-[11px] uppercase tracking-[0.16em] font-black text-slate-500">Latest Crown</div>
-                                <div class="font-bold text-slate-800 mt-2">${latestDate}</div>
+                        <div class="rounded-3xl bg-slate-900 p-6 text-white shadow-inner relative overflow-hidden">
+                            <div class="absolute inset-0 bg-gradient-to-r from-white/5 to-transparent pointer-events-none"></div>
+                            <div class="flex items-center justify-between text-[10px] uppercase tracking-[0.2em] font-black text-slate-400 mb-3 relative z-10">
+                                <span>Legend Progression</span>
+                                <span class="text-amber-400">${row.progressPercent}%</span>
                             </div>
-                            <div class="rounded-2xl bg-amber-50 border border-amber-200 p-4">
-                                <div class="text-[11px] uppercase tracking-[0.16em] font-black text-amber-600">Seasonal Shop Perk</div>
-                                <div class="font-bold text-amber-900 mt-2">+${row.tier.extraDiscount}% legend discount</div>
+                            <div class="h-4 rounded-full bg-white/10 overflow-hidden relative z-10 shadow-inner">
+                                <div class="h-full bg-gradient-to-r from-amber-400 via-yellow-300 to-amber-200 relative transition-all duration-1000 ease-out" style="width:${row.progressPercent}%">
+                                    <div class="absolute inset-0 bg-white/20 shimmer"></div>
+                                </div>
                             </div>
-                        </div>
-                        <div class="rounded-2xl bg-slate-900 p-4 text-white">
-                            <div class="flex items-center justify-between text-xs uppercase tracking-[0.16em] font-black text-white/70 mb-2">
-                                <span>Next Milestone</span>
-                                <span>${row.progressPercent}%</span>
+                            <div class="text-xs text-slate-400 mt-4 font-medium italic relative z-10 flex items-center gap-2">
+                                <i class="fas fa-circle-info opacity-50"></i>
+                                ${nextTierText}
                             </div>
-                            <div class="h-3 rounded-full bg-white/10 overflow-hidden">
-                                <div class="h-full bg-gradient-to-r from-amber-300 to-white" style="width:${row.progressPercent}%"></div>
-                            </div>
-                            <div class="text-sm text-white/80 mt-3">${nextTierText}</div>
                         </div>
                     </div>
                 </article>
@@ -941,37 +980,27 @@ async function getProdigyCountsForClass(classId) {
 }
 
 export async function openProdigyModal() {
-    const classSelect = document.getElementById('prodigy-class-select');
-    const allTeachersClasses = state.get('allTeachersClasses');
+    const allTeachersClasses = state.get('allTeachersClasses') || [];
+    const currentGlobal = state.get('globalSelectedClassId');
+    const isValidClass = Boolean(currentGlobal && allTeachersClasses.some(c => c.id === currentGlobal));
 
-    // 1. Reset Date: Default to LAST month
     prodigyViewDate = new Date();
     prodigyViewDate.setDate(1);
     prodigyViewDate.setMonth(prodigyViewDate.getMonth() - 1);
 
-    // 2. Populate Dropdown
-    classSelect.innerHTML = '<option value="">Select a Class...</option>' +
-        allTeachersClasses.sort((a, b) => a.name.localeCompare(b.name))
-            .map(c => `<option value="${c.id}">${c.logo} ${c.name}</option>`).join('');
-
-    // 3. SMART AUTO-SELECT FIX
-    const currentGlobal = state.get('globalSelectedClassId');
-
-    // Check if the current global class is actually in the teacher's list
-    const isValidClass = allTeachersClasses.some(c => c.id === currentGlobal);
-
-    if (currentGlobal && isValidClass) {
-        classSelect.value = currentGlobal;
-        // Trigger render immediately
-        renderProdigyHistory(currentGlobal);
-    } else {
-        document.getElementById('prodigy-content').innerHTML = `
-            <div class="h-full flex flex-col items-center justify-center text-indigo-300 opacity-60">
-                <i class="fas fa-hand-pointer text-6xl mb-4 animate-bounce"></i>
-                <p class="text-2xl font-bold">Select a class to enter the Hall</p>
-            </div>`;
+    const contextEl = document.getElementById('prodigy-class-context');
+    if (!isValidClass) {
+        showToast('Choose a class from the header first.', 'info');
+        return;
     }
 
+    const cls = allTeachersClasses.find(c => c.id === currentGlobal);
+    if (contextEl) {
+        contextEl.hidden = false;
+        contextEl.textContent = `${cls?.logo || ''} ${cls?.name || 'Class'}${cls?.questLevel ? ` (${cls.questLevel})` : ''}`.trim();
+    }
+
+    await renderProdigyHistory(currentGlobal);
     showAnimatedModal('prodigy-modal');
 }
 
@@ -999,13 +1028,16 @@ export async function renderProdigyHistory(classId) {
 
     // 3. Build Header
     let html = `
-        <div class="flex items-center justify-between mb-6 bg-black/20 p-3 rounded-full border border-white/10 backdrop-blur-md shadow-lg z-20 relative mx-auto max-w-lg">
-            <button id="prodigy-prev-btn" class="w-10 h-10 rounded-full bg-white text-indigo-900 hover:bg-indigo-100 flex items-center justify-center transition-all disabled:opacity-30 disabled:cursor-not-allowed" ${!canGoBack ? 'disabled' : ''}>
-                <i class="fas fa-chevron-left"></i>
+        <div class="flex items-center justify-between mb-10 bg-white/10 p-3 rounded-[2rem] border-2 border-white/20 shadow-xl backdrop-blur-xl relative z-20 mx-auto max-w-lg">
+            <button id="prodigy-prev-btn" class="w-12 h-12 rounded-2xl bg-white text-indigo-900 shadow-sm hover:shadow-md hover:bg-indigo-50 flex items-center justify-center transition-all disabled:opacity-30 disabled:cursor-not-allowed group" ${!canGoBack ? 'disabled' : ''}>
+                <i class="fas fa-chevron-left group-hover:-translate-x-1 transition-transform"></i>
             </button>
-            <span class="font-title text-2xl text-amber-300 tracking-wide drop-shadow-md">${monthName}</span>
-            <button id="prodigy-next-btn" class="w-10 h-10 rounded-full bg-white text-indigo-900 hover:bg-indigo-100 flex items-center justify-center transition-all disabled:opacity-30 disabled:cursor-not-allowed" ${!canGoForward ? 'disabled' : ''}>
-                <i class="fas fa-chevron-right"></i>
+            <div class="text-center">
+                <div class="text-[9px] font-black text-amber-300 uppercase tracking-[0.3em] mb-0.5">Legendary Period</div>
+                <span class="font-title text-2xl text-white tracking-tight drop-shadow-md">${monthName}</span>
+            </div>
+            <button id="prodigy-next-btn" class="w-12 h-12 rounded-2xl bg-white text-indigo-900 shadow-sm hover:shadow-md hover:bg-indigo-50 flex items-center justify-center transition-all disabled:opacity-30 disabled:cursor-not-allowed group" ${!canGoForward ? 'disabled' : ''}>
+                <i class="fas fa-chevron-right group-hover:translate-x-1 transition-transform"></i>
             </button>
         </div>
     `;
@@ -1040,10 +1072,12 @@ export async function renderProdigyHistory(classId) {
 
     if (monthlyLogs.length === 0) {
         html += `
-            <div class="flex flex-col items-center justify-center py-20 opacity-50">
-                <div class="text-8xl mb-4 grayscale filter drop-shadow-lg">🕸️</div>
-                <p class="font-bold text-indigo-200 text-2xl">The Hall is empty.</p>
-                <p class="text-indigo-400">No stars were recorded in ${monthName}.</p>
+            <div class="flex flex-col items-center justify-center py-24 bg-white/5 rounded-[3rem] border-2 border-dashed border-white/10 backdrop-blur-sm group">
+                <div class="w-32 h-32 bg-white/10 rounded-full flex items-center justify-center mb-8 shadow-xl border border-white/10 group-hover:scale-110 transition-transform duration-700">
+                    <i class="fas fa-ghost text-7xl text-white/20 group-hover:text-amber-300/30 transition-colors"></i>
+                </div>
+                <h4 class="text-white font-title text-4xl mb-3">Quiet Halls</h4>
+                <p class="text-indigo-200/60 font-medium text-xl max-w-sm text-center">No heroic deeds were recorded in the scrolls of ${monthName}.</p>
             </div>`;
     } else {
         const { studentStats, topStudent, winners } = buildProdigyMonthOutcome(students, monthlyLogs, allScores, viewYear, viewMonthIndex);
@@ -1104,53 +1138,72 @@ export async function renderProdigyHistory(classId) {
                 }).join('');
 
                 return `
-                <div class="relative ${cardClass} perspective-1000 mb-4 transform hover:-translate-y-2 transition-transform duration-500">
-                    <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[110%] h-[110%] bg-gradient-to-r from-indigo-600/30 via-purple-600/30 to-indigo-600/30 blur-[60px] rounded-full animate-pulse-slow"></div>
+                <div class="relative ${cardClass} perspective-1000 mb-8 transform hover:-translate-y-3 transition-all duration-500 group/card">
+                    <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[115%] h-[115%] bg-gradient-to-r from-indigo-500/40 via-purple-500/40 to-indigo-500/40 blur-[80px] rounded-full animate-pulse-slow opacity-0 group-hover/card:opacity-100 transition-opacity"></div>
+                    
+                    <!-- Decorative Floating Elements -->
+                    <div class="absolute -left-4 -top-4 w-12 h-12 bg-amber-400/20 backdrop-blur-md rounded-2xl border border-white/20 flex items-center justify-center text-xl shadow-lg z-30 group-hover/card:-translate-y-2 group-hover/card:-translate-x-1 transition-transform">✨</div>
+                    <div class="absolute -right-2 bottom-12 w-10 h-10 bg-indigo-400/20 backdrop-blur-md rounded-xl border border-white/20 flex items-center justify-center text-lg shadow-lg z-30 group-hover/card:translate-y-2 group-hover/card:translate-x-1 transition-transform">📜</div>
 
-                    <div class="relative bg-gradient-to-b from-indigo-900/90 to-indigo-950/95 border-2 border-amber-400/30 rounded-[3rem] p-6 flex flex-col items-center text-center shadow-2xl overflow-hidden backdrop-blur-md h-full justify-between">
+                    <div class="relative bg-gradient-to-b from-indigo-900/95 to-indigo-950 border-4 border-white/10 rounded-[4rem] p-8 flex flex-col items-center text-center shadow-[0_32px_64px_-16px_rgba(0,0,0,0.6)] overflow-hidden backdrop-blur-2xl h-full justify-between ring-1 ring-white/10">
                         
                         <div class="absolute inset-0 pointer-events-none overflow-hidden">${confettiHtml}</div>
-
-                        <!-- Badge -->
-                        <div class="bg-gradient-to-r from-amber-400 to-yellow-300 text-amber-900 px-6 py-1.5 rounded-full font-black uppercase tracking-widest shadow-lg shadow-amber-500/20 mb-6 transform hover:scale-105 transition-transform cursor-default relative z-20 text-xs sm:text-sm">
-                            <i class="fas fa-crown mr-1"></i>${titleText}
+                        
+                        <!-- Header Badge -->
+                        <div class="relative z-20 mb-8">
+                            <div class="bg-gradient-to-r from-amber-400 via-yellow-300 to-amber-400 text-amber-900 px-8 py-2.5 rounded-full font-title text-sm uppercase tracking-widest shadow-[0_0_20px_rgba(251,191,36,0.4)] border border-white/20">
+                                <i class="fas fa-crown mr-2"></i>${titleText}
+                            </div>
                         </div>
 
-                        <div class="teacher-boon-prodigy-count">
-                            <span class="teacher-boon-prodigy-count__value">${timesCrowned}x</span>
-                            <span class="teacher-boon-prodigy-count__label">Prodigy</span>
+                        <!-- Trophy Count -->
+                        <div class="absolute top-24 right-10 flex flex-col items-center group/trophy cursor-help">
+                            <div class="w-14 h-14 bg-white/5 backdrop-blur-lg rounded-2xl flex items-center justify-center border border-white/10 shadow-inner group-hover/trophy:bg-white/15 transition-all">
+                                <span class="font-title text-2xl text-amber-300">${timesCrowned}x</span>
+                            </div>
+                            <span class="text-[9px] font-black text-indigo-300 uppercase tracking-widest mt-1.5 opacity-60">Hall Entries</span>
                         </div>
 
-                        <!-- Avatar -->
-                        <div class="relative mb-4 group cursor-pointer">
+                        <!-- Avatar Section -->
+                        <div class="relative mb-8 group/avatar">
+                            <div class="absolute inset-0 bg-amber-400/20 blur-3xl rounded-full opacity-60 group-hover/avatar:opacity-100 transition-opacity"></div>
                             ${avatarHtml}
-                            <div class="absolute top-0 right-0 text-6xl filter drop-shadow-md z-30 animate-bounce-slow" style="animation-delay: 0.5s">👑</div>
+                            <div class="absolute -top-4 -right-4 text-7xl filter drop-shadow-xl z-30 animate-bounce-slow" style="animation-delay: 0.5s">👑</div>
                         </div>
 
                         <!-- Name & Score -->
-                        <div class="relative z-10 w-full mb-6">
-                            <h2 class="font-title text-5xl md:text-6xl text-transparent bg-clip-text bg-gradient-to-b from-white to-indigo-200 drop-shadow-sm mb-2 leading-tight">${winner.name.split(' ')[0]}</h2>
-                            <div class="inline-block bg-black/40 px-4 py-1 rounded-full border border-amber-500/30">
-                                <span class="text-2xl font-bold text-amber-400">${winner.monthlyStars} Stars</span>
+                        <div class="relative z-10 w-full mb-8">
+                            <h2 class="font-title text-6xl text-white drop-shadow-md mb-3 leading-tight tracking-tight">${winner.name.split(' ')[0]}</h2>
+                            <div class="inline-flex items-center gap-3 bg-white/10 backdrop-blur-md px-6 py-2 rounded-full border border-white/10 shadow-lg">
+                                <span class="text-3xl font-title text-amber-400 leading-none">${winner.monthlyStars}</span>
+                                <span class="text-xs font-black text-indigo-200 uppercase tracking-widest">Stars Earned</span>
                             </div>
                         </div>
 
-                        <!-- Stats & Inventory -->
-                        <div class="w-full bg-white/5 rounded-3xl p-4 border border-white/10 backdrop-blur-md relative z-10">
-                            <div class="grid grid-cols-2 gap-2 mb-3 pb-3 border-b border-white/10">
-                                <div class="bg-black/20 rounded-xl p-2">
-                                    <p class="text-[9px] text-indigo-300 uppercase font-bold tracking-wider mb-1">Top Skill</p>
-                                    <p class="text-white font-bold text-sm"><i class="fas fa-star text-yellow-400 mr-1"></i>${winner.stats.uniqueReasons} Types</p>
+                        <!-- Metrics & Vault -->
+                        <div class="w-full space-y-4 relative z-10">
+                            <div class="grid grid-cols-2 gap-3">
+                                <div class="bg-white/5 rounded-3xl p-4 border border-white/5 shadow-inner">
+                                    <p class="text-[10px] text-indigo-300 font-black uppercase tracking-widest mb-2 opacity-60">Versatility</p>
+                                    <p class="text-white font-title text-xl leading-none flex items-center justify-center gap-2">
+                                        <i class="fas fa-bolt text-amber-400"></i>
+                                        ${winner.stats.uniqueReasons} <span class="text-[10px] font-black uppercase opacity-60">Types</span>
+                                    </p>
                                 </div>
-                                <div class="bg-black/20 rounded-xl p-2">
-                                    <p class="text-[9px] text-indigo-300 uppercase font-bold tracking-wider mb-1">Academics</p>
-                                    <p class="text-white font-bold text-sm">${badgeIcon} ${badgeText.split(' ')[0]}</p>
+                                <div class="bg-white/5 rounded-3xl p-4 border border-white/5 shadow-inner">
+                                    <p class="text-[10px] text-indigo-300 font-black uppercase tracking-widest mb-2 opacity-60">Academics</p>
+                                    <p class="text-white font-title text-lg leading-none truncate px-1" title="${badgeText}">
+                                        ${badgeIcon} ${badgeText.split(' ')[0]}
+                                    </p>
                                 </div>
                             </div>
                             
-                            <div class="text-center">
-                                <p class="text-[9px] text-amber-400/80 uppercase font-bold tracking-widest mb-2">Hero's Loot</p>
-                                <div class="flex flex-wrap justify-center gap-3">
+                            <div class="bg-black/20 rounded-[2.5rem] p-5 border border-white/5">
+                                <div class="flex items-center justify-between mb-4 px-2">
+                                    <span class="text-[10px] font-black text-amber-400/80 uppercase tracking-[0.25em]">Legendary Vault</span>
+                                    <span class="w-8 h-px bg-white/10"></span>
+                                </div>
+                                <div class="flex flex-wrap justify-center gap-4">
                                     ${inventoryHtml}
                                 </div>
                             </div>
@@ -1184,3 +1237,4 @@ export async function renderProdigyHistory(classId) {
         };
     }
 }
+

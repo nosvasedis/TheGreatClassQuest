@@ -10,6 +10,7 @@ import { checkBountyProgress } from '../db/actions/bounties.js';
 import { checkAndRecordQuestCompletion } from '../db/actions/stars.js';
 import { playSound, playHeroFanfare } from '../audio.js';
 import { evaluateWheelAvailability } from '../utils/fortuneWheelEligibility.mjs';
+import { showAnimatedModal, hideModal } from '../ui/modals/base.js';
 
 function _optimisticallyApplyWheelResultToState({ guildId, gloryDelta = 0, modifierCreated = null, segmentId = '' }) {
     if (!guildId) return;
@@ -736,8 +737,15 @@ export function drawWheel(canvas, segments, rotationAngle, guildDef, highlightIn
         // Highlighting edge
         ctx.beginPath();
         ctx.arc(0, 0, radius, startAngle, endAngle);
-        ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)';
-        ctx.lineWidth = 6;
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.4)';
+        ctx.lineWidth = 4;
+        ctx.stroke();
+
+        // Inner shadow for depth
+        ctx.beginPath();
+        ctx.arc(0, 0, radius - 8, startAngle, endAngle);
+        ctx.strokeStyle = 'rgba(0, 0, 0, 0.15)';
+        ctx.lineWidth = 2;
         ctx.stroke();
 
         // Wedge dividing borders (bright gold)
@@ -800,11 +808,30 @@ export function drawWheel(canvas, segments, rotationAngle, guildDef, highlightIn
         ctx.fill();
 
         ctx.shadowBlur = 0;
-        ctx.strokeStyle = 'rgba(255, 255, 255, 0.92)';
-        ctx.lineWidth = Math.max(10, size / 55);
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.95)';
+        ctx.lineWidth = Math.max(12, size / 50);
         ctx.stroke();
         ctx.restore();
     }
+
+    // --- Glossy Sheen Overlay ---
+    ctx.save();
+    ctx.translate(center, center);
+    const sheen = ctx.createLinearGradient(-radius, -radius, radius, radius);
+    sheen.addColorStop(0, 'rgba(255, 255, 255, 0.15)');
+    sheen.addColorStop(0.4, 'rgba(255, 255, 255, 0.05)');
+    sheen.addColorStop(0.5, 'rgba(255, 255, 255, 0)');
+    sheen.addColorStop(0.6, 'rgba(0, 0, 0, 0.05)');
+    sheen.addColorStop(1, 'rgba(0, 0, 0, 0.15)');
+    ctx.beginPath();
+    ctx.arc(0, 0, radius, 0, TAU);
+    ctx.fillStyle = sheen;
+    ctx.fill();
+    ctx.restore();
+
+    ctx.save();
+    ctx.translate(center, center);
+    ctx.rotate(rotationAngle);
 
     // Center Logo / Emblem
     const innerRadius = radius * 0.28;
@@ -1100,28 +1127,38 @@ let _wheelResizeWired = false;
 export function getWheelState() { return _wheelState; }
 
 /**
- * Open the Fortune's Wheel modal. ALWAYS opens — shows a locked/unavailable
- * state with a gameified message if conditions aren't met.
- * @param {string|null} classId   — pre-selects a class; falls back to globalSelectedClassId
- * @param {string|null} leagueLevel — optional hint; derived from class if omitted
+ * Open the Fortune's Wheel modal. Uses the header (global) class only.
+ * Always opens — shows a locked/unavailable state when conditions aren't met.
  */
-export async function openFortunesWheel(classId, leagueLevel) {
+export async function openFortunesWheel() {
     const modal = document.getElementById('fortunes-wheel-modal');
     if (!modal) return;
 
-    // Always show the modal first
-    modal.classList.remove('hidden');
-    modal.classList.add('is-open');
     _wireWheelResize();
+    showAnimatedModal('fortunes-wheel-modal');
 
-    // ── Resolve class ───────────────────────────────────────────────────────
-    const resolvedClassId = classId || state.get('globalSelectedClassId') || '';
-    _populateClassSelector(resolvedClassId);
-
+    const resolvedClassId = state.get('globalSelectedClassId') || '';
     const allClasses = state.get('allTeachersClasses') || [];
     const selectedClass = allClasses.find(c => c.id === resolvedClassId) || null;
-    const resolvedLeague = leagueLevel || selectedClass?.questLevel || state.get('globalSelectedLeague') || 'B';
+    const resolvedLeague = selectedClass?.questLevel || state.get('globalSelectedLeague') || 'B';
 
+    await _evaluateAndRender(resolvedClassId || null, resolvedLeague);
+}
+
+/**
+ * When the header class changes while this modal is open, re-sync (no in-modal picker).
+ * Skips during spin or when there are unsaved ceremony results.
+ */
+export async function refreshFortunesWheelModalFromGlobalClass() {
+    const modal = document.getElementById('fortunes-wheel-modal');
+    if (!modal || modal.classList.contains('hidden')) return;
+    if (_wheelState.phase === 'spinning') return;
+    if ((_wheelState.results?.length || 0) > 0) return;
+
+    const resolvedClassId = state.get('globalSelectedClassId') || '';
+    const allClasses = state.get('allTeachersClasses') || [];
+    const selectedClass = allClasses.find(c => c.id === resolvedClassId) || null;
+    const resolvedLeague = selectedClass?.questLevel || state.get('globalSelectedLeague') || 'B';
     await _evaluateAndRender(resolvedClassId || null, resolvedLeague);
 }
 
@@ -1135,139 +1172,7 @@ function _wireWheelResize() {
 }
 
 /**
- * Populate (or re-populate) the in-modal class selector and wire its change event.
- */
-let _fwDropdownWired = false;
-function _populateClassSelector(selectedClassId) {
-    const trigger = document.getElementById('fw-class-select-trigger');
-    const menu = document.getElementById('fw-class-select-menu');
-    const textEl = document.getElementById('fw-class-select-text');
-    if (!trigger || !menu || !textEl) return;
-
-    const classes = (state.get('allTeachersClasses') || [])
-        .sort((a, b) => a.name.localeCompare(b.name));
-
-    // Repopulate options every time
-    menu.innerHTML = classes.map(c =>
-        `<div class="fw-custom-dropdown__option${c.id === selectedClassId ? ' is-selected' : ''}" data-value="${c.id}" role="option" aria-selected="${c.id === selectedClassId ? 'true' : 'false'}">${c.logo} ${c.name} (${c.questLevel})</div>`
-    ).join('');
-
-    // Set trigger text
-    const selectedClass = classes.find(c => c.id === selectedClassId);
-    textEl.textContent = selectedClass ? `${selectedClass.logo} ${selectedClass.name} (${selectedClass.questLevel})` : '\u2014 Choose a class \u2014';
-
-    // Wire events only once
-    if (_fwDropdownWired) return;
-    _fwDropdownWired = true;
-
-    // Helper to select a class
-    const selectValue = async (newId) => {
-        const cls = (state.get('allTeachersClasses') || []).find(c => c.id === newId) || null;
-        textEl.textContent = cls
-            ? `${cls.logo} ${cls.name} (${cls.questLevel})`
-            : '\u2014 Choose a class \u2014';
-        menu.querySelectorAll('.fw-custom-dropdown__option').forEach(opt => {
-            opt.classList.toggle('is-selected', opt.dataset.value === newId);
-            opt.setAttribute('aria-selected', opt.dataset.value === newId);
-        });
-        _fwCloseDropdown();
-        const league = cls?.questLevel || state.get('globalSelectedLeague') || 'B';
-        await _evaluateAndRender(newId || null, league);
-    };
-
-    const _fwToggleDropdown = () => {
-        if (menu.classList.contains('is-open')) {
-            _fwCloseDropdown();
-        } else {
-            _fwOpenDropdown();
-        }
-    };
-
-    const _fwOpenDropdown = () => {
-        menu.classList.add('is-open');
-        trigger.setAttribute('aria-expanded', 'true');
-        const selected = menu.querySelector('.is-selected');
-        if (selected) {
-            selected.classList.add('is-highlighted');
-            selected.scrollIntoView({ block: 'nearest' });
-        }
-    };
-
-    const _fwCloseDropdown = () => {
-        menu.classList.remove('is-open');
-        trigger.setAttribute('aria-expanded', 'false');
-        menu.querySelectorAll('.fw-custom-dropdown__option').forEach(opt => {
-            opt.classList.remove('is-highlighted');
-        });
-    };
-
-    // Trigger click
-    trigger.addEventListener('click', (e) => {
-        e.stopPropagation();
-        _fwToggleDropdown();
-    });
-
-    // Option clicks
-    menu.addEventListener('click', async (e) => {
-        const option = e.target.closest('.fw-custom-dropdown__option');
-        if (!option) return;
-        await selectValue(option.dataset.value);
-    });
-
-    // Mouse hover for highlight
-    menu.addEventListener('mouseover', (e) => {
-        const option = e.target.closest('.fw-custom-dropdown__option');
-        if (!option) return;
-        menu.querySelectorAll('.fw-custom-dropdown__option').forEach(opt => {
-            opt.classList.remove('is-highlighted');
-        });
-        option.classList.add('is-highlighted');
-    });
-
-    // Keyboard on trigger: Enter/Space to toggle, Escape to close
-    trigger.addEventListener('keydown', (e) => {
-        if (e.key === 'Enter' || e.key === ' ') {
-            e.preventDefault();
-            _fwToggleDropdown();
-        }
-    });
-
-    // Close on outside click
-    const _fwOutsideClick = (e) => {
-        if (!menu.classList.contains('is-open')) return;
-        const wrapper = trigger.closest('.fw-select-wrapper');
-        if (wrapper && wrapper.contains(e.target)) return;
-        _fwCloseDropdown();
-    };
-    document.addEventListener('click', _fwOutsideClick);
-
-    // Global Escape to close dropdown
-    const _fwGlobalEscape = (e) => {
-        if (!menu.classList.contains('is-open')) return;
-        if (e.key === 'Escape') {
-            _fwCloseDropdown();
-            trigger.focus();
-        }
-    };
-    document.addEventListener('keydown', _fwGlobalEscape);
-
-    // Cleanup on modal close
-    const modal = trigger.closest('#fortunes-wheel-modal');
-    if (modal) {
-        const observer = new MutationObserver(() => {
-            if (modal.classList.contains('hidden')) {
-                _fwCloseDropdown();
-                document.removeEventListener('click', _fwOutsideClick);
-                document.removeEventListener('keydown', _fwGlobalEscape);
-                observer.disconnect();
-            }
-        });
-        observer.observe(modal, { attributes: true, attributeFilter: ['class'] });
-    }
-}
-
-/**
- * Core availability check + render. Called on open and whenever the class selector changes.
+ * Core availability check + render. Called when the modal opens.
  */
 async function _evaluateAndRender(classId, leagueLevel) {
     const allSchoolClasses = state.get('allSchoolClasses') || [];
@@ -1372,7 +1277,7 @@ function _renderLockedState(title, message, emoji) {
     _setStageEmblem(null);
     _renderGuildProgress();
     _renderCurrentGuildMembers();
-    _setStageCaption('The relic remains sealed until the proper class and lesson window align.');
+    _setStageCaption('The relic remains sealed until a class is chosen in the header and the lesson window aligns.');
 
     _updateSpinButton(true, availability.code === 'already_spun' ? 'Recharging' : 'Await Final Lesson');
     const nextBtn = document.getElementById('fw-next-btn');
@@ -1389,7 +1294,7 @@ function _renderCurrentGuildMembers() {
     if (!_wheelState.active || !_wheelState.classId || !guildId) {
         panel.innerHTML = `
             <div class="fw-guild-members__header">Active Guild Members</div>
-            <div class="fw-guild-members__empty">Choose a class to view guild members for each turn.</div>`;
+            <div class="fw-guild-members__empty">Select a class in the header to view guild members for each turn.</div>`;
         return;
     }
 
@@ -1446,8 +1351,7 @@ export async function triggerSpin() {
     // Guard: if the modal was closed during the spin animation, abort cleanly
     if (_wheelState._aborting) {
         _wheelState = { active: false, classId: null, leagueLevel: null, guildOrder: [], currentGuildIndex: 0, segments: [], results: [], phase: 'idle', winnerIndex: null, rotationAngle: 0, _aborting: false };
-        const modal = document.getElementById('fortunes-wheel-modal');
-        if (modal) { modal.classList.remove('is-open'); modal.classList.add('hidden'); }
+        hideModal('fortunes-wheel-modal');
         _hideResultReveal();
         return;
     }
@@ -1520,11 +1424,7 @@ export async function closeFortunesWheel() {
     _wheelState = { active: false, classId: null, leagueLevel: null, guildOrder: [], currentGuildIndex: 0, segments: [], results: [], phase: 'idle', winnerIndex: null, rotationAngle: 0 };
     _renderCurrentGuildMembers();
 
-    const modal = document.getElementById('fortunes-wheel-modal');
-    if (modal) {
-        modal.classList.remove('is-open');
-        modal.classList.add('hidden');
-    }
+    hideModal('fortunes-wheel-modal');
     _hideResultReveal();
 }
 

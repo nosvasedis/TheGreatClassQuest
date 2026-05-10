@@ -15,17 +15,6 @@ export const shopTabHTML = `
                     <div class="shop-controls-bar bg-white/70 backdrop-blur-sm px-5 py-3.5 rounded-2xl shadow-lg flex flex-wrap items-center gap-3 mb-8 relative z-20 w-full max-w-full">
 
                         <div class="shop-controls-primary flex items-center gap-3 flex-wrap min-w-0 flex-1">
-                            <!-- Class Selector Pill -->
-                            <div class="shop-selector-pill shop-selector-pill--class">
-                                <i class="fas fa-users shop-sel-icon text-fuchsia-400"></i>
-                                <select id="shop-class-select" class="shop-sel-select text-fuchsia-900">
-                                    <option value="">Choose a class...</option>
-                                </select>
-                                <i class="fas fa-chevron-down shop-sel-arrow text-fuchsia-300"></i>
-                            </div>
-
-                            <div class="hidden sm:block h-8 w-px bg-fuchsia-200 shrink-0"></div>
-
                             <!-- Student Selector Pill (this element is shopHeader for badge/ring effects) -->
                             <div class="shop-selector-pill shop-selector-pill--student">
                                 <i class="fas fa-hat-wizard shop-sel-icon text-purple-400"></i>

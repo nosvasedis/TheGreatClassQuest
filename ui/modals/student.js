@@ -135,8 +135,11 @@ export function openEditStudentModal(studentId) {
 }
 
 export async function openQuestAssignmentModal() {
-    const classId = document.getElementById('adventure-log-class-select').value;
-    if (!classId) return;
+    const classId = state.get('globalSelectedClassId');
+    if (!classId) {
+        showToast('Choose a class from the header first.', 'info');
+        return;
+    }
 
     const modal = document.getElementById('quest-assignment-modal');
     modal.dataset.editingId = '';

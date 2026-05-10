@@ -6,6 +6,7 @@ import { db } from '../../firebase.js';
 import { query, collection, where, getDocs } from 'https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js';
 import { showAnimatedModal } from './base.js';
 import { fetchLogsForDate } from '../../db/queries.js';
+import { playSound } from '../../audio.js';
 
 function getQuestBonusFromLog(log) {
     return log.reason === 'pathfinder_map' ? 10 : 0;
@@ -44,23 +45,48 @@ export async function showLogbookModal(dateString, isOndemand = false) {
     let logs;
 
     if (isOndemand) {
-        contentEl.innerHTML = '<p class="text-center py-8"><i class="fas fa-spinner fa-spin mr-2"></i>Fetching historical log...</p>';
-        // Use the helper to show the modal with animation
+        contentEl.innerHTML = '<div class="flex flex-col items-center justify-center py-12"><i class="fas fa-circle-notch fa-spin text-4xl text-amber-500 mb-4"></i><p class="text-gray-500 font-bold animate-pulse">Summoning historical logs...</p></div>';
         showAnimatedModal('logbook-modal'); 
         logs = await fetchLogsForDate(dateString);
     } else {
-        // --- THE FIX: SIMPLIFIED FILTER ---
-        // Old way: utils.getDDMMYYYY(utils.parseDDMMYYYY(log.date)) === dateString
-        // New way: direct string comparison. Much faster and less error-prone.
-        // FIX: Robust Date Comparison
-    // Use smart date parser so any format (DD-MM-YYYY, YYYY-MM-DD, etc.) matches correctly
-    logs = state.get('allAwardLogs').filter(log => log.date && utils.datesMatch(log.date, dateString));
+        logs = state.get('allAwardLogs').filter(log => log.date && utils.datesMatch(log.date, dateString));
     }
     
-    const reasonColors = { teamwork: 'text-purple-600', creativity: 'text-pink-600', respect: 'text-green-600', focus: 'text-yellow-600', correction: 'text-gray-500', welcome_back: 'text-cyan-600', story_weaver: 'text-cyan-600', scholar_s_bonus: 'text-amber-700', teacher_boon: 'text-fuchsia-600', pathfinder_map: 'text-indigo-600' };
+    const reasonColors = { 
+        teamwork: 'from-purple-500 to-indigo-600', 
+        creativity: 'from-pink-500 to-rose-600', 
+        respect: 'from-emerald-500 to-teal-600', 
+        focus: 'from-amber-400 to-orange-500', 
+        correction: 'from-slate-400 to-slate-600', 
+        welcome_back: 'from-cyan-400 to-blue-600', 
+        story_weaver: 'from-violet-400 to-purple-600', 
+        scholar_s_bonus: 'from-amber-600 to-orange-700', 
+        teacher_boon: 'from-fuchsia-500 to-pink-600', 
+        pathfinder_map: 'from-indigo-500 to-blue-700' 
+    };
+
+    const reasonIcons = {
+        teamwork: 'fa-users',
+        creativity: 'fa-lightbulb',
+        respect: 'fa-handshake',
+        focus: 'fa-bullseye',
+        correction: 'fa-wrench',
+        welcome_back: 'fa-door-open',
+        story_weaver: 'fa-book-open',
+        scholar_s_bonus: 'fa-graduation-cap',
+        teacher_boon: 'fa-gift',
+        pathfinder_map: 'fa-map-marked-alt'
+    };
 
     if (logs.length === 0) {
-        contentEl.innerHTML = '<p class="text-gray-600 text-center py-8">No stars were awarded in the school on this day.</p>';
+        contentEl.innerHTML = `
+            <div class="flex flex-col items-center justify-center py-16 px-6 text-center">
+                <div class="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mb-4 opacity-50">
+                    <i class="fas fa-moon text-4xl text-gray-400"></i>
+                </div>
+                <h3 class="text-xl font-title text-gray-700">A Quiet Day</h3>
+                <p class="text-gray-500 mt-2">No stars were awarded in the school on this day.</p>
+            </div>`;
     } else {
         const teacherNameMap = state.get('allSchoolClasses').reduce((acc, c) => {
             if (c.createdBy?.uid && c.createdBy?.name) {
@@ -84,57 +110,116 @@ export async function showLogbookModal(dateString, isOndemand = false) {
         const topClassId = topClassEntry ? topClassEntry[0] : null;
         const topClass = topClassId ? state.get('allSchoolClasses').find(c => c.id === topClassId) : null;
         
-        let summaryHtml = `<div class="grid ${totalClassQuestBonus > 0 ? 'grid-cols-4' : 'grid-cols-3'} gap-4 text-center mb-6 p-4 bg-gray-50 rounded-2xl border">
-            <div><div class="text-sm text-gray-500">Total Stars</div><div class="font-title text-3xl text-amber-600 flex items-center justify-center gap-2">${totalStars} <i class="fas fa-star"></i></div></div>
-            <div><div class="text-sm text-gray-500">Top Skill</div><div class="font-title text-3xl ${reasonColors[topReason] || 'text-purple-600'} capitalize">${topReason.replace(/_/g, ' ')}</div></div>
-            <div><div class="text-sm text-gray-500">Top Class</div><div class="font-title text-xl text-green-600 truncate">${topClass ? `${topClass.logo} ${topClass.name}` : 'N/A'}</div></div>
-            ${totalClassQuestBonus > 0 ? `<div><div class="text-sm text-gray-500">Class Quest Bonus</div><div class="font-title text-3xl text-indigo-600 flex items-center justify-center gap-2">${totalClassQuestBonus} <i class="fas fa-route"></i></div></div>` : ''}
+        let summaryHtml = `
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+            <div class="bg-gradient-to-br from-amber-50 to-orange-50 p-4 rounded-[1.5rem] border border-amber-100 shadow-sm flex flex-col items-center justify-center text-center group hover:scale-105 transition-transform duration-300">
+                <div class="w-10 h-10 bg-amber-400/20 rounded-full flex items-center justify-center mb-2 text-amber-600">
+                    <i class="fas fa-star text-lg"></i>
+                </div>
+                <div class="text-[10px] font-black text-amber-700/60 uppercase tracking-widest mb-1">Total Stars</div>
+                <div class="font-title text-3xl text-amber-600">${totalStars}</div>
+            </div>
+            <div class="bg-gradient-to-br from-purple-50 to-indigo-50 p-4 rounded-[1.5rem] border border-purple-100 shadow-sm flex flex-col items-center justify-center text-center group hover:scale-105 transition-transform duration-300">
+                <div class="w-10 h-10 bg-purple-400/20 rounded-full flex items-center justify-center mb-2 text-purple-600">
+                    <i class="fas ${reasonIcons[topReason] || 'fa-trophy'} text-lg"></i>
+                </div>
+                <div class="text-[10px] font-black text-purple-700/60 uppercase tracking-widest mb-1">Top Skill</div>
+                <div class="font-title text-xl text-purple-600 capitalize truncate w-full">${topReason.replace(/_/g, ' ')}</div>
+            </div>
+            <div class="bg-gradient-to-br from-emerald-50 to-teal-50 p-4 rounded-[1.5rem] border border-emerald-100 shadow-sm flex flex-col items-center justify-center text-center group hover:scale-105 transition-transform duration-300">
+                <div class="w-10 h-10 bg-emerald-400/20 rounded-full flex items-center justify-center mb-2 text-emerald-600">
+                    <i class="fas fa-users text-lg"></i>
+                </div>
+                <div class="text-[10px] font-black text-emerald-700/60 uppercase tracking-widest mb-1">Top Class</div>
+                <div class="font-title text-xl text-emerald-600 truncate w-full px-2">${topClass ? `${topClass.logo} ${topClass.name}` : 'N/A'}</div>
+            </div>
+            <div class="bg-gradient-to-br from-blue-50 to-indigo-50 p-4 rounded-[1.5rem] border border-blue-100 shadow-sm flex flex-col items-center justify-center text-center group hover:scale-105 transition-transform duration-300 ${totalClassQuestBonus > 0 ? '' : 'hidden md:flex opacity-50'}">
+                <div class="w-10 h-10 bg-blue-400/20 rounded-full flex items-center justify-center mb-2 text-blue-600">
+                    <i class="fas fa-route text-lg"></i>
+                </div>
+                <div class="text-[10px] font-black text-blue-700/60 uppercase tracking-widest mb-1">Quest Bonus</div>
+                <div class="font-title text-3xl text-indigo-600">${totalClassQuestBonus}</div>
+            </div>
         </div>`;
 
         const groupedByClass = logs.reduce((acc, log)=> { (acc[log.classId] = acc[log.classId] || []).push(log); return acc; }, {});
         
-        let detailsHtml = '';
+        let detailsHtml = '<div class="space-y-6">';
         for (const classId in groupedByClass) {
             const classInfo = state.get('allSchoolClasses').find(c => c.id === classId);
             if (!classInfo) continue;
             const classQuestBonus = classQuestBonusCounts[classId] || 0;
-            detailsHtml += `<div class="mb-4 bg-white p-4 rounded-xl shadow-md border"><h3 class="font-title text-xl text-gray-800 border-b pb-2 mb-2 flex justify-between items-center"><span>${classInfo.logo} ${classInfo.name}</span> <span class="flex items-center gap-3"><span class="text-amber-500 font-sans font-bold text-lg">${classStarCounts[classId]} ⭐</span>${classQuestBonus > 0 ? `<span class="text-indigo-600 font-sans font-bold text-sm">+${classQuestBonus} Quest</span>` : ''}</span></h3><div class="space-y-2 mt-2">`;
+            
+            detailsHtml += `
+                <div class="log-class-section bg-white/40 backdrop-blur-md rounded-[2rem] border border-white/60 shadow-lg overflow-hidden transition-all hover:shadow-xl">
+                    <div class="bg-gradient-to-r from-gray-50/80 to-white/80 px-6 py-4 border-b border-gray-100 flex justify-between items-center">
+                        <h3 class="font-title text-2xl text-gray-800 flex items-center gap-3">
+                            <span class="w-10 h-10 bg-white rounded-xl shadow-sm border border-gray-100 flex items-center justify-center text-2xl">${classInfo.logo}</span>
+                            <span>${classInfo.name}</span>
+                        </h3>
+                        <div class="flex items-center gap-3">
+                            <span class="bg-amber-100 text-amber-700 px-3 py-1 rounded-full font-bold text-sm shadow-sm border border-amber-200/50">${classStarCounts[classId]} ⭐</span>
+                            ${classQuestBonus > 0 ? `<span class="bg-indigo-100 text-indigo-700 px-3 py-1 rounded-full font-bold text-xs shadow-sm border border-indigo-200/50">+${classQuestBonus} Quest</span>` : ''}
+                        </div>
+                    </div>
+                    <div class="p-4 space-y-3">`;
             
             groupedByClass[classId].sort((a, b) => {
-            const nameA = state.get('allStudents').find(s => s.id === a.studentId)?.name || 'Z';
-            const nameB = state.get('allStudents').find(s => s.id === b.studentId)?.name || 'Z';
-            return nameA.localeCompare(nameB);
-        }).forEach(log => {
-            const student = state.get('allStudents').find(s => s.id === log.studentId);
-            
-            // --- ADDED: Check if this student was the Hero of THIS specific day ---
-            const dayAdventureLog = state.get('allAdventureLogs').find(l => l.classId === log.classId && utils.datesMatch(l.date, dateString));
-            const isDayHero = dayAdventureLog && dayAdventureLog.hero === student?.name;
-            // ---------------------------------------------------------------------
+                const nameA = state.get('allStudents').find(s => s.id === a.studentId)?.name || 'Z';
+                const nameB = state.get('allStudents').find(s => s.id === b.studentId)?.name || 'Z';
+                return nameA.localeCompare(nameB);
+            }).forEach((log, idx) => {
+                const student = state.get('allStudents').find(s => s.id === log.studentId);
+                const dayAdventureLog = state.get('allAdventureLogs').find(l => l.classId === log.classId && utils.datesMatch(l.date, dateString));
+                const isDayHero = dayAdventureLog && dayAdventureLog.hero === student?.name;
 
-            const teacherName = log.createdBy?.name || teacherNameMap[log.teacherId] || 'a teacher';
-            const colorClass = reasonColors[log.reason] || 'text-gray-500';
-            const noteHtml = log.note ? `<p class="text-xs text-gray-600 italic pl-4 border-l-2 border-gray-300 ml-1 mt-1">"${log.note}"</p>` : '';
-            
-            detailsHtml += `<div class="bg-gray-50 p-3 rounded-lg min-h-[50px] flex flex-col justify-center" id="log-entry-${log.id}">
-                        <div class="flex justify-between items-center">
-                            <div class="flex-grow">
-                                <!-- UPDATED: Added Crown and Color for historical heroes -->
-                                <span class="font-semibold ${isDayHero ? 'text-indigo-700' : ''}">
-                                    ${isDayHero ? '<i class="fas fa-crown text-amber-500 mr-1"></i>' : ''}${student?.name || '?'}
-                                </span>
-                                <span class="text-sm text-gray-500"> - for <b class="${colorClass} capitalize">${(log.reason || '').replace(/_/g, ' ')}</b> from ${teacherName}</span>
+                const teacherName = log.createdBy?.name || teacherNameMap[log.teacherId] || 'a teacher';
+                const gradientClass = reasonColors[log.reason] || 'from-gray-400 to-gray-600';
+                const reasonIcon = reasonIcons[log.reason] || 'fa-star';
+                const noteHtml = log.note ? `
+                    <div class="mt-2 pl-4 py-2 border-l-4 border-blue-200 bg-blue-50/50 rounded-r-xl">
+                        <p class="text-xs text-blue-800 italic leading-relaxed">"${log.note}"</p>
+                    </div>` : '';
+                
+                detailsHtml += `
+                    <div class="log-entry relative bg-gray-50/50 hover:bg-white p-4 rounded-[1.5rem] border border-gray-100/50 transition-all hover:shadow-md group" id="log-entry-${log.id}" style="animation: fade-in-up 0.4s ease-out forwards ${idx * 0.05}s; opacity: 0;">
+                        <div class="flex justify-between items-center gap-4">
+                            <div class="flex items-center gap-4 flex-grow min-w-0">
+                                <div class="w-10 h-10 rounded-full bg-gradient-to-br ${gradientClass} flex items-center justify-center text-white shadow-md flex-shrink-0 group-hover:scale-110 transition-transform">
+                                    <i class="fas ${reasonIcon}"></i>
+                                </div>
+                                <div class="min-w-0">
+                                    <div class="flex items-center gap-2 flex-wrap">
+                                        <span class="font-bold text-gray-800 ${isDayHero ? 'text-indigo-700' : ''}">
+                                            ${isDayHero ? '<i class="fas fa-crown text-amber-500 mr-1 filter drop-shadow-sm"></i>' : ''}${student?.name || '?'}
+                                        </span>
+                                        <span class="text-[10px] font-black uppercase tracking-widest px-2 py-0.5 rounded-lg bg-white border border-gray-200 text-gray-400 group-hover:text-gray-600 transition-colors">${(log.reason || '').replace(/_/g, ' ')}</span>
+                                    </div>
+                                    <p class="text-[11px] text-gray-500 mt-0.5">Awarded by <span class="font-semibold text-gray-600">${teacherName}</span></p>
+                                </div>
                             </div>
-                            <div class="flex items-center flex-shrink-0">
-                                ${getLogRewardMarkup(log)}
-                                ${log.teacherId === state.get('currentUserId') ? `<button class="note-log-btn" data-log-id="${log.id}" title="${log.note ? 'Edit Note' : 'Add Note'}"><i class="fas fa-sticky-note"></i></button>` : ''}
-                                ${log.teacherId === state.get('currentUserId') && log.reason !== 'story_weaver' && log.reason !== 'scholar_s_bonus' ? `<button class="delete-log-btn ml-2" data-log-id="${log.id}" data-student-id="${log.studentId}" data-stars="${log.stars}" title="Delete this log entry">&times;</button>` : ''}
+                            <div class="flex items-center gap-2 flex-shrink-0">
+                                <div class="flex flex-col items-end">
+                                    ${getLogRewardMarkup(log)}
+                                </div>
+                                <div class="flex items-center ml-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                    ${log.teacherId === state.get('currentUserId') ? `
+                                        <button class="note-log-btn w-8 h-8 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center hover:bg-blue-200 transition-colors shadow-sm" data-log-id="${log.id}" title="${log.note ? 'Edit Note' : 'Add Note'}">
+                                            <i class="fas fa-sticky-note text-xs"></i>
+                                        </button>` : ''}
+                                    ${log.teacherId === state.get('currentUserId') && log.reason !== 'story_weaver' && log.reason !== 'scholar_s_bonus' ? `
+                                        <button class="delete-log-btn ml-1.5 w-8 h-8 rounded-full bg-rose-100 text-rose-600 flex items-center justify-center hover:bg-rose-200 transition-colors shadow-sm" data-log-id="${log.id}" data-student-id="${log.studentId}" data-stars="${log.stars}" title="Delete entry">
+                                            <i class="fas fa-trash-alt text-xs"></i>
+                                        </button>` : ''}
+                                </div>
                             </div>
                         </div>
                         ${noteHtml}
-                     </div>`;
-        });
+                    </div>`;
+            });
+            detailsHtml += `</div></div>`;
         }
+        detailsHtml += '</div>';
         contentEl.innerHTML = summaryHtml + detailsHtml;
     }
     
@@ -479,3 +564,4 @@ export async function renderHistoricalLeaderboard(monthKey, type, leagueFilter =
         if(select) select.addEventListener('change', (e) => renderHistoricalLeaderboard(e.target.value, 'team', leagueFilter));
     }
 }
+

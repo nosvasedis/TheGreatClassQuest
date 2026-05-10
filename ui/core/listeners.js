@@ -7,6 +7,7 @@ import { signOut } from 'https://www.gstatic.com/firebasejs/11.6.1/firebase-auth
 import { doc, collection, query, where, getDocs, runTransaction, serverTimestamp } from 'https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js';
 import { handleAddHolidayRange, handleDeleteHolidayRange } from '../../db/actions.js';
 import { setupHomeListeners } from '../../features/home.js';
+import { wireHeaderClassSelector } from '../headerClassSelector.js';
 
 import * as modals from '../modals.js';
 import {
@@ -242,8 +243,16 @@ export function setupUIListeners() {
 
     // Modals & Pickers
     document.getElementById('modal-cancel-btn').addEventListener('click', () => modals.hideModal('confirmation-modal'));
-    document.getElementById('leaderboard-league-picker-btn').addEventListener('click', () => modals.showLeaguePicker());
-    document.getElementById('student-leaderboard-league-picker-btn').addEventListener('click', () => modals.showLeaguePicker());
+    document.getElementById('leaderboard-league-picker-btn').addEventListener('click', () => modals.showLeaguePicker({ scope: 'leaderboard' }));
+    document.getElementById('student-leaderboard-league-picker-btn').addEventListener('click', () => modals.showLeaguePicker({ scope: 'leaderboard' }));
+    document.getElementById('leaderboard-league-match-btn')?.addEventListener('click', () => {
+        playSound('click');
+        state.setLeaderboardLeagueOverride(null);
+    });
+    document.getElementById('student-leaderboard-league-match-btn')?.addEventListener('click', () => {
+        playSound('click');
+        state.setLeaderboardLeagueOverride(null);
+    });
     document.getElementById('league-picker-close-btn').addEventListener('click', () => modals.hideModal('league-picker-modal'));
     document.getElementById('logo-picker-btn').addEventListener('click', () => modals.showLogoPicker('create'));
     document.getElementById('edit-logo-picker-btn').addEventListener('click', () => modals.showLogoPicker('edit'));
@@ -427,38 +436,15 @@ export function setupUIListeners() {
     document.getElementById('class-history-btn').addEventListener('click', () => modals.openHistoryModal('team'));
     document.getElementById('student-history-btn').addEventListener('click', modals.openStudentRankingsModal);
     document.getElementById('history-modal-close-btn').addEventListener('click', () => modals.hideModal('history-modal'));
-    document.getElementById('history-month-select').addEventListener('change', (e) => {
-        const modal = document.getElementById('history-modal');
-        const type = modal.dataset.historyType;
-        modals.renderHistoricalLeaderboard(e.target.value, type, modal.dataset.historyLeague || null);
-    });
+    // Timeline listeners are now handled internally within populateHistoryTimeline in log.js
 
     // Get Quest Update button
     // Removed: Get Quest Update button replaced with month title
 
-    // Award Stars Tab
-    document.getElementById('award-class-dropdown-btn').addEventListener('click', () => {
-        const panel = document.getElementById('award-class-dropdown-panel');
-        const icon = document.querySelector('#award-class-dropdown-btn i');
-        panel.classList.toggle('hidden');
-        icon.classList.toggle('rotate-180');
-    });
     const openTeacherBoonBtn = document.getElementById('open-teacher-boon-btn');
     if (openTeacherBoonBtn) {
         openTeacherBoonBtn.addEventListener('click', modals.openTeacherBoonModal);
     }
-    document.getElementById('award-class-list').addEventListener('click', (e) => {
-        const target = e.target.closest('.award-class-item');
-        if (target) {
-            playSound('click');
-            state.setGlobalSelectedClass(target.dataset.id, true);
-            const panel = document.getElementById('award-class-dropdown-panel');
-            const icon = document.querySelector('#award-class-dropdown-btn i');
-            panel.classList.add('hidden');
-            icon.classList.remove('rotate-180');
-        }
-    });
-
     // Boon Modal Listeners
     document.getElementById('boon-cancel-btn').addEventListener('click', () => modals.hideModal('bestow-boon-modal'));
     document.getElementById('boon-confirm-btn').addEventListener('click', (e) => {
@@ -490,9 +476,6 @@ export function setupUIListeners() {
         openProdigyBtn.addEventListener('click', modals.openProdigyModal);
     }
     document.getElementById('prodigy-close-btn').addEventListener('click', () => modals.hideModal('prodigy-modal'));
-    document.getElementById('prodigy-class-select').addEventListener('change', (e) => {
-        modals.renderProdigyHistory(e.target.value);
-    });
 
 
 
@@ -511,12 +494,6 @@ export function setupUIListeners() {
             modals.renderTrophyRoomContent(e.target.value);
         });
     }
-    const trophyRoomClassSelect = document.getElementById('trophy-room-class-select');
-    if (trophyRoomClassSelect) {
-        trophyRoomClassSelect.addEventListener('change', (e) => {
-            modals.handleTrophyRoomClassChange(e.target.value);
-        });
-    }
 
     const genShopBtn = document.getElementById('generate-shop-btn');
     if (genShopBtn) {
@@ -530,24 +507,6 @@ export function setupUIListeners() {
     if (shopStudentSelect) {
         shopStudentSelect.addEventListener('change', (e) => {
             updateShopStudentDisplay(e.target.value);
-        });
-    }
-
-    const shopClassSelect = document.getElementById('shop-class-select');
-    if (shopClassSelect) {
-        shopClassSelect.addEventListener('change', (e) => {
-            // Trigger a subtle "window refresh" animation when switching between classes
-            if (e.target.value) {
-                const shopWindow = document.getElementById('shop-window');
-                if (shopWindow) {
-                    shopWindow.classList.remove('shop-window-switching');
-                    void shopWindow.offsetWidth; // force reflow to restart animation
-                    shopWindow.classList.add('shop-window-switching');
-                    shopWindow.addEventListener('animationend', () => shopWindow.classList.remove('shop-window-switching'), { once: true });
-                }
-            }
-            state.setGlobalSelectedClass(e.target.value, true);
-            import('./shop.js').then(m => m.initializeShopTab());
         });
     }
 
@@ -638,23 +597,23 @@ export function setupUIListeners() {
 
     if (bStars && bTimer) {
         bStars.addEventListener('click', () => {
-            bStars.className = "flex-1 py-2 rounded-md text-sm font-bold bg-white text-amber-600 shadow-sm transition-all";
-            bTimer.className = "flex-1 py-2 rounded-md text-sm font-bold text-gray-500 hover:text-gray-700 transition-all";
+            bStars.className = "flex-1 py-2.5 rounded-xl text-sm font-black uppercase tracking-wider transition-all bg-white text-amber-600 shadow-sm";
+            bTimer.className = "flex-1 py-2.5 rounded-xl text-sm font-black uppercase tracking-wider transition-all text-slate-500 hover:text-slate-700";
             inputStars.classList.remove('hidden');
             inputTimer.classList.add('hidden');
             bType.value = 'standard';
-            bSubmit.className = "w-2/3 bg-gradient-to-r from-amber-500 to-orange-500 text-white font-bold py-3 rounded-xl bubbly-button shadow-lg";
-            bSubmit.innerHTML = "Start Quest";
+            bSubmit.className = "flex-[2] bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white font-title text-xl py-4 rounded-2xl shadow-lg shadow-amber-200 transition-all active:scale-95";
+            bSubmit.innerHTML = `<i class="fas fa-paper-plane mr-2"></i>Start Quest`;
         });
 
         bTimer.addEventListener('click', () => {
-            bTimer.className = "flex-1 py-2 rounded-md text-sm font-bold bg-white text-red-600 shadow-sm transition-all";
-            bStars.className = "flex-1 py-2 rounded-md text-sm font-bold text-gray-500 hover:text-gray-700 transition-all";
+            bTimer.className = "flex-1 py-2.5 rounded-xl text-sm font-black uppercase tracking-wider transition-all bg-white text-rose-600 shadow-sm";
+            bStars.className = "flex-1 py-2.5 rounded-xl text-sm font-black uppercase tracking-wider transition-all text-slate-500 hover:text-slate-700";
             inputStars.classList.add('hidden');
             inputTimer.classList.remove('hidden');
             bType.value = 'timer';
-            bSubmit.className = "w-2/3 bg-gradient-to-r from-red-500 to-rose-600 text-white font-bold py-3 rounded-xl bubbly-button shadow-lg";
-            bSubmit.innerHTML = "Start Timer";
+            bSubmit.className = "flex-[2] bg-gradient-to-r from-rose-500 to-red-600 hover:from-rose-600 hover:to-red-700 text-white font-title text-xl py-4 rounded-2xl shadow-lg shadow-rose-200 transition-all active:scale-95";
+            bSubmit.innerHTML = `<i class="fas fa-hourglass-start mr-2"></i>Start Timer`;
         });
     }
 
@@ -665,6 +624,7 @@ export function setupUIListeners() {
     });
 
     document.getElementById('bounty-cancel-btn')?.addEventListener('click', () => modals.hideModal('create-bounty-modal'));
+    document.getElementById('bounty-cancel-x-btn')?.addEventListener('click', () => modals.hideModal('create-bounty-modal'));
 
     // Global listener for dynamic bounty buttons (Claim/Delete)
     document.getElementById('bounty-board-container').addEventListener('click', (e) => {
@@ -1062,10 +1022,6 @@ export function setupUIListeners() {
     });
 
     // Adventure Log
-    document.getElementById('adventure-log-class-select').addEventListener('change', (e) => {
-        state.setGlobalSelectedClass(e.target.value, true);
-        tabs.renderAdventureLogTab();
-    });
     document.getElementById('adventure-log-month-filter').addEventListener('change', (e) => {
         state.get('currentLogFilter').month = e.target.value;
         tabs.renderAdventureLog();
@@ -1120,17 +1076,10 @@ export function setupUIListeners() {
     document.getElementById('attendance-chronicle-close-btn').addEventListener('click', () => modals.hideModal('attendance-chronicle-modal'));
 
 
-    // Scholar's Scroll
-    document.getElementById('scroll-class-select').addEventListener('change', (e) => {
-        state.setGlobalSelectedClass(e.target.value, true);
-        scholarScroll.renderScholarsScrollTab(e.target.value);
-    });
-
-    // NEW: Replaced log-trial-btn listener to open the trial type modal via scholarScroll helper
-    document.getElementById('log-trial-btn').addEventListener('click', () => scholarScroll.openTrialTypeModal(document.getElementById('scroll-class-select').value));
+    // Scholar's Scroll — actions are on the side FABs only
     const logTrialFab = document.getElementById('log-trial-fab');
     if (logTrialFab) {
-        logTrialFab.addEventListener('click', () => scholarScroll.openTrialTypeModal(document.getElementById('scroll-class-select').value));
+        logTrialFab.addEventListener('click', () => scholarScroll.openTrialTypeModal(state.get('globalSelectedClassId')));
     }
 
     // NEW: Bulk Save listener
@@ -1138,19 +1087,14 @@ export function setupUIListeners() {
     document.getElementById('bulk-trial-close-btn').addEventListener('click', () => modals.hideModal('bulk-trial-modal'));
     document.getElementById('trial-type-cancel-btn').addEventListener('click', () => modals.hideModal('trial-type-modal'));
 
-    document.getElementById('view-trial-history-btn').addEventListener('click', () => scholarScroll.openTrialHistoryModal(document.getElementById('scroll-class-select').value));
     const viewTrialHistoryFab = document.getElementById('view-trial-history-fab');
     if (viewTrialHistoryFab) {
-        viewTrialHistoryFab.addEventListener('click', () => scholarScroll.openTrialHistoryModal(document.getElementById('scroll-class-select').value));
+        viewTrialHistoryFab.addEventListener('click', () => scholarScroll.openTrialHistoryModal(state.get('globalSelectedClassId')));
     }
     document.getElementById('trial-history-close-btn').addEventListener('click', () => modals.hideModal('trial-history-modal'));
     document.getElementById('starfall-cancel-btn').addEventListener('click', () => modals.hideModal('starfall-modal'));
 
     // Story Weavers
-    document.getElementById('story-weavers-class-select').addEventListener('change', (e) => {
-        state.setGlobalSelectedClass(e.target.value, true);
-        storyWeaver.handleStoryWeaversClassSelect();
-    });
     document.getElementById('story-weavers-suggest-word-btn').addEventListener('click', storyWeaver.handleSuggestWord);
     document.getElementById('story-weavers-lock-in-btn').addEventListener('click', storyWeaver.openStoryInputModal);
     document.getElementById('story-weavers-end-btn').addEventListener('click', handleEndStory);
@@ -1248,6 +1192,8 @@ export function setupUIListeners() {
 
     // Initialize Home/Info Listeners
     setupHomeListeners();
+    wireHeaderClassSelector();
+
     // Hero Celebration Modal
     const heroCelebrationCloseBtn = document.getElementById('hero-celebration-close-btn');
     if (heroCelebrationCloseBtn) {

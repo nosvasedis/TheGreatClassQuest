@@ -10,26 +10,7 @@ export const awardTabHTML = `
                         <p class="text-lg text-gray-600 mt-2">Recognize your students' excellence and effort.</p>
                     </div>
 
-                    <div class="award-stars-toolbar mb-6">
-                        <div id="award-class-dropdown" class="relative award-stars-toolbar-main">
-                            <button id="award-class-dropdown-btn"
-                                class="w-full flex items-center justify-between p-4 rounded-2xl border-4 border-rose-300 bg-white shadow-lg bubbly-button">
-                                <span class="flex items-center gap-3">
-                                    <span id="selected-class-logo" class="text-4xl"></span>
-                                    <div class="text-left">
-                                        <div id="selected-class-name" class="font-bold text-lg text-rose-800">Select a
-                                            class...</div>
-                                        <div id="selected-class-level" class="text-sm text-rose-500 -mt-1"></div>
-                                    </div>
-                                </span>
-                                <i class="fas fa-chevron-down text-rose-500 transition-transform"></i>
-                            </button>
-                            <div id="award-class-dropdown-panel"
-                                class="absolute top-full left-0 right-0 mt-2 bg-white rounded-2xl shadow-2xl z-20 hidden overflow-hidden border-2 border-rose-200">
-                                <div id="award-class-list" class="max-h-64 overflow-y-auto"></div>
-                            </div>
-                        </div>
-
+                    <div class="award-stars-toolbar mb-6 flex flex-wrap items-center justify-center gap-4">
                         <button id="open-teacher-boon-btn"
                             class="teacher-boon-launch-btn hidden"
                             type="button"
@@ -42,19 +23,18 @@ export const awardTabHTML = `
                             <i class="fas fa-wand-magic-sparkles teacher-boon-launch-btn__icon" aria-hidden="true"></i>
                             <span class="teacher-boon-launch-btn__label">Teacher Boon</span>
                         </button>
-                    </div>
 
-                    <div class="flex justify-center mb-6">
                         <button id="open-bounty-modal-btn"
-                            class="w-full md:w-auto bg-amber-100 text-amber-800 font-title text-xl py-3 px-8 rounded-2xl bubbly-button shadow-md hover:bg-amber-200 border-2 border-amber-300 transition-transform hover:scale-105">
-                            <i class="fas fa-crosshairs mr-2"></i> Post a Bounty
+                            class="group relative flex items-center gap-2 px-5 py-2 bg-gradient-to-r from-amber-400 to-orange-500 hover:from-amber-500 hover:to-orange-600 text-white rounded-full font-title text-lg shadow-md shadow-amber-200/50 transition-all active:scale-95 border-b-2 border-amber-600/30">
+                            <i class="fas fa-crosshairs text-amber-100 group-hover:rotate-12 transition-transform"></i>
+                            <span class="tracking-tight">Post a Bounty</span>
                         </button>
                     </div>
 
                     <div id="award-stars-student-list" class="mt-6 grid grid-cols-1 md:grid-cols-2 gap-x-10 gap-y-0 items-start">
                         <p
                             class="text-center text-gray-700 bg-white/70 backdrop-blur-sm p-4 rounded-2xl text-lg col-span-full">
-                            Please select a class to award stars.</p>
+                            Please choose a class from the header to award stars.</p>
                     </div>
                 </div>
             </div>

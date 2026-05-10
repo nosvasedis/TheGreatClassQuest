@@ -17,6 +17,7 @@ import { updateCeremonyStatus } from '../../features/ceremony.js';
 import { renderHomeTab } from '../../features/home.js';
 import { HERO_CLASSES } from '../../features/heroClasses.js';
 import { generateLeagueMapHtml } from '../../features/worldMap.js';
+import { refreshFortunesWheelModalFromGlobalClass } from '../../features/fortunesWheel.js';
 import { renderClassLeaderboardTab, renderStudentLeaderboardTab } from './leaderboard.js';
 import { renderGuildsTab } from './guilds.js';
 import { renderManageClassesTab, renderManageStudentsTab } from './classes.js';
@@ -69,6 +70,93 @@ export function updateBottomNavGateState() {
 
 if (typeof window !== 'undefined') {
     window.addEventListener('gcq-subscription-updated', updateBottomNavGateState);
+}
+
+/**
+ * Core tab re-renders (leaderboards, home, shop, award, …) without Options first-visit
+ * or duplicate Options rows. Used by showTab and by header class/league changes.
+ */
+export async function applyTabPrimaryRefresh(tabId) {
+    if (!tabId) return;
+
+    if (tabId === 'class-leaderboard-tab' || tabId === 'student-leaderboard-tab' || tabId === 'guilds-tab') {
+        const { findAndSetCurrentClass } = await import('../core.js');
+        findAndSetCurrentClass();
+        updateCeremonyStatus(tabId);
+    }
+
+    if (tabId === 'class-leaderboard-tab') await renderClassLeaderboardTab();
+    if (tabId === 'student-leaderboard-tab') await renderStudentLeaderboardTab();
+    if (tabId === 'guilds-tab') await renderGuildsTab();
+    if (tabId === 'my-classes-tab') renderManageClassesTab();
+    if (tabId === 'manage-students-tab') renderManageStudentsTab();
+
+    if (tabId === 'award-stars-tab') {
+        const { findAndSetCurrentClass } = await import('../core.js');
+        resetAwardCardVisualSession();
+        renderAwardStarsTab();
+        findAndSetCurrentClass();
+    }
+
+    if (tabId === 'adventure-log-tab') {
+        const { findAndSetCurrentClass } = await import('../core.js');
+        renderAdventureLogTab();
+        findAndSetCurrentClass();
+    }
+
+    if (tabId === 'scholars-scroll-tab') {
+        const { findAndSetCurrentClass } = await import('../core.js');
+        scholarScroll.renderScholarsScrollTab();
+        findAndSetCurrentClass();
+    }
+
+    if (tabId === 'calendar-tab') {
+        await ensureHistoryLoaded();
+        renderCalendarTab();
+    }
+
+    if (tabId === 'about-tab') {
+        renderHomeTab();
+    }
+
+    if (tabId === 'shop-tab') {
+        import('../core/shop.js').then(m => m.initializeShopTab());
+    }
+}
+
+function patchOptionsTabForClassChange() {
+    import('../core.js').then(m => {
+        if (m.renderEconomyStudentSelect) m.renderEconomyStudentSelect();
+    });
+    renderStarManagerStudentSelect();
+    renderFamiliarOptionsUi();
+    if (canUseFeature('scholarScroll')) {
+        renderAssessmentOptionsUi();
+    }
+    if (canUseFeature('quizOfTheWeek')) {
+        renderQuizOptionsUi().catch(() => {});
+    }
+    const hasAccessCenter = canUseFeature('parentAccess') || canUseFeature('secretaryAccess') || state.get('currentUserRole') === 'secretary' || state.get('isSchoolAdmin');
+    if (hasAccessCenter) {
+        renderAccessCenterUi();
+    }
+}
+
+/** Prefer the tab that is actually visible (not only localStorage). */
+export async function refreshVisibleTabForGlobalClassChange() {
+    const visible = document.querySelector('.app-tab:not(.hidden)');
+    const tabId = visible?.id || localStorage.getItem('quest_last_active_tab') || 'about-tab';
+    await applyTabPrimaryRefresh(tabId);
+    if (tabId === 'reward-ideas-tab') {
+        renderIdeasTabSelects();
+    }
+    if (tabId === 'options-tab') {
+        patchOptionsTabForClassChange();
+    }
+    const fwModal = document.getElementById('fortunes-wheel-modal');
+    if (fwModal && !fwModal.classList.contains('hidden')) {
+        await refreshFortunesWheelModalFromGlobalClass();
+    }
 }
 
 export async function showTab(tabName) {
@@ -125,54 +213,12 @@ export async function showTab(tabName) {
         }, animationDuration);
     }
 
-    // --- Trigger specific render functions when a tab is shown ---
-    if (tabId === 'class-leaderboard-tab' || tabId === 'student-leaderboard-tab' || tabId === 'guilds-tab') {
-        const { findAndSetCurrentLeague } = await import('../core.js');
-        findAndSetCurrentLeague();
-        updateCeremonyStatus(tabId); // Pass the ID!
+    await applyTabPrimaryRefresh(tabId);
+
+    if (tabId === 'reward-ideas-tab') {
+        renderIdeasTabSelects();
     }
 
-    if (tabId === 'class-leaderboard-tab') renderClassLeaderboardTab();
-    if (tabId === 'student-leaderboard-tab') renderStudentLeaderboardTab();
-    if (tabId === 'guilds-tab') renderGuildsTab();
-    if (tabId === 'my-classes-tab') renderManageClassesTab();
-    if (tabId === 'manage-students-tab') renderManageStudentsTab();
-
-    if (tabId === 'award-stars-tab') {
-        const { findAndSetCurrentClass } = await import('../core.js');
-        resetAwardCardVisualSession();
-        // First render with whatever state we have
-        renderAwardStarsTab();
-        // Then try to find the current class based on time, which will trigger a re-render via state.js if found
-        findAndSetCurrentClass();
-    }
-
-    if (tabId === 'adventure-log-tab') {
-        const { findAndSetCurrentClass } = await import('../core.js');
-        renderAdventureLogTab();
-        findAndSetCurrentClass('adventure-log-class-select');
-    }
-
-    if (tabId === 'scholars-scroll-tab') {
-        const { findAndSetCurrentClass } = await import('../core.js');
-        scholarScroll.renderScholarsScrollTab();
-        findAndSetCurrentClass('scroll-class-select');
-    }
-
-    if (tabId === 'calendar-tab') {
-        await ensureHistoryLoaded();
-        renderCalendarTab();
-    }
-
-    if (tabId === 'about-tab') {
-        renderHomeTab();
-    }
-
-    if (tabId === 'shop-tab') {
-        import('../core/shop.js').then(m => m.initializeShopTab());
-    }
-
-    if (tabId === 'reward-ideas-tab') renderIdeasTabSelects();
     if (tabId === 'options-tab') {
         const hasAssessmentAccess = canUseFeature('scholarScroll');
         const hasAccessCenter = canUseFeature('parentAccess') || canUseFeature('secretaryAccess') || state.get('currentUserRole') === 'secretary' || state.get('isSchoolAdmin');
@@ -783,7 +829,7 @@ function getCategoriesForType(type, level) {
     return MIX_CATEGORIES[lvl] || MIX_CATEGORIES['A'];
 }
 
-async function renderQuizOptionsUi() {
+export async function renderQuizOptionsUi() {
     const quizContent = document.getElementById('options-quiz-content');
     const quizLocked = document.getElementById('options-quiz-locked');
     const hasQuiz = canUseFeature('quizOfTheWeek');
@@ -792,7 +838,7 @@ async function renderQuizOptionsUi() {
     if (quizContent) quizContent.classList.toggle('hidden', !hasQuiz);
     if (!hasQuiz) return;
 
-    const classSelect    = document.getElementById('quiz-class-select');
+    const classDisplay = document.getElementById('qow-class-display');
     const typeSelect     = document.getElementById('quiz-curriculum-type');  // hidden <select>
     const typePillsWrap  = document.getElementById('qow-type-pills');
     const categoriesChips = document.getElementById('quiz-categories-chips');
@@ -817,12 +863,8 @@ async function renderQuizOptionsUi() {
     const classLevelBadge = document.getElementById('qow-class-level-badge');
     const classMetaText  = document.getElementById('qow-class-meta-text');
 
-    // Populate class selector
+    // Class comes from header (global selection)
     const classes = (state.get('allTeachersClasses') || []).sort((a, b) => a.name.localeCompare(b.name));
-    if (classSelect) {
-        classSelect.innerHTML = '<option value="">— Choose a class —</option>' +
-            classes.map(c => `<option value="${c.id}">${c.logo || ''} ${c.name} (${c.questLevel || ''})</option>`).join('');
-    }
 
     // ── Type pills ──────────────────────────────────────────────────────────
     function setActivePill(type) {
@@ -844,7 +886,7 @@ async function renderQuizOptionsUi() {
     function renderCategories() {
         if (!categoriesChips) return;
         const type = typeSelect?.value || 'mix';
-        const classId = classSelect?.value;
+        const classId = state.get('globalSelectedClassId');
         const classData = classes.find(c => c.id === classId);
         const level = classData?.questLevel || 'A';
         const categories = getCategoriesForType(type, level);
@@ -878,8 +920,14 @@ async function renderQuizOptionsUi() {
         classMeta?.classList.add('hidden');
     }
 
-    classSelect?.addEventListener('change', async () => {
-        const classId = classSelect.value;
+    async function syncQuizToHeaderClass() {
+        const classId = state.get('globalSelectedClassId');
+        if (classDisplay) {
+            const cd = classes.find(c => c.id === classId);
+            classDisplay.textContent = cd
+                ? `${cd.logo || ''} ${cd.name} (${cd.questLevel || ''})`.trim()
+                : 'Choose a class from the header…';
+        }
         if (validationMsg) { validationMsg.classList.add('hidden'); validationMsg.textContent = ''; }
 
         if (!classId) {
@@ -897,12 +945,10 @@ async function renderQuizOptionsUi() {
         cardCurriculum?.classList.remove('qow-card-disabled');
         generateBtn.disabled = false;
 
-        // Always reset form to a clean slate before pre-filling
         setActivePill('mix');
         if (keywordsInput) keywordsInput.value = '';
         renderCategories();
 
-        // Pre-fill from existing curriculum (if any)
         try {
             const { getQuizForClass } = await import('../../db/actions/quizOfTheWeek.js');
             const existingQuiz = await getQuizForClass(classId);
@@ -919,11 +965,13 @@ async function renderQuizOptionsUi() {
         } catch (_) { /* non-fatal */ }
 
         await refreshQuizStatus(classId);
-    });
+    }
+
+    await syncQuizToHeaderClass();
 
     // ── Generate button ──────────────────────────────────────────────────────
     generateBtn?.addEventListener('click', async () => {
-        const classId = classSelect?.value;
+        const classId = state.get('globalSelectedClassId');
         if (!classId) return;
 
         const selectedCategories = [...document.querySelectorAll('.quiz-category-checkbox:checked')].map(cb => cb.value);
@@ -1134,7 +1182,7 @@ async function renderQuizOptionsUi() {
 
     // ── Reset (delete) button ────────────────────────────────────────────────
     resetBtn?.addEventListener('click', async () => {
-        const classId = classSelect?.value;
+        const classId = state.get('globalSelectedClassId');
         if (!classId) return;
         if (!confirm("Delete this week's quiz for this class? You can then re-generate with a new or updated curriculum.")) return;
 

@@ -1,5 +1,6 @@
 // /ui/tabs/leaderboard.js
 import * as state from '../../state.js';
+import { getLeaderboardEffectiveLeague } from '../../state.js';
 import * as utils from '../../utils.js';
 import * as constants from '../../constants.js';
 import * as modals from '../modals.js';
@@ -101,6 +102,14 @@ async function getReigningProdigies() {
     return _prodigyCache;
 }
 
+function syncHeroChallengeFabs() {
+    const enable = Boolean(state.get('globalSelectedClassId'));
+    const prodigyBtn = document.getElementById('open-prodigy-btn');
+    const trophyBtn = document.getElementById('open-trophy-room-btn');
+    if (prodigyBtn) prodigyBtn.disabled = !enable;
+    if (trophyBtn) trophyBtn.disabled = !enable;
+}
+
 // --- TAB CONTENT RENDERERS ---
 
 export async function renderClassLeaderboardTab() {
@@ -114,7 +123,7 @@ export async function renderClassLeaderboardTab() {
         monthNameEl.textContent = monthName;
     }
 
-    const league = state.get('globalSelectedLeague');
+    const league = getLeaderboardEffectiveLeague();
     if (!league) {
         list.innerHTML = `<div class="max-w-xl mx-auto"><p class="text-center text-gray-700 bg-white/50 p-6 rounded-2xl text-lg">Please select a league to view the Team Quest map.</p></div>`;
         return;
@@ -531,19 +540,23 @@ export async function renderClassLeaderboardTab() {
 export async function renderStudentLeaderboardTab() {
     const list = document.getElementById('student-leaderboard-list');
     if (!list) return;
+
+    syncHeroChallengeFabs();
+
     const heroProgressionEnabled = canUseFeature('heroProgression');
 
-    const league = state.get('globalSelectedLeague');
-    if (!league) {
-        list.innerHTML = `<div class="max-w-xl mx-auto"><p class="text-center text-gray-700 bg-white/50 p-6 rounded-2xl text-lg">Please select a league to view the leaderboard.</p></div>`;
-        return;
-    }
-
-    // Update the month name in the title
+    // Match Team Quest: always refresh ribbon month (static HTML placeholder e.g. "February"
+    // would otherwise survive until after a league is chosen).
     const heroMonthNameEl = document.getElementById('hero-month-name');
     if (heroMonthNameEl) {
         const monthName = new Date().toLocaleString('en-US', { month: 'long' });
         heroMonthNameEl.textContent = monthName;
+    }
+
+    const league = getLeaderboardEffectiveLeague();
+    if (!league) {
+        list.innerHTML = `<div class="max-w-xl mx-auto"><p class="text-center text-gray-700 bg-white/50 p-6 rounded-2xl text-lg">Please select a league to view the leaderboard.</p></div>`;
+        return;
     }
 
     const classesInLeague = state.get('allSchoolClasses').filter(c => c.questLevel === league);

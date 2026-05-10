@@ -20,15 +20,7 @@ export function initializeShopTab() {
         if (cls) league = cls.questLevel;
     }
 
-    // Always populate the class selector so the user can make/change a selection
-    const classSelect = document.getElementById('shop-class-select');
-    if (classSelect) {
-        classSelect.innerHTML = `<option value="">Select a class...</option>` +
-            [...allClasses]
-                .sort((a,b) => a.name.localeCompare(b.name))
-                .map(c => `<option value="${c.id}" ${c.id === classId ? 'selected' : ''}>${c.logo || '🏫'} ${c.name}</option>`)
-                .join('');
-    }
+    // Class comes from global header selection only
 
     // Always show the current month — must happen before any early return
     const monthName = new Date().toLocaleString('en-US', { month: 'long' });

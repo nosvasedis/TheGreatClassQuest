@@ -64,31 +64,20 @@ export const fortunesWheelModalHTML = `
                         </main>
 
                         <div id="fw-stage-caption" class="fw-stage-caption">
-                            Choose a class to awaken the relic and begin the ceremony.
+                            Choose a class in the header to awaken the relic and begin the ceremony.
                         </div>
                     </section>
 
                     <aside class="fw-controls-section">
-                        <div class="fw-class-selector">
-                            <label id="fw-class-label" class="fw-class-label">Select Class</label>
-                            <div class="fw-select-wrapper">
-                                <button type="button" id="fw-class-select-trigger" class="fw-custom-select" aria-haspopup="listbox" aria-expanded="false" aria-labelledby="fw-class-label">
-                                    <span id="fw-class-select-text">— Choose a class —</span>
-                                    <span class="fw-select-arrow"><i class="fa-solid fa-chevron-down"></i></span>
-                                </button>
-                                <div id="fw-class-select-menu" class="fw-custom-dropdown" role="listbox" aria-labelledby="fw-class-label"></div>
-                            </div>
-                        </div>
-
                         <div id="fw-availability" class="fw-availability-card" aria-live="polite">
                             <div id="fw-availability-title" class="fw-availability-title">Awaiting a class</div>
-                            <div id="fw-availability-message" class="fw-availability-message">Choose a class to see if the relic can awaken.</div>
+                            <div id="fw-availability-message" class="fw-availability-message">Choose a class in the header to see if the relic can awaken.</div>
                             <div id="fw-availability-meta" class="fw-availability-meta"></div>
                         </div>
 
                         <div id="fw-guild-members" class="fw-guild-members-panel" aria-live="polite">
                             <div class="fw-guild-members__header">Active Guild Members</div>
-                            <div class="fw-guild-members__empty">Choose a class to view guild members for each turn.</div>
+                            <div class="fw-guild-members__empty">Select a class in the header to view guild members for each turn.</div>
                         </div>
 
                         <div id="fw-result" class="fw-result-card hidden"></div>

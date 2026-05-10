@@ -79,6 +79,26 @@ export function showAnimatedModal(modalId) {
 
     const innerContent = modal.querySelector('.pop-in');
 
+    if (modalId === 'fortunes-wheel-modal' && innerContent) {
+        innerContent.classList.remove('fw-card--exit', 'modal-origin-start', 'pop-out');
+        innerContent.classList.remove('fw-card--enter');
+        modal.querySelector('.fw-backdrop')?.classList.remove('fw-backdrop--exit');
+        modal.classList.remove('hidden');
+        void modal.offsetWidth;
+        innerContent.classList.add('fw-card--enter');
+        if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+            innerContent.classList.remove('fw-card--enter');
+            return;
+        }
+        const onEnterEnd = (e) => {
+            if (e.target !== innerContent || e.animationName !== 'fw-relic-open') return;
+            innerContent.classList.remove('fw-card--enter');
+            innerContent.removeEventListener('animationend', onEnterEnd);
+        };
+        innerContent.addEventListener('animationend', onEnterEnd);
+        return;
+    }
+
     modal.classList.remove('hidden');
     if (innerContent) {
         innerContent.classList.add('modal-origin-start');
@@ -139,6 +159,51 @@ export function hideModal(modalId) {
 
     const innerContent = modal.querySelector('.pop-in');
 
+    if (modalId === 'fortunes-wheel-modal') {
+        const backdrop = modal.querySelector('.fw-backdrop');
+        backdrop?.classList.add('fw-backdrop--exit');
+        if (innerContent) {
+            innerContent.classList.remove('fw-card--enter', 'modal-origin-start');
+            innerContent.classList.add('fw-card--exit');
+        }
+
+        const finishFwClose = () => {
+            modal.classList.add('hidden');
+            modal.style.backgroundColor = '';
+            modal.style.transition = '';
+            modal.style.opacity = '';
+            innerContent?.classList.remove('fw-card--exit', 'modal-origin-start');
+            backdrop?.classList.remove('fw-backdrop--exit');
+        };
+
+        let fwClosed = false;
+        const settleFw = () => {
+            if (fwClosed) return;
+            fwClosed = true;
+            finishFwClose();
+        };
+
+        const fwFallbackMs = window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 240 : 520;
+        const fwFallback = setTimeout(settleFw, fwFallbackMs);
+        if (innerContent) {
+            innerContent.addEventListener('animationend', (e) => {
+                if (e.target === innerContent && e.animationName === 'fw-relic-close') {
+                    clearTimeout(fwFallback);
+                    settleFw();
+                }
+            }, { once: true });
+        } else {
+            clearTimeout(fwFallback);
+            settleFw();
+        }
+
+        if (currentlySelectedDayCell) {
+            currentlySelectedDayCell.classList.remove('day-selected');
+            currentlySelectedDayCell = null;
+        }
+        return;
+    }
+
     if (innerContent) {
         innerContent.classList.add('modal-origin-start');
         modal.style.backgroundColor = 'rgba(0, 0, 0, 0)';
@@ -166,12 +231,29 @@ export function hideModal(modalId) {
 
 // --- PICKER MODALS ---
 
-export function showLeaguePicker() {
+export function showLeaguePicker(options = {}) {
+    const scope = options.scope ?? 'leaderboard';
     const list = document.getElementById('league-picker-list');
-    list.innerHTML = constants.questLeagues.map(league => `<button class="league-select-btn w-full p-4 font-title text-xl text-amber-800 bg-amber-100 rounded-xl shadow border-2 border-amber-200 transition hover:bg-amber-200 hover:shadow-md bubbly-button" data-league="${league}">${league}</button>`).join('');
+    const chunks = [];
+    if (scope === 'leaderboard') {
+        chunks.push(`<button type="button" class="league-match-active-btn w-full col-span-2 p-3 font-title text-base text-emerald-900 bg-gradient-to-r from-emerald-50 to-teal-50 rounded-xl shadow border-2 border-emerald-200 transition hover:from-emerald-100 hover:to-teal-100 bubbly-button">
+            <i class="fas fa-link text-emerald-600 mr-2"></i>Use active class&rsquo;s league
+        </button>`);
+    }
+    chunks.push(...constants.questLeagues.map(league => `<button type="button" class="league-select-btn w-full p-4 font-title text-xl text-amber-800 bg-amber-100 rounded-xl shadow border-2 border-amber-200 transition hover:bg-amber-200 hover:shadow-md bubbly-button" data-league="${league}">${league}</button>`));
+    list.innerHTML = chunks.join('');
+    list.querySelector('.league-match-active-btn')?.addEventListener('click', () => {
+        playSound('click');
+        state.setLeaderboardLeagueOverride(null);
+        hideModal('league-picker-modal');
+    });
     list.querySelectorAll('.league-select-btn').forEach(btn => btn.addEventListener('click', () => {
         playSound('click');
-        state.setGlobalSelectedLeague(btn.dataset.league, true);
+        if (scope === 'leaderboard') {
+            state.setLeaderboardLeagueOverride(btn.dataset.league);
+        } else {
+            state.setGlobalSelectedLeague(btn.dataset.league, true);
+        }
         hideModal('league-picker-modal');
     }));
     showAnimatedModal('league-picker-modal');

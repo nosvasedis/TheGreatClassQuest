@@ -3,11 +3,11 @@ import * as state from '../../state.js';
 import * as utils from '../../utils.js';
 import * as constants from '../../constants.js';
 import * as modals from '../modals.js';
-import { renderClassLeaderboardTab, renderStudentLeaderboardTab } from './leaderboard.js';
 import { renderAwardStarsStudentList } from './award.js';
 
 export function findAndSetCurrentClass(targetSelectId = null) {
     if (state.get('globalSelectedClassId')) return;
+    if (!state.get('classFollowSchedule')) return;
 
     const todayString = utils.getTodayDateString();
     const classesToday = utils.getClassesOnDay(todayString, state.get('allSchoolClasses'), state.get('allScheduleOverrides'));
@@ -19,28 +19,6 @@ export function findAndSetCurrentClass(targetSelectId = null) {
     for (const c of myClassesToday) {
         if (c.timeStart && c.timeEnd && currentTime >= c.timeStart && currentTime <= c.timeEnd) {
             state.setGlobalSelectedClass(c.id);
-            return;
-        }
-    }
-}
-
-export function findAndSetCurrentLeague(shouldRender = true) {
-    if (state.get('globalSelectedLeague')) return;
-
-    const now = new Date();
-    const currentTime = now.toTimeString().slice(0, 5);
-    const todayString = utils.getTodayDateString();
-    // Use getClassesOnDay so cancelled/overridden classes are respected
-    const classesToday = utils.getClassesOnDay(todayString, state.get('allSchoolClasses'), state.get('allScheduleOverrides'));
-    const myClassesToday = classesToday.filter(c => state.get('allTeachersClasses').some(tc => tc.id === c.id));
-
-    for (const c of myClassesToday) {
-        if (c.timeStart && c.timeEnd && currentTime >= c.timeStart && currentTime <= c.timeEnd) {
-            state.setGlobalSelectedLeague(c.questLevel, false);
-            if (shouldRender) {
-                renderClassLeaderboardTab();
-                renderStudentLeaderboardTab();
-            }
             return;
         }
     }
@@ -93,7 +71,7 @@ export function renderCalendarTab(customLogs = null) {
     const dayHeaders = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
     dayHeaders.forEach(day => {
         const headerEl = document.createElement('div');
-        headerEl.className = 'text-center font-bold text-gray-600';
+        headerEl.className = 'calendar-header-cell text-center font-bold text-gray-400 uppercase tracking-widest text-[10px] pb-3';
         headerEl.textContent = day;
         grid.appendChild(headerEl);
     });
@@ -115,7 +93,7 @@ export function renderCalendarTab(customLogs = null) {
 
     for (let i = 0; i < firstDayIndex; i++) {
         const emptyCell = document.createElement('div');
-        emptyCell.className = 'border rounded-md bg-gray-50/70 calendar-day-cell';
+        emptyCell.className = 'calendar-day-cell calendar-empty-cell opacity-40';
         grid.appendChild(emptyCell);
     }
 
@@ -152,26 +130,26 @@ export function renderCalendarTab(customLogs = null) {
         );
 
         const isFullHoliday = globalHoliday || (myScheduledClasses.length > 0 && classesOnThisDay.length === 0 && myCancellations.length > 0);
-        const dayNumberHtml = isToday ? `<span class="today-date-highlight shadow-md transform scale-110">${i}</span>` : i;
+        const dayNumberHtml = isToday ? `<span class="today-date-highlight shadow-lg transform scale-110 ring-2 ring-sky-300 ring-offset-2">${i}</span>` : i;
 
         if (isFullHoliday) {
-            const themeClass = globalHoliday ? `holiday-theme-${globalHoliday.type}` : 'bg-red-50 border-red-200';
+            const themeClass = globalHoliday ? `holiday-theme-${globalHoliday.type}` : 'bg-rose-50 border-rose-100';
             const labelText = globalHoliday ? (globalHoliday.type === 'christmas' ? 'Winter Break' : globalHoliday.name) : 'No School';
             const icon = globalHoliday ? (globalHoliday.type === 'christmas' ? '❄️' : (globalHoliday.type === 'easter' ? '🐰' : '📅')) : '⛔';
 
-            dayCell.className = `border rounded-md p-1 calendar-day-cell calendar-holiday-cell ${themeClass} relative overflow-hidden flex flex-col`;
+            dayCell.className = `calendar-day-cell calendar-holiday-cell ${themeClass} relative overflow-hidden flex flex-col group transition-all duration-300 hover:brightness-95`;
             dayCell.innerHTML = `
-                <div class="font-bold text-right text-gray-400 opacity-50 z-10 relative">${i}</div>
-                <div class="absolute inset-0 flex flex-col items-center justify-center opacity-80 pointer-events-none">
-                    <span class="text-3xl mb-1">${icon}</span>
-                    <span class="font-title text-xs uppercase tracking-wider font-bold text-gray-500 text-center leading-tight px-1">${labelText}</span>
+                <div class="font-bold text-right text-gray-400 opacity-40 z-10 relative pr-2 pt-2">${i}</div>
+                <div class="absolute inset-0 flex flex-col items-center justify-center opacity-80 pointer-events-none group-hover:scale-110 transition-transform">
+                    <span class="text-3xl mb-1 drop-shadow-sm">${icon}</span>
+                    <span class="font-title text-[10px] uppercase tracking-wider font-bold text-gray-500 text-center leading-tight px-2">${labelText}</span>
                 </div>
             `;
         } else {
             // --- RENDER NORMAL DAY ---
-            dayCell.className = `border rounded-md p-1 calendar-day-cell flex flex-col ${isFuture ? 'bg-white future-day' : 'bg-white logbook-day-btn'}`;
+            dayCell.className = `calendar-day-cell flex flex-col min-h-0 transition-all duration-300 ${isFuture ? 'bg-white/80 future-day hover:bg-sky-50' : 'bg-white logbook-day-btn hover:bg-amber-50/30'}`;
 
-            const starHtml = totalStarsThisDay > 0 ? `<div class="calendar-star-count text-center text-amber-600 font-bold -mt-4 mb-1 text-sm relative z-10"><i class="fas fa-star"></i> ${totalStarsThisDay}</div>` : '';
+            const starHtml = totalStarsThisDay > 0 ? `<div class="calendar-star-count text-center text-amber-600 font-bold -mt-5 mb-2 text-sm relative z-10 filter drop-shadow-sm"><i class="fas fa-star mr-1"></i>${totalStarsThisDay}</div>` : '';
 
             // --- NEW: Event Icons Map ---
             const eventIcons = {
@@ -192,12 +170,12 @@ export function renderCalendarTab(customLogs = null) {
                 const icon = eventIcons[e.type] || '📅 Event';
                 // Vibrant Gradient Style
                 return `
-                <div class="relative group w-full mb-1 p-1 rounded-md bg-gradient-to-r from-fuchsia-600 to-purple-600 text-white shadow-md border border-fuchsia-400 flex items-center justify-between z-20 cursor-help transition-transform hover:scale-105" title="${title}">
+                <div class="relative group w-full mb-1.5 p-1.5 rounded-xl bg-gradient-to-r from-fuchsia-600 to-indigo-600 text-white shadow-md border border-white/20 flex items-center justify-between z-20 cursor-help transition-all hover:scale-[1.03] hover:shadow-lg" title="${title}">
                     <div class="flex items-center gap-1.5 overflow-hidden">
-                        <span class="text-[10px] font-bold bg-white/20 px-1 rounded">${icon}</span>
-                        <span class="font-title text-[10px] font-bold truncate leading-tight">${title}</span>
+                        <span class="text-[9px] font-black bg-white/30 px-1.5 py-0.5 rounded-lg backdrop-blur-sm shadow-inner">${icon}</span>
+                        <span class="font-title text-[10px] font-bold truncate leading-tight tracking-tight">${title}</span>
                     </div>
-                    <button class="delete-event-btn bg-white/20 hover:bg-white/40 text-white rounded-full w-4 h-4 flex items-center justify-center flex-shrink-0 transition-colors" data-id="${e.id}" data-name="${title}">
+                    <button class="delete-event-btn bg-white/20 hover:bg-white/40 text-white rounded-full w-4.5 h-4.5 flex items-center justify-center flex-shrink-0 transition-colors" data-id="${e.id}" data-name="${title}">
                         <i class="fas fa-times text-[8px]"></i>
                     </button>
                 </div>`;
@@ -217,36 +195,40 @@ export function renderCalendarTab(customLogs = null) {
 
                 // 2. Create the Indicator
                 const testIndicator = testAssignment
-                    ? `<div class="absolute -top-1 -right-1 z-20">
-                         <span class="relative flex h-3 w-3">
-                           <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
-                           <span class="relative inline-flex rounded-full h-3 w-3 bg-red-500"></span>
+                    ? `<div class="absolute -top-1.5 -right-1.5 z-20">
+                         <span class="relative flex h-3.5 w-3.5">
+                           <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75"></span>
+                           <span class="relative inline-flex rounded-full h-3.5 w-3.5 bg-rose-500 border border-white shadow-sm"></span>
                          </span>
                        </div>
-                       <span class="absolute top-[-4px] right-[-4px] bg-red-500 text-white text-[8px] font-bold px-1.5 py-0.5 rounded-bl-md rounded-tr-md shadow-sm z-10" title="Test: ${testAssignment.testData.title}">📝 TEST</span>`
+                       <span class="absolute top-[-5px] right-[-5px] bg-rose-600 text-white text-[7px] font-black px-1.5 py-0.5 rounded-bl-lg rounded-tr-lg shadow-md z-10 tracking-tighter" title="Test: ${testAssignment.testData.title}">📝 TEST</span>`
                     : '';
                 // -------------------------------------
 
                 return `
-                <div class="relative text-xs px-1.5 py-1 rounded ${color.bg} ${color.text} border-l-4 ${color.border} shadow-sm group hover:scale-[1.02] transition-transform" title="${c.name} (${timeDisplay})">
+                <div class="relative text-xs px-2 py-1.5 rounded-xl ${color.bg} ${color.text} border-l-4 ${color.border} shadow-sm group hover:scale-[1.02] hover:shadow-md transition-all mb-1" title="${c.name} (${timeDisplay})">
                     ${testIndicator}
-                    <span class="font-bold block text-[10px] opacity-80">${timeDisplay}</span>
-                    <span class="truncate block font-semibold">${c.logo} ${c.name}</span>
+                    <div class="flex items-center justify-between mb-0.5">
+                        <span class="font-black block text-[9px] opacity-60 tracking-wider">${timeDisplay}</span>
+                    </div>
+                    <span class="truncate block font-bold text-[11px]">${c.logo} ${c.name}</span>
                 </div>`;
             }).join('');
 
             dayCell.innerHTML = `
-                <div class="font-bold text-right text-gray-800 text-sm mb-1">${dayNumberHtml}</div>
+                <div class="font-bold text-right text-gray-500 text-sm mb-1 pr-2 pt-1 opacity-70">${dayNumberHtml}</div>
                 ${starHtml}
                 
-                <!-- Events Area (Fixed Top) -->
-                <div class="flex flex-col shrink-0">
-                    ${questEventsHtml}
-                </div>
-                
-                <!-- Classes Area (Scrollable) -->
-                <div class="flex flex-col gap-1 mt-1 overflow-y-auto flex-grow custom-scrollbar" style="min-height: 0;">
-                    ${classesHtml}
+                <div class="px-1.5 pb-2 flex-1 flex flex-col min-h-0 overflow-hidden">
+                    <!-- Events Area (Fixed Top) -->
+                    <div class="flex flex-col shrink-0">
+                        ${questEventsHtml}
+                    </div>
+                    
+                    <!-- Classes Area (Scrollable) -->
+                    <div class="flex flex-col gap-1 mt-1 min-h-0 flex-1 overflow-y-auto overscroll-y-contain custom-scrollbar">
+                        ${classesHtml}
+                    </div>
                 </div>
             `;
         }

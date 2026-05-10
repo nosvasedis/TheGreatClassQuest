@@ -57,72 +57,58 @@ export const guildsTabHTML = `
                     <div id="guilds-leaderboard-list" class="guild-hall-scene-content"></div>
                 </div>
 
-                <!-- Fortune's Wheel Ritual Panel -->
-                <section id="fortunes-wheel-section" class="guild-fortune-panel mt-6" data-expanded="false" aria-labelledby="fortunes-wheel-panel-title">
-                    <div class="guild-fortune-panel__backdrop" aria-hidden="true"></div>
-                    <div class="guild-fortune-panel__particles" aria-hidden="true">
-                        <span></span><span></span><span></span><span></span><span></span><span></span>
-                    </div>
-
-                    <button id="fortunes-wheel-toggle" type="button" class="guild-fortune-panel__toggle" aria-expanded="false" aria-controls="fortunes-wheel-panel-body">
-                        <span class="guild-fortune-panel__toggle-copy">
-                            <span class="guild-fortune-panel__toggle-kicker">Guild Hall Ritual</span>
-                            <span class="guild-fortune-panel__toggle-title font-title">Wheel of Fortune</span>
-                        </span>
-                        <span class="guild-fortune-panel__toggle-state">
-                            <span id="fortunes-wheel-window" class="guild-fortune-panel__status-pill">Awaiting a class</span>
-                            <span class="guild-fortune-panel__toggle-icon" aria-hidden="true">
-                                <i class="fa-solid fa-chevron-down"></i>
+                <!-- Fortune ledger (collapsed by default; wheel control stays beside Standings) -->
+                <section id="fortunes-wheel-section" class="guild-fortune-ledger-section mt-6" data-ledger-expanded="false" aria-labelledby="fortune-ledger-heading">
+                    <div class="guild-fortune-ledger-section__glow" aria-hidden="true"></div>
+                    <div class="guild-fortune-ledger-section__inner">
+                        <button type="button"
+                                id="fortune-ledger-toggle"
+                                class="guild-fortune-ledger-section__toggle"
+                                aria-expanded="false"
+                                aria-controls="fortune-ledger-panel">
+                            <span class="guild-fortune-ledger-section__toggle-text">
+                                <h3 id="fortune-ledger-heading" class="guild-fortune-ledger-section__title guild-fortune-ledger-section__title--toggle font-title">Fortune Ledger</h3>
+                                <p class="guild-fortune-ledger-section__toggle-lede">Weekly wheel results for the selected class.</p>
+                                <p id="fortune-ledger-bar-meta" class="guild-fortune-ledger-section__toggle-meta"></p>
                             </span>
-                        </span>
-                    </button>
+                            <span class="guild-fortune-ledger-section__toggle-chev" aria-hidden="true"><i class="fa-solid fa-chevron-down"></i></span>
+                        </button>
 
-                    <div id="fortunes-wheel-panel-body" class="guild-fortune-panel__body hidden">
-                        <div class="guild-fortune-panel__lead">
-                            <div class="guild-fortune-panel__kicker">Fortune Relic</div>
-                            <h3 id="fortunes-wheel-panel-title" class="guild-fortune-panel__title font-title">Fortune's Wheel Ritual</h3>
-                            <p class="guild-fortune-panel__description">
-                                Open the ancient relic when the final lesson of the week begins. Guide each guild through the mystical wheel to reveal their fortune.
-                            </p>
-
-                            <div class="guild-fortune-panel__meta">
-                                <div id="fortunes-wheel-class" class="guild-fortune-panel__class-pill">No class selected</div>
-                            </div>
-
-                            <p id="fortunes-wheel-status" class="guild-fortune-panel__status-copy"></p>
-
-                            <div class="guild-fortune-panel__actions">
-                                <button id="fortunes-wheel-btn" type="button" class="guild-fortune-panel__cta guild-fortune-panel__cta--circle bubbly-button" aria-label="Open Fortune's Wheel">
-                                    <span class="guild-fortune-panel__cta-icon"><i class="fa-solid fa-dharmachakra"></i></span>
-                                </button>
-                                <div class="guild-fortune-panel__cta-caption font-title">Open Fortune's Wheel</div>
-                            </div>
-                        </div>
-
-                        <div class="guild-fortune-panel__preview">
-                            <div class="guild-fortune-panel__sigils" aria-hidden="true">
-                                <img src="./assets/dragonflame.webp" alt="" class="guild-fortune-panel__sigil guild-fortune-panel__sigil--dragon">
-                                <img src="./assets/grizzlymight.webp" alt="" class="guild-fortune-panel__sigil guild-fortune-panel__sigil--grizzly">
-                                <img src="./assets/owlwisdom.webp" alt="" class="guild-fortune-panel__sigil guild-fortune-panel__sigil--owl">
-                                <img src="./assets/phoenixrising.webp" alt="" class="guild-fortune-panel__sigil guild-fortune-panel__sigil--phoenix">
-                            </div>
-
-                            <div id="fortunes-log-section" class="guild-fortune-ledger">
-                                <div class="guild-fortune-ledger__header">
-                                    <div>
-                                        <div class="guild-fortune-ledger__eyebrow">Recent Omens</div>
-                                        <div class="guild-fortune-ledger__title">Fortune Ledger</div>
+                        <div id="fortune-ledger-panel"
+                             class="guild-fortune-ledger-section__expandable"
+                             role="region"
+                             aria-labelledby="fortune-ledger-heading"
+                             hidden>
+                            <div class="guild-fortune-ledger-section__expandable-inner">
+                                <header class="guild-fortune-ledger-section__head guild-fortune-ledger-section__head--in-panel">
+                                    <div class="guild-fortune-ledger-section__intro guild-fortune-ledger-section__intro--panel">
+                                        <p class="guild-fortune-ledger-section__lede">
+                                            Glory shifts and guild omens from each ceremony appear below. Use the Fortune's Wheel button above when the ritual window is open.
+                                        </p>
                                     </div>
-                                    <div class="guild-fortune-ledger__controls">
-                                        <button id="fortune-ledger-prev" type="button" class="guild-fortune-ledger__nav" aria-label="Previous entries" disabled>
-                                            <i class="fa-solid fa-chevron-up"></i>
-                                        </button>
-                                        <button id="fortune-ledger-next" type="button" class="guild-fortune-ledger__nav" aria-label="Next entries" disabled>
-                                            <i class="fa-solid fa-chevron-down"></i>
-                                        </button>
+                                    <div class="guild-fortune-ledger-section__context">
+                                        <div id="fortunes-wheel-class" class="guild-fortune-ledger-section__class-chip">No class selected</div>
+                                        <p id="fortunes-wheel-status" class="guild-fortune-ledger-section__hint"></p>
                                     </div>
+                                </header>
+
+                                <div id="fortunes-log-section" class="guild-fortune-ledger guild-fortune-ledger--raised">
+                                    <div class="guild-fortune-ledger__header">
+                                        <div class="guild-fortune-ledger__title-block">
+                                            <span class="guild-fortune-ledger__eyebrow">Latest ceremonies</span>
+                                            <div class="guild-fortune-ledger__title">Wheel history</div>
+                                        </div>
+                                        <div class="guild-fortune-ledger__controls" role="group" aria-label="Ledger pages">
+                                            <button id="fortune-ledger-prev" type="button" class="guild-fortune-ledger__nav" aria-label="Previous entries" disabled>
+                                                <i class="fa-solid fa-chevron-up"></i>
+                                            </button>
+                                            <button id="fortune-ledger-next" type="button" class="guild-fortune-ledger__nav" aria-label="Next entries" disabled>
+                                                <i class="fa-solid fa-chevron-down"></i>
+                                            </button>
+                                        </div>
+                                    </div>
+                                    <div id="fortunes-log-list" class="guild-fortune-ledger__list"></div>
                                 </div>
-                                <div id="fortunes-log-list" class="guild-fortune-ledger__list"></div>
                             </div>
                         </div>
                     </div>

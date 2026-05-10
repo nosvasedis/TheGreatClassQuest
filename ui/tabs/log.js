@@ -6,6 +6,8 @@ import * as modals from '../modals.js';
 import { canUseFeature } from '../../utils/subscription.js';
 import { getLogTabCopy } from '../../config/tiers/features.js';
 import { renderAwardStarsStudentList } from './award.js';
+import { syncHeaderClassSelector } from '../headerClassSelector.js';
+import { getLeaderboardEffectiveLeague } from '../../state.js';
 
 function classHasAwardedStarsToday(classId) {
     if (!classId) return false;
@@ -85,19 +87,11 @@ function renderDiaryArtwork(log, entryMode) {
 }
 
 export async function renderAdventureLogTab() {
-    const classSelect = document.getElementById('adventure-log-class-select');
     const monthFilter = document.getElementById('adventure-log-month-filter');
 
-    if (!classSelect || !monthFilter) return;
+    if (!monthFilter) return;
 
     const classVal = state.get('globalSelectedClassId');
-    const optionsHtml = state.get('allTeachersClasses').sort((a, b) => a.name.localeCompare(b.name)).map(c => `<option value="${c.id}">${c.logo} ${c.name}</option>`).join('');
-    classSelect.innerHTML = '<option value="">Select a class to view its log...</option>' + optionsHtml;
-
-    if (classVal) {
-        classSelect.value = classVal;
-    }
-
     state.get('currentLogFilter').classId = classVal;
     const hasAdventureLog = canUseFeature('adventureLog');
     const logCopy = getLogTabCopy(hasAdventureLog);
@@ -176,7 +170,7 @@ export async function renderAdventureLog() {
     const currentLogFilter = state.get('currentLogFilter');
 
     if (!currentLogFilter.classId) {
-        feed.innerHTML = `<p class="text-center text-gray-500 bg-white/50 p-6 rounded-2xl">Please select one of your classes to see its Adventure Log.</p>`;
+        feed.innerHTML = `<p class="text-center text-gray-500 bg-white/50 p-6 rounded-2xl">Choose a class from the header to see its Adventure Log.</p>`;
         return;
     }
 
@@ -302,48 +296,41 @@ export function updateAllClassSelectors(isManual) {
     state.set('isProgrammaticSelection', true);
     const classId = state.get('globalSelectedClassId');
 
-    const awardBtn = document.getElementById('award-class-dropdown-btn');
-    if (awardBtn) {
-        const allSchoolClasses = state.get('allSchoolClasses');
-        const selectedClass = allSchoolClasses.find(c => c.id === classId);
-        if (selectedClass) {
-            document.getElementById('selected-class-logo').innerText = selectedClass.logo;
-            document.getElementById('selected-class-name').innerText = selectedClass.name;
-            document.getElementById('selected-class-level').innerText = selectedClass.questLevel;
-            awardBtn.dataset.selectedId = classId;
-            if (document.querySelector('.app-tab:not(.hidden)')?.id === 'award-stars-tab') {
-                renderAwardStarsStudentList(classId);
-            }
-        } else {
-            document.getElementById('selected-class-logo').innerText = '❓';
-            document.getElementById('selected-class-name').innerText = 'Select a class...';
-            document.getElementById('selected-class-level').innerText = '';
-            awardBtn.dataset.selectedId = '';
-            if (document.querySelector('.app-tab:not(.hidden)')?.id === 'award-stars-tab') {
-                renderAwardStarsStudentList(null);
-            }
-        }
+    syncHeaderClassSelector();
+
+    if (document.querySelector('.app-tab:not(.hidden)')?.id === 'award-stars-tab') {
+        renderAwardStarsStudentList(classId);
     }
 
-    const selectors = ['gemini-class-select', 'story-weavers-class-select', 'adventure-log-class-select', 'scroll-class-select', 'shop-class-select'];
-    selectors.forEach(id => {
-        const select = document.getElementById(id);
-        if (select) {
-            select.value = classId || '';
-        }
-    });
+    if (document.querySelector('.app-tab:not(.hidden)')?.id === 'options-tab') {
+        import('./navigation.js').then(m => m.renderQuizOptionsUi());
+    }
+
     state.set('isProgrammaticSelection', false);
 }
 
 export function updateAllLeagueSelectors() {
     state.set('isProgrammaticSelection', true);
-    const league = state.get('globalSelectedLeague');
-    const leagueButtons = ['leaderboard-league-picker-btn', 'student-leaderboard-league-picker-btn'];
-    leagueButtons.forEach(id => {
+    const effective = getLeaderboardEffectiveLeague();
+    const peeking = Boolean(state.get('leaderboardLeagueOverride'));
+    const leagueButtons = [
+        { id: 'leaderboard-league-picker-btn', accent: 'amber' },
+        { id: 'student-leaderboard-league-picker-btn', accent: 'purple' }
+    ];
+    leagueButtons.forEach(({ id, accent }) => {
         const btn = document.getElementById(id);
         if (btn) {
-            btn.innerText = league || 'Select a League';
+            const label = effective || 'Select a League';
+            const iconCls = accent === 'purple' ? 'text-purple-400' : 'text-amber-500';
+            const peekTag = peeking
+                ? '<span class="ml-1 text-[10px] font-black uppercase tracking-wide text-rose-500">peek</span>'
+                : '';
+            btn.innerHTML = `<i class="fas fa-layer-group ${iconCls} text-sm"></i><span>${label}</span>${peekTag}`;
         }
+    });
+    ['leaderboard-league-match-btn', 'student-leaderboard-league-match-btn'].forEach(mid => {
+        const m = document.getElementById(mid);
+        if (m) m.classList.toggle('hidden', !peeking);
     });
     state.set('isProgrammaticSelection', false);
 }

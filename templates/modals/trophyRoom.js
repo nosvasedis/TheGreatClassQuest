@@ -21,10 +21,7 @@ export const trophyRoomModalsHTML = `
                 <div class="flex items-center gap-3 bg-black/30 p-2 rounded-xl border border-amber-500/30 flex-wrap justify-end">
                     <div class="flex items-center gap-2">
                         <p class="text-indigo-300 text-[10px] uppercase font-bold hidden sm:block">Class</p>
-                        <select id="trophy-room-class-select"
-                            class="bg-indigo-900/50 border border-amber-500/50 text-white text-sm font-bold rounded-lg focus:ring-amber-500 focus:border-amber-500 block p-2.5 outline-none min-w-[160px]">
-                            <option value="">All classes</option>
-                        </select>
+                        <p id="trophy-room-class-label" class="bg-indigo-900/50 border border-amber-500/50 text-white text-sm font-bold rounded-lg px-3 py-2 min-w-[160px] text-center"></p>
                     </div>
                     <div class="flex items-center gap-2">
                         <p class="text-indigo-300 text-[10px] uppercase font-bold hidden sm:block">Adventurer</p>

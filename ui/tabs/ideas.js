@@ -3,16 +3,6 @@ import * as state from '../../state.js';
 import * as storyWeaver from '../../features/storyWeaver.js';
 
 export function renderIdeasTabSelects() {
-    const storySelect = document.getElementById('story-weavers-class-select');
-    if (!storySelect) return;
-
-    const optionsHtml = state.get('allTeachersClasses').sort((a, b) => a.name.localeCompare(b.name)).map(c => `<option value="${c.id}">${c.name} (${c.questLevel})</option>`).join('');
-
-    const globalClassId = state.get('globalSelectedClassId');
-
-    storySelect.innerHTML = '<option value="">Select a class...</option>' + optionsHtml;
-    storySelect.value = globalClassId || '';
-
     storyWeaver.handleStoryWeaversClassSelect();
 }
 

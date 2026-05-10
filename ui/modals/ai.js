@@ -124,8 +124,8 @@ export async function handleGetQuestUpdate() {
 
 export async function handleGenerateIdea() {
     if (!requireEliteAI({ feature: 'Reward idea generator' })) return;
-    const classId = document.getElementById('gemini-class-select').value;
-    if (!classId) { showToast('Please select a class first.', 'error'); return; }
+    const classId = state.get('globalSelectedClassId');
+    if (!classId) { showToast('Choose a class from the header first.', 'error'); return; }
     const classData = state.get('allTeachersClasses').find(c => c.id === classId);
     if (!classData) { showToast('Could not find selected class data.', 'error'); return; }
     const ageGroup = utils.getAgeGroupForLeague(classData.questLevel);

@@ -17,7 +17,6 @@ import {
     renderTrialHistoryContent
 } from '../features/scholarScroll.js';
 import { updateStudentCardAttendanceState, findAndSetCurrentClass } from '../ui/core.js';
-import { findAndSetCurrentLeague } from '../ui/core.js';
 import { checkAndResetMonthlyStars } from './actions.js';
 import { renderStoryArchive } from '../features/storyWeaver.js';
 import { updateCeremonyStatus } from '../features/ceremony.js';
@@ -311,8 +310,8 @@ export function setupDataListeners(userId, dateString, onInitialDataReady, optio
         classesReady = true;
         maybeFireInitialReady();
         refreshSetupClassesList();
-        findAndSetCurrentLeague();
-        // Smart class selector - find active class if there's an active lesson
+        // Smart class selector — sets class + league only when classFollowSchedule
+        // and a lesson is active (never “imply” a league from the clock alone).
         findAndSetCurrentClass();
         if (isTabVisible('class-leaderboard-tab')) renderClassLeaderboardTab();
         if (isTabVisible('my-classes-tab')) renderManageClassesTab();
@@ -515,7 +514,7 @@ export function setupDataListeners(userId, dateString, onInitialDataReady, optio
 
     state.setUnsubscribeWrittenScores(onSnapshot(writtenScoresQuery, (snapshot) => {
         state.setAllWrittenScores(snapshot.docs.map(d => ({ id: d.id, ...d.data() })));
-        const scrollClassId = document.getElementById('scroll-class-select')?.value;
+        const scrollClassId = state.get('globalSelectedClassId');
         if (scrollClassId) {
             renderScholarsScrollTab(scrollClassId);
         }

@@ -64,17 +64,11 @@ export async function openAttendanceChronicle(explicitClassId) {
         showUpgradePrompt('Pro', { message: getUpgradeMessage('Pro', 'advancedAttendance') });
         return;
     }
-    const selectEl = document.getElementById('adventure-log-class-select');
-    // If called via addEventListener, explicitClassId is the Event object.
     const targetClassId = (typeof explicitClassId === 'string') ? explicitClassId : null;
     const classId =
         targetClassId ||
-        selectEl?.value ||
         state.get('globalSelectedClassId') ||
         '';
-    if (targetClassId && selectEl && [...selectEl.options].some(o => o.value === targetClassId)) {
-        selectEl.value = targetClassId;
-    }
     const classData = state.get('allTeachersClasses').find(c => c.id === classId);
     if (!classData) return;
 

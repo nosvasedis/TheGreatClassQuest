@@ -6,7 +6,7 @@ import { handleUseItem, isItemUsable } from '../../features/powerUps.js';
 
 const MODAL_ID = 'trophy-room-modal';
 const CONTENT_ID = 'trophy-room-content';
-const CLASS_SELECT_ID = 'trophy-room-class-select';
+const CLASS_LABEL_ID = 'trophy-room-class-label';
 const STUDENT_SELECT_ID = 'trophy-room-student-select';
 const trophyRoomFeedback = new Map();
 
@@ -24,19 +24,13 @@ function buildTrophyRoomStudentsByClass(classId = '') {
         .sort((a, b) => a.name.localeCompare(b.name));
 }
 
-function populateTrophyRoomClassSelect(preferredClassId = '') {
-    const classSelectEl = document.getElementById(CLASS_SELECT_ID);
-    if (!classSelectEl) return '';
-
-    const classes = getTrophyRoomClasses();
-    classSelectEl.innerHTML = '<option value="">All classes</option>' +
-        classes.map((c) => `<option value="${c.id}">${c.logo || '📚'} ${c.name}</option>`).join('');
-
-    const selectedClassId = preferredClassId && classes.some((c) => c.id === preferredClassId)
-        ? preferredClassId
-        : '';
-    classSelectEl.value = selectedClassId;
-    return selectedClassId;
+function setTrophyRoomClassLabel(classId) {
+    const el = document.getElementById(CLASS_LABEL_ID);
+    if (!el) return;
+    const cls = getTrophyRoomClasses().find((c) => c.id === classId);
+    el.textContent = cls
+        ? `${cls.logo || '📚'} ${cls.name}${cls.questLevel ? ` · ${cls.questLevel}` : ''}`
+        : '—';
 }
 
 function populateTrophyRoomStudentSelect({ classId = '', selectedStudentId = '' } = {}) {
@@ -54,11 +48,6 @@ function populateTrophyRoomStudentSelect({ classId = '', selectedStudentId = '' 
     return nextSelectedId;
 }
 
-export function handleTrophyRoomClassChange(classId) {
-    populateTrophyRoomStudentSelect({ classId, selectedStudentId: '' });
-    renderTrophyRoomContent('');
-}
-
 document.addEventListener('clarity-glimmer', (e) => {
     const { studentId, itemIndex } = e.detail || {};
     const content = document.getElementById(CONTENT_ID);
@@ -73,8 +62,8 @@ document.addEventListener('clarity-glimmer', (e) => {
 });
 
 /**
- * Open the Trophy Room modal. Optionally preselect a student (e.g. from avatar "See full collection").
- * @param {string} [preselectedStudentId] - If provided, this student is selected and their inventory shown.
+ * Open the Trophy Room modal. Class comes from the header; optional student from avatar shortcut.
+ * @param {string} [preselectedStudentId] - If provided, that student is selected (must belong to the scoped class).
  */
 export function openTrophyRoomModal(preselectedStudentId = null) {
     const allStudents = state.get('allStudents') || [];
@@ -82,10 +71,23 @@ export function openTrophyRoomModal(preselectedStudentId = null) {
         ? allStudents.find((s) => s.id === preselectedStudentId)
         : null;
     const globalClassId = state.get('globalSelectedClassId') || '';
-    const defaultClassId = preselectedStudent?.classId || globalClassId || '';
-    const selectedClassId = populateTrophyRoomClassSelect(defaultClassId);
+    const classId = preselectedStudent?.classId || globalClassId;
+
+    if (!classId) {
+        showToast('Choose a class from the header first.', 'info');
+        return;
+    }
+
+    const roster = getTrophyRoomClasses();
+    if (!roster.some((c) => c.id === classId)) {
+        showToast('That class is not in your roster.', 'error');
+        return;
+    }
+
+    setTrophyRoomClassLabel(classId);
+
     const selectedStudentId = populateTrophyRoomStudentSelect({
-        classId: selectedClassId,
+        classId,
         selectedStudentId: preselectedStudent?.id || ''
     });
 

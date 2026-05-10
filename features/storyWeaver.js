@@ -16,10 +16,14 @@ import * as constants from '../constants.js';
 import { awardStoryWeaverBonusStarToClass, handleDeleteCompletedStory } from '../db/actions.js';
 import { isSpeaking, speakText, stopSpeech, isTtsSupported } from './tts.js';
 
+function storyWeaverClassId() {
+    return state.get('globalSelectedClassId') || '';
+}
+
 // --- MAIN UI & STATE MANAGEMENT ---
 
 export function handleStoryWeaversClassSelect() {
-    const classId = document.getElementById('story-weavers-class-select').value;
+    const classId = storyWeaverClassId();
     const mainContent = document.getElementById('story-weavers-main-content');
     const placeholder = document.getElementById('story-weavers-placeholder');
     
@@ -90,7 +94,7 @@ export function resetStoryWeaverWordUI() {
     document.getElementById('story-weavers-suggest-word-btn').disabled = false;
     document.getElementById('story-weavers-lock-in-btn').disabled = true;
     document.getElementById('story-weavers-end-btn').disabled = true;
-    const classId = document.getElementById('story-weavers-class-select').value;
+    const classId = storyWeaverClassId();
     renderStoryWeaversUI(classId);
     hideWordEditorControls();
 }
@@ -116,7 +120,7 @@ export async function handleSuggestWord() {
         return;
     }
     playSound('magic_chime');
-    const classId = document.getElementById('story-weavers-class-select').value;
+    const classId = storyWeaverClassId();
     const classData = state.get('allTeachersClasses').find(c => c.id === classId);
     if (!classData) return;
     const ageGroup = getAgeGroupForLeague(classData.questLevel);
@@ -139,7 +143,7 @@ export async function handleSuggestWord() {
 }
 
 export function openStoryInputModal() {
-    const classId = document.getElementById('story-weavers-class-select').value;
+    const classId = storyWeaverClassId();
     if (!classId) return;
     
     const story = state.get('currentStoryData')[classId];
@@ -154,7 +158,7 @@ export async function handleLockInSentence() {
         showToast("AI image generation requires Elite tier.", "error");
         return;
     }
-    const classId = document.getElementById('story-weavers-class-select').value;
+    const classId = storyWeaverClassId();
     const wordOfTheDay = state.get('storyWeaverLockedWord');
     const newSentence = document.getElementById('story-input-textarea').value.trim();
     const currentStory = state.get('currentStoryData')[classId] || {};
@@ -245,14 +249,14 @@ export async function handleLockInSentence() {
 }
 
 export function handleRevealStory() {
-    const classId = document.getElementById('story-weavers-class-select').value;
+    const classId = storyWeaverClassId();
     const storyText = state.get('currentStoryData')[classId]?.currentSentence || "Select a class to see the story.";
     document.getElementById('story-reveal-text').textContent = storyText;
     modals.showAnimatedModal('story-reveal-modal');
 }
 
 export async function handleShowStoryHistory() {
-    const classId = document.getElementById('story-weavers-class-select').value;
+    const classId = storyWeaverClassId();
     const classData = state.get('allTeachersClasses').find(c => c.id === classId);
     if (!classData) return;
 
@@ -288,7 +292,7 @@ export async function handleShowStoryHistory() {
 }
 
 export function handleResetStory() {
-    const classId = document.getElementById('story-weavers-class-select').value;
+    const classId = storyWeaverClassId();
     if (!classId) return;
     modals.showModal('Start a New Story?', "This will reset the current story progress. The old story's history will be kept, but you will start from a blank page. Are you sure?", async () => {
         try {
@@ -379,7 +383,7 @@ export function openStoryArchiveModal() {
 
 export function renderStoryArchive() {
     const allCompletedStories = state.get('allCompletedStories') || [];
-    const selectedClassId = document.getElementById('story-weavers-class-select')?.value || '';
+    const selectedClassId = storyWeaverClassId();
 
     renderArchiveSurface({
         listEl: document.getElementById('story-archive-list'),

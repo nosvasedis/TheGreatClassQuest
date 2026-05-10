@@ -317,7 +317,7 @@ function getGeneralDashboard(name, theme, spice) {
     ].filter(tool => !tool.featureFlag || canUseFeature(tool.featureFlag));
 
     return getLayout(
-        name, theme, getSelector(null),
+        name, theme, getHomeActiveClassHint(null),
         `
         <div class="vibrant-card h-span-6 stat-card-pop card-gradient-sun">
             <span class="text-xs font-bold text-amber-600 uppercase tracking-widest mb-2"><i class="fas fa-star mr-1"></i> School Stars</span>
@@ -471,7 +471,7 @@ function getActiveDashboard(classData, name, theme, spice) {
     const skillData = getTopSkillHtml(topSkill);
 
     return getLayout(
-        name, theme, getSelector(classId),
+        name, theme, getHomeActiveClassHint(classId),
         `
         <div class="vibrant-card h-span-8 p-6 flex flex-col justify-center relative overflow-hidden card-gradient-sky">
             <div class="absolute -right-4 -top-4 text-9xl opacity-5 pointer-events-none">${classData.logo}</div>
@@ -561,15 +561,20 @@ function getActiveDashboard(classData, name, theme, spice) {
 }
 
 function getLayout(name, theme, selector, row2, row3) {
+    const heroEmoji = state.get('globalSelectedClassId') 
+        ? (state.get('allSchoolClasses').find(c => c.id === state.get('globalSelectedClassId'))?.logo || '✨')
+        : '🏫';
+
     return `
     <div class="w-full max-w-7xl mx-auto p-4">
         <div class="horizons-grid">
             
             <div class="vibrant-card h-span-8 greeting-panel">
                 <div class="greeting-bg-mesh"></div>
+                <div class="greeting-hero-asset">${heroEmoji}</div>
                 <div class="relative z-10 flex flex-col justify-between h-full">
                     
-                    <div class="flex justify-between items-start mb-2 gap-4 min-h-[44px]">
+                    <div class="flex justify-between items-start mb-4 gap-4">
                         <div id="home-reminders-container" class="flex flex-wrap items-center gap-3 py-1">
                             ${getReminderPills(state.get('globalSelectedClassId'))}
                         </div>
@@ -579,11 +584,13 @@ function getLayout(name, theme, selector, row2, row3) {
                     </div>
 
                     <div>
-                        <h1 class="font-title text-4xl md:text-6xl text-slate-800 drop-shadow-sm mb-2">
+                        <h1 class="font-title text-4xl md:text-5xl text-slate-800 drop-shadow-sm mb-1">
                             <span class="text-transparent bg-clip-text bg-gradient-to-r ${theme.greetingGradient}">${theme.greeting}</span>, 
                             <span class="text-transparent bg-clip-text bg-gradient-to-r ${theme.nameGradient} whitespace-nowrap">${name}</span>!
                         </h1>
-                            <p class="text-gray-500 font-semibold text-lg" data-school-name>${state.get('schoolName') || DEFAULT_SCHOOL_NAME}</p>
+                        <p class="text-gray-500 font-bold text-base opacity-75" data-school-name>
+                            <i class="fas fa-university mr-2"></i>${state.get('schoolName') || DEFAULT_SCHOOL_NAME}
+                        </p>
                     </div>
                 </div>
             </div>
@@ -609,40 +616,51 @@ function getLayout(name, theme, selector, row2, row3) {
 
 // --- HELPERS ---
 
-function getSelector(currentId) {
+function getHomeActiveClassHint(currentId) {
     const classes = state.get('allTeachersClasses').sort((a, b) => a.name.localeCompare(b.name));
+    const follow = state.get('classFollowSchedule');
+    let title = 'School overview';
+    let icon = '🏫';
+    let badge = '';
+    let sub = '';
 
-    let currentSelectionText = '🏫 General View';
     if (currentId) {
         const selectedClass = classes.find(c => c.id === currentId);
         if (selectedClass) {
-            currentSelectionText = `${selectedClass.logo} ${selectedClass.name}`;
+            icon = selectedClass.logo || '📚';
+            title = selectedClass.name;
+            sub = `Active Quest Area`;
+            const levelBadge = `<span class="home-focus-badge bg-indigo-50 text-indigo-600 border-indigo-100"><i class="fas fa-shield-alt"></i> ${selectedClass.questLevel || 'Quest'}</span>`;
+            const statusBadge = follow
+                ? '<span class="home-focus-badge home-focus-badge--auto"><i class="fas fa-wand-sparkles"></i> Auto-Focus</span>'
+                : '<span class="home-focus-badge home-focus-badge--pin"><i class="fas fa-thumbtack"></i> Pinned</span>';
+            badge = `${levelBadge}${statusBadge}`;
         }
+    } else {
+        sub = follow
+            ? 'Dynamically tracking your schedule'
+            : 'Explore all classes via the header';
+        const modeBadge = follow
+            ? '<span class="home-focus-badge home-focus-badge--auto"><i class="fas fa-magic"></i> Oracle Mode</span>'
+            : '<span class="home-focus-badge home-focus-badge--calm"><i class="fas fa-eye"></i> Observer Mode</span>';
+        badge = modeBadge;
     }
 
     return `
-        <div class="relative z-50">
-            <button id="home-class-selector-btn" class="flex items-center justify-between w-64 px-4 py-3 rounded-2xl bg-white shadow-lg border-2 border-indigo-100 hover:border-indigo-300 hover:scale-105 transition-all duration-200 group">
-                <span class="font-bold text-indigo-900 text-sm truncate pr-2 group-hover:text-indigo-600 transition-colors">${currentSelectionText}</span>
-                <i class="fas fa-chevron-down text-indigo-400 bg-indigo-50 p-1.5 rounded-full text-xs group-hover:bg-indigo-100 transition-colors"></i>
-            </button>
-            
-            <div id="home-class-selector-panel" class="absolute top-full right-0 mt-2 w-72 bg-white rounded-2xl shadow-2xl z-50 hidden overflow-hidden border-2 border-indigo-50 ring-4 ring-indigo-50/50 transform transition-all origin-top-right">
-                <div class="max-h-80 overflow-y-auto custom-scrollbar p-2 space-y-1">
-                    <div class="home-class-item p-3 flex items-center gap-3 hover:bg-indigo-50 rounded-xl cursor-pointer transition-colors" data-id="">
-                        <span class="text-2xl w-10 text-center bg-indigo-100 rounded-lg py-1">🏫</span>
-                        <span class="font-bold text-indigo-800 text-sm">General View</span>
-                    </div>
-                    ${classes.map(c => `
-                        <div class="home-class-item flex items-center gap-3 p-3 hover:bg-indigo-50 rounded-xl cursor-pointer transition-colors" data-id="${c.id}">
-                            <span class="text-2xl w-10 text-center bg-white border border-gray-100 rounded-lg py-1 shadow-sm">${c.logo}</span>
-                            <span class="font-bold text-gray-700 text-sm">${c.name}</span>
-                        </div>
-                    `).join('')}
+        <div class="home-focus-chip font-title">
+            <div class="home-focus-chip__glow" aria-hidden="true"></div>
+            <div class="home-focus-chip__inner">
+                <span class="home-focus-chip__icon" aria-hidden="true">${icon}</span>
+                <div class="home-focus-chip__text">
+                    <div class="home-focus-chip__title">${title}</div>
+                    <div class="home-focus-chip__sub">${sub}</div>
+                    <div class="home-focus-chip__badges">${badge}</div>
+                </div>
+                <div class="text-slate-300 ml-auto opacity-40">
+                    <i class="fas fa-chevron-right"></i>
                 </div>
             </div>
-        </div>
-    `;
+        </div>`;
 }
 
 function resolveActiveHomeLeague() {
@@ -745,36 +763,6 @@ function getScheduleHtml(dateString, activeClassId) {
 }
 
 function attachListeners(container) {
-    const selectorBtn = document.getElementById('home-class-selector-btn');
-    const selectorPanel = document.getElementById('home-class-selector-panel');
-    if (selectorBtn && selectorPanel) {
-        selectorBtn.addEventListener('click', (e) => {
-            e.stopPropagation();
-            const isHidden = selectorPanel.classList.contains('hidden');
-            if (isHidden) {
-                selectorPanel.classList.remove('hidden');
-                setTimeout(() => selectorPanel.style.transform = 'scale(1)', 10);
-            } else {
-                selectorPanel.style.transform = 'scale(0.95)';
-                setTimeout(() => selectorPanel.classList.add('hidden'), 200);
-            }
-        });
-        selectorPanel.addEventListener('click', (e) => {
-            e.stopPropagation();
-            const item = e.target.closest('.home-class-item');
-            if (item) {
-                state.setGlobalSelectedClass(item.dataset.id || null, true);
-                renderHomeTab();
-                selectorPanel.classList.add('hidden');
-            }
-        });
-        document.addEventListener('click', (e) => {
-            if (!selectorBtn.contains(e.target) && !selectorPanel.contains(e.target)) {
-                selectorPanel.classList.add('hidden');
-            }
-        }, { once: true });
-    }
-
     container.querySelectorAll('.chronicle-item').forEach(item => {
         item.addEventListener('click', (e) => {
             container.querySelectorAll('.chronicle-item.expanded').forEach(expandedItem => {
@@ -858,7 +846,7 @@ function startHomeSmartLogic() {
 
         const currentActiveLesson = myTodaysClasses.find(c => c.timeStart && c.timeEnd && currentTime >= c.timeStart && currentTime <= c.timeEnd);
 
-        if (currentActiveLesson) {
+        if (currentActiveLesson && state.get('classFollowSchedule')) {
             const currentSelectedId = state.get('globalSelectedClassId');
             if (currentSelectedId !== currentActiveLesson.id) {
                 // setGlobalSelectedClass handles re-rendering the active tab internally
@@ -873,6 +861,23 @@ function startHomeSmartLogic() {
     // Run immediately on load, then every 60 seconds
     checkLogic();
     homeInterval = setInterval(checkLogic, 60000);
+}
+
+/** One-shot: apply schedule-based class if `classFollowSchedule` and a lesson is in session. */
+export function runScheduleBasedClassSyncOnce() {
+    const now = new Date();
+    const currentTime = now.toTimeString().slice(0, 5);
+    const todayStr = utils.getTodayDateString();
+    const todaysClasses = utils.getClassesOnDay(todayStr, state.get('allSchoolClasses'), state.get('allScheduleOverrides'));
+    const myClasses = state.get('allTeachersClasses');
+    const myTodaysClasses = todaysClasses.filter(c => myClasses.some(mc => mc.id === c.id));
+    const currentActiveLesson = myTodaysClasses.find(c => c.timeStart && c.timeEnd && currentTime >= c.timeStart && currentTime <= c.timeEnd);
+    if (currentActiveLesson && state.get('classFollowSchedule')) {
+        const currentSelectedId = state.get('globalSelectedClassId');
+        if (currentSelectedId !== currentActiveLesson.id) {
+            state.setGlobalSelectedClass(currentActiveLesson.id, false);
+        }
+    }
 }
 
 async function injectQuizButton() {

@@ -473,15 +473,15 @@ export const optionsTabHTML = `
                                         </div>
                                     </div>
 
-                                    <!-- ── STEP 1 — CLASS ── -->
+                                    <!-- ── STEP 1 — CLASS (from header) ── -->
                                     <div class="qow-card" id="qow-card-class">
                                         <div class="qow-card-header">
                                             <span class="qow-card-badge">Step 1</span>
                                             <span class="qow-card-title"><i class="fas fa-users mr-2 text-amber-500"></i>Which class is this for?</span>
                                         </div>
-                                        <select id="quiz-class-select" class="qow-select">
-                                            <option value="">— Choose a class —</option>
-                                        </select>
+                                        <div id="qow-class-display" class="qow-class-display rounded-xl border-2 border-amber-100 bg-amber-50/50 px-4 py-3 text-amber-900 font-title font-semibold text-center">
+                                            Choose a class from the header…
+                                        </div>
                                         <div id="qow-class-meta" class="qow-class-meta hidden">
                                             <span id="qow-class-level-badge" class="qow-level-badge"></span>
                                             <span id="qow-class-meta-text" class="qow-class-meta-text"></span>

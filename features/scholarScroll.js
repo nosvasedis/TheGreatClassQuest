@@ -28,32 +28,12 @@ import {
 // --- TAB RENDERING ---
 
 export function renderScholarsScrollTab(selectedClassId = null) {
-    const classSelect = document.getElementById('scroll-class-select');
-    if (!classSelect) return;
     const logTrialFab = document.getElementById('log-trial-fab');
     const viewHistoryFab = document.getElementById('view-trial-history-fab');
 
     const currentVal = selectedClassId || state.get('globalSelectedClassId');
-    const optionsHtml = state.get('allTeachersClasses').sort((a, b) => a.name.localeCompare(b.name)).map(c => `<option value="${c.id}">${c.logo} ${c.name}</option>`).join('');
-
-    classSelect.innerHTML = '<option value="">Select a class to view their scroll...</option>' + optionsHtml;
-
-    // FIX 1: Restore the selected value so the dropdown doesn't reset visualy on refresh
-    if (currentVal) {
-        classSelect.value = currentVal;
-    }
-
-    // Remove old listeners to prevent duplicates (simple cloning trick)
-    const logBtn = document.getElementById('log-trial-btn');
-    const newLogBtn = logBtn.cloneNode(true);
-    logBtn.parentNode.replaceChild(newLogBtn, logBtn);
-
-    newLogBtn.addEventListener('click', () => openTrialTypeModal(classSelect.value));
 
     if (currentVal) {
-        // Enable buttons
-        document.getElementById('log-trial-btn').disabled = false;
-        document.getElementById('view-trial-history-btn').disabled = false;
         if (logTrialFab) logTrialFab.disabled = false;
         if (viewHistoryFab) viewHistoryFab.disabled = false;
 
@@ -65,9 +45,6 @@ export function renderScholarsScrollTab(selectedClassId = null) {
         // Render Missing Work
         renderMissingWorkDashboard(currentVal);
     } else {
-        // Disable buttons
-        document.getElementById('log-trial-btn').disabled = true;
-        document.getElementById('view-trial-history-btn').disabled = true;
         if (logTrialFab) logTrialFab.disabled = true;
         if (viewHistoryFab) viewHistoryFab.disabled = true;
 
@@ -861,40 +838,100 @@ function renderMissingWorkDashboard(classId) {
 
     // 3. Render the list
     let html = `
-        <div class="makeup-alert-container">
-            <h3 class="font-title text-xl text-orange-700 mb-2"><i class="fas fa-clock mr-2"></i>Pending Makeups</h3>
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+        <div class="mb-6 p-1 md:p-1 bg-gradient-to-br from-amber-200 via-amber-400 to-orange-500 rounded-[2rem] md:rounded-[2.3rem] shadow-[0_16px_40px_rgba(245,158,11,0.18)] relative overflow-hidden group">
+            <div class="bg-white/95 backdrop-blur-xl rounded-[1.65rem] md:rounded-[2rem] p-4 md:p-5 relative overflow-hidden">
+                
+                <!-- Atmospheric Background Decor -->
+                <div class="absolute -right-10 -top-10 text-[9rem] text-amber-500/5 transform rotate-12 pointer-events-none transition-transform duration-1000 group-hover:scale-110 group-hover:rotate-6">
+                    <i class="fas fa-scroll-old"></i>
+                </div>
+                <div class="absolute -left-16 -bottom-16 w-52 h-52 bg-amber-200/20 blur-[64px] rounded-full pointer-events-none"></div>
+
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4 relative z-10">
+                    <div class="flex items-center gap-3 min-w-0">
+                        <div class="relative shrink-0">
+                            <div class="absolute inset-0 bg-amber-400 blur-lg opacity-25 animate-pulse"></div>
+                            <div class="relative w-10 h-10 bg-gradient-to-br from-amber-400 to-orange-500 rounded-xl flex items-center justify-center shadow-lg shadow-amber-200/80 border border-white/20">
+                                <i class="fas fa-hourglass-start text-white text-base"></i>
+                            </div>
+                        </div>
+                        <div class="min-w-0">
+                            <div class="flex flex-wrap items-center gap-x-2 gap-y-0.5">
+                                <span class="px-2 py-0.5 bg-amber-500/10 text-amber-600 text-[9px] font-black uppercase tracking-[0.18em] rounded-full border border-amber-500/20 shrink-0">Scholastic Alerts</span>
+                                <h3 class="font-title text-xl md:text-2xl text-slate-800 tracking-tight leading-tight">Pending Makeups</h3>
+                            </div>
+                            <p class="text-slate-500 text-xs font-medium leading-snug mt-0.5">Students awaiting assessment restoration.</p>
+                        </div>
+                    </div>
+                    
+                    <div class="flex items-center gap-2 bg-amber-50 px-3 py-1.5 rounded-xl border border-amber-100 shrink-0 self-start sm:self-auto">
+                        <div class="w-1.5 h-1.5 bg-amber-500 rounded-full animate-ping"></div>
+                        <span class="text-[10px] font-black text-amber-700 uppercase tracking-wider">${filteredWork.length} Records Found</span>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-3 relative z-10">
     `;
 
     filteredWork.forEach(item => {
+        const student = item.student;
+        const avatar = student.avatar
+            ? `<img src="${student.avatar}" class="w-10 h-10 rounded-xl object-cover border border-white shadow-sm">`
+            : `<div class="w-10 h-10 rounded-xl bg-gradient-to-br from-amber-100 to-orange-100 text-amber-800 font-title flex items-center justify-center text-base border border-white shadow-sm">${student.name.charAt(0)}</div>`;
+
         html += `
-            <div class="makeup-item">
-                <div>
-                    <div class="font-bold text-gray-800">${item.student.name}</div>
-                    <div class="text-xs text-gray-500">Missed: ${item.assessment.title} (${item.assessment.type})</div>
-                    <div class="text-xs text-orange-400">Original Date: ${(utils.parseFlexibleDate(item.assessment.originalDate) || new Date()).toLocaleDateString('en-GB')}</div>
-                </div>
-                <div class="flex items-center gap-2">
-                    <button class="makeup-dismiss-btn w-7 h-7 rounded-full bg-gray-100 text-gray-400 hover:bg-red-100 hover:text-red-500 flex items-center justify-center transition-colors" 
-                        data-student-id="${item.student.id}" 
-                        data-title="${item.assessment.title}" 
-                        data-type="${item.assessment.type}"
-                        title="Dismiss this pending makeup">
-                        <i class="fas fa-times text-xs pointer-events-none"></i>
-                    </button>
-                    <button class="makeup-log-btn makeup-trigger" 
-                        data-student-id="${item.student.id}" 
-                        data-title="${item.assessment.title}" 
-                        data-type="${item.assessment.type}">
-                        Log Now
-                    </button>
+            <div class="makeup-item bg-slate-50/50 p-3 md:p-3.5 rounded-2xl border border-slate-100 hover:bg-white hover:border-amber-200 hover:shadow-lg hover:-translate-y-0.5 transition-all duration-300 group/item relative">
+                <div class="absolute inset-0 rounded-[inherit] overflow-hidden pointer-events-none bg-gradient-to-br from-amber-500/0 to-amber-500/[0.02] opacity-0 group-hover/item:opacity-100 transition-opacity"></div>
+                
+                <div class="relative z-10 flex flex-wrap items-start gap-x-2 gap-y-2">
+                    <div class="flex items-start gap-2.5 min-w-0 flex-1 basis-[10rem]">
+                        <div class="relative shrink-0 pt-0.5">
+                            <div class="absolute inset-0 bg-amber-200 blur-md opacity-0 group-hover/item:opacity-35 transition-opacity rounded-lg"></div>
+                            <div class="relative transform group-hover/item:scale-105 transition-all duration-300">
+                                ${avatar}
+                            </div>
+                        </div>
+                        <div class="min-w-0 flex-1 space-y-1">
+                            <div class="font-title text-base text-slate-800 leading-tight truncate">${student.name}</div>
+                            <div class="flex flex-wrap items-center gap-x-1.5 gap-y-1">
+                                <span class="text-[8px] font-black text-amber-600 uppercase tracking-wide bg-amber-100/60 px-2 py-0.5 rounded-md border border-amber-500/15">${item.assessment.type}</span>
+                                <span class="text-[10px] font-bold text-slate-500 leading-snug break-words">${item.assessment.title}</span>
+                            </div>
+                            <div class="text-[9px] text-slate-400 font-medium flex flex-wrap items-center gap-x-1.5 gap-y-0">
+                                <span class="inline-flex items-center gap-1 shrink-0"><i class="far fa-calendar-alt text-amber-500 text-[10px]"></i>
+                                Expected: <span class="text-slate-600 font-bold">${(utils.parseFlexibleDate(item.assessment.originalDate) || new Date()).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}</span></span>
+                                <span class="w-1 h-1 rounded-full bg-amber-400 animate-pulse shrink-0" aria-hidden="true"></span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="flex items-center justify-end gap-1.5 shrink-0 basis-full sm:basis-auto sm:ml-auto pt-0.5">
+                        <button class="makeup-dismiss-btn w-8 h-8 rounded-lg bg-white text-slate-400 hover:bg-rose-50 hover:text-rose-500 flex items-center justify-center transition-all border border-slate-200 hover:border-rose-200 shadow-sm" 
+                            data-student-id="${item.student.id}" 
+                            data-title="${item.assessment.title}" 
+                            data-type="${item.assessment.type}"
+                            title="Dismiss this record">
+                            <i class="fas fa-trash-can text-[10px] pointer-events-none"></i>
+                        </button>
+                        <button class="makeup-log-btn makeup-trigger h-8 px-3 rounded-lg bg-gradient-to-r from-amber-500 to-orange-600 text-white font-black text-[9px] uppercase tracking-wide shadow-md shadow-amber-200/70 hover:shadow-amber-300/80 hover:scale-[1.02] transition-all flex items-center gap-1.5 whitespace-nowrap" 
+                            data-student-id="${item.student.id}" 
+                            data-title="${item.assessment.title}" 
+                            data-type="${item.assessment.type}">
+                            <span>Log Result</span>
+                            <i class="fas fa-chevron-right text-[7px] opacity-60"></i>
+                        </button>
+                    </div>
                 </div>
             </div>
         `;
     });
 
 
-    html += `</div></div>`;
+    html += `
+                </div>
+            </div>
+        </div>
+    `;
     container.innerHTML = html;
 
     // 4. Bind Click Events

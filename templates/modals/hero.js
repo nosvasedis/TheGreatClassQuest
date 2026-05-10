@@ -315,16 +315,11 @@ export const heroModalsHTML = `
                     Hall of Prodigies</h2>
                 <p class="text-indigo-200 text-lg mt-1">Legends of Months Past</p>
 
-                <div class="mt-4 flex justify-center">
-                    <select id="prodigy-class-select"
-                        class="bg-indigo-950/50 border-2 border-amber-500/50 text-amber-100 text-lg font-bold rounded-xl px-4 py-2 outline-none focus:ring-2 focus:ring-amber-400">
-                        <option value="">Select a Class...</option>
-                    </select>
-                </div>
+                <p id="prodigy-class-context" class="mt-4 text-center text-amber-200/90 text-sm font-bold tracking-wide" hidden></p>
             </div>
 
             <div id="prodigy-content" class="flex-grow overflow-y-auto p-6 custom-scrollbar relative z-10 space-y-6">
-                <div class="text-center text-indigo-300 mt-10 text-xl">Select a class to view its legends.</div>
+                <div class="text-center text-indigo-300 mt-10 text-xl">Loading legends…</div>
             </div>
         </div>
     </div>

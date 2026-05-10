@@ -79,7 +79,7 @@ export async function deleteAdventureLog(logId) {
 }
 
 export async function handleEndStory() {
-    const classId = document.getElementById('story-weavers-class-select').value;
+    const classId = state.get('globalSelectedClassId');
     const classData = state.get('allTeachersClasses').find(c => c.id === classId);
     const currentStoryData = state.get('currentStoryData');
 

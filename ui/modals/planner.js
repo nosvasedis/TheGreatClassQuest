@@ -16,7 +16,7 @@ export function openDayPlannerModal(dateString, dayCell) {
 
     const modal = document.getElementById('day-planner-modal');
     const displayDate = utils.parseDDMMYYYY(dateString).toLocaleDateString('en-GB', { weekday: 'long', month: 'long', day: 'numeric' });
-    document.getElementById('day-planner-title').innerText = `Planner for ${displayDate}`;
+    document.getElementById('day-planner-title').innerText = `Planner: ${displayDate}`;
     modal.dataset.date = dateString;
     
     // 1. Reset the form FIRST to clear old inputs
@@ -35,15 +35,20 @@ export function openDayPlannerModal(dateString, dayCell) {
 export function switchDayPlannerTab(tabName) {
     document.querySelectorAll('.day-planner-tab-btn').forEach(btn => {
         const isSelected = btn.dataset.tab === tabName;
-        btn.classList.toggle('border-blue-500', isSelected && tabName === 'schedule');
-        btn.classList.toggle('text-blue-600', isSelected && tabName === 'schedule');
-        btn.classList.toggle('border-purple-500', isSelected && tabName === 'event');
-        btn.classList.toggle('text-purple-600', isSelected && tabName === 'event');
-        btn.classList.toggle('border-transparent', !isSelected);
+        // Premium tab styling
+        btn.classList.toggle('bg-white', isSelected);
+        btn.classList.toggle('shadow-sm', isSelected);
+        btn.classList.toggle('text-indigo-600', isSelected);
         btn.classList.toggle('text-gray-500', !isSelected);
+        btn.classList.toggle('hover:text-gray-700', !isSelected);
     });
-    document.querySelectorAll('.day-planner-tab-content').forEach(content => content.classList.add('hidden'));
-    document.getElementById(`day-planner-${tabName}-content`).classList.remove('hidden');
+    document.querySelectorAll('.day-planner-tab-content').forEach(content => {
+        content.classList.add('hidden');
+        content.classList.remove('animate-fade-in');
+    });
+    const activeContent = document.getElementById(`day-planner-${tabName}-content`);
+    activeContent.classList.remove('hidden');
+    activeContent.classList.add('animate-fade-in');
 }
 
 function renderScheduleManagerList(dateString) {
@@ -58,13 +63,37 @@ function renderScheduleManagerList(dateString) {
     const allTeacherClassIds = state.get('allTeachersClasses').map(c => c.id);
 
     if (classesOnDay.length === 0) {
-        listEl.innerHTML = `<p class="text-center text-gray-500">No lessons scheduled for this day.</p>`;
+        listEl.innerHTML = `
+            <div class="flex flex-col items-center justify-center py-10 px-4 text-center bg-gray-50/50 rounded-2xl border border-dashed border-gray-200">
+                <div class="w-16 h-16 bg-white rounded-full flex items-center justify-center mb-3 shadow-sm">
+                    <i class="fas fa-calendar-times text-2xl text-gray-300"></i>
+                </div>
+                <p class="text-gray-500 font-semibold">The hall is quiet.</p>
+                <p class="text-gray-400 text-sm mt-1">No lessons scheduled for this day.</p>
+            </div>`;
     } else {
         listEl.innerHTML = classesOnDay.map(c => {
-            const cancelButton = allTeacherClassIds.includes(c.id)
-                ? `<button class="cancel-lesson-btn bg-red-100 text-red-700 font-bold py-1 px-3 rounded-full bubbly-button" data-class-id="${c.id}">Cancel</button>`
-                : `<span class="text-xs text-gray-400">By ${c.createdBy.name}</span>`;
-            return `<div class="flex items-center justify-between bg-gray-50 p-2 rounded-lg"><span>${c.logo} ${c.name}</span>${cancelButton}</div>`;
+            const isMine = allTeacherClassIds.includes(c.id);
+            const timeDisplay = (c.timeStart && c.timeEnd) ? `${c.timeStart} - ${c.timeEnd}` : 'No time set';
+            const cancelButton = isMine
+                ? `<button class="cancel-lesson-btn bg-rose-50 hover:bg-rose-100 text-rose-600 font-bold py-2 px-4 rounded-xl shadow-sm border border-rose-100 transition-all hover:scale-105 active:scale-95 flex items-center gap-2" data-class-id="${c.id}">
+                    <i class="fas fa-calendar-minus"></i> Cancel
+                   </button>`
+                : `<div class="bg-gray-100/80 px-3 py-1.5 rounded-lg border border-gray-200/50 text-[10px] font-black uppercase tracking-widest text-gray-400">By ${c.createdBy.name}</div>`;
+            
+            return `
+                <div class="flex items-center justify-between bg-white/70 backdrop-blur-sm p-4 rounded-2xl border border-gray-100 shadow-sm transition-all hover:shadow-md group">
+                    <div class="flex items-center gap-4">
+                        <div class="w-12 h-12 bg-white rounded-xl shadow-sm border border-gray-100 flex items-center justify-center text-2xl group-hover:scale-110 transition-transform">
+                            ${c.logo}
+                        </div>
+                        <div>
+                            <h4 class="font-title text-lg text-gray-800 leading-tight">${c.name}</h4>
+                            <p class="text-xs font-bold text-gray-400 mt-0.5 flex items-center gap-1.5"><i class="fas fa-clock text-[10px]"></i> ${timeDisplay}</p>
+                        </div>
+                    </div>
+                    ${cancelButton}
+                </div>`;
         }).join('');
     }
 

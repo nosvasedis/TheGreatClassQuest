@@ -52,12 +52,23 @@
     100% { box-shadow: 0 0 20px rgba(255, 0, 255, 0.4), 0 0 40px rgba(255, 0, 0, 0.2); }
 }
 @keyframes pulse-border-rainbow {
-    0%, 100% { border-color: rgba(255, 0, 0, 0.6); }
-    16% { border-color: rgba(255, 165, 0, 0.6); }
-    33% { border-color: rgba(255, 255, 0, 0.6); }
-    50% { border-color: rgba(0, 255, 0, 0.6); }
-    66% { border-color: rgba(0, 255, 255, 0.6); }
-    83% { border-color: rgba(255, 0, 255, 0.6); }
+    0%, 100% { border-color: rgba(255, 0, 0, 0.6); box-shadow: 0 0 15px rgba(255, 0, 0, 0.2); }
+    16% { border-color: rgba(255, 165, 0, 0.6); box-shadow: 0 0 15px rgba(255, 165, 0, 0.2); }
+    33% { border-color: rgba(255, 255, 0, 0.6); box-shadow: 0 0 15px rgba(255, 255, 0, 0.2); }
+    50% { border-color: rgba(0, 255, 0, 0.6); box-shadow: 0 0 15px rgba(0, 255, 0, 0.2); }
+    66% { border-color: rgba(0, 255, 255, 0.6); box-shadow: 0 0 15px rgba(0, 255, 255, 0.2); }
+    83% { border-color: rgba(255, 0, 255, 0.6); box-shadow: 0 0 15px rgba(255, 0, 255, 0.2); }
+}
+@keyframes float-hero {
+    0%, 100% { transform: translateY(0) rotate(0deg); }
+    25% { transform: translateY(-10px) rotate(2deg); }
+    50% { transform: translateY(-5px) rotate(-1deg); }
+    75% { transform: translateY(-12px) rotate(1deg); }
+}
+@keyframes mesh-drift {
+    0% { background-position: 0% 0%; }
+    50% { background-position: 100% 100%; }
+    100% { background-position: 0% 0%; }
 }
 @keyframes wiggle {
     0%, 100% { transform: rotate(0deg); }
@@ -491,39 +502,49 @@
     box-shadow: 0 8px 25px -5px rgba(3, 105, 161, 0.28);
 }
 
-/* 5. ROW 1: GREETING CARD - ENHANCED */
+/* 5. ROW 1: GREETING CARD - REFINED HERO */
 .greeting-panel {
-    background: linear-gradient(145deg, #ffffff 0%, #f8fafc 100%);
-    padding: 2rem;
+    background: white;
+    padding: 1.5rem 1.75rem;
     display: flex;
     flex-direction: column;
     justify-content: center;
     position: relative;
-    overflow: hidden;
-    border-radius: 1.75rem;
+    overflow: hidden !important;
+    border-radius: 2rem;
+    min-height: 220px;
+    box-shadow: 
+        0 10px 30px -10px rgba(0, 0, 0, 0.08),
+        inset 0 0 60px rgba(255, 255, 255, 0.4);
+    border: 1px solid rgba(255, 255, 255, 0.8);
 }
 .greeting-bg-mesh {
     position: absolute;
-    top: 0; left: 0; width: 100%; height: 100%;
+    top: -50%; left: -50%; width: 200%; height: 200%;
     background: 
-        radial-gradient(at 0% 0%, rgba(99, 102, 241, 0.15) 0px, transparent 50%),
-        radial-gradient(at 100% 100%, rgba(236, 72, 153, 0.12) 0px, transparent 50%),
-        radial-gradient(at 50% 50%, rgba(59, 130, 246, 0.08) 0px, transparent 60%);
-    opacity: 0.7;
+        radial-gradient(at 20% 20%, rgba(99, 102, 241, 0.18) 0px, transparent 40%),
+        radial-gradient(at 80% 20%, rgba(236, 72, 153, 0.15) 0px, transparent 40%),
+        radial-gradient(at 50% 80%, rgba(59, 130, 246, 0.12) 0px, transparent 40%),
+        radial-gradient(at 20% 80%, rgba(16, 185, 129, 0.1) 0px, transparent 40%);
+    opacity: 0.8;
     pointer-events: none;
-    animation: gradient-shift 10s ease infinite;
-    background-size: 200% 200%;
+    animation: mesh-drift 20s ease-in-out infinite;
+    z-index: 0;
 }
-.greeting-bg-particles {
+.greeting-hero-asset {
     position: absolute;
-    top: 0; left: 0; width: 100%; height: 100%;
-    background-image: 
-        radial-gradient(3px 3px at 10% 20%, rgba(99, 102, 241, 0.3) 50%, transparent 100%),
-        radial-gradient(2px 2px at 30% 70%, rgba(168, 85, 247, 0.25) 50%, transparent 100%),
-        radial-gradient(2px 2px at 70% 30%, rgba(236, 72, 153, 0.25) 50%, transparent 100%),
-        radial-gradient(3px 3px at 90% 80%, rgba(59, 130, 246, 0.3) 50%, transparent 100%);
-    animation: float-particle 8s ease-in-out infinite;
+    right: 1.5rem;
+    bottom: -0.5rem;
+    font-size: 8rem;
+    opacity: 0.12;
+    filter: blur(1.5px);
     pointer-events: none;
+    z-index: 0;
+    animation: float-hero 10s ease-in-out infinite;
+}
+.greeting-content {
+    position: relative;
+    z-index: 10;
 }
 
 /* 6. ROW 2: STAT CARDS - ENHANCED */
@@ -955,6 +976,117 @@
 #grand-guild-ceremony-btn-class > div:hover {
     transform: scale(1.08) translateY(-4px);
     box-shadow: 0 20px 40px -10px rgba(251, 191, 36, 0.5);
+}
+
+/* Home “active class” chip — compact premium status */
+.home-focus-chip {
+    position: relative;
+    border-radius: 1.25rem;
+    padding: 0.75rem 1rem;
+    background: rgba(255, 255, 255, 0.7);
+    box-shadow: 
+        0 4px 15px -3px rgba(0, 0, 0, 0.06),
+        0 2px 6px -2px rgba(0, 0, 0, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.8);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+    overflow: hidden;
+    cursor: pointer;
+    max-width: 280px;
+}
+.home-focus-chip:hover {
+    transform: scale(1.03);
+    background: rgba(255, 255, 255, 0.9);
+    box-shadow: 0 10px 25px -8px rgba(99, 102, 241, 0.15);
+    border-color: rgba(99, 102, 241, 0.2);
+}
+.home-focus-chip__glow {
+    position: absolute;
+    inset: -50%;
+    background: radial-gradient(circle at 30% 20%, rgba(129, 140, 248, 0.15) 0%, transparent 60%),
+        radial-gradient(circle at 80% 80%, rgba(56, 189, 248, 0.12) 0%, transparent 60%);
+    pointer-events: none;
+    z-index: 0;
+}
+.home-focus-chip__inner {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+.home-focus-chip__icon {
+    flex-shrink: 0;
+    width: 2.75rem;
+    height: 2.75rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.5rem;
+    line-height: 1;
+    background: white;
+    border-radius: 0.85rem;
+    border: 1px solid rgba(226, 232, 240, 0.8);
+    box-shadow: 0 4px 10px -2px rgba(15, 23, 42, 0.08);
+}
+.home-focus-chip__text {
+    min-width: 0;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+}
+.home-focus-chip__title {
+    font-size: 0.95rem;
+    font-weight: 800;
+    color: #1e293b;
+    line-height: 1.2;
+}
+.home-focus-chip__sub {
+    font-size: 0.7rem;
+    line-height: 1.2;
+    color: #64748b;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.02em;
+}
+.home-focus-chip__badges {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.35rem;
+    margin-top: 0.25rem;
+}
+.home-focus-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    padding: 0.15rem 0.5rem;
+    border-radius: 6px;
+    font-size: 0.6rem;
+    font-weight: 800;
+    letter-spacing: 0.02em;
+    text-transform: uppercase;
+    border: 1px solid transparent;
+    transition: all 0.3s;
+}
+.home-focus-badge i {
+    font-size: 0.65rem;
+}
+.home-focus-badge--auto {
+    background: #e0f2fe;
+    color: #0369a1;
+    border-color: rgba(14, 165, 233, 0.1);
+}
+.home-focus-badge--pin {
+    background: #fef3c7;
+    color: #92400e;
+    border-color: rgba(245, 158, 11, 0.2);
+}
+.home-focus-badge--calm {
+    background: #f1f5f9;
+    color: #475569;
+    border-color: rgba(100, 116, 139, 0.1);
 }
 
 

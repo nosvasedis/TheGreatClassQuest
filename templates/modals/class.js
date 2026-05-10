@@ -186,14 +186,32 @@ export const classModalsHTML = `
     </div>
 
     <div id="logbook-modal"
-        class="fixed inset-0 bg-black bg-opacity-50 z-[71] flex items-center justify-center p-4 hidden">
-        <div class="bg-white p-6 md:p-8 rounded-3xl shadow-2xl max-w-3xl w-full pop-in border-4 border-blue-300">
-            <div class="flex justify-between items-center mb-4">
-                <h2 id="logbook-modal-title" class="font-title text-2xl md:text-3xl text-blue-700">Daily Quest Log</h2>
-                <button id="logbook-modal-close-btn"
-                    class="bg-gray-200 hover:bg-gray-300 text-gray-800 font-bold w-10 h-10 rounded-full bubbly-button">&times;</button>
+        class="fixed inset-0 bg-slate-950/60 backdrop-blur-sm z-[71] flex items-center justify-center p-4 hidden">
+        <div class="bg-white/95 rounded-[2.5rem] shadow-[0_20px_50px_rgba(0,0,0,0.3)] max-w-3xl w-full pop-in border border-white/20 flex flex-col max-h-[90vh] overflow-hidden">
+            <!-- Header Section -->
+            <div class="relative bg-gradient-to-r from-blue-600 via-indigo-600 to-blue-700 p-6 text-white flex-shrink-0">
+                <div class="absolute top-0 left-0 w-full h-full opacity-10 pointer-events-none bg-[url('https://www.transparenttextures.com/patterns/cubes.png')]"></div>
+                <div class="relative flex items-center justify-between">
+                    <div class="flex items-center gap-4">
+                        <div class="w-12 h-12 bg-white/20 backdrop-blur-md rounded-xl flex items-center justify-center text-2xl shadow-inner border border-white/30">
+                            <i class="fas fa-book text-white drop-shadow-sm"></i>
+                        </div>
+                        <div>
+                            <h2 id="logbook-modal-title" class="font-title text-3xl drop-shadow-md">Daily Quest Log</h2>
+                            <p class="text-blue-100 font-bold uppercase tracking-widest text-[10px] opacity-80">Chronicle of Heroes</p>
+                        </div>
+                    </div>
+                    <button id="logbook-modal-close-btn"
+                        class="bg-white/10 hover:bg-white/20 text-white w-10 h-10 rounded-full flex items-center justify-center transition-all hover:rotate-90">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
             </div>
-            <div id="logbook-modal-content" class="space-y-4 max-h-[70vh] overflow-y-auto pr-2"></div>
+
+            <!-- Content Area -->
+            <div id="logbook-modal-content" class="flex-1 overflow-y-auto p-6 space-y-6 custom-scrollbar bg-slate-50/30">
+                <!-- Content injected by showLogbookModal -->
+            </div>
         </div>
     </div>
 

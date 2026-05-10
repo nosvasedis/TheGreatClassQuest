@@ -5,13 +5,13 @@ import { db } from '../../firebase.js';
 import { doc, updateDoc, setDoc } from 'https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js';
 import * as utils from '../../utils.js';
 import { showToast } from '../effects.js';
-import { renderClassLeaderboardTab, renderStudentLeaderboardTab } from '../tabs.js';
 import * as storyWeaver from '../../features/storyWeaver.js';
 import { playSound } from '../../audio.js';
 
 // --- GLOBAL STATE SYNC FUNCTIONS ---
 export function findAndSetCurrentClass(targetSelectId = null) {
     if (state.get('globalSelectedClassId')) return;
+    if (!state.get('classFollowSchedule')) return;
 
     const todayString = utils.getTodayDateString();
     const classesToday = utils.getClassesOnDay(todayString, state.get('allSchoolClasses'), state.get('allScheduleOverrides'));
@@ -25,28 +25,6 @@ export function findAndSetCurrentClass(targetSelectId = null) {
     for (const c of myClassesToday) {
         if (c.timeStart && c.timeEnd && currentTime >= c.timeStart && currentTime <= c.timeEnd) {
             state.setGlobalSelectedClass(c.id);
-            return;
-        }
-    }
-}
-
-export function findAndSetCurrentLeague(shouldRender = true) {
-    if (state.get('globalSelectedLeague')) return;
-
-    const now = new Date();
-    const currentTime = now.toTimeString().slice(0, 5);
-    const todayString = utils.getTodayDateString();
-    // Use getClassesOnDay so cancelled/overridden classes are respected
-    const classesToday = utils.getClassesOnDay(todayString, state.get('allSchoolClasses'), state.get('allScheduleOverrides'));
-    const myClassesToday = classesToday.filter(c => state.get('allTeachersClasses').some(tc => tc.id === c.id));
-
-    for (const c of myClassesToday) {
-        if (c.timeStart && c.timeEnd && currentTime >= c.timeStart && currentTime <= c.timeEnd) {
-            state.setGlobalSelectedLeague(c.questLevel, false);
-            if (shouldRender) {
-                renderClassLeaderboardTab();
-                renderStudentLeaderboardTab();
-            }
             return;
         }
     }

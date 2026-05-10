@@ -24,7 +24,7 @@
     animation: starfall-icon-pulse 2.5s ease-in-out infinite;
 }
 
-/* Scholar's Scroll Hero + Controls */
+/* Scholar's Scroll hero */
 .ss-hero {
     position: relative;
     padding: 1.1rem 1rem 0.6rem;
@@ -34,59 +34,6 @@
     max-width: 760px;
     margin-inline: auto;
     color: #6b7280;
-}
-
-.ss-controls-card {
-    border-radius: 1.2rem;
-    border: 2px solid #efe4ff;
-    background: linear-gradient(140deg, #ffffff 0%, #fdf7ff 52%, #f5f3ff 100%);
-    box-shadow: 0 20px 34px -28px rgba(109, 40, 217, 0.35);
-    padding: 1rem;
-    display: grid;
-    gap: 0.9rem;
-}
-
-.ss-controls-row {
-    display: grid;
-    grid-template-columns: 1fr;
-    gap: 0.65rem;
-}
-
-.ss-control-label {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.35rem;
-    color: #6d28d9;
-    font-weight: 800;
-    letter-spacing: 0.03em;
-    font-size: 0.78rem;
-    text-transform: uppercase;
-}
-
-.ss-class-select {
-    border-color: #ddd6fe !important;
-    border-width: 2px !important;
-    border-radius: 0.95rem !important;
-    font-weight: 700;
-    color: #4c1d95;
-    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.8);
-    transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
-}
-
-.ss-class-select:hover {
-    border-color: #c4b5fd !important;
-    transform: translateY(-1px);
-}
-
-.ss-class-select:focus {
-    border-color: #8b5cf6 !important;
-    box-shadow: 0 0 0 4px rgba(139, 92, 246, 0.2) !important;
-}
-
-.ss-inline-actions {
-    display: grid;
-    grid-template-columns: 1fr;
-    gap: 0.6rem;
 }
 
 /* Scholar's Scroll FABs */
@@ -290,28 +237,20 @@
 }
 
 @media (max-width: 767px) {
-    .ss-fab-cluster {
-        display: none;
+    .ss-fab-cluster--left {
+        left: 0.5rem;
+    }
+
+    .ss-fab-cluster--right {
+        right: 0.5rem;
+    }
+
+    .ss-fab {
+        padding: 0.7rem 0.9rem;
     }
 
     .ss-fab-label {
         display: none !important;
-    }
-
-    .ss-controls-card {
-        border-radius: 1rem;
-        padding: 0.8rem;
-    }
-}
-
-@media (min-width: 768px) {
-    .ss-inline-actions {
-        display: none;
-    }
-
-    .ss-controls-row {
-        grid-template-columns: 86px minmax(0, 1fr);
-        align-items: center;
     }
 }
 
@@ -728,10 +667,8 @@ optgroup {
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
-    padding-bottom: 1.2rem;
-    border-bottom: 2px solid;
-    border-image: linear-gradient(90deg, #a78bfa, #c4b5fd) 1;
-    margin-bottom: 1.2rem !important;
+    padding-bottom: 0.35rem;
+    margin-bottom: 1rem !important;
 }
 
 #trial-history-view-toggle .toggle-btn {

@@ -631,15 +631,26 @@ body.adventure-log-editor-open {
     background-color: #ffffff;
 }
 
-/* First row: 1 column on mobile, 2 on tablet+ */
+/* First row: single full-width month selector, centered */
 .al-controls-row:first-child {
     grid-template-columns: 1fr;
+    justify-items: stretch;
 }
 
-@media (min-width: 640px) {
-    .al-controls-row:first-child {
-        grid-template-columns: 2fr 1.5fr;
-    }
+.al-controls-row:first-child .al-selector-group {
+    width: 100%;
+    max-width: 100%;
+    align-items: center;
+    text-align: center;
+}
+
+.al-controls-row:first-child .al-selector-label {
+    justify-content: center;
+}
+
+.al-controls-row:first-child .al-selector {
+    width: 100%;
+    max-width: 100%;
 }
 
 /* ─── PRIMARY ACTIONS ROW ─────────────────────────────────────────────────────── */

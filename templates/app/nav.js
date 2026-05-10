@@ -1,7 +1,7 @@
 // templates/app/nav.js
 
 export const navHTML = `
-        <nav id="bottom-nav-bar" class="grid grid-cols-11 gap-1 p-2 shadow-inner"
+        <nav id="bottom-nav-bar" class="relative z-50 grid grid-cols-11 gap-1 p-2 shadow-inner"
             style="background: linear-gradient(to right, #89f7fe 0%, #66a6ff 100%);">
             <button class="nav-button nav-color-cyan active" data-tab="about-tab">
                 <i class="fas fa-home icon"></i>

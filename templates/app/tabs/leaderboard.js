@@ -45,6 +45,11 @@ export const leaderboardTabHTML = `
                             <i class="fas fa-layer-group text-amber-500 text-sm"></i>
                             <span>Select a League</span>
                         </button>
+                        <button type="button" id="leaderboard-league-match-btn" title="Show the league for your selected class"
+                            class="hidden font-title text-xs bg-emerald-50 text-emerald-800 py-1.5 px-3 rounded-full shadow border border-emerald-200 bubbly-button inline-flex items-center gap-1">
+                            <i class="fas fa-magic text-emerald-500"></i>
+                            <span>Active class</span>
+                        </button>
                         <button id="class-history-btn"
                             class="font-title text-sm bg-white text-amber-700 py-1.5 px-4 rounded-full shadow border-2 border-amber-200 bubbly-button inline-flex items-center gap-1.5">
                             <i class="fas fa-history text-amber-400 text-xs"></i>
@@ -62,6 +67,8 @@ export const leaderboardTabHTML = `
                 <!-- FAB — LEFT CORNER -->
                 <div class="hc-fab-cluster hc-fab-cluster--left">
                     <button id="open-prodigy-btn"
+                        type="button"
+                        disabled
                         class="hc-fab bubbly-button"
                         style="background: linear-gradient(135deg, #7c3aed 0%, #9333ea 55%, #c026d3 100%); border: 2px solid rgba(196, 181, 253, 0.75); color: white;">
                         <i class="fas fa-crown hc-fab-icon"></i>
@@ -71,6 +78,8 @@ export const leaderboardTabHTML = `
                 <!-- FAB — RIGHT CORNER -->
                 <div class="hc-fab-cluster hc-fab-cluster--right">
                     <button id="open-trophy-room-btn"
+                        type="button"
+                        disabled
                         class="hc-fab hc-fab--right bubbly-button"
                         style="background: linear-gradient(135deg, #f59e0b 0%, #f97316 55%, #ea580c 100%); border: 2px solid rgba(253, 186, 116, 0.75); color: white;">
                         <i class="fas fa-trophy hc-fab-icon"></i>
@@ -121,6 +130,11 @@ export const leaderboardTabHTML = `
                                 class="font-title text-base bg-white text-purple-800 py-1.5 px-4 rounded-full shadow border-2 border-purple-300 bubbly-button inline-flex items-center gap-1.5 shrink-0">
                                 <i class="fas fa-layer-group text-purple-400 text-sm"></i>
                                 <span>Select a League</span>
+                            </button>
+                            <button type="button" id="student-leaderboard-league-match-btn" title="Show the league for your selected class"
+                                class="hidden font-title text-xs bg-emerald-50 text-emerald-800 py-1.5 px-3 rounded-full shadow border border-emerald-200 bubbly-button inline-flex items-center gap-1 shrink-0">
+                                <i class="fas fa-magic text-emerald-500"></i>
+                                <span>Active class</span>
                             </button>
                             <button id="student-history-btn"
                                 class="hero-challenge-btn font-title text-sm bg-white text-purple-700 py-1.5 px-4 rounded-full shadow border-2 border-purple-200 bubbly-button inline-flex items-center gap-1.5 shrink-0">

@@ -30,28 +30,6 @@ export const scrollTabHTML = `
                             triumphs!</p>
                     </div>
 
-                    <div class="ss-controls-card mb-6">
-                        <div class="ss-controls-row">
-                            <label for="scroll-class-select" class="ss-control-label">Class</label>
-                            <select id="scroll-class-select"
-                                class="ss-class-select w-full sm:w-auto flex-grow px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500 bg-white text-lg">
-                                <option value="">Select a class to view their scroll...</option>
-                            </select>
-                        </div>
-                        <div class="ss-inline-actions">
-                            <button id="log-trial-btn"
-                                class="w-full sm:w-auto bg-amber-700 hover:bg-amber-800 text-white font-title text-xl py-3 px-6 rounded-lg bubbly-button disabled:opacity-50"
-                                disabled>
-                                <i class="fas fa-feather-alt mr-2"></i> Log a New Trial
-                            </button>
-                            <button id="view-trial-history-btn"
-                                class="w-full sm:w-auto bg-blue-600 hover:bg-blue-700 text-white font-title text-xl py-3 px-6 rounded-lg bubbly-button disabled:opacity-50"
-                                disabled>
-                                <i class="fas fa-history mr-2"></i> View History
-                            </button>
-                        </div>
-                    </div>
-
                     <div id="scroll-dashboard-content" class="hidden">
                         <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6" id="scroll-stats-cards"></div>
 
@@ -61,7 +39,7 @@ export const scrollTabHTML = `
                         </div>
                     </div>
                     <div id="scroll-placeholder" class="text-center text-gray-500 bg-white/50 p-6 rounded-2xl">
-                        Please select a class to view their academic progress.
+                        Please choose a class from the header to view academic progress.
                     </div>
                 </div>
             </div>

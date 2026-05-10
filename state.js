@@ -53,8 +53,18 @@ function getDefaultState() {
         // UI Selection States
         globalSelectedClassId: null, // Don't persist - always use smart selector on load
         reigningHero: null, // Stores the student object of the last crowned hero
-        globalSelectedLeague: localStorage.getItem('quest_last_league') || null,
+        // Never hydrate from localStorage: leaderboards stay “no league” until a class is
+        // chosen (header) or set by schedule sync (setGlobalSelectedClass).
+        globalSelectedLeague: null,
         isProgrammaticSelection: false,
+        /** When true, Home interval may switch class by schedule; manual class pick sets false (persisted). */
+        classFollowSchedule: (() => {
+            const v = localStorage.getItem('quest_class_follow_schedule');
+            if (v === null) return true;
+            return v === '1';
+        })(),
+        /** Leaderboard tabs only: peek another league without changing global class. */
+        leaderboardLeagueOverride: null,
 
         // Feature Specific States
         ceremonyState: {
@@ -227,11 +237,40 @@ export function setSchoolHolidayRanges(ranges) { state.schoolHolidayRanges = ran
 export function setUnsubscribeSchoolSettings(func) { state.unsubscribeSchoolSettings = func; }
 export function setHasLoadedCalendarHistory(val) { state.hasLoadedCalendarHistory = val; }
 
+export function getLeaderboardEffectiveLeague() {
+    const override = state.leaderboardLeagueOverride;
+    if (override) return override;
+    return state.globalSelectedLeague;
+}
+
+export function setLeaderboardLeagueOverride(league) {
+    state.leaderboardLeagueOverride = league || null;
+    import('./ui/tabs.js').then(tabs => {
+        tabs.updateAllLeagueSelectors(true);
+        const activeTabId = localStorage.getItem('quest_last_active_tab') || 'about-tab';
+        if (activeTabId === 'class-leaderboard-tab') tabs.renderClassLeaderboardTab();
+        else if (activeTabId === 'student-leaderboard-tab') tabs.renderStudentLeaderboardTab();
+    });
+}
+
+/** Persisted. When enabled, Home may auto-switch class by time; manual picks disable until re-enabled from header. */
+export function setClassFollowScheduleEnabled(enabled) {
+    state.classFollowSchedule = !!enabled;
+    localStorage.setItem('quest_class_follow_schedule', state.classFollowSchedule ? '1' : '0');
+}
+
 export function setGlobalSelectedClass(classId, isManual = false) {
     if (classId === state.globalSelectedClassId && !isManual && state.globalSelectedClassId !== null) {
         // Force UI update anyway
     } else if (classId === state.globalSelectedClassId && !isManual) {
         return;
+    }
+
+    state.leaderboardLeagueOverride = null;
+
+    if (isManual) {
+        state.classFollowSchedule = false;
+        localStorage.setItem('quest_class_follow_schedule', '0');
     }
 
     state.globalSelectedClassId = classId;
@@ -249,29 +288,17 @@ export function setGlobalSelectedClass(classId, isManual = false) {
             state.globalSelectedLeague = selectedClass.questLevel;
             localStorage.setItem('quest_last_league', selectedClass.questLevel);
         }
+    } else {
+        // General view: do not keep a stale league from localStorage (leaderboards + tools should not imply a class).
+        state.globalSelectedLeague = null;
+        localStorage.removeItem('quest_last_league');
     }
 
     // DYNAMIC IMPORTS: Solves the circular dependency crash
-    import('./ui/tabs.js').then(tabs => {
+    import('./ui/tabs.js').then(async tabs => {
         tabs.updateAllClassSelectors(isManual);
         tabs.updateAllLeagueSelectors(isManual);
-
-        const activeTabId = localStorage.getItem('quest_last_active_tab') || 'about-tab';
-        if (activeTabId) {
-            if (activeTabId === 'award-stars-tab') {
-                tabs.renderAwardStarsTab();
-            } else if (activeTabId === 'adventure-log-tab') {
-                tabs.renderAdventureLogTab();
-            } else if (activeTabId === 'class-leaderboard-tab') {
-                tabs.renderClassLeaderboardTab();
-            } else if (activeTabId === 'student-leaderboard-tab') {
-                tabs.renderStudentLeaderboardTab();
-            } else if (activeTabId === 'scholars-scroll-tab') {
-                import('./features/scholarScroll.js').then(m => m.renderScholarsScrollTab());
-            } else if (activeTabId === 'reward-ideas-tab') {
-                tabs.renderIdeasTabSelects();
-            }
-        }
+        await tabs.refreshVisibleTabForGlobalClassChange();
     });
 
     // Update bounties separately
@@ -316,24 +343,14 @@ export function setGlobalSelectedLeague(league, isManual = false) {
     }
 
     // DYNAMIC IMPORT
-    import('./ui/tabs.js').then(tabs => {
+    import('./ui/tabs.js').then(async tabs => {
         tabs.updateAllLeagueSelectors(isManual);
         // Only sync class selectors when isManual — the class only changes on manual league picks.
         // Calling updateAllClassSelectors during a programmatic (auto) league set interferes with
         // the tab fade-out animation because the function checks the DOM for the visible tab, which
         // is still not hidden during the CSS transition.
         if (isManual) tabs.updateAllClassSelectors(isManual);
-
-        const activeTabId = localStorage.getItem('quest_last_active_tab') || 'about-tab';
-        if (activeTabId && state.globalSelectedLeague) {
-            if (activeTabId === 'class-leaderboard-tab') tabs.renderClassLeaderboardTab();
-            else if (activeTabId === 'student-leaderboard-tab') tabs.renderStudentLeaderboardTab();
-            else if (activeTabId === 'award-stars-tab') tabs.renderAwardStarsTab();
-            else if (activeTabId === 'adventure-log-tab') tabs.renderAdventureLogTab();
-            else if (activeTabId === 'scholars-scroll-tab') {
-                import('./features/scholarScroll.js').then(m => m.renderScholarsScrollTab());
-            }
-        }
+        await tabs.refreshVisibleTabForGlobalClassChange();
     });
 }
 
@@ -392,7 +409,7 @@ export async function fetchMonthlyHistory(monthKey) {
     if (allMonthlyHistory[monthKey]) return allMonthlyHistory[monthKey];
 
     const contentEl = document.getElementById('history-modal-content');
-    if (contentEl && contentEl.innerHTML.includes('Select a month')) {
+    if (contentEl && (contentEl.innerHTML.includes('Select a month') || contentEl.innerHTML.includes('Choose a month'))) {
         contentEl.innerHTML = `<p class="text-center text-gray-500"><i class="fas fa-spinner fa-spin mr-2"></i>Loading historical data...</p>`;
     }
 

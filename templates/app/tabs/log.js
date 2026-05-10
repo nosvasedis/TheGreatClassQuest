@@ -42,16 +42,8 @@ export const logTabHTML = `
                          ENHANCED CONTROLS SECTION
                          ═══════════════════════════════════════════════════════════════ -->
                     <div class="al-controls-card">
-                        <!-- Row 1: Class & Month Selectors -->
+                        <!-- Row 1: Month selector -->
                         <div class="al-controls-row">
-                            <div class="al-selector-group">
-                                <label for="adventure-log-class-select" class="al-selector-label">
-                                    <i class="fas fa-chalkboard text-teal-600"></i> Class
-                                </label>
-                                <select id="adventure-log-class-select" class="al-selector">
-                                    <option value="">Select a class to view its log...</option>
-                                </select>
-                            </div>
                             <div class="al-selector-group">
                                 <label for="adventure-log-month-filter" class="al-selector-label">
                                     <i class="fas fa-calendar text-teal-600"></i> Month

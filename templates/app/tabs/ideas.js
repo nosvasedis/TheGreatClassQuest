@@ -45,7 +45,7 @@ export const ideasTabHTML = `
 
                             <div id="story-weavers-placeholder" class="flex items-center justify-center py-10">
                                 <div class="text-center max-w-sm">
-                                    <p class="text-slate-600 font-semibold">Select a class to begin your chronicle.</p>
+                                    <p class="text-slate-600 font-semibold">Choose a class from the header to begin your chronicle.</p>
                                     <p class="text-slate-500 text-sm mt-1">You can still browse the storybook archive below.</p>
                                 </div>
                             </div>
@@ -54,22 +54,7 @@ export const ideasTabHTML = `
                         <div class="bg-white/80 backdrop-blur rounded-3xl shadow-sm ring-1 ring-black/5 border border-cyan-100 p-5 sm:p-6">
                             <div>
                                 <h3 class="font-title text-2xl text-slate-800">Game Master Controls</h3>
-                                <p class="text-sm text-slate-500 mt-1">Choose a class, set the Word of the Day, and continue the tale.</p>
-                            </div>
-
-                            <div class="mt-5">
-                                <label for="story-weavers-class-select" class="block text-sm font-semibold text-slate-700">Class</label>
-                                <div class="mt-1 bg-gradient-to-r from-cyan-100 to-teal-100 p-[1px] rounded-2xl shadow-sm">
-                                    <div class="relative rounded-2xl bg-white/80">
-                                        <select id="story-weavers-class-select"
-                                            class="w-full appearance-none px-4 py-3 pr-11 border border-transparent rounded-2xl bg-transparent hover:bg-white focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 transition-colors font-semibold text-slate-800">
-                                            <option value="">Select a class...</option>
-                                        </select>
-                                        <div class="pointer-events-none absolute inset-y-0 right-3 flex items-center text-slate-400">
-                                            <i class="fas fa-chevron-down" aria-hidden="true"></i>
-                                        </div>
-                                    </div>
-                                </div>
+                                <p class="text-sm text-slate-500 mt-1">Class is chosen in the header. Set the Word of the Day and continue the tale.</p>
                             </div>
 
                             <div class="mt-5">

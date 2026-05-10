@@ -350,6 +350,42 @@
     transition: all 0.3s ease-out;
 }
 
+/*
+ * Undo sits before .card-content-wrapper in the DOM but must stack above it:
+ * wrapper uses z-index: 1; a static sibling cannot use z-index, so the content
+ * layer was painting over the button (invisible hit-target).
+ */
+.student-cloud-card .post-award-undo-btn {
+    position: relative;
+    z-index: 2;
+    flex-shrink: 0;
+    align-self: flex-end;
+    width: 2.5rem;
+    height: 2.5rem;
+    margin: 0 0 0 auto;
+    padding: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 9999px;
+    border: 2px solid white;
+    background: linear-gradient(145deg, #fecaca, #f87171);
+    color: #7f1d1d;
+    box-shadow: 0 2px 8px rgba(127, 29, 29, 0.22);
+    font-size: 1rem;
+    line-height: 1;
+}
+.student-cloud-card .post-award-undo-btn i {
+    color: inherit;
+    pointer-events: none;
+}
+.student-cloud-card .post-award-undo-btn:hover {
+    filter: brightness(1.05);
+}
+.student-cloud-card .post-award-undo-btn:active {
+    transform: scale(0.95);
+}
+
 .student-cloud-card {
     --award-content-shift-y: 1cm;
     --award-content-shift-x: -0.5cm;

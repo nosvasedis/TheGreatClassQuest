@@ -609,12 +609,19 @@ export function renderAwardStarsStudentList(selectedClassId, fullRender = true) 
         listContainer.classList.remove('fade-in');
         listContainer.classList.add('fade-out');
         setTimeout(() => {
-            renderContent();
-            listContainer.classList.remove('fade-out');
-            listContainer.classList.add('fade-in');
+            void (async () => {
+                try {
+                    await renderContent();
+                } catch (e) {
+                    console.warn('Award tab: failed to render student list', e);
+                } finally {
+                    listContainer.classList.remove('fade-out');
+                    listContainer.classList.add('fade-in');
+                }
+            })();
         }, 120);
     } else {
-        renderContent();
+        void renderContent().catch((e) => console.warn('Award tab: failed to render student list', e));
     }
 }
 

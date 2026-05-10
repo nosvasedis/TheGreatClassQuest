@@ -1,7 +1,14 @@
 
 /* --- Quest Calendar Redesign --- */
 
+#calendar-grid {
+    width: 100%;
+    max-width: 100%;
+    grid-template-columns: repeat(7, minmax(0, 1fr));
+}
+
 .calendar-day-cell {
+    min-width: 0; /* grid/flex: allow columns to shrink so the row fits without horizontal scroll */
     height: 140px;
     min-height: 0; /* lets grid rows respect explicit height so inner overflow can scroll */
     transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);

@@ -1,9 +1,9 @@
 // templates/app/header.js
 
 export const headerHTML = `
-    <header class="relative z-[1000] flex items-center justify-between gap-3 p-4 shadow-md overflow-visible"
-            style="background: linear-gradient(to right, #89f7fe 0%, #66a6ff 100%);">
-            <div class="absolute inset-0 z-1 overflow-hidden pointer-events-none">
+    <header class="relative z-[1] flex w-full items-center justify-between gap-3 bg-transparent p-4 shadow-none overflow-visible">
+            <div class="header-night-stars absolute inset-0 z-0 overflow-hidden pointer-events-none" aria-hidden="true"></div>
+            <div class="header-sky-clouds absolute inset-0 z-[1] overflow-hidden pointer-events-none">
                 <i class="fas fa-cloud cloud" style="left: 10%; animation-delay: -5s;"></i>
                 <i class="fas fa-cloud cloud cloud-fast" style="left: 30%; animation-delay: -15s; font-size: 6rem;"></i>
                 <i class="fas fa-cloud cloud" style="left: 60%; animation-delay: -2s; font-size: 10rem;"></i>

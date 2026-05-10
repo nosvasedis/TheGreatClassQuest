@@ -197,6 +197,429 @@
     animation-duration: 35s;
 }
 
+/* Shared timing: sky unfolds from top — header clouds + sun stay in sync */
+#app-screen.award-sky-active {
+    --award-sky-reveal-duration: 920ms;
+    --award-sky-reveal-ease: cubic-bezier(0.33, 1, 0.32, 1);
+}
+
+/*
+ * Immersive sky is a sibling AFTER `#award-header-atmosphere` so it stacks below `<main>` (z-index 8)
+ * while the header shell stays z-1000. Previously sky lived inside the atmosphere subtree and painted
+ * above student cards.
+ */
+#award-header-atmosphere {
+    position: relative;
+    z-index: 1000;
+    overflow: visible;
+}
+
+/* --- Award tab: immersive sky (cinematic unfold from header + sun bloom) --- */
+/*
+ * Fixed layer behind main (`main` uses isolation + z-index 8 while Award is active).
+ * Flush to the viewport bottom so no gap shows above the nav — `#bottom-nav-bar` (z-50) paints on top.
+ * pointer-events: none keeps taps on the bar.
+ */
+#award-immersive-sky {
+    position: fixed;
+    left: 0;
+    right: 0;
+    top: 0;
+    bottom: 0;
+    width: auto;
+    height: auto;
+    z-index: 5;
+    pointer-events: none;
+    overflow: hidden;
+    opacity: 0;
+    visibility: hidden;
+    clip-path: inset(0 0 100% 0);
+}
+
+body.projector-mode #award-immersive-sky {
+    bottom: 0;
+}
+
+#app-screen:not(.award-sky-active) #award-immersive-sky {
+    animation: none;
+    clip-path: inset(0 0 100% 0);
+    opacity: 0;
+    visibility: hidden;
+}
+
+#app-screen.award-sky-active:not(.award-sky-leaving) #award-immersive-sky {
+    visibility: visible;
+    pointer-events: none;
+    animation: awardImmersiveSkyUnfold var(--award-sky-reveal-duration) var(--award-sky-reveal-ease) forwards;
+}
+
+/* Fold sky back into the header band when leaving Award */
+#app-screen.award-sky-active.award-sky-leaving #award-immersive-sky {
+    visibility: visible;
+    pointer-events: none;
+    animation: awardImmersiveSkyFoldUp var(--award-sky-reveal-duration) var(--award-sky-reveal-ease) forwards;
+}
+
+@keyframes awardImmersiveSkyFoldUp {
+    from {
+        clip-path: inset(0 0 0 0);
+        opacity: 1;
+    }
+    to {
+        clip-path: inset(0 0 100% 0);
+        opacity: 0;
+    }
+}
+
+@keyframes awardImmersiveSkyFoldRm {
+    from {
+        opacity: 1;
+        clip-path: inset(0 0 0 0);
+    }
+    to {
+        opacity: 0;
+        clip-path: inset(0 0 100% 0);
+    }
+}
+
+@keyframes awardImmersiveSkyUnfold {
+    from {
+        clip-path: inset(0 0 100% 0);
+        opacity: 0;
+    }
+    to {
+        clip-path: inset(0 0 0 0);
+        opacity: 1;
+    }
+}
+
+.award-immersive-sky-gradient {
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    background:
+        radial-gradient(ellipse 120% 85% at 50% -18%, rgba(255, 253, 231, 0.55) 0%, rgba(255, 253, 231, 0) 58%),
+        radial-gradient(circle at 86% 10%, rgba(253, 224, 71, 0.28) 0%, rgba(253, 224, 71, 0) 42%),
+        linear-gradient(to top, rgba(224, 242, 254, 0.58) 0%, rgba(255, 255, 255, 0) 48%),
+        linear-gradient(to right, #89f7fe 0%, #66a6ff 100%);
+}
+
+.award-immersive-sky-gradient::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    opacity: 0;
+}
+
+#app-screen.award-sky-active:not(.award-sky-leaving) .award-immersive-sky-gradient::after {
+    background: radial-gradient(
+        circle at 50% 0%,
+        rgba(255, 255, 255, 0.34) 0%,
+        rgba(255, 255, 255, 0.08) 38%,
+        transparent 62%
+    );
+    animation: awardSkySheen var(--award-sky-reveal-duration) var(--award-sky-reveal-ease) forwards;
+}
+
+@keyframes awardSkySheen {
+    from {
+        opacity: 0;
+        transform: scaleY(0.35);
+        transform-origin: 50% 0%;
+    }
+    to {
+        opacity: 0.22;
+        transform: scaleY(1);
+        transform-origin: 50% 0%;
+    }
+}
+
+@keyframes awardSkySheenOut {
+    from {
+        opacity: 0.22;
+        transform: scaleY(1);
+        transform-origin: 50% 0%;
+    }
+    100% {
+        opacity: 0;
+        transform: scaleY(0.38);
+        transform-origin: 50% 0%;
+    }
+}
+
+#app-screen.award-sky-active.award-sky-leaving .award-immersive-sky-gradient::after {
+    animation: awardSkySheenOut var(--award-sky-reveal-duration) var(--award-sky-reveal-ease) forwards;
+}
+
+/* Warm sun — blooms as the curtain opens (loading-screen vibe, scoped here).
+   Sat lower + smaller + softer so it reads distant and does not wash out the header chrome. */
+.award-immersive-sun {
+    position: absolute;
+    top: clamp(4.25rem, 17vh, 9.5rem);
+    right: min(8vw, 2rem);
+    z-index: 2;
+    width: clamp(68px, 10vw, 128px);
+    height: clamp(68px, 10vw, 128px);
+    pointer-events: none;
+    opacity: 0;
+    transform: scale(0.34) translate3d(28px, -36px, 0);
+    transform-origin: 50% 50%;
+    backface-visibility: hidden;
+    will-change: transform, opacity;
+    border-radius: 50%;
+    filter: saturate(0.9);
+}
+
+.award-immersive-sun::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: 50%;
+    background:
+        radial-gradient(circle at 38% 36%, #fffef7 0%, #fef9c3 22%, #fde047 48%, #f59e0b 76%, rgba(245, 158, 11, 0.12) 100%);
+    box-shadow:
+        0 0 26px rgba(253, 224, 71, 0.32),
+        0 0 52px rgba(251, 191, 36, 0.18),
+        inset -10px -14px 30px rgba(255, 255, 255, 0.34);
+    filter: brightness(0.92);
+}
+
+.award-immersive-sun::after {
+    content: '';
+    position: absolute;
+    inset: -18%;
+    border-radius: 50%;
+    opacity: 0.26;
+    background:
+        conic-gradient(
+            from 0deg,
+            rgba(253, 224, 71, 0) 0deg,
+            rgba(253, 224, 71, 0.65) 18deg,
+            rgba(253, 224, 71, 0) 34deg,
+            rgba(251, 191, 36, 0.55) 52deg,
+            rgba(251, 191, 36, 0) 68deg,
+            rgba(245, 158, 11, 0.5) 86deg,
+            rgba(245, 158, 11, 0) 102deg,
+            rgba(253, 224, 71, 0.58) 118deg,
+            rgba(253, 224, 71, 0) 136deg,
+            rgba(251, 191, 36, 0.52) 154deg,
+            rgba(251, 191, 36, 0) 172deg,
+            rgba(253, 224, 71, 0) 360deg
+        );
+    filter: blur(2px);
+    animation: awardImmersiveSunRays 18s linear infinite;
+}
+
+@keyframes awardImmersiveSunRays {
+    from {
+        transform: rotate(0deg);
+    }
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+@keyframes awardImmersiveSunBloom {
+    from {
+        opacity: 0;
+        transform: scale(0.34) translate3d(28px, -36px, 0);
+    }
+    to {
+        opacity: 0.88;
+        transform: scale(1) translate3d(0, 0, 0);
+    }
+}
+
+@keyframes awardImmersiveSunFold {
+    0% {
+        opacity: 0.88;
+        transform: scale(1) translate3d(0, 0, 0);
+    }
+    100% {
+        opacity: 0;
+        transform: scale(0.34) translate3d(28px, -36px, 0);
+    }
+}
+
+#app-screen:not(.award-sky-active) .award-immersive-sun {
+    animation: none !important;
+    opacity: 0;
+    transform: scale(0.34) translate3d(28px, -36px, 0);
+}
+
+#app-screen:not(.award-sky-active) .award-immersive-sun::after {
+    animation-play-state: paused;
+}
+
+#app-screen.award-sky-active.award-sky-leaving #award-immersive-sky .award-immersive-sun {
+    animation: awardImmersiveSunFold var(--award-sky-reveal-duration) var(--award-sky-reveal-ease) forwards !important;
+}
+
+#app-screen.award-sky-active:not(.award-sky-leaving) #award-immersive-sky .award-immersive-sun {
+    animation: awardImmersiveSunBloom calc(var(--award-sky-reveal-duration) + 120ms) var(--award-sky-reveal-ease) 60ms forwards;
+}
+
+.award-immersive-sky-parallax {
+    position: relative;
+    z-index: 3;
+    perspective: 1200px;
+    perspective-origin: 50% 14%;
+    transform-style: preserve-3d;
+}
+
+/* Atmospheric lanes — softer than loading screen so student cards stay focal */
+#award-immersive-sky .loading-cloud-art {
+    opacity: 0.48;
+    filter:
+        blur(0.15px)
+        drop-shadow(0 12px 22px rgba(14, 116, 144, 0.12))
+        saturate(0.94);
+}
+
+#app-screen:not(.award-sky-active) #award-immersive-sky .loading-cloud-art {
+    animation-play-state: paused;
+}
+
+#app-screen.award-sky-active > main {
+    position: relative;
+    z-index: 8;
+    background: transparent !important;
+}
+
+.header-sky-clouds {
+    transition:
+        transform var(--award-sky-reveal-duration, 920ms) var(--award-sky-reveal-ease, cubic-bezier(0.33, 1, 0.32, 1)),
+        top var(--award-sky-reveal-duration, 920ms) var(--award-sky-reveal-ease, cubic-bezier(0.33, 1, 0.32, 1)),
+        left var(--award-sky-reveal-duration, 920ms) var(--award-sky-reveal-ease, cubic-bezier(0.33, 1, 0.32, 1)),
+        right var(--award-sky-reveal-duration, 920ms) var(--award-sky-reveal-ease, cubic-bezier(0.33, 1, 0.32, 1)),
+        bottom var(--award-sky-reveal-duration, 920ms) var(--award-sky-reveal-ease, cubic-bezier(0.33, 1, 0.32, 1)),
+        opacity var(--award-sky-reveal-duration, 920ms) var(--award-sky-reveal-ease, cubic-bezier(0.33, 1, 0.32, 1)),
+        filter var(--award-sky-reveal-duration, 920ms) var(--award-sky-reveal-ease, cubic-bezier(0.33, 1, 0.32, 1));
+}
+
+/*
+ * Exit: clouds shrink back into the strip with the sky fold.
+ * Keep overflow: visible for the whole exit — switching to hidden instantly was clipping them off,
+ * then they popped back when Award classes tore down (jarring).
+ */
+#app-screen.award-sky-active.award-sky-leaving .header-sky-clouds {
+    overflow: visible;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    transform: scale(1) translateY(0);
+    transform-origin: 50% 0%;
+    opacity: 1;
+    filter: brightness(1);
+}
+
+/* Immersive Award: clouds ride the same motion as the sky unfolding from the header */
+#app-screen.award-sky-active:not(.award-sky-leaving) .header-sky-clouds {
+    overflow: visible;
+    top: -3rem;
+    left: -10vw;
+    right: -10vw;
+    bottom: 0;
+    transform: scale(1.26) translateY(8px);
+    transform-origin: 50% 0%;
+    opacity: 1;
+    filter: brightness(1.05);
+}
+
+/* Resting header: clip clouds to the bar (only after Award fully off — clouds already collapsed) */
+#app-screen:not(.award-sky-active) .header-sky-clouds {
+    overflow: hidden;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    transform: none;
+    transform-origin: 50% 0%;
+    opacity: 1;
+    filter: none;
+}
+
+#app-screen.award-sky-active.award-sky-leaving .award-immersive-sun::after {
+    animation-play-state: paused;
+}
+
+/*
+ * Seamless sky: strip chrome only while fully immersed (gradient/shadow live on `#award-header-atmosphere`).
+ * On exit the atmosphere gradient returns immediately while sky folds underneath the header row.
+ */
+#app-screen.award-sky-active:not(.award-sky-leaving) #award-header-atmosphere {
+    background: transparent !important;
+    box-shadow: none !important;
+}
+
+@keyframes awardImmersiveSkyFadeRm {
+    from {
+        opacity: 0;
+    }
+    to {
+        opacity: 1;
+    }
+}
+
+@keyframes awardImmersiveRmFadeOut {
+    from {
+        opacity: 1;
+    }
+    to {
+        opacity: 0;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    #app-screen.award-sky-active:not(.award-sky-leaving) #award-immersive-sky {
+        animation: awardImmersiveSkyFadeRm 260ms ease forwards;
+        clip-path: inset(0 0 0 0);
+    }
+
+    #app-screen.award-sky-active.award-sky-leaving #award-immersive-sky {
+        animation: awardImmersiveSkyFoldRm 260ms ease forwards;
+    }
+
+    #app-screen.award-sky-active:not(.award-sky-leaving) .award-immersive-sky-gradient::after {
+        animation: none;
+        opacity: 0.12;
+        transform: none;
+    }
+
+    #app-screen.award-sky-active.award-sky-leaving .award-immersive-sky-gradient::after {
+        animation: awardSkySheenOut 260ms ease forwards;
+    }
+
+    #app-screen.award-sky-active:not(.award-sky-leaving) #award-immersive-sky .award-immersive-sun {
+        animation: awardImmersiveSkyFadeRm 320ms ease 40ms forwards;
+        transform: scale(0.92);
+    }
+
+    #app-screen.award-sky-active.award-sky-leaving #award-immersive-sky .award-immersive-sun {
+        animation: awardImmersiveRmFadeOut 240ms ease forwards !important;
+        transform: scale(0.92);
+    }
+
+    .award-immersive-sun::after {
+        animation: none;
+        opacity: 0.22;
+    }
+
+    #award-immersive-sky .award-immersive-sky-parallax .loading-cloud-art {
+        display: none;
+    }
+
+    #app-screen.award-sky-active:not(.award-sky-leaving) .header-sky-clouds {
+        transition-duration: 200ms;
+    }
+
+    #app-screen:not(.award-sky-active) .header-sky-clouds {
+        transition: none;
+    }
+}
+
 /* Bottom-nav tab title underline treatment */
 .bottom-nav-tab-title {
     position: relative;

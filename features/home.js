@@ -105,14 +105,14 @@ async function executeRenderHome() {
 
     // Dynamic Weather/Theme
     const weatherData = await fetchWeatherData();
-    let theme = {};
+    let theme = { isNight: false };
 
     // --- STEP 1: CALCULATE WEATHER STATE ---
     if (weatherData) {
         theme.temp = `${weatherData.temp}°C`;
         const code = weatherData.code;
 
-        // Determine Background Class
+        // Determine Background Class (always the actual condition — night is separate via theme.isNight)
         if (code === 0) {
             theme.weatherBg = 'w-day'; theme.weatherIcon = 'fa-sun'; theme.weatherText = 'Sunny';
         } else if (code <= 2) {
@@ -133,63 +133,101 @@ async function executeRenderHome() {
             theme.weatherBg = 'w-cloudy'; theme.weatherIcon = 'fa-cloud'; theme.weatherText = 'Cloudy';
         }
 
-        // Night Override (Solar Cycle)
-        const nowTime = new Date().getTime();
-        const sunset = utils.solarData?.sunset || new Date().setHours(20, 0, 0, 0);
-        const sunrise = utils.solarData?.sunrise || new Date().setHours(6, 0, 0, 0);
-        const isNight = nowTime >= sunset || nowTime < sunrise;
+        const nowTime = Date.now();
+        const sunset = utils.solarData?.sunset ?? new Date().setHours(20, 0, 0, 0);
+        const sunrise = utils.solarData?.sunrise ?? new Date().setHours(6, 0, 0, 0);
+        theme.isNight = nowTime >= sunset || nowTime < sunrise;
 
-        if (isNight) {
-            // FIX: Only switch to generic "Night" if weather is mild (Clear or Cloudy).
-            // If it is Stormy, Rainy, or Snowy, we KEEP that effect because it looks cool/dark enough.
-            if (theme.weatherBg === 'w-day' || theme.weatherBg === 'w-cloudy') {
-                theme.weatherBg = 'w-night';
-            }
-
-            // Adjust Icons & Text for Night Context
+        if (theme.isNight) {
             if (theme.weatherIcon === 'fa-sun') theme.weatherIcon = 'fa-moon';
             if (theme.weatherIcon === 'fa-cloud-sun') theme.weatherIcon = 'fa-cloud-moon';
             if (theme.weatherText === 'Sunny') theme.weatherText = 'Clear Night';
             if (theme.weatherText === 'Partly Cloudy') theme.weatherText = 'Cloudy Night';
+            if (theme.weatherText === 'Overcast') theme.weatherText = 'Overcast Night';
+            if (theme.weatherText === 'Foggy') theme.weatherText = 'Foggy Night';
+            if (theme.weatherText === 'Rainy') theme.weatherText = 'Rainy Night';
+            if (theme.weatherText === 'Snowy') theme.weatherText = 'Snowy Night';
+            if (theme.weatherText === 'Stormy') theme.weatherText = 'Stormy Night';
+            if (theme.weatherText === 'Cloudy') theme.weatherText = 'Cloudy Night';
         }
     } else {
         // Fallback
-        theme.temp = "--°C";
-        theme.weatherBg = 'w-day'; theme.weatherIcon = 'fa-cloud-sun'; theme.weatherText = 'Clear';
+        theme.temp = '--°C';
+        theme.weatherBg = 'w-day';
+        theme.weatherIcon = 'fa-cloud-sun';
+        theme.weatherText = 'Clear';
+        const h = new Date().getHours();
+        theme.isNight = h >= 20 || h < 6;
+        if (theme.isNight) {
+            theme.weatherIcon = 'fa-moon';
+            theme.weatherText = 'Clear Night';
+        }
     }
 
     // --- STEP 2: APPLY HEADER THEME ---
     const header = document.querySelector('header');
+    const awardHeaderAtmosphere = document.getElementById('award-header-atmosphere');
     if (header) {
         // 1. Clean old classes
         header.classList.remove('header-night', 'header-stormy', 'header-rainy', 'header-snowy', 'header-cloudy');
 
         // 2. Reset Background
         header.style.background = '';
-        header.className = "relative overflow-hidden z-10 flex justify-between p-4 shadow-md transition-all duration-1000";
+        /* Match templates/app/header.js — overflow-visible keeps FA header clouds + Award expansion visible */
+        header.className =
+            'relative z-[1] flex w-full min-w-0 items-center justify-between gap-3 bg-transparent p-4 shadow-none overflow-visible transition-all duration-1000';
 
-        // 3. Apply New State
-        if (theme.weatherBg === 'w-night') {
+        // Night layer (`header-night`) stacks with concrete weather classes for header + Award sky.
+        if (theme.isNight) {
             header.classList.add('header-night');
-        } else {
-            // Day Time Logic
-            switch (theme.weatherBg) {
-                case 'w-stormy':
-                    header.classList.add('header-stormy');
-                    break;
-                case 'w-rainy':
-                    header.classList.add('header-rainy');
-                    break;
-                case 'w-snowy':
-                    header.classList.add('header-snowy');
-                    break;
-                case 'w-cloudy':
-                    header.classList.add('header-cloudy');
-                    break;
-                default:
-                    // Default Sunny/Clear Gradient
-                    header.style.background = 'linear-gradient(to right, #89f7fe 0%, #66a6ff 100%)';
+        }
+
+        switch (theme.weatherBg) {
+            case 'w-stormy':
+                header.classList.add('header-stormy');
+                break;
+            case 'w-rainy':
+                header.classList.add('header-rainy');
+                break;
+            case 'w-snowy':
+                header.classList.add('header-snowy');
+                break;
+            case 'w-cloudy':
+                header.classList.add('header-cloudy');
+                break;
+            default:
+                break;
+        }
+
+        const sunny = 'linear-gradient(to right, #89f7fe 0%, #66a6ff 100%)';
+        const nightBar = 'linear-gradient(to right, #1e3a8a 0%, #312e81 100%)';
+        const hasWeatherSkin =
+            header.classList.contains('header-night') ||
+            header.classList.contains('header-stormy') ||
+            header.classList.contains('header-rainy') ||
+            header.classList.contains('header-snowy') ||
+            header.classList.contains('header-cloudy');
+
+        if (awardHeaderAtmosphere) {
+            if (hasWeatherSkin) {
+                const cs = getComputedStyle(header);
+                const bi = cs.backgroundImage;
+                const bc = cs.backgroundColor;
+                if (bi && bi !== 'none') {
+                    awardHeaderAtmosphere.style.background =
+                        bc && bc !== 'rgba(0, 0, 0, 0)' ? `${bi}, ${bc}` : bi;
+                } else if (bc && bc !== 'rgba(0, 0, 0, 0)') {
+                    awardHeaderAtmosphere.style.background = bc;
+                } else {
+                    awardHeaderAtmosphere.style.background = theme.isNight ? nightBar : sunny;
+                }
+            } else if (theme.isNight) {
+                awardHeaderAtmosphere.style.background = nightBar;
+            } else {
+                awardHeaderAtmosphere.style.background = sunny;
             }
+        } else if (!hasWeatherSkin && !theme.isNight) {
+            header.style.background = sunny;
         }
     }
 
@@ -317,7 +355,7 @@ function getGeneralDashboard(name, theme, spice) {
     ].filter(tool => !tool.featureFlag || canUseFeature(tool.featureFlag));
 
     return getLayout(
-        name, theme, getHomeActiveClassHint(null),
+        name, theme, '',
         `
         <div class="vibrant-card h-span-6 stat-card-pop card-gradient-sun">
             <span class="text-xs font-bold text-amber-600 uppercase tracking-widest mb-2"><i class="fas fa-star mr-1"></i> School Stars</span>
@@ -463,7 +501,7 @@ function getActiveDashboard(classData, name, theme, spice) {
         { icon: 'fa-magic', label: 'Report', action: 'open-report', id: classId },
         { icon: 'fa-feather-alt', label: 'Story', target: 'reward-ideas-tab' },
         { icon: 'fa-scroll', label: 'Trials', target: 'scholars-scroll-tab' },
-        { icon: 'fa-crosshairs', label: 'Bounty', target: 'award-stars-tab' },
+        { icon: 'fa-star', label: 'Stars', target: 'award-stars-tab' },
         { icon: 'fa-pencil-alt', label: 'Edit', action: 'edit-class', id: classId },
     ];
 
@@ -471,7 +509,7 @@ function getActiveDashboard(classData, name, theme, spice) {
     const skillData = getTopSkillHtml(topSkill);
 
     return getLayout(
-        name, theme, getHomeActiveClassHint(classId),
+        name, theme, getHomeBountyPillHtml(),
         `
         <div class="vibrant-card h-span-8 p-6 flex flex-col justify-center relative overflow-hidden card-gradient-sky">
             <div class="absolute -right-4 -top-4 text-9xl opacity-5 pointer-events-none">${classData.logo}</div>
@@ -595,7 +633,7 @@ function getLayout(name, theme, selector, row2, row3) {
                 </div>
             </div>
 
-            <div class="vibrant-card h-span-4 weather-card ${theme.weatherBg}">
+            <div class="vibrant-card h-span-4 weather-card ${theme.weatherBg}${theme.isNight ? ' weather-night' : ''}">
                 <i class="fas ${theme.weatherIcon} weather-sun"></i>
                 <i class="fas fa-cloud weather-cloud"></i>
                 
@@ -616,51 +654,18 @@ function getLayout(name, theme, selector, row2, row3) {
 
 // --- HELPERS ---
 
-function getHomeActiveClassHint(currentId) {
-    const classes = state.get('allTeachersClasses').sort((a, b) => a.name.localeCompare(b.name));
-    const follow = state.get('classFollowSchedule');
-    let title = 'School overview';
-    let icon = '🏫';
-    let badge = '';
-    let sub = '';
-
-    if (currentId) {
-        const selectedClass = classes.find(c => c.id === currentId);
-        if (selectedClass) {
-            icon = selectedClass.logo || '📚';
-            title = selectedClass.name;
-            sub = `Active Quest Area`;
-            const levelBadge = `<span class="home-focus-badge bg-indigo-50 text-indigo-600 border-indigo-100"><i class="fas fa-shield-alt"></i> ${selectedClass.questLevel || 'Quest'}</span>`;
-            const statusBadge = follow
-                ? '<span class="home-focus-badge home-focus-badge--auto"><i class="fas fa-wand-sparkles"></i> Auto-Focus</span>'
-                : '<span class="home-focus-badge home-focus-badge--pin"><i class="fas fa-thumbtack"></i> Pinned</span>';
-            badge = `${levelBadge}${statusBadge}`;
-        }
-    } else {
-        sub = follow
-            ? 'Dynamically tracking your schedule'
-            : 'Explore all classes via the header';
-        const modeBadge = follow
-            ? '<span class="home-focus-badge home-focus-badge--auto"><i class="fas fa-magic"></i> Oracle Mode</span>'
-            : '<span class="home-focus-badge home-focus-badge--calm"><i class="fas fa-eye"></i> Observer Mode</span>';
-        badge = modeBadge;
-    }
-
+/** Compact bounty launcher in greeting panel (replaces former “active class” chip). */
+function getHomeBountyPillHtml() {
     return `
-        <div class="home-focus-chip font-title">
-            <div class="home-focus-chip__glow" aria-hidden="true"></div>
-            <div class="home-focus-chip__inner">
-                <span class="home-focus-chip__icon" aria-hidden="true">${icon}</span>
-                <div class="home-focus-chip__text">
-                    <div class="home-focus-chip__title">${title}</div>
-                    <div class="home-focus-chip__sub">${sub}</div>
-                    <div class="home-focus-chip__badges">${badge}</div>
-                </div>
-                <div class="text-slate-300 ml-auto opacity-40">
-                    <i class="fas fa-chevron-right"></i>
-                </div>
+        <button type="button" id="open-bounty-modal-btn" class="home-bounty-pill font-title group" title="Post a bounty for this class">
+            <span class="home-bounty-pill__glow" aria-hidden="true"></span>
+            <span class="home-bounty-pill__icon" aria-hidden="true"><i class="fas fa-crosshairs"></i></span>
+            <div class="home-bounty-pill__text">
+                <span class="home-bounty-pill__title">Bounty</span>
+                <span class="home-bounty-pill__sub">Post a quest</span>
             </div>
-        </div>`;
+            <span class="home-bounty-pill__chev" aria-hidden="true"><i class="fas fa-chevron-right"></i></span>
+        </button>`;
 }
 
 function resolveActiveHomeLeague() {

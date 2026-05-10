@@ -159,6 +159,7 @@ export function toggleWallpaperMode() {
 
     if (isHidden) {
         isRunning = true;
+        document.body.classList.add('projector-mode');
         wallpaperEl.classList.remove('hidden');
         wallpaperEl.classList.remove('wallpaper-exit');
         wallpaperEl.classList.add('wallpaper-enter');
@@ -181,6 +182,7 @@ export function toggleWallpaperMode() {
 
     } else {
         isRunning = false;
+        document.body.classList.remove('projector-mode');
         wallpaperEl.classList.remove('wallpaper-enter');
         wallpaperEl.classList.add('wallpaper-exit');
 

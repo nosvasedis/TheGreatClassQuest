@@ -23,12 +23,6 @@ export const awardTabHTML = `
                             <i class="fas fa-wand-magic-sparkles teacher-boon-launch-btn__icon" aria-hidden="true"></i>
                             <span class="teacher-boon-launch-btn__label">Teacher Boon</span>
                         </button>
-
-                        <button id="open-bounty-modal-btn"
-                            class="group relative flex items-center gap-2 px-5 py-2 bg-gradient-to-r from-amber-400 to-orange-500 hover:from-amber-500 hover:to-orange-600 text-white rounded-full font-title text-lg shadow-md shadow-amber-200/50 transition-all active:scale-95 border-b-2 border-amber-600/30">
-                            <i class="fas fa-crosshairs text-amber-100 group-hover:rotate-12 transition-transform"></i>
-                            <span class="tracking-tight">Post a Bounty</span>
-                        </button>
                     </div>
 
                     <div id="award-stars-student-list" class="mt-6 grid grid-cols-1 md:grid-cols-2 gap-x-10 gap-y-0 items-start">

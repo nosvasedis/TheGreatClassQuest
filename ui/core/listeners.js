@@ -538,54 +538,50 @@ export function setupUIListeners() {
         });
     }
 
-    // Bounty Listeners
-    const openBountyBtn = document.getElementById('open-bounty-modal-btn');
-    if (openBountyBtn) {
-        openBountyBtn.addEventListener('click', () => {
-            const classId = state.get('globalSelectedClassId');
-            if (!classId) { showToast('Select a class first', 'error'); return; }
+    // Bounty launcher (Home dashboard re-renders this button; delegate from document)
+    document.body.addEventListener('click', (e) => {
+        const openBountyBtn = e.target.closest('#open-bounty-modal-btn');
+        if (!openBountyBtn) return;
 
-            document.getElementById('bounty-class-id').value = classId;
+        const classId = state.get('globalSelectedClassId');
+        if (!classId) { showToast('Select a class first', 'error'); return; }
 
-            // --- SMART OPTIONS GENERATOR ---
-            const smartContainer = document.getElementById('bounty-smart-options');
-            if (smartContainer) {
-                smartContainer.innerHTML = '';
+        document.getElementById('bounty-class-id').value = classId;
 
-                const classData = state.get('allSchoolClasses').find(c => c.id === classId);
-                const now = new Date();
+        const smartContainer = document.getElementById('bounty-smart-options');
+        if (smartContainer) {
+            smartContainer.innerHTML = '';
 
-                // 1. Standard Presets
-                [5, 10, 20, 45].forEach(min => {
-                    smartContainer.innerHTML += `<button type="button" class="smart-time-btn bg-white border border-indigo-200 text-indigo-600 px-3 py-1 rounded-full text-xs font-bold hover:bg-indigo-100 transition-colors" data-mins="${min}">${min}m</button>`;
-                });
+            const classData = state.get('allSchoolClasses').find(c => c.id === classId);
+            const now = new Date();
 
-                // 2. "End of Lesson" Logic
-                if (classData && classData.timeEnd) {
-                    const [endH, endM] = classData.timeEnd.split(':').map(Number);
-                    const endDate = new Date();
-                    endDate.setHours(endH, endM, 0);
+            [5, 10, 20, 45].forEach(min => {
+                smartContainer.innerHTML += `<button type="button" class="smart-time-btn bg-white border border-indigo-200 text-indigo-600 px-3 py-1 rounded-full text-xs font-bold hover:bg-indigo-100 transition-colors" data-mins="${min}">${min}m</button>`;
+            });
 
-                    if (endDate > now) {
-                        const diffMins = Math.floor((endDate - now) / 60000);
-                        if (diffMins > 0 && diffMins < 180) {
-                            smartContainer.innerHTML += `<button type="button" class="smart-time-btn bg-indigo-100 border border-indigo-300 text-indigo-800 px-3 py-1 rounded-full text-xs font-bold hover:bg-indigo-200 transition-colors" data-mins="${diffMins}">End of Lesson (${diffMins}m)</button>`;
-                        }
+            if (classData && classData.timeEnd) {
+                const [endH, endM] = classData.timeEnd.split(':').map(Number);
+                const endDate = new Date();
+                endDate.setHours(endH, endM, 0);
+
+                if (endDate > now) {
+                    const diffMins = Math.floor((endDate - now) / 60000);
+                    if (diffMins > 0 && diffMins < 180) {
+                        smartContainer.innerHTML += `<button type="button" class="smart-time-btn bg-indigo-100 border border-indigo-300 text-indigo-800 px-3 py-1 rounded-full text-xs font-bold hover:bg-indigo-200 transition-colors" data-mins="${diffMins}">End of Lesson (${diffMins}m)</button>`;
                     }
                 }
-
-                // Click Handler for Presets
-                smartContainer.querySelectorAll('.smart-time-btn').forEach(btn => {
-                    btn.onclick = () => {
-                        document.getElementById('bounty-timer-minutes').value = btn.dataset.mins;
-                        document.getElementById('bounty-timer-end').value = '';
-                    };
-                });
             }
 
-            modals.showAnimatedModal('create-bounty-modal');
-        });
-    }
+            smartContainer.querySelectorAll('.smart-time-btn').forEach(btn => {
+                btn.onclick = () => {
+                    document.getElementById('bounty-timer-minutes').value = btn.dataset.mins;
+                    document.getElementById('bounty-timer-end').value = '';
+                };
+            });
+        }
+
+        modals.showAnimatedModal('create-bounty-modal');
+    });
 
     // --- TOGGLE LOGIC ---
     const bStars = document.getElementById('bounty-mode-stars');

@@ -1,5 +1,16 @@
 
 /* --- PROJECTOR MODE STYLES --- */
+/* Presentation / fullscreen wallpaper: hide app chrome (matches projector-mode-btn → toggleWallpaperMode). */
+body.projector-mode #award-header-atmosphere {
+    display: none !important;
+}
+
+body.projector-mode #award-immersive-sky {
+    display: none !important;
+    visibility: hidden !important;
+    pointer-events: none !important;
+}
+
 body.projector-mode .app-tab {
     padding: 0;
     max-width: 100vw;

@@ -72,6 +72,123 @@ if (typeof window !== 'undefined') {
     window.addEventListener('gcq-subscription-updated', updateBottomNavGateState);
 }
 
+/** Delay before immersive Award sky (ms), after navigating onto the tab. */
+const AWARD_IMMERSIVE_SKY_DELAY_MS = 1500;
+
+/** Matches `--award-sky-reveal-duration` + small buffer for fold cleanup */
+const AWARD_SKY_EXIT_FALLBACK_MS = 1180;
+
+let awardSkyDelayTimer = null;
+let awardSkyExitFallbackTimer = null;
+/** @type {{ sky: HTMLElement, handler: (e: AnimationEvent) => void } | null} */
+let awardSkyExitAnimListener = null;
+
+function clearAwardSkyDelayTimer() {
+    if (awardSkyDelayTimer != null) {
+        clearTimeout(awardSkyDelayTimer);
+        awardSkyDelayTimer = null;
+    }
+}
+
+function clearAwardSkyExitAnimation() {
+    if (awardSkyExitFallbackTimer != null) {
+        clearTimeout(awardSkyExitFallbackTimer);
+        awardSkyExitFallbackTimer = null;
+    }
+    if (awardSkyExitAnimListener) {
+        const { sky, handler } = awardSkyExitAnimListener;
+        sky?.removeEventListener('animationend', handler);
+        awardSkyExitAnimListener = null;
+    }
+}
+
+function finalizeAwardSkyOff(appScreen) {
+    appScreen?.classList.remove('award-sky-active', 'award-sky-leaving');
+}
+
+const AWARD_SKY_FOLD_ANIMATION_NAMES = new Set(['awardImmersiveSkyFoldUp', 'awardImmersiveSkyFoldRm']);
+
+/**
+ * Full-viewport sky behind Award Stars (`#award-immersive-sky` + `.award-sky-active`).
+ * Enter: delay + unfold when switching onto the tab from elsewhere.
+ * Exit: fold back into the header band, then tear down (see `.award-sky-leaving`).
+ * @param {string} tabId
+ * @param {{ continueSession?: boolean }} [opts] — if true (e.g. class change while already on Award), do not reset timer or replay immersion.
+ */
+export function syncAwardImmersiveSky(tabId, opts = {}) {
+    const appScreen = document.getElementById('app-screen');
+    if (!appScreen) return;
+
+    const continueSession = opts.continueSession === true;
+
+    if (tabId !== 'award-stars-tab') {
+        clearAwardSkyDelayTimer();
+
+        if (appScreen.classList.contains('award-sky-leaving')) {
+            return;
+        }
+
+        if (appScreen.classList.contains('award-sky-active')) {
+            clearAwardSkyExitAnimation();
+            appScreen.classList.add('award-sky-leaving');
+
+            const sky = document.getElementById('award-immersive-sky');
+            const finishExit = () => {
+                clearAwardSkyExitAnimation();
+                finalizeAwardSkyOff(appScreen);
+            };
+
+            const handler = (e) => {
+                if (e.target !== sky) return;
+                if (!AWARD_SKY_FOLD_ANIMATION_NAMES.has(e.animationName)) return;
+                finishExit();
+            };
+
+            if (sky) {
+                awardSkyExitAnimListener = { sky, handler };
+                sky.addEventListener('animationend', handler);
+            }
+
+            awardSkyExitFallbackTimer = window.setTimeout(finishExit, AWARD_SKY_EXIT_FALLBACK_MS);
+            return;
+        }
+
+        clearAwardSkyExitAnimation();
+        finalizeAwardSkyOff(appScreen);
+        return;
+    }
+
+    clearAwardSkyExitAnimation();
+    appScreen.classList.remove('award-sky-leaving');
+
+    if (
+        continueSession &&
+        (appScreen.classList.contains('award-sky-active') || awardSkyDelayTimer != null)
+    ) {
+        return;
+    }
+
+    clearAwardSkyDelayTimer();
+    appScreen.classList.remove('award-sky-active');
+
+    const delayMs = typeof window !== 'undefined' && window.matchMedia?.('(prefers-reduced-motion: reduce)').matches
+        ? 0
+        : AWARD_IMMERSIVE_SKY_DELAY_MS;
+
+    if (delayMs === 0) {
+        appScreen.classList.add('award-sky-active');
+        return;
+    }
+
+    awardSkyDelayTimer = window.setTimeout(() => {
+        awardSkyDelayTimer = null;
+        const visible = document.querySelector('.app-tab:not(.hidden)');
+        if (visible?.id === 'award-stars-tab') {
+            appScreen.classList.add('award-sky-active');
+        }
+    }, delayMs);
+}
+
 /**
  * Core tab re-renders (leaderboards, home, shop, award, …) without Options first-visit
  * or duplicate Options rows. Used by showTab and by header class/league changes.
@@ -157,6 +274,9 @@ export async function refreshVisibleTabForGlobalClassChange() {
     if (fwModal && !fwModal.classList.contains('hidden')) {
         await refreshFortunesWheelModalFromGlobalClass();
     }
+
+    const visibleAgain = document.querySelector('.app-tab:not(.hidden)');
+    syncAwardImmersiveSky(visibleAgain?.id || '', { continueSession: true });
 }
 
 export async function showTab(tabName) {
@@ -180,6 +300,8 @@ export async function showTab(tabName) {
     }
 
     localStorage.setItem('quest_last_active_tab', tabId);
+
+    syncAwardImmersiveSky(tabId);
 
     document.querySelectorAll('.nav-button[data-tab]').forEach(btn => {
         btn.classList.toggle('active', btn.dataset.tab === tabId);

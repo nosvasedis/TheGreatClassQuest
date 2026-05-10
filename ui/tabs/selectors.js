@@ -219,14 +219,14 @@ export function renderCalendarTab(customLogs = null) {
                 <div class="font-bold text-right text-gray-500 text-sm mb-1 pr-2 pt-1 opacity-70">${dayNumberHtml}</div>
                 ${starHtml}
                 
-                <div class="px-1.5 pb-2 flex-1 flex flex-col min-h-0 overflow-hidden">
+                <div class="px-1.5 pb-2 flex-1 flex flex-col min-h-0 min-w-0 overflow-hidden">
                     <!-- Events Area (Fixed Top) -->
                     <div class="flex flex-col shrink-0">
                         ${questEventsHtml}
                     </div>
                     
                     <!-- Classes Area (Scrollable) -->
-                    <div class="flex flex-col gap-1 mt-1 min-h-0 flex-1 overflow-y-auto overscroll-y-contain custom-scrollbar">
+                    <div class="flex flex-col gap-1 mt-1 min-h-0 flex-1 min-w-0 overflow-y-auto overflow-x-hidden custom-scrollbar">
                         ${classesHtml}
                     </div>
                 </div>

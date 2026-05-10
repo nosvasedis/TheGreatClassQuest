@@ -35,7 +35,7 @@ function randomRange(min, max) {
 
 export const loadingHTML = `
     <div id="loading-screen"
-        class="fixed inset-0 flex flex-col items-center justify-center z-[60] transition-opacity duration-500"
+        class="fixed inset-0 flex flex-col items-center justify-center z-[1100] transition-opacity duration-500"
         style="background: linear-gradient(to bottom, #F0F9FF 0%, #E0F2FE 50%, #D6F9E3 100%);">
 
         <div class="loading-sky-glow" aria-hidden="true"></div>

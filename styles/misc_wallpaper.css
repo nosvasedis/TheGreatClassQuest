@@ -12,6 +12,90 @@ header {
     transition: background 2s ease-in-out;
 }
 
+/* Few twinkling stars — deepest layer, behind `.header-sky-clouds` (night only) */
+.header-night-stars {
+    opacity: 0;
+    visibility: hidden;
+}
+
+header.header-night .header-night-stars {
+    opacity: 1;
+    visibility: visible;
+}
+
+.header-night-stars::before,
+.header-night-stars::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background-repeat: no-repeat;
+    background-size: 100% 100%;
+}
+
+.header-night-stars::before {
+    background-image:
+        radial-gradient(1px 1px at 11% 38%, rgba(255, 255, 255, 0.5), transparent),
+        radial-gradient(1px 1px at 24% 58%, rgba(226, 232, 240, 0.45), transparent),
+        radial-gradient(1.2px 1.2px at 38% 28%, rgba(255, 255, 255, 0.55), transparent),
+        radial-gradient(1px 1px at 52% 72%, rgba(248, 250, 252, 0.4), transparent),
+        radial-gradient(1px 1px at 66% 35%, rgba(255, 255, 255, 0.48), transparent),
+        radial-gradient(1.2px 1.2px at 79% 62%, rgba(226, 232, 240, 0.42), transparent),
+        radial-gradient(1px 1px at 91% 40%, rgba(255, 255, 255, 0.45), transparent),
+        radial-gradient(1px 1px at 7% 78%, rgba(241, 245, 249, 0.35), transparent),
+        radial-gradient(1px 1px at 45% 12%, rgba(255, 255, 255, 0.38), transparent),
+        radial-gradient(1.1px 1.1px at 72% 18%, rgba(255, 255, 255, 0.42), transparent);
+    opacity: 0.38;
+    animation: headerNightStarsTwinkleA 6.2s ease-in-out infinite;
+}
+
+.header-night-stars::after {
+    background-image:
+        radial-gradient(1px 1px at 18% 22%, rgba(255, 255, 255, 0.32), transparent),
+        radial-gradient(1px 1px at 55% 48%, rgba(226, 232, 240, 0.36), transparent),
+        radial-gradient(1.2px 1.2px at 84% 28%, rgba(255, 255, 255, 0.34), transparent),
+        radial-gradient(1px 1px at 33% 88%, rgba(248, 250, 252, 0.3), transparent),
+        radial-gradient(1px 1px at 62% 12%, rgba(255, 255, 255, 0.28), transparent),
+        radial-gradient(1.1px 1.1px at 96% 70%, rgba(241, 245, 249, 0.3), transparent);
+    opacity: 0.3;
+    animation: headerNightStarsTwinkleB 7.8s ease-in-out infinite;
+}
+
+@keyframes headerNightStarsTwinkleA {
+    0%,
+    100% {
+        opacity: 0.22;
+    }
+    50% {
+        opacity: 0.52;
+    }
+}
+
+@keyframes headerNightStarsTwinkleB {
+    0%,
+    100% {
+        opacity: 0.16;
+    }
+    48% {
+        opacity: 0.44;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    header.header-night .header-night-stars::before,
+    header.header-night .header-night-stars::after {
+        animation: none !important;
+    }
+
+    header.header-night .header-night-stars::before {
+        opacity: 0.34;
+    }
+
+    header.header-night .header-night-stars::after {
+        opacity: 0.26;
+    }
+}
+
 header.header-night {
     background: linear-gradient(to right, #1e3a8a 0%, #312e81 100%) !important;
     border-bottom: 1px solid #4338ca;
@@ -24,6 +108,24 @@ header.header-night .cloud {
 header.header-night h1 {
     text-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
     color: #e0e7ff;
+}
+
+/* `header-night` stacks with concrete weather — deepen bar so storm/rain/snow read at night */
+header.header-night.header-stormy {
+    background: linear-gradient(to right, #0f172a 0%, #1e1b4b 55%, #020617 100%) !important;
+    border-bottom-color: #312e81;
+}
+header.header-night.header-rainy {
+    background: linear-gradient(to right, #1e293b 0%, #334155 50%, #0f172a 100%) !important;
+    border-bottom-color: #475569;
+}
+header.header-night.header-snowy {
+    background: linear-gradient(to right, #475569 0%, #64748b 50%, #334155 100%) !important;
+    border-bottom-color: #94a3b8;
+}
+header.header-night.header-cloudy {
+    background: linear-gradient(to right, #475569 0%, #334155 100%) !important;
+    border-bottom-color: #64748b;
 }
 
 /* New Weather Themes */

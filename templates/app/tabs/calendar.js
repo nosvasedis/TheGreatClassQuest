@@ -23,7 +23,7 @@ export const calendarTabHTML = `
                             </button>
                         </div>
                         <div id="calendar-grid"
-                            class="grid grid-cols-7 gap-1 p-4 bg-white/70 rounded-2xl shadow-lg backdrop-blur-sm">
+                            class="grid grid-cols-7 gap-0.5 px-3 py-4 sm:gap-1 sm:px-4 bg-white/70 rounded-2xl shadow-lg backdrop-blur-sm">
                             <div id="calendar-loader"
                                 class="hidden absolute inset-0 bg-white/50 backdrop-blur-sm flex-col items-center justify-center z-10 rounded-2xl">
                                 <i class="fas fa-star text-amber-500 text-5xl animate-spin"></i>

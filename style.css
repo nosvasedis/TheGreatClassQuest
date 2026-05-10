@@ -124,6 +124,9 @@
 /* 34. Weather effects: stormy/rainy/snowy/cloudy header/wallpaper overlays, night-mode body */
 @import url('./styles/weather_effects.css');
 
+/* 34b. Award immersive sky mirrors header weather (sun/moon, rain/snow, gradients) */
+@import url('./styles/award_immersive_weather.css');
+
 /* 35. Misc end: shop confirm, star-day-glow, reigning-hero-card, crown badge */
 @import url('./styles/misc_end.css');
 

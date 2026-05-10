@@ -492,7 +492,7 @@ export async function renderClassLeaderboardTab() {
             stickyBtn.onclick = () => hideAnalytics();
 
             // Watch the map to automatically toggle buttons when scrolling
-            const mapArea = list.querySelector('.league-map-wrapper') || list.firstElementChild;
+            const mapArea = list.querySelector('.team-quest-map-parchment') || list.querySelector('.league-map-wrapper') || list.firstElementChild;
 
             const observer = new IntersectionObserver((entries) => {
                 entries.forEach(entry => {
@@ -791,6 +791,94 @@ export async function renderStudentLeaderboardTab() {
         return html;
     };
 
+    const starMetric = state.get('studentStarMetric') === 'monthly' ? 'monthly' : 'total';
+    const metricChipLabel = starMetric === 'monthly' ? 'This month' : 'All-time';
+    const metricChipShort = starMetric === 'monthly' ? 'Monthly' : 'Total';
+
+    /**
+     * Unified Hero's Challenge row for Global Rank and By Class (same chrome, layout, motion).
+     */
+    const renderHeroChallengeCard = (s, currentRank, riseDelayMs, { showClassRow }) => {
+        const podium = currentRank <= 3 ? currentRank : 0;
+        const podiumMod = podium === 1 ? 'hc-lb-card--gold' : podium === 2 ? 'hc-lb-card--silver' : podium === 3 ? 'hc-lb-card--bronze' : '';
+
+        const rankInner = podium === 1 ? '<span class="hc-lb-medal" aria-hidden="true">🥇</span>'
+            : podium === 2 ? '<span class="hc-lb-medal" aria-hidden="true">🥈</span>'
+                : podium === 3 ? '<span class="hc-lb-medal" aria-hidden="true">🥉</span>'
+                    : `<span class="hc-lb-rank-num font-title">${currentRank}</span>`;
+
+        const classStrip = showClassRow
+            ? `<div class="hc-lb-class-strip">
+                    <span class="hc-lb-class-strip__emoji" aria-hidden="true">${s.classLogo}</span>
+                    <span class="hc-lb-class-strip__name">${s.className}</span>
+               </div>`
+            : '';
+
+        const familiarHtml = s.familiar
+            ? `<div class="familiar-chip hero-challenge-familiar-chip">${renderFamiliarSprite(s.familiar, 'small', s.id)}</div>`
+            : '';
+
+        const sparkleHtml = podium
+            ? `<div class="hc-lb-card__sparkles hc-lb-card__sparkles--${podium === 1 ? 'gold' : podium === 2 ? 'silver' : 'bronze'}" aria-hidden="true">
+                    <span class="hc-lb-spark"></span><span class="hc-lb-spark"></span><span class="hc-lb-spark"></span>
+                    <span class="hc-lb-spark"></span><span class="hc-lb-spark"></span>
+               </div>`
+            : '';
+
+        const risePodiumMod = podium ? `hc-lb-card-rise--podium hc-lb-card-rise--podium-${podium}` : '';
+        const scoreStarClass = podium === 1
+            ? 'hc-lb-score-star hc-lb-score-star--p1'
+            : podium === 2
+                ? 'hc-lb-score-star hc-lb-score-star--p2'
+                : podium === 3
+                    ? 'hc-lb-score-star hc-lb-score-star--p3'
+                    : 'hc-lb-score-star';
+
+        return `
+        <div class="tab-mount-rise hc-lb-card-rise ${risePodiumMod}" style="--tab-rise-delay: ${riseDelayMs}ms">
+            <div class="student-leaderboard-card hc-lb-card ${podiumMod}" data-hc-rank="${currentRank}" data-hc-podium="${podium || ''}" style="--tab-rise-delay: ${riseDelayMs}ms">
+                <div class="hc-lb-card__blob hc-lb-card__blob--a" aria-hidden="true"></div>
+                <div class="hc-lb-card__blob hc-lb-card__blob--b" aria-hidden="true"></div>
+                <div class="hc-lb-card__shine" aria-hidden="true"></div>
+                ${sparkleHtml}
+                <div class="hc-lb-card__inner">
+                    <div class="hc-lb-rank-tower" aria-label="Rank ${currentRank}">
+                        ${rankInner}
+                    </div>
+                    <div class="hc-lb-hero-col">
+                        <div class="flex-shrink-0 relative hero-challenge-avatar-wrap hc-lb-avatar-stage">
+                            ${getAvatarHtml(s, 'w-14 h-14 sm:w-16 sm:h-16')}
+                            ${familiarHtml}
+                        </div>
+                    </div>
+                    <div class="hc-lb-copy">
+                        <h3 class="hc-lb-name font-title text-lg sm:text-xl leading-tight flex items-center flex-wrap gap-1.5">
+                            <span class="hc-lb-name__text truncate">${heroProgressionEnabled && s.heroClass && HERO_CLASSES[s.heroClass] ? HERO_CLASSES[s.heroClass].icon : ''} ${s.name}</span>
+                            ${getHeroTitleBadgeHtml(s)}
+                            ${getGuildRoleBadgesHtml(s)}
+                        </h3>
+                        <div class="hc-lb-meta-row">
+                            <div class="hc-lb-gold" title="Gold balance">
+                                <i class="fas fa-coins hc-lb-gold__icon"></i>
+                                <span class="hc-lb-gold__val">${s.gold}</span>
+                            </div>
+                            ${classStrip}
+                        </div>
+                        <div class="hc-lb-pills flex flex-wrap gap-1.5">${getPillsHtml(s)}</div>
+                    </div>
+                    <div class="hc-lb-score-stack">
+                        <div class="hc-lb-score-row" title="${metricChipLabel} stars">
+                            <span class="${scoreStarClass}" aria-hidden="true">${podium === 1 ? '<span class="hc-lb-score-star__ray" aria-hidden="true"></span>' : ''}<i class="fas fa-star"></i></span>
+                            <div class="hc-lb-score">${s.score}</div>
+                        </div>
+                        <div class="hc-lb-stars-label">Stars</div>
+                        <div class="hc-lb-metric-chip">${metricChipShort}</div>
+                    </div>
+                </div>
+            </div>
+        </div>`;
+    };
+
     let outputHtml = '';
 
     if (state.get('studentLeaderboardView') === 'league') {
@@ -813,41 +901,7 @@ export async function renderStudentLeaderboardTab() {
             }
             lastScore = s.stars; last3 = s.stats.count3; last2 = s.stats.count2; lastUnique = s.stats.uniqueReasons; lastRank = currentRank;
 
-            let cardClasses = "bg-white border-l-4 border-gray-200 hover:shadow-md";
-            let rankBadge = `<div class="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center font-bold text-gray-500">${currentRank}</div>`;
-
-            if (currentRank === 1) { cardClasses = "bg-gradient-to-r from-amber-50 to-white border-l-4 border-amber-400 shadow-md"; rankBadge = `<div class="text-3xl">🥇</div>`; }
-            else if (currentRank === 2) { cardClasses = "bg-gradient-to-r from-gray-50 to-white border-l-4 border-gray-400 shadow-sm"; rankBadge = `<div class="text-3xl">🥈</div>`; }
-            else if (currentRank === 3) { cardClasses = "bg-gradient-to-r from-orange-50 to-white border-l-4 border-orange-400 shadow-sm"; rankBadge = `<div class="text-3xl">🥉</div>`; }
-
-            outputHtml += `
-                <div class="tab-mount-rise mb-3" style="--tab-rise-delay: ${Math.min(index * 42, 720)}ms">
-                <div class="student-leaderboard-card relative p-3 rounded-xl flex items-center justify-between transition-all ${cardClasses}">
-                    <div class="flex items-center gap-3 md:gap-4 overflow-hidden">
-                        <div class="flex-shrink-0 w-8 text-center">${rankBadge}</div>
-                        <div class="flex-shrink-0">${getAvatarHtml(s)}</div>
-                        <div class="min-w-0">
-                            <h3 class="font-bold text-gray-800 text-lg truncate flex items-center flex-wrap gap-1.5">
-    <span>${heroProgressionEnabled && s.heroClass && HERO_CLASSES[s.heroClass] ? HERO_CLASSES[s.heroClass].icon : ''} ${s.name}</span>
-    ${getHeroTitleBadgeHtml(s)}
-    ${getGuildRoleBadgesHtml(s)}
-</h3>
-                            <div class="flex items-center gap-2 mt-0.5">
-                                <p class="text-xs text-gray-500 flex items-center gap-1"><span>${s.classLogo} ${s.className}</span></p>
-                                <div class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full border border-white shadow-sm" style="background: linear-gradient(135deg, #f59e0b 0%, #b45309 100%); color: white; font-size: 0.65rem; font-family: 'Fredoka One', cursive;">
-                                    <i class="fas fa-coins" style="color: #fcd34d;"></i> ${s.gold}
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="flex items-center gap-3 flex-shrink-0 ml-2">
-                        <div class="flex flex-col items-end gap-1 flex-wrap">${getPillsHtml(s)}</div>
-                        <div class="text-right">
-                            <div class="font-title text-3xl text-indigo-600 leading-none">${s.score}</div>
-                            <div class="text-[10px] text-gray-400 font-bold uppercase tracking-wider">Stars</div>
-                        </div>
-                    </div>
-                </div></div>`;
+            outputHtml += renderHeroChallengeCard(s, currentRank, Math.min(index * 42, 720), { showClassRow: true });
         });
 
     } else {
@@ -874,13 +928,14 @@ export async function renderStudentLeaderboardTab() {
             const randomGradient = constants.titleGradients[utils.simpleHashCode(classData.name) % constants.titleGradients.length];
 
             outputHtml += `
-            <div class="tab-mount-rise mt-10 mb-6 text-center" style="--tab-rise-delay: ${Math.min(hcRiseSeq++ * 40, 680)}ms">
-                <div class="inline-flex items-center gap-3 px-6 py-2 rounded-2xl bg-white shadow-sm border border-gray-100 transform hover:scale-105 transition-transform duration-300">
-                    <span class="text-4xl filter drop-shadow-md">${classData.logo}</span>
-                    <h3 class="font-title text-3xl tracking-wide text-transparent bg-clip-text bg-gradient-to-r ${randomGradient}" style="filter: drop-shadow(0 1px 1px rgba(0,0,0,0.05));">${classData.name}</h3>
+            <div class="tab-mount-rise hc-lb-section-rise mt-10 mb-6 text-center" style="--tab-rise-delay: ${Math.min(hcRiseSeq++ * 40, 680)}ms">
+                <div class="hc-lb-section-head inline-flex items-center gap-3 sm:gap-4">
+                    <div class="hc-lb-section-head__glow" aria-hidden="true"></div>
+                    <span class="hc-lb-section-logo" aria-hidden="true">${classData.logo}</span>
+                    <h3 class="hc-lb-section-title font-title text-2xl sm:text-3xl tracking-wide text-transparent bg-clip-text bg-gradient-to-r ${randomGradient}">${classData.name}</h3>
                 </div>
             </div>
-            <div class="flex flex-col gap-3 mb-12 max-w-5xl mx-auto">`;
+            <div class="hc-lb-list-stack flex flex-col gap-3 mb-12 max-w-5xl mx-auto">`;
 
             let lastScore = -1, last3 = -1, last2 = -1, lastUnique = -1, lastRank = 0;
 
@@ -897,45 +952,7 @@ export async function renderStudentLeaderboardTab() {
                 }
                 lastScore = s.stars; last3 = s.stats.count3; last2 = s.stats.count2; lastUnique = s.stats.uniqueReasons; lastRank = currentRank;
 
-                let cardBg = "bg-white border-b-4 border-gray-200";
-                let rankColor = "bg-gray-100 text-gray-500";
-                let nameColor = "text-gray-700";
-                let starColor = "text-indigo-600";
-                let bgTrophy = '';
-
-                if (currentRank === 1) { cardBg = "bg-gradient-to-br from-white to-amber-50 border-b-4 border-amber-400 ring-2 ring-amber-100"; rankColor = "bg-amber-400 text-white shadow-md"; nameColor = "text-amber-900"; starColor = "text-amber-500"; bgTrophy = `<div class="absolute top-0 right-0 p-3 opacity-20 text-5xl pointer-events-none text-amber-300"><i class="fas fa-trophy"></i></div>`; }
-                else if (currentRank === 2) { cardBg = "bg-gradient-to-br from-white to-gray-50 border-b-4 border-gray-400 ring-2 ring-gray-100"; rankColor = "bg-gray-400 text-white shadow-md"; nameColor = "text-gray-800"; starColor = "text-gray-500"; bgTrophy = `<div class="absolute top-0 right-0 p-3 opacity-20 text-5xl pointer-events-none text-gray-300"><i class="fas fa-trophy"></i></div>`; }
-                else if (currentRank === 3) { cardBg = "bg-gradient-to-br from-white to-orange-50 border-b-4 border-orange-400 ring-2 ring-orange-100"; rankColor = "bg-orange-400 text-white shadow-md"; nameColor = "text-orange-900"; starColor = "text-orange-600"; bgTrophy = `<div class="absolute top-0 right-0 p-3 opacity-20 text-5xl pointer-events-none text-orange-300"><i class="fas fa-trophy"></i></div>`; }
-
-                outputHtml += `
-                    <div class="tab-mount-rise" style="--tab-rise-delay: ${Math.min(hcRiseSeq++ * 38, 760)}ms">
-                    <div class="relative rounded-2xl p-4 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1 ${cardBg} flex justify-between items-center gap-4">
-                        ${bgTrophy}
-                        <div class="flex items-center gap-4 z-10">
-                            <div class="flex-shrink-0 relative hero-challenge-avatar-wrap">
-                                <div class="absolute -top-3 -left-2 w-8 h-8 rounded-full ${rankColor} flex items-center justify-center font-title text-sm z-10 border-2 border-white shadow-sm">${currentRank}</div>
-                                ${getAvatarHtml(s, "w-16 h-16")}
-                                ${s.familiar ? `<div class="familiar-chip hero-challenge-familiar-chip">${renderFamiliarSprite(s.familiar, 'small', s.id)}</div>` : ''}
-                            </div>
-                            <div class="min-w-0">
-                                <h4 class="font-title text-xl ${nameColor} truncate leading-tight mb-1 flex items-center flex-wrap gap-1.5">
-    <span>${heroProgressionEnabled && s.heroClass && HERO_CLASSES[s.heroClass] ? HERO_CLASSES[s.heroClass].icon : ''} ${s.name}</span>
-    ${getHeroTitleBadgeHtml(s)}
-    ${getGuildRoleBadgesHtml(s)}
-</h4>
-                                <div class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full border border-white shadow-sm" style="background: linear-gradient(135deg, #f59e0b 0%, #b45309 100%); color: white; font-size: 0.7rem; font-family: 'Fredoka One', cursive;">
-                                    <i class="fas fa-coins" style="color: #fcd34d;"></i> ${s.gold}
-                                </div>
-                            </div>
-                        </div>
-                        <div class="flex flex-col items-end gap-1 flex-shrink-0 z-10">
-                            <div class="flex items-baseline gap-1">
-                                <span class="font-title text-3xl ${starColor} leading-none">${s.score}</span>
-                                <span class="text-xs font-bold text-gray-400 uppercase">Stars</span>
-                            </div>
-                            <div class="flex flex-wrap justify-end gap-1 max-w-[200px]">${getPillsHtml(s)}</div>
-                        </div>
-                    </div></div>`;
+                outputHtml += renderHeroChallengeCard(s, currentRank, Math.min(hcRiseSeq++ * 38, 760), { showClassRow: false });
             });
             outputHtml += `</div>`;
         }

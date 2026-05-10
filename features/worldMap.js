@@ -94,7 +94,7 @@ export function generateLeagueMapHtml(classes) {
 
     // 1. PRE-CALCULATE BASE POSITIONS & DATA
     // We calculate everyone's ideal position first so we can fix overlaps before rendering
-    let mapItems = classes.map(c => {
+    let mapItems = classes.map((c, leagueIndex) => {
         const students = state.get('allStudents').filter(s => s.classId === c.id);
         const allScores = state.get('allStudentScores') || [];
         const {
@@ -108,6 +108,11 @@ export function generateLeagueMapHtml(classes) {
 
         // Get ideal position on the curve
         const pos = getComplexPathPoint(pct / 100);
+
+        const pinTier = leagueIndex === 0 ? 'gold'
+            : leagueIndex === 1 ? 'silver'
+                : leagueIndex === 2 ? 'bronze'
+                    : 'slate';
         
         return {
             c,
@@ -119,7 +124,8 @@ export function generateLeagueMapHtml(classes) {
             progressDisplay,
             x: pos.x,
             y: pos.y,
-            isLeader: c.rank === 1,
+            pinTier,
+            isLeader: leagueIndex === 0,
             displayLevel: (c.difficulty || 0) + 1
         };
     });
@@ -161,8 +167,8 @@ export function generateLeagueMapHtml(classes) {
     }
 
     // 3. RENDER AVATARS
-    const avatarsHtml = mapItems.map((item, index) => {
-        const { c, pct, x, y, isLeader, progressDisplay, starsDisplay, goal, displayLevel, classQuestBonus } = item;
+    const avatarsHtml = mapItems.map((item) => {
+        const { c, pct, x, y, isLeader, pinTier, progressDisplay, starsDisplay, goal, displayLevel, classQuestBonus } = item;
 
         // Determine Zone Styles
         const zone = getQuestMapZoneForProgressPercent(pct);
@@ -185,96 +191,107 @@ export function generateLeagueMapHtml(classes) {
                 
                 <div class="absolute -bottom-2 left-1/2 -translate-x-1/2 w-8 h-2 bg-black/20 rounded-full blur-sm transition-all group-hover:w-12 group-hover:opacity-40"></div>
 
-                <div class="pin-head w-full h-full rounded-full border-2 bg-white flex items-center justify-center text-2xl shadow-lg transition-all ${zone.glow} ${zone.animationClass} overflow-hidden relative">
-                    <div class="absolute inset-0 bg-gradient-to-tr from-transparent via-white/40 to-transparent pointer-events-none"></div>
-                    <span class="filter drop-shadow-sm z-10 transform scale-110">${c.logo}</span>
-                    
-                    ${isLeader ? '<div class="absolute -top-1 -right-1 text-xs rotate-12 z-20">👑</div>' : ''}
+                <div class="league-map-pin-ring league-map-pin-ring--${pinTier} w-full h-full rounded-full p-[2.5px] md:p-[3px] box-border">
+                    <div class="pin-head pin-head--league-map w-full h-full rounded-full flex items-center justify-center text-2xl shadow-inner overflow-hidden relative">
+                        <div class="absolute inset-0 bg-gradient-to-tr from-transparent via-white/45 to-transparent pointer-events-none"></div>
+                        <span class="filter drop-shadow-sm z-10 transform scale-110">${c.logo}</span>
+                        
+                        ${isLeader ? '<div class="absolute -top-1 -right-1 text-xs rotate-12 z-20">👑</div>' : ''}
+                    </div>
                 </div>
             </div>
 
-            <div class="map-rich-tooltip">
-                <div class="flex items-center gap-2 mb-2 border-b pb-2 border-gray-100">
-                    <span class="text-xl">${c.logo}</span>
-                    <h4 class="font-bold text-gray-800 text-lg leading-none">${c.name}</h4>
-                </div>
-                
-                <div class="flex justify-between items-center mb-1 text-xs">
-                    <span class="font-bold text-indigo-900 uppercase tracking-wide">${zone.label}</span>
-                    <span class="bg-gray-100 text-gray-600 px-1.5 rounded font-bold">Lvl ${displayLevel}</span>
-                </div>
-                
-                <div class="w-full bg-gray-200 h-2.5 rounded-full overflow-hidden mb-1 border border-gray-300 relative">
-                    <div class="bg-gradient-to-r from-indigo-400 to-purple-500 h-full" style="width: ${pct}%"></div>
-                </div>
-                
-                <div class="flex justify-between items-end">
-                    <div class="flex flex-col">
-                        <span class="text-[9px] text-gray-400 font-bold uppercase">Progress</span>
-                        <span class="text-xs font-bold text-purple-600">${progressDisplay}%</span>
+            <div class="map-rich-tooltip${isLeader ? ' map-rich-tooltip--leader' : ''}">
+                <div class="map-rich-tooltip__edge map-rich-tooltip__edge--top" aria-hidden="true"></div>
+                <div class="map-rich-tooltip__body">
+                    <div class="map-rich-tooltip__header">
+                        <span class="map-rich-tooltip__logo">${c.logo}</span>
+                        <h4 class="map-rich-tooltip__title">${c.name}</h4>
                     </div>
-                    <div class="text-right">
-                        <span class="text-[9px] text-gray-400 font-bold uppercase block">Collected</span>
-                        <span class="text-sm font-bold text-gray-700">
-                            <span class="text-indigo-600 text-base">${starsDisplay}</span> 
-                            <span class="text-gray-400">/</span> ${goal} ⭐
-                        </span>
-                        ${classQuestBonus > 0 ? `<span class="text-[10px] font-black uppercase tracking-wide text-indigo-500 block mt-1">+${classQuestBonus} Pathfinder</span>` : ''}
+                    <div class="map-rich-tooltip__meta">
+                        <span class="map-rich-tooltip__zone">${zone.label}</span>
+                        <span class="map-rich-tooltip__lvl">Lvl ${displayLevel}</span>
+                    </div>
+                    <div class="map-rich-tooltip__meter" role="presentation">
+                        <div class="map-rich-tooltip__meter-fill" style="width: ${pct}%"></div>
+                    </div>
+                    <div class="map-rich-tooltip__stats">
+                        <div class="map-rich-tooltip__stat">
+                            <span class="map-rich-tooltip__stat-label">Progress</span>
+                            <span class="map-rich-tooltip__stat-value map-rich-tooltip__stat-value--progress">${progressDisplay}%</span>
+                        </div>
+                        <div class="map-rich-tooltip__stat map-rich-tooltip__stat--right">
+                            <span class="map-rich-tooltip__stat-label">Collected</span>
+                            <span class="map-rich-tooltip__stat-stars">
+                                <span class="map-rich-tooltip__stars-num">${starsDisplay}</span>
+                                <span class="map-rich-tooltip__stars-sep">/</span>
+                                <span class="map-rich-tooltip__stars-goal">${goal}</span>
+                                <span class="map-rich-tooltip__stars-icon" aria-hidden="true">⭐</span>
+                            </span>
+                            ${classQuestBonus > 0 ? `<span class="map-rich-tooltip__bonus">+${classQuestBonus} Pathfinder</span>` : ''}
+                        </div>
                     </div>
                 </div>
+                <div class="map-rich-tooltip__edge map-rich-tooltip__edge--bottom" aria-hidden="true"></div>
             </div>
         </div>
         `;
     }).join('');
 
     return `
-    <div class="league-map-wrapper">
-        <div class="league-map-bg"></div>
-        <svg viewBox="0 0 ${W} ${H}" class="league-map-svg" preserveAspectRatio="none">
-            <defs>
-                <linearGradient id="roadGradient" x1="0%" y1="100%" x2="100%" y2="0%">
-                    <stop offset="0%" style="stop-color:#22c55e;stop-opacity:1" />
-                    <stop offset="35%" style="stop-color:#e0f2fe;stop-opacity:1" />
-                    <stop offset="65%" style="stop-color:#fbbf24;stop-opacity:1" />
-                    <stop offset="100%" style="stop-color:#d8b4fe;stop-opacity:1" />
-                </linearGradient>
-                <filter id="glow">
-                    <feGaussianBlur stdDeviation="3.5" result="coloredBlur"/>
-                    <feMerge>
-                        <feMergeNode in="coloredBlur"/>
-                        <feMergeNode in="SourceGraphic"/>
-                    </feMerge>
-                </filter>
-            </defs>
-            <path d="${pathData}" class="map-path-line" 
-                  style="stroke: url(#roadGradient); stroke-width: 8; stroke-dasharray: 15, 10; filter: url(#glow); opacity: 0.9; stroke-linecap: round; fill: none;" />
-        </svg>
+    <div class="team-quest-map-parchment" role="region" aria-label="League quest map">
+        <div class="team-quest-map-parchment__roll team-quest-map-parchment__roll--top" aria-hidden="true"></div>
+        <div class="team-quest-map-parchment__sheet">
+            <div class="league-map-wrapper">
+                <div class="league-map-bg"></div>
+                <svg viewBox="0 0 ${W} ${H}" class="league-map-svg" preserveAspectRatio="none">
+                    <defs>
+                        <linearGradient id="roadGradient" x1="0%" y1="100%" x2="100%" y2="0%">
+                            <stop offset="0%" style="stop-color:#22c55e;stop-opacity:1" />
+                            <stop offset="35%" style="stop-color:#e0f2fe;stop-opacity:1" />
+                            <stop offset="65%" style="stop-color:#fbbf24;stop-opacity:1" />
+                            <stop offset="100%" style="stop-color:#d8b4fe;stop-opacity:1" />
+                        </linearGradient>
+                        <filter id="glow">
+                            <feGaussianBlur stdDeviation="3.5" result="coloredBlur"/>
+                            <feMerge>
+                                <feMergeNode in="coloredBlur"/>
+                                <feMergeNode in="SourceGraphic"/>
+                            </feMerge>
+                        </filter>
+                    </defs>
+                    <path d="${pathData}" class="map-path-line" 
+                          style="stroke: url(#roadGradient); stroke-width: 8; stroke-dasharray: 15, 10; filter: url(#glow); opacity: 0.9; stroke-linecap: round; fill: none;" />
+                </svg>
 
-        <div class="map-zone-label zone-trigger" data-zone="bronze" 
-             style="left: 10%; top: 75%; font-family: 'Fredoka One', cursive; color: #dcfce7; text-shadow: 0 2px 4px rgba(22, 101, 52, 0.8); background: rgba(20, 83, 45, 0.85); border: 2px solid #86efac; border-radius: 12px; padding: 6px 12px;">
-             <span class="text-xl mr-1">🌿</span> Bronze Meadows
-        </div>
-        
-        <div class="map-zone-label zone-trigger" data-zone="silver" 
-             style="left: 32%; top: 15%; font-family: 'Fredoka One', cursive; color: #f0f9ff; text-shadow: 0 2px 4px rgba(12, 74, 110, 0.8); background: rgba(12, 74, 110, 0.85); border: 2px solid #7dd3fc; border-radius: 12px; padding: 6px 12px;">
-             <span class="text-xl mr-1">❄️</span> Silver Peaks
-        </div>
-        
-        <div class="map-zone-label zone-trigger" data-zone="gold" 
-             style="left: 70%; top: 65%; font-family: 'Fredoka One', cursive; color: #fef3c7; text-shadow: 0 2px 4px rgba(120, 53, 15, 0.8); background: rgba(120, 53, 15, 0.85); border: 2px solid #fcd34d; border-radius: 12px; padding: 6px 12px;">
-             <span class="text-xl mr-1">🏰</span> Golden Citadel
-        </div>
-        
-        <div class="map-zone-label zone-trigger" data-zone="diamond" 
-             style="left: 88%; top: 8%; font-family: 'Fredoka One', cursive; color: #f3e8ff; text-shadow: 0 2px 4px rgba(88, 28, 135, 0.8); background: rgba(88, 28, 135, 0.85); border: 2px solid #d8b4fe; border-radius: 12px; padding: 6px 12px;">
-             <span class="text-xl mr-1">💎</span> Crystal Realm
-        </div>
+                <div class="map-zone-label zone-trigger map-zone-label--bronze" data-zone="bronze" style="left: 10%; top: 75%;">
+                    <span class="map-zone-label__icon" aria-hidden="true">🌿</span>
+                    <span class="map-zone-label__text">Bronze Meadows</span>
+                </div>
+                
+                <div class="map-zone-label zone-trigger map-zone-label--silver" data-zone="silver" style="left: 32%; top: 15%;">
+                    <span class="map-zone-label__icon" aria-hidden="true">🏔️</span>
+                    <span class="map-zone-label__text">Silver Peaks</span>
+                </div>
+                
+                <div class="map-zone-label zone-trigger map-zone-label--gold" data-zone="gold" style="left: 70%; top: 65%;">
+                    <span class="map-zone-label__icon" aria-hidden="true">🏰</span>
+                    <span class="map-zone-label__text">Golden Citadel</span>
+                </div>
+                
+                <div class="map-zone-label zone-trigger map-zone-label--crystal" data-zone="diamond" style="left: 88%; top: 8%;">
+                    <span class="map-zone-label__icon" aria-hidden="true">💎</span>
+                    <span class="map-zone-label__text">Crystal Realm</span>
+                </div>
 
-        ${avatarsHtml}
+                ${avatarsHtml}
 
-        <button id="toggle-map-list-btn" class="map-toggle-roster-btn">
-            <i class="fas fa-list-ul mr-1"></i> Analysis
-        </button>
+                <button id="toggle-map-list-btn" class="map-toggle-roster-btn">
+                    <i class="fas fa-list-ul mr-1"></i> Analysis
+                </button>
+            </div>
+        </div>
+        <div class="team-quest-map-parchment__roll team-quest-map-parchment__roll--bottom" aria-hidden="true"></div>
     </div>
     `;
 }

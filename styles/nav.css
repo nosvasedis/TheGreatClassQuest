@@ -204,20 +204,35 @@
 }
 
 /*
- * Immersive sky is a sibling AFTER `#award-header-atmosphere` so it stacks below `<main>` (z-index 8)
- * while the header shell stays z-1000. Previously sky lived inside the atmosphere subtree and painted
- * above student cards.
+ * Immersive sky is a sibling AFTER `#award-header-atmosphere` so it stacks below `<main>` during Award
+ * (see `.award-sky-active` z-index block — `main` is raised so student award cards sit above overflow).
+ * Header chrome stays below app modals (typically z-[70]+).
  */
 #award-header-atmosphere {
     position: relative;
-    z-index: 1000;
+    z-index: 60;
     overflow: visible;
+    /* Own compositing layer — class picker uses body teleport while fixed; avoids scroll invalidations from hero cards. */
+    transform: translateZ(0);
+}
+
+#bottom-nav-bar {
+    /* Same compositor isolation as header — scrolling premium cards shouldn’t hitch the dock. */
+    transform: translateZ(0);
+}
+
+/*
+ * Cloudy/overcast paints a large drifting ☁️ on `header.header-cloudy::after` (`weather_effects.css`).
+ * `header` stays overflow-visible class-wise for tooling, but glyphs must stay inside the chrome
+ * whenever we are not immersed (Award). Class picker teleport uses `fixed` while open.
+ */
+#award-header-atmosphere > header.header-cloudy {
+    overflow: hidden;
 }
 
 /* --- Award tab: immersive sky (cinematic unfold from header + sun bloom) --- */
 /*
- * Fixed layer behind main (`main` uses isolation + z-index 8 while Award is active).
- * Flush to the viewport bottom so no gap shows above the nav — `#bottom-nav-bar` (z-50) paints on top.
+ * Fixed layer behind main while Award sky is active (`main` is z-56; bottom-nav z-60).
  * pointer-events: none keeps taps on the bar.
  */
 #award-immersive-sky {
@@ -250,6 +265,7 @@ body.projector-mode #award-immersive-sky {
 #app-screen.award-sky-active:not(.award-sky-leaving) #award-immersive-sky {
     visibility: visible;
     pointer-events: none;
+    overflow: visible;
     animation: awardImmersiveSkyUnfold var(--award-sky-reveal-duration) var(--award-sky-reveal-ease) forwards;
 }
 
@@ -481,10 +497,26 @@ body.projector-mode #award-immersive-sky {
     animation-play-state: paused;
 }
 
+/*
+ * Full-sky Award: atmosphere + header FA/weather layers overflow the chrome. The atmosphere wrapper is
+ * normally z-60, which flattened the whole subtree above `main` (z-8) — decorative clouds painted over
+ * `.student-cloud-card`. While Award sky is active (including exit fold), pin atmosphere under `main`
+ * and bump the bottom nav so tap targets stay sane if anything overlaps by a few px.
+ * `#award-immersive-sky` remains z-5 (see above).
+ */
+#app-screen.award-sky-active #award-header-atmosphere {
+    z-index: 52 !important;
+}
+
 #app-screen.award-sky-active > main {
     position: relative;
-    z-index: 8;
+    z-index: 56;
     background: transparent !important;
+}
+
+#app-screen.award-sky-active #bottom-nav-bar {
+    position: relative;
+    z-index: 60 !important;
 }
 
 .header-sky-clouds {
@@ -499,12 +531,11 @@ body.projector-mode #award-immersive-sky {
 }
 
 /*
- * Exit: clouds shrink back into the strip with the sky fold.
- * Keep overflow: visible for the whole exit — switching to hidden instantly was clipping them off,
- * then they popped back when Award classes tore down (jarring).
+ * Exit: clip immediately so FA clouds stop “bleeding” past the header while the strip collapses;
+ * pause swirl so transforms don’t carry them outside the bar mid-fold.
  */
 #app-screen.award-sky-active.award-sky-leaving .header-sky-clouds {
-    overflow: visible;
+    overflow: hidden;
     top: 0;
     left: 0;
     right: 0;
@@ -515,13 +546,23 @@ body.projector-mode #award-immersive-sky {
     filter: brightness(1);
 }
 
+#app-screen.award-sky-active.award-sky-leaving .header-sky-clouds .cloud,
+#app-screen.award-sky-active.award-sky-leaving .header-sky-clouds .cloud-fast {
+    animation-play-state: paused;
+}
+
+/* Header weather motifs (☁ overlay, etc.) must not keep drifting outside the collapsing bar */
+#app-screen.award-sky-active.award-sky-leaving header.header-cloudy::after {
+    animation-play-state: paused;
+}
+
 /* Immersive Award: clouds ride the same motion as the sky unfolding from the header */
 #app-screen.award-sky-active:not(.award-sky-leaving) .header-sky-clouds {
     overflow: visible;
     top: -3rem;
     left: -10vw;
     right: -10vw;
-    bottom: 0;
+    bottom: -18vh;
     transform: scale(1.26) translateY(8px);
     transform-origin: 50% 0%;
     opacity: 1;
@@ -576,6 +617,7 @@ body.projector-mode #award-immersive-sky {
     #app-screen.award-sky-active:not(.award-sky-leaving) #award-immersive-sky {
         animation: awardImmersiveSkyFadeRm 260ms ease forwards;
         clip-path: inset(0 0 0 0);
+        overflow: visible;
     }
 
     #app-screen.award-sky-active.award-sky-leaving #award-immersive-sky {

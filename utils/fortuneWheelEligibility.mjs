@@ -26,12 +26,12 @@ export function isWithinLessonTime(classData, now = new Date()) {
   return timeNow >= classData.timeStart && timeNow <= classData.timeEnd;
 }
 
-export function getLastLessonOfWeek(classId, allSchoolClasses = [], allScheduleOverrides = [], schoolHolidayRanges = [], now = new Date()) {
+export function getLastLessonOfWeek(classId, allSchoolClasses = [], allScheduleOverrides = [], schoolHolidayRanges = [], now = new Date(), classEndDates = {}) {
   const { monday, friday } = getWeekWindow(now);
   let lastLesson = null;
 
   for (let cursor = new Date(monday); cursor <= friday; cursor.setDate(cursor.getDate() + 1)) {
-    if (utils.doesClassMeetOnDate(classId, cursor, allSchoolClasses, allScheduleOverrides, schoolHolidayRanges)) {
+    if (utils.doesClassMeetOnDate(classId, cursor, allSchoolClasses, allScheduleOverrides, schoolHolidayRanges, classEndDates)) {
       lastLesson = new Date(cursor);
     }
   }
@@ -50,6 +50,7 @@ export function evaluateWheelAvailability(classId, options = {}) {
     allSchoolClasses = [],
     allScheduleOverrides = [],
     schoolHolidayRanges = [],
+    classEndDates = {},
     alreadySpun = false,
   } = options;
 
@@ -80,7 +81,7 @@ export function evaluateWheelAvailability(classId, options = {}) {
     };
   }
 
-  const lastLessonOfWeek = getLastLessonOfWeek(classId, allSchoolClasses, allScheduleOverrides, schoolHolidayRanges, now);
+  const lastLessonOfWeek = getLastLessonOfWeek(classId, allSchoolClasses, allScheduleOverrides, schoolHolidayRanges, now, classEndDates);
   const todayKey = utils.getDDMMYYYY(now);
   const lastLessonKey = lastLessonOfWeek ? utils.getDDMMYYYY(lastLessonOfWeek) : null;
   const isDuringLesson = isWithinLessonTime(selectedClass, now);

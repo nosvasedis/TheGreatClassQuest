@@ -25,6 +25,9 @@ build/
 .env.test.local
 .env.production.local
 
+# Cursor / Trae scratch docs (plans, etc.)
+.trae/documents/
+
 # IDEs
 .vscode/
 .idea/

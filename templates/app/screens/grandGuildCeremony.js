@@ -2,46 +2,30 @@
 
 export const grandGuildCeremonyHTML = `
     <div id="grand-guild-ceremony-screen"
-        class="fixed inset-0 z-[100] hidden flex flex-col items-center justify-center overflow-hidden bg-gradient-to-br from-indigo-900 via-purple-900 to-black transition-opacity duration-1000">
+        class="fixed inset-0 z-[100] hidden flex flex-col items-center justify-center overflow-hidden transition-opacity duration-1000">
 
         <!-- Background Effects -->
         <div class="absolute inset-0 z-0">
             <div id="ceremony-bg-gradient"
-                class="absolute inset-0 bg-gradient-to-br from-indigo-900 via-purple-900 to-black opacity-80"></div>
+                class="absolute inset-0 opacity-80"></div>
+            
+            <!-- Super Spotlight -->
+            <div id="super-spotlight" class="super-spotlight"></div>
+            
             <div id="ceremony-confetti-container" class="absolute inset-0 pointer-events-none"></div>
             <div
                 class="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/stardust.png')] opacity-30 animate-pulse-slow">
             </div>
             
+            <!-- Spirit Animal Patrol -->
+            <div id="spirit-animal-container" class="absolute inset-0 pointer-events-none z-[5]"></div>
+            
+            <!-- Legendary Aura Container -->
+            <div id="legendary-aura-container" class="absolute inset-0 pointer-events-none z-[1]"></div>
+
             <!-- Guild-Themed Particle Effects -->
-            <div class="absolute inset-0 pointer-events-none">
-                <!-- Dragon Flame Fire Particles -->
-                <div class="fire-particles-container">
-                    <span class="fire-particle" style="--x:10%; --y:20%; --delay:0s; --duration:3s;"></span>
-                    <span class="fire-particle" style="--x:85%; --y:15%; --delay:1s; --duration:2.5s;"></span>
-                    <span class="fire-particle" style="--x:45%; --y:80%; --delay:2s; --duration:3.5s;"></span>
-                </div>
-                
-                <!-- Grizzly Might Earth Particles -->
-                <div class="earth-particles-container">
-                    <span class="earth-particle" style="--x:25%; --y:30%; --delay:0.5s; --duration:4s;"></span>
-                    <span class="earth-particle" style="--x:70%; --y:60%; --delay:1.5s; --duration:3s;"></span>
-                    <span class="earth-particle" style="--x:15%; --y:70%; --delay:2.5s; --duration:3.5s;"></span>
-                </div>
-                
-                <!-- Owl Wisdom Star Particles -->
-                <div class="star-particles-container">
-                    <span class="star-particle" style="--x:30%; --y:25%; --delay:0.3s; --duration:2.8s;"></span>
-                    <span class="star-particle" style="--x:75%; --y:45%; --delay:1.8s; --duration:3.2s;"></span>
-                    <span class="star-particle" style="--x:55%; --y:75%; --delay:2.3s; --duration:2.9s;"></span>
-                </div>
-                
-                <!-- Phoenix Rising Light Particles -->
-                <div class="light-particles-container">
-                    <span class="light-particle" style="--x:40%; --y:35%; --delay:0.7s; --duration:3.3s;"></span>
-                    <span class="light-particle" style="--x:80%; --y:25%; --delay:1.7s; --duration:2.7s;"></span>
-                    <span class="light-particle" style="--x:20%; --y:65%; --delay:2.7s; --duration:3.1s;"></span>
-                </div>
+            <div id="guild-particles-container" class="absolute inset-0 pointer-events-none">
+                <!-- Particles will be dynamically injected here for better performance and density control -->
             </div>
         </div>
 

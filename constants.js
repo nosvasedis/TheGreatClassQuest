@@ -1,6 +1,6 @@
 export const competitionStart = new Date('2025-11-01');
 export const competitionEnd = new Date('2026-06-30');
-export const APP_VERSION = '0.0.2';
+export const APP_VERSION = '0.1.0';
 
 /** Fallback when school_settings.schoolName is not set. Used everywhere school name is displayed. */
 export const DEFAULT_SCHOOL_NAME = 'Your School';

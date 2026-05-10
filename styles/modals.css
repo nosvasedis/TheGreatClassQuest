@@ -2191,3 +2191,644 @@
 .custom-scrollbar::-webkit-scrollbar-thumb:hover {
     background: rgba(148, 163, 184, 1);
 }
+
+/* Treasure Vault (v2): backpack columns follow the panel width — avoids 3 cramped viewport columns in a narrow column */
+#trophy-room-content .treasure-vault-backpack-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(10.75rem, 1fr));
+    gap: 1rem;
+    align-items: stretch;
+}
+
+@media (max-width: 380px) {
+    #trophy-room-content .treasure-vault-backpack-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+#trophy-room-content .treasure-vault-backpack-grid--compact {
+    grid-template-columns: repeat(auto-fill, minmax(9rem, 1fr));
+    gap: 0.65rem;
+}
+
+/* Treasure Vault — backpack "roll" when paging inventory */
+@keyframes tv-backpack-roll-next {
+    0% {
+        opacity: 0.4;
+        transform: translateX(1.35rem) scale(0.97);
+        filter: blur(2px);
+    }
+    60% {
+        opacity: 1;
+        filter: blur(0);
+    }
+    100% {
+        opacity: 1;
+        transform: translateX(0) scale(1);
+        filter: blur(0);
+    }
+}
+
+@keyframes tv-backpack-roll-prev {
+    0% {
+        opacity: 0.4;
+        transform: translateX(-1.35rem) scale(0.97);
+        filter: blur(2px);
+    }
+    60% {
+        opacity: 1;
+        filter: blur(0);
+    }
+    100% {
+        opacity: 1;
+        transform: translateX(0) scale(1);
+        filter: blur(0);
+    }
+}
+
+#trophy-room-content .trophy-backpack-roll-viewport {
+    overflow: hidden;
+    border-radius: 0.875rem;
+    margin: 0 -0.125rem;
+    padding: 0.15rem 0.125rem;
+}
+
+#trophy-room-content .trophy-backpack-roll--next {
+    animation: tv-backpack-roll-next 0.48s cubic-bezier(0.33, 1.18, 0.48, 1) both;
+}
+
+#trophy-room-content .trophy-backpack-roll--prev {
+    animation: tv-backpack-roll-prev 0.48s cubic-bezier(0.33, 1.18, 0.48, 1) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    #trophy-room-content .trophy-backpack-roll--next,
+    #trophy-room-content .trophy-backpack-roll--prev {
+        animation: none;
+    }
+}
+
+/* Treasure Vault — smooth transition when switching students */
+#trophy-room-content .treasure-vault-shell.tv-vault-shell--exit {
+    transition:
+        opacity 0.24s ease,
+        transform 0.24s ease,
+        filter 0.24s ease;
+    opacity: 0;
+    transform: translateY(12px) scale(0.988);
+    filter: blur(4px);
+    pointer-events: none;
+}
+
+#trophy-room-content .treasure-vault-shell.tv-vault-shell--enter {
+    opacity: 0;
+    transform: translateY(14px) scale(0.985);
+    filter: blur(3px);
+}
+
+#trophy-room-content .treasure-vault-shell.tv-vault-shell--enter.tv-vault-shell--enter-active {
+    transition:
+        opacity 0.42s cubic-bezier(0.33, 1.12, 0.48, 1),
+        transform 0.42s cubic-bezier(0.33, 1.12, 0.48, 1),
+        filter 0.38s ease;
+    opacity: 1;
+    transform: none;
+    filter: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    #trophy-room-content .treasure-vault-shell.tv-vault-shell--exit,
+    #trophy-room-content .treasure-vault-shell.tv-vault-shell--enter,
+    #trophy-room-content .treasure-vault-shell.tv-vault-shell--enter.tv-vault-shell--enter-active {
+        transition: none !important;
+        opacity: 1 !important;
+        transform: none !important;
+        filter: none !important;
+        pointer-events: auto !important;
+    }
+}
+
+/* Logbook (calendar day): collapsible class groups — per-class palette (see classColorPalettes) */
+.log-class-section__summary {
+    list-style: none;
+}
+.log-class-section__summary::-webkit-details-marker {
+    display: none;
+}
+.log-class-section__chevron i {
+    transition: transform 0.22s ease;
+}
+.log-class-section[open] .log-class-section__chevron i {
+    transform: rotate(90deg);
+}
+.log-class-section__summary:focus {
+    outline: none;
+}
+.log-class-section__summary:focus-visible {
+    outline: 2px solid rgba(99, 102, 241, 0.4);
+    outline-offset: 2px;
+}
+
+/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+   HALL OF PRODIGIES — fluffy archive modal
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
+#prodigy-modal {
+    font-family: 'Fredoka', 'Open Sans', sans-serif;
+}
+
+/* Compositor-friendly stacking for animated shell (no layout/appearance change) */
+#prodigy-modal .prodigy-hall-shell.pop-in,
+#trophy-room-modal > .pop-in {
+    isolation: isolate;
+}
+#prodigy-modal .font-title {
+    font-family: 'Fredoka One', cursive;
+}
+.prodigy-hall-shell {
+    position: relative;
+    box-shadow:
+        0 0 0 2px rgba(255, 255, 255, 0.95),
+        0 0 0 1px rgba(196, 181, 253, 0.5),
+        0 25px 80px rgba(99, 102, 241, 0.35),
+        0 4px 24px rgba(167, 139, 250, 0.22);
+}
+.prodigy-hall-header {
+    box-shadow: 0 12px 40px rgba(79, 70, 229, 0.08);
+}
+.prodigy-hall-icon-wrap {
+    animation: prodigy-hall-float 4s ease-in-out infinite;
+    box-shadow:
+        0 8px 28px rgba(109, 40, 217, 0.35),
+        inset 0 2px 0 rgba(255, 255, 255, 0.35);
+}
+@keyframes prodigy-hall-float {
+    0%, 100% { transform: translateY(0) rotate(-1deg); }
+    50% { transform: translateY(-4px) rotate(1deg); }
+}
+.prodigy-hall-tagline {
+    font-family: 'Fredoka', sans-serif;
+    font-weight: 600;
+    letter-spacing: 0.12em;
+}
+.prodigy-hall-close {
+    transition: transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1), background 0.2s, color 0.2s;
+}
+.prodigy-hall-close:hover {
+    transform: rotate(90deg) scale(1.08);
+    background: rgba(255, 255, 255, 0.95) !important;
+}
+.prodigy-hall-sparkle {
+    position: absolute;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: radial-gradient(circle, #fff 0%, transparent 70%);
+    opacity: 0;
+    animation: prodigy-hall-spark 2.8s ease-in-out infinite;
+    pointer-events: none;
+    z-index: 5;
+}
+.prodigy-hall-sparkle--1 { top: 18%; left: 12%; animation-delay: 0.2s; }
+.prodigy-hall-sparkle--2 { top: 72%; right: 18%; animation-delay: 0.9s; }
+.prodigy-hall-sparkle--3 { bottom: 14%; left: 22%; animation-delay: 1.4s; }
+@keyframes prodigy-hall-spark {
+    0%, 100% { opacity: 0; transform: scale(0.6); }
+    35% { opacity: 0.85; transform: scale(1.15); }
+    55% { opacity: 0; }
+}
+.prodigy-hall-nav-wrap {
+    font-family: 'Fredoka', sans-serif;
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.92), rgba(238, 242, 255, 0.75));
+    border: 1px solid rgba(199, 210, 254, 0.9);
+    box-shadow:
+        0 10px 32px rgba(99, 102, 241, 0.12),
+        inset 0 1px 0 rgba(255, 255, 255, 0.9);
+    border-radius: 1.25rem;
+}
+.prodigy-hall-nav-wrap .prodigy-hall-month {
+    font-family: 'Fredoka One', cursive;
+    letter-spacing: 0.02em;
+    line-height: 1.25;
+}
+.prodigy-hall-nav-btn {
+    transition: transform 0.18s ease, box-shadow 0.2s, border-color 0.2s, color 0.2s;
+    box-shadow: 0 4px 14px rgba(99, 102, 241, 0.12);
+}
+.prodigy-hall-nav-glyph {
+    font-family: 'Fredoka One', cursive;
+    font-size: 1.45rem;
+    line-height: 1;
+    display: block;
+    transform: translateY(-0.5px);
+}
+.prodigy-hall-nav-btn:not(:disabled):hover {
+    transform: scale(1.06);
+    box-shadow: 0 8px 22px rgba(129, 140, 248, 0.28);
+    border-color: rgba(165, 180, 252, 0.95);
+    color: #4f46e5;
+}
+.prodigy-hall-nav-btn:not(:disabled):active {
+    transform: scale(0.94);
+}
+.prodigy-hall-loading-pulse {
+    animation: prodigy-hall-spin-soft 1.1s linear infinite;
+}
+@keyframes prodigy-hall-spin-soft {
+    to { transform: rotate(360deg); }
+}
+.prodigy-hall-card {
+    animation: prodigy-hall-card-in 0.55s cubic-bezier(0.34, 1.3, 0.64, 1) both;
+    filter: drop-shadow(0 16px 40px rgba(79, 70, 229, 0.28));
+}
+.prodigy-hall-card:nth-child(2) {
+    animation-delay: 0.08s;
+}
+@keyframes prodigy-hall-card-in {
+    from {
+        opacity: 0;
+        transform: translateY(12px) scale(0.97);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+.prodigy-hall-card__inner {
+    position: relative;
+    overflow: hidden;
+    border-radius: 1.5rem;
+    border: 2px solid rgba(255, 255, 255, 0.35);
+    background: linear-gradient(145deg, #4f46e5 0%, #5b21b6 45%, #312e81 100%);
+    box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.22),
+        0 20px 48px rgba(30, 27, 75, 0.45);
+}
+.prodigy-hall-card__inner::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(
+        105deg,
+        transparent 0%,
+        rgba(255, 255, 255, 0.09) 45%,
+        transparent 55%
+    );
+    background-size: 200% 100%;
+    animation: prodigy-hall-shimmer 5s ease-in-out infinite;
+    pointer-events: none;
+    mix-blend-mode: overlay;
+}
+@keyframes prodigy-hall-shimmer {
+    0%, 100% { background-position: 200% 0; }
+    50% { background-position: -200% 0; }
+}
+.prodigy-hall-card__stars {
+    background-image: url('https://www.transparenttextures.com/patterns/stardust.png');
+}
+.prodigy-hall-avatar-ring {
+    box-shadow:
+        0 0 0 3px rgba(255, 255, 255, 0.45),
+        0 12px 28px rgba(0, 0, 0, 0.35),
+        inset 0 2px 0 rgba(255, 255, 255, 0.35);
+}
+.prodigy-hall-crown-pill {
+    font-family: 'Fredoka One', cursive;
+    box-shadow: 0 6px 20px rgba(251, 191, 36, 0.35);
+    border: 2px solid rgba(255, 255, 255, 0.45);
+}
+.prodigy-hall-medal-pill {
+    font-family: 'Fredoka One', cursive;
+}
+.prodigy-hall-student-name {
+    font-family: 'Fredoka One', cursive;
+    text-shadow: 0 2px 12px rgba(0, 0, 0, 0.35);
+}
+.prodigy-hall-stat-label {
+    font-family: 'Fredoka', sans-serif;
+    font-weight: 700;
+}
+.prodigy-hall-badge-row {
+    font-family: 'Fredoka', sans-serif;
+    font-weight: 700;
+}
+.prodigy-hall-vault-title {
+    font-family: 'Fredoka', sans-serif;
+    font-weight: 700;
+}
+.prodigy-hall-vault-item {
+    transition: transform 0.2s ease, box-shadow 0.2s;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+}
+.prodigy-hall-vault-item:hover {
+    transform: translateY(-2px) scale(1.08);
+    box-shadow: 0 10px 22px rgba(0, 0, 0, 0.2);
+}
+.prodigy-hall-empty {
+    border-radius: 2rem;
+    border: 3px dashed rgba(199, 210, 254, 0.85);
+    background: linear-gradient(180deg, rgba(238, 242, 255, 0.55), rgba(250, 245, 255, 0.65));
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.8);
+}
+.prodigy-hall-empty-icon {
+    animation: prodigy-hall-float 3.5s ease-in-out infinite;
+}
+
+/* ============================================================
+   ZONE OVERVIEW (Team Quest map — tap a realm)
+   ============================================================ */
+#milestone-details-modal[data-modal-mode="zone-overview"] .milestone-details-panel {
+    position: relative;
+    border-width: 2px;
+    border-color: rgba(92, 64, 36, 0.38);
+    background: linear-gradient(172deg, #fffef8 0%, #faf3e4 42%, #f3e9d4 100%);
+    box-shadow:
+        0 24px 48px rgba(45, 30, 18, 0.18),
+        inset 0 1px 0 rgba(255, 255, 255, 0.85);
+    overflow-x: hidden;
+}
+
+#milestone-details-modal[data-modal-mode="zone-overview"] .milestone-details-panel::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    pointer-events: none;
+    opacity: 0.28;
+    background-image: url('https://www.transparenttextures.com/patterns/natural-paper.png');
+    background-size: 280px 280px;
+    mix-blend-mode: multiply;
+}
+
+#milestone-details-modal[data-modal-mode="zone-overview"] .milestone-details-header {
+    justify-content: flex-end;
+    margin-bottom: 0.35rem;
+    position: relative;
+    z-index: 2;
+}
+
+#milestone-details-modal[data-modal-mode="zone-overview"] #milestone-modal-close-btn {
+    background: linear-gradient(180deg, #fffef8 0%, #ecdfc8 100%);
+    border: 1px solid rgba(92, 64, 36, 0.35);
+    color: #4a3018;
+    box-shadow: 0 2px 8px rgba(55, 42, 20, 0.12);
+}
+
+#milestone-details-modal[data-modal-mode="zone-overview"] #milestone-modal-close-btn:hover {
+    background: #fffef5;
+    filter: brightness(1.03);
+}
+
+#milestone-details-modal[data-modal-mode="zone-overview"] #milestone-modal-content {
+    text-align: left;
+    position: relative;
+    z-index: 2;
+}
+
+/* —— Compact hero (replaces full-width gradient slab) —— */
+.zone-overview-hero {
+    position: relative;
+    margin-bottom: 1.25rem;
+    padding: 0.95rem 1.1rem 1rem;
+    border-radius: 1.15rem;
+    overflow: hidden;
+    border: 1px solid rgba(255, 255, 255, 0.35);
+    box-shadow:
+        0 8px 26px rgba(30, 20, 12, 0.12),
+        inset 0 1px 0 rgba(255, 255, 255, 0.45);
+}
+
+.zone-overview-hero__shine {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background: linear-gradient(118deg, rgba(255, 255, 255, 0.35) 0%, transparent 42%, transparent 58%, rgba(255, 255, 255, 0.1) 100%);
+    opacity: 0.65;
+}
+
+.zone-overview-hero__deco--bg {
+    position: absolute;
+    right: -0.35rem;
+    bottom: -0.65rem;
+    font-size: clamp(3.5rem, 14vw, 5.5rem);
+    line-height: 1;
+    opacity: 0.14;
+    transform: rotate(-8deg);
+    pointer-events: none;
+    filter: blur(0.5px);
+}
+
+.zone-overview-hero__row {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    align-items: center;
+    gap: 0.85rem;
+}
+
+.zone-overview-hero__icon-ring {
+    flex-shrink: 0;
+    width: 3.35rem;
+    height: 3.35rem;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(145deg, rgba(255, 255, 255, 0.5), rgba(255, 255, 255, 0.05));
+    box-shadow:
+        inset 0 1px 2px rgba(255, 255, 255, 0.65),
+        0 4px 12px rgba(0, 0, 0, 0.2);
+    border: 2px solid rgba(255, 255, 255, 0.45);
+}
+
+.zone-overview-hero__icon {
+    font-size: 1.75rem;
+    line-height: 1;
+    filter: drop-shadow(0 2px 3px rgba(0, 0, 0, 0.25));
+}
+
+.zone-overview-hero__copy {
+    min-width: 0;
+}
+
+.zone-overview-hero__eyebrow {
+    margin: 0 0 0.12rem;
+    font-size: 0.58rem;
+    font-weight: 900;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    opacity: 0.82;
+}
+
+.zone-overview-hero__title {
+    margin: 0 0 0.2rem;
+    font-family: 'Fredoka One', cursive;
+    font-size: clamp(1.35rem, 4vw, 1.85rem);
+    font-weight: 400;
+    line-height: 1.15;
+    letter-spacing: 0.02em;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.18);
+}
+
+.zone-overview-hero__quote {
+    margin: 0;
+    font-size: 0.82rem;
+    font-weight: 600;
+    font-style: italic;
+    line-height: 1.4;
+    opacity: 0.92;
+    max-width: 36rem;
+}
+
+.zone-overview-hero__foot {
+    position: relative;
+    z-index: 1;
+    margin-top: 0.75rem;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.35rem 0.65rem;
+    padding: 0.45rem 0.65rem;
+    border-radius: 0.65rem;
+    background: rgba(0, 0, 0, 0.12);
+    border: 1px solid rgba(255, 255, 255, 0.22);
+    font-size: 0.72rem;
+    font-weight: 700;
+}
+
+.zone-overview-hero__req-icon {
+    display: inline-flex;
+    opacity: 0.9;
+}
+
+.zone-overview-hero__req-text {
+    font-weight: 800;
+}
+
+.zone-overview-hero__req-hint {
+    opacity: 0.85;
+    font-weight: 600;
+    width: 100%;
+    flex-basis: 100%;
+    font-size: 0.68rem;
+}
+
+@media (min-width: 520px) {
+    .zone-overview-hero__req-hint {
+        width: auto;
+        flex-basis: auto;
+    }
+    .zone-overview-hero__foot {
+        flex-wrap: nowrap;
+        gap: 0.5rem;
+    }
+}
+
+/* Zone color themes */
+.zone-overview-hero--bronze {
+    background: linear-gradient(155deg, #34d399 0%, #059669 45%, #047857 100%);
+    color: #ecfdf5;
+}
+.zone-overview-hero--silver {
+    background: linear-gradient(155deg, #67e8f9 0%, #0ea5e9 45%, #0369a1 100%);
+    color: #f0f9ff;
+}
+.zone-overview-hero--gold {
+    background: linear-gradient(155deg, #fcd34d 0%, #f59e0b 40%, #b45309 100%);
+    color: #fffbeb;
+}
+.zone-overview-hero--diamond {
+    background: linear-gradient(155deg, #e879f9 0%, #a855f7 42%, #6b21a8 100%);
+    color: #faf5ff;
+}
+
+/* —— Class rows —— */
+.zone-overview-class-card__dots {
+    position: absolute;
+    inset: 0;
+    opacity: 0.045;
+    pointer-events: none;
+    background-image: radial-gradient(#000 1px, transparent 1px);
+    background-size: 18px 18px;
+}
+
+.zone-overview-class-seal {
+    --zo-seal-ring-a: #6ee7b7;
+    --zo-seal-ring-b: #047857;
+    --zo-seal-face: linear-gradient(185deg, #fffef9 0%, #eef7f0 100%);
+    width: 4.15rem;
+    height: 4.15rem;
+    flex-shrink: 0;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(145deg, var(--zo-seal-ring-a), var(--zo-seal-ring-b));
+    box-shadow:
+        0 4px 14px rgba(0, 0, 0, 0.14),
+        inset 0 2px 3px rgba(255, 255, 255, 0.35);
+    position: relative;
+    transition: transform 0.35s cubic-bezier(0.34, 1.3, 0.64, 1), box-shadow 0.25s ease;
+}
+
+.zone-overview-class-seal::before {
+    content: '';
+    position: absolute;
+    inset: 4px;
+    border-radius: 50%;
+    background: var(--zo-seal-face);
+    box-shadow:
+        inset 0 2px 4px rgba(255, 255, 255, 0.85),
+        inset 0 -2px 6px rgba(0, 0, 0, 0.06);
+}
+
+.zone-overview-class-seal::after {
+    content: '';
+    position: absolute;
+    inset: 7px;
+    border-radius: 50%;
+    border: 1px solid rgba(255, 255, 255, 0.55);
+    pointer-events: none;
+    opacity: 0.35;
+}
+
+.zone-overview-class-card:hover .zone-overview-class-seal {
+    transform: scale(1.06) rotate(-3deg);
+    box-shadow:
+        0 8px 22px rgba(0, 0, 0, 0.16),
+        inset 0 2px 3px rgba(255, 255, 255, 0.4);
+}
+
+.zone-overview-class-seal__emoji {
+    position: relative;
+    z-index: 1;
+    font-size: 2rem;
+    line-height: 1;
+    filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.12));
+}
+
+.zone-overview-class-seal--bronze {
+    --zo-seal-ring-a: #6ee7b7;
+    --zo-seal-ring-b: #065f46;
+    --zo-seal-face: linear-gradient(185deg, #fffef9 0%, #ecfdf5 100%);
+}
+.zone-overview-class-seal--silver {
+    --zo-seal-ring-a: #7dd3fc;
+    --zo-seal-ring-b: #075985;
+    --zo-seal-face: linear-gradient(185deg, #fffef9 0%, #f0f9ff 100%);
+}
+.zone-overview-class-seal--gold {
+    --zo-seal-ring-a: #fcd34d;
+    --zo-seal-ring-b: #92400e;
+    --zo-seal-face: linear-gradient(185deg, #fffbeb 0%, #fef3c7 100%);
+}
+.zone-overview-class-seal--diamond {
+    --zo-seal-ring-a: #e9d5ff;
+    --zo-seal-ring-b: #581c87;
+    --zo-seal-face: linear-gradient(185deg, #faf5ff 0%, #f3e8ff 100%);
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .zone-overview-class-card:hover .zone-overview-class-seal {
+        transform: none;
+    }
+}

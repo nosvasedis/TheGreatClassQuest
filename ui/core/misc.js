@@ -14,7 +14,8 @@ export function findAndSetCurrentClass(targetSelectId = null) {
     if (!state.get('classFollowSchedule')) return;
 
     const todayString = utils.getTodayDateString();
-    const classesToday = utils.getClassesOnDay(todayString, state.get('allSchoolClasses'), state.get('allScheduleOverrides'));
+    const classEndDates = state.get('teacherSettings')?.schoolYearSettings?.classEndDates || {};
+    const classesToday = utils.getClassesOnDay(todayString, state.get('allSchoolClasses'), state.get('allScheduleOverrides'), classEndDates);
     
     // FIX: Only consider classes that belong to the current teacher
     const myClassesToday = classesToday.filter(c => state.get('allTeachersClasses').some(tc => tc.id === c.id));
@@ -82,52 +83,132 @@ export function renderHolidayList() {
     `).join('');
 }
 
+function escapeHtml(text) {
+    if (text == null) return '';
+    return String(text)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;');
+}
+
 // --- CLASS END DATES CONFIGURATION ---
 
 export function renderClassEndDatesList() {
     const list = document.getElementById('class-end-dates-list');
+    const saveBtn = document.getElementById('save-class-end-dates-btn');
     if (!list) return;
-    
+
+    const classId = state.get('globalSelectedClassId');
     const myClasses = state.get('allTeachersClasses') || [];
     const teacherSettings = state.get('teacherSettings') || {};
     const classEndDates = teacherSettings.schoolYearSettings?.classEndDates || {};
-    
+
+    const setSaveEnabled = (on) => {
+        if (saveBtn) saveBtn.disabled = !on;
+    };
+
     if (myClasses.length === 0) {
-        list.innerHTML = '<p class="text-center text-xs text-gray-400">No classes found.</p>';
+        setSaveEnabled(false);
+        list.innerHTML = `
+            <div class="rounded-2xl border border-gray-200 bg-white/80 px-6 py-10 text-center text-gray-600 text-sm">
+                No classes on your roster yet. Add a class first, then choose it in the header.
+            </div>`;
         return;
     }
-    
-    list.innerHTML = myClasses.map(cls => {
-        const schedule = (cls.scheduleDays || []).map(d => ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'][d]).join(', ');
-        const currentEndDate = classEndDates[cls.id] || '';
-        const suggestedDate = calculateSuggestedEndDate(cls.scheduleDays || []);
-        
-        return `
-            <div class="bg-gray-50 p-3 rounded border">
-                <div class="flex justify-between items-start mb-2">
-                    <div>
-                        <div class="font-bold text-gray-700">${cls.name}</div>
-                        <div class="text-xs text-gray-500">Schedule: ${schedule}</div>
-                        <div class="text-xs text-purple-600">Suggested: ${suggestedDate}</div>
+
+    if (!classId) {
+        setSaveEnabled(false);
+        list.innerHTML = `
+            <div class="rounded-2xl border-2 border-dashed border-violet-200 bg-white/90 px-6 py-12 text-center shadow-inner">
+                <div class="text-5xl mb-4 grayscale opacity-70">🎓</div>
+                <p class="font-title text-xl text-violet-900 mb-2">Choose a class in the header</p>
+                <p class="text-sm text-gray-600 max-w-md mx-auto leading-relaxed">
+                    This panel sets the <span class="font-semibold text-gray-800">final lesson date</span> for whichever class is active above — one at a time, with a clear preview of what you’re editing.
+                </p>
+            </div>`;
+        return;
+    }
+
+    const cls = myClasses.find((c) => c.id === classId);
+    if (!cls) {
+        setSaveEnabled(false);
+        list.innerHTML = `
+            <div class="rounded-2xl border border-amber-200 bg-amber-50 px-6 py-8 text-center text-amber-900 text-sm">
+                The class selected in the header isn’t in your teaching roster. Pick one of your classes from the header menu.
+            </div>`;
+        return;
+    }
+
+    setSaveEnabled(true);
+
+    try {
+        const scheduleRaw = (cls.scheduleDays || []).map((d) => ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'][d]).join(', ');
+        const schedule = escapeHtml(scheduleRaw || '—');
+        const name = escapeHtml(cls.name ?? 'Class');
+        const logo = escapeHtml(cls.logo ?? '📚');
+        const cid = cls.id ?? '';
+        const currentEndDate = classEndDates[cid] || '';
+        const suggestedDdMm = calculateSuggestedEndDate(cls.scheduleDays || []);
+        const pickerValue = utils.toHtmlDateInputValue(currentEndDate);
+        const suggestedPicker = utils.toHtmlDateInputValue(suggestedDdMm);
+        const league = escapeHtml(cls.questLevel || '');
+        let savedLabel = 'Not set yet';
+        if (currentEndDate) {
+            const d = utils.parseFlexibleDate(currentEndDate);
+            if (d && !Number.isNaN(d.getTime())) {
+                savedLabel = escapeHtml(d.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'long', year: 'numeric' }));
+            } else {
+                savedLabel = escapeHtml(String(currentEndDate));
+            }
+        }
+
+        list.innerHTML = `
+            <div class="rounded-2xl border border-violet-100 bg-white p-5 md:p-6 shadow-sm ring-1 ring-violet-100/80">
+                <div class="flex flex-col sm:flex-row sm:items-center gap-4 mb-6">
+                    <div class="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-violet-100 to-indigo-100 text-3xl shadow-inner border border-violet-200/80" aria-hidden="true">${logo}</div>
+                    <div class="min-w-0 flex-1 text-left">
+                        <div class="flex flex-wrap items-center gap-2 mb-1">
+                            <h3 class="font-title text-xl text-gray-900">${name}</h3>
+                            ${league ? `<span class="text-[10px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full bg-violet-100 text-violet-800 border border-violet-200">League ${league}</span>` : ''}
+                        </div>
+                        <p class="text-xs text-gray-500"><span class="font-semibold text-gray-600">Schedule:</span> ${schedule}</p>
+                        <p class="text-xs text-violet-700 mt-1.5"><span class="font-semibold">Saved end date:</span> ${savedLabel}</p>
                     </div>
-                    <div class="text-2xl">${cls.logo}</div>
                 </div>
-                <div class="flex items-center gap-2">
-                    <input type="date" 
-                        id="class-end-date-${cls.id}" 
-                        class="flex-1 px-2 py-1 border border-gray-300 rounded text-sm"
-                        value="${currentEndDate}"
-                        min="2025-09-01"
-                        max="2026-06-30">
-                    <button type="button" 
-                        class="text-xs bg-purple-100 hover:bg-purple-200 text-purple-700 px-2 py-1 rounded"
-                        onclick="document.getElementById('class-end-date-${cls.id}').value = '${suggestedDate}'">
-                        Use Suggested
-                    </button>
+                <div class="space-y-3">
+                    <label for="class-end-date-active" class="block text-xs font-bold uppercase tracking-wider text-violet-800/90">Final lesson date</label>
+                    <div class="flex flex-col sm:flex-row gap-3 sm:items-center">
+                        <input type="date"
+                            id="class-end-date-active"
+                            class="flex-1 min-h-[48px] px-4 py-3 rounded-xl border-2 border-violet-200 bg-white text-gray-900 font-semibold shadow-sm focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-violet-400"
+                            value="${escapeHtml(pickerValue)}"
+                            min="2020-01-01"
+                            max="2035-12-31">
+                        <button type="button"
+                            class="class-end-date-use-suggested-btn shrink-0 inline-flex items-center justify-center gap-2 rounded-xl border-2 border-violet-200 bg-violet-50 px-4 py-3 text-sm font-bold text-violet-800 hover:bg-violet-100 transition-colors"
+                            data-suggested="${escapeHtml(suggestedPicker)}">
+                            <i class="fas fa-wand-magic-sparkles"></i>
+                            Use suggested
+                        </button>
+                    </div>
+<p class="text-[11px] text-gray-500 leading-relaxed">Suggested picks the last scheduled weekday in June (school-year heuristic). Clear the date and save to remove an end date for this class.</p>
                 </div>
-            </div>
-        `;
-    }).join('');
+            </div>`;
+    } catch (e) {
+        console.error('renderClassEndDatesList failed:', e);
+        list.innerHTML = '<p class="text-center text-sm text-rose-600 py-6">Could not load class end date. Check the console for details.</p>';
+        setSaveEnabled(false);
+        return;
+    }
+
+    list.querySelectorAll('.class-end-date-use-suggested-btn').forEach((btn) => {
+        btn.addEventListener('click', () => {
+            const val = btn.getAttribute('data-suggested') || '';
+            const input = document.getElementById('class-end-date-active');
+            if (input) input.value = val;
+        });
+    });
 }
 
 /**
@@ -138,53 +219,64 @@ function calculateSuggestedEndDate(scheduleDays) {
     const targetYear = 2026;
     const lastDay = new Date(targetYear, targetMonth + 1, 0); // Last day of June
     const scheduleDaysArray = scheduleDays.map(Number).sort();
-    
+
     // Work backwards from last day of month to find last scheduled day
     for (let d = lastDay.getDate(); d >= 1; d--) {
         const checkDate = new Date(targetYear, targetMonth, d);
         const dayOfWeek = checkDate.getDay().toString();
-        
+
         if (scheduleDaysArray.includes(dayOfWeek)) {
-            return checkDate.toISOString().split('T')[0]; // Format as YYYY-MM-DD
+            return utils.getDDMMYYYY(checkDate);
         }
     }
-    
-    return lastDay.toISOString().split('T')[0]; // Fallback to last day of June
+
+    return utils.getDDMMYYYY(lastDay); // Fallback to last day of June
 }
 
 /**
  * Save class end dates to teacher settings
  */
 export async function saveClassEndDates() {
-    const myClasses = state.get('allTeachersClasses') || [];
     const teacherId = state.get('currentUserId');
-    
     if (!teacherId) {
         showToast('Error: Teacher not found', 'error');
         return;
     }
-    
-    const classEndDates = {};
-    
-    // Collect all end dates from the form
-    myClasses.forEach(cls => {
-        const input = document.getElementById(`class-end-date-${cls.id}`);
-        if (input && input.value) {
-            classEndDates[cls.id] = input.value;
+
+    const classId = state.get('globalSelectedClassId');
+    if (!classId) {
+        showToast('Choose a class from the header first.', 'info');
+        return;
+    }
+
+    const myClasses = state.get('allTeachersClasses') || [];
+    if (!myClasses.some((c) => c.id === classId)) {
+        showToast('Selected class is not in your roster.', 'error');
+        return;
+    }
+
+    const input = document.getElementById('class-end-date-active');
+    const currentSettings = state.get('teacherSettings') || {};
+    const prevAll = { ...(currentSettings.schoolYearSettings?.classEndDates || {}) };
+    const classEndDates = { ...prevAll };
+
+    if (input?.value) {
+        const canon = utils.normalizeToDateString(input.value);
+        if (canon) classEndDates[classId] = canon;
+        else {
+            showToast('Invalid date', 'error');
+            return;
         }
-    });
-    
+    } else {
+        delete classEndDates[classId];
+    }
+
     try {
-        // Update teacher profile with class end dates.
-        // Use setDoc with merge:true so the doc is created if it doesn't yet exist
-        // (updateDoc throws "No document to update" for first-time teachers).
         const teacherRef = doc(db, 'artifacts/great-class-quest/public/data/teachers', teacherId);
         await setDoc(teacherRef, {
             schoolYearSettings: { classEndDates }
         }, { merge: true });
-        
-        // Update local state
-        const currentSettings = state.get('teacherSettings') || {};
+
         const updatedSettings = {
             ...currentSettings,
             schoolYearSettings: {
@@ -193,16 +285,16 @@ export async function saveClassEndDates() {
             }
         };
         state.setTeacherSettings(updatedSettings);
-        
-        // Update ceremony buttons
+
         const { updateCeremonyButtons } = await import('../../features/grandGuildCeremony.js');
         updateCeremonyButtons();
-        
-        showToast('Class end dates saved successfully!', 'success');
-        
+
+        renderClassEndDatesList();
+
+        showToast(input?.value ? 'Class end date saved.' : 'End date cleared for this class.', 'success');
     } catch (error) {
         console.error('Error saving class end dates:', error);
-        showToast('Error saving class end dates', 'error');
+        showToast('Error saving class end date', 'error');
     }
 }
 

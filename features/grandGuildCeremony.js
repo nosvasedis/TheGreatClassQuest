@@ -57,7 +57,7 @@ async function gatherHeroOfTheDayData(classIds) {
             
             try {
                 const logs = await fetchLogsForMonth(year, month);
-                const classLogs = logs.filter(l => classIds.includes(l.classId));
+                const classLogs = logs.filter((l) => l.classId === classId);
                 
                 // Group by date and find daily winner
                 const logsByDate = {};
@@ -131,11 +131,15 @@ async function gatherTeamQuestData(classIds) {
         finalStandings: [],
         journeyProgress: [],
         monthlyGoals: {},
+        monthlyGoalsByClassId: {},
         classProgress: {}
     };
 
     // Get all classes in the ceremony
     const ceremonyClasses = state.get('allSchoolClasses').filter(c => classIds.includes(c.id));
+
+    // Note: student_scores.monthlyStars is the current month only; per-month keys below repeat that
+    // snapshot (not true history). Prodigy/hero phases use fetchLogsForMonth for historical accuracy.
     
     // Calculate final standings based on total monthly stars
     for (let classData of ceremonyClasses) {
@@ -196,9 +200,12 @@ async function gatherTeamQuestData(classIds) {
             ...classData,
             rank: index + 1
         }));
-    
-    teamQuestData.monthlyGoals = goals;
-    
+
+    teamQuestData.monthlyGoalsByClassId = Object.fromEntries(
+        Object.entries(teamQuestData.classProgress).map(([id, progress]) => [id, progress.goals])
+    );
+    teamQuestData.monthlyGoals = teamQuestData.monthlyGoalsByClassId;
+
     return teamQuestData;
 }
 
@@ -410,21 +417,116 @@ async function gatherGuildData(classIds) {
 // --- CEREMONY CONTROL ---
 
 /**
+ * Trigger Spirit Animal Patrol
+ */
+function triggerSpiritAnimalPatrol() {
+    const container = document.getElementById('spirit-animal-container');
+    if (!container) return;
+
+    const animals = [
+        { emoji: '🐉', color: '#ff4500', name: 'dragon' },
+        { emoji: '🐻', color: '#8b4513', name: 'grizzly' },
+        { emoji: '🦉', color: '#ffd700', name: 'owl' },
+        { emoji: '🔥', color: '#ff69b4', name: 'phoenix' }
+    ];
+
+    animals.forEach((animal, index) => {
+        setTimeout(() => {
+            const el = document.createElement('div');
+            el.className = 'spirit-animal';
+            el.innerText = animal.emoji;
+            el.style.color = animal.color;
+            el.style.animation = `spirit-flight-dragon ${5 + Math.random() * 3}s ease-in-out forwards`;
+            container.appendChild(el);
+            setTimeout(() => el.remove(), 8000);
+        }, index * 1000);
+    });
+}
+
+/**
+ * Trigger Guild Particles with High Density
+ */
+function triggerGuildParticles(guildId = null, density = 50) {
+    const container = document.getElementById('guild-particles-container');
+    if (!container) return;
+
+    const guild = guildId ? getGuildById(guildId) : null;
+    const type = guild?.id === 'dragon' ? 'fire' : 
+                 guild?.id === 'grizzly' ? 'earth' : 
+                 guild?.id === 'owl' ? 'star' : 
+                 guild?.id === 'phoenix' ? 'light' : 'star';
+
+    for (let i = 0; i < density; i++) {
+        const el = document.createElement('div');
+        el.className = `${type}-particle`;
+        el.style.position = 'absolute';
+        el.style.left = Math.random() * 100 + '%';
+        el.style.top = Math.random() * 100 + '%';
+        el.style.setProperty('--delay', Math.random() * 2 + 's');
+        el.style.setProperty('--duration', (2 + Math.random() * 3) + 's');
+        el.style.setProperty('--x', Math.random() * 100 + '%');
+        el.style.setProperty('--y', Math.random() * 100 + '%');
+        container.appendChild(el);
+        
+        // Auto-remove after some time to prevent DOM bloat
+        setTimeout(() => el.remove(), 5000);
+    }
+}
+
+/**
+ * Update Ceremony Atmosphere based on phase
+ */
+function updateAtmosphere(phase) {
+    const screen = document.getElementById('grand-guild-ceremony-screen');
+    const bg = document.getElementById('ceremony-bg-gradient');
+    if (!screen || !bg) return;
+
+    const phaseStyles = {
+        intro: 'radial-gradient(circle at center, #1e1b4b 0%, #312e81 40%, #0f172a 100%)',
+        heroGallery: 'radial-gradient(circle at center, #312e81 0%, #1e3a8a 40%, #0f172a 100%)',
+        teamQuest: 'radial-gradient(circle at center, #1e3a8a 0%, #1e40af 40%, #0f172a 100%)',
+        prodigyTimeline: 'radial-gradient(circle at center, #4c1d95 0%, #5b21b6 40%, #0f172a 100%)',
+        guildChampions: 'radial-gradient(circle at center, #92400e 0%, #b45309 40%, #0f172a 100%)',
+        hallOfHeroes: 'radial-gradient(circle at center, #065f46 0%, #064e3b 40%, #0f172a 100%)',
+        end: 'radial-gradient(circle at center, #1e1b4b 0%, #312e81 40%, #0f172a 100%)'
+    };
+
+    bg.style.background = phaseStyles[phase] || phaseStyles.intro;
+    
+    // Trigger Spirit Animal Patrol on major transitions
+    if (['heroGallery', 'teamQuest', 'prodigyTimeline', 'guildChampions', 'hallOfHeroes'].includes(phase)) {
+        triggerSpiritAnimalPatrol();
+    }
+}
+
+/**
+ * Trigger Legendary Aura for an element
+ */
+function triggerLegendaryAura(container) {
+    if (!container) return;
+    const aura = document.createElement('div');
+    aura.className = 'legendary-aura';
+    container.appendChild(aura);
+}
+
+/**
  * Check if any classes have their ceremony today
  */
 export function checkCeremonyActivation() {
     const today = utils.getTodayDateString();
     const teacherSettings = state.get('teacherSettings') || {};
     const classEndDates = teacherSettings.schoolYearSettings?.classEndDates || {};
-    
+    const myClassIds = new Set((state.get('allTeachersClasses') || []).map((c) => c.id));
+
     const participatingClasses = [];
-    
+
     Object.entries(classEndDates).forEach(([classId, endDate]) => {
-        if (endDate === today) {
+        if (!myClassIds.has(classId)) return;
+        if (utils.datesMatch(endDate, today)) {
             participatingClasses.push(classId);
         }
     });
-    
+
     return participatingClasses;
 }
 
@@ -619,6 +721,9 @@ async function advanceCeremony() {
     
     btn.disabled = true;
     
+    // Update atmosphere for the current phase
+    updateAtmosphere(ceremonyData.phase);
+    
     switch (ceremonyData.phase) {
         case 'intro':
             await renderGrandOpening();
@@ -676,35 +781,37 @@ async function renderGrandOpening() {
     subtitle.innerHTML = "Celebrating a Year of Excellence";
     
     stage.innerHTML = `
-        <div class="text-center text-white">
-            <div class="text-6xl mb-4">🏆</div>
-            <h2 class="font-title text-5xl mb-4">Welcome to the Ultimate Celebration</h2>
-            <p class="text-xl mb-8">Honoring Heroes, Champions, and Guild Legends</p>
+        <div class="text-center text-white animate-entrance">
+            <div class="text-8xl mb-6 drop-shadow-[0_0_30px_rgba(255,215,0,0.6)]">🏆</div>
+            <h2 class="font-title text-6xl mb-4 victory-text">Welcome to the Ultimate Celebration</h2>
+            <p class="text-2xl mb-8 text-indigo-200">Honoring Heroes, Champions, and Guild Legends</p>
             
-            <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mt-8">
-                <div class="bg-white/10 p-4 rounded-xl">
-                    <div class="text-3xl mb-2">🌟</div>
-                    <div class="font-bold">Hero of the Day</div>
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-6 mt-12">
+                <div class="bg-white/10 backdrop-blur-md p-6 rounded-2xl border border-white/20 hover:scale-110 transition-transform">
+                    <div class="text-4xl mb-3">🌟</div>
+                    <div class="font-bold text-xl">Hero of the Day</div>
                     <div class="text-sm opacity-75">Daily Champions</div>
                 </div>
-                <div class="bg-white/10 p-4 rounded-xl">
-                    <div class="text-3xl mb-2">🗺️</div>
-                    <div class="font-bold">Team Quest</div>
+                <div class="bg-white/10 backdrop-blur-md p-6 rounded-2xl border border-white/20 hover:scale-110 transition-transform">
+                    <div class="text-4xl mb-3">🗺️</div>
+                    <div class="font-bold text-xl">Team Quest</div>
                     <div class="text-sm opacity-75">Class Journey</div>
                 </div>
-                <div class="bg-white/10 p-4 rounded-xl">
-                    <div class="text-3xl mb-2">👑</div>
-                    <div class="font-bold">Prodigy</div>
+                <div class="bg-white/10 backdrop-blur-md p-6 rounded-2xl border border-white/20 hover:scale-110 transition-transform">
+                    <div class="text-4xl mb-3">👑</div>
+                    <div class="font-bold text-xl">Prodigy</div>
                     <div class="text-sm opacity-75">Monthly Stars</div>
                 </div>
-                <div class="bg-white/10 p-4 rounded-xl">
-                    <div class="text-3xl mb-2">🛡️</div>
-                    <div class="font-bold">Guilds</div>
+                <div class="bg-white/10 backdrop-blur-md p-6 rounded-2xl border border-white/20 hover:scale-110 transition-transform">
+                    <div class="text-4xl mb-3">🛡️</div>
+                    <div class="font-bold text-xl">Guilds</div>
                     <div class="text-sm opacity-75">Year Champions</div>
                 </div>
             </div>
         </div>
     `;
+    
+    triggerGuildParticles(null, 100);
     
     // AI commentary
     triggerAICommentary('grand_opening', {
@@ -724,10 +831,10 @@ async function renderHeroGallery() {
     title.innerHTML = "Hero of the Day Gallery";
     
     let galleryHTML = `
-        <div class="text-white">
-            <h3 class="font-title text-3xl text-center mb-6">Daily Champions Throughout the Year</h3>
-            <div class="text-center mb-4">
-                <span class="text-xl">${heroOfTheDay.totalDays} days of heroic achievements!</span>
+        <div class="text-white w-full max-w-5xl animate-entrance">
+            <h3 class="font-title text-4xl text-center mb-8 victory-text">Daily Champions Throughout the Year</h3>
+            <div class="text-center mb-8">
+                <span class="text-2xl bg-white/10 px-6 py-2 rounded-full border border-white/20">${heroOfTheDay.totalDays} days of heroic achievements!</span>
             </div>
     `;
     
@@ -735,12 +842,16 @@ async function renderHeroGallery() {
     if (heroOfTheDay.mostFrequent) {
         const hero = heroOfTheDay.mostFrequent;
         galleryHTML += `
-            <div class="bg-gradient-to-r from-yellow-400 to-orange-500 p-6 rounded-2xl mb-6 text-center">
-                <h4 class="font-title text-2xl mb-2">Most Frequent Hero</h4>
-                <div class="text-6xl mb-2">${hero.avatar ? `<img src="${hero.avatar}" class="w-20 h-20 rounded-full border-4 border-white mx-auto">` : hero.studentName.charAt(0)}</div>
-                <div class="font-bold text-xl">${hero.studentName}</div>
-                <div class="text-lg">Hero for ${hero.frequency} days!</div>
-                <div class="text-2xl mt-2">⭐ ${hero.frequency} Daily Victories</div>
+            <div id="most-frequent-hero" class="bg-gradient-to-r from-yellow-400 via-orange-500 to-yellow-600 p-8 rounded-3xl mb-12 text-center shadow-[0_0_50px_rgba(245,158,11,0.4)] border-4 border-white/30 relative overflow-hidden group">
+                <div class="absolute inset-0 bg-white/10 opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                <h4 class="font-title text-3xl mb-4">Most Frequent Hero</h4>
+                <div class="relative inline-block mb-4">
+                    <div class="absolute inset-0 bg-white blur-2xl opacity-30 animate-pulse"></div>
+                    <div class="text-8xl relative z-10">${hero.avatar ? `<img src="${hero.avatar}" class="w-32 h-32 rounded-full border-8 border-white mx-auto shadow-2xl">` : hero.studentName.charAt(0)}</div>
+                </div>
+                <div class="font-bold text-3xl mb-2">${hero.studentName}</div>
+                <div class="text-xl opacity-90 mb-4">Hero for ${hero.frequency} days!</div>
+                <div class="text-4xl font-bold">⭐ ${hero.frequency} Daily Victories</div>
             </div>
         `;
     }
@@ -748,18 +859,28 @@ async function renderHeroGallery() {
     // Recent heroes gallery
     const recentHeroes = heroOfTheDay.dailyHeroes.slice(-12).reverse();
     galleryHTML += `
-        <div class="grid grid-cols-3 md:grid-cols-4 gap-4">
+        <div class="grid grid-cols-3 md:grid-cols-4 gap-6">
             ${recentHeroes.map(hero => `
-                <div class="bg-white/10 p-3 rounded-xl text-center">
-                    <div class="text-2xl mb-1">${hero.avatar ? `<img src="${hero.avatar}" class="w-12 h-12 rounded-full border-2 border-white mx-auto">` : hero.studentName.charAt(0)}</div>
-                    <div class="text-sm font-bold truncate">${hero.studentName}</div>
-                    <div class="text-xs opacity-75">${hero.stars} stars</div>
+                <div class="hero-card bg-white/5 backdrop-blur-sm p-4 rounded-2xl text-center border border-white/10 hover:border-white/40 transition-all">
+                    <div class="relative inline-block mb-2">
+                        <div class="text-4xl">${hero.avatar ? `<img src="${hero.avatar}" class="w-16 h-16 rounded-full border-2 border-white mx-auto">` : hero.studentName.charAt(0)}</div>
+                    </div>
+                    <div class="text-lg font-bold truncate mb-1">${hero.studentName}</div>
+                    <div class="text-sm text-amber-300 font-bold">${hero.stars} stars</div>
                 </div>
             `).join('')}
         </div>
     </div>`;
     
     stage.innerHTML = galleryHTML;
+    
+    // Add aura to most frequent hero
+    setTimeout(() => {
+        const mostFrequentEl = document.getElementById('most-frequent-hero');
+        if (mostFrequentEl) triggerLegendaryAura(mostFrequentEl);
+    }, 100);
+    
+    triggerGuildParticles(null, 60);
     
     triggerAICommentary('hero_gallery', {
         totalDays: heroOfTheDay.totalDays,
@@ -778,30 +899,31 @@ async function renderTeamQuestJourney() {
     title.innerHTML = "Team Quest Journey";
     
     let journeyHTML = `
-        <div class="text-white">
-            <h3 class="font-title text-3xl text-center mb-6">The Year-Long Team Quest</h3>
+        <div class="text-white w-full max-w-4xl animate-entrance">
+            <h3 class="font-title text-4xl text-center mb-10 victory-text">The Year-Long Team Quest</h3>
     `;
     
     // Final standings
     journeyHTML += `
-        <div class="mb-6">
-            <h4 class="font-title text-xl mb-3 text-center">Final Class Standings</h4>
-            <div class="space-y-2">
+        <div class="mb-12">
+            <h4 class="font-title text-2xl mb-6 text-center text-indigo-200">Final Class Standings</h4>
+            <div class="space-y-4">
                 ${teamQuest.finalStandings.slice(0, 5).map((classData, index) => {
                     const rankEmoji = index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉' : '🏅';
+                    const isWinner = index === 0;
                     return `
-                        <div class="bg-white/10 p-3 rounded-xl flex items-center justify-between">
-                            <div class="flex items-center gap-3">
-                                <span class="text-2xl">${rankEmoji}</span>
-                                <span class="text-3xl">${classData.class.logo}</span>
+                        <div class="team-quest-ranking bg-white/10 backdrop-blur-md p-5 rounded-2xl flex items-center justify-between border ${isWinner ? 'border-amber-400 shadow-[0_0_30px_rgba(251,191,36,0.3)] scale-105' : 'border-white/10'} hover:bg-white/20 transition-all">
+                            <div class="flex items-center gap-6">
+                                <span class="text-4xl ${isWinner ? 'animate-bounce' : ''}">${rankEmoji}</span>
+                                <span class="text-5xl drop-shadow-lg">${classData.class.logo}</span>
                                 <div>
-                                    <div class="font-bold">${classData.class.name}</div>
-                                    <div class="text-sm opacity-75">${classData.studentCount} students</div>
+                                    <div class="font-bold text-2xl">${classData.class.name}</div>
+                                    <div class="text-lg opacity-75">${classData.studentCount} students</div>
                                 </div>
                             </div>
                             <div class="text-right">
-                                <div class="text-xl font-bold">${classData.totalYearStars}</div>
-                                <div class="text-sm opacity-75">total stars</div>
+                                <div class="text-3xl font-black text-amber-400">${classData.totalYearStars.toLocaleString()}</div>
+                                <div class="text-sm opacity-75 uppercase tracking-widest font-bold">total stars</div>
                             </div>
                         </div>
                     `;
@@ -812,6 +934,8 @@ async function renderTeamQuestJourney() {
     
     journeyHTML += `</div>`;
     stage.innerHTML = journeyHTML;
+    
+    triggerGuildParticles(null, 40);
     
     triggerAICommentary('team_quest_journey', {
         totalClasses: teamQuest.finalStandings.length,
@@ -830,8 +954,8 @@ async function renderProdigyTimeline() {
     title.innerHTML = "Prodigy of the Month Timeline";
     
     let timelineHTML = `
-        <div class="text-white">
-            <h3 class="font-title text-3xl text-center mb-6">Monthly Champions Throughout the Year</h3>
+        <div class="text-white w-full max-w-6xl animate-entrance">
+            <h3 class="font-title text-4xl text-center mb-10 victory-text">Monthly Champions Throughout the Year</h3>
     `;
     
     // Top prodigies
@@ -840,18 +964,22 @@ async function renderProdigyTimeline() {
         .slice(0, 3);
     
     timelineHTML += `
-        <div class="mb-6">
-            <h4 class="font-title text-xl mb-3 text-center">Most Celebrated Students</h4>
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div class="mb-12">
+            <h4 class="font-title text-2xl mb-8 text-center text-purple-200">Most Celebrated Students</h4>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
                 ${topProdigies.map((prodigy, index) => {
                     const rankEmoji = index === 0 ? '🏆' : index === 1 ? '🥈' : '🥉';
+                    const colors = index === 0 ? 'from-amber-400 to-yellow-600' : index === 1 ? 'from-slate-300 to-slate-500' : 'from-orange-400 to-orange-700';
                     return `
-                        <div class="bg-gradient-to-r from-purple-400 to-pink-500 p-4 rounded-xl text-center">
-                            <div class="text-3xl mb-2">${rankEmoji}</div>
-                            <div class="text-4xl mb-2">${prodigy.avatar ? `<img src="${prodigy.avatar}" class="w-16 h-16 rounded-full border-3 border-white mx-auto">` : prodigy.studentName.charAt(0)}</div>
-                            <div class="font-bold text-lg">${prodigy.studentName}</div>
-                            <div class="text-xl">${prodigy.monthsWon} Monthly Wins</div>
-                            <div class="text-sm opacity-75">${prodigy.totalStars} total stars</div>
+                        <div class="prodigy-card bg-gradient-to-br ${colors} p-8 rounded-3xl text-center shadow-2xl transform hover:scale-105 transition-transform border-4 border-white/40">
+                            <div class="text-5xl mb-4 drop-shadow-md">${rankEmoji}</div>
+                            <div class="relative inline-block mb-4">
+                                <div class="absolute inset-0 bg-white blur-xl opacity-20"></div>
+                                <div class="text-6xl relative z-10">${prodigy.avatar ? `<img src="${prodigy.avatar}" class="w-24 h-24 rounded-full border-4 border-white mx-auto shadow-lg">` : prodigy.studentName.charAt(0)}</div>
+                            </div>
+                            <div class="font-bold text-2xl mb-2">${prodigy.studentName}</div>
+                            <div class="text-3xl font-black mb-1">${prodigy.monthsWon} Monthly Wins</div>
+                            <div class="text-lg opacity-90">${prodigy.totalStars.toLocaleString()} total stars</div>
                         </div>
                     `;
                 }).join('')}
@@ -861,6 +989,8 @@ async function renderProdigyTimeline() {
     
     timelineHTML += `</div>`;
     stage.innerHTML = timelineHTML;
+    
+    triggerGuildParticles(null, 80);
     
     triggerAICommentary('prodigy_timeline', {
         totalChampions: prodigyOfTheMonth.monthlyChampions.length,
@@ -879,23 +1009,32 @@ async function renderGuildChampionCrowding() {
     title.innerHTML = "Guild Champion Crowning";
     
     let crowningHTML = `
-        <div class="text-white">
-            <h3 class="font-title text-3xl text-center mb-6">The Ultimate Guild Champions</h3>
+        <div class="text-white w-full max-w-5xl animate-entrance">
+            <h3 class="font-title text-4xl text-center mb-10 victory-text">The Ultimate Guild Champions</h3>
     `;
     
     if (guildChampions.winningGuild) {
         const winner = guildChampions.winningGuild;
         crowningHTML += `
-            <div class="bg-gradient-to-r from-yellow-400 to-orange-500 p-6 rounded-2xl mb-6 text-center">
-                <h4 class="font-title text-3xl mb-4">🏆 Winning Guild 🏆</h4>
-                <div class="text-6xl mb-2">${winner.guildEmoji}</div>
-                <div class="font-title text-2xl mb-2">${winner.guildName}</div>
-                <div class="text-xl mb-2">${winner.totalStars} Total Stars</div>
-                <div class="text-lg opacity-75">${winner.memberCount} Members</div>
-                <div class="mt-4">
-                    <div class="font-bold">Top Contributor:</div>
-                    <div class="text-lg">${winner.topContributor.name}</div>
-                    <div class="text-sm opacity-75">${winner.topContributor.totalStars} stars</div>
+            <div id="guild-winner-card" class="bg-gradient-to-r from-yellow-400 via-amber-500 to-orange-600 p-10 rounded-[3rem] mb-12 text-center shadow-[0_0_100px_rgba(251,191,36,0.5)] border-8 border-white/40 relative overflow-hidden group">
+                <div class="absolute inset-0 bg-white/10 opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                <div class="absolute -top-10 -left-10 w-40 h-40 bg-white/20 blur-3xl rounded-full"></div>
+                <div class="absolute -bottom-10 -right-10 w-40 h-40 bg-white/20 blur-3xl rounded-full"></div>
+                
+                <h4 class="font-title text-4xl mb-6 flex items-center justify-center gap-4">
+                    <span class="animate-bounce">🏆</span> 
+                    Winning Guild 
+                    <span class="animate-bounce">🏆</span>
+                </h4>
+                <div class="text-9xl mb-6 drop-shadow-[0_0_20px_rgba(255,255,255,0.8)] animate-pulse">${winner.guildEmoji}</div>
+                <div class="font-title text-5xl mb-4 tracking-widest">${winner.guildName}</div>
+                <div class="text-3xl font-black mb-2">${winner.totalStars.toLocaleString()} Total Stars</div>
+                <div class="text-xl opacity-90 mb-8 uppercase tracking-widest">${winner.memberCount} Members Strong</div>
+                
+                <div class="bg-black/20 p-6 rounded-2xl inline-block backdrop-blur-md border border-white/20">
+                    <div class="font-bold text-lg mb-2 text-amber-200">LEGENDARY CONTRIBUTOR:</div>
+                    <div class="text-3xl font-bold">${winner.topContributor.name}</div>
+                    <div class="text-xl text-amber-400 font-black mt-1">${winner.topContributor.totalStars.toLocaleString()} stars</div>
                 </div>
             </div>
         `;
@@ -903,21 +1042,24 @@ async function renderGuildChampionCrowding() {
     
     // All guild rankings
     crowningHTML += `
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
             ${guildChampions.finalRankings.map((guild, index) => {
                 const rankEmoji = index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉' : '🏅';
+                const isWinner = index === 0;
                 return `
-                    <div class="bg-white/10 p-4 rounded-xl">
-                        <div class="flex items-center justify-between mb-3">
-                            <div class="flex items-center gap-2">
-                                <span class="text-2xl">${rankEmoji}</span>
-                                <span class="text-3xl">${guild.guildEmoji}</span>
-                                <span class="font-bold text-lg">${guild.guildName}</span>
+                    <div class="bg-white/10 backdrop-blur-md p-6 rounded-3xl border ${isWinner ? 'border-amber-400 hidden' : 'border-white/20'} flex items-center justify-between hover:bg-white/20 transition-all">
+                        <div class="flex items-center gap-4">
+                            <span class="text-4xl">${rankEmoji}</span>
+                            <span class="text-5xl drop-shadow-md">${guild.guildEmoji}</span>
+                            <div>
+                                <span class="font-title text-2xl block">${guild.guildName}</span>
+                                <span class="text-sm opacity-75 uppercase tracking-widest">${guild.memberCount} members</span>
                             </div>
-                            <div class="text-xl font-bold">${guild.totalStars}</div>
                         </div>
-                        <div class="text-sm opacity-75">${guild.memberCount} members</div>
-                        <div class="text-sm opacity-75">Top: ${guild.topContributor?.name || 'N/A'}</div>
+                        <div class="text-right">
+                            <div class="text-3xl font-black text-amber-400">${guild.totalStars.toLocaleString()}</div>
+                            <div class="text-xs opacity-60 font-bold uppercase tracking-tighter">Stars</div>
+                        </div>
                     </div>
                 `;
             }).join('')}
@@ -930,6 +1072,15 @@ async function renderGuildChampionCrowding() {
     if (winnerFanfare.loaded) {
         winnerFanfare.start();
     }
+    
+    // Effects
+    setTimeout(() => {
+        const winnerCard = document.getElementById('guild-winner-card');
+        if (winnerCard) triggerLegendaryAura(winnerCard);
+        triggerGuildParticles(guildChampions.winningGuild?.guildId, 150);
+        triggerFireworks();
+        triggerConfetti();
+    }, 100);
     
     triggerAICommentary('guild_crowning', {
         winningGuild: guildChampions.winningGuild,
@@ -947,37 +1098,44 @@ async function renderUltimateHallOfHeroes() {
     title.innerHTML = "The Ultimate Hall of Heroes";
     
     const hallHTML = `
-        <div class="text-white text-center">
-            <h3 class="font-title text-4xl mb-6">A Year of Excellence</h3>
-            <div class="text-6xl mb-4">🌟</div>
-            <p class="text-xl mb-8">Celebrating Every Achievement, Every Hero, Every Moment</p>
+        <div class="text-white text-center w-full max-w-5xl animate-entrance">
+            <h3 class="font-title text-5xl mb-8 victory-text">A Year of Excellence</h3>
+            <div class="text-9xl mb-8 animate-pulse drop-shadow-[0_0_50px_rgba(255,215,0,0.4)]">🌟</div>
+            <p class="text-3xl mb-12 text-indigo-200 italic font-serif">"Every Achievement, Every Hero, Every Moment — Forever in our Hearts"</p>
             
-            <div class="bg-white/10 p-6 rounded-2xl">
-                <h4 class="font-title text-2xl mb-4">Ceremony Highlights</h4>
-                <div class="grid grid-cols-2 md:grid-cols-4 gap-4 text-left">
-                    <div>
-                        <div class="font-bold text-lg">🌟 Daily Heroes</div>
-                        <div class="text-sm opacity-75">${ceremonyData.competitionData.heroOfTheDay.totalDays} days celebrated</div>
-                    </div>
-                    <div>
-                        <div class="font-bold text-lg">🗺️ Team Quest</div>
-                        <div class="text-sm opacity-75">${ceremonyData.competitionData.teamQuest.finalStandings.length} classes journeyed</div>
-                    </div>
-                    <div>
-                        <div class="font-bold text-lg">👑 Prodigies</div>
-                        <div class="text-sm opacity-75">${ceremonyData.competitionData.prodigyOfTheMonth.monthlyChampions.length} monthly champions</div>
-                    </div>
-                    <div>
-                        <div class="font-bold text-lg">🛡️ Guilds</div>
-                        <div class="text-sm opacity-75">${ceremonyData.competitionData.guildChampions.finalRankings.length} guilds competed</div>
+            <div class="hall-of-heroes p-12 rounded-[4rem] relative overflow-hidden">
+                <div class="absolute inset-0 bg-white/5 backdrop-blur-xl"></div>
+                <div class="relative z-10">
+                    <h4 class="font-title text-3xl mb-8 tracking-widest text-amber-400">SCHOOL YEAR 2025-2026 HIGHLIGHTS</h4>
+                    <div class="grid grid-cols-2 md:grid-cols-4 gap-8">
+                        <div class="bg-black/30 p-6 rounded-3xl border border-white/10">
+                            <div class="text-5xl mb-4">🌟</div>
+                            <div class="font-bold text-3xl mb-1">${ceremonyData.competitionData.heroOfTheDay.totalDays}</div>
+                            <div class="text-xs opacity-75 uppercase tracking-widest font-black">Daily Heroes</div>
+                        </div>
+                        <div class="bg-black/30 p-6 rounded-3xl border border-white/10">
+                            <div class="text-5xl mb-4">🗺️</div>
+                            <div class="font-bold text-3xl mb-1">${ceremonyData.competitionData.teamQuest.finalStandings.length}</div>
+                            <div class="text-xs opacity-75 uppercase tracking-widest font-black">Class Quests</div>
+                        </div>
+                        <div class="bg-black/30 p-6 rounded-3xl border border-white/10">
+                            <div class="text-5xl mb-4">👑</div>
+                            <div class="font-bold text-3xl mb-1">${ceremonyData.competitionData.prodigyOfTheMonth.monthlyChampions.length}</div>
+                            <div class="text-xs opacity-75 uppercase tracking-widest font-black">Prodigies</div>
+                        </div>
+                        <div class="bg-black/30 p-6 rounded-3xl border border-white/10">
+                            <div class="text-5xl mb-4">🛡️</div>
+                            <div class="font-bold text-3xl mb-1">${ceremonyData.competitionData.guildChampions.finalRankings.length}</div>
+                            <div class="text-xs opacity-75 uppercase tracking-widest font-black">Guilds</div>
+                        </div>
                     </div>
                 </div>
             </div>
             
-            <div class="mt-8">
-                <div class="text-3xl mb-4 animate-bounce">🎓</div>
-                <p class="text-lg font-bold">Congratulations to All Students!</p>
-                <p class="text-sm opacity-75">You've made this year truly unforgettable.</p>
+            <div class="mt-16 animate-bounce">
+                <div class="text-5xl mb-4">🎓</div>
+                <p class="text-3xl font-title tracking-widest victory-text">Congratulations to All Students!</p>
+                <p class="text-xl opacity-75 italic mt-2">You've made this year truly unforgettable.</p>
             </div>
         </div>
     `;
@@ -987,6 +1145,7 @@ async function renderUltimateHallOfHeroes() {
     // Trigger celebration effects
     triggerConfetti();
     triggerFireworks();
+    triggerGuildParticles(null, 100);
     
     triggerAICommentary('hall_of_heroes', {
         totalStudents: ceremonyData.participatingClasses.length * 20, // estimate
@@ -1005,11 +1164,11 @@ async function completeCeremony() {
     title.innerHTML = "Ceremony Complete";
     
     stage.innerHTML = `
-        <div class="text-center text-white">
-            <div class="text-6xl mb-4">🎉</div>
-            <h2 class="font-title text-4xl mb-4">Thank You for an Amazing Year!</h2>
-            <p class="text-xl mb-8">The Grand Guild Ceremony concludes with pride and joy.</p>
-            <div class="text-8xl animate-bounce">🏆</div>
+        <div class="text-center text-white animate-entrance">
+            <div class="text-9xl mb-8 drop-shadow-[0_0_50px_rgba(255,255,255,0.5)]">🎉</div>
+            <h2 class="font-title text-6xl mb-6 victory-text">Thank You for an Amazing Year!</h2>
+            <p class="text-2xl mb-12 text-indigo-200">The Grand Guild Ceremony concludes with pride and joy.</p>
+            <div class="text-[12rem] animate-bounce drop-shadow-[0_0_80px_rgba(251,191,36,0.6)]">🏆</div>
         </div>
     `;
     
@@ -1022,6 +1181,7 @@ async function completeCeremony() {
     // Final celebration
     triggerConfetti();
     triggerFireworks();
+    triggerGuildParticles(null, 200);
     
     if (winnerFanfare.loaded) {
         winnerFanfare.start();

@@ -30,7 +30,7 @@ export const awardImmersiveSkyHTML = `
 
 export const appHTML = `
     <div id="app-screen" class="hidden flex-1 flex flex-col h-full overflow-hidden">
-        <div id="award-header-atmosphere" class="award-header-atmosphere relative z-[1000] flex shrink-0 flex-col overflow-visible shadow-md"
+        <div id="award-header-atmosphere" class="award-header-atmosphere relative z-[60] flex shrink-0 flex-col overflow-visible shadow-md"
              style="background: linear-gradient(to right, #89f7fe 0%, #66a6ff 100%);">
         ${headerHTML}
         </div>

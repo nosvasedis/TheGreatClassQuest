@@ -2,7 +2,6 @@
 let loadedHistoricalScores = [];
 
 // --- IMPORTS ---
-import { fetchTrialsForMonth, fetchAllTrialMonthsForClass } from '../db/queries.js';
 import { db } from '../firebase.js';
 import { doc, addDoc, updateDoc, collection, serverTimestamp } from 'https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js';
 import { writeBatch, runTransaction } from 'https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js';
@@ -381,7 +380,7 @@ function renderStudentBulkRow(student, scheme, isAbsent) {
 
 // --- HISTORY & SINGLE EDIT ---
 
-export async function openTrialHistoryModal(classId) {
+export function openTrialHistoryModal(classId) {
     if (!classId) return;
     const classData = state.get('allTeachersClasses').find(c => c.id === classId);
     if (!classData) return;
@@ -423,101 +422,49 @@ export async function openTrialHistoryModal(classId) {
     renderTrialHistoryContent(classId, 'test');
     modals.showAnimatedModal('trial-history-modal');
 
-    // 4. PERMANENT DROPDOWN IN HEADER (Safe Zone)
+    // 4. Load full history on demand (one fetch — same query as Student Analytics class scores)
     const actionsContainer = document.getElementById('trial-history-actions');
-
-    // Reset container with a loading state
     actionsContainer.innerHTML = `
-        <div class="flex items-center gap-2 bg-purple-100 text-purple-900 px-3 py-1.5 rounded-xl border border-purple-200 shadow-sm opacity-70">
-            <i class="fas fa-spinner fa-spin text-sm"></i>
-            <span class="text-xs font-bold uppercase tracking-wider">Locating Archives...</span>
+        <div class="flex flex-col items-end gap-1">
+            <button id="trial-history-load-full-btn" type="button" class="px-3 h-9 rounded-full flex items-center justify-center gap-2 bg-purple-600 hover:bg-purple-700 text-white text-xs font-bold transition-all shadow-sm transform hover:-translate-y-0.5 disabled:opacity-60 disabled:pointer-events-none disabled:transform-none" title="Fetch every assessment for this class from the database">
+                <i class="fas fa-cloud-download-alt"></i>
+                <span>Load full history</span>
+            </button>
+            <span id="trial-history-full-status" class="text-[11px] font-semibold text-purple-800/75 max-w-[240px] text-right leading-snug"></span>
         </div>`;
 
-    try {
-        const { parseFlexibleDate } = await import('../utils.js');
-        const { fetchTrialsForMonth } = await import('../db/queries.js');
+    const btn = document.getElementById('trial-history-load-full-btn');
+    const statusEl = document.getElementById('trial-history-full-status');
 
-        // Smart Month Scanner (Checks local data first)
-        const now = new Date();
-        const currentMonthKey = now.toISOString().substring(0, 7);
-        const allScores = state.get('allWrittenScores').filter(s => s.classId === classId);
-        const monthSet = new Set();
+    btn?.addEventListener('click', async () => {
+        const originalHtml = btn.innerHTML;
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i><span>Loading…</span>';
+        if (statusEl) statusEl.textContent = '';
 
-        allScores.forEach(s => {
-            const d = parseFlexibleDate(s.date);
-            if (d) monthSet.add(d.toISOString().substring(0, 7));
-        });
-
-        // Also check DB for older months not loaded yet
-        const dbMonths = await fetchAllTrialMonthsForClass(classId);
-        dbMonths.forEach(m => monthSet.add(m));
-
-        const historicalMonths = [...monthSet].filter(m => m < currentMonthKey).sort().reverse();
-
-        if (historicalMonths.length > 0) {
-            // Render The Beautiful Dropdown
-            actionsContainer.innerHTML = `
-                <div class="relative group">
-                    <div class="flex items-center bg-white border border-purple-200 rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-all">
-                        <div class="bg-purple-50 px-3 py-2 border-r border-purple-100">
-                            <i class="fas fa-history text-purple-600"></i>
-                        </div>
-                        <select id="trial-history-month-select" class="pl-3 pr-8 py-2 bg-transparent text-purple-900 font-bold text-sm outline-none cursor-pointer appearance-none min-w-[140px]">
-                            <option value="">Load Past Month...</option>
-                            ${historicalMonths.map(m => {
-                const d = new Date(m + '-02');
-                return `<option value="${m}">${d.toLocaleString('en-GB', { month: 'long', year: 'numeric' })}</option>`;
-            }).join('')}
-                        </select>
-                        <div class="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-purple-400 text-xs group-hover:text-purple-600 transition-colors">
-                            <i class="fas fa-chevron-down"></i>
-                        </div>
-                    </div>
-                </div>
-            `;
-
-            const select = document.getElementById('trial-history-month-select');
-            select.addEventListener('change', async (e) => {
-                const monthKey = e.target.value;
-                if (!monthKey) return;
-
-                const originalText = select.options[select.selectedIndex].text;
-                select.disabled = true;
-                // Visual feedback inside the select
-                const tempOption = document.createElement('option');
-                tempOption.text = "Fetching...";
-                select.add(tempOption, select[0]);
-                select.selectedIndex = 0;
-
-                const scores = await fetchTrialsForMonth(classId, monthKey);
-
-                // Remove temp option
-                select.remove(0);
-
-                if (scores.length > 0) {
-                    loadedHistoricalScores.push(...scores);
-                    // Force refresh current view
-                    const activeView = document.querySelector('#trial-history-view-toggle .active-toggle')?.dataset.view || 'test';
-                    renderTrialHistoryContent(classId, activeView);
-
-                    showToast(`Archive opened: ${originalText}`, 'success');
-                } else {
-                    showToast('No records found in that archive.', 'info');
-                }
-
-                select.disabled = false;
-                select.value = ""; // Reset to default
-            });
-        } else {
-            actionsContainer.innerHTML = `
-                <div class="px-3 py-1.5 bg-gray-100 rounded-lg border border-gray-200 text-gray-400 text-xs font-bold">
-                    No Archives Found
-                </div>`;
+        try {
+            const { fetchAllTrialsForClass } = await import('../db/queries.js');
+            const scores = await fetchAllTrialsForClass(classId);
+            loadedHistoricalScores = scores;
+            const activeView = document.querySelector('#trial-history-view-toggle .active-toggle')?.dataset.view || 'test';
+            renderTrialHistoryContent(classId, activeView);
+            if (statusEl) {
+                statusEl.textContent = scores.length
+                    ? `Loaded ${scores.length} assessment${scores.length === 1 ? '' : 's'} from the archive.`
+                    : 'No archived assessments found for this class.';
+            }
+            showToast(
+                scores.length ? 'Full trial history is ready.' : 'No records found in the archive.',
+                scores.length ? 'success' : 'info'
+            );
+        } catch (err) {
+            console.error('Trial history full load failed:', err);
+            showToast('Could not load full history. Try again.', 'error');
+        } finally {
+            btn.disabled = false;
+            btn.innerHTML = originalHtml || '<i class="fas fa-cloud-download-alt"></i><span>Load full history</span>';
         }
-    } catch (err) {
-        console.error("History Error:", err);
-        actionsContainer.innerHTML = `<span class="text-xs text-red-400">Connection Error</span>`;
-    }
+    });
 }
 
 export function renderTrialHistoryContent(classId, view) {
@@ -532,7 +479,7 @@ export function renderTrialHistoryContent(classId, view) {
         return utils.parseFlexibleDate(s.date) >= recentCutoff;
     });
 
-    // 2. ONLY combine with historical scores if the user explicitly clicked them
+    // 2. Combine with scores loaded explicitly via “Load full history” (and dedupe by id)
     const allScoresForClass = [...recentScores, ...loadedHistoricalScores];
 
     // 3. Remove duplicates to be safe
@@ -553,7 +500,7 @@ export function renderTrialHistoryContent(classId, view) {
     const sortedMonths = Object.keys(scoresByMonth).sort().reverse();
 
     if (sortedMonths.length === 0) {
-        contentEl.innerHTML = `<p class="text-center text-gray-500 py-8">No ${view} records found. Try loading historical data if available.</p>`;
+        contentEl.innerHTML = `<p class="text-center text-gray-500 py-8">No ${view} records found. Use <span class="font-semibold text-purple-700">Load full history</span> above to fetch older assessments from the database.</p>`;
         return;
     }
 

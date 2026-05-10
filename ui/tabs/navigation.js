@@ -13,6 +13,7 @@ import * as avatar from '../../features/avatar.js';
 import * as storyWeaver from '../../features/storyWeaver.js';
 import { playSound } from '../../audio.js';
 import { renderActiveBounties } from '../core.js';
+import { renderHolidayList, renderClassEndDatesList } from '../core/misc.js';
 import { updateCeremonyStatus } from '../../features/ceremony.js';
 import { renderHomeTab } from '../../features/home.js';
 import { HERO_CLASSES } from '../../features/heroClasses.js';
@@ -257,6 +258,7 @@ function patchOptionsTabForClassChange() {
     if (hasAccessCenter) {
         renderAccessCenterUi();
     }
+    renderClassEndDatesList();
 }
 
 /** Prefer the tab that is actually visible (not only localStorage). */
@@ -358,11 +360,23 @@ export async function showTab(tabName) {
         quizBtn?.classList.toggle('hidden', !hasQuizFeature);
         quizSection?.classList.toggle('hidden', !hasQuizFeature);
 
-        // Load holidays and the new economy selector
+        // Load holidays and economy selector; isolate failures so one broken renderer doesn't block the others
         import('../core.js').then(m => {
-            if (m.renderHolidayList) m.renderHolidayList();
-            if (m.renderClassEndDatesList) m.renderClassEndDatesList();
-            if (m.renderEconomyStudentSelect) m.renderEconomyStudentSelect();
+            try {
+                m.renderHolidayList?.();
+            } catch (e) {
+                console.warn('renderHolidayList failed:', e);
+            }
+            try {
+                m.renderClassEndDatesList?.();
+            } catch (e) {
+                console.warn('renderClassEndDatesList failed:', e);
+            }
+            try {
+                m.renderEconomyStudentSelect?.();
+            } catch (e) {
+                console.warn('renderEconomyStudentSelect failed:', e);
+            }
         });
 
         // FIX: Call this directly (it is defined in this file, not core.js)
@@ -416,6 +430,11 @@ export async function showTab(tabName) {
                 const hasPlanning = canUseFeature('schoolYearPlanner');
                 if (planningLocked) planningLocked.classList.toggle('hidden', hasPlanning || key !== 'planning');
                 if (planningContent) planningContent.classList.toggle('hidden', !hasPlanning || key !== 'planning');
+                // Planning UI (holidays + class end dates) must refresh when this sub-tab is shown — async import on main options visit can race or skip if Holidays throws.
+                if (key === 'planning' && hasPlanning) {
+                    renderHolidayList();
+                    renderClassEndDatesList();
+                }
             };
 
             buttons.forEach(btn => {
@@ -485,7 +504,7 @@ export async function showTab(tabName) {
             tierEl.textContent = `Plan: ${pretty}`;
         }
         if (versionEl) {
-            const version = (constants && constants.APP_VERSION) || '0.0.2';
+            const version = (constants && constants.APP_VERSION) || '0.1.0';
             versionEl.textContent = `Version ${version}`;
         }
 

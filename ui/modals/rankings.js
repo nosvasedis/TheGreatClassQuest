@@ -15,6 +15,8 @@ let rankingsViewDate = new Date();
 export async function openStudentRankingsModal(resetDate = true) {
     const modalId = 'global-leaderboard-modal';
     const titleEl = document.getElementById('global-leaderboard-title');
+    const subtitleEl = document.getElementById('global-leaderboard-subtitle');
+    const controlsEl = document.getElementById('global-leaderboard-controls');
     const contentEl = document.getElementById('global-leaderboard-content');
 
     // 1. Manage the Date (Default to last month if opening fresh)
@@ -26,8 +28,10 @@ export async function openStudentRankingsModal(resetDate = true) {
     const activeMonthKey = rankingsViewDate.toISOString().substring(0, 7); // YYYY-MM
     const monthDisplay = rankingsViewDate.toLocaleString('en-GB', { month: 'long', year: 'numeric' });
 
-    titleEl.innerHTML = `<i class="fas fa-trophy text-amber-500 mr-2"></i>Hero Ranks`;
-    contentEl.innerHTML = `<div class="text-center py-8"><i class="fas fa-spinner fa-spin text-2xl text-purple-500"></i><p class="mt-2 text-gray-500">Loading Archives for ${monthDisplay}...</p></div>`;
+    titleEl.innerHTML = `Hero Logs`;
+    if (subtitleEl) subtitleEl.innerText = 'Monthly ranks archive';
+    if (controlsEl) controlsEl.innerHTML = '';
+    contentEl.innerHTML = `<div class="text-center py-10"><i class="fas fa-circle-notch fa-spin text-3xl text-indigo-500"></i><p class="mt-3 text-slate-500 font-semibold">Loading archives for ${monthDisplay}...</p></div>`;
 
     // 2. Show Modal (Only animate the first time it opens)
     if (resetDate) {
@@ -64,42 +68,55 @@ export async function openStudentRankingsModal(resetDate = true) {
     const myClasses = state.get('allTeachersClasses').sort((a, b) => a.name.localeCompare(b.name));
 
     // 5. Render UI Structure with Navigation
-    contentEl.innerHTML = `
-        <div class="flex items-center justify-between mb-4 bg-indigo-50 p-2 rounded-xl border border-indigo-100 shadow-sm">
-            <button id="rank-prev-month" class="w-8 h-8 rounded-full bg-white text-indigo-600 shadow hover:bg-indigo-100 transition-colors flex items-center justify-center">
-                <i class="fas fa-chevron-left"></i>
-            </button>
-            <span class="font-title text-lg text-indigo-900">${monthDisplay}</span>
-            <button id="rank-next-month" class="w-8 h-8 rounded-full bg-white text-indigo-600 shadow hover:bg-indigo-100 transition-colors flex items-center justify-center">
-                <i class="fas fa-chevron-right"></i>
-            </button>
-        </div>
+    if (controlsEl) {
+        controlsEl.innerHTML = `
+            <div class="flex flex-col gap-4">
+                <div class="flex items-center justify-between bg-white p-2 rounded-[1.25rem] border border-indigo-100 shadow-sm">
+                    <button id="rank-prev-month" class="w-11 h-11 rounded-2xl bg-indigo-50 text-indigo-700 border border-indigo-100 shadow-sm hover:bg-indigo-100 transition-colors flex items-center justify-center">
+                        <i class="fas fa-chevron-left"></i>
+                    </button>
+                    <div class="text-center min-w-0 px-2">
+                        <div class="text-[10px] font-black text-slate-400 uppercase tracking-[0.25em]">Archive Month</div>
+                        <div class="font-title text-2xl text-indigo-900 truncate">${monthDisplay}</div>
+                    </div>
+                    <button id="rank-next-month" class="w-11 h-11 rounded-2xl bg-indigo-50 text-indigo-700 border border-indigo-100 shadow-sm hover:bg-indigo-100 transition-colors flex items-center justify-center">
+                        <i class="fas fa-chevron-right"></i>
+                    </button>
+                </div>
 
-        <div class="flex justify-center gap-4 mb-4 border-b border-gray-200 pb-4">
-            <button id="rank-tab-global" class="px-6 py-2 rounded-full font-bold text-sm transition-all bg-indigo-600 text-white shadow-md">
-                <i class="fas fa-globe mr-2"></i>Global League
-            </button>
-            <button id="rank-tab-class" class="px-6 py-2 rounded-full font-bold text-sm transition-all bg-white text-gray-500 hover:bg-gray-100 border border-gray-200">
-                <i class="fas fa-chalkboard-teacher mr-2"></i>My Class
-            </button>
-        </div>
+                <div class="flex flex-wrap justify-center gap-3">
+                    <button id="rank-tab-global" class="px-6 py-2.5 rounded-full font-black text-xs uppercase tracking-widest transition-all bg-indigo-600 text-white shadow-md">
+                        <i class="fas fa-globe mr-2"></i>Global League
+                    </button>
+                    <button id="rank-tab-class" class="px-6 py-2.5 rounded-full font-black text-xs uppercase tracking-widest transition-all bg-white text-slate-500 hover:bg-slate-50 border border-slate-200 shadow-sm">
+                        <i class="fas fa-chalkboard-teacher mr-2"></i>My Class
+                    </button>
+                </div>
 
-        <div id="rank-filter-container" class="mb-4"></div>
+                <div id="rank-filter-container"></div>
+            </div>
+        `;
+    }
 
-        <div id="ranks-list-container" class="space-y-2 max-h-[50vh] overflow-y-auto pr-2 custom-scrollbar"></div>
-    `;
+    contentEl.innerHTML = `<div id="ranks-list-container" class="space-y-3"></div>`;
 
     // --- NAVIGATION LISTENERS ---
-    document.getElementById('rank-prev-month').onclick = () => {
-        rankingsViewDate.setMonth(rankingsViewDate.getMonth() - 1);
-        openStudentRankingsModal(false); // Refresh without re-animating modal
-    };
-    document.getElementById('rank-next-month').onclick = () => {
-        // Don't go past the current month
-        if (rankingsViewDate.getMonth() === new Date().getMonth() && rankingsViewDate.getFullYear() === new Date().getFullYear()) return;
-        rankingsViewDate.setMonth(rankingsViewDate.getMonth() + 1);
-        openStudentRankingsModal(false);
-    };
+    const prevBtn = document.getElementById('rank-prev-month');
+    const nextBtn = document.getElementById('rank-next-month');
+    if (prevBtn) {
+        prevBtn.onclick = () => {
+            rankingsViewDate.setMonth(rankingsViewDate.getMonth() - 1);
+            openStudentRankingsModal(false); // Refresh without re-animating modal
+        };
+    }
+    if (nextBtn) {
+        nextBtn.onclick = () => {
+            // Don't go past the current month
+            if (rankingsViewDate.getMonth() === new Date().getMonth() && rankingsViewDate.getFullYear() === new Date().getFullYear()) return;
+            rankingsViewDate.setMonth(rankingsViewDate.getMonth() + 1);
+            openStudentRankingsModal(false);
+        };
+    }
 
     // --- INTERNAL RENDER LOGIC ---
     const renderContent = (view, filterValue) => {
@@ -239,17 +256,22 @@ export async function openStudentRankingsModal(resetDate = true) {
     const btnGlobal = document.getElementById('rank-tab-global');
     const btnClass = document.getElementById('rank-tab-class');
 
-    btnGlobal.onclick = () => {
-        btnGlobal.className = "px-6 py-2 rounded-full font-bold text-sm transition-all bg-indigo-600 text-white shadow-md";
-        btnClass.className = "px-6 py-2 rounded-full font-bold text-sm transition-all bg-white text-gray-500 hover:bg-gray-100 border border-gray-200";
-        renderContent('global');
-    };
+    const activeTabClass = "px-6 py-2.5 rounded-full font-black text-xs uppercase tracking-widest transition-all bg-indigo-600 text-white shadow-md";
+    const inactiveTabClass = "px-6 py-2.5 rounded-full font-black text-xs uppercase tracking-widest transition-all bg-white text-slate-500 hover:bg-slate-50 border border-slate-200 shadow-sm";
 
-    btnClass.onclick = () => {
-        btnClass.className = "px-6 py-2 rounded-full font-bold text-sm transition-all bg-indigo-600 text-white shadow-md";
-        btnGlobal.className = "px-6 py-2 rounded-full font-bold text-sm transition-all bg-white text-gray-500 hover:bg-gray-100 border border-gray-200";
-        renderContent('class');
-    };
+    if (btnGlobal && btnClass) {
+        btnGlobal.onclick = () => {
+            btnGlobal.className = activeTabClass;
+            btnClass.className = inactiveTabClass;
+            renderContent('global');
+        };
+
+        btnClass.onclick = () => {
+            btnClass.className = activeTabClass;
+            btnGlobal.className = inactiveTabClass;
+            renderContent('class');
+        };
+    }
 
     renderContent('global');
 }
@@ -264,7 +286,7 @@ export async function openHallOfHeroes() {
     document.getElementById('history-timeline-section')?.classList.add('hidden');
 
     // Setup Modal appearance (legacy month select removed from template)
-    document.getElementById('history-month-select')?.classList.add('hidden');
+    document.getElementById('history-month-select-wrapper')?.classList.add('hidden');
     
     // Custom appearance for Hall of Heroes
     modal.classList.add('hall-of-heroes-theme');
@@ -393,21 +415,10 @@ async function buildHallLegendRows(classId) {
 async function renderHallOfHeroesContent(classId) {
     const classData = state.get('allSchoolClasses').find(c => c.id === classId);
     const contentEl = document.getElementById('history-modal-content');
-    const modalTitle = document.querySelector('#history-modal h2');
-
-    modalTitle.innerHTML = `
-        <div class="flex items-center gap-4">
-            <div class="w-12 h-12 bg-amber-100 rounded-2xl flex items-center justify-center shadow-inner border border-amber-200">
-                <i class="fas fa-crown text-2xl text-amber-600"></i>
-            </div>
-            <div>
-                <h2 class="font-title text-3xl text-slate-800 tracking-tight">${classData.name} Legends</h2>
-                <div class="flex items-center gap-2 text-amber-600 text-[10px] font-black uppercase tracking-[0.2em]">
-                    <span class="w-2 h-2 bg-amber-400 rounded-full animate-pulse"></span>
-                    Hall of Heroes
-                </div>
-            </div>
-        </div>`;
+    const titleEl = document.getElementById('history-modal-title');
+    const subtitleEl = document.getElementById('history-modal-subtitle');
+    if (titleEl) titleEl.innerText = `${classData?.name || 'Class'} Legends`;
+    if (subtitleEl) subtitleEl.innerText = 'Hall of Heroes';
     contentEl.innerHTML = `
         <div class="flex flex-col items-center justify-center py-20">
             <div class="relative">
@@ -627,10 +638,13 @@ export function openZoneOverviewModal(zoneType) {
     const league = state.get('globalSelectedLeague');
     if (!league) return;
 
+    const milestoneModal = document.getElementById('milestone-details-modal');
+    if (milestoneModal) milestoneModal.dataset.modalMode = 'zone-overview';
+
     // 1. Zone Definitions
     const ZONE_CONFIG = {
         bronze: {
-            name: "Bronze Meadows", pct: 25, icon: "🛡️",
+            name: "Bronze Meadows", pct: 25, icon: "🌿",
             desc: "The lush beginning. Green fields and ancient forests.",
             bannerGradient: "from-emerald-400 to-teal-600",
             cardBorder: "border-emerald-200",
@@ -640,7 +654,7 @@ export function openZoneOverviewModal(zoneType) {
             lightBg: "bg-emerald-50"
         },
         silver: {
-            name: "Silver Peaks", pct: 50, icon: "🏆",
+            name: "Silver Peaks", pct: 50, icon: "🏔️",
             desc: "The frozen mountains. Only the brave cross the bridge.",
             bannerGradient: "from-cyan-400 to-blue-600",
             cardBorder: "border-cyan-200",
@@ -650,7 +664,7 @@ export function openZoneOverviewModal(zoneType) {
             lightBg: "bg-cyan-50"
         },
         gold: {
-            name: "Golden Citadel", pct: 75, icon: "👑",
+            name: "Golden Citadel", pct: 75, icon: "🏰",
             desc: "The royal desert city. Riches await within.",
             bannerGradient: "from-amber-300 to-orange-500",
             cardBorder: "border-amber-200",
@@ -791,12 +805,12 @@ export function openZoneOverviewModal(zoneType) {
             const levelStyle = lvlStyles[levelValue] || lvlStyles[1];
 
             return `
-                        <div class="group relative p-5 rounded-[2rem] ${cardStyle} ${glowEffect} shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 overflow-hidden">
-                            <div class="absolute inset-0 opacity-[0.03]" style="background-image: radial-gradient(#000 1px, transparent 1px); background-size: 20px 20px;"></div>
+                        <div class="zone-overview-class-card group relative p-5 rounded-[2rem] ${cardStyle} ${glowEffect} shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 overflow-hidden">
+                            <div class="zone-overview-class-card__dots" aria-hidden="true"></div>
                             
                             <div class="relative z-10 flex items-center gap-5">
-                                <div class="w-16 h-16 rounded-2xl ${config.iconBg} flex items-center justify-center text-4xl shadow-inner transform group-hover:scale-110 group-hover:rotate-6 transition-transform duration-500">
-                                    ${c.logo}
+                                <div class="zone-overview-class-seal zone-overview-class-seal--${zoneType}" aria-hidden="true">
+                                    <span class="zone-overview-class-seal__emoji">${c.logo}</span>
                                 </div>
                                 
                                 <div class="flex-grow min-w-0">
@@ -832,24 +846,27 @@ export function openZoneOverviewModal(zoneType) {
     };
 
     contentEl.innerHTML = `
-        <div class="relative overflow-hidden p-8 rounded-[2.5rem] bg-gradient-to-br ${config.bannerGradient} shadow-2xl text-white mb-8 border-4 border-white ring-4 ring-${config.color}-100 transform transition-transform hover:scale-[1.01]">
-            <div class="absolute -right-6 -bottom-6 text-9xl opacity-20 transform rotate-12 filter blur-sm pointer-events-none">${config.icon}</div>
-            
-            <div class="relative z-10">
-                <div class="flex items-center gap-3 mb-2">
-                     <span class="text-4xl filter drop-shadow-md animate-bounce-slow">${config.icon}</span>
-                     <h3 class="font-title text-4xl text-shadow-md tracking-wide">${config.name}</h3>
+        <div class="zone-overview-hero zone-overview-hero--${zoneType}">
+            <div class="zone-overview-hero__shine" aria-hidden="true"></div>
+            <div class="zone-overview-hero__deco zone-overview-hero__deco--bg" aria-hidden="true">${config.icon}</div>
+            <div class="zone-overview-hero__row">
+                <div class="zone-overview-hero__icon-ring">
+                    <span class="zone-overview-hero__icon">${config.icon}</span>
                 </div>
-                <p class="text-lg font-medium opacity-90 italic max-w-lg leading-relaxed">"${config.desc}"</p>
-                
-                <div class="mt-6 inline-flex items-center gap-2 bg-white/20 backdrop-blur-md px-5 py-2 rounded-full border border-white/40 shadow-lg">
-                    <i class="fas fa-flag text-yellow-300"></i> 
-                    <span class="font-black uppercase tracking-wider text-xs">Requirement: ${config.pct}% Total Progress</span>
+                <div class="zone-overview-hero__copy">
+                    <p class="zone-overview-hero__eyebrow">League region</p>
+                    <h3 class="zone-overview-hero__title">${config.name}</h3>
+                    <p class="zone-overview-hero__quote">“${config.desc}”</p>
                 </div>
+            </div>
+            <div class="zone-overview-hero__foot">
+                <span class="zone-overview-hero__req-icon" aria-hidden="true"><i class="fas fa-flag-checkered"></i></span>
+                <span class="zone-overview-hero__req-text"><strong>${config.pct}%</strong> overall progress</span>
+                <span class="zone-overview-hero__req-hint">to chart this realm on the Team Quest map</span>
             </div>
         </div>
         
-        <div class="max-h-[60vh] overflow-y-auto pr-2 custom-scrollbar pb-8">
+        <div class="zone-overview-body max-h-[60vh] overflow-y-auto pr-2 custom-scrollbar pb-2 md:pb-6 text-left">
             ${renderSection(completed, "Conquered", 'done')}
             ${renderSection(approaching, "Approaching", 'near')}
             ${renderSection(far, "On the Way", 'far')}
@@ -861,10 +878,18 @@ export function openZoneOverviewModal(zoneType) {
 
 // --- PRODIGY OF THE MONTH FEATURE (FIXED) ---
 
-// Local state for navigation
-let prodigyViewDate = new Date();
 const PRODIGY_ARCHIVE_START = new Date('2025-11-01');
 const prodigyCountsCache = new Map();
+
+/** Latest month that can appear in the Hall (always the previous calendar month — never the current one). */
+function getLatestViewableProdigyMonth(ref = new Date()) {
+    const d = new Date(ref.getFullYear(), ref.getMonth(), 1);
+    d.setMonth(d.getMonth() - 1);
+    return d;
+}
+
+// Local state for navigation (defaults to last completed month)
+let prodigyViewDate = getLatestViewableProdigyMonth();
 
 function buildProdigyMonthOutcome(students, monthlyLogs, allScores, viewYear, viewMonthIndex) {
     const studentStats = students.map((student) => {
@@ -980,231 +1005,210 @@ async function getProdigyCountsForClass(classId) {
 }
 
 export async function openProdigyModal() {
-    const allTeachersClasses = state.get('allTeachersClasses') || [];
     const currentGlobal = state.get('globalSelectedClassId');
+    const allTeachersClasses = state.get('allTeachersClasses') || [];
     const isValidClass = Boolean(currentGlobal && allTeachersClasses.some(c => c.id === currentGlobal));
 
-    prodigyViewDate = new Date();
-    prodigyViewDate.setDate(1);
-    prodigyViewDate.setMonth(prodigyViewDate.getMonth() - 1);
-
-    const contextEl = document.getElementById('prodigy-class-context');
     if (!isValidClass) {
         showToast('Choose a class from the header first.', 'info');
         return;
     }
 
-    const cls = allTeachersClasses.find(c => c.id === currentGlobal);
-    if (contextEl) {
-        contextEl.hidden = false;
-        contextEl.textContent = `${cls?.logo || ''} ${cls?.name || 'Class'}${cls?.questLevel ? ` (${cls.questLevel})` : ''}`.trim();
-    }
+    // Hall opens on the last *completed* month (never the current calendar month).
+    prodigyViewDate = getLatestViewableProdigyMonth();
 
-    await renderProdigyHistory(currentGlobal);
     showAnimatedModal('prodigy-modal');
+    await new Promise((resolve) =>
+        requestAnimationFrame(() => requestAnimationFrame(resolve))
+    );
+    await renderProdigyHistory(currentGlobal);
 }
 
 export async function renderProdigyHistory(classId) {
     if (!classId) return;
     const contentEl = document.getElementById('prodigy-content');
+    const navEl = document.getElementById('prodigy-nav-container');
+    if (!contentEl || !navEl) return;
 
     // Loading State
-    contentEl.innerHTML = `<div class="h-full flex flex-col items-center justify-center text-amber-400"><i class="fas fa-circle-notch fa-spin text-5xl"></i><p class="mt-4 font-bold text-lg">Summoning the Legends...</p></div>`;
+    contentEl.innerHTML = `
+        <div class="h-full min-h-[12rem] flex flex-col items-center justify-center text-indigo-300 space-y-5 py-8">
+            <div class="relative w-24 h-24">
+                <div class="absolute inset-0 border-8 border-violet-300/30 rounded-full"></div>
+                <div class="absolute inset-0 border-8 border-violet-500 border-t-transparent rounded-full prodigy-hall-loading-pulse"></div>
+                <div class="absolute inset-0 flex items-center justify-center text-3xl drop-shadow-lg" aria-hidden="true"><i class="fas fa-crown text-amber-500"></i></div>
+            </div>
+            <div class="text-center space-y-2 px-4">
+                <p class="font-title text-2xl sm:text-3xl text-indigo-900 tracking-wide">Opening the vault…</p>
+                <p class="text-indigo-500 font-semibold text-sm prodigy-hall-tagline flex items-center justify-center gap-2 flex-wrap">
+                    <i class="fas fa-wand-magic-sparkles text-amber-500"></i>
+                    Polishing plaques &amp; dusting crowns
+                    <i class="fas fa-sparkles text-violet-400"></i>
+                </p>
+            </div>
+        </div>`;
 
-    // Ensure history is loaded
+    const countsPromise = getProdigyCountsForClass(classId).catch(() => ({ winCounts: new Map() }));
     await import('../../db/actions.js').then(a => a.ensureHistoryLoaded());
-    // Import artifacts to lookup icons if missing from DB
-    const { LEGENDARY_ARTIFACTS } = await import('../../features/powerUps.js');
 
-    // 1. Setup Dates
-    const viewYear = prodigyViewDate.getFullYear();
-    const viewMonthIndex = prodigyViewDate.getMonth();
+    const now = new Date();
+    const latestViewable = getLatestViewableProdigyMonth(now);
+    let viewYear = prodigyViewDate.getFullYear();
+    let viewMonthIndex = prodigyViewDate.getMonth();
+    const viewStart = new Date(viewYear, viewMonthIndex, 1);
+    if (viewStart > latestViewable) {
+        prodigyViewDate = new Date(latestViewable.getFullYear(), latestViewable.getMonth(), 1);
+        viewYear = prodigyViewDate.getFullYear();
+        viewMonthIndex = prodigyViewDate.getMonth();
+    }
+
     const monthName = prodigyViewDate.toLocaleString('en-GB', { month: 'long', year: 'numeric' });
 
-    // 2. Navigation Limits
-    const now = new Date();
-    const canGoForward = (new Date(viewYear, viewMonthIndex + 1, 1) < new Date(now.getFullYear(), now.getMonth(), 1));
+    const PRODIGY_ARCHIVE_START = new Date(2023, 8, 1);
     const canGoBack = (new Date(viewYear, viewMonthIndex, 1) > PRODIGY_ARCHIVE_START);
+    const nextMonthStart = new Date(viewYear, viewMonthIndex + 1, 1);
+    const canGoForward = nextMonthStart <= latestViewable;
 
-    // 3. Build Header
-    let html = `
-        <div class="flex items-center justify-between mb-10 bg-white/10 p-3 rounded-[2rem] border-2 border-white/20 shadow-xl backdrop-blur-xl relative z-20 mx-auto max-w-lg">
-            <button id="prodigy-prev-btn" class="w-12 h-12 rounded-2xl bg-white text-indigo-900 shadow-sm hover:shadow-md hover:bg-indigo-50 flex items-center justify-center transition-all disabled:opacity-30 disabled:cursor-not-allowed group" ${!canGoBack ? 'disabled' : ''}>
-                <i class="fas fa-chevron-left group-hover:-translate-x-1 transition-transform"></i>
+    navEl.innerHTML = `
+        <div class="prodigy-hall-nav-wrap flex items-center p-1.5 gap-1">
+            <button type="button" id="prodigy-prev-btn" title="Earlier month" aria-label="Earlier month" class="prodigy-hall-nav-btn prodigy-hall-nav-arrow-btn w-11 h-11 sm:w-12 sm:h-12 rounded-xl bg-white border border-indigo-100 text-indigo-600 flex items-center justify-center disabled:opacity-25 disabled:pointer-events-none" ${!canGoBack ? 'disabled' : ''}>
+                <span class="prodigy-hall-nav-glyph" aria-hidden="true">&lt;</span>
             </button>
-            <div class="text-center">
-                <div class="text-[9px] font-black text-amber-300 uppercase tracking-[0.3em] mb-0.5">Legendary Period</div>
-                <span class="font-title text-2xl text-white tracking-tight drop-shadow-md">${monthName}</span>
+            <div class="px-4 sm:px-5 text-center min-w-[11rem] sm:min-w-[13rem]">
+                <p class="prodigy-hall-month text-base sm:text-lg text-indigo-950 truncate font-semibold">${monthName}</p>
             </div>
-            <button id="prodigy-next-btn" class="w-12 h-12 rounded-2xl bg-white text-indigo-900 shadow-sm hover:shadow-md hover:bg-indigo-50 flex items-center justify-center transition-all disabled:opacity-30 disabled:cursor-not-allowed group" ${!canGoForward ? 'disabled' : ''}>
-                <i class="fas fa-chevron-right group-hover:translate-x-1 transition-transform"></i>
+            <button type="button" id="prodigy-next-btn" title="Later month" aria-label="Later month" class="prodigy-hall-nav-btn prodigy-hall-nav-arrow-btn w-11 h-11 sm:w-12 sm:h-12 rounded-xl bg-white border border-indigo-100 text-indigo-600 flex items-center justify-center disabled:opacity-25 disabled:pointer-events-none" ${!canGoForward ? 'disabled' : ''}>
+                <span class="prodigy-hall-nav-glyph" aria-hidden="true">&gt;</span>
             </button>
-        </div>
-    `;
+        </div>`;
 
-    // --- DATA FETCHING ---
-    let logsToAnalyze = [];
-    const isCurrentMonth = (viewYear === now.getFullYear() && viewMonthIndex === now.getMonth());
-
-    if (isCurrentMonth) {
-        logsToAnalyze = state.get('allAwardLogs').filter(l => l.classId === classId);
-    } else {
-        try {
-            const { fetchLogsForMonth } = await import('../../db/queries.js');
-            const fetchedLogs = await fetchLogsForMonth(viewYear, viewMonthIndex + 1);
-            logsToAnalyze = fetchedLogs.filter(l => l.classId === classId);
-        } catch (e) {
-            console.error("Prodigy history fetch error:", e);
-            contentEl.innerHTML = `<div class="text-center text-red-400 p-8">Could not retrieve archives.</div>`;
-            return;
-        }
-    }
+    const { fetchLogsForMonth } = await import('../../db/queries.js');
+    const fetched = await fetchLogsForMonth(viewYear, viewMonthIndex + 1);
+    const logsToAnalyze = fetched.filter(l => l.classId === classId);
 
     const monthlyLogs = logsToAnalyze.filter(l => {
         const d = utils.parseFlexibleDate(l.date);
-        if (!d) return false;
-        return d.getMonth() === viewMonthIndex && d.getFullYear() === viewYear;
+        return d && d.getMonth() === viewMonthIndex && d.getFullYear() === viewYear;
     });
 
     const allScores = state.get('allWrittenScores').filter(s => s.classId === classId);
     const students = state.get('allStudents').filter(s => s.classId === classId);
-    const { winCounts } = await getProdigyCountsForClass(classId);
+    const { winCounts } = await countsPromise;
 
     if (monthlyLogs.length === 0) {
-        html += `
-            <div class="flex flex-col items-center justify-center py-24 bg-white/5 rounded-[3rem] border-2 border-dashed border-white/10 backdrop-blur-sm group">
-                <div class="w-32 h-32 bg-white/10 rounded-full flex items-center justify-center mb-8 shadow-xl border border-white/10 group-hover:scale-110 transition-transform duration-700">
-                    <i class="fas fa-ghost text-7xl text-white/20 group-hover:text-amber-300/30 transition-colors"></i>
+        contentEl.innerHTML = `
+            <div class="prodigy-hall-empty h-full flex flex-col items-center justify-center py-12 px-6 max-w-lg mx-auto text-center group">
+                <div class="relative mb-6">
+                    <div class="absolute inset-0 bg-violet-200/50 blur-3xl rounded-full opacity-60"></div>
+                    <div class="prodigy-hall-empty-icon relative w-24 h-24 bg-white rounded-full flex items-center justify-center border-2 border-violet-100 shadow-lg">
+                        <i class="fas fa-dove text-4xl text-indigo-300 group-hover:text-violet-500 transition-colors" aria-hidden="true"></i>
+                    </div>
                 </div>
-                <h4 class="text-white font-title text-4xl mb-3">Quiet Halls</h4>
-                <p class="text-indigo-200/60 font-medium text-xl max-w-sm text-center">No heroic deeds were recorded in the scrolls of ${monthName}.</p>
+                <h4 class="text-indigo-900 font-title text-2xl sm:text-3xl mb-2 tracking-tight flex items-center justify-center gap-2 flex-wrap">
+                    <i class="fas fa-moon text-indigo-400" aria-hidden="true"></i> Quiet halls
+                </h4>
+                <p class="text-indigo-600/90 prodigy-hall-tagline text-sm sm:text-base max-w-sm">No star awards logged for <span class="font-title text-indigo-800">${monthName}</span> — pick another month.</p>
             </div>`;
     } else {
-        const { studentStats, topStudent, winners } = buildProdigyMonthOutcome(students, monthlyLogs, allScores, viewYear, viewMonthIndex);
+        const { winners } = buildProdigyMonthOutcome(students, monthlyLogs, allScores, viewYear, viewMonthIndex);
 
-        if (!topStudent || topStudent.monthlyStars === 0) {
-            html += `<div class="text-center py-12 text-indigo-300">No stars awarded this month.</div>`;
+        if (!winners || winners.length === 0) {
+            contentEl.innerHTML = `<div class="h-full flex flex-col items-center justify-center gap-3 text-indigo-500 py-12 px-4 text-center prodigy-hall-tagline">
+                <i class="fas fa-star-half-stroke text-3xl text-amber-400" aria-hidden="true"></i>
+                <span>No stars this month for <span class="font-title text-indigo-800">${monthName}</span>, so there is no prodigy for this month.</span>
+            </div>`;
         } else {
-            // Adjust Layout
             const isTie = winners.length > 1;
-            const containerClass = isTie ? "flex flex-wrap justify-center gap-8" : "flex justify-center";
-            const cardClass = isTie ? "w-full lg:w-[45%] max-w-md" : "w-full max-w-lg";
-            const titleText = isTie ? "Co-Prodigy of the Month" : "Prodigy of the Month";
+            const containerClass = isTie ? "flex flex-wrap justify-center gap-5 md:gap-6 items-stretch" : "flex justify-center";
+            const cardClass = isTie ? "w-full sm:w-[calc(50%-0.5rem)] min-w-[min(100%,18rem)] max-w-lg" : "w-full max-w-3xl";
+            const titleText = isTie ? "Legendary Co-Prodigy" : "Eternal Prodigy";
 
             const cardsHtml = winners.map(winner => {
-                // Inventory Handling
                 const scoreData = state.get('allStudentScores').find(sc => sc.id === winner.id);
                 const inventory = scoreData?.inventory || [];
-
                 const inventoryHtml = inventory.length > 0
-                    ? inventory.slice(0, 4).map(i => {
-                        // FIX: Logic for displaying Image OR Icon (for Legendaries)
-                        let visual = '';
-                        if (i.image) {
-                            visual = `<img src="${i.image}" class="w-full h-full object-cover">`;
-                        } else {
-                            // Try to find icon in legendary list by ID or Name, or fallback
-                            const legendary = LEGENDARY_ARTIFACTS.find(l => l.id === i.id || l.name === i.name);
-                            const icon = i.icon || (legendary ? legendary.icon : '📦');
-                            visual = `<div class="w-full h-full flex items-center justify-center text-xl bg-indigo-900/50 text-white">${icon}</div>`;
-                        }
-
-                        return `
-                        <div class="relative group">
-                            <div class="w-12 h-12 rounded-lg border-2 border-amber-400/60 shadow-lg bg-black/40 overflow-hidden transform group-hover:scale-110 transition-transform">
-                                ${visual}
-                            </div>
-                            <div class="absolute -bottom-8 left-1/2 -translate-x-1/2 text-[10px] text-white bg-black/90 px-2 py-1 rounded opacity-0 group-hover:opacity-100 whitespace-nowrap pointer-events-none z-50 transition-opacity border border-white/20">${i.name}</div>
-                        </div>`;
+                    ? inventory.slice(0, 8).map(item => {
+                        const visual = item.image ? `<img src="${item.image}" class="w-full h-full object-cover" alt="">` : `<span class="text-sm leading-none">${item.icon || '📦'}</span>`;
+                        return `<div class="prodigy-hall-vault-item w-10 h-10 sm:w-11 sm:h-11 rounded-xl bg-white/90 border-2 border-white/80 flex items-center justify-center overflow-hidden shrink-0" title="${item.name}">${visual}</div>`;
                     }).join('')
-                    : '<span class="text-sm text-indigo-300/50 italic py-2">Vault is empty</span>';
+                    : '<span class="text-xs text-white/60 italic">No shop items yet</span>';
 
                 const avatarHtml = winner.avatar
-                    ? `<img src="${winner.avatar}" class="w-48 h-48 rounded-full border-8 border-amber-300 shadow-[0_0_50px_rgba(251,191,36,0.6)] object-cover bg-white relative z-10">`
-                    : `<div class="w-48 h-48 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 border-8 border-amber-300 flex items-center justify-center text-8xl font-bold text-white shadow-[0_0_50px_rgba(251,191,36,0.6)] relative z-10">${winner.name.charAt(0)}</div>`;
+                    ? `<img src="${winner.avatar}" class="w-full h-full object-cover" alt="">`
+                    : `<div class="w-full h-full flex items-center justify-center text-3xl sm:text-4xl font-title text-indigo-600 bg-white">${winner.name.charAt(0)}</div>`;
 
-                let badgeText = "Behavior Hero";
-                let badgeIcon = "❤️";
-                if (winner.stats.academicAvg >= 90) { badgeText = `Quiz Master (${winner.stats.academicAvg.toFixed(0)}%)`; badgeIcon = "🧠"; }
-                else if (winner.stats.academicAvg > 0) { badgeText = `Academic Star (${winner.stats.academicAvg.toFixed(0)}%)`; badgeIcon = "📝"; }
+                let badgeFa = 'fa-heart';
+                let badgeText = 'Heroic Spirit';
+                let badgeColor = 'from-rose-400 to-pink-500';
+                
+                if (winner.stats.academicAvg >= 90) { 
+                    badgeText = `Ancient Sage (${winner.stats.academicAvg.toFixed(0)}%)`;
+                    badgeFa = 'fa-hat-wizard';
+                    badgeColor = 'from-amber-400 to-orange-500';
+                } else if (winner.stats.academicAvg > 0) { 
+                    badgeText = `Learned Hero (${winner.stats.academicAvg.toFixed(0)}%)`;
+                    badgeFa = 'fa-book-open';
+                    badgeColor = 'from-emerald-400 to-teal-500';
+                }
+                
                 const timesCrowned = winCounts.get(winner.id) || 1;
 
-                // Confetti CSS
-                const confettiHtml = Array.from({ length: 15 }).map((_, i) => {
-                    const left = Math.random() * 100;
-                    const delay = Math.random() * 3;
-                    const color = ['#fbbf24', '#f87171', '#60a5fa'][Math.floor(Math.random() * 3)];
-                    return `<div class="absolute w-2 h-2 rounded-full" style="background:${color}; left:${left}%; top:-20%; animation: fall-confetti ${3 + Math.random()}s linear infinite; animation-delay:${delay}s; opacity:0.6;"></div>`;
-                }).join('');
-
                 return `
-                <div class="relative ${cardClass} perspective-1000 mb-8 transform hover:-translate-y-3 transition-all duration-500 group/card">
-                    <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[115%] h-[115%] bg-gradient-to-r from-indigo-500/40 via-purple-500/40 to-indigo-500/40 blur-[80px] rounded-full animate-pulse-slow opacity-0 group-hover/card:opacity-100 transition-opacity"></div>
-                    
-                    <!-- Decorative Floating Elements -->
-                    <div class="absolute -left-4 -top-4 w-12 h-12 bg-amber-400/20 backdrop-blur-md rounded-2xl border border-white/20 flex items-center justify-center text-xl shadow-lg z-30 group-hover/card:-translate-y-2 group-hover/card:-translate-x-1 transition-transform">✨</div>
-                    <div class="absolute -right-2 bottom-12 w-10 h-10 bg-indigo-400/20 backdrop-blur-md rounded-xl border border-white/20 flex items-center justify-center text-lg shadow-lg z-30 group-hover/card:translate-y-2 group-hover/card:translate-x-1 transition-transform">📜</div>
-
-                    <div class="relative bg-gradient-to-b from-indigo-900/95 to-indigo-950 border-4 border-white/10 rounded-[4rem] p-8 flex flex-col items-center text-center shadow-[0_32px_64px_-16px_rgba(0,0,0,0.6)] overflow-hidden backdrop-blur-2xl h-full justify-between ring-1 ring-white/10">
-                        
-                        <div class="absolute inset-0 pointer-events-none overflow-hidden">${confettiHtml}</div>
-                        
-                        <!-- Header Badge -->
-                        <div class="relative z-20 mb-8">
-                            <div class="bg-gradient-to-r from-amber-400 via-yellow-300 to-amber-400 text-amber-900 px-8 py-2.5 rounded-full font-title text-sm uppercase tracking-widest shadow-[0_0_20px_rgba(251,191,36,0.4)] border border-white/20">
-                                <i class="fas fa-crown mr-2"></i>${titleText}
+                <div class="prodigy-hall-card relative ${cardClass} group/card">
+                    <div class="prodigy-hall-card__inner p-5 sm:p-7 md:p-8 h-full min-h-[14rem] sm:min-h-[16rem]">
+                        <div class="prodigy-hall-card__stars absolute inset-0 opacity-[0.17] pointer-events-none"></div>
+                        <div class="relative z-[2] flex flex-col sm:flex-row gap-5 sm:gap-6 md:gap-8 items-center sm:items-stretch text-center sm:text-left">
+                            <div class="relative shrink-0 flex flex-col items-center">
+                                <div class="prodigy-hall-avatar-ring w-[5.5rem] h-[5.5rem] sm:w-32 sm:h-32 md:w-36 md:h-36 rounded-full border-[3px] border-white/35 overflow-hidden bg-indigo-50">
+                                    ${avatarHtml}
+                                </div>
+                                <div class="absolute -top-1 -right-1 bg-white w-10 h-10 rounded-full flex items-center justify-center shadow-md border-2 border-amber-400 text-amber-500" aria-hidden="true">
+                                    <i class="fas fa-trophy text-lg"></i>
+                                </div>
                             </div>
-                        </div>
-
-                        <!-- Trophy Count -->
-                        <div class="absolute top-24 right-10 flex flex-col items-center group/trophy cursor-help">
-                            <div class="w-14 h-14 bg-white/5 backdrop-blur-lg rounded-2xl flex items-center justify-center border border-white/10 shadow-inner group-hover/trophy:bg-white/15 transition-all">
-                                <span class="font-title text-2xl text-amber-300">${timesCrowned}x</span>
-                            </div>
-                            <span class="text-[9px] font-black text-indigo-300 uppercase tracking-widest mt-1.5 opacity-60">Hall Entries</span>
-                        </div>
-
-                        <!-- Avatar Section -->
-                        <div class="relative mb-8 group/avatar">
-                            <div class="absolute inset-0 bg-amber-400/20 blur-3xl rounded-full opacity-60 group-hover/avatar:opacity-100 transition-opacity"></div>
-                            ${avatarHtml}
-                            <div class="absolute -top-4 -right-4 text-7xl filter drop-shadow-xl z-30 animate-bounce-slow" style="animation-delay: 0.5s">👑</div>
-                        </div>
-
-                        <!-- Name & Score -->
-                        <div class="relative z-10 w-full mb-8">
-                            <h2 class="font-title text-6xl text-white drop-shadow-md mb-3 leading-tight tracking-tight">${winner.name.split(' ')[0]}</h2>
-                            <div class="inline-flex items-center gap-3 bg-white/10 backdrop-blur-md px-6 py-2 rounded-full border border-white/10 shadow-lg">
-                                <span class="text-3xl font-title text-amber-400 leading-none">${winner.monthlyStars}</span>
-                                <span class="text-xs font-black text-indigo-200 uppercase tracking-widest">Stars Earned</span>
-                            </div>
-                        </div>
-
-                        <!-- Metrics & Vault -->
-                        <div class="w-full space-y-4 relative z-10">
-                            <div class="grid grid-cols-2 gap-3">
-                                <div class="bg-white/5 rounded-3xl p-4 border border-white/5 shadow-inner">
-                                    <p class="text-[10px] text-indigo-300 font-black uppercase tracking-widest mb-2 opacity-60">Versatility</p>
-                                    <p class="text-white font-title text-xl leading-none flex items-center justify-center gap-2">
-                                        <i class="fas fa-bolt text-amber-400"></i>
-                                        ${winner.stats.uniqueReasons} <span class="text-[10px] font-black uppercase opacity-60">Types</span>
+                            <div class="flex-1 min-w-0 flex flex-col gap-3 sm:gap-3.5 w-full justify-center">
+                                <div class="flex flex-wrap items-center justify-center sm:justify-between gap-2.5">
+                                    <div class="prodigy-hall-crown-pill text-amber-950 px-3 py-1.5 rounded-xl text-xs sm:text-sm uppercase tracking-wider flex items-center gap-2 bg-amber-400">
+                                        <i class="fas fa-crown text-sm" aria-hidden="true"></i>
+                                        ${titleText}
+                                    </div>
+                                    <div class="prodigy-hall-medal-pill flex items-center gap-2 bg-white/12 px-3 py-1.5 rounded-xl border border-white/20">
+                                        <span class="text-lg text-amber-200 font-title">${timesCrowned}×</span>
+                                        <i class="fas fa-medal text-amber-300 text-sm" aria-hidden="true"></i>
+                                    </div>
+                                </div>
+                                <h2 class="prodigy-hall-student-name text-2xl sm:text-3xl md:text-4xl text-white tracking-tight leading-snug break-words">${winner.name}</h2>
+                                <div class="prodigy-hall-badge-row flex flex-wrap items-center justify-center sm:justify-start gap-2.5 text-sm text-white/90">
+                                    <span class="text-amber-200 font-title text-2xl sm:text-3xl leading-none">${winner.monthlyStars}</span>
+                                    <span class="font-semibold tracking-wide text-sm sm:text-base"><i class="fas fa-sparkles text-amber-300 mr-1.5" aria-hidden="true"></i>stars this month</span>
+                                </div>
+                                <div class="bg-gradient-to-r ${badgeColor} px-4 py-2.5 sm:py-3 rounded-2xl border border-white/25 flex items-center justify-center sm:justify-start gap-2.5 shadow-md">
+                                    <span class="text-white text-lg" aria-hidden="true"><i class="fas ${badgeFa}"></i></span>
+                                    <span class="text-white prodigy-hall-badge-row text-sm sm:text-base leading-snug">${badgeText}</span>
+                                </div>
+                                <div class="grid grid-cols-2 gap-3 sm:gap-4 text-left">
+                                    <div class="bg-black/25 rounded-2xl px-3 py-3 sm:px-4 sm:py-3.5 border border-white/10" title="How many different praise reasons were used when awarding stars">
+                                        <p class="prodigy-hall-stat-label text-xs sm:text-sm text-indigo-100/95 mb-1 flex items-center gap-1.5 leading-snug">
+                                            <i class="fas fa-comments text-amber-300 shrink-0" aria-hidden="true"></i>
+                                            <span>Different praise reasons</span>
+                                        </p>
+                                        <p class="text-white font-title text-2xl sm:text-3xl leading-none">${winner.stats.uniqueReasons}</p>
+                                    </div>
+                                    <div class="bg-black/25 rounded-2xl px-3 py-3 sm:px-4 sm:py-3.5 border border-white/10" title="Days this month with three or more stars in one go">
+                                        <p class="prodigy-hall-stat-label text-xs sm:text-sm text-indigo-100/95 mb-1 flex items-center gap-1.5 leading-snug">
+                                            <i class="fas fa-star text-amber-300 shrink-0" aria-hidden="true"></i>
+                                            <span>Days with 3★ or more</span>
+                                        </p>
+                                        <p class="text-white font-title text-2xl sm:text-3xl leading-none">${winner.stats.count3}</p>
+                                    </div>
+                                </div>
+                                <div class="mt-1">
+                                    <p class="prodigy-hall-vault-title text-xs sm:text-sm text-indigo-100/90 tracking-wide mb-2 text-center sm:text-left flex items-center justify-center sm:justify-start gap-2 font-semibold">
+                                        <i class="fas fa-bag-shopping text-sky-300 text-base" aria-hidden="true"></i> Shop items owned
                                     </p>
-                                </div>
-                                <div class="bg-white/5 rounded-3xl p-4 border border-white/5 shadow-inner">
-                                    <p class="text-[10px] text-indigo-300 font-black uppercase tracking-widest mb-2 opacity-60">Academics</p>
-                                    <p class="text-white font-title text-lg leading-none truncate px-1" title="${badgeText}">
-                                        ${badgeIcon} ${badgeText.split(' ')[0]}
-                                    </p>
-                                </div>
-                            </div>
-                            
-                            <div class="bg-black/20 rounded-[2.5rem] p-5 border border-white/5">
-                                <div class="flex items-center justify-between mb-4 px-2">
-                                    <span class="text-[10px] font-black text-amber-400/80 uppercase tracking-[0.25em]">Legendary Vault</span>
-                                    <span class="w-8 h-px bg-white/10"></span>
-                                </div>
-                                <div class="flex flex-wrap justify-center gap-4">
-                                    ${inventoryHtml}
+                                    <div class="flex flex-wrap gap-2 justify-center sm:justify-start">
+                                        ${inventoryHtml}
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -1212,13 +1216,11 @@ export async function renderProdigyHistory(classId) {
                 </div>`;
             }).join('');
 
-            html += `<div class="${containerClass} w-full pb-8">${cardsHtml}</div>`;
+            contentEl.innerHTML = `<div class="${containerClass} w-full pb-4 md:pb-6 animate-in">${cardsHtml}</div>`;
         }
     }
 
-    contentEl.innerHTML = html;
-
-    // 6. Bind Listeners
+    // Bind Listeners
     const prevBtn = document.getElementById('prodigy-prev-btn');
     const nextBtn = document.getElementById('prodigy-next-btn');
 
@@ -1237,4 +1239,3 @@ export async function renderProdigyHistory(classId) {
         };
     }
 }
-

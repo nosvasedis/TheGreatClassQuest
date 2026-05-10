@@ -10,7 +10,8 @@ export function findAndSetCurrentClass(targetSelectId = null) {
     if (!state.get('classFollowSchedule')) return;
 
     const todayString = utils.getTodayDateString();
-    const classesToday = utils.getClassesOnDay(todayString, state.get('allSchoolClasses'), state.get('allScheduleOverrides'));
+    const classEndDates = state.get('teacherSettings')?.schoolYearSettings?.classEndDates || {};
+    const classesToday = utils.getClassesOnDay(todayString, state.get('allSchoolClasses'), state.get('allScheduleOverrides'), classEndDates);
     const myClassesToday = classesToday.filter(c => state.get('allTeachersClasses').some(tc => tc.id === c.id));
 
     const now = new Date();
@@ -59,6 +60,7 @@ export function renderCalendarTab(customLogs = null) {
 
     // Determine which dataset to use
     const logsToRender = customLogs || state.get('allAwardLogs');
+    const classEndDates = state.get('teacherSettings')?.schoolYearSettings?.classEndDates || {};
 
     const loader = document.getElementById('calendar-loader');
     const isLoaderVisible = loader && !loader.classList.contains('hidden');
@@ -121,7 +123,7 @@ export function renderCalendarTab(customLogs = null) {
         const myClasses = state.get('allTeachersClasses');
         const dayOfWeekStr = day.getDay().toString();
         const myScheduledClasses = myClasses.filter(c => c.scheduleDays && c.scheduleDays.includes(dayOfWeekStr));
-        const classesOnThisDay = utils.getClassesOnDay(dateString, state.get('allSchoolClasses'), state.get('allScheduleOverrides'));
+        const classesOnThisDay = utils.getClassesOnDay(dateString, state.get('allSchoolClasses'), state.get('allScheduleOverrides'), classEndDates);
         const myClassIds = myClasses.map(c => c.id);
         const myCancellations = state.get('allScheduleOverrides').filter(o =>
             o.date === dateString &&

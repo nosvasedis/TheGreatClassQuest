@@ -106,7 +106,7 @@ export const heroModalsHTML = `
     <div id="hero-chronicle-modal"
         class="fixed inset-0 bg-black/60 z-[72] flex items-center justify-center p-4 hidden backdrop-blur-md">
         <div
-            class="bg-slate-50 rounded-[2.5rem] shadow-2xl max-w-5xl w-full pop-in border-4 border-white flex flex-col max-h-[90vh] overflow-hidden">
+            class="bg-slate-50 rounded-[2.5rem] shadow-2xl max-w-5xl w-full pop-in border-4 border-white flex flex-col min-h-0 max-h-[min(92vh,calc(100dvh-1.5rem))] h-[min(88vh,calc(100dvh-2rem))] overflow-hidden">
             
             <!-- Premium Header Section -->
             <div class="relative bg-gradient-to-r from-emerald-600 to-teal-700 p-6 text-white flex-shrink-0 overflow-hidden">
@@ -126,13 +126,15 @@ export const heroModalsHTML = `
                     
                     <div class="flex items-center gap-4">
                         <!-- Tab Navigation -->
-                        <div class="flex bg-black/20 p-1 rounded-2xl backdrop-blur-sm">
-                            <button id="chronicle-tab-notes" class="hero-chronicle-tab-btn active px-5 py-2 rounded-xl text-sm font-black uppercase tracking-wider transition-all flex items-center gap-2">
-                                <i class="fas fa-book-open"></i>
+                        <div class="flex bg-black/20 p-1 rounded-2xl backdrop-blur-sm gap-0.5" role="tablist" aria-label="Chronicle sections">
+                            <button type="button" id="chronicle-tab-notes" role="tab" aria-selected="true" aria-controls="hero-chronicle-content-notes"
+                                class="hero-chronicle-tab-btn active px-5 py-2.5 rounded-[0.65rem] text-sm font-black uppercase tracking-wider transition-all flex items-center gap-2">
+                                <i class="fas fa-book-open" aria-hidden="true"></i>
                                 <span>Notes</span>
                             </button>
-                            <button id="chronicle-tab-oracle" class="hero-chronicle-tab-btn px-5 py-2 rounded-xl text-sm font-black uppercase tracking-wider transition-all flex items-center gap-2">
-                                <i class="fas fa-wand-sparkles"></i>
+                            <button type="button" id="chronicle-tab-oracle" role="tab" aria-selected="false" aria-controls="hero-chronicle-content-oracle"
+                                class="hero-chronicle-tab-btn px-5 py-2.5 rounded-[0.65rem] text-sm font-black uppercase tracking-wider transition-all flex items-center gap-2">
+                                <i class="fas fa-wand-sparkles" aria-hidden="true"></i>
                                 <span>The Oracle</span>
                             </button>
                         </div>
@@ -146,11 +148,11 @@ export const heroModalsHTML = `
             </div>
 
             <!-- Main Content Area -->
-            <div class="flex-grow overflow-hidden relative flex flex-col bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] bg-fixed">
+            <div class="flex-1 min-h-0 overflow-hidden relative flex flex-col bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] bg-fixed">
                 
                 <!-- Tab 1: Chronicle (Notes) -->
-                <div id="hero-chronicle-content-notes" class="flex flex-col h-full p-6 gap-6">
-                    <div class="flex flex-col md:flex-row gap-6 h-full min-h-0">
+                <div id="hero-chronicle-content-notes" role="tabpanel" aria-labelledby="chronicle-tab-notes" class="flex flex-col flex-1 min-h-0 p-6 gap-6">
+                    <div class="flex flex-col md:flex-row gap-6 flex-1 min-h-0">
                         <!-- Left: Feed -->
                         <div class="flex-grow flex flex-col min-h-0">
                              <div class="flex items-center justify-between mb-3 px-2">
@@ -211,8 +213,8 @@ export const heroModalsHTML = `
                 </div>
 
                 <!-- Tab 2: The Oracle (AI) -->
-                <div id="hero-chronicle-content-oracle" class="hidden flex flex-col h-full p-6 gap-6">
-                    <div class="flex flex-col md:flex-row gap-6 h-full min-h-0">
+                <div id="hero-chronicle-content-oracle" role="tabpanel" aria-labelledby="chronicle-tab-oracle" class="hidden flex flex-col flex-1 min-h-0 p-6 gap-6">
+                    <div class="flex flex-col md:flex-row gap-6 flex-1 min-h-0">
                         <!-- Left: Controls -->
                         <div class="md:w-72 flex-shrink-0 space-y-4">
                             <div class="bg-indigo-900 rounded-[2rem] p-6 text-white shadow-xl relative overflow-hidden">
@@ -271,7 +273,7 @@ export const heroModalsHTML = `
                         </div>
 
                         <!-- Right: AI Display -->
-                        <div class="flex-grow flex flex-col min-h-0 h-full">
+                        <div class="flex-1 flex flex-col min-h-0">
                             <div class="flex items-center justify-between mb-3 px-2 flex-shrink-0">
                                 <h3 class="text-xs font-black text-slate-400 uppercase tracking-[0.2em] flex items-center gap-2">
                                     <i class="fas fa-comment-dots"></i> The Oracle's Response
@@ -281,9 +283,9 @@ export const heroModalsHTML = `
                                     Elite AI Active
                                 </div>
                             </div>
-                            <div class="flex-grow min-h-0 relative">
+                            <div class="flex-1 min-h-[12rem] md:min-h-0 relative">
                                 <div id="hero-chronicle-ai-output"
-                                    class="absolute inset-0 bg-white rounded-[2rem] p-8 shadow-inner border border-slate-100 overflow-y-auto rich-text custom-scrollbar">
+                                    class="absolute inset-0 bg-white rounded-[2rem] p-6 md:p-8 shadow-inner border border-slate-100 overflow-y-auto rich-text custom-scrollbar">
                                     <div class="h-full flex flex-col items-center justify-center text-center space-y-4">
                                         <div class="w-24 h-24 bg-slate-50 rounded-full flex items-center justify-center text-5xl opacity-40">🔮</div>
                                         <p class="text-slate-400 font-medium max-w-xs">Consult the records by selecting a counsel type on the left.</p>
@@ -299,27 +301,45 @@ export const heroModalsHTML = `
     </div>
 
     <div id="prodigy-modal"
-        class="fixed inset-0 bg-black bg-opacity-80 z-[95] flex items-center justify-center p-4 hidden backdrop-blur-sm">
+        class="fixed inset-0 bg-indigo-950/70 z-[95] flex items-center justify-center p-3 sm:p-4 hidden backdrop-blur-xl">
         <div
-            class="bg-gradient-to-br from-indigo-900 to-purple-900 rounded-3xl shadow-2xl max-w-4xl w-full h-[85vh] pop-in border-4 border-amber-400 flex flex-col relative overflow-hidden">
-            <div class="absolute inset-0 opacity-20 pointer-events-none"
-                style="background-image: url('https://www.transparenttextures.com/patterns/stardust.png');"></div>
-
-            <button id="prodigy-close-btn"
-                class="absolute top-4 right-4 bg-white/10 hover:bg-white/30 text-white w-10 h-10 rounded-full z-50 transition-colors">&times;</button>
-
-            <div class="text-center p-6 border-b border-white/10 relative z-10">
-                <div class="text-6xl mb-2 animate-bounce-slow">👑</div>
-                <h2
-                    class="font-title text-4xl text-transparent bg-clip-text bg-gradient-to-r from-amber-300 via-yellow-200 to-amber-300 filter drop-shadow-md">
-                    Hall of Prodigies</h2>
-                <p class="text-indigo-200 text-lg mt-1">Legends of Months Past</p>
-
-                <p id="prodigy-class-context" class="mt-4 text-center text-amber-200/90 text-sm font-bold tracking-wide" hidden></p>
+            class="prodigy-hall-shell bg-gradient-to-br from-indigo-50 via-white to-violet-50 rounded-[2rem] md:rounded-[2.5rem] max-w-5xl w-full max-h-[min(96vh,56rem)] min-h-[62vh] sm:min-h-[70vh] md:min-h-[74vh] flex flex-col relative overflow-hidden border-4 border-white pop-in">
+            <span class="prodigy-hall-sparkle prodigy-hall-sparkle--1" aria-hidden="true"></span>
+            <span class="prodigy-hall-sparkle prodigy-hall-sparkle--2" aria-hidden="true"></span>
+            <span class="prodigy-hall-sparkle prodigy-hall-sparkle--3" aria-hidden="true"></span>
+            
+            <!-- Animated Background Glows -->
+            <div class="absolute inset-0 pointer-events-none overflow-hidden opacity-55">
+                <div class="absolute -top-40 -left-40 w-[500px] h-[500px] bg-amber-200 blur-[150px] rounded-full animate-pulse"></div>
+                <div class="absolute -bottom-40 -right-40 w-[500px] h-[500px] bg-violet-400/30 blur-[150px] rounded-full animate-pulse" style="animation-delay: 1.5s;"></div>
             </div>
 
-            <div id="prodigy-content" class="flex-grow overflow-y-auto p-6 custom-scrollbar relative z-10 space-y-6">
-                <div class="text-center text-indigo-300 mt-10 text-xl">Loading legends…</div>
+            <!-- Header -->
+            <div class="prodigy-hall-header relative z-20 px-4 py-3.5 md:px-8 md:py-5 flex flex-wrap items-center justify-between gap-3 bg-white/55 backdrop-blur-md border-b border-indigo-100/60 flex-shrink-0">
+                <div class="flex items-center gap-3 min-w-0">
+                    <div class="prodigy-hall-icon-wrap w-14 h-14 md:w-16 md:h-16 shrink-0 bg-gradient-to-tr from-violet-600 via-purple-600 to-indigo-700 rounded-xl md:rounded-[1.25rem] flex items-center justify-center text-3xl md:text-4xl border-2 border-white text-white">
+                        <i class="fas fa-landmark" aria-hidden="true"></i>
+                    </div>
+                    <div class="min-w-0">
+                        <h2 class="font-title text-3xl md:text-4xl text-indigo-950 tracking-tight leading-none">
+                            Hall of Prodigies
+                        </h2>
+                    </div>
+                </div>
+
+                <div class="flex items-center gap-3 md:gap-5 w-full sm:w-auto justify-end">
+                    <div id="prodigy-nav-container" class="flex items-center gap-2 flex-1 sm:flex-initial justify-center sm:justify-end min-w-0"></div>
+                    
+                    <button type="button" id="prodigy-close-btn"
+                        class="prodigy-hall-close text-slate-400 hover:text-indigo-600 text-3xl leading-none w-12 h-12 flex items-center justify-center rounded-full hover:bg-white/80 bg-white/30"
+                        aria-label="Close Hall of Prodigies">
+                        <i class="fas fa-circle-xmark" aria-hidden="true"></i>
+                    </button>
+                </div>
+            </div>
+
+            <div id="prodigy-content" class="flex-1 overflow-y-auto p-5 md:p-8 lg:p-10 custom-scrollbar relative z-10 min-h-0 bg-transparent">
+                <!-- Content injected here -->
             </div>
         </div>
     </div>

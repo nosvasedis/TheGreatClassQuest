@@ -119,7 +119,8 @@ const POWER_UP_EFFECTS = {
             classData?.id,
             state.get('allSchoolClasses'),
             state.get('allScheduleOverrides'),
-            state.get('schoolHolidayRanges')
+            state.get('schoolHolidayRanges'),
+            state.get('teacherSettings')?.schoolYearSettings?.classEndDates || {}
         );
         if (!nextLessonDate) {
             return {

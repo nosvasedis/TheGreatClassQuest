@@ -321,7 +321,8 @@ export function setGlobalSelectedLeague(league, isManual = false) {
         const now = new Date();
         const currentTime = now.toTimeString().slice(0, 5);
         const todayString = getTodayDateString();
-        const classesToday = getClassesOnDay(todayString, state.allSchoolClasses, state.allScheduleOverrides);
+        const classEndDates = state.teacherSettings?.schoolYearSettings?.classEndDates || {};
+        const classesToday = getClassesOnDay(todayString, state.allSchoolClasses, state.allScheduleOverrides, classEndDates);
         const myLeagueClasses = classesToday.filter(c =>
             c.questLevel === league &&
             state.allTeachersClasses.some(tc => tc.id === c.id)

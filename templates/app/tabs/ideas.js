@@ -68,9 +68,9 @@ export const ideasTabHTML = `
                                     </button>
                                 </div>
 
-                                <div class="mt-2 flex items-center gap-2">
+                                <div class="mt-2 flex flex-wrap items-center gap-2">
                                     <input type="text" id="story-weavers-word-input"
-                                        class="flex-grow px-3.5 py-2.5 border border-slate-200 rounded-xl shadow-sm bg-white/70 focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 transition-colors"
+                                        class="min-w-[10rem] flex-1 px-3.5 py-2.5 border border-slate-200 rounded-xl shadow-sm bg-white/70 focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 transition-colors"
                                         placeholder="e.g., mysterious" autocomplete="off" inputmode="text" aria-label="Word of the Day">
 
                                     <button id="story-weavers-confirm-word-btn"
@@ -97,7 +97,7 @@ export const ideasTabHTML = `
                                 </button>
                             </div>
 
-                            <div class="mt-5 flex items-center gap-2 overflow-x-auto pb-1">
+                            <div class="mt-5 story-weavers-actions-row">
                                 <button id="story-weavers-history-btn"
                                     class="inline-flex flex-shrink-0 items-center gap-2 px-3.5 py-2 rounded-2xl text-sm font-semibold text-slate-800 bg-white/70 hover:bg-white shadow-sm ring-1 ring-slate-200 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-500 focus-visible:ring-offset-2 whitespace-nowrap">
                                     <span class="w-8 h-8 rounded-xl bg-gradient-to-br from-cyan-100 to-teal-100 flex items-center justify-center text-cyan-800 ring-1 ring-cyan-200">

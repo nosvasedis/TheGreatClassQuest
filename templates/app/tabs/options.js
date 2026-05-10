@@ -294,25 +294,27 @@ export const optionsTabHTML = `
                                         <div id="holiday-list" class="mt-4 space-y-2 max-h-40 overflow-y-auto"></div>
                                     </div>
                                     
-                                    <!-- Class End Dates Configuration -->
-                                    <div class="relative overflow-hidden rounded-[2rem] border border-purple-200 bg-white shadow-lg p-6 md:p-8 space-y-4">
-                                        <div class="absolute -top-10 -left-10 w-40 h-40 bg-gradient-to-br from-purple-200 to-indigo-200 rounded-full blur-3xl opacity-50 pointer-events-none"></div>
+                                    <!-- Class End Date (header-selected class only) -->
+                                    <div class="relative overflow-hidden rounded-[2rem] border border-violet-200 bg-gradient-to-br from-white via-violet-50/40 to-indigo-50/30 shadow-lg p-6 md:p-8 space-y-5">
+                                        <div class="absolute -top-12 -right-8 w-44 h-44 bg-gradient-to-br from-violet-300/50 to-indigo-300/40 rounded-full blur-3xl opacity-60 pointer-events-none"></div>
+                                        <div class="absolute bottom-0 left-0 w-32 h-32 bg-gradient-to-tr from-fuchsia-200/30 to-transparent rounded-full blur-2xl pointer-events-none"></div>
                                         
-                                        <div class="relative z-10 flex flex-col items-center mb-4">
-                                            <div class="w-16 h-16 bg-gradient-to-br from-purple-500 to-indigo-600 rounded-full flex items-center justify-center shadow-lg shadow-purple-500/30 mb-3 floating-icon">
+                                        <div class="relative z-10 flex flex-col items-center text-center gap-2">
+                                            <div class="w-16 h-16 bg-gradient-to-br from-violet-500 to-indigo-600 rounded-2xl flex items-center justify-center shadow-lg shadow-violet-500/25 mb-1 floating-icon ring-2 ring-white/80">
                                                 <i class="fas fa-flag-checkered text-white text-2xl"></i>
                                             </div>
-                                            <h2 class="font-title text-3xl text-purple-800 text-center">Class End Dates</h2>
-                                            <p class="text-sm text-gray-500 text-center mt-1">Set the last lesson date for each class. The Grand Guild Ceremony will activate on these dates.</p>
+                                            <h2 class="font-title text-3xl text-violet-900">Class end date</h2>
+                                            <p class="text-sm text-gray-600 max-w-lg">Last lesson day for the class you pick in the <span class="font-semibold text-violet-800">header</span>. After this date, that class no longer appears on your day-by-day schedule and ceremonies can line up with the final day.</p>
                                         </div>
 
-                                        <div id="class-end-dates-list" class="space-y-3 max-h-60 overflow-y-auto relative z-10">
-                                            <!-- Class end dates will be populated here by JavaScript -->
+                                        <div id="class-end-dates-list" class="relative z-10 min-h-[120px]">
+                                            <!-- Filled by renderClassEndDatesList() -->
                                         </div>
                                         
-                                        <button id="save-class-end-dates-btn"
-                                            class="w-full bg-purple-500 hover:bg-purple-600 text-white font-bold py-2 rounded-xl bubbly-button">
-                                            <i class="fas fa-save mr-2"></i> Save End Dates
+                                        <button type="button" id="save-class-end-dates-btn"
+                                            disabled
+                                            class="relative z-10 w-full bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 text-white font-title text-lg py-3 rounded-2xl bubbly-button shadow-md shadow-violet-500/20 disabled:opacity-45 disabled:cursor-not-allowed disabled:pointer-events-none transition-all">
+                                            <i class="fas fa-save mr-2"></i> Save for this class
                                         </button>
                                     </div>
                                 </div>

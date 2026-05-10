@@ -37,50 +37,96 @@ function buildInventoryInnerHtml(studentId) {
     const student = state.get('allStudents').find(s => s.id === studentId);
 
     if (inventory.length === 0) {
-    return `
-        <h3 class="font-title text-3xl text-white mb-1">${student?.name || 'Unknown'}'s Collection</h3>
-        <p class="text-amber-400 font-bold mb-4">${gold} Gold Coins</p>
-        <div class="avatar-inventory-items flex flex-wrap justify-center gap-4">
-            <p class="text-white/50 text-sm italic">No artifacts collected yet.</p>
-        </div>
-        <p class="mt-4"><button type="button" class="open-trophy-room-link text-amber-400 hover:text-amber-300 underline text-sm" data-student-id="${studentId}">See full collection →</button></p>`;
-}
+        return `
+            <h3 class="inventory-title text-3xl mb-1">${student?.name || 'Unknown'}'s Collection</h3>
+            <div class="inventory-gold-pill mb-4"><i class="fas fa-coins text-amber-400"></i> ${gold} Gold</div>
+            <div class="avatar-inventory-items flex flex-wrap justify-center gap-6 mt-4">
+                <p class="text-white/40 text-sm italic font-medium">No artifacts collected yet.</p>
+            </div>
+            <p class="mt-8"><button type="button" class="open-trophy-room-link text-amber-400 hover:text-amber-300 font-bold transition-all text-sm uppercase tracking-wider" data-student-id="${studentId}">Open Full Vault <i class="fas fa-chevron-right ml-1"></i></button></p>`;
+    }
 
     const itemsHtml = inventory.map((item, index) => {
         let visual = '';
         if (item.image) {
-            visual = `<img src="${item.image}" class="w-16 h-16 rounded-lg border-2 border-amber-400 bg-black/50 shadow-lg transform group-hover:scale-110 transition-transform object-cover">`;
+            visual = `<div class="avatar-inventory-item-visual"><img src="${item.image}" alt="${item.name}"></div>`;
         } else {
             const icon = item.icon || '📦';
-            visual = `<div class="w-16 h-16 rounded-lg border-2 border-amber-400 bg-indigo-900/80 shadow-lg transform group-hover:scale-110 transition-transform flex items-center justify-center text-3xl">${icon}</div>`;
+            visual = `<div class="avatar-inventory-item-visual"><div class="item-icon">${icon}</div></div>`;
         }
         const useBtn = isItemUsable(item.name)
-            ? `<button type="button" class="avatar-inventory-use-btn mt-1 bg-amber-500 hover:bg-amber-600 text-amber-900 font-bold text-xs py-1 px-2 rounded transition-all disabled:opacity-50" data-item-index="${index}">Use</button>`
+            ? `<button type="button" class="avatar-inventory-use-btn" data-item-index="${index}">Use</button>`
             : '';
+        
         return `
-            <div class="avatar-inventory-item relative group cursor-help flex flex-col items-center">
+            <div class="avatar-inventory-item group" 
+                 data-item-name="${item.name.replace(/"/g, '&quot;')}" 
+                 data-item-desc="${item.description.replace(/"/g, '&quot;')}" 
+                 data-item-icon="${item.icon || ''}" 
+                 data-item-image="${item.image || ''}">
                 ${visual}
                 ${useBtn}
-                <div class="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 w-48 bg-black/90 text-white text-xs p-2 rounded-lg pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity z-50 text-center">
-                    <strong class="text-amber-400 block mb-1">${item.name}</strong>
-                    ${item.description}
-                </div>
             </div>`;
     }).join('');
 
     return `
-        <h3 class="font-title text-3xl text-white mb-1">${student?.name || 'Unknown'}'s Collection</h3>
-        <p class="text-amber-400 font-bold mb-4">${gold} Gold Coins</p>
-        <div class="avatar-inventory-items flex flex-wrap justify-center gap-4">
+        <h3 class="inventory-title text-3xl mb-1">${student?.name || 'Unknown'}'s Collection</h3>
+        <div class="inventory-gold-pill mb-4"><i class="fas fa-coins text-amber-400"></i> ${gold} Gold</div>
+        <div class="avatar-inventory-items flex flex-wrap justify-center gap-6 mt-4">
             ${itemsHtml}
         </div>
-        <p class="mt-4"><button type="button" class="open-trophy-room-link text-amber-400 hover:text-amber-300 underline text-sm" data-student-id="${studentId}">See full collection →</button></p>`;
+        <p class="mt-8"><button type="button" class="open-trophy-room-link text-amber-400 hover:text-amber-300 font-bold transition-all text-sm uppercase tracking-wider" data-student-id="${studentId}">Open Full Vault <i class="fas fa-chevron-right ml-1"></i></button></p>`;
+}
+
+/** Show a beautiful enlarged detail view of an item (also used from Treasure Vault). */
+export function showInventoryItemDetail(itemData) {
+    showItemDetail({
+        name: itemData.name,
+        desc: itemData.desc || itemData.description || '',
+        icon: itemData.icon,
+        image: itemData.image,
+    });
+}
+
+/** @internal */
+function showItemDetail(itemData) {
+    const overlay = document.createElement('div');
+    overlay.className = 'item-detail-overlay';
+    
+    const visual = itemData.image 
+        ? `<div class="item-detail-visual"><img src="${itemData.image}" alt="${itemData.name}"></div>`
+        : `<div class="item-detail-visual">${itemData.icon || '📦'}</div>`;
+
+    overlay.innerHTML = `
+        <div class="item-detail-card">
+            ${visual}
+            <h2 class="item-detail-name">${itemData.name}</h2>
+            <p class="item-detail-description">${itemData.desc}</p>
+            <p class="item-detail-close-hint">Tap anywhere to close</p>
+        </div>
+    `;
+
+    document.body.appendChild(overlay);
+    
+    // Animate in
+    requestAnimationFrame(() => {
+        overlay.classList.add('active');
+    });
+
+    const closeDetail = () => {
+        overlay.classList.remove('active');
+        setTimeout(() => overlay.remove(), 300);
+    };
+
+    overlay.addEventListener('click', (e) => {
+        e.stopPropagation();
+        closeDetail();
+    });
 }
 
 // --- AVATAR ENLARGEMENT ---
 export function handleAvatarClick(e) {
     if (e.target.closest('.familiar-stats-overlay')) return;
-
     // Familiar tap — show stats overlay
     const familiarEl = e.target.closest('.enlargeable-familiar');
     if (familiarEl) {
@@ -89,6 +135,10 @@ export function handleAvatarClick(e) {
         if (studentId) openFamiliarStatsOverlay(studentId);
         return;
     }
+
+    // Don't re-trigger if we are clicking anything inside an already enlarged container
+    // This prevents the "flash" bug when clicking the enlarged avatar itself.
+    if (e.target.closest('.enlarged-avatar-container')) return;
 
     const avatar = e.target.closest('.enlargeable-avatar');
     // Prevent closing if clicking the inventory itself
@@ -197,7 +247,7 @@ export function handleAvatarClick(e) {
         let inventoryHtml = '';
         if (studentId) {
             inventoryHtml = `
-                <div class="inventory-container bg-indigo-950/90 backdrop-blur-md p-6 rounded-3xl border-2 border-indigo-500 shadow-2xl max-w-2xl w-full mx-4 text-center mt-[300px] z-101 opacity-0 transition-opacity duration-500 delay-100" data-student-id="${studentId}">
+                <div class="inventory-container max-w-2xl w-full mx-4 text-center mt-[320px] z-101 opacity-0" data-student-id="${studentId}">
                     ${buildInventoryInnerHtml(studentId)}
                 </div>
             `;
@@ -210,6 +260,9 @@ export function handleAvatarClick(e) {
         const invContainer = container.querySelector('.inventory-container');
         if (invContainer && studentId) {
             invContainer.addEventListener('click', async (e) => {
+                e.stopPropagation(); // Prevent closing the avatar view when clicking inside the inventory
+                
+                // Handle "Open Full Vault" link
                 const link = e.target.closest('.open-trophy-room-link');
                 if (link) {
                     const sid = invContainer.dataset.studentId;
@@ -219,19 +272,37 @@ export function handleAvatarClick(e) {
                     }
                     return;
                 }
+
+                // Handle "Use" button
                 const btn = e.target.closest('.avatar-inventory-use-btn');
-                if (!btn || btn.disabled) return;
-                const sid = invContainer.dataset.studentId;
-                const itemIndex = parseInt(btn.dataset.itemIndex, 10);
-                if (!sid || isNaN(itemIndex)) return;
-                btn.disabled = true;
-                btn.textContent = 'Using...';
-                try {
-                    await handleUseItem(sid, itemIndex);
-                    invContainer.innerHTML = buildInventoryInnerHtml(sid);
-                } catch (_) {
-                    btn.disabled = false;
-                    btn.textContent = 'Use';
+                if (btn && !btn.disabled) {
+                    e.stopPropagation(); // Don't enlarge if using
+                    const sid = invContainer.dataset.studentId;
+                    const itemIndex = parseInt(btn.dataset.itemIndex, 10);
+                    if (!sid || isNaN(itemIndex)) return;
+                    btn.disabled = true;
+                    btn.textContent = 'Using...';
+                    try {
+                        await handleUseItem(sid, itemIndex);
+                        invContainer.innerHTML = buildInventoryInnerHtml(sid);
+                    } catch (_) {
+                        btn.disabled = false;
+                        btn.textContent = 'Use';
+                    }
+                    return;
+                }
+
+                // Handle Item Enlarge
+                const itemEl = e.target.closest('.avatar-inventory-item');
+                if (itemEl) {
+                    e.stopPropagation();
+                    showItemDetail({
+                        name: itemEl.dataset.itemName,
+                        desc: itemEl.dataset.itemDesc,
+                        icon: itemEl.dataset.itemIcon,
+                        image: itemEl.dataset.itemImage
+                    });
+                    return;
                 }
             });
         }
@@ -250,7 +321,6 @@ export function handleAvatarClick(e) {
             container.style.opacity = '1';
             
             const inv = container.querySelector('.inventory-container');
-            if(inv) inv.style.opacity = '1';
         });
 
         const closeHandler = () => {

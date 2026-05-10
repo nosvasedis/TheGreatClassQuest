@@ -578,6 +578,7 @@ export async function canSpinThisWeek(classId) {
         allSchoolClasses: state.get('allSchoolClasses') || [],
         allScheduleOverrides: state.get('allScheduleOverrides') || [],
         schoolHolidayRanges: state.get('schoolHolidayRanges') || [],
+        classEndDates: state.get('teacherSettings')?.schoolYearSettings?.classEndDates || {},
         alreadySpun,
     });
 
@@ -1191,6 +1192,7 @@ async function _evaluateAndRender(classId, leagueLevel) {
         allSchoolClasses,
         allScheduleOverrides,
         schoolHolidayRanges,
+        classEndDates: state.get('teacherSettings')?.schoolYearSettings?.classEndDates || {},
         alreadySpun,
     });
 
@@ -1277,7 +1279,7 @@ function _renderLockedState(title, message, emoji) {
     _setStageEmblem(null);
     _renderGuildProgress();
     _renderCurrentGuildMembers();
-    _setStageCaption('The relic remains sealed until a class is chosen in the header and the lesson window aligns.');
+    _setStageCaption('');
 
     _updateSpinButton(true, availability.code === 'already_spun' ? 'Recharging' : 'Await Final Lesson');
     const nextBtn = document.getElementById('fw-next-btn');
@@ -1844,5 +1846,8 @@ function _setStageEmblem(guildId) {
 
 function _setStageCaption(text) {
     const captionEl = document.getElementById('fw-stage-caption');
-    if (captionEl) captionEl.textContent = text;
+    if (!captionEl) return;
+    const t = String(text ?? '').trim();
+    captionEl.textContent = t;
+    captionEl.classList.toggle('hidden', !t);
 }

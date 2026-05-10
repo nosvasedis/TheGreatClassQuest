@@ -2,86 +2,120 @@
 
 export const shopTabHTML = `
             <div id="shop-tab" class="app-tab hidden">
-                <div class="max-w-7xl mx-auto">
-                    <!-- Tab Header -->
+                <div class="max-w-7xl mx-auto px-3 sm:px-4">
                     <div class="text-center mb-6">
                         <i class="fas fa-store text-fuchsia-600 text-5xl floating-icon"></i>
                         <h2 id="shop-title" class="font-title text-5xl text-fuchsia-700 mt-2 bottom-nav-tab-title"
                             style="text-shadow: 0 2px 4px rgba(0,0,0,0.1);">Mystic Market</h2>
-                        <p id="shop-month" class="text-lg text-gray-600 mt-2 font-bold uppercase tracking-widest"></p>
+                        <p id="shop-tagline" class="text-lg text-gray-600 mt-2 max-w-3xl mx-auto">
+                            Legends, seasonal treasures, and companion eggs — pick a shopper, check their purse, then browse.
+                        </p>
                     </div>
 
-                    <!-- Controls Bar: primary cluster (class → shopper) stays left; gold/restock stay right — avoids flex-center jump when state changes -->
-                    <div class="shop-controls-bar bg-white/70 backdrop-blur-sm px-5 py-3.5 rounded-2xl shadow-lg flex flex-wrap items-center gap-3 mb-8 relative z-20 w-full max-w-full">
+                    <!-- Unified shop shell: mystical shop-window frame -->
+                    <div id="shop-window"
+                        class="shop-window-shell relative flex flex-col overflow-visible min-h-[520px]">
 
-                        <div class="shop-controls-primary flex items-center gap-3 flex-wrap min-w-0 flex-1">
-                            <!-- Student Selector Pill (this element is shopHeader for badge/ring effects) -->
-                            <div class="shop-selector-pill shop-selector-pill--student">
-                                <i class="fas fa-hat-wizard shop-sel-icon text-purple-400"></i>
-                                <select id="shop-student-select" class="shop-sel-select text-purple-900">
-                                    <option value="">Choose your adventurer...</option>
-                                </select>
-                                <i class="fas fa-chevron-down shop-sel-arrow text-purple-300"></i>
+                        <div class="absolute inset-0 bg-gradient-to-br from-indigo-950 via-[#1e1b4b] to-[#0f172a] pointer-events-none z-[1] rounded-[inherit]"></div>
+                        <div class="absolute inset-0 opacity-[0.07] pointer-events-none shop-window-noise z-[1] rounded-[inherit]"></div>
+                        <div class="absolute -top-32 -right-32 w-[420px] h-[420px] bg-fuchsia-500/18 rounded-full blur-3xl pointer-events-none z-[1]"></div>
+                        <div class="absolute -bottom-40 -left-20 w-[380px] h-[380px] bg-amber-400/12 rounded-full blur-3xl pointer-events-none z-[1]"></div>
+                        <div class="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-fuchsia-400/35 to-transparent pointer-events-none z-[2]"></div>
+
+                        <div class="shop-window-lattice" aria-hidden="true">
+                            <span class="shop-window-lintel"></span>
+                            <span class="shop-window-corner shop-window-corner--tl"></span>
+                            <span class="shop-window-corner shop-window-corner--tr"></span>
+                            <span class="shop-window-corner shop-window-corner--bl"></span>
+                            <span class="shop-window-corner shop-window-corner--br"></span>
+                        </div>
+
+                        <!-- Command deck (merged shopper · purse · restock) -->
+                        <div id="shop-command-deck" class="shop-command-deck relative z-30 shrink-0 border-b border-white/10">
+                            <div class="shop-command-deck__inner flex flex-wrap items-stretch sm:items-center gap-3 sm:gap-4 p-4 sm:p-5">
+                                <div class="shop-command-deck__primary flex flex-col gap-1 min-w-0 flex-1">
+                                    <span class="shop-deck-label"><i class="fas fa-user-circle"></i> Shopper</span>
+                                    <div class="shop-controls-primary flex items-center gap-3 flex-wrap min-w-0">
+                                        <div class="shop-selector-pill shop-selector-pill--student shop-selector-pill--dark shop-selector-pill--shopper">
+                                            <i class="fas fa-hat-wizard shop-sel-icon shop-sel-icon--shopper text-fuchsia-400"></i>
+                                            <div class="shop-shopper" id="shop-shopper-root">
+                                                <button type="button" id="shop-shopper-trigger" class="shop-shopper__trigger"
+                                                    aria-haspopup="listbox" aria-expanded="false" aria-controls="shop-shopper-listbox">
+                                                    <span class="shop-shopper__trigger-text">
+                                                        <span class="shop-shopper__trigger-label">Shopper</span>
+                                                        <span class="shop-shopper__trigger-value" id="shop-shopper-display">Choose your adventurer…</span>
+                                                    </span>
+                                                    <span class="shop-shopper__chev" aria-hidden="true"><i class="fas fa-chevron-down"></i></span>
+                                                </button>
+                                                <div id="shop-shopper-listbox" class="shop-shopper__panel" role="listbox" aria-hidden="true"></div>
+                                            </div>
+                                            <select id="shop-student-select" class="shop-shopper-native" tabindex="-1" aria-hidden="true">
+                                                <option value="">Choose your adventurer…</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="shop-command-deck__actions flex flex-wrap items-center gap-3 w-full sm:w-auto sm:ml-auto sm:justify-end">
+                                    <div class="flex flex-col gap-1 min-w-0">
+                                        <span class="shop-deck-label"><i class="fas fa-wallet"></i> Purse</span>
+                                        <div class="shop-purse-glass shrink-0" aria-live="polite">
+                                            <div class="shop-purse-glass__icon" aria-hidden="true">
+                                                <i class="fas fa-coins"></i>
+                                            </div>
+                                            <div class="shop-purse-glass__body">
+                                                <span class="shop-purse-glass__label">Balance</span>
+                                                <p id="shop-student-gold" class="shop-purse-glass__amount">0 🪙</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="flex flex-col gap-1 justify-end sm:pt-5">
+                                        <span class="shop-deck-label opacity-0 hidden sm:block pointer-events-none select-none" aria-hidden="true">.</span>
+                                        <button id="generate-shop-btn" type="button"
+                                            class="hidden shop-restock-btn font-title text-sm sm:text-base bg-gradient-to-r from-fuchsia-500 via-purple-600 to-indigo-600 text-white py-2.5 px-5 rounded-xl shadow-[0_8px_24px_rgba(147,51,234,0.35)] border border-fuchsia-400/50 bubbly-button inline-flex items-center justify-center gap-2 shrink-0 w-full sm:w-auto">
+                                            <i class="fas fa-sync-alt"></i> Restock
+                                        </button>
+                                    </div>
+                                </div>
                             </div>
                         </div>
 
-                        <div class="shop-controls-actions flex items-center gap-3 shrink-0 ml-auto">
-                            <!-- Gold Chip -->
-                            <div class="shop-gold-chip shrink-0">
-                                <i class="fas fa-coins text-amber-400 text-sm"></i>
-                                <p id="shop-student-gold" class="font-title text-xl text-amber-500 leading-none whitespace-nowrap">0 🪙</p>
+                        <!-- Catalog region (curtain / loader / grid — same frame, deck stays visible) -->
+                        <div id="shop-catalog" class="shop-catalog relative flex-1 flex flex-col min-h-[380px] z-10 p-4 sm:p-6 md:p-8 pt-4 overflow-hidden">
+
+                            <div class="absolute inset-0 opacity-[0.11] pointer-events-none shop-catalog-pattern"></div>
+
+                            <!-- Shop Curtain (shown when no class is selected) -->
+                            <div id="shop-curtain" class="absolute inset-0 z-40 flex flex-col items-center justify-center overflow-hidden shop-catalog-overlay">
+                                <div class="absolute inset-0 shop-curtain-bg"></div>
+                                <div class="absolute inset-0 pointer-events-none shop-curtain-glow"></div>
+                                <div class="relative z-10 text-center px-6 max-w-md">
+                                    <div class="text-7xl sm:text-8xl mb-5 floating-icon shop-curtain-icon">🔮</div>
+                                    <h3 class="font-title text-3xl sm:text-4xl text-indigo-100 mb-2 tracking-tight">The Market Sleeps</h3>
+                                    <p class="text-indigo-300/85 text-base leading-relaxed">Pick a class from the header to lift the veil — then choose a shopper and browse the stalls.</p>
+                                </div>
                             </div>
 
-                            <!-- Restock Button -->
-                            <button id="generate-shop-btn"
-                                class="hidden shop-restock-btn font-title text-base bg-gradient-to-r from-fuchsia-500 to-purple-600 text-white py-2.5 px-5 rounded-xl shadow-lg border-2 border-fuchsia-400 bubbly-button inline-flex items-center gap-2 shrink-0">
-                                <i class="fas fa-sync-alt"></i> Restock
-                            </button>
-                        </div>
+                            <!-- Shop Loader -->
+                            <div id="shop-loader"
+                                class="hidden absolute inset-0 z-50 flex flex-col items-center justify-center bg-[#0f0a2e]/85 backdrop-blur-md shop-catalog-overlay">
+                                <div class="text-6xl sm:text-7xl animate-bounce mb-5 filter drop-shadow-[0_0_18px_rgba(217,70,239,0.45)]">🧙‍♂️</div>
+                                <h3 class="font-title text-2xl sm:text-3xl text-amber-300 animate-pulse mb-2 text-center px-4">The Merchant is traveling…</h3>
+                                <p class="text-indigo-200/90 text-center px-4">Procuring rare artifacts from the void.</p>
+                            </div>
 
-                    </div>
+                            <!-- Empty State -->
+                            <div id="shop-empty-state"
+                                class="hidden flex flex-col items-center justify-center flex-1 min-h-[320px] text-center relative z-10 py-8">
+                                <div class="text-7xl mb-5 opacity-35 grayscale filter drop-shadow-lg">📦</div>
+                                <h3 class="font-title text-3xl text-indigo-200 mb-2">The Shelves Are Bare</h3>
+                                <p class="text-indigo-400/90 mb-2 text-base max-w-md leading-relaxed">Nothing on display yet — summon fresh stock so heroes have something to save coins for.</p>
+                                <p class="text-indigo-500/80 text-sm max-w-sm">Elite teachers can use <strong class="text-fuchsia-300 font-title">Restock</strong> for AI-crafted seasonal treasures.</p>
+                            </div>
 
-                    <!-- Shop Content Area (Dark Magical Theme) -->
-                    <div id="shop-window" class="relative bg-indigo-950 border-4 border-indigo-900/50 rounded-[2rem] p-6 md:p-10 shadow-[0_20px_50px_rgba(30,27,75,0.5)] overflow-hidden min-h-[500px]">
-
-                        <!-- Shop Curtain (shown when no class is selected) -->
-                        <div id="shop-curtain" class="absolute inset-0 z-40 flex flex-col items-center justify-center rounded-[2rem] overflow-hidden">
-                            <div class="absolute inset-0" style="background: linear-gradient(135deg, rgba(15,10,60,0.97) 0%, rgba(30,27,75,0.97) 100%);"></div>
-                            <div class="absolute inset-0 pointer-events-none" style="background-image: radial-gradient(circle at 30% 40%, rgba(139,92,246,0.25) 0%, transparent 55%), radial-gradient(circle at 70% 60%, rgba(217,70,239,0.18) 0%, transparent 55%);"></div>
-                            <div class="relative z-10 text-center px-8">
-                                <div class="text-8xl mb-6 floating-icon" style="filter: drop-shadow(0 0 24px rgba(139,92,246,0.6));">🔮</div>
-                                <h3 class="font-title text-4xl text-indigo-200 mb-3">The Market Awaits</h3>
-                                <p class="text-indigo-400/80 text-lg max-w-sm mx-auto">Choose a class above to lift the veil and reveal the Mystic Market's wares.</p>
+                            <!-- Items Grid -->
+                            <div id="shop-items-container" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-5 sm:gap-6 relative z-10">
                             </div>
                         </div>
-                        
-                        <!-- Magical Background Elements -->
-                        <div class="absolute inset-0 opacity-10 pointer-events-none"
-                            style="background-image: url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI0MCIgaGVpZ2h0PSI0MCIgdmlld0JveD0iMCAwIDQwIDQwIj48ZyBmaWxsLXJ1bGU9ImV2ZW5vZGQiPjxwYXRoIGQ9Ik0wIDQwTDQwIDBIMjBMMCAyME00MCA0MFYyMEwwIDQwIiBmaWxsPSIjZmJicmIyNCIgZmlsbC1vcGFjaXR5PSIwLjUiLz48L2c+PC9zdmc+');">
-                        </div>
-                        <div class="absolute -top-40 -right-40 w-96 h-96 bg-fuchsia-600/20 rounded-full blur-3xl pointer-events-none"></div>
-                        <div class="absolute -bottom-40 -left-40 w-96 h-96 bg-amber-500/10 rounded-full blur-3xl pointer-events-none"></div>
-
-                        <!-- Shop Loader -->
-                        <div id="shop-loader"
-                            class="hidden absolute inset-0 z-50 flex flex-col items-center justify-center bg-indigo-950/80 backdrop-blur-md">
-                            <div class="text-7xl animate-bounce mb-6 filter drop-shadow-[0_0_15px_rgba(217,70,239,0.5)]">🧙‍♂️</div>
-                            <h3 class="font-title text-4xl text-amber-400 animate-pulse mb-2">The Merchant is traveling...</h3>
-                            <p class="text-indigo-200 text-lg">Procuring rare artifacts from the void.</p>
-                        </div>
-
-                        <!-- Empty State -->
-                        <div id="shop-empty-state"
-                            class="hidden flex flex-col items-center justify-center h-full min-h-[400px] text-center relative z-10">
-                            <div class="text-8xl mb-6 opacity-30 grayscale filter drop-shadow-lg">📦</div>
-                            <h3 class="font-title text-4xl text-indigo-300 mb-3">Out of Stock</h3>
-                            <p class="text-indigo-400/80 mb-8 text-lg max-w-md">Summon the merchant to restock this league's magical shelves with wonders and artifacts!</p>
-                        </div>
-
-                        <!-- Items Grid -->
-                        <div id="shop-items-container" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-6 relative z-10">
-                        </div>
-
                     </div>
                 </div>
             </div>

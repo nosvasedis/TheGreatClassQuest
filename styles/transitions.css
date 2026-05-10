@@ -1,5 +1,5 @@
 /* --- FINAL: Smooth Tab Change Animations --- */
-/* Isolate tab stacking so home cards (e.g. z-30 on hover) never paint above the app header (z-[1000]). */
+/* Isolate tab stacking so home cards (e.g. z-30 on hover) never paint above the app header chrome (z-[60]). */
 main {
     position: relative;
     z-index: 0;

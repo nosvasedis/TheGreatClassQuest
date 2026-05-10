@@ -132,12 +132,13 @@ export async function renderAttendanceChronicle(classId) {
     const lessonDates = [];
     const allScheduleOverrides = state.get('allScheduleOverrides') || [];
     const schoolHolidayRanges = state.get('schoolHolidayRanges') || [];
+    const classEndDates = state.get('teacherSettings')?.schoolYearSettings?.classEndDates || {};
 
     // Generate all real lesson dates in the month using the shared lesson helper
     let loopDate = new Date(currentYear, currentMonth, 1);
 
     while (loopDate.getMonth() === currentMonth) {
-        if (loopDate <= new Date() && utils.doesClassMeetOnDate(classId, loopDate, state.get('allSchoolClasses'), allScheduleOverrides, schoolHolidayRanges)) {
+        if (loopDate <= new Date() && utils.doesClassMeetOnDate(classId, loopDate, state.get('allSchoolClasses'), allScheduleOverrides, schoolHolidayRanges, classEndDates)) {
             lessonDates.push(utils.getDDMMYYYY(loopDate));
         }
         loopDate.setDate(loopDate.getDate() + 1);

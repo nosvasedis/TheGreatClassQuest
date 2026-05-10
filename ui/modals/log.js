@@ -8,6 +8,8 @@ import { showAnimatedModal } from './base.js';
 import { fetchLogsForDate } from '../../db/queries.js';
 import { playSound } from '../../audio.js';
 
+let historyMonthPickerBound = false;
+
 function getQuestBonusFromLog(log) {
     return log.reason === 'pathfinder_map' ? 10 : 0;
 }
@@ -143,26 +145,50 @@ export async function showLogbookModal(dateString, isOndemand = false) {
         </div>`;
 
         const groupedByClass = logs.reduce((acc, log)=> { (acc[log.classId] = acc[log.classId] || []).push(log); return acc; }, {});
-        
+        const myClassIdSet = new Set(state.get('allTeachersClasses').map(c => c.id));
+        const classIdsOrdered = Object.keys(groupedByClass).filter(id => state.get('allSchoolClasses').some(c => c.id === id));
+        classIdsOrdered.sort((a, b) => {
+            const aMine = myClassIdSet.has(a);
+            const bMine = myClassIdSet.has(b);
+            if (aMine !== bMine) return aMine ? -1 : 1;
+            const nameA = state.get('allSchoolClasses').find(c => c.id === a)?.name || '';
+            const nameB = state.get('allSchoolClasses').find(c => c.id === b)?.name || '';
+            return nameA.localeCompare(nameB);
+        });
+
         let detailsHtml = '<div class="space-y-6">';
-        for (const classId in groupedByClass) {
+        for (const classId of classIdsOrdered) {
             const classInfo = state.get('allSchoolClasses').find(c => c.id === classId);
             if (!classInfo) continue;
             const classQuestBonus = classQuestBonusCounts[classId] || 0;
-            
+            const isMyClass = myClassIdSet.has(classId);
+            const sectionOpenAttr = isMyClass ? 'open' : '';
+            const mineRing = isMyClass ? 'ring-2 ring-teal-400/25' : '';
+            const palette = (classInfo.color && classInfo.color.bg)
+                ? classInfo.color
+                : constants.classColorPalettes[utils.simpleHashCode(classId) % constants.classColorPalettes.length];
+            const yourClassBadge = isMyClass
+                ? '<span class="shrink-0 rounded-lg bg-emerald-50 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-emerald-800 border border-emerald-200/90">Your class</span>'
+                : '';
+
             detailsHtml += `
-                <div class="log-class-section bg-white/40 backdrop-blur-md rounded-[2rem] border border-white/60 shadow-lg overflow-hidden transition-all hover:shadow-xl">
-                    <div class="bg-gradient-to-r from-gray-50/80 to-white/80 px-6 py-4 border-b border-gray-100 flex justify-between items-center">
-                        <h3 class="font-title text-2xl text-gray-800 flex items-center gap-3">
-                            <span class="w-10 h-10 bg-white rounded-xl shadow-sm border border-gray-100 flex items-center justify-center text-2xl">${classInfo.logo}</span>
-                            <span>${classInfo.name}</span>
-                        </h3>
-                        <div class="flex items-center gap-3">
-                            <span class="bg-amber-100 text-amber-700 px-3 py-1 rounded-full font-bold text-sm shadow-sm border border-amber-200/50">${classStarCounts[classId]} ⭐</span>
-                            ${classQuestBonus > 0 ? `<span class="bg-indigo-100 text-indigo-700 px-3 py-1 rounded-full font-bold text-xs shadow-sm border border-indigo-200/50">+${classQuestBonus} Quest</span>` : ''}
+                <details class="log-class-section ${mineRing} group bg-white/55 backdrop-blur-md rounded-[2rem] border-2 ${palette.border} shadow-md overflow-hidden transition-shadow hover:shadow-lg" ${sectionOpenAttr}>
+                    <summary class="log-class-section__summary flex flex-wrap cursor-pointer list-none items-center justify-between gap-3 px-5 py-4 ${palette.bg} ${palette.text} border-b-2 ${palette.border}">
+                        <div class="flex items-center gap-3 min-w-0 flex-1">
+                            <span class="log-class-section__chevron flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-white/75 border ${palette.border} shadow-sm">
+                                <i class="fas fa-chevron-right text-xs opacity-80"></i>
+                            </span>
+                            <span class="shrink-0 rounded-lg bg-white/80 px-2 py-0.5 text-[10px] font-bold uppercase tracking-widest border ${palette.border} shadow-sm">Class</span>
+                            <span class="w-10 h-10 shrink-0 rounded-xl bg-white flex items-center justify-center text-2xl shadow-sm border ${palette.border}">${classInfo.logo}</span>
+                            <h3 class="font-title text-xl sm:text-2xl font-bold tracking-tight truncate">${classInfo.name}</h3>
+                            ${yourClassBadge}
                         </div>
-                    </div>
-                    <div class="p-4 space-y-3">`;
+                        <div class="flex items-center gap-2 shrink-0">
+                            <span class="bg-white/90 text-gray-800 px-3 py-1 rounded-full font-bold text-sm shadow-sm border ${palette.border}">${classStarCounts[classId]} ⭐</span>
+                            ${classQuestBonus > 0 ? `<span class="bg-white/90 text-gray-800 px-3 py-1 rounded-full font-semibold text-xs shadow-sm border ${palette.border}">+${classQuestBonus} Quest</span>` : ''}
+                        </div>
+                    </summary>
+                    <div class="log-class-section__body p-4 space-y-3 bg-slate-50/40 border-t border-white/60">`;
             
             groupedByClass[classId].sort((a, b) => {
                 const nameA = state.get('allStudents').find(s => s.id === a.studentId)?.name || 'Z';
@@ -217,7 +243,7 @@ export async function showLogbookModal(dateString, isOndemand = false) {
                         ${noteHtml}
                     </div>`;
             });
-            detailsHtml += `</div></div>`;
+            detailsHtml += `</div></details>`;
         }
         detailsHtml += '</div>';
         contentEl.innerHTML = summaryHtml + detailsHtml;
@@ -235,7 +261,8 @@ export function openHistoryModal(type, options = {}) {
     
     // Title
     const title = type === 'team' ? 'Team Quest History' : 'Hero\'s Challenge History';
-    document.querySelector('#history-modal h2').innerText = title;
+    const titleEl = document.getElementById('history-modal-title');
+    if (titleEl) titleEl.innerText = title;
 
     const league = options.league || state.get('globalSelectedLeague');
 
@@ -245,25 +272,46 @@ export function openHistoryModal(type, options = {}) {
     if (type === 'hero' && !league) {
         // Show League Picker for Hero Mode
         const contentEl = document.getElementById('history-modal-content');
-        const selectEl = document.getElementById('history-month-select');
-        selectEl.classList.add('hidden');
+        const selectWrapper = document.getElementById('history-month-select-wrapper');
+        if (selectWrapper) selectWrapper.classList.add('hidden');
         
-        contentEl.innerHTML = `<h3 class="text-center font-semibold text-gray-700 mb-4">Select a league to view Hero History:</h3>` +
-            `<div class="grid grid-cols-2 gap-4">` +
-            constants.questLeagues.map(l => `<button class="league-select-btn w-full p-4 font-title text-xl text-amber-800 bg-amber-100 rounded-xl shadow border-2 border-amber-200 transition hover:bg-amber-200 hover:shadow-md bubbly-button" data-league="${l}">${l}</button>`).join('') +
-            `</div>`;
+        const subtitleEl = document.getElementById('history-modal-subtitle');
+        if (subtitleEl) subtitleEl.innerText = 'Choose a league to view hero archives';
+
+        contentEl.innerHTML = `
+            <div class="bg-white rounded-[2rem] border border-slate-200 shadow-sm p-6">
+                <div class="flex items-center gap-3 mb-5">
+                    <div class="w-10 h-10 rounded-2xl bg-amber-100 text-amber-700 flex items-center justify-center border border-amber-200 shadow-sm">
+                        <i class="fas fa-layer-group"></i>
+                    </div>
+                    <div>
+                        <div class="text-[10px] font-black text-slate-400 uppercase tracking-[0.25em]">Hero Logs</div>
+                        <div class="font-title text-2xl text-slate-800">Select a League</div>
+                    </div>
+                </div>
+                <div class="grid grid-cols-2 md:grid-cols-3 gap-4">
+                    ${constants.questLeagues.map(l => `
+                        <button class="league-select-btn w-full p-4 font-title text-xl text-amber-800 bg-gradient-to-br from-amber-50 to-white rounded-2xl shadow-sm border-2 border-amber-200/70 transition hover:bg-amber-100 hover:shadow-md bubbly-button" data-league="${l}">
+                            <span class="block">${l}</span>
+                            <span class="block text-[10px] font-black uppercase tracking-widest text-amber-500/80 mt-1">League</span>
+                        </button>
+                    `).join('')}
+                </div>
+            </div>
+        `;
         
         contentEl.querySelectorAll('.league-select-btn').forEach(btn => {
             btn.addEventListener('click', () => {
                 playSound('click');
                 state.setGlobalSelectedLeague(btn.dataset.league, false);
                 modal.dataset.historyLeague = btn.dataset.league;
-                selectEl.classList.remove('hidden');
+                if (selectWrapper) selectWrapper.classList.remove('hidden');
                 populateHistoryMonthSelector();
                 renderHistoricalLeaderboard("", type, btn.dataset.league);
             });
         });
 
+        showAnimatedModal('history-modal');
     } else {
         // Team Mode OR Hero Mode with league selected
         
@@ -274,7 +322,8 @@ export function openHistoryModal(type, options = {}) {
         }
 
         // Team Mode -> Show normal view
-        document.getElementById('history-month-select').classList.remove('hidden');
+        const selectWrapper = document.getElementById('history-month-select-wrapper');
+        if (selectWrapper) selectWrapper.classList.remove('hidden');
         populateHistoryMonthSelector();
         renderHistoricalLeaderboard("", type, league || null);
         showAnimatedModal('history-modal'); // Only show this for Team history
@@ -289,11 +338,58 @@ function populateHistoryMonthSelector() {
     let loopDate = new Date(constants.competitionStart);
 
     while (loopDate < now) {
-        if (loopDate.getFullYear() < now.getFullYear() || (loopDate.getFullYear() === now.getFullYear() && loopDate.getMonth() < now.getMonth())) {const monthKey = loopDate.toISOString().substring(0, 7);
+        if (loopDate.getFullYear() < now.getFullYear() || (loopDate.getFullYear() === now.getFullYear() && loopDate.getMonth() < now.getMonth())) {
+            const monthKey = loopDate.toISOString().substring(0, 7);
             const displayString = loopDate.toLocaleString('en-GB', { month: 'long', year: 'numeric' });
             select.innerHTML += `<option value="${monthKey}">${displayString}</option>`;
         }
         loopDate.setMonth(loopDate.getMonth() + 1);
+    }
+}
+
+function syncHistoryMonthPicker(monthKey, leagueFilter) {
+    const wrapper = document.getElementById('history-month-select-wrapper');
+    const selectEl = document.getElementById('history-month-select');
+    const btn = document.getElementById('history-month-picker-btn');
+    const label = document.getElementById('history-month-picker-label');
+    const menu = document.getElementById('history-month-picker-menu');
+    const optionsEl = document.getElementById('history-month-picker-options');
+
+    if (!wrapper || !selectEl || !btn || !label || !menu || !optionsEl) return;
+
+    const selectedOption = Array.from(selectEl.options).find(o => o.value === (monthKey || ''));
+    label.innerText = selectedOption?.value ? selectedOption.text : 'Choose a month...';
+
+    optionsEl.innerHTML = Array.from(selectEl.options)
+        .filter(o => Boolean(o.value))
+        .map(o => `
+            <button type="button" class="history-month-option w-full text-left px-4 py-3 rounded-2xl hover:bg-slate-50 transition-colors border border-transparent hover:border-slate-200 flex items-center justify-between gap-3" data-value="${o.value}">
+                <span class="font-bold text-slate-800">${o.text}</span>
+                <span class="text-[10px] font-black uppercase tracking-widest text-slate-400">${o.value}</span>
+            </button>
+        `).join('');
+
+    optionsEl.querySelectorAll('.history-month-option').forEach((item) => {
+        item.onclick = () => {
+            const value = item.dataset.value || '';
+            selectEl.value = value;
+            menu.classList.add('hidden');
+            renderHistoricalLeaderboard(value, 'team', leagueFilter);
+        };
+    });
+
+    if (!historyMonthPickerBound) {
+        btn.onclick = () => {
+            menu.classList.toggle('hidden');
+        };
+
+        document.addEventListener('click', (e) => {
+            if (!wrapper.contains(e.target)) {
+                menu.classList.add('hidden');
+            }
+        });
+
+        historyMonthPickerBound = true;
     }
 }
 
@@ -303,84 +399,49 @@ function populateHistoryMonthSelector() {
 export async function renderHistoricalLeaderboard(monthKey, type, leagueFilter = null) {
     // 1. Handle Hero History Redirect
     if (type === 'hero') {
-        const modalTitle = document.querySelector('#history-modal h2');
-        if(modalTitle) modalTitle.style.display = 'block';
-        const outerSelect = document.querySelector('#history-month-select')?.parentElement;
-        if(outerSelect) outerSelect.style.display = 'block';
-        
         import('./modals.js').then(m => m.openStudentRankingsModal()); 
         return;
     }
 
-    // 2. DOM Manipulation: Hide redundant elements
-    const modalTitle = document.querySelector('#history-modal h2');
-    if(modalTitle) modalTitle.style.display = 'none'; 
-    
-    const originalSelect = document.getElementById('history-month-select');
-    if (originalSelect && originalSelect.parentElement) {
-        originalSelect.parentElement.style.display = 'none';
-    }
-
     const contentEl = document.getElementById('history-modal-content');
-    
-    // 3. Prepare Dropdown Options
-    const options = Array.from(originalSelect.options).map(opt => {
-        const isSelected = opt.value === monthKey ? 'selected' : '';
-        return `<option value="${opt.value}" ${isSelected} class="text-gray-800 py-1">${opt.text}</option>`;
-    }).join('');
-
-    // --- Banner Header ---
+    const headerTitleEl = document.getElementById('history-modal-title');
+    const headerSubtitleEl = document.getElementById('history-modal-subtitle');
     const archiveTitle = leagueFilter ? `${leagueFilter} League Archive` : 'Team Quest Archive';
     const archiveSubtitle = leagueFilter
         ? `Historical standings for the active ${leagueFilter} tier`
         : 'Review past victories and league standings';
 
-    const headerHtml = `
-        <div class="relative overflow-hidden rounded-3xl bg-gradient-to-br from-orange-500 via-amber-500 to-yellow-500 p-6 text-white shadow-xl mb-6 border-4 border-orange-400/50">
-            <div class="absolute -right-6 -top-6 text-white/10 text-9xl transform rotate-12 pointer-events-none"><i class="fas fa-flag-checkered"></i></div>
-            <div class="absolute left-10 bottom-0 text-white/10 text-8xl transform -rotate-12 pointer-events-none"><i class="fas fa-map"></i></div>
-            <div class="relative z-10 flex flex-col md:flex-row justify-between items-center gap-4">
-                <div>
-                    <div class="flex items-center gap-3 mb-1">
-                        <div class="bg-white/20 p-2 rounded-lg backdrop-blur-sm"><i class="fas fa-flag-checkered text-2xl"></i></div>
-                        <h3 class="font-title text-3xl text-shadow-sm tracking-wide">${archiveTitle}</h3>
-                    </div>
-                    <p class="text-orange-100 font-medium text-sm ml-1 opacity-90">${archiveSubtitle}</p>
-                </div>
-                <div class="w-full md:w-auto">
-                    <div class="relative group">
-                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-orange-200"><i class="fas fa-calendar-alt"></i></div>
-                        <select id="internal-history-select" 
-                            class="appearance-none w-full md:w-64 bg-white/20 hover:bg-white/30 text-white font-bold py-3 pl-10 pr-10 rounded-xl backdrop-blur-md border border-white/40 shadow-inner focus:outline-none focus:ring-2 focus:ring-white/50 transition-all cursor-pointer placeholder-white">
-                            ${options}
-                        </select>
-                        <div class="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none text-orange-200"><i class="fas fa-chevron-down"></i></div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    `;
+    if (headerTitleEl) headerTitleEl.innerText = archiveTitle;
+    if (headerSubtitleEl) headerSubtitleEl.innerText = archiveSubtitle;
+
+    const selectEl = document.getElementById('history-month-select');
+    if (selectEl) {
+        if (selectEl.value !== monthKey) selectEl.value = monthKey || '';
+        selectEl.onchange = (e) => renderHistoricalLeaderboard(e.target.value, 'team', leagueFilter);
+    }
+    syncHistoryMonthPicker(monthKey, leagueFilter);
 
     // 4. Handle Empty State
     if (!monthKey) {
-        contentEl.innerHTML = headerHtml + `
-            <div class="flex flex-col items-center justify-center py-16 bg-gray-50 rounded-3xl border-2 border-dashed border-gray-300">
-                <div class="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mb-4"><i class="fas fa-history text-4xl text-gray-300"></i></div>
-                <p class="text-gray-500 font-bold text-lg">Time Machine Ready</p>
-                <p class="text-gray-400 text-sm">Select a month above to travel back in time.</p>
-            </div>`;
-        document.getElementById('internal-history-select').addEventListener('change', (e) => renderHistoricalLeaderboard(e.target.value, 'team', leagueFilter));
+        contentEl.innerHTML = `
+            <div class="flex flex-col items-center justify-center py-20 bg-white rounded-[2.5rem] border-2 border-dashed border-slate-200 shadow-sm">
+                <div class="w-24 h-24 bg-slate-50 rounded-full flex items-center justify-center mb-6 border border-slate-200 shadow-inner">
+                    <i class="fas fa-history text-4xl text-slate-300"></i>
+                </div>
+                <p class="text-slate-700 font-title text-3xl">Time Machine Ready</p>
+                <p class="text-slate-500 text-sm mt-2">Pick a month in the header to travel back in time.</p>
+            </div>
+        `;
         return;
     }
 
     // 5. Loading State
-    contentEl.innerHTML = headerHtml + `
+    contentEl.innerHTML = `
         <div class="flex flex-col items-center justify-center py-20">
             <i class="fas fa-circle-notch fa-spin text-5xl text-amber-500 mb-4"></i>
-            <p class="text-gray-600 font-bold animate-pulse text-lg">Retrieving Quest Logs...</p>
-        </div>`;
-    
-    document.getElementById('internal-history-select').addEventListener('change', (e) => renderHistoricalLeaderboard(e.target.value, 'team', leagueFilter));
+            <p class="text-slate-600 font-bold animate-pulse text-lg">Retrieving Quest Logs...</p>
+        </div>
+    `;
 
     // --- MAIN RENDER LOGIC WITH SAFETY ---
     try {
@@ -545,23 +606,19 @@ export async function renderHistoricalLeaderboard(monthKey, type, leagueFilter =
             fullHtml += `</div></div>`;
         }
 
-        contentEl.innerHTML = headerHtml + (fullHtml || `<div class="p-8 text-center text-gray-500 bg-gray-50 rounded-2xl">No data available for this month.</div>`);
-        
-        // Re-bind listener after HTML update
-        document.getElementById('internal-history-select').addEventListener('change', (e) => renderHistoricalLeaderboard(e.target.value, 'team', leagueFilter));
+        contentEl.innerHTML = fullHtml || `<div class="p-8 text-center text-gray-500 bg-white rounded-[2rem] border border-slate-200 shadow-sm">No data available for this month.</div>`;
 
     } catch (error) {
         console.error("Render Error:", error);
-        contentEl.innerHTML = headerHtml + `
-            <div class="flex flex-col items-center justify-center py-16 text-center">
-                <i class="fas fa-exclamation-triangle text-4xl text-red-400 mb-4"></i>
-                <p class="text-gray-700 font-bold">The Archives are dusty.</p>
-                <p class="text-gray-500 text-sm mt-1">Error: ${error.message}</p>
-                <p class="text-gray-400 text-xs mt-4">Try selecting a different month.</p>
-            </div>`;
-        // Re-bind listener even on error state
-        const select = document.getElementById('internal-history-select');
-        if(select) select.addEventListener('change', (e) => renderHistoricalLeaderboard(e.target.value, 'team', leagueFilter));
+        contentEl.innerHTML = `
+            <div class="flex flex-col items-center justify-center py-20 text-center bg-white rounded-[2.5rem] border border-slate-200 shadow-sm">
+                <div class="w-20 h-20 rounded-full bg-rose-50 border border-rose-100 flex items-center justify-center mb-5">
+                    <i class="fas fa-exclamation-triangle text-3xl text-rose-400"></i>
+                </div>
+                <p class="text-slate-800 font-title text-3xl">The Archives are dusty.</p>
+                <p class="text-slate-500 text-sm mt-2">Error: ${error.message}</p>
+                <p class="text-slate-400 text-xs mt-4">Try selecting a different month.</p>
+            </div>
+        `;
     }
 }
-

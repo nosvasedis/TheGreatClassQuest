@@ -145,13 +145,15 @@ function getAwardAttendanceState(studentId) {
     }
 
     const today = utils.getTodayDateString();
+    const classEndDates = state.get('teacherSettings')?.schoolYearSettings?.classEndDates || {};
     const reasonToday = state.get('todaysStars')[studentId]?.reason;
     const starsToday = Number(state.get('todaysStars')[studentId]?.stars || 0);
     const previousLessonDate = utils.getPreviousLessonDate(
         student.classId,
         state.get('allSchoolClasses'),
         state.get('allScheduleOverrides'),
-        state.get('schoolHolidayRanges')
+        state.get('schoolHolidayRanges'),
+        classEndDates
     );
     const isMarkedAbsentToday = state.get('allAttendanceRecords').some((record) => record.studentId === studentId && record.date === today);
     const wasAbsentLastTime = previousLessonDate
@@ -168,7 +170,8 @@ function getAwardAttendanceState(studentId) {
             today,
             state.get('allSchoolClasses'),
             state.get('allScheduleOverrides'),
-            state.get('schoolHolidayRanges')
+            state.get('schoolHolidayRanges'),
+            classEndDates
         )
     };
 }
@@ -356,14 +359,16 @@ export function renderAwardStarsStudentList(selectedClassId, fullRender = true) 
             const allSchoolClasses = state.get('allSchoolClasses');
             const allScheduleOverrides = state.get('allScheduleOverrides');
             const schoolHolidayRanges = state.get('schoolHolidayRanges');
-            const previousLessonDate = utils.getPreviousLessonDate(selectedClassId, allSchoolClasses, allScheduleOverrides, schoolHolidayRanges);
+            const classEndDates = state.get('teacherSettings')?.schoolYearSettings?.classEndDates || {};
+            const previousLessonDate = utils.getPreviousLessonDate(selectedClassId, allSchoolClasses, allScheduleOverrides, schoolHolidayRanges, classEndDates);
             const today = utils.getTodayDateString();
             const classHasLessonToday = utils.doesClassMeetOnDate(
                 selectedClassId,
                 today,
                 allSchoolClasses,
                 allScheduleOverrides,
-                schoolHolidayRanges
+                schoolHolidayRanges,
+                classEndDates
             );
 
             // --- REIGNING PRODIGY (previous month's winner) — crown watermark on card only ---

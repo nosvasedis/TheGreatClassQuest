@@ -1,4 +1,14 @@
 /* V5.5.0: Story Weaver Revamp */
+/* Toolbar rows: overflow-x-auto clips focus rings/shadows; wrap instead */
+.story-weavers-actions-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.5rem;
+    padding-top: 0.15rem;
+    padding-bottom: 0.35rem;
+}
+
 #story-weavers-main-content {
     background: transparent;
     border-radius: 0;

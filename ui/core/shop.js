@@ -6,9 +6,168 @@ import { canUseFeature } from '../../utils/subscription.js';
 import { FAMILIAR_TYPES, FAMILIAR_LEVEL_THRESHOLDS, buildFamiliarInitData } from '../../features/familiars.js';
 import { getSeasonalShopPriceMeta } from '../../utils.js';
 
+// --- SHOP UI HELPERS ---
+
+function shopPriceMarkupPlain(basePrice) {
+    return `
+        <span class="shop-price-label">Price</span>
+        <div class="shop-price-pill">
+            <span class="shop-price-value">${basePrice}</span>
+            <span class="shop-price-coin" aria-hidden="true">🪙</span>
+        </div>`;
+}
+
+function shopPriceMarkupDiscount(basePrice, finalPrice, finalPriceClassNames) {
+    return `
+        <span class="shop-price-label">Your price</span>
+        <div class="shop-price-pill shop-price-pill--sale">
+            <span class="shop-price-was">${basePrice}</span>
+            <span class="shop-price-now ${finalPriceClassNames}">${finalPrice}</span>
+            <span class="shop-price-coin" aria-hidden="true">🪙</span>
+        </div>`;
+}
+
+function shopBuyBtnClass(isFamiliar, variant) {
+    const base = 'shop-buy-btn shop-buy-btn--premium';
+    const fam = isFamiliar ? ' shop-buy-btn--familiar' : '';
+    return `${base}${fam} shop-buy-btn--${variant}`;
+}
+
+const SHOPPER_PLACEHOLDER = 'Choose your adventurer…';
+
+let shopStudentDropdownListenersBound = false;
+
+function setShopStudentPanelOpen(open) {
+    const trigger = document.getElementById('shop-shopper-trigger');
+    const panel = document.getElementById('shop-shopper-listbox');
+    const pill = document.querySelector('.shop-selector-pill--shopper');
+    if (!trigger || !panel) return;
+    trigger.setAttribute('aria-expanded', open ? 'true' : 'false');
+    panel.classList.toggle('is-open', open);
+    panel.setAttribute('aria-hidden', open ? 'false' : 'true');
+    pill?.classList.toggle('shop-selector-pill--dropdown-open', open);
+}
+
+function closeShopStudentDropdown() {
+    setShopStudentPanelOpen(false);
+}
+
+function toggleShopStudentDropdown() {
+    const panel = document.getElementById('shop-shopper-listbox');
+    if (!panel) return;
+    setShopStudentPanelOpen(!panel.classList.contains('is-open'));
+}
+
+function syncShopStudentOptionHighlight(value) {
+    const panel = document.getElementById('shop-shopper-listbox');
+    if (!panel) return;
+    panel.querySelectorAll('.shop-shopper__option').forEach(btn => {
+        const v = btn.dataset.value ?? '';
+        btn.classList.toggle('is-selected', v === value);
+        btn.setAttribute('aria-selected', v === value ? 'true' : 'false');
+    });
+}
+
+function syncShopStudentTriggerLabel() {
+    const sel = document.getElementById('shop-student-select');
+    const display = document.getElementById('shop-shopper-display');
+    if (!sel || !display) return;
+    const opt = sel.options[sel.selectedIndex];
+    display.textContent = opt?.textContent || SHOPPER_PLACEHOLDER;
+    syncShopStudentOptionHighlight(sel.value);
+}
+
+function applyShopStudentSelection(value) {
+    const sel = document.getElementById('shop-student-select');
+    if (!sel) return;
+    sel.value = value;
+    syncShopStudentTriggerLabel();
+    closeShopStudentDropdown();
+    sel.dispatchEvent(new Event('change', { bubbles: true }));
+}
+
+/** Keeps hidden native select and custom listbox in sync with student ids + labels. */
+export function populateShopStudentPicker(validStudents) {
+    const sel = document.getElementById('shop-student-select');
+    const panel = document.getElementById('shop-shopper-listbox');
+    if (!sel || !panel) return;
+
+    sel.innerHTML = '';
+    const opt0 = document.createElement('option');
+    opt0.value = '';
+    opt0.textContent = SHOPPER_PLACEHOLDER;
+    sel.appendChild(opt0);
+    validStudents.forEach(s => {
+        const o = document.createElement('option');
+        o.value = s.id;
+        o.textContent = s.name;
+        sel.appendChild(o);
+    });
+
+    panel.innerHTML = '';
+    const mkBtn = (value, label, isPlaceholder) => {
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.setAttribute('role', 'option');
+        btn.dataset.value = value;
+        btn.className = isPlaceholder
+            ? 'shop-shopper__option shop-shopper__option--placeholder'
+            : 'shop-shopper__option';
+        btn.textContent = label;
+        btn.setAttribute('aria-selected', 'false');
+        return btn;
+    };
+    panel.appendChild(mkBtn('', SHOPPER_PLACEHOLDER, true));
+    validStudents.forEach(s => {
+        panel.appendChild(mkBtn(s.id, s.name, false));
+    });
+
+    sel.value = '';
+    syncShopStudentTriggerLabel();
+    closeShopStudentDropdown();
+}
+
+function ensureShopStudentDropdownListeners() {
+    if (shopStudentDropdownListenersBound) return;
+    shopStudentDropdownListenersBound = true;
+
+    document.body.addEventListener('click', (e) => {
+        const root = document.getElementById('shop-shopper-root');
+        const trigger = document.getElementById('shop-shopper-trigger');
+        const panel = document.getElementById('shop-shopper-listbox');
+        if (!root || !trigger || !panel) return;
+
+        if (trigger.contains(e.target)) {
+            e.preventDefault();
+            toggleShopStudentDropdown();
+            return;
+        }
+
+        const optBtn = e.target.closest('.shop-shopper__option');
+        if (panel.contains(e.target) && optBtn) {
+            applyShopStudentSelection(optBtn.dataset.value ?? '');
+            return;
+        }
+
+        if (!root.contains(e.target)) {
+            closeShopStudentDropdown();
+        }
+    });
+
+    document.body.addEventListener('keydown', (e) => {
+        if (e.key !== 'Escape') return;
+        const panel = document.getElementById('shop-shopper-listbox');
+        if (!panel?.classList.contains('is-open')) return;
+        closeShopStudentDropdown();
+        document.getElementById('shop-shopper-trigger')?.focus();
+    });
+}
+
 // --- SHOP UI LOGIC ---
 
 export function initializeShopTab() {
+    ensureShopStudentDropdownListeners();
+
     // 1. Determine Context
     let league = state.get('globalSelectedLeague');
     let classId = state.get('globalSelectedClassId');
@@ -22,15 +181,11 @@ export function initializeShopTab() {
 
     // Class comes from global header selection only
 
-    // Always show the current month — must happen before any early return
-    const monthName = new Date().toLocaleString('en-US', { month: 'long' });
-    const shopMonthEl = document.getElementById('shop-month');
-    if (shopMonthEl) shopMonthEl.innerText = monthName;
+    // Tab tagline is static in the template (month lives on Seasonal Treasures).
 
     // The shop requires an explicit class selection — show curtain whenever none is active
     if (!classId) {
-        const shopStudentSelect = document.getElementById('shop-student-select');
-        if (shopStudentSelect) shopStudentSelect.innerHTML = `<option value="">Select Shopper...</option>`;
+        populateShopStudentPicker([]);
         const shopStudentGold = document.getElementById('shop-student-gold');
         if (shopStudentGold) shopStudentGold.innerText = "0 🪙";
 
@@ -55,7 +210,6 @@ export function initializeShopTab() {
         restockBtn.classList.toggle('hidden', !canRestock);
     }
     
-    document.getElementById('shop-student-select').innerHTML = `<option value="">Select Shopper...</option>`;
     document.getElementById('shop-student-gold').innerText = "0 🪙";
 
     // 3. Filter Students
@@ -66,9 +220,7 @@ export function initializeShopTab() {
         .filter(s => myClassIds.includes(s.classId))
         .sort((a,b) => a.name.localeCompare(b.name));
 
-    const selectEl = document.getElementById('shop-student-select');
-    selectEl.innerHTML = `<option value="">Select Shopper...</option>` + 
-        validStudents.map(s => `<option value="${s.id}">${s.name}</option>`).join('');
+    populateShopStudentPicker(validStudents);
 
     renderShopUI();
 }
@@ -106,30 +258,37 @@ export function renderShopUI() {
             const monthLabel = new Date().toLocaleString('en-US', {month: 'long'});
 
             const legendarySection = `
-                <div class="col-span-full mb-4 border-b-2 border-indigo-500/30 pb-2">
-                    <h3 class="font-title text-2xl text-indigo-300 flex items-center gap-2">
-                        <i class="fas fa-scroll"></i> Legendary Artifacts
-                        <span class="text-xs bg-indigo-500/20 px-2 py-1 rounded text-indigo-400 font-sans uppercase">Limit: 2 per month</span>
-                    </h3>
+                <div class="shop-section col-span-full">
+                    <div class="shop-section-head shop-section-head--indigo">
+                        <div class="shop-section-head-main">
+                            <h3 class="shop-section-title"><i class="fas fa-scroll shop-section-title-icon"></i> Legendary Artifacts</h3>
+                            <p class="shop-section-desc">Evergreen relics with battle-shaping perks — stock is precious: two legendary buys per student each month.</p>
+                        </div>
+                        <span class="shop-section-badge shop-section-badge--indigo">Limit 2 / month</span>
+                    </div>
                 </div>
             ` + artifacts.map(item => renderShopItemCard(item, true)).join('');
 
             const noSeasonalHtml = canUseAI
-                ? `<div class="col-span-full p-4 rounded-2xl bg-amber-900/20 border border-amber-500/30 border-dashed text-center">
-                        <p class="text-amber-300/70 text-sm">No seasonal items yet this month. Click <strong>Restock</strong> to generate AI-crafted treasures! ✨</p>
+                ? `<div class="shop-callout shop-callout--amber col-span-full">
+                        <p class="shop-callout-title"><i class="fas fa-sparkles"></i> Awaiting this month's drop</p>
+                        <p class="shop-callout-text">The caravan's shelves are empty — tap <strong>Restock</strong> to weave fresh, AI-crafted treasures for your class theme.</p>
                     </div>`
-                : `<div class="col-span-full p-4 rounded-2xl bg-amber-900/20 border-2 border-amber-500/40 border-dashed text-center">
-                        <p class="text-amber-300 font-title text-lg mb-1">🌟 Seasonal Treasures</p>
-                        <p class="text-amber-400/80 text-sm">Seasonal items are AI-generated each month and are available on the Elite plan. Upgrade to unlock monthly themed treasures for your students!</p>
-                        <button type="button" class="shop-upgrade-seasonal-btn mt-3 text-amber-400 hover:text-amber-300 text-sm font-bold underline">Upgrade to Elite</button>
+                : `<div class="shop-callout shop-callout--locked col-span-full">
+                        <p class="shop-callout-title"><i class="fas fa-leaf"></i> Seasonal Treasures</p>
+                        <p class="shop-callout-text">Monthly rotating flair — Elite unlocks AI-generated loot that refreshes with the calendar.</p>
+                        <button type="button" class="shop-upgrade-seasonal-btn shop-callout-action">Upgrade to Elite</button>
                     </div>`;
 
             const seasonalSection = `
-                <div class="col-span-full ${canUseAI ? '' : 'mt-8 '}mb-4 border-b-2 border-amber-500/30 pb-2">
-                    <h3 class="font-title text-2xl text-amber-300 flex items-center gap-2">
-                        <i class="fas fa-leaf"></i> Seasonal Treasures
-                        <span class="text-xs bg-amber-500/20 px-2 py-1 rounded text-amber-400 font-sans uppercase">Month: ${monthLabel}</span>
-                    </h3>
+                <div class="shop-section col-span-full">
+                    <div class="shop-section-head shop-section-head--amber">
+                        <div class="shop-section-head-main">
+                            <h3 class="shop-section-title"><i class="fas fa-leaf shop-section-title-icon"></i> Seasonal Treasures</h3>
+                            <p class="shop-section-season-month">${monthLabel}</p>
+                            <p class="shop-section-desc shop-section-desc--after-month">Limited-time flair priced for the moment — heroes earn discounts as legends; Aurum vouchers stack on seasonal tags.</p>
+                        </div>
+                    </div>
                 </div>
             ` + (seasonalItems.length === 0 ? noSeasonalHtml : seasonalItems.map(item => renderShopItemCard(item, false)).join(''));
 
@@ -141,21 +300,23 @@ export function renderShopUI() {
             // ─── Familiar Eggs section (Elite only) ────────────────────────────
             if (canUseFeature('familiars')) {
                 html += `
-                    <div class="col-span-full mt-8 mb-4 border-b-2 border-purple-500/30 pb-2">
-                        <h3 class="font-title text-2xl text-purple-300 flex items-center gap-2">
-                            <i class="fas fa-egg"></i> Familiar Eggs
-                            <span class="text-xs bg-purple-500/20 px-2 py-1 rounded text-purple-400 font-sans uppercase">Hatch at ${FAMILIAR_LEVEL_THRESHOLDS.hatch} stars</span>
-                        </h3>
-                        <p class="text-xs text-purple-400/60 mt-1">Each student can own one Familiar. Earn stars to hatch it, then keep earning to evolve it!</p>
+                    <div class="shop-section col-span-full shop-section--spaced">
+                        <div class="shop-section-head shop-section-head--violet">
+                            <div class="shop-section-head-main">
+                                <h3 class="shop-section-title"><i class="fas fa-egg shop-section-title-icon"></i> Familiar Eggs</h3>
+                                <p class="shop-section-desc">One mystical companion per hero — buy an egg with coins, hatch it with stars, then evolve through tiers as they shine.</p>
+                            </div>
+                            <span class="shop-section-badge shop-section-badge--violet">Hatch ${FAMILIAR_LEVEL_THRESHOLDS.hatch}★</span>
+                        </div>
                     </div>
                 `;
                 html += Object.values(FAMILIAR_TYPES).map(fType => renderFamiliarEggCard(fType)).join('');
             } else {
                 html += `
-                    <div class="col-span-full mt-8 p-4 rounded-2xl bg-purple-900/30 border-2 border-purple-500/40 border-dashed text-center">
-                        <p class="text-purple-300 font-title text-lg mb-1">🐉 Familiar Eggs</p>
-                        <p class="text-purple-400/80 text-sm">Unlock Familiars on the Elite plan — magical companion eggs that hatch and evolve as students earn stars.</p>
-                        <button type="button" class="mt-3 shop-upgrade-familiars-btn text-amber-400 hover:text-amber-300 text-sm font-bold underline">Upgrade to Elite</button>
+                    <div class="shop-callout shop-callout--locked shop-callout--violet col-span-full shop-section--spaced">
+                        <p class="shop-callout-title"><i class="fas fa-dragon"></i> Familiar Eggs</p>
+                        <p class="shop-callout-text">Living companions that ride on progress — Elite adds eggs, hatch thresholds, and evolution arcs tied to stars.</p>
+                        <button type="button" class="shop-upgrade-familiars-btn shop-callout-action">Upgrade to Elite</button>
                     </div>
                 `;
             }
@@ -181,23 +342,22 @@ function renderShopItemCard(item, isLegendary) {
         : `<div class="text-7xl group-hover:scale-125 transition-transform duration-500">${item.icon || '📦'}</div>`;
 
     return `
-        <div class="shop-item-card group bg-indigo-950 border-2 border-indigo-800 rounded-2xl overflow-hidden hover:border-amber-400 transition-all duration-300 hover:-translate-y-2 hover:shadow-[0_0_20px_rgba(251,191,36,0.3)] flex flex-col relative">
+        <div class="shop-item-card group flex flex-col relative overflow-hidden transition-all duration-300 hover:-translate-y-2 hover:shadow-[0_0_20px_rgba(251,191,36,0.25)]">
             ${badge}
-            <div class="relative h-40 bg-white/5 flex items-center justify-center overflow-hidden">
-                <div class="absolute inset-0 bg-radial-gradient from-white/10 to-transparent opacity-50"></div>
+            <div class="shop-item-stage relative flex items-center justify-center overflow-hidden">
                 ${imageHtml}
             </div>
-            <div class="p-4 flex-grow flex flex-col">
+            <div class="shop-item-body flex-grow flex flex-col">
                 <h3 class="font-title text-xl text-amber-300 leading-tight mb-1">${item.name}</h3>
-                <p class="text-indigo-300 text-xs mb-3 line-clamp-3 flex-grow">${item.description}</p>
-                <div class="flex justify-between items-center mt-auto pt-3 border-t border-indigo-800">
-                    <div class="shop-price-display flex items-center gap-1 font-bold text-white text-lg" data-item-id="${item.id}" data-base-price="${item.price}">
-                        <span class="shop-price-value">${item.price}</span>
-                        <span>🪙</span>
+                <p class="text-indigo-300/95 text-xs mb-2 line-clamp-3 flex-grow">${item.description}</p>
+                <div class="shop-item-footer">
+                    <div class="shop-price-display" data-item-id="${item.id}" data-base-price="${item.price}">
+                        ${shopPriceMarkupPlain(item.price)}
                     </div>
-                    <button class="shop-buy-btn bg-indigo-600 hover:bg-indigo-500 disabled:bg-indigo-900 disabled:text-indigo-500 disabled:cursor-not-allowed text-white text-xs font-bold py-2 px-4 rounded-lg uppercase tracking-wider transition-colors" 
-                            data-id="${item.id}" data-type="${isLegendary ? 'legendary' : 'seasonal'}" disabled>
-                        Select Student
+                    <button type="button" class="${shopBuyBtnClass(false, 'waiting')}"
+                            data-id="${item.id}" data-type="${isLegendary ? 'legendary' : 'seasonal'}" disabled
+                            title="Choose a student from the Shopper menu above">
+                        Pick shopper
                     </button>
                 </div>
             </div>
@@ -208,7 +368,7 @@ function renderShopItemCard(item, isLegendary) {
 export async function updateShopStudentDisplay(studentId) {
     const goldDisplay = document.getElementById('shop-student-gold');
     const buyBtns = document.querySelectorAll('.shop-buy-btn');
-    const shopHeader = document.getElementById('shop-student-select').parentElement; // Get container for visual effects
+    const shopHeader = document.getElementById('shop-student-select')?.closest('.shop-selector-pill');
     const container = document.getElementById('shop-items-container');
 
     const glowMap = {
@@ -219,15 +379,16 @@ export async function updateShopStudentDisplay(studentId) {
         none: { gradient: 'from-slate-400 to-slate-500', ring: 'ring-slate-400', shadow: 'shadow-[0_0_30px_rgba(148,163,184,0.6)]', text: 'text-slate-400' }
     };
 
-    // Trigger magical reflow effect on header
-    shopHeader.classList.remove('scale-105', 'animate-pulse');
-    void shopHeader.offsetWidth;
-    shopHeader.classList.add('transition-all', 'duration-500', 'scale-105');
-    setTimeout(() => shopHeader.classList.remove('scale-105'), 500);
+    // Trigger magical reflow effect on header pill (hero / legend rings)
+    if (shopHeader) {
+        shopHeader.classList.remove('scale-105', 'animate-pulse');
+        void shopHeader.offsetWidth;
+        shopHeader.classList.add('transition-all', 'duration-500', 'scale-105');
+        setTimeout(() => shopHeader.classList.remove('scale-105'), 500);
 
-    // Reset visual effects
-    shopHeader.className = shopHeader.className.replace(/ring-[a-z]+-\d+/g, '').replace(/bg-[a-z]+-50/g, '').trim();
-    shopHeader.classList.remove('ring-4', 'ring-2', 'rounded-xl', 'p-2');
+        shopHeader.className = shopHeader.className.replace(/ring-[a-z]+-\d+/g, '').replace(/bg-[a-z]+-50/g, '').trim();
+        shopHeader.classList.remove('ring-4', 'ring-2', 'rounded-xl', 'p-2');
+    }
     const existingHeroBadge = document.getElementById('shop-hero-badge');
     if (existingHeroBadge) existingHeroBadge.remove();
     const existingLegendBadge = document.getElementById('shop-legend-badge');
@@ -237,11 +398,9 @@ export async function updateShopStudentDisplay(studentId) {
         goldDisplay.innerText = "0 🪙";
         buyBtns.forEach(btn => {
             btn.disabled = true;
-            btn.innerText = "Select Student";
-            btn.classList.remove('bg-green-600', 'bg-red-500', 'bg-indigo-600');
-            btn.classList.add('bg-indigo-600');
+            btn.innerText = "Pick shopper";
+            btn.className = shopBuyBtnClass(btn.dataset.type === 'familiar', 'waiting');
         });
-        // Reset price displays to base price
         document.querySelectorAll('.shop-price-display').forEach(el => {
             const basePrice = el.dataset.basePrice;
             const card = el.closest('.shop-item-card');
@@ -250,7 +409,7 @@ export async function updateShopStudentDisplay(studentId) {
                 card.classList.remove('ring-4', 'transform', 'scale-105', 'z-10');
                 card.classList.add('hover:-translate-y-2');
             }
-            if (basePrice) el.innerHTML = `<span class="shop-price-value text-xl">${basePrice}</span> <span>🪙</span>`;
+            if (basePrice !== undefined && basePrice !== '') el.innerHTML = shopPriceMarkupPlain(basePrice);
         });
         return;
     }
@@ -272,21 +431,22 @@ export async function updateShopStudentDisplay(studentId) {
     const isMythic = legendMeta.legendTier.key === 'mythic';
     const activeGlowTheme = isHero ? glowMap.hero : (glowMap[legendMeta.legendTier.key] || glowMap.none);
 
-    if (isHero) {
-        // Add Hero Visuals
-        shopHeader.classList.add('ring-2', activeGlowTheme.ring, 'transition-all');
-        const badge = document.createElement('div');
-        badge.id = 'shop-hero-badge';
-        badge.className = `shop-status-badge bg-gradient-to-r ${activeGlowTheme.gradient} text-white ${isMythic ? 'animate-pulse' : ''}`;
-        badge.innerHTML = '<i class="fas fa-crown"></i><span>Hero of the Day</span>';
-        shopHeader.appendChild(badge);
-    } else if (legendMeta.legendDiscount > 0) {
-        shopHeader.classList.add('ring-2', activeGlowTheme.ring, 'transition-all');
-        const badge = document.createElement('div');
-        badge.id = 'shop-legend-badge';
-        badge.className = `shop-status-badge bg-gradient-to-r ${activeGlowTheme.gradient} text-white ${isMythic ? 'animate-pulse' : ''}`;
-        badge.innerHTML = `<i class="fas fa-trophy"></i><span>${legendMeta.legendTier.label} ${legendMeta.legendDiscount}% off</span>`;
-        shopHeader.appendChild(badge);
+    if (shopHeader) {
+        if (isHero) {
+            shopHeader.classList.add('ring-2', activeGlowTheme.ring, 'transition-all');
+            const badge = document.createElement('div');
+            badge.id = 'shop-hero-badge';
+            badge.className = `shop-status-badge bg-gradient-to-r ${activeGlowTheme.gradient} text-white ${isMythic ? 'animate-pulse' : ''}`;
+            badge.innerHTML = '<i class="fas fa-crown"></i><span>Hero of the Day</span>';
+            shopHeader.appendChild(badge);
+        } else if (legendMeta.legendDiscount > 0) {
+            shopHeader.classList.add('ring-2', activeGlowTheme.ring, 'transition-all');
+            const badge = document.createElement('div');
+            badge.id = 'shop-legend-badge';
+            badge.className = `shop-status-badge bg-gradient-to-r ${activeGlowTheme.gradient} text-white ${isMythic ? 'animate-pulse' : ''}`;
+            badge.innerHTML = `<i class="fas fa-trophy"></i><span>${legendMeta.legendTier.label} ${legendMeta.legendDiscount}% off</span>`;
+            shopHeader.appendChild(badge);
+        }
     }
 
     // LIMIT CHECK 1: Individual Legendary limit (2 per month)
@@ -357,80 +517,78 @@ export async function updateShopStudentDisplay(studentId) {
                     card.classList.add('ring-4', activeGlowTheme.ring, activeGlowTheme.shadow, 'transform', 'scale-105', 'z-10', 'transition-all', 'duration-500');
                     card.classList.remove('hover:-translate-y-2');
                 }
-                priceDisplay.innerHTML = `<span class="line-through text-fuchsia-400/70 text-sm mr-2">${basePrice}</span> <span class="${activeGlowTheme.text} text-3xl font-extrabold drop-shadow-[0_0_10px_currentColor] animate-bounce">${finalPrice}</span> <span>🪙</span>`;
+                priceDisplay.innerHTML = shopPriceMarkupDiscount(basePrice, finalPrice, `${activeGlowTheme.text} animate-bounce`);
             } else {
                 if (card) {
                     card.classList.add('hover:-translate-y-2');
                 }
-                priceDisplay.innerHTML = `<span class="shop-price-value text-xl">${basePrice}</span> <span>🪙</span>`;
+                priceDisplay.innerHTML = shopPriceMarkupPlain(String(basePrice));
             }
         }
 
         // Familiar egg buttons
         if (btn.dataset.type === 'familiar') {
             const hasFamiliar = !!scoreData?.familiar;
-            btn.classList.remove('bg-green-600', 'bg-red-500', 'bg-indigo-600', 'bg-gray-500');
             if (hasFamiliar) {
                 btn.disabled = true;
                 btn.innerText = 'Already Owned';
-                btn.classList.add('bg-green-600');
+                btn.className = shopBuyBtnClass(true, 'success');
             } else if (gold >= finalPrice) {
                 btn.disabled = false;
-                btn.innerText = 'BUY';
-                btn.classList.add('bg-purple-600');
+                btn.innerText = 'Buy';
+                btn.className = shopBuyBtnClass(true, 'cta');
             } else {
                 btn.disabled = true;
-                btn.innerText = 'BUY';
-                btn.classList.add('bg-gray-500');
+                btn.innerText = 'Buy';
+                btn.className = shopBuyBtnClass(true, 'muted');
             }
             return;
         }
 
         const alreadyOwned = inventory.some(i => i.id === itemId);
-        btn.classList.remove('bg-green-600', 'bg-red-500', 'bg-indigo-600');
 
         if (alreadyOwned && isLegendary) {
             btn.disabled = true;
             btn.innerText = "Owned";
-            btn.classList.add('bg-green-600');
-        } 
+            btn.className = shopBuyBtnClass(isFamiliar, 'success');
+        }
         else if (isLegendary && legLimitReached) {
             btn.disabled = true;
             btn.innerText = "Monthly limit (2/2)";
-            btn.classList.add('bg-red-500');
+            btn.className = shopBuyBtnClass(isFamiliar, 'danger');
         }
         else if (itemId === 'leg_pathfinder' && pathfinderLockedForClass) {
             btn.disabled = true;
             btn.innerText = "Class limit reached";
-            btn.classList.add('bg-red-500');
+            btn.className = shopBuyBtnClass(isFamiliar, 'danger');
         }
         else if (itemId === 'leg_protagonist' && protagonistThisMonth) {
             btn.disabled = true;
             btn.innerText = "Limit: 1/month";
-            btn.classList.add('bg-red-500');
+            btn.className = shopBuyBtnClass(isFamiliar, 'danger');
         }
         else if (gold >= finalPrice) {
             btn.disabled = false;
-            btn.innerText = 'BUY';
-            btn.classList.add('bg-indigo-600');
-        } 
+            btn.innerText = 'Buy';
+            btn.className = shopBuyBtnClass(isFamiliar, 'cta');
+        }
         else {
             btn.disabled = true;
-            btn.innerText = 'BUY';
-            btn.classList.add('bg-gray-500');
+            btn.innerText = 'Buy';
+            btn.className = shopBuyBtnClass(isFamiliar, 'muted');
         }
     });
 }
 
 function renderFamiliarEggCard(fType) {
     return `
-        <div class="shop-item-card group bg-indigo-950 border-2 border-purple-800 rounded-2xl overflow-hidden hover:border-purple-400 transition-all duration-300 hover:-translate-y-2 hover:shadow-[0_0_20px_rgba(167,139,250,0.3)] flex flex-col relative">
+        <div class="shop-item-card shop-item-card--familiar group flex flex-col relative overflow-hidden transition-all duration-300 hover:-translate-y-2 hover:shadow-[0_0_22px_rgba(167,139,250,0.28)]">
             <div class="absolute top-2 right-2 z-10 bg-purple-600 text-white text-[10px] font-bold px-2 py-1 rounded shadow transform -rotate-2 border border-purple-400">EGG</div>
-            <div class="relative h-40 flex items-center justify-center overflow-hidden" style="background:linear-gradient(135deg,${fType.eggColor}33,${fType.eggAccent}22);">
+            <div class="shop-item-stage relative overflow-hidden" style="background:linear-gradient(135deg,${fType.eggColor}33,${fType.eggAccent}22);">
                 <div class="text-7xl group-hover:scale-125 transition-transform duration-500 familiar-egg-wobble" style="filter:drop-shadow(0 0 12px ${fType.eggColor});">🥚</div>
                 <div class="absolute bottom-2 text-[10px] font-bold px-2 py-1 rounded-full text-white/80" style="background:${fType.eggColor}88;">${fType.name}</div>
             </div>
-            <div class="p-4 flex-grow flex flex-col">
+            <div class="p-4 pb-0 flex-grow flex flex-col">
                 <h3 class="font-title text-xl text-purple-300 leading-tight mb-1">${fType.name}</h3>
                 <p class="text-indigo-300 text-xs mb-1 flex-grow">${fType.desc}</p>
                 <p class="text-purple-400/70 text-[10px] italic mb-3">${fType.flavorHint}</p>
@@ -440,14 +598,14 @@ function renderFamiliarEggCard(fType) {
                     <div>✨ Evolves: <strong class="text-white">+${FAMILIAR_LEVEL_THRESHOLDS.level3}</strong> stars after hatch → Level 3</div>
                     <div>📛 Forms: ${fType.levelNames.map(n => `<strong class="text-purple-300">${n}</strong>`).join(' → ')}</div>
                 </div>
-                <div class="flex justify-between items-center mt-auto pt-3 border-t border-purple-800">
-                    <div class="shop-price-display flex items-center gap-1 font-bold text-white text-lg" data-item-id="${fType.id}" data-base-price="${fType.price}">
-                        <span>${fType.price}</span>
-                        <span>🪙</span>
+                <div class="shop-item-footer">
+                    <div class="shop-price-display" data-item-id="${fType.id}" data-base-price="${fType.price}">
+                        ${shopPriceMarkupPlain(fType.price)}
                     </div>
-                    <button class="shop-buy-btn bg-purple-600 hover:bg-purple-500 disabled:bg-indigo-900 disabled:text-indigo-500 disabled:cursor-not-allowed text-white text-xs font-bold py-2 px-4 rounded-lg uppercase tracking-wider transition-colors"
-                            data-id="${fType.id}" data-type="familiar" data-price="${fType.price}" disabled>
-                        Select Student
+                    <button type="button" class="${shopBuyBtnClass(true, 'waiting')}"
+                            data-id="${fType.id}" data-type="familiar" data-price="${fType.price}" disabled
+                            title="Choose a student from the Shopper menu above">
+                        Pick shopper
                     </button>
                 </div>
             </div>

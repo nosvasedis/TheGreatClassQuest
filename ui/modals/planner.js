@@ -54,11 +54,13 @@ export function switchDayPlannerTab(tabName) {
 function renderScheduleManagerList(dateString) {
     const listEl = document.getElementById('schedule-manager-list');
     const selectEl = document.getElementById('add-onetime-lesson-select');
-    
+    const classEndDates = state.get('teacherSettings')?.schoolYearSettings?.classEndDates || {};
+
     const classesOnDay = utils.getClassesOnDay(
         dateString,
         state.get('allSchoolClasses'),
-        state.get('allScheduleOverrides')
+        state.get('allScheduleOverrides'),
+        classEndDates
     );
     const allTeacherClassIds = state.get('allTeachersClasses').map(c => c.id);
 

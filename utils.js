@@ -380,7 +380,28 @@ export function compressAvatarImageBase64(base64, targetSize = 256, quality = 0.
     });
 }
 
-export function getClassesOnDay(dateString, allSchoolClasses, allScheduleOverrides) {
+/** Calendar day strictly after configured class last day (end date is inclusive). classEndDates uses DD-MM-YYYY or any parseFlexibleDate form. */
+export function isPastClassEndDate(classId, dateInput, classEndDates = {}) {
+    const raw = classEndDates[classId];
+    if (!raw) return false;
+    const target = parseFlexibleDate(dateInput);
+    const end = parseFlexibleDate(raw);
+    if (!target || !end) return false;
+    target.setHours(0, 0, 0, 0);
+    end.setHours(0, 0, 0, 0);
+    return target.getTime() > end.getTime();
+}
+
+export function toHtmlDateInputValue(canonicalOrAny) {
+    const d = parseFlexibleDate(canonicalOrAny);
+    if (!d) return '';
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    const dd = String(d.getDate()).padStart(2, '0');
+    return `${y}-${m}-${dd}`;
+}
+
+export function getClassesOnDay(dateString, allSchoolClasses, allScheduleOverrides, classEndDates = {}) {
     const day = parseDDMMYYYY(dateString).getDay().toString();
     let classes = allSchoolClasses.filter(c => c.scheduleDays && c.scheduleDays.includes(day));
     const overridesForDay = allScheduleOverrides.filter(o => o.date === dateString);
@@ -393,6 +414,9 @@ export function getClassesOnDay(dateString, allSchoolClasses, allScheduleOverrid
             if (classToAdd) classes.push(classToAdd);
         }
     });
+    classes = classes.filter((c) =>
+        doesClassMeetOnDate(c.id, dateString, allSchoolClasses, allScheduleOverrides, [], classEndDates)
+    );
     return classes.sort((a, b) => (a.timeStart || '99:99').localeCompare(b.timeStart || '99:99'));
 }
 
@@ -408,7 +432,7 @@ function isLessonBlockedByHoliday(date, schoolHolidayRanges = []) {
     });
 }
 
-export function doesClassMeetOnDate(classId, dateInput, allSchoolClasses = [], allScheduleOverrides = [], schoolHolidayRanges = []) {
+export function doesClassMeetOnDate(classId, dateInput, allSchoolClasses = [], allScheduleOverrides = [], schoolHolidayRanges = [], classEndDates = {}) {
     const classData = (allSchoolClasses || []).find((item) => item.id === classId);
     const targetDate = parseFlexibleDate(dateInput);
     if (!classData || !targetDate) return false;
@@ -430,41 +454,45 @@ export function doesClassMeetOnDate(classId, dateInput, allSchoolClasses = [], a
         return true;
     }
 
+    if (isPastClassEndDate(classId, targetDate, classEndDates)) {
+        return false;
+    }
+
     const dayOfWeek = targetDate.getDay().toString();
     return Array.isArray(classData.scheduleDays) && classData.scheduleDays.includes(dayOfWeek);
 }
 
-export function getLastLessonDate(classId, allSchoolClasses, allScheduleOverrides = [], schoolHolidayRanges = []) {
+export function getLastLessonDate(classId, allSchoolClasses, allScheduleOverrides = [], schoolHolidayRanges = [], classEndDates = {}) {
     for (let i = 0; i < 45; i++) {
         const checkDate = new Date();
         checkDate.setHours(0, 0, 0, 0);
         checkDate.setDate(checkDate.getDate() - i);
-        if (doesClassMeetOnDate(classId, checkDate, allSchoolClasses, allScheduleOverrides, schoolHolidayRanges)) {
+        if (doesClassMeetOnDate(classId, checkDate, allSchoolClasses, allScheduleOverrides, schoolHolidayRanges, classEndDates)) {
             return getDDMMYYYY(checkDate);
         }
     }
     return getTodayDateString();
 }
 
-export function getPreviousLessonDate(classId, allSchoolClasses, allScheduleOverrides = [], schoolHolidayRanges = []) {
+export function getPreviousLessonDate(classId, allSchoolClasses, allScheduleOverrides = [], schoolHolidayRanges = [], classEndDates = {}) {
     for (let i = 1; i <= 45; i++) {
         const checkDate = new Date();
         checkDate.setHours(0, 0, 0, 0);
         checkDate.setDate(checkDate.getDate() - i);
-        if (doesClassMeetOnDate(classId, checkDate, allSchoolClasses, allScheduleOverrides, schoolHolidayRanges)) {
+        if (doesClassMeetOnDate(classId, checkDate, allSchoolClasses, allScheduleOverrides, schoolHolidayRanges, classEndDates)) {
             return getDDMMYYYY(checkDate);
         }
     }
     return null;
 }
 
-export function getNextLessonDate(classId, allSchoolClasses, allScheduleOverrides = [], schoolHolidayRanges = [], fromDate = new Date()) {
+export function getNextLessonDate(classId, allSchoolClasses, allScheduleOverrides = [], schoolHolidayRanges = [], classEndDates = {}, fromDate = new Date()) {
     const checkDate = parseFlexibleDate(fromDate) || new Date();
     checkDate.setHours(0, 0, 0, 0);
     checkDate.setDate(checkDate.getDate() + 1);
 
     for (let i = 0; i < 45; i++) {
-        if (doesClassMeetOnDate(classId, checkDate, allSchoolClasses, allScheduleOverrides, schoolHolidayRanges)) {
+        if (doesClassMeetOnDate(classId, checkDate, allSchoolClasses, allScheduleOverrides, schoolHolidayRanges, classEndDates)) {
             return getDDMMYYYY(checkDate);
         }
         checkDate.setDate(checkDate.getDate() + 1);

@@ -681,7 +681,8 @@ function resolveActiveHomeLeague() {
     const todaysClasses = utils.getClassesOnDay(
         utils.getTodayDateString(),
         state.get('allSchoolClasses') || [],
-        state.get('allScheduleOverrides') || []
+        state.get('allScheduleOverrides') || [],
+        state.get('teacherSettings')?.schoolYearSettings?.classEndDates || {}
     );
     const myClassIds = new Set((state.get('allTeachersClasses') || []).map(c => c.id));
     const currentTime = new Date().toTimeString().slice(0, 5);
@@ -702,8 +703,9 @@ function getScheduleHtml(dateString, activeClassId) {
     const allScheduleOverrides = state.get('allScheduleOverrides') || [];
     const myClasses = state.get('allTeachersClasses') || [];
     const myClassIds = myClasses.map(c => c.id);
+    const classEndDates = state.get('teacherSettings')?.schoolYearSettings?.classEndDates || {};
 
-    const todaysClasses = utils.getClassesOnDay(dateString, allSchoolClasses, allScheduleOverrides);
+    const todaysClasses = utils.getClassesOnDay(dateString, allSchoolClasses, allScheduleOverrides, classEndDates);
 
     if (todaysClasses.length === 0) {
         const dayOfWeek = new Date().getDay(); // 0 = Sunday, 6 = Saturday
@@ -845,7 +847,8 @@ function startHomeSmartLogic() {
         const currentTime = now.toTimeString().slice(0, 5);
         const todayStr = utils.getTodayDateString();
 
-        const todaysClasses = utils.getClassesOnDay(todayStr, state.get('allSchoolClasses'), state.get('allScheduleOverrides'));
+        const classEndDates = state.get('teacherSettings')?.schoolYearSettings?.classEndDates || {};
+        const todaysClasses = utils.getClassesOnDay(todayStr, state.get('allSchoolClasses'), state.get('allScheduleOverrides'), classEndDates);
         const myClasses = state.get('allTeachersClasses');
         const myTodaysClasses = todaysClasses.filter(c => myClasses.some(mc => mc.id === c.id));
 
@@ -873,7 +876,8 @@ export function runScheduleBasedClassSyncOnce() {
     const now = new Date();
     const currentTime = now.toTimeString().slice(0, 5);
     const todayStr = utils.getTodayDateString();
-    const todaysClasses = utils.getClassesOnDay(todayStr, state.get('allSchoolClasses'), state.get('allScheduleOverrides'));
+    const classEndDates = state.get('teacherSettings')?.schoolYearSettings?.classEndDates || {};
+    const todaysClasses = utils.getClassesOnDay(todayStr, state.get('allSchoolClasses'), state.get('allScheduleOverrides'), classEndDates);
     const myClasses = state.get('allTeachersClasses');
     const myTodaysClasses = todaysClasses.filter(c => myClasses.some(mc => mc.id === c.id));
     const currentActiveLesson = myTodaysClasses.find(c => c.timeStart && c.timeEnd && currentTime >= c.timeStart && currentTime <= c.timeEnd);
@@ -1162,6 +1166,7 @@ function getReminderPills(classId) {
     // so we only show events relevant to that class.
     const allSchoolClasses = state.get('allSchoolClasses') || [];
     const allScheduleOverrides = state.get('allScheduleOverrides') || [];
+    const classEndDates = state.get('teacherSettings')?.schoolYearSettings?.classEndDates || {};
 
     sortedEvents.forEach(e => {
         const eventDate = utils.parseFlexibleDate(e.date);
@@ -1177,7 +1182,7 @@ function getReminderPills(classId) {
         if (classId) {
             const d = eventDate;
             const eventDateDDMMYYYY = `${String(d.getDate()).padStart(2, '0')}-${String(d.getMonth() + 1).padStart(2, '0')}-${d.getFullYear()}`;
-            const classesOnThatDay = utils.getClassesOnDay(eventDateDDMMYYYY, allSchoolClasses, allScheduleOverrides);
+            const classesOnThatDay = utils.getClassesOnDay(eventDateDDMMYYYY, allSchoolClasses, allScheduleOverrides, classEndDates);
             if (!classesOnThatDay.some(c => c.id === classId)) return; // Skip — not a lesson day for this class
         }
 

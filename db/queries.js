@@ -1,7 +1,7 @@
 // /db/queries.js
 
 import { db, collection, query, where, getDocs, orderBy } from '../firebase.js';
-import { parseFlexibleDate, parseDDMMYYYY } from '../utils.js';
+import { parseDDMMYYYY } from '../utils.js';
 
 /**
  * CORRECTED: Fetches all award log entries for a specific date using a Timestamp query.
@@ -145,23 +145,6 @@ export async function fetchAttendanceForMonth(classId, year, month) {
 }
 
 // --- TRIAL HISTORY FUNCTIONS ---
-
-export async function fetchAllTrialMonthsForClass(classId) {
-    const allTrials = await fetchAllTrialsForClass(classId);
-    const monthSet = new Set();
-    
-    allTrials.forEach(trial => {
-        if (trial.date) {
-            const dateObj = parseFlexibleDate(trial.date);
-            if (dateObj) {
-                const year = dateObj.getFullYear();
-                const month = String(dateObj.getMonth() + 1).padStart(2, '0');
-                monthSet.add(`${year}-${month}`);
-            }
-        }
-    });
-    return monthSet;
-}
 
 export async function fetchTrialsForMonth(classId, monthKey) {
     const startDate = new Date(monthKey + '-01');

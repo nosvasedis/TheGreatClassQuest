@@ -3,263 +3,267 @@
 /* --- CEREMONY SCREEN BASE STYLES --- */
 #grand-guild-ceremony-screen {
     font-family: 'Cinzel Decorative', cursive, serif;
-    background: linear-gradient(135deg, #1e3a8a 0%, #7c3aed 25%, #be185d 50%, #dc2626 75%, #ea580c 100%);
+    background: radial-gradient(circle at center, #1e1b4b 0%, #312e81 40%, #0f172a 100%);
     overflow: hidden;
+    position: relative;
 }
 
-#grand-guild-ceremony-screen.hidden {
-    display: none !important;
+#grand-guild-ceremony-screen::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(circle at 20% 30%, rgba(124, 58, 237, 0.2) 0%, transparent 50%),
+                radial-gradient(circle at 80% 70%, rgba(190, 24, 93, 0.2) 0%, transparent 50%),
+                radial-gradient(circle at 50% 50%, rgba(245, 158, 11, 0.1) 0%, transparent 70%);
+    animation: cosmic-nebula-pulse 10s infinite alternate ease-in-out;
+    pointer-events: none;
+    z-index: 1;
+}
+
+@keyframes cosmic-nebula-pulse {
+    0% { transform: scale(1) rotate(0deg); opacity: 0.5; }
+    100% { transform: scale(1.2) rotate(5deg); opacity: 0.8; }
+}
+
+/* --- SUPER SPOTLIGHT --- */
+.super-spotlight {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 200%;
+    height: 200%;
+    transform: translate(-50%, -50%);
+    background: conic-gradient(from 0deg, 
+        transparent 0deg, 
+        rgba(255, 255, 255, 0.05) 10deg, 
+        transparent 20deg, 
+        rgba(255, 255, 255, 0.05) 30deg, 
+        transparent 40deg);
+    animation: rotate-spotlight 20s linear infinite;
+    pointer-events: none;
+    z-index: 2;
+    mask-image: radial-gradient(circle, black 30%, transparent 70%);
+}
+
+@keyframes rotate-spotlight {
+    from { transform: translate(-50%, -50%) rotate(0deg); }
+    to { transform: translate(-50%, -50%) rotate(360deg); }
+}
+
+/* --- SPIRIT ANIMAL PATROL --- */
+.spirit-animal {
+    position: absolute;
+    font-size: 2.5rem;
+    filter: drop-shadow(0 0 15px currentColor);
+    pointer-events: none;
+    z-index: 5;
+    opacity: 0;
+}
+
+.spirit-animal::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 40px;
+    height: 40px;
+    background: radial-gradient(circle, currentColor 0%, transparent 70%);
+    transform: translate(-50%, -50%);
+    filter: blur(10px);
+    opacity: 0.6;
+}
+
+@keyframes spirit-flight-dragon {
+    0% { left: -50px; top: 20%; opacity: 0; transform: scale(0.5) rotate(0deg); }
+    10% { opacity: 1; transform: scale(1) rotate(10deg); }
+    40% { left: 40%; top: 60%; transform: scale(1.2) rotate(-10deg); }
+    70% { left: 80%; top: 30%; transform: scale(1) rotate(20deg); }
+    100% { left: 110%; top: 50%; opacity: 0; transform: scale(0.5) rotate(0deg); }
 }
 
 /* --- CEREMONY HEADER --- */
 #ceremony-header {
-    animation: header-glow 3s ease-in-out infinite alternate;
+    animation: header-entrance 1.5s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+    z-index: 20;
+    position: relative;
 }
 
-@keyframes header-glow {
-    from {
-        text-shadow: 0 0 20px rgba(255, 255, 255, 0.5);
-    }
-    to {
-        text-shadow: 0 0 30px rgba(255, 255, 255, 0.8), 0 0 40px rgba(255, 215, 0, 0.6);
-    }
+@keyframes header-entrance {
+    0% { transform: translateY(-100px); opacity: 0; }
+    100% { transform: translateY(0); opacity: 1; }
 }
 
 #ceremony-title {
-    background: linear-gradient(45deg, #ffd700, #ffed4e, #fff8dc, #ffd700);
-    background-size: 200% 200%;
+    background: linear-gradient(to right, #ffd700, #fff7ad, #ffd700, #ff8c00, #ffd700);
+    background-size: 200% auto;
     -webkit-background-clip: text;
     background-clip: text;
     -webkit-text-fill-color: transparent;
-    animation: gold-shimmer 3s ease-in-out infinite;
+    animation: gold-shimmer-ultra 4s linear infinite;
+    text-shadow: 0 0 30px rgba(255, 215, 0, 0.3);
+    font-size: clamp(3rem, 10vw, 6rem);
 }
 
-@keyframes gold-shimmer {
-    0% {
-        background-position: 0% 50%;
-    }
-    50% {
-        background-position: 100% 50%;
-    }
-    100% {
-        background-position: 0% 50%;
-    }
+@keyframes gold-shimmer-ultra {
+    to { background-position: 200% center; }
 }
 
 /* --- CEREMONY STAGE AREA --- */
 #ceremony-stage-area {
-    min-height: 400px;
+    min-height: 500px;
     position: relative;
+    z-index: 10;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    perspective: 1500px;
 }
 
 /* --- CEREMONY ACTION BUTTON --- */
 #ceremony-action-btn {
     background: linear-gradient(45deg, #f59e0b, #f97316, #ea580c, #dc2626);
     background-size: 200% 200%;
-    animation: button-pulse 2s ease-in-out infinite, button-gradient 3s ease-in-out infinite;
-    box-shadow: 0 0 30px rgba(245, 158, 11, 0.6), 0 0 60px rgba(245, 158, 11, 0.3);
-    transition: all 0.3s ease;
+    animation: button-pulse-ultra 2s ease-in-out infinite, button-gradient 3s ease-in-out infinite;
+    box-shadow: 0 0 30px rgba(245, 158, 11, 0.6), 0 0 60px rgba(245, 158, 11, 0.3), inset 0 0 15px rgba(255,255,255,0.4);
+    border: 4px solid rgba(255, 255, 255, 0.3);
+    transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    z-index: 30;
 }
 
-#ceremony-action-btn:hover {
-    transform: scale(1.05);
-    box-shadow: 0 0 40px rgba(245, 158, 11, 0.8), 0 0 80px rgba(245, 158, 11, 0.4);
-}
-
-#ceremony-action-btn:disabled {
-    opacity: 0.6;
-    cursor: not-allowed;
-    animation: none;
-}
-
-@keyframes button-pulse {
-    0%, 100% {
-        transform: scale(1);
-    }
-    50% {
-        transform: scale(1.02);
-    }
-}
-
-@keyframes button-gradient {
-    0% {
-        background-position: 0% 50%;
-    }
-    50% {
-        background-position: 100% 50%;
-    }
-    100% {
-        background-position: 0% 50%;
-    }
+@keyframes button-pulse-ultra {
+    0%, 100% { transform: scale(1); box-shadow: 0 0 30px rgba(245, 158, 11, 0.6); }
+    50% { transform: scale(1.1); box-shadow: 0 0 50px rgba(245, 158, 11, 0.8), 0 0 20px rgba(255,255,255,0.4); }
 }
 
 /* --- AI COMMENTARY BOX --- */
 #ceremony-ai-box {
-    background: linear-gradient(135deg, rgba(0, 0, 0, 0.6), rgba(30, 58, 138, 0.4));
+    background: linear-gradient(135deg, rgba(15, 23, 42, 0.8), rgba(30, 58, 138, 0.6));
     border: 2px solid rgba(255, 255, 255, 0.2);
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
-    backdrop-filter: blur(12px);
-    animation: ai-box-float 4s ease-in-out infinite;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5), 0 0 20px rgba(99, 102, 241, 0.3);
+    backdrop-filter: blur(20px);
+    animation: ai-box-float 5s ease-in-out infinite;
+    z-index: 25;
 }
 
-@keyframes ai-box-float {
-    0%, 100% {
-        transform: translateY(0);
-    }
-    50% {
-        transform: translateY(-5px);
-    }
-}
-
-#ceremony-ai-text {
-    font-family: 'Georgia', serif;
-    font-style: italic;
-    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.8);
-    animation: text-glow 2s ease-in-out infinite alternate;
-}
-
-@keyframes text-glow {
-    from {
-        text-shadow: 0 2px 4px rgba(0, 0, 0, 0.8);
-    }
-    to {
-        text-shadow: 0 2px 4px rgba(0, 0, 0, 0.8), 0 0 10px rgba(255, 255, 255, 0.3);
-    }
-}
-
-/* --- GUILD THEMED PARTICLES --- */
-
-/* Dragon Flame - Fire Particles */
+/* --- GUILD THEMED PARTICLES (Supercharged) --- */
 .fire-particle {
-    background: radial-gradient(circle, #ff6b35, #f7931e, #ff4500);
-    box-shadow: 0 0 15px #ff6b35, 0 0 30px #f7931e, 0 0 45px #ff4500;
+    background: radial-gradient(circle, #ff6b35, #ff4500);
+    box-shadow: 0 0 15px #ff6b35, 0 0 30px #ff4500, 0 0 45px #ff0000;
+    width: 6px; height: 6px;
 }
 
-/* Grizzly Might - Earth Particles */
 .earth-particle {
-    background: radial-gradient(circle, #8b4513, #a0522d, #d2691e);
-    box-shadow: 0 0 12px #8b4513, 0 0 24px #a0522d, 0 0 36px #d2691e;
+    background: radial-gradient(circle, #8b4513, #d2691e);
+    box-shadow: 0 0 12px #8b4513, 0 0 24px #a0522d, 0 0 36px #22c55e;
+    width: 8px; height: 8px;
 }
 
-/* Owl Wisdom - Star Particles */
 .star-particle {
-    background: radial-gradient(circle, #ffd700, #ffed4e, #fff8dc);
-    box-shadow: 0 0 18px #ffd700, 0 0 36px #ffed4e, 0 0 54px #fff8dc;
+    background: radial-gradient(circle, #ffd700, #fff8dc);
+    box-shadow: 0 0 20px #ffd700, 0 0 40px #ffed4e, 0 0 60px #ffffff;
+    width: 10px; height: 10px;
 }
 
-/* Phoenix Rising - Light Particles */
 .light-particle {
-    background: radial-gradient(circle, #ff69b4, #ff1493, #c71585);
-    box-shadow: 0 0 20px #ff69b4, 0 0 40px #ff1493, 0 0 60px #c71585;
+    background: radial-gradient(circle, #ff69b4, #c71585);
+    box-shadow: 0 0 25px #ff69b4, 0 0 50px #ff1493, 0 0 75px #ffffff;
+    width: 12px; height: 12px;
 }
 
-/* --- CEREMONY CONTENT STYLES --- */
-
-/* Hero Gallery Styles */
-.hero-gallery {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-    gap: 1rem;
-    padding: 2rem;
+/* --- SUPERCHARGED CARDS --- */
+.hero-card, .prodigy-card, .guild-winner, .hall-of-heroes {
+    position: relative;
+    overflow: visible !important;
+    transition: all 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
-.hero-card {
-    background: linear-gradient(135deg, rgba(255, 215, 0, 0.2), rgba(255, 165, 0, 0.2));
-    border: 2px solid rgba(255, 215, 0, 0.5);
-    border-radius: 1rem;
-    padding: 1rem;
-    text-align: center;
-    transition: all 0.3s ease;
-    animation: hero-card-float 3s ease-in-out infinite;
+.hero-card::before, .prodigy-card::before, .guild-winner::before, .hall-of-heroes::before {
+    content: '';
+    position: absolute;
+    inset: -10px;
+    background: linear-gradient(45deg, transparent, rgba(255,215,0,0.4), transparent);
+    background-size: 200% 200%;
+    animation: card-sweep 3s linear infinite;
+    border-radius: inherit;
+    z-index: -1;
+    opacity: 0;
+    transition: opacity 0.5s;
 }
 
-.hero-card:hover {
-    transform: translateY(-5px) scale(1.05);
-    box-shadow: 0 10px 30px rgba(255, 215, 0, 0.3);
+.hero-card:hover::before, .prodigy-card:hover::before, .guild-winner:hover::before {
+    opacity: 1;
 }
 
-@keyframes hero-card-float {
-    0%, 100% {
-        transform: translateY(0);
-    }
-    50% {
-        transform: translateY(-3px);
-    }
+@keyframes card-sweep {
+    0% { background-position: -200% -200%; }
+    100% { background-position: 200% 200%; }
 }
 
-/* Team Quest Styles */
-.team-quest-ranking {
-    background: linear-gradient(135deg, rgba(59, 130, 246, 0.2), rgba(99, 102, 241, 0.2));
-    border: 2px solid rgba(59, 130, 246, 0.5);
-    border-radius: 1rem;
-    padding: 1.5rem;
-    margin-bottom: 1rem;
-    transition: all 0.3s ease;
+/* Legendary Aura */
+.legendary-aura {
+    position: absolute;
+    top: 50%; left: 50%;
+    width: 250%; height: 250%;
+    transform: translate(-50%, -50%);
+    background: radial-gradient(circle, rgba(251, 191, 36, 0.4) 0%, transparent 70%);
+    z-index: -2;
+    animation: aura-pulse 3s infinite alternate ease-in-out;
+    pointer-events: none;
 }
 
-.team-quest-ranking:hover {
-    transform: translateX(10px);
-    box-shadow: 0 5px 20px rgba(59, 130, 246, 0.3);
+@keyframes aura-pulse {
+    0% { transform: translate(-50%, -50%) scale(0.8); opacity: 0.3; }
+    100% { transform: translate(-50%, -50%) scale(1.2); opacity: 0.7; }
 }
 
-.rank-medal {
-    font-size: 2rem;
-    animation: medal-shine 2s ease-in-out infinite;
+/* --- SHOWDOWN / SUSPENSE --- */
+.tension-shake {
+    animation: shake-tension 0.1s infinite;
 }
 
-@keyframes medal-shine {
-    0%, 100% {
-        transform: scale(1) rotate(0deg);
-    }
-    50% {
-        transform: scale(1.1) rotate(5deg);
-    }
+@keyframes shake-tension {
+    0% { transform: translate(2px, 2px) rotate(0deg); }
+    25% { transform: translate(-2px, -2px) rotate(-1deg); }
+    50% { transform: translate(-2px, 2px) rotate(1deg); }
+    75% { transform: translate(2px, -2px) rotate(0deg); }
+    100% { transform: translate(2px, 2px) rotate(0deg); }
 }
 
-/* Prodigy Timeline Styles */
-.prodigy-card {
-    background: linear-gradient(135deg, rgba(168, 85, 247, 0.2), rgba(196, 181, 253, 0.2));
-    border: 2px solid rgba(168, 85, 247, 0.5);
-    border-radius: 1rem;
-    padding: 1.5rem;
-    text-align: center;
-    transition: all 0.3s ease;
-    animation: prodigy-glow 3s ease-in-out infinite;
+.showdown-scan {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(to right, transparent, rgba(255,255,255,0.4), transparent);
+    transform: translateX(-100%);
+    animation: showdown-scan-anim 1.5s infinite;
+    pointer-events: none;
+    z-index: 5;
 }
 
-.prodigy-card:hover {
-    transform: scale(1.05);
-    box-shadow: 0 10px 30px rgba(168, 85, 247, 0.3);
+@keyframes showdown-scan-anim {
+    0% { transform: translateX(-100%); }
+    100% { transform: translateX(100%); }
 }
 
-@keyframes prodigy-glow {
-    0%, 100% {
-        box-shadow: 0 5px 20px rgba(168, 85, 247, 0.2);
-    }
-    50% {
-        box-shadow: 0 10px 40px rgba(168, 85, 247, 0.4);
-    }
+/* --- HALL OF HEROES FINAL --- */
+.hall-of-heroes {
+    background: linear-gradient(135deg, rgba(34, 197, 94, 0.1), rgba(74, 222, 128, 0.1));
+    border: 4px solid #fbbf24;
+    box-shadow: 0 0 100px rgba(251, 191, 36, 0.4), inset 0 0 50px rgba(251, 191, 36, 0.2);
+    animation: final-celebration 5s infinite alternate;
 }
 
-/* Guild Champion Styles */
-.guild-winner {
-    background: linear-gradient(135deg, rgba(245, 158, 11, 0.3), rgba(251, 191, 36, 0.3));
-    border: 3px solid rgba(245, 158, 11, 0.6);
-    border-radius: 1.5rem;
-    padding: 2rem;
-    text-align: center;
-    animation: winner-crown 4s ease-in-out infinite;
+@keyframes final-celebration {
+    0% { box-shadow: 0 0 100px rgba(251, 191, 36, 0.4); }
+    100% { box-shadow: 0 0 150px rgba(251, 191, 36, 0.7), 0 0 50px rgba(255,255,255,0.5); }
 }
 
-@keyframes winner-crown {
-    0%, 100% {
-        transform: scale(1);
-        box-shadow: 0 10px 40px rgba(245, 158, 11, 0.4);
-    }
-    50% {
-        transform: scale(1.02);
-        box-shadow: 0 15px 60px rgba(245, 158, 11, 0.6);
-    }
+/* Victory Plaque Text */
+.victory-text {
+    font-family: 'Cinzel Decorative', cursive;
+    color: #ffd700;
+    text-shadow: 0 0 20px rgba(255, 215, 0, 0.8), 0 0 40px rgba(255, 140, 0, 0.4);
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
 }
 
 .guild-ranking {

@@ -262,6 +262,8 @@ export async function openMilestoneModal(markerElement) {
     // --- 3. DYNAMIC UI RENDER ---
     const modalTitle = document.getElementById('milestone-modal-title');
     const modalContent = document.getElementById('milestone-modal-content');
+    const milestoneModal = document.getElementById('milestone-details-modal');
+    if (milestoneModal) milestoneModal.dataset.modalMode = 'milestone';
 
     let milestoneName, goal, icon, color;
     if (markerElement.innerText.includes('🛡️')) { milestoneName = "Bronze Shield"; goal = goals.bronze; icon = '🛡️'; color = "blue"; }
@@ -273,6 +275,8 @@ export async function openMilestoneModal(markerElement) {
     const starsNeeded = Math.max(0, goal - currentMonthlyStars);
 
     modalTitle.innerHTML = `${icon} ${milestoneName}`;
+    modalTitle.classList.remove('hidden');
+    modalTitle.className = 'font-title text-2xl md:text-3xl text-blue-700';
     modalContent.innerHTML = `
         <div class="grid grid-cols-1 md:grid-cols-2 gap-8 items-start">
             <div class="vibrant-card p-6 bg-gradient-to-b from-white to-${color}-50 border-4 border-${color}-400 shadow-[0_10px_30px_rgba(0,0,0,0.1)] rounded-[3rem] text-center">

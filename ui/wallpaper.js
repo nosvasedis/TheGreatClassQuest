@@ -310,7 +310,8 @@ function identifyCurrentClass() {
     const now = new Date();
     const todayStr = utils.getTodayDateString();
     const currentTime = now.toTimeString().slice(0, 5);
-    const todaysClasses = utils.getClassesOnDay(todayStr, state.get('allSchoolClasses'), state.get('allScheduleOverrides'));
+    const classEndDates = state.get('teacherSettings')?.schoolYearSettings?.classEndDates || {};
+    const todaysClasses = utils.getClassesOnDay(todayStr, state.get('allSchoolClasses'), state.get('allScheduleOverrides'), classEndDates);
     return todaysClasses.find(c => c.timeStart && c.timeEnd && currentTime >= c.timeStart && currentTime <= c.timeEnd) || null;
 }
 

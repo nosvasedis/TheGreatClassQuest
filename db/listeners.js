@@ -537,11 +537,13 @@ export function setupDataListeners(userId, dateString, onInitialDataReady, optio
             const attendanceData = change.doc.data();
             const student = state.get('allStudents').find(s => s.id === attendanceData.studentId);
             if (student) {
+                const classEndDates = state.get('teacherSettings')?.schoolYearSettings?.classEndDates || {};
                 const lastLessonDate = utils.getLastLessonDate(
                     student.classId,
                     state.get('allSchoolClasses'),
                     state.get('allScheduleOverrides'),
-                    state.get('schoolHolidayRanges')
+                    state.get('schoolHolidayRanges'),
+                    classEndDates
                 );
                 // If the change is relevant to the most recent lesson, update the UI immediately
                 if (attendanceData.date === lastLessonDate) {

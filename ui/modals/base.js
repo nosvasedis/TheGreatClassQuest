@@ -78,6 +78,10 @@ export function showAnimatedModal(modalId) {
     if (!modal) return;
 
     const innerContent = modal.querySelector('.pop-in');
+    innerContent?.classList.remove('is-modal-exiting', 'modal-origin-start', 'pop-out');
+    modal.style.backgroundColor = '';
+    modal.style.transition = '';
+    modal.style.opacity = '';
 
     if (modalId === 'fortunes-wheel-modal' && innerContent) {
         innerContent.classList.remove('fw-card--exit', 'modal-origin-start', 'pop-out');
@@ -204,23 +208,49 @@ export function hideModal(modalId) {
         return;
     }
 
+    const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
     if (innerContent) {
-        innerContent.classList.add('modal-origin-start');
-        modal.style.backgroundColor = 'rgba(0, 0, 0, 0)';
+        if (reducedMotion) {
+            modal.classList.add('hidden');
+            innerContent.classList.remove('is-modal-exiting', 'modal-origin-start');
+        } else {
+            innerContent.classList.add('is-modal-exiting');
+            modal.style.transition = 'background-color 0.32s ease';
+            requestAnimationFrame(() => {
+                modal.style.backgroundColor = 'rgba(0, 0, 0, 0)';
+            });
+
+            let settled = false;
+            const finishClose = () => {
+                if (settled) return;
+                settled = true;
+                modal.classList.add('hidden');
+                modal.style.backgroundColor = '';
+                modal.style.transition = '';
+                modal.style.opacity = '';
+                innerContent.classList.remove('is-modal-exiting', 'modal-origin-start');
+            };
+
+            const fallbackMs = 380;
+            const fallback = setTimeout(finishClose, fallbackMs);
+            innerContent.addEventListener('animationend', (e) => {
+                if (e.target !== innerContent || e.animationName !== 'modal-shell-pop-out') return;
+                clearTimeout(fallback);
+                finishClose();
+            }, { once: true });
+        }
     } else {
         modal.style.transition = 'opacity 0.25s ease';
         modal.style.opacity = '0';
-    }
 
-    setTimeout(() => {
-        modal.classList.add('hidden');
-        modal.style.backgroundColor = '';
-        modal.style.transition = '';
-        modal.style.opacity = '';
-        if (innerContent) {
-            innerContent.classList.remove('modal-origin-start');
-        }
-    }, 350);
+        setTimeout(() => {
+            modal.classList.add('hidden');
+            modal.style.backgroundColor = '';
+            modal.style.transition = '';
+            modal.style.opacity = '';
+        }, 250);
+    }
 
     if (currentlySelectedDayCell) {
         currentlySelectedDayCell.classList.remove('day-selected');

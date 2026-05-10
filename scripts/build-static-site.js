@@ -9,6 +9,8 @@ const distDir = path.join(repoRoot, 'dist');
 
 const deployEntries = [
   'index.html',
+  'manifest.json',
+  'service-worker.js',
   'bootstrap.js',
   'app.js',
   'api.js',

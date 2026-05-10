@@ -311,11 +311,15 @@ export function switchHeroChronicleTab(tabId) {
         oracleTab.classList.add('hidden');
         notesBtn.classList.add('active');
         oracleBtn.classList.remove('active');
+        notesBtn.setAttribute('aria-selected', 'true');
+        oracleBtn.setAttribute('aria-selected', 'false');
     } else {
         notesTab.classList.add('hidden');
         oracleTab.classList.remove('hidden');
         notesBtn.classList.remove('active');
         oracleBtn.classList.add('active');
+        notesBtn.setAttribute('aria-selected', 'false');
+        oracleBtn.setAttribute('aria-selected', 'true');
     }
 }
 

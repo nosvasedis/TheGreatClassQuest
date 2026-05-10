@@ -6,6 +6,7 @@ import { openGuildHeroesModal } from '../modals/guildHeroes.js';
 import { openFortunesWheel, advanceWheel, triggerSpin, closeFortunesWheel, canSpinThisWeek } from '../../features/fortunesWheel.js';
 import { GLORY_EMOJI } from '../../constants.js';
 import * as state from '../../state.js';
+import { getGuildModifierChipPresentation, escapeHtmlAttr as _escapeChipAttr } from '../../features/wheelModifierUi.js';
 
 // ─── Guild Power explainer overlay ───────────────────────────────────────────
 let _powerExplainerWired = false;
@@ -413,26 +414,59 @@ function wireGuildLoreListeners() {
 }
 
 // ─── Main render ─────────────────────────────────────────────────────────────
-function _getChampionHtml(gData, primary, glow) {
-    const champ = gData?.topContributors?.[0];
+/**
+ * Guild champion + next three by estimated lifetime Glory (stars × GLORY_PER_STAR).
+ * Wheel-only guild adjustments are not attributed per student here; see scoring copy in the UI.
+ */
+function _buildGuildChampionPanel(g, primary) {
+    const guildId = g.guildId;
+    const spotlightBtn = `
+                    <button type="button" class="guild-power-info-btn guild-analytics-info-btn guild-crystal-champion-panel__info"
+                            data-top-heroes-guild="${guildId}"
+                            title="Guild spotlight"
+                            aria-label="Open guild spotlight">i</button>`;
+    const header = `
+                <header class="guild-crystal-champion-panel__header">
+                    <span class="guild-crystal-champion-panel__burst" aria-hidden="true"><i class="fas fa-crown"></i></span>
+                    <div class="guild-crystal-champion-panel__headlines">
+                        <h4 class="guild-crystal-champion-panel__title">Top champion</h4>
+                        <p class="guild-crystal-champion-panel__subtitle">${GLORY_EMOJI} Glory lead from lifetime stars</p>
+                    </div>
+                    ${spotlightBtn}
+                </header>`;
+    const champ = g.topContributors?.[0];
     if (!champ) {
-        return '<div class="guild-crystal-champion-slot guild-crystal-champion-slot--empty" aria-hidden="true"></div>';
-    }
-    const avatarHtml = champ.avatar
-        ? `<img src="${champ.avatar}" class="w-8 h-8 rounded-full object-cover border-2 flex-shrink-0" style="border-color:${primary}">`
-        : `<div class="w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold text-white flex-shrink-0" style="background:${primary}">${champ.name?.charAt(0) || '?'}</div>`;
-    return `
-        <div class="guild-crystal-champion-slot">
-            <div class="guild-crystal-champion mt-0 flex items-center gap-2 px-3 py-2 rounded-xl border" style="border-color:${primary}44;background:${glow}11;">
-                <span class="guild-crystal-champion-icon text-sm" aria-hidden="true"><i class="fas fa-medal" style="color:${primary}"></i></span>
-                ${avatarHtml}
-                <div class="min-w-0">
-                    <div class="text-[10px] font-bold uppercase tracking-wider opacity-60" style="color:${primary}">Top Champion</div>
-                    <div class="text-xs font-bold truncate text-white">${champ.name}</div>
-                    <div class="text-[10px]" style="color:rgba(255,255,255,0.78)">${champ.totalStars} ⭐ total</div>
+        return `
+            <section class="guild-crystal-champion-panel guild-crystal-champion-panel--balanced" style="--guild-champion-accent:${primary};" aria-label="Guild champion">
+                ${header}
+                <div class="guild-crystal-champion-panel__body">
+                    <p class="guild-crystal-champion-panel__vacant" role="status">Throne vacant — the first spark will claim it.</p>
                 </div>
-            </div>
-        </div>`;
+            </section>`;
+    }
+    const glory = Number(champ.gloryEstimate) || 0;
+    const initialHero = String(champ.name || '?').trim().charAt(0).toUpperCase() || '?';
+    const avatarInner = champ.avatar
+        ? `<img src="${champ.avatar}" alt="" class="guild-crystal-champion-panel__avatar-img" loading="lazy" decoding="async" width="44" height="44">`
+        : `<span class="guild-crystal-champion-panel__avatar-fallback">${initialHero}</span>`;
+    return `
+            <section class="guild-crystal-champion-panel guild-crystal-champion-panel--balanced" style="--guild-champion-accent:${primary};" aria-label="Guild champion">
+                ${header}
+                <div class="guild-crystal-champion-panel__body">
+                    <div class="guild-crystal-champion-panel__card" style="--hero-tile-accent:${primary};" title="${champ.name} — ${glory} ${GLORY_EMOJI} from lifetime stars">
+                        <span class="guild-crystal-champion-panel__avatar" aria-hidden="true">${avatarInner}</span>
+                        <span class="guild-crystal-champion-panel__text">
+                            <span class="guild-crystal-champion-panel__name">${champ.name}</span>
+                            <span class="guild-crystal-champion-panel__glory">
+                                <span class="guild-crystal-champion-panel__glory-num">${glory}</span>
+                                <span class="guild-crystal-champion-panel__glory-unit" aria-hidden="true">${GLORY_EMOJI}</span>
+                                <span class="guild-crystal-champion-panel__glory-hint">from stars</span>
+                            </span>
+                        </span>
+                        <span class="guild-crystal-champion-panel__medal" role="img" aria-label="First place">🥇</span>
+                    </div>
+                </div>
+            </section>`;
 }
 
 export function renderGuildsTab() {
@@ -497,27 +531,40 @@ export function renderGuildsTab() {
                    <span class="guild-crystal-emblem-initial" style="color:${primary}">${initial}</span>
                </div>`;
 
-        const topHeroesBody = g.topContributors.length
-            ? g.topContributors.slice(0, 3).map((c, hi) => {
-                const rankMedal = hi === 0 ? '🥇' : hi === 1 ? '🥈' : '🥉';
-                const placeLabel = hi === 0 ? '1st place' : hi === 1 ? '2nd place' : '3rd place';
+        const legendRunners = g.topContributors.slice(1, 4);
+        const legendMedals = ['🥈', '🥉', '✨'];
+        const legendPlaceLabels = ['2nd place', '3rd place', '4th place'];
+
+        const topHeroesBody = legendRunners.length
+            ? legendRunners.map((c, hi) => {
+                const rankMedal = legendMedals[hi] || '✨';
+                const placeLabel = legendPlaceLabels[hi] || `${hi + 2}nd place`;
                 const initialHero = String(c.name || '?').trim().charAt(0).toUpperCase() || '?';
+                const glory = Number(c.gloryEstimate) || 0;
                 const avatarInner = c.avatar
                     ? `<img src="${c.avatar}" alt="" class="guild-crystal-hero-tile__avatar-img" loading="lazy" decoding="async" width="36" height="36">`
                     : `<span class="guild-crystal-hero-tile__avatar-fallback">${initialHero}</span>`;
                 return `
                        <span class="guild-crystal-hero-tile"
                              style="--hero-tile-accent:${primary};"
-                             title="${c.name} — ${String(c.totalStars)} stars total">
+                             title="${c.name} — ${glory} ${GLORY_EMOJI} from lifetime stars">
                            <span class="guild-crystal-hero-tile__avatar" aria-hidden="true">${avatarInner}</span>
                            <span class="guild-crystal-hero-tile__body">
                                <span class="guild-crystal-hero-tile__name">${c.name}</span>
-                               <span class="guild-crystal-hero-tile__stars"><span>${c.totalStars}</span><span aria-hidden="true"> ⭐</span> total</span>
+                               <span class="guild-crystal-hero-tile__glory">
+                                   <span class="guild-crystal-hero-tile__glory-num">${glory}</span>
+                                   <span class="guild-crystal-hero-tile__glory-icon" aria-hidden="true">${GLORY_EMOJI}</span>
+                                   <span class="guild-crystal-hero-tile__glory-hint">lifetime</span>
+                               </span>
                            </span>
                            <span class="guild-crystal-hero-tile__medal" role="img" aria-label="${placeLabel}">${rankMedal}</span>
                        </span>`;
             }).join('')
-            : `<p class="guild-crystal-heroes-panel__empty" role="status">Summon stars to crown your first legends.</p>`;
+            : (g.topContributors.length === 0
+                ? `<p class="guild-crystal-heroes-panel__empty" role="status">Summon stars to crown your first legends.</p>`
+                : `<p class="guild-crystal-heroes-panel__empty" role="status">The court awaits more guildmates ranked by ${GLORY_EMOJI}.</p>`);
+
+        const championPanelHtml = _buildGuildChampionPanel(g, primary);
 
         const topHtml = `
             <section class="guild-crystal-heroes-panel guild-crystal-heroes-panel--balanced" style="--guild-heroes-accent:${primary};">
@@ -525,26 +572,35 @@ export function renderGuildsTab() {
                     <span class="guild-crystal-heroes-panel__burst" aria-hidden="true"><i class="fas fa-dragon"></i></span>
                     <div class="guild-crystal-heroes-panel__headlines">
                         <h4 class="guild-crystal-heroes-panel__title">Legends of the guild</h4>
-                        <p class="guild-crystal-heroes-panel__subtitle">Brightest sparks this hall has seen</p>
+                        <p class="guild-crystal-heroes-panel__subtitle">Next warriors by lifetime ${GLORY_EMOJI} (from stars)</p>
                     </div>
-                    <button type="button" class="guild-power-info-btn guild-analytics-info-btn guild-crystal-heroes-panel__info"
-                            data-top-heroes-guild="${g.guildId}"
-                            title="Guild spotlight"
-                            aria-label="Open guild spotlight">i</button>
                 </header>
                 <div class="guild-crystal-heroes-panel__roster">${topHeroesBody}</div>
             </section>`;
 
         const now = Date.now();
-        const activeMods = (g.gloryModifiers || []).filter(m => (Number(m.expiresAt) || 0) > now);
-        const modLabels = activeMods
-            .map(m => String(m.label || m.type || 'Effect'))
-            .filter(Boolean);
-        const shownMods = modLabels.slice(0, 2);
-        const overflowMods = Math.max(0, modLabels.length - shownMods.length);
-        const modsChipsInner = modLabels.length
-            ? `${shownMods.map(lbl => `<span class="guild-crystal-effect-chip" title="${lbl}"><span class="guild-crystal-effect-chip__pulse" aria-hidden="true"></span>${lbl}</span>`).join('')}
-               ${overflowMods > 0 ? `<span class="guild-crystal-effect-chip guild-crystal-effect-chip--more" title="${overflowMods} more effects active"><span aria-hidden="true">+</span>${overflowMods}</span>` : ''}`
+        const activeModsSorted = [...(g.gloryModifiers || [])]
+            .filter((m) => (Number(m.expiresAt) || 0) > now)
+            .sort((a, b) => (Number(a.expiresAt) || 0) - (Number(b.expiresAt) || 0));
+        const shownWheelMods = activeModsSorted.slice(0, 2);
+        const overflowMods = Math.max(0, activeModsSorted.length - shownWheelMods.length);
+        const modsChipsInner = activeModsSorted.length
+            ? `${shownWheelMods.map((m) => {
+                const p = getGuildModifierChipPresentation(m);
+                const headSafe = _escapeChipAttr((p.headlinePlain || '').slice(0, 64));
+                return `<span class="guild-crystal-effect-chip" tabindex="0" aria-label="${p.headlineAttr}" title="${p.hoverExplainerAttr}">
+                        <span class="guild-crystal-effect-chip__pulse" aria-hidden="true"></span>
+                        <span class="guild-crystal-effect-chip__ico" aria-hidden="true"><i class="${p.iconClass}"></i></span>
+                        <span class="guild-crystal-effect-chip__label">${headSafe}</span>
+                    </span>`;
+            }).join('')}
+               ${overflowMods > 0 ? `
+                    <span class="guild-crystal-effect-chip guild-crystal-effect-chip--more" tabindex="0"
+                          aria-label="${_escapeChipAttr(`${overflowMods} more active Glory perk${overflowMods === 1 ? '' : 's'}`)}"
+                          title="${_escapeChipAttr(`${overflowMods} more Glory perk${overflowMods === 1 ? '' : 's'} are stacking on this guild (${activeModsSorted.length} total right now). Open Guild spotlight (${GLORY_EMOJI} Legends card) → Wheel tab to read them all.`)}">
+                        <span class="guild-crystal-effect-chip__ico" aria-hidden="true"><i class="fa-solid fa-layer-group"></i></span>
+                        <span class="guild-crystal-effect-chip__label">+${overflowMods}</span>
+                    </span>` : ''}`
             : `<p class="guild-crystal-effects-panel__empty" role="status"><span aria-hidden="true">✶</span> No wheel magic right now &mdash; spin Fortune's Wheel to stir the halls</p>`;
 
         const modsHtml = `
@@ -553,7 +609,7 @@ export function renderGuildsTab() {
                     <span class="guild-crystal-effects-panel__wheel" aria-hidden="true"><i class="fa-solid fa-dharmachakra"></i></span>
                     <div class="guild-crystal-effects-panel__headlines">
                         <h4 class="guild-crystal-effects-panel__title">Wheel boons</h4>
-                        <p class="guild-crystal-effects-panel__subtitle">Blessings cast by Fortune's Wheel</p>
+                        <p class="guild-crystal-effects-panel__subtitle">Blessings cast by Fortune's Wheel &mdash; hover a charm for what it actually does.</p>
                     </div>
                 </header>
                 <div class="guild-crystal-effects-panel__chips">${modsChipsInner}</div>
@@ -647,8 +703,8 @@ export function renderGuildsTab() {
                                 </div>
                             </div>
                             ${modsHtml}
+                            ${championPanelHtml}
                             ${topHtml}
-                            ${_getChampionHtml(g, primary, glow)}
                         </div>
                     </div>
                 </div>

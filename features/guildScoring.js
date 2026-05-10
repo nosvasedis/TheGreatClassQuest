@@ -338,15 +338,22 @@ export function getGuildLeaderboardData() {
         const monthlyPerCapitaStars = Math.round((monthlyStars / memberCount) * 10) / 10;
 
         const topContributors = members
-            .map((s) => ({
-                studentId: s.id,
-                name: s.name,
-                avatar: s.avatar,
-                totalStars: Number((allStudentScores.find((sc) => sc.id === s.id) || {}).totalStars) || 0,
-                monthlyStars: Number((allStudentScores.find((sc) => sc.id === s.id) || {}).monthlyStars) || 0,
-            }))
-            .sort((a, b) => b.totalStars - a.totalStars || b.monthlyStars - a.monthlyStars)
-            .slice(0, 3);
+            .map((s) => {
+                const sc = allStudentScores.find((sc) => sc.id === s.id) || {};
+                const totalStars = Number(sc.totalStars) || 0;
+                const monthlyStars = Number(sc.monthlyStars) || 0;
+                const gloryEstimate = Math.round(totalStars * GLORY_PER_STAR);
+                return {
+                    studentId: s.id,
+                    name: s.name,
+                    avatar: s.avatar,
+                    totalStars,
+                    monthlyStars,
+                    gloryEstimate,
+                };
+            })
+            .sort((a, b) => b.gloryEstimate - a.gloryEstimate || b.totalStars - a.totalStars || b.monthlyStars - a.monthlyStars)
+            .slice(0, 4);
 
         return {
             guildId: gid,

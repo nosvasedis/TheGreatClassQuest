@@ -108,68 +108,68 @@
 
 .award-immersive-stars::before {
     background-image:
-        radial-gradient(1px 1px at 6% 9%, rgba(255, 255, 255, 0.95), transparent),
-        radial-gradient(1.2px 1.2px at 14% 22%, rgba(226, 232, 240, 0.88), transparent),
-        radial-gradient(1px 1px at 22% 11%, rgba(255, 255, 255, 0.72), transparent),
-        radial-gradient(1.4px 1.4px at 31% 38%, rgba(255, 255, 255, 0.92), transparent),
-        radial-gradient(1px 1px at 41% 16%, rgba(241, 245, 249, 0.78), transparent),
-        radial-gradient(1.2px 1.2px at 52% 42%, rgba(255, 255, 255, 0.85), transparent),
-        radial-gradient(1px 1px at 61% 9%, rgba(226, 232, 240, 0.68), transparent),
-        radial-gradient(1.3px 1.3px at 71% 31%, rgba(255, 255, 255, 0.9), transparent),
-        radial-gradient(1px 1px at 82% 18%, rgba(248, 250, 252, 0.75), transparent),
-        radial-gradient(1.2px 1.2px at 91% 44%, rgba(255, 255, 255, 0.82), transparent),
-        radial-gradient(1px 1px at 11% 58%, rgba(255, 255, 255, 0.65), transparent),
-        radial-gradient(1.4px 1.4px at 27% 71%, rgba(226, 232, 240, 0.88), transparent),
-        radial-gradient(1px 1px at 38% 54%, rgba(255, 255, 255, 0.72), transparent),
-        radial-gradient(1.2px 1.2px at 49% 82%, rgba(255, 255, 255, 0.55), transparent),
-        radial-gradient(1px 1px at 58% 63%, rgba(241, 245, 249, 0.78), transparent),
-        radial-gradient(1.3px 1.3px at 69% 76%, rgba(255, 255, 255, 0.62), transparent),
-        radial-gradient(1px 1px at 79% 58%, rgba(248, 250, 252, 0.7), transparent),
-        radial-gradient(1.2px 1.2px at 89% 84%, rgba(255, 255, 255, 0.52), transparent);
-    opacity: 0.62;
+        radial-gradient(2.4px 2.4px at 6% 9%, rgba(255, 255, 255, 0.95), transparent),
+        radial-gradient(2.8px 2.8px at 14% 22%, rgba(226, 232, 240, 0.88), transparent),
+        radial-gradient(2.4px 2.4px at 22% 11%, rgba(255, 255, 255, 0.72), transparent),
+        radial-gradient(3px 3px at 31% 38%, rgba(255, 255, 255, 0.92), transparent),
+        radial-gradient(2.4px 2.4px at 41% 16%, rgba(241, 245, 249, 0.78), transparent),
+        radial-gradient(2.8px 2.8px at 52% 42%, rgba(255, 255, 255, 0.85), transparent),
+        radial-gradient(2.4px 2.4px at 61% 9%, rgba(226, 232, 240, 0.68), transparent),
+        radial-gradient(2.6px 2.6px at 71% 31%, rgba(255, 255, 255, 0.9), transparent),
+        radial-gradient(2.4px 2.4px at 82% 18%, rgba(248, 250, 252, 0.75), transparent),
+        radial-gradient(2.8px 2.8px at 91% 44%, rgba(255, 255, 255, 0.82), transparent),
+        radial-gradient(2.4px 2.4px at 11% 58%, rgba(255, 255, 255, 0.65), transparent),
+        radial-gradient(3px 3px at 27% 71%, rgba(226, 232, 240, 0.88), transparent),
+        radial-gradient(2.4px 2.4px at 38% 54%, rgba(255, 255, 255, 0.72), transparent),
+        radial-gradient(2.8px 2.8px at 49% 82%, rgba(255, 255, 255, 0.55), transparent),
+        radial-gradient(2.4px 2.4px at 58% 63%, rgba(241, 245, 249, 0.78), transparent),
+        radial-gradient(2.6px 2.6px at 69% 76%, rgba(255, 255, 255, 0.62), transparent),
+        radial-gradient(2.4px 2.4px at 79% 58%, rgba(248, 250, 252, 0.7), transparent),
+        radial-gradient(2.8px 2.8px at 89% 84%, rgba(255, 255, 255, 0.52), transparent);
+    opacity: 0.78;
     animation: awardStarsTwinkleA 5.8s ease-in-out infinite;
 }
 
 .award-immersive-stars::after {
     background-image:
-        radial-gradient(1px 1px at 17% 34%, rgba(255, 255, 255, 0.55), transparent),
-        radial-gradient(1.2px 1.2px at 44% 27%, rgba(226, 232, 240, 0.72), transparent),
-        radial-gradient(1px 1px at 63% 13%, rgba(255, 255, 255, 0.48), transparent),
-        radial-gradient(1.3px 1.3px at 76% 41%, rgba(255, 255, 255, 0.68), transparent),
-        radial-gradient(1px 1px at 9% 46%, rgba(248, 250, 252, 0.58), transparent),
-        radial-gradient(1.2px 1.2px at 33% 19%, rgba(255, 255, 255, 0.62), transparent),
-        radial-gradient(1px 1px at 54% 52%, rgba(226, 232, 240, 0.5), transparent),
-        radial-gradient(1.4px 1.4px at 84% 31%, rgba(255, 255, 255, 0.58), transparent),
-        radial-gradient(1px 1px at 96% 62%, rgba(241, 245, 249, 0.42), transparent),
-        radial-gradient(1.2px 1.2px at 23% 91%, rgba(255, 255, 255, 0.46), transparent),
-        radial-gradient(1px 1px at 46% 68%, rgba(255, 255, 255, 0.52), transparent),
-        radial-gradient(1.3px 1.3px at 72% 93%, rgba(226, 232, 240, 0.44), transparent),
-        radial-gradient(1px 1px at 8% 74%, rgba(255, 255, 255, 0.38), transparent),
-        radial-gradient(1.2px 1.2px at 59% 36%, rgba(248, 250, 252, 0.55), transparent),
-        radial-gradient(1px 1px at 87% 72%, rgba(255, 255, 255, 0.4), transparent),
-        radial-gradient(1.2px 1.2px at 39% 88%, rgba(255, 255, 255, 0.42), transparent),
-        radial-gradient(1px 1px at 67% 49%, rgba(241, 245, 249, 0.48), transparent);
-    opacity: 0.48;
+        radial-gradient(2.4px 2.4px at 17% 34%, rgba(255, 255, 255, 0.55), transparent),
+        radial-gradient(2.8px 2.8px at 44% 27%, rgba(226, 232, 240, 0.72), transparent),
+        radial-gradient(2.4px 2.4px at 63% 13%, rgba(255, 255, 255, 0.48), transparent),
+        radial-gradient(2.6px 2.6px at 76% 41%, rgba(255, 255, 255, 0.68), transparent),
+        radial-gradient(2.4px 2.4px at 9% 46%, rgba(248, 250, 252, 0.58), transparent),
+        radial-gradient(2.8px 2.8px at 33% 19%, rgba(255, 255, 255, 0.62), transparent),
+        radial-gradient(2.4px 2.4px at 54% 52%, rgba(226, 232, 240, 0.5), transparent),
+        radial-gradient(3px 3px at 84% 31%, rgba(255, 255, 255, 0.58), transparent),
+        radial-gradient(2.4px 2.4px at 96% 62%, rgba(241, 245, 249, 0.42), transparent),
+        radial-gradient(2.8px 2.8px at 23% 91%, rgba(255, 255, 255, 0.46), transparent),
+        radial-gradient(2.4px 2.4px at 46% 68%, rgba(255, 255, 255, 0.52), transparent),
+        radial-gradient(2.6px 2.6px at 72% 93%, rgba(226, 232, 240, 0.44), transparent),
+        radial-gradient(2.4px 2.4px at 8% 74%, rgba(255, 255, 255, 0.38), transparent),
+        radial-gradient(2.8px 2.8px at 59% 36%, rgba(248, 250, 252, 0.55), transparent),
+        radial-gradient(2.4px 2.4px at 87% 72%, rgba(255, 255, 255, 0.4), transparent),
+        radial-gradient(2.8px 2.8px at 39% 88%, rgba(255, 255, 255, 0.42), transparent),
+        radial-gradient(2.4px 2.4px at 67% 49%, rgba(241, 245, 249, 0.48), transparent);
+    opacity: 0.62;
     animation: awardStarsTwinkleB 7.4s ease-in-out infinite;
 }
 
 @keyframes awardStarsTwinkleA {
     0%,
     100% {
-        opacity: 0.38;
+        opacity: 0.52;
     }
     50% {
-        opacity: 0.92;
+        opacity: 0.94;
     }
 }
 
 @keyframes awardStarsTwinkleB {
     0%,
     100% {
-        opacity: 0.28;
+        opacity: 0.4;
     }
     45% {
-        opacity: 0.78;
+        opacity: 0.86;
     }
 }
 
@@ -179,6 +179,15 @@
     .award-immersive-stars {
     opacity: 1;
     visibility: visible;
+}
+
+#app-screen.award-sky-active
+    #award-header-atmosphere:has(header.header-night)
+    ~ main
+    #award-stars-tab
+    .award-stars-hero-subtitle {
+    color: #f8fafc;
+    text-shadow: 0 1px 3px rgba(15, 23, 42, 0.5);
 }
 
 #app-screen.award-sky-active.award-sky-leaving #award-header-atmosphere:has(header.header-night) + #award-immersive-sky .award-immersive-stars {
@@ -216,10 +225,15 @@
 }
 
 /* ---------- Parallax lanes ---------- */
-#app-screen.award-sky-active #award-header-atmosphere:has(header.header-night) + #award-immersive-sky .loading-cloud-art {
-    opacity: 0.26;
-    filter: brightness(0.42) saturate(0.72) blur(0.35px)
-        drop-shadow(0 10px 18px rgba(30, 58, 138, 0.2));
+#app-screen.award-sky-active
+    #award-header-atmosphere:has(
+        header.header-night:not(.header-stormy):not(.header-rainy):not(.header-snowy):not(.header-cloudy)
+    )
+    + #award-immersive-sky
+    .loading-cloud-art {
+    opacity: 0.3;
+    filter: grayscale(100%) brightness(3.05) saturate(0.22) blur(0.4px)
+        drop-shadow(0 10px 20px rgba(30, 27, 129, 0.12));
 }
 
 #app-screen.award-sky-active #award-header-atmosphere:has(header.header-stormy) + #award-immersive-sky .loading-cloud-art {
@@ -244,6 +258,30 @@
     opacity: 0.52;
     filter: brightness(0.95) saturate(0.72) blur(0.45px)
         drop-shadow(0 10px 20px rgba(71, 85, 105, 0.14));
+}
+
+#app-screen.award-sky-active #award-header-atmosphere:has(header.header-night.header-stormy) + #award-immersive-sky .loading-cloud-art {
+    opacity: 0.26;
+    filter: grayscale(100%) brightness(2.05) saturate(0.18) blur(0.32px)
+        drop-shadow(0 12px 24px rgba(15, 23, 42, 0.32));
+}
+
+#app-screen.award-sky-active #award-header-atmosphere:has(header.header-night.header-rainy) + #award-immersive-sky .loading-cloud-art {
+    opacity: 0.28;
+    filter: grayscale(100%) brightness(2.55) saturate(0.2) blur(0.34px)
+        drop-shadow(0 11px 22px rgba(30, 41, 59, 0.22));
+}
+
+#app-screen.award-sky-active #award-header-atmosphere:has(header.header-night.header-snowy) + #award-immersive-sky .loading-cloud-art {
+    opacity: 0.34;
+    filter: grayscale(100%) brightness(3.55) saturate(0.12) blur(0.28px)
+        drop-shadow(0 11px 22px rgba(51, 65, 85, 0.16));
+}
+
+#app-screen.award-sky-active #award-header-atmosphere:has(header.header-night.header-cloudy) + #award-immersive-sky .loading-cloud-art {
+    opacity: 0.3;
+    filter: grayscale(100%) brightness(2.85) saturate(0.2) blur(0.42px)
+        drop-shadow(0 10px 20px rgba(30, 27, 75, 0.14));
 }
 
 /* ---------- Sun: hide or soften per weather ---------- */
@@ -308,7 +346,7 @@
 /* ---------- Moon (night only) ---------- */
 .award-immersive-moon {
     position: absolute;
-    top: min(3vh, 1.25rem);
+    top: clamp(4.25rem, 17vh, 9.5rem);
     right: min(8vw, 2rem);
     z-index: 2;
     width: clamp(76px, 15vw, 172px);
@@ -561,13 +599,13 @@
         #award-header-atmosphere:has(header.header-night)
         + #award-immersive-sky
         .award-immersive-stars::before {
-        opacity: 0.52;
+        opacity: 0.72;
     }
 
     #app-screen.award-sky-active:not(.award-sky-leaving)
         #award-header-atmosphere:has(header.header-night)
         + #award-immersive-sky
         .award-immersive-stars::after {
-        opacity: 0.38;
+        opacity: 0.58;
     }
 }

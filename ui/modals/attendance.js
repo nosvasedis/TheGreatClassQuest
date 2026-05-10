@@ -65,10 +65,13 @@ export async function openAttendanceChronicle(explicitClassId) {
         return;
     }
     const selectEl = document.getElementById('adventure-log-class-select');
-    // If called via addEventListener, explicitClassId is the Event object. 
-    // We only want it if it's a string.
+    // If called via addEventListener, explicitClassId is the Event object.
     const targetClassId = (typeof explicitClassId === 'string') ? explicitClassId : null;
-    const classId = targetClassId || selectEl?.value;
+    const classId =
+        targetClassId ||
+        selectEl?.value ||
+        state.get('globalSelectedClassId') ||
+        '';
     if (targetClassId && selectEl && [...selectEl.options].some(o => o.value === targetClassId)) {
         selectEl.value = targetClassId;
     }

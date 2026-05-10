@@ -81,6 +81,7 @@ export const reportsModalsHTML = `
                     class="w-full mt-8 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white font-title text-xl py-4 rounded-2xl bubbly-button hidden shadow-lg shadow-indigo-200/50 transition-all hover:scale-[1.02] active:scale-[0.98]">
                     <i class="fas fa-download mr-2"></i> Download as PDF
                 </button>
+            </div>
         </div>
     </div>
 `;

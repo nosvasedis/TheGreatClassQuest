@@ -495,7 +495,7 @@ export function renderGuildsTab() {
                </div>`;
 
         return `
-            <div class="guild-crystal-col" data-guild="${g.guildId}">
+            <div class="guild-crystal-col is-rank-${index + 1}" data-guild="${g.guildId}">
 
                 <!-- ── Rank ── -->
                 <div class="guild-crystal-rank">${rankEmoji[index] || `#${index + 1}`}</div>
@@ -548,31 +548,33 @@ export function renderGuildsTab() {
                     </span>
                 </div>
 
-                <div id="guild-crystal-details-${g.guildId}" class="guild-crystal-details" hidden>
-                    <div class="guild-crystal-details-inner">
-                        <div class="guild-crystal-metrics" style="--guild-metric-accent:${primary};">
-                            <div class="guild-crystal-metric">
-                                <div class="guild-crystal-metric__label">Glory per member</div>
-                                <div class="guild-crystal-metric__value">${g.perCapitaGlory.toFixed(1)} <span class="guild-crystal-metric__unit">${GLORY_EMOJI}</span></div>
-                                <div class="guild-crystal-metric__hint">Average ⚜️ across roster</div>
+                <div id="guild-crystal-details-${g.guildId}" class="guild-crystal-details-expander ${_guildHallStatsExpanded ? 'is-expanded' : ''}">
+                    <div class="guild-crystal-details">
+                        <div class="guild-crystal-details-inner">
+                            <div class="guild-crystal-metrics" style="--guild-metric-accent:${primary};">
+                                <div class="guild-crystal-metric">
+                                    <div class="guild-crystal-metric__label">Glory per member</div>
+                                    <div class="guild-crystal-metric__value">${g.perCapitaGlory.toFixed(1)} <span class="guild-crystal-metric__unit">${GLORY_EMOJI}</span></div>
+                                    <div class="guild-crystal-metric__hint">Average ⚜️ across roster</div>
+                                </div>
+                                <div class="guild-crystal-metric">
+                                    <div class="guild-crystal-metric__label">Weekly momentum</div>
+                                    <div class="guild-crystal-metric__value">${g.momentumArrow} ${g.momentumPct >= 0 ? '+' : ''}${g.momentumPct}%</div>
+                                    <div class="guild-crystal-metric__hint">This week vs last week’s Glory</div>
+                                </div>
+                                <div class="guild-crystal-metric">
+                                    <div class="guild-crystal-metric__label">Weekly activity</div>
+                                    <div class="guild-crystal-metric__value">${Math.round(Number(g.activityScore) || 0)}%</div>
+                                    <div class="guild-crystal-metric__hint">Members active this week</div>
+                                </div>
                             </div>
-                            <div class="guild-crystal-metric">
-                                <div class="guild-crystal-metric__label">Weekly momentum</div>
-                                <div class="guild-crystal-metric__value">${g.momentumArrow} ${g.momentumPct >= 0 ? '+' : ''}${g.momentumPct}%</div>
-                                <div class="guild-crystal-metric__hint">This week vs last week’s Glory</div>
+                            <div class="guild-crystal-members" style="opacity:0.65;">
+                                ${g.memberCount} member${g.memberCount === 1 ? '' : 's'} · ${Math.round(g.weeklyGlory || 0)} ${GLORY_EMOJI} this week
                             </div>
-                            <div class="guild-crystal-metric">
-                                <div class="guild-crystal-metric__label">Weekly activity</div>
-                                <div class="guild-crystal-metric__value">${Math.round(Number(g.activityScore) || 0)}%</div>
-                                <div class="guild-crystal-metric__hint">Members active this week</div>
-                            </div>
+                            ${modsHtml}
+                            ${topHtml}
+                            ${_getChampionHtml(g, primary, glow)}
                         </div>
-                        <div class="guild-crystal-members" style="opacity:0.65;">
-                            ${g.memberCount} member${g.memberCount === 1 ? '' : 's'} · ${Math.round(g.weeklyGlory || 0)} ${GLORY_EMOJI} this week
-                        </div>
-                        ${modsHtml}
-                        ${topHtml}
-                        ${_getChampionHtml(g, primary, glow)}
                     </div>
                 </div>
             </div>`;
@@ -580,22 +582,25 @@ export function renderGuildsTab() {
 
     list.innerHTML = `
         <div class="guild-crystal-hall">
-            <div class="guild-crystal-expand-all-wrap">
-                <button type="button"
-                        id="guild-stats-expand-toggle"
-                        class="guild-crystal-expand-btn guild-crystal-expand-btn--global"
-                        aria-expanded="${_guildHallStatsExpanded ? 'true' : 'false'}"
-                        aria-label="${_guildHallStatsExpanded ? 'Hide' : 'Show'} detailed guild stats for all guilds">
-                    <span class="guild-crystal-expand-btn__text">Guild stats</span>
-                    <span class="guild-crystal-expand-btn__chev" aria-hidden="true">${_guildHallStatsExpanded ? '▲' : '▼'}</span>
-                </button>
+            <div class="guild-crystal-arena-header">
+                <h2 class="guild-crystal-arena-title font-title">Guild Hall Standings</h2>
+                <div class="guild-crystal-expand-all-wrap">
+                    <button type="button"
+                            id="guild-stats-expand-toggle"
+                            class="guild-crystal-expand-btn guild-crystal-expand-btn--global"
+                            aria-expanded="${_guildHallStatsExpanded ? 'true' : 'false'}"
+                            aria-label="${_guildHallStatsExpanded ? 'Hide' : 'Show'} detailed guild analytics">
+                        <div class="guild-crystal-expand-btn__icon">
+                            <i class="fas fa-chart-pie"></i>
+                        </div>
+                        <span class="guild-crystal-expand-btn__text">Magical Analytics</span>
+                        <span class="guild-crystal-expand-btn__chev" aria-hidden="true">${_guildHallStatsExpanded ? '▲' : '▼'}</span>
+                    </button>
+                </div>
             </div>
             <div class="guild-crystal-arena${_guildHallStatsExpanded ? ' guild-crystal-arena--stats-expanded' : ''}">${columns.join('')}</div>
         </div>`;
 
-    list.querySelectorAll('.guild-crystal-details').forEach((panel) => {
-        panel.hidden = !_guildHallStatsExpanded;
-    });
     list.querySelector('.guild-crystal-expand-all-wrap')?.classList.toggle('guild-crystal-expand-all-wrap--open', _guildHallStatsExpanded);
 
     const expandToggle = list.querySelector('#guild-stats-expand-toggle');
@@ -603,13 +608,18 @@ export function renderGuildsTab() {
         e.preventDefault();
         e.stopPropagation();
         _guildHallStatsExpanded = !_guildHallStatsExpanded;
-        list.querySelectorAll('.guild-crystal-details').forEach((panel) => {
-            panel.hidden = !_guildHallStatsExpanded;
+        
+        list.querySelectorAll('.guild-crystal-details-expander').forEach((expander) => {
+            expander.classList.toggle('is-expanded', _guildHallStatsExpanded);
+            // Remove inline styles to let the CSS class take over
+            expander.style.gridTemplateRows = '';
+            expander.style.opacity = '';
         });
+
         expandToggle.setAttribute('aria-expanded', _guildHallStatsExpanded ? 'true' : 'false');
         expandToggle.setAttribute(
             'aria-label',
-            _guildHallStatsExpanded ? 'Hide detailed guild stats for all guilds' : 'Show detailed guild stats for all guilds'
+            _guildHallStatsExpanded ? 'Hide detailed guild analytics' : 'Show detailed guild analytics'
         );
         const chev = expandToggle.querySelector('.guild-crystal-expand-btn__chev');
         if (chev) chev.textContent = _guildHallStatsExpanded ? '▲' : '▼';

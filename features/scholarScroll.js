@@ -1130,7 +1130,6 @@ function renderMissingWorkDashboard(classId) {
                                 <span class="px-2 py-0.5 bg-amber-500/10 text-amber-600 text-[9px] font-black uppercase tracking-[0.18em] rounded-full border border-amber-500/20 shrink-0">Scholastic Alerts</span>
                                 <h3 class="font-title text-xl md:text-2xl text-slate-800 tracking-tight leading-tight">Pending Makeups</h3>
                             </div>
-                            <p class="text-slate-500 text-xs font-medium leading-snug mt-0.5">Whole-class assessments where someone never received a mark. Keeps titles/dates aligned with <strong>Schedule a Test</strong> when possible.</p>
                         </div>
                     </div>
                     

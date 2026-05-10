@@ -1072,19 +1072,6 @@ optgroup {
                 0 0 2px rgba(109, 40, 217, 0.15);
 }
 
-#scroll-dashboard-content > div:has(#scroll-performance-chart) h3 {
-    position: relative;
-    display: flex;
-    align-items: center;
-    gap: 0.7rem;
-    background: linear-gradient(135deg, #6d28d9, #7c3aed);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
-    padding-bottom: 0.35rem;
-    margin-bottom: 1rem !important;
-}
-
 #trial-history-view-toggle .toggle-btn {
     font-family: 'Fredoka One', cursive;
     color: #a855f7; /* purple-500 */

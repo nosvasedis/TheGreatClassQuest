@@ -40,7 +40,12 @@ export const scrollTabHTML = `
                                 <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6" id="scroll-stats-cards"></div>
 
                                 <div class="bg-white p-6 rounded-2xl shadow-lg">
-                                    <h3 class="font-title text-2xl text-gray-700 mb-4">Class Performance Chart</h3>
+                                    <h3 class="chart-section-title font-title text-xl md:text-2xl text-slate-800 tracking-tight leading-tight mb-5 flex items-center gap-3">
+                                        <span class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-slate-800 to-slate-700 text-white shadow-md border border-slate-900/20" aria-hidden="true">
+                                            <i class="fas fa-chart-line text-sm opacity-95"></i>
+                                        </span>
+                                        <span>Class Performance Chart</span>
+                                    </h3>
                                     <div id="scroll-performance-chart" class="space-y-3"></div>
                                 </div>
                             </div>

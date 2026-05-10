@@ -113,7 +113,7 @@ export function sumMonthlyStarCreditsByStudentFromAwardLogs(logs = []) {
 }
 
 /**
- * Completed months: rollover snapshot in student_scores/*/monthly_history matches live monthlyStars.
+ * Completed months: rollover snapshot under each student's `monthly_history` matches live monthlyStars.
  * Prefer that when present; otherwise fall back to summing corrected award logs.
  */
 export function mergeMonthlyStarsFromArchivedHistoryAndAwardLogs(logTotalsByStudent = {}, archivedByStudent = {}) {

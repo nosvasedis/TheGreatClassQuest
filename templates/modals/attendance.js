@@ -153,7 +153,7 @@ export const attendanceModalsHTML = `
                     <div class="min-w-0">
                         <p class="text-[10px] font-black uppercase tracking-[0.22em] text-teal-800/75 mb-1">Scholar's ledger</p>
                         <h2 id="attendance-chronicle-title" class="font-title text-2xl md:text-3xl lg:text-4xl text-slate-800 leading-tight break-words">Attendance Chronicle</h2>
-                        <p class="text-sm text-slate-600 font-semibold mt-1.5 max-w-xl">Colorful month grid · tap cells when the month is live · scroll wide for every lesson day.</p>
+                        <p class="text-sm text-slate-600 font-semibold mt-1.5 max-w-xl">Month strip, schedule vs table, and tap cells when the month is live.</p>
                     </div>
                 </div>
                 <button id="attendance-chronicle-close-btn" type="button"

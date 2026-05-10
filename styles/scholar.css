@@ -546,14 +546,14 @@ optgroup {
 
 .ac-day-chip {
     flex: 0 0 auto;
-    width: 2.5rem;
+    width: 2.85rem;
     border-radius: 0.75rem;
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    gap: 0.08rem;
-    padding: 0.28rem 0.15rem;
+    gap: 0.06rem;
+    padding: 0.22rem 0.12rem 0.26rem;
     border: 1px solid transparent;
     font-weight: 800;
     transition: transform 0.15s ease, box-shadow 0.15s ease;
@@ -561,8 +561,16 @@ optgroup {
     box-shadow: 0 6px 14px -8px rgba(15, 23, 42, 0.35);
 }
 
+.ac-day-chip-wd {
+    font-size: 0.52rem;
+    font-weight: 900;
+    letter-spacing: 0.04em;
+    line-height: 1;
+    opacity: 0.88;
+}
+
 .ac-day-chip-day {
-    font-size: 0.78rem;
+    font-size: 0.76rem;
     line-height: 1;
 }
 

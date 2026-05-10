@@ -67,6 +67,10 @@ import {
 } from '../../features/familiars.js';
 
 // --- ADVENTURE LOG & HERO'S CHALLENGE FAB EDGE-HOVER REVEAL ---
+function isAnyAppModalOpen() {
+    return document.querySelector('[id$="-modal"]:not(.hidden)') != null;
+}
+
 function setupAdventureLogFabReveal() {
     const alLeftCluster = document.querySelector('.al-fab-cluster--left');
     const alRightCluster = document.querySelector('.al-fab-cluster--right');
@@ -74,12 +78,34 @@ function setupAdventureLogFabReveal() {
     const hcRightCluster = document.querySelector('.hc-fab-cluster--right');
     const ssLeftCluster = document.querySelector('.ss-fab-cluster--left');
     const ssRightCluster = document.querySelector('.ss-fab-cluster--right');
-    
+
+    const clusters = [
+        alLeftCluster,
+        alRightCluster,
+        hcLeftCluster,
+        hcRightCluster,
+        ssLeftCluster,
+        ssRightCluster
+    ].filter(Boolean);
+
     // Edge detection zones
     const LEFT_EDGE_ZONE = 180;  // pixels from left edge
     const RIGHT_EDGE_ZONE = 180; // pixels from right edge
     let lastMouseX = window.innerWidth / 2;
     let revealTimeout;
+    let modalMoScheduled = false;
+
+    function hideAllSideFabs() {
+        clearTimeout(revealTimeout);
+        for (const el of clusters) {
+            el.classList.remove('revealed');
+        }
+    }
+
+    function applyModalBlockingToFabs() {
+        if (!isAnyAppModalOpen()) return;
+        hideAllSideFabs();
+    }
 
     function updateFabVisibility() {
         const isNearLeftEdge = lastMouseX < LEFT_EDGE_ZONE;
@@ -87,8 +113,14 @@ function setupAdventureLogFabReveal() {
 
         clearTimeout(revealTimeout);
 
+        if (isAnyAppModalOpen()) {
+            hideAllSideFabs();
+            return;
+        }
+
         if (isNearLeftEdge || isNearRightEdge) {
             revealTimeout = setTimeout(() => {
+                if (isAnyAppModalOpen()) return;
                 if (alLeftCluster) alLeftCluster.classList.add('revealed');
                 if (alRightCluster) alRightCluster.classList.add('revealed');
                 if (hcLeftCluster) hcLeftCluster.classList.add('revealed');
@@ -97,12 +129,7 @@ function setupAdventureLogFabReveal() {
                 if (ssRightCluster) ssRightCluster.classList.add('revealed');
             }, 40);
         } else {
-            if (alLeftCluster) alLeftCluster.classList.remove('revealed');
-            if (alRightCluster) alRightCluster.classList.remove('revealed');
-            if (hcLeftCluster) hcLeftCluster.classList.remove('revealed');
-            if (hcRightCluster) hcRightCluster.classList.remove('revealed');
-            if (ssLeftCluster) ssLeftCluster.classList.remove('revealed');
-            if (ssRightCluster) ssRightCluster.classList.remove('revealed');
+            hideAllSideFabs();
         }
     }
 
@@ -111,9 +138,27 @@ function setupAdventureLogFabReveal() {
         updateFabVisibility();
     });
 
+    const modalClassObserver = new MutationObserver(() => {
+        if (modalMoScheduled) return;
+        modalMoScheduled = true;
+        requestAnimationFrame(() => {
+            modalMoScheduled = false;
+            applyModalBlockingToFabs();
+            if (!isAnyAppModalOpen()) {
+                updateFabVisibility();
+            }
+        });
+    });
+    modalClassObserver.observe(document.body, {
+        subtree: true,
+        attributes: true,
+        attributeFilter: ['class']
+    });
+
     // Adventure Log FABs
     if (alLeftCluster) {
         alLeftCluster.addEventListener('mouseenter', () => {
+            if (isAnyAppModalOpen()) return;
             clearTimeout(revealTimeout);
             alLeftCluster.classList.add('revealed');
         });
@@ -126,6 +171,7 @@ function setupAdventureLogFabReveal() {
 
     if (alRightCluster) {
         alRightCluster.addEventListener('mouseenter', () => {
+            if (isAnyAppModalOpen()) return;
             clearTimeout(revealTimeout);
             alRightCluster.classList.add('revealed');
         });
@@ -139,6 +185,7 @@ function setupAdventureLogFabReveal() {
     // Hero's Challenge FABs
     if (hcLeftCluster) {
         hcLeftCluster.addEventListener('mouseenter', () => {
+            if (isAnyAppModalOpen()) return;
             clearTimeout(revealTimeout);
             hcLeftCluster.classList.add('revealed');
         });
@@ -151,6 +198,7 @@ function setupAdventureLogFabReveal() {
 
     if (hcRightCluster) {
         hcRightCluster.addEventListener('mouseenter', () => {
+            if (isAnyAppModalOpen()) return;
             clearTimeout(revealTimeout);
             hcRightCluster.classList.add('revealed');
         });
@@ -164,6 +212,7 @@ function setupAdventureLogFabReveal() {
     // Scholar's Scroll FABs
     if (ssLeftCluster) {
         ssLeftCluster.addEventListener('mouseenter', () => {
+            if (isAnyAppModalOpen()) return;
             clearTimeout(revealTimeout);
             ssLeftCluster.classList.add('revealed');
         });
@@ -176,6 +225,7 @@ function setupAdventureLogFabReveal() {
 
     if (ssRightCluster) {
         ssRightCluster.addEventListener('mouseenter', () => {
+            if (isAnyAppModalOpen()) return;
             clearTimeout(revealTimeout);
             ssRightCluster.classList.add('revealed');
         });

@@ -119,21 +119,21 @@ function buildChronicleStatsPills(monthRows, lessonGridCount, todayMidnightMs) {
 
     const pills = [];
     if (nLesson) {
-        pills.push(`<span class="ac-stat-pill ac-stat-pill--teal"><i class="fas fa-chalkboard-teacher" aria-hidden="true"></i> ${nLesson} rostered lesson day${nLesson === 1 ? '' : 's'}</span>`);
+        pills.push(`<span class="ac-stat-pill ac-stat-pill--teal"><i class="fas fa-calendar-alt" aria-hidden="true"></i> ${nLesson} lesson day${nLesson === 1 ? '' : 's'} on your schedule</span>`);
     }
     if (nLessonUpcoming) {
-        pills.push(`<span class="ac-stat-pill ac-stat-pill--teal-outline"><i class="fas fa-forward" aria-hidden="true"></i> ${nLessonUpcoming} upcoming</span>`);
+        pills.push(`<span class="ac-stat-pill ac-stat-pill--teal-outline"><i class="fas fa-forward" aria-hidden="true"></i> ${nLessonUpcoming} still upcoming</span>`);
     }
     if (nHoliday) {
-        pills.push(`<span class="ac-stat-pill ac-stat-pill--violet"><i class="fas fa-umbrella-beach" aria-hidden="true"></i> ${nHoliday} break day${nHoliday === 1 ? '' : 's'}</span>`);
+        pills.push(`<span class="ac-stat-pill ac-stat-pill--violet"><i class="fas fa-umbrella-beach" aria-hidden="true"></i> ${nHoliday} school break day${nHoliday === 1 ? '' : 's'}</span>`);
     }
     if (nCancelled) {
-        pills.push(`<span class="ac-stat-pill ac-stat-pill--rose"><i class="fas fa-ban" aria-hidden="true"></i> ${nCancelled} class cancellation${nCancelled === 1 ? '' : 's'}</span>`);
+        pills.push(`<span class="ac-stat-pill ac-stat-pill--rose"><i class="fas fa-ban" aria-hidden="true"></i> ${nCancelled} cancelled class day${nCancelled === 1 ? '' : 's'}</span>`);
     }
     if (nAfterTerm) {
-        pills.push(`<span class="ac-stat-pill ac-stat-pill--slate"><i class="fas fa-flag-checkered" aria-hidden="true"></i> ${nAfterTerm} after last day</span>`);
+        pills.push(`<span class="ac-stat-pill ac-stat-pill--slate"><i class="fas fa-calendar-times" aria-hidden="true"></i> ${nAfterTerm} day${nAfterTerm === 1 ? '' : 's'} past class end date</span>`);
     }
-    pills.push(`<span class="ac-stat-pill ac-stat-pill--ink"><i class="fas fa-table" aria-hidden="true"></i> ${lessonGridCount} day${lessonGridCount === 1 ? '' : 's'} in grid</span>`);
+    pills.push(`<span class="ac-stat-pill ac-stat-pill--ink"><i class="fas fa-table" aria-hidden="true"></i> ${lessonGridCount} day${lessonGridCount === 1 ? '' : 's'} in the attendance table</span>`);
 
     return `<div class="ac-chronicle-stats-row">${pills.join('')}</div>`;
 }
@@ -143,9 +143,9 @@ function chronicleChipIcon(insight) {
         case 'school_holiday':
             return '<i class="fas fa-umbrella-beach"></i>';
         case 'class_cancelled':
-            return '<i class="fas fa-calendar-times"></i>';
+            return '<i class="fas fa-ban"></i>';
         case 'after_term':
-            return '<i class="fas fa-flag-checkered"></i>';
+            return '<i class="fas fa-door-open"></i>';
         case 'lesson':
             return '<i class="fas fa-school"></i>';
         default:
@@ -164,15 +164,15 @@ function chronicleChipTitle(row, todayMidnightMs) {
         case 'school_holiday':
             return `${wd} — School break: ${insight.label || 'Holiday'}`;
         case 'class_cancelled':
-            return `${wd} — No lesson (class cancelled)`;
+            return `${wd} — Class cancelled (no lesson this day)`;
         case 'after_term':
-            return `${wd} — After the class last day`;
+            return `${wd} — Past the class end date from your settings (no lesson)`;
         case 'lesson':
             return date.getTime() > todayMidnightMs
-                ? `${wd} — Rostered lesson (upcoming)`
-                : `${wd} — Rostered lesson`;
+                ? `${wd} — Scheduled lesson day (upcoming)`
+                : `${wd} — Scheduled lesson day`;
         default:
-            return `${wd} — No class on weekly roster`;
+            return `${wd} — No weekly class this weekday`;
     }
 }
 
@@ -184,15 +184,18 @@ function buildChronicleMonthRail(monthRows, todayKey, todayMidnightMs) {
         if (row.insight.kind === 'lesson' && row.date.getTime() > todayMidnightMs) {
             classes.push('ac-day-chip--future-lesson');
         }
+        const wdShort = row.date
+            .toLocaleDateString('en-GB', { weekday: 'short' })
+            .toUpperCase();
         const title = chronicleEscape(chronicleChipTitle(row, todayMidnightMs));
-        return `<div class="${classes.join(' ')}" role="listitem" title="${title}"><span class="ac-day-chip-day">${row.date.getDate()}</span><span class="ac-day-chip-ico" aria-hidden="true">${chronicleChipIcon(row.insight)}</span></div>`;
+        return `<div class="${classes.join(' ')}" role="listitem" title="${title}"><span class="ac-day-chip-wd">${chronicleEscape(wdShort)}</span><span class="ac-day-chip-day">${row.date.getDate()}</span><span class="ac-day-chip-ico" aria-hidden="true">${chronicleChipIcon(row.insight)}</span></div>`;
     }).join('');
 
     return `
         <div class="ac-month-rail-wrap">
-            <div class="ac-month-rail-caption"><i class="fas fa-map" aria-hidden="true"></i> Month map</div>
+            <div class="ac-month-rail-caption"><i class="fas fa-th" aria-hidden="true"></i> Month at a glance</div>
             <div class="ac-month-rail-scroll">
-                <div class="ac-month-rail" role="list" aria-label="Each calendar day in this month">${chips}</div>
+                <div class="ac-month-rail" role="list" aria-label="Each day this month: weekday, date, and lesson or break status">${chips}</div>
             </div>
         </div>`;
 }
@@ -206,11 +209,11 @@ function chronicleToolbarLegend(isEditableMonth) {
                 <div class="attendance-chronicle-legend">
                     <span class="attendance-legend-pill attendance-legend-pill--present"><i class="fas fa-check" aria-hidden="true"></i> Present</span>
                     <span class="attendance-legend-pill attendance-legend-pill--absent"><i class="fas fa-times" aria-hidden="true"></i> Absent</span>
-                    <span class="attendance-legend-pill attendance-legend-pill--map-lesson"><i class="fas fa-school" aria-hidden="true"></i> Lesson</span>
+                    <span class="attendance-legend-pill attendance-legend-pill--map-lesson"><i class="fas fa-school" aria-hidden="true"></i> Scheduled lesson</span>
                     <span class="attendance-legend-pill attendance-legend-pill--map-break"><i class="fas fa-umbrella-beach" aria-hidden="true"></i> Break</span>
                     <span class="attendance-legend-pill attendance-legend-pill--map-cancel"><i class="fas fa-calendar-times" aria-hidden="true"></i> Cancelled</span>
-                    <span class="attendance-legend-pill attendance-legend-pill--map-after"><i class="fas fa-flag-checkered" aria-hidden="true"></i> After term</span>
-                    <span class="attendance-legend-pill attendance-legend-pill--map-off"><i class="fas fa-minus" aria-hidden="true"></i> Off roster</span>
+                    <span class="attendance-legend-pill attendance-legend-pill--map-after"><i class="fas fa-door-open" aria-hidden="true"></i> Past class end</span>
+                    <span class="attendance-legend-pill attendance-legend-pill--map-off"><i class="fas fa-minus" aria-hidden="true"></i> No weekly class</span>
                 </div>
                 <div class="attendance-chronicle-mode ${isEditableMonth ? 'is-live' : 'is-readonly'}">
                     ${modeBlock}
@@ -368,12 +371,12 @@ export async function renderAttendanceChronicle(classId) {
                 <div class="attendance-summary-card attendance-summary-card--emerald">
                     <div class="attendance-summary-label">Monthly Attendance</div>
                     <div class="attendance-summary-value">—</div>
-                    <div class="attendance-summary-meta">Grid needs at least one lesson day</div>
+                    <div class="attendance-summary-meta">Add lesson days to the table first</div>
                 </div>
                 <div class="attendance-summary-card attendance-summary-card--blue">
-                    <div class="attendance-summary-label">Lessons in grid</div>
+                    <div class="attendance-summary-label">Lesson days in table</div>
                     <div class="attendance-summary-value">0</div>
-                    <div class="attendance-summary-meta">Past meetings & one-offs appear here</div>
+                    <div class="attendance-summary-meta">Past class meetings & one-offs you logged</div>
                 </div>
                 <div class="attendance-summary-card attendance-summary-card--rose">
                     <div class="attendance-summary-label">Total Absences</div>
@@ -383,14 +386,14 @@ export async function renderAttendanceChronicle(classId) {
                 <div class="attendance-summary-card attendance-summary-card--amber">
                     <div class="attendance-summary-label">Perfect Attendees</div>
                     <div class="attendance-summary-value">—</div>
-                    <div class="attendance-summary-meta">Starts counting with lesson columns</div>
+                    <div class="attendance-summary-meta">Counts once the table has lesson days</div>
                 </div>
             </div>
             ${chronicleToolbarLegend(isEditableMonth)}
             <div class="ac-chronicle-empty-grid">
                 <div class="ac-chronicle-empty-icon" aria-hidden="true"><i class="fas fa-calendar-plus"></i></div>
                 <p class="ac-chronicle-empty-title">No lesson columns for this month yet</p>
-                <p class="ac-chronicle-empty-text">When this class meets (or you add a one-off lesson), days appear in the grid. The month map above already shows school breaks, class cancellations, days after the class last day, and ordinary off-roster days.</p>
+                <p class="ac-chronicle-empty-text">After your class meets (or you add a one-off lesson), those dates appear as columns in the attendance table. The strip above shows every day of the month — school breaks, cancelled days, days past your class end date, weekdays without class, and upcoming lessons.</p>
             </div>
         `;
         contentEl.innerHTML = html;

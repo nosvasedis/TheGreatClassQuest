@@ -48,6 +48,28 @@ export function getQuestMapZoneForProgressPercent(progressPercent = 0) {
     ), QUEST_MAP_ZONES[0]);
 }
 
+/** League map HTML path: use tab-precomputed stars/goal when present (avoids re-scanning students/scores). */
+function resolveLeagueMapMetrics(c) {
+    if (c && c.goals && 'currentMonthlyStars' in c) {
+        const goal = Number(c.goals.diamond) || 18;
+        const liveMonthlyStars = Number(c.currentMonthlyStars);
+        const classQuestBonus = Number(c.classQuestBonus) || 0;
+        const rawPct = goal > 0 ? (liveMonthlyStars / goal) * 100 : 0;
+        const pct = Math.min(100, Math.max(0, rawPct));
+        return {
+            liveMonthlyStars,
+            classQuestBonus,
+            goal,
+            pct,
+            progressDisplay: pct.toFixed(1),
+            starsDisplay: liveMonthlyStars % 1 !== 0 ? liveMonthlyStars.toFixed(1) : liveMonthlyStars.toFixed(0)
+        };
+    }
+    const students = state.get('allStudents').filter(s => s.classId === c.id);
+    const allScores = state.get('allStudentScores') || [];
+    return getClassQuestProgressData(c, students, allScores);
+}
+
 export function getClassQuestProgressData(classroom, students = null, allScores = null) {
     if (!classroom) {
         return {
@@ -95,8 +117,6 @@ export function generateLeagueMapHtml(classes) {
     // 1. PRE-CALCULATE BASE POSITIONS & DATA
     // We calculate everyone's ideal position first so we can fix overlaps before rendering
     let mapItems = classes.map((c, leagueIndex) => {
-        const students = state.get('allStudents').filter(s => s.classId === c.id);
-        const allScores = state.get('allStudentScores') || [];
         const {
             liveMonthlyStars,
             classQuestBonus,
@@ -104,7 +124,7 @@ export function generateLeagueMapHtml(classes) {
             goal,
             pct,
             progressDisplay
-        } = getClassQuestProgressData(c, students, allScores);
+        } = resolveLeagueMapMetrics(c);
 
         // Get ideal position on the curve
         const pos = getComplexPathPoint(pct / 100);
@@ -182,8 +202,8 @@ export function generateLeagueMapHtml(classes) {
         else if (leftPct > 85) tooltipClass += " tooltip-pos-left";
 
         return `
-        <div class="league-map-avatar ${isLeader ? 'is-leader' : ''} ${tooltipClass} group transition-all duration-[2000ms] ease-out" 
-             style="left: 5%; top: 92%; z-index: ${Math.floor(pct) + 10};"
+        <div class="league-map-avatar ${isLeader ? 'is-leader' : ''} ${tooltipClass} group ease-out"
+             style="left: 5%; top: 92%; z-index: ${Math.floor(pct) + 10}; transition: left 2s ease-out, top 2s ease-out;"
              data-final-left="${(x / W) * 100}%"
              data-final-top="${(y / H) * 100}%">
             

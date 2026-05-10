@@ -247,75 +247,76 @@ export const optionsTabHTML = `
                                 <div id="options-planning-locked" class="options-tier-locked hidden">
                                     <div class="options-tier-locked-icon">📅</div>
                                     <div class="options-tier-locked-title">Planning tools</div>
-                                    <p class="options-tier-locked-text">School Year Planner and Class End Dates are available on the Pro plan.</p>
+                                    <p class="options-tier-locked-text">The School Year Planner (school breaks plus when each class ends) is available on the Pro plan.</p>
                                     <span class="options-tier-locked-badge">Pro</span>
                                 </div>
                                 <div id="options-planning-content" class="flex flex-col gap-8">
-                                    <div class="relative overflow-hidden rounded-[2rem] border border-pink-200 bg-white shadow-lg p-6 md:p-8 space-y-4">
-                                        <div class="absolute -top-10 -right-10 w-40 h-40 bg-gradient-to-br from-pink-200 to-rose-200 rounded-full blur-3xl opacity-50 pointer-events-none"></div>
-                                        
-                                        <div class="relative z-10 flex flex-col items-center mb-4">
-                                            <div class="w-16 h-16 bg-gradient-to-br from-pink-400 to-rose-500 rounded-full flex items-center justify-center shadow-lg shadow-pink-500/30 mb-3 floating-icon">
+                                    <div class="relative overflow-hidden rounded-[2rem] border border-fuchsia-200/80 bg-gradient-to-br from-white via-rose-50/30 to-violet-50/40 shadow-lg p-6 md:p-8 space-y-8">
+                                        <div class="absolute -top-10 -right-10 w-48 h-48 bg-gradient-to-br from-pink-200/80 to-violet-200/70 rounded-full blur-3xl opacity-60 pointer-events-none"></div>
+                                        <div class="absolute -bottom-8 -left-8 w-40 h-40 bg-gradient-to-tr from-indigo-100/50 to-fuchsia-100/40 rounded-full blur-3xl opacity-50 pointer-events-none"></div>
+
+                                        <div class="relative z-10 flex flex-col items-center text-center gap-2">
+                                            <div class="w-16 h-16 bg-gradient-to-br from-pink-500 via-rose-500 to-violet-600 rounded-2xl flex items-center justify-center shadow-lg shadow-fuchsia-500/25 mb-1 floating-icon ring-2 ring-white/80">
                                                 <i class="fas fa-calendar-alt text-white text-2xl"></i>
                                             </div>
-                                            <h2 class="font-title text-3xl text-pink-800 text-center">School Year Planner</h2>
-                                            <p class="text-sm text-gray-500 text-center mt-1">Set school-wide holidays (Christmas, Easter) to overshadow the calendar.</p>
+                                            <h2 class="font-title text-3xl text-transparent bg-clip-text bg-gradient-to-r from-pink-800 via-rose-800 to-violet-900 text-center">School Year Planner</h2>
+                                            <p class="text-sm text-gray-600 max-w-xl leading-relaxed">One place for the whole year: school-wide breaks shade the calendar, and each class’s <span class="font-semibold text-gray-800">final lesson day</span> keeps schedules and ceremonies accurate.</p>
                                         </div>
 
-                                        <div class="grid grid-cols-2 gap-2 relative z-10">
-                                            <div class="col-span-2">
-                                                <label class="block text-xs font-bold text-gray-500">Holiday Name</label>
-                                                <input type="text" id="holiday-name" placeholder="e.g. Christmas Break"
-                                                    class="w-full px-3 py-2 border rounded-lg">
+                                        <div class="relative z-10 space-y-4 pt-2 border-t border-pink-100/80">
+                                            <div class="flex items-center gap-2 justify-center flex-wrap">
+                                                <span class="text-lg" aria-hidden="true">🏫</span>
+                                                <h3 class="font-title text-lg text-pink-900 text-center">School-wide breaks</h3>
                                             </div>
-                                            <div>
-                                                <label class="block text-xs font-bold text-gray-500">Start Date</label>
-                                                <input type="date" id="holiday-start"
-                                                    class="w-full px-3 py-2 border rounded-lg">
+                                            <p class="text-xs text-gray-500 text-center">Holidays apply to every class’s calendar view and lesson counts.</p>
+                                            <div class="grid grid-cols-2 gap-2">
+                                                <div class="col-span-2">
+                                                    <label class="block text-xs font-bold text-gray-500">Holiday Name</label>
+                                                    <input type="text" id="holiday-name" placeholder="e.g. Christmas Break"
+                                                        class="w-full px-3 py-2 border rounded-lg bg-white">
+                                                </div>
+                                                <div>
+                                                    <label class="block text-xs font-bold text-gray-500">Start Date</label>
+                                                    <input type="date" id="holiday-start"
+                                                        class="w-full px-3 py-2 border rounded-lg bg-white">
+                                                </div>
+                                                <div>
+                                                    <label class="block text-xs font-bold text-gray-500">End Date</label>
+                                                    <input type="date" id="holiday-end" class="w-full px-3 py-2 border rounded-lg bg-white">
+                                                </div>
+                                                <div class="col-span-2">
+                                                    <label class="block text-xs font-bold text-gray-500">Theme</label>
+                                                    <select id="holiday-type" class="w-full px-3 py-2 border rounded-lg bg-white">
+                                                        <option value="christmas">🎄 Christmas / Winter</option>
+                                                        <option value="easter">🐣 Easter / Spring</option>
+                                                        <option value="generic">📅 Generic / Other</option>
+                                                    </select>
+                                                </div>
                                             </div>
-                                            <div>
-                                                <label class="block text-xs font-bold text-gray-500">End Date</label>
-                                                <input type="date" id="holiday-end" class="w-full px-3 py-2 border rounded-lg">
-                                            </div>
-                                            <div class="col-span-2">
-                                                <label class="block text-xs font-bold text-gray-500">Theme</label>
-                                                <select id="holiday-type" class="w-full px-3 py-2 border rounded-lg bg-white">
-                                                    <option value="christmas">🎄 Christmas / Winter</option>
-                                                    <option value="easter">🐣 Easter / Spring</option>
-                                                    <option value="generic">📅 Generic / Other</option>
-                                                </select>
-                                            </div>
-                                        </div>
-                                        <button id="add-holiday-btn"
-                                            class="w-full bg-pink-500 hover:bg-pink-600 text-white font-bold py-2 rounded-xl bubbly-button">
-                                            <i class="fas fa-plus-circle mr-2"></i> Add Break
-                                        </button>
-
-                                        <div id="holiday-list" class="mt-4 space-y-2 max-h-40 overflow-y-auto"></div>
-                                    </div>
-                                    
-                                    <!-- Class End Date (header-selected class only) -->
-                                    <div class="relative overflow-hidden rounded-[2rem] border border-violet-200 bg-gradient-to-br from-white via-violet-50/40 to-indigo-50/30 shadow-lg p-6 md:p-8 space-y-5">
-                                        <div class="absolute -top-12 -right-8 w-44 h-44 bg-gradient-to-br from-violet-300/50 to-indigo-300/40 rounded-full blur-3xl opacity-60 pointer-events-none"></div>
-                                        <div class="absolute bottom-0 left-0 w-32 h-32 bg-gradient-to-tr from-fuchsia-200/30 to-transparent rounded-full blur-2xl pointer-events-none"></div>
-                                        
-                                        <div class="relative z-10 flex flex-col items-center text-center gap-2">
-                                            <div class="w-16 h-16 bg-gradient-to-br from-violet-500 to-indigo-600 rounded-2xl flex items-center justify-center shadow-lg shadow-violet-500/25 mb-1 floating-icon ring-2 ring-white/80">
-                                                <i class="fas fa-flag-checkered text-white text-2xl"></i>
-                                            </div>
-                                            <h2 class="font-title text-3xl text-violet-900">Class end date</h2>
-                                            <p class="text-sm text-gray-600 max-w-lg">Last lesson day for the class you pick in the <span class="font-semibold text-violet-800">header</span>. After this date, that class no longer appears on your day-by-day schedule and ceremonies can line up with the final day.</p>
+                                            <button id="add-holiday-btn"
+                                                class="w-full bg-gradient-to-r from-pink-500 to-rose-500 hover:from-pink-600 hover:to-rose-600 text-white font-bold py-2.5 rounded-xl bubbly-button shadow-sm shadow-pink-500/20">
+                                                <i class="fas fa-plus-circle mr-2"></i> Add Break
+                                            </button>
+                                            <div id="holiday-list" class="space-y-2 max-h-40 overflow-y-auto"></div>
                                         </div>
 
-                                        <div id="class-end-dates-list" class="relative z-10 min-h-[120px]">
-                                            <!-- Filled by renderClassEndDatesList() -->
+                                        <div class="relative z-10 space-y-5 pt-6 border-t border-violet-100/90">
+                                            <div class="flex items-center gap-2 justify-center flex-wrap">
+                                                <span class="text-lg" aria-hidden="true">🎯</span>
+                                                <h3 class="font-title text-lg text-violet-900 text-center">Class finale (header class)</h3>
+                                            </div>
+                                            <p class="text-sm text-gray-600 text-center max-w-lg mx-auto">Choose a class in the <span class="font-semibold text-violet-800">header</span>, set its last lesson day here, then save. After that date it drops from day-by-day schedules; leave empty if the class continues year-round.</p>
+
+                                            <div id="class-end-dates-list" class="min-h-[120px]">
+                                                <!-- Filled by renderClassEndDatesList() -->
+                                            </div>
+
+                                            <button type="button" id="save-class-end-dates-btn"
+                                                disabled
+                                                class="w-full bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 text-white font-title text-lg py-3 rounded-2xl bubbly-button shadow-md shadow-violet-500/20 disabled:opacity-45 disabled:cursor-not-allowed disabled:pointer-events-none transition-all">
+                                                <i class="fas fa-save mr-2"></i> Save for this class
+                                            </button>
                                         </div>
-                                        
-                                        <button type="button" id="save-class-end-dates-btn"
-                                            disabled
-                                            class="relative z-10 w-full bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 text-white font-title text-lg py-3 rounded-2xl bubbly-button shadow-md shadow-violet-500/20 disabled:opacity-45 disabled:cursor-not-allowed disabled:pointer-events-none transition-all">
-                                            <i class="fas fa-save mr-2"></i> Save for this class
-                                        </button>
                                     </div>
                                 </div>
                             </div>

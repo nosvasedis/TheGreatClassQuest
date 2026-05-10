@@ -135,16 +135,32 @@ export const attendanceModalsHTML = `
     </div>
 
     <div id="attendance-chronicle-modal"
-        class="fixed inset-0 bg-black bg-opacity-50 z-[71] flex items-center justify-center p-4 hidden">
+        class="fixed inset-0 bg-black/60 backdrop-blur-sm z-[71] flex items-center justify-center p-3 sm:p-4 hidden"
+        role="dialog" aria-modal="true" aria-labelledby="attendance-chronicle-title">
         <div
-            class="bg-white p-6 md:p-8 rounded-3xl shadow-2xl max-w-4xl w-full pop-in border-4 border-gray-300 flex flex-col">
-            <div class="flex justify-between items-center mb-4">
-                <h2 id="attendance-chronicle-title" class="font-title text-2xl md:text-3xl text-gray-700">Attendance
-                    Chronicle</h2>
-                <button id="attendance-chronicle-close-btn"
-                    class="bg-gray-200 hover:bg-gray-300 text-gray-800 font-bold w-10 h-10 rounded-full bubbly-button">&times;</button>
+            class="attendance-chronicle-modal-panel relative bg-gradient-to-br from-sky-50 via-white to-emerald-50/90 rounded-[2.5rem] shadow-2xl w-full max-w-[min(88rem,calc(100vw-1rem))] pop-in border border-sky-200/80 flex flex-col max-h-[92vh] overflow-hidden"
+            style="box-shadow: 0 0 0 2px rgba(14,165,233,0.2), 0 28px 80px rgba(0,0,0,0.45), inset 0 1px 0 rgba(255,255,255,0.88);">
+
+            <div class="absolute inset-0 pointer-events-none opacity-50"
+                style="background: radial-gradient(circle at 16% 10%, rgba(16,185,129,0.2), transparent 44%), radial-gradient(circle at 88% 82%, rgba(14,165,233,0.16), transparent 52%), radial-gradient(circle at 50% 50%, rgba(251,191,36,0.07), transparent 55%);"></div>
+
+            <div class="relative z-10 flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 px-6 pt-6 pb-4 md:px-8 md:pt-8 md:pb-5 border-b border-teal-200/45 bg-white/50 backdrop-blur-md shrink-0">
+                <div class="flex items-start gap-4 min-w-0">
+                    <div class="w-14 h-14 rounded-2xl bg-gradient-to-br from-emerald-500 to-teal-600 text-white flex items-center justify-center shadow-lg shrink-0"
+                        style="box-shadow: 0 12px 32px rgba(16,185,129,0.36);">
+                        <i class="fas fa-calendar-check text-2xl" aria-hidden="true"></i>
+                    </div>
+                    <div class="min-w-0">
+                        <p class="text-[10px] font-black uppercase tracking-[0.22em] text-teal-800/75 mb-1">Scholar's ledger</p>
+                        <h2 id="attendance-chronicle-title" class="font-title text-2xl md:text-3xl lg:text-4xl text-slate-800 leading-tight break-words">Attendance Chronicle</h2>
+                        <p class="text-sm text-slate-600 font-semibold mt-1.5 max-w-xl">Colorful month grid · tap cells when the month is live · scroll wide for every lesson day.</p>
+                    </div>
+                </div>
+                <button id="attendance-chronicle-close-btn" type="button"
+                    class="text-teal-900/45 hover:text-teal-950 text-2xl w-11 h-11 rounded-full flex items-center justify-center bg-white/75 hover:bg-white border border-teal-200/85 shadow-sm transition-all bubbly-button shrink-0 self-end sm:self-start"
+                    aria-label="Close attendance chronicle">&times;</button>
             </div>
-            <div id="attendance-chronicle-content" class="space-y-4 max-h-[70vh] overflow-y-auto overflow-x-auto pr-2">
+            <div id="attendance-chronicle-content" class="relative z-10 flex-1 overflow-y-auto overflow-x-auto px-6 py-5 md:px-8 md:py-6 pr-3 md:pr-4 space-y-4 scrollbar-custom min-h-0">
             </div>
         </div>
     </div>

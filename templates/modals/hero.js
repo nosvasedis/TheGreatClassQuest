@@ -338,7 +338,7 @@ export const heroModalsHTML = `
                 </div>
             </div>
 
-            <div id="prodigy-content" class="flex-1 overflow-y-auto p-5 md:p-8 lg:p-10 custom-scrollbar relative z-10 min-h-0 bg-transparent">
+            <div id="prodigy-content" class="flex flex-1 flex-col min-h-0 overflow-y-auto p-5 md:p-8 lg:p-10 custom-scrollbar relative z-10 bg-transparent">
                 <!-- Content injected here -->
             </div>
         </div>

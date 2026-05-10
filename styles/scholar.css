@@ -265,6 +265,11 @@ optgroup {
 
 #attendance-chronicle-content {
     overflow: auto;
+    scrollbar-gutter: stable;
+}
+
+.attendance-chronicle-modal-panel {
+    color: #0f172a;
 }
 
 .attendance-chronicle-summary-grid {
@@ -278,7 +283,9 @@ optgroup {
     border-radius: 1.25rem;
     padding: 1rem 1.1rem;
     color: white;
-    box-shadow: 0 16px 32px -22px rgba(15, 23, 42, 0.8);
+    box-shadow:
+        0 16px 36px -20px rgba(15, 23, 42, 0.75),
+        0 0 0 1px rgba(255, 255, 255, 0.22) inset;
 }
 
 .attendance-summary-card--emerald {
@@ -325,6 +332,11 @@ optgroup {
     gap: 0.75rem;
     margin-bottom: 1rem;
     flex-wrap: wrap;
+    padding: 0.65rem 0.9rem;
+    border-radius: 1.1rem;
+    background: linear-gradient(100deg, rgba(255, 255, 255, 0.88), rgba(224, 242, 254, 0.35), rgba(236, 253, 245, 0.55));
+    border: 1px solid rgba(14, 165, 233, 0.18);
+    box-shadow: 0 8px 24px -20px rgba(15, 118, 110, 0.35);
 }
 
 .attendance-chronicle-legend {
@@ -354,6 +366,33 @@ optgroup {
     color: #be123c;
 }
 
+.attendance-legend-pill--map-lesson {
+    background: #d1fae5;
+    color: #065f46;
+}
+
+.attendance-legend-pill--map-break {
+    background: #ede9fe;
+    color: #5b21b6;
+}
+
+.attendance-legend-pill--map-cancel {
+    background: #ffe4e6;
+    color: #9f1239;
+}
+
+.attendance-legend-pill--map-after {
+    background: #f1f5f9;
+    color: #475569;
+    border: 1px solid #e2e8f0;
+}
+
+.attendance-legend-pill--map-off {
+    background: #f8fafc;
+    color: #64748b;
+    border: 1px solid #e2e8f0;
+}
+
 .attendance-chronicle-mode {
     background: #f8fafc;
     color: #475569;
@@ -371,12 +410,254 @@ optgroup {
     color: #64748b;
 }
 
+.ac-holiday-banners {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    margin-bottom: 0.75rem;
+}
+
+.ac-holiday-banner {
+    display: flex;
+    align-items: center;
+    gap: 0.65rem;
+    flex-wrap: wrap;
+    padding: 0.55rem 0.85rem;
+    border-radius: 1rem;
+    background: linear-gradient(100deg, rgba(245, 243, 255, 0.95), rgba(237, 233, 254, 0.78));
+    border: 1px solid rgba(139, 92, 246, 0.22);
+    box-shadow: 0 10px 28px -22px rgba(91, 33, 182, 0.35);
+    font-size: 0.82rem;
+    font-weight: 700;
+    color: #5b21b6;
+}
+
+.ac-holiday-banner .fa-snowflake {
+    color: #0ea5e9;
+}
+
+.ac-holiday-banner .fa-egg {
+    color: #d946ef;
+}
+
+.ac-holiday-banner .fa-umbrella-beach {
+    color: #8b5cf6;
+}
+
+.ac-holiday-banner-label {
+    flex: 1 1 auto;
+    min-width: 0;
+}
+
+.ac-holiday-banner-dates {
+    font-weight: 800;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    font-size: 0.72rem;
+    color: #7c3aed;
+    opacity: 0.92;
+}
+
+.ac-chronicle-stats-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.45rem;
+    margin-bottom: 0.85rem;
+}
+
+.ac-stat-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.38rem 0.75rem;
+    border-radius: 9999px;
+    font-size: 0.74rem;
+    font-weight: 800;
+    letter-spacing: 0.02em;
+}
+
+.ac-stat-pill--teal {
+    background: linear-gradient(135deg, #ccfbf1, #99f6e4);
+    color: #115e59;
+    border: 1px solid rgba(13, 148, 136, 0.28);
+}
+
+.ac-stat-pill--teal-outline {
+    background: rgba(240, 253, 250, 0.92);
+    color: #0f766e;
+    border: 1px dashed rgba(13, 148, 136, 0.45);
+}
+
+.ac-stat-pill--violet {
+    background: linear-gradient(135deg, #ede9fe, #ddd6fe);
+    color: #5b21b6;
+    border: 1px solid rgba(139, 92, 246, 0.25);
+}
+
+.ac-stat-pill--rose {
+    background: linear-gradient(135deg, #ffe4e6, #fecdd3);
+    color: #9f1239;
+    border: 1px solid rgba(244, 63, 94, 0.28);
+}
+
+.ac-stat-pill--slate {
+    background: linear-gradient(135deg, #f1f5f9, #e2e8f0);
+    color: #475569;
+    border: 1px solid #cbd5e1;
+}
+
+.ac-stat-pill--ink {
+    background: rgba(15, 23, 42, 0.06);
+    color: #334155;
+    border: 1px solid rgba(15, 23, 42, 0.12);
+}
+
+.ac-month-rail-wrap {
+    margin-bottom: 1rem;
+}
+
+.ac-month-rail-caption {
+    font-size: 0.68rem;
+    font-weight: 900;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: #0f766e;
+    opacity: 0.85;
+    margin-bottom: 0.45rem;
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+}
+
+.ac-month-rail-scroll {
+    overflow-x: auto;
+    padding-bottom: 0.25rem;
+    margin: 0 -0.15rem;
+    scrollbar-gutter: stable;
+}
+
+.ac-month-rail {
+    display: flex;
+    gap: 0.35rem;
+    padding: 0.2rem 0.15rem 0.35rem;
+    min-height: 3.35rem;
+    align-items: stretch;
+}
+
+.ac-day-chip {
+    flex: 0 0 auto;
+    width: 2.5rem;
+    border-radius: 0.75rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.08rem;
+    padding: 0.28rem 0.15rem;
+    border: 1px solid transparent;
+    font-weight: 800;
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+    cursor: default;
+    box-shadow: 0 6px 14px -8px rgba(15, 23, 42, 0.35);
+}
+
+.ac-day-chip-day {
+    font-size: 0.78rem;
+    line-height: 1;
+}
+
+.ac-day-chip-ico {
+    font-size: 0.55rem;
+    opacity: 0.92;
+    line-height: 1;
+}
+
+.ac-day-chip--lesson {
+    background: linear-gradient(180deg, #ecfdf5, #d1fae5);
+    border-color: rgba(16, 185, 129, 0.35);
+    color: #065f46;
+}
+
+.ac-day-chip--lesson.ac-day-chip--future-lesson {
+    background: rgba(236, 253, 245, 0.75);
+    border-style: dashed;
+    border-color: rgba(5, 150, 105, 0.45);
+}
+
+.ac-day-chip--school_holiday {
+    background: linear-gradient(180deg, #f5f3ff, #ede9fe);
+    border-color: rgba(139, 92, 246, 0.35);
+    color: #5b21b6;
+}
+
+.ac-day-chip--class_cancelled {
+    background: linear-gradient(180deg, #fff1f2, #ffe4e6);
+    border-color: rgba(244, 63, 94, 0.35);
+    color: #9f1239;
+}
+
+.ac-day-chip--after_term {
+    background: linear-gradient(180deg, #f8fafc, #e2e8f0);
+    border-color: #cbd5e1;
+    color: #475569;
+}
+
+.ac-day-chip--off_schedule {
+    background: rgba(248, 250, 252, 0.65);
+    border-color: rgba(203, 213, 225, 0.55);
+    color: #94a3b8;
+    box-shadow: none;
+    opacity: 0.82;
+}
+
+.ac-day-chip--today {
+    outline: 2px solid rgba(14, 165, 233, 0.75);
+    outline-offset: 1px;
+    z-index: 1;
+}
+
+.ac-day-chip:hover {
+    transform: translateY(-1px);
+}
+
+.ac-chronicle-empty-grid {
+    border-radius: 1.35rem;
+    border: 2px dashed rgba(45, 212, 191, 0.35);
+    background: linear-gradient(145deg, rgba(240, 253, 250, 0.65), rgba(224, 242, 254, 0.35));
+    padding: 2rem 1.25rem;
+    text-align: center;
+}
+
+.ac-chronicle-empty-icon {
+    font-size: 2rem;
+    color: #0d9488;
+    margin-bottom: 0.5rem;
+    opacity: 0.85;
+}
+
+.ac-chronicle-empty-title {
+    font-family: 'Fredoka One', cursive;
+    font-size: 1.15rem;
+    color: #134e4a;
+    margin: 0 0 0.5rem;
+}
+
+.ac-chronicle-empty-text {
+    font-size: 0.88rem;
+    color: #475569;
+    line-height: 1.55;
+    max-width: 36rem;
+    margin: 0 auto;
+}
+
 .attendance-chronicle-table-wrap {
     border-radius: 1.5rem;
-    border: 1px solid #dbe5f0;
+    border: 1px solid rgba(14, 165, 233, 0.22);
     overflow: auto;
-    background: linear-gradient(180deg, #ffffff, #f8fafc);
-    box-shadow: 0 24px 40px -34px rgba(15, 23, 42, 0.8);
+    background: linear-gradient(180deg, #ffffff, #f0fdfa);
+    box-shadow:
+        0 24px 48px -28px rgba(15, 118, 110, 0.35),
+        0 0 0 1px rgba(255, 255, 255, 0.6) inset;
 }
 
 .attendance-chronicle-table {
@@ -397,8 +678,9 @@ optgroup {
     position: sticky;
     top: 0;
     z-index: 10;
-    background: rgba(248, 250, 252, 0.96);
+    background: linear-gradient(180deg, rgba(240, 253, 250, 0.97), rgba(236, 253, 245, 0.94));
     backdrop-filter: blur(12px);
+    border-bottom: 1px solid rgba(45, 212, 191, 0.2);
 }
 
 .attendance-student-col {

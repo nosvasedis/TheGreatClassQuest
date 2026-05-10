@@ -13,6 +13,7 @@ import { getEggAlertState } from '../../features/familiarProgression.mjs';
 import { wrapAvatarWithLevelUpIndicator } from '../core/avatar.js';
 import { canUseFeature } from '../../utils/subscription.js';
 import { getNormalizedPercentForScore } from '../../features/assessmentConfig.js';
+import { generateLeagueMapHtml } from '../../features/worldMap.js';
 
 // --- REIGNING PRODIGY CACHE ---
 // Fetches previous month's award logs once per session (cached by monthKey).
@@ -137,9 +138,10 @@ export async function renderClassLeaderboardTab() {
     }
 
     // --- CALCULATIONS ---
-    const sortStudents = utils.sortStudentsByTieBreaker;
     const allStudentScores = state.get('allStudentScores') || [];
     const allStudents = state.get('allStudents') || [];
+    const allAwardLogs = state.get('allAwardLogs') || [];
+    const allAdventureLogs = state.get('allAdventureLogs') || [];
 
     const now = new Date();
     const currentMonth = now.getMonth();
@@ -149,8 +151,48 @@ export async function renderClassLeaderboardTab() {
     startOfWeek.setDate(now.getDate() - daysToMonday);
     startOfWeek.setHours(0, 0, 0, 0);
 
+    const scoresByStudentId = new Map(allStudentScores.map(sc => [sc.id, sc]));
+
+    const studentsByClassId = new Map();
+    for (const s of allStudents) {
+        if (!s.classId) continue;
+        let bucket = studentsByClassId.get(s.classId);
+        if (!bucket) {
+            bucket = [];
+            studentsByClassId.set(s.classId, bucket);
+        }
+        bucket.push(s);
+    }
+
+    const awardLogsByClassId = new Map();
+    for (const log of allAwardLogs) {
+        if (!log.classId) continue;
+        let bucket = awardLogsByClassId.get(log.classId);
+        if (!bucket) {
+            bucket = [];
+            awardLogsByClassId.set(log.classId, bucket);
+        }
+        bucket.push(log);
+    }
+
+    const adventureCountByClassId = new Map();
+    for (const l of allAdventureLogs) {
+        if (!l.classId) continue;
+        const advDate = utils.parseDDMMYYYY(l.date);
+        if (!advDate || advDate.getMonth() !== currentMonth) continue;
+        adventureCountByClassId.set(l.classId, (adventureCountByClassId.get(l.classId) || 0) + 1);
+    }
+
+    const weeklyStarsByClassId = new Map();
+    for (const log of allAwardLogs) {
+        if (!log.classId) continue;
+        const logDate = utils.parseDDMMYYYY(log.date);
+        if (!logDate || logDate < startOfWeek) continue;
+        weeklyStarsByClassId.set(log.classId, (weeklyStarsByClassId.get(log.classId) || 0) + (Number(log.stars) || 0));
+    }
+
     const classScores = classesInLeague.map(c => {
-        const studentsInClass = allStudents.filter(s => s.classId === c.id);
+        const studentsInClass = studentsByClassId.get(c.id) || [];
         const studentCount = studentsInClass.length;
 
         const goalValue = utils.calculateMonthlyClassGoal(
@@ -180,26 +222,20 @@ export async function renderClassLeaderboardTab() {
 
         const { totalStars: teamQuestStars, classBonus: classTeamBonus } = utils.getClassMonthlyQuestStars(c, studentsInClass, allStudentScores);
 
-        const classLogs = state.get('allAwardLogs').filter(l => l.classId === c.id);
-        const weeklyStars = classLogs.filter(log => {
-            const d = utils.parseDDMMYYYY(log.date);
-            return d && d >= startOfWeek;
-        }).reduce((sum, log) => sum + (Number(log.stars) || 0), 0);
+        const classLogs = awardLogsByClassId.get(c.id) || [];
+        const weeklyStars = weeklyStarsByClassId.get(c.id) || 0;
 
         const totalGold = studentsInClass.reduce((sum, s) => {
-            const scoreData = allStudentScores.find(sc => sc.id === s.id);
+            const scoreData = scoresByStudentId.get(s.id);
             const gold = scoreData && scoreData.gold !== undefined ? scoreData.gold : (scoreData?.totalStars || 0);
             return sum + (Number(gold) || 0);
         }, 0);
 
-        const adventureCount = state.get('allAdventureLogs').filter(l => {
-            const d = utils.parseDDMMYYYY(l.date);
-            return l.classId === c.id && d && d.getMonth() === currentMonth;
-        }).length;
+        const adventureCount = adventureCountByClassId.get(c.id) || 0;
 
         const topHeroes = studentsInClass
             .map(s => {
-                const scoreData = allStudentScores.find(sc => sc.id === s.id);
+                const scoreData = scoresByStudentId.get(s.id);
                 return {
                     name: s.name,
                     avatar: s.avatar,
@@ -238,7 +274,6 @@ export async function renderClassLeaderboardTab() {
 
     // Removed: quest update button no longer exists
 
-    const { generateLeagueMapHtml } = await import('../../features/worldMap.js');
     const mapHtml = generateLeagueMapHtml(classScores);
 
     // --- RENDER ANALYTICS CARDS ---

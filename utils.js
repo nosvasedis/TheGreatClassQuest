@@ -462,6 +462,62 @@ export function doesClassMeetOnDate(classId, dateInput, allSchoolClasses = [], a
     return Array.isArray(classData.scheduleDays) && classData.scheduleDays.includes(dayOfWeek);
 }
 
+/**
+ * Per-calendar-day status for Attendance Chronicle (holidays, cancellations, term end, schedule).
+ * Mirrors doesClassMeetOnDate branch order so labels stay consistent with scheduling.
+ */
+export function getClassDayChronicleInsight(classId, dateInput, allSchoolClasses = [], allScheduleOverrides = [], schoolHolidayRanges = [], classEndDates = {}) {
+    const classData = (allSchoolClasses || []).find((item) => item.id === classId);
+    const targetDate = parseFlexibleDate(dateInput);
+    if (!classData || !targetDate) {
+        return { kind: 'off_schedule' };
+    }
+
+    const dateString = getDDMMYYYY(targetDate);
+    const ranges = schoolHolidayRanges || [];
+
+    for (let i = 0; i < ranges.length; i++) {
+        const range = ranges[i];
+        if (!range?.start || !range?.end) continue;
+        const start = parseFlexibleDate(range.start);
+        const end = parseFlexibleDate(range.end);
+        if (!start || !end) continue;
+        start.setHours(0, 0, 0, 0);
+        end.setHours(23, 59, 59, 999);
+        if (targetDate >= start && targetDate <= end) {
+            let label = range.name;
+            if (!label && range.type === 'christmas') label = 'Winter break';
+            if (!label && range.type === 'easter') label = 'Easter break';
+            if (!label) label = 'School holiday';
+            return { kind: 'school_holiday', label, holidayType: range.type || '' };
+        }
+    }
+
+    const overridesForDay = (allScheduleOverrides || []).filter((override) =>
+        override.date === dateString && override.classId === classId
+    );
+
+    if (overridesForDay.some((override) => override.type === 'cancelled')) {
+        return { kind: 'class_cancelled' };
+    }
+
+    if (overridesForDay.some((override) => override.type === 'one-time')) {
+        return { kind: 'lesson' };
+    }
+
+    if (isPastClassEndDate(classId, targetDate, classEndDates)) {
+        return { kind: 'after_term' };
+    }
+
+    const dayOfWeek = targetDate.getDay().toString();
+    const onRotation = Array.isArray(classData.scheduleDays) && classData.scheduleDays.includes(dayOfWeek);
+    if (onRotation) {
+        return { kind: 'lesson' };
+    }
+
+    return { kind: 'off_schedule' };
+}
+
 export function getLastLessonDate(classId, allSchoolClasses, allScheduleOverrides = [], schoolHolidayRanges = [], classEndDates = {}) {
     for (let i = 0; i < 45; i++) {
         const checkDate = new Date();

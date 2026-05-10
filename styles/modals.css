@@ -2533,6 +2533,74 @@
     animation: prodigy-hall-float 3.5s ease-in-out infinite;
 }
 
+/* Co-prodigy: two columns; hide vertical scroll for typical 2-way tie (3+ ties: allow scroll) */
+#prodigy-modal #prodigy-content:has(.prodigy-hall-co-layout) {
+    overflow-y: hidden;
+    padding-top: 0.65rem;
+    padding-bottom: 0.65rem;
+    padding-left: 0.75rem;
+    padding-right: 0.75rem;
+}
+#prodigy-modal #prodigy-content:has(.prodigy-hall-co-grid--many) {
+    overflow-y: auto;
+}
+@media (min-width: 640px) {
+    #prodigy-modal #prodigy-content:has(.prodigy-hall-co-layout) {
+        padding: 0.85rem 1.1rem;
+    }
+}
+@media (min-width: 768px) {
+    #prodigy-modal #prodigy-content:has(.prodigy-hall-co-layout) {
+        padding: 1rem 1.35rem;
+    }
+}
+.prodigy-hall-co-layout.prodigy-hall-co-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.45rem;
+    align-items: stretch;
+    align-content: stretch;
+    flex: 1 1 auto;
+    min-height: 0;
+}
+@media (min-width: 640px) {
+    .prodigy-hall-co-layout.prodigy-hall-co-grid {
+        gap: 0.65rem;
+    }
+}
+@media (min-width: 768px) {
+    .prodigy-hall-co-layout.prodigy-hall-co-grid {
+        gap: 0.85rem;
+    }
+}
+.prodigy-hall-card--co {
+    min-height: 0;
+    max-height: 100%;
+    display: flex;
+    flex-direction: column;
+}
+.prodigy-hall-card__inner--co {
+    border-radius: 1.15rem;
+    min-height: 0;
+    flex: 1 1 auto;
+}
+.prodigy-hall-co-vault-strip {
+    max-width: 100%;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(255, 255, 255, 0.45) rgba(0, 0, 0, 0.15);
+    -webkit-overflow-scrolling: touch;
+}
+.prodigy-hall-co-vault-strip::-webkit-scrollbar {
+    height: 5px;
+}
+.prodigy-hall-co-vault-strip::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.35);
+    border-radius: 999px;
+}
+.prodigy-hall-co-empty-vault {
+    white-space: nowrap;
+}
+
 /* ============================================================
    ZONE OVERVIEW (Team Quest map — tap a realm)
    ============================================================ */
@@ -2544,7 +2612,10 @@
     box-shadow:
         0 24px 48px rgba(45, 30, 18, 0.18),
         inset 0 1px 0 rgba(255, 255, 255, 0.85);
-    overflow-x: hidden;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    max-height: min(90vh, 920px);
 }
 
 #milestone-details-modal[data-modal-mode="zone-overview"] .milestone-details-panel::before {
@@ -2564,6 +2635,7 @@
     margin-bottom: 0.35rem;
     position: relative;
     z-index: 2;
+    flex: 0 0 auto;
 }
 
 #milestone-details-modal[data-modal-mode="zone-overview"] #milestone-modal-close-btn {
@@ -2582,13 +2654,18 @@
     text-align: left;
     position: relative;
     z-index: 2;
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-x: hidden;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
 }
 
 /* —— Compact hero (replaces full-width gradient slab) —— */
 .zone-overview-hero {
     position: relative;
-    margin-bottom: 1.25rem;
-    padding: 0.95rem 1.1rem 1rem;
+    margin-bottom: 1rem;
+    padding: 0.85rem 1rem 0.9rem;
     border-radius: 1.15rem;
     overflow: hidden;
     border: 1px solid rgba(255, 255, 255, 0.35);

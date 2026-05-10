@@ -124,7 +124,7 @@ export function renderClassEndDatesList() {
                 <div class="text-5xl mb-4 grayscale opacity-70">🎓</div>
                 <p class="font-title text-xl text-violet-900 mb-2">Choose a class in the header</p>
                 <p class="text-sm text-gray-600 max-w-md mx-auto leading-relaxed">
-                    This panel sets the <span class="font-semibold text-gray-800">final lesson date</span> for whichever class is active above — one at a time, with a clear preview of what you’re editing.
+                    Choose a class in the header to set its <span class="font-semibold text-gray-800">final lesson date</span> here — one class at a time.
                 </p>
             </div>`;
         return;

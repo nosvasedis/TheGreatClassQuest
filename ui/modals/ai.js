@@ -345,6 +345,8 @@ export async function openMilestoneModal(markerElement) {
             </div>
         </div>`;
 
+    modalContent.className = 'space-y-4 text-center';
+
     showAnimatedModal('milestone-details-modal');
 }
 

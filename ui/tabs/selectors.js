@@ -4,6 +4,7 @@ import * as utils from '../../utils.js';
 import * as constants from '../../constants.js';
 import * as modals from '../modals.js';
 import { renderAwardStarsStudentList } from './award.js';
+import { getAwardLogMonthlyStarCredit } from '../../features/awardLogReasonMeta.js';
 
 export function findAndSetCurrentClass(targetSelectId = null) {
     if (state.get('globalSelectedClassId')) return;
@@ -33,7 +34,7 @@ export function populateCalendarStars(logSource) {
         if (!acc[date]) {
             acc[date] = 0;
         }
-        acc[date] += log.stars;
+        acc[date] += getAwardLogMonthlyStarCredit(log);
         return acc;
     }, {});
 
@@ -106,7 +107,7 @@ export function renderCalendarTab(customLogs = null) {
         const dateString = utils.getDDMMYYYY(day);
 
         const logsForThisDay = logsToRender.filter(log => utils.datesMatch(log.date, dateString));
-        const totalStarsThisDay = logsForThisDay.reduce((sum, log) => sum + (log.stars || 0), 0);
+        const totalStarsThisDay = logsForThisDay.reduce((sum, log) => sum + getAwardLogMonthlyStarCredit(log), 0);
 
         const dayCell = document.createElement('div');
         dayCell.dataset.date = dateString;

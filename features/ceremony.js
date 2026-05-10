@@ -10,8 +10,11 @@ import { canUseFeature } from '../utils/subscription.js';
 import * as utils from '../utils.js';
 import { getNormalizedPercentForScore } from './assessmentConfig.js';
 import { formatTeacherBoonReason, getTeacherBoonForMonth } from './boons.js';
-
-// --- LOCAL STATE ---
+import {
+    getAwardLogMonthlyStarCredit,
+    mergeMonthlyStarsFromArchivedHistoryAndAwardLogs,
+    sumMonthlyStarCreditsByStudentFromAwardLogs
+} from './awardLogReasonMeta.js';
 let ceremonyData = {
     active: false,
     phase: 'intro', 
@@ -213,12 +216,12 @@ async function loadDataAndAdvance() {
         
         // 1. Fetch Logs
         const logs = await fetchLogsForMonth(year, month);
+        const { fetchMonthlyHistory } = await import('../state.js');
+        const archived = await fetchMonthlyHistory(ceremonyData.monthKey).catch(() => ({}));
         const questHistorySnap = await getDocs(collection(db, 'artifacts/great-class-quest/public/data/quest_history'));
         const questHistoryRecords = questHistorySnap.docs.map(docSnap => docSnap.data());
-        const monthlyScores = {}; 
-        logs.forEach(log => {
-            monthlyScores[log.studentId] = (monthlyScores[log.studentId] || 0) + log.stars;
-        });
+        const fromLogs = sumMonthlyStarCreditsByStudentFromAwardLogs(logs);
+        const monthlyScores = mergeMonthlyStarsFromArchivedHistoryAndAwardLogs(fromLogs, archived || {});
 
         // 2. PREPARE CLASSES
         const allClasses = state.get('allSchoolClasses')
@@ -278,8 +281,9 @@ async function loadDataAndAdvance() {
             let count3 = 0, count2 = 0;
             const reasons = new Set();
             sLogs.forEach(l => {
-                if (l.stars >= 3) count3++;
-                else if (l.stars >= 2) count2++;
+                const cred = getAwardLogMonthlyStarCredit(l);
+                if (cred >= 3) count3++;
+                else if (cred >= 2) count2++;
                 if (l.reason) reasons.add(l.reason);
             });
 

@@ -11,6 +11,7 @@ import { requireEliteAI } from '../../utils/upgradePrompt.js';
 import { getAssessmentValueLabel, getNormalizedPercentForScore } from '../../features/assessmentConfig.js';
 import { showToast } from '../effects.js';
 import { auth } from '../../firebase.js';
+import { getAwardLogMonthlyStarCredit } from '../../features/awardLogReasonMeta.js';
 
 let currentCertStudentId = null;
 let currentCertScope = 'monthly';
@@ -29,8 +30,8 @@ export async function handleGenerateReport(classId) {
     const oneWeekAgoStr = oneWeekAgo.toLocaleDateString('en-GB');
 
     const logs = state.get('allAwardLogs').filter(log => log.classId === classId && log.date >= oneWeekAgoStr);
-    const totalStars = logs.reduce((sum, log) => sum + log.stars, 0);
-    const reasonCounts = logs.reduce((acc, log) => { acc[log.reason] = (acc[log.reason] || 0) + log.stars; return acc; }, {});
+    const totalStars = logs.reduce((sum, log) => sum + getAwardLogMonthlyStarCredit(log), 0);
+    const reasonCounts = logs.reduce((acc, log) => { acc[log.reason] = (acc[log.reason] || 0) + getAwardLogMonthlyStarCredit(log); return acc; }, {});
     const reasonsString = Object.entries(reasonCounts).map(([reason, count]) => `${reason}: ${count}`).join(', ');
     const behaviorNotes = logs.filter(log => log.note).map(log => `On ${log.date}, a note mentioned: "${log.note}"`).join('. ');
     
@@ -252,7 +253,12 @@ export async function executeCertificateGeneration() {
         scopeLogs = allLogs;
     }
 
-    const scopeStars = scopeLogs.reduce((sum, log) => sum + log.stars, 0);
+    let scopeStars;
+    if (currentCertScope === 'monthly') {
+        scopeStars = Number(scoreData?.monthlyStars) || 0;
+    } else {
+        scopeStars = Number(scoreData?.totalStars) || 0;
+    }
     const topReason = Object.entries(scopeLogs.reduce((acc, log) => {
         acc[log.reason] = (acc[log.reason] || 0) + 1;
         return acc;

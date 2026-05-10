@@ -7,6 +7,11 @@ import { getHeroTitle, HERO_SKILL_TREE } from '../../features/heroSkillTree.js';
 import { canUseFeature } from '../../utils/subscription.js';
 import { getNormalizedPercentForScore } from '../../features/assessmentConfig.js';
 import { getClassDataById, getTeacherBoonForMonth } from '../../features/boons.js';
+import {
+    getAwardLogMonthlyStarCredit,
+    mergeMonthlyStarsFromArchivedHistoryAndAwardLogs,
+    sumMonthlyStarCreditsByStudentFromAwardLogs
+} from '../../features/awardLogReasonMeta.js';
 
 // --- REIGNING PRODIGY CACHE (previous month, with tie-breaker) ---
 let _awardProdigyCacheKey = null;
@@ -25,7 +30,10 @@ async function getReigningProdigyForClass(classId) {
     if (_awardProdigyCacheKey !== cacheKey) {
         try {
             const { fetchLogsForMonth } = await import('../../db/queries.js');
+            const { fetchMonthlyHistory } = await import('../../state.js');
+            const monthKey = `${prevMonth.getFullYear()}-${String(prevMonth.getMonth() + 1).padStart(2, '0')}`;
             const logs = await fetchLogsForMonth(prevMonth.getFullYear(), prevMonth.getMonth() + 1);
+            const archived = await fetchMonthlyHistory(monthKey).catch(() => ({}));
             const allScores = state.get('allWrittenScores') || [];
             const vm = prevMonth.getMonth();
             const vy = prevMonth.getFullYear();
@@ -40,14 +48,18 @@ async function getReigningProdigyForClass(classId) {
             const result = {};
             Object.entries(logsByClass).forEach(([cId, classLogs]) => {
                 const students = state.get('allStudents').filter(s => s.classId === cId);
+                const fromLogsTotals = sumMonthlyStarCreditsByStudentFromAwardLogs(classLogs);
+                const mergedTotals = mergeMonthlyStarsFromArchivedHistoryAndAwardLogs(fromLogsTotals, archived || {});
+
                 const stats = students.map(s => {
                     const sLogs = classLogs.filter(l => l.studentId === s.id);
-                    const totalStars = sLogs.reduce((sum, l) => sum + (l.stars || 0), 0);
+                    const monthlyStars = Number(mergedTotals[s.id]) || 0;
                     let count3 = 0, count2 = 0;
                     const reasons = new Set();
                     sLogs.forEach(l => {
-                        if (l.stars >= 3) count3++;
-                        else if (l.stars >= 2) count2++;
+                        const cred = getAwardLogMonthlyStarCredit(l);
+                        if (cred >= 3) count3++;
+                        else if (cred >= 2) count2++;
                         if (l.reason) reasons.add(l.reason);
                     });
                     const sScores = allScores.filter(sc => {
@@ -59,7 +71,7 @@ async function getReigningProdigyForClass(classId) {
                         const normalized = getNormalizedPercentForScore(sc);
                         if (Number.isFinite(normalized)) acadSum += normalized;
                     });
-                    return { id: s.id, monthlyStars: totalStars, count3, count2, uniqueReasons: reasons.size, academicAvg: sScores.length > 0 ? acadSum / sScores.length : 0 };
+                    return { id: s.id, monthlyStars, count3, count2, uniqueReasons: reasons.size, academicAvg: sScores.length > 0 ? acadSum / sScores.length : 0 };
                 }).filter(s => s.monthlyStars > 0);
 
                 if (!stats.length) return;

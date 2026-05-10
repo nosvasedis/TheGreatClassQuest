@@ -53,6 +53,7 @@ export async function awardStoryWeaverBonusStarToClass(classId) {
                 classId: classId,
                 teacherId: state.get('currentUserId'),
                 stars: starAmount,
+                appliedStarCredit: starAmount,
                 reason: "story_weaver",
                 date: getTodayDateString(),
                 createdAt: serverTimestamp(),

@@ -1,4 +1,5 @@
 import { getLocalMonthKey, isTeacherBoonWindow } from './utils/teacherBoonWindow.mjs';
+import { getAwardLogMonthlyStarCredit } from './features/awardLogReasonMeta.js';
 
 export function simpleHashCode(str) {
     let hash = 0;
@@ -854,6 +855,16 @@ export function getMonthKey(date = new Date()) {
     return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
 }
 
+/**
+ * First day of the previous calendar month (local timezone).
+ * Month-key archives (Hero Logs, Prodigy hall, Team Quest history) never include the live/current month — only completed months.
+ */
+export function getLatestCompletedMonthStart(ref = new Date()) {
+    const d = new Date(ref.getFullYear(), ref.getMonth(), 1);
+    d.setMonth(d.getMonth() - 1);
+    return d;
+}
+
 export function getClassQuestBonusForMonth(classData, date = new Date()) {
     return Number(classData?.teamQuestBonuses?.[getMonthKey(date)]) || 0;
 }
@@ -883,8 +894,9 @@ export function calculateStudentStats(studentId, relevantLogs, relevantScores) {
     // Process behavioral logs
     (relevantLogs || []).forEach(l => {
         if (l.studentId === studentId) {
-            if (l.stars >= 3) count3++;
-            else if (l.stars >= 2) count2++;
+            const cred = getAwardLogMonthlyStarCredit(l);
+            if (cred >= 3) count3++;
+            else if (cred >= 2) count2++;
             if (l.reason) reasons.add(l.reason);
         }
     });

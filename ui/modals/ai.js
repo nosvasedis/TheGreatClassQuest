@@ -8,6 +8,7 @@ import { ensureHistoryLoaded } from '../../db/actions.js';
 import { isSpeaking, speakText, stopSpeech, isTtsSupported } from '../../features/tts.js';
 import { requireEliteAI } from '../../utils/upgradePrompt.js';
 import { getNormalizedPercentForScore } from '../../features/assessmentConfig.js';
+import { getAwardLogMonthlyStarCredit } from '../../features/awardLogReasonMeta.js';
 
 // --- AI & REPORTING MODALS ---
 
@@ -231,7 +232,7 @@ export async function openMilestoneModal(markerElement) {
     const todayDate = new Date();
     const startOfWeek = new Date(todayDate.setDate(todayDate.getDate() - todayDate.getDay() + (todayDate.getDay() === 0 ? -6 : 1)));
     startOfWeek.setHours(0, 0, 0, 0);
-    const weeklyStars = relevantLogs.filter(log => utils.parseDDMMYYYY(log.date) >= startOfWeek).reduce((sum, log) => sum + log.stars, 0);
+    const weeklyStars = relevantLogs.filter(log => utils.parseDDMMYYYY(log.date) >= startOfWeek).reduce((sum, log) => sum + getAwardLogMonthlyStarCredit(log), 0);
 
     // Trial Mastery (Class Average)
     const classTrials = state.get('allWrittenScores').filter(s => {
@@ -254,7 +255,7 @@ export async function openMilestoneModal(markerElement) {
     // Top Skill
     const reasonCounts = relevantLogs.reduce((acc, log) => {
         if (['welcome_back', 'scholar_s_bonus'].includes(log.reason)) return acc;
-        acc[log.reason || 'excellence'] = (acc[log.reason || 'excellence'] || 0) + log.stars;
+        acc[log.reason || 'excellence'] = (acc[log.reason || 'excellence'] || 0) + getAwardLogMonthlyStarCredit(log);
         return acc;
     }, {});
     const topReason = Object.entries(reasonCounts).sort((a, b) => b[1] - a[1])[0]?.[0].replace(/_/g, ' ') || "Teamwork";

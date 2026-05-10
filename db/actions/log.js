@@ -22,9 +22,10 @@ import { callGeminiApi } from '../../api.js';
 import { playSound } from '../../audio.js';
 import { canUseFeature } from '../../utils/subscription.js';
 import { handleStoryWeaversClassSelect } from '../../features/storyWeaver.js';
-import { getTodayDateString, parseFlexibleDate, normalizeToDateString } from '../../utils.js';
+import { getTodayDateString, parseFlexibleDate, normalizeToDateString, parseDDMMYYYY } from '../../utils.js';
 import { reconcileFamiliarLifecycle } from '../../features/familiars.js';
 import { applyAwardOutwardSkillEffects, applyReasonAwardScoreTransaction, showHeroLevelUpCelebration } from './stars.js';
+import { getAwardLogMonthlyStarCredit } from '../../features/awardLogReasonMeta.js';
 
 export async function addOrUpdateHeroChronicleNote(studentId, noteText, category, noteId = null) {
     if (!studentId || !noteText || !category) {
@@ -214,14 +215,15 @@ export async function handleAwardBonusStar(studentId, bonusAmount, trialType) {
                 }
             }
 
-            ({ levelUpInfo } = applyReasonAwardScoreTransaction(transaction, {
+            const txResult = applyReasonAwardScoreTransaction(transaction, {
                 scoreRef,
                 studentId,
                 studentData: student,
                 scoreData: scoreDoc.exists() ? scoreDoc.data() : null,
                 reason: 'scholar_s_bonus',
                 awardedStars: finalBonus
-            }));
+            });
+            levelUpInfo = txResult.levelUpInfo;
 
             const newLogRef = doc(collection(db, `${publicDataPath}/award_log`));
             const logData = {
@@ -229,6 +231,7 @@ export async function handleAwardBonusStar(studentId, bonusAmount, trialType) {
                 classId: student.classId,
                 teacherId: state.get('currentUserId'),
                 stars: finalBonus,
+                appliedStarCredit: txResult.totalStarsDelta,
                 reason: "scholar_s_bonus",
                 note: `Awarded for exceptional performance on a ${trialType}.`,
                 date: getTodayDateString(),
@@ -263,14 +266,15 @@ export async function handleBatchAwardBonus(students) {
                 const scoreRef = doc(db, `${publicDataPath}/student_scores`, studentId);
                 const scoreDoc = await transaction.get(scoreRef);
 
-                ({ levelUpInfo } = applyReasonAwardScoreTransaction(transaction, {
+                const txResult = applyReasonAwardScoreTransaction(transaction, {
                     scoreRef,
                     studentId,
                     studentData: student,
                     scoreData: scoreDoc.exists() ? scoreDoc.data() : null,
                     reason: 'scholar_s_bonus',
                     awardedStars: bonusAmount
-                }));
+                });
+                levelUpInfo = txResult.levelUpInfo;
 
                 const newLogRef = doc(collection(db, `${publicDataPath}/award_log`));
                 const logData = {
@@ -278,6 +282,7 @@ export async function handleBatchAwardBonus(students) {
                     classId: student.classId,
                     teacherId: state.get('currentUserId'),
                     stars: bonusAmount,
+                    appliedStarCredit: txResult.totalStarsDelta,
                     reason: "scholar_s_bonus",
                     note: `Awarded for exceptional performance on a ${trialType}.`,
                     date: today,
@@ -597,37 +602,38 @@ export async function handleMarkAbsent(studentId, classId, isAbsent, targetDate 
                 // 2. Find & Delete 'today_stars'
                 const todayStarsQ = query(collection(db, `${publicDataPath}/today_stars`), where("studentId", "==", studentId), where("date", "==", today));
                 const todayStarsSnap = await getDocs(todayStarsQ);
-                
-                let starsToRemove = 0;
-                
-                todayStarsSnap.forEach(doc => {
-                    const data = doc.data();
-                    starsToRemove += (data.stars || 0);
-                    transaction.delete(doc.ref);
-                });
+
+                todayStarsSnap.forEach(d => transaction.delete(d.ref));
 
                 // 3. Find & Delete 'award_log' for today
                 // Note: award_log stores date as DD-MM-YYYY string too
                 const logsQ = query(collection(db, `${publicDataPath}/award_log`), where("studentId", "==", studentId), where("date", "==", today));
                 const logsSnap = await getDocs(logsQ);
-                
-                logsSnap.forEach(doc => {
-                    // Double check stars just in case today_stars was out of sync, but we rely on today_stars for total sum usually
-                    // Actually, award_log is the historical record. We should delete them.
-                    // We already summed stars from today_stars which tracks the *current* visual count.
-                    transaction.delete(doc.ref);
+
+                const calendarNow = new Date();
+                let creditFromLogsTotal = 0;
+                let creditFromLogsMonthly = 0;
+
+                logsSnap.forEach(docSnap => {
+                    const data = docSnap.data();
+                    const credit = getAwardLogMonthlyStarCredit({ ...data, id: docSnap.id });
+                    creditFromLogsTotal += credit;
+                    const logDate = parseDDMMYYYY(data.date);
+                    if (logDate.getMonth() === calendarNow.getMonth() && logDate.getFullYear() === calendarNow.getFullYear()) {
+                        creditFromLogsMonthly += credit;
+                    }
+                    transaction.delete(docSnap.ref);
                 });
 
-                // 4. Decrement Scores if stars were removed
-                if (starsToRemove > 0) {
-                    const scoreRef = doc(db, `${publicDataPath}/student_scores`, studentId);
-                    const scoreDoc = await transaction.get(scoreRef);
-                    if (scoreDoc.exists()) {
-                        transaction.update(scoreRef, {
-                            totalStars: increment(-starsToRemove),
-                            monthlyStars: increment(-starsToRemove)
-                        });
+                // 4. Decrement Scores (aligned with award_log credit, not today_stars nominal count)
+                const scoreRef = doc(db, `${publicDataPath}/student_scores`, studentId);
+                const scoreDoc = await transaction.get(scoreRef);
+                if (scoreDoc.exists() && creditFromLogsTotal > 0) {
+                    const scoreUpdates = { totalStars: increment(-creditFromLogsTotal) };
+                    if (creditFromLogsMonthly > 0) {
+                        scoreUpdates.monthlyStars = increment(-creditFromLogsMonthly);
                     }
+                    transaction.update(scoreRef, scoreUpdates);
                 }
             });
             

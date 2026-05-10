@@ -8,6 +8,7 @@ import { showToast } from '../effects.js';
 import { playSound } from '../../audio.js';
 import { handleAwardBonusStar, handleBatchAwardBonus } from '../../db/actions.js';
 import { canUseFeature } from '../../utils/subscription.js';
+import { getScheduledAssessmentStatus, getStudentsAwaitingGradeForScheduledStatus } from '../../features/assessmentConfig.js';
 
 const LEGACY_ASSIGNMENT_DATE_PREFIX_REGEX = /^\s*\d{1,2}[\/-]\d{1,2}[\/-]\d{4}\s*[:\-]?\s*/;
 
@@ -174,26 +175,16 @@ export async function openQuestAssignmentModal() {
             const lastAssignmentDoc = snapshot.docs[0];
             const lastAssignment = lastAssignmentDoc.data();
 
-            // --- NEW: Test Badge Logic (Redesigned & Intelligent) ---
+            // --- Quest Board test status (same rules as Scholar's Scroll / bulk log) ---
             let testBadgeHtml = '';
             if (lastAssignment.testData) {
-                const tDate = utils.parseFlexibleDate(lastAssignment.testData.date);
-                const today = new Date();
-                today.setHours(0, 0, 0, 0);
-                
-                const isPast = tDate && tDate < today;
-                
-                // Check if results were logged for this specific test
-                const allScores = state.get('allWrittenScores') || [];
-                const testTitle = (lastAssignment.testData.title || '').trim().toLowerCase();
-                const hasResults = allScores.some(s => 
-                    s.classId === lastAssignment.classId && 
-                    s.type === 'test' && 
-                    (s.title || '').trim().toLowerCase() === testTitle
-                );
+                const assignmentStub = { ...lastAssignment, id: lastAssignmentDoc.id, classId: lastAssignment.classId || classId };
+                const scheduledStatus = getScheduledAssessmentStatus(assignmentStub);
+                const awaiting = scheduledStatus ? getStudentsAwaitingGradeForScheduledStatus(scheduledStatus) : [];
 
-                if (hasResults) {
-                    // COMPLETED STATE: Show premium green badge
+                if (!scheduledStatus) {
+                    testBadgeHtml = '';
+                } else if (scheduledStatus.isConcluded) {
                     testBadgeHtml = `
                         <div class="mb-6 bg-gradient-to-r from-emerald-50/80 to-white border-l-4 border-emerald-500 rounded-r-2xl p-4 shadow-sm flex items-center justify-between group pop-in">
                             <div class="flex items-start gap-4">
@@ -206,13 +197,14 @@ export async function openQuestAssignmentModal() {
                                         <span>Test Completed</span>
                                     </div>
                                     <h4 class="font-bold text-emerald-900 text-lg leading-tight">${lastAssignment.testData.title}</h4>
-                                    <p class="text-emerald-600/70 text-[10px] font-black mt-1 uppercase tracking-[0.1em]">All results have been recorded</p>
+                                    <p class="text-emerald-600/70 text-[10px] font-black mt-1 uppercase tracking-[0.1em]">${scheduledStatus.detailLabel} · ${scheduledStatus.chipLabel}</p>
                                 </div>
                             </div>
                         </div>`;
-                } else if (!isPast) {
-                    // UPCOMING STATE: Show premium amber badge
-                    const dateDisplay = tDate ? tDate.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' }) : 'Date TBD';
+                } else if (scheduledStatus.dayDiff >= 0) {
+                    const dateDisplay = scheduledStatus.scheduledDate
+                        ? scheduledStatus.scheduledDate.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' })
+                        : 'Date TBD';
                     testBadgeHtml = `
                         <div class="mb-6 bg-gradient-to-r from-amber-50/80 to-white border-l-4 border-amber-500 rounded-r-2xl p-4 shadow-sm flex items-center justify-between group pop-in">
                             <div class="flex items-start gap-4">
@@ -226,14 +218,31 @@ export async function openQuestAssignmentModal() {
                                     </div>
                                     <h4 class="font-bold text-amber-900 text-lg leading-tight">${lastAssignment.testData.title}</h4>
                                     <p class="text-amber-600/70 text-sm font-bold mt-1 tracking-tight">${dateDisplay}</p>
+                                    <p class="text-amber-800/80 text-xs font-semibold mt-1">${scheduledStatus.statusLabel} · ${scheduledStatus.chipLabel}${awaiting.length ? ` · ${awaiting.length} still need a grade` : ''}</p>
                                     ${lastAssignment.testData.curriculum ? `<p class="text-gray-400 text-[10px] font-black mt-1.5 uppercase tracking-widest opacity-80">Topics: ${lastAssignment.testData.curriculum}</p>` : ''}
                                 </div>
                             </div>
                         </div>`;
                 } else {
-                    // PASSED BUT NO RESULTS: Intelligently hide (as requested) or show very subtle hint
-                    // Based on "intelligently NOT show ... by checking results", we hide it if passed and no results.
-                    testBadgeHtml = '';
+                    const daysLate = Math.abs(scheduledStatus.dayDiff);
+                    testBadgeHtml = `
+                        <div class="mb-6 bg-gradient-to-r from-orange-50/90 to-white border-l-4 border-orange-600 rounded-r-2xl p-4 shadow-sm flex items-center justify-between group pop-in">
+                            <div class="flex items-start gap-4 min-w-0">
+                                <div class="w-12 h-12 bg-orange-100 text-orange-700 rounded-xl flex items-center justify-center text-xl shadow-sm shrink-0">
+                                    <i class="fas fa-exclamation-circle"></i>
+                                </div>
+                                <div class="min-w-0">
+                                    <div class="inline-flex items-center gap-1.5 rounded-full bg-orange-100/60 px-2.5 py-0.5 text-[10px] font-black uppercase tracking-wider text-orange-800 mb-1">
+                                        <i class="fas fa-pen-alt text-[9px]"></i>
+                                        <span>Grading still open</span>
+                                    </div>
+                                    <h4 class="font-bold text-orange-950 text-lg leading-tight">${lastAssignment.testData.title}</h4>
+                                    <p class="text-orange-800/85 text-xs font-semibold mt-1">${scheduledStatus.dateLabel} was test day (${daysLate} day${daysLate === 1 ? '' : 's'} ago).</p>
+                                    <p class="text-orange-900/80 text-[11px] font-bold mt-1">${scheduledStatus.chipLabel}${awaiting.length ? ` · ${awaiting.length} student${awaiting.length === 1 ? '' : 's'} awaiting a score` : ''}. Open Scholar's Scroll → Log Test — the correct title &amp; date are filled automatically.</p>
+                                    ${lastAssignment.testData.curriculum ? `<p class="text-gray-400 text-[10px] font-black mt-1.5 uppercase tracking-widest opacity-80">Topics: ${lastAssignment.testData.curriculum}</p>` : ''}
+                                </div>
+                            </div>
+                        </div>`;
                 }
             }
             

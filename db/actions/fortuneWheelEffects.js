@@ -25,11 +25,13 @@ function pickRandom(items, count) {
 }
 
 function buildWheelLogPayload({ studentId, classId, deltaStars = 0, deltaGold = 0, artifactsGranted = 0, artifactsRemoved = 0, note = '' }) {
+    const ds = Number(deltaStars);
     return {
         studentId,
         classId,
         teacherId: state.get('currentUserId'),
         stars: 0,
+        appliedStarCredit: Number.isFinite(ds) ? ds : 0,
         reason: deltaStars < 0 ? 'wheel_curse' : 'wheel_fortune',
         note: String(note || '').trim() || 'Wheel of Fortune',
         date: utils.getTodayDateString(),

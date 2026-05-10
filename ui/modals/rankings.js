@@ -7,6 +7,11 @@ import { showAnimatedModal } from './base.js';
 import { showToast } from '../effects.js';
 import { playSound } from '../../audio.js';
 import { HERO_CLASSES } from '../../features/heroClasses.js';
+import {
+    getAwardLogMonthlyStarCredit,
+    mergeMonthlyStarsFromArchivedHistoryAndAwardLogs,
+    sumMonthlyStarCreditsByStudentFromAwardLogs
+} from '../../features/awardLogReasonMeta.js';
 import { db, doc, writeBatch } from '../../firebase.js';
 
 let rankingsViewDate = new Date();
@@ -19,17 +24,16 @@ export async function openStudentRankingsModal(resetDate = true) {
     const controlsEl = document.getElementById('global-leaderboard-controls');
     const contentEl = document.getElementById('global-leaderboard-content');
 
-    // 1. Manage the Date (Default to last month if opening fresh)
+    // 1. Archives never include the in-progress month: default to the last completed calendar month.
     if (resetDate) {
-        rankingsViewDate = new Date();
-        rankingsViewDate.setMonth(rankingsViewDate.getMonth() - 1);
+        rankingsViewDate = new Date(utils.getLatestCompletedMonthStart());
     }
 
-    const activeMonthKey = rankingsViewDate.toISOString().substring(0, 7); // YYYY-MM
+    const activeMonthKey = utils.getMonthKey(rankingsViewDate);
     const monthDisplay = rankingsViewDate.toLocaleString('en-GB', { month: 'long', year: 'numeric' });
 
     titleEl.innerHTML = `Hero Logs`;
-    if (subtitleEl) subtitleEl.innerText = 'Monthly ranks archive';
+    if (subtitleEl) subtitleEl.innerText = 'Monthly ranks (completed months only)';
     if (controlsEl) controlsEl.innerHTML = '';
     contentEl.innerHTML = `<div class="text-center py-10"><i class="fas fa-circle-notch fa-spin text-3xl text-indigo-500"></i><p class="mt-3 text-slate-500 font-semibold">Loading archives for ${monthDisplay}...</p></div>`;
 
@@ -49,17 +53,16 @@ export async function openStudentRankingsModal(resetDate = true) {
 
         // Try fetching detailed logs first (for tie-breakers)
         const logsPromise = fetchLogsForMonth(year, month);
+        const archivedPromise = fetchMonthlyHistory(activeMonthKey);
         const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout')), 5000));
 
-        logs = await Promise.race([logsPromise, timeoutPromise]).catch(e => []);
-
-        if (!logs || logs.length === 0) {
-            monthlyScores = await fetchMonthlyHistory(activeMonthKey);
-        } else {
-            logs.forEach(log => {
-                monthlyScores[log.studentId] = (monthlyScores[log.studentId] || 0) + log.stars;
-            });
-        }
+        const [logsResult, archivedRows] = await Promise.all([
+            Promise.race([logsPromise, timeoutPromise]).catch(() => []),
+            archivedPromise.catch(() => ({}))
+        ]);
+        logs = logsResult || [];
+        const fromLogs = sumMonthlyStarCreditsByStudentFromAwardLogs(logs);
+        monthlyScores = mergeMonthlyStarsFromArchivedHistoryAndAwardLogs(fromLogs, archivedRows || {});
     } catch (e) { console.error(e); }
 
     // 4. Prepare Data
@@ -111,8 +114,13 @@ export async function openStudentRankingsModal(resetDate = true) {
     }
     if (nextBtn) {
         nextBtn.onclick = () => {
-            // Don't go past the current month
-            if (rankingsViewDate.getMonth() === new Date().getMonth() && rankingsViewDate.getFullYear() === new Date().getFullYear()) return;
+            const ceiling = utils.getLatestCompletedMonthStart(new Date());
+            if (
+                rankingsViewDate.getFullYear() === ceiling.getFullYear()
+                && rankingsViewDate.getMonth() === ceiling.getMonth()
+            ) {
+                return;
+            }
             rankingsViewDate.setMonth(rankingsViewDate.getMonth() + 1);
             openStudentRankingsModal(false);
         };
@@ -172,8 +180,9 @@ export async function openStudentRankingsModal(resetDate = true) {
             let count3 = 0, count2 = 0;
             const reasons = new Set();
             sLogs.forEach(l => {
-                if (l.stars >= 3) count3++;
-                else if (l.stars >= 2) count2++;
+                const cred = getAwardLogMonthlyStarCredit(l);
+                if (cred >= 3) count3++;
+                else if (cred >= 2) count2++;
                 if (l.reason) reasons.add(l.reason);
             });
 
@@ -880,31 +889,33 @@ export function openZoneOverviewModal(zoneType) {
 
 // --- PRODIGY OF THE MONTH FEATURE (FIXED) ---
 
-const PRODIGY_ARCHIVE_START = new Date('2025-11-01');
+const PRODIGY_COUNTS_CACHE_TAG = 'v4-award-log-credit-merge';
 const prodigyCountsCache = new Map();
 
-/** Latest month that can appear in the Hall (always the previous calendar month — never the current one). */
+/** Latest completed month allowed in the hall — never the live calendar month. */
 function getLatestViewableProdigyMonth(ref = new Date()) {
-    const d = new Date(ref.getFullYear(), ref.getMonth(), 1);
-    d.setMonth(d.getMonth() - 1);
-    return d;
+    return utils.getLatestCompletedMonthStart(ref);
 }
 
-// Local state for navigation (defaults to last completed month)
 let prodigyViewDate = getLatestViewableProdigyMonth();
 
-function buildProdigyMonthOutcome(students, monthlyLogs, allScores, viewYear, viewMonthIndex) {
+function buildProdigyMonthOutcome(students, monthlyLogs, allScores, viewYear, viewMonthIndex, archivedByStudentId = {}) {
     const studentStats = students.map((student) => {
         const studentLogs = monthlyLogs.filter((log) => log.studentId === student.id);
-        const totalStars = studentLogs.reduce((sum, log) => sum + (Number(log.stars) || 0), 0);
+        const fromLogs = studentLogs.reduce((sum, log) => sum + getAwardLogMonthlyStarCredit(log), 0);
+        const archivedVal = archivedByStudentId[student.id];
+        const totalStars = Object.prototype.hasOwnProperty.call(archivedByStudentId, student.id)
+            ? (Number(archivedVal) || 0)
+            : fromLogs;
 
         let count3 = 0;
         let count2 = 0;
         const reasons = new Set();
 
         studentLogs.forEach((log) => {
-            if (log.stars >= 3) count3++;
-            else if (log.stars >= 2) count2++;
+            const cred = getAwardLogMonthlyStarCredit(log);
+            if (cred >= 3) count3++;
+            else if (cred >= 2) count2++;
             if (log.reason) reasons.add(log.reason);
         });
 
@@ -934,13 +945,10 @@ function buildProdigyMonthOutcome(students, monthlyLogs, allScores, viewYear, vi
         };
     });
 
-    studentStats.sort((a, b) => {
-        if (b.monthlyStars !== a.monthlyStars) return b.monthlyStars - a.monthlyStars;
-        if (b.stats.count3 !== a.stats.count3) return b.stats.count3 - a.stats.count3;
-        if (b.stats.count2 !== a.stats.count2) return b.stats.count2 - a.stats.count2;
-        if (b.stats.uniqueReasons !== a.stats.uniqueReasons) return b.stats.uniqueReasons - a.stats.uniqueReasons;
-        return b.stats.academicAvg - a.stats.academicAvg;
-    });
+    studentStats.sort((a, b) => utils.sortStudentsByTieBreaker(
+        { stars: a.monthlyStars, name: a.name, stats: a.stats },
+        { stars: b.monthlyStars, name: b.name, stats: b.stats }
+    ));
 
     const topStudent = studentStats[0];
     if (!topStudent || topStudent.monthlyStars === 0) {
@@ -959,27 +967,28 @@ function buildProdigyMonthOutcome(students, monthlyLogs, allScores, viewYear, vi
 }
 
 async function getProdigyCountsForClass(classId) {
-    if (prodigyCountsCache.has(classId)) return prodigyCountsCache.get(classId);
+    const cacheKey = `${classId}::${PRODIGY_COUNTS_CACHE_TAG}`;
+    if (prodigyCountsCache.has(cacheKey)) return prodigyCountsCache.get(cacheKey);
 
     const students = state.get('allStudents').filter((student) => student.classId === classId);
     const allScores = state.get('allWrittenScores').filter((score) => score.classId === classId);
-    const monthCursor = new Date(PRODIGY_ARCHIVE_START.getFullYear(), PRODIGY_ARCHIVE_START.getMonth(), 1);
-    const lastCompletedMonth = new Date();
-    lastCompletedMonth.setDate(1);
-    lastCompletedMonth.setMonth(lastCompletedMonth.getMonth() - 1);
+    const monthCursor = new Date(constants.competitionStart.getFullYear(), constants.competitionStart.getMonth(), 1);
+    const newestMonthStart = utils.getLatestCompletedMonthStart(new Date());
     const monthRequests = [];
 
-    while (monthCursor <= lastCompletedMonth) {
+    while (monthCursor <= newestMonthStart) {
         monthRequests.push({
             year: monthCursor.getFullYear(),
             monthIndex: monthCursor.getMonth(),
             month: monthCursor.getMonth() + 1,
-            monthKey: `${monthCursor.getFullYear()}-${String(monthCursor.getMonth() + 1).padStart(2, '0')}`
+            monthKey: utils.getMonthKey(monthCursor)
         });
         monthCursor.setMonth(monthCursor.getMonth() + 1);
     }
 
     const { fetchLogsForMonth } = await import('../../db/queries.js');
+    const { fetchMonthlyHistory } = await import('../../state.js');
+
     const monthLogs = await Promise.all(monthRequests.map(async ({ year, month }) => {
         try {
             return await fetchLogsForMonth(year, month);
@@ -989,12 +998,23 @@ async function getProdigyCountsForClass(classId) {
         }
     }));
 
+    const archivedRows = await Promise.all(
+        monthRequests.map(({ monthKey }) => fetchMonthlyHistory(monthKey).catch(() => ({})))
+    );
+
     const winCounts = new Map();
     const winnersByMonth = new Map();
 
     monthRequests.forEach((request, index) => {
         const logsForClass = monthLogs[index].filter((log) => log.classId === classId);
-        const { winners } = buildProdigyMonthOutcome(students, logsForClass, allScores, request.year, request.monthIndex);
+        const { winners } = buildProdigyMonthOutcome(
+            students,
+            logsForClass,
+            allScores,
+            request.year,
+            request.monthIndex,
+            archivedRows[index] || {}
+        );
         winnersByMonth.set(request.monthKey, winners.map((winner) => winner.id));
         winners.forEach((winner) => {
             winCounts.set(winner.id, (winCounts.get(winner.id) || 0) + 1);
@@ -1002,7 +1022,7 @@ async function getProdigyCountsForClass(classId) {
     });
 
     const result = { winCounts, winnersByMonth };
-    prodigyCountsCache.set(classId, result);
+    prodigyCountsCache.set(cacheKey, result);
     return result;
 }
 
@@ -1016,7 +1036,7 @@ export async function openProdigyModal() {
         return;
     }
 
-    // Hall opens on the last *completed* month (never the current calendar month).
+    // Hall opens on the most recent completed month only (never the in-progress month).
     prodigyViewDate = getLatestViewableProdigyMonth();
 
     showAnimatedModal('prodigy-modal');
@@ -1066,8 +1086,8 @@ export async function renderProdigyHistory(classId) {
 
     const monthName = prodigyViewDate.toLocaleString('en-GB', { month: 'long', year: 'numeric' });
 
-    const PRODIGY_ARCHIVE_START = new Date(2023, 8, 1);
-    const canGoBack = (new Date(viewYear, viewMonthIndex, 1) > PRODIGY_ARCHIVE_START);
+    const archiveStart = new Date(constants.competitionStart.getFullYear(), constants.competitionStart.getMonth(), 1);
+    const canGoBack = (new Date(viewYear, viewMonthIndex, 1) > archiveStart);
     const nextMonthStart = new Date(viewYear, viewMonthIndex + 1, 1);
     const canGoForward = nextMonthStart <= latestViewable;
 
@@ -1085,6 +1105,11 @@ export async function renderProdigyHistory(classId) {
         </div>`;
 
     const { fetchLogsForMonth } = await import('../../db/queries.js');
+    const { fetchMonthlyHistory } = await import('../../state.js');
+
+    const viewMonthKey = utils.getMonthKey(new Date(viewYear, viewMonthIndex, 1));
+    const archivedByStudent = await fetchMonthlyHistory(viewMonthKey).catch(() => ({}));
+
     const fetched = await fetchLogsForMonth(viewYear, viewMonthIndex + 1);
     const logsToAnalyze = fetched.filter(l => l.classId === classId);
 
@@ -1097,7 +1122,10 @@ export async function renderProdigyHistory(classId) {
     const students = state.get('allStudents').filter(s => s.classId === classId);
     const { winCounts } = await countsPromise;
 
-    if (monthlyLogs.length === 0) {
+    const hasArchivedNonZero = students.some((s) => (Number(archivedByStudent[s.id]) || 0) > 0);
+    const hasLogActivity = monthlyLogs.length > 0;
+
+    if (!hasLogActivity && !hasArchivedNonZero) {
         contentEl.innerHTML = `
             <div class="prodigy-hall-empty h-full flex flex-col items-center justify-center py-12 px-6 max-w-lg mx-auto text-center group">
                 <div class="relative mb-6">
@@ -1112,7 +1140,7 @@ export async function renderProdigyHistory(classId) {
                 <p class="text-indigo-600/90 prodigy-hall-tagline text-sm sm:text-base max-w-sm">No star awards logged for <span class="font-title text-indigo-800">${monthName}</span> — pick another month.</p>
             </div>`;
     } else {
-        const { winners } = buildProdigyMonthOutcome(students, monthlyLogs, allScores, viewYear, viewMonthIndex);
+        const { winners } = buildProdigyMonthOutcome(students, monthlyLogs, allScores, viewYear, viewMonthIndex, archivedByStudent);
 
         if (!winners || winners.length === 0) {
             contentEl.innerHTML = `<div class="h-full flex flex-col items-center justify-center gap-3 text-indigo-500 py-12 px-4 text-center prodigy-hall-tagline">

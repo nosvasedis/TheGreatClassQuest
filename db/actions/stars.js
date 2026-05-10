@@ -27,6 +27,7 @@ import { updateGuildScores } from '../../features/guildScoring.js';
 import { computeHeroLevel, getHeroReason, getOutwardEffects } from '../../features/heroSkillTree.js';
 import { reconcileFamiliarLifecycle } from '../../features/familiars.js';
 import { canUseFeature } from '../../utils/subscription.js';
+import { getAwardLogMonthlyStarCredit } from '../../features/awardLogReasonMeta.js';
 
 // --- SCORE, STAR, & LOG ACTIONS ---
 
@@ -78,6 +79,9 @@ export async function setStudentStarsForToday(studentId, starValue, reason = nul
         }
 
         await runTransaction(db, async (transaction) => {
+            /** Actual star delta applied to totalStars/monthlyStars for the daily performance log row (includes skill bonuses). */
+            let appliedCreditForDailyLog = null;
+
             const studentRef = doc(db, `${publicDataPath}/students`, studentId);
             const scoreRef = doc(db, `${publicDataPath}/student_scores`, studentId);
 
@@ -127,6 +131,9 @@ export async function setStudentStarsForToday(studentId, starValue, reason = nul
                     lastMonthlyResetDate: getStartOfMonthString(),
                     createdBy: { uid: studentData.createdBy.uid, name: studentData.createdBy.name }
                 });
+                if (difference !== 0) {
+                    appliedCreditForDailyLog = difference;
+                }
             } else {
                 // Update existing score doc
                 const currentData = scoreDoc.data();
@@ -165,6 +172,7 @@ export async function setStudentStarsForToday(studentId, starValue, reason = nul
                 const totalDifference = difference + bonusStars;
 
                 if (difference !== 0) {
+                    appliedCreditForDailyLog = totalDifference;
                     // --- Track starsByReason for hero skill tree ---
                     const heroClass = studentData.heroClass;
                     const classReason = getHeroReason(heroClass);
@@ -220,6 +228,7 @@ export async function setStudentStarsForToday(studentId, starValue, reason = nul
                     classId: studentData.classId,
                     teacherId: state.get('currentUserId'),
                     stars: finalStarValue,
+                    ...(appliedCreditForDailyLog != null ? { appliedStarCredit: appliedCreditForDailyLog } : {}),
                     reason: reason || "excellence",
                     note: heroBoonNote || "",
                     date: today,
@@ -230,6 +239,7 @@ export async function setStudentStarsForToday(studentId, starValue, reason = nul
                 if (dailyPerformanceLog) {
                     transaction.update(doc(db, `${publicDataPath}/award_log`, dailyPerformanceLog.id), {
                         stars: finalStarValue,
+                        ...(appliedCreditForDailyLog != null ? { appliedStarCredit: appliedCreditForDailyLog } : {}),
                         reason: reason || dailyPerformanceLog.reason
                     });
                 } else {
@@ -478,7 +488,7 @@ export async function handleDeleteAwardLog(logId) {
                 return;
             }
             const logData = logDoc.data();
-            const actualStars = logData.stars;
+            const starCredit = getAwardLogMonthlyStarCredit({ ...logData, id: logId });
             const studentId = logData.studentId;
 
             const scoreRef = doc(db, `${publicDataPath}/student_scores`, studentId);
@@ -488,9 +498,9 @@ export async function handleDeleteAwardLog(logId) {
                 const today = new Date();
                 const isCurrentMonth = logDate.getMonth() === today.getMonth() && logDate.getFullYear() === today.getFullYear();
 
-                const updates = { totalStars: increment(-actualStars) };
+                const updates = { totalStars: increment(-starCredit) };
                 if (isCurrentMonth) {
-                    updates.monthlyStars = increment(-actualStars);
+                    updates.monthlyStars = increment(-starCredit);
                 }
                 transaction.update(scoreRef, updates);
             }
@@ -582,7 +592,9 @@ export async function handleAddStarsManually() {
 
             const logData = {
                 studentId, classId: student.classId, teacherId: state.get('currentUserId'),
-                stars: starsToAdd, reason, date: dateForDb, createdAt: serverTimestamp(),
+                stars: starsToAdd,
+                appliedStarCredit: starsToAdd,
+                reason, date: dateForDb, createdAt: serverTimestamp(),
                 createdBy: { uid: state.get('currentUserId'), name: state.get('currentTeacherName') }
             };
 

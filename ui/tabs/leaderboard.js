@@ -14,6 +14,11 @@ import { wrapAvatarWithLevelUpIndicator } from '../core/avatar.js';
 import { canUseFeature } from '../../utils/subscription.js';
 import { getNormalizedPercentForScore } from '../../features/assessmentConfig.js';
 import { generateLeagueMapHtml } from '../../features/worldMap.js';
+import {
+    getAwardLogMonthlyStarCredit,
+    mergeMonthlyStarsFromArchivedHistoryAndAwardLogs,
+    sumMonthlyStarCreditsByStudentFromAwardLogs
+} from '../../features/awardLogReasonMeta.js';
 
 // --- REIGNING PRODIGY CACHE ---
 // Fetches previous month's award logs once per session (cached by monthKey).
@@ -30,7 +35,11 @@ async function getReigningProdigies() {
 
     try {
         const { fetchLogsForMonth } = await import('../../db/queries.js');
+        const { fetchMonthlyHistory } = await import('../../state.js');
+
+        const monthKey = `${prevMonth.getFullYear()}-${String(prevMonth.getMonth() + 1).padStart(2, '0')}`;
         const logs = await fetchLogsForMonth(prevMonth.getFullYear(), prevMonth.getMonth() + 1);
+        const archived = await fetchMonthlyHistory(monthKey).catch(() => ({}));
         const allScores = state.get('allWrittenScores') || [];
 
         // Group logs by class
@@ -47,16 +56,19 @@ async function getReigningProdigies() {
 
         Object.entries(logsByClass).forEach(([classId, classLogs]) => {
             const students = state.get('allStudents').filter(s => s.classId === classId);
+            const fromLogsTotals = sumMonthlyStarCreditsByStudentFromAwardLogs(classLogs);
+            const mergedTotals = mergeMonthlyStarsFromArchivedHistoryAndAwardLogs(fromLogsTotals, archived || {});
 
             // Compute per-student stats using same algorithm as renderProdigyHistory
             const studentStats = students.map(s => {
                 const sLogs = classLogs.filter(l => l.studentId === s.id);
-                const totalStars = sLogs.reduce((sum, l) => sum + (l.stars || 0), 0);
+                const monthlyStars = Number(mergedTotals[s.id]) || 0;
                 let count3 = 0, count2 = 0;
                 const reasons = new Set();
                 sLogs.forEach(l => {
-                    if (l.stars >= 3) count3++;
-                    else if (l.stars >= 2) count2++;
+                    const cred = getAwardLogMonthlyStarCredit(l);
+                    if (cred >= 3) count3++;
+                    else if (cred >= 2) count2++;
                     if (l.reason) reasons.add(l.reason);
                 });
                 const sScores = allScores.filter(sc => {
@@ -69,7 +81,7 @@ async function getReigningProdigies() {
                     if (Number.isFinite(normalized)) acadSum += normalized;
                 });
                 const academicAvg = sScores.length > 0 ? acadSum / sScores.length : 0;
-                return { id: s.id, monthlyStars: totalStars, count3, count2, uniqueReasons: reasons.size, academicAvg };
+                return { id: s.id, monthlyStars, count3, count2, uniqueReasons: reasons.size, academicAvg };
             }).filter(s => s.monthlyStars > 0);
 
             if (studentStats.length === 0) return;
@@ -188,7 +200,7 @@ export async function renderClassLeaderboardTab() {
         if (!log.classId) continue;
         const logDate = utils.parseDDMMYYYY(log.date);
         if (!logDate || logDate < startOfWeek) continue;
-        weeklyStarsByClassId.set(log.classId, (weeklyStarsByClassId.get(log.classId) || 0) + (Number(log.stars) || 0));
+        weeklyStarsByClassId.set(log.classId, (weeklyStarsByClassId.get(log.classId) || 0) + getAwardLogMonthlyStarCredit(log));
     }
 
     const classScores = classesInLeague.map(c => {
@@ -248,7 +260,11 @@ export async function renderClassLeaderboardTab() {
         const hasPathfinder = classTeamBonus >= 10;
 
         const reasons = {};
-        classLogs.forEach(l => { if (l.reason) reasons[l.reason] = (reasons[l.reason] || 0) + l.stars; });
+        classLogs.forEach(l => {
+            if (l.reason) {
+                reasons[l.reason] = (reasons[l.reason] || 0) + getAwardLogMonthlyStarCredit(l);
+            }
+        });
         const topSkill = Object.entries(reasons).sort((a, b) => b[1] - a[1])[0]?.[0] || 'None';
 
         let progress = goals.diamond > 0 ? (teamQuestStars / goals.diamond) * 100 : 0;
@@ -642,7 +658,7 @@ export async function renderStudentLeaderboardTab() {
 
         const weeklyStars = studentLogs
             .filter(log => utils.parseDDMMYYYY(log.date) >= startOfWeek)
-            .reduce((sum, log) => sum + log.stars, 0);
+            .reduce((sum, log) => sum + getAwardLogMonthlyStarCredit(log), 0);
 
         // B. 3-Star Streak Calculation (Consecutive lessons with 3+ stars)
         // We exclude small bonuses like 'welcome_back' so they don't break the streak
@@ -652,7 +668,7 @@ export async function renderStudentLeaderboardTab() {
 
         let streak = 0;
         for (const log of streakLogs) {
-            if (log.stars >= 3) {
+            if (getAwardLogMonthlyStarCredit(log) >= 3) {
                 streak++;
             } else {
                 break; // Streak ends if a main lesson wasn't 3 stars
@@ -665,12 +681,13 @@ export async function renderStudentLeaderboardTab() {
         let count2Star = 0;
 
         monthlyLogs.forEach(log => {
+            const cred = getAwardLogMonthlyStarCredit(log);
             if (log.reason) {
                 if (!reasonCounts[log.reason]) reasonCounts[log.reason] = 0;
-                reasonCounts[log.reason] += log.stars;
+                reasonCounts[log.reason] += cred;
             }
-            if (log.stars >= 3) count3Star++;
-            else if (log.stars >= 2) count2Star++;
+            if (cred >= 3) count3Star++;
+            else if (cred >= 2) count2Star++;
         });
 
         // Sort reasons by highest star count
@@ -903,7 +920,7 @@ export async function renderStudentLeaderboardTab() {
                     </div>
                     <div class="hc-lb-score-stack">
                         <div class="hc-lb-score-row" title="${metricChipLabel} stars">
-                            <span class="${scoreStarClass}" aria-hidden="true">${podium === 1 ? '<span class="hc-lb-score-star__ray" aria-hidden="true"></span>' : ''}<i class="fas fa-star"></i></span>
+                            <span class="${scoreStarClass}" aria-hidden="true"><i class="fas fa-star"></i></span>
                             <div class="hc-lb-score">${s.score}</div>
                         </div>
                         <div class="hc-lb-stars-label">Stars</div>

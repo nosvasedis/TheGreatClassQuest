@@ -402,6 +402,7 @@ export async function distributeQuizRewards(classId, results) {
                     classId,
                     teacherId: state.get('currentUserId'),
                     stars: rewards.starPerCorrect,
+                    appliedStarCredit: rewards.starPerCorrect,
                     reason: 'quiz_of_the_week',
                     note: `Quiz of the Week - Tier: ${tier.toUpperCase()}`,
                     date: getTodayDateString(),

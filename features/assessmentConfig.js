@@ -348,7 +348,7 @@ function getAssessmentScoreMatches(assignment, type = 'test') {
     });
 }
 
-function dedupeScheduledAssignments(assignments = []) {
+export function dedupeScheduledAssignments(assignments = []) {
     const seen = new Map();
     assignments.forEach((assignment) => {
         const key = `${assignment.classId}__${assignment.testData?.date || ''}__${assignment.testData?.title || ''}`;
@@ -357,6 +357,75 @@ function dedupeScheduledAssignments(assignments = []) {
         }
     });
     return [...seen.values()];
+}
+
+/** Most recent assignment for this class on the given calendar day (quest board can have revisits). */
+export function getScheduledAssignmentForClassOnDate(classId, dateStr) {
+    const list = (state.get('allQuestAssignments') || [])
+        .filter((assignment) =>
+            assignment.classId === classId &&
+            assignment.testData &&
+            utils.datesMatch(assignment.testData.date, dateStr)
+        )
+        .sort((a, b) => {
+            const toSec = (x) =>
+                Number(x.createdAt?.seconds)
+                || (typeof x.createdAt?.toMillis === 'function' ? x.createdAt.toMillis() / 1000 : 0)
+                || Number(x.createdAt?._seconds)
+                || 0;
+            return toSec(b) - toSec(a);
+        });
+    const deduped = dedupeScheduledAssignments(list);
+    return deduped[0] || null;
+}
+
+/**
+ * Students who still need a score row for this scheduled test (respects roster + attendance on that date + join-after-test).
+ */
+export function getStudentsAwaitingGradeForScheduledStatus(status) {
+    if (!status || status.isConcluded || !status.testData?.date) return [];
+
+    const classStudents = (state.get('allStudents') || []).filter((student) => student.classId === status.classId);
+    const attendanceForDate = (state.get('allAttendanceRecords') || []).filter((record) =>
+        record.classId === status.classId && utils.datesMatch(record.date, status.testData.date)
+    );
+    const absentStudentIds = new Set(attendanceForDate.map((record) => record.studentId));
+
+    const scheduledEnd = utils.parseFlexibleDate(status.testData.date);
+    if (scheduledEnd) scheduledEnd.setHours(23, 59, 59, 999);
+
+    const scoredStudentIds = new Set((status.matchingScores || []).map((score) => score.studentId));
+
+    return classStudents.filter((student) => {
+        if (scoredStudentIds.has(student.id)) return false;
+        if (student.createdAt) {
+            const joinDate = student.createdAt.toDate ? student.createdAt.toDate() : new Date(student.createdAt);
+            if (scheduledEnd && joinDate > scheduledEnd) return false;
+        }
+        if (attendanceForDate.length > 0 && absentStudentIds.has(student.id)) return false;
+        return true;
+    });
+}
+
+export function listScheduledAssessmentsNeedingGrades(classId = null) {
+    const myClassIds = new Set((state.get('allTeachersClasses') || []).map((item) => item.id));
+    const assignments = dedupeScheduledAssignments(
+        (state.get('allQuestAssignments') || [])
+            .filter((assignment) => assignment.testData)
+            .filter((assignment) => myClassIds.has(assignment.classId))
+            .filter((assignment) => !classId || assignment.classId === classId)
+    );
+
+    return assignments
+        .map((assignment) => getScheduledAssessmentStatus(assignment))
+        .filter(Boolean)
+        .filter((s) => !s.isConcluded)
+        .sort((a, b) => {
+            const timeA = a.scheduledDate?.getTime() || 0;
+            const timeB = b.scheduledDate?.getTime() || 0;
+            if (timeA !== timeB) return timeA - timeB;
+            return (a.testData?.title || '').localeCompare(b.testData?.title || '');
+        });
 }
 
 export function getScheduledAssessmentStatus(assignment, options = {}) {
@@ -523,14 +592,15 @@ export function getUpcomingScheduledAssessment(classId = null) {
         .filter(Boolean)
         .filter((status) => status.phase !== 'completed' && status.phase !== 'completed_today')
         .sort((a, b) => {
+            // Past-due and "log now" states beat far-future tests so grading is never buried.
             const priority = {
                 in_progress: 0,
-                later_today: 1,
-                today: 2,
-                window_passed: 3,
-                tomorrow: 4,
-                scheduled: 5,
-                missed: 6
+                window_passed: 1,
+                missed: 2,
+                later_today: 3,
+                today: 4,
+                tomorrow: 5,
+                scheduled: 6
             };
             const phaseDiff = (priority[a.phase] ?? 99) - (priority[b.phase] ?? 99);
             if (phaseDiff !== 0) return phaseDiff;

@@ -10,6 +10,11 @@ import { callGeminiApi } from '../api.js';
 import { canUseFeature } from '../utils/subscription.js';
 import * as utils from '../utils.js';
 import { GUILDS, getGuildById, getGuildBadgeHtml } from './guilds.js';
+import {
+    getAwardLogMonthlyStarCredit,
+    mergeMonthlyStarsFromArchivedHistoryAndAwardLogs,
+    sumMonthlyStarCreditsByStudentFromAwardLogs
+} from './awardLogReasonMeta.js';
 
 // --- LOCAL STATE ---
 let ceremonyData = {
@@ -70,7 +75,7 @@ async function gatherHeroOfTheDayData(classIds) {
                     // Find student with most stars for this day
                     const dailyScores = {};
                     dayLogs.forEach(log => {
-                        dailyScores[log.studentId] = (dailyScores[log.studentId] || 0) + log.stars;
+                        dailyScores[log.studentId] = (dailyScores[log.studentId] || 0) + getAwardLogMonthlyStarCredit(log);
                     });
                     
                     if (Object.keys(dailyScores).length > 0) {
@@ -209,6 +214,13 @@ async function gatherTeamQuestData(classIds) {
     return teamQuestData;
 }
 
+async function monthlyScoresForClassLogsAndArchive(classLogs, monthKey) {
+    const { fetchMonthlyHistory } = await import('../state.js');
+    const archived = await fetchMonthlyHistory(monthKey).catch(() => ({}));
+    const fromLogs = sumMonthlyStarCreditsByStudentFromAwardLogs(classLogs);
+    return mergeMonthlyStarsFromArchivedHistoryAndAwardLogs(fromLogs, archived || {});
+}
+
 /**
  * Gather Prodigy of the Month data for the entire school year
  */
@@ -234,11 +246,7 @@ async function gatherProdigyData(classIds) {
                 const logs = await fetchLogsForMonth(year, month);
                 const classLogs = logs.filter(l => l.classId === classData.id);
                 
-                // Calculate monthly scores
-                const monthlyScores = {};
-                classLogs.forEach(log => {
-                    monthlyScores[log.studentId] = (monthlyScores[log.studentId] || 0) + log.stars;
-                });
+                const monthlyScores = await monthlyScoresForClassLogsAndArchive(classLogs, monthKey);
                 
                 // Find prodigy (top student)
                 if (Object.keys(monthlyScores).length > 0) {
@@ -271,10 +279,7 @@ async function gatherProdigyData(classIds) {
                 const logs = await fetchLogsForMonth(year, month);
                 const classLogs = logs.filter(l => l.classId === classData.id);
                 
-                const monthlyScores = {};
-                classLogs.forEach(log => {
-                    monthlyScores[log.studentId] = (monthlyScores[log.studentId] || 0) + log.stars;
-                });
+                const monthlyScores = await monthlyScoresForClassLogsAndArchive(classLogs, monthKey);
                 
                 if (Object.keys(monthlyScores).length > 0) {
                     const topStudent = Object.entries(monthlyScores)

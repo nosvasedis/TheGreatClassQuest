@@ -19,10 +19,154 @@ import {
     getAssessmentValueLabel,
     getNearestQualitativeLabel,
     getNormalizedPercentForScore,
+    getScheduledAssessmentStatus,
+    getScheduledAssignmentForClassOnDate,
+    getStudentsAwaitingGradeForScheduledStatus,
     getUpcomingScheduledAssessment,
-    getWeightedAcademicAverage
+    getWeightedAcademicAverage,
+    listScheduledAssessmentsNeedingGrades
 } from './assessmentConfig.js';
 
+function formatYmdFromAnyDateString(dateStr) {
+    const d = utils.parseFlexibleDate(dateStr);
+    if (!d) return utils.getTodayDateString();
+    const yyyy = d.getFullYear();
+    const mm = String(d.getMonth() + 1).padStart(2, '0');
+    const dd = String(d.getDate()).padStart(2, '0');
+    return `${yyyy}-${mm}-${dd}`;
+}
+
+function pickBulkTestLogContext(classId) {
+    const todayStr = utils.getTodayDateString();
+    const incompletes = listScheduledAssessmentsNeedingGrades(classId);
+
+    const urgent = incompletes.filter((s) => s.phase === 'missed' || s.phase === 'window_passed');
+    urgent.sort((a, b) => a.dayDiff - b.dayDiff);
+
+    if (urgent.length > 0) {
+        const s = urgent[0];
+        return {
+            initialDate: formatYmdFromAnyDateString(s.testData.date),
+            suggestedTitle: String(s.testData.title || '').trim(),
+            status: s
+        };
+    }
+
+    const todayIncomplete = incompletes.find((s) => utils.datesMatch(s.testData.date, todayStr));
+    if (todayIncomplete) {
+        return {
+            initialDate: todayStr,
+            suggestedTitle: String(todayIncomplete.testData.title || '').trim(),
+            status: todayIncomplete
+        };
+    }
+
+    const todayAssignment = getScheduledAssignmentForClassOnDate(classId, todayStr);
+    if (todayAssignment?.testData) {
+        const st = getScheduledAssessmentStatus(todayAssignment);
+        return {
+            initialDate: todayStr,
+            suggestedTitle: String(todayAssignment.testData.title || '').trim(),
+            status: st
+        };
+    }
+
+    return {
+        initialDate: todayStr,
+        suggestedTitle: '',
+        status: null
+    };
+}
+
+function refreshBulkTrialScheduledHint(classId, type, dateVal) {
+    const hintEl = document.getElementById('bulk-trial-scheduled-hint');
+    const bodyEl = document.getElementById('bulk-trial-scheduled-hint-body');
+    if (!hintEl || !bodyEl) return;
+
+    if (type !== 'test') {
+        hintEl.classList.add('hidden');
+        bodyEl.textContent = '';
+        return;
+    }
+
+    const rawAssignment = getScheduledAssignmentForClassOnDate(classId, dateVal);
+    if (!rawAssignment?.testData?.date || !utils.datesMatch(rawAssignment.testData.date, dateVal)) {
+        hintEl.classList.add('hidden');
+        bodyEl.textContent = '';
+        return;
+    }
+
+    const st = getScheduledAssessmentStatus(rawAssignment);
+    const awaiting = getStudentsAwaitingGradeForScheduledStatus(st);
+
+    hintEl.classList.remove('hidden');
+    const title = String(st.testData.title || 'Scheduled test').trim() || 'Scheduled test';
+
+    let lead = `"${title}" matches your Quest Board test on this date.`;
+    if (st.phase === 'missed') {
+        const late = Math.abs(st.dayDiff);
+        lead += ` It was scheduled ${late} day${late === 1 ? '' : 's'} ago.`;
+    } else if (st.phase === 'window_passed') {
+        lead += ' Class time has passed — finish logging whoever sat it.';
+    } else if (st.phase === 'today' || st.isToday) {
+        lead += ' Grades unlock Starfall / analytics for this cohort.';
+    }
+
+    const tail =
+        awaiting.length > 0
+            ? ` ${awaiting.length} student${awaiting.length === 1 ? '' : 's'} still need a score (${st.chipLabel}).`
+            : ` Everyone expected has a grade (${st.chipLabel}).`;
+
+    bodyEl.textContent = lead + tail;
+}
+
+function populateBulkTrialStudentRows(classId, type, assessmentScheme, dateIso) {
+    const students = state.get('allStudents').filter((s) => s.classId === classId).sort((a, b) => a.name.localeCompare(b.name));
+    const listContainer = document.getElementById('bulk-student-list');
+
+    if (students.length === 0) {
+        listContainer.innerHTML = `
+            <div class="col-span-full rounded-3xl border border-amber-200/70 bg-white/70 p-8 text-center shadow-sm">
+                <div class="text-5xl mb-3">🧭</div>
+                <p class="font-title text-2xl text-amber-900">No students found</p>
+                <p class="text-sm text-amber-900/60 font-semibold mt-1">Add students to this class to start logging trials.</p>
+            </div>
+        `;
+        return;
+    }
+
+    const attendance = state.get('allAttendanceRecords').filter((r) => r.classId === classId && utils.datesMatch(r.date, dateIso));
+
+    listContainer.innerHTML = '';
+    students.forEach((student) => {
+        const isAbsent = attendance.some((r) => r.studentId === student.id);
+        listContainer.innerHTML += renderStudentBulkRow(student, assessmentScheme, isAbsent);
+    });
+
+    listContainer.querySelectorAll('.toggle-absent-btn').forEach((btn) => {
+        btn.addEventListener('click', (e) => {
+            const row = e.target.closest('.bulk-log-item');
+            const isNowAbsent = !btn.classList.contains('is-absent');
+            const input = row.querySelector('.bulk-grade-input');
+
+            btn.classList.toggle('is-absent');
+
+            if (isNowAbsent) {
+                btn.classList.remove('bg-green-500', 'text-white', 'hover:bg-green-600');
+                btn.classList.add('bg-red-500', 'text-white', 'hover:bg-red-600');
+                btn.innerHTML = '<i class="fas fa-user-slash"></i> Absent';
+            } else {
+                btn.classList.remove('bg-red-500', 'text-white', 'hover:bg-red-600');
+                btn.classList.add('bg-green-500', 'text-white', 'hover:bg-green-600');
+                btn.innerHTML = '<i class="fas fa-user-check"></i> Present';
+            }
+
+            row.classList.toggle('absent', isNowAbsent);
+            if (input) input.disabled = isNowAbsent;
+            if (isNowAbsent && input) input.value = '';
+        });
+    });
+}
 
 // --- TAB RENDERING ---
 
@@ -36,13 +180,9 @@ export function renderScholarsScrollTab(selectedClassId = null) {
         if (logTrialFab) logTrialFab.disabled = false;
         if (viewHistoryFab) viewHistoryFab.disabled = false;
 
-        // Render Content
-        renderScrollDashboard(currentVal);
-        document.getElementById('scroll-dashboard-content').classList.remove('hidden');
-        document.getElementById('scroll-placeholder').classList.add('hidden');
-
-        // Render Missing Work
+        // Missing work / scheduled grading queues first — then alerts + charts (scroll-test-alert stays topmost ribbon)
         renderMissingWorkDashboard(currentVal);
+        renderScrollDashboard(currentVal);
     } else {
         if (logTrialFab) logTrialFab.disabled = true;
         if (viewHistoryFab) viewHistoryFab.disabled = true;
@@ -100,6 +240,11 @@ function renderScrollDashboard(classId) {
                 <p class="text-sm ${palette.body} ml-6">
                     <span class="font-semibold">${upcomingTest.detailLabel}</span>
                     <span class="ml-1">• ${upcomingTest.chipLabel}</span>
+                    ${upcomingTest.phase === 'missed'
+        ? `<span class="block mt-2 text-xs font-semibold opacity-95">Matched to <strong class="font-black">Schedule a Test</strong> on the Quest Board — log results for everyone who wrote so Pending Makeups stay accurate.</span>`
+        : (upcomingTest.phase === 'window_passed'
+            ? `<span class="block mt-2 text-xs font-semibold opacity-95">Lesson window ended — capture grades while memory is fresh. Title &amp; date below stay tied to what you advertised.</span>`
+            : '')}
                     ${upcomingTest.testData.curriculum ? `<br><span class="text-gray-500 text-xs mt-1 block">Topics: ${upcomingTest.testData.curriculum}</span>` : ''}
                 </p>
             </div>
@@ -228,101 +373,68 @@ export function openTrialTypeModal(classId) {
     document.getElementById('trial-type-cancel-btn').onclick = () => modals.hideModal('trial-type-modal');
 }
 
-export function openBulkLogModal(classId, type) {
-    const classData = state.get('allSchoolClasses').find(c => c.id === classId);
-    const students = state.get('allStudents').filter(s => s.classId === classId).sort((a, b) => a.name.localeCompare(b.name));
+export function openBulkLogModal(classId, type, options = {}) {
+    const classData = state.get('allSchoolClasses').find((c) => c.id === classId);
     if (!classData) return;
     const assessmentScheme = getAssessmentSchemeForClass(classData, type);
 
-    const todayStr = utils.getTodayDateString();
-    const scheduledTest = state.get('allQuestAssignments').find(a =>
-        a.classId === classId &&
-        a.testData &&
-        utils.datesMatch(a.testData.date, todayStr)
-    );
-
-    // UI Setup
     document.getElementById('bulk-trial-title').innerText = type === 'dictation' ? 'Log Dictation' : 'Log Test';
     document.getElementById('bulk-trial-subtitle').innerText = `${classData.logo} ${classData.name}`;
 
-    // Ensure date input is YYYY-MM-DD for input type="date"
-    const todayObj = new Date();
-    const yyyy = todayObj.getFullYear();
-    const mm = String(todayObj.getMonth() + 1).padStart(2, '0');
-    const dd = String(todayObj.getDate()).padStart(2, '0');
-    document.getElementById('bulk-trial-date').value = `${yyyy}-${mm}-${dd}`;
-
-    // NEW: Update the DD/MM/YYYY display label
     const dateDisplay = document.getElementById('bulk-trial-date-display');
+    const dateInput = document.getElementById('bulk-trial-date');
     const updateDateDisplay = (val) => {
-        // Fix: Added check for !dateDisplay to prevent crash if element is missing
         if (!val || !dateDisplay) return;
         const [y, m, d] = val.split('-');
         dateDisplay.innerText = `${d}/${m}/${y}`;
     };
-    updateDateDisplay(document.getElementById('bulk-trial-date').value);
 
-    // Add listener for changes
-    document.getElementById('bulk-trial-date').onchange = (e) => updateDateDisplay(e.target.value);
+    let initialDate =
+        typeof options.presetDate === 'string' && options.presetDate.trim()
+            ? formatYmdFromAnyDateString(options.presetDate.trim())
+            : null;
+    if (!initialDate) {
+        initialDate = pickBulkTestLogContext(classId).initialDate;
+    }
+    dateInput.value = initialDate;
+    updateDateDisplay(dateInput.value);
 
     const titleWrapper = document.getElementById('bulk-trial-title-wrapper');
     const titleInput = document.getElementById('bulk-trial-name');
-    titleInput.value = '';
-    if (scheduledTest && type === 'test') {
-        titleInput.value = scheduledTest.testData.title;
-    }
 
     if (type === 'test') {
         titleWrapper.classList.remove('hidden');
+        const presetTitle = typeof options.presetTitle === 'string' ? options.presetTitle.trim() : '';
+        if (presetTitle) {
+            titleInput.value = presetTitle;
+        } else {
+            const assignmentOnDate = getScheduledAssignmentForClassOnDate(classId, dateInput.value);
+            titleInput.value = String(assignmentOnDate?.testData?.title || pickBulkTestLogContext(classId).suggestedTitle || '').trim();
+        }
     } else {
         titleWrapper.classList.add('hidden');
+        titleInput.value = '';
     }
 
-    const listContainer = document.getElementById('bulk-student-list');
-    listContainer.innerHTML = '';
-
-    if (students.length === 0) {
-        listContainer.innerHTML = `
-            <div class="col-span-full rounded-3xl border border-amber-200/70 bg-white/70 p-8 text-center shadow-sm">
-                <div class="text-5xl mb-3">🧭</div>
-                <p class="font-title text-2xl text-amber-900">No students found</p>
-                <p class="text-sm text-amber-900/60 font-semibold mt-1">Add students to this class to start logging trials.</p>
-            </div>
-        `;
-    } else {
-        const today = utils.getTodayDateString();
-        const attendance = state.get('allAttendanceRecords').filter(r => r.classId === classId && r.date === today);
-
-        students.forEach(student => {
-            const isAbsent = attendance.some(r => r.studentId === student.id);
-            listContainer.innerHTML += renderStudentBulkRow(student, assessmentScheme, isAbsent);
-        });
-    }
-
-    // Attach Toggle Listeners
-    listContainer.querySelectorAll('.toggle-absent-btn').forEach(btn => {
-        btn.addEventListener('click', (e) => {
-            const row = e.target.closest('.bulk-log-item');
-            const isNowAbsent = !btn.classList.contains('is-absent');
-            const input = row.querySelector('.bulk-grade-input');
-
-            btn.classList.toggle('is-absent');
-
-            if (isNowAbsent) {
-                btn.classList.remove('bg-green-500', 'text-white', 'hover:bg-green-600');
-                btn.classList.add('bg-red-500', 'text-white', 'hover:bg-red-600');
-                btn.innerHTML = '<i class="fas fa-user-slash"></i> Absent';
-            } else {
-                btn.classList.remove('bg-red-500', 'text-white', 'hover:bg-red-600');
-                btn.classList.add('bg-green-500', 'text-white', 'hover:bg-green-600');
-                btn.innerHTML = '<i class="fas fa-user-check"></i> Present';
+    const attachDateSync = () => {
+        dateInput.onchange = (e) => {
+            updateDateDisplay(e.target.value);
+            if (type === 'test') {
+                const assn = getScheduledAssignmentForClassOnDate(classId, e.target.value);
+                titleInput.value = String(assn?.testData?.title || '').trim();
             }
+            populateBulkTrialStudentRows(classId, type, assessmentScheme, e.target.value);
+            refreshBulkTrialScheduledHint(classId, type, e.target.value);
+        };
+    };
 
-            row.classList.toggle('absent', isNowAbsent);
-            if (input) input.disabled = isNowAbsent;
-            if (isNowAbsent && input) input.value = '';
-        });
-    });
+    attachDateSync();
+    populateBulkTrialStudentRows(classId, type, assessmentScheme, dateInput.value);
+    refreshBulkTrialScheduledHint(classId, type, dateInput.value);
+
+    titleInput.oninput = () => {
+        refreshBulkTrialScheduledHint(classId, type, dateInput.value);
+    };
 
     document.getElementById('bulk-trial-close-btn').onclick = () => modals.hideModal('bulk-trial-modal');
 
@@ -632,6 +744,7 @@ export function openSingleTrialEditModal(classId, trialId) {
     const assessmentScheme = getAssessmentSchemeForClass(classData, score.type);
 
     const modal = document.getElementById('bulk-trial-modal');
+    document.getElementById('bulk-trial-scheduled-hint')?.classList.add('hidden');
 
     document.getElementById('bulk-trial-title').innerText = 'Edit Result';
     document.getElementById('bulk-trial-subtitle').innerText = `${classData.name}`;
@@ -689,18 +802,113 @@ export function openSingleTrialEditModal(classId, trialId) {
 }
 
 
+function positionMakeupBelowScheduledQueue(dashboard, container) {
+    if (!dashboard || !container) return;
+    const sched = document.getElementById('scheduled-grading-queue');
+    if (sched) {
+        sched.insertAdjacentElement('afterend', container);
+        return;
+    }
+    dashboard.insertBefore(container, dashboard.firstChild);
+}
+
+function renderScheduledGradingQueue(classId, dashboardEl) {
+    if (!dashboardEl) return;
+    let wrap = document.getElementById('scheduled-grading-queue');
+    const backlog = listScheduledAssessmentsNeedingGrades(classId);
+
+    if (backlog.length === 0) {
+        if (wrap) wrap.remove();
+        return;
+    }
+
+    if (!wrap) {
+        wrap = document.createElement('div');
+        wrap.id = 'scheduled-grading-queue';
+    }
+
+    const cards = backlog.map((st) => {
+        const awaiting = getStudentsAwaitingGradeForScheduledStatus(st);
+        const preview = awaiting
+            .slice(0, 4)
+            .map((s) => s.name.split(' ')[0])
+            .join(', ');
+        const extras = awaiting.length > 4 ? ` +${awaiting.length - 4}` : '';
+        const phaseNote =
+            st.phase === 'missed'
+                ? `Scheduled test day passed — ${Math.abs(st.dayDiff)} day${Math.abs(st.dayDiff) === 1 ? '' : 's'} ago`
+                : `${st.statusLabel} · catching up`;
+
+        const ymd = formatYmdFromAnyDateString(st.testData.date);
+
+        return `
+            <div class="scheduled-grade-card bg-violet-50/50 p-3 md:p-3.5 rounded-2xl border border-violet-100 hover:bg-white hover:border-violet-200 hover:shadow-md transition-all">
+                <div class="flex flex-wrap items-start justify-between gap-2">
+                    <div class="min-w-0">
+                        <p class="font-title text-base text-violet-950 leading-snug">${st.testData.title || 'Scheduled test'}</p>
+                        <p class="text-[11px] font-bold text-violet-700/85 mt-0.5">${st.dateLabel} · ${st.chipLabel}</p>
+                        <p class="text-[10px] font-semibold text-slate-500 mt-1">${phaseNote}${awaiting.length ? ` · still missing: ${preview}${extras}` : ''}</p>
+                    </div>
+                    <button type="button" class="log-scheduled-test-btn shrink-0 h-9 px-3 rounded-xl bg-gradient-to-r from-violet-600 to-indigo-600 text-white font-black text-[9px] uppercase tracking-wide shadow-md hover:scale-[1.02] transition-all"
+                        data-preset-date="${ymd}">
+                        Log class results
+                    </button>
+                </div>
+            </div>
+        `;
+    }).join('');
+
+    wrap.className = 'mb-6';
+    wrap.innerHTML = `
+        <div class="p-1 md:p-1 bg-gradient-to-br from-violet-200 via-indigo-200 to-sky-200 rounded-[2rem] md:rounded-[2.3rem] shadow-[0_16px_40px_rgba(99,102,241,0.15)] relative overflow-hidden group">
+            <div class="bg-white/95 backdrop-blur-xl rounded-[1.65rem] md:rounded-[2rem] p-4 md:p-5 relative overflow-hidden">
+                <div class="absolute -right-8 -top-8 text-[7rem] text-violet-500/5 pointer-events-none"><i class="fas fa-link"></i></div>
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4 relative z-10">
+                    <div class="flex items-center gap-3 min-w-0">
+                        <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-violet-500 to-indigo-600 text-white flex items-center justify-center shadow-lg">
+                            <i class="fas fa-clipboard-list text-sm"></i>
+                        </div>
+                        <div class="min-w-0">
+                            <span class="px-2 py-0.5 bg-violet-500/10 text-violet-700 text-[9px] font-black uppercase tracking-[0.18em] rounded-full border border-violet-500/20">Quest Board → Scroll</span>
+                            <h3 class="font-title text-xl md:text-2xl text-slate-800 tracking-tight leading-tight">Pending grading</h3>
+                            <p class="text-slate-500 text-xs font-medium leading-snug mt-0.5">These tests were announced with <strong>Schedule a Test</strong>. Finish logging so Starfall, analytics, and Pending Makeups stay truthful.</p>
+                        </div>
+                    </div>
+                    <div class="text-[10px] font-black text-violet-800 uppercase tracking-wider bg-violet-50 px-3 py-1.5 rounded-xl border border-violet-100 shrink-0">${backlog.length} open</div>
+                </div>
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-3 relative z-10">
+                    ${cards}
+                </div>
+            </div>
+        </div>
+    `;
+
+    dashboardEl.insertBefore(wrap, dashboardEl.firstChild);
+
+    wrap.querySelectorAll('.log-scheduled-test-btn').forEach((btn) => {
+        btn.addEventListener('click', () => {
+            const ymd = btn.dataset.presetDate;
+            const assn = getScheduledAssignmentForClassOnDate(classId, ymd);
+            openBulkLogModal(classId, 'test', {
+                presetDate: ymd,
+                presetTitle: String(assn?.testData?.title || '').trim()
+            });
+        });
+    });
+}
+
 // --- NEW: MAKEUP / MISSING WORK LOGIC ---
 
 function renderMissingWorkDashboard(classId) {
     const dashboard = document.getElementById('scroll-dashboard-content');
-    // Check if container exists, if not create it at top
+    renderScheduledGradingQueue(classId, dashboard);
+
     let container = document.getElementById('makeup-work-container');
     if (!container) {
         container = document.createElement('div');
         container.id = 'makeup-work-container';
-        dashboard.prepend(container);
     }
-    container.innerHTML = ''; // Clear previous
+    container.innerHTML = '';
 
     const studentsInClass = state.get('allStudents').filter(s => s.classId === classId);
     const scoresForClass = state.get('allWrittenScores').filter(s => s.classId === classId);
@@ -739,7 +947,10 @@ function renderMissingWorkDashboard(classId) {
         return aDate >= threeMonthsAgo; // Skip stale assessments from > 3 months ago
     });
 
-    if (validAssessments.length === 0) return;
+    if (validAssessments.length === 0) {
+        container.remove();
+        return;
+    }
 
     // 2. Find students who missed these
     const missingWork = [];
@@ -769,7 +980,10 @@ function renderMissingWorkDashboard(classId) {
         });
     });
 
-    if (missingWork.length === 0) return;
+    if (missingWork.length === 0) {
+        container.remove();
+        return;
+    }
 
     // Load dismissed makeups from localStorage (keyed by classId-type-title-studentId)
     const dismissedKey = `dismissed_makeups_${classId}`;
@@ -781,7 +995,10 @@ function renderMissingWorkDashboard(classId) {
         return !dismissed[itemKey];
     });
 
-    if (filteredWork.length === 0) return;
+    if (filteredWork.length === 0) {
+        container.remove();
+        return;
+    }
 
     // 3. Render the list
     let html = `
@@ -807,7 +1024,7 @@ function renderMissingWorkDashboard(classId) {
                                 <span class="px-2 py-0.5 bg-amber-500/10 text-amber-600 text-[9px] font-black uppercase tracking-[0.18em] rounded-full border border-amber-500/20 shrink-0">Scholastic Alerts</span>
                                 <h3 class="font-title text-xl md:text-2xl text-slate-800 tracking-tight leading-tight">Pending Makeups</h3>
                             </div>
-                            <p class="text-slate-500 text-xs font-medium leading-snug mt-0.5">Students awaiting assessment restoration.</p>
+                            <p class="text-slate-500 text-xs font-medium leading-snug mt-0.5">Whole-class assessments where someone never received a mark. Keeps titles/dates aligned with <strong>Schedule a Test</strong> when possible.</p>
                         </div>
                     </div>
                     
@@ -880,6 +1097,7 @@ function renderMissingWorkDashboard(classId) {
         </div>
     `;
     container.innerHTML = html;
+    positionMakeupBelowScheduledQueue(dashboard, container);
 
     // 4. Bind Click Events
     container.querySelectorAll('.makeup-trigger').forEach(btn => {
@@ -918,6 +1136,7 @@ function openMakeupModal(classId, studentId, type, title) {
 
     // Reuse Bulk Modal DOM but configure for single makeup
     const modal = document.getElementById('bulk-trial-modal');
+    document.getElementById('bulk-trial-scheduled-hint')?.classList.add('hidden');
 
     document.getElementById('bulk-trial-title').innerText = `Makeup: ${type === 'dictation' ? 'Dictation' : 'Test'}`;
     document.getElementById('bulk-trial-subtitle').innerText = `${student.name} - ${title}`;

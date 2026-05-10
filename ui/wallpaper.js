@@ -10,6 +10,7 @@ import { getEggAlertState } from '../features/familiarProgression.mjs';
 import { getNextAssessmentOccurrenceForToday, getUpcomingScheduledAssessment } from '../features/assessmentConfig.js';
 import { getClassQuestProgressData, getQuestMapZoneForProgressPercent } from '../features/worldMap.js';
 import { fetchDailySpice } from '../features/home.js';
+import { PATHFINDER_AWARD_REASON, PATHFINDER_CLASS_QUEST_BONUS_STARS, resolveWallpaperFloatStyle, getAwardLogMonthlyStarCredit } from '../features/awardLogReasonMeta.js';
 
 // Proper Fisher-Yates shuffle for true variety
 function shuffleDeck(array) {
@@ -2054,21 +2055,11 @@ function getRecentAwardCard(classId, logId) {
     const student = state.get('allStudents').find(s => s.id === log.studentId);
     if (!student) return null;
 
-    const reasonMap = {
-        teamwork: { icon: 'fa-users', color: 'text-purple-600', css: 'float-card-purple', bg: 'bg-purple-100' },
-        creativity: { icon: 'fa-lightbulb', color: 'text-pink-600', css: 'float-card-pink', bg: 'bg-pink-100' },
-        respect: { icon: 'fa-hands-helping', color: 'text-green-600', css: 'float-card-green', bg: 'bg-green-100' },
-        focus: { icon: 'fa-brain', color: 'text-yellow-600', css: 'float-card-gold', bg: 'bg-yellow-100' },
-        welcome_back: { icon: 'fa-door-open', color: 'text-cyan-600', css: 'float-card-cyan', bg: 'bg-cyan-100' },
-        scholar_s_bonus: { icon: 'fa-scroll', color: 'text-amber-700', css: 'float-card-orange', bg: 'bg-amber-100' },
-        correction: { icon: 'fa-wrench', color: 'text-gray-600', css: 'float-card-white', bg: 'bg-gray-100' },
-        pathfinder_map: { icon: 'fa-map', color: 'text-indigo-600', css: 'float-card-indigo', bg: 'bg-indigo-100' }
-    };
-
-    const style = reasonMap[log.reason] || { icon: 'fa-star', color: 'text-indigo-600', css: 'float-card-indigo', bg: 'bg-indigo-100' };
-    const rewardText = log.reason === 'pathfinder_map'
-        ? '+10 Class Quest'
-        : `+${log.stars} ${log.stars === 1 ? 'Star' : 'Stars'}`;
+    const style = resolveWallpaperFloatStyle(log.reason);
+    const cred = getAwardLogMonthlyStarCredit(log);
+    const rewardText = log.reason === PATHFINDER_AWARD_REASON
+        ? `+${PATHFINDER_CLASS_QUEST_BONUS_STARS} Class Quest`
+        : `${cred > 0 ? '+' : ''}${cred} ${Math.abs(cred) === 1 ? 'Star' : 'Stars'}`;
 
     const avatarHtml = student.avatar
         ? `<img src="${student.avatar}" class="w-24 h-24 rounded-full border-4 border-white object-cover shadow-lg">`
@@ -2336,7 +2327,7 @@ function getAttendanceStreakCard(classId) {
     if (logs.length === 0) return null;
 
     const starsByDate = logs.reduce((acc, log) => {
-        acc[log.date] = (acc[log.date] || 0) + log.stars;
+        acc[log.date] = (acc[log.date] || 0) + getAwardLogMonthlyStarCredit(log);
         return acc;
     }, {});
 

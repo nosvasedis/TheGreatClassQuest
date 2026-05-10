@@ -893,6 +893,7 @@ export async function handleSpecialOccasionBonus(studentId, type) {
                 classId: student.classId,
                 teacherId: state.get('currentUserId'),
                 stars: bonus,
+                appliedStarCredit: bonus,
                 reason: 'scholar_s_bonus', // Use scholar bonus type to prevent standard stats skew
                 note: `${icon} ${reason} Celebration!`,
                 date: getTodayDateString(),

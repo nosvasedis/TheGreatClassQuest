@@ -13,6 +13,7 @@ import { DEFAULT_SCHOOL_NAME } from '../constants.js';
 import { loadTeacherJourneyState, markTeacherGuideSeen } from './teacherJourney.js';
 import { getNextAssessmentOccurrenceForToday, getUpcomingScheduledAssessment } from './assessmentConfig.js';
 import { shouldShowQuizButton } from './quizOfTheWeek.js';
+import { sumLiveMonthlyStarsFromStudentScores } from './awardLogReasonMeta.js';
 
 export { initializeHeaderQuote, fetchDailySpice };
 
@@ -331,17 +332,7 @@ function getGeneralDashboard(name, theme, spice) {
     const totalStudents = state.get('allStudents').length;
     const allScores = state.get('allStudentScores') || [];
 
-    const now = new Date();
-    const currentMonth = now.getMonth();
-    const currentYear = now.getFullYear();
-
-    const schoolStars = state.get('allAwardLogs').reduce((sum, log) => {
-        const d = utils.parseDDMMYYYY(log.date);
-        if (d.getMonth() === currentMonth && d.getFullYear() === currentYear) {
-            return sum + log.stars;
-        }
-        return sum;
-    }, 0);
+    const schoolStars = sumLiveMonthlyStarsFromStudentScores(allScores);
 
     const totalGold = allScores.reduce((sum, s) => sum + (s.gold !== undefined ? s.gold : s.totalStars), 0);
 
@@ -471,6 +462,9 @@ function getActiveDashboard(classData, name, theme, spice) {
                     <span class="opacity-80">• ${scheduledTestStatus.statusLabel}</span>
                 </span>
                 <span class="text-[11px] text-slate-500 mt-0.5">${scheduledTestStatus.detailLabel} • ${scheduledTestStatus.chipLabel}</span>
+                ${scheduledTestStatus.phase === 'missed'
+            ? `<span class="text-[11px] text-rose-700 font-semibold leading-snug mt-1">Synced from Schedule a Test — Scholar's Scroll pre-fills the date & title when you Log Test.</span>`
+            : ''}
             </div>`;
     }
 

@@ -2,6 +2,16 @@
 import * as state from '../../state.js';
 import * as utils from '../../utils.js';
 import * as constants from '../../constants.js';
+import {
+    AWARD_LOG_REASON_GRADIENTS,
+    AWARD_LOG_REASON_ICONS,
+    getAwardLogMonthlyStarCredit,
+    getClassQuestBonusStarsFromAwardLog,
+    mergeMonthlyStarsFromArchivedHistoryAndAwardLogs,
+    PATHFINDER_AWARD_REASON,
+    PATHFINDER_CLASS_QUEST_BONUS_STARS,
+    sumMonthlyStarCreditsByStudentFromAwardLogs
+} from '../../features/awardLogReasonMeta.js';
 import { db } from '../../firebase.js';
 import { query, collection, where, getDocs } from 'https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js';
 import { showAnimatedModal } from './base.js';
@@ -11,14 +21,17 @@ import { playSound } from '../../audio.js';
 let historyMonthPickerBound = false;
 
 function getQuestBonusFromLog(log) {
-    return log.reason === 'pathfinder_map' ? 10 : 0;
+    return getClassQuestBonusStarsFromAwardLog(log);
 }
 
 function getLogRewardMarkup(log) {
-    if (log.reason === 'pathfinder_map') {
-        return '<span class="font-title text-lg text-indigo-600">+10 Class Quest</span>';
+    if (log.reason === PATHFINDER_AWARD_REASON) {
+        return `<span class="font-title text-lg text-indigo-600">+${PATHFINDER_CLASS_QUEST_BONUS_STARS} Class Quest</span>`;
     }
-    return `<span class="font-title text-lg text-amber-600">${log.stars} ⭐</span>`;
+    const credit = getAwardLogMonthlyStarCredit(log);
+    const rounded = Number.isFinite(credit) ? (Math.round(credit * 4) / 4) : 0;
+    const label = rounded === 1 ? '⭐' : `${rounded} ⭐`;
+    return `<span class="font-title text-lg text-amber-600">${label}</span>`;
 }
 
 export function openEditClassModal(classId) {
@@ -54,31 +67,8 @@ export async function showLogbookModal(dateString, isOndemand = false) {
         logs = state.get('allAwardLogs').filter(log => log.date && utils.datesMatch(log.date, dateString));
     }
     
-    const reasonColors = { 
-        teamwork: 'from-purple-500 to-indigo-600', 
-        creativity: 'from-pink-500 to-rose-600', 
-        respect: 'from-emerald-500 to-teal-600', 
-        focus: 'from-amber-400 to-orange-500', 
-        correction: 'from-slate-400 to-slate-600', 
-        welcome_back: 'from-cyan-400 to-blue-600', 
-        story_weaver: 'from-violet-400 to-purple-600', 
-        scholar_s_bonus: 'from-amber-600 to-orange-700', 
-        teacher_boon: 'from-fuchsia-500 to-pink-600', 
-        pathfinder_map: 'from-indigo-500 to-blue-700' 
-    };
-
-    const reasonIcons = {
-        teamwork: 'fa-users',
-        creativity: 'fa-lightbulb',
-        respect: 'fa-handshake',
-        focus: 'fa-bullseye',
-        correction: 'fa-wrench',
-        welcome_back: 'fa-door-open',
-        story_weaver: 'fa-book-open',
-        scholar_s_bonus: 'fa-graduation-cap',
-        teacher_boon: 'fa-gift',
-        pathfinder_map: 'fa-map-marked-alt'
-    };
+    const reasonColors = AWARD_LOG_REASON_GRADIENTS;
+    const reasonIcons = AWARD_LOG_REASON_ICONS;
 
     if (logs.length === 0) {
         contentEl.innerHTML = `
@@ -98,11 +88,17 @@ export async function showLogbookModal(dateString, isOndemand = false) {
         }, {});
         teacherNameMap[state.get('currentUserId')] = state.get('currentTeacherName');
 
-        const totalStars = logs.reduce((sum, log) => sum + log.stars, 0);
+        const totalStars = logs.reduce((sum, log) => sum + getAwardLogMonthlyStarCredit(log), 0);
         const totalClassQuestBonus = logs.reduce((sum, log) => sum + getQuestBonusFromLog(log), 0);
-        const reasonCounts = logs.reduce((acc, log) => { if(log.reason) acc[log.reason] = (acc[log.reason] || 0) + log.stars; return acc; }, {});
+        const reasonCounts = logs.reduce((acc, log) => {
+            if (log.reason) acc[log.reason] = (acc[log.reason] || 0) + getAwardLogMonthlyStarCredit(log);
+            return acc;
+        }, {});
         const topReason = Object.keys(reasonCounts).length > 0 ? Object.entries(reasonCounts).sort((a,b) => b[1] - a[1])[0][0] : 'N/A';
-        const classStarCounts = logs.reduce((acc, log) => { acc[log.classId] = (acc[log.classId] || 0) + log.stars; return acc; }, {});
+        const classStarCounts = logs.reduce((acc, log) => {
+            acc[log.classId] = (acc[log.classId] || 0) + getAwardLogMonthlyStarCredit(log);
+            return acc;
+        }, {});
         const classQuestBonusCounts = logs.reduce((acc, log) => {
             acc[log.classId] = (acc[log.classId] || 0) + getQuestBonusFromLog(log);
             return acc;
@@ -334,15 +330,13 @@ function populateHistoryMonthSelector() {
     const select = document.getElementById('history-month-select');
     select.innerHTML = '<option value="">--Choose a month--</option>';
 
-    const now = new Date();
-    let loopDate = new Date(constants.competitionStart);
+    const endMonthStart = utils.getLatestCompletedMonthStart(new Date());
+    let loopDate = new Date(constants.competitionStart.getFullYear(), constants.competitionStart.getMonth(), 1);
 
-    while (loopDate < now) {
-        if (loopDate.getFullYear() < now.getFullYear() || (loopDate.getFullYear() === now.getFullYear() && loopDate.getMonth() < now.getMonth())) {
-            const monthKey = loopDate.toISOString().substring(0, 7);
-            const displayString = loopDate.toLocaleString('en-GB', { month: 'long', year: 'numeric' });
-            select.innerHTML += `<option value="${monthKey}">${displayString}</option>`;
-        }
+    while (loopDate <= endMonthStart) {
+        const monthKey = utils.getMonthKey(loopDate);
+        const displayString = loopDate.toLocaleString('en-GB', { month: 'long', year: 'numeric' });
+        select.innerHTML += `<option value="${monthKey}">${displayString}</option>`;
         loopDate.setMonth(loopDate.getMonth() + 1);
     }
 }
@@ -456,16 +450,12 @@ export async function renderHistoricalLeaderboard(monthKey, type, leagueFilter =
             
             // 1. Fetch Star Logs (The raw numbers)
             const logsPromise = fetchLogsForMonth(year, month);
+            const archivedPromise = fetchMonthlyHistory(monthKey);
             const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout')), 5000));
-            const logs = await Promise.race([logsPromise, timeoutPromise]).catch(e => []);
-            
-            if (!logs || logs.length === 0) {
-                monthlyScores = await fetchMonthlyHistory(monthKey);
-            } else {
-                logs.forEach(log => {
-                    monthlyScores[log.studentId] = (monthlyScores[log.studentId] || 0) + log.stars;
-                });
-            }
+            const logs = await Promise.race([logsPromise, timeoutPromise]).catch(() => []);
+            const archivedRows = await archivedPromise.catch(() => ({}));
+            const fromLogs = sumMonthlyStarCreditsByStudentFromAwardLogs(logs || []);
+            monthlyScores = mergeMonthlyStarsFromArchivedHistoryAndAwardLogs(fromLogs, archivedRows || {});
 
             const historySnap = await getDocs(collection(db, 'artifacts/great-class-quest/public/data/quest_history'));
             questHistoryData = historySnap.docs.map(d => d.data());

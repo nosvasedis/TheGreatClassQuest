@@ -786,19 +786,21 @@ export function setupUIListeners() {
                         const newLogRef = doc(collection(db, `${publicDataPath}/award_log`));
 
                         const scoreDoc = await transaction.get(scoreRef);
-                        ({ levelUpInfo } = applyReasonAwardScoreTransaction(transaction, {
+                        const txResult = applyReasonAwardScoreTransaction(transaction, {
                             scoreRef,
                             studentId,
                             studentData: student,
                             scoreData: scoreDoc.exists() ? scoreDoc.data() : null,
                             reason: 'welcome_back',
                             awardedStars: stars
-                        }));
+                        });
+                        levelUpInfo = txResult.levelUpInfo;
 
                         // Create Log
                         const logData = {
                             studentId, classId: student.classId, teacherId: state.get('currentUserId'),
                             stars: stars, reason: 'welcome_back', date: utils.getTodayDateString(),
+                            appliedStarCredit: txResult.totalStarsDelta,
                             createdAt: serverTimestamp(), createdBy: { uid: state.get('currentUserId'), name: state.get('currentTeacherName') }
                         };
                         transaction.set(newLogRef, logData);

@@ -4,6 +4,7 @@ import { showToast, showPraiseToast } from '../ui/effects.js';
 import { showModal } from '../ui/modals/base.js';
 import { playSound } from '../audio.js';
 import * as utils from '../utils.js';
+import { PATHFINDER_CLASS_QUEST_BONUS_STARS, PATHFINDER_AWARD_REASON } from './awardLogReasonMeta.js';
 
 export const LEGENDARY_ARTIFACTS = [
     { id: 'leg_clarity', name: 'Crystal of Clarity', price: 15, description: 'Pulsing gem for a hint pass. Used on your card.', icon: '💎' },
@@ -14,7 +15,7 @@ export const LEGENDARY_ARTIFACTS = [
     { id: 'leg_banner', name: "The Herald's Banner", price: 40, description: 'Broadcasts a school-wide victory celebration!', icon: '📢' },
     { id: 'leg_catalyst', name: 'The Starfall Catalyst', price: 50, description: 'Double the stars for your next high test score.', icon: '📜' },
     { id: 'leg_glory_chalice', name: 'Chalice of Radiance', price: 55, description: "All guildmates' next star gives +1 bonus Glory. One-time guild-wide effect.", icon: '🏆' },
-    { id: 'leg_pathfinder', name: 'The Pathfinder’s Map', price: 60, description: 'Instant +10 Stars for the Team Quest. (Class Limit: 1/month)', icon: '🗺️' },
+    { id: 'leg_pathfinder', name: 'The Pathfinder’s Map', price: 60, description: `Instant +${PATHFINDER_CLASS_QUEST_BONUS_STARS} Stars for the Team Quest. (Class Limit: 1/month)`, icon: '🗺️' },
     { id: 'leg_protagonist', name: 'The Mask of the Protagonist', price: 75, description: 'Guarantees you are the Hero in the next Story Log. (Limit: 1/month)', icon: '🎭' },
     { id: 'leg_glory_crown', name: 'Crown of the Eternal', price: 90, description: "Your guild's Glory generation is DOUBLED for the rest of the day!", icon: '👑' },
     { id: 'leg_aurum', name: 'Aurum Satchel', price: 32, description: 'Grants 50% off your next Mystic Market purchase this month.', icon: '💰' },
@@ -177,17 +178,17 @@ const POWER_UP_EFFECTS = {
         const classFresh = classDoc.data();
         const monthKey = utils.getMonthKey(new Date());
         const existing = Number(classFresh.teamQuestBonuses?.[monthKey]) || 0;
-        if (existing >= 10) {
+        if (existing >= PATHFINDER_CLASS_QUEST_BONUS_STARS) {
             return { success: false, errorMessage: 'This class already used the Pathfinder’s Map this month.' };
         }
 
         const nextBonuses = {
             ...(classFresh.teamQuestBonuses || {}),
-            [monthKey]: existing + 10
+            [monthKey]: existing + PATHFINDER_CLASS_QUEST_BONUS_STARS
         };
 
         context.transaction.update(classRef, {
-            [`teamQuestBonuses.${monthKey}`]: increment(10),
+            [`teamQuestBonuses.${monthKey}`]: increment(PATHFINDER_CLASS_QUEST_BONUS_STARS),
             lastPathfinderDate: utils.getTodayDateString(),
             lastPathfinderByStudentId: student.id,
             lastPathfinderByName: student.name
@@ -198,7 +199,7 @@ const POWER_UP_EFFECTS = {
             classId: classData.id,
             teacherId: state.get('currentUserId'),
             stars: 0,
-            reason: 'pathfinder_map',
+            reason: PATHFINDER_AWARD_REASON,
             note: `${student.name} used The Pathfinder's Map to advance the class quest!`,
             date: utils.getTodayDateString(),
             createdAt: serverTimestamp(),
@@ -216,7 +217,7 @@ const POWER_UP_EFFECTS = {
             feedback: {
                 icon: '🗺️',
                 title: 'Class quest boosted',
-                body: `${classData.name} just gained +10 Team Quest Stars.`
+                body: `${classData.name} just gained +${PATHFINDER_CLASS_QUEST_BONUS_STARS} Team Quest Stars.`
             }
         };
     },

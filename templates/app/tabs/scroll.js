@@ -30,16 +30,26 @@ export const scrollTabHTML = `
                             triumphs!</p>
                     </div>
 
-                    <div id="scroll-dashboard-content" class="hidden">
-                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6" id="scroll-stats-cards"></div>
+                    <div class="scroll-main-panels relative w-full">
+                        <div id="scroll-dashboard-content"
+                            class="scroll-panel scroll-panel--bg flex flex-col gap-6"
+                            aria-hidden="true">
+                            <!-- Alerts / pending grading / makeups — separate from the animated chart block -->
+                            <div id="scroll-dashboard-queues" class="scroll-dashboard-queues flex flex-col gap-4"></div>
+                            <div id="scroll-dashboard-inner" class="scroll-dashboard-inner">
+                                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6" id="scroll-stats-cards"></div>
 
-                        <div class="bg-white p-6 rounded-2xl shadow-lg">
-                            <h3 class="font-title text-2xl text-gray-700 mb-4">Class Performance Chart</h3>
-                            <div id="scroll-performance-chart" class="space-y-3"></div>
+                                <div class="bg-white p-6 rounded-2xl shadow-lg">
+                                    <h3 class="font-title text-2xl text-gray-700 mb-4">Class Performance Chart</h3>
+                                    <div id="scroll-performance-chart" class="space-y-3"></div>
+                                </div>
+                            </div>
                         </div>
-                    </div>
-                    <div id="scroll-placeholder" class="text-center text-gray-500 bg-white/50 p-6 rounded-2xl">
-                        Please choose a class from the header to view academic progress.
+                        <div id="scroll-placeholder"
+                            class="scroll-panel scroll-panel--fg text-center text-gray-500 bg-white/50 p-6 rounded-2xl"
+                            aria-hidden="false">
+                            Please choose a class from the header to view academic progress.
+                        </div>
                     </div>
                 </div>
             </div>

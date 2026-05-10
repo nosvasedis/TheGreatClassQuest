@@ -194,7 +194,7 @@ export function syncAwardImmersiveSky(tabId, opts = {}) {
  * Core tab re-renders (leaderboards, home, shop, award, …) without Options first-visit
  * or duplicate Options rows. Used by showTab and by header class/league changes.
  */
-export async function applyTabPrimaryRefresh(tabId) {
+export async function applyTabPrimaryRefresh(tabId, opts = {}) {
     if (!tabId) return;
 
     if (tabId === 'class-leaderboard-tab' || tabId === 'student-leaderboard-tab' || tabId === 'guilds-tab') {
@@ -224,7 +224,7 @@ export async function applyTabPrimaryRefresh(tabId) {
 
     if (tabId === 'scholars-scroll-tab') {
         const { findAndSetCurrentClass } = await import('../core.js');
-        scholarScroll.renderScholarsScrollTab();
+        await scholarScroll.renderScholarsScrollTab(null, { subtleReenter: opts.subtleScrollEnter === true });
         findAndSetCurrentClass();
     }
 
@@ -337,7 +337,7 @@ export async function showTab(tabName) {
         }, animationDuration);
     }
 
-    await applyTabPrimaryRefresh(tabId);
+    await applyTabPrimaryRefresh(tabId, { subtleScrollEnter: tabId === 'scholars-scroll-tab' });
 
     if (tabId === 'reward-ideas-tab') {
         renderIdeasTabSelects();

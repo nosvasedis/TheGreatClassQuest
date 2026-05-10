@@ -272,13 +272,12 @@ export function showLeaguePicker(options = {}) {
     }
     chunks.push(...constants.questLeagues.map(league => `<button type="button" class="league-select-btn w-full p-4 font-title text-xl text-amber-800 bg-amber-100 rounded-xl shadow border-2 border-amber-200 transition hover:bg-amber-200 hover:shadow-md bubbly-button" data-league="${league}">${league}</button>`));
     list.innerHTML = chunks.join('');
+    // Sound: bubbly-button global handler already plays click; avoid doubling.
     list.querySelector('.league-match-active-btn')?.addEventListener('click', () => {
-        playSound('click');
         state.setLeaderboardLeagueOverride(null);
         hideModal('league-picker-modal');
     });
     list.querySelectorAll('.league-select-btn').forEach(btn => btn.addEventListener('click', () => {
-        playSound('click');
         if (scope === 'leaderboard') {
             state.setLeaderboardLeagueOverride(btn.dataset.league);
         } else {

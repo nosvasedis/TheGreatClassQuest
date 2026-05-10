@@ -319,7 +319,7 @@ export function setupDataListeners(userId, dateString, onInitialDataReady, optio
         if (isTabVisible('award-stars-tab')) renderAwardStarsTab({ preserveStudentOrder: true });
         if (isTabVisible('reward-ideas-tab')) renderIdeasTabSelects();
         if (isTabVisible('adventure-log-tab')) renderAdventureLogTab();
-        if (isTabVisible('scholars-scroll-tab')) renderScholarsScrollTab();
+        if (isTabVisible('scholars-scroll-tab')) void renderScholarsScrollTab().catch((e) => console.warn('Scholar scroll render:', e));
         if (!document.getElementById('options-tab').classList.contains('hidden')) {
             renderStarManagerStudentSelect();
             renderFamiliarOptionsUi();
@@ -337,7 +337,7 @@ export function setupDataListeners(userId, dateString, onInitialDataReady, optio
         if (isTabVisible('class-leaderboard-tab')) renderClassLeaderboardTab();
         if (isTabVisible('manage-students-tab')) renderManageStudentsTab();
         if (isTabVisible('award-stars-tab')) renderAwardStarsStudentList(state.get('globalSelectedClassId'), false);
-        if (isTabVisible('scholars-scroll-tab')) renderScholarsScrollTab(state.get('globalSelectedClassId'));
+        if (isTabVisible('scholars-scroll-tab')) void renderScholarsScrollTab(state.get('globalSelectedClassId')).catch((e) => console.warn('Scholar scroll render:', e));
         if (!document.getElementById('options-tab').classList.contains('hidden')) {
             renderStarManagerStudentSelect();
             renderFamiliarOptionsUi();
@@ -516,7 +516,7 @@ export function setupDataListeners(userId, dateString, onInitialDataReady, optio
         state.setAllWrittenScores(snapshot.docs.map(d => ({ id: d.id, ...d.data() })));
         const scrollClassId = state.get('globalSelectedClassId');
         if (scrollClassId) {
-            renderScholarsScrollTab(scrollClassId);
+            void renderScholarsScrollTab(scrollClassId).catch((e) => console.warn('Scholar scroll render:', e));
         }
         const trialHistoryModal = document.getElementById('trial-history-modal');
         if (trialHistoryModal && !trialHistoryModal.classList.contains('hidden')) {

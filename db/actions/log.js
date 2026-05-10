@@ -13,7 +13,8 @@ import {
     writeBatch,
     serverTimestamp,
     increment,
-    orderBy
+    orderBy,
+    getDoc
 } from '../../firebase.js';
 import * as state from '../../state.js';
 import { showToast, showPraiseToast } from '../../ui/effects.js';
@@ -26,6 +27,7 @@ import { getTodayDateString, parseFlexibleDate, normalizeToDateString, parseDDMM
 import { reconcileFamiliarLifecycle } from '../../features/familiars.js';
 import { applyAwardOutwardSkillEffects, applyReasonAwardScoreTransaction, showHeroLevelUpCelebration } from './stars.js';
 import { getAwardLogMonthlyStarCredit } from '../../features/awardLogReasonMeta.js';
+import { retryAdventureLogGeneration } from './quests.js';
 
 export async function addOrUpdateHeroChronicleNote(studentId, noteText, category, noteId = null) {
     if (!studentId || !noteText || !category) {
@@ -363,6 +365,22 @@ function canEditAdventureLog(log) {
     return canUseFeature('eliteAI') || (inferAdventureLogEntryMode(log) === 'manual' && canUseFeature('adventureLog'));
 }
 
+function formatAdventureLogEditorDateChip(log) {
+    const dateObj = parseFlexibleDate(log?.date);
+    if (!dateObj || isNaN(dateObj.getTime())) {
+        const fallback = String(log?.date || '').trim();
+        return fallback ? escapeHtml(fallback) : '';
+    }
+    return escapeHtml(
+        dateObj.toLocaleDateString('en-GB', {
+            weekday: 'short',
+            month: 'short',
+            day: 'numeric',
+            year: 'numeric'
+        })
+    );
+}
+
 function syncHeroLine(text, heroName) {
     const storyText = String(text || '').trim();
     const normalizedHeroName = String(heroName || 'The Class Team').trim() || 'The Class Team';
@@ -381,9 +399,16 @@ function openAdventureLogEditor(logId, log) {
     if (existing) existing.remove();
     const entryMode = inferAdventureLogEntryMode(log);
     const heroLabel = escapeHtml(log.hero || 'The Class Team');
+    const dateChipHtml = formatAdventureLogEditorDateChip(log);
     const subtitle = entryMode === 'manual'
         ? 'Refine your manual chronicle. The crowned hero stays locked in.'
         : 'Polish the AI-written story, keep the magic, and publish your final version.';
+    const aiRewriteControl = entryMode === 'ai'
+        ? `<button type="button" id="adventure-log-ai-rewrite-btn" class="adventure-log-editor-ai-btn" title="Rewrite this day with the Chronicler (AI)">
+                <i class="fas fa-wand-magic-sparkles adventure-log-editor-ai-icon" aria-hidden="true"></i>
+                <span class="adventure-log-editor-ai-label">AI</span>
+           </button>`
+        : '';
 
     const overlay = document.createElement('div');
     overlay.id = 'adventure-log-editor-modal';
@@ -391,52 +416,75 @@ function openAdventureLogEditor(logId, log) {
     overlay.innerHTML = `
         <section class="adventure-log-editor-sheet" role="dialog" aria-modal="true" aria-labelledby="adventure-log-editor-title">
             <header class="adventure-log-editor-header">
-                <div>
-                    <p class="adventure-log-editor-kicker">Adventure Log</p>
-                    <h2 id="adventure-log-editor-title" class="adventure-log-editor-title">Edit Entry</h2>
-                    <p class="adventure-log-editor-subtitle">${subtitle}</p>
+                <div class="adventure-log-editor-header-pattern" aria-hidden="true"></div>
+                <div class="adventure-log-editor-header-inner">
+                    <div class="adventure-log-editor-header-brand">
+                        <div class="adventure-log-editor-icon-box" aria-hidden="true">
+                            <i class="fas fa-book-open"></i>
+                        </div>
+                        <div class="adventure-log-editor-header-text">
+                            <p class="adventure-log-editor-kicker">Adventure Log</p>
+                            <h2 id="adventure-log-editor-title" class="adventure-log-editor-title">Edit Entry</h2>
+                            <p class="adventure-log-editor-subtitle">${subtitle}</p>
+                            ${dateChipHtml ? `<p class="adventure-log-editor-date-chip"><i class="fas fa-calendar-day" aria-hidden="true"></i><span>${dateChipHtml}</span></p>` : ''}
+                        </div>
+                    </div>
+                    <button type="button" id="adventure-log-editor-close-btn" class="adventure-log-editor-close" aria-label="Close editor">
+                        <i class="fas fa-times"></i>
+                    </button>
                 </div>
-                <button type="button" id="adventure-log-editor-close-btn" class="adventure-log-editor-close" aria-label="Close editor">
-                    <i class="fas fa-times"></i>
-                </button>
             </header>
 
             <div class="adventure-log-editor-body">
-                <div class="adventure-log-editor-field">
-                    <label for="edit-log-title">Title</label>
-                    <input type="text" id="edit-log-title" maxlength="90" value="${escapeHtml(log.title || '')}" placeholder="Enter a clear, memorable title">
-                    <p id="edit-log-title-counter" class="adventure-log-editor-hint">0 / 90</p>
+                <div class="adventure-log-editor-card">
+                    <div class="adventure-log-editor-field">
+                        <label for="edit-log-title">Title</label>
+                        <input type="text" id="edit-log-title" maxlength="90" value="${escapeHtml(log.title || '')}" placeholder="Enter a clear, memorable title">
+                        <p id="edit-log-title-counter" class="adventure-log-editor-hint">0 / 90</p>
+                    </div>
                 </div>
 
-                <div class="adventure-log-editor-field">
-                    <label for="edit-log-text">Story</label>
-                    <textarea id="edit-log-text" rows="10" placeholder="Write what happened in this lesson...">${escapeHtml(log.text || '')}</textarea>
-                    <p class="adventure-log-editor-hint">Tip: Use Cmd/Ctrl + Enter to save quickly.</p>
+                <div class="adventure-log-editor-card adventure-log-editor-card--story">
+                    <div class="adventure-log-editor-field">
+                        <div class="adventure-log-editor-label-row">
+                            <label for="edit-log-text">Story</label>
+                            ${aiRewriteControl}
+                        </div>
+                        <textarea id="edit-log-text" rows="10" placeholder="Write what happened in this lesson...">${escapeHtml(log.text || '')}</textarea>
+                        <p class="adventure-log-editor-hint">Tip: Use Cmd/Ctrl + Enter to save quickly.</p>
+                    </div>
                 </div>
 
                 <div class="adventure-log-editor-grid">
-                    <div class="adventure-log-editor-field">
-                        <label>Hero of the Day</label>
-                        <div class="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-amber-900 font-semibold">
-                            <i class="fas fa-crown mr-2 text-amber-500"></i>${heroLabel}
+                    <div class="adventure-log-editor-card">
+                        <div class="adventure-log-editor-field">
+                            <label>Hero of the Day</label>
+                            <div class="adventure-log-editor-hero-pill">
+                                <i class="fas fa-crown" aria-hidden="true"></i>
+                                <span>${heroLabel}</span>
+                            </div>
+                            <p class="adventure-log-editor-hint">This hero is locked after the lesson is crowned.</p>
                         </div>
-                        <p class="adventure-log-editor-hint">This hero is locked after the lesson is crowned.</p>
                     </div>
 
-                    <div class="adventure-log-editor-field">
-                        <label for="edit-log-highlights">Highlights</label>
-                        <input type="text" id="edit-log-highlights" value="${escapeHtml((log.highlights || []).join(', '))}" placeholder="Teamwork, Creativity, Confidence">
-                        <p class="adventure-log-editor-hint">Use commas to separate up to 4 highlights.</p>
+                    <div class="adventure-log-editor-card">
+                        <div class="adventure-log-editor-field">
+                            <label for="edit-log-highlights">Highlights</label>
+                            <input type="text" id="edit-log-highlights" value="${escapeHtml((log.highlights || []).join(', '))}" placeholder="Teamwork, Creativity, Confidence">
+                            <p class="adventure-log-editor-hint">Use commas to separate up to 4 highlights.</p>
+                        </div>
                     </div>
                 </div>
             </div>
 
             <footer class="adventure-log-editor-footer">
-                <button type="button" id="cancel-edit-log-btn" class="adventure-log-editor-btn secondary">Cancel</button>
-                <button type="button" id="save-edit-log-btn" class="adventure-log-editor-btn primary">
-                    <i class="fas fa-save"></i>
-                    Save Changes
-                </button>
+                <div class="adventure-log-editor-footer-inner">
+                    <button type="button" id="cancel-edit-log-btn" class="adventure-log-editor-btn secondary">Cancel</button>
+                    <button type="button" id="save-edit-log-btn" class="adventure-log-editor-btn primary">
+                        <i class="fas fa-save"></i>
+                        Save Changes
+                    </button>
+                </div>
             </footer>
         </section>
     `;
@@ -450,6 +498,10 @@ function openAdventureLogEditor(logId, log) {
     const closeBtn = overlay.querySelector('#adventure-log-editor-close-btn');
     const cancelBtn = overlay.querySelector('#cancel-edit-log-btn');
     const saveBtn = overlay.querySelector('#save-edit-log-btn');
+    const highlightsInput = overlay.querySelector('#edit-log-highlights');
+    const aiRewriteBtn = overlay.querySelector('#adventure-log-ai-rewrite-btn');
+
+    let aiRewriteBusy = false;
 
     const updateCounter = () => {
         const len = titleInput.value.length;
@@ -464,6 +516,7 @@ function openAdventureLogEditor(logId, log) {
     };
 
     const onEscape = (event) => {
+        if (aiRewriteBusy) return;
         if (event.key === 'Escape') {
             event.preventDefault();
             closeEditor();
@@ -475,7 +528,7 @@ function openAdventureLogEditor(logId, log) {
     };
 
     overlay.addEventListener('click', (event) => {
-        if (event.target === overlay) closeEditor();
+        if (event.target === overlay && !aiRewriteBusy) closeEditor();
     });
     closeBtn.addEventListener('click', closeEditor);
     cancelBtn.addEventListener('click', closeEditor);
@@ -484,6 +537,51 @@ function openAdventureLogEditor(logId, log) {
         await saveEditedLogEntry(logId, overlay);
         if (document.body.contains(overlay)) saveBtn.disabled = false;
     });
+
+    if (aiRewriteBtn) {
+        const iconEl = aiRewriteBtn.querySelector('.adventure-log-editor-ai-icon');
+        aiRewriteBtn.addEventListener('click', async () => {
+            aiRewriteBusy = true;
+            aiRewriteBtn.disabled = true;
+            saveBtn.disabled = true;
+            cancelBtn.disabled = true;
+            closeBtn.disabled = true;
+            aiRewriteBtn.classList.add('is-loading');
+            if (iconEl) {
+                iconEl.className = 'fas fa-spinner fa-spin adventure-log-editor-ai-icon';
+            }
+            try {
+                await retryAdventureLogGeneration(logId);
+                const logRef = doc(db, 'artifacts/great-class-quest/public/data/adventure_logs', logId);
+                const snap = await getDoc(logRef);
+                if (snap.exists()) {
+                    const d = snap.data();
+                    const st = String(d?.generationStatus || '').toLowerCase();
+                    if (st !== 'failed') {
+                        titleInput.value = d.title || '';
+                        storyInput.value = d.text || '';
+                        if (highlightsInput) highlightsInput.value = (d.highlights || []).join(', ');
+                        updateCounter();
+                        const { renderAdventureLog } = await import('../../ui/tabs/log.js');
+                        await renderAdventureLog();
+                    }
+                }
+            } catch (err) {
+                console.error('AI rewrite from adventure log editor failed:', err);
+            } finally {
+                aiRewriteBusy = false;
+                aiRewriteBtn.disabled = false;
+                saveBtn.disabled = false;
+                cancelBtn.disabled = false;
+                closeBtn.disabled = false;
+                aiRewriteBtn.classList.remove('is-loading');
+                if (iconEl) {
+                    iconEl.className = 'fas fa-wand-magic-sparkles adventure-log-editor-ai-icon';
+                }
+            }
+        });
+    }
+
     titleInput.addEventListener('input', updateCounter);
     document.addEventListener('keydown', onEscape);
 

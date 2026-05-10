@@ -24,6 +24,85 @@
     animation: starfall-icon-pulse 2.5s ease-in-out infinite;
 }
 
+/* Scholar's Scroll — placeholder vs dashboard crossfade + class swap */
+.scroll-main-panels {
+    min-height: 12rem;
+}
+
+.scroll-panel {
+    transition:
+        opacity 0.42s cubic-bezier(0.22, 1, 0.36, 1),
+        transform 0.42s cubic-bezier(0.22, 1, 0.36, 1);
+    will-change: opacity, transform;
+}
+
+.scroll-panel--fg {
+    position: relative;
+    z-index: 2;
+    opacity: 1;
+    transform: translateY(0);
+    pointer-events: auto;
+}
+
+.scroll-panel--bg {
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 0;
+    z-index: 1;
+    opacity: 0;
+    transform: translateY(14px);
+    pointer-events: none;
+}
+
+.scroll-dashboard-inner {
+    transform-origin: top center;
+}
+
+@keyframes scroll-dash-inner-swap-out {
+    to {
+        opacity: 0;
+        transform: translateY(-12px) scale(0.992);
+    }
+}
+
+@keyframes scroll-dash-inner-swap-in {
+    from {
+        opacity: 0;
+        transform: translateY(16px) scale(0.985);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+
+.scroll-dashboard-inner--swap-out {
+    animation: scroll-dash-inner-swap-out 0.32s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
+.scroll-dashboard-inner--swap-in {
+    animation: scroll-dash-inner-swap-in 0.52s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .scroll-panel,
+    .scroll-dashboard-inner--swap-out,
+    .scroll-dashboard-inner--swap-in {
+        transition: none !important;
+        animation: none !important;
+    }
+
+    .scroll-panel--bg {
+        opacity: 0;
+        transform: none;
+    }
+
+    .scroll-panel--fg {
+        transform: none;
+    }
+}
+
 /* Scholar's Scroll hero */
 .ss-hero {
     position: relative;
@@ -184,6 +263,15 @@
     background-color: #f9fafb; /* gray-50 */
 }
 
+/* Scholar's Scroll — pending makeup row (scoped so global .makeup-item / holiday.css don't squeeze layout) */
+.scroll-makeup-item {
+    transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+}
+
+.scroll-makeup-item:hover {
+    box-shadow: 0 12px 24px -18px rgba(194, 65, 12, 0.35);
+}
+
 .makeup-alert-container {
     margin-bottom: 1rem;
     border-radius: 1rem;
@@ -194,6 +282,7 @@
     animation: ss-makeup-slide-in 0.42s ease-out both;
 }
 
+/* Legacy / other views — Scholar's Scroll uses .scroll-makeup-item instead */
 .makeup-item {
     border: 1px solid #ffedd5;
     background: rgba(255, 255, 255, 0.88);
@@ -544,6 +633,23 @@ optgroup {
     align-items: stretch;
 }
 
+/* Discreet vertical rule between ISO weeks (Mon–Sun groups) in the month rail */
+.ac-week-divider {
+    flex: 0 0 auto;
+    width: 1px;
+    align-self: stretch;
+    margin: 0.28rem 0.12rem 0.38rem;
+    background: linear-gradient(
+        to bottom,
+        transparent 0%,
+        rgba(15, 118, 110, 0.14) 18%,
+        rgba(15, 118, 110, 0.2) 50%,
+        rgba(15, 118, 110, 0.14) 82%,
+        transparent 100%
+    );
+    border-radius: 1px;
+}
+
 .ac-day-chip {
     flex: 0 0 auto;
     width: 2.85rem;
@@ -813,7 +919,7 @@ optgroup {
 
 .attendance-student-meta {
     display: flex;
-    align-items: center;
+    align-items: flex-start;
     gap: 0.75rem;
 }
 
@@ -824,26 +930,44 @@ optgroup {
     object-fit: cover;
     border: 2px solid white;
     box-shadow: 0 10px 18px -14px rgba(15, 23, 42, 0.8);
+    flex-shrink: 0;
 }
 
 .attendance-student-avatar--placeholder {
     display: inline-flex;
     align-items: center;
     justify-content: center;
+    flex-shrink: 0;
     background: linear-gradient(135deg, #6366f1, #0ea5e9);
     color: white;
     font-weight: 800;
 }
 
+.attendance-student-text {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    text-align: left;
+}
+
 .attendance-student-name {
-    font-weight: 700;
+    font-size: 1.0625rem;
+    line-height: 1.2;
+    letter-spacing: 0.02em;
+    font-weight: 400;
     color: #0f172a;
+    max-width: 100%;
+    overflow-wrap: break-word;
 }
 
 .attendance-student-subtitle {
-    font-size: 0.73rem;
+    font-size: 0.72rem;
+    font-weight: 600;
     color: #64748b;
-    margin-top: 0.12rem;
+    margin-top: 0.15rem;
+    line-height: 1.25;
 }
 
 .attendance-status-cell,

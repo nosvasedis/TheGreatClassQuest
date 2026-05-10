@@ -177,7 +177,11 @@ function chronicleChipTitle(row, todayMidnightMs) {
 }
 
 function buildChronicleMonthRail(monthRows, todayKey, todayMidnightMs) {
-    const chips = monthRows.map((row) => {
+    const chips = monthRows.map((row, idx) => {
+        const isWeekStart = row.date.getDay() === 1 && idx > 0;
+        const divider = isWeekStart
+            ? '<span class="ac-week-divider" role="separator" aria-hidden="true"></span>'
+            : '';
         const isToday = row.dateStr === todayKey;
         const classes = ['ac-day-chip', `ac-day-chip--${row.insight.kind}`];
         if (isToday) classes.push('ac-day-chip--today');
@@ -188,7 +192,8 @@ function buildChronicleMonthRail(monthRows, todayKey, todayMidnightMs) {
             .toLocaleDateString('en-GB', { weekday: 'short' })
             .toUpperCase();
         const title = chronicleEscape(chronicleChipTitle(row, todayMidnightMs));
-        return `<div class="${classes.join(' ')}" role="listitem" title="${title}"><span class="ac-day-chip-wd">${chronicleEscape(wdShort)}</span><span class="ac-day-chip-day">${row.date.getDate()}</span><span class="ac-day-chip-ico" aria-hidden="true">${chronicleChipIcon(row.insight)}</span></div>`;
+        const chip = `<div class="${classes.join(' ')}" role="listitem" title="${title}"><span class="ac-day-chip-wd">${chronicleEscape(wdShort)}</span><span class="ac-day-chip-day">${row.date.getDate()}</span><span class="ac-day-chip-ico" aria-hidden="true">${chronicleChipIcon(row.insight)}</span></div>`;
+        return divider + chip;
     }).join('');
 
     return `
@@ -474,16 +479,18 @@ export async function renderAttendanceChronicle(classId) {
 
         studentsInClass.forEach((student, index) => {
             const rowSummary = studentSummaries.find((item) => item.studentId === student.id) || { absenceCount: 0, attendanceRate: '100' };
+            const safeName = chronicleEscape(student.name);
+            const initial = String(student.name || '?').trim().charAt(0).toUpperCase() || '?';
             const avatarHtml = student.avatar
-                ? `<img src="${student.avatar}" alt="${student.name}" class="attendance-student-avatar">`
-                : `<div class="attendance-student-avatar attendance-student-avatar--placeholder">${student.name.charAt(0).toUpperCase()}</div>`;
+                ? `<img src="${chronicleEscape(student.avatar)}" alt="${safeName}" class="attendance-student-avatar">`
+                : `<div class="attendance-student-avatar attendance-student-avatar--placeholder">${initial}</div>`;
 
             html += `<tr class="attendance-row ${index % 2 === 0 ? 'attendance-row--even' : 'attendance-row--odd'}">
                 <td class="attendance-student-col attendance-student-cell">
                     <div class="attendance-student-meta">
                         ${avatarHtml}
-                        <div>
-                            <div class="attendance-student-name">${student.name}</div>
+                        <div class="attendance-student-text">
+                            <div class="attendance-student-name font-title">${safeName}</div>
                             <div class="attendance-student-subtitle">${rowSummary.presentCount} present lessons</div>
                         </div>
                     </div>

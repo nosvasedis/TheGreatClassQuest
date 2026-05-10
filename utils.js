@@ -869,9 +869,11 @@ export function getClassQuestBonusForMonth(classData, date = new Date()) {
     return Number(classData?.teamQuestBonuses?.[getMonthKey(date)]) || 0;
 }
 
-export function getClassMonthlyQuestStars(classData, studentsInClass, allStudentScores, date = new Date()) {
+export function getClassMonthlyQuestStars(classData, studentsInClass, allStudentScores, date = new Date(), scoresByStudentId = null) {
     const studentStars = (studentsInClass || []).reduce((sum, student) => {
-        const scoreData = (allStudentScores || []).find(score => score.id === student.id);
+        const scoreData = scoresByStudentId
+            ? scoresByStudentId.get(student.id)
+            : (allStudentScores || []).find(score => score.id === student.id);
         return sum + (scoreData ? (Number(scoreData.monthlyStars) || 0) : 0);
     }, 0);
     const classBonus = getClassQuestBonusForMonth(classData, date);

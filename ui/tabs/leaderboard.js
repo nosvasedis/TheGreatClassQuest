@@ -149,6 +149,9 @@ export async function renderClassLeaderboardTab() {
         return;
     }
 
+    // Yield so the UI can paint (e.g. league picker closing) before heavy string/DOM work.
+    await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+
     // --- CALCULATIONS ---
     const allStudentScores = state.get('allStudentScores') || [];
     const allStudents = state.get('allStudents') || [];
@@ -177,6 +180,7 @@ export async function renderClassLeaderboardTab() {
     }
 
     const awardLogsByClassId = new Map();
+    const weeklyStarsByClassId = new Map();
     for (const log of allAwardLogs) {
         if (!log.classId) continue;
         let bucket = awardLogsByClassId.get(log.classId);
@@ -185,6 +189,14 @@ export async function renderClassLeaderboardTab() {
             awardLogsByClassId.set(log.classId, bucket);
         }
         bucket.push(log);
+
+        const logDate = utils.parseDDMMYYYY(log.date);
+        if (logDate && logDate >= startOfWeek) {
+            weeklyStarsByClassId.set(
+                log.classId,
+                (weeklyStarsByClassId.get(log.classId) || 0) + getAwardLogMonthlyStarCredit(log)
+            );
+        }
     }
 
     const adventureCountByClassId = new Map();
@@ -193,14 +205,6 @@ export async function renderClassLeaderboardTab() {
         const advDate = utils.parseDDMMYYYY(l.date);
         if (!advDate || advDate.getMonth() !== currentMonth) continue;
         adventureCountByClassId.set(l.classId, (adventureCountByClassId.get(l.classId) || 0) + 1);
-    }
-
-    const weeklyStarsByClassId = new Map();
-    for (const log of allAwardLogs) {
-        if (!log.classId) continue;
-        const logDate = utils.parseDDMMYYYY(log.date);
-        if (!logDate || logDate < startOfWeek) continue;
-        weeklyStarsByClassId.set(log.classId, (weeklyStarsByClassId.get(log.classId) || 0) + getAwardLogMonthlyStarCredit(log));
     }
 
     const classScores = classesInLeague.map(c => {
@@ -232,7 +236,13 @@ export async function renderClassLeaderboardTab() {
             goalDifference = goalValue - originalGoalTotal;
         }
 
-        const { totalStars: teamQuestStars, classBonus: classTeamBonus } = utils.getClassMonthlyQuestStars(c, studentsInClass, allStudentScores);
+        const { totalStars: teamQuestStars, classBonus: classTeamBonus } = utils.getClassMonthlyQuestStars(
+            c,
+            studentsInClass,
+            allStudentScores,
+            now,
+            scoresByStudentId
+        );
 
         const classLogs = awardLogsByClassId.get(c.id) || [];
         const weeklyStars = weeklyStarsByClassId.get(c.id) || 0;

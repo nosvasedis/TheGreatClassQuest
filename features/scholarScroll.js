@@ -1,6 +1,93 @@
 // /features/scholarScroll.js
 let loadedHistoricalScores = [];
 
+/** Last class id used to render Scholar's Scroll (for swap animations on header class change). */
+let lastRenderedScrollClassId = null;
+
+function scrollMotionReduced() {
+    return typeof window !== 'undefined' && window.matchMedia?.('(prefers-reduced-motion: reduce)').matches === true;
+}
+
+/** Stats + performance chart only (class-swap animation applies here). */
+function getScrollDashboardHost() {
+    return document.getElementById('scroll-dashboard-inner') || document.getElementById('scroll-dashboard-content');
+}
+
+/** Pending grading, makeups, upcoming-test ribbon — stays visually separate from the chart “stage”. */
+function getScrollQueuesHost() {
+    return document.getElementById('scroll-dashboard-queues') || document.getElementById('scroll-dashboard-content');
+}
+
+function setScrollPanelStack(showDashboard) {
+    const dash = document.getElementById('scroll-dashboard-content');
+    const ph = document.getElementById('scroll-placeholder');
+    if (!dash || !ph) return;
+
+    dash.classList.remove('hidden');
+    ph.classList.remove('hidden');
+
+    if (!dash.classList.contains('scroll-panel')) dash.classList.add('scroll-panel');
+    if (!ph.classList.contains('scroll-panel')) ph.classList.add('scroll-panel');
+
+    const on = Boolean(showDashboard);
+    dash.classList.toggle('scroll-panel--fg', on);
+    dash.classList.toggle('scroll-panel--bg', !on);
+    ph.classList.toggle('scroll-panel--fg', !on);
+    ph.classList.toggle('scroll-panel--bg', on);
+
+    dash.setAttribute('aria-hidden', on ? 'false' : 'true');
+    ph.setAttribute('aria-hidden', on ? 'true' : 'false');
+}
+
+function waitForAnimation(el, animName, fallbackMs) {
+    return new Promise((resolve) => {
+        if (!el || scrollMotionReduced()) {
+            resolve();
+            return;
+        }
+        let done = false;
+        const finish = () => {
+            if (done) return;
+            done = true;
+            el.removeEventListener('animationend', onEnd);
+            resolve();
+        };
+        const onEnd = (e) => {
+            if (e.target === el && e.animationName === animName) finish();
+        };
+        el.addEventListener('animationend', onEnd);
+        setTimeout(finish, fallbackMs);
+    });
+}
+
+function bumpInnerReflow(inner) {
+    if (inner) void inner.offsetWidth;
+}
+
+async function playInnerEnter(inner) {
+    if (!inner || scrollMotionReduced()) return;
+    inner.classList.remove('scroll-dashboard-inner--swap-out');
+    inner.classList.add('scroll-dashboard-inner--swap-in');
+    await waitForAnimation(inner, 'scroll-dash-inner-swap-in', 560);
+    inner.classList.remove('scroll-dashboard-inner--swap-in');
+}
+
+async function playInnerClassSwap(inner, runRender) {
+    if (!inner || scrollMotionReduced()) {
+        runRender();
+        return;
+    }
+    inner.classList.remove('scroll-dashboard-inner--swap-in');
+    inner.classList.add('scroll-dashboard-inner--swap-out');
+    await waitForAnimation(inner, 'scroll-dash-inner-swap-out', 400);
+    runRender();
+    inner.classList.remove('scroll-dashboard-inner--swap-out');
+    bumpInnerReflow(inner);
+    inner.classList.add('scroll-dashboard-inner--swap-in');
+    await waitForAnimation(inner, 'scroll-dash-inner-swap-in', 560);
+    inner.classList.remove('scroll-dashboard-inner--swap-in');
+}
+
 // --- IMPORTS ---
 import { db } from '../firebase.js';
 import { doc, addDoc, updateDoc, collection, serverTimestamp } from 'https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js';
@@ -170,25 +257,44 @@ function populateBulkTrialStudentRows(classId, type, assessmentScheme, dateIso) 
 
 // --- TAB RENDERING ---
 
-export function renderScholarsScrollTab(selectedClassId = null) {
+export async function renderScholarsScrollTab(selectedClassId = null, opts = {}) {
+    const subtleReenter = opts.subtleReenter === true;
     const logTrialFab = document.getElementById('log-trial-fab');
     const viewHistoryFab = document.getElementById('view-trial-history-fab');
 
     const currentVal = selectedClassId || state.get('globalSelectedClassId');
+    const inner = document.getElementById('scroll-dashboard-inner');
 
     if (currentVal) {
         if (logTrialFab) logTrialFab.disabled = false;
         if (viewHistoryFab) viewHistoryFab.disabled = false;
 
-        // Missing work / scheduled grading queues first — then alerts + charts (scroll-test-alert stays topmost ribbon)
-        renderMissingWorkDashboard(currentVal);
-        renderScrollDashboard(currentVal);
+        const prevRendered = lastRenderedScrollClassId;
+        const classChanged = prevRendered != null && prevRendered !== currentVal;
+        const firstDashboardShow = prevRendered == null && currentVal != null;
+
+        lastRenderedScrollClassId = currentVal;
+        setScrollPanelStack(true);
+
+        const runRender = () => {
+            renderMissingWorkDashboard(currentVal);
+            renderScrollDashboard(currentVal);
+        };
+
+        if (classChanged) {
+            await playInnerClassSwap(inner, runRender);
+        } else {
+            runRender();
+            if (firstDashboardShow || subtleReenter) await playInnerEnter(inner);
+        }
     } else {
+        lastRenderedScrollClassId = null;
+        inner?.classList.remove('scroll-dashboard-inner--swap-in', 'scroll-dashboard-inner--swap-out');
+
         if (logTrialFab) logTrialFab.disabled = true;
         if (viewHistoryFab) viewHistoryFab.disabled = true;
 
-        document.getElementById('scroll-dashboard-content').classList.add('hidden');
-        document.getElementById('scroll-placeholder').classList.remove('hidden');
+        setScrollPanelStack(false);
     }
 }
 
@@ -208,8 +314,8 @@ function renderScrollDashboard(classId) {
     const dictationScheme = getAssessmentSchemeForClass(classData, 'dictation');
 
     const statsContainer = document.getElementById('scroll-stats-cards');
-    // --- NEW: Upcoming Test Indicator ---
-    const dashboard = document.getElementById('scroll-dashboard-content');
+    // --- NEW: Upcoming Test Indicator (with queues / makeups — not the chart block) ---
+    const queuesHost = getScrollQueuesHost();
     let testAlert = document.getElementById('scroll-test-alert');
     if (testAlert) testAlert.remove(); // Clear previous to prevent duplicates
 
@@ -250,8 +356,8 @@ function renderScrollDashboard(classId) {
             </div>
             <div class="text-3xl ${palette.icon}"><i class="fas fa-${upcomingTest.icon}"></i></div>
         `;
-        // Insert it at the very top of the dashboard content
-        dashboard.prepend(testAlert);
+        // Ribbon sits with other scroll alerts above the performance chart
+        queuesHost.prepend(testAlert);
     }
     const chartContainer = document.getElementById('scroll-performance-chart');
 
@@ -900,7 +1006,7 @@ function renderScheduledGradingQueue(classId, dashboardEl) {
 // --- NEW: MAKEUP / MISSING WORK LOGIC ---
 
 function renderMissingWorkDashboard(classId) {
-    const dashboard = document.getElementById('scroll-dashboard-content');
+    const dashboard = getScrollQueuesHost();
     renderScheduledGradingQueue(classId, dashboard);
 
     let container = document.getElementById('makeup-work-container');
@@ -1034,42 +1140,42 @@ function renderMissingWorkDashboard(classId) {
                     </div>
                 </div>
 
-                <div class="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-3 relative z-10">
+                <div class="makeup-items-grid grid grid-cols-1 sm:grid-cols-2 gap-3 relative z-10">
     `;
 
     filteredWork.forEach(item => {
         const student = item.student;
         const avatar = student.avatar
-            ? `<img src="${student.avatar}" class="w-10 h-10 rounded-xl object-cover border border-white shadow-sm">`
-            : `<div class="w-10 h-10 rounded-xl bg-gradient-to-br from-amber-100 to-orange-100 text-amber-800 font-title flex items-center justify-center text-base border border-white shadow-sm">${student.name.charAt(0)}</div>`;
+            ? `<img src="${student.avatar}" class="w-11 h-11 rounded-xl object-cover border border-white shadow-sm">`
+            : `<div class="w-11 h-11 rounded-xl bg-gradient-to-br from-amber-100 to-orange-100 text-amber-800 font-title flex items-center justify-center text-base border border-white shadow-sm">${student.name.charAt(0)}</div>`;
 
         html += `
-            <div class="makeup-item bg-slate-50/50 p-3 md:p-3.5 rounded-2xl border border-slate-100 hover:bg-white hover:border-amber-200 hover:shadow-lg hover:-translate-y-0.5 transition-all duration-300 group/item relative">
+            <div class="scroll-makeup-item bg-slate-50/50 p-3.5 md:p-4 rounded-2xl border border-slate-100 hover:bg-white hover:border-amber-200 hover:shadow-lg hover:-translate-y-0.5 transition-all duration-300 group/item relative min-w-0">
                 <div class="absolute inset-0 rounded-[inherit] overflow-hidden pointer-events-none bg-gradient-to-br from-amber-500/0 to-amber-500/[0.02] opacity-0 group-hover/item:opacity-100 transition-opacity"></div>
                 
-                <div class="relative z-10 flex flex-wrap items-start gap-x-2 gap-y-2">
-                    <div class="flex items-start gap-2.5 min-w-0 flex-1 basis-[10rem]">
+                <div class="relative z-10 flex flex-col sm:flex-row sm:items-start gap-3 sm:gap-4">
+                    <div class="flex items-start gap-3 min-w-0 flex-1">
                         <div class="relative shrink-0 pt-0.5">
                             <div class="absolute inset-0 bg-amber-200 blur-md opacity-0 group-hover/item:opacity-35 transition-opacity rounded-lg"></div>
                             <div class="relative transform group-hover/item:scale-105 transition-all duration-300">
                                 ${avatar}
                             </div>
                         </div>
-                        <div class="min-w-0 flex-1 space-y-1">
-                            <div class="font-title text-base text-slate-800 leading-tight truncate">${student.name}</div>
-                            <div class="flex flex-wrap items-center gap-x-1.5 gap-y-1">
+                        <div class="min-w-0 flex-1 space-y-1.5">
+                            <div class="font-title text-base md:text-lg text-slate-800 leading-snug break-words">${student.name}</div>
+                            <div class="flex flex-wrap items-center gap-x-2 gap-y-1">
                                 <span class="text-[8px] font-black text-amber-600 uppercase tracking-wide bg-amber-100/60 px-2 py-0.5 rounded-md border border-amber-500/15">${item.assessment.type}</span>
-                                <span class="text-[10px] font-bold text-slate-500 leading-snug break-words">${item.assessment.title}</span>
+                                <span class="text-[11px] font-bold text-slate-600 leading-snug break-words">${item.assessment.title}</span>
                             </div>
-                            <div class="text-[9px] text-slate-400 font-medium flex flex-wrap items-center gap-x-1.5 gap-y-0">
-                                <span class="inline-flex items-center gap-1 shrink-0"><i class="far fa-calendar-alt text-amber-500 text-[10px]"></i>
-                                Expected: <span class="text-slate-600 font-bold">${(utils.parseFlexibleDate(item.assessment.originalDate) || new Date()).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}</span></span>
+                            <div class="text-[10px] text-slate-500 font-medium flex flex-wrap items-center gap-x-2 gap-y-0.5">
+                                <span class="inline-flex items-center gap-1"><i class="far fa-calendar-alt text-amber-500 text-[10px]"></i>
+                                Expected: <span class="text-slate-700 font-bold">${(utils.parseFlexibleDate(item.assessment.originalDate) || new Date()).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}</span></span>
                                 <span class="w-1 h-1 rounded-full bg-amber-400 animate-pulse shrink-0" aria-hidden="true"></span>
                             </div>
                         </div>
                     </div>
 
-                    <div class="flex items-center justify-end gap-1.5 shrink-0 basis-full sm:basis-auto sm:ml-auto pt-0.5">
+                    <div class="flex items-center justify-end gap-1.5 shrink-0 sm:flex-col sm:items-end sm:pt-0.5 sm:min-w-[7.5rem]">
                         <button class="makeup-dismiss-btn w-8 h-8 rounded-lg bg-white text-slate-400 hover:bg-rose-50 hover:text-rose-500 flex items-center justify-center transition-all border border-slate-200 hover:border-rose-200 shadow-sm" 
                             data-student-id="${item.student.id}" 
                             data-title="${item.assessment.title}" 
@@ -1114,14 +1220,14 @@ function renderMissingWorkDashboard(classId) {
             saved[itemKey] = true;
             localStorage.setItem(dismissedKey, JSON.stringify(saved));
             // Remove from DOM immediately
-            const makeupItem = btn.closest('.makeup-item');
+            const makeupItem = btn.closest('.scroll-makeup-item');
             if (makeupItem) {
                 makeupItem.style.opacity = '0';
                 makeupItem.style.transition = 'opacity 0.3s';
                 setTimeout(() => {
                     makeupItem.remove();
                     // If no items left, remove the whole container
-                    const remaining = container.querySelectorAll('.makeup-item');
+                    const remaining = container.querySelectorAll('.scroll-makeup-item');
                     if (remaining.length === 0) container.remove();
                 }, 300);
             }

@@ -295,12 +295,11 @@ export function setupUIListeners() {
     document.getElementById('modal-cancel-btn').addEventListener('click', () => modals.hideModal('confirmation-modal'));
     document.getElementById('leaderboard-league-picker-btn').addEventListener('click', () => modals.showLeaguePicker({ scope: 'leaderboard' }));
     document.getElementById('student-leaderboard-league-picker-btn').addEventListener('click', () => modals.showLeaguePicker({ scope: 'leaderboard' }));
+    // Sound: body listener handles .bubbly-button; these match buttons are bubbly-button.
     document.getElementById('leaderboard-league-match-btn')?.addEventListener('click', () => {
-        playSound('click');
         state.setLeaderboardLeagueOverride(null);
     });
     document.getElementById('student-leaderboard-league-match-btn')?.addEventListener('click', () => {
-        playSound('click');
         state.setLeaderboardLeagueOverride(null);
     });
     document.getElementById('league-picker-close-btn').addEventListener('click', () => modals.hideModal('league-picker-modal'));

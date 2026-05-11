@@ -635,7 +635,7 @@ function getLayout(name, theme, selector, row2, row3) {
                     <div class="text-7xl font-title">${theme.temp}</div>
                     <div class="text-2xl font-bold uppercase tracking-widest opacity-95">${theme.weatherText}</div>
                 </div>
-                <div id="weather-card-footer" class="relative z-10 flex justify-end mt-auto pt-4" data-quiz-class="${state.get('globalSelectedClassId') || ''}">
+                <div id="weather-card-footer" class="absolute bottom-4 right-4 z-10" data-quiz-class="${state.get('globalSelectedClassId') || ''}">
                 </div>
             </div>
 
@@ -895,14 +895,14 @@ async function injectQuizButton() {
             );
             const questionCount = quiz?.questions?.length || '?';
 
-            footer.innerHTML = `<button class="quiz-week-btn" id="quiz-week-trigger-btn" title="Quiz of the Week"><i class="fas fa-question"></i></button>`;
+            footer.innerHTML = `<div class="quiz-week-btn-wrap"><button class="quiz-week-btn" id="quiz-week-trigger-btn" title="Quiz of the Week"><i class="fas fa-question"></i></button></div>`;
 
             document.getElementById('quiz-week-trigger-btn')?.addEventListener('click', () => {
                 import('../ui/modals.js').then(m => m.openQuizModal(classId));
             });
         } else if (quizState === 'completed') {
             // Show completed state with results button
-            footer.innerHTML = `<button class="quiz-week-btn quiz-btn-completed" id="quiz-week-trigger-btn" title="View Quiz Results"><i class="fas fa-check"></i></button>`;
+            footer.innerHTML = `<div class="quiz-week-btn-wrap"><button class="quiz-week-btn quiz-btn-completed" id="quiz-week-trigger-btn" title="View Quiz Results"><i class="fas fa-check"></i></button></div>`;
 
             document.getElementById('quiz-week-trigger-btn')?.addEventListener('click', () => {
                 import('../ui/modals.js').then(m => m.openQuizModal(classId));

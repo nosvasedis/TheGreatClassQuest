@@ -922,9 +922,25 @@
 }
 
 /* Quiz Week Button — compact glass pill */
+@keyframes quiz-btn-enter {
+    0%   { opacity: 0; transform: scale(0.2) rotate(-40deg); }
+    55%  { opacity: 1; transform: scale(1.2) rotate(10deg); }
+    75%  { transform: scale(0.9) rotate(-5deg); }
+    100% { opacity: 1; transform: scale(1) rotate(0deg); }
+}
 @keyframes quiz-btn-float {
-    0%, 100% { transform: translateY(0);    box-shadow: 0 2px 8px rgba(0,0,0,0.18), 0 0 0 0 rgba(255,255,255,0.3); }
-    50%       { transform: translateY(-4px); box-shadow: 0 6px 18px rgba(0,0,0,0.22), 0 0 0 3px rgba(255,255,255,0.15); }
+    0%, 100% { transform: translateY(0); }
+    50%       { transform: translateY(-5px); }
+}
+/* Wrapper owns the once-only entrance; button owns the infinite float */
+.quiz-week-btn-wrap {
+    display: inline-flex;
+    animation: quiz-btn-enter 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+    filter: drop-shadow(0 2px 7px rgba(0,0,0,0.22));
+    transition: filter 0.22s ease;
+}
+.quiz-week-btn-wrap:hover {
+    filter: drop-shadow(0 4px 16px rgba(0,0,0,0.32));
 }
 .quiz-week-btn {
     width: 30px;
@@ -940,20 +956,19 @@
     cursor: pointer;
     backdrop-filter: blur(6px);
     -webkit-backdrop-filter: blur(6px);
-    animation: quiz-btn-float 3s ease-in-out infinite;
-    transition: transform 0.22s cubic-bezier(0.34, 1.56, 0.64, 1),
-                box-shadow 0.22s ease,
-                background 0.22s ease;
+    animation: quiz-btn-float 3s ease-in-out 0.65s infinite;
     text-shadow: 0 1px 4px rgba(0,0,0,0.25);
+    transition: background 0.22s ease, box-shadow 0.22s ease;
 }
 .quiz-week-btn:hover {
-    animation-play-state: paused;
-    transform: scale(1.25);
-    background: linear-gradient(145deg, rgba(255,255,255,0.45) 0%, rgba(255,255,255,0.25) 100%);
-    box-shadow: 0 4px 18px rgba(0,0,0,0.22), 0 0 0 4px rgba(255,255,255,0.2);
+    animation: none;
+    transform: scale(1.28);
+    background: linear-gradient(145deg, rgba(255,255,255,0.48) 0%, rgba(255,255,255,0.26) 100%);
+    box-shadow: 0 0 0 4px rgba(255,255,255,0.22);
 }
 .quiz-week-btn:active {
-    transform: scale(0.9);
+    animation: none;
+    transform: scale(0.88);
 }
 .quiz-btn-completed {
     background: linear-gradient(145deg, rgba(167,243,208,0.35) 0%, rgba(52,211,153,0.22) 100%);

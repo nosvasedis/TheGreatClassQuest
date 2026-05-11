@@ -22,6 +22,7 @@ import { showToast } from '../../ui/effects.js';
 import * as utils from '../../utils.js';
 import { getTodayDateString, getAgeGroupForLeague, compressImageBase64 } from '../../utils.js';
 import { callGeminiApi, callGeminiApiDetailed, callCloudflareAiImageApi } from '../../api.js';
+import { getGuildLeaderboardData } from '../../features/guildScoring.js';
 import { syncQuestAssignmentToParentHomework } from '../../utils/adminRuntime.js';
 
 const ADVENTURE_LOG_AI_RETRY_DELAYS_MS = [30000, 90000, 240000];
@@ -694,18 +695,16 @@ async function handleAILogAdventure(classId, classData) {
     const powerUpContext = pathfinderUsedToday ? "A Pathfinder's Map was used today." : '';
 
     // Guild standings — find the leading guild among guilds present in this class
-    const allGuildScores = state.get('allGuildScores') || {};
-    const classGuildIds = [...new Set((state.get('allStudents') || []).filter(s => s.classId === classId).map(s => s.guildId).filter(Boolean))];
-    const classGuildScores = classGuildIds
-        .map(gid => ({ guildId: gid, ...(allGuildScores[gid] || {}) }))
-        .filter(g => g.guildName)
-        .sort((a, b) => (b.monthlyGlory || 0) - (a.monthlyGlory || 0));
+    // Use getGuildLeaderboardData() which ranks by composite Guild Power (glory + momentum + activity)
+    const classGuildIds = new Set((state.get('allStudents') || []).filter(s => s.classId === classId).map(s => s.guildId).filter(Boolean));
+    const classGuildScores = getGuildLeaderboardData().filter(g => classGuildIds.has(g.guildId));
+    // Already sorted by guildPower desc from getGuildLeaderboardData()
     let guildContext = '';
     if (classGuildScores.length >= 2) {
         const leader = classGuildScores[0];
         const runnerUp = classGuildScores[1];
-        const gap = (leader.monthlyGlory || 0) - (runnerUp.monthlyGlory || 0);
-        guildContext = `${leader.guildName} leads the guild standings this month (${leader.monthlyGlory || 0} glory, ${gap} ahead of ${runnerUp.guildName}).`;
+        const gap = Math.round((leader.guildPower || 0) - (runnerUp.guildPower || 0));
+        guildContext = `${leader.guildName} leads the guild standings (Guild Power ${leader.guildPower || 0}, ${gap} ahead of ${runnerUp.guildName}).`;
     } else if (classGuildScores.length === 1) {
         guildContext = `${classGuildScores[0].guildName} is the only guild active this month.`;
     }

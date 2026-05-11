@@ -68,7 +68,6 @@ export const guildsTabHTML = `
                                 aria-controls="fortune-ledger-panel">
                             <span class="guild-fortune-ledger-section__toggle-text">
                                 <h3 id="fortune-ledger-heading" class="guild-fortune-ledger-section__title guild-fortune-ledger-section__title--toggle font-title">Fortune Ledger</h3>
-                                <p class="guild-fortune-ledger-section__toggle-lede">Weekly wheel results for the selected class.</p>
                                 <p id="fortune-ledger-bar-meta" class="guild-fortune-ledger-section__toggle-meta"></p>
                             </span>
                             <span class="guild-fortune-ledger-section__toggle-chev" aria-hidden="true"><i class="fa-solid fa-chevron-down"></i></span>

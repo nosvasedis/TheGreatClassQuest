@@ -38,16 +38,6 @@ export async function shouldShowQuizButton(classId) {
         return quiz.weekKey === currentWeek ? 'generating' : 'no_quiz';
     }
 
-    // Check if today is the class's first scheduled day of the week
-    if (!isFirstLessonDay(classId)) {
-        return 'not_first_lesson';
-    }
-
-    // Check if we're within the class's lesson time window
-    if (!isWithinLessonTime(classId)) {
-        return 'outside_time';
-    }
-
     // Check that we have students
     const students = state.get('allStudents')?.filter(s => s.classId === classId) || [];
     if (students.length === 0) {
@@ -64,9 +54,6 @@ export function getQuizButtonState(classId) {
     const classes = state.get('allSchoolClasses') || [];
     const classData = classes.find(c => c.id === classId);
     if (!classData) return null;
-
-    if (!isFirstLessonDay(classId)) return null;
-    if (!isWithinLessonTime(classId)) return null;
 
     const students = state.get('allStudents')?.filter(s => s.classId === classId) || [];
     if (students.length === 0) return null;

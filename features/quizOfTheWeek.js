@@ -1,6 +1,6 @@
 import * as state from '../state.js';
 import * as utils from '../utils.js';
-import { getISOWeekKey } from '../features/guildScoring.js';
+import { getISOWeekKey, getTargetWeekKey } from '../features/guildScoring.js';
 import { canUseFeature } from '../utils/subscription.js';
 import {
     getQuizForClass,
@@ -21,7 +21,7 @@ export async function shouldShowQuizButton(classId) {
     if (!canUseFeature('quizOfTheWeek')) return false;
 
     const quiz = await getQuizForClass(classId);
-    const currentWeek = getISOWeekKey(new Date());
+    const currentWeek = getTargetWeekKey();
 
     // No quiz at all for this week → don't show
     if (!quiz) {

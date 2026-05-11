@@ -1,7 +1,7 @@
 import { db, doc, setDoc, getDoc, getDocs, collection, writeBatch, serverTimestamp, increment, arrayUnion, runTransaction, where, query, deleteDoc } from '../../firebase.js';
 import * as state from '../../state.js';
 import { getTodayDateString } from '../../utils.js';
-import { getISOWeekKey } from '../../features/guildScoring.js';
+import { getISOWeekKey, getTargetWeekKey } from '../../features/guildScoring.js';
 import { callGeminiApi, extractJsonFromAiText, callCloudflareAiImageApi } from '../../api.js';
 import { applyClassQuestBonusDelta } from './fortuneWheelEffects.js';
 import { adjustGuildGlory, applyGloryModifier } from './guilds.js';
@@ -11,7 +11,7 @@ import { showToast, showPraiseToast } from '../../ui/effects.js';
 const PUBLIC_DATA_PATH = 'artifacts/great-class-quest/public/data';
 
 function weekKey() {
-    return getISOWeekKey(new Date());
+    return getTargetWeekKey();
 }
 
 function quizDocId(classId) {

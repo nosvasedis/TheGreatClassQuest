@@ -26,6 +26,22 @@ export function getISOWeekKey(d = new Date()) {
     return `${date.getUTCFullYear()}-W${String(weekNo).padStart(2, '0')}`;
 }
 
+/**
+ * Returns the ISO week key that quiz work done "now" should target.
+ * Mon–Fri → current ISO week (quiz is for this week's lessons).
+ * Sat–Sun → next ISO week (quiz is being prepared over the weekend
+ *           for next week's first lesson day).
+ */
+export function getTargetWeekKey(d = new Date()) {
+    const day = d.getDay(); // 0 = Sunday, 6 = Saturday
+    if (day === 0 || day === 6) {
+        const next = new Date(d);
+        next.setDate(d.getDate() + (day === 6 ? 2 : 1)); // Sat+2 or Sun+1 → Monday
+        return getISOWeekKey(next);
+    }
+    return getISOWeekKey(d);
+}
+
 /** Get ISO Monday date string for the start of this week. */
 function getISOWeekMonday(d = new Date()) {
     const date = new Date(d);

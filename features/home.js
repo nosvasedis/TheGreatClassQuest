@@ -895,27 +895,14 @@ async function injectQuizButton() {
             );
             const questionCount = quiz?.questions?.length || '?';
 
-            footer.innerHTML = `
-                <div class="quiz-week-btn-wrap">
-                    <button class="quiz-week-btn bubbly-button" id="quiz-week-trigger-btn" title="Open Quiz of the Week">
-                        <i class="fas fa-circle-question"></i>
-                    </button>
-                    <span class="quiz-week-btn-label">Quiz of<br/>the Week</span>
-                    <span class="quiz-week-btn-badge">${questionCount}</span>
-                </div>`;
+            footer.innerHTML = `<button class="quiz-week-btn" id="quiz-week-trigger-btn" title="Quiz of the Week"><i class="fas fa-question"></i></button>`;
 
             document.getElementById('quiz-week-trigger-btn')?.addEventListener('click', () => {
                 import('../ui/modals.js').then(m => m.openQuizModal(classId));
             });
         } else if (quizState === 'completed') {
             // Show completed state with results button
-            footer.innerHTML = `
-                <div class="quiz-week-btn-wrap">
-                    <button class="quiz-week-btn quiz-btn-completed bubbly-button" id="quiz-week-trigger-btn" title="View Quiz Results">
-                        <i class="fas fa-circle-check"></i>
-                    </button>
-                    <span class="quiz-week-btn-label">Results</span>
-                </div>`;
+            footer.innerHTML = `<button class="quiz-week-btn quiz-btn-completed" id="quiz-week-trigger-btn" title="View Quiz Results"><i class="fas fa-check"></i></button>`;
 
             document.getElementById('quiz-week-trigger-btn')?.addEventListener('click', () => {
                 import('../ui/modals.js').then(m => m.openQuizModal(classId));

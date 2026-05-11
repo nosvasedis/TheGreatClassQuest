@@ -150,11 +150,21 @@ function getEarliestAvailableDayThisWeek(classData) {
 function isWithinLessonTime(classId) {
     const classes = state.get('allSchoolClasses') || [];
     const classData = classes.find(c => c.id === classId);
-    if (!classData || !classData.timeStart || !classData.timeEnd) return false;
+    if (!classData) return false;
+
+    // Older classes may not have explicit times yet; treat as whole-day eligibility.
+    if (!classData.timeStart && !classData.timeEnd) return true;
+
+    const startMinutes = utils.parseClockToMinutes(classData.timeStart);
+    const endMinutes = utils.parseClockToMinutes(classData.timeEnd);
+    if (startMinutes == null || endMinutes == null) {
+        // Be permissive for malformed legacy time strings instead of hiding the button.
+        return true;
+    }
 
     const now = new Date();
-    const currentTime = now.toTimeString().slice(0, 5);
-    return currentTime >= classData.timeStart && currentTime <= classData.timeEnd;
+    const currentMinutes = (now.getHours() * 60) + now.getMinutes();
+    return currentMinutes >= startMinutes && currentMinutes <= endMinutes;
 }
 
 // =============================================================================

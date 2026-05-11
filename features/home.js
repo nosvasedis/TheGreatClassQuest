@@ -679,13 +679,8 @@ function resolveActiveHomeLeague() {
         state.get('teacherSettings')?.schoolYearSettings?.classEndDates || {}
     );
     const myClassIds = new Set((state.get('allTeachersClasses') || []).map(c => c.id));
-    const currentTime = new Date().toTimeString().slice(0, 5);
     const activeNow = todaysClasses.find(c =>
-        myClassIds.has(c.id) &&
-        c.timeStart &&
-        c.timeEnd &&
-        currentTime >= c.timeStart &&
-        currentTime <= c.timeEnd
+        myClassIds.has(c.id) && utils.isNowInClassWindow(c.timeStart, c.timeEnd)
     ) || todaysClasses.find(c => myClassIds.has(c.id));
     if (activeNow?.questLevel) return activeNow.questLevel;
 
@@ -837,8 +832,6 @@ function startHomeSmartLogic() {
     if (homeInterval) clearInterval(homeInterval);
 
     const checkLogic = () => {
-        const now = new Date();
-        const currentTime = now.toTimeString().slice(0, 5);
         const todayStr = utils.getTodayDateString();
 
         const classEndDates = state.get('teacherSettings')?.schoolYearSettings?.classEndDates || {};
@@ -846,7 +839,7 @@ function startHomeSmartLogic() {
         const myClasses = state.get('allTeachersClasses');
         const myTodaysClasses = todaysClasses.filter(c => myClasses.some(mc => mc.id === c.id));
 
-        const currentActiveLesson = myTodaysClasses.find(c => c.timeStart && c.timeEnd && currentTime >= c.timeStart && currentTime <= c.timeEnd);
+        const currentActiveLesson = myTodaysClasses.find(c => utils.isNowInClassWindow(c.timeStart, c.timeEnd));
 
         if (currentActiveLesson && state.get('classFollowSchedule')) {
             const currentSelectedId = state.get('globalSelectedClassId');
@@ -867,14 +860,12 @@ function startHomeSmartLogic() {
 
 /** One-shot: apply schedule-based class if `classFollowSchedule` and a lesson is in session. */
 export function runScheduleBasedClassSyncOnce() {
-    const now = new Date();
-    const currentTime = now.toTimeString().slice(0, 5);
     const todayStr = utils.getTodayDateString();
     const classEndDates = state.get('teacherSettings')?.schoolYearSettings?.classEndDates || {};
     const todaysClasses = utils.getClassesOnDay(todayStr, state.get('allSchoolClasses'), state.get('allScheduleOverrides'), classEndDates);
     const myClasses = state.get('allTeachersClasses');
     const myTodaysClasses = todaysClasses.filter(c => myClasses.some(mc => mc.id === c.id));
-    const currentActiveLesson = myTodaysClasses.find(c => c.timeStart && c.timeEnd && currentTime >= c.timeStart && currentTime <= c.timeEnd);
+    const currentActiveLesson = myTodaysClasses.find(c => utils.isNowInClassWindow(c.timeStart, c.timeEnd));
     if (currentActiveLesson && state.get('classFollowSchedule')) {
         const currentSelectedId = state.get('globalSelectedClassId');
         if (currentSelectedId !== currentActiveLesson.id) {

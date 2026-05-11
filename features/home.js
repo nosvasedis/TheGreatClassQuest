@@ -635,7 +635,7 @@ function getLayout(name, theme, selector, row2, row3) {
                     <div class="text-7xl font-title">${theme.temp}</div>
                     <div class="text-2xl font-bold uppercase tracking-widest opacity-95">${theme.weatherText}</div>
                 </div>
-                <div id="weather-card-footer" class="relative z-10 text-right mt-auto pt-4" data-quiz-class="${state.get('globalSelectedClassId') || ''}">
+                <div id="weather-card-footer" class="relative z-10 flex justify-end mt-auto pt-4" data-quiz-class="${state.get('globalSelectedClassId') || ''}">
                 </div>
             </div>
 

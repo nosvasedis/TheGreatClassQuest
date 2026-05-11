@@ -566,16 +566,12 @@
     padding: 3px 2px 4px;
 }
 
-.hc-lb-card-rise--podium-1 {
-    filter: drop-shadow(0 0 16px rgba(252, 211, 77, 0.38)) drop-shadow(0 0 36px rgba(245, 158, 11, 0.2));
-}
-
-.hc-lb-card-rise--podium-2 {
-    filter: drop-shadow(0 0 14px rgba(226, 232, 240, 0.65)) drop-shadow(0 0 32px rgba(148, 163, 184, 0.28));
-}
-
+/* Podium wrapper drop-shadow filters removed — they composited the entire card+sparkles
+   subtree on every frame. The cards' own ::before animated box-shadow provides the glow. */
+.hc-lb-card-rise--podium-1,
+.hc-lb-card-rise--podium-2,
 .hc-lb-card-rise--podium-3 {
-    filter: drop-shadow(0 0 14px rgba(254, 215, 170, 0.45)) drop-shadow(0 0 32px rgba(251, 146, 60, 0.24));
+    isolation: isolate;
 }
 
 #student-leaderboard-list .student-leaderboard-card.hc-lb-card {
@@ -601,8 +597,9 @@
         transform 0.35s cubic-bezier(0.22, 1, 0.36, 1),
         box-shadow 0.35s cubic-bezier(0.22, 1, 0.36, 1),
         border-color 0.25s ease;
-    animation: hc-lb-float 6.5s ease-in-out infinite;
-    animation-delay: calc(var(--tab-rise-delay, 0ms) * 0.02);
+    /* Float removed from base: only podium cards animate via their own rule.
+       Eliminates ~47 continuous GPU-layer animations during scroll. */
+    will-change: transform;
 }
 
 #student-leaderboard-list .student-leaderboard-card.hc-lb-card:hover {
@@ -622,6 +619,7 @@
     border-style: solid;
     border-color: transparent;
     isolation: isolate;
+    will-change: transform, box-shadow, border-color;
     animation-delay: calc(var(--tab-rise-delay, 0ms) * 0.02), calc(var(--tab-rise-delay, 0ms) * 0.02), 0s;
 }
 
@@ -762,7 +760,8 @@
 .hc-lb-card__blob {
     position: absolute;
     border-radius: 50%;
-    filter: blur(36px);
+    /* filter:blur() removed — it forced a compositor layer per blob (100 layers for 50 cards).
+       Soft radial gradient falloff below achieves the same visual without GPU overhead. */
     opacity: 0.28;
     pointer-events: none;
     z-index: 0;
@@ -775,49 +774,56 @@
 }
 
 .hc-lb-card__blob--a {
-    width: 55%;
-    height: 70%;
-    top: -30%;
-    right: -12%;
-    background: radial-gradient(circle, rgba(226, 232, 240, 0.45) 0%, rgba(248, 250, 252, 0.2) 55%, transparent 72%);
+    width: 70%;
+    height: 90%;
+    top: -38%;
+    right: -18%;
+    /* Softer falloff replaces blur — gradient fades to transparent well before edge */
+    background: radial-gradient(circle, rgba(226, 232, 240, 0.22) 0%, rgba(248, 250, 252, 0.08) 38%, transparent 60%);
 }
 
 .hc-lb-card__blob--b {
-    width: 45%;
-    height: 55%;
-    bottom: -28%;
-    left: -8%;
-    background: radial-gradient(circle, rgba(241, 245, 249, 0.55) 0%, transparent 70%);
+    width: 58%;
+    height: 72%;
+    bottom: -36%;
+    left: -14%;
+    background: radial-gradient(circle, rgba(241, 245, 249, 0.26) 0%, rgba(241, 245, 249, 0.06) 42%, transparent 62%);
 }
 
 .hc-lb-card--gold .hc-lb-card__blob--a {
-    background: radial-gradient(circle, rgba(252, 211, 77, 0.65) 0%, rgba(245, 158, 11, 0.35) 45%, transparent 72%);
+    background: radial-gradient(circle, rgba(252, 211, 77, 0.42) 0%, rgba(245, 158, 11, 0.18) 38%, transparent 62%);
     animation: hc-lb-blob-drift-gold-a 7s ease-in-out infinite;
+    will-change: transform, opacity;
 }
 
 .hc-lb-card--gold .hc-lb-card__blob--b {
-    background: radial-gradient(circle, rgba(251, 191, 36, 0.4) 0%, rgba(180, 83, 9, 0.22) 55%, transparent 70%);
+    background: radial-gradient(circle, rgba(251, 191, 36, 0.28) 0%, rgba(180, 83, 9, 0.1) 42%, transparent 62%);
     animation: hc-lb-blob-drift-gold-b 8.2s ease-in-out infinite;
+    will-change: transform, opacity;
 }
 
 .hc-lb-card--silver .hc-lb-card__blob--a {
-    background: radial-gradient(circle, rgba(203, 213, 225, 0.7) 0%, rgba(148, 163, 184, 0.38) 48%, transparent 72%);
+    background: radial-gradient(circle, rgba(203, 213, 225, 0.44) 0%, rgba(148, 163, 184, 0.18) 40%, transparent 62%);
     animation: hc-lb-blob-drift-silver-a 7.6s ease-in-out infinite;
+    will-change: transform, opacity;
 }
 
 .hc-lb-card--silver .hc-lb-card__blob--b {
-    background: radial-gradient(circle, rgba(148, 163, 184, 0.45) 0%, rgba(71, 85, 105, 0.22) 52%, transparent 70%);
+    background: radial-gradient(circle, rgba(148, 163, 184, 0.3) 0%, rgba(71, 85, 105, 0.1) 42%, transparent 62%);
     animation: hc-lb-blob-drift-silver-b 8.8s ease-in-out infinite;
+    will-change: transform, opacity;
 }
 
 .hc-lb-card--bronze .hc-lb-card__blob--a {
-    background: radial-gradient(circle, rgba(253, 186, 116, 0.62) 0%, rgba(234, 88, 12, 0.3) 48%, transparent 72%);
+    background: radial-gradient(circle, rgba(253, 186, 116, 0.4) 0%, rgba(234, 88, 12, 0.14) 40%, transparent 62%);
     animation: hc-lb-blob-drift-bronze-a 7.3s ease-in-out infinite;
+    will-change: transform, opacity;
 }
 
 .hc-lb-card--bronze .hc-lb-card__blob--b {
-    background: radial-gradient(circle, rgba(194, 65, 12, 0.38) 0%, rgba(251, 146, 60, 0.28) 52%, transparent 70%);
+    background: radial-gradient(circle, rgba(194, 65, 12, 0.24) 0%, rgba(251, 146, 60, 0.12) 42%, transparent 62%);
     animation: hc-lb-blob-drift-bronze-b 8.5s ease-in-out infinite;
+    will-change: transform, opacity;
 }
 
 .hc-lb-card__shine {
@@ -837,8 +843,9 @@
     width: 40%;
     height: 100%;
     background: linear-gradient(105deg, transparent, rgba(255, 255, 255, 0.55), transparent);
-    animation: hc-lb-shine 5.5s ease-in-out infinite;
-    animation-delay: calc(var(--tab-rise-delay, 0ms) * 0.015);
+    /* Shine disabled on non-podium cards — podium overrides below re-enable it.
+       Eliminates ~47 continuous transform animations during scroll. */
+    animation: none;
 }
 
 .hc-lb-card--gold .hc-lb-card__shine::after {
@@ -1119,7 +1126,7 @@
     text-transform: uppercase;
     border-width: 1px !important;
     box-shadow: 0 2px 6px rgba(0, 0, 0, 0.06) !important;
-    backdrop-filter: blur(6px);
+    /* backdrop-filter:blur removed — creates a compositor layer per pill (many per card × 50 cards) */
 }
 
 .hc-lb-score-stack {
@@ -1486,7 +1493,7 @@
     .hc-lb-card-rise--podium-1,
     .hc-lb-card-rise--podium-2,
     .hc-lb-card-rise--podium-3 {
-        filter: none;
+        /* filter already removed; isolation kept */
         padding: 0;
     }
     #student-leaderboard-list .student-leaderboard-card.hc-lb-card:hover,

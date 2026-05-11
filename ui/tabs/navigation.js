@@ -73,6 +73,22 @@ if (typeof window !== 'undefined') {
     window.addEventListener('gcq-subscription-updated', updateBottomNavGateState);
 }
 
+// --- Award tab scroll-pause: freeze all card animations while the user scrolls ---
+// Uses a debounce to re-enable animations ~150 ms after scrolling stops.
+if (typeof window !== 'undefined') {
+    let _awardScrollPauseTimer = null;
+    window.addEventListener('scroll', () => {
+        const tab = document.getElementById('award-stars-tab');
+        if (!tab || tab.classList.contains('hidden')) return;
+        tab.classList.add('award-scroll-pause');
+        if (_awardScrollPauseTimer !== null) clearTimeout(_awardScrollPauseTimer);
+        _awardScrollPauseTimer = setTimeout(() => {
+            _awardScrollPauseTimer = null;
+            tab.classList.remove('award-scroll-pause');
+        }, 150);
+    }, { passive: true });
+}
+
 /** Delay before immersive Award sky (ms), after navigating onto the tab. */
 const AWARD_IMMERSIVE_SKY_DELAY_MS = 1500;
 

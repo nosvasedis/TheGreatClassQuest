@@ -358,12 +358,33 @@ export async function distributeQuizRewards(classId, results) {
         const rewardedStudents = [];
         const awardedArtifacts = [];
 
+        // Firestore transactions require ALL reads to be executed before ALL writes.
+        // We collect refs + rolls outside then do a two-pass: reads first, then writes.
         await runTransaction(db, async (transaction) => {
-            for (const studentId of correctStudentIds) {
-                const scoreRef = doc(db, `${PUBLIC_DATA_PATH}/student_scores`, studentId);
-                const scoreSnap = await transaction.get(scoreRef);
+            // ── PASS 1: All reads ──────────────────────────────────────────────────
+            const correctReads = await Promise.all(
+                correctStudentIds.map(async (studentId) => {
+                    const scoreRef = doc(db, `${PUBLIC_DATA_PATH}/student_scores`, studentId);
+                    const scoreSnap = await transaction.get(scoreRef);
+                    return { studentId, scoreRef, scoreSnap };
+                })
+            );
+
+            // Heroic participation reads (only students not already in correct list)
+            const heroicParticipantIds = tier === 'heroic'
+                ? allParticipatingIds.filter(id => !correctStudentIds.includes(id))
+                : [];
+            const heroicReads = await Promise.all(
+                heroicParticipantIds.map(async (studentId) => {
+                    const scoreRef = doc(db, `${PUBLIC_DATA_PATH}/student_scores`, studentId);
+                    const scoreSnap = await transaction.get(scoreRef);
+                    return { studentId, scoreRef, scoreSnap };
+                })
+            );
+
+            // ── PASS 2: All writes ─────────────────────────────────────────────────
+            for (const { studentId, scoreRef, scoreSnap } of correctReads) {
                 const scoreData = scoreSnap.exists() ? scoreSnap.data() : {};
-                const currentGold = typeof scoreData.gold === 'number' ? scoreData.gold : 0;
                 const currentInventory = Array.isArray(scoreData.inventory) ? scoreData.inventory : [];
 
                 let inventoryUpdate = null;
@@ -413,24 +434,19 @@ export async function distributeQuizRewards(classId, results) {
                 rewardedStudents.push(studentId);
             }
 
-            // Heroic tier: participation gold for everyone (no stars)
-            if (tier === 'heroic') {
-                for (const studentId of allParticipatingIds) {
-                    if (correctStudentIds.includes(studentId)) continue;
-                    const scoreRef = doc(db, `${PUBLIC_DATA_PATH}/student_scores`, studentId);
-                    const scoreSnap = await transaction.get(scoreRef);
-                    if (scoreSnap.exists()) {
-                        transaction.update(scoreRef, { gold: increment(rewards.goldPerCorrect) });
-                    } else {
-                        const student = state.get('allStudents')?.find(s => s.id === studentId);
-                        transaction.set(scoreRef, {
-                            totalStars: 0,
-                            monthlyStars: 0,
-                            gold: rewards.goldPerCorrect,
-                            inventory: [],
-                            createdBy: student?.createdBy || { uid: state.get('currentUserId'), name: state.get('currentTeacherName') }
-                        });
-                    }
+            // Heroic tier: participation gold writes
+            for (const { studentId, scoreRef, scoreSnap } of heroicReads) {
+                if (scoreSnap.exists()) {
+                    transaction.update(scoreRef, { gold: increment(rewards.goldPerCorrect) });
+                } else {
+                    const student = state.get('allStudents')?.find(s => s.id === studentId);
+                    transaction.set(scoreRef, {
+                        totalStars: 0,
+                        monthlyStars: 0,
+                        gold: rewards.goldPerCorrect,
+                        inventory: [],
+                        createdBy: student?.createdBy || { uid: state.get('currentUserId'), name: state.get('currentTeacherName') }
+                    });
                 }
             }
         });

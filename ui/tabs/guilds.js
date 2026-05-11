@@ -840,7 +840,7 @@ function _initFortuneLedgerCollapse() {
 
     const apply = (open) => {
         toggle.setAttribute('aria-expanded', open ? 'true' : 'false');
-        panel.hidden = !open;
+        panel.classList.toggle('is-open', open);
         root.dataset.ledgerExpanded = open ? 'true' : 'false';
     };
 

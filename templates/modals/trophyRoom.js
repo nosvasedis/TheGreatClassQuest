@@ -70,71 +70,81 @@ export const trophyRoomModalsHTML = `
 
     <!-- Purchase Success Modal — z-[100] ensures it appears above the shop (z-[80]) -->
     <div id="shop-purchase-modal"
-        class="fixed inset-0 bg-black/60 backdrop-blur-md z-[100] flex items-center justify-center p-4 hidden">
-        <div class="relative bg-gradient-to-br from-indigo-900 via-purple-900 to-indigo-950 rounded-3xl shadow-2xl max-w-sm w-full pop-in overflow-hidden text-center"
-             style="box-shadow: 0 0 0 2px rgba(251,191,36,0.4), 0 32px 80px rgba(0,0,0,0.7), 0 0 60px rgba(251,191,36,0.15);">
+        class="fixed inset-0 bg-black/75 backdrop-blur-xl z-[100] flex items-center justify-center p-4 hidden">
+        <div class="shop-purchase-shell pop-in">
 
-            <!-- Floating particles -->
+            <!-- Outer glow ring -->
+            <div class="shop-purchase-glow" aria-hidden="true"></div>
+
+            <!-- Confetti burst particles -->
+            <div class="shop-purchase-confetti-layer" aria-hidden="true">
+                <span class="spc spc--1"></span>
+                <span class="spc spc--2"></span>
+                <span class="spc spc--3"></span>
+                <span class="spc spc--4"></span>
+                <span class="spc spc--5"></span>
+                <span class="spc spc--6"></span>
+                <span class="spc spc--7"></span>
+                <span class="spc spc--8"></span>
+                <span class="spc spc--9"></span>
+                <span class="spc spc--10"></span>
+            </div>
+
+            <!-- Floating emoji particles -->
             <div class="absolute inset-0 pointer-events-none overflow-hidden">
-                <div class="absolute top-3 left-6 text-3xl animate-bounce" style="animation-delay:0s">✨</div>
-                <div class="absolute top-6 right-8 text-2xl animate-pulse" style="animation-delay:0.3s">🎉</div>
-                <div class="absolute top-[55%] left-3 text-xl animate-bounce" style="animation-delay:0.6s">⭐</div>
-                <div class="absolute top-[60%] right-4 text-2xl animate-pulse" style="animation-delay:0.9s">💫</div>
-                <div class="absolute bottom-16 left-10 text-lg animate-bounce" style="animation-delay:0.2s">🪙</div>
-                <div class="absolute bottom-20 right-6 text-xl animate-pulse" style="animation-delay:0.5s">✨</div>
+                <div class="shop-purchase-float shop-purchase-float--1">✨</div>
+                <div class="shop-purchase-float shop-purchase-float--2">⭐</div>
+                <div class="shop-purchase-float shop-purchase-float--3">💫</div>
+                <div class="shop-purchase-float shop-purchase-float--4">🪙</div>
+                <div class="shop-purchase-float shop-purchase-float--5">🎉</div>
             </div>
 
             <!-- Success Header -->
-            <div class="relative bg-gradient-to-r from-amber-500 via-orange-500 to-amber-600 p-6 overflow-hidden"
-                 style="box-shadow: 0 8px 32px rgba(251,146,60,0.4);">
-                <div class="absolute inset-0 opacity-20"
-                     style="background: radial-gradient(circle at 30% 50%, white 0%, transparent 60%);"></div>
-                <div class="text-7xl mb-2 relative z-10 drop-shadow-lg">🛒</div>
-                <h2 class="font-title text-3xl text-white relative z-10"
-                    style="text-shadow: 0 2px 8px rgba(0,0,0,0.3);">Purchase Complete!</h2>
-                <p class="text-amber-100 text-sm mt-1 relative z-10 opacity-80">Added to your collection</p>
+            <div class="shop-purchase-header">
+                <div class="shop-purchase-header__glow" aria-hidden="true"></div>
+                <div class="shop-purchase-header__icon">🛒</div>
+                <h2 class="shop-purchase-header__title">Purchase Complete!</h2>
+                <p class="shop-purchase-header__sub">Added to your collection</p>
             </div>
 
             <!-- Content -->
-            <div class="p-6 relative z-10">
-                <!-- Item card -->
-                <div id="shop-purchase-item"
-                     class="bg-white/8 rounded-2xl p-4 mb-5 border border-amber-500/25"
-                     style="background: rgba(255,255,255,0.05); box-shadow: inset 0 1px 0 rgba(255,255,255,0.1);">
-                    <div id="shop-purchase-icon" class="text-5xl mb-2 flex justify-center items-center min-h-[60px]">📦</div>
-                    <h3 id="shop-purchase-name" class="font-title text-xl text-amber-300 leading-tight">Item Name</h3>
-                    <p id="shop-purchase-desc" class="text-indigo-300 text-xs mt-1 line-clamp-2 leading-relaxed">Item description</p>
+            <div class="shop-purchase-body">
+
+                <!-- Item card with shine -->
+                <div id="shop-purchase-item" class="shop-purchase-item-card">
+                    <div class="shop-purchase-item-card__shine" aria-hidden="true"></div>
+                    <div id="shop-purchase-icon" class="text-5xl mb-2 flex justify-center items-center min-h-[60px] relative z-10">📦</div>
+                    <h3 id="shop-purchase-name" class="font-title text-xl text-amber-300 leading-tight relative z-10">Item Name</h3>
+                    <p id="shop-purchase-desc" class="text-indigo-300 text-xs mt-1 line-clamp-2 leading-relaxed relative z-10">Item description</p>
                 </div>
 
                 <!-- Cost / Balance row -->
-                <div class="flex justify-center gap-4 mb-5">
-                    <div class="flex-1 bg-red-500/15 border border-red-500/30 rounded-xl p-3 text-center">
-                        <p class="text-red-400 text-[10px] uppercase font-bold tracking-wider mb-0.5">Cost</p>
-                        <p id="shop-purchase-cost" class="font-title text-2xl text-red-300">-10 🪙</p>
+                <div class="flex justify-center gap-3 mb-4">
+                    <div class="shop-purchase-stat shop-purchase-stat--cost">
+                        <p class="shop-purchase-stat__label">Cost</p>
+                        <p id="shop-purchase-cost" class="shop-purchase-stat__value">-10 🪙</p>
                     </div>
-                    <div class="flex-1 bg-emerald-500/15 border border-emerald-500/30 rounded-xl p-3 text-center">
-                        <p class="text-emerald-400 text-[10px] uppercase font-bold tracking-wider mb-0.5">Balance</p>
-                        <p id="shop-purchase-balance" class="font-title text-2xl text-emerald-300">90 🪙</p>
+                    <div class="shop-purchase-stat shop-purchase-stat--balance">
+                        <p class="shop-purchase-stat__label">Gold</p>
+                        <p id="shop-purchase-balance" class="shop-purchase-stat__value">90 🪙</p>
                     </div>
                 </div>
 
                 <!-- Student badge -->
                 <p id="shop-purchase-student"
-                   class="text-indigo-300 text-xs mb-5 flex items-center justify-center gap-2 bg-indigo-800/40 px-3 py-2 rounded-full border border-indigo-600/30 mx-auto w-fit">
+                   class="text-indigo-300 text-xs mb-4 flex items-center justify-center gap-2 bg-indigo-800/40 px-3 py-2 rounded-full border border-indigo-600/30 mx-auto w-fit">
                     <i class="fas fa-user text-indigo-400"></i>
                     <span class="font-bold text-indigo-200">Student Name</span>'s inventory
                 </p>
 
                 <!-- Action buttons -->
-                <div class="flex flex-col gap-3 mb-3">
+                <div class="flex flex-col gap-2.5 mb-3">
                     <button id="shop-purchase-use-btn"
-                        class="hidden bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-white font-bold py-3 px-6 rounded-xl shadow-lg transition-all duration-200 hover:scale-[1.02] active:scale-[0.98]"
-                        style="box-shadow: 0 4px 20px rgba(251,146,60,0.35);">
+                        class="hidden shop-purchase-use-btn">
                         <i class="fas fa-bolt mr-2"></i>Use Now
                     </button>
-                    <button id="shop-purchase-close-btn"
-                        class="w-full bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-white font-bold py-3 px-6 rounded-xl shadow-lg transition-all duration-200 hover:scale-[1.02] active:scale-[0.98]"
-                        style="box-shadow: 0 4px 20px rgba(16,185,129,0.35);">
+                    <button id="shop-purchase-close-btn" class="shop-purchase-close-btn">
+                        <span class="shop-purchase-close-btn__shimmer"></span>
                         <i class="fas fa-check mr-2"></i>Awesome!
                     </button>
                 </div>

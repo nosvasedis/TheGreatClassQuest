@@ -93,6 +93,8 @@ let wallpaperTimerInterval = null;
 let clockInterval = null;
 let escListener = null;
 let isRunning = false;
+let lastWeatherRefresh = 0;
+const WEATHER_REFRESH_MS = 30 * 60 * 1000; // 30 minutes
 
 const HISTORY_KEY = 'gcq_wall_history';
 const SESSION_KEY = 'gcq_wall_session';
@@ -176,6 +178,7 @@ export function toggleWallpaperMode() {
         utils.fetchSolarCycle();
         startWallpaperClock();
 
+        lastWeatherRefresh = Date.now();
         initSeasonalAtmosphere();
         initializeDailyAIContent();
         directorGameLoop();
@@ -201,6 +204,7 @@ export function toggleWallpaperMode() {
             if (wallpaperTimerInterval) clearInterval(wallpaperTimerInterval);
             clearInterval(clockInterval);
             resetWallpaperClockHandAngles();
+            lastWeatherRefresh = 0;
             document.getElementById('wall-floating-area').innerHTML = '';
             document.getElementById('wall-quote-container').style.opacity = '0';
         }, 600);
@@ -280,6 +284,13 @@ function startWallpaperClock() {
         // Ensure base classes are set
         timeEl.className = 'font-title text-[9rem] text-white leading-none transition-colors duration-1000';
         dateEl.className = 'font-title text-4xl text-white/95 mt-2 mb-6 tracking-wide transition-colors duration-1000';
+
+        // Periodic weather refresh every 30 minutes
+        const nowMs = Date.now();
+        if (nowMs - lastWeatherRefresh > WEATHER_REFRESH_MS) {
+            lastWeatherRefresh = nowMs;
+            initSeasonalAtmosphere();
+        }
 
         const currentClass = identifyCurrentClass();
 
@@ -728,7 +739,11 @@ function buildDeckList(classId, capabilities = getWallpaperCapabilities()) {
         'study_tip', 'thought_experiment', 'emoji_riddle', 'math_challenge',
         'greek_nameday_today', 'orthodox_calendar',
         // New cards
-        'guild_leaderboard', 'fun_english_phrase'
+        'guild_leaderboard', 'fun_english_phrase',
+        'word_of_the_day', 'daily_challenge', 'mythology_moment', 'healthy_habit',
+        'book_recommendation', 'language_origin', 'historical_figure_spotlight',
+        'creative_prompt', 'math_magic', 'puzzle_of_the_day', 'eco_hero_tip',
+        'class_mood_check', 'teacher_shoutout', 'science_demo', 'on_this_day_science'
     ];
 
     // --- 2. THE CLASS-SPECIFIC POOL ---
@@ -942,7 +957,21 @@ async function hydrateCard(type, classId, capabilities = getWallpaperCapabilitie
             // New global cards
             case 'guild_leaderboard': content = getGuildLeaderboardCard(); break;
             case 'fun_english_phrase': content = getFunEnglishPhraseCard(questLevel); break;
-
+            case 'word_of_the_day': content = getWordOfTheDayCard(questLevel); break;
+            case 'daily_challenge': content = getDailyChallengeCard(questLevel); break;
+            case 'mythology_moment': content = getMythologyMomentCard(questLevel); break;
+            case 'healthy_habit': content = getHealthyHabitCard(); break;
+            case 'book_recommendation': content = getBookRecommendationCard(questLevel); break;
+            case 'language_origin': content = getLanguageOriginCard(); break;
+            case 'historical_figure_spotlight': content = getHistoricalFigureSpotlightCard(questLevel); break;
+            case 'creative_prompt': content = getCreativePromptCard(questLevel); break;
+            case 'math_magic': content = getMathMagicCard(); break;
+            case 'puzzle_of_the_day': content = getPuzzleOfTheDayCard(questLevel); break;
+            case 'eco_hero_tip': content = getEcoHeroTipCard(); break;
+            case 'class_mood_check': content = getClassMoodCheckCard(); break;
+            case 'teacher_shoutout': content = getTeacherShoutoutCard(); break;
+            case 'science_demo': content = getScienceDemoCard(questLevel); break;
+            case 'on_this_day_science': content = getOnThisDayScienceCard(); break;
 
             default: content = getSchoolPulseCard();
         }
@@ -1400,7 +1429,7 @@ function getClassGoldRankingCard(classId) {
             <div class="badge-pill bg-amber-100 text-amber-800">Gold Treasury Rank</div>
             <div class="text-7xl my-3">💰</div>
             <h3 class="font-title text-4xl text-amber-900">#${rank} Richest Class</h3>
-            <p class="font-title text-3xl text-amber-600">${myData.gold} Gold Coins</p>
+            <p class="font-title text-3xl text-amber-600">${myData.gold} Gold</p>
             ${rank === 1 ? '<p class="text-amber-700 font-bold mt-2">👑 Wealthiest in school!</p>' : `<p class="text-amber-600 font-bold mt-2">${ranked[0].logo} ${ranked[0].name}: ${ranked[0].gold} 💰</p>`}
         </div>`,
         css: 'float-card-gold'
@@ -2249,7 +2278,7 @@ function getNextHolidayCard() {
 function getSchoolPulseCard() {
     const scores = state.get('allStudentScores');
     const totalStars = scores.reduce((a, b) => a + (b.totalStars || 0), 0);
-    return { html: `<div class="text-center"><div class="badge-pill bg-indigo-100 text-indigo-700">School Pulse</div><div class="text-7xl mb-2 animate-pulse">⭐</div><h2 class="text-5xl font-title text-indigo-900">${totalStars}</h2><p class="text-indigo-500 font-bold uppercase">Total Stars Earned</p></div>`, css: 'float-card-indigo' };
+    return { html: `<div class="text-center"><div class="badge-pill bg-indigo-100 text-indigo-700">School Pulse</div><div class="text-7xl mb-2 animate-pulse">⭐</div><h2 class="text-5xl font-title text-indigo-900"><span class="js-count-up" data-target="${totalStars}">0</span></h2><p class="text-indigo-500 font-bold uppercase">Total Stars Earned</p></div>`, css: 'float-card-indigo' };
 }
 
 function getTreasuryCard(classId) {
@@ -2257,7 +2286,7 @@ function getTreasuryCard(classId) {
     const scores = state.get('allStudentScores');
     if (classId) state.get('allStudents').filter(s => s.classId === classId).forEach(s => { const sc = scores.find(x => x.id === s.id); if (sc) total += (sc.gold !== undefined ? sc.gold : sc.totalStars); });
     else total = scores.reduce((sum, s) => sum + (s.gold !== undefined ? s.gold : s.totalStars), 0);
-    return { html: `<div class="text-center"><div class="badge-pill bg-amber-100 text-amber-800">Treasury</div><div class="text-8xl mb-2 animate-bounce-slow">💰</div><h2 class="text-6xl font-title text-amber-900">${total}</h2><p class="text-amber-600 font-bold">Gold Coins</p></div>`, css: 'float-card-gold' };
+    return { html: `<div class="text-center"><div class="badge-pill bg-amber-100 text-amber-800">Treasury</div><div class="text-8xl mb-2 animate-bounce-slow">💰</div><h2 class="text-6xl font-title text-amber-900"><span class="js-count-up" data-target="${total}">0</span></h2><p class="text-amber-600 font-bold">Gold</p></div>`, css: 'float-card-gold' };
 }
 
 function getClassQuestCard(classId) {
@@ -2280,7 +2309,7 @@ function getClassQuestCard(classId) {
     const pct = Math.min(100, Math.round((monthlyStars / goal) * 100));
 
     return {
-        html: `<div class="text-center w-full"><div class="badge-pill bg-blue-100 text-blue-700">Quest Progress</div><div class="text-9xl mb-4 filter drop-shadow-md animate-pulse">${cls.logo}</div><div class="w-full bg-white h-8 rounded-full overflow-hidden border-2 border-blue-200 mb-2 shadow-inner"><div class="bg-gradient-to-r from-blue-400 to-indigo-500 h-full" style="width:${pct}%"></div></div><p class="font-title text-4xl text-blue-900">${pct}% Complete</p>${classQuestBonus > 0 ? `<p class="text-sm font-bold text-indigo-600 mt-2">Includes +${classQuestBonus} Pathfinder bonus</p>` : ''}</div>`,
+        html: `<div class="text-center w-full"><div class="badge-pill bg-blue-100 text-blue-700">Quest Progress</div><div class="text-9xl mb-4 filter drop-shadow-md animate-pulse">${cls.logo}</div><div class="w-full bg-white h-8 rounded-full overflow-hidden border-2 border-blue-200 mb-2 shadow-inner"><div class="bg-gradient-to-r from-blue-400 to-indigo-500 h-full" style="width:${pct}%"></div></div><p class="font-title text-4xl text-blue-900"><span class="js-count-up" data-target="${pct}">0</span>% Complete</p>${classQuestBonus > 0 ? `<p class="text-sm font-bold text-indigo-600 mt-2">Includes +${classQuestBonus} Pathfinder bonus</p>` : ''}</div>`,
         css: 'float-card-blue'
     };
 }
@@ -2312,7 +2341,7 @@ function getTimekeeperCard(classId) {
             <div class="relative w-48 h-48 mx-auto mb-4 flex items-center justify-center bg-white rounded-full shadow-lg"
                  style="background: conic-gradient(#ef4444 ${degree}deg, #f3f4f6 0deg);">
                 <div class="absolute inset-4 bg-white rounded-full flex items-center justify-center flex-col">
-                    <span class="font-title text-6xl text-red-600 leading-none">${diff}</span>
+                    <span class="font-title text-6xl text-red-600 leading-none js-count-up" data-target="${diff}">0</span>
                     <span class="text-xs font-bold text-red-400 uppercase">Mins</span>
                 </div>
             </div>
@@ -2347,7 +2376,7 @@ function getAttendanceStreakCard(classId) {
     if (streak < 2) return null;
 
     return {
-        html: `<div class="text-center"><div class="badge-pill bg-orange-100 text-orange-700">On Fire!</div><div class="text-9xl mb-4 animate-bounce">🔥</div><h3 class="font-title text-6xl text-orange-600">${streak} Lessons</h3><p class="text-orange-800 font-bold">Consecutive "Super Days" (>5 Stars)</p></div>`,
+        html: `<div class="text-center"><div class="badge-pill bg-orange-100 text-orange-700">On Fire!</div><div class="text-9xl mb-4 animate-bounce">🔥</div><h3 class="font-title text-6xl text-orange-600"><span class="js-count-up" data-target="${streak}">0</span> Lessons</h3><p class="text-orange-800 font-bold">Consecutive "Super Days" (>5 Stars)</p></div>`,
         css: 'float-card-orange'
     };
 }
@@ -2408,7 +2437,7 @@ function getSchoolGoldLeaderCard() {
     });
     if (!topClass) return null;
     return {
-        html: `<div class="text-center"><div class="badge-pill bg-amber-100 text-amber-800">Richest Realm</div><div class="text-7xl mb-2">💰</div><h3 class="font-title text-4xl text-amber-900">${topClass.name}</h3><p class="text-amber-700 text-xl font-bold">${maxGold} Gold Coins</p></div>`,
+        html: `<div class="text-center"><div class="badge-pill bg-amber-100 text-amber-800">Richest Realm</div><div class="text-7xl mb-2">💰</div><h3 class="font-title text-4xl text-amber-900">${topClass.name}</h3><p class="text-amber-700 text-xl font-bold"><span class="js-count-up" data-target="${maxGold}">0</span> Gold</p></div>`,
         css: 'float-card-gold'
     };
 }
@@ -2424,7 +2453,7 @@ function getSchoolTopStudentCard() {
     if (!student) return null;
 
     return {
-        html: `<div class="text-center"><div class="badge-pill bg-purple-100 text-purple-800">School Champion</div><div class="text-7xl mb-2">👑</div><h3 class="font-title text-4xl text-purple-900">${student.name}</h3><p class="text-purple-700 text-xl font-bold">${topScore.totalStars} Total Stars</p></div>`,
+        html: `<div class="text-center"><div class="badge-pill bg-purple-100 text-purple-800">School Champion</div><div class="text-7xl mb-2">👑</div><h3 class="font-title text-4xl text-purple-900">${student.name}</h3><p class="text-purple-700 text-xl font-bold"><span class="js-count-up" data-target="${topScore.totalStars}">0</span> Total Stars</p></div>`,
         css: 'float-card-purple'
     };
 }
@@ -2458,6 +2487,373 @@ function getSchoolAttendanceCard() {
     };
 }
 
+// ─── 15 NEW CARD FACTORIES (Wallpaper V3) ───────────────────────────────────
+
+function getWordOfTheDayCard(questLevel) {
+    const tier = getLevelTier(questLevel);
+    const pool = {
+        junior: [
+            { word: 'Glimmer', def: 'Shine with a faint, unsteady light.', ex: 'The stars began to glimmer in the dark sky.' },
+            { word: 'Breeze', def: 'A gentle wind.', ex: 'A cool breeze blew through the open window.' },
+            { word: 'Flutter', def: 'To wave or move quickly.', ex: 'The butterfly wings flutter softly.' },
+            { word: 'Munch', def: 'To eat something steadily and often noisily.', ex: 'The rabbit likes to munch on carrots.' },
+            { word: 'Sparkle', def: 'Shine brightly with flashes of light.', ex: 'Her eyes sparkle when she laughs.' }
+        ],
+        mid: [
+            { word: 'Vivid', def: 'Producing powerful feelings or strong, clear images in the mind.', ex: 'She has a vivid imagination.' },
+            { word: 'Calm', def: 'Not showing or feeling nervousness, anger, or other emotions.', ex: 'He remained calm during the test.' },
+            { word: 'Journey', def: 'An act of traveling from one place to another.', ex: 'The long journey finally ended.' },
+            { word: 'Fierce', def: 'Having or displaying an intense or ferocious aggressiveness.', ex: 'The dragon was fierce but noble.' },
+            { word: 'Ancient', def: 'Belonging to the very distant past.', ex: 'We visited an ancient castle.' }
+        ],
+        senior: [
+            { word: 'Ephemeral', def: 'Lasting for a very short time.', ex: 'Fame in the internet age can be ephemeral.' },
+            { word: 'Resilient', def: 'Able to withstand or recover quickly from difficult conditions.', ex: 'She is a resilient student who never gives up.' },
+            { word: 'Serendipity', def: 'The occurrence of events by chance in a happy way.', ex: 'Finding that book was pure serendipity.' },
+            { word: 'Eloquent', def: 'Fluent or persuasive in speaking or writing.', ex: 'He gave an eloquent speech.' },
+            { word: 'Ubiquitous', def: 'Present, appearing, or found everywhere.', ex: 'Smartphones are ubiquitous nowadays.' }
+        ]
+    };
+    const items = pool[tier] || pool.mid;
+    const item = items[Math.floor(Math.random() * items.length)];
+    return {
+        html: `<div class="text-center w-full"><div class="badge-pill bg-blue-100 text-blue-800">Word of the Day</div><div class="text-7xl my-4">📖</div><h3 class="font-title text-5xl text-blue-900 mb-2">${item.word}</h3><p class="text-blue-700 text-lg font-bold mb-3">${item.def}</p><p class="text-blue-600 italic font-serif">"${item.ex}"</p></div>`,
+        css: 'float-card-blue'
+    };
+}
+
+function getDailyChallengeCard(questLevel) {
+    const tier = getLevelTier(questLevel);
+    const challenges = {
+        junior: [
+            'Find 3 things in the room that are blue and say their names in English!',
+            'Draw a monster and describe it using 5 adjectives.',
+            'Sing the alphabet song backwards... or try to!',
+            'Tell a partner about your favourite animal using 3 sentences.'
+        ],
+        mid: [
+            'Write a 5-sentence story that includes the words: dragon, pencil, and surprise.',
+            'Find a classmate and interview them in English for 2 minutes.',
+            'Describe your breakfast this morning using as many adjectives as possible.',
+            'Create a new ending for your favourite fairy tale.'
+        ],
+        senior: [
+            'Debate with a partner: "Is homework necessary?" for 3 minutes in English.',
+            'Write a persuasive paragraph about why reading is important.',
+            'Summarise yesterday\'s lesson in exactly 50 words.',
+            'Invent a new word, define it, and teach it to the class.'
+        ]
+    };
+    const pool = challenges[tier] || challenges.mid;
+    const challenge = pool[Math.floor(Math.random() * pool.length)];
+    return {
+        html: `<div class="text-center w-full"><div class="badge-pill bg-amber-100 text-amber-800">Daily Challenge</div><div class="text-7xl my-4">🎯</div><h3 class="font-title text-3xl text-amber-900 mb-4 leading-snug">"${challenge}"</h3><p class="text-amber-600 font-bold uppercase tracking-widest text-xs">Can you complete it?</p></div>`,
+        css: 'float-card-gold'
+    };
+}
+
+function getMythologyMomentCard(questLevel) {
+    const tier = getLevelTier(questLevel);
+    const myths = {
+        junior: [
+            { title: 'Pegasus', text: 'A magical white horse with wings! He could fly high above the clouds and his hoof stamped created a fresh spring of water.' },
+            { title: 'The Golden Apple', text: 'A shiny apple marked "To the Fairest" caused a big argument between three goddesses. A young prince had to choose who was the most beautiful!' },
+            { title: 'Cyclops', text: 'A giant with one big eye in the middle of his forehead. He lived in a cave and was very strong, but not very clever.' }
+        ],
+        mid: [
+            { title: 'Theseus & the Minotaur', text: 'Theseus entered a maze to defeat the half-man, half-bull Minotaur. Luckily, Princess Ariadne gave him a ball of thread to find his way back out.' },
+            { title: 'Medusa', text: 'Medusa had snakes for hair and turned anyone who looked at her into stone. A brave hero named Perseus defeated her using a shiny shield as a mirror.' },
+            { title: 'Pandora\'s Box', text: 'Pandora was given a box and told never to open it. Curiosity got the better of her, and when she opened it, all the troubles of the world flew out!' }
+        ],
+        senior: [
+            { title: 'The Trojan Horse', text: 'After ten years of war, the Greeks built a giant wooden horse as a "gift." Hidden soldiers inside snuck out at night and opened the city gates. Never trust a gift from your enemy!' },
+            { title: 'The Labours of Heracles', text: 'Heracles had to complete twelve impossible tasks, from slaying a lion with an impenetrable hide to cleaning enormous stables in a single day. Strength and wit together!' },
+            { title: 'Orpheus and Eurydice', text: 'The musician Orpheus journeyed to the underworld to bring back his love. He charmed everyone with his lyre, but looking back too soon cost him everything.' }
+        ]
+    };
+    const pool = myths[tier] || myths.mid;
+    const myth = pool[Math.floor(Math.random() * pool.length)];
+    return {
+        html: `<div class="text-center w-full"><div class="badge-pill bg-purple-100 text-purple-800">Mythology Moment</div><div class="text-6xl my-3">⚔️</div><h3 class="font-title text-4xl text-purple-900 mb-3">${myth.title}</h3><p class="text-purple-700 text-lg leading-relaxed px-2">${myth.text}</p></div>`,
+        css: 'float-card-purple'
+    };
+}
+
+function getHealthyHabitCard() {
+    const tips = [
+        { emoji: '💧', text: 'Drink a glass of water before every lesson to keep your brain sharp!' },
+        { emoji: '👁️', text: 'Every 20 minutes, look at something 20 feet away for 20 seconds. The 20-20-20 rule!' },
+        { emoji: '🧘', text: 'Sit up tall! Imagine a string pulling the top of your head toward the ceiling.' },
+        { emoji: '🍎', text: 'Swap one sugary snack for a fruit today. Your energy levels will thank you!' },
+        { emoji: '🦶', text: 'Take a 2-minute walking break between lessons to boost blood flow to your brain.' },
+        { emoji: '😴', text: 'Aim for 8-10 hours of sleep. Your memory works best when you are well-rested!' },
+        { emoji: '🌞', text: 'Get 10 minutes of daylight today. Vitamin D helps you stay focused and happy.' }
+    ];
+    const tip = tips[Math.floor(Math.random() * tips.length)];
+    return {
+        html: `<div class="text-center w-full"><div class="badge-pill bg-green-100 text-green-800">Healthy Hero</div><div class="text-7xl my-4">${tip.emoji}</div><h3 class="font-title text-3xl text-green-900 mb-4 leading-snug">${tip.text}</h3></div>`,
+        css: 'float-card-green'
+    };
+}
+
+function getBookRecommendationCard(questLevel) {
+    const tier = getLevelTier(questLevel);
+    const books = {
+        junior: [
+            { title: 'The Gruffalo', author: 'Julia Donaldson', why: 'A brave little mouse outsmarts everyone with her clever stories. Great for learning rhymes!' },
+            { title: 'Charlotte\'s Web', author: 'E.B. White', why: 'A spider and a pig become best friends. It teaches kindness and big vocabulary.' },
+            { title: 'The Magic Tree House', author: 'Mary Pope Osborne', why: 'Travel through time and history with Jack and Annie. Adventure on every page!' }
+        ],
+        mid: [
+            { title: 'Harry Potter', author: 'J.K. Rowling', why: 'A world of magic, friendship, and courage. Perfect for expanding imagination and vocabulary.' },
+            { title: 'Percy Jackson', author: 'Rick Riordan', why: 'Greek gods in modern New York! Funny, fast, and full of ancient myths.' },
+            { title: 'Wonder', author: 'R.J. Palacio', why: 'A heartwarming story about acceptance and bravery. Teaches empathy and resilience.' }
+        ],
+        senior: [
+            { title: '1984', author: 'George Orwell', why: 'A powerful classic about language, truth, and freedom. Essential for critical thinking.' },
+            { title: 'The Hobbit', author: 'J.R.R. Tolkien', why: 'An epic journey with rich language and world-building. A masterclass in descriptive writing.' },
+            { title: 'To Kill a Mockingbird', author: 'Harper Lee', why: 'Explores justice and morality through the eyes of a child. A timeless piece of literature.' }
+        ]
+    };
+    const pool = books[tier] || books.mid;
+    const book = pool[Math.floor(Math.random() * pool.length)];
+    return {
+        html: `<div class="text-center w-full"><div class="badge-pill bg-indigo-100 text-indigo-800">Book Nook</div><div class="text-7xl my-3">📚</div><h3 class="font-title text-3xl text-indigo-900 mb-1">"${book.title}"</h3><p class="text-indigo-600 font-bold mb-3">by ${book.author}</p><p class="text-indigo-700 italic font-serif px-2">${book.why}</p></div>`,
+        css: 'float-card-indigo'
+    };
+}
+
+function getLanguageOriginCard() {
+    const origins = [
+        { word: 'Disaster', from: 'Italian', story: 'From "disastro" — meaning "bad star". Ancient people blamed unfortunate events on the position of stars!' },
+        { word: 'Salary', from: 'Latin', story: 'From "salarium" — the money Roman soldiers were paid to buy salt, which was extremely valuable.' },
+        { word: 'Muscle', from: 'Latin', story: 'From "musculus" meaning "little mouse". Romans thought muscles moving under skin looked like mice!' },
+        { word: 'Robot', from: 'Czech', story: 'From "robota" meaning forced labour. It first appeared in a 1920 play about mechanical workers.' },
+        { word: 'Shampoo', from: 'Hindi', story: 'From "chāmpo" — a head massage. It travelled from India to England in the 1700s.' },
+        { word: 'Orange', from: 'Sanskrit', story: 'The fruit gave its name to the colour, not the other way around! The word travelled through Persian and Arabic.' },
+        { word: 'Paradise', from: 'Persian', story: 'From "pairidaēza" meaning "walled garden". It described the perfect, enclosed heaven.' }
+    ];
+    const item = origins[Math.floor(Math.random() * origins.length)];
+    return {
+        html: `<div class="text-center w-full"><div class="badge-pill bg-cyan-100 text-cyan-800">Word Origin</div><div class="text-6xl my-3">🌍</div><h3 class="font-title text-4xl text-cyan-900 mb-2">${item.word}</h3><p class="text-cyan-600 font-bold uppercase tracking-widest text-xs mb-3">From ${item.from}</p><p class="text-cyan-800 text-lg leading-relaxed px-2">${item.story}</p></div>`,
+        css: 'float-card-cyan'
+    };
+}
+
+function getHistoricalFigureSpotlightCard(questLevel) {
+    const tier = getLevelTier(questLevel);
+    const figures = {
+        junior: [
+            { name: 'Marie Curie', emoji: '🔬', fact: 'She was the first woman to win a Nobel Prize and discovered two new elements: polonium and radium!' },
+            { name: 'Leonardo da Vinci', emoji: '🎨', fact: 'He painted the Mona Lisa and also designed flying machines hundreds of years before airplanes existed!' },
+            { name: 'Helen Keller', emoji: '✋', fact: 'She could not see or hear, yet she learned to read, write, and speak, becoming a famous author and activist.' }
+        ],
+        mid: [
+            { name: 'Ada Lovelace', emoji: '💻', fact: 'She wrote the world\'s first computer algorithm in the 1800s — before computers even existed!' },
+            { name: 'Nelson Mandela', emoji: '🕊️', fact: 'He spent 27 years in prison and then became president, choosing forgiveness over revenge.' },
+            { name: 'Amelia Earhart', emoji: '✈️', fact: 'She was the first female aviator to fly solo across the Atlantic Ocean. A true pioneer!' }
+        ],
+        senior: [
+            { name: 'Alan Turing', emoji: '🧠', fact: 'He cracked the Nazi Enigma code and laid the foundations of modern computing and artificial intelligence.' },
+            { name: 'Rosa Parks', emoji: '🚌', fact: 'Her refusal to give up her bus seat became a pivotal moment in the fight against racial segregation.' },
+            { name: 'Nikola Tesla', emoji: '⚡', fact: 'He envisioned wireless communication and renewable energy long before they became reality.' }
+        ]
+    };
+    const pool = figures[tier] || figures.mid;
+    const fig = pool[Math.floor(Math.random() * pool.length)];
+    return {
+        html: `<div class="text-center w-full"><div class="badge-pill bg-red-100 text-red-800">Historical Hero</div><div class="text-7xl my-3">${fig.emoji}</div><h3 class="font-title text-4xl text-red-900 mb-3">${fig.name}</h3><p class="text-red-700 text-lg leading-relaxed px-2">${fig.fact}</p></div>`,
+        css: 'float-card-red'
+    };
+}
+
+function getCreativePromptCard(questLevel) {
+    const tier = getLevelTier(questLevel);
+    const prompts = {
+        junior: [
+            'Draw a house where the roof is made of candy and the windows are giant eyes!',
+            'Write a 4-sentence story about a cat who thinks it is a dog.',
+            'Invent a new colour and describe what it looks and sounds like.',
+            'Draw your teacher as a superhero. What is their superpower?'
+        ],
+        mid: [
+            'Write a diary entry from the perspective of your school backpack.',
+            'Design a board game set inside a volcano. What are the rules?',
+            'Describe a secret door in your classroom. Where does it lead?',
+            'Write a conversation between the Moon and the Sun.'
+        ],
+        senior: [
+            'Write a news article from the year 3025 about a archaeological discovery: a smartphone.',
+            'Describe a world where everyone can read minds. What problems arise?',
+            'Create a villain who is terrifying because they are extremely polite.',
+            'Write the opening paragraph of a mystery novel set in this very classroom.'
+        ]
+    };
+    const pool = prompts[tier] || prompts.mid;
+    const prompt = pool[Math.floor(Math.random() * pool.length)];
+    return {
+        html: `<div class="text-center w-full"><div class="badge-pill bg-pink-100 text-pink-800">Creative Spark</div><div class="text-7xl my-3">🎨</div><h3 class="font-title text-3xl text-pink-900 mb-4 leading-snug">"${prompt}"</h3></div>`,
+        css: 'float-card-pink'
+    };
+}
+
+function getMathMagicCard() {
+    const tricks = [
+        { title: 'The 9 Trick', text: 'Multiply any number by 9, then add the digits of the answer. They always sum to 9! Try 9 × 37 = 333 → 3+3+3 = 9.' },
+        { title: 'The 11 Mirror', text: 'To multiply a 2-digit number by 11, split the digits and put their sum in the middle. 36 × 11 = 3 (3+6) 6 = 396!' },
+        { title: 'Always 37', text: 'Think of a 3-digit number with all the same digits (like 777). Divide it by the sum of its digits. You always get 37!' },
+        { title: 'Finger Multiplication', text: 'To multiply 9 by any number 1-10, hold up both hands. Bend the finger matching the number. The fingers left of the bend are the tens, right are the ones!' },
+        { title: 'The 1089 Trick', text: 'Pick any 3-digit number with digits in decreasing order (like 532). Reverse it (235) and subtract. Reverse the result and add. You always get 1089!' }
+    ];
+    const trick = tricks[Math.floor(Math.random() * tricks.length)];
+    return {
+        html: `<div class="text-center w-full"><div class="badge-pill bg-blue-100 text-blue-800">Math Magic</div><div class="text-7xl my-3">🎩</div><h3 class="font-title text-3xl text-blue-900 mb-3">${trick.title}</h3><p class="text-blue-700 text-lg leading-relaxed px-2">${trick.text}</p></div>`,
+        css: 'float-card-blue'
+    };
+}
+
+function getPuzzleOfTheDayCard(questLevel) {
+    const tier = getLevelTier(questLevel);
+    const puzzles = {
+        junior: [
+            { q: 'I have hands but cannot clap. What am I?', a: 'A clock!' },
+            { q: 'What has keys but can\'t open locks?', a: 'A piano!' },
+            { q: 'The more you take, the more you leave behind. What are they?', a: 'Footsteps!' }
+        ],
+        mid: [
+            { q: 'I speak without a mouth and hear without ears. What am I?', a: 'An echo!' },
+            { q: 'The person who makes it, sells it. The person who buys it, never uses it. What is it?', a: 'A coffin!' },
+            { q: 'What comes once in a minute, twice in a moment, but never in a thousand years?', a: 'The letter M!' }
+        ],
+        senior: [
+            { q: 'I am not alive, but I grow; I don\'t have lungs, but I need air; I don\'t have a mouth, but water kills me. What am I?', a: 'Fire!' },
+            { q: 'The more of this there is, the less you see. What is it?', a: 'Darkness!' },
+            { q: 'What has cities, but no houses; forests, but no trees; water, but no fish?', a: 'A map!' }
+        ]
+    };
+    const pool = puzzles[tier] || puzzles.mid;
+    const puzzle = pool[Math.floor(Math.random() * pool.length)];
+    return {
+        html: `<div class="text-center w-full"><div class="badge-pill bg-purple-100 text-purple-800">Puzzle of the Day</div><div class="text-7xl my-3">🧩</div><h3 class="font-title text-3xl text-purple-900 mb-4 leading-snug">${puzzle.q}</h3><div class="wallpaper-card-answer-blur mt-2"><p class="text-purple-700 text-2xl font-bold bg-white/60 rounded-xl px-4 py-3 border border-purple-200">${puzzle.a}</p></div></div>`,
+        css: 'float-card-purple',
+        timedBlurAnswer: true
+    };
+}
+
+function getEcoHeroTipCard() {
+    const tips = [
+        { emoji: '🌱', text: 'Turn off the tap while brushing your teeth. You can save up to 25 litres of water every day!' },
+        { emoji: '🚲', text: 'Walk or cycle for short trips instead of asking for a car ride. Less pollution, more exercise!' },
+        { emoji: '♻️', text: 'Reuse the back of printed paper for notes before recycling it. Every sheet counts!' },
+        { emoji: '💡', text: 'Switch off lights when you leave a room. It is one of the easiest ways to save energy.' },
+        { emoji: '🌊', text: 'Use a reusable water bottle instead of single-use plastic. One bottle can replace hundreds of cups!' },
+        { emoji: '🌳', text: 'Plant something green — even a small herb on your windowsill helps the planet breathe.' }
+    ];
+    const tip = tips[Math.floor(Math.random() * tips.length)];
+    return {
+        html: `<div class="text-center w-full"><div class="badge-pill bg-green-100 text-green-800">Eco Hero Tip</div><div class="text-7xl my-4">${tip.emoji}</div><h3 class="font-title text-3xl text-green-900 mb-4 leading-snug">${tip.text}</h3></div>`,
+        css: 'float-card-green'
+    };
+}
+
+function getClassMoodCheckCard() {
+    const moods = [
+        { emoji: '🌈', q: 'If your energy today was a weather forecast, what would it be?' },
+        { emoji: '🎭', q: 'Pick an emoji that describes how you feel right now. Can you explain why in one sentence?' },
+        { emoji: '🎵', q: 'If your mood were a song genre right now, would it be pop, classical, rock, or jazz?' },
+        { emoji: '🌟', q: 'Rate your confidence today from 1 to 5 stars. What would make it one star higher?' },
+        { emoji: '🚀', q: 'Are you feeling more like a rocket ready to launch, or a cozy blanket today?' }
+    ];
+    const mood = moods[Math.floor(Math.random() * moods.length)];
+    return {
+        html: `<div class="text-center w-full"><div class="badge-pill bg-teal-100 text-teal-800">Mood Check</div><div class="text-7xl my-4">${mood.emoji}</div><h3 class="font-title text-3xl text-teal-900 mb-4 leading-snug">${mood.q}</h3><p class="text-teal-600 font-bold uppercase tracking-widest text-xs">Share with a partner!</p></div>`,
+        css: 'float-card-teal'
+    };
+}
+
+function getTeacherShoutoutCard() {
+    const shoutouts = [
+        { emoji: '🌟', text: 'Great teachers plant seeds of knowledge that grow forever.' },
+        { emoji: '🔥', text: 'You are not just teaching English — you are shaping futures.' },
+        { emoji: '💡', text: 'The best classrooms have laughter, curiosity, and a teacher who cares.' },
+        { emoji: '🏆', text: 'Every "aha!" moment in your class is a victory worth celebrating.' },
+        { emoji: '🎓', text: 'Teaching is the one profession that creates all other professions.' },
+        { emoji: '✨', text: 'Your patience today will become a student\'s confidence tomorrow.' }
+    ];
+    const item = shoutouts[Math.floor(Math.random() * shoutouts.length)];
+    return {
+        html: `<div class="text-center w-full"><div class="badge-pill bg-orange-100 text-orange-800">Teacher Shoutout</div><div class="text-7xl my-4">${item.emoji}</div><h3 class="font-title text-3xl text-orange-900 mb-4 leading-snug">"${item.text}"</h3></div>`,
+        css: 'float-card-orange'
+    };
+}
+
+function getScienceDemoCard(questLevel) {
+    const tier = getLevelTier(questLevel);
+    const demos = {
+        junior: [
+            { title: 'The Dancing Raisin', text: 'Drop raisins into fizzy water. They sink, then float, then sink again because bubbles stick to them like tiny life jackets!' },
+            { title: 'Invisible Ink', text: 'Write with lemon juice on paper. When you heat it gently, the writing turns brown. Acids react to heat!' },
+            { title: 'Static Butterfly', text: 'Rub a balloon on your hair and hold it over small pieces of paper. They jump up! Static electricity is magic.' }
+        ],
+        mid: [
+            { title: 'The Egg in a Bottle', text: 'Peel a hard-boiled egg. Light a small piece of paper in a bottle, place the egg on top, and watch it get sucked in as the air cools!' },
+            { title: 'Dancing Oobleck', text: 'Mix cornflour and water. It acts like a liquid when you move slowly, but a solid when you hit it. A non-Newtonian fluid!' },
+            { title: 'Rainbow Density', text: 'Layer honey, washing-up liquid, water, and oil in a glass. They separate into layers because of different densities.' }
+        ],
+        senior: [
+            { title: 'The Cartesian Diver', text: 'Fill a bottle with water and add a small floating packet. When you squeeze the bottle, the packet sinks. Pascal\'s principle in action!' },
+            { title: 'Homemade pH Indicator', text: 'Boil red cabbage and use the water to test liquids. Acids turn pink, bases turn green. Chemistry at home!' },
+            { title: 'Balloon Rocket', text: 'Thread a string through a straw, tape a balloon to the straw, and let go. Newton\'s Third Law pushes it forward!' }
+        ]
+    };
+    const pool = demos[tier] || demos.mid;
+    const demo = pool[Math.floor(Math.random() * pool.length)];
+    return {
+        html: `<div class="text-center w-full"><div class="badge-pill bg-cyan-100 text-cyan-800">Science Demo</div><div class="text-6xl my-3">🧪</div><h3 class="font-title text-3xl text-cyan-900 mb-3">${demo.title}</h3><p class="text-cyan-700 text-lg leading-relaxed px-2">${demo.text}</p></div>`,
+        css: 'float-card-cyan'
+    };
+}
+
+function getOnThisDayScienceCard() {
+    const month = new Date().getMonth();
+    const day = new Date().getDate();
+    const seed = month * 31 + day;
+    const events = [
+        { year: '1665', text: 'The first scientific journal, Philosophical Transactions, was published by the Royal Society in London.' },
+        { year: '1879', text: 'Thomas Edison successfully tested the first practical incandescent light bulb.' },
+        { year: '1903', text: 'The Wright brothers achieved the first powered, controlled, and sustained heavier-than-air human flight.' },
+        { year: '1953', text: 'James Watson and Francis Crick discovered the double-helix structure of DNA.' },
+        { year: '1969', text: 'Neil Armstrong became the first human to walk on the Moon.' },
+        { year: '1989', text: 'Tim Berners-Lee invented the World Wide Web, changing how humanity shares information forever.' },
+        { year: '1996', text: 'Dolly the sheep became the first mammal cloned from an adult somatic cell.' },
+        { year: '2012', text: 'The Higgs boson particle was discovered at CERN, confirming how particles acquire mass.' },
+        { year: '1543', text: 'Copernicus published his theory that the Earth revolves around the Sun.' },
+        { year: '1928', text: 'Alexander Fleming discovered penicillin, the world\'s first true antibiotic.' },
+        { year: '1831', text: 'Michael Faraday discovered electromagnetic induction, the foundation of electric generators.' },
+        { year: '1977', text: 'The Voyager 1 spacecraft was launched. It is now the most distant human-made object from Earth.' }
+    ];
+    const idx = seed % events.length;
+    const ev = events[idx];
+    return {
+        html: `<div class="text-center w-full"><div class="badge-pill bg-blue-100 text-blue-800">On This Day in Science</div><div class="text-6xl my-3">🔭</div><h3 class="font-title text-5xl text-blue-900 mb-3">${ev.year}</h3><p class="text-blue-700 text-lg leading-relaxed px-2">${ev.text}</p></div>`,
+        css: 'float-card-blue'
+    };
+}
+
+function animateCounter(el, target, duration = 1200) {
+    const start = performance.now();
+    const from = 0;
+    const tick = (t) => {
+        const elapsed = t - start;
+        const progress = Math.min(elapsed / duration, 1);
+        const ease = 1 - Math.pow(1 - progress, 3);
+        const current = Math.round(from + (target - from) * ease);
+        el.textContent = current.toLocaleString();
+        if (progress < 1) requestAnimationFrame(tick);
+    };
+    requestAnimationFrame(tick);
+}
+
 function spawnCard(container, card) {
     const el = document.createElement('div');
     el.className = `wallpaper-float-card ${card.css} absolute`;
@@ -2479,14 +2875,21 @@ function spawnCard(container, card) {
     el.style.right = pos.right;
 
     el.style.opacity = '0';
-    el.style.transform = 'translateY(50px) scale(0.9)';
 
     container.appendChild(el);
 
     void el.offsetWidth;
 
+    el.style.setProperty('--card-rotate', (Math.random() * 2 - 1) + 'deg');
     el.style.opacity = '1';
-    el.style.transform = 'translateY(0) scale(1) rotate(' + (Math.random() * 2 - 1) + 'deg)';
+    el.classList.add('is-entering');
+
+    // Animate any count-up numbers
+    const counters = el.querySelectorAll('.js-count-up');
+    counters.forEach(counter => {
+        const target = parseInt(counter.dataset.target, 10);
+        if (!isNaN(target)) animateCounter(counter, target);
+    });
 
     if (card.timedBlurAnswer) {
         const answerBlock = el.querySelector('.wallpaper-card-answer-blur');
@@ -2496,7 +2899,8 @@ function spawnCard(container, card) {
                 if (!session) return;
                 const elapsed = Date.now() - session.start;
                 if (elapsed >= BLUR_REVEAL_MS) {
-                    answerBlock.style.filter = 'blur(0)';
+                    answerBlock.classList.add('is-revealed');
+                    clearInterval(el._blurIntervalId);
                     return;
                 }
                 const blurPx = BLUR_MAX_PX * (1 - elapsed / BLUR_REVEAL_MS);
@@ -2594,40 +2998,22 @@ export async function initSeasonalAtmosphere() {
             }
         }
 
-        // 51-67, 80-82: Rain (ADD extra clouds)
+        // 51-67, 80-82: Rain (dedicated overlay handles particles via CSS)
         else if ((weatherCode >= 51 && weatherCode <= 67) || (weatherCode >= 80 && weatherCode <= 82)) {
             wall.classList.add('weather-rainy');
             effectHTML += generateHeavyClouds(15, 0.7); // Darker, denser clouds
-            for (let i = 0; i < 60; i++) {
-                const left = Math.random() * 100;
-                const delay = Math.random() * 2;
-                const duration = 1.5 + Math.random() * 1.0;
-                effectHTML += `<div class="seasonal-particle rain" style="left:${left}%; animation-delay:-${delay}s; animation-duration:${duration}s;"></div>`;
-            }
         }
 
-        // 71-77, 85-86: Snow (ADD extra clouds)
+        // 71-77, 85-86: Snow (dedicated overlay handles particles via CSS)
         else if ((weatherCode >= 71 && weatherCode <= 77) || (weatherCode >= 85 && weatherCode <= 86)) {
             wall.classList.add('weather-snowy');
             effectHTML += generateHeavyClouds(15, 0.7); // White heavy clouds
-            for (let i = 0; i < 40; i++) {
-                const left = Math.random() * 100;
-                const delay = Math.random() * 5;
-                const duration = 10 + Math.random() * 8;
-                effectHTML += `<div class="seasonal-particle snow" style="left:${left}%; animation-delay:-${delay}s; animation-duration:${duration}s;">❄️</div>`;
-            }
         }
 
-        // 95+: Thunderstorm (ADD extra clouds)
+        // 95+: Thunderstorm (dedicated overlay handles rain + flash via CSS)
         else if (weatherCode >= 95) {
             wall.classList.add('weather-stormy');
             effectHTML += generateHeavyClouds(20, 0.9); // Very dense, dark clouds
-            for (let i = 0; i < 100; i++) {
-                const left = Math.random() * 100;
-                const delay = Math.random() * 2;
-                const duration = 1.0 + Math.random() * 0.8;
-                effectHTML += `<div class="seasonal-particle rain" style="left:${left}%; animation-delay:-${delay}s; animation-duration:${duration}s; height: 40px; opacity: 0.7;"></div>`;
-            }
         }
     }
 

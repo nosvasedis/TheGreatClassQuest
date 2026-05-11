@@ -851,7 +851,7 @@ export async function handleManualGoldUpdate() {
             gold: newGold
         });
 
-        showToast('Coin balance updated successfully!', 'success');
+        showToast('Gold updated successfully!', 'success');
 
         // Update the visual pill if visible
         const goldDisplay = document.getElementById(`student-gold-display-${studentId}`);

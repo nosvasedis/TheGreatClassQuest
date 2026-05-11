@@ -63,7 +63,7 @@ export const shopTabHTML = `
                                                 <i class="fas fa-coins"></i>
                                             </div>
                                             <div class="shop-purse-glass__body">
-                                                <span class="shop-purse-glass__label">Balance</span>
+                                                <span class="shop-purse-glass__label">Gold</span>
                                                 <p id="shop-student-gold" class="shop-purse-glass__amount">0 🪙</p>
                                             </div>
                                         </div>

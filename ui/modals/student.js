@@ -129,7 +129,7 @@ export function openEditStudentModal(studentId) {
         classDropdown.title = "";
         if (tierNote) {
             tierNote.className = 'text-[10px] text-indigo-400 mt-2 italic';
-            tierNote.textContent = 'Classes grant +10 extra Gold Coins when earning stars for their specific trait.';
+            tierNote.textContent = 'Classes grant +10 extra Gold when earning stars for their specific trait.';
         }
     }
     showAnimatedModal('edit-student-modal');

@@ -361,7 +361,7 @@ function getGeneralDashboard(name, theme, spice) {
         <div class="vibrant-card h-span-3 stat-card-pop card-gradient-royal">
             <span class="text-xs font-bold text-purple-600 uppercase tracking-widest mb-2"><i class="fas fa-coins mr-1"></i> Treasury</span>
             <div class="stat-value-big text-purple-500">${totalGold}</div>
-            <div class="text-sm font-bold text-purple-700/60">Gold Coins</div>
+            <div class="text-sm font-bold text-purple-700/60">Gold</div>
         </div>
         
         <!-- Grand Guild Ceremony Button (shown on ceremony day) -->

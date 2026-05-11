@@ -92,6 +92,8 @@ export function populateShopStudentPicker(validStudents) {
     const panel = document.getElementById('shop-shopper-listbox');
     if (!sel || !panel) return;
 
+    const previousValue = sel.value;
+
     sel.innerHTML = '';
     const opt0 = document.createElement('option');
     opt0.value = '';
@@ -122,7 +124,8 @@ export function populateShopStudentPicker(validStudents) {
         panel.appendChild(mkBtn(s.id, s.name, false));
     });
 
-    sel.value = '';
+    const shouldRestore = previousValue && validStudents.some(s => s.id === previousValue);
+    sel.value = shouldRestore ? previousValue : '';
     syncShopStudentTriggerLabel();
     closeShopStudentDropdown();
 }
@@ -324,7 +327,11 @@ export function renderShopUI() {
             container.innerHTML = html;
             
             const currentStudentId = document.getElementById('shop-student-select').value;
-            if(currentStudentId) updateShopStudentDisplay(currentStudentId);
+            try {
+                updateShopStudentDisplay(currentStudentId || '');
+            } catch (e) {
+                console.warn('Shop: updateShopStudentDisplay failed', e);
+            }
         }
     });
 }
@@ -418,6 +425,7 @@ export async function updateShopStudentDisplay(studentId) {
     const gold = scoreData && scoreData.gold !== undefined ? scoreData.gold : (scoreData?.totalStars || 0);
     const inventory = scoreData?.inventory || [];
     const student = state.get('allStudents').find(s => s.id === studentId);
+    if (!student) return;
     const heroOfDayWins = scoreData?.heroOfDayWins || 0;
     const currentMonthKey = new Date().toISOString().substring(0, 7);
     const aurumVoucherPercent = Number(scoreData?.aurumVoucherPercent) || 0;
@@ -533,14 +541,17 @@ export async function updateShopStudentDisplay(studentId) {
                 btn.disabled = true;
                 btn.innerText = 'Already Owned';
                 btn.className = shopBuyBtnClass(true, 'success');
+                btn.title = '';
             } else if (gold >= finalPrice) {
                 btn.disabled = false;
                 btn.innerText = 'Buy';
                 btn.className = shopBuyBtnClass(true, 'cta');
+                btn.title = '';
             } else {
                 btn.disabled = true;
                 btn.innerText = 'Buy';
                 btn.className = shopBuyBtnClass(true, 'muted');
+                btn.title = 'Not enough gold';
             }
             return;
         }
@@ -551,31 +562,37 @@ export async function updateShopStudentDisplay(studentId) {
             btn.disabled = true;
             btn.innerText = "Owned";
             btn.className = shopBuyBtnClass(isFamiliar, 'success');
+            btn.title = '';
         }
         else if (isLegendary && legLimitReached) {
             btn.disabled = true;
             btn.innerText = "Monthly limit (2/2)";
             btn.className = shopBuyBtnClass(isFamiliar, 'danger');
+            btn.title = '';
         }
         else if (itemId === 'leg_pathfinder' && pathfinderLockedForClass) {
             btn.disabled = true;
             btn.innerText = "Class limit reached";
             btn.className = shopBuyBtnClass(isFamiliar, 'danger');
+            btn.title = '';
         }
         else if (itemId === 'leg_protagonist' && protagonistThisMonth) {
             btn.disabled = true;
             btn.innerText = "Limit: 1/month";
             btn.className = shopBuyBtnClass(isFamiliar, 'danger');
+            btn.title = '';
         }
         else if (gold >= finalPrice) {
             btn.disabled = false;
             btn.innerText = 'Buy';
             btn.className = shopBuyBtnClass(isFamiliar, 'cta');
+            btn.title = '';
         }
         else {
             btn.disabled = true;
             btn.innerText = 'Buy';
             btn.className = shopBuyBtnClass(isFamiliar, 'muted');
+            btn.title = 'Not enough gold';
         }
     });
 }

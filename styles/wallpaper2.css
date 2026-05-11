@@ -303,7 +303,7 @@
 }
 /* Dim the sun */
 .weather-cloudy #wall-sun {
-    opacity: 0.3 !important; 
+    opacity: 0.3 !important;
     filter: blur(10px);
 }
 /* Make clouds darker/more visible */
@@ -343,5 +343,132 @@
 .weather-clear #wall-sun, .weather-clear #wall-moon {
     opacity: 1 !important;
     filter: drop-shadow(0 0 20px rgba(255, 215, 0, 0.5));
+}
+
+/* ============================================================
+   WALLPAPER CARD V3 — Premium Chrome (Shimmer, Glow, 3D)
+   ============================================================ */
+
+/* 1. Animated gradient border glow via ::before */
+.wallpaper-float-card::before {
+    content: '';
+    position: absolute;
+    inset: -3px;
+    border-radius: 3.2rem;
+    padding: 3px;
+    background: conic-gradient(from var(--card-border-angle, 0deg), rgba(255,255,255,0.4), rgba(255,255,255,0.05), rgba(255,255,255,0.4));
+    -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+    opacity: 0.6;
+    animation: card-border-rotate 6s linear infinite;
+    pointer-events: none;
+    z-index: -1;
+}
+
+@property --card-border-angle {
+    syntax: '<angle>';
+    initial-value: 0deg;
+    inherits: false;
+}
+
+@keyframes card-border-rotate {
+    to { --card-border-angle: 360deg; }
+}
+
+/* Theme-tinted glow that pulses */
+.float-card-indigo { --card-glow: rgba(99, 102, 241, 0.35); }
+.float-card-gold   { --card-glow: rgba(245, 158, 11, 0.35); }
+.float-card-blue   { --card-glow: rgba(59, 130, 246, 0.35); }
+.float-card-red    { --card-glow: rgba(239, 68, 68, 0.35); }
+.float-card-green  { --card-glow: rgba(34, 197, 94, 0.35); }
+.float-card-purple { --card-glow: rgba(168, 85, 247, 0.35); }
+.float-card-pink   { --card-glow: rgba(236, 72, 153, 0.35); }
+.float-card-cyan   { --card-glow: rgba(6, 182, 212, 0.35); }
+.float-card-teal   { --card-glow: rgba(20, 184, 166, 0.35); }
+.float-card-orange { --card-glow: rgba(249, 115, 22, 0.35); }
+.float-card-white  { --card-glow: rgba(226, 232, 240, 0.35); }
+.float-card-dark   { --card-glow: rgba(251, 191, 36, 0.35); }
+
+.wallpaper-float-card {
+    animation: float-bob-v2 60s ease-in-out infinite, card-glow-pulse 4s ease-in-out infinite;
+    box-shadow:
+        0 25px 60px -12px rgba(0, 0, 0, 0.25),
+        0 0 0 2px rgba(255, 255, 255, 0.4) inset,
+        0 0 40px -10px var(--card-glow, rgba(99,102,241,0.2));
+}
+
+@keyframes card-glow-pulse {
+    0%, 100% { box-shadow: 0 25px 60px -12px rgba(0,0,0,0.25), 0 0 0 2px rgba(255,255,255,0.4) inset, 0 0 40px -10px var(--card-glow, rgba(99,102,241,0.2)); }
+    50% { box-shadow: 0 25px 60px -12px rgba(0,0,0,0.25), 0 0 0 2px rgba(255,255,255,0.4) inset, 0 0 60px -6px var(--card-glow, rgba(99,102,241,0.45)); }
+}
+
+/* 2. Shimmer sweep ::after */
+.wallpaper-float-card::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: 3rem;
+    background: linear-gradient(105deg, transparent 40%, rgba(255,255,255,0.18) 45%, rgba(255,255,255,0.25) 50%, rgba(255,255,255,0.18) 55%, transparent 60%);
+    background-size: 200% 200%;
+    background-position: 100% 0;
+    opacity: 0;
+    animation: card-shimmer-sweep 8s ease-in-out infinite;
+    animation-delay: 1.2s;
+    pointer-events: none;
+    mix-blend-mode: overlay;
+    z-index: 1;
+}
+
+@keyframes card-shimmer-sweep {
+    0% { background-position: 100% 0; opacity: 0; }
+    10% { opacity: 1; }
+    30% { background-position: -50% 0; opacity: 1; }
+    40% { opacity: 0; }
+    100% { opacity: 0; }
+}
+
+/* 3. 3D entrance animation */
+@keyframes card-enter-3d {
+    0% { transform: perspective(800px) rotateX(8deg) rotateY(-6deg) translateY(50px) scale(0.88); opacity: 0; }
+    100% { transform: perspective(800px) rotateX(0deg) rotateY(0deg) translateY(0) scale(1) rotate(var(--card-rotate, 0deg)); opacity: 1; }
+}
+
+.wallpaper-float-card.is-entering {
+    animation: card-enter-3d 1.2s cubic-bezier(0.34, 1.56, 0.64, 1) forwards, float-bob-v2 60s ease-in-out infinite 1.2s, card-glow-pulse 4s ease-in-out infinite 1.2s;
+}
+
+/* 4. Count-up numbers */
+.count-up {
+    font-variant-numeric: tabular-nums;
+    display: inline-block;
+}
+
+/* 5. Reveal sparkle for timed blur */
+@keyframes reveal-sparkle {
+    0% { filter: blur(12px); }
+    85% { filter: blur(2px); }
+    100% { filter: blur(0px); text-shadow: 0 0 20px rgba(255,255,255,0.8), 0 0 40px rgba(255,215,0,0.4); }
+}
+
+.wallpaper-card-answer-blur.is-revealed {
+    animation: reveal-sparkle 1.2s ease-out forwards;
+}
+
+/* Reduced motion */
+@media (prefers-reduced-motion: reduce) {
+    .wallpaper-float-card::before,
+    .wallpaper-float-card::after {
+        animation: none !important;
+    }
+    .wallpaper-float-card {
+        animation: none !important;
+        box-shadow: 0 25px 60px -12px rgba(0,0,0,0.25), 0 0 0 2px rgba(255,255,255,0.4) inset !important;
+    }
+    .wallpaper-float-card.is-entering {
+        animation: none !important;
+        opacity: 1;
+        transform: none;
+    }
 }
 

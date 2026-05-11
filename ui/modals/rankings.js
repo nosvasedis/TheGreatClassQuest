@@ -285,22 +285,14 @@ export async function openStudentRankingsModal(resetDate = true) {
     renderContent('global');
 }
 
-// Hall of Heroes now focuses on all-time legends only.
-
 export async function openHallOfHeroes() {
     const classId = state.get('globalSelectedClassId');
     if (!classId) { showToast("Choose a class from the header first!", "info"); return; }
 
-    const modal = document.getElementById('history-modal');
     document.getElementById('history-timeline-section')?.classList.add('hidden');
-
-    // Setup Modal appearance (legacy month select removed from template)
     document.getElementById('history-month-select-wrapper')?.classList.add('hidden');
-    
-    // Custom appearance for Hall of Heroes
-    modal.classList.add('hall-of-heroes-theme');
-    showAnimatedModal('history-modal');
 
+    showAnimatedModal('history-modal');
     renderHallOfHeroesContent(classId);
 }
 
@@ -428,132 +420,147 @@ async function renderHallOfHeroesContent(classId) {
     const subtitleEl = document.getElementById('history-modal-subtitle');
     if (titleEl) titleEl.innerText = `${classData?.name || 'Class'} Legends`;
     if (subtitleEl) subtitleEl.innerText = 'Hall of Heroes';
+
     contentEl.innerHTML = `
-        <div class="flex flex-col items-center justify-center py-20">
+        <div class="flex flex-col items-center justify-center py-24 gap-5">
             <div class="relative">
-                <div class="absolute inset-0 bg-amber-400/20 blur-2xl rounded-full animate-pulse"></div>
-                <i class="fas fa-monument fa-spin-pulse text-6xl text-amber-500 relative z-10"></i>
+                <div class="absolute inset-0 rounded-full bg-amber-300/30 blur-2xl animate-pulse scale-150"></div>
+                <i class="fas fa-crown text-5xl text-amber-500 relative drop-shadow-lg" style="animation: hoh-float 2.4s ease-in-out infinite;"></i>
             </div>
-            <p class="mt-6 font-title text-2xl text-slate-700">Opening the Golden Gates...</p>
-            <p class="text-slate-400 font-medium">Assembling the legendary roster of ${classData.name}</p>
-        </div>`;
+            <p class="font-title text-2xl text-slate-600 tracking-tight">Assembling the legends…</p>
+        </div>
+        <style>
+            @keyframes hoh-float { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-10px)} }
+            @keyframes hoh-in { from{opacity:0;transform:translateY(18px)} to{opacity:1;transform:translateY(0)} }
+            @keyframes hoh-shimmer { 0%{background-position:-200% center} 100%{background-position:200% center} }
+            .hoh-card { animation: hoh-in 0.45s ease both; }
+            .hoh-bar-fill { background: linear-gradient(90deg,#f59e0b,#fcd34d,#f59e0b); background-size:200% auto; animation: hoh-shimmer 2.5s linear infinite; }
+        </style>`;
 
     const { legendRows, allLogs } = await buildHallLegendRows(classId);
     const crownedHeroes = legendRows.filter((row) => row.wins > 0);
     const topLegend = crownedHeroes[0] || null;
 
+    const MEDAL = ['🥇', '🥈', '🥉'];
+
     let html = `
-        <div class="relative overflow-hidden rounded-[3rem] bg-gradient-to-br from-sky-400 via-indigo-400 to-indigo-500 p-8 md:p-10 text-white shadow-2xl mb-12 border-4 border-white ring-1 ring-sky-100 group">
-            <!-- Atmospheric Background Decor -->
-            <div class="absolute inset-0 pointer-events-none">
-                <div class="absolute top-0 right-0 w-96 h-96 bg-white/20 blur-[100px] rounded-full"></div>
-                <div class="absolute bottom-0 left-0 w-96 h-96 bg-indigo-200/20 blur-[100px] rounded-full"></div>
-            </div>
+        <style>
+            @keyframes hoh-float { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-10px)} }
+            @keyframes hoh-in { from{opacity:0;transform:translateY(18px)} to{opacity:1;transform:translateY(0)} }
+            @keyframes hoh-shimmer { 0%{background-position:-200% center} 100%{background-position:200% center} }
+            .hoh-card { animation: hoh-in 0.45s ease both; }
+            .hoh-bar-fill { background: linear-gradient(90deg,#f59e0b,#fcd34d,#f59e0b); background-size:200% auto; animation: hoh-shimmer 2.5s linear infinite; }
+            .hoh-crown { animation: hoh-float 3s ease-in-out infinite; display:inline-block; }
+        </style>
 
-            <div class="relative z-10">
-                <div class="flex flex-col lg:flex-row justify-between items-center gap-10">
-                    <div class="text-center lg:text-left flex-1">
-                        <div class="inline-flex items-center gap-2 px-6 py-2.5 rounded-full bg-white/20 backdrop-blur-md text-white border border-white/30 font-black text-[10px] uppercase tracking-widest mb-6">
-                            <i class="fas fa-sparkles"></i> The Eternal Registry
-                        </div>
-                        <h3 class="font-title text-4xl md:text-5xl leading-tight mb-3 tracking-tight">Legends of the Realm</h3>
-                        <p class="text-white/80 font-medium text-lg leading-relaxed max-w-xl">Celebrating every "Hero of the Day" recorded in our history. Their names are carved into the annals of glory forever.</p>
-                    </div>
-                    
-                    <div class="grid grid-cols-2 sm:grid-cols-3 gap-4 w-full lg:w-auto">
-                        <div class="bg-white/10 backdrop-blur-xl rounded-[2rem] p-5 border border-white/20 text-center shadow-lg">
-                            <div class="text-[9px] font-black text-white/70 uppercase tracking-widest mb-1.5">Total Crowns</div>
-                            <div class="font-title text-4xl text-white">${allLogs.length}</div>
-                        </div>
-                        <div class="bg-white/10 backdrop-blur-xl rounded-[2rem] p-5 border border-white/20 text-center shadow-lg">
-                            <div class="text-[9px] font-black text-white/70 uppercase tracking-widest mb-1.5">Crowned Heroes</div>
-                            <div class="font-title text-4xl text-white">${crownedHeroes.length}</div>
-                        </div>
-                        <div class="bg-white/10 backdrop-blur-xl rounded-[2rem] p-5 border border-white/20 text-center col-span-2 sm:col-span-1 shadow-lg">
-                            <div class="text-[9px] font-black text-white/70 uppercase tracking-widest mb-1.5">Top Legend</div>
-                            <div class="font-title text-2xl text-amber-300 truncate">${topLegend ? topLegend.student.name.split(' ')[0] : 'None'}</div>
-                        </div>
-                    </div>
-                </div>
+        <div class="grid grid-cols-3 gap-3 mb-7">
+            <div class="relative overflow-hidden rounded-2xl p-4 bg-gradient-to-br from-indigo-600 to-sky-500 text-white shadow-lg text-center">
+                <div class="absolute -right-4 -bottom-4 text-white/10 text-7xl pointer-events-none"><i class="fas fa-crown"></i></div>
+                <div class="text-[9px] uppercase tracking-[0.2em] font-black opacity-75 mb-1">Total Crowns</div>
+                <div class="font-title text-4xl">${allLogs.length}</div>
             </div>
-
-            <!-- Background Flourish -->
-            <div class="absolute -right-12 -bottom-12 text-white/10 text-[15rem] pointer-events-none transform rotate-12">
-                <i class="fas fa-monument"></i>
+            <div class="relative overflow-hidden rounded-2xl p-4 bg-gradient-to-br from-amber-400 to-orange-500 text-white shadow-lg text-center">
+                <div class="absolute -right-4 -bottom-4 text-white/10 text-7xl pointer-events-none"><i class="fas fa-users"></i></div>
+                <div class="text-[9px] uppercase tracking-[0.2em] font-black opacity-75 mb-1">Crowned Heroes</div>
+                <div class="font-title text-4xl">${crownedHeroes.length}</div>
+            </div>
+            <div class="relative overflow-hidden rounded-2xl p-4 bg-gradient-to-br from-fuchsia-500 to-violet-600 text-white shadow-lg text-center">
+                <div class="absolute -right-4 -bottom-4 text-white/10 text-7xl pointer-events-none"><i class="fas fa-star"></i></div>
+                <div class="text-[9px] uppercase tracking-[0.2em] font-black opacity-75 mb-1">Top Legend</div>
+                <div class="font-title text-2xl leading-tight truncate">${topLegend ? topLegend.student.name.split(' ')[0] : '—'}</div>
             </div>
         </div>
     `;
 
     if (!crownedHeroes.length) {
         html += `
-            <div class="text-center py-16 opacity-60">
-                <div class="text-7xl mb-4">🏛️</div>
-                <p class="font-bold text-gray-500 text-lg">No class legends yet.</p>
-                <p class="text-sm text-gray-400 mt-2">Save Adventure Logs to start building the Hall.</p>
+            <div class="flex flex-col items-center justify-center py-20 gap-4 text-center">
+                <span class="text-7xl" style="animation:hoh-float 3s ease-in-out infinite;display:inline-block">🏛️</span>
+                <p class="font-title text-xl text-slate-500">The Hall awaits its first legend.</p>
+                <p class="text-sm text-slate-400">Save Adventure Logs to start building the Hall of Heroes.</p>
             </div>`;
     } else {
-        html += `<div class="grid grid-cols-1 lg:grid-cols-2 gap-5 pb-10">`;
+        html += `<div class="grid grid-cols-1 lg:grid-cols-2 gap-4 pb-10">`;
 
         crownedHeroes.forEach((row, index) => {
             const heroClass = row.student.heroClass;
             const heroIcon = heroClass ? (HERO_CLASSES[heroClass]?.icon || '⭐') : '⭐';
+            const medal = MEDAL[index] ?? null;
+            const delay = Math.min(index * 60, 400);
+
             const avatarHtml = row.student.avatar
-                ? `<img src="${row.student.avatar}" class="w-24 h-24 rounded-3xl object-cover border-4 border-white shadow-2xl relative z-10 transform group-hover/card:scale-110 group-hover/card:rotate-2 transition-transform duration-500">`
-                : `<div class="w-24 h-24 rounded-3xl bg-gradient-to-br from-slate-700 to-slate-900 text-white text-4xl font-title flex items-center justify-center border-4 border-white shadow-2xl relative z-10 transform group-hover/card:scale-110 group-hover/card:rotate-2 transition-transform duration-500">${row.student.name.charAt(0)}</div>`;
+                ? `<img src="${row.student.avatar}" class="w-16 h-16 rounded-2xl object-cover border-4 border-white/80 shadow-xl" style="box-shadow:0 0 0 2px rgba(255,255,255,0.4),0 8px 24px rgba(0,0,0,0.25)">`
+                : `<div class="w-16 h-16 rounded-2xl bg-white/20 backdrop-blur-sm text-white text-2xl font-title flex items-center justify-center border-4 border-white/50 shadow-xl">${row.student.name.charAt(0)}</div>`;
+
             const latestDate = row.latestDate
                 ? row.latestDate.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
-                : 'No date';
+                : 'No crowns yet';
+
             const nextTierText = row.nextThreshold
-                ? `Next Goal: ${utils.getHeroLegendTierInfo(row.nextThreshold).label} (${Math.max(0, row.nextThreshold - row.wins)} crowns away)`
-                : 'Maximum legend rank achieved';
+                ? `${Math.max(0, row.nextThreshold - row.wins)} more crown${row.nextThreshold - row.wins === 1 ? '' : 's'} to reach <strong>${utils.getHeroLegendTierInfo(row.nextThreshold).label}</strong>`
+                : '<i class="fas fa-infinity mr-1"></i>Maximum legend rank achieved';
 
             html += `
-                <article class="group/card relative rounded-[3rem] overflow-hidden shadow-sm border border-slate-100 bg-white transition-all duration-700 hover:-translate-y-2 hover:shadow-2xl hover:shadow-sky-500/10 flex flex-col">
-                    <!-- Fluffy Tier Aura -->
-                    <div class="absolute -right-20 -top-20 w-48 h-48 bg-gradient-to-br ${row.tier.accent} opacity-0 group-hover/card:opacity-10 blur-[60px] rounded-full transition-opacity duration-700"></div>
-
-                    <div class="p-8 flex flex-col h-full relative z-10">
-                        <div class="flex items-start justify-between mb-8">
-                            <div class="flex items-center gap-6">
-                                <div class="relative">
-                                    <div class="absolute inset-0 bg-slate-200 blur-2xl opacity-0 group-hover/card:opacity-20 rounded-full transition-opacity"></div>
+                <article class="hoh-card rounded-[1.75rem] overflow-hidden shadow-md border border-white/60 bg-white hover:shadow-2xl hover:-translate-y-1.5 transition-all duration-300" style="animation-delay:${delay}ms">
+                    <div class="relative p-5 text-white bg-gradient-to-br ${row.tier.accent} overflow-hidden">
+                        <div class="absolute inset-0 pointer-events-none">
+                            <div class="absolute -right-8 -top-8 w-32 h-32 rounded-full bg-white/10 blur-2xl"></div>
+                        </div>
+                        <div class="relative flex items-center justify-between gap-3">
+                            <div class="flex items-center gap-3 min-w-0">
+                                <div class="relative flex-shrink-0">
                                     ${avatarHtml}
-                                    <div class="absolute -bottom-2 -right-2 w-10 h-10 bg-white rounded-2xl shadow-xl border border-slate-100 flex items-center justify-center text-xl transform group-hover/card:rotate-12 transition-transform duration-500">
-                                        ${heroIcon}
-                                    </div>
+                                    <div class="absolute -bottom-1.5 -right-1.5 w-8 h-8 rounded-xl bg-white shadow-lg border border-white/60 flex items-center justify-center text-base leading-none">${heroIcon}</div>
                                 </div>
-                                <div>
-                                    <div class="text-[10px] uppercase tracking-[0.25em] font-black text-slate-400 mb-1.5">Rank #${index + 1}</div>
-                                    <h4 class="font-title text-3xl text-slate-800 tracking-tight mb-1 group-hover/card:text-indigo-600 transition-colors">${row.student.name}</h4>
-                                    <div class="flex items-center gap-2">
-                                        <span class="px-3 py-1 rounded-full bg-slate-50 text-slate-500 text-[10px] font-black uppercase tracking-widest border border-slate-100">${heroClass || 'Novice'}</span>
-                                        <span class="w-1 h-1 bg-slate-200 rounded-full"></span>
-                                        <span class="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Since ${latestDate}</span>
+                                <div class="min-w-0">
+                                    <div class="flex items-center gap-1.5 mb-0.5">
+                                        <span class="text-[9px] uppercase tracking-[0.2em] font-black opacity-70">#${index + 1}</span>
+                                        ${medal ? `<span class="text-base leading-none">${medal}</span>` : ''}
+                                    </div>
+                                    <h3 class="font-title text-2xl leading-tight truncate">${row.student.name}</h3>
+                                    <div class="inline-flex items-center gap-1.5 mt-1 bg-white/20 backdrop-blur-sm px-2.5 py-0.5 rounded-full text-[10px] font-black tracking-wide">
+                                        <i class="fas fa-shield-halved text-[8px]"></i>
+                                        ${row.tier.label}
                                     </div>
                                 </div>
                             </div>
-
-                            <div class="text-right">
-                            <div class="rounded-2xl bg-amber-50 border border-amber-200 p-5 group-hover/card:bg-amber-100/50 transition-colors">
-                                <div class="text-[10px] uppercase tracking-[0.2em] font-black text-amber-600 mb-2">Legend Perk</div>
-                                <div class="font-title text-xl text-amber-900 leading-none">+${row.tier.extraDiscount}% Shop Perk</div>
+                            <div class="flex-shrink-0 text-right">
+                                <div class="text-[9px] uppercase tracking-[0.18em] font-black opacity-70 mb-0.5">Crowns</div>
+                                <div class="font-title text-5xl leading-none" style="text-shadow:0 2px 12px rgba(0,0,0,0.3)">${row.wins}</div>
+                                <div class="text-[9px] opacity-60 mt-0.5"><i class="fas fa-crown"></i></div>
                             </div>
                         </div>
-                        <div class="rounded-3xl bg-slate-900 p-6 text-white shadow-inner relative overflow-hidden">
-                            <div class="absolute inset-0 bg-gradient-to-r from-white/5 to-transparent pointer-events-none"></div>
-                            <div class="flex items-center justify-between text-[10px] uppercase tracking-[0.2em] font-black text-slate-400 mb-3 relative z-10">
-                                <span>Legend Progression</span>
-                                <span class="text-amber-400">${row.progressPercent}%</span>
-                            </div>
-                            <div class="h-4 rounded-full bg-white/10 overflow-hidden relative z-10 shadow-inner">
-                                <div class="h-full bg-gradient-to-r from-amber-400 via-yellow-300 to-amber-200 relative transition-all duration-1000 ease-out" style="width:${row.progressPercent}%">
-                                    <div class="absolute inset-0 bg-white/20 shimmer"></div>
+                    </div>
+
+                    <div class="px-4 py-3 space-y-2.5">
+                        <div class="grid grid-cols-2 gap-2">
+                            <div class="flex items-center gap-2.5 rounded-xl bg-slate-50 border border-slate-100 px-3 py-2.5">
+                                <i class="fas fa-calendar-check text-indigo-400 text-sm flex-shrink-0"></i>
+                                <div>
+                                    <div class="text-[9px] uppercase tracking-[0.14em] font-black text-slate-400">Latest Crown</div>
+                                    <div class="font-bold text-slate-700 text-sm mt-0.5">${latestDate}</div>
                                 </div>
                             </div>
-                            <div class="text-xs text-slate-400 mt-4 font-medium italic relative z-10 flex items-center gap-2">
-                                <i class="fas fa-circle-info opacity-50"></i>
-                                ${nextTierText}
+                            <div class="flex items-center gap-2.5 rounded-xl bg-amber-50 border border-amber-100 px-3 py-2.5">
+                                <i class="fas fa-tag text-amber-400 text-sm flex-shrink-0"></i>
+                                <div>
+                                    <div class="text-[9px] uppercase tracking-[0.14em] font-black text-amber-600">Shop Perk</div>
+                                    <div class="font-bold text-amber-900 text-sm mt-0.5">+${row.tier.extraDiscount}% off</div>
+                                </div>
                             </div>
+                        </div>
+
+                        <div class="rounded-xl bg-slate-900 px-4 py-3">
+                            <div class="flex items-center justify-between mb-2">
+                                <span class="text-[9px] uppercase tracking-[0.16em] font-black text-slate-400 flex items-center gap-1.5">
+                                    <i class="fas fa-bolt text-amber-400"></i> Next milestone
+                                </span>
+                                <span class="text-[10px] font-black text-amber-400">${row.progressPercent}%</span>
+                            </div>
+                            <div class="h-2 rounded-full bg-white/10 overflow-hidden">
+                                <div class="h-full rounded-full hoh-bar-fill" style="width:${row.progressPercent}%"></div>
+                            </div>
+                            <p class="text-[11px] text-slate-400 mt-2">${nextTierText}</p>
                         </div>
                     </div>
                 </article>

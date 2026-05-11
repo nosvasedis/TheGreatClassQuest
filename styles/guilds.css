@@ -303,13 +303,21 @@
 }
 
 .guild-fortune-ledger-section__expandable {
-    border-top: 1px solid rgba(255,255,255,0.08);
+    display: grid;
+    grid-template-rows: 0fr;
+    overflow: hidden;
+    transition: grid-template-rows 380ms cubic-bezier(0.22, 1, 0.36, 1),
+                border-top-color 320ms ease;
+    border-top: 1px solid transparent;
 }
-.guild-fortune-ledger-section__expandable[hidden] {
-    display: none !important;
+.guild-fortune-ledger-section__expandable.is-open {
+    grid-template-rows: 1fr;
+    border-top-color: rgba(255,255,255,0.08);
 }
 
 .guild-fortune-ledger-section__expandable-inner {
+    min-height: 0;
+    overflow: hidden;
     padding: 1rem 1.35rem 1.35rem;
 }
 

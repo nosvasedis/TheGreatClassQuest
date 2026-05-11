@@ -352,3 +352,167 @@
 .is-night .wall-analogue-clock {
     filter: drop-shadow(0 8px 30px rgba(99, 102, 241, 0.5));
 }
+
+/* ============================================================
+   WALLPAPER SKY V2 — Stars, Parallax, Celestial Bloom
+   ============================================================ */
+
+/* ---------- Starfield ---------- */
+#wall-stars {
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 3s ease-in-out, visibility 0s linear 3s;
+}
+
+.is-night #wall-stars {
+    opacity: 1;
+    visibility: visible;
+    transition: opacity 3s ease-in-out, visibility 0s linear 0s;
+}
+
+#wall-stars::before,
+#wall-stars::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background-repeat: no-repeat;
+    background-size: 100% 100%;
+}
+
+#wall-stars::before {
+    background-image:
+        radial-gradient(2.4px 2.4px at 6% 9%, rgba(255, 255, 255, 0.95), transparent),
+        radial-gradient(2.8px 2.8px at 14% 22%, rgba(226, 232, 240, 0.88), transparent),
+        radial-gradient(2.4px 2.4px at 22% 11%, rgba(255, 255, 255, 0.72), transparent),
+        radial-gradient(3px 3px at 31% 38%, rgba(255, 255, 255, 0.92), transparent),
+        radial-gradient(2.4px 2.4px at 41% 16%, rgba(241, 245, 249, 0.78), transparent),
+        radial-gradient(2.8px 2.8px at 52% 42%, rgba(255, 255, 255, 0.85), transparent),
+        radial-gradient(2.4px 2.4px at 61% 9%, rgba(226, 232, 240, 0.68), transparent),
+        radial-gradient(2.6px 2.6px at 71% 31%, rgba(255, 255, 255, 0.9), transparent),
+        radial-gradient(2.4px 2.4px at 82% 18%, rgba(248, 250, 252, 0.75), transparent),
+        radial-gradient(2.8px 2.8px at 91% 44%, rgba(255, 255, 255, 0.82), transparent),
+        radial-gradient(2.4px 2.4px at 11% 58%, rgba(255, 255, 255, 0.65), transparent),
+        radial-gradient(3px 3px at 27% 71%, rgba(226, 232, 240, 0.88), transparent),
+        radial-gradient(2.4px 2.4px at 38% 54%, rgba(255, 255, 255, 0.72), transparent),
+        radial-gradient(2.8px 2.8px at 49% 82%, rgba(255, 255, 255, 0.55), transparent),
+        radial-gradient(2.4px 2.4px at 58% 63%, rgba(241, 245, 249, 0.78), transparent),
+        radial-gradient(2.6px 2.6px at 69% 76%, rgba(255, 255, 255, 0.62), transparent),
+        radial-gradient(2.4px 2.4px at 79% 58%, rgba(248, 250, 252, 0.7), transparent),
+        radial-gradient(2.8px 2.8px at 89% 84%, rgba(255, 255, 255, 0.52), transparent);
+    opacity: 0.78;
+    animation: wallStarsTwinkleA 5.8s ease-in-out infinite;
+}
+
+#wall-stars::after {
+    background-image:
+        radial-gradient(2.4px 2.4px at 17% 34%, rgba(255, 255, 255, 0.55), transparent),
+        radial-gradient(2.8px 2.8px at 44% 27%, rgba(226, 232, 240, 0.72), transparent),
+        radial-gradient(2.4px 2.4px at 63% 13%, rgba(255, 255, 255, 0.48), transparent),
+        radial-gradient(2.6px 2.6px at 76% 41%, rgba(255, 255, 255, 0.68), transparent),
+        radial-gradient(2.4px 2.4px at 9% 46%, rgba(248, 250, 252, 0.58), transparent),
+        radial-gradient(2.8px 2.8px at 33% 19%, rgba(255, 255, 255, 0.62), transparent),
+        radial-gradient(2.4px 2.4px at 54% 52%, rgba(226, 232, 240, 0.5), transparent),
+        radial-gradient(3px 3px at 84% 31%, rgba(255, 255, 255, 0.58), transparent),
+        radial-gradient(2.4px 2.4px at 96% 62%, rgba(241, 245, 249, 0.42), transparent),
+        radial-gradient(2.8px 2.8px at 23% 91%, rgba(255, 255, 255, 0.46), transparent),
+        radial-gradient(2.4px 2.4px at 46% 68%, rgba(255, 255, 255, 0.52), transparent),
+        radial-gradient(2.6px 2.6px at 72% 93%, rgba(226, 232, 240, 0.44), transparent),
+        radial-gradient(2.4px 2.4px at 8% 74%, rgba(255, 255, 255, 0.38), transparent),
+        radial-gradient(2.8px 2.8px at 59% 36%, rgba(248, 250, 252, 0.55), transparent),
+        radial-gradient(2.4px 2.4px at 87% 72%, rgba(255, 255, 255, 0.4), transparent),
+        radial-gradient(2.8px 2.8px at 39% 88%, rgba(255, 255, 255, 0.42), transparent),
+        radial-gradient(2.4px 2.4px at 67% 49%, rgba(241, 245, 249, 0.48), transparent);
+    opacity: 0.62;
+    animation: wallStarsTwinkleB 7.4s ease-in-out infinite;
+}
+
+@keyframes wallStarsTwinkleA {
+    0%, 100% { opacity: 0.52; }
+    50% { opacity: 0.94; }
+}
+
+@keyframes wallStarsTwinkleB {
+    0%, 100% { opacity: 0.4; }
+    45% { opacity: 0.86; }
+}
+
+/* Star brightness modulation by weather (night only) */
+.is-night.weather-clear #wall-stars::before { opacity: 0.85; }
+.is-night.weather-clear #wall-stars::after { opacity: 0.7; }
+.is-night.weather-cloudy #wall-stars::before { opacity: 0.42; }
+.is-night.weather-cloudy #wall-stars::after { opacity: 0.32; }
+.is-night.weather-rainy #wall-stars::before { opacity: 0.35; }
+.is-night.weather-rainy #wall-stars::after { opacity: 0.25; }
+.is-night.weather-snowy #wall-stars::before { opacity: 0.55; }
+.is-night.weather-snowy #wall-stars::after { opacity: 0.4; }
+.is-night.weather-stormy #wall-stars::before { opacity: 0.15; }
+.is-night.weather-stormy #wall-stars::after { opacity: 0.08; }
+
+/* ---------- Celestial Bloom ---------- */
+@keyframes sunBloom {
+    0% { transform: scale(0.9); filter: blur(24px) drop-shadow(0 0 20px rgba(255, 215, 0, 0.4)); }
+    100% { transform: scale(1); filter: blur(32px) drop-shadow(0 0 40px rgba(255, 215, 0, 0.7)); }
+}
+
+@keyframes moonBloom {
+    0% { transform: scale(0.85); filter: drop-shadow(0 0 20px rgba(255, 255, 255, 0.5)); }
+    100% { transform: scale(1); filter: drop-shadow(0 0 50px rgba(255, 255, 255, 0.9)); }
+}
+
+#wall-sun {
+    animation: sunBloom 4s ease-in-out infinite alternate;
+}
+
+.is-night #wall-sun {
+    animation: none;
+}
+
+.is-night #wall-moon {
+    animation: moonBloom 5s ease-in-out infinite alternate;
+}
+
+/* ---------- Parallax Cloud Lanes ---------- */
+.wall-parallax-lane {
+    position: absolute;
+    left: -30vw;
+    top: var(--lane-top, 10%);
+    opacity: 0.25;
+    filter: drop-shadow(0 8px 16px rgba(0,0,0,0.1));
+    will-change: transform;
+    animation: wallParallaxDrift var(--lane-duration, 120s) linear infinite;
+}
+
+.wall-parallax-lane i {
+    font-size: clamp(8rem, 18vw, 22rem);
+    color: rgba(255, 255, 255, 0.85);
+    transform: scale(var(--lane-scale, 1));
+    display: inline-block;
+}
+
+@keyframes wallParallaxDrift {
+    0% { transform: translateX(0); }
+    100% { transform: translateX(160vw); }
+}
+
+/* Night parallax tones */
+.is-night .wall-parallax-lane i {
+    color: rgba(199, 210, 254, 0.35);
+    filter: grayscale(100%) brightness(3) saturate(0.2);
+}
+
+/* Reduced motion */
+@media (prefers-reduced-motion: reduce) {
+    #wall-stars::before, #wall-stars::after {
+        animation: none !important;
+    }
+    #wall-stars::before { opacity: 0.72; }
+    #wall-stars::after { opacity: 0.58; }
+    #wall-sun, #wall-moon {
+        animation: none !important;
+    }
+    .wall-parallax-lane {
+        animation: none !important;
+        left: 20vw;
+    }
+}

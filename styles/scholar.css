@@ -1,27 +1,237 @@
 /* --- NEW in v6.0.0: Scholar's Scroll & Starfall Styles --- */
 
-/* Starfall Modal Background */
+/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+   STARFALL MODAL — Visual Refresh
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
+
+/* Modal shell */
+.starfall-shell {
+    position: relative;
+    text-align: center;
+    padding: 2.5rem 2rem;
+    border-radius: 2rem;
+    box-shadow:
+        0 0 0 1px rgba(251,191,36,0.3),
+        0 40px 100px rgba(0,0,0,0.7),
+        0 0 80px rgba(251,191,36,0.12);
+    max-width: 30rem;
+    width: 100%;
+    overflow: hidden;
+    border: 1px solid rgba(251,191,36,0.2);
+}
+
+/* Rotating deep-space background */
 @keyframes starfall-swirl {
     from { transform: rotate(0deg); }
     to { transform: rotate(360deg); }
 }
 .starfall-bg {
-    background: radial-gradient(ellipse at center, rgba(29,78,216,0.5) 0%, rgba(30,58,138,0.8) 40%, rgba(17,24,39,1) 100%);
+    background: radial-gradient(ellipse at center, rgba(29,78,216,0.6) 0%, rgba(30,58,138,0.9) 40%, rgba(10,15,40,1) 100%);
     animation: starfall-swirl 20s linear infinite;
 }
-/* Starfall Modal Icon */
+
+/* ── Shooting star streaks ── */
+.starfall-streaks {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    z-index: 1;
+    overflow: hidden;
+}
+@keyframes starfall-shooting {
+    0%   { opacity: 0; transform: translate(0, 0) rotate(-30deg) scaleX(0); }
+    10%  { opacity: 1; }
+    60%  { opacity: 0.8; }
+    100% { opacity: 0; transform: translate(180px, 60px) rotate(-30deg) scaleX(1); }
+}
+.starfall-streak {
+    position: absolute;
+    height: 2px;
+    width: 80px;
+    border-radius: 9999px;
+    background: linear-gradient(90deg, rgba(255,255,255,0), #fbbf24, rgba(255,255,255,0.9));
+    opacity: 0;
+    animation: starfall-shooting 4s ease-in-out infinite;
+}
+.starfall-streak--1 { top: 15%; left: 5%;  animation-delay: 0s;   animation-duration: 3.5s; }
+.starfall-streak--2 { top: 35%; left: 20%; animation-delay: 1.4s; animation-duration: 4s; }
+.starfall-streak--3 { top: 10%; left: 50%; animation-delay: 2.8s; animation-duration: 3s; }
+
+/* ── Floating particles ── */
+.starfall-particles {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    z-index: 1;
+    overflow: hidden;
+}
+@keyframes starfall-particle-float {
+    0%   { opacity: 0; transform: translateY(0) scale(0.6); }
+    20%  { opacity: 0.9; }
+    80%  { opacity: 0.7; }
+    100% { opacity: 0; transform: translateY(-55px) scale(1.3); }
+}
+.starfall-particle {
+    position: absolute;
+    font-size: 1rem;
+    animation: starfall-particle-float 5s ease-in-out infinite;
+    opacity: 0;
+}
+.starfall-particle--1 { left: 6%;  top: 25%; animation-delay: 0s;    animation-duration: 5.5s; }
+.starfall-particle--2 { left: 22%; top: 70%; animation-delay: 0.9s;  animation-duration: 4.5s; }
+.starfall-particle--3 { left: 70%; top: 15%; animation-delay: 1.8s;  animation-duration: 6s;   }
+.starfall-particle--4 { left: 85%; top: 55%; animation-delay: 0.4s;  animation-duration: 5s;   }
+.starfall-particle--5 { left: 50%; top: 82%; animation-delay: 2.6s;  animation-duration: 4s;   }
+.starfall-particle--6 { left: 38%; top: 10%; animation-delay: 1.2s;  animation-duration: 5.2s; }
+
+/* ── Star icon wrapper + glowing rings ── */
+.starfall-icon-wrapper {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 1.25rem;
+    width: 8rem;
+    height: 8rem;
+}
+@keyframes starfall-ring-pulse {
+    0%, 100% { transform: scale(1);   opacity: 0.5; }
+    50%       { transform: scale(1.18); opacity: 0.15; }
+}
+.starfall-icon-ring {
+    position: absolute;
+    border-radius: 9999px;
+    border: 2px solid rgba(251,191,36,0.5);
+    animation: starfall-ring-pulse 2.5s ease-in-out infinite;
+}
+.starfall-icon-ring--1 { width: 5.5rem; height: 5.5rem; animation-delay: 0s; }
+.starfall-icon-ring--2 { width: 7rem;   height: 7rem;   animation-delay: 0.4s; border-color: rgba(251,191,36,0.3); }
+.starfall-icon-ring--3 { width: 8.5rem; height: 8.5rem; animation-delay: 0.8s; border-color: rgba(251,191,36,0.15); }
+
+/* ── Star icon pulse ── */
 @keyframes starfall-icon-pulse {
-    0%, 100% { 
+    0%, 100% {
         transform: scale(1);
-        filter: drop-shadow(0 0 10px #FBBF24) drop-shadow(0 0 20px #FFF);
+        filter:
+            drop-shadow(0 0 10px #FBBF24)
+            drop-shadow(0 0 22px rgba(251,191,36,0.7))
+            drop-shadow(0 0 4px #FFF);
     }
-    50% { 
-        transform: scale(1.1);
-        filter: drop-shadow(0 0 20px #FBBF24) drop-shadow(0 0 40px #FFF);
+    50% {
+        transform: scale(1.14);
+        filter:
+            drop-shadow(0 0 24px #FBBF24)
+            drop-shadow(0 0 48px rgba(251,191,36,0.8))
+            drop-shadow(0 0 10px #FFF);
     }
 }
 .starfall-icon-animate {
+    font-size: 4rem;
     animation: starfall-icon-pulse 2.5s ease-in-out infinite;
+    display: block;
+}
+
+/* ── Typography ── */
+.starfall-title {
+    font-family: var(--font-title, serif);
+    font-size: 2.4rem;
+    color: white;
+    margin-bottom: 0.75rem;
+    text-shadow: 0 2px 8px rgba(0,0,0,0.4);
+    position: relative;
+    z-index: 2;
+}
+.starfall-message {
+    color: rgba(255,255,255,0.92);
+    font-size: 1.05rem;
+    line-height: 1.7;
+    margin-bottom: 1.25rem;
+    text-shadow: 0 1px 3px rgba(0,0,0,0.35);
+    position: relative;
+    z-index: 2;
+}
+.starfall-student-name {
+    color: #fde68a;
+    font-weight: 900;
+}
+.starfall-prompt {
+    color: white;
+    font-size: 1.1rem;
+    font-weight: 700;
+    margin-bottom: 1.25rem;
+    position: relative;
+    z-index: 2;
+}
+
+/* ── Batch list ── */
+.starfall-batch-list {
+    background: rgba(255,255,255,0.12);
+    backdrop-filter: blur(8px);
+    border: 1px solid rgba(255,255,255,0.2);
+    border-radius: 0.9rem;
+    padding: 0.5rem;
+    max-height: 10rem;
+    overflow-y: auto;
+    text-align: left;
+    position: relative;
+    z-index: 2;
+}
+
+/* ── Confirm button with shimmer ── */
+@keyframes starfall-shimmer {
+    0%   { left: -100%; }
+    100% { left: 200%; }
+}
+.starfall-confirm-btn {
+    position: relative;
+    overflow: hidden;
+    width: 100%;
+    background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 50%, #fbbf24 100%);
+    background-size: 200% 100%;
+    color: #78350f;
+    font-family: var(--font-title, serif);
+    font-size: 1.2rem;
+    font-weight: 900;
+    padding: 0.85rem 1.5rem;
+    border-radius: 0.9rem;
+    border: none;
+    cursor: pointer;
+    box-shadow: 0 6px 24px rgba(251,191,36,0.5), 0 2px 0 rgba(120,53,15,0.3) inset, 0 -3px 0 rgba(120,53,15,0.25) inset;
+    transition: transform 0.15s, box-shadow 0.15s;
+    z-index: 2;
+}
+.starfall-confirm-btn:hover {
+    transform: translateY(-2px) scale(1.02);
+    box-shadow: 0 10px 32px rgba(251,191,36,0.6);
+}
+.starfall-confirm-btn:active {
+    transform: scale(0.97);
+}
+.starfall-confirm-btn__shimmer {
+    position: absolute;
+    top: 0; bottom: 0;
+    width: 50%;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.45), transparent);
+    animation: starfall-shimmer 2.2s ease-in-out infinite;
+    left: -100%;
+    pointer-events: none;
+}
+
+/* ── Cancel button ── */
+.starfall-cancel-btn {
+    background: none;
+    border: none;
+    color: rgba(255,255,255,0.6);
+    font-size: 0.9rem;
+    cursor: pointer;
+    padding: 0.3rem 0.5rem;
+    transition: color 0.2s;
+    position: relative;
+    z-index: 2;
+}
+.starfall-cancel-btn:hover {
+    color: white;
+    text-decoration: underline;
 }
 
 /* Scholar's Scroll — placeholder vs dashboard crossfade + class swap */
@@ -1049,27 +1259,10 @@ optgroup {
     z-index: 72; /* Higher than history modal */
 }
 
-/* --- RADICAL REDESIGN: Performance Chart Section Header & Container --- */
+/* Performance chart: inner chart list only (frame matches Pending Makeups pattern in template) */
 #scroll-performance-chart {
-    background: linear-gradient(to bottom, rgba(255, 255, 255, 0.85), rgba(250, 249, 255, 0.65));
-    padding: 0.5rem 0.25rem;
-    border-radius: 1rem;
-}
-
-#scroll-dashboard-content > div:has(#scroll-performance-chart) {
-    background: linear-gradient(135deg, #ffffff 0%, #faf9ff 50%, #f8f7ff 100%);
-    padding: 1.5rem;
-    border-radius: 1.5rem;
-    border: 1px solid #ede9fe;
-    box-shadow: 0 20px 40px -28px rgba(109, 40, 217, 0.2),
-                0 0 1px rgba(109, 40, 217, 0.1);
-    transition: border-color 0.25s ease, box-shadow 0.25s ease;
-}
-
-#scroll-dashboard-content > div:has(#scroll-performance-chart):hover {
-    border-color: #ddd6fe;
-    box-shadow: 0 24px 48px -24px rgba(109, 40, 217, 0.25),
-                0 0 2px rgba(109, 40, 217, 0.15);
+    padding: 0.25rem 0 0;
+    background: transparent;
 }
 
 #trial-history-view-toggle .toggle-btn {
@@ -1112,6 +1305,56 @@ optgroup {
 
 .trial-history-item {
     cursor: default;
+}
+
+@keyframes bulk-date-picker-enter {
+    from {
+        opacity: 0;
+        transform: translateY(-6px) scale(0.97);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+
+@keyframes bulk-date-picker-exit {
+    from {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+    to {
+        opacity: 0;
+        transform: translateY(-4px) scale(0.985);
+    }
+}
+
+.bulk-date-picker-popover {
+    transform-origin: top left;
+}
+
+.bulk-date-picker-panel {
+    background: linear-gradient(160deg, #fffdf7 0%, #fff7e6 58%, #ffefdc 100%);
+    opacity: 1;
+}
+
+.bulk-date-picker-popover.bulk-date-picker--open .bulk-date-picker-panel {
+    animation: bulk-date-picker-enter 170ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.bulk-date-picker-popover.bulk-date-picker--closing {
+    pointer-events: none;
+}
+
+.bulk-date-picker-popover.bulk-date-picker--closing .bulk-date-picker-panel {
+    animation: bulk-date-picker-exit 170ms cubic-bezier(0.4, 0, 1, 1) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .bulk-date-picker-popover.bulk-date-picker--open .bulk-date-picker-panel,
+    .bulk-date-picker-popover.bulk-date-picker--closing .bulk-date-picker-panel {
+        animation: none !important;
+    }
 }
 
 

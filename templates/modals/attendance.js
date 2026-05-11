@@ -72,13 +72,13 @@ export const attendanceModalsHTML = `
 
     <div id="bulk-trial-modal"
         class="fixed inset-0 bg-black/60 backdrop-blur-sm z-[73] flex items-center justify-center p-4 hidden">
-        <div class="relative bg-gradient-to-br from-white via-amber-50 to-orange-50 rounded-[2rem] shadow-2xl max-w-5xl w-full h-[90vh] flex flex-col pop-in border border-amber-200/80 overflow-hidden"
+        <div id="bulk-trial-shell" class="relative bg-gradient-to-br from-white via-amber-50 to-orange-50 rounded-[2rem] shadow-2xl max-w-5xl w-full h-[90vh] flex flex-col pop-in border border-amber-200/80 overflow-hidden"
             style="box-shadow: 0 0 0 2px rgba(251,191,36,0.35), 0 28px 80px rgba(0,0,0,0.45), inset 0 1px 0 rgba(255,255,255,0.8);">
 
             <div class="absolute inset-0 pointer-events-none opacity-40"
                 style="background: radial-gradient(circle at 20% 10%, rgba(251,191,36,0.35), transparent 45%), radial-gradient(circle at 90% 70%, rgba(249,115,22,0.18), transparent 55%);"></div>
 
-            <div class="relative z-10 px-6 pt-6 pb-5 border-b border-amber-200/70 bg-white/55 backdrop-blur-md flex flex-col gap-4 flex-shrink-0">
+            <div class="relative z-30 px-6 pt-6 pb-5 border-b border-amber-200/70 bg-white/55 backdrop-blur-md flex flex-col gap-4 flex-shrink-0">
                 <div class="flex flex-col md:flex-row md:items-start md:justify-between gap-4">
                     <div class="flex items-start gap-3 min-w-0">
                         <div class="w-12 h-12 rounded-2xl bg-gradient-to-br from-amber-400 to-orange-400 text-white flex items-center justify-center shadow-lg flex-shrink-0"
@@ -88,19 +88,61 @@ export const attendanceModalsHTML = `
                         <div class="min-w-0">
                             <h2 id="bulk-trial-title" class="font-title text-3xl text-amber-900 leading-tight">Log Results</h2>
                             <p id="bulk-trial-subtitle" class="text-amber-700 font-semibold truncate"></p>
-                            <div class="mt-2 inline-flex items-center gap-2 rounded-full bg-white/80 px-3 py-1.5 border border-amber-200/70 text-amber-900 shadow-sm">
-                                <i class="fas fa-calendar-alt text-amber-500"></i>
-                                <span id="bulk-trial-date-display" class="text-xs font-black tracking-widest">--/--/----</span>
+                            <div class="relative mt-2">
+                                <button id="bulk-trial-date-chip" type="button"
+                                    class="inline-flex items-center gap-2 rounded-full bg-white/80 px-3 py-1.5 border border-amber-200/70 text-amber-900 shadow-sm hover:bg-amber-50 hover:border-amber-400 hover:shadow-md transition-all cursor-pointer group"
+                                    aria-haspopup="true" aria-expanded="false">
+                                    <i class="fas fa-calendar-alt text-amber-500 group-hover:text-amber-600 transition-colors"></i>
+                                    <span id="bulk-trial-date-display" class="text-xs font-black tracking-widest">--/--/----</span>
+                                    <i class="fas fa-chevron-down text-amber-400 text-[10px] transition-transform duration-200 dp-chevron"></i>
+                                </button>
+                                <input type="date" id="bulk-trial-date" class="sr-only" tabindex="-1" aria-hidden="true">
+                                <div id="bulk-trial-date-picker"
+                                    class="hidden absolute left-0 top-full mt-2 z-[120] select-none bulk-date-picker-popover"
+                                    style="filter: drop-shadow(0 20px 48px rgba(0,0,0,0.28)) drop-shadow(0 0 0 1px rgba(251,191,36,0.2));">
+                                    <div class="bulk-date-picker-panel bg-gradient-to-br from-white via-amber-50 to-orange-50 rounded-2xl border border-amber-200 overflow-hidden"
+                                        style="box-shadow: 0 0 0 1px rgba(251,191,36,0.18), inset 0 1px 0 rgba(255,255,255,0.95);">
+                                        <div class="px-4 pt-3 pb-2 border-b border-amber-100/80 flex items-center gap-2">
+                                            <i class="fas fa-calendar-alt text-amber-500 text-xs"></i>
+                                            <p class="text-[10px] font-black uppercase tracking-[0.2em] text-amber-700/70">Choose Date</p>
+                                        </div>
+                                        <div class="flex items-stretch px-1 py-3">
+                                            <div class="flex flex-col items-center gap-0.5 px-3 border-r border-amber-100/80">
+                                                <button type="button" id="dp-day-up" class="w-8 h-7 rounded-lg flex items-center justify-center text-amber-500 hover:bg-amber-100 hover:text-amber-700 transition-colors active:scale-90"><i class="fas fa-chevron-up text-[10px]"></i></button>
+                                                <div id="dp-day" class="font-title text-3xl text-amber-900 w-11 text-center leading-none my-1.5 tabular-nums">01</div>
+                                                <button type="button" id="dp-day-down" class="w-8 h-7 rounded-lg flex items-center justify-center text-amber-500 hover:bg-amber-100 hover:text-amber-700 transition-colors active:scale-90"><i class="fas fa-chevron-down text-[10px]"></i></button>
+                                                <span class="text-[9px] font-black uppercase tracking-widest text-amber-600/55 mt-1.5">Day</span>
+                                            </div>
+                                            <div class="flex flex-col items-center gap-0.5 px-3 border-r border-amber-100/80">
+                                                <button type="button" id="dp-month-up" class="w-8 h-7 rounded-lg flex items-center justify-center text-amber-500 hover:bg-amber-100 hover:text-amber-700 transition-colors active:scale-90"><i class="fas fa-chevron-up text-[10px]"></i></button>
+                                                <div id="dp-month" class="font-title text-xl text-amber-900 w-20 text-center leading-none my-1.5">January</div>
+                                                <button type="button" id="dp-month-down" class="w-8 h-7 rounded-lg flex items-center justify-center text-amber-500 hover:bg-amber-100 hover:text-amber-700 transition-colors active:scale-90"><i class="fas fa-chevron-down text-[10px]"></i></button>
+                                                <span class="text-[9px] font-black uppercase tracking-widest text-amber-600/55 mt-1.5">Month</span>
+                                            </div>
+                                            <div class="flex flex-col items-center gap-0.5 px-3">
+                                                <button type="button" id="dp-year-up" class="w-8 h-7 rounded-lg flex items-center justify-center text-amber-500 hover:bg-amber-100 hover:text-amber-700 transition-colors active:scale-90"><i class="fas fa-chevron-up text-[10px]"></i></button>
+                                                <div id="dp-year" class="font-title text-2xl text-amber-900 w-16 text-center leading-none my-1.5 tabular-nums">2026</div>
+                                                <button type="button" id="dp-year-down" class="w-8 h-7 rounded-lg flex items-center justify-center text-amber-500 hover:bg-amber-100 hover:text-amber-700 transition-colors active:scale-90"><i class="fas fa-chevron-down text-[10px]"></i></button>
+                                                <span class="text-[9px] font-black uppercase tracking-widest text-amber-600/55 mt-1.5">Year</span>
+                                            </div>
+                                        </div>
+                                        <div class="px-3 pb-3 flex gap-2">
+                                            <button type="button" id="dp-confirm-btn"
+                                                class="flex-1 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 active:scale-95 text-white font-title text-base py-2 rounded-xl transition-all shadow-md">
+                                                <i class="fas fa-check mr-1.5 text-sm"></i>Set Date
+                                            </button>
+                                            <button type="button" id="dp-cancel-btn"
+                                                class="px-3 py-2 rounded-xl text-amber-900/50 hover:text-amber-900 hover:bg-amber-100 transition-all text-sm font-bold">
+                                                <i class="fas fa-times"></i>
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </div>
 
                     <div class="flex flex-wrap gap-3 items-end justify-end">
-                        <div>
-                            <label class="block text-[11px] font-black text-amber-900/70 uppercase tracking-widest mb-1">Date</label>
-                            <input type="date" id="bulk-trial-date"
-                                class="px-3.5 py-2.5 border border-amber-200/80 rounded-xl bg-white/80 focus:ring-2 focus:ring-amber-400 outline-none shadow-sm">
-                        </div>
                         <div id="bulk-trial-title-wrapper" class="hidden">
                             <label class="block text-[11px] font-black text-amber-900/70 uppercase tracking-widest mb-1">Title</label>
                             <input type="text" id="bulk-trial-name" placeholder="e.g. Unit 5 Quiz"
@@ -199,6 +241,8 @@ export const attendanceModalsHTML = `
                 </div>
                 <div id="trial-history-actions" class="flex items-center gap-2 flex-wrap justify-end w-full sm:w-auto">
                 </div>
+            </div>
+            <div id="trial-history-sort-row" class="relative z-10 flex items-center gap-1.5 mb-4 bg-white/60 px-3 py-2 rounded-xl border border-purple-100 shadow-sm backdrop-blur-sm shrink-0 flex-wrap">
             </div>
             <div id="trial-history-content"
                 class="relative z-10 space-y-4 overflow-y-auto p-2 pr-4 flex-grow rounded-xl scrollbar-custom">

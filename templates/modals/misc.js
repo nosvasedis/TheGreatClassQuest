@@ -41,23 +41,35 @@ export const miscModalsHTML = `
     </div>
 
     <div id="welcome-back-modal"
-        class="fixed inset-0 bg-black bg-opacity-50 z-[72] flex items-center justify-center p-4 hidden">
-        <div
-            class="relative bg-gradient-to-br from-sky-300 to-lime-300 p-8 rounded-3xl shadow-2xl max-w-md w-full text-center border-4 border-white overflow-hidden">
-            <span class="absolute text-4xl top-4 left-4 animate-ping opacity-50">✨</span>
-            <span class="absolute text-3xl bottom-8 right-8 animate-pulse">🎉</span>
-            <span class="absolute text-2xl top-12 right-12 animate-bounce">👋</span>
+        class="fixed inset-0 bg-black/70 backdrop-blur-md z-[72] flex items-center justify-center p-4 hidden">
+        <div class="welcome-back-shell pop-in">
+            <!-- Animated gradient backdrop -->
+            <div class="welcome-back-shell__backdrop"></div>
 
-            <div id="welcome-back-content" class="relative z-10 pop-in space-y-4">
-                <h2 id="welcome-back-title" class="font-title text-4xl text-white"
-                    style="text-shadow: 0 2px 4px rgba(0,0,0,0.2);">Welcome Back!</h2>
-                <p id="welcome-back-message" class="text-xl font-semibold text-gray-800 leading-relaxed"></p>
-                <div class="inline-block bg-white/50 rounded-full p-4">
-                    <p class="font-title text-5xl text-amber-600 flex items-center justify-center gap-2">
-                        <i class="fas fa-star"></i>
-                        <span id="welcome-back-stars">3</span>
-                    </p>
-                    <p class="text-sm font-bold text-amber-800 -mt-1">Bonus Stars!</p>
+            <!-- Floating particles -->
+            <div class="welcome-back-particles" aria-hidden="true">
+                <span class="wb-particle wb-particle--1">✨</span>
+                <span class="wb-particle wb-particle--2">⭐</span>
+                <span class="wb-particle wb-particle--3">🌟</span>
+                <span class="wb-particle wb-particle--4">✦</span>
+                <span class="wb-particle wb-particle--5">✧</span>
+                <span class="wb-particle wb-particle--6">🎉</span>
+            </div>
+
+            <div id="welcome-back-content" class="welcome-back-content">
+                <!-- Waving hand icon -->
+                <div class="welcome-back-icon" aria-hidden="true">👋</div>
+
+                <h2 id="welcome-back-title" class="welcome-back-title">Welcome Back!</h2>
+                <p id="welcome-back-message" class="welcome-back-message"></p>
+
+                <!-- Stars display -->
+                <div class="welcome-back-stars-badge">
+                    <div class="welcome-back-stars-ring">
+                        <i class="fas fa-star welcome-back-star-icon"></i>
+                        <span id="welcome-back-stars" class="welcome-back-stars-num">3</span>
+                    </div>
+                    <p class="welcome-back-stars-label">Bonus Stars Awarded!</p>
                 </div>
             </div>
         </div>
@@ -239,38 +251,61 @@ export const miscModalsHTML = `
     </div>
 
     <div id="starfall-modal"
-        class="fixed inset-0 bg-black bg-opacity-50 z-[80] flex items-center justify-center p-4 hidden">
+        class="fixed inset-0 bg-black/80 backdrop-blur-xl z-[80] flex items-center justify-center p-4 hidden">
         <div id="starfall-modal-content"
-            class="relative text-center p-8 rounded-3xl shadow-2xl max-w-lg w-full pop-in overflow-hidden">
-            <div class="absolute -top-1/2 -left-1/2 w-[200%] h-[200%] starfall-bg"></div>
-            <div class="relative z-10">
-                <div id="starfall-icon" class="text-7xl mb-4 starfall-icon-animate">⭐</div>
-                <h2 class="font-title text-4xl text-white mb-4" style="text-shadow: 0 2px 4px rgba(0,0,0,0.3);">A
-                    Starfall Opportunity!</h2>
+            class="starfall-shell pop-in">
+
+            <!-- Rotating deep-space background -->
+            <div class="absolute -top-1/2 -left-1/2 w-[200%] h-[200%] starfall-bg" aria-hidden="true"></div>
+
+            <!-- Shooting star streaks -->
+            <div class="starfall-streaks" aria-hidden="true">
+                <div class="starfall-streak starfall-streak--1"></div>
+                <div class="starfall-streak starfall-streak--2"></div>
+                <div class="starfall-streak starfall-streak--3"></div>
+            </div>
+
+            <!-- Floating particles -->
+            <div class="starfall-particles" aria-hidden="true">
+                <span class="starfall-particle starfall-particle--1">✦</span>
+                <span class="starfall-particle starfall-particle--2">✧</span>
+                <span class="starfall-particle starfall-particle--3">⭐</span>
+                <span class="starfall-particle starfall-particle--4">✦</span>
+                <span class="starfall-particle starfall-particle--5">✧</span>
+                <span class="starfall-particle starfall-particle--6">💫</span>
+            </div>
+
+            <!-- Content -->
+            <div class="relative z-10 flex flex-col items-center">
+                <!-- Multi-ring glowing star -->
+                <div class="starfall-icon-wrapper" aria-hidden="true">
+                    <span class="starfall-icon-ring starfall-icon-ring--3"></span>
+                    <span class="starfall-icon-ring starfall-icon-ring--2"></span>
+                    <span class="starfall-icon-ring starfall-icon-ring--1"></span>
+                    <div id="starfall-icon" class="starfall-icon-animate relative z-10">⭐</div>
+                </div>
+
+                <h2 class="starfall-title">A Starfall Opportunity!</h2>
 
                 <div id="starfall-single-view">
-                    <p id="starfall-message" class="text-white/90 text-lg leading-relaxed mb-6"
-                        style="text-shadow: 0 1px 3px rgba(0,0,0,0.3);">The stars have noticed <b
-                            id="starfall-student-name" class="text-yellow-200">Student Name's</b> incredible effort on
+                    <p id="starfall-message" class="starfall-message">The stars have noticed <b
+                            id="starfall-student-name" class="starfall-student-name">Student Name's</b> incredible effort on
                         their trial! Their brilliance has caused a star to fall from the sky.</p>
                 </div>
 
-                <div id="starfall-batch-view" class="hidden mb-6">
-                    <p class="text-white/90 text-lg leading-relaxed mb-4"
-                        style="text-shadow: 0 1px 3px rgba(0,0,0,0.3);">The stars are raining down! These scholars have
-                        triggered a Starfall Bonus!</p>
-                    <div id="starfall-batch-list"
-                        class="bg-white/20 backdrop-blur-sm rounded-xl p-2 max-h-40 overflow-y-auto text-left space-y-1">
-                    </div>
+                <div id="starfall-batch-view" class="hidden w-full mb-5">
+                    <p class="starfall-message mb-3">The stars are raining down! These scholars have triggered a Starfall Bonus!</p>
+                    <div id="starfall-batch-list" class="starfall-batch-list"></div>
                 </div>
 
-                <p class="text-white font-bold text-xl mb-6">Shall we bestow these Bonus Stars?</p>
-                <div class="flex flex-col items-center gap-3">
-                    <button id="starfall-confirm-btn"
-                        class="w-full bg-yellow-400 hover:bg-yellow-500 text-yellow-900 font-title text-xl py-3 rounded-xl bubbly-button shadow-lg border-b-4 border-yellow-600">Yes,
-                        Bestow Bonus Stars! ✨</button>
-                    <button id="starfall-cancel-btn" class="text-white/70 hover:text-white hover:underline">Not This
-                        Time</button>
+                <p class="starfall-prompt">Shall we bestow these Bonus Stars?</p>
+
+                <div class="flex flex-col items-center gap-3 w-full">
+                    <button id="starfall-confirm-btn" class="starfall-confirm-btn">
+                        <span class="starfall-confirm-btn__shimmer"></span>
+                        Yes, Bestow Bonus Stars! ✨
+                    </button>
+                    <button id="starfall-cancel-btn" class="starfall-cancel-btn">Not This Time</button>
                 </div>
             </div>
         </div>
@@ -393,69 +428,84 @@ export const miscModalsHTML = `
     </div>
 
     <div id="boon-confirm-modal"
-        class="fixed inset-0 bg-black bg-opacity-70 z-[100] flex items-center justify-center p-4 hidden backdrop-blur-md">
-        <div class="bg-white rounded-3xl shadow-2xl max-w-sm w-full pop-in border-4 border-rose-300 overflow-hidden">
-            <div class="bg-rose-500 p-4 text-center text-white">
-                <h3 class="font-title text-2xl">Confirm Boon?</h3>
+        class="fixed inset-0 bg-black/80 z-[100] flex items-center justify-center p-4 hidden backdrop-blur-xl">
+        <div class="boon-confirm-shell pop-in">
+            <div class="boon-confirm-shell__glow"></div>
+            <!-- Heart Icon -->
+            <div class="boon-confirm-icon" aria-hidden="true">
+                <span class="boon-confirm-icon__heart">💝</span>
+                <span class="boon-confirm-icon__ring"></span>
             </div>
-            <div class="p-6 text-center">
-                <p class="text-gray-700 mb-6">
-                    Spend <span class="font-bold text-amber-600">15 Gold</span> from <b id="boon-confirm-sender"
-                        class="text-rose-600"></b>
-                    to bestow a Hero's Boon on <b id="boon-confirm-receiver" class="text-rose-600"></b>?
-                    <br><span class="text-sm text-rose-400 font-bold mt-2 inline-block">(+0.5 Stars)</span>
-                </p>
-                <div class="flex gap-4">
-                    <button id="boon-confirm-cancel-btn"
-                        class="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-500 font-bold py-2 rounded-xl transition-colors">
-                        Cancel
-                    </button>
-                    <button id="boon-confirm-final-btn"
-                        class="flex-1 bg-rose-500 hover:bg-rose-600 text-white font-title text-xl py-2 rounded-xl shadow-lg transition-all active:scale-95">
-                        Confirm!
-                    </button>
-                </div>
+            <h3 class="boon-confirm-title">Confirm Boon?</h3>
+            <p class="boon-confirm-body">
+                Spend <span class="boon-confirm-cost">15 🪙</span> from
+                <b id="boon-confirm-sender" class="boon-confirm-name"></b>
+                to bestow a Hero’s Boon on
+                <b id="boon-confirm-receiver" class="boon-confirm-name"></b>?
+            </p>
+            <div class="boon-confirm-reward">
+                <i class="fas fa-star" style="color:#fbbf24;"></i>
+                <span>+0.5 Stars awarded</span>
+            </div>
+            <div class="boon-confirm-actions">
+                <button id="boon-confirm-cancel-btn" class="boon-confirm-btn boon-confirm-btn--cancel">Cancel</button>
+                <button id="boon-confirm-final-btn" class="boon-confirm-btn boon-confirm-btn--confirm">Bestow! 💝</button>
             </div>
         </div>
     </div>
 
     <div id="bestow-boon-modal"
-        class="fixed inset-0 bg-black bg-opacity-60 z-[90] flex items-center justify-center p-4 hidden backdrop-blur-sm">
-        <div
-            class="bg-white rounded-[2.5rem] shadow-2xl max-w-md w-full pop-in border-4 border-rose-300 relative overflow-hidden">
-            <div class="bg-gradient-to-r from-rose-400 to-pink-500 p-6 text-center text-white">
-                <div class="text-5xl mb-2 animate-bounce">💝</div>
-                <h2 class="font-title text-3xl">Hero's Boon</h2>
-                <p class="text-rose-100 font-bold uppercase tracking-widest text-xs">Spread the magic</p>
+        class="fixed inset-0 bg-black/75 z-[90] flex items-center justify-center p-4 hidden backdrop-blur-lg">
+        <div class="bestow-boon-shell pop-in">
+            <!-- Animated backdrop -->
+            <div class="bestow-boon-shell__backdrop"></div>
+
+            <!-- Floating sparkles -->
+            <div class="bestow-boon-sparkles" aria-hidden="true">
+                <span class="bestow-boon-sparkle bestow-boon-sparkle--1"></span>
+                <span class="bestow-boon-sparkle bestow-boon-sparkle--2"></span>
+                <span class="bestow-boon-sparkle bestow-boon-sparkle--3"></span>
+                <span class="bestow-boon-sparkle bestow-boon-sparkle--4"></span>
+                <span class="bestow-boon-sparkle bestow-boon-sparkle--5"></span>
             </div>
 
-            <div class="p-8">
-                <p class="text-gray-600 text-center mb-6">
-                    Choose an adventurer to sponsor <b id="boon-receiver-name" class="text-rose-600"></b>'s quest!
-                    It costs <span class="font-bold text-amber-600">15 Gold</span> to bestow <span
-                        class="font-bold text-amber-600">+0.5 Stars</span>.
+            <!-- Content -->
+            <div class="bestow-boon-header bestow-boon-entrance bestow-boon-entrance--1">
+                <div class="bestow-boon-crest">
+                    <span class="bestow-boon-crest__icon">💝</span>
+                    <span class="bestow-boon-crest__ring"></span>
+                </div>
+                <div class="bestow-boon-header__text">
+                    <p class="bestow-boon-eyebrow">Peer Blessing</p>
+                    <h2 class="bestow-boon-title">Hero’s Boon</h2>
+                    <p class="bestow-boon-subtitle">Spread the magic ✨</p>
+                </div>
+            </div>
+
+            <div class="bestow-boon-body bestow-boon-entrance bestow-boon-entrance--2">
+                <p class="bestow-boon-desc">
+                    Choose an adventurer to sponsor
+                    <b id="boon-receiver-name" class="bestow-boon-receiver-name"></b>’s quest!
                 </p>
-
-                <div class="space-y-4">
-                    <div>
-                        <label class="block text-xs font-black text-gray-400 uppercase mb-1 ml-1">Select the
-                            Sponsor</label>
-                        <select id="boon-sender-select"
-                            class="w-full px-4 py-3 border-2 border-rose-100 rounded-2xl focus:ring-2 focus:ring-rose-500 outline-none bg-rose-50/30 font-bold text-rose-900">
-                        </select>
-                    </div>
+                <div class="bestow-boon-cost-pill">
+                    <span>🪙 15 Gold</span>
+                    <span class="bestow-boon-cost-arrow">→</span>
+                    <span>⭐ +0.5 Stars</span>
                 </div>
+            </div>
 
-                <div class="flex gap-4 mt-8">
-                    <button id="boon-cancel-btn"
-                        class="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-500 font-bold py-3 rounded-2xl transition-colors">
-                        Cancel
-                    </button>
-                    <button id="boon-confirm-btn"
-                        class="flex-1 bg-rose-500 hover:bg-rose-600 text-white font-title text-xl py-3 rounded-2xl shadow-lg shadow-rose-200 transition-all active:scale-95">
-                        Bestow!
-                    </button>
-                </div>
+            <div class="bestow-boon-select-wrap bestow-boon-entrance bestow-boon-entrance--3">
+                <label class="bestow-boon-select-label">Select the Sponsor</label>
+                <select id="boon-sender-select" class="bestow-boon-select">
+                </select>
+            </div>
+
+            <div class="bestow-boon-actions bestow-boon-entrance bestow-boon-entrance--4">
+                <button id="boon-cancel-btn" class="bestow-boon-btn bestow-boon-btn--cancel">Cancel</button>
+                <button id="boon-confirm-btn" class="bestow-boon-btn bestow-boon-btn--confirm">
+                    <span class="bestow-boon-btn__shimmer"></span>
+                    Bestow! 💝
+                </button>
             </div>
         </div>
     </div>

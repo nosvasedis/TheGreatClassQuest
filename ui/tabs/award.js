@@ -235,20 +235,20 @@ function buildAbsenceControlsHtml({ isVisuallyAbsent, isMarkedAbsentToday, class
     if (isVisuallyAbsent) {
         if (isMarkedAbsentToday) {
             return `
-                <button class="absence-btn bg-green-200 text-green-700 hover:bg-green-300" data-action="mark-present" title="Undo: Mark as Present">
+                <button class="absence-btn absence-btn--present" data-action="mark-present" title="Undo: Mark as Present">
                     <i class="fas fa-user-check pointer-events-none"></i>
                 </button>`;
         }
 
         if (classHasLessonToday) {
             return `
-                <button class="absence-btn bg-green-200 text-green-700 hover:bg-green-300" data-action="mark-present" title="Mark as Present">
+                <button class="absence-btn absence-btn--present" data-action="mark-present" title="Mark as Present">
                     <i class="fas fa-user-check pointer-events-none"></i>
                 </button>
                 <button class="welcome-back-btn" data-action="welcome-back" title="Welcome Back Bonus!">
                     <i class="fas fa-hand-sparkles pointer-events-none"></i>
                 </button>
-                <button class="absence-btn absence-btn--today bg-amber-100 text-amber-700 hover:bg-amber-200" data-action="mark-absent" title="Mark Absent Today">
+                <button class="absence-btn absence-btn--today" data-action="mark-absent" title="Mark Absent Today">
                     <i class="fas fa-calendar-xmark pointer-events-none"></i>
                 </button>`;
         }
@@ -258,7 +258,7 @@ function buildAbsenceControlsHtml({ isVisuallyAbsent, isMarkedAbsentToday, class
 
     if (!isCardLocked && classHasLessonToday) {
         return `
-            <button class="absence-btn" data-action="mark-absent" title="Mark as Absent">
+            <button class="absence-btn absence-btn--absent" data-action="mark-absent" title="Mark as Absent">
                 <i class="fas fa-user-slash pointer-events-none"></i>
             </button>`;
     }
@@ -421,6 +421,14 @@ export function renderAwardStarsStudentList(selectedClassId, fullRender = true) 
                 if (previousLessonDate && r.date === previousLessonDate) absentPrevSet.add(r.studentId);
             }
 
+            // Check daily peer boon limit (2 per class per day)
+            const classBoonsToday = state.get('allAwardLogs').filter(l =>
+                l.classId === selectedClassId &&
+                l.date === today &&
+                l.reason === 'peer_boon'
+            ).length;
+            const dailyLimitReached = classBoonsToday >= 2;
+
             listContainer.innerHTML = studentsInClass.map((s, index) => {
                 const isReigningHero = reigningHero && reigningHero.id === s.id;
                 const scoreData = scoreMap.get(s.id) || {};
@@ -446,18 +454,18 @@ export function renderAwardStarsStudentList(selectedClassId, fullRender = true) 
                 if (isVisuallyAbsent) {
                     if (isMarkedAbsentToday) {
                         absenceButtonHtml = `
-                            <button class="absence-btn bg-green-200 text-green-700 hover:bg-green-300" data-action="mark-present" title="Undo: Mark as Present">
+                            <button class="absence-btn absence-btn--present" data-action="mark-present" title="Undo: Mark as Present">
                                 <i class="fas fa-user-check pointer-events-none"></i>
                             </button>`;
                     } else if (classHasLessonToday) {
                         absenceButtonHtml = `
-                            <button class="absence-btn bg-green-200 text-green-700 hover:bg-green-300" data-action="mark-present" title="Mark as Present">
+                            <button class="absence-btn absence-btn--present" data-action="mark-present" title="Mark as Present">
                                 <i class="fas fa-user-check pointer-events-none"></i>
                             </button>
                             <button class="welcome-back-btn" data-action="welcome-back" title="Welcome Back Bonus!">
                                 <i class="fas fa-hand-sparkles pointer-events-none"></i>
                             </button>
-                            <button class="absence-btn absence-btn--today bg-amber-100 text-amber-700 hover:bg-amber-200" data-action="mark-absent" title="Mark Absent Today">
+                            <button class="absence-btn absence-btn--today" data-action="mark-absent" title="Mark Absent Today">
                                 <i class="fas fa-calendar-xmark pointer-events-none"></i>
                             </button>`;
                     }
@@ -465,7 +473,7 @@ export function renderAwardStarsStudentList(selectedClassId, fullRender = true) 
                 else {
                     if (!isCardLocked && classHasLessonToday) {
                         absenceButtonHtml = `
-                            <button class="absence-btn" data-action="mark-absent" title="Mark as Absent">
+                            <button class="absence-btn absence-btn--absent" data-action="mark-absent" title="Mark as Absent">
                                 <i class="fas fa-user-slash pointer-events-none"></i>
                             </button>`;
                     }
@@ -499,28 +507,30 @@ export function renderAwardStarsStudentList(selectedClassId, fullRender = true) 
                         const tree = HERO_SKILL_TREE[s.heroClass];
                         const aura = tree?.auraColor || '#7c3aed';
                         const icon = HERO_CLASSES[s.heroClass]?.icon || '';
-                        return `<span class="hero-title-pill inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full text-white shadow-sm border border-white/30" style="background: linear-gradient(135deg, ${aura}, ${aura}dd); box-shadow: 0 1px 3px rgba(0,0,0,0.2), 0 0 0 1px rgba(255,255,255,0.2);">${icon ? `<span class="opacity-90">${icon}</span>` : ''}<span>${title}</span></span>`;
+                        return `<span class="hero-title-pill inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-bold text-white shadow-sm border border-white/30" style="background: linear-gradient(135deg, ${aura}, ${aura}dd); box-shadow: 0 2px 8px rgba(0,0,0,0.12), 0 0 0 1px rgba(255,255,255,0.25) inset;" title="Hero rank">${icon ? `<span class="opacity-90">${icon}</span>` : ''}<span>${title}</span></span>`;
                       })()
                     : '';
 
                 // --- BOON BUTTON VISUAL LOGIC ---
-                // Check eligibility based on the pre-calculated leaderboard
+                // Check eligibility based on the pre-calculated leaderboard + daily limit
                 const myLeaderboardData = leaderboardMap.get(s.id);
-                const isEligible = bottomThreeIds.has(s.id) || (myLeaderboardData && scoreCounts[myLeaderboardData.stars] > 1);
+                const isEligible = !dailyLimitReached && (
+                    bottomThreeIds.has(s.id) || (myLeaderboardData && scoreCounts[myLeaderboardData.stars] > 1)
+                );
 
                 let boonBtnHtml = '';
                 if (isEligible) {
                     boonBtnHtml = `
-                    <button class="boon-btn absolute top-2 left-14 w-8 h-8 rounded-full bg-rose-100 text-rose-500 hover:bg-rose-200 transition-colors shadow-sm border border-rose-200 z-30" 
+                    <button class="boon-btn boon-btn--eligible absolute top-2 left-14 w-8 h-8 rounded-full z-30"
                             data-receiver-id="${s.id}" title="Bestow Hero's Boon">
-                        <i class="fas fa-heart"></i>
+                        <i class="fas fa-heart pointer-events-none"></i>
                     </button>`;
                 } else {
                     // Visually disabled state (Greyed out)
                     boonBtnHtml = `
-                    <button class="boon-btn absolute top-2 left-14 w-8 h-8 rounded-full bg-gray-100 text-gray-300 border border-gray-200 z-30 cursor-not-allowed opacity-60" 
+                    <button class="boon-btn boon-btn--disabled absolute top-2 left-14 w-8 h-8 rounded-full z-30 cursor-not-allowed"
                             data-receiver-id="${s.id}" title="Not eligible for Boon">
-                        <i class="fas fa-heart-broken"></i>
+                        <i class="fas fa-heart-broken pointer-events-none"></i>
                     </button>`;
                 }
 
@@ -722,13 +732,13 @@ export function updateAwardBoonButtons(selectedClassId) {
         );
 
         if (isEligible) {
-            btn.className = 'boon-btn absolute top-2 left-14 w-8 h-8 rounded-full bg-rose-100 text-rose-500 hover:bg-rose-200 transition-colors shadow-sm border border-rose-200 z-30';
+            btn.className = 'boon-btn boon-btn--eligible absolute top-2 left-14 w-8 h-8 rounded-full z-30';
             btn.title = 'Bestow Hero\'s Boon';
-            btn.innerHTML = '<i class="fas fa-heart"></i>';
+            btn.innerHTML = '<i class="fas fa-heart pointer-events-none"></i>';
         } else {
-            btn.className = 'boon-btn absolute top-2 left-14 w-8 h-8 rounded-full bg-gray-100 text-gray-300 border border-gray-200 z-30 cursor-not-allowed opacity-60';
+            btn.className = 'boon-btn boon-btn--disabled absolute top-2 left-14 w-8 h-8 rounded-full z-30 cursor-not-allowed';
             btn.title = dailyLimitReached ? 'Daily boon limit reached (2/day)' : 'Not eligible for Boon';
-            btn.innerHTML = '<i class="fas fa-heart-broken"></i>';
+            btn.innerHTML = '<i class="fas fa-heart-broken pointer-events-none"></i>';
         }
     });
 

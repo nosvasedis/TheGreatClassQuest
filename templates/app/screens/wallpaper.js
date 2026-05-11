@@ -12,7 +12,11 @@ export const wallpaperHTML = `
             class="absolute inset-0 bg-gradient-to-b from-indigo-950 via-purple-900 to-slate-800 opacity-0 transition-opacity duration-[3000ms]">
         </div>
 
-        <div class="absolute inset-0 pointer-events-none z-0 overflow-hidden">
+        <!-- Starfield (night only) -->
+        <div id="wall-stars" class="absolute inset-0 pointer-events-none z-[1] overflow-hidden opacity-0 transition-opacity duration-[3000ms]"></div>
+
+        <!-- Celestial bodies -->
+        <div class="absolute inset-0 pointer-events-none z-[2] overflow-hidden">
             <div id="wall-sun"
                 class="absolute w-64 h-64 rounded-full bg-yellow-300 blur-2xl opacity-80 transition-all duration-[3000ms] ease-in-out"
                 style="top: -5%; right: -5%;"></div>
@@ -23,6 +27,24 @@ export const wallpaperHTML = `
                 <div class="absolute top-10 left-8 w-8 h-8 bg-slate-200 rounded-full opacity-50"></div>
                 <div class="absolute bottom-12 right-10 w-12 h-12 bg-slate-200 rounded-full opacity-50"></div>
             </div>
+        </div>
+
+        <!-- Parallax cloud art lanes -->
+        <div id="wall-parallax-clouds" class="absolute inset-0 pointer-events-none z-[3] overflow-hidden" aria-hidden="true">
+            <div class="wall-parallax-lane" style="--lane-duration:140s; --lane-top:8%; --lane-scale:1.2;"><i class="fas fa-cloud"></i></div>
+            <div class="wall-parallax-lane" style="--lane-duration:110s; --lane-top:22%; --lane-scale:0.9;"><i class="fas fa-cloud"></i></div>
+            <div class="wall-parallax-lane" style="--lane-duration:160s; --lane-top:38%; --lane-scale:1.5;"><i class="fas fa-cloud"></i></div>
+            <div class="wall-parallax-lane" style="--lane-duration:95s; --lane-top:55%; --lane-scale:0.7;"><i class="fas fa-cloud"></i></div>
+            <div class="wall-parallax-lane" style="--lane-duration:130s; --lane-top:68%; --lane-scale:1.1;"><i class="fas fa-cloud"></i></div>
+            <div class="wall-parallax-lane" style="--lane-duration:180s; --lane-top:82%; --lane-scale:1.3;"><i class="fas fa-cloud"></i></div>
+        </div>
+
+        <!-- Weather overlay planes -->
+        <div id="wall-weather-fx" class="absolute inset-0 pointer-events-none z-[5] overflow-hidden" aria-hidden="true">
+            <div id="wall-rain-fx" class="wall-weather-plane"></div>
+            <div id="wall-snow-fx" class="wall-weather-plane"></div>
+            <div id="wall-cloudy-fx" class="wall-weather-plane"></div>
+            <div id="wall-storm-flash" class="wall-weather-plane"></div>
         </div>
 
         <div class="absolute inset-0 pointer-events-none z-10">

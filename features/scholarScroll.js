@@ -1,8 +1,13 @@
 // /features/scholarScroll.js
 let loadedHistoricalScores = [];
+let historySortDateDir = 'desc';   // 'desc' = newest first, 'asc' = oldest first
+let historySortStudentBy = 'name'; // 'name' | 'name-desc' | 'score-desc' | 'score-asc'
 
 /** Last class id used to render Scholar's Scroll (for swap animations on header class change). */
 let lastRenderedScrollClassId = null;
+
+/** Cleanup function for the bulk-trial custom date picker outside-click handler. */
+let _dpOutsideClickHandler = null;
 
 function scrollMotionReduced() {
     return typeof window !== 'undefined' && window.matchMedia?.('(prefers-reduced-motion: reduce)').matches === true;
@@ -116,10 +121,10 @@ import {
 
 function formatYmdFromAnyDateString(dateStr) {
     const d = utils.parseFlexibleDate(dateStr);
-    if (!d) return utils.getTodayDateString();
-    const yyyy = d.getFullYear();
-    const mm = String(d.getMonth() + 1).padStart(2, '0');
-    const dd = String(d.getDate()).padStart(2, '0');
+    const target = d || new Date();
+    const yyyy = target.getFullYear();
+    const mm = String(target.getMonth() + 1).padStart(2, '0');
+    const dd = String(target.getDate()).padStart(2, '0');
     return `${yyyy}-${mm}-${dd}`;
 }
 
@@ -479,6 +484,128 @@ export function openTrialTypeModal(classId) {
     document.getElementById('trial-type-cancel-btn').onclick = () => modals.hideModal('trial-type-modal');
 }
 
+function setupBulkDatePicker() {
+    const chip = document.getElementById('bulk-trial-date-chip');
+    const picker = document.getElementById('bulk-trial-date-picker');
+    const hiddenInput = document.getElementById('bulk-trial-date');
+    const shell = document.getElementById('bulk-trial-shell');
+    const chevron = chip?.querySelector('.dp-chevron');
+    if (!chip || !picker || !hiddenInput) return;
+    let closeAnimTimer = null;
+
+    const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June',
+        'July', 'August', 'September', 'October', 'November', 'December'];
+
+    let dpState = { day: 1, month: 1, year: new Date().getFullYear() };
+
+    const parseFromInput = () => {
+        const val = hiddenInput.value;
+        if (!val) return;
+        const [y, m, d] = val.split('-').map(Number);
+        dpState = { day: d, month: m, year: y };
+    };
+
+    const clampDay = () => {
+        const max = new Date(dpState.year, dpState.month, 0).getDate();
+        if (dpState.day > max) dpState.day = max;
+    };
+
+    const renderDp = () => {
+        clampDay();
+        document.getElementById('dp-day').textContent = String(dpState.day).padStart(2, '0');
+        document.getElementById('dp-month').textContent = MONTHS[dpState.month - 1];
+        document.getElementById('dp-year').textContent = String(dpState.year);
+    };
+
+    const closeDp = () => {
+        if (closeAnimTimer) {
+            clearTimeout(closeAnimTimer);
+            closeAnimTimer = null;
+        }
+        picker.classList.remove('bulk-date-picker--open');
+        picker.classList.add('bulk-date-picker--closing');
+        chip.setAttribute('aria-expanded', 'false');
+        if (chevron) chevron.style.transform = '';
+        if (_dpOutsideClickHandler) {
+            document.removeEventListener('click', _dpOutsideClickHandler, true);
+            _dpOutsideClickHandler = null;
+        }
+        closeAnimTimer = setTimeout(() => {
+            picker.classList.add('hidden');
+            picker.classList.remove('bulk-date-picker--closing');
+            if (shell) shell.style.overflow = '';
+            closeAnimTimer = null;
+        }, 170);
+    };
+
+    const openDp = () => {
+        if (closeAnimTimer) {
+            clearTimeout(closeAnimTimer);
+            closeAnimTimer = null;
+        }
+        parseFromInput();
+        renderDp();
+        if (shell) shell.style.overflow = 'visible';
+        picker.classList.remove('bulk-date-picker--closing');
+        picker.classList.remove('hidden');
+        void picker.offsetWidth;
+        picker.classList.add('bulk-date-picker--open');
+        chip.setAttribute('aria-expanded', 'true');
+        if (chevron) chevron.style.transform = 'rotate(180deg)';
+        _dpOutsideClickHandler = (e) => {
+            if (!picker.contains(e.target) && !chip.contains(e.target)) {
+                closeDp();
+            }
+        };
+        document.addEventListener('click', _dpOutsideClickHandler, true);
+    };
+
+    chip.onclick = (e) => {
+        e.stopPropagation();
+        const isHidden = picker.classList.contains('hidden');
+        const isClosing = picker.classList.contains('bulk-date-picker--closing');
+        (isHidden || isClosing) ? openDp() : closeDp();
+    };
+
+    const maxDayFor = () => new Date(dpState.year, dpState.month, 0).getDate();
+
+    picker.querySelector('#dp-day-up').onclick = () => {
+        dpState.day = dpState.day >= maxDayFor() ? 1 : dpState.day + 1;
+        renderDp();
+    };
+    picker.querySelector('#dp-day-down').onclick = () => {
+        dpState.day = dpState.day <= 1 ? maxDayFor() : dpState.day - 1;
+        renderDp();
+    };
+    picker.querySelector('#dp-month-up').onclick = () => {
+        dpState.month = dpState.month >= 12 ? 1 : dpState.month + 1;
+        renderDp();
+    };
+    picker.querySelector('#dp-month-down').onclick = () => {
+        dpState.month = dpState.month <= 1 ? 12 : dpState.month - 1;
+        renderDp();
+    };
+    picker.querySelector('#dp-year-up').onclick = () => {
+        dpState.year++;
+        renderDp();
+    };
+    picker.querySelector('#dp-year-down').onclick = () => {
+        if (dpState.year > 2020) { dpState.year--; renderDp(); }
+    };
+
+    picker.querySelector('#dp-confirm-btn').onclick = () => {
+        clampDay();
+        const yyyy = String(dpState.year);
+        const mm = String(dpState.month).padStart(2, '0');
+        const dd = String(dpState.day).padStart(2, '0');
+        hiddenInput.value = `${yyyy}-${mm}-${dd}`;
+        hiddenInput.dispatchEvent(new Event('change'));
+        closeDp();
+    };
+
+    picker.querySelector('#dp-cancel-btn').onclick = () => closeDp();
+}
+
 export function openBulkLogModal(classId, type, options = {}) {
     const classData = state.get('allSchoolClasses').find((c) => c.id === classId);
     if (!classData) return;
@@ -500,7 +627,7 @@ export function openBulkLogModal(classId, type, options = {}) {
             ? formatYmdFromAnyDateString(options.presetDate.trim())
             : null;
     if (!initialDate) {
-        initialDate = pickBulkTestLogContext(classId).initialDate;
+        initialDate = formatYmdFromAnyDateString(utils.getTodayDateString());
     }
     dateInput.value = initialDate;
     updateDateDisplay(dateInput.value);
@@ -535,6 +662,7 @@ export function openBulkLogModal(classId, type, options = {}) {
     };
 
     attachDateSync();
+    setupBulkDatePicker();
     populateBulkTrialStudentRows(classId, type, assessmentScheme, dateInput.value);
     refreshBulkTrialScheduledHint(classId, type, dateInput.value);
 
@@ -559,19 +687,30 @@ function renderStudentBulkRow(student, scheme, isAbsent) {
     let inputHtml = '';
 
     if (scheme.mode === 'qualitative') {
+        const gradeColorClass = (pct) => {
+            if (pct >= 90) return 'grade-pill--emerald';
+            if (pct >= 65) return 'grade-pill--teal';
+            if (pct >= 40) return 'grade-pill--amber';
+            return 'grade-pill--rose';
+        };
+        const pills = (scheme.scale || [])
+            .map((entry) => `<button type="button" class="grade-pill ${gradeColorClass(entry.normalizedPercent)}" data-value="${entry.label}" ${isAbsent ? 'disabled' : ''} onclick="var w=this.closest('.grade-pills-wrapper');w.querySelector('.bulk-grade-input').value=this.dataset.value;w.querySelectorAll('.grade-pill').forEach(b=>b.classList.remove('active'));this.classList.add('active');">${entry.label}</button>`)
+            .join('');
         inputHtml = `
-            <select class="bulk-grade-input w-full p-2.5 border border-amber-200/80 rounded-xl bg-white/80 focus:ring-2 focus:ring-amber-400 outline-none shadow-sm" ${isAbsent ? 'disabled' : ''}>
-                <option value="" selected disabled>Select Grade...</option>
-                ${(scheme.scale || []).map((entry) => `<option value="${entry.label}">${entry.label} (${entry.normalizedPercent}%)</option>`).join('')}
-            </select>
+            <div class="grade-pills-wrapper${isAbsent ? ' grade-pills-wrapper--disabled' : ''}">
+                <div class="grade-pills-grid">${pills}</div>
+                <input type="hidden" class="bulk-grade-input">
+            </div>
         `;
     } else {
         const maxScore = Number(scheme.maxScore) || 100;
         inputHtml = `
             <div class="relative">
-                <input type="number" class="bulk-grade-input w-full p-2.5 border border-amber-200/80 rounded-xl bg-white/80 focus:ring-2 focus:ring-amber-400 outline-none shadow-sm" 
-                    placeholder="0-${maxScore}" min="0" max="${maxScore}" ${isAbsent ? 'disabled' : ''} onwheel="this.blur()">
-                <span class="absolute right-3 top-2.5 text-amber-900/45 text-sm font-bold">/${maxScore}</span>
+                <input type="number" class="bulk-grade-input bulk-grade-numeric w-full p-2.5 pr-12 border-2 rounded-xl bg-white/80 outline-none shadow-sm transition-all" 
+                    placeholder="0-${maxScore}" min="0" max="${maxScore}" ${isAbsent ? 'disabled' : ''}
+                    oninput="(function(i,m){var v=parseFloat(i.value);if(isNaN(v)||i.value===''){i.removeAttribute('data-grade');return;}var p=Math.min(100,Math.max(0,Math.round(v/m*100)));i.setAttribute('data-grade',p>=80?'high':p>=60?'good':p>=40?'mid':p>=20?'low':'fail');})(this,${maxScore})"
+                    onwheel="this.blur()">
+                <span class="absolute right-2 top-1/2 -translate-y-1/2 text-amber-900/45 text-[11px] font-black pointer-events-none">/${maxScore}</span>
             </div>
         `;
     }
@@ -604,6 +743,8 @@ export function openTrialHistoryModal(classId) {
     if (!classData) return;
 
     loadedHistoricalScores = [];
+    historySortDateDir = 'desc';
+    historySortStudentBy = 'name';
 
     const modal = document.getElementById('trial-history-modal');
     modal.dataset.classId = classId;
@@ -683,6 +824,42 @@ export function openTrialHistoryModal(classId) {
             btn.innerHTML = originalHtml || '<i class="fas fa-cloud-download-alt"></i><span>Load full history</span>';
         }
     });
+
+    // 5. Sort controls
+    const sortRow = document.getElementById('trial-history-sort-row');
+    const chipBase = 'sort-chip px-2.5 py-1 rounded-full text-[11px] font-bold transition-all border';
+    const chipActive = 'bg-purple-100 text-purple-700 border-purple-300 shadow-sm';
+    const chipInactive = 'bg-white text-purple-400 border-purple-100 hover:border-purple-300 hover:text-purple-600';
+    const makeSortChip = (type, val, label, isActive) =>
+        `<button data-sort-type="${type}" data-sort-val="${val}" class="${chipBase} ${isActive ? chipActive : chipInactive}">${label}</button>`;
+
+    const buildSortRow = () => {
+        sortRow.innerHTML = `
+            <span class="text-[10px] font-bold text-purple-400 uppercase tracking-wider shrink-0 mr-1">Sort</span>
+            <span class="text-[9px] font-semibold text-purple-300 uppercase tracking-wider ml-1">Date</span>
+            ${makeSortChip('date', 'desc', 'Newest ↓', historySortDateDir === 'desc')}
+            ${makeSortChip('date', 'asc', 'Oldest ↑', historySortDateDir === 'asc')}
+            <div class="w-px h-4 bg-purple-200 mx-1 shrink-0"></div>
+            <span class="text-[9px] font-semibold text-purple-300 uppercase tracking-wider">Students</span>
+            ${makeSortChip('student', 'name', 'A→Z', historySortStudentBy === 'name')}
+            ${makeSortChip('student', 'name-desc', 'Z→A', historySortStudentBy === 'name-desc')}
+            ${makeSortChip('student', 'score-desc', 'Score ↓', historySortStudentBy === 'score-desc')}
+            ${makeSortChip('student', 'score-asc', 'Score ↑', historySortStudentBy === 'score-asc')}
+        `;
+    };
+    buildSortRow();
+
+    sortRow.addEventListener('click', (e) => {
+        const btn2 = e.target.closest('.sort-chip');
+        if (!btn2) return;
+        const type = btn2.dataset.sortType;
+        const val = btn2.dataset.sortVal;
+        if (type === 'date') historySortDateDir = val;
+        else if (type === 'student') historySortStudentBy = val;
+        buildSortRow();
+        const activeView = document.querySelector('#trial-history-view-toggle .active-toggle')?.dataset.view || 'test';
+        renderTrialHistoryContent(classId, activeView);
+    });
 }
 
 export function renderTrialHistoryContent(classId, view) {
@@ -715,7 +892,8 @@ export function renderTrialHistoryContent(classId, view) {
         return acc;
     }, {});
 
-    const sortedMonths = Object.keys(scoresByMonth).sort().reverse();
+    const sortedMonths = Object.keys(scoresByMonth).sort();
+    if (historySortDateDir === 'desc') sortedMonths.reverse();
 
     if (sortedMonths.length === 0) {
         contentEl.innerHTML = `<p class="text-center text-gray-500 py-8">No ${view} records found. Use <span class="font-semibold text-purple-700">Load full history</span> above to fetch older assessments from the database.</p>`;
@@ -734,15 +912,22 @@ export function renderTrialHistoryContent(classId, view) {
         const sortedDates = Object.keys(scoresByDate).sort((a, b) => {
             const da = utils.parseFlexibleDate(a);
             const db = utils.parseFlexibleDate(b);
-            return (db || 0) - (da || 0);
+            return historySortDateDir === 'asc' ? (da || 0) - (db || 0) : (db || 0) - (da || 0);
         });
 
         let monthScoresHtml = sortedDates.map(date => {
-            const dateScoresHtml = scoresByDate[date]
+            const dateScoresHtml = [...scoresByDate[date]]
                 .sort((a, b) => {
-                    const studentA = state.get('allStudents').find(s => s.id === a.studentId)?.name || '';
-                    const studentB = state.get('allStudents').find(s => s.id === b.studentId)?.name || '';
-                    return studentA.localeCompare(studentB);
+                    if (historySortStudentBy === 'score-desc') {
+                        return (getNormalizedPercentForScore(b) || 0) - (getNormalizedPercentForScore(a) || 0);
+                    } else if (historySortStudentBy === 'score-asc') {
+                        return (getNormalizedPercentForScore(a) || 0) - (getNormalizedPercentForScore(b) || 0);
+                    } else {
+                        const students = state.get('allStudents');
+                        const nA = students.find(s => s.id === a.studentId)?.name || '';
+                        const nB = students.find(s => s.id === b.studentId)?.name || '';
+                        return historySortStudentBy === 'name-desc' ? nB.localeCompare(nA) : nA.localeCompare(nB);
+                    }
                 })
                 .map(score => renderTrialHistoryItem(score)).join('');
             const title = scoresByDate[date][0].title || (view === 'dictation' ? 'Dictation' : 'Test');
@@ -756,7 +941,7 @@ export function renderTrialHistoryContent(classId, view) {
                                 <span class="text-lg font-black text-purple-900 font-title">${dateObj ? dateObj.getDate() : ''}</span>
                             </div>
                             <div>
-                                <span class="font-bold text-gray-700">${dateObj ? dateObj.toLocaleDateString('en-GB', { weekday: 'long', month: 'long', year: 'numeric' }) : date}</span>
+                                <span class="font-bold text-gray-700">${dateObj ? dateObj.toLocaleDateString('en-GB', { day: 'numeric', month: 'long' }) : date}</span>
                                 <div class="text-xs font-semibold text-purple-600 bg-purple-100 px-2.5 py-0.5 rounded-full inline-block mt-0.5 border border-purple-200 shadow-sm">${title}</div>
                             </div>
                         </div>

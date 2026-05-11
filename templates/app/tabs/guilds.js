@@ -77,8 +77,7 @@ export const guildsTabHTML = `
                         <div id="fortune-ledger-panel"
                              class="guild-fortune-ledger-section__expandable"
                              role="region"
-                             aria-labelledby="fortune-ledger-heading"
-                             hidden>
+                             aria-labelledby="fortune-ledger-heading">
                             <div class="guild-fortune-ledger-section__expandable-inner">
                                 <header class="guild-fortune-ledger-section__head guild-fortune-ledger-section__head--in-panel">
                                     <div class="guild-fortune-ledger-section__intro guild-fortune-ledger-section__intro--panel">

@@ -364,14 +364,7 @@ function getStudentsExpectedForScheduledAssessment(assignment) {
     const scheduledEnd = utils.parseFlexibleDate(assignment.testData.date);
     if (scheduledEnd) scheduledEnd.setHours(23, 59, 59, 999);
 
-    const absentStudentIds = new Set(
-        (state.get('allAttendanceRecords') || [])
-            .filter((record) => record.classId === assignment.classId && utils.datesMatch(record.date, assignment.testData.date))
-            .map((record) => record.studentId)
-    );
-
     return classStudents.filter((student) => {
-        if (absentStudentIds.has(student.id)) return false;
         if (student.createdAt) {
             const joinDate = student.createdAt.toDate ? student.createdAt.toDate() : new Date(student.createdAt);
             if (scheduledEnd && joinDate > scheduledEnd) return false;

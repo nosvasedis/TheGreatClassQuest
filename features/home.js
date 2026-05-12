@@ -505,28 +505,32 @@ function getActiveDashboard(classData, name, theme, spice) {
     return getLayout(
         name, theme, getHomeBountyPillHtml(),
         `
-        <div class="vibrant-card h-span-8 p-6 flex flex-col justify-center relative overflow-hidden card-gradient-sky">
-            <div class="absolute -bottom-10 -left-10 w-40 h-40 rounded-full bg-blue-300/20 blur-3xl pointer-events-none"></div>
-            <div class="absolute -top-8 right-4 w-28 h-28 rounded-full bg-indigo-400/15 blur-2xl pointer-events-none"></div>
-            <div class="flex justify-between items-end mb-4">
+        <div class="vibrant-card h-span-8 p-6 flex flex-col justify-center relative overflow-hidden quest-progress-card">
+            <div class="absolute -bottom-14 -left-14 w-56 h-56 rounded-full bg-blue-400/25 blur-3xl pointer-events-none"></div>
+            <div class="absolute -top-10 right-0 w-44 h-44 rounded-full bg-indigo-500/18 blur-2xl pointer-events-none"></div>
+            <div class="absolute inset-0 pointer-events-none" style="background: linear-gradient(135deg, rgba(255,255,255,0.38) 0%, transparent 55%); border-radius: inherit;"></div>
+            <div class="relative z-10 flex justify-between items-start mb-5">
                 <div>
-                    <h3 class="font-bold text-blue-400 text-xs uppercase tracking-widest mb-0.5"><i class="fas fa-route mr-1"></i> Quest Progress</h3>
-                    <div class="font-title text-5xl text-blue-600 leading-none">${progress}%</div>
-                    <p class="text-[11px] text-blue-400/60 mt-1 font-medium">of monthly goal</p>
+                    <h3 class="font-bold text-blue-400/80 text-xs uppercase tracking-widest mb-2 flex items-center gap-1.5">
+                        <span class="inline-flex items-center justify-center w-5 h-5 rounded-full bg-blue-500/15 border border-blue-300/40"><i class="fas fa-route text-[9px] text-blue-500"></i></span>
+                        Quest Progress
+                    </h3>
+                    <div class="quest-pct-text">${progress}<span style="font-size:2.5rem">%</span></div>
+                    <p class="text-[11px] text-blue-400/60 mt-1 font-semibold tracking-wide">of monthly goal</p>
                 </div>
-                <div class="text-right">
-                    <div class="font-title text-4xl text-amber-500">${monthlyStarsWithBonus} ⭐</div>
-                    <p class="text-xs font-bold text-amber-600/70">Collected this month</p>
-                </div>
-            </div>
-            <div class="w-full bg-white/60 h-5 rounded-full overflow-hidden border border-blue-100 shadow-inner">
-                <div class="h-full bg-gradient-to-r from-blue-400 via-blue-500 to-indigo-500 transition-all duration-1000 relative rounded-full" style="width: ${progress}%">
-                    <div class="absolute top-0 left-0 w-full h-full bg-white opacity-20 animate-pulse rounded-full"></div>
+                <div class="quest-stars-pill">
+                    <div class="font-title text-3xl text-amber-500 leading-none">${monthlyStarsWithBonus} ⭐</div>
+                    <p class="text-[10px] font-bold text-amber-700/60 mt-0.5">this month</p>
                 </div>
             </div>
-            <div class="flex justify-between mt-1.5">
-                <p class="text-[11px] text-blue-400/50">Start</p>
-                <p class="text-[11px] text-blue-400/60 font-medium">Goal: ${goal} ⭐</p>
+            <div class="quest-progress-track relative z-10">
+                <div class="quest-progress-fill" style="width: ${progress}%">
+                    <div class="quest-progress-shine"></div>
+                </div>
+            </div>
+            <div class="relative z-10 flex justify-between mt-2">
+                <p class="text-[11px] text-blue-400/50 font-medium">Start</p>
+                <p class="text-[11px] text-blue-500/70 font-bold">Goal: ${goal} ⭐</p>
             </div>
         </div>
         

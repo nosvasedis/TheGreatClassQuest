@@ -129,58 +129,24 @@ function renderQuestion(questionData, qs) {
     const q = questionData.question;
     const student = questionData.student;
 
-    const isImage = q.type === 'image';
-    const isFill = q.type === 'fill';
-    const isMcq = q.type === 'mcq';
+    const labels = ['A', 'B', 'C', 'D'];
+    const optionsHTML = (q.options || []).map((opt, i) => `
+        <button class="quiz-answer-btn" data-answer-index="${i}" data-answer-text="${escapeHTML(opt)}">
+            <span class="quiz-answer-label">${labels[i] || i + 1}</span>
+            <span class="quiz-answer-copy">${opt}</span>
+        </button>
+    `).join('');
 
-    const fillInputHTML = `
-        <div class="quiz-fill-input-wrap">
-            <input type="text" class="quiz-fill-input" id="quiz-fill-answer" placeholder="Type your answer…" autocomplete="off" />
-            <button class="quiz-fill-submit bubbly-button" id="quiz-fill-submit-btn">
-                <i class="fas fa-check"></i>
-            </button>
+    const questionMiddleHTML = `
+        <div class="quiz-question-area quiz-question-entering">
+            <div class="quiz-question-kicker">Multiple Choice Challenge</div>
+            <div class="quiz-question-emoji">✨</div>
+            <div class="quiz-question-text">${q.question}</div>
+            <div class="quiz-question-hint">Pick the best answer before the timerless spotlight moves on.</div>
         </div>
-        <div id="quiz-fill-feedback" class="quiz-explanation hidden"></div>`;
-
-    let questionMiddleHTML = '';
-    if (isImage && q.imageUrl) {
-        questionMiddleHTML = `
-            <div class="quiz-question-area quiz-question-entering">
-                <img src="${q.imageUrl}" class="quiz-question-image" alt="Question image" />
-                <div class="quiz-question-text">${q.question}</div>
-                ${fillInputHTML}
-            </div>`;
-    } else if (isImage) {
-        questionMiddleHTML = `
-            <div class="quiz-question-area quiz-question-entering">
-                <div class="quiz-question-emoji">🖼️</div>
-                <div class="quiz-question-text">${q.question}</div>
-                ${fillInputHTML}
-            </div>`;
-    } else if (isFill) {
-        questionMiddleHTML = `
-            <div class="quiz-question-area quiz-question-entering">
-                <div class="quiz-question-emoji">✏️</div>
-                <div class="quiz-question-text">${q.question}</div>
-                ${fillInputHTML}
-            </div>`;
-    } else {
-        const labels = ['A', 'B', 'C', 'D'];
-        const optionsHTML = (q.options || []).map((opt, i) => `
-            <button class="quiz-answer-btn" data-answer-index="${i}" data-answer-text="${escapeHTML(opt)}">
-                <span class="quiz-answer-label">${labels[i] || i + 1}</span>
-                <span>${opt}</span>
-            </button>
-        `).join('');
-        questionMiddleHTML = `
-            <div class="quiz-question-area quiz-question-entering">
-                <div class="quiz-question-emoji">🤔</div>
-                <div class="quiz-question-text">${q.question}</div>
-            </div>
-            <div class="quiz-answer-grid">
-                ${optionsHTML}
-            </div>`;
-    }
+        <div class="quiz-answer-grid">
+            ${optionsHTML}
+        </div>`;
 
     const spotlightEl = student ? `
         <div class="quiz-spotlight-bar quiz-spotlight-entering">
@@ -229,16 +195,13 @@ function renderQuestion(questionData, qs) {
     `;
 
     wireHeaderListeners();
-    // Stagger answer buttons in
-    if (isMcq) {
-        requestAnimationFrame(() => {
-            document.querySelectorAll('.quiz-answer-btn').forEach((btn, i) => {
-                setTimeout(() => {
-                    btn.classList.add('quiz-answer-visible');
-                }, i * 85);
-            });
+    requestAnimationFrame(() => {
+        document.querySelectorAll('.quiz-answer-btn').forEach((btn, i) => {
+            setTimeout(() => {
+                btn.classList.add('quiz-answer-visible');
+            }, i * 85);
         });
-    }
+    });
     wireAnswerListeners(q);
 }
 
@@ -270,14 +233,13 @@ function renderResultsScreen(results) {
     const correctStudentDetails = rewards.correctStudentDetails || [];
     const guildDetails = rewards.guildDetails || [];
     const awardedArtifacts = rewards.awardedArtifacts || [];
-    const starPerCorrect = rewards.studentRewards?.[0]?.stars ?? 0;
-    const goldPerCorrect = rewards.studentRewards?.[0]?.gold ?? 0;
+    const totalStarsGranted = (rewards.studentRewards || []).reduce((sum, reward) => sum + (Number(reward.stars) || 0), 0);
 
     const stats = [
         { value: results.totalQuestions || 0, label: 'Questions' },
         { value: results.correctFirstTry || 0, label: 'Correct 1st Try' },
         { value: `${results.firstTryCorrectPct || 0}%`, label: 'Accuracy' },
-        { value: rewards.rewardedStudents || 0, label: 'Heroes Rewarded' },
+        { value: totalStarsGranted, label: 'Stars Granted' },
     ];
 
     // ── Phase A: Spinner ──
@@ -355,6 +317,7 @@ function renderResultsScreen(results) {
                     correctStudentDetails.forEach((student, i) => {
                         const card = document.createElement('div');
                         card.className = 'quiz-hero-card';
+                        const solvedAnswers = (student.solvedAnswers || []).slice(0, 3);
                         card.innerHTML = `
                             <div class="quiz-hero-avatar">
                                 ${student.avatar
@@ -363,10 +326,12 @@ function renderResultsScreen(results) {
                             </div>
                             <div class="quiz-hero-info">
                                 <div class="quiz-hero-name">${student.name || 'Hero'}</div>
+                                <div class="quiz-hero-meta">Solved ${student.correctCount || 0} question${(student.correctCount || 0) === 1 ? '' : 's'} • ${student.attemptedCount || 0} turn${(student.attemptedCount || 0) === 1 ? '' : 's'}</div>
                                 <div class="quiz-hero-rewards">
-                                    ${starPerCorrect > 0 ? `<span class="quiz-hero-reward-pill stars">+${starPerCorrect}⭐</span>` : ''}
-                                    ${goldPerCorrect > 0 ? `<span class="quiz-hero-reward-pill gold">+${goldPerCorrect}🪙</span>` : ''}
+                                    ${(student.awardedStars || 0) > 0 ? `<span class="quiz-hero-reward-pill stars">+${student.awardedStars}⭐</span>` : ''}
+                                    ${(student.awardedGold || 0) > 0 ? `<span class="quiz-hero-reward-pill gold">+${student.awardedGold}🪙</span>` : ''}
                                 </div>
+                                ${solvedAnswers.length > 0 ? `<div class="quiz-hero-answer-chips">${solvedAnswers.map((answer) => `<span class="quiz-hero-answer-chip">${escapeHTML(answer.answer)}</span>`).join('')}</div>` : ''}
                             </div>`;
                         roster.appendChild(card);
                         setTimeout(() => card.classList.add('quiz-hero-card-visible'), i * 130 + 90);
@@ -396,9 +361,13 @@ function renderResultsScreen(results) {
                             const row = document.createElement('div');
                             row.className = 'quiz-guild-row';
                             row.style.setProperty('--guild-primary', g.primary || '#fbbf24');
+                            const contributors = (g.contributors || []).slice(0, 3);
                             row.innerHTML = `
                                 <span class="quiz-guild-emoji">${g.emoji}</span>
-                                <span class="quiz-guild-name">${g.name}</span>
+                                <div class="quiz-guild-copy">
+                                    <span class="quiz-guild-name">${g.name}</span>
+                                    ${contributors.length > 0 ? `<span class="quiz-guild-contributors">${contributors.map((contributor) => `${escapeHTML(contributor.name)} x${contributor.correctCount}`).join(' • ')}</span>` : ''}
+                                </div>
                                 <span class="quiz-guild-glory">+${g.glory} Glory</span>`;
                             list.appendChild(row);
                             setTimeout(() => row.classList.add('quiz-guild-row-visible'), i * 140 + 90);
@@ -596,25 +565,9 @@ function wireHeaderListeners() {
 }
 
 function wireAnswerListeners(question) {
-    const isMcq = question.type === 'mcq';
-    const isFill = question.type === 'fill';
-    const isImage = question.type === 'image';
-    const correctAnswer = question.type === 'mcq'
-        ? question.options?.[question.correctIndex]
-        : question.correctAnswer;
-
-    if (isFill || isImage) {
-        document.getElementById('quiz-fill-submit-btn')?.addEventListener('click', () => handleFillAnswer(correctAnswer, question.explanation));
-        document.getElementById('quiz-fill-answer')?.addEventListener('keydown', (e) => {
-            if (e.key === 'Enter') handleFillAnswer(correctAnswer, question.explanation);
-        });
-    }
-
-    if (isMcq) {
-        document.querySelectorAll('.quiz-answer-btn').forEach(btn => {
-            btn.addEventListener('click', () => handleMcqAnswer(btn, question));
-        });
-    }
+    document.querySelectorAll('.quiz-answer-btn').forEach(btn => {
+        btn.addEventListener('click', () => handleMcqAnswer(btn, question));
+    });
 
     document.getElementById('quiz-skip-btn')?.addEventListener('click', () => {
         const progress = skipQuestion(currentClassId);
@@ -636,50 +589,30 @@ async function handleMcqAnswer(btn, question) {
 
     const answerIndex = parseInt(btn.dataset.answerIndex);
     const isCorrect = answerIndex === question.correctIndex;
+    const selectedAnswer = btn.dataset.answerText || String(answerIndex);
 
     if (isCorrect) {
         btn.classList.add('answer-correct');
         playSound('confirm');
-        showExplanation(question.explanation || 'Correct! Well done!', true);
         spawnFloatingCheck(btn);
     } else {
         btn.classList.add('answer-wrong');
         playSound('star_remove');
-        highlightCorrectOption(question);
-        showExplanation(question.explanation || 'Not quite — check the correct answer above.', false);
     }
 
-    const result = await handleAnswer(currentClassId, btn.dataset.answerText || String(answerIndex), isCorrect);
-    showNextAction(isCorrect, result);
-}
+    const result = await handleAnswer(currentClassId, selectedAnswer, isCorrect);
 
-async function handleFillAnswer(correctAnswer, explanation) {
-    const input = document.getElementById('quiz-fill-answer');
-    const feedbackEl = document.getElementById('quiz-fill-feedback');
-    const submitBtn = document.getElementById('quiz-fill-submit-btn');
-    if (!input || !feedbackEl) return;
-
-    const userAnswer = input.value.trim();
-    const isCorrect = userAnswer.toLowerCase() === (correctAnswer || '').trim().toLowerCase();
-
-    if (submitBtn) submitBtn.disabled = true;
-    if (input) input.disabled = true;
-
-    feedbackEl.classList.remove('hidden');
     if (isCorrect) {
-        feedbackEl.style.background = 'rgba(34,197,94,0.15)';
-        feedbackEl.style.borderColor = 'rgba(34,197,94,0.3)';
-        feedbackEl.textContent = 'Correct! ' + (explanation || '');
-        playSound('confirm');
-        spawnFloatingCheck(input);
+        showExplanation(question.explanation || 'Correct! Great solve.', true);
     } else {
-        feedbackEl.style.background = 'rgba(239,68,68,0.15)';
-        feedbackEl.style.borderColor = 'rgba(239,68,68,0.3)';
-        feedbackEl.textContent = `Incorrect — the answer was: "${correctAnswer}"`;
-        playSound('star_remove');
+        if (result?.questionPassedToNextStudent) {
+            showExplanation('Not quite. The answer stays hidden and the question passes to another hero.', false);
+        } else {
+            highlightCorrectOption(question);
+            showExplanation(`No one solved it this round. Correct answer: ${question.options?.[question.correctIndex] || ''}`, false);
+        }
     }
 
-    const result = await handleAnswer(currentClassId, userAnswer, isCorrect);
     showNextAction(isCorrect, result);
 }
 
@@ -721,7 +654,7 @@ function showNextAction(isCorrect, result) {
             const final = await finalizeQuiz(currentClassId);
             if (final) renderResultsScreen(final);
         }, { once: true });
-    } else if (isCorrect) {
+    } else if (isCorrect || result?.questionResolved) {
         nextBtn.innerHTML = '<i class="fas fa-arrow-right mr-2"></i> Next Question';
         nextBtn.addEventListener('click', () => showNextQuestion(), { once: true });
     } else {
@@ -769,7 +702,7 @@ export async function openQuizModal(classId) {
     if (quiz?.status === 'completed' && quiz.results) {
         showAnimatedModal(MODAL_ID);
         triggerEntrance(triggerBtn);
-        renderCompletedScreen(quiz.results);
+        renderResultsScreen(quiz.results);
         return;
     }
 

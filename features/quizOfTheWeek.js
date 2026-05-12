@@ -5,10 +5,12 @@ import { GUILDS } from './guilds.js';
 import { canUseFeature } from '../utils/subscription.js';
 import {
     getQuizForClass,
+    getQuizParticipationHistory,
     saveQuizCurriculum,
     generateQuizQuestions,
     updateQuizStatus,
     logQuizAttempt,
+    markQuizCompleted,
     distributeQuizRewards,
     getQuizHistory
 } from '../db/actions/quizOfTheWeek.js';
@@ -173,10 +175,69 @@ export function initQuiz(classId) {
         exhaustedStudents: new Set(),
         correctFirstTry: 0,
         totalQuestions: 0,
+        absentCount: 0,
+        priorityStudentOrder: [],
+        selectionCursor: 0,
+        studentsSeenThisQuiz: new Set(),
         attempts: [],
         inProgress: false
     };
     return quizState[classId];
+}
+
+function buildPriorityStudentOrder(students, participationHistory) {
+    const recencyIndexByStudent = new Map();
+
+    participationHistory.forEach((week, index) => {
+        for (const studentId of week.participantIds || []) {
+            if (!recencyIndexByStudent.has(studentId)) {
+                recencyIndexByStudent.set(studentId, index);
+            }
+        }
+    });
+
+    return [...students]
+        .map((student) => {
+            const recencyIndex = recencyIndexByStudent.has(student.id)
+                ? recencyIndexByStudent.get(student.id)
+                : Number.POSITIVE_INFINITY;
+            return {
+                student,
+                recencyIndex,
+                tieBreaker: Math.random()
+            };
+        })
+        .sort((a, b) => {
+            if (a.recencyIndex !== b.recencyIndex) {
+                return b.recencyIndex - a.recencyIndex;
+            }
+            return a.tieBreaker - b.tieBreaker;
+        })
+        .map((entry) => entry.student.id);
+}
+
+function chooseNextStudentId(qs, question) {
+    const eligibleStudentIds = qs.studentPool.filter((studentId) => !qs.exhaustedStudents.has(studentId + '_' + question.id));
+    if (eligibleStudentIds.length === 0) return null;
+
+    const unseenEligibleIds = eligibleStudentIds.filter((studentId) => !qs.studentsSeenThisQuiz.has(studentId));
+    const candidateIds = unseenEligibleIds.length > 0 ? unseenEligibleIds : eligibleStudentIds;
+    const candidateSet = new Set(candidateIds);
+    const priorityOrder = qs.priorityStudentOrder?.length > 0 ? qs.priorityStudentOrder : qs.studentPool;
+
+    for (let offset = 0; offset < priorityOrder.length; offset++) {
+        const index = (qs.selectionCursor + offset) % priorityOrder.length;
+        const candidateId = priorityOrder[index];
+        if (!candidateSet.has(candidateId)) continue;
+
+        qs.selectionCursor = (index + 1) % priorityOrder.length;
+        qs.studentsSeenThisQuiz.add(candidateId);
+        return candidateId;
+    }
+
+    const fallbackId = candidateIds[0];
+    qs.studentsSeenThisQuiz.add(fallbackId);
+    return fallbackId;
 }
 
 export function getQuizState(classId) {
@@ -200,8 +261,8 @@ export async function loadQuizForClass(classId) {
     if (presentStudents.length === 0) return false;
 
     const qs = initQuiz(classId);
-    // Filter to MCQ and image only — fill-in-the-blank questions removed
-    qs.questions = [...quiz.questions].filter(q => q.type !== 'fill');
+    // Fully MCQ-only: typed-answer quiz types are excluded from the live experience.
+    qs.questions = [...quiz.questions].filter((q) => q.type === 'mcq' && Array.isArray(q.options) && q.options.length >= 2);
     if (qs.questions.length === 0) return false;
     qs.totalQuestions = qs.questions.length;
     qs.absentCount = absentIds.size;
@@ -214,12 +275,15 @@ export async function loadQuizForClass(classId) {
     }
     qs.remainingQuestions = [...qs.questions];
 
-    // Build shuffled student pool (present students only)
-    qs.studentPool = presentStudents.map(s => s.id);
-    for (let i = qs.studentPool.length - 1; i > 0; i--) {
-        const j = Math.floor(Math.random() * (i + 1));
-        [qs.studentPool[i], qs.studentPool[j]] = [qs.studentPool[j], qs.studentPool[i]];
+    let participationHistory = [];
+    try {
+        participationHistory = await getQuizParticipationHistory(classId, 10);
+    } catch (error) {
+        console.warn('Failed to load quiz participation history, falling back to current roster shuffle:', classId, error);
     }
+
+    qs.priorityStudentOrder = buildPriorityStudentOrder(presentStudents, participationHistory);
+    qs.studentPool = [...qs.priorityStudentOrder];
 
     return true;
 }
@@ -231,15 +295,8 @@ export function pickNextQuestion(classId) {
     const question = qs.remainingQuestions.shift();
     qs.currentQuestion = question;
 
-    // Pick random student from the pool
-    const pool = qs.studentPool.filter(s => !qs.exhaustedStudents.has(s + '_' + question.id));
-    if (pool.length === 0) {
-        // Reset exhausted students for this question
-        qs.exhaustedStudents = new Set();
-    }
-
-    const studentPool = qs.studentPool.filter(s => !qs.exhaustedStudents.has(s + '_' + question.id));
-    const studentId = studentPool[Math.floor(Math.random() * studentPool.length)];
+    const studentId = chooseNextStudentId(qs, question);
+    if (!studentId) return null;
     qs.currentStudent = studentId;
 
     const students = state.get('allStudents') || [];
@@ -286,6 +343,10 @@ export async function handleAnswer(classId, selectedAnswer, correct) {
         console.warn('Failed to log quiz attempt:', e);
     }
 
+    let questionPassedToNextStudent = false;
+    let questionResolved = false;
+    let questionFailedUnsolved = false;
+
     if (correct) {
         qs.answeredQuestions.push(question);
         if (attemptNumber === 1) {
@@ -293,6 +354,7 @@ export async function handleAnswer(classId, selectedAnswer, correct) {
         }
         qs.currentQuestion = null;
         qs.currentStudent = null;
+        questionResolved = true;
     } else {
         // Mark this student as exhausted for THIS question
         qs.exhaustedStudents.add(qs.currentStudent + '_' + question.id);
@@ -307,13 +369,21 @@ export async function handleAnswer(classId, selectedAnswer, correct) {
             qs.answeredQuestions.push({ ...question, forceSkipped: true });
             qs.currentQuestion = null;
             qs.currentStudent = null;
+            questionResolved = true;
+            questionFailedUnsolved = true;
         } else {
             // Don't consume current question — pick a new student for the same question
             qs.remainingQuestions.unshift(question); // Put it back
+            questionPassedToNextStudent = true;
         }
     }
 
-    return getQuizProgress(classId);
+    return {
+        ...getQuizProgress(classId),
+        questionResolved,
+        questionFailedUnsolved,
+        questionPassedToNextStudent
+    };
 }
 
 export function skipQuestion(classId) {
@@ -350,14 +420,41 @@ export async function finalizeQuiz(classId) {
 
     // Build student guild map
     const students = state.get('allStudents') || [];
+    const questionsById = Object.fromEntries((qs.questions || []).map((question) => [question.id, question]));
     const studentGuilds = {};
     const correctStudents = [];
     const allParticipating = new Set();
+    const correctAnswerCounts = {};
+    const studentPerformance = {};
 
     for (const attempt of qs.attempts) {
         allParticipating.add(attempt.studentId);
+
+        if (!studentPerformance[attempt.studentId]) {
+            studentPerformance[attempt.studentId] = {
+                attemptedCount: 0,
+                correctCount: 0,
+                wrongCount: 0,
+                solvedAnswers: []
+            };
+        }
+
+        studentPerformance[attempt.studentId].attemptedCount++;
+
         if (attempt.correct && !correctStudents.includes(attempt.studentId)) {
             correctStudents.push(attempt.studentId);
+        }
+
+        if (attempt.correct) {
+            studentPerformance[attempt.studentId].correctCount++;
+            correctAnswerCounts[attempt.studentId] = (correctAnswerCounts[attempt.studentId] || 0) + 1;
+            studentPerformance[attempt.studentId].solvedAnswers.push({
+                questionId: attempt.questionId,
+                prompt: questionsById[attempt.questionId]?.question || '',
+                answer: attempt.selectedAnswer || ''
+            });
+        } else {
+            studentPerformance[attempt.studentId].wrongCount++;
         }
     }
 
@@ -374,28 +471,65 @@ export async function finalizeQuiz(classId) {
         firstTryCorrectPct: progress.firstTryCorrectPct,
         correctStudents,
         allParticipating: [...allParticipating],
-        studentGuilds
+        studentGuilds,
+        correctAnswerCounts,
+        studentPerformance
     };
 
     try {
         const rewardResult = await distributeQuizRewards(classId, results);
+        const studentRewardsById = Object.fromEntries(
+            (rewardResult?.studentRewards || []).map((reward) => [reward.studentId, reward])
+        );
 
         // Enrich rewards with human-readable student and guild details for results display
         const correctStudentDetails = correctStudents.map(id => {
             const s = students.find(st => st.id === id);
-            return s ? { id: s.id, name: s.name, avatar: s.avatar || null, guildId: s.guildId || null } : { id };
-        });
+            const perf = studentPerformance[id] || { attemptedCount: 0, correctCount: 0, wrongCount: 0, solvedAnswers: [] };
+            const reward = studentRewardsById[id] || { stars: 0, gold: 0, correctCount: perf.correctCount };
+            return s ? {
+                id: s.id,
+                name: s.name,
+                avatar: s.avatar || null,
+                guildId: s.guildId || null,
+                attemptedCount: perf.attemptedCount,
+                correctCount: perf.correctCount,
+                wrongCount: perf.wrongCount,
+                solvedAnswers: perf.solvedAnswers,
+                awardedStars: reward.stars || 0,
+                awardedGold: reward.gold || 0
+            } : { id };
+        }).sort((a, b) => (b.correctCount || 0) - (a.correctCount || 0) || (b.awardedStars || 0) - (a.awardedStars || 0));
+
+        const guildContributors = correctStudentDetails.reduce((acc, student) => {
+            if (!student.guildId) return acc;
+            if (!acc[student.guildId]) acc[student.guildId] = [];
+            acc[student.guildId].push({
+                name: student.name || 'Hero',
+                correctCount: student.correctCount || 0
+            });
+            return acc;
+        }, {});
 
         const guildGloryByGuild = rewardResult?.guildGloryByGuild || {};
         const guildDetails = Object.entries(guildGloryByGuild)
             .filter(([, glory]) => glory > 0)
             .map(([guildId, glory]) => {
                 const def = GUILDS[guildId];
-                return { guildId, name: def?.name || guildId, emoji: def?.emoji || '⚜️', primary: def?.primary || '#fbbf24', glory };
+                return {
+                    guildId,
+                    name: def?.name || guildId,
+                    emoji: def?.emoji || '⚜️',
+                    primary: def?.primary || '#fbbf24',
+                    glory,
+                    contributors: (guildContributors[guildId] || []).sort((a, b) => b.correctCount - a.correctCount)
+                };
             })
             .sort((a, b) => b.glory - a.glory);
 
-        return { ...results, rewards: { ...rewardResult, correctStudentDetails, guildDetails } };
+        const finalResults = { ...results, rewards: { ...rewardResult, correctStudentDetails, guildDetails } };
+        await markQuizCompleted(classId, finalResults);
+        return finalResults;
     } catch (e) {
         console.error('Failed to distribute rewards:', e);
         return results;

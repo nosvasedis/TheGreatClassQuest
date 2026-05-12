@@ -99,6 +99,45 @@ export async function getQuizHistory(classId, limitCount = 5) {
         .slice(0, limitCount);
 }
 
+export async function getQuizParticipationHistory(classId, limitCount = 8) {
+    const history = await getQuizHistory(classId, limitCount);
+    const participationByWeek = [];
+
+    for (const quiz of history) {
+        const inlineParticipants = Array.isArray(quiz.results?.allParticipating)
+            ? quiz.results.allParticipating.filter(Boolean)
+            : [];
+        const detailedRewardParticipants = Array.isArray(quiz.results?.rewards?.correctStudentDetails)
+            ? quiz.results.rewards.correctStudentDetails.map((student) => student?.id).filter(Boolean)
+            : [];
+        const rewardParticipants = Array.isArray(quiz.results?.rewards?.studentRewards)
+            ? quiz.results.rewards.studentRewards.map((student) => student?.studentId).filter(Boolean)
+            : [];
+
+        let participantIds = [...new Set([
+            ...inlineParticipants,
+            ...detailedRewardParticipants,
+            ...rewardParticipants
+        ])];
+
+        if (participantIds.length === 0 && quiz.weekKey) {
+            try {
+                const attempts = await getQuizAttempts(classId, quiz.weekKey);
+                participantIds = [...new Set(attempts.map((attempt) => attempt.studentId).filter(Boolean))];
+            } catch (error) {
+                console.warn('Failed to load quiz participation attempts for history:', classId, quiz.weekKey, error);
+            }
+        }
+
+        participationByWeek.push({
+            weekKey: quiz.weekKey,
+            participantIds
+        });
+    }
+
+    return participationByWeek;
+}
+
 // =============================================================================
 // 2. AI QUESTION GENERATION
 // =============================================================================
@@ -134,15 +173,14 @@ ${keywords ? `Specific focus: "${keywords}".` : ''}
 
 Rules:
 - Generate exactly 7 questions (no more, no less).
-- Use these question types: "mcq" (4-option multiple choice) and optionally "image" (show an image and ask what it is).
-- Include at most 2 "image" questions; the rest must be "mcq".
+- Use only this question type: "mcq" (4-option multiple choice).
 - Make every question directly relevant to the topics/focus listed above.
 - Keep language appropriate for ${ageDesc}.
 - Keep explanations very short (max 10 words each).
 - Do NOT produce any text outside the JSON object.
 
 Output this exact JSON shape (nothing else):
-{"questions":[{"type":"mcq","question":"...","options":["A","B","C","D"],"correctIndex":0,"correctAnswer":"A","explanation":"short reason"},{"type":"mcq","question":"Which word means happy?","options":["Sad","Joyful","Angry","Tired"],"correctIndex":1,"correctAnswer":"Joyful","explanation":"synonym for happy"},{"type":"image","question":"What number is shown?","imagePrompt":"the word 'third' as numeral 3rd on a colorful card, cartoon style","correctAnswer":"third","explanation":"ordinal number"}]}`;
+{"questions":[{"type":"mcq","question":"...","options":["A","B","C","D"],"correctIndex":0,"correctAnswer":"A","explanation":"short reason"},{"type":"mcq","question":"Which word means happy?","options":["Sad","Joyful","Angry","Tired"],"correctIndex":1,"correctAnswer":"Joyful","explanation":"synonym for happy"},{"type":"mcq","question":"Choose the correct sentence.","options":["He are reading.","He is reading.","He reading.","He am reading."],"correctIndex":1,"correctAnswer":"He is reading.","explanation":"subject and verb agree"}]}`;
 }
 
 const IMAGE_AGE_PROMPTS = {
@@ -343,7 +381,8 @@ function pickRandomItem(arr) {
 export async function distributeQuizRewards(classId, results) {
     const tier = computePerformanceTier(results.firstTryCorrectPct);
     const rewards = REWARD_TABLE[tier];
-    const correctStudentIds = results.correctStudents || [];
+    const correctAnswerCounts = results.correctAnswerCounts || {};
+    const correctStudentIds = Object.keys(correctAnswerCounts).filter((studentId) => (correctAnswerCounts[studentId] || 0) > 0);
     const allParticipatingIds = results.allParticipating || [];
     const guildMap = results.studentGuilds || {};
     const classData = state.get('allSchoolClasses')?.find(c => c.id === classId);
@@ -384,6 +423,9 @@ export async function distributeQuizRewards(classId, results) {
 
             // ── PASS 2: All writes ─────────────────────────────────────────────────
             for (const { studentId, scoreRef, scoreSnap } of correctReads) {
+                const correctCount = Math.max(1, Number(correctAnswerCounts[studentId]) || 0);
+                const starsAwarded = rewards.starPerCorrect * correctCount;
+                const goldAwarded = rewards.goldPerCorrect * correctCount;
                 const scoreData = scoreSnap.exists() ? scoreSnap.data() : {};
                 const currentInventory = Array.isArray(scoreData.inventory) ? scoreData.inventory : [];
 
@@ -398,9 +440,9 @@ export async function distributeQuizRewards(classId, results) {
                 }
 
                 const updates = {
-                    totalStars: increment(rewards.starPerCorrect),
-                    monthlyStars: increment(rewards.starPerCorrect),
-                    gold: increment(rewards.goldPerCorrect),
+                    totalStars: increment(starsAwarded),
+                    monthlyStars: increment(starsAwarded),
+                    gold: increment(goldAwarded),
                 };
                 if (inventoryUpdate) updates.inventory = inventoryUpdate;
 
@@ -409,9 +451,9 @@ export async function distributeQuizRewards(classId, results) {
                 } else {
                     const student = state.get('allStudents')?.find(s => s.id === studentId);
                     transaction.set(scoreRef, {
-                        totalStars: rewards.starPerCorrect,
-                        monthlyStars: rewards.starPerCorrect,
-                        gold: rewards.goldPerCorrect,
+                        totalStars: starsAwarded,
+                        monthlyStars: starsAwarded,
+                        gold: goldAwarded,
                         inventory: inventoryUpdate || [],
                         createdBy: student?.createdBy || { uid: state.get('currentUserId'), name: state.get('currentTeacherName') }
                     });
@@ -422,16 +464,16 @@ export async function distributeQuizRewards(classId, results) {
                     studentId,
                     classId,
                     teacherId: state.get('currentUserId'),
-                    stars: rewards.starPerCorrect,
-                    appliedStarCredit: rewards.starPerCorrect,
+                    stars: starsAwarded,
+                    appliedStarCredit: starsAwarded,
                     reason: 'quiz_of_the_week',
-                    note: `Quiz of the Week - Tier: ${tier.toUpperCase()}`,
+                    note: `Quiz of the Week - ${correctCount} correct answer${correctCount === 1 ? '' : 's'} - Tier: ${tier.toUpperCase()}`,
                     date: getTodayDateString(),
                     createdAt: serverTimestamp(),
                     createdBy: { uid: state.get('currentUserId'), name: state.get('currentTeacherName') }
                 });
 
-                rewardedStudents.push(studentId);
+                rewardedStudents.push({ studentId, correctCount, stars: starsAwarded, gold: goldAwarded });
             }
 
             // Heroic tier: participation gold writes
@@ -461,7 +503,7 @@ export async function distributeQuizRewards(classId, results) {
         for (const studentId of correctStudentIds) {
             const gId = guildMap[studentId];
             if (gId) {
-                guildGloryByGuild[gId] = (guildGloryByGuild[gId] || 0) + rewards.gloryPerGuild;
+                guildGloryByGuild[gId] = (guildGloryByGuild[gId] || 0) + (rewards.gloryPerGuild * (correctAnswerCounts[studentId] || 0));
             }
         }
         for (const [guildId, glory] of Object.entries(guildGloryByGuild)) {
@@ -486,8 +528,9 @@ export async function distributeQuizRewards(classId, results) {
         }
 
         // --- Reward 5: Random class treasure (1 random participant gets an artifact) ---
-        if (allParticipatingIds.length > 0) {
-            const luckyId = allParticipatingIds[Math.floor(Math.random() * allParticipatingIds.length)];
+        const treasurePool = correctStudentIds.length > 0 ? correctStudentIds : allParticipatingIds;
+        if (treasurePool.length > 0) {
+            const luckyId = treasurePool[Math.floor(Math.random() * treasurePool.length)];
             const randomArtifact = pickRandomItem(LEGENDARY_ARTIFACTS);
             if (randomArtifact) {
                 try {
@@ -515,6 +558,7 @@ export async function distributeQuizRewards(classId, results) {
             totalQuestions: results.totalQuestions,
             correctFirstTry: results.correctFirstTry,
             rewardedStudents: rewardedStudents.length,
+            totalCorrectAnswers: Object.values(correctAnswerCounts).reduce((sum, count) => sum + count, 0),
             awardedArtifacts: awardedArtifacts.length
         });
 
@@ -526,7 +570,12 @@ export async function distributeQuizRewards(classId, results) {
         return {
             tier,
             rewardedStudents: rewardedStudents.length,
-            studentRewards: rewardedStudents.map(id => ({ studentId: id, stars: rewards.starPerCorrect, gold: rewards.goldPerCorrect })),
+            studentRewards: rewardedStudents.map((rewardedStudent) => ({
+                studentId: rewardedStudent.studentId,
+                correctCount: rewardedStudent.correctCount,
+                stars: rewardedStudent.stars,
+                gold: rewardedStudent.gold
+            })),
             questBonus: rewards.questBonus,
             guildGloryByGuild,
             totalGloryDistributed: Object.values(guildGloryByGuild).reduce((a, b) => a + b, 0),

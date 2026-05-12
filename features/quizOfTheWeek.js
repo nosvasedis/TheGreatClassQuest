@@ -1,6 +1,7 @@
 import * as state from '../state.js';
 import * as utils from '../utils.js';
 import { getISOWeekKey, getTargetWeekKey } from '../features/guildScoring.js';
+import { GUILDS } from './guilds.js';
 import { canUseFeature } from '../utils/subscription.js';
 import {
     getQuizForClass,
@@ -189,9 +190,21 @@ export async function loadQuizForClass(classId) {
     const students = state.get('allStudents')?.filter(s => s.classId === classId) || [];
     if (students.length === 0) return false;
 
+    // Filter out absent students for today's session
+    const absentIds = new Set(
+        (state.get('allAttendanceRecords') || [])
+            .filter(r => r.classId === classId && r.date === utils.getTodayDateString())
+            .map(r => r.studentId)
+    );
+    const presentStudents = students.filter(s => !absentIds.has(s.id));
+    if (presentStudents.length === 0) return false;
+
     const qs = initQuiz(classId);
-    qs.questions = [...quiz.questions];
-    qs.totalQuestions = quiz.questions.length;
+    // Filter to MCQ and image only — fill-in-the-blank questions removed
+    qs.questions = [...quiz.questions].filter(q => q.type !== 'fill');
+    if (qs.questions.length === 0) return false;
+    qs.totalQuestions = qs.questions.length;
+    qs.absentCount = absentIds.size;
     qs.inProgress = true;
 
     // Shuffle questions
@@ -201,8 +214,8 @@ export async function loadQuizForClass(classId) {
     }
     qs.remainingQuestions = [...qs.questions];
 
-    // Build shuffled student pool
-    qs.studentPool = students.map(s => s.id);
+    // Build shuffled student pool (present students only)
+    qs.studentPool = presentStudents.map(s => s.id);
     for (let i = qs.studentPool.length - 1; i > 0; i--) {
         const j = Math.floor(Math.random() * (i + 1));
         [qs.studentPool[i], qs.studentPool[j]] = [qs.studentPool[j], qs.studentPool[i]];
@@ -366,7 +379,23 @@ export async function finalizeQuiz(classId) {
 
     try {
         const rewardResult = await distributeQuizRewards(classId, results);
-    return { ...results, rewards: rewardResult };
+
+        // Enrich rewards with human-readable student and guild details for results display
+        const correctStudentDetails = correctStudents.map(id => {
+            const s = students.find(st => st.id === id);
+            return s ? { id: s.id, name: s.name, avatar: s.avatar || null, guildId: s.guildId || null } : { id };
+        });
+
+        const guildGloryByGuild = rewardResult?.guildGloryByGuild || {};
+        const guildDetails = Object.entries(guildGloryByGuild)
+            .filter(([, glory]) => glory > 0)
+            .map(([guildId, glory]) => {
+                const def = GUILDS[guildId];
+                return { guildId, name: def?.name || guildId, emoji: def?.emoji || '⚜️', primary: def?.primary || '#fbbf24', glory };
+            })
+            .sort((a, b) => b.glory - a.glory);
+
+        return { ...results, rewards: { ...rewardResult, correctStudentDetails, guildDetails } };
     } catch (e) {
         console.error('Failed to distribute rewards:', e);
         return results;

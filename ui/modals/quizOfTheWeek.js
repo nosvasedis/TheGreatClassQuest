@@ -79,6 +79,14 @@ function renderIntroScreen(quiz, qs) {
 
     const studentCount = qs.studentPool.length;
     const questionCount = qs.totalQuestions;
+    const absentCount = qs.absentCount || 0;
+
+    const absentBadgeHTML = absentCount > 0 ? `
+        <div class="quiz-absent-badge">
+            <i class="fas fa-user-slash"></i>
+            <span class="absent-dot">${absentCount}</span>
+            <span>absent today — excluded from pool</span>
+        </div>` : '';
 
     contentEl.innerHTML = `
         <div class="quiz-modal-header">
@@ -98,9 +106,10 @@ function renderIntroScreen(quiz, qs) {
                 </div>
                 <div class="quiz-intro-stat">
                     <div class="quiz-intro-stat-num">${studentCount}</div>
-                    <div class="quiz-intro-stat-label">Heroes</div>
+                    <div class="quiz-intro-stat-label">Present</div>
                 </div>
             </div>
+            ${absentBadgeHTML}
             <button class="quiz-start-btn bubbly-button" id="quiz-begin-btn">
                 <i class="fas fa-play mr-2"></i> Begin the Quiz!
             </button>
@@ -255,13 +264,14 @@ function renderResultsScreen(results) {
 
     const tier = results.rewards?.tier || results.tier || computeTier(results.firstTryCorrectPct);
     const tierEmoji = { legendary: '👑', epic: '🌟', rare: '💎', common: '🎯', heroic: '🛡️' }[tier] || '🎯';
+    const tierSounds = { legendary: 'fanfare', epic: 'fanfare', rare: 'magic_chime', common: 'magic_chime', heroic: 'confirm' };
 
     const rewards = results.rewards || {};
-    const rewardItems = [];
-    if (rewards.rewardedStudents > 0) rewardItems.push({ icon: '⭐', text: `${rewards.rewardedStudents} heroes rewarded with stars & gold` });
-    if (rewards.questBonus > 0) rewardItems.push({ icon: '🗺️', text: `+${rewards.questBonus} Team Quest bonus` });
-    if (rewards.totalGloryDistributed > 0) rewardItems.push({ icon: '⚜️', text: `+${rewards.totalGloryDistributed} Glory distributed to guilds` });
-    if (rewards.awardedArtifacts?.length > 0) rewardItems.push({ icon: '🎁', text: `${rewards.awardedArtifacts.length} artifact(s) awarded` });
+    const correctStudentDetails = rewards.correctStudentDetails || [];
+    const guildDetails = rewards.guildDetails || [];
+    const awardedArtifacts = rewards.awardedArtifacts || [];
+    const starPerCorrect = rewards.studentRewards?.[0]?.stars ?? 0;
+    const goldPerCorrect = rewards.studentRewards?.[0]?.gold ?? 0;
 
     const stats = [
         { value: results.totalQuestions || 0, label: 'Questions' },
@@ -270,7 +280,7 @@ function renderResultsScreen(results) {
         { value: rewards.rewardedStudents || 0, label: 'Heroes Rewarded' },
     ];
 
-    // Phase A: Show calculating briefly (results already computed, just dramatic effect)
+    // ── Phase A: Spinner ──
     contentEl.innerHTML = `
         <div class="quiz-modal-header">
             <span class="quiz-modal-title">⚔️ Quiz Complete!</span>
@@ -287,11 +297,12 @@ function renderResultsScreen(results) {
 
     const stage = document.getElementById('quiz-results-stage');
 
-    // Phase B: Tier reveal after 900ms
+    // ── Phase B: Tier reveal at +900ms ──
     setTimeout(() => {
         if (!stage || !document.contains(stage)) return;
-        const calcEl = document.getElementById('quiz-calc-phase');
-        if (calcEl) calcEl.remove();
+        document.getElementById('quiz-calc-phase')?.remove();
+
+        playSound(tierSounds[tier] || 'magic_chime');
 
         const emojiWrap = document.createElement('div');
         emojiWrap.className = 'quiz-tier-emoji-wrap';
@@ -306,7 +317,7 @@ function renderResultsScreen(results) {
             stage.appendChild(tierEl);
         }, 350);
 
-        // Phase C: Stats count-up at +800ms from B
+        // ── Phase C: Stats count-up at +800ms from B ──
         setTimeout(() => {
             if (!document.contains(stage)) return;
             const statsWrap = document.createElement('div');
@@ -319,57 +330,149 @@ function renderResultsScreen(results) {
             `).join('');
             stage.appendChild(statsWrap);
 
-            // Trigger stagger-in + count-up
             stats.forEach((s, i) => {
                 const card = document.getElementById(`quiz-stat-${i}`);
                 const valEl = document.getElementById(`quiz-stat-val-${i}`);
                 if (card) setTimeout(() => card.classList.add('quiz-stat-visible'), i * 110 + 30);
-                if (valEl && typeof s.value === 'number') {
-                    animateCount(valEl, 0, s.value, 900 + i * 80);
-                }
+                if (valEl && typeof s.value === 'number') animateCount(valEl, 0, s.value, 900 + i * 80);
             });
 
-            // Phase D: Rewards at +1600ms from B
+            // ── Phase D: Hero Roster at +1600ms from C ──
             setTimeout(() => {
                 if (!document.contains(stage)) return;
-                if (rewardItems.length > 0) {
-                    const rewardList = document.createElement('div');
-                    rewardList.className = 'quiz-reward-list';
-                    rewardList.innerHTML = rewardItems.map((r, i) => `
-                        <div class="quiz-reward-item" id="quiz-reward-${i}">
-                            <span class="quiz-reward-icon">${r.icon}</span>
-                            <span>${r.text}</span>
-                        </div>
-                    `).join('');
-                    stage.appendChild(rewardList);
-                    rewardItems.forEach((_, i) => {
-                        const el = document.getElementById(`quiz-reward-${i}`);
-                        if (el) setTimeout(() => el.classList.add('quiz-reward-visible'), i * 160 + 50);
+
+                if (correctStudentDetails.length > 0) {
+                    const heroSection = document.createElement('div');
+                    heroSection.className = 'quiz-hero-section';
+                    heroSection.innerHTML = `
+                        <div class="quiz-section-heading" id="quiz-heading-heroes">⚔️ Correct Heroes</div>
+                        <div class="quiz-hero-roster" id="quiz-hero-roster"></div>`;
+                    stage.appendChild(heroSection);
+
+                    setTimeout(() => document.getElementById('quiz-heading-heroes')?.classList.add('quiz-section-heading-visible'), 60);
+
+                    const roster = document.getElementById('quiz-hero-roster');
+                    correctStudentDetails.forEach((student, i) => {
+                        const card = document.createElement('div');
+                        card.className = 'quiz-hero-card';
+                        card.innerHTML = `
+                            <div class="quiz-hero-avatar">
+                                ${student.avatar
+                                    ? `<img src="${student.avatar}" alt="${student.name || ''}" />`
+                                    : `<i class="fas fa-hat-wizard"></i>`}
+                            </div>
+                            <div class="quiz-hero-info">
+                                <div class="quiz-hero-name">${student.name || 'Hero'}</div>
+                                <div class="quiz-hero-rewards">
+                                    ${starPerCorrect > 0 ? `<span class="quiz-hero-reward-pill stars">+${starPerCorrect}⭐</span>` : ''}
+                                    ${goldPerCorrect > 0 ? `<span class="quiz-hero-reward-pill gold">+${goldPerCorrect}🪙</span>` : ''}
+                                </div>
+                            </div>`;
+                        roster.appendChild(card);
+                        setTimeout(() => card.classList.add('quiz-hero-card-visible'), i * 130 + 90);
                     });
                 }
 
-                // Phase E: Finish button + confetti
+                const heroDelay = correctStudentDetails.length > 0
+                    ? Math.max(correctStudentDetails.length * 130 + 420, 600)
+                    : 200;
+
+                // ── Phase E: Guild Rewards ──
                 setTimeout(() => {
                     if (!document.contains(stage)) return;
-                    const finishBtn = document.createElement('button');
-                    finishBtn.className = 'quiz-results-finish-btn bubbly-button';
-                    finishBtn.innerHTML = '<i class="fas fa-flag-checkered mr-2"></i> Finish!';
-                    stage.appendChild(finishBtn);
-                    setTimeout(() => finishBtn.classList.add('quiz-finish-visible'), 40);
-                    finishBtn.addEventListener('click', () => closeQuizModal(true), { once: true });
 
-                    if (tier === 'legendary' || tier === 'epic') {
-                        spawnConfetti(tier);
+                    if (guildDetails.length > 0) {
+                        const guildSection = document.createElement('div');
+                        guildSection.className = 'quiz-guild-section';
+                        guildSection.innerHTML = `
+                            <div class="quiz-section-heading" id="quiz-heading-guilds">⚜️ Guild Rewards</div>
+                            <div class="quiz-guild-list" id="quiz-guild-list"></div>`;
+                        stage.appendChild(guildSection);
+
+                        setTimeout(() => document.getElementById('quiz-heading-guilds')?.classList.add('quiz-section-heading-visible'), 60);
+
+                        const list = document.getElementById('quiz-guild-list');
+                        guildDetails.forEach((g, i) => {
+                            const row = document.createElement('div');
+                            row.className = 'quiz-guild-row';
+                            row.style.setProperty('--guild-primary', g.primary || '#fbbf24');
+                            row.innerHTML = `
+                                <span class="quiz-guild-emoji">${g.emoji}</span>
+                                <span class="quiz-guild-name">${g.name}</span>
+                                <span class="quiz-guild-glory">+${g.glory} Glory</span>`;
+                            list.appendChild(row);
+                            setTimeout(() => row.classList.add('quiz-guild-row-visible'), i * 140 + 90);
+                        });
                     }
-                }, rewardItems.length > 0 ? rewardItems.length * 160 + 400 : 400);
+
+                    const guildDelay2 = guildDetails.length > 0
+                        ? Math.max(guildDetails.length * 140 + 380, 500)
+                        : 150;
+
+                    // ── Phase F: Artifacts ──
+                    setTimeout(() => {
+                        if (!document.contains(stage)) return;
+
+                        if (awardedArtifacts.length > 0) {
+                            const artSection = document.createElement('div');
+                            artSection.className = 'quiz-artifact-section';
+                            artSection.innerHTML = `
+                                <div class="quiz-section-heading" id="quiz-heading-artifacts">🎁 Artifacts Awarded</div>
+                                <div class="quiz-artifact-list" id="quiz-artifact-list"></div>`;
+                            stage.appendChild(artSection);
+
+                            setTimeout(() => document.getElementById('quiz-heading-artifacts')?.classList.add('quiz-section-heading-visible'), 60);
+
+                            const artList = document.getElementById('quiz-artifact-list');
+                            awardedArtifacts.forEach((aw, i) => {
+                                const card = document.createElement('div');
+                                card.className = 'quiz-artifact-card';
+                                const recip = correctStudentDetails.find(s => s.id === aw.studentId);
+                                const recipName = recip?.name || 'A hero';
+                                card.innerHTML = `
+                                    <span class="quiz-artifact-icon">${aw.artifact?.icon || '🎁'}</span>
+                                    <div class="quiz-artifact-info">
+                                        <div class="quiz-artifact-name">${aw.artifact?.name || 'Artifact'}</div>
+                                        <div class="quiz-artifact-recipient">→ ${recipName}</div>
+                                    </div>`;
+                                artList.appendChild(card);
+                                setTimeout(() => card.classList.add('quiz-artifact-card-visible'), i * 160 + 90);
+                            });
+                        }
+
+                        const artDelay = awardedArtifacts.length > 0
+                            ? Math.max(awardedArtifacts.length * 160 + 380, 500)
+                            : 150;
+
+                        // ── Phase G: Finish button + confetti ──
+                        setTimeout(() => {
+                            if (!document.contains(stage)) return;
+
+                            const finishBtn = document.createElement('button');
+                            finishBtn.className = 'quiz-results-finish-btn bubbly-button';
+                            finishBtn.innerHTML = '<i class="fas fa-flag-checkered mr-2"></i> Finish!';
+                            stage.appendChild(finishBtn);
+                            setTimeout(() => finishBtn.classList.add('quiz-finish-visible'), 40);
+                            finishBtn.addEventListener('click', () => closeQuizModal(true), { once: true });
+
+                            if (tier === 'legendary' || tier === 'epic') {
+                                spawnConfetti(tier);
+                            }
+                            if (tier === 'legendary') {
+                                // second burst delayed for legendary
+                                setTimeout(() => spawnConfetti(tier), 700);
+                            }
+                        }, artDelay);
+
+                    }, guildDelay2);
+
+                }, heroDelay);
 
             }, 1600);
 
         }, 800);
 
     }, 900);
-
-    playSound('magic_chime');
 }
 
 function renderCompletedScreen(quizResults) {
@@ -414,33 +517,38 @@ function renderCompletedScreen(quizResults) {
 
 function spawnConfetti(tier) {
     const tierColors = {
-        legendary: ['#fbbf24', '#f59e0b', '#fde68a', '#d97706', '#ffffff'],
-        epic: ['#a78bfa', '#8b5cf6', '#c4b5fd', '#7c3aed', '#e9d5ff'],
+        legendary: ['#fbbf24', '#f59e0b', '#fde68a', '#d97706', '#ffffff', '#ffe566', '#fef08a'],
+        epic: ['#a78bfa', '#8b5cf6', '#c4b5fd', '#7c3aed', '#e9d5ff', '#ddd6fe', '#fff'],
     };
     const colors = tierColors[tier] || tierColors.legendary;
-    const count = tier === 'legendary' ? 35 : 22;
+    const count = tier === 'legendary' ? 55 : 35;
+    // Weighted shapes: more circles/squares than stars for performance
+    const shapes = ['circle', 'circle', 'square', 'square', 'star'];
 
     for (let i = 0; i < count; i++) {
         const el = document.createElement('div');
         el.className = 'quiz-confetti-piece';
-        const isCircle = Math.random() > 0.5;
-        const size = 7 + Math.random() * 10;
-        const startX = 15 + Math.random() * 70; // % of viewport width
-        const dur = 1.0 + Math.random() * 0.9;
-        const delay = Math.random() * 0.5;
+        const shape = shapes[Math.floor(Math.random() * shapes.length)];
+        const size = 6 + Math.random() * 11;
+        const startX = 5 + Math.random() * 90;
+        const dur = 1.0 + Math.random() * 1.3;
+        const delay = Math.random() * 0.9;
+        const color = colors[Math.floor(Math.random() * colors.length)];
+
+        let shapeCSS = '';
+        if (shape === 'circle') shapeCSS = 'border-radius:50%;';
+        else if (shape === 'square') shapeCSS = 'border-radius:2px;';
+        else shapeCSS = 'clip-path:polygon(50% 0%,61% 35%,98% 35%,68% 57%,79% 91%,50% 70%,21% 91%,32% 57%,2% 35%,39% 35%);';
+
         el.style.cssText = `
-            left: ${startX}vw;
-            top: -10px;
-            width: ${size}px;
-            height: ${size}px;
-            background: ${colors[Math.floor(Math.random() * colors.length)]};
-            border-radius: ${isCircle ? '50%' : '2px'};
-            --cr: ${Math.random() * 360}deg;
-            --cd: ${dur}s;
-            --cdel: ${delay}s;
+            left:${startX}vw;top:-12px;
+            width:${size}px;height:${size}px;
+            background:${color};${shapeCSS}
+            --cr:${Math.random() * 720 - 360}deg;
+            --cd:${dur}s;--cdel:${delay}s;
         `;
         document.body.appendChild(el);
-        setTimeout(() => el.remove(), (dur + delay) * 1000 + 200);
+        setTimeout(() => el.remove(), (dur + delay) * 1000 + 300);
     }
 }
 

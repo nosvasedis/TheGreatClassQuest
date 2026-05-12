@@ -3,32 +3,80 @@
 
 export const heroModalsHTML = `
     <div id="hero-celebration-modal"
-        class="fixed inset-0 bg-black bg-opacity-80 z-[95] flex items-center justify-center p-4 hidden">
-        <div
-            class="bg-gradient-to-b from-purple-900 to-indigo-900 rounded-[3rem] shadow-2xl max-w-md w-full pop-in border-4 border-yellow-400 relative overflow-hidden text-center p-8">
-            <div
-                class="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/stardust.png')] opacity-30 animate-pulse">
+        class="fixed inset-0 z-[95] flex items-center justify-center p-4 hidden"
+        style="background: radial-gradient(ellipse at 40% 25%, rgba(109,40,217,0.97) 0%, rgba(10,4,42,0.99) 100%);">
+
+        <!-- Floating star particles -->
+        <div class="hcd-particles" aria-hidden="true">
+            <span class="hcd-p hcd-p1">⭐</span>
+            <span class="hcd-p hcd-p2">✨</span>
+            <span class="hcd-p hcd-p3">⭐</span>
+            <span class="hcd-p hcd-p4">✨</span>
+            <span class="hcd-p hcd-p5">🌟</span>
+            <span class="hcd-p hcd-p6">✨</span>
+            <span class="hcd-p hcd-p7">⭐</span>
+            <span class="hcd-p hcd-p8">✨</span>
+            <span class="hcd-p hcd-p9">🌟</span>
+            <span class="hcd-p hcd-p10">⭐</span>
+            <span class="hcd-p hcd-p11">✨</span>
+            <span class="hcd-p hcd-p12">⭐</span>
+        </div>
+
+        <!-- Rotating golden light-ray burst -->
+        <div class="hcd-rays-wrap" aria-hidden="true">
+            <div class="hcd-rays"></div>
+        </div>
+
+        <!-- Main card -->
+        <div class="hcd-card pop-in">
+            <!-- Card shimmer sweep overlay -->
+            <div class="hcd-card-shimmer" aria-hidden="true"></div>
+
+            <!-- Crown -->
+            <div class="hcd-crown-section" aria-hidden="true">
+                <span class="hcd-crown-glow"></span>
+                <span class="hcd-crown">👑</span>
             </div>
 
-            <div class="relative z-10">
-                <div
-                    class="badge-pill bg-yellow-400 text-yellow-900 mx-auto mb-4 shadow-[0_0_20px_rgba(250,204,21,0.6)]">
-                    Hero of the Day</div>
+            <!-- "Hero of the Day" badge -->
+            <div class="hcd-badge">
+                <i class="fas fa-star hcd-badge-star"></i>
+                <span>Hero of the Day</span>
+                <i class="fas fa-star hcd-badge-star"></i>
+            </div>
 
-                <div id="hero-celebration-avatar"
-                    class="w-40 h-40 mx-auto rounded-full border-8 border-yellow-400 shadow-2xl mb-6 bg-white flex items-center justify-center text-7xl font-bold text-indigo-500 relative">
-                    <div class="absolute -top-4 -right-4 text-6xl animate-bounce">👑</div>
-                </div>
+            <!-- Avatar with spinning golden rings -->
+            <div class="hcd-avatar-wrap">
+                <div class="hcd-ring-spinner" aria-hidden="true"></div>
+                <div class="hcd-ring-pulse-el" aria-hidden="true"></div>
+                <div id="hero-celebration-avatar" class="hcd-avatar"></div>
+            </div>
 
-                <h2 id="hero-celebration-name" class="font-title text-5xl text-white mb-2 text-shadow-lg">Student Name
-                </h2>
-                <p id="hero-celebration-reason"
-                    class="text-purple-200 text-xl font-bold uppercase tracking-widest mb-8">For Outstanding Courage</p>
+            <!-- Student name with shimmer -->
+            <h2 id="hero-celebration-name" class="hcd-name font-title">Student Name</h2>
 
-                <button id="hero-celebration-close-btn"
-                    class="bg-yellow-400 hover:bg-yellow-300 text-yellow-900 font-title text-xl py-3 px-10 rounded-full bubbly-button shadow-xl">
-                    Huzzah!
-                </button>
+            <!-- Gem divider -->
+            <div class="hcd-divider" aria-hidden="true">
+                <span class="hcd-div-line"></span>
+                <span class="hcd-div-gems">◆◆◆</span>
+                <span class="hcd-div-line"></span>
+            </div>
+
+            <!-- Reason text -->
+            <p id="hero-celebration-reason" class="hcd-reason">For Outstanding Courage</p>
+
+            <!-- Huzzah button -->
+            <button id="hero-celebration-close-btn" class="hcd-btn bubbly-button">
+                <i class="fas fa-crown"></i>
+                <span>Huzzah!</span>
+                <span class="hcd-btn-shine" aria-hidden="true"></span>
+            </button>
+
+            <!-- Bottom decorative line -->
+            <div class="hcd-bottom-deco" aria-hidden="true">
+                <span>⚔️</span>
+                <span class="hcd-scrollwork">— ✦ ✦ ✦ —</span>
+                <span>🛡️</span>
             </div>
         </div>
     </div>

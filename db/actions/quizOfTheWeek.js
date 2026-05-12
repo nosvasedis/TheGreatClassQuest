@@ -134,15 +134,15 @@ ${keywords ? `Specific focus: "${keywords}".` : ''}
 
 Rules:
 - Generate exactly 7 questions (no more, no less).
-- Use these question types: "mcq" (4-option multiple choice), "fill" (fill-in-the-blank, ONE correct word or short phrase), and optionally "image" (show an image and ask what it is).
-- Include at most 2 "image" questions; the rest should be "mcq" or "fill".
+- Use these question types: "mcq" (4-option multiple choice) and optionally "image" (show an image and ask what it is).
+- Include at most 2 "image" questions; the rest must be "mcq".
 - Make every question directly relevant to the topics/focus listed above.
 - Keep language appropriate for ${ageDesc}.
 - Keep explanations very short (max 10 words each).
 - Do NOT produce any text outside the JSON object.
 
 Output this exact JSON shape (nothing else):
-{"questions":[{"type":"mcq","question":"...","options":["A","B","C","D"],"correctIndex":0,"correctAnswer":"A","explanation":"short reason"},{"type":"fill","question":"She ___ born in 2010.","correctAnswer":"was","explanation":"past tense of be"},{"type":"image","question":"What number is shown?","imagePrompt":"the word 'third' as numeral 3rd on a colorful card, cartoon style","correctAnswer":"third","explanation":"ordinal number"}]}`;
+{"questions":[{"type":"mcq","question":"...","options":["A","B","C","D"],"correctIndex":0,"correctAnswer":"A","explanation":"short reason"},{"type":"mcq","question":"Which word means happy?","options":["Sad","Joyful","Angry","Tired"],"correctIndex":1,"correctAnswer":"Joyful","explanation":"synonym for happy"},{"type":"image","question":"What number is shown?","imagePrompt":"the word 'third' as numeral 3rd on a colorful card, cartoon style","correctAnswer":"third","explanation":"ordinal number"}]}`;
 }
 
 const IMAGE_AGE_PROMPTS = {
@@ -526,7 +526,9 @@ export async function distributeQuizRewards(classId, results) {
         return {
             tier,
             rewardedStudents: rewardedStudents.length,
+            studentRewards: rewardedStudents.map(id => ({ studentId: id, stars: rewards.starPerCorrect, gold: rewards.goldPerCorrect })),
             questBonus: rewards.questBonus,
+            guildGloryByGuild,
             totalGloryDistributed: Object.values(guildGloryByGuild).reduce((a, b) => a + b, 0),
             awardedArtifacts
         };

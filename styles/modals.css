@@ -3427,3 +3427,453 @@
         transform: none;
     }
 }
+
+/* ============================================================
+   HERO OF THE DAY CELEBRATION MODAL  (hcd-*)
+   ============================================================ */
+
+/* ── Floating Star Particles ── */
+.hcd-particles {
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    overflow: hidden;
+    z-index: 0;
+}
+.hcd-p {
+    position: absolute;
+    bottom: -3rem;
+    animation: hcd-float-up linear infinite;
+    opacity: 0;
+    user-select: none;
+    pointer-events: none;
+}
+@keyframes hcd-float-up {
+    0%   { transform: translateY(0)       scale(1)   rotate(0deg);   opacity: 0.85; }
+    80%  { opacity: 0.65; }
+    100% { transform: translateY(-110vh)  scale(0.4) rotate(360deg); opacity: 0; }
+}
+.hcd-p1  { left:  4%; font-size: 1.1rem;  animation-duration: 6.2s; animation-delay: 0.0s; }
+.hcd-p2  { left: 11%; font-size: 1.5rem;  animation-duration: 7.5s; animation-delay: 0.8s; }
+.hcd-p3  { left: 20%; font-size: 0.9rem;  animation-duration: 5.3s; animation-delay: 1.6s; }
+.hcd-p4  { left: 30%; font-size: 1.7rem;  animation-duration: 8.1s; animation-delay: 0.3s; }
+.hcd-p5  { left: 43%; font-size: 1.2rem;  animation-duration: 6.7s; animation-delay: 2.2s; }
+.hcd-p6  { left: 54%; font-size: 0.8rem;  animation-duration: 7.0s; animation-delay: 0.6s; }
+.hcd-p7  { left: 63%; font-size: 1.6rem;  animation-duration: 5.8s; animation-delay: 1.9s; }
+.hcd-p8  { left: 72%; font-size: 1.1rem;  animation-duration: 9.0s; animation-delay: 0.2s; }
+.hcd-p9  { left: 81%; font-size: 1.4rem;  animation-duration: 6.4s; animation-delay: 1.4s; }
+.hcd-p10 { left: 90%; font-size: 0.95rem; animation-duration: 7.2s; animation-delay: 0.9s; }
+.hcd-p11 { left: 16%; font-size: 1.25rem; animation-duration: 8.5s; animation-delay: 3.2s; }
+.hcd-p12 { left: 77%; font-size: 1.35rem; animation-duration: 5.5s; animation-delay: 2.7s; }
+
+/* ── Rotating Golden Light-Ray Burst ── */
+.hcd-rays-wrap {
+    position: fixed;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    pointer-events: none;
+    overflow: hidden;
+    z-index: 1;
+}
+.hcd-rays {
+    width: min(700px, 100vmin);
+    height: min(700px, 100vmin);
+    flex-shrink: 0;
+    border-radius: 50%;
+    background: conic-gradient(
+        from 0deg,
+        rgba(250,204,21,0.11)  0deg,   rgba(250,204,21,0.11)  9deg,
+        transparent            9deg,   transparent            22deg,
+        rgba(250,204,21,0.07) 22deg,   rgba(250,204,21,0.07) 30deg,
+        transparent           30deg,   transparent            48deg,
+        rgba(250,204,21,0.13) 48deg,   rgba(250,204,21,0.13) 56deg,
+        transparent           56deg,   transparent            74deg,
+        rgba(250,204,21,0.08) 74deg,   rgba(250,204,21,0.08) 82deg,
+        transparent           82deg,   transparent           103deg,
+        rgba(250,204,21,0.12) 103deg,  rgba(250,204,21,0.12) 111deg,
+        transparent           111deg,  transparent           130deg,
+        rgba(250,204,21,0.07) 130deg,  rgba(250,204,21,0.07) 138deg,
+        transparent           138deg,  transparent           158deg,
+        rgba(250,204,21,0.11) 158deg,  rgba(250,204,21,0.11) 166deg,
+        transparent           166deg,  transparent           188deg,
+        rgba(250,204,21,0.09) 188deg,  rgba(250,204,21,0.09) 196deg,
+        transparent           196deg,  transparent           217deg,
+        rgba(250,204,21,0.12) 217deg,  rgba(250,204,21,0.12) 225deg,
+        transparent           225deg,  transparent           246deg,
+        rgba(250,204,21,0.07) 246deg,  rgba(250,204,21,0.07) 254deg,
+        transparent           254deg,  transparent           274deg,
+        rgba(250,204,21,0.13) 274deg,  rgba(250,204,21,0.13) 282deg,
+        transparent           282deg,  transparent           302deg,
+        rgba(250,204,21,0.09) 302deg,  rgba(250,204,21,0.09) 310deg,
+        transparent           310deg,  transparent           330deg,
+        rgba(250,204,21,0.11) 330deg,  rgba(250,204,21,0.11) 338deg,
+        transparent           338deg,  transparent           360deg
+    );
+    animation: hcd-ray-spin 30s linear infinite;
+}
+@keyframes hcd-ray-spin {
+    from { transform: rotate(0deg); }
+    to   { transform: rotate(360deg); }
+}
+
+/* ── Main Card ── */
+.hcd-card {
+    position: relative;
+    z-index: 10;
+    max-width: 420px;
+    width: 100%;
+    padding: 2.25rem 2rem 1.75rem;
+    text-align: center;
+    border-radius: 2.5rem;
+    background:
+        radial-gradient(ellipse at 50% -5%,  rgba(250,204,21,0.14) 0%, transparent 55%),
+        radial-gradient(ellipse at 50% 105%, rgba(139,92,246,0.18) 0%, transparent 55%),
+        linear-gradient(165deg, #2a1760 0%, #1a0b4e 45%, #0e0628 100%);
+    border: 1.5px solid rgba(250,204,21,0.45);
+    box-shadow:
+        0 0 0 1px rgba(250,204,21,0.10),
+        0 0 50px  rgba(250,204,21,0.20),
+        0 0 100px rgba(139,92,246,0.25),
+        0 40px 80px rgba(0,0,0,0.75),
+        inset 0 1px 0 rgba(255,255,255,0.08);
+    overflow: hidden;
+}
+
+/* ── Card shimmer sweep ── */
+.hcd-card-shimmer {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    overflow: hidden;
+    border-radius: inherit;
+    z-index: 1;
+}
+.hcd-card-shimmer::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -80%;
+    width: 50%;
+    height: 100%;
+    background: linear-gradient(100deg, transparent 20%, rgba(255,255,255,0.06) 50%, transparent 80%);
+    animation: hcd-card-sweep 5s ease-in-out infinite;
+    animation-delay: 1.5s;
+}
+@keyframes hcd-card-sweep {
+    0%, 100% { left: -80%; }
+    50%       { left: 180%; }
+}
+
+/* ── Crown ── */
+.hcd-crown-section {
+    position: relative;
+    display: inline-block;
+    margin-bottom: 0.75rem;
+    z-index: 5;
+}
+.hcd-crown {
+    font-size: 4rem;
+    line-height: 1;
+    display: block;
+    position: relative;
+    z-index: 2;
+    filter: drop-shadow(0 0 14px rgba(250,204,21,0.95)) drop-shadow(0 5px 22px rgba(250,204,21,0.55));
+    animation: hcd-crown-float 2.8s ease-in-out infinite;
+}
+@keyframes hcd-crown-float {
+    0%, 100% {
+        transform: translateY(0) scale(1);
+        filter: drop-shadow(0 0 14px rgba(250,204,21,0.95)) drop-shadow(0 5px 22px rgba(250,204,21,0.5));
+    }
+    50% {
+        transform: translateY(-9px) scale(1.07);
+        filter: drop-shadow(0 0 26px rgba(250,204,21,1.0)) drop-shadow(0 5px 38px rgba(250,204,21,0.85));
+    }
+}
+.hcd-crown-glow {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 90px;
+    height: 90px;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(250,204,21,0.55) 0%, transparent 70%);
+    pointer-events: none;
+    z-index: 1;
+    animation: hcd-crown-glow-anim 2.8s ease-in-out infinite;
+    display: block;
+}
+@keyframes hcd-crown-glow-anim {
+    0%, 100% { transform: translate(-50%, -50%) scale(1);   opacity: 0.7; }
+    50%       { transform: translate(-50%, -50%) scale(1.6); opacity: 1;   }
+}
+
+/* ── "Hero of the Day" Badge ── */
+.hcd-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.38rem 1.15rem;
+    background: linear-gradient(120deg, #f59e0b 0%, #fbbf24 40%, #fde68a 60%, #f59e0b 100%);
+    background-size: 250% 100%;
+    color: #713f12;
+    border-radius: 999px;
+    font-family: 'Fredoka One', cursive;
+    font-size: 0.82rem;
+    font-weight: 900;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    box-shadow:
+        0 0 0 1.5px rgba(250,204,21,0.45),
+        0 0 20px  rgba(250,204,21,0.65),
+        0 2px 8px rgba(0,0,0,0.45);
+    margin-bottom: 1.25rem;
+    position: relative;
+    z-index: 5;
+    animation: hcd-badge-shimmer 4s ease-in-out infinite;
+}
+@keyframes hcd-badge-shimmer {
+    0%   { background-position:   0% 50%; }
+    50%  { background-position: 100% 50%; }
+    100% { background-position:   0% 50%; }
+}
+.hcd-badge-star {
+    font-size: 0.65rem;
+    animation: hcd-star-twirl 5s linear infinite;
+    display: inline-block;
+}
+.hcd-badge-star:last-child {
+    animation-direction: reverse;
+}
+@keyframes hcd-star-twirl {
+    from { transform: rotate(0deg); }
+    to   { transform: rotate(360deg); }
+}
+
+/* ── Avatar Wrapper & Rings ── */
+.hcd-avatar-wrap {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 168px;
+    height: 168px;
+    margin: 0 auto 1.5rem;
+    z-index: 5;
+}
+
+/* Outer spinning gradient ring */
+.hcd-ring-spinner {
+    position: absolute;
+    inset: 0;
+    border-radius: 50%;
+    border: 4px solid;
+    border-color: rgba(250,204,21,0.95) rgba(250,204,21,0.50) rgba(250,204,21,0.10) rgba(250,204,21,0.60);
+    animation: hcd-ring-spin 4s linear infinite;
+    box-shadow: 0 0 18px rgba(250,204,21,0.35);
+}
+@keyframes hcd-ring-spin {
+    from { transform: rotate(0deg); }
+    to   { transform: rotate(360deg); }
+}
+
+/* Inner pulsing ring */
+.hcd-ring-pulse-el {
+    position: absolute;
+    width: 148px;
+    height: 148px;
+    border-radius: 50%;
+    border: 1.5px solid rgba(250,204,21,0.35);
+    animation: hcd-ring-pulse-anim 2.5s ease-in-out infinite;
+}
+@keyframes hcd-ring-pulse-anim {
+    0%, 100% {
+        transform: scale(1);
+        border-color: rgba(250,204,21,0.30);
+        box-shadow: 0 0 8px rgba(250,204,21,0.15);
+    }
+    50% {
+        transform: scale(1.04);
+        border-color: rgba(250,204,21,0.75);
+        box-shadow: 0 0 28px rgba(250,204,21,0.55);
+    }
+}
+
+/* Avatar image/initial container */
+.hcd-avatar {
+    position: relative;
+    z-index: 3;
+    width: 128px;
+    height: 128px;
+    border-radius: 50%;
+    border: 3px solid rgba(250,204,21,0.85);
+    background: linear-gradient(135deg, #4c1d95 0%, #1e1b4b 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 3.5rem;
+    font-weight: 700;
+    overflow: hidden;
+    animation: hcd-avatar-glow 2.5s ease-in-out infinite;
+}
+@keyframes hcd-avatar-glow {
+    0%, 100% {
+        box-shadow: 0 0 0 3px rgba(250,204,21,0.20), 0 0 22px rgba(250,204,21,0.35), 0 8px 30px rgba(0,0,0,0.55);
+    }
+    50% {
+        box-shadow: 0 0 0 5px rgba(250,204,21,0.45), 0 0 44px rgba(250,204,21,0.75), 0 8px 30px rgba(0,0,0,0.55);
+    }
+}
+.hcd-avatar img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border-radius: 50%;
+    display: block;
+}
+
+/* ── Student Name (shimmering gold-white) ── */
+.hcd-name {
+    font-family: 'Fredoka One', cursive;
+    font-size: clamp(2rem, 8vw, 2.75rem);
+    line-height: 1.1;
+    margin: 0 0 0.5rem;
+    position: relative;
+    z-index: 5;
+    background: linear-gradient(90deg,
+        #fef9c3  0%,
+        #fde68a 20%,
+        #ffffff  40%,
+        #fde68a 60%,
+        #fef9c3  80%,
+        #fde68a 100%
+    );
+    background-size: 300% auto;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    animation: hcd-name-shimmer 4s linear infinite;
+}
+@keyframes hcd-name-shimmer {
+    0%   { background-position:   0% center; }
+    100% { background-position: 300% center; }
+}
+
+/* ── Gem Divider ── */
+.hcd-divider {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin: 0.4rem 0 0.7rem;
+    position: relative;
+    z-index: 5;
+}
+.hcd-div-line {
+    flex: 1;
+    height: 1px;
+    background: linear-gradient(to right, transparent, rgba(250,204,21,0.5), transparent);
+}
+.hcd-div-gems {
+    color: #fbbf24;
+    font-size: 0.5rem;
+    letter-spacing: 0.25rem;
+    animation: hcd-gems-pulse 2.5s ease-in-out infinite;
+    display: inline-block;
+}
+@keyframes hcd-gems-pulse {
+    0%, 100% { opacity: 0.7; transform: scale(1);   }
+    50%       { opacity: 1;   transform: scale(1.35); }
+}
+
+/* ── Reason Text ── */
+.hcd-reason {
+    color: rgba(216,180,254,0.9);
+    font-size: 0.78rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.18em;
+    margin: 0 0 1.75rem;
+    position: relative;
+    z-index: 5;
+}
+
+/* ── Huzzah Button ── */
+.hcd-btn {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.625rem;
+    padding: 0.85rem 2.5rem;
+    background: linear-gradient(130deg, #f59e0b 0%, #fbbf24 45%, #f59e0b 100%);
+    background-size: 200% 100%;
+    color: #78350f;
+    font-family: 'Fredoka One', cursive;
+    font-size: 1.2rem;
+    border-radius: 999px;
+    border: none;
+    cursor: pointer;
+    overflow: hidden;
+    z-index: 5;
+    margin-bottom: 1.25rem;
+    box-shadow:
+        0 0 0 2px rgba(250,204,21,0.35),
+        0 0 28px rgba(250,204,21,0.55),
+        0 6px 20px rgba(0,0,0,0.45),
+        inset 0 1px 0 rgba(255,255,255,0.45);
+    animation: hcd-btn-pulse 3s ease-in-out infinite;
+    transition: transform 0.12s ease, box-shadow 0.12s ease;
+}
+.hcd-btn:hover {
+    transform: scale(1.06) translateY(-2px);
+    box-shadow:
+        0 0 0 3px rgba(250,204,21,0.55),
+        0 0 55px rgba(250,204,21,0.95),
+        0 10px 30px rgba(0,0,0,0.5),
+        inset 0 1px 0 rgba(255,255,255,0.45);
+}
+.hcd-btn:active {
+    transform: scale(0.96) translateY(1px);
+}
+@keyframes hcd-btn-pulse {
+    0%, 100% {
+        box-shadow: 0 0 0 2px rgba(250,204,21,0.30), 0 0 22px rgba(250,204,21,0.45), 0 6px 20px rgba(0,0,0,0.4);
+    }
+    50% {
+        box-shadow: 0 0 0 3px rgba(250,204,21,0.55), 0 0 50px rgba(250,204,21,0.85), 0 6px 20px rgba(0,0,0,0.4);
+    }
+}
+.hcd-btn-shine {
+    position: absolute;
+    top: 0;
+    left: -90%;
+    width: 55%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent 20%, rgba(255,255,255,0.42) 50%, transparent 80%);
+    pointer-events: none;
+    animation: hcd-btn-sweep 3.5s ease-in-out infinite;
+    animation-delay: 0.8s;
+}
+@keyframes hcd-btn-sweep {
+    0%, 100% { left: -90%; }
+    50%       { left: 180%; }
+}
+
+/* ── Bottom Decoration ── */
+.hcd-bottom-deco {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.6rem;
+    font-size: 1rem;
+    position: relative;
+    z-index: 5;
+    opacity: 0.6;
+}
+.hcd-scrollwork {
+    font-size: 0.6rem;
+    letter-spacing: 0.2rem;
+    color: #fbbf24;
+}

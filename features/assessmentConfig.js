@@ -386,23 +386,20 @@ export function getStudentsAwaitingGradeForScheduledStatus(status) {
     if (!status || status.isConcluded || !status.testData?.date) return [];
 
     const classStudents = (state.get('allStudents') || []).filter((student) => student.classId === status.classId);
-    const attendanceForDate = (state.get('allAttendanceRecords') || []).filter((record) =>
-        record.classId === status.classId && utils.datesMatch(record.date, status.testData.date)
-    );
-    const absentStudentIds = new Set(attendanceForDate.map((record) => record.studentId));
 
     const scheduledEnd = utils.parseFlexibleDate(status.testData.date);
     if (scheduledEnd) scheduledEnd.setHours(23, 59, 59, 999);
 
     const scoredStudentIds = new Set((status.matchingScores || []).map((score) => score.studentId));
 
+    // Attendance is NOT used here — absent students still need a makeup score.
+    // This matches the Pending Makeups logic exactly: joined before test date + no score = awaiting.
     return classStudents.filter((student) => {
         if (scoredStudentIds.has(student.id)) return false;
         if (student.createdAt) {
             const joinDate = student.createdAt.toDate ? student.createdAt.toDate() : new Date(student.createdAt);
             if (scheduledEnd && joinDate > scheduledEnd) return false;
         }
-        if (attendanceForDate.length > 0 && absentStudentIds.has(student.id)) return false;
         return true;
     });
 }
@@ -448,15 +445,22 @@ export function getScheduledAssessmentStatus(assignment, options = {}) {
     );
     const matchingScores = getAssessmentScoreMatches(assignment, type);
     const classStudents = (state.get('allStudents') || []).filter((student) => student.classId === assignment.classId);
-    const attendanceForDate = (state.get('allAttendanceRecords') || []).filter((record) =>
-        record.classId === assignment.classId && utils.datesMatch(record.date, assignment.testData.date)
-    );
-    const absentStudentIds = new Set(attendanceForDate.map((record) => record.studentId));
-    const expectedScoreCount = attendanceForDate.length > 0
-        ? classStudents.filter((student) => !absentStudentIds.has(student.id)).length
-        : classStudents.length;
+
+    // Mirrors Pending Makeups logic: every student who existed at test time needs a score.
+    // Attendance is intentionally NOT used here — an absent student still needs a makeup grade.
+    const testCutoff = new Date(scheduledDate);
+    testCutoff.setHours(23, 59, 59, 999);
+    const studentsAtTestTime = classStudents.filter(student => {
+        if (!student.createdAt) return true;
+        const joinDate = student.createdAt.toDate ? student.createdAt.toDate() : new Date(student.createdAt);
+        return joinDate <= testCutoff;
+    });
+    const scoredStudentIds = new Set(matchingScores.map(s => s.studentId));
+    const expectedScoreCount = studentsAtTestTime.length;
     const hasResults = matchingScores.length > 0;
-    const isConcluded = expectedScoreCount > 0 ? matchingScores.length >= expectedScoreCount : hasResults;
+    const isConcluded = expectedScoreCount > 0
+        ? studentsAtTestTime.every(s => scoredStudentIds.has(s.id))
+        : hasResults;
 
     const dateOnly = new Date(scheduledDate);
     dateOnly.setHours(0, 0, 0, 0);

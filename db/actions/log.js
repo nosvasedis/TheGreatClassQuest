@@ -687,27 +687,20 @@ export async function handleMarkAbsent(studentId, classId, isAbsent, targetDate 
             if (!snapshot.empty) return 'already_absent';
             
             await runTransaction(db, async (transaction) => {
-                // 1. Create Attendance Record
-                const newAttendanceRef = doc(attendanceCollectionRef);
-                transaction.set(newAttendanceRef, {
-                    studentId,
-                    classId,
-                    date: today,
-                    markedBy: { uid: state.get('currentUserId'), name: state.get('currentTeacherName') },
-                    createdAt: serverTimestamp()
-                });
+                // === ALL READS FIRST (Firestore requires reads before writes) ===
 
-                // 2. Find & Delete 'today_stars'
+                // 1. Read student_scores (transactional read must precede any writes)
+                const scoreRef = doc(db, `${publicDataPath}/student_scores`, studentId);
+                const scoreDoc = await transaction.get(scoreRef);
+
+                // 2. Query today_stars and award_log (non-transactional query reads)
                 const todayStarsQ = query(collection(db, `${publicDataPath}/today_stars`), where("studentId", "==", studentId), where("date", "==", today));
                 const todayStarsSnap = await getDocs(todayStarsQ);
 
-                todayStarsSnap.forEach(d => transaction.delete(d.ref));
-
-                // 3. Find & Delete 'award_log' for today
-                // Note: award_log stores date as DD-MM-YYYY string too
                 const logsQ = query(collection(db, `${publicDataPath}/award_log`), where("studentId", "==", studentId), where("date", "==", today));
                 const logsSnap = await getDocs(logsQ);
 
+                // === COMPUTE credit totals before writing ===
                 const calendarNow = new Date();
                 let creditFromLogsTotal = 0;
                 let creditFromLogsMonthly = 0;
@@ -720,12 +713,27 @@ export async function handleMarkAbsent(studentId, classId, isAbsent, targetDate 
                     if (logDate.getMonth() === calendarNow.getMonth() && logDate.getFullYear() === calendarNow.getFullYear()) {
                         creditFromLogsMonthly += credit;
                     }
-                    transaction.delete(docSnap.ref);
                 });
 
-                // 4. Decrement Scores (aligned with award_log credit, not today_stars nominal count)
-                const scoreRef = doc(db, `${publicDataPath}/student_scores`, studentId);
-                const scoreDoc = await transaction.get(scoreRef);
+                // === ALL WRITES AFTER ALL READS ===
+
+                // 3. Create Attendance Record
+                const newAttendanceRef = doc(attendanceCollectionRef);
+                transaction.set(newAttendanceRef, {
+                    studentId,
+                    classId,
+                    date: today,
+                    markedBy: { uid: state.get('currentUserId'), name: state.get('currentTeacherName') },
+                    createdAt: serverTimestamp()
+                });
+
+                // 4. Delete today_stars
+                todayStarsSnap.forEach(d => transaction.delete(d.ref));
+
+                // 5. Delete award_log entries for today
+                logsSnap.forEach(docSnap => transaction.delete(docSnap.ref));
+
+                // 6. Decrement Scores (aligned with award_log credit, not today_stars nominal count)
                 if (scoreDoc.exists() && creditFromLogsTotal > 0) {
                     const scoreUpdates = { totalStars: increment(-creditFromLogsTotal) };
                     if (creditFromLogsMonthly > 0) {

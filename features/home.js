@@ -506,21 +506,27 @@ function getActiveDashboard(classData, name, theme, spice) {
         name, theme, getHomeBountyPillHtml(),
         `
         <div class="vibrant-card h-span-8 p-6 flex flex-col justify-center relative overflow-hidden card-gradient-sky">
-            <div class="absolute -right-4 -top-4 text-9xl opacity-5 pointer-events-none">${classData.logo}</div>
-            <div class="flex justify-between items-end mb-3">
+            <div class="absolute -bottom-10 -left-10 w-40 h-40 rounded-full bg-blue-300/20 blur-3xl pointer-events-none"></div>
+            <div class="absolute -top-8 right-4 w-28 h-28 rounded-full bg-indigo-400/15 blur-2xl pointer-events-none"></div>
+            <div class="flex justify-between items-end mb-4">
                 <div>
-                    <h3 class="font-bold text-blue-400 text-xs uppercase tracking-widest"><i class="fas fa-route mr-1"></i> Quest Progress</h3>
-                    <div class="font-title text-5xl text-blue-600">${progress}%</div>
+                    <h3 class="font-bold text-blue-400 text-xs uppercase tracking-widest mb-0.5"><i class="fas fa-route mr-1"></i> Quest Progress</h3>
+                    <div class="font-title text-5xl text-blue-600 leading-none">${progress}%</div>
+                    <p class="text-[11px] text-blue-400/60 mt-1 font-medium">of monthly goal</p>
                 </div>
                 <div class="text-right">
                     <div class="font-title text-4xl text-amber-500">${monthlyStarsWithBonus} ⭐</div>
-                    <p class="text-xs font-bold text-amber-600/70">Monthly Collected</p>
+                    <p class="text-xs font-bold text-amber-600/70">Collected this month</p>
                 </div>
             </div>
-            <div class="w-full bg-white/60 h-4 rounded-full overflow-hidden border border-blue-100">
-                <div class="h-full bg-gradient-to-r from-blue-400 to-indigo-500 transition-all duration-1000 relative" style="width: ${progress}%">
-                    <div class="absolute top-0 left-0 w-full h-full bg-white opacity-20 animate-pulse"></div>
+            <div class="w-full bg-white/60 h-5 rounded-full overflow-hidden border border-blue-100 shadow-inner">
+                <div class="h-full bg-gradient-to-r from-blue-400 via-blue-500 to-indigo-500 transition-all duration-1000 relative rounded-full" style="width: ${progress}%">
+                    <div class="absolute top-0 left-0 w-full h-full bg-white opacity-20 animate-pulse rounded-full"></div>
                 </div>
+            </div>
+            <div class="flex justify-between mt-1.5">
+                <p class="text-[11px] text-blue-400/50">Start</p>
+                <p class="text-[11px] text-blue-400/60 font-medium">Goal: ${goal} ⭐</p>
             </div>
         </div>
         

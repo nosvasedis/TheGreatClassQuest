@@ -234,11 +234,11 @@ export async function openQuestAssignmentModal() {
                                 <div class="min-w-0">
                                     <div class="inline-flex items-center gap-1.5 rounded-full bg-orange-100/60 px-2.5 py-0.5 text-[10px] font-black uppercase tracking-wider text-orange-800 mb-1">
                                         <i class="fas fa-pen-alt text-[9px]"></i>
-                                        <span>Grading still open</span>
+                                        <span>Test still needs results</span>
                                     </div>
                                     <h4 class="font-bold text-orange-950 text-lg leading-tight">${lastAssignment.testData.title}</h4>
                                     <p class="text-orange-800/85 text-xs font-semibold mt-1">${scheduledStatus.dateLabel} was test day (${daysLate} day${daysLate === 1 ? '' : 's'} ago).</p>
-                                    <p class="text-orange-900/80 text-[11px] font-bold mt-1">${scheduledStatus.chipLabel}${awaiting.length ? ` · ${awaiting.length} student${awaiting.length === 1 ? '' : 's'} awaiting a score` : ''}. Open Scholar's Scroll → Log Test — the correct title &amp; date are filled automatically.</p>
+                                    <p class="text-orange-900/80 text-[11px] font-bold mt-1">${awaiting.length ? `${awaiting.length} student${awaiting.length === 1 ? '' : 's'} still need ${awaiting.length === 1 ? 'this result' : 'their results'} recorded.` : 'This test still has missing results.'} Open Scholar's Scroll and choose Log Test; the test name and date will already be filled in.</p>
                                     ${lastAssignment.testData.curriculum ? `<p class="text-gray-400 text-[10px] font-black mt-1.5 uppercase tracking-widest opacity-80">Topics: ${lastAssignment.testData.curriculum}</p>` : ''}
                                 </div>
                             </div>

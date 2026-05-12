@@ -1192,7 +1192,7 @@ function renderScheduledGradingQueue(classId, dashboardEl) {
 
 function renderMissingWorkDashboard(classId) {
     const dashboard = getScrollQueuesHost();
-    renderScheduledGradingQueue(classId, dashboard);
+    document.getElementById('scheduled-grading-queue')?.remove();
 
     let container = document.getElementById('makeup-work-container');
     if (!container) {

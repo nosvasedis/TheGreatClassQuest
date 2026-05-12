@@ -337,6 +337,15 @@ function getRelativeTimeLabel(targetDate, now = new Date()) {
     return diffMinutes > 0 ? `in ${hourText}` : `${hourText} ago`;
 }
 
+function getCreatedAtTime(value) {
+    if (!value) return 0;
+    if (typeof value.toMillis === 'function') return value.toMillis();
+    if (typeof value.seconds === 'number') return value.seconds * 1000;
+    if (typeof value._seconds === 'number') return value._seconds * 1000;
+    const parsed = new Date(value).getTime();
+    return Number.isNaN(parsed) ? 0 : parsed;
+}
+
 function getAssessmentScoreMatches(assignment, type = 'test') {
     const scheduledDate = assignment?.testData?.date;
     const scheduledTitle = String(assignment?.testData?.title || '').trim();
@@ -346,6 +355,89 @@ function getAssessmentScoreMatches(assignment, type = 'test') {
         if (type !== 'test') return true;
         return String(score.title || '').trim() === scheduledTitle;
     });
+}
+
+function getStudentsExpectedForScheduledAssessment(assignment) {
+    if (!assignment?.testData?.date) return [];
+
+    const classStudents = (state.get('allStudents') || []).filter((student) => student.classId === assignment.classId);
+    const scheduledEnd = utils.parseFlexibleDate(assignment.testData.date);
+    if (scheduledEnd) scheduledEnd.setHours(23, 59, 59, 999);
+
+    const absentStudentIds = new Set(
+        (state.get('allAttendanceRecords') || [])
+            .filter((record) => record.classId === assignment.classId && utils.datesMatch(record.date, assignment.testData.date))
+            .map((record) => record.studentId)
+    );
+
+    return classStudents.filter((student) => {
+        if (absentStudentIds.has(student.id)) return false;
+        if (student.createdAt) {
+            const joinDate = student.createdAt.toDate ? student.createdAt.toDate() : new Date(student.createdAt);
+            if (scheduledEnd && joinDate > scheduledEnd) return false;
+        }
+        return true;
+    });
+}
+
+function getScoresFulfillingScheduledAssessment(assignment, type = 'test', eligibleStudentIds = null) {
+    if (!assignment?.testData?.date) return [];
+    if (type !== 'test') return getAssessmentScoreMatches(assignment, type);
+
+    const scheduledTitle = String(assignment.testData.title || '').trim();
+    const scheduledDate = utils.parseFlexibleDate(assignment.testData.date);
+    if (!scheduledDate) return [];
+
+    const scheduledAssignments = dedupeScheduledAssignments(
+        (state.get('allQuestAssignments') || [])
+            .filter((item) => item.classId === assignment.classId && item.testData)
+            .filter((item) => String(item.testData?.title || '').trim() === scheduledTitle)
+    ).sort((a, b) => {
+        const timeA = utils.parseFlexibleDate(a.testData?.date)?.getTime() || 0;
+        const timeB = utils.parseFlexibleDate(b.testData?.date)?.getTime() || 0;
+        if (timeA !== timeB) return timeA - timeB;
+        const createdDiff = getCreatedAtTime(a.createdAt) - getCreatedAtTime(b.createdAt);
+        if (createdDiff !== 0) return createdDiff;
+        return String(a.id || '').localeCompare(String(b.id || ''));
+    });
+
+    const assignmentKey = `${assignment.classId}__${assignment.testData.date || ''}__${scheduledTitle}`;
+    const occurrenceIndex = Math.max(0, scheduledAssignments.findIndex((item) => (
+        `${item.classId}__${item.testData?.date || ''}__${String(item.testData?.title || '').trim()}` === assignmentKey
+    )));
+    const firstOccurrenceDate = utils.parseFlexibleDate(scheduledAssignments[0]?.testData?.date) || scheduledDate;
+    const allowedStudents = eligibleStudentIds ? new Set(eligibleStudentIds) : null;
+    const scoresByStudent = new Map();
+
+    (state.get('allWrittenScores') || [])
+        .filter((score) => {
+            if (score.classId !== assignment.classId || score.type !== type) return false;
+            if (String(score.title || '').trim() !== scheduledTitle) return false;
+            if (allowedStudents && !allowedStudents.has(score.studentId)) return false;
+            const scoreDate = utils.parseFlexibleDate(score.date);
+            return !!scoreDate && scoreDate >= firstOccurrenceDate;
+        })
+        .sort((a, b) => {
+            const timeA = utils.parseFlexibleDate(a.date)?.getTime() || 0;
+            const timeB = utils.parseFlexibleDate(b.date)?.getTime() || 0;
+            if (timeA !== timeB) return timeA - timeB;
+            const createdDiff = getCreatedAtTime(a.createdAt) - getCreatedAtTime(b.createdAt);
+            if (createdDiff !== 0) return createdDiff;
+            return String(a.id || '').localeCompare(String(b.id || ''));
+        })
+        .forEach((score) => {
+            const existing = scoresByStudent.get(score.studentId) || [];
+            existing.push(score);
+            scoresByStudent.set(score.studentId, existing);
+        });
+
+    const matchedScores = [];
+    scoresByStudent.forEach((studentScores) => {
+        const matchedScore = studentScores[occurrenceIndex];
+        if (matchedScore) matchedScores.push(matchedScore);
+    });
+
+    return matchedScores;
 }
 
 export function dedupeScheduledAssignments(assignments = []) {
@@ -385,23 +477,10 @@ export function getScheduledAssignmentForClassOnDate(classId, dateStr) {
 export function getStudentsAwaitingGradeForScheduledStatus(status) {
     if (!status || status.isConcluded || !status.testData?.date) return [];
 
-    const classStudents = (state.get('allStudents') || []).filter((student) => student.classId === status.classId);
-
-    const scheduledEnd = utils.parseFlexibleDate(status.testData.date);
-    if (scheduledEnd) scheduledEnd.setHours(23, 59, 59, 999);
-
+    const expectedStudents = getStudentsExpectedForScheduledAssessment(status);
     const scoredStudentIds = new Set((status.matchingScores || []).map((score) => score.studentId));
 
-    // Attendance is NOT used here — absent students still need a makeup score.
-    // This matches the Pending Makeups logic exactly: joined before test date + no score = awaiting.
-    return classStudents.filter((student) => {
-        if (scoredStudentIds.has(student.id)) return false;
-        if (student.createdAt) {
-            const joinDate = student.createdAt.toDate ? student.createdAt.toDate() : new Date(student.createdAt);
-            if (scheduledEnd && joinDate > scheduledEnd) return false;
-        }
-        return true;
-    });
+    return expectedStudents.filter((student) => !scoredStudentIds.has(student.id));
 }
 
 export function listScheduledAssessmentsNeedingGrades(classId = null) {
@@ -443,18 +522,12 @@ export function getScheduledAssessmentStatus(assignment, options = {}) {
         startAt ? startAt.getHours() + 1 : 13,
         startAt ? startAt.getMinutes() : 0
     );
-    const matchingScores = getAssessmentScoreMatches(assignment, type);
-    const classStudents = (state.get('allStudents') || []).filter((student) => student.classId === assignment.classId);
-
-    // Mirrors Pending Makeups logic: every student who existed at test time needs a score.
-    // Attendance is intentionally NOT used here — an absent student still needs a makeup grade.
-    const testCutoff = new Date(scheduledDate);
-    testCutoff.setHours(23, 59, 59, 999);
-    const studentsAtTestTime = classStudents.filter(student => {
-        if (!student.createdAt) return true;
-        const joinDate = student.createdAt.toDate ? student.createdAt.toDate() : new Date(student.createdAt);
-        return joinDate <= testCutoff;
-    });
+    const studentsAtTestTime = getStudentsExpectedForScheduledAssessment(assignment);
+    const matchingScores = getScoresFulfillingScheduledAssessment(
+        assignment,
+        type,
+        studentsAtTestTime.map((student) => student.id)
+    );
     const scoredStudentIds = new Set(matchingScores.map(s => s.studentId));
     const expectedScoreCount = studentsAtTestTime.length;
     const hasResults = matchingScores.length > 0;

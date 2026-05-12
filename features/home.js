@@ -462,9 +462,6 @@ function getActiveDashboard(classData, name, theme, spice) {
                     <span class="opacity-80">• ${scheduledTestStatus.statusLabel}</span>
                 </span>
                 <span class="text-[11px] text-slate-500 mt-0.5">${scheduledTestStatus.detailLabel} • ${scheduledTestStatus.chipLabel}</span>
-                ${scheduledTestStatus.phase === 'missed'
-            ? `<span class="text-[11px] text-rose-700 font-semibold leading-snug mt-1">Synced from Schedule a Test — Scholar's Scroll pre-fills the date & title when you Log Test.</span>`
-            : ''}
             </div>`;
     }
 
@@ -564,27 +561,30 @@ function getActiveDashboard(classData, name, theme, spice) {
             
             <div class="grid grid-cols-1 md:grid-cols-3 gap-4 h-full">
                 <div class="chronicle-item chronicle-homework">
-                    <div class="flex items-center gap-2 mb-2">
-                        <div class="bg-white/80 p-1.5 rounded-lg text-indigo-600"><i class="fas fa-book"></i></div>
-                        <span class="text-xs font-bold text-indigo-700 uppercase">Homework</span>
+                    <div class="chronicle-card-accent chronicle-accent-homework"></div>
+                    <div class="flex items-center gap-2.5 mb-3">
+                        <div class="chronicle-icon-badge bg-indigo-500/15 text-indigo-600"><i class="fas fa-book text-sm"></i></div>
+                        <span class="text-xs font-bold text-indigo-700 uppercase tracking-wider">Homework</span>
                     </div>
-                    <p class="text-sm text-indigo-900 font-medium leading-snug line-clamp-3">${assignmentText}</p>
+                    <p class="text-sm text-indigo-900 font-medium leading-snug line-clamp-3 flex-1">${assignmentText}</p>
                 </div>
 
                 <div class="chronicle-item chronicle-story">
-                    <div class="flex items-center gap-2 mb-2">
-                        <div class="bg-white/80 p-1.5 rounded-lg text-cyan-600"><i class="fas fa-feather-alt"></i></div>
-                        <span class="text-xs font-bold text-cyan-700 uppercase" data-home-story-word>Story: ${storyWord}</span>
+                    <div class="chronicle-card-accent chronicle-accent-story"></div>
+                    <div class="flex items-center gap-2.5 mb-3">
+                        <div class="chronicle-icon-badge bg-cyan-500/15 text-cyan-600"><i class="fas fa-feather-alt text-sm"></i></div>
+                        <span class="text-xs font-bold text-cyan-700 uppercase tracking-wider" data-home-story-word>Story: ${storyWord}</span>
                     </div>
-                    <p class="text-sm text-cyan-900 font-serif italic leading-snug line-clamp-3" data-home-story-text>${storyText}</p>
+                    <p class="text-sm text-cyan-900 font-serif italic leading-snug line-clamp-3 flex-1" data-home-story-text>${storyText}</p>
                 </div>
 
                 <div class="chronicle-item chronicle-log">
-                    <div class="flex items-center gap-2 mb-2">
-                        <div class="bg-white/80 p-1.5 rounded-lg text-green-600"><i class="fas fa-compass"></i></div>
-                        <span class="text-xs font-bold text-green-700 uppercase">${lastLogDate}</span>
+                    <div class="chronicle-card-accent chronicle-accent-log"></div>
+                    <div class="flex items-center gap-2.5 mb-3">
+                        <div class="chronicle-icon-badge bg-emerald-500/15 text-emerald-600"><i class="fas fa-compass text-sm"></i></div>
+                        <span class="text-xs font-bold text-emerald-700 uppercase tracking-wider">${lastLogDate || 'Adventure Log'}</span>
                     </div>
-                    <p class="text-sm text-green-900 font-medium leading-snug line-clamp-3">${lastLogText}</p>
+                    <p class="text-sm text-green-900 font-medium leading-snug line-clamp-3 flex-1">${lastLogText}</p>
                 </div>
             </div>
         </div>

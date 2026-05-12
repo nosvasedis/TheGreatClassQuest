@@ -560,27 +560,40 @@ function renderCard(entry, type) {
     const isStudent = type === 'student';
     const accentLabel = isStudent ? 'Hero Spotlight' : 'League Spotlight';
     const accentIcon = isStudent ? 'fa-sparkles' : 'fa-shield-cat';
-    
-    let borderColor = 'border-gray-300';
-    let extraClass = '';
-    let rankBadge = `<span class="bg-gray-700 text-white px-3 py-1 rounded-full text-lg font-bold">#${entry.rank}</span>`;
-    
-    if (entry.rank === 3) { 
-        borderColor = 'border-orange-400'; 
-        extraClass = 'bronze-shine'; 
-        rankBadge = `<span class="bg-orange-500 text-white px-4 py-1 rounded-full text-xl font-bold">🥉 Bronze</span>`;
-    }
 
-    const imageHtml = isStudent 
-        ? (entry.avatar ? `<img src="${entry.avatar}" class="w-40 h-40 rounded-full border-4 border-white object-cover mx-auto mb-4">` : `<div class="w-40 h-40 rounded-full bg-indigo-500 flex items-center justify-center text-7xl text-white font-bold mx-auto mb-4 border-4 border-white">${entry.name.charAt(0)}</div>`)
+    // --- Rank card class (wallpaper-style coloured border) ---
+    let rankCardClass = 'card-rank-other';
+    let extraClass = '';
+    if (entry.rank === 1) rankCardClass = 'card-rank-1';
+    else if (entry.rank === 2) rankCardClass = 'card-rank-2';
+    else if (entry.rank === 3) { rankCardClass = 'card-rank-3'; extraClass = 'bronze-shine'; }
+
+    // --- Rich medal badge ---
+    let badgePillClass = 'ceremony-rank-badge__pill--other';
+    let badgeContent = `# ${entry.rank}`;
+    if (entry.rank === 1) { badgePillClass = 'ceremony-rank-badge__pill--gold';   badgeContent = '🥇 Gold'; }
+    else if (entry.rank === 2) { badgePillClass = 'ceremony-rank-badge__pill--silver'; badgeContent = '🥈 Silver'; }
+    else if (entry.rank === 3) { badgePillClass = 'ceremony-rank-badge__pill--bronze'; badgeContent = '🥉 Bronze'; }
+
+    const rankBadgeHtml = `
+        <div class="ceremony-rank-badge">
+            <span class="ceremony-rank-badge__pill ${badgePillClass}">${badgeContent}</span>
+        </div>`;
+
+    // --- Avatar / logo ---
+    const avatarBorderColor = entry.rank === 1 ? '#F59E0B' : entry.rank === 2 ? '#94a3b8' : entry.rank === 3 ? '#cd7f32' : '#818cf8';
+    const imageHtml = isStudent
+        ? (entry.avatar
+            ? `<img src="${entry.avatar}" class="w-40 h-40 rounded-full object-cover mx-auto mb-4" style="border: 4px solid ${avatarBorderColor}; box-shadow: 0 0 18px ${avatarBorderColor}66;">`
+            : `<div class="w-40 h-40 rounded-full flex items-center justify-center text-7xl font-bold mx-auto mb-4" style="background: linear-gradient(135deg,#6366f1,#8b5cf6); border: 4px solid ${avatarBorderColor}; box-shadow: 0 0 18px ${avatarBorderColor}66; color:white;">${entry.name.charAt(0)}</div>`)
         : `<div class="text-8xl mb-4 filter drop-shadow-lg">${entry.logo}</div>`;
 
-    const subText = isStudent 
-        ? `${entry.score} Stars`
+    const subText = isStudent
+        ? `<span class="font-title text-3xl" style="color:#d97706;">${entry.score} ⭐</span>`
         : `<div class="flex flex-col items-center">
              <span class="text-2xl font-bold text-indigo-700">${entry.score} Stars</span>
              <span class="text-sm font-semibold text-gray-500 uppercase tracking-wide mt-1">${entry.studentCount} Students</span>
-             <span class="text-amber-500 font-extrabold text-3xl mt-2 drop-shadow-sm">${formatPercent(entry.progress)}%</span>
+             <span class="font-extrabold text-3xl mt-2 drop-shadow-sm" style="color:#d97706;">${formatPercent(entry.progress)}%</span>
            </div>`;
     const detailChips = isStudent
         ? `
@@ -606,18 +619,17 @@ function renderCard(entry, type) {
     const teacherBoonHtml = isStudent ? getTeacherBoonCeremonyMarkup(entry.teacherBoon) : '';
     // Check if this card belongs to the class currently using the app
     const isMyClass = !isStudent && entry.id === ceremonyData.currentAppClassId;
-    const myClassBadge = isMyClass 
-        ? `<div class="absolute top-2 right-2 bg-gradient-to-r from-indigo-500 to-purple-600 text-white text-xs font-bold px-3 py-1 rounded-full shadow-lg border border-white/50 animate-pulse z-30">YOU</div>` 
+    const myClassBadge = isMyClass
+        ? `<div class="absolute top-2 right-2 bg-gradient-to-r from-indigo-500 to-purple-600 text-white text-xs font-bold px-3 py-1 rounded-full shadow-lg border border-white/50 animate-pulse z-30">YOU</div>`
         : '';
     const card = document.createElement('div');
-    card.className = `ceremony-display-card ceremony-card-enter ceremony-display-card--${type} ${borderColor} ${extraClass}`;
+    card.className = `ceremony-display-card ceremony-display-card--${type} ${rankCardClass} ${extraClass}`;
+    card.style.position = 'relative';
     card.innerHTML = `
         <div class="ceremony-card-aura"></div>
-        <div class="absolute -top-5 left-1/2 transform -translate-x-1/2 z-20">
-            ${rankBadge}
-        </div>
+        ${rankBadgeHtml}
         ${myClassBadge}
-        <div class="mt-4 ceremony-card-shell">
+        <div class="mt-5 ceremony-card-shell">
             <div class="ceremony-card-kicker"><i class="fas ${accentIcon}"></i>${accentLabel}</div>
             ${imageHtml}
             <h3 class="font-title text-4xl text-gray-800 mb-2 truncate px-2 leading-tight">${entry.name}</h3>
@@ -626,7 +638,7 @@ function renderCard(entry, type) {
             ${teacherBoonHtml}
         </div>
     `;
-    
+
     stage.appendChild(card);
     playSound(entry.rank <= 3 ? 'star2' : 'click');
 }
@@ -673,7 +685,9 @@ function createFaceOff(entry, realRank, position, entryType) {
     if (!entry) return document.createElement('div');
 
     const div = document.createElement('div');
-    div.className = `ceremony-display-card ceremony-card ceremony-display-card--${entryType} face-off relative`;
+    // Pick a rank card class: gold for #1 finalist, silver for #2 finalist (revealed later)
+    const rankCardClass = realRank === 1 ? 'card-rank-1' : 'card-rank-2';
+    div.className = `ceremony-display-card ceremony-card ceremony-display-card--${entryType} face-off ${rankCardClass} relative`;
 
     div.id = `showdown-card-${position}`;
     div.dataset.rank = realRank;
@@ -683,15 +697,16 @@ function createFaceOff(entry, realRank, position, entryType) {
     div.dataset.teacherBoonReason = entry.teacherBoon?.reasonText || '';
 
     const isStudent = entryType === 'student';
-    
+
+    // Avatar border tinted per rank (greyed during face-off, pops on reveal via CSS)
     const imageHtml = !isStudent
         ? `<div class="text-8xl mb-4 filter drop-shadow-lg">${entry.logo}</div>`
         : (entry.avatar
             ? `<img src="${entry.avatar}" class="w-40 h-40 rounded-full border-4 border-gray-300 mx-auto mb-4 object-cover shadow-inner">`
             : `<div class="w-40 h-40 rounded-full bg-gray-200 flex items-center justify-center text-7xl text-gray-500 font-bold mx-auto mb-4 border-4 border-gray-300 shadow-inner">${entry.name.charAt(0)}</div>`);
 
-    const scoreDisplay = isStudent 
-        ? `${entry.score} Stars`
+    const scoreDisplay = isStudent
+        ? `<span class="font-title text-2xl" style="color:#d97706;">${entry.score} ⭐</span>`
         : `<div class="flex flex-col items-center">
              <span class="text-xl text-amber-700">${entry.score} Stars</span>
              <span class="text-xs text-gray-500 uppercase">${entry.studentCount} Students</span>
@@ -717,7 +732,7 @@ function createFaceOff(entry, realRank, position, entryType) {
 
     div.innerHTML = `
         <div class="ceremony-card-aura"></div>
-        <div class="rank-badge absolute -top-8 left-1/2 transform -translate-x-1/2 text-6xl drop-shadow-md z-20 transition-all duration-500 opacity-0">
+        <div class="rank-badge ceremony-rank-badge--faceoff absolute -top-8 left-1/2 transform -translate-x-1/2 z-20 transition-all duration-500 opacity-0">
             ${realRank === 1 ? '🥇' : '🥈'}
         </div>
         <div class="mt-6 ceremony-card-shell">

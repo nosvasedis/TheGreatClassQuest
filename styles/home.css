@@ -150,17 +150,40 @@
 }
 
 /* Chronicle Styling & Expansion */
+.chronicle-icon-badge {
+    width: 2rem;
+    height: 2rem;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    backdrop-filter: blur(4px);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+}
+.chronicle-card-accent {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    border-radius: 1.5rem 1.5rem 0 0;
+}
+.chronicle-accent-homework { background: linear-gradient(90deg, #818cf8, #a5b4fc); }
+.chronicle-accent-story    { background: linear-gradient(90deg, #22d3ee, #67e8f9); }
+.chronicle-accent-log      { background: linear-gradient(90deg, #34d399, #6ee7b7); }
+
 .chronicle-item {
     padding: 1.25rem;
     border-radius: 1.5rem;
     transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-    border: 2px solid rgba(255,255,255,0.4);
+    border: 1.5px solid rgba(255,255,255,0.55);
     height: 100%;
     display: flex;
     flex-direction: column;
     cursor: pointer;
     position: relative;
-    box-shadow: 0 4px 12px -2px rgba(0, 0, 0, 0.06);
+    box-shadow: 0 6px 18px -4px rgba(0, 0, 0, 0.08), 0 1px 3px rgba(0,0,0,0.04);
     overflow: hidden;
     animation: card-appear 0.7s ease-out forwards;
 }
@@ -178,9 +201,9 @@
     opacity: 0.6;
 }
 .chronicle-item:hover {
-    transform: scale(1.02);
-    box-shadow: 0 10px 24px -10px rgba(15, 23, 42, 0.1);
-    border-color: rgba(255,255,255,0.45);
+    transform: translateY(-2px) scale(1.01);
+    box-shadow: 0 14px 30px -8px rgba(15, 23, 42, 0.13);
+    border-color: rgba(255,255,255,0.7);
 }
 .chronicle-item:hover::before {
     opacity: 0;
@@ -212,30 +235,30 @@
 
 /* Gradient Themes */
 .chronicle-homework {
-    background: linear-gradient(145deg, #e0e7ff 0%, #dbe4ff 50%, #c7d2fe 100%);
+    background: linear-gradient(145deg, #eef0ff 0%, #e0e7ff 60%, #c7d2fe 100%);
     border-color: rgba(129, 140, 248, 0.25);
 }
 .chronicle-homework:hover {
-    background: linear-gradient(145deg, #e8edff 0%, #e4ebff 50%, #d8dcff 100%);
-    border-color: rgba(129, 140, 248, 0.35);
+    background: linear-gradient(145deg, #f0f2ff 0%, #eaedff 60%, #dde3ff 100%);
+    border-color: rgba(129, 140, 248, 0.4);
 }
 
 .chronicle-story {
-    background: linear-gradient(145deg, #ecfeff 0%, #e0fafc 50%, #a5f3fc 100%);
+    background: linear-gradient(145deg, #f0fdff 0%, #e0fafc 60%, #a5f3fc 100%);
     border-color: rgba(34, 211, 238, 0.25);
 }
 .chronicle-story:hover {
-    background: linear-gradient(145deg, #f0fffe 0%, #e6fbfc 50%, #b8f5fd 100%);
-    border-color: rgba(34, 211, 238, 0.35);
+    background: linear-gradient(145deg, #f6feff 0%, #eafcfd 60%, #c0f6fe 100%);
+    border-color: rgba(34, 211, 238, 0.4);
 }
 
 .chronicle-log {
-    background: linear-gradient(145deg, #f0fdf4 0%, #e6fce8 50%, #bbf7d0 100%);
+    background: linear-gradient(145deg, #f3fef6 0%, #e6fce8 60%, #bbf7d0 100%);
     border-color: rgba(74, 222, 128, 0.25);
 }
 .chronicle-log:hover {
-    background: linear-gradient(145deg, #f4fff8 0%, #ecfef0 50%, #c8fadc 100%);
-    border-color: rgba(74, 222, 128, 0.35);
+    background: linear-gradient(145deg, #f8fff9 0%, #edfef1 60%, #cdfade 100%);
+    border-color: rgba(74, 222, 128, 0.4);
 }
 
 /* Global Tools — match data-action values from features/home.js getGeneralDashboard */

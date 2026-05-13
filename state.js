@@ -299,7 +299,7 @@ export function setGlobalSelectedClass(classId, isManual = false) {
         tabs.updateAllClassSelectors(isManual);
         tabs.updateAllLeagueSelectors(isManual);
         await tabs.refreshVisibleTabForGlobalClassChange();
-    });
+    }).catch(err => console.warn('setGlobalSelectedClass refresh failed:', err));
 
     // Update bounties separately
     import('./ui/core.js').then(m => m.renderActiveBounties());

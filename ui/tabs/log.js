@@ -306,6 +306,10 @@ export function updateAllClassSelectors(isManual) {
         import('./navigation.js').then(m => m.renderQuizOptionsUi());
     }
 
+    if (document.querySelector('.app-tab:not(.hidden)')?.id === 'scholars-scroll-tab') {
+        import('../../features/scholarScroll.js').then(m => m.renderScholarsScrollTab());
+    }
+
     state.set('isProgrammaticSelection', false);
 }
 

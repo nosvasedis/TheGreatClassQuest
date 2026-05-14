@@ -318,8 +318,6 @@ export function setGlobalSelectedLeague(league, isManual = false) {
     // When the league is manually changed, sync the class selection to the best
     // matching class in that league so all tabs stay consistent.
     if (isManual && league) {
-        const now = new Date();
-        const currentTime = now.toTimeString().slice(0, 5);
         const todayString = getTodayDateString();
         const classEndDates = state.teacherSettings?.schoolYearSettings?.classEndDates || {};
         const classesToday = getClassesOnDay(todayString, state.allSchoolClasses, state.allScheduleOverrides, classEndDates);
@@ -328,9 +326,7 @@ export function setGlobalSelectedLeague(league, isManual = false) {
             state.allTeachersClasses.some(tc => tc.id === c.id)
         );
         // Prefer the class that's currently in session; fall back to the first one in the league
-        const activeClass = myLeagueClasses.find(c =>
-            c.timeStart && c.timeEnd && currentTime >= c.timeStart && currentTime <= c.timeEnd
-        );
+        const activeClass = findCurrentLessonClass(myLeagueClasses);
         const bestClass = activeClass || myLeagueClasses[0] || null;
 
         if (bestClass) {

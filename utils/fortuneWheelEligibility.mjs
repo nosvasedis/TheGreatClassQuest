@@ -21,9 +21,7 @@ function getWeekWindow(now = new Date()) {
 }
 
 export function isWithinLessonTime(classData, now = new Date()) {
-  if (!classData?.timeStart || !classData?.timeEnd) return false;
-  const timeNow = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
-  return timeNow >= classData.timeStart && timeNow <= classData.timeEnd;
+  return utils.isClassWindowActiveAt(classData?.timeStart, classData?.timeEnd, now);
 }
 
 export function getLastLessonOfWeek(classId, allSchoolClasses = [], allScheduleOverrides = [], schoolHolidayRanges = [], now = new Date(), classEndDates = {}) {

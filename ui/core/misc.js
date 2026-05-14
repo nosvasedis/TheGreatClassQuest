@@ -20,14 +20,9 @@ export function findAndSetCurrentClass(targetSelectId = null) {
     // FIX: Only consider classes that belong to the current teacher
     const myClassesToday = classesToday.filter(c => state.get('allTeachersClasses').some(tc => tc.id === c.id));
 
-    const now = new Date();
-    const currentTime = now.toTimeString().slice(0, 5);
-
-    for (const c of myClassesToday) {
-        if (c.timeStart && c.timeEnd && currentTime >= c.timeStart && currentTime <= c.timeEnd) {
-            state.setGlobalSelectedClass(c.id);
-            return;
-        }
+    const activeClass = utils.findCurrentLessonClass(myClassesToday);
+    if (activeClass) {
+        state.setGlobalSelectedClass(activeClass.id);
     }
 }
 

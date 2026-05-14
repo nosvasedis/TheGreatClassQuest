@@ -274,18 +274,27 @@ export function parseClockToMinutes(value) {
     return (hours * 60) + minutes;
 }
 
+export function isClassWindowActiveAt(timeStart, timeEnd, now = new Date()) {
+    const s = parseClockToMinutes(timeStart);
+    const e = parseClockToMinutes(timeEnd);
+    if (s == null || e == null) return false;
+    const n = (now.getHours() * 60) + now.getMinutes();
+    return n >= s && n <= e;
+}
+
+export function findCurrentLessonClass(classes = [], now = new Date()) {
+    return (classes || []).find((classData) =>
+        isClassWindowActiveAt(classData?.timeStart, classData?.timeEnd, now)
+    ) || null;
+}
+
 /**
  * Returns true when the current local clock is within [timeStart, timeEnd] (inclusive).
  * If either time is missing or cannot be parsed, returns false so callers that require
  * explicit class times (e.g. auto-switching the active class) behave correctly.
  */
 export function isNowInClassWindow(timeStart, timeEnd) {
-    const s = parseClockToMinutes(timeStart);
-    const e = parseClockToMinutes(timeEnd);
-    if (s == null || e == null) return false;
-    const now = new Date();
-    const n = (now.getHours() * 60) + now.getMinutes();
-    return n >= s && n <= e;
+    return isClassWindowActiveAt(timeStart, timeEnd, new Date());
 }
 
 export function getStartOfMonthString() {

@@ -82,8 +82,7 @@ export function getCountdownTone(endsAt) {
     const parts = getCountdownParts(endsAt);
     if (!parts.valid || parts.expired) return 'expired';
     if (parts.totalMs <= 60000) return 'critical';
-    if (parts.totalMs <= 180000) return 'urgent';
-    if (parts.totalMs <= 900000) return 'active';
+    if (parts.totalMs <= 900000) return 'warning';
     return 'calm';
 }
 

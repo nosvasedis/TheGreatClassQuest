@@ -456,6 +456,8 @@
     padding: 1.15rem 1.15rem 1rem;
     border-radius: 2rem;
     overflow: hidden;
+    position: relative;
+    animation: wall-timer-idle 5.2s ease-in-out infinite, card-glow-pulse 4s ease-in-out infinite;
 }
 
 .wall-timer-card__aurora {
@@ -607,6 +609,30 @@
 
 .wall-timer-card--critical {
     animation: wall-timer-alert 1.4s ease-in-out infinite;
+}
+
+.wall-timer-card--enter {
+    animation: wall-timer-enter 0.52s cubic-bezier(0.34, 1.56, 0.64, 1), wall-timer-idle 5.2s ease-in-out infinite 0.52s, card-glow-pulse 4s ease-in-out infinite 0.52s;
+}
+
+.wall-timer-card--exit {
+    pointer-events: none;
+    animation: wall-timer-exit 0.38s ease forwards !important;
+}
+
+@keyframes wall-timer-idle {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-3px); }
+}
+
+@keyframes wall-timer-enter {
+    0% { opacity: 0; transform: translateX(-18px) translateY(-8px) scale(0.94); }
+    100% { opacity: 1; transform: translateX(0) translateY(0) scale(1); }
+}
+
+@keyframes wall-timer-exit {
+    0% { opacity: 1; transform: translateX(0) scale(1); }
+    100% { opacity: 0; transform: translateX(-18px) scale(0.96); }
 }
 
 @keyframes wall-timer-ring-pulse {

@@ -18,6 +18,7 @@ import { sumLiveMonthlyStarsFromStudentScores } from './awardLogReasonMeta.js';
 export { initializeHeaderQuote, fetchDailySpice };
 
 let homeInterval = null;
+let homeQuestTimerInterval = null;
 let renderDebounce = null;
 let currentRenderedViewId = null;
 let hasPlayedInitialHomeEntrance = false;
@@ -67,6 +68,80 @@ async function fetchDailySpice() {
 
 function initializeHeaderQuote() {
     fetchDailySpice();
+}
+
+function getHomeQuestTimerMeta(deadline) {
+    const tone = utils.getCountdownTone(deadline);
+    if (tone === 'critical') {
+        return {
+            tone,
+            modifier: 'date-pill--quest-timer-critical',
+            icon: 'fa-fire',
+            meta: 'Final sprint'
+        };
+    }
+    if (tone === 'warning') {
+        return {
+            tone,
+            modifier: 'date-pill--quest-timer-warning',
+            icon: 'fa-hourglass-half',
+            meta: 'Pressure building'
+        };
+    }
+    return {
+        tone,
+        modifier: 'date-pill--quest-timer-calm',
+        icon: 'fa-clock',
+        meta: 'Clock is ticking'
+    };
+}
+
+function startHomeQuestTimerTicker() {
+    if (homeQuestTimerInterval) clearInterval(homeQuestTimerInterval);
+
+    const tick = () => {
+        const timerCard = document.querySelector('[data-home-quest-timer]');
+        if (!timerCard) {
+            clearInterval(homeQuestTimerInterval);
+            homeQuestTimerInterval = null;
+            return;
+        }
+
+        const deadline = timerCard.dataset.deadline;
+        const valueEl = timerCard.querySelector('[data-home-quest-value]');
+        const subvalueEl = timerCard.querySelector('[data-home-quest-subvalue]');
+        const iconEl = timerCard.querySelector('[data-home-quest-icon]');
+        const metaEl = timerCard.querySelector('[data-home-quest-meta]');
+        const parts = utils.getCountdownParts(deadline);
+        const toneMeta = getHomeQuestTimerMeta(deadline);
+
+        if (valueEl) {
+            valueEl.textContent = utils.formatCountdownClock(deadline, { expiredLabel: '00:00:00' });
+        }
+        if (subvalueEl) {
+            subvalueEl.textContent = utils.formatCountdownCompact(deadline, 'Expired');
+        }
+
+        if (timerCard.dataset.homeQuestTone !== toneMeta.tone) {
+            timerCard.classList.remove('date-pill--quest-timer-calm', 'date-pill--quest-timer-warning', 'date-pill--quest-timer-critical');
+            timerCard.classList.add(toneMeta.modifier, 'date-pill--quest-tone-shift');
+            timerCard.dataset.homeQuestTone = toneMeta.tone;
+            if (iconEl) {
+                iconEl.innerHTML = `<i class="fas ${toneMeta.icon}"></i>`;
+            }
+            if (metaEl) {
+                metaEl.textContent = toneMeta.meta;
+            }
+            window.setTimeout(() => timerCard.classList.remove('date-pill--quest-tone-shift'), 380);
+        }
+
+        if (parts.expired && !timerCard.classList.contains('date-pill--quest-exit')) {
+            timerCard.classList.add('date-pill--quest-exit');
+        }
+    };
+
+    tick();
+    homeQuestTimerInterval = setInterval(tick, 1000);
 }
 
 // --- NEW HELPER FUNCTION ---
@@ -298,6 +373,7 @@ async function executeRenderHome() {
 
     attachListeners(container);
     startHomeSmartLogic();
+    startHomeQuestTimerTicker();
 
     document.dispatchEvent(new CustomEvent('home:rendered', {
         detail: { isInitialHomeRender, viewId }
@@ -1203,29 +1279,24 @@ function getReminderPills(classId) {
         const activeBounty = state.get('allQuestBounties').find(b => b.classId === classId && b.status === 'active' && b.type === 'standard');
 
         if (activeTimer) {
-            const tone = utils.getCountdownTone(activeTimer.deadline);
-            const timerModifier = tone === 'critical'
-                ? 'date-pill--quest-timer-critical'
-                : tone === 'warning'
-                    ? 'date-pill--quest-timer-warning'
-                    : 'date-pill--quest-timer-calm';
+            const toneMeta = getHomeQuestTimerMeta(activeTimer.deadline);
             pills.push(`
-                <button type="button" class="date-pill date-pill--quest ${timerModifier}" onclick="document.getElementById('bounty-board-container').scrollIntoView({behavior: 'smooth'})">
+                <button type="button" class="date-pill date-pill--quest date-pill--quest-enter ${toneMeta.modifier}" data-home-quest-timer data-bounty-id="${activeTimer.id}" data-deadline="${activeTimer.deadline}" data-home-quest-tone="${toneMeta.tone}" onclick="document.getElementById('bounty-board-container').scrollIntoView({behavior: 'smooth'})">
                     <span class="date-pill__glow"></span>
                     <span class="date-pill__orbit date-pill__orbit--one"></span>
                     <span class="date-pill__orbit date-pill__orbit--two"></span>
                     <span class="date-pill__icon-shell">
                         <span class="date-pill__icon-ring"></span>
-                        <span class="date-pill__icon"><i class="fas ${tone === 'critical' ? 'fa-fire' : tone === 'warning' ? 'fa-hourglass-half' : 'fa-clock'}"></i></span>
+                        <span class="date-pill__icon" data-home-quest-icon><i class="fas ${toneMeta.icon}"></i></span>
                     </span>
                     <span class="date-pill__body">
                         <span class="date-pill__eyebrow">Timed Quest</span>
                         <span class="date-pill__title">${activeTimer.title}</span>
-                        <span class="date-pill__meta">${tone === 'critical' ? 'Final sprint' : tone === 'warning' ? 'Pressure building' : 'Clock is ticking'}</span>
+                        <span class="date-pill__meta" data-home-quest-meta>${toneMeta.meta}</span>
                     </span>
                     <span class="date-pill__value-wrap">
-                        <span class="date-pill__value">${utils.formatCountdownClock(activeTimer.deadline, { expiredLabel: '00:00:00' })}</span>
-                        <span class="date-pill__subvalue">${utils.formatCountdownCompact(activeTimer.deadline, 'Expired')}</span>
+                        <span class="date-pill__value" data-home-quest-value>${utils.formatCountdownClock(activeTimer.deadline, { expiredLabel: '00:00:00' })}</span>
+                        <span class="date-pill__subvalue" data-home-quest-subvalue>${utils.formatCountdownCompact(activeTimer.deadline, 'Expired')}</span>
                     </span>
                 </button>
              `);

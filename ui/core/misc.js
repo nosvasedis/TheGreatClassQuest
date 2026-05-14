@@ -8,6 +8,8 @@ import { showToast } from '../effects.js';
 import * as storyWeaver from '../../features/storyWeaver.js';
 import { playSound } from '../../audio.js';
 
+const completingTimerBounties = new Set();
+
 // --- GLOBAL STATE SYNC FUNCTIONS ---
 export function findAndSetCurrentClass(targetSelectId = null) {
     if (state.get('globalSelectedClassId')) return;
@@ -299,6 +301,7 @@ function getTimerToneMeta(deadline) {
     const tone = utils.getCountdownTone(deadline);
     if (tone === 'critical') {
         return {
+            tone,
             shellClass: 'from-rose-600 via-red-500 to-orange-400 border-rose-200/80 shadow-[0_20px_45px_rgba(225,29,72,0.28)]',
             badgeClass: 'bg-white/18 text-rose-50 border border-white/20',
             timerClass: 'text-white drop-shadow-[0_4px_14px_rgba(255,255,255,0.3)]',
@@ -307,6 +310,7 @@ function getTimerToneMeta(deadline) {
     }
     if (tone === 'warning') {
         return {
+            tone,
             shellClass: 'from-amber-500 via-orange-400 to-rose-400 border-amber-100/80 shadow-[0_20px_45px_rgba(251,146,60,0.24)]',
             badgeClass: 'bg-white/18 text-amber-50 border border-white/20',
             timerClass: 'text-white',
@@ -314,6 +318,7 @@ function getTimerToneMeta(deadline) {
         };
     }
     return {
+        tone,
         shellClass: 'from-sky-600 via-indigo-500 to-violet-500 border-sky-100/80 shadow-[0_20px_45px_rgba(79,70,229,0.24)]',
         badgeClass: 'bg-white/18 text-sky-50 border border-white/20',
         timerClass: 'text-white',
@@ -324,7 +329,7 @@ function getTimerToneMeta(deadline) {
 function renderTimerBountyCard(bounty) {
     const tone = getTimerToneMeta(bounty.deadline);
     return `
-        <div class="bounty-card mb-4 overflow-hidden rounded-[28px] border bg-gradient-to-br ${tone.shellClass} p-5 text-white">
+        <div class="bounty-card bounty-card--timer-live mb-4 overflow-hidden rounded-[28px] border bg-gradient-to-br ${tone.shellClass} p-5 text-white" data-bounty-timer-card data-bounty-id="${bounty.id}" data-deadline="${bounty.deadline}" data-bounty-tone="${tone.tone}">
             <div class="flex items-start justify-between gap-4">
                 <div class="flex min-w-0 items-center gap-4">
                     <div class="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-white/15 text-2xl shadow-inner shadow-white/10">
@@ -345,11 +350,11 @@ function renderTimerBountyCard(bounty) {
             <div class="mt-5 flex items-end justify-between gap-4 rounded-[22px] bg-black/15 px-4 py-3 backdrop-blur-sm">
                 <div>
                     <div class="text-[10px] font-black uppercase tracking-[0.28em] text-white/60">Time Remaining</div>
-                    <span class="bounty-timer mt-2 block font-title text-4xl leading-none ${tone.timerClass}" data-deadline="${bounty.deadline}">${utils.formatCountdownClock(bounty.deadline, { expiredLabel: '00:00:00' })}</span>
+                    <span class="bounty-timer mt-2 block font-title text-4xl leading-none ${tone.timerClass}" data-bounty-timer-value data-deadline="${bounty.deadline}">${utils.formatCountdownClock(bounty.deadline, { expiredLabel: '00:00:00' })}</span>
                 </div>
                 <div class="text-right text-xs font-bold uppercase tracking-[0.2em] text-white/65">
                     <div>Urgency</div>
-                    <div class="mt-2 text-lg tracking-normal text-white">${utils.formatCountdownCompact(bounty.deadline, 'Expired')}</div>
+                    <div class="mt-2 text-lg tracking-normal text-white" data-bounty-timer-status>${utils.formatCountdownCompact(bounty.deadline, 'Expired')}</div>
                 </div>
             </div>
         </div>`;
@@ -411,24 +416,10 @@ export function renderActiveBounties() {
 
     container.innerHTML = bounties.map(b => {
         const isTimer = b.type === 'timer';
-        const now = new Date();
-        const deadline = new Date(b.deadline);
         
         // --- TIMER RENDER ---
         if (isTimer) {
-            return `
-            <div class="bounty-card mb-3 bg-gradient-to-r from-red-50 to-white border-l-4 border-red-500 shadow-sm p-4 flex items-center justify-between">
-                <div class="flex items-center gap-4">
-                    <div class="bg-red-100 text-red-600 w-12 h-12 rounded-full flex items-center justify-center text-2xl animate-pulse">
-                        <i class="fas fa-hourglass-half"></i>
-                    </div>
-                    <div>
-                        <h4 class="font-bold text-lg text-gray-800">${b.title}</h4>
-                        <span class="bounty-timer text-3xl font-title text-red-600 leading-none" data-deadline="${b.deadline}">Loading...</span>
-                    </div>
-                </div>
-                <button class="delete-bounty-btn text-gray-300 hover:text-red-500 transition-colors" data-id="${b.id}" title="Cancel Timer"><i class="fas fa-times"></i></button>
-            </div>`;
+            return renderTimerBountyCard(b);
         }
 
         // --- STANDARD STAR RENDER ---
@@ -464,22 +455,50 @@ function startBountyTimer() {
     if (bountyInterval) clearInterval(bountyInterval);
     
     const update = () => {
-        const timers = document.querySelectorAll('.bounty-timer');
-        if (timers.length === 0) { clearInterval(bountyInterval); return; }
+        const timerCards = document.querySelectorAll('[data-bounty-timer-card]');
+        if (timerCards.length === 0) {
+            clearInterval(bountyInterval);
+            bountyInterval = null;
+            return;
+        }
 
-        timers.forEach(el => {
-            const deadline = new Date(el.dataset.deadline);
-            const now = new Date();
-            const diff = deadline - now;
+        for (const card of timerCards) {
+            const deadline = card.dataset.deadline;
+            const parts = utils.getCountdownParts(deadline);
+            const tone = utils.getCountdownTone(deadline);
+            const valueEl = card.querySelector('[data-bounty-timer-value]');
+            const statusEl = card.querySelector('[data-bounty-timer-status]');
 
-            if (diff <= 0) {
-                el.innerText = "00:00:00";
-                el.classList.add('text-red-500');
-                // Could trigger a reload here to mark visually as expired
-            } else {
-                el.innerText = utils.formatCountdownClock(el.dataset.deadline, { expiredLabel: '00:00:00' });
+            if (valueEl) {
+                valueEl.innerText = utils.formatCountdownClock(deadline, { expiredLabel: '00:00:00' });
             }
-        });
+            if (statusEl) {
+                statusEl.innerText = utils.formatCountdownCompact(deadline, 'Expired');
+            }
+
+            if (!parts.expired && card.dataset.bountyTone !== tone) {
+                renderActiveBounties();
+                return;
+            }
+
+            if (parts.expired) {
+                card.classList.add('bounty-card--timer-exit');
+                const bountyId = card.dataset.bountyId;
+                if (!document.body.classList.contains('projector-mode') && bountyId && !completingTimerBounties.has(bountyId)) {
+                    completingTimerBounties.add(bountyId);
+                    window.setTimeout(async () => {
+                        try {
+                            await updateDoc(doc(db, 'artifacts/great-class-quest/public/data/quest_bounties', bountyId), { status: 'completed' });
+                            playSound('magic_chime');
+                        } catch (error) {
+                            console.error('Error completing expired timer bounty:', error);
+                        } finally {
+                            completingTimerBounties.delete(bountyId);
+                        }
+                    }, 380);
+                }
+            }
+        }
     };
     
     update();

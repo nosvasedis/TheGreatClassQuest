@@ -90,6 +90,7 @@ function filterDeckForTier(cards, capabilities = getWallpaperCapabilities()) {
 
 let directorTimeout = null;
 let wallpaperTimerInterval = null;
+let wallpaperTimerHideTimeout = null;
 let clockInterval = null;
 let escListener = null;
 let isRunning = false;
@@ -159,6 +160,37 @@ function getWallpaperTimerTone(deadline) {
     };
 }
 
+function buildWallpaperTimerCard(activeTimer, tone) {
+    return `
+        <div class="wallpaper-float-card wall-timer-card ${tone.cardClass} wall-timer-card--enter" data-wall-timer-card>
+            <div class="wall-timer-card__aurora"></div>
+            <div class="wall-timer-card__header">
+                <div class="wall-timer-card__icon-shell">
+                    <div class="wall-timer-card__icon-ring"></div>
+                    <div class="wall-timer-card__icon"><i class="fas ${tone.icon}"></i></div>
+                </div>
+                <div class="wall-timer-card__intro">
+                    <div class="wall-timer-card__eyebrow">Timed Quest Live</div>
+                    <h3 class="wall-timer-card__title">${activeTimer.title}</h3>
+                    <div class="wall-timer-card__chips">
+                        <span class="wall-timer-card__chip"><i class="fas fa-sparkles"></i> Focus mode</span>
+                        <span class="wall-timer-card__chip ${tone.accentClass}">${tone.accentLabel}</span>
+                    </div>
+                </div>
+            </div>
+            <div class="wall-timer-card__meter">
+                <div>
+                    <div class="wall-timer-card__label">Time Remaining</div>
+                    <div class="wall-timer-card__countdown" data-wall-timer-countdown>${utils.formatCountdownClock(activeTimer.deadline, { expiredLabel: '00:00:00' })}</div>
+                </div>
+                <div class="wall-timer-card__aside">
+                    <div class="wall-timer-card__label">Status</div>
+                    <div class="wall-timer-card__status ${tone.accentClass}" data-wall-timer-status>${utils.formatCountdownCompact(activeTimer.deadline, 'Expired')}</div>
+                </div>
+            </div>
+        </div>`;
+}
+
 export function toggleWallpaperMode() {
     const wallpaperEl = document.getElementById('dynamic-wallpaper-screen');
     const isHidden = wallpaperEl.classList.contains('hidden') || wallpaperEl.classList.contains('wallpaper-exit');
@@ -205,6 +237,7 @@ export function toggleWallpaperMode() {
             }
             clearTimeout(directorTimeout);
             if (wallpaperTimerInterval) clearInterval(wallpaperTimerInterval);
+            if (wallpaperTimerHideTimeout) clearTimeout(wallpaperTimerHideTimeout);
             clearInterval(clockInterval);
             resetWallpaperClockHandAngles();
             lastWeatherRefresh = 0;
@@ -520,41 +553,42 @@ async function directorGameLoop() {
             const timeLeftMs = deadline - currentNow;
 
             if (timeLeftMs > 0) {
+                if (wallpaperTimerHideTimeout) {
+                    clearTimeout(wallpaperTimerHideTimeout);
+                    wallpaperTimerHideTimeout = null;
+                }
+                const currentTone = utils.getCountdownTone(activeTimer.deadline);
                 const tone = getWallpaperTimerTone(activeTimer.deadline);
-                const timeDisplay = utils.formatCountdownClock(activeTimer.deadline, { expiredLabel: '00:00:00' });
-                const urgencyLabel = utils.formatCountdownCompact(activeTimer.deadline, 'Expired');
-                timerOverlay.innerHTML = `
-                    <div class="wallpaper-float-card wall-timer-card ${tone.cardClass}" style="position: relative; transform: none; animation: none;">
-                        <div class="wall-timer-card__aurora"></div>
-                        <div class="wall-timer-card__header">
-                            <div class="wall-timer-card__icon-shell">
-                                <div class="wall-timer-card__icon-ring"></div>
-                                <div class="wall-timer-card__icon"><i class="fas ${tone.icon}"></i></div>
-                            </div>
-                            <div class="wall-timer-card__intro">
-                                <div class="wall-timer-card__eyebrow">Timed Quest Live</div>
-                                <h3 class="wall-timer-card__title">${activeTimer.title}</h3>
-                                <div class="wall-timer-card__chips">
-                                    <span class="wall-timer-card__chip"><i class="fas fa-sparkles"></i> Focus mode</span>
-                                    <span class="wall-timer-card__chip ${tone.accentClass}">${tone.accentLabel}</span>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="wall-timer-card__meter">
-                            <div>
-                                <div class="wall-timer-card__label">Time Remaining</div>
-                                <div class="wall-timer-card__countdown">${timeDisplay}</div>
-                            </div>
-                            <div class="wall-timer-card__aside">
-                                <div class="wall-timer-card__label">Status</div>
-                                <div class="wall-timer-card__status ${tone.accentClass}">${urgencyLabel}</div>
-                            </div>
-                        </div>
-                    </div>`;
+                const mountedCard = timerOverlay.querySelector('[data-wall-timer-card]');
+                if (timerOverlay.dataset.timerId !== activeTimer.id || timerOverlay.dataset.timerTone !== currentTone || !mountedCard) {
+                    timerOverlay.dataset.timerId = activeTimer.id;
+                    timerOverlay.dataset.timerTone = currentTone;
+                    timerOverlay.innerHTML = buildWallpaperTimerCard(activeTimer, tone);
+                    const enteredCard = timerOverlay.querySelector('[data-wall-timer-card]');
+                    if (enteredCard) {
+                        window.setTimeout(() => enteredCard.classList.remove('wall-timer-card--enter'), 520);
+                    }
+                } else {
+                    const countdownEl = mountedCard.querySelector('[data-wall-timer-countdown]');
+                    const statusEl = mountedCard.querySelector('[data-wall-timer-status]');
+                    if (countdownEl) {
+                        countdownEl.textContent = utils.formatCountdownClock(activeTimer.deadline, { expiredLabel: '00:00:00' });
+                    }
+                    if (statusEl) {
+                        statusEl.textContent = utils.formatCountdownCompact(activeTimer.deadline, 'Expired');
+                    }
+                }
             } else {
                 // --- TIMER FINISHED ---
                 clearInterval(wallpaperTimerInterval);
+                const card = timerOverlay.querySelector('[data-wall-timer-card]');
+                if (card && !card.classList.contains('wall-timer-card--exit')) {
+                    card.classList.add('wall-timer-card--exit');
+                    await new Promise(resolve => window.setTimeout(resolve, 380));
+                }
                 timerOverlay.innerHTML = '';
+                timerOverlay.dataset.timerId = '';
+                timerOverlay.dataset.timerTone = '';
 
                 // 1. Mark complete in DB
                 const { updateDoc, doc } = await import('https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js');
@@ -587,7 +621,18 @@ async function directorGameLoop() {
         wallpaperTimerInterval = setInterval(updateTimerVisuals, 1000);
 
     } else {
-        timerOverlay.innerHTML = '';
+        const card = timerOverlay.querySelector('[data-wall-timer-card]');
+        timerOverlay.dataset.timerId = '';
+        timerOverlay.dataset.timerTone = '';
+        if (card && !wallpaperTimerHideTimeout) {
+            card.classList.add('wall-timer-card--exit');
+            wallpaperTimerHideTimeout = window.setTimeout(() => {
+                timerOverlay.innerHTML = '';
+                wallpaperTimerHideTimeout = null;
+            }, 380);
+        } else if (!card) {
+            timerOverlay.innerHTML = '';
+        }
     }
 
     // --- STANDARD CARD LOGIC (Running in background) ---

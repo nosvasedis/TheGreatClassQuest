@@ -1204,34 +1204,54 @@ function getReminderPills(classId) {
 
         if (activeTimer) {
             const tone = utils.getCountdownTone(activeTimer.deadline);
-            const timerStyle = tone === 'critical'
-                ? 'bg-gradient-to-r from-rose-500 via-red-500 to-orange-400 text-white border-white/40 shadow-[0_10px_30px_rgba(239,68,68,0.35)]'
+            const timerModifier = tone === 'critical'
+                ? 'date-pill--quest-timer-critical'
                 : tone === 'warning'
-                    ? 'bg-gradient-to-r from-amber-400 via-orange-400 to-rose-400 text-white border-white/40 shadow-[0_10px_30px_rgba(251,146,60,0.28)]'
-                    : 'bg-gradient-to-r from-sky-500 via-indigo-500 to-violet-500 text-white border-white/30 shadow-[0_10px_30px_rgba(79,70,229,0.28)]';
+                    ? 'date-pill--quest-timer-warning'
+                    : 'date-pill--quest-timer-calm';
             pills.push(`
-                <div class="date-pill ${timerStyle} ${tone === 'critical' ? 'animate-pulse' : ''} border flex items-center gap-3 px-4 py-2 rounded-full cursor-pointer" onclick="document.getElementById('bounty-board-container').scrollIntoView({behavior: 'smooth'})">
-                    <i class="fas fa-hourglass-half"></i>
-                    <div class="flex flex-col leading-none">
-                        <span class="text-[10px] uppercase font-black tracking-[0.24em] opacity-80">Timed Quest</span>
-                        <span class="font-bold">${activeTimer.title}</span>
-                    </div>
-                    <span class="bg-black/15 backdrop-blur-sm px-2 py-1 rounded-full text-[11px] font-black uppercase">${utils.formatCountdownCompact(activeTimer.deadline, 'Expired')}</span>
-                </div>
+                <button type="button" class="date-pill date-pill--quest ${timerModifier}" onclick="document.getElementById('bounty-board-container').scrollIntoView({behavior: 'smooth'})">
+                    <span class="date-pill__glow"></span>
+                    <span class="date-pill__orbit date-pill__orbit--one"></span>
+                    <span class="date-pill__orbit date-pill__orbit--two"></span>
+                    <span class="date-pill__icon-shell">
+                        <span class="date-pill__icon-ring"></span>
+                        <span class="date-pill__icon"><i class="fas ${tone === 'critical' ? 'fa-fire' : tone === 'warning' ? 'fa-hourglass-half' : 'fa-clock'}"></i></span>
+                    </span>
+                    <span class="date-pill__body">
+                        <span class="date-pill__eyebrow">Timed Quest</span>
+                        <span class="date-pill__title">${activeTimer.title}</span>
+                        <span class="date-pill__meta">${tone === 'critical' ? 'Final sprint' : tone === 'warning' ? 'Pressure building' : 'Clock is ticking'}</span>
+                    </span>
+                    <span class="date-pill__value-wrap">
+                        <span class="date-pill__value">${utils.formatCountdownClock(activeTimer.deadline, { expiredLabel: '00:00:00' })}</span>
+                        <span class="date-pill__subvalue">${utils.formatCountdownCompact(activeTimer.deadline, 'Expired')}</span>
+                    </span>
+                </button>
              `);
         }
 
         else if (activeBounty) {
             const pct = Math.min(100, Math.round((activeBounty.currentProgress / activeBounty.target) * 100));
             pills.push(`
-                <div class="date-pill bg-[radial-gradient(circle_at_top_left,_rgba(255,255,255,0.95),_rgba(255,251,235,0.98)_48%,_rgba(254,243,199,0.96))] text-amber-700 border border-amber-200 shadow-[0_8px_24px_rgba(245,158,11,0.16)] flex items-center gap-3 px-4 py-2 rounded-full cursor-pointer" onclick="document.getElementById('bounty-board-container').scrollIntoView({behavior: 'smooth'})">
-                    <i class="fas fa-bullseye"></i>
-                    <div class="flex flex-col leading-none">
-                        <span class="text-[10px] uppercase font-black tracking-[0.24em] text-amber-500">Active Bounty</span>
-                        <span class="font-bold">${activeBounty.title}</span>
-                    </div>
-                    <span class="bg-amber-100 px-2 py-1 rounded-full text-[11px] font-black uppercase">${pct}%</span>
-                </div>
+                <button type="button" class="date-pill date-pill--quest date-pill--quest-bounty" onclick="document.getElementById('bounty-board-container').scrollIntoView({behavior: 'smooth'})">
+                    <span class="date-pill__glow"></span>
+                    <span class="date-pill__orbit date-pill__orbit--one"></span>
+                    <span class="date-pill__orbit date-pill__orbit--two"></span>
+                    <span class="date-pill__icon-shell">
+                        <span class="date-pill__icon-ring"></span>
+                        <span class="date-pill__icon"><i class="fas fa-bullseye"></i></span>
+                    </span>
+                    <span class="date-pill__body">
+                        <span class="date-pill__eyebrow">Active Bounty</span>
+                        <span class="date-pill__title">${activeBounty.title}</span>
+                        <span class="date-pill__meta">Progress is rolling in</span>
+                    </span>
+                    <span class="date-pill__value-wrap">
+                        <span class="date-pill__value">${pct}%</span>
+                        <span class="date-pill__subvalue">${activeBounty.currentProgress}/${activeBounty.target} stars</span>
+                    </span>
+                </button>
              `);
         }
     }

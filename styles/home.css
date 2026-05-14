@@ -149,6 +149,284 @@
     border: 1px solid rgba(255,255,255,0.8);
 }
 
+.date-pill--quest {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.95rem;
+    min-width: min(100%, 380px);
+    max-width: min(100%, 420px);
+    padding: 0.7rem 0.85rem 0.7rem 0.8rem;
+    border-radius: 1.6rem;
+    border-width: 1px;
+    border-style: solid;
+    cursor: pointer;
+    overflow: hidden;
+    isolation: isolate;
+    text-align: left;
+    transition: transform 0.28s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.28s ease, border-color 0.28s ease;
+}
+
+.date-pill--quest:hover {
+    transform: translateY(-2px) scale(1.02);
+}
+
+.date-pill--quest:active {
+    transform: scale(0.985);
+}
+
+.date-pill--quest .date-pill__glow {
+    position: absolute;
+    inset: -35%;
+    background: radial-gradient(circle at 18% 18%, rgba(255, 255, 255, 0.52) 0%, transparent 55%);
+    opacity: 0.95;
+    pointer-events: none;
+    z-index: 0;
+}
+
+.date-pill--quest .date-pill__orbit {
+    position: absolute;
+    border-radius: 9999px;
+    border: 1px solid rgba(255, 255, 255, 0.22);
+    opacity: 0.55;
+    pointer-events: none;
+    z-index: 0;
+}
+
+.date-pill--quest .date-pill__orbit--one {
+    top: -18px;
+    right: 58px;
+    width: 86px;
+    height: 86px;
+    animation: quest-pill-drift 7s ease-in-out infinite;
+}
+
+.date-pill--quest .date-pill__orbit--two {
+    right: -10px;
+    bottom: -24px;
+    width: 124px;
+    height: 124px;
+    animation: quest-pill-drift 10s ease-in-out infinite reverse;
+}
+
+.date-pill--quest .date-pill__icon-shell,
+.date-pill--quest .date-pill__body,
+.date-pill--quest .date-pill__value-wrap {
+    position: relative;
+    z-index: 1;
+}
+
+.date-pill--quest .date-pill__icon-shell {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 3.4rem;
+    height: 3.4rem;
+    flex-shrink: 0;
+}
+
+.date-pill--quest .date-pill__icon-ring {
+    position: absolute;
+    inset: 0;
+    border-radius: 1.15rem;
+    background: linear-gradient(145deg, rgba(255, 255, 255, 0.44), rgba(255, 255, 255, 0.08));
+    border: 1px solid rgba(255, 255, 255, 0.34);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.28);
+    animation: quest-pill-breathe 4.5s ease-in-out infinite;
+}
+
+.date-pill--quest .date-pill__icon {
+    position: relative;
+    width: 2.5rem;
+    height: 2.5rem;
+    border-radius: 0.95rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(17, 24, 39, 0.12);
+    color: #fff;
+    font-size: 1.2rem;
+    box-shadow: 0 10px 22px -10px rgba(15, 23, 42, 0.45);
+}
+
+.date-pill--quest .date-pill__body {
+    min-width: 0;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 0.2rem;
+}
+
+.date-pill--quest .date-pill__eyebrow {
+    font-size: 0.6rem;
+    font-weight: 800;
+    letter-spacing: 0.26em;
+    text-transform: uppercase;
+    opacity: 0.8;
+}
+
+.date-pill--quest .date-pill__title {
+    font-family: 'Fredoka One', cursive;
+    font-size: 1rem;
+    line-height: 1.05;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.date-pill--quest .date-pill__meta {
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    opacity: 0.86;
+}
+
+.date-pill--quest .date-pill__value-wrap {
+    min-width: 104px;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 0.2rem;
+    text-align: right;
+}
+
+.date-pill--quest .date-pill__value {
+    font-family: 'Fredoka One', cursive;
+    font-size: 1.12rem;
+    line-height: 1;
+    font-variant-numeric: tabular-nums;
+}
+
+.date-pill--quest .date-pill__subvalue {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 1.65rem;
+    padding: 0.2rem 0.55rem;
+    border-radius: 9999px;
+    font-size: 0.58rem;
+    font-weight: 800;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    background: rgba(15, 23, 42, 0.16);
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+}
+
+.date-pill--quest-timer-calm {
+    color: #fff;
+    border-color: rgba(255, 255, 255, 0.28);
+    background:
+        radial-gradient(circle at top left, rgba(255, 255, 255, 0.34), transparent 42%),
+        linear-gradient(135deg, #0ea5e9 0%, #4f46e5 52%, #7c3aed 100%);
+    box-shadow:
+        0 18px 38px -20px rgba(79, 70, 229, 0.9),
+        inset 0 1px 0 rgba(255, 255, 255, 0.3);
+}
+
+.date-pill--quest-timer-warning {
+    color: #fff;
+    border-color: rgba(255, 255, 255, 0.32);
+    background:
+        radial-gradient(circle at top left, rgba(255, 255, 255, 0.3), transparent 44%),
+        linear-gradient(135deg, #fbbf24 0%, #fb923c 48%, #f97316 100%);
+    box-shadow:
+        0 18px 38px -20px rgba(249, 115, 22, 0.78),
+        inset 0 1px 0 rgba(255, 255, 255, 0.28);
+}
+
+.date-pill--quest-timer-critical {
+    color: #fff;
+    border-color: rgba(255, 255, 255, 0.36);
+    background:
+        radial-gradient(circle at top left, rgba(255, 255, 255, 0.28), transparent 44%),
+        linear-gradient(135deg, #fb7185 0%, #ef4444 48%, #f97316 100%);
+    box-shadow:
+        0 20px 42px -18px rgba(239, 68, 68, 0.82),
+        inset 0 1px 0 rgba(255, 255, 255, 0.28);
+    animation: quest-pill-alert 1.45s ease-in-out infinite;
+}
+
+.date-pill--quest-bounty {
+    color: #7c2d12;
+    border-color: rgba(245, 158, 11, 0.26);
+    background:
+        radial-gradient(circle at top left, rgba(255, 255, 255, 0.76), transparent 42%),
+        linear-gradient(135deg, rgba(255, 251, 235, 0.98) 0%, rgba(254, 243, 199, 0.98) 52%, rgba(253, 230, 138, 0.96) 100%);
+    box-shadow:
+        0 18px 36px -22px rgba(217, 119, 6, 0.68),
+        inset 0 1px 0 rgba(255, 255, 255, 0.82);
+}
+
+.date-pill--quest-bounty .date-pill__icon {
+    background: rgba(180, 83, 9, 0.12);
+    color: #b45309;
+}
+
+.date-pill--quest-bounty .date-pill__subvalue {
+    background: rgba(251, 191, 36, 0.18);
+    border-color: rgba(217, 119, 6, 0.16);
+}
+
+@keyframes quest-pill-drift {
+    0%, 100% { transform: translateY(0) scale(1); }
+    50% { transform: translateY(-4px) scale(1.03); }
+}
+
+@keyframes quest-pill-breathe {
+    0%, 100% { transform: scale(1); opacity: 0.9; }
+    50% { transform: scale(1.06); opacity: 1; }
+}
+
+@keyframes quest-pill-alert {
+    0%, 100% {
+        box-shadow:
+            0 20px 42px -18px rgba(239, 68, 68, 0.82),
+            inset 0 1px 0 rgba(255, 255, 255, 0.28);
+    }
+    50% {
+        box-shadow:
+            0 24px 48px -16px rgba(239, 68, 68, 0.94),
+            0 0 0 4px rgba(255, 255, 255, 0.08),
+            inset 0 1px 0 rgba(255, 255, 255, 0.32);
+    }
+}
+
+@media (max-width: 768px) {
+    .date-pill--quest {
+        width: 100%;
+        max-width: 100%;
+        gap: 0.8rem;
+        padding-right: 0.8rem;
+    }
+
+    .date-pill--quest .date-pill__icon-shell {
+        width: 3rem;
+        height: 3rem;
+    }
+
+    .date-pill--quest .date-pill__icon {
+        width: 2.2rem;
+        height: 2.2rem;
+        font-size: 1rem;
+    }
+
+    .date-pill--quest .date-pill__value-wrap {
+        min-width: 88px;
+    }
+
+    .date-pill--quest .date-pill__value {
+        font-size: 0.98rem;
+    }
+
+    .date-pill--quest .date-pill__subvalue {
+        font-size: 0.54rem;
+        letter-spacing: 0.14em;
+    }
+}
+
 /* Chronicle Styling & Expansion */
 .chronicle-icon-badge {
     width: 2rem;

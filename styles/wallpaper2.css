@@ -438,6 +438,228 @@
     animation: card-enter-3d 1.2s cubic-bezier(0.34, 1.56, 0.64, 1) forwards, float-bob-v2 60s ease-in-out infinite 1.2s, card-glow-pulse 4s ease-in-out infinite 1.2s;
 }
 
+#wall-timer-overlay {
+    position: fixed !important;
+    top: max(20px, env(safe-area-inset-top, 0px) + 12px) !important;
+    left: max(20px, env(safe-area-inset-left, 0px) + 12px) !important;
+    right: auto !important;
+    bottom: auto !important;
+    transform: none !important;
+    z-index: 1000 !important;
+    width: min(430px, calc(100vw - 40px));
+}
+
+.wall-timer-card {
+    width: 100%;
+    min-width: 0;
+    max-width: 430px;
+    padding: 1.15rem 1.15rem 1rem;
+    border-radius: 2rem;
+    overflow: hidden;
+}
+
+.wall-timer-card__aurora {
+    position: absolute;
+    inset: -35% auto auto -10%;
+    width: 70%;
+    height: 70%;
+    background: radial-gradient(circle, rgba(255, 255, 255, 0.28) 0%, rgba(255, 255, 255, 0) 68%);
+    pointer-events: none;
+    z-index: 0;
+}
+
+.wall-timer-card__header,
+.wall-timer-card__meter {
+    position: relative;
+    z-index: 1;
+}
+
+.wall-timer-card__header {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 1rem;
+    align-items: center;
+}
+
+.wall-timer-card__icon-shell {
+    position: relative;
+    width: 4.2rem;
+    height: 4.2rem;
+}
+
+.wall-timer-card__icon-ring {
+    position: absolute;
+    inset: 0;
+    border-radius: 1.45rem;
+    background: linear-gradient(145deg, rgba(255, 255, 255, 0.35), rgba(255, 255, 255, 0.08));
+    border: 1px solid rgba(255, 255, 255, 0.28);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.24);
+    animation: wall-timer-ring-pulse 4.8s ease-in-out infinite;
+}
+
+.wall-timer-card__icon {
+    position: relative;
+    width: 3.1rem;
+    height: 3.1rem;
+    margin: 0.55rem;
+    border-radius: 1rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(15, 23, 42, 0.14);
+    color: #fff;
+    font-size: 1.45rem;
+    box-shadow: 0 12px 24px -14px rgba(15, 23, 42, 0.6);
+}
+
+.wall-timer-card__intro {
+    min-width: 0;
+}
+
+.wall-timer-card__eyebrow,
+.wall-timer-card__label {
+    font-size: 0.62rem;
+    font-weight: 800;
+    letter-spacing: 0.28em;
+    text-transform: uppercase;
+    opacity: 0.72;
+}
+
+.wall-timer-card__title {
+    margin-top: 0.25rem;
+    font-family: 'Fredoka One', cursive;
+    font-size: 1.5rem;
+    line-height: 1.05;
+    color: #fff;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.wall-timer-card__chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.45rem;
+    margin-top: 0.65rem;
+}
+
+.wall-timer-card__chip,
+.wall-timer-card__status {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    min-height: 1.7rem;
+    padding: 0.3rem 0.7rem;
+    border-radius: 9999px;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    background: rgba(15, 23, 42, 0.16);
+    color: rgba(255, 255, 255, 0.92);
+    font-size: 0.64rem;
+    font-weight: 800;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+}
+
+.wall-timer-card__meter {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 1rem;
+    align-items: end;
+    margin-top: 1rem;
+    padding: 0.95rem 1rem;
+    border-radius: 1.45rem;
+    background: linear-gradient(180deg, rgba(15, 23, 42, 0.18), rgba(15, 23, 42, 0.12));
+    border: 1px solid rgba(255, 255, 255, 0.16);
+}
+
+.wall-timer-card__countdown {
+    margin-top: 0.35rem;
+    font-family: 'Fredoka One', cursive;
+    font-size: clamp(2rem, 3.4vw, 2.85rem);
+    line-height: 0.95;
+    color: #fff;
+    font-variant-numeric: tabular-nums;
+    text-shadow: 0 10px 22px rgba(15, 23, 42, 0.32);
+}
+
+.wall-timer-card__aside {
+    text-align: right;
+}
+
+.wall-timer-card__status {
+    margin-top: 0.4rem;
+    justify-content: center;
+}
+
+.wall-timer-card__status--calm {
+    background: rgba(125, 211, 252, 0.16);
+}
+
+.wall-timer-card__status--warning {
+    background: rgba(251, 191, 36, 0.2);
+}
+
+.wall-timer-card__status--critical {
+    background: rgba(251, 113, 133, 0.22);
+}
+
+.wall-timer-card--critical {
+    animation: wall-timer-alert 1.4s ease-in-out infinite;
+}
+
+@keyframes wall-timer-ring-pulse {
+    0%, 100% { transform: scale(1); opacity: 0.9; }
+    50% { transform: scale(1.06); opacity: 1; }
+}
+
+@keyframes wall-timer-alert {
+    0%, 100% {
+        box-shadow:
+            0 25px 60px -12px rgba(0, 0, 0, 0.25),
+            0 0 0 2px rgba(255, 255, 255, 0.4) inset,
+            0 0 40px -10px rgba(239, 68, 68, 0.35);
+    }
+    50% {
+        box-shadow:
+            0 25px 60px -12px rgba(0, 0, 0, 0.28),
+            0 0 0 2px rgba(255, 255, 255, 0.4) inset,
+            0 0 68px -2px rgba(239, 68, 68, 0.52);
+    }
+}
+
+@media (max-width: 900px) {
+    #wall-timer-overlay {
+        width: min(380px, calc(100vw - 28px));
+        top: 14px !important;
+        left: 14px !important;
+    }
+
+    .wall-timer-card {
+        padding: 1rem;
+    }
+
+    .wall-timer-card__title {
+        font-size: 1.28rem;
+    }
+
+    .wall-timer-card__countdown {
+        font-size: clamp(1.7rem, 5vw, 2.2rem);
+    }
+}
+
+@media (max-width: 640px) {
+    .wall-timer-card__header,
+    .wall-timer-card__meter {
+        grid-template-columns: 1fr;
+    }
+
+    .wall-timer-card__aside {
+        text-align: left;
+    }
+}
+
 /* 4. Count-up numbers */
 .count-up {
     font-variant-numeric: tabular-nums;

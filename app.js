@@ -11,7 +11,7 @@ import * as state from './state.js';
 import { setupDataListeners } from './db/listeners.js';
 import { setupParentSession, watchCommunicationThread } from './db/listeners.js';
 import { setupUIListeners } from './ui/core.js';
-import { setupSounds, activateAudioContext } from './audio.js';
+import { ensureAudioReady } from './audio.js';
 import { updateDateTime, getTodayDateString, fetchSolarCycle } from './utils.js';
 import { archivePreviousDayStars } from './db/listeners.js';
 import { toggleWallpaperMode } from './ui/wallpaper.js';
@@ -45,7 +45,6 @@ import {
     signOut
 } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
 
-let soundSetupStarted = false;
 let activeAuthRole = ROLE_TEACHER;
 let activeAuthMode = 'login';
 
@@ -172,11 +171,7 @@ function dismissLoadingAfterHomeIsReady(loadingScreen) {
 }
 
 function onFirstUserGesture() {
-    activateAudioContext();
-    if (!soundSetupStarted) {
-        soundSetupStarted = true;
-        setupSounds(); // Defer so AudioContext is created after user gesture (avoids console warning)
-    }
+    ensureAudioReady();
 }
 
 function setAuthSubmitLoading(mode, isLoading) {

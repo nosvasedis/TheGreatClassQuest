@@ -137,57 +137,21 @@ function setContinuousClockRotation(hand, key, angle) {
 function getWallpaperTimerTone(deadline) {
     const tone = utils.getCountdownTone(deadline);
     if (tone === 'critical') {
-        return {
-            cardClass: 'float-card-red wall-timer-card--critical',
-            icon: 'fa-fire',
-            accentLabel: 'Final sprint',
-            accentClass: 'wall-timer-card__status--critical'
-        };
+        return { pillClass: 'wall-timer-pill--critical', icon: '🔥' };
     }
-    if (tone === 'warning') {
-        return {
-            cardClass: 'float-card-orange wall-timer-card--warning',
-            icon: 'fa-hourglass-half',
-            accentLabel: 'Pressure building',
-            accentClass: 'wall-timer-card__status--warning'
-        };
+    if (tone === 'warning' || tone === 'urgent') {
+        return { pillClass: 'wall-timer-pill--warning', icon: '⏳' };
     }
-    return {
-        cardClass: 'float-card-indigo wall-timer-card--calm',
-        icon: 'fa-clock',
-        accentLabel: 'Countdown in flow',
-        accentClass: 'wall-timer-card__status--calm'
-    };
+    return { pillClass: 'wall-timer-pill--calm wall-timer-pill--idle', icon: '⏰' };
 }
 
-function buildWallpaperTimerCard(activeTimer, tone) {
+function buildWallpaperTimerPill(activeTimer, tone) {
     return `
-        <div class="wallpaper-float-card wall-timer-card ${tone.cardClass} wall-timer-card--enter" data-wall-timer-card>
-            <div class="wall-timer-card__aurora"></div>
-            <div class="wall-timer-card__header">
-                <div class="wall-timer-card__icon-shell">
-                    <div class="wall-timer-card__icon-ring"></div>
-                    <div class="wall-timer-card__icon"><i class="fas ${tone.icon}"></i></div>
-                </div>
-                <div class="wall-timer-card__intro">
-                    <div class="wall-timer-card__eyebrow">Timed Quest Live</div>
-                    <h3 class="wall-timer-card__title">${activeTimer.title}</h3>
-                    <div class="wall-timer-card__chips">
-                        <span class="wall-timer-card__chip"><i class="fas fa-sparkles"></i> Focus mode</span>
-                        <span class="wall-timer-card__chip ${tone.accentClass}">${tone.accentLabel}</span>
-                    </div>
-                </div>
-            </div>
-            <div class="wall-timer-card__meter">
-                <div>
-                    <div class="wall-timer-card__label">Time Remaining</div>
-                    <div class="wall-timer-card__countdown" data-wall-timer-countdown>${utils.formatCountdownClock(activeTimer.deadline, { expiredLabel: '00:00:00' })}</div>
-                </div>
-                <div class="wall-timer-card__aside">
-                    <div class="wall-timer-card__label">Status</div>
-                    <div class="wall-timer-card__status ${tone.accentClass}" data-wall-timer-status>${utils.formatCountdownCompact(activeTimer.deadline, 'Expired')}</div>
-                </div>
-            </div>
+        <div class="wall-timer-pill ${tone.pillClass}" data-wall-timer-card>
+            <span class="wall-timer-pill__icon">${tone.icon}</span>
+            <span class="wall-timer-pill__title">${activeTimer.title}</span>
+            <span class="wall-timer-pill__sep"></span>
+            <span class="wall-timer-pill__clock" data-wall-timer-countdown>${utils.formatCountdownClock(activeTimer.deadline, { expiredLabel: '00:00:00' })}</span>
         </div>`;
 }
 
@@ -539,7 +503,7 @@ async function directorGameLoop() {
     if (!timerOverlay) {
         timerOverlay = document.createElement('div');
         timerOverlay.id = 'wall-timer-overlay';
-        timerOverlay.className = 'pointer-events-none';
+        timerOverlay.className = 'absolute top-4 left-4 z-50 pointer-events-none';
         document.getElementById('dynamic-wallpaper-screen').appendChild(timerOverlay);
     }
 
@@ -559,32 +523,24 @@ async function directorGameLoop() {
                 }
                 const currentTone = utils.getCountdownTone(activeTimer.deadline);
                 const tone = getWallpaperTimerTone(activeTimer.deadline);
-                const mountedCard = timerOverlay.querySelector('[data-wall-timer-card]');
-                if (timerOverlay.dataset.timerId !== activeTimer.id || timerOverlay.dataset.timerTone !== currentTone || !mountedCard) {
+                const mountedPill = timerOverlay.querySelector('[data-wall-timer-card]');
+                if (timerOverlay.dataset.timerId !== activeTimer.id || timerOverlay.dataset.timerTone !== currentTone || !mountedPill) {
                     timerOverlay.dataset.timerId = activeTimer.id;
                     timerOverlay.dataset.timerTone = currentTone;
-                    timerOverlay.innerHTML = buildWallpaperTimerCard(activeTimer, tone);
-                    const enteredCard = timerOverlay.querySelector('[data-wall-timer-card]');
-                    if (enteredCard) {
-                        window.setTimeout(() => enteredCard.classList.remove('wall-timer-card--enter'), 520);
-                    }
+                    timerOverlay.innerHTML = buildWallpaperTimerPill(activeTimer, tone);
                 } else {
-                    const countdownEl = mountedCard.querySelector('[data-wall-timer-countdown]');
-                    const statusEl = mountedCard.querySelector('[data-wall-timer-status]');
+                    const countdownEl = mountedPill.querySelector('[data-wall-timer-countdown]');
                     if (countdownEl) {
                         countdownEl.textContent = utils.formatCountdownClock(activeTimer.deadline, { expiredLabel: '00:00:00' });
-                    }
-                    if (statusEl) {
-                        statusEl.textContent = utils.formatCountdownCompact(activeTimer.deadline, 'Expired');
                     }
                 }
             } else {
                 // --- TIMER FINISHED ---
                 clearInterval(wallpaperTimerInterval);
-                const card = timerOverlay.querySelector('[data-wall-timer-card]');
-                if (card && !card.classList.contains('wall-timer-card--exit')) {
-                    card.classList.add('wall-timer-card--exit');
-                    await new Promise(resolve => window.setTimeout(resolve, 380));
+                const pill = timerOverlay.querySelector('[data-wall-timer-card]');
+                if (pill && !pill.classList.contains('wall-timer-pill--exiting')) {
+                    pill.classList.add('wall-timer-pill--exiting');
+                    await new Promise(resolve => window.setTimeout(resolve, 400));
                 }
                 timerOverlay.innerHTML = '';
                 timerOverlay.dataset.timerId = '';
@@ -621,16 +577,16 @@ async function directorGameLoop() {
         wallpaperTimerInterval = setInterval(updateTimerVisuals, 1000);
 
     } else {
-        const card = timerOverlay.querySelector('[data-wall-timer-card]');
+        const pill = timerOverlay.querySelector('[data-wall-timer-card]');
         timerOverlay.dataset.timerId = '';
         timerOverlay.dataset.timerTone = '';
-        if (card && !wallpaperTimerHideTimeout) {
-            card.classList.add('wall-timer-card--exit');
+        if (pill && !wallpaperTimerHideTimeout) {
+            pill.classList.add('wall-timer-pill--exiting');
             wallpaperTimerHideTimeout = window.setTimeout(() => {
                 timerOverlay.innerHTML = '';
                 wallpaperTimerHideTimeout = null;
-            }, 380);
-        } else if (!card) {
+            }, 400);
+        } else if (!pill) {
             timerOverlay.innerHTML = '';
         }
     }

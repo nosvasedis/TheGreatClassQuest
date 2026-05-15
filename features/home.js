@@ -1273,36 +1273,11 @@ function getReminderPills(classId) {
     });
 
 
-    // 5. ACTIVE BOUNTY (Timer pill removed — shown in wallpaper mode instead)
+    // 5. ACTIVE BOUNTY (Timer removed — shown in wallpaper mode instead)
     if (classId) {
-        const activeTimer = state.get('allQuestBounties').find(b => b.classId === classId && b.status === 'active' && b.type === 'timer');
         const activeBounty = state.get('allQuestBounties').find(b => b.classId === classId && b.status === 'active' && b.type === 'standard');
 
-        if (activeTimer) {
-            const toneMeta = getHomeQuestTimerMeta(activeTimer.deadline);
-            pills.push(`
-                <button type="button" class="date-pill date-pill--quest date-pill--quest-enter ${toneMeta.modifier}" data-home-quest-timer data-bounty-id="${activeTimer.id}" data-deadline="${activeTimer.deadline}" data-home-quest-tone="${toneMeta.tone}" onclick="document.getElementById('bounty-board-container').scrollIntoView({behavior: 'smooth'})">
-                    <span class="date-pill__glow"></span>
-                    <span class="date-pill__orbit date-pill__orbit--one"></span>
-                    <span class="date-pill__orbit date-pill__orbit--two"></span>
-                    <span class="date-pill__icon-shell">
-                        <span class="date-pill__icon-ring"></span>
-                        <span class="date-pill__icon" data-home-quest-icon><i class="fas ${toneMeta.icon}"></i></span>
-                    </span>
-                    <span class="date-pill__body">
-                        <span class="date-pill__eyebrow">Timed Quest</span>
-                        <span class="date-pill__title">${activeTimer.title}</span>
-                        <span class="date-pill__meta" data-home-quest-meta>${toneMeta.meta}</span>
-                    </span>
-                    <span class="date-pill__value-wrap">
-                        <span class="date-pill__value" data-home-quest-value>${utils.formatCountdownClock(activeTimer.deadline, { expiredLabel: '00:00:00' })}</span>
-                        <span class="date-pill__subvalue" data-home-quest-subvalue>${utils.formatCountdownCompact(activeTimer.deadline, 'Expired')}</span>
-                    </span>
-                </button>
-             `);
-        }
-
-        else if (activeBounty) {
+        if (activeBounty) {
             const pct = Math.min(100, Math.round((activeBounty.currentProgress / activeBounty.target) * 100));
             pills.push(`
                 <button type="button" class="date-pill date-pill--quest date-pill--quest-bounty" onclick="document.getElementById('bounty-board-container').scrollIntoView({behavior: 'smooth'})">

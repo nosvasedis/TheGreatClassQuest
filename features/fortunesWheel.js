@@ -8,7 +8,7 @@ import { getISOWeekKey, updateGuildScores, adjustGuildScoresForWheel } from './g
 import { applyWheelStudentEffects, applyClassQuestBonusDelta } from '../db/actions/fortuneWheelEffects.js';
 import { checkBountyProgress } from '../db/actions/bounties.js';
 import { checkAndRecordQuestCompletion } from '../db/actions/stars.js';
-import { playSound, playHeroFanfare } from '../audio.js';
+import { ensureAudioReady, playSound, playHeroFanfare } from '../audio.js';
 import { evaluateWheelAvailability } from '../utils/fortuneWheelEligibility.mjs';
 import { showAnimatedModal, hideModal } from '../ui/modals/base.js';
 
@@ -670,6 +670,7 @@ function wrapText(ctx, text, maxWidth) {
  */
 export function drawWheel(canvas, segments, rotationAngle, guildDef, highlightIndex = null) {
     const ctx = canvas.getContext('2d');
+    if (!ctx) return;
     const size = canvas.width;
     const center = size / 2;
     const radius = center - 24; 
@@ -815,9 +816,12 @@ export function drawWheel(canvas, segments, rotationAngle, guildDef, highlightIn
         ctx.restore();
     }
 
+    ctx.restore();
+
     // --- Glossy Sheen Overlay ---
     ctx.save();
     ctx.translate(center, center);
+    ctx.rotate(rotationAngle);
     const sheen = ctx.createLinearGradient(-radius, -radius, radius, radius);
     sheen.addColorStop(0, 'rgba(255, 255, 255, 0.15)');
     sheen.addColorStop(0.4, 'rgba(255, 255, 255, 0.05)');
@@ -1331,6 +1335,10 @@ export async function triggerSpin() {
     _wheelState.phase = 'spinning';
     _wheelState.winnerIndex = null;
     _wheelState.rotationAngle = 0;
+
+    try {
+        await ensureAudioReady();
+    } catch (_) {}
 
     const canvas = document.getElementById('fortunes-wheel-canvas');
     const guildId = _wheelState.guildOrder[_wheelState.currentGuildIndex];

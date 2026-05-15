@@ -177,6 +177,13 @@ function fadeOutAndStopAnthem(duration = 1400) {
 // ─── Karaoke sync ─────────────────────────────────────────────────────────────
 let _karaokeCleanup = null;
 
+function ensureAnthemOverlayRoot() {
+    const overlay = document.getElementById('guild-anthem-overlay');
+    if (!overlay || overlay.parentElement === document.body) return overlay;
+    document.body.appendChild(overlay);
+    return overlay;
+}
+
 function startKaraokeSync(guildId) {
     stopKaraokeSync();
     const audio = _anthemCache[guildId];
@@ -221,7 +228,7 @@ function stopKaraokeSync() {
 
 // ─── Anthem modal ─────────────────────────────────────────────────────────────
 function openAnthemModal(guildId) {
-    const overlay = document.getElementById('guild-anthem-overlay');
+    const overlay = ensureAnthemOverlayRoot();
     const card = document.getElementById('guild-anthem-card');
     if (!overlay || !card) return;
 
@@ -230,6 +237,9 @@ function openAnthemModal(guildId) {
     const secondary = guild?.secondary || '#a78bfa';
     const glow = guild?.glow || primary;
 
+    card.style.setProperty('--anthem-primary', primary);
+    card.style.setProperty('--anthem-secondary', secondary);
+    card.style.setProperty('--anthem-glow', glow);
     card.style.background = `linear-gradient(160deg, ${primary} 0%, ${secondary} 65%, ${primary}cc 100%)`;
     card.style.boxShadow = `0 0 0 1.5px rgba(255,255,255,0.2), 0 32px 80px rgba(0,0,0,0.7), 0 0 80px ${glow}55`;
 
@@ -270,7 +280,7 @@ function closeAnthemModal() {
 }
 
 function wireAnthemListeners() {
-    const overlay = document.getElementById('guild-anthem-overlay');
+    const overlay = ensureAnthemOverlayRoot();
     if (!overlay || overlay._anthemWired) return;
     overlay._anthemWired = true;
 

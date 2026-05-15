@@ -18,6 +18,7 @@ import { sumLiveMonthlyStarsFromStudentScores } from './awardLogReasonMeta.js';
 export { initializeHeaderQuote, fetchDailySpice };
 
 let homeInterval = null;
+let homeQuestTimerInterval = null;
 let renderDebounce = null;
 let currentRenderedViewId = null;
 let hasPlayedInitialHomeEntrance = false;
@@ -67,6 +68,80 @@ async function fetchDailySpice() {
 
 function initializeHeaderQuote() {
     fetchDailySpice();
+}
+
+function getHomeQuestTimerMeta(deadline) {
+    const tone = utils.getCountdownTone(deadline);
+    if (tone === 'critical') {
+        return {
+            tone,
+            modifier: 'date-pill--quest-timer-critical',
+            icon: 'fa-fire',
+            meta: 'Final sprint'
+        };
+    }
+    if (tone === 'warning') {
+        return {
+            tone,
+            modifier: 'date-pill--quest-timer-warning',
+            icon: 'fa-hourglass-half',
+            meta: 'Pressure building'
+        };
+    }
+    return {
+        tone,
+        modifier: 'date-pill--quest-timer-calm',
+        icon: 'fa-clock',
+        meta: 'Clock is ticking'
+    };
+}
+
+function startHomeQuestTimerTicker() {
+    if (homeQuestTimerInterval) clearInterval(homeQuestTimerInterval);
+
+    const tick = () => {
+        const timerCard = document.querySelector('[data-home-quest-timer]');
+        if (!timerCard) {
+            clearInterval(homeQuestTimerInterval);
+            homeQuestTimerInterval = null;
+            return;
+        }
+
+        const deadline = timerCard.dataset.deadline;
+        const valueEl = timerCard.querySelector('[data-home-quest-value]');
+        const subvalueEl = timerCard.querySelector('[data-home-quest-subvalue]');
+        const iconEl = timerCard.querySelector('[data-home-quest-icon]');
+        const metaEl = timerCard.querySelector('[data-home-quest-meta]');
+        const parts = utils.getCountdownParts(deadline);
+        const toneMeta = getHomeQuestTimerMeta(deadline);
+
+        if (valueEl) {
+            valueEl.textContent = utils.formatCountdownClock(deadline, { expiredLabel: '00:00:00' });
+        }
+        if (subvalueEl) {
+            subvalueEl.textContent = utils.formatCountdownCompact(deadline, 'Expired');
+        }
+
+        if (timerCard.dataset.homeQuestTone !== toneMeta.tone) {
+            timerCard.classList.remove('date-pill--quest-timer-calm', 'date-pill--quest-timer-warning', 'date-pill--quest-timer-critical');
+            timerCard.classList.add(toneMeta.modifier, 'date-pill--quest-tone-shift');
+            timerCard.dataset.homeQuestTone = toneMeta.tone;
+            if (iconEl) {
+                iconEl.innerHTML = `<i class="fas ${toneMeta.icon}"></i>`;
+            }
+            if (metaEl) {
+                metaEl.textContent = toneMeta.meta;
+            }
+            window.setTimeout(() => timerCard.classList.remove('date-pill--quest-tone-shift'), 380);
+        }
+
+        if (parts.expired && !timerCard.classList.contains('date-pill--quest-exit')) {
+            timerCard.classList.add('date-pill--quest-exit');
+        }
+    };
+
+    tick();
+    homeQuestTimerInterval = setInterval(tick, 1000);
 }
 
 // --- NEW HELPER FUNCTION ---
@@ -298,6 +373,7 @@ async function executeRenderHome() {
 
     attachListeners(container);
     startHomeSmartLogic();
+    startHomeQuestTimerTicker();
 
     document.dispatchEvent(new CustomEvent('home:rendered', {
         detail: { isInitialHomeRender, viewId }
@@ -849,7 +925,7 @@ function startHomeSmartLogic() {
         const myClasses = state.get('allTeachersClasses');
         const myTodaysClasses = todaysClasses.filter(c => myClasses.some(mc => mc.id === c.id));
 
-        const currentActiveLesson = myTodaysClasses.find(c => utils.isNowInClassWindow(c.timeStart, c.timeEnd));
+        const currentActiveLesson = utils.findCurrentLessonClass(myTodaysClasses);
 
         if (currentActiveLesson && state.get('classFollowSchedule')) {
             const currentSelectedId = state.get('globalSelectedClassId');
@@ -875,7 +951,7 @@ export function runScheduleBasedClassSyncOnce() {
     const todaysClasses = utils.getClassesOnDay(todayStr, state.get('allSchoolClasses'), state.get('allScheduleOverrides'), classEndDates);
     const myClasses = state.get('allTeachersClasses');
     const myTodaysClasses = todaysClasses.filter(c => myClasses.some(mc => mc.id === c.id));
-    const currentActiveLesson = myTodaysClasses.find(c => utils.isNowInClassWindow(c.timeStart, c.timeEnd));
+    const currentActiveLesson = utils.findCurrentLessonClass(myTodaysClasses);
     if (currentActiveLesson && state.get('classFollowSchedule')) {
         const currentSelectedId = state.get('globalSelectedClassId');
         if (currentSelectedId !== currentActiveLesson.id) {
@@ -1199,19 +1275,54 @@ function getReminderPills(classId) {
 
     // 5. ACTIVE BOUNTY (Timer pill removed — shown in wallpaper mode instead)
     if (classId) {
+        const activeTimer = state.get('allQuestBounties').find(b => b.classId === classId && b.status === 'active' && b.type === 'timer');
         const activeBounty = state.get('allQuestBounties').find(b => b.classId === classId && b.status === 'active' && b.type === 'standard');
 
-        if (activeBounty) {
+        if (activeTimer) {
+            const toneMeta = getHomeQuestTimerMeta(activeTimer.deadline);
+            pills.push(`
+                <button type="button" class="date-pill date-pill--quest date-pill--quest-enter ${toneMeta.modifier}" data-home-quest-timer data-bounty-id="${activeTimer.id}" data-deadline="${activeTimer.deadline}" data-home-quest-tone="${toneMeta.tone}" onclick="document.getElementById('bounty-board-container').scrollIntoView({behavior: 'smooth'})">
+                    <span class="date-pill__glow"></span>
+                    <span class="date-pill__orbit date-pill__orbit--one"></span>
+                    <span class="date-pill__orbit date-pill__orbit--two"></span>
+                    <span class="date-pill__icon-shell">
+                        <span class="date-pill__icon-ring"></span>
+                        <span class="date-pill__icon" data-home-quest-icon><i class="fas ${toneMeta.icon}"></i></span>
+                    </span>
+                    <span class="date-pill__body">
+                        <span class="date-pill__eyebrow">Timed Quest</span>
+                        <span class="date-pill__title">${activeTimer.title}</span>
+                        <span class="date-pill__meta" data-home-quest-meta>${toneMeta.meta}</span>
+                    </span>
+                    <span class="date-pill__value-wrap">
+                        <span class="date-pill__value" data-home-quest-value>${utils.formatCountdownClock(activeTimer.deadline, { expiredLabel: '00:00:00' })}</span>
+                        <span class="date-pill__subvalue" data-home-quest-subvalue>${utils.formatCountdownCompact(activeTimer.deadline, 'Expired')}</span>
+                    </span>
+                </button>
+             `);
+        }
+
+        else if (activeBounty) {
             const pct = Math.min(100, Math.round((activeBounty.currentProgress / activeBounty.target) * 100));
             pills.push(`
-                <div class="date-pill bg-[radial-gradient(circle_at_top_left,_rgba(255,255,255,0.95),_rgba(255,251,235,0.98)_48%,_rgba(254,243,199,0.96))] text-amber-700 border border-amber-200 shadow-[0_8px_24px_rgba(245,158,11,0.16)] flex items-center gap-3 px-4 py-2 rounded-full cursor-pointer" onclick="document.getElementById('bounty-board-container').scrollIntoView({behavior: 'smooth'})">
-                    <i class="fas fa-bullseye"></i>
-                    <div class="flex flex-col leading-none">
-                        <span class="text-[10px] uppercase font-black tracking-[0.24em] text-amber-500">Active Bounty</span>
-                        <span class="font-bold">${activeBounty.title}</span>
-                    </div>
-                    <span class="bg-amber-100 px-2 py-1 rounded-full text-[11px] font-black uppercase">${pct}%</span>
-                </div>
+                <button type="button" class="date-pill date-pill--quest date-pill--quest-bounty" onclick="document.getElementById('bounty-board-container').scrollIntoView({behavior: 'smooth'})">
+                    <span class="date-pill__glow"></span>
+                    <span class="date-pill__orbit date-pill__orbit--one"></span>
+                    <span class="date-pill__orbit date-pill__orbit--two"></span>
+                    <span class="date-pill__icon-shell">
+                        <span class="date-pill__icon-ring"></span>
+                        <span class="date-pill__icon"><i class="fas fa-bullseye"></i></span>
+                    </span>
+                    <span class="date-pill__body">
+                        <span class="date-pill__eyebrow">Active Bounty</span>
+                        <span class="date-pill__title">${activeBounty.title}</span>
+                        <span class="date-pill__meta">Progress is rolling in</span>
+                    </span>
+                    <span class="date-pill__value-wrap">
+                        <span class="date-pill__value">${pct}%</span>
+                        <span class="date-pill__subvalue">${activeBounty.currentProgress}/${activeBounty.target} stars</span>
+                    </span>
+                </button>
              `);
         }
     }

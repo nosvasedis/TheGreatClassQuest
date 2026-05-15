@@ -6,99 +6,102 @@ export let winnerFanfare = {};
 export let showdownSting = {};
 export let heroFanfare = {};
 let soundsReady = false;
+let soundSetupPromise = null;
+let audioStartPromise = null;
 let lastSoundTime = 0; // Track the time of the last scheduled sound
 
 export async function setupSounds() {
-    try {
-        
-        // SFX Synths
-        const reverb = new Tone.Reverb({ decay: 0.8, wet: 0.3 }).toDestination();
-        sounds.click = new Tone.Synth({ oscillator: { type: 'sine' }, envelope: { attack: 0.001, decay: 0.05, sustain: 0.0, release: 0.05 } }).toDestination();
-        sounds.confirm = new Tone.Synth({ oscillator: { type: 'sawtooth' }, envelope: { attack: 0.01, decay: 0.1, sustain: 0.0, release: 0.2 }, volume: -15 }).toDestination();
-        sounds.star_remove = new Tone.NoiseSynth({ noise: { type: "pink" }, envelope: { attack: 0.02, decay: 0.1, sustain: 0.01, release: 0.3 }, volume: -10 }).toDestination();
-        sounds.click.volume.value = -25;
-        
-        sounds.writing = new Tone.NoiseSynth({ noise: { type: "white", playbackRate: 0.5 }, envelope: { attack: 0.01, decay: 0.1, sustain: 0, release: 0.1 }, volume: -20 }).toDestination();
-        sounds.magic_chime = new Tone.PluckSynth({ attackNoise: 0.5, dampening: 2000, resonance: 0.9, volume: -12 }).connect(reverb);
-        // NEW: Coin Sound
-        sounds.cash = new Tone.PolySynth(Tone.Synth, {
-            oscillator: { type: "sine" },
-            envelope: { attack: 0.001, decay: 0.1, sustain: 0, release: 0.1 }
-        }).toDestination();
-        sounds.cash.volume.value = -10;
-        // Procedural Snare for Drumroll
-        sounds.snare = new Tone.NoiseSynth({
-            noise: { type: 'white' },
-            envelope: { attack: 0.005, decay: 0.1, sustain: 0 }
-        }).toDestination();
-        sounds.snare.volume.value = -10;
+    if (soundSetupPromise) return soundSetupPromise;
 
-        // Familiar: hatch — rising arpeggio
-        sounds.familiar_hatch = new Tone.PolySynth(Tone.Synth, {
-            oscillator: { type: 'triangle' },
-            envelope: { attack: 0.02, decay: 0.15, sustain: 0.1, release: 0.4 },
-            volume: -8
-        }).connect(reverb);
-        // Familiar: levelup — triumphant chord
-        sounds.familiar_levelup = new Tone.PolySynth(Tone.Synth, {
-            oscillator: { type: 'sawtooth' },
-            envelope: { attack: 0.01, decay: 0.2, sustain: 0.1, release: 0.6 },
-            volume: -10
-        }).connect(reverb);
+    soundSetupPromise = (async () => {
+        try {
+            // SFX Synths
+            const reverb = new Tone.Reverb({ decay: 0.8, wet: 0.3 }).toDestination();
+            sounds.click = new Tone.Synth({ oscillator: { type: 'sine' }, envelope: { attack: 0.001, decay: 0.05, sustain: 0.0, release: 0.05 } }).toDestination();
+            sounds.confirm = new Tone.Synth({ oscillator: { type: 'sawtooth' }, envelope: { attack: 0.01, decay: 0.1, sustain: 0.0, release: 0.2 }, volume: -15 }).toDestination();
+            sounds.star_remove = new Tone.NoiseSynth({ noise: { type: "pink" }, envelope: { attack: 0.02, decay: 0.1, sustain: 0.01, release: 0.3 }, volume: -10 }).toDestination();
+            sounds.click.volume.value = -25;
 
-        sounds.star1 = new Tone.PluckSynth({ attackNoise: 1, dampening: 4000, resonance: 0.7, volume: -10 }).connect(reverb);
-        sounds.star2 = new Tone.PluckSynth({ attackNoise: 1, dampening: 3000, resonance: 0.8, volume: -8 }).connect(reverb);
-        
-        sounds.star3 = new Tone.FMSynth({
-            harmonicity: 3,
-            modulationIndex: 10,
-            detune: 0,
-            oscillator: { type: "sine" },
-            envelope: { attack: 0.01, decay: 0.2, sustain: 0.1, release: 0.5 },
-            modulation: { type: "square" },
-            modulationEnvelope: { attack: 0.01, decay: 0.1, sustain: 0.2, release: 0.4 },
-            volume: -5 
-        }).connect(reverb);
-        
-        // Music Players
-        ceremonyMusic = new Tone.Player({
-            url: "assets/ceremony_reveal.mp3",
-            loop: true,
-            volume: -12,
-            onload: () => console.log("Ceremony Music Loaded"),
-            onerror: (e) => console.warn("Ceremony Music failed to load", e)
-        }).toDestination();
+            sounds.writing = new Tone.NoiseSynth({ noise: { type: "white", playbackRate: 0.5 }, envelope: { attack: 0.01, decay: 0.1, sustain: 0, release: 0.1 }, volume: -20 }).toDestination();
+            sounds.magic_chime = new Tone.PluckSynth({ attackNoise: 0.5, dampening: 2000, resonance: 0.9, volume: -12 }).connect(reverb);
+            sounds.cash = new Tone.PolySynth(Tone.Synth, {
+                oscillator: { type: "sine" },
+                envelope: { attack: 0.001, decay: 0.1, sustain: 0, release: 0.1 }
+            }).toDestination();
+            sounds.cash.volume.value = -10;
+            sounds.snare = new Tone.NoiseSynth({
+                noise: { type: 'white' },
+                envelope: { attack: 0.005, decay: 0.1, sustain: 0 }
+            }).toDestination();
+            sounds.snare.volume.value = -10;
 
-        winnerFanfare = new Tone.Player({
-            url: "assets/ceremony_winner.mp3",
-            volume: -3,
-            onload: () => console.log("Winner Fanfare Loaded"),
-            onerror: (e) => console.warn("Winner Fanfare failed to load", e)
-        }).toDestination();
+            sounds.familiar_hatch = new Tone.PolySynth(Tone.Synth, {
+                oscillator: { type: 'triangle' },
+                envelope: { attack: 0.02, decay: 0.15, sustain: 0.1, release: 0.4 },
+                volume: -8
+            }).connect(reverb);
+            sounds.familiar_levelup = new Tone.PolySynth(Tone.Synth, {
+                oscillator: { type: 'sawtooth' },
+                envelope: { attack: 0.01, decay: 0.2, sustain: 0.1, release: 0.6 },
+                volume: -10
+            }).connect(reverb);
 
-        showdownSting = new Tone.Player({
-            url: "assets/ceremony_showdown.mp3",
-            volume: -6,
-            onload: () => console.log("Showdown Sting Loaded"),
-            onerror: (e) => console.warn("Showdown Sting failed to load", e)
-        }).toDestination();
+            sounds.star1 = new Tone.PluckSynth({ attackNoise: 1, dampening: 4000, resonance: 0.7, volume: -10 }).connect(reverb);
+            sounds.star2 = new Tone.PluckSynth({ attackNoise: 1, dampening: 3000, resonance: 0.8, volume: -8 }).connect(reverb);
+            sounds.star3 = new Tone.FMSynth({
+                harmonicity: 3,
+                modulationIndex: 10,
+                detune: 0,
+                oscillator: { type: "sine" },
+                envelope: { attack: 0.01, decay: 0.2, sustain: 0.1, release: 0.5 },
+                modulation: { type: "square" },
+                modulationEnvelope: { attack: 0.01, decay: 0.1, sustain: 0.2, release: 0.4 },
+                volume: -5
+            }).connect(reverb);
 
-        heroFanfare = new Tone.Player({
-            url: "assets/hero_fanfare.mp3",
-            volume: -2,
-            onload: () => console.log("Hero Fanfare Loaded"),
-            onerror: (e) => console.warn("Hero Fanfare failed to load", e)
-        }).toDestination();
-        
-        // Wait for buffers
-        await Tone.loaded();
-        soundsReady = true;
-        console.log("Audio System Ready");
+            ceremonyMusic = new Tone.Player({
+                url: "assets/ceremony_reveal.mp3",
+                loop: true,
+                volume: -12,
+                onload: () => console.log("Ceremony Music Loaded"),
+                onerror: (e) => console.warn("Ceremony Music failed to load", e)
+            }).toDestination();
 
-    } catch (e) {
-        console.error('Failed to initialize sounds:', e);
-        soundsReady = false;
-    }
+            winnerFanfare = new Tone.Player({
+                url: "assets/ceremony_winner.mp3",
+                volume: -3,
+                onload: () => console.log("Winner Fanfare Loaded"),
+                onerror: (e) => console.warn("Winner Fanfare failed to load", e)
+            }).toDestination();
+
+            showdownSting = new Tone.Player({
+                url: "assets/ceremony_showdown.mp3",
+                volume: -6,
+                onload: () => console.log("Showdown Sting Loaded"),
+                onerror: (e) => console.warn("Showdown Sting failed to load", e)
+            }).toDestination();
+
+            heroFanfare = new Tone.Player({
+                url: "assets/hero_fanfare.mp3",
+                volume: -2,
+                onload: () => console.log("Hero Fanfare Loaded"),
+                onerror: (e) => console.warn("Hero Fanfare failed to load", e)
+            }).toDestination();
+
+            soundsReady = true;
+            console.log("Audio SFX Ready");
+
+            Tone.loaded()
+                .then(() => console.log("Audio Player Buffers Ready"))
+                .catch((e) => console.warn('Some audio buffers failed to load:', e));
+        } catch (e) {
+            console.error('Failed to initialize sounds:', e);
+            soundsReady = false;
+            soundSetupPromise = null;
+        }
+    })();
+
+    return soundSetupPromise;
 }
 
 export function playSound(sound) {
@@ -161,9 +164,33 @@ export function playSound(sound) {
 }
 
 export function activateAudioContext() {
-    if (typeof Tone !== 'undefined' && Tone.context.state !== 'running') {
-        Tone.start().then(() => console.log("Audio Context Started")).catch(e => console.error('Failed to resume audio context:', e));
-    }
+    if (typeof Tone === 'undefined') return Promise.resolve(false);
+    if (Tone.context.state === 'running') return Promise.resolve(true);
+    if (audioStartPromise) return audioStartPromise;
+
+    audioStartPromise = Tone.start()
+        .then(() => {
+            console.log("Audio Context Started");
+            audioStartPromise = null;
+            return true;
+        })
+        .catch(e => {
+            console.error('Failed to resume audio context:', e);
+            audioStartPromise = null;
+            return false;
+        });
+
+    return audioStartPromise;
+}
+
+export async function ensureAudioReady() {
+    await activateAudioContext();
+    await setupSounds();
+    return soundsReady && Tone.context.state === 'running';
+}
+
+export function isAudioReady() {
+    return soundsReady && typeof Tone !== 'undefined' && Tone.context.state === 'running';
 }
 
 export function stopAllCeremonyAudio() {

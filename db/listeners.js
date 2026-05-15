@@ -333,6 +333,10 @@ export function setupDataListeners(userId, dateString, onInitialDataReady, optio
         state.setAllStudents(allStudents.sort((a, b) => a.name.localeCompare(b.name)));
         maybeReconcileSpecialHeroProgression();
 
+        const guildsTab = document.getElementById('guilds-tab');
+        if (guildsTab && !guildsTab.classList.contains('hidden')) {
+            import('../ui/tabs/guilds.js').then(m => m.renderGuildsTab());
+        }
         if (isTabVisible('student-leaderboard-tab')) renderStudentLeaderboardTab();
         if (isTabVisible('class-leaderboard-tab')) renderClassLeaderboardTab();
         if (isTabVisible('manage-students-tab')) renderManageStudentsTab();
@@ -433,6 +437,10 @@ export function setupDataListeners(userId, dateString, onInitialDataReady, optio
             renderManageStudentsTab();
         }
 
+        const guildsTab = document.getElementById('guilds-tab');
+        if (guildsTab && !guildsTab.classList.contains('hidden')) {
+            import('../ui/tabs/guilds.js').then(m => m.renderGuildsTab());
+        }
         if (isTabVisible('student-leaderboard-tab')) renderStudentLeaderboardTab();
         if (isTabVisible('class-leaderboard-tab')) renderClassLeaderboardTab();
         if (!document.getElementById('options-tab').classList.contains('hidden')) {
@@ -578,6 +586,7 @@ export function setupDataListeners(userId, dateString, onInitialDataReady, optio
         // Dynamically import to avoid circular dependency
         const { renderActiveBounties } = await import('../ui/core.js');
         renderActiveBounties();
+        renderHomeTab();
     }, (error) => console.error("Error listening to quest bounties:", error)));
 
     onSnapshot(shopItemsQuery, async (snapshot) => {

@@ -147,9 +147,11 @@
 
 #wall-timer-overlay {
     position: fixed !important;
-    bottom: 40px !important;
-    left: 50% !important;
-    transform: translateX(-50%) !important;
+    top: max(20px, env(safe-area-inset-top, 0px) + 12px) !important;
+    left: max(20px, env(safe-area-inset-left, 0px) + 12px) !important;
+    right: auto !important;
+    bottom: auto !important;
+    transform: none !important;
     z-index: 1000 !important;
 }
 

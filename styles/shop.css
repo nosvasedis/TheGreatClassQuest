@@ -70,6 +70,20 @@ body.projector-mode .bounty-actions {
     display: none; /* Hide 'Delete'/'Claim' buttons in projector mode */
 }
 
+.bounty-card--timer-live {
+    animation: slide-in-from-bottom 0.45s ease-out;
+}
+
+.bounty-card--timer-exit {
+    pointer-events: none;
+    animation: bounty-card-timer-exit 0.38s ease forwards;
+}
+
+@keyframes bounty-card-timer-exit {
+    0% { opacity: 1; transform: translateY(0) scale(1); }
+    100% { opacity: 0; transform: translateY(-12px) scale(0.96); }
+}
+
 /* --- SHOP STYLES --- */
 
 /* ── Mystic Market shell — ornate window frame (“peek inside”) ─────────── */

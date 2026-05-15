@@ -1162,6 +1162,7 @@ export function setupUIListeners() {
         }
     });
     document.getElementById('story-input-confirm-btn').addEventListener('click', storyWeaver.handleLockInSentence);
+    document.getElementById('story-input-cancel-btn').addEventListener('click', () => modals.hideModal('story-input-modal'));
     document.getElementById('story-weavers-confirm-word-btn').addEventListener('click', confirmWord);
     document.getElementById('story-weavers-clear-word-btn').addEventListener('click', storyWeaver.resetStoryWeaverWordUI);
     document.getElementById('story-weavers-word-input').addEventListener('input', handleWordInputChange);

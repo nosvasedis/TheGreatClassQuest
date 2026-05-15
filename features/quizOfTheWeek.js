@@ -31,7 +31,7 @@ export async function shouldShowQuizButton(classId) {
         return 'no_quiz';
     }
 
-    // Quiz already completed this week → show results
+    // Quiz already completed this week → show results (persists all week)
     if (quiz.status === 'completed') {
         return 'completed';
     }
@@ -39,6 +39,14 @@ export async function shouldShowQuizButton(classId) {
     // Quiz not ready yet → don't show play button
     if (quiz.status !== 'ready' && quiz.status !== 'active') {
         return quiz.weekKey === currentWeek ? 'generating' : 'no_quiz';
+    }
+
+    // Only allow starting the quiz on the first lesson day of the week, during lesson time
+    if (!isFirstLessonDay(classId)) {
+        return 'not_first_lesson';
+    }
+    if (!isWithinLessonTime(classId)) {
+        return 'outside_time';
     }
 
     // Check that we have students

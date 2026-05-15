@@ -136,24 +136,12 @@ function setContinuousClockRotation(hand, key, angle) {
 function getWallpaperTimerTone(deadline) {
     const tone = utils.getCountdownTone(deadline);
     if (tone === 'critical') {
-        return {
-            cardClass: 'float-card-red animate-pulse',
-            icon: '🔥',
-            accent: 'text-rose-100'
-        };
+        return { pillClass: 'wall-timer-pill--critical', icon: '🔥' };
     }
-    if (tone === 'warning') {
-        return {
-            cardClass: 'float-card-orange',
-            icon: '⏳',
-            accent: 'text-amber-100'
-        };
+    if (tone === 'warning' || tone === 'urgent') {
+        return { pillClass: 'wall-timer-pill--warning', icon: '⏳' };
     }
-    return {
-        cardClass: 'float-card-indigo',
-        icon: '⏰',
-        accent: 'text-sky-100'
-    };
+    return { pillClass: 'wall-timer-pill--calm wall-timer-pill--idle', icon: '⏰' };
 }
 
 export function toggleWallpaperMode() {
@@ -505,7 +493,7 @@ async function directorGameLoop() {
     if (!timerOverlay) {
         timerOverlay = document.createElement('div');
         timerOverlay.id = 'wall-timer-overlay';
-        timerOverlay.className = 'absolute bottom-8 left-1/2 -translate-x-1/2 z-50 pointer-events-none transition-all duration-500';
+        timerOverlay.className = 'absolute top-4 left-4 z-50 pointer-events-none';
         document.getElementById('dynamic-wallpaper-screen').appendChild(timerOverlay);
     }
 
@@ -519,57 +507,26 @@ async function directorGameLoop() {
             const timeLeftMs = deadline - currentNow;
 
             if (timeLeftMs > 0) {
-                const minutes = Math.floor(timeLeftMs / 60000);
-                const seconds = Math.floor((timeLeftMs % 60000) / 1000);
-                const legacyTimeDisplay = `${minutes}:${String(seconds).padStart(2, '0')}`;
-
-                // Color Logic
-                let cssClass = 'float-card-indigo'; // Default
-                let icon = '⏳';
-
-                if (timeLeftMs < 60000) { // Less than 1 min
-                    cssClass = 'float-card-red animate-pulse'; // Red & Pulse
-                    icon = '🔥';
-                } else if (timeLeftMs < 180000) { // Less than 3 mins
-                    cssClass = 'float-card-orange';
-                }
-
-                timerOverlay.innerHTML = `
-                    <div class="wallpaper-float-card ${cssClass} !w-auto !min-w-[320px] !p-4 !rounded-2xl shadow-2xl border-4" style="position: relative; transform: none; animation: none;">
-                        <div class="flex items-center justify-between gap-6">
-                            <div class="flex items-center gap-3">
-                                <div class="text-3xl">${icon}</div>
-                                <div class="text-left">
-                                    <div class="text-[10px] font-black uppercase text-white/70 leading-none mb-1">Time Remaining</div>
-                                    <h3 class="font-title text-lg text-white leading-tight truncate max-w-[150px]">${activeTimer.title}</h3>
-                                </div>
-                            </div>
-                            <div class="font-title text-5xl text-white drop-shadow-md leading-none font-variant-numeric:tabular-nums">${legacyTimeDisplay}</div>
-                        </div>
-                    </div>`;
                 const tone = getWallpaperTimerTone(activeTimer.deadline);
                 const timeDisplay = utils.formatCountdownClock(activeTimer.deadline, { expiredLabel: '00:00:00' });
-                const urgencyLabel = utils.formatCountdownCompact(activeTimer.deadline, 'Expired');
+
                 timerOverlay.innerHTML = `
-                    <div class="wallpaper-float-card ${tone.cardClass} !w-auto !min-w-[360px] !rounded-[28px] !p-5 shadow-2xl border-4" style="position: relative; transform: none; animation: none;">
-                        <div class="flex items-center justify-between gap-6">
-                            <div class="flex items-center gap-4">
-                                <div class="flex h-16 w-16 items-center justify-center rounded-2xl bg-white/15 text-4xl shadow-inner shadow-white/10">${tone.icon}</div>
-                                <div class="text-left">
-                                    <div class="text-[10px] font-black uppercase tracking-[0.28em] text-white/70 leading-none mb-2">Timed Quest</div>
-                                    <h3 class="font-title text-2xl text-white leading-tight truncate max-w-[180px]">${activeTimer.title}</h3>
-                                    <div class="mt-2 text-sm font-bold ${tone.accent}">Clock pressure is active</div>
-                                </div>
-                            </div>
-                            <div class="text-right">
-                                <div class="font-title text-5xl text-white drop-shadow-md leading-none font-variant-numeric:tabular-nums">${timeDisplay}</div>
-                                <div class="mt-2 text-xs font-black uppercase tracking-[0.24em] text-white/65">${urgencyLabel}</div>
-                            </div>
-                        </div>
+                    <div class="wall-timer-pill ${tone.pillClass}">
+                        <span class="wall-timer-pill__icon">${tone.icon}</span>
+                        <span class="wall-timer-pill__title">${activeTimer.title}</span>
+                        <span class="wall-timer-pill__sep"></span>
+                        <span class="wall-timer-pill__clock">${timeDisplay}</span>
                     </div>`;
             } else {
                 // --- TIMER FINISHED ---
                 clearInterval(wallpaperTimerInterval);
+
+                // Animate pill exit before clearing
+                const pill = timerOverlay.querySelector('.wall-timer-pill');
+                if (pill) {
+                    pill.classList.add('wall-timer-pill--exiting');
+                    await new Promise(r => setTimeout(r, 400));
+                }
                 timerOverlay.innerHTML = '';
 
                 // 1. Mark complete in DB
@@ -603,7 +560,14 @@ async function directorGameLoop() {
         wallpaperTimerInterval = setInterval(updateTimerVisuals, 1000);
 
     } else {
-        timerOverlay.innerHTML = '';
+        // No active timer — animate pill out if present, then clear
+        const pill = timerOverlay?.querySelector('.wall-timer-pill');
+        if (pill) {
+            pill.classList.add('wall-timer-pill--exiting');
+            setTimeout(() => { timerOverlay.innerHTML = ''; }, 400);
+        } else {
+            timerOverlay.innerHTML = '';
+        }
     }
 
     // --- STANDARD CARD LOGIC (Running in background) ---

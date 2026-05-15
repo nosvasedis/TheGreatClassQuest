@@ -122,21 +122,32 @@ export const aiModalsHTML = `
     </div>
 
     <div id="story-input-modal"
-        class="fixed inset-0 bg-black bg-opacity-50 z-[72] flex items-center justify-center p-4 hidden">
-        <div class="bg-white p-8 rounded-3xl shadow-2xl max-w-lg w-full pop-in border-4 border-cyan-300">
-            <h2 class="font-title text-2xl text-cyan-700 mb-4 text-center">Continue the Chronicle</h2>
-            <div class="mb-4">
-                <label for="story-input-textarea" class="block text-sm font-medium text-gray-700">Enter the new,
-                    complete story sentence:</label>
-                <textarea id="story-input-textarea" rows="5"
-                    class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-cyan-500 focus:border-cyan-500"></textarea>
+        class="fixed inset-0 bg-slate-950/60 z-[1200] flex items-center justify-center p-4 hidden backdrop-blur-sm">
+        <div class="bg-white/90 backdrop-blur-xl rounded-[2.5rem] shadow-2xl max-w-lg w-full pop-in border-4 border-cyan-200/50 flex flex-col overflow-hidden relative">
+            <div class="bg-gradient-to-r from-cyan-500 to-blue-600 p-6 text-center relative overflow-hidden">
+                <div class="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/stardust.png')] opacity-20 pointer-events-none"></div>
+                <div class="relative z-10">
+                    <div class="w-16 h-16 bg-white/20 backdrop-blur-md rounded-2xl flex items-center justify-center text-3xl mx-auto mb-3 shadow-inner border border-white/30 animate-float">📖</div>
+                    <h2 class="font-title text-3xl text-white drop-shadow-md leading-tight">Continue the Chronicle</h2>
+                    <p class="text-cyan-100 font-title text-sm mt-1 opacity-90">✨ Weave the next chapter of your adventure ✨</p>
+                </div>
             </div>
-            <div class="flex justify-around gap-4 mt-6">
-                <button id="story-input-cancel-btn"
-                    class="w-full bg-gray-200 hover:bg-gray-300 text-gray-800 font-title text-lg py-2 px-8 rounded-xl bubbly-button">Cancel</button>
-                <button id="story-input-confirm-btn"
-                    class="w-full bg-cyan-500 hover:bg-cyan-600 text-white font-title text-lg py-2 px-8 rounded-xl bubbly-button">Save
-                    Sentence</button>
+
+            <div class="p-8">
+                <div class="mb-6">
+                    <label for="story-input-textarea" class="block text-sm font-black text-cyan-800 uppercase tracking-widest mb-2 ml-1">The Next Sentence</label>
+                    <textarea id="story-input-textarea" rows="5"
+                        class="mt-1 block w-full px-5 py-4 bg-cyan-50/30 border-2 border-cyan-100 rounded-2xl shadow-inner focus:outline-none focus:ring-4 focus:ring-cyan-500/20 focus:border-cyan-400 transition-all font-serif text-lg text-slate-700 leading-relaxed"
+                        placeholder="Once upon a time..."></textarea>
+                </div>
+                <div class="flex flex-col sm:flex-row justify-around gap-4 mt-2">
+                    <button id="story-input-cancel-btn"
+                        class="w-full bg-slate-100 hover:bg-slate-200 text-slate-600 font-title text-lg py-3 px-8 rounded-2xl bubbly-button transition-all border-b-4 border-slate-300 active:border-b-0">Cancel</button>
+                    <button id="story-input-confirm-btn"
+                        class="w-full bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-600 hover:to-blue-700 text-white font-title text-lg py-3 px-8 rounded-2xl shadow-lg shadow-cyan-200 transition-all active:scale-95 border-b-4 border-blue-800 active:border-b-0">
+                        <i class="fas fa-feather-pointed mr-2"></i>Chronicled!
+                    </button>
+                </div>
             </div>
         </div>
     </div>

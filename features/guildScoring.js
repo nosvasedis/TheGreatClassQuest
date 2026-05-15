@@ -407,6 +407,70 @@ export function getGuildLeaderboardData() {
 }
 
 /**
+ * Returns sorted guild leaderboard scoped to students in a specific class.
+ * This ensures the AI log and class-specific views use the same ranking logic
+ * as the Guild Hall, but normalized against only the guilds active in that class.
+ */
+export function getGuildLeaderboardForClass(classId) {
+    const allGuildScores = state.get('allGuildScores') || {};
+    const allStudents = state.get('allStudents') || [];
+    const allStudentScores = state.get('allStudentScores') || [];
+
+    // Only consider students in this class
+    const classStudents = allStudents.filter(s => s.classId === classId);
+    const classGuildIds = new Set(classStudents.map(s => s.guildId).filter(Boolean));
+
+    // Build raw data for guilds that have members in this class
+    const rawList = GUILD_IDS
+        .filter(gid => classGuildIds.has(gid))
+        .map((gid) => {
+            const gDoc = allGuildScores[gid] || {};
+            const totalStars = Number(gDoc.totalStars) || 0;
+            const totalGlory = Number(gDoc.totalGlory) || (totalStars * GLORY_PER_STAR);
+            const members = classStudents.filter(s => s.guildId === gid);
+            const memberCount = members.length || 1;
+            const guildDef = GUILDS[gid];
+
+            const monthlyStars = members.reduce((sum, s) => {
+                const sc = allStudentScores.find(sc => sc.id === s.id);
+                return sum + (Number(sc?.monthlyStars) || 0);
+            }, 0);
+
+            const perCapitaStars = Math.round((totalStars / memberCount) * 10) / 10;
+            const monthlyPerCapitaStars = Math.round((monthlyStars / memberCount) * 10) / 10;
+
+            return {
+                guildId: gid,
+                guildName: guildDef?.name || gDoc.guildName || gid,
+                totalStars,
+                monthlyStars,
+                memberCount,
+                perCapitaStars,
+                monthlyPerCapitaStars,
+                totalGlory,
+                monthlyGlory: Number(gDoc.monthlyGlory) || 0,
+                weeklyGlory: Number(gDoc.weeklyGlory) || 0,
+                previousWeekGlory: Number(gDoc.previousWeekGlory) || 0,
+                weeklyActiveMembers: Number(gDoc.weeklyActiveMembers) || 0,
+                gloryModifiers: gDoc.gloryModifiers || [],
+            };
+        });
+
+    if (rawList.length === 0) return [];
+
+    // Normalize against only the class guilds
+    const maxPerCapitaGlory = Math.max(...rawList.map(g => (g.totalGlory / Math.max(g.memberCount, 1)))) || 1;
+
+    const list = rawList.map(g => {
+        const power = calculateGuildPower(g, maxPerCapitaGlory);
+        return { ...g, ...power };
+    });
+
+    list.sort((a, b) => b.guildPower - a.guildPower || b.perCapitaGlory - a.perCapitaGlory || b.totalGlory - a.totalGlory);
+    return list;
+}
+
+/**
  * Returns the current month's guild champion for each guild.
  */
 export function getGuildChampionsForMonth(allStudents, allStudentScores) {

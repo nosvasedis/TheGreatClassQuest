@@ -22,7 +22,7 @@ import { showToast } from '../../ui/effects.js';
 import * as utils from '../../utils.js';
 import { getTodayDateString, getAgeGroupForLeague, compressImageBase64 } from '../../utils.js';
 import { callGeminiApi, callGeminiApiDetailed, callCloudflareAiImageApi } from '../../api.js';
-import { getGuildLeaderboardData } from '../../features/guildScoring.js';
+import { getGuildLeaderboardData, getGuildLeaderboardForClass } from '../../features/guildScoring.js';
 import { syncQuestAssignmentToParentHomework } from '../../utils/adminRuntime.js';
 
 const ADVENTURE_LOG_AI_RETRY_DELAYS_MS = [30000, 90000, 240000];
@@ -695,10 +695,9 @@ async function handleAILogAdventure(classId, classData) {
     const powerUpContext = pathfinderUsedToday ? "A Pathfinder's Map was used today." : '';
 
     // Guild standings — find the leading guild among guilds present in this class
-    // Use getGuildLeaderboardData() which ranks by composite Guild Power (glory + momentum + activity)
-    const classGuildIds = new Set((state.get('allStudents') || []).filter(s => s.classId === classId).map(s => s.guildId).filter(Boolean));
-    const classGuildScores = getGuildLeaderboardData().filter(g => classGuildIds.has(g.guildId));
-    // Already sorted by guildPower desc from getGuildLeaderboardData()
+    // Use class-scoped leaderboard so rankings match what the Guild Hall shows for this class
+    const classGuildScores = getGuildLeaderboardForClass(classId);
+    // Already sorted by guildPower desc from getGuildLeaderboardForClass()
     let guildContext = '';
     if (classGuildScores.length >= 2) {
         const leader = classGuildScores[0];

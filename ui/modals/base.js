@@ -122,13 +122,38 @@ export function showModal(title, message, onConfirm, confirmText = 'Confirm', ca
     document.getElementById('modal-message').innerHTML = message;
     const confirmBtn = document.getElementById('modal-confirm-btn');
     const cancelBtn = document.getElementById('modal-cancel-btn');
+    const iconContainer = document.getElementById('modal-icon-container');
     confirmBtn.innerText = confirmText;
     cancelBtn.innerText = cancelText;
+
+    // --- Dynamic Icons & Theming ---
+    if (iconContainer) {
+        iconContainer.classList.add('hidden');
+        iconContainer.innerHTML = '';
+        
+        // Specific theme: Story Milestone
+        if (title === 'Story Milestone!') {
+            iconContainer.classList.remove('hidden');
+            iconContainer.innerHTML = '⭐';
+            // Enhance buttons for this theme
+            confirmBtn.className = "w-full bg-gradient-to-r from-amber-400 to-orange-500 hover:from-amber-500 hover:to-orange-600 text-white font-title text-lg py-3 px-6 rounded-2xl shadow-lg shadow-amber-100 transition-all active:scale-95 border-b-4 border-amber-700 active:border-b-0 bubbly-button";
+            document.getElementById('modal-message').classList.remove('italic');
+            document.getElementById('modal-message').classList.add('font-bold', 'text-indigo-900');
+        } else if (title.includes('Delete') || title.includes('Purge') || title.includes('Reset')) {
+            iconContainer.classList.remove('hidden');
+            iconContainer.innerHTML = '⚠️';
+            confirmBtn.className = "w-full bg-gradient-to-r from-rose-500 to-red-600 hover:from-rose-600 hover:to-red-700 text-white font-title text-lg py-3 px-6 rounded-2xl shadow-lg shadow-rose-100 transition-all active:scale-95 border-b-4 border-rose-800 active:border-b-0 bubbly-button";
+        } else {
+            // Default premium blue/violet
+            confirmBtn.className = "w-full bg-gradient-to-r from-indigo-500 to-violet-600 hover:from-indigo-600 hover:to-violet-700 text-white font-title text-lg py-3 px-6 rounded-2xl shadow-lg shadow-indigo-100 transition-all active:scale-95 border-b-4 border-indigo-800 active:border-b-0 bubbly-button";
+        }
+    }
 
     const newConfirmBtn = confirmBtn.cloneNode(true);
     confirmBtn.parentNode.replaceChild(newConfirmBtn, confirmBtn);
     const newCancelBtn = cancelBtn.cloneNode(true);
     cancelBtn.parentNode.replaceChild(newCancelBtn, cancelBtn);
+    
     newConfirmBtn.addEventListener('click', () => {
         playSound('click');
         if (onConfirm) onConfirm();

@@ -10,7 +10,8 @@
 
 export const HERO_SKILL_TREE = {
 
-    // ─── GUARDIAN (Respect) ───────────────────────────────────────────────────
+    // ─── GUARDIAN (Respect) — The Protector ──────────────────────────────────
+    // Identity: Strongest classmate buffs. Shields and protects allies.
     Guardian: {
         reason: 'respect',
         auraColor: '#16a34a',
@@ -24,16 +25,16 @@ export const HERO_SKILL_TREE = {
                       desc: 'Earn +3 Gold whenever you receive a Respect star.',
                       effect: { type: 'self_gold_on_reason', amount: 3 } },
                     { id: 'guardian_1b', name: 'Bulwark', icon: '🛡️',
-                      desc: '+1 Gold to every classmate who also earns a Respect star on the same day as you.',
-                      effect: { type: 'classmate_gold_on_reason', amount: 1 } }
+                      desc: '+2 Gold to every classmate who also earns a Respect star on the same day as you.',
+                      effect: { type: 'classmate_gold_on_reason', amount: 2 } }
                 ]
             },
             {
                 threshold: 45,
                 branches: [
                     { id: 'guardian_2a', name: 'Aegis Aura', icon: '✨',
-                      desc: '+2 Gold to every guildmate who earns a Respect star today.',
-                      effect: { type: 'guildmate_gold_on_reason', amount: 2 } },
+                      desc: '+3 Gold to every guildmate who earns a Respect star today.',
+                      effect: { type: 'guildmate_gold_on_reason', amount: 3 } },
                     { id: 'guardian_2b', name: 'Honor Guard', icon: '⚔️',
                       desc: 'The first time you earn a Respect star each month, all your guildmates receive +5 Gold automatically.',
                       effect: { type: 'first_of_month_guild_bonus', amount: 5 } }
@@ -43,8 +44,8 @@ export const HERO_SKILL_TREE = {
                 threshold: 70,
                 branches: [
                     { id: 'guardian_3a', name: 'Steel Oath', icon: '🔩',
-                      desc: 'Earn +5 Gold whenever you receive a Respect star.',
-                      effect: { type: 'self_gold_on_reason', amount: 5 } },
+                      desc: '+4 Gold when you earn Respect AND +2 Gold to every classmate who also earns Respect today.',
+                      effect: { type: 'self_gold_on_reason', amount: 4 }, secondaryEffect: { type: 'classmate_gold_on_reason', amount: 2 } },
                     { id: 'guardian_3b', name: 'Fortress', icon: '🏰',
                       desc: '+1 bonus star added to your total whenever you earn a Respect star.',
                       effect: { type: 'star_bonus_on_reason', amount: 1 } }
@@ -57,16 +58,16 @@ export const HERO_SKILL_TREE = {
                       desc: '+3 Gold to a random classmate every time you earn a Respect star.',
                       effect: { type: 'random_classmate_gold', amount: 3 } },
                     { id: 'guardian_4b', name: 'Rally', icon: '📣',
-                      desc: 'The first time you earn a Respect star each month, all your guildmates receive +3 Gold automatically.',
-                      effect: { type: 'first_of_month_guild_bonus', amount: 3 } }
+                      desc: 'The first time you earn a Respect star each month, all your guildmates receive +4 Gold automatically.',
+                      effect: { type: 'first_of_month_guild_bonus', amount: 4 } }
                 ]
             },
             {
                 threshold: 120,
                 branches: [
                     { id: 'guardian_5a', name: 'Eternal Bulwark', icon: '🌟',
-                      desc: '+8 Gold when you earn Respect AND +2 Gold to all guildmates earning Respect.',
-                      effect: { type: 'self_gold_on_reason', amount: 8 }, secondaryEffect: { type: 'guildmate_gold_on_reason', amount: 2 } },
+                      desc: '+6 Gold when you earn Respect AND +3 Gold to all guildmates earning Respect.',
+                      effect: { type: 'self_gold_on_reason', amount: 6 }, secondaryEffect: { type: 'guildmate_gold_on_reason', amount: 3 } },
                     { id: 'guardian_5b', name: "Guardian's Legacy", icon: '👑',
                       desc: '+2 bonus stars added to your total whenever you earn a Respect star.',
                       effect: { type: 'star_bonus_on_reason', amount: 2 } }
@@ -75,7 +76,8 @@ export const HERO_SKILL_TREE = {
         ]
     },
 
-    // ─── SAGE (Creativity) ────────────────────────────────────────────────────
+    // ─── SAGE (Creativity) — The Arcane Intellect ────────────────────────────
+    // Identity: Balanced mystical synergy. Gets random_classmate_gold earliest.
     Sage: {
         reason: 'creativity',
         auraColor: '#9333ea',
@@ -86,8 +88,8 @@ export const HERO_SKILL_TREE = {
                 threshold: 20,
                 branches: [
                     { id: 'sage_1a', name: 'Creative Spark', icon: '💡',
-                      desc: 'Earn +3 Gold whenever you receive a Creativity star.',
-                      effect: { type: 'self_gold_on_reason', amount: 3 } },
+                      desc: 'Earn +4 Gold whenever you receive a Creativity star.',
+                      effect: { type: 'self_gold_on_reason', amount: 4 } },
                     { id: 'sage_1b', name: 'Inspiration', icon: '🌀',
                       desc: '+1 Gold to every classmate who also earns a Creativity star on the same day as you.',
                       effect: { type: 'classmate_gold_on_reason', amount: 1 } }
@@ -97,11 +99,11 @@ export const HERO_SKILL_TREE = {
                 threshold: 45,
                 branches: [
                     { id: 'sage_2a', name: 'Arcane Focus', icon: '🔮',
-                      desc: '+2 Gold to every guildmate who earns a Creativity star today.',
-                      effect: { type: 'guildmate_gold_on_reason', amount: 2 } },
+                      desc: '+3 Gold to a random classmate every time you earn a Creativity star.',
+                      effect: { type: 'random_classmate_gold', amount: 3 } },
                     { id: 'sage_2b', name: 'Muse', icon: '🎨',
-                      desc: 'The first time you earn a Creativity star each month, all your guildmates receive +5 Gold automatically.',
-                      effect: { type: 'first_of_month_guild_bonus', amount: 5 } }
+                      desc: 'The first time you earn a Creativity star each month, all your guildmates receive +4 Gold automatically.',
+                      effect: { type: 'first_of_month_guild_bonus', amount: 4 } }
                 ]
             },
             {
@@ -119,11 +121,11 @@ export const HERO_SKILL_TREE = {
                 threshold: 95,
                 branches: [
                     { id: 'sage_4a', name: 'Mind Weave', icon: '🧵',
-                      desc: '+3 Gold to a random classmate every time you earn a Creativity star.',
-                      effect: { type: 'random_classmate_gold', amount: 3 } },
+                      desc: '+2 Gold to every guildmate who earns a Creativity star today.',
+                      effect: { type: 'guildmate_gold_on_reason', amount: 2 } },
                     { id: 'sage_4b', name: 'Spell Share', icon: '🪄',
-                      desc: 'The first time you earn a Creativity star each month, all your guildmates receive +3 Gold automatically.',
-                      effect: { type: 'first_of_month_guild_bonus', amount: 3 } }
+                      desc: '+3 Gold to a random classmate every time you earn a Creativity star.',
+                      effect: { type: 'random_classmate_gold', amount: 3 } }
                 ]
             },
             {
@@ -140,7 +142,8 @@ export const HERO_SKILL_TREE = {
         ]
     },
 
-    // ─── PALADIN (Teamwork) ───────────────────────────────────────────────────
+    // ─── PALADIN (Teamwork) — The Commander ──────────────────────────────────
+    // Identity: Strongest guildmate buffs. Gets guildmate_gold at L1. Rallies the guild.
     Paladin: {
         reason: 'teamwork',
         auraColor: '#2563eb',
@@ -151,8 +154,8 @@ export const HERO_SKILL_TREE = {
                 threshold: 20,
                 branches: [
                     { id: 'paladin_1a', name: 'Team Spirit', icon: '🤝',
-                      desc: 'Earn +3 Gold whenever you receive a Teamwork star.',
-                      effect: { type: 'self_gold_on_reason', amount: 3 } },
+                      desc: '+2 Gold to every guildmate who earns a Teamwork star today.',
+                      effect: { type: 'guildmate_gold_on_reason', amount: 2 } },
                     { id: 'paladin_1b', name: "Brother's Shield", icon: '🛡️',
                       desc: '+1 Gold to every classmate who also earns a Teamwork star on the same day as you.',
                       effect: { type: 'classmate_gold_on_reason', amount: 1 } }
@@ -162,19 +165,19 @@ export const HERO_SKILL_TREE = {
                 threshold: 45,
                 branches: [
                     { id: 'paladin_2a', name: 'Battle Bond', icon: '⚔️',
-                      desc: '+2 Gold to every guildmate who earns a Teamwork star today.',
-                      effect: { type: 'guildmate_gold_on_reason', amount: 2 } },
+                      desc: '+3 Gold to every guildmate who earns a Teamwork star today.',
+                      effect: { type: 'guildmate_gold_on_reason', amount: 3 } },
                     { id: 'paladin_2b', name: 'Valor', icon: '🦁',
-                      desc: 'The first time you earn a Teamwork star each month, all your guildmates receive +5 Gold automatically.',
-                      effect: { type: 'first_of_month_guild_bonus', amount: 5 } }
+                      desc: 'The first time you earn a Teamwork star each month, all your guildmates receive +6 Gold automatically.',
+                      effect: { type: 'first_of_month_guild_bonus', amount: 6 } }
                 ]
             },
             {
                 threshold: 70,
                 branches: [
                     { id: 'paladin_3a', name: "Crusader's Pact", icon: '✝️',
-                      desc: 'Earn +5 Gold whenever you receive a Teamwork star.',
-                      effect: { type: 'self_gold_on_reason', amount: 5 } },
+                      desc: '+4 Gold when you earn Teamwork AND +2 Gold to every guildmate who earns Teamwork today.',
+                      effect: { type: 'self_gold_on_reason', amount: 4 }, secondaryEffect: { type: 'guildmate_gold_on_reason', amount: 2 } },
                     { id: 'paladin_3b', name: 'Sacred Vow', icon: '🕊️',
                       desc: '+1 bonus star added to your total whenever you earn a Teamwork star.',
                       effect: { type: 'star_bonus_on_reason', amount: 1 } }
@@ -187,16 +190,16 @@ export const HERO_SKILL_TREE = {
                       desc: '+3 Gold to a random classmate every time you earn a Teamwork star.',
                       effect: { type: 'random_classmate_gold', amount: 3 } },
                     { id: 'paladin_4b', name: 'Unbroken Line', icon: '🔗',
-                      desc: 'The first time you earn a Teamwork star each month, all your guildmates receive +3 Gold automatically.',
-                      effect: { type: 'first_of_month_guild_bonus', amount: 3 } }
+                      desc: 'The first time you earn a Teamwork star each month, all your guildmates receive +4 Gold automatically.',
+                      effect: { type: 'first_of_month_guild_bonus', amount: 4 } }
                 ]
             },
             {
                 threshold: 120,
                 branches: [
                     { id: 'paladin_5a', name: "High Marshal's Code", icon: '🌟',
-                      desc: '+8 Gold when you earn Teamwork AND +2 Gold to all guildmates earning Teamwork.',
-                      effect: { type: 'self_gold_on_reason', amount: 8 }, secondaryEffect: { type: 'guildmate_gold_on_reason', amount: 2 } },
+                      desc: '+6 Gold when you earn Teamwork AND +4 Gold to all guildmates earning Teamwork.',
+                      effect: { type: 'self_gold_on_reason', amount: 6 }, secondaryEffect: { type: 'guildmate_gold_on_reason', amount: 4 } },
                     { id: 'paladin_5b', name: "Paladin's Oath", icon: '👑',
                       desc: '+2 bonus stars added to your total whenever you earn a Teamwork star.',
                       effect: { type: 'star_bonus_on_reason', amount: 2 } }
@@ -205,7 +208,8 @@ export const HERO_SKILL_TREE = {
         ]
     },
 
-    // ─── ARTIFICER (Focus) ────────────────────────────────────────────────────
+    // ─── ARTIFICER (Focus) — The Master Crafter ──────────────────────────────
+    // Identity: Highest self_gold. Gets self_gold at L1, L2, L3, L5 (every tier).
     Artificer: {
         reason: 'focus',
         auraColor: '#d97706',
@@ -216,8 +220,8 @@ export const HERO_SKILL_TREE = {
                 threshold: 20,
                 branches: [
                     { id: 'artificer_1a', name: 'Focused Mind', icon: '🧠',
-                      desc: 'Earn +3 Gold whenever you receive a Focus star.',
-                      effect: { type: 'self_gold_on_reason', amount: 3 } },
+                      desc: 'Earn +4 Gold whenever you receive a Focus star.',
+                      effect: { type: 'self_gold_on_reason', amount: 4 } },
                     { id: 'artificer_1b', name: 'Workshop', icon: '🔧',
                       desc: '+1 Gold to every classmate who also earns a Focus star on the same day as you.',
                       effect: { type: 'classmate_gold_on_reason', amount: 1 } }
@@ -227,19 +231,19 @@ export const HERO_SKILL_TREE = {
                 threshold: 45,
                 branches: [
                     { id: 'artificer_2a', name: 'Precision Craft', icon: '⚙️',
-                      desc: '+2 Gold to every guildmate who earns a Focus star today.',
-                      effect: { type: 'guildmate_gold_on_reason', amount: 2 } },
+                      desc: 'Earn +6 Gold whenever you receive a Focus star.',
+                      effect: { type: 'self_gold_on_reason', amount: 6 } },
                     { id: 'artificer_2b', name: 'Gear Up', icon: '🔩',
-                      desc: 'The first time you earn a Focus star each month, all your guildmates receive +5 Gold automatically.',
-                      effect: { type: 'first_of_month_guild_bonus', amount: 5 } }
+                      desc: 'The first time you earn a Focus star each month, all your guildmates receive +4 Gold automatically.',
+                      effect: { type: 'first_of_month_guild_bonus', amount: 4 } }
                 ]
             },
             {
                 threshold: 70,
                 branches: [
                     { id: 'artificer_3a', name: "Master Blueprint", icon: '📐',
-                      desc: 'Earn +5 Gold whenever you receive a Focus star.',
-                      effect: { type: 'self_gold_on_reason', amount: 5 } },
+                      desc: 'Earn +7 Gold whenever you receive a Focus star.',
+                      effect: { type: 'self_gold_on_reason', amount: 7 } },
                     { id: 'artificer_3b', name: "Inventor's Engine", icon: '⚡',
                       desc: '+1 bonus star added to your total whenever you earn a Focus star.',
                       effect: { type: 'star_bonus_on_reason', amount: 1 } }
@@ -252,16 +256,16 @@ export const HERO_SKILL_TREE = {
                       desc: '+3 Gold to a random classmate every time you earn a Focus star.',
                       effect: { type: 'random_classmate_gold', amount: 3 } },
                     { id: 'artificer_4b', name: 'Mana Battery', icon: '🔋',
-                      desc: 'The first time you earn a Focus star each month, all your guildmates receive +3 Gold automatically.',
-                      effect: { type: 'first_of_month_guild_bonus', amount: 3 } }
+                      desc: '+3 Gold to every guildmate who earns a Focus star today.',
+                      effect: { type: 'guildmate_gold_on_reason', amount: 3 } }
                 ]
             },
             {
                 threshold: 120,
                 branches: [
                     { id: 'artificer_5a', name: 'Grand Contraption', icon: '🌟',
-                      desc: '+8 Gold when you earn Focus AND +2 Gold to all guildmates earning Focus.',
-                      effect: { type: 'self_gold_on_reason', amount: 8 }, secondaryEffect: { type: 'guildmate_gold_on_reason', amount: 2 } },
+                      desc: '+10 Gold when you earn Focus AND +2 Gold to all guildmates earning Focus.',
+                      effect: { type: 'self_gold_on_reason', amount: 10 }, secondaryEffect: { type: 'guildmate_gold_on_reason', amount: 2 } },
                     { id: 'artificer_5b', name: 'Perpetual Engine', icon: '♾️',
                       desc: '+2 bonus stars added to your total whenever you earn a Focus star.',
                       effect: { type: 'star_bonus_on_reason', amount: 2 } }
@@ -270,7 +274,9 @@ export const HERO_SKILL_TREE = {
         ]
     },
 
-    // ─── SCHOLAR (Scholar Bonus) ──────────────────────────────────────────────
+    // ─── SCHOLAR (Scholar Bonus) — The Academic ──────────────────────────────
+    // Identity: Gets star_bonus at L1 (earliest of ANY class). Capstone +4 stars.
+    // Significantly stronger since tests are rare events (3 levels, 30 stars to max).
     Scholar: {
         reason: 'scholar_s_bonus',
         auraColor: '#0891b2',
@@ -281,39 +287,40 @@ export const HERO_SKILL_TREE = {
                 threshold: 10,
                 branches: [
                     { id: 'scholar_1a', name: 'Academic Edge', icon: '📝',
-                      desc: 'Earn +4 Gold whenever you receive a Scholar Bonus star.',
-                      effect: { type: 'self_gold_on_reason', amount: 4 } },
+                      desc: 'Earn +5 Gold whenever you receive a Scholar Bonus star.',
+                      effect: { type: 'self_gold_on_reason', amount: 5 } },
                     { id: 'scholar_1b', name: 'Study Group', icon: '📖',
-                      desc: '+2 Gold to every classmate who also earns a Scholar Bonus on the same day as you.',
-                      effect: { type: 'classmate_gold_on_reason', amount: 2 } }
+                      desc: '+3 Gold to every classmate who also earns a Scholar Bonus on the same day as you.',
+                      effect: { type: 'classmate_gold_on_reason', amount: 3 } }
                 ]
             },
             {
                 threshold: 20,
                 branches: [
                     { id: 'scholar_2a', name: 'Research Grant', icon: '🔬',
-                      desc: 'Earn +7 Gold whenever you receive a Scholar Bonus star.',
-                      effect: { type: 'self_gold_on_reason', amount: 7 } },
+                      desc: '+8 Gold when you earn Scholar Bonus AND +1 bonus star added to your total.',
+                      effect: { type: 'self_gold_on_reason', amount: 8 }, secondaryEffect: { type: 'star_bonus_on_reason', amount: 1 } },
                     { id: 'scholar_2b', name: 'Scholar Network', icon: '🌐',
-                      desc: "The first time you earn a Scholar's Bonus star each month, all your guildmates receive +6 Gold automatically.",
-                      effect: { type: 'first_of_month_guild_bonus', amount: 6 } }
+                      desc: "The first time you earn a Scholar's Bonus star each month, all your guildmates receive +7 Gold automatically.",
+                      effect: { type: 'first_of_month_guild_bonus', amount: 7 } }
                 ]
             },
             {
                 threshold: 30,
                 branches: [
                     { id: 'scholar_5a', name: "Grand Scholar's Mark", icon: '🌟',
-                      desc: '+10 Gold when you earn Scholar Bonus AND +4 Gold to all guildmates earning it.',
-                      effect: { type: 'self_gold_on_reason', amount: 10 }, secondaryEffect: { type: 'guildmate_gold_on_reason', amount: 4 } },
+                      desc: '+12 Gold when you earn Scholar Bonus AND +5 Gold to all guildmates earning it.',
+                      effect: { type: 'self_gold_on_reason', amount: 12 }, secondaryEffect: { type: 'guildmate_gold_on_reason', amount: 5 } },
                     { id: 'scholar_5b', name: 'Academic Legacy', icon: '👑',
-                      desc: '+3 bonus stars added to your total whenever you earn a Scholar Bonus.',
-                      effect: { type: 'star_bonus_on_reason', amount: 3 } }
+                      desc: '+4 bonus stars added to your total whenever you earn a Scholar Bonus.',
+                      effect: { type: 'star_bonus_on_reason', amount: 4 } }
                 ]
             }
         ]
     },
 
-    // ─── WEAVER (Story Weaver) ────────────────────────────────────────────────
+    // ─── WEAVER (Story Weaver) — The Storyteller ────────────────────────────
+    // Identity: Benefits spread to many allies. Combined classmate+self at L3.
     Weaver: {
         reason: 'story_weaver',
         auraColor: '#0d9488',
@@ -327,8 +334,8 @@ export const HERO_SKILL_TREE = {
                       desc: 'Earn +3 Gold whenever you receive a Story Weaver star.',
                       effect: { type: 'self_gold_on_reason', amount: 3 } },
                     { id: 'weaver_1b', name: 'Tale Share', icon: '📜',
-                      desc: '+1 Gold to every classmate who also earns a Story Weaver star on the same day.',
-                      effect: { type: 'classmate_gold_on_reason', amount: 1 } }
+                      desc: '+2 Gold to every classmate who also earns a Story Weaver star on the same day.',
+                      effect: { type: 'classmate_gold_on_reason', amount: 2 } }
                 ]
             },
             {
@@ -346,8 +353,8 @@ export const HERO_SKILL_TREE = {
                 threshold: 70,
                 branches: [
                     { id: 'weaver_3a', name: 'Epic Prose', icon: '🏛️',
-                      desc: 'Earn +5 Gold whenever you receive a Story Weaver star.',
-                      effect: { type: 'self_gold_on_reason', amount: 5 } },
+                      desc: '+4 Gold when you earn Story Weaver AND +2 Gold to every classmate who also earns it today.',
+                      effect: { type: 'self_gold_on_reason', amount: 4 }, secondaryEffect: { type: 'classmate_gold_on_reason', amount: 2 } },
                     { id: 'weaver_3b', name: 'Chronicle', icon: '📰',
                       desc: '+1 bonus star added to your total whenever you earn a Story Weaver star.',
                       effect: { type: 'star_bonus_on_reason', amount: 1 } }
@@ -360,16 +367,16 @@ export const HERO_SKILL_TREE = {
                       desc: '+3 Gold to a random classmate every time you earn a Story Weaver star.',
                       effect: { type: 'random_classmate_gold', amount: 3 } },
                     { id: 'weaver_4b', name: 'Saga Warden', icon: '🗝️',
-                      desc: 'The first time you earn a Story Weaver star each month, all your guildmates receive +3 Gold automatically.',
-                      effect: { type: 'first_of_month_guild_bonus', amount: 3 } }
+                      desc: '+3 Gold to every guildmate who earns a Story Weaver star today.',
+                      effect: { type: 'guildmate_gold_on_reason', amount: 3 } }
                 ]
             },
             {
                 threshold: 120,
                 branches: [
                     { id: 'weaver_5a', name: 'Grand Chronicler', icon: '🌟',
-                      desc: "+8 Gold when you earn Story Weaver AND +2 Gold to all guildmates earning it.",
-                      effect: { type: 'self_gold_on_reason', amount: 8 }, secondaryEffect: { type: 'guildmate_gold_on_reason', amount: 2 } },
+                      desc: "+6 Gold when you earn Story Weaver AND +3 Gold to all guildmates earning it.",
+                      effect: { type: 'self_gold_on_reason', amount: 6 }, secondaryEffect: { type: 'guildmate_gold_on_reason', amount: 3 } },
                     { id: 'weaver_5b', name: "Weaver's Web", icon: '👑',
                       desc: '+2 bonus stars added to your total whenever you earn a Story Weaver star.',
                       effect: { type: 'star_bonus_on_reason', amount: 2 } }
@@ -378,7 +385,9 @@ export const HERO_SKILL_TREE = {
         ]
     },
 
-    // ─── NOMAD (Welcome Back) ──────────────────────────────────────────────────
+    // ─── NOMAD (Welcome Back) — The Wanderer ─────────────────────────────────
+    // Identity: Gets random_classmate_gold at EVERY level. Capstone +4 stars.
+    // Significantly stronger since attendance is rare (3 levels, 30 stars to max).
     Nomad: {
         reason: 'welcome_back',
         auraColor: '#7c3aed',
@@ -389,33 +398,33 @@ export const HERO_SKILL_TREE = {
                 threshold: 10,
                 branches: [
                     { id: 'nomad_1a', name: 'Road Ready', icon: '🥾',
-                      desc: 'Earn +4 Gold whenever you receive a Welcome Back star.',
-                      effect: { type: 'self_gold_on_reason', amount: 4 } },
+                      desc: 'Earn +5 Gold whenever you receive a Welcome Back star.',
+                      effect: { type: 'self_gold_on_reason', amount: 5 } },
                     { id: 'nomad_1b', name: 'Open Road', icon: '🛤️',
-                      desc: '+2 Gold to every classmate who also earns a Welcome Back star on the same day.',
-                      effect: { type: 'classmate_gold_on_reason', amount: 2 } }
+                      desc: '+3 Gold to every classmate who also earns a Welcome Back star on the same day.',
+                      effect: { type: 'classmate_gold_on_reason', amount: 3 } }
                 ]
             },
             {
                 threshold: 20,
                 branches: [
                     { id: 'nomad_4a', name: 'Trail Blazer', icon: '🌄',
-                      desc: '+5 Gold to a random classmate every time you earn a Welcome Back star.',
-                      effect: { type: 'random_classmate_gold', amount: 5 } },
+                      desc: '+6 Gold to a random classmate every time you earn a Welcome Back star.',
+                      effect: { type: 'random_classmate_gold', amount: 6 } },
                     { id: 'nomad_4b', name: "Wanderer's Wisdom", icon: '🧭',
-                      desc: 'The first time you earn a Welcome Back star each month, all your guildmates receive +6 Gold automatically.',
-                      effect: { type: 'first_of_month_guild_bonus', amount: 6 } }
+                      desc: 'The first time you earn a Welcome Back star each month, all your guildmates receive +7 Gold automatically.',
+                      effect: { type: 'first_of_month_guild_bonus', amount: 7 } }
                 ]
             },
             {
                 threshold: 30,
                 branches: [
                     { id: 'nomad_5a', name: "Legendary Nomad's Path", icon: '🌟',
-                      desc: '+10 Gold when you earn Welcome Back AND +4 Gold to all guildmates earning it.',
-                      effect: { type: 'self_gold_on_reason', amount: 10 }, secondaryEffect: { type: 'guildmate_gold_on_reason', amount: 4 } },
+                      desc: '+12 Gold when you earn Welcome Back AND +5 Gold to all guildmates earning it.',
+                      effect: { type: 'self_gold_on_reason', amount: 12 }, secondaryEffect: { type: 'guildmate_gold_on_reason', amount: 5 } },
                     { id: 'nomad_5b', name: 'Eternal Wanderer', icon: '👑',
-                      desc: '+3 bonus stars added to your total whenever you earn a Welcome Back star.',
-                      effect: { type: 'star_bonus_on_reason', amount: 3 } }
+                      desc: '+4 bonus stars added to your total whenever you earn a Welcome Back star.',
+                      effect: { type: 'star_bonus_on_reason', amount: 4 } }
                 ]
             }
         ]
@@ -513,9 +522,13 @@ export function calculateSkillBonus(heroClass, heroSkills, reason, difference) {
         } else if (skill.effect.type === 'star_bonus_on_reason') {
             extraStars += skill.effect.amount * difference;
         }
-        // Handle level-5 dual effects
-        if (skill.secondaryEffect?.type === 'self_gold_on_reason') {
-            extraGold += skill.secondaryEffect.amount * difference;
+        // Handle secondary effects (dual-effect skills)
+        if (skill.secondaryEffect) {
+            if (skill.secondaryEffect.type === 'self_gold_on_reason') {
+                extraGold += skill.secondaryEffect.amount * difference;
+            } else if (skill.secondaryEffect.type === 'star_bonus_on_reason') {
+                extraStars += skill.secondaryEffect.amount * difference;
+            }
         }
     }
     return { extraGold, extraStars };
@@ -540,7 +553,7 @@ export function getOutwardEffects(heroClass, heroSkills, reason, difference) {
         }
         if (skill.secondaryEffect) {
             const se = skill.secondaryEffect;
-            if (['guildmate_gold_on_reason', 'first_of_month_guild_bonus'].includes(se.type)) {
+            if (['classmate_gold_on_reason', 'guildmate_gold_on_reason', 'first_of_month_guild_bonus'].includes(se.type)) {
                 results.push({ skillId: skill.id, skillName: skill.name, ...se });
             }
         }

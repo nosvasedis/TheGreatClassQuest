@@ -1110,8 +1110,17 @@ async function _applyOutwardSkillEffects(
 
     const batch = writeBatch(db);
     let hasBatchWrites = false;
+    /** @type {Map<string, number>} */
+    const goldDeltasByStudentId = new Map();
 
     const currentMonthKey = new Date().toISOString().substring(0, 7); // "YYYY-MM"
+
+    const addGoldDelta = (studentId, amount) => {
+        goldDeltasByStudentId.set(
+            studentId,
+            (goldDeltasByStudentId.get(studentId) || 0) + amount,
+        );
+    };
 
     for (const eff of outwardEffects) {
         let targets = [];
@@ -1167,12 +1176,41 @@ async function _applyOutwardSkillEffects(
         }
 
         for (const target of targets) {
+            addGoldDelta(target.id, eff.amount);
+        }
+    }
+
+    if (goldDeltasByStudentId.size > 0) {
+        const goldEntries = [...goldDeltasByStudentId.entries()];
+        const freshSnaps = await Promise.all(
+            goldEntries.map(([studentId]) =>
+                getDoc(
+                    doc(
+                        db,
+                        `${publicDataPath}/student_scores`,
+                        studentId,
+                    ),
+                ),
+            ),
+        );
+
+        for (let i = 0; i < goldEntries.length; i++) {
+            const [studentId, delta] = goldEntries[i];
+            const snap = freshSnaps[i];
+            if (!snap.exists()) continue;
+
             const targetRef = doc(
                 db,
                 `${publicDataPath}/student_scores`,
-                target.id,
+                studentId,
             );
-            batch.update(targetRef, { gold: increment(eff.amount) });
+            const data = snap.data();
+            if (typeof data.gold === "number") {
+                batch.update(targetRef, { gold: increment(delta) });
+            } else {
+                const baseGold = data.totalStars || 0;
+                batch.update(targetRef, { gold: baseGold + delta });
+            }
             hasBatchWrites = true;
         }
     }

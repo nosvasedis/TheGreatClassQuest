@@ -1107,7 +1107,6 @@ async function _applyOutwardSkillEffects(
 
     const publicDataPath = "artifacts/great-class-quest/public/data";
     const allStudents = state.get("allStudents");
-    const allScores = state.get("allStudentScores");
 
     const batch = writeBatch(db);
     let hasBatchWrites = false;
@@ -1168,17 +1167,12 @@ async function _applyOutwardSkillEffects(
         }
 
         for (const target of targets) {
-            const targetScore = allScores.find((sc) => sc.id === target.id);
-            const currentGold =
-                typeof targetScore?.gold === "number"
-                    ? targetScore.gold
-                    : targetScore?.totalStars || 0;
             const targetRef = doc(
                 db,
                 `${publicDataPath}/student_scores`,
                 target.id,
             );
-            batch.update(targetRef, { gold: currentGold + eff.amount });
+            batch.update(targetRef, { gold: increment(eff.amount) });
             hasBatchWrites = true;
         }
     }
@@ -1196,10 +1190,9 @@ export async function handleEraseTodaysStars() {
             showToast("You have not awarded any stars today!", "info");
             return;
         }
-        const resetPromises = studentIdsToReset.map((id) =>
-            setStudentStarsForToday(id, 0, null),
-        );
-        await Promise.all(resetPromises);
+        for (const id of studentIdsToReset) {
+            await setStudentStarsForToday(id, 0, null);
+        }
         showToast(
             "All stars awarded by you today have been erased!",
             "success",

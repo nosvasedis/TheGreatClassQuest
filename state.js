@@ -136,6 +136,7 @@ function getDefaultState() {
         unsubscribeParentHomework: () => {},
         unsubscribeCommunicationThreads: () => {},
         unsubscribeCommunicationMessages: () => {},
+        unsubscribeShopItems: () => {},
     };
 }
 
@@ -340,14 +341,10 @@ export function setClassFollowScheduleEnabled(enabled) {
 }
 
 export function setGlobalSelectedClass(classId, isManual = false) {
-    if (
-        classId === state.globalSelectedClassId &&
-        !isManual &&
-        state.globalSelectedClassId !== null
-    ) {
-        // Force UI update anyway
-    } else if (classId === state.globalSelectedClassId && !isManual) {
-        return;
+    if (classId === state.globalSelectedClassId && !isManual) {
+        // When the same class is selected programmatically, still allow re-render
+        // if there's already a class selected (non-null) to refresh UI state.
+        if (state.globalSelectedClassId === null) return;
     }
 
     state.leaderboardLeagueOverride = null;
@@ -590,6 +587,9 @@ export function setUnsubscribeCommunicationThreads(func) {
 }
 export function setUnsubscribeCommunicationMessages(func) {
     state.unsubscribeCommunicationMessages = func;
+}
+export function setUnsubscribeShopItems(func) {
+    state.unsubscribeShopItems = func;
 }
 
 // Helper to fetch history (internal use)

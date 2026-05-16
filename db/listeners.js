@@ -79,6 +79,7 @@ function clearDataListeners() {
     state.get("unsubscribeParentHomework")();
     state.get("unsubscribeCommunicationThreads")();
     state.get("unsubscribeCommunicationMessages")();
+    state.get("unsubscribeShopItems")();
 }
 
 export function watchCommunicationThread(threadId) {
@@ -547,6 +548,7 @@ export function setupDataListeners(
                         console.warn("Scholar scroll render:", e),
                     );
                 if (
+                    document.getElementById("options-tab") &&
                     !document
                         .getElementById("options-tab")
                         .classList.contains("hidden")
@@ -596,6 +598,7 @@ export function setupDataListeners(
                         state.get("globalSelectedClassId"),
                     ).catch((e) => console.warn("Scholar scroll render:", e));
                 if (
+                    document.getElementById("options-tab") &&
                     !document
                         .getElementById("options-tab")
                         .classList.contains("hidden")
@@ -780,6 +783,7 @@ export function setupDataListeners(
                 if (isTabVisible("class-leaderboard-tab"))
                     renderClassLeaderboardTab();
                 if (
+                    document.getElementById("options-tab") &&
                     !document
                         .getElementById("options-tab")
                         .classList.contains("hidden")
@@ -921,6 +925,7 @@ export function setupDataListeners(
                     snapshot.docs.map((d) => ({ id: d.id, ...d.data() })),
                 );
                 if (
+                    document.getElementById("story-archive-modal") &&
                     !document
                         .getElementById("story-archive-modal")
                         .classList.contains("hidden")
@@ -1065,17 +1070,19 @@ export function setupDataListeners(
         ),
     );
 
-    onSnapshot(shopItemsQuery, async (snapshot) => {
-        state.setCurrentShopItems(
-            snapshot.docs.map((d) => ({ id: d.id, ...d.data() })),
-        );
-        // Real-time stock updates: Refresh shop UI if modal is open
-        const shopModal = document.getElementById("shop-modal");
-        if (shopModal && !shopModal.classList.contains("hidden")) {
-            const { renderShopUI } = await import("../ui/core/shop.js");
-            renderShopUI();
-        }
-    });
+    state.setUnsubscribeShopItems(
+        onSnapshot(shopItemsQuery, async (snapshot) => {
+            state.setCurrentShopItems(
+                snapshot.docs.map((d) => ({ id: d.id, ...d.data() })),
+            );
+            // Real-time stock updates: Refresh shop UI if modal is open
+            const shopModal = document.getElementById("shop-modal");
+            if (shopModal && !shopModal.classList.contains("hidden")) {
+                const { renderShopUI } = await import("../ui/core/shop.js");
+                renderShopUI();
+            }
+        }),
+    );
 
     state.setUnsubscribeSchoolSettings(
         onSnapshot(schoolSettingsQuery, async (docSnapshot) => {

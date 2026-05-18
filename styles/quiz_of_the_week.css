@@ -280,7 +280,7 @@
 
 .quiz-modal-inner {
     width: min(56rem, 100%);
-    height: min(88vh, 48rem);
+    height: min(85vh, 42rem);
     overflow: hidden;
     border-radius: 2rem;
     background: linear-gradient(160deg, #1e1b4b 0%, #312e81 26%, #4c1d95 62%, #5b21b6 100%);
@@ -297,10 +297,10 @@
 .quiz-modal-stage {
     height: 100%;
     overflow-y: auto;
-    padding: clamp(1.1rem, 2.4vw, 2rem);
+    padding: clamp(0.8rem, 1.8vw, 1.4rem);
     display: flex;
     flex-direction: column;
-    gap: 1.5rem;
+    gap: 1rem;
     scrollbar-width: thin;
     scrollbar-color: rgba(253, 230, 138, 0.95) rgba(15, 23, 42, 0.35);
 }
@@ -337,9 +337,9 @@
     backdrop-filter: blur(18px);
     -webkit-backdrop-filter: blur(18px);
     background: linear-gradient(180deg, rgba(34, 20, 88, 0.92) 0%, rgba(34, 20, 88, 0.74) 100%);
-    margin: calc(clamp(1.1rem, 2.4vw, 2rem) * -1) calc(clamp(1.1rem, 2.4vw, 2rem) * -1) 0;
-    padding-left: clamp(1.1rem, 2.4vw, 2rem);
-    padding-right: clamp(1.1rem, 2.4vw, 2rem);
+    margin: calc(clamp(0.8rem, 1.8vw, 1.4rem) * -1) calc(clamp(0.8rem, 1.8vw, 1.4rem) * -1) 0;
+    padding-left: clamp(0.8rem, 1.8vw, 1.4rem);
+    padding-right: clamp(0.8rem, 1.8vw, 1.4rem);
     padding-top: clamp(1rem, 2vw, 1.2rem);
 }
 
@@ -430,15 +430,15 @@
 .quiz-question-area {
     background: linear-gradient(180deg, rgba(255, 255, 255, 0.1) 0%, rgba(255, 255, 255, 0.06) 100%);
     border-radius: 1.75rem;
-    padding: clamp(1.4rem, 2vw, 2rem);
+    padding: clamp(0.9rem, 1.6vw, 1.4rem);
     border: 1px solid rgba(255, 255, 255, 0.16);
     text-align: center;
-    min-height: 10rem;
+    min-height: 7rem;
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    gap: 1rem;
+    gap: 0.7rem;
     box-shadow: 0 14px 38px rgba(0,0,0,0.22), inset 0 1px 0 rgba(255,255,255,0.08);
 }
 
@@ -447,7 +447,7 @@
 }
 
 .quiz-question-emoji {
-    font-size: 3.35rem;
+    font-size: 2.2rem;
     animation: quiz-intro-icon-bounce 3s ease-in-out infinite;
 }
 
@@ -489,13 +489,20 @@
 .quiz-answer-grid {
     display: grid;
     grid-template-columns: 1fr 1fr;
-    gap: 0.9rem;
+    gap: 0.65rem;
+}
+
+.quiz-answer-grid--blurred .quiz-answer-btn {
+    filter: blur(5px) !important;
+    opacity: 0.5 !important;
+    pointer-events: none !important;
+    transition: filter 0.35s ease, opacity 0.35s ease;
 }
 
 .quiz-answer-btn {
-    min-height: 5.4rem;
-    padding: 1.05rem 1rem;
-    border-radius: 1.35rem;
+    min-height: 4rem;
+    padding: 0.75rem 0.9rem;
+    border-radius: 1.15rem;
     background: linear-gradient(180deg, rgba(255, 255, 255, 0.1) 0%, rgba(255, 255, 255, 0.06) 100%);
     border: 1px solid rgba(255, 255, 255, 0.18);
     color: white;

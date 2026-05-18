@@ -142,7 +142,6 @@ function renderQuestion(questionData, qs) {
             <div class="quiz-question-kicker">Multiple Choice Challenge</div>
             <div class="quiz-question-emoji">✨</div>
             <div class="quiz-question-text">${q.question}</div>
-            <div class="quiz-question-hint">Pick the best answer before the timerless spotlight moves on.</div>
         </div>
         <div class="quiz-answer-grid">
             ${optionsHTML}
@@ -606,6 +605,10 @@ async function handleMcqAnswer(btn, question) {
         showExplanation(question.explanation || 'Correct! Great solve.', true);
     } else {
         if (result?.questionPassedToNextStudent) {
+            const grid = document.querySelector('.quiz-answer-grid');
+            if (grid) {
+                setTimeout(() => grid.classList.add('quiz-answer-grid--blurred'), 650);
+            }
             showExplanation('Not quite. The answer stays hidden and the question passes to another hero.', false);
         } else {
             highlightCorrectOption(question);

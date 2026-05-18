@@ -1,5 +1,6 @@
-// /ui/modals/trophyRoom.js — Trophy Room (Treasure Vault) modal
+// /ui/modals/trophyRoom.js — Trophy Room modal
 import * as state from '../../state.js';
+import * as utils from '../../utils.js';
 import { showToast } from '../effects.js';
 import { showAnimatedModal } from './base.js';
 import { handleUseItem, isItemUsable } from '../../features/powerUps.js';
@@ -116,13 +117,14 @@ function setupCustomDropdown(classId, selectedStudentId) {
                 ? false
                 : menu.classList.contains('hidden');
         if (shouldOpen) {
-            menu.classList.remove('hidden');
+            menu.classList.remove('hidden', 'pointer-events-none');
             requestAnimationFrame(() => {
                 menu.classList.add('scale-100', 'opacity-100');
                 menu.classList.remove('scale-95', 'opacity-0');
             });
             arrow.classList.add('rotate-180');
         } else {
+            menu.classList.add('pointer-events-none');
             menu.classList.remove('scale-100', 'opacity-100');
             menu.classList.add('scale-95', 'opacity-0');
             arrow.classList.remove('rotate-180');
@@ -223,6 +225,7 @@ export function renderTrophyRoomContent(studentId, partial = false) {
     if (scoreData?.luckDate) activeEffects.push({ icon: '🍀', title: 'Luck Stored', body: `Lesson on ${scoreData.luckDate}.` });
     if (scoreData?.starfallCatalystActive) activeEffects.push({ icon: '📜', title: 'Catalyst', body: 'Next bonus doubled.' });
     if (scoreData?.pendingHeroStatus) activeEffects.push({ icon: '🎭', title: 'Protagonist', body: 'Hero in next Story Log.' });
+    if (scoreData?.peerBoonFreeMonthKey === utils.getLocalMonthKey()) activeEffects.push({ icon: '💝', title: 'Compassion Token', body: "Hero's Boon costs 0 Gold this month." });
 
     // Featured Item HTML
     const featuredHtml = featuredItem

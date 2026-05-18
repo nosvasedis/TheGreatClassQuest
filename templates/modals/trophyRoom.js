@@ -25,7 +25,7 @@ export const trophyRoomModalsHTML = `
                     <div class="w-11 h-11 bg-gradient-to-br from-amber-400 via-orange-400 to-amber-500 rounded-xl flex items-center justify-center text-2xl shadow-[0_8px_20px_rgba(251,191,36,0.3)] border-2 border-white transform -rotate-3 transition-transform hover:rotate-0 duration-500">🏆</div>
                     <div>
                         <h2 class="font-title text-2xl text-indigo-950 tracking-tight leading-none flex items-center gap-2 flex-wrap justify-center md:justify-start">
-                            <span>Treasure Vault</span>
+                            <span>Trophy Room</span>
                             <i class="fas fa-gem text-amber-500 text-lg drop-shadow-sm opacity-90" aria-hidden="true"></i>
                         </h2>
                     </div>

@@ -265,10 +265,26 @@ export function getTodayDateString() {
  */
 export function parseClockToMinutes(value) {
     if (typeof value !== 'string' || !value.trim()) return null;
-    const m = value.trim().match(/^(\d{1,2}):(\d{2})$/);
+    // Accept common teacher-entered variants: 9:5, 9.05, 09:05:00, 9:05am.
+    const m = value
+        .trim()
+        .toLowerCase()
+        .replace(/[\uFF1A\u02D0]/g, ':')
+        .match(/^(\d{1,2})(?::|\.)(\d{1,2})(?::\d{1,2})?\s*(am|pm)?$/i);
     if (!m) return null;
-    const hours = Number(m[1]);
+    let hours = Number(m[1]);
     const minutes = Number(m[2]);
+    const ampm = (m[3] || '').toLowerCase();
+
+    if (ampm) {
+        if (hours < 1 || hours > 12) return null;
+        if (ampm === 'am') {
+            if (hours === 12) hours = 0;
+        } else if (ampm === 'pm') {
+            if (hours !== 12) hours += 12;
+        }
+    }
+
     if (hours < 0 || hours > 23 || minutes < 0 || minutes > 59) return null;
     return (hours * 60) + minutes;
 }

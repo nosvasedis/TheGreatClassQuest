@@ -638,13 +638,35 @@ export function openBestowBoonModal(receiverId) {
         select.innerHTML = `<option value="">No other students in class</option>`;
         document.getElementById('boon-confirm-btn').disabled = true;
     } else {
-        select.innerHTML = classmates.map(s => {
+        const monthKey = utils.getLocalMonthKey();
+        const placeholder = '<option value="" disabled selected>-- Select a Sponsor --</option>';
+        const optionsHtml = classmates.map(s => {
             const scoreData = scores.find(sc => sc.id === s.id);
             const gold = scoreData?.gold !== undefined ? scoreData.gold : (scoreData?.totalStars || 0);
-            // Disable if sender has less than 15 gold
-            return `<option value="${s.id}" ${gold < 15 ? 'disabled' : ''}>${s.name} (${gold} Gold)</option>`;
+            const freeBoonUses = Number(scoreData?.peerBoonFreeUses) || 0;
+            const isMonthFree = scoreData?.peerBoonFreeMonthKey === monthKey;
+            const hasFreeBoon = isMonthFree || freeBoonUses > 0;
+            const hasEnoughGold = gold >= 15;
+            const isConsecutiveLimit = scoreData?.lastPeerBoonRecipientId === receiverId;
+
+            let labelSuffix = `(${gold} Gold)`;
+            let isDisabled = false;
+
+            if (isConsecutiveLimit) {
+                isDisabled = true;
+                labelSuffix = `(Unavailable: Consecutive Limit)`;
+            } else if (!hasFreeBoon && !hasEnoughGold) {
+                isDisabled = true;
+                labelSuffix = `(Needs 15 Gold, has ${gold})`;
+            } else if (hasFreeBoon) {
+                labelSuffix = `(Free Boon Available!)`;
+            }
+
+            return `<option value="${s.id}" ${isDisabled ? 'disabled style="color: #94a3b8; opacity: 0.5;"' : ''}>${s.name} ${labelSuffix}</option>`;
         }).join('');
-        document.getElementById('boon-confirm-btn').disabled = false;
+
+        select.innerHTML = placeholder + optionsHtml;
+        document.getElementById('boon-confirm-btn').disabled = true;
     }
 
     showAnimatedModal('bestow-boon-modal');

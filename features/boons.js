@@ -73,16 +73,24 @@ export async function handleBestowBoon(senderId, receiverId) {
             const monthKey = utils.getLocalMonthKey();
             const isMonthFree = senderData.peerBoonFreeMonthKey === monthKey;
 
+            if (senderData.lastPeerBoonRecipientId === receiverId) {
+                throw "You cannot bestow a boon on the same companion twice consecutively!";
+            }
+
+            const senderUpdate = { lastPeerBoonRecipientId: receiverId };
+
             if (!isMonthFree && freeBoonUses > 0) {
                 if (freeBoonUses <= 1) {
-                    transaction.update(senderScoreRef, { peerBoonFreeUses: deleteField() });
+                    senderUpdate.peerBoonFreeUses = deleteField();
                 } else {
-                    transaction.update(senderScoreRef, { peerBoonFreeUses: freeBoonUses - 1 });
+                    senderUpdate.peerBoonFreeUses = freeBoonUses - 1;
                 }
             } else if (!isMonthFree) {
                 if (currentGold < 15) throw "Not enough Gold!";
-                transaction.update(senderScoreRef, { gold: increment(-15) });
+                senderUpdate.gold = increment(-15);
             }
+            transaction.update(senderScoreRef, senderUpdate);
+
             transaction.update(receiverScoreRef, {
                 totalStars: increment(0.5),
                 monthlyStars: increment(0.5)
@@ -102,6 +110,33 @@ export async function handleBestowBoon(senderId, receiverId) {
                 createdBy: { uid: state.get('currentUserId'), name: state.get('currentTeacherName') }
             });
         });
+
+        // Update local state immediately on success
+        const allScores = state.get('allStudentScores');
+        const senderIdx = allScores.findIndex(s => s.id === senderId);
+        if (senderIdx !== -1) {
+            allScores[senderIdx].lastPeerBoonRecipientId = receiverId;
+            const oldGold = allScores[senderIdx].gold !== undefined ? allScores[senderIdx].gold : (allScores[senderIdx].totalStars || 0);
+            const freeBoonUses = Number(allScores[senderIdx].peerBoonFreeUses) || 0;
+            const monthKey = utils.getLocalMonthKey();
+            const isMonthFree = allScores[senderIdx].peerBoonFreeMonthKey === monthKey;
+
+            if (!isMonthFree && freeBoonUses > 0) {
+                if (freeBoonUses <= 1) {
+                    delete allScores[senderIdx].peerBoonFreeUses;
+                } else {
+                    allScores[senderIdx].peerBoonFreeUses = freeBoonUses - 1;
+                }
+            } else if (!isMonthFree) {
+                allScores[senderIdx].gold = Math.max(0, oldGold - 15);
+            }
+        }
+        const receiverIdx = allScores.findIndex(s => s.id === receiverId);
+        if (receiverIdx !== -1) {
+            allScores[receiverIdx].totalStars = (allScores[receiverIdx].totalStars || 0) + 0.5;
+            allScores[receiverIdx].monthlyStars = (allScores[receiverIdx].monthlyStars || 0) + 0.5;
+        }
+        state.setAllStudentScores(allScores);
 
         reconcileFamiliarLifecycle(receiverId, { announce: true, source: 'peer-boon' }).catch((e) => console.warn('Peer boon familiar reconciliation failed:', e));
         playSound('magic_chime');

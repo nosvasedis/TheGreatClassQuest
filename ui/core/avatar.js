@@ -307,6 +307,21 @@ export function handleAvatarClick(e) {
             });
         }
 
+        // Create and append the premium skill tree button if student has a valid ID
+        if (studentId) {
+            const skillTreeBtn = document.createElement('button');
+            skillTreeBtn.className = 'enlarged-avatar-skill-tree-btn';
+            skillTreeBtn.type = 'button';
+            skillTreeBtn.innerHTML = '<i class="fas fa-sitemap"></i>';
+            skillTreeBtn.title = 'Open Skill Tree';
+            skillTreeBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                closeHandler();
+                openSkillTreeModal(studentId);
+            });
+            container.appendChild(skillTreeBtn);
+        }
+
         // Animate
         requestAnimationFrame(() => {
             // Move image (or wrapper) to center
@@ -319,11 +334,13 @@ export function handleAvatarClick(e) {
                 clone.style.fontSize = '6rem';
             }
             container.style.opacity = '1';
+            container.classList.add('active');
             
             const inv = container.querySelector('.inventory-container');
         });
 
         const closeHandler = () => {
+            container.classList.remove('active');
             animatedEl.style.top = `${rect.top}px`;
             animatedEl.style.left = `${rect.left}px`;
             animatedEl.style.width = `${rect.width}px`;

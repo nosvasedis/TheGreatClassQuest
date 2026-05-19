@@ -472,7 +472,7 @@ export async function updateShopStudentDisplay(studentId) {
     const pathfinderLockedForClass = pathfinderBonusThisMonth >= 10 || pathfinderHeldBySomeone;
 
     // LIMIT CHECK 3: Mask of the Protagonist (1 per student per month)
-    const protagonistThisMonth = inventory.some(i => i.id === 'leg_protagonist' && i.acquiredAt && i.acquiredAt.startsWith(currentMonthKey));
+    const protagonistThisMonth = scoreData?.lastProtagonistPurchaseMonth === currentMonthKey || inventory.some(i => i.id === 'leg_protagonist' && i.acquiredAt && i.acquiredAt.startsWith(currentMonthKey));
 
     // Update UI Display
     goldDisplay.innerText = `${gold} 🪙`;

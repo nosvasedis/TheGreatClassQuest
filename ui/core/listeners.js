@@ -496,6 +496,13 @@ export function setupUIListeners() {
     }
     // Boon Modal Listeners
     document.getElementById('boon-cancel-btn').addEventListener('click', () => modals.hideModal('bestow-boon-modal'));
+    const boonSenderSelect = document.getElementById('boon-sender-select');
+    if (boonSenderSelect) {
+        boonSenderSelect.addEventListener('change', (e) => {
+            const confirmBtn = document.getElementById('boon-confirm-btn');
+            if (confirmBtn) confirmBtn.disabled = !e.target.value;
+        });
+    }
     document.getElementById('boon-confirm-btn').addEventListener('click', (e) => {
         const modal = document.getElementById('bestow-boon-modal');
         const receiverId = modal.dataset.receiverId;

@@ -645,7 +645,7 @@ export async function handleBuyItem(studentId, itemId) {
 
             // Mask of the Protagonist: 1 per student per month
             if (itemId === 'leg_protagonist') {
-                const alreadyBoughtThisMonth = currentInventory.some(i => i.id === 'leg_protagonist' && i.acquiredAt && i.acquiredAt.startsWith(currentMonthKey));
+                const alreadyBoughtThisMonth = data.lastProtagonistPurchaseMonth === currentMonthKey || currentInventory.some(i => i.id === 'leg_protagonist' && i.acquiredAt && i.acquiredAt.startsWith(currentMonthKey));
                 if (alreadyBoughtThisMonth) throw "You can only buy the Mask of the Protagonist once per month!";
             }
 
@@ -672,6 +672,10 @@ export async function handleBuyItem(studentId, itemId) {
                     acquiredAt: new Date().toISOString()
                 }]
             };
+
+            if (itemId === 'leg_protagonist') {
+                nextUpdate.lastProtagonistPurchaseMonth = currentMonthKey;
+            }
 
             if (hasAurumVoucher) {
                 nextUpdate.aurumVoucherPercent = 0;
@@ -735,6 +739,9 @@ export async function handleBuyItem(studentId, itemId) {
                 description: item.description,
                 acquiredAt: new Date().toISOString()
             });
+            if (itemId === 'leg_protagonist') {
+                allScores[studentIndex].lastProtagonistPurchaseMonth = currentMonthKey;
+            }
             if (voucherUsed) {
                 allScores[studentIndex].aurumVoucherPercent = 0;
                 allScores[studentIndex].aurumVoucherMonth = null;

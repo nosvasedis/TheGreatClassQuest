@@ -421,13 +421,13 @@ export function renderAwardStarsStudentList(selectedClassId, fullRender = true) 
                 if (previousLessonDate && r.date === previousLessonDate) absentPrevSet.add(r.studentId);
             }
 
-            // Check daily peer boon limit (2 per class per day)
+            // Check daily peer boon limit (4 per class per day)
             const classBoonsToday = state.get('allAwardLogs').filter(l =>
                 l.classId === selectedClassId &&
                 l.date === today &&
                 l.reason === 'peer_boon'
             ).length;
-            const dailyLimitReached = classBoonsToday >= 2;
+            const dailyLimitReached = classBoonsToday >= 4;
 
             listContainer.innerHTML = studentsInClass.map((s, index) => {
                 const isReigningHero = reigningHero && reigningHero.id === s.id;
@@ -713,14 +713,14 @@ export function updateAwardBoonButtons(selectedClassId) {
     const leaderboardMap = new Map();
     leaderboard.forEach(x => leaderboardMap.set(x.id, x));
 
-    // Check daily boon limit (2 peer boons per class per day)
+    // Check daily boon limit (4 peer boons per class per day)
     const today = utils.getTodayDateString();
     const classBoonsToday = state.get('allAwardLogs').filter(l =>
         l.classId === selectedClassId &&
         l.date === today &&
         l.reason === 'peer_boon'
     ).length;
-    const dailyLimitReached = classBoonsToday >= 2;
+    const dailyLimitReached = classBoonsToday >= 4;
 
     // Update each boon button in the DOM
     document.querySelectorAll('.boon-btn[data-receiver-id]').forEach(btn => {
@@ -737,7 +737,7 @@ export function updateAwardBoonButtons(selectedClassId) {
             btn.innerHTML = '<i class="fas fa-heart pointer-events-none"></i>';
         } else {
             btn.className = 'boon-btn boon-btn--disabled absolute top-2 left-14 w-8 h-8 rounded-full z-30 cursor-not-allowed';
-            btn.title = dailyLimitReached ? 'Daily boon limit reached (2/day)' : 'Not eligible for Boon';
+            btn.title = dailyLimitReached ? 'Daily boon limit reached (4/day)' : 'Not eligible for Boon';
             btn.innerHTML = '<i class="fas fa-heart-broken pointer-events-none"></i>';
         }
     });

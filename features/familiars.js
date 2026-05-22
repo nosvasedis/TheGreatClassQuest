@@ -836,9 +836,11 @@ export function openFamiliarStatsOverlay(studentId) {
             ${particles}
         </div>
         <div class="fam-modal-card relative max-w-sm w-full mx-4 rounded-3xl overflow-hidden"
-             style="background:linear-gradient(170deg,#0e0b1f 0%,#080a14 55%,#050709 100%);
-                    border:1px solid ${typeDef.eggColor}55;
-                    box-shadow:0 0 80px ${typeDef.eggColor}22,0 32px 64px rgba(0,0,0,0.65);
+             style="background:linear-gradient(170deg,rgba(255,255,255,0.16) 0%,rgba(186,184,255,0.20) 18%,rgba(104,97,190,0.34) 56%,rgba(63,120,179,0.30) 100%);
+                    border:1px solid ${typeDef.eggColor}66;
+                    backdrop-filter:blur(16px) saturate(1.3);
+                    -webkit-backdrop-filter:blur(16px) saturate(1.3);
+                    box-shadow:0 0 90px ${typeDef.eggColor}28,0 32px 64px rgba(9,16,32,0.42);
                     --fam-ring-glow-dim:${ringGlowDim};
                     --fam-ring-glow-bright:${ringGlowBright};">
             <div class="absolute inset-0 pointer-events-none" style="background:radial-gradient(circle at 50% -10%,${typeDef.eggColor}14,transparent 48%);"></div>

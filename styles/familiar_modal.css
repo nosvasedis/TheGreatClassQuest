@@ -13,9 +13,13 @@
 .fam-overlay-backdrop {
     position: absolute;
     inset: 0;
-    background: rgba(2, 6, 23, 0.92);
-    backdrop-filter: blur(14px) saturate(1.6);
-    -webkit-backdrop-filter: blur(14px) saturate(1.6);
+    background:
+        radial-gradient(circle at 20% 15%, rgba(255, 214, 102, 0.20), transparent 28%),
+        radial-gradient(circle at 80% 10%, rgba(129, 140, 248, 0.18), transparent 30%),
+        radial-gradient(circle at 50% 100%, rgba(244, 114, 182, 0.14), transparent 34%),
+        rgba(10, 18, 34, 0.74);
+    backdrop-filter: blur(14px) saturate(1.5);
+    -webkit-backdrop-filter: blur(14px) saturate(1.5);
     animation: fam-modal-bg-in 0.45s cubic-bezier(0.22, 1, 0.36, 1) forwards;
 }
 .fam-overlay-backdrop--exit {

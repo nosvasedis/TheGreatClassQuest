@@ -363,47 +363,83 @@ export async function renderClassLeaderboardTab() {
         const weeklyGrowth = c.weeklyStars > 0 ? "Trending Up 🚀" : "Steady Path ⚓";
         const spiritRank = c.adventureCount > 3 ? "Legendary ✨" : (c.adventureCount > 1 ? "Active 🌟" : "Quiet 🍃");
 
+        let cardRankClass = "team-quest-card-refreshed--rank-other";
+        let rankEmblemClass = "rank-emblem-wrap--other";
+        let rankEmblemInner = `#${rank}`;
         let headerColor = "bg-gray-50 border-b border-gray-200";
-        let rankBadge = `<span class="bg-gray-200 text-gray-600 w-8 h-8 rounded-full flex items-center justify-center font-bold">#${rank}</span>`;
-        if (rank === 1) { headerColor = "bg-gradient-to-r from-amber-100 to-orange-50 border-b border-amber-200"; rankBadge = `<div class="text-3xl filter drop-shadow-sm">🥇</div>`; }
-        else if (rank === 2) { headerColor = "bg-gradient-to-r from-gray-100 to-slate-50 border-b border-gray-200"; rankBadge = `<div class="text-3xl filter drop-shadow-sm">🥈</div>`; }
-        else if (rank === 3) { headerColor = "bg-gradient-to-r from-orange-50 to-amber-50 border-b border-orange-200"; rankBadge = `<div class="text-3xl filter drop-shadow-sm">🥉</div>`; }
 
-        // Multi-Stage Progress Bar
+        if (rank === 1) { 
+            headerColor = "bg-gradient-to-r from-amber-50 to-orange-50/50 border-b border-amber-100"; 
+            cardRankClass = "team-quest-card-refreshed--rank-1";
+            rankEmblemClass = "rank-emblem-wrap--1";
+            rankEmblemInner = "🥇";
+        }
+        else if (rank === 2) { 
+            headerColor = "bg-gradient-to-r from-slate-50 to-gray-50/50 border-b border-slate-100"; 
+            cardRankClass = "team-quest-card-refreshed--rank-2";
+            rankEmblemClass = "rank-emblem-wrap--2";
+            rankEmblemInner = "🥈";
+        }
+        else if (rank === 3) { 
+            headerColor = "bg-gradient-to-r from-orange-50 to-amber-50/50 border-b border-orange-100"; 
+            cardRankClass = "team-quest-card-refreshed--rank-3";
+            rankEmblemClass = "rank-emblem-wrap--3";
+            rankEmblemInner = "🥉";
+        }
+
+        let rankBadge = `<span class="rank-emblem-wrap ${rankEmblemClass}">${rankEmblemInner}</span>`;
+
+        // Multi-Stage Progress Bar Styled as an Adventure Trail Path
         const p = c.progress;
         const fillBronze = Math.min(p, 30) / 30 * 100;
         const fillSilver = Math.min(Math.max(p - 30, 0), 30) / 30 * 100;
         const fillGold = Math.min(Math.max(p - 60, 0), 25) / 25 * 100;
         const fillCrystal = Math.min(Math.max(p - 85, 0), 15) / 15 * 100;
 
+        const nodeBronzeClass = p >= 30 ? "quest-stage-node--active" : "";
+        const nodeSilverClass = p >= 60 ? "quest-stage-node--active" : "";
+        const nodeGoldClass = p >= 85 ? "quest-stage-node--active" : "";
+        const nodeCrystalClass = p >= 100 ? "quest-stage-node--active" : "";
+
         const multiStageBar = `
-            <div class="relative w-full h-8 mt-2 select-none">
-                <div class="flex items-center gap-1 w-full h-4 absolute top-2 rounded-full overflow-hidden shadow-inner">
-                    <div class="h-full bg-orange-100 flex-grow relative" style="flex: 30;" title="Bronze Stage">
-                        <div class="h-full bg-orange-500 transition-all duration-1000" style="width: ${fillBronze}%"></div>
+            <div class="relative w-full h-10 mt-3 select-none">
+                <!-- Track rails and segments -->
+                <div class="flex items-center gap-1 w-full h-5 absolute top-2 rounded-full overflow-hidden bg-slate-100 p-0.5 border border-slate-200/50 shadow-inner">
+                    <div class="quest-trail-segment--bronze h-full flex-grow relative" style="flex: 30;" title="Bronze Stage (0-30%)">
+                        <div class="quest-trail-segment--bronze-fill" style="width: ${fillBronze}%"></div>
                     </div>
-                    <div class="h-full bg-slate-100 flex-grow relative" style="flex: 30;" title="Silver Stage">
-                        <div class="h-full bg-slate-400 transition-all duration-1000" style="width: ${fillSilver}%"></div>
+                    <div class="quest-trail-segment--silver h-full flex-grow relative" style="flex: 30;" title="Silver Stage (30-60%)">
+                        <div class="quest-trail-segment--silver-fill" style="width: ${fillSilver}%"></div>
                     </div>
-                    <div class="h-full bg-yellow-50 flex-grow relative" style="flex: 25;" title="Gold Stage">
-                        <div class="h-full bg-yellow-400 transition-all duration-1000" style="width: ${fillGold}%"></div>
+                    <div class="quest-trail-segment--gold h-full flex-grow relative" style="flex: 25;" title="Gold Stage (60-85%)">
+                        <div class="quest-trail-segment--gold-fill" style="width: ${fillGold}%"></div>
                     </div>
-                    <div class="h-full bg-purple-50 flex-grow relative" style="flex: 15;" title="Crystal Stage">
-                        <div class="h-full bg-purple-500 transition-all duration-1000" style="width: ${fillCrystal}%"></div>
+                    <div class="quest-trail-segment--crystal h-full flex-grow relative" style="flex: 15;" title="Crystal Stage (85-100%)">
+                        <div class="quest-trail-segment--crystal-fill" style="width: ${fillCrystal}%"></div>
                     </div>
                 </div>
                 
-                <div class="absolute top-0 transform -translate-x-1/2 transition-all duration-1000 z-10 filter drop-shadow-md" style="left: ${Math.min(p, 100)}%;">
-                   <div class="text-rose-600 text-xl animate-bounce"><i class="fas fa-map-marker-alt"></i></div>
+                <!-- Stage Checkpoints / Nodes -->
+                <div class="quest-stage-node ${nodeBronzeClass}" style="left: 30.5%;" title="Bronze Checkpoint"></div>
+                <div class="quest-stage-node ${nodeSilverClass}" style="left: 61.5%;" title="Silver Checkpoint"></div>
+                <div class="quest-stage-node ${nodeGoldClass}" style="left: 85.5%;" title="Gold Checkpoint"></div>
+                <div class="quest-stage-node ${nodeCrystalClass}" style="left: 99.5%;" title="Summit Point"></div>
+                
+                <!-- Pulsing standard-bearer flag marker -->
+                <div class="quest-trail-marker-pin" style="left: ${Math.min(p, 100)}%;">
+                    <div class="quest-trail-marker-ripple"></div>
+                    <div class="quest-trail-marker-icon font-bold animate-none" title="Class Position: ${p.toFixed(0)}%">
+                        <i class="fas fa-map-marker-alt"></i>
+                    </div>
                 </div>
             </div>
             
-            <div class="flex justify-between text-[9px] text-gray-400 font-bold uppercase -mt-1 px-1">
+            <div class="flex justify-between text-[10px] text-slate-400 font-bold uppercase mt-1 px-1 tracking-wider">
                 <span>Start</span>
                 <span>Bronze</span>
                 <span>Silver</span>
                 <span>Gold</span>
-                <span>Diamond</span>
+                <span>Crystal</span>
             </div>
         `;
 
@@ -421,12 +457,12 @@ export async function renderClassLeaderboardTab() {
 
         return `
         <div class="tab-mount-rise" style="--tab-rise-delay: ${Math.min(index * 55, 800)}ms">
-        <div class="bg-white rounded-[2.5rem] shadow-xl border-4 border-indigo-50 overflow-hidden mb-6 transition-all hover:shadow-2xl hover:border-indigo-200 group pop-in">
+        <div class="team-quest-card-refreshed ${cardRankClass} group pop-in">
             <div class="${headerColor} p-6 flex flex-col md:flex-row items-center justify-between gap-4">
                 <div class="flex items-center gap-5">
                     <div class="relative">
                         ${rankBadge}
-                        <div class="text-5xl md:text-6xl filter drop-shadow-lg transition-transform group-hover:scale-110 group-hover:rotate-6">${c.logo}</div>
+                        <div class="quest-logo-container text-5xl md:text-6xl filter drop-shadow-lg transition-transform group-hover:scale-110 group-hover:rotate-6">${c.logo}</div>
                     </div>
                     <div>
                         <h4 class="font-title text-3xl text-indigo-900 leading-tight">${c.name}</h4>
@@ -436,14 +472,14 @@ export async function renderClassLeaderboardTab() {
                         </div>
                     </div>
                 </div>
-                <div class="bg-white/60 backdrop-blur-md rounded-3xl p-4 flex items-center gap-6 border border-white shadow-inner">
+                <div class="quest-status-crystal flex items-center gap-6">
                     <div class="text-center px-2 border-r border-indigo-100">
-                        <div class="font-title text-4xl text-indigo-600 leading-none">${starsFormatted}</div>
-                        <div class="text-[9px] font-black text-indigo-400 uppercase mt-1">Stars Collected</div>
+                        <div class="font-title text-4xl text-indigo-600 leading-none filter drop-shadow-sm">${starsFormatted}</div>
+                        <div class="text-[9px] font-black text-indigo-400 uppercase mt-1 tracking-wider">Stars Collected</div>
                     </div>
                     <div class="text-center px-2">
-                        <div class="font-title text-4xl text-amber-500 leading-none">${avgStars}</div>
-                        <div class="text-[9px] font-black text-amber-400 uppercase mt-1">Avg / Hero</div>
+                        <div class="font-title text-4xl text-amber-500 leading-none filter drop-shadow-sm">${avgStars}</div>
+                        <div class="text-[9px] font-black text-amber-500 uppercase mt-1 tracking-wider">Avg / Hero</div>
                     </div>
                 </div>
             </div>
@@ -463,31 +499,40 @@ export async function renderClassLeaderboardTab() {
                                 ${goalIconHtml}
                             </div>
                         </div>
-                        <div class="bg-indigo-600 rounded-[2rem] p-4 flex items-center justify-between shadow-lg">
-                            <span class="text-[10px] font-black text-indigo-100 uppercase tracking-widest ml-2 italic">Leading the Charge</span>
-                            <div class="flex -space-x-3 pr-2">${topHeroesHtml}</div>
+                        <div class="champions-vanguard-banner p-4 flex items-center justify-between">
+                            <span class="text-[11px] font-black text-indigo-100 uppercase tracking-widest ml-2 italic flex items-center gap-1.5">
+                                <i class="fas fa-crown text-amber-300 animate-pulse"></i> Leading the Charge
+                            </span>
+                            <div class="flex -space-x-2.5 pr-2 champions-vanguard-avatars">${topHeroesHtml}</div>
                         </div>
                     </div>
                     <div class="grid grid-cols-2 gap-3">
-                        <div class="bg-white p-3 rounded-3xl border-2 border-orange-100 shadow-sm flex flex-col items-center justify-center text-center">
-                            <i class="fas fa-fire text-2xl text-orange-500 mb-1"></i>
-                            <div class="font-title text-lg text-gray-800">+${weeklyFormatted}</div>
-                            <div class="text-[8px] font-black text-orange-400 uppercase">${weeklyGrowth}</div>
+                        <!-- Weekly Growth / Fire Rune -->
+                        <div class="stat-rune-card stat-rune-card--fire p-4 text-center">
+                            <i class="fas fa-fire stat-rune-card__icon text-orange-500"></i>
+                            <div class="font-title text-xl text-slate-800 leading-tight">+${weeklyFormatted}</div>
+                            <div class="text-[9px] font-black text-orange-500 uppercase tracking-wide mt-1">${weeklyGrowth}</div>
                         </div>
-                        <div class="bg-white p-3 rounded-3xl border-2 border-blue-100 shadow-sm flex flex-col items-center justify-center text-center">
-                            <i class="fas fa-magic text-2xl text-blue-500 mb-1"></i>
-                            <div class="font-bold text-gray-800 text-sm truncate w-full capitalize">${skillName}</div>
-                            <div class="text-[8px] font-black text-blue-400 uppercase">Top Talent</div>
+                        
+                        <!-- Top Talent / Magic Rune -->
+                        <div class="stat-rune-card stat-rune-card--magic p-4 text-center">
+                            <i class="fas fa-magic stat-rune-card__icon text-blue-500"></i>
+                            <div class="font-bold text-slate-800 text-sm truncate w-full capitalize leading-tight mt-0.5" title="${skillName}">${skillName}</div>
+                            <div class="text-[9px] font-black text-blue-500 uppercase tracking-wide mt-1">Top Talent</div>
                         </div>
-                        <div class="bg-white p-3 rounded-3xl border-2 border-yellow-100 shadow-sm flex flex-col items-center justify-center text-center">
-                            <i class="fas fa-coins text-2xl text-yellow-500 mb-1"></i>
-                            <div class="font-title text-lg text-gray-800">${c.totalGold}</div>
-                            <div class="text-[8px] font-black text-yellow-500 uppercase">Bank of ${c.name}</div>
+                        
+                        <!-- Bank of Class / Gold Rune -->
+                        <div class="stat-rune-card stat-rune-card--gold p-4 text-center">
+                            <i class="fas fa-coins stat-rune-card__icon text-yellow-500"></i>
+                            <div class="font-title text-xl text-slate-800 leading-tight">${c.totalGold}</div>
+                            <div class="text-[9px] font-black text-yellow-600 uppercase tracking-wide mt-1">Bank of ${c.name}</div>
                         </div>
-                        <div class="bg-white p-3 rounded-3xl border-2 border-green-100 shadow-sm flex flex-col items-center justify-center text-center">
-                            <i class="fas fa-heart text-2xl text-green-500 mb-1"></i>
-                            <div class="font-bold text-gray-800 text-sm capitalize">${spiritRank}</div>
-                            <div class="text-[8px] font-black text-green-400 uppercase">Class Spirit</div>
+                        
+                        <!-- Class Spirit / Heart Rune -->
+                        <div class="stat-rune-card stat-rune-card--heart p-4 text-center">
+                            <i class="fas fa-heart stat-rune-card__icon text-green-500"></i>
+                            <div class="font-bold text-slate-800 text-sm capitalize leading-tight mt-0.5">${spiritRank}</div>
+                            <div class="text-[9px] font-black text-green-600 uppercase tracking-wide mt-1">Class Spirit</div>
                         </div>
                     </div>
                 </div>

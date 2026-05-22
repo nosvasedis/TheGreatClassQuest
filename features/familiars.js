@@ -814,67 +814,129 @@ export function openFamiliarStatsOverlay(studentId) {
 
     const overlay = document.createElement('div');
     overlay.dataset.studentId = studentId;
-    overlay.className = 'familiar-stats-overlay fixed inset-0 z-[95] flex items-center justify-center bg-black/80 pop-in';
+    overlay.className = 'familiar-stats-overlay fixed inset-0 z-[95] flex items-center justify-center';
+
+    const particlePositions = [6, 18, 33, 50, 67, 82, 93];
+    const particleDrifts    = [18, -14, 22, -18, 12, -22, 16];
+    const particles = particlePositions.map((left, i) => {
+        const dur   = (5.5 + i * 0.65).toFixed(1);
+        const delay = (i * 1.25).toFixed(1);
+        const drift = particleDrifts[i];
+        const size  = 4 + (i % 3) * 2;
+        return `<div class="fam-modal-particle" style="left:${left}%;bottom:8%;width:${size}px;height:${size}px;background:${typeDef.eggColor};box-shadow:0 0 8px ${typeDef.eggColor};--fam-dur:${dur}s;--fam-delay:${delay}s;--fam-drift:${drift}px;"></div>`;
+    }).join('');
+
+    const ringGlowDim    = `0 0 22px ${typeDef.eggColor}44, inset 0 0 20px rgba(255,255,255,0.05)`;
+    const ringGlowBright = `0 0 44px ${typeDef.eggColor}77, inset 0 0 30px rgba(255,255,255,0.09)`;
+
     overlay.innerHTML = `
-        <div class="relative bg-gray-900 rounded-3xl p-6 max-w-sm w-full mx-4 border-2 shadow-2xl text-center" style="border-color:${typeDef.eggColor};">
-            <button class="fam-overlay-close absolute top-3 right-4 text-white/40 hover:text-white text-2xl">&times;</button>
-            <div class="flex justify-center mb-4">
-                <button type="button" class="fam-overlay-tap" aria-label="Tap familiar">
-                    ${spriteHtml}
-                </button>
-            </div>
-            <h3 class="font-title text-2xl text-white mb-1">${safeDisplayName}</h3>
-            <div class="text-[11px] text-white/45 uppercase tracking-[0.2em] mb-2">${safeSpeciesLabel}</div>
-            <div class="inline-block px-3 py-0.5 rounded-full text-xs font-bold text-white mb-3" style="background:${typeDef.eggColor}">${safeLevelName}</div>
-            <p class="text-sm text-white/60 italic mb-4">"${safePersonality}"</p>
-            <div class="grid grid-cols-2 gap-3 text-left mb-4">
-                <div class="bg-white/5 rounded-xl p-3">
-                    <div class="text-xs text-white/40 uppercase tracking-wider">Stars Together</div>
-                    <div class="text-xl font-bold text-white">${starsTogether} ⭐</div>
+        <div class="fam-overlay-backdrop"></div>
+        <div class="absolute inset-0 pointer-events-none overflow-hidden">
+            <div class="absolute inset-0" style="background:radial-gradient(ellipse at 50% 18%,${typeDef.eggColor}1c,transparent 55%);"></div>
+            ${particles}
+        </div>
+        <div class="fam-modal-card relative max-w-sm w-full mx-4 rounded-3xl overflow-hidden"
+             style="background:linear-gradient(170deg,#0e0b1f 0%,#080a14 55%,#050709 100%);
+                    border:1px solid ${typeDef.eggColor}55;
+                    box-shadow:0 0 80px ${typeDef.eggColor}22,0 32px 64px rgba(0,0,0,0.65);
+                    --fam-ring-glow-dim:${ringGlowDim};
+                    --fam-ring-glow-bright:${ringGlowBright};">
+            <div class="absolute inset-0 pointer-events-none" style="background:radial-gradient(circle at 50% -10%,${typeDef.eggColor}14,transparent 48%);"></div>
+            <div class="absolute top-0 inset-x-0 h-px pointer-events-none" style="background:linear-gradient(90deg,transparent,${typeDef.eggColor}99,transparent);"></div>
+            <div class="absolute bottom-0 inset-x-0 h-px pointer-events-none" style="background:linear-gradient(90deg,transparent,${typeDef.eggColor}33,transparent);"></div>
+
+            <div class="fam-modal-scroll relative z-10 p-6 text-center">
+                <button class="fam-overlay-close absolute top-3 right-4 z-20 w-8 h-8 flex items-center justify-center rounded-full text-white/40 hover:text-white transition-all text-xl leading-none" style="background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);">&times;</button>
+
+                <div class="flex justify-center mb-5 mt-1">
+                    <div class="relative" style="width:104px;height:104px;">
+                        <div class="fam-modal-sprite-halo absolute inset-0 rounded-full pointer-events-none" style="background:${typeDef.eggColor};filter:blur(24px);"></div>
+                        <div class="fam-modal-sprite-ring absolute inset-0 rounded-full flex items-center justify-center"
+                             style="background:radial-gradient(circle at 38% 32%,rgba(255,255,255,0.13),rgba(10,13,24,0.97));
+                                    border:2px solid ${typeDef.eggColor}77;">
+                            <button type="button" class="fam-overlay-tap" aria-label="Tap familiar">
+                                ${spriteHtml}
+                            </button>
+                        </div>
+                    </div>
                 </div>
-                <div class="bg-white/5 rounded-xl p-3">
-                    <div class="text-xs text-white/40 uppercase tracking-wider">Evolution</div>
-                    <div class="text-xl font-bold text-white">${familiar.state === 'egg' ? '🥚 Egg' : `Lv. ${level}`}</div>
+
+                <h3 class="fam-modal-name font-title text-[1.65rem] text-white mb-0.5 leading-tight">${safeDisplayName}</h3>
+                <div class="fam-modal-species text-[11px] text-white/40 uppercase tracking-[0.22em] mb-2.5">${safeSpeciesLabel}</div>
+                <div class="fam-modal-badge inline-flex items-center gap-1.5 px-3.5 py-1 rounded-full text-xs font-bold mb-3"
+                     style="background:linear-gradient(135deg,${typeDef.eggColor}ee,${typeDef.eggColor}aa);
+                            color:rgba(0,0,0,0.82);
+                            box-shadow:0 0 18px ${typeDef.eggColor}66,inset 0 1px 0 rgba(255,255,255,0.3);">
+                    ${familiar.state === 'egg' ? '🥚' : '✨'} ${safeLevelName}
                 </div>
-            </div>
-            ${!isMaxLevel ? `
-            <div class="bg-white/5 rounded-xl p-3 mb-4">
-                <div class="text-xs text-white/40 uppercase mb-1">${progressTitle}</div>
-                <div class="w-full bg-white/10 rounded-full h-2 overflow-hidden">
-                    <div class="h-2 rounded-full transition-all" style="background:${typeDef.eggColor};width:${progressPercent}%"></div>
+                <p class="fam-modal-quote text-sm text-white/50 italic mb-5 leading-relaxed">"${safePersonality}"</p>
+
+                <div class="grid grid-cols-2 gap-3 text-left mb-3">
+                    <div class="fam-modal-stat rounded-2xl p-3.5" style="background:rgba(255,255,255,0.035);border:1px solid ${typeDef.eggColor}28;">
+                        <div class="text-[10px] text-white/35 uppercase tracking-wider mb-1.5">Stars Together</div>
+                        <div class="text-xl font-bold text-white leading-none">${starsTogether} <span class="text-base">⭐</span></div>
+                    </div>
+                    <div class="fam-modal-stat rounded-2xl p-3.5" style="background:rgba(255,255,255,0.035);border:1px solid ${typeDef.eggColor}28;">
+                        <div class="text-[10px] text-white/35 uppercase tracking-wider mb-1.5">Evolution</div>
+                        <div class="text-xl font-bold text-white leading-none">${familiar.state === 'egg' ? '🥚 Egg' : `Lv. ${level}`}</div>
+                    </div>
                 </div>
-                <div class="text-xs text-white/50 mt-1">${progressSubtitle}</div>
-            </div>` : `<div class="text-xs text-amber-400 font-bold mb-4">✨ MAX EVOLUTION REACHED</div>`}
-            ${isFailed ? `
-            <div class="bg-red-500/10 border border-red-400/30 rounded-xl p-3 mb-4 text-left">
-                <div class="text-xs font-bold uppercase tracking-wider text-red-300 mb-1">Sprite generation failed</div>
-                <p class="text-xs text-red-100/80 mb-3">${familiar.generationError || 'The browser could not create this familiar sprite.'}</p>
-                <button type="button" class="fam-retry-btn w-full rounded-lg bg-red-500 hover:bg-red-400 text-white font-bold text-sm py-2" data-student-id="${studentId}">
-                    Retry Sprite Generation
-                </button>
-            </div>` : ''}
-            ${familiar.state === 'alive' ? `
-            <div class="bg-white/5 rounded-xl p-3 mb-4 text-left">
-                <div class="text-xs text-white/40 uppercase tracking-wider mb-2">Familiar Name</div>
-                <div class="flex gap-2">
-                    <input type="text" class="fam-name-input flex-1 rounded-lg bg-black/30 border border-white/10 px-3 py-2 text-sm text-white placeholder:text-white/25" maxlength="24" value="${escapeHtml(familiar.name || '')}" placeholder="Give this familiar a name">
-                    <button type="button" class="fam-name-save rounded-lg bg-amber-500 hover:bg-amber-400 text-amber-950 font-bold text-sm px-3 py-2" data-student-id="${studentId}">
-                        Save
+
+                ${!isMaxLevel ? `
+                <div class="rounded-2xl p-3.5 mb-3 text-left" style="background:rgba(255,255,255,0.035);border:1px solid ${typeDef.eggColor}28;">
+                    <div class="flex justify-between items-center mb-2">
+                        <div class="text-[10px] text-white/35 uppercase tracking-wider">${progressTitle}</div>
+                        <div class="text-xs font-bold" style="color:${typeDef.eggColor}">${progressPercent}%</div>
+                    </div>
+                    <div class="w-full rounded-full h-2 overflow-hidden" style="background:rgba(255,255,255,0.06);">
+                        <div class="fam-modal-progress-bar h-2 rounded-full"
+                             style="background:linear-gradient(90deg,${typeDef.eggColor}bb,${typeDef.eggColor});
+                                    box-shadow:0 0 12px ${typeDef.eggColor}88;
+                                    --fam-progress:${progressPercent}%;
+                                    width:0%;"></div>
+                    </div>
+                    <div class="text-[10px] text-white/35 mt-1.5">${progressSubtitle}</div>
+                </div>` : `
+                <div class="flex items-center justify-center gap-2 text-sm font-bold text-amber-400 mb-3 py-2">
+                    <span style="filter:drop-shadow(0 0 8px rgba(251,191,36,0.7))">✨</span>
+                    MAX EVOLUTION REACHED
+                    <span style="filter:drop-shadow(0 0 8px rgba(251,191,36,0.7))">✨</span>
+                </div>`}
+
+                ${isFailed ? `
+                <div class="rounded-2xl p-3.5 mb-3 text-left" style="background:rgba(239,68,68,0.07);border:1px solid rgba(248,113,113,0.22);">
+                    <div class="text-[10px] font-bold uppercase tracking-wider text-red-300 mb-1.5">Sprite generation failed</div>
+                    <p class="text-xs text-red-100/75 mb-3">${familiar.generationError || 'The browser could not create this familiar sprite.'}</p>
+                    <button type="button" class="fam-retry-btn w-full rounded-xl bg-red-500 hover:bg-red-400 text-white font-bold text-sm py-2.5 transition-colors" data-student-id="${studentId}">
+                        Retry Sprite Generation
                     </button>
-                </div>
-                <div class="text-[10px] text-white/35 mt-2">Variant: ${safeVariantLabel}</div>
-                <div class="mt-3 flex justify-end">
-                    <button type="button" class="fam-regenerate-btn rounded-full border border-white/12 bg-white/8 w-8 h-8 flex items-center justify-center text-white/70 hover:bg-white/12 hover:text-white transition-colors" data-student-id="${studentId}" title="Regenerate Sprite">
-                        <i class="fas fa-sync text-xs"></i>
-                    </button>
-                </div>
-            </div>` : `
-            <div class="bg-white/5 rounded-xl p-3 mb-4 text-left">
-                <div class="text-xs text-white/40 uppercase tracking-wider mb-1">Naming</div>
-                <div class="text-xs text-white/50">This egg can be named after it hatches.</div>
-                <div class="text-[10px] text-white/35 mt-2">Destined variant: ${safeVariantLabel}</div>
-            </div>`}
-            <p class="text-[10px] text-white/30 italic">${typeDef.flavorHint}</p>
+                </div>` : ''}
+
+                ${familiar.state === 'alive' ? `
+                <div class="rounded-2xl p-3.5 mb-3 text-left" style="background:rgba(255,255,255,0.035);border:1px solid ${typeDef.eggColor}28;">
+                    <div class="text-[10px] text-white/35 uppercase tracking-wider mb-2">Familiar Name</div>
+                    <div class="flex gap-2">
+                        <input type="text" class="fam-name-input flex-1 rounded-xl px-3 py-2 text-sm text-white placeholder:text-white/25 focus:outline-none" maxlength="24" value="${escapeHtml(familiar.name || '')}" placeholder="Give this familiar a name" style="background:rgba(0,0,0,0.35);border:1px solid rgba(255,255,255,0.09);">
+                        <button type="button" class="fam-name-save rounded-xl font-bold text-sm px-4 py-2 transition-all hover:brightness-110" data-student-id="${studentId}"
+                                style="background:linear-gradient(135deg,${typeDef.eggColor},${typeDef.eggColor}cc);color:rgba(0,0,0,0.82);box-shadow:0 0 16px ${typeDef.eggColor}55;">
+                            Save
+                        </button>
+                    </div>
+                    <div class="text-[9px] text-white/25 mt-2 tracking-wide">Variant: ${safeVariantLabel}</div>
+                    <div class="mt-3 flex justify-end">
+                        <button type="button" class="fam-regenerate-btn rounded-full w-8 h-8 flex items-center justify-center text-white/55 hover:text-white transition-all" data-student-id="${studentId}" title="Regenerate Sprite" style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.09);">
+                            <i class="fas fa-sync text-xs"></i>
+                        </button>
+                    </div>
+                </div>` : `
+                <div class="rounded-2xl p-3.5 mb-3 text-left" style="background:rgba(255,255,255,0.035);border:1px solid ${typeDef.eggColor}28;">
+                    <div class="text-[10px] text-white/35 uppercase tracking-wider mb-1">Naming</div>
+                    <div class="text-xs text-white/45">This egg can be named after it hatches.</div>
+                    <div class="text-[9px] text-white/25 mt-2 tracking-wide">Destined variant: ${safeVariantLabel}</div>
+                </div>`}
+
+                <p class="text-[10px] text-white/22 italic">${typeDef.flavorHint}</p>
+            </div>
         </div>`;
 
     document.body.appendChild(overlay);
@@ -883,7 +945,17 @@ export function openFamiliarStatsOverlay(studentId) {
         try { new Audio(typeDef.tapSound).play().catch(() => {}); } catch (_) {}
     }
 
-    const closeOverlay = () => overlay.remove();
+    const closeOverlay = () => {
+        const card     = overlay.querySelector('.fam-modal-card');
+        const backdrop = overlay.querySelector('.fam-overlay-backdrop');
+        if (card) {
+            card.classList.add('fam-modal-card--exit');
+            if (backdrop) backdrop.classList.add('fam-overlay-backdrop--exit');
+            card.addEventListener('animationend', () => overlay.remove(), { once: true });
+        } else {
+            overlay.remove();
+        }
+    };
     overlay.querySelector('.fam-overlay-close').addEventListener('click', closeOverlay);
     overlay.addEventListener('click', (e) => { if (e.target === overlay) closeOverlay(); });
 
@@ -905,7 +977,7 @@ export function openFamiliarStatsOverlay(studentId) {
             retryBtn.textContent = 'Retrying...';
             await retryFamiliarSpriteGeneration(studentId);
             closeOverlay();
-            setTimeout(() => openFamiliarStatsOverlay(studentId), 200);
+            setTimeout(() => openFamiliarStatsOverlay(studentId), 480);
         });
     }
 
@@ -922,7 +994,7 @@ export function openFamiliarStatsOverlay(studentId) {
                 showToast(error.message || 'Could not regenerate this Familiar sprite.', 'error');
             } finally {
                 closeOverlay();
-                setTimeout(() => openFamiliarStatsOverlay(studentId), 200);
+                setTimeout(() => openFamiliarStatsOverlay(studentId), 480);
             }
         });
     }
@@ -936,7 +1008,7 @@ export function openFamiliarStatsOverlay(studentId) {
             try {
                 await saveFamiliarName(studentId, nameInput.value);
                 closeOverlay();
-                setTimeout(() => openFamiliarStatsOverlay(studentId), 120);
+                setTimeout(() => openFamiliarStatsOverlay(studentId), 480);
             } finally {
                 saveBtn.disabled = false;
                 saveBtn.textContent = 'Save';

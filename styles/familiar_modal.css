@@ -1,0 +1,145 @@
+/* styles/familiar_modal.css — Familiar Stats Overlay (Beautiful Redesign) */
+
+/* ─── Backdrop fade in / out ─────────────────────────────────────────────────── */
+@keyframes fam-modal-bg-in {
+    from { opacity: 0; }
+    to   { opacity: 1; }
+}
+@keyframes fam-modal-bg-out {
+    from { opacity: 1; }
+    to   { opacity: 0; }
+}
+
+.fam-overlay-backdrop {
+    position: absolute;
+    inset: 0;
+    background: rgba(2, 6, 23, 0.92);
+    backdrop-filter: blur(14px) saturate(1.6);
+    -webkit-backdrop-filter: blur(14px) saturate(1.6);
+    animation: fam-modal-bg-in 0.45s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+.fam-overlay-backdrop--exit {
+    animation: fam-modal-bg-out 0.35s ease forwards;
+}
+
+/* ─── Card enter / exit ──────────────────────────────────────────────────────── */
+@keyframes fam-modal-card-enter {
+    0%   { opacity: 0; transform: scale(0.88) translateY(36px); filter: blur(8px); }
+    65%  { opacity: 1; filter: blur(0); }
+    100% { opacity: 1; transform: scale(1) translateY(0); filter: blur(0); }
+}
+@keyframes fam-modal-card-exit {
+    0%   { opacity: 1; transform: scale(1) translateY(0); filter: blur(0); }
+    100% { opacity: 0; transform: scale(0.94) translateY(20px); filter: blur(6px); }
+}
+
+.fam-modal-card {
+    animation: fam-modal-card-enter 0.55s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+.fam-modal-card--exit {
+    animation: fam-modal-card-exit 0.38s cubic-bezier(0.55, 0.06, 0.68, 0.19) both;
+    pointer-events: none;
+}
+
+/* ─── Sprite stage — halo glow pulse ─────────────────────────────────────────── */
+@keyframes fam-halo-pulse {
+    0%, 100% { opacity: 0.28; transform: scale(1.1); }
+    50%       { opacity: 0.52; transform: scale(1.3); }
+}
+.fam-modal-sprite-halo {
+    animation: fam-halo-pulse 3s ease-in-out infinite;
+}
+
+/* ─── Sprite stage — ring glow pulse ─────────────────────────────────────────── */
+@keyframes fam-ring-glow {
+    0%, 100% { box-shadow: var(--fam-ring-glow-dim, 0 0 20px rgba(139,92,246,0.3)); }
+    50%       { box-shadow: var(--fam-ring-glow-bright, 0 0 40px rgba(139,92,246,0.55)); }
+}
+.fam-modal-sprite-ring {
+    animation: fam-ring-glow 3s ease-in-out infinite;
+}
+
+/* ─── Floating type-coloured particles ───────────────────────────────────────── */
+@keyframes fam-particle-rise {
+    0%   { transform: translateY(0) translateX(0); opacity: 0; }
+    12%  { opacity: 0.9; }
+    88%  { opacity: 0.6; }
+    100% { transform: translateY(-260px) translateX(var(--fam-drift, 0px)); opacity: 0; }
+}
+.fam-modal-particle {
+    position: absolute;
+    border-radius: 50%;
+    pointer-events: none;
+    opacity: 0;
+    animation: fam-particle-rise var(--fam-dur, 7s) linear var(--fam-delay, 0s) infinite;
+}
+
+/* ─── Progress bar animated fill ─────────────────────────────────────────────── */
+@keyframes fam-progress-fill {
+    from { width: 0%; }
+    to   { width: var(--fam-progress, 0%); }
+}
+.fam-modal-progress-bar {
+    animation: fam-progress-fill 0.9s cubic-bezier(0.22, 1, 0.36, 1) 0.6s both;
+}
+
+/* ─── Stat cards stagger in ──────────────────────────────────────────────────── */
+@keyframes fam-stat-in {
+    from { opacity: 0; transform: translateY(14px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+.fam-modal-stat {
+    animation: fam-stat-in 0.45s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+.fam-modal-stat:nth-child(1) { animation-delay: 0.28s; }
+.fam-modal-stat:nth-child(2) { animation-delay: 0.38s; }
+
+/* ─── Header text stagger in ─────────────────────────────────────────────────── */
+@keyframes fam-text-in {
+    from { opacity: 0; transform: translateY(8px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+.fam-modal-name    { animation: fam-text-in 0.42s cubic-bezier(0.22, 1, 0.36, 1) 0.18s both; }
+.fam-modal-species { animation: fam-text-in 0.42s cubic-bezier(0.22, 1, 0.36, 1) 0.25s both; }
+.fam-modal-badge   { animation: fam-text-in 0.42s cubic-bezier(0.22, 1, 0.36, 1) 0.32s both; }
+.fam-modal-quote   { animation: fam-text-in 0.42s cubic-bezier(0.22, 1, 0.36, 1) 0.38s both; }
+
+/* ─── Scrollable inner area ──────────────────────────────────────────────────── */
+.fam-modal-scroll {
+    max-height: min(90dvh, 720px);
+    overflow-y: auto;
+    overflow-x: hidden;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(255, 255, 255, 0.12) transparent;
+}
+.fam-modal-scroll::-webkit-scrollbar {
+    width: 4px;
+}
+.fam-modal-scroll::-webkit-scrollbar-track {
+    background: transparent;
+}
+.fam-modal-scroll::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.12);
+    border-radius: 99px;
+}
+
+/* ─── Reduced motion overrides ───────────────────────────────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+    .fam-overlay-backdrop,
+    .fam-modal-card,
+    .fam-modal-sprite-halo,
+    .fam-modal-sprite-ring,
+    .fam-modal-stat,
+    .fam-modal-name,
+    .fam-modal-species,
+    .fam-modal-badge,
+    .fam-modal-quote {
+        animation: none !important;
+        opacity: 1 !important;
+    }
+    .fam-modal-particle { display: none; }
+    .fam-modal-progress-bar {
+        animation: none !important;
+        width: var(--fam-progress, 0%) !important;
+    }
+}

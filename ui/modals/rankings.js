@@ -577,7 +577,7 @@ export function openBestowBoonModal(receiverId) {
     const receiver = state.get('allStudents').find(s => s.id === receiverId);
     if (!receiver) return;
 
-    // --- RULE 1: DAILY LIMIT CHECK (Max 2 per class per day) ---
+    // --- RULE 1: DAILY LIMIT CHECK (Max 4 per class per day) ---
     const today = utils.getTodayDateString();
     const classBoonsToday = state.get('allAwardLogs').filter(l =>
         l.classId === receiver.classId &&
@@ -585,8 +585,8 @@ export function openBestowBoonModal(receiverId) {
         l.reason === 'peer_boon'
     ).length;
 
-    if (classBoonsToday >= 2) {
-        showToast("Daily limit reached: The class has already bestowed 2 Boons today!", "error");
+    if (classBoonsToday >= 4) {
+        showToast("Daily limit reached: The class has already bestowed 4 Boons today!", "error");
         return;
     }
 

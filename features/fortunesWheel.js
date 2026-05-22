@@ -2,7 +2,7 @@
 
 import * as state from '../state.js';
 import { GUILD_IDS, getGuildById, getGuildEmblemUrl } from './guilds.js';
-import { GLORY_PER_STAR, WHEEL_RARITY_WEIGHTS, WHEEL_RARITY_CONFIG, JUNIOR_LEAGUES } from '../constants.js';
+import { GLORY_PER_STAR, WHEEL_RARITY_WEIGHTS, WHEEL_RARITY_CONFIG, WHEEL_PRISMATIC_CONFIG, getRarityPalette } from '../constants.js';
 import { adjustGuildGlory, applyGloryModifier, saveFortuneWheelResult, hasSpunThisWeek } from '../db/actions/guilds.js';
 import { getISOWeekKey, updateGuildScores, adjustGuildScoresForWheel } from './guildScoring.js';
 import { applyWheelStudentEffects, applyClassQuestBonusDelta } from '../db/actions/fortuneWheelEffects.js';
@@ -11,6 +11,16 @@ import { checkAndRecordQuestCompletion } from '../db/actions/stars.js';
 import { ensureAudioReady, playSound, playHeroFanfare } from '../audio.js';
 import { evaluateWheelAvailability } from '../utils/fortuneWheelEligibility.mjs';
 import { showAnimatedModal, hideModal } from '../ui/modals/base.js';
+
+/** Compute relative luminance from a hex color for text contrast decisions */
+function _luminance(hex) {
+    const c = String(hex || '').replace('#', '');
+    if (c.length < 6) return 0;
+    const r = parseInt(c.substring(0, 2), 16) / 255;
+    const g = parseInt(c.substring(2, 4), 16) / 255;
+    const b = parseInt(c.substring(4, 6), 16) / 255;
+    return 0.299 * r + 0.587 * g + 0.114 * b;
+}
 
 function _optimisticallyApplyWheelResultToState({ guildId, gloryDelta = 0, modifierCreated = null, segmentId = '' }) {
     if (!guildId) return;
@@ -117,6 +127,26 @@ const ALL_SEGMENTS = [
     { id: 'artifact_plunder',  emoji: '🪓', label: 'Artifact Plunder',  description: '1 random member loses 1 artifact!',               rarity: 'rare',      category: 'negative', effect: (ctx) => randomArtifactLoss(ctx, 1, 1) },
     { id: 'star_snatch',       emoji: '🕯️', label: 'Star Snatch',       description: '1 random member loses 1 star...',                  rarity: 'cursed',    category: 'negative', effect: (ctx) => randomStars(ctx, 1, -1) },
     { id: 'mythic_calamity',   emoji: '☄️', label: 'Calamity',          description: '-100 Glory, -10 Team Quest bonus, 3 artifacts lost...', rarity: 'mythic', category: 'negative', effect: (ctx) => mythicCalamity(ctx) },
+
+    // ── NEW: Expanded Glory Segments ──────────────────────────────────────────
+    { id: 'breeze_of_fortune',  emoji: '🌬️', label: 'Breeze of Fortune',  description: '+15 Glory and a whisper of luck!',                     rarity: 'common',    category: 'glory',  effect: (ctx) => instantGlory(ctx, 15) },
+    { id: 'copper_cache',       emoji: '🪙', label: 'Copper Cache',       description: '4 random members get +8 gold each!',                  rarity: 'common',    category: 'perk',   effect: (ctx) => randomGold(ctx, 4, 8) },
+    { id: 'whisper_of_unity',   emoji: '🤝', label: 'Whisper of Unity',   description: '+5 Glory to your guild, +3 to every other guild!',    rarity: 'common',    category: 'glory',  effect: async (ctx) => { await allGuildsGlory(ctx, 3); return instantGlory(ctx, 5); } },
+    { id: 'silver_lining',      emoji: '🪩', label: 'Silver Lining',      description: '0.8× Glory for 1 day, but +30 Glory right now!',    rarity: 'uncommon',  category: 'glory',  effect: async (ctx) => { const mod = await gloryMultiplier(ctx, 0.8, 1); const gl = await instantGlory(ctx, 30); return { ...gl, modifierCreated: mod.modifierCreated, description: `Silver lining: +30 Glory now, but Glory generation is reduced for 1 day.` }; } },
+    { id: 'scholars_momentum',  emoji: '📖', label: "Scholar's Momentum", description: '+1 Glory per star for the next 15 stars!',            rarity: 'uncommon',  category: 'glory',  effect: (ctx) => bonusPerStar(ctx, 1, 15) },
+    { id: 'guild_herald',       emoji: '📯', label: 'Guild Herald',        description: '+1 Glory per star for all guildmates (next 5 stars each)!', rarity: 'uncommon', category: 'glory', effect: (ctx) => bonusPerStarTimed(ctx, 1, 2) },
+    { id: 'crystal_focus',      emoji: '💎', label: 'Crystal Focus',      description: '2× Glory generation for 2 days!',                     rarity: 'rare',      category: 'glory',  effect: (ctx) => gloryMultiplier(ctx, 2, 2) },
+    { id: 'star_cascade',       emoji: '🌠', label: 'Star Cascade',       description: '4 random members get +1 star and +10 gold each!',   rarity: 'rare',      category: 'perk',   effect: async (ctx) => { const s = await randomStars(ctx, 4, 1); const g = await randomGold(ctx, 4, 10); return { gloryDelta: 0, starsDelta: s.starsDelta || 4, goldDelta: g.goldDelta || 40, affectedStudents: [...new Set([...(s.affectedStudents || []), ...(g.affectedStudents || [])])], description: '4 guild members each receive +1 star and +10 gold!' }; } },
+    { id: 'echoes_of_glory',    emoji: '🔔', label: 'Echoes of Glory',     description: '+25 Glory and echo your best active modifier for 1 day!', rarity: 'rare', category: 'glory', effect: (ctx) => echoesOfGlory(ctx) },
+    { id: 'golden_tide',        emoji: '🌊', label: 'Golden Tide',        description: 'ALL members get +20 gold, guild gets +30 Glory!',    rarity: 'epic',      category: 'perk',   effect: async (ctx) => { const g = await randomGold(ctx, ctx.memberCount, 20); const gl = await instantGlory(ctx, 30); return { ...g, gloryDelta: gl.gloryDelta + (g.gloryDelta || 0), description: `A golden tide! All members receive +20 gold, and the guild earns +30 Glory!` }; } },
+    { id: 'phoenix_rise',       emoji: '🔥', label: 'Phoenix Rise',       description: 'If guild has <50 Glory, gain +100; otherwise +40.',   rarity: 'epic',      category: 'glory',  effect: (ctx) => phoenixRise(ctx) },
+    { id: 'titans_stride',      emoji: '🏔️', label: "Titan's Stride",    description: '3× Glory generation for 2 days!',                     rarity: 'epic',      category: 'glory',  effect: (ctx) => gloryMultiplier(ctx, 3, 2) },
+    { id: 'crown_of_stars',     emoji: '👑', label: 'Crown of Stars',     description: 'ALL members get +2 stars and +25 gold!',              rarity: 'legendary', category: 'perk',   effect: async (ctx) => { const s = await randomStars(ctx, ctx.memberCount, 2); const g = await randomGold(ctx, ctx.memberCount, 25); return { gloryDelta: 0, starsDelta: s.starsDelta || ctx.memberCount * 2, goldDelta: g.goldDelta || ctx.memberCount * 25, affectedStudents: [...new Set([...(s.affectedStudents || []), ...(g.affectedStudents || [])])], description: `A crown of stars descends! All ${ctx.memberCount} members receive +2 stars and +25 gold!` }; } },
+    { id: 'sovereigns_boon',     emoji: '⚜️', label: "Sovereign's Boon",   description: 'Extend your best active modifier by 3 days!',         rarity: 'legendary', category: 'glory',  effect: (ctx) => sovereignsBoon(ctx) },
+    { id: 'celestial_convergence', emoji: '✨', label: 'Celestial Convergence', description: '+50 Quest bonus, ALL members +1 star & +50 gold, +100 Glory!', rarity: 'mythic', category: 'perk', isPrismatic: true, effect: async (ctx) => { const q = await applyClassQuestBonusDelta(ctx.classId, 50, 'Celestial Convergence'); const s = await randomStars(ctx, ctx.memberCount, 1); const g = await randomGold(ctx, ctx.memberCount, 50); const gl = await instantGlory(ctx, 100); if (q.classQuestDelta) await checkAndRecordQuestCompletion(ctx.classId).catch(() => {}); return { gloryDelta: gl.gloryDelta, starsDelta: s.starsDelta || ctx.memberCount, goldDelta: g.goldDelta || ctx.memberCount * 50, classQuestDelta: q.classQuestDelta || 50, affectedStudents: [...new Set([...(s.affectedStudents || []), ...(g.affectedStudents || [])])], description: `Celestial convergence! +50 Quest bonus, all members gain +1 star & +50 gold, and the guild earns +100 Glory!` }; } },
+    { id: 'fates_reversal',     emoji: '🔄', label: "Fate's Reversal",    description: 'Swap weekly Glory with the nearest rival guild!',      rarity: 'mythic',    category: 'glory',  isPrismatic: true, effect: (ctx) => fatesReversal(ctx) },
+    { id: 'shattered_mirror',   emoji: '🪞', label: 'Shattered Mirror',   description: 'Next positive wheel effect is halved!',               rarity: 'cursed',    category: 'negative', effect: (ctx) => applyShatteredMirror(ctx) },
+    { id: 'plague_of_doubt',    emoji: '🦠', label: 'Plague of Doubt',    description: 'ALL members lose 5 gold, guild -20 Glory, 0.75× for 1 day.', rarity: 'cursed', category: 'negative', effect: async (ctx) => { const g = await randomGold(ctx, ctx.memberCount, -5); const gl = await instantGlory(ctx, -20); const mod = await gloryMultiplier(ctx, 0.75, 1); return { gloryDelta: gl.gloryDelta + (g.gloryDelta || 0), goldDelta: g.goldDelta, modifierCreated: mod.modifierCreated, description: `Plague of doubt! All members lose 5 gold, the guild loses 20 Glory, and Glory generation is reduced for 1 day.` }; } },
 ];
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -463,6 +493,110 @@ async function mythicCalamity(ctx) {
     };
 }
 
+// ── NEW: Expanded effect implementations ──────────────────────────────────────
+
+async function phoenixRise(ctx) {
+    const allGuildScores = state.get('allGuildScores') || {};
+    const gData = allGuildScores[ctx.guildId] || {};
+    const weeklyGlory = Number(gData.weeklyGlory) || 0;
+    const amount = weeklyGlory < 50 ? 100 : 40;
+    await adjustGuildGlory(ctx.guildId, amount, 'wheel_phoenix_rise');
+    return { gloryDelta: amount, description: weeklyGlory < 50 ? `Phoenix rises from the ashes! +100 Glory!` : `Phoenix grants +40 Glory.` };
+}
+
+async function echoesOfGlory(ctx) {
+    await adjustGuildGlory(ctx.guildId, 25, 'wheel_echoes');
+    // Find the best active multiply or bonus_per_star modifier and echo it
+    const allGuildScores = state.get('allGuildScores') || {};
+    const gData = allGuildScores[ctx.guildId] || {};
+    const modifiers = gData.gloryModifiers || [];
+    const activeMods = modifiers.filter(m => m.expiresAt > Date.now() && (m.type === 'multiply' || m.type === 'bonus_per_star'));
+    const bestMod = activeMods.sort((a, b) => {
+        const aVal = a.type === 'multiply' ? (a.factor || 1) : (a.amount || 0);
+        const bVal = b.type === 'multiply' ? (b.factor || 1) : (b.amount || 0);
+        return bVal - aVal;
+    })[0];
+
+    if (bestMod) {
+        const expiresAt = Date.now() + 1 * 24 * 60 * 60 * 1000;
+        const echoMod = { ...bestMod, expiresAt, createdAt: Date.now(), label: `Echo: ${bestMod.label || bestMod.type} (1d)` };
+        await applyGloryModifier(ctx.guildId, echoMod);
+        return { gloryDelta: 25, modifierCreated: echoMod, description: `+25 Glory and your best modifier (${bestMod.label || bestMod.type}) echoes for 1 more day!` };
+    }
+
+    return { gloryDelta: 25, description: '+25 Glory! No active modifier to echo, but the glory is yours.' };
+}
+
+async function sovereignsBoon(ctx) {
+    const allGuildScores = state.get('allGuildScores') || {};
+    const gData = allGuildScores[ctx.guildId] || {};
+    const modifiers = gData.gloryModifiers || [];
+    const activeMods = modifiers.filter(m => m.expiresAt > Date.now());
+
+    if (activeMods.length === 0) {
+        // Fallback: give a 1.5× multiplier for 3 days if no active modifiers
+        const fallbackMod = { type: 'multiply', factor: 1.5, expiresAt: Date.now() + 3 * 24 * 60 * 60 * 1000, label: "Sovereign's Boon: 1.5× Glory (3d)", createdAt: Date.now() };
+        await applyGloryModifier(ctx.guildId, fallbackMod);
+        return { gloryDelta: 0, modifierCreated: fallbackMod, description: "No active modifiers to extend — instead, the Sovereign grants 1.5× Glory for 3 days!" };
+    }
+
+    // Extend the best active modifier by 3 days
+    const bestMod = activeMods.sort((a, b) => (b.expiresAt || 0) - (a.expiresAt || 0))[0];
+    const extendedMod = { ...bestMod, expiresAt: (bestMod.expiresAt || Date.now()) + 3 * 24 * 60 * 60 * 1000, label: `${bestMod.label || bestMod.type} (extended 3d)` };
+    await applyGloryModifier(ctx.guildId, extendedMod);
+    return { gloryDelta: 0, modifierCreated: extendedMod, description: `Sovereign's Boon extends "${bestMod.label || bestMod.type}" by 3 days!` };
+}
+
+async function fatesReversal(ctx) {
+    const allGuildScores = state.get('allGuildScores') || {};
+    const gData = allGuildScores[ctx.guildId] || {};
+    const myWeeklyGlory = Number(gData.weeklyGlory) || 0;
+
+    // Find nearest rival guild (closest weekly glory, not same guild)
+    let rivalGuildId = null;
+    let rivalWeeklyGlory = 0;
+    let smallestDiff = Infinity;
+
+    for (const gid of GUILD_IDS) {
+        if (gid === ctx.guildId) continue;
+        const rival = allGuildScores[gid] || {};
+        const rivalGlory = Number(rival.weeklyGlory) || 0;
+        const diff = Math.abs(rivalGlory - myWeeklyGlory);
+        if (diff < smallestDiff) {
+            smallestDiff = diff;
+            rivalGuildId = gid;
+            rivalWeeklyGlory = rivalGlory;
+        }
+    }
+
+    if (!rivalGuildId) {
+        // Fallback: just give +150 glory
+        await adjustGuildGlory(ctx.guildId, 150, 'wheel_fates_reversal_fallback');
+        return { gloryDelta: 150, description: "Fate couldn't find a rival — instead, +150 Glory!" };
+    }
+
+    // Swap weekly glory values
+    const myDelta = rivalWeeklyGlory - myWeeklyGlory;
+    const rivalDelta = myWeeklyGlory - rivalWeeklyGlory;
+
+    await adjustGuildGlory(ctx.guildId, myDelta, 'wheel_fates_reversal');
+    await adjustGuildGlory(rivalGuildId, rivalDelta, 'wheel_fates_reversal');
+
+    const rivalDef = getGuildById(rivalGuildId);
+    return {
+        gloryDelta: myDelta,
+        description: myDelta >= 0
+            ? `Fate's Reversal! Swapped weekly Glory with ${rivalDef?.name || 'rival'} — gained ${myDelta} Glory!`
+            : `Fate's Reversal! Swapped weekly Glory with ${rivalDef?.name || 'rival'} — lost ${Math.abs(myDelta)} Glory...`
+    };
+}
+
+async function applyShatteredMirror(ctx) {
+    const expiresAt = Date.now() + 7 * 24 * 60 * 60 * 1000;
+    await applyGloryModifier(ctx.guildId, { type: 'shattered_mirror', factor: 0.5, expiresAt, label: 'Shattered Mirror (next positive halved)', createdAt: Date.now() });
+    return { gloryDelta: 0, modifierCreated: { type: 'shattered_mirror', factor: 0.5, expiresAt }, description: 'A shattered mirror! The next positive wheel effect on this guild will be halved.' };
+}
+
 // ═══════════════════════════════════════════════════════════════════════════════
 // SEGMENT SELECTION
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -482,15 +616,8 @@ function shuffleArray(arr) {
  * @returns {Array} 20 segments
  */
 export function generateWheelSegments(leagueLevel) {
-    const isJunior = JUNIOR_LEAGUES.includes(leagueLevel);
-
-    // Filter pool: juniors exclude cursed and harsh negatives
-    let pool = ALL_SEGMENTS.filter(seg => {
-        if (isJunior && seg.rarity === 'mythic') return false;
-        if (isJunior && seg.rarity === 'cursed') return false;
-        if (isJunior && seg.category === 'negative' && ['glory_eclipse', 'glory_heist', 'tangled_web', 'lightning_strike', 'star_snatch', 'mythic_calamity'].includes(seg.id)) return false;
-        return true;
-    });
+    // All leagues can land on any effect — the wheel of fortune spares no one
+    let pool = ALL_SEGMENTS;
 
     // Build weighted pool
     const weighted = [];
@@ -524,7 +651,7 @@ export function generateWheelSegments(leagueLevel) {
         if (candidate.rarity === 'legendary' && legendaryCount >= 1) continue;
         if (candidate.category === 'negative' && negativeCount >= 4) continue;
 
-        selected.set(candidate.id, candidate);
+        selected.set(candidate.id, { ...candidate, paletteIndex: Math.floor(Math.random() * 3) });
         if (candidate.rarity === 'cursed') cursedCount++;
         if (candidate.rarity === 'epic') epicCount++;
         if (candidate.rarity === 'legendary') legendaryCount++;
@@ -608,6 +735,27 @@ export async function applyWheelResult(guildId, segment, classId) {
 
     try {
         const result = await segment.effect(ctx);
+
+        // Check for shattered mirror: halve positive effects and consume the modifier
+        if (segment.category !== 'negative' && result) {
+            const modifiers = gData.gloryModifiers || [];
+            const mirrorIdx = modifiers.findIndex(m => m.type === 'shattered_mirror' && m.expiresAt > Date.now());
+            if (mirrorIdx !== -1) {
+                // Halve positive glory delta
+                if (result.gloryDelta > 0) result.gloryDelta = Math.floor(result.gloryDelta / 2);
+                if (result.goldDelta > 0) result.goldDelta = Math.floor((result.goldDelta || 0) / 2);
+                if (result.starsDelta > 0) result.starsDelta = Math.floor((result.starsDelta || 0) / 2);
+                if (result.classQuestDelta > 0) result.classQuestDelta = Math.floor((result.classQuestDelta || 0) / 2);
+                // Remove the shattered mirror modifier (consumed)
+                const updatedModifiers = [...modifiers];
+                updatedModifiers.splice(mirrorIdx, 1);
+                const updatedScores = { ...gData, gloryModifiers: updatedModifiers };
+                const allScores = { ...allGuildScores, [guildId]: updatedScores };
+                state.setAllGuildScores(allScores);
+                result.description = `🪞 Shattered Mirror halved this effect! ${result.description}`;
+            }
+        }
+
         return {
             guildId,
             segmentId: segment.id,
@@ -721,20 +869,49 @@ export function drawWheel(canvas, segments, rotationAngle, guildDef, highlightIn
         const seg = segments[i];
         const startAngle = i * segAngle;
         const endAngle = startAngle + segAngle;
-        const rarityConf = WHEEL_RARITY_CONFIG[seg.rarity] || WHEEL_RARITY_CONFIG.common;
+        const rarityConf = getRarityPalette(seg.rarity, seg.paletteIndex);
+        const isPrismatic = seg.isPrismatic === true;
         
-        // Vibrant wedge gradient
-        const gradient = ctx.createRadialGradient(0, 0, radius * 0.1, 0, 0, radius);
-        gradient.addColorStop(0, rarityConf.bg);
-        gradient.addColorStop(0.6, rarityConf.bg);
-        gradient.addColorStop(1, rarityConf.color);
-
+        // Vibrant wedge gradient (prismatic = rainbow conic gradient)
         ctx.beginPath();
         ctx.moveTo(0, 0);
         ctx.arc(0, 0, radius, startAngle, endAngle);
         ctx.closePath();
-        ctx.fillStyle = gradient;
+
+        if (isPrismatic) {
+            // Prismatic rainbow gradient using conic gradient (with fallback)
+            const prismaticColors = WHEEL_PRISMATIC_CONFIG.colors;
+            if (typeof ctx.createConicGradient === 'function') {
+                const prismaticGrad = ctx.createConicGradient(startAngle, 0, 0);
+                for (let ci = 0; ci < prismaticColors.length; ci++) {
+                    prismaticGrad.addColorStop(ci / prismaticColors.length, prismaticColors[ci]);
+                }
+                prismaticGrad.addColorStop(1, prismaticColors[0]);
+                ctx.fillStyle = prismaticGrad;
+            } else {
+                // Fallback: use mythic palette for prismatic on older browsers
+                const fallbackGrad = ctx.createRadialGradient(0, 0, radius * 0.1, 0, 0, radius);
+                fallbackGrad.addColorStop(0, '#083344');
+                fallbackGrad.addColorStop(0.6, '#083344');
+                fallbackGrad.addColorStop(1, '#22d3ee');
+                ctx.fillStyle = fallbackGrad;
+            }
+            ctx.fillStyle = prismaticGrad;
+        } else {
+            const gradient = ctx.createRadialGradient(0, 0, radius * 0.1, 0, 0, radius);
+            gradient.addColorStop(0, rarityConf.bg);
+            gradient.addColorStop(0.6, rarityConf.bg);
+            gradient.addColorStop(1, rarityConf.color);
+            ctx.fillStyle = gradient;
+        }
         ctx.fill();
+
+        // Inner bevel highlight (subtle white arc on inner edge for depth)
+        ctx.beginPath();
+        ctx.arc(0, 0, radius, startAngle + 0.02, startAngle + segAngle * 0.35);
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.18)';
+        ctx.lineWidth = 2;
+        ctx.stroke();
 
         // Highlighting edge
         ctx.beginPath();
@@ -759,21 +936,44 @@ export function drawWheel(canvas, segments, rotationAngle, guildDef, highlightIn
         borderGrad.addColorStop(1, 'rgba(245, 158, 11, 0.8)');
         ctx.strokeStyle = borderGrad;
         ctx.lineWidth = Math.max(2, size / 150);
+        ctx.lineJoin = 'round';
         ctx.stroke();
 
-        // Draw segment label
+        // Draw emoji icon above label
         ctx.save();
         ctx.rotate(startAngle + segAngle / 2);
         
+        const emoji = String(seg.emoji || '');
         const label = String(seg.label || '');
         const maxTextWidth = radius * 0.45;
         
-        const fontSize = Math.max(12, Math.floor(size / 38));
-        ctx.font = `700 ${fontSize}px "Fredoka One", "Trebuchet MS", system-ui, sans-serif`;
-        ctx.fillStyle = '#FFFFFF';
+        // Dynamic text color based on background luminance for contrast
+        const bgLum = _luminance(rarityConf.bg);
+        const textColor = bgLum > 0.35 ? 'rgba(0, 0, 0, 0.85)' : '#FFFFFF';
+        const shadowColor = bgLum > 0.35 ? 'rgba(255, 255, 255, 0.3)' : 'rgba(0, 0, 0, 0.4)';
+        
+        // Emoji icon (larger, positioned further out)
+        const emojiSize = Math.max(16, Math.floor(size / 28));
+        ctx.font = `${emojiSize}px sans-serif`;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.shadowColor = 'rgba(0, 0, 0, 0.5)';
+        ctx.shadowBlur = 3;
+        ctx.shadowOffsetX = 1;
+        ctx.shadowOffsetY = 1;
+        const emojiRadius = radius - Math.max(22, size * 0.07);
+        ctx.fillText(emoji, emojiRadius, 0);
+        ctx.shadowBlur = 0;
+        ctx.shadowOffsetX = 0;
+        ctx.shadowOffsetY = 0;
+
+        // Label text (below emoji)
+        const fontSize = Math.max(11, Math.floor(size / 42));
+        ctx.font = `800 ${fontSize}px "Fredoka One", "Trebuchet MS", system-ui, sans-serif`;
+        ctx.fillStyle = textColor;
         ctx.textAlign = 'right';
         ctx.textBaseline = 'middle';
-        ctx.shadowColor = 'rgba(0, 0, 0, 0.4)';
+        ctx.shadowColor = shadowColor;
         ctx.shadowBlur = 4;
         ctx.shadowOffsetX = 1;
         ctx.shadowOffsetY = 1;
@@ -795,7 +995,7 @@ export function drawWheel(canvas, segments, rotationAngle, guildDef, highlightIn
 
     if (Number.isInteger(highlightIndex) && highlightIndex >= 0 && highlightIndex < segCount) {
         const seg = segments[highlightIndex];
-        const rarityConf = WHEEL_RARITY_CONFIG[seg?.rarity] || WHEEL_RARITY_CONFIG.common;
+        const rarityConf = getRarityPalette(seg?.rarity, seg?.paletteIndex);
         const startAngle = highlightIndex * segAngle;
         const endAngle = startAngle + segAngle;
 
@@ -916,8 +1116,98 @@ function triggerWheelRevealEffects(rarity, isNegative) {
     }
 }
 
+function _createSparkles(x, y, count, colors, sizeRange = [3, 7], distRange = [40, 120]) {
+    for (let i = 0; i < count; i++) {
+        const sparkle = document.createElement('div');
+        sparkle.className = 'fw-sparkle';
+        const color = colors[Math.floor(Math.random() * colors.length)];
+        const size = sizeRange[0] + Math.random() * (sizeRange[1] - sizeRange[0]);
+        const angle = Math.random() * Math.PI * 2;
+        const dist = distRange[0] + Math.random() * (distRange[1] - distRange[0]);
+        const tx = Math.cos(angle) * dist;
+        const ty = Math.sin(angle) * dist - 20; // slight upward bias
+        const dur = 0.6 + Math.random() * 0.5;
+        sparkle.style.left = `${x}px`;
+        sparkle.style.top = `${y}px`;
+        sparkle.style.setProperty('--size', `${size}px`);
+        sparkle.style.setProperty('--sparkle-color', color);
+        sparkle.style.setProperty('--tx', `${tx}px`);
+        sparkle.style.setProperty('--ty', `${ty}px`);
+        sparkle.style.setProperty('--duration', `${dur}s`);
+        sparkle.style.animationDelay = `${Math.random() * 0.15}s`;
+        document.body.appendChild(sparkle);
+        sparkle.addEventListener('animationend', () => sparkle.remove());
+    }
+}
+
+function _createHaloRing(x, y, color, delay = 0) {
+    setTimeout(() => {
+        const ring = document.createElement('div');
+        ring.className = 'fw-halo-ring';
+        ring.style.left = `${x}px`;
+        ring.style.top = `${y}px`;
+        ring.style.setProperty('--halo-color', color);
+        document.body.appendChild(ring);
+        ring.addEventListener('animationend', () => ring.remove());
+    }, delay);
+}
+
+function _createStarburst(x, y, color) {
+    const burst = document.createElement('div');
+    burst.className = 'fw-starburst';
+    burst.style.left = `${x}px`;
+    burst.style.top = `${y}px`;
+    burst.style.setProperty('--burst-color', color);
+    document.body.appendChild(burst);
+    burst.addEventListener('animationend', () => burst.remove());
+}
+
+function _createCrumbleParticles(x, y, count, colors) {
+    for (let i = 0; i < count; i++) {
+        const p = document.createElement('div');
+        p.className = 'fw-crumble-particle';
+        const color = colors[Math.floor(Math.random() * colors.length)];
+        const size = 4 + Math.random() * 6;
+        const tx = (Math.random() - 0.5) * 160;
+        const fd = 100 + Math.random() * 200;
+        const rot = (Math.random() - 0.5) * 360;
+        const dur = 0.8 + Math.random() * 0.6;
+        p.style.left = `${x + (Math.random() - 0.5) * 100}px`;
+        p.style.top = `${y - 20}px`;
+        p.style.setProperty('--size', `${size}px`);
+        p.style.setProperty('--crumble-color', color);
+        p.style.setProperty('--tx', `${tx}px`);
+        p.style.setProperty('--fd', `${fd}px`);
+        p.style.setProperty('--rot', `${rot}deg`);
+        p.style.setProperty('--duration', `${dur}s`);
+        p.style.animationDelay = `${Math.random() * 0.2}s`;
+        document.body.appendChild(p);
+        p.addEventListener('animationend', () => p.remove());
+    }
+}
+
+function _createPrismaticFlash() {
+    const flash = document.createElement('div');
+    flash.className = 'fw-prismatic-flash';
+    document.body.appendChild(flash);
+    flash.addEventListener('animationend', () => flash.remove());
+}
+
 function triggerMythicReveal(x, y, isNegative) {
-    triggerLegendaryReveal(x, y, isNegative);
+    // Prismatic flash
+    _createPrismaticFlash();
+    // Starburst
+    _createStarburst(x, y, isNegative ? 'rgba(220, 38, 38, 0.5)' : 'rgba(251, 191, 36, 0.5)');
+    // 4 staggered halo rings
+    for (let i = 0; i < 4; i++) {
+        _createHaloRing(x, y, isNegative ? 'rgba(220, 38, 38, 0.7)' : 'rgba(251, 191, 36, 0.8)', i * 120);
+    }
+    // 40 sparkles
+    const mythicColors = isNegative
+        ? ['#ef4444', '#dc2626', '#991b1b', '#f97316', '#fbbf24']
+        : ['#fbbf24', '#f59e0b', '#eab308', '#22d3ee', '#a78bfa', '#ec4899', '#34d399'];
+    _createSparkles(x, y, 40, mythicColors, [4, 10], [60, 210]);
+    // Emoji rain
     const emojis = isNegative ? ['☄️', '🌑', '⚰️', '💀', '🔥', '🕯️'] : ['🏆', '👑', '⚜️', '✨', '💎', '🌟', '🗺️', '🎁'];
     triggerEmojiRain(x, y, emojis, 55);
 }
@@ -929,17 +1219,16 @@ function triggerLegendaryReveal(x, y, isNegative) {
     document.body.appendChild(flash);
     flash.addEventListener('animationend', () => flash.remove());
 
+    // 3 staggered halo rings
     for (let i = 0; i < 3; i++) {
-        setTimeout(() => {
-            const shockwave = document.createElement('div');
-            shockwave.className = 'shockwave';
-            shockwave.style.left = `${x}px`;
-            shockwave.style.top = `${y}px`;
-            shockwave.style.setProperty('--shockwave-color', isNegative ? 'rgba(220, 38, 38, 0.7)' : 'rgba(251, 191, 36, 0.8)');
-            document.body.appendChild(shockwave);
-            shockwave.addEventListener('animationend', () => shockwave.remove());
-        }, i * 150);
+        _createHaloRing(x, y, isNegative ? 'rgba(220, 38, 38, 0.7)' : 'rgba(251, 191, 36, 0.8)', i * 150);
     }
+
+    // 32 sparkles
+    const legendaryColors = isNegative
+        ? ['#ef4444', '#dc2626', '#f97316']
+        : ['#fbbf24', '#f59e0b', '#eab308', '#fcd34d'];
+    _createSparkles(x, y, 32, legendaryColors, [3, 8], [50, 160]);
 
     const emojis = isNegative ? ['💀', '⚰️', '🌑', '💀', '🔥'] : ['⭐', '✨', '🌟', '💫', '🏆', '⚜️', '👑'];
     triggerEmojiRain(x, y, emojis, 35);
@@ -952,13 +1241,15 @@ function triggerEpicReveal(x, y, isNegative) {
     document.body.appendChild(flash);
     flash.addEventListener('animationend', () => flash.remove());
 
-    const shockwave = document.createElement('div');
-    shockwave.className = 'shockwave';
-    shockwave.style.left = `${x}px`;
-    shockwave.style.top = `${y}px`;
-    shockwave.style.setProperty('--shockwave-color', isNegative ? 'rgba(220, 38, 38, 0.6)' : 'rgba(168, 85, 247, 0.7)');
-    document.body.appendChild(shockwave);
-    shockwave.addEventListener('animationend', () => shockwave.remove());
+    // 2 staggered halo rings
+    _createHaloRing(x, y, isNegative ? 'rgba(220, 38, 38, 0.6)' : 'rgba(168, 85, 247, 0.7)');
+    setTimeout(() => _createHaloRing(x, y, isNegative ? 'rgba(220, 38, 38, 0.5)' : 'rgba(168, 85, 247, 0.5)'), 130);
+
+    // 24 sparkles
+    const epicColors = isNegative
+        ? ['#ef4444', '#f97316', '#fbbf24']
+        : ['#a855f7', '#c084fc', '#e879f9', '#fbbf24'];
+    _createSparkles(x, y, 24, epicColors, [3, 7], [40, 130]);
 
     const emojis = isNegative ? ['🔻', '⚡', '💔'] : ['🌟', '✨', '💫', '🎁'];
     triggerEmojiRain(x, y, emojis, 22);
@@ -971,13 +1262,11 @@ function triggerRareReveal(x, y) {
     document.body.appendChild(flash);
     flash.addEventListener('animationend', () => flash.remove());
 
-    const shockwave = document.createElement('div');
-    shockwave.className = 'shockwave';
-    shockwave.style.left = `${x}px`;
-    shockwave.style.top = `${y}px`;
-    shockwave.style.setProperty('--shockwave-color', 'rgba(96, 165, 250, 0.6)');
-    document.body.appendChild(shockwave);
-    shockwave.addEventListener('animationend', () => shockwave.remove());
+    // 1 halo ring
+    _createHaloRing(x, y, 'rgba(96, 165, 250, 0.6)');
+
+    // 16 sparkles
+    _createSparkles(x, y, 16, ['#a855f7', '#818cf8', '#c084fc', '#e9d5ff'], [2, 6], [30, 100]);
 
     const emojis = ['✨', '⭐', '💫'];
     triggerEmojiRain(x, y, emojis, 14);
@@ -990,22 +1279,24 @@ function triggerCursedReveal(x, y) {
     document.body.appendChild(flash);
     flash.addEventListener('animationend', () => flash.remove());
 
+    // 2 staggered halo rings
     for (let i = 0; i < 2; i++) {
-        setTimeout(() => {
-            const shockwave = document.createElement('div');
-            shockwave.className = 'shockwave';
-            shockwave.style.left = `${x}px`;
-            shockwave.style.top = `${y}px`;
-            shockwave.style.setProperty('--shockwave-color', 'rgba(185, 28, 28, 0.7)');
-            document.body.appendChild(shockwave);
-            shockwave.addEventListener('animationend', () => shockwave.remove());
-        }, i * 200);
+        _createHaloRing(x, y, 'rgba(185, 28, 28, 0.7)', i * 200);
     }
+
+    // Crumble particles
+    _createCrumbleParticles(x, y, 20, ['#ef4444', '#dc2626', '#991b1b', '#7f1d1d']);
+
+    // 20 sparkles (dark red)
+    _createSparkles(x, y, 20, ['#ef4444', '#dc2626', '#f87171'], [2, 5], [20, 80]);
 
     triggerEmojiRain(x, y, ['⚡', '💀', '🌑', '🔻'], 18);
 }
 
 function triggerCommonReveal(x, y) {
+    // 8 sparkles (subtle)
+    _createSparkles(x, y, 8, ['#fbbf24', '#fcd34d', '#fef3c7'], [2, 5], [20, 60]);
+
     triggerEmojiRain(x, y, ['✨', '⭐', '💫'], 8);
 }
 
@@ -1347,6 +1638,8 @@ export async function triggerSpin() {
     const winnerIndex = spinWheel(segments.length);
     const stageFrame = document.getElementById('fw-stage-frame');
     if (stageFrame) stageFrame.classList.add('is-spinning');
+    const canvasWrap = document.getElementById('fw-canvas-wrap');
+    if (canvasWrap) canvasWrap.classList.remove('is-idle');
 
     _updateSpinButton(true, 'Spinning...');
 
@@ -1474,7 +1767,10 @@ function _renderWheelPhase() {
     }
 
     const canvasWrap = document.getElementById('fw-canvas-wrap');
-    if (canvasWrap) canvasWrap.classList.remove('hidden');
+    if (canvasWrap) {
+        canvasWrap.classList.remove('hidden');
+        canvasWrap.classList.add('is-idle');
+    }
     _sizeAndRenderWheel();
 
     _updateSpinButton(false, 'Spin This Guild', 'The relic chooses a fate');
@@ -1540,13 +1836,14 @@ function _hideResultReveal() {
     const shell = revealLayer?.querySelector('.fw-reveal-layer__shell');
     if (shell) {
         delete shell.dataset.rarity;
+        shell.classList.remove('is-prismatic');
         shell.style.removeProperty('--shell-rarity-color');
         shell.style.removeProperty('--shell-rarity-glow');
         shell.style.removeProperty('--shell-rarity-bg');
     }
 }
 
-function _showResultReveal({ cardHtml, rarity = 'common', rarityColor = null, rarityGlow = null, rarityBg = null, primaryAction = null, secondaryAction = null }) {
+function _showResultReveal({ cardHtml, rarity = 'common', rarityColor = null, rarityGlow = null, rarityBg = null, isPrismatic = false, primaryAction = null, secondaryAction = null }) {
     const revealLayer = document.getElementById('fw-reveal-layer');
     const revealCard = document.getElementById('fw-reveal-card');
     const primaryBtn = document.getElementById('fw-reveal-primary-btn');
@@ -1559,6 +1856,11 @@ function _showResultReveal({ cardHtml, rarity = 'common', rarityColor = null, ra
     const shell = revealLayer.querySelector('.fw-reveal-layer__shell');
     if (shell) {
         shell.dataset.rarity = rarity;
+        if (isPrismatic) {
+            shell.classList.add('is-prismatic');
+        } else {
+            shell.classList.remove('is-prismatic');
+        }
         if (rarityColor) shell.style.setProperty('--shell-rarity-color', rarityColor);
         if (rarityGlow)  shell.style.setProperty('--shell-rarity-glow',  rarityGlow);
         if (rarityBg)    shell.style.setProperty('--shell-rarity-bg',    rarityBg);
@@ -1592,7 +1894,7 @@ function _showResultReveal({ cardHtml, rarity = 'common', rarityColor = null, ra
 }
 
 function _renderWheelResult(segment, result, guildDef) {
-    const rarityConf = WHEEL_RARITY_CONFIG[segment.rarity] || WHEEL_RARITY_CONFIG.common;
+    const rarityConf = getRarityPalette(segment.rarity, segment.paletteIndex);
     const emblemUrl = getGuildEmblemUrl(guildDef?.id);
 
     // ── Resolve affected student objects ─────────────────────────────────
@@ -1692,7 +1994,7 @@ function _renderWheelResult(segment, result, guildDef) {
 
     // ── Full card HTML ────────────────────────────────────────────────────
     const cardHtml = `
-        <div class="fw-result-card fw-result-card--v2"
+        <div class="fw-result-card fw-result-card--v2${segment.isPrismatic ? ' is-prismatic' : ''}"
              data-rarity="${segment.rarity}"
              style="--rarity-color:${rarityConf.color};--rarity-glow:${rarityConf.glow};--rarity-bg:${rarityConf.bg};border-color:${rarityConf.color};">
             <div class="fw-result-ribbon">${rarityConf.label}</div>
@@ -1716,6 +2018,7 @@ function _renderWheelResult(segment, result, guildDef) {
         rarityColor: rarityConf.color,
         rarityGlow: rarityConf.glow,
         rarityBg: rarityConf.bg,
+        isPrismatic: segment.isPrismatic === true,
         secondaryAction: {
             label: 'Close the Relic',
             onClick: () => closeFortunesWheel()
@@ -1775,7 +2078,7 @@ function _renderWheelSummary() {
         <div class="fw-summary-grid">
         ${_wheelState.results.map(r => {
             const guildDef = getGuildById(r.guildId);
-            const rarityConf = WHEEL_RARITY_CONFIG[r.rarity] || WHEEL_RARITY_CONFIG.common;
+            const rarityConf = getRarityPalette(r.rarity, r.paletteIndex);
             const emblemUrl = getGuildEmblemUrl(r.guildId);
             return `
                 <div class="fw-summary-item" style="border-color:${guildDef?.primary || '#666'};">

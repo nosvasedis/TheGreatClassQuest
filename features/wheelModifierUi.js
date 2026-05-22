@@ -62,6 +62,8 @@ function _explain(mod) {
             return `Pins your guild's momentum reading so it can't show as negative while this is active — that cushions the Guild Power momentum ingredient when this week's Glory dips compared to last week. Glory numbers still update as usual; this only affects momentum scoring math.`;
         case 'challenge':
             return `If your guild holds the strongest weekly Glory run before this challenge expires (compared across guilds here), you'll bank a bonus +${Number.isFinite(mod.bonus) ? bonus : 50} ${GLORY_EMOJI} Glory when the tally resolves. Tie-breakers lean on Glory rules baked into the wheel and scoring.`;
+        case 'shattered_mirror':
+            return `A fractured reflection — the next positive Fortune's Wheel effect that lands on this guild will have its impact halved (rounded down). Negative effects apply at full strength. This curse fades after one positive effect is reduced, or after a week, whichever comes first.`;
         default:
             return `A Glory-related boon is active on your guild (${type || 'custom'}). Peek at Fortune's Wheel, Elite relics, or recent class events — those are usually the sources.`;
     }
@@ -80,6 +82,7 @@ export function getGuildModifierChipPresentation(mod) {
     else if (type === 'momentum_lock') iconClass = 'fa-solid fa-anchor';
     else if (type === 'challenge') iconClass = 'fa-solid fa-flag-checkered';
     else if (type === 'bonus_per_star') iconClass = 'fa-solid fa-sparkles';
+    else if (type === 'shattered_mirror') iconClass = 'fa-solid fa-burst';
     else if (type === 'multiply') {
         const f = Number(mod.factor);
         if (Number.isFinite(f) && f < 1) iconClass = 'fa-solid fa-arrow-trend-down';
@@ -96,6 +99,7 @@ export function getGuildModifierChipPresentation(mod) {
         shield: `${GLORY_EMOJI} shield`,
         momentum_lock: 'Momentum lock',
         challenge: `${GLORY_EMOJI} challenge`,
+        shattered_mirror: `${GLORY_EMOJI} shattered mirror`,
     };
     const headlinePlain = label || TYPE_HEADLINE_FALLBACK[type] || 'Guild Glory boon';
 

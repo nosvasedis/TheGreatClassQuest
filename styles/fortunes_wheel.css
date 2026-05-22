@@ -831,7 +831,7 @@
 
     position: relative;
     z-index: 1;
-    width: min(700px, 100%);
+    width: min(580px, 100%);
     max-height: min(88vh, 900px);
     display: flex;
     flex-direction: column;
@@ -923,6 +923,22 @@
 .fw-reveal-layer__shell[data-rarity="mythic"] {
     animation: fw-shell-enter 0.55s cubic-bezier(0.34, 1.56, 0.64, 1) both,
                fw-shell-mythic-pulse 2.6s ease-in-out 0.6s infinite;
+}
+
+/* Prismatic: animated gradient background */
+.fw-reveal-layer__shell.is-prismatic {
+    background:
+        radial-gradient(ellipse at 50% 0%, rgba(168, 85, 247, 0.25) 0%, transparent 55%),
+        linear-gradient(160deg, rgba(10, 14, 28, 0.97) 0%, rgba(14, 10, 28, 0.98) 100%);
+    background-size: 200% 200%;
+    animation: fw-shell-enter 0.55s cubic-bezier(0.34, 1.56, 0.64, 1) both,
+               fw-prismatic-bg-shift 4s ease-in-out infinite;
+}
+
+@keyframes fw-prismatic-bg-shift {
+    0%   { background-position: 0% 50%; }
+    50%  { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
 }
 
 @keyframes fw-shell-mythic-pulse {
@@ -1868,3 +1884,251 @@
 }
 
 .hidden { display: none !important; }
+
+/* ═══════════════════════════════════════════════════════════════════════════════
+   FORTUNE'S WHEEL — ENHANCED CELEBRATION EFFECTS
+   ═══════════════════════════════════════════════════════════════════════════════ */
+
+/* ── Prismatic flash overlay (mythic/legendary) ─────────────────────────── */
+.fw-prismatic-flash {
+    position: fixed;
+    inset: 0;
+    z-index: 999;
+    pointer-events: none;
+    animation: fw-prismatic-flash-anim 2s ease-out forwards;
+}
+
+@keyframes fw-prismatic-flash-anim {
+    0%   { background: rgba(255, 255, 255, 0.6); }
+    10%  { background: rgba(239, 68, 68, 0.35); }
+    25%  { background: rgba(249, 115, 22, 0.3); }
+    40%  { background: rgba(234, 179, 8, 0.25); }
+    55%  { background: rgba(34, 197, 94, 0.2); }
+    70%  { background: rgba(59, 130, 246, 0.2); }
+    85%  { background: rgba(168, 85, 247, 0.15); }
+    100% { background: transparent; }
+}
+
+/* ── Halo ring expansion (epic+) ────────────────────────────────────────── */
+.fw-halo-ring {
+    position: fixed;
+    border-radius: 50%;
+    pointer-events: none;
+    z-index: 997;
+    border: 3px solid var(--halo-color, rgba(251, 191, 36, 0.7));
+    animation: fw-halo-ring-anim 1.2s ease-out forwards;
+}
+
+@keyframes fw-halo-ring-anim {
+    0%   { width: 0; height: 0; opacity: 1; transform: translate(-50%, -50%) scale(0); }
+    100% { width: 500px; height: 500px; opacity: 0; transform: translate(-50%, -50%) scale(1); }
+}
+
+/* ── Crumble particles (cursed) ─────────────────────────────────────────── */
+.fw-crumble-particle {
+    position: fixed;
+    width: var(--size, 6px);
+    height: var(--size, 6px);
+    border-radius: 2px;
+    background: var(--crumble-color, #ef4444);
+    pointer-events: none;
+    z-index: 1001;
+    animation: fw-crumble-fall var(--duration, 1.2s) ease-in forwards;
+}
+
+@keyframes fw-crumble-fall {
+    0%   { transform: translate(-50%, -50%) scale(1) rotate(0deg); opacity: 1; }
+    60%  { opacity: 0.7; }
+    100% { transform: translate(calc(-50% + var(--tx, 0px)), calc(-50% + var(--fd, 200px))) scale(0.3) rotate(var(--rot, 180deg)); opacity: 0; }
+}
+
+/* ── Starburst radial lines (mythic) ─────────────────────────────────────── */
+.fw-starburst {
+    position: fixed;
+    pointer-events: none;
+    z-index: 996;
+    width: 600px;
+    height: 600px;
+    transform: translate(-50%, -50%);
+    animation: fw-starburst-anim 1.8s ease-out forwards;
+    background: conic-gradient(
+        from 0deg,
+        var(--burst-color, rgba(251, 191, 36, 0.5)) 0deg 3deg,
+        transparent 3deg 30deg,
+        var(--burst-color, rgba(251, 191, 36, 0.4)) 30deg 33deg,
+        transparent 33deg 60deg,
+        var(--burst-color, rgba(251, 191, 36, 0.3)) 60deg 63deg,
+        transparent 63deg 90deg,
+        var(--burst-color, rgba(251, 191, 36, 0.5)) 90deg 93deg,
+        transparent 93deg 120deg,
+        var(--burst-color, rgba(251, 191, 36, 0.4)) 120deg 123deg,
+        transparent 123deg 150deg,
+        var(--burst-color, rgba(251, 191, 36, 0.3)) 150deg 153deg,
+        transparent 153deg 180deg,
+        var(--burst-color, rgba(251, 191, 36, 0.5)) 180deg 183deg,
+        transparent 183deg 210deg,
+        var(--burst-color, rgba(251, 191, 36, 0.4)) 210deg 213deg,
+        transparent 213deg 240deg,
+        var(--burst-color, rgba(251, 191, 36, 0.3)) 240deg 243deg,
+        transparent 243deg 270deg,
+        var(--burst-color, rgba(251, 191, 36, 0.5)) 270deg 273deg,
+        transparent 273deg 300deg,
+        var(--burst-color, rgba(251, 191, 36, 0.4)) 300deg 303deg,
+        transparent 303deg 330deg,
+        var(--burst-color, rgba(251, 191, 36, 0.3)) 330deg 333deg,
+        transparent 333deg 360deg
+    );
+    border-radius: 50%;
+}
+
+@keyframes fw-starburst-anim {
+    0%   { transform: translate(-50%, -50%) scale(0) rotate(0deg); opacity: 1; }
+    30%  { opacity: 0.8; }
+    100% { transform: translate(-50%, -50%) scale(1) rotate(90deg); opacity: 0; }
+}
+
+/* ── Sparkle burst particles (per-rarity) ────────────────────────────────── */
+.fw-sparkle {
+    position: fixed;
+    width: var(--size, 5px);
+    height: var(--size, 5px);
+    border-radius: 50%;
+    background: var(--sparkle-color, #fbbf24);
+    pointer-events: none;
+    z-index: 1001;
+    box-shadow: 0 0 6px var(--sparkle-color, #fbbf24);
+    animation: fw-sparkle-fly var(--duration, 0.8s) ease-out forwards;
+}
+
+@keyframes fw-sparkle-fly {
+    0%   { transform: translate(-50%, -50%) scale(0.5); opacity: 1; }
+    40%  { opacity: 0.9; }
+    100% { transform: translate(calc(-50% + var(--tx, 0px)), calc(-50% + var(--ty, -80px))) scale(0); opacity: 0; }
+}
+
+/* ── Stat tile staggered entrance ────────────────────────────────────────── */
+.fw-result-stat {
+    animation: fw-stat-slide-up 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+
+@keyframes fw-stat-slide-up {
+    0%   { opacity: 0; transform: translateY(16px) scale(0.92); }
+    100% { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+/* ── Negative stat shake ────────────────────────────────────────────────── */
+.fw-result-stat__value--negative {
+    animation: fw-negative-shake 0.4s ease-out 0.15s both;
+}
+
+@keyframes fw-negative-shake {
+    0%, 100% { transform: translateX(0); }
+    20%, 60% { transform: translateX(-3px); }
+    40%, 80% { transform: translateX(3px); }
+}
+
+/* ── Positive stat pulse ─────────────────────────────────────────────────── */
+.fw-result-stat__value:not(.fw-result-stat__value--negative) {
+    animation: fw-positive-pulse 0.6s ease-out 0.15s both;
+}
+
+@keyframes fw-positive-pulse {
+    0%   { transform: scale(0.8); opacity: 0.5; }
+    50%  { transform: scale(1.15); }
+    100% { transform: scale(1); opacity: 1; }
+}
+
+/* ── Artifact pill 3D tilt hover ────────────────────────────────────────── */
+.fw-result-artifact-pill {
+    transition: transform 220ms ease, box-shadow 220ms ease;
+    perspective: 400px;
+}
+
+.fw-result-artifact-pill:hover {
+    transform: translateY(-3px) rotateY(-4deg) rotateX(2deg);
+    box-shadow: 0 6px 20px var(--rarity-glow), 0 0 14px var(--rarity-glow);
+}
+
+/* ── Prismatic result card background animation ──────────────────────────── */
+.fw-result-card--v2[data-rarity="mythic"] .fw-result-emoji-orb,
+.fw-result-card--v2.is-prismatic .fw-result-emoji-orb {
+    background: conic-gradient(
+        from 0deg,
+        #ef4444, #f97316, #eab308, #22c55e, #3b82f6, #a855f7, #ec4899, #ef4444
+    );
+    background-size: 100% 100%;
+    animation: fw-prismatic-orb-spin 3s linear infinite;
+}
+
+@keyframes fw-prismatic-orb-spin {
+    0%   { filter: hue-rotate(0deg); }
+    100% { filter: hue-rotate(360deg); }
+}
+
+/* ── Idle wheel slow rotation (CSS transform, GPU-composited) ────────────── */
+.fw-canvas-wrap.is-idle {
+    animation: fw-idle-rotate 60s linear infinite;
+}
+
+@keyframes fw-idle-rotate {
+    from { transform: rotate(0deg); }
+    to   { transform: rotate(360deg); }
+}
+
+/* ── Pointer bounce anticipation before spin ─────────────────────────────── */
+.fw-pointer-bright.is-anticipating {
+    animation: fw-pointer-anticipate 0.6s ease-in-out;
+}
+
+@keyframes fw-pointer-anticipate {
+    0%, 100% { transform: translateX(-50%) translateY(0); }
+    25%      { transform: translateX(-50%) translateY(-8px); }
+    50%      { transform: translateX(-50%) translateY(2px); }
+    75%      { transform: translateX(-50%) translateY(-4px); }
+}
+
+/* ── Emoji orb float animation ───────────────────────────────────────────── */
+.fw-result-emoji-orb {
+    animation: fw-orb-pulse 3s ease-in-out infinite, fw-orb-float 4s ease-in-out infinite;
+}
+
+@keyframes fw-orb-float {
+    0%, 100% { transform: translateY(0); }
+    50%      { transform: translateY(-6px); }
+}
+
+/* ── Guild emblem center pulse glow (CSS, not canvas) ───────────────────── */
+.fw-guild-emblem-orb {
+    animation: fw-emblem-pulse 4s ease-in-out infinite;
+}
+
+@keyframes fw-emblem-pulse {
+    0%, 100% { box-shadow: 0 0 25px rgba(255,255,255,0.1), 0 0 0 0 var(--guild-primary, rgba(167,139,250,0.3)); }
+    50%      { box-shadow: 0 0 35px rgba(251,191,36,0.15), 0 0 20px 4px var(--guild-primary, rgba(167,139,250,0.3)); }
+}
+
+/* ── Reduced motion: disable all new celebration effects ──────────────────── */
+@media (prefers-reduced-motion: reduce) {
+    .fw-prismatic-flash,
+    .fw-halo-ring,
+    .fw-crumble-particle,
+    .fw-starburst,
+    .fw-sparkle {
+        animation: none !important;
+        display: none !important;
+    }
+    .fw-canvas-wrap.is-idle {
+        animation: none !important;
+    }
+    .fw-pointer-bright.is-anticipating {
+        animation: none !important;
+    }
+    .fw-result-emoji-orb {
+        animation: none !important;
+    }
+    .fw-result-stat,
+    .fw-result-stat__value--negative,
+    .fw-result-stat__value:not(.fw-result-stat__value--negative) {
+        animation: none !important;
+    }
+}

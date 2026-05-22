@@ -124,16 +124,61 @@ export const WHEEL_RARITY_WEIGHTS = {
     cursed:     2,
 };
 
-/** Rarity display config */
+/** Rarity display config — each tier has multiple palettes for visual variety.
+ *  paletteIndex on a segment selects which palette to use (0 = classic). */
 export const WHEEL_RARITY_CONFIG = {
-    common:    { label: 'Common',    color: '#3b82f6', bg: '#1e3a5f', glow: '#3b82f680' },
-    uncommon:  { label: 'Uncommon',  color: '#22c55e', bg: '#14532d', glow: '#22c55e80' },
-    rare:      { label: 'Rare',      color: '#a855f7', bg: '#3b0764', glow: '#a855f780' },
-    epic:      { label: 'Epic',      color: '#f97316', bg: '#7c2d12', glow: '#f9731680' },
-    legendary: { label: 'Legendary', color: '#eab308', bg: '#713f12', glow: '#eab30880' },
-    mythic:    { label: 'Mythic',    color: '#22d3ee', bg: '#083344', glow: '#22d3ee80' },
-    cursed:    { label: 'Cursed',    color: '#ef4444', bg: '#450a0a', glow: '#ef444480' },
+    common: [
+        { label: 'Common',    color: '#3b82f6', bg: '#1e3a5f', glow: '#3b82f680' },   // Classic Blue
+        { label: 'Common',    color: '#06b6d4', bg: '#164e63', glow: '#06b6d480' },   // Sky Cyan
+        { label: 'Common',    color: '#0ea5e9', bg: '#0c4a6e', glow: '#0ea5e980' },   // Frost Teal
+    ],
+    uncommon: [
+        { label: 'Uncommon',  color: '#22c55e', bg: '#14532d', glow: '#22c55e80' },   // Emerald
+        { label: 'Uncommon',  color: '#10b981', bg: '#064e3b', glow: '#10b98180' },   // Jade
+        { label: 'Uncommon',  color: '#84cc16', bg: '#365314', glow: '#84cc1680' },   // Lime
+    ],
+    rare: [
+        { label: 'Rare',      color: '#a855f7', bg: '#3b0764', glow: '#a855f780' },   // Amethyst
+        { label: 'Rare',      color: '#8b5cf6', bg: '#4c1d95', glow: '#8b5cf680' },   // Violet
+        { label: 'Rare',      color: '#d946ef', bg: '#4a044e', glow: '#d946ef80' },   // Fuchsia
+    ],
+    epic: [
+        { label: 'Epic',      color: '#f97316', bg: '#7c2d12', glow: '#f9731680' },   // Blaze Orange
+        { label: 'Epic',      color: '#ef4444', bg: '#7f1d1d', glow: '#ef444480' },   // Crimson
+        { label: 'Epic',      color: '#f43f5e', bg: '#881337', glow: '#f43f5e80' },   // Rose Fire
+    ],
+    legendary: [
+        { label: 'Legendary', color: '#eab308', bg: '#713f12', glow: '#eab30880' },   // Gold
+        { label: 'Legendary', color: '#f59e0b', bg: '#78350f', glow: '#f59e0b80' },   // Amber
+        { label: 'Legendary', color: '#fbbf24', bg: '#92400e', glow: '#fbbf2480' },   // Sunfire
+    ],
+    mythic: [
+        { label: 'Mythic',    color: '#22d3ee', bg: '#083344', glow: '#22d3ee80' },   // Cyan
+        { label: 'Mythic',    color: '#38bdf8', bg: '#0c4a6e', glow: '#38bdf880' },   // Celestial Blue
+        { label: 'Mythic',    color: '#a78bfa', bg: '#3b0764', glow: '#a78bfa80' },   // Astral Violet
+    ],
+    cursed: [
+        { label: 'Cursed',    color: '#ef4444', bg: '#450a0a', glow: '#ef444480' },   // Blood Red
+        { label: 'Cursed',    color: '#dc2626', bg: '#450a0a', glow: '#dc262680' },   // Dark Crimson
+        { label: 'Cursed',    color: '#b91c1c', bg: '#450a0a', glow: '#b91c1c80' },   // Shadow Red
+    ],
 };
+
+/** Prismatic config for ultra-rare rainbow segments (used on mythic/legendary isPrismatic segments) */
+export const WHEEL_PRISMATIC_CONFIG = {
+    label: 'Prismatic',
+    colors: ['#ef4444', '#f97316', '#eab308', '#22c55e', '#3b82f6', '#a855f7', '#ec4899'],
+    bg: '#1a0a2e',
+    glow: 'conic-gradient(from 0deg, #ef4444, #f97316, #eab308, #22c55e, #3b82f6, #a855f7, #ec4899, #ef4444)',
+};
+
+/** Helper: get a rarity palette by tier and paletteIndex (backward-compatible) */
+export function getRarityPalette(rarity, paletteIndex = 0) {
+    const tier = WHEEL_RARITY_CONFIG[rarity];
+    if (!tier) return { label: rarity, color: '#3b82f6', bg: '#1e3a5f', glow: '#3b82f680' };
+    if (Array.isArray(tier)) return tier[paletteIndex % tier.length] || tier[0];
+    return tier;
+}
 
 /** Junior leagues (no cursed or harsh negative segments) */
 export const JUNIOR_LEAGUES = ['Junior A', 'Junior B'];

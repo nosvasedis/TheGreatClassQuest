@@ -218,7 +218,7 @@ export async function openQuestAssignmentModal() {
                                     </div>
                                     <h4 class="font-bold text-amber-900 text-lg leading-tight">${lastAssignment.testData.title}</h4>
                                     <p class="text-amber-600/70 text-sm font-bold mt-1 tracking-tight">${dateDisplay}</p>
-                                    <p class="text-amber-800/80 text-xs font-semibold mt-1">${scheduledStatus.statusLabel} · ${scheduledStatus.chipLabel}${awaiting.length ? ` · ${awaiting.length} still need a grade` : ''}</p>
+                                    <p class="text-amber-800/80 text-xs font-semibold mt-1">${scheduledStatus.statusLabel} · ${scheduledStatus.chipLabel}</p>
                                     ${lastAssignment.testData.curriculum ? `<p class="text-gray-400 text-[10px] font-black mt-1.5 uppercase tracking-widest opacity-80">Topics: ${lastAssignment.testData.curriculum}</p>` : ''}
                                 </div>
                             </div>

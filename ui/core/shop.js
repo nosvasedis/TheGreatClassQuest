@@ -462,7 +462,7 @@ export async function updateShopStudentDisplay(studentId) {
     const legLimitReached = legendariesThisMonth.length >= 2;
 
     // LIMIT CHECK 2: Pathfinder Map (1 per class per month)
-    const { LEGENDARY_ARTIFACTS } = await import('../../features/powerUps.js');
+    const { LEGENDARY_ARTIFACTS, isItemUsable } = await import('../../features/powerUps.js');
     const classData = state.get('allSchoolClasses').find(c => c.id === student.classId);
     const pathfinderBonusThisMonth = Number(classData?.teamQuestBonuses?.[currentMonthKey]) || 0;
     
@@ -557,8 +557,10 @@ export async function updateShopStudentDisplay(studentId) {
         }
 
         const alreadyOwned = inventory.some(i => i.id === itemId);
+        const legendaryArtifact = isLegendary ? LEGENDARY_ARTIFACTS.find(a => a.id === itemId) : null;
+        const isLegendaryUsable = !!(legendaryArtifact && isItemUsable(legendaryArtifact.name));
 
-        if (alreadyOwned && isLegendary) {
+        if (alreadyOwned && isLegendary && !isLegendaryUsable) {
             btn.disabled = true;
             btn.innerText = "Owned";
             btn.className = shopBuyBtnClass(isFamiliar, 'success');

@@ -13,7 +13,7 @@ import { getEggAlertState } from '../../features/familiarProgression.mjs';
 import { wrapAvatarWithLevelUpIndicator } from '../core/avatar.js';
 import { canUseFeature } from '../../utils/subscription.js';
 import { getNormalizedPercentForScore } from '../../features/assessmentConfig.js';
-import { generateLeagueMapHtml } from '../../features/worldMap.js';
+import { generateLeagueMapHtml, QUEST_MAP_ZONES } from '../../features/worldMap.js';
 import {
     getAwardLogMonthlyStarCredit,
     mergeMonthlyStarsFromArchivedHistoryAndAwardLogs,
@@ -396,36 +396,39 @@ export async function renderClassLeaderboardTab() {
         const fillGold = Math.min(Math.max(p - 60, 0), 25) / 25 * 100;
         const fillCrystal = Math.min(Math.max(p - 85, 0), 15) / 15 * 100;
 
-        const nodeBronzeClass = p >= 30 ? "quest-stage-node--active" : "";
-        const nodeSilverClass = p >= 60 ? "quest-stage-node--active" : "";
-        const nodeGoldClass = p >= 85 ? "quest-stage-node--active" : "";
-        const nodeCrystalClass = p >= 100 ? "quest-stage-node--active" : "";
+        const nodeBronzeClass = p >= 30 ? "quest-stage-node--active-bronze" : "";
+        const nodeSilverClass = p >= 60 ? "quest-stage-node--active-silver" : "";
+        const nodeGoldClass = p >= 85 ? "quest-stage-node--active-gold" : "";
+        const nodeCrystalClass = p >= 100 ? "quest-stage-node--active-crystal" : "";
+
+        // Current zone derived from QUEST_MAP_ZONES thresholds
+        const currentZone = QUEST_MAP_ZONES.reduce((cur, z) => (p >= z.minPercent ? z : cur), QUEST_MAP_ZONES[0]);
 
         const multiStageBar = `
-            <div class="relative w-full h-10 mt-3 select-none">
-                <!-- Track rails and segments -->
-                <div class="flex items-center gap-1 w-full h-5 absolute top-2 rounded-full overflow-hidden bg-slate-100 p-0.5 border border-slate-200/50 shadow-inner">
-                    <div class="quest-trail-segment--bronze h-full flex-grow relative" style="flex: 30;" title="Bronze Stage (0-30%)">
-                        <div class="quest-trail-segment--bronze-fill" style="width: ${fillBronze}%"></div>
+            <div class="relative w-full select-none" style="height: 3.25rem;">
+                <!-- Seamless multi-segment track -->
+                <div class="flex items-stretch w-full h-6 absolute rounded-full overflow-hidden shadow-inner border border-slate-200/60" style="top: 8px; background: #e9ecef;">
+                    <div class="quest-trail-segment--bronze h-full relative overflow-hidden" style="flex: 30;" title="🌿 Bronze Meadows (0–30%)">
+                        <div class="quest-trail-segment--bronze-fill h-full" style="width: ${fillBronze}%"></div>
                     </div>
-                    <div class="quest-trail-segment--silver h-full flex-grow relative" style="flex: 30;" title="Silver Stage (30-60%)">
-                        <div class="quest-trail-segment--silver-fill" style="width: ${fillSilver}%"></div>
+                    <div class="quest-trail-segment--silver h-full relative overflow-hidden" style="flex: 30;" title="🏔️ Silver Peaks (30–60%)">
+                        <div class="quest-trail-segment--silver-fill h-full" style="width: ${fillSilver}%"></div>
                     </div>
-                    <div class="quest-trail-segment--gold h-full flex-grow relative" style="flex: 25;" title="Gold Stage (60-85%)">
-                        <div class="quest-trail-segment--gold-fill" style="width: ${fillGold}%"></div>
+                    <div class="quest-trail-segment--gold h-full relative overflow-hidden" style="flex: 25;" title="🏰 Golden Citadel (60–85%)">
+                        <div class="quest-trail-segment--gold-fill h-full" style="width: ${fillGold}%"></div>
                     </div>
-                    <div class="quest-trail-segment--crystal h-full flex-grow relative" style="flex: 15;" title="Crystal Stage (85-100%)">
-                        <div class="quest-trail-segment--crystal-fill" style="width: ${fillCrystal}%"></div>
+                    <div class="quest-trail-segment--crystal h-full relative overflow-hidden" style="flex: 15;" title="💎 Crystal Realm (85–100%)">
+                        <div class="quest-trail-segment--crystal-fill h-full" style="width: ${fillCrystal}%"></div>
                     </div>
                 </div>
                 
                 <!-- Stage Checkpoints / Nodes -->
-                <div class="quest-stage-node ${nodeBronzeClass}" style="left: 30.5%;" title="Bronze Checkpoint"></div>
-                <div class="quest-stage-node ${nodeSilverClass}" style="left: 61.5%;" title="Silver Checkpoint"></div>
-                <div class="quest-stage-node ${nodeGoldClass}" style="left: 85.5%;" title="Gold Checkpoint"></div>
-                <div class="quest-stage-node ${nodeCrystalClass}" style="left: 99.5%;" title="Summit Point"></div>
+                <div class="quest-stage-node ${nodeBronzeClass}" style="left: 30%;" title="🌿 Bronze Meadows threshold"></div>
+                <div class="quest-stage-node ${nodeSilverClass}" style="left: 60%;" title="🏔️ Silver Peaks threshold"></div>
+                <div class="quest-stage-node ${nodeGoldClass}" style="left: 85%;" title="🏰 Golden Citadel threshold"></div>
+                <div class="quest-stage-node ${nodeCrystalClass}" style="left: 99.5%;" title="💎 Crystal Realm — Summit"></div>
                 
-                <!-- Pulsing standard-bearer flag marker -->
+                <!-- Position marker -->
                 <div class="quest-trail-marker-pin" style="left: ${Math.min(p, 100)}%;">
                     <div class="quest-trail-marker-ripple"></div>
                     <div class="quest-trail-marker-icon font-bold animate-none" title="Class Position: ${p.toFixed(0)}%">
@@ -434,12 +437,20 @@ export async function renderClassLeaderboardTab() {
                 </div>
             </div>
             
-            <div class="flex justify-between text-[10px] text-slate-400 font-bold uppercase mt-1 px-1 tracking-wider">
-                <span>Start</span>
-                <span>Bronze</span>
-                <span>Silver</span>
-                <span>Gold</span>
-                <span>Crystal</span>
+            <!-- Stage labels aligned to segment proportional widths (30/30/25/15) -->
+            <div class="flex items-start mt-1.5 px-0.5" style="gap: 0;">
+                <div class="text-center" style="flex: 30;">
+                    <span class="text-[9px] font-black uppercase tracking-wider" style="color: #A0724A;">🌿 Bronze</span>
+                </div>
+                <div class="text-center" style="flex: 30;">
+                    <span class="text-[9px] font-black uppercase tracking-wider" style="color: #6B7A8A;">🏔️ Silver</span>
+                </div>
+                <div class="text-center" style="flex: 25;">
+                    <span class="text-[9px] font-black uppercase tracking-wider" style="color: #B45309;">🏰 Gold</span>
+                </div>
+                <div class="text-center" style="flex: 15;">
+                    <span class="text-[9px] font-black uppercase tracking-wider" style="color: #7C3AED;">💎 Crystal</span>
+                </div>
             </div>
         `;
 
@@ -486,10 +497,13 @@ export async function renderClassLeaderboardTab() {
             <div class="p-6 bg-gradient-to-b from-transparent to-indigo-50/30">
                 <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
                     <div class="space-y-4">
-                        <div class="bg-white p-4 rounded-3xl shadow-sm border border-indigo-50">
-                            <div class="flex justify-between items-end mb-1 px-1">
+                        <div class="bg-white p-4 rounded-3xl border quest-progress-section" style="border-color: rgba(226,232,240,0.9); box-shadow: 0 2px 10px rgba(99,102,241,0.05), inset 0 1px 0 rgba(255,255,255,0.9);">
+                            <div class="flex justify-between items-center mb-2 px-1">
                                 <span class="text-xs font-black text-indigo-900 uppercase tracking-widest">League Progress</span>
-                                <span class="font-title text-xl text-indigo-600">${c.progress.toFixed(0)}%</span>
+                                <div class="flex items-center gap-2">
+                                    <span class="text-[10px] font-black px-2 py-0.5 rounded-full" style="background: rgba(99,102,241,0.07); color: #4338ca;">${currentZone.icon} ${currentZone.label}</span>
+                                    <span class="font-title text-xl text-indigo-600">${c.progress.toFixed(0)}%</span>
+                                </div>
                             </div>
                             
                             ${multiStageBar}

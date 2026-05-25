@@ -5,26 +5,27 @@
 /* 1. Core Card Wrapper */
 .team-quest-card-refreshed {
     position: relative;
-    background: linear-gradient(135deg, rgba(255, 255, 255, 0.95) 0%, rgba(243, 244, 246, 0.95) 100%);
+    background: linear-gradient(150deg, rgba(255, 255, 255, 0.97) 0%, rgba(248, 249, 252, 0.97) 100%);
     border-radius: 2.25rem;
-    border: 3px solid rgba(224, 231, 255, 0.8);
+    border: 2px solid rgba(224, 231, 255, 0.85);
     box-shadow: 
-        0 10px 25px -5px rgba(99, 102, 241, 0.05),
-        0 8px 16px -6px rgba(99, 102, 241, 0.03),
-        inset 0 1px 0 rgba(255, 255, 255, 0.9);
+        0 4px 6px -1px rgba(99, 102, 241, 0.04),
+        0 12px 30px -8px rgba(99, 102, 241, 0.08),
+        0 1px 0 rgba(255, 255, 255, 1) inset,
+        0 -1px 0 rgba(99, 102, 241, 0.03) inset;
     overflow: hidden;
     margin-bottom: 2rem;
-    transition: all 0.5s cubic-bezier(0.25, 0.8, 0.25, 1);
+    transition: all 0.45s cubic-bezier(0.25, 0.8, 0.25, 1);
 }
 
 .team-quest-card-refreshed:hover {
-    transform: translateY(-8px);
-    border-color: rgba(165, 180, 252, 0.8);
+    transform: translateY(-6px);
+    border-color: rgba(165, 180, 252, 0.9);
     box-shadow: 
-        0 25px 45px -10px rgba(99, 102, 241, 0.15),
-        0 15px 25px -12px rgba(99, 102, 241, 0.08),
-        0 0 0 1px rgba(99, 102, 241, 0.05),
-        inset 0 1px 0 rgba(255, 255, 255, 0.95);
+        0 20px 50px -12px rgba(99, 102, 241, 0.16),
+        0 8px 20px -8px rgba(99, 102, 241, 0.09),
+        0 0 0 1px rgba(165, 180, 252, 0.2),
+        0 1px 0 rgba(255, 255, 255, 1) inset;
 }
 
 /* 2. Rank-Specific Borders and Ambient Glows */
@@ -212,51 +213,43 @@
     border-radius: 9999px;
 }
 
+/* Bronze Meadows — warm copper-bronze */
 .quest-trail-segment--bronze {
-    left: 0;
-    width: 30%;
-    background: #FFE4E6;
+    background: #FEF0D8;
 }
 .quest-trail-segment--bronze-fill {
     height: 100%;
-    background: linear-gradient(90deg, #F43F5E 0%, #FDA4AF 100%);
-    border-radius: 9999px;
+    background: linear-gradient(90deg, #6B3E26 0%, #CD7F32 55%, #D97706 100%);
     transition: width 1.2s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
+/* Silver Peaks — cool metallic silver */
 .quest-trail-segment--silver {
-    left: 31%;
-    width: 30%;
-    background: #F1F5F9;
+    background: #E8EDF3;
 }
 .quest-trail-segment--silver-fill {
     height: 100%;
-    background: linear-gradient(90deg, #64748B 0%, #CBD5E1 100%);
-    border-radius: 9999px;
+    background: linear-gradient(90deg, #4B5563 0%, #9CA3AF 50%, #D1D5DB 100%);
     transition: width 1.2s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
+/* Golden Citadel — rich amber-gold */
 .quest-trail-segment--gold {
-    left: 62%;
-    width: 23%;
     background: #FEF3C7;
 }
 .quest-trail-segment--gold-fill {
     height: 100%;
-    background: linear-gradient(90deg, #D97706 0%, #FCD34D 100%);
-    border-radius: 9999px;
+    background: linear-gradient(90deg, #B45309 0%, #D97706 45%, #FCD34D 100%);
     transition: width 1.2s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
+/* Crystal Realm — gem purple */
 .quest-trail-segment--crystal {
-    left: 86%;
-    width: 14%;
-    background: #F3E8FF;
+    background: #EDE9FE;
 }
 .quest-trail-segment--crystal-fill {
     height: 100%;
-    background: linear-gradient(90deg, #A855F7 0%, #E9D5FF 100%);
-    border-radius: 9999px;
+    background: linear-gradient(90deg, #6D28D9 0%, #A855F7 55%, #C084FC 100%);
     transition: width 1.2s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
@@ -305,22 +298,52 @@
 /* Stage milestones / nodes */
 .quest-stage-node {
     position: absolute;
-    width: 12px;
-    height: 12px;
+    width: 14px;
+    height: 14px;
     border-radius: 50%;
-    background: #CBD5E1;
-    border: 2px solid white;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    background: #D1D5DB;
+    border: 2.5px solid rgba(255, 255, 255, 0.95);
+    box-shadow: 0 1px 3px rgba(0,0,0,0.12), 0 0 0 1px rgba(0,0,0,0.04);
     transform: translate(-50%, -50%);
     top: 50%;
     z-index: 15;
-    transition: all 0.4s ease;
+    transition: all 0.45s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
+/* Generic fallback (kept for backward compatibility) */
 .quest-stage-node--active {
     background: #3B82F6;
     box-shadow: 0 0 10px #3B82F6, 0 0 4px #3B82F6, inset 0 1px 0 rgba(255,255,255,0.4);
-    transform: translate(-50%, -50%) scale(1.25);
+    transform: translate(-50%, -50%) scale(1.3);
+}
+
+/* Stage-specific node glow colors */
+.quest-stage-node--active-bronze {
+    background: linear-gradient(135deg, #CD7F32 0%, #D97706 100%);
+    border-color: #FEF0D8;
+    box-shadow: 0 0 10px #CD7F32, 0 0 4px rgba(205, 127, 50, 0.6), inset 0 1px 0 rgba(255,255,255,0.4);
+    transform: translate(-50%, -50%) scale(1.3);
+}
+
+.quest-stage-node--active-silver {
+    background: linear-gradient(135deg, #94A3B8 0%, #CBD5E1 100%);
+    border-color: #E8EDF3;
+    box-shadow: 0 0 10px #94A3B8, 0 0 4px rgba(148, 163, 184, 0.6), inset 0 1px 0 rgba(255,255,255,0.5);
+    transform: translate(-50%, -50%) scale(1.3);
+}
+
+.quest-stage-node--active-gold {
+    background: linear-gradient(135deg, #D97706 0%, #FCD34D 100%);
+    border-color: #FEF3C7;
+    box-shadow: 0 0 12px #F59E0B, 0 0 6px rgba(245, 158, 11, 0.6), inset 0 1px 0 rgba(255,255,255,0.4);
+    transform: translate(-50%, -50%) scale(1.3);
+}
+
+.quest-stage-node--active-crystal {
+    background: linear-gradient(135deg, #7C3AED 0%, #C084FC 100%);
+    border-color: #EDE9FE;
+    box-shadow: 0 0 12px #A855F7, 0 0 6px rgba(168, 85, 247, 0.7), inset 0 1px 0 rgba(255,255,255,0.3);
+    transform: translate(-50%, -50%) scale(1.3);
 }
 
 /* 8. 2x2 Stat Rune Badges */

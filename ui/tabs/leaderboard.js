@@ -470,10 +470,10 @@ export async function renderClassLeaderboardTab() {
         <div class="tab-mount-rise" style="--tab-rise-delay: ${Math.min(index * 55, 800)}ms">
         <div class="team-quest-card-refreshed ${cardRankClass} group pop-in">
             <div class="${headerColor} p-6 flex flex-col md:flex-row items-center justify-between gap-4">
-                <div class="flex items-center gap-5">
-                    <div class="relative">
+                <div class="flex items-center gap-4">
+                    <div class="flex items-center gap-2.5 shrink-0">
                         ${rankBadge}
-                        <div class="quest-logo-container text-5xl md:text-6xl filter drop-shadow-lg transition-transform group-hover:scale-110 group-hover:rotate-6">${c.logo}</div>
+                        <div class="quest-logo-container text-4xl md:text-5xl filter drop-shadow-md transition-transform group-hover:scale-110 group-hover:rotate-6">${c.logo}</div>
                     </div>
                     <div>
                         <h4 class="font-title text-3xl text-indigo-900 leading-tight">${c.name}</h4>
@@ -522,31 +522,31 @@ export async function renderClassLeaderboardTab() {
                     </div>
                     <div class="grid grid-cols-2 gap-3">
                         <!-- Weekly Growth / Fire Rune -->
-                        <div class="stat-rune-card stat-rune-card--fire p-4 text-center">
+                        <div class="stat-rune-card stat-rune-card--fire px-3 pt-3 pb-3">
+                            <div class="text-[9px] font-black text-orange-400 uppercase tracking-widest w-full text-center">${weeklyGrowth}</div>
                             <i class="fas fa-fire stat-rune-card__icon text-orange-500"></i>
-                            <div class="font-title text-xl text-slate-800 leading-tight">+${weeklyFormatted}</div>
-                            <div class="text-[9px] font-black text-orange-500 uppercase tracking-wide mt-1">${weeklyGrowth}</div>
+                            <div class="font-title text-lg text-slate-800 leading-tight">+${weeklyFormatted}</div>
                         </div>
                         
                         <!-- Top Talent / Magic Rune -->
-                        <div class="stat-rune-card stat-rune-card--magic p-4 text-center">
+                        <div class="stat-rune-card stat-rune-card--magic px-3 pt-3 pb-3">
+                            <div class="text-[9px] font-black text-blue-400 uppercase tracking-widest w-full text-center">Top Talent</div>
                             <i class="fas fa-magic stat-rune-card__icon text-blue-500"></i>
-                            <div class="font-bold text-slate-800 text-sm truncate w-full capitalize leading-tight mt-0.5" title="${skillName}">${skillName}</div>
-                            <div class="text-[9px] font-black text-blue-500 uppercase tracking-wide mt-1">Top Talent</div>
+                            <div class="font-bold text-slate-800 text-sm truncate w-full capitalize leading-none text-center" title="${skillName}">${skillName}</div>
                         </div>
                         
                         <!-- Bank of Class / Gold Rune -->
-                        <div class="stat-rune-card stat-rune-card--gold p-4 text-center">
+                        <div class="stat-rune-card stat-rune-card--gold px-3 pt-3 pb-3">
+                            <div class="text-[9px] font-black text-yellow-600 uppercase tracking-widest w-full text-center truncate">Bank of ${c.name}</div>
                             <i class="fas fa-coins stat-rune-card__icon text-yellow-500"></i>
-                            <div class="font-title text-xl text-slate-800 leading-tight">${c.totalGold}</div>
-                            <div class="text-[9px] font-black text-yellow-600 uppercase tracking-wide mt-1">Bank of ${c.name}</div>
+                            <div class="font-title text-lg text-slate-800 leading-tight">${c.totalGold}</div>
                         </div>
                         
                         <!-- Class Spirit / Heart Rune -->
-                        <div class="stat-rune-card stat-rune-card--heart p-4 text-center">
+                        <div class="stat-rune-card stat-rune-card--heart px-3 pt-3 pb-3">
+                            <div class="text-[9px] font-black text-green-500 uppercase tracking-widest w-full text-center">Class Spirit</div>
                             <i class="fas fa-heart stat-rune-card__icon text-green-500"></i>
-                            <div class="font-bold text-slate-800 text-sm capitalize leading-tight mt-0.5">${spiritRank}</div>
-                            <div class="text-[9px] font-black text-green-600 uppercase tracking-wide mt-1">Class Spirit</div>
+                            <div class="font-bold text-slate-800 text-sm capitalize leading-none">${spiritRank}</div>
                         </div>
                     </div>
                 </div>

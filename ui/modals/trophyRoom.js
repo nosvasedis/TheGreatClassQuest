@@ -226,6 +226,10 @@ export function renderTrophyRoomContent(studentId, partial = false) {
     if (scoreData?.starfallCatalystActive) activeEffects.push({ icon: '📜', title: 'Catalyst', body: 'Next bonus doubled.' });
     if (scoreData?.pendingHeroStatus) activeEffects.push({ icon: '🎭', title: 'Protagonist', body: 'Hero in next Story Log.' });
     if (scoreData?.peerBoonFreeMonthKey === utils.getLocalMonthKey()) activeEffects.push({ icon: '💝', title: 'Compassion Token', body: "Hero's Boon costs 0 Gold this month." });
+    if ((scoreData?.gloryBannerCharges || 0) > 0) activeEffects.push({ icon: '⚜️', title: 'Banner of Glory', body: `${scoreData.gloryBannerCharges} charge${scoreData.gloryBannerCharges > 1 ? 's' : ''} remaining — next stars each give +1 Guild Glory.` });
+    if (scoreData?.storyWeaverDoubleNext) activeEffects.push({ icon: '✒️', title: "Archivist's Quill", body: 'Next Story Weaver bonus will be worth double stars.' });
+    const aurumMonth = scoreData?.aurumVoucherMonth;
+    if ((scoreData?.aurumVoucherPercent || 0) > 0 && aurumMonth === utils.getLocalMonthKey()) activeEffects.push({ icon: '💰', title: 'Aurum Satchel', body: `${scoreData.aurumVoucherPercent}% off next Mystic Market purchase this month.` });
 
     // Featured Item HTML
     const featuredHtml = featuredItem
@@ -247,7 +251,11 @@ export function renderTrophyRoomContent(studentId, partial = false) {
 
     // Carousel Logic
     const pageSize = BACKPACK_PAGE_SIZE;
-    const currentIndex = inventoryCarouselIndices.get(studentId) || 0;
+    let currentIndex = inventoryCarouselIndices.get(studentId) || 0;
+    if (currentIndex > 0 && currentIndex >= inventory.length) {
+        currentIndex = Math.max(0, inventory.length - 1);
+        inventoryCarouselIndices.set(studentId, currentIndex);
+    }
     const visibleItems = inventory.slice(currentIndex, currentIndex + pageSize);
     const canPrev = currentIndex > 0;
     const canNext = currentIndex + pageSize < inventory.length;
@@ -336,8 +344,10 @@ export function renderTrophyRoomContent(studentId, partial = false) {
         if (oldBackpack) {
             const temp = document.createElement('div');
             temp.innerHTML = backpackHtml;
-            oldBackpack.replaceWith(temp.firstElementChild);
+            const newBackpack = temp.firstElementChild;
+            oldBackpack.replaceWith(newBackpack);
             bindBackpackListeners(studentId);
+            bindUseBtns(studentId, newBackpack);
             return;
         }
     }
@@ -438,25 +448,7 @@ export function renderTrophyRoomContent(studentId, partial = false) {
         </div>`;
 
         bindBackpackListeners(studentId);
-
-        contentEl.querySelectorAll('.trophy-room-use-btn').forEach(btn => {
-            btn.onclick = async () => {
-                const idx = parseInt(btn.dataset.itemIndex, 10);
-                const original = btn.innerHTML;
-                btn.disabled = true;
-                btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
-                try {
-                    const result = await handleUseItem(studentId, idx);
-                    if (result?.success && result.feedback) {
-                        trophyRoomFeedback.set(studentId, result.feedback);
-                    }
-                    renderTrophyRoomContent(studentId);
-                } catch (e) {
-                    btn.disabled = false;
-                    btn.innerHTML = original;
-                }
-            };
-        });
+        bindUseBtns(studentId, contentEl);
 
         ensureTrophyVaultContentDelegation(contentEl);
 
@@ -498,4 +490,25 @@ function bindBackpackListeners(studentId) {
         inventoryCarouselIndices.set(studentId, Math.min(items.length - 1, current + 1));
         renderTrophyRoomContent(studentId, true);
     };
+}
+
+function bindUseBtns(studentId, container) {
+    container.querySelectorAll('.trophy-room-use-btn').forEach(btn => {
+        btn.onclick = async () => {
+            const idx = parseInt(btn.dataset.itemIndex, 10);
+            const original = btn.innerHTML;
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+            try {
+                const result = await handleUseItem(studentId, idx);
+                if (result?.success && result.feedback) {
+                    trophyRoomFeedback.set(studentId, result.feedback);
+                }
+                renderTrophyRoomContent(studentId);
+            } catch (e) {
+                btn.disabled = false;
+                btn.innerHTML = original;
+            }
+        };
+    });
 }

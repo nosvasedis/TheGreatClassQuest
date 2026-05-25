@@ -194,22 +194,20 @@ function refreshBulkTrialScheduledHint(classId, type, dateVal) {
     hintEl.classList.remove('hidden');
     const title = String(st.testData.title || 'Scheduled test').trim() || 'Scheduled test';
 
-    let lead = `"${title}" matches your Quest Board test on this date.`;
+    const parts = [`"${title}"`];
     if (st.phase === 'missed') {
         const late = Math.abs(st.dayDiff);
-        lead += ` It was scheduled ${late} day${late === 1 ? '' : 's'} ago.`;
+        parts.push(`${late}d overdue`);
     } else if (st.phase === 'window_passed') {
-        lead += ' Class time has passed — finish logging whoever sat it.';
-    } else if (st.phase === 'today' || st.isToday) {
-        lead += ' Grades unlock Starfall / analytics for this cohort.';
+        parts.push('window passed');
     }
-
-    const tail =
+    parts.push(
         awaiting.length > 0
-            ? ` ${awaiting.length} student${awaiting.length === 1 ? '' : 's'} still need a score (${st.chipLabel}).`
-            : ` Everyone expected has a grade (${st.chipLabel}).`;
+            ? `${awaiting.length} ungraded · ${st.chipLabel}`
+            : `all graded · ${st.chipLabel}`
+    );
 
-    bodyEl.textContent = lead + tail;
+    bodyEl.textContent = parts.join(' · ');
 }
 
 function populateBulkTrialStudentRows(classId, type, assessmentScheme, dateIso) {

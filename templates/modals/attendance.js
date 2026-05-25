@@ -150,9 +150,9 @@ export const attendanceModalsHTML = `
                         </div>
                     </div>
                 </div>
-                <div id="bulk-trial-scheduled-hint" class="hidden rounded-xl border border-violet-200/90 bg-gradient-to-r from-violet-50 to-indigo-50/80 px-4 py-3 text-sm shadow-sm flex flex-col gap-1.5">
-                    <span class="font-black text-[10px] uppercase tracking-[0.18em] text-violet-700/85">Linked to Schedule a Test</span>
-                    <p id="bulk-trial-scheduled-hint-body" class="text-violet-950 font-semibold leading-snug"></p>
+                <div id="bulk-trial-scheduled-hint" class="hidden rounded-lg border border-violet-200/70 bg-violet-50/70 px-3 py-1.5 text-[11px] flex items-center gap-2">
+                    <i class="fas fa-calendar-check text-violet-400 shrink-0"></i>
+                    <span id="bulk-trial-scheduled-hint-body" class="text-violet-900/80 font-semibold truncate"></span>
                 </div>
                 <p id="bulk-trial-tip-default" class="text-xs text-amber-900/60 font-semibold">
                     Tip: Mark a student absent to skip grading them.

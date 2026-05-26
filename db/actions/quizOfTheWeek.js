@@ -158,7 +158,7 @@ The JSON object MUST have exactly one top-level key: "questions", whose value is
 Do NOT wrap it in any other key. Do NOT add any text before or after the JSON.`;
 }
 
-function buildGenerationUserPrompt(curriculum, questLevel) {
+function buildGenerationUserPrompt(curriculum, questLevel, questionCount = 7) {
     const ageDesc = AGE_PROMPTS[questLevel] || AGE_PROMPTS['A'];
     const typeLabel = curriculum.type === 'grammar' ? 'English Grammar' :
         curriculum.type === 'vocabulary' ? 'English Vocabulary' :
@@ -172,7 +172,7 @@ ${categoriesList ? `Topics: ${categoriesList}.` : ''}
 ${keywords ? `Specific focus: "${keywords}".` : ''}
 
 Rules:
-- Generate exactly 7 questions (no more, no less).
+- Generate exactly ${questionCount} questions (no more, no less).
 - Use only this question type: "mcq" (4-option multiple choice).
 - Make every question directly relevant to the topics/focus listed above.
 - Keep language appropriate for ${ageDesc}.
@@ -249,8 +249,14 @@ export async function generateQuizQuestions(classId) {
     await updateQuizStatus(classId, 'generating');
 
     try {
+        // Calculate question count based on class enrollment
+        const { calculateQuestionCount } = await import('../../features/quizOfTheWeek.js');
+        const allStudents = state.get('allStudents') || [];
+        const enrolledCount = allStudents.filter(s => s.classId === classId).length;
+        const questionCount = calculateQuestionCount(enrolledCount);
+
         const systemPrompt = buildGenerationPrompt();
-        const userPrompt = buildGenerationUserPrompt(quiz.curriculum, quiz.questLevel);
+        const userPrompt = buildGenerationUserPrompt(quiz.curriculum, quiz.questLevel, questionCount);
 
         const aiResult = await callGeminiApi(systemPrompt, userPrompt, { retries: 2, baseDelay: 1000, timeoutMs: 60000 });
         let parsed = null;
@@ -277,7 +283,7 @@ export async function generateQuizQuestions(classId) {
             throw new Error(`Only ${questions.length} question(s) recovered from AI response (need at least 3). Raw response logged to console.`);
         }
 
-        const processed = questions.slice(0, 10).map((q, i) => ({
+        const processed = questions.slice(0, questionCount).map((q, i) => ({
             id: `q${i + 1}`,
             type: q.type || 'mcq',
             question: q.question || '',
@@ -308,7 +314,9 @@ export async function generateQuizQuestions(classId) {
         await Promise.allSettled(imagePromises);
 
         await updateQuizStatus(classId, 'ready', processed);
-        return { success: true, questionCount: processed.length, imageCount: processed.filter(q => q.imageUrl).length };
+        // Store expected question count for reference
+        await setDoc(quizDocRef(classId), { expectedQuestionCount: questionCount, updatedAt: serverTimestamp() }, { merge: true });
+        return { success: true, questionCount: processed.length, expectedQuestionCount: questionCount, imageCount: processed.filter(q => q.imageUrl).length };
 
     } catch (error) {
         console.error('Quiz generation failed:', error);

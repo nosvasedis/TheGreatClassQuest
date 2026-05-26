@@ -81,6 +81,13 @@ function renderIntroScreen(quiz, qs) {
     const questionCount = qs.totalQuestions;
     const absentCount = qs.absentCount || 0;
 
+    const curriculum = quiz?.curriculum;
+    const curriculumHTML = curriculum ? `
+        <div class="quiz-intro-curriculum">
+            ${curriculum.type ? curriculum.type.charAt(0).toUpperCase() + curriculum.type.slice(1) : 'Quiz'}
+            ${curriculum.categories?.length ? '— ' + curriculum.categories.slice(0, 2).join(', ') : ''}
+        </div>` : '';
+
     const absentBadgeHTML = absentCount > 0 ? `
         <div class="quiz-absent-badge">
             <i class="fas fa-user-slash"></i>
@@ -99,6 +106,7 @@ function renderIntroScreen(quiz, qs) {
             <p class="quiz-intro-subtitle">
                 ${questionCount} questions on this week's curriculum. Students will be picked at random to answer!
             </p>
+            ${curriculumHTML}
             <div class="quiz-intro-stats">
                 <div class="quiz-intro-stat">
                     <div class="quiz-intro-stat-num">${questionCount}</div>
@@ -117,7 +125,10 @@ function renderIntroScreen(quiz, qs) {
     `;
 
     wireHeaderListeners();
-    document.getElementById('quiz-begin-btn')?.addEventListener('click', () => showNextQuestion());
+    document.getElementById('quiz-begin-btn')?.addEventListener('click', () => {
+        playSound('quiz_open');
+        showNextQuestion();
+    });
 }
 
 function renderQuestion(questionData, qs) {
@@ -137,16 +148,6 @@ function renderQuestion(questionData, qs) {
         </button>
     `).join('');
 
-    const questionMiddleHTML = `
-        <div class="quiz-question-area quiz-question-entering">
-            <div class="quiz-question-kicker">Multiple Choice Challenge</div>
-            <div class="quiz-question-emoji">✨</div>
-            <div class="quiz-question-text">${q.question}</div>
-        </div>
-        <div class="quiz-answer-grid">
-            ${optionsHTML}
-        </div>`;
-
     const spotlightEl = student ? `
         <div class="quiz-spotlight-bar quiz-spotlight-entering">
             <div class="quiz-spotlight-avatar">
@@ -163,6 +164,18 @@ function renderQuestion(questionData, qs) {
             </div>
         </div>` : '';
 
+    const questionAreaHTML = `
+        <div class="quiz-question-area quiz-question-entering">
+            <div class="quiz-question-kicker">Multiple Choice Challenge</div>
+            <div class="quiz-question-emoji">✨</div>
+            <div class="quiz-question-text">${q.question}</div>
+        </div>`;
+
+    const answerGridHTML = `
+        <div class="quiz-answer-grid">
+            ${optionsHTML}
+        </div>`;
+
     contentEl.innerHTML = `
         <div class="quiz-modal-header">
             <span class="quiz-modal-title">⚔️ Quiz of the Week</span>
@@ -176,12 +189,15 @@ function renderQuestion(questionData, qs) {
             <div class="quiz-score-tracker">
                 <span class="quiz-score-correct"><i class="fas fa-check-circle"></i> ${progress.correctFirstTry}</span>
                 <span class="quiz-score-sep">/</span>
-                <span style="color:rgba(255,255,255,0.6);">${progress.totalQuestions}</span>
-                <span style="color:rgba(255,255,255,0.5);font-size:0.78rem;">correct</span>
+                <span style="color:rgba(0,0,0,0.5);">${progress.totalQuestions}</span>
+                <span style="color:rgba(0,0,0,0.4);font-size:0.78rem;">correct</span>
             </div>
         </div>
-        ${questionMiddleHTML}
         ${spotlightEl}
+        <div class="quiz-question-layout">
+            ${questionAreaHTML}
+            ${answerGridHTML}
+        </div>
         <div id="quiz-explanation-area" class="quiz-explanation hidden"></div>
         <div id="quiz-action-area" style="display:flex;flex-direction:column;gap:0.6rem;">
             <button class="quiz-next-btn bubbly-button hidden" id="quiz-next-btn">
@@ -194,11 +210,15 @@ function renderQuestion(questionData, qs) {
     `;
 
     wireHeaderListeners();
+    playSound('quiz_question_in');
+    if (student) {
+        setTimeout(() => playSound('quiz_student_reveal'), 200);
+    }
     requestAnimationFrame(() => {
         document.querySelectorAll('.quiz-answer-btn').forEach((btn, i) => {
             setTimeout(() => {
                 btn.classList.add('quiz-answer-visible');
-            }, i * 85);
+            }, i * 65);
         });
     });
     wireAnswerListeners(q);
@@ -226,7 +246,6 @@ function renderResultsScreen(results) {
 
     const tier = results.rewards?.tier || results.tier || computeTier(results.firstTryCorrectPct);
     const tierEmoji = { legendary: '👑', epic: '🌟', rare: '💎', common: '🎯', heroic: '🛡️' }[tier] || '🎯';
-    const tierSounds = { legendary: 'fanfare', epic: 'fanfare', rare: 'magic_chime', common: 'magic_chime', heroic: 'confirm' };
 
     const rewards = results.rewards || {};
     const correctStudentDetails = rewards.correctStudentDetails || [];
@@ -263,7 +282,7 @@ function renderResultsScreen(results) {
         if (!stage || !document.contains(stage)) return;
         document.getElementById('quiz-calc-phase')?.remove();
 
-        playSound(tierSounds[tier] || 'magic_chime');
+        playSound('quiz_tier_reveal');
 
         const emojiWrap = document.createElement('div');
         emojiWrap.className = 'quiz-tier-emoji-wrap';
@@ -425,10 +444,11 @@ function renderResultsScreen(results) {
 
                             if (tier === 'legendary' || tier === 'epic') {
                                 spawnConfetti(tier);
+                                playSound('quiz_confetti_pop');
                             }
                             if (tier === 'legendary') {
                                 // second burst delayed for legendary
-                                setTimeout(() => spawnConfetti(tier), 700);
+                                setTimeout(() => { spawnConfetti(tier); playSound('quiz_confetti_pop'); }, 700);
                             }
                         }, artDelay);
 
@@ -458,7 +478,7 @@ function renderCompletedScreen(quizResults) {
         <div class="quiz-completed-state">
             <div class="quiz-completed-icon">${tierEmoji}</div>
             <div class="quiz-result-tier tier-${tier}">${tier.toUpperCase()}</div>
-            <p style="color:rgba(255,255,255,0.6);text-align:center;">This week's quiz is already complete!</p>
+            <p style="color:rgba(0,0,0,0.5);text-align:center;">This week's quiz is already complete!</p>
             <div class="quiz-result-stats">
                 <div class="quiz-result-stat quiz-stat-visible">
                     <div class="quiz-result-stat-value">${quizResults?.firstTryCorrectPct || 0}%</div>
@@ -521,7 +541,7 @@ function spawnConfetti(tier) {
 }
 
 // =============================================================================
-// FLOATING CHECK / WRONG EFFECT
+// FLOATING CHECK / PARTICLE BURST / WRONG EFFECT
 // =============================================================================
 
 function spawnFloatingCheck(triggerEl) {
@@ -532,9 +552,32 @@ function spawnFloatingCheck(triggerEl) {
     el.textContent = '✓';
     el.style.left = `${rect.left + rect.width / 2 - 22}px`;
     el.style.top = `${rect.top + rect.height / 2 - 22}px`;
-    el.style.color = '#4ade80';
+    el.style.color = '#22c55e';
     document.body.appendChild(el);
     el.addEventListener('animationend', () => el.remove(), { once: true });
+}
+
+function spawnParticleBurst(triggerEl) {
+    if (!triggerEl) return;
+    const rect = triggerEl.getBoundingClientRect();
+    const cx = rect.left + rect.width / 2;
+    const cy = rect.top + rect.height / 2;
+    const colors = ['#22c55e', '#4ade80', '#86efac', '#fbbf24', '#fde68a'];
+    for (let i = 0; i < 5; i++) {
+        const el = document.createElement('div');
+        el.className = 'quiz-particle';
+        const angle = (i / 5) * Math.PI * 2 + Math.random() * 0.5;
+        const dist = 30 + Math.random() * 40;
+        el.style.cssText = `
+            left: ${cx - 3}px;
+            top: ${cy - 3}px;
+            background: ${colors[Math.floor(Math.random() * colors.length)]};
+            --px: ${Math.cos(angle) * dist}px;
+            --py: ${Math.sin(angle) * dist}px;
+        `;
+        document.body.appendChild(el);
+        el.addEventListener('animationend', () => el.remove(), { once: true });
+    }
 }
 
 // =============================================================================
@@ -592,11 +635,17 @@ async function handleMcqAnswer(btn, question) {
 
     if (isCorrect) {
         btn.classList.add('answer-correct');
-        playSound('confirm');
+        playSound('quiz_correct');
         spawnFloatingCheck(btn);
+        spawnParticleBurst(btn);
     } else {
         btn.classList.add('answer-wrong');
-        playSound('star_remove');
+        playSound('quiz_wrong');
+        const qArea = document.querySelector('.quiz-question-area');
+        if (qArea) {
+            qArea.style.animation = 'quiz-red-wash 0.5s ease forwards';
+            setTimeout(() => { qArea.style.animation = ''; }, 500);
+        }
     }
 
     const result = await handleAnswer(currentClassId, selectedAnswer, isCorrect);
@@ -629,8 +678,7 @@ function showExplanation(text, isCorrect) {
     const area = document.getElementById('quiz-explanation-area');
     if (!area) return;
     area.textContent = text;
-    area.style.background = isCorrect ? 'rgba(34,197,94,0.12)' : 'rgba(251,191,36,0.1)';
-    area.style.borderColor = isCorrect ? 'rgba(34,197,94,0.3)' : 'rgba(251,191,36,0.25)';
+    area.className = 'quiz-explanation' + (isCorrect ? ' quiz-explanation-correct' : '');
     area.classList.remove('hidden');
     area.style.animation = 'none';
     void area.offsetHeight;

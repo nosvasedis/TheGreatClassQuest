@@ -16,6 +16,15 @@ import {
 } from '../db/actions/quizOfTheWeek.js';
 
 // =============================================================================
+// 0. QUESTION COUNT SCALING — Proportional to class size
+// =============================================================================
+
+export function calculateQuestionCount(enrolledCount) {
+    if (!enrolledCount || enrolledCount <= 0) return 7;
+    return Math.min(15, Math.max(5, Math.ceil(enrolledCount * 0.75)));
+}
+
+// =============================================================================
 // 1. VISIBILITY LOGIC — Should the quiz button appear?
 // =============================================================================
 

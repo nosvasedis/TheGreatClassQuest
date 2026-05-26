@@ -48,6 +48,37 @@ export async function setupSounds() {
 
             sounds.star1 = new Tone.PluckSynth({ attackNoise: 1, dampening: 4000, resonance: 0.7, volume: -10 }).connect(reverb);
             sounds.star2 = new Tone.PluckSynth({ attackNoise: 1, dampening: 3000, resonance: 0.8, volume: -8 }).connect(reverb);
+
+            // Quiz of the Week SFX
+            sounds.quiz_open = new Tone.PolySynth(Tone.Synth, {
+                oscillator: { type: 'triangle' },
+                envelope: { attack: 0.01, decay: 0.15, sustain: 0.1, release: 0.3 },
+                volume: -8
+            }).connect(reverb);
+            sounds.quiz_question_in = new Tone.PluckSynth({ attackNoise: 0.5, dampening: 3000, resonance: 0.8, volume: -14 }).connect(reverb);
+            sounds.quiz_student_reveal = new Tone.PluckSynth({ attackNoise: 0.8, dampening: 2500, resonance: 0.9, volume: -10 }).connect(reverb);
+            sounds.quiz_correct = new Tone.FMSynth({
+                harmonicity: 2.5,
+                modulationIndex: 8,
+                detune: 0,
+                oscillator: { type: 'sine' },
+                envelope: { attack: 0.01, decay: 0.3, sustain: 0.15, release: 0.5 },
+                modulation: { type: 'triangle' },
+                modulationEnvelope: { attack: 0.01, decay: 0.1, sustain: 0.1, release: 0.3 },
+                volume: -6
+            }).connect(reverb);
+            sounds.quiz_wrong = new Tone.Synth({
+                oscillator: { type: 'sine' },
+                envelope: { attack: 0.01, decay: 0.2, sustain: 0.0, release: 0.2 },
+                volume: -12
+            }).toDestination();
+            sounds.quiz_tier_reveal = new Tone.PolySynth(Tone.Synth, {
+                oscillator: { type: 'triangle' },
+                envelope: { attack: 0.02, decay: 0.3, sustain: 0.2, release: 0.6 },
+                volume: -6
+            }).connect(reverb);
+            sounds.quiz_confetti_pop = new Tone.PluckSynth({ attackNoise: 1, dampening: 3500, resonance: 0.75, volume: -10 }).connect(reverb);
+
             sounds.star3 = new Tone.FMSynth({
                 harmonicity: 3,
                 modulationIndex: 10,
@@ -150,9 +181,39 @@ export function playSound(sound) {
             sounds.familiar_levelup.triggerAttackRelease(['F5', 'A5', 'C6'], '8n', playTime + 0.15);
             sounds.familiar_levelup.triggerAttackRelease(['G5', 'B5', 'D6', 'G6'], '4n', playTime + 0.3);
         }
-        
+        else if (sound === 'quiz_open') {
+            sounds.quiz_open.triggerAttackRelease(['C5', 'E5'], '16n', playTime);
+            sounds.quiz_open.triggerAttackRelease(['G5', 'C6'], '16n', playTime + 0.08);
+            sounds.quiz_open.triggerAttackRelease(['E6', 'G6'], '8n', playTime + 0.18);
+        }
+        else if (sound === 'quiz_question_in') {
+            sounds.quiz_question_in.triggerAttackRelease('G5', '16n', playTime);
+        }
+        else if (sound === 'quiz_student_reveal') {
+            sounds.quiz_student_reveal.triggerAttackRelease('E6', '16n', playTime);
+        }
+        else if (sound === 'quiz_correct') {
+            sounds.quiz_correct.triggerAttackRelease('C5', '16n', playTime);
+            sounds.quiz_correct.triggerAttackRelease('E5', '16n', playTime + 0.05);
+            sounds.quiz_correct.triggerAttackRelease('G5', '16n', playTime + 0.1);
+            sounds.quiz_correct.triggerAttackRelease('C6', '8n', playTime + 0.18);
+        }
+        else if (sound === 'quiz_wrong') {
+            sounds.quiz_wrong.triggerAttackRelease('G3', '16n', playTime);
+        }
+        else if (sound === 'quiz_tier_reveal') {
+            sounds.quiz_tier_reveal.triggerAttackRelease(['C4', 'E4'], '16n', playTime);
+            sounds.quiz_tier_reveal.triggerAttackRelease(['G4', 'C5'], '16n', playTime + 0.12);
+            sounds.quiz_tier_reveal.triggerAttackRelease(['E5', 'G5', 'C6'], '4n', playTime + 0.28);
+        }
+        else if (sound === 'quiz_confetti_pop') {
+            sounds.quiz_confetti_pop.triggerAttackRelease('C6', '32n', playTime);
+            sounds.quiz_confetti_pop.triggerAttackRelease('E6', '32n', playTime + 0.04);
+            sounds.quiz_confetti_pop.triggerAttackRelease('G6', '32n', playTime + 0.08);
+        }
+
         // Custom Fanfare Logic (if you added it previously)
-        else if (sound === 'hero_fanfare' && sounds.star3) { 
+        else if (sound === 'hero_fanfare' && sounds.star3) {
              // ... existing synth logic ...
              // Ensure you pass `playTime` instead of `Tone.now()` to the triggers here too
         }

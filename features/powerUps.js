@@ -10,7 +10,7 @@ export const LEGENDARY_ARTIFACTS = [
     { id: 'leg_clarity', name: 'Crystal of Clarity', price: 15, description: 'Pulsing gem for a hint pass. Used on your card.', icon: '💎' },
     { id: 'leg_gilded', name: 'Scroll of the Gilded Star', price: 20, description: '3x Gold for the next star you earn.', icon: '✨' },
     { id: 'leg_hourglass', name: 'Time Warp Hourglass', price: 25, description: 'Adds +5m to any active class Bounty Timers.', icon: '⏳' },
-    { id: 'leg_luck', name: 'Elixir of Luck', price: 30, description: '20% chance for +1 star during your NEXT lesson.', icon: '🍀' },
+    { id: 'leg_luck', name: 'Elixir of Luck', price: 30, description: '50% chance for +1 star during your NEXT lesson.', icon: '🍀' },
     { id: 'leg_glory_banner', name: 'Banner of Glory', price: 35, description: 'Your next 3 stars each give +1 bonus Glory to your guild.', icon: '⚜️' },
     { id: 'leg_banner', name: "The Herald's Banner", price: 40, description: 'Broadcasts a school-wide victory celebration!', icon: '📢' },
     { id: 'leg_catalyst', name: 'The Starfall Catalyst', price: 50, description: 'Double the stars for your next high test score.', icon: '📜' },

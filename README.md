@@ -132,7 +132,7 @@ The app is built on four pedagogical pillars:
 | **Crystal of Clarity** | 15 | Pulsing “hint pass” gem on the student’s card. |
 | **Scroll of the Gilded Star** | 20 | Next star earned = **3× Gold**. |
 | **Time Warp Hourglass** | 25 | **+5 minutes** to all active class bounty timers. |
-| **Elixir of Luck** | 30 | 20% chance for **+1 star** on next lesson. |
+| **Elixir of Luck** | 30 | 50% chance for **+1 star** on next lesson. |
 | **The Herald's Banner** | 40 | School-wide victory celebration toast. |
 | **The Starfall Catalyst** | 50 | **Double** the stars from the next high test (Starfall). |
 | **The Pathfinder’s Map** | 60 | **+10 Stars** for the Team Quest (class limit: 1/month). |

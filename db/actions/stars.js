@@ -195,7 +195,7 @@ export async function setStudentStarsForToday(
                     // NOTE: We can't show a toast from inside a transaction easily, but the gold update will be visible
                 }
 
-                // POWER UP: Elixir of Luck (20% chance for +1 Star)
+                // POWER UP: Elixir of Luck (50% chance for +1 Star)
                 // We check if luckDate matches TODAY and if we haven't already applied a luck bonus this transaction
                 if (
                     currentData.luckDate === today &&
@@ -204,7 +204,7 @@ export async function setStudentStarsForToday(
                 ) {
                     // Simple deterministic check based on time to avoid random in transaction re-runs?
                     // No, simpler: Just do it. If transaction retries, it might re-roll, which is acceptable.
-                    if (Math.random() < 0.2) {
+                    if (Math.random() < 0.5) {
                         finalStarValue += 1; // Add actual star
                         difference += 1; // Update diff
                         // We consume the date so it doesn't trigger again today
@@ -315,6 +315,7 @@ export async function setStudentStarsForToday(
                         "welcome_back",
                         "scholar_s_bonus",
                         "story_weaver",
+                        "peer_boon",
                     ].includes(l.reason),
             );
 

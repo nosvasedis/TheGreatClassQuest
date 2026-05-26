@@ -367,7 +367,7 @@ const REWARD_TABLE = {
 
 const LEGENDARY_ARTIFACTS = [
     { id: 'leg_gilded', name: 'Scroll of the Gilded Star', icon: '📜', description: 'Triple gold on next star award' },
-    { id: 'leg_luck', name: 'Elixir of Luck', icon: '🧪', description: '20% chance for bonus star next lesson' },
+    { id: 'leg_luck', name: 'Elixir of Luck', icon: '🧪', description: '50% chance for bonus star next lesson' },
     { id: 'leg_banner', name: 'Banner of Glory', icon: '🏳️', description: 'Next 3 stars give +1 bonus Glory' },
     { id: 'leg_chalice', name: 'Chalice of Radiance', icon: '🏆', description: 'Guildmates get +1 Glory on next star' },
     { id: 'leg_compass', name: 'Compassion Token', icon: '💝', description: 'Free Hero Boons for rest of month' }

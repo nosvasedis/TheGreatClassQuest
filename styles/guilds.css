@@ -1458,6 +1458,181 @@
     background: rgba(255,255,255,0.14);
     border-color: rgba(255,255,255,0.35);
 }
+/* ── Live Power Change Indicators ─────────────────────────────────────────── */
+
+/* Wrapper: position arrows relative to the power number */
+.guild-crystal-count {
+    position: relative;
+}
+
+/* Arrow indicator */
+.guild-crystal-count-arrow {
+    position: absolute;
+    top: -4px;
+    right: -8px;
+    display: inline-flex;
+    align-items: center;
+    gap: 2px;
+    font-size: 0.62rem;
+    font-weight: 800;
+    letter-spacing: 0.02em;
+    padding: 1px 5px;
+    border-radius: 999px;
+    pointer-events: none;
+    opacity: 0;
+    transform: translateY(6px) scale(0.7);
+    will-change: opacity, transform;
+    z-index: 2;
+    white-space: nowrap;
+}
+
+.guild-crystal-count-arrow--up {
+    color: #4ade80;
+    background: rgba(74, 222, 128, 0.15);
+    border: 1px solid rgba(74, 222, 128, 0.3);
+    text-shadow: 0 0 8px rgba(74, 222, 128, 0.6);
+}
+
+.guild-crystal-count-arrow--down {
+    color: #f87171;
+    background: rgba(248, 113, 113, 0.15);
+    border: 1px solid rgba(248, 113, 113, 0.3);
+    text-shadow: 0 0 8px rgba(248, 113, 113, 0.6);
+}
+
+.guild-crystal-count-arrow__delta {
+    font-size: 0.58rem;
+    opacity: 0.85;
+}
+
+.guild-crystal-count-arrow--up.guild-crystal-count-arrow--visible {
+    animation: guild-arrow-enter-up 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
+.guild-crystal-count-arrow--down.guild-crystal-count-arrow--visible {
+    animation: guild-arrow-enter-down 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
+.guild-crystal-count-arrow--exit {
+    animation: guild-arrow-exit 0.5s ease-out forwards;
+}
+
+@keyframes guild-arrow-enter-up {
+    0% { opacity: 0; transform: translateY(-6px) scale(0.7); }
+    100% { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@keyframes guild-arrow-enter-down {
+    0% { opacity: 0; transform: translateY(6px) scale(0.7); }
+    100% { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@keyframes guild-arrow-exit {
+    0% { opacity: 1; transform: translateY(0) scale(1); }
+    100% { opacity: 0; transform: translateY(-4px) scale(0.8); }
+}
+
+/* Power number glow on change */
+.guild-crystal-count-num {
+    transition: text-shadow 0.3s ease;
+}
+
+.guild-power-boost {
+    animation: guild-power-glow-boost 2s ease-out forwards;
+}
+
+.guild-power-drop {
+    animation: guild-power-glow-drop 2s ease-out forwards;
+}
+
+@keyframes guild-power-glow-boost {
+    0% { text-shadow: 0 0 4px rgba(0,0,0,0.4), 0 0 20px rgba(74, 222, 128, 0.7), 0 0 40px rgba(74, 222, 128, 0.4); transform: scale(1.08); }
+    40% { text-shadow: 0 0 4px rgba(0,0,0,0.4), 0 0 12px rgba(74, 222, 128, 0.4); transform: scale(1.03); }
+    100% { text-shadow: 0 1px 6px rgba(0,0,0,0.4); transform: scale(1); }
+}
+
+@keyframes guild-power-glow-drop {
+    0% { text-shadow: 0 0 4px rgba(0,0,0,0.4), 0 0 20px rgba(248, 113, 113, 0.7), 0 0 40px rgba(248, 113, 113, 0.4); transform: scale(1.05); }
+    20% { transform: scale(0.97); }
+    40% { text-shadow: 0 0 4px rgba(0,0,0,0.4), 0 0 12px rgba(248, 113, 113, 0.4); transform: scale(1.02); }
+    100% { text-shadow: 0 1px 6px rgba(0,0,0,0.4); transform: scale(1); }
+}
+
+/* Rank-change badge */
+.guild-crystal-rank-change-badge {
+    position: absolute;
+    top: 22px;
+    right: -10px;
+    display: inline-flex;
+    align-items: center;
+    gap: 2px;
+    font-size: 0.56rem;
+    font-weight: 700;
+    padding: 1px 5px;
+    border-radius: 999px;
+    pointer-events: none;
+    opacity: 0;
+    transform: translateY(4px) scale(0.7);
+    will-change: opacity, transform;
+    z-index: 2;
+    white-space: nowrap;
+    color: #fcd34d;
+    background: rgba(252, 211, 78, 0.12);
+    border: 1px solid rgba(252, 211, 78, 0.25);
+    text-shadow: 0 0 6px rgba(252, 211, 78, 0.5);
+}
+
+.guild-crystal-rank-change-badge--visible {
+    animation: guild-rank-badge-enter 0.45s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
+.guild-crystal-rank-change-badge--exit {
+    animation: guild-arrow-exit 0.5s ease-out forwards;
+}
+
+@keyframes guild-rank-badge-enter {
+    0% { opacity: 0; transform: translateY(4px) scale(0.7) rotate(-8deg); }
+    100% { opacity: 1; transform: translateY(0) scale(1) rotate(0deg); }
+}
+
+/* Rank label flash when guild changes position */
+.guild-crystal-col.guild-rank-changed .guild-crystal-rank__label {
+    animation: guild-rank-label-flash 1.2s ease-out;
+}
+
+@keyframes guild-rank-label-flash {
+    0% { box-shadow: 0 0 12px rgba(252, 211, 78, 0.6), 0 0 24px rgba(252, 211, 78, 0.3); transform: scale(1.12); }
+    50% { box-shadow: 0 0 8px rgba(252, 211, 78, 0.3); transform: scale(1.04); }
+    100% { box-shadow: none; transform: scale(1); }
+}
+
+/* Column pulse when rank changes */
+.guild-crystal-col.guild-rank-changed {
+    animation: guild-col-pulse 0.8s ease-out;
+}
+
+@keyframes guild-col-pulse {
+    0% { filter: brightness(1.2) saturate(1.3); transform: scale(1.02); }
+    100% { filter: brightness(1) saturate(1); transform: scale(1); }
+}
+
+/* Reduced motion: suppress all indicator animations */
+@media (prefers-reduced-motion: reduce) {
+    .guild-crystal-count-arrow,
+    .guild-crystal-rank-change-badge,
+    .guild-power-boost,
+    .guild-power-drop,
+    .guild-crystal-col.guild-rank-changed,
+    .guild-crystal-col.guild-rank-changed .guild-crystal-rank__label {
+        animation: none !important;
+    }
+    .guild-crystal-count-arrow--visible,
+    .guild-crystal-rank-change-badge--visible {
+        opacity: 1;
+        transform: none;
+    }
+}
+
 
 /* Guild spotlight — same glass circle as Guild Power “?” */
 .guild-analytics-info-btn {
@@ -1955,7 +2130,6 @@
     margin-right: 0.25rem;
     color: rgba(251,191,36,0.55);
 }
-
 .guild-crystal-effect-chip {
     position: relative;
     display: inline-flex;
@@ -4209,7 +4383,7 @@
     flex-shrink: 0;
 }
 
-/* ─── Roster controls ─────────────────────────────────────────────────────── */
+/* ── Roster controls ─────────────────────────────────────────────────────── */
 .gh-roster-head {
     display: flex;
     align-items: center;
@@ -4250,7 +4424,7 @@
     color: rgba(255,255,255,0.88);
 }
 
-/* ─── Champions (standouts) ─── */
+/* ── Champions (standouts) ─── */
 .guild-heroes-champions {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -4316,7 +4490,7 @@
     gap: 0.25rem;
 }
 
-/* ─── Avatar Styles ─── */
+/* ── Avatar Styles ─── */
 .guild-heroes-avatar {
     width: 48px;
     height: 48px;
@@ -4342,7 +4516,7 @@
     background: #6366f1;
 }
 
-/* ─── Roster rows ─── */
+/* ── Roster rows ─── */
 .guild-heroes-leaderboard-list {
     padding: 0;
 }
@@ -4475,7 +4649,7 @@
     transition: width 0.5s ease;
 }
 
-/* ─── Grid Layouts ─── */
+/* ── Grid Layouts ─── */
 .guild-heroes-grid {
     display: grid;
     grid-template-columns: 1fr;
@@ -4506,7 +4680,7 @@
     letter-spacing: 0.08em;
 }
 
-/* ─── Tables (All Heroes) ─── */
+/* ── Tables (All Heroes) ─── */
 .guild-heroes-table-wrap { overflow-x: auto; }
 .guild-heroes-table {
     width: 100%;
@@ -4567,7 +4741,7 @@
     font-size: 0.7rem;
 }
 
-/* ─── Team Health View ─── */
+/* ── Team Health View ─── */
 .guild-heroes-health-card {
     border-radius: 1rem;
     border: 2px solid #bbf7d0;
@@ -4670,7 +4844,7 @@
     font-weight: 600;
 }
 
-/* ─── Guild Heroes modal responsive ─── */
+/* ── Guild Heroes modal responsive ─── */
 @media (max-width: 980px) {
     .guild-heroes-overview { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }

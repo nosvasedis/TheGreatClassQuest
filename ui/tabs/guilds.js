@@ -71,6 +71,12 @@ function _openPowerExplainer() {
 /** When true, detailed stats panels are visible for every guild column */
 let _guildHallStatsExpanded = false;
 
+// ─── Guild Power change tracking (for live arrow indicators) ─────────────────
+const _prevGuildPower = new Map(); // guildId → { power, rank }
+let _guildPowerIndicatorsReady = false;
+let _guildIndicatorDismissTimer = null;
+let _guildIndicatorRaf = null;
+
 // ─── Sound cache ─────────────────────────────────────────────────────────────
 const _audioCache = {};
 function playGuildSound(guildId) {
@@ -520,6 +526,18 @@ export function renderGuildsTab() {
         };
     }).sort((a, b) => b.guildPower - a.guildPower || b.perCapitaGlory - a.perCapitaGlory || b.perCapitaStars - a.perCapitaStars);
 
+    // ── Compute power deltas for live indicators ──────────────────────────────
+    const powerDeltas = new Map(); // guildId → { powerDelta, rankDelta, prevPower, prevRank }
+    const isFirstRender = !_guildPowerIndicatorsReady;
+    displayData.forEach((g, index) => {
+        const prev = _prevGuildPower.get(g.guildId);
+        if (prev) {
+            const powerDelta = Math.round(g.guildPower) - prev.power;
+            const rankDelta = prev.rank - index; // positive = moved up
+            powerDeltas.set(g.guildId, { powerDelta, rankDelta, prevPower: prev.power, prevRank: prev.rank });
+        }
+    });
+
     const rankLabels = ['1st', '2nd', '3rd', '4th'];
 
     const columns = displayData.map((g, index) => {
@@ -626,7 +644,7 @@ export function renderGuildsTab() {
             </section>`;
 
         return `
-            <div class="guild-crystal-col is-rank-${index + 1}" data-guild="${g.guildId}">
+            <div class="guild-crystal-col is-rank-${index + 1}${(() => { const d = powerDeltas.get(g.guildId); return (!isFirstRender && d && d.rankDelta !== 0) ? ' guild-rank-changed' : ''; })()}" data-guild="${g.guildId}">
 
                 <!-- ── Rank ── -->
                 <div class="guild-crystal-rank"><span class="guild-crystal-rank__label">${rankLabels[index] || `#${index + 1}`}</span></div>
@@ -672,7 +690,9 @@ export function renderGuildsTab() {
 
                 <!-- ── Bottom stats ── -->
                 <div class="guild-crystal-count" style="color:${primary};">
-                    <span class="guild-crystal-count-num">${Math.round(g.guildPower)}</span>
+                    <span class="guild-crystal-count-num${(() => { const d = powerDeltas.get(g.guildId); if (!d || isFirstRender) return ''; return d.powerDelta > 0 ? ' guild-power-boost' : d.powerDelta < 0 ? ' guild-power-drop' : ''; })()}" data-guild-id="${g.guildId}">${Math.round(g.guildPower)}</span>
+                    ${(() => { const d = powerDeltas.get(g.guildId); if (!d || isFirstRender || d.powerDelta === 0) return ''; const dir = d.powerDelta > 0 ? 'up' : 'down'; const abs = Math.abs(d.powerDelta); return `<span class="guild-crystal-count-arrow guild-crystal-count-arrow--${dir}" aria-label="Power ${dir === 'up' ? 'increased' : 'decreased'} by ${abs}">${dir === 'up' ? '▲' : '▼'}<span class="guild-crystal-count-arrow__delta">${dir === 'up' ? '+' : '−'}${abs}</span></span>`; })()}
+                    ${(() => { const d = powerDeltas.get(g.guildId); if (!d || isFirstRender || d.rankDelta === 0) return ''; return `<span class="guild-crystal-rank-change-badge" aria-label="Rank ${d.rankDelta > 0 ? 'up' : 'down'} by ${Math.abs(d.rankDelta)}">${d.rankDelta > 0 ? '⬆' : '⬇'} ${Math.abs(d.rankDelta)}</span>`; })()}
                     <span class="guild-crystal-count-label">
                         ⚡ Guild Power
                         <button class="guild-power-info-btn" type="button" aria-label="Explain Guild Power" data-guild-power-info="true">?</button>
@@ -756,6 +776,49 @@ export function renderGuildsTab() {
             </div>
             <div class="guild-crystal-arena${_guildHallStatsExpanded ? ' guild-crystal-arena--stats-expanded' : ''}">${columns.join('')}</div>
         </div>`;
+
+    // ── Update power tracking for next render ─────────────────────────────────
+    displayData.forEach((g, index) => {
+        _prevGuildPower.set(g.guildId, { power: Math.round(g.guildPower), rank: index });
+    });
+    _guildPowerIndicatorsReady = true;
+
+    // ── Auto-dismiss power change indicators after ~3s ────────────────────────
+    if (_guildIndicatorDismissTimer) {
+        clearTimeout(_guildIndicatorDismissTimer);
+        _guildIndicatorDismissTimer = null;
+    }
+    if (_guildIndicatorRaf) {
+        cancelAnimationFrame(_guildIndicatorRaf);
+        _guildIndicatorRaf = null;
+    }
+
+    if (!isFirstRender) {
+        _guildIndicatorRaf = requestAnimationFrame(() => {
+            _guildIndicatorRaf = null;
+            list.querySelectorAll('.guild-crystal-count-arrow').forEach(el => {
+                el.classList.add('guild-crystal-count-arrow--visible');
+            });
+            list.querySelectorAll('.guild-crystal-rank-change-badge').forEach(el => {
+                el.classList.add('guild-crystal-rank-change-badge--visible');
+            });
+            _guildIndicatorDismissTimer = setTimeout(() => {
+                _guildIndicatorDismissTimer = null;
+                list.querySelectorAll('.guild-crystal-count-arrow').forEach(el => {
+                    el.classList.add('guild-crystal-count-arrow--exit');
+                });
+                list.querySelectorAll('.guild-crystal-rank-change-badge').forEach(el => {
+                    el.classList.add('guild-crystal-rank-change-badge--exit');
+                });
+                list.querySelectorAll('.guild-power-boost, .guild-power-drop').forEach(el => {
+                    el.classList.remove('guild-power-boost', 'guild-power-drop');
+                });
+                list.querySelectorAll('.guild-rank-changed').forEach(el => {
+                    el.classList.remove('guild-rank-changed');
+                });
+            }, 3000);
+        });
+    }
 
     list.querySelector('.guild-crystal-expand-all-wrap')?.classList.toggle('guild-crystal-expand-all-wrap--open', _guildHallStatsExpanded);
 

@@ -786,6 +786,283 @@ export async function applyWheelResult(guildId, segment, classId) {
 
 const TAU = Math.PI * 2;
 
+// ─── Offscreen wheel cache (pre-rendered static wheel for fast blitting) ────
+let _wheelCache = { canvas: null, key: '', size: 0 };
+
+/**
+ * Generate a cache key from segments + guildDef + size to detect when re-render is needed.
+ */
+function _wheelCacheKey(segments, guildDef, size) {
+    // Use segment labels+rarities + guild primary + size as the identity key
+    let k = `${size}`;
+    for (let i = 0; i < segments.length; i++) {
+        const s = segments[i];
+        k += `|${s.label}:${s.rarity}:${s.emoji}:${s.paletteIndex || 0}:${s.isPrismatic ? 1 : 0}`;
+    }
+    k += `#g:${guildDef?.primary || ''}:${guildDef?.secondary || ''}:${guildDef?.glow || ''}`;
+    return k;
+}
+
+/**
+ * Render the full static wheel (segments, rim, text, center emblem, glossy sheen)
+ * centered at the CURRENT origin. Caller must translate to (center, center) first.
+ */
+function _renderStaticWheelAtOrigin(ctx, size, segments, guildDef) {
+    const center = size / 2;
+    const radius = center - 24;
+    const segCount = segments.length;
+    const segAngle = TAU / segCount;
+
+    // Assumes ctx is already translated to (center, center) by caller
+
+    // Bright Golden thick outer rim
+    ctx.beginPath();
+    ctx.arc(0, 0, radius + 12, 0, TAU);
+    const rimGrad = ctx.createLinearGradient(-radius, -radius, radius, radius);
+    rimGrad.addColorStop(0, '#FEF3C7');
+    rimGrad.addColorStop(0.2, '#F59E0B');
+    rimGrad.addColorStop(0.5, '#FFFBEB');
+    rimGrad.addColorStop(0.8, '#D97706');
+    rimGrad.addColorStop(1, '#FEF3C7');
+    ctx.strokeStyle = rimGrad;
+    ctx.lineWidth = Math.max(16, size / 35);
+    ctx.stroke();
+
+    // Lighter inner rim line for depth
+    ctx.beginPath();
+    ctx.arc(0, 0, radius + 2, 0, TAU);
+    ctx.strokeStyle = 'rgba(217, 119, 6, 0.8)';
+    ctx.lineWidth = 4;
+    ctx.stroke();
+
+    // Wheel background disc
+    ctx.beginPath();
+    ctx.arc(0, 0, radius, 0, TAU);
+    ctx.fillStyle = '#FFFFFF';
+    ctx.fill();
+
+    for (let i = 0; i < segCount; i++) {
+        const seg = segments[i];
+        const startAngle = i * segAngle;
+        const endAngle = startAngle + segAngle;
+        const rarityConf = getRarityPalette(seg.rarity, seg.paletteIndex);
+        const isPrismatic = seg.isPrismatic === true;
+
+        // Vibrant wedge gradient
+        ctx.beginPath();
+        ctx.moveTo(0, 0);
+        ctx.arc(0, 0, radius, startAngle, endAngle);
+        ctx.closePath();
+
+        if (isPrismatic) {
+            const prismaticColors = WHEEL_PRISMATIC_CONFIG.colors;
+            if (typeof ctx.createConicGradient === 'function') {
+                const prismaticGrad = ctx.createConicGradient(startAngle, 0, 0);
+                for (let ci = 0; ci < prismaticColors.length; ci++) {
+                    prismaticGrad.addColorStop(ci / prismaticColors.length, prismaticColors[ci]);
+                }
+                prismaticGrad.addColorStop(1, prismaticColors[0]);
+                ctx.fillStyle = prismaticGrad;
+            } else {
+                const fallbackGrad = ctx.createRadialGradient(0, 0, radius * 0.1, 0, 0, radius);
+                fallbackGrad.addColorStop(0, '#083344');
+                fallbackGrad.addColorStop(0.6, '#083344');
+                fallbackGrad.addColorStop(1, '#22d3ee');
+                ctx.fillStyle = fallbackGrad;
+            }
+        } else {
+            const gradient = ctx.createRadialGradient(0, 0, radius * 0.1, 0, 0, radius);
+            gradient.addColorStop(0, rarityConf.bg);
+            gradient.addColorStop(0.6, rarityConf.bg);
+            gradient.addColorStop(1, rarityConf.color);
+            ctx.fillStyle = gradient;
+        }
+        ctx.fill();
+
+        // Inner bevel highlight
+        ctx.beginPath();
+        ctx.arc(0, 0, radius, startAngle + 0.02, startAngle + segAngle * 0.35);
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.18)';
+        ctx.lineWidth = 2;
+        ctx.stroke();
+
+        // Highlighting edge
+        ctx.beginPath();
+        ctx.arc(0, 0, radius, startAngle, endAngle);
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.4)';
+        ctx.lineWidth = 4;
+        ctx.stroke();
+
+        // Inner shadow for depth
+        ctx.beginPath();
+        ctx.arc(0, 0, radius - 8, startAngle, endAngle);
+        ctx.strokeStyle = 'rgba(0, 0, 0, 0.15)';
+        ctx.lineWidth = 2;
+        ctx.stroke();
+
+        // Wedge dividing borders
+        ctx.beginPath();
+        ctx.moveTo(0, 0);
+        ctx.lineTo(Math.cos(startAngle) * radius, Math.sin(startAngle) * radius);
+        const borderGrad = ctx.createLinearGradient(0, 0, Math.cos(startAngle) * radius, Math.sin(startAngle) * radius);
+        borderGrad.addColorStop(0, 'rgba(255, 255, 255, 0.8)');
+        borderGrad.addColorStop(1, 'rgba(245, 158, 11, 0.8)');
+        ctx.strokeStyle = borderGrad;
+        ctx.lineWidth = Math.max(2, size / 150);
+        ctx.lineJoin = 'round';
+        ctx.stroke();
+
+        // Draw emoji icon + label text
+        ctx.save();
+        ctx.rotate(startAngle + segAngle / 2);
+
+        const emoji = seg.emoji || '';
+        const label = seg.label || '';
+        const maxTextWidth = radius * 0.45;
+
+        const bgLum = _luminance(rarityConf.bg);
+        const textColor = bgLum > 0.35 ? 'rgba(0, 0, 0, 0.85)' : '#FFFFFF';
+        const shadowColor = bgLum > 0.35 ? 'rgba(255, 255, 255, 0.3)' : 'rgba(0, 0, 0, 0.4)';
+
+        // Emoji icon
+        const emojiSize = Math.max(16, Math.floor(size / 28));
+        ctx.font = `${emojiSize}px sans-serif`;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.shadowColor = 'rgba(0, 0, 0, 0.5)';
+        ctx.shadowBlur = 3;
+        ctx.shadowOffsetX = 1;
+        ctx.shadowOffsetY = 1;
+        const emojiRadius = radius - Math.max(22, size * 0.07);
+        ctx.fillText(emoji, emojiRadius, 0);
+        ctx.shadowBlur = 0;
+        ctx.shadowOffsetX = 0;
+        ctx.shadowOffsetY = 0;
+
+        // Label text
+        const fontSize = Math.max(11, Math.floor(size / 42));
+        ctx.font = `800 ${fontSize}px "Fredoka One", "Trebuchet MS", system-ui, sans-serif`;
+        ctx.fillStyle = textColor;
+        ctx.textAlign = 'right';
+        ctx.textBaseline = 'middle';
+        ctx.shadowColor = shadowColor;
+        ctx.shadowBlur = 4;
+        ctx.shadowOffsetX = 1;
+        ctx.shadowOffsetY = 1;
+
+        const lines = wrapText(ctx, label, maxTextWidth);
+        const lineHeight = fontSize * 1.2;
+        const totalTextHeight = lines.length * lineHeight;
+        const textStartRadius = radius - Math.max(34, size * 0.12);
+        const startY = -(totalTextHeight / 2) + (lineHeight / 2);
+
+        for (let j = 0; j < lines.length; j++) {
+            ctx.fillText(lines[j], textStartRadius, startY + (j * lineHeight));
+        }
+
+        ctx.restore();
+    }
+
+    // --- Glossy Sheen Overlay ---
+    const sheen = ctx.createLinearGradient(-radius, -radius, radius, radius);
+    sheen.addColorStop(0, 'rgba(255, 255, 255, 0.15)');
+    sheen.addColorStop(0.4, 'rgba(255, 255, 255, 0.05)');
+    sheen.addColorStop(0.5, 'rgba(255, 255, 255, 0)');
+    sheen.addColorStop(0.6, 'rgba(0, 0, 0, 0.05)');
+    sheen.addColorStop(1, 'rgba(0, 0, 0, 0.15)');
+    ctx.beginPath();
+    ctx.arc(0, 0, radius, 0, TAU);
+    ctx.fillStyle = sheen;
+    ctx.fill();
+
+    // Center Logo / Emblem
+    const innerRadius = radius * 0.28;
+
+    // Center glowing aura
+    ctx.beginPath();
+    ctx.arc(0, 0, innerRadius + 15, 0, TAU);
+    const centerAura = ctx.createRadialGradient(0, 0, innerRadius, 0, 0, innerRadius + 15);
+    centerAura.addColorStop(0, `${guildDef?.glow || '#a78bfa'}99`);
+    centerAura.addColorStop(1, 'rgba(0,0,0,0)');
+    ctx.fillStyle = centerAura;
+    ctx.fill();
+
+    // Center metallic rim
+    ctx.beginPath();
+    ctx.arc(0, 0, innerRadius, 0, TAU);
+    const primary = guildDef?.primary || '#7c3aed';
+    const secondary = guildDef?.secondary || '#a78bfa';
+    const grad = ctx.createRadialGradient(0, 0, 0, 0, 0, innerRadius);
+    grad.addColorStop(0, '#ffffff');
+    grad.addColorStop(0.3, secondary);
+    grad.addColorStop(0.8, primary);
+    grad.addColorStop(1, '#1a0536');
+    ctx.fillStyle = grad;
+    ctx.fill();
+
+    const innerRimGrad = ctx.createLinearGradient(-innerRadius, -innerRadius, innerRadius, innerRadius);
+    innerRimGrad.addColorStop(0, '#fff');
+    innerRimGrad.addColorStop(0.5, '#ffdca8');
+    innerRimGrad.addColorStop(1, '#8c6222');
+    ctx.strokeStyle = innerRimGrad;
+    ctx.lineWidth = Math.max(6, size / 90);
+    ctx.stroke();
+
+    ctx.beginPath();
+    ctx.arc(0, 0, innerRadius * 0.75, 0, TAU);
+    ctx.strokeStyle = 'rgba(255,255,255,0.4)';
+    ctx.lineWidth = Math.max(2, size / 190);
+    ctx.stroke();
+
+    ctx.beginPath();
+    ctx.arc(0, 0, innerRadius * 0.52, 0, TAU);
+    ctx.fillStyle = 'rgba(255,255,255,0.16)';
+    ctx.fill();
+
+    ctx.beginPath();
+    ctx.arc(0, 0, innerRadius * 0.18, 0, TAU);
+    ctx.fillStyle = '#fff7d6';
+    ctx.fill();
+}
+
+/**
+ * Get or create the offscreen canvas with the pre-rendered static wheel.
+ * Returns null if offscreen canvas is not available.
+ */
+function _getWheelOffscreen(segments, size, guildDef) {
+    const key = _wheelCacheKey(segments, guildDef, size);
+    if (_wheelCache.canvas && _wheelCache.key === key && _wheelCache.size === size) {
+        return _wheelCache.canvas;
+    }
+    // Create or reuse offscreen canvas
+    let offCanvas = _wheelCache.canvas;
+    if (!offCanvas || offCanvas.width !== size || offCanvas.height !== size) {
+        if (typeof OffscreenCanvas !== 'undefined') {
+            offCanvas = new OffscreenCanvas(size, size);
+        } else {
+            offCanvas = document.createElement('canvas');
+            offCanvas.width = size;
+            offCanvas.height = size;
+        }
+    }
+    const offCtx = offCanvas.getContext('2d');
+    if (!offCtx) return null;
+    offCtx.clearRect(0, 0, size, size);
+    offCtx.save();
+    offCtx.translate(size / 2, size / 2);
+    _renderStaticWheelAtOrigin(offCtx, size, segments, guildDef);
+    offCtx.restore();
+    _wheelCache = { canvas: offCanvas, key, size };
+    return offCanvas;
+}
+
+/**
+ * Invalidate the offscreen wheel cache (call when segments or size change).
+ */
+export function invalidateWheelCache() {
+    _wheelCache = { canvas: null, key: '', size: 0 };
+}
+
 /**
  * Wrap text to fit within a given max width
  */
@@ -821,178 +1098,38 @@ export function drawWheel(canvas, segments, rotationAngle, guildDef, highlightIn
     if (!ctx) return;
     const size = canvas.width;
     const center = size / 2;
-    const radius = center - 24; 
+    const radius = center - 24;
     const segCount = segments.length;
     const segAngle = TAU / segCount;
 
     ctx.clearRect(0, 0, size, size);
 
-    // Bright celestial aura behind the wheel
+    // Bright celestial aura behind the wheel (cheap — single radial gradient)
     const aura = ctx.createRadialGradient(center, center, radius * 0.2, center, center, size / 2);
-    aura.addColorStop(0, `rgba(255, 255, 255, 0.9)`);
+    aura.addColorStop(0, 'rgba(255, 255, 255, 0.9)');
     aura.addColorStop(0.5, 'rgba(253, 230, 138, 0.4)');
     aura.addColorStop(1, 'rgba(255, 255, 255, 0)');
     ctx.fillStyle = aura;
     ctx.fillRect(0, 0, size, size);
 
-    ctx.save();
-    ctx.translate(center, center);
-    ctx.rotate(rotationAngle);
-
-    // Bright Golden thick outer rim
-    ctx.beginPath();
-    ctx.arc(0, 0, radius + 12, 0, TAU);
-    const rimGrad = ctx.createLinearGradient(-radius, -radius, radius, radius);
-    rimGrad.addColorStop(0, '#FEF3C7');
-    rimGrad.addColorStop(0.2, '#F59E0B');
-    rimGrad.addColorStop(0.5, '#FFFBEB');
-    rimGrad.addColorStop(0.8, '#D97706');
-    rimGrad.addColorStop(1, '#FEF3C7');
-    ctx.strokeStyle = rimGrad;
-    ctx.lineWidth = Math.max(16, size / 35);
-    ctx.stroke();
-
-    // Lighter inner rim line for depth
-    ctx.beginPath();
-    ctx.arc(0, 0, radius + 2, 0, TAU);
-    ctx.strokeStyle = 'rgba(217, 119, 6, 0.8)';
-    ctx.lineWidth = 4;
-    ctx.stroke();
-
-    // Wheel background disc (bright instead of dark)
-    ctx.beginPath();
-    ctx.arc(0, 0, radius, 0, TAU);
-    ctx.fillStyle = '#FFFFFF';
-    ctx.fill();
-
-    for (let i = 0; i < segCount; i++) {
-        const seg = segments[i];
-        const startAngle = i * segAngle;
-        const endAngle = startAngle + segAngle;
-        const rarityConf = getRarityPalette(seg.rarity, seg.paletteIndex);
-        const isPrismatic = seg.isPrismatic === true;
-        
-        // Vibrant wedge gradient (prismatic = rainbow conic gradient)
-        ctx.beginPath();
-        ctx.moveTo(0, 0);
-        ctx.arc(0, 0, radius, startAngle, endAngle);
-        ctx.closePath();
-
-        if (isPrismatic) {
-            // Prismatic rainbow gradient using conic gradient (with fallback)
-            const prismaticColors = WHEEL_PRISMATIC_CONFIG.colors;
-            if (typeof ctx.createConicGradient === 'function') {
-                const prismaticGrad = ctx.createConicGradient(startAngle, 0, 0);
-                for (let ci = 0; ci < prismaticColors.length; ci++) {
-                    prismaticGrad.addColorStop(ci / prismaticColors.length, prismaticColors[ci]);
-                }
-                prismaticGrad.addColorStop(1, prismaticColors[0]);
-                ctx.fillStyle = prismaticGrad;
-            } else {
-                // Fallback: use mythic palette for prismatic on older browsers
-                const fallbackGrad = ctx.createRadialGradient(0, 0, radius * 0.1, 0, 0, radius);
-                fallbackGrad.addColorStop(0, '#083344');
-                fallbackGrad.addColorStop(0.6, '#083344');
-                fallbackGrad.addColorStop(1, '#22d3ee');
-                ctx.fillStyle = fallbackGrad;
-            }
-            ctx.fillStyle = prismaticGrad;
-        } else {
-            const gradient = ctx.createRadialGradient(0, 0, radius * 0.1, 0, 0, radius);
-            gradient.addColorStop(0, rarityConf.bg);
-            gradient.addColorStop(0.6, rarityConf.bg);
-            gradient.addColorStop(1, rarityConf.color);
-            ctx.fillStyle = gradient;
-        }
-        ctx.fill();
-
-        // Inner bevel highlight (subtle white arc on inner edge for depth)
-        ctx.beginPath();
-        ctx.arc(0, 0, radius, startAngle + 0.02, startAngle + segAngle * 0.35);
-        ctx.strokeStyle = 'rgba(255, 255, 255, 0.18)';
-        ctx.lineWidth = 2;
-        ctx.stroke();
-
-        // Highlighting edge
-        ctx.beginPath();
-        ctx.arc(0, 0, radius, startAngle, endAngle);
-        ctx.strokeStyle = 'rgba(255, 255, 255, 0.4)';
-        ctx.lineWidth = 4;
-        ctx.stroke();
-
-        // Inner shadow for depth
-        ctx.beginPath();
-        ctx.arc(0, 0, radius - 8, startAngle, endAngle);
-        ctx.strokeStyle = 'rgba(0, 0, 0, 0.15)';
-        ctx.lineWidth = 2;
-        ctx.stroke();
-
-        // Wedge dividing borders (bright gold)
-        ctx.beginPath();
-        ctx.moveTo(0, 0);
-        ctx.lineTo(Math.cos(startAngle) * radius, Math.sin(startAngle) * radius);
-        const borderGrad = ctx.createLinearGradient(0, 0, Math.cos(startAngle) * radius, Math.sin(startAngle) * radius);
-        borderGrad.addColorStop(0, 'rgba(255, 255, 255, 0.8)');
-        borderGrad.addColorStop(1, 'rgba(245, 158, 11, 0.8)');
-        ctx.strokeStyle = borderGrad;
-        ctx.lineWidth = Math.max(2, size / 150);
-        ctx.lineJoin = 'round';
-        ctx.stroke();
-
-        // Draw emoji icon above label
+    // Blit the pre-rendered static wheel (segments, rim, text, emblem, sheen) with rotation
+    const offscreen = _getWheelOffscreen(segments, size, guildDef);
+    if (offscreen) {
         ctx.save();
-        ctx.rotate(startAngle + segAngle / 2);
-        
-        const emoji = String(seg.emoji || '');
-        const label = String(seg.label || '');
-        const maxTextWidth = radius * 0.45;
-        
-        // Dynamic text color based on background luminance for contrast
-        const bgLum = _luminance(rarityConf.bg);
-        const textColor = bgLum > 0.35 ? 'rgba(0, 0, 0, 0.85)' : '#FFFFFF';
-        const shadowColor = bgLum > 0.35 ? 'rgba(255, 255, 255, 0.3)' : 'rgba(0, 0, 0, 0.4)';
-        
-        // Emoji icon (larger, positioned further out)
-        const emojiSize = Math.max(16, Math.floor(size / 28));
-        ctx.font = `${emojiSize}px sans-serif`;
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'middle';
-        ctx.shadowColor = 'rgba(0, 0, 0, 0.5)';
-        ctx.shadowBlur = 3;
-        ctx.shadowOffsetX = 1;
-        ctx.shadowOffsetY = 1;
-        const emojiRadius = radius - Math.max(22, size * 0.07);
-        ctx.fillText(emoji, emojiRadius, 0);
-        ctx.shadowBlur = 0;
-        ctx.shadowOffsetX = 0;
-        ctx.shadowOffsetY = 0;
-
-        // Label text (below emoji)
-        const fontSize = Math.max(11, Math.floor(size / 42));
-        ctx.font = `800 ${fontSize}px "Fredoka One", "Trebuchet MS", system-ui, sans-serif`;
-        ctx.fillStyle = textColor;
-        ctx.textAlign = 'right';
-        ctx.textBaseline = 'middle';
-        ctx.shadowColor = shadowColor;
-        ctx.shadowBlur = 4;
-        ctx.shadowOffsetX = 1;
-        ctx.shadowOffsetY = 1;
-
-        const lines = wrapText(ctx, label, maxTextWidth);
-        const lineHeight = fontSize * 1.2;
-        const totalTextHeight = lines.length * lineHeight;
-        
-        ctx.font = `800 ${fontSize}px "Fredoka One", "Trebuchet MS", system-ui, sans-serif`;
-        const textStartRadius = radius - Math.max(34, size * 0.12);
-        const startY = -(totalTextHeight / 2) + (lineHeight / 2);
-
-        for (let j = 0; j < lines.length; j++) {
-            ctx.fillText(lines[j], textStartRadius, startY + (j * lineHeight));
-        }
-
+        ctx.translate(center, center);
+        ctx.rotate(rotationAngle);
+        ctx.drawImage(offscreen, -center, -center, size, size);
+        ctx.restore();
+    } else {
+        // Fallback: render directly with rotation (for browsers where getContext fails)
+        ctx.save();
+        ctx.translate(center, center);
+        ctx.rotate(rotationAngle);
+        _renderStaticWheelAtOrigin(ctx, size, segments, guildDef);
         ctx.restore();
     }
 
+    // Winner highlight overlay (only drawn on the final revealed frame)
     if (Number.isInteger(highlightIndex) && highlightIndex >= 0 && highlightIndex < segCount) {
         const seg = segments[highlightIndex];
         const rarityConf = getRarityPalette(seg?.rarity, seg?.paletteIndex);
@@ -1000,6 +1137,8 @@ export function drawWheel(canvas, segments, rotationAngle, guildDef, highlightIn
         const endAngle = startAngle + segAngle;
 
         ctx.save();
+        ctx.translate(center, center);
+        ctx.rotate(rotationAngle);
         ctx.beginPath();
         ctx.moveTo(0, 0);
         ctx.arc(0, 0, radius, startAngle, endAngle);
@@ -1008,86 +1147,12 @@ export function drawWheel(canvas, segments, rotationAngle, guildDef, highlightIn
         ctx.shadowColor = rarityConf.glow || 'rgba(251, 191, 36, 0.55)';
         ctx.shadowBlur = Math.max(18, size / 18);
         ctx.fill();
-
         ctx.shadowBlur = 0;
         ctx.strokeStyle = 'rgba(255, 255, 255, 0.95)';
         ctx.lineWidth = Math.max(12, size / 50);
         ctx.stroke();
         ctx.restore();
     }
-
-    ctx.restore();
-
-    // --- Glossy Sheen Overlay ---
-    ctx.save();
-    ctx.translate(center, center);
-    ctx.rotate(rotationAngle);
-    const sheen = ctx.createLinearGradient(-radius, -radius, radius, radius);
-    sheen.addColorStop(0, 'rgba(255, 255, 255, 0.15)');
-    sheen.addColorStop(0.4, 'rgba(255, 255, 255, 0.05)');
-    sheen.addColorStop(0.5, 'rgba(255, 255, 255, 0)');
-    sheen.addColorStop(0.6, 'rgba(0, 0, 0, 0.05)');
-    sheen.addColorStop(1, 'rgba(0, 0, 0, 0.15)');
-    ctx.beginPath();
-    ctx.arc(0, 0, radius, 0, TAU);
-    ctx.fillStyle = sheen;
-    ctx.fill();
-    ctx.restore();
-
-    ctx.save();
-    ctx.translate(center, center);
-    ctx.rotate(rotationAngle);
-
-    // Center Logo / Emblem
-    const innerRadius = radius * 0.28;
-    
-    // Center glowing aura
-    ctx.beginPath();
-    ctx.arc(0, 0, innerRadius + 15, 0, TAU);
-    const centerAura = ctx.createRadialGradient(0, 0, innerRadius, 0, 0, innerRadius + 15);
-    centerAura.addColorStop(0, `${guildDef?.glow || '#a78bfa'}99`);
-    centerAura.addColorStop(1, 'rgba(0,0,0,0)');
-    ctx.fillStyle = centerAura;
-    ctx.fill();
-
-    // Center metallic rim
-    ctx.beginPath();
-    ctx.arc(0, 0, innerRadius, 0, TAU);
-    const primary = guildDef?.primary || '#7c3aed';
-    const secondary = guildDef?.secondary || '#a78bfa';
-    const grad = ctx.createRadialGradient(0, 0, 0, 0, 0, innerRadius);
-    grad.addColorStop(0, '#ffffff');
-    grad.addColorStop(0.3, secondary);
-    grad.addColorStop(0.8, primary);
-    grad.addColorStop(1, '#1a0536');
-    ctx.fillStyle = grad;
-    ctx.fill();
-    
-    const innerRimGrad = ctx.createLinearGradient(-innerRadius, -innerRadius, innerRadius, innerRadius);
-    innerRimGrad.addColorStop(0, '#fff');
-    innerRimGrad.addColorStop(0.5, '#ffdca8');
-    innerRimGrad.addColorStop(1, '#8c6222');
-    ctx.strokeStyle = innerRimGrad;
-    ctx.lineWidth = Math.max(6, size / 90);
-    ctx.stroke();
-
-    ctx.beginPath();
-    ctx.arc(0, 0, innerRadius * 0.75, 0, TAU);
-    ctx.strokeStyle = 'rgba(255,255,255,0.4)';
-    ctx.lineWidth = Math.max(2, size / 190);
-    ctx.stroke();
-
-    ctx.beginPath();
-    ctx.arc(0, 0, innerRadius * 0.52, 0, TAU);
-    ctx.fillStyle = 'rgba(255,255,255,0.16)';
-    ctx.fill();
-
-    ctx.beginPath();
-    ctx.arc(0, 0, innerRadius * 0.18, 0, TAU);
-    ctx.fillStyle = '#fff7d6';
-    ctx.fill();
-
-    ctx.restore();
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -1513,6 +1578,7 @@ async function _evaluateAndRender(classId, leagueLevel) {
     };
 
     // Generate first guild's segments
+    invalidateWheelCache();
     _wheelState.segments = generateWheelSegments(leagueLevel);
     _renderWheelPhase();
 }
@@ -1696,6 +1762,7 @@ export async function triggerSpin() {
 export function advanceWheel() {
     if (_wheelState.currentGuildIndex < _wheelState.guildOrder.length - 1) {
         _wheelState.currentGuildIndex++;
+        invalidateWheelCache();
         _wheelState.segments = generateWheelSegments(_wheelState.leagueLevel);
         _wheelState.phase = 'ready';
         _wheelState.winnerIndex = null;
@@ -1784,6 +1851,8 @@ function _renderWheelPhase() {
     if (summaryEl) summaryEl.classList.add('hidden');
 }
 
+let _lastWheelDisplaySize = 0;
+
 function _sizeAndRenderWheel() {
     const canvas = document.getElementById('fortunes-wheel-canvas');
     if (!canvas || !_wheelState.segments?.length) return;
@@ -1796,6 +1865,11 @@ function _sizeAndRenderWheel() {
     const available = Math.min(parentWidth, parentHeight);
     const displaySize = Math.round(Math.min(640, available));
     if (!displaySize || displaySize < 10) return;
+
+    if (displaySize !== _lastWheelDisplaySize) {
+        invalidateWheelCache();
+        _lastWheelDisplaySize = displaySize;
+    }
 
     canvas.style.width = `${displaySize}px`;
     canvas.style.height = `${displaySize}px`;

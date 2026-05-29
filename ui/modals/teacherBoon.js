@@ -419,7 +419,7 @@ export function openTeacherBoonModal() {
     }
 
     if (!utils.isTeacherBoonWindow()) {
-        showToast('Teacher Boon appears during the last 3 days of the month.', 'info');
+        showToast('Teacher Boon appears during the last week of the month.', 'info');
         return;
     }
 

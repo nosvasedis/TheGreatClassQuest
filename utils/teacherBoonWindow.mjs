@@ -6,7 +6,7 @@ export function isTeacherBoonWindow(date = new Date()) {
     const monthIndex = resolvedDate.getMonth();
     const lastDayOfMonth = new Date(year, monthIndex + 1, 0).getDate();
 
-    return resolvedDate.getDate() >= (lastDayOfMonth - 2);
+    return resolvedDate.getDate() >= (lastDayOfMonth - 6);
 }
 
 export function getLocalMonthKey(date = new Date()) {

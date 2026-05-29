@@ -442,7 +442,7 @@ function getGeneralDashboard(name, theme, spice) {
         
         <!-- Grand Guild Ceremony Button (shown on ceremony day) -->
         <div id="grand-guild-ceremony-btn-home" class="hidden h-span-3">
-            <div class="bg-gradient-to-r from-amber-400 to-orange-500 text-white p-4 rounded-2xl shadow-lg animate-pulse h-full flex flex-col justify-center items-center cursor-pointer hover:scale-105 transition-transform" onclick="grandGuildCeremony.startGrandGuildCeremony()">
+            <div class="bg-gradient-to-r from-amber-400 to-orange-500 text-white p-4 rounded-2xl shadow-lg animate-pulse h-full flex flex-col justify-center items-center cursor-pointer hover:scale-105 transition-transform" onclick="startGrandGuildCeremony()">
                 <i class="fas fa-crown text-3xl mb-2"></i>
                 <div class="font-title text-lg">Grand Guild Ceremony</div>
                 <div class="text-sm opacity-75">Click to begin!</div>
@@ -624,7 +624,7 @@ function getActiveDashboard(classData, name, theme, spice) {
         
         <!-- Grand Guild Ceremony Button (shown on ceremony day for this class) -->
         <div id="grand-guild-ceremony-btn-class" class="hidden h-span-4">
-            <div class="bg-gradient-to-r from-purple-400 to-pink-500 text-white p-4 rounded-2xl shadow-lg animate-pulse h-full flex flex-col justify-center items-center cursor-pointer hover:scale-105 transition-transform" onclick="grandGuildCeremony.startGrandGuildCeremony(['${classId}'])">
+            <div class="bg-gradient-to-r from-purple-400 to-pink-500 text-white p-4 rounded-2xl shadow-lg animate-pulse h-full flex flex-col justify-center items-center cursor-pointer hover:scale-105 transition-transform" onclick="startGrandGuildCeremony(['${classId}'])">
                 <i class="fas fa-crown text-3xl mb-2"></i>
                 <div class="font-title text-lg">Your Class Ceremony</div>
                 <div class="text-sm opacity-75">Click to begin!</div>

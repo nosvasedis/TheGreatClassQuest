@@ -72,10 +72,8 @@ function _openPowerExplainer() {
 let _guildHallStatsExpanded = false;
 
 // ─── Guild Power change tracking (for live arrow indicators) ─────────────────
-const _prevGuildPower = new Map(); // guildId → { power, rank }
+const _prevGuildPower = new Map(); // guildId → { power, rank, lastPowerDelta, lastRankDelta }
 let _guildPowerIndicatorsReady = false;
-let _guildIndicatorDismissTimer = null;
-let _guildIndicatorRaf = null;
 
 // ─── Sound cache ─────────────────────────────────────────────────────────────
 const _audioCache = {};
@@ -527,14 +525,25 @@ export function renderGuildsTab() {
     }).sort((a, b) => b.guildPower - a.guildPower || b.perCapitaGlory - a.perCapitaGlory || b.perCapitaStars - a.perCapitaStars);
 
     // ── Compute power deltas for live indicators ──────────────────────────────
-    const powerDeltas = new Map(); // guildId → { powerDelta, rankDelta, prevPower, prevRank }
+    const powerDeltas = new Map(); // guildId → { powerDelta, rankDelta, prevPower, prevRank, freshChange }
     const isFirstRender = !_guildPowerIndicatorsReady;
     displayData.forEach((g, index) => {
         const prev = _prevGuildPower.get(g.guildId);
         if (prev) {
             const powerDelta = Math.round(g.guildPower) - prev.power;
             const rankDelta = prev.rank - index; // positive = moved up
-            powerDeltas.set(g.guildId, { powerDelta, rankDelta, prevPower: prev.power, prevRank: prev.rank });
+            // If nothing changed, carry forward the last known trend
+            if (powerDelta === 0 && rankDelta === 0) {
+                powerDeltas.set(g.guildId, {
+                    powerDelta: prev.lastPowerDelta || 0,
+                    rankDelta: prev.lastRankDelta || 0,
+                    prevPower: prev.power,
+                    prevRank: prev.rank,
+                    freshChange: false,
+                });
+            } else {
+                powerDeltas.set(g.guildId, { powerDelta, rankDelta, prevPower: prev.power, prevRank: prev.rank, freshChange: true });
+            }
         }
     });
 
@@ -644,7 +653,7 @@ export function renderGuildsTab() {
             </section>`;
 
         return `
-            <div class="guild-crystal-col is-rank-${index + 1}${(() => { const d = powerDeltas.get(g.guildId); return (!isFirstRender && d && d.rankDelta !== 0) ? ' guild-rank-changed' : ''; })()}" data-guild="${g.guildId}">
+            <div class="guild-crystal-col is-rank-${index + 1}${(() => { const d = powerDeltas.get(g.guildId); return (!isFirstRender && d && d.freshChange && d.rankDelta !== 0) ? ' guild-rank-changed' : ''; })()}" data-guild="${g.guildId}">
 
                 <!-- ── Rank ── -->
                 <div class="guild-crystal-rank"><span class="guild-crystal-rank__label">${rankLabels[index] || `#${index + 1}`}</span></div>
@@ -779,44 +788,25 @@ export function renderGuildsTab() {
 
     // ── Update power tracking for next render ─────────────────────────────────
     displayData.forEach((g, index) => {
-        _prevGuildPower.set(g.guildId, { power: Math.round(g.guildPower), rank: index });
+        const d = powerDeltas.get(g.guildId);
+        _prevGuildPower.set(g.guildId, {
+            power: Math.round(g.guildPower),
+            rank: index,
+            lastPowerDelta: d?.powerDelta || 0,
+            lastRankDelta: d?.rankDelta || 0,
+        });
     });
     _guildPowerIndicatorsReady = true;
 
-    // ── Auto-dismiss power change indicators after ~3s ────────────────────────
-    if (_guildIndicatorDismissTimer) {
-        clearTimeout(_guildIndicatorDismissTimer);
-        _guildIndicatorDismissTimer = null;
-    }
-    if (_guildIndicatorRaf) {
-        cancelAnimationFrame(_guildIndicatorRaf);
-        _guildIndicatorRaf = null;
-    }
-
+    // ── Trigger entrance animations for trend indicators ──────────────────────
     if (!isFirstRender) {
-        _guildIndicatorRaf = requestAnimationFrame(() => {
-            _guildIndicatorRaf = null;
+        requestAnimationFrame(() => {
             list.querySelectorAll('.guild-crystal-count-arrow').forEach(el => {
                 el.classList.add('guild-crystal-count-arrow--visible');
             });
             list.querySelectorAll('.guild-crystal-rank-change-badge').forEach(el => {
                 el.classList.add('guild-crystal-rank-change-badge--visible');
             });
-            _guildIndicatorDismissTimer = setTimeout(() => {
-                _guildIndicatorDismissTimer = null;
-                list.querySelectorAll('.guild-crystal-count-arrow').forEach(el => {
-                    el.classList.add('guild-crystal-count-arrow--exit');
-                });
-                list.querySelectorAll('.guild-crystal-rank-change-badge').forEach(el => {
-                    el.classList.add('guild-crystal-rank-change-badge--exit');
-                });
-                list.querySelectorAll('.guild-power-boost, .guild-power-drop').forEach(el => {
-                    el.classList.remove('guild-power-boost', 'guild-power-drop');
-                });
-                list.querySelectorAll('.guild-rank-changed').forEach(el => {
-                    el.classList.remove('guild-rank-changed');
-                });
-            }, 3000);
         });
     }
 

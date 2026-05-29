@@ -26,7 +26,9 @@ let ceremonyData = {
         heroOfTheDay: {},
         teamQuest: {},
         prodigyOfTheMonth: {},
-        guildChampions: {}
+        guildChampions: {},
+        fortuneWheel: {},
+        familiars: {}
     },
     ceremonyDate: null,
     schoolYearData: {}
@@ -419,6 +421,168 @@ async function gatherGuildData(classIds) {
     return guildData;
 }
 
+/**
+ * Gather Fortune's Wheel data for the school year
+ */
+async function gatherFortuneWheelData(classIds) {
+    const wheelData = {
+        hasData: false,
+        totalSpins: 0,
+        biggestGlorySwing: null,
+        luckiestGuild: null,
+        notableSpins: [],
+        guildGloryImpact: {}
+    };
+
+    const wheelLog = state.get('fortuneWheelLog') || [];
+    if (wheelLog.length === 0) return wheelData;
+
+    // Filter to participating classes
+    const classSet = new Set(classIds);
+    const relevantEntries = wheelLog.filter(entry => classSet.has(entry.classId));
+    if (relevantEntries.length === 0) return wheelData;
+
+    wheelData.hasData = true;
+    wheelData.totalSpins = relevantEntries.length;
+
+    // Process results from each spin entry
+    relevantEntries.forEach(entry => {
+        const results = entry.results || [];
+        results.forEach(result => {
+            const delta = Number(result.gloryDelta) || 0;
+            const guildId = result.guildId;
+
+            // Track guild glory impact
+            if (!wheelData.guildGloryImpact[guildId]) {
+                wheelData.guildGloryImpact[guildId] = { totalGlory: 0, spinCount: 0 };
+            }
+            wheelData.guildGloryImpact[guildId].totalGlory += delta;
+            wheelData.guildGloryImpact[guildId].spinCount++;
+
+            // Track biggest single glory swing
+            if (!wheelData.biggestGlorySwing || delta > wheelData.biggestGlorySwing.gloryDelta) {
+                wheelData.biggestGlorySwing = {
+                    gloryDelta: delta,
+                    segmentLabel: result.segmentLabel || 'Unknown',
+                    segmentDescription: result.segmentDescription || '',
+                    rarity: result.rarity || 'common',
+                    guildId,
+                    weekKey: entry.weekKey
+                };
+            }
+
+            // Track notable spins (any non-zero glory change)
+            if (delta !== 0) {
+                wheelData.notableSpins.push({
+                    gloryDelta: delta,
+                    segmentLabel: result.segmentLabel || 'Unknown',
+                    rarity: result.rarity || 'common',
+                    guildId,
+                    weekKey: entry.weekKey
+                });
+            }
+        });
+    });
+
+    // Sort notable spins by absolute glory impact
+    wheelData.notableSpins.sort((a, b) => Math.abs(b.gloryDelta) - Math.abs(a.gloryDelta));
+    wheelData.notableSpins = wheelData.notableSpins.slice(0, 5);
+
+    // Find luckiest guild (most net positive glory from wheel)
+    const guildEntries = Object.entries(wheelData.guildGloryImpact);
+    if (guildEntries.length > 0) {
+        const [luckiestId, luckiestData] = guildEntries.sort(([, a], [, b]) => b.totalGlory - a.totalGlory)[0];
+        const guild = getGuildById(luckiestId);
+        wheelData.luckiestGuild = {
+            guildId: luckiestId,
+            guildName: guild?.name || 'Unknown',
+            guildEmoji: guild?.emoji || '⚔️',
+            totalGlory: luckiestData.totalGlory,
+            spinCount: luckiestData.spinCount
+        };
+    }
+
+    return wheelData;
+}
+
+/**
+ * Gather Familiar data for participating classes
+ */
+async function gatherFamiliarData(classIds) {
+    const familiarData = {
+        hasData: false,
+        totalHatched: 0,
+        totalEggs: 0,
+        levelDistribution: { 1: 0, 2: 0, 3: 0 },
+        typeDistribution: {},
+        mostAdvanced: [],
+        totalStudents: 0
+    };
+
+    const classSet = new Set(classIds);
+    const allStudents = (state.get('allStudents') || []).filter(s => classSet.has(s.classId));
+    const allScores = state.get('allStudentScores') || [];
+
+    familiarData.totalStudents = allStudents.length;
+
+    // Import familiar helpers
+    const { FAMILIAR_TYPES } = await import('./familiars.js');
+    const { getUnlockedFamiliarLevel } = await import('./familiarProgression.mjs');
+
+    allStudents.forEach(student => {
+        const score = allScores.find(s => s.id === student.id);
+        const familiar = score?.familiar;
+        if (!familiar) return;
+
+        if (familiar.state === 'egg') {
+            familiarData.totalEggs++;
+            return;
+        }
+
+        if (familiar.state !== 'alive') return;
+
+        familiarData.totalHatched++;
+
+        // Compute level
+        const totalStars = score?.totalStars || 0;
+        const level = getUnlockedFamiliarLevel(familiar, totalStars);
+        if (level >= 1 && level <= 3) {
+            familiarData.levelDistribution[level]++;
+        }
+
+        // Track type distribution
+        const typeId = familiar.typeId;
+        if (!familiarData.typeDistribution[typeId]) {
+            const typeDef = FAMILIAR_TYPES[typeId];
+            familiarData.typeDistribution[typeId] = {
+                typeId,
+                name: typeDef?.name || typeId,
+                emoji: typeDef?.eggIcon || '🥚',
+                count: 0
+            };
+        }
+        familiarData.typeDistribution[typeId].count++;
+
+        // Track most advanced (level 3)
+        if (level === 3) {
+            familiarData.mostAdvanced.push({
+                studentId: student.id,
+                studentName: student.name,
+                avatar: student.avatar,
+                familiarName: familiar.name || 'Unnamed',
+                typeId,
+                typeName: FAMILIAR_TYPES[typeId]?.name || typeId,
+                levelNames: FAMILIAR_TYPES[typeId]?.levelNames || [],
+                classId: student.classId
+            });
+        }
+    });
+
+    familiarData.hasData = familiarData.totalHatched > 0 || familiarData.totalEggs > 0;
+
+    return familiarData;
+}
+
 // --- CEREMONY CONTROL ---
 
 /**
@@ -491,6 +655,8 @@ function updateAtmosphere(phase) {
         heroGallery: 'radial-gradient(circle at center, #312e81 0%, #1e3a8a 40%, #0f172a 100%)',
         teamQuest: 'radial-gradient(circle at center, #1e3a8a 0%, #1e40af 40%, #0f172a 100%)',
         prodigyTimeline: 'radial-gradient(circle at center, #4c1d95 0%, #5b21b6 40%, #0f172a 100%)',
+        fortuneWheel: 'radial-gradient(circle at center, #581c87 0%, #7e22ce 40%, #1e1b4b 100%)',
+        familiars: 'radial-gradient(circle at center, #064e3b 0%, #065f46 40%, #0f172a 100%)',
         guildChampions: 'radial-gradient(circle at center, #92400e 0%, #b45309 40%, #0f172a 100%)',
         hallOfHeroes: 'radial-gradient(circle at center, #065f46 0%, #064e3b 40%, #0f172a 100%)',
         end: 'radial-gradient(circle at center, #1e1b4b 0%, #312e81 40%, #0f172a 100%)'
@@ -499,7 +665,7 @@ function updateAtmosphere(phase) {
     bg.style.background = phaseStyles[phase] || phaseStyles.intro;
     
     // Trigger Spirit Animal Patrol on major transitions
-    if (['heroGallery', 'teamQuest', 'prodigyTimeline', 'guildChampions', 'hallOfHeroes'].includes(phase)) {
+    if (['heroGallery', 'teamQuest', 'prodigyTimeline', 'fortuneWheel', 'familiars', 'guildChampions', 'hallOfHeroes'].includes(phase)) {
         triggerSpiritAnimalPatrol();
     }
 }
@@ -540,64 +706,34 @@ export function checkCeremonyActivation() {
  */
 export function updateCeremonyButtons() {
     if (!canUseFeature('guilds')) {
-        [document.getElementById('grand-guild-ceremony-btn-guilds'), document.getElementById('grand-guild-ceremony-btn-home'), document.getElementById('grand-guild-ceremony-btn-class')].forEach(btn => { if (btn) btn.classList.add('hidden'); });
+        [document.getElementById('grand-guild-ceremony-btn-home'), document.getElementById('grand-guild-ceremony-btn-class')].forEach(btn => { if (btn) btn.classList.add('hidden'); });
         return;
     }
     const participatingClasses = checkCeremonyActivation();
     const hasActiveCeremony = participatingClasses.length > 0;
-    
-    // Update Guilds tab button
-    const guildsButton = document.getElementById('grand-guild-ceremony-btn-guilds');
-    if (guildsButton) {
-        guildsButton.classList.toggle('hidden', !hasActiveCeremony);
-        if (hasActiveCeremony) {
-            guildsButton.innerHTML = `
-                <i class="fas fa-crown text-2xl mb-2"></i>
-                <span class="font-title text-xl">Grand Guild Ceremony</span>
-                ${participatingClasses.length > 1 ? `<span class="text-sm opacity-75">(${participatingClasses.length} classes)</span>` : ''}
-            `;
-        }
-    }
-    
+
     // Update Home tab buttons
     updateHomeCeremonyButtons(participatingClasses);
 }
 
 /**
- * Update Home tab ceremony buttons
+ * Update Home tab ceremony buttons — toggle visibility only, don't replace innerHTML.
  */
 function updateHomeCeremonyButtons(participatingClasses) {
     const hasActiveCeremony = participatingClasses.length > 0;
-    
+
     // School-wide home button
     const schoolHomeButton = document.getElementById('grand-guild-ceremony-btn-home');
     if (schoolHomeButton) {
         schoolHomeButton.classList.toggle('hidden', !hasActiveCeremony);
-        if (hasActiveCeremony) {
-            schoolHomeButton.innerHTML = `
-                <div class="bg-gradient-to-r from-amber-400 to-orange-500 text-white p-4 rounded-2xl shadow-lg animate-pulse">
-                    <i class="fas fa-crown text-3xl mb-2"></i>
-                    <div class="font-title text-2xl">Grand Guild Ceremony</div>
-                    ${participatingClasses.length > 1 ? `<div class="text-sm">${participatingClasses.length} classes active</div>` : ''}
-                </div>
-            `;
-        }
     }
-    
-    // Class-specific home buttons
+
+    // Class-specific home button
     const currentClassId = state.get('globalSelectedClassId');
-    if (currentClassId && participatingClasses.includes(currentClassId)) {
-        const classHomeButton = document.getElementById('grand-guild-ceremony-btn-class');
-        if (classHomeButton) {
-            classHomeButton.classList.remove('hidden');
-            classHomeButton.innerHTML = `
-                <div class="bg-gradient-to-r from-purple-400 to-pink-500 text-white p-4 rounded-2xl shadow-lg animate-pulse">
-                    <i class="fas fa-crown text-3xl mb-2"></i>
-                    <div class="font-title text-xl">Your Class Ceremony</div>
-                    <div class="text-sm">Click to begin!</div>
-                </div>
-            `;
-        }
+    const classHomeButton = document.getElementById('grand-guild-ceremony-btn-class');
+    if (classHomeButton) {
+        const showClassBtn = currentClassId && participatingClasses.includes(currentClassId);
+        classHomeButton.classList.toggle('hidden', !showClassBtn);
     }
 }
 
@@ -628,7 +764,9 @@ export async function startGrandGuildCeremony(classIds = null) {
             heroOfTheDay: {},
             teamQuest: {},
             prodigyOfTheMonth: {},
-            guildChampions: {}
+            guildChampions: {},
+            fortuneWheel: {},
+            familiars: {}
         },
         ceremonyDate: utils.getTodayDateString(),
         schoolYearData: {}
@@ -693,18 +831,22 @@ async function gatherAllCeremonyData() {
     
     try {
         // Gather data for all competition levels
-        const [heroData, teamQuestData, prodigyData, guildData] = await Promise.all([
+        const [heroData, teamQuestData, prodigyData, guildData, fortuneWheelData, familiarData] = await Promise.all([
             gatherHeroOfTheDayData(participatingClasses),
             gatherTeamQuestData(participatingClasses),
             gatherProdigyData(participatingClasses),
-            gatherGuildData(participatingClasses)
+            gatherGuildData(participatingClasses),
+            gatherFortuneWheelData(participatingClasses),
+            gatherFamiliarData(participatingClasses)
         ]);
         
         ceremonyData.competitionData = {
             heroOfTheDay: heroData,
             teamQuest: teamQuestData,
             prodigyOfTheMonth: prodigyData,
-            guildChampions: guildData
+            guildChampions: guildData,
+            fortuneWheel: fortuneWheelData,
+            familiars: familiarData
         };
         
     } catch (error) {
@@ -750,6 +892,18 @@ async function advanceCeremony() {
             
         case 'prodigyTimeline':
             await renderProdigyTimeline();
+            ceremonyData.phase = 'fortuneWheel';
+            btn.innerText = "See Fortune's Wheel";
+            break;
+
+        case 'fortuneWheel':
+            await renderFortuneWheelRetrospective();
+            ceremonyData.phase = 'familiars';
+            btn.innerText = "Meet Familiar Companions";
+            break;
+
+        case 'familiars':
+            await renderFamiliarShowcase();
             ceremonyData.phase = 'guildChampions';
             btn.innerText = "Crown Guild Champions";
             break;
@@ -791,7 +945,7 @@ async function renderGrandOpening() {
             <h2 class="font-title text-6xl mb-4 victory-text">Welcome to the Ultimate Celebration</h2>
             <p class="text-2xl mb-8 text-indigo-200">Honoring Heroes, Champions, and Guild Legends</p>
             
-            <div class="grid grid-cols-2 md:grid-cols-4 gap-6 mt-12">
+            <div class="grid grid-cols-2 md:grid-cols-3 gap-6 mt-12">
                 <div class="bg-white/10 backdrop-blur-md p-6 rounded-2xl border border-white/20 hover:scale-110 transition-transform">
                     <div class="text-4xl mb-3">🌟</div>
                     <div class="font-bold text-xl">Hero of the Day</div>
@@ -808,6 +962,16 @@ async function renderGrandOpening() {
                     <div class="text-sm opacity-75">Monthly Stars</div>
                 </div>
                 <div class="bg-white/10 backdrop-blur-md p-6 rounded-2xl border border-white/20 hover:scale-110 transition-transform">
+                    <div class="text-4xl mb-3">🎡</div>
+                    <div class="font-bold text-xl">Fortune's Wheel</div>
+                    <div class="text-sm opacity-75">Guild Fates</div>
+                </div>
+                <div class="bg-white/10 backdrop-blur-md p-6 rounded-2xl border border-white/20 hover:scale-110 transition-transform">
+                    <div class="text-4xl mb-3">🐾</div>
+                    <div class="font-bold text-xl">Familiars</div>
+                    <div class="text-sm opacity-75">Companion Bonds</div>
+                </div>
+                <div class="bg-white/10 backdrop-blur-md p-6 rounded-2xl border border-white/20 hover:scale-110 transition-transform">
                     <div class="text-4xl mb-3">🛡️</div>
                     <div class="font-bold text-xl">Guilds</div>
                     <div class="text-sm opacity-75">Year Champions</div>
@@ -821,7 +985,7 @@ async function renderGrandOpening() {
     // AI commentary
     triggerAICommentary('grand_opening', {
         classCount: ceremonyData.participatingClasses.length,
-        competitionLevels: ['Hero of the Day', 'Team Quest', 'Prodigy of the Month', 'Guild Champions']
+        competitionLevels: ['Hero of the Day', 'Team Quest', 'Prodigy of the Month', 'Fortune\'s Wheel', 'Familiar Companions', 'Guild Champions']
     });
 }
 
@@ -1004,6 +1168,229 @@ async function renderProdigyTimeline() {
 }
 
 /**
+ * Render Fortune's Wheel Retrospective phase
+ */
+async function renderFortuneWheelRetrospective() {
+    const stage = document.getElementById('ceremony-stage-area');
+    const title = document.getElementById('ceremony-title');
+    const { fortuneWheel } = ceremonyData.competitionData;
+
+    title.innerHTML = "Fortune's Wheel Retrospective";
+
+    if (!fortuneWheel.hasData) {
+        stage.innerHTML = `
+            <div class="text-center text-white animate-entrance">
+                <div class="text-9xl mb-8 drop-shadow-[0_0_40px_rgba(168,85,247,0.5)]">🎰</div>
+                <h2 class="font-title text-5xl mb-6 victory-text">The Wheel Awaits</h2>
+                <p class="text-2xl text-purple-200 italic font-serif">"Destiny has not yet been spun this year — the Wheel's fortune awaits next session!"</p>
+                <div class="mt-8 flex justify-center gap-4">
+                    <div class="bg-white/10 backdrop-blur-md p-4 rounded-2xl border border-white/20">
+                        <div class="text-3xl mb-2">🎡</div>
+                        <div class="text-sm opacity-75">Ready for Next Year</div>
+                    </div>
+                </div>
+            </div>
+        `;
+        triggerGuildParticles(null, 30);
+        triggerAICommentary('fortune_wheel', { hasData: false });
+        return;
+    }
+
+    const rarityColors = {
+        common: 'from-slate-400 to-slate-600',
+        uncommon: 'from-green-400 to-emerald-600',
+        rare: 'from-blue-400 to-indigo-600',
+        epic: 'from-purple-400 to-violet-600',
+        legendary: 'from-amber-400 to-orange-600',
+        mythic: 'from-rose-400 via-pink-500 to-fuchsia-600'
+    };
+
+    let wheelHTML = `
+        <div class="text-white w-full max-w-5xl animate-entrance">
+            <h3 class="font-title text-4xl text-center mb-10 victory-text">The Fortune's Wheel — Year in Review</h3>
+
+            <div class="grid grid-cols-2 md:grid-cols-3 gap-6 mb-12">
+                <div class="bg-white/10 backdrop-blur-md p-6 rounded-3xl border border-white/20 text-center">
+                    <div class="text-4xl mb-3">🎡</div>
+                    <div class="font-bold text-4xl text-purple-400">${fortuneWheel.totalSpins}</div>
+                    <div class="text-xs opacity-75 uppercase tracking-widest font-black mt-1">Total Spins</div>
+                </div>
+                <div class="bg-white/10 backdrop-blur-md p-6 rounded-3xl border border-white/20 text-center">
+                    <div class="text-4xl mb-3">⚡</div>
+                    <div class="font-bold text-4xl text-amber-400">${fortuneWheel.biggestGlorySwing ? '+' + fortuneWheel.biggestGlorySwing.gloryDelta.toLocaleString() : '—'}</div>
+                    <div class="text-xs opacity-75 uppercase tracking-widest font-black mt-1">Biggest Glory Swing</div>
+                </div>
+                <div class="bg-gradient-to-br from-amber-400/20 to-orange-500/20 backdrop-blur-md p-6 rounded-3xl border border-amber-400/40 text-center col-span-2 md:col-span-1">
+                    <div class="text-4xl mb-3">${fortuneWheel.luckiestGuild?.guildEmoji || '🍀'}</div>
+                    <div class="font-bold text-2xl text-amber-300">${fortuneWheel.luckiestGuild?.guildName || '—'}</div>
+                    <div class="text-xs opacity-75 uppercase tracking-widest font-black mt-1">Luckiest Guild</div>
+                    ${fortuneWheel.luckiestGuild ? `<div class="text-sm text-amber-400 mt-1">+${fortuneWheel.luckiestGuild.totalGlory.toLocaleString()} Glory</div>` : ''}
+                </div>
+            </div>
+    `;
+
+    // Notable spins
+    if (fortuneWheel.notableSpins.length > 0) {
+        wheelHTML += `
+            <h4 class="font-title text-2xl mb-6 text-center text-purple-200">Most Dramatic Spins</h4>
+            <div class="space-y-3 mb-8">
+                ${fortuneWheel.notableSpins.map(spin => {
+                    const guild = getGuildById(spin.guildId);
+                    const colorClass = rarityColors[spin.rarity] || rarityColors.common;
+                    const isPositive = spin.gloryDelta > 0;
+                    return `
+                        <div class="bg-gradient-to-r ${colorClass} bg-opacity-20 backdrop-blur-md p-4 rounded-2xl flex items-center justify-between border border-white/10">
+                            <div class="flex items-center gap-4">
+                                <span class="text-3xl">${guild?.emoji || '⚔️'}</span>
+                                <div>
+                                    <div class="font-bold text-lg">${spin.segmentLabel}</div>
+                                    <div class="text-sm opacity-75">${guild?.name || 'Unknown Guild'} • ${spin.rarity}</div>
+                                </div>
+                            </div>
+                            <div class="text-right">
+                                <div class="text-2xl font-black ${isPositive ? 'text-green-400' : 'text-red-400'}">
+                                    ${isPositive ? '+' : ''}${spin.gloryDelta.toLocaleString()} ⚜️
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                }).join('')}
+            </div>
+        `;
+    }
+
+    wheelHTML += `</div>`;
+    stage.innerHTML = wheelHTML;
+
+    triggerGuildParticles(null, 60);
+    triggerAICommentary('fortune_wheel', { hasData: true, totalSpins: fortuneWheel.totalSpins, luckiestGuild: fortuneWheel.luckiestGuild });
+}
+
+/**
+ * Render Familiar Companions phase
+ */
+async function renderFamiliarShowcase() {
+    const stage = document.getElementById('ceremony-stage-area');
+    const title = document.getElementById('ceremony-title');
+    const { familiars } = ceremonyData.competitionData;
+
+    title.innerHTML = "Familiar Companions";
+
+    if (!familiars.hasData) {
+        stage.innerHTML = `
+            <div class="text-center text-white animate-entrance">
+                <div class="text-9xl mb-8 drop-shadow-[0_0_40px_rgba(16,185,129,0.5)]">🥚</div>
+                <h2 class="font-title text-5xl mb-6 victory-text">Familiars Await</h2>
+                <p class="text-2xl text-emerald-200 italic font-serif">"No companions have been discovered yet — the bond between hero and familiar awaits next session!"</p>
+                <div class="mt-8 flex justify-center gap-4">
+                    <div class="bg-white/10 backdrop-blur-md p-4 rounded-2xl border border-white/20">
+                        <div class="text-3xl mb-2">🐾</div>
+                        <div class="text-sm opacity-75">Ready for Heroes</div>
+                    </div>
+                </div>
+            </div>
+        `;
+        triggerGuildParticles(null, 30);
+        triggerAICommentary('familiars', { hasData: false });
+        return;
+    }
+
+    const typeEmojis = { emberfang: '🔥', frostpaw: '❄️', thornback: '🌿', veilshade: '🌑', sparkling: '✨' };
+
+    let familiarHTML = `
+        <div class="text-white w-full max-w-5xl animate-entrance">
+            <h3 class="font-title text-4xl text-center mb-10 victory-text">Familiar Companions — A Year of Bonds</h3>
+
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-6 mb-12">
+                <div class="bg-white/10 backdrop-blur-md p-6 rounded-3xl border border-white/20 text-center">
+                    <div class="text-4xl mb-3">🐾</div>
+                    <div class="font-bold text-4xl text-emerald-400">${familiars.totalHatched}</div>
+                    <div class="text-xs opacity-75 uppercase tracking-widest font-black mt-1">Familiars Hatched</div>
+                </div>
+                <div class="bg-white/10 backdrop-blur-md p-6 rounded-3xl border border-white/20 text-center">
+                    <div class="text-4xl mb-3">🥚</div>
+                    <div class="font-bold text-4xl text-amber-400">${familiars.totalEggs}</div>
+                    <div class="text-xs opacity-75 uppercase tracking-widest font-black mt-1">Eggs Incubating</div>
+                </div>
+                <div class="bg-white/10 backdrop-blur-md p-6 rounded-3xl border border-white/20 text-center">
+                    <div class="text-4xl mb-3">⭐</div>
+                    <div class="font-bold text-4xl text-purple-400">${familiars.levelDistribution[3] || 0}</div>
+                    <div class="text-xs opacity-75 uppercase tracking-widest font-black mt-1">Max Level (L3)</div>
+                </div>
+                <div class="bg-white/10 backdrop-blur-md p-6 rounded-3xl border border-white/20 text-center">
+                    <div class="text-4xl mb-3">📊</div>
+                    <div class="font-bold text-4xl text-blue-400">${familiars.totalStudents}</div>
+                    <div class="text-xs opacity-75 uppercase tracking-widest font-black mt-1">Total Students</div>
+                </div>
+            </div>
+    `;
+
+    // Type distribution
+    const typeEntries = Object.values(familiars.typeDistribution);
+    if (typeEntries.length > 0) {
+        familiarHTML += `
+            <h4 class="font-title text-2xl mb-6 text-center text-emerald-200">Familiar Types</h4>
+            <div class="grid grid-cols-3 md:grid-cols-5 gap-4 mb-10">
+                ${typeEntries.sort((a, b) => b.count - a.count).map(type => `
+                    <div class="bg-white/10 backdrop-blur-md p-5 rounded-2xl border border-white/20 text-center hover:scale-105 transition-transform">
+                        <div class="text-4xl mb-2">${typeEmojis[type.typeId] || type.emoji}</div>
+                        <div class="font-bold text-lg">${type.name}</div>
+                        <div class="text-2xl font-black text-emerald-400 mt-1">${type.count}</div>
+                    </div>
+                `).join('')}
+            </div>
+        `;
+    }
+
+    // Level distribution bar
+    const totalLeveled = (familiars.levelDistribution[1] || 0) + (familiars.levelDistribution[2] || 0) + (familiars.levelDistribution[3] || 0);
+    if (totalLeveled > 0) {
+        familiarHTML += `
+            <h4 class="font-title text-2xl mb-6 text-center text-emerald-200">Level Distribution</h4>
+            <div class="bg-white/10 backdrop-blur-md p-6 rounded-3xl border border-white/20 mb-10">
+                <div class="flex items-center gap-2 mb-4">
+                    <div class="flex-1 h-8 rounded-full overflow-hidden flex">
+                        ${familiars.levelDistribution[1] > 0 ? `<div class="bg-gradient-to-r from-green-400 to-emerald-500 h-full flex items-center justify-center text-xs font-bold" style="width: ${(familiars.levelDistribution[1] / totalLeveled) * 100}%">L1: ${familiars.levelDistribution[1]}</div>` : ''}
+                        ${familiars.levelDistribution[2] > 0 ? `<div class="bg-gradient-to-r from-blue-400 to-indigo-500 h-full flex items-center justify-center text-xs font-bold" style="width: ${(familiars.levelDistribution[2] / totalLeveled) * 100}%">L2: ${familiars.levelDistribution[2]}</div>` : ''}
+                        ${familiars.levelDistribution[3] > 0 ? `<div class="bg-gradient-to-r from-amber-400 to-orange-500 h-full flex items-center justify-center text-xs font-bold" style="width: ${(familiars.levelDistribution[3] / totalLeveled) * 100}%">L3: ${familiars.levelDistribution[3]}</div>` : ''}
+                    </div>
+                </div>
+                <div class="flex justify-between text-xs opacity-75">
+                    <span>Hatchling</span>
+                    <span>Growing</span>
+                    <span>Legendary</span>
+                </div>
+            </div>
+        `;
+    }
+
+    // Most Advanced Familiars (Level 3)
+    if (familiars.mostAdvanced.length > 0) {
+        familiarHTML += `
+            <h4 class="font-title text-2xl mb-6 text-center text-amber-200">Legendary Companions (Level 3)</h4>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                ${familiars.mostAdvanced.slice(0, 6).map(hero => `
+                    <div class="bg-gradient-to-r from-amber-400/20 to-orange-500/20 backdrop-blur-md p-5 rounded-2xl border border-amber-400/40 flex items-center gap-4">
+                        <div class="text-4xl">${typeEmojis[hero.typeId] || '🐾'}</div>
+                        <div class="flex-1">
+                            <div class="font-bold text-lg">${hero.studentName}</div>
+                            <div class="text-sm text-amber-300">${hero.familiarName} — ${hero.levelNames[2] || hero.typeName}</div>
+                        </div>
+                        <div class="text-2xl">⭐</div>
+                    </div>
+                `).join('')}
+            </div>
+        `;
+    }
+
+    familiarHTML += `</div>`;
+    stage.innerHTML = familiarHTML;
+
+    triggerGuildParticles(null, 60);
+    triggerAICommentary('familiars', { hasData: true, totalHatched: familiars.totalHatched, mostAdvanced: familiars.mostAdvanced });
+}
+
+/**
  * Render Guild Champion Crowning phase
  */
 async function renderGuildChampionCrowding() {
@@ -1112,7 +1499,7 @@ async function renderUltimateHallOfHeroes() {
                 <div class="absolute inset-0 bg-white/5 backdrop-blur-xl"></div>
                 <div class="relative z-10">
                     <h4 class="font-title text-3xl mb-8 tracking-widest text-amber-400">SCHOOL YEAR 2025-2026 HIGHLIGHTS</h4>
-                    <div class="grid grid-cols-2 md:grid-cols-4 gap-8">
+                    <div class="grid grid-cols-2 md:grid-cols-3 gap-8">
                         <div class="bg-black/30 p-6 rounded-3xl border border-white/10">
                             <div class="text-5xl mb-4">🌟</div>
                             <div class="font-bold text-3xl mb-1">${ceremonyData.competitionData.heroOfTheDay.totalDays}</div>
@@ -1127,6 +1514,16 @@ async function renderUltimateHallOfHeroes() {
                             <div class="text-5xl mb-4">👑</div>
                             <div class="font-bold text-3xl mb-1">${ceremonyData.competitionData.prodigyOfTheMonth.monthlyChampions.length}</div>
                             <div class="text-xs opacity-75 uppercase tracking-widest font-black">Prodigies</div>
+                        </div>
+                        <div class="bg-black/30 p-6 rounded-3xl border border-white/10">
+                            <div class="text-5xl mb-4">🎡</div>
+                            <div class="font-bold text-3xl mb-1">${ceremonyData.competitionData.fortuneWheel.totalSpins || 0}</div>
+                            <div class="text-xs opacity-75 uppercase tracking-widest font-black">Wheel Spins</div>
+                        </div>
+                        <div class="bg-black/30 p-6 rounded-3xl border border-white/10">
+                            <div class="text-5xl mb-4">🐾</div>
+                            <div class="font-bold text-3xl mb-1">${ceremonyData.competitionData.familiars.totalHatched || 0}</div>
+                            <div class="text-xs opacity-75 uppercase tracking-widest font-black">Familiars</div>
                         </div>
                         <div class="bg-black/30 p-6 rounded-3xl border border-white/10">
                             <div class="text-5xl mb-4">🛡️</div>
@@ -1214,7 +1611,9 @@ function closeCeremony() {
             heroOfTheDay: {},
             teamQuest: {},
             prodigyOfTheMonth: {},
-            guildChampions: {}
+            guildChampions: {},
+            fortuneWheel: {},
+            familiars: {}
         },
         ceremonyDate: null,
         schoolYearData: {}
@@ -1291,12 +1690,28 @@ async function triggerAICommentary(phase, data) {
             case 'prodigy_timeline':
                 prompt = `Celebrating ${data.totalChampions} monthly prodigies! ${data.topProdigy ? `${data.topProdigy.studentName} achieved prodigy status ${data.topProdigy.monthsWon} times!` : ''} Create an inspiring message about monthly excellence and student achievement.`;
                 break;
-                
+
+            case 'fortune_wheel':
+                if (data.hasData) {
+                    prompt = `The Fortune's Wheel has been spun ${data.totalSpins} times this year! ${data.luckiestGuild ? `The ${data.luckiestGuild.guildName} guild was the luckiest, gaining ${data.luckiestGuild.totalGlory} glory from the wheel!` : ''} Create an exciting message about fate, luck, and the drama of the wheel.`;
+                } else {
+                    prompt = `The Fortune's Wheel has not been spun yet this year. Create a hopeful, anticipatory message about destiny and the excitement of what the wheel may bring next session.`;
+                }
+                break;
+
+            case 'familiars':
+                if (data.hasData) {
+                    prompt = `${data.totalHatched} familiar companions have been hatched this year! ${data.mostAdvanced && data.mostAdvanced.length > 0 ? `The most advanced familiars reached Level 3, including ${data.mostAdvanced.slice(0, 2).map(h => `${h.studentName}'s ${h.familiarName}`).join(' and ')}!` : ''} Create a heartwarming message about the bond between students and their magical companions.`;
+                } else {
+                    prompt = `No familiar companions have been discovered yet. Create an exciting message about the potential of these magical creatures and the bonds that await.`;
+                }
+                break;
+
             case 'guild_crowning':
                 prompt = `The moment we've all been waiting for! ${data.winningGuild ? `The ${data.winningGuild.guildName} guild wins with ${data.winningGuild.totalStars} stars!` : ''} Create an epic, celebratory message for the guild champion announcement.`;
                 break;
                 
-            case 'hall_of heroes':
+            case 'hall_of_heroes':
                 prompt = `The ultimate celebration of a year filled with excellence! Create a heartfelt, emotional message that brings closure to the ceremony and celebrates every student's journey.`;
                 break;
                 
@@ -1309,8 +1724,10 @@ async function triggerAICommentary(phase, data) {
             hero_gallery: "Celebrating our daily heroes from throughout the year!",
             team_quest_journey: "The Team Quest journey — what a year!",
             prodigy_timeline: "Celebrating our monthly prodigies!",
+            fortune_wheel: "The Fortune's Wheel — destiny has been spun!",
+            familiars: "Celebrating our familiar companions and the bonds we've formed!",
             guild_crowning: "The moment we've all been waiting for — the guild champion!",
-            'hall_of heroes': "Here's to a year of excellence. Congratulations, everyone!"
+            'hall_of_heroes': "Here's to a year of excellence. Congratulations, everyone!"
         };
         const genericMessage = genericByPhase[phase] || 'Congratulations to everyone!';
 

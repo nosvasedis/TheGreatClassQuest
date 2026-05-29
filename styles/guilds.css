@@ -1458,14 +1458,14 @@
     background: rgba(255,255,255,0.14);
     border-color: rgba(255,255,255,0.35);
 }
-/* ── Live Power Change Indicators ─────────────────────────────────────────── */
+/* ── Live Power Change Indicators (persistent trend) ──────────────────────── */
 
 /* Wrapper: position arrows relative to the power number */
 .guild-crystal-count {
     position: relative;
 }
 
-/* Arrow indicator */
+/* Arrow indicator — always visible when present, with entrance + idle pulse */
 .guild-crystal-count-arrow {
     position: absolute;
     top: -4px;
@@ -1505,16 +1505,16 @@
     opacity: 0.85;
 }
 
+/* Entrance + persistent idle pulse for up arrow */
 .guild-crystal-count-arrow--up.guild-crystal-count-arrow--visible {
-    animation: guild-arrow-enter-up 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+    animation: guild-arrow-enter-up 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) forwards,
+               guild-arrow-idle-up 2.8s ease-in-out 0.5s infinite;
 }
 
+/* Entrance + persistent idle pulse for down arrow */
 .guild-crystal-count-arrow--down.guild-crystal-count-arrow--visible {
-    animation: guild-arrow-enter-down 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
-}
-
-.guild-crystal-count-arrow--exit {
-    animation: guild-arrow-exit 0.5s ease-out forwards;
+    animation: guild-arrow-enter-down 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) forwards,
+               guild-arrow-idle-down 2.8s ease-in-out 0.5s infinite;
 }
 
 @keyframes guild-arrow-enter-up {
@@ -1527,38 +1527,32 @@
     100% { opacity: 1; transform: translateY(0) scale(1); }
 }
 
-@keyframes guild-arrow-exit {
-    0% { opacity: 1; transform: translateY(0) scale(1); }
-    100% { opacity: 0; transform: translateY(-4px) scale(0.8); }
+/* Gentle floating idle pulse — up arrow bobs upward */
+@keyframes guild-arrow-idle-up {
+    0%, 100% { transform: translateY(0) scale(1); opacity: 1; }
+    50% { transform: translateY(-2px) scale(1.05); opacity: 0.85; }
 }
 
-/* Power number glow on change */
+/* Gentle floating idle pulse — down arrow bobs downward */
+@keyframes guild-arrow-idle-down {
+    0%, 100% { transform: translateY(0) scale(1); opacity: 1; }
+    50% { transform: translateY(2px) scale(1.05); opacity: 0.85; }
+}
+
+/* Persistent subtle glow on the power number matching trend direction */
 .guild-crystal-count-num {
-    transition: text-shadow 0.3s ease;
+    transition: text-shadow 0.6s ease;
 }
 
 .guild-power-boost {
-    animation: guild-power-glow-boost 2s ease-out forwards;
+    text-shadow: 0 0 4px rgba(0,0,0,0.4), 0 0 10px rgba(74, 222, 128, 0.35);
 }
 
 .guild-power-drop {
-    animation: guild-power-glow-drop 2s ease-out forwards;
+    text-shadow: 0 0 4px rgba(0,0,0,0.4), 0 0 10px rgba(248, 113, 113, 0.35);
 }
 
-@keyframes guild-power-glow-boost {
-    0% { text-shadow: 0 0 4px rgba(0,0,0,0.4), 0 0 20px rgba(74, 222, 128, 0.7), 0 0 40px rgba(74, 222, 128, 0.4); transform: scale(1.08); }
-    40% { text-shadow: 0 0 4px rgba(0,0,0,0.4), 0 0 12px rgba(74, 222, 128, 0.4); transform: scale(1.03); }
-    100% { text-shadow: 0 1px 6px rgba(0,0,0,0.4); transform: scale(1); }
-}
-
-@keyframes guild-power-glow-drop {
-    0% { text-shadow: 0 0 4px rgba(0,0,0,0.4), 0 0 20px rgba(248, 113, 113, 0.7), 0 0 40px rgba(248, 113, 113, 0.4); transform: scale(1.05); }
-    20% { transform: scale(0.97); }
-    40% { text-shadow: 0 0 4px rgba(0,0,0,0.4), 0 0 12px rgba(248, 113, 113, 0.4); transform: scale(1.02); }
-    100% { text-shadow: 0 1px 6px rgba(0,0,0,0.4); transform: scale(1); }
-}
-
-/* Rank-change badge */
+/* Rank-change badge — always visible when present */
 .guild-crystal-rank-change-badge {
     position: absolute;
     top: 22px;
@@ -1583,16 +1577,18 @@
 }
 
 .guild-crystal-rank-change-badge--visible {
-    animation: guild-rank-badge-enter 0.45s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
-}
-
-.guild-crystal-rank-change-badge--exit {
-    animation: guild-arrow-exit 0.5s ease-out forwards;
+    animation: guild-rank-badge-enter 0.45s cubic-bezier(0.34, 1.56, 0.64, 1) forwards,
+               guild-rank-badge-idle 3.2s ease-in-out 0.6s infinite;
 }
 
 @keyframes guild-rank-badge-enter {
     0% { opacity: 0; transform: translateY(4px) scale(0.7) rotate(-8deg); }
     100% { opacity: 1; transform: translateY(0) scale(1) rotate(0deg); }
+}
+
+@keyframes guild-rank-badge-idle {
+    0%, 100% { transform: translateY(0) scale(1); opacity: 1; }
+    50% { transform: translateY(-1px) scale(1.04); opacity: 0.8; }
 }
 
 /* Rank label flash when guild changes position */
@@ -1620,8 +1616,6 @@
 @media (prefers-reduced-motion: reduce) {
     .guild-crystal-count-arrow,
     .guild-crystal-rank-change-badge,
-    .guild-power-boost,
-    .guild-power-drop,
     .guild-crystal-col.guild-rank-changed,
     .guild-crystal-col.guild-rank-changed .guild-crystal-rank__label {
         animation: none !important;

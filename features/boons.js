@@ -151,7 +151,7 @@ export async function awardTeacherBoon({ classId, studentId, stars, presetKey, c
     const trimmedCustomReason = String(customReason || '').trim();
     if (!classId || !studentId) throw new Error('Choose a class and student first.');
     if (numericStars !== 2) throw new Error('Teacher Boon always awards 2 stars.');
-    if (!utils.isTeacherBoonWindow()) throw new Error('Teacher Boon is only available during the last 3 days of the month.');
+    if (!utils.isTeacherBoonWindow()) throw new Error('Teacher Boon is only available during the last week of the month.');
 
     const preset = getTeacherBoonPreset(presetKey);
     if (!preset && !trimmedCustomReason) throw new Error('Choose a reason for the Teacher Boon.');

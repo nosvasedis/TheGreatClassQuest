@@ -28,13 +28,13 @@ export const ceremonyHTML = `
             </div>
 
             <div id="ceremony-ai-box"
-                class="w-full max-w-4xl bg-black/40 backdrop-blur-md border border-white/20 p-4 rounded-2xl text-center min-h-[84px] flex items-center justify-center opacity-0 transition-opacity duration-500">
-                <p id="ceremony-ai-text" class="text-base md:text-lg text-white font-serif italic text-shadow"></p>
+                class="w-full max-w-4xl bg-black/40 backdrop-blur-md border border-white/20 p-3 rounded-2xl text-center min-h-[52px] flex items-center justify-center opacity-0 transition-opacity duration-500">
+                <p id="ceremony-ai-text" class="text-sm md:text-base text-white font-serif italic text-shadow"></p>
             </div>
 
             <div class="pb-2">
                 <button id="ceremony-action-btn"
-                    class="bubbly-button bg-gradient-to-r from-amber-400 to-orange-500 text-white font-title text-xl md:text-2xl py-3 md:py-4 px-8 md:px-12 rounded-full shadow-[0_0_30px_rgba(245,158,11,0.6)] hover:scale-105 transition-transform border-4 border-white/30">
+                    class="bubbly-button bg-gradient-to-r from-amber-400 to-orange-500 text-white font-title text-sm md:text-base py-2 md:py-2.5 px-6 md:px-8 rounded-full shadow-[0_0_20px_rgba(245,158,11,0.5)] hover:scale-105 transition-transform border-2 border-white/30">
                     Start Ceremony
                 </button>
             </div>

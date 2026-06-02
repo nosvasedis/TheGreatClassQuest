@@ -240,7 +240,7 @@ export async function setStudentStarsForToday(
                     const updates = {
                         totalStars: increment(totalDifference),
                         monthlyStars: increment(totalDifference),
-                        gold: safeCurrentGold + totalGoldChange,
+                        gold: Math.max(0, safeCurrentGold + totalGoldChange),
                     };
                     if (
                         heroProgressionEnabled &&

@@ -171,43 +171,9 @@ function pickBulkTestLogContext(classId) {
 }
 
 function refreshBulkTrialScheduledHint(classId, type, dateVal) {
+    // Badge removed — it was noisy and unhelpful during test entry.
     const hintEl = document.getElementById('bulk-trial-scheduled-hint');
-    const bodyEl = document.getElementById('bulk-trial-scheduled-hint-body');
-    if (!hintEl || !bodyEl) return;
-
-    if (type !== 'test') {
-        hintEl.classList.add('hidden');
-        bodyEl.textContent = '';
-        return;
-    }
-
-    const rawAssignment = getScheduledAssignmentForClassOnDate(classId, dateVal);
-    if (!rawAssignment?.testData?.date || !utils.datesMatch(rawAssignment.testData.date, dateVal)) {
-        hintEl.classList.add('hidden');
-        bodyEl.textContent = '';
-        return;
-    }
-
-    const st = getScheduledAssessmentStatus(rawAssignment);
-    const awaiting = getStudentsAwaitingGradeForScheduledStatus(st);
-
-    hintEl.classList.remove('hidden');
-    const title = String(st.testData.title || 'Scheduled test').trim() || 'Scheduled test';
-
-    const parts = [`"${title}"`];
-    if (st.phase === 'missed') {
-        const late = Math.abs(st.dayDiff);
-        parts.push(`${late}d overdue`);
-    } else if (st.phase === 'window_passed') {
-        parts.push('window passed');
-    }
-    parts.push(
-        awaiting.length > 0
-            ? `${awaiting.length} ungraded · ${st.chipLabel}`
-            : `all graded · ${st.chipLabel}`
-    );
-
-    bodyEl.textContent = parts.join(' · ');
+    if (hintEl) hintEl.classList.add('hidden');
 }
 
 function populateBulkTrialStudentRows(classId, type, assessmentScheme, dateIso) {
@@ -722,7 +688,7 @@ function renderStudentBulkRow(student, scheme, isAbsent) {
             ${avatarHtml}
             <div class="flex-grow min-w-0">
                 <p class="font-bold text-gray-800 truncate">${student.name}</p>
-                <button type="button" class="toggle-absent-btn text-xs px-2.5 py-1.5 rounded-full mt-1 ${buttonClass} shadow-sm transition-all focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-amber-400">
+                <button type="button" class="toggle-absent-btn text-xs px-2.5 py-1.5 rounded-full mt-1 ${buttonClass} shadow-sm transition-all focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-amber-400" data-was-absent="${isAbsent}">
                     ${isAbsent ? '<i class="fas fa-user-slash"></i> Absent' : '<i class="fas fa-user-check"></i> Present'}
                 </button>
             </div>

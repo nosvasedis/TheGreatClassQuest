@@ -20,21 +20,21 @@ export const HERO_CLASSES = {
  * scoreData is optional; if provided, skill bonuses are also applied.
  */
 export function calculateHeroGold(studentData, reason, starDifference, scoreData = null) {
-    if (starDifference <= 0 || !reason) return { goldChange: starDifference, bonusStars: 0 };
+    if (starDifference === 0 || !reason) return { goldChange: starDifference, bonusStars: 0 };
 
     const heroClass = studentData.heroClass;
     let goldChange = starDifference;
     let bonusStars = 0;
 
-    // 1. Base class bonus (+10 when reason matches)
-    if (heroClass && HERO_CLASSES[heroClass]) {
+    // 1. Base class bonus (+10 when reason matches) — positive awards only
+    if (starDifference > 0 && heroClass && HERO_CLASSES[heroClass]) {
         const classInfo = HERO_CLASSES[heroClass];
         if (classInfo.reason === reason || classInfo.reason === reason.trim()) {
             goldChange += classInfo.bonus;
         }
     }
 
-    // 2. Skill tree personal bonuses (self_gold_on_reason + star_bonus_on_reason)
+    // 2. Skill tree personal bonuses — negative difference correctly reverses bonus stars/gold
     if (heroClass && scoreData?.heroSkills?.length) {
         const { extraGold, extraStars } = calculateSkillBonus(heroClass, scoreData.heroSkills, reason, starDifference);
         goldChange += extraGold;

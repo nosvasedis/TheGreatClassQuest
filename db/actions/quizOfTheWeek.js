@@ -435,24 +435,12 @@ export async function distributeQuizRewards(classId, results) {
                 const starsAwarded = rewards.starPerCorrect * correctCount;
                 const goldAwarded = rewards.goldPerCorrect * correctCount;
                 const scoreData = scoreSnap.exists() ? scoreSnap.data() : {};
-                const currentInventory = Array.isArray(scoreData.inventory) ? scoreData.inventory : [];
-
-                let inventoryUpdate = null;
-                const artifactRoll = rewards.artifactChance > 0 && Math.random() < rewards.artifactChance;
-                if (artifactRoll) {
-                    const artifact = pickRandomItem(LEGENDARY_ARTIFACTS);
-                    if (artifact) {
-                        inventoryUpdate = [...currentInventory, { ...artifact, source: 'quiz_of_the_week', awardedAt: new Date().toISOString() }];
-                        awardedArtifacts.push({ studentId, artifact });
-                    }
-                }
 
                 const updates = {
                     totalStars: increment(starsAwarded),
                     monthlyStars: increment(starsAwarded),
                     gold: increment(goldAwarded),
                 };
-                if (inventoryUpdate) updates.inventory = inventoryUpdate;
 
                 if (scoreSnap.exists()) {
                     transaction.update(scoreRef, updates);
@@ -462,7 +450,7 @@ export async function distributeQuizRewards(classId, results) {
                         totalStars: starsAwarded,
                         monthlyStars: starsAwarded,
                         gold: goldAwarded,
-                        inventory: inventoryUpdate || [],
+                        inventory: [],
                         createdBy: student?.createdBy || { uid: state.get('currentUserId'), name: state.get('currentTeacherName') }
                     });
                 }
@@ -535,10 +523,10 @@ export async function distributeQuizRewards(classId, results) {
             }
         }
 
-        // --- Reward 5: Random class treasure (1 random participant gets an artifact) ---
-        const treasurePool = correctStudentIds.length > 0 ? correctStudentIds : allParticipatingIds;
-        if (treasurePool.length > 0) {
-            const luckyId = treasurePool[Math.floor(Math.random() * treasurePool.length)];
+        // --- Reward 5: One lucky top-scorer gets an artifact (legendary/epic tiers only) ---
+        const isTreasureTier = tier === 'legendary' || tier === 'epic';
+        if (isTreasureTier && correctStudentIds.length > 0) {
+            const luckyId = correctStudentIds[Math.floor(Math.random() * correctStudentIds.length)];
             const randomArtifact = pickRandomItem(LEGENDARY_ARTIFACTS);
             if (randomArtifact) {
                 try {

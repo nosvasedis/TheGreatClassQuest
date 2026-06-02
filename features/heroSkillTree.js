@@ -508,7 +508,7 @@ export function starsToNextLevel(heroClass, heroLevel, starsInReason) {
  * Returns { extraGold, extraStars } based on matching skills.
  */
 export function calculateSkillBonus(heroClass, heroSkills, reason, difference) {
-    if (!heroClass || !heroSkills?.length || !reason || difference <= 0) return { extraGold: 0, extraStars: 0 };
+    if (!heroClass || !heroSkills?.length || !reason || difference === 0) return { extraGold: 0, extraStars: 0 };
     const tree = HERO_SKILL_TREE[heroClass];
     if (!tree || tree.reason !== reason) return { extraGold: 0, extraStars: 0 };
 

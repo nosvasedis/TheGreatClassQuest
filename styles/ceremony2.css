@@ -306,8 +306,8 @@ header h1.font-title::after {
     transform: translate(-50%, -50%);
     z-index: -1;
     animation: rotate-rays 10s linear infinite;
-    opacity: 0.6;
-    mask-image: radial-gradient(circle, black 30%, transparent 70%); /* Fade edges */
+    opacity: 0.45;
+    mask-image: radial-gradient(circle at center, transparent 26%, rgba(0,0,0,0.85) 42%, transparent 65%); /* Ring of rays around card */
     pointer-events: none;
 }
 
@@ -317,8 +317,12 @@ header h1.font-title::after {
 }
 
 @keyframes winner-pulse {
-    0%, 100% { transform: scale(1.15) rotate(0deg); filter: brightness(1); }
-    50% { transform: scale(1.18) rotate(1deg); filter: brightness(1.1) drop-shadow(0 0 10px gold); }
+    0%, 100% {
+        box-shadow: 0 0 70px rgba(251,191,36,0.75), 0 0 30px rgba(255,255,255,0.6), 0 30px 60px rgba(0,0,0,0.4);
+    }
+    50% {
+        box-shadow: 0 0 120px rgba(251,191,36,1.0), 0 0 55px rgba(255,213,0,0.85), 0 0 25px rgba(255,255,255,0.9), 0 30px 60px rgba(0,0,0,0.4);
+    }
 }
 
 /* Reveal Helpers */
@@ -330,21 +334,33 @@ header h1.font-title::after {
     filter: blur(0);
 }
 
-/* Update 2nd Place Style (Glimmering Silver - No Gray) */
+/* 2nd Place — elegant animated silver shimmer */
 .ceremony-card.revealed-silver {
-    transform: scale(1.05);
     z-index: 40;
     opacity: 1;
-    filter: none; /* Removed Grayscale */
-    border-color: #e2e8f0 !important; /* Silver/Slate-200 */
-    background: linear-gradient(135deg, #f8fafc, #cbd5e1); /* White to Silver */
-    box-shadow: 0 0 30px rgba(148, 163, 184, 0.5), 0 0 15px rgba(255,255,255,0.8); /* Silver Glow */
-    animation: silver-pulse 2s infinite ease-in-out;
+    filter: none;
+    border-color: #94a3b8 !important;
+    background: linear-gradient(115deg, #f8fafc 0%, #e2e8f0 20%, #ffffff 40%, #cbd5e1 60%, #f1f5f9 80%, #e8edf5 100%) !important;
+    background-size: 300% 300% !important;
+    animation: silver-shimmer-bg 3s ease-in-out infinite, silver-pulse 2.5s ease-in-out infinite;
+}
+
+@keyframes silver-shimmer-bg {
+    0%, 100% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
 }
 
 @keyframes silver-pulse {
-    0%, 100% { box-shadow: 0 0 30px rgba(148, 163, 184, 0.5); border-color: #94a3b8; }
-    50% { box-shadow: 0 0 50px rgba(190, 200, 220, 0.7); border-color: #cbd5e1; }
+    0%, 100% {
+        transform: scale(1.05);
+        box-shadow: 0 0 30px rgba(148, 163, 184, 0.55), 0 0 12px rgba(255,255,255,0.5), 0 20px 50px rgba(0,0,0,0.3);
+        border-color: #94a3b8 !important;
+    }
+    50% {
+        transform: scale(1.07);
+        box-shadow: 0 0 60px rgba(190, 200, 220, 0.85), 0 0 22px rgba(255,255,255,0.7), 0 20px 50px rgba(0,0,0,0.3);
+        border-color: #e2e8f0 !important;
+    }
 }
 
 /* Card Entrance */
@@ -580,6 +596,7 @@ header h1.font-title::after {
     display: flex;
     flex-wrap: wrap;
     align-items: center;
+    row-gap: 0.75rem;
     background: linear-gradient(135deg, rgba(255, 255, 255, 0.94), rgba(248, 250, 252, 0.9));
     margin-bottom: 0.75rem;
     padding: 1rem;
@@ -690,6 +707,77 @@ header h1.font-title::after {
     to { opacity: 1; transform: translateX(0); }
 }
 
+/* --- FINAL LEADERBOARD HEADER + PODIUM --- */
+.ceremony-leaderboard-header {
+    text-align: center;
+    padding: 0.5rem 0 1.25rem;
+}
+
+.ceremony-leaderboard-title {
+    display: block;
+    font-family: 'Fredoka One', cursive;
+    font-size: clamp(1.8rem, 4.5vw, 2.8rem);
+    background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 30%, #ffffff 50%, #d97706 70%, #fbbf24 100%);
+    background-size: 250% auto;
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    animation: gold-text-shimmer 3s linear infinite;
+    filter: drop-shadow(0 0 10px rgba(251,191,36,0.5));
+}
+
+@keyframes gold-text-shimmer {
+    0%   { background-position: 0% center; }
+    100% { background-position: 250% center; }
+}
+
+.ceremony-leaderboard-title__sub {
+    font-size: 0.8rem;
+    color: rgba(255,255,255,0.65);
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    font-weight: 700;
+    margin-top: 0.2rem;
+}
+
+.ceremony-leaderboard-top3 {
+    margin-bottom: 0.25rem;
+}
+
+.ceremony-leaderboard-divider {
+    height: 1px;
+    background: linear-gradient(to right, transparent, rgba(251,191,36,0.45), rgba(148,163,184,0.35), transparent);
+    margin: 0.5rem 0 1rem;
+}
+
+/* Gold/Silver/Bronze leaderboard row variants */
+.ceremony-leaderboard-item.rank-top3-gold {
+    background: linear-gradient(135deg, #fffbeb, #fef3c7, #fde68a 60%, #fff7d6) !important;
+    border: 2px solid rgba(251,191,36,0.55) !important;
+    box-shadow: 0 0 22px rgba(251,191,36,0.22), 0 8px 20px rgba(0,0,0,0.12) !important;
+}
+
+.ceremony-leaderboard-item.rank-top3-silver {
+    background: linear-gradient(135deg, #f8fafc, #f1f5f9, #e8eef7 60%, #f8fafc) !important;
+    border: 2px solid rgba(148,163,184,0.5) !important;
+    box-shadow: 0 0 18px rgba(148,163,184,0.22), 0 8px 20px rgba(0,0,0,0.10) !important;
+}
+
+.ceremony-leaderboard-item.rank-top3-bronze {
+    background: linear-gradient(135deg, #fff7ed, #fed7aa, #fbbf24 55%, #fff7ed) !important;
+    border: 2px solid rgba(205,127,50,0.45) !important;
+    box-shadow: 0 0 18px rgba(205,127,50,0.2), 0 8px 20px rgba(0,0,0,0.10) !important;
+}
+
+/* Slightly larger rank icons for top-3 */
+.ceremony-leaderboard-item.rank-top3-gold .cli-rank,
+.ceremony-leaderboard-item.rank-top3-silver .cli-rank,
+.ceremony-leaderboard-item.rank-top3-bronze .cli-rank {
+    width: 3.5rem;
+    height: 3.5rem;
+    font-size: 2rem;
+}
+
 /* --- CEREMONY LAYOUT + BUILDUP OVERRIDES --- */
 .ceremony-layout {
     display: grid;
@@ -736,6 +824,7 @@ header h1.font-title::after {
     width: clamp(280px, 42vw, 420px);
     max-width: 92vw;
     padding: clamp(1rem, 2vw, 2rem);
+    padding-top: 2.5rem;
     border-radius: 1.6rem;
     overflow: visible; /* badges and shadows must bleed outside the card */
 }
@@ -1050,6 +1139,11 @@ header h1.font-title::after {
     animation: card-enter 0.6s cubic-bezier(0.34,1.56,0.64,1) both !important;
 }
 
+/* Drumroll wiggle — must follow the face-off suppression above to win specificity tie */
+.ceremony-card.face-off.tension-active {
+    animation: shake-tension 0.5s infinite !important;
+}
+
 /* ============================================================
    FLOAT ANIMATION  (gentle bob, like wallpaper float cards)
    ============================================================ */
@@ -1069,7 +1163,7 @@ header h1.font-title::after {
 }
 .ceremony-rank-badge {
     position: absolute;
-    top: -1.4rem;
+    top: -1.9rem;
     left: 50%;
     transform: translateX(-50%);
     z-index: 30;

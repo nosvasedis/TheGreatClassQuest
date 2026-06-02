@@ -473,6 +473,21 @@ export async function handleBulkSaveTrial() {
             if (absentResult === 'marked_absent') absentApplied++;
         }
 
+        // Students who were absent when the modal opened but are now toggled back to present
+        const nowPresentIds = [];
+        rows.forEach(row => {
+            const btn = row.querySelector('.toggle-absent-btn');
+            if (!btn) return;
+            const wasAbsent = btn.dataset.wasAbsent === 'true';
+            const isCurrentlyAbsent = btn.classList.contains('is-absent');
+            if (wasAbsent && !isCurrentlyAbsent) {
+                nowPresentIds.push(row.dataset.studentId);
+            }
+        });
+        for (const sid of nowPresentIds) {
+            await handleMarkAbsent(sid, classId, false, canonicalDate);
+        }
+
         if (shouldCommitBatch) {
             showToast('All grades saved successfully!', 'success');
 

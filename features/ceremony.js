@@ -861,24 +861,22 @@ function handleDramaticReveal() {
 function renderFinalLeaderboard() {
     const stage = document.getElementById('ceremony-stage-area');
     
-    // Create Container
     const container = document.createElement('div');
     container.className = 'ceremony-leaderboard-container custom-scrollbar';
     
-    // Reverse again because studentQueue is [Last ... 1st] for reveal, but we want [1st ... Last] for list
-    const queue = ceremonyData.studentQueue.slice().reverse(); 
-    
-    let html = '';
-    queue.forEach((s, index) => {
+    const queue = ceremonyData.studentQueue.slice().reverse();
+
+    function buildItemHtml(s, animIndex) {
         const rank = s.rank;
         let rankClass = 'cli-rank-other';
         let rankContent = rank;
-        
-        if (rank === 1) { rankClass = 'cli-rank-1'; rankContent = '🥇'; }
-        else if (rank === 2) { rankClass = 'cli-rank-2'; rankContent = '🥈'; }
-        else if (rank === 3) { rankClass = 'cli-rank-3'; rankContent = '🥉'; }
-        
-        const avatarHtml = s.avatar 
+        let itemExtraClass = '';
+
+        if (rank === 1) { rankClass = 'cli-rank-1'; rankContent = '🥇'; itemExtraClass = 'rank-top3-gold'; }
+        else if (rank === 2) { rankClass = 'cli-rank-2'; rankContent = '🥈'; itemExtraClass = 'rank-top3-silver'; }
+        else if (rank === 3) { rankClass = 'cli-rank-3'; rankContent = '🥉'; itemExtraClass = 'rank-top3-bronze'; }
+
+        const avatarHtml = s.avatar
             ? `<img src="${s.avatar}" class="cli-avatar">`
             : `<div class="cli-avatar bg-indigo-100 flex items-center justify-center text-indigo-500 font-bold text-xl">${s.name.charAt(0)}</div>`;
 
@@ -887,8 +885,8 @@ function renderFinalLeaderboard() {
             ? `<div class="ceremony-leaderboard-boon-row ceremony-teacher-boon-reveal ceremony-teacher-boon-reveal--hidden">${getTeacherBoonCeremonyMarkup(s.teacherBoon, { compact: true })}</div>`
             : '';
 
-        html += `
-            <div class="ceremony-leaderboard-item" style="animation-delay: ${index * 0.1}s">
+        return `
+            <div class="ceremony-leaderboard-item ${itemExtraClass}" style="animation-delay: ${animIndex * 0.1}s">
                 <div class="cli-rank ${rankClass}">${rankContent}</div>
                 ${avatarHtml}
                 <div class="cli-info">
@@ -899,14 +897,36 @@ function renderFinalLeaderboard() {
                 ${boonRowHtml}
             </div>
         `;
-    });
-    
+    }
+
+    const top3 = queue.filter(s => s.rank <= 3);
+    const rest  = queue.filter(s => s.rank > 3);
+
+    let html = `
+        <div class="ceremony-leaderboard-header">
+            <span class="ceremony-leaderboard-title">🏆 Final Standings</span>
+            <div class="ceremony-leaderboard-title__sub">Month of Glory</div>
+        </div>
+    `;
+
+    if (top3.length > 0) {
+        html += `<div class="ceremony-leaderboard-top3">`;
+        top3.forEach((s, i) => { html += buildItemHtml(s, i); });
+        html += `</div>`;
+    }
+
+    if (rest.length > 0) {
+        if (top3.length > 0) html += `<div class="ceremony-leaderboard-divider"></div>`;
+        rest.forEach((s, i) => { html += buildItemHtml(s, i + top3.length); });
+    }
+
     container.innerHTML = html;
     stage.appendChild(container);
 
     queue.forEach((s, index) => {
         if (!((s.rank === 1 || s.rank === 2) && s.teacherBoon)) return;
-        const item = container.children[index];
+        const allItems = container.querySelectorAll('.ceremony-leaderboard-item');
+        const item = allItems[index];
         const boonRow = item?.querySelector('.ceremony-leaderboard-boon-row');
         if (!boonRow) return;
         setTimeout(() => {
@@ -914,7 +934,6 @@ function renderFinalLeaderboard() {
         }, index * 100 + 350);
     });
     
-    // Trigger confetti again for effect
     triggerConfetti(); 
 }
 

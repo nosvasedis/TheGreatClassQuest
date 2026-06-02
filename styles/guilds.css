@@ -1,0 +1,4854 @@
+/*
+ * styles/guilds.css — Guilds & Factions
+ * Guild Hall atmosphere, crystal columns, lore overlay, sorting quiz modal, badges
+ */
+
+/* ─── Guild badge (student list) ─────────────────────────────────────────── */
+.guild-badge           { display: inline-block; flex-shrink: 0; }
+.guild-emblem          { border-radius: 9999px; object-fit: cover; }
+.guild-badge-wrap      { display: inline-flex; align-items: center; justify-content: center; }
+
+/* ─── Quiz trigger button on student list ───────────────────────────────────*/
+.guild-quiz-btn { transition: transform 0.2s, box-shadow 0.2s; }
+.guild-quiz-btn:hover {
+    transform: scale(1.06);
+    box-shadow: 0 4px 14px rgba(124,58,237,0.35);
+}
+
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   GUILD HALL TAB LAYOUT
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* Tab background — transparent so it shows the same background as other tabs */
+#guilds-tab {
+    padding-bottom: 2rem;
+}
+
+/* ── Header: title above the scene (title size/spacing uses shared text-5xl + mt-2 like other tabs) ── */
+.guild-hall-crest {
+    font-size: 3rem;
+    line-height: 1;
+    filter: drop-shadow(0 0 14px rgba(124,58,237,0.7));
+    animation: crest-pulse 3s ease-in-out infinite alternate;
+}
+@keyframes crest-pulse {
+    from { filter: drop-shadow(0 0 10px rgba(124,58,237,0.5)); transform: scale(1);    }
+    to   { filter: drop-shadow(0 0 22px rgba(245,158,11,0.8)); transform: scale(1.05); }
+}
+.guild-hall-title {
+    background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 40%, #c084fc 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    letter-spacing: 0.03em;
+    /* Gradient fill replaces solid tab color; keep a light edge read like other tab titles */
+    filter: drop-shadow(0 1px 3px rgba(0,0,0,0.15));
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   FRAMED SCENE (pure CSS gradient, no image)
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.guild-hall-scene {
+    position: relative;
+    max-width: min(1140px, calc(100% - 1rem));
+    margin: 0 auto;
+    border-radius: 1.5rem;
+    overflow: hidden;
+
+    /* Deep hall atmosphere — arched-window sky at top, warm floor below */
+    background:
+        radial-gradient(ellipse 100% 50% at 50%   0%, rgba(88,28,135,0.55)  0, rgba(46,16,101,0.25) 45%, transparent 75%),
+        radial-gradient(ellipse  40% 70% at  3%  75%, rgba(245,158,11,0.35) 0, transparent 55%),
+        radial-gradient(ellipse  40% 70% at 97%  75%, rgba(234,88,12,0.30)  0, transparent 55%),
+        radial-gradient(ellipse  70% 35% at 50% 110%, rgba(180,83,9,0.25)   0, transparent 60%),
+        radial-gradient(ellipse  55% 40% at 25%  55%, rgba(30,64,175,0.15)  0, transparent 60%),
+        radial-gradient(ellipse  55% 40% at 75%  55%, rgba(30,64,175,0.15)  0, transparent 60%),
+        linear-gradient(175deg, #100828 0%, #1e0f3e 35%, #0e1b34 75%, #0a1020 100%);
+
+    /* Layered gold frame — inner glow + outer border */
+    box-shadow:
+        inset 0 0  80px rgba(88,28,135,0.25),
+        inset 0 -50px 80px rgba(180,83,9,0.18),
+        inset 0   0 120px rgba(30,64,175,0.10),
+        0 0 0 2px  rgba(245,190,70,0.60),
+        0 0 0 4px  rgba(245,190,70,0.18),
+        0 0 0 7px  rgba(180,83,9,0.12),
+        0 0 30px   rgba(124,58,237,0.25),
+        0 20px 60px rgba(0,0,0,0.25);
+}
+
+/* Full-cover overlay container — holds all animated elements */
+.guild-hall-scene-overlay {
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    pointer-events: none;
+    overflow: hidden;
+}
+
+/* ── Torch glows (left & right walls) ──────────────────────────────────────── */
+.guild-hall-torch {
+    position: absolute;
+    top: 15%;
+    width: 220px;
+    height: 280px;
+    border-radius: 9999px;
+    filter: blur(65px);
+    animation: torch-flicker 2.8s ease-in-out infinite alternate;
+}
+.guild-hall-torch--left  {
+    left: -55px;
+    background: radial-gradient(ellipse at 70% 40%, rgba(245,158,11,0.65) 0, transparent 62%);
+}
+.guild-hall-torch--right {
+    right: -55px;
+    background: radial-gradient(ellipse at 30% 40%, rgba(234,88,12,0.60) 0, transparent 62%);
+    animation-delay: 0.75s;
+}
+@keyframes torch-flicker {
+    0%   { opacity: 0.50; transform: scaleX(0.86) scaleY(0.93); }
+    30%  { opacity: 1.00; transform: scaleX(1.08) scaleY(1.04); }
+    65%  { opacity: 0.68; transform: scaleX(0.92) scaleY(0.96); }
+    100% { opacity: 1.00; transform: scaleX(1.00) scaleY(1.00); }
+}
+
+/* ── Star-field (tiny white dots twinkling) ─────────────────────────────────── */
+.guild-hall-stars-field {
+    position: absolute;
+    inset: 0;
+    background-image:
+        radial-gradient(circle, rgba(255,255,255,0.7) 1px, transparent 1px),
+        radial-gradient(circle, rgba(255,255,255,0.4) 1px, transparent 1px),
+        radial-gradient(circle, rgba(200,180,255,0.5) 1px, transparent 1px);
+    background-size: 110px 90px, 170px 140px, 80px 70px;
+    background-position: 15px 20px, 60px 50px, 90px 8px;
+    opacity: 0.6;
+    animation: stars-twinkle 6s ease-in-out infinite alternate;
+}
+@keyframes stars-twinkle {
+    from { opacity: 0.35; }
+    to   { opacity: 0.70; }
+}
+
+/* ── Rising ember sparks ────────────────────────────────────────────────────── */
+.guild-hall-embers {
+    position: absolute;
+    inset: 0;
+    overflow: hidden;
+}
+.guild-hall-embers span {
+    position: absolute;
+    bottom: -6px;
+    left: var(--x, 50%);
+    width:  var(--s, 3px);
+    height: var(--s, 3px);
+    border-radius: 50%;
+    background: var(--c, rgba(245,158,11,0.9));
+    box-shadow: 0 0 6px 1px var(--c, rgba(245,158,11,0.6));
+    animation: ember-rise var(--d, 3s) var(--dl, 0s) ease-out infinite;
+    opacity: 0;
+}
+@keyframes ember-rise {
+    0%   { transform: translateY(0)    translateX(0px);  opacity: 0;   }
+    8%   { opacity: 1;                                                  }
+    50%  { transform: translateY(-45%) translateX(6px);  opacity: 0.7; }
+    100% { transform: translateY(-105vh) translateX(-4px); opacity: 0; }
+}
+
+/* ── Faint rising glow orbs ─────────────────────────────────────────────────── */
+.guild-hall-glows {
+    position: absolute;
+    inset: 0;
+    overflow: hidden;
+}
+.guild-hall-glows span {
+    position: absolute;
+    bottom: -80px;
+    left: var(--x, 50%);
+    margin-left: -90px;
+    width: 180px;
+    height: 180px;
+    border-radius: 50%;
+    background: radial-gradient(circle, var(--c, rgba(124,58,237,0.2)) 0%, transparent 70%);
+    filter: blur(22px);
+    animation: glow-rise var(--d, 7s) var(--dl, 0s) ease-in-out infinite;
+    opacity: 0;
+}
+@keyframes glow-rise {
+    0%   { transform: translateY(0);    opacity: 0;   }
+    12%  { opacity: 1;                                }
+    80%  { opacity: 0.55;                             }
+    100% { transform: translateY(-110%); opacity: 0;  }
+}
+
+/* Content wrapper (crystal columns) — above all atmospheric layers */
+.guild-hall-scene-content {
+    position: relative;
+    z-index: 2;
+    padding: 1.5rem 1.25rem 1.75rem;
+    /* Let standings scroll horizontally when viewport is too narrow for four columns —
+       avoids shrunken cols + overflow:hidden on details clipping metric cards */
+    overflow-x: auto;
+    overflow-y: visible;
+    overscroll-behavior-x: contain;
+    -webkit-overflow-scrolling: touch;
+}
+
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   FORTUNE LEDGER (Guild Hall — below standings)
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.guild-fortune-ledger-section {
+    position: relative;
+    max-width: min(1140px, calc(100% - 1rem));
+    margin-left: auto;
+    margin-right: auto;
+    border-radius: 1.5rem;
+    padding: 1px;
+    background: linear-gradient(135deg, rgba(251, 191, 36, 0.35), rgba(124, 58, 237, 0.25), rgba(236, 72, 153, 0.22));
+    box-shadow:
+        0 24px 56px rgba(15, 23, 42, 0.35),
+        inset 0 1px 0 rgba(255,255,255,0.12);
+}
+
+.guild-fortune-ledger-section__glow {
+    position: absolute;
+    inset: -2px;
+    border-radius: inherit;
+    background: radial-gradient(ellipse 80% 60% at 50% -20%, rgba(251, 191, 36, 0.15), transparent 55%);
+    pointer-events: none;
+    z-index: 0;
+}
+
+.guild-fortune-ledger-section__inner {
+    position: relative;
+    z-index: 1;
+    border-radius: calc(1.5rem - 1px);
+    padding: 0;
+    overflow: hidden;
+    background:
+        radial-gradient(ellipse 120% 80% at 50% 0%, rgba(30, 27, 75, 0.65), transparent 55%),
+        linear-gradient(165deg, rgba(12, 14, 32, 0.97) 0%, rgba(20, 12, 42, 0.98) 55%, rgba(10, 12, 28, 0.99) 100%);
+    border: 1px solid rgba(255,255,255,0.08);
+}
+
+.guild-fortune-ledger-section__toggle {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    width: 100%;
+    padding: 0.85rem 1.35rem;
+    margin: 0;
+    text-align: left;
+    cursor: pointer;
+    border: none;
+    background: transparent;
+    color: inherit;
+    transition: background 220ms ease;
+}
+.guild-fortune-ledger-section__toggle:hover {
+    background: rgba(255,255,255,0.04);
+}
+.guild-fortune-ledger-section__toggle:focus-visible {
+    outline: 2px solid rgba(251, 191, 36, 0.55);
+    outline-offset: -2px;
+}
+
+.guild-fortune-ledger-section__toggle-text {
+    min-width: 0;
+    flex: 1;
+}
+.guild-fortune-ledger-section__title--toggle {
+    margin: 0;
+    font-size: clamp(1.25rem, 2.5vw, 1.65rem);
+}
+.guild-fortune-ledger-section__toggle-lede {
+    margin: 0.25rem 0 0;
+    font-size: 0.84rem;
+    line-height: 1.45;
+    color: rgba(255,255,255,0.62);
+    max-width: 40rem;
+}
+.guild-fortune-ledger-section__toggle-meta {
+    margin: 0.35rem 0 0;
+    font-size: 0.78rem;
+    line-height: 1.4;
+    color: rgba(251, 191, 136, 0.9);
+    font-weight: 600;
+}
+.guild-fortune-ledger-section__toggle-meta:empty {
+    display: none;
+}
+
+.guild-fortune-ledger-section__toggle-chev {
+    flex-shrink: 0;
+    width: 2.5rem;
+    height: 2.5rem;
+    display: grid;
+    place-items: center;
+    border-radius: 999px;
+    border: 1px solid rgba(255,255,255,0.12);
+    background: rgba(15, 23, 42, 0.45);
+    color: rgba(255,255,255,0.85);
+    transition: transform 280ms cubic-bezier(0.22, 1, 0.36, 1), background 200ms ease;
+}
+.guild-fortune-ledger-section[data-ledger-expanded="true"] .guild-fortune-ledger-section__toggle-chev {
+    transform: rotate(180deg);
+    background: rgba(251, 191, 36, 0.12);
+    border-color: rgba(251, 191, 36, 0.28);
+}
+
+.guild-fortune-ledger-section__expandable {
+    display: grid;
+    grid-template-rows: 0fr;
+    overflow: hidden;
+    transition: grid-template-rows 380ms cubic-bezier(0.22, 1, 0.36, 1),
+                border-top-color 320ms ease;
+    border-top: 1px solid transparent;
+}
+.guild-fortune-ledger-section__expandable.is-open {
+    grid-template-rows: 1fr;
+    border-top-color: rgba(255,255,255,0.08);
+}
+
+.guild-fortune-ledger-section__expandable-inner {
+    min-height: 0;
+    overflow: hidden;
+    padding: 1rem 1.35rem 1.35rem;
+}
+
+.guild-fortune-ledger-section__head--in-panel {
+    margin-bottom: 1.1rem;
+    padding-bottom: 1rem;
+}
+.guild-fortune-ledger-section__intro--panel .guild-fortune-ledger-section__lede {
+    margin: 0;
+}
+
+.guild-fortune-ledger-section__head {
+    display: grid;
+    grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr);
+    gap: 1.25rem 1.5rem;
+    align-items: start;
+    margin-bottom: 1.35rem;
+    padding-bottom: 1.2rem;
+    border-bottom: 1px solid rgba(255,255,255,0.09);
+}
+
+@media (max-width: 720px) {
+    .guild-fortune-ledger-section__head {
+        grid-template-columns: 1fr;
+    }
+}
+
+.guild-fortune-ledger-section__title {
+    margin: 0;
+    font-size: clamp(1.45rem, 3vw, 1.85rem);
+    letter-spacing: 0.02em;
+    color: #fff7d6;
+    text-shadow: 0 4px 24px rgba(251, 191, 36, 0.2);
+}
+
+.guild-fortune-ledger-section__lede {
+    margin: 0.45rem 0 0;
+    max-width: 38rem;
+    font-size: 0.95rem;
+    line-height: 1.6;
+    color: rgba(255,255,255,0.68);
+}
+
+.guild-fortune-ledger-section__context {
+    justify-self: end;
+    text-align: right;
+    display: grid;
+    gap: 0.5rem;
+    justify-items: end;
+}
+@media (max-width: 720px) {
+    .guild-fortune-ledger-section__context {
+        justify-self: stretch;
+        text-align: left;
+        justify-items: start;
+    }
+}
+
+.guild-fortune-ledger-section__class-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.45rem 0.95rem;
+    border-radius: 999px;
+    font-size: 0.78rem;
+    font-weight: 800;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: #fae8ff;
+    background: rgba(124, 58, 237, 0.22);
+    border: 1px solid rgba(167, 139, 250, 0.4);
+    box-shadow: 0 6px 20px rgba(15, 23, 42, 0.35);
+}
+
+.guild-fortune-ledger-section__hint {
+    margin: 0;
+    max-width: 22rem;
+    font-size: 0.88rem;
+    line-height: 1.55;
+    color: rgba(255,255,255,0.72);
+}
+
+.guild-fortune-ledger.guild-fortune-ledger--raised {
+    min-height: 280px;
+    max-height: 520px;
+    padding: 1.15rem 1.2rem 1.2rem;
+    border-radius: 1.15rem;
+    background: rgba(4, 8, 24, 0.55);
+    border: 1px solid rgba(255,255,255,0.1);
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.06);
+}
+
+.guild-fortune-ledger--raised .guild-fortune-ledger__title-block {
+    display: flex;
+    flex-direction: column;
+    gap: 0.2rem;
+    align-items: start;
+}
+
+.guild-fortune-ledger--raised .guild-fortune-ledger__header {
+    align-items: center;
+    padding-bottom: 0.95rem;
+}
+
+.guild-fortune-ledger--raised .guild-fortune-ledger__title {
+    font-family: 'Fredoka One', cursive;
+    font-size: 1.15rem;
+    color: #fef3c7;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   FORTUNE RELIC PANEL (legacy — modal-adjacent utilities may still reference)
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.guild-fortune-panel {
+    position: relative;
+    max-width: min(1140px, calc(100% - 1rem));
+    margin-left: auto;
+    margin-right: auto;
+    overflow: hidden;
+    border-radius: 1.6rem;
+    border: 1px solid rgba(255, 255, 255, 0.14);
+    background:
+        radial-gradient(circle at 15% 15%, rgba(251, 191, 36, 0.16), transparent 28%),
+        radial-gradient(circle at 85% 20%, rgba(190, 24, 93, 0.18), transparent 25%),
+        radial-gradient(circle at 50% 100%, rgba(30, 64, 175, 0.28), transparent 55%),
+        linear-gradient(145deg, rgba(14, 16, 35, 0.96), rgba(35, 16, 72, 0.96) 48%, rgba(15, 23, 42, 0.98));
+    box-shadow:
+        inset 0 1px 0 rgba(255,255,255,0.08),
+        inset 0 -30px 60px rgba(10, 10, 30, 0.35),
+        0 20px 60px rgba(5, 8, 20, 0.35);
+    transition: box-shadow 260ms ease, border-color 260ms ease, transform 260ms ease;
+}
+
+.guild-fortune-panel:hover {
+    transform: translateY(-1px);
+    box-shadow:
+        inset 0 1px 0 rgba(255,255,255,0.08),
+        inset 0 -30px 60px rgba(10, 10, 30, 0.35),
+        0 26px 76px rgba(5, 8, 20, 0.42);
+}
+
+.guild-fortune-panel__toggle {
+    position: relative;
+    z-index: 1;
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 1.15rem 1.3rem;
+    background: transparent;
+    border: none;
+    color: inherit;
+    text-align: left;
+    cursor: pointer;
+    transition: background 220ms ease;
+}
+
+.guild-fortune-panel__toggle:hover {
+    background: linear-gradient(90deg, rgba(255,255,255,0.03), rgba(255,255,255,0.06), rgba(255,255,255,0.03));
+}
+
+.guild-fortune-panel__toggle-copy {
+    display: grid;
+    gap: 0.22rem;
+}
+
+.guild-fortune-panel__toggle-kicker {
+    color: rgba(255,255,255,0.58);
+    font-size: 0.72rem;
+    font-weight: 800;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+}
+
+.guild-fortune-panel__toggle-title {
+    color: #fff7d6;
+    font-size: clamp(1.4rem, 2vw, 2rem);
+    line-height: 1;
+}
+
+.guild-fortune-panel__toggle-state {
+    display: flex;
+    align-items: center;
+    gap: 0.85rem;
+}
+
+.guild-fortune-panel__toggle-icon {
+    width: 2.75rem;
+    height: 2.75rem;
+    border-radius: 999px;
+    display: grid;
+    place-items: center;
+    border: 1px solid rgba(255,255,255,0.12);
+    background: rgba(15, 23, 42, 0.45);
+    color: rgba(255,255,255,0.86);
+    transition: transform 260ms cubic-bezier(0.22, 1, 0.36, 1), background 200ms ease, border-color 200ms ease;
+}
+
+.guild-fortune-panel__toggle:hover .guild-fortune-panel__toggle-icon {
+    background: rgba(251, 191, 36, 0.12);
+    border-color: rgba(251, 191, 36, 0.26);
+}
+
+.guild-fortune-panel[data-expanded="true"] .guild-fortune-panel__toggle-icon {
+    transform: rotate(180deg);
+}
+
+.guild-fortune-panel__backdrop,
+.guild-fortune-panel__particles {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+}
+
+.guild-fortune-panel__backdrop {
+    background:
+        radial-gradient(circle at center, rgba(255,255,255,0.06), transparent 38%),
+        linear-gradient(90deg, transparent, rgba(255,255,255,0.06), transparent);
+    opacity: 0.8;
+}
+
+.guild-fortune-panel__particles span {
+    position: absolute;
+    bottom: -20px;
+    width: 7px;
+    height: 7px;
+    border-radius: 999px;
+    background: rgba(251, 191, 36, 0.85);
+    box-shadow: 0 0 14px rgba(251, 191, 36, 0.7);
+    animation: guild-fortune-embers 8s linear infinite;
+    opacity: 0;
+}
+
+.guild-fortune-panel__particles span:nth-child(1) { left: 9%; animation-delay: 0s; }
+.guild-fortune-panel__particles span:nth-child(2) { left: 21%; animation-delay: 1.2s; background: rgba(244, 114, 182, 0.75); }
+.guild-fortune-panel__particles span:nth-child(3) { left: 42%; animation-delay: 2.7s; }
+.guild-fortune-panel__particles span:nth-child(4) { left: 61%; animation-delay: 0.9s; background: rgba(96, 165, 250, 0.8); }
+.guild-fortune-panel__particles span:nth-child(5) { left: 78%; animation-delay: 3.1s; }
+.guild-fortune-panel__particles span:nth-child(6) { left: 90%; animation-delay: 4.4s; background: rgba(248, 113, 113, 0.82); }
+
+@keyframes guild-fortune-embers {
+    0% { transform: translateY(0) scale(0.8); opacity: 0; }
+    10% { opacity: 1; }
+    100% { transform: translateY(-250px) scale(1.15); opacity: 0; }
+}
+
+.guild-fortune-panel__body {
+    position: relative;
+    z-index: 1;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(320px, 420px);
+    gap: 1.5rem;
+    align-items: start;
+    padding: 1.4rem;
+    overflow: clip;
+    max-height: 650px;
+    transform-origin: top center;
+    transition:
+        height 420ms cubic-bezier(0.22, 1, 0.36, 1),
+        opacity 280ms ease,
+        transform 420ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+@media (max-width: 900px) {
+    .guild-fortune-panel__body {
+        grid-template-columns: 1fr;
+        max-height: none;
+    }
+}
+
+.guild-fortune-panel__body.is-expanding > *,
+.guild-fortune-panel[data-expanded="true"] .guild-fortune-panel__body > * {
+    animation: guild-fortune-panel-rise 520ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.guild-fortune-panel__body.is-expanding > *:nth-child(2),
+.guild-fortune-panel[data-expanded="true"] .guild-fortune-panel__body > *:nth-child(2) {
+    animation-delay: 60ms;
+}
+
+@keyframes guild-fortune-panel-rise {
+    from {
+        opacity: 0;
+        transform: translateY(16px) scale(0.985);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+
+.guild-fortune-panel__lead,
+.guild-fortune-panel__preview {
+    position: relative;
+    border-radius: 1.3rem;
+    padding: 1.4rem;
+    background: rgba(255,255,255,0.05);
+    border: 1px solid rgba(255,255,255,0.08);
+    backdrop-filter: blur(10px);
+}
+
+.guild-fortune-panel__lead {
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
+    min-height: 0;
+    position: sticky;
+    top: 0;
+}
+
+.guild-fortune-panel__kicker {
+    display: inline-flex;
+    align-self: flex-start;
+    margin-bottom: 0.8rem;
+    padding: 0.4rem 0.8rem;
+    border-radius: 999px;
+    background: rgba(251, 191, 36, 0.12);
+    color: #fcd34d;
+    font-size: 0.72rem;
+    font-weight: 800;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+}
+
+.guild-fortune-panel__title {
+    margin: 0;
+    font-size: clamp(1.9rem, 4vw, 3rem);
+    line-height: 0.98;
+    color: #fff7d6;
+    text-shadow: 0 6px 24px rgba(251, 191, 36, 0.15);
+}
+
+.guild-fortune-panel__description {
+    margin: 0.8rem 0 0;
+    max-width: 36rem;
+    color: rgba(255,255,255,0.75);
+    font-size: 1rem;
+    line-height: 1.65;
+}
+
+.guild-fortune-panel__meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    margin-top: 1.15rem;
+}
+
+.guild-fortune-panel__status-pill,
+.guild-fortune-panel__class-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    min-height: 44px;
+    padding: 0.7rem 0.95rem;
+    border-radius: 999px;
+    border: 1px solid rgba(255,255,255,0.12);
+    color: rgba(255,255,255,0.92);
+    background: rgba(15, 23, 42, 0.5);
+    font-size: 0.88rem;
+    font-weight: 700;
+    transition: background 220ms ease, border-color 220ms ease, transform 220ms ease;
+}
+
+.guild-fortune-panel__status-pill[data-state="ready"] {
+    background: rgba(5, 150, 105, 0.18);
+    border-color: rgba(52, 211, 153, 0.35);
+    color: #bbf7d0;
+}
+
+.guild-fortune-panel__status-pill[data-state="locked"] {
+    background: rgba(127, 29, 29, 0.2);
+    border-color: rgba(248, 113, 113, 0.28);
+    color: #fecaca;
+}
+
+.guild-fortune-panel__status-copy {
+    margin: 1rem 0 0;
+    color: rgba(255,255,255,0.82);
+    font-size: 0.95rem;
+    line-height: 1.7;
+}
+
+.guild-fortune-panel__actions {
+    margin-top: 1.35rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.85rem;
+}
+
+.guild-fortune-panel__cta {
+    display: inline-flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.15rem;
+    min-width: min(100%, 320px);
+    padding: 1.15rem 1.4rem !important;
+    border-radius: 1.25rem !important;
+    border: 1.5px solid rgba(255,255,255,0.2) !important;
+    background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 28%, #f97316 58%, #db2777 100%) !important;
+    box-shadow: 
+        0 20px 42px rgba(217, 119, 6, 0.32),
+        0 0 0 1px rgba(255,255,255,0.08),
+        inset 0 2px 0 rgba(255,255,255,0.2),
+        inset 0 -2px 8px rgba(124, 45, 18, 0.3);
+    transition: transform 200ms ease, box-shadow 220ms ease, filter 220ms ease;
+    position: relative;
+    overflow: hidden;
+}
+
+.guild-fortune-panel__cta--circle {
+    width: 112px;
+    height: 112px;
+    min-width: 0;
+    padding: 0 !important;
+    border-radius: 9999px !important;
+}
+
+.guild-fortune-panel__cta--circle .guild-fortune-panel__cta-icon {
+    font-size: 2.35rem;
+    margin: 0;
+}
+
+.guild-fortune-panel__cta-caption {
+    color: rgba(255,255,255,0.9);
+    font-size: 1rem;
+    letter-spacing: 0.02em;
+    text-align: center;
+    text-shadow: 0 2px 10px rgba(0,0,0,0.25);
+}
+
+.guild-fortune-panel__cta::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.15), transparent);
+    transform: translateX(-100%);
+    transition: transform 0.6s ease;
+}
+
+.guild-fortune-panel__cta:hover::before {
+    transform: translateX(100%);
+}
+
+.guild-fortune-panel__cta:hover {
+    transform: translateY(-3px) scale(1.02);
+    box-shadow: 
+        0 26px 56px rgba(217, 119, 6, 0.4),
+        0 0 0 1px rgba(255,255,255,0.12),
+        inset 0 2px 0 rgba(255,255,255,0.25),
+        inset 0 -2px 8px rgba(124, 45, 18, 0.3);
+    filter: saturate(1.1) brightness(1.05);
+}
+
+.guild-fortune-panel__cta-icon {
+    font-size: 1.5rem;
+    color: #fff;
+    opacity: 0.95;
+    margin-bottom: 0.15rem;
+    animation: fortune-wheel-spin 8s linear infinite;
+}
+
+@keyframes fortune-wheel-spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+
+.guild-fortune-panel__cta:hover .guild-fortune-panel__cta-icon {
+    animation-duration: 2s;
+}
+
+.guild-fortune-panel__cta-label {
+    display: block;
+    color: #fff;
+    font-size: 1.2rem;
+    letter-spacing: 0.02em;
+    text-shadow: 0 2px 8px rgba(0,0,0,0.2);
+}
+
+.guild-fortune-panel__cta-subtitle {
+    display: block;
+    color: rgba(255,255,255,0.88);
+    font-size: 0.78rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+}
+
+.guild-fortune-panel__preview {
+    display: grid;
+    gap: 1rem;
+    align-content: start;
+}
+
+.guild-fortune-panel__sigils {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 0.85rem;
+}
+
+.guild-fortune-panel__sigil {
+    width: 100%;
+    aspect-ratio: 1;
+    object-fit: cover;
+    border-radius: 1rem;
+    border: 1px solid rgba(255,255,255,0.14);
+    background: rgba(15,23,42,0.45);
+    box-shadow: 0 12px 24px rgba(2,6,23,0.32);
+    transition: transform 240ms ease, box-shadow 240ms ease, filter 240ms ease;
+}
+
+.guild-fortune-panel__sigil:hover {
+    transform: translateY(-4px) scale(1.03);
+    filter: saturate(1.08);
+}
+
+.guild-fortune-panel__sigil--dragon { box-shadow: 0 12px 24px rgba(220, 38, 38, 0.24); }
+.guild-fortune-panel__sigil--grizzly { box-shadow: 0 12px 24px rgba(217, 119, 6, 0.22); }
+.guild-fortune-panel__sigil--owl { box-shadow: 0 12px 24px rgba(59, 130, 246, 0.22); }
+.guild-fortune-panel__sigil--phoenix { box-shadow: 0 12px 24px rgba(236, 72, 153, 0.22); }
+
+.guild-fortune-ledger {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    max-height: 600px;
+    padding: 1rem;
+    border-radius: 1rem;
+    background: rgba(6, 10, 26, 0.52);
+    border: 1px solid rgba(255,255,255,0.08);
+    overflow: hidden;
+}
+
+.guild-fortune-ledger__header {
+    display: flex;
+    align-items: end;
+    justify-content: space-between;
+    gap: 0.75rem;
+    padding-bottom: 0.85rem;
+    border-bottom: 1px solid rgba(255,255,255,0.08);
+    flex-shrink: 0;
+}
+
+.guild-fortune-ledger__controls {
+    display: flex;
+    gap: 0.35rem;
+}
+
+.guild-fortune-ledger__nav {
+    width: 2rem;
+    height: 2rem;
+    border-radius: 0.5rem;
+    border: 1px solid rgba(255,255,255,0.12);
+    background: rgba(15, 23, 42, 0.4);
+    color: rgba(255,255,255,0.7);
+    display: grid;
+    place-items: center;
+    cursor: pointer;
+    transition: all 180ms ease;
+    font-size: 0.75rem;
+}
+
+.guild-fortune-ledger__nav:hover:not(:disabled) {
+    background: rgba(251, 191, 36, 0.15);
+    border-color: rgba(251, 191, 36, 0.35);
+    color: #fcd34d;
+    transform: translateY(-1px);
+}
+
+.guild-fortune-ledger__nav:disabled {
+    opacity: 0.3;
+    cursor: not-allowed;
+}
+
+.guild-fortune-ledger__eyebrow,
+.guild-fortune-ledger__note {
+    color: rgba(255,255,255,0.55);
+    font-size: 0.72rem;
+    font-weight: 800;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+}
+
+.guild-fortune-ledger__title {
+    margin-top: 0.2rem;
+    color: #fff;
+    font-size: 1rem;
+    font-weight: 800;
+}
+
+.guild-fortune-ledger__list {
+    display: grid;
+    gap: 0.8rem;
+    margin-top: 0.95rem;
+    overflow-y: auto;
+    padding-right: 0.5rem;
+}
+
+.guild-fortune-ledger__entry {
+    padding: 0.9rem;
+    border-radius: 1rem;
+    background: linear-gradient(180deg, rgba(255,255,255,0.05), rgba(255,255,255,0.02));
+    border: 1px solid rgba(255,255,255,0.08);
+    transition: transform 220ms ease, border-color 220ms ease, box-shadow 220ms ease;
+}
+
+.guild-fortune-ledger__entry:hover {
+    transform: translateY(-2px);
+    border-color: rgba(251, 191, 36, 0.18);
+    box-shadow: 0 16px 28px rgba(2, 6, 23, 0.18);
+}
+
+.guild-fortune-ledger__entry-topline {
+    display: flex;
+    align-items: start;
+    justify-content: space-between;
+    gap: 1rem;
+    margin-bottom: 0.8rem;
+}
+
+.guild-fortune-ledger__entry-date {
+    color: #fff7d6;
+    font-size: 0.95rem;
+    font-weight: 800;
+}
+
+.guild-fortune-ledger__entry-week {
+    margin-top: 0.15rem;
+    color: rgba(255,255,255,0.55);
+    font-size: 0.76rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
+
+.guild-fortune-ledger__entry-swing {
+    flex-shrink: 0;
+    padding: 0.45rem 0.7rem;
+    border-radius: 999px;
+    background: rgba(5, 150, 105, 0.14);
+    color: #bbf7d0;
+    font-size: 0.8rem;
+    font-weight: 800;
+}
+
+.guild-fortune-ledger__entry-swing--negative {
+    background: rgba(127, 29, 29, 0.22);
+    color: #fecaca;
+}
+
+.guild-fortune-ledger__entry-results {
+    display: grid;
+    gap: 0.65rem;
+}
+
+.guild-fortune-ledger__result {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    gap: 0.75rem;
+    align-items: center;
+    padding: 0.65rem 0.7rem;
+    border-radius: 0.95rem;
+    background: linear-gradient(135deg, color-mix(in srgb, var(--guild-primary) 16%, rgba(255,255,255,0.04)), rgba(255,255,255,0.03));
+    border: 1px solid color-mix(in srgb, var(--guild-primary) 28%, rgba(255,255,255,0.08));
+    transition: transform 200ms ease, border-color 200ms ease, background 200ms ease;
+}
+
+.guild-fortune-ledger__result:hover {
+    transform: translateX(3px);
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .guild-fortune-panel,
+    .guild-fortune-panel__toggle,
+    .guild-fortune-panel__toggle-icon,
+    .guild-fortune-panel__body,
+    .guild-fortune-panel__cta,
+    .guild-fortune-panel__sigil,
+    .guild-fortune-ledger__entry,
+    .guild-fortune-ledger__result,
+    .guild-fortune-panel__particles span {
+        animation: none !important;
+        transition: none !important;
+    }
+}
+
+.guild-fortune-ledger__result-badge .guild-badge {
+    width: 2.25rem;
+    height: 2.25rem;
+}
+
+.guild-fortune-ledger__result-guild {
+    color: rgba(255,255,255,0.6);
+    font-size: 0.7rem;
+    font-weight: 800;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+}
+
+.guild-fortune-ledger__result-label {
+    color: #fff;
+    font-size: 0.9rem;
+    font-weight: 800;
+}
+
+.guild-fortune-ledger__result-impact {
+    padding: 0.42rem 0.6rem;
+    border-radius: 999px;
+    background: rgba(255,255,255,0.08);
+    color: #e0f2fe;
+    font-size: 0.76rem;
+    font-weight: 800;
+    white-space: nowrap;
+}
+
+.guild-fortune-ledger__result-impact--negative {
+    background: rgba(127, 29, 29, 0.25);
+    color: #fecaca;
+}
+
+.guild-fortune-ledger__empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.75rem;
+    min-height: 220px;
+    padding: 2.5rem 1.25rem;
+    text-align: center;
+    border-radius: 1rem;
+    border: 1px dashed rgba(255,255,255,0.12);
+}
+
+.guild-fortune-ledger__empty-title {
+    color: #fff7d6;
+    font-size: 1.05rem;
+    font-weight: 800;
+}
+
+.guild-fortune-ledger__empty-copy {
+    margin: 0;
+    max-width: 22rem;
+    color: rgba(255,255,255,0.62);
+    font-size: 0.92rem;
+    line-height: 1.65;
+}
+
+@media (max-width: 980px) {
+    .guild-fortune-panel__body {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 640px) {
+    .guild-fortune-panel__toggle {
+        align-items: start;
+        flex-direction: column;
+    }
+
+    .guild-fortune-panel__toggle-state {
+        width: 100%;
+        justify-content: space-between;
+    }
+
+    .guild-fortune-panel__body,
+    .guild-fortune-panel__lead,
+    .guild-fortune-panel__preview {
+        padding: 1rem;
+    }
+
+    .guild-fortune-panel__sigils {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .guild-fortune-ledger__result {
+        grid-template-columns: auto minmax(0, 1fr);
+    }
+
+    .guild-fortune-ledger__result-impact {
+        grid-column: 1 / -1;
+        justify-self: start;
+    }
+}
+
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   CRYSTAL TOWER RANKINGS
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.guild-crystal-arena {
+    display: flex;
+    flex-direction: row;
+    align-items: flex-start;
+    justify-content: center;
+    gap: 1rem;
+    padding: 0;
+    width: max-content;
+    min-width: 100%;
+    max-width: none;
+    margin-inline: auto;
+    box-sizing: border-box;
+}
+
+/* ── Each guild column ─────────────────────────────────────────────────────── */
+/* Fixed column width avoids subpixel flex rounding clipping one middle column inside
+   .guild-crystal-details-expander (overflow:hidden + border-radius metric cards). */
+.guild-crystal-col {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    flex: 0 0 210px;
+    width: 210px;
+    min-width: 210px;
+    max-width: 210px;
+    gap: 0;
+    transition: filter 0.35s ease;
+}
+
+.guild-crystal-col > .guild-crystal-rank,
+.guild-crystal-col > .guild-crystal-header,
+.guild-crystal-col > .guild-crystal-tube-wrap,
+.guild-crystal-col > .guild-crystal-count {
+    align-self: center;
+}
+
+/* Dim other columns when one is active */
+.guild-crystal-arena:has(.guild-active) .guild-crystal-col:not(.guild-active) {
+    filter: brightness(0.55) saturate(0.5);
+}
+
+/* Rank label (ordinal) */
+.guild-crystal-rank {
+    line-height: 1;
+    margin-bottom: 0.25rem;
+    filter: drop-shadow(0 2px 6px rgba(0,0,0,0.4));
+}
+.guild-crystal-rank__label {
+    display: inline-block;
+    font-family: 'Fredoka One', cursive;
+    font-size: 1.05rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    color: rgba(255, 247, 214, 0.92);
+    padding: 0.15rem 0.5rem;
+    border-radius: 999px;
+    background: rgba(15, 23, 42, 0.45);
+    border: 1px solid rgba(255,255,255,0.12);
+}
+.guild-crystal-col.is-rank-1 .guild-crystal-rank__label {
+    color: #fde047;
+    border-color: rgba(253, 224, 71, 0.35);
+    background: rgba(113, 63, 18, 0.35);
+}
+.guild-crystal-col.is-rank-2 .guild-crystal-rank__label {
+    color: #e5e7eb;
+    border-color: rgba(209, 213, 219, 0.35);
+}
+.guild-crystal-col.is-rank-3 .guild-crystal-rank__label {
+    color: #fdba74;
+    border-color: rgba(251, 146, 60, 0.35);
+}
+
+/* ── Header (fixed min-height ensures all columns align at tube top) ───────── */
+.guild-crystal-header {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    min-height: 170px;
+    justify-content: flex-end;
+    padding-bottom: 0.6rem;
+    gap: 0.3rem;
+    width: 100%;
+}
+
+/* ── Emblem wrapper (click target) ─────────────────────────────────────────── */
+.guild-crystal-emblem-wrapper {
+    position: relative;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    outline: none;
+}
+.guild-crystal-emblem-wrapper:focus-visible {
+    outline: 2px dashed rgba(255,255,255,0.5);
+    outline-offset: 4px;
+    border-radius: 9999px;
+}
+
+/* Emblem image */
+.guild-crystal-emblem {
+    width: 118px;
+    height: 118px;
+    border-radius: 9999px;
+    object-fit: cover;
+    border: 3.5px solid transparent;
+    transition: transform 0.45s cubic-bezier(0.34,1.56,0.64,1), box-shadow 0.35s ease;
+    position: relative;
+    z-index: 2;
+}
+.guild-crystal-emblem-fallback {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 118px;
+    height: 118px;
+    border-radius: 9999px;
+    border: 3.5px solid rgba(255,255,255,0.3);
+    transition: transform 0.45s cubic-bezier(0.34,1.56,0.64,1), box-shadow 0.35s ease;
+    position: relative;
+    z-index: 2;
+}
+.guild-crystal-emblem-initial {
+    font-family: 'Fredoka One', cursive;
+    font-size: 2.35rem;
+    font-weight: 700;
+    line-height: 1;
+    text-shadow: 0 2px 12px rgba(0,0,0,0.35);
+}
+
+/* Animated ring that glows on hover/active */
+.guild-emblem-ring {
+    position: absolute;
+    inset: -8px;
+    border-radius: 9999px;
+    border: 2.5px solid transparent;
+    opacity: 0;
+    transition: opacity 0.3s ease, transform 0.45s cubic-bezier(0.34,1.56,0.64,1);
+    pointer-events: none;
+    z-index: 1;
+}
+.guild-crystal-emblem-wrapper:hover .guild-emblem-ring,
+.guild-active .guild-emblem-ring {
+    opacity: 1;
+    animation: ring-spin 2.5s linear infinite;
+}
+@keyframes ring-spin {
+    from { transform: rotate(0deg);   }
+    to   { transform: rotate(360deg); }
+}
+
+
+/* Grow on active */
+.guild-active .guild-crystal-emblem,
+.guild-active .guild-crystal-emblem-fallback {
+    transform: scale(1.85);
+    box-shadow: 0 0 50px var(--glow-color, rgba(255,255,255,0.5)),
+                0 0 100px var(--glow-color, rgba(255,255,255,0.25)) !important;
+}
+
+/* Hover (not active) */
+.guild-crystal-emblem-wrapper:hover .guild-crystal-emblem,
+.guild-crystal-emblem-wrapper:hover .guild-crystal-emblem-fallback {
+    transform: scale(1.12);
+}
+
+/* Guild name */
+.guild-crystal-name {
+    font-family: 'Fredoka One', cursive;
+    font-size: 1.05rem;
+    font-weight: 700;
+    text-align: center;
+    line-height: 1.2;
+    margin-top: 0.6rem;
+    text-shadow: 0 1px 6px rgba(0,0,0,0.5);
+}
+
+/* ── Crystal tube wrap (fixed height → tubes always same size + position) ─── */
+.guild-crystal-tube-wrap {
+    position: relative;
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+    height: 320px;
+    width: 100%;
+    padding-top: 0.25rem;
+    padding-bottom: 18px;   /* room for the pedestal glow below */
+}
+
+/* Pedestal base glow — absolutely positioned so it doesn't displace the tube */
+.guild-crystal-tube-wrap::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 90px;
+    height: 14px;
+    border-radius: 50%;
+    background: radial-gradient(ellipse, rgba(255,200,80,0.50) 0%, transparent 70%);
+    filter: blur(4px);
+    animation: pedestal-glow 2.5s ease-in-out infinite alternate;
+}
+@keyframes pedestal-glow {
+    from { opacity: 0.5; transform: translateX(-50%) scaleX(0.9); }
+    to   { opacity: 1.0; transform: translateX(-50%) scaleX(1.1); }
+}
+
+/* Glass tube body */
+.guild-crystal-tube {
+    position: relative;
+    width: 56px;
+    height: 100%;
+    border-radius: 9999px;
+    border: 2.5px solid rgba(200,200,255,0.25);
+    background: linear-gradient(
+        to bottom,
+        rgba(255,255,255,0.18) 0%,
+        rgba(220,230,255,0.08) 50%,
+        rgba(200,215,255,0.05) 100%
+    );
+    overflow: hidden;
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+}
+
+/* Crystal / gem fill */
+.guild-crystal-fill {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 5%;
+    border-radius: inherit;
+    transition: height 1.5s cubic-bezier(0.34, 1.3, 0.64, 1);
+    will-change: height;
+}
+
+/* Moving shimmer sweep */
+.guild-crystal-shimmer {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(
+        115deg,
+        transparent    30%,
+        rgba(255,255,255,0.5) 50%,
+        transparent    70%
+    );
+    background-size: 200% 100%;
+    animation: crystal-shimmer 2s linear infinite;
+    border-radius: inherit;
+}
+@keyframes crystal-shimmer {
+    0%   { background-position: -200% 0; }
+    100% { background-position:  200% 0; }
+}
+
+/* Rising bubbles */
+.guild-crystal-bubbles {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    overflow: hidden;
+}
+.guild-bubble {
+    position: absolute;
+    bottom: 2px;
+    left: var(--left, 30%);
+    width:  var(--size, 5px);
+    height: var(--size, 5px);
+    border-radius: 50%;
+    animation: bubble-rise 2.4s var(--delay, 0s) ease-in infinite;
+    opacity: 0;
+}
+@keyframes bubble-rise {
+    0%   { bottom: 4px;  opacity: 0;   }
+    15%  { opacity: 0.8; }
+    85%  { opacity: 0.3; }
+    100% { bottom: 96%;  opacity: 0;   }
+}
+
+/* Glass highlight streak */
+.guild-crystal-glass-shine {
+    position: absolute;
+    top: 3%;
+    left: 18%;
+    width: 26%;
+    height: 50%;
+    background: linear-gradient(to bottom, rgba(255,255,255,0.55) 0%, transparent 100%);
+    border-radius: 9999px;
+    pointer-events: none;
+}
+
+/* Soft glow at the top of the tube */
+.guild-crystal-glow-top {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 40%;
+    pointer-events: none;
+    border-radius: inherit;
+}
+
+/* ── Bottom stats ─────────────────────────────────────────────────────────── */
+.guild-crystal-count {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin-top: 0.85rem;
+    gap: 0.05rem;
+}
+.guild-crystal-count-num {
+    font-family: 'Fredoka One', cursive;
+    font-size: 1.9rem;
+    font-weight: 700;
+    line-height: 1;
+    text-shadow: 0 1px 6px rgba(0,0,0,0.4);
+}
+.guild-crystal-count-label {
+    font-size: 0.65rem;
+    color: rgba(255,255,255,0.5);
+    font-weight: 500;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+}
+.guild-power-info-btn {
+    display: inline-grid;
+    place-items: center;
+    margin-left: 0.35rem;
+    width: 18px;
+    height: 18px;
+    border-radius: 9999px;
+    border: 1px solid rgba(255,255,255,0.22);
+    background: rgba(255,255,255,0.08);
+    color: rgba(255,255,255,0.8);
+    font-weight: 800;
+    font-size: 0.62rem;
+    cursor: pointer;
+    padding: 0;
+    transition: transform 160ms ease, background 160ms ease, border-color 160ms ease;
+}
+.guild-power-info-btn:hover {
+    transform: translateY(-1px) scale(1.06);
+    background: rgba(255,255,255,0.14);
+    border-color: rgba(255,255,255,0.35);
+}
+/* ── Live Power Change Indicators (persistent trend) ──────────────────────── */
+
+/* Wrapper: position arrows relative to the power number */
+.guild-crystal-count {
+    position: relative;
+}
+
+/* Arrow indicator — always visible when present, with entrance + idle pulse */
+.guild-crystal-count-arrow {
+    position: absolute;
+    top: -4px;
+    right: -8px;
+    display: inline-flex;
+    align-items: center;
+    gap: 2px;
+    font-size: 0.62rem;
+    font-weight: 800;
+    letter-spacing: 0.02em;
+    padding: 1px 5px;
+    border-radius: 999px;
+    pointer-events: none;
+    opacity: 0;
+    transform: translateY(6px) scale(0.7);
+    will-change: opacity, transform;
+    z-index: 2;
+    white-space: nowrap;
+}
+
+.guild-crystal-count-arrow--up {
+    color: #4ade80;
+    background: rgba(74, 222, 128, 0.15);
+    border: 1px solid rgba(74, 222, 128, 0.3);
+    text-shadow: 0 0 8px rgba(74, 222, 128, 0.6);
+}
+
+.guild-crystal-count-arrow--down {
+    color: #f87171;
+    background: rgba(248, 113, 113, 0.15);
+    border: 1px solid rgba(248, 113, 113, 0.3);
+    text-shadow: 0 0 8px rgba(248, 113, 113, 0.6);
+}
+
+.guild-crystal-count-arrow__delta {
+    font-size: 0.58rem;
+    opacity: 0.85;
+}
+
+/* Entrance + persistent idle pulse for up arrow */
+.guild-crystal-count-arrow--up.guild-crystal-count-arrow--visible {
+    animation: guild-arrow-enter-up 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) forwards,
+               guild-arrow-idle-up 2.8s ease-in-out 0.5s infinite;
+}
+
+/* Entrance + persistent idle pulse for down arrow */
+.guild-crystal-count-arrow--down.guild-crystal-count-arrow--visible {
+    animation: guild-arrow-enter-down 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) forwards,
+               guild-arrow-idle-down 2.8s ease-in-out 0.5s infinite;
+}
+
+@keyframes guild-arrow-enter-up {
+    0% { opacity: 0; transform: translateY(-6px) scale(0.7); }
+    100% { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@keyframes guild-arrow-enter-down {
+    0% { opacity: 0; transform: translateY(6px) scale(0.7); }
+    100% { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+/* Gentle floating idle pulse — up arrow bobs upward */
+@keyframes guild-arrow-idle-up {
+    0%, 100% { transform: translateY(0) scale(1); opacity: 1; }
+    50% { transform: translateY(-2px) scale(1.05); opacity: 0.85; }
+}
+
+/* Gentle floating idle pulse — down arrow bobs downward */
+@keyframes guild-arrow-idle-down {
+    0%, 100% { transform: translateY(0) scale(1); opacity: 1; }
+    50% { transform: translateY(2px) scale(1.05); opacity: 0.85; }
+}
+
+/* Persistent subtle glow on the power number matching trend direction */
+.guild-crystal-count-num {
+    transition: text-shadow 0.6s ease;
+}
+
+.guild-power-boost {
+    text-shadow: 0 0 4px rgba(0,0,0,0.4), 0 0 10px rgba(74, 222, 128, 0.35);
+}
+
+.guild-power-drop {
+    text-shadow: 0 0 4px rgba(0,0,0,0.4), 0 0 10px rgba(248, 113, 113, 0.35);
+}
+
+/* Rank-change badge — always visible when present */
+.guild-crystal-rank-change-badge {
+    position: absolute;
+    top: 22px;
+    right: -10px;
+    display: inline-flex;
+    align-items: center;
+    gap: 2px;
+    font-size: 0.56rem;
+    font-weight: 700;
+    padding: 1px 5px;
+    border-radius: 999px;
+    pointer-events: none;
+    opacity: 0;
+    transform: translateY(4px) scale(0.7);
+    will-change: opacity, transform;
+    z-index: 2;
+    white-space: nowrap;
+    color: #fcd34d;
+    background: rgba(252, 211, 78, 0.12);
+    border: 1px solid rgba(252, 211, 78, 0.25);
+    text-shadow: 0 0 6px rgba(252, 211, 78, 0.5);
+}
+
+.guild-crystal-rank-change-badge--visible {
+    animation: guild-rank-badge-enter 0.45s cubic-bezier(0.34, 1.56, 0.64, 1) forwards,
+               guild-rank-badge-idle 3.2s ease-in-out 0.6s infinite;
+}
+
+@keyframes guild-rank-badge-enter {
+    0% { opacity: 0; transform: translateY(4px) scale(0.7) rotate(-8deg); }
+    100% { opacity: 1; transform: translateY(0) scale(1) rotate(0deg); }
+}
+
+@keyframes guild-rank-badge-idle {
+    0%, 100% { transform: translateY(0) scale(1); opacity: 1; }
+    50% { transform: translateY(-1px) scale(1.04); opacity: 0.8; }
+}
+
+/* Rank label flash when guild changes position */
+.guild-crystal-col.guild-rank-changed .guild-crystal-rank__label {
+    animation: guild-rank-label-flash 1.2s ease-out;
+}
+
+@keyframes guild-rank-label-flash {
+    0% { box-shadow: 0 0 12px rgba(252, 211, 78, 0.6), 0 0 24px rgba(252, 211, 78, 0.3); transform: scale(1.12); }
+    50% { box-shadow: 0 0 8px rgba(252, 211, 78, 0.3); transform: scale(1.04); }
+    100% { box-shadow: none; transform: scale(1); }
+}
+
+/* Column pulse when rank changes */
+.guild-crystal-col.guild-rank-changed {
+    animation: guild-col-pulse 0.8s ease-out;
+}
+
+@keyframes guild-col-pulse {
+    0% { filter: brightness(1.2) saturate(1.3); transform: scale(1.02); }
+    100% { filter: brightness(1) saturate(1); transform: scale(1); }
+}
+
+/* Reduced motion: suppress all indicator animations */
+@media (prefers-reduced-motion: reduce) {
+    .guild-crystal-count-arrow,
+    .guild-crystal-rank-change-badge,
+    .guild-crystal-col.guild-rank-changed,
+    .guild-crystal-col.guild-rank-changed .guild-crystal-rank__label {
+        animation: none !important;
+    }
+    .guild-crystal-count-arrow--visible,
+    .guild-crystal-rank-change-badge--visible {
+        opacity: 1;
+        transform: none;
+    }
+}
+
+
+/* Guild spotlight — same glass circle as Guild Power “?” */
+.guild-analytics-info-btn {
+    margin-left: 0;
+    flex-shrink: 0;
+    font-family: Georgia, 'Times New Roman', serif;
+    font-style: italic;
+    font-size: 0.68rem;
+    line-height: 1;
+    font-weight: 700;
+}
+
+/* Wrapper: standings row — Fortune's Wheel (left), title (center), Magical Analytics (right) */
+.guild-crystal-hall {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 1.5rem;
+    width: 100%;
+    margin-top: 2rem;
+}
+.guild-crystal-arena-header {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+    align-items: center;
+    gap: 0.75rem 1rem;
+    padding: 0 0.25rem;
+    margin-bottom: 0.35rem;
+}
+.guild-crystal-fortune-wrap {
+    display: flex;
+    justify-content: flex-start;
+    min-width: 0;
+}
+.guild-crystal-expand-all-wrap {
+    display: flex;
+    justify-content: flex-end;
+    min-width: 0;
+}
+.guild-crystal-arena-title {
+    justify-self: center;
+    text-align: center;
+    font-size: 1.75rem;
+    color: #fff7d6;
+    text-shadow: 0 0 20px rgba(251, 191, 36, 0.3);
+    margin: 0;
+    width: 100%;
+    max-width: 16rem;
+}
+
+.guild-crystal-expand-btn__col {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.12rem;
+    min-width: 0;
+    text-align: left;
+}
+.guild-crystal-expand-btn__sub {
+    display: block;
+    font-size: 0.58rem;
+    font-weight: 800;
+    letter-spacing: 0.07em;
+    text-transform: uppercase;
+    color: rgba(255,255,255,0.55);
+    line-height: 1.2;
+    max-width: 12.5rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.guild-crystal-expand-btn__sub[data-state="ready"] {
+    color: #86efac;
+}
+.guild-crystal-expand-btn__sub[data-state="locked"] {
+    color: #fecaca;
+}
+.guild-crystal-expand-btn__sub[data-state="waiting"] {
+    color: rgba(253, 224, 71, 0.85);
+}
+
+.guild-crystal-expand-btn--fortune {
+    gap: 0.65rem;
+    padding: 0.55rem 1.15rem 0.55rem 0.85rem;
+    max-width: 100%;
+}
+.guild-crystal-expand-btn--fortune .guild-crystal-expand-btn__icon {
+    font-size: 1rem;
+    transition: transform 0.6s linear;
+}
+.guild-crystal-expand-btn--fortune[data-fw-state="ready"] {
+    border-color: rgba(52, 211, 153, 0.45);
+    box-shadow:
+        0 4px 15px rgba(0,0,0,0.25),
+        0 0 0 1px rgba(52, 211, 153, 0.12),
+        inset 0 1px 1px rgba(255,255,255,0.12);
+}
+.guild-crystal-expand-btn--fortune[data-fw-state="ready"] .guild-crystal-expand-btn__icon {
+    color: #86efac;
+    animation: guild-fortune-btn-glow 2.2s ease-in-out infinite;
+}
+.guild-crystal-expand-btn--fortune[data-fw-state="locked"] {
+    opacity: 0.92;
+    border-color: rgba(248, 113, 113, 0.22);
+}
+.guild-crystal-expand-btn--fortune[data-fw-state="waiting"] {
+    border-color: rgba(147, 197, 253, 0.22);
+}
+
+@keyframes guild-fortune-btn-glow {
+    0%, 100% { filter: drop-shadow(0 0 6px rgba(52, 211, 153, 0.35)); transform: rotate(0deg); }
+    50% { filter: drop-shadow(0 0 14px rgba(52, 211, 153, 0.65)); transform: rotate(180deg); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .guild-crystal-expand-btn--fortune[data-fw-state="ready"] .guild-crystal-expand-btn__icon {
+        animation: none !important;
+    }
+}
+
+@media (max-width: 900px) {
+    .guild-crystal-arena-header {
+        grid-template-columns: 1fr;
+        justify-items: stretch;
+    }
+    .guild-crystal-fortune-wrap,
+    .guild-crystal-expand-all-wrap {
+        width: 100%;
+        justify-content: center;
+    }
+    .guild-crystal-arena-title {
+        order: -1;
+        max-width: none;
+    }
+    .guild-crystal-expand-btn--fortune,
+    #guild-stats-expand-toggle {
+        width: 100%;
+        justify-content: center;
+    }
+    .guild-crystal-expand-btn__col {
+        align-items: center;
+        text-align: center;
+    }
+    .guild-crystal-expand-btn__sub {
+        white-space: normal;
+        max-width: none;
+    }
+}
+.guild-crystal-expand-btn {
+    align-self: center;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.75rem;
+    padding: 0.6rem 1.25rem;
+    border-radius: 1.25rem;
+    border: 1px solid rgba(255,255,255,0.15);
+    background: rgba(15, 23, 42, 0.45);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    color: rgba(255,255,255,0.9);
+    font-size: 0.72rem;
+    font-weight: 800;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    cursor: pointer;
+    box-shadow: 
+        0 4px 15px rgba(0,0,0,0.25),
+        inset 0 1px 1px rgba(255,255,255,0.1);
+    transition: all 0.3s cubic-bezier(0.23, 1, 0.32, 1);
+    position: relative;
+    overflow: hidden;
+}
+.guild-crystal-expand-btn::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(135deg, rgba(255,255,255,0.1), transparent);
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+.guild-crystal-expand-btn:hover {
+    transform: translateY(-2px);
+    background: rgba(255,255,255,0.08);
+    border-color: rgba(251,191,36,0.4);
+    color: #fff;
+    box-shadow: 
+        0 8px 25px rgba(251, 191, 36, 0.15),
+        inset 0 1px 1px rgba(255,255,255,0.15);
+}
+.guild-crystal-expand-btn:hover::after {
+    opacity: 1;
+}
+.guild-crystal-expand-btn__icon {
+    font-size: 0.9rem;
+    color: #fcd34d;
+    filter: drop-shadow(0 0 8px rgba(251, 191, 36, 0.5));
+}
+.guild-crystal-expand-btn__chev {
+    font-size: 0.65rem;
+    opacity: 0.7;
+    transition: transform 0.3s ease;
+}
+#guild-stats-expand-toggle[aria-expanded="true"] .guild-crystal-expand-btn__chev {
+    transform: rotate(180deg);
+}
+#guild-stats-expand-toggle[aria-expanded="true"] {
+    background: rgba(251,191,36,0.15);
+    border-color: rgba(251,191,36,0.5);
+    color: #fcd34d;
+}
+.guild-crystal-expand-btn--global {
+    margin-top: 0;
+}
+
+.guild-crystal-details-expander {
+    display: grid;
+    grid-template-rows: 0fr;
+    opacity: 0;
+    transition: grid-template-rows 0.5s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.4s ease;
+    overflow: hidden;
+    padding-inline: 2px;
+    box-sizing: border-box;
+}
+.guild-crystal-details-expander.is-expanded {
+    grid-template-rows: 1fr;
+    opacity: 1;
+}
+.guild-crystal-details {
+    min-height: 0;
+    min-width: 0;
+    width: 100%;
+    margin-top: 1rem;
+    padding-top: 0.75rem;
+    border-top: 1px solid rgba(255,255,255,0.1);
+    box-sizing: border-box;
+}
+.guild-crystal-details-inner {
+    display: flex;
+    flex-direction: column;
+    gap: 0.55rem;
+    width: 100%;
+    min-width: 0;
+}
+
+.guild-crystal-details .guild-crystal-metrics {
+    margin-top: 0;
+}
+
+/* Roster strip — bridges metric cards ↔ wheel heroes (guild accent via --guild-roster-accent) */
+.guild-crystal-roster-ribbon {
+    --_accent: var(--guild-roster-accent, #fcd34d);
+    display: flex;
+    align-items: stretch;
+    margin-top: 0.42rem;
+    border-radius: 0.72rem;
+    border: 1px solid rgba(255,255,255,0.13);
+    background:
+        linear-gradient(145deg, rgba(255,255,255,0.06) 0%, transparent 48%),
+        rgba(8, 6, 20, 0.55);
+    box-shadow:
+        inset 0 1px 0 rgba(255,255,255,0.1),
+        0 2px 10px rgba(0,0,0,0.2);
+    overflow: hidden;
+    min-width: 0;
+}
+.guild-crystal-roster-ribbon__seg {
+    flex: 1 1 50%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.18rem;
+    padding: 0.5rem 0.42rem 0.48rem;
+    text-align: center;
+    min-width: 0;
+}
+.guild-crystal-roster-ribbon__seg--glory {
+    background: linear-gradient(
+        160deg,
+        color-mix(in srgb, var(--_accent) 12%, transparent) 0%,
+        transparent 55%
+    );
+}
+.guild-crystal-roster-ribbon__rule {
+    width: 1px;
+    flex-shrink: 0;
+    align-self: stretch;
+    margin-block: 0.38rem;
+    background: linear-gradient(
+        to bottom,
+        transparent 0%,
+        rgba(255,255,255,0.22) 22%,
+        rgba(255,255,255,0.22) 78%,
+        transparent 100%
+    );
+}
+.guild-crystal-roster-ribbon__eyebrow {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.28rem;
+    font-size: 0.52rem;
+    font-weight: 800;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: rgba(255,255,255,0.62);
+}
+.guild-crystal-roster-ribbon__eyebrow i {
+    opacity: 0.78;
+    font-size: 0.58rem;
+}
+.guild-crystal-roster-ribbon__figure {
+    font-family: 'Fredoka One', cursive;
+    font-size: 1.12rem;
+    font-weight: 700;
+    line-height: 1;
+    color: rgba(255,255,255,0.96);
+    text-shadow: 0 1px 10px rgba(0,0,0,0.35);
+}
+.guild-crystal-roster-ribbon__figure--accent {
+    color: color-mix(in srgb, var(--_accent) 88%, white);
+}
+.guild-crystal-roster-ribbon__fine {
+    font-size: 0.62rem;
+    font-weight: 600;
+    line-height: 1.25;
+    color: rgba(255,255,255,0.45);
+}
+
+
+/* ── Power breakdown metrics (stacked rows — readable at a glance) ───────── */
+.guild-crystal-metrics {
+    width: 100%;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    margin-top: 0.65rem;
+}
+.guild-crystal-metric {
+    border: 1px solid rgba(255,255,255,0.12);
+    border-left: 3px solid color-mix(in srgb, var(--guild-metric-accent, #fff) 55%, transparent);
+    background: rgba(0,0,0,0.22);
+    border-radius: 0.65rem;
+    padding: 0.55rem 0.65rem 0.5rem;
+    text-align: left;
+    min-width: 0;
+}
+.guild-crystal-metric__label {
+    font-size: 0.62rem;
+    color: rgba(255,255,255,0.72);
+    font-weight: 800;
+    letter-spacing: 0.04em;
+    line-height: 1.25;
+}
+.guild-crystal-metric__value {
+    margin-top: 0.25rem;
+    font-size: 1rem;
+    color: rgba(255,255,255,0.96);
+    font-weight: 900;
+    font-family: 'Fredoka One', cursive;
+    line-height: 1.15;
+    min-width: 0;
+    max-width: 100%;
+    overflow-wrap: anywhere;
+}
+.guild-crystal-metric__unit {
+    font-size: 0.85em;
+    opacity: 0.85;
+    vertical-align: middle;
+}
+.guild-crystal-metric__hint {
+    margin-top: 0.28rem;
+    font-size: 0.58rem;
+    color: rgba(255,255,255,0.42);
+    font-weight: 600;
+    line-height: 1.3;
+    overflow-wrap: break-word;
+}
+
+/* ── Fortune's Wheel boons panel (expandable guild column) ──────────────── */
+.guild-crystal-effects-panel {
+    --efx-accent: var(--guild-effects-accent, #fbbf24);
+    margin-top: 0.5rem;
+    border-radius: 0.82rem;
+    border: 1px solid rgba(255,255,255,0.14);
+    background:
+        linear-gradient(158deg,
+            color-mix(in srgb, var(--efx-accent) 16%, transparent) 0%,
+            transparent 48%),
+        linear-gradient(to bottom, rgba(255,255,255,0.07) 0%, transparent 36%),
+        rgba(10, 6, 26, 0.62);
+    box-shadow:
+        inset 0 1px 0 rgba(255,255,255,0.11),
+        0 3px 18px rgba(0,0,0,0.28),
+        0 0 32px color-mix(in srgb, var(--efx-accent) 12%, transparent);
+    overflow: hidden;
+    min-width: 0;
+}
+.guild-crystal-effects-panel--balanced {
+    min-height: 5.75rem;
+}
+.guild-crystal-effects-panel__header {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.5rem;
+    padding: 0.55rem 0.62rem 0.38rem;
+    border-bottom: 1px solid rgba(255,255,255,0.08);
+    background: linear-gradient(to bottom, rgba(251,191,36,0.06) 0%, transparent 92%);
+}
+.guild-crystal-effects-panel__wheel {
+    flex-shrink: 0;
+    width: 2.05rem;
+    height: 2.05rem;
+    display: grid;
+    place-items: center;
+    border-radius: 50%;
+    font-size: 0.92rem;
+    color: rgba(253,230,138,0.95);
+    border: 1px solid color-mix(in srgb, var(--efx-accent) 45%, rgba(255,255,255,0.35));
+    background:
+        radial-gradient(circle at 30% 25%, rgba(255,255,255,0.35) 0%, transparent 45%),
+        linear-gradient(145deg, rgba(251,191,36,0.35) 0%, rgba(88,28,135,0.35) 100%);
+    box-shadow:
+        inset 0 2px 4px rgba(255,255,255,0.15),
+        0 0 16px color-mix(in srgb, var(--efx-accent) 35%, transparent);
+    animation: guild-efx-wheel-pulse 3.2s ease-in-out infinite;
+}
+@keyframes guild-efx-wheel-pulse {
+    0%, 100% {
+        transform: scale(1);
+        filter: brightness(1) drop-shadow(0 0 4px rgba(251,191,36,0.35));
+    }
+    50% {
+        transform: scale(1.04);
+        filter: brightness(1.06) drop-shadow(0 0 10px color-mix(in srgb, var(--efx-accent) 55%, transparent));
+    }
+}
+.guild-crystal-effects-panel__wheel i {
+    animation: guild-efx-dharma-spin 22s linear infinite;
+}
+@keyframes guild-efx-dharma-spin {
+    from { transform: rotate(0deg); }
+    to   { transform: rotate(360deg); }
+}
+.guild-crystal-effects-panel__headlines {
+    min-width: 0;
+    flex: 1;
+    padding-top: 0.06rem;
+}
+.guild-crystal-effects-panel__title {
+    margin: 0;
+    font-family: 'Fredoka One', cursive;
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: rgba(255,247,214,0.94);
+    text-shadow: 0 2px 10px rgba(0,0,0,0.35);
+}
+.guild-crystal-effects-panel__subtitle {
+    margin: 0.08rem 0 0;
+    font-size: 0.55rem;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    color: rgba(255,255,255,0.48);
+    line-height: 1.35;
+}
+.guild-crystal-effects-panel__chips {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-start;
+    align-content: flex-start;
+    gap: 0.38rem;
+    min-height: 2.85rem;
+    padding: 0.55rem 0.62rem 0.62rem;
+}
+.guild-crystal-effects-panel__chips:has(> .guild-crystal-effects-panel__empty) {
+    justify-content: center;
+}
+.guild-crystal-effects-panel__empty {
+    margin: 0 auto;
+    text-align: center;
+    align-self: center;
+    justify-self: center;
+    padding: 0.45rem 0.35rem 0;
+    font-size: 0.62rem;
+    font-weight: 600;
+    line-height: 1.48;
+    color: rgba(255,255,255,0.42);
+}
+.guild-crystal-effects-panel__empty > span:first-child {
+    display: inline-block;
+    margin-right: 0.25rem;
+    color: rgba(251,191,36,0.55);
+}
+.guild-crystal-effect-chip {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.38rem;
+    max-width: 100%;
+    min-width: 0;
+    overflow: visible;
+    font-size: 0.58rem;
+    font-weight: 800;
+    letter-spacing: 0.03em;
+    padding: 0.34rem 0.58rem 0.34rem 0.5rem;
+    border-radius: 9999px;
+    border: 1px solid color-mix(in srgb, var(--efx-accent) 28%, rgba(255,255,255,0.15));
+    background:
+        linear-gradient(120deg, rgba(255,255,255,0.07) 0%, transparent 45%),
+        rgba(17,14,37,0.85);
+    color: rgba(255,252,246,0.92);
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.08), 0 2px 8px rgba(0,0,0,0.18);
+    cursor: help;
+    outline: none;
+}
+.guild-crystal-effect-chip:focus-visible {
+    outline: 2px dashed rgba(253,230,138,0.55);
+    outline-offset: 2px;
+}
+.guild-crystal-effect-chip__ico {
+    flex-shrink: 0;
+    width: 1rem;
+    text-align: center;
+    opacity: 0.9;
+    font-size: 0.66rem;
+    line-height: 1;
+    color: color-mix(in srgb, var(--efx-accent) 82%, rgba(255,247,229,0.85));
+}
+.guild-crystal-effect-chip__label {
+    min-width: 0;
+    flex: 1 1 auto;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.guild-crystal-effect-chip__pulse {
+    width: 0.42rem;
+    height: 0.42rem;
+    flex-shrink: 0;
+    border-radius: 50%;
+    background: radial-gradient(circle at 35% 30%, rgba(255,255,255,0.85) 0%, transparent 52%),
+        color-mix(in srgb, var(--efx-accent) 92%, transparent);
+    box-shadow: 0 0 12px color-mix(in srgb, var(--efx-accent) 55%, transparent);
+    animation: guild-efx-chip-pulse 1.85s ease-in-out infinite;
+}
+@keyframes guild-efx-chip-pulse {
+    0%, 100% { opacity: 0.55; transform: scale(1); }
+    50%      { opacity: 1;   transform: scale(1.12); }
+}
+.guild-crystal-effect-chip--more {
+    border-color: rgba(251,191,36,0.42);
+    background:
+        linear-gradient(130deg, rgba(251,191,36,0.18) 0%, rgba(253,224,71,0.06) 100%),
+        rgba(43,37,26,0.88);
+    color: #fcd34d;
+    cursor: help;
+}
+.guild-crystal-effect-chip--more .guild-crystal-effect-chip__ico {
+    color: rgba(253,230,138,0.95);
+}
+.guild-crystal-effect-chip--more .guild-crystal-effect-chip__pulse {
+    display: none;
+}
+
+
+/* ── Top champion (#1 Glory from stars — above Legends roster) ───────────── */
+.guild-crystal-champion-panel {
+    --cx-accent: var(--guild-champion-accent, #fcd34d);
+    margin-top: 0.5rem;
+    border-radius: 0.82rem;
+    border: 1px solid rgba(255,255,255,0.14);
+    background:
+        linear-gradient(165deg,
+            color-mix(in srgb, var(--cx-accent) 18%, transparent) 0%,
+            transparent 55%),
+        linear-gradient(to bottom, rgba(255,255,255,0.08) 0%, transparent 40%),
+        rgba(14, 10, 32, 0.68);
+    box-shadow:
+        inset 0 1px 0 rgba(255,255,255,0.11),
+        0 3px 14px rgba(0,0,0,0.24),
+        0 0 30px color-mix(in srgb, var(--cx-accent) 12%, transparent);
+    overflow: hidden;
+    min-width: 0;
+}
+.guild-crystal-champion-panel--balanced {
+    min-height: 8.75rem;
+}
+.guild-crystal-champion-panel__header {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.45rem;
+    padding: 0.48rem 0.55rem 0.42rem;
+    border-bottom: 1px solid rgba(255,255,255,0.09);
+    background: linear-gradient(to bottom, color-mix(in srgb, var(--cx-accent) 10%, transparent), transparent);
+}
+.guild-crystal-champion-panel__burst {
+    flex-shrink: 0;
+    width: 2.05rem;
+    height: 2.05rem;
+    display: grid;
+    place-items: center;
+    border-radius: 50%;
+    font-size: 0.86rem;
+    color: rgba(253,230,138,0.98);
+    border: 1px solid color-mix(in srgb, var(--cx-accent) 52%, rgba(255,255,255,0.28));
+    background:
+        radial-gradient(circle at 30% 25%, rgba(255,255,255,0.35) 0%, transparent 50%),
+        linear-gradient(148deg,
+            color-mix(in srgb, var(--cx-accent) 48%, transparent) 0%,
+            rgba(55,41,94,0.85) 100%);
+    box-shadow:
+        inset 0 2px 4px rgba(255,255,255,0.14),
+        0 0 16px color-mix(in srgb, var(--cx-accent) 32%, transparent);
+    animation: guild-champion-crown-pulse 3.8s ease-in-out infinite;
+}
+@keyframes guild-champion-crown-pulse {
+    0%, 100% { transform: scale(1);   filter: brightness(1); }
+    50%      { transform: scale(1.05); filter: brightness(1.06); }
+}
+.guild-crystal-champion-panel__headlines {
+    min-width: 0;
+    flex: 1;
+    padding-top: 0.06rem;
+}
+.guild-crystal-champion-panel__info {
+    align-self: center;
+}
+.guild-crystal-champion-panel__title {
+    margin: 0;
+    font-family: 'Fredoka One', cursive;
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: rgba(255,252,237,0.96);
+    text-shadow: 0 2px 10px rgba(0,0,0,0.35);
+}
+.guild-crystal-champion-panel__subtitle {
+    margin: 0.08rem 0 0;
+    font-size: 0.55rem;
+    font-weight: 600;
+    letter-spacing: 0.05em;
+    color: rgba(255,255,255,0.5);
+    line-height: 1.35;
+}
+.guild-crystal-champion-panel__body {
+    padding: 0.48rem 0.52rem 0.58rem;
+}
+.guild-crystal-champion-panel__vacant {
+    margin: 0;
+    padding: 0.55rem 0.42rem;
+    text-align: center;
+    font-size: 0.62rem;
+    font-weight: 600;
+    font-style: italic;
+    line-height: 1.5;
+    color: rgba(255,255,255,0.4);
+}
+.guild-crystal-champion-panel__card {
+    display: flex;
+    align-items: center;
+    gap: 0.52rem;
+    width: 100%;
+    min-width: 0;
+    padding: 0.48rem 0.5rem 0.45rem;
+    border-radius: 0.76rem;
+    border: 1px solid rgba(255,255,255,0.12);
+    border-left: 3px solid color-mix(in srgb, var(--hero-tile-accent, #fde047) 62%, transparent);
+    background:
+        linear-gradient(100deg,
+            color-mix(in srgb, var(--hero-tile-accent, #fde047) 12%, transparent) 0%,
+            transparent 62%),
+        rgba(17,24,39,0.55);
+    box-shadow:
+        inset 0 1px 0 rgba(255,255,255,0.08),
+        0 2px 14px rgba(0,0,0,0.22);
+}
+.guild-crystal-champion-panel__avatar {
+    flex-shrink: 0;
+    width: 2.68rem;
+    height: 2.68rem;
+    border-radius: 50%;
+    overflow: hidden;
+    border: 2px solid color-mix(in srgb, var(--hero-tile-accent, #fde047) 70%, rgba(255,255,255,0.35));
+    background: rgba(15,23,42,0.9);
+    box-shadow:
+        0 0 0 1px rgba(0,0,0,0.38),
+        0 4px 12px rgba(0,0,0,0.35),
+        0 0 18px color-mix(in srgb, var(--hero-tile-accent, #fde047) 18%, transparent);
+}
+.guild-crystal-champion-panel__avatar-img {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+.guild-crystal-champion-panel__avatar-fallback {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    height: 100%;
+    font-family: 'Fredoka One', cursive;
+    font-weight: 800;
+    font-size: 1.05rem;
+    color: rgba(255,255,255,0.96);
+    background: linear-gradient(
+        150deg,
+        color-mix(in srgb, var(--hero-tile-accent, #fde047) 60%, transparent) 0%,
+        rgba(15,23,42,0.95) 100%
+    );
+}
+.guild-crystal-champion-panel__text {
+    min-width: 0;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 0.12rem;
+    text-align: left;
+}
+.guild-crystal-champion-panel__name {
+    font-weight: 900;
+    font-size: 0.75rem;
+    letter-spacing: 0.02em;
+    color: color-mix(in srgb, var(--hero-tile-accent, #fde047) 90%, white);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.guild-crystal-champion-panel__glory {
+    display: flex;
+    align-items: baseline;
+    flex-wrap: wrap;
+    gap: 0.2rem;
+}
+.guild-crystal-champion-panel__glory-num {
+    font-family: 'Fredoka One', cursive;
+    font-size: 1.06rem;
+    font-weight: 700;
+    line-height: 1;
+    letter-spacing: 0.03em;
+    color: rgba(255,246,217,0.95);
+}
+.guild-crystal-champion-panel__glory-unit {
+    font-size: 0.92rem;
+    opacity: 0.9;
+    line-height: 1;
+}
+.guild-crystal-champion-panel__glory-hint {
+    font-size: 0.58rem;
+    font-weight: 700;
+    letter-spacing: 0.09em;
+    text-transform: uppercase;
+    color: rgba(255,255,255,0.43);
+}
+.guild-crystal-champion-panel__medal {
+    flex-shrink: 0;
+    align-self: center;
+    padding-left: 0.06rem;
+    font-size: 1.34rem;
+    line-height: 1;
+    filter: drop-shadow(0 3px 5px rgba(0,0,0,0.45));
+}
+
+
+
+/* ── Legends / top heroes panel ─────────────────────────────────────────── */
+.guild-crystal-heroes-panel {
+    --hx-accent: var(--guild-heroes-accent, #a78bfa);
+    margin-top: 0.5rem;
+    border-radius: 0.82rem;
+    border: 1px solid rgba(255,255,255,0.13);
+    background:
+        linear-gradient(205deg,
+            color-mix(in srgb, var(--hx-accent) 14%, transparent) 0%,
+            transparent 52%),
+        linear-gradient(to bottom, rgba(255,255,255,0.06) 0%, transparent 38%),
+        rgba(12, 8, 28, 0.65);
+    box-shadow:
+        inset 0 1px 0 rgba(255,255,255,0.09),
+        0 3px 14px rgba(0,0,0,0.22),
+        0 0 28px color-mix(in srgb, var(--hx-accent) 10%, transparent);
+    overflow: hidden;
+    min-width: 0;
+}
+.guild-crystal-heroes-panel--balanced {
+    min-height: 10rem;
+}
+.guild-crystal-heroes-panel__header {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.45rem;
+    padding: 0.48rem 0.55rem 0.42rem;
+    border-bottom: 1px solid rgba(255,255,255,0.08);
+    background: linear-gradient(to bottom, color-mix(in srgb, var(--hx-accent) 08%, transparent), transparent);
+}
+.guild-crystal-heroes-panel__burst {
+    flex-shrink: 0;
+    width: 2.05rem;
+    height: 2.05rem;
+    display: grid;
+    place-items: center;
+    border-radius: 50%;
+    font-size: 0.92rem;
+    color: rgba(255,237,212,0.96);
+    border: 1px solid color-mix(in srgb, var(--hx-accent) 52%, rgba(255,255,255,0.22));
+    background:
+        radial-gradient(circle at 28% 22%, rgba(255,255,255,0.28) 0%, transparent 50%),
+        linear-gradient(150deg,
+            color-mix(in srgb, var(--hx-accent) 45%, transparent) 0%,
+            rgba(19,21,61,0.75) 100%);
+    box-shadow:
+        inset 0 2px 3px rgba(255,255,255,0.12),
+        0 0 14px color-mix(in srgb, var(--hx-accent) 28%, transparent);
+    animation: guild-heroes-medal-float 5s ease-in-out infinite;
+}
+@keyframes guild-heroes-medal-float {
+    0%, 100% { transform: translateY(0); }
+    50%      { transform: translateY(-2px); }
+}
+.guild-crystal-heroes-panel__headlines {
+    min-width: 0;
+    flex: 1;
+    padding-top: 0.06rem;
+}
+.guild-crystal-heroes-panel__title {
+    margin: 0;
+    font-family: 'Fredoka One', cursive;
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: rgba(255,252,246,0.95);
+    text-shadow: 0 2px 8px rgba(0,0,0,0.35);
+}
+.guild-crystal-heroes-panel__subtitle {
+    margin: 0.1rem 0 0;
+    font-size: 0.55rem;
+    font-weight: 600;
+    letter-spacing: 0.05em;
+    color: rgba(255,255,255,0.48);
+}
+.guild-crystal-heroes-panel__info {
+    align-self: center;
+}
+.guild-crystal-heroes-panel__roster {
+    display: flex;
+    flex-direction: column;
+    gap: 0.38rem;
+    padding: 0.48rem 0.55rem 0.62rem;
+    flex: 1;
+    align-content: flex-start;
+}
+.guild-crystal-heroes-panel__empty {
+    margin: 0 auto;
+    text-align: center;
+    padding: 0.72rem 0.45rem;
+    font-size: 0.65rem;
+    font-weight: 600;
+    font-style: italic;
+    line-height: 1.5;
+    color: rgba(255,255,255,0.4);
+}
+
+.guild-crystal-hero-tile {
+    display: flex;
+    align-items: center;
+    gap: 0.48rem;
+    width: 100%;
+    min-width: 0;
+    padding: 0.4rem 0.45rem 0.4rem 0.42rem;
+    border-radius: 0.72rem;
+    border: 1px solid rgba(255,255,255,0.11);
+    border-left: 3px solid color-mix(in srgb, var(--hero-tile-accent, #fde047) 58%, transparent);
+    background:
+        linear-gradient(95deg,
+            color-mix(in srgb, var(--hero-tile-accent, #fde047) 10%, transparent) 0%,
+            transparent 62%),
+        rgba(15,23,42,0.48);
+    box-shadow:
+        inset 0 1px 0 rgba(255,255,255,0.07),
+        0 2px 8px rgba(0,0,0,0.15);
+}
+.guild-crystal-hero-tile__avatar {
+    flex-shrink: 0;
+    width: 2.125rem;
+    height: 2.125rem;
+    border-radius: 50%;
+    overflow: hidden;
+    border: 2px solid color-mix(in srgb, var(--hero-tile-accent, #fde047) 65%, rgba(255,255,255,0.28));
+    background: rgba(15,23,42,0.85);
+    box-shadow:
+        0 0 0 1px rgba(0,0,0,0.35),
+        0 2px 8px rgba(0,0,0,0.35),
+        0 0 12px color-mix(in srgb, var(--hero-tile-accent, #fde047) 15%, transparent);
+}
+.guild-crystal-hero-tile__avatar-img {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+.guild-crystal-hero-tile__avatar-fallback {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    height: 100%;
+    font-family: 'Fredoka One', cursive;
+    font-size: 0.85rem;
+    font-weight: 700;
+    line-height: 1;
+    color: rgba(255,255,255,0.95);
+    background: linear-gradient(
+        155deg,
+        color-mix(in srgb, var(--hero-tile-accent, #fde047) 55%, transparent) 0%,
+        rgba(15,23,42,0.92) 100%
+    );
+}
+.guild-crystal-hero-tile__body {
+    min-width: 0;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 0.06rem;
+    text-align: left;
+}
+.guild-crystal-hero-tile__medal {
+    flex-shrink: 0;
+    align-self: center;
+    padding-left: 0.06rem;
+    font-size: 1.08rem;
+    line-height: 1;
+    filter: drop-shadow(0 2px 4px rgba(0,0,0,0.45));
+}
+.guild-crystal-hero-tile__name {
+    font-weight: 800;
+    font-size: 0.68rem;
+    letter-spacing: 0.02em;
+    color: color-mix(in srgb, var(--hero-tile-accent, #fde047) 86%, white);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.guild-crystal-hero-tile__glory {
+    display: flex;
+    align-items: baseline;
+    flex-wrap: wrap;
+    gap: 0.2rem;
+    line-height: 1.2;
+}
+.guild-crystal-hero-tile__glory-num {
+    font-family: 'Fredoka One', cursive;
+    font-size: 0.92rem;
+    font-weight: 700;
+    letter-spacing: 0.03em;
+    color: rgba(255,246,217,0.92);
+}
+.guild-crystal-hero-tile__glory-icon {
+    font-size: 0.8rem;
+    line-height: 1;
+    opacity: 0.88;
+}
+.guild-crystal-hero-tile__glory-hint {
+    font-size: 0.52rem;
+    font-weight: 700;
+    letter-spacing: 0.09em;
+    text-transform: uppercase;
+    color: rgba(255,255,255,0.38);
+}
+
+
+
+
+/* ── Guild Power explainer overlay ────────────────────────────────────────── */
+.guild-power-explainer-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 230;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1.25rem;
+}
+.guild-power-explainer-overlay.hidden { display: none; }
+.guild-power-explainer-bg {
+    position: absolute;
+    inset: 0;
+    background: rgba(5, 2, 18, 0.72);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+}
+.guild-power-explainer-card {
+    position: relative;
+    z-index: 1;
+    width: min(520px, 100%);
+    border-radius: 1.75rem;
+    padding: 1.5rem 1.35rem 1.25rem;
+    border: 1.5px solid rgba(255,255,255,0.18);
+    background: linear-gradient(145deg, rgba(15, 23, 42, 0.96), rgba(88, 28, 135, 0.62));
+    color: rgba(255,255,255,0.92);
+    box-shadow: 0 28px 70px rgba(0,0,0,0.55), 0 0 80px rgba(124,58,237,0.18);
+}
+.guild-power-explainer-close {
+    position: absolute;
+    top: 0.85rem;
+    right: 0.9rem;
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    border: none;
+    background: rgba(255,255,255,0.16);
+    color: rgba(255,255,255,0.9);
+    cursor: pointer;
+    transition: transform 160ms ease, background 160ms ease;
+}
+.guild-power-explainer-close:hover { transform: scale(1.06); background: rgba(255,255,255,0.24); }
+.guild-power-explainer-title {
+    margin: 0.2rem 0 0.55rem;
+    font-size: 1.6rem;
+    color: #fff7d6;
+    text-shadow: 0 8px 26px rgba(251,191,36,0.12);
+}
+.guild-power-explainer-copy {
+    margin: 0;
+    color: rgba(255,255,255,0.82);
+    font-size: 0.95rem;
+    line-height: 1.65;
+}
+.guild-power-explainer-grid {
+    margin-top: 1rem;
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0.6rem;
+}
+.guild-power-explainer-item {
+    border-radius: 1rem;
+    padding: 0.8rem 0.75rem;
+    border: 1px solid rgba(255,255,255,0.12);
+    background: rgba(255,255,255,0.06);
+}
+.guild-power-explainer-item .k {
+    font-size: 0.7rem;
+    font-weight: 900;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: rgba(255,255,255,0.86);
+}
+.guild-power-explainer-item .v {
+    margin-top: 0.35rem;
+    color: rgba(255,255,255,0.72);
+    font-size: 0.82rem;
+    line-height: 1.45;
+}
+.guild-power-explainer-note {
+    margin-top: 0.95rem;
+    padding-top: 0.9rem;
+    border-top: 1px solid rgba(255,255,255,0.10);
+    color: rgba(255,255,255,0.72);
+    font-size: 0.85rem;
+    line-height: 1.55;
+}
+@media (max-width: 680px) {
+    .guild-power-explainer-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+
+
+
+
+
+/* ── Rank Specific Auras & Visuals ────────────────────────────────────────── */
+.guild-crystal-col {
+    position: relative;
+    transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+.guild-crystal-col:hover {
+    transform: translateY(-8px);
+}
+
+.guild-crystal-col::before {
+    content: '';
+    position: absolute;
+    top: 10%;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 140%;
+    height: 60%;
+    border-radius: 50%;
+    filter: blur(60px);
+    opacity: 0;
+    z-index: -1;
+    transition: opacity 0.5s ease;
+}
+
+.guild-crystal-col.is-rank-1::before {
+    background: radial-gradient(circle, rgba(251, 191, 36, 0.25), transparent 70%);
+    opacity: 0.6;
+}
+.guild-crystal-col.is-rank-2::before {
+    background: radial-gradient(circle, rgba(226, 232, 240, 0.2), transparent 70%);
+    opacity: 0.5;
+}
+.guild-crystal-col.is-rank-3::before {
+    background: radial-gradient(circle, rgba(180, 83, 9, 0.15), transparent 70%);
+    opacity: 0.4;
+}
+
+.guild-crystal-col.is-rank-1 .guild-crystal-rank {
+    color: #fbbf24;
+    text-shadow: 0 0 15px rgba(251, 191, 36, 0.6);
+    transform: scale(1.2);
+}
+
+.guild-crystal-tube {
+    background: rgba(255, 255, 255, 0.03);
+    overflow: hidden;
+    position: relative;
+}
+.guild-crystal-tube::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(90deg, 
+        transparent 0%, 
+        rgba(255, 255, 255, 0.05) 15%, 
+        rgba(255, 255, 255, 0.08) 25%, 
+        transparent 50%
+    );
+    pointer-events: none;
+}
+
+.guild-crystal-glass-shine {
+    background: linear-gradient(105deg, 
+        rgba(255, 255, 255, 0.15) 0%, 
+        rgba(255, 255, 255, 0.05) 15%, 
+        transparent 45%
+    );
+}
+
+/* Responsive: 2-column grid on small screens */
+@media (max-width: 600px) {
+    .guild-crystal-arena {
+        flex-wrap: wrap;
+        gap: 1.5rem 0.75rem;
+        width: 100%;
+        min-width: 0;
+    }
+    .guild-crystal-col {
+        flex: 1 1 calc(50% - 0.75rem);
+        width: auto;
+        min-width: 0;
+        max-width: none;
+    }
+    .guild-crystal-tube-wrap  { height: 220px; }
+    .guild-crystal-header     { min-height: 150px; }
+    .guild-crystal-emblem,
+    .guild-crystal-emblem-fallback { width: 84px; height: 84px; }
+    .guild-crystal-arena-header { flex-direction: column; gap: 1rem; align-items: flex-start; }
+}
+
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   ANTHEM NOTE BUTTON  (badge at lower-left of the circular emblem)
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/*
+ * The button lives inside .guild-crystal-emblem-wrapper (position:relative).
+ * The emblem is a 118×118 circle. Placing the button at bottom:-5px / left:-5px
+ * puts its centre at ~(6px, 112px) from the wrapper origin — well outside the
+ * arc at the 7-o'clock position, so it never overlaps the emblem art itself.
+ */
+.guild-anthem-btn {
+    position: absolute;
+    bottom: -5px;
+    left: -5px;
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    border: 1.5px solid rgba(255,255,255,0.45);
+    background: rgba(8, 4, 22, 0.80);
+    color: rgba(255,255,255,0.85);
+    font-size: 0.6rem;
+    line-height: 1;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 10;
+    padding: 0;
+    box-shadow: 0 1px 6px rgba(0,0,0,0.55);
+    transition: background 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease, border-color 0.2s ease;
+}
+.guild-anthem-btn i {
+    font-size: 0.55rem;
+}
+.guild-anthem-btn:hover {
+    background: var(--anthem-color, #7c3aed);
+    border-color: rgba(255,255,255,0.75);
+    box-shadow: 0 0 10px var(--anthem-glow, rgba(124,58,237,0.8));
+    transform: scale(1.22);
+}
+.guild-anthem-btn:active {
+    transform: scale(0.92);
+}
+
+@media (max-width: 600px) {
+    .guild-anthem-btn {
+        width: 19px;
+        height: 19px;
+        font-size: 0.55rem;
+        bottom: -4px;
+        left: -4px;
+    }
+}
+
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   GUILD ANTHEM MODAL
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.guild-anthem-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 1205;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1.25rem;
+    isolation: isolate;
+}
+.guild-anthem-overlay.hidden { display: none; }
+
+.guild-anthem-overlay-bg {
+    position: absolute;
+    inset: 0;
+    background:
+        radial-gradient(circle at top, rgba(255,255,255,0.12), transparent 32%),
+        rgba(5, 2, 18, 0.82);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+}
+
+/* Modal card */
+.guild-anthem-card {
+    position: relative;
+    z-index: 1;
+    border-radius: 2rem;
+    padding: 2rem 1.75rem 1.5rem;
+    max-width: 450px;
+    width: 100%;
+    max-height: 88vh;
+    overflow-y: auto;
+    color: #fff;
+    text-align: center;
+    border: 1.5px solid rgba(255,255,255,0.2);
+    box-shadow:
+        inset 0 1px 0 rgba(255,255,255,0.24),
+        0 0 0 1px rgba(255,255,255,0.12),
+        0 30px 84px rgba(5, 2, 18, 0.58),
+        0 0 72px color-mix(in srgb, var(--anthem-glow, #7c3aed) 38%, transparent);
+}
+.guild-anthem-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 45%;
+    background: linear-gradient(to bottom, rgba(255,255,255,0.1), transparent);
+    border-radius: 2rem 2rem 0 0;
+    pointer-events: none;
+}
+.guild-anthem-card::after {
+    content: '';
+    position: absolute;
+    inset: 1rem;
+    border-radius: 1.35rem;
+    border: 1px solid rgba(255,255,255,0.08);
+    background: linear-gradient(180deg, rgba(255,255,255,0.05), transparent 36%);
+    pointer-events: none;
+}
+
+/* Close button */
+.guild-anthem-close {
+    position: absolute;
+    top: 0.9rem;
+    right: 1rem;
+    background: rgba(255,255,255,0.18);
+    border: none;
+    color: rgba(255,255,255,0.85);
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    font-size: 0.85rem;
+    transition: background 0.2s, transform 0.15s;
+    z-index: 2;
+}
+.guild-anthem-close:hover { background: rgba(255,255,255,0.32); transform: scale(1.1); }
+
+/* Header */
+.guild-anthem-header {
+    position: relative;
+    margin-bottom: 1.2rem;
+    padding: 0 2rem 1rem;
+}
+.guild-anthem-header::after {
+    content: '';
+    position: absolute;
+    left: 50%;
+    bottom: 0;
+    width: min(180px, 60%);
+    height: 1px;
+    transform: translateX(-50%);
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.55), transparent);
+}
+.guild-anthem-note-icon {
+    font-size: 2.2rem;
+    line-height: 1;
+    margin-bottom: 0.35rem;
+    filter: drop-shadow(0 0 12px rgba(255,255,255,0.5));
+    animation: anthem-note-bounce 1.2s ease-in-out infinite alternate;
+}
+@keyframes anthem-note-bounce {
+    from { transform: scale(1)    rotate(-5deg); }
+    to   { transform: scale(1.12) rotate(5deg);  }
+}
+.guild-anthem-title {
+    font-family: 'Fredoka One', cursive;
+    font-size: 1.65rem;
+    color: #fff;
+    text-shadow: 0 2px 10px rgba(0,0,0,0.4);
+    margin: 0;
+}
+.guild-anthem-subtitle {
+    font-size: 0.8rem;
+    color: rgba(255,255,255,0.7);
+    margin: 0.3rem auto 0;
+    font-style: italic;
+    max-width: 18rem;
+}
+
+/* Now playing bar */
+.guild-anthem-player {
+    margin: 0.85rem 0 1.2rem;
+}
+.guild-anthem-now-playing {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    background: linear-gradient(135deg, rgba(255,255,255,0.16), rgba(0,0,0,0.18));
+    border: 1px solid rgba(255,255,255,0.24);
+    border-radius: 9999px;
+    padding: 0.4rem 1rem;
+    font-size: 0.78rem;
+    color: rgba(255,255,255,0.85);
+    box-shadow: 0 10px 24px rgba(0,0,0,0.18);
+}
+.guild-anthem-note-anim {
+    font-size: 1rem;
+    animation: note-float 1.4s ease-in-out infinite alternate;
+    display: inline-block;
+}
+@keyframes note-float {
+    from { transform: translateY(0)   rotate(-8deg); opacity: 0.7; }
+    to   { transform: translateY(-4px) rotate(8deg); opacity: 1;   }
+}
+.guild-anthem-now-playing-text {
+    letter-spacing: 0.04em;
+}
+
+/* Lyrics container */
+.guild-anthem-lyrics {
+    text-align: left;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    padding: 0.2rem;
+}
+
+/* Verse block */
+.guild-anthem-verse {
+    background: linear-gradient(180deg, rgba(0,0,0,0.16), rgba(0,0,0,0.24));
+    border-radius: 1rem;
+    padding: 0.95rem 1rem;
+    border: 1px solid rgba(255,255,255,0.12);
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.05);
+}
+
+/* Chorus block — slightly more prominent */
+.guild-anthem-chorus {
+    background: linear-gradient(180deg, rgba(255,255,255,0.18), rgba(255,255,255,0.1));
+    border-radius: 1rem;
+    padding: 0.95rem 1rem;
+    border: 1px solid rgba(255,255,255,0.28);
+    box-shadow: inset 0 0 20px rgba(255,255,255,0.05), 0 12px 30px rgba(0,0,0,0.1);
+}
+
+/* Section label (Verse / Chorus) */
+.guild-anthem-section-label {
+    display: block;
+    font-size: 0.62rem;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: rgba(255,255,255,0.55);
+    font-weight: 700;
+    margin-bottom: 0.45rem;
+}
+.guild-anthem-chorus .guild-anthem-section-label {
+    color: rgba(255,255,255,0.75);
+}
+
+/* Each line of lyrics */
+.guild-anthem-line {
+    margin: 0 0 0.3rem;
+    font-size: 0.92rem;
+    line-height: 1.6;
+    color: rgba(255,255,255,0.92);
+    font-weight: 500;
+    border-radius: 0.5rem;
+    padding: 0.1rem 0.4rem;
+    transition:
+        opacity      0.35s ease,
+        transform    0.35s cubic-bezier(0.34,1.56,0.64,1),
+        font-size    0.25s ease,
+        font-weight  0.25s ease,
+        text-shadow  0.35s ease,
+        background   0.35s ease,
+        color        0.25s ease;
+}
+.guild-anthem-chorus .guild-anthem-line {
+    color: #fff;
+    font-weight: 600;
+    font-size: 0.97rem;
+}
+.guild-anthem-line:last-child { margin-bottom: 0; }
+
+@media (max-width: 600px) {
+    .guild-anthem-overlay {
+        padding: 0.85rem;
+    }
+
+    .guild-anthem-card {
+        max-height: min(90vh, 44rem);
+        padding: 1.6rem 1rem 1.2rem;
+    }
+
+    .guild-anthem-header {
+        padding: 0 1.65rem 0.85rem;
+    }
+
+    .guild-anthem-title {
+        font-size: 1.45rem;
+    }
+}
+
+/* ── Karaoke states ─────────────────────────────────────── */
+
+/* Lines not yet reached: softly dimmed */
+.guild-anthem-line.karaoke-upcoming {
+    opacity: 0.45;
+}
+
+/* Lines already sung: faded out */
+.guild-anthem-line.karaoke-past {
+    opacity: 0.2;
+    transform: scale(0.97);
+}
+
+/* Currently singing: bright, glowing, slightly larger */
+.guild-anthem-line.karaoke-active {
+    opacity: 1;
+    color: #fff;
+    font-size: 1.05rem;
+    font-weight: 700;
+    transform: scale(1.04) translateX(3px);
+    background: rgba(255,255,255,0.15);
+    text-shadow:
+        0 0 12px rgba(255,255,255,0.9),
+        0 0 28px rgba(255,255,255,0.4);
+}
+.guild-anthem-chorus .guild-anthem-line.karaoke-active {
+    font-size: 1.1rem;
+    background: rgba(255,255,255,0.22);
+    text-shadow:
+        0 0 16px rgba(255,255,255,1),
+        0 0 36px rgba(255,255,255,0.5);
+}
+
+/* Bouncing note prefix on the active line */
+.guild-anthem-line.karaoke-active::before {
+    content: '♪ ';
+    display: inline;
+    animation: karaoke-note-pulse 0.55s ease-in-out infinite alternate;
+}
+@keyframes karaoke-note-pulse {
+    from { opacity: 0.6; transform: scale(0.85) rotate(-8deg); }
+    to   { opacity: 1;   transform: scale(1.15) rotate(8deg);  }
+}
+
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   GUILD LORE OVERLAY (shown on emblem click)
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.guild-lore-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 200;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1.5rem;
+}
+.guild-lore-overlay.hidden { display: none; }
+
+.guild-lore-overlay-bg {
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(120% 80% at 50% 40%, rgba(45, 25, 90, 0.45), rgba(5, 2, 18, 0.84));
+    backdrop-filter: blur(12px) saturate(1.15);
+    -webkit-backdrop-filter: blur(12px) saturate(1.15);
+}
+
+/* Lore card */
+.guild-lore-card {
+    position: relative;
+    z-index: 1;
+    border-radius: 1.85rem;
+    padding: 2rem 1.5rem 1.75rem;
+    max-width: 400px;
+    width: 100%;
+    color: #fff;
+    text-align: center;
+    overflow: hidden;
+    border: 1px solid rgba(255,255,255,0.22);
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+    box-shadow:
+        inset 0 1px 0 rgba(255,255,255,0.22),
+        0 0 0 1px rgba(0,0,0,0.12),
+        0 36px 90px rgba(0,0,0,0.65);
+}
+.guild-lore-card::before {
+    /* Subtle glass inner highlight */
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 50%;
+    background: linear-gradient(to bottom, rgba(255,255,255,0.12), transparent);
+    border-radius: 1.85rem 1.85rem 0 0;
+    pointer-events: none;
+}
+
+/* Close button */
+.guild-lore-close {
+    position: absolute;
+    top: 0.9rem;
+    right: 1rem;
+    background: rgba(255,255,255,0.18);
+    border: none;
+    color: rgba(255,255,255,0.85);
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    font-size: 0.85rem;
+    transition: background 0.2s, transform 0.15s;
+    z-index: 2;
+}
+.guild-lore-close:hover { background: rgba(255,255,255,0.32); transform: scale(1.1); }
+
+/* Sparkles row */
+.guild-lore-sparkles {
+    display: flex;
+    justify-content: center;
+    gap: 0.8rem;
+    font-size: 1rem;
+    margin-bottom: 0.75rem;
+    color: rgba(255,255,255,0.7);
+    animation: lore-sparkle-dance 1.8s ease-in-out infinite alternate;
+}
+@keyframes lore-sparkle-dance {
+    from { letter-spacing: 0.8rem; opacity: 0.6; }
+    to   { letter-spacing: 1.2rem; opacity: 1;   }
+}
+
+/* Emblem */
+.guild-lore-emblem-wrap { display: flex; justify-content: center; margin-bottom: 0.5rem; }
+.guild-lore-emblem {
+    width: 110px;
+    height: 110px;
+    border-radius: 9999px;
+    object-fit: cover;
+    border: 4px solid rgba(255,255,255,0.45);
+    animation: lore-emblem-pulse 2s ease-in-out infinite;
+}
+.guild-lore-emblem-fallback {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 110px;
+    height: 110px;
+    border-radius: 9999px;
+    border: 4px solid rgba(255,255,255,0.35);
+    animation: lore-emblem-pulse 2s ease-in-out infinite;
+}
+@keyframes lore-emblem-pulse {
+    0%, 100% { box-shadow: 0 0 24px var(--lore-glow, rgba(255,255,255,0.3)); transform: scale(1);    }
+    50%      { box-shadow: 0 0 48px var(--lore-glow, rgba(255,255,255,0.5)); transform: scale(1.04); }
+}
+
+.guild-lore-emoji {
+    display: none;
+}
+.guild-lore-name {
+    font-family: 'Fredoka One', cursive;
+    font-size: 2rem;
+    color: #fff;
+    text-shadow: 0 2px 10px rgba(0,0,0,0.4);
+    margin: 0.25rem 0;
+}
+.guild-lore-motto {
+    font-size: 0.88rem;
+    color: rgba(255,255,255,0.82);
+    font-style: italic;
+    margin-bottom: 1.1rem;
+    line-height: 1.55;
+    letter-spacing: 0.01em;
+}
+
+/* Trait badges */
+.guild-lore-traits {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 0.45rem;
+    margin-bottom: 1rem;
+}
+.guild-lore-trait {
+    padding: 0.25rem 0.9rem;
+    border-radius: 9999px;
+    border: 1.5px solid;
+    font-size: 0.78rem;
+    font-weight: 600;
+    letter-spacing: 0.03em;
+}
+
+/* Guild lore metrics (Power / Glory primary, stars secondary) */
+.guild-lore-stats {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 1rem;
+    margin-top: 0.15rem;
+}
+.guild-lore-metrics-primary {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.65rem;
+    text-align: left;
+}
+.guild-lore-metric-tile {
+    border-radius: 1rem;
+    padding: 0.75rem 0.72rem;
+    background: rgba(255,255,255,0.09);
+    border: 1px solid rgba(255,255,255,0.2);
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.12);
+}
+.guild-lore-metric-tile--power {
+    background: rgba(250,204,21,0.06);
+}
+.guild-lore-metric-tile--glory {
+    background: rgba(168,85,247,0.06);
+}
+.guild-lore-metric-tile__label {
+    display: flex;
+    align-items: center;
+    gap: 0.2rem;
+    font-size: 0.62rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: rgba(255,255,255,0.72);
+}
+.guild-lore-metric-tile__value {
+    font-family: 'Fredoka One', cursive;
+    font-size: 1.65rem;
+    line-height: 1.15;
+    color: #fff;
+    text-shadow: 0 2px 12px rgba(0,0,0,0.25);
+    margin: 0.2rem 0 0;
+}
+.guild-lore-metric-tile__hint {
+    font-size: 0.68rem;
+    line-height: 1.35;
+    color: rgba(255,255,255,0.55);
+    margin-top: 0.35rem;
+}
+.guild-lore-power-hint {
+    margin-left: 0.05rem;
+    width: 1rem;
+    height: 1rem;
+    flex-shrink: 0;
+    border: none;
+    border-radius: 9999px;
+    background: rgba(255,255,255,0.16);
+    color: rgba(255,255,255,0.88);
+    font-size: 0.65rem;
+    font-weight: 800;
+    line-height: 1;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    transition: background 0.15s, transform 0.12s;
+}
+.guild-lore-power-hint:hover {
+    background: rgba(255,255,255,0.28);
+    transform: scale(1.06);
+}
+
+.guild-lore-metrics-secondary {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 0.45rem 0.5rem;
+}
+.guild-lore-stat {
+    font-size: 0.78rem;
+    color: rgba(255,255,255,0.72);
+}
+.guild-lore-stat strong {
+    color: rgba(255,255,255,0.98);
+    font-size: 0.88rem;
+    font-weight: 700;
+}
+.guild-lore-stat--pill {
+    padding: 0.38rem 0.72rem;
+    border-radius: 9999px;
+    background: rgba(0,0,0,0.15);
+    border: 1px solid rgba(255,255,255,0.12);
+}
+
+@media (max-width: 380px) {
+    .guild-lore-metrics-primary {
+        grid-template-columns: 1fr;
+    }
+}
+
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   SORTING QUIZ MODAL
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.sorting-quiz-backdrop {
+    position: absolute;
+    inset: 0;
+    background: rgba(8, 4, 24, 0.88);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+}
+
+/* ── Card ── */
+.sorting-quiz-card {
+    position: relative;
+    z-index: 1;
+    background: linear-gradient(155deg, #110d2e 0%, #271966 45%, #160e38 100%);
+    border: 1.5px solid rgba(139,92,246,0.4);
+    border-radius: 2rem;
+    padding: 2.25rem 2.25rem 1.75rem;
+    max-width: 540px;
+    width: 100%;
+    box-shadow:
+        0 0 0 1px rgba(139,92,246,0.1),
+        inset 0 1px 0 rgba(255,255,255,0.07),
+        0 32px 80px rgba(0,0,0,0.72),
+        0 0 110px rgba(109,40,217,0.28);
+    color: white;
+    overflow: hidden;
+}
+/* Soft radial glow orb behind the header */
+.sorting-quiz-card::before {
+    content: '';
+    position: absolute;
+    top: -70px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 360px;
+    height: 200px;
+    background: radial-gradient(ellipse, rgba(139,92,246,0.22) 0%, transparent 70%);
+    pointer-events: none;
+}
+
+/* pop-in (shared with result card) */
+.pop-in {
+    animation: quiz-pop-in 0.4s cubic-bezier(0.34,1.56,0.64,1);
+}
+@keyframes quiz-pop-in {
+    from { opacity: 0; transform: scale(0.85) translateY(22px); }
+    to   { opacity: 1; transform: scale(1)    translateY(0);    }
+}
+
+/* ── Header ── */
+.sorting-quiz-header { text-align: center; margin-bottom: 1.25rem; }
+
+.sorting-quiz-question-emoji {
+    font-size: 3.25rem;
+    line-height: 1;
+    margin-bottom: 0.45rem;
+    display: block;
+    filter: drop-shadow(0 0 16px rgba(251,191,36,0.65));
+    animation: quiz-emoji-float 3.2s ease-in-out infinite;
+}
+@keyframes quiz-emoji-float {
+    0%, 100% { transform: translateY(0px); }
+    50%      { transform: translateY(-6px); }
+}
+
+.sorting-quiz-title {
+    font-family: 'Fredoka One', cursive;
+    font-size: 1.55rem;
+    background: linear-gradient(135deg, #f0e6ff 0%, #c4b5fd 55%, #a78bfa 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    letter-spacing: 0.04em;
+}
+.sorting-quiz-subtitle { font-size: 0.82rem; color: #a78bfa; margin-top: 0.2rem; }
+
+/* Randomised badge */
+.sorting-quiz-random-badge {
+    display: inline-block;
+    background: rgba(251,191,36,0.12);
+    border: 1px solid rgba(251,191,36,0.4);
+    border-radius: 9999px;
+    padding: 0.15rem 0.65rem;
+    font-size: 0.69rem;
+    color: #fbbf24;
+    letter-spacing: 0.05em;
+    margin-top: 0.3rem;
+}
+
+/* ── Progress dots ── */
+.sorting-quiz-dots {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 0.4rem;
+    margin-bottom: 0.75rem;
+}
+.sorting-quiz-dot {
+    height: 8px;
+    width: 8px;
+    border-radius: 9999px;
+    background: rgba(167,139,250,0.2);
+    border: 1.5px solid rgba(167,139,250,0.35);
+    transition: all 0.35s cubic-bezier(0.34,1.3,0.64,1);
+}
+.sorting-quiz-dot--done {
+    background: #5b21b6;
+    border-color: #6d28d9;
+    opacity: 0.7;
+}
+.sorting-quiz-dot--active {
+    background: linear-gradient(90deg, #f59e0b, #fde68a);
+    border-color: #fbbf24;
+    width: 24px;
+    box-shadow: 0 0 12px rgba(251,191,36,0.65);
+}
+
+/* ── Progress bar ── */
+.sorting-quiz-progress-bar {
+    width: 100%;
+    height: 4px;
+    background: rgba(139,92,246,0.15);
+    border-radius: 9999px;
+    overflow: hidden;
+    margin-bottom: 0.6rem;
+}
+.sorting-quiz-progress-fill {
+    height: 100%;
+    background: linear-gradient(to right, #6d28d9, #a855f7, #ec4899);
+    border-radius: 9999px;
+    transition: width 0.5s cubic-bezier(0.4,0,0.2,1);
+    position: relative;
+    overflow: hidden;
+}
+/* Shimmer sweep on progress fill */
+.sorting-quiz-progress-fill::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.45) 50%, transparent 100%);
+    animation: progress-shimmer 2.2s ease-in-out infinite;
+}
+@keyframes progress-shimmer {
+    from { transform: translateX(-120%); }
+    to   { transform: translateX(220%); }
+}
+.sorting-quiz-progress-text {
+    text-align: center;
+    font-size: 0.7rem;
+    color: #8b5cf6;
+    margin-bottom: 1rem;
+    letter-spacing: 0.07em;
+    font-weight: 600;
+    text-transform: uppercase;
+}
+
+/* ── Question ── */
+.sorting-quiz-question-wrap { margin-bottom: 1.25rem; }
+.sorting-quiz-question-text {
+    font-size: 1.15rem;
+    font-weight: 700;
+    color: #ede9fe;
+    text-align: center;
+    margin-bottom: 1.1rem;
+    line-height: 1.5;
+    letter-spacing: 0.01em;
+}
+
+/* ── Options ── */
+.sorting-quiz-options-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
+}
+.sorting-quiz-option {
+    display: flex;
+    align-items: center;
+    gap: 0.8rem;
+    padding: 0.85rem 1.1rem;
+    border-radius: 1.1rem;
+    border: 1.5px solid rgba(139,92,246,0.22);
+    background: rgba(255,255,255,0.04);
+    color: #ddd6fe;
+    font-size: 0.9rem;
+    text-align: left;
+    cursor: pointer;
+    transition: border-color 0.2s, background 0.2s, transform 0.2s cubic-bezier(0.34,1.3,0.64,1), box-shadow 0.2s;
+    line-height: 1.45;
+    width: 100%;
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+}
+.sorting-quiz-option:hover {
+    border-color: rgba(167,139,250,0.55);
+    background: rgba(109,40,217,0.18);
+    transform: translateX(5px) scale(1.005);
+    box-shadow: 0 4px 20px rgba(109,40,217,0.28);
+}
+.sorting-quiz-option--selected {
+    border-color: #f59e0b !important;
+    background: rgba(245,158,11,0.11) !important;
+    box-shadow: 0 0 0 2.5px rgba(245,158,11,0.38), 0 6px 20px rgba(245,158,11,0.18) !important;
+    transform: translateX(5px) scale(1.01) !important;
+    color: #fef3c7;
+}
+.sorting-quiz-option-label {
+    flex-shrink: 0;
+    width: 28px;
+    height: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    background: rgba(139,92,246,0.25);
+    font-size: 0.72rem;
+    font-weight: 800;
+    color: #c4b5fd;
+    border: 1.5px solid rgba(139,92,246,0.35);
+    transition: background 0.2s, color 0.2s, transform 0.22s cubic-bezier(0.34,1.56,0.64,1), border-color 0.2s, box-shadow 0.2s;
+    font-family: 'Fredoka One', cursive;
+    letter-spacing: 0;
+}
+.sorting-quiz-option--selected .sorting-quiz-option-label {
+    background: linear-gradient(135deg, #f59e0b, #fbbf24);
+    color: #1c1008;
+    border-color: #f59e0b;
+    transform: scale(1.2) rotate(-4deg);
+    box-shadow: 0 2px 10px rgba(245,158,11,0.55);
+}
+.sorting-quiz-option-text {
+    flex: 1;
+    font-size: 0.89rem;
+    line-height: 1.5;
+}
+
+/* Question slide-in animation (triggered by JS adding the class) */
+@keyframes quiz-question-in {
+    from { opacity: 0; transform: translateX(24px); }
+    to   { opacity: 1; transform: translateX(0); }
+}
+.sorting-quiz-question-entering {
+    animation: quiz-question-in 0.3s cubic-bezier(0.34, 1.1, 0.64, 1);
+}
+
+/* ── Footer buttons ── */
+.sorting-quiz-footer { display: flex; gap: 0.75rem; }
+.sorting-quiz-btn {
+    flex: 1;
+    padding: 0.75rem 1rem;
+    border-radius: 1.1rem;
+    font-family: 'Fredoka One', cursive;
+    font-size: 0.95rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: transform 0.18s, box-shadow 0.18s, opacity 0.2s, background 0.2s;
+    letter-spacing: 0.03em;
+    border: none;
+    position: relative;
+    overflow: hidden;
+}
+.sorting-quiz-btn:hover   { transform: translateY(-2px); }
+.sorting-quiz-btn:active  { transform: translateY(1px) scale(0.98); }
+.sorting-quiz-btn:disabled{ opacity: 0.4; cursor: not-allowed; transform: none; }
+
+.sorting-quiz-btn--cancel {
+    background: rgba(255,255,255,0.07);
+    color: #c4b5fd;
+    border: 1.5px solid rgba(167,139,250,0.28);
+    flex: 0 0 auto;
+    padding-left: 1.25rem;
+    padding-right: 1.25rem;
+}
+.sorting-quiz-btn--cancel:hover {
+    background: rgba(255,255,255,0.13);
+    border-color: rgba(167,139,250,0.5);
+}
+
+.sorting-quiz-btn--next {
+    background: linear-gradient(135deg, #6d28d9 0%, #9333ea 55%, #db2777 100%);
+    color: white;
+    box-shadow: 0 4px 20px rgba(109,40,217,0.5), inset 0 1px 0 rgba(255,255,255,0.2);
+}
+.sorting-quiz-btn--next:hover {
+    box-shadow: 0 8px 30px rgba(109,40,217,0.65), inset 0 1px 0 rgba(255,255,255,0.2);
+}
+/* Shimmer sweep on Next button hover */
+.sorting-quiz-btn--next::after {
+    content: '';
+    position: absolute;
+    top: 0; left: -80%;
+    width: 55%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.28), transparent);
+    transform: skewX(-18deg);
+    transition: left 0.55s ease;
+    pointer-events: none;
+}
+.sorting-quiz-btn--next:hover::after { left: 160%; }
+
+.sorting-quiz-btn--done {
+    width: 100%;
+    background: linear-gradient(135deg, rgba(255,255,255,0.3), rgba(255,255,255,0.15));
+    color: white;
+    border: 1.5px solid rgba(255,255,255,0.55);
+    box-shadow: 0 4px 18px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.25);
+    font-size: 1rem;
+    letter-spacing: 0.04em;
+}
+.sorting-quiz-btn--done:hover {
+    background: linear-gradient(135deg, rgba(255,255,255,0.44), rgba(255,255,255,0.26));
+    box-shadow: 0 8px 26px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.35);
+}
+
+/* ── Result modal card ── */
+.sorting-quiz-result-card {
+    position: relative;
+    z-index: 1;
+    border-radius: 2rem;
+    padding: 2.25rem 2.25rem 2rem;
+    max-width: 420px;
+    width: 100%;
+    box-shadow:
+        0 0 0 1.5px rgba(255,255,255,0.2),
+        inset 0 1px 0 rgba(255,255,255,0.22),
+        0 32px 80px rgba(0,0,0,0.68),
+        0 0 90px var(--guild-glow, rgba(124,58,237,0.4));
+    text-align: center;
+    color: white;
+    overflow: hidden;
+}
+/* Top shine overlay */
+.sorting-quiz-result-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 48%;
+    background: linear-gradient(180deg, rgba(255,255,255,0.13) 0%, transparent 100%);
+    pointer-events: none;
+    border-radius: 2rem 2rem 0 0;
+}
+
+.sorting-quiz-result-sparkles {
+    display: flex;
+    justify-content: center;
+    gap: 0.9rem;
+    font-size: 1.2rem;
+    margin-bottom: 0.75rem;
+    animation: sparkle-dance 2s ease-in-out infinite alternate;
+    opacity: 0.9;
+}
+@keyframes sparkle-dance {
+    from { letter-spacing: 0.6rem; opacity: 0.7; }
+    to   { letter-spacing: 1.2rem; opacity: 1; }
+}
+
+.sorting-quiz-result-title {
+    font-family: 'Fredoka One', cursive;
+    font-size: 1.65rem;
+    color: rgba(255,255,255,0.96);
+    margin-bottom: 1.25rem;
+    text-shadow: 0 2px 14px rgba(0,0,0,0.4);
+    letter-spacing: 0.02em;
+}
+.sorting-quiz-result-emblem-wrap { display: flex; justify-content: center; margin-bottom: 1.25rem; }
+.sorting-quiz-result-emblem {
+    width: 116px;
+    height: 116px;
+    border-radius: 9999px;
+    object-fit: cover;
+    border: 4px solid rgba(255,255,255,0.55);
+    animation: result-emblem-pulse 2.5s ease-in-out infinite;
+}
+.sorting-quiz-result-emblem-fallback {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(255,255,255,0.1);
+}
+@keyframes result-emblem-pulse {
+    0%, 100% { box-shadow: 0 0 24px var(--guild-glow, rgba(255,255,255,0.35)), 0 0 6px rgba(255,255,255,0.2); transform: scale(1); }
+    50%      { box-shadow: 0 0 52px var(--guild-glow, rgba(255,255,255,0.55)), 0 0 16px rgba(255,255,255,0.3); transform: scale(1.05); }
+}
+.sorting-quiz-result-guild-name {
+    font-family: 'Fredoka One', cursive;
+    font-size: 2rem;
+    color: white;
+    margin-bottom: 0.35rem;
+    text-shadow: 0 2px 18px rgba(0,0,0,0.5);
+    letter-spacing: 0.02em;
+}
+.sorting-quiz-result-motto { font-size: 0.88rem; color: rgba(255,255,255,0.8); font-style: italic; margin-bottom: 1rem; letter-spacing: 0.03em; }
+.sorting-quiz-result-msg   { font-size: 0.86rem; color: rgba(255,255,255,0.82); margin-bottom: 1.5rem; line-height: 1.6; }
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   GUILD HEROES ANALYTICS MODAL - GAMEY FANTASY THEME
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* ─── Fun Animations ─── */
+@keyframes gh-name-glow {
+    0%, 100% { filter: drop-shadow(0 1px 2px rgba(99, 102, 241, 0.2)); transform: scale(1); }
+    50% { filter: drop-shadow(0 2px 6px rgba(139, 92, 246, 0.4)); transform: scale(1.02); }
+}
+@keyframes gh-champion-pulse {
+    0%, 100% { filter: drop-shadow(0 2px 4px rgba(245, 158, 11, 0.2)); transform: scale(1); }
+    50% { filter: drop-shadow(0 3px 8px rgba(236, 72, 153, 0.4)); transform: scale(1.03); }
+}
+@keyframes gh-float {
+    0%, 100% { transform: translateY(0px); }
+    50% { transform: translateY(-4px); }
+}
+
+
+
+/* Guild Heroes Modal - Emblem Mini */
+.guild-heroes-emblem-mini {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 2px solid;
+    display: inline-block;
+    vertical-align: middle;
+    margin-right: 0.4rem;
+}
+.guild-heroes-emblem-fallback {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    vertical-align: middle;
+    margin-right: 0.4rem;
+}
+.guild-heroes-emblem-fallback span {
+    font-size: 0.9rem;
+}
+
+
+
+.guild-heroes-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 220;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1rem;
+}
+.guild-heroes-overlay.hidden { display: none; }
+.guild-heroes-overlay-bg {
+    position: absolute;
+    inset: 0;
+    background: rgba(8, 6, 24, 0.72);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+}
+
+.guild-heroes-card {
+    position: relative;
+    z-index: 1;
+    width: min(920px, 100%);
+    max-height: 92vh;
+    overflow-y: auto;
+    border-radius: 1.5rem;
+    padding: 1.5rem 1.5rem 1.35rem;
+    color: rgba(255,255,255,0.92);
+    background:
+        radial-gradient(ellipse 90% 55% at 50% 0%, rgba(124,58,237,0.35) 0%, transparent 55%),
+        linear-gradient(165deg, #151032 0%, #0c1228 48%, #070b18 100%);
+    border: 2px solid rgba(245,190,70,0.45);
+    box-shadow:
+        inset 0 0 80px rgba(88,28,135,0.2),
+        0 0 0 1px rgba(255,255,255,0.06),
+        0 24px 80px rgba(0,0,0,0.55),
+        0 0 40px rgba(124,58,237,0.15);
+}
+
+.guild-heroes-close-btn {
+    position: absolute;
+    top: 1rem;
+    right: 1rem;
+    width: 38px;
+    height: 38px;
+    border-radius: 50%;
+    border: 1px solid rgba(255,255,255,0.15);
+    background: rgba(255,255,255,0.08);
+    color: rgba(255,255,255,0.85);
+    font-size: 1.35rem;
+    font-weight: bold;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+}
+.guild-heroes-close-btn:hover {
+    background: rgba(255,255,255,0.16);
+    transform: scale(1.06);
+}
+
+.guild-heroes-header {
+    padding-right: 2.75rem;
+    margin-bottom: 1.1rem;
+    text-align: center;
+}
+.guild-heroes-title {
+    font-family: 'Fredoka One', cursive;
+    font-size: clamp(1.35rem, 3.5vw, 1.85rem);
+    background: linear-gradient(135deg, #fde68a 0%, #fbbf24 45%, #e9d5ff 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    margin: 0 0 0.45rem;
+    filter: drop-shadow(0 2px 8px rgba(0,0,0,0.35));
+}
+.guild-heroes-subtitle {
+    font-size: 0.88rem;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 0.5rem 0.75rem;
+    color: rgba(255,255,255,0.55);
+}
+.gh-sub-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.2rem 0.65rem;
+    border-radius: 9999px;
+    font-family: 'Fredoka One', cursive;
+    font-size: 0.82rem;
+    color: #fff;
+    background: color-mix(in srgb, var(--gh-pill, #7c3aed) 35%, rgba(0,0,0,0.35));
+    border: 1px solid color-mix(in srgb, var(--gh-pill, #7c3aed) 55%, transparent);
+    box-shadow: 0 0 14px color-mix(in srgb, var(--gh-pill, #7c3aed) 40%, transparent);
+}
+.gh-sub-muted {
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: rgba(255,255,255,0.38);
+}
+
+/* ─── Guild picker (overview cards) ─── */
+.guild-heroes-overview {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 0.6rem;
+    margin-bottom: 0.85rem;
+}
+.guild-heroes-overview-card {
+    text-align: left;
+    border-radius: 1rem;
+    padding: 0.65rem 0.75rem;
+    border: 1px solid rgba(255,255,255,0.12);
+    background: rgba(0,0,0,0.22);
+    transition: all 0.2s ease;
+    cursor: pointer;
+    position: relative;
+}
+.guild-heroes-overview-card:hover {
+    transform: translateY(-2px);
+    border-color: color-mix(in srgb, var(--gh-primary, #a78bfa) 55%, transparent);
+    box-shadow: 0 8px 28px rgba(0,0,0,0.35);
+}
+.guild-heroes-overview-card.active {
+    border-color: var(--gh-primary, #a78bfa);
+    background: color-mix(in srgb, var(--gh-primary, #6366f1) 18%, rgba(0,0,0,0.35));
+    box-shadow:
+        0 0 0 2px color-mix(in srgb, var(--gh-glow, #c4b5fd) 35%, transparent),
+        0 12px 32px rgba(0,0,0,0.35);
+}
+.guild-heroes-overview-card.active::after {
+    content: '✓';
+    position: absolute;
+    top: -6px;
+    right: -4px;
+    font-size: 0.75rem;
+    width: 1.35rem;
+    height: 1.35rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    background: var(--gh-primary, #818cf8);
+    color: #0f0820;
+    font-weight: 900;
+}
+.guild-heroes-overview-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 0.45rem;
+}
+.guild-heroes-rank {
+    font-family: 'Fredoka One', cursive;
+    font-size: 0.72rem;
+    color: rgba(255,255,255,0.85);
+    background: rgba(255,255,255,0.08);
+    padding: 0.15rem 0.45rem;
+    border-radius: 9999px;
+}
+.guild-heroes-name {
+    font-family: 'Fredoka One', cursive;
+    font-size: 0.78rem;
+    color: rgba(255,255,255,0.92);
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+}
+.guild-heroes-overview-body {
+    display: flex;
+    align-items: center;
+    gap: 0.55rem;
+}
+.guild-heroes-overview-meta { min-width: 0; }
+.guild-heroes-overview-line {
+    font-size: 0.68rem;
+    color: rgba(255,255,255,0.48);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.guild-heroes-overview-line strong {
+    color: rgba(253,230,138,0.95);
+    font-family: 'Fredoka One', cursive;
+}
+
+/* ─── Main tabs ─── */
+.guild-heroes-view-tabs {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+    margin-bottom: 0.85rem;
+    justify-content: center;
+}
+.guild-heroes-view-tab {
+    font-family: 'Fredoka One', cursive;
+    font-size: 0.72rem;
+    letter-spacing: 0.02em;
+    border-radius: 9999px;
+    padding: 0.42rem 0.95rem;
+    border: 1px solid rgba(255,255,255,0.14);
+    background: rgba(0,0,0,0.25);
+    color: rgba(255,255,255,0.55);
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+.guild-heroes-view-tab:hover {
+    transform: translateY(-1px);
+    border-color: rgba(251,191,36,0.35);
+    color: rgba(255,255,255,0.85);
+}
+.guild-heroes-view-tab.active {
+    color: #1a1528;
+    border-color: rgba(251,191,36,0.65);
+    background: linear-gradient(135deg, #fde68a 0%, #fbbf24 55%, #f59e0b 100%);
+    box-shadow: 0 6px 22px rgba(245,158,11,0.35);
+}
+
+/* ─── Scrollable panel ─── */
+.guild-heroes-content {
+    border-radius: 1.05rem;
+    border: 1px solid rgba(255,255,255,0.1);
+    background: rgba(0,0,0,0.28);
+    padding: 1rem 1rem 1.1rem;
+    min-height: 220px;
+}
+
+/* ─── “At a glance” ─── */
+.gh-spotlight { display: grid; gap: 1rem; }
+.gh-spotlight-hero {
+    display: flex;
+    align-items: center;
+    gap: 0.85rem;
+    padding: 0.85rem 1rem;
+    border-radius: 1rem;
+    border: 1px solid rgba(255,255,255,0.1);
+    background: linear-gradient(120deg, color-mix(in srgb, var(--gh-spot, #7c3aed) 22%, transparent) 0%, rgba(0,0,0,0.2) 100%);
+    box-shadow: inset 0 0 40px color-mix(in srgb, var(--gh-spot-glow, #a78bfa) 15%, transparent);
+}
+.gh-spotlight-hero__icon .guild-heroes-emblem-mini {
+    width: 52px;
+    height: 52px;
+}
+.gh-spotlight-hero__name {
+    font-family: 'Fredoka One', cursive;
+    font-size: 1.05rem;
+    color: rgba(255,255,255,0.95);
+}
+.gh-spotlight-hero__lede {
+    margin: 0.25rem 0 0;
+    font-size: 0.82rem;
+    line-height: 1.45;
+    color: rgba(255,255,255,0.62);
+    font-weight: 600;
+}
+.gh-stat-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.65rem;
+}
+@media (min-width: 640px) {
+    .gh-stat-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+}
+.gh-stat-tile {
+    border-radius: 0.85rem;
+    padding: 0.65rem 0.7rem;
+    border: 1px solid rgba(255,255,255,0.1);
+    background: rgba(255,255,255,0.04);
+}
+.gh-stat-tile__label {
+    display: block;
+    font-size: 0.62rem;
+    font-weight: 800;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: rgba(255,255,255,0.42);
+}
+.gh-stat-tile__value {
+    display: block;
+    margin-top: 0.35rem;
+    font-family: 'Fredoka One', cursive;
+    font-size: 1.05rem;
+    color: rgba(255,255,255,0.95);
+    line-height: 1.15;
+}
+.gh-stat-tile__hint {
+    display: block;
+    margin-top: 0.35rem;
+    font-size: 0.68rem;
+    line-height: 1.35;
+    color: rgba(255,255,255,0.45);
+    font-weight: 600;
+}
+.gh-soft-note {
+    margin: 0;
+    text-align: center;
+    font-size: 0.75rem;
+    color: rgba(255,255,255,0.4);
+    font-weight: 600;
+}
+
+/* ─── Heroes tab stack ─── */
+.gh-heroes-stack { display: flex; flex-direction: column; gap: 1.25rem; }
+.gh-heroes-section { display: flex; flex-direction: column; gap: 0.65rem; }
+.gh-section-title {
+    margin: 0;
+    font-family: 'Fredoka One', cursive;
+    font-size: 0.95rem;
+    color: rgba(253,230,138,0.95);
+    text-shadow: 0 1px 8px rgba(0,0,0,0.4);
+}
+.gh-section-title--inline { align-self: start; }
+.gh-top-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.45rem;
+}
+.gh-top-row {
+    display: grid;
+    grid-template-columns: auto auto minmax(0, 1fr) auto;
+    gap: 0.55rem;
+    align-items: center;
+    padding: 0.45rem 0.55rem;
+    border-radius: 0.85rem;
+    border: 1px solid rgba(255,255,255,0.08);
+    background: rgba(255,255,255,0.03);
+}
+.gh-top-rank { font-size: 1.05rem; width: 1.5rem; text-align: center; }
+.gh-top-row .guild-heroes-avatar { width: 40px; height: 40px; }
+.gh-top-name { font-weight: 800; font-size: 0.85rem; color: rgba(255,255,255,0.92); }
+.gh-top-meta { font-size: 0.68rem; color: rgba(255,255,255,0.4); margin-top: 0.1rem; }
+.gh-top-bar {
+    margin-top: 0.35rem;
+    height: 4px;
+    border-radius: 9999px;
+    background: rgba(255,255,255,0.08);
+    overflow: hidden;
+}
+.gh-top-bar span {
+    display: block;
+    height: 100%;
+    border-radius: 9999px;
+    background: linear-gradient(90deg, rgba(251,191,36,0.5), rgba(245,158,11,0.95));
+}
+.gh-top-stars {
+    font-family: 'Fredoka One', cursive;
+    font-size: 0.85rem;
+    color: rgba(253,230,138,0.95);
+    white-space: nowrap;
+}
+.gh-roster-list { margin-top: 0.35rem; }
+
+/* ─── Together tab ─── */
+.gh-together { display: flex; flex-direction: column; gap: 0.85rem; }
+.gh-together-card {
+    border-radius: 1rem;
+    padding: 0.85rem 1rem;
+    border: 1px solid rgba(255,255,255,0.1);
+    background: rgba(255,255,255,0.03);
+}
+.gh-together-lede {
+    margin: 0.4rem 0 0;
+    font-size: 0.82rem;
+    line-height: 1.5;
+    color: rgba(255,255,255,0.62);
+    font-weight: 600;
+}
+.gh-together-lede strong { color: rgba(253,230,138,0.95); }
+.gh-together-bar {
+    margin-top: 0.65rem;
+    height: 10px;
+    border-radius: 9999px;
+    background: rgba(255,255,255,0.08);
+    overflow: hidden;
+}
+.gh-together-bar span {
+    display: block;
+    height: 100%;
+    border-radius: 9999px;
+    background: linear-gradient(90deg, #34d399, #6ee7b7);
+    transition: width 0.4s ease;
+}
+.gh-class-list { display: flex; flex-direction: column; gap: 0.45rem; margin-top: 0.35rem; }
+.gh-class-row {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 2.2fr) auto;
+    gap: 0.5rem;
+    align-items: center;
+    font-size: 0.78rem;
+}
+.gh-class-name {
+    color: rgba(255,255,255,0.78);
+    font-weight: 700;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.gh-class-track {
+    height: 8px;
+    border-radius: 9999px;
+    background: rgba(255,255,255,0.08);
+    overflow: hidden;
+}
+.gh-class-track span {
+    display: block;
+    height: 100%;
+    border-radius: 9999px;
+    background: linear-gradient(90deg, rgba(167,139,250,0.4), rgba(124,58,237,0.9));
+}
+.gh-class-pct {
+    font-family: 'Fredoka One', cursive;
+    font-size: 0.75rem;
+    color: rgba(196,181,253,0.95);
+    min-width: 2.5rem;
+    text-align: right;
+}
+.gh-together-foot {
+    margin: 0;
+    padding: 0.75rem 0.85rem;
+    border-radius: 0.85rem;
+    border: 1px dashed rgba(251,191,36,0.25);
+    background: rgba(251,191,36,0.06);
+    font-size: 0.82rem;
+    line-height: 1.45;
+    color: rgba(255,255,255,0.65);
+    font-weight: 600;
+}
+.gh-together-foot strong { color: rgba(253,230,138,0.95); }
+
+/* ─── Wheel tab (matches hall mood) ─────────────────────────────────────────── */
+.gh-wheel-panel--modal {
+    border: none;
+    background: transparent;
+    padding: 0;
+}
+.gh-wheel-panel__grid {
+    display: grid;
+    gap: 0.75rem;
+    grid-template-columns: 1fr;
+}
+@media (min-width: 560px) {
+    .gh-wheel-panel__grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+.gh-wheel-card {
+    border-radius: 0.95rem;
+    border: 1px solid rgba(255,255,255,0.1);
+    background: rgba(255,255,255,0.04);
+    padding: 0.75rem 0.8rem;
+    min-height: 120px;
+}
+.gh-wheel-card .h {
+    font-family: 'Fredoka One', cursive;
+    font-size: 0.78rem;
+    color: rgba(253,230,138,0.95);
+    margin-bottom: 0.55rem;
+    letter-spacing: 0.04em;
+}
+.gh-wheel-empty {
+    color: rgba(255,255,255,0.38);
+    font-size: 0.82rem;
+    font-weight: 600;
+    padding: 0.5rem 0.25rem;
+}
+.gh-wheel-omens,
+.gh-wheel-mods {
+    display: grid;
+    gap: 0.5rem;
+}
+.gh-wheel-omen {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 0.65rem;
+    align-items: center;
+    padding: 0.5rem 0.6rem;
+    background: rgba(0,0,0,0.22);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 0.75rem;
+}
+.gh-wheel-omen .t {
+    font-size: 0.84rem;
+    font-weight: 800;
+    color: rgba(255,255,255,0.92);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.gh-wheel-omen .s {
+    margin-top: 0.15rem;
+    font-size: 0.7rem;
+    color: rgba(255,255,255,0.38);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.gh-wheel-omen .b {
+    font-family: 'Fredoka One', cursive;
+    font-size: 0.82rem;
+    padding: 0.2rem 0.55rem;
+    border-radius: 9999px;
+    border: 1px solid rgba(255,255,255,0.12);
+    background: rgba(255,255,255,0.06);
+    color: rgba(255,255,255,0.85);
+    white-space: nowrap;
+}
+.gh-wheel-omen .b.pos {
+    background: rgba(16, 185, 129, 0.18);
+    border-color: rgba(52, 211, 153, 0.35);
+    color: #a7f3d0;
+}
+.gh-wheel-omen .b.neg {
+    background: rgba(239, 68, 68, 0.14);
+    border-color: rgba(248, 113, 113, 0.35);
+    color: #fecaca;
+}
+.gh-wheel-mod {
+    display: flex;
+    justify-content: space-between;
+    gap: 0.65rem;
+    align-items: start;
+    padding: 0.5rem 0.6rem;
+    background: rgba(0,0,0,0.22);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 0.75rem;
+}
+.gh-wheel-mod .t {
+    font-size: 0.8rem;
+    font-weight: 800;
+    color: rgba(255,255,255,0.9);
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.gh-wheel-mod .s {
+    font-size: 0.72rem;
+    color: rgba(253,230,138,0.85);
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+
+/* ── Roster controls ─────────────────────────────────────────────────────── */
+.gh-roster-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+}
+.gh-roster-controls {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+}
+.gh-roster-search {
+    min-width: 200px;
+    flex: 1;
+    border-radius: 9999px;
+    border: 1px solid rgba(255,255,255,0.14);
+    padding: 0.45rem 0.85rem;
+    font-size: 0.82rem;
+    background: rgba(0,0,0,0.35);
+    color: rgba(255,255,255,0.92);
+}
+.gh-roster-search::placeholder {
+    color: rgba(255,255,255,0.35);
+}
+.gh-roster-search:focus {
+    outline: none;
+    border-color: rgba(251,191,36,0.45);
+    box-shadow: 0 0 0 3px rgba(245,158,11,0.12);
+}
+.gh-roster-sort {
+    border-radius: 9999px;
+    border: 1px solid rgba(255,255,255,0.14);
+    padding: 0.45rem 0.75rem;
+    font-size: 0.78rem;
+    background: rgba(0,0,0,0.35);
+    color: rgba(255,255,255,0.88);
+}
+
+/* ── Champions (standouts) ─── */
+.guild-heroes-champions {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.75rem;
+}
+@media (max-width: 560px) {
+    .guild-heroes-champions { grid-template-columns: 1fr; }
+}
+.guild-heroes-champion-card {
+    border-radius: 1rem;
+    border: 1px solid rgba(255,255,255,0.12);
+    background: rgba(255,255,255,0.05);
+    padding: 0.85rem 0.9rem;
+    position: relative;
+    transition: all 0.2s ease;
+}
+.guild-heroes-champion-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 12px 36px rgba(0,0,0,0.35);
+    border-color: color-mix(in srgb, var(--gh-primary, #a78bfa) 40%, transparent);
+}
+.guild-heroes-champion-card:first-child::before {
+    content: '👑';
+    position: absolute;
+    top: -12px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 1.5rem;
+}
+.guild-heroes-champion-card:last-child::before {
+    content: '🏅';
+    position: absolute;
+    top: -10px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 1.4rem;
+}
+.guild-heroes-champion-card .label {
+    font-family: 'Fredoka One', cursive;
+    font-size: 0.68rem;
+    color: rgba(253,230,138,0.9);
+    letter-spacing: 0.06em;
+    text-align: center;
+    margin-bottom: 0.5rem;
+}
+.guild-heroes-champion-card .body {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    justify-content: center;
+}
+.guild-heroes-champion-card .name {
+    font-family: 'Fredoka One', cursive;
+    font-size: 1.05rem;
+    color: rgba(255,255,255,0.95);
+    display: inline-block;
+}
+.guild-heroes-champion-card .meta {
+    color: rgba(255,255,255,0.45);
+    font-size: 0.76rem;
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+}
+
+/* ── Avatar Styles ─── */
+.guild-heroes-avatar {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 2px solid rgba(255,255,255,0.18);
+    flex-shrink: 0;
+    transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+    box-shadow: 0 4px 14px rgba(0,0,0,0.35);
+}
+.guild-heroes-avatar:hover {
+    transform: scale(1.08) rotate(3deg);
+    border-color: rgba(251,191,36,0.55);
+    box-shadow: 0 8px 22px rgba(245,158,11,0.25);
+}
+.guild-heroes-avatar.fallback {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-family: 'Fredoka One', cursive;
+    font-size: 1.1rem;
+    background: #6366f1;
+}
+
+/* ── Roster rows ─── */
+.guild-heroes-leaderboard-list {
+    padding: 0;
+}
+.guild-heroes-leaderboard-item {
+    display: flex;
+    align-items: center;
+    gap: 0.65rem;
+    padding: 0.5rem 0.55rem;
+    border-radius: 0.8rem;
+    margin-bottom: 0.35rem;
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.06);
+    transition: all 0.2s ease;
+}
+.guild-heroes-leaderboard-item:hover {
+    background: rgba(255,255,255,0.07);
+    border-color: rgba(251,191,36,0.22);
+    transform: translateX(2px);
+}
+.guild-heroes-leaderboard-item.top-1 {
+    background: rgba(251,191,36,0.1);
+    border-color: rgba(251,191,36,0.35);
+}
+.guild-heroes-leaderboard-item.top-2 {
+    background: rgba(255,255,255,0.06);
+    border-color: rgba(255,255,255,0.12);
+}
+.guild-heroes-leaderboard-item.top-3 {
+    background: rgba(249,115,22,0.1);
+    border-color: rgba(249,115,22,0.28);
+}
+.guild-heroes-rank-badge {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Fredoka One', cursive;
+    font-size: 0.875rem;
+    flex-shrink: 0;
+}
+.guild-heroes-rank-badge.gold {
+    background: linear-gradient(145deg, #fbbf24, #f59e0b);
+    color: #fff;
+}
+.guild-heroes-rank-badge.silver {
+    background: linear-gradient(145deg, #9ca3af, #6b7280);
+    color: #fff;
+}
+.guild-heroes-rank-badge.bronze {
+    background: linear-gradient(145deg, #f97316, #ea580c);
+    color: #fff;
+}
+.guild-heroes-rank-badge.other {
+    background: rgba(255,255,255,0.12);
+    color: rgba(255,255,255,0.65);
+}
+.guild-heroes-hero-info {
+    flex: 1;
+    min-width: 0;
+}
+.guild-heroes-hero-info .name {
+    font-family: 'Fredoka One', cursive;
+    font-size: 0.92rem;
+    margin-bottom: 0.15rem;
+    color: rgba(255,255,255,0.94);
+    display: inline-block;
+}
+.guild-heroes-hero-info .meta {
+    color: rgba(255,255,255,0.42);
+    font-size: 0.72rem;
+    font-weight: 600;
+}
+.guild-heroes-role-badges {
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+    margin-bottom: 0.2rem;
+}
+.guild-heroes-role-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    border-radius: 9999px;
+    padding: 0.1rem 0.45rem;
+    font-size: 0.62rem;
+    font-weight: 800;
+    line-height: 1.1;
+    letter-spacing: 0.02em;
+    border: 1px solid transparent;
+}
+.guild-heroes-role-badge.champion {
+    background: linear-gradient(145deg, #4f46e5, #7c3aed);
+    color: #ffffff;
+    border-color: #c4b5fd;
+}
+.guild-heroes-role-badge.top-hero {
+    background: #fef3c7;
+    color: #92400e;
+    border-color: #f59e0b;
+}
+.guild-heroes-stat {
+    text-align: center;
+    padding: 0 0.75rem;
+}
+.guild-heroes-stat .value {
+    font-family: 'Fredoka One', cursive;
+    color: rgba(253,230,138,0.95);
+    font-size: 0.92rem;
+}
+.guild-heroes-stat .label {
+    font-size: 0.58rem;
+    color: rgba(255,255,255,0.38);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+}
+.guild-heroes-progress-bar {
+    width: 80px;
+    height: 6px;
+    background: #e5e7eb;
+    border-radius: 9999px;
+    overflow: hidden;
+    margin-top: 0.2rem;
+}
+.guild-heroes-progress-fill {
+    height: 100%;
+    border-radius: 9999px;
+    background: linear-gradient(90deg, #6366f1, #8b5cf6);
+    transition: width 0.5s ease;
+}
+
+/* ── Grid Layouts ─── */
+.guild-heroes-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 1rem;
+}
+.guild-heroes-panel {
+    border: 2px solid #e5e7eb;
+    border-radius: 1rem;
+    background: #ffffff;
+    padding: 1rem;
+}
+.guild-heroes-panel h4 {
+    font-family: 'Fredoka One', cursive;
+    font-size: 1rem;
+    margin-bottom: 0.75rem;
+    color: #4f46e5;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+.guild-heroes-panel h5 {
+    margin-top: 0.75rem;
+    margin-bottom: 0.5rem;
+    font-family: 'Fredoka One', cursive;
+    font-size: 0.8rem;
+    color: #6b7280;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+}
+
+/* ── Tables (All Heroes) ─── */
+.guild-heroes-table-wrap { overflow-x: auto; }
+.guild-heroes-table {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0 0.35rem;
+}
+.guild-heroes-table th {
+    font-size: 0.65rem;
+    color: #9ca3af;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    padding: 0.4rem 0.625rem;
+    text-align: left;
+    font-weight: 600;
+}
+.guild-heroes-table td {
+    font-size: 0.8rem;
+    padding: 0.5rem 0.625rem;
+    background: #ffffff;
+    border-top: 1px solid #e5e7eb;
+    border-bottom: 1px solid #e5e7eb;
+}
+.guild-heroes-table tr td:first-child {
+    border-radius: 0.625rem 0 0 0.625rem;
+    border-left: 1px solid #e5e7eb;
+}
+.guild-heroes-table tr td:last-child {
+    border-radius: 0 0.625rem 0.625rem 0;
+    border-right: 1px solid #e5e7eb;
+}
+.guild-heroes-table tbody tr:hover td {
+    background: #f3f4f6;
+}
+.guild-heroes-empty-row {
+    color: #9ca3af;
+    text-align: center;
+    padding: 1.25rem;
+    font-style: italic;
+}
+.guild-heroes-cell-hero {
+    display: flex;
+    align-items: center;
+    gap: 0.625rem;
+    min-width: 180px;
+}
+.guild-heroes-cell-hero .name {
+    font-family: 'Fredoka One', cursive;
+    font-size: 0.9rem;
+    background: linear-gradient(135deg, #4f46e5, #7c3aed, #db2777);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    display: inline-block;
+    filter: drop-shadow(0 1px 2px rgba(79, 70, 229, 0.15));
+}
+.guild-heroes-cell-hero .meta {
+    color: #9ca3af;
+    font-size: 0.7rem;
+}
+
+/* ── Team Health View ─── */
+.guild-heroes-health-card {
+    border-radius: 1rem;
+    border: 2px solid #bbf7d0;
+    background: #f0fdf4;
+    padding: 1rem;
+    margin-bottom: 0.875rem;
+}
+.guild-heroes-health-card h4 {
+    font-family: 'Fredoka One', cursive;
+    color: #16a34a;
+    font-size: 1rem;
+    margin-bottom: 0.75rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+.guild-heroes-health-metric {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin-bottom: 0.625rem;
+}
+.guild-heroes-health-metric .icon {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background: #dcfce7;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.1rem;
+}
+.guild-heroes-health-metric .info { flex: 1; }
+.guild-heroes-health-metric .label {
+    font-size: 0.75rem;
+    color: #6b7280;
+}
+.guild-heroes-health-metric .value {
+    font-family: 'Fredoka One', cursive;
+    color: #1f2937;
+    font-size: 1rem;
+}
+.guild-heroes-health-bar {
+    height: 8px;
+    background: #e5e7eb;
+    border-radius: 9999px;
+    overflow: hidden;
+    margin-top: 0.25rem;
+}
+.guild-heroes-health-fill {
+    height: 100%;
+    border-radius: 9999px;
+    background: linear-gradient(90deg, #22c55e, #4ade80);
+    transition: width 0.5s ease;
+}
+
+.guild-heroes-bullets {
+    margin: 0;
+    padding-left: 1.25rem;
+    list-style: none;
+}
+.guild-heroes-bullets li {
+    font-size: 0.8rem;
+    color: #4b5563;
+    margin-bottom: 0.4rem;
+    position: relative;
+    padding-left: 0.5rem;
+}
+.guild-heroes-bullets li::before {
+    content: '⚡';
+    position: absolute;
+    left: -1.25rem;
+}
+.guild-heroes-rivalry {
+    margin-top: 0.875rem;
+    border-radius: 0.875rem;
+    padding: 0.875rem;
+    border: 2px solid #bfdbfe;
+    background: #eff6ff;
+    color: #1e40af;
+    font-size: 0.8rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+.guild-heroes-rivalry::before {
+    content: '🎯';
+    font-size: 1.1rem;
+}
+.guild-heroes-note {
+    color: #9ca3af;
+    font-size: 0.75rem;
+    margin: 0 0 0.625rem 0;
+    font-style: italic;
+}
+.guild-heroes-empty {
+    color: rgba(255,255,255,0.38);
+    text-align: center;
+    padding: 1.5rem;
+    font-weight: 600;
+}
+
+/* ── Guild Heroes modal responsive ─── */
+@media (max-width: 980px) {
+    .guild-heroes-overview { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 640px) {
+    .guild-heroes-card { padding: 1rem 1rem 1.1rem; border-radius: 1.25rem; }
+    .guild-heroes-overview { grid-template-columns: 1fr; }
+    .guild-heroes-view-tab { font-size: 0.68rem; padding: 0.38rem 0.75rem; }
+    .guild-heroes-content { padding: 0.85rem; min-height: 180px; }
+    .guild-heroes-leaderboard-item { padding: 0.45rem; gap: 0.45rem; flex-wrap: wrap; }
+    .guild-heroes-stat { padding: 0 0.35rem; }
+    .guild-heroes-avatar { width: 40px; height: 40px; }
+    .gh-stat-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}

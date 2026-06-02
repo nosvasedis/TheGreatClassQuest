@@ -1,0 +1,1200 @@
+
+/* --- NEW CEREMONY STYLES --- */
+
+/* Background Pulse */
+@keyframes pulse-slow {
+    0%, 100% { opacity: 0.3; }
+    50% { opacity: 0.6; }
+}
+.animate-pulse-slow { animation: pulse-slow 8s infinite ease-in-out; }
+
+/* Card Entrance */
+@keyframes card-enter {
+    0% { transform: translateY(100px) scale(0.8); opacity: 0; }
+    60% { transform: translateY(-20px) scale(1.05); opacity: 1; }
+    100% { transform: translateY(0) scale(1); opacity: 1; }
+}
+.ceremony-card-enter { animation: card-enter 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) forwards; }
+
+/* Showdown Heartbeat (Tension) */
+@keyframes heartbeat {
+    0% { transform: scale(1); filter: brightness(1); }
+    10% { transform: scale(1.05); filter: brightness(1.2); }
+    20% { transform: scale(1); filter: brightness(1); }
+    100% { transform: scale(1); filter: brightness(1); }
+}
+.ceremony-showdown-card {
+    animation: heartbeat 1.5s infinite;
+    box-shadow: 0 0 50px rgba(255, 255, 255, 0.2);
+}
+
+/* Winner Reveal */
+@keyframes winner-pop {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.2) rotate(5deg); }
+    100% { transform: scale(1.1) rotate(0deg); }
+}
+.ceremony-winner {
+    animation: winner-pop 0.8s ease-out forwards;
+    box-shadow: 0 0 80px rgba(251, 191, 36, 0.8); /* Gold Glow */
+    border-color: #FCD34D !important;
+    z-index: 50;
+}
+
+/* Base Card Style */
+.ceremony-display-card {
+    background: white;
+    border: 6px solid #e5e7eb;
+    border-radius: 2rem;
+    padding: 2rem;
+    width: 420px; /* Bigger width */
+    max-width: 90vw; /* Safety for mobile */
+    text-align: center;
+    box-shadow: 0 20px 40px rgba(0,0,0,0.4);
+    position: relative;
+    transition: all 0.5s ease;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+}
+
+/* Ranks */
+.rank-bronze { border-color: #cd7f32; background: linear-gradient(to bottom, #fff, #fff7ed); }
+.rank-silver { border-color: #94a3b8; background: linear-gradient(to bottom, #fff, #f8fafc); }
+.rank-gold { border-color: #fbbf24; background: linear-gradient(to bottom, #fff, #fffbeb); }
+
+/* Mystery Card */
+.ceremony-mystery-card {
+    background: linear-gradient(135deg, #1e1b4b 0%, #312e81 100%);
+    border: 6px solid #6366f1;
+    color: white;
+}
+
+/* Confetti */
+.confetti-piece {
+    position: absolute;
+    width: 10px; height: 10px;
+    background: #ffd700;
+    top: -10%;
+    z-index: 20;
+    animation: fall-confetti linear forwards;
+}
+@keyframes fall-confetti {
+    0% { transform: translateY(0) rotate(0deg); opacity: 1; }
+    100% { transform: translateY(110vh) rotate(720deg); opacity: 0; }
+}
+
+/* WALLPAPER ENHANCEMENTS */
+
+.glass-panel {
+    backdrop-filter: blur(16px) saturate(180%);
+    -webkit-backdrop-filter: blur(16px) saturate(180%);
+    background-color: rgba(255, 255, 255, 0.75);
+    border: 1px solid rgba(209, 213, 219, 0.3);
+}
+
+.float-card-celebration {
+    /* The style is applied inline in JS for gradient, but base props here */
+    color: white;
+}
+
+.float-card-white {
+    background: rgba(255, 255, 255, 0.95);
+    border: 4px solid #e0e7ff;
+    color: #312e81;
+}
+
+.float-card-pink {
+    background: linear-gradient(135deg, #fdf2f8, #fce7f3);
+    border: 4px solid #f472b6;
+    color: #831843;
+}
+
+@keyframes bounce-slow {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-20px); }
+}
+.animate-bounce-slow {
+    animation: bounce-slow 3s infinite ease-in-out;
+}
+
+/* --- TITLE MAGIC FAIRY PATROL (Safe Height & Long Rest) --- */
+
+header h1.font-title {
+    color: white !important;
+    background: none !important;
+    -webkit-background-clip: border-box !important;
+    background-clip: border-box !important;
+    text-shadow: 0 4px 8px rgba(0, 0, 0, 0.3), 0 0 15px rgba(255, 255, 255, 0.4) !important;
+    position: relative;
+    display: inline-block;
+}
+
+header h1.font-title::after {
+    content: '✦';
+    position: absolute;
+    top: 50%;
+    left: -30px;
+    font-size: 1.4rem;
+    color: #FCD34D; /* Gold */
+    
+    /* Magical Glow */
+    text-shadow: 
+        0 0 5px #FCD34D, 
+        0 0 10px #FFFFFF, 
+        0 0 20px #F59E0B;
+    
+    opacity: 0;
+    pointer-events: none;
+    
+    /* 
+       Total Cycle: 30 seconds 
+       - 0-20s: Active Flying (Out & Back)
+       - 20-30s: REST (Invisible)
+    */
+    animation: fairy-flight-safe 30s ease-in-out infinite;
+}
+
+@keyframes fairy-flight-safe {
+    /* --- OUTBOUND LEG (Left -> Right) --- */
+    0% { 
+        left: -40px; top: 40%; 
+        opacity: 0; transform: scale(0.4) rotate(0deg); 
+    }
+    2% { opacity: 1; transform: scale(1) rotate(45deg); }
+
+    /* Path 1: Arch HIGH above the text (Negative top) */
+    10% { left: 15%; top: -20%; transform: scale(0.7) rotate(90deg); }
+    
+    /* Path 2: Dive to middle (Max 50% to stay above quote) */
+    20% { left: 40%; top: 50%; transform: scale(1.1) rotate(135deg); }
+    
+    /* Path 3: Float up slightly */
+    30% { left: 70%; top: 10%; transform: scale(0.8) rotate(180deg); }
+
+    /* Reach Right Edge & Hover */
+    35% { left: 105%; top: 30%; opacity: 1; transform: scale(1) rotate(360deg); }
+    38% { left: 110%; top: 25%; opacity: 1; transform: scale(1) rotate(380deg); }
+
+    /* --- RETURN LEG (Right -> Left - New Route) --- */
+    
+    /* Path 4: Dive Low first (Max 50%) */
+    45% { left: 80%; top: 50%; transform: scale(1.2) rotate(300deg); }
+
+    /* Path 5: Swoop VERY High (Loop-the-loop feel) */
+    55% { left: 50%; top: -40%; transform: scale(0.5) rotate(200deg); }
+
+    /* Path 6: Level out to center */
+    62% { left: 20%; top: 20%; transform: scale(0.9) rotate(100deg); }
+
+    /* Arrive back at start & Fade out */
+    66% { left: -40px; top: 40%; opacity: 1; transform: scale(0.4) rotate(0deg); }
+    68% { opacity: 0; }
+
+    /* --- LONG REST (68% to 100% = ~10 Seconds of silence) --- */
+    100% { left: -40px; opacity: 0; }
+}
+
+/* --- CEREMONY VISUAL REVAMP (Fixed & Enhanced) --- */
+
+/* Background Spotlight Effect */
+.bg-radial-gradient-spotlight {
+    background: radial-gradient(circle at center, rgba(124, 58, 237, 0.4) 0%, rgba(99, 102, 241, 0.2) 40%, rgba(17, 24, 39, 0) 80%);
+    animation: pulse-spotlight 6s infinite alternate;
+}
+
+@keyframes pulse-spotlight {
+    0% { opacity: 0.4; transform: scale(1); filter: hue-rotate(0deg); }
+    100% { opacity: 0.8; transform: scale(1.2); filter: hue-rotate(15deg); }
+}
+
+.ceremony-card {
+    animation: slide-in-from-bottom 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(12px);
+    border: 4px solid #e5e7eb;
+    width: 360px; 
+    padding: 2.5rem;
+    border-radius: 2.5rem; 
+    text-align: center;
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25), 0 0 0 2px rgba(255,255,255,0.1);
+    transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
+    /* FIX: Allow overflow so scaling effects/shadows don't clip */
+    overflow: visible !important; 
+}
+
+/* Rank Specific Styles */
+.ceremony-card.podium-1 { 
+    border-color: #fbbf24; /* Amber-400 */
+    background: linear-gradient(to bottom, #fffbeb, #fff7ed);
+    transform: scale(1.15); 
+    z-index: 20; 
+    box-shadow: 0 0 60px rgba(251, 191, 36, 0.6), 0 0 20px rgba(255,255,255,0.5);
+}
+.ceremony-card.podium-2 { 
+    border-color: #94a3b8; /* Slate-400 */
+    background: linear-gradient(to bottom, #f8fafc, #f1f5f9);
+    z-index: 10;
+}
+.ceremony-card.podium-3 { 
+    border-color: #fdba74; /* Orange-300 */
+    background: linear-gradient(to bottom, #fff7ed, #ffedd5);
+    z-index: 5;
+}
+
+/* Showdown Face-Off Style */
+.ceremony-card.face-off {
+    background: linear-gradient(135deg, #f1f5f9, #e2e8f0) !important;
+    border-color: #64748b !important;
+    transform: scale(1);
+    filter: grayscale(0.4) brightness(0.9); 
+    z-index: 10;
+}
+
+/* Hide specific elements during face-off */
+.ceremony-card.face-off .rank-badge, 
+.ceremony-card.face-off .star-count {
+    opacity: 0;
+    filter: blur(10px);
+    transition: all 0.5s ease;
+}
+
+/* Tension Shake Animation */
+@keyframes shake-tension {
+    0% { transform: translate(1px, 1px) rotate(0deg); }
+    10% { transform: translate(-1px, -2px) rotate(-1deg); }
+    20% { transform: translate(-3px, 0px) rotate(1deg); }
+    30% { transform: translate(3px, 2px) rotate(0deg); }
+    40% { transform: translate(1px, -1px) rotate(1deg); }
+    50% { transform: translate(-1px, 2px) rotate(-1deg); }
+    60% { transform: translate(-3px, 1px) rotate(0deg); }
+    70% { transform: translate(3px, 1px) rotate(-1deg); }
+    80% { transform: translate(-1px, -1px) rotate(1deg); }
+    90% { transform: translate(1px, 2px) rotate(0deg); }
+    100% { transform: translate(1px, -2px) rotate(-1deg); }
+}
+
+.ceremony-card.tension-active {
+    animation: shake-tension 0.5s infinite; 
+    box-shadow: 0 0 40px rgba(251, 191, 36, 0.4); 
+}
+
+/* Winner Reveal Animation */
+@keyframes pop-gold {
+    0% { transform: scale(1); filter: brightness(1); }
+    40% { transform: scale(1.15) rotate(2deg); filter: brightness(1.2); } /* Reduced scale & rotation */
+    100% { transform: scale(1.15) rotate(0deg); filter: brightness(1); }
+}
+
+/* Winner Class (Enhanced with God Rays) */
+.ceremony-winner {
+    animation: pop-gold 0.8s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards, winner-pulse 2s infinite ease-in-out;
+    z-index: 50;
+    border-color: #FCD34D !important;
+    background: linear-gradient(to bottom, #fffbeb, #fff7ed) !important;
+    box-shadow: 0 0 80px rgba(251, 191, 36, 0.8), 0 0 30px rgba(255,255,255,0.9);
+}
+
+/* Rays of Light Effect */
+.ceremony-winner::before {
+    content: '';
+    position: absolute;
+    top: 50%; left: 50%;
+    width: 200%; height: 200%;
+    background: conic-gradient(from 0deg, transparent 0deg, rgba(251, 191, 36, 0.4) 20deg, transparent 40deg, rgba(251, 191, 36, 0.4) 60deg, transparent 80deg, rgba(251, 191, 36, 0.4) 100deg, transparent 120deg, rgba(251, 191, 36, 0.4) 140deg, transparent 160deg);
+    transform: translate(-50%, -50%);
+    z-index: -1;
+    animation: rotate-rays 10s linear infinite;
+    opacity: 0.45;
+    mask-image: radial-gradient(circle at center, transparent 26%, rgba(0,0,0,0.85) 42%, transparent 65%); /* Ring of rays around card */
+    pointer-events: none;
+}
+
+@keyframes rotate-rays {
+    from { transform: translate(-50%, -50%) rotate(0deg); }
+    to { transform: translate(-50%, -50%) rotate(360deg); }
+}
+
+@keyframes winner-pulse {
+    0%, 100% {
+        box-shadow: 0 0 70px rgba(251,191,36,0.75), 0 0 30px rgba(255,255,255,0.6), 0 30px 60px rgba(0,0,0,0.4);
+    }
+    50% {
+        box-shadow: 0 0 120px rgba(251,191,36,1.0), 0 0 55px rgba(255,213,0,0.85), 0 0 25px rgba(255,255,255,0.9), 0 30px 60px rgba(0,0,0,0.4);
+    }
+}
+
+/* Reveal Helpers */
+.ceremony-card.revealed-gold .rank-badge, 
+.ceremony-card.revealed-silver .rank-badge,
+.ceremony-card.revealed-gold .star-count, 
+.ceremony-card.revealed-silver .star-count {
+    opacity: 1;
+    filter: blur(0);
+}
+
+/* 2nd Place — elegant animated silver shimmer */
+.ceremony-card.revealed-silver {
+    z-index: 40;
+    opacity: 1;
+    filter: none;
+    border-color: #94a3b8 !important;
+    background: linear-gradient(115deg, #f8fafc 0%, #e2e8f0 20%, #ffffff 40%, #cbd5e1 60%, #f1f5f9 80%, #e8edf5 100%) !important;
+    background-size: 300% 300% !important;
+    animation: silver-shimmer-bg 3s ease-in-out infinite, silver-pulse 2.5s ease-in-out infinite;
+}
+
+@keyframes silver-shimmer-bg {
+    0%, 100% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+}
+
+@keyframes silver-pulse {
+    0%, 100% {
+        transform: scale(1.05);
+        box-shadow: 0 0 30px rgba(148, 163, 184, 0.55), 0 0 12px rgba(255,255,255,0.5), 0 20px 50px rgba(0,0,0,0.3);
+        border-color: #94a3b8 !important;
+    }
+    50% {
+        transform: scale(1.07);
+        box-shadow: 0 0 60px rgba(190, 200, 220, 0.85), 0 0 22px rgba(255,255,255,0.7), 0 20px 50px rgba(0,0,0,0.3);
+        border-color: #e2e8f0 !important;
+    }
+}
+
+/* Card Entrance */
+@keyframes card-enter {
+    0% { transform: translateY(100px) scale(0.8); opacity: 0; }
+    60% { transform: translateY(-20px) scale(1.05); opacity: 1; }
+    100% { transform: translateY(0) scale(1); opacity: 1; }
+}
+.ceremony-card-enter { animation: card-enter 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) forwards; }
+
+/* Pulse Animation */
+@keyframes pulse-slow {
+    0%, 100% { opacity: 0.3; }
+    50% { opacity: 0.6; }
+}
+.animate-pulse-slow { animation: pulse-slow 8s infinite ease-in-out; }
+
+/* Confetti */
+.confetti-piece {
+    position: absolute;
+    width: 12px; height: 12px;
+    background: #ffd700;
+    top: -10%;
+    z-index: 20;
+    border-radius: 50%;
+    animation: fall-confetti linear forwards;
+}
+@keyframes fall-confetti {
+    0% { transform: translateY(0) rotate(0deg); opacity: 1; }
+    100% { transform: translateY(110vh) rotate(720deg); opacity: 0; }
+}
+
+/* Ensure Ceremony Screen covers properly */
+#ceremony-screen {
+    background-color: #0f172a; /* Slate-900 */
+    background-image: radial-gradient(circle at center, #1e293b 0%, #020617 100%);
+}
+
+#ceremony-screen::before,
+#ceremony-screen::after {
+    content: '';
+    position: absolute;
+    width: 32rem;
+    height: 32rem;
+    border-radius: 9999px;
+    filter: blur(90px);
+    opacity: 0.35;
+    pointer-events: none;
+    transition: background 0.45s ease, transform 0.45s ease, opacity 0.45s ease;
+}
+
+#ceremony-screen::before {
+    top: -8rem;
+    left: -6rem;
+}
+
+#ceremony-screen::after {
+    right: -8rem;
+    bottom: -10rem;
+}
+
+#ceremony-screen.ceremony-view--classes::before {
+    background: radial-gradient(circle, rgba(56, 189, 248, 0.7) 0%, rgba(14, 165, 233, 0.14) 65%, transparent 100%);
+}
+
+#ceremony-screen.ceremony-view--classes::after {
+    background: radial-gradient(circle, rgba(251, 191, 36, 0.62) 0%, rgba(249, 115, 22, 0.12) 65%, transparent 100%);
+}
+
+#ceremony-screen.ceremony-view--students::before {
+    background: radial-gradient(circle, rgba(244, 114, 182, 0.65) 0%, rgba(236, 72, 153, 0.16) 65%, transparent 100%);
+    transform: translate(2rem, 1rem);
+}
+
+#ceremony-screen.ceremony-view--students::after {
+    background: radial-gradient(circle, rgba(168, 85, 247, 0.72) 0%, rgba(99, 102, 241, 0.14) 65%, transparent 100%);
+    transform: translate(-1rem, -2rem);
+}
+
+#ceremony-screen.ceremony-view--transition::before,
+#ceremony-screen.ceremony-view--final::before {
+    background: radial-gradient(circle, rgba(250, 204, 21, 0.7) 0%, rgba(245, 158, 11, 0.15) 65%, transparent 100%);
+}
+
+#ceremony-screen.ceremony-view--transition::after,
+#ceremony-screen.ceremony-view--final::after {
+    background: radial-gradient(circle, rgba(96, 165, 250, 0.62) 0%, rgba(59, 130, 246, 0.12) 65%, transparent 100%);
+}
+
+/* --- TITLE & VS BADGE STYLES (Fixed for Emojis) --- */
+
+#ceremony-title {
+    color: white; /* Default fallback */
+    filter: drop-shadow(0 0 15px rgba(245, 158, 11, 0.6));
+    animation: shimmer-text 3s linear infinite;
+    display: inline-block;
+}
+
+/* New: Gradient applied only to text spans */
+.gradient-text {
+    background: linear-gradient(to right, #fbbf24, #fcd34d, #fbbf24);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    background-size: 200% auto;
+}
+
+/* New: Emoji reset to ensure visibility */
+.emoji-reset {
+    color: initial !important; 
+    background: none !important;
+    -webkit-text-fill-color: initial !important;
+    text-shadow: none;
+    filter: none;
+    display: inline-block; 
+}
+
+@keyframes shimmer-text {
+    to { background-position: 200% center; }
+}
+
+#ceremony-subtitle {
+    color: #a5b4fc;
+    text-shadow: 0 0 10px rgba(165, 180, 252, 0.6);
+    transition: opacity 0.5s ease-out;
+}
+
+/* Smooth Fade Out for VS Badge */
+@keyframes fade-out-zoom {
+    0% { opacity: 1; transform: scale(1); }
+    100% { opacity: 0; transform: scale(0.1); }
+}
+.fade-out-fast {
+    animation: fade-out-zoom 0.4s ease-in forwards;
+}
+
+/* Converge Animation for Finalists (Updated to use Transform) */
+@keyframes converge-left {
+    to { transform: translateX(60px) rotate(-5deg) scale(1.05); } 
+}
+@keyframes converge-right {
+    to { transform: translateX(-60px) rotate(5deg) scale(1.05); } 
+}
+
+.converge-left {
+    animation: converge-left 0.8s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+.converge-right {
+    animation: converge-right 0.8s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
+/* --- BRONZE SPECIAL EFFECTS --- */
+
+@keyframes bronze-shimmer {
+    0% { box-shadow: 0 0 20px rgba(205, 127, 50, 0.4); border-color: #cd7f32; }
+    50% { box-shadow: 0 0 40px rgba(255, 180, 100, 0.6); border-color: #ffcc99; transform: scale(1.02); }
+    100% { box-shadow: 0 0 20px rgba(205, 127, 50, 0.4); border-color: #cd7f32; }
+}
+
+.bronze-shine {
+    animation: bronze-shimmer 2s ease-in-out infinite;
+    background: linear-gradient(to bottom, #fff, #fff7ed);
+}
+
+/* --- FIREWORKS --- */
+
+.firework {
+    position: absolute;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    animation: firework-explode 1s ease-out forwards;
+    pointer-events: none;
+    z-index: 40;
+}
+
+@keyframes firework-explode {
+    0% {
+        transform: scale(1);
+        background: #fff;
+        box-shadow: 0 0 0 0 #fff, 0 0 0 0 #fff, 0 0 0 0 #fff, 0 0 0 0 #fff, 0 0 0 0 #fff, 0 0 0 0 #fff;
+        opacity: 1;
+    }
+    100% {
+        transform: scale(0.1);
+        background: transparent;
+        box-shadow: 
+            -120px -120px 0px -5px #ff0000, 
+            120px -120px 0px -5px #ffff00, 
+            120px 120px 0px -5px #00ff00, 
+            -120px 120px 0px -5px #0000ff, 
+            -70px -180px 0px -5px #ff00ff, 
+            70px -180px 0px -5px #00ffff;
+        opacity: 0;
+    }
+}
+
+/* --- FINAL LEADERBOARD STYLES (NEW) --- */
+.ceremony-leaderboard-container {
+    width: 100%;
+    max-width: 800px;
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.16), rgba(255, 255, 255, 0.08));
+    backdrop-filter: blur(10px);
+    border-radius: 2rem;
+    padding: 2rem;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    box-shadow: 0 20px 50px rgba(0,0,0,0.3);
+    max-height: 60vh;
+    overflow-y: auto;
+}
+
+.ceremony-teacher-boon-reveal--hidden {
+    opacity: 0;
+    max-height: 0;
+    overflow: hidden;
+    margin: 0 !important;
+    pointer-events: none;
+    transition: opacity 0.45s ease, max-height 0.45s ease;
+}
+
+.ceremony-teacher-boon-reveal:not(.ceremony-teacher-boon-reveal--hidden) {
+    transition: opacity 0.45s ease, max-height 0.45s ease;
+}
+
+.ceremony-leaderboard-boon-row {
+    flex: 1 1 100%;
+    display: flex;
+    justify-content: center;
+    margin-top: 0.5rem;
+}
+
+.ceremony-leaderboard-item {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    row-gap: 0.75rem;
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.94), rgba(248, 250, 252, 0.9));
+    margin-bottom: 0.75rem;
+    padding: 1rem;
+    border-radius: 1rem;
+    border: 1px solid rgba(255,255,255,0.24);
+    box-shadow: 0 16px 40px -30px rgba(15, 23, 42, 0.95);
+    transition: transform 0.2s;
+    animation: slide-in-right 0.5s ease-out backwards;
+}
+
+.ceremony-leaderboard-item:hover {
+    transform: scale(1.02);
+}
+
+.teacher-boon-ceremony-ribbon {
+    margin: 1rem auto 0;
+    max-width: 18rem;
+    padding: 0.8rem 0.95rem;
+    border-radius: 1.15rem;
+    background: linear-gradient(135deg, rgba(124, 58, 237, 0.1), rgba(244, 114, 182, 0.16));
+    border: 1px solid rgba(244, 114, 182, 0.28);
+    box-shadow: 0 14px 28px rgba(124, 58, 237, 0.12);
+}
+
+.teacher-boon-ceremony-ribbon--compact {
+    margin-top: 0.8rem;
+    max-width: 15rem;
+    padding: 0.65rem 0.8rem;
+}
+
+.teacher-boon-ceremony-ribbon__kicker {
+    font-size: 0.68rem;
+    font-weight: 800;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: #7c3aed;
+}
+
+.teacher-boon-ceremony-ribbon__stars {
+    margin-top: 0.25rem;
+    font-size: 0.92rem;
+}
+
+.teacher-boon-ceremony-ribbon__reason {
+    margin-top: 0.3rem;
+    font-weight: 700;
+    line-height: 1.35;
+    color: #4c1d95;
+}
+
+.cli-rank {
+    width: 3rem;
+    height: 3rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Fredoka One', cursive;
+    font-size: 1.5rem;
+    border-radius: 50%;
+    margin-right: 1rem;
+    color: white;
+    text-shadow: 0 1px 2px rgba(0,0,0,0.2);
+    flex-shrink: 0;
+}
+
+/* Rank Colors */
+.cli-rank-1 { background: linear-gradient(135deg, #fbbf24, #d97706); box-shadow: 0 0 10px #fbbf24; font-size: 1.8rem; }
+.cli-rank-2 { background: linear-gradient(135deg, #cbd5e1, #64748b); box-shadow: 0 0 10px #94a3b8; }
+.cli-rank-3 { background: linear-gradient(135deg, #fb923c, #c2410c); box-shadow: 0 0 10px #fb923c; }
+.cli-rank-other { background: #e2e8f0; color: #64748b; font-size: 1.25rem; }
+
+.cli-avatar {
+    width: 3.5rem;
+    height: 3.5rem;
+    border-radius: 50%;
+    border: 3px solid white;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    object-fit: cover;
+    margin-right: 1rem;
+}
+
+.cli-info {
+    flex-grow: 1;
+}
+
+.cli-name {
+    font-weight: 700;
+    font-size: 1.2rem;
+    color: #1e293b;
+}
+
+.cli-stats {
+    font-size: 0.9rem;
+    color: #64748b;
+}
+
+.cli-stars {
+    font-family: 'Fredoka One', cursive;
+    color: #d97706;
+    font-size: 1.5rem;
+    background: #fef3c7;
+    padding: 0.25rem 0.75rem;
+    border-radius: 999px;
+}
+
+@keyframes slide-in-right {
+    from { opacity: 0; transform: translateX(20px); }
+    to { opacity: 1; transform: translateX(0); }
+}
+
+/* --- FINAL LEADERBOARD HEADER + PODIUM --- */
+.ceremony-leaderboard-header {
+    text-align: center;
+    padding: 0.5rem 0 1.25rem;
+}
+
+.ceremony-leaderboard-title {
+    display: block;
+    font-family: 'Fredoka One', cursive;
+    font-size: clamp(1.8rem, 4.5vw, 2.8rem);
+    background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 30%, #ffffff 50%, #d97706 70%, #fbbf24 100%);
+    background-size: 250% auto;
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    animation: gold-text-shimmer 3s linear infinite;
+    filter: drop-shadow(0 0 10px rgba(251,191,36,0.5));
+}
+
+@keyframes gold-text-shimmer {
+    0%   { background-position: 0% center; }
+    100% { background-position: 250% center; }
+}
+
+.ceremony-leaderboard-title__sub {
+    font-size: 0.8rem;
+    color: rgba(255,255,255,0.65);
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    font-weight: 700;
+    margin-top: 0.2rem;
+}
+
+.ceremony-leaderboard-top3 {
+    margin-bottom: 0.25rem;
+}
+
+.ceremony-leaderboard-divider {
+    height: 1px;
+    background: linear-gradient(to right, transparent, rgba(251,191,36,0.45), rgba(148,163,184,0.35), transparent);
+    margin: 0.5rem 0 1rem;
+}
+
+/* Gold/Silver/Bronze leaderboard row variants */
+.ceremony-leaderboard-item.rank-top3-gold {
+    background: linear-gradient(135deg, #fffbeb, #fef3c7, #fde68a 60%, #fff7d6) !important;
+    border: 2px solid rgba(251,191,36,0.55) !important;
+    box-shadow: 0 0 22px rgba(251,191,36,0.22), 0 8px 20px rgba(0,0,0,0.12) !important;
+}
+
+.ceremony-leaderboard-item.rank-top3-silver {
+    background: linear-gradient(135deg, #f8fafc, #f1f5f9, #e8eef7 60%, #f8fafc) !important;
+    border: 2px solid rgba(148,163,184,0.5) !important;
+    box-shadow: 0 0 18px rgba(148,163,184,0.22), 0 8px 20px rgba(0,0,0,0.10) !important;
+}
+
+.ceremony-leaderboard-item.rank-top3-bronze {
+    background: linear-gradient(135deg, #fff7ed, #fed7aa, #fbbf24 55%, #fff7ed) !important;
+    border: 2px solid rgba(205,127,50,0.45) !important;
+    box-shadow: 0 0 18px rgba(205,127,50,0.2), 0 8px 20px rgba(0,0,0,0.10) !important;
+}
+
+/* Slightly larger rank icons for top-3 */
+.ceremony-leaderboard-item.rank-top3-gold .cli-rank,
+.ceremony-leaderboard-item.rank-top3-silver .cli-rank,
+.ceremony-leaderboard-item.rank-top3-bronze .cli-rank {
+    width: 3.5rem;
+    height: 3.5rem;
+    font-size: 2rem;
+}
+
+/* --- CEREMONY LAYOUT + BUILDUP OVERRIDES --- */
+.ceremony-layout {
+    display: grid;
+    grid-template-rows: auto minmax(0, 1fr) auto auto;
+    gap: 0.75rem;
+    align-items: center;
+    justify-items: center;
+    max-width: 1280px;
+    margin: 0 auto;
+}
+
+#ceremony-stage-area {
+    width: 100%;
+    min-height: 0;
+    max-height: 56vh;
+    overflow: auto;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 1rem;
+    padding: 0.5rem;
+}
+
+/* Keep the regular ceremony reveal clean — overflow visible so rank badges above cards are never clipped. */
+#ceremony-screen #ceremony-stage-area {
+    overflow: visible;
+    padding-top: 2.5rem; /* room for badges that stick out above cards */
+}
+
+#ceremony-ai-box {
+    max-height: 18vh;
+    overflow: hidden;
+}
+
+#ceremony-title {
+    line-height: 1.06;
+}
+
+#ceremony-subtitle {
+    line-height: 1.2;
+}
+
+.ceremony-display-card {
+    width: clamp(280px, 42vw, 420px);
+    max-width: 92vw;
+    padding: clamp(1rem, 2vw, 2rem);
+    padding-top: 2.5rem;
+    border-radius: 1.6rem;
+    overflow: visible; /* badges and shadows must bleed outside the card */
+}
+
+.ceremony-display-card--class {
+    background: linear-gradient(180deg, rgba(255,255,255,0.98), rgba(239, 246, 255, 0.96));
+}
+
+.ceremony-display-card--student {
+    background: linear-gradient(180deg, rgba(255,255,255,0.98), rgba(253, 242, 248, 0.96));
+}
+
+.ceremony-card-shell {
+    position: relative;
+    z-index: 1;
+}
+
+.ceremony-card-aura {
+    position: absolute;
+    inset: 1rem;
+    border-radius: 1.7rem;
+    opacity: 0.9;
+    pointer-events: none;
+}
+
+.ceremony-display-card--class .ceremony-card-aura {
+    background: radial-gradient(circle at top, rgba(59, 130, 246, 0.16), transparent 58%), radial-gradient(circle at bottom right, rgba(251, 191, 36, 0.18), transparent 52%);
+}
+
+.ceremony-display-card--student .ceremony-card-aura {
+    background: radial-gradient(circle at top, rgba(244, 114, 182, 0.16), transparent 58%), radial-gradient(circle at bottom right, rgba(168, 85, 247, 0.18), transparent 52%);
+}
+
+.ceremony-card-kicker {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+    padding: 0.45rem 0.85rem;
+    border-radius: 9999px;
+    font-size: 0.72rem;
+    font-weight: 900;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+}
+
+.ceremony-display-card--class .ceremony-card-kicker {
+    background: rgba(59, 130, 246, 0.12);
+    color: #1d4ed8;
+}
+
+.ceremony-display-card--student .ceremony-card-kicker {
+    background: rgba(236, 72, 153, 0.12);
+    color: #be185d;
+}
+
+.ceremony-card-metrics {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 0.6rem;
+    margin-top: 1.1rem;
+}
+
+.ceremony-card-metrics--compact {
+    margin-top: 0.85rem;
+}
+
+.ceremony-card-metric {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.45rem 0.75rem;
+    border-radius: 9999px;
+    background: rgba(255,255,255,0.82);
+    border: 1px solid rgba(148, 163, 184, 0.22);
+    box-shadow: 0 12px 24px -24px rgba(15, 23, 42, 0.95);
+    color: #475569;
+    font-size: 0.76rem;
+    font-weight: 800;
+    letter-spacing: 0.02em;
+}
+
+.ceremony-card-progress {
+    margin-top: 1rem;
+    padding: 0.85rem 0.9rem 0.75rem;
+    border-radius: 1.15rem;
+    background: rgba(255,255,255,0.7);
+    border: 1px solid rgba(148, 163, 184, 0.2);
+}
+
+.ceremony-card-progress__track {
+    height: 0.7rem;
+    border-radius: 9999px;
+    overflow: hidden;
+    background: rgba(226, 232, 240, 0.92);
+}
+
+.ceremony-card-progress__fill {
+    height: 100%;
+    border-radius: inherit;
+    background: linear-gradient(90deg, #38bdf8, #6366f1, #f59e0b);
+    box-shadow: 0 0 20px rgba(99, 102, 241, 0.28);
+}
+
+.ceremony-card-progress__meta {
+    margin-top: 0.5rem;
+    color: #475569;
+    font-size: 0.75rem;
+    font-weight: 800;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+}
+
+.ceremony-transition-panel {
+    position: relative;
+    width: min(92vw, 760px);
+    padding: 3rem 2rem;
+    border-radius: 2.5rem;
+    text-align: center;
+    background: linear-gradient(135deg, rgba(15, 23, 42, 0.78), rgba(88, 28, 135, 0.78));
+    border: 1px solid rgba(255,255,255,0.18);
+    box-shadow: 0 30px 80px rgba(15, 23, 42, 0.45);
+    overflow: hidden;
+}
+
+.ceremony-transition-panel__orb {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 14rem;
+    height: 14rem;
+    transform: translate(-50%, -50%);
+    border-radius: 9999px;
+    background: radial-gradient(circle, rgba(250, 204, 21, 0.55) 0%, rgba(244, 114, 182, 0.22) 40%, transparent 70%);
+    filter: blur(10px);
+    animation: ceremony-orb-pulse 2.8s ease-in-out infinite;
+}
+
+.ceremony-transition-panel__kicker {
+    position: relative;
+    z-index: 1;
+    font-size: 0.74rem;
+    font-weight: 900;
+    letter-spacing: 0.24em;
+    text-transform: uppercase;
+    color: #fde68a;
+}
+
+.ceremony-transition-panel__icon {
+    position: relative;
+    z-index: 1;
+    display: inline-block;
+    margin-top: 1.1rem;
+    font-size: clamp(4rem, 12vw, 6.5rem);
+    color: white;
+    text-shadow: 0 0 28px rgba(255,255,255,0.35);
+}
+
+.ceremony-transition-panel__title {
+    position: relative;
+    z-index: 1;
+    margin-top: 1rem;
+    font-size: clamp(2.4rem, 7vw, 4.6rem);
+    color: white;
+}
+
+.ceremony-transition-panel__text {
+    position: relative;
+    z-index: 1;
+    max-width: 32rem;
+    margin: 1rem auto 0;
+    color: rgba(255,255,255,0.86);
+    font-size: 1.05rem;
+    line-height: 1.65;
+}
+
+@keyframes ceremony-orb-pulse {
+    0%, 100% { transform: translate(-50%, -50%) scale(1); opacity: 0.9; }
+    50% { transform: translate(-50%, -50%) scale(1.15); opacity: 1; }
+}
+
+.ceremony-card.face-off {
+    position: relative;
+    overflow: visible !important; /* badges above cards must not be clipped */
+}
+
+.ceremony-card.face-off::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    clip-path: inset(0 round 1.6rem);
+    background: linear-gradient(115deg, transparent 10%, rgba(255,255,255,0.22) 45%, transparent 80%);
+    transform: translateX(-120%);
+    animation: showdown-scan 1.35s ease-in-out infinite;
+    pointer-events: none;
+}
+
+@keyframes showdown-scan {
+    to { transform: translateX(120%); }
+}
+
+#ceremony-screen.ceremony-phase-suspense #ceremony-bg-gradient {
+    filter: saturate(1.25) brightness(1.08);
+}
+
+#ceremony-screen.ceremony-phase-suspense #ceremony-action-btn {
+    box-shadow: 0 0 32px rgba(248, 113, 113, 0.55), 0 0 16px rgba(253, 224, 71, 0.55);
+    animation: suspense-btn-pulse 0.9s ease-in-out infinite alternate;
+}
+
+@keyframes suspense-btn-pulse {
+    from { transform: scale(1); }
+    to { transform: scale(1.03); }
+}
+
+#ceremony-screen.ceremony-phase-reveal .ceremony-winner {
+    box-shadow: 0 0 110px rgba(251, 191, 36, 0.9), 0 0 28px rgba(255,255,255,0.95);
+}
+
+#ceremony-screen.ceremony-phase-reveal #ceremony-title {
+    filter: drop-shadow(0 0 20px rgba(250, 204, 21, 0.7));
+}
+
+@media (max-height: 860px) {
+    .ceremony-layout {
+        gap: 0.5rem;
+    }
+    #ceremony-stage-area {
+        max-height: 51vh;
+    }
+    #ceremony-ai-box {
+        min-height: 70px;
+        max-height: 14vh;
+    }
+}
+
+@media (max-width: 900px) {
+    #ceremony-stage-area {
+        flex-wrap: wrap;
+        align-content: center;
+        max-height: 50vh;
+    }
+    .ceremony-display-card {
+        width: min(92vw, 440px);
+    }
+}
+
+/* ============================================================
+   WALLPAPER-STYLE RANK CARD BORDERS  (like float cards)
+   ============================================================ */
+
+/* Rank 1 — Gold */
+.card-rank-1 {
+    border: 5px solid #F59E0B !important;
+    background: linear-gradient(135deg, rgba(255,255,255,0.98), rgba(253,230,138,0.25)) !important;
+    box-shadow:
+        0 25px 60px -12px rgba(0,0,0,0.25),
+        0 0 0 2px rgba(255,255,255,0.4) inset,
+        0 0 40px rgba(245,158,11,0.35);
+    animation: card-float 3.2s ease-in-out infinite, card-enter 0.6s cubic-bezier(0.34,1.56,0.64,1) both;
+}
+.card-rank-1::after {
+    content: '';
+    position: absolute;
+    inset: -2px;
+    border-radius: inherit;
+    clip-path: inset(0 round 1.6rem);
+    background: linear-gradient(135deg, #fcd34d55, transparent 50%, #f59e0b33);
+    pointer-events: none;
+    z-index: 0;
+}
+
+/* Rank 2 — Silver */
+.card-rank-2 {
+    border: 5px solid #94a3b8 !important;
+    background: linear-gradient(135deg, rgba(255,255,255,0.98), rgba(203,213,225,0.28)) !important;
+    box-shadow:
+        0 25px 60px -12px rgba(0,0,0,0.2),
+        0 0 0 2px rgba(255,255,255,0.4) inset,
+        0 0 30px rgba(148,163,184,0.3);
+    animation: card-float 3.5s ease-in-out infinite 0.3s, card-enter 0.6s cubic-bezier(0.34,1.56,0.64,1) both;
+}
+
+/* Rank 3 — Bronze */
+.card-rank-3 {
+    border: 5px solid #cd7f32 !important;
+    background: linear-gradient(135deg, rgba(255,255,255,0.98), rgba(254,215,170,0.28)) !important;
+    box-shadow:
+        0 25px 60px -12px rgba(0,0,0,0.2),
+        0 0 0 2px rgba(255,255,255,0.4) inset,
+        0 0 30px rgba(205,127,50,0.28);
+    animation: card-float 3.8s ease-in-out infinite 0.6s, card-enter 0.6s cubic-bezier(0.34,1.56,0.64,1) both;
+}
+
+/* Rank 4+ — Indigo */
+.card-rank-other {
+    border: 4px solid #818cf8 !important;
+    background: linear-gradient(135deg, rgba(255,255,255,0.97), rgba(224,231,255,0.2)) !important;
+    box-shadow:
+        0 20px 50px -12px rgba(0,0,0,0.18),
+        0 0 0 2px rgba(255,255,255,0.35) inset,
+        0 0 20px rgba(129,140,248,0.2);
+    animation: card-float 4s ease-in-out infinite, card-enter 0.6s cubic-bezier(0.34,1.56,0.64,1) both;
+}
+
+/* face-off cards should not float — the heartbeat + converge handle motion */
+.ceremony-card.face-off.card-rank-1,
+.ceremony-card.face-off.card-rank-2,
+.ceremony-card.face-off.card-rank-other {
+    animation: card-enter 0.6s cubic-bezier(0.34,1.56,0.64,1) both !important;
+}
+
+/* Drumroll wiggle — must follow the face-off suppression above to win specificity tie */
+.ceremony-card.face-off.tension-active {
+    animation: shake-tension 0.5s infinite !important;
+}
+
+/* ============================================================
+   FLOAT ANIMATION  (gentle bob, like wallpaper float cards)
+   ============================================================ */
+@keyframes card-float {
+    0%, 100% { transform: translateY(0px); }
+    50%       { transform: translateY(-7px); }
+}
+
+/* ============================================================
+   RANK BADGE POP  (bounce-in on entrance)
+   ============================================================ */
+@keyframes badge-pop {
+    0%   { transform: translateX(-50%) scale(0.3); opacity: 0; }
+    55%  { transform: translateX(-50%) scale(1.3); opacity: 1; }
+    75%  { transform: translateX(-50%) scale(0.9); }
+    100% { transform: translateX(-50%) scale(1);   opacity: 1; }
+}
+.ceremony-rank-badge {
+    position: absolute;
+    top: -1.9rem;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 30;
+    animation: badge-pop 0.55s cubic-bezier(0.34,1.56,0.64,1) 0.25s both;
+    white-space: nowrap;
+}
+.ceremony-rank-badge__pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.35rem 1.1rem;
+    border-radius: 9999px;
+    font-family: 'Fredoka One', cursive;
+    font-size: 1.1rem;
+    font-weight: 900;
+    border: 3px solid rgba(255,255,255,0.7);
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+    letter-spacing: 0.03em;
+    box-shadow: 0 4px 18px rgba(0,0,0,0.25);
+}
+
+/* Pill colour variants */
+.ceremony-rank-badge__pill--gold   { background: linear-gradient(135deg,#fbbf24,#d97706); color:#fff; box-shadow: 0 0 18px rgba(245,158,11,0.7), 0 4px 12px rgba(0,0,0,0.2); }
+.ceremony-rank-badge__pill--silver { background: linear-gradient(135deg,#e2e8f0,#94a3b8); color:#1e293b; box-shadow: 0 0 14px rgba(148,163,184,0.6), 0 4px 12px rgba(0,0,0,0.15); }
+.ceremony-rank-badge__pill--bronze { background: linear-gradient(135deg,#fdba74,#cd7f32); color:#fff; box-shadow: 0 0 14px rgba(205,127,50,0.55), 0 4px 12px rgba(0,0,0,0.2); }
+.ceremony-rank-badge__pill--other  { background: linear-gradient(135deg,#818cf8,#6366f1); color:#fff; box-shadow: 0 0 10px rgba(129,140,248,0.4), 0 4px 12px rgba(0,0,0,0.15); }
+
+/* Face-off rank badge glow (revealed on dramatic moment) */
+.ceremony-rank-badge--faceoff {
+    font-size: 3.5rem;
+    filter: drop-shadow(0 0 14px rgba(251,191,36,0.8));
+    animation: badge-pop 0.65s cubic-bezier(0.34,1.56,0.64,1) both;
+}

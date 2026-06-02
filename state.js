@@ -1,0 +1,679 @@
+import { competitionStart } from "./constants.js";
+import { getTodayDateString, getClassesOnDay } from "./utils.js";
+
+// --- Internal State Store ---
+let state = {};
+
+function getCalendarDefaultDate() {
+    let date = new Date();
+    if (date < competitionStart) {
+        date = new Date(competitionStart);
+    }
+    return date;
+}
+
+// --- Default State Function ---
+function getDefaultState() {
+    return {
+        currentUserId: null,
+        currentTeacherName: null,
+        currentUserRole: "teacher",
+        currentUserProfile: null,
+        teacherSettings: {},
+        isSchoolAdmin: false,
+        schoolBillingGrace: null,
+        schoolName: null,
+        schoolWeatherLocation: null,
+        schoolAssessmentDefaults: null,
+        currentParentSnapshot: null,
+        currentParentHomework: [],
+        currentCommunicationThreads: [],
+        currentCommunicationMessages: [],
+        currentCommunicationThreadId: null,
+        secretaryView: {
+            classFilter: "",
+            studentFilter: "",
+            communicationStatus: "open",
+        },
+        allTeachersClasses: [],
+        allSchoolClasses: [],
+        allStudents: [],
+        allStudentScores: [],
+        allAwardLogs: [],
+        allAdventureLogs: [],
+        allQuestEvents: [],
+        allQuestAssignments: [],
+        allWrittenScores: [],
+        allAttendanceRecords: [], // Keeps recent/real-time records
+        allScheduleOverrides: [],
+        allHeroChronicleNotes: [],
+        schoolHolidayRanges: [], // Stores global holiday periods
+        hasLoadedCalendarHistory: false, // NEW: Track if we have history
+
+        // UI Selection States
+        globalSelectedClassId: null, // Don't persist - always use smart selector on load
+        reigningHero: null, // Stores the student object of the last crowned hero
+        // Never hydrate from localStorage: leaderboards stay “no league” until a class is
+        // chosen (header) or set by schedule sync (setGlobalSelectedClass).
+        globalSelectedLeague: null,
+        isProgrammaticSelection: false,
+        /** When true, Home interval may switch class by schedule; manual class pick sets false (persisted). */
+        classFollowSchedule: (() => {
+            const v = localStorage.getItem("quest_class_follow_schedule");
+            if (v === null) return true;
+            return v === "1";
+        })(),
+        /** Leaderboard tabs only: peek another league without changing global class. */
+        leaderboardLeagueOverride: null,
+
+        // Feature Specific States
+        ceremonyState: {
+            isActive: false,
+            type: null,
+            league: null,
+            monthKey: null,
+            data: [],
+            step: -1,
+            isFinalShowdown: false,
+        },
+        todaysAwardLogs: {},
+        todaysStars: {},
+        todaysStarsDate: getTodayDateString(),
+        currentManagingClassId: null,
+        studentLeaderboardView: "class",
+        studentStarMetric: "monthly",
+        studentLeaderboardDisplay: "individual", // 'individual' | 'guild'
+        allGuildScores: {},
+        guildChampions: {}, // keyed by guildId → { studentId, studentName, avatar, monthlyStars }
+        fortuneWheelLog: [], // Recent wheel results for current viewed class
+        unsubscribeFortuneWheelLog: () => {},
+        allMonthlyHistory: {},
+        currentlySelectedDayCell: null,
+        currentLogFilter: { classId: null, month: "" },
+        currentStoryData: {},
+        unsubscribeStoryData: {},
+        storyWeaverLockedWord: null,
+        allCompletedStories: [],
+        currentStorybookAudio: null,
+        currentNarrativeAudio: null,
+        avatarMakerData: {
+            studentId: null,
+            creature: null,
+            color: null,
+            accessory: null,
+            generatedImage: null,
+        },
+
+        // Calendar & Attendance Views
+        calendarCurrentDate: getCalendarDefaultDate(),
+        attendanceViewDate: new Date(), // NEW: Tracks the month being viewed in the chronicle
+        // Wallpaper Mode State
+        wallpaperQuoteCache: null,
+        wallpaperQuoteLastFetch: 0,
+
+        // Unsubscribe functions
+        unsubscribeClasses: () => {},
+        unsubscribeStudents: () => {},
+        unsubscribeStudentScores: () => {},
+        unsubscribeTodaysStars: () => {},
+        unsubscribeAwardLogs: () => {},
+        unsubscribeQuestEvents: () => {},
+        unsubscribeAdventureLogs: () => {},
+        unsubscribeQuestAssignments: () => {},
+        unsubscribeCompletedStories: () => {},
+        unsubscribeWrittenScores: () => {},
+        unsubscribeAttendance: () => {},
+        unsubscribeScheduleOverrides: () => {},
+        unsubscribeHeroChronicleNotes: () => {},
+        allQuestBounties: [], // Store bounties
+        currentShopItems: [], // Store this month's shop items
+        unsubscribeQuestBounties: () => {}, // Listener unsubscribe
+        unsubscribeSchoolSettings: () => {}, // Listener for settings
+        unsubscribeTeacherSettings: () => {}, // Listener for the current teacher's profile doc (schoolYearSettings, etc.)
+        unsubscribeGuildScores: () => {},
+        unsubscribeGuildChampions: () => {},
+        unsubscribeParentSnapshot: () => {},
+        unsubscribeParentHomework: () => {},
+        unsubscribeCommunicationThreads: () => {},
+        unsubscribeCommunicationMessages: () => {},
+        unsubscribeShopItems: () => {},
+    };
+}
+
+// --- Initialize State ---
+state = getDefaultState();
+
+// --- Subscriptions (lightweight pub/sub) ---
+// Used by UI surfaces (e.g., modals) that need to live-update while open.
+const _subscribers = new Map(); // key -> Set<Function>
+
+function _notify(key) {
+    const set = _subscribers.get(key);
+    if (!set || set.size === 0) return;
+    // Copy to avoid mutation during iteration
+    [...set].forEach((cb) => {
+        try {
+            cb(state[key]);
+        } catch (err) {
+            console.warn("state subscriber error:", err);
+        }
+    });
+}
+
+/**
+ * Subscribe to changes for one or more state keys.
+ * @param {string|string[]} keys
+ * @param {(value:any)=>void} callback
+ * @returns {()=>void} unsubscribe
+ */
+export function subscribe(keys, callback) {
+    const list = Array.isArray(keys) ? keys : [keys];
+    for (const key of list) {
+        if (!_subscribers.has(key)) _subscribers.set(key, new Set());
+        _subscribers.get(key).add(callback);
+    }
+    return () => {
+        for (const key of list) {
+            const set = _subscribers.get(key);
+            if (!set) continue;
+            set.delete(callback);
+            if (set.size === 0) _subscribers.delete(key);
+        }
+    };
+}
+
+// --- Core Functions ---
+
+export function get(key) {
+    return state[key];
+}
+
+export function set(key, value) {
+    if (key in state) {
+        state[key] = value;
+        _notify(key);
+    } else {
+        console.warn(`Attempted to set unknown state key: ${key}`);
+    }
+}
+
+export function resetState() {
+    const defaults = getDefaultState();
+    Object.keys(state).forEach((key) => {
+        if (key.startsWith("unsubscribe") && typeof state[key] === "function") {
+            state[key]();
+        }
+    });
+    state = defaults;
+}
+
+// --- Individual Setters ---
+
+export function setCurrentUserId(id) {
+    state.currentUserId = id;
+}
+export function setCurrentTeacherName(name) {
+    state.currentTeacherName = name;
+}
+export function setCurrentUserRole(role) {
+    state.currentUserRole = role || "teacher";
+}
+export function setCurrentUserProfile(profile) {
+    state.currentUserProfile = profile || null;
+}
+export function setTeacherSettings(settings) {
+    state.teacherSettings = settings || {};
+    _notify("teacherSettings");
+}
+export function setUnsubscribeTeacherSettings(func) {
+    state.unsubscribeTeacherSettings = func;
+}
+export function setIsSchoolAdmin(value) {
+    state.isSchoolAdmin = Boolean(value);
+}
+export function setSchoolBillingGrace(grace) {
+    state.schoolBillingGrace = grace || null;
+}
+export function setSchoolName(name) {
+    state.schoolName = name || null;
+}
+export function setSchoolWeatherLocation(location) {
+    state.schoolWeatherLocation = location || null;
+}
+export function setSchoolAssessmentDefaults(defaults) {
+    state.schoolAssessmentDefaults = defaults || null;
+}
+export function setCurrentParentSnapshot(snapshot) {
+    state.currentParentSnapshot = snapshot || null;
+}
+export function setCurrentParentHomework(items) {
+    state.currentParentHomework = items || [];
+}
+export function setCurrentCommunicationThreads(threads) {
+    state.currentCommunicationThreads = threads || [];
+}
+export function setCurrentCommunicationMessages(messages) {
+    state.currentCommunicationMessages = messages || [];
+}
+export function setCurrentCommunicationThreadId(id) {
+    state.currentCommunicationThreadId = id || null;
+}
+export function setSecretaryView(next) {
+    state.secretaryView = { ...state.secretaryView, ...(next || {}) };
+}
+export function setAllTeachersClasses(classes) {
+    state.allTeachersClasses = classes;
+}
+export function setAllSchoolClasses(classes) {
+    state.allSchoolClasses = classes;
+    _notify("allSchoolClasses");
+}
+export function setAllStudents(students) {
+    state.allStudents = students;
+    updateReigningHero();
+    _notify("allStudents");
+}
+export function setAllStudentScores(scores) {
+    state.allStudentScores = scores;
+    _notify("allStudentScores");
+}
+export function setAllAwardLogs(logs) {
+    state.allAwardLogs = logs;
+}
+export function setAllAdventureLogs(logs) {
+    state.allAdventureLogs = logs;
+    updateReigningHero();
+}
+export function setAllQuestEvents(events) {
+    state.allQuestEvents = events;
+}
+export function setAllQuestAssignments(assignments) {
+    state.allQuestAssignments = assignments;
+}
+export function setAllWrittenScores(scores) {
+    state.allWrittenScores = scores;
+}
+export function setAllAttendanceRecords(records) {
+    state.allAttendanceRecords = records;
+}
+export function setAllScheduleOverrides(overrides) {
+    state.allScheduleOverrides = overrides;
+}
+export function setAllHeroChronicleNotes(notes) {
+    state.allHeroChronicleNotes = notes;
+}
+export function setSchoolHolidayRanges(ranges) {
+    state.schoolHolidayRanges = ranges;
+}
+export function setUnsubscribeSchoolSettings(func) {
+    state.unsubscribeSchoolSettings = func;
+}
+export function setHasLoadedCalendarHistory(val) {
+    state.hasLoadedCalendarHistory = val;
+}
+
+export function getLeaderboardEffectiveLeague() {
+    const override = state.leaderboardLeagueOverride;
+    if (override) return override;
+    return state.globalSelectedLeague;
+}
+
+export function setLeaderboardLeagueOverride(league) {
+    state.leaderboardLeagueOverride = league || null;
+    import("./ui/tabs.js").then((tabs) => {
+        tabs.updateAllLeagueSelectors(true);
+        const activeTabId =
+            localStorage.getItem("quest_last_active_tab") || "about-tab";
+        if (activeTabId === "class-leaderboard-tab")
+            tabs.renderClassLeaderboardTab();
+        else if (activeTabId === "student-leaderboard-tab")
+            tabs.renderStudentLeaderboardTab();
+    });
+}
+
+/** Persisted. When enabled, Home may auto-switch class by time; manual picks disable until re-enabled from header. */
+export function setClassFollowScheduleEnabled(enabled) {
+    state.classFollowSchedule = !!enabled;
+    localStorage.setItem(
+        "quest_class_follow_schedule",
+        state.classFollowSchedule ? "1" : "0",
+    );
+}
+
+export function setGlobalSelectedClass(classId, isManual = false) {
+    if (classId === state.globalSelectedClassId && !isManual) {
+        // When the same class is selected programmatically, still allow re-render
+        // if there's already a class selected (non-null) to refresh UI state.
+        if (state.globalSelectedClassId === null) return;
+    }
+
+    state.leaderboardLeagueOverride = null;
+
+    if (isManual) {
+        state.classFollowSchedule = false;
+        localStorage.setItem("quest_class_follow_schedule", "0");
+    }
+
+    state.globalSelectedClassId = classId;
+    // Don't persist class selection to localStorage - use smart selector on each load
+    // if (classId) {
+    //     localStorage.setItem('quest_last_class_id', classId);
+    // } else {
+    //     localStorage.removeItem('quest_last_class_id');
+    // }
+
+    updateReigningHero();
+    if (classId) {
+        const selectedClass = state.allSchoolClasses.find(
+            (c) => c.id === classId,
+        );
+        if (selectedClass) {
+            state.globalSelectedLeague = selectedClass.questLevel;
+            localStorage.setItem("quest_last_league", selectedClass.questLevel);
+        }
+    } else {
+        // General view: do not keep a stale league from localStorage (leaderboards + tools should not imply a class).
+        state.globalSelectedLeague = null;
+        localStorage.removeItem("quest_last_league");
+    }
+
+    // DYNAMIC IMPORTS: Solves the circular dependency crash
+    import("./ui/tabs.js")
+        .then(async (tabs) => {
+            tabs.updateAllClassSelectors(isManual);
+            tabs.updateAllLeagueSelectors(isManual);
+            await tabs.refreshVisibleTabForGlobalClassChange();
+        })
+        .catch((err) =>
+            console.warn("setGlobalSelectedClass refresh failed:", err),
+        );
+
+    // Update bounties separately
+    import("./ui/core.js").then((m) => m.renderActiveBounties());
+}
+
+export function setGlobalSelectedLeague(league, isManual = false) {
+    if (league === state.globalSelectedLeague && !isManual) return;
+
+    state.globalSelectedLeague = league;
+    if (league) {
+        localStorage.setItem("quest_last_league", league);
+    } else {
+        localStorage.removeItem("quest_last_league");
+    }
+
+    // When the league is manually changed, sync the class selection to the best
+    // matching class in that league so all tabs stay consistent.
+    if (isManual && league) {
+        const todayString = getTodayDateString();
+        const classEndDates =
+            state.teacherSettings?.schoolYearSettings?.classEndDates || {};
+        const classesToday = getClassesOnDay(
+            todayString,
+            state.allSchoolClasses,
+            state.allScheduleOverrides,
+            classEndDates,
+        );
+        const myLeagueClasses = classesToday.filter(
+            (c) =>
+                c.questLevel === league &&
+                state.allTeachersClasses.some((tc) => tc.id === c.id),
+        );
+        // Prefer the class that's currently in session; fall back to the first one in the league
+        const activeClass = findCurrentLessonClass(myLeagueClasses);
+        const bestClass = activeClass || myLeagueClasses[0] || null;
+
+        if (bestClass) {
+            state.globalSelectedClassId = bestClass.id;
+            localStorage.setItem("quest_last_class_id", bestClass.id);
+        } else {
+            state.globalSelectedClassId = null;
+            localStorage.removeItem("quest_last_class_id");
+        }
+        updateReigningHero();
+    }
+
+    // DYNAMIC IMPORT
+    import("./ui/tabs.js").then(async (tabs) => {
+        tabs.updateAllLeagueSelectors(isManual);
+        // Only sync class selectors when isManual — the class only changes on manual league picks.
+        // Calling updateAllClassSelectors during a programmatic (auto) league set interferes with
+        // the tab fade-out animation because the function checks the DOM for the visible tab, which
+        // is still not hidden during the CSS transition.
+        if (isManual) tabs.updateAllClassSelectors(isManual);
+        await tabs.refreshVisibleTabForGlobalClassChange();
+    });
+}
+
+export function setIsProgrammaticSelection(value) {
+    state.isProgrammaticSelection = value;
+}
+export function setCeremonyState(newState) {
+    state.ceremonyState = newState;
+}
+export function setTodaysAwardLogs(logs) {
+    state.todaysAwardLogs = logs;
+}
+export function setTodaysStars(stars) {
+    state.todaysStars = stars;
+}
+export function setTodaysStarsDate(date) {
+    state.todaysStarsDate = date;
+}
+export function setCurrentManagingClassId(id) {
+    state.currentManagingClassId = id;
+}
+export function setStudentLeaderboardView(view) {
+    state.studentLeaderboardView = view;
+}
+export function setStudentStarMetric(metric) {
+    state.studentStarMetric = metric;
+}
+export function setStudentLeaderboardDisplay(display) {
+    state.studentLeaderboardDisplay = display;
+}
+export function setAllGuildScores(scores) {
+    state.allGuildScores = scores;
+    _notify("allGuildScores");
+}
+export function setAllMonthlyHistory(history) {
+    state.allMonthlyHistory = history;
+}
+export function setCurrentlySelectedDayCell(cell) {
+    state.currentlySelectedDayCell = cell;
+}
+export function setCurrentLogFilter(filter) {
+    state.currentLogFilter = filter;
+}
+export function setCurrentStoryData(data) {
+    state.currentStoryData = data;
+}
+export function setUnsubscribeStoryData(data) {
+    state.unsubscribeStoryData = data;
+}
+export function setStoryWeaverLockedWord(word) {
+    state.storyWeaverLockedWord = word;
+}
+export function setAllCompletedStories(stories) {
+    state.allCompletedStories = stories;
+}
+export function setCurrentStorybookAudio(audio) {
+    state.currentStorybookAudio = audio;
+}
+export function setCurrentNarrativeAudio(audio) {
+    state.currentNarrativeAudio = audio;
+}
+export function setAvatarMakerData(data) {
+    state.avatarMakerData = data;
+}
+export function setAttendanceViewDate(date) {
+    state.attendanceViewDate = date;
+}
+
+// Unsubscribe setters
+export function setUnsubscribeClasses(func) {
+    state.unsubscribeClasses = func;
+}
+export function setUnsubscribeStudents(func) {
+    state.unsubscribeStudents = func;
+}
+export function setUnsubscribeStudentScores(func) {
+    state.unsubscribeStudentScores = func;
+}
+export function setUnsubscribeTodaysStars(func) {
+    state.unsubscribeTodaysStars = func;
+}
+export function setUnsubscribeAwardLogs(func) {
+    state.unsubscribeAwardLogs = func;
+}
+export function setUnsubscribeQuestEvents(func) {
+    state.unsubscribeQuestEvents = func;
+}
+export function setUnsubscribeAdventureLogs(func) {
+    state.unsubscribeAdventureLogs = func;
+}
+export function setUnsubscribeQuestAssignments(func) {
+    state.unsubscribeQuestAssignments = func;
+}
+export function setUnsubscribeCompletedStories(func) {
+    state.unsubscribeCompletedStories = func;
+}
+export function setUnsubscribeWrittenScores(func) {
+    state.unsubscribeWrittenScores = func;
+}
+export function setUnsubscribeAttendance(func) {
+    state.unsubscribeAttendance = func;
+}
+export function setUnsubscribeScheduleOverrides(func) {
+    state.unsubscribeScheduleOverrides = func;
+}
+export function setUnsubscribeHeroChronicleNotes(func) {
+    state.unsubscribeHeroChronicleNotes = func;
+}
+export function setAllQuestBounties(bounties) {
+    state.allQuestBounties = bounties;
+}
+export function setUnsubscribeQuestBounties(func) {
+    state.unsubscribeQuestBounties = func;
+}
+export function setUnsubscribeGuildScores(func) {
+    state.unsubscribeGuildScores = func;
+}
+export function setGuildChampions(champions) {
+    state.guildChampions = champions;
+    _notify("guildChampions");
+}
+export function setUnsubscribeGuildChampions(func) {
+    state.unsubscribeGuildChampions = func;
+}
+export function setFortuneWheelLog(log) {
+    state.fortuneWheelLog = log || [];
+    _notify("fortuneWheelLog");
+}
+export function setUnsubscribeFortuneWheelLog(func) {
+    state.unsubscribeFortuneWheelLog = func;
+}
+export function setCurrentShopItems(items) {
+    state.currentShopItems = items;
+}
+export function setUnsubscribeParentSnapshot(func) {
+    state.unsubscribeParentSnapshot = func;
+}
+export function setUnsubscribeParentHomework(func) {
+    state.unsubscribeParentHomework = func;
+}
+export function setUnsubscribeCommunicationThreads(func) {
+    state.unsubscribeCommunicationThreads = func;
+}
+export function setUnsubscribeCommunicationMessages(func) {
+    state.unsubscribeCommunicationMessages = func;
+}
+export function setUnsubscribeShopItems(func) {
+    state.unsubscribeShopItems = func;
+}
+
+// Helper to fetch history (internal use)
+export async function fetchMonthlyHistory(monthKey) {
+    const allMonthlyHistory = get("allMonthlyHistory");
+    if (allMonthlyHistory[monthKey]) return allMonthlyHistory[monthKey];
+
+    const contentEl = document.getElementById("history-modal-content");
+    if (
+        contentEl &&
+        (contentEl.innerHTML.includes("Select a month") ||
+            contentEl.innerHTML.includes("Choose a month"))
+    ) {
+        contentEl.innerHTML = `<p class="text-center text-gray-500"><i class="fas fa-spinner fa-spin mr-2"></i>Loading historical data...</p>`;
+    }
+
+    const { collectionGroup, query, where, getDocs } =
+        await import("https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js");
+    const { db } = await import("./firebase.js");
+
+    const historyQuery = query(
+        collectionGroup(db, "monthly_history"),
+        where("month", "==", monthKey),
+    );
+    try {
+        const snapshot = await getDocs(historyQuery);
+        const scores = {};
+        snapshot.forEach((doc) => {
+            const studentId = doc.ref.parent.parent.id;
+            scores[studentId] = doc.data().stars || 0;
+        });
+        allMonthlyHistory[monthKey] = scores;
+        set("allMonthlyHistory", allMonthlyHistory);
+        return scores;
+    } catch (error) {
+        console.error("Error fetching monthly history:", error);
+        allMonthlyHistory[monthKey] = {};
+        set("allMonthlyHistory", allMonthlyHistory);
+        return {};
+    }
+}
+
+export function setReigningHero(hero) {
+    state.reigningHero = hero;
+}
+
+function updateReigningHero() {
+    const classId = state.globalSelectedClassId;
+    if (!classId || !state.allAdventureLogs.length) {
+        state.reigningHero = null;
+        return;
+    }
+
+    // Φιλτράρισμα και ταξινόμηση για να βρούμε το πιο πρόσφατο Log
+    const logs = [...state.allAdventureLogs]
+        .filter((l) => l.classId === classId)
+        .sort(
+            (a, b) =>
+                (b.createdAt?.toMillis?.() || 0) -
+                (a.createdAt?.toMillis?.() || 0),
+        );
+
+    if (logs.length > 0) {
+        const latestLog = logs[0];
+        if (latestLog.heroStudentId) {
+            state.reigningHero =
+                state.allStudents.find(
+                    (s) =>
+                        s.id === latestLog.heroStudentId &&
+                        s.classId === classId,
+                ) ||
+                state.allStudents.find(
+                    (s) => s.id === latestLog.heroStudentId,
+                ) ||
+                null;
+            if (state.reigningHero) return;
+        }
+
+        const lastHeroName = latestLog.hero;
+        state.reigningHero =
+            state.allStudents.find(
+                (s) => s.name === lastHeroName && s.classId === classId,
+            ) || null;
+    } else {
+        state.reigningHero = null;
+    }
+}

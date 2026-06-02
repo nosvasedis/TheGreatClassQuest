@@ -1,0 +1,4 @@
+name = "great-class-quest-storage-proxy"
+main = "src/worker.js"
+compatibility_date = "2026-05-09"
+workers_dev = true

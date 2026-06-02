@@ -1,0 +1,62 @@
+# Dependencies
+node_modules/
+.pnp
+.pnp.js
+
+# Testing
+coverage/
+
+# Production
+dist/
+build/
+
+# Misc
+.DS_Store
+*.pem
+
+# Firebase service account key (never commit)
+*.serviceAccount.json
+*-firebase-adminsdk-*.json
+
+# Env
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Cursor / Trae scratch docs (plans, etc.)
+.trae/documents/
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Project specific
+config.json
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+rg.exe
+
+# All guides and docs (private; do not push to GitHub)
+docs/
+scripts/README.md
+config/tiers/README.md
+
+# Billing: config with secrets and keys (do not push)
+billing/README.md
+billing/schools.json
+billing/keys/
+billing/.env
+billing/DEPLOY_*.md
+billing/HOW_TO_ADD_A_SCHOOL.md
+billing/ONBOARD_NEW_SCHOOL.md
+billing/schools.local.json
+billing/render-paste.txt
+billing/price-ids.local.json
+billing/NEXT_STEPS.txt
+tools/billing-config.local.json

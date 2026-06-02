@@ -1,0 +1,724 @@
+// templates/app/tabs/options.js
+
+export const optionsTabHTML = `
+            <div id="options-tab" class="app-tab hidden">
+                <div class="max-w-4xl mx-auto">
+                    <div class="text-center mb-8">
+                        <i class="fas fa-cog text-gray-600 text-5xl floating-icon"></i>
+                        <h2 class="font-title text-5xl text-gray-700 mt-2 bottom-nav-tab-title"
+                            style="text-shadow: 0 2px 4px rgba(0,0,0,0.1);">Options & Settings</h2>
+                        <p class="text-lg text-gray-600 mt-2">Manage your profile and access advanced tools.</p>
+                    </div>
+
+                    <div id="options-tier-summary" class="mb-6 flex items-center justify-between">
+                    </div>
+
+                    <div id="options-subscription-manage-wrap" class="mb-6 hidden">
+                        <div class="bg-white rounded-2xl shadow-lg border-2 border-indigo-200 overflow-hidden">
+                            <div class="bg-gradient-to-r from-indigo-50 to-purple-50 px-5 py-4 border-b border-indigo-100">
+                                <h3 class="font-title text-xl text-indigo-800 mb-0.5"><i class="fas fa-credit-card mr-2 text-indigo-600"></i>Billing & subscription</h3>
+                                <p class="text-sm text-indigo-600/90">Managed securely by Stripe. Your payment and plan details live in your Stripe customer portal.</p>
+                            </div>
+                            <div class="p-5 space-y-4">
+                                <div>
+                                    <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Current status</p>
+                                    <p id="options-subscription-details" class="text-sm text-gray-800 font-medium" aria-live="polite">Loading subscription…</p>
+                                    <div id="options-subscription-facts" class="mt-3 space-y-2"></div>
+                                    <p id="options-subscription-source" class="mt-3 text-xs text-gray-500">Checking Stripe and school access settings…</p>
+                                </div>
+                                <div class="bg-gray-50 rounded-xl p-3 border border-gray-100">
+                                    <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">In Stripe you can</p>
+                                    <ul class="text-sm text-gray-700 space-y-2">
+                                        <li class="flex items-center gap-2"><i class="fas fa-credit-card text-indigo-500 w-4 text-center" aria-hidden="true"></i>Update payment method</li>
+                                        <li class="flex items-center gap-2"><i class="fas fa-file-invoice text-indigo-500 w-4 text-center" aria-hidden="true"></i>View and download invoices</li>
+                                        <li class="flex items-center gap-2"><i class="fas fa-exchange-alt text-indigo-500 w-4 text-center" aria-hidden="true"></i>Change plan (upgrade or downgrade)</li>
+                                        <li class="flex items-center gap-2"><i class="fas fa-calendar-times text-indigo-500 w-4 text-center" aria-hidden="true"></i>Cancel at end of billing period</li>
+                                    </ul>
+                                </div>
+                                <p class="text-xs text-gray-500">To upgrade from the app, use the plan card above. Opening the button below takes you to Stripe’s secure portal.</p>
+                                <button type="button" id="options-manage-subscription-btn" class="w-full bg-indigo-500 hover:bg-indigo-600 text-white font-title text-base py-3 rounded-xl bubbly-button flex items-center justify-center gap-2">
+                                    <i class="fas fa-external-link-alt"></i>
+                                    <span>Open Stripe billing</span>
+                                </button>
+                                <p class="text-xs text-gray-400 text-center">You’ll be redirected to Stripe’s secure site.</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="options-subtab-bar">
+                        <button type="button" class="options-subtab-btn options-subtab-active" data-options-tab="manage">
+                            <i class="fas fa-tools mr-1.5"></i> Manage
+                        </button>
+                        <button type="button" class="options-subtab-btn" data-options-tab="planning">
+                            <i class="fas fa-calendar-alt mr-1.5"></i> Planning
+                        </button>
+                        <button type="button" class="options-subtab-btn" data-options-tab="profile">
+                            <i class="fas fa-user mr-1.5"></i> Profile
+                        </button>
+                        <button type="button" class="options-subtab-btn" data-options-tab="assessments">
+                            <i class="fas fa-clipboard-check mr-1.5"></i> Assessments
+                        </button>
+                        <button type="button" class="options-subtab-btn" data-options-tab="access">
+                            <i class="fas fa-user-shield mr-1.5"></i> Access
+                        </button>
+                        <button type="button" class="options-subtab-btn" data-options-tab="quiz">
+                            <i class="fas fa-circle-question mr-1.5"></i> Quiz
+                        </button>
+                        <button type="button" class="options-subtab-btn" data-options-tab="danger">
+                            <i class="fas fa-shield-alt mr-1.5"></i> Danger
+                        </button>
+                    </div>
+
+                    <div class="space-y-8">
+
+                            <div class="relative overflow-hidden rounded-[2rem] border border-amber-200 bg-white shadow-lg p-6 md:p-8 space-y-6" data-options-section="manage">
+                                <div class="absolute -top-10 -right-10 w-40 h-40 bg-gradient-to-br from-amber-200 to-orange-200 rounded-full blur-3xl opacity-50 pointer-events-none"></div>
+                                <div class="absolute -bottom-10 -left-10 w-40 h-40 bg-gradient-to-tr from-yellow-100 to-amber-100 rounded-full blur-3xl opacity-50 pointer-events-none"></div>
+                                
+                                <div class="relative z-10 flex flex-col md:flex-row items-center gap-6 mb-2">
+                                    <div class="flex-shrink-0 w-20 h-20 bg-gradient-to-br from-amber-400 to-orange-500 rounded-2xl flex items-center justify-center shadow-xl shadow-amber-500/30 floating-icon">
+                                        <i class="fas fa-star text-white text-4xl"></i>
+                                    </div>
+                                    <div class="text-center md:text-left flex-1">
+                                        <h2 class="font-title text-3xl text-amber-800 mb-1">Student Star Manager</h2>
+                                        <p class="text-gray-500 text-sm">Add historical awards or manually override current student scores.</p>
+                                    </div>
+                                </div>
+                                <div id="star-manager-form" class="space-y-4 relative z-10">
+                                    <div>
+                                        <label for="star-manager-student-select"
+                                            class="block text-sm font-medium text-gray-700 mb-1">Select Student</label>
+                                        <select id="star-manager-student-select"
+                                            class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-500 bg-white">
+                                            <option value="">Loading students...</option>
+                                        </select>
+                                    </div>
+                                    <div class="p-4 bg-amber-50 rounded-xl border border-amber-200">
+                                        <h3 class="font-title text-xl text-amber-800 mb-2 text-center">Add Historical
+                                            Award</h3>
+                                        <div class="grid grid-cols-2 gap-4">
+                                            <div>
+                                                <label for="star-manager-date"
+                                                    class="block text-sm font-medium text-gray-700">Award Date</label>
+                                                <input type="date" id="star-manager-date"
+                                                    class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-amber-500"
+                                                    disabled>
+                                            </div>
+                                            <div>
+                                                <label for="star-manager-stars-to-add"
+                                                    class="block text-sm font-medium text-gray-700">Stars to Add</label>
+                                                <input type="number" id="star-manager-stars-to-add"
+                                                    class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-amber-500"
+                                                    min="0.5" step="0.5" max="10" value="1" disabled>
+                                            </div>
+                                        </div>
+                                        <div>
+                                            <label for="star-manager-reason"
+                                                class="block text-sm font-medium text-gray-700 mt-2">Reason</label>
+                                            <select id="star-manager-reason"
+                                                class="mt-1 block w-full px-3 py-2 border border-gray-300 bg-white rounded-md shadow-sm focus:outline-none focus:ring-amber-500"
+                                                disabled>
+                                                <option value="teamwork">Teamwork</option>
+                                                <option value="creativity">Creativity</option>
+                                                <option value="respect">Respect</option>
+                                                <option value="focus">Focus/Effort</option>
+                                                <option value="welcome_back">Welcome Back Bonus</option>
+                                                <option value="correction">Manual Correction</option>
+                                            </select>
+                                        </div>
+                                        <button id="star-manager-add-btn"
+                                            class="w-full mt-4 bg-amber-500 hover:bg-amber-600 text-white font-title text-lg py-2 rounded-xl bubbly-button"
+                                            disabled>
+                                            <i class="fas fa-plus-circle mr-2"></i> Add Stars to Log
+                                        </button>
+                                    </div>
+                                    <div class="p-4 bg-blue-50 rounded-xl border border-blue-200">
+                                        <h3 class="font-title text-xl text-blue-800 mb-2 text-center">Direct Score
+                                            Override</h3>
+                                        <p class="text-xs text-gray-600 text-center mb-3">Manually set the star
+                                            counters. This does NOT create a log entry.</p>
+                                        <div id="star-override-form" class="grid grid-cols-3 gap-4 mb-4">
+                                            <div>
+                                                <label for="override-today-stars"
+                                                    class="block text-sm font-medium text-gray-700">Today</label>
+                                                <input type="number" id="override-today-stars"
+                                                    class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md"
+                                                    min="0" value="0" disabled>
+                                            </div>
+                                            <div>
+                                                <label for="override-monthly-stars"
+                                                    class="block text-sm font-medium text-gray-700">Monthly</label>
+                                                <input type="number" id="override-monthly-stars"
+                                                    class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md"
+                                                    min="0" value="0" disabled>
+                                            </div>
+                                            <div>
+                                                <label for="override-total-stars"
+                                                    class="block text-sm font-medium text-gray-700">Total</label>
+                                                <input type="number" id="override-total-stars"
+                                                    class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md"
+                                                    min="0" value="0" disabled>
+                                            </div>
+                                        </div>
+                                        <button id="star-manager-override-btn"
+                                            class="w-full bg-blue-600 hover:bg-blue-700 text-white font-title text-lg py-2 rounded-xl bubbly-button"
+                                            disabled>
+                                            <i class="fas fa-wrench mr-2"></i> Set Student Scores
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="relative overflow-hidden rounded-[2rem] border border-yellow-200 bg-white shadow-lg p-6 md:p-8 space-y-6" data-options-section="manage">
+                                <div class="absolute -top-10 -right-10 w-40 h-40 bg-gradient-to-br from-yellow-200 to-amber-200 rounded-full blur-3xl opacity-50 pointer-events-none"></div>
+                                
+                                <div class="relative z-10 flex flex-col md:flex-row items-center gap-6">
+                                    <div class="flex-shrink-0 w-20 h-20 bg-gradient-to-br from-yellow-400 to-amber-500 rounded-2xl flex items-center justify-center shadow-xl shadow-yellow-500/30 floating-icon">
+                                        <div class="text-4xl">💰</div>
+                                    </div>
+                                    <div class="text-center md:text-left flex-1">
+                                        <h2 class="font-title text-3xl text-yellow-800 mb-1">Coin Purse Manager</h2>
+                                        <p class="text-sm text-gray-500">Fix balances or reward custom gold amounts.</p>
+                                    </div>
+                                </div>
+
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 relative z-10">
+                                    <div class="md:col-span-2">
+                                        <label class="block text-sm font-medium text-gray-700 mb-1">Select
+                                            Student</label>
+                                        <select id="economy-student-select"
+                                            class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-yellow-500 bg-white">
+                                            <option value="">Loading...</option>
+                                        </select>
+                                    </div>
+
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-700 mb-1">Current Gold</label>
+                                        <div class="relative">
+                                            <input type="number" id="economy-gold-input"
+                                                class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-yellow-500 font-bold text-lg text-yellow-600"
+                                                placeholder="0">
+                                            <div class="absolute right-4 top-3 text-yellow-500">🪙</div>
+                                        </div>
+                                    </div>
+
+                                    <div class="flex items-end">
+                                        <button id="save-gold-btn"
+                                            class="w-full bg-yellow-500 hover:bg-yellow-600 text-white font-title text-lg py-3 rounded-xl bubbly-button disabled:opacity-50 disabled:cursor-not-allowed"
+                                            disabled>
+                                            <i class="fas fa-save mr-2"></i> Update Balance
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="relative overflow-hidden rounded-[2rem] border border-rose-200 bg-white shadow-lg p-6 md:p-8 space-y-6" data-options-section="manage">
+                                <div class="absolute -top-10 -right-10 w-40 h-40 bg-gradient-to-br from-rose-200 to-pink-200 rounded-full blur-3xl opacity-50 pointer-events-none"></div>
+                                
+                                <div class="relative z-10 flex flex-col md:flex-row items-center gap-6">
+                                    <div class="flex-shrink-0 w-20 h-20 bg-gradient-to-br from-rose-400 to-pink-500 rounded-2xl flex items-center justify-center shadow-xl shadow-rose-500/30 floating-icon">
+                                        <div class="text-4xl">🧬</div>
+                                    </div>
+                                    <div class="text-center md:text-left flex-1">
+                                        <h2 class="font-title text-3xl text-rose-800 mb-1">Familiar Sprite Forge</h2>
+                                        <p class="text-sm text-gray-500">Regenerate a Familiar sprite when the saved sheet looks wrong.</p>
+                                    </div>
+                                </div>
+                                <div class="space-y-3 relative z-10">
+                                    <div>
+                                        <label for="familiar-maintenance-student-select" class="block text-sm font-medium text-gray-700 mb-1">Select Student</label>
+                                        <select id="familiar-maintenance-student-select"
+                                            class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-rose-500 bg-white">
+                                            <option value="">Loading familiars...</option>
+                                        </select>
+                                    </div>
+                                    <div id="familiar-maintenance-status" class="rounded-2xl border border-rose-100 bg-rose-50/70 px-4 py-3 text-sm text-rose-900">
+                                        Choose a student to inspect or regenerate their Familiar sprite.
+                                    </div>
+                                    <button id="familiar-regenerate-btn"
+                                        class="w-full bg-rose-500 hover:bg-rose-600 text-white font-title text-lg py-3 rounded-xl bubbly-button disabled:opacity-50 disabled:cursor-not-allowed"
+                                        disabled>
+                                        <i class="fas fa-wand-sparkles mr-2"></i> Regenerate Current Familiar Sprite
+                                    </button>
+                                </div>
+                            </div>
+                            
+                            <div class="space-y-6" data-options-section="planning">
+                                <div id="options-planning-locked" class="options-tier-locked hidden">
+                                    <div class="options-tier-locked-icon">📅</div>
+                                    <div class="options-tier-locked-title">Planning tools</div>
+                                    <p class="options-tier-locked-text">The School Year Planner (school breaks plus when each class ends) is available on the Pro plan.</p>
+                                    <span class="options-tier-locked-badge">Pro</span>
+                                </div>
+                                <div id="options-planning-content" class="flex flex-col gap-8">
+                                    <div class="relative overflow-hidden rounded-[2rem] border border-fuchsia-200/80 bg-gradient-to-br from-white via-rose-50/30 to-violet-50/40 shadow-lg p-6 md:p-8 space-y-8">
+                                        <div class="absolute -top-10 -right-10 w-48 h-48 bg-gradient-to-br from-pink-200/80 to-violet-200/70 rounded-full blur-3xl opacity-60 pointer-events-none"></div>
+                                        <div class="absolute -bottom-8 -left-8 w-40 h-40 bg-gradient-to-tr from-indigo-100/50 to-fuchsia-100/40 rounded-full blur-3xl opacity-50 pointer-events-none"></div>
+
+                                        <div class="relative z-10 flex flex-col items-center text-center gap-2">
+                                            <div class="w-16 h-16 bg-gradient-to-br from-pink-500 via-rose-500 to-violet-600 rounded-2xl flex items-center justify-center shadow-lg shadow-fuchsia-500/25 mb-1 floating-icon ring-2 ring-white/80">
+                                                <i class="fas fa-calendar-alt text-white text-2xl"></i>
+                                            </div>
+                                            <h2 class="font-title text-3xl text-transparent bg-clip-text bg-gradient-to-r from-pink-800 via-rose-800 to-violet-900 text-center">School Year Planner</h2>
+                                            <p class="text-sm text-gray-600 max-w-xl leading-relaxed">One place for the whole year: school-wide breaks shade the calendar, and each class’s <span class="font-semibold text-gray-800">final lesson day</span> keeps schedules and ceremonies accurate.</p>
+                                        </div>
+
+                                        <div class="relative z-10 space-y-4 pt-2 border-t border-pink-100/80">
+                                            <div class="flex items-center gap-2 justify-center flex-wrap">
+                                                <span class="text-lg" aria-hidden="true">🏫</span>
+                                                <h3 class="font-title text-lg text-pink-900 text-center">School-wide breaks</h3>
+                                            </div>
+                                            <p class="text-xs text-gray-500 text-center">Holidays apply to every class’s calendar view and lesson counts.</p>
+                                            <div class="grid grid-cols-2 gap-2">
+                                                <div class="col-span-2">
+                                                    <label class="block text-xs font-bold text-gray-500">Holiday Name</label>
+                                                    <input type="text" id="holiday-name" placeholder="e.g. Christmas Break"
+                                                        class="w-full px-3 py-2 border rounded-lg bg-white">
+                                                </div>
+                                                <div>
+                                                    <label class="block text-xs font-bold text-gray-500">Start Date</label>
+                                                    <input type="date" id="holiday-start"
+                                                        class="w-full px-3 py-2 border rounded-lg bg-white">
+                                                </div>
+                                                <div>
+                                                    <label class="block text-xs font-bold text-gray-500">End Date</label>
+                                                    <input type="date" id="holiday-end" class="w-full px-3 py-2 border rounded-lg bg-white">
+                                                </div>
+                                                <div class="col-span-2">
+                                                    <label class="block text-xs font-bold text-gray-500">Theme</label>
+                                                    <select id="holiday-type" class="w-full px-3 py-2 border rounded-lg bg-white">
+                                                        <option value="christmas">🎄 Christmas / Winter</option>
+                                                        <option value="easter">🐣 Easter / Spring</option>
+                                                        <option value="generic">📅 Generic / Other</option>
+                                                    </select>
+                                                </div>
+                                            </div>
+                                            <button id="add-holiday-btn"
+                                                class="w-full bg-gradient-to-r from-pink-500 to-rose-500 hover:from-pink-600 hover:to-rose-600 text-white font-bold py-2.5 rounded-xl bubbly-button shadow-sm shadow-pink-500/20">
+                                                <i class="fas fa-plus-circle mr-2"></i> Add Break
+                                            </button>
+                                            <div id="holiday-list" class="space-y-2 max-h-40 overflow-y-auto"></div>
+                                        </div>
+
+                                        <div class="relative z-10 space-y-5 pt-6 border-t border-violet-100/90">
+                                            <div class="flex items-center gap-2 justify-center flex-wrap">
+                                                <span class="text-lg" aria-hidden="true">🎯</span>
+                                                <h3 class="font-title text-lg text-violet-900 text-center">Class finale (header class)</h3>
+                                            </div>
+                                            <p class="text-sm text-gray-600 text-center max-w-lg mx-auto">Choose a class in the <span class="font-semibold text-violet-800">header</span>, set its last lesson day here, then save. After that date it drops from day-by-day schedules; leave empty if the class continues year-round.</p>
+
+                                            <div id="class-end-dates-list" class="min-h-[120px]">
+                                                <!-- Filled by renderClassEndDatesList() -->
+                                            </div>
+
+                                            <button type="button" id="save-class-end-dates-btn"
+                                                disabled
+                                                class="w-full bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 text-white font-title text-lg py-3 rounded-2xl bubbly-button shadow-md shadow-violet-500/20 disabled:opacity-45 disabled:cursor-not-allowed disabled:pointer-events-none transition-all">
+                                                <i class="fas fa-save mr-2"></i> Save for this class
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="space-y-6 hidden" data-options-section="access">
+                                <div class="relative overflow-hidden rounded-[2rem] border border-indigo-100 bg-white shadow-lg p-8">
+                                    <!-- Decorative background elements -->
+                                    <div class="absolute -top-10 -right-10 w-40 h-40 bg-gradient-to-br from-indigo-200 to-purple-200 rounded-full blur-3xl opacity-50 pointer-events-none"></div>
+                                    <div class="absolute -bottom-10 -left-10 w-40 h-40 bg-gradient-to-tr from-sky-200 to-cyan-200 rounded-full blur-3xl opacity-50 pointer-events-none"></div>
+                                    
+                                    <div class="relative z-10 flex flex-col md:flex-row items-center gap-6">
+                                        <div class="flex-shrink-0 w-24 h-24 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-2xl flex items-center justify-center shadow-xl shadow-indigo-500/30 floating-icon">
+                                            <i class="fas fa-user-shield text-white text-4xl"></i>
+                                        </div>
+                                        <div class="text-center md:text-left flex-1">
+                                            <div class="inline-flex items-center gap-2 px-3 py-1 bg-indigo-50 text-indigo-600 rounded-full text-xs font-bold uppercase tracking-wider mb-2 border border-indigo-100">
+                                                <i class="fas fa-lock"></i> Security & Roles
+                                            </div>
+                                            <h2 class="font-title text-4xl text-gray-800 mb-2">Role Access Center</h2>
+                                            <p class="text-gray-500 leading-relaxed max-w-2xl">
+                                                Manage your school's digital boundaries. Create parent usernames, grant secretary access, and publish parent-friendly updates with ease.
+                                            </p>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div id="options-access-content" class="space-y-6"></div>
+                            </div>
+
+                            <div class="relative overflow-hidden rounded-[2rem] border border-blue-200 bg-white shadow-lg p-6 md:p-8 space-y-6" data-options-section="profile">
+                                <div class="absolute -top-10 -right-10 w-40 h-40 bg-gradient-to-br from-blue-200 to-cyan-200 rounded-full blur-3xl opacity-50 pointer-events-none"></div>
+                                <div class="absolute -bottom-10 -left-10 w-40 h-40 bg-gradient-to-tr from-sky-100 to-blue-100 rounded-full blur-3xl opacity-50 pointer-events-none"></div>
+                                
+                                <div class="relative z-10 flex flex-col items-center mb-6">
+                                    <div class="w-20 h-20 bg-gradient-to-br from-blue-500 to-cyan-600 rounded-2xl flex items-center justify-center shadow-xl shadow-blue-500/30 mb-4 floating-icon">
+                                        <i class="fas fa-user-circle text-white text-4xl"></i>
+                                    </div>
+                                    <h2 class="font-title text-3xl text-blue-800 text-center">Profile Settings</h2>
+                                </div>
+                                <div class="relative z-10">
+                                    <label for="teacher-name-input"
+                                        class="block text-sm font-medium text-gray-700 mb-1">Your Display Name</label>
+                                    <input type="text" id="teacher-name-input"
+                                        class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                        autocomplete="off">
+                                </div>
+                                <button id="save-teacher-name-btn"
+                                    class="w-full bg-blue-600 hover:bg-blue-700 text-white font-title text-xl py-3 rounded-xl bubbly-button flex items-center justify-center mb-4">
+                                    <i class="fas fa-save mr-2"></i> Save Name
+                                </button>
+                                <div class="pt-2 border-t border-dashed border-blue-100 space-y-3">
+                                    <div>
+                                        <label for="options-school-name-input"
+                                            class="block text-sm font-medium text-gray-700 mb-1">School name</label>
+                                        <input type="text" id="options-school-name-input"
+                                            class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                            autocomplete="off"
+                                            placeholder="e.g. Your School">
+                                        <p class="text-xs text-gray-500 mt-1">This appears on the home screen, login header, and attendance footer.</p>
+                                    </div>
+                                    <button id="save-school-name-btn"
+                                        class="w-full bg-sky-600 hover:bg-sky-700 text-white font-title text-xl py-3 rounded-xl bubbly-button flex items-center justify-center">
+                                        <i class="fas fa-save mr-2"></i> Save School Name
+                                    </button>
+                                    <div class="pt-2 border-t border-dashed border-blue-100 space-y-2">
+                                        <label for="options-school-location-search"
+                                            class="block text-sm font-medium text-gray-700 mb-1">School location for weather</label>
+                                        <div class="flex flex-wrap gap-2">
+                                            <input type="text" id="options-school-location-search"
+                                                class="flex-1 min-w-[180px] px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                                autocomplete="off"
+                                                placeholder="e.g. Thessaloniki, Heraklion">
+                                            <button id="search-school-location-btn"
+                                                class="bg-sky-500 hover:bg-sky-600 text-white font-title text-lg py-3 px-4 rounded-xl bubbly-button flex items-center justify-center whitespace-nowrap">
+                                                <i class="fas fa-search mr-2"></i> Search
+                                            </button>
+                                        </div>
+                                        <select id="options-school-location-results" class="hidden w-full px-4 py-3 border border-gray-300 rounded-xl bg-white text-sm"></select>
+                                        <p id="options-school-location-status" class="text-xs text-gray-500">No weather location selected. Default Athens area is used.</p>
+                                        <button id="save-school-location-btn"
+                                            class="w-full bg-cyan-600 hover:bg-cyan-700 text-white font-title text-xl py-3 rounded-xl bubbly-button flex items-center justify-center">
+                                            <i class="fas fa-map-marker-alt mr-2"></i> Save School Location
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="relative overflow-hidden rounded-[2rem] border border-fuchsia-200 bg-white shadow-lg p-6 md:p-8 space-y-6 hidden" data-options-section="assessments">
+                                <div class="absolute -top-10 -right-10 w-40 h-40 bg-gradient-to-br from-fuchsia-200 to-pink-200 rounded-full blur-3xl opacity-50 pointer-events-none"></div>
+                                <div class="absolute -bottom-10 -left-10 w-40 h-40 bg-gradient-to-tr from-purple-100 to-fuchsia-100 rounded-full blur-3xl opacity-50 pointer-events-none"></div>
+                                
+                                <div class="relative z-10 flex flex-col md:flex-row items-center gap-6 mb-4">
+                                    <div class="flex-shrink-0 w-20 h-20 bg-gradient-to-br from-fuchsia-500 to-purple-600 rounded-2xl flex items-center justify-center shadow-xl shadow-fuchsia-500/30 floating-icon">
+                                        <i class="fas fa-clipboard-check text-white text-4xl"></i>
+                                    </div>
+                                    <div class="text-center md:text-left flex-1">
+                                        <h2 class="font-title text-3xl text-fuchsia-800 mb-1">Assessment Settings</h2>
+                                        <p class="text-sm text-slate-500">Set school-wide league defaults and decide which classes inherit them or use custom grading.</p>
+                                    </div>
+                                </div>
+                                <div class="relative z-10 rounded-[1.5rem] border border-fuchsia-100 bg-fuchsia-50/60 p-5">
+                                    <h3 class="font-title text-2xl text-fuchsia-800 mb-3">School defaults by league</h3>
+                                    <div id="options-assessment-defaults-editor" class="space-y-4"></div>
+                                </div>
+                                <div class="rounded-[1.5rem] border border-indigo-100 bg-indigo-50/60 p-5">
+                                    <h3 class="font-title text-2xl text-indigo-800 mb-3">Per-class overrides</h3>
+                                    <div id="options-class-assessment-editor" class="space-y-4"></div>
+                                </div>
+                                <button id="save-assessment-settings-btn"
+                                    class="w-full bg-fuchsia-600 hover:bg-fuchsia-700 text-white font-title text-xl py-3 rounded-xl bubbly-button flex items-center justify-center">
+                                    <i class="fas fa-save mr-2"></i> Save Assessment Settings
+                                </button>
+                            </div>
+
+                            <!-- Quiz of the Week section -->
+                            <div class="space-y-6" data-options-section="quiz">
+                                <div id="options-quiz-locked" class="options-tier-locked hidden">
+                                    <div class="options-tier-locked-icon">❓</div>
+                                    <div class="options-tier-locked-title">Quiz of the Week</div>
+                                    <p class="options-tier-locked-text">AI-powered weekly quizzes are available on the Elite plan.</p>
+                                    <span class="options-tier-locked-badge">Elite</span>
+                                </div>
+                                <div id="options-quiz-content" class="qow-panel hidden relative overflow-hidden rounded-[2rem] border border-amber-200 bg-white shadow-lg p-6 md:p-8 space-y-6">
+                                    <!-- Decorative background elements -->
+                                    <div class="absolute -top-10 -right-10 w-40 h-40 bg-gradient-to-br from-amber-200 to-orange-200 rounded-full blur-3xl opacity-50 pointer-events-none"></div>
+                                    <div class="absolute -bottom-10 -left-10 w-40 h-40 bg-gradient-to-tr from-yellow-100 to-amber-100 rounded-full blur-3xl opacity-50 pointer-events-none"></div>
+
+                                    <!-- ── HERO HEADER ── -->
+                                    <div class="relative z-10 flex flex-col md:flex-row items-center gap-6 mb-2">
+                                        <div class="flex-shrink-0 w-20 h-20 bg-gradient-to-br from-amber-400 to-orange-500 rounded-2xl flex items-center justify-center shadow-xl shadow-amber-500/30 floating-icon relative">
+                                            <i class="fas fa-trophy text-white text-4xl"></i>
+                                            <div class="absolute -top-2 -right-2 text-2xl" aria-hidden="true">✨</div>
+                                        </div>
+                                        <div class="text-center md:text-left flex-1">
+                                            <h2 class="font-title text-3xl text-amber-800 mb-1">Quiz of the Week</h2>
+                                            <p class="text-sm text-gray-500">AI generates a tailored quiz for your class each week — multiple choice, fill-in-the-blank, and image questions.</p>
+                                        </div>
+                                    </div>
+
+                                    <!-- ── HOW IT WORKS ── -->
+                                    <div class="qow-steps-row">
+                                        <div class="qow-step">
+                                            <div class="qow-step-num">1</div>
+                                            <div class="qow-step-icon">🎓</div>
+                                            <div class="qow-step-label">Pick your class &amp; topic</div>
+                                        </div>
+                                        <div class="qow-step-arrow">→</div>
+                                        <div class="qow-step">
+                                            <div class="qow-step-num">2</div>
+                                            <div class="qow-step-icon">🤖</div>
+                                            <div class="qow-step-label">AI generates questions</div>
+                                        </div>
+                                        <div class="qow-step-arrow">→</div>
+                                        <div class="qow-step">
+                                            <div class="qow-step-num">3</div>
+                                            <div class="qow-step-icon">🎮</div>
+                                            <div class="qow-step-label">Play live in class!</div>
+                                        </div>
+                                    </div>
+
+                                    <!-- ── STEP 1 — CLASS (from header) ── -->
+                                    <div class="qow-card" id="qow-card-class">
+                                        <div class="qow-card-header">
+                                            <span class="qow-card-badge">Step 1</span>
+                                            <span class="qow-card-title"><i class="fas fa-users mr-2 text-amber-500"></i>Which class is this for?</span>
+                                        </div>
+                                        <div id="qow-class-display" class="qow-class-display rounded-xl border-2 border-amber-100 bg-amber-50/50 px-4 py-3 text-amber-900 font-title font-semibold text-center">
+                                            Choose a class from the header…
+                                        </div>
+                                        <div id="qow-class-meta" class="qow-class-meta hidden">
+                                            <span id="qow-class-level-badge" class="qow-level-badge"></span>
+                                            <span id="qow-class-meta-text" class="qow-class-meta-text"></span>
+                                        </div>
+                                    </div>
+
+                                    <!-- ── STEP 2 — CURRICULUM ── -->
+                                    <div class="qow-card qow-card-disabled" id="qow-card-curriculum">
+                                        <div class="qow-card-header">
+                                            <span class="qow-card-badge">Step 2</span>
+                                            <span class="qow-card-title"><i class="fas fa-book-open mr-2 text-amber-500"></i>Set the Curriculum</span>
+                                        </div>
+
+                                        <!-- Type pills -->
+                                        <div class="qow-type-pills" id="qow-type-pills">
+                                            <button class="qow-type-pill" data-type="grammar">
+                                                <span class="qow-type-pill-icon">📐</span>
+                                                <span class="qow-type-pill-label">Grammar</span>
+                                            </button>
+                                            <button class="qow-type-pill qow-type-pill-active" data-type="mix">
+                                                <span class="qow-type-pill-icon">🔀</span>
+                                                <span class="qow-type-pill-label">Mix</span>
+                                            </button>
+                                            <button class="qow-type-pill" data-type="vocabulary">
+                                                <span class="qow-type-pill-icon">📚</span>
+                                                <span class="qow-type-pill-label">Vocabulary</span>
+                                            </button>
+                                        </div>
+                                        <!-- hidden select still used as source of truth -->
+                                        <select id="quiz-curriculum-type" class="hidden">
+                                            <option value="grammar">Grammar</option>
+                                            <option value="vocabulary">Vocabulary</option>
+                                            <option value="mix" selected>Mix</option>
+                                        </select>
+
+                                        <div id="quiz-categories-wrap" class="qow-categories-wrap">
+                                            <p class="qow-section-label"><i class="fas fa-tags mr-1"></i> Suggested topics <span class="text-gray-400 font-normal">(tick what you're covering)</span></p>
+                                            <div id="quiz-categories-chips" class="qow-chips"></div>
+                                        </div>
+
+                                        <div class="qow-keywords-wrap">
+                                            <p class="qow-section-label"><i class="fas fa-pen mr-1"></i> Custom focus <span class="text-gray-400 font-normal">(optional — override or supplement the chips)</span></p>
+                                            <textarea id="quiz-keywords" class="qow-textarea" rows="2"
+                                                placeholder="e.g. ordinal numbers 1st–10th, was/were in past sentences…"></textarea>
+                                        </div>
+                                    </div>
+
+                                    <!-- ── VALIDATION MSG ── -->
+                                    <p id="quiz-validation-msg" class="qow-validation hidden"></p>
+
+                                    <!-- ── GENERATE BUTTON ── -->
+                                    <button id="quiz-generate-btn" class="qow-generate-btn" disabled>
+                                        <i class="fas fa-wand-magic-sparkles"></i>
+                                        <span id="quiz-generate-btn-label">Generate This Week's Quiz</span>
+                                    </button>
+
+                                    <!-- ── STATUS BANNER ── -->
+                                    <div id="quiz-status-area" class="qow-status hidden">
+                                        <div class="qow-status-top">
+                                            <span id="quiz-status-icon" class="qow-status-emoji">⏳</span>
+                                            <div class="qow-status-body">
+                                                <div id="quiz-status-text" class="qow-status-title">Generating…</div>
+                                                <div id="quiz-status-details" class="qow-status-sub"></div>
+                                            </div>
+                                            <div id="qow-status-badge" class="qow-status-pill hidden"></div>
+                                        </div>
+                                        <!-- Animated generation progress bar (shown during generation) -->
+                                        <div id="qow-gen-progress" class="qow-gen-progress hidden">
+                                            <div class="qow-gen-progress-track">
+                                                <div class="qow-gen-progress-fill"></div>
+                                            </div>
+                                            <div class="qow-gen-steps">
+                                                <span id="qow-gstep-1" class="qow-gen-step active">🤖 Crafting questions</span>
+                                                <span id="qow-gstep-2" class="qow-gen-step">🖼️ Generating images</span>
+                                                <span id="qow-gstep-3" class="qow-gen-step">✅ Saving to class</span>
+                                            </div>
+                                        </div>
+                                        <button id="quiz-reset-btn"
+                                            class="qow-reset-btn hidden">
+                                            <i class="fas fa-rotate-left mr-1"></i> Delete &amp; Reset This Week's Quiz
+                                        </button>
+                                    </div>
+
+                                    <!-- ── HISTORY ── -->
+                                    <div id="quiz-history-area" class="qow-history hidden">
+                                        <div class="qow-history-header">
+                                            <i class="fas fa-clock-rotate-left mr-2 text-amber-500"></i>
+                                            <span class="font-title text-amber-700">Recent Quizzes</span>
+                                        </div>
+                                        <div id="quiz-history-list" class="qow-history-list"></div>
+                                    </div>
+
+                                </div>
+                            </div>
+
+                            <div class="relative overflow-hidden rounded-[2rem] border border-red-200 bg-white shadow-lg p-6 md:p-8 space-y-6" data-options-section="danger">
+                                <div class="absolute -top-10 -right-10 w-40 h-40 bg-gradient-to-br from-red-200 to-orange-200 rounded-full blur-3xl opacity-50 pointer-events-none"></div>
+                                <div class="absolute -bottom-10 -left-10 w-40 h-40 bg-gradient-to-tr from-rose-100 to-red-100 rounded-full blur-3xl opacity-50 pointer-events-none"></div>
+                                
+                                <div class="relative z-10 flex flex-col items-center mb-6">
+                                    <div class="w-20 h-20 bg-gradient-to-br from-red-500 to-rose-600 rounded-2xl flex items-center justify-center shadow-xl shadow-red-500/30 mb-4 animate-pulse">
+                                        <i class="fas fa-exclamation-triangle text-white text-4xl"></i>
+                                    </div>
+                                    <h2 class="font-title text-3xl text-red-800 text-center">Danger Zone</h2>
+                                    <p class="text-sm text-gray-600 text-center mt-2 max-w-md">These actions are permanent and can result in data loss. Proceed with extreme caution.</p>
+                                </div>
+                                <div class="space-y-4 relative z-10">
+                                    <button id="star-manager-purge-btn"
+                                        class="w-full bg-red-600 hover:bg-red-700 text-white font-title text-lg py-2 rounded-xl bubbly-button"
+                                        disabled>
+                                        <i class="fas fa-exclamation-triangle mr-2"></i> Purge Student Score Data
+                                    </button>
+                                    <button id="erase-today-btn"
+                                        class="w-full bg-orange-500 hover:bg-orange-600 text-white font-title text-lg py-2 rounded-xl bubbly-button">
+                                        <i class="fas fa-undo mr-2"></i> Erase Today's Stars
+                                    </button>
+                                    <button id="purge-logs-btn"
+                                        class="w-full bg-red-800 hover:bg-red-900 text-white font-title text-lg py-2 rounded-xl bubbly-button">
+                                        <i class="fas fa-fire mr-2"></i> Purge All My Award Logs
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="options-meta-footer mt-8 text-center text-xs text-gray-400">
+                                <span id="app-tier-label" class="font-semibold block"></span>
+                                <span id="app-version-label" class="block mt-1"></span>
+                            </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Pricing Comparison Modal -->
+            <div id="pricing-modal" class="fixed inset-0 bg-slate-950/60 z-[95] flex items-center justify-center p-4 hidden backdrop-blur-sm">
+                <div class="bg-white p-0 rounded-[1.8rem] shadow-2xl max-w-6xl w-full h-[85vh] pop-in border border-slate-200 flex flex-col overflow-hidden relative">
+                    <button id="pricing-modal-close-btn" class="premium-close-btn absolute top-4 right-4 bg-white/75 hover:bg-white text-slate-500 hover:text-rose-500 font-bold w-10 h-10 rounded-full bubbly-button z-50 transition-colors">&times;</button>
+                    
+                    <div class="bg-gradient-to-r from-indigo-600 to-purple-600 text-white p-6 text-center">
+                        <h2 class="font-title text-3xl mb-2">🏆 Choose Your Quest Plan</h2>
+                        <p class="text-indigo-100">Unlock powerful features to transform your English teaching adventure</p>
+                    </div>
+                    
+                    <div class="flex-grow overflow-y-auto p-6">
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                            <!-- Starter Tier -->
+                            <div class="bg-white rounded-2xl border-2 border-gray-200 shadow-lg overflow-hidden">
+                                <div class="bg-gradient-to-r from-gray-500 to-gray-600 text-white p-4 text-center">
+                                    <h3 class="font-title text-2xl mb-1">Starter</h3>
+                                    <div class="text-3xl font-bold mb-2">€20<span class="text-lg font-normal">/month</span></div>
+                                    <p class="text-gray-100 text-sm">Perfect for getting started</p>
+                                </div>
+                                <div class="p-4">
+                                    <h4 class="font-semibold text-gray-700 mb-3">Core Features:</h4>
+                                    <ul class="space-y-2 text-sm">
+                                        <li class="flex items-start gap-2"><i class="fas fa-check text-green-500 mt-0.5"></i><span>Star awarding system</span></li>
+                                        <li class="flex items-start gap-2"><i class="fas fa-check text-green-500 mt-0.5"></i><span>Monthly ceremonies</span></li>
+                                        <li class="flex items-start gap-2"><i class="fas fa-check text-green-500 mt-0.5"></i><span>Quest Assignment & Attendance</span></li>
+                                        <li class="flex items-start gap-2"><i class="fas fa-check text-green-500 mt-0.5"></i><span>Quest Bounties</span></li>
+                                        <li class="flex items-start gap-2"><i class="fas fa-check text-green-500 mt-0.5"></i><span>Basic Mystic Market</span></li>
+                                        <li class="flex items-start gap-2"><i class="fas fa-check text-green-500 mt-0.5"></i><span>Hero's Boon (peer gifts)</span></li>
+                                        <li class="flex items-start gap-2"><i class="fas fa-check text-green-500 mt-0.5"></i><span>Quest World Map</span></li>
+                                        <li class="flex items-start gap-2"><i class="fas fa-check text-green-500 mt-0.5"></i><span>Projector Mode</span></li>
+                                        <li class="flex items-start gap-2"><i class="fas fa-check text-green-500 mt-0.5"></i><span>Hero's Chronicle (notes only)</span></li>
+                                    </ul>
+                                </div>
+                            </div>
+                            
+                            <!-- Pro Tier -->
+                            <div class="bg-white rounded-2xl border-2 border-indigo-400 shadow-lg overflow-hidden relative">
+                                <div class="absolute top-0 right-0 bg-gradient-to-r from-indigo-500 to-purple-500 text-white text-xs px-3 py-1 rounded-bl-xl">MOST POPULAR</div>
+                                <div class="bg-gradient-to-r from-indigo-500 to-purple-500 text-white p-4 text-center">
+                                    <h3 class="font-title text-2xl mb-1">Pro</h3>
+                                    <div class="text-3xl font-bold mb-2">€40<span class="text-lg font-normal">/month</span></div>
+                                    <p class="text-indigo-100 text-sm">Complete classroom management</p>
+                                </div>
+                                <div class="p-4">
+                                    <h4 class="font-semibold text-gray-700 mb-3">All Starter +:</h4>
+                                    <ul class="space-y-2 text-sm">
+                                        <li class="flex items-start gap-2"><i class="fas fa-check text-green-500 mt-0.5"></i><span>🏰 Guilds system & sorting quiz</span></li>
+                                        <li class="flex items-start gap-2"><i class="fas fa-check text-green-500 mt-0.5"></i><span>⚔️ Hero Classes & Skill Tree</span></li>
+                                        <li class="flex items-start gap-2"><i class="fas fa-check text-green-500 mt-0.5"></i><span>📅 Calendar & Day Planner</span></li>
+                                        <li class="flex items-start gap-2"><i class="fas fa-check text-green-500 mt-0.5"></i><span>🗓️ School Year Planner</span></li>
+                                        <li class="flex items-start gap-2"><i class="fas fa-check text-green-500 mt-0.5"></i><span>📜 Scholar's Scroll (tests/dictations)</span></li>
+                                        <li class="flex items-start gap-2"><i class="fas fa-check text-green-500 mt-0.5"></i><span>📓 Adventure Log (manual entries)</span></li>
+                                        <li class="flex items-start gap-2"><i class="fas fa-check text-green-500 mt-0.5"></i><span>📋 Advanced Attendance Chronicle</span></li>
+                                        <li class="flex items-start gap-2"><i class="fas fa-check text-green-500 mt-0.5"></i><span>🔄 Make-up lesson tracking</span></li>
+                                        <li class="flex items-start gap-2"><i class="fas fa-check text-green-500 mt-0.5"></i><span>🏆 Hall of Heroes</span></li>
+                                    </ul>
+                                </div>
+                            </div>
+                            
+                            <!-- Elite Tier -->
+                            <div class="bg-white rounded-2xl border-2 border-purple-400 shadow-lg overflow-hidden">
+                                <div class="bg-gradient-to-r from-purple-500 to-pink-500 text-white p-4 text-center">
+                                    <h3 class="font-title text-2xl mb-1">Elite</h3>
+                                    <div class="text-3xl font-bold mb-2">€60<span class="text-lg font-normal">/month</span></div>
+                                    <p class="text-purple-100 text-sm">Ultimate AI-powered experience</p>
+                                </div>
+                                <div class="p-4">
+                                    <h4 class="font-semibold text-gray-700 mb-3">All Pro +:</h4>
+                                    <ul class="space-y-2 text-sm">
+                                        <li class="flex items-start gap-2"><i class="fas fa-check text-green-500 mt-0.5"></i><span>🏆 AI-powered Quiz of the Week</span></li>
+                                        <li class="flex items-start gap-2"><i class="fas fa-check text-green-500 mt-0.5"></i><span>🤖 AI-powered Adventure Log</span></li>
+                                        <li class="flex items-start gap-2"><i class="fas fa-check text-green-500 mt-0.5"></i><span>✏️ Edit AI-generated entries</span></li>
+                                        <li class="flex items-start gap-2"><i class="fas fa-check text-green-500 mt-0.5"></i><span>📖 Story Weavers (collaborative)</span></li>
+                                        <li class="flex items-start gap-2"><i class="fas fa-check text-green-500 mt-0.5"></i><span>🔤 Word of the Day</span></li>
+                                        <li class="flex items-start gap-2"><i class="fas fa-check text-green-500 mt-0.5"></i><span>🐉 Familiars (magical companions)</span></li>
+                                        <li class="flex items-start gap-2"><i class="fas fa-check text-green-500 mt-0.5"></i><span>🔮 Hero's Chronicle Oracle</span></li>
+                                        <li class="flex items-start gap-2"><i class="fas fa-check text-green-500 mt-0.5"></i><span>🎭 AI avatars</span></li>
+                                        <li class="flex items-start gap-2"><i class="fas fa-check text-green-500 mt-0.5"></i><span>📄 AI reports & certificates</span></li>
+                                        <li class="flex items-start gap-2"><i class="fas fa-check text-green-500 mt-0.5"></i><span>🎨 AI story images</span></li>
+                                        <li class="flex items-start gap-2"><i class="fas fa-check text-green-500 mt-0.5"></i><span>🌟 Priority support</span></li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="mt-6 p-4 bg-gray-50 rounded-xl">
+                            <h4 class="font-semibold text-gray-700 mb-2">💡 Why upgrade?</h4>
+                            <p class="text-sm text-gray-600 mb-3">Each tier builds upon the previous one, giving you more powerful tools to engage your students and save time.</p>
+                            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+                                <div class="text-center">
+                                    <div class="text-2xl mb-1">🌱</div>
+                                    <strong>Starter:</strong> Perfect for testing the waters
+                                </div>
+                                <div class="text-center">
+                                    <div class="text-2xl mb-1">🚀</div>
+                                    <strong>Pro:</strong> Complete classroom ecosystem
+                                </div>
+                                <div class="text-center">
+                                    <div class="text-2xl mb-1">✨</div>
+                                    <strong>Elite:</strong> AI-powered magic that saves hours
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+`;

@@ -1,0 +1,153 @@
+// templates/app/tabs/guilds.js — Guild Hall
+
+export const guildsTabHTML = `
+            <div id="guilds-tab" class="app-tab hidden">
+
+                <!-- Title above the framed scene (layout matches other app-tab headers) -->
+                <div class="max-w-7xl mx-auto">
+                    <div class="text-center mb-6">
+                        <i class="fas fa-shield-alt text-amber-500 text-5xl floating-icon"></i>
+                        <h2 class="font-title text-5xl guild-hall-title mt-2 bottom-nav-tab-title"
+                            style="text-shadow: 0 2px 4px rgba(0,0,0,0.1);">Guild Hall</h2>
+                        <p class="text-lg text-gray-600 mt-2">
+                            Every star earns ⚜️ Glory for your guild.
+                            The mightiest guild in June wins the <strong>Grand Guild Ceremony</strong>! ✨
+                        </p>
+                    </div>
+                </div>
+
+                <!-- Framed hall scene (pure CSS, no image) -->
+                <div class="guild-hall-scene">
+
+                    <!-- Atmospheric layers inside the frame -->
+                    <div class="guild-hall-scene-overlay" aria-hidden="true">
+
+                        <!-- Torch glows on left & right walls -->
+                        <div class="guild-hall-torch guild-hall-torch--left"></div>
+                        <div class="guild-hall-torch guild-hall-torch--right"></div>
+
+                        <!-- Rising ember sparks -->
+                        <div class="guild-hall-embers">
+                            <span style="--x:7%;  --s:3px;--d:2.8s;--dl:0.0s;--c:rgba(245,158,11,0.95)"></span>
+                            <span style="--x:18%; --s:2px;--d:3.3s;--dl:0.5s;--c:rgba(239,68,68,0.85)"></span>
+                            <span style="--x:30%; --s:4px;--d:2.6s;--dl:1.0s;--c:rgba(251,191,36,0.90)"></span>
+                            <span style="--x:43%; --s:2px;--d:3.7s;--dl:0.3s;--c:rgba(245,158,11,0.75)"></span>
+                            <span style="--x:56%; --s:3px;--d:2.9s;--dl:1.4s;--c:rgba(239,68,68,0.80)"></span>
+                            <span style="--x:67%; --s:4px;--d:3.1s;--dl:0.7s;--c:rgba(251,191,36,0.90)"></span>
+                            <span style="--x:79%; --s:3px;--d:2.7s;--dl:1.9s;--c:rgba(245,158,11,0.95)"></span>
+                            <span style="--x:90%; --s:2px;--d:3.5s;--dl:0.2s;--c:rgba(239,68,68,0.70)"></span>
+                            <span style="--x:13%; --s:2px;--d:4.0s;--dl:0.8s;--c:rgba(167,139,250,0.65)"></span>
+                            <span style="--x:52%; --s:3px;--d:3.2s;--dl:2.1s;--c:rgba(196,181,253,0.60)"></span>
+                            <span style="--x:85%; --s:2px;--d:2.5s;--dl:0.4s;--c:rgba(167,139,250,0.75)"></span>
+                        </div>
+
+                        <!-- Faint rising glow orbs -->
+                        <div class="guild-hall-glows">
+                            <span style="--x:12%; --d:6.5s;--dl:0.0s;--c:rgba(124,58,237,0.20)"></span>
+                            <span style="--x:35%; --d:8.0s;--dl:2.5s;--c:rgba(220,38,38,0.18)"></span>
+                            <span style="--x:60%; --d:7.0s;--dl:1.0s;--c:rgba(190,24,93,0.16)"></span>
+                            <span style="--x:84%; --d:5.5s;--dl:3.5s;--c:rgba(245,158,11,0.15)"></span>
+                        </div>
+
+                        <!-- Star particles -->
+                        <div class="guild-hall-stars-field"></div>
+                    </div>
+
+                    <!-- Crystal columns rendered by JS -->
+                    <div id="guilds-leaderboard-list" class="guild-hall-scene-content"></div>
+                </div>
+
+                <!-- Fortune ledger (collapsed by default; wheel control stays beside Standings) -->
+                <section id="fortunes-wheel-section" class="guild-fortune-ledger-section mt-6" data-ledger-expanded="false" aria-labelledby="fortune-ledger-heading">
+                    <div class="guild-fortune-ledger-section__glow" aria-hidden="true"></div>
+                    <div class="guild-fortune-ledger-section__inner">
+                        <button type="button"
+                                id="fortune-ledger-toggle"
+                                class="guild-fortune-ledger-section__toggle"
+                                aria-expanded="false"
+                                aria-controls="fortune-ledger-panel">
+                            <span class="guild-fortune-ledger-section__toggle-text">
+                                <h3 id="fortune-ledger-heading" class="guild-fortune-ledger-section__title guild-fortune-ledger-section__title--toggle font-title">Fortune Ledger</h3>
+                                <p id="fortune-ledger-bar-meta" class="guild-fortune-ledger-section__toggle-meta"></p>
+                            </span>
+                            <span class="guild-fortune-ledger-section__toggle-chev" aria-hidden="true"><i class="fa-solid fa-chevron-down"></i></span>
+                        </button>
+
+                        <div id="fortune-ledger-panel"
+                             class="guild-fortune-ledger-section__expandable"
+                             role="region"
+                             aria-labelledby="fortune-ledger-heading">
+                            <div class="guild-fortune-ledger-section__expandable-inner">
+                                <header class="guild-fortune-ledger-section__head guild-fortune-ledger-section__head--in-panel">
+                                    <div class="guild-fortune-ledger-section__intro guild-fortune-ledger-section__intro--panel">
+                                        <p class="guild-fortune-ledger-section__lede">
+                                            Glory shifts and guild omens from each ceremony appear below. Use the Fortune's Wheel button above when the ritual window is open.
+                                        </p>
+                                    </div>
+                                    <div class="guild-fortune-ledger-section__context">
+                                        <div id="fortunes-wheel-class" class="guild-fortune-ledger-section__class-chip">No class selected</div>
+                                        <p id="fortunes-wheel-status" class="guild-fortune-ledger-section__hint"></p>
+                                    </div>
+                                </header>
+
+                                <div id="fortunes-log-section" class="guild-fortune-ledger guild-fortune-ledger--raised">
+                                    <div class="guild-fortune-ledger__header">
+                                        <div class="guild-fortune-ledger__title-block">
+                                            <span class="guild-fortune-ledger__eyebrow">Latest ceremonies</span>
+                                            <div class="guild-fortune-ledger__title">Wheel history</div>
+                                        </div>
+                                        <div class="guild-fortune-ledger__controls" role="group" aria-label="Ledger pages">
+                                            <button id="fortune-ledger-prev" type="button" class="guild-fortune-ledger__nav" aria-label="Previous entries" disabled>
+                                                <i class="fa-solid fa-chevron-up"></i>
+                                            </button>
+                                            <button id="fortune-ledger-next" type="button" class="guild-fortune-ledger__nav" aria-label="Next entries" disabled>
+                                                <i class="fa-solid fa-chevron-down"></i>
+                                            </button>
+                                        </div>
+                                    </div>
+                                    <div id="fortunes-log-list" class="guild-fortune-ledger__list"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Guild Lore Overlay (shown on emblem click) -->
+                <div id="guild-lore-overlay" class="guild-lore-overlay hidden" role="dialog" aria-modal="true">
+                    <div class="guild-lore-overlay-bg" id="guild-lore-overlay-bg"></div>
+                    <div class="guild-lore-card pop-in" id="guild-lore-card">
+                        <button class="guild-lore-close" id="guild-lore-close" aria-label="Close">✕</button>
+                        <div class="guild-lore-sparkles" aria-hidden="true">
+                            <span>✦</span><span>✧</span><span>✦</span><span>✧</span><span>✦</span>
+                        </div>
+                        <div class="guild-lore-emblem-wrap" id="guild-lore-emblem-wrap"></div>
+                        <div class="guild-lore-emoji" id="guild-lore-emoji"></div>
+                        <h3 class="guild-lore-name font-title" id="guild-lore-name"></h3>
+                        <p class="guild-lore-motto" id="guild-lore-motto"></p>
+                        <div class="guild-lore-traits" id="guild-lore-traits"></div>
+                        <div class="guild-lore-stats" id="guild-lore-stats"></div>
+                    </div>
+                </div>
+
+                <!-- Guild Anthem Modal (shown on note button click) -->
+                <div id="guild-anthem-overlay" class="guild-anthem-overlay hidden" role="dialog" aria-modal="true">
+                    <div class="guild-anthem-overlay-bg" id="guild-anthem-overlay-bg"></div>
+                    <div class="guild-anthem-card pop-in" id="guild-anthem-card">
+                        <button class="guild-anthem-close" id="guild-anthem-close" aria-label="Close">✕</button>
+                        <div class="guild-anthem-header" id="guild-anthem-header">
+                            <div class="guild-anthem-note-icon" aria-hidden="true">🎵</div>
+                            <h3 class="guild-anthem-title font-title" id="guild-anthem-title"></h3>
+                            <p class="guild-anthem-subtitle">Sing along with your guild!</p>
+                        </div>
+                        <div class="guild-anthem-player" id="guild-anthem-player">
+                            <div class="guild-anthem-now-playing" id="guild-anthem-now-playing">
+                                <span class="guild-anthem-note-anim">♪</span>
+                                <span class="guild-anthem-now-playing-text">Now Playing…</span>
+                                <span class="guild-anthem-note-anim" style="animation-delay:0.4s">♫</span>
+                            </div>
+                        </div>
+                        <div class="guild-anthem-lyrics" id="guild-anthem-lyrics"></div>
+                    </div>
+                </div>
+            </div>
+`;

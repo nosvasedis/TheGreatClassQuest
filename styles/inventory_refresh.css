@@ -1,0 +1,195 @@
+/* --- Inventory Refresh Styles --- */
+
+.inventory-container {
+    background: rgba(15, 12, 41, 0.85) !important;
+    backdrop-filter: blur(12px) !important;
+    border: 1px solid rgba(255, 255, 255, 0.1) !important;
+    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5), 
+                inset 0 0 20px rgba(99, 102, 241, 0.2) !important;
+    border-radius: 2rem !important;
+    padding: 2rem !important;
+    animation: inventory-slide-up 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes inventory-slide-up {
+    from {
+        opacity: 0;
+        transform: translateY(30px) scale(0.95);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+
+.inventory-title {
+    background: linear-gradient(to right, #fbbf24, #f59e0b);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    font-weight: 800;
+    letter-spacing: -0.025em;
+    margin-bottom: 0.25rem;
+}
+
+.inventory-gold-pill {
+    background: rgba(251, 191, 36, 0.1);
+    border: 1px solid rgba(251, 191, 36, 0.3);
+    color: #fbbf24;
+    padding: 0.25rem 1rem;
+    border-radius: 9999px;
+    font-size: 0.875rem;
+    font-weight: 600;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 1.5rem;
+}
+
+.avatar-inventory-item {
+    position: relative;
+    width: 80px;
+    height: 80px;
+    cursor: pointer;
+    transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.avatar-inventory-item:hover {
+    transform: translateY(-5px) scale(1.1);
+}
+
+.avatar-inventory-item-visual {
+    width: 100%;
+    height: 100%;
+    border-radius: 1rem;
+    border: 2px solid rgba(255, 255, 255, 0.1);
+    background: rgba(255, 255, 255, 0.05);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    position: relative;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+}
+
+.avatar-inventory-item:hover .avatar-inventory-item-visual {
+    border-color: rgba(251, 191, 36, 0.5);
+    box-shadow: 0 0 20px rgba(251, 191, 36, 0.3);
+}
+
+.avatar-inventory-item img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.avatar-inventory-item .item-icon {
+    font-size: 2rem;
+}
+
+.avatar-inventory-use-btn {
+    position: absolute;
+    bottom: -10px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: #f59e0b;
+    color: #451a03;
+    font-weight: 700;
+    font-size: 0.65rem;
+    padding: 0.25rem 0.75rem;
+    border-radius: 0.5rem;
+    text-transform: uppercase;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+    opacity: 0;
+    pointer-events: none;
+    transition: all 0.2s ease;
+    z-index: 10;
+}
+
+.avatar-inventory-item:hover .avatar-inventory-use-btn {
+    opacity: 1;
+    pointer-events: auto;
+    bottom: -5px;
+}
+
+/* Item Detail Overlay */
+.item-detail-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.8);
+    backdrop-filter: blur(8px);
+    z-index: 300;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+    cursor: zoom-out;
+}
+
+.item-detail-card {
+    background: linear-gradient(135deg, #1e1b4b 0%, #312e81 100%);
+    border: 2px solid rgba(255, 255, 255, 0.1);
+    border-radius: 2.5rem;
+    padding: 3rem;
+    max-width: 400px;
+    width: 90%;
+    text-align: center;
+    transform: scale(0.8);
+    transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+    box-shadow: 0 25px 60px rgba(0, 0, 0, 0.6);
+    cursor: default;
+}
+
+.item-detail-overlay.active {
+    opacity: 1;
+}
+
+.item-detail-overlay.active .item-detail-card {
+    transform: scale(1);
+}
+
+.item-detail-visual {
+    width: 150px;
+    height: 150px;
+    margin: 0 auto 2rem;
+    border-radius: 2rem;
+    background: rgba(255, 255, 255, 0.05);
+    border: 3px solid rgba(251, 191, 36, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 5rem;
+    overflow: hidden;
+    box-shadow: 0 0 30px rgba(251, 191, 36, 0.2);
+}
+
+.item-detail-visual img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.item-detail-name {
+    font-family: 'Outfit', sans-serif;
+    font-size: 2.5rem;
+    font-weight: 800;
+    color: white;
+    margin-bottom: 0.5rem;
+    line-height: 1.1;
+}
+
+.item-detail-description {
+    color: rgba(255, 255, 255, 0.7);
+    font-size: 1.1rem;
+    line-height: 1.6;
+    margin-bottom: 2rem;
+}
+
+.item-detail-close-hint {
+    color: rgba(255, 255, 255, 0.4);
+    font-size: 0.875rem;
+    font-style: italic;
+}

@@ -1,0 +1,146 @@
+/* --- FIX #6: Avatar Enlargement Styles --- */
+.enlargeable-avatar {
+    cursor: pointer;
+    transition: transform 0.2s ease-out;
+}
+
+/* FIX #5: Specific avatar hover effects */
+.student-leaderboard-card .enlargeable-avatar:hover, #student-list .enlargeable-avatar:hover, #scroll-performance-chart .enlargeable-avatar:hover {
+    transform: scale(1.1);
+}
+
+@keyframes cloud-avatar-wiggle {
+    0%, 100% { transform: translateX(-50%) rotate(-2deg); }
+    50% { transform: translateX(-50%) rotate(2deg); }
+}
+.student-cloud-card .enlargeable-avatar:hover {
+    animation: cloud-avatar-wiggle 0.4s ease-in-out;
+}
+
+
+.enlarged-avatar-container {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background-color: rgba(0, 0, 0, 0.7);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 100;
+    opacity: 0;
+    transition: opacity 0.3s ease-out;
+    cursor: pointer;
+}
+
+.enlarged-avatar-image {
+    position: fixed;
+    border-radius: 9999px;
+    border: 6px solid white;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    z-index: 101;
+    cursor: default;
+}
+
+/* Enlarged avatar wrapper with level-up badge needs same transition */
+.enlarged-avatar-level-up-wrap {
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* --- FIX #10: Smooth Resizing for Idea Forge --- */
+#reward-ideas-tab .grid {
+    align-items: start;
+    transition: align-items 0.4s ease-in-out;
+}
+#reward-ideas-tab .grid.story-weavers-active {
+    display: flex;
+    flex-direction: column;
+}
+@media (min-width: 768px) {
+    #reward-ideas-tab .grid.story-weavers-active {
+        flex-direction: row;
+        align-items: stretch;
+    }
+}
+#reward-ideas-tab .grid > div {
+    transition: flex-grow 0.4s ease-in-out;
+    width: 100%;
+}
+@media (min-width: 768px) {
+    #reward-ideas-tab .grid > div {
+        width: auto;
+    }
+}
+
+
+#reward-ideas-tab .grid.story-weavers-active > div:last-child {
+    flex-grow: 1;
+}
+
+/* --- PREMIUM SKILL TREE BUTTON --- */
+.enlarged-avatar-skill-tree-btn {
+    position: fixed;
+    top: 20%;
+    left: calc(50% + 130px);
+    transform: translateY(-50%) scale(0);
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #a855f7 0%, #7c3aed 50%, #6d28d9 100%);
+    border: 2px solid rgba(255, 255, 255, 0.8);
+    box-shadow: 0 0 15px rgba(124, 58, 237, 0.6), inset 0 1px 1px rgba(255, 255, 255, 0.2);
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.25rem;
+    cursor: pointer;
+    transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+    z-index: 105;
+    pointer-events: auto;
+}
+
+.enlarged-avatar-container.active .enlarged-avatar-skill-tree-btn {
+    transform: translateY(-50%) scale(1);
+}
+
+.enlarged-avatar-skill-tree-btn:hover {
+    transform: translateY(-50%) scale(1.15);
+    background: linear-gradient(135deg, #c084fc 0%, #8b5cf6 50%, #7c3aed 100%);
+    box-shadow: 0 0 25px rgba(139, 92, 246, 0.9), 0 0 10px rgba(255, 255, 255, 0.4);
+    border-color: #ffffff;
+}
+
+.enlarged-avatar-skill-tree-btn:active {
+    transform: translateY(-50%) scale(0.95);
+}
+
+/* Tooltip/Label styled beautifully */
+.enlarged-avatar-skill-tree-btn::after {
+    content: "Skill Tree";
+    position: absolute;
+    bottom: -30px;
+    left: 50%;
+    transform: translateX(-50%) translateY(5px);
+    background: rgba(15, 23, 42, 0.9);
+    border: 1px solid rgba(139, 92, 246, 0.3);
+    color: #e9d5ff;
+    padding: 4px 8px;
+    border-radius: 6px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    white-space: nowrap;
+    opacity: 0;
+    transition: all 0.2s ease;
+    pointer-events: none;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+}
+
+.enlarged-avatar-skill-tree-btn:hover::after {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+}
+
+

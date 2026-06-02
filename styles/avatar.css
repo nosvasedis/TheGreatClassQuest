@@ -1,0 +1,285 @@
+/* --- Avatar Maker & Display Styles --- */
+
+/* ── Avatar display used throughout the app ── */
+.student-avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 9999px;
+    object-fit: cover;
+    background-color: #e5e7eb;
+    border: 2px solid white;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+.student-avatar.large-avatar {
+    width: 48px;
+    height: 48px;
+}
+
+/* Avatar-maker button in the student management list */
+.avatar-maker-btn {
+    background-color: #dbeafe;
+    color: #1e40af;
+}
+.avatar-maker-btn:hover {
+    background-color: #bfdbfe;
+}
+
+/* Move-student pill button (base colors) */
+.move-student-btn { background-color: #fef9c3; color: #713f12; }
+.move-student-btn:hover { background-color: #fef08a; }
+
+
+/* ═══════════════════════════════════════
+   AVATAR FORGE MODAL — Dark Forge Theme
+   ═══════════════════════════════════════ */
+
+/* Forge Card Styling */
+.avatar-forge-card {
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    border-radius: 1.5rem;
+    padding: 1.5rem;
+    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
+    overflow: hidden;
+}
+.avatar-forge-card:hover {
+    background: rgba(255, 255, 255, 0.05);
+    border-color: rgba(139, 92, 246, 0.2);
+    transform: translateY(-2px);
+    box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.5);
+}
+.avatar-forge-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: radial-gradient(circle at top left, rgba(139, 92, 246, 0.1), transparent 70%);
+    opacity: 0;
+    transition: opacity 0.4s;
+}
+.avatar-forge-card:hover::before {
+    opacity: 1;
+}
+
+/* Step Badge */
+.avatar-step-badge {
+    width: 32px;
+    height: 32px;
+    background: linear-gradient(135deg, #7c3aed, #4f46e5);
+    color: white;
+    border-radius: 0.75rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.875rem;
+    font-weight: 900;
+    box-shadow: 0 0 20px rgba(124, 58, 237, 0.3);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+/* Option Buttons */
+.avatar-maker-option-btn {
+    position: relative;
+    padding: 0.625rem 1rem;
+    border-radius: 1rem;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    color: rgba(255, 255, 255, 0.6);
+    font-size: 0.75rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    tracking: 0.05em;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+.avatar-maker-option-btn:hover {
+    background: rgba(255, 255, 255, 0.1);
+    border-color: rgba(255, 255, 255, 0.2);
+    color: white;
+    transform: scale(1.05);
+}
+.avatar-maker-option-btn.selected {
+    background: linear-gradient(135deg, rgba(124, 58, 237, 0.2), rgba(79, 70, 229, 0.2));
+    border-color: #8b5cf6;
+    color: white;
+    box-shadow: 0 0 20px rgba(139, 92, 246, 0.3), inset 0 0 10px rgba(139, 92, 246, 0.2);
+}
+.avatar-maker-option-btn.selected::after {
+    content: '';
+    position: absolute;
+    inset: -1px;
+    border-radius: 1rem;
+    background: linear-gradient(135deg, #8b5cf6, #6366f1);
+    -webkit-mask: 
+       linear-gradient(#fff 0 0) content-box, 
+       linear-gradient(#fff 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+    padding: 1px;
+    pointer-events: none;
+}
+
+/* Color Swatch */
+.avatar-color-swatch {
+    width: 14px;
+    height: 14px;
+    border-radius: 4px;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+/* Animations */
+@keyframes spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+
+@keyframes float {
+    0%, 100% { transform: translateY(0) rotate(0deg); }
+    50% { transform: translateY(-10px) rotate(5deg); }
+}
+
+@keyframes scanline {
+    from { transform: translateY(-100%); }
+    to { transform: translateY(1000%); }
+}
+
+@keyframes shine {
+    0% { left: -100%; }
+    100% { left: 100%; }
+}
+
+@keyframes loading-bar {
+    0% { transform: translateX(-100%); }
+    50% { transform: translateX(100%); }
+    100% { transform: translateX(-100%); }
+}
+
+.animate-float {
+    animation: float 4s ease-in-out infinite;
+}
+
+/* Scrollbar */
+.custom-scrollbar::-webkit-scrollbar {
+    width: 6px;
+}
+.custom-scrollbar::-webkit-scrollbar-track {
+    background: transparent;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 10px;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 255, 255, 0.2);
+}
+
+
+/* ═══════════════════════════════════════
+   LEVEL-UP INDICATOR (pending skill choice)
+   Badge with arrow icon at bottom-left of avatar
+   ═══════════════════════════════════════ */
+.avatar-with-level-up-wrap {
+    position: relative;
+    display: inline-block;
+}
+/* Shared level-up badge look (gradient, glow, pulse) */
+.level-up-badge {
+    border-radius: 50%;
+    background: linear-gradient(145deg, #a855f7 0%, #7c3aed 50%, #6d28d9 100%);
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow:
+        0 0 0 2px rgba(255, 255, 255, 0.9),
+        0 2px 6px rgba(124, 58, 237, 0.5),
+        0 0 12px rgba(168, 85, 247, 0.6);
+    animation: level-up-badge-pulse 1.8s ease-in-out infinite;
+    pointer-events: none;
+}
+.level-up-badge i {
+    margin-left: 0.5px;
+}
+.avatar-with-level-up-wrap .level-up-badge {
+    position: absolute;
+    bottom: -4px;
+    left: -4px;
+    width: 22px;
+    height: 22px;
+    font-size: 10px;
+    z-index: 5;
+}
+@keyframes level-up-badge-pulse {
+    0%, 100% { box-shadow: 0 0 0 2px rgba(255,255,255,0.9), 0 2px 6px rgba(124,58,237,0.5), 0 0 12px rgba(168,85,247,0.6); transform: scale(1); }
+    50%      { box-shadow: 0 0 0 2px rgba(255,255,255,0.95), 0 2px 8px rgba(124,58,237,0.6), 0 0 18px rgba(168,85,247,0.8); transform: scale(1.08); }
+}
+
+/* Awards tab: direct emblem on avatar corner (no container chrome) */
+.award-guild-corner {
+    position: absolute;
+    top: calc(24px + var(--award-content-shift-y, 1cm));
+    left: calc(50% + 16px + var(--award-content-shift-x, -0.5cm));
+    z-index: 12;
+    pointer-events: none;
+}
+
+/* Awards tab: level-up badge above the avatar (no wrap) */
+.award-level-up-overlay {
+    position: absolute;
+    top: calc(-22px + var(--award-content-shift-y, 1cm));
+    left: calc(50% + var(--award-content-shift-x, -0.5cm));
+    transform: translateX(-50%);
+    width: 70px;
+    height: 70px;
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+    z-index: 11;
+    pointer-events: none;
+}
+.award-level-up-overlay .level-up-badge {
+    position: static;
+    width: 26px;
+    height: 26px;
+    font-size: 12px;
+    flex-shrink: 0;
+}
+
+/* Enlarged avatar (click-to-expand overlay): level-up badge on the big avatar */
+.enlarged-avatar-level-up-wrap {
+    position: fixed;
+    border-radius: 9999px;
+    /* Note: no overflow:hidden here so the badge isn't clipped during animation */
+}
+.enlarged-avatar-level-up-wrap .level-up-badge--enlarged {
+    position: absolute;
+    bottom: 8px;
+    left: 8px;
+    width: 44px;
+    height: 44px;
+    font-size: 18px;
+    z-index: 102;
+    box-shadow:
+        0 0 0 3px rgba(255, 255, 255, 0.95),
+        0 4px 12px rgba(124, 58, 237, 0.5),
+        0 0 24px rgba(168, 85, 247, 0.7);
+    cursor: pointer;
+    pointer-events: auto;
+}
+.enlarged-avatar-level-up-wrap .level-up-badge--enlarged:hover {
+    transform: scale(1.15);
+    box-shadow:
+        0 0 0 4px rgba(255, 255, 255, 0.98),
+        0 6px 20px rgba(124, 58, 237, 0.7),
+        0 0 32px rgba(168, 85, 247, 0.9);
+}
+.enlarged-avatar-level-up-wrap .level-up-badge--enlarged i {
+    margin-left: 1px;
+}

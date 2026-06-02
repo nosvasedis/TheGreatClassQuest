@@ -1,0 +1,1360 @@
+/* --- NEW in v6.0.0: Scholar's Scroll & Starfall Styles --- */
+
+/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+   STARFALL MODAL — Visual Refresh
+   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */
+
+/* Modal shell */
+.starfall-shell {
+    position: relative;
+    text-align: center;
+    padding: 2.5rem 2rem;
+    border-radius: 2rem;
+    box-shadow:
+        0 0 0 1px rgba(251,191,36,0.3),
+        0 40px 100px rgba(0,0,0,0.7),
+        0 0 80px rgba(251,191,36,0.12);
+    max-width: 30rem;
+    width: 100%;
+    overflow: hidden;
+    border: 1px solid rgba(251,191,36,0.2);
+}
+
+/* Rotating deep-space background */
+@keyframes starfall-swirl {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+.starfall-bg {
+    background: radial-gradient(ellipse at center, rgba(29,78,216,0.6) 0%, rgba(30,58,138,0.9) 40%, rgba(10,15,40,1) 100%);
+    animation: starfall-swirl 20s linear infinite;
+}
+
+/* ── Shooting star streaks ── */
+.starfall-streaks {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    z-index: 1;
+    overflow: hidden;
+}
+@keyframes starfall-shooting {
+    0%   { opacity: 0; transform: translate(0, 0) rotate(-30deg) scaleX(0); }
+    10%  { opacity: 1; }
+    60%  { opacity: 0.8; }
+    100% { opacity: 0; transform: translate(180px, 60px) rotate(-30deg) scaleX(1); }
+}
+.starfall-streak {
+    position: absolute;
+    height: 2px;
+    width: 80px;
+    border-radius: 9999px;
+    background: linear-gradient(90deg, rgba(255,255,255,0), #fbbf24, rgba(255,255,255,0.9));
+    opacity: 0;
+    animation: starfall-shooting 4s ease-in-out infinite;
+}
+.starfall-streak--1 { top: 15%; left: 5%;  animation-delay: 0s;   animation-duration: 3.5s; }
+.starfall-streak--2 { top: 35%; left: 20%; animation-delay: 1.4s; animation-duration: 4s; }
+.starfall-streak--3 { top: 10%; left: 50%; animation-delay: 2.8s; animation-duration: 3s; }
+
+/* ── Floating particles ── */
+.starfall-particles {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    z-index: 1;
+    overflow: hidden;
+}
+@keyframes starfall-particle-float {
+    0%   { opacity: 0; transform: translateY(0) scale(0.6); }
+    20%  { opacity: 0.9; }
+    80%  { opacity: 0.7; }
+    100% { opacity: 0; transform: translateY(-55px) scale(1.3); }
+}
+.starfall-particle {
+    position: absolute;
+    font-size: 1rem;
+    animation: starfall-particle-float 5s ease-in-out infinite;
+    opacity: 0;
+}
+.starfall-particle--1 { left: 6%;  top: 25%; animation-delay: 0s;    animation-duration: 5.5s; }
+.starfall-particle--2 { left: 22%; top: 70%; animation-delay: 0.9s;  animation-duration: 4.5s; }
+.starfall-particle--3 { left: 70%; top: 15%; animation-delay: 1.8s;  animation-duration: 6s;   }
+.starfall-particle--4 { left: 85%; top: 55%; animation-delay: 0.4s;  animation-duration: 5s;   }
+.starfall-particle--5 { left: 50%; top: 82%; animation-delay: 2.6s;  animation-duration: 4s;   }
+.starfall-particle--6 { left: 38%; top: 10%; animation-delay: 1.2s;  animation-duration: 5.2s; }
+
+/* ── Star icon wrapper + glowing rings ── */
+.starfall-icon-wrapper {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 1.25rem;
+    width: 8rem;
+    height: 8rem;
+}
+@keyframes starfall-ring-pulse {
+    0%, 100% { transform: scale(1);   opacity: 0.5; }
+    50%       { transform: scale(1.18); opacity: 0.15; }
+}
+.starfall-icon-ring {
+    position: absolute;
+    border-radius: 9999px;
+    border: 2px solid rgba(251,191,36,0.5);
+    animation: starfall-ring-pulse 2.5s ease-in-out infinite;
+}
+.starfall-icon-ring--1 { width: 5.5rem; height: 5.5rem; animation-delay: 0s; }
+.starfall-icon-ring--2 { width: 7rem;   height: 7rem;   animation-delay: 0.4s; border-color: rgba(251,191,36,0.3); }
+.starfall-icon-ring--3 { width: 8.5rem; height: 8.5rem; animation-delay: 0.8s; border-color: rgba(251,191,36,0.15); }
+
+/* ── Star icon pulse ── */
+@keyframes starfall-icon-pulse {
+    0%, 100% {
+        transform: scale(1);
+        filter:
+            drop-shadow(0 0 10px #FBBF24)
+            drop-shadow(0 0 22px rgba(251,191,36,0.7))
+            drop-shadow(0 0 4px #FFF);
+    }
+    50% {
+        transform: scale(1.14);
+        filter:
+            drop-shadow(0 0 24px #FBBF24)
+            drop-shadow(0 0 48px rgba(251,191,36,0.8))
+            drop-shadow(0 0 10px #FFF);
+    }
+}
+.starfall-icon-animate {
+    font-size: 4rem;
+    animation: starfall-icon-pulse 2.5s ease-in-out infinite;
+    display: block;
+}
+
+/* ── Typography ── */
+.starfall-title {
+    font-family: var(--font-title, serif);
+    font-size: 2.4rem;
+    color: white;
+    margin-bottom: 0.75rem;
+    text-shadow: 0 2px 8px rgba(0,0,0,0.4);
+    position: relative;
+    z-index: 2;
+}
+.starfall-message {
+    color: rgba(255,255,255,0.92);
+    font-size: 1.05rem;
+    line-height: 1.7;
+    margin-bottom: 1.25rem;
+    text-shadow: 0 1px 3px rgba(0,0,0,0.35);
+    position: relative;
+    z-index: 2;
+}
+.starfall-student-name {
+    color: #fde68a;
+    font-weight: 900;
+}
+.starfall-prompt {
+    color: white;
+    font-size: 1.1rem;
+    font-weight: 700;
+    margin-bottom: 1.25rem;
+    position: relative;
+    z-index: 2;
+}
+
+/* ── Batch list ── */
+.starfall-batch-list {
+    background: rgba(255,255,255,0.12);
+    backdrop-filter: blur(8px);
+    border: 1px solid rgba(255,255,255,0.2);
+    border-radius: 0.9rem;
+    padding: 0.5rem;
+    max-height: 10rem;
+    overflow-y: auto;
+    text-align: left;
+    position: relative;
+    z-index: 2;
+}
+
+/* ── Confirm button with shimmer ── */
+@keyframes starfall-shimmer {
+    0%   { left: -100%; }
+    100% { left: 200%; }
+}
+.starfall-confirm-btn {
+    position: relative;
+    overflow: hidden;
+    width: 100%;
+    background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 50%, #fbbf24 100%);
+    background-size: 200% 100%;
+    color: #78350f;
+    font-family: var(--font-title, serif);
+    font-size: 1.2rem;
+    font-weight: 900;
+    padding: 0.85rem 1.5rem;
+    border-radius: 0.9rem;
+    border: none;
+    cursor: pointer;
+    box-shadow: 0 6px 24px rgba(251,191,36,0.5), 0 2px 0 rgba(120,53,15,0.3) inset, 0 -3px 0 rgba(120,53,15,0.25) inset;
+    transition: transform 0.15s, box-shadow 0.15s;
+    z-index: 2;
+}
+.starfall-confirm-btn:hover {
+    transform: translateY(-2px) scale(1.02);
+    box-shadow: 0 10px 32px rgba(251,191,36,0.6);
+}
+.starfall-confirm-btn:active {
+    transform: scale(0.97);
+}
+.starfall-confirm-btn__shimmer {
+    position: absolute;
+    top: 0; bottom: 0;
+    width: 50%;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.45), transparent);
+    animation: starfall-shimmer 2.2s ease-in-out infinite;
+    left: -100%;
+    pointer-events: none;
+}
+
+/* ── Cancel button ── */
+.starfall-cancel-btn {
+    background: none;
+    border: none;
+    color: rgba(255,255,255,0.6);
+    font-size: 0.9rem;
+    cursor: pointer;
+    padding: 0.3rem 0.5rem;
+    transition: color 0.2s;
+    position: relative;
+    z-index: 2;
+}
+.starfall-cancel-btn:hover {
+    color: white;
+    text-decoration: underline;
+}
+
+/* Scholar's Scroll — placeholder vs dashboard crossfade + class swap */
+.scroll-main-panels {
+    min-height: 12rem;
+}
+
+.scroll-panel {
+    transition:
+        opacity 0.42s cubic-bezier(0.22, 1, 0.36, 1),
+        transform 0.42s cubic-bezier(0.22, 1, 0.36, 1);
+    will-change: opacity, transform;
+}
+
+.scroll-panel--fg {
+    position: relative;
+    z-index: 2;
+    opacity: 1;
+    transform: translateY(0);
+    pointer-events: auto;
+}
+
+.scroll-panel--bg {
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 0;
+    z-index: 1;
+    opacity: 0;
+    transform: translateY(14px);
+    pointer-events: none;
+}
+
+.scroll-dashboard-inner {
+    transform-origin: top center;
+}
+
+@keyframes scroll-dash-inner-swap-out {
+    to {
+        opacity: 0;
+        transform: translateY(-12px) scale(0.992);
+    }
+}
+
+@keyframes scroll-dash-inner-swap-in {
+    from {
+        opacity: 0;
+        transform: translateY(16px) scale(0.985);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+
+.scroll-dashboard-inner--swap-out {
+    animation: scroll-dash-inner-swap-out 0.32s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
+.scroll-dashboard-inner--swap-in {
+    animation: scroll-dash-inner-swap-in 0.52s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .scroll-panel,
+    .scroll-dashboard-inner--swap-out,
+    .scroll-dashboard-inner--swap-in {
+        transition: none !important;
+        animation: none !important;
+    }
+
+    .scroll-panel--bg {
+        opacity: 0;
+        transform: none;
+    }
+
+    .scroll-panel--fg {
+        transform: none;
+    }
+}
+
+/* Scholar's Scroll hero */
+.ss-hero {
+    position: relative;
+    padding: 1.1rem 1rem 0.6rem;
+}
+
+.ss-hero-subtitle {
+    max-width: 760px;
+    margin-inline: auto;
+    color: #6b7280;
+}
+
+/* Scholar's Scroll FABs */
+.ss-fab-cluster {
+    position: fixed;
+    top: 50%;
+    transform: translateY(-50%);
+    display: flex;
+    flex-direction: column;
+    gap: 0.85rem;
+    z-index: 42;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.4s cubic-bezier(0.34, 1.56, 0.64, 1),
+                transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.ss-fab-cluster--left { left: 1.2rem; transform: translateY(-50%) translateX(-140px); }
+.ss-fab-cluster--right { right: 1.2rem; transform: translateY(-50%) translateX(140px); }
+
+.ss-fab-cluster.revealed {
+    opacity: 1;
+    pointer-events: auto;
+    transform: translateY(-50%) translateX(0);
+}
+
+.ss-fab {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 0.65rem;
+    min-width: 3.5rem;
+    border-radius: 1.25rem;
+    border: 2px solid;
+    box-shadow: 0 6px 20px rgba(31, 41, 55, 0.28), inset 0 1px 0 rgba(255, 255, 255, 0.28);
+    transition: all 0.18s cubic-bezier(0.23, 1, 0.320, 1);
+    padding: 0.85rem 1.15rem;
+    cursor: pointer;
+    position: relative;
+    overflow: hidden;
+    font-family: 'Fredoka One', cursive;
+}
+
+.ss-fab::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(160deg, rgba(255, 255, 255, 0.24) 0%, transparent 55%);
+    border-radius: inherit;
+    pointer-events: none;
+}
+
+.ss-fab:hover {
+    transform: scale(1.08) translateX(3px);
+    box-shadow: 0 10px 28px rgba(17, 24, 39, 0.34), inset 0 1px 0 rgba(255, 255, 255, 0.28);
+    filter: brightness(1.05);
+}
+
+.ss-fab--right:hover {
+    transform: scale(1.08) translateX(-3px);
+}
+
+.ss-fab:disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
+    filter: grayscale(0.15);
+}
+
+.ss-fab:active {
+    transform: scale(0.96);
+}
+
+.ss-fab-icon {
+    font-size: 1.35rem;
+    filter: drop-shadow(0 1px 3px rgba(0, 0, 0, 0.25));
+    flex-shrink: 0;
+}
+
+.ss-fab-label {
+    font-family: 'Fredoka One', cursive;
+    font-size: 0.82rem;
+    letter-spacing: 0.02em;
+    line-height: 1.2;
+    text-align: left;
+    text-shadow: 0 1px 3px rgba(0, 0, 0, 0.22);
+    white-space: nowrap;
+}
+
+@keyframes ss-stat-cascade-in {
+    from {
+        opacity: 0;
+        transform: translateY(24px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes ss-makeup-slide-in {
+    from {
+        opacity: 0;
+        transform: translateX(-16px);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+/* Scholar's Scroll Dashboard Cards */
+.scroll-stat-card {
+    background: linear-gradient(140deg, #fffbeb 0%, #fffdf5 55%, #fff 100%);
+    border-left-width: 8px;
+    border-color: #f59e0b; /* amber-600 */
+    padding: 1rem;
+    border-radius: 0.75rem;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+    display: flex; /* FIX #3 */
+    flex-direction: column; /* FIX #3 */
+    justify-content: space-between; /* FIX #3 */
+    min-height: 120px; /* FIX #3 */
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    animation: ss-stat-cascade-in 0.52s ease-out both;
+}
+
+#scroll-stats-cards .scroll-stat-card:nth-child(2) {
+    animation-delay: 0.05s;
+}
+
+#scroll-stats-cards .scroll-stat-card:nth-child(3) {
+    animation-delay: 0.1s;
+}
+
+.scroll-stat-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 16px 30px -24px rgba(217, 119, 6, 0.55);
+}
+/* FIX #3: Allow scholar names to wrap */
+.scroll-stat-card .font-title {
+    white-space: normal;
+    word-break: break-word;
+    flex-grow: 1;
+}
+
+.scroll-student-row:hover {
+    background-color: #f9fafb; /* gray-50 */
+}
+
+/* Scholar's Scroll — pending makeup row (scoped so global .makeup-item / holiday.css don't squeeze layout) */
+.scroll-makeup-item {
+    transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+}
+
+.scroll-makeup-item:hover {
+    box-shadow: 0 12px 24px -18px rgba(194, 65, 12, 0.35);
+}
+
+.makeup-alert-container {
+    margin-bottom: 1rem;
+    border-radius: 1rem;
+    border: 1px solid #fed7aa;
+    background: linear-gradient(145deg, #fff7ed 0%, #ffffff 62%);
+    box-shadow: 0 16px 28px -24px rgba(234, 88, 12, 0.5);
+    padding: 1rem;
+    animation: ss-makeup-slide-in 0.42s ease-out both;
+}
+
+/* Legacy / other views — Scholar's Scroll uses .scroll-makeup-item instead */
+.makeup-item {
+    border: 1px solid #ffedd5;
+    background: rgba(255, 255, 255, 0.88);
+    border-radius: 0.9rem;
+    padding: 0.75rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 0.75rem;
+    transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+}
+
+.makeup-item:hover {
+    transform: translateY(-2px);
+    border-color: #fdba74;
+    box-shadow: 0 12px 20px -18px rgba(194, 65, 12, 0.5);
+}
+
+.makeup-log-btn {
+    border: 0;
+    border-radius: 0.8rem;
+    padding: 0.5rem 0.72rem;
+    font-weight: 800;
+    color: #fff;
+    background: linear-gradient(135deg, #f97316, #ea580c);
+    transition: transform 0.16s ease, box-shadow 0.16s ease, filter 0.16s ease;
+}
+
+.makeup-log-btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 10px 16px -14px rgba(194, 65, 12, 0.9);
+    filter: brightness(1.04);
+}
+
+.makeup-dismiss-btn {
+    transition: transform 0.16s ease !important;
+}
+
+.makeup-dismiss-btn:hover {
+    transform: scale(1.08);
+}
+
+@media (max-width: 767px) {
+    .ss-fab-cluster--left {
+        left: 0.5rem;
+    }
+
+    .ss-fab-cluster--right {
+        right: 0.5rem;
+    }
+
+    .ss-fab {
+        padding: 0.7rem 0.9rem;
+    }
+
+    .ss-fab-label {
+        display: none !important;
+    }
+}
+
+/* *** NEW: Style for optgroup labels in select dropdowns *** */
+optgroup {
+    font-weight: bold;
+    font-style: italic;
+    color: #581c87; /* purple-900 */
+    background-color: #f3f4f6; /* gray-100 */
+    padding: 4px;
+}
+
+#attendance-chronicle-content {
+    overflow: auto;
+    scrollbar-gutter: stable;
+}
+
+.attendance-chronicle-modal-panel {
+    color: #0f172a;
+}
+
+.attendance-chronicle-summary-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+    gap: 0.9rem;
+    margin-bottom: 1rem;
+}
+
+.attendance-summary-card {
+    border-radius: 1.25rem;
+    padding: 1rem 1.1rem;
+    color: white;
+    box-shadow:
+        0 16px 36px -20px rgba(15, 23, 42, 0.75),
+        0 0 0 1px rgba(255, 255, 255, 0.22) inset;
+}
+
+.attendance-summary-card--emerald {
+    background: linear-gradient(135deg, #059669, #10b981);
+}
+
+.attendance-summary-card--blue {
+    background: linear-gradient(135deg, #2563eb, #38bdf8);
+}
+
+.attendance-summary-card--rose {
+    background: linear-gradient(135deg, #e11d48, #fb7185);
+}
+
+.attendance-summary-card--amber {
+    background: linear-gradient(135deg, #d97706, #fbbf24);
+}
+
+.attendance-summary-label {
+    font-size: 0.72rem;
+    font-weight: 800;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    opacity: 0.86;
+}
+
+.attendance-summary-value {
+    font-family: 'Fredoka One', cursive;
+    font-size: 2rem;
+    line-height: 1.1;
+    margin-top: 0.45rem;
+}
+
+.attendance-summary-meta {
+    font-size: 0.78rem;
+    opacity: 0.85;
+    margin-top: 0.35rem;
+}
+
+.attendance-chronicle-toolbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 0.75rem;
+    margin-bottom: 1rem;
+    flex-wrap: wrap;
+    padding: 0.65rem 0.9rem;
+    border-radius: 1.1rem;
+    background: linear-gradient(100deg, rgba(255, 255, 255, 0.88), rgba(224, 242, 254, 0.35), rgba(236, 253, 245, 0.55));
+    border: 1px solid rgba(14, 165, 233, 0.18);
+    box-shadow: 0 8px 24px -20px rgba(15, 118, 110, 0.35);
+}
+
+.attendance-chronicle-legend {
+    display: flex;
+    gap: 0.6rem;
+    flex-wrap: wrap;
+}
+
+.attendance-legend-pill,
+.attendance-chronicle-mode {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    border-radius: 9999px;
+    padding: 0.45rem 0.8rem;
+    font-size: 0.78rem;
+    font-weight: 700;
+}
+
+.attendance-legend-pill--present {
+    background: #dcfce7;
+    color: #166534;
+}
+
+.attendance-legend-pill--absent {
+    background: #ffe4e6;
+    color: #be123c;
+}
+
+.attendance-legend-pill--map-lesson {
+    background: #d1fae5;
+    color: #065f46;
+}
+
+.attendance-legend-pill--map-break {
+    background: #ede9fe;
+    color: #5b21b6;
+}
+
+.attendance-legend-pill--map-cancel {
+    background: #ffe4e6;
+    color: #9f1239;
+}
+
+.attendance-legend-pill--map-after {
+    background: #f1f5f9;
+    color: #475569;
+    border: 1px solid #e2e8f0;
+}
+
+.attendance-legend-pill--map-off {
+    background: #f8fafc;
+    color: #64748b;
+    border: 1px solid #e2e8f0;
+}
+
+.attendance-chronicle-mode {
+    background: #f8fafc;
+    color: #475569;
+    border: 1px solid #e2e8f0;
+}
+
+.attendance-chronicle-mode.is-live {
+    background: #ecfeff;
+    color: #155e75;
+    border-color: #a5f3fc;
+}
+
+.attendance-chronicle-mode.is-readonly {
+    background: #f8fafc;
+    color: #64748b;
+}
+
+.ac-holiday-banners {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    margin-bottom: 0.75rem;
+}
+
+.ac-holiday-banner {
+    display: flex;
+    align-items: center;
+    gap: 0.65rem;
+    flex-wrap: wrap;
+    padding: 0.55rem 0.85rem;
+    border-radius: 1rem;
+    background: linear-gradient(100deg, rgba(245, 243, 255, 0.95), rgba(237, 233, 254, 0.78));
+    border: 1px solid rgba(139, 92, 246, 0.22);
+    box-shadow: 0 10px 28px -22px rgba(91, 33, 182, 0.35);
+    font-size: 0.82rem;
+    font-weight: 700;
+    color: #5b21b6;
+}
+
+.ac-holiday-banner .fa-snowflake {
+    color: #0ea5e9;
+}
+
+.ac-holiday-banner .fa-egg {
+    color: #d946ef;
+}
+
+.ac-holiday-banner .fa-umbrella-beach {
+    color: #8b5cf6;
+}
+
+.ac-holiday-banner-label {
+    flex: 1 1 auto;
+    min-width: 0;
+}
+
+.ac-holiday-banner-dates {
+    font-weight: 800;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    font-size: 0.72rem;
+    color: #7c3aed;
+    opacity: 0.92;
+}
+
+.ac-chronicle-stats-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.45rem;
+    margin-bottom: 0.85rem;
+}
+
+.ac-stat-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.38rem 0.75rem;
+    border-radius: 9999px;
+    font-size: 0.74rem;
+    font-weight: 800;
+    letter-spacing: 0.02em;
+}
+
+.ac-stat-pill--teal {
+    background: linear-gradient(135deg, #ccfbf1, #99f6e4);
+    color: #115e59;
+    border: 1px solid rgba(13, 148, 136, 0.28);
+}
+
+.ac-stat-pill--teal-outline {
+    background: rgba(240, 253, 250, 0.92);
+    color: #0f766e;
+    border: 1px dashed rgba(13, 148, 136, 0.45);
+}
+
+.ac-stat-pill--violet {
+    background: linear-gradient(135deg, #ede9fe, #ddd6fe);
+    color: #5b21b6;
+    border: 1px solid rgba(139, 92, 246, 0.25);
+}
+
+.ac-stat-pill--rose {
+    background: linear-gradient(135deg, #ffe4e6, #fecdd3);
+    color: #9f1239;
+    border: 1px solid rgba(244, 63, 94, 0.28);
+}
+
+.ac-stat-pill--slate {
+    background: linear-gradient(135deg, #f1f5f9, #e2e8f0);
+    color: #475569;
+    border: 1px solid #cbd5e1;
+}
+
+.ac-stat-pill--ink {
+    background: rgba(15, 23, 42, 0.06);
+    color: #334155;
+    border: 1px solid rgba(15, 23, 42, 0.12);
+}
+
+.ac-month-rail-wrap {
+    margin-bottom: 1rem;
+}
+
+.ac-month-rail-caption {
+    font-size: 0.68rem;
+    font-weight: 900;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: #0f766e;
+    opacity: 0.85;
+    margin-bottom: 0.45rem;
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+}
+
+.ac-month-rail-scroll {
+    overflow-x: auto;
+    padding-bottom: 0.25rem;
+    margin: 0 -0.15rem;
+    scrollbar-gutter: stable;
+}
+
+.ac-month-rail {
+    display: flex;
+    gap: 0.35rem;
+    padding: 0.2rem 0.15rem 0.35rem;
+    min-height: 3.35rem;
+    align-items: stretch;
+}
+
+/* Discreet vertical rule between ISO weeks (Mon–Sun groups) in the month rail */
+.ac-week-divider {
+    flex: 0 0 auto;
+    width: 1px;
+    align-self: stretch;
+    margin: 0.28rem 0.12rem 0.38rem;
+    background: linear-gradient(
+        to bottom,
+        transparent 0%,
+        rgba(15, 118, 110, 0.14) 18%,
+        rgba(15, 118, 110, 0.2) 50%,
+        rgba(15, 118, 110, 0.14) 82%,
+        transparent 100%
+    );
+    border-radius: 1px;
+}
+
+.ac-day-chip {
+    flex: 0 0 auto;
+    width: 2.85rem;
+    border-radius: 0.75rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.06rem;
+    padding: 0.22rem 0.12rem 0.26rem;
+    border: 1px solid transparent;
+    font-weight: 800;
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+    cursor: default;
+    box-shadow: 0 6px 14px -8px rgba(15, 23, 42, 0.35);
+}
+
+.ac-day-chip-wd {
+    font-size: 0.52rem;
+    font-weight: 900;
+    letter-spacing: 0.04em;
+    line-height: 1;
+    opacity: 0.88;
+}
+
+.ac-day-chip-day {
+    font-size: 0.76rem;
+    line-height: 1;
+}
+
+.ac-day-chip-ico {
+    font-size: 0.55rem;
+    opacity: 0.92;
+    line-height: 1;
+}
+
+.ac-day-chip--lesson {
+    background: linear-gradient(180deg, #ecfdf5, #d1fae5);
+    border-color: rgba(16, 185, 129, 0.35);
+    color: #065f46;
+}
+
+.ac-day-chip--lesson.ac-day-chip--future-lesson {
+    background: rgba(236, 253, 245, 0.75);
+    border-style: dashed;
+    border-color: rgba(5, 150, 105, 0.45);
+}
+
+.ac-day-chip--school_holiday {
+    background: linear-gradient(180deg, #f5f3ff, #ede9fe);
+    border-color: rgba(139, 92, 246, 0.35);
+    color: #5b21b6;
+}
+
+.ac-day-chip--class_cancelled {
+    background: linear-gradient(180deg, #fff1f2, #ffe4e6);
+    border-color: rgba(244, 63, 94, 0.35);
+    color: #9f1239;
+}
+
+.ac-day-chip--after_term {
+    background: linear-gradient(180deg, #f8fafc, #e2e8f0);
+    border-color: #cbd5e1;
+    color: #475569;
+}
+
+.ac-day-chip--off_schedule {
+    background: rgba(248, 250, 252, 0.65);
+    border-color: rgba(203, 213, 225, 0.55);
+    color: #94a3b8;
+    box-shadow: none;
+    opacity: 0.82;
+}
+
+.ac-day-chip--today {
+    outline: 2px solid rgba(14, 165, 233, 0.75);
+    outline-offset: 1px;
+    z-index: 1;
+}
+
+.ac-day-chip:hover {
+    transform: translateY(-1px);
+}
+
+.ac-chronicle-empty-grid {
+    border-radius: 1.35rem;
+    border: 2px dashed rgba(45, 212, 191, 0.35);
+    background: linear-gradient(145deg, rgba(240, 253, 250, 0.65), rgba(224, 242, 254, 0.35));
+    padding: 2rem 1.25rem;
+    text-align: center;
+}
+
+.ac-chronicle-empty-icon {
+    font-size: 2rem;
+    color: #0d9488;
+    margin-bottom: 0.5rem;
+    opacity: 0.85;
+}
+
+.ac-chronicle-empty-title {
+    font-family: 'Fredoka One', cursive;
+    font-size: 1.15rem;
+    color: #134e4a;
+    margin: 0 0 0.5rem;
+}
+
+.ac-chronicle-empty-text {
+    font-size: 0.88rem;
+    color: #475569;
+    line-height: 1.55;
+    max-width: 36rem;
+    margin: 0 auto;
+}
+
+.attendance-chronicle-table-wrap {
+    border-radius: 1.5rem;
+    border: 1px solid rgba(14, 165, 233, 0.22);
+    overflow: auto;
+    background: linear-gradient(180deg, #ffffff, #f0fdfa);
+    box-shadow:
+        0 24px 48px -28px rgba(15, 118, 110, 0.35),
+        0 0 0 1px rgba(255, 255, 255, 0.6) inset;
+}
+
+.attendance-chronicle-table {
+    min-width: 860px;
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+}
+
+.attendance-chronicle-table th,
+.attendance-chronicle-table td {
+    border-bottom: 1px solid #e5e7eb;
+    text-align: center;
+    vertical-align: middle;
+}
+
+.attendance-chronicle-table thead th {
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    background: linear-gradient(180deg, rgba(240, 253, 250, 0.97), rgba(236, 253, 245, 0.94));
+    backdrop-filter: blur(12px);
+    border-bottom: 1px solid rgba(45, 212, 191, 0.2);
+}
+
+.attendance-student-col {
+    min-width: 240px;
+    position: sticky;
+    left: 0;
+    z-index: 12;
+    background: rgba(255, 255, 255, 0.96);
+    text-align: left;
+    padding: 0.95rem 1rem;
+    box-shadow: 8px 0 18px -18px rgba(15, 23, 42, 0.55);
+}
+
+.attendance-date-col,
+.attendance-summary-col {
+    min-width: 92px;
+    padding: 0.65rem 0.45rem;
+}
+
+.attendance-summary-col {
+    min-width: 110px;
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: #64748b;
+}
+
+.attendance-date-chip {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.2rem;
+}
+
+.attendance-date-col--today {
+    background: linear-gradient(180deg, rgba(255, 251, 235, 0.98), rgba(254, 243, 199, 0.98)) !important;
+    box-shadow: inset 0 -1px 0 rgba(245, 158, 11, 0.16);
+}
+
+.attendance-date-chip--today {
+    position: relative;
+    padding: 0.35rem 0.45rem 0.25rem;
+    border-radius: 1rem;
+    background: linear-gradient(180deg, rgba(251, 191, 36, 0.2), rgba(249, 115, 22, 0.12));
+    box-shadow: 0 16px 28px -24px rgba(217, 119, 6, 0.9);
+}
+
+.attendance-date-chip--today::after {
+    content: '';
+    position: absolute;
+    inset: -0.2rem;
+    border-radius: 1.15rem;
+    border: 2px solid rgba(245, 158, 11, 0.55);
+    pointer-events: none;
+}
+
+.attendance-date-chip-day {
+    font-family: 'Fredoka One', cursive;
+    font-size: 1.25rem;
+    color: #0f172a;
+}
+
+.attendance-date-chip-weekday {
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    color: #6366f1;
+    font-weight: 800;
+    letter-spacing: 0.06em;
+}
+
+.attendance-date-chip-meta {
+    font-size: 0.68rem;
+    color: #64748b;
+}
+
+.attendance-date-chip--today .attendance-date-chip-day {
+    color: #9a3412;
+}
+
+.attendance-date-chip--today .attendance-date-chip-weekday,
+.attendance-date-chip--today .attendance-date-chip-meta {
+    color: #b45309;
+}
+
+.delete-column-btn {
+    border: 0;
+    background: transparent;
+    color: #94a3b8;
+    cursor: pointer;
+    transition: color 0.2s ease, transform 0.2s ease;
+}
+
+.delete-column-btn:hover:not(:disabled) {
+    color: #ef4444;
+    transform: scale(1.08);
+}
+
+.delete-column-btn:disabled {
+    opacity: 0.35;
+    cursor: default;
+}
+
+.attendance-row--even td {
+    background: rgba(255, 255, 255, 0.95);
+}
+
+.attendance-row--odd td {
+    background: rgba(248, 250, 252, 0.95);
+}
+
+.attendance-row:hover td {
+    background: #f8fafc;
+}
+
+.attendance-row:hover .attendance-student-col {
+    background: #f8fafc;
+}
+
+.attendance-student-cell {
+    z-index: 11;
+}
+
+.attendance-student-meta {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.75rem;
+}
+
+.attendance-student-avatar {
+    width: 2.5rem;
+    height: 2.5rem;
+    border-radius: 9999px;
+    object-fit: cover;
+    border: 2px solid white;
+    box-shadow: 0 10px 18px -14px rgba(15, 23, 42, 0.8);
+    flex-shrink: 0;
+}
+
+.attendance-student-avatar--placeholder {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    background: linear-gradient(135deg, #6366f1, #0ea5e9);
+    color: white;
+    font-weight: 800;
+}
+
+.attendance-student-text {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    text-align: left;
+}
+
+.attendance-student-name {
+    font-size: 1.0625rem;
+    line-height: 1.2;
+    letter-spacing: 0.02em;
+    font-weight: 400;
+    color: #0f172a;
+    max-width: 100%;
+    overflow-wrap: break-word;
+}
+
+.attendance-student-subtitle {
+    font-size: 0.72rem;
+    font-weight: 600;
+    color: #64748b;
+    margin-top: 0.15rem;
+    line-height: 1.25;
+}
+
+.attendance-status-cell,
+.attendance-summary-cell {
+    padding: 0.85rem 0.45rem;
+}
+
+.attendance-status-cell--today {
+    background: linear-gradient(180deg, rgba(255, 251, 235, 0.74), rgba(254, 243, 199, 0.92)) !important;
+    box-shadow: inset 0 0 0 1px rgba(251, 191, 36, 0.18);
+}
+
+.attendance-status-btn {
+    width: 2rem;
+    height: 2rem;
+    border-radius: 9999px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: transform 150ms ease, box-shadow 150ms ease, opacity 150ms ease;
+    box-shadow: 0 10px 18px -14px rgba(15, 23, 42, 0.8), inset 0 1px 2px rgba(255,255,255,0.35);
+    border: 2px solid transparent;
+}
+
+.attendance-status-btn:hover:not(:disabled) {
+    transform: translateY(-1px) scale(1.08);
+    border-color: rgba(148, 163, 184, 0.7);
+}
+
+.attendance-status-btn:disabled {
+    cursor: default;
+    opacity: 0.55;
+    box-shadow: none;
+}
+
+.attendance-status-btn.status-present {
+    background-color: #22c55e;
+    box-shadow: 0 0 0 4px rgba(34, 197, 94, 0.14);
+}
+
+.attendance-status-btn.status-absent {
+    background-color: #ef4444;
+    box-shadow: 0 0 0 4px rgba(239, 68, 68, 0.14);
+}
+
+.attendance-count-pill,
+.attendance-rate-pill {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 3rem;
+    padding: 0.35rem 0.65rem;
+    border-radius: 9999px;
+    font-weight: 800;
+    font-size: 0.8rem;
+}
+
+.attendance-count-pill {
+    background: #fee2e2;
+    color: #be123c;
+}
+
+.attendance-rate-pill {
+    background: #e2e8f0;
+    color: #334155;
+}
+
+.attendance-rate-pill.is-strong {
+    background: #dcfce7;
+    color: #166534;
+}
+
+/* --- NEW: Trial History Modal Styles (FIX #3) --- */
+#trial-history-modal {
+    z-index: 71; /* Higher than edit modal */
+}
+#log-trial-modal {
+    z-index: 72; /* Higher than history modal */
+}
+
+/* Performance chart: inner chart list only (frame matches Pending Makeups pattern in template) */
+#scroll-performance-chart {
+    padding: 0.25rem 0 0;
+    background: transparent;
+}
+
+#trial-history-view-toggle .toggle-btn {
+    font-family: 'Fredoka One', cursive;
+    color: #a855f7; /* purple-500 */
+    position: relative;
+    overflow: hidden;
+}
+
+#trial-history-view-toggle .toggle-btn::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(135deg, rgba(168, 85, 247, 0.1), rgba(217, 70, 239, 0.1));
+    opacity: 0;
+    transition: opacity 200ms ease;
+    border-radius: inherit;
+}
+
+#trial-history-view-toggle .toggle-btn:hover::before {
+    opacity: 1;
+}
+
+#trial-history-view-toggle .toggle-btn.active-toggle {
+    background-color: #9333ea; /* purple-600 */
+    color: white;
+    box-shadow: 0 4px 14px rgba(147, 51, 234, 0.4);
+    transform: scale(1.05);
+}
+
+#trial-history-view-toggle .toggle-btn.active-toggle[data-view="test"] {
+    background: linear-gradient(135deg, #10b981, #059669); /* emerald */
+    box-shadow: 0 4px 14px rgba(16, 185, 129, 0.4);
+}
+
+#trial-history-view-toggle .toggle-btn.active-toggle[data-view="dictation"] {
+    background: linear-gradient(135deg, #3b82f6, #2563eb); /* blue */
+    box-shadow: 0 4px 14px rgba(59, 130, 246, 0.4);
+}
+
+.trial-history-item {
+    cursor: default;
+}
+
+@keyframes bulk-date-picker-enter {
+    from {
+        opacity: 0;
+        transform: translateY(-6px) scale(0.97);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+
+@keyframes bulk-date-picker-exit {
+    from {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+    to {
+        opacity: 0;
+        transform: translateY(-4px) scale(0.985);
+    }
+}
+
+.bulk-date-picker-popover {
+    transform-origin: top left;
+}
+
+.bulk-date-picker-panel {
+    background: linear-gradient(160deg, #fffdf7 0%, #fff7e6 58%, #ffefdc 100%);
+    opacity: 1;
+}
+
+.bulk-date-picker-popover.bulk-date-picker--open .bulk-date-picker-panel {
+    animation: bulk-date-picker-enter 170ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.bulk-date-picker-popover.bulk-date-picker--closing {
+    pointer-events: none;
+}
+
+.bulk-date-picker-popover.bulk-date-picker--closing .bulk-date-picker-panel {
+    animation: bulk-date-picker-exit 170ms cubic-bezier(0.4, 0, 1, 1) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .bulk-date-picker-popover.bulk-date-picker--open .bulk-date-picker-panel,
+    .bulk-date-picker-popover.bulk-date-picker--closing .bulk-date-picker-panel {
+        animation: none !important;
+    }
+}
+
+

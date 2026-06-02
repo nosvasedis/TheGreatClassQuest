@@ -1,0 +1,1498 @@
+import { db } from '../firebase.js';
+import { doc, getDoc } from 'https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js';
+import * as ceremony from '../features/ceremony.js';
+import * as state from '../state.js';
+import * as utils from '../utils.js';
+import * as tabs from '../ui/tabs.js';
+import * as modals from '../ui/modals.js';
+import { wrapAvatarWithLevelUpIndicator } from '../ui/core/avatar.js';
+import { callGeminiApi } from '../api.js';
+import { canUseFeature } from '../utils/subscription.js';
+import * as grandGuildCeremony from '../features/grandGuildCeremony.js';
+import { DEFAULT_SCHOOL_NAME } from '../constants.js';
+import { loadTeacherJourneyState, markTeacherGuideSeen } from './teacherJourney.js';
+import { getNextAssessmentOccurrenceForToday, getUpcomingScheduledAssessment } from './assessmentConfig.js';
+import { shouldShowQuizButton } from './quizOfTheWeek.js';
+import { sumLiveMonthlyStarsFromStudentScores } from './awardLogReasonMeta.js';
+
+export { initializeHeaderQuote, fetchDailySpice };
+
+let homeInterval = null;
+let homeQuestTimerInterval = null;
+let renderDebounce = null;
+let currentRenderedViewId = null;
+let hasPlayedInitialHomeEntrance = false;
+
+const FALLBACK_QUOTES = {
+    quote_header: "Every great quest starts with one brave step.",
+    quote_widget: "Curiosity turns every day into an adventure.",
+    default: "The adventure begins with a single step."
+};
+
+let dailySpiceState = {
+    day: null,
+    value: null,
+    promise: null
+};
+
+const dailyContentInFlight = new Map();
+
+// --- 1. DAILY SPICE (Cached AI) ---
+async function fetchDailySpice() {
+    const todayKey = new Date().toISOString().split('T')[0];
+
+    if (dailySpiceState.day === todayKey && dailySpiceState.value) {
+        updateHeaderQuote(dailySpiceState.value.headerQuote);
+        return dailySpiceState.value;
+    }
+
+    if (dailySpiceState.promise) {
+        return dailySpiceState.promise;
+    }
+
+    dailySpiceState.promise = (async () => {
+        const headerQuote = await getAICachedContent('quote_header');
+
+        const value = { headerQuote };
+
+        dailySpiceState.day = todayKey;
+        dailySpiceState.value = value;
+        updateHeaderQuote(headerQuote);
+        return value;
+    })().finally(() => {
+        dailySpiceState.promise = null;
+    });
+
+    return dailySpiceState.promise;
+}
+
+function initializeHeaderQuote() {
+    fetchDailySpice();
+}
+
+function getHomeQuestTimerMeta(deadline) {
+    const tone = utils.getCountdownTone(deadline);
+    if (tone === 'critical') {
+        return {
+            tone,
+            modifier: 'date-pill--quest-timer-critical',
+            icon: 'fa-fire',
+            meta: 'Final sprint'
+        };
+    }
+    if (tone === 'warning') {
+        return {
+            tone,
+            modifier: 'date-pill--quest-timer-warning',
+            icon: 'fa-hourglass-half',
+            meta: 'Pressure building'
+        };
+    }
+    return {
+        tone,
+        modifier: 'date-pill--quest-timer-calm',
+        icon: 'fa-clock',
+        meta: 'Clock is ticking'
+    };
+}
+
+function startHomeQuestTimerTicker() {
+    if (homeQuestTimerInterval) clearInterval(homeQuestTimerInterval);
+
+    const tick = () => {
+        const timerCard = document.querySelector('[data-home-quest-timer]');
+        if (!timerCard) {
+            clearInterval(homeQuestTimerInterval);
+            homeQuestTimerInterval = null;
+            return;
+        }
+
+        const deadline = timerCard.dataset.deadline;
+        const valueEl = timerCard.querySelector('[data-home-quest-value]');
+        const subvalueEl = timerCard.querySelector('[data-home-quest-subvalue]');
+        const iconEl = timerCard.querySelector('[data-home-quest-icon]');
+        const metaEl = timerCard.querySelector('[data-home-quest-meta]');
+        const parts = utils.getCountdownParts(deadline);
+        const toneMeta = getHomeQuestTimerMeta(deadline);
+
+        if (valueEl) {
+            valueEl.textContent = utils.formatCountdownClock(deadline, { expiredLabel: '00:00:00' });
+        }
+        if (subvalueEl) {
+            subvalueEl.textContent = utils.formatCountdownCompact(deadline, 'Expired');
+        }
+
+        if (timerCard.dataset.homeQuestTone !== toneMeta.tone) {
+            timerCard.classList.remove('date-pill--quest-timer-calm', 'date-pill--quest-timer-warning', 'date-pill--quest-timer-critical');
+            timerCard.classList.add(toneMeta.modifier, 'date-pill--quest-tone-shift');
+            timerCard.dataset.homeQuestTone = toneMeta.tone;
+            if (iconEl) {
+                iconEl.innerHTML = `<i class="fas ${toneMeta.icon}"></i>`;
+            }
+            if (metaEl) {
+                metaEl.textContent = toneMeta.meta;
+            }
+            window.setTimeout(() => timerCard.classList.remove('date-pill--quest-tone-shift'), 380);
+        }
+
+        if (parts.expired && !timerCard.classList.contains('date-pill--quest-exit')) {
+            timerCard.classList.add('date-pill--quest-exit');
+        }
+    };
+
+    tick();
+    homeQuestTimerInterval = setInterval(tick, 1000);
+}
+
+// --- NEW HELPER FUNCTION ---
+function updateHeaderQuote(quote) {
+    const container = document.getElementById('header-quote-container');
+    const textEl = document.getElementById('header-quote-text');
+    if (container && textEl) {
+        textEl.innerText = quote;
+        container.classList.remove('hidden');
+    }
+}
+
+// --- 2. MAIN RENDER ---
+export function renderHomeTab() {
+    const container = document.getElementById('home-dashboard-container');
+    if (!container) return;
+
+    // Skeleton check
+    if (!state.get('allSchoolClasses')) {
+        container.innerHTML = getSkeleton();
+        return;
+    }
+
+    if (renderDebounce) clearTimeout(renderDebounce);
+    renderDebounce = setTimeout(executeRenderHome, 100);
+}
+
+async function executeRenderHome() {
+    const container = document.getElementById('home-dashboard-container');
+    if (!container) return;
+
+    // --- CONTEXT ---
+    const activeClassId = state.get('globalSelectedClassId');
+    const teacherName = state.get('currentTeacherName') || "Quest Master";
+    const schoolName = state.get('schoolName') || DEFAULT_SCHOOL_NAME;
+    const hour = new Date().getHours();
+
+    // Dynamic Weather/Theme
+    const weatherData = await fetchWeatherData();
+    let theme = { isNight: false };
+
+    // --- STEP 1: CALCULATE WEATHER STATE ---
+    if (weatherData) {
+        theme.temp = `${weatherData.temp}°C`;
+        const code = weatherData.code;
+
+        // Determine Background Class (always the actual condition — night is separate via theme.isNight)
+        if (code === 0) {
+            theme.weatherBg = 'w-day'; theme.weatherIcon = 'fa-sun'; theme.weatherText = 'Sunny';
+        } else if (code <= 2) {
+            // Codes 1 & 2: Mainly Clear / Partly Cloudy -> Keep Blue Sky (w-day)
+            theme.weatherBg = 'w-day'; theme.weatherIcon = 'fa-cloud-sun'; theme.weatherText = 'Partly Cloudy';
+        } else if (code === 3) {
+            // Code 3: Overcast -> Gray Sky
+            theme.weatherBg = 'w-cloudy'; theme.weatherIcon = 'fa-cloud'; theme.weatherText = 'Overcast';
+        } else if (code <= 48) {
+            theme.weatherBg = 'w-cloudy'; theme.weatherIcon = 'fa-smog'; theme.weatherText = 'Foggy';
+        } else if (code <= 67 || (code >= 80 && code <= 82)) {
+            theme.weatherBg = 'w-rainy'; theme.weatherIcon = 'fa-cloud-rain'; theme.weatherText = 'Rainy';
+        } else if (code <= 77 || (code >= 85 && code <= 86)) {
+            theme.weatherBg = 'w-snowy'; theme.weatherIcon = 'fa-snowflake'; theme.weatherText = 'Snowy';
+        } else if (code >= 95) {
+            theme.weatherBg = 'w-stormy'; theme.weatherIcon = 'fa-bolt'; theme.weatherText = 'Stormy';
+        } else {
+            theme.weatherBg = 'w-cloudy'; theme.weatherIcon = 'fa-cloud'; theme.weatherText = 'Cloudy';
+        }
+
+        const nowTime = Date.now();
+        const sunset = utils.solarData?.sunset ?? new Date().setHours(20, 0, 0, 0);
+        const sunrise = utils.solarData?.sunrise ?? new Date().setHours(6, 0, 0, 0);
+        theme.isNight = nowTime >= sunset || nowTime < sunrise;
+
+        if (theme.isNight) {
+            if (theme.weatherIcon === 'fa-sun') theme.weatherIcon = 'fa-moon';
+            if (theme.weatherIcon === 'fa-cloud-sun') theme.weatherIcon = 'fa-cloud-moon';
+            if (theme.weatherText === 'Sunny') theme.weatherText = 'Clear Night';
+            if (theme.weatherText === 'Partly Cloudy') theme.weatherText = 'Cloudy Night';
+            if (theme.weatherText === 'Overcast') theme.weatherText = 'Overcast Night';
+            if (theme.weatherText === 'Foggy') theme.weatherText = 'Foggy Night';
+            if (theme.weatherText === 'Rainy') theme.weatherText = 'Rainy Night';
+            if (theme.weatherText === 'Snowy') theme.weatherText = 'Snowy Night';
+            if (theme.weatherText === 'Stormy') theme.weatherText = 'Stormy Night';
+            if (theme.weatherText === 'Cloudy') theme.weatherText = 'Cloudy Night';
+        }
+    } else {
+        // Fallback
+        theme.temp = '--°C';
+        theme.weatherBg = 'w-day';
+        theme.weatherIcon = 'fa-cloud-sun';
+        theme.weatherText = 'Clear';
+        const h = new Date().getHours();
+        theme.isNight = h >= 20 || h < 6;
+        if (theme.isNight) {
+            theme.weatherIcon = 'fa-moon';
+            theme.weatherText = 'Clear Night';
+        }
+    }
+
+    // --- STEP 2: APPLY HEADER THEME ---
+    const header = document.querySelector('header');
+    const awardHeaderAtmosphere = document.getElementById('award-header-atmosphere');
+    if (header) {
+        // 1. Clean old classes
+        header.classList.remove('header-night', 'header-stormy', 'header-rainy', 'header-snowy', 'header-cloudy');
+
+        // 2. Reset Background
+        header.style.background = '';
+        /* Match templates/app/header.js — overflow-visible keeps FA header clouds + Award expansion visible */
+        header.className =
+            'relative z-[1] flex w-full min-w-0 items-center justify-between gap-3 bg-transparent p-4 shadow-none overflow-visible transition-all duration-1000';
+
+        // Night layer (`header-night`) stacks with concrete weather classes for header + Award sky.
+        if (theme.isNight) {
+            header.classList.add('header-night');
+        }
+
+        switch (theme.weatherBg) {
+            case 'w-stormy':
+                header.classList.add('header-stormy');
+                break;
+            case 'w-rainy':
+                header.classList.add('header-rainy');
+                break;
+            case 'w-snowy':
+                header.classList.add('header-snowy');
+                break;
+            case 'w-cloudy':
+                header.classList.add('header-cloudy');
+                break;
+            default:
+                break;
+        }
+
+        const sunny = 'linear-gradient(to right, #89f7fe 0%, #66a6ff 100%)';
+        const nightBar = 'linear-gradient(to right, #1e3a8a 0%, #312e81 100%)';
+        const hasWeatherSkin =
+            header.classList.contains('header-night') ||
+            header.classList.contains('header-stormy') ||
+            header.classList.contains('header-rainy') ||
+            header.classList.contains('header-snowy') ||
+            header.classList.contains('header-cloudy');
+
+        if (awardHeaderAtmosphere) {
+            if (hasWeatherSkin) {
+                const cs = getComputedStyle(header);
+                const bi = cs.backgroundImage;
+                const bc = cs.backgroundColor;
+                if (bi && bi !== 'none') {
+                    awardHeaderAtmosphere.style.background =
+                        bc && bc !== 'rgba(0, 0, 0, 0)' ? `${bi}, ${bc}` : bi;
+                } else if (bc && bc !== 'rgba(0, 0, 0, 0)') {
+                    awardHeaderAtmosphere.style.background = bc;
+                } else {
+                    awardHeaderAtmosphere.style.background = theme.isNight ? nightBar : sunny;
+                }
+            } else if (theme.isNight) {
+                awardHeaderAtmosphere.style.background = nightBar;
+            } else {
+                awardHeaderAtmosphere.style.background = sunny;
+            }
+        } else if (!hasWeatherSkin && !theme.isNight) {
+            header.style.background = sunny;
+        }
+    }
+
+    // --- STEP 3: CALCULATE TIME GRADIENTS ---
+    let timeGreeting = "Good Day";
+    let greetingGradient = "";
+
+    if (hour >= 5 && hour < 12) {
+        timeGreeting = "Good Morning";
+        greetingGradient = "from-amber-400 via-orange-400 to-rose-400";
+    } else if (hour >= 12 && hour < 17) {
+        timeGreeting = "Good Afternoon";
+        greetingGradient = "from-blue-400 via-cyan-400 to-teal-400";
+    } else if (hour >= 17 && hour < 21) {
+        timeGreeting = "Good Evening";
+        greetingGradient = "from-indigo-500 via-purple-500 to-pink-500";
+    } else {
+        timeGreeting = "Good Night";
+        greetingGradient = "from-indigo-900 via-purple-900 to-slate-800";
+    }
+
+    theme.greeting = timeGreeting;
+    theme.greetingGradient = greetingGradient;
+    theme.nameGradient = "from-slate-700 to-slate-500";
+
+    // --- STEP 4: FETCH SPICE & RENDER (non-blocking) ---
+    const spice = { headerQuote: FALLBACK_QUOTES.quote_header };
+    fetchDailySpice().then(s => {
+        updateHeaderQuote(s.headerQuote);
+    }).catch(() => {});
+
+    const allClasses = state.get('allSchoolClasses') || [];
+    let viewId = 'general';
+    let contentHtml = '';
+
+    if (activeClassId) {
+        const classData = allClasses.find(c => c.id === activeClassId);
+        if (classData) {
+            viewId = `class_${activeClassId}`;
+            contentHtml = getActiveDashboard(classData, teacherName, theme, spice);
+        } else contentHtml = getGeneralDashboard(teacherName, theme, spice);
+    } else {
+        contentHtml = getGeneralDashboard(teacherName, theme, spice);
+    }
+
+    // DOM Update
+    const isViewChange = currentRenderedViewId !== viewId;
+    currentRenderedViewId = viewId;
+
+    if (isViewChange) container.innerHTML = `<div class="home-fade w-full h-full">${contentHtml}</div>`;
+    else container.innerHTML = `<div class="w-full h-full">${contentHtml}</div>`;
+
+    // Async: inject quiz button into weather card footer if applicable
+    injectQuizButton();
+
+    const isInitialHomeRender = !hasPlayedInitialHomeEntrance;
+    if (isInitialHomeRender) {
+        hasPlayedInitialHomeEntrance = true;
+        container.classList.add('home-intro-root');
+        requestAnimationFrame(() => {
+            container.classList.add('home-intro-visible');
+        });
+        setTimeout(() => {
+            container.classList.remove('home-intro-root', 'home-intro-visible');
+        }, 950);
+    }
+
+    attachListeners(container);
+    startHomeSmartLogic();
+    startHomeQuestTimerTicker();
+
+    document.dispatchEvent(new CustomEvent('home:rendered', {
+        detail: { isInitialHomeRender, viewId }
+    }));
+}
+
+// --- 3. TEMPLATES (VIBRANT HORIZONS) ---
+
+function getSkeleton() {
+    return `<div class="animate-pulse space-y-6 max-w-7xl mx-auto p-4"><div class="grid grid-cols-12 gap-6"><div class="h-48 bg-gray-200 rounded-3xl col-span-8"></div><div class="h-48 bg-gray-200 rounded-3xl col-span-4"></div></div><div class="grid grid-cols-12 gap-6"><div class="h-40 bg-gray-200 rounded-3xl col-span-4"></div><div class="h-40 bg-gray-200 rounded-3xl col-span-4"></div><div class="h-40 bg-gray-200 rounded-3xl col-span-4"></div></div></div>`;
+}
+
+function patchHomeChronicleStory(classId, story) {
+    if (state.get('globalSelectedClassId') !== classId) return;
+    const root = document.getElementById('home-dashboard-container');
+    if (!root) return;
+    const wordEl = root.querySelector('[data-home-story-word]');
+    const textEl = root.querySelector('[data-home-story-text]');
+    if (wordEl && story?.currentWord != null) {
+        wordEl.textContent = `Story: ${story.currentWord}`;
+    }
+    if (textEl && story?.currentSentence != null) {
+        textEl.textContent = `"...${story.currentSentence}..."`;
+    }
+}
+
+function getGeneralDashboard(name, theme, spice) {
+    const today = utils.getTodayDateString();
+    const activeLeague = resolveActiveHomeLeague();
+
+    const myClasses = state.get('allTeachersClasses') || [];
+    const totalStudents = state.get('allStudents').length;
+    const allScores = state.get('allStudentScores') || [];
+
+    const schoolStars = sumLiveMonthlyStarsFromStudentScores(allScores);
+
+    const totalGold = allScores.reduce((sum, s) => sum + (s.gold !== undefined ? s.gold : s.totalStars), 0);
+
+    const tools = [
+        { icon: 'fa-trophy', label: 'Hero Ranks', action: 'open-student-ranks', league: activeLeague },
+        { icon: 'fa-plus-circle', label: 'New', action: 'create-class', league: activeLeague },
+        { icon: 'fa-globe', label: 'Team History', action: 'open-team-history', league: activeLeague },
+        { icon: 'fa-umbrella-beach', label: 'Holiday', action: 'open-holidays', featureFlag: 'schoolYearPlanner' },
+        { icon: 'fa-calendar-alt', label: 'Plan', action: 'open-day-planner', featureFlag: 'calendar' },
+        { icon: 'fa-cog', label: 'Setup', action: 'open-settings' },
+    ].filter(tool => !tool.featureFlag || canUseFeature(tool.featureFlag));
+
+    return getLayout(
+        name, theme, '',
+        `
+        <div class="vibrant-card h-span-6 stat-card-pop card-gradient-sun">
+            <span class="text-xs font-bold text-amber-600 uppercase tracking-widest mb-2"><i class="fas fa-star mr-1"></i> School Stars</span>
+            <div class="stat-value-big text-amber-500 animate-pulse">${schoolStars}</div>
+            <div class="text-sm font-bold text-amber-700/60">Total Monthly</div>
+        </div>
+        <div class="vibrant-card h-span-3 stat-card-pop card-gradient-sky">
+            <span class="text-xs font-bold text-blue-600 uppercase tracking-widest mb-2"><i class="fas fa-users mr-1"></i> Heroes</span>
+            <div class="stat-value-big text-blue-500">${totalStudents}</div>
+            <div class="text-sm font-bold text-blue-700/60">Active Students</div>
+        </div>
+        <div class="vibrant-card h-span-3 stat-card-pop card-gradient-royal">
+            <span class="text-xs font-bold text-purple-600 uppercase tracking-widest mb-2"><i class="fas fa-coins mr-1"></i> Treasury</span>
+            <div class="stat-value-big text-purple-500">${totalGold}</div>
+            <div class="text-sm font-bold text-purple-700/60">Gold</div>
+        </div>
+        
+        <!-- Grand Guild Ceremony Button (shown on ceremony day) -->
+        <div id="grand-guild-ceremony-btn-home" class="hidden h-span-3">
+            <div class="bg-gradient-to-r from-amber-400 to-orange-500 text-white p-4 rounded-2xl shadow-lg animate-pulse h-full flex flex-col justify-center items-center cursor-pointer hover:scale-105 transition-transform" onclick="startGrandGuildCeremony()">
+                <i class="fas fa-crown text-3xl mb-2"></i>
+                <div class="font-title text-lg">Grand Guild Ceremony</div>
+                <div class="text-sm opacity-75">Click to begin!</div>
+            </div>
+        </div>
+        `,
+        `
+        <div class="vibrant-card h-span-4 card-glass-white">
+            <div class="flex items-center justify-between gap-3 p-4 pb-0">
+                <h3 class="text-xs font-bold text-slate-400 uppercase tracking-widest">Global Tools</h3>
+            </div>
+            <div class="tools-grid-v2">
+                ${tools.map(t => `
+                    <div
+                        class="tool-btn-pop shortcut-action-btn"
+                        data-action="${t.action}"
+                        data-league="${t.league || ''}"
+                        title="${t.league ? `${t.label} for ${t.league} League` : t.label}">
+                        <i class="fas ${t.icon}"></i>
+                        <span>${t.label}</span>
+                    </div>
+                `).join('')}
+            </div>
+        </div>
+        <div class="vibrant-card h-span-8 card-glass-white">
+            <h3 class="text-xs font-bold text-slate-400 uppercase tracking-widest p-4 pb-0">School Schedule</h3>
+            <div class="schedule-list-v2 mt-4">
+                ${getScheduleHtml(today, null)}
+            </div>
+        </div>
+        `
+    );
+}
+
+function getActiveDashboard(classData, name, theme, spice) {
+    const classId = classData.id;
+    const today = utils.getTodayDateString();
+
+    const students = state.get('allStudents').filter(s => s.classId === classId);
+    const scores = state.get('allStudentScores') || [];
+
+    const now = new Date();
+    const currentMonth = now.getMonth();
+    const currentYear = now.getFullYear();
+
+    const { totalStars: monthlyStarsWithBonus } = utils.getClassMonthlyQuestStars(classData, students, scores, now);
+
+    // NEW: Dynamic goal based on actual lessons, holidays, and overrides
+    // NEW: Pass the full classData to match Leaderboard logic
+    let goal = calculateMonthlyClassGoal(classData, students.length);
+    if (goal < 18) goal = 18; // Shared safety floor
+    const progress = Math.min(100, (monthlyStarsWithBonus / goal) * 100).toFixed(0);
+
+    // Fetch story when missing; patch chronicle text only (avoid full home DOM swap / flash)
+    if (!state.get('currentStoryData')[classId]) {
+        const storyRef = doc(db, `artifacts/great-class-quest/public/data/story_data`, classId);
+        getDoc(storyRef).then((docSnap) => {
+            if (docSnap.exists()) {
+                const currentData = state.get('currentStoryData');
+                currentData[classId] = docSnap.data();
+                state.setCurrentStoryData(currentData);
+                patchHomeChronicleStory(classId, docSnap.data());
+            }
+        }).catch(err => console.log("Silent story fetch error", err));
+    }
+    const story = state.get('currentStoryData')[classId];
+    const storyText = (story && story.currentSentence) ? `"...${story.currentSentence}..."` : "The story awaits its first chapter...";
+    const storyWord = (story && story.currentWord) ? story.currentWord : "Pending";
+
+    const lastAssignment = state.get('allQuestAssignments')
+        .filter(a => a.classId === classId)
+        .sort((a, b) => (b.createdAt?.toMillis ? b.createdAt.toMillis() : 0) - (a.createdAt?.toMillis ? a.createdAt.toMillis() : 0))[0];
+    const scheduledTestStatus = canUseFeature('scholarScroll') ? getUpcomingScheduledAssessment(classId) : null;
+
+    let assignmentText = lastAssignment ? lastAssignment.text : "No active homework.";
+
+    if (scheduledTestStatus) {
+        const badgePalettes = {
+            red: 'bg-red-600 text-white border-red-700 shadow-md animate-pulse',
+            rose: 'bg-rose-100 text-rose-700 border-rose-200',
+            orange: 'bg-amber-100 text-amber-800 border-amber-200',
+            emerald: 'bg-emerald-100 text-emerald-700 border-emerald-200',
+            slate: 'bg-slate-100 text-slate-700 border-slate-200',
+            amber: 'bg-red-50 text-red-600 border-red-100'
+        };
+        const badgeColor = badgePalettes[scheduledTestStatus.tone] || badgePalettes.amber;
+        assignmentText = `
+            <div class="flex flex-col gap-1">
+                <span>${lastAssignment?.text || 'Scheduled assessment ahead.'}</span>
+                <span class="text-xs font-bold px-2 py-1 rounded border ${badgeColor} self-start flex items-center gap-1 mt-1">
+                    <i class="fas fa-${scheduledTestStatus.icon}"></i>
+                    <span>${scheduledTestStatus.testData.title}</span>
+                    <span class="opacity-80">• ${scheduledTestStatus.statusLabel}</span>
+                </span>
+                <span class="text-[11px] text-slate-500 mt-0.5">${scheduledTestStatus.detailLabel} • ${scheduledTestStatus.chipLabel}</span>
+            </div>`;
+    }
+
+    const logs = state.get('allAdventureLogs').filter(l => l.classId === classId).sort((a, b) => utils.parseDDMMYYYY(b.date) - utils.parseDDMMYYYY(a.date));
+    const lastLogText = logs.length > 0 ? logs[0].text : "No adventures chronicled yet.";
+    const lastLogDate = logs.length > 0 ? new Date(utils.parseDDMMYYYY(logs[0].date)).toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric' }) : '';
+
+    const rosterHtml = students.length > 0
+        ? students.sort((a, b) => a.name.localeCompare(b.name)).map(s => {
+            const scoreData = scores.find(sc => sc.id === s.id);
+            const stars = scoreData?.monthlyStars || 0;
+            const avatarInner = s.avatar
+                ? `<img src="${s.avatar}" alt="${s.name}" class="roster-avatar enlargeable-avatar" data-student-id="${s.id}" title="${s.name} (${stars} ⭐)">`
+                : `<div class="roster-avatar bg-indigo-100 text-indigo-600 flex items-center justify-center font-bold text-xs enlargeable-avatar" data-student-id="${s.id}" title="${s.name} (${stars} ⭐)">${s.name.charAt(0)}</div>`;
+            const avatarHtml = wrapAvatarWithLevelUpIndicator(avatarInner, !!scoreData?.pendingSkillChoice);
+            return `<div class="relative group -ml-2 first:ml-0 transition-transform hover:z-50">${avatarHtml}</div>`;
+        }).join('')
+        : '<span class="text-xs text-gray-400 pl-2">Empty Roster</span>';
+
+    const classLogs = state.get('allAwardLogs').filter(l => l.classId === classId);
+    const reasons = {};
+    classLogs.forEach(l => { if (l.reason) reasons[l.reason] = (reasons[l.reason] || 0) + l.stars; });
+    const topReasonEntry = Object.entries(reasons).sort((a, b) => b[1] - a[1])[0];
+    const topSkill = topReasonEntry ? topReasonEntry[0] : null;
+
+    const tools = [
+        { icon: 'fa-clipboard-check', label: 'Roll Call', action: 'open-attendance' },
+        { icon: 'fa-magic', label: 'Report', action: 'open-report', id: classId },
+        { icon: 'fa-feather-alt', label: 'Story', target: 'reward-ideas-tab' },
+        { icon: 'fa-scroll', label: 'Trials', target: 'scholars-scroll-tab' },
+        { icon: 'fa-star', label: 'Stars', target: 'award-stars-tab' },
+        { icon: 'fa-pencil-alt', label: 'Edit', action: 'edit-class', id: classId },
+    ];
+
+    // FIX: Get content AND theme from the new function
+    const skillData = getTopSkillHtml(topSkill);
+
+    return getLayout(
+        name, theme, getHomeBountyPillHtml(),
+        `
+        <div class="vibrant-card h-span-8 p-6 flex flex-col justify-center relative overflow-hidden quest-progress-card">
+            <div class="absolute -bottom-14 -left-14 w-56 h-56 rounded-full bg-blue-400/25 blur-3xl pointer-events-none"></div>
+            <div class="absolute -top-10 right-0 w-44 h-44 rounded-full bg-indigo-500/18 blur-2xl pointer-events-none"></div>
+            <div class="absolute inset-0 pointer-events-none" style="background: linear-gradient(135deg, rgba(255,255,255,0.38) 0%, transparent 55%); border-radius: inherit;"></div>
+            <div class="relative z-10 flex justify-between items-start mb-5">
+                <div>
+                    <h3 class="font-bold text-blue-400/80 text-xs uppercase tracking-widest mb-2 flex items-center gap-1.5">
+                        <span class="inline-flex items-center justify-center w-5 h-5 rounded-full bg-blue-500/15 border border-blue-300/40"><i class="fas fa-route text-[9px] text-blue-500"></i></span>
+                        Quest Progress
+                    </h3>
+                    <div class="quest-pct-text">${progress}<span style="font-size:2.5rem">%</span></div>
+                    <p class="text-[11px] text-blue-400/60 mt-1 font-semibold tracking-wide">of monthly goal</p>
+                </div>
+                <div class="quest-stars-pill">
+                    <div class="font-title text-3xl text-amber-500 leading-none">${monthlyStarsWithBonus} ⭐</div>
+                    <p class="text-[10px] font-bold text-amber-700/60 mt-0.5">this month</p>
+                </div>
+            </div>
+            <div class="quest-progress-track relative z-10">
+                <div class="quest-progress-fill" style="width: ${progress}%">
+                    <div class="quest-progress-shine"></div>
+                </div>
+            </div>
+            <div class="relative z-10 flex justify-between mt-2">
+                <p class="text-[11px] text-blue-400/50 font-medium">Start</p>
+                <p class="text-[11px] text-blue-500/70 font-bold">Goal: ${goal} ⭐</p>
+            </div>
+        </div>
+        
+        <div class="vibrant-card h-span-4 p-5 flex flex-col justify-between ${skillData.theme}">
+            <div>
+                <h3 class="text-xs font-bold opacity-70 uppercase tracking-widest mb-1"><i class="fas fa-bolt mr-1"></i> Top Skill</h3>
+                ${skillData.html}
+            </div>
+            <div class="mt-4">
+                <h3 class="text-xs font-bold opacity-70 uppercase tracking-widest mb-2 flex justify-between">
+                    <span>Heroes</span>
+                </h3>
+                <div class="flex items-center flex-wrap pl-2 gap-y-2">
+                    ${rosterHtml}
+                </div>
+            </div>
+        </div>
+        
+        <!-- Grand Guild Ceremony Button (shown on ceremony day for this class) -->
+        <div id="grand-guild-ceremony-btn-class" class="hidden h-span-4">
+            <div class="bg-gradient-to-r from-purple-400 to-pink-500 text-white p-4 rounded-2xl shadow-lg animate-pulse h-full flex flex-col justify-center items-center cursor-pointer hover:scale-105 transition-transform" onclick="startGrandGuildCeremony(['${classId}'])">
+                <i class="fas fa-crown text-3xl mb-2"></i>
+                <div class="font-title text-lg">Your Class Ceremony</div>
+                <div class="text-sm opacity-75">Click to begin!</div>
+            </div>
+        </div>
+        `,
+        `
+        <div class="vibrant-card h-span-8 p-5 bg-gray-50/50 backdrop-blur-sm">
+            <h3 class="text-xs font-bold text-slate-400 uppercase tracking-widest mb-4"><i class="fas fa-history mr-2"></i> The Chronicle</h3>
+            
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 h-full">
+                <div class="chronicle-item chronicle-homework">
+                    <div class="chronicle-card-accent chronicle-accent-homework"></div>
+                    <div class="flex items-center gap-2.5 mb-3">
+                        <div class="chronicle-icon-badge bg-indigo-500/15 text-indigo-600"><i class="fas fa-book text-sm"></i></div>
+                        <span class="text-xs font-bold text-indigo-700 uppercase tracking-wider">Homework</span>
+                    </div>
+                    <p class="text-sm text-indigo-900 font-medium leading-snug line-clamp-3 flex-1">${assignmentText}</p>
+                </div>
+
+                <div class="chronicle-item chronicle-story">
+                    <div class="chronicle-card-accent chronicle-accent-story"></div>
+                    <div class="flex items-center gap-2.5 mb-3">
+                        <div class="chronicle-icon-badge bg-cyan-500/15 text-cyan-600"><i class="fas fa-feather-alt text-sm"></i></div>
+                        <span class="text-xs font-bold text-cyan-700 uppercase tracking-wider" data-home-story-word>Story: ${storyWord}</span>
+                    </div>
+                    <p class="text-sm text-cyan-900 font-serif italic leading-snug line-clamp-3 flex-1" data-home-story-text>${storyText}</p>
+                </div>
+
+                <div class="chronicle-item chronicle-log">
+                    <div class="chronicle-card-accent chronicle-accent-log"></div>
+                    <div class="flex items-center gap-2.5 mb-3">
+                        <div class="chronicle-icon-badge bg-emerald-500/15 text-emerald-600"><i class="fas fa-compass text-sm"></i></div>
+                        <span class="text-xs font-bold text-emerald-700 uppercase tracking-wider">${lastLogDate || 'Adventure Log'}</span>
+                    </div>
+                    <p class="text-sm text-green-900 font-medium leading-snug line-clamp-3 flex-1">${lastLogText}</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="vibrant-card h-span-4 card-glass-white">
+            <h3 class="text-xs font-bold text-slate-400 uppercase tracking-widest p-4 pb-0">Class Actions</h3>
+            <div class="grid grid-cols-3 gap-3 p-4 pt-3">
+                ${tools.map(t => {
+            const attr = t.target ? `data-target="${t.target}" class="tool-btn-pop shortcut-tab-btn"` : `data-action="${t.action}" data-id="${t.id || ''}" class="tool-btn-pop shortcut-action-btn"`;
+            return `<div ${attr} style="aspect-ratio: 1/0.8"><i class="fas ${t.icon} text-xl mb-1"></i><span style="font-size: 0.65rem">${t.label}</span></div>`;
+        }).join('')}
+            </div>
+        </div>
+        `
+    );
+}
+
+function getLayout(name, theme, selector, row2, row3) {
+    const heroEmoji = state.get('globalSelectedClassId') 
+        ? (state.get('allSchoolClasses').find(c => c.id === state.get('globalSelectedClassId'))?.logo || '✨')
+        : '🏫';
+
+    return `
+    <div class="w-full max-w-7xl mx-auto p-4">
+        <div class="horizons-grid">
+            
+            <div class="vibrant-card h-span-8 greeting-panel">
+                <div class="greeting-bg-mesh"></div>
+                <div class="greeting-hero-asset">${heroEmoji}</div>
+                <div class="relative z-10 flex flex-col justify-between h-full">
+                    
+                    <div class="flex justify-between items-start mb-4 gap-4">
+                        <div id="home-reminders-container" class="flex flex-wrap items-center gap-3 py-1">
+                            ${getReminderPills(state.get('globalSelectedClassId'))}
+                        </div>
+                        <div class="flex-shrink-0 relative z-50">
+                            ${selector}
+                        </div>
+                    </div>
+
+                    <div>
+                        <h1 class="font-title text-4xl md:text-5xl text-slate-800 drop-shadow-sm mb-1">
+                            <span class="text-transparent bg-clip-text bg-gradient-to-r ${theme.greetingGradient}">${theme.greeting}</span>, 
+                            <span class="text-transparent bg-clip-text bg-gradient-to-r ${theme.nameGradient} whitespace-nowrap">${name}</span>!
+                        </h1>
+                        <p class="text-gray-500 font-bold text-base opacity-75" data-school-name>
+                            <i class="fas fa-university mr-2"></i>${state.get('schoolName') || DEFAULT_SCHOOL_NAME}
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="vibrant-card h-span-4 weather-card ${theme.weatherBg}${theme.isNight ? ' weather-night' : ''}">
+                <i class="fas ${theme.weatherIcon} weather-sun"></i>
+                <i class="fas fa-cloud weather-cloud"></i>
+                
+                <div class="weather-info">
+                    <div class="text-7xl font-title">${theme.temp}</div>
+                    <div class="text-2xl font-bold uppercase tracking-widest opacity-95">${theme.weatherText}</div>
+                </div>
+                <div id="weather-card-footer" class="absolute bottom-4 right-4 z-10" data-quiz-class="${state.get('globalSelectedClassId') || ''}">
+                </div>
+            </div>
+
+            ${row2}
+            ${row3}
+
+        </div>
+    </div>`;
+}
+
+// --- HELPERS ---
+
+/** Compact bounty launcher in greeting panel (replaces former “active class” chip). */
+function getHomeBountyPillHtml() {
+    return `
+        <button type="button" id="open-bounty-modal-btn" class="home-bounty-pill font-title group" title="Post a bounty for this class">
+            <span class="home-bounty-pill__glow" aria-hidden="true"></span>
+            <span class="home-bounty-pill__icon" aria-hidden="true"><i class="fas fa-crosshairs"></i></span>
+            <div class="home-bounty-pill__text">
+                <span class="home-bounty-pill__title">Bounty</span>
+                <span class="home-bounty-pill__sub">Post a quest</span>
+            </div>
+            <span class="home-bounty-pill__chev" aria-hidden="true"><i class="fas fa-chevron-right"></i></span>
+        </button>`;
+}
+
+function resolveActiveHomeLeague() {
+    const activeClassId = state.get('globalSelectedClassId');
+    const activeClass = activeClassId
+        ? (state.get('allSchoolClasses') || []).find(c => c.id === activeClassId)
+        : null;
+    if (activeClass?.questLevel) return activeClass.questLevel;
+
+    const selectedLeague = state.get('globalSelectedLeague');
+    if (selectedLeague) return selectedLeague;
+
+    const todaysClasses = utils.getClassesOnDay(
+        utils.getTodayDateString(),
+        state.get('allSchoolClasses') || [],
+        state.get('allScheduleOverrides') || [],
+        state.get('teacherSettings')?.schoolYearSettings?.classEndDates || {}
+    );
+    const myClassIds = new Set((state.get('allTeachersClasses') || []).map(c => c.id));
+    const activeNow = todaysClasses.find(c =>
+        myClassIds.has(c.id) && utils.isNowInClassWindow(c.timeStart, c.timeEnd)
+    ) || todaysClasses.find(c => myClassIds.has(c.id));
+    if (activeNow?.questLevel) return activeNow.questLevel;
+
+    return null;
+}
+
+function getScheduleHtml(dateString, activeClassId) {
+    const allSchoolClasses = state.get('allSchoolClasses') || [];
+    const allScheduleOverrides = state.get('allScheduleOverrides') || [];
+    const myClasses = state.get('allTeachersClasses') || [];
+    const myClassIds = myClasses.map(c => c.id);
+    const classEndDates = state.get('teacherSettings')?.schoolYearSettings?.classEndDates || {};
+
+    const todaysClasses = utils.getClassesOnDay(dateString, allSchoolClasses, allScheduleOverrides, classEndDates);
+
+    if (todaysClasses.length === 0) {
+        const dayOfWeek = new Date().getDay(); // 0 = Sunday, 6 = Saturday
+        const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
+
+        const title = isWeekend ? "Weekend Break" : "Heroes' Camp";
+        const message = isWeekend
+            ? "Enjoy your weekend! Recharge your mana for next week."
+            : "No lessons today. The party is resting!";
+        const icon = isWeekend ? "🏖️" : "⛺";
+
+        return `
+        <div class="schedule-empty-camp" style="min-height: 325px;">
+            <div class="text-7xl mb-4 animate-bounce-slow filter drop-shadow-sm">${icon}</div>
+            <h4 class="font-title text-3xl text-emerald-800 mb-2">${title}</h4>
+            <p class="text-base text-emerald-600 font-bold opacity-80">${message}</p>
+        </div>`;
+    }
+
+    const gradients = [
+        "bg-gradient-to-br from-red-100 to-red-200", "bg-gradient-to-br from-orange-100 to-orange-200",
+        "bg-gradient-to-br from-amber-100 to-amber-200", "bg-gradient-to-br from-green-100 to-green-200",
+        "bg-gradient-to-br from-emerald-100 to-emerald-200", "bg-gradient-to-br from-teal-100 to-teal-200",
+        "bg-gradient-to-br from-cyan-100 to-cyan-200", "bg-gradient-to-br from-sky-100 to-sky-200",
+        "bg-gradient-to-br from-blue-100 to-blue-200", "bg-gradient-to-br from-indigo-100 to-indigo-200",
+        "bg-gradient-to-br from-violet-100 to-violet-200", "bg-gradient-to-br from-purple-100 to-purple-200",
+        "bg-gradient-to-br from-fuchsia-100 to-fuchsia-200", "bg-gradient-to-br from-pink-100 to-pink-200",
+        "bg-gradient-to-br from-rose-100 to-rose-200"
+    ];
+
+    return todaysClasses.map(c => {
+        const isMine = myClassIds.includes(c.id);
+        const timeStr = (c.timeStart) ? `${c.timeStart}` : 'TBD';
+        const isActive = c.id === activeClassId;
+        const league = c.questLevel || 'Quest';
+        const teacherName = c.createdBy?.name || 'Unknown';
+        const colorIndex = utils.simpleHashCode(c.id) % gradients.length;
+        const bgGradient = gradients[colorIndex];
+
+        let cardClass = `schedule-card-square ${bgGradient}`;
+        if (isActive) cardClass += ' active-lesson';
+        if (!isMine) cardClass += ' locked';
+
+        const interactionAttr = isMine
+            ? `class="${cardClass} quick-class-select-btn" data-id="${c.id}"`
+            : `class="${cardClass}"`;
+
+        const lockIcon = !isMine ? '<div class="absolute top-2 right-2 text-gray-400/30 text-xs"><i class="fas fa-lock"></i></div>' : '';
+
+        return `
+        <div ${interactionAttr} title="${c.name} • ${teacherName}">
+            ${lockIcon}
+            <div class="time-pill">${timeStr}</div>
+            <div class="logo">${c.logo}</div>
+            <div class="info-stack">
+                <div class="name">${c.name}</div>
+                <div class="league">${league}</div>
+                <div class="teacher">${teacherName}</div>
+            </div>
+        </div>`;
+    }).join('');
+}
+
+function attachListeners(container) {
+    container.querySelectorAll('.chronicle-item').forEach(item => {
+        item.addEventListener('click', (e) => {
+            container.querySelectorAll('.chronicle-item.expanded').forEach(expandedItem => {
+                if (expandedItem !== item) expandedItem.classList.remove('expanded');
+            });
+            item.classList.toggle('expanded');
+        });
+    });
+
+    container.querySelectorAll('.quick-class-select-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            state.setGlobalSelectedClass(btn.dataset.id, true);
+            renderHomeTab();
+        });
+    });
+    container.querySelectorAll('.shortcut-tab-btn').forEach(btn => btn.addEventListener('click', () => tabs.showTab(btn.dataset.target)));
+    container.querySelectorAll('.shortcut-action-btn').forEach(btn => btn.addEventListener('click', () => {
+        handleAction(btn.dataset.action, btn.dataset);
+    }));
+}
+
+async function activateOptionsSubtab(key) {
+    await tabs.showTab('options-tab');
+
+    const button = document.querySelector(`.options-subtab-btn[data-options-tab="${key}"]`);
+    if (!button) return;
+
+    button.click();
+    button.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+}
+
+async function openCreateClassForm(scopedLeague) {
+    await tabs.showTab('my-classes-tab');
+
+    const levelSelect = document.getElementById('class-level');
+    if (levelSelect && scopedLeague) {
+        levelSelect.value = scopedLeague;
+        levelSelect.dispatchEvent(new Event('change', { bubbles: true }));
+    }
+
+    const classNameInput = document.getElementById('class-name');
+    if (classNameInput) {
+        classNameInput.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        classNameInput.focus();
+    }
+}
+
+async function handleAction(action, data) {
+    const scopedLeague = (data?.league || '').trim();
+    if (scopedLeague) {
+        state.setGlobalSelectedLeague(scopedLeague, false);
+    }
+
+    if (action === 'open-day-planner') modals.openDayPlannerModal(utils.getTodayDateString(), document.body);
+    else if (action === 'open-attendance') {
+        const id = state.get('globalSelectedClassId');
+        if (id) modals.openAttendanceChronicle(id); else tabs.showTab('adventure-log-tab');
+    }
+    else if (action === 'open-team-history') modals.openHistoryModal('team', { league: scopedLeague || null });
+    else if (action === 'open-settings') await activateOptionsSubtab('manage');
+    else if (action === 'open-holidays') await activateOptionsSubtab('planning');
+    else if (action === 'open-student-ranks') modals.openStudentRankingsModal();
+    else if (action === 'create-class') await openCreateClassForm(scopedLeague);
+    else if (action === 'edit-class') modals.openEditClassModal(data.id);
+    else if (action === 'open-report') modals.handleGenerateReport(data.id);
+}
+
+function startHomeSmartLogic() {
+    if (homeInterval) clearInterval(homeInterval);
+
+    const checkLogic = () => {
+        const todayStr = utils.getTodayDateString();
+
+        const classEndDates = state.get('teacherSettings')?.schoolYearSettings?.classEndDates || {};
+        const todaysClasses = utils.getClassesOnDay(todayStr, state.get('allSchoolClasses'), state.get('allScheduleOverrides'), classEndDates);
+        const myClasses = state.get('allTeachersClasses');
+        const myTodaysClasses = todaysClasses.filter(c => myClasses.some(mc => mc.id === c.id));
+
+        const currentActiveLesson = utils.findCurrentLessonClass(myTodaysClasses);
+
+        if (currentActiveLesson && state.get('classFollowSchedule')) {
+            const currentSelectedId = state.get('globalSelectedClassId');
+            if (currentSelectedId !== currentActiveLesson.id) {
+                // setGlobalSelectedClass handles re-rendering the active tab internally
+                state.setGlobalSelectedClass(currentActiveLesson.id, false);
+            }
+        }
+
+        // Update Grand Guild Ceremony buttons
+        grandGuildCeremony.updateCeremonyButtons();
+    };
+
+    // Run immediately on load, then every 60 seconds
+    checkLogic();
+    homeInterval = setInterval(checkLogic, 60000);
+}
+
+/** One-shot: apply schedule-based class if `classFollowSchedule` and a lesson is in session. */
+export function runScheduleBasedClassSyncOnce() {
+    const todayStr = utils.getTodayDateString();
+    const classEndDates = state.get('teacherSettings')?.schoolYearSettings?.classEndDates || {};
+    const todaysClasses = utils.getClassesOnDay(todayStr, state.get('allSchoolClasses'), state.get('allScheduleOverrides'), classEndDates);
+    const myClasses = state.get('allTeachersClasses');
+    const myTodaysClasses = todaysClasses.filter(c => myClasses.some(mc => mc.id === c.id));
+    const currentActiveLesson = utils.findCurrentLessonClass(myTodaysClasses);
+    if (currentActiveLesson && state.get('classFollowSchedule')) {
+        const currentSelectedId = state.get('globalSelectedClassId');
+        if (currentSelectedId !== currentActiveLesson.id) {
+            state.setGlobalSelectedClass(currentActiveLesson.id, false);
+        }
+    }
+}
+
+async function injectQuizButton() {
+    const footer = document.getElementById('weather-card-footer');
+    if (!footer) return;
+
+    const classId = footer.dataset.quizClass || '';
+
+    if (!classId) {
+        // No class selected — no quiz button
+        return;
+    }
+
+    try {
+        const quizState = await shouldShowQuizButton(classId);
+
+        if (quizState === 'show') {
+            // Show Quiz button
+            const quiz = await import('../db/actions/quizOfTheWeek.js').then(m =>
+                m.getQuizForClass(classId)
+            );
+            const questionCount = quiz?.questions?.length || '?';
+
+            footer.innerHTML = `<div class="quiz-week-btn-wrap"><button class="quiz-week-btn" id="quiz-week-trigger-btn" title="Quiz of the Week"><i class="fas fa-question"></i></button></div>`;
+
+            document.getElementById('quiz-week-trigger-btn')?.addEventListener('click', () => {
+                import('../ui/modals.js').then(m => m.openQuizModal(classId));
+            });
+        } else if (quizState === 'completed') {
+            // Show completed state with results button
+            footer.innerHTML = `<div class="quiz-week-btn-wrap"><button class="quiz-week-btn quiz-btn-completed" id="quiz-week-trigger-btn" title="View Quiz Results"><i class="fas fa-check"></i></button></div>`;
+
+            document.getElementById('quiz-week-trigger-btn')?.addEventListener('click', () => {
+                import('../ui/modals.js').then(m => m.openQuizModal(classId));
+            });
+        }
+        // For all other states (not_first_lesson, outside_time, etc.), footer stays empty
+    } catch (e) {
+        console.warn('Quiz button injection failed:', e);
+    }
+}
+
+export function setupHomeListeners() {
+    const infoBtn = document.getElementById('app-info-btn');
+    if (infoBtn) {
+        const newBtn = infoBtn.cloneNode(true);
+        infoBtn.parentNode.replaceChild(newBtn, infoBtn);
+        newBtn.addEventListener('click', (e) => {
+            e.preventDefault(); e.stopPropagation();
+            modals.openAppInfoModal();
+        });
+    }
+
+    const closeBtn = document.getElementById('app-info-close-btn');
+    if (closeBtn) {
+        const newClose = closeBtn.cloneNode(true);
+        closeBtn.parentNode.replaceChild(newClose, closeBtn);
+        newClose.addEventListener('click', () => modals.hideModal('app-info-modal'));
+    }
+
+    const sBtn = document.getElementById('info-btn-students');
+    const tBtn = document.getElementById('info-btn-teachers');
+    const sContent = document.getElementById('info-content-students');
+    const tContent = document.getElementById('info-content-teachers');
+
+    const replayGuideAnimation = (rootEl) => {
+        if (!rootEl) return;
+        const animated = rootEl.querySelectorAll('.guide-stagger-item');
+        animated.forEach(el => {
+            el.style.animation = 'none';
+        });
+        // Force reflow so animation can restart cleanly
+        void rootEl.offsetHeight;
+        animated.forEach(el => {
+            el.style.animation = '';
+        });
+    };
+
+    if (sBtn && tBtn) {
+        const newS = sBtn.cloneNode(true); sBtn.parentNode.replaceChild(newS, sBtn);
+        const newT = tBtn.cloneNode(true); tBtn.parentNode.replaceChild(newT, tBtn);
+
+        newS.addEventListener('click', () => {
+            newS.classList.add('active');
+            newT.classList.remove('active');
+            sContent.classList.remove('hidden'); tContent.classList.add('hidden');
+            replayGuideAnimation(sContent);
+        });
+        newT.addEventListener('click', () => {
+            newT.classList.add('active');
+            newS.classList.remove('active');
+            tContent.classList.remove('hidden'); sContent.classList.add('hidden');
+            replayGuideAnimation(tContent);
+        });
+    }
+
+}
+
+export async function maybeAutoShowGuideForTeacher(user) {
+    if (!user?.uid) return;
+
+    const teacherState = await loadTeacherJourneyState(user);
+    if (teacherState.guideShownAt) return;
+
+    setTimeout(() => {
+        modals.openAppInfoModal();
+    }, 900);
+
+    try {
+        await markTeacherGuideSeen(user);
+    } catch (error) {
+        console.warn('Could not mark guide as seen for teacher:', error);
+    }
+}
+
+function getReminderPills(classId) {
+    const now = new Date();
+    now.setHours(0, 0, 0, 0);
+    const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+    endOfMonth.setHours(23, 59, 59, 999);
+
+    let pills = [];
+
+    const mm = String(now.getMonth() + 1).padStart(2, '0');
+    const dd = String(now.getDate()).padStart(2, '0');
+    const todaySuffix = `-${mm}-${dd}`;
+
+    // 1. STUDENT BIRTHDAYS & NAMEDAYS
+    let relevantStudents = state.get('allStudents');
+    if (classId) {
+        relevantStudents = relevantStudents.filter(s => s.classId === classId);
+    } else {
+        const myClassIds = state.get('allTeachersClasses').map(c => c.id);
+        relevantStudents = relevantStudents.filter(s => myClassIds.includes(s.classId));
+    }
+
+    relevantStudents.forEach(s => {
+        if (s.birthday && s.birthday.endsWith(todaySuffix)) {
+            pills.push(`
+                <div class="date-pill bg-gradient-to-r from-pink-500 to-rose-500 text-white shadow-lg flex items-center gap-2 px-4 py-2 rounded-full transform hover:scale-110 transition-all duration-300 animate-bounce cursor-default border-2 border-white/50">
+                    <span class="text-xl">🎂</span>
+                    <span class="font-bold text-shadow-sm">Happy Birthday, ${s.name.split(' ')[0]}!</span>
+                </div>
+            `);
+        }
+        if (s.nameday && s.nameday.endsWith(todaySuffix)) {
+            pills.push(`
+                <div class="date-pill bg-gradient-to-r from-emerald-500 to-teal-500 text-white shadow-lg flex items-center gap-2 px-4 py-2 rounded-full transform hover:scale-110 transition-all duration-300 cursor-default border-2 border-white/50">
+                    <span class="text-xl">🎈</span>
+                    <span class="font-bold text-shadow-sm">${s.name.split(' ')[0]}'s Nameday!</span>
+                </div>
+            `);
+        }
+    });
+
+    if (canUseFeature('scholarScroll')) {
+        const todaysTests = getNextAssessmentOccurrenceForToday(classId);
+        todaysTests.forEach((assignment) => {
+            const classLine = assignment.classData ? `${assignment.classData.logo || '📚'} ${assignment.classData.name}` : 'Today';
+            const pillPalettes = {
+                red: 'from-red-600 to-rose-600 border-white/40',
+                rose: 'from-rose-500 to-pink-500 border-white/40',
+                orange: 'from-amber-500 to-orange-500 border-white/40',
+                emerald: 'from-emerald-500 to-teal-500 border-white/40',
+                slate: 'from-slate-500 to-slate-600 border-white/40',
+                amber: 'from-rose-500 to-red-500 border-white/40'
+            };
+            const pillGradient = pillPalettes[assignment.tone] || pillPalettes.amber;
+            pills.push(`
+                <div class="date-pill bg-gradient-to-r ${pillGradient} text-white shadow-lg flex items-center gap-2 px-4 py-2 rounded-full transition-transform hover:scale-105 cursor-default border-2">
+                    <i class="fas fa-${assignment.icon}"></i>
+                    <div class="flex flex-col leading-none">
+                        <span class="text-[10px] uppercase font-black tracking-wide opacity-80">${classId ? assignment.statusLabel : classLine}</span>
+                        <span class="font-bold">${assignment.testData?.title || 'Scheduled Test'}</span>
+                    </div>
+                    <span class="bg-white/20 px-2 py-1 rounded-full text-[10px] font-black uppercase">${assignment.chipLabel}</span>
+                </div>
+            `);
+        });
+    }
+
+    // 2. CEREMONY REMINDER (Restored)
+    if (classId) {
+        const cls = state.get('allSchoolClasses').find(c => c.id === classId);
+        if (cls) {
+            let prevMonth = now.getMonth() - 1;
+            let prevYear = now.getFullYear();
+            if (prevMonth < 0) { prevMonth = 11; prevYear -= 1; }
+            const monthKey = `${prevYear}-${String(prevMonth + 1).padStart(2, '0')}`;
+
+            const isDone = cls.ceremonyHistory && cls.ceremonyHistory[monthKey] && cls.ceremonyHistory[monthKey].complete;
+
+            if (!isDone) {
+                const monthName = new Date(monthKey + "-02").toLocaleString('en-GB', { month: 'long' });
+                pills.push(`
+                    <button id="trigger-ceremony-btn" class="date-pill bg-gradient-to-r from-indigo-600 to-purple-600 text-white border border-indigo-400 shadow-lg animate-pulse flex items-center gap-2 px-4 py-2 rounded-full cursor-pointer hover:scale-105 transition-transform" data-class-id="${classId}">
+                        <i class="fas fa-trophy text-yellow-300"></i>
+                        <span class="font-bold">${monthName} Ceremony!</span>
+                    </button>
+                `);
+
+                setTimeout(() => {
+                    const btn = document.getElementById('trigger-ceremony-btn');
+                    if (btn) {
+                        btn.onclick = (e) => {
+                            e.stopPropagation();
+                            import('./ceremony.js').then(m => {
+                                m.checkAndInitCeremony(classId).then(params => {
+                                    if (params) m.startCeremony(params);
+                                });
+                            });
+                        };
+                    }
+                }, 100);
+            }
+        }
+    }
+
+    // 3. UPCOMING HOLIDAYS (Restored)
+    const holidays = state.get('schoolHolidayRanges') || [];
+    const upcomingHoliday = holidays.find(h => {
+        const startDate = new Date(h.start);
+        return startDate >= now && startDate <= endOfMonth;
+    });
+
+    if (upcomingHoliday) {
+        const startDate = new Date(upcomingHoliday.start);
+        const diffTime = startDate - now;
+        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+        let label = upcomingHoliday.name;
+        let icon = 'fa-umbrella-beach';
+        let style = 'bg-pink-50 text-pink-700 border-pink-200 shadow-sm';
+        let timeText = diffDays === 0 ? "Starts Today!" : (diffDays === 1 ? "Starts Tomorrow!" : `in ${diffDays} days`);
+
+        if (label.toLowerCase().includes('christmas') || label.toLowerCase().includes('winter')) {
+            icon = 'fa-snowflake';
+            style = 'bg-red-50 text-red-800 border-red-200 shadow-sm';
+            label = `🎄 ${label}`;
+        } else if (label.toLowerCase().includes('easter')) {
+            icon = 'fa-egg';
+            style = 'bg-green-50 text-green-800 border-green-200 shadow-sm';
+            label = `🐰 ${label}`; // Added Bunny Emoji here!
+        }
+
+        pills.push(`
+            <div class="date-pill ${style} border flex items-center gap-2 px-4 py-2 rounded-full transition-transform hover:scale-105 cursor-default">
+                <i class="fas ${icon}"></i> 
+                <span class="font-bold">${label}</span> 
+                <span class="bg-white/60 px-2 py-0.5 rounded-full text-xs font-extrabold uppercase tracking-wide ml-1">${timeText}</span>
+            </div>
+        `);
+    }
+
+    // 4. QUEST EVENTS (Test/Vocab/etc) — use smart date parser (any format)
+    const events = state.get('allQuestEvents') || [];
+    const sortedEvents = [...events].sort((a, b) => {
+        const da = utils.parseFlexibleDate(a.date);
+        const db = utils.parseFlexibleDate(b.date);
+        return (da || 0) - (db || 0);
+    });
+
+    // When viewing a specific class, pre-compute which dates the class has lessons
+    // so we only show events relevant to that class.
+    const allSchoolClasses = state.get('allSchoolClasses') || [];
+    const allScheduleOverrides = state.get('allScheduleOverrides') || [];
+    const classEndDates = state.get('teacherSettings')?.schoolYearSettings?.classEndDates || {};
+
+    sortedEvents.forEach(e => {
+        const eventDate = utils.parseFlexibleDate(e.date);
+        if (!eventDate) return;
+        eventDate.setHours(0, 0, 0, 0);
+
+        // Show only from today through end of month
+        if (eventDate < now || eventDate > endOfMonth) return;
+
+        // --- CLASS RELEVANCY FILTER ---
+        // In a class view, only show the event if that class actually has a lesson on that day.
+        // utils.getClassesOnDay uses parseDDMMYYYY which handles both DD-MM-YYYY and YYYY-MM-DD.
+        if (classId) {
+            const d = eventDate;
+            const eventDateDDMMYYYY = `${String(d.getDate()).padStart(2, '0')}-${String(d.getMonth() + 1).padStart(2, '0')}-${d.getFullYear()}`;
+            const classesOnThatDay = utils.getClassesOnDay(eventDateDDMMYYYY, allSchoolClasses, allScheduleOverrides, classEndDates);
+            if (!classesOnThatDay.some(c => c.id === classId)) return; // Skip — not a lesson day for this class
+        }
+
+        const diffTime = eventDate - now;
+        // Χρησιμοποιούμε round για να αποφύγουμε μικρολάθη στα milliseconds
+        const diffDays = Math.round(diffTime / (1000 * 60 * 60 * 24));
+        const timeText = diffDays === 0 ? "Today!" : (diffDays === 1 ? "Tomorrow!" : `in ${diffDays} days`);
+
+        const title = e.details.title || e.type;
+        const isDoubleStar = title.toLowerCase().includes('2x star');
+
+        // Ορίζουμε το στυλ: Αν είναι 2x Star Day, βάζουμε χρυσό gradient και animation
+        let pillStyle = "bg-purple-50 text-purple-700 border-purple-200";
+        let icon = "fa-magic";
+        let specialClass = "";
+
+        if (isDoubleStar) {
+            pillStyle = "bg-gradient-to-r from-amber-400 via-orange-500 to-yellow-400 text-white border-white shadow-[0_0_20px_rgba(251,191,36,0.6)]";
+            icon = "fa-bolt-lightning";
+            specialClass = "animate-bounce-slow star-day-glow";
+        }
+
+        pills.push(`
+            <div class="date-pill ${pillStyle} ${specialClass} border-2 flex items-center gap-2 px-4 py-2 rounded-full transition-all hover:scale-110 cursor-default">
+                <i class="fas ${icon} ${isDoubleStar ? 'animate-pulse' : ''}"></i>
+                <span class="font-bold tracking-tight">${title}</span>
+                <span class="bg-white/30 backdrop-blur-sm px-2 py-0.5 rounded-full text-[10px] font-black uppercase ml-1">${timeText}</span>
+            </div>
+        `);
+    });
+
+
+    // 5. ACTIVE BOUNTY (Timer removed — shown in wallpaper mode instead)
+    if (classId) {
+        const activeBounty = state.get('allQuestBounties').find(b => b.classId === classId && b.status === 'active' && b.type === 'standard');
+
+        if (activeBounty) {
+            const pct = Math.min(100, Math.round((activeBounty.currentProgress / activeBounty.target) * 100));
+            pills.push(`
+                <button type="button" class="date-pill date-pill--quest date-pill--quest-bounty" onclick="document.getElementById('bounty-board-container').scrollIntoView({behavior: 'smooth'})">
+                    <span class="date-pill__glow"></span>
+                    <span class="date-pill__orbit date-pill__orbit--one"></span>
+                    <span class="date-pill__orbit date-pill__orbit--two"></span>
+                    <span class="date-pill__icon-shell">
+                        <span class="date-pill__icon-ring"></span>
+                        <span class="date-pill__icon"><i class="fas fa-bullseye"></i></span>
+                    </span>
+                    <span class="date-pill__body">
+                        <span class="date-pill__eyebrow">Active Bounty</span>
+                        <span class="date-pill__title">${activeBounty.title}</span>
+                        <span class="date-pill__meta">Progress is rolling in</span>
+                    </span>
+                    <span class="date-pill__value-wrap">
+                        <span class="date-pill__value">${pct}%</span>
+                        <span class="date-pill__subvalue">${activeBounty.currentProgress}/${activeBounty.target} stars</span>
+                    </span>
+                </button>
+             `);
+        }
+    }
+
+    // Hero of the Day Pill
+    const reigningHero = state.get('reigningHero');
+    if (reigningHero && classId) {
+        const avatarHtml = reigningHero.avatar
+            ? `<img src="${reigningHero.avatar}" class="w-6 h-6 rounded-full border border-white shadow-sm">`
+            : `<span class="bg-indigo-400 text-white w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold">${reigningHero.name.charAt(0)}</span>`;
+
+        pills.push(`
+        <div class="date-pill bg-gradient-to-r from-indigo-600 to-blue-700 text-white shadow-lg flex items-center gap-2 px-4 py-2 rounded-full transform hover:scale-105 transition-all border-2 border-indigo-400">
+            ${avatarHtml}
+            <div class="flex flex-col leading-none">
+                <span class="text-[10px] uppercase font-black tracking-tighter opacity-80">Reigning Hero</span>
+                <span class="font-bold text-shadow-sm">${reigningHero.name.split(' ')[0]}</span>
+            </div>
+            <div class="flex gap-1 ml-1">
+                <i class="fas fa-shield-alt text-xs text-indigo-300" title="Hero's Boon (+1 Star)"></i>
+                <i class="fas fa-tags text-xs text-indigo-300" title="Merchant's Favorite (-2 Gold)"></i>
+            </div>
+        </div>
+    `);
+    }
+
+    if (pills.length === 0) return '';
+    return pills.join('');
+}
+
+// --- NEW: Database-backed Shared Caching ---
+async function getAICachedContent(type) {
+    const todayKey = new Date().toISOString().split('T')[0];
+    const docId = `daily_content_${todayKey}_${type}`;
+    const localKey = `gcq_daily_content_${docId}`;
+
+    try {
+        const localCached = localStorage.getItem(localKey);
+        if (localCached) return localCached;
+    } catch (e) {
+        console.warn("Local quote cache read failed.", e);
+    }
+
+    if (dailyContentInFlight.has(docId)) {
+        return dailyContentInFlight.get(docId);
+    }
+
+    const fallback = FALLBACK_QUOTES[type] || FALLBACK_QUOTES.default;
+
+    const requestPromise = (async () => {
+        // 1. Check Firebase First (Shared Cache)
+        try {
+            const docRef = doc(db, "artifacts/great-class-quest/public/data/daily_cache", docId);
+            const docSnap = await getDoc(docRef);
+
+            if (docSnap.exists()) {
+                const content = docSnap.data().content;
+                try {
+                    localStorage.setItem(localKey, content);
+                } catch (e) {
+                    console.warn("Local quote cache write failed.", e);
+                }
+                return content;
+            }
+        } catch (e) {
+            console.warn("Cache fetch skipped, trying generation.");
+        }
+
+        // 2. Generate if not found (Elite only)
+        if (!canUseFeature('eliteAI')) {
+            return fallback;
+        }
+
+        try {
+            const systemPrompt = "You are a wise sage for a classroom. Generate a short, inspiring quote (max 10 words). No markdown. Just the text.";
+            let userPrompt = "Generate a quote.";
+
+            if (type === 'quote_header') {
+                userPrompt = "Generate a short quote about new beginnings or focus.";
+            } else if (type === 'quote_widget') {
+                userPrompt = "Generate a short quote about curiosity or nature.";
+            }
+
+            // Quotes can take >5s because the worker may throttle upstream requests.
+            // Keep retries low, but allow enough time for a real response.
+            const content = await callGeminiApi(systemPrompt, userPrompt, { retries: 1, baseDelay: 500, timeoutMs: 20000 });
+
+            // 3. Save to Firebase (So others don't have to generate)
+            try {
+                const { setDoc } = await import('https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js');
+                await setDoc(doc(db, "artifacts/great-class-quest/public/data/daily_cache", docId), {
+                    content: content,
+                    date: todayKey,
+                    type: type
+                });
+            } catch (e) {
+                console.error("Failed to save to cache", e);
+            }
+
+            try {
+                localStorage.setItem(localKey, content);
+            } catch (e) {
+                console.warn("Local quote cache write failed.", e);
+            }
+
+            return content;
+        } catch (e) {
+            console.error(e);
+            // Cache the fallback locally so we don't re-hit the rate-limited API later today
+            try { localStorage.setItem(localKey, fallback); } catch (_) {}
+            return fallback;
+        }
+    })().finally(() => {
+        dailyContentInFlight.delete(docId);
+    });
+
+    dailyContentInFlight.set(docId, requestPromise);
+    return requestPromise;
+}
+
+async function fetchWeatherData() {
+    const location = utils.getActiveWeatherLocation();
+    const storageKey = utils.getWeatherCacheKey('gcq_weather_data_open_meteo', location);
+    const now = Date.now();
+
+    const cached = localStorage.getItem(storageKey);
+    if (cached) {
+        try {
+            const data = JSON.parse(cached);
+            if (now - data.timestamp < 3600000) {
+                return data.weather;
+            }
+        } catch (e) { localStorage.removeItem(storageKey); }
+    }
+
+    try {
+        const response = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${location.latitude}&longitude=${location.longitude}&current=temperature_2m,weather_code&timezone=auto`);
+        if (!response.ok) throw new Error('Weather API failed');
+        const data = await response.json();
+
+        const weather = {
+            temp: Math.round(data.current.temperature_2m),
+            code: data.current.weather_code
+        };
+
+        localStorage.setItem(storageKey, JSON.stringify({ timestamp: now, weather }));
+        return weather;
+    } catch (e) {
+        console.error("Open-Meteo fetch failed:", e);
+        return null;
+    }
+}
+
+/**
+ * SOURCE OF TRUTH: This function implements the EXACT math from the Team Quest (tabs.js).
+ * It uses a monthly modifier based on holidays rather than counting lessons.
+ */
+function calculateMonthlyClassGoal(classData, studentCount) {
+    return utils.calculateMonthlyClassGoal(
+        classData,
+        studentCount,
+        state.get('schoolHolidayRanges'),
+        state.get('allScheduleOverrides')
+    );
+}
+
+function getTopSkillHtml(skill) {
+    if (!skill) {
+        return {
+            html: `<div class="font-title text-3xl text-green-800 truncate">Ready to Quest!</div>`,
+            theme: 'card-gradient-mint'
+        };
+    }
+
+    // Define colors and gradients for each skill
+    const reasonInfo = {
+        teamwork: { icon: 'fa-users', color: 'purple', name: 'Teamwork', theme: 'bg-gradient-to-br from-violet-100 to-purple-200 border-purple-300' },
+        creativity: { icon: 'fa-lightbulb', color: 'pink', name: 'Creativity', theme: 'bg-gradient-to-br from-pink-100 to-rose-200 border-rose-300' },
+        respect: { icon: 'fa-hands-helping', color: 'green', name: 'Respect', theme: 'bg-gradient-to-br from-emerald-100 to-green-200 border-green-300' },
+        focus: { icon: 'fa-brain', color: 'yellow', name: 'Focus', theme: 'bg-gradient-to-br from-amber-100 to-yellow-200 border-amber-300' },
+        welcome_back: { icon: 'fa-hand-sparkles', color: 'cyan', name: 'Welcome', theme: 'bg-gradient-to-br from-cyan-100 to-sky-200 border-sky-300' },
+        story_weaver: { icon: 'fa-feather-alt', color: 'cyan', name: 'Story', theme: 'bg-gradient-to-br from-cyan-100 to-blue-200 border-cyan-300' },
+        scholar_s_bonus: { icon: 'fa-graduation-cap', color: 'amber', name: 'Scholar', theme: 'bg-gradient-to-br from-orange-100 to-amber-200 border-orange-300' }
+    };
+
+    const info = reasonInfo[skill] || { icon: 'fa-star', color: 'gray', name: skill.replace('_', ' '), theme: 'card-gradient-mint' };
+
+    const html = `
+        <div class="flex items-center gap-3">
+            <div class="text-4xl text-${info.color}-600 filter drop-shadow-sm"><i class="fas ${info.icon}"></i></div>
+            <div class="text-left">
+                <div class="font-title text-2xl text-${info.color}-900 truncate capitalize">${info.name}</div>
+            </div>
+        </div>
+    `;
+
+    return { html, theme: info.theme };
+}

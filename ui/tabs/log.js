@@ -1,0 +1,340 @@
+// /ui/tabs/log.js
+import * as state from '../../state.js';
+import * as utils from '../../utils.js';
+import * as constants from '../../constants.js';
+import * as modals from '../modals.js';
+import { canUseFeature } from '../../utils/subscription.js';
+import { getLogTabCopy } from '../../config/tiers/features.js';
+import { renderAwardStarsStudentList } from './award.js';
+import { syncHeaderClassSelector } from '../headerClassSelector.js';
+import { getLeaderboardEffectiveLeague } from '../../state.js';
+
+function classHasAwardedStarsToday(classId) {
+    if (!classId) return false;
+    const studentsInClass = state.get('allStudents').filter(s => s.classId === classId);
+    if (studentsInClass.length === 0) return false;
+    const todaysStars = state.get('todaysStars') || {};
+    return studentsInClass.some(s => (Number(todaysStars[s.id]?.stars) || 0) > 0);
+}
+
+function inferAdventureLogEntryMode(log) {
+    const explicitMode = String(log?.entryMode || '').toLowerCase();
+    if (explicitMode === 'manual' || explicitMode === 'ai') return explicitMode;
+    return (log?.imageUrl || log?.imageBase64) ? 'ai' : 'manual';
+}
+
+function canEditAdventureLog(log) {
+    const entryMode = inferAdventureLogEntryMode(log);
+    return canUseFeature('eliteAI') || (entryMode === 'manual' && canUseFeature('adventureLog'));
+}
+
+function getAdventureLogGenerationBadge(log) {
+    const status = String(log?.generationStatus || '').toLowerCase();
+    if (!status || status === 'ready') return '';
+
+    const statusMap = {
+        generating: { label: 'Generating', className: 'bg-sky-100 text-sky-700' },
+        retrying: { label: 'Retrying', className: 'bg-amber-100 text-amber-700' },
+        pending: { label: 'Pending AI', className: 'bg-violet-100 text-violet-700' },
+        failed: { label: 'Needs Retry', className: 'bg-rose-100 text-rose-700' }
+    };
+    const meta = statusMap[status] || statusMap.pending;
+    return `<span class="inline-flex items-center rounded-full px-3 py-1 text-[11px] font-bold uppercase tracking-[0.14em] ${meta.className}">${meta.label}</span>`;
+}
+
+function shouldShowAdventureLogRetry(log) {
+    const entryMode = inferAdventureLogEntryMode(log);
+    if (entryMode !== 'ai') return false;
+    const status = String(log?.generationStatus || '').toLowerCase();
+    return status === 'pending' || status === 'failed';
+}
+
+function renderDiaryArtwork(log, entryMode) {
+    const imageSrc = log.imageUrl || log.imageBase64 || '';
+    if (imageSrc) {
+        return `<img src="${imageSrc}" alt="Image for ${(log.keywords || []).join(', ')}" class="diary-image">`;
+    }
+
+    const status = String(log?.generationStatus || '').toLowerCase();
+    const isWaitingOnAi = entryMode === 'ai' && status && status !== 'ready' && status !== 'failed';
+    const badgeLabel = entryMode === 'manual'
+        ? 'Manual Chronicle'
+        : isWaitingOnAi
+            ? 'AI Chronicle'
+            : 'Adventure Log';
+    const helperCopy = entryMode === 'manual'
+        ? 'Hero crowned and recorded by the teacher.'
+        : status === 'retrying'
+            ? 'The Chronicler is trying another route now.'
+            : status === 'pending'
+                ? 'Saved safely. The Chronicler will retry automatically.'
+                : status === 'failed'
+                    ? 'The AI chronicle did not finish yet.'
+                    : isWaitingOnAi
+                        ? 'The Chronicler is weaving today\'s artwork and story.'
+                        : 'Hero crowned and chronicled by the app.';
+    return `
+        <div class="diary-image bg-gradient-to-br from-teal-100 via-cyan-50 to-amber-50 flex items-center justify-center">
+            <div class="text-center px-4">
+                <div class="inline-flex items-center justify-center w-16 h-16 rounded-full bg-white/80 text-teal-700 shadow-md mb-3">
+                    <i class="fas ${isWaitingOnAi ? 'fa-spinner fa-spin' : status === 'failed' ? 'fa-hourglass-end' : 'fa-feather-alt'} text-2xl"></i>
+                </div>
+                <div class="text-sm font-bold uppercase tracking-[0.18em] text-teal-700">${badgeLabel}</div>
+                <p class="text-sm text-gray-600 mt-2">${helperCopy}</p>
+            </div>
+        </div>
+    `;
+}
+
+export async function renderAdventureLogTab() {
+    const monthFilter = document.getElementById('adventure-log-month-filter');
+
+    if (!monthFilter) return;
+
+    const classVal = state.get('globalSelectedClassId');
+    state.get('currentLogFilter').classId = classVal;
+    const hasAdventureLog = canUseFeature('adventureLog');
+    const logCopy = getLogTabCopy(hasAdventureLog);
+    const taglineEl = document.getElementById('adventure-log-tagline');
+    const upsellEl = document.getElementById('adventure-log-upsell');
+    if (taglineEl) taglineEl.textContent = logCopy.tagline;
+    if (upsellEl) {
+        upsellEl.classList.toggle('hidden', hasAdventureLog);
+        const upsellTitle = document.getElementById('adventure-log-upsell-title');
+        const upsellBody = document.getElementById('adventure-log-upsell-body');
+        if (upsellTitle) upsellTitle.textContent = logCopy.upsellTitle;
+        if (upsellBody) upsellBody.textContent = logCopy.upsellBody;
+    }
+    const logBtn = document.getElementById('log-adventure-btn');
+    const hallBtn = document.getElementById('hall-of-heroes-btn');
+    const feedEl = document.getElementById('adventure-log-feed');
+    const hasAdvancedAttendance = canUseFeature('advancedAttendance');
+    
+    if (logBtn) {
+        logBtn.style.display = hasAdventureLog ? '' : 'none';
+        logBtn.disabled = !classVal || !classHasAwardedStarsToday(classVal);
+    }
+    if (hallBtn) {
+        hallBtn.style.display = hasAdventureLog ? '' : 'none';
+        hallBtn.disabled = !classVal;
+    }
+    if (feedEl) feedEl.style.display = hasAdventureLog ? '' : 'none';
+    if (monthFilter) monthFilter.style.display = hasAdventureLog ? '' : 'none';
+    
+    // ─── FAB BUTTON STATES ────────────────────────────────────────────────────
+    const questAssignmentFab = document.getElementById('quest-assignment-fab');
+    if (questAssignmentFab) {
+        questAssignmentFab.disabled = !classVal;
+    }
+    
+    const attendanceFab = document.getElementById('attendance-fab');
+    if (attendanceFab) {
+        attendanceFab.style.display = hasAdvancedAttendance ? '' : 'none';
+        attendanceFab.disabled = !classVal;
+    }
+
+    const monthVal = monthFilter.value;
+
+    // --- FIX: Generate month list from competition start instead of memory ---
+    const availableMonths = [];
+    const now = new Date();
+    // Start from the first day of the competition start month
+    let loopDate = new Date(constants.competitionStart.getFullYear(), constants.competitionStart.getMonth(), 1);
+
+    while (loopDate <= now) {
+        const month = (loopDate.getMonth() + 1).toString().padStart(2, '0');
+        const year = loopDate.getFullYear();
+        availableMonths.unshift(`${month}-${year}`); // Newest months first
+        loopDate.setMonth(loopDate.getMonth() + 1);
+    }
+
+    const currentMonth = utils.getDDMMYYYY(new Date()).substring(3);
+
+    monthFilter.innerHTML = availableMonths.map(monthKey => {
+        const [m, y] = monthKey.split('-').map(Number);
+        const d = new Date(y, m - 1, 1);
+        const display = d.toLocaleString('en-GB', { month: 'long', year: 'numeric' });
+        return `<option value="${monthKey}">${display}</option>`;
+    }).join('');
+
+    monthFilter.value = monthVal || currentMonth;
+    state.get('currentLogFilter').month = monthFilter.value;
+
+    await renderAdventureLog();
+}
+
+export async function renderAdventureLog() {
+    const feed = document.getElementById('adventure-log-feed');
+    if (!feed) return;
+
+    const currentLogFilter = state.get('currentLogFilter');
+
+    if (!currentLogFilter.classId) {
+        feed.innerHTML = `<p class="text-center text-gray-500 bg-white/50 p-6 rounded-2xl">Choose a class from the header to see its Adventure Log.</p>`;
+        return;
+    }
+
+    // --- FIX: ON-DEMAND FETCHING FOR HISTORICAL LOGS ---
+    let logsForClass = [];
+    const [month, year] = currentLogFilter.month.split('-').map(Number);
+    const viewMonthStart = new Date(year, month - 1, 1);
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+
+    if (viewMonthStart >= thirtyDaysAgo) {
+        // Use real-time state for recent logs
+        logsForClass = state.get('allAdventureLogs').filter(log => {
+            if (log.classId !== currentLogFilter.classId) return false;
+            const dateObj = utils.parseFlexibleDate(log.date);
+            if (!dateObj || isNaN(dateObj.getTime())) return false;
+            const m = (dateObj.getMonth() + 1).toString().padStart(2, '0');
+            const y = dateObj.getFullYear();
+            return `${m}-${y}` === currentLogFilter.month;
+        });
+    } else {
+        // Fetch from Firestore on-demand for older months
+        feed.innerHTML = `
+            <div class="diary-page empty">
+                <p class="text-center text-gray-500">
+                    <i class="fas fa-spinner fa-spin mr-2"></i>
+                    Reading the archives for ${currentLogFilter.month}...
+                </p>
+            </div>`;
+        try {
+            const { fetchAdventureLogsForMonth } = await import('../../db/queries.js');
+            logsForClass = await fetchAdventureLogsForMonth(currentLogFilter.classId, year, month);
+        } catch (error) {
+            console.error("Historical log fetch failed:", error);
+        }
+    }
+
+    if (logsForClass.length === 0) {
+        const selectedMonthDisplay = document.getElementById('adventure-log-month-filter').options[document.getElementById('adventure-log-month-filter').selectedIndex]?.text;
+        feed.innerHTML = `<div class="diary-page empty"><p class="text-center text-gray-500">The diary is empty for ${selectedMonthDisplay}.<br>Award some stars and then 'Log Today's Adventure'!</p></div>`;
+        return;
+    }
+
+    // Sort descending by date
+    logsForClass.sort((a, b) => utils.parseFlexibleDate(b.date) - utils.parseFlexibleDate(a.date));
+
+    // Track if this is a re-render (to skip animations)
+    const existingEntries = feed.querySelectorAll('.diary-page');
+    const isReRender = existingEntries.length > 0;
+    const existingLogIds = isReRender ? Array.from(existingEntries).map(el => el.dataset.logId) : [];
+
+    feed.innerHTML = logsForClass.map(log => {
+        const dateObj = utils.parseFlexibleDate(log.date);
+        const displayDate = dateObj ? dateObj.toLocaleDateString('en-GB', { weekday: 'long', month: 'long', day: 'numeric' }) : log.date;
+        const title = log.title || 'Daily Chronicle';
+        const heroLabel = log.hero || 'The Class Team';
+        const entryMode = inferAdventureLogEntryMode(log);
+        const keywordsHtml = (log.keywords || []).map(kw => `<span class="diary-keyword">#${kw}</span>`).join('');
+        const highlightsHtml = (log.highlights || []).slice(0, 4).map(h => `<span class="diary-highlight-chip">${h}</span>`).join('');
+
+        const noteHtml = log.note ? `
+            <div class="diary-note">
+                <p>"${log.note}"</p>
+                <span class="diary-note-author">- Note by ${log.noteBy || 'the Teacher'}</span>
+            </div>
+        ` : '';
+
+        // Only animate if this is a new entry (not already in DOM)
+        const isNewEntry = !isReRender || !existingLogIds.includes(log.id);
+        const animationClass = isNewEntry ? 'diary-page pop-in-start' : 'diary-page';
+
+        return `
+            <div class="${animationClass}" data-log-id="${log.id}">
+                <div class="diary-header">
+                    <div>
+                        <h3 class="diary-date">${displayDate}</h3>
+                        <p class="diary-title">${title}</p>
+                    </div>
+                    <div class="flex flex-col items-end gap-2">
+                        ${getAdventureLogGenerationBadge(log)}
+                        <div class="diary-hero bg-gradient-to-r from-amber-400 to-orange-500 text-white shadow-md">
+                            <i class="fas fa-crown mr-1"></i> 
+                            <span class="uppercase tracking-tighter text-[10px] opacity-90 mr-1">Hero:</span>
+                            ${heroLabel}
+                        </div>
+                    </div>
+                </div>
+                <div class="diary-body">
+                    <div class="diary-image-container">
+                        ${renderDiaryArtwork(log, entryMode)}
+                    </div>
+                    <div class="diary-text-content">
+                        <p class="diary-text">${log.text}</p>
+                        ${highlightsHtml ? `<div class="diary-highlights">${highlightsHtml}</div>` : ''}
+                        ${noteHtml}
+                    </div>
+                </div>
+                <div class="diary-footer">
+                    <div class="diary-keywords">
+                        ${keywordsHtml}
+                    </div>
+                    <div class="flex gap-2">
+                        ${shouldShowAdventureLogRetry(log) ? `<button class="log-retry-btn bubbly-button bg-amber-100 text-amber-800 w-8 h-8 rounded-full flex items-center justify-center" data-log-id="${log.id}" title="Retry AI"><i class="fas fa-rotate-right"></i></button>` : ''}
+                        ${canEditAdventureLog(log) ? `<button class="log-edit-btn bubbly-button bg-indigo-100 text-indigo-700 w-8 h-8 rounded-full flex items-center justify-center" data-log-id="${log.id}" title="Edit Entry"><i class="fas fa-edit"></i></button>` : ''}
+                        <button class="log-note-btn bubbly-button bg-blue-100 text-blue-700 w-8 h-8 rounded-full flex items-center justify-center" data-log-id="${log.id}" title="${log.note ? 'Edit Note' : 'Add Note'}"><i class="fas fa-sticky-note"></i></button>
+                        <button class="log-delete-btn bubbly-button bg-red-100 text-red-700 w-8 h-8 rounded-full flex items-center justify-center" data-log-id="${log.id}" title="Delete Log Entry"><i class="fas fa-trash-alt"></i></button>
+                    </div>
+                </div>
+            </div>`;
+    }).join('');
+
+    // Only animate NEW pages
+    const pages = feed.querySelectorAll('.diary-page.pop-in-start');
+    pages.forEach((page, index) => {
+        setTimeout(() => {
+            page.classList.remove('pop-in-start');
+        }, 50 + (index * 80));
+    });
+}
+
+// --- GLOBAL UI SYNC FUNCTIONS ---
+export function updateAllClassSelectors(isManual) {
+    state.set('isProgrammaticSelection', true);
+    const classId = state.get('globalSelectedClassId');
+
+    syncHeaderClassSelector();
+
+    if (document.querySelector('.app-tab:not(.hidden)')?.id === 'award-stars-tab') {
+        renderAwardStarsStudentList(classId);
+    }
+
+    if (document.querySelector('.app-tab:not(.hidden)')?.id === 'options-tab') {
+        import('./navigation.js').then(m => m.renderQuizOptionsUi());
+    }
+
+    if (document.querySelector('.app-tab:not(.hidden)')?.id === 'scholars-scroll-tab') {
+        import('../../features/scholarScroll.js').then(m => m.renderScholarsScrollTab());
+    }
+
+    state.set('isProgrammaticSelection', false);
+}
+
+export function updateAllLeagueSelectors() {
+    state.set('isProgrammaticSelection', true);
+    const effective = getLeaderboardEffectiveLeague();
+    const peeking = Boolean(state.get('leaderboardLeagueOverride'));
+    const leagueButtons = [
+        { id: 'leaderboard-league-picker-btn', accent: 'amber' },
+        { id: 'student-leaderboard-league-picker-btn', accent: 'purple' }
+    ];
+    leagueButtons.forEach(({ id, accent }) => {
+        const btn = document.getElementById(id);
+        if (btn) {
+            const label = effective || 'Select a League';
+            const iconCls = accent === 'purple' ? 'text-purple-400' : 'text-amber-500';
+            const peekTag = peeking
+                ? '<span class="ml-1 text-[10px] font-black uppercase tracking-wide text-rose-500">peek</span>'
+                : '';
+            btn.innerHTML = `<i class="fas fa-layer-group ${iconCls} text-sm"></i><span>${label}</span>${peekTag}`;
+        }
+    });
+    ['leaderboard-league-match-btn', 'student-leaderboard-league-match-btn'].forEach(mid => {
+        const m = document.getElementById(mid);
+        if (m) m.classList.toggle('hidden', !peeking);
+    });
+    state.set('isProgrammaticSelection', false);
+}

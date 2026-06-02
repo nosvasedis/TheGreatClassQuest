@@ -1,0 +1,11 @@
+# Netlify: one site per school. Set env vars for that school's Firebase project.
+# The shared static build writes config.json and stages dist for all supported hosts.
+[build]
+  command = "node scripts/build-static-site.js"
+  publish = "dist"
+
+# Optional: redirect SPA if you add client-side routing later
+# [[redirects]]
+#   from = "/*"
+#   to = "/index.html"
+#   status = 200

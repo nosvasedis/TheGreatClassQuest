@@ -1,0 +1,843 @@
+/* --- V4.7: REDESIGNED AWARD STARS STYLES --- */
+@keyframes float-card {
+
+    0%,
+    100% {
+        transform: translateY(-3px);
+    }
+
+    50% {
+        transform: translateY(3px);
+    }
+}
+
+@keyframes star-jiggle {
+
+    0%,
+    100% {
+        transform: rotate(0deg) scale(1);
+    }
+
+    25% {
+        transform: rotate(-5deg) scale(1.1);
+    }
+
+    75% {
+        transform: rotate(5deg) scale(1.1);
+    }
+}
+
+@keyframes cloud-edge-breathe {
+    0%, 100% {
+        transform: scale(1.45) translateY(-1px);
+        background-position: var(--cloud-pos-x, 50%) var(--cloud-pos-y, 32%);
+    }
+
+    35% {
+        transform: scale(1.462) translateY(1px);
+        background-position: calc(var(--cloud-pos-x, 50%) - 0.22%) calc(var(--cloud-pos-y, 32%) + 0.16%);
+    }
+
+    68% {
+        transform: scale(1.452) translateY(-0.5px);
+        background-position: calc(var(--cloud-pos-x, 50%) + 0.16%) calc(var(--cloud-pos-y, 32%) - 0.12%);
+    }
+}
+
+/* ═══════════════════════════════════════════════
+   COUNTER BUBBLES — Glassmorphism Orbs
+   ═══════════════════════════════════════════════ */
+.award-counters-row {
+    display: flex;
+    gap: 0.65rem;
+    justify-content: center;
+    align-items: center;
+    padding: 0.35rem 0;
+}
+
+.counter-bubble {
+    position: relative;
+    width: 4.75rem;
+    height: 4.75rem;
+    border-radius: 50%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    background: var(--cb-bg);
+    border: 2.5px solid var(--cb-border);
+    box-shadow:
+        0 3px 10px var(--cb-shadow),
+        inset 0 -3px 6px var(--cb-inner-shadow),
+        inset 0 1px 0 rgba(255, 255, 255, 0.55);
+    transition: transform 0.28s cubic-bezier(0.34, 1.56, 0.64, 1);
+    will-change: transform;
+    cursor: default;
+}
+
+.counter-bubble:hover {
+    transform: scale(1.08) translateY(-2px);
+}
+
+/* Gradient ring — only animates on hover to save GPU */
+.counter-bubble__ring {
+    position: absolute;
+    inset: -3px;
+    border-radius: 50%;
+    background: conic-gradient(
+        from var(--cb-ring-start, 0deg),
+        var(--cb-ring-a),
+        var(--cb-ring-b),
+        var(--cb-ring-a)
+    );
+    z-index: -1;
+    opacity: 0;
+    transition: opacity 0.3s;
+    will-change: transform, opacity;
+}
+
+.counter-bubble:hover .counter-bubble__ring {
+    opacity: 0.6;
+    animation: counter-ring-spin 4s linear infinite;
+}
+
+@keyframes counter-ring-spin {
+    to { transform: rotate(360deg); }
+}
+
+.counter-bubble__label {
+    font-family: 'Fredoka One', cursive;
+    font-size: 0.56rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--cb-label);
+    opacity: 0.75;
+}
+
+.counter-bubble__value {
+    font-size: 1.85rem;
+    line-height: 1;
+    color: var(--cb-value);
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
+}
+
+.counter-bubble__icon {
+    font-size: 0.55rem;
+    color: var(--cb-icon);
+    margin-top: -1px;
+    opacity: 0.7;
+}
+
+/* ── TODAY variant ── */
+.counter-bubble--today {
+    --cb-bg:           linear-gradient(145deg, rgba(251,207,232,0.85), rgba(244,163,196,0.65));
+    --cb-border:       rgba(244, 114, 182, 0.4);
+    --cb-shadow:       rgba(244, 114, 182, 0.2);
+    --cb-inner-shadow: rgba(190, 18, 60, 0.08);
+    --cb-ring-a:       #f472b6;
+    --cb-ring-b:       #fb7185;
+    --cb-label:        #9f1239;
+    --cb-value:        #881337;
+    --cb-icon:         #f472b6;
+}
+
+/* ── MONTH variant ── */
+.counter-bubble--month {
+    --cb-bg:           linear-gradient(145deg, rgba(254,240,138,0.85), rgba(253,224,71,0.65));
+    --cb-border:       rgba(250, 204, 21, 0.45);
+    --cb-shadow:       rgba(234, 179, 8, 0.2);
+    --cb-inner-shadow: rgba(161, 98, 7, 0.08);
+    --cb-ring-a:       #facc15;
+    --cb-ring-b:       #fbbf24;
+    --cb-label:        #854d0e;
+    --cb-value:        #713f12;
+    --cb-icon:         #eab308;
+}
+
+/* ── TOTAL variant ── */
+.counter-bubble--total {
+    --cb-bg:           linear-gradient(145deg, rgba(165,243,252,0.85), rgba(103,232,249,0.65));
+    --cb-border:       rgba(34, 211, 238, 0.4);
+    --cb-shadow:       rgba(6, 182, 212, 0.2);
+    --cb-inner-shadow: rgba(14, 116, 144, 0.08);
+    --cb-ring-a:       #22d3ee;
+    --cb-ring-b:       #06b6d4;
+    --cb-label:        #155e75;
+    --cb-value:        #164e63;
+    --cb-icon:         #06b6d4;
+}
+
+/* ═══════════════════════════════════════════════
+   STAR AWARD BUTTONS — Refreshed Gem Design
+   ═══════════════════════════════════════════════ */
+
+.star-award-btn {
+    font-family: 'Fredoka One', cursive;
+    color: white;
+    transition: transform 180ms cubic-bezier(0.34, 1.56, 0.64, 1),
+                box-shadow 180ms ease-out;
+    transform: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.3rem;
+    border-radius: 1rem;
+    position: relative;
+    overflow: hidden;
+    cursor: pointer;
+    border: none;
+    border-bottom: 3px solid rgba(0, 0, 0, 0.18);
+    will-change: transform;
+}
+
+/* Number badge — floating counter inside each button */
+.star-btn__badge {
+    position: absolute;
+    top: 3px;
+    right: 3px;
+    width: 1.1rem;
+    height: 1.1rem;
+    border-radius: 50%;
+    font-family: 'Fredoka One', cursive;
+    font-size: 0.55rem;
+    line-height: 1.1rem;
+    text-align: center;
+    background: rgba(0, 0, 0, 0.25);
+    border: 1.5px solid rgba(255, 255, 255, 0.45);
+    color: rgba(255, 255, 255, 0.9);
+    z-index: 3;
+    pointer-events: none;
+    text-shadow: none;
+}
+
+/* Inner sweep-shine on all star buttons */
+.star-btn__shine {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(
+        110deg,
+        transparent 20%,
+        rgba(255, 255, 255, 0.3) 42%,
+        rgba(255, 255, 255, 0.05) 58%,
+        transparent 80%
+    );
+    background-size: 300% 100%;
+    pointer-events: none;
+    z-index: 2;
+    opacity: 0;
+    transition: opacity 0.25s;
+}
+
+.star-award-btn:hover .star-btn__shine {
+    opacity: 1;
+    animation: star-shine-sweep 0.7s ease-out;
+}
+
+@keyframes star-shine-sweep {
+    0%   { background-position: 200% 0; }
+    100% { background-position: -100% 0; }
+}
+
+.star-award-btn .fa-star {
+    position: relative;
+    z-index: 1;
+    transition: transform 0.2s, text-shadow 0.2s;
+}
+
+.star-award-btn:hover .fa-star {
+    animation: star-jiggle 0.45s ease-in-out;
+}
+
+/* ─── ★ 1 — Frosted Glass Token ─── */
+.star-btn-1 {
+    background: linear-gradient(145deg, rgba(148, 163, 184, 0.92), rgba(100, 116, 139, 0.95));
+    border-bottom-color: #475569;
+    font-size: 1.1rem;
+    padding: 0.55rem 0.9rem;
+    box-shadow:
+        0 2px 6px rgba(71, 85, 105, 0.25),
+        inset 0 1px 0 rgba(255, 255, 255, 0.25);
+}
+
+.star-btn-1 .fa-star {
+    color: #e2e8f0;
+    text-shadow: 0 0 4px rgba(226, 232, 240, 0.4);
+    font-size: 0.95em;
+}
+
+.star-btn-1 .star-btn__badge {
+    background: rgba(51, 65, 85, 0.65);
+}
+
+.star-btn-1:hover {
+    transform: scale(1.06) translateY(-2px);
+    box-shadow:
+        0 6px 16px rgba(71, 85, 105, 0.35),
+        inset 0 1px 0 rgba(255, 255, 255, 0.35),
+        0 0 12px rgba(148, 163, 184, 0.3);
+}
+
+.star-btn-1:hover .fa-star {
+    color: #f1f5f9;
+    text-shadow: 0 0 8px rgba(241, 245, 249, 0.6);
+}
+
+/* ─── ★★ 2 — Amethyst Gem ─── */
+.star-btn-2 {
+    background: linear-gradient(145deg, #a78bfa, #c084fc 40%, #e879f9);
+    border-bottom-color: #7c3aed;
+    font-size: 1.35rem;
+    padding: 0.6rem 1rem;
+    box-shadow:
+        0 3px 10px rgba(168, 85, 247, 0.35),
+        inset 0 1px 0 rgba(255, 255, 255, 0.3),
+        inset 0 -2px 4px rgba(124, 58, 237, 0.15);
+}
+
+.star-btn-2 .fa-star {
+    color: #f5f3ff;
+    text-shadow:
+        0 0 6px rgba(233, 213, 255, 0.8),
+        0 0 14px rgba(192, 132, 252, 0.4);
+}
+
+.star-btn-2 .star-btn__badge {
+    background: rgba(109, 40, 217, 0.6);
+}
+
+.star-btn-2:hover {
+    transform: scale(1.1) translateY(-3px);
+    box-shadow:
+        0 8px 24px rgba(168, 85, 247, 0.5),
+        0 0 20px rgba(192, 132, 252, 0.35),
+        inset 0 1px 0 rgba(255, 255, 255, 0.4);
+}
+
+.star-btn-2:hover .fa-star {
+    text-shadow:
+        0 0 10px rgba(255, 255, 255, 0.9),
+        0 0 20px rgba(192, 132, 252, 0.7);
+}
+
+/* ─── ★★★ 3 — Molten Gold Jewel ─── */
+.star-btn-3 {
+    background: linear-gradient(145deg, #fbbf24 0%, #f59e0b 35%, #f97316 65%, #ef4444 100%);
+    background-size: 250% 250%;
+    border-bottom-color: #c2410c;
+    font-size: 1.65rem;
+    padding: 0.7rem 1.15rem;
+    box-shadow:
+        0 3px 12px rgba(249, 115, 22, 0.35),
+        inset 0 1px 0 rgba(255, 255, 255, 0.3),
+        inset 0 -2px 6px rgba(194, 65, 12, 0.12);
+    animation: star3-ember-pulse 6s ease-in-out infinite;
+}
+
+.star-btn-3::after {
+    content: '✦';
+    position: absolute;
+    top: -2px;
+    left: -2px;
+    font-size: 0.55rem;
+    color: rgba(254, 240, 138, 0.8);
+    z-index: 4;
+    pointer-events: none;
+    animation: star3-orbiting-sparkle 5s linear infinite;
+    transform-origin: 1.2rem 1.2rem;
+}
+
+.star-btn-3 .fa-star {
+    display: inline-block;
+    color: #fef9c3;
+    text-shadow:
+        0 0 6px rgba(255, 220, 50, 0.9),
+        0 0 14px rgba(255, 180, 0, 0.5);
+    animation: star3-icon-dance 3s ease-in-out infinite alternate;
+}
+
+.star-btn-3 .star-btn__badge {
+    background: rgba(180, 52, 3, 0.55);
+    border-color: rgba(254, 243, 199, 0.6);
+}
+
+.star-btn-3:hover {
+    transform: scale(1.14) translateY(-3px);
+    box-shadow:
+        0 0 28px rgba(251, 191, 36, 0.85),
+        0 0 48px rgba(249, 115, 22, 0.35),
+        0 10px 22px -4px rgba(0, 0, 0, 0.22),
+        inset 0 1px 0 rgba(255, 255, 255, 0.4);
+    animation: star3-hover-pulse 0.7s ease-in-out infinite, star3-bg-shift 2s ease-in-out infinite;
+}
+
+.star-btn-3:hover .fa-star {
+    text-shadow:
+        0 0 12px rgba(255, 255, 150, 1),
+        0 0 24px rgba(255, 220, 0, 0.9),
+        0 0 40px rgba(255, 120, 0, 0.35);
+}
+
+/* ─── Star 3 Keyframes ─── */
+/* Subtle continuous warmth — barely perceptible glow shift */
+@keyframes star3-ember-pulse {
+    0%, 100% {
+        box-shadow:
+            0 3px 12px rgba(249, 115, 22, 0.35),
+            inset 0 1px 0 rgba(255, 255, 255, 0.3),
+            inset 0 -2px 6px rgba(194, 65, 12, 0.12);
+    }
+    50% {
+        box-shadow:
+            0 3px 14px rgba(249, 115, 22, 0.42),
+            0 0 6px rgba(251, 191, 36, 0.12),
+            inset 0 1px 0 rgba(255, 255, 255, 0.32),
+            inset 0 -2px 6px rgba(194, 65, 12, 0.14);
+    }
+}
+
+@keyframes star3-hover-pulse {
+    0%, 100% { box-shadow: 0 0 28px rgba(251, 191, 36, 0.8), 0 0 42px rgba(249, 115, 22, 0.35); }
+    50%       { box-shadow: 0 0 38px rgba(251, 191, 36, 1), 0 0 50px rgba(249, 115, 22, 0.5); }
+}
+
+@keyframes star3-bg-shift {
+    0%   { background-position: 0% 50%; }
+    50%  { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
+}
+
+@keyframes star3-icon-dance {
+    0%   { transform: translateY(0) scale(1) rotate(-4deg);    text-shadow: 0 0 6px rgba(255, 220, 50, 0.8),  0 0 12px rgba(255, 180, 0, 0.5); }
+    100% { transform: translateY(-3px) scale(1.14) rotate(4deg); text-shadow: 0 0 14px rgba(255, 255, 150, 1), 0 0 28px rgba(255, 220, 0, 0.95), 0 0 48px rgba(255, 120, 0, 0.4); }
+}
+
+@keyframes star3-orbiting-sparkle {
+    0%   { transform: rotate(0deg)   translateX(1.6rem) rotate(0deg);   opacity: 0.4; }
+    25%  { opacity: 1; }
+    50%  { transform: rotate(180deg) translateX(1.6rem) rotate(-180deg); opacity: 0.5; }
+    75%  { opacity: 0.9; }
+    100% { transform: rotate(360deg) translateX(1.6rem) rotate(-360deg); opacity: 0.4; }
+}
+
+/* ═══════════════════════════════════════════════
+   REASON-BASED AURA — backlight glow behind
+   all star buttons, colored per reason
+   ═══════════════════════════════════════════════ */
+
+/* Aura background-color per reason (plain colors — transition natively) */
+.star-selector-container[data-aura="teamwork"]  { --aura-bg: rgba(139, 92, 246, 0.45);  --aura-div: rgba(139, 92, 246, 0.55); }
+.star-selector-container[data-aura="creativity"]{ --aura-bg: rgba(236, 72, 153, 0.45);  --aura-div: rgba(236, 72, 153, 0.55); }
+.star-selector-container[data-aura="respect"]   { --aura-bg: rgba(34, 197, 94, 0.45);   --aura-div: rgba(34, 197, 94, 0.55);  }
+.star-selector-container[data-aura="focus"]     { --aura-bg: rgba(217, 119, 6, 0.45);   --aura-div: rgba(217, 119, 6, 0.55);  }
+
+/* The backlight — a soft radial glow behind all buttons (no filter:blur) */
+.star-selector-container::before {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 140%;
+    height: 350%;
+    transform: translate(-50%, -50%);
+    border-radius: 50%;
+    background: radial-gradient(
+        ellipse at center,
+        var(--aura-bg, transparent) 0%,
+        transparent 65%
+    );
+    opacity: 0;
+    z-index: -1;
+    pointer-events: none;
+    transition: opacity 0.4s ease-out;
+    will-change: opacity, transform;
+}
+
+.star-selector-container[data-aura]::before {
+    opacity: 1;
+    animation: aura-flicker 7s ease-in-out infinite;
+}
+
+/* Gentle candlelight flicker — barely perceptible living glow */
+@keyframes aura-flicker {
+    0%, 100% { opacity: 0.80; transform: translate(-50%, -50%) scale(1);    }
+    50%      { opacity: 0.95; transform: translate(-50%, -50%) scale(1.02); }
+}
+
+/* Tint the star dividers to match the aura */
+.star-selector-container[data-aura] .star-divider {
+    background: linear-gradient(to bottom, transparent, var(--aura-div, rgba(168, 85, 247, 0.4)), transparent);
+    transition: background 0.35s ease-out;
+}
+
+/* --- Award Cloud Cards --- */
+#award-stars-student-list {
+    overflow: visible;
+}
+
+/* Pause continuous Award-tab animations while scrolling.
+   Uses animation-play-state:paused so every element freezes exactly
+   where it is mid-keyframe — zero visual snap, completely invisible. */
+#award-stars-tab.award-scroll-pause .student-cloud-card,
+#award-stars-tab.award-scroll-pause .cloud-bg-svg,
+#award-stars-tab.award-scroll-pause .star-btn-3,
+#award-stars-tab.award-scroll-pause .star-btn-3::after,
+#award-stars-tab.award-scroll-pause .star-btn-3 .fa-star,
+#award-stars-tab.award-scroll-pause .floating-icon,
+#award-stars-tab.award-scroll-pause .reigning-prodigy-label .prodigy-text,
+#award-stars-tab.award-scroll-pause .teacher-boon-launch-btn,
+#award-stars-tab.award-scroll-pause .teacher-boon-launch-btn__glow,
+#award-stars-tab.award-scroll-pause .teacher-boon-launch-btn__shimmer,
+#award-stars-tab.award-scroll-pause .teacher-boon-launch-btn__sparkle,
+#award-stars-tab.award-scroll-pause .teacher-boon-launch-btn__icon,
+#award-stars-tab.award-scroll-pause .counter-bubble__ring,
+#award-stars-tab.award-scroll-pause .star-selector-container::before {
+    animation-play-state: paused !important;
+}
+
+/* 6-card stagger pattern for a less repetitive, cloud-like formation (grid children are .award-card-mount wrappers) */#award-stars-student-list > .award-card-mount:nth-child(6n + 1) {
+    margin-top: -1.05rem;
+    margin-left: -0.8rem;
+}
+
+#award-stars-student-list > .award-card-mount:nth-child(6n + 2) {
+    margin-top: 0.9rem;
+    margin-left: 0.35rem;
+}
+
+#award-stars-student-list > .award-card-mount:nth-child(6n + 3) {
+    margin-top: -0.45rem;
+    margin-left: 0.95rem;
+}
+
+#award-stars-student-list > .award-card-mount:nth-child(6n + 4) {
+    margin-top: 1.25rem;
+    margin-left: -0.25rem;
+}
+
+#award-stars-student-list > .award-card-mount:nth-child(6n + 5) {
+    margin-top: -0.7rem;
+    margin-left: 0.65rem;
+}
+
+#award-stars-student-list > .award-card-mount:nth-child(6n + 6) {
+    margin-top: 0.55rem;
+    margin-left: -0.6rem;
+}
+
+.student-cloud-card {
+    position: relative;
+    isolation: isolate;
+    background: transparent;
+    /* top: room for avatar overhang; bottom: reserved space for abs-positioned star buttons */
+    padding: 56px 1.75rem 6rem 1.75rem;
+    min-height: 28.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    overflow: visible;
+    contain: layout style;
+    will-change: transform;
+}
+
+/* Static cloud art background injected as first child */
+.cloud-bg-svg {
+    position: absolute;
+    inset: -4.2rem -1.9rem -4.2rem -1.9rem;
+    width: 100%;
+    height: 100%;
+    z-index: 0;
+    pointer-events: none;
+    opacity: var(--cloud-opacity, 1);
+    filter:
+        drop-shadow(0 8px 14px rgba(116, 136, 170, 0.05));
+    animation: cloud-edge-breathe var(--cloud-breathe-duration, 8.6s) ease-in-out infinite;
+    transform: scale(1.45);
+    transform-origin: 50% 32%;
+    will-change: transform;
+}
+
+.cloud-bg-asset {
+    background-position: var(--cloud-pos-x, 50%) var(--cloud-pos-y, 32%);
+    background-repeat: no-repeat;
+    background-size: contain;
+}
+
+.cloud-bg-asset.award-cloud-a {
+    background-image: url('../assets/award-clouds/cloud-a.png');
+    --cloud-pos-x: 47.94%;
+    --cloud-pos-y: 33.12%;
+    --cloud-breathe-duration: 8.4s;
+}
+
+.cloud-bg-asset.award-cloud-b {
+    background-image: url('../assets/award-clouds/cloud-b.png');
+    --cloud-pos-x: 49.69%;
+    --cloud-pos-y: 35.25%;
+    --cloud-breathe-duration: 9.1s;
+}
+
+.cloud-bg-asset.award-cloud-c {
+    background-image: url('../assets/award-clouds/cloud-c.png');
+    --cloud-pos-x: 48.31%;
+    --cloud-pos-y: 40.19%;
+    --cloud-breathe-duration: 8.8s;
+}
+
+.cloud-bg-asset.award-cloud-d {
+    background-image: url('../assets/award-clouds/cloud-d.png');
+    --cloud-pos-x: 51.62%;
+    --cloud-pos-y: 30.38%;
+    --cloud-breathe-duration: 9.5s;
+}
+
+.cloud-bg-asset.award-cloud-e {
+    background-image: url('../assets/award-clouds/cloud-e.png');
+    --cloud-pos-x: 48.56%;
+    --cloud-pos-y: 34.69%;
+    --cloud-breathe-duration: 8.2s;
+}
+
+.cloud-bg-asset.award-cloud-f {
+    background-image: url('../assets/award-clouds/cloud-f.png');
+    --cloud-pos-x: 48.81%;
+    --cloud-pos-y: 34.88%;
+    --cloud-breathe-duration: 9.3s;
+}
+
+.cloud-bg-asset.award-cloud-g {
+    background-image: url('../assets/award-clouds/cloud-g.png');
+    --cloud-pos-x: 52.81%;
+    --cloud-pos-y: 31.81%;
+    --cloud-opacity: 0.98;
+    --cloud-breathe-duration: 8.9s;
+}
+
+.cloud-bg-asset.award-cloud-h {
+    background-image: url('../assets/award-clouds/cloud-h.png');
+    --cloud-pos-x: 50.69%;
+    --cloud-pos-y: 34.06%;
+    --cloud-breathe-duration: 9.7s;
+}
+
+/* Reigning Prodigy: amber glow on the svg cloud */
+.award-reigning-prodigy .cloud-bg-svg {
+    filter:
+        drop-shadow(0 0 8px rgba(251, 191, 36, 0.28))
+        drop-shadow(0 8px 14px rgba(116, 136, 170, 0.05));
+}
+
+/* Reigning Hero: green glow on the svg cloud */
+.reigning-hero-card .cloud-bg-svg {
+    filter:
+        drop-shadow(0 0 8px rgba(34, 197, 94, 0.28))
+        drop-shadow(0 8px 14px rgba(116, 136, 170, 0.05));
+    animation: cloud-edge-breathe var(--cloud-breathe-duration, 8.6s) ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .cloud-bg-svg {
+        animation: none;
+        transform: scale(1.45);
+        background-position: var(--cloud-pos-x, 50%) var(--cloud-pos-y, 32%);
+    }
+    .reigning-hero-card .cloud-bg-svg {
+        animation: none;
+        transform: scale(1.45);
+        background-position: var(--cloud-pos-x, 50%) var(--cloud-pos-y, 32%);
+    }
+    .reigning-prodigy-label .prodigy-text {
+        animation: none;
+        opacity: 1;
+    }
+}
+
+.student-avatar-cloud {
+    position: absolute;
+    top: calc(-30px + var(--award-content-shift-y, 1cm));
+    left: calc(50% + var(--award-content-shift-x, -0.5cm));
+    transform: translateX(-50%);
+    width: 70px;
+    height: 70px;
+    border-radius: 9999px;
+    object-fit: cover;
+    background-color: #e5e7eb;
+    border: 4px solid white;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+    z-index: 10;
+    transition: all 0.3s ease-out;
+}
+
+.student-avatar-cloud-placeholder {
+    position: absolute;
+    top: calc(-30px + var(--award-content-shift-y, 1cm));
+    left: calc(50% + var(--award-content-shift-x, -0.5cm));
+    transform: translateX(-50%);
+    width: 70px;
+    height: 70px;
+    border-radius: 9999px;
+    background-color: #d1d5db;
+    border: 4px solid white;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+    z-index: 10;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Fredoka One', cursive;
+    font-size: 2rem;
+    color: #4b5563;
+    transition: all 0.3s ease-out;
+}
+
+
+@keyframes fade-out-down {
+    from {
+        opacity: 1;
+        transform: translateY(0);
+    }
+
+    to {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+}
+
+@keyframes fade-in-up {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.fade-out {
+    animation: fade-out-down 0.3s ease-out forwards;
+}
+
+.fade-in {
+    animation: fade-in-up 0.3s ease-out forwards;
+}
+
+/* Cloud shapes are now SVG paths — see getCloudSvg() in ui/tabs/award.js */
+
+/* Award Reigning Prodigy: background is the SVG fill; glow is on .cloud-bg-svg above */
+.award-reigning-prodigy {
+    /* intentionally empty — handled via .cloud-bg-svg and SVG fill */
+}
+
+/* Divider between star award buttons */
+.star-divider {
+    width: 1px;
+    height: 1.75rem;
+    background: linear-gradient(to bottom, transparent, var(--aura-color, rgba(168, 85, 247, 0.4)), transparent);
+    border-radius: 2px;
+    flex-shrink: 0;
+    margin: 0 0.35rem;
+    transition: background 0.35s ease-out;
+}
+
+/* "Reigning Prodigy" badge inside the cloud */
+.reigning-prodigy-label {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.3rem;
+    margin: -2px 0 4px;
+}
+
+.reigning-prodigy-label .crown-icon {
+    font-size: 0.9rem;
+    filter: drop-shadow(0 1px 2px rgba(180, 120, 0, 0.4));
+}
+
+.reigning-prodigy-label .prodigy-text {
+    font-family: 'Fredoka One', cursive;
+    font-size: 0.72rem;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: #d97706;
+    text-shadow: 0 1px 1px rgba(180, 120, 0, 0.2), 0 0 6px rgba(251, 191, 36, 0.3);
+    animation: prodigy-shimmer 2.5s ease-in-out infinite;
+}
+
+@keyframes prodigy-shimmer {
+    0%, 100% { opacity: 0.75; }
+    50%      { opacity: 1; }
+}
+
+.reigning-hero-label .crown-icon {
+    filter: drop-shadow(0 1px 2px rgba(21, 128, 61, 0.35));
+}
+
+.reigning-hero-label .prodigy-text {
+    background: none;
+    color: #16a34a;
+    -webkit-text-fill-color: #16a34a;
+    text-shadow: 0 1px 0 rgba(255, 255, 255, 0.65), 0 1px 2px rgba(22, 101, 52, 0.2);
+    filter: none;
+}
+
+.logo-select-btn:hover {
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.4);
+    transform: scale(1.1);
+    background-color: #f3f4f6;
+}
+
+@keyframes count-change {
+    0% {
+        transform: scale(1.0);
+    }
+
+    35% {
+        transform: scale(1.22) rotate(4deg);
+        box-shadow:
+            0 0 18px var(--cb-shadow, rgba(253, 224, 71, 0.6)),
+            inset 0 -3px 6px var(--cb-inner-shadow, rgba(161, 98, 7, 0.08)),
+            inset 0 1px 0 rgba(255, 255, 255, 0.7);
+    }
+
+    100% {
+        transform: scale(1.0) rotate(0deg);
+    }
+}
+
+.counter-animate {
+    animation: count-change 0.5s ease-out;
+}
+
+@keyframes float-up-down {
+
+    0%,
+    100% {
+        transform: translateY(-5px);
+    }
+
+    50% {
+        transform: translateY(5px);
+    }
+}
+
+.floating-icon {
+    animation: float-up-down 3s ease-in-out infinite;
+}
+
+@keyframes title-sparkle {
+
+    0%,
+    100% {
+        filter: brightness(1);
+        text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    }
+
+    50% {
+        filter: brightness(1.5) drop-shadow(0 0 8px #FBBF24);
+        text-shadow: 0 2px 4px rgba(251, 191, 36, 0.5);
+    }
+}
+
+.title-sparkle {
+    animation: title-sparkle 2s ease-in-out infinite;
+}

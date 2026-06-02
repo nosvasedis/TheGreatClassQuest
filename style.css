@@ -1,0 +1,160 @@
+/*
+ * style.css — Main Stylesheet Entry Point
+ * 
+ * This file imports all modular CSS sub-files in the exact original cascade order.
+ * Do not add new rules here. Add to the appropriate sub-file in styles/.
+ * 
+ * Sub-files live in: ./styles/
+ */
+
+/* 1. Base: Fonts, body, core animations, pop-in/out, date-time */
+@import url('./styles/base.css');
+
+/* 1b. Global fluffy scrollbars (Firefox + WebKit); light default + dark-panel variants */
+@import url('./styles/scrollbars.css');
+
+/* 2. Navigation bar, nav-button, nav-color-* classes, cloud swirl header */
+@import url('./styles/nav.css');
+
+/* 3. Praise toast pop-in/out animations */
+@import url('./styles/modals.css');
+
+/* 3b. Options tab: sub-tabs bar, tier-locked state */
+@import url('./styles/options.css');
+
+/* 4. Star award buttons, student cloud card, float-card, cloud shapes */
+@import url('./styles/buttons.css');
+
+/* 5. Game card, about-tab-switcher, home tab base styles */
+@import url('./styles/cards.css');
+
+/* 6. Floating star, floating-star login, prize-box shimmer */
+@import url('./styles/misc_base.css');
+
+/* 7. Calendar day cells, today-date-highlight, post-award-undo */
+@import url('./styles/calendar.css');
+
+/* 8. Delete-event-btn, narrative text, quest map path/avatar */
+@import url('./styles/diary.css');
+
+/* 9. Quest map milestones, tooltips, award flow, reason selector */
+@import url('./styles/quest_map.css');
+
+/* 10. Particles, screen-flash, shockwave, spark-fly, award effects */
+@import url('./styles/effects.css');
+
+/* 11. Student leaderboard card float, absence styles, welcome-back-btn */
+@import url('./styles/leaderboard.css');
+
+/* 11b. Guilds: color schemes, badges, quiz modal, guild leaderboard cards */
+@import url('./styles/guilds.css');
+
+/* 11c. Fortune's Wheel modal */
+@import url('./styles/fortunes_wheel.css');
+
+/* 12. Diary/adventure log pages, story-weaver styles, quest avatar tooltip */
+@import url('./styles/diary_log.css');
+
+/* 13. Story Weavers panel, storybook archive */
+@import url('./styles/story.css');
+
+/* 14. Loading screen star pulse, spinning rings */
+@import url('./styles/loading.css');
+
+/* 15. Scholar's Scroll: starfall, chart bars, trial history, bulk-log */
+@import url('./styles/scholar.css');
+
+/* 16. Overview modal stat cards, overview-tab-btn */
+@import url('./styles/overview.css');
+
+/* 17. Avatar display, avatar-maker, avatar-maker-option-btn */
+@import url('./styles/avatar.css');
+
+/* 18. Award Ceremony: ceremony-pulse, ceremony-card, podium styles, confetti */
+@import url('./styles/ceremony.css');
+
+/* 19. Tab fade-in/out, auth-screen, app-screen transition animations */
+@import url('./styles/transitions.css');
+
+/* 20. Enlargeable avatar, enlarged-avatar-container popup */
+@import url('./styles/enlarged_avatar.css');
+
+/* 21. Performance chart bars (grow-bar), chart-row, chart-label */
+@import url('./styles/performance_chart.css');
+
+/* 22. Hero stats modal: hero-avatar-float, hero-stat-item */
+@import url('./styles/hero_stats.css');
+
+/* 22b. Student analytics modal: tabs, charts, heatmap, exports */
+@import url('./styles/student_analytics.css');
+
+/* 23. Bulk trial log modal: bulk-log-item, toggle-absent-btn */
+@import url('./styles/bulk_trial.css');
+
+/* 24. Holiday calendar overlays: christmas, easter, generic, makeup work */
+@import url('./styles/holiday.css');
+
+/* 25. Projector/presentation mode: body.projector-mode styles */
+@import url('./styles/projector.css');
+
+/* 26. Bounty cards, shop item cards, inventory grid, coin-pill */
+@import url('./styles/shop.css');
+
+/* 27. Wallpaper enter/exit, celestial day/night, float-card color themes */
+@import url('./styles/wallpaper.css');
+
+/* 28. Dashboard card, stat-value, info-tab-switcher, home stagger animations */
+@import url('./styles/dashboard.css');
+
+/* 29. Vibrant Horizons home theme: horizons-grid, weather widget, schedule cards */
+@import url('./styles/home.css');
+
+/* 30. Roster avatar wiggle, header header-night, new weather widget themes */
+@import url('./styles/misc_wallpaper.css');
+
+/* 31. Ceremony V2 revamp: card-enter, heartbeat, ceremony-display-card, confetti-piece, ceremony leaderboard */
+@import url('./styles/ceremony2.css');
+
+/* 32. Wallpaper V2/V3: float-bob-v2, wallpaper-float-card, night hub, legibility fixes, mindfulness, seasonal, weather states */
+@import url('./styles/wallpaper2.css');
+
+/* 33. Loading text breathe animation, .loading-text styles */
+@import url('./styles/loading2.css');
+
+/* 34. Weather effects: stormy/rainy/snowy/cloudy header/wallpaper overlays, night-mode body */
+@import url('./styles/weather_effects.css');
+
+/* 34b. Award immersive sky mirrors header weather (sun/moon, rain/snow, gradients) */
+@import url('./styles/award_immersive_weather.css');
+
+/* 35. Misc end: shop confirm, star-day-glow, reigning-hero-card, crown badge */
+@import url('./styles/misc_end.css');
+
+/* 36. Familiars: sprite sheet cycling, egg wobble, per-type animations */
+@import url('./styles/familiars.css');
+
+/* 36b. Familiars: stats overlay redesign — animated card, particles, stagger */
+@import url('./styles/familiar_modal.css');
+
+/* 37. Grand Guild Ceremony: ultimate end-of-year celebration styles */
+@import url('./styles/grandGuildCeremony.css');
+
+/* 38. Role-aware screens: parent portal, secretary console, access center */
+@import url('./styles/roles.css');
+
+/* 39. Quiz of the Week: weather button + game-show modal styles */
+@import url('./styles/quiz_of_the_week.css');
+
+/* 40. Hero's Chronicle: notes, tabs, and Oracle AI styles */
+@import url('./styles/chronicle.css');
+
+/* 41. Skill Tree: RPG path, node glows, and branch card animations */
+@import url('./styles/skill_tree.css');
+
+/* 42. Inventory Refresh: Beautiful expanded inventory view */
+@import url('./styles/inventory_refresh.css');
+
+/* 43. Refreshed Team Quest Analysis Cards */
+@import url('./styles/team_quest_cards.css');
+
+

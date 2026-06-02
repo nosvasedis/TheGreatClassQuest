@@ -1,0 +1,1246 @@
+// /db/actions/stars.js — scores, stars, award log, purge
+import {
+    db,
+    doc,
+    addDoc,
+    updateDoc,
+    getDoc,
+    collection,
+    query,
+    where,
+    getDocs,
+    runTransaction,
+    writeBatch,
+    serverTimestamp,
+    increment,
+    orderBy,
+    limit,
+} from "../../firebase.js";
+import * as state from "../../state.js";
+import { showToast, showPraiseToast } from "../../ui/effects.js";
+import {
+    showStarfallModal,
+    showBatchStarfallModal,
+    showModal,
+    hideModal,
+} from "../../ui/modals.js";
+import { playSound, playHeroFanfare } from "../../audio.js";
+import {
+    getTodayDateString,
+    getStartOfMonthString,
+    debounce,
+    parseDDMMYYYY,
+    parseFlexibleDate,
+    datesMatch,
+    getClassMonthlyQuestStars,
+    calculateMonthlyClassGoal,
+} from "../../utils.js";
+import { checkBountyProgress } from "./bounties.js";
+import {
+    calculateHeroGold,
+    canChangeHeroClass,
+} from "../../features/heroClasses.js";
+import { updateGuildScores } from "../../features/guildScoring.js";
+import {
+    computeHeroLevel,
+    getHeroReason,
+    getOutwardEffects,
+} from "../../features/heroSkillTree.js";
+import { reconcileFamiliarLifecycle } from "../../features/familiars.js";
+import { canUseFeature } from "../../utils/subscription.js";
+import { getAwardLogMonthlyStarCredit } from "../../features/awardLogReasonMeta.js";
+
+// --- SCORE, STAR, & LOG ACTIONS ---
+
+export async function setStudentStarsForToday(
+    studentId,
+    starValue,
+    reason = null,
+) {
+    const today = getTodayDateString();
+    const publicDataPath = "artifacts/great-class-quest/public/data";
+
+    let finalStarValue = starValue;
+    const activeEvent = state
+        .get("allQuestEvents")
+        .find((e) => datesMatch(e.date, today));
+    if (activeEvent) {
+        if (activeEvent.type === "2x Star Day" && starValue > 0) {
+            finalStarValue *= 2;
+        } else if (
+            activeEvent.type === "Reason Bonus Day" &&
+            activeEvent.details?.reason === reason &&
+            starValue > 0
+        ) {
+            finalStarValue += 1;
+        }
+    }
+
+    // Audio
+    if (
+        starValue > 0 &&
+        reason !== "welcome_back" &&
+        reason !== "story_weaver" &&
+        reason !== "scholar_s_bonus"
+    ) {
+        if (starValue === 1) playSound("star1");
+        else if (starValue === 2) playSound("star2");
+        else playSound("star3");
+    } else if (reason === "marked_present") {
+        playSound("confirm");
+    }
+
+    let studentClassId = null;
+    let difference = 0;
+    const heroProgressionEnabled = canUseFeature("heroProgression");
+    /** Set when a hero level-up occurs in the transaction; used after commit to show celebration modal. */
+    let levelUpInfo = null;
+
+    // HERO'S BOON LOGIC
+
+    try {
+        let isHeroBoonEligible = false;
+        let heroBoonNote = "";
+        const reigningHero = state.get("reigningHero");
+
+        // If they are the hero, and this is a positive star award...
+        if (reigningHero && reigningHero.id === studentId && starValue > 0) {
+            // Check if they already have stars today (we only give the bonus once)
+            const hasStarsAlready =
+                state.get("todaysStars")[studentId]?.stars > 0;
+            if (!hasStarsAlready) {
+                isHeroBoonEligible = true;
+                finalStarValue += 1; // Add the bonus star to the total
+                heroBoonNote = "🛡️ Includes Hero's Boon (+1 Bonus Star)";
+            }
+        }
+
+        await runTransaction(db, async (transaction) => {
+            /** Actual star delta applied to totalStars/monthlyStars for the daily performance log row (includes skill bonuses). */
+            let appliedCreditForDailyLog = null;
+
+            const studentRef = doc(db, `${publicDataPath}/students`, studentId);
+            const scoreRef = doc(
+                db,
+                `${publicDataPath}/student_scores`,
+                studentId,
+            );
+
+            const todayStarsQuery = query(
+                collection(db, `${publicDataPath}/today_stars`),
+                where("studentId", "==", studentId),
+                where("teacherId", "==", state.get("currentUserId")),
+                where("date", "==", today),
+            );
+            const todayStarsSnapshot = await getDocs(todayStarsQuery);
+
+            let todayDocRef = null;
+            let oldStars = 0;
+            if (!todayStarsSnapshot.empty) {
+                const todayDoc = todayStarsSnapshot.docs[0];
+                todayDocRef = todayDoc.ref;
+                oldStars = todayDoc.data().stars || 0;
+            }
+
+            difference = finalStarValue - oldStars;
+
+            if (difference === 0 && finalStarValue > 0) {
+                const logId = state.get("todaysAwardLogs")[studentId];
+                if (logId) {
+                    const logRef = doc(
+                        db,
+                        `${publicDataPath}/award_log`,
+                        logId,
+                    );
+                    transaction.update(logRef, { reason });
+                }
+                return;
+            }
+
+            if (difference === 0 && reason !== "marked_present" && !todayDocRef)
+                return;
+
+            const studentDoc = await transaction.get(studentRef);
+            if (!studentDoc.exists()) throw new Error("Student not found!");
+            const studentData = studentDoc.data();
+            studentClassId = studentData.classId;
+
+            const scoreDoc = await transaction.get(scoreRef);
+
+            if (!scoreDoc.exists()) {
+                // Create new score doc
+                transaction.set(scoreRef, {
+                    totalStars: difference > 0 ? difference : 0,
+                    monthlyStars: difference > 0 ? difference : 0,
+                    gold: difference > 0 ? difference : 0,
+                    inventory: [],
+                    lastMonthlyResetDate: getStartOfMonthString(),
+                    createdBy: {
+                        uid: studentData.createdBy.uid,
+                        name: studentData.createdBy.name,
+                    },
+                });
+                if (difference !== 0) {
+                    appliedCreditForDailyLog = difference;
+                }
+            } else {
+                // Update existing score doc
+                const currentData = scoreDoc.data();
+
+                // POWER UP: Scroll of the Gilded Star (Triple Gold)
+                let multiplier = 1;
+                if (difference > 0 && currentData.hasGildedEffect) {
+                    multiplier = 3;
+                    transaction.update(scoreRef, { hasGildedEffect: false }); // Consume it
+                    // NOTE: We can't show a toast from inside a transaction easily, but the gold update will be visible
+                }
+
+                // POWER UP: Elixir of Luck (50% chance for +1 Star)
+                // We check if luckDate matches TODAY and if we haven't already applied a luck bonus this transaction
+                if (
+                    currentData.luckDate === today &&
+                    difference > 0 &&
+                    !isHeroBoonEligible
+                ) {
+                    // Simple deterministic check based on time to avoid random in transaction re-runs?
+                    // No, simpler: Just do it. If transaction retries, it might re-roll, which is acceptable.
+                    if (Math.random() < 0.5) {
+                        finalStarValue += 1; // Add actual star
+                        difference += 1; // Update diff
+                        // We consume the date so it doesn't trigger again today
+                        transaction.update(scoreRef, { luckDate: null });
+                    } else {
+                        // Consumed without luck (User tried and failed)
+                        transaction.update(scoreRef, { luckDate: null });
+                    }
+                }
+
+                const safeCurrentGold =
+                    typeof currentData.gold === "number"
+                        ? currentData.gold
+                        : currentData.totalStars || 0;
+
+                // Calculate Gold + Skill Bonuses
+                const { goldChange, bonusStars } = heroProgressionEnabled
+                    ? calculateHeroGold(
+                          studentData,
+                          reason,
+                          difference,
+                          currentData,
+                      )
+                    : { goldChange: difference, bonusStars: 0 };
+                const totalGoldChange = goldChange * multiplier;
+                const totalDifference = difference + bonusStars;
+
+                if (difference !== 0) {
+                    appliedCreditForDailyLog = totalDifference;
+                    // --- Track starsByReason for hero skill tree ---
+                    const heroClass = studentData.heroClass;
+                    const classReason = getHeroReason(heroClass);
+                    const updates = {
+                        totalStars: increment(totalDifference),
+                        monthlyStars: increment(totalDifference),
+                        gold: Math.max(0, safeCurrentGold + totalGoldChange),
+                    };
+                    if (
+                        heroProgressionEnabled &&
+                        heroClass &&
+                        classReason &&
+                        reason === classReason &&
+                        difference > 0
+                    ) {
+                        const currentReasonStars =
+                            currentData.starsByReason?.[classReason] || 0;
+                        const newReasonStars = currentReasonStars + difference;
+                        updates[`starsByReason.${classReason}`] =
+                            newReasonStars;
+
+                        // Level-up check
+                        const currentHeroLevel = currentData.heroLevel || 0;
+                        const newHeroLevel = computeHeroLevel(
+                            heroClass,
+                            newReasonStars,
+                        );
+                        if (newHeroLevel > currentHeroLevel) {
+                            updates.heroLevel = newHeroLevel;
+                            updates.pendingSkillChoice = true;
+                            levelUpInfo = {
+                                studentId,
+                                studentName: studentData.name,
+                                newHeroLevel,
+                                heroClass,
+                            };
+                        }
+                    }
+                    transaction.update(scoreRef, updates);
+                }
+            }
+
+            // --- Daily Record Logic (Runs for everyone) ---
+            if (todayDocRef) {
+                if (finalStarValue === 0 && reason !== "marked_present") {
+                    transaction.delete(todayDocRef);
+                } else {
+                    transaction.update(todayDocRef, {
+                        stars: finalStarValue,
+                        reason: reason,
+                    });
+                }
+            } else {
+                if (finalStarValue > 0 || reason === "marked_present") {
+                    const newTodayDocRef = doc(
+                        collection(db, `${publicDataPath}/today_stars`),
+                    );
+                    transaction.set(newTodayDocRef, {
+                        studentId,
+                        stars: finalStarValue,
+                        date: today,
+                        reason: reason,
+                        teacherId: state.get("currentUserId"),
+                        createdBy: {
+                            uid: state.get("currentUserId"),
+                            name: state.get("currentTeacherName"),
+                        },
+                    });
+                }
+            }
+
+            // FIX: Find the SPECIFIC log for "standard" daily stars, ignore bonuses
+            const allTodaysLogs = state
+                .get("allAwardLogs")
+                .filter((l) => l.studentId === studentId && l.date === today);
+            const dailyPerformanceLog = allTodaysLogs.find(
+                (l) =>
+                    ![
+                        "welcome_back",
+                        "scholar_s_bonus",
+                        "story_weaver",
+                        "peer_boon",
+                    ].includes(l.reason),
+            );
+
+            if (finalStarValue === 0) {
+                if (dailyPerformanceLog)
+                    transaction.delete(
+                        doc(
+                            db,
+                            `${publicDataPath}/award_log`,
+                            dailyPerformanceLog.id,
+                        ),
+                    );
+            } else if (finalStarValue > 0) {
+                const logData = {
+                    studentId,
+                    classId: studentData.classId,
+                    teacherId: state.get("currentUserId"),
+                    stars: finalStarValue,
+                    ...(appliedCreditForDailyLog != null
+                        ? { appliedStarCredit: appliedCreditForDailyLog }
+                        : {}),
+                    reason: reason || "excellence",
+                    note: heroBoonNote || "",
+                    date: today,
+                    createdAt: serverTimestamp(),
+                    createdBy: {
+                        uid: state.get("currentUserId"),
+                        name: state.get("currentTeacherName"),
+                    },
+                };
+
+                if (dailyPerformanceLog) {
+                    transaction.update(
+                        doc(
+                            db,
+                            `${publicDataPath}/award_log`,
+                            dailyPerformanceLog.id,
+                        ),
+                        {
+                            stars: finalStarValue,
+                            ...(appliedCreditForDailyLog != null
+                                ? {
+                                      appliedStarCredit:
+                                          appliedCreditForDailyLog,
+                                  }
+                                : {}),
+                            reason: reason || dailyPerformanceLog.reason,
+                        },
+                    );
+                } else {
+                    transaction.set(
+                        doc(collection(db, `${publicDataPath}/award_log`)),
+                        logData,
+                    );
+                }
+            }
+        });
+
+        if (isHeroBoonEligible) {
+            const student = state
+                .get("allStudents")
+                .find((s) => s.id === studentId);
+            const firstName = student ? student.name.split(" ")[0] : "Hero";
+
+            // Delayed visual for dramatic effect
+            setTimeout(() => {
+                import("../../ui/effects.js").then((m) => {
+                    m.showPraiseToast(
+                        `${firstName} activated their Hero's Boon! +1 Star added to the coffers!`,
+                        "🛡️",
+                    );
+                });
+                playSound("magic_chime");
+            }, 800);
+        }
+
+        // --- Side Effects (After Transaction) ---
+        if (studentClassId && difference > 0) {
+            debouncedCheckAndRecordQuestCompletion(studentClassId);
+            checkBountyProgress(studentClassId, difference);
+            updateGuildScores(studentId, difference);
+            // Apply outward skill effects (guildmate/classmate gold) — fire-and-forget
+            _applyOutwardSkillEffects(
+                studentId,
+                studentClassId,
+                reason,
+                difference,
+            ).catch((e) => console.warn("Outward skill effect failed:", e));
+            // Check familiar hatch / level-up — fire-and-forget
+            reconcileFamiliarLifecycle(studentId, {
+                announce: true,
+                source: "stars",
+            }).catch((e) => console.warn("Familiar check failed:", e));
+        }
+
+        // --- Hero Level-Up Celebration (after successful transaction) ---
+        if (levelUpInfo) {
+            showHeroLevelUpCelebration(levelUpInfo);
+        }
+    } catch (error) {
+        console.error("Star update transaction failed:", error);
+        showToast("Error saving stars! Please try again.", "error");
+    }
+}
+
+export function applyReasonAwardScoreTransaction(
+    transaction,
+    {
+        scoreRef,
+        studentId,
+        studentData,
+        scoreData = null,
+        reason,
+        awardedStars,
+    },
+) {
+    const heroProgressionEnabled = canUseFeature("heroProgression");
+    const currentTotalStars = Number(scoreData?.totalStars) || 0;
+    const currentMonthlyStars = Number(scoreData?.monthlyStars) || 0;
+    const safeCurrentGold =
+        typeof scoreData?.gold === "number"
+            ? scoreData.gold
+            : currentTotalStars;
+    const currentStarsByReason = scoreData?.starsByReason || {};
+    const currentHeroLevel = scoreData?.heroLevel || 0;
+
+    const { goldChange, bonusStars } = heroProgressionEnabled
+        ? calculateHeroGold(studentData, reason, awardedStars, scoreData)
+        : { goldChange: awardedStars, bonusStars: 0 };
+
+    const totalStarsDelta = awardedStars + bonusStars;
+    const nextScoreData = {
+        totalStars: currentTotalStars + totalStarsDelta,
+        monthlyStars: currentMonthlyStars + totalStarsDelta,
+        gold: safeCurrentGold + goldChange,
+    };
+
+    let levelUpInfo = null;
+    const heroClass = studentData?.heroClass;
+    const classReason = getHeroReason(heroClass);
+
+    if (
+        heroProgressionEnabled &&
+        heroClass &&
+        classReason &&
+        reason === classReason &&
+        awardedStars > 0
+    ) {
+        const newReasonStars =
+            (currentStarsByReason[classReason] || 0) + awardedStars;
+        nextScoreData.starsByReason = {
+            ...currentStarsByReason,
+            [classReason]: newReasonStars,
+        };
+
+        const newHeroLevel = computeHeroLevel(heroClass, newReasonStars);
+        nextScoreData.heroLevel = newHeroLevel;
+
+        if (newHeroLevel > currentHeroLevel) {
+            nextScoreData.pendingSkillChoice = true;
+            levelUpInfo = {
+                studentId,
+                studentName: studentData.name,
+                newHeroLevel,
+                heroClass,
+            };
+        }
+    }
+
+    if (scoreData) {
+        transaction.update(scoreRef, nextScoreData);
+    } else {
+        transaction.set(scoreRef, {
+            inventory: [],
+            starsByReason: {},
+            heroLevel: 0,
+            heroSkills: [],
+            pendingSkillChoice: false,
+            lastMonthlyResetDate: getStartOfMonthString(),
+            createdBy: {
+                uid: studentData?.createdBy?.uid || state.get("currentUserId"),
+                name:
+                    studentData?.createdBy?.name ||
+                    state.get("currentTeacherName"),
+            },
+            ...nextScoreData,
+        });
+    }
+
+    return { levelUpInfo, totalStarsDelta };
+}
+
+export function showHeroLevelUpCelebration(levelUpInfo) {
+    if (!levelUpInfo) return;
+    playHeroFanfare();
+    import("../../ui/modals/hero.js").then((m) =>
+        m.showHeroLevelUpCelebration(levelUpInfo),
+    );
+}
+
+export function applyAwardOutwardSkillEffects(
+    studentId,
+    classId,
+    reason,
+    awardedStars,
+) {
+    if (!studentId || !classId || !reason || awardedStars <= 0)
+        return Promise.resolve();
+    return _applyOutwardSkillEffects(studentId, classId, reason, awardedStars);
+}
+
+export async function reconcileScholarAndNomadProgressFromLogs() {
+    if (!canUseFeature("heroProgression")) return;
+
+    const targetStudents = state
+        .get("allStudents")
+        .filter((student) => ["Scholar", "Nomad"].includes(student.heroClass));
+    if (targetStudents.length === 0) return;
+
+    const publicDataPath = "artifacts/great-class-quest/public/data";
+    const scoresById = new Map(
+        state.get("allStudentScores").map((score) => [score.id, score]),
+    );
+    const batch = writeBatch(db);
+    let hasUpdates = false;
+
+    for (const student of targetStudents) {
+        const scoreData = scoresById.get(student.id);
+        if (!scoreData) continue;
+
+        const reason = getHeroReason(student.heroClass);
+        if (!reason) continue;
+
+        const logsSnapshot = await getDocs(
+            query(
+                collection(db, `${publicDataPath}/award_log`),
+                where("studentId", "==", student.id),
+                where("reason", "==", reason),
+            ),
+        );
+
+        const reasonStars = logsSnapshot.docs.reduce(
+            (total, logDoc) => total + (Number(logDoc.data().stars) || 0),
+            0,
+        );
+        const expectedLevel = computeHeroLevel(student.heroClass, reasonStars);
+        const currentReasonStars = scoreData.starsByReason?.[reason] || 0;
+        const currentLevel = scoreData.heroLevel || 0;
+
+        if (
+            Math.abs(currentReasonStars - reasonStars) < 0.0001 &&
+            currentLevel === expectedLevel
+        )
+            continue;
+
+        const scoreRef = doc(
+            db,
+            `${publicDataPath}/student_scores`,
+            student.id,
+        );
+        const scorePatch = {
+            [`starsByReason.${reason}`]: reasonStars,
+            heroLevel: expectedLevel,
+        };
+
+        if (expectedLevel > currentLevel) {
+            scorePatch.pendingSkillChoice = true;
+        }
+
+        batch.update(scoreRef, scorePatch);
+        hasUpdates = true;
+    }
+
+    if (hasUpdates) {
+        await batch.commit();
+    }
+}
+
+export async function checkAndRecordQuestCompletion(classId) {
+    const classRef = doc(
+        db,
+        "artifacts/great-class-quest/public/data/classes",
+        classId,
+    );
+    const classDoc = await getDoc(classRef);
+    if (!classDoc.exists()) return;
+
+    const currentDifficulty = classDoc.data().difficultyLevel || 0;
+
+    // 1. Check if already completed this month to prevent duplicates
+    // Fix: Check regardless of difficulty level to prevent annoying popups
+    if (classDoc.data().questCompletedAt) {
+        const completedDate = classDoc.data().questCompletedAt.toDate();
+        const now = new Date();
+        if (
+            completedDate.getMonth() === now.getMonth() &&
+            completedDate.getFullYear() === now.getFullYear()
+        ) {
+            // Already completed this month - don't show popup or re-record
+            return;
+        }
+    }
+
+    // 2. Calculate Goals (Same logic as UI)
+    const studentsInClass = state
+        .get("allStudents")
+        .filter((s) => s.classId === classId);
+    const studentCount = studentsInClass.length;
+    if (studentCount === 0) return;
+
+    const diamondGoal = calculateMonthlyClassGoal(
+        classDoc.data(),
+        studentCount,
+        state.get("schoolHolidayRanges"),
+        state.get("allScheduleOverrides"),
+    );
+
+    // 3. Calculate Current Stars
+    const allScores = state.get("allStudentScores");
+    const { totalStars: currentMonthlyStars } = getClassMonthlyQuestStars(
+        classDoc.data(),
+        studentsInClass,
+        allScores,
+    );
+
+    // 4. Check for Victory & SAVE HISTORY
+    if (currentMonthlyStars >= diamondGoal) {
+        console.log(`Class ${classDoc.data().name} has completed the quest!`);
+
+        const batch = writeBatch(db);
+
+        // A. Update the Class (Level Up)
+        batch.update(classRef, {
+            questCompletedAt: serverTimestamp(),
+            difficultyLevel: increment(1),
+        });
+
+        // B. Create Persistent History Record
+        const historyRef = doc(
+            collection(
+                db,
+                "artifacts/great-class-quest/public/data/quest_history",
+            ),
+        );
+        batch.set(historyRef, {
+            classId: classId,
+            className: classDoc.data().name,
+            levelReached: currentDifficulty + 1, // They just finished currentDifficulty to reach +1
+            goalTarget: diamondGoal,
+            starsEarned: currentMonthlyStars,
+            completedAt: serverTimestamp(),
+            monthKey: new Date().toISOString().slice(0, 7), // "2026-01"
+            createdBy: {
+                uid: state.get("currentUserId"),
+                name: state.get("currentTeacherName"),
+            },
+        });
+
+        await batch.commit();
+        playSound("magic_chime");
+    }
+}
+
+const debouncedCheckAndRecordQuestCompletion = debounce(
+    checkAndRecordQuestCompletion,
+    4000,
+);
+
+export async function handleDeleteAwardLog(logId) {
+    const publicDataPath = "artifacts/great-class-quest/public/data";
+    try {
+        await runTransaction(db, async (transaction) => {
+            const logRef = doc(db, `${publicDataPath}/award_log`, logId);
+
+            const logDoc = await transaction.get(logRef);
+            if (!logDoc.exists()) {
+                return;
+            }
+            const logData = logDoc.data();
+            const starCredit = getAwardLogMonthlyStarCredit({
+                ...logData,
+                id: logId,
+            });
+            const studentId = logData.studentId;
+
+            const scoreRef = doc(
+                db,
+                `${publicDataPath}/student_scores`,
+                studentId,
+            );
+            const scoreDoc = await transaction.get(scoreRef);
+            if (scoreDoc.exists()) {
+                const logDate = parseDDMMYYYY(logData.date);
+                const today = new Date();
+                const isCurrentMonth =
+                    logDate.getMonth() === today.getMonth() &&
+                    logDate.getFullYear() === today.getFullYear();
+
+                const updates = { totalStars: increment(-starCredit) };
+                if (isCurrentMonth) {
+                    updates.monthlyStars = increment(-starCredit);
+                }
+                transaction.update(scoreRef, updates);
+            }
+
+            transaction.delete(logRef);
+
+            if (logData.date === getTodayDateString()) {
+                const todayStarsQuery = query(
+                    collection(db, `${publicDataPath}/today_stars`),
+                    where("studentId", "==", studentId),
+                    where("teacherId", "==", state.get("currentUserId")),
+                );
+                const todayStarsSnapshot = await getDocs(todayStarsQuery);
+                todayStarsSnapshot.forEach((doc) =>
+                    transaction.delete(doc.ref),
+                );
+            }
+        });
+
+        showToast("Log entry deleted successfully!", "success");
+
+        const logElement = document.getElementById(`log-entry-${logId}`);
+        if (logElement) {
+            logElement.style.transition =
+                "opacity 0.3s ease, transform 0.3s ease";
+            logElement.style.opacity = "0";
+            logElement.style.transform = "scale(0.9)";
+            setTimeout(() => {
+                logElement.remove();
+                const contentEl = document.getElementById(
+                    "logbook-modal-content",
+                );
+                if (
+                    contentEl &&
+                    contentEl.querySelectorAll('[id^="log-entry-"]').length ===
+                        0
+                ) {
+                    const container = contentEl.querySelector(".mb-4.bg-white");
+                    if (
+                        container &&
+                        container.querySelectorAll('[id^="log-entry-"]')
+                            .length === 0
+                    ) {
+                        container.remove();
+                    }
+                    if (
+                        contentEl.querySelectorAll(".mb-4.bg-white").length ===
+                        0
+                    ) {
+                        hideModal("logbook-modal");
+                    }
+                }
+            }, 300);
+        }
+    } catch (error) {
+        console.error("Error deleting award log:", error);
+        showToast(`Failed to delete log entry: ${error.message}`, "error");
+    }
+}
+
+export async function handleSaveAwardNote() {
+    const logId = document.getElementById("award-note-log-id-input").value;
+    const newNote = document.getElementById("award-note-textarea").value;
+    try {
+        await updateDoc(
+            doc(db, "artifacts/great-class-quest/public/data/award_log", logId),
+            { note: newNote },
+        );
+        showToast("Note saved!", "success");
+        hideModal("award-note-modal");
+    } catch (error) {
+        console.error("Error saving award note:", error);
+        showToast("Failed to save note.", "error");
+    }
+}
+
+export async function handleAddStarsManually() {
+    const studentId = document.getElementById(
+        "star-manager-student-select",
+    ).value;
+    const date = document.getElementById("star-manager-date").value;
+    const starsToAdd = parseFloat(
+        document.getElementById("star-manager-stars-to-add").value,
+    );
+    const reason = document.getElementById("star-manager-reason").value;
+
+    if (!studentId || !date || !starsToAdd || starsToAdd <= 0 || !reason) {
+        showToast("Please fill out all fields correctly.", "error");
+        return;
+    }
+
+    const student = state.get("allStudents").find((s) => s.id === studentId);
+    if (!student) {
+        showToast("Selected student not found.", "error");
+        return;
+    }
+
+    const btn = document.getElementById("star-manager-add-btn");
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> Adding...';
+
+    try {
+        await runTransaction(db, async (transaction) => {
+            const publicDataPath = "artifacts/great-class-quest/public/data";
+            const scoreRef = doc(
+                db,
+                `${publicDataPath}/student_scores`,
+                studentId,
+            );
+
+            const scoreDoc = await transaction.get(scoreRef);
+            if (!scoreDoc.exists())
+                throw new Error(
+                    "Student score record not found. Cannot add stars.",
+                );
+
+            const logDateObject = parseFlexibleDate(date) || new Date(date);
+            const dParts = logDateObject;
+            const dateForDb = `${String(dParts.getDate()).padStart(2, "0")}-${String(dParts.getMonth() + 1).padStart(2, "0")}-${dParts.getFullYear()}`;
+
+            const logData = {
+                studentId,
+                classId: student.classId,
+                teacherId: state.get("currentUserId"),
+                stars: starsToAdd,
+                appliedStarCredit: starsToAdd,
+                reason,
+                date: dateForDb,
+                createdAt: serverTimestamp(),
+                createdBy: {
+                    uid: state.get("currentUserId"),
+                    name: state.get("currentTeacherName"),
+                },
+            };
+
+            transaction.set(
+                doc(collection(db, `${publicDataPath}/award_log`)),
+                logData,
+            );
+
+            const logDate = new Date(date);
+            const today = new Date();
+            const isCurrentMonth =
+                logDate.getMonth() === today.getMonth() &&
+                logDate.getFullYear() === today.getFullYear();
+
+            const updates = { totalStars: increment(starsToAdd) };
+            if (isCurrentMonth) {
+                updates.monthlyStars = increment(starsToAdd);
+            }
+            transaction.update(scoreRef, updates);
+        });
+        reconcileFamiliarLifecycle(studentId, {
+            announce: true,
+            source: "manual-log",
+        }).catch((e) =>
+            console.warn("Manual familiar reconciliation failed:", e),
+        );
+        showToast(
+            `${starsToAdd} star(s) for ${reason} added to ${student.name}'s log for ${date}.`,
+            "success",
+        );
+    } catch (error) {
+        console.error("Error adding stars manually: ", error);
+        showToast(`Error: ${error.message}`, "error");
+    } finally {
+        btn.disabled = false;
+        btn.innerHTML =
+            '<i class="fas fa-plus-circle mr-2"></i> Add Stars to Log';
+    }
+}
+
+export async function handleSetStudentScores() {
+    const studentId = document.getElementById(
+        "star-manager-student-select",
+    ).value;
+    if (!studentId) return;
+
+    const todayStarsVal = parseFloat(
+        document.getElementById("override-today-stars").value,
+    );
+    const monthlyStarsVal = parseFloat(
+        document.getElementById("override-monthly-stars").value,
+    );
+    const totalStarsVal = parseFloat(
+        document.getElementById("override-total-stars").value,
+    );
+
+    if (
+        isNaN(todayStarsVal) ||
+        isNaN(monthlyStarsVal) ||
+        isNaN(totalStarsVal)
+    ) {
+        showToast("Please enter valid numbers for all scores.", "error");
+        return;
+    }
+
+    const btn = document.getElementById("star-manager-override-btn");
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> Setting...';
+    const previousTotalStars =
+        state.get("allStudentScores").find((s) => s.id === studentId)
+            ?.totalStars || 0;
+
+    try {
+        await runTransaction(db, async (transaction) => {
+            const publicDataPath = "artifacts/great-class-quest/public/data";
+            const scoreRef = doc(
+                db,
+                `${publicDataPath}/student_scores`,
+                studentId,
+            );
+            const todayDocId = state.get("todaysStars")[studentId]?.docId;
+            const todayDocRef = todayDocId
+                ? doc(db, `${publicDataPath}/today_stars`, todayDocId)
+                : null;
+
+            transaction.update(scoreRef, {
+                monthlyStars: monthlyStarsVal,
+                totalStars: totalStarsVal,
+            });
+
+            if (todayStarsVal > 0) {
+                const todayData = {
+                    studentId,
+                    stars: todayStarsVal,
+                    date: getTodayDateString(),
+                    teacherId: state.get("currentUserId"),
+                    createdBy: {
+                        uid: state.get("currentUserId"),
+                        name: state.get("currentTeacherName"),
+                    },
+                };
+                if (todayDocRef) {
+                    transaction.update(todayDocRef, { stars: todayStarsVal });
+                } else {
+                    transaction.set(
+                        doc(collection(db, `${publicDataPath}/today_stars`)),
+                        todayData,
+                    );
+                }
+            } else {
+                if (todayDocRef) {
+                    transaction.delete(todayDocRef);
+                }
+            }
+        });
+        const student = state
+            .get("allStudents")
+            .find((s) => s.id === studentId);
+        if (totalStarsVal > previousTotalStars) {
+            reconcileFamiliarLifecycle(studentId, {
+                announce: true,
+                source: "score-override",
+            }).catch((e) =>
+                console.warn("Override familiar reconciliation failed:", e),
+            );
+        }
+        showToast(`Scores for ${student.name} have been updated.`, "success");
+    } catch (error) {
+        console.error("Error overriding scores: ", error);
+        showToast(`Error: ${error.message}`, "error");
+    } finally {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fas fa-wrench mr-2"></i> Set Student Scores';
+    }
+}
+
+export function handlePurgeStudentStars() {
+    const studentId = document.getElementById(
+        "star-manager-student-select",
+    ).value;
+    const student = state.get("allStudents").find((s) => s.id === studentId);
+    if (!student) return;
+    showModal(
+        "Purge All Score Data?",
+        `Are you sure you want to delete ALL star score data for ${student.name}? This will reset their scores to zero but will NOT delete their award logs. This cannot be undone.`,
+        async () => {
+            const btn = document.getElementById("star-manager-purge-btn");
+            btn.disabled = true;
+            btn.innerHTML =
+                '<i class="fas fa-spinner fa-spin mr-2"></i> Purging...';
+            try {
+                await runTransaction(db, async (transaction) => {
+                    const scoreRef = doc(
+                        db,
+                        `artifacts/great-class-quest/public/data/student_scores`,
+                        studentId,
+                    );
+                    const todayDocId =
+                        state.get("todaysStars")[studentId]?.docId;
+
+                    if ((await transaction.get(scoreRef)).exists()) {
+                        transaction.update(scoreRef, {
+                            monthlyStars: 0,
+                            totalStars: 0,
+                            lastMonthlyResetDate: getStartOfMonthString(),
+                        });
+                    }
+                    if (todayDocId) {
+                        transaction.delete(
+                            doc(
+                                db,
+                                `artifacts/great-class-quest/public/data/today_stars`,
+                                todayDocId,
+                            ),
+                        );
+                    }
+                });
+                showToast("All star scores purged for student!", "success");
+            } catch (error) {
+                console.error("Error purging stars: ", error);
+                showToast(`Error: ${error.message}`, "error");
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML =
+                    '<i class="fas fa-exclamation-triangle mr-2"></i> Purge All Score Data for Student';
+            }
+        },
+    );
+}
+
+export async function handlePurgeAwardLogs() {
+    const btn = document.getElementById("purge-logs-btn");
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> Purging...';
+    try {
+        const logsToPurge = state
+            .get("allAwardLogs")
+            .filter((log) => log.teacherId === state.get("currentUserId"));
+        if (logsToPurge.length === 0) {
+            showToast("You have no logs to purge!", "info");
+            return;
+        }
+        const batch = writeBatch(db);
+        logsToPurge.forEach((log) =>
+            batch.delete(
+                doc(
+                    db,
+                    `artifacts/great-class-quest/public/data/award_log`,
+                    log.id,
+                ),
+            ),
+        );
+        await batch.commit();
+        showToast(
+            "All your award logs have been purged! Student scores are not affected.",
+            "success",
+        );
+    } catch (error) {
+        console.error("Error purging award logs: ", error);
+        showToast(`Error: ${error.message}`, "error");
+    } finally {
+        btn.disabled = false;
+        btn.innerHTML =
+            '<i class="fas fa-exclamation-triangle mr-2"></i> Purge All My Award Logs';
+    }
+}
+
+/**
+ * Applies outward skill effects (guildmate gold, classmate gold, random classmate gold)
+ * to other students after the main star transaction completes. Fire-and-forget.
+ */
+async function _applyOutwardSkillEffects(
+    awardedStudentId,
+    classId,
+    reason,
+    difference,
+) {
+    if (!canUseFeature("heroProgression")) return;
+
+    const student = state
+        .get("allStudents")
+        .find((s) => s.id === awardedStudentId);
+    if (!student) return;
+
+    const scoreData = state
+        .get("allStudentScores")
+        .find((s) => s.id === awardedStudentId);
+    if (!scoreData?.heroSkills?.length) return;
+
+    const outwardEffects = getOutwardEffects(
+        student.heroClass,
+        scoreData.heroSkills,
+        reason,
+        difference,
+    );
+    if (!outwardEffects.length) return;
+
+    const publicDataPath = "artifacts/great-class-quest/public/data";
+    const allStudents = state.get("allStudents");
+
+    const batch = writeBatch(db);
+    let hasBatchWrites = false;
+    /** @type {Map<string, number>} */
+    const goldDeltasByStudentId = new Map();
+
+    const currentMonthKey = new Date().toISOString().substring(0, 7); // "YYYY-MM"
+
+    const addGoldDelta = (studentId, amount) => {
+        goldDeltasByStudentId.set(
+            studentId,
+            (goldDeltasByStudentId.get(studentId) || 0) + amount,
+        );
+    };
+
+    for (const eff of outwardEffects) {
+        let targets = [];
+
+        if (eff.type === "classmate_gold_on_reason") {
+            const todaysStars = state.get("todaysStars");
+            targets = allStudents.filter(
+                (s) =>
+                    s.id !== awardedStudentId &&
+                    s.classId === classId &&
+                    todaysStars[s.id]?.reason === reason,
+            );
+        } else if (eff.type === "guildmate_gold_on_reason") {
+            targets = allStudents.filter(
+                (s) =>
+                    s.id !== awardedStudentId &&
+                    s.guildId &&
+                    s.guildId === student.guildId,
+            );
+        } else if (eff.type === "random_classmate_gold") {
+            const classmates = allStudents.filter(
+                (s) => s.id !== awardedStudentId && s.classId === classId,
+            );
+            if (classmates.length > 0) {
+                targets = [
+                    classmates[Math.floor(Math.random() * classmates.length)],
+                ];
+            }
+        } else if (eff.type === "first_of_month_guild_bonus") {
+            // Only fires the FIRST time this student earns their class reason this month
+            const alreadyFiredThisMonth =
+                scoreData.lastGuildBonusMonth === currentMonthKey;
+            if (!alreadyFiredThisMonth) {
+                // Mark as fired for this month on the awarding student's score
+                const awardedRef = doc(
+                    db,
+                    `${publicDataPath}/student_scores`,
+                    awardedStudentId,
+                );
+                batch.update(awardedRef, {
+                    lastGuildBonusMonth: currentMonthKey,
+                });
+                hasBatchWrites = true;
+
+                // Give gold to all guildmates
+                targets = allStudents.filter(
+                    (s) =>
+                        s.id !== awardedStudentId &&
+                        s.guildId &&
+                        s.guildId === student.guildId,
+                );
+            }
+        }
+
+        for (const target of targets) {
+            addGoldDelta(target.id, eff.amount);
+        }
+    }
+
+    if (goldDeltasByStudentId.size > 0) {
+        const goldEntries = [...goldDeltasByStudentId.entries()];
+        const freshSnaps = await Promise.all(
+            goldEntries.map(([studentId]) =>
+                getDoc(
+                    doc(
+                        db,
+                        `${publicDataPath}/student_scores`,
+                        studentId,
+                    ),
+                ),
+            ),
+        );
+
+        for (let i = 0; i < goldEntries.length; i++) {
+            const [studentId, delta] = goldEntries[i];
+            const snap = freshSnaps[i];
+            if (!snap.exists()) continue;
+
+            const targetRef = doc(
+                db,
+                `${publicDataPath}/student_scores`,
+                studentId,
+            );
+            const data = snap.data();
+            if (typeof data.gold === "number") {
+                batch.update(targetRef, { gold: increment(delta) });
+            } else {
+                const baseGold = data.totalStars || 0;
+                batch.update(targetRef, { gold: baseGold + delta });
+            }
+            hasBatchWrites = true;
+        }
+    }
+
+    if (hasBatchWrites) await batch.commit();
+}
+
+export async function handleEraseTodaysStars() {
+    const btn = document.getElementById("erase-today-btn");
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> Erasing...';
+    try {
+        const studentIdsToReset = Object.keys(state.get("todaysStars"));
+        if (studentIdsToReset.length === 0) {
+            showToast("You have not awarded any stars today!", "info");
+            return;
+        }
+        for (const id of studentIdsToReset) {
+            await setStudentStarsForToday(id, 0, null);
+        }
+        showToast(
+            "All stars awarded by you today have been erased!",
+            "success",
+        );
+    } catch (error) {
+        console.error("Error erasing today's stars: ", error);
+        showToast(`Error: ${error.message}`, "error");
+    } finally {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fas fa-undo mr-2"></i> Erase Today\'s Stars';
+    }
+}

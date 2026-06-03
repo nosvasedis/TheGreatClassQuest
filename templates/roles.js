@@ -1,66 +1,86 @@
+const roleHeaderActions = (role) => {
+    if (role === 'secretary') {
+        return `
+            <button type="button" id="secretary-open-teacher-app-btn"
+                class="role-header-icon-btn bubbly-button" title="Open Teacher App" aria-label="Open Teacher App">
+                <i class="fas fa-chalkboard-teacher text-xs"></i>
+            </button>`;
+    }
+    return `
+        <button type="button" id="parent-refresh-btn"
+            class="role-header-icon-btn bubbly-button" title="Refresh" aria-label="Refresh">
+            <i class="fas fa-rotate text-xs"></i>
+        </button>`;
+};
+
+const roleHeader = (role, titleAttr, subtitleAttr, logoutId) => `
+    <div class="role-header-atmosphere relative z-[60] flex shrink-0 flex-col overflow-visible shadow-md"
+         style="background: linear-gradient(to right, #89f7fe 0%, #66a6ff 100%);">
+        <header class="relative z-[1] flex w-full items-center justify-between gap-3 bg-transparent p-4 shadow-none overflow-visible">
+            <div class="header-sky-clouds absolute inset-0 z-[1] overflow-hidden pointer-events-none">
+                <i class="fas fa-cloud cloud" style="left: 10%; animation-delay: -5s;"></i>
+                <i class="fas fa-cloud cloud cloud-fast" style="left: 30%; animation-delay: -15s; font-size: 6rem;"></i>
+                <i class="fas fa-cloud cloud" style="left: 60%; animation-delay: -2s; font-size: 10rem;"></i>
+            </div>
+            <div class="z-10 min-w-0 flex-1">
+                <p class="text-white/80 text-xs font-bold uppercase tracking-widest mb-1">${role === 'secretary' ? 'Secretary Office' : 'Family Portal'}</p>
+                <h1 class="font-title text-2xl text-white sm:text-3xl truncate" ${titleAttr}>Loading...</h1>
+                <p class="text-white/90 text-sm font-semibold mt-1 truncate" ${subtitleAttr}></p>
+            </div>
+            <div class="z-10 flex shrink-0 items-center gap-2 bg-white/20 backdrop-blur-sm border border-white/30 rounded-full p-1 shadow-md">
+                ${roleHeaderActions(role)}
+                <button type="button" id="${logoutId}"
+                    class="role-header-icon-btn role-header-icon-btn--danger bubbly-button" title="Log Out" aria-label="Log Out">
+                    <i class="fas fa-sign-out-alt text-xs"></i>
+                </button>
+            </div>
+        </header>
+    </div>`;
+
+const bottomNav = (role, items) => `
+    <nav id="${role}-bottom-nav" class="role-bottom-nav relative z-50 grid gap-1 p-2 shadow-inner"
+        style="background: linear-gradient(to right, #89f7fe 0%, #66a6ff 100%); grid-template-columns: repeat(${items.length}, minmax(0, 1fr));">
+        ${items.map(({ key, icon, label, color, active }) => `
+            <button type="button" class="nav-button nav-color-${color}${active ? ' active' : ''}"
+                data-${role}-tab="${key}">
+                <i class="fas ${icon} icon"></i>
+                <span class="text">${label}</span>
+            </button>
+        `).join('')}
+    </nav>`;
+
 export const roleShellsHTML = `
-    <div id="parent-screen" class="hidden min-h-screen parent-shell">
-        <div class="parent-shell__backdrop"></div>
-        <div class="parent-shell__inner">
-            <header class="parent-shell__header">
-                <div>
-                    <p class="parent-shell__eyebrow">✨ The Quest Chronicle</p>
-                    <h1 class="parent-shell__title">Your Child's Adventure</h1>
-                    <p class="parent-shell__subtitle" data-parent-student-name>Loading hero...</p>
-                </div>
-                <div class="parent-shell__actions">
-                    <button type="button" id="parent-refresh-btn" class="parent-shell__icon-btn" title="Refresh"><i class="fas fa-rotate"></i></button>
-                    <button type="button" id="parent-logout-btn" class="parent-shell__icon-btn parent-shell__icon-btn--danger" title="Sign Out"><i class="fas fa-sign-out-alt"></i></button>
-                </div>
-            </header>
-            <nav class="parent-shell__nav">
-                <button type="button" class="parent-nav-btn parent-nav-btn-active" data-parent-tab="overview"><i class="fas fa-star"></i> Hero Overview</button>
-                <button type="button" class="parent-nav-btn" data-parent-tab="homework"><i class="fas fa-scroll"></i> Quest Scroll</button>
-                <button type="button" class="parent-nav-btn" data-parent-tab="progress"><i class="fas fa-chart-line"></i> Journey Log</button>
-                <button type="button" class="parent-nav-btn" data-parent-tab="messages"><i class="fas fa-envelope-open"></i> Messages</button>
-            </nav>
-            <main class="parent-shell__content">
-                <section class="parent-panel" data-parent-section="overview"></section>
-                <section class="parent-panel hidden" data-parent-section="homework"></section>
-                <section class="parent-panel hidden" data-parent-section="progress"></section>
-                <section class="parent-panel hidden" data-parent-section="messages"></section>
-            </main>
-        </div>
+    <div id="parent-screen" class="hidden role-shell flex flex-col h-full overflow-hidden">
+        ${roleHeader('parent', 'data-parent-title', 'data-parent-student-name', 'parent-logout-btn')}
+        <main class="role-main flex-1 overflow-y-auto custom-scrollbar p-4 md:p-6 min-h-0">
+            <section class="role-tab max-w-4xl mx-auto" data-parent-section="home"></section>
+            <section class="role-tab max-w-4xl mx-auto hidden" data-parent-section="homework"></section>
+            <section class="role-tab max-w-4xl mx-auto hidden" data-parent-section="progress"></section>
+            <section class="role-tab max-w-4xl mx-auto hidden" data-parent-section="messages"></section>
+        </main>
+        ${bottomNav('parent', [
+            { key: 'home', icon: 'fa-home', label: 'Home', color: 'cyan', active: true },
+            { key: 'homework', icon: 'fa-book', label: 'Homework', color: 'amber' },
+            { key: 'progress', icon: 'fa-chart-line', label: 'Progress', color: 'green' },
+            { key: 'messages', icon: 'fa-envelope', label: 'Messages', color: 'purple' }
+        ])}
     </div>
 
-    <div id="secretary-screen" class="hidden min-h-screen secretary-shell">
-        <aside class="secretary-shell__rail">
-            <div>
-                <p class="secretary-shell__eyebrow">The Grand Registry</p>
-                <h1 class="secretary-shell__title">School Command</h1>
-                <p class="secretary-shell__subtitle" data-school-name>Your School</p>
-            </div>
-            <nav class="secretary-shell__nav">
-                <button type="button" class="secretary-nav-btn secretary-nav-btn-active" data-secretary-tab="overview"><i class="fas fa-th-large"></i> School Hub</button>
-                <button type="button" class="secretary-nav-btn" data-secretary-tab="classes"><i class="fas fa-school"></i> Class Atlas</button>
-                <button type="button" class="secretary-nav-btn" data-secretary-tab="students"><i class="fas fa-users"></i> Hero Roster</button>
-                <button type="button" class="secretary-nav-btn" data-secretary-tab="academics"><i class="fas fa-scroll"></i> Academic Scroll</button>
-                <button type="button" class="secretary-nav-btn" data-secretary-tab="communications"><i class="fas fa-comments"></i> Family Inbox</button>
-                <button type="button" class="secretary-nav-btn" data-secretary-tab="settings"><i class="fas fa-sliders-h"></i> Governance</button>
-            </nav>
-            <div class="secretary-shell__footer">
-                <button type="button" id="secretary-open-teacher-app-btn" class="secretary-shell__secondary-btn"><i class="fas fa-chalkboard-teacher"></i> Teacher View</button>
-                <button type="button" id="secretary-logout-btn" class="secretary-shell__primary-btn"><i class="fas fa-sign-out-alt"></i> Sign Out</button>
-            </div>
-        </aside>
-        <main class="secretary-shell__main">
-            <header class="secretary-shell__toolbar">
-                <div class="secretary-shell__filters">
-                    <input type="text" id="secretary-class-filter" placeholder="Search classes...">
-                    <input type="text" id="secretary-student-filter" placeholder="Search students...">
-                </div>
-            </header>
-            <section class="secretary-panel" data-secretary-section="overview"></section>
-            <section class="secretary-panel hidden" data-secretary-section="classes"></section>
-            <section class="secretary-panel hidden" data-secretary-section="students"></section>
-            <section class="secretary-panel hidden" data-secretary-section="academics"></section>
-            <section class="secretary-panel hidden" data-secretary-section="communications"></section>
-            <section class="secretary-panel hidden" data-secretary-section="settings"></section>
+    <div id="secretary-screen" class="hidden role-shell flex flex-col h-full overflow-hidden">
+        ${roleHeader('secretary', 'data-secretary-title', 'data-school-name', 'secretary-logout-btn')}
+        <main class="role-main flex-1 overflow-y-auto custom-scrollbar p-4 md:p-6 min-h-0">
+            <section class="role-tab max-w-4xl mx-auto" data-secretary-section="home"></section>
+            <section class="role-tab max-w-4xl mx-auto hidden" data-secretary-section="school"></section>
+            <section class="role-tab max-w-4xl mx-auto hidden" data-secretary-section="grades"></section>
+            <section class="role-tab max-w-4xl mx-auto hidden" data-secretary-section="messages"></section>
+            <section class="role-tab max-w-4xl mx-auto hidden" data-secretary-section="admin"></section>
         </main>
+        ${bottomNav('secretary', [
+            { key: 'home', icon: 'fa-home', label: 'Home', color: 'cyan', active: true },
+            { key: 'school', icon: 'fa-school', label: 'School', color: 'green' },
+            { key: 'grades', icon: 'fa-chart-bar', label: 'Grades', color: 'amber' },
+            { key: 'messages', icon: 'fa-comments', label: 'Messages', color: 'purple' },
+            { key: 'admin', icon: 'fa-cog', label: 'Admin', color: 'indigo' }
+        ])}
     </div>
 `;

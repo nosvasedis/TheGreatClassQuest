@@ -2,6 +2,31 @@ export const competitionStart = new Date('2025-11-01');
 export const competitionEnd = new Date('2026-06-30');
 export const APP_VERSION = '0.1.0';
 
+export const CURRENT_SCHOOL_YEAR_KEY = '2025-2026';
+export const NEXT_SCHOOL_YEAR_KEY = '2026-2027';
+export const SCHOOL_YEAR_CLOSE_DATE = '10-06-2026';
+export const SCHOOL_YEAR_CONFIG = {
+    currentYearKey: CURRENT_SCHOOL_YEAR_KEY,
+    nextYearKey: NEXT_SCHOOL_YEAR_KEY,
+    closeDate: SCHOOL_YEAR_CLOSE_DATE,
+    years: {
+        [CURRENT_SCHOOL_YEAR_KEY]: {
+            label: '2025-2026',
+            startsAt: '2025-09-01',
+            endsAt: SCHOOL_YEAR_CLOSE_DATE,
+            closeAvailableAt: SCHOOL_YEAR_CLOSE_DATE,
+            status: 'active'
+        },
+        [NEXT_SCHOOL_YEAR_KEY]: {
+            label: '2026-2027',
+            startsAt: '2026-09-01',
+            endsAt: '2027-06-10',
+            closeAvailableAt: '2027-06-10',
+            status: 'planned'
+        }
+    }
+};
+
 /** Fallback when school_settings.schoolName is not set. Used everywhere school name is displayed. */
 export const DEFAULT_SCHOOL_NAME = 'Your School';
 

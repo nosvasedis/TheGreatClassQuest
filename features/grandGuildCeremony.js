@@ -34,6 +34,30 @@ let ceremonyData = {
     schoolYearData: {}
 };
 
+function getCeremonyYearKey() {
+    return ceremonyData.schoolYearData?.yearKey || state.getActiveSchoolYearKey?.() || '2025-2026';
+}
+
+function getSchoolYearMonthEntries(yearKey = getCeremonyYearKey()) {
+    const years = state.get('allSchoolYears') || [];
+    const yearData = years.find((item) => item.id === yearKey) || {};
+    const start = new Date(`${yearData.startsAt || `${yearKey.slice(0, 4)}-09-01`}T12:00:00`);
+    const end = new Date(`${yearData.endsAt || `${yearKey.slice(5)}-06-30`}T12:00:00`);
+    if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) {
+        return [];
+    }
+    const months = [];
+    for (let date = new Date(start.getFullYear(), start.getMonth(), 1); date <= end; date.setMonth(date.getMonth() + 1)) {
+        months.push({
+            year: date.getFullYear(),
+            monthIndex: date.getMonth(),
+            monthNumber: date.getMonth() + 1,
+            monthKey: `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`
+        });
+    }
+    return months;
+}
+
 // --- COMPETITION LEVEL DATA GATHERING ---
 
 /**
@@ -47,9 +71,8 @@ async function gatherHeroOfTheDayData(classIds) {
         totalDays: 0
     };
 
-    // Get all award logs for the school year (Sept 2025 - June 2026)
-    const startDate = new Date('2025-09-01');
-    const endDate = new Date('2026-06-30');
+    const yearKey = getCeremonyYearKey();
+    const monthEntries = getSchoolYearMonthEntries(yearKey);
     
     for (let classId of classIds) {
         const classStudents = state.get('allStudents').filter(s => s.classId === classId);
@@ -57,13 +80,10 @@ async function gatherHeroOfTheDayData(classIds) {
         // Track daily winners for this class
         const dailyWinners = new Map();
         
-        // Get logs for each month of the school year
-        for (let date = new Date(startDate); date <= endDate; date.setMonth(date.getMonth() + 1)) {
-            const year = date.getFullYear();
-            const month = date.getMonth();
-            
+        // Get logs for each month of the selected school year.
+        for (let { year, monthIndex } of monthEntries) {
             try {
-                const logs = await fetchLogsForMonth(year, month);
+                const logs = await fetchLogsForMonth(year, monthIndex + 1, { schoolYearKey: yearKey });
                 const classLogs = logs.filter((l) => l.classId === classId);
                 
                 // Group by date and find daily winner
@@ -142,6 +162,7 @@ async function gatherTeamQuestData(classIds) {
         classProgress: {}
     };
 
+    const monthEntries = getSchoolYearMonthEntries();
     // Get all classes in the ceremony
     const ceremonyClasses = state.get('allSchoolClasses').filter(c => classIds.includes(c.id));
 
@@ -156,20 +177,8 @@ async function gatherTeamQuestData(classIds) {
         let totalYearStars = 0;
         const monthlyProgress = {};
         
-        // Aggregate stars across all months
-        for (let month = 8; month <= 11; month++) { // Sep-Dec 2025
-            const monthKey = `2025-${String(month + 1).padStart(2, '0')}`;
-            const monthStars = students.reduce((sum, student) => {
-                const score = allScores.find(s => s.id === student.id);
-                // Get monthly stars from score history or current monthly
-                return sum + (score?.monthlyStars || 0);
-            }, 0);
-            monthlyProgress[monthKey] = monthStars;
-            totalYearStars += monthStars;
-        }
-        
-        for (let month = 0; month <= 5; month++) { // Jan-Jun 2026
-            const monthKey = `2026-${String(month + 1).padStart(2, '0')}`;
+        // Aggregate stars across the selected school-year months.
+        for (let { monthKey } of monthEntries) {
             const monthStars = students.reduce((sum, student) => {
                 const score = allScores.find(s => s.id === student.id);
                 return sum + (score?.monthlyStars || 0);
@@ -216,9 +225,9 @@ async function gatherTeamQuestData(classIds) {
     return teamQuestData;
 }
 
-async function monthlyScoresForClassLogsAndArchive(classLogs, monthKey) {
+async function monthlyScoresForClassLogsAndArchive(classLogs, monthKey, schoolYearKey = getCeremonyYearKey()) {
     const { fetchMonthlyHistory } = await import('../state.js');
-    const archived = await fetchMonthlyHistory(monthKey).catch(() => ({}));
+    const archived = await fetchMonthlyHistory(monthKey, { schoolYearKey }).catch(() => ({}));
     const fromLogs = sumMonthlyStarCreditsByStudentFromAwardLogs(classLogs);
     return mergeMonthlyStarsFromArchivedHistoryAndAwardLogs(fromLogs, archived || {});
 }
@@ -233,56 +242,23 @@ async function gatherProdigyData(classIds) {
         evolutionTimeline: []
     };
 
+    const schoolYearKey = getCeremonyYearKey();
+    const monthEntries = getSchoolYearMonthEntries(schoolYearKey);
     // Get monthly prodigies from rankings system
     const ceremonyClasses = state.get('allSchoolClasses').filter(c => classIds.includes(c.id));
     
     for (let classData of ceremonyClasses) {
         const students = state.get('allStudents').filter(s => s.classId === classData.id);
         
-        // Track monthly champions for this class
-        for (let month = 8; month <= 11; month++) { // Sep-Dec 2025
-            const year = 2025;
-            const monthKey = `${year}-${String(month + 1).padStart(2, '0')}`;
-            
+        // Track monthly champions for this class across the selected school year.
+        for (let { year, monthNumber, monthKey } of monthEntries) {
             try {
-                const logs = await fetchLogsForMonth(year, month);
+                const logs = await fetchLogsForMonth(year, monthNumber, { schoolYearKey });
                 const classLogs = logs.filter(l => l.classId === classData.id);
                 
-                const monthlyScores = await monthlyScoresForClassLogsAndArchive(classLogs, monthKey);
+                const monthlyScores = await monthlyScoresForClassLogsAndArchive(classLogs, monthKey, schoolYearKey);
                 
                 // Find prodigy (top student)
-                if (Object.keys(monthlyScores).length > 0) {
-                    const topStudent = Object.entries(monthlyScores)
-                        .sort(([,a], [,b]) => b - a)[0];
-                    const student = students.find(s => s.id === topStudent[0]);
-                    
-                    if (student) {
-                        prodigyData.monthlyChampions.push({
-                            studentId: topStudent[0],
-                            studentName: student.name,
-                            avatar: student.avatar,
-                            stars: topStudent[1],
-                            month: monthKey,
-                            className: classData.name,
-                            classId: classData.id
-                        });
-                    }
-                }
-            } catch (e) {
-                console.warn(`Could not fetch prodigy data for ${monthKey}:`, e);
-            }
-        }
-        
-        for (let month = 0; month <= 5; month++) { // Jan-Jun 2026
-            const year = 2026;
-            const monthKey = `${year}-${String(month + 1).padStart(2, '0')}`;
-            
-            try {
-                const logs = await fetchLogsForMonth(year, month);
-                const classLogs = logs.filter(l => l.classId === classData.id);
-                
-                const monthlyScores = await monthlyScoresForClassLogsAndArchive(classLogs, monthKey);
-                
                 if (Object.keys(monthlyScores).length > 0) {
                     const topStudent = Object.entries(monthlyScores)
                         .sort(([,a], [,b]) => b - a)[0];
@@ -1498,7 +1474,7 @@ async function renderUltimateHallOfHeroes() {
             <div class="hall-of-heroes p-12 rounded-[4rem] relative overflow-hidden">
                 <div class="absolute inset-0 bg-white/5 backdrop-blur-xl"></div>
                 <div class="relative z-10">
-                    <h4 class="font-title text-3xl mb-8 tracking-widest text-amber-400">SCHOOL YEAR 2025-2026 HIGHLIGHTS</h4>
+                    <h4 class="font-title text-3xl mb-8 tracking-widest text-amber-400">SCHOOL YEAR ${getCeremonyYearKey()} HIGHLIGHTS</h4>
                     <div class="grid grid-cols-2 md:grid-cols-3 gap-8">
                         <div class="bg-black/30 p-6 rounded-3xl border border-white/10">
                             <div class="text-5xl mb-4">🌟</div>

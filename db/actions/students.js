@@ -21,6 +21,8 @@ import { callGeminiApi } from '../../api.js';
 import { canUseFeature } from '../../utils/subscription.js';
 import { showUpgradePrompt } from '../../utils/upgradePrompt.js';
 import { getUpgradeMessage } from '../../config/tiers/features.js';
+import { withActiveScoreYear, withActiveStudentYear } from '../../utils/schoolYear.js';
+import { allocateReturningStudents, transferStudentToClass } from '../../utils/adminRuntime.js';
 
 // --- STUDENT & USER ACTIONS ---
 
@@ -40,10 +42,16 @@ export async function handleAddStudent() {
         await runTransaction(db, async (transaction) => {
             const publicDataPath = "artifacts/great-class-quest/public/data";
             const newStudentRef = doc(collection(db, `${publicDataPath}/students`));
-            const studentData = { name, classId, createdBy: { uid: state.get('currentUserId'), name: state.get('currentTeacherName') }, createdAt: serverTimestamp() };
+            const activeYearKey = state.getActiveSchoolYearKey();
+            const studentData = withActiveStudentYear({
+                name,
+                classId,
+                createdBy: { uid: state.get('currentUserId'), name: state.get('currentTeacherName') },
+                createdAt: serverTimestamp()
+            }, activeYearKey);
             transaction.set(newStudentRef, studentData);
             const newScoreRef = doc(db, `${publicDataPath}/student_scores`, newStudentRef.id);
-            transaction.set(newScoreRef, {
+            transaction.set(newScoreRef, withActiveScoreYear({
                 totalStars: 0,
                 monthlyStars: 0,
                 gold: 0,
@@ -54,7 +62,7 @@ export async function handleAddStudent() {
                 pendingSkillChoice: false,
                 lastMonthlyResetDate: getStartOfMonthString(),
                 createdBy: { uid: studentData.createdBy.uid, name: studentData.createdBy.name }
-            });
+            }, activeYearKey));
         });
         input.value = '';
     } catch (error) {
@@ -88,8 +96,8 @@ export async function handleSaveStudentDetails() {
     const newName = document.getElementById('edit-student-name-input-full').value.trim();
     const classDropdownEl = document.getElementById('edit-student-hero-class');
     const heroProgressionEnabled = canUseFeature('heroProgression');
-    const newHeroClass = heroProgressionEnabled ? classDropdownEl.value : (student?.heroClass || '');
     const student = state.get('allStudents').find(s => s.id === studentId);
+    const newHeroClass = heroProgressionEnabled ? classDropdownEl.value : (student?.heroClass || '');
 
     if (!heroProgressionEnabled && student?.heroClass && classDropdownEl?.value !== student.heroClass) {
         showUpgradePrompt({
@@ -192,6 +200,21 @@ export async function handleLookupNameday() {
     }
 }
 
+export async function handlePlaceReturningStudents(classId, studentIds) {
+    if (!classId || !studentIds?.length) {
+        showToast('Select at least one returning student.', 'info');
+        return;
+    }
+    try {
+        const result = await allocateReturningStudents({ classId, studentIds });
+        showToast(`${result?.placedCount || studentIds.length} returning student(s) added to your class.`, 'success');
+    } catch (error) {
+        console.error('Error placing returning students:', error);
+        showToast(error?.message || 'Could not place those students.', 'error');
+        throw error;
+    }
+}
+
 export async function handleMoveStudent() {
     const studentId = document.getElementById('move-student-modal').dataset.studentId;
     const newClassId = document.getElementById('move-student-target-class').value;
@@ -199,8 +222,7 @@ export async function handleMoveStudent() {
         showToast("Please select a target class.", "error");
         return;
     }
-    const newClassData = state.get('allSchoolClasses').find(c => c.id === newClassId);
-    if (!newClassData) {
+    if (!state.get('allSchoolClasses').some(c => c.id === newClassId)) {
         showToast("Target class data not found.", "error");
         return;
     }
@@ -210,14 +232,7 @@ export async function handleMoveStudent() {
     btn.innerHTML = `<i class="fas fa-spinner fa-spin mr-2"></i> Moving...`;
 
     try {
-        const studentRef = doc(db, `artifacts/great-class-quest/public/data/students`, studentId);
-        await updateDoc(studentRef, {
-            classId: newClassId,
-            createdBy: {
-                uid: newClassData.createdBy.uid,
-                name: newClassData.createdBy.name
-            }
-        });
+        await transferStudentToClass({ studentId, classId: newClassId });
         showToast("Student moved and ownership transferred successfully!", "success");
         modals.hideModal('move-student-modal');
     } catch (error) {

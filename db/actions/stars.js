@@ -49,6 +49,7 @@ import {
 import { reconcileFamiliarLifecycle } from "../../features/familiars.js";
 import { canUseFeature } from "../../utils/subscription.js";
 import { getAwardLogMonthlyStarCredit } from "../../features/awardLogReasonMeta.js";
+import { withActiveScoreYear, withSchoolYear } from "../../utils/schoolYear.js";
 
 // --- SCORE, STAR, & LOG ACTIONS ---
 
@@ -59,6 +60,7 @@ export async function setStudentStarsForToday(
 ) {
     const today = getTodayDateString();
     const publicDataPath = "artifacts/great-class-quest/public/data";
+    const activeYearKey = state.getActiveSchoolYearKey();
 
     let finalStarValue = starValue;
     const activeEvent = state
@@ -169,7 +171,7 @@ export async function setStudentStarsForToday(
 
             if (!scoreDoc.exists()) {
                 // Create new score doc
-                transaction.set(scoreRef, {
+                transaction.set(scoreRef, withActiveScoreYear({
                     totalStars: difference > 0 ? difference : 0,
                     monthlyStars: difference > 0 ? difference : 0,
                     gold: difference > 0 ? difference : 0,
@@ -179,7 +181,7 @@ export async function setStudentStarsForToday(
                         uid: studentData.createdBy.uid,
                         name: studentData.createdBy.name,
                     },
-                });
+                }, activeYearKey));
                 if (difference !== 0) {
                     appliedCreditForDailyLog = difference;
                 }
@@ -291,7 +293,7 @@ export async function setStudentStarsForToday(
                     const newTodayDocRef = doc(
                         collection(db, `${publicDataPath}/today_stars`),
                     );
-                    transaction.set(newTodayDocRef, {
+                    transaction.set(newTodayDocRef, withSchoolYear({
                         studentId,
                         stars: finalStarValue,
                         date: today,
@@ -301,7 +303,7 @@ export async function setStudentStarsForToday(
                             uid: state.get("currentUserId"),
                             name: state.get("currentTeacherName"),
                         },
-                    });
+                    }, activeYearKey));
                 }
             }
 
@@ -329,7 +331,7 @@ export async function setStudentStarsForToday(
                         ),
                     );
             } else if (finalStarValue > 0) {
-                const logData = {
+                const logData = withSchoolYear({
                     studentId,
                     classId: studentData.classId,
                     teacherId: state.get("currentUserId"),
@@ -345,7 +347,7 @@ export async function setStudentStarsForToday(
                         uid: state.get("currentUserId"),
                         name: state.get("currentTeacherName"),
                     },
-                };
+                }, activeYearKey);
 
                 if (dailyPerformanceLog) {
                     transaction.update(
@@ -488,7 +490,7 @@ export function applyReasonAwardScoreTransaction(
     if (scoreData) {
         transaction.update(scoreRef, nextScoreData);
     } else {
-        transaction.set(scoreRef, {
+        transaction.set(scoreRef, withActiveScoreYear({
             inventory: [],
             starsByReason: {},
             heroLevel: 0,
@@ -502,7 +504,7 @@ export function applyReasonAwardScoreTransaction(
                     state.get("currentTeacherName"),
             },
             ...nextScoreData,
-        });
+        }, state.getActiveSchoolYearKey()));
     }
 
     return { levelUpInfo, totalStarsDelta };
@@ -660,7 +662,7 @@ export async function checkAndRecordQuestCompletion(classId) {
                 "artifacts/great-class-quest/public/data/quest_history",
             ),
         );
-        batch.set(historyRef, {
+        batch.set(historyRef, withSchoolYear({
             classId: classId,
             className: classDoc.data().name,
             levelReached: currentDifficulty + 1, // They just finished currentDifficulty to reach +1
@@ -672,7 +674,7 @@ export async function checkAndRecordQuestCompletion(classId) {
                 uid: state.get("currentUserId"),
                 name: state.get("currentTeacherName"),
             },
-        });
+        }, state.getActiveSchoolYearKey()));
 
         await batch.commit();
         playSound("magic_chime");
@@ -837,7 +839,7 @@ export async function handleAddStarsManually() {
             const dParts = logDateObject;
             const dateForDb = `${String(dParts.getDate()).padStart(2, "0")}-${String(dParts.getMonth() + 1).padStart(2, "0")}-${dParts.getFullYear()}`;
 
-            const logData = {
+            const logData = withSchoolYear({
                 studentId,
                 classId: student.classId,
                 teacherId: state.get("currentUserId"),
@@ -850,7 +852,7 @@ export async function handleAddStarsManually() {
                     uid: state.get("currentUserId"),
                     name: state.get("currentTeacherName"),
                 },
-            };
+            }, state.getActiveSchoolYearKey());
 
             transaction.set(
                 doc(collection(db, `${publicDataPath}/award_log`)),
@@ -940,7 +942,7 @@ export async function handleSetStudentScores() {
             });
 
             if (todayStarsVal > 0) {
-                const todayData = {
+                const todayData = withSchoolYear({
                     studentId,
                     stars: todayStarsVal,
                     date: getTodayDateString(),
@@ -949,7 +951,7 @@ export async function handleSetStudentScores() {
                         uid: state.get("currentUserId"),
                         name: state.get("currentTeacherName"),
                     },
-                };
+                }, state.getActiveSchoolYearKey());
                 if (todayDocRef) {
                     transaction.update(todayDocRef, { stars: todayStarsVal });
                 } else {

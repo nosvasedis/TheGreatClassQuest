@@ -20,6 +20,7 @@ import * as state from '../../state.js';
 import { GUILDS, GUILD_IDS } from '../../features/guilds.js';
 import { getISOWeekKey } from '../../features/guildScoring.js';
 import { GLORY_PER_STAR } from '../../constants.js';
+import { withSchoolYear } from '../../utils/schoolYear.js';
 
 const publicDataPath = 'artifacts/great-class-quest/public/data';
 
@@ -57,6 +58,7 @@ export async function assignStudentToGuild(studentId, guildId) {
         await setDoc(guildRef, {
             guildId,
             guildName,
+            activeSchoolYearKey: state.getActiveSchoolYearKey(),
             totalStars: 0,
             totalGlory: studentGloryContribution,
             monthlyGlory: 0,
@@ -111,7 +113,7 @@ export async function getGuildLeaderboardSnapshot() {
 export async function saveFortuneWheelResult(classId, results) {
     const weekKey = getISOWeekKey();
     const docRef = doc(collection(db, `${publicDataPath}/fortune_wheel_log`));
-    await setDoc(docRef, {
+    await setDoc(docRef, withSchoolYear({
         classId,
         weekKey,
         spunAt: serverTimestamp(),
@@ -120,7 +122,7 @@ export async function saveFortuneWheelResult(classId, results) {
             name: state.get('currentTeacherName'),
         },
         results,
-    });
+    }, state.getActiveSchoolYearKey()));
 }
 
 /**

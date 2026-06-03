@@ -1,5 +1,10 @@
 import { competitionStart } from "./constants.js";
 import { getTodayDateString, getClassesOnDay } from "./utils.js";
+import {
+    getDefaultSchoolYearState,
+    getDefaultSchoolYears,
+    normalizeSchoolYearState
+} from "./utils/schoolYear.js";
 
 // --- Internal State Store ---
 let state = {};
@@ -22,6 +27,9 @@ function getDefaultState() {
         teacherSettings: {},
         isSchoolAdmin: false,
         schoolBillingGrace: null,
+        schoolYearState: getDefaultSchoolYearState(),
+        allSchoolYears: getDefaultSchoolYears(),
+        currentRolloverJob: null,
         schoolName: null,
         schoolWeatherLocation: null,
         schoolAssessmentDefaults: null,
@@ -34,6 +42,20 @@ function getDefaultState() {
             classFilter: "",
             studentFilter: "",
             communicationStatus: "open",
+            activeTab: "home",
+            schoolSubTab: "classes",
+            adminSubTab: "year",
+            messageView: "inbox",
+            gradesPage: 0,
+            gradesSearch: "",
+            selectedGradingClassId: "",
+        },
+        parentView: {
+            activeTab: "home",
+            homeworkView: "list",
+            selectedHomeworkId: null,
+            messageView: "inbox",
+            messageType: "general",
         },
         allTeachersClasses: [],
         allSchoolClasses: [],
@@ -129,6 +151,9 @@ function getDefaultState() {
         currentShopItems: [], // Store this month's shop items
         unsubscribeQuestBounties: () => {}, // Listener unsubscribe
         unsubscribeSchoolSettings: () => {}, // Listener for settings
+        unsubscribeSchoolYearState: () => {},
+        unsubscribeSchoolYears: () => {},
+        unsubscribeRolloverJob: () => {},
         unsubscribeTeacherSettings: () => {}, // Listener for the current teacher's profile doc (schoolYearSettings, etc.)
         unsubscribeGuildScores: () => {},
         unsubscribeGuildChampions: () => {},
@@ -234,6 +259,26 @@ export function setIsSchoolAdmin(value) {
 export function setSchoolBillingGrace(grace) {
     state.schoolBillingGrace = grace || null;
 }
+export function setSchoolYearState(nextState) {
+    state.schoolYearState = normalizeSchoolYearState(nextState);
+    _notify("schoolYearState");
+}
+export function setAllSchoolYears(years) {
+    state.allSchoolYears = Array.isArray(years) && years.length
+        ? years
+        : getDefaultSchoolYears();
+    _notify("allSchoolYears");
+}
+export function setCurrentRolloverJob(job) {
+    state.currentRolloverJob = job || null;
+    _notify("currentRolloverJob");
+}
+export function getActiveSchoolYearKey() {
+    return normalizeSchoolYearState(state.schoolYearState).activeYearKey;
+}
+export function getNextSchoolYearKey() {
+    return normalizeSchoolYearState(state.schoolYearState).nextYearKey;
+}
 export function setSchoolName(name) {
     state.schoolName = name || null;
 }
@@ -260,6 +305,9 @@ export function setCurrentCommunicationThreadId(id) {
 }
 export function setSecretaryView(next) {
     state.secretaryView = { ...state.secretaryView, ...(next || {}) };
+}
+export function setParentView(next) {
+    state.parentView = { ...state.parentView, ...(next || {}) };
 }
 export function setAllTeachersClasses(classes) {
     state.allTeachersClasses = classes;
@@ -307,6 +355,15 @@ export function setSchoolHolidayRanges(ranges) {
 }
 export function setUnsubscribeSchoolSettings(func) {
     state.unsubscribeSchoolSettings = func;
+}
+export function setUnsubscribeSchoolYearState(func) {
+    state.unsubscribeSchoolYearState = func;
+}
+export function setUnsubscribeSchoolYears(func) {
+    state.unsubscribeSchoolYears = func;
+}
+export function setUnsubscribeRolloverJob(func) {
+    state.unsubscribeRolloverJob = func;
 }
 export function setHasLoadedCalendarHistory(val) {
     state.hasLoadedCalendarHistory = val;
@@ -593,9 +650,12 @@ export function setUnsubscribeShopItems(func) {
 }
 
 // Helper to fetch history (internal use)
-export async function fetchMonthlyHistory(monthKey) {
+export async function fetchMonthlyHistory(monthKey, options = {}) {
     const allMonthlyHistory = get("allMonthlyHistory");
-    if (allMonthlyHistory[monthKey]) return allMonthlyHistory[monthKey];
+    const activeYearKey = options.schoolYearKey || getActiveSchoolYearKey();
+    const cacheKey = `${activeYearKey || "legacy"}:${monthKey}`;
+    if (allMonthlyHistory[cacheKey]) return allMonthlyHistory[cacheKey];
+    if (!options.schoolYearKey && allMonthlyHistory[monthKey]) return allMonthlyHistory[monthKey];
 
     const contentEl = document.getElementById("history-modal-content");
     if (
@@ -618,15 +678,25 @@ export async function fetchMonthlyHistory(monthKey) {
         const snapshot = await getDocs(historyQuery);
         const scores = {};
         snapshot.forEach((doc) => {
+            const data = doc.data();
+            if (
+                options.schoolYearKey &&
+                data.schoolYearKey &&
+                data.schoolYearKey !== options.schoolYearKey
+            ) {
+                return;
+            }
             const studentId = doc.ref.parent.parent.id;
-            scores[studentId] = doc.data().stars || 0;
+            scores[studentId] = data.stars || 0;
         });
-        allMonthlyHistory[monthKey] = scores;
+        allMonthlyHistory[cacheKey] = scores;
+        if (!options.schoolYearKey) allMonthlyHistory[monthKey] = scores;
         set("allMonthlyHistory", allMonthlyHistory);
         return scores;
     } catch (error) {
         console.error("Error fetching monthly history:", error);
-        allMonthlyHistory[monthKey] = {};
+        allMonthlyHistory[cacheKey] = {};
+        if (!options.schoolYearKey) allMonthlyHistory[monthKey] = {};
         set("allMonthlyHistory", allMonthlyHistory);
         return {};
     }

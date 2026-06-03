@@ -24,6 +24,7 @@ import { getTodayDateString, getAgeGroupForLeague, compressImageBase64 } from '.
 import { callGeminiApi, callGeminiApiDetailed, callCloudflareAiImageApi } from '../../api.js';
 import { getGuildLeaderboardData, getGuildLeaderboardForClass } from '../../features/guildScoring.js';
 import { syncQuestAssignmentToParentHomework } from '../../utils/adminRuntime.js';
+import { withActiveScoreYear, withSchoolYear } from '../../utils/schoolYear.js';
 
 const ADVENTURE_LOG_AI_RETRY_DELAYS_MS = [30000, 90000, 240000];
 
@@ -85,13 +86,13 @@ export async function handleSaveQuestAssignment() {
         existingDocs.forEach(a => batch.delete(doc(db, `${publicDataPath}/quest_assignments`, a.id)));
 
         const newDocRef = doc(collection(db, `${publicDataPath}/quest_assignments`));
-        batch.set(newDocRef, {
+        batch.set(newDocRef, withSchoolYear({
             classId,
             text,
             testData: testDataToSave, // Saves either the new one OR the preserved old one
             createdAt: serverTimestamp(),
             createdBy: { uid: state.get('currentUserId'), name: state.get('currentTeacherName') }
-        });
+        }, state.getActiveSchoolYearKey()));
 
         await batch.commit();
 
@@ -100,6 +101,7 @@ export async function handleSaveQuestAssignment() {
             classId,
             text,
             testData: testDataToSave,
+            schoolYearKey: state.getActiveSchoolYearKey(),
             createdAt: { seconds: Math.floor(Date.now() / 1000) },
             createdBy: { uid: state.get('currentUserId'), name: state.get('currentTeacherName') }
         };
@@ -596,13 +598,13 @@ async function saveAdventureLogWithHeroWin(logPayload, heroStudentId = null) {
             scoreDoc = await transaction.get(scoreRef);
         }
 
-        transaction.set(logRef, logPayload);
+        transaction.set(logRef, withSchoolYear(logPayload, state.getActiveSchoolYearKey()));
 
         if (heroStudentId && scoreRef) {
             if (scoreDoc?.exists()) {
                 transaction.update(scoreRef, { heroOfDayWins: increment(1) });
             } else {
-                transaction.set(scoreRef, { heroOfDayWins: 1 }, { merge: true });
+                transaction.set(scoreRef, withActiveScoreYear({ heroOfDayWins: 1 }, state.getActiveSchoolYearKey()), { merge: true });
             }
         }
     });

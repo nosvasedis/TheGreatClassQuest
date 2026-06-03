@@ -3,6 +3,7 @@ import { db, doc, addDoc, updateDoc, deleteDoc, collection, serverTimestamp } fr
 import * as state from '../../state.js';
 import { showToast } from '../../ui/effects.js';
 import { playSound, playHeroFanfare } from '../../audio.js';
+import { withSchoolYear } from '../../utils/schoolYear.js';
 
 // --- QUEST BOUNTIES ---
 
@@ -48,7 +49,7 @@ export async function handleCreateBounty() {
     btn.disabled = true; btn.innerHTML = 'Starting...';
 
     try {
-        await addDoc(collection(db, "artifacts/great-class-quest/public/data/quest_bounties"), {
+        await addDoc(collection(db, "artifacts/great-class-quest/public/data/quest_bounties"), withSchoolYear({
             classId,
             title,
             target: type === 'standard' ? target : 0,
@@ -59,7 +60,7 @@ export async function handleCreateBounty() {
             status: 'active',
             createdBy: { uid: state.get('currentUserId'), name: state.get('currentTeacherName') },
             createdAt: serverTimestamp()
-        });
+        }, state.getActiveSchoolYearKey()));
         
         showToast(type === 'timer' ? 'Timer Started!' : 'Bounty Posted!', 'success');
         import('../../ui/modals.js').then(m => m.hideModal('create-bounty-modal'));

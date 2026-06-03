@@ -46,6 +46,8 @@ export const studentsTabHTML = `
 
             </div>
 
+            <div id="returning-students-panel" class="hidden mb-5"></div>
+
             <!-- Student Roster — full width -->
             <div class="bg-white rounded-2xl shadow-lg overflow-hidden border border-gray-100">
                 <div class="bg-gradient-to-r from-teal-500 to-cyan-500 px-5 py-3 flex items-center gap-2">

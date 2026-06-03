@@ -16,6 +16,7 @@ import { callGeminiApi } from '../api.js';
 import { getTodayDateString } from '../utils.js';
 import { reconcileFamiliarLifecycle } from '../features/familiars.js';
 import { canUseFeature } from '../utils/subscription.js';
+import { withSchoolYear } from '../utils/schoolYear.js';
 
 export * from './actions/index.js';
 
@@ -48,7 +49,7 @@ export async function awardStoryWeaverBonusStarToClass(classId) {
             batch.update(scoreRef, scoreUpdate);
 
             const logRef = doc(collection(db, `${publicDataPath}/award_log`));
-            batch.set(logRef, {
+            batch.set(logRef, withSchoolYear({
                 studentId: student.id,
                 classId: classId,
                 teacherId: state.get('currentUserId'),
@@ -58,7 +59,7 @@ export async function awardStoryWeaverBonusStarToClass(classId) {
                 date: getTodayDateString(),
                 createdAt: serverTimestamp(),
                 createdBy: { uid: state.get('currentUserId'), name: state.get('currentTeacherName') }
-            });
+            }, state.getActiveSchoolYearKey()));
         }
 
         await batch.commit();

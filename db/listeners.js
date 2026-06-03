@@ -8,6 +8,7 @@ import {
     onSnapshot,
     orderBy,
     doc,
+    getDoc,
     getDocs,
     writeBatch,
     collectionGroup,
@@ -54,6 +55,43 @@ import {
 import { refreshSetupClassesList } from "../features/schoolSetup.js";
 import { setSchoolGraceConfig } from "../utils/subscription.js";
 import { parseGraceWindow } from "../features/teacherJourney.js";
+import {
+    CURRENT_SCHOOL_YEAR_KEY,
+} from "../constants.js";
+import {
+    getDefaultSchoolYears,
+    isActiveStudent,
+    isActiveYearDoc,
+    normalizeSchoolYearState,
+} from "../utils/schoolYear.js";
+
+function maybeRenderSecretaryPortal(tabKey) {
+    const screen = document.getElementById("secretary-screen");
+    if (!screen || screen.classList.contains("hidden")) return;
+    import("../features/secretaryConsole.js").then((module) => {
+        module.renderSecretaryConsole(tabKey);
+    });
+}
+
+function maybeRenderParentPortal(tabKey) {
+    const screen = document.getElementById("parent-screen");
+    if (!screen || screen.classList.contains("hidden")) return;
+    import("../features/parentPortal.js").then((module) => {
+        module.renderParentPortal(tabKey);
+    });
+}
+
+export async function refreshParentPortalData() {
+    const profile = state.get("currentUserProfile");
+    const studentId = profile?.linkedStudentId;
+    if (!studentId) return;
+    const publicDataPath = "artifacts/great-class-quest/public/data";
+    const snapshotRef = doc(db, `${publicDataPath}/parent_snapshots`, studentId);
+    const snapshot = await getDoc(snapshotRef);
+    state.setCurrentParentSnapshot(
+        snapshot.exists() ? { id: snapshot.id, ...snapshot.data() } : null,
+    );
+}
 
 function clearDataListeners() {
     state.get("unsubscribeClasses")();
@@ -70,6 +108,9 @@ function clearDataListeners() {
     state.get("unsubscribeScheduleOverrides")();
     state.get("unsubscribeHeroChronicleNotes")();
     state.get("unsubscribeSchoolSettings")();
+    state.get("unsubscribeSchoolYearState")();
+    state.get("unsubscribeSchoolYears")();
+    state.get("unsubscribeRolloverJob")();
     state.get("unsubscribeTeacherSettings")();
     state.get("unsubscribeQuestBounties")();
     state.get("unsubscribeGuildScores")();
@@ -111,18 +152,14 @@ export function watchCommunicationThread(threadId) {
                         .getElementById("parent-screen")
                         ?.classList.contains("hidden")
                 ) {
-                    import("../features/parentPortal.js").then((module) =>
-                        module.renderParentPortal(),
-                    );
+                    maybeRenderParentPortal("messages");
                 }
                 if (
                     !document
                         .getElementById("secretary-screen")
                         ?.classList.contains("hidden")
                 ) {
-                    import("../features/secretaryConsole.js").then((module) =>
-                        module.renderSecretaryConsole(),
-                    );
+                    maybeRenderSecretaryPortal("messages");
                 }
             },
             (error) =>
@@ -172,18 +209,14 @@ function subscribeCommunicationThreads({ userId, isSecretary = false }) {
                         .getElementById("parent-screen")
                         ?.classList.contains("hidden")
                 ) {
-                    import("../features/parentPortal.js").then((module) =>
-                        module.renderParentPortal(),
-                    );
+                    maybeRenderParentPortal("messages");
                 }
                 if (
                     !document
                         .getElementById("secretary-screen")
                         ?.classList.contains("hidden")
                 ) {
-                    import("../features/secretaryConsole.js").then((module) =>
-                        module.renderSecretaryConsole(),
-                    );
+                    maybeRenderSecretaryPortal("messages");
                 }
             },
             (error) =>
@@ -229,10 +262,9 @@ export function setupParentSession(userId, profile, onInitialDataReady) {
     const homeworkQuery = query(
         collection(db, `${publicDataPath}/parent_homework`),
         where("studentId", "==", studentId),
-        where("sourceType", "==", "quest-assignment"),
         where("status", "==", "published"),
         orderBy("updatedAt", "desc"),
-        limit(1),
+        limit(20),
     );
     const schoolSettingsQuery = doc(
         db,
@@ -251,9 +283,7 @@ export function setupParentSession(userId, profile, onInitialDataReady) {
                 );
                 snapshotReady = true;
                 maybeReady();
-                import("../features/parentPortal.js").then((module) =>
-                    module.renderParentPortal(),
-                );
+                maybeRenderParentPortal("home");
             },
             (error) =>
                 console.error("Error listening to parent snapshot:", error),
@@ -270,9 +300,7 @@ export function setupParentSession(userId, profile, onInitialDataReady) {
                         ...docSnap.data(),
                     })),
                 );
-                import("../features/parentPortal.js").then((module) =>
-                    module.renderParentPortal(),
-                );
+                maybeRenderParentPortal("homework");
             },
             (error) =>
                 console.error("Error listening to parent homework:", error),
@@ -304,7 +332,7 @@ export function setupParentSession(userId, profile, onInitialDataReady) {
     subscribeCommunicationThreads({ userId, isSecretary: false });
 }
 
-export function setupDataListeners(
+export async function setupDataListeners(
     userId,
     dateString,
     onInitialDataReady,
@@ -314,6 +342,7 @@ export function setupDataListeners(
     let initialReadyFired = false;
     let classesReady = false;
     let schoolSettingsReady = false;
+    let schoolYearReady = false;
     let specialHeroProgressionReconciled = false;
 
     // --- Performance helpers ---
@@ -337,7 +366,8 @@ export function setupDataListeners(
             typeof onInitialDataReady === "function" &&
             !initialReadyFired &&
             classesReady &&
-            schoolSettingsReady
+            schoolSettingsReady &&
+            schoolYearReady
         ) {
             initialReadyFired = true;
             onInitialDataReady();
@@ -366,6 +396,66 @@ export function setupDataListeners(
     clearDataListeners();
 
     const publicDataPath = "artifacts/great-class-quest/public/data";
+    const schoolYearStateRef = doc(
+        db,
+        `${publicDataPath}/school_year_state`,
+        "current",
+    );
+    try {
+        const schoolYearStateSnap = await getDoc(schoolYearStateRef);
+        if (schoolYearStateSnap.exists()) {
+            state.setSchoolYearState(schoolYearStateSnap.data());
+        }
+    } catch (error) {
+        console.warn("Could not preload school year state:", error);
+    }
+    const initialSchoolYearState = normalizeSchoolYearState(
+        state.get("schoolYearState"),
+    );
+    const activeYearKey =
+        initialSchoolYearState.activeYearKey || CURRENT_SCHOOL_YEAR_KEY;
+    const enforceActiveYearQueries =
+        initialSchoolYearState.enforceActiveYearQueries === true;
+    const includeUntagged = !enforceActiveYearQueries;
+
+    const schoolYearsQuery = query(
+        collection(db, `${publicDataPath}/school_years`),
+    );
+
+    state.setUnsubscribeSchoolYearState(
+        onSnapshot(
+            schoolYearStateRef,
+            (snap) => {
+                state.setSchoolYearState(snap.exists() ? snap.data() : {});
+                schoolYearReady = true;
+                maybeFireInitialReady();
+                if (isTabVisible("about-tab")) renderHomeTab();
+                const secretaryScreen = document.getElementById("secretary-screen");
+                if (secretaryScreen && !secretaryScreen.classList.contains("hidden")) {
+                    maybeRenderSecretaryPortal("admin");
+                }
+            },
+            (error) => {
+                console.error("Error listening to school year state:", error);
+                schoolYearReady = true;
+                maybeFireInitialReady();
+            },
+        ),
+    );
+
+    state.setUnsubscribeSchoolYears(
+        onSnapshot(
+            schoolYearsQuery,
+            (snapshot) => {
+                const years = snapshot.docs.map((d) => ({
+                    id: d.id,
+                    ...d.data(),
+                }));
+                state.setAllSchoolYears(years.length ? years : getDefaultSchoolYears());
+            },
+            (error) => console.error("Error listening to school years:", error),
+        ),
+    );
 
     // --- Teacher profile/settings doc (holds schoolYearSettings.classEndDates, grandCeremonyHistory, etc.) ---
     // The doc may not exist yet for first-time teachers; treat that as empty settings.
@@ -405,19 +495,36 @@ export function setupDataListeners(
         .split("T")[0];
 
     // --- Define Queries ---
-    const classesQuery = query(collection(db, `${publicDataPath}/classes`));
-    const studentsQuery = query(collection(db, `${publicDataPath}/students`));
-    const scoresQuery = query(
-        collection(db, `${publicDataPath}/student_scores`),
-    );
+    const classesQuery = enforceActiveYearQueries
+        ? query(
+              collection(db, `${publicDataPath}/classes`),
+              where("schoolYearKey", "==", activeYearKey),
+              where("status", "==", "active"),
+          )
+        : query(collection(db, `${publicDataPath}/classes`));
+    const studentsQuery = enforceActiveYearQueries
+        ? query(
+              collection(db, `${publicDataPath}/students`),
+              where("activeSchoolYearKey", "==", activeYearKey),
+          )
+        : query(collection(db, `${publicDataPath}/students`));
+    const scoresQuery = enforceActiveYearQueries
+        ? query(
+              collection(db, `${publicDataPath}/student_scores`),
+              where("activeSchoolYearKey", "==", activeYearKey),
+          )
+        : query(collection(db, `${publicDataPath}/student_scores`));
     const todaysStarsQuery = query(
         collection(db, `${publicDataPath}/today_stars`),
         where("teacherId", "==", userId),
         where("date", "==", dateString),
     );
-    const questEventsQuery = query(
-        collection(db, `${publicDataPath}/quest_events`),
-    );
+    const questEventsQuery = enforceActiveYearQueries
+        ? query(
+              collection(db, `${publicDataPath}/quest_events`),
+              where("schoolYearKey", "==", activeYearKey),
+          )
+        : query(collection(db, `${publicDataPath}/quest_events`));
     const questAssignmentsQuery = isSecretary
         ? query(collection(db, `${publicDataPath}/quest_assignments`))
         : query(
@@ -429,9 +536,12 @@ export function setupDataListeners(
         orderBy("completedAt", "desc"),
         limit(100),
     );
-    const overridesQuery = query(
-        collection(db, `${publicDataPath}/schedule_overrides`),
-    );
+    const overridesQuery = enforceActiveYearQueries
+        ? query(
+              collection(db, `${publicDataPath}/schedule_overrides`),
+              where("schoolYearKey", "==", activeYearKey),
+          )
+        : query(collection(db, `${publicDataPath}/schedule_overrides`));
     const heroChronicleNotesQuery = isSecretary
         ? query(collection(db, `${publicDataPath}/hero_chronicle_notes`))
         : query(
@@ -466,6 +576,9 @@ export function setupDataListeners(
 
     const awardLogsQuery = query(
         collection(db, `${publicDataPath}/award_log`),
+        ...(enforceActiveYearQueries
+            ? [where("schoolYearKey", "==", activeYearKey)]
+            : []),
         where("createdAt", ">=", startOfCurrentMonth),
         where("createdAt", "<", startOfNextMonth),
     );
@@ -473,6 +586,9 @@ export function setupDataListeners(
     // 2. Adventure Logs (Last 30 days is fine, or match month)
     const adventureLogsQuery = query(
         collection(db, `${publicDataPath}/adventure_logs`),
+        ...(enforceActiveYearQueries
+            ? [where("schoolYearKey", "==", activeYearKey)]
+            : []),
         where("createdAt", ">=", thirtyDaysAgo),
         orderBy("createdAt", "desc"),
     );
@@ -517,10 +633,16 @@ export function setupDataListeners(
         onSnapshot(
             classesQuery,
             (snapshot) => {
-                const schoolClasses = snapshot.docs.map((d) => ({
-                    id: d.id,
-                    ...d.data(),
-                }));
+                const schoolClasses = snapshot.docs
+                    .map((d) => ({
+                        id: d.id,
+                        ...d.data(),
+                    }))
+                    .filter((item) =>
+                        isActiveYearDoc(item, activeYearKey, {
+                            includeUntagged,
+                        }),
+                    );
                 state.setAllSchoolClasses(schoolClasses);
                 state.setAllTeachersClasses(
                     isSecretary
@@ -558,6 +680,10 @@ export function setupDataListeners(
                 }
                 updateCeremonyStatus();
                 renderHomeTab(); // Always update — home is the default active tab
+                if (isSecretary) {
+                    maybeRenderSecretaryPortal("school");
+                    maybeRenderSecretaryPortal("home");
+                }
             },
             (error) => console.error("Error listening to classes:", error),
         ),
@@ -567,10 +693,16 @@ export function setupDataListeners(
         onSnapshot(
             studentsQuery,
             (snapshot) => {
-                const allStudents = snapshot.docs.map((doc) => ({
-                    id: doc.id,
-                    ...doc.data(),
-                }));
+                const allStudents = snapshot.docs
+                    .map((doc) => ({
+                        id: doc.id,
+                        ...doc.data(),
+                    }))
+                    .filter((item) =>
+                        isActiveStudent(item, activeYearKey, {
+                            includeUntagged,
+                        }),
+                    );
                 state.setAllStudents(
                     allStudents.sort((a, b) => a.name.localeCompare(b.name)),
                 );
@@ -607,6 +739,10 @@ export function setupDataListeners(
                     renderFamiliarOptionsUi();
                 }
                 renderHomeTab(); // Always update — home is the default active tab
+                if (isSecretary) {
+                    maybeRenderSecretaryPortal("school");
+                    maybeRenderSecretaryPortal("home");
+                }
                 // --- NEW: Check for missing genders in background ---
                 // Debounce this slightly so it doesn't fire while typing a new name
                 if (window.genderCheckTimeout)
@@ -626,10 +762,17 @@ export function setupDataListeners(
             scoresQuery,
             (snapshot) => {
                 const currentMonthStart = getStartOfMonthString();
-                const allStudentScores = snapshot.docs.map((doc) => ({
-                    id: doc.id,
-                    ...doc.data(),
-                }));
+                const allStudentScores = snapshot.docs
+                    .map((doc) => ({
+                        id: doc.id,
+                        ...doc.data(),
+                    }))
+                    .filter((item) =>
+                        isActiveYearDoc(item, activeYearKey, {
+                            field: "activeSchoolYearKey",
+                            includeUntagged,
+                        }),
+                    );
                 state.setAllStudentScores(allStudentScores);
                 maybeReconcileSpecialHeroProgression();
 
@@ -858,7 +1001,13 @@ export function setupDataListeners(
             awardLogsQuery,
             (snapshot) => {
                 state.setAllAwardLogs(
-                    snapshot.docs.map((d) => ({ id: d.id, ...d.data() })),
+                    snapshot.docs
+                        .map((d) => ({ id: d.id, ...d.data() }))
+                        .filter((item) =>
+                            isActiveYearDoc(item, activeYearKey, {
+                                includeUntagged,
+                            }),
+                        ),
                 );
                 const newTodaysAwardLogs = {};
                 const today = getTodayDateString();
@@ -882,7 +1031,13 @@ export function setupDataListeners(
             questEventsQuery,
             (snapshot) => {
                 state.setAllQuestEvents(
-                    snapshot.docs.map((d) => ({ id: d.id, ...d.data() })),
+                    snapshot.docs
+                        .map((d) => ({ id: d.id, ...d.data() }))
+                        .filter((item) =>
+                            isActiveYearDoc(item, activeYearKey, {
+                                includeUntagged,
+                            }),
+                        ),
                 );
                 if (isTabVisible("calendar-tab")) renderCalendarTab();
             },
@@ -895,7 +1050,13 @@ export function setupDataListeners(
             adventureLogsQuery,
             (snapshot) => {
                 state.setAllAdventureLogs(
-                    snapshot.docs.map((d) => ({ id: d.id, ...d.data() })),
+                    snapshot.docs
+                        .map((d) => ({ id: d.id, ...d.data() }))
+                        .filter((item) =>
+                            isActiveYearDoc(item, activeYearKey, {
+                                includeUntagged,
+                            }),
+                        ),
                 );
                 renderAdventureLog();
             },
@@ -909,7 +1070,13 @@ export function setupDataListeners(
             questAssignmentsQuery,
             (snapshot) => {
                 state.setAllQuestAssignments(
-                    snapshot.docs.map((d) => ({ id: d.id, ...d.data() })),
+                    snapshot.docs
+                        .map((d) => ({ id: d.id, ...d.data() }))
+                        .filter((item) =>
+                            isActiveYearDoc(item, activeYearKey, {
+                                includeUntagged,
+                            }),
+                        ),
                 );
             },
             (error) =>
@@ -922,7 +1089,13 @@ export function setupDataListeners(
             completedStoriesQuery,
             (snapshot) => {
                 state.setAllCompletedStories(
-                    snapshot.docs.map((d) => ({ id: d.id, ...d.data() })),
+                    snapshot.docs
+                        .map((d) => ({ id: d.id, ...d.data() }))
+                        .filter((item) =>
+                            isActiveYearDoc(item, activeYearKey, {
+                                includeUntagged,
+                            }),
+                        ),
                 );
                 if (
                     document.getElementById("story-archive-modal") &&
@@ -943,7 +1116,13 @@ export function setupDataListeners(
             writtenScoresQuery,
             (snapshot) => {
                 state.setAllWrittenScores(
-                    snapshot.docs.map((d) => ({ id: d.id, ...d.data() })),
+                    snapshot.docs
+                        .map((d) => ({ id: d.id, ...d.data() }))
+                        .filter((item) =>
+                            isActiveYearDoc(item, activeYearKey, {
+                                includeUntagged,
+                            }),
+                        ),
                 );
                 const scrollClassId = state.get("globalSelectedClassId");
                 if (scrollClassId) {
@@ -966,6 +1145,10 @@ export function setupDataListeners(
                     renderTrialHistoryContent(classId, activeView);
                 }
                 renderHomeTab(); // Update home tab (last test info)
+                if (isSecretary) {
+                    maybeRenderSecretaryPortal("grades");
+                    maybeRenderSecretaryPortal("home");
+                }
             },
             (error) => {
                 console.error("Error listening to written scores:", error);
@@ -979,7 +1162,13 @@ export function setupDataListeners(
             (snapshot) => {
                 // This state now only contains RECENT attendance (last 30 days)
                 state.setAllAttendanceRecords(
-                    snapshot.docs.map((d) => ({ id: d.id, ...d.data() })),
+                    snapshot.docs
+                        .map((d) => ({ id: d.id, ...d.data() }))
+                        .filter((item) =>
+                            isActiveYearDoc(item, activeYearKey, {
+                                includeUntagged,
+                            }),
+                        ),
                 );
 
                 snapshot.docChanges().forEach((change) => {
@@ -1019,7 +1208,13 @@ export function setupDataListeners(
             overridesQuery,
             (snapshot) => {
                 state.setAllScheduleOverrides(
-                    snapshot.docs.map((d) => ({ id: d.id, ...d.data() })),
+                    snapshot.docs
+                        .map((d) => ({ id: d.id, ...d.data() }))
+                        .filter((item) =>
+                            isActiveYearDoc(item, activeYearKey, {
+                                includeUntagged,
+                            }),
+                        ),
                 );
                 renderCalendarTab();
                 updateCeremonyStatus();
@@ -1035,7 +1230,13 @@ export function setupDataListeners(
             heroChronicleNotesQuery,
             (snapshot) => {
                 state.setAllHeroChronicleNotes(
-                    snapshot.docs.map((d) => ({ id: d.id, ...d.data() })),
+                    snapshot.docs
+                        .map((d) => ({ id: d.id, ...d.data() }))
+                        .filter((item) =>
+                            isActiveYearDoc(item, activeYearKey, {
+                                includeUntagged,
+                            }),
+                        ),
                 );
                 const modal = document.getElementById("hero-chronicle-modal");
                 if (modal && !modal.classList.contains("hidden")) {
@@ -1058,7 +1259,13 @@ export function setupDataListeners(
             questBountiesQuery,
             async (snapshot) => {
                 state.setAllQuestBounties(
-                    snapshot.docs.map((d) => ({ id: d.id, ...d.data() })),
+                    snapshot.docs
+                        .map((d) => ({ id: d.id, ...d.data() }))
+                        .filter((item) =>
+                            isActiveYearDoc(item, activeYearKey, {
+                                includeUntagged,
+                            }),
+                        ),
                 );
                 // Dynamically import to avoid circular dependency
                 const { renderActiveBounties } = await import("../ui/core.js");
@@ -1073,7 +1280,13 @@ export function setupDataListeners(
     state.setUnsubscribeShopItems(
         onSnapshot(shopItemsQuery, async (snapshot) => {
             state.setCurrentShopItems(
-                snapshot.docs.map((d) => ({ id: d.id, ...d.data() })),
+                snapshot.docs
+                    .map((d) => ({ id: d.id, ...d.data() }))
+                    .filter((item) =>
+                        isActiveYearDoc(item, activeYearKey, {
+                            includeUntagged,
+                        }),
+                    ),
             );
             // Real-time stock updates: Refresh shop UI if modal is open
             const shopModal = document.getElementById("shop-modal");

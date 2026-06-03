@@ -8,6 +8,7 @@ import {
 import * as state from '../../state.js';
 import * as utils from '../../utils.js';
 import { LEGENDARY_ARTIFACTS } from '../../features/powerUps.js';
+import { withActiveScoreYear, withSchoolYear } from '../../utils/schoolYear.js';
 
 const publicDataPath = 'artifacts/great-class-quest/public/data';
 
@@ -26,7 +27,7 @@ function pickRandom(items, count) {
 
 function buildWheelLogPayload({ studentId, classId, deltaStars = 0, deltaGold = 0, artifactsGranted = 0, artifactsRemoved = 0, note = '' }) {
     const ds = Number(deltaStars);
-    return {
+    return withSchoolYear({
         studentId,
         classId,
         teacherId: state.get('currentUserId'),
@@ -43,7 +44,7 @@ function buildWheelLogPayload({ studentId, classId, deltaStars = 0, deltaGold = 
             artifactsGranted,
             artifactsRemoved
         }
-    };
+    }, state.getActiveSchoolYearKey());
 }
 
 function ensureScoreDoc(transaction, scoreRef, studentId, existing) {
@@ -60,7 +61,7 @@ function ensureScoreDoc(transaction, scoreRef, studentId, existing) {
         lastMonthlyResetDate: utils.getStartOfMonthString(),
         createdBy: { uid: state.get('currentUserId'), name: state.get('currentTeacherName') }
     };
-    transaction.set(scoreRef, init);
+    transaction.set(scoreRef, withActiveScoreYear(init, state.getActiveSchoolYearKey()));
     return init;
 }
 

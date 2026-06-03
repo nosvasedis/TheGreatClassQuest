@@ -28,6 +28,7 @@ import { playSound } from '../../audio.js';
 import { reconcileFamiliarLifecycle } from '../../features/familiars.js';
 import { createAssessmentScorePayload, getNormalizedPercentForScore, qualifiesForHighScore } from '../../features/assessmentConfig.js';
 import { handleUseItem, isItemUsable } from '../../features/powerUps.js';
+import { withSchoolYear } from '../../utils/schoolYear.js';
 // GUILD_IDS not needed at module level but kept for reference
 
 // --- THE ECONOMY (SHOP & INVENTORY) ---
@@ -322,7 +323,7 @@ export async function handleGenerateShopStock() {
                     const url = await uploadImageToStorage(compressed, path);
 
                     const docRef = doc(collection(db, `${publicDataPath}/shop_items`));
-                    await setDoc(docRef, {
+                    await setDoc(docRef, withSchoolYear({
                         name: item.name,
                         description: item.desc,
                         price: item.price,
@@ -332,7 +333,7 @@ export async function handleGenerateShopStock() {
                         teacherId: state.get('currentUserId'),
                         createdAt: serverTimestamp(),
                         createdBy: { uid: state.get('currentUserId'), name: state.get('currentTeacherName') }
-                    });
+                    }, state.getActiveSchoolYearKey()));
                 } catch (err) {
                     console.error("Item gen failed:", item.name, err);
                 }
@@ -451,7 +452,7 @@ export async function handleBulkSaveTrial() {
             } else {
                 const newRef = doc(scoresCollection);
                 scoreData.createdAt = serverTimestamp();
-                batch.set(newRef, scoreData);
+                batch.set(newRef, withSchoolYear(scoreData, state.getActiveSchoolYearKey()));
             }
             operationsCount++;
         });
@@ -790,7 +791,7 @@ export async function checkAndResetMonthlyStars(studentId, currentMonthStart) {
                 const historyRef = doc(db, `${publicDataPath}/student_scores/${studentId}/monthly_history/${yearMonthKey}`);
 
                 if (lastMonthScore > 0) {
-                    transaction.set(historyRef, { stars: lastMonthScore, month: yearMonthKey });
+                    transaction.set(historyRef, withSchoolYear({ stars: lastMonthScore, month: yearMonthKey }, scoreData.activeSchoolYearKey || state.getActiveSchoolYearKey()));
                 }
 
                 const currentGold = scoreData.gold !== undefined ? scoreData.gold : (scoreData.totalStars || 0);
@@ -842,14 +843,14 @@ async function _checkAndPersistGuildChampion(studentId, currentMonthStart) {
     const docId = `${closingMonthKey}_${guildId}`;
     const champRef = doc(db, `${publicDataPath}/guild_champions`, docId);
 
-    await setDoc(champRef, {
+    await setDoc(champRef, withSchoolYear({
         guildId,
         monthKey: closingMonthKey,
         studentId: champion.studentId,
         studentName: champion.studentName,
         monthlyStars: champion.monthlyStars,
         updatedAt: serverTimestamp()
-    }, { merge: true });
+    }, state.getActiveSchoolYearKey()), { merge: true });
 }
 
 export async function handleManualGoldUpdate() {
@@ -910,7 +911,7 @@ export async function handleSpecialOccasionBonus(studentId, type) {
             });
 
             // Log it
-            const logData = {
+            const logData = withSchoolYear({
                 studentId,
                 classId: student.classId,
                 teacherId: state.get('currentUserId'),
@@ -921,7 +922,7 @@ export async function handleSpecialOccasionBonus(studentId, type) {
                 date: getTodayDateString(),
                 createdAt: serverTimestamp(),
                 createdBy: { uid: state.get('currentUserId'), name: state.get('currentTeacherName') }
-            };
+            }, state.getActiveSchoolYearKey());
             transaction.set(newLogRef, logData);
         });
 

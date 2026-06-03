@@ -110,6 +110,7 @@ export async function updateGuildScores(studentId, starDelta) {
             await setDoc(guildRef, {
                 guildId,
                 guildName: guildDef?.name || guildId,
+                activeSchoolYearKey: state.getActiveSchoolYearKey(),
                 totalStars: starDelta,
                 totalGlory: gloryDelta,
                 monthlyGlory: gloryDelta,
@@ -240,6 +241,7 @@ export async function migrateGuildGloryIfNeeded() {
         try {
             const totalGlory = (data.totalStars || 0) * GLORY_PER_STAR;
             await updateDoc(guildRef, {
+                activeSchoolYearKey: state.getActiveSchoolYearKey(),
                 totalGlory,
                 monthlyGlory: 0,
                 weeklyGlory: 0,

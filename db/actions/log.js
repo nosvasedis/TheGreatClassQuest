@@ -28,6 +28,7 @@ import { reconcileFamiliarLifecycle } from '../../features/familiars.js';
 import { applyAwardOutwardSkillEffects, applyReasonAwardScoreTransaction, showHeroLevelUpCelebration } from './stars.js';
 import { getAwardLogMonthlyStarCredit } from '../../features/awardLogReasonMeta.js';
 import { retryAdventureLogGeneration } from './quests.js';
+import { withSchoolYear } from '../../utils/schoolYear.js';
 
 export async function addOrUpdateHeroChronicleNote(studentId, noteText, category, noteId = null) {
     if (!studentId || !noteText || !category) {
@@ -35,13 +36,13 @@ export async function addOrUpdateHeroChronicleNote(studentId, noteText, category
         return;
     }
     
-    const noteData = {
+    const noteData = withSchoolYear({
         studentId,
         teacherId: state.get('currentUserId'),
         noteText,
         category,
         updatedAt: serverTimestamp()
-    };
+    }, state.getActiveSchoolYearKey());
 
     try {
         if (noteId) {
@@ -124,7 +125,7 @@ export async function handleEndStory() {
             const coverImageUrl = firstChapter.imageUrl || null;
             const coverImageBase64 = !coverImageUrl ? (firstChapter.imageBase64 || null) : null;
             
-            batch.set(newArchiveDocRef, {
+            batch.set(newArchiveDocRef, withSchoolYear({
                 title: storyTitle,
                 classId: classId,
                 className: classData.name,
@@ -133,7 +134,7 @@ export async function handleEndStory() {
                 coverImageBase64,
                 completedAt: serverTimestamp(),
                 createdBy: { uid: state.get('currentUserId'), name: state.get('currentTeacherName') }
-            });
+            }, state.getActiveSchoolYearKey()));
 
             storyChapters.forEach((chapter, index) => {
                 const chapterDocRef = doc(collection(db, `${newArchiveDocRef.path}/chapters`));
@@ -228,7 +229,7 @@ export async function handleAwardBonusStar(studentId, bonusAmount, trialType) {
             levelUpInfo = txResult.levelUpInfo;
 
             const newLogRef = doc(collection(db, `${publicDataPath}/award_log`));
-            const logData = {
+            const logData = withSchoolYear({
                 studentId,
                 classId: student.classId,
                 teacherId: state.get('currentUserId'),
@@ -239,7 +240,7 @@ export async function handleAwardBonusStar(studentId, bonusAmount, trialType) {
                 date: getTodayDateString(),
                 createdAt: serverTimestamp(),
                 createdBy: { uid: state.get('currentUserId'), name: state.get('currentTeacherName') }
-            };
+            }, state.getActiveSchoolYearKey());
             transaction.set(newLogRef, logData);
         });
         applyAwardOutwardSkillEffects(studentId, student.classId, 'scholar_s_bonus', finalBonus).catch((e) => console.warn('Scholar outward skill effect failed:', e));
@@ -279,7 +280,7 @@ export async function handleBatchAwardBonus(students) {
                 levelUpInfo = txResult.levelUpInfo;
 
                 const newLogRef = doc(collection(db, `${publicDataPath}/award_log`));
-                const logData = {
+                const logData = withSchoolYear({
                     studentId,
                     classId: student.classId,
                     teacherId: state.get('currentUserId'),
@@ -290,7 +291,7 @@ export async function handleBatchAwardBonus(students) {
                     date: today,
                     createdAt: serverTimestamp(),
                     createdBy: { uid: state.get('currentUserId'), name: state.get('currentTeacherName') }
-                };
+                }, state.getActiveSchoolYearKey());
                 transaction.set(newLogRef, logData);
             });
 
@@ -719,13 +720,13 @@ export async function handleMarkAbsent(studentId, classId, isAbsent, targetDate 
 
                 // 3. Create Attendance Record
                 const newAttendanceRef = doc(attendanceCollectionRef);
-                transaction.set(newAttendanceRef, {
+                transaction.set(newAttendanceRef, withSchoolYear({
                     studentId,
                     classId,
                     date: today,
                     markedBy: { uid: state.get('currentUserId'), name: state.get('currentTeacherName') },
                     createdAt: serverTimestamp()
-                });
+                }, state.getActiveSchoolYearKey()));
 
                 // 4. Delete today_stars
                 todayStarsSnap.forEach(d => transaction.delete(d.ref));
@@ -817,11 +818,11 @@ export async function handleAddQuestEvent() {
         const btn = document.querySelector('#quest-event-form button[type="submit"]');
         btn.disabled = true; btn.innerText = "Adding...";
 
-        await addDoc(collection(db, "artifacts/great-class-quest/public/data/quest_events"), {
+        await addDoc(collection(db, "artifacts/great-class-quest/public/data/quest_events"), withSchoolYear({
             date, type, details,
             createdBy: { uid: state.get('currentUserId'), name: state.get('currentTeacherName') },
             createdAt: serverTimestamp()
-        });
+        }, state.getActiveSchoolYearKey()));
         
         showToast('Quest Event added to calendar!', 'success');
         import('../../ui/modals.js').then(m => m.hideModal('day-planner-modal'));
@@ -851,13 +852,13 @@ export async function handleCancelLesson(dateString, classId) {
         if (override && override.type === 'one-time') {
             await deleteDoc(doc(db, `artifacts/great-class-quest/public/data/schedule_overrides`, override.id));
         } else {
-            await addDoc(collection(db, `artifacts/great-class-quest/public/data/schedule_overrides`), { 
+            await addDoc(collection(db, `artifacts/great-class-quest/public/data/schedule_overrides`), withSchoolYear({
                 date: dateString, 
                 classId, 
                 type: 'cancelled', 
                 createdBy: { uid: state.get('currentUserId'), name: state.get('currentTeacherName') }, 
                 createdAt: serverTimestamp() 
-            });
+            }, state.getActiveSchoolYearKey()));
         }
         showToast("Lesson cancelled for this day.", "success");
     } catch (e) { showToast("Error updating schedule.", "error"); }
@@ -948,13 +949,13 @@ export async function handleRemoveAttendanceColumn(classId, dateString, isGlobal
         // 2. Create Overrides for all affected classes
         for (const cls of classesToCancel) {
             const overrideRef = doc(collection(db, `${publicDataPath}/schedule_overrides`));
-            batch.set(overrideRef, { 
+            batch.set(overrideRef, withSchoolYear({
                 date: dateString, 
                 classId: cls.id, 
                 type: 'cancelled', 
                 createdBy: { uid: state.get('currentUserId'), name: state.get('currentTeacherName') }, 
                 createdAt: serverTimestamp() 
-            });
+            }, state.getActiveSchoolYearKey()));
         }
 
         // 3. Delete Attendance Records for all affected classes on this day
@@ -993,13 +994,13 @@ export async function handleAddOneTimeLesson(dateString) {
         if (override && override.type === 'cancelled') {
             await deleteDoc(doc(db, `artifacts/great-class-quest/public/data/schedule_overrides`, override.id));
         } else {
-            await addDoc(collection(db, `artifacts/great-class-quest/public/data/schedule_overrides`), { 
+            await addDoc(collection(db, `artifacts/great-class-quest/public/data/schedule_overrides`), withSchoolYear({
                 date: dateString, 
                 classId, 
                 type: 'one-time', 
                 createdBy: { uid: state.get('currentUserId'), name: state.get('currentTeacherName') }, 
                 createdAt: serverTimestamp() 
-            });
+            }, state.getActiveSchoolYearKey()));
         }
         showToast("One-time lesson added.", "success");
     } catch (e) { showToast("Error updating schedule.", "error"); }

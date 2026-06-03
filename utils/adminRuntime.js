@@ -53,3 +53,31 @@ export function syncQuestAssignmentToParentHomework(payload) {
 export function backfillRoleAccessData(payload = {}) {
     return callAdmin('backfillRoleAccessData', payload);
 }
+
+export function previewYearRollover(payload = {}) {
+    return callAdmin('previewYearRollover', payload);
+}
+
+export function closeSchoolYear(payload = {}) {
+    return callAdmin('closeSchoolYear', payload);
+}
+
+export function finalizeRollover(payload = {}) {
+    return callAdmin('finalizeRollover', payload);
+}
+
+export function backfillSchoolYearData(payload = {}) {
+    return callAdmin('backfillSchoolYearData', payload);
+}
+
+export function allocateReturningStudents(payload = {}) {
+    return callAdmin('allocateReturningStudents', payload);
+}
+
+export function markStudentLeftSchool(payload = {}) {
+    return callAdmin('markStudentLeftSchool', payload);
+}
+
+export function transferStudentToClass(payload = {}) {
+    return callAdmin('transferStudentToClass', payload);
+}

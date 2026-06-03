@@ -9,7 +9,7 @@ import { db, auth } from './firebase.js';
 import { firebaseConfig, BILLING_BASE_URL, BILLING_SCHOOL_ID } from './constants.js';
 import * as state from './state.js';
 import { setupDataListeners } from './db/listeners.js';
-import { setupParentSession, watchCommunicationThread } from './db/listeners.js';
+import { setupParentSession, watchCommunicationThread, refreshParentPortalData } from './db/listeners.js';
 import { setupUIListeners } from './ui/core.js';
 import { ensureAudioReady } from './audio.js';
 import { updateDateTime, getTodayDateString, fetchSolarCycle } from './utils.js';
@@ -234,7 +234,7 @@ async function openParentPortal({ loadingScreen, authScreen }) {
     hideAuthScreen(authScreen);
     const parentScreen = document.getElementById('parent-screen');
     if (parentScreen) parentScreen.classList.remove('hidden');
-    activateParentTab('overview');
+    activateParentTab('home');
     renderParentPortal();
     resetAuthSubmitState();
     animateLoadingScreenOut(loadingScreen);
@@ -245,7 +245,7 @@ async function openSecretaryConsole({ loadingScreen, authScreen }) {
     hideAuthScreen(authScreen);
     const secretaryScreen = document.getElementById('secretary-screen');
     if (secretaryScreen) secretaryScreen.classList.remove('hidden');
-    activateSecretaryTab('overview');
+    activateSecretaryTab('home');
     renderSecretaryConsole();
     setSecretaryReturnButtonVisible(true);
     resetAuthSubmitState();
@@ -671,7 +671,10 @@ async function initApp() {
         setupAuthListeners();
         wireParentPortalListeners({
             onLogout: async () => signOut(auth),
-            onRefresh: () => renderParentPortal(),
+            onRefresh: async () => {
+                await refreshParentPortalData();
+                renderParentPortal();
+            },
             onSelectThread: (threadId) => watchCommunicationThread(threadId)
         });
         wireSecretaryConsoleListeners({
@@ -706,7 +709,8 @@ async function initApp() {
         document.getElementById('secretary-console-btn')?.addEventListener('click', () => {
             document.getElementById('app-screen')?.classList.add('hidden');
             document.getElementById('secretary-screen')?.classList.remove('hidden');
-            activateSecretaryTab('overview');
+            setSecretaryReturnButtonVisible(true);
+            activateSecretaryTab('home');
             renderSecretaryConsole();
         });
 

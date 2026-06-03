@@ -50,3 +50,124 @@
     animation: subtle-pulse 5s ease-in-out infinite;
 }
 
+/* Returning students — September placement (teacher roster) */
+.returning-students-shell {
+    background: linear-gradient(135deg, #fffbeb 0%, #fef3c7 45%, #fff 100%);
+    border: 2px solid rgba(251, 191, 36, 0.45);
+    border-radius: 1.25rem;
+    padding: 1.25rem 1.35rem;
+    box-shadow: 0 8px 24px rgba(245, 158, 11, 0.12);
+}
+
+.returning-students-shell__header {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 1rem;
+    margin-bottom: 1rem;
+}
+
+.returning-students-place-btn {
+    display: inline-flex;
+    align-items: center;
+    background: linear-gradient(135deg, #f59e0b, #d97706);
+    color: #fff;
+    font-weight: 700;
+    padding: 0.65rem 1.25rem;
+    border-radius: 9999px;
+    border: none;
+    box-shadow: 0 4px 12px rgba(217, 119, 6, 0.35);
+}
+
+.returning-students-search {
+    display: flex;
+    align-items: center;
+    gap: 0.65rem;
+    background: #fff;
+    border: 1px solid rgba(251, 191, 36, 0.5);
+    border-radius: 0.85rem;
+    padding: 0.5rem 0.85rem;
+    margin-bottom: 1rem;
+}
+
+.returning-students-search input {
+    flex: 1;
+    border: none;
+    outline: none;
+    font-size: 0.9rem;
+    background: transparent;
+}
+
+.returning-students-group__title {
+    font-size: 0.85rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: #b45309;
+    margin-bottom: 0.65rem;
+}
+
+.returning-students-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 0.65rem;
+    margin-bottom: 1rem;
+}
+
+.returning-student-card {
+    display: flex;
+    gap: 0.6rem;
+    align-items: flex-start;
+    background: rgba(255, 255, 255, 0.92);
+    border: 1px solid rgba(251, 191, 36, 0.35);
+    border-radius: 0.85rem;
+    padding: 0.65rem 0.75rem;
+    cursor: pointer;
+    transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+.returning-student-card:has(input:checked) {
+    border-color: #d97706;
+    box-shadow: 0 0 0 2px rgba(245, 158, 11, 0.25);
+}
+
+.returning-student-card__title {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    flex-wrap: wrap;
+}
+
+.returning-student-card__meta,
+.returning-student-card__reason,
+.returning-student-card__hint {
+    font-size: 0.75rem;
+    color: #78716c;
+    margin-top: 0.2rem;
+}
+
+.returning-student-card__hint {
+    color: #b45309;
+    font-weight: 600;
+}
+
+.returning-student-badge {
+    font-size: 0.65rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    padding: 0.15rem 0.45rem;
+    border-radius: 9999px;
+}
+
+.returning-student-badge--suggested {
+    background: #fef3c7;
+    color: #b45309;
+}
+
+.returning-students-empty {
+    font-size: 0.85rem;
+    color: #78716c;
+    padding: 0.5rem 0;
+}
+

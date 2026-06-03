@@ -13,6 +13,143 @@ import { canUseFeature } from '../../utils/subscription.js';
 import { showUpgradePrompt } from '../../utils/upgradePrompt.js';
 import { getUpgradeMessage } from '../../config/tiers/features.js';
 import { openAccessCenterForStudent } from '../../features/accessManagement.js';
+import { handlePlaceReturningStudents } from '../../db/actions/students.js';
+import {
+    buildReturningStudentGroups,
+    filterStudentsBySearch,
+    getUnplacedStudents
+} from '../../utils/returningStudents.js';
+
+let returningStudentSearchQuery = '';
+
+function escapeHtml(value) {
+    return String(value || '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+}
+
+function renderReturningStudentCard(entry, options = {}) {
+    const { student, reason, prevLeague, previousClassName, score } = entry;
+    const badge = options.suggested
+        ? '<span class="returning-student-badge returning-student-badge--suggested">Suggested</span>'
+        : '';
+    return `
+        <label class="returning-student-card">
+            <input type="checkbox" class="returning-student-check" value="${escapeHtml(student.id)}">
+            <div class="returning-student-card__body">
+                <div class="returning-student-card__title">
+                    <strong>${escapeHtml(student.name)}</strong>
+                    ${badge}
+                </div>
+                <p class="returning-student-card__meta">
+                    ${escapeHtml(previousClassName || student.previousClassName || 'Previous class unknown')}
+                    ${prevLeague ? ` • ${escapeHtml(prevLeague)}` : ''}
+                </p>
+                ${reason ? `<p class="returning-student-card__reason">${escapeHtml(reason)}</p>` : ''}
+                ${options.suggested && score >= 100 ? '<p class="returning-student-card__hint">Likely match for this class league</p>' : ''}
+            </div>
+        </label>
+    `;
+}
+
+function renderReturningStudentsPanel(currentClassId) {
+    const panel = document.getElementById('returning-students-panel');
+    if (!panel) return;
+
+    const allStudents = state.get('allStudents') || [];
+    const unplacedCount = getUnplacedStudents(allStudents).length;
+    if (!unplacedCount) {
+        panel.classList.add('hidden');
+        panel.innerHTML = '';
+        return;
+    }
+
+    const currentClass = (state.get('allSchoolClasses') || []).find((c) => c.id === currentClassId)
+        || (state.get('allTeachersClasses') || []).find((c) => c.id === currentClassId);
+    if (!currentClass) {
+        panel.classList.add('hidden');
+        panel.innerHTML = '';
+        return;
+    }
+
+    const { suggested, others } = buildReturningStudentGroups(allStudents, currentClass);
+    const filterEntries = (entries) => filterStudentsBySearch(entries, returningStudentSearchQuery);
+    const filteredSuggested = filterEntries(suggested);
+    const filteredAllUnplaced = filterEntries([...suggested, ...others]);
+
+    panel.classList.remove('hidden');
+    panel.innerHTML = `
+        <div class="returning-students-shell">
+            <div class="returning-students-shell__header">
+                <div>
+                    <p class="text-[10px] font-bold text-amber-600 uppercase tracking-widest">September Setup</p>
+                    <h3 class="font-title text-xl text-amber-900">Returning adventurers for ${escapeHtml(currentClass.name)}</h3>
+                    <p class="text-sm text-amber-800/80 mt-1">
+                        ${unplacedCount} student(s) still need a class. Suggestions are based on last year’s league (${escapeHtml(currentClass.questLevel || 'this class')}).
+                    </p>
+                </div>
+                <button type="button" id="returning-students-place-btn"
+                    class="returning-students-place-btn bubbly-button">
+                    <i class="fas fa-user-check mr-2"></i>Place Selected
+                </button>
+            </div>
+            <div class="returning-students-search">
+                <i class="fas fa-search text-amber-600"></i>
+                <input type="search" id="returning-students-search-input"
+                    placeholder="Search by name, old class, or league..."
+                    value="${escapeHtml(returningStudentSearchQuery)}">
+            </div>
+            ${filteredSuggested.length ? `
+                <div class="returning-students-group">
+                    <h4 class="returning-students-group__title"><i class="fas fa-wand-magic-sparkles mr-2"></i>Suggested for this class</h4>
+                    <div class="returning-students-grid">
+                        ${filteredSuggested.map((entry) => renderReturningStudentCard(entry, { suggested: true, score: entry.score })).join('')}
+                    </div>
+                </div>
+            ` : (returningStudentSearchQuery && suggested.length
+                ? '<p class="returning-students-empty">No suggested matches for that search.</p>'
+                : '<p class="returning-students-empty">No strong league matches — check all unplaced students below.</p>'
+            )}
+            <div class="returning-students-group">
+                <h4 class="returning-students-group__title"><i class="fas fa-users mr-2"></i>All unplaced students</h4>
+                <div class="returning-students-grid">
+                    ${filteredAllUnplaced.map((entry) =>
+                        renderReturningStudentCard(entry, { suggested: entry.score >= 40, score: entry.score })
+                    ).join('') || '<p class="returning-students-empty">No students match that search.</p>'}
+                </div>
+            </div>
+        </div>
+    `;
+
+    panel.querySelector('#returning-students-search-input')?.addEventListener('input', (event) => {
+        returningStudentSearchQuery = event.target.value;
+        renderReturningStudentsPanel(currentClassId);
+    });
+
+    panel.querySelector('#returning-students-place-btn')?.addEventListener('click', async () => {
+        const btn = panel.querySelector('#returning-students-place-btn');
+        const studentIds = Array.from(panel.querySelectorAll('.returning-student-check:checked')).map((el) => el.value);
+        if (!studentIds.length) {
+            showToast('Tick at least one returning student.', 'info');
+            return;
+        }
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Placing...';
+        try {
+            await handlePlaceReturningStudents(currentClassId, studentIds);
+            returningStudentSearchQuery = '';
+            renderManageStudentsTab();
+        } catch {
+            // toast already shown
+        } finally {
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fas fa-user-check mr-2"></i>Place Selected';
+        }
+    });
+}
 
 export function renderManageClassesTab() {
     const list = document.getElementById('class-list');
@@ -79,6 +216,8 @@ export function renderManageStudentsTab() {
     const currentManagingClassId = state.get('currentManagingClassId');
     if (!list || !currentManagingClassId) return;
 
+    renderReturningStudentsPanel(currentManagingClassId);
+
     const studentsInClass = state.get('allStudents')
         .filter(s => s.classId === currentManagingClassId)
         .sort((a, b) => a.name.localeCompare(b.name));
@@ -95,11 +234,15 @@ export function renderManageStudentsTab() {
     }
 
     if (studentsInClass.length === 0) {
+        const unplacedCount = getUnplacedStudents(state.get('allStudents') || []).length;
         list.innerHTML = `
             <div class="text-center py-14 px-6">
                 <div class="text-gray-200 text-6xl mb-4"><i class="fas fa-users"></i></div>
                 <p class="text-gray-500 font-semibold text-lg">No adventurers yet!</p>
-                <p class="text-gray-400 text-sm mt-1">Add your first student using the form to start the quest.</p>
+                <p class="text-gray-400 text-sm mt-1">${unplacedCount
+                    ? 'Place returning students from the panel above, or add a brand-new student with the form.'
+                    : 'Add your first student using the form to start the quest.'
+                }</p>
             </div>`;
         return;
     }

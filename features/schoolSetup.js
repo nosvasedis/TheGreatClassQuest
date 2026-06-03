@@ -19,6 +19,7 @@ import {
     wireAssessmentEditor
 } from '../ui/assessmentEditor.js';
 import { createOrReplaceSecretaryAccess } from '../utils/adminRuntime.js';
+import { withActiveScoreYear, withActiveStudentYear, withSchoolYear } from '../utils/schoolYear.js';
 
 const PUBLIC_DATA_PATH = 'artifacts/great-class-quest/public/data';
 const SCORE_DEFAULTS = {
@@ -614,10 +615,11 @@ async function persistSetupBundle() {
 
     const createdBy = { uid: currentUserId, name: currentTeacherName };
     const monthStart = utils.getStartOfMonthString();
+    const activeYearKey = state.getActiveSchoolYearKey();
 
     setupDraftClasses.forEach((draft) => {
         const classRef = doc(collection(db, `${PUBLIC_DATA_PATH}/classes`));
-        batch.set(classRef, {
+        batch.set(classRef, withSchoolYear({
             name: draft.name,
             questLevel: draft.questLevel,
             logo: draft.logo,
@@ -625,23 +627,24 @@ async function persistSetupBundle() {
             timeStart: '',
             timeEnd: '',
             assessmentConfig: draft.assessmentConfig,
+            status: 'active',
             createdBy,
             createdAt: serverTimestamp()
-        });
+        }, activeYearKey));
 
         draft.students.forEach((studentName) => {
             const studentRef = doc(collection(db, `${PUBLIC_DATA_PATH}/students`));
-            batch.set(studentRef, {
+            batch.set(studentRef, withActiveStudentYear({
                 name: studentName,
                 classId: classRef.id,
                 createdBy,
                 createdAt: serverTimestamp()
-            });
-            batch.set(doc(db, `${PUBLIC_DATA_PATH}/student_scores`, studentRef.id), {
+            }, activeYearKey));
+            batch.set(doc(db, `${PUBLIC_DATA_PATH}/student_scores`, studentRef.id), withActiveScoreYear({
                 ...SCORE_DEFAULTS,
                 lastMonthlyResetDate: monthStart,
                 createdBy
-            });
+            }, activeYearKey));
         });
     });
 

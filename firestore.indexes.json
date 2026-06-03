@@ -144,7 +144,6 @@
       "queryScope": "COLLECTION",
       "fields": [
         { "fieldPath": "studentId", "order": "ASCENDING" },
-        { "fieldPath": "sourceType", "order": "ASCENDING" },
         { "fieldPath": "status", "order": "ASCENDING" },
         { "fieldPath": "updatedAt", "order": "DESCENDING" }
       ]
@@ -163,6 +162,173 @@
       "fields": [
         { "fieldPath": "classId", "order": "ASCENDING" },
         { "fieldPath": "lessonDate", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "classes",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "schoolYearKey", "order": "ASCENDING" },
+        { "fieldPath": "status", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "students",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "activeSchoolYearKey", "order": "ASCENDING" },
+        { "fieldPath": "enrollmentStatus", "order": "ASCENDING" },
+        { "fieldPath": "classId", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "student_scores",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "activeSchoolYearKey", "order": "ASCENDING" },
+        { "fieldPath": "createdBy.uid", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "award_log",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "schoolYearKey", "order": "ASCENDING" },
+        { "fieldPath": "createdAt", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "award_log",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "schoolYearKey", "order": "ASCENDING" },
+        { "fieldPath": "teacherId", "order": "ASCENDING" },
+        { "fieldPath": "createdAt", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "award_log",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "schoolYearKey", "order": "ASCENDING" },
+        { "fieldPath": "classId", "order": "ASCENDING" },
+        { "fieldPath": "createdAt", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "attendance",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "schoolYearKey", "order": "ASCENDING" },
+        { "fieldPath": "classId", "order": "ASCENDING" },
+        { "fieldPath": "createdAt", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "attendance",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "schoolYearKey", "order": "ASCENDING" },
+        { "fieldPath": "markedBy.uid", "order": "ASCENDING" },
+        { "fieldPath": "createdAt", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "written_scores",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "schoolYearKey", "order": "ASCENDING" },
+        { "fieldPath": "classId", "order": "ASCENDING" },
+        { "fieldPath": "date", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "written_scores",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "schoolYearKey", "order": "ASCENDING" },
+        { "fieldPath": "teacherId", "order": "ASCENDING" },
+        { "fieldPath": "date", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "written_scores",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "schoolYearKey", "order": "ASCENDING" },
+        { "fieldPath": "studentId", "order": "ASCENDING" },
+        { "fieldPath": "date", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "quest_assignments",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "schoolYearKey", "order": "ASCENDING" },
+        { "fieldPath": "classId", "order": "ASCENDING" },
+        { "fieldPath": "createdAt", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "adventure_logs",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "schoolYearKey", "order": "ASCENDING" },
+        { "fieldPath": "classId", "order": "ASCENDING" },
+        { "fieldPath": "createdAt", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "schedule_overrides",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "schoolYearKey", "order": "ASCENDING" },
+        { "fieldPath": "classId", "order": "ASCENDING" },
+        { "fieldPath": "date", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "quest_history",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "schoolYearKey", "order": "ASCENDING" },
+        { "fieldPath": "classId", "order": "ASCENDING" },
+        { "fieldPath": "completedAt", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "hero_chronicle_notes",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "schoolYearKey", "order": "ASCENDING" },
+        { "fieldPath": "studentId", "order": "ASCENDING" },
+        { "fieldPath": "updatedAt", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "shop_items",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "schoolYearKey", "order": "ASCENDING" },
+        { "fieldPath": "league", "order": "ASCENDING" },
+        { "fieldPath": "monthKey", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "fortune_wheel_log",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "schoolYearKey", "order": "ASCENDING" },
+        { "fieldPath": "classId", "order": "ASCENDING" },
+        { "fieldPath": "weekKey", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "monthly_history",
+      "queryScope": "COLLECTION_GROUP",
+      "fields": [
+        { "fieldPath": "schoolYearKey", "order": "ASCENDING" },
+        { "fieldPath": "month", "order": "ASCENDING" }
       ]
     }
   ],

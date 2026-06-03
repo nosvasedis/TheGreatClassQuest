@@ -25,6 +25,7 @@ import { getLimit } from '../../utils/subscription.js';
 import { showUpgradePrompt } from '../../utils/upgradePrompt.js';
 import { getUpgradeMessage } from '../../config/tiers/features.js';
 import { normalizeClassAssessmentConfig } from '../../features/assessmentConfig.js';
+import { withSchoolYear } from '../../utils/schoolYear.js';
 
 const publicDataPath = 'artifacts/great-class-quest/public/data';
 
@@ -39,7 +40,7 @@ export async function createClass(data) {
         return;
     }
     const randomColor = classColorPalettes[simpleHashCode(name) % classColorPalettes.length];
-    await addDoc(collection(db, `${publicDataPath}/classes`), {
+    await addDoc(collection(db, `${publicDataPath}/classes`), withSchoolYear({
         name,
         questLevel,
         logo,
@@ -48,9 +49,10 @@ export async function createClass(data) {
         timeEnd,
         assessmentConfig: normalizeClassAssessmentConfig({ inheritSchoolDefaults: true }, questLevel),
         color: randomColor,
+        status: 'active',
         createdBy: { uid: state.get('currentUserId'), name: state.get('currentTeacherName') },
         createdAt: serverTimestamp()
-    });
+    }, state.getActiveSchoolYearKey()));
     showToast('Class created successfully!', 'success');
 }
 

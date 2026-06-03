@@ -7,6 +7,7 @@ import { applyClassQuestBonusDelta } from './fortuneWheelEffects.js';
 import { adjustGuildGlory, applyGloryModifier } from './guilds.js';
 import { playSound } from '../../audio.js';
 import { showToast, showPraiseToast } from '../../ui/effects.js';
+import { withActiveScoreYear, withSchoolYear } from '../../utils/schoolYear.js';
 
 const PUBLIC_DATA_PATH = 'artifacts/great-class-quest/public/data';
 
@@ -47,7 +48,7 @@ export async function saveQuizCurriculum(classId, { type, categories, keywords, 
     const docId = quizDocId(classId);
     const ref = doc(db, `${PUBLIC_DATA_PATH}/quiz_of_the_week`, docId);
 
-    await setDoc(ref, {
+    await setDoc(ref, withSchoolYear({
         classId,
         weekKey: wk,
         status: 'pending',
@@ -59,7 +60,7 @@ export async function saveQuizCurriculum(classId, { type, categories, keywords, 
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp(),
         createdBy: { uid: state.get('currentUserId'), name: state.get('currentTeacherName') }
-    }, { merge: true });
+    }, state.getActiveSchoolYearKey()), { merge: true });
 
     return { docId, weekKey: wk };
 }
@@ -446,17 +447,17 @@ export async function distributeQuizRewards(classId, results) {
                     transaction.update(scoreRef, updates);
                 } else {
                     const student = state.get('allStudents')?.find(s => s.id === studentId);
-                    transaction.set(scoreRef, {
+                    transaction.set(scoreRef, withActiveScoreYear({
                         totalStars: starsAwarded,
                         monthlyStars: starsAwarded,
                         gold: goldAwarded,
                         inventory: [],
                         createdBy: student?.createdBy || { uid: state.get('currentUserId'), name: state.get('currentTeacherName') }
-                    });
+                    }, state.getActiveSchoolYearKey()));
                 }
 
                 const logRef = doc(collection(db, `${PUBLIC_DATA_PATH}/award_log`));
-                transaction.set(logRef, {
+                transaction.set(logRef, withSchoolYear({
                     studentId,
                     classId,
                     teacherId: state.get('currentUserId'),
@@ -467,7 +468,7 @@ export async function distributeQuizRewards(classId, results) {
                     date: getTodayDateString(),
                     createdAt: serverTimestamp(),
                     createdBy: { uid: state.get('currentUserId'), name: state.get('currentTeacherName') }
-                });
+                }, state.getActiveSchoolYearKey()));
 
                 rewardedStudents.push({ studentId, correctCount, stars: starsAwarded, gold: goldAwarded });
             }
@@ -478,13 +479,13 @@ export async function distributeQuizRewards(classId, results) {
                     transaction.update(scoreRef, { gold: increment(rewards.goldPerCorrect) });
                 } else {
                     const student = state.get('allStudents')?.find(s => s.id === studentId);
-                    transaction.set(scoreRef, {
+                    transaction.set(scoreRef, withActiveScoreYear({
                         totalStars: 0,
                         monthlyStars: 0,
                         gold: rewards.goldPerCorrect,
                         inventory: [],
                         createdBy: student?.createdBy || { uid: state.get('currentUserId'), name: state.get('currentTeacherName') }
-                    });
+                    }, state.getActiveSchoolYearKey()));
                 }
             }
         });

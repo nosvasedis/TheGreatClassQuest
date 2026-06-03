@@ -41,6 +41,28 @@ service cloud.firestore {
       return isTeacher() || isSecretary();
     }
 
+    function isYearOperator() {
+      return isSecretary() || isSchoolAdmin();
+    }
+
+    function currentYearStatePath() {
+      return /databases/$(database)/documents/artifacts/great-class-quest/public/data/school_year_state/current;
+    }
+
+    function activeYearKey() {
+      return exists(currentYearStatePath())
+        ? get(currentYearStatePath()).data.activeYearKey
+        : '2025-2026';
+    }
+
+    function isActiveSchoolYearCreate() {
+      return !('schoolYearKey' in request.resource.data) || request.resource.data.schoolYearKey == activeYearKey();
+    }
+
+    function isActiveStudentYearCreate() {
+      return !('activeSchoolYearKey' in request.resource.data) || request.resource.data.activeSchoolYearKey == activeYearKey();
+    }
+
     function isParentLinkedTo(studentId) {
       return isParent() && hasProfile() && currentProfile().linkedStudentId == studentId;
     }
@@ -124,8 +146,57 @@ service cloud.firestore {
       allow write: if signedIn() && request.auth.uid == userId;
     }
 
+    match /teachers/{userId} {
+      allow read: if signedIn() && (request.auth.uid == userId || isSecretary() || isSchoolAdmin());
+      allow create: if signedIn() && request.auth.uid == userId;
+      allow update: if signedIn() && (
+        request.auth.uid == userId ||
+        isSecretary() ||
+        isSchoolAdmin()
+      );
+      allow delete: if false;
+    }
+
     match /artifacts/great-class-quest/public/data/school_roles/{docId} {
       allow read: if signedIn() && (isStaff() || isSchoolAdmin());
+      allow write: if false;
+    }
+
+    match /artifacts/great-class-quest/public/data/school_years/{yearKey} {
+      allow read: if signedIn();
+      allow create, update: if isYearOperator();
+      allow delete: if false;
+    }
+
+    match /artifacts/great-class-quest/public/data/school_year_state/{docId} {
+      allow read: if signedIn();
+      allow create, update: if isYearOperator();
+      allow delete: if false;
+    }
+
+    match /artifacts/great-class-quest/public/data/rollover_jobs/{jobId} {
+      allow read: if isStaff() || isSchoolAdmin();
+      allow create, update: if isYearOperator();
+      allow delete: if false;
+    }
+
+    match /artifacts/great-class-quest/public/data/student_year_snapshots/{snapshotId} {
+      allow read: if isStaff() || isSchoolAdmin();
+      allow write: if false;
+    }
+
+    match /artifacts/great-class-quest/public/data/class_year_snapshots/{snapshotId} {
+      allow read: if isStaff() || isSchoolAdmin();
+      allow write: if false;
+    }
+
+    match /artifacts/great-class-quest/public/data/guild_year_snapshots/{snapshotId} {
+      allow read: if isStaff() || isSchoolAdmin();
+      allow write: if false;
+    }
+
+    match /artifacts/great-class-quest/public/data/student_year_enrollments/{enrollmentId} {
+      allow read: if isStaff() || isSchoolAdmin();
       allow write: if false;
     }
 
@@ -183,29 +254,30 @@ service cloud.firestore {
       allow create: if signedIn() && (
         isSecretary() ||
         isSchoolAdmin() ||
-        (collection == 'classes' && request.resource.data.createdBy.uid == request.auth.uid) ||
-        (collection == 'students' && request.resource.data.createdBy.uid == request.auth.uid) ||
-        (collection == 'student_scores' && request.resource.data.createdBy.uid == request.auth.uid) ||
-        (collection == 'award_log' && request.resource.data.createdBy.uid == request.auth.uid) ||
+        (collection == 'classes' && request.resource.data.createdBy.uid == request.auth.uid && isActiveSchoolYearCreate()) ||
+        (collection == 'students' && request.resource.data.createdBy.uid == request.auth.uid && isActiveStudentYearCreate()) ||
+        (collection == 'student_scores' && request.resource.data.createdBy.uid == request.auth.uid && isActiveStudentYearCreate()) ||
+        (collection == 'award_log' && request.resource.data.createdBy.uid == request.auth.uid && isActiveSchoolYearCreate()) ||
         (collection == 'today_stars' && request.resource.data.teacherId == request.auth.uid) ||
-        (collection == 'adventure_logs' && request.resource.data.createdBy.uid == request.auth.uid) ||
-        (collection == 'quest_events' && request.resource.data.createdBy.uid == request.auth.uid) ||
-        (collection == 'quest_assignments' && request.resource.data.createdBy.uid == request.auth.uid) ||
-        (collection == 'quest_bounties' && request.resource.data.createdBy.uid == request.auth.uid) ||
-        (collection == 'shop_items' && request.resource.data.teacherId == request.auth.uid) ||
-        (collection == 'written_scores' && request.resource.data.teacherId == request.auth.uid) ||
+        (collection == 'adventure_logs' && request.resource.data.createdBy.uid == request.auth.uid && isActiveSchoolYearCreate()) ||
+        (collection == 'quest_events' && request.resource.data.createdBy.uid == request.auth.uid && isActiveSchoolYearCreate()) ||
+        (collection == 'quest_assignments' && request.resource.data.createdBy.uid == request.auth.uid && isActiveSchoolYearCreate()) ||
+        (collection == 'quest_bounties' && request.resource.data.createdBy.uid == request.auth.uid && isActiveSchoolYearCreate()) ||
+        (collection == 'shop_items' && request.resource.data.teacherId == request.auth.uid && isActiveSchoolYearCreate()) ||
+        (collection == 'written_scores' && request.resource.data.teacherId == request.auth.uid && isActiveSchoolYearCreate()) ||
         (collection == 'story_data' && request.resource.data.createdBy.uid == request.auth.uid) ||
-        (collection == 'completed_stories' && request.resource.data.createdBy.uid == request.auth.uid) ||
-        (collection == 'attendance' && request.resource.data.markedBy.uid == request.auth.uid) ||
-        (collection == 'schedule_overrides' && request.resource.data.createdBy.uid == request.auth.uid) ||
+        (collection == 'completed_stories' && request.resource.data.createdBy.uid == request.auth.uid && isActiveSchoolYearCreate()) ||
+        (collection == 'attendance' && request.resource.data.markedBy.uid == request.auth.uid && isActiveSchoolYearCreate()) ||
+        (collection == 'schedule_overrides' && request.resource.data.createdBy.uid == request.auth.uid && isActiveSchoolYearCreate()) ||
         (collection == 'class_shields' && request.resource.data.createdBy.uid == request.auth.uid) ||
         (collection == 'world_boss') ||
-        (collection == 'hero_chronicle_notes' && request.resource.data.teacherId == request.auth.uid) ||
-        (collection == 'quest_history' && request.resource.data.createdBy.uid == request.auth.uid) ||
+        (collection == 'hero_chronicle_notes' && request.resource.data.teacherId == request.auth.uid && isActiveSchoolYearCreate()) ||
+        (collection == 'quest_history' && request.resource.data.createdBy.uid == request.auth.uid && isActiveSchoolYearCreate()) ||
         (collection == 'school_settings' && docId == 'holidays') ||
         (collection == 'daily_ai_content' && request.resource.data.createdBy.uid == request.auth.uid) ||
         (collection == 'daily_cache') ||
-        (collection == 'quiz_of_the_week' && request.resource.data.createdBy.uid == request.auth.uid) ||
+        (collection == 'quiz_of_the_week' && request.resource.data.createdBy.uid == request.auth.uid && isActiveSchoolYearCreate()) ||
+        (collection == 'fortune_wheel_log' && request.resource.data.spunBy.uid == request.auth.uid && isActiveSchoolYearCreate()) ||
         (collection == 'guild_scores') ||
         (collection == 'guild_champions') ||
         (collection == 'world_boss')
@@ -230,6 +302,7 @@ service cloud.firestore {
         (collection == 'daily_ai_content' && resource.data.createdBy.uid == request.auth.uid) ||
         (collection == 'daily_cache') ||
         (collection == 'quiz_of_the_week' && resource.data.createdBy.uid == request.auth.uid) ||
+        (collection == 'fortune_wheel_log' && resource.data.spunBy.uid == request.auth.uid) ||
         (collection == 'guild_scores') ||
         (collection == 'guild_champions') ||
         (collection == 'world_boss')

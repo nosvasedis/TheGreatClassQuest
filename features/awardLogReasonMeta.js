@@ -99,6 +99,27 @@ export function getAwardLogMonthlyStarCredit(log) {
     return Number.isFinite(n) ? n : 0;
 }
 
+export function getAwardLogGoldCredit(log) {
+    if (!log) return 0;
+    const delta = Number(log.wheel?.deltaGold);
+    return Number.isFinite(delta) ? delta : 0;
+}
+
+export function isWheelGoldOnlyAwardLog(log) {
+    return (log?.reason === 'wheel_fortune' || log?.reason === 'wheel_curse')
+        && getAwardLogMonthlyStarCredit(log) === 0
+        && getAwardLogGoldCredit(log) !== 0;
+}
+
+export function shouldShowInStarAwardLog(log) {
+    if (!log) return false;
+    if (isWheelGoldOnlyAwardLog(log)) return false;
+    if ((log.reason === 'wheel_fortune' || log.reason === 'wheel_curse') && getAwardLogMonthlyStarCredit(log) === 0) {
+        return false;
+    }
+    return true;
+}
+
 /** Aggregate {@link getAwardLogMonthlyStarCredit} per student id. */
 export function sumMonthlyStarCreditsByStudentFromAwardLogs(logs = []) {
     const totals = {};

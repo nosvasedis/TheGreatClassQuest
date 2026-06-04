@@ -520,14 +520,14 @@ export function calculateSkillBonus(heroClass, heroSkills, reason, difference) {
         if (skill.effect.type === 'self_gold_on_reason') {
             extraGold += skill.effect.amount * difference;
         } else if (skill.effect.type === 'star_bonus_on_reason') {
-            extraStars += skill.effect.amount * difference;
+            extraStars += skill.effect.amount * Math.sign(difference);
         }
         // Handle secondary effects (dual-effect skills)
         if (skill.secondaryEffect) {
             if (skill.secondaryEffect.type === 'self_gold_on_reason') {
                 extraGold += skill.secondaryEffect.amount * difference;
             } else if (skill.secondaryEffect.type === 'star_bonus_on_reason') {
-                extraStars += skill.secondaryEffect.amount * difference;
+                extraStars += skill.secondaryEffect.amount * Math.sign(difference);
             }
         }
     }

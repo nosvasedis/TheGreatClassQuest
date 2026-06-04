@@ -26,6 +26,10 @@ export function disableParentAccess(payload) {
     return callAdmin('disableParentAccess', payload);
 }
 
+export function deleteParentAccess(payload) {
+    return callAdmin('deleteParentAccess', payload);
+}
+
 export function publishParentSummary(payload) {
     return callAdmin('publishParentSummary', payload);
 }
@@ -36,6 +40,10 @@ export function createOrReplaceSecretaryAccess(payload) {
 
 export function disableSecretaryAccess(payload) {
     return callAdmin('disableSecretaryAccess', payload);
+}
+
+export function deleteSecretaryAccess(payload) {
+    return callAdmin('deleteSecretaryAccess', payload);
 }
 
 export function postCommunicationMessage(payload) {

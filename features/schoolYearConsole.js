@@ -107,6 +107,44 @@ function renderPreviewResult(result) {
     `;
 }
 
+function ensurePreviewModal() {
+    let modal = document.getElementById('school-year-preview-modal');
+    if (modal) return modal;
+    modal = document.createElement('div');
+    modal.id = 'school-year-preview-modal';
+    modal.className = 'fixed inset-0 z-[2200] hidden items-center justify-center bg-slate-950/60 p-4 backdrop-blur-sm';
+    modal.innerHTML = `
+        <div class="school-year-preview-modal-panel pop-in w-full max-w-3xl max-h-[88vh] overflow-hidden rounded-[2rem] bg-white shadow-2xl border border-violet-100 flex flex-col">
+            <div class="flex items-center justify-between gap-4 px-6 py-4 border-b border-slate-100 bg-gradient-to-r from-violet-50 to-sky-50">
+                <div>
+                    <p class="text-[10px] font-black uppercase tracking-[0.22em] text-violet-500">School year</p>
+                    <h3 class="font-title text-2xl text-slate-800">Year Close Preview</h3>
+                </div>
+                <button type="button" id="school-year-preview-modal-close" class="w-10 h-10 rounded-full bg-white text-slate-500 hover:text-rose-500 hover:bg-rose-50 border border-slate-200 shadow-sm flex items-center justify-center" aria-label="Close preview">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div id="school-year-preview-modal-content" class="p-6 overflow-y-auto custom-scrollbar"></div>
+        </div>
+    `;
+    document.body.appendChild(modal);
+    modal.addEventListener('click', (event) => {
+        if (event.target === modal || event.target.closest('#school-year-preview-modal-close')) {
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+        }
+    });
+    return modal;
+}
+
+function showPreviewModal(contentHtml) {
+    const modal = ensurePreviewModal();
+    const content = document.getElementById('school-year-preview-modal-content');
+    if (content) content.innerHTML = contentHtml;
+    modal.classList.remove('hidden');
+    modal.classList.add('flex');
+}
+
 export function renderSchoolYearSection() {
     const { schoolYearState } = getSchoolYearSummary();
     const activeYearKey = schoolYearState.activeYearKey;
@@ -338,15 +376,26 @@ async function runSchoolYearPreview(button) {
     const output = document.getElementById('school-year-preview-output');
     try {
         setBusyState(button, true, 'Checking Year Close...');
+        const loadingHtml = `
+            <div class="school-year-alert school-year-alert--warning">
+                <i class="fas fa-spinner fa-spin mr-2"></i> Checking the real data for ${escapeHtml(formatSchoolYearLabel(schoolYearState.activeYearKey))}...
+            </div>
+        `;
+        if (output) output.innerHTML = loadingHtml;
+        showPreviewModal(loadingHtml);
         const result = await previewYearRollover({
             closingYearKey: schoolYearState.activeYearKey,
             nextYearKey: schoolYearState.nextYearKey
         });
-        if (output) output.innerHTML = renderPreviewResult(result);
+        const resultHtml = renderPreviewResult(result);
+        if (output) output.innerHTML = resultHtml;
+        showPreviewModal(resultHtml);
         showToast(result?.safeToClose ? 'Year-close preview is ready.' : 'Preview found items to review.', result?.safeToClose ? 'success' : 'info');
     } catch (error) {
         console.error('Year close preview failed:', error);
-        if (output) output.innerHTML = `<div class="school-year-alert school-year-alert--danger">${escapeHtml(error?.message || 'Could not run preview.')}</div>`;
+        const errorHtml = `<div class="school-year-alert school-year-alert--danger">${escapeHtml(error?.message || 'Could not run preview.')}</div>`;
+        if (output) output.innerHTML = errorHtml;
+        showPreviewModal(errorHtml);
         showToast(error?.message || 'Could not run year-close preview.', 'error');
     } finally {
         setBusyState(button, false);

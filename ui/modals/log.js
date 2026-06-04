@@ -10,6 +10,7 @@ import {
     mergeMonthlyStarsFromArchivedHistoryAndAwardLogs,
     PATHFINDER_AWARD_REASON,
     PATHFINDER_CLASS_QUEST_BONUS_STARS,
+    shouldShowInStarAwardLog,
     sumMonthlyStarCreditsByStudentFromAwardLogs
 } from '../../features/awardLogReasonMeta.js';
 import { db } from '../../firebase.js';
@@ -66,6 +67,7 @@ export async function showLogbookModal(dateString, isOndemand = false) {
     } else {
         logs = state.get('allAwardLogs').filter(log => log.date && utils.datesMatch(log.date, dateString));
     }
+    logs = logs.filter(shouldShowInStarAwardLog);
     
     const reasonColors = AWARD_LOG_REASON_GRADIENTS;
     const reasonIcons = AWARD_LOG_REASON_ICONS;
@@ -91,12 +93,14 @@ export async function showLogbookModal(dateString, isOndemand = false) {
         const totalStars = logs.reduce((sum, log) => sum + getAwardLogMonthlyStarCredit(log), 0);
         const totalClassQuestBonus = logs.reduce((sum, log) => sum + getQuestBonusFromLog(log), 0);
         const reasonCounts = logs.reduce((acc, log) => {
-            if (log.reason) acc[log.reason] = (acc[log.reason] || 0) + getAwardLogMonthlyStarCredit(log);
+            const credit = getAwardLogMonthlyStarCredit(log);
+            if (log.reason && credit > 0) acc[log.reason] = (acc[log.reason] || 0) + credit;
             return acc;
         }, {});
         const topReason = Object.keys(reasonCounts).length > 0 ? Object.entries(reasonCounts).sort((a,b) => b[1] - a[1])[0][0] : 'N/A';
         const classStarCounts = logs.reduce((acc, log) => {
-            acc[log.classId] = (acc[log.classId] || 0) + getAwardLogMonthlyStarCredit(log);
+            const credit = getAwardLogMonthlyStarCredit(log);
+            if (credit > 0) acc[log.classId] = (acc[log.classId] || 0) + credit;
             return acc;
         }, {});
         const classQuestBonusCounts = logs.reduce((acc, log) => {
@@ -180,7 +184,7 @@ export async function showLogbookModal(dateString, isOndemand = false) {
                             ${yourClassBadge}
                         </div>
                         <div class="flex items-center gap-2 shrink-0">
-                            <span class="bg-white/90 text-gray-800 px-3 py-1 rounded-full font-bold text-sm shadow-sm border ${palette.border}">${classStarCounts[classId]} ⭐</span>
+                            ${(classStarCounts[classId] || 0) > 0 ? `<span class="bg-white/90 text-gray-800 px-3 py-1 rounded-full font-bold text-sm shadow-sm border ${palette.border}">${classStarCounts[classId]} ⭐</span>` : ''}
                             ${classQuestBonus > 0 ? `<span class="bg-white/90 text-gray-800 px-3 py-1 rounded-full font-semibold text-xs shadow-sm border ${palette.border}">+${classQuestBonus} Quest</span>` : ''}
                         </div>
                     </summary>

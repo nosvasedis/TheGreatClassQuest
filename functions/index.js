@@ -135,6 +135,17 @@ async function getUserByEmail(email) {
   }
 }
 
+async function deleteAuthUserIfExists(uid) {
+  if (!uid) return false;
+  try {
+    await auth.deleteUser(uid);
+    return true;
+  } catch (error) {
+    if (String(error?.code || '') === 'auth/user-not-found') return false;
+    throw error;
+  }
+}
+
 async function getScore(studentId) {
   const snap = await db.doc(`${PUBLIC_DATA_PATH}/student_scores/${studentId}`).get();
   return snap.exists ? snap.data() : {};
@@ -484,6 +495,26 @@ exports.disableParentAccess = callable(async (request) => {
   return { ok: true };
 });
 
+exports.deleteParentAccess = callable(async (request) => {
+  await requireFeatureEnabled('parentAccess');
+  const studentId = String(request.data?.studentId || '').trim();
+  if (!studentId) throw new HttpsError('invalid-argument', 'Student is required.');
+  await requireStudentManager(request, studentId);
+  const link = await getParentLink(studentId);
+  const parentUid = link?.parentUid || null;
+  if (parentUid) {
+    await deleteAuthUserIfExists(parentUid);
+    await db.collection(PROFILE_COLLECTION).doc(parentUid).delete();
+  }
+  await db.doc(`${PUBLIC_DATA_PATH}/parent_links/${studentId}`).delete();
+  await db.doc(`${PUBLIC_DATA_PATH}/parent_snapshots/${studentId}`).set({
+    linkedParentUid: FieldValue.delete(),
+    parentAccessDeletedAt: FieldValue.serverTimestamp(),
+    updatedAt: FieldValue.serverTimestamp()
+  }, { merge: true });
+  return { ok: true, deletedUid: parentUid };
+});
+
 exports.createOrReplaceSecretaryAccess = callable(async (request) => {
   await requireFeatureEnabled('secretaryAccess');
   const username = sanitizeUsername(request.data?.username);
@@ -546,6 +577,24 @@ exports.disableSecretaryAccess = callable(async (request) => {
   }
   await secretaryRef.set({ status: 'disabled', updatedAt: FieldValue.serverTimestamp() }, { merge: true });
   return { ok: true };
+});
+
+exports.deleteSecretaryAccess = callable(async (request) => {
+  await requireFeatureEnabled('secretaryAccess');
+  const caller = await requireAuthedCaller(request);
+  const canManage = caller.profile.schoolAdmin === true || caller.profile.role === 'secretary';
+  if (!canManage) {
+    throw new HttpsError('permission-denied', 'Only the school admin can manage the secretary account.');
+  }
+  const secretaryRef = db.doc(`${PUBLIC_DATA_PATH}/school_roles/secretary`);
+  const existing = await secretaryRef.get();
+  const secretaryUid = existing.exists ? existing.data().uid : null;
+  if (secretaryUid) {
+    await deleteAuthUserIfExists(secretaryUid);
+    await db.collection(PROFILE_COLLECTION).doc(secretaryUid).delete();
+  }
+  await secretaryRef.delete();
+  return { ok: true, deletedUid: secretaryUid || null };
 });
 
 exports.publishParentSummary = callable(async (request) => {
@@ -1244,8 +1293,7 @@ exports.closeSchoolYear = callable(async (request) => {
         totalStars: 0,
         monthlyStars: 0,
         gold: score.gold || 0,
-        inventory: Array.isArray(score.inventory) ? score.inventory : [],
-        familiars: score.familiars || null,
+        inventory: [],
         starsByReason: {},
         heroLevel: 0,
         heroSkills: [],

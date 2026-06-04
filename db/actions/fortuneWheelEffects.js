@@ -164,16 +164,18 @@ export async function applyWheelStudentEffects({
                 transaction.update(scoreRef, next);
             }
 
-            const logRef = doc(collection(db, `${publicDataPath}/award_log`));
-            transaction.set(logRef, buildWheelLogPayload({
-                studentId,
-                classId,
-                deltaStars: starsDelta,
-                deltaGold: goldDelta,
-                artifactsGranted: artifactsGrantCount,
-                artifactsRemoved: artifactsRemoveCount,
-                note
-            }));
+            if (starsDelta !== 0) {
+                const logRef = doc(collection(db, `${publicDataPath}/award_log`));
+                transaction.set(logRef, buildWheelLogPayload({
+                    studentId,
+                    classId,
+                    deltaStars: starsDelta,
+                    deltaGold: goldDelta,
+                    artifactsGranted: artifactsGrantCount,
+                    artifactsRemoved: artifactsRemoveCount,
+                    note
+                }));
+            }
         }
     });
 

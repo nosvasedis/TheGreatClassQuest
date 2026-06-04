@@ -5,8 +5,9 @@ import {
 } from '../firebase.js';
 import * as state from '../state.js';
 import { canUseFeature } from '../utils/subscription.js';
-import { createOrReplaceSecretaryAccess, createParentAccess, disableParentAccess, disableSecretaryAccess, resetParentAccessPassword } from '../utils/adminRuntime.js';
+import { createOrReplaceSecretaryAccess, createParentAccess, deleteParentAccess, deleteSecretaryAccess, disableParentAccess, disableSecretaryAccess, resetParentAccessPassword } from '../utils/adminRuntime.js';
 import { showToast } from '../ui/effects.js';
+import { showModal } from '../ui/modals.js';
 
 const PUBLIC_DATA_PATH = 'artifacts/great-class-quest/public/data';
 
@@ -121,6 +122,7 @@ function renderParentAccessCard() {
                             <button type="button" id="options-parent-create-btn" class="px-5 py-3 rounded-2xl bg-sky-600 hover:bg-sky-700 text-white font-bold">Save Parent Account</button>
                             <button type="button" id="options-parent-reset-btn" class="px-5 py-3 rounded-2xl bg-amber-100 hover:bg-amber-200 text-amber-800 font-bold ${link ? '' : 'hidden'}">Reset Password</button>
                             <button type="button" id="options-parent-disable-btn" class="px-5 py-3 rounded-2xl bg-rose-100 hover:bg-rose-200 text-rose-700 font-bold ${link ? '' : 'hidden'}">Disable</button>
+                            <button type="button" id="options-parent-delete-btn" class="px-5 py-3 rounded-2xl bg-red-600 hover:bg-red-700 text-white font-bold ${link ? '' : 'hidden'}">Delete</button>
                         </div>
                     </div>
                 </div>
@@ -172,6 +174,7 @@ function renderSecretaryAccessCard() {
                     <div class="flex flex-wrap gap-3">
                         <button type="button" id="options-secretary-create-btn" class="px-5 py-3 rounded-2xl bg-violet-600 hover:bg-violet-700 text-white font-bold">Save Secretary Account</button>
                         <button type="button" id="options-secretary-disable-btn" class="px-5 py-3 rounded-2xl bg-rose-100 hover:bg-rose-200 text-rose-700 font-bold ${secretaryRole ? '' : 'hidden'}">Disable</button>
+                        <button type="button" id="options-secretary-delete-btn" class="px-5 py-3 rounded-2xl bg-red-600 hover:bg-red-700 text-white font-bold ${secretaryRole ? '' : 'hidden'}">Delete</button>
                     </div>
                 </div>
             </div>
@@ -285,6 +288,31 @@ export function wireAccessCenterEvents() {
             return;
         }
 
+        if (event.target.closest('#options-parent-delete-btn')) {
+            const button = event.target.closest('#options-parent-delete-btn');
+            if (!selectedStudent || !currentLink) return;
+            showModal(
+                'Delete Parent Access?',
+                `This will permanently delete the parent login for ${escapeHtml(selectedStudent.name)}. The username can be recreated later.`,
+                async () => {
+                    try {
+                        setBusyState(button, true, 'Deleting Parent Access...');
+                        await deleteParentAccess({ studentId: selectedStudent.id });
+                        showToast('Parent access deleted.', 'success');
+                        await renderAccessCenterUi();
+                    } catch (error) {
+                        console.error('Could not delete parent access:', error);
+                        showToast(error?.message || 'Could not delete parent access.', 'error');
+                    } finally {
+                        setBusyState(button, false);
+                    }
+                },
+                'Delete',
+                'Cancel'
+            );
+            return;
+        }
+
         if (event.target.closest('#options-secretary-create-btn')) {
             const button = event.target.closest('#options-secretary-create-btn');
             const username = document.getElementById('options-secretary-username')?.value?.trim();
@@ -320,6 +348,31 @@ export function wireAccessCenterEvents() {
             } finally {
                 setBusyState(button, false);
             }
+            return;
+        }
+
+        if (event.target.closest('#options-secretary-delete-btn')) {
+            const button = event.target.closest('#options-secretary-delete-btn');
+            if (!accessData.secretaryRole) return;
+            showModal(
+                'Delete Secretary Access?',
+                'This will permanently delete the secretary login. The username can be recreated later.',
+                async () => {
+                    try {
+                        setBusyState(button, true, 'Deleting Secretary Access...');
+                        await deleteSecretaryAccess({});
+                        showToast('Secretary access deleted.', 'success');
+                        await renderAccessCenterUi();
+                    } catch (error) {
+                        console.error('Could not delete secretary access:', error);
+                        showToast(error?.message || 'Could not delete the secretary account.', 'error');
+                    } finally {
+                        setBusyState(button, false);
+                    }
+                },
+                'Delete',
+                'Cancel'
+            );
             return;
         }
 

@@ -2352,3 +2352,669 @@ header h1.font-title::after {
         animation: none !important;
     }
 }
+
+/* ============================================================
+   CEREMONY MOTION PASS
+   Richer button, card, countdown, duel, and reveal choreography.
+   ============================================================ */
+
+#ceremony-action-btn {
+    position: relative;
+    overflow: hidden;
+    transform-origin: center;
+    transition:
+        transform 0.18s cubic-bezier(0.2, 0.8, 0.2, 1),
+        box-shadow 0.22s ease,
+        filter 0.22s ease;
+}
+
+#ceremony-action-btn::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(115deg, transparent 0 30%, rgba(255, 255, 255, 0.58) 43%, transparent 58% 100%);
+    transform: translateX(-120%) skewX(-14deg);
+    opacity: 0;
+    pointer-events: none;
+}
+
+#ceremony-action-btn::after {
+    content: '';
+    position: absolute;
+    inset: -0.42rem;
+    border-radius: inherit;
+    background: radial-gradient(circle, rgba(250, 204, 21, 0.42), transparent 64%);
+    opacity: 0;
+    transform: scale(0.82);
+    pointer-events: none;
+    z-index: -1;
+}
+
+#ceremony-action-btn:hover:not(:disabled)::before {
+    animation: action-button-shine 1.05s ease-out;
+}
+
+#ceremony-action-btn:active:not(:disabled) {
+    transform: translateY(1px) scale(0.97);
+    filter: brightness(1.08) saturate(1.08);
+}
+
+#ceremony-action-btn:active:not(:disabled)::after {
+    animation: action-button-press-glow 0.42s ease-out;
+}
+
+#ceremony-action-btn:disabled {
+    cursor: wait;
+    filter: saturate(0.95) brightness(0.98);
+}
+
+#ceremony-action-btn:disabled::after {
+    animation: action-button-wait-aura 0.95s ease-in-out infinite;
+}
+
+#ceremony-screen #ceremony-stage-area {
+    transition: filter 0.32s ease;
+}
+
+#ceremony-screen #ceremony-stage-area::after {
+    content: '';
+    position: absolute;
+    inset: 4% 10% 0;
+    border-radius: 999px;
+    background:
+        radial-gradient(circle at 50% 50%, rgba(250, 204, 21, 0.32), transparent 28%),
+        radial-gradient(circle at 42% 50%, rgba(45, 212, 191, 0.2), transparent 42%),
+        radial-gradient(circle at 58% 50%, rgba(244, 114, 182, 0.18), transparent 42%);
+    filter: blur(20px);
+    opacity: 0;
+    transform: scale(0.68);
+    pointer-events: none;
+    z-index: -1;
+}
+
+#ceremony-screen.ceremony-phase-reveal #ceremony-stage-area::after {
+    animation: stage-reveal-bloom 1.25s ease-out both;
+}
+
+.ceremony-display-card,
+.ceremony-card-enter {
+    will-change: transform, opacity, filter;
+}
+
+.ceremony-card-enter,
+.card-rank-1,
+.card-rank-2,
+.card-rank-3,
+.card-rank-other {
+    animation-name: card-enter-grand, card-living-float !important;
+    animation-duration: 0.84s, 4.2s !important;
+    animation-timing-function: cubic-bezier(0.16, 0.9, 0.22, 1.08), ease-in-out !important;
+    animation-fill-mode: both, both !important;
+    animation-iteration-count: 1, infinite !important;
+}
+
+.card-rank-1 { animation-delay: 0s, 0.18s !important; }
+.card-rank-2 { animation-delay: 0s, 0.34s !important; }
+.card-rank-3 { animation-delay: 0s, 0.5s !important; }
+.card-rank-other { animation-delay: 0s, 0.42s !important; }
+
+.bronze-shine {
+    animation-name: card-enter-grand, card-living-float, bronze-glow-soft !important;
+    animation-duration: 0.84s, 4.2s, 3.4s !important;
+    animation-timing-function: cubic-bezier(0.16, 0.9, 0.22, 1.08), ease-in-out, ease-in-out !important;
+    animation-fill-mode: both, both, both !important;
+    animation-iteration-count: 1, infinite, infinite !important;
+    animation-delay: 0s, 0.5s, 0.5s !important;
+}
+
+.ceremony-display-card .ceremony-card-rankbar {
+    opacity: 1;
+    transform: none;
+    animation: rankbar-drop-in 0.62s cubic-bezier(0.18, 0.9, 0.25, 1.18) 0.1s backwards;
+}
+
+.ceremony-display-card .ceremony-card-kicker,
+.ceremony-display-card .text-8xl,
+.ceremony-display-card .w-40.h-40,
+.ceremony-display-card .ceremony-card-name,
+.ceremony-display-card .star-count,
+.ceremony-display-card .ceremony-card-metrics,
+.ceremony-display-card .ceremony-card-progress,
+.teacher-boon-ceremony-ribbon {
+    opacity: 1;
+    transform: none;
+    animation: card-detail-rise 0.58s cubic-bezier(0.18, 0.82, 0.25, 1) backwards;
+}
+
+.ceremony-display-card .ceremony-card-kicker { animation-delay: 0.18s; }
+.ceremony-display-card .text-8xl,
+.ceremony-display-card .w-40.h-40 { animation-delay: 0.24s; }
+.ceremony-display-card .ceremony-card-name { animation-delay: 0.31s; }
+.ceremony-display-card .star-count { animation-delay: 0.38s; }
+.ceremony-display-card .ceremony-card-metrics { animation-delay: 0.45s; }
+.ceremony-display-card .ceremony-card-progress,
+.teacher-boon-ceremony-ribbon { animation-delay: 0.52s; }
+
+.ceremony-display-card:hover {
+    transform: translateY(-3px) scale(1.012);
+    filter: saturate(1.04) brightness(1.02);
+}
+
+.ceremony-card.face-off.card-rank-1,
+.ceremony-card.face-off.card-rank-2,
+.ceremony-card.face-off.card-rank-other {
+    animation: duel-card-arrive 0.78s cubic-bezier(0.16, 0.9, 0.22, 1.08) both !important;
+}
+
+.ceremony-card.face-off .rank-badge,
+.ceremony-card.face-off .star-count {
+    animation: none !important;
+    opacity: 0 !important;
+}
+
+.ceremony-card.face-off::after {
+    animation: duel-rim-breathe 1.95s ease-in-out infinite, duel-rim-spark 3.2s ease-in-out infinite !important;
+}
+
+.ceremony-card.face-off.tension-active {
+    animation: duel-card-tremor 0.42s ease-in-out infinite !important;
+}
+
+.ceremony-card.face-off.tension-active::before {
+    opacity: 0.78;
+    animation: duel-card-corona 3.8s linear infinite, duel-tension-glow 0.84s ease-in-out infinite !important;
+}
+
+.ceremony-card.face-off.tension-active::after {
+    opacity: 0.9;
+    animation: duel-rim-spark 0.84s ease-in-out infinite !important;
+}
+
+.ceremony-countdown-ring {
+    animation: countdown-ring-idle 2.6s ease-in-out infinite;
+}
+
+.ceremony-countdown-ring::after {
+    content: '';
+    position: absolute;
+    inset: -1.55rem;
+    border-radius: inherit;
+    background:
+        radial-gradient(circle at 50% 50%, rgba(250, 204, 21, 0.34), transparent 24%),
+        conic-gradient(from 0deg, transparent, rgba(250, 204, 21, 0.24), transparent 18%, rgba(45, 212, 191, 0.18), transparent 42%, rgba(244, 114, 182, 0.14), transparent 70%);
+    opacity: 0;
+    transform: scale(0.58);
+    filter: blur(4px);
+    pointer-events: none;
+    z-index: -2;
+}
+
+.ceremony-countdown-ring.is-tick {
+    animation: countdown-ring-idle 2.6s ease-in-out infinite, countdown-ring-impact 0.56s cubic-bezier(0.18, 0.88, 0.24, 1.18);
+}
+
+.ceremony-countdown-ring.is-tick::after {
+    animation: countdown-ripple-burst 0.68s ease-out both;
+}
+
+.ceremony-countdown-ring.is-tick .ceremony-countdown-ring__halo {
+    animation: countdown-halo-spin 2.8s linear infinite, countdown-halo-flare 0.56s ease-out;
+}
+
+.fade-out-fast {
+    animation: countdown-finale-vanish 0.5s ease-in forwards !important;
+}
+
+.converge-left {
+    animation: converge-left-grand 0.88s cubic-bezier(0.18, 0.9, 0.22, 1.1) forwards !important;
+}
+
+.converge-right {
+    animation: converge-right-grand 0.88s cubic-bezier(0.18, 0.9, 0.22, 1.1) forwards !important;
+}
+
+.ceremony-card.revealed-silver {
+    animation: runner-up-reveal 0.82s cubic-bezier(0.18, 0.86, 0.24, 1.08) forwards, silver-pulse 2.6s ease-in-out 0.82s infinite !important;
+}
+
+.ceremony-winner {
+    animation:
+        winner-rise-glow 0.84s cubic-bezier(0.2, 0.9, 0.24, 1.18) forwards,
+        champion-glimmer 1.35s ease-out 0.1s both,
+        winner-pulse 2.1s ease-in-out 0.84s infinite !important;
+}
+
+.ceremony-display-card.ceremony-winner::before {
+    animation: rotate-rays 8s linear infinite, champion-rays-arrive 1.1s ease-out both !important;
+}
+
+#ceremony-screen.ceremony-phase-reveal .ceremony-winner::after {
+    content: '';
+    position: absolute;
+    inset: -1.4rem;
+    border-radius: calc(1.55rem + 1.4rem);
+    background:
+        radial-gradient(circle at 50% 18%, rgba(255, 255, 255, 0.5), transparent 18%),
+        radial-gradient(circle at 22% 72%, rgba(45, 212, 191, 0.28), transparent 24%),
+        radial-gradient(circle at 78% 72%, rgba(250, 204, 21, 0.3), transparent 24%);
+    opacity: 0;
+    pointer-events: none;
+    z-index: -1;
+    animation: champion-glow-pop 1.2s ease-out 0.14s both;
+}
+
+.ceremony-transition-panel.ceremony-card-enter {
+    animation: transition-panel-arrive 0.92s cubic-bezier(0.16, 0.9, 0.22, 1.05) both !important;
+}
+
+.ceremony-transition-panel__orb {
+    animation: ceremony-orb-pulse 2.2s ease-in-out infinite, transition-orb-glimmer 5.6s ease-in-out infinite !important;
+}
+
+.ceremony-transition-panel__icon {
+    animation: transition-icon-float 2.8s ease-in-out infinite;
+}
+
+.ceremony-leaderboard-container {
+    animation: leaderboard-stage-arrive 0.86s cubic-bezier(0.16, 0.9, 0.22, 1.05) both;
+}
+
+.ceremony-leaderboard-item {
+    animation-name: leaderboard-row-arrive !important;
+    animation-duration: 0.62s !important;
+    animation-timing-function: cubic-bezier(0.18, 0.82, 0.25, 1) !important;
+    animation-fill-mode: backwards !important;
+}
+
+.ceremony-leaderboard-item.rank-top3-gold,
+.ceremony-leaderboard-item.rank-top3-silver,
+.ceremony-leaderboard-item.rank-top3-bronze {
+    animation-name: leaderboard-row-arrive, top-row-glimmer !important;
+    animation-duration: 0.62s, 3.2s !important;
+    animation-timing-function: cubic-bezier(0.18, 0.82, 0.25, 1), ease-in-out !important;
+    animation-fill-mode: backwards, both !important;
+    animation-iteration-count: 1, infinite !important;
+}
+
+#ceremony-ai-box {
+    animation: narrator-rail-arrive 0.62s cubic-bezier(0.18, 0.86, 0.24, 1) both;
+}
+
+#ceremony-ai-text {
+    animation: narrator-text-glow 0.68s ease-out both;
+}
+
+@keyframes action-button-shine {
+    0% { opacity: 0; transform: translateX(-120%) skewX(-14deg); }
+    18% { opacity: 0.82; }
+    100% { opacity: 0; transform: translateX(120%) skewX(-14deg); }
+}
+
+@keyframes action-button-press-glow {
+    0% { opacity: 0.68; transform: scale(0.78); }
+    100% { opacity: 0; transform: scale(1.18); }
+}
+
+@keyframes action-button-wait-aura {
+    0%, 100% { opacity: 0.08; transform: scale(0.94); }
+    50% { opacity: 0.34; transform: scale(1.08); }
+}
+
+@keyframes stage-reveal-bloom {
+    0% { opacity: 0; transform: scale(0.62); filter: blur(28px); }
+    36% { opacity: 0.88; transform: scale(1.02); filter: blur(16px); }
+    100% { opacity: 0.24; transform: scale(1.2); filter: blur(24px); }
+}
+
+@keyframes card-enter-grand {
+    0% {
+        opacity: 0;
+        transform: translateY(54px) scale(0.88) rotateX(12deg);
+        filter: saturate(0.92) brightness(0.96);
+    }
+    54% {
+        opacity: 1;
+        transform: translateY(-9px) scale(1.035) rotateX(0deg);
+        filter: saturate(1.08) brightness(1.04);
+    }
+    78% {
+        transform: translateY(3px) scale(0.992);
+    }
+    100% {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+        filter: saturate(1) brightness(1);
+    }
+}
+
+@keyframes card-living-float {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-5px); }
+}
+
+@keyframes rankbar-drop-in {
+    0% { opacity: 0.78; transform: translateY(-14px) scale(0.98); filter: brightness(1.08); }
+    68% { opacity: 1; transform: translateY(2px) scale(1.01); filter: brightness(1.04); }
+    100% { opacity: 1; transform: translateY(0) scale(1); filter: brightness(1); }
+}
+
+@keyframes card-detail-rise {
+    0% { opacity: 0.72; transform: translateY(12px) scale(0.985); filter: brightness(1.08); }
+    100% { opacity: 1; transform: translateY(0) scale(1); filter: brightness(1); }
+}
+
+@keyframes duel-card-arrive {
+    0% { opacity: 0; transform: translateY(36px) scale(0.9); filter: saturate(0.82) brightness(0.96); }
+    62% { opacity: 1; transform: translateY(-6px) scale(1.025); filter: saturate(1.04) brightness(1.04); }
+    100% { opacity: 1; transform: translateY(0) scale(1); filter: saturate(0.95) brightness(0.98); }
+}
+
+@keyframes duel-card-tremor {
+    0%, 100% { transform: translate3d(0, 0, 0) scale(1); filter: saturate(1.02) brightness(1); }
+    20% { transform: translate3d(-2px, -2px, 0) rotate(-0.35deg) scale(1.006); }
+    40% { transform: translate3d(2px, 1px, 0) rotate(0.32deg) scale(1.012); filter: saturate(1.16) brightness(1.05); }
+    60% { transform: translate3d(-1px, 2px, 0) rotate(-0.22deg) scale(1.006); }
+    80% { transform: translate3d(1px, -1px, 0) rotate(0.24deg) scale(1.01); }
+}
+
+@keyframes duel-rim-spark {
+    0%, 100% { filter: saturate(1) brightness(1); }
+    50% { filter: saturate(1.3) brightness(1.18); }
+}
+
+@keyframes duel-tension-glow {
+    0%, 100% { filter: blur(14px) brightness(1); transform: rotate(0deg) scale(1); }
+    50% { filter: blur(16px) brightness(1.35); transform: rotate(4deg) scale(1.045); }
+}
+
+@keyframes countdown-ring-idle {
+    0%, 100% { transform: translateY(0) scale(1); }
+    50% { transform: translateY(-2px) scale(1.018); }
+}
+
+@keyframes countdown-ring-impact {
+    0% { transform: scale(0.86); filter: brightness(1.22); }
+    42% { transform: scale(1.12); filter: brightness(1.4); }
+    100% { transform: scale(1); filter: brightness(1); }
+}
+
+@keyframes countdown-ripple-burst {
+    0% { opacity: 0.88; transform: scale(0.48) rotate(0deg); }
+    62% { opacity: 0.38; transform: scale(1.08) rotate(18deg); }
+    100% { opacity: 0; transform: scale(1.34) rotate(32deg); }
+}
+
+@keyframes countdown-halo-flare {
+    0% { transform: scale(0.86); opacity: 0.45; }
+    44% { transform: scale(1.16); opacity: 1; }
+    100% { transform: scale(1); opacity: 0.8; }
+}
+
+@keyframes countdown-finale-vanish {
+    0% { opacity: 1; transform: scale(1); filter: brightness(1); }
+    42% { opacity: 1; transform: scale(1.16); filter: brightness(1.45); }
+    100% { opacity: 0; transform: scale(0.42); filter: brightness(1.2); }
+}
+
+@keyframes converge-left-grand {
+    0% { transform: translateX(0) rotate(0deg) scale(1); }
+    52% { transform: translateX(78px) rotate(-5.5deg) scale(1.065); filter: brightness(1.08); }
+    100% { transform: translateX(60px) rotate(-4.5deg) scale(1.045); }
+}
+
+@keyframes converge-right-grand {
+    0% { transform: translateX(0) rotate(0deg) scale(1); }
+    52% { transform: translateX(-78px) rotate(5.5deg) scale(1.065); filter: brightness(1.08); }
+    100% { transform: translateX(-60px) rotate(4.5deg) scale(1.045); }
+}
+
+@keyframes runner-up-reveal {
+    0% { opacity: 0.82; transform: scale(0.98); filter: saturate(0.7) brightness(0.92); }
+    58% { opacity: 1; transform: scale(1.06); filter: saturate(1.08) brightness(1.1); }
+    100% { opacity: 1; transform: scale(1.04); filter: saturate(1) brightness(1); }
+}
+
+@keyframes champion-glimmer {
+    0% { box-shadow: 0 0 0 rgba(250, 204, 21, 0); }
+    38% { box-shadow: 0 0 76px rgba(250, 204, 21, 0.68), 0 0 34px rgba(255, 255, 255, 0.42); }
+    100% { box-shadow: 0 0 42px rgba(250, 204, 21, 0.36), 0 0 18px rgba(255, 255, 255, 0.18); }
+}
+
+@keyframes champion-rays-arrive {
+    0% { opacity: 0; transform: translate(-50%, -50%) scale(0.62) rotate(-18deg); }
+    70% { opacity: 0.76; transform: translate(-50%, -50%) scale(1.04) rotate(0deg); }
+    100% { opacity: 0.58; transform: translate(-50%, -50%) scale(1) rotate(0deg); }
+}
+
+@keyframes champion-glow-pop {
+    0% { opacity: 0; transform: scale(0.78); filter: blur(18px); }
+    48% { opacity: 0.82; transform: scale(1.06); filter: blur(10px); }
+    100% { opacity: 0; transform: scale(1.24); filter: blur(18px); }
+}
+
+@keyframes transition-panel-arrive {
+    0% { opacity: 0; transform: translateY(42px) scale(0.92); filter: brightness(0.96) saturate(0.92); }
+    62% { opacity: 1; transform: translateY(-7px) scale(1.025); filter: brightness(1.06) saturate(1.08); }
+    100% { opacity: 1; transform: translateY(0) scale(1); filter: brightness(1) saturate(1); }
+}
+
+@keyframes transition-orb-glimmer {
+    0%, 100% { filter: blur(8px) hue-rotate(0deg); }
+    50% { filter: blur(11px) hue-rotate(16deg) brightness(1.2); }
+}
+
+@keyframes transition-icon-float {
+    0%, 100% { transform: translateY(0) scale(1); }
+    50% { transform: translateY(-7px) scale(1.025); }
+}
+
+@keyframes leaderboard-stage-arrive {
+    0% { opacity: 0; transform: translateY(36px) scale(0.96); filter: brightness(0.96); }
+    100% { opacity: 1; transform: translateY(0) scale(1); filter: brightness(1); }
+}
+
+@keyframes leaderboard-row-arrive {
+    0% { opacity: 0; transform: translateX(26px) scale(0.98); filter: brightness(0.98); }
+    100% { opacity: 1; transform: translateX(0) scale(1); filter: brightness(1); }
+}
+
+@keyframes top-row-glimmer {
+    0%, 100% { filter: brightness(1); }
+    50% { filter: brightness(1.055); }
+}
+
+@keyframes narrator-rail-arrive {
+    0% { opacity: 0; transform: translateY(18px); filter: brightness(0.98); }
+    100% { opacity: 1; transform: translateY(0); filter: brightness(1); }
+}
+
+@keyframes narrator-text-glow {
+    0% { opacity: 0; transform: translateY(5px); }
+    100% { opacity: 1; transform: translateY(0); }
+}
+
+@media (max-height: 860px) and (min-width: 901px) {
+    .converge-left {
+        animation-name: converge-left-compact !important;
+    }
+
+    .converge-right {
+        animation-name: converge-right-compact !important;
+    }
+}
+
+@keyframes converge-left-compact {
+    0% { transform: translateX(0) rotate(0deg) scale(1); }
+    58% { transform: translateX(44px) rotate(-3.5deg) scale(1.045); filter: brightness(1.08); }
+    100% { transform: translateX(34px) rotate(-3deg) scale(1.025); }
+}
+
+@keyframes converge-right-compact {
+    0% { transform: translateX(0) rotate(0deg) scale(1); }
+    58% { transform: translateX(-44px) rotate(3.5deg) scale(1.045); filter: brightness(1.08); }
+    100% { transform: translateX(-34px) rotate(3deg) scale(1.025); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    #ceremony-action-btn,
+    #ceremony-action-btn::before,
+    #ceremony-action-btn::after,
+    #ceremony-screen #ceremony-stage-area::after,
+    .ceremony-card-enter,
+    .card-rank-1,
+    .card-rank-2,
+    .card-rank-3,
+    .card-rank-other,
+    .ceremony-display-card .ceremony-card-rankbar,
+    .ceremony-display-card .ceremony-card-kicker,
+    .ceremony-display-card .text-8xl,
+    .ceremony-display-card .w-40.h-40,
+    .ceremony-display-card .ceremony-card-name,
+    .ceremony-display-card .star-count,
+    .ceremony-display-card .ceremony-card-metrics,
+    .ceremony-display-card .ceremony-card-progress,
+    .teacher-boon-ceremony-ribbon,
+    .ceremony-countdown-ring,
+    .ceremony-countdown-ring::after,
+    .ceremony-countdown-ring.is-tick,
+    .ceremony-countdown-ring.is-tick::after,
+    .converge-left,
+    .converge-right,
+    .ceremony-card.revealed-silver,
+    .ceremony-transition-panel.ceremony-card-enter,
+    .ceremony-transition-panel__orb,
+    .ceremony-transition-panel__icon,
+    .ceremony-leaderboard-container,
+    .ceremony-leaderboard-item,
+    #ceremony-ai-box,
+    #ceremony-ai-text {
+        animation: none !important;
+        transition: none !important;
+    }
+}
+
+/* ============================================================
+   CEREMONY CARD SHAPE PASS
+   Softer card geometry and cleaner material edges.
+   ============================================================ */
+
+.ceremony-display-card {
+    --ceremony-card-radius: clamp(1.85rem, 2.4vw, 2.35rem);
+    --ceremony-card-inner-radius: calc(var(--ceremony-card-radius) - 0.22rem);
+    border-radius: var(--ceremony-card-radius) !important;
+    background-clip: padding-box;
+    overflow: hidden !important;
+    border-width: 2px !important;
+    outline: 1px solid rgba(255, 255, 255, 0.46);
+    outline-offset: -2px;
+    box-shadow:
+        0 32px 80px rgba(2, 6, 23, 0.34),
+        0 18px 44px rgba(15, 23, 42, 0.18),
+        0 0 0 1px rgba(255, 255, 255, 0.5) inset,
+        0 1px 0 rgba(255, 255, 255, 0.7) inset !important;
+}
+
+.ceremony-display-card::before {
+    inset: 1px;
+    border-radius: var(--ceremony-card-inner-radius);
+    background:
+        linear-gradient(145deg, rgba(255, 255, 255, 0.58), transparent 34%),
+        radial-gradient(circle at 86% 8%, rgba(45, 212, 191, 0.13), transparent 28%),
+        radial-gradient(circle at 18% 92%, rgba(250, 204, 21, 0.12), transparent 32%);
+}
+
+.card-rank-1::after {
+    inset: 1px;
+    border-radius: var(--ceremony-card-inner-radius);
+    clip-path: none;
+    background:
+        radial-gradient(circle at 50% 0%, rgba(255, 255, 255, 0.34), transparent 34%),
+        linear-gradient(145deg, rgba(252, 211, 77, 0.2), transparent 52%, rgba(245, 158, 11, 0.15));
+}
+
+.ceremony-card-rankbar {
+    border-top-left-radius: var(--ceremony-card-inner-radius);
+    border-top-right-radius: var(--ceremony-card-inner-radius);
+    overflow: hidden;
+    border-bottom-color: rgba(15, 23, 42, 0.07);
+}
+
+.ceremony-card-rankbar::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.46), transparent 44%),
+        radial-gradient(circle at 10% 0%, rgba(255, 255, 255, 0.55), transparent 34%);
+    opacity: 0.82;
+    pointer-events: none;
+}
+
+.ceremony-card-rankbar > * {
+    position: relative;
+    z-index: 1;
+}
+
+.ceremony-card-shell {
+    border-bottom-left-radius: var(--ceremony-card-inner-radius);
+    border-bottom-right-radius: var(--ceremony-card-inner-radius);
+}
+
+.ceremony-rank-badge__pill,
+.ceremony-card-kicker,
+.ceremony-card-metric,
+.ceremony-card-progress,
+.teacher-boon-ceremony-ribbon {
+    box-shadow:
+        0 10px 24px rgba(15, 23, 42, 0.08),
+        0 1px 0 rgba(255, 255, 255, 0.72) inset;
+}
+
+.ceremony-card-progress {
+    border-radius: 1.35rem;
+}
+
+.ceremony-card-progress__track {
+    border-radius: 999px;
+}
+
+.ceremony-card.face-off,
+.ceremony-display-card.face-off {
+    overflow: visible !important;
+    border-radius: var(--ceremony-card-radius) !important;
+}
+
+.ceremony-card.face-off::after {
+    border-radius: calc(var(--ceremony-card-radius) + 0.7rem);
+}
+
+.ceremony-card.face-off::before {
+    border-radius: calc(var(--ceremony-card-radius) + 1.2rem);
+}
+
+.ceremony-display-card.ceremony-winner::before {
+    border-radius: 50%;
+}
+
+#ceremony-screen.ceremony-phase-reveal .ceremony-winner::after {
+    border-radius: calc(var(--ceremony-card-radius) + 1.35rem);
+}
+
+.ceremony-transition-panel,
+.ceremony-leaderboard-container {
+    border-radius: 2.2rem;
+    outline: 1px solid rgba(255, 255, 255, 0.18);
+    outline-offset: -2px;
+}
+
+.ceremony-leaderboard-item {
+    border-radius: 1.25rem;
+}
+
+@media (max-height: 860px) and (min-width: 901px) {
+    .ceremony-display-card {
+        --ceremony-card-radius: clamp(1.45rem, 2vw, 1.85rem);
+        --ceremony-card-inner-radius: calc(var(--ceremony-card-radius) - 0.16rem);
+    }
+}

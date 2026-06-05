@@ -96,6 +96,55 @@ function setCeremonyViewMode(mode) {
         'ceremony-view--outro'
     );
     screen.classList.add(`ceremony-view--${mode}`);
+
+    const header = document.getElementById('ceremony-header');
+    if (header) {
+        header.classList.toggle('ceremony-header--hidden', mode === 'final');
+    }
+}
+
+function getCurrentStageCard() {
+    const stage = document.getElementById('ceremony-stage-area');
+    if (!stage) return null;
+    return stage.querySelector('.ceremony-display-card:not(.face-off)');
+}
+
+function transitionStageCard(entry, type) {
+    const stage = document.getElementById('ceremony-stage-area');
+    if (!stage) return;
+
+    const outgoing = getCurrentStageCard();
+    let didTransition = false;
+
+    const renderIncoming = () => {
+        if (didTransition) return;
+        didTransition = true;
+        stage.innerHTML = '';
+        renderCard(entry, type);
+        const incoming = getCurrentStageCard();
+        if (incoming) {
+            incoming.classList.add('ceremony-card-transition-in');
+        }
+    };
+
+    if (!outgoing) {
+        renderIncoming();
+        return;
+    }
+
+    outgoing.classList.add('ceremony-card-transition-out');
+    outgoing.addEventListener('animationend', renderIncoming, { once: true });
+    setTimeout(renderIncoming, 520);
+}
+
+function triggerRevealFlash() {
+    const screen = document.getElementById('ceremony-screen');
+    if (!screen) return;
+
+    const flash = document.createElement('div');
+    flash.className = 'ceremony-reveal-flash';
+    screen.appendChild(flash);
+    flash.addEventListener('animationend', () => flash.remove(), { once: true });
 }
 
 // --- 1. STATUS & INITIALIZATION ---
@@ -362,8 +411,7 @@ function advanceCeremony() {
         }
 
         if (queue.length === 1) {
-            stage.innerHTML = '';
-            renderCard(queue[0], 'class');
+            transitionStageCard(queue[0], 'class');
             title.innerHTML = formatTitleHtml("The Champion");
             ceremonyData.phase = 'transition';
             btn.innerText = "See Student Heroes";
@@ -383,8 +431,7 @@ function advanceCeremony() {
         }
 
         const entry = queue[pointer];
-        stage.innerHTML = '';
-        renderCard(entry, 'class');
+        transitionStageCard(entry, 'class');
         
         title.innerHTML = formatTitleHtml(`Rank #${entry.rank}`);
         subtitle.innerHTML = formatTitleHtml("Team Quest");
@@ -439,8 +486,7 @@ function advanceCeremony() {
         }
 
         if (queue.length === 1) {
-            stage.innerHTML = '';
-            renderCard(queue[0], 'student');
+            transitionStageCard(queue[0], 'student');
             title.innerHTML = formatTitleHtml("Class Hero");
             ceremonyData.phase = 'final_leaderboard';
             btn.innerText = "See Full Results";
@@ -460,8 +506,7 @@ function advanceCeremony() {
         }
 
         const entry = queue[pointer];
-        stage.innerHTML = '';
-        renderCard(entry, 'student');
+        transitionStageCard(entry, 'student');
         
         let rankText = `#${entry.rank}`;
         if (entry.rank === 3) rankText = "🥉 Bronze";
@@ -507,9 +552,9 @@ function advanceCeremony() {
         stage.innerHTML = '';
         renderFinalLeaderboard();
         
-        title.innerHTML = formatTitleHtml("Final Standings");
-        subtitle.innerHTML = formatTitleHtml("A glorious month for everyone!");
-        aiBox.style.opacity = '0'; // Hide AI box to focus on list
+        title.innerHTML = '';
+        subtitle.innerHTML = '';
+        aiBox.style.opacity = '0';
         
         btn.innerText = "Finish Ceremony";
         ceremonyData.phase = 'end';
@@ -782,6 +827,12 @@ function handleDramaticReveal() {
 
     setTimeout(() => {
         stopDrumRoll();
+        triggerRevealFlash();
+
+        if (screen) {
+            screen.classList.add('ceremony-phase-reveal-burst');
+            setTimeout(() => screen.classList.remove('ceremony-phase-reveal-burst'), 1400);
+        }
         
         if(subtitle) {
             subtitle.style.opacity = '0'; 
@@ -795,20 +846,20 @@ function handleDramaticReveal() {
         }
         
         let winners = [];
-        const cardLeft = document.getElementById('showdown-card-left'); // Silver usually
-        const cardRight = document.getElementById('showdown-card-right'); // Gold usually
+        const cardLeft = document.getElementById('showdown-card-left');
+        const cardRight = document.getElementById('showdown-card-right');
 
-        const rankLeft = parseInt(cardLeft.dataset.rank);
-        const rankRight = parseInt(cardRight.dataset.rank);
+        const rankLeft = parseInt(cardLeft?.dataset.rank);
+        const rankRight = parseInt(cardRight?.dataset.rank);
         const isTie = rankLeft === rankRight && rankLeft === 1;
 
         if (cardLeft) {
             cardLeft.classList.remove('tension-active', 'face-off');
-            cardLeft.classList.add('converge-left'); 
+            cardLeft.classList.add('converge-left', 'ceremony-duel-reveal');
         }
         if (cardRight) {
             cardRight.classList.remove('tension-active', 'face-off');
-            cardRight.classList.add('converge-right');
+            cardRight.classList.add('converge-right', 'ceremony-duel-reveal');
         }
 
         [cardLeft, cardRight].forEach(card => {
@@ -820,7 +871,7 @@ function handleDramaticReveal() {
             if(badge) badge.classList.remove('opacity-0');
             if(scoreEl) {
                 scoreEl.classList.remove('opacity-0');
-                scoreEl.classList.add('opacity-100');
+                scoreEl.classList.add('opacity-100', 'ceremony-score-reveal-pop');
             }
 
             const boonReveal = card.querySelector('.ceremony-teacher-boon-reveal');
@@ -830,16 +881,19 @@ function handleDramaticReveal() {
 
             const r = parseInt(card.dataset.rank);
             if (r === 1) {
-                // WINNER
-                card.classList.add('revealed-gold', 'ceremony-winner');
+                card.classList.add('revealed-gold', 'ceremony-winner', 'ceremony-winner-spectacular');
                 winners.push(card.dataset.name);
                 
                 setTimeout(() => {
-                    triggerFireworks(); 
+                    triggerFireworks();
+                    triggerFireworks();
                     triggerConfetti();
-                }, 300);
+                }, 120);
+                setTimeout(() => {
+                    triggerFireworks();
+                    triggerConfetti();
+                }, 520);
             } else {
-                // RUNNER UP (Now Glimmering Silver, Not Grey)
                 card.classList.add('revealed-silver');
             }
         });
@@ -879,17 +933,32 @@ function renderFinalLeaderboard() {
 
     function buildItemHtml(s, animIndex) {
         const rank = s.rank;
-        let rankClass = 'cli-rank-other';
-        let rankContent = rank;
+        let rankBarClass = 'ceremony-lb-rankbar--other';
+        let badgePillClass = 'ceremony-rank-badge__pill--other';
+        let badgeContent = `#${rank}`;
         let itemExtraClass = '';
 
-        if (rank === 1) { rankClass = 'cli-rank-1'; rankContent = '🥇'; itemExtraClass = 'rank-top3-gold'; }
-        else if (rank === 2) { rankClass = 'cli-rank-2'; rankContent = '🥈'; itemExtraClass = 'rank-top3-silver'; }
-        else if (rank === 3) { rankClass = 'cli-rank-3'; rankContent = '🥉'; itemExtraClass = 'rank-top3-bronze'; }
+        if (rank === 1) {
+            rankBarClass = 'ceremony-lb-rankbar--gold';
+            badgePillClass = 'ceremony-rank-badge__pill--gold';
+            badgeContent = '🥇 Gold';
+            itemExtraClass = 'rank-top3-gold';
+        } else if (rank === 2) {
+            rankBarClass = 'ceremony-lb-rankbar--silver';
+            badgePillClass = 'ceremony-rank-badge__pill--silver';
+            badgeContent = '🥈 Silver';
+            itemExtraClass = 'rank-top3-silver';
+        } else if (rank === 3) {
+            rankBarClass = 'ceremony-lb-rankbar--bronze';
+            badgePillClass = 'ceremony-rank-badge__pill--bronze';
+            badgeContent = '🥉 Bronze';
+            itemExtraClass = 'rank-top3-bronze';
+        }
 
+        const avatarBorder = rank === 1 ? '#F59E0B' : rank === 2 ? '#94a3b8' : rank === 3 ? '#cd7f32' : '#818cf8';
         const avatarHtml = s.avatar
-            ? `<img src="${s.avatar}" class="cli-avatar">`
-            : `<div class="cli-avatar bg-indigo-100 flex items-center justify-center text-indigo-500 font-bold text-xl">${s.name.charAt(0)}</div>`;
+            ? `<img src="${s.avatar}" class="cli-avatar" style="border-color:${avatarBorder}; box-shadow: 0 0 14px ${avatarBorder}55;">`
+            : `<div class="cli-avatar cli-avatar--fallback" style="border-color:${avatarBorder}; box-shadow: 0 0 14px ${avatarBorder}55;">${s.name.charAt(0)}</div>`;
 
         const showDelayedBoon = (rank === 1 || rank === 2) && s.teacherBoon;
         const boonRowHtml = showDelayedBoon
@@ -898,13 +967,21 @@ function renderFinalLeaderboard() {
 
         return `
             <div class="ceremony-leaderboard-item ${itemExtraClass}" style="animation-delay: ${animIndex * 0.1}s">
-                <div class="cli-rank ${rankClass}">${rankContent}</div>
-                ${avatarHtml}
-                <div class="cli-info">
-                    <div class="cli-name">${s.name}</div>
-                    <div class="cli-stats">High Skill: ${s.stats.uniqueReasons} types</div>
+                <div class="ceremony-lb-rankbar ${rankBarClass}">
+                    <span class="ceremony-rank-badge__pill ${badgePillClass}">${badgeContent}</span>
+                    <span class="ceremony-lb-rankbar__label">Rank #${rank}</span>
                 </div>
-                <div class="cli-stars">${s.score} ⭐</div>
+                <div class="ceremony-lb-body">
+                    ${avatarHtml}
+                    <div class="cli-info">
+                        <div class="cli-name">${s.name}</div>
+                        <div class="cli-stats">
+                            <span class="cli-stat-chip"><i class="fas fa-wand-magic-sparkles"></i>${s.stats.uniqueReasons} strengths</span>
+                            <span class="cli-stat-chip"><i class="fas fa-star"></i>${s.stats.count3} epic moments</span>
+                        </div>
+                    </div>
+                    <div class="cli-stars">${s.score} ⭐</div>
+                </div>
                 ${boonRowHtml}
             </div>
         `;
@@ -915,8 +992,9 @@ function renderFinalLeaderboard() {
 
     let html = `
         <div class="ceremony-leaderboard-header">
+            <div class="ceremony-leaderboard-header__glow"></div>
             <span class="ceremony-leaderboard-title">🏆 Final Standings</span>
-            <div class="ceremony-leaderboard-title__sub">Month of Glory</div>
+            <div class="ceremony-leaderboard-title__sub">${ceremonyData.monthName} · Month of Glory</div>
         </div>
     `;
 
@@ -928,7 +1006,9 @@ function renderFinalLeaderboard() {
 
     if (rest.length > 0) {
         if (top3.length > 0) html += `<div class="ceremony-leaderboard-divider"></div>`;
+        html += `<div class="ceremony-leaderboard-rest">`;
         rest.forEach((s, i) => { html += buildItemHtml(s, i + top3.length); });
+        html += `</div>`;
     }
 
     container.innerHTML = html;

@@ -775,6 +775,21 @@ export async function handleBuyItem(studentId, itemId) {
     }
 }
 
+function getClosingMonthKey(lastMonthlyResetDate, currentMonthStart) {
+    if (typeof lastMonthlyResetDate === 'string' && lastMonthlyResetDate.length >= 7) {
+        return lastMonthlyResetDate.substring(0, 7);
+    }
+    const match = String(currentMonthStart || '').match(/^(\d{4})-(\d{2})/);
+    if (!match) return null;
+    let year = Number(match[1]);
+    let month = Number(match[2]) - 1;
+    if (month < 1) {
+        month = 12;
+        year -= 1;
+    }
+    return `${year}-${String(month).padStart(2, '0')}`;
+}
+
 export async function checkAndResetMonthlyStars(studentId, currentMonthStart) {
     const publicDataPath = "artifacts/great-class-quest/public/data";
     const scoreRef = doc(db, `${publicDataPath}/student_scores`, studentId);
@@ -786,11 +801,12 @@ export async function checkAndResetMonthlyStars(studentId, currentMonthStart) {
 
             if (scoreData.lastMonthlyResetDate !== currentMonthStart) {
                 const lastMonthScore = scoreData.monthlyStars || 0;
-                const lastMonthDateString = scoreData.lastMonthlyResetDate;
-                const yearMonthKey = lastMonthDateString.substring(0, 7);
-                const historyRef = doc(db, `${publicDataPath}/student_scores/${studentId}/monthly_history/${yearMonthKey}`);
+                const yearMonthKey = getClosingMonthKey(scoreData.lastMonthlyResetDate, currentMonthStart);
+                const historyRef = yearMonthKey
+                    ? doc(db, `${publicDataPath}/student_scores/${studentId}/monthly_history/${yearMonthKey}`)
+                    : null;
 
-                if (lastMonthScore > 0) {
+                if (lastMonthScore > 0 && historyRef) {
                     transaction.set(historyRef, withSchoolYear({ stars: lastMonthScore, month: yearMonthKey }, scoreData.activeSchoolYearKey || state.getActiveSchoolYearKey()));
                 }
 

@@ -2503,7 +2503,9 @@ header h1.font-title::after {
 .ceremony-card.face-off.card-rank-1,
 .ceremony-card.face-off.card-rank-2,
 .ceremony-card.face-off.card-rank-other {
-    animation: duel-card-arrive 0.78s cubic-bezier(0.16, 0.9, 0.22, 1.08) both !important;
+    animation:
+        duel-card-arrive 0.78s cubic-bezier(0.16, 0.9, 0.22, 1.08) both,
+        duel-idle-sway 1.8s ease-in-out 0.78s infinite !important;
 }
 
 .ceremony-card.face-off .rank-badge,
@@ -3016,5 +3018,409 @@ header h1.font-title::after {
     .ceremony-display-card {
         --ceremony-card-radius: clamp(1.45rem, 2vw, 1.85rem);
         --ceremony-card-inner-radius: calc(var(--ceremony-card-radius) - 0.16rem);
+    }
+}
+
+/* ============================================================
+   FINAL STANDINGS FULLSCREEN + CARD TRANSITIONS + DUEL SPECTACLE
+   ============================================================ */
+
+.ceremony-header--hidden {
+    display: none !important;
+}
+
+#ceremony-screen.ceremony-view--final .ceremony-layout {
+    grid-template-rows: minmax(0, 1fr) auto auto;
+    gap: clamp(0.35rem, 1vh, 0.65rem);
+}
+
+#ceremony-screen.ceremony-view--final #ceremony-stage-area {
+    align-self: stretch;
+    align-items: stretch;
+    justify-content: stretch;
+    min-height: 0;
+    max-height: none;
+    height: 100%;
+    padding: 0;
+}
+
+#ceremony-screen.ceremony-view--final .ceremony-leaderboard-container {
+    width: 100%;
+    max-width: none;
+    height: 100%;
+    max-height: none;
+    margin: 0;
+    padding: clamp(1rem, 2.5vh, 1.75rem) clamp(0.85rem, 2.5vw, 2rem);
+    border-radius: 0;
+    border-left: none;
+    border-right: none;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    background:
+        radial-gradient(ellipse at 50% 0%, rgba(250, 204, 21, 0.28), transparent 42%),
+        radial-gradient(ellipse at 12% 88%, rgba(45, 212, 191, 0.16), transparent 38%),
+        radial-gradient(ellipse at 88% 82%, rgba(244, 114, 182, 0.14), transparent 36%),
+        linear-gradient(180deg, rgba(5, 8, 22, 0.94), rgba(15, 23, 42, 0.88)) !important;
+    box-shadow: none !important;
+    animation: leaderboard-fullscreen-arrive 0.92s cubic-bezier(0.16, 0.9, 0.22, 1.05) both;
+}
+
+#ceremony-screen.ceremony-view--final .ceremony-leaderboard-header {
+    flex: 0 0 auto;
+    position: relative;
+    padding: clamp(0.35rem, 1.2vh, 0.85rem) 0 clamp(1rem, 2.2vh, 1.5rem);
+}
+
+.ceremony-leaderboard-header__glow {
+    position: absolute;
+    left: 50%;
+    top: 0;
+    width: min(520px, 72vw);
+    height: 5.5rem;
+    transform: translateX(-50%);
+    background: radial-gradient(ellipse at center, rgba(250, 204, 21, 0.42), transparent 68%);
+    filter: blur(18px);
+    pointer-events: none;
+}
+
+#ceremony-screen.ceremony-view--final .ceremony-leaderboard-title {
+    font-size: clamp(2.2rem, 6.5vh, 3.6rem);
+}
+
+#ceremony-screen.ceremony-view--final .ceremony-leaderboard-title__sub {
+    font-size: clamp(0.72rem, 1.8vh, 0.92rem);
+    margin-top: 0.45rem;
+}
+
+#ceremony-screen.ceremony-view--final .ceremony-leaderboard-top3,
+#ceremony-screen.ceremony-view--final .ceremony-leaderboard-rest {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-y: auto;
+    padding-right: 0.25rem;
+}
+
+#ceremony-screen.ceremony-view--final .ceremony-leaderboard-top3 {
+    flex: 0 0 auto;
+    overflow: visible;
+}
+
+.ceremony-leaderboard-item {
+    flex-direction: column;
+    align-items: stretch;
+    padding: 0;
+    overflow: hidden;
+    border-radius: 1.35rem !important;
+    border-width: 2px !important;
+}
+
+.ceremony-lb-rankbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    min-height: 3.1rem;
+    padding: 0.62rem 1rem;
+    border-bottom: 1px solid rgba(15, 23, 42, 0.08);
+}
+
+.ceremony-lb-rankbar--gold {
+    background: linear-gradient(135deg, #fff7cc, #facc15 48%, #f59e0b);
+}
+
+.ceremony-lb-rankbar--silver {
+    background: linear-gradient(135deg, #f8fafc, #cbd5e1 48%, #94a3b8);
+}
+
+.ceremony-lb-rankbar--bronze {
+    background: linear-gradient(135deg, #ffedd5, #fb923c 48%, #b45309);
+}
+
+.ceremony-lb-rankbar--other {
+    background: linear-gradient(135deg, #dbeafe, #93c5fd 46%, #6366f1);
+}
+
+.ceremony-lb-rankbar__label {
+    font-size: 0.72rem;
+    font-weight: 900;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: rgba(15, 23, 42, 0.72);
+}
+
+.ceremony-lb-body {
+    display: flex;
+    align-items: center;
+    gap: 0.85rem;
+    padding: 0.9rem 1rem 1rem;
+}
+
+.cli-avatar--fallback {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(135deg, #6366f1, #8b5cf6);
+    color: white;
+    font-weight: 800;
+    font-size: 1.35rem;
+}
+
+.cli-stats {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+    margin-top: 0.35rem;
+}
+
+.cli-stat-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    padding: 0.28rem 0.55rem;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.72);
+    border: 1px solid rgba(148, 163, 184, 0.2);
+    font-size: 0.72rem;
+    font-weight: 800;
+    color: #475569;
+}
+
+.cli-stat-chip i {
+    color: #0f766e;
+    font-size: 0.65rem;
+}
+
+.ceremony-leaderboard-item.rank-top3-gold .cli-stars {
+    background: linear-gradient(135deg, #fef3c7, #fde68a);
+    border: 1px solid rgba(245, 158, 11, 0.35);
+    box-shadow: 0 0 18px rgba(250, 204, 21, 0.28);
+}
+
+.ceremony-leaderboard-item.rank-top3-silver .cli-stars {
+    background: linear-gradient(135deg, #f8fafc, #e2e8f0);
+    border: 1px solid rgba(148, 163, 184, 0.35);
+}
+
+.ceremony-leaderboard-item.rank-top3-bronze .cli-stars {
+    background: linear-gradient(135deg, #fff7ed, #fed7aa);
+    border: 1px solid rgba(245, 158, 11, 0.3);
+}
+
+.ceremony-leaderboard-divider {
+    flex: 0 0 auto;
+    margin: 0.35rem 0 0.85rem;
+}
+
+@keyframes leaderboard-fullscreen-arrive {
+    0% { opacity: 0; transform: scale(0.98); filter: brightness(0.92); }
+    100% { opacity: 1; transform: scale(1); filter: brightness(1); }
+}
+
+/* Card conveyor transitions */
+@keyframes ceremony-card-exit {
+    0% {
+        opacity: 1;
+        transform: translateX(0) scale(1) rotateY(0deg);
+        filter: blur(0) brightness(1);
+    }
+    100% {
+        opacity: 0;
+        transform: translateX(-72px) scale(0.88) rotateY(14deg);
+        filter: blur(3px) brightness(0.88);
+    }
+}
+
+@keyframes ceremony-card-transition-in {
+    0% {
+        opacity: 0;
+        transform: translateX(84px) scale(0.86) rotateY(-12deg);
+        filter: blur(4px) brightness(1.12);
+    }
+    58% {
+        opacity: 1;
+        transform: translateX(-8px) scale(1.04) rotateY(0deg);
+        filter: blur(0) brightness(1.08);
+    }
+    100% {
+        opacity: 1;
+        transform: translateX(0) scale(1) rotateY(0deg);
+        filter: blur(0) brightness(1);
+    }
+}
+
+.ceremony-card-transition-out {
+    animation: ceremony-card-exit 0.48s cubic-bezier(0.4, 0, 0.2, 1) forwards !important;
+    pointer-events: none;
+    z-index: 0;
+}
+
+.ceremony-card-transition-in {
+    animation:
+        ceremony-card-transition-in 0.62s cubic-bezier(0.16, 0.9, 0.22, 1.08) forwards,
+        card-living-float 4.2s ease-in-out 0.62s infinite !important;
+    z-index: 2;
+}
+
+@keyframes duel-idle-sway {
+    0%, 100% { transform: translateY(0) rotate(0deg); }
+    25% { transform: translateY(-4px) rotate(-0.5deg); }
+    75% { transform: translateY(4px) rotate(0.5deg); }
+}
+
+@keyframes duel-card-tremor-intense {
+    0%, 100% {
+        transform: translate3d(0, 0, 0) rotate(0deg) scale(1);
+        filter: saturate(1.05) brightness(1);
+    }
+    12% { transform: translate3d(-5px, -4px, 0) rotate(-1.1deg) scale(1.018); }
+    24% { transform: translate3d(5px, 3px, 0) rotate(0.95deg) scale(1.024); filter: saturate(1.22) brightness(1.06); }
+    36% { transform: translate3d(-4px, 4px, 0) rotate(-0.8deg) scale(1.016); }
+    48% { transform: translate3d(4px, -3px, 0) rotate(0.85deg) scale(1.022); filter: saturate(1.28) brightness(1.08); }
+    60% { transform: translate3d(-3px, 2px, 0) rotate(-0.65deg) scale(1.014); }
+    72% { transform: translate3d(3px, -2px, 0) rotate(0.7deg) scale(1.02); }
+    84% { transform: translate3d(-2px, 3px, 0) rotate(-0.45deg) scale(1.012); filter: saturate(1.18) brightness(1.05); }
+}
+
+.ceremony-card.face-off.tension-active {
+    animation: duel-card-tremor-intense 0.32s ease-in-out infinite !important;
+}
+
+.ceremony-card.face-off.tension-active::before {
+    opacity: 0.92 !important;
+    animation: duel-card-corona 2.4s linear infinite, duel-tension-glow-intense 0.62s ease-in-out infinite !important;
+}
+
+.ceremony-card.face-off.tension-active::after {
+    opacity: 1 !important;
+    animation: duel-rim-spark-intense 0.48s ease-in-out infinite !important;
+}
+
+@keyframes duel-tension-glow-intense {
+    0%, 100% { filter: blur(12px) brightness(1); transform: rotate(0deg) scale(1); }
+    50% { filter: blur(18px) brightness(1.55) saturate(1.4); transform: rotate(8deg) scale(1.08); }
+}
+
+@keyframes duel-rim-spark-intense {
+    0%, 100% { filter: saturate(1.1) brightness(1); box-shadow: 0 0 28px rgba(250, 204, 21, 0.22), 0 0 52px rgba(45, 212, 191, 0.18); }
+    50% { filter: saturate(1.45) brightness(1.35); box-shadow: 0 0 48px rgba(250, 204, 21, 0.42), 0 0 72px rgba(244, 114, 182, 0.28); }
+}
+
+/* Spectacular reveal burst */
+.ceremony-reveal-flash {
+    position: absolute;
+    inset: 0;
+    z-index: 120;
+    pointer-events: none;
+    background:
+        radial-gradient(circle at 50% 42%, rgba(255, 255, 255, 0.96) 0%, rgba(250, 204, 21, 0.72) 18%, rgba(45, 212, 191, 0.28) 42%, transparent 68%);
+    animation: ceremony-reveal-flash-burst 0.95s ease-out forwards;
+}
+
+@keyframes ceremony-reveal-flash-burst {
+    0% { opacity: 0; transform: scale(0.82); }
+    14% { opacity: 1; transform: scale(1); }
+    42% { opacity: 0.72; transform: scale(1.04); }
+    100% { opacity: 0; transform: scale(1.12); }
+}
+
+#ceremony-screen.ceremony-phase-reveal-burst #ceremony-bg-gradient {
+    animation: reveal-bg-surge 1.2s ease-out both !important;
+}
+
+#ceremony-screen.ceremony-phase-reveal-burst::before,
+#ceremony-screen.ceremony-phase-reveal-burst::after {
+    opacity: 0.88 !important;
+    filter: blur(70px) brightness(1.35) saturate(1.4);
+}
+
+#ceremony-screen.ceremony-phase-reveal-burst #ceremony-stage-area::after {
+    animation: stage-reveal-bloom-mega 1.35s ease-out both;
+}
+
+@keyframes reveal-bg-surge {
+    0% { filter: saturate(1) brightness(1); }
+    22% { filter: saturate(1.55) brightness(1.45) hue-rotate(8deg); }
+    100% { filter: saturate(1.12) brightness(1.08) hue-rotate(0deg); }
+}
+
+@keyframes stage-reveal-bloom-mega {
+    0% { opacity: 0; transform: scale(0.5); filter: blur(36px); }
+    28% { opacity: 1; transform: scale(1.08); filter: blur(12px); }
+    100% { opacity: 0.18; transform: scale(1.35); filter: blur(28px); }
+}
+
+.ceremony-duel-reveal .ceremony-card-rankbar,
+.ceremony-duel-reveal .rank-badge {
+    animation: rankbar-reveal-slam 0.58s cubic-bezier(0.18, 0.9, 0.24, 1.18) both;
+}
+
+.ceremony-score-reveal-pop {
+    animation: score-reveal-pop 0.72s cubic-bezier(0.18, 0.88, 0.24, 1.2) 0.12s both !important;
+}
+
+@keyframes rankbar-reveal-slam {
+    0% { opacity: 0; transform: translateY(-18px) scale(0.92); filter: brightness(1.4); }
+    62% { opacity: 1; transform: translateY(2px) scale(1.06); filter: brightness(1.2); }
+    100% { opacity: 1; transform: translateY(0) scale(1); filter: brightness(1); }
+}
+
+@keyframes score-reveal-pop {
+    0% { opacity: 0; transform: scale(0.4) translateY(12px); filter: blur(4px); }
+    48% { opacity: 1; transform: scale(1.22) translateY(-4px); filter: blur(0) brightness(1.3); }
+    100% { opacity: 1; transform: scale(1) translateY(0); filter: brightness(1); }
+}
+
+.ceremony-winner-spectacular {
+    animation:
+        winner-spectacular-rise 0.92s cubic-bezier(0.16, 0.92, 0.22, 1.15) forwards,
+        champion-glimmer-mega 1.6s ease-out 0.08s both,
+        winner-pulse 2s ease-in-out 0.92s infinite !important;
+}
+
+@keyframes winner-spectacular-rise {
+    0% { transform: translateY(0) scale(1); filter: brightness(1); }
+    42% { transform: translateY(-18px) scale(1.16) rotate(-1.5deg); filter: brightness(1.35) saturate(1.2); }
+    72% { transform: translateY(-8px) scale(1.1) rotate(0.5deg); filter: brightness(1.18); }
+    100% { transform: translateY(-6px) scale(1.12) rotate(0deg); filter: brightness(1.08); }
+}
+
+@keyframes champion-glimmer-mega {
+    0% { box-shadow: 0 0 0 rgba(250, 204, 21, 0); }
+    32% { box-shadow: 0 0 120px rgba(250, 204, 21, 0.92), 0 0 58px rgba(255, 255, 255, 0.72), 0 0 28px rgba(45, 212, 191, 0.42); }
+    100% { box-shadow: 0 0 68px rgba(250, 204, 21, 0.55), 0 0 28px rgba(255, 255, 255, 0.35); }
+}
+
+#ceremony-screen.ceremony-phase-reveal-burst .ceremony-winner-spectacular::after {
+    animation: champion-glow-pop-mega 1.45s ease-out 0.08s both !important;
+}
+
+@keyframes champion-glow-pop-mega {
+    0% { opacity: 0; transform: scale(0.62); filter: blur(24px); }
+    38% { opacity: 1; transform: scale(1.14); filter: blur(8px); }
+    100% { opacity: 0; transform: scale(1.42); filter: blur(22px); }
+}
+
+@media (max-width: 640px) {
+    .ceremony-lb-body {
+        flex-wrap: wrap;
+    }
+
+    .cli-stars {
+        margin-left: auto;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .ceremony-card-transition-out,
+    .ceremony-card-transition-in,
+    .ceremony-reveal-flash,
+    .ceremony-winner-spectacular,
+    .ceremony-score-reveal-pop,
+    .ceremony-duel-reveal .ceremony-card-rankbar,
+    .ceremony-duel-reveal .rank-badge,
+    #ceremony-screen.ceremony-phase-reveal-burst #ceremony-bg-gradient,
+    #ceremony-screen.ceremony-phase-reveal-burst #ceremony-stage-area::after {
+        animation: none !important;
     }
 }

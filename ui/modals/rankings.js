@@ -775,13 +775,7 @@ export function openZoneOverviewModal(zoneType) {
         else far.push(info);
     });
 
-    // --- NEW: SORT LISTS BY PROGRESS DESCENDING ---
-    const sortDesc = (a, b) => {
-        // Primary sort: Progress %
-        if (b.progress !== a.progress) return b.progress - a.progress;
-        // Secondary sort: Total Stars (Tie-breaker)
-        return b.stars - a.stars;
-    };
+    const sortDesc = utils.sortTeamQuestEntries;
 
     completed.sort(sortDesc);
     approaching.sort(sortDesc);

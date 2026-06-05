@@ -60,10 +60,10 @@ export async function handleGetQuestUpdate() {
 
         const adjustedGoalPerStudent = (BASE_GOAL + ((c.difficultyLevel || 0) * SCALING_FACTOR)) * monthModifier;
         const diamondGoal = Math.round(Math.max(18, students.length * adjustedGoalPerStudent));
-        const progress = diamondGoal > 0 ? ((monthlyStars / diamondGoal) * 100).toFixed(1) : 0;
+        const progress = diamondGoal > 0 ? (monthlyStars / diamondGoal) * 100 : 0;
 
         return { name: c.name, totalStars: monthlyStars, progress, classQuestBonus };
-    }).sort((a, b) => b.progress - a.progress);
+    }).sort(utils.sortTeamQuestEntries);
 
     const topClasses = classScores.filter(c => c.totalStars > 0).slice(0, 3);
 
@@ -72,7 +72,7 @@ export async function handleGetQuestUpdate() {
         return;
     }
 
-    const classDataString = topClasses.map(c => `'${c.name}' is at ${c.progress}% of their goal with ${c.totalStars} stars${c.classQuestBonus > 0 ? `, including a +${c.classQuestBonus} Pathfinder team bonus` : ''}`).join('. ');
+    const classDataString = topClasses.map(c => `'${c.name}' is at ${c.progress.toFixed(1)}% of their goal with ${c.totalStars} stars${c.classQuestBonus > 0 ? `, including a +${c.classQuestBonus} Pathfinder team bonus` : ''}`).join('. ');
     const systemPrompt = "You are a fun, exciting quest announcer for a classroom game. Do not use markdown or asterisks. Your response must be only the narrative text. You will be given the names, progress percentage, and star counts of the top classes. Write a short, exciting, 2-sentence narrative about their race to the top. IMPORTANT: The class with the highest progress percentage is in the lead, NOT the class with the most stars. Make this distinction clear in your narrative.";
     const userPrompt = `The top classes are: ${classDataString}. The first class in this list is in the lead. Write the narrative.`;
 

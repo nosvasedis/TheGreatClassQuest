@@ -936,6 +936,37 @@ export function getClassMonthlyQuestStars(classData, studentsInClass, allStudent
     };
 }
 
+const TEAM_QUEST_PROGRESS_EPSILON = 0.01;
+
+function getTeamQuestStars(entry) {
+    return Number(entry?.score ?? entry?.currentMonthlyStars ?? entry?.stars ?? entry?.totalStars ?? 0) || 0;
+}
+
+/**
+ * SOURCE OF TRUTH: deterministic Team Quest ordering.
+ * Teams/classes never share ranks: near-equal progress falls through to stars, then stable identity.
+ */
+export function sortTeamQuestEntries(a, b) {
+    const progressA = Number(a?.progress) || 0;
+    const progressB = Number(b?.progress) || 0;
+    const progressDelta = progressB - progressA;
+    if (Math.abs(progressDelta) > TEAM_QUEST_PROGRESS_EPSILON) return progressDelta;
+
+    const starsDelta = getTeamQuestStars(b) - getTeamQuestStars(a);
+    if (starsDelta !== 0) return starsDelta;
+
+    const nameDelta = String(a?.name || '').localeCompare(String(b?.name || ''), undefined, { sensitivity: 'base' });
+    if (nameDelta !== 0) return nameDelta;
+
+    return String(a?.id || '').localeCompare(String(b?.id || ''), undefined, { sensitivity: 'base' });
+}
+
+export function assignUniqueTeamQuestRanks(entries = []) {
+    return [...entries]
+        .sort(sortTeamQuestEntries)
+        .map((entry, index) => ({ ...entry, rank: index + 1 }));
+}
+
 /**
  * SOURCE OF TRUTH: Centralized formula for extracting tie-breaker stats for a given student
  * Returns an object containing { count3, count2, academicAvg, uniqueReasons }

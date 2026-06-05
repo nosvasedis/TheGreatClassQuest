@@ -207,7 +207,7 @@ export async function renderClassLeaderboardTab() {
         adventureCountByClassId.set(l.classId, (adventureCountByClassId.get(l.classId) || 0) + 1);
     }
 
-    const classScores = classesInLeague.map(c => {
+    const classScores = utils.assignUniqueTeamQuestRanks(classesInLeague.map(c => {
         const studentsInClass = studentsByClassId.get(c.id) || [];
         const studentCount = studentsInClass.length;
 
@@ -296,7 +296,7 @@ export async function renderClassLeaderboardTab() {
             progress,
             difficulty: dbDifficulty
         };
-    }).sort((a, b) => b.progress - a.progress);
+    }));
 
     // Removed: quest update button no longer exists
 
@@ -304,7 +304,7 @@ export async function renderClassLeaderboardTab() {
 
     // --- RENDER ANALYTICS CARDS ---
     const cardsHtml = classScores.map((c, index) => {
-        const rank = index + 1;
+        const rank = c.rank || index + 1;
 
         // 1. EXACT LEVELS (1-6) - NO NAMES - HOVER INFO
         const diff = (c.difficulty || 0) + 1;

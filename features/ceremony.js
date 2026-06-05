@@ -253,19 +253,7 @@ async function loadDataAndAdvance() {
             };
         });
 
-        classScores.sort((a, b) => {
-            if (Math.abs(a.progress - b.progress) > 0.01) return b.progress - a.progress;
-            return b.score - a.score;
-        });
-
-        let cRank = 1;
-        classScores = classScores.map((c, i) => {
-            if (i > 0) {
-                const prev = classScores[i-1];
-                if (Math.abs(c.progress - prev.progress) > 0.01) cRank = i + 1;
-            }
-            return { ...c, rank: cRank };
-        });
+        classScores = utils.assignUniqueTeamQuestRanks(classScores);
 
         ceremonyData.classQueue = classScores.reverse(); 
 
@@ -576,8 +564,9 @@ function renderCard(entry, type) {
     else if (entry.rank === 3) { badgePillClass = 'ceremony-rank-badge__pill--bronze'; badgeContent = '🥉 Bronze'; }
 
     const rankBadgeHtml = `
-        <div class="ceremony-rank-badge">
+        <div class="ceremony-card-rankbar ${badgePillClass.replace('ceremony-rank-badge__pill', 'ceremony-card-rankbar')}">
             <span class="ceremony-rank-badge__pill ${badgePillClass}">${badgeContent}</span>
+            <span class="ceremony-card-rankbar__label">Rank #${entry.rank}</span>
         </div>`;
 
     // --- Avatar / logo ---
@@ -620,7 +609,7 @@ function renderCard(entry, type) {
     // Check if this card belongs to the class currently using the app
     const isMyClass = !isStudent && entry.id === ceremonyData.currentAppClassId;
     const myClassBadge = isMyClass
-        ? `<div class="absolute top-2 right-2 bg-gradient-to-r from-indigo-500 to-purple-600 text-white text-xs font-bold px-3 py-1 rounded-full shadow-lg border border-white/50 animate-pulse z-30">YOU</div>`
+        ? `<span class="ceremony-my-class-badge">YOU</span>`
         : '';
     const card = document.createElement('div');
     card.className = `ceremony-display-card ceremony-display-card--${type} ${rankCardClass} ${extraClass}`;
@@ -628,11 +617,11 @@ function renderCard(entry, type) {
     card.innerHTML = `
         <div class="ceremony-card-aura"></div>
         ${rankBadgeHtml}
-        ${myClassBadge}
-        <div class="mt-5 ceremony-card-shell">
+        <div class="ceremony-card-shell">
+            ${myClassBadge}
             <div class="ceremony-card-kicker"><i class="fas ${accentIcon}"></i>${accentLabel}</div>
             ${imageHtml}
-            <h3 class="font-title text-4xl text-gray-800 mb-2 truncate px-2 leading-tight">${entry.name}</h3>
+            <h3 class="font-title ceremony-card-name text-gray-800">${entry.name}</h3>
             <div class="mt-2">${subText}</div>
             ${detailChips}
             ${teacherBoonHtml}
@@ -665,8 +654,12 @@ function setupShowdown(silverEntry, goldEntry, titleText, subText, entryType) {
     
     const vsBadge = document.createElement('div');
     vsBadge.id = 'ceremony-vs-badge';
-    vsBadge.className = 'z-20 mx-4 font-title text-6xl text-transparent bg-clip-text bg-gradient-to-br from-red-500 to-orange-600 drop-shadow-[0_0_15px_rgba(255,0,0,0.8)] animate-bounce';
-    vsBadge.innerText = 'VS';
+    vsBadge.className = 'ceremony-countdown-ring';
+    vsBadge.innerHTML = `
+        <span class="ceremony-countdown-ring__halo"></span>
+        <span class="ceremony-countdown-ring__number">VS</span>
+        <span class="ceremony-countdown-ring__label">Final Duel</span>
+    `;
 
     stage.appendChild(leftCard);
     stage.appendChild(vsBadge);
@@ -732,14 +725,15 @@ function createFaceOff(entry, realRank, position, entryType) {
 
     div.innerHTML = `
         <div class="ceremony-card-aura"></div>
-        <div class="rank-badge ceremony-rank-badge--faceoff absolute -top-8 left-1/2 transform -translate-x-1/2 z-20 transition-all duration-500 opacity-0">
-            ${realRank === 1 ? '🥇' : '🥈'}
+        <div class="rank-badge ceremony-card-rankbar ceremony-card-rankbar--faceoff ${realRank === 1 ? 'ceremony-card-rankbar--gold' : 'ceremony-card-rankbar--silver'}">
+            <span class="ceremony-rank-badge__pill ${realRank === 1 ? 'ceremony-rank-badge__pill--gold' : 'ceremony-rank-badge__pill--silver'}">${realRank === 1 ? '🥇 Gold' : '🥈 Silver'}</span>
+            <span class="ceremony-card-rankbar__label">Rank #${realRank}</span>
         </div>
-        <div class="mt-6 ceremony-card-shell">
+        <div class="ceremony-card-shell">
             <div class="ceremony-card-kicker">${faceOffKicker}</div>
             ${imageHtml}
-            <h3 class="font-title text-3xl text-gray-700 mb-2 truncate px-2 leading-tight">${entry.name}</h3>
-            <div class="star-count opacity-0 blur-sm transition-all duration-500">
+            <h3 class="font-title ceremony-card-name ceremony-card-name--faceoff text-gray-700">${entry.name}</h3>
+            <div class="star-count opacity-0 transition-all duration-500">
                 ${scoreDisplay}
             </div>
             ${faceOffMetrics}
@@ -768,6 +762,23 @@ function handleDramaticReveal() {
 
     cards.forEach(card => card.classList.add('tension-active'));
     const finishedClassShowdown = ceremonyData.phase === 'class_showdown';
+    const countdownRing = document.getElementById('ceremony-vs-badge');
+    const countdownNumber = countdownRing?.querySelector('.ceremony-countdown-ring__number');
+
+    [3, 2, 1].forEach((count, index) => {
+        setTimeout(() => {
+            if (countdownRing) {
+                countdownRing.classList.remove('is-tick');
+                countdownRing.dataset.count = String(count);
+            }
+            if (countdownNumber) countdownNumber.textContent = String(count);
+            if (countdownRing) {
+                void countdownRing.offsetWidth;
+                countdownRing.classList.add('is-tick');
+            }
+            btn.innerText = `${count}...`;
+        }, index * 760);
+    });
 
     setTimeout(() => {
         stopDrumRoll();
@@ -808,7 +819,7 @@ function handleDramaticReveal() {
             
             if(badge) badge.classList.remove('opacity-0');
             if(scoreEl) {
-                scoreEl.classList.remove('opacity-0', 'blur-sm');
+                scoreEl.classList.remove('opacity-0');
                 scoreEl.classList.add('opacity-100');
             }
 
@@ -854,7 +865,7 @@ function handleDramaticReveal() {
         btn.innerText = finishedClassShowdown ? 'Begin Hero Reveal' : 'Show Final Standings';
         btn.onclick = advanceCeremony; 
 
-    }, 3000); 
+    }, 2520);
 }
 
 // --- NEW FUNCTION: RENDER FINAL LEADERBOARD ---

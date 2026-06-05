@@ -527,7 +527,7 @@ export async function renderHistoricalLeaderboard(monthKey, type, leagueFilter =
                     historicalLevel: historicalDifficulty,
                     isQuestComplete: false 
                 };
-            }).sort((a, b) => b.progress - a.progress);
+            }).sort(utils.sortTeamQuestEntries);
             if (leagueScores.every(c => c.totalStars === 0)) continue; 
 
             fullHtml += `

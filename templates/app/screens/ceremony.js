@@ -7,6 +7,11 @@ export const ceremonyHTML = `
         <div class="absolute inset-0 z-0">
             <div id="ceremony-bg-gradient"
                 class="absolute inset-0 bg-gradient-to-br from-indigo-900 via-purple-900 to-black opacity-80"></div>
+            <div id="ceremony-theme-veil" class="ceremony-theme-veil" aria-hidden="true">
+                <div class="ceremony-theme-veil__layer ceremony-theme-veil__amber"></div>
+                <div class="ceremony-theme-veil__layer ceremony-theme-veil__violet"></div>
+                <div class="ceremony-theme-veil__sweep"></div>
+            </div>
             <div id="ceremony-confetti-container" class="absolute inset-0 pointer-events-none"></div>
             <div
                 class="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/stardust.png')] opacity-30 animate-pulse-slow">
@@ -32,10 +37,10 @@ export const ceremonyHTML = `
                 <p id="ceremony-ai-text" class="text-sm md:text-base text-white font-serif italic text-shadow"></p>
             </div>
 
-            <div class="pb-2">
-                <button id="ceremony-action-btn"
-                    class="bubbly-button bg-gradient-to-r from-amber-400 to-orange-500 text-white font-title text-sm md:text-base py-2 md:py-2.5 px-6 md:px-8 rounded-full shadow-[0_0_20px_rgba(245,158,11,0.5)] hover:scale-105 transition-transform border-2 border-white/30">
-                    Start Ceremony
+            <div class="pb-2 ceremony-action-btn-wrap">
+                <button id="ceremony-action-btn" type="button" class="ceremony-action-btn" aria-live="polite">
+                    <span class="ceremony-action-btn__rim" aria-hidden="true"></span>
+                    <span class="ceremony-action-btn__label">Start Ceremony</span>
                 </button>
             </div>
         </div>

@@ -79,6 +79,13 @@ export async function setupSounds() {
             }).connect(reverb);
             sounds.quiz_confetti_pop = new Tone.PluckSynth({ attackNoise: 1, dampening: 3500, resonance: 0.75, volume: -10 }).connect(reverb);
 
+            sounds.ceremony_gling = new Tone.PluckSynth({
+                attackNoise: 0.15,
+                dampening: 6200,
+                resonance: 0.94,
+                volume: -24
+            }).connect(reverb);
+
             sounds.star3 = new Tone.FMSynth({
                 harmonicity: 3,
                 modulationIndex: 10,
@@ -210,6 +217,9 @@ export function playSound(sound) {
             sounds.quiz_confetti_pop.triggerAttackRelease('C6', '32n', playTime);
             sounds.quiz_confetti_pop.triggerAttackRelease('E6', '32n', playTime + 0.04);
             sounds.quiz_confetti_pop.triggerAttackRelease('G6', '32n', playTime + 0.08);
+        }
+        else if (sound === 'ceremony_gling') {
+            sounds.ceremony_gling.triggerAttackRelease('G6', '64n', playTime);
         }
 
         // Custom Fanfare Logic (if you added it previously)

@@ -15,6 +15,35 @@ import {
     mergeMonthlyStarsFromArchivedHistoryAndAwardLogs,
     sumMonthlyStarCreditsByStudentFromAwardLogs
 } from './awardLogReasonMeta.js';
+import { getQuestMapZoneForProgressPercent } from './worldMap.js';
+
+const CEREMONY_REASON_INFO = {
+    teamwork: { icon: 'fa-users', chip: 'ceremony-chip--teamwork', name: 'Teamwork' },
+    creativity: { icon: 'fa-lightbulb', chip: 'ceremony-chip--creativity', name: 'Creativity' },
+    respect: { icon: 'fa-hands-helping', chip: 'ceremony-chip--respect', name: 'Respect' },
+    focus: { icon: 'fa-brain', chip: 'ceremony-chip--focus', name: 'Focus' },
+    welcome_back: { icon: 'fa-hand-sparkles', chip: 'ceremony-chip--welcome', name: 'Back!' },
+    story_weaver: { icon: 'fa-feather-alt', chip: 'ceremony-chip--story', name: 'Story' },
+    scholar_s_bonus: { icon: 'fa-graduation-cap', chip: 'ceremony-chip--scholar', name: 'Scholar' },
+    teacher_boon: { icon: 'fa-wand-magic-sparkles', chip: 'ceremony-chip--boon', name: 'Teacher Boon' },
+    pathfinder_map: { icon: 'fa-map', chip: 'ceremony-chip--pathfinder', name: 'Pathfinder' }
+};
+
+const CEREMONY_LEVEL_STYLES = {
+    1: { chip: 'ceremony-chip--lvl-1', icon: '🌱', label: 'Level 1' },
+    2: { chip: 'ceremony-chip--lvl-2', icon: '💧', label: 'Level 2' },
+    3: { chip: 'ceremony-chip--lvl-3', icon: '🛡️', label: 'Level 3' },
+    4: { chip: 'ceremony-chip--lvl-4', icon: '🔮', label: 'Level 4' },
+    5: { chip: 'ceremony-chip--lvl-5', icon: '🔥', label: 'Level 5' },
+    6: { chip: 'ceremony-chip--lvl-6', icon: '🐉', label: 'Level 6' }
+};
+
+const CEREMONY_ZONE_CHIPS = {
+    bronze: 'ceremony-chip--zone-bronze',
+    silver: 'ceremony-chip--zone-silver',
+    gold: 'ceremony-chip--zone-gold',
+    crystal: 'ceremony-chip--zone-crystal'
+};
 let ceremonyData = {
     active: false,
     phase: 'intro', 
@@ -83,9 +112,23 @@ function getTeacherBoonCeremonyMarkup(teacherBoon, options = {}) {
     `;
 }
 
+let lastCeremonyViewMode = 'intro';
+
+const PODIUM_REVEAL_DELAY_MS = 2800;
+
+function setCeremonyActionLabel(text) {
+    const btn = document.getElementById('ceremony-action-btn');
+    if (!btn) return;
+    const label = btn.querySelector('.ceremony-action-btn__label');
+    if (label) label.textContent = text;
+    else btn.textContent = text;
+}
+
 function setCeremonyViewMode(mode) {
     const screen = document.getElementById('ceremony-screen');
     if (!screen) return;
+
+    const prev = lastCeremonyViewMode;
 
     screen.classList.remove(
         'ceremony-view--intro',
@@ -93,14 +136,105 @@ function setCeremonyViewMode(mode) {
         'ceremony-view--transition',
         'ceremony-view--students',
         'ceremony-view--final',
-        'ceremony-view--outro'
+        'ceremony-view--outro',
+        'ceremony-theme-morph-active',
+        'ceremony-theme-morph--to-violet',
+        'ceremony-theme-morph--violet-lock'
     );
     screen.classList.add(`ceremony-view--${mode}`);
+
+    const isTransitionFromLeagues = mode === 'transition' && prev === 'classes';
+    const isHeroPhaseEntry = mode === 'students' && (prev === 'transition' || prev === 'classes');
+
+    if (isTransitionFromLeagues) {
+        screen.classList.add('ceremony-theme-morph-active', 'ceremony-theme-morph--to-violet');
+    } else if (isHeroPhaseEntry) {
+        screen.classList.add('ceremony-theme-morph-active', 'ceremony-theme-morph--violet-lock');
+        setTimeout(() => {
+            screen.classList.remove(
+                'ceremony-theme-morph-active',
+                'ceremony-theme-morph--to-violet',
+                'ceremony-theme-morph--violet-lock'
+            );
+        }, 4500);
+    }
+
+    lastCeremonyViewMode = mode;
 
     const header = document.getElementById('ceremony-header');
     if (header) {
         header.classList.toggle('ceremony-header--hidden', mode === 'final');
+        header.classList.toggle('ceremony-header--intro', mode === 'intro');
     }
+
+    const actionBtn = document.getElementById('ceremony-action-btn');
+    if (actionBtn) {
+        actionBtn.classList.remove(
+            'ceremony-action-btn--intro',
+            'ceremony-action-btn--classes',
+            'ceremony-action-btn--transition',
+            'ceremony-action-btn--students',
+            'ceremony-action-btn--final',
+            'ceremony-action-btn--outro'
+        );
+        actionBtn.classList.add(`ceremony-action-btn--${mode}`);
+    }
+}
+
+function resetCeremonyStage(stageEl) {
+    const stage = stageEl || document.getElementById('ceremony-stage-area');
+    const screen = document.getElementById('ceremony-screen');
+    if (stage) {
+        stage.classList.remove('ceremony-stage--podium', 'ceremony-stage--podium-duo');
+    }
+    if (screen) {
+        screen.classList.remove('ceremony-phase-podium');
+    }
+}
+
+function revealCeremonyChips(container, delayMs = 0) {
+    if (!container) return;
+    const blocks = container.querySelectorAll('.ceremony-chips-reveal--hidden');
+    blocks.forEach((block, blockIndex) => {
+        setTimeout(() => {
+            block.classList.remove('ceremony-chips-reveal--hidden');
+            block.classList.add('ceremony-chips-reveal--shown');
+            block.querySelectorAll('.ceremony-chip').forEach((chip, chipIndex) => {
+                chip.style.animationDelay = `${chipIndex * 0.07}s`;
+            });
+        }, delayMs + blockIndex * 90);
+    });
+}
+
+function renderCeremonyIntroSplash(params) {
+    const stage = document.getElementById('ceremony-stage-area');
+    if (!stage) return;
+
+    const classData = state.get('allSchoolClasses').find((c) => c.id === params.classId);
+    const className = classData?.name || 'Your Class';
+    const classLogo = classData?.logo || '📚';
+    const leagueLabel = `League ${params.league}`;
+
+    stage.innerHTML = `
+        <div class="ceremony-intro-splash">
+            <div class="ceremony-intro-splash__aurora" aria-hidden="true"></div>
+            <div class="ceremony-intro-splash__spark ceremony-intro-splash__spark--a" aria-hidden="true"></div>
+            <div class="ceremony-intro-splash__spark ceremony-intro-splash__spark--b" aria-hidden="true"></div>
+            <div class="ceremony-intro-splash__ring" aria-hidden="true"></div>
+            <div class="ceremony-intro-splash__emblem-wrap">
+                <span class="ceremony-intro-splash__emblem">${classLogo}</span>
+            </div>
+            <p class="ceremony-intro-splash__kicker">Ceremony of the Month</p>
+            <h1 class="ceremony-intro-splash__title font-title">${params.monthName}</h1>
+            <p class="ceremony-intro-splash__brand">The Great Class Quest</p>
+            <div class="ceremony-intro-splash__details">
+                <span class="ceremony-intro-chip ceremony-intro-chip--amber"><i class="fas fa-route"></i>${leagueLabel}</span>
+                <span class="ceremony-intro-chip ceremony-intro-chip--violet"><i class="fas fa-school"></i>${className}</span>
+                <span class="ceremony-intro-chip ceremony-intro-chip--blend"><i class="fas fa-wand-magic-sparkles"></i>Team Quest → Hero's Challenge</span>
+            </div>
+            <p class="ceremony-intro-splash__tagline">League champions rise first — then your class heroes claim the spotlight.</p>
+        </div>
+    `;
 }
 
 function getCurrentStageCard() {
@@ -113,6 +247,7 @@ function transitionStageCard(entry, type) {
     const stage = document.getElementById('ceremony-stage-area');
     if (!stage) return;
 
+    resetCeremonyStage(stage);
     const outgoing = getCurrentStageCard();
     let didTransition = false;
 
@@ -124,6 +259,7 @@ function transitionStageCard(entry, type) {
         const incoming = getCurrentStageCard();
         if (incoming) {
             incoming.classList.add('ceremony-card-transition-in');
+            setTimeout(() => revealCeremonyChips(incoming, 380), 120);
         }
     };
 
@@ -231,23 +367,33 @@ export function startCeremony(params) {
     const aiBox = document.getElementById('ceremony-ai-box');
 
     screen.classList.remove('hidden');
-    screen.classList.remove('ceremony-phase-suspense', 'ceremony-phase-reveal');
-    stage.innerHTML = '';
+    screen.classList.remove(
+        'ceremony-phase-suspense',
+        'ceremony-phase-reveal',
+        'ceremony-theme-morph-active',
+        'ceremony-theme-morph--to-violet',
+        'ceremony-theme-morph--violet-lock'
+    );
+    resetCeremonyStage(stage);
     aiBox.style.opacity = '0';
+    lastCeremonyViewMode = 'intro';
     setCeremonyViewMode('intro');
-    
-    title.innerHTML = formatTitleHtml("The Great Class Quest");
-    subtitle.innerHTML = formatTitleHtml(`${params.monthName} Ceremony`);
-    actionBtn.innerText = "Begin Ceremony";
+    renderCeremonyIntroSplash(params);
+
+    title.innerHTML = formatTitleHtml('');
+    subtitle.innerHTML = formatTitleHtml('');
+    setCeremonyActionLabel('Start Ceremony');
     actionBtn.onclick = loadDataAndAdvance;
 
     if (ceremonyMusic.loaded) {
-        ceremonyMusic.volume.value = -12; 
+        ceremonyMusic.volume.value = -12;
         ceremonyMusic.start();
     }
-    
+
+    setTimeout(() => playSound('ceremony_gling'), 420);
+
     aiBox.style.opacity = '1';
-    document.getElementById('ceremony-ai-text').innerText = "Welcome! The scrolls are ready...";
+    document.getElementById('ceremony-ai-text').innerText = 'The scrolls are ready. The arena awaits...';
     triggerAICommentary('intro', { month: params.monthName });
 }
 
@@ -256,7 +402,7 @@ export function startCeremony(params) {
 async function loadDataAndAdvance() {
     const btn = document.getElementById('ceremony-action-btn');
     btn.disabled = true;
-    btn.innerText = "Summoning Scrolls...";
+    setCeremonyActionLabel('Summoning Scrolls...');
 
     try {
         const [year, month] = ceremonyData.monthKey.split('-').map(Number);
@@ -294,11 +440,24 @@ async function loadDataAndAdvance() {
             const historicalDifficulty = utils.getHistoricalDifficultyForMonth(c, monthStart, questHistoryRecords);
             
             const progress = goal > 0 ? (score / goal) * 100 : 0;
+            const studentIds = new Set(students.map(s => s.id));
+            const classLogs = logs.filter(l => studentIds.has(l.studentId) && l.reason !== 'pathfinder_bonus');
+            const reasonCounts = {};
+            classLogs.forEach(l => {
+                if (!l.reason) return;
+                reasonCounts[l.reason] = (reasonCounts[l.reason] || 0) + getAwardLogMonthlyStarCredit(l);
+            });
+            const topSkill = Object.entries(reasonCounts).sort((a, b) => b[1] - a[1])[0]?.[0] || null;
 
             return { 
                 ...c, score, goal, progress, 
                 level: historicalDifficulty + 1,
-                studentCount: students.length 
+                studentCount: students.length,
+                teamBonus: classTeamBonus,
+                studentStars: scoreFromStudents,
+                avgPerHero: students.length > 0 ? scoreFromStudents / students.length : 0,
+                zone: getQuestMapZoneForProgressPercent(progress),
+                topSkill
             };
         });
 
@@ -317,12 +476,17 @@ async function loadDataAndAdvance() {
             const score = monthlyScores[s.id] || 0;
             let count3 = 0, count2 = 0;
             const reasons = new Set();
+            const reasonCounts = {};
             sLogs.forEach(l => {
                 const cred = getAwardLogMonthlyStarCredit(l);
                 if (cred >= 3) count3++;
                 else if (cred >= 2) count2++;
-                if (l.reason) reasons.add(l.reason);
+                if (l.reason) {
+                    reasons.add(l.reason);
+                    reasonCounts[l.reason] = (reasonCounts[l.reason] || 0) + cred;
+                }
             });
+            const topSkill = Object.entries(reasonCounts).sort((a, b) => b[1] - a[1])[0]?.[0] || null;
 
             const sScores = allWrittenScores.filter(sc => {
                 if(sc.studentId !== s.id || !sc.date) return false;
@@ -341,7 +505,9 @@ async function loadDataAndAdvance() {
                 name: s.name,
                 avatar: s.avatar,
                 score,
-                stats: { count3, count2, academicAvg, uniqueReasons: reasons.size },
+                className: ceremonyClass?.name || '',
+                classLogo: ceremonyClass?.logo || '📚',
+                stats: { count3, count2, academicAvg, uniqueReasons: reasons.size, topSkill },
                 teacherBoon: monthlyTeacherBoon?.studentId === s.id
                     ? { ...monthlyTeacherBoon, reasonText: formatTeacherBoonReason(monthlyTeacherBoon) }
                     : null
@@ -376,7 +542,7 @@ async function loadDataAndAdvance() {
 
     } catch (e) {
         console.error("Ceremony Load Error:", e);
-        btn.innerText = "Error loading. Check connection.";
+        setCeremonyActionLabel('Error loading. Check connection.');
     }
 }
 
@@ -414,18 +580,19 @@ function advanceCeremony() {
             transitionStageCard(queue[0], 'class');
             title.innerHTML = formatTitleHtml("The Champion");
             ceremonyData.phase = 'transition';
-            btn.innerText = "See Student Heroes";
+            setCeremonyActionLabel('See Student Heroes');
             return;
         }
 
         const pointer = ceremonyData.classPointer;
 
         if (pointer >= queue.length - 2) {
+            setCeremonyViewMode('classes');
             ceremonyData.phase = 'class_showdown'; 
             const silver = queue[queue.length - 2];
             const gold = queue[queue.length - 1];
             setupShowdown(silver, gold, 'The Final Duel', 'Two legends remain...', 'class');
-            btn.innerText = "🥁 Drumroll...";
+            setCeremonyActionLabel('🥁 Drumroll...');
             btn.onclick = handleDramaticReveal;
             return;
         }
@@ -440,37 +607,39 @@ function advanceCeremony() {
         triggerAICommentary('class_rank', { id: entry.id, name: entry.name, rank: entry.rank, score: entry.score, progress: formatPercent(entry.progress) });
 
         ceremonyData.classPointer++;
-        btn.innerText = "Next";
+        setCeremonyActionLabel('Next');
     }
 
-    // --- PHASE 1.5: CLASS SHOWDOWN DONE ---
+    // --- PHASE 1.5: CLASS SHOWDOWN DONE → HERO'S CHALLENGE SPLASH ---
     else if (ceremonyData.phase === 'class_showdown_done') {
-        setCeremonyViewMode('transition');
+        resetCeremonyStage(stage);
         ceremonyData.phase = 'transition';
         advanceCeremony();
     }
 
-    // --- PHASE 2: TRANSITION ---
+    // --- PHASE 2: TRANSITION (amber → violet morph begins here) ---
     else if (ceremonyData.phase === 'transition') {
         setCeremonyViewMode('transition');
         stopAllCeremonyAudio();
         setTimeout(() => { playCeremonyMusic(); }, 500);
-
+        resetCeremonyStage(stage);
         stage.innerHTML = `
-            <div class="ceremony-transition-panel ceremony-card-enter">
+            <div class="ceremony-transition-panel ceremony-card-enter ceremony-transition-panel--morph">
                 <div class="ceremony-transition-panel__orb"></div>
+                <div class="ceremony-transition-panel__gold-glow" aria-hidden="true"></div>
+                <div class="ceremony-transition-panel__violet-glow" aria-hidden="true"></div>
                 <div class="ceremony-transition-panel__kicker">The torches turn inward</div>
                 <i class="fas fa-user-astronaut ceremony-transition-panel__icon"></i>
                 <h2 class="font-title ceremony-transition-panel__title">Hero's Challenge</h2>
-                <p class="ceremony-transition-panel__text">The class banners fade and the bravest scholars step into the spotlight.</p>
+                <p class="ceremony-transition-panel__text">The league banners fade to gold, then violet — as your class heroes step into the spotlight.</p>
             </div>
         `;
-        title.innerHTML = formatTitleHtml("Individual Honors");
+        title.innerHTML = formatTitleHtml('Individual Honors');
         subtitle.innerHTML = formatTitleHtml("Who went above and beyond?");
         aiBox.style.opacity = '0';
         triggerAICommentary('transition', {});
-        
-        btn.innerText = "Begin Hero Reveal";
+
+        setCeremonyActionLabel("Begin Hero's Challenge");
         ceremonyData.phase = 'student_reveal';
     }
         
@@ -489,18 +658,19 @@ function advanceCeremony() {
             transitionStageCard(queue[0], 'student');
             title.innerHTML = formatTitleHtml("Class Hero");
             ceremonyData.phase = 'final_leaderboard';
-            btn.innerText = "See Full Results";
+            setCeremonyActionLabel('See Full Results');
             return;
         }
 
         const pointer = ceremonyData.studentPointer;
 
         if (pointer >= queue.length - 2) {
+            setCeremonyViewMode('students');
             ceremonyData.phase = 'student_showdown';
             const silver = queue[queue.length - 2];
             const gold = queue[queue.length - 1];
             setupShowdown(silver, gold, 'Top Heroes', 'Two legends remain...', 'student');
-            btn.innerText = "Crown the Champion";
+            setCeremonyActionLabel('Crown the Champion');
             btn.onclick = handleDramaticReveal;
             return;
         }
@@ -535,19 +705,20 @@ function advanceCeremony() {
         });
 
         ceremonyData.studentPointer++;
-        btn.innerText = "Next";
+        setCeremonyActionLabel('Next');
     }
 
     // --- PHASE 3.5: STUDENT SHOWDOWN DONE ---
     else if (ceremonyData.phase === 'student_showdown_done') {
+        resetCeremonyStage(stage);
         setCeremonyViewMode('final');
         ceremonyData.phase = 'final_leaderboard';
-        // Auto-advance to render the board immediately
-        advanceCeremony(); 
+        advanceCeremony();
     }
 
     // --- PHASE 3.6: FINAL LEADERBOARD (NEW) ---
     else if (ceremonyData.phase === 'final_leaderboard') {
+        resetCeremonyStage(stage);
         setCeremonyViewMode('final');
         stage.innerHTML = '';
         renderFinalLeaderboard();
@@ -556,7 +727,7 @@ function advanceCeremony() {
         subtitle.innerHTML = '';
         aiBox.style.opacity = '0';
         
-        btn.innerText = "Finish Ceremony";
+        setCeremonyActionLabel('Finish Ceremony');
         ceremonyData.phase = 'end';
     }
 
@@ -576,7 +747,7 @@ function advanceCeremony() {
         subtitle.innerHTML = formatTitleHtml("Until next time..."); 
         aiBox.style.opacity = '0';
         triggerAICommentary('outro', {});
-        btn.innerText = "Close";
+        setCeremonyActionLabel('Close');
         btn.onclick = closeCeremony;
         
         triggerConfetti();
@@ -588,31 +759,272 @@ function advanceCeremony() {
 
 // --- 4. RENDERERS ---
 
+function ceremonyChip(chipClass, content, title = '') {
+    const titleAttr = title ? ` title="${title.replace(/"/g, '&quot;')}"` : '';
+    return `<span class="ceremony-chip ${chipClass}"${titleAttr}>${content}</span>`;
+}
+
+function getCeremonyRankMeta(rank) {
+    if (rank === 1) {
+        return {
+            cardClass: 'card-rank-1',
+            extraClass: '',
+            rankbarClass: 'ceremony-card-rankbar--gold',
+            pillClass: 'ceremony-rank-badge__pill--gold',
+            pillContent: '🥇 Gold'
+        };
+    }
+    if (rank === 2) {
+        return {
+            cardClass: 'card-rank-2',
+            extraClass: '',
+            rankbarClass: 'ceremony-card-rankbar--silver',
+            pillClass: 'ceremony-rank-badge__pill--silver',
+            pillContent: '🥈 Silver'
+        };
+    }
+    if (rank === 3) {
+        return {
+            cardClass: 'card-rank-3',
+            extraClass: 'bronze-shine',
+            rankbarClass: 'ceremony-card-rankbar--bronze',
+            pillClass: 'ceremony-rank-badge__pill--bronze',
+            pillContent: '🥉 Bronze'
+        };
+    }
+    return {
+        cardClass: 'card-rank-other',
+        extraClass: '',
+        rankbarClass: 'ceremony-card-rankbar--other',
+        pillClass: 'ceremony-rank-badge__pill--other',
+        pillContent: `#${rank}`
+    };
+}
+
+function buildCeremonyRankbarHtml(rank) {
+    const meta = getCeremonyRankMeta(rank);
+    return `
+        <div class="ceremony-card-rankbar ${meta.rankbarClass}">
+            <span class="ceremony-rank-badge__pill ${meta.pillClass}">${meta.pillContent}</span>
+            <span class="ceremony-card-rankbar__label">Rank #${rank}</span>
+        </div>`;
+}
+
+function buildCeremonyKicker(type, mode = 'reveal') {
+    const isStudent = type === 'student';
+    if (mode === 'duel') {
+        return {
+            icon: isStudent ? 'fa-user-ninja' : 'fa-shield-halved',
+            label: isStudent ? 'Hero Duel' : 'League Duel'
+        };
+    }
+    return {
+        icon: isStudent ? 'fa-user-shield' : 'fa-route',
+        label: isStudent ? "Hero's Challenge" : 'Team Quest'
+    };
+}
+
+function buildCeremonyClassChips(entry, { compact = false, hidden = false } = {}) {
+    const chips = [];
+    const lvl = Math.min(6, Math.max(1, entry.level || 1));
+    const lvlStyle = CEREMONY_LEVEL_STYLES[lvl] || CEREMONY_LEVEL_STYLES[1];
+    chips.push(ceremonyChip(
+        lvlStyle.chip,
+        `${lvlStyle.icon} ${compact ? `Lv ${lvl}` : lvlStyle.label}`,
+        `Quest difficulty level ${lvl}`
+    ));
+
+    if (entry.zone) {
+        const zoneChip = CEREMONY_ZONE_CHIPS[entry.zone.id] || CEREMONY_ZONE_CHIPS.bronze;
+        chips.push(ceremonyChip(
+            zoneChip,
+            compact ? `${entry.zone.icon}` : `${entry.zone.icon} ${entry.zone.label}`,
+            entry.zone.desc
+        ));
+    }
+
+    if (!compact && entry.avgPerHero > 0) {
+        chips.push(ceremonyChip(
+            'ceremony-chip--avg',
+            `<i class="fas fa-user-group"></i>${entry.avgPerHero.toFixed(1)} avg/hero`,
+            'Average stars per hero'
+        ));
+    }
+
+    if (entry.teamBonus > 0) {
+        const isPathfinder = entry.teamBonus >= 10;
+        chips.push(ceremonyChip(
+            isPathfinder ? 'ceremony-chip--pathfinder' : 'ceremony-chip--bonus',
+            isPathfinder
+                ? `<i class="fas fa-map"></i>${compact ? `+${entry.teamBonus}` : `Pathfinder +${entry.teamBonus}`}`
+                : `<i class="fas fa-people-group"></i>+${entry.teamBonus} team`,
+            'Team Quest bonus stars'
+        ));
+    }
+
+    if (entry.topSkill) {
+        const info = CEREMONY_REASON_INFO[entry.topSkill] || { icon: 'fa-star', chip: 'ceremony-chip--neutral', name: 'Strength' };
+        chips.push(ceremonyChip(
+            info.chip,
+            compact ? `<i class="fas ${info.icon}"></i> ${info.name}` : `<i class="fas ${info.icon}"></i> Top: ${info.name}`,
+            'Top class strength this month'
+        ));
+    }
+
+    if (!compact || chips.length < 3) {
+        chips.push(ceremonyChip(
+            'ceremony-chip--heroes',
+            `<i class="fas fa-users"></i>${entry.studentCount}${compact ? '' : ' heroes'}`,
+            'Heroes in this class'
+        ));
+    }
+
+    const hiddenClass = hidden ? ' ceremony-chips-reveal--hidden' : '';
+    return `<div class="ceremony-card-metrics${compact ? ' ceremony-card-metrics--compact' : ''}${hiddenClass}">${chips.join('')}</div>`;
+}
+
+function buildCeremonyStudentChips(entry, { compact = false, hidden = false } = {}) {
+    const stats = entry.stats || {};
+    const chips = [];
+
+    if (stats.count3 > 0) {
+        chips.push(ceremonyChip(
+            'ceremony-chip--epic',
+            `<i class="fas fa-bolt"></i>${stats.count3}${compact ? '' : ' × 3⭐'}`,
+            'Epic lessons (3-star)'
+        ));
+    }
+    if (stats.count2 > 0 && !compact) {
+        chips.push(ceremonyChip(
+            'ceremony-chip--strong',
+            `<i class="fas fa-star-half-alt"></i>${stats.count2} × 2⭐`,
+            'Strong lessons (2-star)'
+        ));
+    }
+    if (stats.topSkill) {
+        const info = CEREMONY_REASON_INFO[stats.topSkill] || { icon: 'fa-star', chip: 'ceremony-chip--neutral', name: 'Star' };
+        chips.push(ceremonyChip(
+            info.chip,
+            `<i class="fas ${info.icon}"></i> ${info.name}`,
+            'Top strength this month'
+        ));
+    }
+    if (!compact && stats.uniqueReasons > 0) {
+        chips.push(ceremonyChip(
+            'ceremony-chip--variety',
+            `<i class="fas fa-shapes"></i>${stats.uniqueReasons} strengths`,
+            'Unique award reasons (tie-breaker)'
+        ));
+    }
+    if (stats.academicAvg > 0) {
+        chips.push(ceremonyChip(
+            'ceremony-chip--scholar',
+            `<i class="fas fa-graduation-cap"></i>${Math.round(stats.academicAvg)}% Scholar`,
+            'Average written score this month'
+        ));
+    }
+    if (compact && chips.length < 2 && stats.count2 > 0) {
+        chips.push(ceremonyChip(
+            'ceremony-chip--strong',
+            `<i class="fas fa-star-half-alt"></i>${stats.count2}`,
+            'Strong lessons (2-star)'
+        ));
+    }
+    if (compact && chips.length < 2 && stats.uniqueReasons > 0) {
+        chips.push(ceremonyChip(
+            'ceremony-chip--variety',
+            `<i class="fas fa-shapes"></i>${stats.uniqueReasons}`,
+            'Unique strengths'
+        ));
+    }
+    if (chips.length === 0) {
+        chips.push(ceremonyChip(
+            'ceremony-chip--neutral',
+            `<i class="fas fa-star"></i>${entry.score} this month`,
+            'Monthly stars'
+        ));
+    }
+
+    const hiddenClass = hidden ? ' ceremony-chips-reveal--hidden' : '';
+    return `<div class="ceremony-card-metrics${compact ? ' ceremony-card-metrics--compact' : ''}${hiddenClass}">${chips.join('')}</div>`;
+}
+
+function unwrapCeremonyChipRow(html) {
+    return html.replace(/^<div class="ceremony-card-metrics[^"]*">/, '').replace(/<\/div>\s*$/, '');
+}
+
+function buildCeremonyClassScoreHeadline(entry) {
+    return `
+        <div class="ceremony-class-score-headline">
+            <span class="ceremony-class-score-headline__value">${entry.score}</span>
+            <span class="ceremony-class-score-headline__label">Stars Collected</span>
+            <span class="ceremony-class-score-headline__heroes"><i class="fas fa-users"></i>${entry.studentCount} heroes</span>
+        </div>`;
+}
+
+function buildCeremonyClassGoalPanel(entry, { hidden = false, compact = false } = {}) {
+    const p = Math.min(100, Math.max(0, Number(entry.progress) || 0));
+    const hiddenClass = hidden ? ' ceremony-chips-reveal--hidden' : '';
+    const compactClass = compact ? ' ceremony-class-goal-panel--compact' : '';
+    const fillBronze = Math.min(p, 30) / 30 * 100;
+    const fillSilver = Math.min(Math.max(p - 30, 0), 30) / 30 * 100;
+    const fillGold = Math.min(Math.max(p - 60, 0), 25) / 25 * 100;
+    const fillCrystal = Math.min(Math.max(p - 85, 0), 15) / 15 * 100;
+    const zone = entry.zone;
+    const zoneLabel = zone?.label || 'Quest Path';
+    const zoneIcon = zone?.icon || '🌿';
+    const markerHtml = compact
+        ? ''
+        : `<div class="ceremony-quest-trail__marker" style="left:${Math.min(p, 100)}%"></div>`;
+    const stagesHtml = compact
+        ? ''
+        : '<span class="ceremony-class-goal-panel__stages">🌿 🏔️ 🏰 💎</span>';
+
+    return `
+        <div class="ceremony-class-goal-panel${compactClass}${hiddenClass}">
+            <div class="ceremony-class-goal-panel__header">
+                <span class="ceremony-class-goal-panel__zone">${zoneIcon} ${zoneLabel}</span>
+                <span class="ceremony-class-goal-panel__pct">${formatPercent(p)}%</span>
+            </div>
+            <div class="ceremony-quest-trail" aria-label="Quest goal progress ${formatPercent(p)} percent">
+                <div class="ceremony-quest-trail__track">
+                    <div class="ceremony-quest-trail__seg ceremony-quest-trail__seg--bronze">
+                        <div class="ceremony-quest-trail__fill" style="width:${fillBronze}%"></div>
+                    </div>
+                    <div class="ceremony-quest-trail__seg ceremony-quest-trail__seg--silver">
+                        <div class="ceremony-quest-trail__fill" style="width:${fillSilver}%"></div>
+                    </div>
+                    <div class="ceremony-quest-trail__seg ceremony-quest-trail__seg--gold">
+                        <div class="ceremony-quest-trail__fill" style="width:${fillGold}%"></div>
+                    </div>
+                    <div class="ceremony-quest-trail__seg ceremony-quest-trail__seg--crystal">
+                        <div class="ceremony-quest-trail__fill" style="width:${fillCrystal}%"></div>
+                    </div>
+                </div>
+                ${markerHtml}
+            </div>
+            <div class="ceremony-class-goal-panel__meta">
+                <span>${entry.score} / ${entry.goal || 0} goal</span>
+                ${stagesHtml}
+            </div>
+        </div>`;
+}
+
+function buildCeremonyStudentClassStrip(entry) {
+    if (!entry.className) return '';
+    return `
+        <div class="ceremony-card-class-strip">
+            <span class="ceremony-card-class-strip__emoji" aria-hidden="true">${entry.classLogo || '📚'}</span>
+            <span class="ceremony-card-class-strip__name">${entry.className}</span>
+        </div>`;
+}
+
 function renderCard(entry, type) {
     const stage = document.getElementById('ceremony-stage-area');
     const isStudent = type === 'student';
-    const accentLabel = isStudent ? 'Hero Spotlight' : 'League Spotlight';
-    const accentIcon = isStudent ? 'fa-sparkles' : 'fa-shield-cat';
-
-    // --- Rank card class (wallpaper-style coloured border) ---
-    let rankCardClass = 'card-rank-other';
-    let extraClass = '';
-    if (entry.rank === 1) rankCardClass = 'card-rank-1';
-    else if (entry.rank === 2) rankCardClass = 'card-rank-2';
-    else if (entry.rank === 3) { rankCardClass = 'card-rank-3'; extraClass = 'bronze-shine'; }
-
-    // --- Rich medal badge ---
-    let badgePillClass = 'ceremony-rank-badge__pill--other';
-    let badgeContent = `# ${entry.rank}`;
-    if (entry.rank === 1) { badgePillClass = 'ceremony-rank-badge__pill--gold';   badgeContent = '🥇 Gold'; }
-    else if (entry.rank === 2) { badgePillClass = 'ceremony-rank-badge__pill--silver'; badgeContent = '🥈 Silver'; }
-    else if (entry.rank === 3) { badgePillClass = 'ceremony-rank-badge__pill--bronze'; badgeContent = '🥉 Bronze'; }
-
-    const rankBadgeHtml = `
-        <div class="ceremony-card-rankbar ${badgePillClass.replace('ceremony-rank-badge__pill', 'ceremony-card-rankbar')}">
-            <span class="ceremony-rank-badge__pill ${badgePillClass}">${badgeContent}</span>
-            <span class="ceremony-card-rankbar__label">Rank #${entry.rank}</span>
-        </div>`;
+    const kicker = buildCeremonyKicker(type, 'reveal');
+    const rankMeta = getCeremonyRankMeta(entry.rank);
+    const rankBadgeHtml = buildCeremonyRankbarHtml(entry.rank);
 
     // --- Avatar / logo ---
     const avatarBorderColor = entry.rank === 1 ? '#F59E0B' : entry.rank === 2 ? '#94a3b8' : entry.rank === 3 ? '#cd7f32' : '#818cf8';
@@ -624,32 +1036,10 @@ function renderCard(entry, type) {
 
     const subText = isStudent
         ? `<span class="font-title text-3xl" style="color:#d97706;">${entry.score} ⭐</span>`
-        : `<div class="flex flex-col items-center">
-             <span class="text-2xl font-bold text-indigo-700">${entry.score} Stars</span>
-             <span class="text-sm font-semibold text-gray-500 uppercase tracking-wide mt-1">${entry.studentCount} Students</span>
-             <span class="font-extrabold text-3xl mt-2 drop-shadow-sm" style="color:#d97706;">${formatPercent(entry.progress)}%</span>
-           </div>`;
+        : buildCeremonyClassScoreHeadline(entry);
     const detailChips = isStudent
-        ? `
-            <div class="ceremony-card-metrics">
-                <span class="ceremony-card-metric"><i class="fas fa-star"></i>${entry.stats.count3} epic moments</span>
-                <span class="ceremony-card-metric"><i class="fas fa-wand-magic-sparkles"></i>${entry.stats.uniqueReasons} strengths</span>
-                <span class="ceremony-card-metric"><i class="fas fa-book-open"></i>${Math.round(entry.stats.academicAvg || 0)}% scholar power</span>
-            </div>
-        `
-        : `
-            <div class="ceremony-card-metrics">
-                <span class="ceremony-card-metric"><i class="fas fa-layer-group"></i>League ${entry.questLevel || ceremonyData.league}</span>
-                <span class="ceremony-card-metric"><i class="fas fa-mountain-sun"></i>Tier ${entry.level}</span>
-                <span class="ceremony-card-metric"><i class="fas fa-users"></i>${entry.studentCount} heroes</span>
-            </div>
-            <div class="ceremony-card-progress">
-                <div class="ceremony-card-progress__track">
-                    <div class="ceremony-card-progress__fill" style="width: ${Math.min(100, Math.max(0, entry.progress))}%"></div>
-                </div>
-                <div class="ceremony-card-progress__meta">${formatPercent(entry.progress)}% of ${entry.goal || 0} star goal</div>
-            </div>
-        `;
+        ? buildCeremonyStudentChips(entry, { hidden: true })
+        : `${buildCeremonyClassChips(entry, { hidden: true })}${buildCeremonyClassGoalPanel(entry, { hidden: true, compact: true })}`;
     const teacherBoonHtml = isStudent ? getTeacherBoonCeremonyMarkup(entry.teacherBoon) : '';
     // Check if this card belongs to the class currently using the app
     const isMyClass = !isStudent && entry.id === ceremonyData.currentAppClassId;
@@ -657,14 +1047,15 @@ function renderCard(entry, type) {
         ? `<span class="ceremony-my-class-badge">YOU</span>`
         : '';
     const card = document.createElement('div');
-    card.className = `ceremony-display-card ceremony-display-card--${type} ${rankCardClass} ${extraClass}`;
+    card.className = `ceremony-display-card ceremony-display-card--${type} ${rankMeta.cardClass} ${rankMeta.extraClass}`;
     card.style.position = 'relative';
     card.innerHTML = `
         <div class="ceremony-card-aura"></div>
         ${rankBadgeHtml}
         <div class="ceremony-card-shell">
             ${myClassBadge}
-            <div class="ceremony-card-kicker"><i class="fas ${accentIcon}"></i>${accentLabel}</div>
+            <div class="ceremony-card-kicker"><i class="fas ${kicker.icon}"></i>${kicker.label}</div>
+            ${isStudent ? buildCeremonyStudentClassStrip(entry) : ''}
             ${imageHtml}
             <h3 class="font-title ceremony-card-name text-gray-800">${entry.name}</h3>
             <div class="mt-2">${subText}</div>
@@ -677,18 +1068,31 @@ function renderCard(entry, type) {
     playSound(entry.rank <= 3 ? 'star2' : 'click');
 }
 
+function getShowdownBronzeEntry(entryType) {
+    const queue = entryType === 'student' ? ceremonyData.studentQueue : ceremonyData.classQueue;
+    if (!queue || queue.length < 3) return null;
+    const bronze = queue[queue.length - 3];
+    return bronze?.rank === 3 ? bronze : null;
+}
+
 function setupShowdown(silverEntry, goldEntry, titleText, subText, entryType) {
     const stage = document.getElementById('ceremony-stage-area');
     const title = document.getElementById('ceremony-title');
     const subtitle = document.getElementById('ceremony-subtitle');
     const aiBox = document.getElementById('ceremony-ai-box');
 
+    ceremonyData.showdownContext = {
+        entryType,
+        bronze: getShowdownBronzeEntry(entryType)
+    };
+
     title.innerHTML = formatTitleHtml(titleText);
     subtitle.innerHTML = formatTitleHtml(subText);
     subtitle.style.opacity = '1';
     aiBox.style.opacity = '1'; 
 
-    stage.innerHTML = ''; 
+    resetCeremonyStage(stage);
+    stage.innerHTML = '';
 
     const spotlight = document.createElement('div');
     spotlight.className = 'absolute inset-0 bg-radial-gradient-spotlight pointer-events-none animate-pulse-slow';
@@ -725,7 +1129,7 @@ function createFaceOff(entry, realRank, position, entryType) {
     const div = document.createElement('div');
     // Pick a rank card class: gold for #1 finalist, silver for #2 finalist (revealed later)
     const rankCardClass = realRank === 1 ? 'card-rank-1' : 'card-rank-2';
-    div.className = `ceremony-display-card ceremony-card ceremony-display-card--${entryType} face-off ${rankCardClass} relative`;
+    div.className = `ceremony-display-card ceremony-card ceremony-display-card--${entryType} face-off face-off--duel ${rankCardClass} relative`;
 
     div.id = `showdown-card-${position}`;
     div.dataset.rank = realRank;
@@ -745,25 +1149,14 @@ function createFaceOff(entry, realRank, position, entryType) {
 
     const scoreDisplay = isStudent
         ? `<span class="font-title text-2xl" style="color:#d97706;">${entry.score} ⭐</span>`
-        : `<div class="flex flex-col items-center">
-             <span class="text-xl text-amber-700">${entry.score} Stars</span>
-             <span class="text-xs text-gray-500 uppercase">${entry.studentCount} Students</span>
-             <span class="text-3xl text-amber-600 font-bold mt-1">${formatPercent(entry.progress)}%</span>
-           </div>`;
-    const faceOffKicker = isStudent ? 'Hero Duel' : 'League Duel';
+        : buildCeremonyClassScoreHeadline(entry);
+    const faceOffKicker = buildCeremonyKicker(entryType, 'duel');
     const faceOffMetrics = isStudent
-        ? `
-            <div class="ceremony-card-metrics ceremony-card-metrics--compact">
-                <span class="ceremony-card-metric"><i class="fas fa-star"></i>${entry.stats.count3}</span>
-                <span class="ceremony-card-metric"><i class="fas fa-wand-magic-sparkles"></i>${entry.stats.uniqueReasons}</span>
-            </div>
-        `
-        : `
-            <div class="ceremony-card-metrics ceremony-card-metrics--compact">
-                <span class="ceremony-card-metric"><i class="fas fa-layer-group"></i>${entry.questLevel || ceremonyData.league}</span>
-                <span class="ceremony-card-metric"><i class="fas fa-users"></i>${entry.studentCount}</span>
-            </div>
-        `;
+        ? buildCeremonyStudentChips(entry, { compact: true, hidden: true })
+        : buildCeremonyClassChips(entry, { compact: true, hidden: true });
+    const faceOffGoalPanel = !isStudent
+        ? buildCeremonyClassGoalPanel(entry, { hidden: true, compact: true })
+        : '';
     const teacherBoonWrapped = isStudent && entry.teacherBoon
         ? `<div class="ceremony-teacher-boon-reveal ceremony-teacher-boon-reveal--hidden">${getTeacherBoonCeremonyMarkup(entry.teacherBoon, { compact: true })}</div>`
         : '';
@@ -775,17 +1168,113 @@ function createFaceOff(entry, realRank, position, entryType) {
             <span class="ceremony-card-rankbar__label">Rank #${realRank}</span>
         </div>
         <div class="ceremony-card-shell">
-            <div class="ceremony-card-kicker">${faceOffKicker}</div>
+            <div class="ceremony-card-kicker"><i class="fas ${faceOffKicker.icon}"></i>${faceOffKicker.label}</div>
+            ${isStudent ? buildCeremonyStudentClassStrip(entry) : ''}
             ${imageHtml}
             <h3 class="font-title ceremony-card-name ceremony-card-name--faceoff text-gray-700">${entry.name}</h3>
             <div class="star-count opacity-0 transition-all duration-500">
                 ${scoreDisplay}
             </div>
             ${faceOffMetrics}
+            ${faceOffGoalPanel}
             ${teacherBoonWrapped}
         </div>
     `;
     return div;
+}
+
+function createPodiumCard(entry, entryType) {
+    const card = createFaceOff(entry, entry.rank, 'bronze', entryType);
+    card.id = 'showdown-card-bronze';
+    card.classList.remove('face-off', 'card-rank-2');
+    card.classList.add('card-rank-3', 'bronze-shine', 'revealed-bronze', 'ceremony-podium-card');
+
+    const rankbar = card.querySelector('.ceremony-card-rankbar');
+    if (rankbar) {
+        rankbar.classList.remove('ceremony-card-rankbar--silver', 'ceremony-card-rankbar--gold');
+        rankbar.classList.add('ceremony-card-rankbar--bronze');
+        const pill = rankbar.querySelector('.ceremony-rank-badge__pill');
+        if (pill) {
+            pill.className = 'ceremony-rank-badge__pill ceremony-rank-badge__pill--bronze';
+            pill.textContent = '🥉 Bronze';
+        }
+    }
+
+    const badge = card.querySelector('.rank-badge');
+    const scoreEl = card.querySelector('.star-count');
+    if (badge) badge.classList.remove('opacity-0');
+    if (scoreEl) {
+        scoreEl.classList.remove('opacity-0');
+        scoreEl.classList.add('opacity-100');
+    }
+
+    return card;
+}
+
+function insertPodiumSteps(stage, hasBronze) {
+    if (stage.querySelector('.ceremony-podium-steps')) return;
+
+    const steps = document.createElement('div');
+    steps.className = `ceremony-podium-steps${hasBronze ? '' : ' ceremony-podium-steps--duo'}`;
+    steps.innerHTML = `
+        <div class="ceremony-podium-step ceremony-podium-step--2"></div>
+        <div class="ceremony-podium-step ceremony-podium-step--1"></div>
+        ${hasBronze ? '<div class="ceremony-podium-step ceremony-podium-step--3"></div>' : ''}
+    `;
+    stage.appendChild(steps);
+}
+
+function animateShowdownPodium(cardLeft, cardRight, isTie) {
+    const stage = document.getElementById('ceremony-stage-area');
+    const ctx = ceremonyData.showdownContext || {};
+    if (!stage || !cardLeft || !cardRight) return;
+
+    const rankLeft = parseInt(cardLeft.dataset.rank, 10);
+    const rankRight = parseInt(cardRight.dataset.rank, 10);
+    const winnerCard = rankLeft === 1 ? cardLeft : (rankRight === 1 ? cardRight : cardRight);
+    const secondCard = winnerCard === cardLeft ? cardRight : cardLeft;
+    const hasBronze = Boolean(ctx.bronze) && !isTie;
+
+    const screen = document.getElementById('ceremony-screen');
+    if (screen) screen.classList.add('ceremony-phase-podium');
+
+    stage.classList.add('ceremony-stage--podium');
+    if (!hasBronze) stage.classList.add('ceremony-stage--podium-duo');
+    insertPodiumSteps(stage, hasBronze);
+
+    [cardLeft, cardRight].forEach((card) => {
+        card.classList.remove(
+            'converge-left',
+            'converge-right',
+            'tension-active',
+            'face-off',
+            'ceremony-duel-reveal'
+        );
+        void card.offsetWidth;
+    });
+
+    if (isTie) {
+        cardLeft.classList.add('ceremony-podium-tie-left', 'revealed-gold', 'ceremony-winner');
+        cardRight.classList.add('ceremony-podium-tie-right', 'revealed-gold', 'ceremony-winner');
+        return;
+    }
+
+    winnerCard.classList.add('ceremony-podium-first');
+    secondCard.classList.add('ceremony-podium-second');
+
+    if (!hasBronze) return;
+
+    setTimeout(() => {
+        const bronzeCard = createPodiumCard(ctx.bronze, ctx.entryType);
+        bronzeCard.classList.add('ceremony-podium-third');
+        stage.appendChild(bronzeCard);
+
+        const bronzeStep = stage.querySelector('.ceremony-podium-step--3');
+        if (bronzeStep) bronzeStep.classList.add('ceremony-podium-step--visible');
+
+        setTimeout(() => revealCeremonyChips(bronzeCard, 200), 400);
+        playSound('star2');
+    }, 1350);
 }
 
 function handleDramaticReveal() {
@@ -796,7 +1285,6 @@ function handleDramaticReveal() {
     const screen = document.getElementById('ceremony-screen');
     
     btn.disabled = true;
-    btn.innerText = "Wait for it...";
     if (screen) {
         screen.classList.remove('ceremony-phase-suspense');
         screen.classList.add('ceremony-phase-reveal');
@@ -809,6 +1297,9 @@ function handleDramaticReveal() {
     const finishedClassShowdown = ceremonyData.phase === 'class_showdown';
     const countdownRing = document.getElementById('ceremony-vs-badge');
     const countdownNumber = countdownRing?.querySelector('.ceremony-countdown-ring__number');
+    const countdownLabel = countdownRing?.querySelector('.ceremony-countdown-ring__label');
+
+    if (countdownLabel) countdownLabel.textContent = 'Get ready...';
 
     [3, 2, 1].forEach((count, index) => {
         setTimeout(() => {
@@ -817,11 +1308,11 @@ function handleDramaticReveal() {
                 countdownRing.dataset.count = String(count);
             }
             if (countdownNumber) countdownNumber.textContent = String(count);
+            if (countdownLabel) countdownLabel.textContent = 'Revealing...';
             if (countdownRing) {
                 void countdownRing.offsetWidth;
                 countdownRing.classList.add('is-tick');
             }
-            btn.innerText = `${count}...`;
         }, index * 760);
     });
 
@@ -879,6 +1370,8 @@ function handleDramaticReveal() {
                 boonReveal.classList.remove('ceremony-teacher-boon-reveal--hidden');
             }
 
+            setTimeout(() => revealCeremonyChips(card, 0), 480);
+
             const r = parseInt(card.dataset.rank);
             if (r === 1) {
                 card.classList.add('revealed-gold', 'ceremony-winner', 'ceremony-winner-spectacular');
@@ -915,8 +1408,14 @@ function handleDramaticReveal() {
             ceremonyData.phase = 'student_showdown_done'; 
         }
 
+        setTimeout(() => {
+            animateShowdownPodium(cardLeft, cardRight, isTie);
+        }, PODIUM_REVEAL_DELAY_MS);
+
         btn.disabled = false;
-        btn.innerText = finishedClassShowdown ? 'Begin Hero Reveal' : 'Show Final Standings';
+        setCeremonyActionLabel(
+            finishedClassShowdown ? 'Conclude Team Quest Awards' : 'Show Final Standings'
+        );
         btn.onclick = advanceCeremony; 
 
     }, 2520);
@@ -927,7 +1426,7 @@ function renderFinalLeaderboard() {
     const stage = document.getElementById('ceremony-stage-area');
     
     const container = document.createElement('div');
-    container.className = 'ceremony-leaderboard-container custom-scrollbar';
+    container.className = 'ceremony-leaderboard-container';
     
     const queue = ceremonyData.studentQueue.slice().reverse();
 
@@ -975,9 +1474,8 @@ function renderFinalLeaderboard() {
                     ${avatarHtml}
                     <div class="cli-info">
                         <div class="cli-name">${s.name}</div>
-                        <div class="cli-stats">
-                            <span class="cli-stat-chip"><i class="fas fa-wand-magic-sparkles"></i>${s.stats.uniqueReasons} strengths</span>
-                            <span class="cli-stat-chip"><i class="fas fa-star"></i>${s.stats.count3} epic moments</span>
+                        <div class="cli-stats ceremony-lb-chips">
+                            ${unwrapCeremonyChipRow(buildCeremonyStudentChips(s, { compact: true }))}
                         </div>
                     </div>
                     <div class="cli-stars">${s.score} ⭐</div>
@@ -996,6 +1494,8 @@ function renderFinalLeaderboard() {
             <span class="ceremony-leaderboard-title">🏆 Final Standings</span>
             <div class="ceremony-leaderboard-title__sub">${ceremonyData.monthName} · Month of Glory</div>
         </div>
+        <div class="ceremony-leaderboard-scroll custom-scrollbar">
+            <div class="ceremony-leaderboard-list">
     `;
 
     if (top3.length > 0) {
@@ -1006,10 +1506,13 @@ function renderFinalLeaderboard() {
 
     if (rest.length > 0) {
         if (top3.length > 0) html += `<div class="ceremony-leaderboard-divider"></div>`;
-        html += `<div class="ceremony-leaderboard-rest">`;
         rest.forEach((s, i) => { html += buildItemHtml(s, i + top3.length); });
-        html += `</div>`;
     }
+
+    html += `
+            </div>
+        </div>
+    `;
 
     container.innerHTML = html;
     stage.appendChild(container);

@@ -62,6 +62,7 @@ import {
     getDefaultSchoolYears,
     isActiveStudent,
     isActiveYearDoc,
+    filterDocsForActiveYear,
     normalizeSchoolYearState,
     yearScopeClauses,
     shouldSkipPostCloseHeroReconcile,
@@ -610,7 +611,28 @@ export async function setupDataListeners(
         onSnapshot(
             schoolYearStateRef,
             (snap) => {
-                state.setSchoolYearState(snap.exists() ? snap.data() : {});
+                const prevState = normalizeSchoolYearState(
+                    state.get("schoolYearState"),
+                );
+                const nextData = snap.exists() ? snap.data() : {};
+                const nextState = normalizeSchoolYearState(nextData);
+                state.setSchoolYearState(nextData);
+
+                const yearScopeChanged =
+                    prevState.activeYearKey !== nextState.activeYearKey ||
+                    prevState.enforceActiveYearQueries !==
+                        nextState.enforceActiveYearQueries;
+                if (yearScopeChanged) {
+                    state.setHasLoadedCalendarHistory(false);
+                    state.setAllAwardLogs(
+                        filterDocsForActiveYear(
+                            state.get("allAwardLogs"),
+                            nextState,
+                        ),
+                    );
+                    if (isTabVisible("calendar-tab")) renderCalendarTab();
+                }
+
                 schoolYearReady = true;
                 maybeFireInitialReady();
                 if (isTabVisible("about-tab")) renderHomeTab();

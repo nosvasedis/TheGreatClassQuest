@@ -126,6 +126,15 @@ export function isActiveYearDoc(data = {}, activeYearKey = CURRENT_SCHOOL_YEAR_K
     return data[field] === activeYearKey;
 }
 
+/** Drop closed-year rows from in-memory lists once active-year queries are enforced. */
+export function filterDocsForActiveYear(docs = [], schoolYearStateLike = null) {
+    const normalized = normalizeSchoolYearState(schoolYearStateLike || {});
+    if (!normalized.enforceActiveYearQueries) return docs;
+    return docs.filter((doc) =>
+        isActiveYearDoc(doc, normalized.activeYearKey, { includeUntagged: false }),
+    );
+}
+
 export function isActiveStudent(data = {}, activeYearKey = CURRENT_SCHOOL_YEAR_KEY, options = {}) {
     const status = data.enrollmentStatus || 'active';
     if (status === 'inactive') return false;

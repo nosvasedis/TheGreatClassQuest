@@ -1197,6 +1197,9 @@ function renderEmptyShell(student) {
 }
 
 export async function openStudentAnalyticsModal(studentId, triggerElement = null, options = {}) {
+    const { ensureHeroChronicleNotesListener } = await import('../../db/listeners.js');
+    ensureHeroChronicleNotesListener();
+
     wireModal();
     activeStudentId = studentId;
     activeTrigger = triggerElement || null;

@@ -376,9 +376,12 @@ export function handleStoryArchiveFilterChange() {
 }
 
 export function openStoryArchiveModal() {
-    renderStoryArchive();
-    modals.showAnimatedModal('story-archive-modal');
-    document.getElementById('story-archive-search')?.focus();
+    import('../db/listeners.js').then(({ ensureCompletedStoriesListener }) => {
+        ensureCompletedStoriesListener();
+        renderStoryArchive();
+        modals.showAnimatedModal('story-archive-modal');
+        document.getElementById('story-archive-search')?.focus();
+    });
 }
 
 export function renderStoryArchive() {

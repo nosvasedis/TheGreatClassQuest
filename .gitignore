@@ -60,3 +60,4 @@ billing/render-paste.txt
 billing/price-ids.local.json
 billing/NEXT_STEPS.txt
 tools/billing-config.local.json
+tools/year-end-recovery.html

@@ -170,7 +170,13 @@ function ensureShopStudentDropdownListeners() {
 
 export function initializeShopTab() {
     ensureShopStudentDropdownListeners();
+    import('../../db/listeners.js').then(({ ensureShopItemsListener }) => {
+        ensureShopItemsListener();
+        initializeShopTabContent();
+    });
+}
 
+function initializeShopTabContent() {
     // 1. Determine Context
     let league = state.get('globalSelectedLeague');
     let classId = state.get('globalSelectedClassId');

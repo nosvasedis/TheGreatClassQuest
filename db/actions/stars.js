@@ -16,6 +16,10 @@ import {
     orderBy,
     limit,
 } from "../../firebase.js";
+import {
+    shouldSkipPostCloseHeroReconcile,
+    yearScopeClauses,
+} from "../../utils/schoolYear.js";
 import * as state from "../../state.js";
 import { showToast, showPraiseToast } from "../../ui/effects.js";
 import {
@@ -546,6 +550,7 @@ export function applyAwardOutwardSkillEffects(
 
 export async function reconcileScholarAndNomadProgressFromLogs() {
     if (!canUseFeature("heroProgression")) return;
+    if (shouldSkipPostCloseHeroReconcile(state.get("schoolYearState"))) return;
 
     const targetStudents = state
         .get("allStudents")
@@ -553,6 +558,10 @@ export async function reconcileScholarAndNomadProgressFromLogs() {
     if (targetStudents.length === 0) return;
 
     const publicDataPath = "artifacts/great-class-quest/public/data";
+    const schoolYearState = state.get("schoolYearState") || {};
+    const enforceActiveYearQueries =
+        schoolYearState.enforceActiveYearQueries === true;
+    const activeYearKey = state.getActiveSchoolYearKey();
     const scoresById = new Map(
         state.get("allStudentScores").map((score) => [score.id, score]),
     );
@@ -571,6 +580,10 @@ export async function reconcileScholarAndNomadProgressFromLogs() {
                 collection(db, `${publicDataPath}/award_log`),
                 where("studentId", "==", student.id),
                 where("reason", "==", reason),
+                ...yearScopeClauses(
+                    enforceActiveYearQueries,
+                    activeYearKey,
+                ),
             ),
         );
 

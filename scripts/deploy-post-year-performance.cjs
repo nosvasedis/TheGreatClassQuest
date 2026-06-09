@@ -54,7 +54,7 @@ function runNpmScript(scriptName, label) {
 async function main() {
   runFirebase(
     ['deploy', '--only', 'firestore:indexes', '--project', projectId, '--non-interactive'],
-    'Deploy Firestore indexes',
+    'Deploy Firestore indexes from firestore.indexes.json',
   );
   runNodeScript('scripts/wait-for-firestore-indexes.cjs', 'Wait for Firestore indexes');
   runFirebase(

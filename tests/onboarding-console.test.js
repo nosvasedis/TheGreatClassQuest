@@ -14,6 +14,10 @@ const {
   normalizeReadinessTarget,
   getRequiredServices,
   compareRequiredIndexes,
+  loadRequiredIndexes,
+  getActiveYearQueryIndexes,
+  ACTIVE_YEAR_QUERY_INDEX_SPECS,
+  formatRequiredIndexLabel,
   formatHostedEnvironmentVariables,
   formatNetlifyVariables,
   buildHostingTargets,
@@ -179,6 +183,17 @@ test('compareRequiredIndexes reports ready and missing index states', () => {
 
   assert.equal(result[0].status, 'done');
   assert.equal(result[1].status, 'missing');
+});
+
+test('loadRequiredIndexes includes active-year startup indexes from firestore.indexes.json', () => {
+  const required = loadRequiredIndexes();
+  const activeYearIndexes = getActiveYearQueryIndexes(required);
+
+  assert.equal(activeYearIndexes.length, ACTIVE_YEAR_QUERY_INDEX_SPECS.length);
+  assert.deepEqual(
+    activeYearIndexes.map((index) => index.collectionGroup).sort(),
+    ACTIVE_YEAR_QUERY_INDEX_SPECS.map((index) => index.collectionGroup).sort(),
+  );
 });
 
 test('compareRequiredIndexes matches API indexes that only expose collection group in name', () => {

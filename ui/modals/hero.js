@@ -269,6 +269,13 @@ export function openHeroChronicleModal(studentId) {
     const student = state.get('allStudents').find(s => s.id === studentId);
     if (!student) return;
 
+    import('../../db/listeners.js').then(({ ensureHeroChronicleNotesListener }) => {
+        ensureHeroChronicleNotesListener();
+        openHeroChronicleModalContent(studentId, student);
+    });
+}
+
+function openHeroChronicleModalContent(studentId, student) {
     const modal = document.getElementById('hero-chronicle-modal');
     modal.dataset.studentId = studentId;
 

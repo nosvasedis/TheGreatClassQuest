@@ -330,6 +330,71 @@
         { "fieldPath": "schoolYearKey", "order": "ASCENDING" },
         { "fieldPath": "month", "order": "ASCENDING" }
       ]
+    },
+    {
+      "collectionGroup": "attendance",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "schoolYearKey", "order": "ASCENDING" },
+        { "fieldPath": "createdAt", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "written_scores",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "schoolYearKey", "order": "ASCENDING" },
+        { "fieldPath": "date", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "quest_assignments",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "schoolYearKey", "order": "ASCENDING" },
+        { "fieldPath": "createdBy.uid", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "hero_chronicle_notes",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "schoolYearKey", "order": "ASCENDING" },
+        { "fieldPath": "teacherId", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "quest_bounties",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "schoolYearKey", "order": "ASCENDING" },
+        { "fieldPath": "createdBy.uid", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "shop_items",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "schoolYearKey", "order": "ASCENDING" },
+        { "fieldPath": "teacherId", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "completed_stories",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "schoolYearKey", "order": "ASCENDING" },
+        { "fieldPath": "completedAt", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "award_log",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "schoolYearKey", "order": "ASCENDING" },
+        { "fieldPath": "studentId", "order": "ASCENDING" },
+        { "fieldPath": "reason", "order": "ASCENDING" }
+      ]
     }
   ],
   "fieldOverrides": []

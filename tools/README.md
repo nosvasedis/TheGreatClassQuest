@@ -41,3 +41,9 @@ This is the main noob-friendly setup quest. It:
 You can still open **`tools/billing-setup.html`** directly in the browser if you only want a quick copy-paste generator.
 
 That older helper does **not** do the full automatic setup. It only prepares values for manual copy-paste.
+
+## Emergency helper: year-end-recovery.html
+
+Open **`tools/year-end-recovery.html`** in a browser when a school year was closed before grades, reports, or certificates were finished.
+
+It signs in with a normal Firebase teacher/admin account, reads the archived closed-year Firestore data, and produces printable per-student grade sheets and certificates without writing anything back to Firestore. Use **Batch Print** to render every filtered student at once, then use the browser print dialog to save a PDF.

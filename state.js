@@ -71,6 +71,9 @@ function getDefaultState() {
         allHeroChronicleNotes: [],
         schoolHolidayRanges: [], // Stores global holiday periods
         hasLoadedCalendarHistory: false, // NEW: Track if we have history
+        hasLoadedCompletedStories: false,
+        hasLoadedHeroChronicleNotes: false,
+        hasLoadedShopItems: false,
 
         // UI Selection States
         globalSelectedClassId: null, // Don't persist - always use smart selector on load
@@ -367,6 +370,15 @@ export function setUnsubscribeRolloverJob(func) {
 }
 export function setHasLoadedCalendarHistory(val) {
     state.hasLoadedCalendarHistory = val;
+}
+export function setHasLoadedCompletedStories(val) {
+    state.hasLoadedCompletedStories = val;
+}
+export function setHasLoadedHeroChronicleNotes(val) {
+    state.hasLoadedHeroChronicleNotes = val;
+}
+export function setHasLoadedShopItems(val) {
+    state.hasLoadedShopItems = val;
 }
 
 export function getLeaderboardEffectiveLeague() {

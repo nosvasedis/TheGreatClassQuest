@@ -4,6 +4,7 @@ import {
     SCHOOL_YEAR_CLOSE_DATE,
     SCHOOL_YEAR_CONFIG
 } from '../constants.js';
+import { where } from '../firebase.js';
 import { normalizeToDateString, parseFlexibleDate, toHtmlDateInputValue } from '../utils.js';
 
 export const PUBLIC_DATA_PATH = 'artifacts/great-class-quest/public/data';
@@ -130,6 +131,18 @@ export function isActiveStudent(data = {}, activeYearKey = CURRENT_SCHOOL_YEAR_K
     if (status === 'inactive') return false;
     if (!data.activeSchoolYearKey) return options.includeUntagged !== false;
     return data.activeSchoolYearKey === activeYearKey;
+}
+
+/** Firestore where-clauses for active-year query scoping when enforcement is on. */
+export function yearScopeClauses(enforceActiveYearQueries, activeYearKey, field = 'schoolYearKey') {
+    if (!enforceActiveYearQueries || !activeYearKey) return [];
+    return [where(field, '==', activeYearKey)];
+}
+
+export function shouldSkipPostCloseHeroReconcile(schoolYearState = {}) {
+    const normalized = normalizeSchoolYearState(schoolYearState);
+    return normalized.enforceActiveYearQueries === true
+        && normalized.rolloverStatus === 'september_setup';
 }
 
 export function formatSchoolYearLabel(yearKey) {

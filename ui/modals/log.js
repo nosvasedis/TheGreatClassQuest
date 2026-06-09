@@ -18,6 +18,7 @@ import { query, collection, where, getDocs } from 'https://www.gstatic.com/fireb
 import { showAnimatedModal } from './base.js';
 import { fetchLogsForDate } from '../../db/queries.js';
 import { playSound } from '../../audio.js';
+import { filterDocsForActiveYear } from '../../utils/schoolYear.js';
 
 let historyMonthPickerBound = false;
 
@@ -65,7 +66,8 @@ export async function showLogbookModal(dateString, isOndemand = false) {
         showAnimatedModal('logbook-modal'); 
         logs = await fetchLogsForDate(dateString);
     } else {
-        logs = state.get('allAwardLogs').filter(log => log.date && utils.datesMatch(log.date, dateString));
+        logs = filterDocsForActiveYear(state.get('allAwardLogs'), state.get('schoolYearState'))
+            .filter(log => log.date && utils.datesMatch(log.date, dateString));
     }
     logs = logs.filter(shouldShowInStarAwardLog);
     

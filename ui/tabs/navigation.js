@@ -5,6 +5,7 @@ import * as state from '../../state.js';
 import * as utils from '../../utils.js';
 import * as constants from '../../constants.js';
 import { deleteClass, deleteStudent, ensureHistoryLoaded } from '../../db/actions.js';
+import { filterDocsForActiveYear } from '../../utils/schoolYear.js';
 import { db } from '../../firebase.js';
 import { fetchMonthlyHistory } from '../../state.js';
 import * as modals from '../modals.js';
@@ -245,6 +246,9 @@ export async function applyTabPrimaryRefresh(tabId, opts = {}) {
     }
 
     if (tabId === 'calendar-tab') {
+        state.setAllAwardLogs(
+            filterDocsForActiveYear(state.get('allAwardLogs'), state.get('schoolYearState')),
+        );
         await ensureHistoryLoaded();
         renderCalendarTab();
     }

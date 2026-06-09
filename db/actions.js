@@ -16,7 +16,13 @@ import { callGeminiApi } from '../api.js';
 import { getTodayDateString } from '../utils.js';
 import { reconcileFamiliarLifecycle } from '../features/familiars.js';
 import { canUseFeature } from '../utils/subscription.js';
-import { withSchoolYear } from '../utils/schoolYear.js';
+import {
+    filterDocsForActiveYear,
+    normalizeSchoolYearState,
+    yearScopeClauses,
+    isActiveYearDoc,
+    withSchoolYear,
+} from '../utils/schoolYear.js';
 import { updateGuildScores } from '../features/guildScoring.js';
 
 export * from './actions/index.js';
@@ -102,23 +108,30 @@ export async function ensureHistoryLoaded() {
     thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
 
     const publicDataPath = "artifacts/great-class-quest/public/data";
+    const schoolYearState = normalizeSchoolYearState(state.get('schoolYearState'));
+    const activeYearKey = schoolYearState.activeYearKey;
+    const enforceActiveYearQueries = schoolYearState.enforceActiveYearQueries === true;
+    const includeUntagged = !enforceActiveYearQueries;
 
     const q = query(
         firestoreCollection(firestoreDb, `${publicDataPath}/award_log`),
+        ...yearScopeClauses(enforceActiveYearQueries, activeYearKey),
         where('createdAt', '>=', thirtyDaysAgo)
     );
 
     try {
         const snapshot = await getDocs(q);
-        const historyLogs = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
+        const historyLogs = snapshot.docs
+            .map(d => ({ id: d.id, ...d.data() }))
+            .filter((log) => isActiveYearDoc(log, activeYearKey, { includeUntagged }));
 
-        const currentLogs = state.get('allAwardLogs');
+        const currentLogs = filterDocsForActiveYear(state.get('allAwardLogs'), schoolYearState);
         const logMap = new Map();
 
         historyLogs.forEach(log => logMap.set(log.id, log));
         currentLogs.forEach(log => logMap.set(log.id, log));
 
-        const mergedLogs = Array.from(logMap.values());
+        const mergedLogs = filterDocsForActiveYear(Array.from(logMap.values()), schoolYearState);
 
         state.setAllAwardLogs(mergedLogs);
         state.setHasLoadedCalendarHistory(true);

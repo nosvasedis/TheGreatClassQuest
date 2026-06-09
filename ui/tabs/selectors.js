@@ -5,6 +5,7 @@ import * as constants from '../../constants.js';
 import * as modals from '../modals.js';
 import { renderAwardStarsStudentList } from './award.js';
 import { getAwardLogMonthlyStarCredit } from '../../features/awardLogReasonMeta.js';
+import { filterDocsForActiveYear } from '../../utils/schoolYear.js';
 
 export function findAndSetCurrentClass(targetSelectId = null) {
     if (state.get('globalSelectedClassId')) return;
@@ -54,8 +55,11 @@ export function renderCalendarTab(customLogs = null) {
     const grid = document.getElementById('calendar-grid');
     if (!grid) return;
 
-    // Determine which dataset to use
-    const logsToRender = customLogs || state.get('allAwardLogs');
+    // Determine which dataset to use (hide closed-year stars after year-end close)
+    const logsToRender = filterDocsForActiveYear(
+        customLogs || state.get('allAwardLogs'),
+        state.get('schoolYearState'),
+    );
     const classEndDates = state.get('teacherSettings')?.schoolYearSettings?.classEndDates || {};
 
     const loader = document.getElementById('calendar-loader');

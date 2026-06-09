@@ -248,6 +248,7 @@ service cloud.firestore {
         isSchoolAdmin() ||
         (collection == 'school_settings') ||
         (collection == 'guild_scores' && isParent()) ||
+        (collection == 'guild_glory_events' && isParent()) ||
         (collection == 'guild_champions' && isParent())
       );
 
@@ -279,6 +280,7 @@ service cloud.firestore {
         (collection == 'quiz_of_the_week' && request.resource.data.createdBy.uid == request.auth.uid && isActiveSchoolYearCreate()) ||
         (collection == 'fortune_wheel_log' && request.resource.data.spunBy.uid == request.auth.uid && isActiveSchoolYearCreate()) ||
         (collection == 'guild_scores') ||
+        (collection == 'guild_glory_events') ||
         (collection == 'guild_champions') ||
         (collection == 'world_boss')
       );
@@ -304,6 +306,7 @@ service cloud.firestore {
         (collection == 'quiz_of_the_week' && resource.data.createdBy.uid == request.auth.uid) ||
         (collection == 'fortune_wheel_log' && resource.data.spunBy.uid == request.auth.uid) ||
         (collection == 'guild_scores') ||
+        (collection == 'guild_glory_events') ||
         (collection == 'guild_champions') ||
         (collection == 'world_boss')
       );

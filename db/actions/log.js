@@ -29,6 +29,7 @@ import { applyAwardOutwardSkillEffects, applyReasonAwardScoreTransaction, showHe
 import { getAwardLogMonthlyStarCredit } from '../../features/awardLogReasonMeta.js';
 import { retryAdventureLogGeneration } from './quests.js';
 import { withSchoolYear } from '../../utils/schoolYear.js';
+import { recordGuildGloryEvent, updateGuildScores } from '../../features/guildScoring.js';
 
 export async function addOrUpdateHeroChronicleNote(studentId, noteText, category, noteId = null) {
     if (!studentId || !noteText || !category) {
@@ -202,6 +203,7 @@ export async function handleAwardBonusStar(studentId, bonusAmount, trialType) {
     if (!student) return;
     let levelUpInfo = null;
     let finalBonus = bonusAmount;
+    let appliedGuildStars = Number(bonusAmount) || 0;
 
     try {
         await runTransaction(db, async (transaction) => {
@@ -227,6 +229,7 @@ export async function handleAwardBonusStar(studentId, bonusAmount, trialType) {
                 awardedStars: finalBonus
             });
             levelUpInfo = txResult.levelUpInfo;
+            appliedGuildStars = txResult.totalStarsDelta || appliedGuildStars;
 
             const newLogRef = doc(collection(db, `${publicDataPath}/award_log`));
             const logData = withSchoolYear({
@@ -243,6 +246,7 @@ export async function handleAwardBonusStar(studentId, bonusAmount, trialType) {
             }, state.getActiveSchoolYearKey());
             transaction.set(newLogRef, logData);
         });
+        updateGuildScores(studentId, appliedGuildStars, 'scholar_s_bonus').catch((e) => console.warn('Scholar Guild Glory update failed:', e));
         applyAwardOutwardSkillEffects(studentId, student.classId, 'scholar_s_bonus', finalBonus).catch((e) => console.warn('Scholar outward skill effect failed:', e));
         reconcileFamiliarLifecycle(studentId, { announce: true, source: 'trial-bonus' }).catch((e) => console.warn('Trial familiar reconciliation failed:', e));
         showHeroLevelUpCelebration(levelUpInfo);
@@ -265,6 +269,7 @@ export async function handleBatchAwardBonus(students) {
             if (!student) continue;
 
             let levelUpInfo = null;
+            let appliedGuildStars = Number(bonusAmount) || 0;
             await runTransaction(db, async (transaction) => {
                 const scoreRef = doc(db, `${publicDataPath}/student_scores`, studentId);
                 const scoreDoc = await transaction.get(scoreRef);
@@ -278,6 +283,7 @@ export async function handleBatchAwardBonus(students) {
                     awardedStars: bonusAmount
                 });
                 levelUpInfo = txResult.levelUpInfo;
+                appliedGuildStars = txResult.totalStarsDelta || appliedGuildStars;
 
                 const newLogRef = doc(collection(db, `${publicDataPath}/award_log`));
                 const logData = withSchoolYear({
@@ -296,6 +302,7 @@ export async function handleBatchAwardBonus(students) {
             });
 
             if (levelUpInfo) levelUps.push(levelUpInfo);
+            updateGuildScores(studentId, appliedGuildStars, 'scholar_s_bonus').catch((e) => console.warn('Batch scholar Guild Glory update failed:', e));
             applyAwardOutwardSkillEffects(studentId, student.classId, 'scholar_s_bonus', bonusAmount).catch((e) => console.warn('Batch scholar outward skill effect failed:', e));
             reconcileFamiliarLifecycle(studentId, { announce: true, source: 'trial-batch-bonus' }).catch((e) => console.warn('Batch familiar reconciliation failed:', e));
         }
@@ -687,6 +694,7 @@ export async function handleMarkAbsent(studentId, classId, isAbsent, targetDate 
             
             if (!snapshot.empty) return 'already_absent';
             
+            let absentGuildCredit = 0;
             await runTransaction(db, async (transaction) => {
                 // === ALL READS FIRST (Firestore requires reads before writes) ===
 
@@ -715,6 +723,7 @@ export async function handleMarkAbsent(studentId, classId, isAbsent, targetDate 
                         creditFromLogsMonthly += credit;
                     }
                 });
+                absentGuildCredit = creditFromLogsTotal;
 
                 // === ALL WRITES AFTER ALL READS ===
 
@@ -743,6 +752,18 @@ export async function handleMarkAbsent(studentId, classId, isAbsent, targetDate 
                     transaction.update(scoreRef, scoreUpdates);
                 }
             });
+
+            const student = (state.get('allStudents') || []).find((s) => s.id === studentId);
+            if (student?.guildId && absentGuildCredit > 0) {
+                recordGuildGloryEvent({
+                    guildId: student.guildId,
+                    studentId,
+                    classId,
+                    source: 'absence_star_erase',
+                    starDelta: -absentGuildCredit,
+                    note: `Stars erased after absence mark for ${today}`,
+                }).catch((error) => console.warn('Absence Guild Glory adjustment failed:', error));
+            }
             
             if (!silent) {
                 showToast(today === getTodayDateString() ? `Marked absent for today.` : `Marked absent on ${today}.`, 'info');

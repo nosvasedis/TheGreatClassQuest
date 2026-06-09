@@ -226,7 +226,7 @@ export function renderTrophyRoomContent(studentId, partial = false) {
     if (scoreData?.starfallCatalystActive) activeEffects.push({ icon: '📜', title: 'Catalyst', body: 'Next bonus doubled.' });
     if (scoreData?.pendingHeroStatus) activeEffects.push({ icon: '🎭', title: 'Protagonist', body: 'Hero in next Story Log.' });
     if (scoreData?.peerBoonFreeMonthKey === utils.getLocalMonthKey()) activeEffects.push({ icon: '💝', title: 'Compassion Token', body: "Hero's Boon costs 0 Gold this month." });
-    if ((scoreData?.gloryBannerCharges || 0) > 0) activeEffects.push({ icon: '⚜️', title: 'Banner of Glory', body: `${scoreData.gloryBannerCharges} charge${scoreData.gloryBannerCharges > 1 ? 's' : ''} remaining — next stars each give +1 Guild Glory.` });
+    if ((scoreData?.gloryBannerCharges || 0) > 0) activeEffects.push({ icon: '⚜️', title: 'Banner of Glory', body: `${scoreData.gloryBannerCharges} charge${scoreData.gloryBannerCharges > 1 ? 's' : ''} remaining — qualifying stars each write +1 bonus Guild Glory into the ledger.` });
     if (scoreData?.storyWeaverDoubleNext) activeEffects.push({ icon: '✒️', title: "Archivist's Quill", body: 'Next Story Weaver bonus will be worth double stars.' });
     const aurumMonth = scoreData?.aurumVoucherMonth;
     if ((scoreData?.aurumVoucherPercent || 0) > 0 && aurumMonth === utils.getLocalMonthKey()) activeEffects.push({ icon: '💰', title: 'Aurum Satchel', body: `${scoreData.aurumVoucherPercent}% off next Mystic Market purchase this month.` });

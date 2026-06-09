@@ -76,8 +76,9 @@ function _rankPhrase(guild, payload) {
     const leader = payload.guilds[0];
     if (!leader) return '';
     if (guild.guildId === leader.guildId) return `Your guild is #1 for Guild Power right now.`;
-    const gap = guild.comparison.deltaToLeaderGlory || 0;
-    return `#${r} of ${payload.guilds.length}. About ${_fmtNumber(gap)} ${GLORY_EMOJI} behind ${leader.guildName}.`;
+    const powerGap = guild.comparison.deltaToLeaderPower || 0;
+    const perMemberGap = guild.comparison.deltaToLeaderPerCapitaGlory || 0;
+    return `#${r} of ${payload.guilds.length}. ${_fmtOne(powerGap)} Power behind ${leader.guildName}, about ${_fmtOne(perMemberGap)} season ${GLORY_EMOJI}/member back.`;
 }
 
 function _renderOverviewCards(payload) {
@@ -96,7 +97,7 @@ function _renderOverviewCards(payload) {
                 <div class="guild-heroes-overview-body">
                     ${_heroAvatar(champ, g.colors.primary)}
                     <div class="guild-heroes-overview-meta">
-                        <div class="guild-heroes-overview-line"><strong>${Math.round(g.totals.guildPower)}</strong> power · <strong>${_fmtNumber(g.totals.totalGlory)}</strong> ${GLORY_EMOJI}</div>
+                        <div class="guild-heroes-overview-line"><strong>${Math.round(g.totals.guildPower)}</strong> power · <strong>${_fmtOne(g.totals.perCapitaGlory)}</strong> season ${GLORY_EMOJI}/hero</div>
                         <div class="guild-heroes-overview-line">${champ ? `${_escapeHtml(champ.name)} · ${_fmtNumber(champ.monthlyStars)}⭐ this month` : 'Pick your guild above'}</div>
                     </div>
                 </div>
@@ -141,7 +142,7 @@ function _renderWheelPanel(guild) {
                     </div>`;
                 }).join('')}
            </div>`
-        : `<div class="gh-wheel-empty">No lucky boosts active right now — spin the Wheel when it opens!</div>`;
+        : `<div class="gh-wheel-empty">No active Glory modifiers right now. Future stars will use the normal ledger rules.</div>`;
 
     const logs = state.get('fortuneWheelLog') || [];
     const omenRows = logs.flatMap(entry => {
@@ -153,7 +154,9 @@ function _renderWheelPanel(guild) {
             .map(r => ({
                 dateStr,
                 segmentLabel: r.segmentLabel || r.segmentId || 'Spin',
-                gloryDelta: Number(r.gloryDelta) || 0
+                gloryDelta: Number(r.gloryDelta) || 0,
+                starsDelta: Number(r.starsDelta) || 0,
+                goldDelta: Number(r.goldDelta) || 0
             }));
     }).slice(0, 8);
 
@@ -166,12 +169,12 @@ function _renderWheelPanel(guild) {
                             <div class="s">${_escapeHtml(o.dateStr)}</div>
                         </div>
                         <div class="b ${o.gloryDelta < 0 ? 'neg' : 'pos'}">
-                            ${o.gloryDelta === 0 ? '—' : `${o.gloryDelta > 0 ? '+' : ''}${o.gloryDelta} ${GLORY_EMOJI}`}
+                            ${o.gloryDelta === 0 ? 'Effect' : `${o.gloryDelta > 0 ? '+' : ''}${o.gloryDelta} ${GLORY_EMOJI}`}
                         </div>
                     </div>
                 `).join('')}
            </div>`
-        : `<div class="gh-wheel-empty">No Wheel results for this guild yet.</div>`;
+        : `<div class="gh-wheel-empty">No Fortune's Wheel ledger entries for this guild yet.</div>`;
 
     return `
         <div class="gh-wheel-panel gh-wheel-panel--modal">
@@ -204,16 +207,16 @@ function _renderGlanceView(payload, guild) {
                 <div class="gh-stat-tile">
                     <span class="gh-stat-tile__label">Guild Power</span>
                     <span class="gh-stat-tile__value">${Math.round(t.guildPower)}</span>
-                    <span class="gh-stat-tile__hint">Overall strength score</span>
+                    <span class="gh-stat-tile__hint">Season-fair ledger score</span>
                 </div>
                 <div class="gh-stat-tile">
-                    <span class="gh-stat-tile__label">Total ${GLORY_EMOJI}</span>
-                    <span class="gh-stat-tile__value">${_fmtNumber(t.totalGlory)}</span>
-                    <span class="gh-stat-tile__hint">${_fmtOne(t.perCapitaGlory)} per hero on average</span>
+                    <span class="gh-stat-tile__label">Season ${GLORY_EMOJI}/hero</span>
+                    <span class="gh-stat-tile__value">${_fmtOne(t.perCapitaGlory)}</span>
+                    <span class="gh-stat-tile__hint">${_fmtNumber(t.totalGlory)} total ${GLORY_EMOJI}</span>
                 </div>
                 <div class="gh-stat-tile">
-                    <span class="gh-stat-tile__label">Weekly pace</span>
-                    <span class="gh-stat-tile__value">${t.momentumArrow} ${_fmtOne(Math.abs(t.momentumPct))}%</span>
+                    <span class="gh-stat-tile__label">Weekly ${GLORY_EMOJI}/hero</span>
+                    <span class="gh-stat-tile__value">${_fmtOne(t.weeklyPerCapitaGlory)}</span>
                     <span class="gh-stat-tile__hint">${_momentumSentence(guild)}</span>
                 </div>
                 <div class="gh-stat-tile">
@@ -222,7 +225,7 @@ function _renderGlanceView(payload, guild) {
                     <span class="gh-stat-tile__hint">Heroes who earned stars this week</span>
                 </div>
             </div>
-            <p class="gh-soft-note">${_fmtNumber(t.weeklyGlory)} ${GLORY_EMOJI} earned this week · ${_fmtNumber(t.memberCount)} heroes in the guild</p>
+            <p class="gh-soft-note">${_fmtNumber(t.weeklyGlory)} ${GLORY_EMOJI} earned this week · ${_fmtNumber(t.memberCount)} heroes in the guild · ${t.momentumArrow} ${t.momentumPct >= 0 ? '+' : ''}${_fmtOne(t.momentumPct)}% momentum</p>
         </div>`;
 }
 
@@ -373,7 +376,7 @@ function _renderTogetherView(payload, guild) {
         : `<p class="gh-soft-note">Class splits will show up once heroes earn stars.</p>`;
 
     const chase = leader && leader.guildId !== guild.guildId
-        ? `To catch <strong>${_escapeHtml(leader.guildName)}</strong>, earn about <strong>${_fmtNumber(guild.comparison.deltaToLeaderGlory)}</strong> more ${GLORY_EMOJI} as a guild.`
+        ? `To catch <strong>${_escapeHtml(leader.guildName)}</strong>, raise your per-hero Glory pace: the gap is about <strong>${_fmtOne(guild.comparison.deltaToLeaderPerCapitaGlory)}</strong> season ${GLORY_EMOJI}/hero.`
         : `<strong>${_escapeHtml(guild.guildName)}</strong> is out front — keep the hall cheering!`;
 
     return `

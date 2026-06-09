@@ -136,7 +136,7 @@ export const GLORY_PER_STAR = 2;
 export const GLORY_EMOJI = '⚜️';
 
 /** Composite Guild Power weights (must sum to 1.0) */
-export const GUILD_POWER_WEIGHTS = { glory: 0.70, momentum: 0.10, activity: 0.20 };
+export const GUILD_POWER_WEIGHTS = { seasonGlory: 0.70, weeklyGlory: 0.15, activity: 0.10, momentum: 0.05 };
 
 /** Fortune's Wheel segment rarity weights (probability out of 100) */
 export const WHEEL_RARITY_WEIGHTS = {

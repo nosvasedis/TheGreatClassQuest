@@ -62,7 +62,7 @@ export const sortingQuizModalsHTML = `
             <div id="sorting-quiz-result-emblem" class="sorting-quiz-result-emblem-wrap"></div>
             <p id="sorting-quiz-result-name" class="sorting-quiz-result-guild-name"></p>
             <p id="sorting-quiz-result-motto" class="sorting-quiz-result-motto"></p>
-            <p class="sorting-quiz-result-msg">Every star you earn brings your guild closer to glory. Give it your all! ⭐</p>
+            <p class="sorting-quiz-result-msg">Every star you earn writes Glory for your guild, and Guild Power keeps the race fair for every team size. Give it your all! ⭐</p>
             <button id="sorting-quiz-result-done-btn" type="button" class="sorting-quiz-btn sorting-quiz-btn--done">
                 🎉 Let's Go!
             </button>

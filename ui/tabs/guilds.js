@@ -1,6 +1,6 @@
 // /ui/tabs/guilds.js — Guild Hall: crystal-column rankings, lore overlay, guild sounds, anthem modal
 
-import { getGuildLeaderboardData } from '../../features/guildScoring.js';
+import { compareGuildLeaderboardRows, getGuildLeaderboardData } from '../../features/guildScoring.js';
 import { getGuildBadgeHtml, getGuildById, getGuildEmblemUrl, GUILD_IDS, GUILDS } from '../../features/guilds.js';
 import { openGuildHeroesModal } from '../modals/guildHeroes.js';
 import { openFortunesWheel, advanceWheel, triggerSpin, closeFortunesWheel, canSpinThisWeek } from '../../features/fortunesWheel.js';
@@ -25,24 +25,24 @@ function _ensurePowerExplainerOverlay() {
                 <button class="guild-power-explainer-close" data-gpex-close="true" aria-label="Close">✕</button>
                 <div class="guild-power-explainer-title font-title">⚡ Guild Power</div>
                 <p class="guild-power-explainer-copy">
-                    Guild Power is a live composite score that helps compare guild momentum fairly, even when guild sizes differ.
+                    Guild Power is a season-fair score. It compares what each guild earns per member first, then adds smaller signals for this week, activity, and momentum.
                 </p>
                 <div class="guild-power-explainer-grid">
                     <div class="guild-power-explainer-item">
-                        <div class="k">⚜️ Glory per member</div>
-                        <div class="v">Most important input</div>
+                        <div class="k">⚜️ Season Glory/member</div>
+                        <div class="v">70% of Power</div>
                     </div>
                     <div class="guild-power-explainer-item">
-                        <div class="k">📈 Momentum</div>
-                        <div class="v">Week-over-week Glory change</div>
+                        <div class="k">📅 Weekly Glory/member</div>
+                        <div class="v">15% of Power</div>
                     </div>
                     <div class="guild-power-explainer-item">
                         <div class="k">🔥 Activity</div>
-                        <div class="v">Active heroes this week</div>
+                        <div class="v">10% activity + 5% momentum</div>
                     </div>
                 </div>
                 <div class="guild-power-explainer-note">
-                    Wheel effects can instantly change Glory and also add temporary modifiers that alter how future stars generate Glory.
+                    Stars, boons, shop relics, quiz rewards, and Fortune's Wheel all write Glory events first. Guild Power is calculated from that ledger, so standings stay auditable.
                 </div>
             </div>
         `;
@@ -358,6 +358,7 @@ function openGuildLore(guildId, gData) {
         const totalGlory = Math.round(Number(gData?.totalGlory) || 0);
         const weeklyGlory = Math.round(Number(gData?.weeklyGlory) || 0);
         const perCapitaGlory = Number(gData?.perCapitaGlory) || 0;
+        const weeklyPerCapitaGlory = Number(gData?.weeklyPerCapitaGlory) || 0;
 
         statsEl.innerHTML = `
             <div class="guild-lore-metrics-primary">
@@ -368,7 +369,7 @@ function openGuildLore(guildId, gData) {
                             aria-label="Explain Guild Power" data-guild-lore-power-info="true">?</button>
                     </div>
                     <div class="guild-lore-metric-tile__value">${guildPower}</div>
-                    <div class="guild-lore-metric-tile__hint">Composite leaderboard score</div>
+                    <div class="guild-lore-metric-tile__hint">Season-fair score from the Glory ledger</div>
                 </div>
                 <div class="guild-lore-metric-tile guild-lore-metric-tile--glory">
                     <div class="guild-lore-metric-tile__label">
@@ -376,7 +377,7 @@ function openGuildLore(guildId, gData) {
                     </div>
                     <div class="guild-lore-metric-tile__value">${totalGlory}</div>
                     <div class="guild-lore-metric-tile__hint">
-                        ${weeklyGlory} this week · ${perCapitaGlory.toFixed(1)} ${GLORY_EMOJI}/member
+                        ${weeklyGlory} this week · ${perCapitaGlory.toFixed(1)} season ${GLORY_EMOJI}/member · ${weeklyPerCapitaGlory.toFixed(1)} weekly ${GLORY_EMOJI}/member
                     </div>
                 </div>
             </div>
@@ -512,7 +513,10 @@ export function renderGuildsTab() {
             weeklyGlory: found?.weeklyGlory || 0,
             previousWeekGlory: found?.previousWeekGlory || 0,
             perCapitaGlory: found?.perCapitaGlory || 0,
+            weeklyPerCapitaGlory: found?.weeklyPerCapitaGlory || 0,
             guildPower: found?.guildPower || 0,
+            seasonGloryScore: found?.seasonGloryScore ?? found?.gloryScore ?? 0,
+            weeklyGloryScore: found?.weeklyGloryScore ?? 0,
             gloryScore: found?.gloryScore ?? 0,
             momentumScore: found?.momentumScore ?? 0,
             momentumPct: Number.isFinite(Number(found?.momentumPct))
@@ -522,7 +526,7 @@ export function renderGuildsTab() {
             activityScore: found?.activityScore ?? 0,
             gloryModifiers: found?.gloryModifiers || [],
         };
-    }).sort((a, b) => b.guildPower - a.guildPower || b.perCapitaGlory - a.perCapitaGlory || b.perCapitaStars - a.perCapitaStars);
+    }).sort(compareGuildLeaderboardRows);
 
     // ── Compute power deltas for live indicators ──────────────────────────────
     const powerDeltas = new Map(); // guildId → { powerDelta, rankDelta, prevPower, prevRank, freshChange }
@@ -530,7 +534,7 @@ export function renderGuildsTab() {
     displayData.forEach((g, index) => {
         const prev = _prevGuildPower.get(g.guildId);
         if (prev) {
-            const powerDelta = Math.round(g.guildPower) - prev.power;
+            const powerDelta = Math.round((Number(g.guildPower) - Number(prev.power)) * 10) / 10;
             const rankDelta = prev.rank - index; // positive = moved up
             // If nothing changed, carry forward the last known trend
             if (powerDelta === 0 && rankDelta === 0) {
@@ -706,6 +710,12 @@ export function renderGuildsTab() {
                         ⚡ Guild Power
                         <button class="guild-power-info-btn" type="button" aria-label="Explain Guild Power" data-guild-power-info="true">?</button>
                     </span>
+                    <div class="guild-crystal-power-strip" aria-label="Power ingredients for ${g.guildName}">
+                        <span title="Season Glory per current guild member">${g.perCapitaGlory.toFixed(1)} ${GLORY_EMOJI}/member</span>
+                        <span title="Weekly Glory per current guild member">${g.weeklyPerCapitaGlory.toFixed(1)} week/member</span>
+                        <span title="Weekly active members">${Math.round(Number(g.activityScore) || 0)}% active</span>
+                        <span title="Week-over-week momentum">${g.momentumArrow} ${g.momentumPct >= 0 ? '+' : ''}${g.momentumPct}%</span>
+                    </div>
                 </div>
 
                 <div id="guild-crystal-details-${g.guildId}" class="guild-crystal-details-expander ${_guildHallStatsExpanded ? 'is-expanded' : ''}">
@@ -713,19 +723,19 @@ export function renderGuildsTab() {
                         <div class="guild-crystal-details-inner">
                             <div class="guild-crystal-metrics" style="--guild-metric-accent:${primary};">
                                 <div class="guild-crystal-metric">
-                                    <div class="guild-crystal-metric__label">Glory per member</div>
+                                    <div class="guild-crystal-metric__label">Season Glory/member</div>
                                     <div class="guild-crystal-metric__value">${g.perCapitaGlory.toFixed(1)} <span class="guild-crystal-metric__unit">${GLORY_EMOJI}</span></div>
-                                    <div class="guild-crystal-metric__hint">Average ⚜️ across roster</div>
+                                    <div class="guild-crystal-metric__hint">70% of Guild Power</div>
                                 </div>
                                 <div class="guild-crystal-metric">
-                                    <div class="guild-crystal-metric__label">Weekly momentum</div>
-                                    <div class="guild-crystal-metric__value">${g.momentumArrow} ${g.momentumPct >= 0 ? '+' : ''}${g.momentumPct}%</div>
-                                    <div class="guild-crystal-metric__hint">This week vs last week’s Glory</div>
+                                    <div class="guild-crystal-metric__label">Weekly Glory/member</div>
+                                    <div class="guild-crystal-metric__value">${g.weeklyPerCapitaGlory.toFixed(1)} <span class="guild-crystal-metric__unit">${GLORY_EMOJI}</span></div>
+                                    <div class="guild-crystal-metric__hint">15% of Guild Power</div>
                                 </div>
                                 <div class="guild-crystal-metric">
-                                    <div class="guild-crystal-metric__label">Weekly activity</div>
-                                    <div class="guild-crystal-metric__value">${Math.round(Number(g.activityScore) || 0)}%</div>
-                                    <div class="guild-crystal-metric__hint">Members active this week</div>
+                                    <div class="guild-crystal-metric__label">Activity + momentum</div>
+                                    <div class="guild-crystal-metric__value">${Math.round(Number(g.activityScore) || 0)}% · ${g.momentumArrow}</div>
+                                    <div class="guild-crystal-metric__hint">${g.momentumPct >= 0 ? '+' : ''}${g.momentumPct}% vs last week</div>
                                 </div>
                             </div>
                             <div class="guild-crystal-roster-ribbon" style="--guild-roster-accent:${primary};">
@@ -790,7 +800,7 @@ export function renderGuildsTab() {
     displayData.forEach((g, index) => {
         const d = powerDeltas.get(g.guildId);
         _prevGuildPower.set(g.guildId, {
-            power: Math.round(g.guildPower),
+            power: Number(g.guildPower) || 0,
             rank: index,
             lastPowerDelta: d?.powerDelta || 0,
             lastRankDelta: d?.rankDelta || 0,

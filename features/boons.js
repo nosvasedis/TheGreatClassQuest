@@ -139,6 +139,7 @@ export async function handleBestowBoon(senderId, receiverId) {
         state.setAllStudentScores(allScores);
 
         reconcileFamiliarLifecycle(receiverId, { announce: true, source: 'peer-boon' }).catch((e) => console.warn('Peer boon familiar reconciliation failed:', e));
+        updateGuildScores(receiverId, 0.5, 'peer_boon');
         playSound('magic_chime');
         showToast(`${receiver.name} received a Hero's Boon!`, 'success');
     } catch (error) {
@@ -163,6 +164,7 @@ export async function awardTeacherBoon({ classId, studentId, stars, presetKey, c
     const monthKey = utils.getLocalMonthKey();
     const publicDataPath = 'artifacts/great-class-quest/public/data';
     let levelUpInfo = null;
+    let appliedGuildStars = numericStars;
 
     await runTransaction(db, async (transaction) => {
         const classRef = doc(db, `${publicDataPath}/classes`, classId);
@@ -208,6 +210,7 @@ export async function awardTeacherBoon({ classId, studentId, stars, presetKey, c
             awardedStars: numericStars
         });
         levelUpInfo = transactionResult.levelUpInfo;
+        appliedGuildStars = transactionResult.totalStarsDelta || numericStars;
 
         const logRef = doc(collection(db, `${publicDataPath}/award_log`));
         transaction.set(logRef, {
@@ -235,7 +238,7 @@ export async function awardTeacherBoon({ classId, studentId, stars, presetKey, c
     }
 
     checkBountyProgress(classId, numericStars);
-    updateGuildScores(studentId, numericStars);
+    updateGuildScores(studentId, appliedGuildStars, 'teacher_boon');
     reconcileFamiliarLifecycle(studentId, { announce: true, source: 'teacher-boon' }).catch((error) => {
         console.warn('Teacher boon familiar reconciliation failed:', error);
     });

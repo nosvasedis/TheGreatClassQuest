@@ -3,15 +3,26 @@
 import {
     db,
     doc,
+    collection,
     getDoc,
+    getDocs,
     setDoc,
     updateDoc,
+    writeBatch,
+    query,
+    where,
     increment,
     serverTimestamp,
 } from '../firebase.js';
 import * as state from '../state.js';
 import { GUILDS, GUILD_IDS } from './guilds.js';
 import { GLORY_PER_STAR, GUILD_POWER_WEIGHTS } from '../constants.js';
+import {
+    calculateGuildGloryDelta,
+    calculateGuildPower as calculateGuildPowerCore,
+    compareGuildLeaderboardRows,
+    getMomentumArrow,
+} from './guildScoringCore.js';
 
 const publicDataPath = 'artifacts/great-class-quest/public/data';
 
@@ -53,125 +64,230 @@ function getISOWeekMonday(d = new Date()) {
 
 // ─── Core scoring ────────────────────────────────────────────────────────────
 
-/**
- * Update guild scores when a student earns stars. Now also updates Glory.
- * @param {string} studentId
- * @param {number} starDelta - Positive number of stars to add
- */
-export async function updateGuildScores(studentId, starDelta) {
-    if (!studentId || starDelta <= 0) return;
+function _getStudent(studentId) {
     const students = state.get('allStudents') || [];
-    const student = students.find((s) => s.id === studentId);
-    const guildId = student?.guildId;
-    if (!guildId || !GUILD_IDS.includes(guildId)) return;
+    return students.find((s) => s.id === studentId) || null;
+}
 
-    // Calculate Glory with modifiers
-    let gloryDelta = starDelta * GLORY_PER_STAR;
-
-    // Check student inventory for Glory-boosting artifact effects
+function _getStudentScore(studentId) {
     const allScores = state.get('allStudentScores') || [];
-    const studentScore = allScores.find(sc => sc.id === studentId);
-    if (studentScore?.gloryBannerCharges > 0) {
-        gloryDelta += 1; // +1 bonus Glory per star while Banner charges remain
-    }
+    return allScores.find(sc => sc.id === studentId) || {};
+}
 
-    // Check active guild modifiers (from Fortune's Wheel)
-    const allGuildScores = state.get('allGuildScores') || {};
-    const guildData = allGuildScores[guildId] || {};
-    const now = Date.now();
-    const modifiers = (guildData.gloryModifiers || []).filter(m => m.expiresAt > now);
-    for (const mod of modifiers) {
-        if (mod.type === 'multiply') {
-            gloryDelta = Math.round(gloryDelta * mod.factor);
-        } else if (mod.type === 'bonus_per_star') {
-            gloryDelta += mod.amount * starDelta;
+function _buildGuildScorePatch({ guildId, guildDef, starDelta, totalGloryDelta, guildData = {}, studentId, now = Date.now(), consumedGloryModifiers = null }) {
+    const patch = {
+        guildId,
+        guildName: guildDef?.name || guildData.guildName || guildId,
+        activeSchoolYearKey: state.getActiveSchoolYearKey(),
+        totalStars: increment(starDelta || 0),
+        totalGlory: increment(totalGloryDelta || 0),
+        monthlyGlory: increment(totalGloryDelta || 0),
+        weeklyGlory: increment(totalGloryDelta || 0),
+        lastUpdated: serverTimestamp(),
+    };
+    if (!guildData.lastWeeklyReset) patch.lastWeeklyReset = getISOWeekMonday(new Date(now));
+    if (Array.isArray(consumedGloryModifiers)) patch.gloryModifiers = consumedGloryModifiers;
+    if (studentId) {
+        const ids = Array.isArray(guildData.weeklyActiveMemberIds) ? guildData.weeklyActiveMemberIds : [];
+        if (!ids.includes(studentId)) {
+            patch.weeklyActiveMemberIds = [...ids, studentId];
+            patch.weeklyActiveMembers = ids.length + 1;
         }
     }
+    return patch;
+}
 
-    // Check guild-wide Chalice of Radiance effect
-    if (guildData.chaliceActive && guildData.chaliceExpiresAt > now) {
-        gloryDelta += 1;
+function _sameIdSet(a = [], b = []) {
+    if (a.length !== b.length) return false;
+    const set = new Set(a);
+    return b.every(id => set.has(id));
+}
+
+function _eventCreatedMs(eventData = {}) {
+    const createdAt = eventData.createdAt;
+    if (!createdAt) return 0;
+    if (typeof createdAt.toMillis === 'function') return createdAt.toMillis();
+    if (Number.isFinite(Number(createdAt.seconds))) return Number(createdAt.seconds) * 1000;
+    const parsed = new Date(createdAt).getTime();
+    return Number.isFinite(parsed) ? parsed : 0;
+}
+
+async function _setOrUpdateGuildScore(guildRef, guildId, patch, initialData = {}) {
+    const snap = await getDoc(guildRef);
+    if (snap.exists()) {
+        await updateDoc(guildRef, patch);
+        return snap.data() || {};
     }
+    const guildDef = GUILDS[guildId];
+    await setDoc(guildRef, {
+        guildId,
+        guildName: guildDef?.name || guildId,
+        activeSchoolYearKey: state.getActiveSchoolYearKey(),
+        totalStars: Number(initialData.totalStars) || 0,
+        totalGlory: Number(initialData.totalGlory) || 0,
+        monthlyGlory: Number(initialData.monthlyGlory) || 0,
+        weeklyGlory: Number(initialData.weeklyGlory) || 0,
+        previousWeekGlory: 0,
+        weeklyActiveMembers: initialData.weeklyActiveMembers || 0,
+        weeklyActiveMemberIds: initialData.weeklyActiveMemberIds || [],
+        memberCount: 0,
+        memberIds: [],
+        gloryModifiers: [],
+        chaliceActive: false,
+        chaliceExpiresAt: 0,
+        lastWeeklyReset: getISOWeekMonday(),
+        createdAt: serverTimestamp(),
+        lastUpdated: serverTimestamp(),
+    });
+    return {};
+}
 
+/**
+ * Records an auditable Guild Glory event and updates the materialized guild score cache.
+ */
+export async function recordGuildGloryEvent({
+    guildId,
+    studentId = null,
+    classId = null,
+    source = 'guild_glory',
+    starDelta = 0,
+    directGlory = 0,
+    scoreData = null,
+    guildData = null,
+    note = '',
+    eventMeta = {},
+} = {}) {
+    if (!guildId || !GUILD_IDS.includes(guildId)) return;
+    const now = Date.now();
     const guildRef = doc(db, `${publicDataPath}/guild_scores`, guildId);
+    let guildSnap = null;
+    if (!guildData) {
+        try {
+            guildSnap = await getDoc(guildRef);
+        } catch (_) { /* fall back to in-memory state */ }
+    }
+    const liveGuildData = guildData || (guildSnap?.exists?.() ? guildSnap.data() : (state.get('allGuildScores') || {})[guildId]) || {};
+    const liveScoreData = scoreData || (studentId ? _getStudentScore(studentId) : {});
+    const guildDef = GUILDS[guildId];
+    const delta = calculateGuildGloryDelta({
+        starDelta,
+        directGlory,
+        scoreData: liveScoreData,
+        guildData: liveGuildData,
+        gloryPerStar: GLORY_PER_STAR,
+        now,
+    });
+
+    if (!delta.starDelta && !delta.totalGloryDelta) return delta;
+
+    const eventRef = doc(collection(db, `${publicDataPath}/guild_glory_events`));
+    const batch = writeBatch(db);
+    const eventPayload = {
+        guildId,
+        studentId,
+        classId,
+        schoolYearKey: state.getActiveSchoolYearKey(),
+        source,
+        starDelta: delta.starDelta,
+        baseGlory: delta.baseGlory,
+        modifierGlory: delta.modifierGlory,
+        directGlory: delta.directGlory,
+        totalGloryDelta: delta.totalGloryDelta,
+        breakdown: delta.breakdown,
+        note: String(note || '').slice(0, 280),
+        eventMeta,
+        createdAt: serverTimestamp(),
+        createdBy: {
+            uid: state.get('currentUserId') || null,
+            name: state.get('currentTeacherName') || null,
+        },
+    };
+
+    batch.set(eventRef, eventPayload);
+
+    const patch = _buildGuildScorePatch({
+        guildId,
+        guildDef,
+        starDelta: delta.starDelta,
+        totalGloryDelta: delta.totalGloryDelta,
+        guildData: liveGuildData,
+        studentId,
+        now,
+        consumedGloryModifiers: delta.consumedGloryModifiers,
+    });
+
     try {
-        const snap = await getDoc(guildRef);
+        const snap = guildSnap || await getDoc(guildRef);
         if (snap.exists()) {
-            const updates = {
-                totalStars: increment(starDelta),
-                totalGlory: increment(gloryDelta),
-                monthlyGlory: increment(gloryDelta),
-                weeklyGlory: increment(gloryDelta),
-                lastUpdated: serverTimestamp(),
-            };
-            await updateDoc(guildRef, updates);
+            batch.update(guildRef, patch);
         } else {
-            const guildDef = GUILDS[guildId];
-            await setDoc(guildRef, {
+            batch.set(guildRef, {
                 guildId,
                 guildName: guildDef?.name || guildId,
                 activeSchoolYearKey: state.getActiveSchoolYearKey(),
-                totalStars: starDelta,
-                totalGlory: gloryDelta,
-                monthlyGlory: gloryDelta,
-                weeklyGlory: gloryDelta,
+                totalStars: delta.starDelta,
+                totalGlory: delta.totalGloryDelta,
+                monthlyGlory: delta.totalGloryDelta,
+                weeklyGlory: delta.totalGloryDelta,
                 previousWeekGlory: 0,
-                weeklyActiveMembers: 1,
+                weeklyActiveMembers: studentId ? 1 : 0,
+                weeklyActiveMemberIds: studentId ? [studentId] : [],
                 memberCount: 0,
                 memberIds: [],
-                gloryModifiers: [],
+                gloryModifiers: delta.consumedGloryModifiers || [],
+                chaliceActive: false,
+                chaliceExpiresAt: 0,
                 lastWeeklyReset: getISOWeekMonday(),
                 createdAt: serverTimestamp(),
                 lastUpdated: serverTimestamp(),
             });
         }
+        await batch.commit();
     } catch (err) {
-        console.error('updateGuildScores failed:', err);
+        console.error('recordGuildGloryEvent failed:', err);
     }
 
-    // Decrement Banner charges locally (Firestore update happens in powerUps)
-    if (studentScore?.gloryBannerCharges > 0) {
+    if (studentId && starDelta > 0 && Number(liveScoreData?.gloryBannerCharges) > 0) {
         try {
             const scoreRef = doc(db, `${publicDataPath}/student_scores`, studentId);
-            await updateDoc(scoreRef, { gloryBannerCharges: increment(-1) });
+            await updateDoc(scoreRef, { gloryBannerCharges: increment(-Math.min(starDelta, Number(liveScoreData.gloryBannerCharges) || 0)) });
         } catch (_) { /* non-critical */ }
     }
 
-    // Track weekly active member
-    _trackWeeklyActiveMember(guildId, studentId);
+    return { ...delta, eventId: eventRef.id };
+}
+
+/**
+ * Update guild scores when a student earns stars. Now also writes a Glory event.
+ * @param {string} studentId
+ * @param {number} starDelta - Positive number of stars to add
+ */
+export async function updateGuildScores(studentId, starDelta, source = 'star_award') {
+    if (!studentId || starDelta <= 0) return;
+    const student = _getStudent(studentId);
+    const guildId = student?.guildId;
+    if (!guildId || !GUILD_IDS.includes(guildId)) return;
+    return recordGuildGloryEvent({
+        guildId,
+        studentId,
+        classId: student.classId || null,
+        source,
+        starDelta,
+    });
 }
 
 export async function adjustGuildScoresForWheel(studentId, starDelta) {
     if (!studentId || starDelta >= 0) return;
-    const students = state.get('allStudents') || [];
-    const student = students.find((s) => s.id === studentId);
+    const student = _getStudent(studentId);
     const guildId = student?.guildId;
     if (!guildId || !GUILD_IDS.includes(guildId)) return;
-
-    const allGuildScores = state.get('allGuildScores') || {};
-    const guildData = allGuildScores[guildId] || {};
-    const now = Date.now();
-    const modifiers = (guildData.gloryModifiers || []).filter(m => m.expiresAt > now);
-    let gloryDelta = starDelta * GLORY_PER_STAR;
-    for (const mod of modifiers) {
-        if (mod.type === 'multiply') {
-            gloryDelta = Math.round(gloryDelta * mod.factor);
-        } else if (mod.type === 'bonus_per_star') {
-            gloryDelta += mod.amount * starDelta;
-        }
-    }
-    const guildRef = doc(db, `${publicDataPath}/guild_scores`, guildId);
-    try {
-        await updateDoc(guildRef, {
-            totalStars: increment(starDelta),
-            totalGlory: increment(gloryDelta),
-            monthlyGlory: increment(gloryDelta),
-            weeklyGlory: increment(gloryDelta),
-            lastUpdated: serverTimestamp(),
-        });
-    } catch (err) {
-        console.error('adjustGuildScoresForWheel failed:', err);
-    }
+    return recordGuildGloryEvent({
+        guildId,
+        studentId,
+        classId: student.classId || null,
+        source: 'wheel_star_adjustment',
+        starDelta,
+    });
 }
 
 /** Track unique active members this week (fire-and-forget). */
@@ -257,6 +373,114 @@ export async function migrateGuildGloryIfNeeded() {
             console.error(`Glory migration failed for ${guildId}:`, err);
         }
     }
+    await reconcileGuildScoreCacheIfDrift();
+}
+
+/**
+ * Reconciles guild_scores from the canonical event ledger when available,
+ * and always repairs roster counts from current student assignments.
+ */
+export async function reconcileGuildScoreCacheIfDrift({ force = false } = {}) {
+    const allGuildScores = state.get('allGuildScores') || {};
+    const allStudents = state.get('allStudents') || [];
+    const schoolYearKey = state.getActiveSchoolYearKey();
+    const weekStart = new Date(getISOWeekMonday());
+    const weekStartMs = weekStart.getTime();
+    const now = new Date();
+    const monthKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+    const emptyTotals = () => ({
+        eventCount: 0,
+        totalStars: 0,
+        totalGlory: 0,
+        monthlyGlory: 0,
+        weeklyGlory: 0,
+        weeklyActiveMemberIds: new Set(),
+    });
+    const totalsByGuild = Object.fromEntries(GUILD_IDS.map(gid => [gid, emptyTotals()]));
+
+    try {
+        const eventsRef = collection(db, `${publicDataPath}/guild_glory_events`);
+        const eventsSnap = await getDocs(query(eventsRef, where('schoolYearKey', '==', schoolYearKey)));
+        eventsSnap.forEach((eventDoc) => {
+            const eventData = eventDoc.data() || {};
+            const guildId = eventData.guildId;
+            if (!GUILD_IDS.includes(guildId)) return;
+            const bucket = totalsByGuild[guildId];
+            const totalGloryDelta = Number(eventData.totalGloryDelta) || 0;
+            const starDelta = Number(eventData.starDelta) || 0;
+            const createdMs = _eventCreatedMs(eventData);
+            bucket.eventCount += 1;
+            bucket.totalStars += starDelta;
+            bucket.totalGlory += totalGloryDelta;
+            if (createdMs >= weekStartMs) {
+                bucket.weeklyGlory += totalGloryDelta;
+                if (eventData.studentId) bucket.weeklyActiveMemberIds.add(eventData.studentId);
+            }
+            if (createdMs) {
+                const created = new Date(createdMs);
+                const createdMonthKey = `${created.getFullYear()}-${String(created.getMonth() + 1).padStart(2, '0')}`;
+                if (createdMonthKey === monthKey) bucket.monthlyGlory += totalGloryDelta;
+            }
+        });
+    } catch (err) {
+        console.warn('Guild Glory event reconciliation read failed:', err);
+    }
+
+    for (const guildId of GUILD_IDS) {
+        const guildRef = doc(db, `${publicDataPath}/guild_scores`, guildId);
+        const guildDef = GUILDS[guildId];
+        const data = allGuildScores[guildId] || {};
+        const rosterIds = allStudents
+            .filter(student => student.guildId === guildId)
+            .map(student => student.id)
+            .filter(Boolean)
+            .sort();
+        const patch = {
+            guildId,
+            guildName: guildDef?.name || data.guildName || guildId,
+            activeSchoolYearKey: schoolYearKey,
+            memberCount: rosterIds.length,
+            memberIds: rosterIds,
+            lastUpdated: serverTimestamp(),
+        };
+
+        const totals = totalsByGuild[guildId];
+        if (totals.eventCount > 0) {
+            const weeklyActiveMemberIds = [...totals.weeklyActiveMemberIds].filter(id => rosterIds.includes(id)).sort();
+            Object.assign(patch, {
+                totalStars: Math.round(totals.totalStars * 100) / 100,
+                totalGlory: Math.round(totals.totalGlory * 100) / 100,
+                monthlyGlory: Math.round(totals.monthlyGlory * 100) / 100,
+                weeklyGlory: Math.round(totals.weeklyGlory * 100) / 100,
+                weeklyActiveMemberIds,
+                weeklyActiveMembers: weeklyActiveMemberIds.length,
+            });
+        } else if (
+            _sameIdSet(Array.isArray(data.memberIds) ? data.memberIds : [], rosterIds) &&
+            Number(data.memberCount) === rosterIds.length &&
+            !force
+        ) {
+            continue;
+        }
+
+        const hasLedgerDrift = totals.eventCount > 0 && (
+            Math.abs((Number(data.totalStars) || 0) - patch.totalStars) > 0.01 ||
+            Math.abs((Number(data.totalGlory) || 0) - patch.totalGlory) > 0.01 ||
+            Math.abs((Number(data.monthlyGlory) || 0) - patch.monthlyGlory) > 0.01 ||
+            Math.abs((Number(data.weeklyGlory) || 0) - patch.weeklyGlory) > 0.01 ||
+            !_sameIdSet(Array.isArray(data.weeklyActiveMemberIds) ? data.weeklyActiveMemberIds : [], patch.weeklyActiveMemberIds || [])
+        );
+        const hasRosterDrift = !_sameIdSet(Array.isArray(data.memberIds) ? data.memberIds : [], rosterIds) ||
+            Number(data.memberCount) !== rosterIds.length;
+
+        if (!force && !hasLedgerDrift && !hasRosterDrift) continue;
+
+        try {
+            await setDoc(guildRef, patch, { merge: true });
+        } catch (err) {
+            console.error(`Guild score reconciliation failed for ${guildId}:`, err);
+        }
+    }
 }
 
 // ─── Composite Guild Power ───────────────────────────────────────────────────
@@ -267,64 +491,11 @@ export async function migrateGuildGloryIfNeeded() {
  * @param {number} maxPerCapitaGlory - Highest per-capita Glory among all guilds (for normalization)
  * @returns {{ guildPower: number, gloryScore: number, momentumScore: number, activityScore: number, momentumPct: number }}
  */
-export function calculateGuildPower(guildData, maxPerCapitaGlory) {
-    const memberCount = Math.max(guildData.memberCount || 1, 1);
-    const totalGlory = Number(guildData.totalGlory) || 0;
-    const weeklyGlory = Number(guildData.weeklyGlory) || 0;
-    const previousWeekGlory = Number(guildData.previousWeekGlory) || 0;
-    const weeklyActiveMembers = Number(guildData.weeklyActiveMembers) || 0;
-    const now = Date.now();
-    const activeModifiers = (guildData.gloryModifiers || []).filter(m => (Number(m.expiresAt) || 0) > now);
-    const hasMomentumLock = activeModifiers.some(m => m.type === 'momentum_lock');
-
-    // 1. Glory Score: per-capita Glory normalized against leader (0-100)
-    const perCapitaGlory = totalGlory / memberCount;
-    const normalizedMax = Math.max(maxPerCapitaGlory, 1);
-    const gloryScore = Math.min(100, (perCapitaGlory / normalizedMax) * 100);
-
-    // 2. Momentum Score: week-over-week change (0-100)
-    // -100% change = 0, 0% change = 50, +100% change = 100 (clamped [-100%, +100%])
-    let momentumPct = 0;
-    if (previousWeekGlory > 0) {
-        momentumPct = ((weeklyGlory - previousWeekGlory) / previousWeekGlory) * 100;
-    } else if (weeklyGlory > 0) {
-        momentumPct = 100; // First week with activity = strong positive signal
-    }
-    // Wheel effect: Momentum Lock prevents negative momentum while active
-    if (hasMomentumLock) momentumPct = Math.max(0, momentumPct);
-    // Clamp to [-100, +100] for an intuitive scale and UI expectations
-    momentumPct = Math.max(-100, Math.min(100, momentumPct));
-    // Map [-100, +100] → [0, 100] (so 0% change = 50)
-    const momentumScore = (momentumPct + 100) / 2;
-
-    // 3. Activity Score: weekly active members / total members (0-100)
-    const activityScore = Math.min(100, (weeklyActiveMembers / memberCount) * 100);
-
-    // Composite
-    const guildPower = Math.round(
-        (gloryScore * GUILD_POWER_WEIGHTS.glory +
-         momentumScore * GUILD_POWER_WEIGHTS.momentum +
-         activityScore * GUILD_POWER_WEIGHTS.activity) * 10
-    ) / 10;
-
-    return {
-        guildPower: Math.max(0, guildPower),
-        gloryScore: Math.round(gloryScore * 10) / 10,
-        momentumScore: Math.round(momentumScore * 10) / 10,
-        activityScore: Math.round(activityScore * 10) / 10,
-        momentumPct: Math.round(momentumPct),
-        perCapitaGlory: Math.round(perCapitaGlory * 10) / 10,
-    };
+export function calculateGuildPower(guildData, maxima) {
+    return calculateGuildPowerCore(guildData, maxima, GUILD_POWER_WEIGHTS);
 }
 
-/** Get momentum trend arrow from percentage. */
-export function getMomentumArrow(pct) {
-    if (pct >= 50) return '⬆️';
-    if (pct >= 15) return '↗️';
-    if (pct > -15) return '➡️';
-    if (pct > -50) return '↘️';
-    return '⬇️';
-}
+export { getMomentumArrow };
 
 // ─── Leaderboard ─────────────────────────────────────────────────────────────
 
@@ -344,7 +515,7 @@ export function getGuildLeaderboardData() {
         const totalGlory = Number(gDoc.totalGlory) || (totalStars * GLORY_PER_STAR);
         const memberIds = gDoc.memberIds || [];
         const members = allStudents.filter((s) => s.guildId === gid);
-        const memberCount = members.length || memberIds.length || 1;
+        const memberCount = members.length || memberIds.length || 0;
         const guildDef = GUILDS[gid];
 
         const monthlyStars = members.reduce((sum, s) => {
@@ -352,8 +523,9 @@ export function getGuildLeaderboardData() {
             return sum + (Number(sc?.monthlyStars) || 0);
         }, 0);
 
-        const perCapitaStars = Math.round((totalStars / memberCount) * 10) / 10;
-        const monthlyPerCapitaStars = Math.round((monthlyStars / memberCount) * 10) / 10;
+        const safeMemberCount = Math.max(memberCount, 1);
+        const perCapitaStars = memberCount > 0 ? Math.round((totalStars / safeMemberCount) * 10) / 10 : 0;
+        const monthlyPerCapitaStars = memberCount > 0 ? Math.round((monthlyStars / safeMemberCount) * 10) / 10 : 0;
 
         const topContributors = members
             .map((s) => {
@@ -392,19 +564,20 @@ export function getGuildLeaderboardData() {
         };
     });
 
-    // Second pass: calculate Guild Power (needs max per-capita Glory)
-    const maxPerCapitaGlory = Math.max(...rawList.map(g => (g.totalGlory / Math.max(g.memberCount, 1)))) || 1;
+    // Second pass: calculate Guild Power (needs per-member maxima across non-empty guilds)
+    const maxPerCapitaGlory = Math.max(...rawList.map(g => g.memberCount > 0 ? (g.totalGlory / g.memberCount) : 0)) || 1;
+    const maxWeeklyPerCapitaGlory = Math.max(...rawList.map(g => g.memberCount > 0 ? ((Number(g.weeklyGlory) || 0) / g.memberCount) : 0)) || 1;
 
     const list = rawList.map(g => {
-        const power = calculateGuildPower(g, maxPerCapitaGlory);
+        const power = calculateGuildPower(g, { maxPerCapitaGlory, maxWeeklyPerCapitaGlory });
         return {
             ...g,
             ...power,
         };
     });
 
-    // Sort by composite Guild Power (desc), then by perCapitaGlory as tiebreaker
-    list.sort((a, b) => b.guildPower - a.guildPower || b.perCapitaGlory - a.perCapitaGlory || b.totalGlory - a.totalGlory);
+    // Sort by authoritative Guild Power with deterministic fair tie-breakers.
+    list.sort(compareGuildLeaderboardRows);
     return list;
 }
 
@@ -472,14 +645,18 @@ export function getGuildLeaderboardForClass(classId) {
                 momentumScore: global.momentumScore ?? 0,
                 activityScore: global.activityScore ?? 0,
                 momentumPct: global.momentumPct ?? 0,
+                momentumArrow: global.momentumArrow ?? getMomentumArrow(global.momentumPct ?? 0),
                 perCapitaGlory: global.perCapitaGlory ?? 0,
+                weeklyPerCapitaGlory: global.weeklyPerCapitaGlory ?? 0,
             };
         });
 
     // Sort by global guildPower (desc), matching Guild Hall order
-    list.sort((a, b) => b.guildPower - a.guildPower || b.perCapitaGlory - a.perCapitaGlory || b.totalGlory - a.totalGlory);
+    list.sort(compareGuildLeaderboardRows);
     return list;
 }
+
+export { compareGuildLeaderboardRows };
 
 /**
  * Returns the current month's guild champion for each guild.

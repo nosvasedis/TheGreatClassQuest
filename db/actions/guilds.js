@@ -18,7 +18,7 @@ import {
 } from '../../firebase.js';
 import * as state from '../../state.js';
 import { GUILDS, GUILD_IDS } from '../../features/guilds.js';
-import { getISOWeekKey } from '../../features/guildScoring.js';
+import { getISOWeekKey, recordGuildGloryEvent, getGuildLeaderboardData } from '../../features/guildScoring.js';
 import { GLORY_PER_STAR } from '../../constants.js';
 import { withSchoolYear } from '../../utils/schoolYear.js';
 
@@ -87,20 +87,16 @@ export async function assignStudentToGuild(studentId, guildId) {
  * Get guild leaderboard snapshot. Prefer reading from state.allGuildScores when in app.
  */
 export async function getGuildLeaderboardSnapshot() {
-    const allGuildScores = state.get('allGuildScores') || {};
-    const list = GUILD_IDS.map((gid) => {
-        const data = allGuildScores[gid] || {};
-        const guildDef = GUILDS[gid];
-        return {
-            guildId: gid,
-            guildName: guildDef?.name || data.guildName || gid,
-            totalStars: Number(data.totalStars) || 0,
-            totalGlory: Number(data.totalGlory) || 0,
-            memberCount: Number(data.memberCount) || 0,
-        };
-    });
-    list.sort((a, b) => b.totalGlory - a.totalGlory);
-    return list;
+    return getGuildLeaderboardData().map((row) => ({
+        guildId: row.guildId,
+        guildName: row.guildName,
+        totalStars: Number(row.totalStars) || 0,
+        totalGlory: Number(row.totalGlory) || 0,
+        memberCount: Number(row.memberCount) || 0,
+        guildPower: Number(row.guildPower) || 0,
+        perCapitaGlory: Number(row.perCapitaGlory) || 0,
+        weeklyPerCapitaGlory: Number(row.weeklyPerCapitaGlory) || 0,
+    }));
 }
 
 // ─── Fortune's Wheel Persistence ─────────────────────────────────────────────
@@ -183,11 +179,10 @@ export async function applyGloryModifier(guildId, modifier) {
  */
 export async function adjustGuildGlory(guildId, delta, reason = 'wheel') {
     if (!guildId || delta === 0) return;
-    const guildRef = doc(db, `${publicDataPath}/guild_scores`, guildId);
-    await updateDoc(guildRef, {
-        totalGlory: increment(delta),
-        weeklyGlory: increment(delta),
-        monthlyGlory: increment(delta),
-        lastUpdated: serverTimestamp(),
+    await recordGuildGloryEvent({
+        guildId,
+        source: reason,
+        directGlory: delta,
+        note: reason,
     });
 }

@@ -10,7 +10,7 @@ export const guildsTabHTML = `
                         <h2 class="font-title text-5xl guild-hall-title mt-2 bottom-nav-tab-title"
                             style="text-shadow: 0 2px 4px rgba(0,0,0,0.1);">Guild Hall</h2>
                         <p class="text-lg text-gray-600 mt-2">
-                            Every star earns ⚜️ Glory for your guild.
+                            Stars, boons, shop relics, quizzes, and the Wheel write ⚜️ Glory into a fair per-member Guild Power race.
                             The mightiest guild in June wins the <strong>Grand Guild Ceremony</strong>! ✨
                         </p>
                     </div>

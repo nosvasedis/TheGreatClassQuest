@@ -40,7 +40,7 @@ import {
     calculateHeroGold,
     canChangeHeroClass,
 } from "../../features/heroClasses.js";
-import { updateGuildScores } from "../../features/guildScoring.js";
+import { recordGuildGloryEvent, updateGuildScores } from "../../features/guildScoring.js";
 import {
     computeHeroLevel,
     getHeroReason,
@@ -94,6 +94,7 @@ export async function setStudentStarsForToday(
 
     let studentClassId = null;
     let difference = 0;
+    let guildStarCredit = 0;
     const heroProgressionEnabled = canUseFeature("heroProgression");
     /** Set when a hero level-up occurs in the transaction; used after commit to show celebration modal. */
     let levelUpInfo = null;
@@ -184,6 +185,7 @@ export async function setStudentStarsForToday(
                 }, activeYearKey));
                 if (difference !== 0) {
                     appliedCreditForDailyLog = difference;
+                    guildStarCredit = appliedCreditForDailyLog;
                 }
             } else {
                 // Update existing score doc
@@ -236,6 +238,7 @@ export async function setStudentStarsForToday(
 
                 if (difference !== 0) {
                     appliedCreditForDailyLog = totalDifference;
+                    guildStarCredit = appliedCreditForDailyLog;
                     // --- Track starsByReason for hero skill tree ---
                     const heroClass = studentData.heroClass;
                     const classReason = getHeroReason(heroClass);
@@ -398,7 +401,7 @@ export async function setStudentStarsForToday(
         if (studentClassId && difference > 0) {
             debouncedCheckAndRecordQuestCompletion(studentClassId);
             checkBountyProgress(studentClassId, difference);
-            updateGuildScores(studentId, difference);
+            updateGuildScores(studentId, guildStarCredit || difference, 'standard_star_award');
             // Apply outward skill effects (guildmate/classmate gold) — fire-and-forget
             _applyOutwardSkillEffects(
                 studentId,
@@ -411,6 +414,18 @@ export async function setStudentStarsForToday(
                 announce: true,
                 source: "stars",
             }).catch((e) => console.warn("Familiar check failed:", e));
+        } else if (studentClassId && difference < 0) {
+            const student = (state.get("allStudents") || []).find((s) => s.id === studentId);
+            if (student?.guildId) {
+                recordGuildGloryEvent({
+                    guildId: student.guildId,
+                    studentId,
+                    classId: studentClassId,
+                    source: 'standard_star_award_adjustment',
+                    starDelta: guildStarCredit || difference,
+                    note: 'Daily award was reduced',
+                }).catch((e) => console.warn("Guild Glory reduction failed:", e));
+            }
         }
 
         // --- Hero Level-Up Celebration (after successful transaction) ---
@@ -688,6 +703,7 @@ const debouncedCheckAndRecordQuestCompletion = debounce(
 
 export async function handleDeleteAwardLog(logId) {
     const publicDataPath = "artifacts/great-class-quest/public/data";
+    let deletedGuildEvent = null;
     try {
         await runTransaction(db, async (transaction) => {
             const logRef = doc(db, `${publicDataPath}/award_log`, logId);
@@ -702,6 +718,16 @@ export async function handleDeleteAwardLog(logId) {
                 id: logId,
             });
             const studentId = logData.studentId;
+            const student = (state.get("allStudents") || []).find((s) => s.id === studentId);
+            if (student?.guildId && starCredit) {
+                deletedGuildEvent = {
+                    guildId: student.guildId,
+                    studentId,
+                    classId: logData.classId || student.classId || null,
+                    starCredit,
+                    reason: logData.reason || 'award_log',
+                };
+            }
 
             const scoreRef = doc(
                 db,
@@ -737,6 +763,17 @@ export async function handleDeleteAwardLog(logId) {
                 );
             }
         });
+
+        if (deletedGuildEvent) {
+            recordGuildGloryEvent({
+                guildId: deletedGuildEvent.guildId,
+                studentId: deletedGuildEvent.studentId,
+                classId: deletedGuildEvent.classId,
+                source: `delete_${deletedGuildEvent.reason}`,
+                starDelta: -deletedGuildEvent.starCredit,
+                note: `Deleted award log ${logId}`,
+            }).catch((error) => console.warn("Guild Glory delete adjustment failed:", error));
+        }
 
         showToast("Log entry deleted successfully!", "success");
 
@@ -871,6 +908,9 @@ export async function handleAddStarsManually() {
             }
             transaction.update(scoreRef, updates);
         });
+        updateGuildScores(studentId, starsToAdd, 'manual_star_add').catch((error) => {
+            console.warn("Manual Guild Glory adjustment failed:", error);
+        });
         reconcileFamiliarLifecycle(studentId, {
             announce: true,
             source: "manual-log",
@@ -969,6 +1009,17 @@ export async function handleSetStudentScores() {
         const student = state
             .get("allStudents")
             .find((s) => s.id === studentId);
+        const totalDelta = totalStarsVal - previousTotalStars;
+        if (student?.guildId && totalDelta !== 0) {
+            recordGuildGloryEvent({
+                guildId: student.guildId,
+                studentId,
+                classId: student.classId || null,
+                source: 'manual_score_override',
+                starDelta: totalDelta,
+                note: 'Manual student score override',
+            }).catch((e) => console.warn("Override Guild Glory adjustment failed:", e));
+        }
         if (totalStarsVal > previousTotalStars) {
             reconcileFamiliarLifecycle(studentId, {
                 announce: true,
@@ -1002,6 +1053,9 @@ export function handlePurgeStudentStars() {
             btn.innerHTML =
                 '<i class="fas fa-spinner fa-spin mr-2"></i> Purging...';
             try {
+                const previousTotalStars =
+                    state.get("allStudentScores").find((s) => s.id === studentId)
+                        ?.totalStars || 0;
                 await runTransaction(db, async (transaction) => {
                     const scoreRef = doc(
                         db,
@@ -1028,6 +1082,16 @@ export function handlePurgeStudentStars() {
                         );
                     }
                 });
+                if (student.guildId && previousTotalStars > 0) {
+                    recordGuildGloryEvent({
+                        guildId: student.guildId,
+                        studentId,
+                        classId: student.classId || null,
+                        source: 'purge_student_scores',
+                        starDelta: -previousTotalStars,
+                        note: 'Student score data was purged',
+                    }).catch((e) => console.warn("Purge Guild Glory adjustment failed:", e));
+                }
                 showToast("All star scores purged for student!", "success");
             } catch (error) {
                 console.error("Error purging stars: ", error);

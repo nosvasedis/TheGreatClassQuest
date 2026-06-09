@@ -17,6 +17,7 @@ import { getTodayDateString } from '../utils.js';
 import { reconcileFamiliarLifecycle } from '../features/familiars.js';
 import { canUseFeature } from '../utils/subscription.js';
 import { withSchoolYear } from '../utils/schoolYear.js';
+import { updateGuildScores } from '../features/guildScoring.js';
 
 export * from './actions/index.js';
 
@@ -31,6 +32,7 @@ export async function awardStoryWeaverBonusStarToClass(classId) {
     try {
         const batch = writeBatch(db);
         const publicDataPath = "artifacts/great-class-quest/public/data";
+        const guildAwards = [];
 
         for (const student of studentsInClass) {
             const scoreRef = doc(db, `${publicDataPath}/student_scores`, student.id);
@@ -38,6 +40,7 @@ export async function awardStoryWeaverBonusStarToClass(classId) {
             const scoreData = scoreSnap.exists() ? scoreSnap.data() : {};
             const doubleNext = scoreData.storyWeaverDoubleNext === true;
             const starAmount = doubleNext ? 1 : 0.5;
+            guildAwards.push({ studentId: student.id, starAmount });
 
             const scoreUpdate = {
                 monthlyStars: increment(starAmount),
@@ -63,6 +66,9 @@ export async function awardStoryWeaverBonusStarToClass(classId) {
         }
 
         await batch.commit();
+        guildAwards.forEach(({ studentId, starAmount }) => {
+            updateGuildScores(studentId, starAmount, 'story_weaver').catch((e) => console.warn('Story Weaver Guild Glory update failed:', e));
+        });
         studentsInClass.forEach((student) => {
             reconcileFamiliarLifecycle(student.id, { announce: true, source: 'story-weaver' }).catch((e) => console.warn('Story Weaver familiar reconciliation failed:', e));
         });

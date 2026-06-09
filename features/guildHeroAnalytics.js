@@ -2,7 +2,7 @@
 // Aggregates guild hero analytics from in-memory state.
 
 import * as state from '../state.js';
-import { getGuildLeaderboardData, getMomentumArrow } from './guildScoring.js';
+import { compareGuildLeaderboardRows, getGuildLeaderboardData, getMomentumArrow } from './guildScoring.js';
 import { GUILD_IDS, getGuildById } from './guilds.js';
 
 /**
@@ -185,6 +185,7 @@ export function getGuildHeroAnalytics() {
                 momentumArrow: getMomentumArrow(lb.momentumPct || 0),
                 activityScore: Number(lb.activityScore) || 0,
                 weeklyGlory: Number(lb.weeklyGlory) || 0,
+                weeklyPerCapitaGlory: Number(lb.weeklyPerCapitaGlory) || 0,
             },
             champions: {
                 monthlyChampion: _pickMonthlyChampion(guildChampions[guildId], heroesByMonthly),
@@ -204,12 +205,15 @@ export function getGuildHeroAnalytics() {
                 deltaToLeaderPerCapita: leader ? Math.round(((leader.perCapitaStars || 0) - (lb.perCapitaStars || 0)) * 10) / 10 : 0,
                 deltaToLeaderTotal: leader ? Math.max(0, (leader.totalStars || 0) - (lb.totalStars || 0)) : 0,
                 rankByGuildPower: 0, // Set after sort
-                deltaToLeaderGlory: leader ? Math.max(0, (leader.totalGlory || 0) - (lb.totalGlory || 0)) : 0
+                deltaToLeaderGlory: leader ? Math.max(0, (leader.totalGlory || 0) - (lb.totalGlory || 0)) : 0,
+                deltaToLeaderPower: leader ? Math.max(0, (leader.guildPower || 0) - (lb.guildPower || 0)) : 0,
+                deltaToLeaderPerCapitaGlory: leader ? Math.max(0, (leader.perCapitaGlory || 0) - (lb.perCapitaGlory || 0)) : 0
             }
         };
-    }).sort((a, b) =>
-        b.totals.guildPower - a.totals.guildPower || b.totals.perCapitaGlory - a.totals.perCapitaGlory || b.totals.totalStars - a.totals.totalStars
-    );
+    }).sort((a, b) => compareGuildLeaderboardRows(
+        { ...a.totals, guildName: a.guildName },
+        { ...b.totals, guildName: b.guildName }
+    ));
 
     // Set rankByGuildPower after sort
     guilds.forEach((g, idx) => { g.comparison.rankByGuildPower = idx + 1; });

@@ -10,6 +10,7 @@ import { callGeminiApi } from '../api.js';
 import { canUseFeature } from '../utils/subscription.js';
 import * as utils from '../utils.js';
 import { GUILDS, getGuildById, getGuildBadgeHtml } from './guilds.js';
+import { getGuildLeaderboardData } from './guildScoring.js';
 import {
     getAwardLogMonthlyStarCredit,
     mergeMonthlyStarsFromArchivedHistoryAndAwardLogs,
@@ -343,29 +344,31 @@ async function gatherGuildData(classIds) {
         });
     });
     
-    // Create final rankings — now using Guild Power (composite) for fairness
-    guildData.finalRankings = Object.entries(guildTotals)
-        .map(([guildId, totalStars]) => {
+    // Create final rankings from the same authoritative Guild Power order as the Guild Hall.
+    const authoritativeGuildRows = getGuildLeaderboardData();
+    guildData.finalRankings = authoritativeGuildRows
+        .filter((row) => guildTotals[row.guildId] !== undefined || row.memberCount > 0)
+        .map((row) => {
+            const guildId = row.guildId;
+            const totalStars = guildTotals[guildId] || row.totalStars || 0;
             const guild = getGuildById(guildId);
             const members = guildMembers[guildId] || [];
             const topContributor = members.sort((a, b) => b.totalStars - a.totalStars)[0];
-            const gDoc = allGuildScores[guildId] || {};
-            const totalGlory = Number(gDoc.totalGlory) || (totalStars * 2);
-            const perCapitaGlory = members.length > 0 ? Math.round((totalGlory / members.length) * 10) / 10 : 0;
             
             return {
                 guildId,
                 guildName: guild?.name || 'Unknown Guild',
                 guildEmoji: guild?.emoji || '⚔️',
                 totalStars,
-                totalGlory,
-                perCapitaGlory,
-                memberCount: members.length,
+                totalGlory: Number(row.totalGlory) || 0,
+                perCapitaGlory: Number(row.perCapitaGlory) || 0,
+                weeklyPerCapitaGlory: Number(row.weeklyPerCapitaGlory) || 0,
+                guildPower: Number(row.guildPower) || 0,
+                memberCount: Number(row.memberCount) || members.length,
                 topContributor,
                 members
             };
         })
-        .sort((a, b) => b.perCapitaGlory - a.perCapitaGlory || b.totalGlory - a.totalGlory)
         .map((guild, index) => ({
             ...guild,
             rank: index + 1

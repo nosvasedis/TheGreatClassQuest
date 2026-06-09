@@ -41,11 +41,11 @@ function _explain(mod) {
             if (Number.isFinite(factor)) {
                 if (factor >= 1) {
                     const pct = Math.round((factor - 1) * 100);
-                    return `Raises Glory gained from starred work. Until this fades, Glory from heroes earning stars uses ×${factor} (${pct >= 0 ? '+' : ''}${pct}% vs baseline). Stacks with Fortune's Wheel rules on the Glory side.`;
+                    return `Raises ledger Glory from starred work. Until this fades, each qualifying star writes a larger ${GLORY_EMOJI} event using ×${factor} (${pct >= 0 ? '+' : ''}${pct}% vs baseline). Guild Power updates from those events.`;
                 }
-                return `Reduces Glory from stars until it expires (×${factor} applied to Glory from starred work). Negative wheel hits can still be blocked by a Glory Shield where the rules say so.`;
+                return `Reduces ledger Glory from stars until it expires (×${factor} applied to starred-work Glory). Negative wheel hits can still be blocked by a Glory Shield where the rules say so.`;
             }
-            return `Temporarily scales how much ${GLORY_EMOJI} Glory your guild earns from starred work until this multiplier expires.`;
+            return `Temporarily scales how much ${GLORY_EMOJI} Glory each qualifying star writes into the guild ledger.`;
         }
         case 'bonus_per_star': {
             const bits = [`Adds +${Number.isFinite(amount) ? amount : '?'} bonus ${GLORY_EMOJI} Glory on top of the usual Glory earned each time qualifying stars land.`];
@@ -59,7 +59,7 @@ function _explain(mod) {
         case 'shield':
             return `Protects this guild from certain Fortune's Wheel penalties that steal or drain weekly Glory — for example Glory Heists or Glory Tax-style hits check for an active Shield first. Positive spins still apply as normal.`;
         case 'momentum_lock':
-            return `Pins your guild's momentum reading so it can't show as negative while this is active — that cushions the Guild Power momentum ingredient when this week's Glory dips compared to last week. Glory numbers still update as usual; this only affects momentum scoring math.`;
+            return `Pins your guild's momentum ingredient so it can't score below neutral while active. Glory numbers still update normally; this only affects the 5% momentum part of Guild Power.`;
         case 'challenge':
             return `If your guild holds the strongest weekly Glory run before this challenge expires (compared across guilds here), you'll bank a bonus +${Number.isFinite(mod.bonus) ? bonus : 50} ${GLORY_EMOJI} Glory when the tally resolves. Tie-breakers lean on Glory rules baked into the wheel and scoring.`;
         case 'shattered_mirror':

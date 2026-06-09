@@ -1,7 +1,7 @@
 import { db, doc, setDoc, getDoc, getDocs, collection, writeBatch, serverTimestamp, increment, arrayUnion, runTransaction, where, query, deleteDoc } from '../../firebase.js';
 import * as state from '../../state.js';
 import { getTodayDateString } from '../../utils.js';
-import { getISOWeekKey, getTargetWeekKey } from '../../features/guildScoring.js';
+import { getISOWeekKey, getTargetWeekKey, updateGuildScores } from '../../features/guildScoring.js';
 import { callGeminiApi, extractJsonFromAiText, callCloudflareAiImageApi } from '../../api.js';
 import { applyClassQuestBonusDelta } from './fortuneWheelEffects.js';
 import { adjustGuildGlory, applyGloryModifier } from './guilds.js';
@@ -493,6 +493,12 @@ export async function distributeQuizRewards(classId, results) {
         // --- Reward 2: Class Quest Bonus (safe, separate transaction) ---
         if (rewards.questBonus > 0) {
             await applyClassQuestBonusDelta(classId, rewards.questBonus, `Quiz of the Week - ${tier.toUpperCase()}`);
+        }
+
+        for (const rewarded of rewardedStudents) {
+            if (Number(rewarded.stars) > 0) {
+                await updateGuildScores(rewarded.studentId, Number(rewarded.stars), 'quiz_of_the_week');
+            }
         }
 
         // --- Reward 3: Guild Glory ---

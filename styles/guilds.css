@@ -1437,6 +1437,26 @@
     letter-spacing: 0.06em;
     text-transform: uppercase;
 }
+.guild-crystal-power-strip {
+    width: min(190px, 100%);
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.22rem;
+    margin-top: 0.45rem;
+    color: rgba(255,255,255,0.72);
+    font-size: 0.58rem;
+    line-height: 1.15;
+}
+.guild-crystal-power-strip span {
+    min-width: 0;
+    padding: 0.24rem 0.28rem;
+    border-radius: 0.45rem;
+    background: rgba(255,255,255,0.07);
+    border: 1px solid rgba(255,255,255,0.1);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
 .guild-power-info-btn {
     display: inline-grid;
     place-items: center;

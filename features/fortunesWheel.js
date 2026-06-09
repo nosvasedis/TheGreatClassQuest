@@ -1,6 +1,7 @@
 // features/fortunesWheel.js — Fortune's Wheel: segment catalog, spin logic, canvas renderer, effect application
 
 import * as state from '../state.js';
+import { db, doc, updateDoc } from '../firebase.js';
 import { GUILD_IDS, getGuildById, getGuildEmblemUrl } from './guilds.js';
 import { GLORY_PER_STAR, WHEEL_RARITY_WEIGHTS, WHEEL_RARITY_CONFIG, WHEEL_PRISMATIC_CONFIG, getRarityPalette } from '../constants.js';
 import { adjustGuildGlory, applyGloryModifier, saveFortuneWheelResult, hasSpunThisWeek } from '../db/actions/guilds.js';
@@ -69,10 +70,10 @@ const ALL_SEGMENTS = [
     { id: 'glory_surge',       emoji: '⚜️', label: 'Glory Surge',       description: '+20 Glory instantly!',                              rarity: 'common',    category: 'glory', effect: (ctx) => instantGlory(ctx, 20) },
     { id: 'glory_fountain',    emoji: '⚜️', label: 'Glory Fountain',    description: '+50 Glory instantly!',                              rarity: 'uncommon',  category: 'glory', effect: (ctx) => instantGlory(ctx, 50) },
     { id: 'glory_storm',       emoji: '⚜️', label: 'Glory Storm',       description: '+100 Glory instantly!',                             rarity: 'rare',      category: 'glory', effect: (ctx) => instantGlory(ctx, 100) },
-    { id: 'glory_boost_25',    emoji: '📈', label: 'Momentum Boost',    description: '+25% Glory generation for 1 day.',                  rarity: 'uncommon',  category: 'glory', effect: (ctx) => gloryMultiplier(ctx, 1.25, 1) },
-    { id: 'glory_doubler',     emoji: '📈', label: 'Glory Doubler',     description: '2× Glory generation for 1 day!',                   rarity: 'rare',      category: 'glory', effect: (ctx) => gloryMultiplier(ctx, 2, 1) },
-    { id: 'glory_tripler',     emoji: '📈', label: 'Glory Tripler',     description: '3× Glory generation for 1 day!',                   rarity: 'epic',      category: 'glory', effect: (ctx) => gloryMultiplier(ctx, 3, 1) },
-    { id: 'glory_quadruple',   emoji: '📈', label: 'Quadruple Glory',   description: '4× Glory generation for 3 days!',                  rarity: 'legendary', category: 'glory', effect: (ctx) => gloryMultiplier(ctx, 4, 3) },
+    { id: 'glory_boost_25',    emoji: '📈', label: 'Momentum Boost',    description: 'Future star Glory events count 1.25× for 1 day.',  rarity: 'uncommon',  category: 'glory', effect: (ctx) => gloryMultiplier(ctx, 1.25, 1) },
+    { id: 'glory_doubler',     emoji: '📈', label: 'Glory Doubler',     description: 'Future star Glory events count 2× for 1 day!',     rarity: 'rare',      category: 'glory', effect: (ctx) => gloryMultiplier(ctx, 2, 1) },
+    { id: 'glory_tripler',     emoji: '📈', label: 'Glory Tripler',     description: 'Future star Glory events count 3× for 1 day!',     rarity: 'epic',      category: 'glory', effect: (ctx) => gloryMultiplier(ctx, 3, 1) },
+    { id: 'glory_quadruple',   emoji: '📈', label: 'Quadruple Glory',   description: 'Future star Glory events count 4× for 3 days!',    rarity: 'legendary', category: 'glory', effect: (ctx) => gloryMultiplier(ctx, 4, 3) },
     { id: 'glory_rain',        emoji: '⚜️', label: 'Glory Rain',        description: 'Every guild member gets +5 Glory!',                rarity: 'epic',      category: 'glory', effect: (ctx) => instantGlory(ctx, ctx.memberCount * 5) },
     { id: 'precision_glory',   emoji: '🎯', label: 'Precision Glory',   description: 'Next 10 stars give +1 extra Glory each.',          rarity: 'uncommon',  category: 'glory', effect: (ctx) => bonusPerStar(ctx, 1, 10) },
     { id: 'glory_magnet',      emoji: '🧲', label: 'Glory Magnet',      description: '+2 Glory per star for 2 days!',                    rarity: 'rare',      category: 'glory', effect: (ctx) => bonusPerStarTimed(ctx, 2, 2) },
@@ -118,7 +119,7 @@ const ALL_SEGMENTS = [
     { id: 'glory_tax',         emoji: '🔻', label: 'Glory Tax',         description: 'Lose 10% of weekly Glory.',                        rarity: 'common',    category: 'negative', effect: (ctx) => gloryTax(ctx, 0.10) },
     { id: 'glory_eclipse',     emoji: '🔻', label: 'Glory Eclipse',     description: 'Halve this week\'s Glory!',                        rarity: 'cursed',    category: 'negative', effect: (ctx) => gloryTax(ctx, 0.50) },
     { id: 'glory_heist',       emoji: '🏴‍☠️', label: 'Glory Heist',     description: 'Steal 15% of the leading guild\'s weekly Glory!',  rarity: 'cursed',    category: 'negative', effect: (ctx) => gloryHeist(ctx, 0.15) },
-    { id: 'slumber',           emoji: '💤', label: 'Slumber',           description: 'Glory generation halved for 1 day.',               rarity: 'uncommon',  category: 'negative', effect: (ctx) => gloryMultiplier(ctx, 0.5, 1) },
+    { id: 'slumber',           emoji: '💤', label: 'Slumber',           description: 'Future star Glory events count 0.5× for 1 day.',   rarity: 'uncommon',  category: 'negative', effect: (ctx) => gloryMultiplier(ctx, 0.5, 1) },
     { id: 'tangled_web',       emoji: '🕸️', label: 'Tangled Web',       description: '-5 Team Quest bonus stars (this month)!',          rarity: 'rare',      category: 'negative', effect: (ctx) => classQuestBonus(ctx, -5) },
     { id: 'market_crash',      emoji: '📉', label: 'Market Crash',      description: 'All guilds lose 5% weekly Glory!',                 rarity: 'common',    category: 'negative', effect: (ctx) => allGuildsTax(ctx, 0.05) },
     { id: 'trickster',         emoji: '🎭', label: 'Trickster',         description: 'What looks like a win... turns out to be nothing!', rarity: 'common',   category: 'negative', effect: () => ({ gloryDelta: 0, description: 'The Trickster laughs! Nothing happened.' }) },
@@ -132,21 +133,21 @@ const ALL_SEGMENTS = [
     { id: 'breeze_of_fortune',  emoji: '🌬️', label: 'Breeze of Fortune',  description: '+15 Glory and a whisper of luck!',                     rarity: 'common',    category: 'glory',  effect: (ctx) => instantGlory(ctx, 15) },
     { id: 'copper_cache',       emoji: '🪙', label: 'Copper Cache',       description: '4 random members get +8 gold each!',                  rarity: 'common',    category: 'perk',   effect: (ctx) => randomGold(ctx, 4, 8) },
     { id: 'whisper_of_unity',   emoji: '🤝', label: 'Whisper of Unity',   description: '+5 Glory to your guild, +3 to every other guild!',    rarity: 'common',    category: 'glory',  effect: async (ctx) => { await allGuildsGlory(ctx, 3); return instantGlory(ctx, 5); } },
-    { id: 'silver_lining',      emoji: '🪩', label: 'Silver Lining',      description: '0.8× Glory for 1 day, but +30 Glory right now!',    rarity: 'uncommon',  category: 'glory',  effect: async (ctx) => { const mod = await gloryMultiplier(ctx, 0.8, 1); const gl = await instantGlory(ctx, 30); return { ...gl, modifierCreated: mod.modifierCreated, description: `Silver lining: +30 Glory now, but Glory generation is reduced for 1 day.` }; } },
+    { id: 'silver_lining',      emoji: '🪩', label: 'Silver Lining',      description: 'Future star Glory events count 0.8× for 1 day, but +30 Glory right now!', rarity: 'uncommon', category: 'glory', effect: async (ctx) => { const mod = await gloryMultiplier(ctx, 0.8, 1); const gl = await instantGlory(ctx, 30); return { ...gl, modifierCreated: mod.modifierCreated, description: `Silver lining: +30 Glory now, but future star Glory events count 0.8x for 1 day.` }; } },
     { id: 'scholars_momentum',  emoji: '📖', label: "Scholar's Momentum", description: '+1 Glory per star for the next 15 stars!',            rarity: 'uncommon',  category: 'glory',  effect: (ctx) => bonusPerStar(ctx, 1, 15) },
     { id: 'guild_herald',       emoji: '📯', label: 'Guild Herald',        description: '+1 Glory per star for all guildmates (next 5 stars each)!', rarity: 'uncommon', category: 'glory', effect: (ctx) => bonusPerStarTimed(ctx, 1, 2) },
-    { id: 'crystal_focus',      emoji: '💎', label: 'Crystal Focus',      description: '2× Glory generation for 2 days!',                     rarity: 'rare',      category: 'glory',  effect: (ctx) => gloryMultiplier(ctx, 2, 2) },
-    { id: 'star_cascade',       emoji: '🌠', label: 'Star Cascade',       description: '4 random members get +1 star and +10 gold each!',   rarity: 'rare',      category: 'perk',   effect: async (ctx) => { const s = await randomStars(ctx, 4, 1); const g = await randomGold(ctx, 4, 10); return { gloryDelta: 0, starsDelta: s.starsDelta || 4, goldDelta: g.goldDelta || 40, affectedStudents: [...new Set([...(s.affectedStudents || []), ...(g.affectedStudents || [])])], description: '4 guild members each receive +1 star and +10 gold!' }; } },
+    { id: 'crystal_focus',      emoji: '💎', label: 'Crystal Focus',      description: 'Future star Glory events count 2× for 2 days!',       rarity: 'rare',      category: 'glory',  effect: (ctx) => gloryMultiplier(ctx, 2, 2) },
+    { id: 'star_cascade',       emoji: '🌠', label: 'Star Cascade',       description: '4 random members get +1 star and +10 gold each!',   rarity: 'rare',      category: 'perk',   effect: async (ctx) => { const s = await randomStars(ctx, 4, 1); const g = await randomGold(ctx, 4, 10); return { gloryDelta: s.gloryDelta || 0, starsDelta: s.starsDelta || 4, goldDelta: g.goldDelta || 40, affectedStudents: [...new Set([...(s.affectedStudents || []), ...(g.affectedStudents || [])])], description: '4 guild members each receive +1 star and +10 gold!' }; } },
     { id: 'echoes_of_glory',    emoji: '🔔', label: 'Echoes of Glory',     description: '+25 Glory and echo your best active modifier for 1 day!', rarity: 'rare', category: 'glory', effect: (ctx) => echoesOfGlory(ctx) },
     { id: 'golden_tide',        emoji: '🌊', label: 'Golden Tide',        description: 'ALL members get +20 gold, guild gets +30 Glory!',    rarity: 'epic',      category: 'perk',   effect: async (ctx) => { const g = await randomGold(ctx, ctx.memberCount, 20); const gl = await instantGlory(ctx, 30); return { ...g, gloryDelta: gl.gloryDelta + (g.gloryDelta || 0), description: `A golden tide! All members receive +20 gold, and the guild earns +30 Glory!` }; } },
     { id: 'phoenix_rise',       emoji: '🔥', label: 'Phoenix Rise',       description: 'If guild has <50 Glory, gain +100; otherwise +40.',   rarity: 'epic',      category: 'glory',  effect: (ctx) => phoenixRise(ctx) },
-    { id: 'titans_stride',      emoji: '🏔️', label: "Titan's Stride",    description: '3× Glory generation for 2 days!',                     rarity: 'epic',      category: 'glory',  effect: (ctx) => gloryMultiplier(ctx, 3, 2) },
-    { id: 'crown_of_stars',     emoji: '👑', label: 'Crown of Stars',     description: 'ALL members get +2 stars and +25 gold!',              rarity: 'legendary', category: 'perk',   effect: async (ctx) => { const s = await randomStars(ctx, ctx.memberCount, 2); const g = await randomGold(ctx, ctx.memberCount, 25); return { gloryDelta: 0, starsDelta: s.starsDelta || ctx.memberCount * 2, goldDelta: g.goldDelta || ctx.memberCount * 25, affectedStudents: [...new Set([...(s.affectedStudents || []), ...(g.affectedStudents || [])])], description: `A crown of stars descends! All ${ctx.memberCount} members receive +2 stars and +25 gold!` }; } },
+    { id: 'titans_stride',      emoji: '🏔️', label: "Titan's Stride",    description: 'Future star Glory events count 3× for 2 days!',       rarity: 'epic',      category: 'glory',  effect: (ctx) => gloryMultiplier(ctx, 3, 2) },
+    { id: 'crown_of_stars',     emoji: '👑', label: 'Crown of Stars',     description: 'ALL members get +2 stars and +25 gold!',              rarity: 'legendary', category: 'perk',   effect: async (ctx) => { const s = await randomStars(ctx, ctx.memberCount, 2); const g = await randomGold(ctx, ctx.memberCount, 25); return { gloryDelta: s.gloryDelta || 0, starsDelta: s.starsDelta || ctx.memberCount * 2, goldDelta: g.goldDelta || ctx.memberCount * 25, affectedStudents: [...new Set([...(s.affectedStudents || []), ...(g.affectedStudents || [])])], description: `A crown of stars descends! All ${ctx.memberCount} members receive +2 stars and +25 gold!` }; } },
     { id: 'sovereigns_boon',     emoji: '⚜️', label: "Sovereign's Boon",   description: 'Extend your best active modifier by 3 days!',         rarity: 'legendary', category: 'glory',  effect: (ctx) => sovereignsBoon(ctx) },
-    { id: 'celestial_convergence', emoji: '✨', label: 'Celestial Convergence', description: '+50 Quest bonus, ALL members +1 star & +50 gold, +100 Glory!', rarity: 'mythic', category: 'perk', isPrismatic: true, effect: async (ctx) => { const q = await applyClassQuestBonusDelta(ctx.classId, 50, 'Celestial Convergence'); const s = await randomStars(ctx, ctx.memberCount, 1); const g = await randomGold(ctx, ctx.memberCount, 50); const gl = await instantGlory(ctx, 100); if (q.classQuestDelta) await checkAndRecordQuestCompletion(ctx.classId).catch(() => {}); return { gloryDelta: gl.gloryDelta, starsDelta: s.starsDelta || ctx.memberCount, goldDelta: g.goldDelta || ctx.memberCount * 50, classQuestDelta: q.classQuestDelta || 50, affectedStudents: [...new Set([...(s.affectedStudents || []), ...(g.affectedStudents || [])])], description: `Celestial convergence! +50 Quest bonus, all members gain +1 star & +50 gold, and the guild earns +100 Glory!` }; } },
+    { id: 'celestial_convergence', emoji: '✨', label: 'Celestial Convergence', description: '+50 Quest bonus, ALL members +1 star & +50 gold, +100 Glory!', rarity: 'mythic', category: 'perk', isPrismatic: true, effect: async (ctx) => { const q = await applyClassQuestBonusDelta(ctx.classId, 50, 'Celestial Convergence'); const s = await randomStars(ctx, ctx.memberCount, 1); const g = await randomGold(ctx, ctx.memberCount, 50); const gl = await instantGlory(ctx, 100); if (q.classQuestDelta) await checkAndRecordQuestCompletion(ctx.classId).catch(() => {}); return { gloryDelta: (gl.gloryDelta || 0) + (s.gloryDelta || 0), starsDelta: s.starsDelta || ctx.memberCount, goldDelta: g.goldDelta || ctx.memberCount * 50, classQuestDelta: q.classQuestDelta || 50, affectedStudents: [...new Set([...(s.affectedStudents || []), ...(g.affectedStudents || [])])], description: `Celestial convergence! +50 Quest bonus, all members gain +1 star & +50 gold, and the guild earns +100 Glory!` }; } },
     { id: 'fates_reversal',     emoji: '🔄', label: "Fate's Reversal",    description: 'Swap weekly Glory with the nearest rival guild!',      rarity: 'mythic',    category: 'glory',  isPrismatic: true, effect: (ctx) => fatesReversal(ctx) },
     { id: 'shattered_mirror',   emoji: '🪞', label: 'Shattered Mirror',   description: 'Next positive wheel effect is halved!',               rarity: 'cursed',    category: 'negative', effect: (ctx) => applyShatteredMirror(ctx) },
-    { id: 'plague_of_doubt',    emoji: '🦠', label: 'Plague of Doubt',    description: 'ALL members lose 5 gold, guild -20 Glory, 0.75× for 1 day.', rarity: 'cursed', category: 'negative', effect: async (ctx) => { const g = await randomGold(ctx, ctx.memberCount, -5); const gl = await instantGlory(ctx, -20); const mod = await gloryMultiplier(ctx, 0.75, 1); return { gloryDelta: gl.gloryDelta + (g.gloryDelta || 0), goldDelta: g.goldDelta, modifierCreated: mod.modifierCreated, description: `Plague of doubt! All members lose 5 gold, the guild loses 20 Glory, and Glory generation is reduced for 1 day.` }; } },
+    { id: 'plague_of_doubt',    emoji: '🦠', label: 'Plague of Doubt',    description: 'ALL members lose 5 gold, guild -20 Glory, future star Glory events count 0.75× for 1 day.', rarity: 'cursed', category: 'negative', effect: async (ctx) => { const g = await randomGold(ctx, ctx.memberCount, -5); const gl = await instantGlory(ctx, -20); const mod = await gloryMultiplier(ctx, 0.75, 1); return { gloryDelta: gl.gloryDelta + (g.gloryDelta || 0), goldDelta: g.goldDelta, modifierCreated: mod.modifierCreated, description: `Plague of doubt! All members lose 5 gold, the guild loses 20 Glory, and future star Glory events count 0.75x for 1 day.` }; } },
 ];
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -160,6 +161,9 @@ function _hasActiveShield(guildId) {
 }
 
 async function instantGlory(ctx, amount) {
+    if (amount > 0 && Number(ctx.effectScale) > 0 && Number(ctx.effectScale) < 1) {
+        amount = Math.floor(amount * Number(ctx.effectScale));
+    }
     if (amount < 0 && _hasActiveShield(ctx.guildId)) {
         return { gloryDelta: 0, description: 'Glory Shield blocked the penalty!' };
     }
@@ -168,15 +172,22 @@ async function instantGlory(ctx, amount) {
 }
 
 async function gloryMultiplier(ctx, factor, days) {
+    if (factor > 1 && Number(ctx.effectScale) > 0 && Number(ctx.effectScale) < 1) {
+        factor = Math.round((1 + ((factor - 1) * Number(ctx.effectScale))) * 100) / 100;
+    }
     const expiresAt = Date.now() + days * 24 * 60 * 60 * 1000;
     const label = factor < 1
-        ? `Fortune's Wheel: ${factor}× Glory (${days}d)`
-        : `Fortune's Wheel: ${factor}× Glory (${days}d)`;
+        ? `Fortune's Wheel: ${factor}x star Glory events (${days}d)`
+        : `Fortune's Wheel: ${factor}x star Glory events (${days}d)`;
     await applyGloryModifier(ctx.guildId, { type: 'multiply', factor, expiresAt, label, createdAt: Date.now() });
-    return { gloryDelta: 0, modifierCreated: { type: 'multiply', factor, expiresAt, label }, description: `${factor}× Glory for ${days} day${days > 1 ? 's' : ''}!` };
+    return { gloryDelta: 0, modifierCreated: { type: 'multiply', factor, expiresAt, label }, description: `Future star Glory events count ${factor}x for ${days} day${days > 1 ? 's' : ''}!` };
 }
 
 async function bonusPerStar(ctx, amount, charges) {
+    if (amount > 0 && Number(ctx.effectScale) > 0 && Number(ctx.effectScale) < 1) {
+        amount = Math.floor(amount * Number(ctx.effectScale));
+    }
+    if (amount <= 0) return { gloryDelta: 0, description: 'Shattered Mirror dissolved the bonus Glory boon before it could attach.' };
     const expiresAt = Date.now() + 7 * 24 * 60 * 60 * 1000;
     const label = `Fortune's Wheel: +${amount} Glory/star (${charges} charges)`;
     await applyGloryModifier(ctx.guildId, { type: 'bonus_per_star', amount, expiresAt, label, charges, createdAt: Date.now() });
@@ -184,6 +195,10 @@ async function bonusPerStar(ctx, amount, charges) {
 }
 
 async function bonusPerStarTimed(ctx, amount, days) {
+    if (amount > 0 && Number(ctx.effectScale) > 0 && Number(ctx.effectScale) < 1) {
+        amount = Math.floor(amount * Number(ctx.effectScale));
+    }
+    if (amount <= 0) return { gloryDelta: 0, description: 'Shattered Mirror dissolved the bonus Glory boon before it could attach.' };
     const expiresAt = Date.now() + days * 24 * 60 * 60 * 1000;
     const label = `Fortune's Wheel: +${amount} Glory/star (${days}d)`;
     await applyGloryModifier(ctx.guildId, { type: 'bonus_per_star', amount, expiresAt, label, createdAt: Date.now() });
@@ -254,6 +269,9 @@ async function gloryHeist(ctx, fraction) {
 }
 
 async function allGuildsGlory(ctx, amount) {
+    if (amount > 0 && Number(ctx.effectScale) > 0 && Number(ctx.effectScale) < 1) {
+        amount = Math.floor(amount * Number(ctx.effectScale));
+    }
     for (const gid of GUILD_IDS) {
         await adjustGuildGlory(gid, amount, 'wheel_all');
     }
@@ -277,6 +295,10 @@ async function allGuildsTax(ctx, fraction) {
 async function randomStars(ctx, count, amount) {
     const members = ctx.guildStudents || [];
     if (members.length === 0) return { gloryDelta: 0, description: 'No students were present for this guild.' };
+    if (amount > 0 && Number(ctx.effectScale) > 0 && Number(ctx.effectScale) < 1) {
+        amount = Math.floor(amount * Number(ctx.effectScale));
+        if (amount <= 0) return { gloryDelta: 0, starsDelta: 0, affectedStudents: [], description: 'Shattered Mirror reduced the star blessing to a harmless sparkle.' };
+    }
 
     const outcome = await applyWheelStudentEffects({
         classId: ctx.classId,
@@ -287,20 +309,28 @@ async function randomStars(ctx, count, amount) {
     });
 
     if (outcome.affectedStudents?.length) {
+        let gloryDelta = 0;
         if (amount > 0) {
-            for (const sid of outcome.affectedStudents) await updateGuildScores(sid, amount);
+            for (const sid of outcome.affectedStudents) {
+                const event = await updateGuildScores(sid, amount, 'wheel_star_blessing');
+                gloryDelta += Number(event?.totalGloryDelta) || 0;
+            }
             await checkBountyProgress(ctx.classId, amount * outcome.affectedStudents.length);
         } else if (amount < 0) {
-            for (const sid of outcome.affectedStudents) await adjustGuildScoresForWheel(sid, amount);
+            for (const sid of outcome.affectedStudents) {
+                const event = await adjustGuildScoresForWheel(sid, amount);
+                gloryDelta += Number(event?.totalGloryDelta) || 0;
+            }
         }
         await checkAndRecordQuestCompletion(ctx.classId).catch(() => {});
+        outcome.gloryDelta = gloryDelta;
     }
 
     const affected = members.filter(s => outcome.affectedStudents.includes(s.id));
     const names = affected.map(s => s.name).join(', ');
 
     return {
-        gloryDelta: 0,
+        gloryDelta: Number(outcome.gloryDelta) || 0,
         ...outcome,
         description: count >= members.length
             ? `All ${members.length} guild members ${amount >= 0 ? `gain ${amount} star` : `lose ${Math.abs(amount)} star`}!`
@@ -311,6 +341,10 @@ async function randomStars(ctx, count, amount) {
 async function randomGold(ctx, count, amount) {
     const members = ctx.guildStudents || [];
     if (members.length === 0) return { gloryDelta: 0, description: 'No students were present for this guild.' };
+    if (amount > 0 && Number(ctx.effectScale) > 0 && Number(ctx.effectScale) < 1) {
+        amount = Math.floor(amount * Number(ctx.effectScale));
+        if (amount <= 0) return { gloryDelta: 0, goldDelta: 0, affectedStudents: [], description: 'Shattered Mirror reduced the gold blessing to a harmless glimmer.' };
+    }
 
     const outcome = await applyWheelStudentEffects({
         classId: ctx.classId,
@@ -369,15 +403,17 @@ async function teachersFavor(ctx) {
     });
 
     const sid = outcome.affectedStudents?.[0];
+    let gloryDelta = 0;
     if (sid) {
-        await updateGuildScores(sid, 2);
+        const event = await updateGuildScores(sid, 2, 'wheel_teachers_favor');
+        gloryDelta = Number(event?.totalGloryDelta) || 0;
         await checkBountyProgress(ctx.classId, 2);
         await checkAndRecordQuestCompletion(ctx.classId).catch(() => {});
     }
 
     const student = members.find(s => s.id === sid);
     return {
-        gloryDelta: 0,
+        gloryDelta,
         ...outcome,
         description: student ? `${student.name} receives +2 stars and +30 gold from the Teacher's Favor!` : `A student receives +2 stars and +30 gold from the Teacher's Favor!`
     };
@@ -430,6 +466,10 @@ async function randomArtifactLoss(ctx, studentCount, removeCountPerStudent) {
 }
 
 async function classQuestBonus(ctx, delta) {
+    if (delta > 0 && Number(ctx.effectScale) > 0 && Number(ctx.effectScale) < 1) {
+        delta = Math.floor(delta * Number(ctx.effectScale));
+        if (delta <= 0) return { gloryDelta: 0, classQuestDelta: 0, description: 'Shattered Mirror reduced the quest blessing to a harmless shimmer.' };
+    }
     const outcome = await applyClassQuestBonusDelta(ctx.classId, delta, 'Wheel quest effect');
     if (outcome.classQuestDelta) await checkAndRecordQuestCompletion(ctx.classId).catch(() => {});
     return {
@@ -499,13 +539,17 @@ async function phoenixRise(ctx) {
     const allGuildScores = state.get('allGuildScores') || {};
     const gData = allGuildScores[ctx.guildId] || {};
     const weeklyGlory = Number(gData.weeklyGlory) || 0;
-    const amount = weeklyGlory < 50 ? 100 : 40;
+    let amount = weeklyGlory < 50 ? 100 : 40;
+    if (amount > 0 && Number(ctx.effectScale) > 0 && Number(ctx.effectScale) < 1) {
+        amount = Math.floor(amount * Number(ctx.effectScale));
+    }
     await adjustGuildGlory(ctx.guildId, amount, 'wheel_phoenix_rise');
     return { gloryDelta: amount, description: weeklyGlory < 50 ? `Phoenix rises from the ashes! +100 Glory!` : `Phoenix grants +40 Glory.` };
 }
 
 async function echoesOfGlory(ctx) {
-    await adjustGuildGlory(ctx.guildId, 25, 'wheel_echoes');
+    const gloryAmount = Number(ctx.effectScale) > 0 && Number(ctx.effectScale) < 1 ? Math.floor(25 * Number(ctx.effectScale)) : 25;
+    await adjustGuildGlory(ctx.guildId, gloryAmount, 'wheel_echoes');
     // Find the best active multiply or bonus_per_star modifier and echo it
     const allGuildScores = state.get('allGuildScores') || {};
     const gData = allGuildScores[ctx.guildId] || {};
@@ -521,10 +565,10 @@ async function echoesOfGlory(ctx) {
         const expiresAt = Date.now() + 1 * 24 * 60 * 60 * 1000;
         const echoMod = { ...bestMod, expiresAt, createdAt: Date.now(), label: `Echo: ${bestMod.label || bestMod.type} (1d)` };
         await applyGloryModifier(ctx.guildId, echoMod);
-        return { gloryDelta: 25, modifierCreated: echoMod, description: `+25 Glory and your best modifier (${bestMod.label || bestMod.type}) echoes for 1 more day!` };
+        return { gloryDelta: gloryAmount, modifierCreated: echoMod, description: `+${gloryAmount} Glory and your best modifier (${bestMod.label || bestMod.type}) echoes for 1 more day!` };
     }
 
-    return { gloryDelta: 25, description: '+25 Glory! No active modifier to echo, but the glory is yours.' };
+    return { gloryDelta: gloryAmount, description: `+${gloryAmount} Glory! No active modifier to echo, but the glory is yours.` };
 }
 
 async function sovereignsBoon(ctx) {
@@ -535,9 +579,9 @@ async function sovereignsBoon(ctx) {
 
     if (activeMods.length === 0) {
         // Fallback: give a 1.5× multiplier for 3 days if no active modifiers
-        const fallbackMod = { type: 'multiply', factor: 1.5, expiresAt: Date.now() + 3 * 24 * 60 * 60 * 1000, label: "Sovereign's Boon: 1.5× Glory (3d)", createdAt: Date.now() };
+        const fallbackMod = { type: 'multiply', factor: 1.5, expiresAt: Date.now() + 3 * 24 * 60 * 60 * 1000, label: "Sovereign's Boon: 1.5x star Glory events (3d)", createdAt: Date.now() };
         await applyGloryModifier(ctx.guildId, fallbackMod);
-        return { gloryDelta: 0, modifierCreated: fallbackMod, description: "No active modifiers to extend — instead, the Sovereign grants 1.5× Glory for 3 days!" };
+        return { gloryDelta: 0, modifierCreated: fallbackMod, description: "No active modifiers to extend - instead, future star Glory events count 1.5x for 3 days!" };
     }
 
     // Extend the best active modifier by 3 days
@@ -724,6 +768,10 @@ export async function applyWheelResult(guildId, segment, classId) {
     const guildStudents = allStudents.filter(s => s.guildId === guildId && s.classId === classId);
     const allGuildScores = state.get('allGuildScores') || {};
     const gData = allGuildScores[guildId] || {};
+    const modifiers = Array.isArray(gData.gloryModifiers) ? gData.gloryModifiers : [];
+    const mirrorIdx = segment.category !== 'negative'
+        ? modifiers.findIndex(m => m.type === 'shattered_mirror' && m.expiresAt > Date.now())
+        : -1;
 
     const ctx = {
         guildId,
@@ -731,29 +779,20 @@ export async function applyWheelResult(guildId, segment, classId) {
         guildStudents,
         memberCount: guildStudents.length || 1,
         weeklyGlory: Number(gData.weeklyGlory) || 0,
+        effectScale: mirrorIdx !== -1 ? 0.5 : 1,
     };
 
     try {
         const result = await segment.effect(ctx);
 
-        // Check for shattered mirror: halve positive effects and consume the modifier
-        if (segment.category !== 'negative' && result) {
-            const modifiers = gData.gloryModifiers || [];
-            const mirrorIdx = modifiers.findIndex(m => m.type === 'shattered_mirror' && m.expiresAt > Date.now());
-            if (mirrorIdx !== -1) {
-                // Halve positive glory delta
-                if (result.gloryDelta > 0) result.gloryDelta = Math.floor(result.gloryDelta / 2);
-                if (result.goldDelta > 0) result.goldDelta = Math.floor((result.goldDelta || 0) / 2);
-                if (result.starsDelta > 0) result.starsDelta = Math.floor((result.starsDelta || 0) / 2);
-                if (result.classQuestDelta > 0) result.classQuestDelta = Math.floor((result.classQuestDelta || 0) / 2);
-                // Remove the shattered mirror modifier (consumed)
-                const updatedModifiers = [...modifiers];
-                updatedModifiers.splice(mirrorIdx, 1);
-                const updatedScores = { ...gData, gloryModifiers: updatedModifiers };
-                const allScores = { ...allGuildScores, [guildId]: updatedScores };
-                state.setAllGuildScores(allScores);
-                result.description = `🪞 Shattered Mirror halved this effect! ${result.description}`;
-            }
+        if (mirrorIdx !== -1 && result) {
+            const updatedModifiers = [...modifiers];
+            updatedModifiers.splice(mirrorIdx, 1);
+            const updatedScores = { ...gData, gloryModifiers: updatedModifiers };
+            const allScores = { ...allGuildScores, [guildId]: updatedScores };
+            state.setAllGuildScores(allScores);
+            updateDoc(doc(db, 'artifacts/great-class-quest/public/data/guild_scores', guildId), { gloryModifiers: updatedModifiers }).catch(console.error);
+            result.description = `🪞 Shattered Mirror halved this effect before it was applied. ${result.description}`;
         }
 
         return {

@@ -10,8 +10,8 @@ export const FEATURE_DEFINITIONS = {
         emoji: '🏰',
         description: 'Full Guild system and sorting quiz',
         tier: 'Pro',
-        teacherExplain: 'Split your class into four Guilds — Dragon Flame, Grizzly Might, Owl Wisdom, and Phoenix Rising — and run a magical sorting quiz to assign them. Every star students earn goes to their Guild\'s total, creating exciting team competition that makes even shy students invest in class participation. You can see guild standings, run Guild ceremonies, and celebrate champions together. 🏆',
-        studentExplain: 'You belong to a Guild — your House in the Quest world! 🏰 Everything you do earns points for your team. Compete together, celebrate together, and fight for the top spot on the Guild leaderboard!'
+        teacherExplain: 'Split your class into four Guilds — Dragon Flame, Grizzly Might, Owl Wisdom, and Phoenix Rising — and run a magical sorting quiz to assign them. Stars, boons, shop relics, quizzes, and Fortune\'s Wheel write auditable Guild Glory, and Guild Power compares guilds fairly per member so team size does not decide the winner. 🏆',
+        studentExplain: 'You belong to a Guild — your House in the Quest world! 🏰 Your stars and special rewards build Guild Glory for your team. Guild Power compares teams fairly, so every hero matters no matter how big the guild is!'
     },
     calendar: {
         name: 'Calendar & Day Planner',

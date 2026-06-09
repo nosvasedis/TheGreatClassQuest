@@ -1688,7 +1688,7 @@ async function inspectFirebaseServices(projectId, serviceAccount) {
 
 function loadRequiredIndexes() {
   const raw = readJson(firestoreIndexesPath);
-  return (raw.indexes || []).map((index) => ({
+  const indexes = (raw.indexes || []).map((index) => ({
     collectionGroup: index.collectionGroup,
     queryScope: index.queryScope || 'COLLECTION',
     fields: (index.fields || []).map((field) => ({
@@ -1697,6 +1697,108 @@ function loadRequiredIndexes() {
       ...(field.arrayConfig ? { arrayConfig: field.arrayConfig } : {}),
     })),
   }));
+  assertActiveYearQueryIndexesPresent(indexes);
+  return indexes;
+}
+
+const ACTIVE_YEAR_QUERY_INDEX_SPECS = [
+  {
+    collectionGroup: 'attendance',
+    queryScope: 'COLLECTION',
+    fields: [
+      { fieldPath: 'schoolYearKey', order: 'ASCENDING' },
+      { fieldPath: 'createdAt', order: 'ASCENDING' },
+    ],
+  },
+  {
+    collectionGroup: 'written_scores',
+    queryScope: 'COLLECTION',
+    fields: [
+      { fieldPath: 'schoolYearKey', order: 'ASCENDING' },
+      { fieldPath: 'date', order: 'DESCENDING' },
+    ],
+  },
+  {
+    collectionGroup: 'quest_assignments',
+    queryScope: 'COLLECTION',
+    fields: [
+      { fieldPath: 'schoolYearKey', order: 'ASCENDING' },
+      { fieldPath: 'createdBy.uid', order: 'ASCENDING' },
+    ],
+  },
+  {
+    collectionGroup: 'hero_chronicle_notes',
+    queryScope: 'COLLECTION',
+    fields: [
+      { fieldPath: 'schoolYearKey', order: 'ASCENDING' },
+      { fieldPath: 'teacherId', order: 'ASCENDING' },
+    ],
+  },
+  {
+    collectionGroup: 'quest_bounties',
+    queryScope: 'COLLECTION',
+    fields: [
+      { fieldPath: 'schoolYearKey', order: 'ASCENDING' },
+      { fieldPath: 'createdBy.uid', order: 'ASCENDING' },
+    ],
+  },
+  {
+    collectionGroup: 'shop_items',
+    queryScope: 'COLLECTION',
+    fields: [
+      { fieldPath: 'schoolYearKey', order: 'ASCENDING' },
+      { fieldPath: 'teacherId', order: 'ASCENDING' },
+    ],
+  },
+  {
+    collectionGroup: 'completed_stories',
+    queryScope: 'COLLECTION',
+    fields: [
+      { fieldPath: 'schoolYearKey', order: 'ASCENDING' },
+      { fieldPath: 'completedAt', order: 'DESCENDING' },
+    ],
+  },
+  {
+    collectionGroup: 'award_log',
+    queryScope: 'COLLECTION',
+    fields: [
+      { fieldPath: 'schoolYearKey', order: 'ASCENDING' },
+      { fieldPath: 'studentId', order: 'ASCENDING' },
+      { fieldPath: 'reason', order: 'ASCENDING' },
+    ],
+  },
+];
+
+function formatRequiredIndexLabel(index = {}) {
+  const fields = (index.fields || []).map((field) => field.fieldPath).join(', ');
+  return `${index.collectionGroup} (${fields})`;
+}
+
+function findMatchingRequiredIndex(requiredIndexes, spec) {
+  const specKey = normalizeIndexForLookup(spec);
+  return requiredIndexes.find((index) => normalizeIndexForLookup(index) === specKey) || null;
+}
+
+function assertActiveYearQueryIndexesPresent(requiredIndexes) {
+  const missing = ACTIVE_YEAR_QUERY_INDEX_SPECS.filter(
+    (spec) => !findMatchingRequiredIndex(requiredIndexes, spec),
+  );
+  if (missing.length === 0) return requiredIndexes;
+  throw new Error(
+    `firestore.indexes.json is missing ${missing.length} active-year startup index(es): ${missing
+      .map(formatRequiredIndexLabel)
+      .join('; ')}`,
+  );
+}
+
+function getActiveYearQueryIndexes(requiredIndexes = loadRequiredIndexes()) {
+  return ACTIVE_YEAR_QUERY_INDEX_SPECS.map((spec) => {
+    const match = findMatchingRequiredIndex(requiredIndexes, spec);
+    if (!match) {
+      throw new Error(`Missing active-year startup index: ${formatRequiredIndexLabel(spec)}`);
+    }
+    return match;
+  });
 }
 
 function normalizeIndex(index) {
@@ -2040,7 +2142,7 @@ function summarizeIndexCheck(indexReport) {
       'checkIndexes',
       'needs_attention',
       'Check Firestore indexes',
-      `${indexReport.missingCount} required Firestore indexes are still missing.`,
+      `${indexReport.missingCount} required Firestore indexes are still missing (including active-year startup indexes from firestore.indexes.json).`,
       {
         actionHint: 'Run the automatic setup to create the missing indexes for you.',
         technicalDetails: JSON.stringify(indexReport.compared, null, 2),
@@ -3239,6 +3341,10 @@ module.exports = {
   inspectRulesRelease,
   deployRulesRelease,
   loadRequiredIndexes,
+  ACTIVE_YEAR_QUERY_INDEX_SPECS,
+  getActiveYearQueryIndexes,
+  findMatchingRequiredIndex,
+  formatRequiredIndexLabel,
   normalizeIndex,
   compareRequiredIndexes,
   formatHostedEnvironmentVariables,

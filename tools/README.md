@@ -21,7 +21,7 @@ This is the main noob-friendly setup quest. It:
 - checks that Cloud Firestore is enabled
 - deploys the repo's Firestore rules
 - writes the school subscription as `pending`
-- checks and creates Firestore indexes
+- checks and creates Firestore indexes from `firestore.indexes.json` (including active-year startup indexes used after year close)
 - checks Firebase Storage and deploys Storage rules when a bucket exists
 - rebuilds the Render billing JSON
 - prepares the hosting values for Netlify, GitHub Pages, and Cloudflare Pages

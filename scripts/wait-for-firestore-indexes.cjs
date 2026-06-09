@@ -1,8 +1,12 @@
 #!/usr/bin/env node
 
-const fs = require('fs');
 const path = require('path');
 const { spawnSync } = require('child_process');
+const {
+  compareRequiredIndexes,
+  formatRequiredIndexLabel,
+  getActiveYearQueryIndexes,
+} = require('../tools/onboarding-console/lib.js');
 
 const repoRoot = path.resolve(__dirname, '..');
 const projectId = process.env.FIREBASE_PROJECT || 'the-great-class-quest';
@@ -16,17 +20,6 @@ const firebaseBin = path.join(
   'bin',
   'firebase.js',
 );
-
-const TARGET_INDEXES = [
-  { collectionGroup: 'attendance', fields: ['schoolYearKey', 'createdAt'] },
-  { collectionGroup: 'written_scores', fields: ['schoolYearKey', 'date'] },
-  { collectionGroup: 'quest_assignments', fields: ['schoolYearKey', 'createdBy.uid'] },
-  { collectionGroup: 'hero_chronicle_notes', fields: ['schoolYearKey', 'teacherId'] },
-  { collectionGroup: 'quest_bounties', fields: ['schoolYearKey', 'createdBy.uid'] },
-  { collectionGroup: 'shop_items', fields: ['schoolYearKey', 'teacherId'] },
-  { collectionGroup: 'completed_stories', fields: ['schoolYearKey', 'completedAt'] },
-  { collectionGroup: 'award_log', fields: ['schoolYearKey', 'studentId', 'reason'] },
-];
 
 function sleep(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
@@ -56,12 +49,13 @@ function parsePrettyLine(line) {
 }
 
 function findTargetState(lines, target) {
+  const targetFields = target.fields.map((field) => field.fieldPath);
   for (const line of lines) {
     const parsed = parsePrettyLine(line);
     if (!parsed) continue;
     if (parsed.collectionGroup !== target.collectionGroup) continue;
-    if (parsed.fields.length !== target.fields.length) continue;
-    if (parsed.fields.every((field, index) => field === target.fields[index])) {
+    if (parsed.fields.length !== targetFields.length) continue;
+    if (parsed.fields.every((field, index) => field === targetFields[index])) {
       return parsed.state;
     }
   }
@@ -69,9 +63,11 @@ function findTargetState(lines, target) {
 }
 
 async function main() {
+  const targets = getActiveYearQueryIndexes();
+
   for (let attempt = 1; attempt <= maxAttempts; attempt++) {
     const lines = listPrettyIndexLines();
-    const statuses = TARGET_INDEXES.map((target) => ({
+    const statuses = targets.map((target) => ({
       target,
       state: findTargetState(lines, target),
     }));
@@ -81,13 +77,11 @@ async function main() {
       `[indexes] attempt ${attempt}/${maxAttempts}: ready=${statuses.length - pending.length}/${statuses.length}, pending=${pending.length}`,
     );
     for (const item of statuses) {
-      console.log(
-        `  - ${item.target.collectionGroup} [${item.target.fields.join(', ')}]: ${item.state}`,
-      );
+      console.log(`  - ${formatRequiredIndexLabel(item.target)}: ${item.state}`);
     }
 
     if (pending.length === 0) {
-      console.log('All target Firestore indexes are ready.');
+      console.log('All active-year startup Firestore indexes are ready.');
       return;
     }
 
@@ -96,7 +90,7 @@ async function main() {
     }
   }
 
-  throw new Error('Timed out waiting for Firestore indexes to become READY.');
+  throw new Error('Timed out waiting for active-year startup Firestore indexes to become READY.');
 }
 
 main().catch((error) => {

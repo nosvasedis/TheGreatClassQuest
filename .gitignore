@@ -25,12 +25,16 @@ build/
 .env.test.local
 .env.production.local
 
-# Reasonix agent config and skills
+# Local AI / agent tooling (never commit)
 .reasonix/
 reasonix/
-
-# Cursor / Trae scratch docs (plans, etc.)
-.trae/documents/
+.codegraph/
+.trae/
+.cursor/
+.codex/
+.claude/
+.windsurf/
+.wrangler/
 
 # IDEs
 .vscode/
@@ -45,6 +49,10 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 rg.exe
+ngrok
+NGROK_SETUP.txt
+artifacts/screenshots/
+scratch/*.txt
 
 # All guides and docs (private; do not push to GitHub)
 docs/

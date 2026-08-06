@@ -8,9 +8,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
-  pages: write
-  id-token: write
+  contents: write
 
 concurrency:
   group: github-pages
@@ -47,9 +45,6 @@ jobs:
           distribution: temurin
           java-version: "21"
 
-      - name: Configure Pages
-        uses: actions/configure-pages@v6
-
       - name: Install dependencies
         run: npm ci --no-audit --no-fund --loglevel=error
 
@@ -68,27 +63,19 @@ jobs:
           test -f dist/index.html
           echo "dist directory ready for upload"
 
-      - name: Upload Pages artifact
-        uses: actions/upload-pages-artifact@v5
-        with:
-          path: dist
-
-  deploy:
-    needs: build
-    runs-on: ubuntu-latest
-    env:
-      # deploy-pages v5 currently reaches Node's legacy punycode shim internally.
-      # Suppress only that upstream runtime deprecation; all other warnings remain visible.
-      NODE_OPTIONS: --disable-warning=DEP0040
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
-    steps:
-      - name: Deploy to GitHub Pages
-        id: deployment
-        uses: actions/deploy-pages@v5
-        with:
-          # GitHub Pages can remain queued for several minutes before publishing
-          # starts. Keep the official action alive long enough for that backend
-          # queue plus the actual deployment to finish.
-          timeout: 1800000
+      - name: Publish static site branch
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          deploy_dir="${RUNNER_TEMP}/great-class-quest-pages"
+          mkdir -p "$deploy_dir"
+          cp -R dist/. "$deploy_dir/"
+          touch "$deploy_dir/.nojekyll"
+          git -C "$deploy_dir" init
+          git -C "$deploy_dir" checkout -b gh-pages
+          git -C "$deploy_dir" config user.name "github-actions[bot]"
+          git -C "$deploy_dir" config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git -C "$deploy_dir" add --all
+          git -C "$deploy_dir" commit -m "Deploy ${GITHUB_SHA}"
+          git -C "$deploy_dir" remote add origin "https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
+          git -C "$deploy_dir" push --force origin gh-pages

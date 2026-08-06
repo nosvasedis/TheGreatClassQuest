@@ -65,25 +65,25 @@ export const leaderboardTabHTML = `
 
             <div id="student-leaderboard-tab" class="app-tab hidden">
                 <!-- FAB — LEFT CORNER -->
-                <div class="hc-fab-cluster hc-fab-cluster--left">
+                <div class="hc-fab-cluster tab-fab-cluster tab-fab-cluster--left">
                     <button id="open-prodigy-btn"
                         type="button"
                         disabled
-                        class="hc-fab bubbly-button"
+                        class="hc-fab tab-fab bubbly-button tab-fab--left"
                         style="background: linear-gradient(135deg, #7c3aed 0%, #9333ea 55%, #c026d3 100%); border: 2px solid rgba(196, 181, 253, 0.75); color: white;">
-                        <i class="fas fa-crown hc-fab-icon"></i>
-                        <span class="hc-fab-label">Hall of Prodigies</span>
+                        <i class="fas fa-crown hc-fab-icon tab-fab-icon"></i>
+                        <span class="hc-fab-label tab-fab-label">Hall of Prodigies</span>
                     </button>
                 </div>
                 <!-- FAB — RIGHT CORNER -->
-                <div class="hc-fab-cluster hc-fab-cluster--right">
+                <div class="hc-fab-cluster tab-fab-cluster tab-fab-cluster--right">
                     <button id="open-trophy-room-btn"
                         type="button"
                         disabled
-                        class="hc-fab hc-fab--right bubbly-button"
+                        class="hc-fab tab-fab hc-fab--right bubbly-button tab-fab--right"
                         style="background: linear-gradient(135deg, #f59e0b 0%, #f97316 55%, #ea580c 100%); border: 2px solid rgba(253, 186, 116, 0.75); color: white;">
-                        <i class="fas fa-trophy hc-fab-icon"></i>
-                        <span class="hc-fab-label">Trophy Room</span>
+                        <i class="fas fa-trophy hc-fab-icon tab-fab-icon"></i>
+                        <span class="hc-fab-label tab-fab-label">Trophy Room</span>
                     </button>
                 </div>
 

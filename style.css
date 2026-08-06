@@ -68,6 +68,9 @@
 /* 15. Scholar's Scroll: starfall, chart bars, trial history, bulk-log */
 @import url('./styles/scholar.css');
 
+/* Shared floating action button chrome used by the main app tabs. */
+@import url('./styles/floating_actions.css');
+
 /* 16. Overview modal stat cards, overview-tab-btn */
 @import url('./styles/overview.css');
 

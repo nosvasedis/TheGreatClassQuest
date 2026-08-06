@@ -6,24 +6,24 @@ export const logTabHTML = `
                      FLOATING ACTION BUTTONS (Left & Right)
                      ═════════════════════════════════════════════════════════════════ -->
                 <!-- FAB — LEFT CORNER (Quest Assignment) -->
-                <div class="al-fab-cluster al-fab-cluster--left">
+                <div class="al-fab-cluster tab-fab-cluster tab-fab-cluster--left">
                     <button id="quest-assignment-fab"
-                        class="al-fab bubbly-button al-fab--left"
+                        class="al-fab tab-fab bubbly-button tab-fab--left"
                         style="background: linear-gradient(135deg, #0d9488 0%, #14b8a6 55%, #06b6d4 100%); border: 2px solid rgba(94, 234, 212, 0.75); color: white;"
                         title="Quest Assignment">
-                        <i class="fas fa-clipboard-list al-fab-icon"></i>
-                        <span class="al-fab-label">Quest Assignment</span>
+                        <i class="fas fa-clipboard-list al-fab-icon tab-fab-icon"></i>
+                        <span class="al-fab-label tab-fab-label">Quest Assignment</span>
                     </button>
                 </div>
 
                 <!-- FAB — RIGHT CORNER (Attendance) -->
-                <div class="al-fab-cluster al-fab-cluster--right">
+                <div class="al-fab-cluster tab-fab-cluster tab-fab-cluster--right">
                     <button id="attendance-fab"
-                        class="al-fab bubbly-button al-fab--right"
+                        class="al-fab tab-fab bubbly-button tab-fab--right"
                         style="background: linear-gradient(135deg, #f97316 0%, #fb923c 55%, #f59e0b 100%); border: 2px solid rgba(253, 186, 116, 0.75); color: white;"
                         title="Attendance">
-                        <i class="fas fa-user-check al-fab-icon"></i>
-                        <span class="al-fab-label">Attendance</span>
+                        <i class="fas fa-user-check al-fab-icon tab-fab-icon"></i>
+                        <span class="al-fab-label tab-fab-label">Attendance</span>
                     </button>
                 </div>
 

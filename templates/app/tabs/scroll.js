@@ -2,21 +2,21 @@
 
 export const scrollTabHTML = `
             <div id="scholars-scroll-tab" class="app-tab hidden">
-                <div class="ss-fab-cluster ss-fab-cluster--left" aria-hidden="true">
+                <div class="ss-fab-cluster tab-fab-cluster tab-fab-cluster--left">
                     <button id="view-trial-history-fab"
-                        class="ss-fab ss-fab--left bg-gradient-to-br from-sky-600 via-blue-500 to-indigo-500 text-white border-sky-300/70"
+                        class="ss-fab tab-fab tab-fab--left bubbly-button bg-gradient-to-br from-sky-600 via-blue-500 to-indigo-500 text-white border-sky-300/70"
                         disabled>
-                        <span class="ss-fab-icon"><i class="fas fa-history"></i></span>
-                        <span class="ss-fab-label">View History</span>
+                        <i class="fas fa-history tab-fab-icon"></i>
+                        <span class="ss-fab-label tab-fab-label">View History</span>
                     </button>
                 </div>
 
-                <div class="ss-fab-cluster ss-fab-cluster--right" aria-hidden="true">
+                <div class="ss-fab-cluster tab-fab-cluster tab-fab-cluster--right">
                     <button id="log-trial-fab"
-                        class="ss-fab ss-fab--right bg-gradient-to-br from-pink-600 via-rose-500 to-fuchsia-500 text-white border-pink-300/70"
+                        class="ss-fab tab-fab tab-fab--right bubbly-button bg-gradient-to-br from-pink-600 via-rose-500 to-fuchsia-500 text-white border-pink-300/70"
                         disabled>
-                        <span class="ss-fab-icon"><i class="fas fa-feather-alt"></i></span>
-                        <span class="ss-fab-label">Log New Trial</span>
+                        <i class="fas fa-feather-alt tab-fab-icon"></i>
+                        <span class="ss-fab-label tab-fab-label">Log New Trial</span>
                     </button>
                 </div>
 

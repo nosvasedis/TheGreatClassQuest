@@ -331,7 +331,7 @@ export function showLeaguePicker(options = {}) {
     list.classList.remove('is-selecting');
     const chunks = [];
     if (scope === 'leaderboard') {
-        chunks.push(`<button type="button" class="league-match-active-btn w-full col-span-2 p-3 font-title text-base text-emerald-900 bg-gradient-to-r from-emerald-50 to-teal-50 rounded-xl shadow border-2 border-emerald-200 transition hover:from-emerald-100 hover:to-teal-100 bubbly-button">
+        chunks.push(`<button type="button" class="league-match-active-btn w-full col-span-2 md:col-span-4 p-3 font-title text-base text-emerald-900 bg-gradient-to-r from-emerald-50 to-teal-50 rounded-xl shadow border-2 border-emerald-200 transition hover:from-emerald-100 hover:to-teal-100 bubbly-button">
             <i class="fas fa-link text-emerald-600 mr-2"></i>Use active class&rsquo;s league
         </button>`);
     }

@@ -86,7 +86,7 @@ test('sorting quiz uses dedicated early pools and senior content for advanced le
   assert.equal(getQuestionsForLevel('Proficiency'), senior);
 });
 
-test('league picker is themed, repeatable, silent, and gives Proficiency the full row', () => {
+test('league picker is themed, repeatable, silent, and uses a wide desktop grid', () => {
   const picker = read('ui/modals/base.js');
   const pickerFunction = picker.slice(
     picker.indexOf('export function showLeaguePicker'),
@@ -95,6 +95,7 @@ test('league picker is themed, repeatable, silent, and gives Proficiency the ful
   assert.match(pickerFunction, /QUEST_LEAGUE_DEFINITIONS/);
   assert.match(pickerFunction, /definition\.name === 'Proficiency'/);
   assert.match(pickerFunction, /league-picker-option--wide col-span-2/);
+  assert.match(pickerFunction, /league-match-active-btn w-full col-span-2 md:col-span-4/);
   assert.match(pickerFunction, /league-picker-option__watermark/);
   assert.match(pickerFunction, /is-selected/);
   const unlockIndex = pickerFunction.indexOf("list.classList.remove('is-selecting')");
@@ -102,6 +103,10 @@ test('league picker is themed, repeatable, silent, and gives Proficiency the ful
   assert.ok(unlockIndex >= 0, 'reopening must clear the prior selection lock');
   assert.ok(unlockIndex < rebuildIndex, 'the prior selection lock must clear before rebuilding buttons');
   assert.doesNotMatch(pickerFunction, /playSound/);
+
+  const template = read('templates/modals/base.js');
+  assert.match(template, /league-picker-shell[^\n]+max-w-5xl/);
+  assert.match(template, /league-picker-list[^\n]+grid-cols-2 md:grid-cols-4/);
 
   const css = read('styles/modals.css');
   for (const theme of [

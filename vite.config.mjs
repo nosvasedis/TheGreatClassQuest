@@ -1,6 +1,6 @@
 import { execFileSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
-import { defineConfig } from 'vite';
+import { createLogger, defineConfig } from 'vite';
 
 const pkg = JSON.parse(readFileSync(new URL('./package.json', import.meta.url), 'utf8'));
 
@@ -17,10 +17,24 @@ function getBuildId() {
 }
 
 const buildId = getBuildId();
+const logger = createLogger();
+const warn = logger.warn.bind(logger);
+const warnOnce = logger.warnOnce.bind(logger);
+const isKnownBuildNotice = (message) => {
+  const text = String(message || '');
+  return text.includes('[INEFFECTIVE_DYNAMIC_IMPORT]') || text.includes('[PLUGIN_TIMINGS]');
+};
+logger.warn = (message, options) => {
+  if (!isKnownBuildNotice(message)) warn(message, options);
+};
+logger.warnOnce = (message, options) => {
+  if (!isKnownBuildNotice(message)) warnOnce(message, options);
+};
 
 export default defineConfig({
   base: './',
   publicDir: false,
+  customLogger: logger,
   define: {
     __GCQ_BUILD_ID__: JSON.stringify(buildId),
   },
@@ -37,5 +51,8 @@ export default defineConfig({
     sourcemap: false,
     manifest: true,
     cssCodeSplit: true,
+    // Feature chunks are loaded on demand; the largest remains below the
+    // project's tested 700 KiB lazy-chunk ceiling.
+    chunkSizeWarningLimit: 700,
   },
 });

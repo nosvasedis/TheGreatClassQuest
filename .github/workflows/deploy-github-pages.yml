@@ -51,7 +51,7 @@ jobs:
         uses: actions/configure-pages@v6
 
       - name: Install dependencies
-        run: npm ci
+        run: npm ci --no-audit --no-fund --loglevel=error
 
       - name: Verify behavior and production dependencies
         run: |
@@ -76,6 +76,10 @@ jobs:
   deploy:
     needs: build
     runs-on: ubuntu-latest
+    env:
+      # deploy-pages v5 currently reaches Node's legacy punycode shim internally.
+      # Suppress only that upstream runtime deprecation; all other warnings remain visible.
+      NODE_OPTIONS: --disable-warning=DEP0040
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}

@@ -87,3 +87,8 @@ jobs:
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v5
+        with:
+          # GitHub Pages can remain queued for several minutes before publishing
+          # starts. Keep the official action alive long enough for that backend
+          # queue plus the actual deployment to finish.
+          timeout: 1800000

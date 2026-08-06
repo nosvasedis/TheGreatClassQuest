@@ -166,6 +166,41 @@ export function showModal(title, message, onConfirm, confirmText = 'Confirm', ca
     showAnimatedModal('confirmation-modal');
 }
 
+export function showTypedConfirmationModal({ title, message, expectedText, onConfirm, confirmText = 'Delete permanently' }) {
+    const expected = String(expectedText || '');
+    const escapeHtml = (value) => String(value || '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+    const inputId = `typed-confirm-${Date.now()}`;
+    showModal(
+        title,
+        `${message}
+        <label for="${inputId}" class="mt-4 block text-left text-sm font-bold text-slate-700">
+            Type <code class="rounded bg-slate-100 px-1.5 py-0.5 text-rose-700">${escapeHtml(expected)}</code> to continue
+        </label>
+        <input id="${inputId}" type="text" autocomplete="off" spellcheck="false"
+            class="mt-2 w-full rounded-xl border border-slate-300 px-3 py-2 font-mono text-sm focus:border-rose-500 focus:outline-none focus:ring-2 focus:ring-rose-200">`,
+        onConfirm,
+        confirmText,
+        'Cancel'
+    );
+    const input = document.getElementById(inputId);
+    const confirmButton = document.getElementById('modal-confirm-btn');
+    if (!input || !confirmButton) return;
+    confirmButton.disabled = true;
+    confirmButton.classList.add('opacity-50', 'cursor-not-allowed');
+    input.addEventListener('input', () => {
+        const matches = input.value === expected;
+        confirmButton.disabled = !matches;
+        confirmButton.classList.toggle('opacity-50', !matches);
+        confirmButton.classList.toggle('cursor-not-allowed', !matches);
+    });
+    requestAnimationFrame(() => input.focus());
+}
+
 export function hideModal(modalId) {
     if (modalId === 'quest-update-modal' || modalId === 'storybook-viewer-modal') {
         const btn = modalId === 'quest-update-modal' ? document.getElementById('play-narrative-btn') : document.getElementById('storybook-viewer-play-btn');

@@ -10,6 +10,7 @@ import {
     getSchoolAssessmentDefaults,
     normalizeClassAssessmentConfig
 } from '../assessmentConfig.js';
+import { canUseFeature, getTier } from '../../utils/subscription.js';
 
 const ADMIN_AREAS = [
     {
@@ -35,6 +36,12 @@ const ADMIN_AREAS = [
     }
 ];
 
+function getAdminAreas() {
+    return canUseFeature('secretaryAccess')
+        ? ADMIN_AREAS
+        : ADMIN_AREAS.filter((area) => area.key !== 'grading');
+}
+
 function renderAdminHero() {
     return `
         <header class="secretary-admin-hero">
@@ -58,9 +65,10 @@ function renderAdminHero() {
 }
 
 function renderAdminNav(activeKey) {
+    const areas = getAdminAreas();
     return `
         <nav class="secretary-admin-nav" aria-label="Admin sections" role="tablist">
-            ${ADMIN_AREAS.map((area, index) => `
+            ${areas.map((area, index) => `
                 <button type="button"
                     class="secretary-admin-nav__item secretary-admin-nav__item--${area.accent}${activeKey === area.key ? ' is-active' : ''}"
                     data-secretary-admin-subtab="${area.key}"
@@ -98,6 +106,8 @@ function renderAdminSectionIntro(eyebrow, title, description, icon, accent) {
 function renderSchoolSettings() {
     const profile = state.get('currentUserProfile');
     const schoolName = state.get('schoolName') || 'Your School';
+    const tier = String(getTier() || 'starter');
+    const hasFullConsole = canUseFeature('secretaryAccess');
 
     return `
         <div class="secretary-admin-panel-content secretary-admin-panel-content--settings">
@@ -138,6 +148,25 @@ function renderSchoolSettings() {
                     </form>
                 </article>
 
+                <article class="role-card secretary-admin-card secretary-settings-card secretary-settings-card--identity">
+                    <div class="secretary-admin-card__header">
+                        <div class="secretary-admin-card__title-group">
+                            <span class="secretary-admin-card__icon secretary-admin-card__icon--sky" aria-hidden="true"><i class="fas fa-cloud-sun"></i></span>
+                            <div><p class="role-card__eyebrow">School identity</p><h3 class="role-card__title">Weather location</h3></div>
+                        </div>
+                    </div>
+                    <p class="secretary-admin-card__description">Choose the Greek city used by the school-wide weather display.</p>
+                    <div class="secretary-settings-form">
+                        <label class="role-field secretary-settings-form__field"><span>City or area</span>
+                            <input type="text" id="options-school-location-search" autocomplete="off" placeholder="e.g. Thessaloniki, Heraklion">
+                        </label>
+                        <button type="button" id="search-school-location-btn" class="role-btn-secondary"><i class="fas fa-search"></i> Search</button>
+                        <select id="options-school-location-results" class="hidden role-field"></select>
+                        <p id="options-school-location-status" class="text-xs text-gray-500">No weather location selected. Default Athens area is used.</p>
+                        <button type="button" id="save-school-location-btn" class="role-btn-primary"><i class="fas fa-map-marker-alt"></i> Save weather location</button>
+                    </div>
+                </article>
+
                 <article class="role-card secretary-admin-card secretary-settings-card secretary-settings-card--access">
                     <div class="secretary-admin-card__header">
                         <div class="secretary-admin-card__title-group">
@@ -166,6 +195,45 @@ function renderSchoolSettings() {
                 </article>
             </div>
 
+            <article class="role-card secretary-admin-card secretary-settings-card">
+                <div class="secretary-admin-card__header">
+                    <div class="secretary-admin-card__title-group">
+                        <span class="secretary-admin-card__icon secretary-admin-card__icon--amber" aria-hidden="true"><i class="fas fa-umbrella-beach"></i></span>
+                        <div><p class="role-card__eyebrow">School calendar</p><h3 class="role-card__title">Holidays and breaks</h3></div>
+                    </div>
+                </div>
+                <p class="secretary-admin-card__description">These periods apply to every teacher, class calendar, and lesson count.</p>
+                <div class="grid grid-cols-2 gap-3">
+                    <label class="role-field col-span-2"><span>Break name</span><input type="text" id="holiday-name" placeholder="e.g. Christmas Break"></label>
+                    <label class="role-field"><span>Start date</span><input type="date" id="holiday-start"></label>
+                    <label class="role-field"><span>End date</span><input type="date" id="holiday-end"></label>
+                    <label class="role-field col-span-2"><span>Theme</span><select id="holiday-type"><option value="christmas">Christmas / Winter</option><option value="easter">Easter / Spring</option><option value="generic">Generic / Other</option></select></label>
+                    <button type="button" id="add-holiday-btn" class="role-btn-primary col-span-2"><i class="fas fa-plus-circle"></i> Add school break</button>
+                </div>
+                <div id="holiday-list" class="space-y-2 mt-4"></div>
+            </article>
+
+            <div class="secretary-settings-grid">
+                <article class="role-card secretary-admin-card secretary-settings-card">
+                    <div class="secretary-admin-card__header"><div class="secretary-admin-card__title-group"><span class="secretary-admin-card__icon secretary-admin-card__icon--violet"><i class="fas fa-key"></i></span><div><p class="role-card__eyebrow">Account security</p><h3 class="role-card__title">Secretary credentials</h3></div></div></div>
+                    <p class="secretary-admin-card__description">Confirm the current password, then change the username, password, or both. This account cannot delete or disable itself.</p>
+                    <form id="secretary-credentials-form" class="secretary-settings-form">
+                        <label class="role-field"><span>Current password</span><input type="password" id="secretary-current-password" required autocomplete="current-password"></label>
+                        <label class="role-field"><span>New username (optional)</span><input type="text" id="secretary-new-username" autocomplete="username"></label>
+                        <label class="role-field"><span>New password (optional)</span><input type="password" id="secretary-new-password" minlength="6" autocomplete="new-password"></label>
+                        <button type="submit" id="secretary-credentials-save-btn" class="role-btn-primary"><i class="fas fa-shield-halved"></i> Update credentials</button>
+                    </form>
+                </article>
+
+                <article class="role-card secretary-admin-card secretary-settings-card">
+                    <div class="secretary-admin-card__header"><div class="secretary-admin-card__title-group"><span class="secretary-admin-card__icon secretary-admin-card__icon--emerald"><i class="fas fa-credit-card"></i></span><div><p class="role-card__eyebrow">Subscription</p><h3 class="role-card__title">Plan and billing</h3></div></div><span class="secretary-admin-card__badge secretary-admin-card__badge--emerald">${escapeHtml(tier.toUpperCase())}</span></div>
+                    <p class="secretary-admin-card__description">Only the Secretary/admin can open the school billing portal or change the subscription.</p>
+                    <button type="button" id="secretary-manage-subscription-btn" class="role-btn-primary"><i class="fas fa-arrow-up-right-from-square"></i> Manage plan in Stripe</button>
+                </article>
+            </div>
+
+            ${hasFullConsole ? '' : `<div class="role-card secretary-admin-card"><p class="role-card__eyebrow">Elite Secretary Console</p><h3 class="role-card__title">School-wide editing is read-only on ${escapeHtml(tier)}.</h3><p class="secretary-admin-card__description">School identity, billing, school years, holidays, and credentials remain available. Upgrade to Elite for grading administration, bulk edits, backfills, and family messaging.</p></div>`}
+
             <article class="role-card secretary-admin-card secretary-settings-card secretary-settings-card--tools">
                 <div class="secretary-admin-card__header">
                     <div class="secretary-admin-card__title-group">
@@ -178,13 +246,13 @@ function renderSchoolSettings() {
                     <span class="secretary-admin-card__helper">Jump straight to common tasks</span>
                 </div>
                 <div class="role-ops-grid secretary-admin-action-grid">
-                    <button type="button" id="secretary-run-backfill-btn" class="role-op-tile secretary-admin-action-tile">
+                    ${hasFullConsole ? `<button type="button" id="secretary-run-backfill-btn" class="role-op-tile secretary-admin-action-tile">
                         <span class="secretary-admin-action-tile__icon secretary-admin-action-tile__icon--indigo"><i class="fas fa-rotate" aria-hidden="true"></i></span>
                         <span>Refresh parent summaries</span>
                         <small>Rebuild safe summaries for every student.</small>
                         <i class="fas fa-arrow-up-right-from-square secretary-admin-action-tile__arrow" aria-hidden="true"></i>
-                    </button>
-                    <button type="button" class="role-op-tile secretary-admin-action-tile" data-secretary-tab-link="grades">
+                    </button>` : ''}
+                    ${hasFullConsole ? `<button type="button" class="role-op-tile secretary-admin-action-tile" data-secretary-tab-link="grades">
                         <span class="secretary-admin-action-tile__icon secretary-admin-action-tile__icon--amber"><i class="fas fa-chart-bar" aria-hidden="true"></i></span>
                         <span>View all grades</span>
                         <small>Jump to the schoolwide grade list.</small>
@@ -195,11 +263,11 @@ function renderSchoolSettings() {
                         <span>Answer families</span>
                         <small>Open the message inbox.</small>
                         <i class="fas fa-arrow-up-right-from-square secretary-admin-action-tile__arrow" aria-hidden="true"></i>
-                    </button>
+                    </button>` : ''}
                     <button type="button" class="role-op-tile secretary-admin-action-tile" data-secretary-tab-link="school" data-secretary-school-subtab="students">
                         <span class="secretary-admin-action-tile__icon secretary-admin-action-tile__icon--emerald"><i class="fas fa-users" aria-hidden="true"></i></span>
                         <span>Student list</span>
-                        <small>Find a student and edit their details.</small>
+                        <small>${hasFullConsole ? 'Find a student and edit their details.' : 'Review the schoolwide student list.'}</small>
                         <i class="fas fa-arrow-up-right-from-square secretary-admin-action-tile__arrow" aria-hidden="true"></i>
                     </button>
                 </div>
@@ -334,7 +402,8 @@ function renderGradingSetup() {
 }
 
 export function renderSecretaryAdmin() {
-    const subTab = state.get('secretaryView')?.adminSubTab || 'year';
+    const requestedSubTab = state.get('secretaryView')?.adminSubTab || 'year';
+    const subTab = requestedSubTab === 'grading' && !canUseFeature('secretaryAccess') ? 'settings' : requestedSubTab;
 
     return `
         <div class="secretary-admin-page">
@@ -343,7 +412,7 @@ export function renderSecretaryAdmin() {
             <div class="secretary-admin-panels">
                 <div id="secretary-admin-panel-year" data-secretary-admin-panel="year" class="${subTab === 'year' ? '' : 'hidden'}" role="tabpanel">${renderSchoolYearSection()}</div>
                 <div id="secretary-admin-panel-settings" data-secretary-admin-panel="settings" class="${subTab === 'settings' ? '' : 'hidden'}" role="tabpanel">${renderSchoolSettings()}</div>
-                <div id="secretary-admin-panel-grading" data-secretary-admin-panel="grading" class="${subTab === 'grading' ? '' : 'hidden'}" role="tabpanel">${renderGradingSetup()}</div>
+                ${canUseFeature('secretaryAccess') ? `<div id="secretary-admin-panel-grading" data-secretary-admin-panel="grading" class="${subTab === 'grading' ? '' : 'hidden'}" role="tabpanel">${renderGradingSetup()}</div>` : ''}
             </div>
         </div>
     `;

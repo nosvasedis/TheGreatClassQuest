@@ -1,24 +1,19 @@
 import * as state from '../state.js';
-import { db, doc, setDoc, collection, writeBatch, serverTimestamp } from '../firebase.js';
+import { db, doc, collection, writeBatch, serverTimestamp } from '../firebase.js';
 import { showToast } from '../ui/effects.js';
-import { classLogos, DEFAULT_SCHOOL_NAME, questLeagues } from '../constants.js';
+import { classLogos, questLeagues } from '../constants.js';
 import * as utils from '../utils.js';
 import { callGeminiApi } from '../api.js';
 import { canUseFeature, getLimit, getTier, getSubscriptionSnapshot } from '../utils/subscription.js';
 import { markTeacherOnboardingComplete } from './teacherJourney.js';
 import {
-    getSchoolAssessmentDefaults,
-    normalizeClassAssessmentConfig,
-    normalizeAssessmentDefaultsByLeague
+    normalizeClassAssessmentConfig
 } from './assessmentConfig.js';
 import {
     getAssessmentConfigCardHtml,
-    getAssessmentDefaultsEditorHtml,
     readAssessmentCardValue,
-    readAssessmentDefaultsFromContainer,
     wireAssessmentEditor
 } from '../ui/assessmentEditor.js';
-import { createOrReplaceSecretaryAccess } from '../utils/adminRuntime.js';
 import { withActiveScoreYear, withActiveStudentYear, withSchoolYear } from '../utils/schoolYear.js';
 
 const PUBLIC_DATA_PATH = 'artifacts/great-class-quest/public/data';
@@ -37,11 +32,8 @@ let listenersAttached = false;
 let locationSearchResults = [];
 let selectedSchoolWeatherLocation = null;
 let setupDraftClasses = [];
-let setupAssessmentDefaults = {};
 let setupGraceTicker = null;
 let setupContext = {
-    isFirstTeacher: false,
-    shouldCollectSchoolName: false,
     onComplete: null,
     user: null
 };
@@ -149,13 +141,6 @@ function populateSetupSelectors() {
     setSelectedSetupLogo(getSelectedSetupLogo() || '📚');
 }
 
-function renderSetupAssessmentDefaultsEditor() {
-    const container = document.getElementById('setup-assessment-defaults-editor');
-    if (!container) return;
-    container.innerHTML = getAssessmentDefaultsEditorHtml(setupAssessmentDefaults);
-    wireAssessmentEditor(container);
-}
-
 function hasAssessmentAccess() {
     return canUseFeature('scholarScroll');
 }
@@ -163,7 +148,7 @@ function hasAssessmentAccess() {
 function syncSetupAssessmentVisibility() {
     const section = document.getElementById('setup-assessment-section');
     if (!section) return;
-    section.classList.toggle('hidden', !hasAssessmentAccess());
+    section.classList.add('hidden');
 }
 
 function getSelectedSetupLogo() {
@@ -239,13 +224,9 @@ function renderSetupClassCapacity() {
     }
     if (classLimitCopy) {
         if (maxClasses === null) {
-            classLimitCopy.textContent = setupContext.isFirstTeacher
-                ? `This school is on ${getSetupTierLabel()}, so you can create as many classes as you need. ${draftClasses > 0 ? `${draftClasses} draft ${draftClasses === 1 ? 'class is' : 'classes are'} queued below.` : 'Your class drafts will appear below.'}`
-                : `This school is on ${getSetupTierLabel()}, so the class limit is shared across all teachers and is currently unlimited. ${existingClasses} ${existingClasses === 1 ? 'class is' : 'classes are'} already saved in the school.`;
+            classLimitCopy.textContent = `This school is on ${getSetupTierLabel()}, so the class limit is shared across all teachers and is currently unlimited. ${existingClasses} ${existingClasses === 1 ? 'class is' : 'classes are'} already saved in the school.`;
         } else {
-            classLimitCopy.textContent = setupContext.isFirstTeacher
-                ? `This school is on ${getSetupTierLabel()}, which allows up to ${maxClasses} total classes. ${remainingAfterDrafts} ${remainingAfterDrafts === 1 ? 'slot remains' : 'slots remain'} after the draft classes in this setup.`
-                : `This school is on ${getSetupTierLabel()}, which allows up to ${maxClasses} total classes shared across all teachers. ${existingClasses} ${existingClasses === 1 ? 'class is' : 'classes are'} already saved, so you can add ${remainingBeforeSave} more${draftClasses > 0 ? ` before counting the ${draftClasses} draft ${draftClasses === 1 ? 'class' : 'classes'} below` : ''}.`;
+            classLimitCopy.textContent = `This school is on ${getSetupTierLabel()}, which allows up to ${maxClasses} total classes shared across all teachers. ${existingClasses} ${existingClasses === 1 ? 'class is' : 'classes are'} already saved, so you can add ${remainingBeforeSave} more${draftClasses > 0 ? ` before counting the ${draftClasses} draft ${draftClasses === 1 ? 'class' : 'classes'} below` : ''}.`;
         }
     }
 }
@@ -296,36 +277,28 @@ function renderSetupCopy() {
     const secretaryCard = document.getElementById('setup-secretary-card');
 
     if (title) {
-        title.textContent = setupContext.isFirstTeacher
-            ? 'Build your school’s first adventure'
-            : 'Set up your own teacher adventure';
+        title.textContent = 'Set up your own teacher adventure';
     }
     if (subtitle) {
-        subtitle.textContent = setupContext.isFirstTeacher
-            ? 'You are the first teacher here, so GCQ needs the school name, your first classes, and the students in them.'
-            : 'Welcome to this school. Add your own classes and students before you enter the app.';
+        subtitle.textContent = 'Welcome to this school. Add your own classes and students before you enter the app.';
     }
     if (schoolSection) {
-        schoolSection.classList.toggle('hidden', !setupContext.shouldCollectSchoolName);
+        schoolSection.classList.add('hidden');
     }
     if (schoolCopy) {
-        schoolCopy.textContent = setupContext.isFirstTeacher
-            ? 'You are the founding teacher for this school, so choose the school name now.'
-            : 'This school already exists. You can still adjust the live-weather location if needed.';
+        schoolCopy.textContent = 'School identity is managed by the Secretary/admin.';
     }
     if (schoolInput) {
         schoolInput.value = state.get('schoolName') || '';
     }
     if (enterCopy) {
-        enterCopy.textContent = setupContext.isFirstTeacher
-            ? 'GCQ will save the school details, create your first classes, add the students, and open the app.'
-            : 'GCQ will create your classes, add the students, and open the app for you.';
+        enterCopy.textContent = 'GCQ will create your classes, add the students, and open the app for you.';
     }
     if (rolesSection) {
-        rolesSection.classList.toggle('hidden', !setupContext.isFirstTeacher);
+        rolesSection.classList.add('hidden');
     }
     if (secretaryCard) {
-        secretaryCard.classList.toggle('hidden', !(setupContext.isFirstTeacher && canUseFeature('secretaryAccess')));
+        secretaryCard.classList.add('hidden');
     }
     if (aiNote) {
         aiNote.innerHTML = canUseFeature('eliteAI')
@@ -569,8 +542,6 @@ function handleAddDraftClass() {
 }
 
 async function persistSetupBundle() {
-    const rawName = document.getElementById('setup-school-name')?.value?.trim();
-    const normalizedLocation = utils.normalizeWeatherLocation(selectedSchoolWeatherLocation);
     const currentUserId = state.get('currentUserId');
     const currentTeacherName = state.get('currentTeacherName');
 
@@ -579,15 +550,7 @@ async function persistSetupBundle() {
     }
 
     const batch = writeBatch(db);
-    const settingsRef = doc(db, `${PUBLIC_DATA_PATH}/school_settings`, 'holidays');
-    const settingsPayload = {};
     const assessmentEnabled = hasAssessmentAccess();
-    const assessmentContainer = document.getElementById('setup-assessment-defaults-editor');
-    const currentAssessmentDefaults = assessmentEnabled
-        ? (assessmentContainer
-            ? readAssessmentDefaultsFromContainer(assessmentContainer)
-            : normalizeAssessmentDefaultsByLeague(setupAssessmentDefaults))
-        : normalizeAssessmentDefaultsByLeague(setupAssessmentDefaults);
 
     if (assessmentEnabled) {
         document.querySelectorAll('#setup-draft-classes-list [data-assessment-card]').forEach((card) => {
@@ -598,19 +561,6 @@ async function persistSetupBundle() {
                 setupDraftClasses[index].questLevel
             );
         });
-    }
-
-    if (setupContext.shouldCollectSchoolName && rawName) {
-        settingsPayload.schoolName = rawName;
-    }
-    if (normalizedLocation) {
-        settingsPayload.weatherLocation = normalizedLocation;
-    }
-    if (assessmentEnabled) {
-        settingsPayload.assessmentDefaultsByLeague = currentAssessmentDefaults;
-    }
-    if (Object.keys(settingsPayload).length > 0) {
-        batch.set(settingsRef, settingsPayload, { merge: true });
     }
 
     const createdBy = { uid: currentUserId, name: currentTeacherName };
@@ -649,26 +599,14 @@ async function persistSetupBundle() {
     });
 
     await batch.commit();
-
-    const secretaryUsername = document.getElementById('setup-secretary-username')?.value?.trim();
-    const secretaryPassword = document.getElementById('setup-secretary-password')?.value?.trim();
-    if (setupContext.isFirstTeacher && canUseFeature('secretaryAccess') && secretaryUsername && secretaryPassword) {
-        await createOrReplaceSecretaryAccess({
-            username: secretaryUsername,
-            password: secretaryPassword
-        });
-    }
 }
 
 export function showSetupScreen(options = {}) {
     setupContext = {
-        isFirstTeacher: Boolean(options.isFirstTeacher),
-        shouldCollectSchoolName: Boolean(options.shouldCollectSchoolName),
         onComplete: typeof options.onComplete === 'function' ? options.onComplete : null,
         user: options.user || null
     };
     setupDraftClasses = [];
-    setupAssessmentDefaults = getSchoolAssessmentDefaults();
 
     const setupEl = document.getElementById('setup-screen');
     const appEl = document.getElementById('app-screen');
@@ -680,11 +618,7 @@ export function showSetupScreen(options = {}) {
     populateSetupSelectors();
     renderSetupCopy();
     syncSetupAssessmentVisibility();
-    if (hasAssessmentAccess()) {
-        renderSetupAssessmentDefaultsEditor();
-    }
     renderSetupDraftClassesList();
-    prefillSetupLocationFromState();
     setInviteLink();
     resetClassDraftForm();
     setupSetupListeners();

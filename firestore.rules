@@ -21,6 +21,14 @@ service cloud.firestore {
       return hasProfile() ? currentProfile().role : null;
     }
 
+    function secretaryRolePath() {
+      return /databases/$(database)/documents/artifacts/great-class-quest/public/data/school_roles/secretary;
+    }
+
+    function subscriptionPath() {
+      return /databases/$(database)/documents/appConfig/subscription;
+    }
+
     function hasActiveProfile() {
       return hasProfile() &&
         currentProfile().status == 'active' &&
@@ -36,11 +44,27 @@ service cloud.firestore {
     }
 
     function isSecretary() {
-      return hasActiveProfile() && currentRole() == 'secretary';
+      return hasActiveProfile() &&
+        currentRole() == 'secretary' &&
+        exists(secretaryRolePath()) &&
+        get(secretaryRolePath()).data.uid == request.auth.uid &&
+        get(secretaryRolePath()).data.status == 'active';
     }
 
-    function isSchoolAdmin() {
-      return hasActiveProfile() && currentProfile().schoolAdmin == true;
+    function hasActiveSecretary() {
+      return exists(secretaryRolePath()) &&
+        get(secretaryRolePath()).data.status == 'active' &&
+        get(secretaryRolePath()).data.uid is string &&
+        exists(/databases/$(database)/documents/user_profiles/$(get(secretaryRolePath()).data.uid)) &&
+        get(/databases/$(database)/documents/user_profiles/$(get(secretaryRolePath()).data.uid)).data.role == 'secretary' &&
+        get(/databases/$(database)/documents/user_profiles/$(get(secretaryRolePath()).data.uid)).data.status == 'active';
+    }
+
+    function hasFullSecretaryConsole() {
+      return isSecretary() && exists(subscriptionPath()) && (
+        get(subscriptionPath()).data.secretaryAccess == true ||
+        get(subscriptionPath()).data.tier == 'elite'
+      );
     }
 
     function isStaff() {
@@ -48,7 +72,7 @@ service cloud.firestore {
     }
 
     function isYearOperator() {
-      return isSecretary() || isSchoolAdmin();
+      return isSecretary();
     }
 
     function currentYearStatePath() {
@@ -59,6 +83,20 @@ service cloud.firestore {
       return exists(currentYearStatePath())
         ? get(currentYearStatePath()).data.activeYearKey
         : null;
+    }
+
+    function isCoreSchoolSettingsCreate(collection) {
+      return collection == 'school_settings' &&
+        request.resource.data.keys().hasOnly([
+          'schoolName', 'weatherLocation', 'ranges', 'createdAt', 'updatedAt'
+        ]);
+    }
+
+    function isCoreSchoolSettingsUpdate(collection) {
+      return collection == 'school_settings' &&
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+          'schoolName', 'weatherLocation', 'ranges', 'updatedAt'
+        ]);
     }
 
     function isActiveSchoolYearCreate() {
@@ -110,13 +148,12 @@ service cloud.firestore {
     }
 
     function canManageStudent(studentId) {
-      return isSecretary() || isSchoolAdmin() || ownsStudent(studentId);
+      return isSecretary() || ownsStudent(studentId);
     }
 
     function canReadParentStudent(studentId) {
       return signedIn() && (
         isSecretary() ||
-        isSchoolAdmin() ||
         ownsStudent(studentId) ||
         isParentLinkedTo(studentId)
       );
@@ -146,19 +183,18 @@ service cloud.firestore {
     match /user_profiles/{userId} {
       allow read: if signedIn() && (
         request.auth.uid == userId ||
-        isSecretary() ||
-        isSchoolAdmin()
+        isSecretary()
       );
       allow create: if signedIn() &&
         request.auth.uid == userId &&
+        hasActiveSecretary() &&
         request.resource.data.keys().hasOnly([
-          'role', 'displayName', 'loginMode', 'status', 'schoolAdmin',
+          'role', 'displayName', 'loginMode', 'status',
           'linkedStudentId', 'createdBy', 'createdAt', 'lastSeenAt'
         ]) &&
         request.resource.data.role == 'teacher' &&
         request.resource.data.loginMode == 'email' &&
         request.resource.data.status == 'active' &&
-        request.resource.data.schoolAdmin == false &&
         request.resource.data.linkedStudentId == null &&
         request.resource.data.createdBy == null;
       allow update: if signedIn() &&
@@ -169,24 +205,27 @@ service cloud.firestore {
     }
 
     match /teacher_metadata/{userId} {
-      allow read: if hasActiveProfile() && (request.auth.uid == userId || isSecretary() || isSchoolAdmin());
+      allow read: if hasActiveProfile() && (request.auth.uid == userId || isSecretary());
       allow write: if hasActiveProfile() && request.auth.uid == userId;
     }
 
     match /teachers/{userId} {
-      allow read: if hasActiveProfile() && (request.auth.uid == userId || isSecretary() || isSchoolAdmin());
+      allow read: if hasActiveProfile() && (request.auth.uid == userId || isSecretary());
       allow create: if hasActiveProfile() && request.auth.uid == userId;
       allow update: if hasActiveProfile() && (
         request.auth.uid == userId ||
-        isSecretary() ||
-        isSchoolAdmin()
+        hasFullSecretaryConsole()
       );
       allow delete: if false;
     }
 
     match /artifacts/great-class-quest/public/data/school_roles/{docId} {
-      allow read: if signedIn() && (isStaff() || isSchoolAdmin());
+      allow read: if signedIn() && isStaff();
       allow write: if false;
+    }
+
+    match /artifacts/great-class-quest/public/data/admin_bootstrap/{docId} {
+      allow read, write: if false;
     }
 
     match /artifacts/great-class-quest/public/data/school_years/{yearKey} {
@@ -202,28 +241,28 @@ service cloud.firestore {
     }
 
     match /artifacts/great-class-quest/public/data/rollover_jobs/{jobId} {
-      allow read: if isStaff() || isSchoolAdmin();
+      allow read: if isStaff();
       allow create, update: if isYearOperator();
       allow delete: if false;
     }
 
     match /artifacts/great-class-quest/public/data/student_year_snapshots/{snapshotId} {
-      allow read: if isStaff() || isSchoolAdmin();
+      allow read: if isStaff();
       allow write: if false;
     }
 
     match /artifacts/great-class-quest/public/data/class_year_snapshots/{snapshotId} {
-      allow read: if isStaff() || isSchoolAdmin();
+      allow read: if isStaff();
       allow write: if false;
     }
 
     match /artifacts/great-class-quest/public/data/guild_year_snapshots/{snapshotId} {
-      allow read: if isStaff() || isSchoolAdmin();
+      allow read: if isStaff();
       allow write: if false;
     }
 
     match /artifacts/great-class-quest/public/data/student_year_enrollments/{enrollmentId} {
-      allow read: if isStaff() || isSchoolAdmin();
+      allow read: if isStaff();
       allow write: if false;
     }
 
@@ -240,7 +279,6 @@ service cloud.firestore {
     match /artifacts/great-class-quest/public/data/parent_homework/{docId} {
       allow read: if hasActiveProfile() && (
         isSecretary() ||
-        isSchoolAdmin() ||
         isParentLinkedTo(resource.data.studentId) ||
         ownsStudent(resource.data.studentId)
       );
@@ -249,8 +287,7 @@ service cloud.firestore {
 
     match /artifacts/great-class-quest/public/data/communication_threads/{threadId} {
       allow read: if hasActiveProfile() && (
-        isSecretary() ||
-        isSchoolAdmin() ||
+        hasFullSecretaryConsole() ||
         isThreadParticipant(threadId) ||
         ownsStudent(resource.data.studentId)
       );
@@ -260,8 +297,7 @@ service cloud.firestore {
 
     match /artifacts/great-class-quest/public/data/communication_messages/{messageId} {
       allow read: if hasActiveProfile() && (
-        isSecretary() ||
-        isSchoolAdmin() ||
+        hasFullSecretaryConsole() ||
         isThreadParticipant(resource.data.threadId) ||
         ownsStudent(resource.data.studentId)
       );
@@ -272,7 +308,6 @@ service cloud.firestore {
     match /artifacts/great-class-quest/public/data/{collection}/{docId} {
       allow read: if hasActiveProfile() && (
         isStaff() ||
-        isSchoolAdmin() ||
         (collection == 'school_settings') ||
         (collection == 'guild_scores' && isParent()) ||
         (collection == 'guild_glory_events' && isParent()) ||
@@ -280,8 +315,7 @@ service cloud.firestore {
       );
 
       allow create: if hasActiveProfile() && isActiveMutableData(request.resource.data) && (
-        isSecretary() ||
-        isSchoolAdmin() ||
+        (isSecretary() && (hasFullSecretaryConsole() || isCoreSchoolSettingsCreate(collection))) ||
         (isTeacher() && (
         (collection == 'classes' && request.resource.data.createdBy.uid == request.auth.uid && isActiveSchoolYearCreate()) ||
         (collection == 'students' && request.resource.data.createdBy.uid == request.auth.uid && isActiveStudentYearCreate()) ||
@@ -302,7 +336,6 @@ service cloud.firestore {
         (collection == 'world_boss') ||
         (collection == 'hero_chronicle_notes' && request.resource.data.teacherId == request.auth.uid && isActiveSchoolYearCreate()) ||
         (collection == 'quest_history' && request.resource.data.createdBy.uid == request.auth.uid && isActiveSchoolYearCreate()) ||
-        (collection == 'school_settings' && docId == 'holidays') ||
         (collection == 'daily_ai_content' && request.resource.data.createdBy.uid == request.auth.uid) ||
         (collection == 'daily_cache') ||
         (collection == 'quiz_of_the_week' && request.resource.data.createdBy.uid == request.auth.uid && isActiveSchoolYearCreate()) ||
@@ -316,8 +349,7 @@ service cloud.firestore {
 
       allow update: if hasActiveProfile() && isActiveMutableData(resource.data) &&
         isActiveMutableData(request.resource.data) && keepsOwnershipAndYearFields() && (
-        isSecretary() ||
-        isSchoolAdmin() ||
+        (isSecretary() && (hasFullSecretaryConsole() || isCoreSchoolSettingsUpdate(collection))) ||
         (isTeacher() && (
         (collection == 'classes' && resource.data.createdBy.uid == request.auth.uid) ||
         (collection == 'student_scores' && studentExists(docId) && studentDoc(docId).createdBy.uid == request.auth.uid) ||
@@ -331,7 +363,6 @@ service cloud.firestore {
         (collection == 'written_scores' && resource.data.teacherId == request.auth.uid) ||
         (collection == 'students' && resource.data.createdBy.uid == request.auth.uid) ||
         (collection == 'hero_chronicle_notes' && resource.data.teacherId == request.auth.uid) ||
-        (collection == 'school_settings' && docId == 'holidays') ||
         (collection == 'daily_ai_content' && resource.data.createdBy.uid == request.auth.uid) ||
         (collection == 'daily_cache') ||
         (collection == 'quiz_of_the_week' && resource.data.createdBy.uid == request.auth.uid) ||
@@ -344,15 +375,13 @@ service cloud.firestore {
       );
 
       allow delete: if hasActiveProfile() && isActiveMutableData(resource.data) && (
-        isSecretary() ||
-        isSchoolAdmin() ||
+        hasFullSecretaryConsole() ||
         (isTeacher() && (
         resource.data.createdBy.uid == request.auth.uid ||
         (collection == 'attendance' && resource.data.markedBy.uid == request.auth.uid) ||
         (collection == 'written_scores' && resource.data.teacherId == request.auth.uid) ||
         (collection == 'schedule_overrides' && resource.data.createdBy.uid == request.auth.uid) ||
         (collection == 'hero_chronicle_notes' && resource.data.teacherId == request.auth.uid) ||
-        (collection == 'school_settings' && docId == 'holidays') ||
         (collection == 'daily_ai_content' && resource.data.createdBy.uid == request.auth.uid) ||
         (collection == 'quest_bounties' && resource.data.createdBy.uid == request.auth.uid) ||
         (collection == 'shop_items' && resource.data.teacherId == request.auth.uid) ||
@@ -364,31 +393,38 @@ service cloud.firestore {
     }
 
     match /artifacts/great-class-quest/public/data/quiz_of_the_week/{quizDocId}/attempts/{attemptId} {
-      allow read: if isStaff() || isSchoolAdmin();
+      allow read: if isStaff();
       allow create: if hasActiveProfile() && (
-        isStaff() ||
-        isSchoolAdmin() ||
-        request.resource.data.teacherId == request.auth.uid
+        hasFullSecretaryConsole() ||
+        (isTeacher() && request.resource.data.teacherId == request.auth.uid)
       );
       allow update, delete: if false;
     }
 
     match /{path=**}/monthly_history/{monthId} {
-      allow read: if isStaff() || isSchoolAdmin();
+      allow read: if isStaff();
     }
 
     match /artifacts/great-class-quest/public/data/student_scores/{studentId}/monthly_history/{monthId} {
-      allow write: if canManageStudent(studentId);
+      allow write: if hasFullSecretaryConsole() || ownsStudent(studentId);
     }
 
     match /artifacts/great-class-quest/public/data/story_data/{classId}/story_history/{historyId} {
-      allow read, write: if isStaff() || isSchoolAdmin();
-      allow delete: if isStaff() || isSchoolAdmin();
+      allow read: if isStaff();
+      allow write, delete: if hasFullSecretaryConsole() || (
+        isTeacher() &&
+        exists(/databases/$(database)/documents/artifacts/great-class-quest/public/data/story_data/$(classId)) &&
+        get(/databases/$(database)/documents/artifacts/great-class-quest/public/data/story_data/$(classId)).data.createdBy.uid == request.auth.uid
+      );
     }
 
     match /artifacts/great-class-quest/public/data/completed_stories/{storyId}/chapters/{chapterId} {
-      allow read: if isStaff() || isSchoolAdmin();
-      allow write, delete: if isStaff() || isSchoolAdmin();
+      allow read: if isStaff();
+      allow write, delete: if hasFullSecretaryConsole() || (
+        isTeacher() &&
+        exists(/databases/$(database)/documents/artifacts/great-class-quest/public/data/completed_stories/$(storyId)) &&
+        get(/databases/$(database)/documents/artifacts/great-class-quest/public/data/completed_stories/$(storyId)).data.createdBy.uid == request.auth.uid
+      );
     }
   }
 }

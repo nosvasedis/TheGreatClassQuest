@@ -43,6 +43,6 @@ export function getRoleLabel(role) {
 
 export function getRoleLoginDescription(role) {
     if (role === ROLE_PARENT) return 'Parents sign in with the username and password created by the school.';
-    if (role === ROLE_SECRETARY) return 'Secretary access is created by the school admin and uses a username.';
-    return 'Teachers sign in with email and can still create their own accounts.';
+    if (role === ROLE_SECRETARY) return 'The school Secretary/admin signs in with the username chosen during secure school activation.';
+    return 'Teachers sign in with email after the school Secretary/admin has activated the school.';
 }

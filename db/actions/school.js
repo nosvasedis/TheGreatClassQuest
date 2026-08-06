@@ -1,22 +1,18 @@
 import { db, doc, setDoc, writeBatch } from '../../firebase.js';
 import * as state from '../../state.js';
 import { showToast } from '../../ui/effects.js';
-import { DEFAULT_SCHOOL_NAME } from '../../constants.js';
 import * as utils from '../../utils.js';
 import { canUseFeature } from '../../utils/subscription.js';
 import {
+    describeAssessmentScheme,
     getSchoolAssessmentDefaults,
-    normalizeAssessmentDefaultsByLeague,
     normalizeClassAssessmentConfig
 } from '../../features/assessmentConfig.js';
 import {
     getAssessmentConfigCardHtml,
-    getAssessmentDefaultsEditorHtml,
     readAssessmentCardValue,
-    readAssessmentDefaultsFromContainer,
     wireAssessmentEditor
 } from '../../ui/assessmentEditor.js';
-import { ROLE_SECRETARY } from '../../utils/roles.js';
 
 const PUBLIC_DATA_PATH = 'artifacts/great-class-quest/public/data';
 let optionsLocationSearchResults = [];
@@ -90,11 +86,20 @@ export function renderAssessmentOptionsUi() {
     if (!defaultsContainer || !classesContainer) return;
 
     const schoolDefaults = getSchoolAssessmentDefaults();
-    defaultsContainer.innerHTML = getAssessmentDefaultsEditorHtml(schoolDefaults);
+    defaultsContainer.innerHTML = `
+        <div class="grid gap-3 md:grid-cols-2">
+            ${Object.entries(schoolDefaults).map(([league, config]) => `
+                <article class="rounded-2xl border border-fuchsia-100 bg-white px-4 py-3">
+                    <h4 class="font-title text-fuchsia-800">${league}</h4>
+                    <p class="mt-1 text-xs text-slate-600">Tests: ${describeAssessmentScheme(config.tests)}</p>
+                    <p class="mt-1 text-xs text-slate-600">Dictations: ${describeAssessmentScheme(config.dictations)}</p>
+                </article>
+            `).join('')}
+        </div>
+        <p class="mt-3 text-xs text-slate-500">These school defaults are read-only here. Ask the Secretary/admin to change them.</p>`;
 
     const allSchoolClasses = state.get('allSchoolClasses') || [];
-    const isSecretary = state.get('currentUserRole') === ROLE_SECRETARY;
-    const classes = (isSecretary ? allSchoolClasses : (state.get('allTeachersClasses') || [])).slice().sort((a, b) => a.name.localeCompare(b.name));
+    const classes = (state.get('allTeachersClasses') || []).slice().sort((a, b) => a.name.localeCompare(b.name));
     const hiddenClassCount = Math.max(0, allSchoolClasses.length - classes.length);
     if (classes.length === 0) {
         classesContainer.innerHTML = `<div class="rounded-2xl border border-dashed border-indigo-200 bg-white px-4 py-5 text-center text-sm text-slate-500">Create a class first to manage per-class overrides.</div>`;
@@ -114,7 +119,6 @@ export function renderAssessmentOptionsUi() {
         `;
     }
 
-    wireAssessmentEditor(defaultsContainer);
     wireAssessmentEditor(classesContainer);
 }
 
@@ -123,9 +127,8 @@ export async function handleSaveAssessmentSettingsFromOptions() {
         showToast("Assessment settings are available on Pro and Elite.", 'info');
         return;
     }
-    const defaultsContainer = document.getElementById('options-assessment-defaults-editor');
     const classesContainer = document.getElementById('options-class-assessment-editor');
-    if (!defaultsContainer || !classesContainer) return;
+    if (!classesContainer) return;
 
     const saveBtn = document.getElementById('save-assessment-settings-btn');
     if (saveBtn) {
@@ -134,10 +137,7 @@ export async function handleSaveAssessmentSettingsFromOptions() {
     }
 
     try {
-        const schoolDefaults = normalizeAssessmentDefaultsByLeague(readAssessmentDefaultsFromContainer(defaultsContainer));
         const batch = writeBatch(db);
-        const settingsRef = doc(db, `${PUBLIC_DATA_PATH}/school_settings`, 'holidays');
-        batch.set(settingsRef, { assessmentDefaultsByLeague: schoolDefaults }, { merge: true });
         const updatedSchoolClasses = (state.get('allSchoolClasses') || []).map((classData) => ({ ...classData }));
 
         classesContainer.querySelectorAll('[data-assessment-card]').forEach((card) => {
@@ -154,10 +154,9 @@ export async function handleSaveAssessmentSettingsFromOptions() {
         });
 
         await batch.commit();
-        state.setSchoolAssessmentDefaults(schoolDefaults);
         state.setAllSchoolClasses(updatedSchoolClasses);
-        state.setAllTeachersClasses(isSecretary ? updatedSchoolClasses : updatedSchoolClasses.filter((classData) => classData.createdBy?.uid === state.get('currentUserId')));
-        showToast('Assessment settings updated!', 'success');
+        state.setAllTeachersClasses(updatedSchoolClasses.filter((classData) => classData.createdBy?.uid === state.get('currentUserId')));
+        showToast('Your class grading settings were updated!', 'success');
     } catch (error) {
         console.error('Error saving assessment settings:', error);
         showToast('Could not save assessment settings. Please try again.', 'error');
@@ -165,45 +164,6 @@ export async function handleSaveAssessmentSettingsFromOptions() {
         if (saveBtn) {
             saveBtn.disabled = false;
             saveBtn.innerHTML = '<i class="fas fa-save mr-2"></i> Save Assessment Settings';
-        }
-    }
-}
-
-export async function handleSaveSchoolNameFromOptions() {
-    const input = document.getElementById('options-school-name-input');
-    if (!input) return;
-
-    const newName = input.value.trim();
-    const current = state.get('schoolName') || DEFAULT_SCHOOL_NAME;
-
-    if (!newName) {
-        showToast('School name cannot be empty.', 'error');
-        return;
-    }
-    if (newName === current) {
-        showToast('School name is already set to this.', 'info');
-        return;
-    }
-
-    const btn = document.getElementById('save-school-name-btn');
-    if (btn) {
-        btn.disabled = true;
-        btn.innerHTML = '<i class=\"fas fa-spinner fa-spin mr-2\"></i> Saving...';
-    }
-
-    const settingsRef = doc(db, `${PUBLIC_DATA_PATH}/school_settings`, 'holidays');
-
-    try {
-        await setDoc(settingsRef, { schoolName: newName }, { merge: true });
-        state.setSchoolName(newName);
-        showToast('School name updated!', 'success');
-    } catch (e) {
-        console.error('Error saving school name from options:', e);
-        showToast('Could not save school name. Please try again.', 'error');
-    } finally {
-        if (btn) {
-            btn.disabled = false;
-            btn.innerHTML = '<i class=\"fas fa-save mr-2\"></i> Save School Name';
         }
     }
 }

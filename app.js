@@ -52,6 +52,22 @@ let authenticatedUiWired = false;
 let authSessionId = 0;
 let pendingSignupBootstrap = null;
 let signupRecoveryContext = null;
+let secretaryAdminRuntimePromise = null;
+let secretarySetupToken = '';
+let teacherSignupAvailable = false;
+
+function loadSecretaryAdminRuntime() {
+    if (!secretaryAdminRuntimePromise) {
+        secretaryAdminRuntimePromise = import('./utils/adminRuntime.js');
+    }
+    return secretaryAdminRuntimePromise;
+}
+
+function readSecretarySetupToken() {
+    const fragment = String(window.location.hash || '').replace(/^#/, '');
+    const params = new URLSearchParams(fragment);
+    return String(params.get('secretary-setup') || params.get('admin-setup') || '').trim();
+}
 
 function showSignupProfileRecovery(user, displayName, originalError) {
     const authScreen = document.getElementById('auth-screen');
@@ -201,7 +217,7 @@ function updateSubscribeGraceBanner(graceWindow, options = {}) {
     if (graceWindow?.active && graceWindow?.endsAt) {
         banner.classList.remove('hidden');
         title.textContent = '1-day setup grace is active';
-        copy.textContent = 'The school is temporarily unlocked so the first teacher can finish setup before payment is required.';
+        copy.textContent = 'The school is temporarily unlocked so staff can finish initial setup before payment is required.';
         lead.textContent = 'This brand-new school is currently inside its setup grace period. Finish setup before the timer runs out, or complete payment now to keep access seamless.';
         meta.textContent = 'Grace timer is running';
 
@@ -322,15 +338,27 @@ function onFirstUserGesture() {
 }
 
 function setAuthSubmitLoading(mode, isLoading) {
-    const submitBtn = document.getElementById(mode === 'signup' ? 'signup-submit-btn' : 'login-submit-btn');
+    const submitBtn = document.getElementById(
+        mode === 'activation'
+            ? 'secretary-activation-submit-btn'
+            : mode === 'signup'
+                ? 'signup-submit-btn'
+                : 'login-submit-btn'
+    );
     const toggleBtn = document.getElementById('toggle-auth-mode');
     if (!submitBtn) return;
 
     submitBtn.disabled = isLoading;
     if (toggleBtn) toggleBtn.disabled = isLoading;
+    const loadingLabel = mode === 'activation'
+        ? 'Activating the school...'
+        : mode === 'signup'
+            ? 'Creating your account...'
+            : 'Signing you in...';
+    const idleLabel = mode === 'activation' ? 'Activate Secretary / Admin' : mode === 'signup' ? 'Sign Up' : 'Login';
     submitBtn.innerHTML = isLoading
-        ? `<i class="fas fa-spinner fa-spin"></i><span>${mode === 'signup' ? 'Creating your account...' : 'Signing you in...'}</span>`
-        : `<span class="auth-submit-label">${mode === 'signup' ? 'Sign Up' : 'Login'}</span>`;
+        ? `<i class="fas fa-spinner fa-spin"></i><span>${loadingLabel}</span>`
+        : `<span class="auth-submit-label">${idleLabel}</span>`;
 }
 
 function beginAuthSubmit(mode) {
@@ -340,6 +368,7 @@ function beginAuthSubmit(mode) {
 function resetAuthSubmitState() {
     setAuthSubmitLoading('login', false);
     setAuthSubmitLoading('signup', false);
+    setAuthSubmitLoading('activation', false);
 }
 
 function hideAuthScreen(authScreen) {
@@ -475,7 +504,7 @@ function showSubscribeScreen(loadingScreen, authScreen, options = {}) {
                             <p class="text-sm text-slate-700 leading-relaxed">
                                 ${options.graceExpired
                                     ? 'This school already used its free setup day. To unlock the app again, choose a plan below and complete payment.'
-                                    : 'Use this only for the very first setup of a brand-new school. GCQ unlocks Starter-level access for 24 hours so the first teacher can set everything up before paying.'
+                                    : 'Use this only for the first setup of a brand-new school. GCQ unlocks Starter-level access for 24 hours so the Secretary/admin and teaching staff can finish setup before paying.'
                                 }
                             </p>
                         </div>
@@ -595,16 +624,11 @@ async function routeAuthenticatedTeacher({ user, loadingScreen, authScreen, appS
         return;
     }
 
-    const isFirstTeacher = allSchoolClasses.length === 0;
-    const shouldCollectSchoolName = isFirstTeacher || !state.get('schoolName');
-
     if (needsTeacherSetup) {
         hideAuthScreen(authScreen);
         resetAuthSubmitState();
         showSetupScreen({
             user,
-            isFirstTeacher,
-            shouldCollectSchoolName,
             onComplete: async () => {
                 await openMainAppForTeacher({ user, loadingScreen, authScreen, appScreen });
             }
@@ -617,11 +641,19 @@ async function routeAuthenticatedTeacher({ user, loadingScreen, authScreen, appS
 }
 
 async function routeAuthenticatedSecretary({ user, loadingScreen, authScreen }) {
-    if (!hasActiveSubscription() || !canUseFeature('secretaryAccess')) {
+    if (!hasActiveSubscription()) {
+        const schoolGrace = state.get('schoolBillingGrace');
+        const canStartGrace = !schoolGrace?.used && (state.get('allSchoolClasses') || []).length === 0;
         showSubscribeScreen(loadingScreen, authScreen, {
-            canStartGrace: false,
-            graceExpired: false,
-            graceWindow: state.get('schoolBillingGrace')
+            canStartGrace,
+            graceExpired: Boolean(schoolGrace?.expired),
+            graceWindow: schoolGrace,
+            onStartGrace: async () => {
+                const graceWindow = await startSchoolGracePeriod();
+                state.setSchoolBillingGrace(graceWindow);
+                setSchoolGraceConfig(graceWindow);
+                await routeAuthenticatedSecretary({ user, loadingScreen, authScreen });
+            }
         });
         return;
     }
@@ -665,6 +697,26 @@ function syncAuthRoleUi() {
     const loginUsername = document.getElementById('login-username');
     const signupForm = document.getElementById('signup-form');
     const loginForm = document.getElementById('login-form');
+    const activationForm = document.getElementById('secretary-activation-form');
+    const roleSwitcher = document.getElementById('auth-role-switcher');
+    const availability = document.getElementById('teacher-signup-availability');
+
+    if (secretarySetupToken) {
+        activeAuthRole = ROLE_SECRETARY;
+        activeAuthMode = 'activation';
+        roleSwitcher?.classList.add('hidden');
+        loginForm?.classList.add('hidden');
+        signupForm?.classList.add('hidden');
+        activationForm?.classList.remove('hidden');
+        toggleBtn?.classList.add('hidden');
+        availability?.classList.add('hidden');
+        if (title) title.innerText = 'Activate Secretary / Admin';
+        if (subtitle) subtitle.innerText = 'This secure one-time link creates the school’s sole administrator account.';
+        return;
+    }
+
+    roleSwitcher?.classList.remove('hidden');
+    activationForm?.classList.add('hidden');
 
     document.querySelectorAll('.auth-role-btn').forEach((btn) => {
         btn.classList.toggle('auth-role-btn-active', btn.dataset.authRole === activeAuthRole);
@@ -695,8 +747,32 @@ function syncAuthRoleUi() {
         signupForm?.classList.toggle('hidden', !isSignup);
         if (toggleBtn) {
             toggleBtn.innerText = isSignup ? 'Already have an account? Login' : 'Need an account? Sign Up';
+            toggleBtn.disabled = !teacherSignupAvailable;
+            toggleBtn.classList.toggle('opacity-50', !teacherSignupAvailable);
+            toggleBtn.classList.toggle('cursor-not-allowed', !teacherSignupAvailable);
+        }
+        availability?.classList.toggle('hidden', teacherSignupAvailable || isSignup);
+        if (availability && !teacherSignupAvailable) {
+            availability.textContent = 'Teacher signup opens after the school Secretary/admin activates this school.';
         }
     }
+}
+
+async function initializeAuthAvailability() {
+    secretarySetupToken = readSecretarySetupToken();
+    if (secretarySetupToken) {
+        syncAuthRoleUi();
+        return;
+    }
+    try {
+        const { getSecretaryBootstrapStatus } = await loadSecretaryAdminRuntime();
+        const status = await getSecretaryBootstrapStatus();
+        teacherSignupAvailable = status?.state === 'active';
+    } catch (error) {
+        console.warn('Could not verify Secretary activation status:', error?.message || error);
+        teacherSignupAvailable = false;
+    }
+    syncAuthRoleUi();
 }
 
 function setAuthRole(role) {
@@ -716,7 +792,31 @@ function setupAuthListeners() {
 
     document.getElementById('toggle-auth-mode').addEventListener('click', (e) => {
         if (activeAuthRole !== ROLE_TEACHER) return;
+        if (!teacherSignupAvailable && activeAuthMode !== 'signup') return;
         setAuthMode(activeAuthMode === 'signup' ? 'login' : 'signup');
+    });
+
+    document.getElementById('secretary-activation-form')?.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const errorEl = document.getElementById('auth-error');
+        const username = normalizeUsername(document.getElementById('activation-username')?.value || '');
+        const password = document.getElementById('activation-password')?.value || '';
+        const displayName = document.getElementById('activation-display-name')?.value?.trim() || '';
+        const schoolName = document.getElementById('activation-school-name')?.value?.trim() || '';
+        try {
+            beginAuthSubmit('activation');
+            errorEl.innerText = '';
+            const { activateSecretaryAdmin } = await loadSecretaryAdminRuntime();
+            await activateSecretaryAdmin({ token: secretarySetupToken, username, password, displayName, schoolName });
+            const identifier = buildSyntheticRoleEmail(ROLE_SECRETARY, username);
+            window.history.replaceState(null, '', `${window.location.pathname}${window.location.search}`);
+            secretarySetupToken = '';
+            teacherSignupAvailable = true;
+            await signInWithEmailAndPassword(auth, identifier, password);
+        } catch (error) {
+            resetAuthSubmitState();
+            errorEl.innerText = String(error?.message || error).replace('Firebase: ', '');
+        }
     });
 
     document.getElementById('login-form').addEventListener('submit', async (e) => {
@@ -750,6 +850,9 @@ function setupAuthListeners() {
         pendingSignupBootstrap = bootstrapPromise;
         let createdUser = null;
         try {
+            if (!teacherSignupAvailable) {
+                throw new Error('Teacher signup is locked until the Secretary/admin activates this school.');
+            }
             beginAuthSubmit('signup');
             errorEl.innerText = '';
             const userCredential = await createUserWithEmailAndPassword(auth, email, password);
@@ -769,6 +872,8 @@ function setupAuthListeners() {
             }
         }
     });
+
+    void initializeAuthAvailability();
 
     onAuthStateChanged(auth, async (user) => {
         const sessionId = ++authSessionId;
@@ -847,7 +952,6 @@ function setupAuthListeners() {
                 initializeHeaderQuote();
                 state.setCurrentUserProfile(profile);
                 state.setCurrentUserRole(profile.role);
-                state.setIsSchoolAdmin(profile.schoolAdmin === true);
                 state.setCurrentTeacherName(profile.displayName || user.displayName || user.email || '');
                 stageLoadingPersonalization(profile.displayName || user.displayName || '', profile.role);
                 const isCurrentSession = () => sessionId === authSessionId && auth.currentUser?.uid === user.uid;
@@ -897,8 +1001,14 @@ function setupAuthListeners() {
             if (subScreen) subScreen.classList.add('hidden');
             authScreen.classList.remove('hidden');
             setSecretaryReturnButtonVisible(false);
-            setAuthRole(ROLE_TEACHER);
-            setAuthMode('login');
+            secretarySetupToken = readSecretarySetupToken();
+            if (secretarySetupToken) {
+                syncAuthRoleUi();
+            } else {
+                setAuthRole(ROLE_TEACHER);
+                setAuthMode('login');
+                void initializeAuthAvailability();
+            }
             animateLoadingScreenOut(loadingScreen);
         }
     });

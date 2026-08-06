@@ -2,7 +2,9 @@ const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
 const { spawn, spawnSync } = require('child_process');
-const admin = require('firebase-admin');
+const { initializeApp, getApps, cert, applicationDefault } = require('firebase-admin/app');
+const { getFirestore, Timestamp, FieldValue } = require('firebase-admin/firestore');
+const { getSecurityRules } = require('firebase-admin/security-rules');
 const { JWT, GoogleAuth } = require('google-auth-library');
 
 const repoRoot = path.resolve(__dirname, '..', '..');
@@ -20,6 +22,7 @@ const storageRulesPath = path.join(repoRoot, 'storage.rules');
 const tierConfigDir = path.join(repoRoot, 'config', 'tiers');
 const pendingTierPath = path.join(repoRoot, 'config', 'tiers', 'pending.json');
 const SCHOOL_SETTINGS_DOC = 'artifacts/great-class-quest/public/data/school_settings/holidays';
+const SECRETARY_BOOTSTRAP_DOC = 'artifacts/great-class-quest/public/data/admin_bootstrap/secretary';
 
 const DEFAULT_DEFAULTS = {
   renderUrl: '',
@@ -608,11 +611,11 @@ function buildStorageReleaseName(projectId, bucketName) {
 
 function getAdminApp(projectId, serviceAccount) {
   const appName = `gcq-onboarding-${String(projectId).replace(/[^a-z0-9-]/gi, '-').toLowerCase()}`;
-  const existing = admin.apps.find((app) => app.name === appName);
+  const existing = getApps().find((app) => app.name === appName);
   if (existing) return existing;
-  return admin.initializeApp(
+  return initializeApp(
     {
-      credential: admin.credential.cert(serviceAccount),
+      credential: cert(serviceAccount),
       projectId,
     },
     appName
@@ -622,13 +625,13 @@ function getAdminApp(projectId, serviceAccount) {
 function getRulesAdminApp(projectId, authInput) {
   const authKind = authInput && authInput.kind === 'bootstrap_admin' ? 'bootstrap' : 'service';
   const appName = `gcq-rules-${String(projectId).replace(/[^a-z0-9-]/gi, '-').toLowerCase()}-${authKind}`;
-  const existing = admin.apps.find((app) => app.name === appName);
+  const existing = getApps().find((app) => app.name === appName);
   if (existing) return existing;
-  return admin.initializeApp(
+  return initializeApp(
     {
       credential: authKind === 'bootstrap'
-        ? admin.credential.applicationDefault()
-        : admin.credential.cert(authInput),
+        ? applicationDefault()
+        : cert(authInput),
       projectId,
     },
     appName
@@ -659,7 +662,7 @@ function parseRulesReleaseContext(releaseName, sourcePath) {
 
 async function writePendingSubscription(projectId, serviceAccount) {
   const app = getAdminApp(projectId, serviceAccount);
-  const db = app.firestore();
+  const db = getFirestore(app);
   const pendingPreset = readJson(pendingTierPath);
   const ref = db.collection('appConfig').doc('subscription');
   const snap = await ref.get();
@@ -673,9 +676,48 @@ async function writePendingSubscription(projectId, serviceAccount) {
   };
 }
 
+async function createSecretaryActivation(db, options = {}) {
+  const purpose = String(options.purpose || 'founding').trim().toLowerCase();
+  if (!['founding', 'recovery', 'handover'].includes(purpose)) {
+    throw new Error('Secretary activation purpose must be founding, recovery, or handover.');
+  }
+  const defaultHours = purpose === 'founding' ? 7 * 24 : 24;
+  const expiresInHours = Number(options.expiresInHours || defaultHours);
+  if (!Number.isFinite(expiresInHours) || expiresInHours <= 0) {
+    throw new Error('Secretary activation expiry must be a positive number of hours.');
+  }
+  const roleRef = db.doc('artifacts/great-class-quest/public/data/school_roles/secretary');
+  const roleSnap = await roleRef.get();
+  if (purpose === 'founding' && roleSnap.exists && roleSnap.data()?.status === 'active') {
+    throw new Error('An active Secretary/admin already exists; use a recovery or handover activation instead.');
+  }
+  if (purpose === 'recovery' && (!roleSnap.exists || roleSnap.data()?.status !== 'active' || !roleSnap.data()?.uid)) {
+    throw new Error('Recovery requires one active canonical Secretary/admin.');
+  }
+  const token = crypto.randomBytes(32).toString('base64url');
+  const tokenHash = crypto.createHash('sha256').update(token, 'utf8').digest('hex');
+  const now = Date.now();
+  const expiresAt = Timestamp.fromMillis(now + expiresInHours * 60 * 60 * 1000);
+  await db.doc(SECRETARY_BOOTSTRAP_DOC).set({
+    tokenHash,
+    purpose,
+    status: 'pending',
+    createdAt: FieldValue.serverTimestamp(),
+    updatedAt: FieldValue.serverTimestamp(),
+    expiresAt,
+    ...(purpose === 'recovery' ? { targetUid: roleSnap.data().uid } : {}),
+  }, { merge: false });
+  const baseUrl = String(options.siteUrl || '').trim().replace(/\/$/, '');
+  return {
+    purpose,
+    expiresAt: expiresAt.toDate().toISOString(),
+    activationUrl: `${baseUrl || ''}/#secretary-setup=${encodeURIComponent(token)}`,
+  };
+}
+
 async function readSubscriptionStatus(projectId, serviceAccount) {
   const app = getAdminApp(projectId, serviceAccount);
-  const db = app.firestore();
+  const db = getFirestore(app);
   const snap = await db.collection('appConfig').doc('subscription').get();
   if (!snap.exists) {
     return { exists: false, tier: null, data: null };
@@ -830,13 +872,13 @@ function summarizeAssessmentDefaults(raw) {
 
 async function fetchGraceWindow(projectId, serviceAccount) {
   const app = getAdminApp(projectId, serviceAccount);
-  const snap = await app.firestore().doc(SCHOOL_SETTINGS_DOC).get();
+  const snap = await getFirestore(app).doc(SCHOOL_SETTINGS_DOC).get();
   return formatGraceSummary(snap.exists ? snap.data() : null);
 }
 
 async function fetchAssessmentDefaultsSummary(projectId, serviceAccount) {
   const app = getAdminApp(projectId, serviceAccount);
-  const snap = await app.firestore().doc(SCHOOL_SETTINGS_DOC).get();
+  const snap = await getFirestore(app).doc(SCHOOL_SETTINGS_DOC).get();
   return summarizeAssessmentDefaults(snap.exists ? snap.data() : null);
 }
 
@@ -927,7 +969,7 @@ async function updateSavedSchoolSubscription(projectId, input = {}) {
   const details = await getSavedSchoolDetails(projectId);
   const payload = buildManualSubscriptionPayload(input);
   const app = getAdminApp(projectId, details.serviceAccount);
-  await app.firestore().collection('appConfig').doc('subscription').set(payload, { merge: false });
+  await getFirestore(app).collection('appConfig').doc('subscription').set(payload, { merge: false });
   const nextSubscription = await readSubscriptionStatus(projectId, details.serviceAccount);
   const billing = await fetchBillingSubscriptionInfo(projectId);
   return {
@@ -1353,7 +1395,7 @@ async function inspectRulesRelease(releaseName, sourcePath, serviceAccount) {
   const localSource = readRuleSource(sourcePath);
   try {
     const app = getRulesAdminApp(context.projectId, serviceAccount);
-    const securityRules = admin.securityRules(app);
+    const securityRules = getSecurityRules(app);
     const ruleset = context.type === 'firestore'
       ? await securityRules.getFirestoreRuleset()
       : await securityRules.getStorageRuleset(context.bucketName);
@@ -1396,7 +1438,7 @@ async function deployRulesRelease(projectId, releaseName, sourcePath, serviceAcc
     };
   }
   const app = getRulesAdminApp(projectId, serviceAccount);
-  const securityRules = admin.securityRules(app);
+  const securityRules = getSecurityRules(app);
   const source = readRuleSource(sourcePath);
   const ruleset = context.type === 'firestore'
     ? await securityRules.releaseFirestoreRulesetFromSource(source)
@@ -3354,6 +3396,7 @@ module.exports = {
   inspectFirestoreIndexes,
   ensureFirestoreIndexes,
   writePendingSubscription,
+  createSecretaryActivation,
   readSubscriptionStatus,
   runAutomaticSetup,
   recheckExistingSchool,

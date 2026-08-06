@@ -427,7 +427,7 @@ function getGeneralDashboard(name, theme, spice) {
         { icon: 'fa-trophy', label: 'Hero Ranks', action: 'open-student-ranks', league: activeLeague },
         { icon: 'fa-plus-circle', label: 'New', action: 'create-class', league: activeLeague },
         { icon: 'fa-globe', label: 'Team History', action: 'open-team-history', league: activeLeague },
-        { icon: 'fa-umbrella-beach', label: 'Holiday', action: 'open-holidays', featureFlag: 'schoolYearPlanner' },
+        { icon: 'fa-calendar-check', label: 'My Planning', action: 'open-holidays', featureFlag: 'schoolYearPlanner' },
         { icon: 'fa-calendar-alt', label: 'Plan', action: 'open-day-planner', featureFlag: 'calendar' },
         { icon: 'fa-cog', label: 'Setup', action: 'open-settings' },
     ].filter(tool => !tool.featureFlag || canUseFeature(tool.featureFlag));

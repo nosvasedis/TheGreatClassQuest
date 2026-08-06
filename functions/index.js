@@ -1,6 +1,7 @@
 const { getApp, initializeApp } = require('firebase-admin/app');
 const { getAuth } = require('firebase-admin/auth');
 const { FieldValue, getFirestore } = require('firebase-admin/firestore');
+const crypto = require('node:crypto');
 const functionsV1 = require('firebase-functions/v1');
 const { HttpsError } = require('firebase-functions/v1/https');
 
@@ -13,6 +14,9 @@ const FUNCTIONS_REGION = process.env.GCQ_FIREBASE_FUNCTIONS_REGION || 'europe-we
 const PUBLIC_DATA_PATH = 'artifacts/great-class-quest/public/data';
 const PROFILE_COLLECTION = 'user_profiles';
 const SUBSCRIPTION_DOC = 'appConfig/subscription';
+const SECRETARY_ROLE_DOC = `${PUBLIC_DATA_PATH}/school_roles/secretary`;
+const SECRETARY_BOOTSTRAP_DOC = `${PUBLIC_DATA_PATH}/admin_bootstrap/secretary`;
+const RECENT_AUTH_WINDOW_SECONDS = 10 * 60;
 
 function getProjectId() {
   return getApp().options.projectId || process.env.GCLOUD_PROJECT || 'gcq-school';
@@ -28,6 +32,26 @@ function sanitizeUsername(value) {
 
 function buildSyntheticRoleEmail(role, username) {
   return `${role}.${sanitizeUsername(username)}@${getProjectId().toLowerCase()}.gcq.local`;
+}
+
+function hashSecretarySetupToken(value) {
+  return crypto.createHash('sha256').update(String(value || ''), 'utf8').digest('hex');
+}
+
+function tokenHashesMatch(expected, actual) {
+  const left = Buffer.from(String(expected || ''), 'hex');
+  const right = Buffer.from(String(actual || ''), 'hex');
+  return left.length === 32 && right.length === 32 && crypto.timingSafeEqual(left, right);
+}
+
+function getAcademicYearKeys(date = new Date()) {
+  const month = date.getUTCMonth() + 1;
+  const year = date.getUTCFullYear();
+  const startYear = month >= 9 ? year : year - 1;
+  return {
+    activeYearKey: `${startYear}-${startYear + 1}`,
+    nextYearKey: `${startYear + 1}-${startYear + 2}`
+  };
 }
 
 function mapAdminAuthError(error, fallbackMessage) {
@@ -60,6 +84,21 @@ async function requireAuthedCaller(request) {
     throw new HttpsError('permission-denied', 'This account is inactive or has an invalid role.');
   }
   return { uid: request.auth.uid, profile };
+}
+
+async function isCanonicalSecretaryCaller(caller) {
+  if (!caller || caller.profile?.role !== 'secretary') return false;
+  const roleSnap = await db.doc(SECRETARY_ROLE_DOC).get();
+  return roleSnap.exists &&
+    roleSnap.data()?.uid === caller.uid &&
+    roleSnap.data()?.status === 'active';
+}
+
+async function requireCanonicalSecretaryCaller(caller) {
+  if (!await isCanonicalSecretaryCaller(caller)) {
+    throw new HttpsError('permission-denied', 'Only the active canonical Secretary/admin can perform this action.');
+  }
+  return caller;
 }
 
 async function getSubscriptionConfig() {
@@ -118,9 +157,8 @@ async function getStudent(studentId) {
 async function requireStudentManager(request, studentId) {
   const caller = await requireAuthedCaller(request);
   const student = await getStudent(studentId);
-  const isSecretary = caller.profile.role === 'secretary';
-  const isAdmin = caller.profile.schoolAdmin === true;
-  if (!isSecretary && !isAdmin && student.createdBy?.uid !== caller.uid) {
+  const isSecretary = await isCanonicalSecretaryCaller(caller);
+  if (!isSecretary && student.createdBy?.uid !== caller.uid) {
     throw new HttpsError('permission-denied', 'You can only manage access for your own students.');
   }
   return { caller, student };
@@ -133,9 +171,8 @@ async function requireClassManager(request, classId) {
     throw new HttpsError('not-found', 'That class could not be found.');
   }
   const classData = { id: classSnap.id, ...classSnap.data() };
-  const isSecretary = caller.profile.role === 'secretary';
-  const isAdmin = caller.profile.schoolAdmin === true;
-  if (!isSecretary && !isAdmin && classData.createdBy?.uid !== caller.uid) {
+  const isSecretary = await isCanonicalSecretaryCaller(caller);
+  if (!isSecretary && classData.createdBy?.uid !== caller.uid) {
     throw new HttpsError('permission-denied', 'You can only manage homework sync for your own classes.');
   }
   return { caller, classData };
@@ -401,38 +438,256 @@ async function addCommunicationMessage({ threadId, studentId, body, authorUid, a
   }, { merge: true });
 }
 
-exports.claimFoundingSchoolAdmin = callable(async (request) => {
-  const caller = await requireAuthedCaller(request);
-  if (request.auth?.token?.gcqPlatformAdmin !== true) {
-    throw new HttpsError('permission-denied', 'School administrators must be provisioned through authorized admin tooling.');
-  }
-  if (caller.profile.role && caller.profile.role !== 'teacher') {
-    throw new HttpsError('permission-denied', 'Only teachers can claim the founding school admin role.');
-  }
-  if (caller.profile.schoolAdmin === true) {
-    return { ok: true, schoolAdmin: true, alreadyClaimed: true };
+exports.getSecretaryBootstrapStatus = callable(async () => {
+  const [roleSnap, bootstrapSnap] = await Promise.all([
+    db.doc(SECRETARY_ROLE_DOC).get(),
+    db.doc(SECRETARY_BOOTSTRAP_DOC).get()
+  ]);
+  if (roleSnap.exists && roleSnap.data()?.uid && roleSnap.data()?.status === 'active') {
+    const profileSnap = await db.collection(PROFILE_COLLECTION).doc(roleSnap.data().uid).get();
+    if (profileSnap.exists && profileSnap.data()?.role === 'secretary' && profileSnap.data()?.status === 'active') {
+      return { state: 'active', requiresToken: false };
+    }
   }
 
-  const profileRef = db.collection(PROFILE_COLLECTION).doc(caller.uid);
+  const bootstrap = bootstrapSnap.exists ? (bootstrapSnap.data() || {}) : {};
+  const expiresAtMs = bootstrap.expiresAt?.toMillis?.() || 0;
+  const expired = expiresAtMs > 0 && expiresAtMs <= Date.now();
+  const claimState = bootstrap.status === 'claiming' ? 'claiming' : 'unclaimed';
+  return {
+    state: expired || bootstrap.status === 'consumed' ? 'unclaimed' : claimState,
+    requiresToken: true
+  };
+});
+
+exports.activateSecretaryAdmin = callable(async (request) => {
+  const token = String(request.data?.token || '').trim();
+  const username = sanitizeUsername(request.data?.username);
+  const password = String(request.data?.password || '');
+  const displayName = String(request.data?.displayName || 'School Secretary').trim() || 'School Secretary';
+  const schoolName = String(request.data?.schoolName || '').trim();
+  if (token.length < 32 || !username || password.length < 6) {
+    throw new HttpsError('invalid-argument', 'A valid setup link, username, and password of at least 6 characters are required.');
+  }
+
+  const bootstrapRef = db.doc(SECRETARY_BOOTSTRAP_DOC);
+  const roleRef = db.doc(SECRETARY_ROLE_DOC);
+  const tokenHash = hashSecretarySetupToken(token);
+  let bootstrapData;
+
   await db.runTransaction(async (transaction) => {
-    const existingAdmin = await transaction.get(
-      db.collection(PROFILE_COLLECTION).where('schoolAdmin', '==', true).limit(1)
-    );
-    if (!existingAdmin.empty) {
-      throw new HttpsError('failed-precondition', 'A school admin already exists for this school.');
+    const [bootstrapSnap, roleSnap] = await Promise.all([
+      transaction.get(bootstrapRef),
+      transaction.get(roleRef)
+    ]);
+    if (!bootstrapSnap.exists) {
+      throw new HttpsError('permission-denied', 'This Secretary setup link is invalid or no longer available.');
     }
-    transaction.set(profileRef, {
-      role: 'teacher',
-      loginMode: 'email',
-      status: caller.profile.status || 'active',
-      schoolAdmin: true,
-      linkedStudentId: null,
-      displayName: caller.profile.displayName || '',
-      createdAt: caller.profile.createdAt || FieldValue.serverTimestamp()
+    const data = bootstrapSnap.data() || {};
+    const expiresAtMs = data.expiresAt?.toMillis?.() || 0;
+    if (!tokenHashesMatch(data.tokenHash, tokenHash) || !expiresAtMs || expiresAtMs <= Date.now()) {
+      throw new HttpsError('permission-denied', 'This Secretary setup link is invalid or expired.');
+    }
+    if (data.status === 'consumed') {
+      throw new HttpsError('failed-precondition', 'This Secretary setup link has already been used.');
+    }
+    if (data.status === 'claiming' && data.claimUsername && data.claimUsername !== username) {
+      throw new HttpsError('aborted', 'This setup link is already completing another Secretary activation.');
+    }
+
+    const purpose = String(data.purpose || 'founding');
+    if (purpose === 'recovery') {
+      const activeUid = roleSnap.exists ? roleSnap.data()?.uid : null;
+      if (!activeUid || (data.targetUid && data.targetUid !== activeUid)) {
+        throw new HttpsError('failed-precondition', 'The Secretary account linked to this recovery link has changed.');
+      }
+    } else if (roleSnap.exists && roleSnap.data()?.uid && roleSnap.data()?.status === 'active') {
+      throw new HttpsError('failed-precondition', 'This school already has an active Secretary/admin.');
+    }
+
+    bootstrapData = { ...data, purpose };
+    transaction.set(bootstrapRef, {
+      status: 'claiming',
+      claimUsername: username,
+      claimStartedAt: data.claimStartedAt || FieldValue.serverTimestamp(),
+      updatedAt: FieldValue.serverTimestamp()
     }, { merge: true });
   });
 
-  return { ok: true, schoolAdmin: true };
+  const email = buildSyntheticRoleEmail('secretary', username);
+  let secretaryUid = bootstrapData.targetUid || bootstrapData.claimUid || null;
+  let createdAuthUser = false;
+
+  try {
+    if (bootstrapData.purpose === 'recovery') {
+      await auth.updateUser(secretaryUid, { email, password, displayName, disabled: false });
+    } else {
+      const existingByEmail = await getUserByEmail(email);
+      if (existingByEmail) {
+        const existingProfile = await db.collection(PROFILE_COLLECTION).doc(existingByEmail.uid).get();
+        if (existingProfile.exists || (bootstrapData.claimUid && bootstrapData.claimUid !== existingByEmail.uid)) {
+          throw new HttpsError('already-exists', 'That Secretary username is already in use.');
+        }
+        secretaryUid = existingByEmail.uid;
+        await auth.updateUser(secretaryUid, { password, displayName, disabled: false });
+      } else {
+        try {
+          const userRecord = await auth.createUser({ email, password, displayName });
+          secretaryUid = userRecord.uid;
+          createdAuthUser = true;
+        } catch (createError) {
+          if (createError?.code !== 'auth/email-already-exists') throw createError;
+          const concurrentUser = await getUserByEmail(email);
+          if (!concurrentUser) throw createError;
+          secretaryUid = concurrentUser.uid;
+          await auth.updateUser(secretaryUid, { password, displayName, disabled: false });
+        }
+      }
+      await bootstrapRef.set({ claimUid: secretaryUid, updatedAt: FieldValue.serverTimestamp() }, { merge: true });
+    }
+
+    const legacyAdminSnap = await db.collection(PROFILE_COLLECTION).where('schoolAdmin', '==', true).get();
+    const batch = db.batch();
+    batch.set(roleRef, {
+      uid: secretaryUid,
+      username,
+      status: 'active',
+      activatedAt: FieldValue.serverTimestamp(),
+      updatedAt: FieldValue.serverTimestamp()
+    }, { merge: false });
+    batch.set(db.collection(PROFILE_COLLECTION).doc(secretaryUid), {
+      role: 'secretary',
+      displayName,
+      loginMode: 'username',
+      status: 'active',
+      linkedStudentId: null,
+      createdBy: { type: 'secretary_bootstrap', purpose: bootstrapData.purpose },
+      createdAt: FieldValue.serverTimestamp(),
+      lastSeenAt: null,
+      schoolAdmin: FieldValue.delete()
+    }, { merge: true });
+    legacyAdminSnap.docs.forEach((docSnap) => {
+      if (docSnap.id !== secretaryUid) batch.update(docSnap.ref, { schoolAdmin: FieldValue.delete() });
+    });
+
+    if (bootstrapData.purpose === 'founding') {
+      if (!schoolName) {
+        throw new HttpsError('invalid-argument', 'School name is required for the founding Secretary activation.');
+      }
+      const { activeYearKey, nextYearKey } = getAcademicYearKeys();
+      batch.set(db.doc(`${PUBLIC_DATA_PATH}/school_settings/holidays`), {
+        schoolName,
+        ranges: [],
+        createdAt: FieldValue.serverTimestamp(),
+        updatedAt: FieldValue.serverTimestamp()
+      }, { merge: true });
+      batch.set(db.doc(`${PUBLIC_DATA_PATH}/school_year_state/current`), {
+        activeYearKey,
+        nextYearKey,
+        closeDate: null,
+        rolloverStatus: 'active',
+        status: 'active',
+        updatedAt: FieldValue.serverTimestamp()
+      }, { merge: false });
+      batch.set(db.doc(`${PUBLIC_DATA_PATH}/school_years/${activeYearKey}`), {
+        yearKey: activeYearKey,
+        status: 'active',
+        createdAt: FieldValue.serverTimestamp()
+      }, { merge: true });
+      batch.set(db.doc(`${PUBLIC_DATA_PATH}/school_years/${nextYearKey}`), {
+        yearKey: nextYearKey,
+        status: 'planned',
+        createdAt: FieldValue.serverTimestamp()
+      }, { merge: true });
+    }
+
+    batch.set(bootstrapRef, {
+      status: 'consumed',
+      consumedByUid: secretaryUid,
+      consumedAt: FieldValue.serverTimestamp(),
+      tokenHash: FieldValue.delete(),
+      updatedAt: FieldValue.serverTimestamp()
+    }, { merge: true });
+    await batch.commit();
+    return { ok: true, uid: secretaryUid, username, purpose: bootstrapData.purpose };
+  } catch (error) {
+    const activeRoleSnap = await roleRef.get().catch(() => null);
+    const activationCompleted = activeRoleSnap?.exists
+      && activeRoleSnap.data()?.status === 'active'
+      && activeRoleSnap.data()?.uid === secretaryUid;
+    if (createdAuthUser && secretaryUid && !activationCompleted) {
+      await deleteAuthUserIfExists(secretaryUid).catch(() => {});
+    }
+    if (!activationCompleted) {
+      await db.runTransaction(async (transaction) => {
+        const current = await transaction.get(bootstrapRef);
+        const currentData = current.exists ? (current.data() || {}) : {};
+        if (currentData.status !== 'claiming' || !tokenHashesMatch(currentData.tokenHash, tokenHash)) return;
+        if (currentData.claimUid && secretaryUid && currentData.claimUid !== secretaryUid) return;
+        transaction.set(bootstrapRef, {
+          status: 'pending',
+          claimUid: FieldValue.delete(),
+          claimUsername: FieldValue.delete(),
+          claimStartedAt: FieldValue.delete(),
+          updatedAt: FieldValue.serverTimestamp()
+        }, { merge: true });
+      }).catch(() => {});
+    }
+    if (activationCompleted) {
+      return { ok: true, uid: secretaryUid, username, purpose: bootstrapData?.purpose, resumed: true };
+    }
+    if (error instanceof HttpsError) throw error;
+    throw mapAdminAuthError(error, 'Could not activate the Secretary/admin account.');
+  }
+});
+
+exports.updateSecretaryCredentials = callable(async (request) => {
+  const caller = await requireAuthedCaller(request);
+  if (caller.profile.role !== 'secretary') {
+    throw new HttpsError('permission-denied', 'Only the active Secretary/admin can change these credentials.');
+  }
+  const roleRef = db.doc(SECRETARY_ROLE_DOC);
+  const roleSnap = await roleRef.get();
+  if (!roleSnap.exists || roleSnap.data()?.uid !== caller.uid || roleSnap.data()?.status !== 'active') {
+    throw new HttpsError('permission-denied', 'This account is not the canonical Secretary/admin.');
+  }
+  const authTime = Number(request.auth?.token?.auth_time || 0);
+  const nowSeconds = Math.floor(Date.now() / 1000);
+  if (!authTime || nowSeconds - authTime > RECENT_AUTH_WINDOW_SECONDS) {
+    throw new HttpsError('failed-precondition', 'Please confirm your current password before changing Secretary credentials.');
+  }
+
+  const requestedUsername = request.data?.username == null ? '' : sanitizeUsername(request.data.username);
+  const requestedPassword = request.data?.password == null ? '' : String(request.data.password);
+  if (!requestedUsername && !requestedPassword) {
+    throw new HttpsError('invalid-argument', 'Enter a new username or password.');
+  }
+  if (request.data?.username != null && !requestedUsername) {
+    throw new HttpsError('invalid-argument', 'Enter a valid username.');
+  }
+  if (requestedPassword && requestedPassword.length < 6) {
+    throw new HttpsError('invalid-argument', 'Use a password with at least 6 characters.');
+  }
+
+  const currentUsername = sanitizeUsername(roleSnap.data()?.username);
+  const nextUsername = requestedUsername || currentUsername;
+  const update = { disabled: false };
+  if (nextUsername !== currentUsername) {
+    const nextEmail = buildSyntheticRoleEmail('secretary', nextUsername);
+    const existing = await getUserByEmail(nextEmail);
+    if (existing && existing.uid !== caller.uid) {
+      throw new HttpsError('already-exists', 'That Secretary username is already in use.');
+    }
+    update.email = nextEmail;
+  }
+  if (requestedPassword) update.password = requestedPassword;
+  await auth.updateUser(caller.uid, update);
+  await roleRef.set({ username: nextUsername, updatedAt: FieldValue.serverTimestamp() }, { merge: true });
+  return { ok: true, username: nextUsername };
+});
+
+exports.claimFoundingSchoolAdmin = callable(async () => {
+  throw new HttpsError('failed-precondition', 'Teacher administrators are retired. Activate the school Secretary/admin instead.');
 });
 
 exports.createParentAccess = callable(async (request) => {
@@ -471,7 +726,6 @@ exports.createParentAccess = callable(async (request) => {
     displayName,
     loginMode: 'username',
     status: 'active',
-    schoolAdmin: false,
     linkedStudentId: studentId,
     createdBy: { uid: caller.uid, role: caller.profile.role || 'teacher' },
     createdAt: FieldValue.serverTimestamp(),
@@ -537,87 +791,16 @@ exports.deleteParentAccess = callable(async (request) => {
   return { ok: true, deletedUid: parentUid };
 });
 
-exports.createOrReplaceSecretaryAccess = callable(async (request) => {
-  await requireFeatureEnabled('secretaryAccess');
-  const username = sanitizeUsername(request.data?.username);
-  const password = String(request.data?.password || '').trim();
-  if (!username || !password) {
-    throw new HttpsError('invalid-argument', 'Username and password are required.');
-  }
-  const caller = await requireAuthedCaller(request);
-  const canManage = caller.profile.schoolAdmin === true || caller.profile.role === 'secretary';
-  if (!canManage) {
-    throw new HttpsError('permission-denied', 'Only the school admin can manage the secretary account.');
-  }
+function rejectLegacySecretaryLifecycle() {
+  throw new HttpsError(
+    'failed-precondition',
+    'The Secretary is now the school administrator and cannot be created, disabled, or deleted from inside the app.'
+  );
+}
 
-  const secretaryRef = db.doc(`${PUBLIC_DATA_PATH}/school_roles/secretary`);
-  const existing = await secretaryRef.get();
-  const email = buildSyntheticRoleEmail('secretary', username);
-  const secretaryUid = await resolveRoleUser({
-    desiredUid: existing.exists ? existing.data().uid : null,
-    email,
-    password,
-    displayName: 'School Secretary',
-    roleLabel: 'secretary'
-  });
-
-  await secretaryRef.set({
-    uid: secretaryUid,
-    username,
-    status: 'active',
-    createdBy: { uid: caller.uid, role: caller.profile.role || 'teacher' },
-    updatedAt: FieldValue.serverTimestamp()
-  }, { merge: true });
-
-  await db.collection(PROFILE_COLLECTION).doc(secretaryUid).set({
-    role: 'secretary',
-    displayName: 'School Secretary',
-    loginMode: 'username',
-    status: 'active',
-    schoolAdmin: false,
-    linkedStudentId: null,
-    createdBy: { uid: caller.uid, role: caller.profile.role || 'teacher' },
-    createdAt: FieldValue.serverTimestamp(),
-    lastSeenAt: null
-  }, { merge: true });
-
-  return { ok: true, uid: secretaryUid, username };
-});
-
-exports.disableSecretaryAccess = callable(async (request) => {
-  await requireFeatureEnabled('secretaryAccess');
-  const caller = await requireAuthedCaller(request);
-  const canManage = caller.profile.schoolAdmin === true || caller.profile.role === 'secretary';
-  if (!canManage) {
-    throw new HttpsError('permission-denied', 'Only the school admin can manage the secretary account.');
-  }
-  const secretaryRef = db.doc(`${PUBLIC_DATA_PATH}/school_roles/secretary`);
-  const existing = await secretaryRef.get();
-  if (existing.exists && existing.data().uid) {
-    await auth.updateUser(existing.data().uid, { disabled: true });
-    await db.collection(PROFILE_COLLECTION).doc(existing.data().uid).set({ status: 'disabled' }, { merge: true });
-  }
-  await secretaryRef.set({ status: 'disabled', updatedAt: FieldValue.serverTimestamp() }, { merge: true });
-  return { ok: true };
-});
-
-exports.deleteSecretaryAccess = callable(async (request) => {
-  await requireFeatureEnabled('secretaryAccess');
-  const caller = await requireAuthedCaller(request);
-  const canManage = caller.profile.schoolAdmin === true || caller.profile.role === 'secretary';
-  if (!canManage) {
-    throw new HttpsError('permission-denied', 'Only the school admin can manage the secretary account.');
-  }
-  const secretaryRef = db.doc(`${PUBLIC_DATA_PATH}/school_roles/secretary`);
-  const existing = await secretaryRef.get();
-  const secretaryUid = existing.exists ? existing.data().uid : null;
-  if (secretaryUid) {
-    await deleteAuthUserIfExists(secretaryUid);
-    await db.collection(PROFILE_COLLECTION).doc(secretaryUid).delete();
-  }
-  await secretaryRef.delete();
-  return { ok: true, deletedUid: secretaryUid || null };
-});
+exports.createOrReplaceSecretaryAccess = callable(rejectLegacySecretaryLifecycle);
+exports.disableSecretaryAccess = callable(rejectLegacySecretaryLifecycle);
+exports.deleteSecretaryAccess = callable(rejectLegacySecretaryLifecycle);
 
 exports.publishParentSummary = callable(async (request) => {
   await requireFeatureEnabled('parentAccess');
@@ -774,7 +957,11 @@ exports.syncQuestAssignmentToParentHomework = callable(async (request) => {
 
 exports.postCommunicationMessage = callable(async (request) => {
   const caller = await requireAuthedCaller(request);
-  await requireFeatureEnabled(caller.profile.role === 'secretary' ? 'secretaryAccess' : 'parentAccess');
+  const isSecretary = await isCanonicalSecretaryCaller(caller);
+  if (caller.profile.role === 'secretary' && !isSecretary) {
+    throw new HttpsError('permission-denied', 'This is not the active canonical Secretary/admin account.');
+  }
+  await requireFeatureEnabled(isSecretary ? 'secretaryAccess' : 'parentAccess');
   const threadId = String(request.data?.threadId || '').trim();
   const studentId = String(request.data?.studentId || '').trim();
   const body = String(request.data?.body || '').trim();
@@ -789,9 +976,8 @@ exports.postCommunicationMessage = callable(async (request) => {
     throw new HttpsError('not-found', 'That communication thread no longer exists.');
   }
   const thread = threadSnap.data() || {};
-  const isSecretary = caller.profile.role === 'secretary';
   const isParent = caller.profile.role === 'parent';
-  const canManage = isSecretary || caller.profile.schoolAdmin === true;
+  const canManage = isSecretary;
   const ownsStudent = !isParent ? (await getStudent(studentId)).createdBy?.uid === caller.uid : false;
   const isParticipant = Array.isArray(thread.participantUids) && thread.participantUids.includes(caller.uid);
 
@@ -817,9 +1003,8 @@ exports.postCommunicationMessage = callable(async (request) => {
 
 exports.backfillRoleAccessData = callable(async (request) => {
   const caller = await requireAuthedCaller(request);
-  if (!(caller.profile.schoolAdmin === true || caller.profile.role === 'secretary')) {
-    throw new HttpsError('permission-denied', 'Only a school admin or secretary can run the role backfill.');
-  }
+  await requireCanonicalSecretaryCaller(caller);
+  await requireFeatureEnabled('secretaryAccess');
 
   const studentsSnap = await db.collection(`${PUBLIC_DATA_PATH}/students`).get();
   let snapshotCount = 0;
@@ -852,10 +1037,7 @@ function withActiveYear(payload, yearKey) {
 
 async function requireYearOperator(request) {
   const caller = await requireAuthedCaller(request);
-  if (caller.profile.role !== 'secretary' && caller.profile.schoolAdmin !== true) {
-    throw new HttpsError('permission-denied', 'Only the Secretary or school admin can manage school-year rollover.');
-  }
-  return caller;
+  return requireCanonicalSecretaryCaller(caller);
 }
 
 function parseCloseDateFlexible(dateInput) {
@@ -1469,7 +1651,7 @@ exports.allocateReturningStudents = callable(async (request) => {
   if (!classSnap.exists) throw new HttpsError('not-found', 'That September class was not found.');
   const classData = classSnap.data() || {};
   if (classData.status === 'archived') throw new HttpsError('failed-precondition', 'Choose an active September class.');
-  const isOperator = caller.profile.role === 'secretary' || caller.profile.schoolAdmin === true;
+  const isOperator = await isCanonicalSecretaryCaller(caller);
   const ownerUid = classData.createdBy?.uid;
   if (!isOperator && ownerUid !== caller.uid) {
     throw new HttpsError('permission-denied', 'You can only place students into your own classes. Ask the Secretary if you need help.');
@@ -1570,7 +1752,9 @@ exports.transferStudentToClass = callable(async (request) => {
   if (!classSnap.exists) throw new HttpsError('not-found', 'Target class was not found.');
   const classData = classSnap.data() || {};
   if (classData.status === 'archived') throw new HttpsError('failed-precondition', 'Target class is archived.');
-  const canMove = caller.profile.role === 'secretary' || caller.profile.schoolAdmin === true || student.createdBy?.uid === caller.uid;
+  const isSecretary = await isCanonicalSecretaryCaller(caller);
+  if (isSecretary) await requireFeatureEnabled('secretaryAccess');
+  const canMove = isSecretary || student.createdBy?.uid === caller.uid;
   if (!canMove) {
     throw new HttpsError('permission-denied', 'You can only transfer students you currently own.');
   }

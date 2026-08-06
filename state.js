@@ -20,7 +20,6 @@ function getDefaultState() {
         currentUserRole: "teacher",
         currentUserProfile: null,
         teacherSettings: {},
-        isSchoolAdmin: false,
         schoolBillingGrace: null,
         schoolYearState: getDefaultSchoolYearState(),
         allSchoolYears: getDefaultSchoolYears(),
@@ -251,9 +250,6 @@ export function setTeacherSettings(settings) {
 }
 export function setUnsubscribeTeacherSettings(func) {
     state.unsubscribeTeacherSettings = func;
-}
-export function setIsSchoolAdmin(value) {
-    state.isSchoolAdmin = Boolean(value);
 }
 export function setSchoolBillingGrace(grace) {
     state.schoolBillingGrace = grace || null;

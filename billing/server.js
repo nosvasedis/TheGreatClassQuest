@@ -162,7 +162,7 @@ async function requireBillingIdentity(req, res, next) {
   if (adminToken && req.headers['x-billing-admin-token'] === adminToken) {
     const school = getSchoolById(requestedSchoolId);
     if (!school) return res.status(404).json({ error: 'School not found' });
-    req.billingIdentity = { school, uid: 'billing-admin', profile: { role: 'secretary', status: 'active', schoolAdmin: true } };
+    req.billingIdentity = { school, uid: 'billing-admin', profile: { role: 'secretary', status: 'active' } };
     return next();
   }
 
@@ -182,7 +182,7 @@ async function requireBillingIdentity(req, res, next) {
       if (requestedSchoolId && requestedSchoolId !== school.schoolId && requestedSchoolId !== school.firebaseProjectId) {
         return res.status(403).json({ error: 'The requested school does not match the verified account.' });
       }
-      req.billingIdentity = { school, uid: decoded.uid, profile };
+      req.billingIdentity = { school, uid: decoded.uid, profile, firebaseApp };
       return next();
     } catch (error) {
       if (String(error?.code || '').startsWith('auth/')) continue;
@@ -192,11 +192,22 @@ async function requireBillingIdentity(req, res, next) {
   return res.status(401).json({ error: 'The Firebase ID token could not be verified for a configured school.' });
 }
 
-function requireSchoolAdmin(req, res, next) {
-  if (req.billingIdentity?.profile?.schoolAdmin === true || req.billingIdentity?.profile?.role === 'secretary') {
-    return next();
+async function requireSchoolAdmin(req, res, next) {
+  const identity = req.billingIdentity;
+  if (identity?.profile?.role !== 'secretary' || !identity.firebaseApp) {
+    return res.status(403).json({ error: 'Only the active Secretary/admin can manage billing.' });
   }
-  return res.status(403).json({ error: 'Only a school administrator or secretary can manage billing.' });
+  try {
+    const roleSnap = await identity.firebaseApp.firestore()
+      .doc('artifacts/great-class-quest/public/data/school_roles/secretary')
+      .get();
+    if (roleSnap.exists && roleSnap.data()?.uid === identity.uid && roleSnap.data()?.status === 'active') {
+      return next();
+    }
+  } catch (error) {
+    console.warn('Could not verify canonical Secretary billing access:', error?.message || error);
+  }
+  return res.status(403).json({ error: 'Only the active Secretary/admin can manage billing.' });
 }
 
 function validatedReturnUrl(value, fallback) {

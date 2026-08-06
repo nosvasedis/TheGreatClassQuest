@@ -14,8 +14,16 @@ export function createParentAccess(payload) {
     return callAdmin('createParentAccess', payload);
 }
 
-export function claimFoundingSchoolAdmin(payload = {}) {
-    return callAdmin('claimFoundingSchoolAdmin', payload);
+export function getSecretaryBootstrapStatus(payload = {}) {
+    return callAdmin('getSecretaryBootstrapStatus', payload);
+}
+
+export function activateSecretaryAdmin(payload) {
+    return callAdmin('activateSecretaryAdmin', payload);
+}
+
+export function updateSecretaryCredentials(payload) {
+    return callAdmin('updateSecretaryCredentials', payload);
 }
 
 export function resetParentAccessPassword(payload) {
@@ -32,18 +40,6 @@ export function deleteParentAccess(payload) {
 
 export function publishParentSummary(payload) {
     return callAdmin('publishParentSummary', payload);
-}
-
-export function createOrReplaceSecretaryAccess(payload) {
-    return callAdmin('createOrReplaceSecretaryAccess', payload);
-}
-
-export function disableSecretaryAccess(payload) {
-    return callAdmin('disableSecretaryAccess', payload);
-}
-
-export function deleteSecretaryAccess(payload) {
-    return callAdmin('deleteSecretaryAccess', payload);
 }
 
 export function postCommunicationMessage(payload) {

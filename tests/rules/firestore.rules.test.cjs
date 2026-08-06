@@ -8,6 +8,7 @@ const {
 } = require('@firebase/rules-unit-testing');
 const {
   doc,
+  deleteDoc,
   getDoc,
   setDoc,
   updateDoc,
@@ -41,16 +42,22 @@ if (process.env.FIRESTORE_EMULATOR_HOST) beforeEach(async () => {
     const db = context.firestore();
     await Promise.all([
       setDoc(doc(db, 'user_profiles/teacher'), {
-        role: 'teacher', status: 'active', schoolAdmin: false,
+        role: 'teacher', status: 'active',
       }),
       setDoc(doc(db, 'user_profiles/secretary'), {
-        role: 'secretary', status: 'active', schoolAdmin: false,
+        role: 'secretary', status: 'active',
       }),
       setDoc(doc(db, 'user_profiles/parent'), {
-        role: 'parent', status: 'active', schoolAdmin: false, linkedStudentId: 'student-1',
+        role: 'parent', status: 'active', linkedStudentId: 'student-1',
       }),
       setDoc(doc(db, 'user_profiles/inactive'), {
-        role: 'teacher', status: 'disabled', schoolAdmin: false,
+        role: 'teacher', status: 'disabled',
+      }),
+      setDoc(doc(db, `${DATA}/school_roles/secretary`), {
+        uid: 'secretary', status: 'active', username: 'office',
+      }),
+      setDoc(doc(db, 'appConfig/subscription'), {
+        tier: 'starter', secretaryAccess: false, parentAccess: false,
       }),
       setDoc(doc(db, `${DATA}/school_year_state/current`), {
         activeYearKey: '2026-2027', nextYearKey: '2027-2028', status: 'active',
@@ -92,19 +99,27 @@ rulesTest('active teacher and secretary retain legitimate reads', async () => {
   await assertSucceeds(getDoc(doc(secretaryDb, `${DATA}/students/student-1`)));
 });
 
-rulesTest('public self-registration can create only the fixed teacher profile', async () => {
+rulesTest('teacher self-registration is blocked until the canonical Secretary is active', async () => {
   const signupDb = env.authenticatedContext('new-teacher').firestore();
   const fixedProfile = {
     role: 'teacher',
     displayName: 'New Teacher',
     loginMode: 'email',
     status: 'active',
-    schoolAdmin: false,
     linkedStudentId: null,
     createdBy: null,
     createdAt: serverTimestamp(),
     lastSeenAt: serverTimestamp(),
   };
+  await env.withSecurityRulesDisabled(async (context) => {
+    await deleteDoc(doc(context.firestore(), `${DATA}/school_roles/secretary`));
+  });
+  await assertFails(setDoc(doc(signupDb, 'user_profiles/new-teacher'), fixedProfile));
+  await env.withSecurityRulesDisabled(async (context) => {
+    await setDoc(doc(context.firestore(), `${DATA}/school_roles/secretary`), {
+      uid: 'secretary', status: 'active', username: 'office',
+    });
+  });
   await assertSucceeds(setDoc(doc(signupDb, 'user_profiles/new-teacher'), fixedProfile));
 
   const forgedDb = env.authenticatedContext('forged-admin').firestore();
@@ -136,6 +151,58 @@ rulesTest('parent cannot forge authoritative guild state while secretary retains
   }));
   await assertSucceeds(updateDoc(doc(secretaryDb, `${DATA}/school_settings/holidays`), {
     ranges: [{ start: '2026-12-24', end: '2027-01-07' }],
+  }));
+});
+
+rulesTest('teacher cannot write school-wide settings and a forged legacy flag grants nothing', async () => {
+  await env.withSecurityRulesDisabled(async (context) => {
+    await updateDoc(doc(context.firestore(), 'user_profiles/teacher'), { schoolAdmin: true });
+  });
+  const teacherDb = env.authenticatedContext('teacher').firestore();
+  await assertFails(updateDoc(doc(teacherDb, `${DATA}/school_settings/holidays`), { schoolName: 'Forged School' }));
+  await assertFails(updateDoc(doc(teacherDb, `${DATA}/school_year_state/current`), { nextYearKey: '2028-2029' }));
+  await assertFails(updateDoc(doc(teacherDb, 'appConfig/subscription'), { tier: 'elite' }));
+  await assertSucceeds(updateDoc(doc(teacherDb, 'user_profiles/teacher'), { displayName: 'Teacher Name' }));
+});
+
+rulesTest('Starter Secretary has core administration but Elite is required for grading and schoolwide edits', async () => {
+  const secretaryDb = env.authenticatedContext('secretary').firestore();
+  await assertSucceeds(updateDoc(doc(secretaryDb, `${DATA}/school_settings/holidays`), {
+    schoolName: 'Core Admin School',
+    weatherLocation: { name: 'Athens', latitude: 37.98, longitude: 23.72 },
+  }));
+  await assertFails(updateDoc(doc(secretaryDb, `${DATA}/school_settings/holidays`), {
+    assessmentDefaultsByLeague: { Apprentices: { tests: { maxScore: 10 } } },
+  }));
+  await assertFails(updateDoc(doc(secretaryDb, `${DATA}/students/student-1`), { name: 'Edited by Starter' }));
+
+  await env.withSecurityRulesDisabled(async (context) => {
+    await updateDoc(doc(context.firestore(), 'appConfig/subscription'), { tier: 'elite', secretaryAccess: true });
+  });
+  await assertSucceeds(updateDoc(doc(secretaryDb, `${DATA}/school_settings/holidays`), {
+    assessmentDefaultsByLeague: { Apprentices: { tests: { maxScore: 10 } } },
+  }));
+  await assertSucceeds(updateDoc(doc(secretaryDb, `${DATA}/students/student-1`), { name: 'Edited by Elite' }));
+});
+
+rulesTest('teachers can edit only owned classes, students, and per-class grading overrides', async () => {
+  const teacherDb = env.authenticatedContext('teacher').firestore();
+  const ownedClass = doc(teacherDb, `${DATA}/classes/owned-class`);
+  await assertSucceeds(setDoc(ownedClass, {
+    name: 'Owned', schoolYearKey: '2026-2027', createdBy: { uid: 'teacher' },
+  }));
+  await assertSucceeds(updateDoc(ownedClass, {
+    assessmentConfig: { mode: 'override', tests: { maxScore: 10 } },
+  }));
+  await assertSucceeds(updateDoc(doc(teacherDb, `${DATA}/students/student-1`), { name: 'Owned Student' }));
+
+  await env.withSecurityRulesDisabled(async (context) => {
+    await setDoc(doc(context.firestore(), `${DATA}/classes/other-class`), {
+      name: 'Other', schoolYearKey: '2026-2027', createdBy: { uid: 'another-teacher' },
+    });
+  });
+  await assertFails(updateDoc(doc(teacherDb, `${DATA}/classes/other-class`), {
+    assessmentConfig: { mode: 'override' },
   }));
 });
 

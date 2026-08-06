@@ -14,7 +14,7 @@ import * as avatar from '../../features/avatar.js';
 import * as storyWeaver from '../../features/storyWeaver.js';
 import { playSound } from '../../audio.js';
 import { renderActiveBounties } from '../core.js';
-import { renderHolidayList, renderClassEndDatesList } from '../core/misc.js';
+import { renderClassEndDatesList } from '../core/misc.js';
 import { updateCeremonyStatus } from '../../features/ceremony.js';
 import { renderHomeTab } from '../../features/home.js';
 import { HERO_CLASSES } from '../../features/heroClasses.js';
@@ -26,13 +26,8 @@ import { renderManageClassesTab, renderManageStudentsTab } from './classes.js';
 import { renderAwardStarsTab, resetAwardCardVisualSession } from './award.js';
 import { renderAdventureLogTab } from './log.js';
 import {
-    handleSaveSchoolNameFromOptions,
     renderAssessmentOptionsUi,
-    handleSaveAssessmentSettingsFromOptions,
-    initializeSchoolLocationOptionsUi,
-    handleSearchSchoolLocationFromOptions,
-    handleSchoolLocationResultChange,
-    handleSaveSchoolLocationFromOptions
+    handleSaveAssessmentSettingsFromOptions
 } from '../../db/actions/school.js';
 import { renderCalendarTab } from './selectors.js';
 import { renderIdeasTabSelects, renderStarManagerStudentSelect } from './ideas.js';
@@ -290,7 +285,7 @@ function patchOptionsTabForClassChange() {
     if (canUseFeature('quizOfTheWeek')) {
         renderQuizOptionsUi().catch(() => {});
     }
-    const hasAccessCenter = canUseFeature('parentAccess') || canUseFeature('secretaryAccess') || state.get('currentUserRole') === 'secretary' || state.get('isSchoolAdmin');
+    const hasAccessCenter = canUseFeature('parentAccess');
     if (hasAccessCenter) {
         renderAccessCenterUi();
     }
@@ -381,7 +376,7 @@ export async function showTab(tabName) {
 
     if (tabId === 'options-tab') {
         const hasAssessmentAccess = canUseFeature('scholarScroll');
-        const hasAccessCenter = canUseFeature('parentAccess') || canUseFeature('secretaryAccess') || state.get('currentUserRole') === 'secretary' || state.get('isSchoolAdmin');
+        const hasAccessCenter = canUseFeature('parentAccess');
         const hasQuizFeature = canUseFeature('quizOfTheWeek');
         const assessmentsBtn = document.querySelector('.options-subtab-btn[data-options-tab="assessments"]');
         const assessmentsSection = document.querySelector('[data-options-section="assessments"]');
@@ -396,13 +391,8 @@ export async function showTab(tabName) {
         quizBtn?.classList.toggle('hidden', !hasQuizFeature);
         quizSection?.classList.toggle('hidden', !hasQuizFeature);
 
-        // Load holidays and economy selector; isolate failures so one broken renderer doesn't block the others
+        // Load teacher-owned settings; isolate failures so one broken renderer doesn't block the others
         import('../core.js').then(m => {
-            try {
-                m.renderHolidayList?.();
-            } catch (e) {
-                console.warn('renderHolidayList failed:', e);
-            }
             try {
                 m.renderClassEndDatesList?.();
             } catch (e) {
@@ -423,11 +413,6 @@ export async function showTab(tabName) {
         if (teacherInput) {
             teacherInput.value = state.get('currentTeacherName') || '';
         }
-        const schoolInput = document.getElementById('options-school-name-input');
-        if (schoolInput) {
-            schoolInput.value = state.get('schoolName') || constants.DEFAULT_SCHOOL_NAME;
-        }
-        initializeSchoolLocationOptionsUi();
         if (hasAssessmentAccess) {
             renderAssessmentOptionsUi();
         }
@@ -468,7 +453,6 @@ export async function showTab(tabName) {
                 if (planningContent) planningContent.classList.toggle('hidden', !hasPlanning || key !== 'planning');
                 // Planning UI (holidays + class end dates) must refresh when this sub-tab is shown — async import on main options visit can race or skip if Holidays throws.
                 if (key === 'planning' && hasPlanning) {
-                    renderHolidayList();
                     renderClassEndDatesList();
                 }
             };
@@ -485,38 +469,6 @@ export async function showTab(tabName) {
                     showUpgradePrompt({ feature: 'School Year Planner', tier: 'Pro', message: getUpgradeMessage('Pro', 'schoolYearPlanner') });
                 });
                 planningLocked.style.cursor = 'pointer';
-            }
-            const saveSchoolBtn = document.getElementById('save-school-name-btn');
-            if (saveSchoolBtn) {
-                saveSchoolBtn.addEventListener('click', () => {
-                    handleSaveSchoolNameFromOptions();
-                });
-            }
-            const searchSchoolLocationBtn = document.getElementById('search-school-location-btn');
-            if (searchSchoolLocationBtn) {
-                searchSchoolLocationBtn.addEventListener('click', () => {
-                    handleSearchSchoolLocationFromOptions();
-                });
-            }
-            const schoolLocationInput = document.getElementById('options-school-location-search');
-            if (schoolLocationInput) {
-                schoolLocationInput.addEventListener('keydown', (event) => {
-                    if (event.key !== 'Enter') return;
-                    event.preventDefault();
-                    handleSearchSchoolLocationFromOptions();
-                });
-            }
-            const schoolLocationResults = document.getElementById('options-school-location-results');
-            if (schoolLocationResults) {
-                schoolLocationResults.addEventListener('change', () => {
-                    handleSchoolLocationResultChange();
-                });
-            }
-            const saveSchoolLocationBtn = document.getElementById('save-school-location-btn');
-            if (saveSchoolLocationBtn) {
-                saveSchoolLocationBtn.addEventListener('click', () => {
-                    handleSaveSchoolLocationFromOptions();
-                });
             }
             const saveAssessmentSettingsBtn = document.getElementById('save-assessment-settings-btn');
             if (saveAssessmentSettingsBtn) {
@@ -554,17 +506,14 @@ export async function showTab(tabName) {
                             <span>${badgeEmoji} ${summary.badge}</span>
                             <span class="h-1 w-1 rounded-full bg-sky-400"></span>
                             <span>Current plan: ${pretty}</span>
-                            <button id="pricing-info-btn" class="ml-2 w-5 h-5 rounded-full bg-sky-200 hover:bg-sky-300 text-sky-600 flex items-center justify-center transition-colors" title="View all plans and pricing">
-                                <i class="fas fa-info text-xs"></i>
-                            </button>
                         </div>
                         <h3 class="font-title text-xl text-slate-800 mb-1">${summary.title}</h3>
                         <p class="text-sm text-slate-600">${summary.body}</p>
                     </div>
                     <div class="md:w-56">
                         <div class="bg-white/80 rounded-2xl px-3 py-3 text-xs text-slate-600 border border-dashed border-sky-100">
-                            <p class="font-semibold text-slate-800 mb-1">${summary.isTopTier ? "You're all set ✨" : 'Thinking about upgrading?'}</p>
-                            <p>${summary.cta}</p>
+                            <p class="font-semibold text-slate-800 mb-1">Plan information</p>
+                            <p>Subscription and billing changes are managed by the Secretary/admin.</p>
                         </div>
                     </div>
                 </div>
@@ -616,7 +565,8 @@ export async function showTab(tabName) {
         const schoolId = constants.BILLING_SCHOOL_ID || constants.firebaseConfig?.projectId || '';
         const manageWrap = document.getElementById('options-subscription-manage-wrap');
         const manageBtn = document.getElementById('options-manage-subscription-btn');
-        if (manageWrap && manageBtn) {
+        manageWrap?.classList.add('hidden');
+        if (false && manageWrap && manageBtn) {
             if (billingUrl && schoolId) {
                 manageWrap.classList.remove('hidden');
                 const detailsEl = document.getElementById('options-subscription-details');

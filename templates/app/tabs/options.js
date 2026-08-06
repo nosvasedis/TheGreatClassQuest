@@ -6,66 +6,31 @@ export const optionsTabHTML = `
                     <div class="text-center mb-8">
                         <i class="fas fa-cog text-gray-600 text-5xl floating-icon"></i>
                         <h2 class="font-title text-5xl text-gray-700 mt-2 bottom-nav-tab-title"
-                            style="text-shadow: 0 2px 4px rgba(0,0,0,0.1);">Options & Settings</h2>
-                        <p class="text-lg text-gray-600 mt-2">Manage your profile and access advanced tools.</p>
+                            style="text-shadow: 0 2px 4px rgba(0,0,0,0.1);">Teacher Settings</h2>
+                        <p class="text-lg text-gray-600 mt-2">Manage your profile, your classes, and the students you teach.</p>
                     </div>
 
                     <div id="options-tier-summary" class="mb-6 flex items-center justify-between">
                     </div>
 
-                    <div id="options-subscription-manage-wrap" class="mb-6 hidden">
-                        <div class="bg-white rounded-2xl shadow-lg border-2 border-indigo-200 overflow-hidden">
-                            <div class="bg-gradient-to-r from-indigo-50 to-purple-50 px-5 py-4 border-b border-indigo-100">
-                                <h3 class="font-title text-xl text-indigo-800 mb-0.5"><i class="fas fa-credit-card mr-2 text-indigo-600"></i>Billing & subscription</h3>
-                                <p class="text-sm text-indigo-600/90">Managed securely by Stripe. Your payment and plan details live in your Stripe customer portal.</p>
-                            </div>
-                            <div class="p-5 space-y-4">
-                                <div>
-                                    <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Current status</p>
-                                    <p id="options-subscription-details" class="text-sm text-gray-800 font-medium" aria-live="polite">Loading subscription…</p>
-                                    <div id="options-subscription-facts" class="mt-3 space-y-2"></div>
-                                    <p id="options-subscription-source" class="mt-3 text-xs text-gray-500">Checking Stripe and school access settings…</p>
-                                </div>
-                                <div class="bg-gray-50 rounded-xl p-3 border border-gray-100">
-                                    <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">In Stripe you can</p>
-                                    <ul class="text-sm text-gray-700 space-y-2">
-                                        <li class="flex items-center gap-2"><i class="fas fa-credit-card text-indigo-500 w-4 text-center" aria-hidden="true"></i>Update payment method</li>
-                                        <li class="flex items-center gap-2"><i class="fas fa-file-invoice text-indigo-500 w-4 text-center" aria-hidden="true"></i>View and download invoices</li>
-                                        <li class="flex items-center gap-2"><i class="fas fa-exchange-alt text-indigo-500 w-4 text-center" aria-hidden="true"></i>Change plan (upgrade or downgrade)</li>
-                                        <li class="flex items-center gap-2"><i class="fas fa-calendar-times text-indigo-500 w-4 text-center" aria-hidden="true"></i>Cancel at end of billing period</li>
-                                    </ul>
-                                </div>
-                                <p class="text-xs text-gray-500">To upgrade from the app, use the plan card above. Opening the button below takes you to Stripe’s secure portal.</p>
-                                <button type="button" id="options-manage-subscription-btn" class="w-full bg-indigo-500 hover:bg-indigo-600 text-white font-title text-base py-3 rounded-xl bubbly-button flex items-center justify-center gap-2">
-                                    <i class="fas fa-external-link-alt"></i>
-                                    <span>Open Stripe billing</span>
-                                </button>
-                                <p class="text-xs text-gray-400 text-center">You’ll be redirected to Stripe’s secure site.</p>
-                            </div>
-                        </div>
-                    </div>
-
                     <div class="options-subtab-bar">
                         <button type="button" class="options-subtab-btn options-subtab-active" data-options-tab="manage">
-                            <i class="fas fa-tools mr-1.5"></i> Manage
+                            <i class="fas fa-tools mr-1.5"></i> Student Tools
                         </button>
                         <button type="button" class="options-subtab-btn" data-options-tab="planning">
-                            <i class="fas fa-calendar-alt mr-1.5"></i> Planning
+                            <i class="fas fa-calendar-alt mr-1.5"></i> My Planning
                         </button>
                         <button type="button" class="options-subtab-btn" data-options-tab="profile">
                             <i class="fas fa-user mr-1.5"></i> Profile
                         </button>
                         <button type="button" class="options-subtab-btn" data-options-tab="assessments">
-                            <i class="fas fa-clipboard-check mr-1.5"></i> Assessments
+                            <i class="fas fa-clipboard-check mr-1.5"></i> Class Grading
                         </button>
                         <button type="button" class="options-subtab-btn" data-options-tab="access">
-                            <i class="fas fa-user-shield mr-1.5"></i> Access
+                            <i class="fas fa-user-shield mr-1.5"></i> Family Access
                         </button>
                         <button type="button" class="options-subtab-btn" data-options-tab="quiz">
                             <i class="fas fa-circle-question mr-1.5"></i> Quiz
-                        </button>
-                        <button type="button" class="options-subtab-btn" data-options-tab="danger">
-                            <i class="fas fa-shield-alt mr-1.5"></i> Danger
                         </button>
                     </div>
 
@@ -247,7 +212,7 @@ export const optionsTabHTML = `
                                 <div id="options-planning-locked" class="options-tier-locked hidden">
                                     <div class="options-tier-locked-icon">📅</div>
                                     <div class="options-tier-locked-title">Planning tools</div>
-                                    <p class="options-tier-locked-text">The School Year Planner (school breaks plus when each class ends) is available on the Pro plan.</p>
+                                    <p class="options-tier-locked-text">Per-class planning preferences are available on the Pro plan. School-wide dates are managed by the Secretary/admin.</p>
                                     <span class="options-tier-locked-badge">Pro</span>
                                 </div>
                                 <div id="options-planning-content" class="flex flex-col gap-8">
@@ -259,45 +224,8 @@ export const optionsTabHTML = `
                                             <div class="w-16 h-16 bg-gradient-to-br from-pink-500 via-rose-500 to-violet-600 rounded-2xl flex items-center justify-center shadow-lg shadow-fuchsia-500/25 mb-1 floating-icon ring-2 ring-white/80">
                                                 <i class="fas fa-calendar-alt text-white text-2xl"></i>
                                             </div>
-                                            <h2 class="font-title text-3xl text-transparent bg-clip-text bg-gradient-to-r from-pink-800 via-rose-800 to-violet-900 text-center">School Year Planner</h2>
-                                            <p class="text-sm text-gray-600 max-w-xl leading-relaxed">One place for the whole year: school-wide breaks shade the calendar, and each class’s <span class="font-semibold text-gray-800">final lesson day</span> keeps schedules and ceremonies accurate.</p>
-                                        </div>
-
-                                        <div class="relative z-10 space-y-4 pt-2 border-t border-pink-100/80">
-                                            <div class="flex items-center gap-2 justify-center flex-wrap">
-                                                <span class="text-lg" aria-hidden="true">🏫</span>
-                                                <h3 class="font-title text-lg text-pink-900 text-center">School-wide breaks</h3>
-                                            </div>
-                                            <p class="text-xs text-gray-500 text-center">Holidays apply to every class’s calendar view and lesson counts.</p>
-                                            <div class="grid grid-cols-2 gap-2">
-                                                <div class="col-span-2">
-                                                    <label class="block text-xs font-bold text-gray-500">Holiday Name</label>
-                                                    <input type="text" id="holiday-name" placeholder="e.g. Christmas Break"
-                                                        class="w-full px-3 py-2 border rounded-lg bg-white">
-                                                </div>
-                                                <div>
-                                                    <label class="block text-xs font-bold text-gray-500">Start Date</label>
-                                                    <input type="date" id="holiday-start"
-                                                        class="w-full px-3 py-2 border rounded-lg bg-white">
-                                                </div>
-                                                <div>
-                                                    <label class="block text-xs font-bold text-gray-500">End Date</label>
-                                                    <input type="date" id="holiday-end" class="w-full px-3 py-2 border rounded-lg bg-white">
-                                                </div>
-                                                <div class="col-span-2">
-                                                    <label class="block text-xs font-bold text-gray-500">Theme</label>
-                                                    <select id="holiday-type" class="w-full px-3 py-2 border rounded-lg bg-white">
-                                                        <option value="christmas">🎄 Christmas / Winter</option>
-                                                        <option value="easter">🐣 Easter / Spring</option>
-                                                        <option value="generic">📅 Generic / Other</option>
-                                                    </select>
-                                                </div>
-                                            </div>
-                                            <button id="add-holiday-btn"
-                                                class="w-full bg-gradient-to-r from-pink-500 to-rose-500 hover:from-pink-600 hover:to-rose-600 text-white font-bold py-2.5 rounded-xl bubbly-button shadow-sm shadow-pink-500/20">
-                                                <i class="fas fa-plus-circle mr-2"></i> Add Break
-                                            </button>
-                                            <div id="holiday-list" class="space-y-2 max-h-40 overflow-y-auto"></div>
+                                            <h2 class="font-title text-3xl text-transparent bg-clip-text bg-gradient-to-r from-pink-800 via-rose-800 to-violet-900 text-center">My Class Planning</h2>
+                                            <p class="text-sm text-gray-600 max-w-xl leading-relaxed">Set the <span class="font-semibold text-gray-800">final lesson day</span> for a class you own. School-wide breaks still shade your calendars, but only the Secretary/admin edits them.</p>
                                         </div>
 
                                         <div class="relative z-10 space-y-5 pt-6 border-t border-violet-100/90">
@@ -337,7 +265,7 @@ export const optionsTabHTML = `
                                             </div>
                                             <h2 class="font-title text-4xl text-gray-800 mb-2">Role Access Center</h2>
                                             <p class="text-gray-500 leading-relaxed max-w-2xl">
-                                                Manage your school's digital boundaries. Create parent usernames, grant secretary access, and publish parent-friendly updates with ease.
+                                                Create and manage parent access for students you teach. Secretary/admin credentials are managed only from the Secretary console.
                                             </p>
                                         </div>
                                     </div>
@@ -366,41 +294,6 @@ export const optionsTabHTML = `
                                     class="w-full bg-blue-600 hover:bg-blue-700 text-white font-title text-xl py-3 rounded-xl bubbly-button flex items-center justify-center mb-4">
                                     <i class="fas fa-save mr-2"></i> Save Name
                                 </button>
-                                <div class="pt-2 border-t border-dashed border-blue-100 space-y-3">
-                                    <div>
-                                        <label for="options-school-name-input"
-                                            class="block text-sm font-medium text-gray-700 mb-1">School name</label>
-                                        <input type="text" id="options-school-name-input"
-                                            class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                            autocomplete="off"
-                                            placeholder="e.g. Your School">
-                                        <p class="text-xs text-gray-500 mt-1">This appears on the home screen, login header, and attendance footer.</p>
-                                    </div>
-                                    <button id="save-school-name-btn"
-                                        class="w-full bg-sky-600 hover:bg-sky-700 text-white font-title text-xl py-3 rounded-xl bubbly-button flex items-center justify-center">
-                                        <i class="fas fa-save mr-2"></i> Save School Name
-                                    </button>
-                                    <div class="pt-2 border-t border-dashed border-blue-100 space-y-2">
-                                        <label for="options-school-location-search"
-                                            class="block text-sm font-medium text-gray-700 mb-1">School location for weather</label>
-                                        <div class="flex flex-wrap gap-2">
-                                            <input type="text" id="options-school-location-search"
-                                                class="flex-1 min-w-[180px] px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                                autocomplete="off"
-                                                placeholder="e.g. Thessaloniki, Heraklion">
-                                            <button id="search-school-location-btn"
-                                                class="bg-sky-500 hover:bg-sky-600 text-white font-title text-lg py-3 px-4 rounded-xl bubbly-button flex items-center justify-center whitespace-nowrap">
-                                                <i class="fas fa-search mr-2"></i> Search
-                                            </button>
-                                        </div>
-                                        <select id="options-school-location-results" class="hidden w-full px-4 py-3 border border-gray-300 rounded-xl bg-white text-sm"></select>
-                                        <p id="options-school-location-status" class="text-xs text-gray-500">No weather location selected. Default Athens area is used.</p>
-                                        <button id="save-school-location-btn"
-                                            class="w-full bg-cyan-600 hover:bg-cyan-700 text-white font-title text-xl py-3 rounded-xl bubbly-button flex items-center justify-center">
-                                            <i class="fas fa-map-marker-alt mr-2"></i> Save School Location
-                                        </button>
-                                    </div>
-                                </div>
                             </div>
 
                             <div class="relative overflow-hidden rounded-[2rem] border border-fuchsia-200 bg-white shadow-lg p-6 md:p-8 space-y-6 hidden" data-options-section="assessments">
@@ -413,11 +306,11 @@ export const optionsTabHTML = `
                                     </div>
                                     <div class="text-center md:text-left flex-1">
                                         <h2 class="font-title text-3xl text-fuchsia-800 mb-1">Assessment Settings</h2>
-                                        <p class="text-sm text-slate-500">Set school-wide league defaults and decide which classes inherit them or use custom grading.</p>
+                                        <p class="text-sm text-slate-500">Review inherited school rules and configure overrides only for classes you own.</p>
                                     </div>
                                 </div>
                                 <div class="relative z-10 rounded-[1.5rem] border border-fuchsia-100 bg-fuchsia-50/60 p-5">
-                                    <h3 class="font-title text-2xl text-fuchsia-800 mb-3">School defaults by league</h3>
+                                    <h3 class="font-title text-2xl text-fuchsia-800 mb-3">Inherited school defaults (read-only)</h3>
                                     <div id="options-assessment-defaults-editor" class="space-y-4"></div>
                                 </div>
                                 <div class="rounded-[1.5rem] border border-indigo-100 bg-indigo-50/60 p-5">
@@ -426,7 +319,7 @@ export const optionsTabHTML = `
                                 </div>
                                 <button id="save-assessment-settings-btn"
                                     class="w-full bg-fuchsia-600 hover:bg-fuchsia-700 text-white font-title text-xl py-3 rounded-xl bubbly-button flex items-center justify-center">
-                                    <i class="fas fa-save mr-2"></i> Save Assessment Settings
+                                    <i class="fas fa-save mr-2"></i> Save My Class Grading
                                 </button>
                             </div>
 
@@ -580,33 +473,28 @@ export const optionsTabHTML = `
                                 </div>
                             </div>
 
-                            <div class="relative overflow-hidden rounded-[2rem] border border-red-200 bg-white shadow-lg p-6 md:p-8 space-y-6" data-options-section="danger">
-                                <div class="absolute -top-10 -right-10 w-40 h-40 bg-gradient-to-br from-red-200 to-orange-200 rounded-full blur-3xl opacity-50 pointer-events-none"></div>
-                                <div class="absolute -bottom-10 -left-10 w-40 h-40 bg-gradient-to-tr from-rose-100 to-red-100 rounded-full blur-3xl opacity-50 pointer-events-none"></div>
-                                
-                                <div class="relative z-10 flex flex-col items-center mb-6">
-                                    <div class="w-20 h-20 bg-gradient-to-br from-red-500 to-rose-600 rounded-2xl flex items-center justify-center shadow-xl shadow-red-500/30 mb-4 animate-pulse">
-                                        <i class="fas fa-exclamation-triangle text-white text-4xl"></i>
-                                    </div>
-                                    <h2 class="font-title text-3xl text-red-800 text-center">Danger Zone</h2>
-                                    <p class="text-sm text-gray-600 text-center mt-2 max-w-md">These actions are permanent and can result in data loss. Proceed with extreme caution.</p>
-                                </div>
-                                <div class="space-y-4 relative z-10">
+                            <details id="teacher-advanced-data-actions" class="group mt-8 rounded-2xl border border-slate-200 bg-slate-50/80 px-4 py-3 text-slate-600">
+                                <summary class="flex cursor-pointer list-none items-center justify-between gap-3 text-sm font-semibold text-slate-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-300">
+                                    <span><i class="fas fa-lock mr-2 text-slate-400"></i>Advanced data actions</span>
+                                    <i class="fas fa-chevron-down text-xs transition-transform group-open:rotate-180"></i>
+                                </summary>
+                                <p class="mt-3 text-xs leading-relaxed text-slate-500">These teacher-scoped recovery and deletion actions are intentionally tucked away. Every permanent action requires another explicit confirmation.</p>
+                                <div class="mt-4 space-y-3 border-t border-slate-200 pt-4">
                                     <button id="star-manager-purge-btn"
-                                        class="w-full bg-red-600 hover:bg-red-700 text-white font-title text-lg py-2 rounded-xl bubbly-button"
+                                        class="w-full rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-600 transition hover:border-rose-300 hover:text-rose-700"
                                         disabled>
-                                        <i class="fas fa-exclamation-triangle mr-2"></i> Purge Student Score Data
+                                        <i class="fas fa-user-minus mr-2"></i> Purge selected student score data
                                     </button>
                                     <button id="erase-today-btn"
-                                        class="w-full bg-orange-500 hover:bg-orange-600 text-white font-title text-lg py-2 rounded-xl bubbly-button">
-                                        <i class="fas fa-undo mr-2"></i> Erase Today's Stars
+                                        class="w-full rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-600 transition hover:border-amber-300 hover:text-amber-700">
+                                        <i class="fas fa-undo mr-2"></i> Undo all stars I awarded today
                                     </button>
                                     <button id="purge-logs-btn"
-                                        class="w-full bg-red-800 hover:bg-red-900 text-white font-title text-lg py-2 rounded-xl bubbly-button">
-                                        <i class="fas fa-fire mr-2"></i> Purge All My Award Logs
+                                        class="w-full rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-600 transition hover:border-rose-300 hover:text-rose-700">
+                                        <i class="fas fa-file-circle-xmark mr-2"></i> Purge all my award logs
                                     </button>
                                 </div>
-                            </div>
+                            </details>
                             <div class="options-meta-footer mt-8 text-center text-xs text-gray-400">
                                 <span id="app-tier-label" class="font-semibold block"></span>
                                 <span id="app-version-label" class="block mt-1"></span>

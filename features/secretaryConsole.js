@@ -2,7 +2,19 @@ import * as state from '../state.js';
 import * as modals from '../ui/modals.js';
 import { db, doc, setDoc, writeBatch } from '../firebase.js';
 import { showToast } from '../ui/effects.js';
-import { postCommunicationMessage, backfillRoleAccessData } from '../utils/adminRuntime.js';
+import { postCommunicationMessage, backfillRoleAccessData, updateSecretaryCredentials } from '../utils/adminRuntime.js';
+import { canUseFeature } from '../utils/subscription.js';
+import {
+    initializeSchoolLocationOptionsUi,
+    handleSearchSchoolLocationFromOptions,
+    handleSchoolLocationResultChange,
+    handleSaveSchoolLocationFromOptions
+} from '../db/actions/school.js';
+import { handleAddHolidayRange, handleDeleteHolidayRange } from '../db/actions/log.js';
+import { renderHolidayList } from '../ui/core/misc.js';
+import { auth, EmailAuthProvider, reauthenticateWithCredential } from '../firebaseAuth.js';
+import { getBillingAuthHeaders } from '../utils/billingCheckout.js';
+import { BILLING_BASE_URL, BILLING_SCHOOL_ID, firebaseConfig } from '../constants.js';
 import {
     readAssessmentCardValue,
     readAssessmentDefaultsFromContainer,
@@ -69,8 +81,25 @@ function wireAssessmentEditorsForTab(tabKey) {
     if (classEditor) wireAssessmentEditor(classEditor);
 }
 
+function hasFullSecretaryConsole() {
+    return canUseFeature('secretaryAccess');
+}
+
+function applySecretaryTierUi() {
+    const hasFullAccess = hasFullSecretaryConsole();
+    document.querySelectorAll('[data-secretary-tab="grades"], [data-secretary-tab="messages"]')
+        .forEach((button) => button.classList.toggle('hidden', !hasFullAccess));
+    document.querySelectorAll('[data-secretary-edit-class], [data-secretary-edit-student]')
+        .forEach((button) => button.classList.toggle('hidden', !hasFullAccess));
+}
+
 export function activateSecretaryTab(tabKey, options) {
-    const resolved = resolveTabKey(tabKey);
+    let resolved = resolveTabKey(tabKey);
+    if (!hasFullSecretaryConsole() && (resolved === 'grades' || resolved === 'messages')) {
+        resolved = 'admin';
+        state.setSecretaryView({ adminSubTab: 'settings' });
+        showToast('School-wide editing and family messaging require the Elite Secretary Console.', 'info');
+    }
     void import('../db/listeners.js').then(({ activateDataFeature, deactivateDataFeature }) => {
         if (resolved === 'school' || resolved === 'grades') {
             activateDataFeature('assessments');
@@ -93,12 +122,18 @@ export function activateSecretaryTab(tabKey, options) {
 }
 
 export function renderSecretaryTab(tabKey) {
-    const resolved = resolveTabKey(tabKey);
+    let resolved = resolveTabKey(tabKey);
+    if (!hasFullSecretaryConsole() && (resolved === 'grades' || resolved === 'messages')) resolved = 'admin';
     const renderer = TAB_RENDERERS[resolved];
     const section = document.querySelector(`[data-secretary-section="${resolved}"]`);
     if (!renderer || !section) return;
     section.innerHTML = renderer();
     wireAssessmentEditorsForTab(resolved);
+    if (resolved === 'admin' && document.getElementById('secretary-school-name-form')) {
+        initializeSchoolLocationOptionsUi();
+        renderHolidayList();
+    }
+    applySecretaryTierUi();
 }
 
 export function renderSecretaryConsole(tabKey) {
@@ -112,6 +147,35 @@ export function renderSecretaryConsole(tabKey) {
 
     const activeTab = getActiveTabKey();
     renderSecretaryTab(activeTab);
+}
+
+async function openSecretaryBillingPortal(button) {
+    let billingUrl = String(BILLING_BASE_URL || '').trim().replace(/\/$/, '');
+    if (billingUrl && !/^https?:\/\//i.test(billingUrl)) billingUrl = `https://${billingUrl}`;
+    const schoolId = BILLING_SCHOOL_ID || firebaseConfig?.projectId || '';
+    if (!billingUrl || !schoolId) {
+        modals.showModal('Subscription', 'Billing is not configured for this school yet.', null, 'OK', 'Close');
+        return;
+    }
+    try {
+        setBusyState(button, true, 'Opening Stripe...');
+        const response = await fetch(`${billingUrl}/create-portal-session`, {
+            method: 'POST',
+            headers: await getBillingAuthHeaders({
+                'Content-Type': 'application/json',
+                'ngrok-skip-browser-warning': '1'
+            }),
+            body: JSON.stringify({ schoolId, returnUrl: window.location.href })
+        });
+        const data = await response.json().catch(() => ({}));
+        if (!response.ok || !data?.url) throw new Error(data?.error || 'Stripe did not return a billing portal link.');
+        window.location.href = data.url;
+    } catch (error) {
+        console.error('Could not open Secretary billing portal:', error);
+        modals.showModal('Subscription', error?.message || 'Could not open subscription management.', null, 'OK', 'Close');
+    } finally {
+        setBusyState(button, false);
+    }
 }
 
 async function saveSecretarySchoolName(button) {
@@ -219,6 +283,10 @@ export function wireSecretaryConsoleListeners({ onLogout, onOpenTeacherView, onS
 
         const adminSubTabBtn = event.target.closest('[data-secretary-admin-subtab]');
         if (adminSubTabBtn) {
+            if (adminSubTabBtn.dataset.secretaryAdminSubtab === 'grading' && !hasFullSecretaryConsole()) {
+                showToast('Grading administration requires the Elite Secretary Console.', 'info');
+                return;
+            }
             state.setSecretaryView({ adminSubTab: adminSubTabBtn.dataset.secretaryAdminSubtab });
             renderSecretaryTab('admin');
             return;
@@ -255,12 +323,20 @@ export function wireSecretaryConsoleListeners({ onLogout, onOpenTeacherView, onS
 
         const editClassBtn = event.target.closest('[data-secretary-edit-class]');
         if (editClassBtn) {
+            if (!hasFullSecretaryConsole()) {
+                showToast('School-wide class editing requires the Elite Secretary Console.', 'info');
+                return;
+            }
             modals.openEditClassModal(editClassBtn.dataset.secretaryEditClass);
             return;
         }
 
         const editStudentBtn = event.target.closest('[data-secretary-edit-student]');
         if (editStudentBtn) {
+            if (!hasFullSecretaryConsole()) {
+                showToast('School-wide student editing requires the Elite Secretary Console.', 'info');
+                return;
+            }
             modals.openEditStudentModal(editStudentBtn.dataset.secretaryEditStudent);
             return;
         }
@@ -286,12 +362,14 @@ export function wireSecretaryConsoleListeners({ onLogout, onOpenTeacherView, onS
 
         const saveAssessmentBtn = event.target.closest('#secretary-save-assessment-btn');
         if (saveAssessmentBtn) {
+            if (!hasFullSecretaryConsole()) return;
             await saveSecretaryAssessmentSettings(saveAssessmentBtn);
             return;
         }
 
         const backfillBtn = event.target.closest('#secretary-run-backfill-btn');
         if (backfillBtn) {
+            if (!hasFullSecretaryConsole()) return;
             try {
                 setBusyState(backfillBtn, true, 'Refreshing...');
                 const result = await backfillRoleAccessData({});
@@ -302,6 +380,38 @@ export function wireSecretaryConsoleListeners({ onLogout, onOpenTeacherView, onS
             } finally {
                 setBusyState(backfillBtn, false);
             }
+            return;
+        }
+
+        const searchLocationBtn = event.target.closest('#search-school-location-btn');
+        if (searchLocationBtn) {
+            await handleSearchSchoolLocationFromOptions();
+            return;
+        }
+
+        const saveLocationBtn = event.target.closest('#save-school-location-btn');
+        if (saveLocationBtn) {
+            await handleSaveSchoolLocationFromOptions();
+            return;
+        }
+
+        const addHolidayBtn = event.target.closest('#add-holiday-btn');
+        if (addHolidayBtn) {
+            await handleAddHolidayRange();
+            renderHolidayList();
+            return;
+        }
+
+        const deleteHolidayBtn = event.target.closest('.delete-holiday-btn');
+        if (deleteHolidayBtn) {
+            await handleDeleteHolidayRange(deleteHolidayBtn.dataset.id);
+            renderHolidayList();
+            return;
+        }
+
+        const billingBtn = event.target.closest('#secretary-manage-subscription-btn');
+        if (billingBtn) {
+            await openSecretaryBillingPortal(billingBtn);
             return;
         }
 
@@ -344,6 +454,38 @@ export function wireSecretaryConsoleListeners({ onLogout, onOpenTeacherView, onS
         if (event.target.id === 'secretary-school-name-form') {
             event.preventDefault();
             await saveSecretarySchoolName(document.getElementById('secretary-school-name-save-btn'));
+            return;
+        }
+
+        if (event.target.id === 'secretary-credentials-form') {
+            event.preventDefault();
+            const currentPassword = document.getElementById('secretary-current-password')?.value || '';
+            const username = document.getElementById('secretary-new-username')?.value?.trim() || '';
+            const password = document.getElementById('secretary-new-password')?.value || '';
+            const button = document.getElementById('secretary-credentials-save-btn');
+            if (!currentPassword || (!username && !password)) {
+                showToast('Confirm the current password and enter a new username or password.', 'error');
+                return;
+            }
+            try {
+                setBusyState(button, true, 'Updating...');
+                const user = auth.currentUser;
+                if (!user?.email) throw new Error('Sign in again before changing credentials.');
+                const credential = EmailAuthProvider.credential(user.email, currentPassword);
+                await reauthenticateWithCredential(user, credential);
+                await user.getIdToken(true);
+                const payload = {};
+                if (username) payload.username = username;
+                if (password) payload.password = password;
+                const result = await updateSecretaryCredentials(payload);
+                showToast(`Secretary credentials updated${result?.username ? ` for ${result.username}` : ''}.`, 'success');
+                event.target.reset();
+            } catch (error) {
+                console.error('Could not update Secretary credentials:', error);
+                showToast(error?.message || 'Could not update Secretary credentials.', 'error');
+            } finally {
+                setBusyState(button, false);
+            }
         }
     });
 
@@ -361,6 +503,10 @@ export function wireSecretaryConsoleListeners({ onLogout, onOpenTeacherView, onS
         if (event.target.id === 'secretary-grades-search') {
             state.setSecretaryView({ gradesSearch: event.target.value, gradesPage: 0 });
             renderSecretaryTab('grades');
+            return;
+        }
+        if (event.target.id === 'options-school-location-results') {
+            handleSchoolLocationResultChange();
         }
     });
 }

@@ -20,7 +20,6 @@ export function normalizeUserProfile(user, rawProfile = null) {
         displayName: profile.displayName || user?.displayName || user?.email || 'Quest Master',
         loginMode: profile.loginMode || 'email',
         status: profile.status || null,
-        schoolAdmin: profile.schoolAdmin === true,
         linkedStudentId: profile.linkedStudentId || null,
         createdBy: profile.createdBy || null,
         createdAt: profile.createdAt || null,
@@ -40,7 +39,6 @@ export async function ensureTeacherUserProfile(user) {
     if (existing) {
         state.setCurrentUserProfile(existing);
         state.setCurrentUserRole(existing.role);
-        state.setIsSchoolAdmin(existing.schoolAdmin);
         return existing;
     }
 
@@ -54,16 +52,14 @@ export async function ensureTeacherUserProfile(user) {
         displayName: profile.displayName,
         loginMode: profile.loginMode,
         status: profile.status,
-        schoolAdmin: false,
         linkedStudentId: null,
         createdBy: null,
         createdAt: serverTimestamp(),
         lastSeenAt: serverTimestamp()
     }, { merge: true });
-    state.setCurrentUserProfile({ ...profile, schoolAdmin: false });
+    state.setCurrentUserProfile(profile);
     state.setCurrentUserRole(profile.role);
-    state.setIsSchoolAdmin(false);
-    return { ...profile, schoolAdmin: false };
+    return profile;
 }
 
 export async function touchCurrentUserProfile(user, extra = {}) {

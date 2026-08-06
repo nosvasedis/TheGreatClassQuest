@@ -1,7 +1,9 @@
 import {
     createUserWithEmailAndPassword,
+    EmailAuthProvider,
     getAuth,
     onAuthStateChanged,
+    reauthenticateWithCredential,
     signInWithEmailAndPassword,
     signOut,
     updateProfile
@@ -11,9 +13,10 @@ import { app } from './firebaseApp.js';
 export const auth = getAuth(app);
 export {
     createUserWithEmailAndPassword,
+    EmailAuthProvider,
     onAuthStateChanged,
+    reauthenticateWithCredential,
     signInWithEmailAndPassword,
     signOut,
     updateProfile
 };
-

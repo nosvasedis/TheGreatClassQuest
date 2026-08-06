@@ -78,7 +78,39 @@ export const authHTML = `
                     </button>
                 </form>
 
+                <form id="secretary-activation-form" class="hidden">
+                    <div class="mb-4">
+                        <label for="activation-display-name" class="block text-sm font-bold text-gray-700 mb-2">Secretary / administrator name</label>
+                        <input type="text" id="activation-display-name"
+                            class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-violet-500"
+                            autocomplete="name" required>
+                    </div>
+                    <div class="mb-4">
+                        <label for="activation-school-name" class="block text-sm font-bold text-gray-700 mb-2">School name <span class="font-normal text-gray-400">(new schools only)</span></label>
+                        <input type="text" id="activation-school-name"
+                            class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-violet-500"
+                            autocomplete="organization">
+                    </div>
+                    <div class="mb-4">
+                        <label for="activation-username" class="block text-sm font-bold text-gray-700 mb-2">Administrator username</label>
+                        <input type="text" id="activation-username"
+                            class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-violet-500"
+                            autocomplete="username" required>
+                    </div>
+                    <div class="mb-6">
+                        <label for="activation-password" class="block text-sm font-bold text-gray-700 mb-2">Password</label>
+                        <input type="password" id="activation-password"
+                            class="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-violet-500"
+                            autocomplete="new-password" minlength="6" required>
+                    </div>
+                    <button type="submit" id="secretary-activation-submit-btn"
+                        class="w-full bg-violet-600 hover:bg-violet-700 text-white font-title text-xl py-3 rounded-xl bubbly-button flex items-center justify-center gap-2">
+                        <span>Activate Secretary / Admin</span>
+                    </button>
+                </form>
+
                 <p id="auth-error" class="text-sm text-red-600 mt-4 text-center h-4"></p>
+                <p id="teacher-signup-availability" class="hidden mt-4 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-center text-xs text-amber-800"></p>
                 <div class="text-center mt-4">
                     <button id="toggle-auth-mode" type="button" class="text-sm text-sky-700 hover:underline">Need an account? Sign
                         Up</button>

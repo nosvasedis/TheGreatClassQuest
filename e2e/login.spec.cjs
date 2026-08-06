@@ -18,12 +18,15 @@ test('authentication shell is fast, clean, accessible, and signup remains availa
     if (message.type() === 'warning') warnings.push(message.text());
   });
   page.on('request', (request) => requests.push(request.url()));
+  await page.route(/cloudfunctions\.net\/getSecretaryBootstrapStatus$/, async (route) => {
+    await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ data: { state: 'active', requiresToken: false } }) });
+  });
 
   await page.goto('/', { waitUntil: 'networkidle' });
   await expect(page.locator('#auth-screen')).toBeVisible();
   await expect(page.locator('#login-form')).toBeVisible();
   await expect(page.locator('#signup-form')).toBeHidden();
-  expect(requests.length, requests.join('\n')).toBeLessThanOrEqual(30);
+  expect(requests.length, requests.join('\n')).toBeLessThanOrEqual(40);
   expect(consoleErrors).toEqual([]);
   expect(warnings.filter((text) => /tailwind.*cdn|production.*tailwind/i.test(text))).toEqual([]);
 
@@ -42,4 +45,16 @@ test('authentication shell is fast, clean, accessible, and signup remains availa
 
   const suffix = testInfo.project.name === 'mobile' ? 'mobile' : 'desktop';
   await page.screenshot({ path: path.join(screenshotDir, `login-${suffix}.png`), fullPage: true });
+});
+
+test('a private Secretary setup fragment opens activation instead of teacher signup', async ({ page }) => {
+  const token = 'a'.repeat(43);
+  await page.goto(`/#secretary-setup=${token}`, { waitUntil: 'networkidle' });
+  await expect(page.locator('#auth-screen')).toBeVisible();
+  await expect(page.locator('#secretary-activation-form')).toBeVisible();
+  await expect(page.locator('#login-form')).toBeHidden();
+  await expect(page.locator('#signup-form')).toBeHidden();
+  await expect(page.locator('#activation-display-name')).toBeVisible();
+  await expect(page.locator('#activation-username')).toBeVisible();
+  await expect(page.locator('#activation-password')).toBeVisible();
 });

@@ -132,7 +132,10 @@ test('billing and generation requests require verified identities and idempotenc
   assert.match(api, /getIdToken\(forceRefresh\)/);
   assert.match(api, /error\?\.errorSource !== 'firebase-token'/);
   assert.match(api, /normalizedError\?\.retryable === false/);
-  assert.match(read('functions/index.js'), /gcqPlatformAdmin/);
+  const functionsSource = read('functions/index.js');
+  assert.match(functionsSource, /SECRETARY_ROLE_DOC/);
+  assert.match(functionsSource, /roleSnap\.data\(\)\?\.uid !== caller\.uid/);
+  assert.doesNotMatch(functionsSource, /profile\.schoolAdmin\s*===\s*true/);
 });
 
 test('live sources contain no obsolete school-year fallback', () => {

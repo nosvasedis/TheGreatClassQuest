@@ -1071,16 +1071,13 @@ export async function handleSetStudentScores() {
     }
 }
 
-export function handlePurgeStudentStars() {
+export function handlePurgeStudentStars(options = {}) {
     const studentId = document.getElementById(
         "star-manager-student-select",
     ).value;
     const student = state.get("allStudents").find((s) => s.id === studentId);
     if (!student) return;
-    showModal(
-        "Purge All Score Data?",
-        `Are you sure you want to delete ALL star score data for ${student.name}? This will reset their scores to zero but will NOT delete their award logs. This cannot be undone.`,
-        async () => {
+    const purge = async () => {
             const btn = document.getElementById("star-manager-purge-btn");
             btn.disabled = true;
             btn.innerHTML =
@@ -1134,7 +1131,12 @@ export function handlePurgeStudentStars() {
                 btn.innerHTML =
                     '<i class="fas fa-exclamation-triangle mr-2"></i> Purge All Score Data for Student';
             }
-        },
+        };
+    if (options.skipConfirmation === true) return purge();
+    showModal(
+        "Purge All Score Data?",
+        `This resets all star counters for ${student.name}. Award logs remain, but the score reset cannot be undone.`,
+        purge,
     );
 }
 

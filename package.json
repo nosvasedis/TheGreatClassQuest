@@ -16,6 +16,7 @@
     "onboard-school": "node billing/scripts/onboard-new-school.js",
     "setup-school": "node scripts/billing-wizard.js",
     "onboarding-console": "node scripts/onboarding-console.js",
+    "migrate:secretary-admin": "node scripts/migrate-secretary-admin.cjs",
     "ngrok": "ngrok http 3333",
     "sync-version": "node scripts/sync-app-version.js"
   },

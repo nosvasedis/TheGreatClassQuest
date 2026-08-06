@@ -3,7 +3,6 @@
 // --- IMPORTS ---
 import * as state from '../../state.js';
 import { db, auth, signOut, doc, collection, query, where, getDocs, runTransaction, serverTimestamp } from '../../firebase.js';
-import { handleAddHolidayRange, handleDeleteHolidayRange } from '../../db/actions.js';
 import { setupHomeListeners } from '../../features/home.js';
 import { wireHeaderClassSelector } from '../headerClassSelector.js';
 
@@ -961,23 +960,32 @@ export function setupUIListeners() {
     document.getElementById('save-teacher-name-btn').addEventListener('click', (e) => { e.preventDefault(); handleSaveTeacherName(); });
     document.getElementById('star-manager-student-select').addEventListener('change', handleStarManagerStudentSelect);
     document.getElementById('star-manager-add-btn').addEventListener('click', handleAddStarsManually);
-    document.getElementById('star-manager-purge-btn').addEventListener('click', handlePurgeStudentStars);
+    document.getElementById('star-manager-purge-btn').addEventListener('click', () => {
+        const studentId = document.getElementById('star-manager-student-select')?.value;
+        const student = (state.get('allStudents') || []).find((item) => item.id === studentId);
+        if (!student) return;
+        modals.showTypedConfirmationModal({
+            title: 'Purge Student Score Data?',
+            message: 'This resets every star counter for the selected student. Classes, profile details, attendance, and award logs remain untouched. The score reset cannot be recovered.',
+            expectedText: student.name,
+            confirmText: 'Purge score data',
+            onConfirm: () => handlePurgeStudentStars({ skipConfirmation: true })
+        });
+    });
     document.getElementById('star-manager-override-btn').addEventListener('click', handleSetStudentScores);
     document.getElementById('familiar-maintenance-student-select').addEventListener('change', updateFamiliarOptionsState);
     document.getElementById('familiar-regenerate-btn').addEventListener('click', handleRegenerateFamiliarFromOptions);
     document.getElementById('purge-logs-btn').addEventListener('click', () => {
-        modals.showModal('Purge All My Logs?', 'Are you sure you want to delete all your historical award log entries? This cannot be undone.', () => handlePurgeAwardLogs());
+        modals.showTypedConfirmationModal({
+            title: 'Purge All My Award Logs?',
+            message: 'This permanently deletes only your historical award log entries. Student score totals remain unchanged. The deleted audit history cannot be recovered.',
+            expectedText: 'DELETE MY LOGS',
+            confirmText: 'Purge my logs',
+            onConfirm: () => handlePurgeAwardLogs()
+        });
     });
     document.getElementById('erase-today-btn').addEventListener('click', () => {
-        modals.showModal('Erase Today\'s Stars?', 'Are you sure you want to remove all stars you awarded today?', () => handleEraseTodaysStars());
-    });
-
-    document.getElementById('add-holiday-btn').addEventListener('click', handleAddHolidayRange);
-    document.getElementById('holiday-list').addEventListener('click', (e) => {
-        const btn = e.target.closest('.delete-holiday-btn');
-        if (btn) {
-            modals.showModal('Delete Holiday?', 'This will restore the calendar days.', () => handleDeleteHolidayRange(btn.dataset.id));
-        }
+        modals.showModal('Erase Today\'s Stars?', 'This removes only the stars you awarded today. Student profiles, classes, earlier scores, and award history remain untouched. This action can be recovered from the retained award log.', () => handleEraseTodaysStars());
     });
 
     // Pricing Modal

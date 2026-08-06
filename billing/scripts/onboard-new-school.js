@@ -16,7 +16,8 @@ import { readFileSync, writeFileSync, existsSync, mkdirSync, copyFileSync } from
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
 import { createRequire } from 'module';
-import admin from 'firebase-admin';
+import { initializeApp, getApps, cert } from 'firebase-admin/app';
+import { getFirestore } from 'firebase-admin/firestore';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const billingDir = join(__dirname, '..');
@@ -24,6 +25,7 @@ const repoRoot = join(billingDir, '..');
 const require = createRequire(import.meta.url);
 const {
   buildFirestoreReleaseName,
+  createSecretaryActivation,
   deployRulesRelease,
   firestoreRulesPath,
 } = require('../../tools/onboarding-console/lib.js');
@@ -33,6 +35,7 @@ function parseArgs() {
   let projectId = null;
   let keyPath = null;
   let pending = false;
+  let siteUrl = null;
   for (let i = 0; i < args.length; i++) {
     if (args[i] === '--project-id' && args[i + 1]) {
       projectId = args[i + 1];
@@ -42,9 +45,12 @@ function parseArgs() {
       i++;
     } else if (args[i] === '--pending') {
       pending = true;
+    } else if (args[i] === '--site-url' && args[i + 1]) {
+      siteUrl = args[i + 1];
+      i++;
     }
   }
-  return { projectId, keyPath, pending };
+  return { projectId, keyPath, pending, siteUrl };
 }
 
 function loadSchoolsConfig() {
@@ -86,10 +92,10 @@ function buildRenderJson(schoolsPath) {
 }
 
 async function main() {
-  const { projectId, keyPath, pending } = parseArgs();
+  const { projectId, keyPath, pending, siteUrl } = parseArgs();
 
   if (!projectId || !keyPath) {
-    console.error('Usage: node billing/scripts/onboard-new-school.js --project-id <firebase-project-id> --key <path-to-service-account.json> [--pending]');
+    console.error('Usage: node billing/scripts/onboard-new-school.js --project-id <firebase-project-id> --key <path-to-service-account.json> [--site-url https://your-school.example] [--pending]');
     console.error('  --pending  Write appConfig/subscription as Pending (paywall: they must pay via Stripe before using the app). Omit to grant Starter immediately.');
     console.error('Example: node billing/scripts/onboard-new-school.js --project-id my-school-prod --key ./Downloads/my-school-prod-firebase-adminsdk-xxx.json --pending');
     process.exit(1);
@@ -130,10 +136,8 @@ async function main() {
   console.log('Added school to', schoolsPath);
 
   const key = JSON.parse(readFileSync(keyDest, 'utf8'));
-  if (!admin.apps.length) {
-    admin.initializeApp({ credential: admin.credential.cert(key) });
-  }
-  const db = admin.firestore();
+  const firebaseApp = getApps()[0] || initializeApp({ credential: cert(key), projectId });
+  const db = getFirestore(firebaseApp);
   const tierFile = pending ? 'pending.json' : 'starter.json';
   const tierPath = join(repoRoot, 'config', 'tiers', tierFile);
   if (!existsSync(tierPath)) {
@@ -156,6 +160,13 @@ async function main() {
     console.warn('firestore.rules not found; skipping Firestore rules deployment.');
   }
 
+  const activation = await createSecretaryActivation(db, {
+    purpose: 'founding',
+    siteUrl: siteUrl || `https://${projectId}.web.app`,
+  });
+  console.log('Created a single-use Secretary/admin activation link (expires ' + activation.expiresAt + '):');
+  console.log(activation.activationUrl);
+
   const renderJson = buildRenderJson(schoolsPath);
   const renderPastePath = join(billingDir, 'render-paste.txt');
   writeFileSync(renderPastePath, renderJson);
@@ -164,7 +175,8 @@ async function main() {
   console.log('\n--- Next steps ---');
   console.log('1. Open Render → your billing service → Environment.');
   console.log('2. Set BILLING_SCHOOLS_JSON to the contents of billing/render-paste.txt (one line).');
-  console.log('3. Deploy your app (e.g. Netlify) with:');
+  console.log('3. Send the Secretary activation link through a private channel.');
+  console.log('4. Deploy your app (e.g. Netlify) with:');
   console.log('   BILLING_BASE_URL = your Render billing URL');
   console.log('   BILLING_SCHOOL_ID = ' + projectId);
   console.log('');

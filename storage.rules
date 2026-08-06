@@ -28,22 +28,35 @@ service firebase.storage {
         currentRole() in ['teacher', 'secretary', 'parent'];
     }
 
-    function isStaff() {
-      return hasActiveProfile() && (currentRole() == 'teacher' || currentRole() == 'secretary');
+    function isTeacher() {
+      return hasActiveProfile() && currentRole() == 'teacher';
     }
 
-    function isSecretaryOrAdmin() {
-      return hasActiveProfile() && (currentRole() == 'secretary' || currentProfile().schoolAdmin == true);
+    function isSecretary() {
+      let rolePath = /databases/(default)/documents/artifacts/great-class-quest/public/data/school_roles/secretary;
+      return hasActiveProfile() &&
+        currentRole() == 'secretary' &&
+        firestore.exists(rolePath) &&
+        firestore.get(rolePath).data.uid == request.auth.uid &&
+        firestore.get(rolePath).data.status == 'active';
+    }
+
+    function hasFullSecretaryConsole() {
+      let subscriptionPath = /databases/(default)/documents/appConfig/subscription;
+      return isSecretary() && firestore.exists(subscriptionPath) && (
+        firestore.get(subscriptionPath).data.secretaryAccess == true ||
+        firestore.get(subscriptionPath).data.tier == 'elite'
+      );
     }
 
     function canManageStudent(studentId) {
       let student = firestore.get(/databases/(default)/documents/artifacts/great-class-quest/public/data/students/$(studentId)).data;
-      return isSecretaryOrAdmin() || (isStaff() && student.createdBy.uid == request.auth.uid);
+      return hasFullSecretaryConsole() || (isTeacher() && student.createdBy.uid == request.auth.uid);
     }
 
     function canManageClass(classId) {
       let classData = firestore.get(/databases/(default)/documents/artifacts/great-class-quest/public/data/classes/$(classId)).data;
-      return isSecretaryOrAdmin() || (isStaff() && classData.createdBy.uid == request.auth.uid);
+      return hasFullSecretaryConsole() || (isTeacher() && classData.createdBy.uid == request.auth.uid);
     }
 
     function isValidImageWrite() {
@@ -55,7 +68,7 @@ service firebase.storage {
 
     match /adventure_logs/{userId}/{allPaths=**} {
       allow read: if hasActiveProfile();
-      allow write: if hasActiveProfile() && isValidImageWrite() && (request.auth.uid == userId || currentRole() == 'secretary');
+      allow write: if hasActiveProfile() && isValidImageWrite() && (request.auth.uid == userId || hasFullSecretaryConsole());
     }
 
     match /avatars/{studentId}/{fileName} {
@@ -75,12 +88,12 @@ service firebase.storage {
 
     match /pet_images/{allPaths=**} {
       allow read: if hasActiveProfile();
-      allow write: if isStaff() && isValidImageWrite();
+      allow write: if (isTeacher() || hasFullSecretaryConsole()) && isValidImageWrite();
     }
 
     match /shop_items/{userId}/{allPaths=**} {
       allow read: if hasActiveProfile();
-      allow write: if isValidImageWrite() && isStaff() && (request.auth.uid == userId || isSecretaryOrAdmin());
+      allow write: if isValidImageWrite() && (isTeacher() || hasFullSecretaryConsole()) && (request.auth.uid == userId || hasFullSecretaryConsole());
     }
 
     match /familiars/{studentId}/{fileName} {
@@ -95,7 +108,7 @@ service firebase.storage {
 
     match /quiz_images/{userId}/{fileName} {
       allow read: if hasActiveProfile();
-      allow write: if isValidImageWrite() && isStaff() && (request.auth.uid == userId || isSecretaryOrAdmin());
+      allow write: if isValidImageWrite() && (isTeacher() || hasFullSecretaryConsole()) && (request.auth.uid == userId || hasFullSecretaryConsole());
     }
 
     match /{allPaths=**} {

@@ -5,11 +5,13 @@ const ELEVENLABS_URL = 'https://api.elevenlabs.io/v1/text-to-speech/Xb7hH8MSUJpS
 const IMAGE_MODEL = '@cf/stabilityai/stable-diffusion-xl-base-1.0';
 const DEFAULT_ORIGINS = [
   'https://nosvasedis.github.io',
+  'https://great-class-quest-school.pages.dev',
   'https://the-great-class-quest.web.app',
   'https://the-great-class-quest.firebaseapp.com',
   'http://127.0.0.1:3000',
   'http://localhost:3000',
 ];
+const CLOUDFLARE_PAGES_HOST = 'great-class-quest-school.pages.dev';
 const VALID_ROLES = new Set(['teacher', 'secretary', 'parent']);
 const MAX_REQUEST_BYTES = 64 * 1024;
 const RATE_WINDOW_MS = 60_000;
@@ -37,9 +39,21 @@ function configuredSet(value, fallback = []) {
   return new Set(entries.length ? entries : fallback);
 }
 
+function isCloudflarePagesProjectOrigin(origin) {
+  try {
+    const url = new URL(origin);
+    return origin === url.origin
+      && url.protocol === 'https:'
+      && !url.port
+      && (url.hostname === CLOUDFLARE_PAGES_HOST || url.hostname.endsWith(`.${CLOUDFLARE_PAGES_HOST}`));
+  } catch {
+    return false;
+  }
+}
+
 function corsFor(request, env) {
   const origin = request.headers.get('Origin') || '';
-  if (!configuredSet(env.ALLOWED_ORIGINS, DEFAULT_ORIGINS).has(origin)) return null;
+  if (!configuredSet(env.ALLOWED_ORIGINS, DEFAULT_ORIGINS).has(origin) && !isCloudflarePagesProjectOrigin(origin)) return null;
   return {
     'Access-Control-Allow-Origin': origin,
     'Access-Control-Allow-Methods': 'POST,OPTIONS',

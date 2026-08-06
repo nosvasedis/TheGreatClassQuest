@@ -50,6 +50,14 @@
       ]
     },
     {
+      "collectionGroup": "adventure_logs",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "schoolYearKey", "order": "ASCENDING" },
+        { "fieldPath": "createdAt", "order": "DESCENDING" }
+      ]
+    },
+    {
       "collectionGroup": "shop_items",
       "queryScope": "COLLECTION",
       "fields": [

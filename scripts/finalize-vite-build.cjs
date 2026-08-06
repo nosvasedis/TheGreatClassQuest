@@ -34,6 +34,18 @@ copy('assets');
 copy('manifest.json');
 fs.writeFileSync(path.join(dist, '.nojekyll'), '\n', 'utf8');
 
+// Vite treats the web-app manifest as a module asset and rewrites it into the
+// assets directory. Its relative icon URLs would then resolve as
+// /assets/assets/.... Point the final HTML at the root copy instead. The ./
+// prefix is intentionally portable across a Pages root and a GitHub subpath.
+const indexPath = path.join(dist, 'index.html');
+const builtHtml = fs.readFileSync(indexPath, 'utf8');
+const manifestLinkPattern = /(<link\s+rel=["']manifest["']\s+href=)["'][^"']+["']/i;
+if (!manifestLinkPattern.test(builtHtml)) {
+  throw new Error('Vite output is missing the web-app manifest link');
+}
+fs.writeFileSync(indexPath, builtHtml.replace(manifestLinkPattern, '$1"./manifest.json"'), 'utf8');
+
 const configResult = spawnSync(process.execPath, [path.join(root, 'scripts', 'write-config.js')], {
   cwd: root,
   env: { ...process.env, GCQ_CONFIG_OUTPUT_PATH: path.join('dist', 'config.json') },

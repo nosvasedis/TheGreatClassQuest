@@ -395,9 +395,11 @@ async function openMainAppForTeacher({ user, loadingScreen, authScreen, appScree
     appScreen.classList.add('app-screen-in');
     setTimeout(() => appScreen.classList.remove('app-screen-in'), 500);
     const tabs = await import('./ui/tabs.js');
+    // Register readiness before the first tab render so a fast cached render
+    // cannot win the race and leave the loading screen waiting forever.
+    dismissLoadingAfterHomeIsReady(loadingScreen);
     await tabs.showTab('about-tab');
     resetAuthSubmitState();
-    dismissLoadingAfterHomeIsReady(loadingScreen);
     if (state.get('currentUserRole') === ROLE_TEACHER) {
         await maybeAutoShowGuideForTeacher(user);
     }

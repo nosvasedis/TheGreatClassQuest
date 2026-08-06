@@ -11,6 +11,8 @@ async function importWorker(relativePath) {
 }
 
 const allowedOrigin = 'https://nosvasedis.github.io';
+const cloudflareStableOrigin = 'https://great-class-quest-school.pages.dev';
+const cloudflareDeploymentOrigin = 'https://975cfd79.great-class-quest-school.pages.dev';
 
 test('AI Worker rejects unknown origins and unauthenticated generation before provider calls', async () => {
   const { source, worker } = await importWorker('scratch/ai-proxy-worker/src/worker.js');
@@ -49,6 +51,30 @@ test('AI Worker answers preflight only for an explicit legitimate origin', async
   assert.equal(response.status, 204);
   assert.equal(response.headers.get('Access-Control-Allow-Origin'), allowedOrigin);
   assert.match(response.headers.get('Access-Control-Allow-Headers'), /X-Firebase-AppCheck/);
+});
+
+test('Workers allow this Cloudflare Pages project without allowing lookalike hosts', async () => {
+  for (const relativePath of [
+    'scratch/ai-proxy-worker/src/worker.js',
+    'scratch/storage-proxy-worker/src/worker.js',
+  ]) {
+    const { worker } = await importWorker(relativePath);
+    for (const origin of [cloudflareStableOrigin, cloudflareDeploymentOrigin]) {
+      const response = await worker.fetch(new Request('https://worker.example/', {
+        method: 'OPTIONS',
+        headers: { Origin: origin },
+      }), {}, { waitUntil() {} });
+      assert.equal(response.status, 204);
+      assert.equal(response.headers.get('Access-Control-Allow-Origin'), origin);
+    }
+
+    const lookalike = await worker.fetch(new Request('https://worker.example/', {
+      method: 'OPTIONS',
+      headers: { Origin: 'https://great-class-quest-school.pages.dev.attacker.example' },
+    }), {}, { waitUntil() {} });
+    assert.equal(lookalike.status, 403);
+    assert.equal(lookalike.headers.get('Access-Control-Allow-Origin'), null);
+  }
 });
 
 test('Storage Worker preserves its route while enforcing an active identity', async () => {

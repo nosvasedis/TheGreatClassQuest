@@ -2,11 +2,13 @@ const GOOGLE_JWKS_URL = 'https://www.googleapis.com/service_accounts/v1/jwk/secu
 const APP_CHECK_JWKS_URL = 'https://firebaseappcheck.googleapis.com/v1/jwks';
 const DEFAULT_ORIGINS = [
   'https://nosvasedis.github.io',
+  'https://great-class-quest-school.pages.dev',
   'https://the-great-class-quest.web.app',
   'https://the-great-class-quest.firebaseapp.com',
   'http://127.0.0.1:3000',
   'http://localhost:3000',
 ];
+const CLOUDFLARE_PAGES_HOST = 'great-class-quest-school.pages.dev';
 const VALID_ROLES = new Set(['teacher', 'secretary', 'parent']);
 const RATE_WINDOW_MS = 60_000;
 const RATE_LIMIT = 60;
@@ -27,9 +29,21 @@ function allowedOrigins(env) {
   return new Set(configured.length ? configured : DEFAULT_ORIGINS);
 }
 
+function isCloudflarePagesProjectOrigin(origin) {
+  try {
+    const url = new URL(origin);
+    return origin === url.origin
+      && url.protocol === 'https:'
+      && !url.port
+      && (url.hostname === CLOUDFLARE_PAGES_HOST || url.hostname.endsWith(`.${CLOUDFLARE_PAGES_HOST}`));
+  } catch {
+    return false;
+  }
+}
+
 function corsFor(request, env) {
   const origin = request.headers.get('Origin') || '';
-  if (!allowedOrigins(env).has(origin)) return null;
+  if (!allowedOrigins(env).has(origin) && !isCloudflarePagesProjectOrigin(origin)) return null;
   return {
     'Access-Control-Allow-Origin': origin,
     'Access-Control-Allow-Methods': 'GET,OPTIONS',

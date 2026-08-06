@@ -1432,8 +1432,12 @@ async function fetchWeatherData() {
         } catch (e) { localStorage.removeItem(storageKey); }
     }
 
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 2500);
     try {
-        const response = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${location.latitude}&longitude=${location.longitude}&current=temperature_2m,weather_code&timezone=auto`);
+        const response = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${location.latitude}&longitude=${location.longitude}&current=temperature_2m,weather_code&timezone=auto`, {
+            signal: controller.signal
+        });
         if (!response.ok) throw new Error('Weather API failed');
         const data = await response.json();
 
@@ -1445,8 +1449,14 @@ async function fetchWeatherData() {
         localStorage.setItem(storageKey, JSON.stringify({ timestamp: now, weather }));
         return weather;
     } catch (e) {
-        console.error("Open-Meteo fetch failed:", e);
+        if (e?.name === 'AbortError') {
+            console.warn('Open-Meteo timed out; continuing without the optional weather card.');
+        } else {
+            console.error("Open-Meteo fetch failed:", e);
+        }
         return null;
+    } finally {
+        clearTimeout(timeoutId);
     }
 }
 

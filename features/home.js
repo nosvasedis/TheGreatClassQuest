@@ -164,8 +164,16 @@ export function renderHomeTab() {
         return;
     }
 
+    if (!container.hasChildNodes()) container.innerHTML = getSkeleton();
     if (renderDebounce) clearTimeout(renderDebounce);
-    renderDebounce = setTimeout(executeRenderHome, 100);
+    renderDebounce = setTimeout(() => {
+        void executeRenderHome().catch((error) => {
+            console.error('Home render failed; keeping the usable dashboard shell:', error);
+            document.dispatchEvent(new CustomEvent('home:rendered', {
+                detail: { degraded: true }
+            }));
+        });
+    }, 100);
 }
 
 async function executeRenderHome() {
@@ -355,6 +363,12 @@ async function executeRenderHome() {
     if (isViewChange) container.innerHTML = `<div class="home-fade w-full h-full">${contentHtml}</div>`;
     else container.innerHTML = `<div class="w-full h-full">${contentHtml}</div>`;
 
+    // The coherent dashboard is now visible. Everything below enhances it and
+    // must not hold the authenticated loading screen open.
+    document.dispatchEvent(new CustomEvent('home:rendered', {
+        detail: { isInitialHomeRender: !hasPlayedInitialHomeEntrance, viewId }
+    }));
+
     // Async: inject quiz button into weather card footer if applicable
     injectQuizButton();
 
@@ -374,9 +388,6 @@ async function executeRenderHome() {
     startHomeSmartLogic();
     startHomeQuestTimerTicker();
 
-    document.dispatchEvent(new CustomEvent('home:rendered', {
-        detail: { isInitialHomeRender, viewId }
-    }));
 }
 
 // --- 3. TEMPLATES (VIBRANT HORIZONS) ---
@@ -1422,7 +1433,12 @@ async function fetchWeatherData() {
     const storageKey = utils.getWeatherCacheKey('gcq_weather_data_open_meteo', location);
     const now = Date.now();
 
-    const cached = localStorage.getItem(storageKey);
+    let cached = null;
+    try {
+        cached = localStorage.getItem(storageKey);
+    } catch (_) {
+        // Storage may be unavailable in hardened/private browser profiles.
+    }
     if (cached) {
         try {
             const data = JSON.parse(cached);
@@ -1446,7 +1462,11 @@ async function fetchWeatherData() {
             code: data.current.weather_code
         };
 
-        localStorage.setItem(storageKey, JSON.stringify({ timestamp: now, weather }));
+        try {
+            localStorage.setItem(storageKey, JSON.stringify({ timestamp: now, weather }));
+        } catch (_) {
+            // Weather is optional; a blocked local cache must not break home.
+        }
         return weather;
     } catch (e) {
         if (e?.name === 'AbortError') {

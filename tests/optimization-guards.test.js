@@ -85,6 +85,29 @@ test('service-worker update control mounts in the header without covering app ac
   assert.match(navStyles, /prefers-reduced-motion: reduce/);
 });
 
+test('authenticated home readiness cannot fail on optional decoration or browser storage', () => {
+  const app = read('app.js');
+  const home = read('features/home.js');
+  assert.match(app, /Home decoration exceeded the readiness window; revealing the usable app shell/);
+  assert.doesNotMatch(app, /showInitializationRecovery\(new Error\('Home readiness timed out'\)\)/);
+  assert.match(home, /keeping the usable dashboard shell/);
+  assert.match(home, /detail: \{ degraded: true \}/);
+  assert.match(home, /The coherent dashboard is now visible/);
+  assert.match(home, /Storage may be unavailable in hardened\/private browser profiles/);
+});
+
+test('device cache choice clearly recommends teacher-only school devices', () => {
+  const app = read('app.js');
+  const deviceCache = read('utils/deviceCache.js');
+  assert.match(deviceCache, /Keep this teacher device fast\?/);
+  assert.match(deviceCache, /Yes — teacher device/);
+  assert.match(deviceCache, /students, parents, guests, or unrelated accounts/);
+  assert.match(deviceCache, /not login, permissions, school-year data, or app features/);
+  assert.doesNotMatch(app, /stageLoadingPersonalization\([\s\S]{0,160}offerDeviceCacheChoice\(\)/);
+  assert.match(app, /await routeAuthenticatedParent\([\s\S]{0,160}offerDeviceCacheChoice\(\)/);
+  assert.match(app, /await routeAuthenticatedTeacher\([\s\S]{0,300}offerDeviceCacheChoice\(\)/);
+});
+
 test('authorization rules deny missing profiles and archived-year mutations', () => {
   const rules = read('firestore.rules');
   assert.match(rules, /function hasActiveProfile\(\)/);
@@ -104,7 +127,7 @@ test('billing and generation requests require verified identities and idempotenc
   assert.match(api, /Authorization: `Bearer \$\{token\}`/);
   assert.match(api, /X-GCQ-Request-ID/);
   assert.match(api, /getIdToken\(forceRefresh\)/);
-  assert.match(api, /error\?\.errorSource !== 'firebase-auth'/);
+  assert.match(api, /error\?\.errorSource !== 'firebase-token'/);
   assert.match(api, /normalizedError\?\.retryable === false/);
   assert.match(read('functions/index.js'), /gcqPlatformAdmin/);
 });

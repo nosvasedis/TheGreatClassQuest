@@ -301,7 +301,13 @@ function dismissLoadingAfterHomeIsReady(loadingScreen) {
 
     document.addEventListener('home:rendered', onHomeRendered, { once: true });
     timeoutId = setTimeout(() => {
-        if (!isSettled) showInitializationRecovery(new Error('Home readiness timed out'));
+        if (!isSettled) {
+            // Critical configuration and listener hydration have already completed
+            // before this function is called. Optional home decoration must never
+            // turn a usable authenticated session into a false initialization error.
+            console.warn('Home decoration exceeded the readiness window; revealing the usable app shell.');
+            settle();
+        }
     }, INITIALIZATION_TIMEOUT_MS);
 }
 
@@ -840,12 +846,12 @@ function setupAuthListeners() {
                 state.setIsSchoolAdmin(profile.schoolAdmin === true);
                 state.setCurrentTeacherName(profile.displayName || user.displayName || user.email || '');
                 stageLoadingPersonalization(profile.displayName || user.displayName || '', profile.role);
-                offerDeviceCacheChoice();
-
                 const isCurrentSession = () => sessionId === authSessionId && auth.currentUser?.uid === user.uid;
                 if (profile.role === ROLE_PARENT) {
                     setupParentSession(user.uid, profile, async () => {
-                        if (isCurrentSession()) await routeAuthenticatedParent({ loadingScreen, authScreen });
+                        if (!isCurrentSession()) return;
+                        await routeAuthenticatedParent({ loadingScreen, authScreen });
+                        if (isCurrentSession()) offerDeviceCacheChoice();
                     });
                 } else {
                     void setupDataListeners(user.uid, newDate, async function onInitialDataReady() {
@@ -855,6 +861,7 @@ function setupAuthListeners() {
                         } else {
                             await routeAuthenticatedTeacher({ user, loadingScreen, authScreen, appScreen });
                         }
+                        if (isCurrentSession()) offerDeviceCacheChoice();
                     }, {
                         role: profile.role,
                         profile,

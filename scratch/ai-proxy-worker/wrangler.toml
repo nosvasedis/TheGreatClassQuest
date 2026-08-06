@@ -5,7 +5,8 @@ workers_dev = true
 keep_vars = true
 
 [observability]
-enabled = false
+enabled = true
+head_sampling_rate = 1
 
 [ai]
 binding = "AI"

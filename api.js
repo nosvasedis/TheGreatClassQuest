@@ -38,7 +38,7 @@ async function fetchAuthenticatedProxy(url, payload, config = {}) {
     try {
         return await send(false);
     } catch (error) {
-        if (error?.status !== 401 || error?.errorSource !== 'firebase-auth') throw error;
+        if (error?.status !== 401 || error?.errorSource !== 'firebase-token') throw error;
         // A server-confirmed Firebase authentication failure gets exactly one
         // forced token refresh. Provider failures never trigger login retries.
         return send(true);

@@ -34,7 +34,7 @@ test('AI Worker rejects unknown origins and unauthenticated generation before pr
   }, { waitUntil() {} });
   assert.equal(unauthorized.status, 401);
   assert.equal(unauthorized.headers.get('Access-Control-Allow-Origin'), allowedOrigin);
-  assert.equal(unauthorized.headers.get('X-GCQ-Error-Source'), 'firebase-auth');
+  assert.equal(unauthorized.headers.get('X-GCQ-Error-Source'), 'firebase-token');
 
   assert.doesNotMatch(source, /Access-Control-Allow-Origin['"]\s*:\s*['"]\*['"]/);
   assert.match(source, /firebaseappcheck\.googleapis\.com\/v1\/jwks/);
@@ -47,6 +47,10 @@ test('AI Worker rejects unknown origins and unauthenticated generation before pr
   assert.match(source, /TEXT_FALLBACK_DAILY_LIMIT = 12/);
   assert.match(source, /response\.status === 401 \|\| response\.status === 403/);
   assert.match(source, /X-GCQ-Error-Source': 'workers-ai-budget'/);
+  assert.match(source, /stage: 'token'/);
+  assert.match(source, /stage: 'profile'/);
+  assert.match(source, /firebase-profile-service/);
+  assert.match(source, /Cache API availability is an optimization/);
   assert.match(source, /redirect:\s*'error'/);
 });
 

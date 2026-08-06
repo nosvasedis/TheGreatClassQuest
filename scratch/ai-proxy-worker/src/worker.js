@@ -152,7 +152,12 @@ function firestoreString(fields, name) {
 
 async function requireActiveProfile(identity) {
   const cacheKey = new Request(`https://gcq-profile-cache.invalid/${encodeURIComponent(identity.projectId)}/${encodeURIComponent(identity.uid)}`);
-  const cached = await caches.default.match(cacheKey);
+  let cached = null;
+  try {
+    cached = await caches.default.match(cacheKey);
+  } catch (_) {
+    // Cache API availability is an optimization, never an authorization result.
+  }
   if (cached?.ok) return;
 
   const url = `https://firestore.googleapis.com/v1/projects/${encodeURIComponent(identity.projectId)}/databases/(default)/documents/user_profiles/${encodeURIComponent(identity.uid)}`;
@@ -162,13 +167,24 @@ async function requireActiveProfile(identity) {
   });
   if (!response.ok) {
     response.body?.cancel();
-    throw new Error('Profile unavailable.');
+    const error = new Error('Profile unavailable.');
+    error.code = response.status === 404 ? 'profile-missing' : 'profile-service';
+    error.upstreamStatus = response.status;
+    throw error;
   }
   const document = await response.json();
   const status = firestoreString(document.fields, 'status');
   const role = firestoreString(document.fields, 'role');
-  if (status !== 'active' || !VALID_ROLES.has(role)) throw new Error('Inactive profile.');
-  await caches.default.put(cacheKey, new Response('ok', { headers: { 'Cache-Control': `public, max-age=${PROFILE_CACHE_SECONDS}` } }));
+  if (status !== 'active' || !VALID_ROLES.has(role)) {
+    const error = new Error('Inactive profile.');
+    error.code = 'profile-inactive';
+    throw error;
+  }
+  try {
+    await caches.default.put(cacheKey, new Response('ok', { headers: { 'Cache-Control': `public, max-age=${PROFILE_CACHE_SECONDS}` } }));
+  } catch (_) {
+    // A successful verified profile remains valid when cache persistence fails.
+  }
 }
 
 function routeForPayload(payload) {
@@ -410,13 +426,31 @@ export default {
     let identity;
     try {
       [identity] = await Promise.all([verifyFirebaseIdToken(request, env), verifyAppCheckIfRequired(request, env)]);
-      await requireActiveProfile(identity);
-    } catch (_) {
+    } catch (error) {
+      console.warn(JSON.stringify({ event: 'gcq_auth_rejected', stage: 'token', reason: error?.message || 'verification-failed' }));
       return json(
-        { error: 'A valid active Firebase login is required.' },
+        { error: 'A valid Firebase login is required.' },
         401,
         corsHeaders,
-        { 'X-GCQ-Error-Source': 'firebase-auth' },
+        { 'X-GCQ-Error-Source': 'firebase-token' },
+      );
+    }
+
+    try {
+      await requireActiveProfile(identity);
+    } catch (error) {
+      const isAccessFailure = error?.code === 'profile-missing' || error?.code === 'profile-inactive';
+      console.warn(JSON.stringify({
+        event: 'gcq_auth_rejected',
+        stage: 'profile',
+        reason: error?.code || 'profile-service',
+        upstreamStatus: Number(error?.upstreamStatus || 0) || undefined,
+      }));
+      return json(
+        { error: isAccessFailure ? 'An active GCQ profile is required.' : 'Profile verification is temporarily unavailable.' },
+        isAccessFailure ? 403 : 503,
+        corsHeaders,
+        { 'X-GCQ-Error-Source': isAccessFailure ? 'firebase-profile' : 'firebase-profile-service' },
       );
     }
 

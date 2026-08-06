@@ -285,6 +285,13 @@ function showInitializationRecovery(error) {
 function dismissLoadingAfterHomeIsReady(loadingScreen) {
     if (!loadingScreen) return;
 
+    // Listener hydration can render the already-selected home tab before role
+    // routing reaches this point. The session-scoped marker closes that event race.
+    if (document.documentElement?.hasAttribute('data-gcq-home-ready')) {
+        requestAnimationFrame(() => animateLoadingScreenOut(loadingScreen));
+        return;
+    }
+
     let isSettled = false;
     let timeoutId = null;
     const settle = () => {
@@ -301,13 +308,9 @@ function dismissLoadingAfterHomeIsReady(loadingScreen) {
 
     document.addEventListener('home:rendered', onHomeRendered, { once: true });
     timeoutId = setTimeout(() => {
-        if (!isSettled) {
-            // Critical configuration and listener hydration have already completed
-            // before this function is called. Optional home decoration must never
-            // turn a usable authenticated session into a false initialization error.
-            console.warn('Home decoration exceeded the readiness window; revealing the usable app shell.');
-            settle();
-        }
+        // Critical configuration and listener hydration already completed before
+        // this function was called. Never trap a usable session on optional UI work.
+        if (!isSettled) settle();
     }, INITIALIZATION_TIMEOUT_MS);
 }
 
@@ -769,6 +772,7 @@ function setupAuthListeners() {
 
     onAuthStateChanged(auth, async (user) => {
         const sessionId = ++authSessionId;
+        document.documentElement?.removeAttribute('data-gcq-home-ready');
         const loadingScreen = document.getElementById('loading-screen');
         const authScreen = document.getElementById('auth-screen');
         const appScreen = document.getElementById('app-screen');

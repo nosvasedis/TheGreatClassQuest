@@ -288,6 +288,12 @@ export function hideModal(modalId) {
 export function showLeaguePicker(options = {}) {
     const scope = options.scope ?? 'leaderboard';
     const list = document.getElementById('league-picker-list');
+    if (!list) return;
+
+    // `is-selecting` is a short-lived click lock for the selection animation.
+    // The list element itself survives modal closes, so always clear that lock
+    // before rebuilding its buttons for a new picker session.
+    list.classList.remove('is-selecting');
     const chunks = [];
     if (scope === 'leaderboard') {
         chunks.push(`<button type="button" class="league-match-active-btn w-full col-span-2 p-3 font-title text-base text-emerald-900 bg-gradient-to-r from-emerald-50 to-teal-50 rounded-xl shadow border-2 border-emerald-200 transition hover:from-emerald-100 hover:to-teal-100 bubbly-button">

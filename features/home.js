@@ -154,6 +154,11 @@ function updateHeaderQuote(quote) {
 }
 
 // --- 2. MAIN RENDER ---
+function announceHomeRendered(detail) {
+    document.documentElement?.setAttribute('data-gcq-home-ready', 'true');
+    document.dispatchEvent(new CustomEvent('home:rendered', { detail }));
+}
+
 export function renderHomeTab() {
     const container = document.getElementById('home-dashboard-container');
     if (!container) return;
@@ -169,9 +174,7 @@ export function renderHomeTab() {
     renderDebounce = setTimeout(() => {
         void executeRenderHome().catch((error) => {
             console.error('Home render failed; keeping the usable dashboard shell:', error);
-            document.dispatchEvent(new CustomEvent('home:rendered', {
-                detail: { degraded: true }
-            }));
+            announceHomeRendered({ degraded: true });
         });
     }, 100);
 }
@@ -365,9 +368,7 @@ async function executeRenderHome() {
 
     // The coherent dashboard is now visible. Everything below enhances it and
     // must not hold the authenticated loading screen open.
-    document.dispatchEvent(new CustomEvent('home:rendered', {
-        detail: { isInitialHomeRender: !hasPlayedInitialHomeEntrance, viewId }
-    }));
+    announceHomeRendered({ isInitialHomeRender: !hasPlayedInitialHomeEntrance, viewId });
 
     // Async: inject quiz button into weather card footer if applicable
     injectQuizButton();

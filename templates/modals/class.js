@@ -1,6 +1,12 @@
 // templates/modals/class.js
 // Edit class, logbook, history
 
+import { questLeagues } from '../../constants.js';
+
+const createClassLeagueOptions = questLeagues
+    .map((league) => `<option value="${league}">${league}</option>`)
+    .join('');
+
 export const classModalsHTML = `
     <div id="create-class-modal"
         class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[71] flex items-center justify-center p-4 hidden overflow-y-auto">
@@ -42,12 +48,7 @@ export const classModalsHTML = `
                             class="block w-full px-4 py-3 border border-gray-200 bg-gray-50 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 focus:bg-white transition-colors"
                             required>
                             <option value="" disabled selected>Select a league...</option>
-                            <option>Junior A</option>
-                            <option>Junior B</option>
-                            <option>A</option>
-                            <option>B</option>
-                            <option>C</option>
-                            <option>D</option>
+                            ${createClassLeagueOptions}
                         </select>
                     </div>
                     <div class="flex items-center gap-4">

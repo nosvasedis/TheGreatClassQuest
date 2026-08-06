@@ -1,6 +1,6 @@
 import { db, doc, setDoc, getDoc, getDocs, collection, writeBatch, serverTimestamp, increment, arrayUnion, runTransaction, where, query, deleteDoc } from '../../firebase.js';
 import * as state from '../../state.js';
-import { compressImageBase64, getTodayDateString } from '../../utils.js';
+import { compressImageBase64, getTodayDateString, getLeagueAiAudience, getLeagueAiVisualStyle } from '../../utils.js';
 import { getISOWeekKey, getTargetWeekKey, updateGuildScores } from '../../features/guildScoring.js';
 import { callGeminiApi, extractJsonFromAiText, callCloudflareAiImageApi } from '../../api.js';
 import { applyClassQuestBonusDelta } from './fortuneWheelEffects.js';
@@ -143,15 +143,6 @@ export async function getQuizParticipationHistory(classId, limitCount = 8) {
 // 2. AI QUESTION GENERATION
 // =============================================================================
 
-const AGE_PROMPTS = {
-    'Junior A': 'young children aged 7-8 (very simple words, short sentences, playful tone)',
-    'Junior B': 'children aged 8-9 (simple language, fun facts, short sentences)',
-    'A': 'students aged 9-10 (clear and friendly language, interesting facts)',
-    'B': 'students aged 10-11 (moderate vocabulary, engaging content)',
-    'C': 'students aged 11-12 (good vocabulary, thought-provoking content)',
-    'D': 'students aged 12-13 (advanced vocabulary, challenging content okay)'
-};
-
 function buildGenerationPrompt() {
     return `You are a JSON API for an English language teaching application.
 Your ONLY job is to output a single valid JSON object — no markdown, no code fences, no prose, no explanation.
@@ -160,7 +151,7 @@ Do NOT wrap it in any other key. Do NOT add any text before or after the JSON.`;
 }
 
 function buildGenerationUserPrompt(curriculum, questLevel, questionCount = 7) {
-    const ageDesc = AGE_PROMPTS[questLevel] || AGE_PROMPTS['A'];
+    const ageDesc = getLeagueAiAudience(questLevel);
     const typeLabel = curriculum.type === 'grammar' ? 'English Grammar' :
         curriculum.type === 'vocabulary' ? 'English Vocabulary' :
         'English (Grammar and Vocabulary mix)';
@@ -183,15 +174,6 @@ Rules:
 Output this exact JSON shape (nothing else):
 {"questions":[{"type":"mcq","question":"...","options":["A","B","C","D"],"correctIndex":0,"correctAnswer":"A","explanation":"short reason"},{"type":"mcq","question":"Which word means happy?","options":["Sad","Joyful","Angry","Tired"],"correctIndex":1,"correctAnswer":"Joyful","explanation":"synonym for happy"},{"type":"mcq","question":"Choose the correct sentence.","options":["He are reading.","He is reading.","He reading.","He am reading."],"correctIndex":1,"correctAnswer":"He is reading.","explanation":"subject and verb agree"}]}`;
 }
-
-const IMAGE_AGE_PROMPTS = {
-    'Junior A': 'simple colorful cartoon illustration for young children aged 7-8, friendly and playful, bright colors, no text',
-    'Junior B': 'colorful illustration for children aged 8-9, fun and engaging, bright and clear',
-    'A': 'clear educational illustration for students aged 9-10, engaging and informative',
-    'B': 'vibrant illustration for students aged 10-11, moderately detailed',
-    'C': 'detailed illustration for students aged 11-12, thought-provoking and mature visual style',
-    'D': 'high quality illustration for students aged 12-13, sophisticated and nuanced visual style'
-};
 
 // Recursively search a parsed object for the first array whose items look like questions.
 function deepFindQuestions(obj, depth = 0) {
@@ -301,7 +283,7 @@ export async function generateQuizQuestions(classId) {
         const imagePromises = processed.map(async (q) => {
             if (q.type === 'image' && q.imagePrompt) {
                 try {
-                    const ageStyle = IMAGE_AGE_PROMPTS[quiz.questLevel] || IMAGE_AGE_PROMPTS['A'];
+                    const ageStyle = getLeagueAiVisualStyle(quiz.questLevel);
                     const fullPrompt = `${q.imagePrompt}, ${ageStyle}`;
                     const rawBase64 = await callCloudflareAiImageApi(fullPrompt, '', {}, { retries: 1, timeoutMs: 30000 });
                     const base64 = await compressImageBase64(rawBase64, 768, 768, 0.82);

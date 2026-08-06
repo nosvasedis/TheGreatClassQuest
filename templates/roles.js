@@ -73,7 +73,7 @@ export const roleShellsHTML = `
             <section class="role-tab max-w-4xl mx-auto hidden" data-secretary-section="school"></section>
             <section class="role-tab max-w-4xl mx-auto hidden" data-secretary-section="grades"></section>
             <section class="role-tab max-w-4xl mx-auto hidden" data-secretary-section="messages"></section>
-            <section class="role-tab max-w-4xl mx-auto hidden" data-secretary-section="admin"></section>
+            <section class="role-tab role-tab--admin w-full mx-auto hidden" data-secretary-section="admin"></section>
         </main>
         ${bottomNav('secretary', [
             { key: 'home', icon: 'fa-home', label: 'Home', color: 'cyan', active: true },

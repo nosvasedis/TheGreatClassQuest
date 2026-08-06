@@ -224,6 +224,14 @@ export function wireSecretaryConsoleListeners({ onLogout, onOpenTeacherView, onS
             return;
         }
 
+        const assessmentDetailsBtn = event.target.closest('[data-secretary-assessment-details-action]');
+        if (assessmentDetailsBtn) {
+            const shouldOpen = assessmentDetailsBtn.dataset.secretaryAssessmentDetailsAction === 'open';
+            document.querySelectorAll('#secretary-assessment-defaults-editor details[data-assessment-card]')
+                .forEach((details) => { details.open = shouldOpen; });
+            return;
+        }
+
         const gradingClassBtn = event.target.closest('[data-secretary-grading-class]');
         if (gradingClassBtn) {
             state.setSecretaryView({ selectedGradingClassId: gradingClassBtn.dataset.secretaryGradingClass, adminSubTab: 'grading' });

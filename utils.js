@@ -1,5 +1,6 @@
 import { getLocalMonthKey, isTeacherBoonWindow } from './utils/teacherBoonWindow.mjs';
 import { getAwardLogMonthlyStarCredit } from './features/awardLogReasonMeta.js';
+import { getQuestLeagueDefinition } from './constants.js';
 
 export function simpleHashCode(str) {
     let hash = 0;
@@ -240,17 +241,29 @@ export function parseDDMMYYYY(dateString) {
 }
 
 export function getAgeGroupForLeague(league) {
-    const leagueAges = {
-        'Junior A': '7-8', 'Junior B': '8-9', 'A': '9-10', 'B': '10-11',
-        'C': '11-12', 'D': '12-13'
-    };
-    return leagueAges[league] || 'all ages';
+    return getQuestLeagueDefinition(league)?.ageGroup || 'all ages';
 }
 
 export function getAgeCategoryForLeague(league) {
-    if (league === 'Junior A' || league === 'Junior B') return 'junior';
-    if (league === 'A' || league === 'B') return 'mid';
-    return 'senior';
+    return getQuestLeagueDefinition(league)?.ageCategory || 'senior';
+}
+
+export function getAgeTierForLeague(league) {
+    return getQuestLeagueDefinition(league)?.ageTier || 'senior';
+}
+
+export function isYoungLearnerLeague(league) {
+    return getQuestLeagueDefinition(league)?.isYoungLearner === true;
+}
+
+export function getLeagueAiAudience(league) {
+    return getQuestLeagueDefinition(league)?.aiAudience
+        || 'students of mixed ages (clear, fun, and educational language)';
+}
+
+export function getLeagueAiVisualStyle(league) {
+    return getQuestLeagueDefinition(league)?.aiVisualStyle
+        || 'clear, engaging educational illustration for mixed ages, no text';
 }
 
 /** Today in canonical DD-MM-YYYY (local). Use with datesMatch/parseFlexibleDate everywhere. */

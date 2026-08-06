@@ -1,6 +1,6 @@
 import * as state from '../state.js';
 import * as utils from '../utils.js';
-import { questLeagues } from '../constants.js';
+import { JUNIOR_LEAGUES, questLeagues } from '../constants.js';
 
 export const QUALITATIVE_SCALE_FALLBACK = [
     { id: 'great_3', label: 'Great!!!', normalizedPercent: 100 },
@@ -25,7 +25,7 @@ function clampNormalizedPercent(value, fallback = 0) {
 }
 
 export function isJuniorLeague(questLevel) {
-    return questLevel === 'Junior A' || questLevel === 'Junior B';
+    return JUNIOR_LEAGUES.includes(questLevel);
 }
 
 export function createLegacyAssessmentDefaultsForLeague(questLevel) {
@@ -59,7 +59,9 @@ function normalizeQualitativeScale(scale, fallbackScale = QUALITATIVE_SCALE_FALL
 
 export function normalizeAssessmentScheme(rawScheme, fallbackScheme) {
     const fallback = fallbackScheme || { mode: 'numeric', maxScore: 100 };
-    const requestedMode = rawScheme?.mode === 'qualitative' ? 'qualitative' : 'numeric';
+    const requestedMode = rawScheme?.mode === 'qualitative' || rawScheme?.mode === 'numeric'
+        ? rawScheme.mode
+        : null;
     const mode = requestedMode || fallback.mode || 'numeric';
 
     if (mode === 'qualitative') {

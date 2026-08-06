@@ -22,7 +22,7 @@ import { showToast, showPraiseToast } from '../../ui/effects.js';
 import { callGeminiApi, callCloudflareAiImageApi, extractJsonFromAiText } from '../../api.js';
 import { requireEliteAI } from '../../utils/upgradePrompt.js';
 import { canUseFeature } from '../../utils/subscription.js';
-import { getAgeGroupForLeague, getStartOfMonthString, getTodayDateString, compressImageBase64, isLikelyBlackImageBase64, simpleHashCode, parseFlexibleDate, getSeasonalShopPriceMeta, normalizeToDateString } from '../../utils.js';
+import { getAgeGroupForLeague, getStartOfMonthString, getTodayDateString, compressImageBase64, isLikelyBlackImageBase64, simpleHashCode, parseFlexibleDate, getSeasonalShopPriceMeta, normalizeToDateString, isYoungLearnerLeague } from '../../utils.js';
 import { handleMarkAbsent } from './log.js';
 import { playSound } from '../../audio.js';
 import { reconcileFamiliarLifecycle } from '../../features/familiars.js';
@@ -249,7 +249,7 @@ export async function handleGenerateShopStock() {
         const now = new Date();
         const currentMonth = now.getMonth();
         const ageCategory = getAgeGroupForLeague(league);
-        const isJunior = ageCategory === '7-8' || ageCategory === '8-9' || league.includes('Junior');
+        const isJunior = isYoungLearnerLeague(league);
 
         // Smart Season Context
         let seasonContext = "";

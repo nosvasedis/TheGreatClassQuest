@@ -70,8 +70,7 @@ export async function openStudentRankingsModal(resetDate = true) {
     } catch (e) { console.error(e); }
 
     // 4. Prepare Data
-    const leaguesPromise = import('../../constants.js').then(c => c.questLeagues);
-    const allLeagues = (await leaguesPromise).default || ['Junior A', 'Junior B', 'A', 'B', 'C', 'D'];
+    const allLeagues = (await import('../../constants.js')).questLeagues;
     const myClasses = state.get('allTeachersClasses').sort((a, b) => a.name.localeCompare(b.name));
 
     // 5. Render UI Structure with Navigation

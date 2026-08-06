@@ -6,13 +6,30 @@ import {
 } from '../features/assessmentConfig.js';
 import { questLeagues } from '../constants.js';
 
+function describeSchemeSummary(scheme) {
+    if (scheme.mode === 'qualitative') {
+        const count = (scheme.scale || []).length;
+        return `Word scale · ${count} label${count === 1 ? '' : 's'}`;
+    }
+    return `Numeric scale · ${scheme.maxScore || 100} points`;
+}
+
 function getScaleRowsHtml(prefix, scale = []) {
     return (scale.length > 0 ? scale : QUALITATIVE_SCALE_FALLBACK).map((entry, index) => `
-        <div class="assessment-scale-row grid grid-cols-[1.4fr_0.8fr_auto] gap-2 items-center" data-scale-row>
-            <input type="text" class="assessment-scale-label w-full px-3 py-2 border border-slate-200 rounded-xl bg-white" value="${entry.label || ''}" placeholder="Label">
-            <input type="number" class="assessment-scale-percent w-full px-3 py-2 border border-slate-200 rounded-xl bg-white" value="${entry.normalizedPercent ?? 0}" min="0" max="100" step="1" placeholder="%">
-            <button type="button" class="assessment-remove-scale-btn px-3 py-2 rounded-xl border border-rose-200 text-rose-600 hover:bg-rose-50" title="Remove grade">
-                <i class="fas fa-minus"></i>
+        <div class="assessment-scale-row" data-scale-row>
+            <label class="assessment-scale-field">
+                <span>Word or label</span>
+                <input type="text" class="assessment-scale-label" value="${entry.label || ''}" placeholder="e.g. Great">
+            </label>
+            <label class="assessment-scale-field assessment-scale-field--percent">
+                <span>Normalized result</span>
+                <span class="assessment-percent-input">
+                    <input type="number" class="assessment-scale-percent" value="${entry.normalizedPercent ?? 0}" min="0" max="100" step="1" placeholder="0">
+                    <b>%</b>
+                </span>
+            </label>
+            <button type="button" class="assessment-remove-scale-btn" title="Remove grade label" aria-label="Remove grade label">
+                <i class="fas fa-minus" aria-hidden="true"></i>
             </button>
         </div>
     `).join('');
@@ -20,28 +37,36 @@ function getScaleRowsHtml(prefix, scale = []) {
 
 function getSchemeEditorHtml(prefix, title, scheme) {
     return `
-        <div class="assessment-scheme-editor rounded-2xl border border-slate-200 bg-white/80 p-4" data-scheme-editor data-prefix="${prefix}">
-            <div class="flex items-center justify-between gap-3 mb-3">
-                <div>
-                    <p class="text-xs uppercase tracking-[0.2em] text-slate-400 font-black">${title}</p>
-                    <p class="text-xs text-slate-500 mt-1">Choose numeric or word-based grading for this assessment type.</p>
+        <div class="assessment-scheme-editor" data-scheme-editor data-prefix="${prefix}">
+            <div class="assessment-scheme-editor__header">
+                <div class="assessment-scheme-editor__title-wrap">
+                    <span class="assessment-scheme-editor__icon" aria-hidden="true"><i class="fas ${title === 'Tests' ? 'fa-file-pen' : 'fa-spell-check'}"></i></span>
+                    <div>
+                        <p class="assessment-scheme-editor__title">${title}</p>
+                        <p class="assessment-scheme-editor__hint">Choose numeric or word-based grading.</p>
+                    </div>
                 </div>
-                <select class="assessment-mode-select px-3 py-2 border border-slate-200 rounded-xl bg-white font-semibold">
-                    <option value="numeric" ${scheme.mode === 'numeric' ? 'selected' : ''}>Numeric scale</option>
-                    <option value="qualitative" ${scheme.mode === 'qualitative' ? 'selected' : ''}>Word scale</option>
-                </select>
+                <label class="assessment-mode-control">
+                    <span>Grading style</span>
+                    <select class="assessment-mode-select">
+                        <option value="numeric" ${scheme.mode === 'numeric' ? 'selected' : ''}>Numeric scale</option>
+                        <option value="qualitative" ${scheme.mode === 'qualitative' ? 'selected' : ''}>Word scale</option>
+                    </select>
+                </label>
             </div>
             <div class="assessment-numeric-panel ${scheme.mode === 'numeric' ? '' : 'hidden'}" data-mode-panel="numeric">
-                <label class="block text-xs font-black uppercase tracking-[0.18em] text-slate-500 mb-2">Maximum score</label>
-                <input type="number" class="assessment-max-score w-full px-3 py-2 border border-slate-200 rounded-xl bg-white" min="1" step="1" value="${scheme.maxScore || 100}">
+                <label class="assessment-field">
+                    <span>Maximum score</span>
+                    <input type="number" class="assessment-max-score" min="1" step="1" value="${scheme.maxScore || 100}">
+                </label>
             </div>
-            <div class="assessment-qualitative-panel ${scheme.mode === 'qualitative' ? '' : 'hidden'} space-y-3" data-mode-panel="qualitative">
-                <div class="text-xs text-slate-500">Each label also carries a normalized percentage so charts and rankings stay consistent.</div>
-                <div class="space-y-2" data-scale-list>
+            <div class="assessment-qualitative-panel ${scheme.mode === 'qualitative' ? '' : 'hidden'}" data-mode-panel="qualitative">
+                <div class="assessment-qualitative-panel__description">Each label also carries a normalized percentage so charts and rankings stay consistent.</div>
+                <div class="assessment-scale-list" data-scale-list>
                     ${getScaleRowsHtml(prefix, scheme.scale || [])}
                 </div>
-                <button type="button" class="assessment-add-scale-btn px-3 py-2 rounded-xl border border-emerald-200 text-emerald-700 hover:bg-emerald-50 font-semibold">
-                    <i class="fas fa-plus mr-2"></i>Add grade label
+                <button type="button" class="assessment-add-scale-btn">
+                    <i class="fas fa-plus" aria-hidden="true"></i>Add grade label
                 </button>
             </div>
         </div>
@@ -54,37 +79,61 @@ export function getAssessmentConfigCardHtml(config, key, options = {}) {
         : normalizeAssessmentConfig(config, options.questLevel || '');
     const title = options.title || 'Assessment rules';
     const description = options.description || '';
+    const isCollapsible = options.collapsible === true;
+    const containerTag = isCollapsible ? 'details' : 'div';
+    const summary = isCollapsible ? `
+        <summary class="assessment-config-summary">
+            <span class="assessment-config-summary__main">
+                <span class="assessment-config-summary__icon" aria-hidden="true"><i class="fas fa-layer-group"></i></span>
+                <span>
+                    <strong>${title}</strong>
+                    <small>${description || 'School-wide assessment rules'}</small>
+                </span>
+            </span>
+            <span class="assessment-config-summary__meta">
+                <span>${describeSchemeSummary(normalized.tests)}</span>
+                <span>${describeSchemeSummary(normalized.dictations)}</span>
+                <i class="fas fa-chevron-down assessment-config-summary__chevron" aria-hidden="true"></i>
+            </span>
+        </summary>
+    ` : '';
 
     return `
-        <div class="assessment-config-card rounded-[1.5rem] border border-slate-200 bg-slate-50/80 p-5 space-y-4" data-assessment-card data-card-key="${key}">
-            <div class="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+        <${containerTag} class="assessment-config-card${isCollapsible ? ' assessment-config-card--collapsible' : ''}" data-assessment-card data-card-key="${key}"${isCollapsible && options.open ? ' open' : ''}>
+            ${summary}
+            <div class="assessment-config-card__content">
+            <div class="assessment-config-card__header">
                 <div>
-                    <h4 class="font-title text-2xl text-slate-800">${title}</h4>
-                    ${description ? `<p class="text-sm text-slate-500 mt-1">${description}</p>` : ''}
+                    <p class="role-card__eyebrow">Assessment rules</p>
+                    <h4 class="assessment-config-card__title">${title}</h4>
+                    ${description ? `<p class="assessment-config-card__description">${description}</p>` : ''}
                 </div>
                 ${options.allowInherit ? `
-                    <label class="inline-flex items-center gap-2 rounded-full bg-white px-4 py-2 border border-slate-200 text-sm font-semibold text-slate-700">
+                    <label class="assessment-inherit-control">
                         <input type="checkbox" class="assessment-inherit-toggle" ${normalized.inheritSchoolDefaults ? 'checked' : ''}>
-                        Use school defaults
+                        <span><strong>Use school defaults</strong><small>Keep this class synced</small></span>
                     </label>
                 ` : ''}
             </div>
-            <div class="assessment-override-panel space-y-4 ${options.allowInherit && normalized.inheritSchoolDefaults ? 'hidden' : ''}" data-override-panel>
+            <div class="assessment-override-panel ${options.allowInherit && normalized.inheritSchoolDefaults ? 'hidden' : ''}" data-override-panel>
                 ${getSchemeEditorHtml(`${key}-tests`, 'Tests', normalized.tests)}
                 ${getSchemeEditorHtml(`${key}-dictations`, 'Dictations', normalized.dictations)}
             </div>
-        </div>
+            </div>
+        </${containerTag}>
     `;
 }
 
 export function getAssessmentDefaultsEditorHtml(defaultsByLeague) {
     const normalized = normalizeAssessmentDefaultsByLeague(defaultsByLeague);
     return `
-        <div class="space-y-4">
-            ${questLeagues.map((league) => getAssessmentConfigCardHtml(normalized[league], `league-${league}`, {
+        <div class="assessment-defaults-list">
+            ${questLeagues.map((league, index) => getAssessmentConfigCardHtml(normalized[league], `league-${league}`, {
                 title: `${league} defaults`,
                 description: `These school-level defaults apply to all ${league} classes unless a class overrides them.`,
-                questLevel: league
+                questLevel: league,
+                collapsible: true,
+                open: index === 0
             })).join('')}
         </div>
     `;

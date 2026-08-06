@@ -22,23 +22,12 @@ function shuffleDeck(array) {
 
 // Returns a human-readable age/level description for AI prompts
 function getLevelLabel(questLevel) {
-    const map = {
-        'Junior A': 'young children aged 7-8 (very simple words, short sentences, playful tone)',
-        'Junior B': 'children aged 8-9 (simple language, fun facts, short sentences)',
-        'A': 'students aged 9-10 (clear and friendly language, interesting facts)',
-        'B': 'students aged 10-11 (moderate vocabulary, engaging content)',
-        'C': 'students aged 11-12 (good vocabulary, thought-provoking content)',
-        'D': 'students aged 12-13 (advanced vocabulary, challenging content okay)'
-    };
-    return map[questLevel] || 'students aged 9-12 (clear, fun, and educational language)';
+    return utils.getLeagueAiAudience(questLevel);
 }
 
 // Returns a simple tier for conditional logic
 function getLevelTier(questLevel) {
-    if (!questLevel) return 'mid';
-    if (questLevel === 'Junior A' || questLevel === 'Junior B') return 'junior';
-    if (questLevel === 'A' || questLevel === 'B') return 'mid';
-    return 'senior';
+    return questLevel ? utils.getAgeTierForLeague(questLevel) : 'mid';
 }
 
 const AI_CARD_TYPES = new Set([
@@ -1335,14 +1324,6 @@ function getStudentFunFactCard(studentId, classId, questLevel) {
 function getQuestMapPositionCard(classId) {
     const cls = state.get('allSchoolClasses').find(c => c.id === classId);
     if (!cls) return null;
-    const mapZones = {
-        'Junior A': { zone: 'The Starter Village', icon: '🏘️', desc: 'Every legend begins here!' },
-        'Junior B': { zone: 'The Whispering Woods', icon: '🌲', desc: 'Brave explorers ahead!' },
-        'A': { zone: 'The Crystal Caves', icon: '💎', desc: 'Treasures await the bold!' },
-        'B': { zone: 'The Dragon Highlands', icon: '🐲', desc: 'Only the strong persist!' },
-        'C': { zone: 'The Storm Peaks', icon: '⛰️', desc: 'Near the top – keep climbing!' },
-        'D': { zone: 'The Sky Citadel', icon: '🏰', desc: 'Elite territory, champion!' }
-    };
     const progress = getClassQuestProgressData(cls);
     const zone = getQuestMapZoneForProgressPercent(progress.pct);
     const totalStars = progress.starsDisplay;

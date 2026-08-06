@@ -28,8 +28,12 @@ export const baseModalsHTML = `
 
     <div id="league-picker-modal"
         class="fixed inset-0 bg-black bg-opacity-50 z-[70] flex items-center justify-center p-4 hidden">
-        <div class="bg-white p-8 rounded-3xl shadow-2xl max-w-md w-full pop-in border-4 border-amber-300">
-            <h2 class="font-title text-3xl text-amber-700 mb-6 text-center">Choose a League</h2>
+        <div class="league-picker-shell bg-white p-5 sm:p-8 rounded-3xl shadow-2xl max-w-xl w-full pop-in border-4 border-amber-300 max-h-[92vh] overflow-y-auto">
+            <div class="league-picker-heading" aria-hidden="true">
+                <i class="fas fa-star"></i><i class="fas fa-crown"></i><i class="fas fa-star"></i>
+            </div>
+            <h2 class="font-title text-3xl text-amber-700 mb-1 text-center">Choose a League</h2>
+            <p class="league-picker-subtitle">Every path has its own kind of magic.</p>
             <div id="league-picker-list" class="grid grid-cols-2 gap-4"></div>
             <button id="league-picker-close-btn"
                 class="w-full mt-6 bg-gray-200 hover:bg-gray-300 text-gray-800 font-title text-lg py-2 rounded-xl bubbly-button">

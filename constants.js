@@ -105,7 +105,100 @@ export const BILLING_SCHOOL_ID = (typeof window !== 'undefined' && window.__GCQ_
 export const FIREBASE_FUNCTIONS_REGION = (typeof window !== 'undefined' && window.__GCQ_FIREBASE_FUNCTIONS_REGION__) || 'europe-west1';
 export const APP_CHECK_SITE_KEY = (typeof window !== 'undefined' && window.__GCQ_APP_CHECK_SITE_KEY__) || '';
 
-export const questLeagues = ['Junior A', 'Junior B', 'A', 'B', 'C', 'D']; 
+/**
+ * Ordered Quest League catalogue. Keep league-specific behaviour here so a new
+ * level cannot silently fall back to the wrong age group elsewhere in the app.
+ */
+export const QUEST_LEAGUE_DEFINITIONS = [
+    {
+        name: 'Nursery', ageGroup: '5-6', ageCategory: 'early', ageTier: 'junior',
+        curriculumTier: 'nursery', isYoungLearner: true,
+        aiAudience: 'very young beginners aged 5-6 (single ideas, very short words, playful repetition, warm and concrete language)',
+        aiVisualStyle: 'soft colorful storybook art for ages 5-6, large friendly shapes, playful, gentle, uncluttered, no text',
+        pickerTheme: 'nursery', pickerMotion: 'bounce', pickerIcon: 'fa-shapes'
+    },
+    {
+        name: 'Pre-Junior', ageGroup: '6-7', ageCategory: 'early', ageTier: 'junior',
+        curriculumTier: 'pre-junior', isYoungLearner: true,
+        aiAudience: 'young beginners aged 6-7 (short sentences, familiar words, playful and encouraging language)',
+        aiVisualStyle: 'bright storybook illustration for ages 6-7, friendly characters, clear simple scene, playful, no text',
+        pickerTheme: 'pre-junior', pickerMotion: 'flutter', pickerIcon: 'fa-paper-plane'
+    },
+    {
+        name: 'Junior A', ageGroup: '7-8', ageCategory: 'junior', ageTier: 'junior',
+        curriculumTier: 'junior-a', isYoungLearner: true,
+        aiAudience: 'young children aged 7-8 (very simple words, short sentences, playful tone)',
+        aiVisualStyle: 'simple colorful cartoon illustration for young children aged 7-8, friendly and playful, bright colors, no text',
+        pickerTheme: 'junior-a', pickerMotion: 'sprout', pickerIcon: 'fa-seedling'
+    },
+    {
+        name: 'Junior B', ageGroup: '8-9', ageCategory: 'junior', ageTier: 'junior',
+        curriculumTier: 'junior-b', isYoungLearner: true,
+        aiAudience: 'children aged 8-9 (simple language, fun facts, short sentences)',
+        aiVisualStyle: 'colorful illustration for children aged 8-9, fun, engaging, bright and clear, no text',
+        pickerTheme: 'junior-b', pickerMotion: 'float', pickerIcon: 'fa-feather'
+    },
+    {
+        name: 'A', ageGroup: '9-10', ageCategory: 'mid', ageTier: 'mid',
+        curriculumTier: 'a', isYoungLearner: false,
+        aiAudience: 'students aged 9-10 (clear and friendly language, interesting facts)',
+        aiVisualStyle: 'clear educational illustration for students aged 9-10, engaging, informative, no text',
+        pickerTheme: 'a', pickerMotion: 'compass', pickerIcon: 'fa-compass'
+    },
+    {
+        name: 'B', ageGroup: '10-11', ageCategory: 'mid', ageTier: 'mid',
+        curriculumTier: 'b', isYoungLearner: false,
+        aiAudience: 'students aged 10-11 (moderate vocabulary, engaging content)',
+        aiVisualStyle: 'vibrant educational illustration for students aged 10-11, moderately detailed, no text',
+        pickerTheme: 'b', pickerMotion: 'guard', pickerIcon: 'fa-shield-halved'
+    },
+    {
+        name: 'C', ageGroup: '11-12', ageCategory: 'senior', ageTier: 'senior',
+        curriculumTier: 'c', isYoungLearner: false,
+        aiAudience: 'students aged 11-12 (good vocabulary, thought-provoking content)',
+        aiVisualStyle: 'detailed illustration for students aged 11-12, thoughtful and mature visual style, no text',
+        pickerTheme: 'c', pickerMotion: 'page', pickerIcon: 'fa-book-open'
+    },
+    {
+        name: 'D', ageGroup: '12-13', ageCategory: 'senior', ageTier: 'senior',
+        curriculumTier: 'd', isYoungLearner: false,
+        aiAudience: 'students aged 12-13 (advanced vocabulary, challenging content is welcome)',
+        aiVisualStyle: 'high quality illustration for students aged 12-13, sophisticated and nuanced visual style, no text',
+        pickerTheme: 'd', pickerMotion: 'scroll', pickerIcon: 'fa-scroll'
+    },
+    {
+        name: 'E', ageGroup: '13-14', ageCategory: 'senior', ageTier: 'senior',
+        curriculumTier: 'e', isYoungLearner: false,
+        aiAudience: 'teen learners aged 13-14 (advanced intermediate language, thoughtful and motivating content)',
+        aiVisualStyle: 'polished contemporary illustration for teen learners aged 13-14, intelligent and engaging, no text',
+        pickerTheme: 'e', pickerMotion: 'rise', pickerIcon: 'fa-mountain-sun'
+    },
+    {
+        name: 'Lower', ageGroup: '14-15', ageCategory: 'senior', ageTier: 'senior',
+        curriculumTier: 'lower', isYoungLearner: false,
+        aiAudience: 'B2-level teen learners aged 14-15 (confident vocabulary, mature themes, exam-ready clarity)',
+        aiVisualStyle: 'editorial-quality illustration for B2 teen learners aged 14-15, mature, focused, visually sophisticated, no text',
+        pickerTheme: 'lower', pickerMotion: 'medal', pickerIcon: 'fa-medal'
+    },
+    {
+        name: 'Proficiency', ageGroup: '15+', ageCategory: 'senior', ageTier: 'senior',
+        curriculumTier: 'proficiency', isYoungLearner: false,
+        aiAudience: 'C1-C2 advanced learners aged 15+ (nuanced vocabulary, sophisticated ideas, precise and inspiring language)',
+        aiVisualStyle: 'refined conceptual illustration for C1-C2 learners aged 15+, nuanced, elegant, intellectually mature, no text',
+        pickerTheme: 'proficiency', pickerMotion: 'crown', pickerIcon: 'fa-crown'
+    }
+];
+
+export const questLeagues = QUEST_LEAGUE_DEFINITIONS.map((league) => league.name);
+
+export function getQuestLeagueDefinition(league) {
+    return QUEST_LEAGUE_DEFINITIONS.find((definition) => definition.name === league) || null;
+}
+
+/** Young-learner leagues never receive cursed or harsh negative segments. */
+export const JUNIOR_LEAGUES = QUEST_LEAGUE_DEFINITIONS
+    .filter((league) => league.isYoungLearner)
+    .map((league) => league.name);
 
 // ─── Glory Currency (Guild scoring) ──────────────────────────────────────────
 export const GLORY_PER_STAR = 2;
@@ -180,9 +273,6 @@ export function getRarityPalette(rarity, paletteIndex = 0) {
     if (Array.isArray(tier)) return tier[paletteIndex % tier.length] || tier[0];
     return tier;
 }
-
-/** Junior leagues (no cursed or harsh negative segments) */
-export const JUNIOR_LEAGUES = ['Junior A', 'Junior B'];
 
 export const classLogos = [
     '⭐', '🚀', '💡', '🏆', '📚', '🧭', '🧪', '🧠', '🧩', '🗺️',

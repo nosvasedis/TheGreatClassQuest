@@ -20,7 +20,7 @@ import {
 import * as state from '../../state.js';
 import { showToast } from '../../ui/effects.js';
 import * as utils from '../../utils.js';
-import { getTodayDateString, getAgeGroupForLeague, compressImageBase64 } from '../../utils.js';
+import { getTodayDateString, getAgeGroupForLeague, getAgeTierForLeague, compressImageBase64 } from '../../utils.js';
 import { callGeminiApi, callGeminiApiDetailed, callCloudflareAiImageApi } from '../../api.js';
 import { getGuildLeaderboardData, getGuildLeaderboardForClass } from '../../features/guildScoring.js';
 import { syncQuestAssignmentToParentHomework } from '../../utils/adminRuntime.js';
@@ -951,10 +951,7 @@ async function saveManualLogEntry(classId, classData) {
 }
 
 function _getAgeTierFromLeague(league) {
-    const normalized = String(league || '').toLowerCase();
-    if (normalized.includes('junior')) return 'junior';
-    if (normalized === 'a' || normalized === 'b') return 'mid';
-    return 'senior';
+    return getAgeTierForLeague(league);
 }
 
 function _parseDiaryJson(raw, { defaultTitle, defaultEntry, fallbackHighlights = [], fallbackKeywords = [] }) {

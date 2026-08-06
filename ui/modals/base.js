@@ -294,7 +294,27 @@ export function showLeaguePicker(options = {}) {
             <i class="fas fa-link text-emerald-600 mr-2"></i>Use active class&rsquo;s league
         </button>`);
     }
-    chunks.push(...constants.questLeagues.map(league => `<button type="button" class="league-select-btn w-full p-4 font-title text-xl text-amber-800 bg-amber-100 rounded-xl shadow border-2 border-amber-200 transition hover:bg-amber-200 hover:shadow-md bubbly-button" data-league="${league}">${league}</button>`));
+    chunks.push(...constants.QUEST_LEAGUE_DEFINITIONS.map((definition, index) => {
+        const isWide = definition.name === 'Proficiency';
+        const ageLabel = definition.ageGroup.includes('-')
+            ? definition.ageGroup.replace('-', '–')
+            : definition.ageGroup;
+        return `<button
+            type="button"
+            class="league-select-btn league-picker-option league-picker-option--${definition.pickerTheme} league-picker-motion--${definition.pickerMotion}${isWide ? ' league-picker-option--wide col-span-2' : ''}"
+            style="--league-order:${index}"
+            data-league="${definition.name}"
+            aria-label="Choose ${definition.name} league, ages ${ageLabel}"
+        >
+            <span class="league-picker-option__watermark" aria-hidden="true"><i class="fas ${definition.pickerIcon}"></i></span>
+            <span class="league-picker-option__shine" aria-hidden="true"></span>
+            <span class="league-picker-option__label">${definition.name}</span>
+            <span class="league-picker-option__age">Ages ${ageLabel}</span>
+            <span class="league-picker-option__spark league-picker-option__spark--one" aria-hidden="true"></span>
+            <span class="league-picker-option__spark league-picker-option__spark--two" aria-hidden="true"></span>
+            <span class="league-picker-option__spark league-picker-option__spark--three" aria-hidden="true"></span>
+        </button>`;
+    }));
     list.innerHTML = chunks.join('');
     // Sound: bubbly-button global handler already plays click; avoid doubling.
     list.querySelector('.league-match-active-btn')?.addEventListener('click', () => {
@@ -302,12 +322,20 @@ export function showLeaguePicker(options = {}) {
         hideModal('league-picker-modal');
     });
     list.querySelectorAll('.league-select-btn').forEach(btn => btn.addEventListener('click', () => {
-        if (scope === 'leaderboard') {
-            state.setLeaderboardLeagueOverride(btn.dataset.league);
-        } else {
-            state.setGlobalSelectedLeague(btn.dataset.league, true);
-        }
-        hideModal('league-picker-modal');
+        if (list.classList.contains('is-selecting')) return;
+        list.classList.add('is-selecting');
+        btn.classList.add('is-selected');
+        window.setTimeout(() => {
+            try {
+                if (scope === 'leaderboard') {
+                    state.setLeaderboardLeagueOverride(btn.dataset.league);
+                } else {
+                    state.setGlobalSelectedLeague(btn.dataset.league, true);
+                }
+            } finally {
+                hideModal('league-picker-modal');
+            }
+        }, 360);
     }));
     showAnimatedModal('league-picker-modal');
 }

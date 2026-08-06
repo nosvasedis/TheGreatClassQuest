@@ -1615,8 +1615,8 @@ async function triggerAICommentary(phase, data) {
         const league = ceremonyData.league || 'A'; // Default to A if missing
         let toneInstruction = "";
         
-        if (league.includes('Junior')) {
-            // Young Kids (7-9): Simple, high energy, magical
+        if (utils.isYoungLearnerLeague(league)) {
+            // Young learners (5-9): simple, high energy, magical
             toneInstruction = "Speak like an exciting game show host for young kids. Use simple words. Be very enthusiastic and magical.";
         } else {
             // Older Kids/Teens (10+): Serious, professional, 'Esports' style

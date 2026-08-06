@@ -14,6 +14,162 @@ function shuffleArray(arr) {
     return a;
 }
 
+// ─── Pool 0A: Nursery ────────────────────────────────────────────────────────
+// Early beginner │ Ages 5–6 │ Concrete choices, short spoken-friendly language
+
+const POOL_NURSERY = [
+    { id: 'n01', emoji: '🎨', question: 'I like to…', options: [
+        { text: '🔥 Play a brave hero', guildWeights: { dragon_flame: 2, phoenix_rising: 1 } },
+        { text: '🤝 Play with friends', guildWeights: { grizzly_might: 2, owl_wisdom: 1 } },
+        { text: '🧩 Do a puzzle', guildWeights: { owl_wisdom: 2, dragon_flame: 1 } },
+        { text: '🌈 Make something new', guildWeights: { phoenix_rising: 2, grizzly_might: 1 } },
+    ]},
+    { id: 'n02', emoji: '🐾', question: 'Pick an animal!', options: [
+        { text: '🦁 Brave lion', guildWeights: { dragon_flame: 2, phoenix_rising: 1 } },
+        { text: '🐻 Kind bear', guildWeights: { grizzly_might: 2, owl_wisdom: 1 } },
+        { text: '🦉 Clever owl', guildWeights: { owl_wisdom: 2, dragon_flame: 1 } },
+        { text: '🦋 Bright butterfly', guildWeights: { phoenix_rising: 2, grizzly_might: 1 } },
+    ]},
+    { id: 'n03', emoji: '⭐', question: 'At school, I like…', options: [
+        { text: '🙋 Going first', guildWeights: { dragon_flame: 2, phoenix_rising: 1 } },
+        { text: '🤗 Helping a friend', guildWeights: { grizzly_might: 2, owl_wisdom: 1 } },
+        { text: '💡 Learning a word', guildWeights: { owl_wisdom: 2, dragon_flame: 1 } },
+        { text: '🔁 Trying again', guildWeights: { phoenix_rising: 2, grizzly_might: 1 } },
+    ]},
+    { id: 'n04', emoji: '🏰', question: 'My magic power is…', options: [
+        { text: '💥 Super strength', guildWeights: { dragon_flame: 2, grizzly_might: 1 } },
+        { text: '💗 Making smiles', guildWeights: { grizzly_might: 2, phoenix_rising: 1 } },
+        { text: '🔍 Finding clues', guildWeights: { owl_wisdom: 2, dragon_flame: 1 } },
+        { text: '✨ Fixing things', guildWeights: { phoenix_rising: 2, owl_wisdom: 1 } },
+    ]},
+    { id: 'n05', emoji: '🌧️', question: 'When a game is hard, I…', options: [
+        { text: '🐉 Keep going!', guildWeights: { dragon_flame: 2, phoenix_rising: 1 } },
+        { text: '🤝 Ask for help', guildWeights: { grizzly_might: 2, owl_wisdom: 1 } },
+        { text: '🤔 Stop and think', guildWeights: { owl_wisdom: 2, grizzly_might: 1 } },
+        { text: '🌱 Try one more time', guildWeights: { phoenix_rising: 2, dragon_flame: 1 } },
+    ]},
+    { id: 'n06', emoji: '🎁', question: 'A lovely gift is…', options: [
+        { text: '🚀 A fast toy', guildWeights: { dragon_flame: 2, phoenix_rising: 1 } },
+        { text: '🎲 A game to share', guildWeights: { grizzly_might: 2, owl_wisdom: 1 } },
+        { text: '📚 A picture book', guildWeights: { owl_wisdom: 2, grizzly_might: 1 } },
+        { text: '🎨 A craft box', guildWeights: { phoenix_rising: 2, dragon_flame: 1 } },
+    ]},
+    { id: 'n07', emoji: '🎵', question: 'In music time, I…', options: [
+        { text: '🥁 Play loud', guildWeights: { dragon_flame: 2, phoenix_rising: 1 } },
+        { text: '👏 Clap together', guildWeights: { grizzly_might: 2, owl_wisdom: 1 } },
+        { text: '👂 Listen closely', guildWeights: { owl_wisdom: 2, grizzly_might: 1 } },
+        { text: '💃 Learn new moves', guildWeights: { phoenix_rising: 2, dragon_flame: 1 } },
+    ]},
+    { id: 'n08', emoji: '🧸', question: 'My toy team needs…', options: [
+        { text: '👑 A brave leader', guildWeights: { dragon_flame: 2, grizzly_might: 1 } },
+        { text: '🤗 A kind helper', guildWeights: { grizzly_might: 2, owl_wisdom: 1 } },
+        { text: '🗺️ A clever plan', guildWeights: { owl_wisdom: 2, dragon_flame: 1 } },
+        { text: '🏁 Someone who finishes', guildWeights: { phoenix_rising: 2, grizzly_might: 1 } },
+    ]},
+    { id: 'n09', emoji: '☀️', question: 'A happy day has…', options: [
+        { text: '🎢 A big adventure', guildWeights: { dragon_flame: 2, phoenix_rising: 1 } },
+        { text: '👨‍👩‍👧 People I love', guildWeights: { grizzly_might: 2, owl_wisdom: 1 } },
+        { text: '🔎 Something to find', guildWeights: { owl_wisdom: 2, dragon_flame: 1 } },
+        { text: '🌟 Something new', guildWeights: { phoenix_rising: 2, grizzly_might: 1 } },
+    ]},
+    { id: 'n10', emoji: '🍎', question: 'At snack time, I…', options: [
+        { text: '⚡ Choose fast', guildWeights: { dragon_flame: 2, phoenix_rising: 1 } },
+        { text: '🤝 Share with friends', guildWeights: { grizzly_might: 2, owl_wisdom: 1 } },
+        { text: '👀 Look at every choice', guildWeights: { owl_wisdom: 2, dragon_flame: 1 } },
+        { text: '🌱 Try a new food', guildWeights: { phoenix_rising: 2, grizzly_might: 1 } },
+    ]},
+    { id: 'n11', emoji: '🖍️', question: 'My picture has…', options: [
+        { text: '🐉 A strong dragon', guildWeights: { dragon_flame: 2, phoenix_rising: 1 } },
+        { text: '🏡 My family', guildWeights: { grizzly_might: 2, owl_wisdom: 1 } },
+        { text: '🧠 A clever machine', guildWeights: { owl_wisdom: 2, dragon_flame: 1 } },
+        { text: '🌈 A magic sky', guildWeights: { phoenix_rising: 2, grizzly_might: 1 } },
+    ]},
+    { id: 'n12', emoji: '💫', question: 'I feel proud when I…', options: [
+        { text: '🏆 Win a game', guildWeights: { dragon_flame: 2, phoenix_rising: 1 } },
+        { text: '💗 Help someone', guildWeights: { grizzly_might: 2, owl_wisdom: 1 } },
+        { text: '💡 Know the answer', guildWeights: { owl_wisdom: 2, dragon_flame: 1 } },
+        { text: '🔁 Do not give up', guildWeights: { phoenix_rising: 2, grizzly_might: 1 } },
+    ]},
+];
+
+// ─── Pool 0B: Pre-Junior ─────────────────────────────────────────────────────
+// Beginner │ Ages 6–7 │ Familiar situations and short, readable choices
+
+const POOL_PRE_JUNIOR = [
+    { id: 'pj01', emoji: '🎒', question: 'When class starts, I like to…', options: [
+        { text: '🙋 Answer first!', guildWeights: { dragon_flame: 2, phoenix_rising: 1 } },
+        { text: '👋 Say hello to everyone', guildWeights: { grizzly_might: 2, owl_wisdom: 1 } },
+        { text: '👀 See what we will learn', guildWeights: { owl_wisdom: 2, dragon_flame: 1 } },
+        { text: '🌟 Try something new', guildWeights: { phoenix_rising: 2, grizzly_might: 1 } },
+    ]},
+    { id: 'pj02', emoji: '🧩', question: 'A puzzle is tricky. I…', options: [
+        { text: '💥 Try every piece fast', guildWeights: { dragon_flame: 2, phoenix_rising: 1 } },
+        { text: '🤝 Build it with a friend', guildWeights: { grizzly_might: 2, owl_wisdom: 1 } },
+        { text: '🤔 Look for a pattern', guildWeights: { owl_wisdom: 2, dragon_flame: 1 } },
+        { text: '🔁 Keep trying calmly', guildWeights: { phoenix_rising: 2, grizzly_might: 1 } },
+    ]},
+    { id: 'pj03', emoji: '📖', question: 'My favourite story has…', options: [
+        { text: '⚔️ A brave hero', guildWeights: { dragon_flame: 2, phoenix_rising: 1 } },
+        { text: '🤗 Best friends', guildWeights: { grizzly_might: 2, owl_wisdom: 1 } },
+        { text: '🔍 A clever mystery', guildWeights: { owl_wisdom: 2, dragon_flame: 1 } },
+        { text: '🌱 A hero who grows', guildWeights: { phoenix_rising: 2, grizzly_might: 1 } },
+    ]},
+    { id: 'pj04', emoji: '🛝', question: 'In the playground, I…', options: [
+        { text: '🏃 Race to the slide', guildWeights: { dragon_flame: 2, phoenix_rising: 1 } },
+        { text: '🤝 Invite others to play', guildWeights: { grizzly_might: 2, owl_wisdom: 1 } },
+        { text: '🧠 Invent a new game', guildWeights: { owl_wisdom: 2, dragon_flame: 1 } },
+        { text: '🪁 Practise until I can do it', guildWeights: { phoenix_rising: 2, grizzly_might: 1 } },
+    ]},
+    { id: 'pj05', emoji: '🎭', question: 'In a class show, I want to…', options: [
+        { text: '🌟 Be the brave star', guildWeights: { dragon_flame: 2, phoenix_rising: 1 } },
+        { text: '🤗 Help the whole group', guildWeights: { grizzly_might: 2, owl_wisdom: 1 } },
+        { text: '📝 Remember every line', guildWeights: { owl_wisdom: 2, dragon_flame: 1 } },
+        { text: '🎬 Make the show work', guildWeights: { phoenix_rising: 2, grizzly_might: 1 } },
+    ]},
+    { id: 'pj06', emoji: '🌈', question: 'My magic classroom has…', options: [
+        { text: '🐉 Flying dragons', guildWeights: { dragon_flame: 2, phoenix_rising: 1 } },
+        { text: '🐻 Friendly animals', guildWeights: { grizzly_might: 2, owl_wisdom: 1 } },
+        { text: '🔬 Amazing inventions', guildWeights: { owl_wisdom: 2, dragon_flame: 1 } },
+        { text: '🚀 Doors to new worlds', guildWeights: { phoenix_rising: 2, grizzly_might: 1 } },
+    ]},
+    { id: 'pj07', emoji: '💭', question: 'If I make a mistake, I…', options: [
+        { text: '😄 Laugh and carry on', guildWeights: { dragon_flame: 2, phoenix_rising: 1 } },
+        { text: '🤝 Ask someone kindly', guildWeights: { grizzly_might: 2, owl_wisdom: 1 } },
+        { text: '🔍 Find what went wrong', guildWeights: { owl_wisdom: 2, dragon_flame: 1 } },
+        { text: '🔁 Try a better way', guildWeights: { phoenix_rising: 2, grizzly_might: 1 } },
+    ]},
+    { id: 'pj08', emoji: '🏝️', question: 'On a treasure hunt, I…', options: [
+        { text: '🏃 Lead the adventure', guildWeights: { dragon_flame: 2, phoenix_rising: 1 } },
+        { text: '🤝 Keep the team together', guildWeights: { grizzly_might: 2, owl_wisdom: 1 } },
+        { text: '🗺️ Read the clues', guildWeights: { owl_wisdom: 2, dragon_flame: 1 } },
+        { text: '⛏️ Never stop searching', guildWeights: { phoenix_rising: 2, grizzly_might: 1 } },
+    ]},
+    { id: 'pj09', emoji: '🎨', question: 'When we make art, I…', options: [
+        { text: '🔥 Use bold colors', guildWeights: { dragon_flame: 2, phoenix_rising: 1 } },
+        { text: '👫 Make a group picture', guildWeights: { grizzly_might: 2, owl_wisdom: 1 } },
+        { text: '📐 Plan every detail', guildWeights: { owl_wisdom: 2, dragon_flame: 1 } },
+        { text: '✨ Experiment with new ideas', guildWeights: { phoenix_rising: 2, grizzly_might: 1 } },
+    ]},
+    { id: 'pj10', emoji: '🎲', question: 'The best game lets me…', options: [
+        { text: '🏆 Win a challenge', guildWeights: { dragon_flame: 2, phoenix_rising: 1 } },
+        { text: '🤗 Play with everyone', guildWeights: { grizzly_might: 2, owl_wisdom: 1 } },
+        { text: '🧠 Solve something clever', guildWeights: { owl_wisdom: 2, dragon_flame: 1 } },
+        { text: '📈 Get better each time', guildWeights: { phoenix_rising: 2, grizzly_might: 1 } },
+    ]},
+    { id: 'pj11', emoji: '🌟', question: 'A great teammate…', options: [
+        { text: '🦁 Is brave', guildWeights: { dragon_flame: 2, phoenix_rising: 1 } },
+        { text: '💗 Is kind', guildWeights: { grizzly_might: 2, owl_wisdom: 1 } },
+        { text: '💡 Has good ideas', guildWeights: { owl_wisdom: 2, dragon_flame: 1 } },
+        { text: '💪 Never gives up', guildWeights: { phoenix_rising: 2, grizzly_might: 1 } },
+    ]},
+    { id: 'pj12', emoji: '🗣️', question: 'I like English when I can…', options: [
+        { text: '🎤 Speak with confidence', guildWeights: { dragon_flame: 2, phoenix_rising: 1 } },
+        { text: '💬 Talk with friends', guildWeights: { grizzly_might: 2, owl_wisdom: 1 } },
+        { text: '📚 Learn a new word', guildWeights: { owl_wisdom: 2, dragon_flame: 1 } },
+        { text: '🌱 See myself improve', guildWeights: { phoenix_rising: 2, grizzly_might: 1 } },
+    ]},
+];
+
 // ─── Pool 1: Junior A ────────────────────────────────────────────────────────
 // Pre-A1 │ Ages 7–8 │ Very short options (2–4 words), picture-book vocabulary
 
@@ -1101,17 +1257,19 @@ export const SORTING_QUIZ_QUESTIONS = POOL_LEVEL_A;
 
 /**
  * Returns the full age/league-appropriate question pool for the sorting quiz.
- * @param {string} [questLevel] - e.g. "Junior A", "A", "B", "C", "D"
+ * @param {string} [questLevel] - a value from the ordered Quest League catalogue
  * @returns {Array}
  */
 export function getQuestionsForLevel(questLevel) {
     if (!questLevel) return POOL_LEVEL_A;
     const level = String(questLevel).trim();
+    if (level === 'Nursery') return POOL_NURSERY;
+    if (level === 'Pre-Junior') return POOL_PRE_JUNIOR;
     if (level === 'Junior A') return POOL_JUNIOR_A;
     if (level === 'Junior B') return POOL_JUNIOR_B;
     if (level === 'A') return POOL_LEVEL_A;
     if (level === 'B') return POOL_LEVEL_B;
-    if (level === 'C' || level === 'D') return POOL_LEVEL_CD;
+    if (['C', 'D', 'E', 'Lower', 'Proficiency'].includes(level)) return POOL_LEVEL_CD;
     return POOL_LEVEL_A;
 }
 

@@ -99,7 +99,7 @@ export async function handleGetQuestUpdate() {
                 return;
             }
             const league = state.get('globalSelectedLeague') || '';
-            const isJuniorLeague = league.toLowerCase().includes('junior');
+            const isJuniorLeague = utils.isYoungLearnerLeague(league);
             speakText(textToSpeak, {
                 rate: isJuniorLeague ? 0.95 : 1,
                 pitch: isJuniorLeague ? 1.08 : 1.0,

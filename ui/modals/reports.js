@@ -295,6 +295,11 @@ export async function executeCertificateGeneration() {
 
     // League pill colours by age band
     const LEAGUE_PILL_STYLES = {
+        early: {
+            bg: 'linear-gradient(135deg, #f472b6 0%, #38bdf8 100%)',
+            color: '#fff',
+            border: 'rgba(255,255,255,0.62)'
+        },
         junior: {
             bg: 'linear-gradient(135deg, #ec4899 0%, #f97316 100%)',
             color: '#fff',
@@ -411,7 +416,8 @@ export async function executeCertificateGeneration() {
     if (leaguePillEl) {
         const leagueLabel = studentClass.questLevel || 'League Explorer';
         let leagueEmoji = '🏰';
-        if (ageCategory === 'junior') leagueEmoji = '🌈';
+        if (ageCategory === 'early') leagueEmoji = '🧸';
+        else if (ageCategory === 'junior') leagueEmoji = '🌈';
         else if (ageCategory === 'mid') leagueEmoji = '🛡️';
         else if (ageCategory === 'senior') leagueEmoji = '🏆';
         leaguePillEl.innerText = `${leagueEmoji} ${leagueLabel}`;

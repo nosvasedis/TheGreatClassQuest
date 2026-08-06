@@ -70,12 +70,12 @@ function isAnyAppModalOpen() {
 }
 
 function setupAdventureLogFabReveal() {
-    const alLeftCluster = document.querySelector('.al-fab-cluster--left');
-    const alRightCluster = document.querySelector('.al-fab-cluster--right');
-    const hcLeftCluster = document.querySelector('.hc-fab-cluster--left');
-    const hcRightCluster = document.querySelector('.hc-fab-cluster--right');
-    const ssLeftCluster = document.querySelector('.ss-fab-cluster--left');
-    const ssRightCluster = document.querySelector('.ss-fab-cluster--right');
+    const alLeftCluster = document.querySelector('.al-fab-cluster.tab-fab-cluster--left');
+    const alRightCluster = document.querySelector('.al-fab-cluster.tab-fab-cluster--right');
+    const hcLeftCluster = document.querySelector('.hc-fab-cluster.tab-fab-cluster--left');
+    const hcRightCluster = document.querySelector('.hc-fab-cluster.tab-fab-cluster--right');
+    const ssLeftCluster = document.querySelector('.ss-fab-cluster.tab-fab-cluster--left');
+    const ssRightCluster = document.querySelector('.ss-fab-cluster.tab-fab-cluster--right');
 
     const clusters = [
         alLeftCluster,

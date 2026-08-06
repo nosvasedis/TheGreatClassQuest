@@ -80,6 +80,9 @@ test('service-worker update control mounts in the header without covering app ac
   assert.match(header, /id="gcq-update-ready-mount"/);
   assert.match(bootstrap, /getElementById\('gcq-update-ready-mount'\)/);
   assert.match(bootstrap, /gcq-update-ready-button/);
+  assert.match(bootstrap, /watchForServiceWorkerUpdates/);
+  assert.match(bootstrap, /registration\.update\(\)/);
+  assert.match(bootstrap, /visibilitychange/);
   assert.doesNotMatch(bootstrap, /fixed bottom-4 right-4/);
   assert.match(navStyles, /@keyframes gcqUpdateGlow/);
   assert.match(navStyles, /prefers-reduced-motion: reduce/);

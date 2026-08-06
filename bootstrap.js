@@ -122,6 +122,27 @@ function showUpdateAvailable(registration) {
     }
 }
 
+function watchForServiceWorkerUpdates(registration) {
+    const checkForUpdate = () => {
+        // Browsers do not push SW updates; we must poll. Failures are expected offline.
+        registration.update().catch(() => {});
+    };
+
+    // Recheck when the teacher returns to the tab after a deploy.
+    document.addEventListener('visibilitychange', () => {
+        if (document.visibilityState === 'visible') checkForUpdate();
+    });
+    window.addEventListener('focus', checkForUpdate);
+
+    // Keep open sessions current without waiting for a full reload.
+    const UPDATE_POLL_MS = 60 * 1000;
+    const pollId = window.setInterval(checkForUpdate, UPDATE_POLL_MS);
+    window.addEventListener('beforeunload', () => window.clearInterval(pollId), { once: true });
+
+    // First live check shortly after boot (idle registration is delayed).
+    window.setTimeout(checkForUpdate, 15 * 1000);
+}
+
 async function registerServiceWorker() {
     if (!('serviceWorker' in navigator)) return;
     if (isLocalHost()) {
@@ -140,6 +161,8 @@ async function registerServiceWorker() {
             }
         });
     });
+
+    watchForServiceWorkerUpdates(registration);
 
     let refreshing = false;
     navigator.serviceWorker.addEventListener('controllerchange', () => {

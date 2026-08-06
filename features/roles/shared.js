@@ -63,11 +63,13 @@ export function renderEmptyState(message, { large = false } = {}) {
 
 export function renderSubTabBar(tabs, activeKey, dataAttr = 'data-role-subtab') {
     return `
-        <div class="options-subtab-bar mb-6">
-            ${tabs.map(({ key, label, icon }) => `
+        <div class="options-subtab-bar role-subtab-bar mb-6" role="tablist">
+            ${tabs.map(({ key, label, icon, tone = 'sky' }) => `
                 <button type="button"
-                    class="options-subtab-btn${activeKey === key ? ' options-subtab-active' : ''}"
-                    ${dataAttr}="${escapeHtml(key)}">
+                    class="options-subtab-btn role-subtab-btn role-subtab-btn--${escapeHtml(tone)}${activeKey === key ? ' options-subtab-active' : ''}"
+                    ${dataAttr}="${escapeHtml(key)}"
+                    role="tab"
+                    aria-selected="${activeKey === key ? 'true' : 'false'}">
                     ${icon ? `<i class="fas ${icon} mr-1.5"></i>` : ''}${label}
                 </button>
             `).join('')}

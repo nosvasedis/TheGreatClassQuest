@@ -14,7 +14,7 @@ const roleHeaderActions = (role) => {
 };
 
 const roleHeader = (role, titleAttr, subtitleAttr, logoutId) => `
-    <div class="role-header-atmosphere relative z-[60] flex shrink-0 flex-col overflow-visible shadow-md"
+    <div class="role-header-atmosphere role-header-atmosphere--${role} relative z-[60] flex shrink-0 flex-col overflow-visible shadow-md"
          style="background: linear-gradient(to right, #89f7fe 0%, #66a6ff 100%);">
         <header class="relative z-[1] flex w-full items-center justify-between gap-3 bg-transparent p-4 shadow-none overflow-visible">
             <div class="header-sky-clouds absolute inset-0 z-[1] overflow-hidden pointer-events-none">
@@ -22,10 +22,13 @@ const roleHeader = (role, titleAttr, subtitleAttr, logoutId) => `
                 <i class="fas fa-cloud cloud cloud-fast" style="left: 30%; animation-delay: -15s; font-size: 6rem;"></i>
                 <i class="fas fa-cloud cloud" style="left: 60%; animation-delay: -2s; font-size: 10rem;"></i>
             </div>
-            <div class="z-10 min-w-0 flex-1">
-                <p class="text-white/80 text-xs font-bold uppercase tracking-widest mb-1">${role === 'secretary' ? 'Secretary Office' : 'Family Portal'}</p>
-                <h1 class="font-title text-2xl text-white sm:text-3xl truncate" ${titleAttr}>Loading...</h1>
-                <p class="text-white/90 text-sm font-semibold mt-1 truncate" ${subtitleAttr}></p>
+            <div class="role-header-brand z-10 min-w-0 flex flex-1 items-center gap-3">
+                <span class="role-header-brand__mark" aria-hidden="true"><i class="fas ${role === 'secretary' ? 'fa-wand-magic-sparkles' : 'fa-heart'}"></i></span>
+                <div class="min-w-0">
+                    <p class="text-white/80 text-xs font-bold uppercase tracking-widest mb-1">${role === 'secretary' ? 'School Office' : 'Family Portal'}</p>
+                    <h1 class="font-title text-2xl text-white sm:text-3xl truncate" ${titleAttr}>Loading...</h1>
+                    <p class="text-white/90 text-sm font-semibold mt-1 truncate" ${subtitleAttr}></p>
+                </div>
             </div>
             <div class="z-10 flex shrink-0 items-center gap-2 bg-white/20 backdrop-blur-sm border border-white/30 rounded-full p-1 shadow-md">
                 ${roleHeaderActions(role)}
@@ -38,11 +41,11 @@ const roleHeader = (role, titleAttr, subtitleAttr, logoutId) => `
     </div>`;
 
 const bottomNav = (role, items) => `
-    <nav id="${role}-bottom-nav" class="role-bottom-nav relative z-50 grid gap-1 p-2 shadow-inner"
+    <nav id="${role}-bottom-nav" class="role-bottom-nav role-bottom-nav--${role} relative z-50 grid gap-1 p-2 shadow-inner"
         style="background: linear-gradient(to right, #89f7fe 0%, #66a6ff 100%); grid-template-columns: repeat(${items.length}, minmax(0, 1fr));">
         ${items.map(({ key, icon, label, color, active }) => `
             <button type="button" class="nav-button nav-color-${color}${active ? ' active' : ''}"
-                data-${role}-tab="${key}">
+                data-${role}-tab="${key}" aria-label="${label}" aria-current="${active ? 'page' : 'false'}">
                 <i class="fas ${icon} icon"></i>
                 <span class="text">${label}</span>
             </button>
@@ -66,9 +69,9 @@ export const roleShellsHTML = `
         ])}
     </div>
 
-    <div id="secretary-screen" class="hidden role-shell flex flex-col h-full overflow-hidden">
+    <div id="secretary-screen" class="hidden role-shell role-shell--secretary flex flex-col h-full overflow-hidden">
         ${roleHeader('secretary', 'data-secretary-title', 'data-school-name', 'secretary-logout-btn')}
-        <main class="role-main flex-1 overflow-y-auto custom-scrollbar p-4 md:p-6 min-h-0">
+        <main class="role-main secretary-role-main flex-1 overflow-y-auto custom-scrollbar p-4 md:p-6 min-h-0">
             <section class="role-tab max-w-4xl mx-auto" data-secretary-section="home"></section>
             <section class="role-tab max-w-4xl mx-auto hidden" data-secretary-section="school"></section>
             <section class="role-tab max-w-4xl mx-auto hidden" data-secretary-section="grades"></section>

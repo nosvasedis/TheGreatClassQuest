@@ -16,21 +16,21 @@ const ADMIN_AREAS = [
     {
         key: 'year',
         label: 'School Year',
-        description: 'Close, check, and prepare',
+        description: 'Dates and September setup',
         icon: 'fa-calendar-alt',
         accent: 'sky'
     },
     {
         key: 'settings',
-        label: 'School Settings',
-        description: 'Identity and admin tools',
+        label: 'School Details',
+        description: 'Name, holidays and account',
         icon: 'fa-school',
         accent: 'emerald'
     },
     {
         key: 'grading',
-        label: 'Grading Setup',
-        description: 'Rules for tests and dictations',
+        label: 'Grading',
+        description: 'Simple school marking rules',
         icon: 'fa-clipboard-check',
         accent: 'violet'
     }
@@ -43,22 +43,25 @@ function getAdminAreas() {
 }
 
 function renderAdminHero() {
+    const schoolName = state.get('schoolName') || 'Your school';
+    const profile = state.get('currentUserProfile') || {};
+    const areaCount = getAdminAreas().length;
     return `
         <header class="secretary-admin-hero">
             <div class="secretary-admin-hero__main">
                 <div class="secretary-admin-hero__icon" aria-hidden="true">
-                    <i class="fas fa-sliders"></i>
+                    <i class="fas fa-wand-magic-sparkles"></i>
                 </div>
                 <div>
-                    <p class="secretary-admin-hero__eyebrow">Secretary workspace</p>
-                    <h2 class="secretary-admin-hero__title">Admin control center</h2>
-                    <p class="secretary-admin-hero__description">Set up the school year, keep the school identity tidy, and make grading rules easy for every class to follow.</p>
+                    <p class="secretary-admin-hero__eyebrow">School settings</p>
+                    <h2 class="secretary-admin-hero__title">Keep everything running smoothly.</h2>
+                    <p class="secretary-admin-hero__description">The important school-wide choices for ${escapeHtml(schoolName)}, gathered into ${areaCount} simple section${areaCount === 1 ? '' : 's'}.</p>
                 </div>
             </div>
             <div class="secretary-admin-hero__status">
-                <span>Setup workspace</span>
-                <strong>3 areas</strong>
-                <small>Choose a section below to get started.</small>
+                <span><i class="fas fa-circle-check" aria-hidden="true"></i> Signed in</span>
+                <strong>${escapeHtml(profile.displayName || 'Secretary')}</strong>
+                <small>You are looking after the whole school.</small>
             </div>
         </header>
     `;
@@ -68,20 +71,19 @@ function renderAdminNav(activeKey) {
     const areas = getAdminAreas();
     return `
         <nav class="secretary-admin-nav" aria-label="Admin sections" role="tablist">
-            ${areas.map((area, index) => `
+            ${areas.map((area) => `
                 <button type="button"
                     class="secretary-admin-nav__item secretary-admin-nav__item--${area.accent}${activeKey === area.key ? ' is-active' : ''}"
                     data-secretary-admin-subtab="${area.key}"
                     role="tab"
                     aria-selected="${activeKey === area.key ? 'true' : 'false'}"
                     aria-controls="secretary-admin-panel-${area.key}">
-                    <span class="secretary-admin-nav__number">${index + 1}</span>
                     <span class="secretary-admin-nav__icon" aria-hidden="true"><i class="fas ${area.icon}"></i></span>
                     <span class="secretary-admin-nav__copy">
                         <strong>${area.label}</strong>
                         <small>${area.description}</small>
                     </span>
-                    <i class="fas fa-arrow-right secretary-admin-nav__arrow" aria-hidden="true"></i>
+                    <i class="fas ${activeKey === area.key ? 'fa-circle-check' : 'fa-arrow-right'} secretary-admin-nav__arrow" aria-hidden="true"></i>
                 </button>
             `).join('')}
         </nav>
@@ -112,9 +114,9 @@ function renderSchoolSettings() {
     return `
         <div class="secretary-admin-panel-content secretary-admin-panel-content--settings">
             ${renderAdminSectionIntro(
-                'School settings',
-                'Make the office feel like your school.',
-                'Update the school identity and keep the most useful secretary actions within easy reach.',
+                'School details',
+                'Make this space feel like your school.',
+                'Update the details everyone shares, look after your account, and find useful everyday shortcuts.',
                 'fa-school',
                 'emerald'
             )}
@@ -131,7 +133,7 @@ function renderSchoolSettings() {
                         </div>
                         <span class="secretary-admin-card__badge secretary-admin-card__badge--emerald">Visible across the app</span>
                     </div>
-                    <p class="secretary-admin-card__description">This name appears in the secretary header and in school-facing areas. Keep it short enough to read comfortably on a laptop.</p>
+                    <p class="secretary-admin-card__description">This is the name teachers, families, and students see around the app.</p>
                     <form id="secretary-school-name-form" class="secretary-settings-form">
                         <label class="role-field secretary-settings-form__field">
                             <span>School name</span>
@@ -172,8 +174,8 @@ function renderSchoolSettings() {
                         <div class="secretary-admin-card__title-group">
                             <span class="secretary-admin-card__icon secretary-admin-card__icon--sky" aria-hidden="true"><i class="fas fa-user-shield"></i></span>
                             <div>
-                                <p class="role-card__eyebrow">Your access</p>
-                                <h3 class="role-card__title">Secretary permissions</h3>
+                                <p class="role-card__eyebrow">Your account</p>
+                                <h3 class="role-card__title">You are the school Secretary</h3>
                             </div>
                         </div>
                         <span class="secretary-admin-card__badge secretary-admin-card__badge--sky">Active</span>
@@ -184,13 +186,13 @@ function renderSchoolSettings() {
                             <strong>${escapeHtml(profile?.displayName || 'Secretary')}</strong>
                         </div>
                         <div class="secretary-settings-fact">
-                            <span class="secretary-settings-fact__label">Access scope</span>
-                            <strong>Whole school</strong>
+                            <span class="secretary-settings-fact__label">You can look after</span>
+                            <strong>The whole school</strong>
                         </div>
                     </div>
                     <details class="secretary-disclosure">
-                        <summary><span><i class="fas fa-circle-info" aria-hidden="true"></i> What can I manage?</span><i class="fas fa-chevron-down secretary-disclosure__chevron" aria-hidden="true"></i></summary>
-                        <p>All classes, students, grades, and family messages are available here. The Teacher App opens the full teaching workspace when you need a broader view.</p>
+                        <summary><span><i class="fas fa-circle-info" aria-hidden="true"></i> What can I do here?</span><i class="fas fa-chevron-down secretary-disclosure__chevron" aria-hidden="true"></i></summary>
+                        <p>You can look after school details, classes, students, grading, and family messages. Open the Teacher App whenever you want to use the classroom tools.</p>
                     </details>
                 </article>
             </div>
@@ -216,7 +218,7 @@ function renderSchoolSettings() {
             <div class="secretary-settings-grid">
                 <article class="role-card secretary-admin-card secretary-settings-card">
                     <div class="secretary-admin-card__header"><div class="secretary-admin-card__title-group"><span class="secretary-admin-card__icon secretary-admin-card__icon--violet"><i class="fas fa-key"></i></span><div><p class="role-card__eyebrow">Account security</p><h3 class="role-card__title">Secretary credentials</h3></div></div></div>
-                    <p class="secretary-admin-card__description">Confirm the current password, then change the username, password, or both. This account cannot delete or disable itself.</p>
+                    <p class="secretary-admin-card__description">To keep the account safe, enter your current password before choosing a new username or password.</p>
                     <form id="secretary-credentials-form" class="secretary-settings-form">
                         <label class="role-field"><span>Current password</span><input type="password" id="secretary-current-password" required autocomplete="current-password"></label>
                         <label class="role-field"><span>New username (optional)</span><input type="text" id="secretary-new-username" autocomplete="username"></label>
@@ -227,35 +229,35 @@ function renderSchoolSettings() {
 
                 <article class="role-card secretary-admin-card secretary-settings-card">
                     <div class="secretary-admin-card__header"><div class="secretary-admin-card__title-group"><span class="secretary-admin-card__icon secretary-admin-card__icon--emerald"><i class="fas fa-credit-card"></i></span><div><p class="role-card__eyebrow">Subscription</p><h3 class="role-card__title">Plan and billing</h3></div></div><span class="secretary-admin-card__badge secretary-admin-card__badge--emerald">${escapeHtml(tier.toUpperCase())}</span></div>
-                    <p class="secretary-admin-card__description">Only the Secretary/admin can open the school billing portal or change the subscription.</p>
-                    <button type="button" id="secretary-manage-subscription-btn" class="role-btn-primary"><i class="fas fa-arrow-up-right-from-square"></i> Manage plan in Stripe</button>
+                    <p class="secretary-admin-card__description">See the school plan, payment details, and available upgrades in one secure place.</p>
+                    <button type="button" id="secretary-manage-subscription-btn" class="role-btn-primary"><i class="fas fa-arrow-up-right-from-square"></i> View plan and billing</button>
                 </article>
             </div>
 
-            ${hasFullConsole ? '' : `<div class="role-card secretary-admin-card"><p class="role-card__eyebrow">Elite Secretary Console</p><h3 class="role-card__title">School-wide editing is read-only on ${escapeHtml(tier)}.</h3><p class="secretary-admin-card__description">School identity, billing, school years, holidays, and credentials remain available. Upgrade to Elite for grading administration, bulk edits, backfills, and family messaging.</p></div>`}
+            ${hasFullConsole ? '' : `<div class="role-card secretary-admin-card secretary-plan-nudge"><span class="secretary-plan-nudge__icon"><i class="fas fa-gem"></i></span><div><p class="role-card__eyebrow">More with Elite</p><h3 class="role-card__title">Unlock the complete school office.</h3><p class="secretary-admin-card__description">Your ${escapeHtml(tier)} plan includes the essentials above. Elite adds school-wide editing, grading tools, family messages, and time-saving school updates.</p></div></div>`}
 
             <article class="role-card secretary-admin-card secretary-settings-card secretary-settings-card--tools">
                 <div class="secretary-admin-card__header">
                     <div class="secretary-admin-card__title-group">
                         <span class="secretary-admin-card__icon secretary-admin-card__icon--violet" aria-hidden="true"><i class="fas fa-bolt"></i></span>
                         <div>
-                            <p class="role-card__eyebrow">Office shortcuts</p>
-                            <h3 class="role-card__title">Useful admin actions</h3>
+                            <p class="role-card__eyebrow">Helpful shortcuts</p>
+                            <h3 class="role-card__title">Get there in one tap</h3>
                         </div>
                     </div>
-                    <span class="secretary-admin-card__helper">Jump straight to common tasks</span>
+                    <span class="secretary-admin-card__helper">Your most useful places</span>
                 </div>
                 <div class="role-ops-grid secretary-admin-action-grid">
                     ${hasFullConsole ? `<button type="button" id="secretary-run-backfill-btn" class="role-op-tile secretary-admin-action-tile">
                         <span class="secretary-admin-action-tile__icon secretary-admin-action-tile__icon--indigo"><i class="fas fa-rotate" aria-hidden="true"></i></span>
-                        <span>Refresh parent summaries</span>
-                        <small>Rebuild safe summaries for every student.</small>
+                        <span>Refresh family information</span>
+                        <small>Update what parents can see for every student.</small>
                         <i class="fas fa-arrow-up-right-from-square secretary-admin-action-tile__arrow" aria-hidden="true"></i>
                     </button>` : ''}
                     ${hasFullConsole ? `<button type="button" class="role-op-tile secretary-admin-action-tile" data-secretary-tab-link="grades">
                         <span class="secretary-admin-action-tile__icon secretary-admin-action-tile__icon--amber"><i class="fas fa-chart-bar" aria-hidden="true"></i></span>
                         <span>View all grades</span>
-                        <small>Jump to the schoolwide grade list.</small>
+                        <small>See recent results from every class.</small>
                         <i class="fas fa-arrow-up-right-from-square secretary-admin-action-tile__arrow" aria-hidden="true"></i>
                     </button>
                     <button type="button" class="role-op-tile secretary-admin-action-tile" data-secretary-tab-link="messages">
@@ -285,17 +287,17 @@ function renderGradingSetup() {
     return `
         <div class="secretary-admin-panel-content secretary-admin-panel-content--grading">
             ${renderAdminSectionIntro(
-                'Grading setup',
-                'Set the rules once, then fine-tune by class.',
-                'School defaults keep marking consistent. Class overrides are optional for the moments when one class needs a different scale.',
+                'Grading',
+                'Choose how grades work across your school.',
+                'Set the usual marking style for each league. If one class needs something different, you can change only that class.',
                 'fa-clipboard-check',
                 'violet'
             )}
 
             <div class="secretary-grading-savebar">
                 <div>
-                    <span class="secretary-grading-savebar__label"><i class="fas fa-cloud-arrow-up" aria-hidden="true"></i> Grading changes are ready to save</span>
-                    <small>Save school defaults and the selected class override together.</small>
+                    <span class="secretary-grading-savebar__label"><i class="fas fa-cloud-arrow-up" aria-hidden="true"></i> Remember to save your changes</span>
+                    <small>This saves the school rules and the class you are editing.</small>
                 </div>
                 <button type="button" id="secretary-save-assessment-btn" class="role-btn-primary">
                     <i class="fas fa-save" aria-hidden="true"></i> Save grading setup
@@ -307,8 +309,8 @@ function renderGradingSetup() {
                     <div class="secretary-admin-card__title-group">
                         <span class="secretary-admin-card__icon secretary-admin-card__icon--violet" aria-hidden="true"><i class="fas fa-layer-group"></i></span>
                         <div>
-                            <p class="role-card__eyebrow">School-wide defaults</p>
-                            <h3 class="role-card__title">Default rules by league</h3>
+                            <p class="role-card__eyebrow">Usual school grading</p>
+                            <h3 class="role-card__title">Grading style for each league</h3>
                         </div>
                     </div>
                     <div class="secretary-assessment-editor-actions">
@@ -316,7 +318,7 @@ function renderGradingSetup() {
                         <button type="button" class="secretary-chip-btn secretary-chip-btn--soft" data-secretary-assessment-details-action="close">Collapse all</button>
                     </div>
                 </div>
-                <p class="secretary-admin-card__description">These settings apply automatically to every class in the matching league unless that class uses its own override.</p>
+                <p class="secretary-admin-card__description">Every class follows its league's style automatically, unless you choose a different style for that class below.</p>
                 <div class="secretary-assessment-preview">
                     ${Object.entries(schoolDefaults).map(([league, config]) => `
                         <div class="secretary-assessment-preview__item">
@@ -339,13 +341,13 @@ function renderGradingSetup() {
                     <div class="secretary-admin-card__title-group">
                         <span class="secretary-admin-card__icon secretary-admin-card__icon--amber" aria-hidden="true"><i class="fas fa-sliders"></i></span>
                         <div>
-                            <p class="role-card__eyebrow">Per-class overrides</p>
-                            <h3 class="role-card__title">Choose a class to edit</h3>
+                            <p class="role-card__eyebrow">One class can be different</p>
+                            <h3 class="role-card__title">Choose a class</h3>
                         </div>
                     </div>
                     <span class="secretary-admin-card__helper">Optional</span>
                 </div>
-                <p class="secretary-admin-card__description">Select a class when it needs different rules from its league default. Classes using school defaults stay in sync automatically.</p>
+                <p class="secretary-admin-card__description">Only choose a class here when its grading should be different from the rest of its league.</p>
                 <div class="secretary-grading-overrides-layout">
                     <div class="secretary-class-picker-pane">
                         <div class="secretary-class-picker-pane__header">
@@ -382,8 +384,8 @@ function renderGradingSetup() {
                                     {
                                         allowInherit: true,
                                         questLevel: selectedClass.questLevel,
-                                        title: 'Class-specific rules',
-                                        description: 'Use the school defaults unless this class needs a different assessment setup.'
+                                        title: 'Grading for this class',
+                                        description: 'Keep the usual school style, or choose a different one just for this class.'
                                     }
                                 )}
                             </div>
@@ -391,7 +393,7 @@ function renderGradingSetup() {
                             <div class="secretary-class-editor-empty">
                                 <span class="secretary-class-editor-empty__icon" aria-hidden="true"><i class="fas fa-hand-pointer"></i></span>
                                 <h4>Choose a class to continue</h4>
-                                <p>The class editor will open here, beside your class list, so you can keep the school defaults in view.</p>
+                                <p>Its grading choices will open here, beside the class list.</p>
                             </div>
                         `}
                     </div>

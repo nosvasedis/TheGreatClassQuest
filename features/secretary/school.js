@@ -9,6 +9,7 @@ import {
     avatarVariant
 } from './helpers.js';
 import { getAssessmentValueLabel } from '../assessmentConfig.js';
+import { canUseFeature } from '../../utils/subscription.js';
 
 function renderClassesList() {
     const classes = filteredClasses().slice().sort((a, b) => a.name.localeCompare(b.name));
@@ -32,7 +33,7 @@ function renderClassesList() {
                         <div class="role-list-row__avatar role-list-row__avatar--amber">${escapeHtml(item.logo || '📚')}</div>
                         <div class="role-list-row__body">
                             <div class="role-list-row__title">${escapeHtml(item.name)}</div>
-                            <div class="role-list-row__meta">${escapeHtml(item.questLevel || 'Level')} • ${escapeHtml(item.createdBy?.name || 'Teacher')} • ${classStudents.length} students • ${classScores.length} grades</div>
+                            <div class="role-list-row__meta">${escapeHtml(item.questLevel || 'Level')} • ${escapeHtml(item.createdBy?.name || 'Teacher')} • ${classStudents.length} ${classStudents.length === 1 ? 'student' : 'students'} • ${classScores.length} ${classScores.length === 1 ? 'grade' : 'grades'}</div>
                             <div class="role-list-row__meta">${escapeHtml(schedule || 'Schedule not set')}${item.timeStart ? ` • ${escapeHtml(item.timeStart)}` : ''}</div>
                         </div>
                         <div class="role-list-row__actions">
@@ -87,17 +88,20 @@ export function renderSecretarySchool() {
     const subTab = state.get('secretaryView')?.schoolSubTab || 'classes';
     const classes = filteredClasses();
     const students = filteredStudents();
+    const hasFullConsole = canUseFeature('secretaryAccess');
 
     return `
         ${renderTabHero({
             icon: 'fa-school',
             iconColor: 'text-green-600',
             title: 'School',
-            subtitle: 'Browse classes and students. Tap a button to edit details or send a message.'
+            subtitle: hasFullConsole
+                ? 'Find any class or student, then open the tools you need.'
+                : 'A clear, read-only view of every class and student in your school.'
         })}
         ${renderSubTabBar([
-            { key: 'classes', label: 'Classes', icon: 'fa-chalkboard' },
-            { key: 'students', label: 'Students', icon: 'fa-users' }
+            { key: 'classes', label: 'Classes', icon: 'fa-chalkboard', tone: 'sky' },
+            { key: 'students', label: 'Students', icon: 'fa-users', tone: 'emerald' }
         ], subTab, 'data-secretary-school-subtab')}
         <article class="role-card">
             <div class="role-card__header">

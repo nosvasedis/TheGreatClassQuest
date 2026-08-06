@@ -44,6 +44,7 @@ function applyRoleTab(role, tabKey, { animate = true, persist = true } = {}) {
     document.querySelectorAll(config.navSelector).forEach((btn) => {
         const isActive = btn.dataset[config.tabAttr] === resolvedTab;
         btn.classList.toggle('active', isActive);
+        btn.setAttribute('aria-current', isActive ? 'page' : 'false');
     });
 
     const panels = document.querySelectorAll(config.panelSelector);

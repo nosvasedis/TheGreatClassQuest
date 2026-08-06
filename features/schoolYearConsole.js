@@ -32,6 +32,20 @@ function escapeHtml(value) {
         .replace(/'/g, '&#39;');
 }
 
+function friendlyYearStatus(value) {
+    const status = String(value || '').trim().toLowerCase();
+    if (['completed', 'complete', 'closed'].includes(status)) return 'Finished';
+    if (['running', 'processing', 'in_progress'].includes(status)) return 'In progress';
+    return 'Ready';
+}
+
+function friendlyCountLabel(value) {
+    return String(value || '')
+        .replace(/([a-z])([A-Z])/g, '$1 $2')
+        .replace(/[_-]+/g, ' ')
+        .replace(/^./, (letter) => letter.toUpperCase());
+}
+
 function setBusyState(button, isBusy, busyLabel) {
     if (!button) return;
     if (!button.dataset.idleHtml) {
@@ -106,10 +120,10 @@ function renderSeptemberReadiness({ schoolYearState, activeClasses, pendingStude
             ready: activeValid && nextValid
         },
         {
-            label: 'Index readiness',
-            value: 'Manifest included',
-            detail: 'Emulator and deployment checks validate the committed Firestore index manifest.',
-            ready: true
+            label: 'Year setup',
+            value: activeValid && nextValid ? 'Ready' : 'Check needed',
+            detail: activeValid && nextValid ? 'Both school years are set up correctly.' : 'Use the button above to complete the missing details.',
+            ready: activeValid && nextValid
         }
     ];
 
@@ -117,14 +131,14 @@ function renderSeptemberReadiness({ schoolYearState, activeClasses, pendingStude
         <section class="secretary-card" aria-labelledby="september-readiness-title">
             <div class="secretary-card__header">
                 <div>
-                    <p class="secretary-card__eyebrow">September readiness</p>
-                    <h3 id="september-readiness-title" class="secretary-card__title">New-year safety check</h3>
+                    <p class="secretary-card__eyebrow">Ready for September?</p>
+                    <h3 id="september-readiness-title" class="secretary-card__title">A simple new-year checklist</h3>
                 </div>
                 <button type="button" id="school-year-verify-records-btn" class="secretary-shell__secondary-btn">
-                    <i class="fas fa-shield-check mr-2" aria-hidden="true"></i>Verify Year Records
+                    <i class="fas fa-shield-check mr-2" aria-hidden="true"></i>Check year setup
                 </button>
             </div>
-            <p class="text-sm text-slate-600 leading-relaxed mb-4">This summary uses the active-year data already loaded for this screen. It never loads archived years and never places students automatically.</p>
+            <p class="text-sm text-slate-600 leading-relaxed mb-4">A quick look at what is ready and what may still need your attention. Students are never moved automatically.</p>
             <div class="secretary-stat-grid">
                 ${items.map((item) => `
                     <article class="secretary-card secretary-card--mini">
@@ -142,19 +156,19 @@ function renderRolloverJobSummary(job) {
     if (!job) {
         return `
             <div class="secretary-inline-note">
-                Run “Preview Year Close” any time. It checks the real data and shows what needs attention before the final close.
+                Choose “Check before finishing” any time. You will see exactly what is ready and what still needs attention.
             </div>
         `;
     }
     return `
         <div class="school-year-job-summary">
             <div>
-                <strong>${escapeHtml(job.status || 'Job')}</strong>
-                <span>${escapeHtml(job.stage || job.type || 'latest check')}</span>
+                <strong>Latest school-year check</strong>
+                <span>${escapeHtml(friendlyYearStatus(job.status))}</span>
             </div>
             ${job.counts ? `
                 <div class="school-year-job-counts">
-                    ${Object.entries(job.counts).map(([key, value]) => `<span>${escapeHtml(key)}: ${Number(value || 0)}</span>`).join('')}
+                    ${Object.entries(job.counts).map(([key, value]) => `<span>${escapeHtml(friendlyCountLabel(key))}: ${Number(value || 0)}</span>`).join('')}
                 </div>
             ` : ''}
         </div>
@@ -169,12 +183,12 @@ function renderPreviewResult(result) {
     return `
         <div class="school-year-preview-result">
             <div class="school-year-preview-header ${result.safeToClose ? 'school-year-preview-header--ready' : 'school-year-preview-header--warning'}">
-                <strong>${result.safeToClose ? 'Ready to close' : 'Review before close'}</strong>
+                <strong>${result.safeToClose ? 'Ready to finish' : 'A few things need attention'}</strong>
                 <span>${escapeHtml(result.closingYearKey || '')} → ${escapeHtml(result.nextYearKey || '')}</span>
             </div>
             ${result.counts ? `
                 <div class="school-year-job-counts mt-3">
-                    ${Object.entries(result.counts).map(([key, value]) => `<span>${escapeHtml(key)}: ${Number(value || 0)}</span>`).join('')}
+                    ${Object.entries(result.counts).map(([key, value]) => `<span>${escapeHtml(friendlyCountLabel(key))}: ${Number(value || 0)}</span>`).join('')}
                 </div>
             ` : ''}
             ${checklist.length ? `
@@ -209,7 +223,7 @@ function ensurePreviewModal() {
             <div class="flex items-center justify-between gap-4 px-6 py-4 border-b border-slate-100 bg-gradient-to-r from-violet-50 to-sky-50">
                 <div>
                     <p class="text-[10px] font-black uppercase tracking-[0.22em] text-violet-500">School year</p>
-                    <h3 class="font-title text-2xl text-slate-800">Year Close Preview</h3>
+                    <h3 class="font-title text-2xl text-slate-800">School-year check</h3>
                 </div>
                 <button type="button" id="school-year-preview-modal-close" class="w-10 h-10 rounded-full bg-white text-slate-500 hover:text-rose-500 hover:bg-rose-50 border border-slate-200 shadow-sm flex items-center justify-center" aria-label="Close preview">
                     <i class="fas fa-times"></i>
@@ -264,26 +278,26 @@ export function renderSchoolYearSection() {
         <div class="school-year-command">
             <section class="school-year-hero secretary-card secretary-card--featured">
                 <div class="school-year-hero__copy">
-                    <p class="secretary-card__eyebrow">School year</p>
-                    <h2 class="secretary-card__title">Close ${escapeHtml(formatSchoolYearLabel(activeYearKey))}, then prepare for September.</h2>
+                    <p class="secretary-card__eyebrow">Your school year</p>
+                    <h2 class="secretary-card__title">Finish ${escapeHtml(formatSchoolYearLabel(activeYearKey))} with confidence.</h2>
                     <p class="text-sm text-slate-600 mt-2 leading-relaxed">
-                        Set the official last school day below. Teachers can place returning students into their new classes; you oversee and can override any placement.
+                        Choose the last school day, check that everything is ready, then prepare returning students for their September classes.
                     </p>
                 </div>
                 <div class="school-year-status-grid">
                     <div class="school-year-status-card school-year-status-card--sky">
                         <span>Active Year</span>
                         <strong>${escapeHtml(activeYearKey)}</strong>
-                        <small>${escapeHtml(schoolYearState.rolloverStatus || 'preparing')}</small>
+                        <small>${escapeHtml(friendlyYearStatus(schoolYearState.rolloverStatus))}</small>
                     </div>
                     <div class="school-year-status-card school-year-status-card--emerald">
                         <span>Next Year</span>
                         <strong>${escapeHtml(nextYearKey)}</strong>
-                        <small>September setup target</small>
+                        <small>Ready for September</small>
                     </div>
                     <div class="school-year-status-card ${closeReady ? 'school-year-status-card--emerald' : 'school-year-status-card--amber'}">
-                        <span>Final Close</span>
-                        <strong>${closeReady ? 'Unlocked' : 'Locked'}</strong>
+                        <span>Finish year</span>
+                        <strong>${closeReady ? 'Available' : 'Not yet'}</strong>
                         <small>${escapeHtml(closeDateSavedLabel)}</small>
                     </div>
                 </div>
@@ -332,7 +346,7 @@ export function renderSchoolYearSection() {
                 <article class="secretary-card secretary-card--mini">
                     <p class="secretary-card__eyebrow">Missing scores</p>
                     <h3 class="secretary-card__metric">${studentsMissingScores.length}</h3>
-                    <p class="text-sm text-slate-500">The migration can repair these automatically.</p>
+                    <p class="text-sm text-slate-500">The check below can safely add missing year details.</p>
                 </article>
             </section>
 
@@ -340,19 +354,19 @@ export function renderSchoolYearSection() {
                 <article class="secretary-card">
                     <div class="secretary-card__header">
                         <div>
-                            <p class="secretary-card__eyebrow">Preparation</p>
-                            <h3 class="secretary-card__title">Run safe checks before the final close</h3>
+                            <p class="secretary-card__eyebrow">Before you finish</p>
+                            <h3 class="secretary-card__title">Check that everything is ready</h3>
                         </div>
                     </div>
                     <div class="school-year-action-stack">
                         <button type="button" id="school-year-preview-btn" class="secretary-shell__primary-btn">
-                            <i class="fas fa-list-check mr-2"></i>Preview Year Close
+                            <i class="fas fa-list-check mr-2"></i>Check before finishing
                         </button>
                         <button type="button" id="school-year-backfill-btn" class="secretary-shell__secondary-btn">
-                            <i class="fas fa-wand-magic-sparkles mr-2"></i>Repair / Tag Existing Data
+                            <i class="fas fa-wand-magic-sparkles mr-2"></i>Fix missing year details
                         </button>
                         <button type="button" id="school-year-finalize-btn" class="secretary-shell__secondary-btn">
-                            <i class="fas fa-rotate mr-2"></i>Finalize September Sync
+                            <i class="fas fa-rotate mr-2"></i>Finish September setup
                         </button>
                     </div>
                     <div id="school-year-preview-output" class="school-year-output mt-4">
@@ -363,20 +377,20 @@ export function renderSchoolYearSection() {
                 <article class="secretary-card">
                     <div class="secretary-card__header">
                         <div>
-                            <p class="secretary-card__eyebrow">Final Close</p>
-                            <h3 class="secretary-card__title">Secretary-only confirmation</h3>
+                            <p class="secretary-card__eyebrow">Finish the school year</p>
+                            <h3 class="secretary-card__title">Final safety check</h3>
                         </div>
                         <div class="secretary-card__badge">${closeReady ? 'Available' : 'Locked'}</div>
                     </div>
                     <p class="text-sm text-slate-600 leading-relaxed">
-                        This archives the ended year, preserves gold and guild membership, resets stars/skills/levels/guild power, and moves returning students into “Needs placement” for September.
+                        This safely stores the finished year, keeps student gold and guilds, starts fresh progress, and moves returning students into “Needs placement” for September.
                     </p>
                     <label class="secretary-field mt-4">
                         <span>Type exactly: ${escapeHtml(confirmationText)}</span>
                         <input type="text" id="school-year-close-confirmation" placeholder="${escapeHtml(confirmationText)}">
                     </label>
                     <button type="button" id="school-year-close-btn" class="secretary-shell__primary-btn school-year-danger-btn mt-4" ${closeReady ? '' : 'disabled'}>
-                        <i class="fas fa-lock mr-2"></i>${closeReady ? 'Close School Year' : `Close Unlocks On ${escapeHtml(closeDateSavedLabel)}`}
+                        <i class="fas fa-lock mr-2"></i>${closeReady ? 'Finish School Year' : `Available On ${escapeHtml(closeDateSavedLabel)}`}
                     </button>
                 </article>
             </section>
@@ -384,13 +398,13 @@ export function renderSchoolYearSection() {
             <section class="secretary-card">
                 <div class="secretary-card__header">
                     <div>
-                        <p class="secretary-card__eyebrow">September Roster Allocation</p>
-                        <h3 class="secretary-card__title">Place returning students (office override)</h3>
+                        <p class="secretary-card__eyebrow">September class lists</p>
+                        <h3 class="secretary-card__title">Place returning students</h3>
                     </div>
                     <div class="secretary-card__badge">${pendingStudents.length} waiting</div>
                 </div>
                 <p class="text-sm text-slate-600 leading-relaxed mb-4">
-                    Teachers normally place students from their own class roster. Use this section when you need to place students into any teacher’s class.
+                    Teachers can place students from their own classes. You can use this section whenever a student needs to move to any class in the school.
                 </p>
                 <div class="school-year-allocation-bar">
                     <label class="secretary-field">
@@ -470,7 +484,7 @@ async function runSchoolYearPreview(button) {
     const { schoolYearState } = getSchoolYearSummary();
     const output = document.getElementById('school-year-preview-output');
     try {
-        setBusyState(button, true, 'Checking Year Close...');
+        setBusyState(button, true, 'Checking...');
         const loadingHtml = `
             <div class="school-year-alert school-year-alert--warning">
                 <i class="fas fa-spinner fa-spin mr-2"></i> Checking the real data for ${escapeHtml(formatSchoolYearLabel(schoolYearState.activeYearKey))}...
@@ -485,7 +499,7 @@ async function runSchoolYearPreview(button) {
         const resultHtml = renderPreviewResult(result);
         if (output) output.innerHTML = resultHtml;
         showPreviewModal(resultHtml);
-        showToast(result?.safeToClose ? 'Year-close preview is ready.' : 'Preview found items to review.', result?.safeToClose ? 'success' : 'info');
+        showToast(result?.safeToClose ? 'Everything is ready to finish the year.' : 'The check found a few things to review.', result?.safeToClose ? 'success' : 'info');
     } catch (error) {
         console.error('Year close preview failed:', error);
         const errorHtml = `<div class="school-year-alert school-year-alert--danger">${escapeHtml(error?.message || 'Could not run preview.')}</div>`;
@@ -503,8 +517,8 @@ async function runVerifyYearRecords(button) {
         lastYearVerification = await ensureOpenSchoolYears();
         showToast(
             lastYearVerification?.writes
-                ? `${lastYearVerification.writes} missing school-year record(s) safely created.`
-                : 'Active and planned school-year records are valid.',
+                ? `${lastYearVerification.writes} missing school-year detail(s) safely added.`
+                : 'The current and next school years are ready.',
             'success'
         );
         onSchoolYearConsoleRerender?.();
@@ -519,12 +533,12 @@ async function runVerifyYearRecords(button) {
 async function runSchoolYearBackfill(button) {
     const { schoolYearState } = getSchoolYearSummary();
     try {
-        setBusyState(button, true, 'Repairing Existing Data...');
+        setBusyState(button, true, 'Updating year details...');
         const result = await backfillSchoolYearData({
             closingYearKey: schoolYearState.activeYearKey,
             nextYearKey: schoolYearState.nextYearKey
         });
-        showToast(`Migration repair complete: ${result?.writeCount || 0} records updated.`, 'success');
+        showToast(`School-year details updated: ${result?.writeCount || 0} item(s) fixed.`, 'success');
         onSchoolYearConsoleRerender?.();
     } catch (error) {
         console.error('School year backfill failed:', error);
@@ -539,12 +553,12 @@ async function runSchoolYearClose(button) {
     const confirmation = document.getElementById('school-year-close-confirmation')?.value?.trim() || '';
     try {
         setBusyState(button, true, 'Closing School Year...');
-        const result = await closeSchoolYear({
+        await closeSchoolYear({
             closingYearKey: schoolYearState.activeYearKey,
             nextYearKey: schoolYearState.nextYearKey,
             confirmation
         });
-        showToast(`School year closed. Job: ${result?.jobId || 'completed'}`, 'success');
+        showToast('The school year is safely finished.', 'success');
         onSchoolYearConsoleRerender?.();
     } catch (error) {
         console.error('School year close failed:', error);
@@ -557,15 +571,15 @@ async function runSchoolYearClose(button) {
 async function runSchoolYearFinalize(button) {
     const { schoolYearState } = getSchoolYearSummary();
     try {
-        setBusyState(button, true, 'Finalizing September...');
+        setBusyState(button, true, 'Finishing September setup...');
         const result = await finalizeRollover({
             schoolYearKey: schoolYearState.activeYearKey
         });
-        showToast(`September sync complete: ${result?.activeStudents || 0} active students checked.`, 'success');
+        showToast(`September setup complete: ${result?.activeStudents || 0} active students checked.`, 'success');
         onSchoolYearConsoleRerender?.();
     } catch (error) {
         console.error('Finalize rollover failed:', error);
-        showToast(error?.message || 'Could not finalize September sync.', 'error');
+        showToast(error?.message || 'Could not finish the September setup.', 'error');
     } finally {
         setBusyState(button, false);
     }

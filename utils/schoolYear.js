@@ -64,6 +64,31 @@ export function isCloseDateReached(closeDate, now = new Date()) {
     return today >= closeDay;
 }
 
+/** Active classes that already have at least one lesson day scheduled. */
+export function getScheduledActiveClasses(classes = []) {
+    return (Array.isArray(classes) ? classes : []).filter((classData) => {
+        if (!classData || String(classData.status || '').toLowerCase() === 'archived') return false;
+        return Array.isArray(classData.scheduleDays) && classData.scheduleDays.length > 0;
+    });
+}
+
+/**
+ * Hybrid “has the school year begun?” signal for secretary UI.
+ * True when the calendar start date has arrived, or teachers already
+ * have at least one active class with lesson days set.
+ */
+export function hasSchoolYearBegun({ startsAt = null, activeClasses = [], now = new Date() } = {}) {
+    const start = parseFlexibleDate(startsAt);
+    if (start && !Number.isNaN(start.getTime())) {
+        const today = new Date(now);
+        today.setHours(0, 0, 0, 0);
+        const startDay = new Date(start);
+        startDay.setHours(0, 0, 0, 0);
+        if (today >= startDay) return true;
+    }
+    return getScheduledActiveClasses(activeClasses).length > 0;
+}
+
 /** Canonical DD-MM-YYYY for Firestore (same as class end dates). */
 export function normalizeCloseDateInput(value) {
     const canon = normalizeToDateString(value);

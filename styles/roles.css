@@ -40,6 +40,60 @@
     linear-gradient(135deg, rgba(255,255,255,0.96), rgba(239,246,255,0.92));
 }
 
+.school-year-hero--calm {
+  background:
+    radial-gradient(circle at top right, rgba(125, 211, 252, 0.28), transparent 42%),
+    linear-gradient(145deg, rgba(255,255,255,0.98), rgba(240, 249, 255, 0.94) 55%, rgba(236, 253, 245, 0.9));
+}
+
+.school-year-status-pill {
+  display: inline-flex;
+  align-items: center;
+  margin-top: 0.85rem;
+  padding: 0.4rem 0.85rem;
+  border-radius: 999px;
+  font-size: 0.78rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.school-year-status-pill--calm {
+  color: #0369a1;
+  background: rgba(186, 230, 253, 0.75);
+  border: 1px solid rgba(125, 211, 252, 0.8);
+}
+
+.school-year-status-pill--live {
+  color: #047857;
+  background: rgba(167, 243, 208, 0.7);
+  border: 1px solid rgba(110, 231, 183, 0.85);
+}
+
+.school-year-action-stack--simple {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 0.75rem;
+}
+
+.school-year-repair {
+  border-radius: 1rem;
+  border: 1px dashed #cbd5e1;
+  padding: 0.75rem 1rem;
+  background: rgba(248, 250, 252, 0.8);
+  color: #64748b;
+}
+
+.school-year-repair summary {
+  cursor: pointer;
+  font-weight: 700;
+  color: #475569;
+}
+
+.school-year-command--preparing {
+  max-width: 52rem;
+}
+
 .school-year-status-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));

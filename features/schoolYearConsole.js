@@ -15,6 +15,8 @@ import {
     closeDateToPickerValue,
     formatCloseDateLabel,
     formatSchoolYearLabel,
+    getScheduledActiveClasses,
+    hasSchoolYearBegun,
     isCloseDateReached,
     normalizeCloseDateInput,
     normalizeSchoolYearState,
@@ -36,6 +38,7 @@ function friendlyYearStatus(value) {
     const status = String(value || '').trim().toLowerCase();
     if (['completed', 'complete', 'closed'].includes(status)) return 'Finished';
     if (['running', 'processing', 'in_progress'].includes(status)) return 'In progress';
+    if (['september_setup', 'preparing'].includes(status)) return 'Getting ready';
     return 'Ready';
 }
 
@@ -64,115 +67,10 @@ function getSchoolYearSummary() {
     return { schoolYearState };
 }
 
-function isValidYearDefinition(definition, expectedKey) {
-    if (!definition || definition.id !== expectedKey) return false;
-    const startsAt = String(definition.startsAt || '');
-    const endsAt = String(definition.endsAt || definition.closeAvailableAt || '');
-    return /^\d{4}-\d{2}-\d{2}$/.test(startsAt)
-        && (/^\d{4}-\d{2}-\d{2}$/.test(endsAt) || /^\d{2}-\d{2}-\d{4}$/.test(endsAt));
-}
-
-function renderSeptemberReadiness({ schoolYearState, activeClasses, pendingStudents }) {
+function getActiveYearStartsAt(schoolYearState) {
     const years = state.get('allSchoolYears') || [];
-    const scheduledClasses = activeClasses.filter((item) => Array.isArray(item.scheduleDays) && item.scheduleDays.length > 0);
-    const holidayRanges = state.get('schoolHolidayRanges') || [];
-    const settingsLoaded = state.get('schoolSettingsLoaded') === true;
-    const verifiedActive = lastYearVerification?.activeYearKey === schoolYearState.activeYearKey;
-    const verifiedNext = lastYearVerification?.nextYearKey === schoolYearState.nextYearKey;
-    const activeValid = verifiedActive || isValidYearDefinition(
-        years.find((year) => year.id === schoolYearState.activeYearKey),
-        schoolYearState.activeYearKey
-    );
-    const nextValid = verifiedNext || isValidYearDefinition(
-        years.find((year) => year.id === schoolYearState.nextYearKey),
-        schoolYearState.nextYearKey
-    );
-    const items = [
-        {
-            label: 'Active classes',
-            value: String(activeClasses.length),
-            detail: activeClasses.length ? 'Available for September placement.' : 'Create classes before placement.',
-            ready: activeClasses.length > 0
-        },
-        {
-            label: 'Schedules',
-            value: `${scheduledClasses.length}/${activeClasses.length}`,
-            detail: scheduledClasses.length === activeClasses.length ? 'Every active class has lesson days.' : 'Some classes still need lesson days.',
-            ready: activeClasses.length > 0 && scheduledClasses.length === activeClasses.length
-        },
-        {
-            label: 'Returning students',
-            value: String(pendingStudents.length),
-            detail: pendingStudents.length ? 'Awaiting deliberate teacher or secretary placement.' : 'No manual placements are pending.',
-            ready: pendingStudents.length === 0,
-            informational: pendingStudents.length > 0
-        },
-        {
-            label: 'Holidays / settings',
-            value: settingsLoaded ? `${holidayRanges.length} periods` : 'Loading',
-            detail: settingsLoaded ? 'School settings are available.' : 'Waiting for the settings snapshot.',
-            ready: settingsLoaded
-        },
-        {
-            label: 'Active + next year',
-            value: activeValid && nextValid ? 'Valid' : 'Check needed',
-            detail: `${schoolYearState.activeYearKey || 'missing'} → ${schoolYearState.nextYearKey || 'missing'}`,
-            ready: activeValid && nextValid
-        },
-        {
-            label: 'Year setup',
-            value: activeValid && nextValid ? 'Ready' : 'Check needed',
-            detail: activeValid && nextValid ? 'Both school years are set up correctly.' : 'Use the button above to complete the missing details.',
-            ready: activeValid && nextValid
-        }
-    ];
-
-    return `
-        <section class="secretary-card" aria-labelledby="september-readiness-title">
-            <div class="secretary-card__header">
-                <div>
-                    <p class="secretary-card__eyebrow">Ready for September?</p>
-                    <h3 id="september-readiness-title" class="secretary-card__title">A simple new-year checklist</h3>
-                </div>
-                <button type="button" id="school-year-verify-records-btn" class="secretary-shell__secondary-btn">
-                    <i class="fas fa-shield-check mr-2" aria-hidden="true"></i>Check year setup
-                </button>
-            </div>
-            <p class="text-sm text-slate-600 leading-relaxed mb-4">A quick look at what is ready and what may still need your attention. Students are never moved automatically.</p>
-            <div class="secretary-stat-grid">
-                ${items.map((item) => `
-                    <article class="secretary-card secretary-card--mini">
-                        <p class="secretary-card__eyebrow">${escapeHtml(item.label)}</p>
-                        <h4 class="secretary-card__metric ${item.ready ? 'text-emerald-700' : item.informational ? 'text-amber-700' : 'text-rose-700'}">${escapeHtml(item.value)}</h4>
-                        <p class="text-sm text-slate-500">${escapeHtml(item.detail)}</p>
-                    </article>
-                `).join('')}
-            </div>
-        </section>
-    `;
-}
-
-function renderRolloverJobSummary(job) {
-    if (!job) {
-        return `
-            <div class="secretary-inline-note">
-                Choose “Check before finishing” any time. You will see exactly what is ready and what still needs attention.
-            </div>
-        `;
-    }
-    return `
-        <div class="school-year-job-summary">
-            <div>
-                <strong>Latest school-year check</strong>
-                <span>${escapeHtml(friendlyYearStatus(job.status))}</span>
-            </div>
-            ${job.counts ? `
-                <div class="school-year-job-counts">
-                    ${Object.entries(job.counts).map(([key, value]) => `<span>${escapeHtml(friendlyCountLabel(key))}: ${Number(value || 0)}</span>`).join('')}
-                </div>
-            ` : ''}
-        </div>
-    `;
+    const definition = years.find((year) => year.id === schoolYearState.activeYearKey);
+    return definition?.startsAt || null;
 }
 
 function renderPreviewResult(result) {
@@ -200,12 +98,12 @@ function renderPreviewResult(result) {
             ` : ''}
             ${blockers.length ? `
                 <div class="school-year-alert school-year-alert--danger mt-3">
-                    ${blockers.map((item) => `<p><strong>${escapeHtml(item.label)}</strong><br>${escapeHtml(item.fix || '')}</p>`).join('')}
+                    ${blockers.map((item) => `<p><strong>${escapeHtml(item.label)}</strong><br>${escapeHtml(item.message || '')}</p>`).join('')}
                 </div>
             ` : ''}
             ${warnings.length ? `
                 <div class="school-year-alert school-year-alert--warning mt-3">
-                    ${warnings.map((item) => `<p><strong>${escapeHtml(item.label)}</strong><br>${escapeHtml(item.fix || '')}</p>`).join('')}
+                    ${warnings.map((item) => `<p><strong>${escapeHtml(item.label)}</strong><br>${escapeHtml(item.message || '')}</p>`).join('')}
                 </div>
             ` : ''}
         </div>
@@ -219,11 +117,11 @@ function ensurePreviewModal() {
     modal.id = 'school-year-preview-modal';
     modal.className = 'fixed inset-0 z-[2200] hidden items-center justify-center bg-slate-950/60 p-4 backdrop-blur-sm';
     modal.innerHTML = `
-        <div class="school-year-preview-modal-panel pop-in w-full max-w-3xl max-h-[88vh] overflow-hidden rounded-[2rem] bg-white shadow-2xl border border-violet-100 flex flex-col">
-            <div class="flex items-center justify-between gap-4 px-6 py-4 border-b border-slate-100 bg-gradient-to-r from-violet-50 to-sky-50">
+        <div class="school-year-preview-modal-panel pop-in w-full max-w-3xl max-h-[88vh] overflow-hidden rounded-[2rem] bg-white shadow-2xl border border-sky-100 flex flex-col">
+            <div class="flex items-center justify-between gap-4 px-6 py-4 border-b border-slate-100 bg-gradient-to-r from-sky-50 to-emerald-50">
                 <div>
-                    <p class="text-[10px] font-black uppercase tracking-[0.22em] text-violet-500">School year</p>
-                    <h3 class="font-title text-2xl text-slate-800">School-year check</h3>
+                    <p class="text-[10px] font-black uppercase tracking-[0.22em] text-sky-500">School year</p>
+                    <h3 class="font-title text-2xl text-slate-800">Readiness check</h3>
                 </div>
                 <button type="button" id="school-year-preview-modal-close" class="w-10 h-10 rounded-full bg-white text-slate-500 hover:text-rose-500 hover:bg-rose-50 border border-slate-200 shadow-sm flex items-center justify-center" aria-label="Close preview">
                     <i class="fas fa-times"></i>
@@ -250,50 +148,152 @@ function showPreviewModal(contentHtml) {
     modal.classList.add('flex');
 }
 
-export function renderSchoolYearSection() {
-    const { schoolYearState } = getSchoolYearSummary();
-    const activeYearKey = schoolYearState.activeYearKey;
-    const nextYearKey = schoolYearState.nextYearKey;
-    const closeReady = isCloseDateReached(schoolYearState.closeDate);
-    const classes = state.get('allSchoolClasses') || [];
-    const students = state.get('allStudents') || [];
-    const scores = state.get('allStudentScores') || [];
-    const rolloverJob = state.get('currentRolloverJob');
-    const pendingStudents = students
-        .filter((student) => student.enrollmentStatus === 'pendingPlacement')
-        .sort((a, b) => a.name.localeCompare(b.name));
-    const activeClasses = classes
-        .filter((classData) => classData.status !== 'archived')
-        .sort((a, b) => a.name.localeCompare(b.name));
-    const placedCount = students.filter((student) => student.enrollmentStatus === 'active' && student.classId).length;
-    const inactiveCount = students.filter((student) => student.enrollmentStatus === 'inactive').length;
-    const studentsMissingScores = students.filter((student) => !scores.some((score) => score.id === student.id));
-    const confirmationText = buildRolloverConfirmationText(activeYearKey);
-    const closeDateValue = schoolYearState.closeDate || '';
-    const closeDatePickerValue = closeDateToPickerValue(closeDateValue);
-    const closeDateSavedLabel = formatCloseDateLabel(closeDateValue);
-    const closeDateExample = `10/06/${String(activeYearKey || '').slice(5) || 'YYYY'}`;
-
+function renderCloseDateCard({ closeDatePickerValue, closeDateSavedLabel, closeDateExample }) {
     return `
-        <div class="school-year-command">
-            <section class="school-year-hero secretary-card secretary-card--featured">
+        <section class="secretary-card school-year-close-date-card">
+            <div class="secretary-card__header">
+                <div>
+                    <p class="secretary-card__eyebrow">School calendar</p>
+                    <h3 class="secretary-card__title">Last day of the school year</h3>
+                </div>
+            </div>
+            <p class="text-sm text-slate-600 leading-relaxed">
+                Optional for now. When you are ready later, this date unlocks finishing the year (for example ${escapeHtml(closeDateExample)}).
+            </p>
+            <p class="text-xs text-sky-700 mt-2"><span class="font-semibold">Saved:</span> ${escapeHtml(closeDateSavedLabel)}</p>
+            <div class="school-year-allocation-bar mt-4">
+                <label class="secretary-field flex-1">
+                    <span>Last school day</span>
+                    <input type="date" id="school-year-close-date-input" value="${escapeHtml(closeDatePickerValue)}">
+                </label>
+                <button type="button" id="school-year-save-close-date-btn" class="secretary-shell__primary-btn">
+                    <i class="fas fa-calendar-check mr-2"></i>Save
+                </button>
+            </div>
+        </section>
+    `;
+}
+
+function renderPreparingMode({
+    schoolYearState,
+    activeYearKey,
+    startsAtLabel,
+    closeDatePickerValue,
+    closeDateSavedLabel,
+    closeDateExample
+}) {
+    return `
+        <div class="school-year-command school-year-command--preparing">
+            <section class="school-year-hero secretary-card secretary-card--featured school-year-hero--calm">
                 <div class="school-year-hero__copy">
                     <p class="secretary-card__eyebrow">Your school year</p>
-                    <h2 class="secretary-card__title">Finish ${escapeHtml(formatSchoolYearLabel(activeYearKey))} with confidence.</h2>
-                    <p class="text-sm text-slate-600 mt-2 leading-relaxed">
-                        Choose the last school day, check that everything is ready, then prepare returning students for their September classes.
+                    <h2 class="secretary-card__title">${escapeHtml(formatSchoolYearLabel(activeYearKey))}</h2>
+                    <p class="school-year-status-pill school-year-status-pill--calm" role="status">Not started yet</p>
+                    <p class="text-sm text-slate-600 mt-3 leading-relaxed max-w-xl">
+                        Teachers have not set up scheduled classes for this year yet.
+                        End-of-year tools stay hidden until a class has lesson days — or until ${escapeHtml(startsAtLabel)}.
                     </p>
                 </div>
                 <div class="school-year-status-grid">
                     <div class="school-year-status-card school-year-status-card--sky">
-                        <span>Active Year</span>
-                        <strong>${escapeHtml(activeYearKey)}</strong>
+                        <span>Active year</span>
+                        <strong>${escapeHtml(activeYearKey || '—')}</strong>
+                        <small>${escapeHtml(friendlyYearStatus(schoolYearState.rolloverStatus))}</small>
+                    </div>
+                    <div class="school-year-status-card school-year-status-card--amber">
+                        <span>Starts</span>
+                        <strong>${escapeHtml(startsAtLabel)}</strong>
+                        <small>Or when schedules appear</small>
+                    </div>
+                </div>
+            </section>
+
+            ${renderCloseDateCard({ closeDatePickerValue, closeDateSavedLabel, closeDateExample })}
+        </div>
+    `;
+}
+
+function renderPlacementSection({ pendingStudents, activeClasses }) {
+    if (!pendingStudents.length) return '';
+    return `
+        <section class="secretary-card">
+            <div class="secretary-card__header">
+                <div>
+                    <p class="secretary-card__eyebrow">September placement</p>
+                    <h3 class="secretary-card__title">Place returning students</h3>
+                </div>
+                <div class="secretary-card__badge">${pendingStudents.length} waiting</div>
+            </div>
+            <p class="text-sm text-slate-600 leading-relaxed mb-4">
+                Choose a class, select students, then place them. Only appears when someone is waiting.
+            </p>
+            <div class="school-year-allocation-bar">
+                <label class="secretary-field">
+                    <span>September class</span>
+                    <select id="school-year-allocation-class">
+                        <option value="">Choose the class...</option>
+                        ${activeClasses.map((classData) => `
+                            <option value="${escapeHtml(classData.id)}">${escapeHtml(classData.name)} • ${escapeHtml(classData.questLevel || 'League')} • ${escapeHtml(classData.createdBy?.name || 'Teacher')}</option>
+                        `).join('')}
+                    </select>
+                </label>
+                <button type="button" id="school-year-allocate-btn" class="secretary-shell__primary-btn">
+                    <i class="fas fa-people-arrows mr-2"></i>Place selected
+                </button>
+            </div>
+            <div class="school-year-student-grid mt-5">
+                ${pendingStudents.map((student) => `
+                    <article class="school-year-student-card">
+                        <label class="school-year-student-check">
+                            <input type="checkbox" data-school-year-student-check value="${escapeHtml(student.id)}">
+                            <span>${escapeHtml(student.name)}</span>
+                        </label>
+                        <div class="school-year-student-meta">
+                            <span>Old class: ${escapeHtml(student.previousClassName || 'Not recorded')}</span>
+                            <span>League: ${escapeHtml(student.previousQuestLevel || '—')}</span>
+                            <span>Guild: ${escapeHtml(student.guildId || 'No guild yet')}</span>
+                        </div>
+                        <button type="button" class="secretary-chip-btn secretary-chip-btn--rose" data-school-year-left="${escapeHtml(student.id)}">Mark left school</button>
+                    </article>
+                `).join('')}
+            </div>
+        </section>
+    `;
+}
+
+function renderUnderwayMode({
+    schoolYearState,
+    activeYearKey,
+    scheduledCount,
+    closeReady,
+    closeDatePickerValue,
+    closeDateSavedLabel,
+    closeDateExample,
+    confirmationText,
+    pendingStudents,
+    activeClasses
+}) {
+    return `
+        <div class="school-year-command school-year-command--underway">
+            <section class="school-year-hero secretary-card secretary-card--featured">
+                <div class="school-year-hero__copy">
+                    <p class="secretary-card__eyebrow">Your school year</p>
+                    <h2 class="secretary-card__title">${escapeHtml(formatSchoolYearLabel(activeYearKey))}</h2>
+                    <p class="school-year-status-pill school-year-status-pill--live" role="status">In progress</p>
+                    <p class="text-sm text-slate-600 mt-3 leading-relaxed max-w-xl">
+                        Classes are under way. Set the last school day, check readiness when you need to, then finish the year when that day arrives.
+                    </p>
+                </div>
+                <div class="school-year-status-grid">
+                    <div class="school-year-status-card school-year-status-card--sky">
+                        <span>Active year</span>
+                        <strong>${escapeHtml(activeYearKey || '—')}</strong>
                         <small>${escapeHtml(friendlyYearStatus(schoolYearState.rolloverStatus))}</small>
                     </div>
                     <div class="school-year-status-card school-year-status-card--emerald">
-                        <span>Next Year</span>
-                        <strong>${escapeHtml(nextYearKey)}</strong>
-                        <small>Ready for September</small>
+                        <span>Scheduled classes</span>
+                        <strong>${scheduledCount}</strong>
+                        <small>With lesson days</small>
                     </div>
                     <div class="school-year-status-card ${closeReady ? 'school-year-status-card--emerald' : 'school-year-status-card--amber'}">
                         <span>Finish year</span>
@@ -303,145 +303,104 @@ export function renderSchoolYearSection() {
                 </div>
             </section>
 
-            ${renderSeptemberReadiness({ schoolYearState, activeClasses, pendingStudents })}
+            ${renderCloseDateCard({ closeDatePickerValue, closeDateSavedLabel, closeDateExample })}
 
-            <section class="secretary-card">
+            <section class="secretary-card school-year-end-section">
                 <div class="secretary-card__header">
                     <div>
-                        <p class="secretary-card__eyebrow">School calendar</p>
-                        <h3 class="secretary-card__title">Last day of the school year</h3>
+                        <p class="secretary-card__eyebrow">End of year</p>
+                        <h3 class="secretary-card__title">Finish when you are ready</h3>
                     </div>
+                    <div class="secretary-card__badge">${closeReady ? 'Available' : 'Locked'}</div>
                 </div>
-                <p class="text-sm text-slate-600 leading-relaxed">
-                    Choose the date when the final year close becomes available. Until this date, the close button stays locked. Dates are shown in day/month/year order (for example ${escapeHtml(closeDateExample)}).
+                <p class="text-sm text-slate-600 leading-relaxed mb-4">
+                    This stores the finished year, keeps gold and guilds, resets live progress, and moves returning students into placement for September.
                 </p>
-                <p class="text-xs text-violet-700 mt-2"><span class="font-semibold">Saved last school day:</span> ${escapeHtml(closeDateSavedLabel)}</p>
-                <div class="school-year-allocation-bar mt-4">
-                    <label class="secretary-field flex-1">
-                        <span>Last school day (year-end)</span>
-                        <input type="date" id="school-year-close-date-input" value="${escapeHtml(closeDatePickerValue)}">
-                    </label>
-                    <button type="button" id="school-year-save-close-date-btn" class="secretary-shell__primary-btn">
-                        <i class="fas fa-calendar-check mr-2"></i>Save Last School Day
+                <div class="school-year-action-stack school-year-action-stack--simple">
+                    <button type="button" id="school-year-preview-btn" class="secretary-shell__secondary-btn">
+                        <i class="fas fa-list-check mr-2"></i>Check readiness
+                    </button>
+                    <button type="button" id="school-year-finalize-btn" class="secretary-shell__secondary-btn">
+                        <i class="fas fa-flag-checkered mr-2"></i>Finish September setup
                     </button>
                 </div>
-            </section>
-
-            <section class="secretary-stat-grid">
-                <article class="secretary-card secretary-card--mini">
-                    <p class="secretary-card__eyebrow">Ready for class</p>
-                    <h3 class="secretary-card__metric">${placedCount}</h3>
-                    <p class="text-sm text-slate-500">Students currently active in a class.</p>
-                </article>
-                <article class="secretary-card secretary-card--mini">
-                    <p class="secretary-card__eyebrow">Needs placement</p>
-                    <h3 class="secretary-card__metric">${pendingStudents.length}</h3>
-                    <p class="text-sm text-slate-500">Returning students waiting for September allocation.</p>
-                </article>
-                <article class="secretary-card secretary-card--mini">
-                    <p class="secretary-card__eyebrow">Left school</p>
-                    <h3 class="secretary-card__metric">${inactiveCount}</h3>
-                    <p class="text-sm text-slate-500">Kept for archive, hidden from daily class flow.</p>
-                </article>
-                <article class="secretary-card secretary-card--mini">
-                    <p class="secretary-card__eyebrow">Missing scores</p>
-                    <h3 class="secretary-card__metric">${studentsMissingScores.length}</h3>
-                    <p class="text-sm text-slate-500">The check below can safely add missing year details.</p>
-                </article>
-            </section>
-
-            <section class="grid gap-5 xl:grid-cols-[minmax(0,0.95fr)_minmax(0,1.05fr)]">
-                <article class="secretary-card">
-                    <div class="secretary-card__header">
-                        <div>
-                            <p class="secretary-card__eyebrow">Before you finish</p>
-                            <h3 class="secretary-card__title">Check that everything is ready</h3>
-                        </div>
-                    </div>
-                    <div class="school-year-action-stack">
-                        <button type="button" id="school-year-preview-btn" class="secretary-shell__primary-btn">
-                            <i class="fas fa-list-check mr-2"></i>Check before finishing
+                <div id="school-year-preview-output" class="school-year-output mt-4"></div>
+                <label class="secretary-field mt-4">
+                    <span>Type exactly: ${escapeHtml(confirmationText)}</span>
+                    <input type="text" id="school-year-close-confirmation" placeholder="${escapeHtml(confirmationText)}">
+                </label>
+                <button type="button" id="school-year-close-btn" class="secretary-shell__primary-btn school-year-danger-btn mt-4" ${closeReady ? '' : 'disabled'}>
+                    <i class="fas fa-lock mr-2"></i>${closeReady ? 'Finish school year' : `Available on ${escapeHtml(closeDateSavedLabel)}`}
+                </button>
+                <details class="school-year-repair mt-4">
+                    <summary>Repair data (rarely needed)</summary>
+                    <div class="school-year-action-stack mt-3">
+                        <button type="button" id="school-year-verify-records-btn" class="secretary-shell__secondary-btn">
+                            <i class="fas fa-shield-check mr-2"></i>Check year setup
                         </button>
                         <button type="button" id="school-year-backfill-btn" class="secretary-shell__secondary-btn">
                             <i class="fas fa-wand-magic-sparkles mr-2"></i>Fix missing year details
                         </button>
-                        <button type="button" id="school-year-finalize-btn" class="secretary-shell__secondary-btn">
-                            <i class="fas fa-rotate mr-2"></i>Finish September setup
-                        </button>
                     </div>
-                    <div id="school-year-preview-output" class="school-year-output mt-4">
-                        ${renderRolloverJobSummary(rolloverJob)}
-                    </div>
-                </article>
-
-                <article class="secretary-card">
-                    <div class="secretary-card__header">
-                        <div>
-                            <p class="secretary-card__eyebrow">Finish the school year</p>
-                            <h3 class="secretary-card__title">Final safety check</h3>
-                        </div>
-                        <div class="secretary-card__badge">${closeReady ? 'Available' : 'Locked'}</div>
-                    </div>
-                    <p class="text-sm text-slate-600 leading-relaxed">
-                        This safely stores the finished year, keeps student gold and guilds, starts fresh progress, and moves returning students into “Needs placement” for September.
-                    </p>
-                    <label class="secretary-field mt-4">
-                        <span>Type exactly: ${escapeHtml(confirmationText)}</span>
-                        <input type="text" id="school-year-close-confirmation" placeholder="${escapeHtml(confirmationText)}">
-                    </label>
-                    <button type="button" id="school-year-close-btn" class="secretary-shell__primary-btn school-year-danger-btn mt-4" ${closeReady ? '' : 'disabled'}>
-                        <i class="fas fa-lock mr-2"></i>${closeReady ? 'Finish School Year' : `Available On ${escapeHtml(closeDateSavedLabel)}`}
-                    </button>
-                </article>
+                </details>
             </section>
 
-            <section class="secretary-card">
-                <div class="secretary-card__header">
-                    <div>
-                        <p class="secretary-card__eyebrow">September class lists</p>
-                        <h3 class="secretary-card__title">Place returning students</h3>
-                    </div>
-                    <div class="secretary-card__badge">${pendingStudents.length} waiting</div>
-                </div>
-                <p class="text-sm text-slate-600 leading-relaxed mb-4">
-                    Teachers can place students from their own classes. You can use this section whenever a student needs to move to any class in the school.
-                </p>
-                <div class="school-year-allocation-bar">
-                    <label class="secretary-field">
-                        <span>September class</span>
-                        <select id="school-year-allocation-class">
-                            <option value="">Choose the class...</option>
-                            ${activeClasses.map((classData) => `
-                                <option value="${escapeHtml(classData.id)}">${escapeHtml(classData.name)} • ${escapeHtml(classData.questLevel || 'League')} • ${escapeHtml(classData.createdBy?.name || 'Teacher')}</option>
-                            `).join('')}
-                        </select>
-                    </label>
-                    <button type="button" id="school-year-allocate-btn" class="secretary-shell__primary-btn">
-                        <i class="fas fa-people-arrows mr-2"></i>Place Selected Students
-                    </button>
-                </div>
-                <div class="school-year-student-grid mt-5">
-                    ${pendingStudents.length
-                        ? pendingStudents.map((student) => `
-                                <article class="school-year-student-card">
-                                    <label class="school-year-student-check">
-                                        <input type="checkbox" data-school-year-student-check value="${escapeHtml(student.id)}">
-                                        <span>${escapeHtml(student.name)}</span>
-                                    </label>
-                                    <div class="school-year-student-meta">
-                                        <span>Old class: ${escapeHtml(student.previousClassName || 'Not recorded')}</span>
-                                        <span>League: ${escapeHtml(student.previousQuestLevel || '—')}</span>
-                                        <span>Guild: ${escapeHtml(student.guildId || 'No guild yet')}</span>
-                                    </div>
-                                    <button type="button" class="secretary-chip-btn secretary-chip-btn--rose" data-school-year-left="${escapeHtml(student.id)}">Mark Left School</button>
-                                </article>
-                            `).join('')
-                        : '<div class="secretary-empty">No students are waiting for September placement. After the final close, returning students will appear here.</div>'
-                    }
-                </div>
-            </section>
+            ${renderPlacementSection({ pendingStudents, activeClasses })}
         </div>
     `;
+}
+
+export function renderSchoolYearSection() {
+    const { schoolYearState } = getSchoolYearSummary();
+    const activeYearKey = schoolYearState.activeYearKey;
+    const closeReady = isCloseDateReached(schoolYearState.closeDate);
+    const classes = state.get('allSchoolClasses') || [];
+    const students = state.get('allStudents') || [];
+    const pendingStudents = students
+        .filter((student) => student.enrollmentStatus === 'pendingPlacement')
+        .sort((a, b) => a.name.localeCompare(b.name));
+    const activeClasses = classes
+        .filter((classData) => classData.status !== 'archived')
+        .sort((a, b) => a.name.localeCompare(b.name));
+    const scheduledClasses = getScheduledActiveClasses(activeClasses);
+    const startsAt = getActiveYearStartsAt(schoolYearState);
+    const yearBegun = hasSchoolYearBegun({
+        startsAt,
+        activeClasses,
+        now: new Date()
+    });
+    const confirmationText = buildRolloverConfirmationText(activeYearKey);
+    const closeDateValue = schoolYearState.closeDate || '';
+    const closeDatePickerValue = closeDateToPickerValue(closeDateValue);
+    const closeDateSavedLabel = formatCloseDateLabel(closeDateValue);
+    const closeDateExample = `10/06/${String(activeYearKey || '').slice(5) || 'YYYY'}`;
+    const startsAtLabel = formatCloseDateLabel(startsAt) === 'Not set yet'
+        ? 'the official start date'
+        : formatCloseDateLabel(startsAt);
+
+    if (!yearBegun) {
+        return renderPreparingMode({
+            schoolYearState,
+            activeYearKey,
+            startsAtLabel,
+            closeDatePickerValue,
+            closeDateSavedLabel,
+            closeDateExample
+        });
+    }
+
+    return renderUnderwayMode({
+        schoolYearState,
+        activeYearKey,
+        scheduledCount: scheduledClasses.length,
+        closeReady,
+        closeDatePickerValue,
+        closeDateSavedLabel,
+        closeDateExample,
+        confirmationText,
+        pendingStudents,
+        activeClasses
+    });
 }
 
 function getSelectedSchoolYearStudentIds() {
@@ -487,7 +446,7 @@ async function runSchoolYearPreview(button) {
         setBusyState(button, true, 'Checking...');
         const loadingHtml = `
             <div class="school-year-alert school-year-alert--warning">
-                <i class="fas fa-spinner fa-spin mr-2"></i> Checking the real data for ${escapeHtml(formatSchoolYearLabel(schoolYearState.activeYearKey))}...
+                <i class="fas fa-spinner fa-spin mr-2"></i> Checking ${escapeHtml(formatSchoolYearLabel(schoolYearState.activeYearKey))}...
             </div>
         `;
         if (output) output.innerHTML = loadingHtml;
@@ -552,7 +511,7 @@ async function runSchoolYearClose(button) {
     const { schoolYearState } = getSchoolYearSummary();
     const confirmation = document.getElementById('school-year-close-confirmation')?.value?.trim() || '';
     try {
-        setBusyState(button, true, 'Closing School Year...');
+        setBusyState(button, true, 'Closing school year...');
         await closeSchoolYear({
             closingYearKey: schoolYearState.activeYearKey,
             nextYearKey: schoolYearState.nextYearKey,
@@ -593,7 +552,7 @@ async function runSchoolYearAllocation(button) {
         return;
     }
     try {
-        setBusyState(button, true, 'Placing Students...');
+        setBusyState(button, true, 'Placing students...');
         const result = await allocateReturningStudents({ classId, studentIds });
         showToast(`${result?.placedCount || studentIds.length} students placed for September.`, 'success');
         onSchoolYearConsoleRerender?.();
@@ -608,7 +567,7 @@ async function runSchoolYearAllocation(button) {
 async function runMarkStudentLeft(button, studentId) {
     if (!studentId) return;
     try {
-        setBusyState(button, true, 'Marking Left...');
+        setBusyState(button, true, 'Marking left...');
         await markStudentLeftSchool({ studentId });
         showToast('Student marked as left school. Their archive stays safe.', 'success');
         onSchoolYearConsoleRerender?.();

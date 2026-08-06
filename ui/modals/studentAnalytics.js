@@ -7,6 +7,7 @@ import { hideModal, showAnimatedModal } from './base.js';
 import { requireEliteAI } from '../../utils/upgradePrompt.js';
 import { canUseFeature } from '../../utils/subscription.js';
 import { fetchAllTrialsForClass, fetchAllWrittenScoresForStudent } from '../../db/queries.js';
+import { loadChart, loadPdfTools } from '../../utils/lazyLibraries.js';
 import {
     buildAnalyticsCsv,
     buildHeatmapData,
@@ -1050,14 +1051,14 @@ async function runAssistantAction(promptType, customText = '') {
 async function exportAnalyticsPdf() {
     const button = document.getElementById('student-analytics-export-pdf-btn');
     const shell = document.querySelector('#student-analytics-modal .student-analytics-shell');
-    if (!button || !shell || !window.jspdf || !window.html2canvas) return;
+    if (!button || !shell) return;
 
     button.disabled = true;
     button.innerHTML = '<i class="fas fa-spinner fa-spin"></i><span>PDF</span>';
     try {
-        const canvas = await window.html2canvas(shell, { scale: 2, useCORS: true, backgroundColor: '#ffffff' });
+        const { html2canvas, jsPDF } = await loadPdfTools();
+        const canvas = await html2canvas(shell, { scale: 2, useCORS: true, backgroundColor: '#ffffff' });
         const imgData = canvas.toDataURL('image/png');
-        const { jsPDF } = window.jspdf;
         const pdf = new jsPDF({ orientation: 'landscape', unit: 'px', format: [canvas.width, canvas.height] });
         pdf.addImage(imgData, 'PNG', 0, 0, canvas.width, canvas.height);
         const studentName = (getRefs().name?.textContent || 'student').replace(/\s+/g, '_');
@@ -1223,6 +1224,7 @@ export async function openStudentAnalyticsModal(studentId, triggerElement = null
     setTimeout(() => refs.closeBtn?.focus(), 60);
 
     try {
+        await loadChart();
         const data = await loadAnalyticsData(studentId);
         if (loadToken !== activeLoadToken || activeStudentId !== studentId) return;
         if (!data) {

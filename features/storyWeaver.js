@@ -1,9 +1,7 @@
 // /features/storyWeaver.js
 
 // --- IMPORTS ---
-import { db } from '../firebase.js';
-import { doc, getDocs, collection, query, orderBy, setDoc, updateDoc, writeBatch, serverTimestamp, increment, limit } from 'https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js';
-import { onSnapshot } from 'https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js';
+import { db, doc, getDocs, collection, query, orderBy, setDoc, updateDoc, writeBatch, serverTimestamp, increment, limit, onSnapshot } from '../firebase.js';
 
 import * as state from '../state.js';
 import * as modals from '../ui/modals.js';
@@ -15,6 +13,7 @@ import { simpleHashCode, compressImageBase64, getAgeGroupForLeague } from '../ut
 import * as constants from '../constants.js';
 import { awardStoryWeaverBonusStarToClass, handleDeleteCompletedStory } from '../db/actions.js';
 import { isSpeaking, speakText, stopSpeech, isTtsSupported } from './tts.js';
+import { loadPdfTools } from '../utils/lazyLibraries.js';
 
 function storyWeaverClassId() {
     return state.get('globalSelectedClassId') || '';
@@ -26,7 +25,7 @@ export function handleStoryWeaversClassSelect() {
     const classId = storyWeaverClassId();
     const mainContent = document.getElementById('story-weavers-main-content');
     const placeholder = document.getElementById('story-weavers-placeholder');
-    
+
     const unsubscribeStoryData = state.get('unsubscribeStoryData');
     const currentUnsub = unsubscribeStoryData.current;
     if (currentUnsub) {
@@ -39,7 +38,7 @@ export function handleStoryWeaversClassSelect() {
     if (classId) {
         mainContent.classList.remove('hidden');
         placeholder.classList.add('hidden');
-        
+
         const storyDocRef = doc(db, `artifacts/great-class-quest/public/data/story_data`, classId);
         unsubscribeStoryData.current = onSnapshot(storyDocRef, (doc) => {
             const currentStoryData = state.get('currentStoryData');
@@ -145,10 +144,10 @@ export async function handleSuggestWord() {
 export function openStoryInputModal() {
     const classId = storyWeaverClassId();
     if (!classId) return;
-    
+
     const story = state.get('currentStoryData')[classId];
     const isNewStory = !story || !story.currentSentence;
-    
+
     document.getElementById('story-input-textarea').value = '';
     modals.showAnimatedModal('story-input-modal');
 }
@@ -192,7 +191,7 @@ export async function handleLockInSentence() {
         const imagePromptSystemPrompt = "You are an expert AI art prompt engineer. Your task is to convert a story's context into a short, effective, simplified English prompt for an image generator, under 75 tokens. The image type must be a 'whimsical children's storybook illustration'. The style should be 'simple shapes, vibrant and cheerful colors, friendly characters'. Use progressive detailing and relative descriptions. The prompt must be a single, structured paragraph. Conclude with '(Token count: X)'.";
         const imagePromptUserPrompt = `Refactor the following into a high-quality, short image prompt. Previous context: '${recentHistory}'. The new, most important sentence is: "${newSentence}". The image should focus on the new sentence while staying consistent with the previous context.`;
         const imagePrompt = await callGeminiApi(imagePromptSystemPrompt, imagePromptUserPrompt);
-        
+
         const rawImageBase64 = await callCloudflareAiImageApi(imagePrompt);
         const compressedImageBase64 = await compressImageBase64(rawImageBase64);
 
@@ -204,10 +203,10 @@ export async function handleLockInSentence() {
 
         const storyDocRef = doc(db, `artifacts/great-class-quest/public/data/story_data`, classId);
         const historyCollectionRef = collection(db, `artifacts/great-class-quest/public/data/story_data/${classId}/story_history`);
-        
+
         const batch = writeBatch(db);
-        const storyDataToSet = { 
-            currentSentence: newSentence, 
+        const storyDataToSet = {
+            currentSentence: newSentence,
             currentImageUrl: imageUrl, // Saved the URL instead of Base64
             currentWord: wordOfTheDay,
             storyAdditionsCount: increment(1),
@@ -231,7 +230,7 @@ export async function handleLockInSentence() {
         });
 
         await batch.commit();
-        
+
         const newAdditionsCount = (currentStory.storyAdditionsCount || 0) + 1;
         if (newAdditionsCount > 0 && newAdditionsCount % 2 === 0) {
             modals.showModal('Story Milestone!', 'Award a +0.5 Creativity Bonus Star to every student in the class?', () => awardStoryWeaverBonusStarToClass(classId), 'Yes, Award Bonus!', 'No, Thanks');
@@ -503,7 +502,7 @@ export async function openStorybookViewer(storyId) {
     document.getElementById('storybook-viewer-subtitle').innerText = `A Story by ${story.classLogo} ${story.className}`;
     const contentEl = document.getElementById('storybook-viewer-content');
     contentEl.innerHTML = `<p class="text-center py-8"><i class="fas fa-spinner fa-spin mr-2"></i>Loading chapters...</p>`;
-    
+
     const playBtn = document.getElementById('storybook-viewer-play-btn');
     playBtn.onclick = null;
     playBtn.disabled = true;
@@ -511,9 +510,9 @@ export async function openStorybookViewer(storyId) {
 
     document.getElementById('storybook-viewer-print-btn').onclick = null;
     document.getElementById('storybook-viewer-print-btn').disabled = true;
-    
+
     document.getElementById('storybook-viewer-delete-btn').onclick = () => handleDeleteCompletedStory(story.id);
-    
+
     modals.showAnimatedModal('storybook-viewer-modal');
 
     try {
@@ -635,11 +634,11 @@ async function handlePrintStorybook(storyId) {
         document.getElementById('signature-school-name').style.color = theme.textColor;
         const studentsInClass = state.get('allStudents').filter(s => s.classId === classData.id);
         document.getElementById('signature-student-list').innerHTML = studentsInClass.map(s => `<span>${s.name}</span>`).join('');
-        
+
         const printContainer = document.getElementById('storybook-print-container');
         printContainer.innerHTML = titlePage + storyPages.join('') + signatureTemplate.outerHTML;
 
-        const { jsPDF } = window.jspdf;
+        const { html2canvas, jsPDF } = await loadPdfTools();
         const pdf = new jsPDF({ orientation: 'landscape', unit: 'px', format: [800, 600] });
 
         const pages = printContainer.children;

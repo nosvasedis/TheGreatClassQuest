@@ -121,7 +121,7 @@ export const attendanceModalsHTML = `
                                             </div>
                                             <div class="flex flex-col items-center gap-0.5 px-3">
                                                 <button type="button" id="dp-year-up" class="w-8 h-7 rounded-lg flex items-center justify-center text-amber-500 hover:bg-amber-100 hover:text-amber-700 transition-colors active:scale-90"><i class="fas fa-chevron-up text-[10px]"></i></button>
-                                                <div id="dp-year" class="font-title text-2xl text-amber-900 w-16 text-center leading-none my-1.5 tabular-nums">2026</div>
+                                                <div id="dp-year" class="font-title text-2xl text-amber-900 w-16 text-center leading-none my-1.5 tabular-nums">—</div>
                                                 <button type="button" id="dp-year-down" class="w-8 h-7 rounded-lg flex items-center justify-center text-amber-500 hover:bg-amber-100 hover:text-amber-700 transition-colors active:scale-90"><i class="fas fa-chevron-down text-[10px]"></i></button>
                                                 <span class="text-[9px] font-black uppercase tracking-widest text-amber-600/55 mt-1.5">Year</span>
                                             </div>
@@ -328,7 +328,7 @@ export const attendanceModalsHTML = `
                         <p id="cert-date" style="font-weight:700; font-size:11.5px; border-top-width:2px; border-top-style:solid; padding-top:3px; margin:0;"></p>
                         <p style="font-size:8.5px; margin-top:1px; opacity:0.55;">Date of Issue</p>
                     </div>
-                    <img id="cert-app-logo" src="assets/great-class-quest-logo.svg" loading="eager" decoding="sync" style="width:42px; height:42px; object-fit:contain; flex-shrink:0;">
+                    <img id="cert-app-logo" src="assets/great-class-quest-logo.svg" alt="Great Class Quest logo" width="42" height="42" loading="eager" decoding="sync" style="width:42px; height:42px; object-fit:contain; flex-shrink:0;">
                 </div>
             </div>
 

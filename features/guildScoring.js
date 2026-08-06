@@ -75,6 +75,11 @@ function _getStudentScore(studentId) {
 }
 
 function _buildGuildScorePatch({ guildId, guildDef, starDelta, totalGloryDelta, guildData = {}, studentId, now = Date.now(), consumedGloryModifiers = null }) {
+    const currentMonday = getISOWeekMonday(new Date(now));
+    const weekTurned = !guildData.lastWeeklyReset || guildData.lastWeeklyReset < currentMonday;
+    const previousIds = weekTurned
+        ? []
+        : (Array.isArray(guildData.weeklyActiveMemberIds) ? guildData.weeklyActiveMemberIds : []);
     const patch = {
         guildId,
         guildName: guildDef?.name || guildData.guildName || guildId,
@@ -82,16 +87,25 @@ function _buildGuildScorePatch({ guildId, guildDef, starDelta, totalGloryDelta, 
         totalStars: increment(starDelta || 0),
         totalGlory: increment(totalGloryDelta || 0),
         monthlyGlory: increment(totalGloryDelta || 0),
-        weeklyGlory: increment(totalGloryDelta || 0),
+        weeklyGlory: weekTurned ? (totalGloryDelta || 0) : increment(totalGloryDelta || 0),
         lastUpdated: serverTimestamp(),
     };
-    if (!guildData.lastWeeklyReset) patch.lastWeeklyReset = getISOWeekMonday(new Date(now));
+    if (weekTurned) {
+        patch.previousWeekGlory = Number(guildData.weeklyGlory) || 0;
+        patch.lastWeeklyReset = currentMonday;
+        patch.weeklyActiveMemberIds = [];
+        patch.weeklyActiveMembers = 0;
+    }
+    if (guildData.totalGlory === undefined) patch.totalGlory = Number(guildData.totalStars || 0) * GLORY_PER_STAR + (totalGloryDelta || 0);
+    if (guildData.monthlyGlory === undefined) patch.monthlyGlory = totalGloryDelta || 0;
+    if (!Array.isArray(guildData.gloryModifiers)) patch.gloryModifiers = [];
+    if (guildData.chaliceActive === undefined) patch.chaliceActive = false;
+    if (guildData.chaliceExpiresAt === undefined) patch.chaliceExpiresAt = 0;
     if (Array.isArray(consumedGloryModifiers)) patch.gloryModifiers = consumedGloryModifiers;
     if (studentId) {
-        const ids = Array.isArray(guildData.weeklyActiveMemberIds) ? guildData.weeklyActiveMemberIds : [];
-        if (!ids.includes(studentId)) {
-            patch.weeklyActiveMemberIds = [...ids, studentId];
-            patch.weeklyActiveMembers = ids.length + 1;
+        if (!previousIds.includes(studentId)) {
+            patch.weeklyActiveMemberIds = [...previousIds, studentId];
+            patch.weeklyActiveMembers = previousIds.length + 1;
         }
     }
     return patch;

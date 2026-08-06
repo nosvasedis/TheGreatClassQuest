@@ -17,37 +17,78 @@ dotenv.config({ path: join(dirname(fileURLToPath(import.meta.url)), '.env') });
 
 import express from 'express';
 import cors from 'cors';
+import helmet from 'helmet';
+import { rateLimit } from 'express-rate-limit';
 import Stripe from 'stripe';
 import admin from 'firebase-admin';
 import { readFileSync, writeFileSync, existsSync } from 'fs';
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
 const firebaseApps = {};
-function getFirestoreForSchool(school) {
+function getFirebaseAppForSchool(school) {
   const projectId = school.firebaseProjectId;
   const key = school.firebaseServiceAccountKey;
   const keyPath = school.firebaseServiceAccountPath;
   if (!projectId || (!key && !keyPath)) return null;
-  if (firebaseApps[projectId]) return firebaseApps[projectId].firestore();
+  if (firebaseApps[projectId]) return firebaseApps[projectId];
   const keyPathResolved = keyPath && keyPath.startsWith('.') ? join(__dirname, keyPath) : keyPath;
   const credential = key
     ? admin.credential.cert(typeof key === 'string' ? JSON.parse(key) : key)
     : admin.credential.cert(JSON.parse(readFileSync(keyPathResolved, 'utf8')));
   const app = admin.initializeApp({ credential }, projectId);
   firebaseApps[projectId] = app;
-  return app.firestore();
+  return app;
+}
+
+function getFirestoreForSchool(school) {
+  return getFirebaseAppForSchool(school)?.firestore() || null;
 }
 
 const app = express();
-app.use(cors({ origin: true })); // Allow app origin; set CORS_ORIGIN in production to restrict
+app.disable('x-powered-by');
+app.use(helmet({ crossOriginResourcePolicy: false }));
+app.use(cors({
+  origin(origin, callback) {
+    if (!origin || getAllowedOrigins().has(origin)) return callback(null, true);
+    return callback(new Error('Origin is not allowed by GCQ Billing.'));
+  }
+}));
+app.use(rateLimit({
+  windowMs: 60 * 1000,
+  limit: 60,
+  standardHeaders: 'draft-8',
+  legacyHeaders: false,
+  skip: (req) => req.path === '/health' || req.path === '/webhook'
+}));
 const PORT = process.env.PORT || 3333;
 
 const stripeSecret = process.env.STRIPE_SECRET_KEY;
 const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
 const schoolsPath = process.env.BILLING_SCHOOLS_PATH || join(__dirname, 'schools.json');
+const processedEventsPath = process.env.BILLING_EVENTS_PATH || join(__dirname, 'processed-events.json');
+const activeWebhookEvents = new Set();
+const processedWebhookEvents = new Set((() => {
+  try {
+    if (!existsSync(processedEventsPath)) return [];
+    const parsed = JSON.parse(readFileSync(processedEventsPath, 'utf8'));
+    return Array.isArray(parsed) ? parsed.slice(-2000) : [];
+  } catch (_) {
+    return [];
+  }
+})());
+
+function rememberProcessedWebhookEvent(eventId) {
+  processedWebhookEvents.add(eventId);
+  const recent = [...processedWebhookEvents].slice(-2000);
+  writeFileSync(processedEventsPath, JSON.stringify(recent), 'utf8');
+}
 
 if (!stripeSecret) {
   console.error('Missing STRIPE_SECRET_KEY');
+  process.exit(1);
+}
+if (!webhookSecret && process.env.NODE_ENV !== 'test') {
+  console.error('Missing STRIPE_WEBHOOK_SECRET');
   process.exit(1);
 }
 
@@ -55,7 +96,7 @@ const stripe = new Stripe(stripeSecret);
 
 // Webhook needs raw body for Stripe signature verification — register before express.json()
 app.post('/webhook', express.raw({ type: 'application/json' }), webhookHandler);
-app.use(express.json());
+app.use(express.json({ limit: '100kb' }));
 
 function loadSchools() {
   const fromEnv = process.env.BILLING_SCHOOLS_JSON;
@@ -72,6 +113,21 @@ function loadSchools() {
     return { schools: [], priceIds: {} };
   }
   return JSON.parse(readFileSync(schoolsPath, 'utf8'));
+}
+
+function getAllowedOrigins() {
+  const configured = String(process.env.BILLING_ALLOWED_ORIGINS || process.env.CORS_ORIGIN || '')
+    .split(',')
+    .map((value) => value.trim())
+    .filter(Boolean);
+  const fromSchools = (loadSchools().schools || []).flatMap((school) => school.allowedOrigins || []);
+  return new Set([
+    'https://nosvasedis.github.io',
+    'http://127.0.0.1:3000',
+    'http://localhost:3000',
+    ...configured,
+    ...fromSchools
+  ]);
 }
 
 function loadTierPreset(tier) {
@@ -93,6 +149,65 @@ function getSchoolByCustomerId(customerId) {
 function getSchoolById(schoolId) {
   const { schools } = loadSchools();
   return schools.find((s) => s.schoolId === schoolId) || null;
+}
+
+function getBearerToken(req) {
+  const value = String(req.headers.authorization || '');
+  return value.startsWith('Bearer ') ? value.slice(7).trim() : '';
+}
+
+async function requireBillingIdentity(req, res, next) {
+  const requestedSchoolId = String(req.body?.schoolId || req.query?.schoolId || '').trim();
+  const adminToken = String(process.env.BILLING_ADMIN_TOKEN || '');
+  if (adminToken && req.headers['x-billing-admin-token'] === adminToken) {
+    const school = getSchoolById(requestedSchoolId);
+    if (!school) return res.status(404).json({ error: 'School not found' });
+    req.billingIdentity = { school, uid: 'billing-admin', profile: { role: 'secretary', status: 'active', schoolAdmin: true } };
+    return next();
+  }
+
+  const token = getBearerToken(req);
+  if (!token) return res.status(401).json({ error: 'A Firebase ID token is required.' });
+
+  for (const school of loadSchools().schools || []) {
+    try {
+      const firebaseApp = getFirebaseAppForSchool(school);
+      if (!firebaseApp) continue;
+      const decoded = await firebaseApp.auth().verifyIdToken(token);
+      const profileSnap = await firebaseApp.firestore().collection('user_profiles').doc(decoded.uid).get();
+      const profile = profileSnap.exists ? (profileSnap.data() || {}) : null;
+      if (!profile || profile.status !== 'active' || !['teacher', 'secretary', 'parent'].includes(profile.role)) {
+        return res.status(403).json({ error: 'This account does not have an active GCQ profile.' });
+      }
+      if (requestedSchoolId && requestedSchoolId !== school.schoolId && requestedSchoolId !== school.firebaseProjectId) {
+        return res.status(403).json({ error: 'The requested school does not match the verified account.' });
+      }
+      req.billingIdentity = { school, uid: decoded.uid, profile };
+      return next();
+    } catch (error) {
+      if (String(error?.code || '').startsWith('auth/')) continue;
+      console.warn('Billing identity verification failed for a configured school:', error?.message || error);
+    }
+  }
+  return res.status(401).json({ error: 'The Firebase ID token could not be verified for a configured school.' });
+}
+
+function requireSchoolAdmin(req, res, next) {
+  if (req.billingIdentity?.profile?.schoolAdmin === true || req.billingIdentity?.profile?.role === 'secretary') {
+    return next();
+  }
+  return res.status(403).json({ error: 'Only a school administrator or secretary can manage billing.' });
+}
+
+function validatedReturnUrl(value, fallback) {
+  if (!value) return fallback;
+  try {
+    const url = new URL(value);
+    if (!getAllowedOrigins().has(url.origin)) throw new Error('origin');
+    return url.toString();
+  } catch (_) {
+    throw new Error('Billing return URL is not allowed.');
+  }
 }
 
 /** Cached portal configuration ID so customers can switch plans (Starter / Pro / Elite) in Stripe. */
@@ -138,7 +253,6 @@ async function getOrCreatePortalConfiguration() {
       },
     });
     cachedPortalConfigId = config.id;
-    console.log('Portal configuration created for plan switching:', config.id);
     return cachedPortalConfigId;
   } catch (e) {
     console.error('Failed to create portal configuration:', e.message);
@@ -181,7 +295,6 @@ function saveSchoolStripeCustomerId(schoolId, customerId) {
     if (school) {
       school.stripeCustomerId = customerId;
       writeFileSync(schoolsPath, JSON.stringify(data, null, 2), 'utf8');
-      console.log('Saved stripeCustomerId for school', schoolId);
     }
   } catch (e) {
     console.error('Failed to save stripeCustomerId to schools.json:', e.message);
@@ -214,15 +327,12 @@ function summarizeInvoice(invoice) {
 }
 
 // Create Checkout Session for a school upgrading to a tier
-app.post('/create-checkout-session', express.json(), async (req, res) => {
-  const { schoolId, tier, successUrl, cancelUrl } = req.body || {};
-  if (!schoolId || !tier) {
-    return res.status(400).json({ error: 'schoolId and tier required' });
-  }
-
-  const school = getSchoolById(schoolId);
-  if (!school) {
-    return res.status(404).json({ error: 'School not found' });
+app.post('/create-checkout-session', requireBillingIdentity, async (req, res) => {
+  const { tier, successUrl, cancelUrl, requestId } = req.body || {};
+  const school = req.billingIdentity.school;
+  const schoolId = school.schoolId;
+  if (!tier || !['starter', 'pro', 'elite'].includes(String(tier).toLowerCase())) {
+    return res.status(400).json({ error: 'A valid tier is required' });
   }
 
   const { priceIds } = loadSchools();
@@ -232,6 +342,9 @@ app.post('/create-checkout-session', express.json(), async (req, res) => {
   }
 
   try {
+    const fallbackBase = `${req.protocol}://${req.get('host')}/`;
+    const safeSuccessUrl = validatedReturnUrl(successUrl, `${fallbackBase}?upgraded=1`);
+    const safeCancelUrl = validatedReturnUrl(cancelUrl, fallbackBase);
     let customerId = school.stripeCustomerId;
     if (!customerId) {
       const customer = await stripe.customers.create({
@@ -245,11 +358,11 @@ app.post('/create-checkout-session', express.json(), async (req, res) => {
       customer: customerId,
       mode: 'subscription',
       line_items: [{ price: priceId, quantity: 1 }],
-      success_url: successUrl || `${req.protocol}://${req.get('host')}/?upgraded=1`,
-      cancel_url: cancelUrl || `${req.protocol}://${req.get('host')}/`,
+      success_url: safeSuccessUrl,
+      cancel_url: safeCancelUrl,
       metadata: { gcqSchoolId: schoolId, tier: tier.toLowerCase() },
       subscription_data: { metadata: { gcqSchoolId: schoolId, tier: tier.toLowerCase() } },
-    });
+    }, requestId ? { idempotencyKey: `gcq-checkout-${schoolId}-${req.billingIdentity.uid}-${String(requestId).slice(0, 80)}` } : undefined);
 
     return res.json({ url: session.url, sessionId: session.id });
   } catch (e) {
@@ -259,11 +372,9 @@ app.post('/create-checkout-session', express.json(), async (req, res) => {
 });
 
 // Create Stripe Customer Portal session (manage subscription, payment method, invoices)
-app.post('/create-portal-session', express.json(), async (req, res) => {
-  const { schoolId, returnUrl } = req.body || {};
-  if (!schoolId) {
-    return res.status(400).json({ error: 'schoolId required' });
-  }
+app.post('/create-portal-session', requireBillingIdentity, async (req, res) => {
+  const { returnUrl } = req.body || {};
+  const schoolId = req.billingIdentity.school.schoolId;
 
   const customerId = await getCustomerIdForSchool(schoolId);
   if (!customerId) {
@@ -271,10 +382,11 @@ app.post('/create-portal-session', express.json(), async (req, res) => {
   }
 
   try {
+    const safeReturnUrl = validatedReturnUrl(returnUrl, `${req.protocol}://${req.get('host')}/`);
     const configuration = await getOrCreatePortalConfiguration();
     const session = await stripe.billingPortal.sessions.create({
       customer: customerId,
-      return_url: returnUrl || req.headers.referer || `${req.protocol}://${req.get('host')}/`,
+      return_url: safeReturnUrl,
       ...(configuration && { configuration }),
     });
     return res.json({ url: session.url });
@@ -285,11 +397,8 @@ app.post('/create-portal-session', express.json(), async (req, res) => {
 });
 
 // Return subscription details for Options UI (before sending user to Stripe)
-app.get('/subscription-info', async (req, res) => {
-  const schoolId = req.query.schoolId;
-  if (!schoolId) {
-    return res.status(400).json({ error: 'schoolId required' });
-  }
+app.get('/subscription-info', requireBillingIdentity, async (req, res) => {
+  const schoolId = req.billingIdentity.school.schoolId;
 
   try {
     const customerId = await getCustomerIdForSchool(schoolId);
@@ -417,19 +526,24 @@ app.get('/subscription-info', async (req, res) => {
 
 async function webhookHandler(req, res) {
   if (!webhookSecret) {
-    console.warn('STRIPE_WEBHOOK_SECRET not set; webhook will not verify');
+    return res.status(503).send('Webhook signing is not configured.');
   }
 
   let event;
   try {
     const sig = req.headers['stripe-signature'];
-    event = webhookSecret && sig
-      ? stripe.webhooks.constructEvent(req.body, sig, webhookSecret)
-      : JSON.parse(req.body.toString());
+    if (!sig) throw new Error('Missing Stripe signature.');
+    event = stripe.webhooks.constructEvent(req.body, sig, webhookSecret);
   } catch (e) {
     console.error('Webhook signature verification failed:', e.message);
     return res.status(400).send(`Webhook Error: ${e.message}`);
   }
+
+  if (processedWebhookEvents.has(event.id)) return res.status(200).send();
+  if (activeWebhookEvents.has(event.id)) return res.status(409).send('Webhook event is already being processed; retry later.');
+  activeWebhookEvents.add(event.id);
+
+  try {
 
   let schoolId = null;
   let tier = null;
@@ -469,31 +583,53 @@ async function webhookHandler(req, res) {
       // Optional: use invoice metadata if you store school/tier there
       break;
     default:
+      rememberProcessedWebhookEvent(event.id);
+      activeWebhookEvents.delete(event.id);
       return res.status(200).send();
   }
 
   if (!schoolId || !tier) {
     console.warn('Webhook event missing schoolId/tier:', event.type, event.data?.object?.id);
+    rememberProcessedWebhookEvent(event.id);
+    activeWebhookEvents.delete(event.id);
     return res.status(200).send();
   }
 
   const school = getSchoolById(schoolId) || getSchoolByCustomerId(event.data?.object?.customer);
   if (!school) {
     console.warn('School not found:', schoolId);
+    activeWebhookEvents.delete(event.id);
     return res.status(200).send();
   }
 
   const preset = loadTierPreset(tier);
   if (!preset) {
     console.warn('No preset for tier:', tier);
+    activeWebhookEvents.delete(event.id);
     return res.status(200).send();
   }
 
   const db = getFirestoreForSchool(school);
+  let delivered = false;
+  let dedupePersisted = false;
   if (db) {
     try {
-      await db.collection('appConfig').doc('subscription').set(preset);
-      console.log('Updated Firestore appConfig/subscription to', tier, 'for school', schoolId);
+      const eventRef = db.collection('billing_webhook_events').doc(event.id);
+      const subscriptionRef = db.collection('appConfig').doc('subscription');
+      const alreadyProcessed = await db.runTransaction(async (transaction) => {
+        const eventSnap = await transaction.get(eventRef);
+        if (eventSnap.exists) return true;
+        transaction.set(subscriptionRef, preset);
+        transaction.create(eventRef, {
+          stripeEventId: event.id,
+          stripeEventType: event.type,
+          tier,
+          processedAt: admin.firestore.FieldValue.serverTimestamp(),
+        });
+        return false;
+      });
+      delivered = true;
+      dedupePersisted = true;
     } catch (e) {
       console.error('Firestore write failed for school', schoolId, e);
     }
@@ -507,7 +643,8 @@ async function webhookHandler(req, res) {
         },
         body: JSON.stringify({ tier, subscription: preset }),
       });
-      if (!r.ok) console.error('School webhook failed:', school.webhookUrl, r.status, await r.text());
+      if (!r.ok) console.error('School webhook failed:', r.status, await r.text());
+      else delivered = true;
     } catch (e) {
       console.error('School webhook request failed:', e);
     }
@@ -515,7 +652,25 @@ async function webhookHandler(req, res) {
     console.warn('School has no firebaseProjectId+key nor webhookUrl:', schoolId);
   }
 
-  res.status(200).send();
+  if (!delivered) {
+    activeWebhookEvents.delete(event.id);
+    return res.status(500).send('Subscription delivery failed; Stripe should retry.');
+  }
+  if (!dedupePersisted) {
+    try {
+      rememberProcessedWebhookEvent(event.id);
+    } catch (error) {
+      console.error('Could not persist Stripe event deduplication state:', error.message);
+      return res.status(500).send('Could not persist webhook event state.');
+    }
+  }
+  return res.status(200).send();
+  } catch (error) {
+    console.error('Stripe webhook processing failed:', error?.message || error);
+    return res.status(500).send('Webhook processing failed; Stripe should retry.');
+  } finally {
+    activeWebhookEvents.delete(event.id);
+  }
 }
 
 // Health

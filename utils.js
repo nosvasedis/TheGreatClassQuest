@@ -156,7 +156,6 @@ export async function fetchSolarCycle() {
         if (data.status === 'OK') {
             solarData.sunrise = new Date(data.results.sunrise).getTime();
             solarData.sunset = new Date(data.results.sunset).getTime();
-            console.log(`Solar cycle synced for ${activeWeatherLocation.name}: sunrise ${new Date(solarData.sunrise).toLocaleTimeString()}, sunset ${new Date(solarData.sunset).toLocaleTimeString()}`);
         }
     } catch (e) { console.warn("Using default solar times."); }
 }
@@ -691,6 +690,15 @@ export function debounce(func, wait) {
 export async function uploadImageToStorage(base64String, path) {
     const { storage, ref, uploadString, getDownloadURL } = await import('./firebase.js');
     try {
+        const match = String(base64String || '').match(/^data:(image\/[a-z0-9.+-]+);base64,([a-z0-9+/=\s]+)$/i);
+        if (!match) throw new Error('Only base64 image uploads are allowed.');
+        const byteLength = Math.floor((match[2].replace(/\s/g, '').length * 3) / 4);
+        if (byteLength > 1024 * 1024) {
+            throw new Error('The generated image is larger than the 1 MiB upload limit. Please regenerate it.');
+        }
+        if (byteLength > 500 * 1024) {
+            console.warn(`Generated image is above the 500 KiB target (${Math.ceil(byteLength / 1024)} KiB).`);
+        }
         const storageRef = ref(storage, path);
         await uploadString(storageRef, base64String, 'data_url');
         const downloadURL = await getDownloadURL(storageRef);

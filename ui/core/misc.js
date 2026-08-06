@@ -1,8 +1,7 @@
 // /ui/core/misc.js
 
 import * as state from '../../state.js';
-import { db } from '../../firebase.js';
-import { doc, updateDoc, setDoc } from 'https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js';
+import { db, doc, updateDoc, setDoc } from '../../firebase.js';
 import * as utils from '../../utils.js';
 import { showToast } from '../effects.js';
 import * as storyWeaver from '../../features/storyWeaver.js';
@@ -212,8 +211,10 @@ export function renderClassEndDatesList() {
  * Calculate suggested end date for a class based on schedule
  */
 function calculateSuggestedEndDate(scheduleDays) {
-    const targetMonth = 5; // June (0-indexed)
-    const targetYear = 2026;
+    const configuredEnd = state.getActiveSchoolYearEndDate();
+    if (!configuredEnd) return '';
+    const targetMonth = configuredEnd.getMonth();
+    const targetYear = configuredEnd.getFullYear();
     const lastDay = new Date(targetYear, targetMonth + 1, 0); // Last day of June
     const scheduleDaysArray = scheduleDays.map(Number).sort();
 

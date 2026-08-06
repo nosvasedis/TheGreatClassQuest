@@ -2,7 +2,6 @@
 import * as state from '../../state.js';
 import * as utils from '../../utils.js';
 import { getNormalizedPercentForScore } from '../../features/assessmentConfig.js';
-import * as constants from '../../constants.js';
 import { showAnimatedModal } from './base.js';
 import { showToast } from '../effects.js';
 import { playSound } from '../../audio.js';
@@ -15,6 +14,11 @@ import {
 import { db, doc, writeBatch } from '../../firebase.js';
 
 let rankingsViewDate = new Date();
+
+function getArchiveStartMonth() {
+    const start = state.getActiveSchoolYearStartDate() || new Date();
+    return new Date(start.getFullYear(), start.getMonth(), 1);
+}
 
 // --- STUDENT RANKINGS MODAL (HERO RANKS ARCHIVE) ---
 export async function openStudentRankingsModal(resetDate = true) {
@@ -311,7 +315,7 @@ function resolveHeroStudentId(log, studentsInClass) {
 async function loadAllAdventureLogsForClass(classId) {
     const { fetchAdventureLogsForMonth } = await import('../../db/queries.js');
     const monthsToFetch = [];
-    const monthCursor = new Date(constants.competitionStart.getFullYear(), constants.competitionStart.getMonth(), 1);
+    const monthCursor = getArchiveStartMonth();
     const finalMonth = new Date();
     finalMonth.setDate(1);
 
@@ -995,7 +999,7 @@ async function getProdigyCountsForClass(classId) {
 
     const students = state.get('allStudents').filter((student) => student.classId === classId);
     const allScores = state.get('allWrittenScores').filter((score) => score.classId === classId);
-    const monthCursor = new Date(constants.competitionStart.getFullYear(), constants.competitionStart.getMonth(), 1);
+    const monthCursor = getArchiveStartMonth();
     const newestMonthStart = utils.getLatestCompletedMonthStart(new Date());
     const monthRequests = [];
 
@@ -1109,7 +1113,7 @@ export async function renderProdigyHistory(classId) {
 
     const monthName = prodigyViewDate.toLocaleString('en-GB', { month: 'long', year: 'numeric' });
 
-    const archiveStart = new Date(constants.competitionStart.getFullYear(), constants.competitionStart.getMonth(), 1);
+    const archiveStart = getArchiveStartMonth();
     const canGoBack = (new Date(viewYear, viewMonthIndex, 1) > archiveStart);
     const nextMonthStart = new Date(viewYear, viewMonthIndex + 1, 1);
     const canGoForward = nextMonthStart <= latestViewable;

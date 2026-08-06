@@ -101,8 +101,7 @@ export async function ensureHistoryLoaded() {
     const loader = document.getElementById('calendar-loader');
     if (loader) loader.classList.remove('hidden');
 
-    const { getDocs, query, collection: firestoreCollection, where } = await import('https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js');
-    const { db: firestoreDb } = await import('../firebase.js');
+    const { getDocs, query, collection: firestoreCollection, where, db: firestoreDb } = await import('../firebase.js');
 
     const thirtyDaysAgo = new Date();
     thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
@@ -135,7 +134,6 @@ export async function ensureHistoryLoaded() {
 
         state.setAllAwardLogs(mergedLogs);
         state.setHasLoadedCalendarHistory(true);
-        console.log(`History loaded. Total logs available: ${mergedLogs.length}`);
 
     } catch (e) {
         console.error("Error loading history:", e);

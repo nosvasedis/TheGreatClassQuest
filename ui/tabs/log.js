@@ -1,7 +1,6 @@
 // /ui/tabs/log.js
 import * as state from '../../state.js';
 import * as utils from '../../utils.js';
-import * as constants from '../../constants.js';
 import * as modals from '../modals.js';
 import { canUseFeature } from '../../utils/subscription.js';
 import { getLogTabCopy } from '../../config/tiers/features.js';
@@ -139,7 +138,8 @@ export async function renderAdventureLogTab() {
     const availableMonths = [];
     const now = new Date();
     // Start from the first day of the competition start month
-    let loopDate = new Date(constants.competitionStart.getFullYear(), constants.competitionStart.getMonth(), 1);
+    const activeYearStart = state.getActiveSchoolYearStartDate() || now;
+    let loopDate = new Date(activeYearStart.getFullYear(), activeYearStart.getMonth(), 1);
 
     while (loopDate <= now) {
         const month = (loopDate.getMonth() + 1).toString().padStart(2, '0');

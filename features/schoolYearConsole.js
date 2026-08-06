@@ -3,6 +3,7 @@ import { db, doc, setDoc, serverTimestamp } from '../firebase.js';
 import { showToast } from '../ui/effects.js';
 import {
     previewYearRollover,
+    ensureOpenSchoolYears,
     backfillSchoolYearData,
     closeSchoolYear,
     finalizeRollover,
@@ -19,6 +20,8 @@ import {
     normalizeSchoolYearState,
     PUBLIC_DATA_PATH
 } from '../utils/schoolYear.js';
+
+let lastYearVerification = null;
 
 function escapeHtml(value) {
     return String(value || '')
@@ -45,6 +48,94 @@ function setBusyState(button, isBusy, busyLabel) {
 function getSchoolYearSummary() {
     const schoolYearState = normalizeSchoolYearState(state.get('schoolYearState') || {});
     return { schoolYearState };
+}
+
+function isValidYearDefinition(definition, expectedKey) {
+    if (!definition || definition.id !== expectedKey) return false;
+    const startsAt = String(definition.startsAt || '');
+    const endsAt = String(definition.endsAt || definition.closeAvailableAt || '');
+    return /^\d{4}-\d{2}-\d{2}$/.test(startsAt)
+        && (/^\d{4}-\d{2}-\d{2}$/.test(endsAt) || /^\d{2}-\d{2}-\d{4}$/.test(endsAt));
+}
+
+function renderSeptemberReadiness({ schoolYearState, activeClasses, pendingStudents }) {
+    const years = state.get('allSchoolYears') || [];
+    const scheduledClasses = activeClasses.filter((item) => Array.isArray(item.scheduleDays) && item.scheduleDays.length > 0);
+    const holidayRanges = state.get('schoolHolidayRanges') || [];
+    const settingsLoaded = state.get('schoolSettingsLoaded') === true;
+    const verifiedActive = lastYearVerification?.activeYearKey === schoolYearState.activeYearKey;
+    const verifiedNext = lastYearVerification?.nextYearKey === schoolYearState.nextYearKey;
+    const activeValid = verifiedActive || isValidYearDefinition(
+        years.find((year) => year.id === schoolYearState.activeYearKey),
+        schoolYearState.activeYearKey
+    );
+    const nextValid = verifiedNext || isValidYearDefinition(
+        years.find((year) => year.id === schoolYearState.nextYearKey),
+        schoolYearState.nextYearKey
+    );
+    const items = [
+        {
+            label: 'Active classes',
+            value: String(activeClasses.length),
+            detail: activeClasses.length ? 'Available for September placement.' : 'Create classes before placement.',
+            ready: activeClasses.length > 0
+        },
+        {
+            label: 'Schedules',
+            value: `${scheduledClasses.length}/${activeClasses.length}`,
+            detail: scheduledClasses.length === activeClasses.length ? 'Every active class has lesson days.' : 'Some classes still need lesson days.',
+            ready: activeClasses.length > 0 && scheduledClasses.length === activeClasses.length
+        },
+        {
+            label: 'Returning students',
+            value: String(pendingStudents.length),
+            detail: pendingStudents.length ? 'Awaiting deliberate teacher or secretary placement.' : 'No manual placements are pending.',
+            ready: pendingStudents.length === 0,
+            informational: pendingStudents.length > 0
+        },
+        {
+            label: 'Holidays / settings',
+            value: settingsLoaded ? `${holidayRanges.length} periods` : 'Loading',
+            detail: settingsLoaded ? 'School settings are available.' : 'Waiting for the settings snapshot.',
+            ready: settingsLoaded
+        },
+        {
+            label: 'Active + next year',
+            value: activeValid && nextValid ? 'Valid' : 'Check needed',
+            detail: `${schoolYearState.activeYearKey || 'missing'} → ${schoolYearState.nextYearKey || 'missing'}`,
+            ready: activeValid && nextValid
+        },
+        {
+            label: 'Index readiness',
+            value: 'Manifest included',
+            detail: 'Emulator and deployment checks validate the committed Firestore index manifest.',
+            ready: true
+        }
+    ];
+
+    return `
+        <section class="secretary-card" aria-labelledby="september-readiness-title">
+            <div class="secretary-card__header">
+                <div>
+                    <p class="secretary-card__eyebrow">September readiness</p>
+                    <h3 id="september-readiness-title" class="secretary-card__title">New-year safety check</h3>
+                </div>
+                <button type="button" id="school-year-verify-records-btn" class="secretary-shell__secondary-btn">
+                    <i class="fas fa-shield-check mr-2" aria-hidden="true"></i>Verify Year Records
+                </button>
+            </div>
+            <p class="text-sm text-slate-600 leading-relaxed mb-4">This summary uses the active-year data already loaded for this screen. It never loads archived years and never places students automatically.</p>
+            <div class="secretary-stat-grid">
+                ${items.map((item) => `
+                    <article class="secretary-card secretary-card--mini">
+                        <p class="secretary-card__eyebrow">${escapeHtml(item.label)}</p>
+                        <h4 class="secretary-card__metric ${item.ready ? 'text-emerald-700' : item.informational ? 'text-amber-700' : 'text-rose-700'}">${escapeHtml(item.value)}</h4>
+                        <p class="text-sm text-slate-500">${escapeHtml(item.detail)}</p>
+                    </article>
+                `).join('')}
+            </div>
+        </section>
+    `;
 }
 
 function renderRolloverJobSummary(job) {
@@ -167,6 +258,7 @@ export function renderSchoolYearSection() {
     const closeDateValue = schoolYearState.closeDate || '';
     const closeDatePickerValue = closeDateToPickerValue(closeDateValue);
     const closeDateSavedLabel = formatCloseDateLabel(closeDateValue);
+    const closeDateExample = `10/06/${String(activeYearKey || '').slice(5) || 'YYYY'}`;
 
     return `
         <div class="school-year-command">
@@ -197,6 +289,8 @@ export function renderSchoolYearSection() {
                 </div>
             </section>
 
+            ${renderSeptemberReadiness({ schoolYearState, activeClasses, pendingStudents })}
+
             <section class="secretary-card">
                 <div class="secretary-card__header">
                     <div>
@@ -205,7 +299,7 @@ export function renderSchoolYearSection() {
                     </div>
                 </div>
                 <p class="text-sm text-slate-600 leading-relaxed">
-                    Choose the date when the final year close becomes available. Until this date, the close button stays locked. Dates are shown in day/month/year order (for example 10/06/2026).
+                    Choose the date when the final year close becomes available. Until this date, the close button stays locked. Dates are shown in day/month/year order (for example ${escapeHtml(closeDateExample)}).
                 </p>
                 <p class="text-xs text-violet-700 mt-2"><span class="font-semibold">Saved last school day:</span> ${escapeHtml(closeDateSavedLabel)}</p>
                 <div class="school-year-allocation-bar mt-4">
@@ -346,7 +440,8 @@ async function saveSchoolYearCloseDate(button) {
     const { schoolYearState } = getSchoolYearSummary();
     const closeDate = normalizeCloseDateInput(document.getElementById('school-year-close-date-input')?.value);
     if (!closeDate) {
-        showToast('Enter a valid last school day (for example 10/06/2026).', 'error');
+        const exampleYear = String(schoolYearState.activeYearKey || '').slice(5) || 'YYYY';
+        showToast(`Enter a valid last school day (for example 10/06/${exampleYear}).`, 'error');
         return;
     }
     try {
@@ -397,6 +492,25 @@ async function runSchoolYearPreview(button) {
         if (output) output.innerHTML = errorHtml;
         showPreviewModal(errorHtml);
         showToast(error?.message || 'Could not run year-close preview.', 'error');
+    } finally {
+        setBusyState(button, false);
+    }
+}
+
+async function runVerifyYearRecords(button) {
+    try {
+        setBusyState(button, true, 'Verifying...');
+        lastYearVerification = await ensureOpenSchoolYears();
+        showToast(
+            lastYearVerification?.writes
+                ? `${lastYearVerification.writes} missing school-year record(s) safely created.`
+                : 'Active and planned school-year records are valid.',
+            'success'
+        );
+        onSchoolYearConsoleRerender?.();
+    } catch (error) {
+        console.error('School-year record verification failed:', error);
+        showToast(error?.message || 'Could not verify the school-year records.', 'error');
     } finally {
         setBusyState(button, false);
     }
@@ -499,6 +613,12 @@ export function wireSchoolYearConsoleHandlers({ onRerender }) {
 }
 
 export function handleSchoolYearConsoleClick(event) {
+    const verifyRecordsBtn = event.target.closest('#school-year-verify-records-btn');
+    if (verifyRecordsBtn) {
+        runVerifyYearRecords(verifyRecordsBtn);
+        return true;
+    }
+
     const previewBtn = event.target.closest('#school-year-preview-btn');
     if (previewBtn) {
         runSchoolYearPreview(previewBtn);

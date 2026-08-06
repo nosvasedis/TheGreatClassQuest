@@ -41,6 +41,7 @@ import { showUpgradePrompt } from '../../utils/upgradePrompt.js';
 import { GATED_TABS, TAB_FEATURE_FLAGS, getTierSummary, getUpgradeMessage } from '../../config/tiers/features.js';
 import { renderFamiliarOptionsUi } from '../../features/familiars.js';
 import { renderAccessCenterUi, wireAccessCenterEvents } from '../../features/accessManagement.js';
+import { getBillingAuthHeaders } from '../../utils/billingCheckout.js';
 
 // --- TAB NAVIGATION ---
 
@@ -213,6 +214,21 @@ export function syncAwardImmersiveSky(tabId, opts = {}) {
  */
 export async function applyTabPrimaryRefresh(tabId, opts = {}) {
     if (!tabId) return;
+
+    const { activateDataFeature, deactivateDataFeature } = await import('../../db/listeners.js');
+    if (tabId !== 'about-tab') {
+        activateDataFeature('assessments');
+        activateDataFeature('attendance');
+        if (tabId === 'guilds-tab' || tabId === 'class-leaderboard-tab' || tabId === 'student-leaderboard-tab') {
+            activateDataFeature('guilds');
+        } else {
+            deactivateDataFeature('guilds');
+        }
+    } else {
+        deactivateDataFeature('assessments');
+        deactivateDataFeature('attendance');
+        deactivateDataFeature('guilds');
+    }
 
     if (tabId === 'class-leaderboard-tab' || tabId === 'student-leaderboard-tab' || tabId === 'guilds-tab') {
         const { findAndSetCurrentClass } = await import('../core.js');
@@ -676,7 +692,7 @@ export async function showTab(tabName) {
                     updateStatusCard(null, false);
                     try {
                         const r = await fetch(billingUrl + '/subscription-info?schoolId=' + encodeURIComponent(schoolId), {
-                            headers: { 'ngrok-skip-browser-warning': '1' }
+                            headers: await getBillingAuthHeaders({ 'ngrok-skip-browser-warning': '1' })
                         });
                         if (!r.ok) {
                             updateStatusCard(null, true);
@@ -709,10 +725,10 @@ export async function showTab(tabName) {
                     try {
                         const res = await fetch(billingUrl + '/create-portal-session', {
                             method: 'POST',
-                            headers: {
+                            headers: await getBillingAuthHeaders({
                                 'Content-Type': 'application/json',
                                 'ngrok-skip-browser-warning': '1'
-                            },
+                            }),
                             body: JSON.stringify({ schoolId, returnUrl: window.location.href })
                         });
                         const contentType = res.headers.get('Content-Type') || '';

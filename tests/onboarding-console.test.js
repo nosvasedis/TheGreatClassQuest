@@ -393,7 +393,8 @@ test('storage rules reserve Familiar sprite uploads for staff roles', () => {
   const storageRulesPath = path.join(__dirname, '..', 'storage.rules');
   const rules = fs.readFileSync(storageRulesPath, 'utf8');
 
-  assert.match(rules, /match \/familiars\/\{allPaths=\*\*\}/);
+  assert.match(rules, /match \/familiars\/\{studentId\}\/\{fileName\}/);
   assert.match(rules, /function isStaff\(\)/);
-  assert.match(rules, /match \/familiars\/\{allPaths=\*\*\}[\s\S]*allow write: if isStaff\(\);/);
+  assert.match(rules, /function canManageStudent\(studentId\)/);
+  assert.match(rules, /match \/familiars\/\{studentId\}\/\{fileName\}[\s\S]*allow write: if canManageStudent\(studentId\) && isValidImageWrite\(\);/);
 });

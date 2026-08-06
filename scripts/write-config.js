@@ -1,7 +1,8 @@
 /**
  * Writes config.json from environment variables for hosted school deployments.
  * Supported hosts include Netlify, GitHub Pages, and Cloudflare Pages.
- * If required values are missing, config.json is not written and the app uses the default in constants.js.
+ * If required values are missing, local builds may use the development fallback.
+ * Hosted CI sets GCQ_REQUIRE_CONFIG=1 so a deploy can never silently target the wrong project.
  * Override the output path with GCQ_CONFIG_OUTPUT_PATH when a build should emit config.json somewhere else.
  */
 
@@ -22,7 +23,12 @@ const firebaseConfig = {
 const required = ['apiKey', 'authDomain', 'projectId', 'appId'];
 const missing = required.filter((k) => !firebaseConfig[k]);
 if (missing.length) {
-  console.log('write-config: skipping (missing env: ' + missing.join(', ') + ')');
+  const message = 'write-config: missing env: ' + missing.join(', ');
+  if (env.GCQ_REQUIRE_CONFIG === '1') {
+    console.error(message);
+    process.exit(1);
+  }
+  console.log(message + ' (local build will use the development fallback)');
   process.exit(0);
 }
 
@@ -31,6 +37,7 @@ const config = {
   billingBaseUrl: env.GCQ_BILLING_BASE_URL || '',
   billingSchoolId: env.GCQ_BILLING_SCHOOL_ID || firebaseConfig.projectId || '',
   functionsRegion: env.GCQ_FIREBASE_FUNCTIONS_REGION || 'europe-west1',
+  appCheckSiteKey: env.GCQ_APP_CHECK_SITE_KEY || '',
   certificateImageProxyUrl: env.GCQ_CERTIFICATE_IMAGE_PROXY_URL || '',
   aiTextConfig: {
     providers: [

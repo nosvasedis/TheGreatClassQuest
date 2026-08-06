@@ -1,9 +1,3 @@
-import {
-    CURRENT_SCHOOL_YEAR_KEY,
-    NEXT_SCHOOL_YEAR_KEY,
-    SCHOOL_YEAR_CLOSE_DATE,
-    SCHOOL_YEAR_CONFIG
-} from '../constants.js';
 import { where } from '../firebase.js';
 import { normalizeToDateString, parseFlexibleDate, toHtmlDateInputValue } from '../utils.js';
 
@@ -12,19 +6,17 @@ export const SCHOOL_YEAR_STATE_DOC_ID = 'current';
 
 export function getDefaultSchoolYearState() {
     return {
-        activeYearKey: CURRENT_SCHOOL_YEAR_KEY,
-        nextYearKey: NEXT_SCHOOL_YEAR_KEY,
-        closeDate: SCHOOL_YEAR_CLOSE_DATE,
-        rolloverStatus: 'preparing',
-        enforceActiveYearQueries: false
+        activeYearKey: null,
+        nextYearKey: null,
+        closeDate: null,
+        rolloverStatus: 'unavailable',
+        enforceActiveYearQueries: true,
+        isAuthoritative: false
     };
 }
 
 export function getDefaultSchoolYears() {
-    return Object.entries(SCHOOL_YEAR_CONFIG.years).map(([id, data]) => ({
-        id,
-        ...data
-    }));
+    return [];
 }
 
 export function normalizeSchoolYearState(data = {}) {
@@ -32,11 +24,12 @@ export function normalizeSchoolYearState(data = {}) {
     return {
         ...defaults,
         ...data,
-        activeYearKey: data.activeYearKey || defaults.activeYearKey,
-        nextYearKey: data.nextYearKey || defaults.nextYearKey,
-        closeDate: data.closeDate || defaults.closeDate,
-        rolloverStatus: data.rolloverStatus || defaults.rolloverStatus,
-        enforceActiveYearQueries: data.enforceActiveYearQueries === true
+        activeYearKey: /^\d{4}-\d{4}$/.test(String(data?.activeYearKey || '')) ? data.activeYearKey : null,
+        nextYearKey: /^\d{4}-\d{4}$/.test(String(data?.nextYearKey || '')) ? data.nextYearKey : null,
+        closeDate: data?.closeDate || defaults.closeDate,
+        rolloverStatus: data?.rolloverStatus || defaults.rolloverStatus,
+        enforceActiveYearQueries: true,
+        isAuthoritative: Boolean(data?.activeYearKey)
     };
 }
 
@@ -54,14 +47,14 @@ export function getCloseDateFromState(stateLike) {
 
 export function getSchoolYearForDate(dateLike = new Date()) {
     const date = dateLike instanceof Date ? dateLike : new Date(dateLike);
-    if (Number.isNaN(date.getTime())) return CURRENT_SCHOOL_YEAR_KEY;
+    if (Number.isNaN(date.getTime())) return null;
     const year = date.getFullYear();
     const month = date.getMonth() + 1;
     const startYear = month >= 9 ? year : year - 1;
     return `${startYear}-${startYear + 1}`;
 }
 
-export function isCloseDateReached(closeDate = SCHOOL_YEAR_CLOSE_DATE, now = new Date()) {
+export function isCloseDateReached(closeDate, now = new Date()) {
     const close = parseFlexibleDate(closeDate);
     if (!close || Number.isNaN(close.getTime())) return false;
     const today = new Date(now);
@@ -96,29 +89,42 @@ export function formatCloseDateLabel(value) {
     });
 }
 
-export function withSchoolYear(payload = {}, schoolYearKey = CURRENT_SCHOOL_YEAR_KEY) {
+function requireSchoolYearKey(value) {
+    const schoolYearKey = String(value || '').trim();
+    if (!/^\d{4}-\d{4}$/.test(schoolYearKey)) {
+        const error = new Error('The active school year is unavailable. Data is read-only until the school-year configuration reconnects.');
+        error.code = 'gcq/school-year-unavailable';
+        throw error;
+    }
+    return schoolYearKey;
+}
+
+export function withSchoolYear(payload = {}, schoolYearKey = null) {
+    const resolvedYearKey = requireSchoolYearKey(payload.schoolYearKey || schoolYearKey);
     return {
         ...payload,
-        schoolYearKey: payload.schoolYearKey || schoolYearKey
+        schoolYearKey: resolvedYearKey
     };
 }
 
-export function withActiveStudentYear(payload = {}, schoolYearKey = CURRENT_SCHOOL_YEAR_KEY) {
+export function withActiveStudentYear(payload = {}, schoolYearKey = null) {
+    const resolvedYearKey = requireSchoolYearKey(payload.activeSchoolYearKey || schoolYearKey);
     return {
         ...payload,
-        activeSchoolYearKey: payload.activeSchoolYearKey || schoolYearKey,
+        activeSchoolYearKey: resolvedYearKey,
         enrollmentStatus: payload.enrollmentStatus || 'active'
     };
 }
 
-export function withActiveScoreYear(payload = {}, schoolYearKey = CURRENT_SCHOOL_YEAR_KEY) {
+export function withActiveScoreYear(payload = {}, schoolYearKey = null) {
+    const resolvedYearKey = requireSchoolYearKey(payload.activeSchoolYearKey || schoolYearKey);
     return {
         ...payload,
-        activeSchoolYearKey: payload.activeSchoolYearKey || schoolYearKey
+        activeSchoolYearKey: resolvedYearKey
     };
 }
 
-export function isActiveYearDoc(data = {}, activeYearKey = CURRENT_SCHOOL_YEAR_KEY, options = {}) {
+export function isActiveYearDoc(data = {}, activeYearKey = null, options = {}) {
     const field = options.field || 'schoolYearKey';
     const status = String(data.status || '').toLowerCase();
     if (status === 'archived' || status === 'closed') return false;
@@ -129,13 +135,12 @@ export function isActiveYearDoc(data = {}, activeYearKey = CURRENT_SCHOOL_YEAR_K
 /** Drop closed-year rows from in-memory lists once active-year queries are enforced. */
 export function filterDocsForActiveYear(docs = [], schoolYearStateLike = null) {
     const normalized = normalizeSchoolYearState(schoolYearStateLike || {});
-    if (!normalized.enforceActiveYearQueries) return docs;
     return docs.filter((doc) =>
         isActiveYearDoc(doc, normalized.activeYearKey, { includeUntagged: false }),
     );
 }
 
-export function isActiveStudent(data = {}, activeYearKey = CURRENT_SCHOOL_YEAR_KEY, options = {}) {
+export function isActiveStudent(data = {}, activeYearKey = null, options = {}) {
     const status = data.enrollmentStatus || 'active';
     if (status === 'inactive') return false;
     if (!data.activeSchoolYearKey) return options.includeUntagged !== false;
@@ -144,7 +149,7 @@ export function isActiveStudent(data = {}, activeYearKey = CURRENT_SCHOOL_YEAR_K
 
 /** Firestore where-clauses for active-year query scoping when enforcement is on. */
 export function yearScopeClauses(enforceActiveYearQueries, activeYearKey, field = 'schoolYearKey') {
-    if (!enforceActiveYearQueries || !activeYearKey) return [];
+    if (!activeYearKey) return [];
     return [where(field, '==', activeYearKey)];
 }
 
@@ -159,6 +164,7 @@ export function formatSchoolYearLabel(yearKey) {
     return String(yearKey).replace('-', ' / ');
 }
 
-export function buildRolloverConfirmationText(yearKey = CURRENT_SCHOOL_YEAR_KEY) {
+export function buildRolloverConfirmationText(yearKey) {
+    requireSchoolYearKey(yearKey);
     return `CLOSE ${yearKey}`;
 }

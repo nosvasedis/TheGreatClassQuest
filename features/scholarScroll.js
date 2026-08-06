@@ -94,9 +94,7 @@ async function playInnerClassSwap(inner, runRender) {
 }
 
 // --- IMPORTS ---
-import { db } from '../firebase.js';
-import { doc, addDoc, updateDoc, collection, serverTimestamp } from 'https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js';
-import { writeBatch, runTransaction } from 'https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js';
+import { db, doc, addDoc, updateDoc, collection, serverTimestamp, writeBatch, runTransaction } from '../firebase.js';
 
 import * as state from '../state.js';
 import * as utils from '../utils.js';
@@ -460,7 +458,18 @@ function setupBulkDatePicker() {
     const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June',
         'July', 'August', 'September', 'October', 'November', 'December'];
 
+    const activeYearStart = state.getActiveSchoolYearStartDate();
+    const activeYearEnd = state.getActiveSchoolYearEndDate();
+
     let dpState = { day: 1, month: 1, year: new Date().getFullYear() };
+
+    const setStateFromDate = (date) => {
+        dpState = {
+            day: date.getDate(),
+            month: date.getMonth() + 1,
+            year: date.getFullYear()
+        };
+    };
 
     const parseFromInput = () => {
         const val = hiddenInput.value;
@@ -472,6 +481,9 @@ function setupBulkDatePicker() {
     const clampDay = () => {
         const max = new Date(dpState.year, dpState.month, 0).getDate();
         if (dpState.day > max) dpState.day = max;
+        const selected = new Date(dpState.year, dpState.month - 1, dpState.day);
+        if (activeYearStart && selected < activeYearStart) setStateFromDate(activeYearStart);
+        else if (activeYearEnd && selected > activeYearEnd) setStateFromDate(activeYearEnd);
     };
 
     const renderDp = () => {
@@ -542,11 +554,21 @@ function setupBulkDatePicker() {
         renderDp();
     };
     picker.querySelector('#dp-month-up').onclick = () => {
-        dpState.month = dpState.month >= 12 ? 1 : dpState.month + 1;
+        if (dpState.month >= 12) {
+            dpState.month = 1;
+            dpState.year += 1;
+        } else {
+            dpState.month += 1;
+        }
         renderDp();
     };
     picker.querySelector('#dp-month-down').onclick = () => {
-        dpState.month = dpState.month <= 1 ? 12 : dpState.month - 1;
+        if (dpState.month <= 1) {
+            dpState.month = 12;
+            dpState.year -= 1;
+        } else {
+            dpState.month -= 1;
+        }
         renderDp();
     };
     picker.querySelector('#dp-year-up').onclick = () => {
@@ -554,7 +576,8 @@ function setupBulkDatePicker() {
         renderDp();
     };
     picker.querySelector('#dp-year-down').onclick = () => {
-        if (dpState.year > 2020) { dpState.year--; renderDp(); }
+        dpState.year--;
+        renderDp();
     };
 
     picker.querySelector('#dp-confirm-btn').onclick = () => {
@@ -670,7 +693,7 @@ function renderStudentBulkRow(student, scheme, isAbsent) {
         const maxScore = Number(scheme.maxScore) || 100;
         inputHtml = `
             <div class="relative">
-                <input type="number" class="bulk-grade-input bulk-grade-numeric w-full p-2.5 pr-12 border-2 rounded-xl bg-white/80 outline-none shadow-sm transition-all" 
+                <input type="number" class="bulk-grade-input bulk-grade-numeric w-full p-2.5 pr-12 border-2 rounded-xl bg-white/80 outline-none shadow-sm transition-all"
                     placeholder="0-${maxScore}" min="0" max="${maxScore}" ${isAbsent ? 'disabled' : ''}
                     oninput="(function(i,m){var v=parseFloat(i.value);if(isNaN(v)||i.value===''){i.removeAttribute('data-grade');return;}var p=Math.min(100,Math.max(0,Math.round(v/m*100)));i.setAttribute('data-grade',p>=80?'high':p>=60?'good':p>=40?'mid':p>=20?'low':'fail');})(this,${maxScore})"
                     onwheel="this.blur()">
@@ -954,7 +977,7 @@ function renderTrialHistoryItem(score) {
         if (scorePercent >= 80) { colorClass = 'text-emerald-700'; bgClass = 'bg-emerald-50'; borderClass = 'border-emerald-200'; }
         else if (scorePercent >= 60) { colorClass = 'text-amber-700'; bgClass = 'bg-amber-50'; borderClass = 'border-amber-200'; }
         else { colorClass = 'text-rose-700'; bgClass = 'bg-rose-50'; borderClass = 'border-rose-200'; }
-        
+
         scoreDisplay = `<span class="font-title text-lg leading-none">${getAssessmentValueLabel(score)}</span>
                         <span class="text-xs font-bold opacity-70 ml-1.5 mt-0.5">${scorePercent.toFixed(0)}%</span>`;
     }
@@ -967,17 +990,17 @@ function renderTrialHistoryItem(score) {
     return `
         <div class="trial-history-item relative flex items-center justify-between p-3 bg-white rounded-xl shadow-sm border border-gray-100 hover:border-purple-300 hover:shadow-md transition-all duration-200 group/item">
             <div class="absolute left-0 top-0 bottom-0 w-1.5 rounded-l-xl ${scorePercent >= 80 ? 'bg-emerald-400' : scorePercent >= 60 ? 'bg-amber-400' : scorePercent > 0 ? 'bg-rose-400' : 'bg-blue-400'}"></div>
-            
+
             <div class="flex items-center gap-3 pl-3">
                 ${avatarHtml}
                 <span class="font-bold text-gray-800">${student.name}</span>
             </div>
-            
+
             <div class="flex items-center gap-4">
                 <div class="flex items-center justify-center px-3 py-1.5 rounded-lg ${bgClass} ${borderClass} border ${colorClass}">
                     ${scoreDisplay}
                 </div>
-                
+
                 ${isOwner ? `
                 <div class="flex items-center gap-1 opacity-0 group-hover/item:opacity-100 transition-opacity">
                     <button data-trial-id="${score.id}" class="edit-trial-btn w-8 h-8 rounded-full bg-blue-50 text-blue-600 hover:bg-blue-100 hover:scale-110 transition-all flex items-center justify-center shadow-sm" title="Edit"><i class="fas fa-pencil-alt text-sm"></i></button>
@@ -1259,7 +1282,7 @@ function renderMissingWorkDashboard(classId) {
     let html = `
         <div class="mb-6 p-1 md:p-1 bg-gradient-to-br from-amber-200 via-amber-400 to-orange-500 rounded-[2rem] md:rounded-[2.3rem] shadow-[0_16px_40px_rgba(245,158,11,0.18)] relative overflow-hidden group">
             <div class="bg-white/95 backdrop-blur-xl rounded-[1.65rem] md:rounded-[2rem] p-4 md:p-5 relative overflow-hidden">
-                
+
                 <!-- Atmospheric Background Decor -->
                 <div class="absolute -right-10 -top-10 text-[9rem] text-amber-500/5 transform rotate-12 pointer-events-none transition-transform duration-1000 group-hover:scale-110 group-hover:rotate-6">
                     <i class="fas fa-scroll-old"></i>
@@ -1281,7 +1304,7 @@ function renderMissingWorkDashboard(classId) {
                             </div>
                         </div>
                     </div>
-                    
+
                     <div class="flex items-center gap-2 bg-amber-50 px-3 py-1.5 rounded-xl border border-amber-100 shrink-0 self-start sm:self-auto">
                         <div class="w-1.5 h-1.5 bg-amber-500 rounded-full animate-ping"></div>
                         <span class="text-[10px] font-black text-amber-700 uppercase tracking-wider">${filteredWork.length} Records Found</span>
@@ -1300,7 +1323,7 @@ function renderMissingWorkDashboard(classId) {
         html += `
             <div class="scroll-makeup-item bg-slate-50/50 p-3.5 md:p-4 rounded-2xl border border-slate-100 hover:bg-white hover:border-amber-200 hover:shadow-lg hover:-translate-y-0.5 transition-all duration-300 group/item relative min-w-0">
                 <div class="absolute inset-0 rounded-[inherit] overflow-hidden pointer-events-none bg-gradient-to-br from-amber-500/0 to-amber-500/[0.02] opacity-0 group-hover/item:opacity-100 transition-opacity"></div>
-                
+
                 <div class="relative z-10 flex flex-col sm:flex-row sm:items-start gap-3 sm:gap-4">
                     <div class="flex items-start gap-3 min-w-0 flex-1">
                         <div class="relative shrink-0 pt-0.5">
@@ -1324,16 +1347,16 @@ function renderMissingWorkDashboard(classId) {
                     </div>
 
                     <div class="flex items-center justify-end gap-1.5 shrink-0 sm:flex-col sm:items-end sm:pt-0.5 sm:min-w-[7.5rem]">
-                        <button class="makeup-dismiss-btn w-8 h-8 rounded-lg bg-white text-slate-400 hover:bg-rose-50 hover:text-rose-500 flex items-center justify-center transition-all border border-slate-200 hover:border-rose-200 shadow-sm" 
-                            data-student-id="${item.student.id}" 
-                            data-title="${item.assessment.title}" 
+                        <button class="makeup-dismiss-btn w-8 h-8 rounded-lg bg-white text-slate-400 hover:bg-rose-50 hover:text-rose-500 flex items-center justify-center transition-all border border-slate-200 hover:border-rose-200 shadow-sm"
+                            data-student-id="${item.student.id}"
+                            data-title="${item.assessment.title}"
                             data-type="${item.assessment.type}"
                             title="Dismiss this record">
                             <i class="fas fa-trash-can text-[10px] pointer-events-none"></i>
                         </button>
-                        <button class="makeup-log-btn makeup-trigger h-8 px-3 rounded-lg bg-gradient-to-r from-amber-500 to-orange-600 text-white font-black text-[9px] uppercase tracking-wide shadow-md shadow-amber-200/70 hover:shadow-amber-300/80 hover:scale-[1.02] transition-all flex items-center gap-1.5 whitespace-nowrap" 
-                            data-student-id="${item.student.id}" 
-                            data-title="${item.assessment.title}" 
+                        <button class="makeup-log-btn makeup-trigger h-8 px-3 rounded-lg bg-gradient-to-r from-amber-500 to-orange-600 text-white font-black text-[9px] uppercase tracking-wide shadow-md shadow-amber-200/70 hover:shadow-amber-300/80 hover:scale-[1.02] transition-all flex items-center gap-1.5 whitespace-nowrap"
+                            data-student-id="${item.student.id}"
+                            data-title="${item.assessment.title}"
                             data-type="${item.assessment.type}">
                             <span>Log Result</span>
                             <i class="fas fa-chevron-right text-[7px] opacity-60"></i>
@@ -1432,7 +1455,7 @@ function openMakeupModal(classId, studentId, type, title) {
         const maxScore = Number(assessmentScheme.maxScore) || 100;
         inputHtml = `
             <div class="relative">
-                <input type="number" class="bulk-grade-input w-full p-2.5 border border-amber-200/80 rounded-xl bg-white/80 focus:ring-2 focus:ring-amber-400 outline-none shadow-sm" 
+                <input type="number" class="bulk-grade-input w-full p-2.5 border border-amber-200/80 rounded-xl bg-white/80 focus:ring-2 focus:ring-amber-400 outline-none shadow-sm"
                     placeholder="Score" min="0" max="${maxScore}" onwheel="this.blur()">
                 <span class="absolute right-3 top-2.5 text-amber-900/45 text-sm font-bold">/${maxScore}</span>
             </div>`;

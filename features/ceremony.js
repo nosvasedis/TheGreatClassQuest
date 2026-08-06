@@ -1,7 +1,6 @@
 // /features/ceremony.js
 
-import { db } from '../firebase.js';
-import { updateDoc, doc, collection, getDocs } from 'https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js';
+import { db, updateDoc, doc, collection, getDocs, query, where } from '../firebase.js';
 import * as state from '../state.js';
 import { playSound, ceremonyMusic, winnerFanfare, showdownSting, fadeCeremonyMusic, stopAllCeremonyAudio, playCeremonyMusic, playDrumRoll, stopDrumRoll, playWinnerFanfare } from '../audio.js';
 import { fetchLogsForMonth } from '../db/queries.js';
@@ -413,7 +412,11 @@ async function loadDataAndAdvance() {
         const logs = await fetchLogsForMonth(year, month);
         const { fetchMonthlyHistory } = await import('../state.js');
         const archived = await fetchMonthlyHistory(ceremonyData.monthKey).catch(() => ({}));
-        const questHistorySnap = await getDocs(collection(db, 'artifacts/great-class-quest/public/data/quest_history'));
+        const activeYearKey = state.getActiveSchoolYearKey();
+        const questHistorySnap = await getDocs(query(
+            collection(db, 'artifacts/great-class-quest/public/data/quest_history'),
+            where('schoolYearKey', '==', activeYearKey)
+        ));
         const questHistoryRecords = questHistorySnap.docs.map(docSnap => docSnap.data());
         const fromLogs = sumMonthlyStarCreditsByStudentFromAwardLogs(logs);
         const monthlyScores = mergeMonthlyStarsFromArchivedHistoryAndAwardLogs(fromLogs, archived || {});

@@ -2,14 +2,24 @@
 
 const { getAccessToken, getAllAccounts } = require('../node_modules/firebase-tools/lib/auth');
 
-const PROJECT_ID = process.env.GCQ_FIREBASE_PROJECT || 'the-great-class-quest';
+const PROJECT_ID = String(process.env.GCQ_FIREBASE_PROJECT || '').trim();
 const DATABASE_ID = '(default)';
 const BASE_URL = `https://firestore.googleapis.com/v1/projects/${PROJECT_ID}/databases/${DATABASE_ID}/documents`;
 const ROOT = `artifacts/great-class-quest/public/data`;
-const CLOSING_YEAR = process.env.GCQ_CLOSING_YEAR || '2025-2026';
-const NEXT_YEAR = process.env.GCQ_NEXT_YEAR || '2026-2027';
+const CLOSING_YEAR = String(process.env.GCQ_CLOSING_YEAR || '').trim();
+const NEXT_YEAR = String(process.env.GCQ_NEXT_YEAR || '').trim();
+const CLOSING_START_DATE = String(process.env.GCQ_CLOSING_START_DATE || '').trim();
+const CLOSING_END_DATE = String(process.env.GCQ_CLOSING_END_DATE || '').trim();
+const NEXT_START_DATE = String(process.env.GCQ_NEXT_START_DATE || '').trim();
+const NEXT_END_DATE = String(process.env.GCQ_NEXT_END_DATE || '').trim();
 const DRY_RUN = process.argv.includes('--dry-run');
 let accessTokenPromise;
+
+const configuredDates = [CLOSING_START_DATE, CLOSING_END_DATE, NEXT_START_DATE, NEXT_END_DATE];
+if (!PROJECT_ID || !/^\d{4}-\d{4}$/.test(CLOSING_YEAR) || !/^\d{4}-\d{4}$/.test(NEXT_YEAR) || configuredDates.some((value) => !/^\d{4}-\d{2}-\d{2}$/.test(value))) {
+  console.error('Set the Firebase project, both year keys, and all four explicit YYYY-MM-DD boundary dates. Obsolete school-year defaults are intentionally disabled.');
+  process.exit(1);
+}
 
 const YEAR_COLLECTIONS = [
   'award_log',
@@ -67,7 +77,7 @@ function docId(documentName) {
 
 async function authedFetch(pathOrUrl, options = {}) {
   if (!accessTokenPromise) {
-    const account = getAllAccounts().find((item) => item.user?.email === 'nvasedis@gmail.com') || getAllAccounts()[0];
+    const account = getAllAccounts()[0];
     if (!account?.tokens?.refresh_token) {
       throw new Error('No saved Firebase CLI account with a refresh token was found.');
     }
@@ -139,23 +149,23 @@ async function main() {
     activeYearKey: stringValue(CLOSING_YEAR),
     nextYearKey: stringValue(NEXT_YEAR),
     rolloverStatus: stringValue('preparing'),
-    closeDate: stringValue('10-06-2026'),
-    enforceActiveYearQueries: boolValue(false),
+    closeDate: stringValue(CLOSING_END_DATE),
+    enforceActiveYearQueries: boolValue(true),
     updatedAt: timestampValue()
   });
   await ensureDoc(`${ROOT}/school_years/${CLOSING_YEAR}`, {
     label: stringValue(CLOSING_YEAR),
-    startsAt: stringValue('2025-09-01'),
-    endsAt: stringValue('10-06-2026'),
-    closeAvailableAt: stringValue('10-06-2026'),
+    startsAt: stringValue(CLOSING_START_DATE),
+    endsAt: stringValue(CLOSING_END_DATE),
+    closeAvailableAt: stringValue(CLOSING_END_DATE),
     status: stringValue('active'),
     updatedAt: timestampValue()
   });
   await ensureDoc(`${ROOT}/school_years/${NEXT_YEAR}`, {
     label: stringValue(NEXT_YEAR),
-    startsAt: stringValue('2026-09-01'),
-    endsAt: stringValue('2027-06-10'),
-    closeAvailableAt: stringValue('2027-06-10'),
+    startsAt: stringValue(NEXT_START_DATE),
+    endsAt: stringValue(NEXT_END_DATE),
+    closeAvailableAt: stringValue(NEXT_END_DATE),
     status: stringValue('planned'),
     updatedAt: timestampValue()
   });

@@ -5,6 +5,27 @@
  * wrong Firebase project by accident.
  */
 
+window.__GCQ_BUILD_ID__ = typeof __GCQ_BUILD_ID__ === 'string' ? __GCQ_BUILD_ID__ : 'development';
+
+function logRuntimeFailure(label, error) {
+    if (import.meta.env?.DEV) {
+        console.error(label, error);
+        return;
+    }
+    console.error(label, {
+        name: String(error?.name || 'Error').slice(0, 80),
+        code: String(error?.code || '').slice(0, 80)
+    });
+}
+
+window.addEventListener('error', (event) => {
+    logRuntimeFailure('GCQ runtime error', event.error);
+});
+
+window.addEventListener('unhandledrejection', (event) => {
+    logRuntimeFailure('GCQ unhandled promise rejection', event.reason);
+});
+
 function isLocalHost() {
   const host = window.location.hostname;
   return (
@@ -14,15 +35,6 @@ function isLocalHost() {
         host === '0.0.0.0' ||
         host.endsWith('.local')
   );
-}
-
-function isCanonicalHostedFallbackSite() {
-    const { hostname, pathname } = window.location;
-    const prefix = '/TheGreatClassQuest';
-    return (
-        hostname === 'nosvasedis.github.io' &&
-        (pathname === prefix || pathname === `${prefix}/` || pathname.startsWith(`${prefix}/`))
-    );
 }
 
 function renderConfigRequiredScreen() {
@@ -49,35 +61,87 @@ function renderConfigRequiredScreen() {
     `;
 }
 
-let configLoaded = false;
+function applyRuntimeConfig(c) {
+    const firebase = c?.firebaseConfig || c;
+    if (!firebase?.apiKey || !firebase?.projectId || !firebase?.appId) return false;
+    window.__GCQ_FIREBASE_CONFIG__ = firebase;
+    if (c.billingBaseUrl) window.__GCQ_BILLING_BASE_URL__ = c.billingBaseUrl;
+    if (c.billingSchoolId) window.__GCQ_BILLING_SCHOOL_ID__ = c.billingSchoolId;
+    if (c.functionsRegion) window.__GCQ_FIREBASE_FUNCTIONS_REGION__ = c.functionsRegion;
+    if (c.appCheckSiteKey) window.__GCQ_APP_CHECK_SITE_KEY__ = c.appCheckSiteKey;
+    if (c.aiTextConfig) window.__GCQ_AI_TEXT_CONFIG__ = c.aiTextConfig;
+    if (c.certificateImageProxyUrl) window.__GCQ_CERTIFICATE_IMAGE_PROXY_URL__ = c.certificateImageProxyUrl;
+    return true;
+}
 
-if (isLocalHost() || isCanonicalHostedFallbackSite()) {
-    import('./app.js');
-} else {
-    fetch('./config.json')
-        .then((r) => (r.ok ? r.json() : Promise.reject()))
-        .then((c) => {
-            const firebase = c.firebaseConfig || c;
-            if (firebase && firebase.apiKey && firebase.projectId && firebase.appId) {
-                window.__GCQ_FIREBASE_CONFIG__ = firebase;
-                configLoaded = true;
-            }
-            if (c.billingBaseUrl) window.__GCQ_BILLING_BASE_URL__ = c.billingBaseUrl;
-            if (c.billingSchoolId) window.__GCQ_BILLING_SCHOOL_ID__ = c.billingSchoolId;
-            if (c.functionsRegion) window.__GCQ_FIREBASE_FUNCTIONS_REGION__ = c.functionsRegion;
-            if (c.aiTextConfig) window.__GCQ_AI_TEXT_CONFIG__ = c.aiTextConfig;
-            if (c.certificateImageProxyUrl) window.__GCQ_CERTIFICATE_IMAGE_PROXY_URL__ = c.certificateImageProxyUrl;
-        })
-        .catch(() => {})
-        .finally(() => {
-            if (!configLoaded) {
-                renderConfigRequiredScreen();
-                return;
-            }
-            import('./app.js');
+async function bootApplication() {
+    if (isLocalHost()) {
+        await import('./app.js');
+        return;
+    }
+
+    let configLoaded = false;
+    try {
+        const response = await fetch(`./config.json?v=${encodeURIComponent(window.__GCQ_BUILD_ID__)}`, {
+            cache: 'no-store',
         });
+        if (response.ok) configLoaded = applyRuntimeConfig(await response.json());
+    } catch (error) {
+        console.warn('GCQ runtime configuration could not be loaded:', error);
+    }
+
+    if (!configLoaded) {
+        renderConfigRequiredScreen();
+        return;
+    }
+    await import('./app.js');
 }
 
-if ('serviceWorker' in navigator) {
-  navigator.serviceWorker.register('service-worker.js');
+function showUpdateAvailable(registration) {
+    if (!registration?.waiting || document.getElementById('gcq-update-ready')) return;
+    const button = document.createElement('button');
+    button.id = 'gcq-update-ready';
+    button.type = 'button';
+    button.className = 'fixed bottom-4 right-4 z-[2000] rounded-2xl bg-indigo-700 px-4 py-3 text-sm font-bold text-white shadow-2xl hover:bg-indigo-800 focus:outline-none focus:ring-4 focus:ring-indigo-300';
+    button.innerHTML = '<i class="fas fa-rotate mr-2" aria-hidden="true"></i>Update ready — reload';
+    button.addEventListener('click', () => {
+        button.disabled = true;
+        button.textContent = 'Updating…';
+        registration.waiting?.postMessage({ type: 'SKIP_WAITING' });
+    });
+    document.body.appendChild(button);
 }
+
+async function registerServiceWorker() {
+    if (!('serviceWorker' in navigator)) return;
+    if (isLocalHost()) {
+        const registrations = await navigator.serviceWorker.getRegistrations();
+        await Promise.all(registrations.map((registration) => registration.unregister()));
+        return;
+    }
+
+    const registration = await navigator.serviceWorker.register('./service-worker.js', { scope: './' });
+    if (registration.waiting) showUpdateAvailable(registration);
+    registration.addEventListener('updatefound', () => {
+        const installing = registration.installing;
+        installing?.addEventListener('statechange', () => {
+            if (installing.state === 'installed' && navigator.serviceWorker.controller) {
+                showUpdateAvailable(registration);
+            }
+        });
+    });
+
+    let refreshing = false;
+    navigator.serviceWorker.addEventListener('controllerchange', () => {
+        if (refreshing) return;
+        refreshing = true;
+        window.location.reload();
+    });
+}
+
+void bootApplication();
+window.addEventListener('load', () => {
+    const register = () => void registerServiceWorker().catch((error) => console.warn('Service worker registration failed:', error));
+    if ('requestIdleCallback' in window) window.requestIdleCallback(register, { timeout: 5000 });
+    else setTimeout(register, 3000);
+}, { once: true });

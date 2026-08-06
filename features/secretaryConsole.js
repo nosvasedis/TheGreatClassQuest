@@ -71,6 +71,15 @@ function wireAssessmentEditorsForTab(tabKey) {
 
 export function activateSecretaryTab(tabKey, options) {
     const resolved = resolveTabKey(tabKey);
+    void import('../db/listeners.js').then(({ activateDataFeature, deactivateDataFeature }) => {
+        if (resolved === 'school' || resolved === 'grades') {
+            activateDataFeature('assessments');
+            activateDataFeature('attendance');
+        } else {
+            deactivateDataFeature('assessments');
+            deactivateDataFeature('attendance');
+        }
+    });
     if (resolved === 'school' && tabKey === 'students') {
         state.setSecretaryView({ schoolSubTab: 'students' });
     } else if (resolved === 'school' && tabKey === 'classes') {

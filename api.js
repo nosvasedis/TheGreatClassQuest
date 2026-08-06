@@ -13,6 +13,21 @@ let geminiQueue = Promise.resolve();
 let lastGeminiRequestStartedAt = 0;
 let _globalRateLimitUntil = 0;
 
+async function getAuthenticatedProxyHeaders() {
+    const [{ auth }, { getAppCheckHeader }] = await Promise.all([
+        import('./firebaseAuth.js'),
+        import('./firebaseAppCheck.js')
+    ]);
+    if (!auth.currentUser) throw new Error('Sign in again before using AI generation.');
+    const token = await auth.currentUser.getIdToken();
+    return {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`,
+        ...(await getAppCheckHeader()),
+        'X-GCQ-Request-ID': globalThis.crypto?.randomUUID?.() || `${Date.now()}-${Math.random().toString(16).slice(2)}`
+    };
+}
+
 // ─── Provider-level rate limit tracking ──────────────────────────────────────
 let _providerRateLimits = new Map(); // { providerId => { rateLimitedAt: timestamp, retryAfterMs: number } }
 
@@ -129,6 +144,7 @@ function createRateLimitError(retryAfterMs = null) {
     const error = new Error(`API failed with status 429${retryMs > 0 ? ` (retry after ${retryMs}ms)` : ''}`);
     error.name = 'RateLimitError';
     error.status = 429;
+    error.retryable = false;
     error.retryAfterMs = retryMs > 0 ? retryMs : undefined;
     return error;
 }
@@ -198,18 +214,21 @@ function extractProviderText(result) {
 }
 
 async function requestTextFromProvider(provider, systemPrompt, userPrompt, requestOptions = {}) {
-    const response = await enqueueGeminiRequest(() =>
+    const response = await enqueueGeminiRequest(async () =>
         fetchWithBackoff(provider.url, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: await getAuthenticatedProxyHeaders(),
             body: JSON.stringify(buildProviderPayload(provider, systemPrompt, userPrompt, requestOptions))
         }, requestOptions)
     );
 
     if (!response.ok) {
         const detail = await response.text().catch(() => '');
-        console.error(`Provider ${provider.id} failed with status ${response.status}:`, detail);
-        throw new Error(`Provider ${provider.id} failed with status ${response.status}: ${detail}`);
+        console.error(`Provider ${provider.id} failed with status ${response.status}.`);
+        const error = new Error(`Provider ${provider.id} failed with status ${response.status}${detail ? '.' : ''}`);
+        error.status = response.status;
+        error.retryable = response.status >= 500;
+        throw error;
     }
 
     const result = await response.json();
@@ -280,6 +299,9 @@ export async function callGeminiApiDetailed(systemPrompt, userPrompt, requestOpt
             if (failureMeta.isRateLimited) {
                 break;
             }
+            if (Number.isInteger(error?.status) && error.status >= 400 && error.status < 500) {
+                break;
+            }
         }
     }
 
@@ -342,14 +364,17 @@ async function fetchWithBackoff(url, options, config = {}) {
 
             if (response.ok) return response;
 
-            const isRetryableStatus = response.status === 429 || response.status >= 500;
+            const isRetryableStatus = response.status >= 500;
             const hasRetriesLeft = attempt < retries;
 
             if (!isRetryableStatus || !hasRetriesLeft) {
                 if (response.status === 429) {
                     throw createRateLimitError(parseRetryAfterMs(response));
                 }
-                throw new Error(`API failed with status ${response.status}`);
+                const error = new Error(`API failed with status ${response.status}`);
+                error.status = response.status;
+                error.retryable = false;
+                throw error;
             }
 
             const retryAfterMs = parseRetryAfterMs(response);
@@ -375,6 +400,9 @@ async function fetchWithBackoff(url, options, config = {}) {
             const isCallerAbort = options?.signal?.aborted && !isTimeout;
 
             if (isCallerAbort) {
+                throw normalizedError;
+            }
+            if (normalizedError?.retryable === false) {
                 throw normalizedError;
             }
 
@@ -476,12 +504,10 @@ export async function callCloudflareAiImageApi(prompt, negativePrompt = "", opti
     try {
         const response = await fetchWithBackoff(cloudflareWorkerUrl, {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
+            headers: await getAuthenticatedProxyHeaders(),
             body: JSON.stringify(payload)
         }, {
-            retries: requestOptions.retries ?? 2,
+            retries: requestOptions.retries ?? 1,
             baseDelay: requestOptions.baseDelay ?? 1500,
             timeoutMs: requestOptions.timeoutMs ?? DEFAULT_TIMEOUT_MS
         });

@@ -2,8 +2,7 @@
 
 // --- IMPORTS ---
 import { fetchLogsForDate, fetchAttendanceForMonth, fetchLogsForMonth } from '../../db/queries.js';
-import { db } from '../../firebase.js';
-import { doc, getDocs, collection, query, where, orderBy, limit } from 'https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js';
+import { db, doc, getDocs, collection, query, where, orderBy, limit } from '../../firebase.js';
 
 // State and Constants
 import * as state from '../../state.js';

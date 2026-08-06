@@ -1,7 +1,6 @@
 // /ui/modals/attendance.js
 import * as state from '../../state.js';
 import * as utils from '../../utils.js';
-import * as constants from '../../constants.js';
 import { showAnimatedModal, showModal } from './base.js';
 import { showToast } from '../effects.js';
 import { playSound } from '../../audio.js';
@@ -285,8 +284,8 @@ export async function renderAttendanceChronicle(classId) {
     const todayKey = utils.getDDMMYYYY(new Date());
 
     // 1. Determine if we can go back/forward
-    const competitionStart = constants.competitionStart;
-    const canGoBack = new Date(currentYear, currentMonth, 1) > new Date(competitionStart.getFullYear(), competitionStart.getMonth(), 1);
+    const competitionStart = state.getActiveSchoolYearStartDate();
+    const canGoBack = Boolean(competitionStart) && new Date(currentYear, currentMonth, 1) > new Date(competitionStart.getFullYear(), competitionStart.getMonth(), 1);
     const canGoForward = new Date(currentYear, currentMonth + 1, 1) <= new Date();
 
     // 2. Fetch data if it's an old month not covered by real-time listener

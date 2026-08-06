@@ -1,8 +1,7 @@
 // features/grandGuildCeremony.js - Grand Guild Ceremony System
 // The ultimate SUPER END OF YEAR ceremony celebrating ALL competition levels
 
-import { db } from '../firebase.js';
-import { updateDoc, doc, getDoc, setDoc } from 'https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js';
+import { db, doc, getDoc, writeBatch } from '../firebase.js';
 import * as state from '../state.js';
 import { playSound, ceremonyMusic, winnerFanfare, showdownSting, fadeCeremonyMusic, stopAllCeremonyAudio, playCeremonyMusic, playDrumRoll, stopDrumRoll, playWinnerFanfare } from '../audio.js';
 import { fetchLogsForMonth } from '../db/queries.js';
@@ -36,14 +35,15 @@ let ceremonyData = {
 };
 
 function getCeremonyYearKey() {
-    return ceremonyData.schoolYearData?.yearKey || state.getActiveSchoolYearKey?.() || '2025-2026';
+    return ceremonyData.schoolYearData?.yearKey || state.getActiveSchoolYearKey?.() || null;
 }
 
 function getSchoolYearMonthEntries(yearKey = getCeremonyYearKey()) {
     const years = state.get('allSchoolYears') || [];
-    const yearData = years.find((item) => item.id === yearKey) || {};
-    const start = new Date(`${yearData.startsAt || `${yearKey.slice(0, 4)}-09-01`}T12:00:00`);
-    const end = new Date(`${yearData.endsAt || `${yearKey.slice(5)}-06-30`}T12:00:00`);
+    const yearData = years.find((item) => item.id === yearKey);
+    if (!yearData?.startsAt || !yearData?.endsAt) return [];
+    const start = new Date(`${yearData.startsAt}T12:00:00`);
+    const end = new Date(`${yearData.endsAt}T12:00:00`);
     if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) {
         return [];
     }
@@ -1622,14 +1622,15 @@ async function saveCeremonyCompletion() {
             ceremonyVersion: '2026'
         };
         
-        await setDoc(teacherRef, {
+        const batch = writeBatch(db);
+        batch.set(teacherRef, {
             grandCeremonyHistory: { [ceremonyDate]: ceremonyData }
         }, { merge: true });
         
         // Save per-class ceremony data
         for (const classId of participatingClasses) {
             const classRef = doc(db, 'artifacts/great-class-quest/public/data/classes', classId);
-            await updateDoc(classRef, {
+            batch.update(classRef, {
                 [`grandCeremonyHistory.${ceremonyDate}`]: {
                     ceremonyDate,
                     competitionData,
@@ -1638,8 +1639,7 @@ async function saveCeremonyCompletion() {
                 }
             });
         }
-        
-        console.log('Ceremony completion saved successfully');
+        await batch.commit();
         
     } catch (error) {
         console.error('Error saving ceremony completion:', error);

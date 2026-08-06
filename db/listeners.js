@@ -5,12 +5,10 @@ import {
     collection,
     query,
     where,
-    onSnapshot,
+    onSnapshot as firebaseOnSnapshot,
     orderBy,
     doc,
     getDoc,
-    getDocs,
-    writeBatch,
     collectionGroup,
     limit,
 } from "../firebase.js";
@@ -40,48 +38,139 @@ import {
     updateStudentCardAttendanceState,
     findAndSetCurrentClass,
 } from "../ui/core.js";
-import { checkAndResetMonthlyStars } from "./actions.js";
 import { renderStoryArchive } from "../features/storyWeaver.js";
 import { updateCeremonyStatus } from "../features/ceremony.js";
 import * as utils from "../utils.js";
-import { competitionStart, DEFAULT_SCHOOL_NAME } from "../constants.js";
+import { DEFAULT_SCHOOL_NAME } from "../constants.js";
 import * as modals from "../ui/modals.js";
 import { renderFamiliarOptionsUi } from "../features/familiars.js";
 import { renderHomeTab } from "../features/home.js";
-import {
-    reconcileFamiliarLifecycle,
-    shouldPassivelyReconcileFamiliar,
-} from "../features/familiars.js";
 import { refreshSetupClassesList } from "../features/schoolSetup.js";
 import { setSchoolGraceConfig } from "../utils/subscription.js";
 import { parseGraceWindow } from "../features/teacherJourney.js";
 import {
-    CURRENT_SCHOOL_YEAR_KEY,
-} from "../constants.js";
-import {
-    getDefaultSchoolYears,
     isActiveStudent,
     isActiveYearDoc,
     filterDocsForActiveYear,
     normalizeSchoolYearState,
     yearScopeClauses,
-    shouldSkipPostCloseHeroReconcile,
 } from "../utils/schoolYear.js";
+import { cancelScheduledRenders, scheduleRender } from "../utils/renderScheduler.js";
+import { getDeviceCacheChoice } from "../utils/deviceCache.js";
 
 const PUBLIC_DATA_PATH = "artifacts/great-class-quest/public/data";
+const OPEN_YEAR_CACHE_KEY = "gcq_open_school_years_v1";
+const OPEN_YEAR_CACHE_TTL_MS = 12 * 60 * 60 * 1000;
 let activeListenerUserId = null;
 let activeListenerIsSecretary = false;
+let listenerSessionId = 0;
+const featureListenerStarters = new Map();
+const activeDataFeatures = new Set();
+
+const featureListenerCleanups = new Map([
+    ["assessments", () => {
+        state.get("unsubscribeWrittenScores")();
+        state.setUnsubscribeWrittenScores(() => {});
+    }],
+    ["attendance", () => {
+        state.get("unsubscribeAttendance")();
+        state.setUnsubscribeAttendance(() => {});
+    }],
+    ["guilds", () => {
+        state.get("unsubscribeGuildScores")();
+        state.get("unsubscribeGuildChampions")();
+        state.get("unsubscribeFortuneWheelLog")();
+        state.setUnsubscribeGuildScores(() => {});
+        state.setUnsubscribeGuildChampions(() => {});
+        state.setUnsubscribeFortuneWheelLog(() => {});
+    }],
+]);
+
+function registerFeatureListener(feature, starter) {
+    featureListenerStarters.set(feature, starter);
+}
+export function activateDataFeature(feature) {
+    const key = String(feature || "");
+    if (!key || activeDataFeatures.has(key)) return false;
+    const starter = featureListenerStarters.get(key);
+    if (typeof starter !== "function") return false;
+    activeDataFeatures.add(key);
+    starter();
+    return true;
+}
+
+export function deactivateDataFeature(feature) {
+    const key = String(feature || "");
+    if (!key || !activeDataFeatures.has(key)) return false;
+    featureListenerCleanups.get(key)?.();
+    activeDataFeatures.delete(key);
+    return true;
+}
+
+function onSnapshot(target, onNext, onError) {
+    const sessionId = listenerSessionId;
+    return firebaseOnSnapshot(target, (snapshot) => {
+        if (sessionId === listenerSessionId) onNext(snapshot);
+    }, (error) => {
+        if (sessionId === listenerSessionId && typeof onError === "function") onError(error);
+    });
+}
+
+function scheduleHomeRender() {
+    const aboutTab = document.getElementById("about-tab");
+    if (aboutTab?.classList.contains("hidden")) return;
+    scheduleRender("home", renderHomeTab);
+}
+
+async function hydrateOpenSchoolYears(schoolYearState) {
+    const ids = [...new Set([
+        schoolYearState.activeYearKey,
+        schoolYearState.nextYearKey,
+    ].filter(Boolean))];
+    if (!ids.length) {
+        state.setAllSchoolYears([]);
+        return;
+    }
+
+    if (getDeviceCacheChoice() === "trusted") {
+        try {
+            const cached = JSON.parse(localStorage.getItem(OPEN_YEAR_CACHE_KEY) || "null");
+            if (cached?.savedAt && Date.now() - cached.savedAt < OPEN_YEAR_CACHE_TTL_MS && Array.isArray(cached.years)) {
+                const cachedIds = new Set(cached.years.map((year) => year.id));
+                if (ids.every((id) => cachedIds.has(id))) {
+                    state.setAllSchoolYears(cached.years);
+                    return;
+                }
+            }
+        } catch (_) {
+            // Browser cache is an optimization only.
+        }
+    }
+
+    const snapshots = await Promise.all(ids.map((id) =>
+        getDoc(doc(db, `${PUBLIC_DATA_PATH}/school_years`, id)),
+    ));
+    const years = snapshots
+        .filter((snapshot) => snapshot.exists())
+        .map((snapshot) => ({ id: snapshot.id, ...snapshot.data() }));
+    state.setAllSchoolYears(years);
+    if (getDeviceCacheChoice() === "trusted") {
+        try {
+            localStorage.setItem(OPEN_YEAR_CACHE_KEY, JSON.stringify({ savedAt: Date.now(), years }));
+        } catch (_) {
+            // Quota/privacy mode should never block startup.
+        }
+    }
+}
 
 function resolveListenerYearContext() {
     const schoolYearState = normalizeSchoolYearState(state.get("schoolYearState"));
-    const activeYearKey =
-        schoolYearState.activeYearKey || CURRENT_SCHOOL_YEAR_KEY;
-    const enforceActiveYearQueries =
-        schoolYearState.enforceActiveYearQueries === true;
+    const activeYearKey = schoolYearState.activeYearKey;
+    const enforceActiveYearQueries = Boolean(activeYearKey);
     return {
         activeYearKey,
         enforceActiveYearQueries,
-        includeUntagged: !enforceActiveYearQueries,
+        includeUntagged: false,
     };
 }
 
@@ -270,9 +359,17 @@ export async function refreshParentPortalData() {
     );
 }
 
-function clearDataListeners() {
+export function clearDataListeners() {
+    listenerSessionId += 1;
+    cancelScheduledRenders();
+    if (window.genderCheckTimeout) {
+        clearTimeout(window.genderCheckTimeout);
+        window.genderCheckTimeout = null;
+    }
     activeListenerUserId = null;
     activeListenerIsSecretary = false;
+    featureListenerStarters.clear();
+    activeDataFeatures.clear();
     state.get("unsubscribeClasses")();
     state.get("unsubscribeStudents")();
     state.get("unsubscribeStudentScores")();
@@ -300,6 +397,16 @@ function clearDataListeners() {
     state.get("unsubscribeCommunicationThreads")();
     state.get("unsubscribeCommunicationMessages")();
     state.get("unsubscribeShopItems")();
+}
+
+if (typeof window !== "undefined" && !window.__GCQ_LISTENER_PAGE_LIFECYCLE__) {
+    window.__GCQ_LISTENER_PAGE_LIFECYCLE__ = true;
+    window.addEventListener("pagehide", clearDataListeners);
+    window.addEventListener("pageshow", (event) => {
+        // A page restored from the back-forward cache has intentionally detached
+        // listeners. Reload once so it receives a fresh, single subscription set.
+        if (event.persisted) window.location.reload();
+    });
 }
 
 export function watchCommunicationThread(threadId) {
@@ -488,6 +595,7 @@ export function setupParentSession(userId, profile, onInitialDataReady) {
 
     state.setUnsubscribeSchoolSettings(
         onSnapshot(schoolSettingsQuery, (docSnapshot) => {
+            state.setSchoolSettingsLoaded(true);
             if (docSnapshot.exists()) {
                 const data = docSnapshot.data();
                 state.setSchoolName(data.schoolName || null);
@@ -518,13 +626,15 @@ export async function setupDataListeners(
     options = {},
 ) {
     const isSecretary = options.role === "secretary";
+    clearDataListeners();
     activeListenerUserId = userId;
     activeListenerIsSecretary = isSecretary;
+    const setupSessionId = listenerSessionId;
     let initialReadyFired = false;
     let classesReady = false;
     let schoolSettingsReady = false;
     let schoolYearReady = false;
-    let specialHeroProgressionReconciled = false;
+    let openYearRegistryReady = false;
 
     // --- Performance helpers ---
     // Returns true only if a tab element is currently visible (not hidden).
@@ -534,87 +644,35 @@ export async function setupDataListeners(
         return !document.getElementById(tabId)?.classList.contains("hidden");
     }
 
-    // Phase 5: Per-student throttle for passive familiar reconciliation.
-    // Avoids firing reconcileFamiliarLifecycle() for every student on initial load.
-    const familiarReconcileLastRun = new Map();
-    const FAMILIAR_RECONCILE_COOLDOWN_MS = 60_000;
-
-    // Phase 6: One-time guard for guild glory migration per session.
-    let gloryMigrationChecked = false;
-
     function maybeFireInitialReady() {
         if (
             typeof onInitialDataReady === "function" &&
             !initialReadyFired &&
             classesReady &&
             schoolSettingsReady &&
-            schoolYearReady
+            schoolYearReady &&
+            openYearRegistryReady
         ) {
             initialReadyFired = true;
             onInitialDataReady();
         }
     }
-    function maybeReconcileSpecialHeroProgression() {
-        if (specialHeroProgressionReconciled) return;
-        if (shouldSkipPostCloseHeroReconcile(state.get("schoolYearState"))) {
-            specialHeroProgressionReconciled = true;
-            return;
-        }
-        if (
-            !state.get("allStudents").length ||
-            !state.get("allStudentScores").length
-        )
-            return;
-        specialHeroProgressionReconciled = true;
-        import("./actions.js")
-            .then((actions) =>
-                actions.reconcileScholarAndNomadProgressFromLogs(),
-            )
-            .catch((error) =>
-                console.warn(
-                    "Special hero progression reconciliation failed:",
-                    error,
-                ),
-            );
-    }
-
-    clearDataListeners();
-
     const publicDataPath = "artifacts/great-class-quest/public/data";
     const schoolYearStateRef = doc(
         db,
         `${publicDataPath}/school_year_state`,
         "current",
     );
-    try {
-        const schoolYearStateSnap = await getDoc(schoolYearStateRef);
-        if (schoolYearStateSnap.exists()) {
-            state.setSchoolYearState(schoolYearStateSnap.data());
-        }
-    } catch (error) {
-        console.warn("Could not preload school year state:", error);
-    }
-    const initialSchoolYearState = normalizeSchoolYearState(
-        state.get("schoolYearState"),
-    );
-    const activeYearKey =
-        initialSchoolYearState.activeYearKey || CURRENT_SCHOOL_YEAR_KEY;
-    const enforceActiveYearQueries =
-        initialSchoolYearState.enforceActiveYearQueries === true;
-    const includeUntagged = !enforceActiveYearQueries;
-
-    const schoolYearsQuery = query(
-        collection(db, `${publicDataPath}/school_years`),
-    );
-
-    state.setUnsubscribeSchoolYearState(
-        onSnapshot(
-            schoolYearStateRef,
-            (snap) => {
+    const initialSchoolYearState = await new Promise((resolve) => {
+        let initialSnapshotPending = true;
+        state.setUnsubscribeSchoolYearState(
+            onSnapshot(
+                schoolYearStateRef,
+                (snap) => {
                 const prevState = normalizeSchoolYearState(
                     state.get("schoolYearState"),
                 );
-                const nextData = snap.exists() ? snap.data() : {};
+                const nextData = snap.exists() ? snap.data() : null;
                 const nextState = normalizeSchoolYearState(nextData);
                 state.setSchoolYearState(nextData);
 
@@ -635,33 +693,55 @@ export async function setupDataListeners(
 
                 schoolYearReady = true;
                 maybeFireInitialReady();
-                if (isTabVisible("about-tab")) renderHomeTab();
+                scheduleHomeRender();
                 const secretaryScreen = document.getElementById("secretary-screen");
                 if (secretaryScreen && !secretaryScreen.classList.contains("hidden")) {
                     maybeRenderSecretaryPortal("admin");
                 }
-            },
-            (error) => {
+                if (initialSnapshotPending) {
+                    initialSnapshotPending = false;
+                    resolve(nextState);
+                }
+                },
+                (error) => {
                 console.error("Error listening to school year state:", error);
                 schoolYearReady = true;
                 maybeFireInitialReady();
-            },
-        ),
-    );
+                if (initialSnapshotPending) {
+                    initialSnapshotPending = false;
+                    resolve(normalizeSchoolYearState(null));
+                }
+                },
+            ),
+        );
+    });
+    if (setupSessionId !== listenerSessionId) return;
 
-    state.setUnsubscribeSchoolYears(
-        onSnapshot(
-            schoolYearsQuery,
-            (snapshot) => {
-                const years = snapshot.docs.map((d) => ({
-                    id: d.id,
-                    ...d.data(),
-                }));
-                state.setAllSchoolYears(years.length ? years : getDefaultSchoolYears());
-            },
-            (error) => console.error("Error listening to school years:", error),
-        ),
-    );
+    const activeYearKey = initialSchoolYearState.activeYearKey;
+    if (!activeYearKey) {
+        const error = new Error(
+            "The active school-year configuration is unavailable. GCQ has kept local data read-only and did not start year-scoped queries.",
+        );
+        error.code = "gcq/school-year-unavailable";
+        if (typeof options.onInitializationError === "function") {
+            options.onInitializationError(error);
+        } else {
+            console.error(error);
+        }
+        return;
+    }
+    // A known active year is mandatory here. Never fall back to collection-wide
+    // startup reads, because that would re-download archived school years.
+    const enforceActiveYearQueries = true;
+    const includeUntagged = false;
+
+    void hydrateOpenSchoolYears(initialSchoolYearState)
+        .catch((error) => console.warn("Could not load active/planned school-year definitions:", error))
+        .finally(() => {
+            if (setupSessionId !== listenerSessionId) return;
+            openYearRegistryReady = true;
+            maybeFireInitialReady();
+        });
 
     // --- Teacher profile/settings doc (holds schoolYearSettings.classEndDates, grandCeremonyHistory, etc.) ---
     // The doc may not exist yet for first-time teachers; treat that as empty settings.
@@ -695,10 +775,6 @@ export async function setupDataListeners(
     const now = new Date();
     const startOfCurrentMonth = new Date(now.getFullYear(), now.getMonth(), 1);
     const startOfMonthString = startOfCurrentMonth.toISOString().split("T")[0];
-
-    const competitionStartDateString = competitionStart
-        .toISOString()
-        .split("T")[0];
 
     // --- Define Queries ---
     const classesQuery = enforceActiveYearQueries
@@ -887,7 +963,7 @@ export async function setupDataListeners(
                     renderFamiliarOptionsUi();
                 }
                 updateCeremonyStatus();
-                renderHomeTab(); // Always update — home is the default active tab
+                scheduleHomeRender();
                 if (isSecretary) {
                     maybeRenderSecretaryPortal("school");
                     maybeRenderSecretaryPortal("home");
@@ -914,8 +990,6 @@ export async function setupDataListeners(
                 state.setAllStudents(
                     allStudents.sort((a, b) => a.name.localeCompare(b.name)),
                 );
-                maybeReconcileSpecialHeroProgression();
-
                 const guildsTab = document.getElementById("guilds-tab");
                 if (guildsTab && !guildsTab.classList.contains("hidden")) {
                     import("../ui/tabs/guilds.js").then((m) =>
@@ -946,20 +1020,11 @@ export async function setupDataListeners(
                     renderStarManagerStudentSelect();
                     renderFamiliarOptionsUi();
                 }
-                renderHomeTab(); // Always update — home is the default active tab
+                scheduleHomeRender();
                 if (isSecretary) {
                     maybeRenderSecretaryPortal("school");
                     maybeRenderSecretaryPortal("home");
                 }
-                // --- NEW: Check for missing genders in background ---
-                // Debounce this slightly so it doesn't fire while typing a new name
-                if (window.genderCheckTimeout)
-                    clearTimeout(window.genderCheckTimeout);
-                window.genderCheckTimeout = setTimeout(() => {
-                    import("../db/actions.js").then((a) =>
-                        a.resolveMissingGenders(),
-                    );
-                }, 3000); // Wait 3 seconds after data loads
             },
             (error) => console.error("Error listening to students:", error),
         ),
@@ -982,28 +1047,10 @@ export async function setupDataListeners(
                         }),
                     );
                 state.setAllStudentScores(allStudentScores);
-                maybeReconcileSpecialHeroProgression();
-
                 snapshot.docChanges().forEach((change) => {
                     if (change.type === "added" || change.type === "modified") {
                         const scoreData = change.doc.data();
                         const studentId = change.doc.id;
-
-                        if (
-                            scoreData.lastMonthlyResetDate !== currentMonthStart
-                        ) {
-                            // Only reset MY students — writing sub-collections on other teachers'
-                            // students causes Firebase 403 permission-denied errors.
-                            const student = state
-                                .get("allStudents")
-                                .find((s) => s.id === studentId);
-                            if (student?.createdBy?.uid === userId) {
-                                checkAndResetMonthlyStars(
-                                    studentId,
-                                    currentMonthStart,
-                                );
-                            }
-                        }
 
                         const newMonthly = scoreData.monthlyStars || 0;
                         const newTotal = scoreData.totalStars || 0;
@@ -1077,39 +1124,6 @@ export async function setupDataListeners(
                             }
                         }
 
-                        const ownerUid =
-                            scoreData.createdBy?.uid ||
-                            state
-                                .get("allStudents")
-                                .find((s) => s.id === studentId)?.createdBy
-                                ?.uid;
-                        if (
-                            ownerUid === userId &&
-                            shouldPassivelyReconcileFamiliar(scoreData)
-                        ) {
-                            // Throttle: only reconcile each student's familiar once per minute to avoid
-                            // firing for every student simultaneously on initial load.
-                            const lastRun =
-                                familiarReconcileLastRun.get(studentId) || 0;
-                            if (
-                                Date.now() - lastRun >=
-                                FAMILIAR_RECONCILE_COOLDOWN_MS
-                            ) {
-                                familiarReconcileLastRun.set(
-                                    studentId,
-                                    Date.now(),
-                                );
-                                reconcileFamiliarLifecycle(studentId, {
-                                    announce: false,
-                                    source: "listener-passive",
-                                }).catch((e) =>
-                                    console.warn(
-                                        "Passive familiar reconciliation failed:",
-                                        e,
-                                    ),
-                                );
-                            }
-                        }
                     }
                 });
 
@@ -1145,7 +1159,7 @@ export async function setupDataListeners(
                 // Update boon buttons in award tab when leaderboard changes
                 updateAwardBoonButtons(state.get("globalSelectedClassId"));
 
-                import("../features/home.js").then((m) => m.renderHomeTab());
+                scheduleHomeRender();
             },
             (error) =>
                 console.error("Error listening to student_scores:", error),
@@ -1198,7 +1212,7 @@ export async function setupDataListeners(
 
                 state.set("todaysStars", currentTodaysStars);
                 if (isAdventureLogVisible) renderAdventureLogTab();
-                renderHomeTab(); // Update home tab (today's stars count)
+                scheduleHomeRender();
             },
             (error) => console.error("Error listening to today_stars:", error),
         ),
@@ -1292,7 +1306,7 @@ export async function setupDataListeners(
         ),
     );
 
-    state.setUnsubscribeWrittenScores(
+    registerFeatureListener("assessments", () => state.setUnsubscribeWrittenScores(
         onSnapshot(
             writtenScoresQuery,
             (snapshot) => {
@@ -1325,7 +1339,7 @@ export async function setupDataListeners(
                         )?.dataset.view || "test";
                     renderTrialHistoryContent(classId, activeView);
                 }
-                renderHomeTab(); // Update home tab (last test info)
+                scheduleHomeRender();
                 if (isSecretary) {
                     maybeRenderSecretaryPortal("grades");
                     maybeRenderSecretaryPortal("home");
@@ -1335,9 +1349,9 @@ export async function setupDataListeners(
                 console.error("Error listening to written scores:", error);
             },
         ),
-    );
+    ));
 
-    state.setUnsubscribeAttendance(
+    registerFeatureListener("attendance", () => state.setUnsubscribeAttendance(
         onSnapshot(
             attendanceQuery,
             (snapshot) => {
@@ -1382,7 +1396,7 @@ export async function setupDataListeners(
             },
             (error) => console.error("Error listening to attendance:", error),
         ),
-    );
+    ));
 
     state.setUnsubscribeScheduleOverrides(
         onSnapshot(
@@ -1399,7 +1413,7 @@ export async function setupDataListeners(
                 );
                 renderCalendarTab();
                 updateCeremonyStatus();
-                renderHomeTab(); // Update home tab (schedule changes)
+                scheduleHomeRender();
             },
             (error) =>
                 console.error("Error listening to schedule overrides:", error),
@@ -1422,7 +1436,7 @@ export async function setupDataListeners(
                 // Dynamically import to avoid circular dependency
                 const { renderActiveBounties } = await import("../ui/core.js");
                 renderActiveBounties();
-                renderHomeTab();
+                scheduleHomeRender();
             },
             (error) =>
                 console.error("Error listening to quest bounties:", error),
@@ -1431,6 +1445,7 @@ export async function setupDataListeners(
 
     state.setUnsubscribeSchoolSettings(
         onSnapshot(schoolSettingsQuery, async (docSnapshot) => {
+            state.setSchoolSettingsLoaded(true);
             if (docSnapshot.exists()) {
                 const data = docSnapshot.data();
                 state.setSchoolHolidayRanges(data.ranges || []);
@@ -1471,10 +1486,11 @@ export async function setupDataListeners(
                 const { renderHolidayList } = await import("../ui/core.js");
                 renderHolidayList();
             }
-            renderHomeTab(); // Update home tab (holidays affect monthly stars calculation context)
+            scheduleHomeRender();
         }),
     );
 
+    registerFeatureListener("guilds", () => {
     state.setUnsubscribeGuildScores(
         onSnapshot(
             guildScoresQuery,
@@ -1484,17 +1500,6 @@ export async function setupDataListeners(
                     allGuildScores[d.id] = { id: d.id, ...d.data() };
                 });
                 state.setAllGuildScores(allGuildScores);
-                // One-time Glory migration per session (guard prevents repeat on every snapshot)
-                if (!gloryMigrationChecked) {
-                    gloryMigrationChecked = true;
-                    import("../features/guildScoring.js").then((m) =>
-                        m.migrateGuildGloryIfNeeded(),
-                    );
-                }
-                // Check weekly reset
-                import("../features/guildScoring.js").then((m) =>
-                    m.checkAndPerformWeeklyGloryReset(),
-                );
                 if (isTabVisible("student-leaderboard-tab"))
                     renderStudentLeaderboardTab();
                 const guildsTab = document.getElementById("guilds-tab");
@@ -1557,31 +1562,9 @@ export async function setupDataListeners(
                 console.error("Error listening to fortune_wheel_log:", error),
         ),
     );
+    });
 
     if (isSecretary) {
         subscribeCommunicationThreads({ userId, isSecretary: true });
-    }
-}
-
-export async function archivePreviousDayStars(userId, todayDateString) {
-    const publicDataPath = "artifacts/great-class-quest/public/data";
-    const allStarsQuery = query(
-        collection(db, `${publicDataPath}/today_stars`),
-        where("teacherId", "==", userId),
-    );
-    const snapshot = await getDocs(allStarsQuery);
-    const oldDocs = snapshot.docs.filter(
-        (doc) => doc.data().date !== todayDateString,
-    );
-    if (oldDocs.length === 0) return;
-    try {
-        const batch = writeBatch(db);
-        oldDocs.forEach((doc) => batch.delete(doc.ref));
-        await batch.commit();
-        console.log(
-            `Archived and deleted ${oldDocs.length} old daily entries.`,
-        );
-    } catch (error) {
-        console.error("Error archiving stars:", error);
     }
 }

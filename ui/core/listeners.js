@@ -2,9 +2,7 @@
 
 // --- IMPORTS ---
 import * as state from '../../state.js';
-import { db, auth } from '../../firebase.js';
-import { signOut } from 'https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js';
-import { doc, collection, query, where, getDocs, runTransaction, serverTimestamp } from 'https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js';
+import { db, auth, signOut, doc, collection, query, where, getDocs, runTransaction, serverTimestamp } from '../../firebase.js';
 import { handleAddHolidayRange, handleDeleteHolidayRange } from '../../db/actions.js';
 import { setupHomeListeners } from '../../features/home.js';
 import { wireHeaderClassSelector } from '../headerClassSelector.js';
@@ -22,6 +20,7 @@ import * as avatar from '../../features/avatar.js';
 import * as ceremony from '../../features/ceremony.js';
 import * as utils from '../../utils.js';
 import { playSound } from '../../audio.js';
+import { clearLocalAppData, getDeviceCacheChoice } from '../../utils/deviceCache.js';
 import { showToast, triggerAwardEffects, triggerDynamicPraise, showWelcomeBackMessage, createFloatingHearts } from '../effects.js';
 import { updateShopStudentDisplay } from './shop.js';
 import { confirmWord, handleWordInputChange, updateStudentCardAttendanceState } from './misc.js';
@@ -281,6 +280,7 @@ export function setupUIListeners() {
     document.getElementById('logout-btn').addEventListener('click', async () => {
         playSound('click');
         await signOut(auth);
+        if (getDeviceCacheChoice() === 'shared') clearLocalAppData();
     });
 
     const headerSettingsBtn = document.getElementById('header-settings-btn');
@@ -782,7 +782,6 @@ export function setupUIListeners() {
                     stars = 2.0;
                 }
 
-                console.log(`Student missed ${missedLessons} lessons. Awarding ${stars} stars.`);
 
                 try {
                     const publicDataPath = "artifacts/great-class-quest/public/data";

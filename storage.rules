@@ -14,47 +14,88 @@ service firebase.storage {
       return signedIn() && firestore.exists(profilePath());
     }
 
+    function currentProfile() {
+      return hasProfile() ? firestore.get(profilePath()).data : null;
+    }
+
     function currentRole() {
-      return hasProfile() ? firestore.get(profilePath()).data.role : 'teacher';
+      return hasProfile() ? currentProfile().role : null;
+    }
+
+    function hasActiveProfile() {
+      return hasProfile() &&
+        currentProfile().status == 'active' &&
+        currentRole() in ['teacher', 'secretary', 'parent'];
     }
 
     function isStaff() {
-      return signedIn() && (currentRole() == 'teacher' || currentRole() == 'secretary');
+      return hasActiveProfile() && (currentRole() == 'teacher' || currentRole() == 'secretary');
+    }
+
+    function isSecretaryOrAdmin() {
+      return hasActiveProfile() && (currentRole() == 'secretary' || currentProfile().schoolAdmin == true);
+    }
+
+    function canManageStudent(studentId) {
+      let student = firestore.get(/databases/(default)/documents/artifacts/great-class-quest/public/data/students/$(studentId)).data;
+      return isSecretaryOrAdmin() || (isStaff() && student.createdBy.uid == request.auth.uid);
+    }
+
+    function canManageClass(classId) {
+      let classData = firestore.get(/databases/(default)/documents/artifacts/great-class-quest/public/data/classes/$(classId)).data;
+      return isSecretaryOrAdmin() || (isStaff() && classData.createdBy.uid == request.auth.uid);
+    }
+
+    function isValidImageWrite() {
+      return request.resource == null || (
+        request.resource.size <= 1024 * 1024 &&
+        request.resource.contentType.matches('image/.*')
+      );
     }
 
     match /adventure_logs/{userId}/{allPaths=**} {
-      allow read: if signedIn();
-      allow write: if signedIn() && (request.auth.uid == userId || currentRole() == 'secretary');
+      allow read: if hasActiveProfile();
+      allow write: if hasActiveProfile() && isValidImageWrite() && (request.auth.uid == userId || currentRole() == 'secretary');
     }
 
-    match /avatars/{allPaths=**} {
-      allow read: if signedIn();
-      allow write: if isStaff();
+    match /avatars/{studentId}/{fileName} {
+      allow read: if hasActiveProfile();
+      allow write: if canManageStudent(studentId) && isValidImageWrite();
     }
 
-    match /story_images/{allPaths=**} {
-      allow read: if signedIn();
-      allow write: if isStaff();
+    match /avatars/{legacyFileName} {
+      allow read: if hasActiveProfile();
+      allow write: if false;
+    }
+
+    match /story_images/{classId}/{fileName} {
+      allow read: if hasActiveProfile();
+      allow write: if canManageClass(classId) && isValidImageWrite();
     }
 
     match /pet_images/{allPaths=**} {
-      allow read: if signedIn();
-      allow write: if isStaff();
+      allow read: if hasActiveProfile();
+      allow write: if isStaff() && isValidImageWrite();
     }
 
-    match /shop_items/{allPaths=**} {
-      allow read: if signedIn();
-      allow write: if isStaff();
+    match /shop_items/{userId}/{allPaths=**} {
+      allow read: if hasActiveProfile();
+      allow write: if isValidImageWrite() && isStaff() && (request.auth.uid == userId || isSecretaryOrAdmin());
     }
 
-    match /familiars/{allPaths=**} {
-      allow read: if signedIn();
-      allow write: if isStaff();
+    match /familiars/{studentId}/{fileName} {
+      allow read: if hasActiveProfile();
+      allow write: if canManageStudent(studentId) && isValidImageWrite();
     }
 
-    match /quiz_images/{allPaths=**} {
-      allow read: if signedIn();
-      allow write: if isStaff();
+    match /familiars/{legacyFileName} {
+      allow read: if hasActiveProfile();
+      allow write: if false;
+    }
+
+    match /quiz_images/{userId}/{fileName} {
+      allow read: if hasActiveProfile();
+      allow write: if isValidImageWrite() && isStaff() && (request.auth.uid == userId || isSecretaryOrAdmin());
     }
 
     match /{allPaths=**} {

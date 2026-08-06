@@ -4,28 +4,153 @@ import { injectHTML } from './templates/index.js';
 import { stageLoadingPersonalization, revealStagedLoadingPersonalization } from './templates/loading.js';
 injectHTML();
 
-import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-import { db, auth } from './firebase.js';
+import {
+    auth,
+    createUserWithEmailAndPassword,
+    signInWithEmailAndPassword,
+    onAuthStateChanged,
+    updateProfile,
+    signOut
+} from './firebaseAuth.js';
 import { firebaseConfig, BILLING_BASE_URL, BILLING_SCHOOL_ID } from './constants.js';
-import * as state from './state.js';
-import { setupDataListeners } from './db/listeners.js';
-import { setupParentSession, watchCommunicationThread, refreshParentPortalData } from './db/listeners.js';
-import { setupUIListeners } from './ui/core.js';
-import { ensureAudioReady } from './audio.js';
 import { updateDateTime, getTodayDateString, fetchSolarCycle } from './utils.js';
-import { archivePreviousDayStars } from './db/listeners.js';
-import { toggleWallpaperMode } from './ui/wallpaper.js';
-import { initializeHeaderQuote, maybeAutoShowGuideForTeacher } from './features/home.js';
 import * as utils from './utils.js';
-import { loadSubscription, hasActiveSubscription, canUseFeature, getTier, getSubscriptionSnapshot, setSchoolGraceConfig } from './utils/subscription.js';
-import { showSetupScreen } from './features/schoolSetup.js';
-import { loadTeacherJourneyState, markTeacherOnboardingComplete, startSchoolGracePeriod } from './features/teacherJourney.js';
-import { requestCheckoutSession } from './utils/billingCheckout.js';
-import { ensureTeacherUserProfile, loadUserProfile, touchCurrentUserProfile } from './db/userProfiles.js';
-import { claimFoundingSchoolAdmin } from './utils/adminRuntime.js';
 import { buildSyntheticRoleEmail, getRoleFromSyntheticEmail, getRoleLabel, getRoleLoginDescription, isRoleLogin, normalizeUsername, ROLE_PARENT, ROLE_SECRETARY, ROLE_TEACHER } from './utils/roles.js';
-import { renderParentPortal, activateParentTab, wireParentPortalListeners } from './features/parentPortal.js';
-import { renderSecretaryConsole, activateSecretaryTab, wireSecretaryConsoleListeners } from './features/secretaryConsole.js';
+import { clearLocalAppData, getDeviceCacheChoice, offerDeviceCacheChoice } from './utils/deviceCache.js';
+import { recordModuleLoaded } from './utils/runtimeMetrics.js';
+
+let state;
+let setupDataListeners;
+let setupParentSession;
+let watchCommunicationThread;
+let refreshParentPortalData;
+let setupUIListeners;
+let toggleWallpaperMode;
+let initializeHeaderQuote;
+let maybeAutoShowGuideForTeacher;
+let loadSubscription;
+let hasActiveSubscription;
+let canUseFeature;
+let getTier;
+let getSubscriptionSnapshot;
+let setSchoolGraceConfig;
+let showSetupScreen;
+let loadTeacherJourneyState;
+let startSchoolGracePeriod;
+let requestCheckoutSession;
+let ensureTeacherUserProfile;
+let loadUserProfile;
+let renderParentPortal;
+let activateParentTab;
+let wireParentPortalListeners;
+let renderSecretaryConsole;
+let activateSecretaryTab;
+let wireSecretaryConsoleListeners;
+let authenticatedRuntimePromise = null;
+let audioModulePromise = null;
+let authenticatedUiWired = false;
+let authSessionId = 0;
+let pendingSignupBootstrap = null;
+let signupRecoveryContext = null;
+
+function showSignupProfileRecovery(user, displayName, originalError) {
+    const authScreen = document.getElementById('auth-screen');
+    const appScreen = document.getElementById('app-screen');
+    const loadingScreen = document.getElementById('loading-screen');
+    appScreen?.classList.add('hidden');
+    loadingScreen?.classList.add('hidden');
+    authScreen?.classList.remove('hidden');
+
+    document.getElementById('gcq-signup-profile-recovery')?.remove();
+    const panel = document.createElement('section');
+    panel.id = 'gcq-signup-profile-recovery';
+    panel.className = 'mx-auto mt-5 max-w-md rounded-3xl border border-amber-200 bg-amber-50 p-5 text-center shadow-lg';
+    panel.innerHTML = `
+        <h2 class="font-title text-xl text-amber-800">Finish teacher account setup</h2>
+        <p class="mt-2 text-sm text-amber-900">Your login was created, but the required teacher profile could not be saved. No school data is available until this step succeeds.</p>
+        <div class="mt-4 flex flex-wrap justify-center gap-3">
+            <button type="button" data-retry-profile class="rounded-xl bg-amber-700 px-4 py-2.5 font-bold text-white hover:bg-amber-800 focus:outline-none focus:ring-4 focus:ring-amber-200">Retry safely</button>
+            <button type="button" data-cancel-profile class="rounded-xl border border-amber-300 bg-white px-4 py-2.5 font-bold text-amber-800 hover:bg-amber-100">Sign out</button>
+        </div>`;
+    authScreen?.appendChild(panel);
+
+    panel.querySelector('[data-retry-profile]')?.addEventListener('click', async (event) => {
+        const button = event.currentTarget;
+        button.disabled = true;
+        button.textContent = 'Retrying…';
+        try {
+            if (displayName && user.displayName !== displayName) await updateProfile(user, { displayName });
+            await loadAuthenticatedRuntime();
+            const profile = await ensureTeacherUserProfile(user);
+            if (!profile || profile.role !== ROLE_TEACHER || profile.status !== 'active') {
+                throw new Error('The fixed teacher profile could not be verified.');
+            }
+            signupRecoveryContext = null;
+            window.location.reload();
+        } catch (error) {
+            console.error('Teacher profile recovery failed:', error);
+            button.disabled = false;
+            button.textContent = 'Retry safely';
+            const errorEl = document.getElementById('auth-error');
+            if (errorEl) errorEl.innerText = error?.message || 'Could not finish teacher account setup.';
+        }
+    });
+    panel.querySelector('[data-cancel-profile]')?.addEventListener('click', async () => {
+        signupRecoveryContext = null;
+        await signOut(auth);
+        panel.remove();
+    });
+    console.error('Teacher profile bootstrap failed:', originalError);
+}
+
+async function loadAuthenticatedRuntime() {
+    if (authenticatedRuntimePromise) return authenticatedRuntimePromise;
+    authenticatedRuntimePromise = Promise.all([
+        import('./state.js'),
+        import('./db/listeners.js'),
+        import('./ui/core.js'),
+        import('./ui/wallpaper.js'),
+        import('./features/home.js'),
+        import('./utils/subscription.js'),
+        import('./features/schoolSetup.js'),
+        import('./features/teacherJourney.js'),
+        import('./utils/billingCheckout.js'),
+        import('./db/userProfiles.js'),
+        import('./features/parentPortal.js'),
+        import('./features/secretaryConsole.js')
+    ]).then(([
+        stateModule,
+        listenerModule,
+        coreModule,
+        wallpaperModule,
+        homeModule,
+        subscriptionModule,
+        schoolSetupModule,
+        teacherJourneyModule,
+        billingModule,
+        userProfilesModule,
+        parentPortalModule,
+        secretaryConsoleModule
+    ]) => {
+        state = stateModule;
+        ({ setupDataListeners, setupParentSession, watchCommunicationThread, refreshParentPortalData } = listenerModule);
+        ({ setupUIListeners } = coreModule);
+        ({ toggleWallpaperMode } = wallpaperModule);
+        ({ initializeHeaderQuote, maybeAutoShowGuideForTeacher } = homeModule);
+        ({ loadSubscription, hasActiveSubscription, canUseFeature, getTier, getSubscriptionSnapshot, setSchoolGraceConfig } = subscriptionModule);
+        ({ showSetupScreen } = schoolSetupModule);
+        ({ loadTeacherJourneyState, startSchoolGracePeriod } = teacherJourneyModule);
+        ({ requestCheckoutSession } = billingModule);
+        ({ ensureTeacherUserProfile, loadUserProfile } = userProfilesModule);
+        ({ renderParentPortal, activateParentTab, wireParentPortalListeners } = parentPortalModule);
+        ({ renderSecretaryConsole, activateSecretaryTab, wireSecretaryConsoleListeners } = secretaryConsoleModule);
+        recordModuleLoaded('authenticated-runtime');
+    }).catch((error) => {
+        authenticatedRuntimePromise = null;
+        throw error;
+    });
+    return authenticatedRuntimePromise;
+}
 
 function updateTierLabel() {
     const tierEl = document.getElementById('app-tier-label');
@@ -37,18 +162,10 @@ function updateTierLabel() {
 }
 window.addEventListener('gcq-subscription-updated', updateTierLabel);
 
-import {
-    createUserWithEmailAndPassword,
-    signInWithEmailAndPassword,
-    onAuthStateChanged,
-    updateProfile,
-    signOut
-} from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-
 let activeAuthRole = ROLE_TEACHER;
 let activeAuthMode = 'login';
 
-const HOME_READY_FALLBACK_MS = 4500;
+const INITIALIZATION_TIMEOUT_MS = 8000;
 let subscribeGraceTicker = null;
 
 function clearSubscribeGraceTicker() {
@@ -124,15 +241,14 @@ function animateLoadingScreenOut(loadingScreen) {
 
     loadingScreen.dataset.exiting = 'true';
     const revealedPersonalization = revealStagedLoadingPersonalization();
-    const exitDelayMs = revealedPersonalization ? 1350 : 0;
 
     if (revealedPersonalization) {
         loadingScreen.classList.add('loading-final-moment');
     }
 
-    setTimeout(() => {
+    requestAnimationFrame(() => {
         loadingScreen.classList.add('loading-screen-exit');
-    }, exitDelayMs);
+    });
 
     const finishExit = () => {
         loadingScreen.classList.add('opacity-0', 'pointer-events-none', 'hidden');
@@ -148,17 +264,34 @@ function animateLoadingScreenOut(loadingScreen) {
     setTimeout(() => {
         loadingScreen.removeEventListener('animationend', onExitAnimationEnd);
         finishExit();
-    }, 1100 + exitDelayMs);
+    }, 1100);
+}
+
+function showInitializationRecovery(error) {
+    const loadingScreen = document.getElementById('loading-screen');
+    if (!loadingScreen || document.getElementById('gcq-initialization-recovery')) return;
+    const recovery = document.createElement('div');
+    recovery.id = 'gcq-initialization-recovery';
+    recovery.className = 'absolute inset-x-4 bottom-6 z-[30] mx-auto max-w-xl rounded-3xl border border-rose-200 bg-white/95 p-5 text-center shadow-2xl backdrop-blur';
+    recovery.innerHTML = `
+        <h2 class="font-title text-xl text-rose-700">GCQ could not finish loading</h2>
+        <p class="mt-2 text-sm text-slate-600">Your data was not changed. Check the connection and try again; year-scoped writes remain blocked until configuration is available.</p>
+        <button type="button" class="mt-4 rounded-xl bg-rose-600 px-5 py-2.5 font-bold text-white hover:bg-rose-700 focus:outline-none focus:ring-4 focus:ring-rose-200">Retry safely</button>`;
+    recovery.querySelector('button')?.addEventListener('click', () => window.location.reload());
+    loadingScreen.appendChild(recovery);
+    console.error('GCQ initialization failed:', error);
 }
 
 function dismissLoadingAfterHomeIsReady(loadingScreen) {
     if (!loadingScreen) return;
 
     let isSettled = false;
+    let timeoutId = null;
     const settle = () => {
         if (isSettled) return;
         isSettled = true;
         document.removeEventListener('home:rendered', onHomeRendered);
+        clearTimeout(timeoutId);
         animateLoadingScreenOut(loadingScreen);
     };
 
@@ -167,11 +300,16 @@ function dismissLoadingAfterHomeIsReady(loadingScreen) {
     };
 
     document.addEventListener('home:rendered', onHomeRendered, { once: true });
-    setTimeout(settle, HOME_READY_FALLBACK_MS);
+    timeoutId = setTimeout(() => {
+        if (!isSettled) showInitializationRecovery(new Error('Home readiness timed out'));
+    }, INITIALIZATION_TIMEOUT_MS);
 }
 
 function onFirstUserGesture() {
-    ensureAudioReady();
+    audioModulePromise ??= import('./audio.js');
+    audioModulePromise
+        .then(({ ensureAudioReady }) => ensureAudioReady())
+        .catch((error) => console.warn('Audio initialization was deferred:', error));
 }
 
 function setAuthSubmitLoading(mode, isLoading) {
@@ -212,6 +350,42 @@ function hideAllExperienceScreens() {
 
 function setSecretaryReturnButtonVisible(isVisible) {
     document.getElementById('secretary-console-btn')?.classList.toggle('hidden', !isVisible);
+}
+
+async function logoutWithLocalCleanup() {
+    await signOut(auth);
+    if (getDeviceCacheChoice() === 'shared') clearLocalAppData();
+}
+
+function ensureAuthenticatedUiWired() {
+    if (authenticatedUiWired) return;
+    authenticatedUiWired = true;
+    setupUIListeners();
+    wireParentPortalListeners({
+        onLogout: logoutWithLocalCleanup,
+        onRefresh: async () => {
+            await refreshParentPortalData();
+            renderParentPortal();
+        },
+        onSelectThread: (threadId) => watchCommunicationThread(threadId)
+    });
+    wireSecretaryConsoleListeners({
+        onLogout: logoutWithLocalCleanup,
+        onOpenTeacherView: async () => {
+            document.getElementById('secretary-screen')?.classList.add('hidden');
+            document.getElementById('app-screen')?.classList.remove('hidden');
+            const tabs = await import('./ui/tabs.js');
+            await tabs.showTab('about-tab');
+        },
+        onSelectThread: (threadId) => watchCommunicationThread(threadId)
+    });
+    document.getElementById('secretary-console-btn')?.addEventListener('click', () => {
+        document.getElementById('app-screen')?.classList.add('hidden');
+        document.getElementById('secretary-screen')?.classList.remove('hidden');
+        setSecretaryReturnButtonVisible(true);
+        activateSecretaryTab('home');
+        renderSecretaryConsole();
+    });
 }
 
 async function openMainAppForTeacher({ user, loadingScreen, authScreen, appScreen }) {
@@ -390,7 +564,6 @@ async function routeAuthenticatedTeacher({ user, loadingScreen, authScreen, appS
     let needsTeacherSetup = teacherJourney.onboardingCompleted !== true;
 
     if (needsTeacherSetup && ownClasses.length > 0) {
-        await markTeacherOnboardingComplete(user, { migratedFromExistingTeacherData: true });
         needsTeacherSetup = false;
     }
 
@@ -409,23 +582,6 @@ async function routeAuthenticatedTeacher({ user, loadingScreen, authScreen, appS
             }
         });
         return;
-    }
-
-    if (!state.get('isSchoolAdmin')) {
-        try {
-            const adminClaim = await claimFoundingSchoolAdmin();
-            if (adminClaim?.schoolAdmin) {
-                state.setIsSchoolAdmin(true);
-                state.setCurrentUserProfile({
-                    ...(state.get('currentUserProfile') || {}),
-                    schoolAdmin: true
-                });
-            }
-        } catch (error) {
-            if (error?.code !== 'functions/failed-precondition' && error?.code !== 'failed-precondition') {
-                console.warn('Could not auto-claim school admin:', error);
-            }
-        }
     }
 
     const isFirstTeacher = allSchoolClasses.length === 0;
@@ -543,9 +699,6 @@ function setAuthMode(mode) {
 }
 
 function setupAuthListeners() {
-    document.body.addEventListener('mousedown', onFirstUserGesture, { once: true });
-    document.body.addEventListener('touchstart', onFirstUserGesture, { once: true });
-
     document.querySelectorAll('.auth-role-btn').forEach((btn) => {
         btn.addEventListener('click', () => setAuthRole(btn.dataset.authRole || ROLE_TEACHER));
     });
@@ -579,77 +732,151 @@ function setupAuthListeners() {
         const email = document.getElementById('signup-email').value;
         const password = document.getElementById('signup-password').value;
         const errorEl = document.getElementById('auth-error');
+        let resolveBootstrap;
+        const bootstrapPromise = new Promise((resolve) => {
+            resolveBootstrap = resolve;
+        });
+        pendingSignupBootstrap = bootstrapPromise;
+        let createdUser = null;
         try {
             beginAuthSubmit('signup');
             errorEl.innerText = '';
             const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+            createdUser = userCredential.user;
             await updateProfile(userCredential.user, { displayName: name });
-            state.set('currentTeacherName', name);
+            await loadAuthenticatedRuntime();
+            const profile = await ensureTeacherUserProfile(userCredential.user);
+            resolveBootstrap(profile);
         } catch (error) {
+            resolveBootstrap(null);
+            pendingSignupBootstrap = null;
             resetAuthSubmitState();
             errorEl.innerText = error.message.replace('Firebase: ', '');
+            if (createdUser && auth.currentUser?.uid === createdUser.uid) {
+                signupRecoveryContext = { uid: createdUser.uid, displayName: name, error };
+                showSignupProfileRecovery(createdUser, name, error);
+            }
         }
     });
 
     onAuthStateChanged(auth, async (user) => {
+        const sessionId = ++authSessionId;
         const loadingScreen = document.getElementById('loading-screen');
         const authScreen = document.getElementById('auth-screen');
         const appScreen = document.getElementById('app-screen');
 
         if (user) {
-            state.set('currentUserId', user.uid);
-            state.set('currentTeacherName', user.displayName || user.email || '');
+            try {
+                await loadAuthenticatedRuntime();
+                if (sessionId !== authSessionId || auth.currentUser?.uid !== user.uid) return;
+                ensureAuthenticatedUiWired();
+                state.set('currentUserId', user.uid);
+                state.set('currentTeacherName', user.displayName || user.email || '');
 
-            if (document.getElementById('teacher-name-input')) {
-                document.getElementById('teacher-name-input').value = user.displayName || '';
-            }
+                if (document.getElementById('teacher-name-input')) {
+                    document.getElementById('teacher-name-input').value = user.displayName || '';
+                }
 
-            const newDate = getTodayDateString();
-            // Fire-and-forget: archival only deletes stale docs — no effect on current session.
-            // Running it non-blocking avoids delaying setupDataListeners() by 200–700ms.
-            archivePreviousDayStars(user.uid, newDate).catch(console.error);
-            if (newDate !== state.get('todaysStarsDate')) {
-                state.set('todaysStars', {});
-                state.set('todaysStarsDate', newDate);
-            }
+                const newDate = getTodayDateString();
+                if (newDate !== state.get('todaysStarsDate')) {
+                    state.set('todaysStars', {});
+                    state.set('todaysStarsDate', newDate);
+                }
 
-            await loadSubscription();
-            initializeHeaderQuote();
-            let profile = await loadUserProfile(user);
-            if (!profile) {
-                const inferredRole = getRoleFromSyntheticEmail(user.email);
-                if (inferredRole) {
+                const signupBootstrap = pendingSignupBootstrap;
+                let profile;
+                if (signupBootstrap) {
+                    // Security rules intentionally deny configuration reads until
+                    // the fixed-role signup profile exists.
+                    profile = await signupBootstrap;
+                    if (profile) await loadSubscription();
+                } else {
+                    const [subscriptionResult, profileResult] = await Promise.allSettled([
+                        loadSubscription(),
+                        loadUserProfile(user)
+                    ]);
+                    if (profileResult.status === 'rejected') throw profileResult.reason;
+                    profile = profileResult.value;
+                    if (profile && subscriptionResult.status === 'rejected') {
+                        throw subscriptionResult.reason;
+                    }
+                }
+                if (signupBootstrap === pendingSignupBootstrap) pendingSignupBootstrap = null;
+                if (sessionId !== authSessionId || auth.currentUser?.uid !== user.uid) return;
+
+                if (!profile && signupRecoveryContext?.uid === user.uid) {
+                    showSignupProfileRecovery(user, signupRecoveryContext.displayName, signupRecoveryContext.error);
+                    return;
+                }
+
+                const validRoles = new Set([ROLE_TEACHER, ROLE_SECRETARY, ROLE_PARENT]);
+                if (!profile || profile.status !== 'active' || !validRoles.has(profile.role)) {
+                    const inferredRole = getRoleFromSyntheticEmail(user.email);
+                    const message = !profile
+                        ? (inferredRole
+                            ? `This ${getRoleLabel(inferredRole).toLowerCase()} account is missing its access profile. Recreate it from the teacher access screen.`
+                            : 'This account is missing its required access profile. No school data was loaded; contact the school administrator.')
+                        : 'This account is inactive or has an invalid role. No school data was loaded.';
                     resetAuthSubmitState();
-                    document.getElementById('auth-error').innerText = `This ${getRoleLabel(inferredRole).toLowerCase()} account is missing its access profile. Recreate it from the teacher access screen.`;
+                    document.getElementById('auth-error').innerText = message;
                     await signOut(auth);
                     return;
                 }
-                profile = await ensureTeacherUserProfile(user);
-            }
-            await touchCurrentUserProfile(user);
-            state.setCurrentUserProfile(profile);
-            state.setCurrentUserRole(profile.role || ROLE_TEACHER);
-            state.setIsSchoolAdmin(profile.schoolAdmin === true);
-            state.setCurrentTeacherName(profile.displayName || user.displayName || user.email || '');
-            stageLoadingPersonalization(profile.displayName || user.displayName || '', profile.role || ROLE_TEACHER);
 
-            if ((profile.role || ROLE_TEACHER) === ROLE_PARENT) {
-                setupParentSession(user.uid, profile, async () => {
-                    await routeAuthenticatedParent({ loadingScreen, authScreen });
+                if (window.__GCQ_APP_CHECK_SITE_KEY__) {
+                    void import('./firebaseAppCheck.js')
+                        .then(({ getAppCheckInstance }) => getAppCheckInstance())
+                        .catch((error) => console.warn('App Check initialization is temporarily unavailable:', error?.message || error));
+                }
+                ['app-screen', 'parent-screen', 'secretary-screen'].forEach((screenId) => {
+                    document.getElementById(screenId)?.addEventListener('pointerdown', onFirstUserGesture, { once: true });
                 });
-            } else {
-                setupDataListeners(user.uid, newDate, async function onInitialDataReady() {
-                    if ((profile.role || ROLE_TEACHER) === ROLE_SECRETARY) {
-                        await routeAuthenticatedSecretary({ user, loadingScreen, authScreen });
-                    } else {
-                        await routeAuthenticatedTeacher({ user, loadingScreen, authScreen, appScreen });
-                    }
-                }, { role: profile.role || ROLE_TEACHER, profile });
+
+                initializeHeaderQuote();
+                state.setCurrentUserProfile(profile);
+                state.setCurrentUserRole(profile.role);
+                state.setIsSchoolAdmin(profile.schoolAdmin === true);
+                state.setCurrentTeacherName(profile.displayName || user.displayName || user.email || '');
+                stageLoadingPersonalization(profile.displayName || user.displayName || '', profile.role);
+                offerDeviceCacheChoice();
+
+                const isCurrentSession = () => sessionId === authSessionId && auth.currentUser?.uid === user.uid;
+                if (profile.role === ROLE_PARENT) {
+                    setupParentSession(user.uid, profile, async () => {
+                        if (isCurrentSession()) await routeAuthenticatedParent({ loadingScreen, authScreen });
+                    });
+                } else {
+                    void setupDataListeners(user.uid, newDate, async function onInitialDataReady() {
+                        if (!isCurrentSession()) return;
+                        if (profile.role === ROLE_SECRETARY) {
+                            await routeAuthenticatedSecretary({ user, loadingScreen, authScreen });
+                        } else {
+                            await routeAuthenticatedTeacher({ user, loadingScreen, authScreen, appScreen });
+                        }
+                    }, {
+                        role: profile.role,
+                        profile,
+                        onInitializationError: (error) => {
+                            if (isCurrentSession()) showInitializationRecovery(error);
+                        }
+                    }).catch((error) => {
+                        if (isCurrentSession()) showInitializationRecovery(error);
+                    });
+                }
+            } catch (error) {
+                if (sessionId === authSessionId) showInitializationRecovery(error);
             }
 
         } else {
             resetAuthSubmitState();
-            state.resetState();
+            if (state) state.resetState();
+            if (audioModulePromise) {
+                audioModulePromise.then((audio) => {
+                    audio.stopAllCeremonyAudio?.();
+                    audio.stopDrumRoll?.();
+                    audio.stopWritingLoop?.();
+                }).catch(() => {});
+            }
             appScreen.classList.add('hidden');
             document.getElementById('parent-screen')?.classList.add('hidden');
             document.getElementById('secretary-screen')?.classList.add('hidden');
@@ -669,50 +896,24 @@ async function initApp() {
         document.querySelectorAll('input').forEach(input => input.setAttribute('autocomplete', 'off'));
 
         setupAuthListeners();
-        wireParentPortalListeners({
-            onLogout: async () => signOut(auth),
-            onRefresh: async () => {
-                await refreshParentPortalData();
-                renderParentPortal();
-            },
-            onSelectThread: (threadId) => watchCommunicationThread(threadId)
-        });
-        wireSecretaryConsoleListeners({
-            onLogout: async () => signOut(auth),
-            onOpenTeacherView: async () => {
-                document.getElementById('secretary-screen')?.classList.add('hidden');
-                document.getElementById('app-screen')?.classList.remove('hidden');
-                const tabs = await import('./ui/tabs.js');
-                await tabs.showTab('about-tab');
-            },
-            onSelectThread: (threadId) => watchCommunicationThread(threadId)
-        });
-
         // --- FIXED SECTION START ---
         // Dynamic Wallpaper Toggle Listeners
         const projBtn = document.getElementById('projector-mode-btn');
         if (projBtn) {
-            projBtn.addEventListener('click', () => {
-                toggleWallpaperMode();
+            projBtn.addEventListener('click', async () => {
+                const { toggleWallpaperMode: toggle } = await import('./ui/wallpaper.js');
+                toggle();
             });
         }
 
         const exitWallBtn = document.getElementById('exit-wallpaper-btn');
         if (exitWallBtn) {
-            exitWallBtn.addEventListener('click', () => {
-                toggleWallpaperMode();
+            exitWallBtn.addEventListener('click', async () => {
+                const { toggleWallpaperMode: toggle } = await import('./ui/wallpaper.js');
+                toggle();
             });
         }
         // --- FIXED SECTION END ---
-
-        setupUIListeners();
-        document.getElementById('secretary-console-btn')?.addEventListener('click', () => {
-            document.getElementById('app-screen')?.classList.add('hidden');
-            document.getElementById('secretary-screen')?.classList.remove('hidden');
-            setSecretaryReturnButtonVisible(true);
-            activateSecretaryTab('home');
-            renderSecretaryConsole();
-        });
 
         let clockInterval = setInterval(updateDateTime, 1000);
         document.addEventListener('visibilitychange', () => {

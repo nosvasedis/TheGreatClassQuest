@@ -153,7 +153,7 @@ export const FAMILIAR_TYPES = {
 
 // ─── SPRITE GENERATION ───────────────────────────────────────────────────────
 
-export async function generateFamiliarSpriteSheet(typeId, level, variant = null) {
+export async function generateFamiliarSpriteSheet(typeId, level, variant = null, studentId = '') {
     if (!canUseFeature('eliteAI')) throw new Error('AI image generation requires Elite tier');
 
     const type = FAMILIAR_TYPES[typeId];
@@ -174,7 +174,8 @@ export async function generateFamiliarSpriteSheet(typeId, level, variant = null)
             });
             const normalized = await _normalizeAndValidateSingleSprite(base64);
             const { uploadImageToStorage } = await import('../utils.js');
-            const url = await uploadImageToStorage(normalized, `familiars/${typeId}_level${level}_${Date.now()}.webp`);
+            if (!studentId) throw new Error('Student is required for a stable Familiar asset path.');
+            const url = await uploadImageToStorage(normalized, `familiars/${studentId}/level-${level}.webp`);
             return url;
         } catch (error) {
             lastError = error;
@@ -589,7 +590,7 @@ async function _generateCurrentStageSprite(scoreRef, studentId, familiar, sprite
 
     try {
         const variant = familiar.variant || getFamiliarVariant(familiar.typeId, studentId);
-        const url = await generateFamiliarSpriteSheet(familiar.typeId, spriteLevel, variant);
+        const url = await generateFamiliarSpriteSheet(familiar.typeId, spriteLevel, variant, studentId);
         await updateDoc(scoreRef, {
             [`familiar.spriteSheets.${spriteLevel}`]: url,
             'familiar.spriteFormat': 'single',

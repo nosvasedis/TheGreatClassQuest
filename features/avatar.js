@@ -1,8 +1,7 @@
 // /features/avatar.js
 
 // --- IMPORTS ---
-import { db } from '../firebase.js';
-import { doc, updateDoc } from 'https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js';
+import { db, doc, updateDoc } from '../firebase.js';
 
 import * as state from '../state.js';
 import * as modals from '../ui/modals.js';
@@ -221,7 +220,7 @@ export async function handleSaveAvatar() {
         
         // NEW: Upload to Storage
         const { uploadImageToStorage } = await import('../utils.js');
-        const imagePath = `avatars/${studentId}_${Date.now()}.webp`;
+        const imagePath = `avatars/${studentId}/avatar.webp`;
         const imageUrl = await uploadImageToStorage(compressedAvatar, imagePath);
 
         const studentRef = doc(db, `artifacts/great-class-quest/public/data/students`, studentId);

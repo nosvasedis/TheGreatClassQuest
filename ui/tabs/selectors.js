@@ -85,8 +85,10 @@ export function renderCalendarTab(customLogs = null) {
     const daysInMonth = new Date(year, month + 1, 0).getDate();
     const today = new Date();
     today.setHours(0, 0, 0, 0);
-    document.getElementById('prev-month-btn').disabled = calendarCurrentDate <= constants.competitionStart;
-    document.getElementById('next-month-btn').disabled = calendarCurrentDate.getMonth() === constants.competitionEnd.getMonth() && calendarCurrentDate.getFullYear() === constants.competitionEnd.getFullYear();
+    const activeYearStart = state.getActiveSchoolYearStartDate();
+    const activeYearEnd = state.getActiveSchoolYearEndDate();
+    document.getElementById('prev-month-btn').disabled = !activeYearStart || calendarCurrentDate <= activeYearStart;
+    document.getElementById('next-month-btn').disabled = !activeYearEnd || (calendarCurrentDate.getMonth() === activeYearEnd.getMonth() && calendarCurrentDate.getFullYear() === activeYearEnd.getFullYear());
 
     const thirtyDaysAgo = new Date();
     thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);

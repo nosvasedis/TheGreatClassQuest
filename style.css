@@ -7,6 +7,10 @@
  * Sub-files live in: ./styles/
  */
 
+/* Compiled utility CSS and icons replace the production browser CDNs. */
+@import url('./styles/tailwind.css');
+@import url('@fortawesome/fontawesome-free/css/all.min.css');
+
 /* 1. Base: Fonts, body, core animations, pop-in/out, date-time */
 @import url('./styles/base.css');
 

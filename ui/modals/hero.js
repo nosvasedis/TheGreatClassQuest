@@ -6,12 +6,15 @@ import { getHeroTitle, HERO_SKILL_TREE } from '../../features/heroSkillTree.js';
 import { showAnimatedModal } from './base.js';
 import { callGeminiApi } from '../../api.js';
 import { showToast } from '../effects.js';
+import { loadChart } from '../../utils/lazyLibraries.js';
 import {
     getAssessmentAverage,
     getAssessmentValueLabel,
     getNormalizedPercentForScore,
     getQualitativeDistribution
 } from '../../features/assessmentConfig.js';
+
+let heroStatsChart = null;
 
 /** Shows the hero level-up celebration modal. Called after a student levels up in the skill tree. */
 export function showHeroLevelUpCelebration({ studentId, studentName, newHeroLevel, heroClass }) {
@@ -50,7 +53,7 @@ import { requireEliteAI } from '../../utils/upgradePrompt.js';
 
 // --- CORRECTED & ENHANCED HERO STATS MODAL ---
 
-export function openHeroStatsModal(studentId, triggerElement) {
+export async function openHeroStatsModal(studentId, triggerElement) {
     const student = state.get('allStudents').find(s => s.id === studentId);
     if (!student) return;
 
@@ -172,6 +175,7 @@ nameEl.innerHTML = `${heroIcon} ${student.name}`;
         chartContainer.innerHTML = `<div class="flex items-center justify-center h-full text-gray-400">Log at least two trials to see a progress chart.</div>`;
     } else {
         try {
+            const Chart = await loadChart();
             const canvas = document.createElement('canvas');
             chartContainer.appendChild(canvas);
             

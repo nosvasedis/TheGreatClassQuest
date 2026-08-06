@@ -16,10 +16,10 @@ export function normalizeUserProfile(user, rawProfile = null) {
     const profile = rawProfile || {};
     return {
         uid: user?.uid || profile.uid || '',
-        role: profile.role || ROLE_TEACHER,
+        role: profile.role || null,
         displayName: profile.displayName || user?.displayName || user?.email || 'Quest Master',
         loginMode: profile.loginMode || 'email',
-        status: profile.status || 'active',
+        status: profile.status || null,
         schoolAdmin: profile.schoolAdmin === true,
         linkedStudentId: profile.linkedStudentId || null,
         createdBy: profile.createdBy || null,

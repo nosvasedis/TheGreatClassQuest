@@ -42,14 +42,18 @@ export async function requestCheckoutSession({
     const timeoutId = window.setTimeout(() => controller.abort(), timeoutMs);
 
     try {
+        const requestId = typeof crypto?.randomUUID === 'function'
+            ? crypto.randomUUID()
+            : `${Date.now()}-${Math.random().toString(16).slice(2)}`;
         const response = await fetch(`${baseUrl}/create-checkout-session`, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: await getBillingAuthHeaders({ 'Content-Type': 'application/json' }),
             body: JSON.stringify({
                 schoolId,
                 tier,
                 successUrl,
-                cancelUrl
+                cancelUrl,
+                requestId
             }),
             signal: controller.signal
         });
@@ -67,4 +71,15 @@ export async function requestCheckoutSession({
     } finally {
         window.clearTimeout(timeoutId);
     }
+}
+import { auth } from '../firebaseAuth.js';
+
+export async function getBillingAuthHeaders(extraHeaders = {}) {
+    const user = auth.currentUser;
+    if (!user) throw new Error('Sign in again before opening billing.');
+    const token = await user.getIdToken();
+    return {
+        ...extraHeaders,
+        Authorization: `Bearer ${token}`
+    };
 }

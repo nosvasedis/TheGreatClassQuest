@@ -1,5 +1,4 @@
-import { db } from '../firebase.js';
-import { collection, query, where, getDocs, addDoc, writeBatch, serverTimestamp, orderBy, limit, doc } from 'https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js';
+import { db, collection, query, where, getDocs, addDoc, writeBatch, serverTimestamp, orderBy, limit, doc } from '../firebase.js';
 import * as state from '../state.js';
 import * as utils from '../utils.js';
 import { callGeminiApi } from '../api.js';
@@ -167,7 +166,7 @@ export function toggleWallpaperMode() {
         wallpaperEl.classList.add('wallpaper-enter');
 
         if (document.documentElement.requestFullscreen) {
-            document.documentElement.requestFullscreen().catch(e => console.log("Fullscreen blocked", e));
+            document.documentElement.requestFullscreen().catch(() => {});
         }
 
         if (escListener) document.removeEventListener('keydown', escListener);
@@ -401,7 +400,6 @@ async function initializeDailyAIContent() {
     const levelLabel = getLevelLabel(cls?.questLevel);
 
     if (snapshot.empty) {
-        console.log("Generating fresh AI content for the day...");
         const systemPrompt = `You are a creative content engine for an English language school in Greece.
         Target audience: ${levelLabel}.
         Generate a JSON array of EXACTLY 30 objects. Use a diverse mix of these types:
@@ -463,7 +461,6 @@ async function cleanupOldAIContent() {
         const batch = writeBatch(db);
         snapshot.forEach(doc => batch.delete(doc.ref));
         await batch.commit();
-        console.log("Cleaned up old AI content.");
     }
 }
 
@@ -547,7 +544,7 @@ async function directorGameLoop() {
                 timerOverlay.dataset.timerTone = '';
 
                 // 1. Mark complete in DB
-                const { updateDoc, doc } = await import('https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js');
+                const { updateDoc, doc } = await import('../firebase.js');
                 await updateDoc(doc(db, "artifacts/great-class-quest/public/data/quest_bounties", activeTimer.id), { status: 'completed' });
 
                 // 2. Play Sound
@@ -2933,7 +2930,7 @@ export async function initSeasonalAtmosphere() {
             const res = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${location.latitude}&longitude=${location.longitude}&current=weather_code&timezone=auto`);
             const d = await res.json();
             weatherCode = d.current.weather_code;
-        } catch (e) { console.log("Weather fetch failed, using seasonal fallback."); }
+        } catch (_) { /* Seasonal fallback is expected when weather is unavailable. */ }
     }
 
     let effectHTML = '';

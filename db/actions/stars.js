@@ -66,6 +66,27 @@ export async function setStudentStarsForToday(
     const publicDataPath = "artifacts/great-class-quest/public/data";
     const activeYearKey = state.getActiveSchoolYearKey();
 
+    // Date-bound maintenance happens only when the teacher performs the first
+    // relevant write. Listener hydration, login and navigation stay write-free.
+    const scoreBeforeAward = state.get("allStudentScores").find((entry) => entry.id === studentId);
+    const currentMonthStart = getStartOfMonthString();
+    const maintenanceTasks = [];
+    if (scoreBeforeAward?.lastMonthlyResetDate !== currentMonthStart) {
+        maintenanceTasks.push(
+            import("./economy.js").then(({ checkAndResetMonthlyStars }) =>
+                checkAndResetMonthlyStars(studentId, currentMonthStart),
+            ),
+        );
+    }
+    maintenanceTasks.push(
+        import("../maintenance.js")
+            .then(({ cleanupPreviousDayStarsOnce }) =>
+                cleanupPreviousDayStarsOnce(state.get("currentUserId"), today),
+            )
+            .catch((error) => console.warn("Daily scratch cleanup deferred:", error)),
+    );
+    await Promise.all(maintenanceTasks);
+
     let finalStarValue = starValue;
     const activeEvent = state
         .get("allQuestEvents")
@@ -673,7 +694,6 @@ export async function checkAndRecordQuestCompletion(classId) {
 
     // 4. Check for Victory & SAVE HISTORY
     if (currentMonthlyStars >= diamondGoal) {
-        console.log(`Class ${classDoc.data().name} has completed the quest!`);
 
         const batch = writeBatch(db);
 

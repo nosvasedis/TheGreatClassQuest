@@ -13,8 +13,7 @@ import {
     shouldShowInStarAwardLog,
     sumMonthlyStarCreditsByStudentFromAwardLogs
 } from '../../features/awardLogReasonMeta.js';
-import { db } from '../../firebase.js';
-import { query, collection, where, getDocs } from 'https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js';
+import { db, query, collection, where, getDocs } from '../../firebase.js';
 import { showAnimatedModal } from './base.js';
 import { fetchLogsForDate } from '../../db/queries.js';
 import { playSound } from '../../audio.js';
@@ -337,7 +336,8 @@ function populateHistoryMonthSelector() {
     select.innerHTML = '<option value="">--Choose a month--</option>';
 
     const endMonthStart = utils.getLatestCompletedMonthStart(new Date());
-    let loopDate = new Date(constants.competitionStart.getFullYear(), constants.competitionStart.getMonth(), 1);
+    const activeYearStart = state.getActiveSchoolYearStartDate() || endMonthStart;
+    let loopDate = new Date(activeYearStart.getFullYear(), activeYearStart.getMonth(), 1);
 
     while (loopDate <= endMonthStart) {
         const monthKey = utils.getMonthKey(loopDate);
@@ -399,7 +399,7 @@ function syncHistoryMonthPicker(monthKey, leagueFilter) {
 export async function renderHistoricalLeaderboard(monthKey, type, leagueFilter = null) {
     // 1. Handle Hero History Redirect
     if (type === 'hero') {
-        import('./modals.js').then(m => m.openStudentRankingsModal()); 
+        import('./rankings.js').then(m => m.openStudentRankingsModal());
         return;
     }
 
@@ -463,7 +463,12 @@ export async function renderHistoricalLeaderboard(monthKey, type, leagueFilter =
             const fromLogs = sumMonthlyStarCreditsByStudentFromAwardLogs(logs || []);
             monthlyScores = mergeMonthlyStarsFromArchivedHistoryAndAwardLogs(fromLogs, archivedRows || {});
 
-            const historySnap = await getDocs(collection(db, 'artifacts/great-class-quest/public/data/quest_history'));
+            const historyYearKey = state.getActiveSchoolYearKey();
+            if (!historyYearKey) throw new Error('School year unavailable; quest history reads are blocked.');
+            const historySnap = await getDocs(query(
+                collection(db, 'artifacts/great-class-quest/public/data/quest_history'),
+                where('schoolYearKey', '==', historyYearKey)
+            ));
             questHistoryData = historySnap.docs.map(d => d.data());
 
         } catch (e) { 

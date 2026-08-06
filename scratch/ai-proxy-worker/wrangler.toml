@@ -1,0 +1,23 @@
+name = "great-class-quest-ai-proxy"
+main = "src/worker.js"
+compatibility_date = "2026-08-06"
+workers_dev = true
+keep_vars = true
+
+[observability]
+enabled = false
+
+[ai]
+binding = "AI"
+
+[[kv_namespaces]]
+binding = "QUOTE_CACHE"
+id = "f75e296a94754121b221eafac8e72ec2"
+
+[vars]
+FIREBASE_PROJECT_ID = "the-great-class-quest"
+FIREBASE_PROJECT_NUMBER = "1021026433595"
+FIREBASE_APP_ID = "1:1021026433595:web:d1bc4b6f45f01fe25c3a1e"
+REQUIRE_APP_CHECK = "false"
+ALLOWED_ORIGINS = "https://nosvasedis.github.io,https://the-great-class-quest.web.app,https://the-great-class-quest.firebaseapp.com,http://127.0.0.1:3000,http://localhost:3000"
+ALLOWED_OPENROUTER_MODELS = "deepseek/deepseek-v4-flash,google/gemini-3.1-flash-lite-preview"

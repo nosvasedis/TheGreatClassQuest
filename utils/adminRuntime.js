@@ -66,6 +66,10 @@ export function previewYearRollover(payload = {}) {
     return callAdmin('previewYearRollover', payload);
 }
 
+export function ensureOpenSchoolYears(payload = {}) {
+    return callAdmin('ensureOpenSchoolYears', payload);
+}
+
 export function closeSchoolYear(payload = {}) {
     return callAdmin('closeSchoolYear', payload);
 }

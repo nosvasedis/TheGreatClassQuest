@@ -12,6 +12,7 @@ import { getAssessmentValueLabel, getNormalizedPercentForScore } from '../../fea
 import { showToast } from '../effects.js';
 import { auth } from '../../firebase.js';
 import { getAwardLogMonthlyStarCredit } from '../../features/awardLogReasonMeta.js';
+import { loadPdfTools } from '../../utils/lazyLibraries.js';
 
 let currentCertStudentId = null;
 let currentCertScope = 'monthly';
@@ -578,7 +579,7 @@ export async function downloadCertificateAsPdf() {
     btn.disabled = true;
     btn.innerHTML = `<i class="fas fa-spinner fa-spin mr-2"></i> Preparing PDF...`;
     
-    const { jsPDF } = window.jspdf;
+    const { html2canvas, jsPDF } = await loadPdfTools();
     const certificateElement = document.getElementById('certificate-template');
     const studentName = document.getElementById('cert-student-name').innerText;
     let captureHost = null;
@@ -656,9 +657,14 @@ export async function downloadCertificateAsPdf() {
         if (isFirebaseStorageUrl && constants.certificateImageProxyUrl) {
             const workerProxyUrl = `${constants.certificateImageProxyUrl}/storage-proxy?url=${encodeURIComponent(url)}`;
             try {
-                const idToken = await auth?.currentUser?.getIdToken?.().catch(() => '');
+                const [idToken, appCheckHeaders] = await Promise.all([
+                    auth?.currentUser?.getIdToken?.().catch(() => ''),
+                    import('../../firebaseAppCheck.js')
+                        .then(({ getAppCheckHeader }) => getAppCheckHeader())
+                        .catch(() => ({}))
+                ]);
                 const proxiedResponse = await fetch(workerProxyUrl, {
-                    headers: idToken ? { 'x-firebase-token': idToken } : {},
+                    headers: idToken ? { 'x-firebase-token': idToken, ...appCheckHeaders } : {},
                 });
                 if (!proxiedResponse.ok) {
                     throw new Error(`Proxy status ${proxiedResponse.status}`);

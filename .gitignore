@@ -25,6 +25,10 @@ build/
 .env.test.local
 .env.production.local
 
+# Reasonix agent config and skills
+.reasonix/
+reasonix/
+
 # Cursor / Trae scratch docs (plans, etc.)
 .trae/documents/
 

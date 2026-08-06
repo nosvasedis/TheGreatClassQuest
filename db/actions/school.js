@@ -1,5 +1,4 @@
-import { db } from '../../firebase.js';
-import { doc, setDoc, writeBatch } from 'https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js';
+import { db, doc, setDoc, writeBatch } from '../../firebase.js';
 import * as state from '../../state.js';
 import { showToast } from '../../ui/effects.js';
 import { DEFAULT_SCHOOL_NAME } from '../../constants.js';

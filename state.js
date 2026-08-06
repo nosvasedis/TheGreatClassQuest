@@ -1,4 +1,3 @@
-import { competitionStart } from "./constants.js";
 import { getTodayDateString, getClassesOnDay } from "./utils.js";
 import {
     getDefaultSchoolYearState,
@@ -10,11 +9,7 @@ import {
 let state = {};
 
 function getCalendarDefaultDate() {
-    let date = new Date();
-    if (date < competitionStart) {
-        date = new Date(competitionStart);
-    }
-    return date;
+    return new Date();
 }
 
 // --- Default State Function ---
@@ -31,6 +26,7 @@ function getDefaultState() {
         allSchoolYears: getDefaultSchoolYears(),
         currentRolloverJob: null,
         schoolName: null,
+        schoolSettingsLoaded: false,
         schoolWeatherLocation: null,
         schoolAssessmentDefaults: null,
         currentParentSnapshot: null,
@@ -282,8 +278,30 @@ export function getActiveSchoolYearKey() {
 export function getNextSchoolYearKey() {
     return normalizeSchoolYearState(state.schoolYearState).nextYearKey;
 }
+export function getActiveSchoolYearDefinition() {
+    const activeYearKey = getActiveSchoolYearKey();
+    return state.allSchoolYears.find((year) => year.id === activeYearKey) || null;
+}
+export function getActiveSchoolYearStartDate() {
+    const value = getActiveSchoolYearDefinition()?.startsAt;
+    const date = value ? new Date(`${value}T00:00:00`) : null;
+    return date && !Number.isNaN(date.getTime()) ? date : null;
+}
+export function getActiveSchoolYearEndDate() {
+    const definition = getActiveSchoolYearDefinition();
+    const value = definition?.endsAt || definition?.closeAvailableAt;
+    if (!value) return null;
+    const isoValue = /^\d{2}-\d{2}-\d{4}$/.test(value)
+        ? `${value.slice(6)}-${value.slice(3, 5)}-${value.slice(0, 2)}`
+        : value;
+    const date = new Date(`${isoValue}T23:59:59`);
+    return !Number.isNaN(date.getTime()) ? date : null;
+}
 export function setSchoolName(name) {
     state.schoolName = name || null;
+}
+export function setSchoolSettingsLoaded(loaded) {
+    state.schoolSettingsLoaded = loaded === true;
 }
 export function setSchoolWeatherLocation(location) {
     state.schoolWeatherLocation = location || null;
@@ -678,12 +696,16 @@ export async function fetchMonthlyHistory(monthKey, options = {}) {
         contentEl.innerHTML = `<p class="text-center text-gray-500"><i class="fas fa-spinner fa-spin mr-2"></i>Loading historical data...</p>`;
     }
 
-    const { collectionGroup, query, where, getDocs } =
-        await import("https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js");
-    const { db } = await import("./firebase.js");
+    const { collectionGroup, query, where, getDocs, db } =
+        await import("./firebase.js");
+
+    if (!activeYearKey) {
+        throw new Error("School year unavailable; historical reads are blocked.");
+    }
 
     const historyQuery = query(
         collectionGroup(db, "monthly_history"),
+        where("schoolYearKey", "==", activeYearKey),
         where("month", "==", monthKey),
     );
     try {

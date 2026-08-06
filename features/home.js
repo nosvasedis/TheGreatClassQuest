@@ -1,5 +1,4 @@
-import { db } from '../firebase.js';
-import { doc, getDoc } from 'https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js';
+import { db, doc, getDoc } from '../firebase.js';
 import * as ceremony from '../features/ceremony.js';
 import * as state from '../state.js';
 import * as utils from '../utils.js';
@@ -506,7 +505,7 @@ function getActiveDashboard(classData, name, theme, spice) {
                 state.setCurrentStoryData(currentData);
                 patchHomeChronicleStory(classId, docSnap.data());
             }
-        }).catch(err => console.log("Silent story fetch error", err));
+        }).catch(() => {});
     }
     const story = state.get('currentStoryData')[classId];
     const storyText = (story && story.currentSentence) ? `"...${story.currentSentence}..."` : "The story awaits its first chapter...";
@@ -1387,7 +1386,7 @@ async function getAICachedContent(type) {
 
             // 3. Save to Firebase (So others don't have to generate)
             try {
-                const { setDoc } = await import('https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js');
+                const { setDoc } = await import('../firebase.js');
                 await setDoc(doc(db, "artifacts/great-class-quest/public/data/daily_cache", docId), {
                     content: content,
                     date: todayKey,

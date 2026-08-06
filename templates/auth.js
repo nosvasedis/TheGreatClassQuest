@@ -48,7 +48,7 @@ export const authHTML = `
                             autocomplete="new-password" required>
                     </div>
                     <button type="submit" id="login-submit-btn"
-                        class="w-full bg-sky-500 hover:bg-sky-600 text-white font-title text-xl py-3 rounded-xl bubbly-button flex items-center justify-center gap-2">
+                        class="w-full bg-sky-700 hover:bg-sky-800 text-white font-title text-xl py-3 rounded-xl bubbly-button flex items-center justify-center gap-2">
                         <span class="auth-submit-label">Login</span>
                     </button>
                 </form>
@@ -80,7 +80,7 @@ export const authHTML = `
 
                 <p id="auth-error" class="text-sm text-red-600 mt-4 text-center h-4"></p>
                 <div class="text-center mt-4">
-                    <button id="toggle-auth-mode" class="text-sm text-sky-600 hover:underline">Need an account? Sign
+                    <button id="toggle-auth-mode" type="button" class="text-sm text-sky-700 hover:underline">Need an account? Sign
                         Up</button>
                 </div>
             </div>

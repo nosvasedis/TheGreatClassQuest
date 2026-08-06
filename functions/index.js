@@ -1,12 +1,13 @@
-const admin = require('firebase-admin');
+const { getApp, initializeApp } = require('firebase-admin/app');
+const { getAuth } = require('firebase-admin/auth');
+const { FieldValue, getFirestore } = require('firebase-admin/firestore');
 const functionsV1 = require('firebase-functions/v1');
 const { HttpsError } = require('firebase-functions/v1/https');
 
-admin.initializeApp();
+initializeApp();
 
-const db = admin.firestore();
-const auth = admin.auth();
-const FieldValue = admin.firestore.FieldValue;
+const db = getFirestore();
+const auth = getAuth();
 const FUNCTIONS_REGION = process.env.GCQ_FIREBASE_FUNCTIONS_REGION || 'europe-west1';
 
 const PUBLIC_DATA_PATH = 'artifacts/great-class-quest/public/data';
@@ -14,7 +15,7 @@ const PROFILE_COLLECTION = 'user_profiles';
 const SUBSCRIPTION_DOC = 'appConfig/subscription';
 
 function getProjectId() {
-  return admin.app().options.projectId || process.env.GCLOUD_PROJECT || 'gcq-school';
+  return getApp().options.projectId || process.env.GCLOUD_PROJECT || 'gcq-school';
 }
 
 function sanitizeUsername(value) {
@@ -51,7 +52,13 @@ async function requireAuthedCaller(request) {
     throw new HttpsError('unauthenticated', 'You must be signed in first.');
   }
   const profileSnap = await db.collection(PROFILE_COLLECTION).doc(request.auth.uid).get();
-  const profile = profileSnap.exists ? profileSnap.data() : { role: 'teacher', schoolAdmin: false };
+  if (!profileSnap.exists) {
+    throw new HttpsError('permission-denied', 'This account is missing its required access profile.');
+  }
+  const profile = profileSnap.data() || {};
+  if (profile.status !== 'active' || !['teacher', 'secretary', 'parent'].includes(profile.role)) {
+    throw new HttpsError('permission-denied', 'This account is inactive or has an invalid role.');
+  }
   return { uid: request.auth.uid, profile };
 }
 
@@ -62,7 +69,20 @@ async function getSubscriptionConfig() {
 
 async function getActiveSchoolYearKey() {
   const snap = await db.doc(`${PUBLIC_DATA_PATH}/school_year_state/current`).get();
-  return snap.exists ? (snap.data().activeYearKey || CURRENT_SCHOOL_YEAR_KEY) : CURRENT_SCHOOL_YEAR_KEY;
+  const yearKey = snap.exists ? String(snap.data()?.activeYearKey || '').trim() : '';
+  if (!/^\d{4}-\d{4}$/.test(yearKey)) {
+    throw new HttpsError('failed-precondition', 'The active school year is not configured. Year-scoped writes are blocked.');
+  }
+  return yearKey;
+}
+
+async function getPlannedSchoolYearKey() {
+  const snap = await db.doc(`${PUBLIC_DATA_PATH}/school_year_state/current`).get();
+  const yearKey = snap.exists ? String(snap.data()?.nextYearKey || '').trim() : '';
+  if (!/^\d{4}-\d{4}$/.test(yearKey)) {
+    throw new HttpsError('failed-precondition', 'The planned school year is not configured.');
+  }
+  return yearKey;
 }
 
 async function requireFeatureEnabled(featureKey) {
@@ -383,6 +403,9 @@ async function addCommunicationMessage({ threadId, studentId, body, authorUid, a
 
 exports.claimFoundingSchoolAdmin = callable(async (request) => {
   const caller = await requireAuthedCaller(request);
+  if (request.auth?.token?.gcqPlatformAdmin !== true) {
+    throw new HttpsError('permission-denied', 'School administrators must be provisioned through authorized admin tooling.');
+  }
   if (caller.profile.role && caller.profile.role !== 'teacher') {
     throw new HttpsError('permission-denied', 'Only teachers can claim the founding school admin role.');
   }
@@ -390,25 +413,24 @@ exports.claimFoundingSchoolAdmin = callable(async (request) => {
     return { ok: true, schoolAdmin: true, alreadyClaimed: true };
   }
 
-  const existingAdmin = await db.collection(PROFILE_COLLECTION)
-    .where('schoolAdmin', '==', true)
-    .limit(1)
-    .get();
-
-  if (!existingAdmin.empty) {
-    throw new HttpsError('failed-precondition', 'A school admin already exists for this school.');
-  }
-
-  await db.collection(PROFILE_COLLECTION).doc(caller.uid).set({
-    role: 'teacher',
-    loginMode: 'email',
-    status: caller.profile.status || 'active',
-    schoolAdmin: true,
-    linkedStudentId: null,
-    displayName: caller.profile.displayName || '',
-    lastSeenAt: FieldValue.serverTimestamp(),
-    createdAt: caller.profile.createdAt || FieldValue.serverTimestamp()
-  }, { merge: true });
+  const profileRef = db.collection(PROFILE_COLLECTION).doc(caller.uid);
+  await db.runTransaction(async (transaction) => {
+    const existingAdmin = await transaction.get(
+      db.collection(PROFILE_COLLECTION).where('schoolAdmin', '==', true).limit(1)
+    );
+    if (!existingAdmin.empty) {
+      throw new HttpsError('failed-precondition', 'A school admin already exists for this school.');
+    }
+    transaction.set(profileRef, {
+      role: 'teacher',
+      loginMode: 'email',
+      status: caller.profile.status || 'active',
+      schoolAdmin: true,
+      linkedStudentId: null,
+      displayName: caller.profile.displayName || '',
+      createdAt: caller.profile.createdAt || FieldValue.serverTimestamp()
+    }, { merge: true });
+  });
 
   return { ok: true, schoolAdmin: true };
 });
@@ -812,32 +834,20 @@ exports.backfillRoleAccessData = callable(async (request) => {
   };
 });
 
-const CURRENT_SCHOOL_YEAR_KEY = '2025-2026';
-const NEXT_SCHOOL_YEAR_KEY = '2026-2027';
-const SCHOOL_YEAR_CLOSE_DATE = '10-06-2026';
-const SCHOOL_YEAR_DEFS = {
-  [CURRENT_SCHOOL_YEAR_KEY]: {
-    label: '2025-2026',
-    startsAt: '2025-09-01',
-    endsAt: SCHOOL_YEAR_CLOSE_DATE,
-    closeAvailableAt: SCHOOL_YEAR_CLOSE_DATE,
-    status: 'active'
-  },
-  [NEXT_SCHOOL_YEAR_KEY]: {
-    label: '2026-2027',
-    startsAt: '2026-09-01',
-    endsAt: '2027-06-10',
-    closeAvailableAt: '2027-06-10',
-    status: 'planned'
-  }
-};
-
 function withYear(payload, yearKey) {
-  return { ...payload, schoolYearKey: payload.schoolYearKey || yearKey };
+  const resolved = String(payload.schoolYearKey || yearKey || '').trim();
+  if (!/^\d{4}-\d{4}$/.test(resolved)) {
+    throw new HttpsError('failed-precondition', 'The active school year is unavailable.');
+  }
+  return { ...payload, schoolYearKey: resolved };
 }
 
 function withActiveYear(payload, yearKey) {
-  return { ...payload, activeSchoolYearKey: payload.activeSchoolYearKey || yearKey };
+  const resolved = String(payload.activeSchoolYearKey || yearKey || '').trim();
+  if (!/^\d{4}-\d{4}$/.test(resolved)) {
+    throw new HttpsError('failed-precondition', 'The active school year is unavailable.');
+  }
+  return { ...payload, activeSchoolYearKey: resolved };
 }
 
 async function requireYearOperator(request) {
@@ -870,14 +880,14 @@ function parseCloseDateFlexible(dateInput) {
 
 function formatCloseDateForMessage(dateInput) {
   const d = parseCloseDateFlexible(dateInput);
-  if (!d || Number.isNaN(d.getTime())) return String(dateInput || SCHOOL_YEAR_CLOSE_DATE);
+  if (!d || Number.isNaN(d.getTime())) return String(dateInput || 'not configured');
   const day = String(d.getDate()).padStart(2, '0');
   const month = String(d.getMonth() + 1).padStart(2, '0');
   return `${day}/${month}/${d.getFullYear()}`;
 }
 
 function isCloseDateReached(closeDate) {
-  const close = parseCloseDateFlexible(closeDate || SCHOOL_YEAR_CLOSE_DATE);
+  const close = parseCloseDateFlexible(closeDate);
   if (!close || Number.isNaN(close.getTime())) return false;
   const today = new Date();
   today.setHours(0, 0, 0, 0);
@@ -903,59 +913,93 @@ async function commitBatchChunks(refsAndPayloads, mode = 'set', chunkSize = 400)
 
 async function getConfiguredCloseDate() {
   const snap = await db.doc(`${PUBLIC_DATA_PATH}/school_year_state/current`).get();
-  return snap.data()?.closeDate || SCHOOL_YEAR_CLOSE_DATE;
+  const closeDate = snap.data()?.closeDate;
+  if (!parseCloseDateFlexible(closeDate)) {
+    throw new HttpsError('failed-precondition', 'The school-year close date is not configured.');
+  }
+  return closeDate;
 }
 
 async function ensureSchoolYears(closingYearKey, nextYearKey, rolloverStatus = 'preparing') {
-  const stateSnap = await db.doc(`${PUBLIC_DATA_PATH}/school_year_state/current`).get();
+  const stateRef = db.doc(`${PUBLIC_DATA_PATH}/school_year_state/current`);
+  const closingRef = db.doc(`${PUBLIC_DATA_PATH}/school_years/${closingYearKey}`);
+  const nextRef = db.doc(`${PUBLIC_DATA_PATH}/school_years/${nextYearKey}`);
+  const [stateSnap, closingSnap, nextSnap] = await Promise.all([
+    stateRef.get(),
+    closingRef.get(),
+    nextRef.get()
+  ]);
   const existingState = stateSnap.data() || {};
-  const closeDate = existingState.closeDate || SCHOOL_YEAR_CLOSE_DATE;
+  const closeDate = existingState.closeDate;
+  if (!parseCloseDateFlexible(closeDate)) {
+    throw new HttpsError('failed-precondition', 'Configure the school-year close date before preparing rollover.');
+  }
   const writes = [];
   const closing = {
-    ...(SCHOOL_YEAR_DEFS[closingYearKey] || {
-      label: closingYearKey,
-      startsAt: `${closingYearKey.slice(0, 4)}-09-01`,
-      status: 'active'
-    }),
+    label: closingYearKey,
+    startsAt: `${closingYearKey.slice(0, 4)}-09-01`,
+    status: 'active',
     endsAt: closeDate,
     closeAvailableAt: closeDate,
     updatedAt: FieldValue.serverTimestamp()
   };
   const next = {
-    ...(SCHOOL_YEAR_DEFS[nextYearKey] || {
-      label: nextYearKey,
-      startsAt: `${nextYearKey.slice(0, 4)}-09-01`,
-      endsAt: `${nextYearKey.slice(5)}-06-10`,
-      closeAvailableAt: `${nextYearKey.slice(5)}-06-10`,
-      status: 'planned'
-    }),
+    label: nextYearKey,
+    startsAt: `${nextYearKey.slice(0, 4)}-09-01`,
+    endsAt: `${nextYearKey.slice(5)}-06-10`,
+    closeAvailableAt: `${nextYearKey.slice(5)}-06-10`,
+    status: 'planned',
     updatedAt: FieldValue.serverTimestamp()
   };
 
-  writes.push({
-    ref: db.doc(`${PUBLIC_DATA_PATH}/school_years/${closingYearKey}`),
-    payload: closing
-  });
-  writes.push({
-    ref: db.doc(`${PUBLIC_DATA_PATH}/school_years/${nextYearKey}`),
-    payload: { ...next, status: next.status || 'planned' }
-  });
+  if (!closingSnap.exists) writes.push({ ref: closingRef, payload: closing });
+  if (!nextSnap.exists) writes.push({ ref: nextRef, payload: { ...next, status: 'planned' } });
 
   const statePayload = {
     activeYearKey: closingYearKey,
     nextYearKey,
     rolloverStatus,
-    enforceActiveYearQueries: existingState.enforceActiveYearQueries === true,
+    enforceActiveYearQueries: true,
     updatedAt: FieldValue.serverTimestamp()
   };
-  if (!existingState.closeDate) {
-    statePayload.closeDate = SCHOOL_YEAR_CLOSE_DATE;
+  statePayload.closeDate = closeDate;
+  const stateNeedsUpdate = !stateSnap.exists ||
+    existingState.activeYearKey !== closingYearKey ||
+    existingState.nextYearKey !== nextYearKey ||
+    existingState.rolloverStatus !== rolloverStatus ||
+    existingState.closeDate !== closeDate ||
+    existingState.enforceActiveYearQueries !== true;
+  if (stateNeedsUpdate) writes.push({ ref: stateRef, payload: statePayload });
+  if (writes.length) await commitBatchChunks(writes);
+  return { writes: writes.length, activeExists: closingSnap.exists, nextExists: nextSnap.exists };
+}
+
+function getFollowingSchoolYearKey(yearKey) {
+  const match = /^(\d{4})-(\d{4})$/.exec(String(yearKey || '').trim());
+  if (!match || Number(match[2]) !== Number(match[1]) + 1) {
+    throw new HttpsError('failed-precondition', 'The planned school-year key is invalid.');
   }
-  writes.push({
-    ref: db.doc(`${PUBLIC_DATA_PATH}/school_year_state/current`),
-    payload: statePayload
-  });
-  await commitBatchChunks(writes);
+  return `${Number(match[1]) + 1}-${Number(match[2]) + 1}`;
+}
+
+async function ensurePlannedSchoolYearRecord(yearKey) {
+  const yearRef = db.doc(`${PUBLIC_DATA_PATH}/school_years/${yearKey}`);
+  const yearSnap = await yearRef.get();
+  if (yearSnap.exists) return { created: false };
+  try {
+    await yearRef.create({
+      label: yearKey,
+      startsAt: `${yearKey.slice(0, 4)}-09-01`,
+      endsAt: `${yearKey.slice(5)}-06-10`,
+      closeAvailableAt: `${yearKey.slice(5)}-06-10`,
+      status: 'planned',
+      updatedAt: FieldValue.serverTimestamp()
+    });
+    return { created: true };
+  } catch (error) {
+    if (error?.code === 6 || error?.code === 'already-exists') return { created: false };
+    throw error;
+  }
 }
 
 async function countCollection(collectionName) {
@@ -1024,16 +1068,33 @@ async function buildRolloverPreview({ closingYearKey, nextYearKey }) {
 
 exports.previewYearRollover = callable(async (request) => {
   await requireYearOperator(request);
-  const closingYearKey = String(request.data?.closingYearKey || CURRENT_SCHOOL_YEAR_KEY).trim();
-  const nextYearKey = String(request.data?.nextYearKey || NEXT_SCHOOL_YEAR_KEY).trim();
+  const closingYearKey = String(request.data?.closingYearKey || await getActiveSchoolYearKey()).trim();
+  const nextYearKey = String(request.data?.nextYearKey || await getPlannedSchoolYearKey()).trim();
   await ensureSchoolYears(closingYearKey, nextYearKey, 'preparing');
   return buildRolloverPreview({ closingYearKey, nextYearKey });
 });
 
+exports.ensureOpenSchoolYears = callable(async (request) => {
+  await requireYearOperator(request);
+  const stateSnap = await db.doc(`${PUBLIC_DATA_PATH}/school_year_state/current`).get();
+  const configured = stateSnap.data() || {};
+  const activeYearKey = String(configured.activeYearKey || '').trim();
+  const nextYearKey = String(configured.nextYearKey || '').trim();
+  if (!/^\d{4}-\d{4}$/.test(activeYearKey) || !/^\d{4}-\d{4}$/.test(nextYearKey)) {
+    throw new HttpsError('failed-precondition', 'Configure valid active and planned school-year keys first.');
+  }
+  const result = await ensureSchoolYears(
+    activeYearKey,
+    nextYearKey,
+    String(configured.rolloverStatus || 'preparing')
+  );
+  return { ok: true, activeYearKey, nextYearKey, ...result };
+});
+
 exports.backfillSchoolYearData = callable(async (request) => {
   const caller = await requireYearOperator(request);
-  const closingYearKey = String(request.data?.closingYearKey || CURRENT_SCHOOL_YEAR_KEY).trim();
-  const nextYearKey = String(request.data?.nextYearKey || NEXT_SCHOOL_YEAR_KEY).trim();
+  const closingYearKey = String(request.data?.closingYearKey || await getActiveSchoolYearKey()).trim();
+  const nextYearKey = String(request.data?.nextYearKey || await getPlannedSchoolYearKey()).trim();
   await ensureSchoolYears(closingYearKey, nextYearKey, 'preparing');
 
   const writes = [];
@@ -1169,8 +1230,9 @@ exports.backfillSchoolYearData = callable(async (request) => {
 
 exports.closeSchoolYear = callable(async (request) => {
   const caller = await requireYearOperator(request);
-  const closingYearKey = String(request.data?.closingYearKey || CURRENT_SCHOOL_YEAR_KEY).trim();
-  const nextYearKey = String(request.data?.nextYearKey || NEXT_SCHOOL_YEAR_KEY).trim();
+  const closingYearKey = String(request.data?.closingYearKey || await getActiveSchoolYearKey()).trim();
+  const nextYearKey = String(request.data?.nextYearKey || await getPlannedSchoolYearKey()).trim();
+  const followingYearKey = getFollowingSchoolYearKey(nextYearKey);
   const confirmation = String(request.data?.confirmation || '').trim();
   const allowEarlyClose = request.data?.allowEarlyClose === true;
   if (confirmation !== `CLOSE ${closingYearKey}`) {
@@ -1370,9 +1432,10 @@ exports.closeSchoolYear = callable(async (request) => {
     activatedAt: FieldValue.serverTimestamp(),
     rolloverJobId: jobId
   }, { merge: true });
+  await ensurePlannedSchoolYearRecord(followingYearKey);
   await db.doc(`${PUBLIC_DATA_PATH}/school_year_state/current`).set({
     activeYearKey: nextYearKey,
-    nextYearKey: `${Number(nextYearKey.slice(0, 4)) + 1}-${Number(nextYearKey.slice(5)) + 1}`,
+    nextYearKey: followingYearKey,
     rolloverStatus: 'september_setup',
     lastClosedYearKey: closingYearKey,
     rolloverJobId: jobId,
@@ -1411,7 +1474,7 @@ exports.allocateReturningStudents = callable(async (request) => {
   if (!isOperator && ownerUid !== caller.uid) {
     throw new HttpsError('permission-denied', 'You can only place students into your own classes. Ask the Secretary if you need help.');
   }
-  const yearKey = classData.schoolYearKey || String(request.data?.schoolYearKey || NEXT_SCHOOL_YEAR_KEY).trim();
+  const yearKey = classData.schoolYearKey || String(request.data?.schoolYearKey || await getPlannedSchoolYearKey()).trim();
   const owner = classData.createdBy || null;
 
   const writes = [];
@@ -1477,7 +1540,7 @@ exports.allocateReturningStudents = callable(async (request) => {
 exports.markStudentLeftSchool = callable(async (request) => {
   await requireYearOperator(request);
   const studentId = String(request.data?.studentId || '').trim();
-  const yearKey = String(request.data?.schoolYearKey || NEXT_SCHOOL_YEAR_KEY).trim();
+  const yearKey = String(request.data?.schoolYearKey || await getPlannedSchoolYearKey()).trim();
   if (!studentId) throw new HttpsError('invalid-argument', 'Student is required.');
   await db.doc(`${PUBLIC_DATA_PATH}/students/${studentId}`).set({
     activeSchoolYearKey: yearKey,
@@ -1560,7 +1623,7 @@ exports.transferStudentToClass = callable(async (request) => {
 exports.finalizeRollover = callable(async (request) => {
   const caller = await requireYearOperator(request);
   const jobId = String(request.data?.jobId || '').trim() || `finalize_${Date.now()}`;
-  const yearKey = String(request.data?.schoolYearKey || NEXT_SCHOOL_YEAR_KEY).trim();
+  const yearKey = String(request.data?.schoolYearKey || await getPlannedSchoolYearKey()).trim();
   const studentsSnap = await db.collection(`${PUBLIC_DATA_PATH}/students`)
     .where('activeSchoolYearKey', '==', yearKey)
     .where('enrollmentStatus', '==', 'active')

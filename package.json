@@ -3,10 +3,15 @@
   "version": "0.1.0",
   "description": "The Great Class Quest",
   "scripts": {
-    "dev": "npx serve -l 3000",
-    "build:static": "node scripts/build-static-site.js",
+    "dev": "vite --host 127.0.0.1 --port 3000",
+    "build": "vite build && node scripts/finalize-vite-build.cjs && node scripts/check-bundle-budget.cjs",
+    "build:static": "npm run build",
+    "preview": "vite preview --host 127.0.0.1 --port 3000",
     "billing": "node billing/server.js",
     "test": "node --test",
+    "test:e2e": "playwright test",
+    "test:rules": "node node_modules/firebase-tools/lib/bin/firebase.js emulators:exec --only firestore,storage --project demo-gcq \"node --test tests/rules/firestore.rules.test.cjs\"",
+    "audit:prod": "npm audit --omit=dev --audit-level=high && npm --prefix functions audit --omit=dev --audit-level=high && npm --prefix billing audit --omit=dev --audit-level=high",
     "set-subscription": "node scripts/set-subscription.js",
     "onboard-school": "node billing/scripts/onboard-new-school.js",
     "setup-school": "node scripts/billing-wizard.js",
@@ -18,7 +23,22 @@
   "author": "",
   "license": "ISC",
   "devDependencies": {
-    "firebase-admin": "^13.0.0",
-    "firebase-tools": "^15.11.0"
+    "@firebase/rules-unit-testing": "5.0.1",
+    "@playwright/test": "1.62.1",
+    "autoprefixer": "10.4.21",
+    "axe-core": "4.13.0",
+    "firebase-admin": "14.2.0",
+    "firebase-tools": "^15.11.0",
+    "postcss": "8.5.6",
+    "tailwindcss": "3.4.17",
+    "vite": "8.2.0"
+  },
+  "dependencies": {
+    "@fortawesome/fontawesome-free": "6.5.2",
+    "chart.js": "4.5.1",
+    "firebase": "12.17.1",
+    "html2canvas": "1.4.1",
+    "jspdf": "4.2.1",
+    "tone": "14.8.49"
   }
 }

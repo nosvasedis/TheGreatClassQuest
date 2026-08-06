@@ -1,5 +1,7 @@
 import * as state from './state.js';
+import { loadTone } from './utils/lazyLibraries.js';
 
+let Tone = null;
 let sounds = {};
 export let ceremonyMusic = {};
 export let winnerFanfare = {};
@@ -15,6 +17,7 @@ export async function setupSounds() {
 
     soundSetupPromise = (async () => {
         try {
+            Tone = await loadTone();
             // SFX Synths
             const reverb = new Tone.Reverb({ decay: 0.8, wet: 0.3 }).toDestination();
             sounds.click = new Tone.Synth({ oscillator: { type: 'sine' }, envelope: { attack: 0.001, decay: 0.05, sustain: 0.0, release: 0.05 } }).toDestination();
@@ -101,36 +104,35 @@ export async function setupSounds() {
                 url: "assets/ceremony_reveal.mp3",
                 loop: true,
                 volume: -12,
-                onload: () => console.log("Ceremony Music Loaded"),
+                onload: () => {},
                 onerror: (e) => console.warn("Ceremony Music failed to load", e)
             }).toDestination();
 
             winnerFanfare = new Tone.Player({
                 url: "assets/ceremony_winner.mp3",
                 volume: -3,
-                onload: () => console.log("Winner Fanfare Loaded"),
+                onload: () => {},
                 onerror: (e) => console.warn("Winner Fanfare failed to load", e)
             }).toDestination();
 
             showdownSting = new Tone.Player({
                 url: "assets/ceremony_showdown.mp3",
                 volume: -6,
-                onload: () => console.log("Showdown Sting Loaded"),
+                onload: () => {},
                 onerror: (e) => console.warn("Showdown Sting failed to load", e)
             }).toDestination();
 
             heroFanfare = new Tone.Player({
                 url: "assets/hero_fanfare.mp3",
                 volume: -2,
-                onload: () => console.log("Hero Fanfare Loaded"),
+                onload: () => {},
                 onerror: (e) => console.warn("Hero Fanfare failed to load", e)
             }).toDestination();
 
             soundsReady = true;
-            console.log("Audio SFX Ready");
 
             Tone.loaded()
-                .then(() => console.log("Audio Player Buffers Ready"))
+                .then(() => {})
                 .catch((e) => console.warn('Some audio buffers failed to load:', e));
         } catch (e) {
             console.error('Failed to initialize sounds:', e);
@@ -234,14 +236,18 @@ export function playSound(sound) {
     }
 }
 
-export function activateAudioContext() {
-    if (typeof Tone === 'undefined') return Promise.resolve(false);
+export async function activateAudioContext() {
+    try {
+        Tone = Tone || await loadTone();
+    } catch (error) {
+        console.error('Failed to load audio library:', error);
+        return false;
+    }
     if (Tone.context.state === 'running') return Promise.resolve(true);
     if (audioStartPromise) return audioStartPromise;
 
     audioStartPromise = Tone.start()
         .then(() => {
-            console.log("Audio Context Started");
             audioStartPromise = null;
             return true;
         })
@@ -255,13 +261,14 @@ export function activateAudioContext() {
 }
 
 export async function ensureAudioReady() {
-    await activateAudioContext();
+    const started = await activateAudioContext();
+    if (!started) return false;
     await setupSounds();
-    return soundsReady && Tone.context.state === 'running';
+    return soundsReady && Tone?.context?.state === 'running';
 }
 
 export function isAudioReady() {
-    return soundsReady && typeof Tone !== 'undefined' && Tone.context.state === 'running';
+    return soundsReady && Tone?.context?.state === 'running';
 }
 
 export function stopAllCeremonyAudio() {
@@ -270,7 +277,7 @@ export function stopAllCeremonyAudio() {
             if (ceremonyMusic.state === "started") ceremonyMusic.stop();
             if (winnerFanfare.state === "started") winnerFanfare.stop();
             if (showdownSting.state === "started") showdownSting.stop();
-        } catch(e) { console.log("Audio stop safe error"); }
+        } catch (_) { /* Already stopped or not initialized. */ }
     }
 }
 

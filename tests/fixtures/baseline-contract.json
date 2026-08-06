@@ -1,0 +1,6 @@
+{
+  "baselineCommit": "53607709aa7c",
+  "capturedBeforeOptimization": true,
+  "existingTests": 54,
+  "requiredParity": "same visible state, calculations, permissions, navigation, and stored business data"
+}

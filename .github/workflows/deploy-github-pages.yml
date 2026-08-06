@@ -29,6 +29,8 @@ jobs:
       GCQ_FIREBASE_MEASUREMENT_ID: ${{ secrets.GCQ_FIREBASE_MEASUREMENT_ID }}
       GCQ_BILLING_BASE_URL: ${{ secrets.GCQ_BILLING_BASE_URL }}
       GCQ_BILLING_SCHOOL_ID: ${{ secrets.GCQ_BILLING_SCHOOL_ID }}
+      GCQ_APP_CHECK_SITE_KEY: ${{ secrets.GCQ_APP_CHECK_SITE_KEY }}
+      GCQ_REQUIRE_CONFIG: "1"
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -36,14 +38,26 @@ jobs:
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22
           cache: npm
+
+      - name: Setup Java for Firebase emulators
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
 
       - name: Configure Pages
         uses: actions/configure-pages@v5
 
       - name: Install dependencies
         run: npm ci
+
+      - name: Verify behavior and production dependencies
+        run: |
+          npm test
+          npm run test:rules
+          npm run audit:prod
 
       - name: Build static site
         run: npm run build:static

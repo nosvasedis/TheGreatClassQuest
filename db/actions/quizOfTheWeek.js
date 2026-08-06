@@ -1,6 +1,6 @@
 import { db, doc, setDoc, getDoc, getDocs, collection, writeBatch, serverTimestamp, increment, arrayUnion, runTransaction, where, query, deleteDoc } from '../../firebase.js';
 import * as state from '../../state.js';
-import { getTodayDateString } from '../../utils.js';
+import { compressImageBase64, getTodayDateString } from '../../utils.js';
 import { getISOWeekKey, getTargetWeekKey, updateGuildScores } from '../../features/guildScoring.js';
 import { callGeminiApi, extractJsonFromAiText, callCloudflareAiImageApi } from '../../api.js';
 import { applyClassQuestBonusDelta } from './fortuneWheelEffects.js';
@@ -303,7 +303,8 @@ export async function generateQuizQuestions(classId) {
                 try {
                     const ageStyle = IMAGE_AGE_PROMPTS[quiz.questLevel] || IMAGE_AGE_PROMPTS['A'];
                     const fullPrompt = `${q.imagePrompt}, ${ageStyle}`;
-                    const base64 = await callCloudflareAiImageApi(fullPrompt, '', {}, { retries: 1, timeoutMs: 30000 });
+                    const rawBase64 = await callCloudflareAiImageApi(fullPrompt, '', {}, { retries: 1, timeoutMs: 30000 });
+                    const base64 = await compressImageBase64(rawBase64, 768, 768, 0.82);
                     const storagePath = `quiz_images/${state.get('currentUserId')}/${quizDocId(classId)}_${q.id}.jpg`;
                     q.imageUrl = await uploadImageToStorage(base64, storagePath);
                 } catch (e) {

@@ -18,23 +18,29 @@ service cloud.firestore {
     }
 
     function currentRole() {
-      return hasProfile() ? currentProfile().role : 'teacher';
+      return hasProfile() ? currentProfile().role : null;
+    }
+
+    function hasActiveProfile() {
+      return hasProfile() &&
+        currentProfile().status == 'active' &&
+        currentRole() in ['teacher', 'secretary', 'parent'];
     }
 
     function isTeacher() {
-      return signedIn() && currentRole() == 'teacher';
+      return hasActiveProfile() && currentRole() == 'teacher';
     }
 
     function isParent() {
-      return signedIn() && currentRole() == 'parent';
+      return hasActiveProfile() && currentRole() == 'parent';
     }
 
     function isSecretary() {
-      return signedIn() && currentRole() == 'secretary';
+      return hasActiveProfile() && currentRole() == 'secretary';
     }
 
     function isSchoolAdmin() {
-      return signedIn() && hasProfile() && currentProfile().schoolAdmin == true;
+      return hasActiveProfile() && currentProfile().schoolAdmin == true;
     }
 
     function isStaff() {
@@ -52,15 +58,35 @@ service cloud.firestore {
     function activeYearKey() {
       return exists(currentYearStatePath())
         ? get(currentYearStatePath()).data.activeYearKey
-        : '2025-2026';
+        : null;
     }
 
     function isActiveSchoolYearCreate() {
-      return !('schoolYearKey' in request.resource.data) || request.resource.data.schoolYearKey == activeYearKey();
+      return activeYearKey() != null &&
+        request.resource.data.schoolYearKey == activeYearKey();
     }
 
     function isActiveStudentYearCreate() {
-      return !('activeSchoolYearKey' in request.resource.data) || request.resource.data.activeSchoolYearKey == activeYearKey();
+      return activeYearKey() != null &&
+        request.resource.data.activeSchoolYearKey == activeYearKey();
+    }
+
+    function isActiveMutableData(data) {
+      return activeYearKey() != null &&
+        (!('schoolYearKey' in data) || data.schoolYearKey == activeYearKey()) &&
+        (!('activeSchoolYearKey' in data) || data.activeSchoolYearKey == activeYearKey()) &&
+        (!('status' in data) || !(data.status in ['archived', 'closed']));
+    }
+
+    function keepsOwnershipAndYearFields() {
+      return !request.resource.data.diff(resource.data).affectedKeys().hasAny([
+        'createdBy',
+        'teacherId',
+        'markedBy',
+        'spunBy',
+        'schoolYearKey',
+        'activeSchoolYearKey'
+      ]);
     }
 
     function isParentLinkedTo(studentId) {
@@ -113,7 +139,7 @@ service cloud.firestore {
     }
 
     match /appConfig/subscription {
-      allow read: if signedIn();
+      allow read: if hasActiveProfile();
       allow write: if false;
     }
 
@@ -125,31 +151,32 @@ service cloud.firestore {
       );
       allow create: if signedIn() &&
         request.auth.uid == userId &&
+        request.resource.data.keys().hasOnly([
+          'role', 'displayName', 'loginMode', 'status', 'schoolAdmin',
+          'linkedStudentId', 'createdBy', 'createdAt', 'lastSeenAt'
+        ]) &&
         request.resource.data.role == 'teacher' &&
         request.resource.data.loginMode == 'email' &&
         request.resource.data.status == 'active' &&
         request.resource.data.schoolAdmin == false &&
-        request.resource.data.linkedStudentId == null;
+        request.resource.data.linkedStudentId == null &&
+        request.resource.data.createdBy == null;
       allow update: if signedIn() &&
         request.auth.uid == userId &&
-        request.resource.data.role == resource.data.role &&
-        request.resource.data.loginMode == resource.data.loginMode &&
-        request.resource.data.status == resource.data.status &&
-        request.resource.data.schoolAdmin == resource.data.schoolAdmin &&
-        request.resource.data.linkedStudentId == resource.data.linkedStudentId &&
-        request.resource.data.createdAt == resource.data.createdAt;
+        resource.data.status == 'active' &&
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['displayName', 'lastSeenAt']);
       allow delete: if false;
     }
 
     match /teacher_metadata/{userId} {
-      allow read: if signedIn() && (request.auth.uid == userId || isSecretary() || isSchoolAdmin());
-      allow write: if signedIn() && request.auth.uid == userId;
+      allow read: if hasActiveProfile() && (request.auth.uid == userId || isSecretary() || isSchoolAdmin());
+      allow write: if hasActiveProfile() && request.auth.uid == userId;
     }
 
     match /teachers/{userId} {
-      allow read: if signedIn() && (request.auth.uid == userId || isSecretary() || isSchoolAdmin());
-      allow create: if signedIn() && request.auth.uid == userId;
-      allow update: if signedIn() && (
+      allow read: if hasActiveProfile() && (request.auth.uid == userId || isSecretary() || isSchoolAdmin());
+      allow create: if hasActiveProfile() && request.auth.uid == userId;
+      allow update: if hasActiveProfile() && (
         request.auth.uid == userId ||
         isSecretary() ||
         isSchoolAdmin()
@@ -163,13 +190,13 @@ service cloud.firestore {
     }
 
     match /artifacts/great-class-quest/public/data/school_years/{yearKey} {
-      allow read: if signedIn();
+      allow read: if hasActiveProfile();
       allow create, update: if isYearOperator();
       allow delete: if false;
     }
 
     match /artifacts/great-class-quest/public/data/school_year_state/{docId} {
-      allow read: if signedIn();
+      allow read: if hasActiveProfile();
       allow create, update: if isYearOperator();
       allow delete: if false;
     }
@@ -211,7 +238,7 @@ service cloud.firestore {
     }
 
     match /artifacts/great-class-quest/public/data/parent_homework/{docId} {
-      allow read: if signedIn() && (
+      allow read: if hasActiveProfile() && (
         isSecretary() ||
         isSchoolAdmin() ||
         isParentLinkedTo(resource.data.studentId) ||
@@ -221,7 +248,7 @@ service cloud.firestore {
     }
 
     match /artifacts/great-class-quest/public/data/communication_threads/{threadId} {
-      allow read: if signedIn() && (
+      allow read: if hasActiveProfile() && (
         isSecretary() ||
         isSchoolAdmin() ||
         isThreadParticipant(threadId) ||
@@ -232,7 +259,7 @@ service cloud.firestore {
     }
 
     match /artifacts/great-class-quest/public/data/communication_messages/{messageId} {
-      allow read: if signedIn() && (
+      allow read: if hasActiveProfile() && (
         isSecretary() ||
         isSchoolAdmin() ||
         isThreadParticipant(resource.data.threadId) ||
@@ -243,7 +270,7 @@ service cloud.firestore {
     }
 
     match /artifacts/great-class-quest/public/data/{collection}/{docId} {
-      allow read: if signedIn() && (
+      allow read: if hasActiveProfile() && (
         isStaff() ||
         isSchoolAdmin() ||
         (collection == 'school_settings') ||
@@ -252,9 +279,10 @@ service cloud.firestore {
         (collection == 'guild_champions' && isParent())
       );
 
-      allow create: if signedIn() && (
+      allow create: if hasActiveProfile() && isActiveMutableData(request.resource.data) && (
         isSecretary() ||
         isSchoolAdmin() ||
+        (isTeacher() && (
         (collection == 'classes' && request.resource.data.createdBy.uid == request.auth.uid && isActiveSchoolYearCreate()) ||
         (collection == 'students' && request.resource.data.createdBy.uid == request.auth.uid && isActiveStudentYearCreate()) ||
         (collection == 'student_scores' && request.resource.data.createdBy.uid == request.auth.uid && isActiveStudentYearCreate()) ||
@@ -283,11 +311,14 @@ service cloud.firestore {
         (collection == 'guild_glory_events') ||
         (collection == 'guild_champions') ||
         (collection == 'world_boss')
+        ))
       );
 
-      allow update: if signedIn() && (
+      allow update: if hasActiveProfile() && isActiveMutableData(resource.data) &&
+        isActiveMutableData(request.resource.data) && keepsOwnershipAndYearFields() && (
         isSecretary() ||
         isSchoolAdmin() ||
+        (isTeacher() && (
         (collection == 'classes' && resource.data.createdBy.uid == request.auth.uid) ||
         (collection == 'student_scores' && studentExists(docId) && studentDoc(docId).createdBy.uid == request.auth.uid) ||
         (collection == 'today_stars' && resource.data.teacherId == request.auth.uid) ||
@@ -309,11 +340,13 @@ service cloud.firestore {
         (collection == 'guild_glory_events') ||
         (collection == 'guild_champions') ||
         (collection == 'world_boss')
+        ))
       );
 
-      allow delete: if signedIn() && (
+      allow delete: if hasActiveProfile() && isActiveMutableData(resource.data) && (
         isSecretary() ||
         isSchoolAdmin() ||
+        (isTeacher() && (
         resource.data.createdBy.uid == request.auth.uid ||
         (collection == 'attendance' && resource.data.markedBy.uid == request.auth.uid) ||
         (collection == 'written_scores' && resource.data.teacherId == request.auth.uid) ||
@@ -326,12 +359,13 @@ service cloud.firestore {
         (collection == 'class_shields' && resource.data.createdBy.uid == request.auth.uid) ||
         (collection == 'class_sanctuaries' && resource.data.createdBy.uid == request.auth.uid) ||
         (collection == 'daily_cache')
+        ))
       );
     }
 
     match /artifacts/great-class-quest/public/data/quiz_of_the_week/{quizDocId}/attempts/{attemptId} {
       allow read: if isStaff() || isSchoolAdmin();
-      allow create: if signedIn() && (
+      allow create: if hasActiveProfile() && (
         isStaff() ||
         isSchoolAdmin() ||
         request.resource.data.teacherId == request.auth.uid

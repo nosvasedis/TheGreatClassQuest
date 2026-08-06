@@ -34,6 +34,26 @@ import { withSchoolYear } from '../../utils/schoolYear.js';
 // --- THE ECONOMY (SHOP & INVENTORY) ---
 let isGeneratingShopStock = false;
 
+function getOrthodoxEasterDate(year) {
+    const a = year % 4;
+    const b = year % 7;
+    const c = year % 19;
+    const d = (19 * c + 15) % 30;
+    const e = (2 * a + 4 * b - d + 34) % 7;
+    const julianMonth = Math.floor((d + e + 114) / 31);
+    const julianDay = ((d + e + 114) % 31) + 1;
+    const easter = new Date(Date.UTC(year, julianMonth - 1, julianDay));
+    easter.setUTCDate(easter.getUTCDate() + (year >= 2100 ? 14 : 13));
+    return easter;
+}
+
+function isOrthodoxEasterSeason(date) {
+    const day = Date.UTC(date.getFullYear(), date.getMonth(), date.getDate());
+    const easter = getOrthodoxEasterDate(date.getFullYear()).getTime();
+    const differenceInDays = (day - easter) / 86400000;
+    return differenceInDays >= -14 && differenceInDays <= 7;
+}
+
 function animateShopGoldChange(newGoldBalance, durationMs = 650) {
     const goldDisplay = document.getElementById('shop-student-gold');
     if (!goldDisplay) return;
@@ -228,14 +248,13 @@ export async function handleGenerateShopStock() {
         // --- STEP 1: PREPARE PROMPT ---
         const now = new Date();
         const currentMonth = now.getMonth();
-        const currentYear = now.getFullYear();
         const ageCategory = getAgeGroupForLeague(league);
         const isJunior = ageCategory === '7-8' || ageCategory === '8-9' || league.includes('Junior');
 
         // Smart Season Context
         let seasonContext = "";
         if (currentMonth === 11) seasonContext = "Winter, Christmas, Festive, Snow, Holidays, Gifts";
-        else if (currentMonth === 3 && currentYear === 2026) seasonContext = "Spring, Orthodox Easter, Red Eggs, Candles";
+        else if (isOrthodoxEasterSeason(now)) seasonContext = "Spring, Orthodox Easter, Red Eggs, Candles";
         else if (currentMonth === 0 || currentMonth === 1) seasonContext = "Winter, Ice, Frost";
         else if (currentMonth >= 2 && currentMonth <= 4) seasonContext = "Spring, Flowers, Nature";
         else if (currentMonth >= 5 && currentMonth <= 7) seasonContext = "Summer, Beach, Sun";
@@ -319,7 +338,7 @@ export async function handleGenerateShopStock() {
                         }
                     }
 
-                    const path = `shop_items/${state.get('currentUserId')}/${monthKey}_${simpleHashCode(item.name)}_${Date.now()}.jpg`;
+                    const path = `shop_items/${state.get('currentUserId')}/${state.getActiveSchoolYearKey()}/${monthKey}_${simpleHashCode(item.name)}.jpg`;
                     const url = await uploadImageToStorage(compressed, path);
 
                     const docRef = doc(collection(db, `${publicDataPath}/shop_items`));
@@ -1066,7 +1085,6 @@ export async function resolveMissingGenders() {
 
     if (!canUseFeature('eliteAI')) return;
 
-    console.log(`Resolving genders for ${unclassified.length} of your students...`);
 
     // 2. Prepare the list for the AI (ID + Name)
     const listToAnalyze = unclassified.map(s => ({ id: s.id, name: s.name.split(' ')[0] }));
@@ -1093,7 +1111,6 @@ export async function resolveMissingGenders() {
 
         if (count > 0) {
             await batch.commit();
-            console.log(`Gender resolved and saved for ${count} students.`);
         }
 
     } catch (e) {

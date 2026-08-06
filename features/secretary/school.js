@@ -65,9 +65,12 @@ function renderStudentsList() {
                 const latestScore = latestScores.get(student.id);
                 const thread = threads.find((item) => item.studentId === student.id);
                 const variant = avatarVariant(student.name);
+                const avatarHtml = student.avatar
+                    ? `<img src="${escapeHtml(student.avatar)}" alt="" loading="lazy" decoding="async">`
+                    : escapeHtml(initials(student.name));
                 return `
                     <div class="role-list-row" style="cursor:default">
-                        <div class="role-list-row__avatar role-list-row__avatar--${variant}">${escapeHtml(initials(student.name))}</div>
+                        <div class="role-list-row__avatar role-list-row__avatar--${variant}">${avatarHtml}</div>
                         <div class="role-list-row__body">
                             <div class="role-list-row__title">${escapeHtml(student.name)}</div>
                             <div class="role-list-row__meta">${escapeHtml(classData?.name || 'No class')} • ${Number(score.totalStars || 0)} stars • Latest: ${escapeHtml(latestScore ? (getAssessmentValueLabel(latestScore, classData) || latestScore.scoreQualitative || 'Recorded') : 'No grade yet')}</div>

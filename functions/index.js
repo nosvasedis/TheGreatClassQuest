@@ -136,8 +136,15 @@ async function requireFeatureEnabled(featureKey) {
   throw new HttpsError('failed-precondition', 'This school plan does not include that access feature yet.');
 }
 
-function callable(handler) {
-  return functionsV1.region(FUNCTIONS_REGION).https.onCall(async (data, context) => {
+function callable(handler, options = {}) {
+  let builder = functionsV1.region(FUNCTIONS_REGION);
+  if (options.timeoutSeconds || options.memory) {
+    builder = builder.runWith({
+      timeoutSeconds: options.timeoutSeconds || 60,
+      memory: options.memory || '256MB'
+    });
+  }
+  return builder.https.onCall(async (data, context) => {
     return handler({
       data,
       auth: context.auth || null,
@@ -220,8 +227,9 @@ async function getRecentAssessments(studentId) {
 async function getAttendanceSummary(studentId) {
   const snap = await db.collection(`${PUBLIC_DATA_PATH}/attendance`)
     .where('studentId', '==', studentId)
+    .count()
     .get();
-  const absences = snap.size;
+  const absences = Number(snap.data().count || 0);
   return {
     absences,
     lessonsHeld: null,
@@ -250,8 +258,9 @@ async function countPublishedHomework(studentId) {
     .where('studentId', '==', studentId)
     .where('status', '==', 'published')
     .where('sourceType', '==', 'quest-assignment')
+    .count()
     .get();
-  return snap.size;
+  return Number(snap.data().count || 0);
 }
 
 async function buildParentSnapshot(studentId, extra = {}) {
@@ -1007,17 +1016,21 @@ exports.backfillRoleAccessData = callable(async (request) => {
   await requireFeatureEnabled('secretaryAccess');
 
   const studentsSnap = await db.collection(`${PUBLIC_DATA_PATH}/students`).get();
+  const studentDocs = studentsSnap.docs;
+  const concurrency = 6;
   let snapshotCount = 0;
-  for (const studentDoc of studentsSnap.docs) {
-    await upsertParentSnapshot(studentDoc.id);
-    snapshotCount += 1;
+
+  for (let i = 0; i < studentDocs.length; i += concurrency) {
+    const chunk = studentDocs.slice(i, i + concurrency);
+    await Promise.all(chunk.map((studentDoc) => upsertParentSnapshot(studentDoc.id)));
+    snapshotCount += chunk.length;
   }
 
   return {
     ok: true,
     parentSnapshotsUpdated: snapshotCount
   };
-});
+}, { timeoutSeconds: 540, memory: '1GB' });
 
 function withYear(payload, yearKey) {
   const resolved = String(payload.schoolYearKey || yearKey || '').trim();

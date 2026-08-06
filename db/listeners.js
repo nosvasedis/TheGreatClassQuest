@@ -891,11 +891,14 @@ export async function setupDataListeners(
     threeMonthsAgo.setMonth(threeMonthsAgo.getMonth() - 3);
     const threeMonthsAgoString = threeMonthsAgo.toISOString().split("T")[0];
 
+    // orderBy("date","desc") is required so the secretary query uses the
+    // schoolYearKey+date DESC composite index (range filters default to ASC).
     const writtenScoresQuery = isSecretary
         ? query(
               collection(db, `${publicDataPath}/written_scores`),
               ...yearScopeClauses(enforceActiveYearQueries, activeYearKey),
               where("date", ">=", threeMonthsAgoString),
+              orderBy("date", "desc"),
           )
         : query(
               collection(db, `${publicDataPath}/written_scores`),

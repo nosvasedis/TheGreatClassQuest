@@ -1,8 +1,10 @@
 const FIREBASE_ID_JWKS_URL = 'https://www.googleapis.com/service_accounts/v1/jwk/securetoken@system.gserviceaccount.com';
 const APP_CHECK_JWKS_URL = 'https://firebaseappcheck.googleapis.com/v1/jwks';
-const OPENROUTER_URL = 'https://openrouter.ai/api/v1/chat/completions';
+const DEEPSEEK_URL = 'https://api.deepseek.com/chat/completions';
 const ELEVENLABS_URL = 'https://api.elevenlabs.io/v1/text-to-speech/Xb7hH8MSUJpSbSDYk0k2';
 const IMAGE_MODEL = '@cf/stabilityai/stable-diffusion-xl-base-1.0';
+const TEXT_FALLBACK_MODEL = '@cf/zai-org/glm-4.7-flash';
+const TEXT_FALLBACK_DAILY_LIMIT = 12;
 const DEFAULT_ORIGINS = [
   'https://nosvasedis.github.io',
   'https://great-class-quest-school.pages.dev',
@@ -58,7 +60,7 @@ function corsFor(request, env) {
     'Access-Control-Allow-Origin': origin,
     'Access-Control-Allow-Methods': 'POST,OPTIONS',
     'Access-Control-Allow-Headers': 'Content-Type,Authorization,X-Firebase-AppCheck,X-GCQ-Request-ID',
-    'Access-Control-Expose-Headers': 'Retry-After,X-Worker-Cache,X-GCQ-Request-ID',
+    'Access-Control-Expose-Headers': 'Retry-After,X-Worker-Cache,X-GCQ-Request-ID,X-GCQ-Error-Source,X-GCQ-AI-Provider',
     Vary: 'Origin',
   };
 }
@@ -201,7 +203,7 @@ function boundedNumber(value, fallback, min, max) {
 }
 
 function validatedChatPayload(payload, env) {
-  const models = configuredSet(env.ALLOWED_OPENROUTER_MODELS, [
+  const models = configuredSet(env.ALLOWED_CLIENT_TEXT_MODELS || env.ALLOWED_OPENROUTER_MODELS, [
     'deepseek/deepseek-v4-flash',
     'google/gemini-3.1-flash-lite-preview',
   ]);
@@ -235,12 +237,56 @@ async function sha256Hex(input) {
   return [...new Uint8Array(digest)].map((byte) => byte.toString(16).padStart(2, '0')).join('');
 }
 
+async function reserveTextFallback(env) {
+  if (!env.QUOTE_CACHE) return false;
+  const day = new Date().toISOString().slice(0, 10);
+  const key = `wai-text-fallback:${day}`;
+  const used = Math.max(0, Number(await env.QUOTE_CACHE.get(key)) || 0);
+  if (used >= TEXT_FALLBACK_DAILY_LIMIT) return false;
+  await env.QUOTE_CACHE.put(key, String(used + 1), { expirationTtl: 172_800 });
+  return true;
+}
+
+function extractWorkersAiText(result) {
+  const content = result?.response
+    ?? result?.choices?.[0]?.message?.content
+    ?? result?.result?.response;
+  return typeof content === 'string' ? content.trim() : '';
+}
+
+async function handleWorkersAiTextFallback(outbound, env, corsHeaders) {
+  if (!env.AI || !(await reserveTextFallback(env))) {
+    return json(
+      { error: 'The backup AI service is temporarily unavailable.' },
+      503,
+      corsHeaders,
+      { 'X-GCQ-Error-Source': 'workers-ai-budget' },
+    );
+  }
+
+  const result = await env.AI.run(TEXT_FALLBACK_MODEL, {
+    messages: outbound.messages,
+    temperature: outbound.temperature,
+    top_p: outbound.top_p,
+    max_tokens: outbound.max_tokens,
+  });
+  const content = extractWorkersAiText(result);
+  if (!content) throw new Error('Workers AI returned no text.');
+  return json(
+    { model: TEXT_FALLBACK_MODEL, choices: [{ message: { role: 'assistant', content } }] },
+    200,
+    corsHeaders,
+    { 'X-GCQ-AI-Provider': 'workers-ai-fallback' },
+  );
+}
+
 async function handleChat(payload, env, ctx, corsHeaders) {
-  if (!env.OPENROUTER_API_KEY) return json({ error: 'AI text service is unavailable.' }, 503, corsHeaders);
   const safe = validatedChatPayload(payload, env);
   const isQuote = isLikelyDailyQuoteRequest(safe);
   const outbound = {
     ...safe,
+    model: 'deepseek-v4-flash',
+    thinking: { type: 'disabled' },
     temperature: 0.7,
     top_p: 0.95,
     max_tokens: isQuote ? 80 : 1200,
@@ -256,13 +302,19 @@ async function handleChat(payload, env, ctx, corsHeaders) {
     if (cached) return new Response(cached, { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json', 'X-Worker-Cache': 'KV-HIT' } });
   }
 
-  const response = await fetch(OPENROUTER_URL, {
+  if (!env.DEEPSEEK_API_KEY) {
+    const fallback = await handleWorkersAiTextFallback(outbound, env, corsHeaders);
+    if (quoteKey && fallback.ok && env.QUOTE_CACHE) {
+      ctx.waitUntil(env.QUOTE_CACHE.put(quoteKey, await fallback.clone().text(), { expirationTtl: 86_400 }).catch(() => {}));
+    }
+    return fallback;
+  }
+
+  const response = await fetch(DEEPSEEK_URL, {
     method: 'POST',
     headers: {
-      Authorization: `Bearer ${env.OPENROUTER_API_KEY}`,
+      Authorization: `Bearer ${env.DEEPSEEK_API_KEY}`,
       'Content-Type': 'application/json',
-      'HTTP-Referer': 'https://nosvasedis.github.io/TheGreatClassQuest/',
-      'X-Title': 'The Great Class Quest',
     },
     body: JSON.stringify(outbound),
     signal: AbortSignal.timeout(55_000),
@@ -270,9 +322,17 @@ async function handleChat(payload, env, ctx, corsHeaders) {
   });
   const responseText = await response.text();
   if (!response.ok) {
+    if (response.status === 401 || response.status === 403) {
+      const fallback = await handleWorkersAiTextFallback(outbound, env, corsHeaders);
+      if (quoteKey && fallback.ok && env.QUOTE_CACHE) {
+        ctx.waitUntil(env.QUOTE_CACHE.put(quoteKey, await fallback.clone().text(), { expirationTtl: 86_400 }).catch(() => {}));
+      }
+      return fallback;
+    }
     const headers = {};
     const retryAfter = response.headers.get('Retry-After');
     if (retryAfter) headers['Retry-After'] = retryAfter;
+    headers['X-GCQ-Error-Source'] = 'deepseek';
     return json({ error: 'AI text service could not complete the request.' }, response.status, corsHeaders, headers);
   }
   if (quoteKey && env.QUOTE_CACHE) {
@@ -352,7 +412,12 @@ export default {
       [identity] = await Promise.all([verifyFirebaseIdToken(request, env), verifyAppCheckIfRequired(request, env)]);
       await requireActiveProfile(identity);
     } catch (_) {
-      return json({ error: 'A valid active Firebase login is required.' }, 401, corsHeaders);
+      return json(
+        { error: 'A valid active Firebase login is required.' },
+        401,
+        corsHeaders,
+        { 'X-GCQ-Error-Source': 'firebase-auth' },
+      );
     }
 
     let rawBody;

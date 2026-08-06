@@ -28,6 +28,7 @@ export const headerHTML = `
                 </div>
 
                 <div class="mt-2 flex items-center gap-2 sm:gap-4">
+                    <div id="gcq-update-ready-mount" class="hidden shrink-0" aria-live="polite"></div>
                     <div
                         class="flex items-center gap-1 bg-white/20 backdrop-blur-sm border border-white/30 rounded-full p-1 shadow-md overflow-visible">
                         <div id="header-class-selector-wrap" class="relative z-20 overflow-visible">

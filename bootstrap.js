@@ -102,14 +102,24 @@ function showUpdateAvailable(registration) {
     const button = document.createElement('button');
     button.id = 'gcq-update-ready';
     button.type = 'button';
-    button.className = 'fixed bottom-4 right-4 z-[2000] rounded-2xl bg-indigo-700 px-4 py-3 text-sm font-bold text-white shadow-2xl hover:bg-indigo-800 focus:outline-none focus:ring-4 focus:ring-indigo-300';
-    button.innerHTML = '<i class="fas fa-rotate mr-2" aria-hidden="true"></i>Update ready — reload';
+    button.className = 'gcq-update-ready-button font-title';
+    button.setAttribute('aria-label', 'Update ready. Reload the app.');
+    button.title = 'A new version is ready';
+    button.innerHTML = '<span class="gcq-update-ready-sparkle" aria-hidden="true">✦</span><i class="fas fa-rotate gcq-update-ready-icon" aria-hidden="true"></i><span class="gcq-update-ready-label">Update ready</span>';
     button.addEventListener('click', () => {
         button.disabled = true;
-        button.textContent = 'Updating…';
+        button.innerHTML = '<i class="fas fa-spinner fa-spin gcq-update-ready-icon" aria-hidden="true"></i><span class="gcq-update-ready-label">Updating…</span>';
         registration.waiting?.postMessage({ type: 'SKIP_WAITING' });
     });
-    document.body.appendChild(button);
+    const mount = document.getElementById('gcq-update-ready-mount');
+    if (mount) {
+        mount.classList.remove('hidden');
+        mount.appendChild(button);
+    } else {
+        // Defensive fallback for a future shell that does not include the header mount.
+        button.classList.add('gcq-update-ready-button--fallback');
+        document.body.appendChild(button);
+    }
 }
 
 async function registerServiceWorker() {

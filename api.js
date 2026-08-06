@@ -13,19 +13,36 @@ let geminiQueue = Promise.resolve();
 let lastGeminiRequestStartedAt = 0;
 let _globalRateLimitUntil = 0;
 
-async function getAuthenticatedProxyHeaders() {
+async function getAuthenticatedProxyHeaders(forceRefresh = false) {
     const [{ auth }, { getAppCheckHeader }] = await Promise.all([
         import('./firebaseAuth.js'),
         import('./firebaseAppCheck.js')
     ]);
     if (!auth.currentUser) throw new Error('Sign in again before using AI generation.');
-    const token = await auth.currentUser.getIdToken();
+    const token = await auth.currentUser.getIdToken(forceRefresh);
     return {
         'Content-Type': 'application/json',
         Authorization: `Bearer ${token}`,
         ...(await getAppCheckHeader()),
         'X-GCQ-Request-ID': globalThis.crypto?.randomUUID?.() || `${Date.now()}-${Math.random().toString(16).slice(2)}`
     };
+}
+
+async function fetchAuthenticatedProxy(url, payload, config = {}) {
+    const send = async (forceRefresh = false) => fetchWithBackoff(url, {
+        method: 'POST',
+        headers: await getAuthenticatedProxyHeaders(forceRefresh),
+        body: JSON.stringify(payload)
+    }, config);
+
+    try {
+        return await send(false);
+    } catch (error) {
+        if (error?.status !== 401 || error?.errorSource !== 'firebase-auth') throw error;
+        // A server-confirmed Firebase authentication failure gets exactly one
+        // forced token refresh. Provider failures never trigger login retries.
+        return send(true);
+    }
 }
 
 // ─── Provider-level rate limit tracking ──────────────────────────────────────
@@ -214,12 +231,9 @@ function extractProviderText(result) {
 }
 
 async function requestTextFromProvider(provider, systemPrompt, userPrompt, requestOptions = {}) {
+    const payload = buildProviderPayload(provider, systemPrompt, userPrompt, requestOptions);
     const response = await enqueueGeminiRequest(async () =>
-        fetchWithBackoff(provider.url, {
-            method: 'POST',
-            headers: await getAuthenticatedProxyHeaders(),
-            body: JSON.stringify(buildProviderPayload(provider, systemPrompt, userPrompt, requestOptions))
-        }, requestOptions)
+        fetchAuthenticatedProxy(provider.url, payload, requestOptions)
     );
 
     if (!response.ok) {
@@ -373,6 +387,7 @@ async function fetchWithBackoff(url, options, config = {}) {
                 }
                 const error = new Error(`API failed with status ${response.status}`);
                 error.status = response.status;
+                error.errorSource = response.headers?.get?.('X-GCQ-Error-Source') || '';
                 error.retryable = false;
                 throw error;
             }
@@ -502,11 +517,7 @@ export async function callCloudflareAiImageApi(prompt, negativePrompt = "", opti
         ...options
     };
     try {
-        const response = await fetchWithBackoff(cloudflareWorkerUrl, {
-            method: 'POST',
-            headers: await getAuthenticatedProxyHeaders(),
-            body: JSON.stringify(payload)
-        }, {
+        const response = await fetchAuthenticatedProxy(cloudflareWorkerUrl, payload, {
             retries: requestOptions.retries ?? 1,
             baseDelay: requestOptions.baseDelay ?? 1500,
             timeoutMs: requestOptions.timeoutMs ?? DEFAULT_TIMEOUT_MS

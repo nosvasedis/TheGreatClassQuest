@@ -73,6 +73,18 @@ test('service worker uses revisioned caches and safe request strategies', () => 
   assert.match(worker, /SKIP_WAITING/);
 });
 
+test('service-worker update control mounts in the header without covering app actions', () => {
+  const bootstrap = read('bootstrap.js');
+  const header = read('templates/app/header.js');
+  const navStyles = read('styles/nav.css');
+  assert.match(header, /id="gcq-update-ready-mount"/);
+  assert.match(bootstrap, /getElementById\('gcq-update-ready-mount'\)/);
+  assert.match(bootstrap, /gcq-update-ready-button/);
+  assert.doesNotMatch(bootstrap, /fixed bottom-4 right-4/);
+  assert.match(navStyles, /@keyframes gcqUpdateGlow/);
+  assert.match(navStyles, /prefers-reduced-motion: reduce/);
+});
+
 test('authorization rules deny missing profiles and archived-year mutations', () => {
   const rules = read('firestore.rules');
   assert.match(rules, /function hasActiveProfile\(\)/);
@@ -91,6 +103,8 @@ test('billing and generation requests require verified identities and idempotenc
   assert.match(billing, /idempotencyKey/);
   assert.match(api, /Authorization: `Bearer \$\{token\}`/);
   assert.match(api, /X-GCQ-Request-ID/);
+  assert.match(api, /getIdToken\(forceRefresh\)/);
+  assert.match(api, /error\?\.errorSource !== 'firebase-auth'/);
   assert.match(api, /normalizedError\?\.retryable === false/);
   assert.match(read('functions/index.js'), /gcqPlatformAdmin/);
 });

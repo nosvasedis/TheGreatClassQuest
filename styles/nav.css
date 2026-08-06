@@ -699,3 +699,109 @@ body.projector-mode #award-immersive-sky {
 #calendar-tab .bottom-nav-tab-title { --tab-underline-rgb: 29, 78, 216; }
 #reward-ideas-tab .bottom-nav-tab-title { --tab-underline-rgb: 14, 116, 144; }
 #options-tab .bottom-nav-tab-title { --tab-underline-rgb: 75, 85, 99; }
+
+/* Service-worker update prompt: a compact, discoverable header control. */
+.gcq-update-ready-button {
+    position: relative;
+    isolation: isolate;
+    display: inline-flex;
+    min-height: 2rem;
+    align-items: center;
+    gap: 0.38rem;
+    overflow: hidden;
+    border: 1px solid rgba(255, 255, 255, 0.72);
+    border-radius: 9999px;
+    padding: 0.38rem 0.72rem;
+    color: #fff;
+    background: linear-gradient(115deg, rgba(99, 102, 241, 0.96), rgba(124, 58, 237, 0.96) 55%, rgba(217, 70, 239, 0.93));
+    box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.18) inset,
+        0 4px 14px rgba(76, 29, 149, 0.32),
+        0 0 17px rgba(250, 204, 21, 0.34);
+    font-size: 0.7rem;
+    font-weight: 800;
+    line-height: 1;
+    letter-spacing: 0.015em;
+    white-space: nowrap;
+    text-shadow: 0 1px 2px rgba(49, 46, 129, 0.45);
+    transition: transform 180ms ease, box-shadow 180ms ease, filter 180ms ease;
+    animation: gcqUpdateGlow 2.4s ease-in-out infinite;
+}
+
+.gcq-update-ready-button::before {
+    content: '';
+    position: absolute;
+    z-index: -1;
+    inset: -70% -35%;
+    background: linear-gradient(105deg, transparent 38%, rgba(255, 255, 255, 0.56) 49%, transparent 60%);
+    transform: translateX(-58%);
+    animation: gcqUpdateShimmer 2.9s ease-in-out infinite;
+}
+
+.gcq-update-ready-button:hover {
+    filter: saturate(1.12) brightness(1.08);
+    transform: translateY(-1px) scale(1.025);
+    box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.24) inset,
+        0 6px 18px rgba(76, 29, 149, 0.38),
+        0 0 24px rgba(250, 204, 21, 0.55);
+}
+
+.gcq-update-ready-button:focus-visible {
+    outline: 3px solid rgba(254, 240, 138, 0.95);
+    outline-offset: 2px;
+}
+
+.gcq-update-ready-button:disabled {
+    cursor: wait;
+    filter: saturate(0.7);
+    animation: none;
+}
+
+.gcq-update-ready-sparkle {
+    color: #fef08a;
+    font-size: 0.8rem;
+    filter: drop-shadow(0 0 4px rgba(254, 240, 138, 0.9));
+    animation: gcqUpdateSparkle 1.25s ease-in-out infinite;
+}
+
+.gcq-update-ready-icon {
+    font-size: 0.68rem;
+}
+
+.gcq-update-ready-button--fallback {
+    position: fixed;
+    z-index: 2000;
+    top: 0.75rem;
+    right: 0.75rem;
+}
+
+@keyframes gcqUpdateGlow {
+    0%, 100% { box-shadow: 0 4px 14px rgba(76, 29, 149, 0.32), 0 0 10px rgba(250, 204, 21, 0.22); }
+    50% { box-shadow: 0 5px 17px rgba(76, 29, 149, 0.38), 0 0 22px rgba(250, 204, 21, 0.52); }
+}
+
+@keyframes gcqUpdateShimmer {
+    0%, 30% { transform: translateX(-58%); opacity: 0; }
+    45% { opacity: 0.82; }
+    62%, 100% { transform: translateX(58%); opacity: 0; }
+}
+
+@keyframes gcqUpdateSparkle {
+    0%, 100% { opacity: 0.72; transform: scale(0.86) rotate(0deg); }
+    50% { opacity: 1; transform: scale(1.18) rotate(18deg); }
+}
+
+@media (max-width: 639px) {
+    .gcq-update-ready-button {
+        min-height: 1.75rem;
+        padding: 0.34rem 0.52rem;
+        font-size: 0.62rem;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .gcq-update-ready-button,
+    .gcq-update-ready-button::before,
+    .gcq-update-ready-sparkle {
+        animation: none;
+    }
+}

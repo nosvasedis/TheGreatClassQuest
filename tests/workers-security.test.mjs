@@ -34,11 +34,19 @@ test('AI Worker rejects unknown origins and unauthenticated generation before pr
   }, { waitUntil() {} });
   assert.equal(unauthorized.status, 401);
   assert.equal(unauthorized.headers.get('Access-Control-Allow-Origin'), allowedOrigin);
+  assert.equal(unauthorized.headers.get('X-GCQ-Error-Source'), 'firebase-auth');
 
   assert.doesNotMatch(source, /Access-Control-Allow-Origin['"]\s*:\s*['"]\*['"]/);
   assert.match(source, /firebaseappcheck\.googleapis\.com\/v1\/jwks/);
   assert.match(source, /documents\/user_profiles/);
-  assert.match(source, /ALLOWED_OPENROUTER_MODELS/);
+  assert.match(source, /ALLOWED_CLIENT_TEXT_MODELS/);
+  assert.match(source, /DEEPSEEK_URL = 'https:\/\/api\.deepseek\.com\/chat\/completions'/);
+  assert.match(source, /model: 'deepseek-v4-flash'/);
+  assert.match(source, /DEEPSEEK_API_KEY/);
+  assert.match(source, /TEXT_FALLBACK_MODEL = '@cf\/zai-org\/glm-4\.7-flash'/);
+  assert.match(source, /TEXT_FALLBACK_DAILY_LIMIT = 12/);
+  assert.match(source, /response\.status === 401 \|\| response\.status === 403/);
+  assert.match(source, /X-GCQ-Error-Source': 'workers-ai-budget'/);
   assert.match(source, /redirect:\s*'error'/);
 });
 
@@ -51,6 +59,7 @@ test('AI Worker answers preflight only for an explicit legitimate origin', async
   assert.equal(response.status, 204);
   assert.equal(response.headers.get('Access-Control-Allow-Origin'), allowedOrigin);
   assert.match(response.headers.get('Access-Control-Allow-Headers'), /X-Firebase-AppCheck/);
+  assert.match(response.headers.get('Access-Control-Expose-Headers'), /X-GCQ-Error-Source/);
 });
 
 test('Workers allow this Cloudflare Pages project without allowing lookalike hosts', async () => {

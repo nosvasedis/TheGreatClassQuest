@@ -705,7 +705,7 @@ export function renderGuildsTab() {
                     <span class="guild-crystal-effects-panel__wheel" aria-hidden="true"><i class="fa-solid fa-dharmachakra"></i></span>
                     <div class="guild-crystal-effects-panel__headlines">
                         <h4 class="guild-crystal-effects-panel__title">Wheel boons</h4>
-                        <p class="guild-crystal-effects-panel__subtitle">${seasonLive ? "Blessings cast by Fortune's Wheel &mdash; hover a charm for what it actually does." : 'Wheel magic stays sealed until the year begins.'}</p>
+                        <p class="guild-crystal-effects-panel__subtitle">${seasonLive ? "Blessings cast by Fortune's Wheel &mdash; hover a charm for what it actually does." : 'Wheel magic stays sealed until the school year begins.'}</p>
                     </div>
                 </header>
                 <div class="guild-crystal-effects-panel__chips">${modsChipsInner}</div>
@@ -787,7 +787,7 @@ export function renderGuildsTab() {
                                 <div class="guild-crystal-metric">
                                     <div class="guild-crystal-metric__label">Momentum</div>
                                     <div class="guild-crystal-metric__value">❄</div>
-                                    <div class="guild-crystal-metric__hint">Crystals sealed</div>
+                                    <div class="guild-crystal-metric__hint">Awaiting activity</div>
                                 </div>
                             </div>
                             <div class="guild-crystal-roster-ribbon" style="--guild-roster-accent:${primary};">
@@ -829,6 +829,10 @@ export function renderGuildsTab() {
 
                 <!-- ── Crystal tube (fixed height, fills from bottom) ── -->
                 <div class="guild-crystal-tube-wrap${seasonLive ? '' : ' guild-crystal-tube-wrap--frozen'}">
+                    ${seasonLive ? '' : `
+                    <div class="guild-crystal-seal-badge">
+                        <i class="fas fa-snowflake" aria-hidden="true"></i><span>Sealed</span>
+                    </div>`}
                     <div class="guild-crystal-tube${seasonLive ? '' : ' guild-crystal-tube--frozen'}"
                          style="border-color:${primary}44; box-shadow:inset 0 0 16px rgba(0,0,0,0.08), 0 0 32px ${glow}1a;">
                         ${seasonLive ? `
@@ -852,8 +856,7 @@ export function renderGuildsTab() {
                             <span class="guild-crystal-frost__flake" style="--fx:40%;--fy:58%;--fs:0.65rem;--fd:0.9s;">❄</span>
                             <span class="guild-crystal-frost__flake" style="--fx:78%;--fy:70%;--fs:0.8rem;--fd:1.3s;">❅</span>
                             <span class="guild-crystal-frost__flake" style="--fx:28%;--fy:82%;--fs:0.55rem;--fd:1.7s;">❄</span>
-                        </div>
-                        <p class="guild-crystal-frost-seal">Sealed</p>`}
+                        </div>`}
                         <div class="guild-crystal-glass-shine"></div>
                         <div class="guild-crystal-glow-top" style="background:radial-gradient(ellipse at 50% 0%,${glow}22,transparent 70%);"></div>
                     </div>
@@ -876,15 +879,7 @@ export function renderGuildsTab() {
 
     list.innerHTML = `
         <div class="guild-crystal-hall${seasonLive ? '' : ' guild-crystal-hall--frozen'}">
-            ${seasonLive ? '' : `
-            <div class="guild-season-frozen-banner" role="status">
-                <span class="guild-season-frozen-banner__icon" aria-hidden="true"><i class="fas fa-snowflake"></i></span>
-                <div class="guild-season-frozen-banner__copy">
-                    <strong>Guild Hall is frozen</strong>
-                    <span>Scores stay hidden until the school year begins — or until classes have lesson days.</span>
-                </div>
-            </div>`}
-            <div class="guild-crystal-arena-header">
+            <div class="guild-crystal-arena-header${seasonLive ? '' : ' guild-crystal-arena-header--frozen'}">
                 <div class="guild-crystal-fortune-wrap">
                     <button type="button"
                             id="fortunes-wheel-btn"
@@ -901,7 +896,13 @@ export function renderGuildsTab() {
                         </span>
                     </button>
                 </div>
-                <h2 class="guild-crystal-arena-title font-title">${seasonLive ? 'Standings' : 'Frozen Halls'}</h2>
+                ${seasonLive
+                    ? `<h2 class="guild-crystal-arena-title font-title">Standings</h2>`
+                    : `<div class="guild-frozen-badge" role="status" tabindex="0" aria-label="Guild Hall Frozen — wakes with the new school year">
+                        <span class="guild-frozen-badge__icon" aria-hidden="true"><i class="fas fa-snowflake"></i></span>
+                        <span class="guild-frozen-badge__title" aria-hidden="true">Guild Hall Frozen</span>
+                        <span class="guild-frozen-badge__tooltip" aria-hidden="true">Wakes with the new school year</span>
+                    </div>`}
                 <div class="guild-crystal-expand-all-wrap">
                     <button type="button"
                             id="guild-stats-expand-toggle"

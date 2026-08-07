@@ -1125,48 +1125,91 @@
 }
 
 /* ── Frozen season (school year not begun) ───────────────────────────────── */
-.guild-season-frozen-banner {
-    display: flex;
+/* Compact badge that lives in the arena-header row itself, beside the
+   Fortune's Wheel / Magical Analytics buttons — replaces the old full-width
+   banner so the frozen state reads as one tidy row instead of two stacked ones. */
+.guild-frozen-badge {
+    position: relative;
+    display: inline-flex;
     align-items: center;
-    gap: 0.9rem;
-    margin: 0 auto 1.1rem;
-    max-width: 42rem;
-    padding: 0.85rem 1.15rem;
+    gap: 0.5rem;
+    justify-self: center;
+    width: max-content;
+    max-width: 100%;
+    padding: 0.5rem 1.05rem 0.5rem 0.6rem;
     border-radius: 1.25rem;
-    border: 1px solid rgba(186, 230, 253, 0.55);
+    border: 1px solid rgba(186, 230, 253, 0.35);
     background:
-        linear-gradient(135deg, rgba(224, 242, 254, 0.92), rgba(241, 245, 249, 0.88)),
-        radial-gradient(circle at top right, rgba(125, 211, 252, 0.35), transparent 55%);
-    box-shadow: 0 10px 28px rgba(14, 116, 144, 0.12);
-    color: #0c4a6e;
+        linear-gradient(135deg, rgba(224, 242, 254, 0.16), rgba(186, 230, 253, 0.05)),
+        rgba(15, 23, 42, 0.45);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    box-shadow:
+        0 4px 15px rgba(0,0,0,0.25),
+        inset 0 1px 1px rgba(255,255,255,0.08);
+    color: #e0f2fe;
+    cursor: help;
     animation: guild-frost-banner-in 0.55s ease both;
 }
-.guild-season-frozen-banner__icon {
+.guild-frozen-badge__icon {
     flex: 0 0 auto;
-    width: 2.4rem;
-    height: 2.4rem;
+    width: 1.85rem;
+    height: 1.85rem;
     border-radius: 999px;
     display: grid;
     place-items: center;
-    background: rgba(14, 165, 233, 0.15);
-    color: #0284c7;
-    font-size: 1.05rem;
+    background: rgba(125, 211, 252, 0.16);
+    color: #7dd3fc;
+    font-size: 0.82rem;
+    filter: drop-shadow(0 0 6px rgba(125, 211, 252, 0.5));
     animation: guild-frost-spin 8s linear infinite;
 }
-.guild-season-frozen-banner__copy {
-    display: grid;
-    gap: 0.15rem;
-    min-width: 0;
-}
-.guild-season-frozen-banner__copy strong {
+.guild-frozen-badge__title {
     font-family: 'Fredoka One', cursive;
-    font-size: 1.05rem;
-    letter-spacing: 0.02em;
+    font-size: 0.82rem;
+    letter-spacing: 0.01em;
+    color: #e0f2fe;
+    white-space: nowrap;
 }
-.guild-season-frozen-banner__copy span {
-    font-size: 0.86rem;
+/* Extra context is tucked into a hover/focus tooltip instead of a permanent
+   second line, so the badge stays a tidy single-line pill at any width. */
+.guild-frozen-badge__tooltip {
+    position: absolute;
+    bottom: calc(100% + 11px);
+    left: 50%;
+    transform: translateX(-50%) translateY(4px) scale(0.92);
+    width: max-content;
+    max-width: 12.5rem;
+    padding: 0.5rem 0.75rem;
+    border-radius: 0.85rem;
+    background: linear-gradient(135deg, rgba(12, 74, 110, 0.97), rgba(3, 105, 161, 0.97));
+    border: 1px solid rgba(186, 230, 253, 0.4);
+    color: #e0f2fe;
+    font-size: 0.68rem;
+    font-weight: 700;
     line-height: 1.35;
-    color: #0369a1;
+    text-align: center;
+    white-space: normal;
+    box-shadow: 0 12px 26px rgba(8, 47, 73, 0.4);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.18s ease, transform 0.18s ease;
+    z-index: 6;
+}
+.guild-frozen-badge__tooltip::after {
+    content: '';
+    position: absolute;
+    top: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    border: 6px solid transparent;
+    border-top-color: rgba(3, 105, 161, 0.97);
+}
+.guild-frozen-badge:hover .guild-frozen-badge__tooltip,
+.guild-frozen-badge:focus-visible .guild-frozen-badge__tooltip,
+.guild-frozen-badge:focus .guild-frozen-badge__tooltip {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0) scale(1);
 }
 @keyframes guild-frost-banner-in {
     from { opacity: 0; transform: translateY(-8px); }
@@ -1175,13 +1218,6 @@
 @keyframes guild-frost-spin {
     from { transform: rotate(0deg); }
     to { transform: rotate(360deg); }
-}
-
-.guild-crystal-hall--frozen .guild-crystal-arena-title {
-    background: linear-gradient(135deg, #7dd3fc 0%, #38bdf8 40%, #e0f2fe 100%);
-    -webkit-background-clip: text;
-    background-clip: text;
-    color: transparent;
 }
 
 .guild-crystal-col.is-frozen {
@@ -1229,24 +1265,41 @@
     animation: guild-frost-drift 4.8s ease-in-out infinite;
     animation-delay: var(--fd);
 }
-.guild-crystal-frost-seal {
+/* "Sealed" ribbon — sits in genuine reserved space at the TOP of
+   .guild-crystal-tube-wrap (see .guild-crystal-tube-wrap--frozen's extra
+   padding-top below), not overlapping the header above. Previously this
+   floated above the wrap via a negative-offset transform, which crowded
+   into the guild name sitting directly above it. */
+.guild-crystal-seal-badge {
     position: absolute;
     left: 50%;
-    top: 48%;
-    transform: translate(-50%, -50%);
-    z-index: 3;
-    margin: 0;
-    padding: 0.35rem 0.7rem;
+    top: 0.3rem;
+    transform: translateX(-50%);
+    z-index: 4;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    padding: 0.26rem 0.62rem;
     border-radius: 999px;
     font-family: 'Fredoka One', cursive;
-    font-size: 0.78rem;
-    letter-spacing: 0.14em;
+    font-size: 0.6rem;
+    letter-spacing: 0.1em;
     text-transform: uppercase;
     color: #e0f2fe;
-    background: rgba(12, 74, 110, 0.55);
-    border: 1px solid rgba(186, 230, 253, 0.45);
-    box-shadow: 0 8px 20px rgba(8, 47, 73, 0.35);
+    background: linear-gradient(135deg, rgba(56, 189, 248, 0.4), rgba(12, 74, 110, 0.8));
+    border: 1px solid rgba(186, 230, 253, 0.5);
+    box-shadow: 0 6px 16px rgba(8, 47, 73, 0.4), 0 0 14px rgba(125, 211, 252, 0.35);
+    white-space: nowrap;
     pointer-events: none;
+    animation: guild-seal-badge-bob 3.2s ease-in-out infinite;
+}
+.guild-crystal-seal-badge i {
+    font-size: 0.58rem;
+    filter: drop-shadow(0 0 4px rgba(224, 242, 254, 0.8));
+}
+@keyframes guild-seal-badge-bob {
+    0%, 100% { transform: translateX(-50%) translateY(0); }
+    50% { transform: translateX(-50%) translateY(-3px); }
 }
 @keyframes guild-frost-drift {
     0%, 100% { transform: translateY(0) rotate(0deg); opacity: 0.4; }
@@ -1282,7 +1335,8 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-    .guild-season-frozen-banner__icon,
+    .guild-frozen-badge__icon,
+    .guild-crystal-seal-badge,
     .guild-crystal-frost__flake {
         animation: none;
     }
@@ -1462,6 +1516,11 @@
     width: 100%;
     padding-top: 0.25rem;
     padding-bottom: 18px;   /* room for the pedestal glow below */
+}
+/* Reserve genuine room above the tube for the "Sealed" badge so it sits
+   fully inside this box instead of overlapping the guild name above it. */
+.guild-crystal-tube-wrap--frozen {
+    padding-top: 2.5rem;
 }
 
 /* Pedestal base glow — absolutely positioned so it doesn't displace the tube */
@@ -1944,6 +2003,12 @@
     .guild-crystal-arena-title {
         order: -1;
         max-width: none;
+    }
+    .guild-frozen-badge {
+        order: -1;
+        max-width: none;
+        width: 100%;
+        justify-content: center;
     }
     .guild-crystal-expand-btn--fortune,
     #guild-stats-expand-toggle {

@@ -1,7 +1,7 @@
 // /app.js
 
 import { injectHTML } from './templates/index.js';
-import { stageLoadingPersonalization, revealStagedLoadingPersonalization } from './templates/loading.js';
+import { stageLoadingPersonalization, revealStagedLoadingPersonalization, reopenLoadingScreen } from './templates/loading.js';
 injectHTML();
 
 import {
@@ -252,6 +252,10 @@ function updateSubscribeGraceBanner(graceWindow, options = {}) {
     }
 }
 
+// How long the personalized "Welcome, Name!" greeting stays fully legible
+// before the loading screen begins its exit/zoom-out animation.
+const WELCOME_HOLD_MS = 1800;
+
 function animateLoadingScreenOut(loadingScreen) {
     if (!loadingScreen || loadingScreen.dataset.exiting === 'true') return;
 
@@ -262,25 +266,36 @@ function animateLoadingScreenOut(loadingScreen) {
         loadingScreen.classList.add('loading-final-moment');
     }
 
-    requestAnimationFrame(() => {
-        loadingScreen.classList.add('loading-screen-exit');
-    });
+    const beginExit = () => {
+        requestAnimationFrame(() => {
+            loadingScreen.classList.add('loading-screen-exit');
+        });
 
-    const finishExit = () => {
-        loadingScreen.classList.add('opacity-0', 'pointer-events-none', 'hidden');
+        const finishExit = () => {
+            loadingScreen.classList.add('opacity-0', 'pointer-events-none', 'hidden');
+        };
+
+        const onExitAnimationEnd = (event) => {
+            if (event.target !== loadingScreen) return;
+            loadingScreen.removeEventListener('animationend', onExitAnimationEnd);
+            finishExit();
+        };
+
+        loadingScreen.addEventListener('animationend', onExitAnimationEnd);
+        setTimeout(() => {
+            loadingScreen.removeEventListener('animationend', onExitAnimationEnd);
+            finishExit();
+        }, 1100);
     };
 
-    const onExitAnimationEnd = (event) => {
-        if (event.target !== loadingScreen) return;
-        loadingScreen.removeEventListener('animationend', onExitAnimationEnd);
-        finishExit();
-    };
-
-    loadingScreen.addEventListener('animationend', onExitAnimationEnd);
-    setTimeout(() => {
-        loadingScreen.removeEventListener('animationend', onExitAnimationEnd);
-        finishExit();
-    }, 1100);
+    if (revealedPersonalization) {
+        // Give the user a moment to actually read their personalized greeting
+        // before the exit/zoom animation whisks it away.
+        const reduceMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+        setTimeout(beginExit, reduceMotion ? 300 : WELCOME_HOLD_MS);
+    } else {
+        beginExit();
+    }
 }
 
 function showInitializationRecovery(error) {
@@ -883,6 +898,12 @@ function setupAuthListeners() {
         const appScreen = document.getElementById('app-screen');
 
         if (user) {
+            // A real interactive login/signup/activation just happened while the
+            // auth screen was visible (as opposed to a silent session restore on
+            // page load) — reopen the loading screen so it can crossfade back in
+            // over the filled-in form and play the personalized "Welcome" moment.
+            const cameFromAuthScreen = authScreen && !authScreen.classList.contains('hidden');
+            if (cameFromAuthScreen) reopenLoadingScreen();
             try {
                 await loadAuthenticatedRuntime();
                 if (sessionId !== authSessionId || auth.currentUser?.uid !== user.uid) return;

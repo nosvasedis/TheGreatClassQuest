@@ -298,3 +298,23 @@ export function revealStagedLoadingPersonalization() {
     _stagedPersonalization = null;
     return true;
 }
+
+/**
+ * Smoothly bring the loading screen back for a real login/signup/activation
+ * that just happened from the visible auth screen. The loading screen was
+ * already dismissed once on cold boot (dataset.exiting = 'true', hidden
+ * class applied); this resets that state so the personalized "Welcome"
+ * moment can play and crossfade in over the filled-in auth form.
+ */
+export function reopenLoadingScreen() {
+    const loadingScreen = document.getElementById('loading-screen');
+    if (!loadingScreen) return;
+    loadingScreen.dataset.exiting = '';
+    loadingScreen.classList.remove('loading-screen-exit', 'loading-final-moment', 'hidden');
+    document.getElementById('loading-greeting')?.classList.remove('loading-greeting-visible');
+    document.querySelector('.loading-stage')?.classList.remove('loading-stage-reveal');
+    void loadingScreen.offsetWidth; // flush the display change before animating opacity
+    requestAnimationFrame(() => {
+        loadingScreen.classList.remove('opacity-0', 'pointer-events-none');
+    });
+}

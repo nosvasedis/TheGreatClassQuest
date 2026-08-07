@@ -149,6 +149,9 @@
 /* 38. Role-aware screens: parent portal, secretary console, access center */
 @import url('./styles/roles.css');
 
+/* 38b. Auth screen revamp: sky backdrop, glass card, icon role tabs & inputs */
+@import url('./styles/auth.css');
+
 /* 39. Quiz of the Week: weather button + game-show modal styles */
 @import url('./styles/quiz_of_the_week.css');
 

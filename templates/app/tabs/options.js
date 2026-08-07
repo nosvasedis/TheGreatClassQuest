@@ -231,7 +231,7 @@ export const optionsTabHTML = `
                                         <div class="relative z-10 space-y-5 pt-6 border-t border-violet-100/90">
                                             <div class="flex items-center gap-2 justify-center flex-wrap">
                                                 <span class="text-lg" aria-hidden="true">🎯</span>
-                                                <h3 class="font-title text-lg text-violet-900 text-center">Class finale (header class)</h3>
+                                                <h3 class="font-title text-lg text-violet-900 text-center">Class finale</h3>
                                             </div>
                                             <p class="text-sm text-gray-600 text-center max-w-lg mx-auto">Choose a class in the <span class="font-semibold text-violet-800">header</span>, set its last lesson day here, then save. After that date it drops from day-by-day schedules; leave empty if the class continues year-round.</p>
 

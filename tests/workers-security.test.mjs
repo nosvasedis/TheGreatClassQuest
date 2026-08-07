@@ -48,10 +48,46 @@ test('AI Worker rejects unknown origins and unauthenticated generation before pr
   assert.match(source, /response\.status === 401 \|\| response\.status === 403/);
   assert.match(source, /X-GCQ-Error-Source': 'workers-ai-budget'/);
   assert.match(source, /stage: 'token'/);
+  assert.match(source, /stage: 'app-check'/);
   assert.match(source, /stage: 'profile'/);
   assert.match(source, /firebase-profile-service/);
+  assert.match(source, /X-GCQ-Error-Source': 'app-check'/);
+  assert.match(source, /forceRefresh:\s*true/);
   assert.match(source, /Cache API availability is an optimization/);
   assert.match(source, /redirect:\s*'error'/);
+});
+
+test('AI Worker returns app-check source when App Check is required and missing', async () => {
+  const { worker } = await importWorker('scratch/ai-proxy-worker/src/worker.js');
+  const response = await worker.fetch(new Request('https://worker.example/', {
+    method: 'POST',
+    headers: {
+      Origin: allowedOrigin,
+      'Content-Type': 'application/json',
+      // Deliberately invalid Firebase token shape so token verification fails first.
+      Authorization: 'Bearer not-a-jwt',
+    },
+    body: JSON.stringify({ model: 'deepseek/deepseek-v4-flash', messages: [{ role: 'user', content: 'hi' }] }),
+  }), {
+    FIREBASE_PROJECT_ID: 'the-great-class-quest',
+    FIREBASE_PROJECT_NUMBER: '1021026433595',
+    REQUIRE_APP_CHECK: 'true',
+  }, { waitUntil() {} });
+  assert.equal(response.status, 401);
+  assert.equal(response.headers.get('X-GCQ-Error-Source'), 'firebase-token');
+
+  // Token verification runs before App Check; a missing Bearer still reports firebase-token.
+  const missingBearer = await worker.fetch(new Request('https://worker.example/', {
+    method: 'POST',
+    headers: { Origin: allowedOrigin, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ model: 'deepseek/deepseek-v4-flash', messages: [{ role: 'user', content: 'hi' }] }),
+  }), {
+    FIREBASE_PROJECT_ID: 'the-great-class-quest',
+    FIREBASE_PROJECT_NUMBER: '1021026433595',
+    REQUIRE_APP_CHECK: 'true',
+  }, { waitUntil() {} });
+  assert.equal(missingBearer.status, 401);
+  assert.equal(missingBearer.headers.get('X-GCQ-Error-Source'), 'firebase-token');
 });
 
 test('AI Worker answers preflight only for an explicit legitimate origin', async () => {

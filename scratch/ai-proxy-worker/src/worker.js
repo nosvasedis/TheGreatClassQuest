@@ -75,9 +75,11 @@ function decodeJwtJson(value) {
   return JSON.parse(new TextDecoder().decode(decodeBase64Url(value)));
 }
 
-async function getJwks(url, maxCacheSeconds = 21_600) {
-  const cached = jwksCaches.get(url);
-  if (cached && Date.now() < cached.expiresAt) return cached.keys;
+async function getJwks(url, { maxCacheSeconds = 21_600, forceRefresh = false } = {}) {
+  if (!forceRefresh) {
+    const cached = jwksCaches.get(url);
+    if (cached && Date.now() < cached.expiresAt) return cached.keys;
+  }
   const response = await fetch(url, { redirect: 'error' });
   if (!response.ok) throw new Error('Signing keys are unavailable.');
   const maxAge = Number(response.headers.get('Cache-Control')?.match(/max-age=(\d+)/)?.[1] || 3600);
@@ -88,13 +90,24 @@ async function getJwks(url, maxCacheSeconds = 21_600) {
   return keys;
 }
 
+async function resolveJwk(jwksUrl, kid) {
+  let keys = await getJwks(jwksUrl);
+  let jwk = keys.get(kid);
+  // Google rotates securetoken/App Check keys; bust a stale JWKS cache once.
+  if (!jwk) {
+    keys = await getJwks(jwksUrl, { forceRefresh: true });
+    jwk = keys.get(kid);
+  }
+  return jwk || null;
+}
+
 async function verifyRs256Jwt(token, jwksUrl, validateClaims) {
   const parts = String(token || '').split('.');
   if (parts.length !== 3) throw new Error('Invalid token.');
   const header = decodeJwtJson(parts[0]);
   const payload = decodeJwtJson(parts[1]);
   if (header.alg !== 'RS256' || !header.kid) throw new Error('Invalid token algorithm.');
-  const jwk = (await getJwks(jwksUrl)).get(header.kid);
+  const jwk = await resolveJwk(jwksUrl, header.kid);
   if (!jwk) throw new Error('Unknown signing key.');
   const key = await crypto.subtle.importKey('jwk', jwk, { name: 'RSASSA-PKCS1-v1_5', hash: 'SHA-256' }, false, ['verify']);
   const valid = await crypto.subtle.verify(
@@ -425,7 +438,7 @@ export default {
 
     let identity;
     try {
-      [identity] = await Promise.all([verifyFirebaseIdToken(request, env), verifyAppCheckIfRequired(request, env)]);
+      identity = await verifyFirebaseIdToken(request, env);
     } catch (error) {
       console.warn(JSON.stringify({ event: 'gcq_auth_rejected', stage: 'token', reason: error?.message || 'verification-failed' }));
       return json(
@@ -433,6 +446,17 @@ export default {
         401,
         corsHeaders,
         { 'X-GCQ-Error-Source': 'firebase-token' },
+      );
+    }
+    try {
+      await verifyAppCheckIfRequired(request, env);
+    } catch (error) {
+      console.warn(JSON.stringify({ event: 'gcq_auth_rejected', stage: 'app-check', reason: error?.message || 'verification-failed' }));
+      return json(
+        { error: 'A valid App Check token is required.' },
+        401,
+        corsHeaders,
+        { 'X-GCQ-Error-Source': 'app-check' },
       );
     }
 

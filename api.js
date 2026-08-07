@@ -41,7 +41,18 @@ async function fetchAuthenticatedProxy(url, payload, config = {}) {
         if (error?.status !== 401 || error?.errorSource !== 'firebase-token') throw error;
         // A server-confirmed Firebase authentication failure gets exactly one
         // forced token refresh. Provider failures never trigger login retries.
-        return send(true);
+        try {
+            return await send(true);
+        } catch (retryError) {
+            if (retryError?.status === 401 && retryError?.errorSource === 'firebase-token') {
+                const signedOut = new Error('Your login expired. Sign in again before using AI generation.');
+                signedOut.status = 401;
+                signedOut.errorSource = 'firebase-token';
+                signedOut.retryable = false;
+                throw signedOut;
+            }
+            throw retryError;
+        }
     }
 }
 
@@ -306,9 +317,14 @@ export async function callGeminiApiDetailed(systemPrompt, userPrompt, requestOpt
                 providerId: provider.id,
                 providerLabel: provider.label,
                 message: String(error?.message || 'Unknown AI provider error'),
+                errorSource: String(error?.errorSource || ''),
                 ...failureMeta
             });
 
+            // Auth failures will hit every provider that shares the proxy; stop immediately.
+            if (error?.errorSource === 'firebase-token' || error?.errorSource === 'app-check') {
+                break;
+            }
             // 429 usually applies account-wide for free-tier usage. Stop chain to avoid bursts.
             if (failureMeta.isRateLimited) {
                 break;
@@ -389,6 +405,9 @@ async function fetchWithBackoff(url, options, config = {}) {
                 error.status = response.status;
                 error.errorSource = response.headers?.get?.('X-GCQ-Error-Source') || '';
                 error.retryable = false;
+                if (error.errorSource) {
+                    error.message = `API failed with status ${response.status} (${error.errorSource})`;
+                }
                 throw error;
             }
 

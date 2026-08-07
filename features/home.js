@@ -427,7 +427,7 @@ function getGeneralDashboard(name, theme, spice) {
         { icon: 'fa-trophy', label: 'Hero Ranks', action: 'open-student-ranks', league: activeLeague },
         { icon: 'fa-plus-circle', label: 'New', action: 'create-class', league: activeLeague },
         { icon: 'fa-globe', label: 'Team History', action: 'open-team-history', league: activeLeague },
-        { icon: 'fa-calendar-check', label: 'My Planning', action: 'open-holidays', featureFlag: 'schoolYearPlanner' },
+        { icon: 'fa-user-shield', label: 'Family Access', action: 'open-family-access' },
         { icon: 'fa-calendar-alt', label: 'Plan', action: 'open-day-planner', featureFlag: 'calendar' },
         { icon: 'fa-cog', label: 'Setup', action: 'open-settings' },
     ].filter(tool => !tool.featureFlag || canUseFeature(tool.featureFlag));
@@ -919,6 +919,7 @@ async function handleAction(action, data) {
     else if (action === 'open-team-history') modals.openHistoryModal('team', { league: scopedLeague || null });
     else if (action === 'open-settings') await activateOptionsSubtab('manage');
     else if (action === 'open-holidays') await activateOptionsSubtab('planning');
+    else if (action === 'open-family-access') await activateOptionsSubtab('access');
     else if (action === 'open-student-ranks') modals.openStudentRankingsModal();
     else if (action === 'create-class') await openCreateClassForm(scopedLeague);
     else if (action === 'edit-class') modals.openEditClassModal(data.id);

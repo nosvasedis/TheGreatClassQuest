@@ -144,6 +144,8 @@ test('billing and generation requests require verified identities and idempotenc
   assert.match(api, /X-GCQ-Request-ID/);
   assert.match(api, /getIdToken\(forceRefresh\)/);
   assert.match(api, /error\?\.errorSource !== 'firebase-token'/);
+  assert.match(api, /Your login expired\. Sign in again before using AI generation\./);
+  assert.match(api, /error\?\.errorSource === 'app-check'/);
   assert.match(api, /normalizedError\?\.retryable === false/);
   const functionsSource = read('functions/index.js');
   assert.match(functionsSource, /SECRETARY_ROLE_DOC/);

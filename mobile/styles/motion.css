@@ -1,0 +1,359 @@
+/* Motion system — press, enter, ripple, reduced-motion */
+
+.m-pressable,
+body.gcq-mobile .m-header-btn,
+body.gcq-mobile .m-class-pill,
+body.gcq-mobile .m-dock-btn,
+body.gcq-mobile .m-more-item,
+body.gcq-mobile .m-class-option,
+body.gcq-mobile .m-home-action,
+body.gcq-mobile .m-sheet__close,
+body.gcq-mobile .tab-fab,
+body.gcq-mobile .al-fab,
+body.gcq-mobile .hc-fab,
+body.gcq-mobile .ss-fab {
+    transition:
+        transform 0.22s var(--m-spring),
+        box-shadow 0.22s var(--m-ease),
+        background-color 0.18s ease,
+        border-color 0.18s ease,
+        filter 0.18s ease;
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
+}
+
+.m-pressable:active,
+body.gcq-mobile .m-header-btn:active,
+body.gcq-mobile .m-class-pill:active,
+body.gcq-mobile .m-dock-btn:active,
+body.gcq-mobile .m-more-item:active,
+body.gcq-mobile .m-class-option:active,
+body.gcq-mobile .m-home-action:active,
+body.gcq-mobile .m-sheet__close:active,
+body.gcq-mobile .tab-fab:not(:disabled):active,
+body.gcq-mobile .al-fab:not(:disabled):active,
+body.gcq-mobile .hc-fab:not(:disabled):active,
+body.gcq-mobile .ss-fab:not(:disabled):active {
+    transform: scale(var(--m-press-scale));
+    filter: brightness(0.97);
+}
+
+.m-pressable.m-press--down,
+body.gcq-mobile .m-press--down {
+    transform: scale(var(--m-press-scale)) !important;
+}
+
+/* ==========================================================================
+   MAGICAL DREAM-LIKE LOGO/TITLE PRESS & LIGHT EFFECT
+   ========================================================================== */
+
+.m-header__brand {
+    position: relative;
+    overflow: visible !important;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+}
+
+.m-header__brand-sparkle {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    z-index: 5;
+    overflow: visible;
+}
+
+/* Aura Background Halo (Lights up directly behind logo & title) */
+.m-header__brand-sparkle::before {
+    content: '';
+    position: absolute;
+    inset: -16px -28px;
+    border-radius: 999px;
+    background: radial-gradient(ellipse at center, rgba(253, 224, 71, 0.8) 0%, rgba(56, 189, 248, 0.55) 45%, transparent 75%);
+    opacity: 0;
+    pointer-events: none;
+    filter: blur(6px);
+}
+
+/* Floating Stardust Sparkle Stars */
+.m-header__sparkle-star {
+    position: absolute;
+    opacity: 0;
+    pointer-events: none;
+    line-height: 1;
+    z-index: 6;
+}
+
+.m-hss-1 { left: 0.8rem; top: -8px; font-size: 0.95rem; }
+.m-hss-2 { left: 52%; top: -12px; font-size: 1.1rem; }
+.m-hss-3 { right: 0.2rem; bottom: -4px; font-size: 0.88rem; }
+
+/* ACTIVE STATE ANIMATIONS (Triggers smoothly when pressed/tapped) */
+
+body.gcq-mobile .m-header__brand.m-brand-sparkle-active {
+    animation: m-brand-float-pulse 1.25s cubic-bezier(0.25, 1, 0.4, 1) forwards;
+}
+
+body.gcq-mobile .m-header__brand.m-brand-sparkle-active .m-header__logo {
+    animation: m-logo-magic-dance 1.25s cubic-bezier(0.25, 1, 0.4, 1) forwards;
+}
+
+body.gcq-mobile .m-header__brand.m-brand-sparkle-active .m-header__title {
+    animation: m-title-text-glow 1.25s cubic-bezier(0.25, 1, 0.4, 1) forwards;
+}
+
+body.gcq-mobile .m-header__brand.m-brand-sparkle-active .m-header__brand-sparkle::before {
+    animation: m-brand-aura-burst 1.25s cubic-bezier(0.25, 1, 0.4, 1) forwards;
+}
+
+body.gcq-mobile .m-header__brand.m-brand-sparkle-active .m-hss-1 {
+    animation: m-star-float-1 1.2s cubic-bezier(0.25, 1, 0.4, 1) forwards;
+}
+
+body.gcq-mobile .m-header__brand.m-brand-sparkle-active .m-hss-2 {
+    animation: m-star-float-2 1.25s cubic-bezier(0.25, 1, 0.4, 1) 0.08s forwards;
+}
+
+body.gcq-mobile .m-header__brand.m-brand-sparkle-active .m-hss-3 {
+    animation: m-star-float-3 1.2s cubic-bezier(0.25, 1, 0.4, 1) 0.16s forwards;
+}
+
+/* KEYFRAMES */
+
+@keyframes m-brand-float-pulse {
+    0% { transform: translateY(0) scale(1); }
+    35% { transform: translateY(-3px) scale(1.045); }
+    70% { transform: translateY(-1px) scale(1.01); }
+    100% { transform: translateY(0) scale(1); }
+}
+
+@keyframes m-logo-magic-dance {
+    0% { transform: rotate(0deg) scale(1); filter: drop-shadow(0 4px 14px rgba(15, 40, 90, 0.22)); }
+    35% { transform: rotate(-9deg) scale(1.18); filter: drop-shadow(0 0 18px rgba(253, 224, 71, 0.9)) drop-shadow(0 0 28px rgba(56, 189, 248, 0.7)); }
+    70% { transform: rotate(2deg) scale(1.05); filter: drop-shadow(0 6px 16px rgba(15, 40, 90, 0.28)); }
+    100% { transform: rotate(0deg) scale(1); filter: drop-shadow(0 4px 14px rgba(15, 40, 90, 0.22)); }
+}
+
+@keyframes m-title-text-glow {
+    0% { text-shadow: 0 2px 6px rgba(0, 0, 0, 0.35); }
+    35% { text-shadow: 0 0 16px rgba(255, 255, 255, 0.98), 0 0 26px rgba(253, 224, 71, 0.9), 0 2px 6px rgba(0, 0, 0, 0.4); }
+    70% { text-shadow: 0 0 8px rgba(255, 255, 255, 0.6), 0 2px 6px rgba(0, 0, 0, 0.35); }
+    100% { text-shadow: 0 2px 6px rgba(0, 0, 0, 0.35); }
+}
+
+@keyframes m-brand-aura-burst {
+    0% { opacity: 0; transform: scale(0.6); }
+    35% { opacity: 0.95; transform: scale(1.1); }
+    70% { opacity: 0.4; transform: scale(1.25); }
+    100% { opacity: 0; transform: scale(1.4); }
+}
+
+@keyframes m-star-float-1 {
+    0% { opacity: 0; transform: scale(0) rotate(0deg) translateY(0); }
+    40% { opacity: 1; transform: scale(1.35) rotate(45deg) translateY(-9px); filter: drop-shadow(0 0 6px #fde047); }
+    100% { opacity: 0; transform: scale(0.5) rotate(90deg) translateY(-20px); }
+}
+
+@keyframes m-star-float-2 {
+    0% { opacity: 0; transform: scale(0) rotate(0deg) translateY(0); }
+    45% { opacity: 1; transform: scale(1.4) rotate(-35deg) translateY(-11px); filter: drop-shadow(0 0 8px #fde047); }
+    100% { opacity: 0; transform: scale(0.4) rotate(-80deg) translateY(-24px); }
+}
+
+@keyframes m-star-float-3 {
+    0% { opacity: 0; transform: scale(0) rotate(0deg) translateY(0); }
+    50% { opacity: 1; transform: scale(1.25) rotate(60deg) translateY(-7px); filter: drop-shadow(0 0 6px #38bdf8); }
+    100% { opacity: 0; transform: scale(0.3) rotate(120deg) translateY(-16px); }
+}
+
+@keyframes m-ripple-out {
+    from {
+        transform: scale(0);
+        opacity: 0.35;
+    }
+    to {
+        transform: scale(2.6);
+        opacity: 0;
+    }
+}
+
+.m-ripple {
+    position: absolute;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.45);
+    pointer-events: none;
+    width: 20px;
+    height: 20px;
+    margin-left: -10px;
+    margin-top: -10px;
+    animation: m-ripple-out 0.55s var(--m-ease) forwards;
+    z-index: 2;
+}
+
+body.gcq-mobile .app-tab.active {
+    animation: m-tab-enter 0.28s var(--m-ease) both;
+}
+
+body.gcq-mobile .app-tab.tab-animate-in {
+    animation: m-tab-enter 0.28s var(--m-ease) both !important;
+}
+
+body.gcq-mobile .app-tab.tab-animate-out {
+    animation: m-tab-exit 0.2s var(--m-ease) both !important;
+}
+
+@keyframes m-tab-enter {
+    from {
+        opacity: 0;
+    }
+    to {
+        opacity: 1;
+    }
+}
+
+@keyframes m-tab-exit {
+    from {
+        opacity: 1;
+    }
+    to {
+        opacity: 0;
+    }
+}
+
+body.gcq-mobile [data-parent-section]:not(.hidden),
+body.gcq-mobile [data-secretary-section]:not(.hidden) {
+    animation: m-tab-enter 0.34s var(--m-spring) both;
+}
+
+.card-appear-m {
+    animation: m-card-in 0.55s var(--m-spring) backwards;
+    animation-delay: calc(var(--stagger, 0) * 75ms);
+}
+
+@keyframes m-card-in {
+    from {
+        opacity: 0;
+        transform: translateY(16px) scale(0.98);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+
+@keyframes m-follow-pulse {
+    0%, 100% { transform: scale(1); opacity: 1; }
+    50% { transform: scale(1.35); opacity: 0.7; }
+}
+
+@keyframes m-asset-float {
+    0%, 100% { transform: translateY(0) rotate(-2deg); }
+    50% { transform: translateY(-7px) rotate(3deg); }
+}
+
+@keyframes m-shine-sweep {
+    0% { transform: translateX(-100%); }
+    60%, 100% { transform: translateX(100%); }
+}
+
+@keyframes m-item-in {
+    from { opacity: 0; transform: translateY(14px) scale(0.97); }
+    to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@keyframes m-dock-pop {
+    from { transform: translateY(18px); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
+}
+
+@keyframes m-header-in {
+    from { opacity: 0; transform: translateY(-10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+body.gcq-mobile #m-teacher-header,
+body.gcq-mobile #m-parent-header,
+body.gcq-mobile #m-secretary-header {
+    animation: m-header-in 0.45s var(--m-spring) both;
+}
+
+body.gcq-mobile #m-teacher-dock,
+body.gcq-mobile #m-parent-dock,
+body.gcq-mobile #m-secretary-dock {
+    animation: m-dock-pop 0.5s var(--m-spring) 0.05s both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    body.gcq-mobile,
+    body.gcq-mobile * {
+        scroll-behavior: auto !important;
+    }
+
+    .m-pressable,
+    body.gcq-mobile .m-header-btn,
+    body.gcq-mobile .m-class-pill,
+    body.gcq-mobile .m-dock-btn,
+    body.gcq-mobile .m-more-item,
+    body.gcq-mobile .m-class-option,
+    body.gcq-mobile .m-home-action,
+    body.gcq-mobile .m-sheet__close,
+    body.gcq-mobile .m-sheet__panel,
+    body.gcq-mobile .m-sheet__backdrop,
+    body.gcq-mobile .m-home-quest__fill,
+    body.gcq-mobile .m-home-chronicle__chev,
+    body.gcq-mobile .m-home-schedule-row,
+    body.gcq-mobile .m-home-chronicle,
+    body.gcq-mobile .tab-fab,
+    body.gcq-mobile .al-fab,
+    body.gcq-mobile .hc-fab,
+    body.gcq-mobile .ss-fab,
+    body.gcq-mobile .tab-fab-cluster,
+    body.gcq-mobile .al-fab-cluster,
+    body.gcq-mobile .hc-fab-cluster,
+    body.gcq-mobile .ss-fab-cluster {
+        transition-duration: 1ms !important;
+        animation: none !important;
+    }
+
+    .m-pressable:active,
+    body.gcq-mobile .m-press--down,
+    body.gcq-mobile .m-header-btn:active,
+    body.gcq-mobile .m-class-pill:active,
+    body.gcq-mobile .m-dock-btn:active,
+    body.gcq-mobile .m-more-item:active,
+    body.gcq-mobile .m-class-option:active,
+    body.gcq-mobile .m-home-action:active {
+        transform: none !important;
+        filter: none !important;
+    }
+
+    body.gcq-mobile .m-header__brand.m-press--down::after,
+    body.gcq-mobile .m-header__brand:active::after {
+        display: none !important;
+    }
+
+    .m-ripple,
+    .m-home-hero__asset,
+    .m-home-quest__shine,
+    .m-class-pill--follow::after,
+    body.gcq-mobile .app-tab.active,
+    body.gcq-mobile [data-parent-section]:not(.hidden),
+    body.gcq-mobile [data-secretary-section]:not(.hidden),
+    .m-sheet--open .m-sheet__list > *,
+    .card-appear-m,
+    body.gcq-mobile #m-teacher-header,
+    body.gcq-mobile #m-parent-header,
+    body.gcq-mobile #m-secretary-header,
+    body.gcq-mobile #m-teacher-dock,
+    body.gcq-mobile #m-parent-dock,
+    body.gcq-mobile #m-secretary-dock,
+    .m-dock-btn.active .icon,
+    body.gcq-mobile .al-fab-cluster.revealed,
+    body.gcq-mobile .hc-fab-cluster.revealed,
+    body.gcq-mobile .ss-fab-cluster.revealed,
+    body.gcq-mobile .tab-fab-cluster.revealed,
+    .m-home-pop,
+    .m-home-stat__icon {
+        animation: none !important;
+        animation-delay: 0ms !important;
+    }
+}

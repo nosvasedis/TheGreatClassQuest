@@ -1,0 +1,106 @@
+/* Mobile FAB system — thumb-zone clusters above dock */
+
+body.gcq-mobile .al-fab-cluster,
+body.gcq-mobile .hc-fab-cluster,
+body.gcq-mobile .ss-fab-cluster,
+body.gcq-mobile .tab-fab-cluster {
+    top: auto !important;
+    bottom: calc(var(--m-dock-clearance) + 0.7rem) !important;
+    transform: none !important;
+    flex-direction: column;
+    gap: 0.7rem;
+    z-index: 55;
+    transition:
+        opacity 0.38s var(--m-spring),
+        transform 0.38s var(--m-spring),
+        bottom 0.25s var(--m-ease);
+}
+
+body.gcq-mobile .al-fab-cluster--left,
+body.gcq-mobile .hc-fab-cluster--left,
+body.gcq-mobile .ss-fab-cluster--left,
+body.gcq-mobile .tab-fab-cluster--left {
+    left: 0.7rem !important;
+    right: auto !important;
+    align-items: flex-start;
+}
+
+body.gcq-mobile .al-fab-cluster--right,
+body.gcq-mobile .hc-fab-cluster--right,
+body.gcq-mobile .ss-fab-cluster--right,
+body.gcq-mobile .tab-fab-cluster--right {
+    right: 0.7rem !important;
+    left: auto !important;
+    align-items: flex-end;
+}
+
+body.gcq-mobile .al-fab-cluster:not(.revealed),
+body.gcq-mobile .hc-fab-cluster:not(.revealed),
+body.gcq-mobile .ss-fab-cluster:not(.revealed),
+body.gcq-mobile .tab-fab-cluster:not(.revealed) {
+    opacity: 0 !important;
+    pointer-events: none;
+    transform: translateY(12px) !important;
+}
+
+body.gcq-mobile .al-fab-cluster.revealed,
+body.gcq-mobile .hc-fab-cluster.revealed,
+body.gcq-mobile .ss-fab-cluster.revealed,
+body.gcq-mobile .tab-fab-cluster.revealed {
+    opacity: 1 !important;
+    pointer-events: auto;
+    transform: translateY(0) !important;
+    animation: m-fab-pop 0.45s var(--m-spring) both;
+}
+
+@keyframes m-fab-pop {
+    from { transform: translateY(16px) scale(0.92); }
+    to { transform: translateY(0) scale(1); }
+}
+
+body.gcq-mobile .tab-fab,
+body.gcq-mobile .al-fab,
+body.gcq-mobile .hc-fab,
+body.gcq-mobile .ss-fab {
+    min-height: 3.15rem;
+    min-width: 3.15rem;
+    width: 3.15rem;
+    height: 3.15rem;
+    padding: 0 !important;
+    justify-content: center;
+    border-radius: 1.15rem !important;
+    position: relative;
+    overflow: hidden;
+    box-shadow: 0 10px 24px rgba(15, 40, 90, 0.32), inset 0 1px 0 rgba(255, 255, 255, 0.35);
+    transition: transform 0.22s var(--m-spring), box-shadow 0.22s var(--m-ease), filter 0.18s ease;
+}
+
+body.gcq-mobile .tab-fab:not(:disabled):active,
+body.gcq-mobile .al-fab:not(:disabled):active,
+body.gcq-mobile .hc-fab:not(:disabled):active,
+body.gcq-mobile .ss-fab:not(:disabled):active {
+    transform: scale(0.9);
+    filter: brightness(0.96);
+}
+
+body.gcq-mobile .tab-fab:not(:disabled):hover,
+body.gcq-mobile .al-fab:not(:disabled):hover,
+body.gcq-mobile .hc-fab:not(:disabled):hover,
+body.gcq-mobile .ss-fab:not(:disabled):hover {
+    transform: scale(1.06);
+}
+
+body.gcq-mobile .tab-fab-label,
+body.gcq-mobile .al-fab-label,
+body.gcq-mobile .hc-fab-label,
+body.gcq-mobile .ss-fab-label {
+    display: none !important;
+}
+
+body.gcq-mobile .tab-fab-icon,
+body.gcq-mobile .al-fab-icon,
+body.gcq-mobile .hc-fab-icon,
+body.gcq-mobile .ss-fab-icon {
+    font-size: 1.25rem !important;
+    margin: 0 !important;
+}

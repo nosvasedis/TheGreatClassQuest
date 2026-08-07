@@ -1,0 +1,72 @@
+/* Mobile experience layer — shell visibility + composition */
+
+@import './tokens.css';
+@import './motion.css';
+@import './chrome.css';
+@import './fabs.css';
+@import './tabs.css';
+@import './home.css';
+@import './auth-loading.css';
+@import './guilds.css';
+
+#m-teacher-header,
+#m-teacher-dock,
+#m-parent-header,
+#m-parent-dock,
+#m-secretary-header,
+#m-secretary-dock,
+#home-dashboard-mobile {
+    display: none;
+}
+
+body.gcq-mobile #m-teacher-header,
+body.gcq-mobile #m-parent-header,
+body.gcq-mobile #m-secretary-header {
+    display: flex;
+}
+
+body.gcq-mobile #m-teacher-dock,
+body.gcq-mobile #m-parent-dock,
+body.gcq-mobile #m-secretary-dock {
+    display: grid;
+}
+
+body.gcq-mobile #home-dashboard-mobile {
+    display: block;
+}
+
+body.gcq-mobile #award-header-atmosphere,
+body.gcq-mobile #bottom-nav-bar,
+body.gcq-mobile .role-shell .role-header-atmosphere,
+body.gcq-mobile #parent-bottom-nav,
+body.gcq-mobile #secretary-bottom-nav,
+body.gcq-mobile #home-dashboard-container {
+    display: none !important;
+}
+
+body.gcq-mobile {
+    -webkit-tap-highlight-color: transparent;
+}
+
+body.m-sheet-locked {
+    overflow: hidden;
+    touch-action: none;
+}
+
+/* App screen flex so dock sits at bottom */
+body.gcq-mobile #app-screen:not(.hidden),
+body.gcq-mobile #parent-screen:not(.hidden),
+body.gcq-mobile #secretary-screen:not(.hidden) {
+    display: flex;
+    flex-direction: column;
+    min-height: 100dvh;
+    min-height: 100vh;
+}
+
+body.gcq-mobile #app-screen main,
+body.gcq-mobile .role-main {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+}

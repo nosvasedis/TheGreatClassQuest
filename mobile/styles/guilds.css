@@ -1,0 +1,503 @@
+/* Mobile Guild Hall — immersive scroll-snap crystal stage (body.gcq-mobile only) */
+
+/* ── Intro copy ──────────────────────────────────────────────────────────── */
+body.gcq-mobile #guilds-tab > .max-w-7xl {
+    padding: 0 0.35rem;
+}
+
+body.gcq-mobile #guilds-tab .m-guild-blurb,
+body.gcq-mobile #guilds-tab .text-center > p.text-lg {
+    font-size: 0.88rem !important;
+    line-height: 1.4 !important;
+    max-width: 20.5rem;
+    margin: 0.35rem auto 0 !important;
+    padding: 0 0.65rem;
+    color: #64748b !important;
+}
+
+body.gcq-mobile #guilds-tab .text-center {
+    margin-bottom: 0.75rem !important;
+}
+
+body.gcq-mobile #guilds-tab .floating-icon {
+    font-size: 2.55rem !important;
+    filter: drop-shadow(0 8px 18px rgba(245, 158, 11, 0.45));
+    animation: m-guild-icon-float 4.2s ease-in-out infinite;
+}
+
+@keyframes m-guild-icon-float {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-6px); }
+}
+
+/* ── Hall scene becomes a full-bleed magical stage ───────────────────────── */
+body.gcq-mobile .guild-hall-scene {
+    position: relative !important;
+    border-radius: 1.65rem !important;
+    margin: 0 0 1.1rem !important;
+    overflow: hidden !important;
+    border: 1.5px solid rgba(251, 191, 36, 0.28) !important;
+    box-shadow:
+        0 22px 48px -18px rgba(15, 23, 42, 0.55),
+        inset 0 1px 0 rgba(255, 255, 255, 0.12) !important;
+    background:
+        radial-gradient(ellipse at 50% 0%, rgba(251, 191, 36, 0.18), transparent 55%),
+        radial-gradient(ellipse at 20% 80%, rgba(124, 58, 237, 0.22), transparent 50%),
+        radial-gradient(ellipse at 85% 70%, rgba(236, 72, 153, 0.16), transparent 45%),
+        linear-gradient(165deg, #1e1b4b 0%, #312e81 42%, #1e293b 100%) !important;
+}
+
+body.gcq-mobile .guild-hall-scene-content {
+    padding: 0.75rem 0 0 !important;
+    overflow: visible !important;
+}
+
+body.gcq-mobile .guild-hall-scene-overlay {
+    opacity: 0.7 !important;
+}
+
+/* Header tools: compact twin chips */
+body.gcq-mobile .guild-crystal-arena-header {
+    display: grid !important;
+    grid-template-columns: 1fr 1fr !important;
+    gap: 0.5rem !important;
+    padding: 0 0.75rem !important;
+    margin-bottom: 0.35rem !important;
+    align-items: stretch !important;
+}
+
+body.gcq-mobile .guild-crystal-arena-title,
+body.gcq-mobile .guild-frozen-badge {
+    grid-column: 1 / -1;
+    text-align: center;
+    font-size: 1.05rem !important;
+    color: rgba(255, 247, 214, 0.95) !important;
+    margin: 0.15rem 0 0.2rem !important;
+}
+
+body.gcq-mobile .guild-crystal-fortune-wrap,
+body.gcq-mobile .guild-crystal-expand-all-wrap {
+    width: 100% !important;
+}
+
+body.gcq-mobile .guild-crystal-expand-btn {
+    width: 100% !important;
+    min-height: 2.7rem !important;
+    padding: 0.45rem 0.55rem !important;
+    border-radius: 1rem !important;
+    justify-content: center !important;
+    background: rgba(255, 255, 255, 0.12) !important;
+    border: 1px solid rgba(255, 255, 255, 0.22) !important;
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    box-shadow: 0 8px 20px -12px rgba(0, 0, 0, 0.45) !important;
+}
+
+body.gcq-mobile .guild-crystal-expand-btn__text {
+    font-size: 0.72rem !important;
+    color: #fff !important;
+}
+
+body.gcq-mobile .guild-crystal-expand-btn__sub {
+    font-size: 0.58rem !important;
+    color: rgba(255, 255, 255, 0.72) !important;
+}
+
+body.gcq-mobile .guild-crystal-expand-btn__icon {
+    font-size: 0.95rem !important;
+}
+
+body.gcq-mobile .guild-crystal-expand-btn__chev {
+    color: rgba(255, 255, 255, 0.75) !important;
+}
+
+/* ── Scroll-snap track — side padding = exact center rail ───────────────── */
+body.gcq-mobile .guild-crystal-arena,
+body.gcq-mobile .m-guild-stage__track {
+    --m-guild-card-w: min(82vw, 21rem);
+    --m-guild-gap: 0.85rem;
+    --m-guild-side: max(0px, calc((100% - var(--m-guild-card-w)) / 2));
+    display: flex !important;
+    flex-direction: row !important;
+    flex-wrap: nowrap !important;
+    align-items: flex-start !important;
+    justify-content: flex-start !important;
+    gap: 0 !important; /* margins on cards — gap breaks snap math in some browsers */
+    width: 100% !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+    overflow-x: auto !important;
+    overflow-y: visible !important;
+    scroll-snap-type: x mandatory;
+    scroll-padding-inline: var(--m-guild-side);
+    scroll-behavior: auto;
+    -webkit-overflow-scrolling: touch;
+    touch-action: pan-x;
+    padding: 0.85rem var(--m-guild-side) 1.1rem !important;
+    scrollbar-width: none;
+    overscroll-behavior-x: contain;
+}
+
+body.gcq-mobile .guild-crystal-arena::-webkit-scrollbar {
+    display: none;
+}
+
+/* Kill desktop 2-up wrap at phone widths */
+@media (max-width: 600px) {
+    body.gcq-mobile .guild-crystal-arena {
+        flex-wrap: nowrap !important;
+    }
+
+    body.gcq-mobile .guild-crystal-col {
+        flex: 0 0 var(--m-guild-card-w) !important;
+        width: var(--m-guild-card-w) !important;
+        min-width: var(--m-guild-card-w) !important;
+        max-width: var(--m-guild-card-w) !important;
+    }
+}
+
+/* ── Hero crystal card ───────────────────────────────────────────────────── */
+body.gcq-mobile .guild-crystal-col {
+    position: relative !important;
+    display: flex !important;
+    flex: 0 0 var(--m-guild-card-w, min(82vw, 21rem)) !important;
+    width: var(--m-guild-card-w, min(82vw, 21rem)) !important;
+    min-width: var(--m-guild-card-w, min(82vw, 21rem)) !important;
+    max-width: var(--m-guild-card-w, min(82vw, 21rem)) !important;
+    scroll-snap-align: center;
+    scroll-snap-stop: always;
+    box-sizing: border-box !important;
+    align-items: center !important;
+    gap: 0.35rem !important;
+    margin-right: var(--m-guild-gap, 0.85rem) !important;
+    padding: 1rem 0.85rem 1.15rem !important;
+    border-radius: 1.75rem !important;
+    background:
+        linear-gradient(165deg, rgba(255, 255, 255, 0.16) 0%, rgba(255, 255, 255, 0.06) 100%);
+    border: 1.5px solid rgba(255, 255, 255, 0.22) !important;
+    box-shadow:
+        0 18px 40px -16px rgba(0, 0, 0, 0.55),
+        inset 0 1px 0 rgba(255, 255, 255, 0.28);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    /* No scale transforms — they stutter when toggled mid-swipe */
+    opacity: 0.62;
+    filter: none;
+    transition: opacity 0.35s ease, box-shadow 0.35s ease, border-color 0.35s ease;
+    will-change: opacity;
+}
+
+body.gcq-mobile .guild-crystal-col:last-child {
+    margin-right: 0 !important;
+}
+
+/* Anthem chip — keep a true circle (global app-tab button min-height was stretching it) */
+body.gcq-mobile .guild-anthem-btn {
+    width: 2rem !important;
+    height: 2rem !important;
+    min-width: 2rem !important;
+    min-height: 2rem !important;
+    max-width: 2rem !important;
+    max-height: 2rem !important;
+    border-radius: 50% !important;
+    padding: 0 !important;
+    flex-shrink: 0 !important;
+    bottom: -0.2rem !important;
+    left: -0.2rem !important;
+    font-size: 0.7rem !important;
+    line-height: 1 !important;
+}
+
+body.gcq-mobile .guild-anthem-btn i {
+    font-size: 0.7rem !important;
+    line-height: 1 !important;
+}
+
+body.gcq-mobile .guild-crystal-col.m-guild-slide--active {
+    opacity: 1;
+    box-shadow:
+        0 24px 52px -14px rgba(0, 0, 0, 0.6),
+        0 0 0 1.5px rgba(251, 191, 36, 0.35),
+        0 0 42px rgba(251, 191, 36, 0.22),
+        inset 0 1px 0 rgba(255, 255, 255, 0.35);
+}
+
+body.gcq-mobile .guild-crystal-col.m-guild-slide--pulse {
+    animation: none;
+}
+
+body.gcq-mobile .guild-crystal-col::before {
+    content: '';
+    position: absolute;
+    inset: -2px;
+    border-radius: inherit;
+    background: radial-gradient(circle at 50% 18%, rgba(255, 255, 255, 0.22), transparent 55%);
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.4s ease;
+    z-index: 0;
+}
+
+body.gcq-mobile .guild-crystal-col.m-guild-slide--active::before {
+    opacity: 1;
+}
+
+body.gcq-mobile .guild-crystal-col > * {
+    position: relative;
+    z-index: 1;
+}
+
+/* Rank badge — larger, glowing */
+body.gcq-mobile .guild-crystal-rank {
+    margin-bottom: 0.35rem !important;
+}
+
+body.gcq-mobile .guild-crystal-rank__label {
+    font-size: 1.15rem !important;
+    padding: 0.28rem 0.85rem !important;
+    background: rgba(15, 23, 42, 0.55) !important;
+    border: 1.5px solid rgba(251, 191, 36, 0.45) !important;
+    color: #fde68a !important;
+    box-shadow: 0 0 18px rgba(251, 191, 36, 0.35);
+}
+
+body.gcq-mobile .guild-crystal-col.m-guild-slide--active .guild-crystal-rank__label {
+    animation: m-guild-rank-glow 2.8s ease-in-out infinite;
+}
+
+@keyframes m-guild-rank-glow {
+    0%, 100% { box-shadow: 0 0 14px rgba(251, 191, 36, 0.3); }
+    50% { box-shadow: 0 0 28px rgba(251, 191, 36, 0.65); }
+}
+
+/* Emblem — hero size */
+body.gcq-mobile .guild-crystal-header {
+    min-height: 0 !important;
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+body.gcq-mobile .guild-crystal-emblem,
+body.gcq-mobile .guild-crystal-emblem-fallback {
+    width: 7.25rem !important;
+    height: 7.25rem !important;
+    box-shadow: 0 0 32px var(--glow-color, rgba(255, 255, 255, 0.35)) !important;
+}
+
+body.gcq-mobile .guild-crystal-col.m-guild-slide--active .guild-crystal-emblem,
+body.gcq-mobile .guild-crystal-col.m-guild-slide--active .guild-crystal-emblem-fallback {
+    animation: m-guild-emblem-breathe 3.6s ease-in-out infinite;
+}
+
+@keyframes m-guild-emblem-breathe {
+    0%, 100% { transform: scale(1); filter: brightness(1); }
+    50% { transform: scale(1.06); filter: brightness(1.08); }
+}
+
+body.gcq-mobile .guild-emblem-ring {
+    opacity: 0.85 !important;
+    inset: -10px !important;
+}
+
+body.gcq-mobile .guild-crystal-col.m-guild-slide--active .guild-emblem-ring {
+    opacity: 1 !important;
+    animation: ring-spin 3.2s linear infinite;
+}
+
+body.gcq-mobile .guild-crystal-name {
+    font-size: 1.45rem !important;
+    margin-top: 0.75rem !important;
+    letter-spacing: 0.02em;
+    text-shadow: 0 2px 12px rgba(0, 0, 0, 0.55) !important;
+}
+
+body.gcq-mobile .guild-crystal-emblem-initial {
+    font-size: 2.8rem !important;
+}
+
+/* Crystal tube — tall, proud centerpiece */
+body.gcq-mobile .guild-crystal-tube-wrap {
+    height: 280px !important;
+    padding-bottom: 1.1rem !important;
+}
+
+body.gcq-mobile .guild-crystal-tube {
+    width: 5.5rem !important;
+    border-width: 3px !important;
+}
+
+body.gcq-mobile .guild-crystal-col.m-guild-slide--active .guild-crystal-fill {
+    animation: m-guild-fill-shimmer 2.8s ease-in-out infinite;
+}
+
+@keyframes m-guild-fill-shimmer {
+    0%, 100% { filter: brightness(1); }
+    50% { filter: brightness(1.15); }
+}
+
+body.gcq-mobile .guild-crystal-count {
+    margin-top: 0.35rem !important;
+}
+
+body.gcq-mobile .guild-crystal-count-num {
+    font-size: 2rem !important;
+    line-height: 1 !important;
+    color: #fff !important;
+    text-shadow: 0 0 18px rgba(251, 191, 36, 0.55);
+}
+
+body.gcq-mobile .guild-crystal-count-label {
+    font-size: 0.72rem !important;
+    color: rgba(255, 247, 214, 0.85) !important;
+}
+
+body.gcq-mobile .guild-crystal-power-strip {
+    font-size: 0.68rem !important;
+    color: rgba(255, 255, 255, 0.75) !important;
+    gap: 0.55rem !important;
+}
+
+/* Details panels — full card width, readable */
+body.gcq-mobile .guild-crystal-details-expander,
+body.gcq-mobile .guild-crystal-details,
+body.gcq-mobile .guild-crystal-details-inner,
+body.gcq-mobile .guild-crystal-metrics,
+body.gcq-mobile .guild-crystal-roster-ribbon,
+body.gcq-mobile .guild-crystal-champion-panel,
+body.gcq-mobile .guild-crystal-heroes-panel {
+    width: 100% !important;
+    max-width: 100% !important;
+    box-sizing: border-box !important;
+}
+
+body.gcq-mobile .guild-crystal-metrics {
+    grid-template-columns: 1fr !important;
+    gap: 0.5rem !important;
+}
+
+body.gcq-mobile .guild-crystal-metric {
+    padding: 0.65rem 0.7rem !important;
+    border-radius: 1rem !important;
+    background: rgba(15, 23, 42, 0.35) !important;
+}
+
+body.gcq-mobile .guild-crystal-metric__label {
+    font-size: 0.62rem !important;
+    color: rgba(255, 255, 255, 0.65) !important;
+}
+
+body.gcq-mobile .guild-crystal-metric__value {
+    font-size: 1.05rem !important;
+    color: #fff !important;
+}
+
+body.gcq-mobile .guild-crystal-metric__hint {
+    font-size: 0.58rem !important;
+    color: rgba(255, 255, 255, 0.5) !important;
+}
+
+body.gcq-mobile .guild-crystal-roster-ribbon {
+    flex-wrap: wrap !important;
+    justify-content: center !important;
+    gap: 0.55rem !important;
+}
+
+body.gcq-mobile .guild-crystal-hero-tile {
+    width: 100% !important;
+}
+
+body.gcq-mobile .guild-crystal-arena:has(.guild-active) .guild-crystal-col:not(.guild-active) {
+    filter: none !important;
+}
+
+body.gcq-mobile .guild-active .guild-crystal-emblem,
+body.gcq-mobile .guild-active .guild-crystal-emblem-fallback {
+    transform: none !important;
+}
+
+/* ── Stage viewport + floating chevrons only (no duplicate name footer) ─── */
+body.gcq-mobile .m-guild-stage__viewport {
+    position: relative;
+    isolation: isolate;
+}
+
+.m-guild-stage-chrome,
+body.gcq-mobile .m-guild-stage-chrome,
+.m-guild-stage-footer,
+.m-guild-stage-meta,
+.m-guild-stage-dots,
+.m-guild-carousel {
+    display: none !important;
+}
+
+.m-guild-stage-nav {
+    display: none;
+    position: absolute;
+    top: 42%;
+    z-index: 12;
+    width: 2.95rem;
+    height: 2.95rem;
+    border-radius: 999px;
+    align-items: center;
+    justify-content: center;
+    color: #fff;
+    font-size: 1.1rem;
+    background: linear-gradient(145deg, rgba(251, 191, 36, 0.98), rgba(217, 119, 6, 0.94));
+    border: 2px solid rgba(255, 255, 255, 0.6);
+    box-shadow:
+        0 12px 28px -8px rgba(217, 119, 6, 0.75),
+        0 0 24px rgba(251, 191, 36, 0.4);
+    transition: transform 0.2s ease;
+    -webkit-tap-highlight-color: transparent;
+}
+
+body.gcq-mobile .m-guild-stage-nav {
+    display: flex;
+}
+
+.m-guild-stage-nav--prev { left: 0.2rem; }
+.m-guild-stage-nav--next { right: 0.2rem; }
+
+.m-guild-stage-nav:active {
+    transform: scale(0.9);
+}
+
+.m-guild-stage-nav:disabled {
+    opacity: 0.35;
+    pointer-events: none;
+}
+
+/* Fortune ledger */
+body.gcq-mobile .guild-fortune-ledger-section {
+    max-width: 100% !important;
+    margin: 0 0 1rem !important;
+    border-radius: 1.35rem !important;
+}
+
+body.gcq-mobile .guild-fortune-ledger-section__lede {
+    font-size: 0.78rem !important;
+    line-height: 1.35 !important;
+}
+
+body.gcq-mobile .guild-lore-card {
+    width: min(100%, 22.5rem) !important;
+    max-height: min(88dvh, 88vh) !important;
+    overflow-y: auto !important;
+    -webkit-overflow-scrolling: touch;
+    border-radius: 1.5rem !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    body.gcq-mobile #guilds-tab .floating-icon,
+    body.gcq-mobile .guild-crystal-col.m-guild-slide--active .guild-crystal-emblem,
+    body.gcq-mobile .guild-crystal-col.m-guild-slide--active .guild-crystal-emblem-fallback,
+    body.gcq-mobile .guild-crystal-col.m-guild-slide--active .guild-crystal-rank__label {
+        animation: none !important;
+    }
+
+    body.gcq-mobile .guild-crystal-col {
+        transition: none !important;
+    }
+}

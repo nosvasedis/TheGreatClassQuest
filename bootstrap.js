@@ -77,6 +77,7 @@ function applyRuntimeConfig(c) {
 async function bootApplication() {
     if (isLocalHost()) {
         await import('./app.js');
+        await import('./mobile/index.js');
         return;
     }
 
@@ -95,6 +96,7 @@ async function bootApplication() {
         return;
     }
     await import('./app.js');
+    await import('./mobile/index.js');
 }
 
 function showUpdateAvailable(registration) {

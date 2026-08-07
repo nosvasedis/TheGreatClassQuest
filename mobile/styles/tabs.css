@@ -1,0 +1,718 @@
+/* Hybrid tab / role surface polish under body.gcq-mobile */
+
+body.gcq-mobile #app-screen main,
+body.gcq-mobile .role-main {
+    padding: 0.75rem 0.7rem calc(0.75rem + 0.25rem);
+    padding-bottom: calc(0.5rem + var(--m-dock-clearance) * 0.15);
+}
+
+body.gcq-mobile #toast-container {
+    top: calc(var(--m-header-height) + 0.35rem);
+    left: 0.75rem;
+    right: 0.75rem;
+    width: auto;
+}
+
+/* Single-column breathing room for tab content */
+body.gcq-mobile .app-tab {
+    max-width: 100%;
+}
+
+body.gcq-mobile .app-tab .grid,
+body.gcq-mobile .app-tab [class*="grid-cols-"] {
+    gap: 0.75rem;
+}
+
+/* Base (non-responsive) Tailwind grid-cols-N utilities are mobile-first by
+   design, so they still apply at phone widths. Compact multi-column forms
+   (settings, star manager, etc.) need to collapse to one column here. */
+body.gcq-mobile .app-tab .grid-cols-2,
+body.gcq-mobile .app-tab .grid-cols-3,
+body.gcq-mobile .app-tab .grid-cols-4 {
+    grid-template-columns: 1fr !important;
+}
+
+body.gcq-mobile table {
+    display: block;
+    width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    border-radius: 1rem;
+}
+
+body.gcq-mobile .app-tab .overflow-x-auto,
+body.gcq-mobile .app-tab .custom-scrollbar {
+    -webkit-overflow-scrolling: touch;
+}
+
+/* Toolbars → horizontal chip scroll (excluding control cards) */
+body.gcq-mobile .app-tab .flex.flex-wrap.items-center.gap-2:not(.bg-white\/70):not(.hc-view-switcher-wrapper),
+body.gcq-mobile .app-tab .flex.flex-wrap.items-center.gap-3:not(.bg-white\/70) {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    padding-bottom: 0.25rem;
+    scrollbar-width: none;
+}
+
+body.gcq-mobile .app-tab .flex.flex-wrap.items-center.gap-2:not(.bg-white\/70):not(.hc-view-switcher-wrapper)::-webkit-scrollbar,
+body.gcq-mobile .app-tab .flex.flex-wrap.items-center.gap-3:not(.bg-white\/70)::-webkit-scrollbar {
+    display: none;
+}
+
+/* Cards breathe on phone */
+body.gcq-mobile .app-tab .rounded-2xl,
+body.gcq-mobile .app-tab .rounded-3xl,
+body.gcq-mobile .role-main .rounded-2xl,
+body.gcq-mobile .role-main .rounded-3xl {
+    border-radius: 1.35rem !important;
+}
+
+body.gcq-mobile .app-tab button:not(.guild-anthem-btn):not(.m-guild-stage-nav):not(.m-guild-stage-dot),
+body.gcq-mobile .role-main button {
+    min-height: 2.5rem;
+}
+
+body.gcq-mobile .app-tab input,
+body.gcq-mobile .app-tab select,
+body.gcq-mobile .app-tab textarea,
+body.gcq-mobile .role-main input,
+body.gcq-mobile .role-main select,
+body.gcq-mobile .role-main textarea {
+    font-size: 16px; /* prevent iOS zoom */
+}
+
+/* Award / leaderboards: denser vertical stack */
+body.gcq-mobile #award-stars-tab,
+body.gcq-mobile #class-leaderboard-tab,
+body.gcq-mobile #student-leaderboard-tab {
+    padding-bottom: 1rem;
+}
+
+body.gcq-mobile #award-stars-tab .grid.md\:grid-cols-2,
+body.gcq-mobile #award-stars-tab .grid.md\:grid-cols-3,
+body.gcq-mobile #class-leaderboard-tab .grid.md\:grid-cols-2,
+body.gcq-mobile #student-leaderboard-tab .grid.md\:grid-cols-2 {
+    grid-template-columns: 1fr;
+}
+
+/* Shop / guilds / log / scroll / calendar / ideas / students / options */
+body.gcq-mobile #shop-tab,
+body.gcq-mobile #guilds-tab,
+body.gcq-mobile #adventure-log-tab,
+body.gcq-mobile #scholars-scroll-tab,
+body.gcq-mobile #calendar-tab,
+body.gcq-mobile #reward-ideas-tab,
+body.gcq-mobile #manage-students-tab,
+body.gcq-mobile #options-tab {
+    padding-bottom: 1.25rem;
+}
+
+body.gcq-mobile #shop-tab .grid,
+body.gcq-mobile #guilds-tab .grid,
+body.gcq-mobile #reward-ideas-tab .grid {
+    grid-template-columns: 1fr !important;
+}
+
+@media (min-width: 640px) {
+    body.gcq-mobile #shop-tab .grid,
+    body.gcq-mobile #guilds-tab .grid,
+    body.gcq-mobile #reward-ideas-tab .grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    }
+}
+
+/* Sticky section titles when useful */
+body.gcq-mobile .app-tab h2,
+body.gcq-mobile .app-tab h3,
+body.gcq-mobile .role-main h2 {
+    scroll-margin-top: 0.5rem;
+}
+
+/* Role portals */
+body.gcq-mobile .role-composer {
+    position: sticky;
+    bottom: calc(var(--m-dock-clearance) + 0.35rem);
+    z-index: 40;
+    background: #fff;
+    border: 1.5px solid #e2e8f0;
+    border-radius: 1.35rem;
+    box-shadow: 0 -8px 28px rgba(15, 40, 90, 0.16);
+    padding: 0.85rem;
+    margin-top: 1rem;
+}
+
+body.gcq-mobile .role-main {
+    padding-bottom: calc(1rem + var(--m-dock-clearance) * 0.2);
+}
+
+body.gcq-mobile [data-parent-section],
+body.gcq-mobile [data-secretary-section] {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+body.gcq-mobile .role-main .card,
+body.gcq-mobile .role-main [class*="rounded"] {
+    max-width: 100%;
+}
+
+/* Modal sheets — above mobile chrome/dock (z-60) so X stays tappable */
+body.gcq-mobile [id$="-modal"] {
+    align-items: flex-end;
+    padding: 0;
+    z-index: 2300 !important;
+}
+
+body.gcq-mobile [id$="-modal"] > *:not(.hidden) {
+    width: 100%;
+    max-width: 100%;
+    max-height: min(90vh, 100dvh);
+    border-radius: 1.75rem 1.75rem 0 0 !important;
+    margin: 0 !important;
+    overflow-x: hidden !important;
+    overflow-y: auto !important;
+    overscroll-behavior: contain;
+    -webkit-overflow-scrolling: touch;
+    padding-bottom: calc(1rem + env(safe-area-inset-bottom));
+    animation: m-tab-enter 0.4s var(--m-spring) both;
+    isolation: isolate;
+}
+
+/* Close (X) sits above the modal body — content’s .relative layer was eating taps */
+body.gcq-mobile [id$="-modal"] [id$="-close-btn"],
+body.gcq-mobile [id$="-modal"] button.absolute.top-4,
+body.gcq-mobile #create-class-close-btn,
+body.gcq-mobile #edit-class-close-btn {
+    position: absolute !important;
+    top: 0.85rem !important;
+    right: 0.85rem !important;
+    left: auto !important;
+    float: none !important;
+    margin: 0 !important;
+    z-index: 50 !important;
+    pointer-events: auto !important;
+    width: 2.75rem !important;
+    height: 2.75rem !important;
+    min-width: 2.75rem !important;
+    min-height: 2.75rem !important;
+    flex-shrink: 0;
+}
+
+body.gcq-mobile #add-class-form,
+body.gcq-mobile #edit-class-form {
+    padding-top: 1.35rem !important;
+}
+
+body.gcq-mobile #add-class-form > .relative,
+body.gcq-mobile #edit-class-form > .relative {
+    z-index: 1;
+}
+
+body.gcq-mobile #fortunes-wheel-modal,
+body.gcq-mobile #hero-celebration-modal,
+body.gcq-mobile #hero-level-up-modal,
+body.gcq-mobile #starfall-modal,
+body.gcq-mobile #celebration-bonus-modal,
+body.gcq-mobile #storybook-viewer-modal,
+body.gcq-mobile #welcome-back-modal,
+body.gcq-mobile #guild-heroes-modal {
+    align-items: center;
+    padding: 1rem;
+}
+
+body.gcq-mobile #fortunes-wheel-modal > *,
+body.gcq-mobile #hero-celebration-modal > *,
+body.gcq-mobile #hero-level-up-modal > *,
+body.gcq-mobile #starfall-modal > *,
+body.gcq-mobile #celebration-bonus-modal > *,
+body.gcq-mobile #storybook-viewer-modal > *,
+body.gcq-mobile #welcome-back-modal > *,
+body.gcq-mobile #guild-heroes-modal > * {
+    width: auto;
+    max-width: 100%;
+    max-height: none;
+    border-radius: 0 !important;
+    margin: 0;
+    overflow: visible;
+    padding-bottom: 0;
+    animation: none;
+}
+
+/* Force single-column compartment for common desktop multi-col layouts */
+body.gcq-mobile .app-tab .lg\:grid-cols-2,
+body.gcq-mobile .app-tab .lg\:grid-cols-3,
+body.gcq-mobile .app-tab .lg\:grid-cols-4,
+body.gcq-mobile .app-tab .md\:grid-cols-2,
+body.gcq-mobile .app-tab .md\:grid-cols-3,
+body.gcq-mobile .app-tab .sm\:grid-cols-2,
+body.gcq-mobile .app-tab .xl\:grid-cols-3 {
+    grid-template-columns: 1fr !important;
+}
+
+body.gcq-mobile .app-tab .md\:flex-row,
+body.gcq-mobile .app-tab .lg\:flex-row {
+    flex-direction: column !important;
+}
+
+body.gcq-mobile .app-tab img,
+body.gcq-mobile .app-tab canvas,
+body.gcq-mobile .app-tab video,
+body.gcq-mobile .app-tab iframe {
+    max-width: 100%;
+    height: auto;
+}
+
+body.gcq-mobile .app-tab .sticky {
+    top: 0.5rem;
+}
+
+body.gcq-mobile #adventure-log-tab,
+body.gcq-mobile #scholars-scroll-tab,
+body.gcq-mobile #calendar-tab,
+body.gcq-mobile #manage-students-tab,
+body.gcq-mobile #options-tab,
+body.gcq-mobile #guilds-tab {
+    padding-left: 0.15rem;
+    padding-right: 0.15rem;
+}
+
+body.gcq-mobile .app-tab [class*="min-w-"] {
+    min-width: 0 !important;
+}
+
+/* Settings: the desktop horizontal-scroll pill bar is thumb-hostile on a
+   phone — hide it and drive the same buttons from a dropdown sheet instead
+   (mobile/teacher.js wires #m-options-subtab-trigger to click these). */
+body.gcq-mobile .options-subtab-bar {
+    display: none !important;
+}
+
+.m-subtab-dropdown {
+    margin-bottom: 1.1rem;
+}
+
+.m-subtab-dropdown__trigger {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    gap: 0.65rem;
+    background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+    border: 1.5px solid #e2e8f0;
+    border-radius: 1.15rem;
+    padding: 0.7rem 0.85rem;
+    box-shadow: 0 8px 20px -12px rgba(15, 40, 90, 0.24);
+    min-height: var(--m-tap, 2.75rem);
+    transition: transform 0.2s var(--m-spring, cubic-bezier(0.34, 1.56, 0.64, 1)), box-shadow 0.2s ease;
+}
+
+.m-subtab-dropdown__trigger:active {
+    transform: scale(0.985);
+}
+
+.m-subtab-dropdown__icon {
+    width: 2.15rem;
+    height: 2.15rem;
+    border-radius: 0.75rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(135deg, #f59e0b, #f97316);
+    color: #fff;
+    font-size: 0.95rem;
+    flex-shrink: 0;
+    box-shadow: 0 4px 10px -4px rgba(249, 115, 22, 0.55);
+    transition: transform 0.3s var(--m-spring, cubic-bezier(0.34, 1.56, 0.64, 1));
+}
+
+.m-subtab-dropdown__trigger:active .m-subtab-dropdown__icon {
+    transform: scale(1.12) rotate(-6deg);
+}
+
+.m-subtab-dropdown__label {
+    flex: 1;
+    min-width: 0;
+    text-align: left;
+    font-weight: 800;
+    font-size: 0.92rem;
+    color: #334155;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.m-subtab-dropdown__chev {
+    color: #94a3b8;
+    font-size: 0.8rem;
+    flex-shrink: 0;
+    transition: transform 0.3s var(--m-spring, cubic-bezier(0.34, 1.56, 0.64, 1));
+}
+
+.m-subtab-dropdown__trigger[aria-expanded="true"] .m-subtab-dropdown__chev {
+    transform: rotate(180deg);
+}
+
+.m-options-subtab-option {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    width: 100%;
+    padding: 0.85rem 0.95rem;
+    border-radius: 1.15rem;
+    background: #f8fafc;
+    border: 1.5px solid #e2e8f0;
+    text-align: left;
+    transition: border-color 0.15s ease, background 0.15s ease, transform 0.2s var(--m-spring, cubic-bezier(0.34, 1.56, 0.64, 1));
+}
+
+.m-options-subtab-option + .m-options-subtab-option {
+    margin-top: 0.55rem;
+}
+
+.m-options-subtab-option:active {
+    transform: scale(0.98);
+}
+
+.m-options-subtab-option--active {
+    border-color: #38bdf8;
+    background: linear-gradient(135deg, #eff6ff, #eef2ff);
+    box-shadow: 0 0 0 2.5px rgba(56, 189, 248, 0.2);
+}
+
+.m-options-subtab-option__icon {
+    width: 2.2rem;
+    height: 2.2rem;
+    border-radius: 0.8rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #e0f2fe;
+    color: #0284c7;
+    font-size: 0.95rem;
+    flex-shrink: 0;
+}
+
+.m-options-subtab-option--active .m-options-subtab-option__icon {
+    background: #38bdf8;
+    color: #fff;
+}
+
+.m-options-subtab-option__label {
+    flex: 1;
+    font-weight: 700;
+    font-size: 0.86rem;
+    color: #334155;
+}
+
+.m-options-subtab-option__check {
+    color: #38bdf8;
+    font-size: 0.95rem;
+    flex-shrink: 0;
+}
+
+body.gcq-mobile #options-tab .space-y-8 > * + *,
+body.gcq-mobile #options-tab .space-y-6 > * + * {
+    margin-top: 1.1rem !important;
+}
+
+body.gcq-mobile #options-tab .rounded-\[2rem\] {
+    padding: 1.1rem !important;
+    border-radius: 1.5rem !important;
+}
+
+body.gcq-mobile .qow-hero {
+    flex-direction: column;
+    text-align: center;
+}
+
+body.gcq-mobile .qow-step {
+    min-width: 4.6rem;
+    padding: 0.55rem 0.7rem;
+}
+
+body.gcq-mobile .app-tab .w-64,
+body.gcq-mobile .app-tab .w-72,
+body.gcq-mobile .app-tab .w-80,
+body.gcq-mobile .app-tab .w-96 {
+    width: 100% !important;
+    max-width: 100% !important;
+}
+
+@media (min-width: 640px) {
+    body.gcq-mobile .app-tab .md\:grid-cols-2,
+    body.gcq-mobile .app-tab .sm\:grid-cols-2 {
+        grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    }
+}
+
+/* ==========================================================================
+   MOBILE OPTIMIZATIONS ACROSS ALL TABS (Award, Mystic Market, Guild Hall,
+   Adventure Log, Scholar's Scroll, Quest Calendar, Story Weavers, Student Roster,
+   Settings, Team Quest, Heroes)
+   ========================================================================== */
+
+/* 1. Header Titles & Floating Icons — Matched across ALL tabs */
+body.gcq-mobile .app-tab .floating-icon,
+body.gcq-mobile #class-leaderboard-tab .floating-icon,
+body.gcq-mobile #student-leaderboard-tab .floating-icon {
+    font-size: 2.3rem !important;
+    margin-bottom: 0.25rem !important;
+}
+
+body.gcq-mobile .app-tab h2.bottom-nav-tab-title,
+body.gcq-mobile #class-leaderboard-tab h2.bottom-nav-tab-title,
+body.gcq-mobile #student-leaderboard-tab h2.bottom-nav-tab-title {
+    font-size: 1.85rem !important;
+    line-height: 1.15 !important;
+    margin-top: 0.2rem !important;
+}
+
+body.gcq-mobile .app-tab p.text-lg,
+body.gcq-mobile #class-leaderboard-tab p.text-lg,
+body.gcq-mobile #student-leaderboard-tab p.text-lg {
+    font-size: 0.85rem !important;
+    line-height: 1.35 !important;
+    margin-top: 0.35rem !important;
+}
+
+/* 2. Inner Section Titles & Headings across ALL tabs */
+body.gcq-mobile .app-tab h2:not(.bottom-nav-tab-title) {
+    font-size: 1.35rem !important;
+    line-height: 1.25 !important;
+}
+
+body.gcq-mobile .app-tab h3 {
+    font-size: 1.15rem !important;
+    line-height: 1.25 !important;
+}
+
+body.gcq-mobile .app-tab h4 {
+    font-size: 1.05rem !important;
+    line-height: 1.25 !important;
+}
+
+/* 3. Card Containers — skip Student Roster (its own chrome already frames content) */
+body.gcq-mobile #award-stars-tab .bg-white,
+body.gcq-mobile #shop-tab .bg-white,
+body.gcq-mobile #guilds-tab .bg-white,
+body.gcq-mobile #adventure-log-tab .bg-white,
+body.gcq-mobile #scholars-scroll-tab .bg-white,
+body.gcq-mobile #calendar-tab .bg-white,
+body.gcq-mobile #reward-ideas-tab .bg-white,
+body.gcq-mobile #options-tab .bg-white {
+    padding: 0.85rem 0.95rem !important;
+    border-radius: 1.35rem !important;
+}
+
+/* Student Roster: keep original card framing — no forced padding that creates an ugly nested box */
+body.gcq-mobile #manage-students-tab > .max-w-5xl {
+    padding-left: 0.25rem !important;
+    padding-right: 0.25rem !important;
+}
+
+body.gcq-mobile #manage-students-tab .bg-white.rounded-2xl {
+    padding: 0 !important;
+    overflow: hidden !important;
+}
+
+body.gcq-mobile #manage-students-tab #student-list {
+    background: #fff;
+}
+
+/* 2. Month Banners (Quest & Hero) */
+body.gcq-mobile .quest-month-banner,
+body.gcq-mobile .hero-month-banner {
+    padding: 0.55rem 0.85rem !important;
+    border-radius: 1.25rem !important;
+    margin-bottom: 0.85rem !important;
+}
+
+body.gcq-mobile .quest-banner-watermarks {
+    display: none !important; /* Hide background watermark clutter on phone */
+}
+
+body.gcq-mobile .quest-banner-center {
+    font-size: 1.15rem !important;
+    letter-spacing: 0.02em !important;
+}
+
+body.gcq-mobile .quest-banner-side {
+    gap: 0.35rem !important;
+}
+
+/* 3. Control Cards & League Selector Toolbars — Fully Mobile Optimized */
+body.gcq-mobile #class-leaderboard-tab .bg-white\/70,
+body.gcq-mobile #student-leaderboard-tab .bg-white\/70 {
+    width: 100% !important;
+    max-width: 100% !important;
+    box-sizing: border-box !important;
+    padding: 0.65rem 0.5rem !important;
+    margin: 0 0 1rem 0 !important;
+    border-radius: 1.35rem !important;
+    background: rgba(255, 255, 255, 0.95) !important;
+    box-shadow: 0 8px 24px -8px rgba(15, 40, 90, 0.18) !important;
+    overflow: visible !important;
+}
+
+body.gcq-mobile #class-leaderboard-tab .bg-white\/70,
+body.gcq-mobile #student-leaderboard-tab .bg-white\/70,
+body.gcq-mobile #student-leaderboard-tab .bg-white\/70 > div,
+body.gcq-mobile #class-leaderboard-tab .bg-white\/70 > div {
+    display: flex !important;
+    flex-wrap: wrap !important;
+    flex-direction: row !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 0.4rem !important;
+    overflow-x: visible !important;
+    overflow-y: visible !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    box-sizing: border-box !important;
+}
+
+body.gcq-mobile #class-leaderboard-tab .bg-white\/70 span.uppercase,
+body.gcq-mobile #student-leaderboard-tab .bg-white\/70 span.uppercase {
+    width: 100% !important;
+    display: flex !important;
+    justify-content: center !important;
+    align-items: center !important;
+    font-size: 0.72rem !important;
+    font-weight: 800 !important;
+    letter-spacing: 0.1em !important;
+    margin-bottom: 0.15rem !important;
+}
+
+body.gcq-mobile #class-leaderboard-tab .bg-white\/70 button,
+body.gcq-mobile #student-leaderboard-tab .bg-white\/70 button {
+    flex: 1 1 auto !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+    box-sizing: border-box !important;
+    font-size: 0.78rem !important;
+    padding: 0.4rem 0.65rem !important;
+    min-height: 2.45rem !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+}
+
+body.gcq-mobile #hc-expand-toggle {
+    flex: 0 0 auto !important;
+    width: 2.45rem !important;
+    min-width: 2.45rem !important;
+    padding: 0 !important;
+}
+
+body.gcq-mobile #student-view-switcher {
+    width: 100% !important;
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 0.5rem !important;
+    margin-top: 0.5rem !important;
+    padding-top: 0.5rem !important;
+    border-top: 1px solid rgba(226, 232, 240, 0.85) !important;
+}
+
+body.gcq-mobile #student-view-switcher .flex {
+    width: 100% !important;
+    justify-content: center !important;
+    gap: 0.4rem !important;
+}
+
+body.gcq-mobile #student-view-switcher button {
+    flex: 1 !important;
+    text-align: center !important;
+    justify-content: center !important;
+    font-size: 0.76rem !important;
+    padding: 0.35rem 0.5rem !important;
+}
+
+/* 4. Team Quest Cards (.team-quest-card-refreshed) */
+body.gcq-mobile .team-quest-card-refreshed {
+    border-radius: 1.5rem !important;
+    margin-bottom: 1rem !important;
+}
+
+body.gcq-mobile .team-quest-card-refreshed .p-6 {
+    padding: 0.85rem 0.9rem !important;
+}
+
+body.gcq-mobile .team-quest-card-refreshed h4 {
+    font-size: 1.35rem !important;
+}
+
+body.gcq-mobile .team-quest-card-refreshed .quest-logo-container {
+    font-size: 2.2rem !important;
+}
+
+body.gcq-mobile .quest-status-crystal {
+    gap: 0.8rem !important;
+    justify-content: center !important;
+    margin-top: 0.5rem;
+}
+
+body.gcq-mobile .quest-status-crystal .font-title {
+    font-size: 1.6rem !important;
+}
+
+body.gcq-mobile .team-quest-card-refreshed .champions-vanguard-banner {
+    flex-direction: column !important;
+    gap: 0.6rem !important;
+    text-align: center !important;
+    padding: 0.75rem 0.85rem !important;
+    border-radius: 1.15rem !important;
+}
+
+body.gcq-mobile .champions-vanguard-avatars {
+    justify-content: center !important;
+}
+
+body.gcq-mobile .stat-rune-card {
+    padding: 0.55rem 0.6rem !important;
+}
+
+/* 5. Student / Hero Cards (.student-leaderboard-card) */
+body.gcq-mobile #student-leaderboard-list .student-leaderboard-card {
+    border-radius: 1.25rem !important;
+    padding: 0.75rem 0.85rem !important;
+    margin-bottom: 0.65rem !important;
+}
+
+body.gcq-mobile .hc-lb-card-rise {
+    margin-bottom: 0.55rem !important;
+}
+
+body.gcq-mobile .hc-lb-rank {
+    width: 2.2rem !important;
+    height: 2.2rem !important;
+    font-size: 1rem !important;
+}
+
+body.gcq-mobile .hc-lb-avatar-wrap {
+    width: 2.6rem !important;
+    height: 2.6rem !important;
+}
+
+body.gcq-mobile .hc-lb-name {
+    font-size: 0.95rem !important;
+}
+
+body.gcq-mobile .hc-lb-score-val,
+body.gcq-mobile .hc-lb-score {
+    font-size: 1.15rem !important;
+}
+
+/* FABs on Hero's Challenge: refine label display for mobile touch */
+body.gcq-mobile #student-leaderboard-tab .tab-fab {
+    padding: 0.55rem 0.85rem !important;
+    min-height: 2.6rem !important;
+}
+
+body.gcq-mobile #student-leaderboard-tab .tab-fab-label {
+    font-size: 0.75rem !important;
+    font-weight: 800 !important;
+}
+
+

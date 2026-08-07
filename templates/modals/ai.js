@@ -17,19 +17,19 @@ export const aiModalsHTML = `
             </div>
 
             <div class="guide-tab-row flex justify-center gap-3 shadow-inner z-10">
-                <button id="info-btn-students" class="info-tab-switcher info-tab-student active">
-                    🧙 For Students
-                </button>
-                <button id="info-btn-teachers" class="info-tab-switcher info-tab-teacher">
+                <button id="info-btn-teachers" class="info-tab-switcher info-tab-teacher active">
                     🏫 For Teachers
+                </button>
+                <button id="info-btn-students" class="info-tab-switcher info-tab-student">
+                    🧙 For Students
                 </button>
             </div>
 
             <div class="guide-body flex-grow overflow-y-auto p-5 md:p-8 custom-scrollbar relative">
-                <div id="info-content-students" class="info-section space-y-8 relative z-10">
+                <div id="info-content-teachers" class="info-section space-y-8 relative z-10">
                 </div>
 
-                <div id="info-content-teachers" class="info-section hidden space-y-8 relative z-10">
+                <div id="info-content-students" class="info-section hidden space-y-8 relative z-10">
                 </div>
             </div>
         </div>

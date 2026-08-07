@@ -125,6 +125,20 @@ body {
     -webkit-text-stroke: 0.75px rgba(0, 0, 0, 0.55);
 }
 
+/* Header quote, class-picker label, and chrome button icons — same inner
+   carved stroke technique as #main-app-title, but hairline-thin so small
+   type/icons keep their fill. Scoped to text/icons only (no emoji). */
+#header-quote-text,
+#header-class-selector-text,
+#header-class-selector-btn > .fa-chevron-down,
+#app-info-btn i,
+#projector-mode-btn i,
+#secretary-console-btn i,
+#header-settings-btn i,
+#logout-btn i {
+    -webkit-text-stroke: 0.4px rgba(0, 0, 0, 0.55);
+}
+
 /* Generic Animations */
 @keyframes fade-in {
     from { opacity: 0; transform: translateY(10px); }

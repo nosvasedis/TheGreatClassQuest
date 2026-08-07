@@ -821,15 +821,15 @@ export function openAppInfoModal() {
         ${buildTierCard()}
     `;
 
-    // Reset Tabs — show Students by default
+    // Reset Tabs — show Teachers by default
     const studentBtn = document.getElementById('info-btn-students');
     const teacherBtn = document.getElementById('info-btn-teachers');
 
-    studentBtn.classList.add('active');
-    teacherBtn.classList.remove('active');
+    teacherBtn.classList.add('active');
+    studentBtn.classList.remove('active');
 
-    studentContent.classList.remove('hidden');
-    teacherContent.classList.add('hidden');
+    teacherContent.classList.remove('hidden');
+    studentContent.classList.add('hidden');
 
     showAnimatedModal('app-info-modal');
 }

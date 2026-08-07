@@ -1,0 +1,356 @@
+/* Mobile Auth & Loading — phone-first layout (additive; desktop styles untouched) */
+
+@media (max-width: 1023px) {
+    /* ── Auth screen ─────────────────────────────────────────────────────── */
+    #auth-screen {
+        padding:
+            max(0.75rem, env(safe-area-inset-top))
+            max(0.85rem, env(safe-area-inset-right))
+            max(0.85rem, env(safe-area-inset-bottom))
+            max(0.85rem, env(safe-area-inset-left));
+        align-items: stretch;
+        justify-content: flex-start;
+        overflow-x: hidden;
+        overflow-y: auto;
+        -webkit-overflow-scrolling: touch;
+        overscroll-behavior: contain;
+    }
+
+    #auth-screen .auth-content {
+        width: 100%;
+        max-width: 26rem;
+        margin: 0 auto;
+        padding-top: 0.35rem;
+        padding-bottom: 1.25rem;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        min-height: min(100%, 100dvh - 1.5rem);
+        justify-content: center;
+    }
+
+    /* Tone down decorative clutter so the form is the focus */
+    #auth-screen .floating-star {
+        opacity: 0.28;
+        pointer-events: none;
+        transform: scale(0.55);
+        filter: blur(0.2px);
+    }
+
+    #auth-screen .auth-cloud {
+        opacity: 0.35 !important;
+        transform: scale(0.85);
+    }
+
+    #auth-screen .auth-sparkle {
+        opacity: 0.45;
+    }
+
+    #auth-screen .auth-crest {
+        margin-bottom: 0.15rem;
+    }
+
+    #auth-screen .auth-crest img {
+        width: 3.25rem;
+        height: 3.25rem;
+        filter: drop-shadow(0 8px 16px rgba(15, 40, 90, 0.2));
+    }
+
+    /* Brand is the hero signal; keep title dominant but phone-sized */
+    #auth-screen .auth-hero-title {
+        font-size: clamp(1.65rem, 7.2vw, 2.05rem);
+        line-height: 1.12;
+        margin-bottom: 0.85rem;
+        padding: 0 0.35rem;
+        text-shadow: 0 2px 12px rgba(0, 0, 0, 0.12);
+        max-width: 16ch;
+    }
+
+    #auth-screen .auth-card,
+    #auth-screen #login-form-container.auth-card {
+        width: 100%;
+        margin: 0;
+        padding: 1.15rem 1rem 1.25rem;
+        border-radius: 1.55rem;
+        background: rgba(255, 255, 255, 0.96);
+        backdrop-filter: blur(16px);
+        -webkit-backdrop-filter: blur(16px);
+        border: 1px solid rgba(255, 255, 255, 0.95);
+        box-shadow:
+            0 18px 40px -16px rgba(15, 40, 90, 0.3),
+            0 1px 0 rgba(255, 255, 255, 0.9) inset;
+        animation: none;
+    }
+
+    /* Role switcher: keep labels visible (override desktop 480px icon-only rule) */
+    #auth-screen .auth-role-switcher,
+    #auth-screen #auth-role-switcher {
+        width: 100%;
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 0.28rem;
+        padding: 0.28rem;
+        border-radius: 1.05rem;
+        background: #eef2f7;
+        margin-bottom: 0.95rem;
+        box-sizing: border-box;
+    }
+
+    #auth-screen .flex.items-center.justify-center.mb-6 {
+        margin-bottom: 0.85rem !important;
+        width: 100%;
+    }
+
+    #auth-screen .auth-role-btn {
+        flex: 1;
+        width: 100%;
+        min-height: 3.05rem;
+        padding: 0.45rem 0.25rem;
+        font-size: 0.68rem;
+        font-weight: 800;
+        letter-spacing: 0.01em;
+        border-radius: 0.8rem;
+        display: inline-flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 0.2rem;
+        line-height: 1.1;
+        -webkit-tap-highlight-color: transparent;
+    }
+
+    #auth-screen .auth-role-btn i {
+        font-size: 1.05rem;
+        margin: 0;
+    }
+
+    #auth-screen .auth-role-btn span {
+        display: inline !important;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        max-width: 100%;
+    }
+
+    #auth-screen .auth-card-title {
+        font-size: 1.35rem;
+        line-height: 1.2;
+        margin-bottom: 0.25rem;
+    }
+
+    #auth-screen #auth-subtitle {
+        font-size: 0.78rem;
+        line-height: 1.4;
+        margin-bottom: 0.95rem;
+        padding: 0 0.15rem;
+        color: #64748b;
+    }
+
+    #auth-screen .auth-field {
+        margin-bottom: 0.8rem !important;
+    }
+
+    #auth-screen .auth-field-label {
+        font-size: 0.72rem;
+        font-weight: 800;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+        color: #64748b;
+        margin-bottom: 0.35rem;
+    }
+
+    #auth-screen .auth-field-input-wrap {
+        min-height: 3rem;
+        border-radius: 1rem;
+    }
+
+    /* 16px+ prevents iOS focus zoom */
+    #auth-screen .auth-field-input {
+        font-size: 1rem;
+        padding: 0.75rem 0.9rem 0.75rem 2.55rem;
+        min-height: 3rem;
+    }
+
+    #auth-screen .auth-field-icon {
+        font-size: 0.9rem;
+        left: 0.9rem;
+    }
+
+    #auth-screen .auth-submit-btn {
+        width: 100%;
+        min-height: 3.05rem;
+        border-radius: 1.05rem;
+        font-size: 1rem;
+        font-weight: 800;
+        margin-top: 0.15rem;
+        -webkit-tap-highlight-color: transparent;
+    }
+
+    #auth-screen .auth-toggle-link {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 100%;
+        min-height: 2.75rem;
+        margin-top: 0.15rem;
+        padding: 0.5rem 0.75rem;
+        font-size: 0.88rem;
+        font-weight: 700;
+        border-radius: 0.85rem;
+        -webkit-tap-highlight-color: transparent;
+    }
+
+    #auth-screen .text-center.mt-4 {
+        margin-top: 0.65rem !important;
+    }
+
+    #auth-screen .auth-availability-panel {
+        padding: 0.35rem 0.15rem;
+    }
+
+    #auth-screen .auth-availability-title {
+        font-size: 1.35rem;
+    }
+
+    #auth-screen .auth-availability-text {
+        font-size: 0.85rem;
+        line-height: 1.4;
+    }
+
+    #auth-screen .auth-availability-retry {
+        min-height: 2.85rem;
+        width: 100%;
+        border-radius: 1rem;
+        font-weight: 800;
+    }
+
+    /* Short phones: keep form reachable above the keyboard */
+    @media (max-height: 720px) {
+        #auth-screen .auth-content {
+            justify-content: flex-start;
+            padding-top: 0.5rem;
+            min-height: 0;
+        }
+
+        #auth-screen .auth-hero-title {
+            font-size: 1.55rem;
+            margin-bottom: 0.55rem;
+            max-width: none;
+        }
+
+        #auth-screen .auth-crest img {
+            width: 2.75rem;
+            height: 2.75rem;
+        }
+
+        #auth-screen .auth-card,
+        #auth-screen #login-form-container.auth-card {
+            padding: 1rem 0.9rem 1.1rem;
+        }
+
+        #auth-screen .floating-star,
+        #auth-screen .auth-cloud-layer {
+            display: none;
+        }
+    }
+
+    /* ── Loading screen ──────────────────────────────────────────────────── */
+    #loading-screen {
+        padding:
+            max(1rem, env(safe-area-inset-top))
+            max(0.85rem, env(safe-area-inset-right))
+            max(1rem, env(safe-area-inset-bottom))
+            max(0.85rem, env(safe-area-inset-left));
+        justify-content: center;
+        align-items: center;
+    }
+
+    #loading-screen .loading-stage {
+        width: 100%;
+        max-width: 21.5rem;
+        padding: 0 0.35rem;
+        text-align: center;
+        position: relative;
+        z-index: 2;
+    }
+
+    #loading-screen .loading-title {
+        font-size: clamp(1.55rem, 6.5vw, 1.95rem);
+        line-height: 1.12;
+        margin-bottom: 0.25rem;
+    }
+
+    #loading-screen .loading-subtitle {
+        font-size: 0.8rem;
+        line-height: 1.35;
+        max-width: 17.5rem;
+        margin: 0.25rem auto 1rem;
+        opacity: 0.9;
+    }
+
+    #loading-screen .loading-spinner-wrap {
+        width: 4.5rem;
+        height: 4.5rem;
+        margin-left: auto;
+        margin-right: auto;
+    }
+
+    #loading-screen .loading-center-logo img {
+        width: 2.75rem;
+        height: 2.95rem;
+    }
+
+    #loading-screen #loading-greeting-text {
+        font-size: clamp(1.15rem, 5vw, 1.35rem);
+        line-height: 1.25;
+        padding: 0 0.5rem;
+    }
+
+    #loading-screen #loading-tip {
+        font-size: 0.8rem;
+        line-height: 1.4;
+        max-width: 19rem;
+        margin: 0.9rem auto 0;
+        padding: 0.7rem 0.95rem;
+        border-radius: 1.05rem;
+        background: rgba(255, 255, 255, 0.78);
+        backdrop-filter: blur(10px);
+        -webkit-backdrop-filter: blur(10px);
+        box-shadow: 0 8px 22px rgba(15, 40, 90, 0.12);
+        border: 1px solid rgba(255, 255, 255, 0.85);
+    }
+
+    /* Soften background noise on small screens */
+    #loading-screen .loading-journey-icon {
+        opacity: 0.45;
+        transform: scale(0.85);
+    }
+
+    #loading-screen .loading-cloud-art {
+        opacity: 0.55;
+    }
+
+    @media (max-height: 640px) {
+        #loading-screen .loading-journey-icons,
+        #loading-screen .loading-fireworks {
+            display: none;
+        }
+
+        #loading-screen .loading-subtitle {
+            margin-bottom: 0.65rem;
+        }
+
+        #loading-screen #loading-tip {
+            margin-top: 0.65rem;
+            padding: 0.55rem 0.8rem;
+        }
+    }
+}
+
+@media (max-width: 1023px) and (prefers-reduced-motion: reduce) {
+    #auth-screen .auth-card,
+    #auth-screen #login-form-container.auth-card,
+    #loading-screen .loading-spinner-wrap {
+        animation: none !important;
+    }
+}

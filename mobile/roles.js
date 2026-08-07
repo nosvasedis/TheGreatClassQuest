@@ -16,10 +16,16 @@ function mirrorText(sourceSelector, targetId) {
     const source = document.querySelector(sourceSelector);
     const target = document.getElementById(targetId);
     if (!source || !target) return;
-    target.textContent = source.textContent;
-    const observer = new MutationObserver(() => {
-        target.textContent = source.textContent;
-    });
+    const sync = () => {
+        const text = source.textContent;
+        target.textContent = text;
+        // Keep soft INNER letter-face (::before) in sync when present.
+        if (target.classList.contains('m-header__title')) {
+            target.dataset.text = text;
+        }
+    };
+    sync();
+    const observer = new MutationObserver(sync);
     observer.observe(source, { childList: true, characterData: true, subtree: true });
     observers.push(observer);
 }

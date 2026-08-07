@@ -171,24 +171,35 @@
 /* --- FINAL TITLE FIX (High Specificity) --- */
 #main-app-title {
     /* 1. Reset any conflicting colors */
-    color: white !important;
     background: none !important;
     -webkit-background-clip: border-box !important;
     background-clip: border-box !important;
 
-    /* 2. The EXACT Shadow Structure from the Clock */
-    /* Layer 1: Deep Depth (0 4px 6px) */
-    /* Layer 2: Bright Glow (0 0 20px) */
+    /* Host is transparent: outer glow/depth live here as text-shadow.
+       The sharp white face + soft INNER carve sit on ::before so the
+       SVG inner-stroke filter never touches these glows. */
+    color: transparent !important;
+    -webkit-text-fill-color: transparent;
     text-shadow: 0 4px 6px rgba(0, 0, 0, 0.6), 0 0 20px rgba(255, 255, 255, 0.8) !important;
-
-    /* Inner stroke: default paint order (fill first, stroke on top) so the
-       dark edge eats INTO the white letters — a carved, 3D inner rim
-       rather than an outline floating outside them. */
-    -webkit-text-stroke: 1.5px rgba(0, 0, 0, 0.55);
+    -webkit-text-stroke: 0;
 
     /* 3. Ensure the Fairy still works */
     position: relative;
     display: inline-block;
+}
+
+#main-app-title::before {
+    content: attr(data-text);
+    position: absolute;
+    inset: 0;
+    color: #fff !important;
+    -webkit-text-fill-color: #fff;
+    text-shadow: none !important;
+    /* Thin hard rim for edge bite; SVG filter adds a light soft carve inside */
+    -webkit-text-stroke: 0.65px rgba(0, 0, 0, 0.38);
+    filter: url(#gcq-inner-soft-stroke);
+    pointer-events: none;
+    user-select: none;
 }
 
 /* --- MINDFULNESS ANIMATION --- */

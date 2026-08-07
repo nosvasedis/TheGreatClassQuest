@@ -403,10 +403,10 @@ function renderCurrentStep() {
             <label for="readinessTarget">What are you preparing today?</label>
             <select id="readinessTarget">
               <option value="starter" ${state.form.readinessTarget === 'starter' ? 'selected' : ''}>Starter / paywall only</option>
-              <option value="pro" ${state.form.readinessTarget === 'pro' ? 'selected' : ''}>Pro / Elite ready</option>
-              <option value="admin" ${state.form.readinessTarget === 'admin' ? 'selected' : ''}>Parent access + Secretary ready</option>
+              <option value="pro" ${state.form.readinessTarget === 'pro' ? 'selected' : ''}>Pro ready (Storage + Parent Access)</option>
+              <option value="admin" ${state.form.readinessTarget === 'admin' ? 'selected' : ''}>Parent Access + Secretary ready</option>
             </select>
-            <p class="field-hint">Starter keeps things lighter. Pro / Elite ready adds Storage. Parent access + Secretary ready also prepares the Cloud Functions admin runtime and extra APIs for role-based access.</p>
+            <p class="field-hint">Starter is paywall only. Pro enables Storage and deploys/verifies Family Access Cloud Functions. Parent Access + Secretary also enables Cloud Scheduler, verifies leave-school purge, and creates the Secretary activation link.</p>
           </div>
 
           <div class="field-wrap">
@@ -644,6 +644,19 @@ function renderFinalStep(stepHeader) {
       </div>
     ` : ''}
 
+    ${result?.outputs?.secretaryActivation?.activationUrl ? `
+      <section class="giant-output">
+        <div class="output-head">
+          <div>
+            <h3>Secretary activation link</h3>
+            <p>Send this privately to the school Secretary. It expires ${escapeHtml(result.outputs.secretaryActivation.expiresAt || '')}. Cloud Functions must be live before they can activate.</p>
+          </div>
+          <button class="copy-btn" data-copy="secretaryActivation">Copy activation link</button>
+        </div>
+        <pre class="output-box">${escapeHtml(result.outputs.secretaryActivation.activationUrl)}</pre>
+      </section>
+    ` : ''}
+
     <div class="stack">
       <section class="giant-output">
         <div class="output-head">
@@ -845,10 +858,10 @@ function renderRecheck() {
               <label for="savedReadinessTarget">What do you want this school ready for now?</label>
               <select id="savedReadinessTarget">
                 <option value="starter" ${state.form.readinessTarget === 'starter' ? 'selected' : ''}>Starter / paywall only</option>
-                <option value="pro" ${state.form.readinessTarget === 'pro' ? 'selected' : ''}>Pro / Elite ready</option>
-                <option value="admin" ${state.form.readinessTarget === 'admin' ? 'selected' : ''}>Parent access + Secretary ready</option>
+                <option value="pro" ${state.form.readinessTarget === 'pro' ? 'selected' : ''}>Pro ready (Storage + Parent Access)</option>
+                <option value="admin" ${state.form.readinessTarget === 'admin' ? 'selected' : ''}>Parent Access + Secretary ready</option>
               </select>
-              <p class="field-hint">Use the admin option when the school now needs parent usernames, secretary access, and the Functions-based role runtime.</p>
+              <p class="field-hint">Use Parent Access + Secretary when the school needs Family Access, Secretary activation, year tools, and the leave-school 30-day purge job.</p>
             </div>
 
             <div class="field-wrap">
@@ -910,6 +923,18 @@ function renderRecheck() {
               <p>${escapeHtml(state.recheckResult.summary)}</p>
             </div>
           </div>
+          ${state.recheckResult.outputs?.secretaryActivation?.activationUrl ? `
+            <section class="giant-output" style="margin-top:18px;">
+              <div class="output-head">
+                <div>
+                  <h3>Secretary activation link</h3>
+                  <p>Send this privately. Expires ${escapeHtml(state.recheckResult.outputs.secretaryActivation.expiresAt || '')}.</p>
+                </div>
+                <button class="copy-btn" data-copy="secretaryActivation">Copy activation link</button>
+              </div>
+              <pre class="output-box">${escapeHtml(state.recheckResult.outputs.secretaryActivation.activationUrl)}</pre>
+            </section>
+          ` : ''}
           ${renderTaskList(state.recheckResult.tasks)}
           <div class="stack" style="margin-top:18px;">
             <section class="giant-output">
@@ -1888,14 +1913,18 @@ function bindStaticEvents() {
       const selectedTarget = getSelectedHostingTarget(outputs);
       const source = field === 'hostingEnv'
         ? selectedTarget?.envText
-        : outputs?.[field];
+        : field === 'secretaryActivation'
+          ? outputs?.secretaryActivation?.activationUrl
+          : outputs?.[field];
       if (!source) return;
       await navigator.clipboard.writeText(source);
       button.textContent = 'Copied';
       setTimeout(() => {
         button.textContent = field === 'renderJson'
           ? 'Copy Render Value'
-          : (selectedTarget?.copyLabel || 'Copy Hosting Values');
+          : field === 'secretaryActivation'
+            ? 'Copy activation link'
+            : (selectedTarget?.copyLabel || 'Copy Hosting Values');
       }, 1400);
     });
   });

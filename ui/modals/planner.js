@@ -11,8 +11,10 @@ export function openDayPlannerModal(dateString, dayCell) {
     if (prev) {
         prev.classList.remove('day-selected');
     }
-    setCurrentlySelectedDayCell(dayCell);
-    dayCell.classList.add('day-selected');
+    setCurrentlySelectedDayCell(dayCell || null);
+    if (dayCell) {
+        dayCell.classList.add('day-selected');
+    }
 
     const modal = document.getElementById('day-planner-modal');
     const displayDate = utils.parseDDMMYYYY(dateString).toLocaleDateString('en-GB', { weekday: 'long', month: 'long', day: 'numeric' });

@@ -351,8 +351,55 @@ export function setupUIListeners() {
     });
 
     // Calendar Logic: On-Demand Loading
-    const handleMonthChange = async (direction) => {
+    const startOfLocalDay = (date) => {
+        const d = new Date(date);
+        d.setHours(0, 0, 0, 0);
+        return d;
+    };
+
+    const handleCalendarNav = async (direction) => {
         const calDate = state.get('calendarCurrentDate');
+        const mobile = document.body.classList.contains('gcq-mobile');
+
+        if (mobile) {
+            calDate.setDate(calDate.getDate() + direction);
+            const yearStart = state.getActiveSchoolYearStartDate();
+            const yearEnd = state.getActiveSchoolYearEndDate();
+            if (yearStart && calDate < startOfLocalDay(yearStart)) {
+                calDate.setTime(startOfLocalDay(yearStart).getTime());
+            }
+            if (yearEnd && calDate > startOfLocalDay(yearEnd)) {
+                calDate.setTime(startOfLocalDay(yearEnd).getTime());
+            }
+            state.set('calendarCurrentDate', calDate);
+
+            const dayRoot = document.getElementById('m-calendar-day');
+            if (dayRoot) {
+                dayRoot.innerHTML = '<div class="m-cal-loading"><i class="fas fa-spinner fa-spin"></i><p>Loading day…</p></div>';
+            }
+
+            const now = startOfLocalDay(new Date());
+            const viewing = startOfLocalDay(calDate);
+            const thirtyDaysAgo = new Date(now);
+            thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+
+            try {
+                if (viewing >= thirtyDaysAgo) {
+                    import('../tabs.js').then((m) => m.renderCalendarTab(state.get('allAwardLogs')));
+                } else {
+                    const { fetchLogsForDate } = await import('../../db/queries.js');
+                    const logs = await fetchLogsForDate(utils.getDDMMYYYY(viewing));
+                    import('../tabs.js').then((m) => m.renderCalendarTab(logs));
+                }
+            } catch (error) {
+                console.error('Day history fetch failed:', error);
+                if (dayRoot) {
+                    dayRoot.innerHTML = '<div class="m-cal-empty-state"><p>Could not load this day.</p></div>';
+                }
+            }
+            return;
+        }
+
         calDate.setMonth(calDate.getMonth() + direction);
         state.set('calendarCurrentDate', calDate);
 
@@ -397,8 +444,8 @@ export function setupUIListeners() {
         }
     };
 
-    document.getElementById('prev-month-btn').addEventListener('click', () => handleMonthChange(-1));
-    document.getElementById('next-month-btn').addEventListener('click', () => handleMonthChange(1));
+    document.getElementById('prev-month-btn').addEventListener('click', () => handleCalendarNav(-1));
+    document.getElementById('next-month-btn').addEventListener('click', () => handleCalendarNav(1));
 
     document.getElementById('calendar-grid').addEventListener('click', (e) => {
         const dayCell = e.target.closest('.calendar-day-cell');
@@ -428,6 +475,36 @@ export function setupUIListeners() {
             } else {
                 modals.showLogbookModal(dateString, true);
             }
+        }
+    });
+
+    document.getElementById('m-calendar-day')?.addEventListener('click', (e) => {
+        const deleteBtn = e.target.closest('.delete-event-btn');
+        if (deleteBtn) {
+            e.stopPropagation();
+            const eventId = deleteBtn.dataset.id;
+            const eventName = deleteBtn.dataset.name;
+            modals.showModal('Delete Event?', `Are you sure you want to delete the "${eventName}" event?`, () => handleDeleteQuestEvent(eventId));
+            return;
+        }
+
+        const actionBtn = e.target.closest('[data-m-cal-action]');
+        if (!actionBtn || actionBtn.disabled) return;
+
+        const dateString = actionBtn.dataset.date;
+        if (!dateString) return;
+
+        if (actionBtn.dataset.mCalAction === 'plan') {
+            modals.openDayPlannerModal(dateString, null);
+            return;
+        }
+
+        if (actionBtn.dataset.mCalAction === 'logbook') {
+            const dayDate = utils.parseDDMMYYYY(dateString);
+            const thirtyDaysAgo = new Date();
+            thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+            thirtyDaysAgo.setHours(0, 0, 0, 0);
+            modals.showLogbookModal(dateString, dayDate < thirtyDaysAgo);
         }
     });
 

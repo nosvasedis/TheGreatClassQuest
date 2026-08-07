@@ -3,21 +3,24 @@
 export const calendarTabHTML = `
             <div id="calendar-tab" class="app-tab hidden">
                 <div class="max-w-7xl mx-auto">
-                    <div class="text-center mb-6">
+                    <div class="text-center mb-6 m-calendar-hero">
                         <i class="fas fa-calendar-alt text-blue-600 text-5xl floating-icon"></i>
                         <h2 class="font-title text-5xl text-blue-700 mt-2 bottom-nav-tab-title"
                             style="text-shadow: 0 2px 4px rgba(0,0,0,0.1);">Quest Calendar</h2>
-                        <p class="text-lg text-gray-600 mt-2">View your schedule and plan special Quest Events.</p>
+                        <p class="text-lg text-gray-600 mt-2 m-calendar-hero__sub">View your schedule and plan special Quest Events.</p>
                     </div>
                     <div>
                         <div
-                            class="flex items-center justify-between mb-4 p-4 bg-white/70 rounded-2xl shadow-lg backdrop-blur-sm">
-                            <button id="prev-month-btn"
+                            class="flex items-center justify-between mb-4 p-4 bg-white/70 rounded-2xl shadow-lg backdrop-blur-sm m-calendar-nav">
+                            <button id="prev-month-btn" type="button" aria-label="Previous"
                                 class="bg-blue-500 hover:bg-blue-600 text-white font-bold w-12 h-12 rounded-full bubbly-button">
                                 <i class="fas fa-chevron-left"></i>
                             </button>
-                            <h2 id="calendar-month-year" class="font-title text-3xl text-blue-700 text-center"></h2>
-                            <button id="next-month-btn"
+                            <div class="m-calendar-nav__center text-center min-w-0 px-2">
+                                <h2 id="calendar-month-year" class="font-title text-3xl text-blue-700 text-center"></h2>
+                                <span id="m-calendar-today-chip" class="m-calendar-today-chip hidden">Today</span>
+                            </div>
+                            <button id="next-month-btn" type="button" aria-label="Next"
                                 class="bg-blue-500 hover:bg-blue-600 text-white font-bold w-12 h-12 rounded-full bubbly-button">
                                 <i class="fas fa-chevron-right"></i>
                             </button>
@@ -37,6 +40,7 @@ export const calendarTabHTML = `
                             <div class="text-center font-bold text-gray-600">Sat</div>
                             <div class="text-center font-bold text-gray-600">Sun</div>
                         </div>
+                        <div id="m-calendar-day" class="m-calendar-day" hidden aria-live="polite"></div>
                     </div>
                 </div>
             </div>

@@ -22,9 +22,17 @@ This is the main noob-friendly setup quest. It:
 - deploys the repo's Firestore rules
 - writes the school subscription as `pending`
 - checks and creates Firestore indexes from `firestore.indexes.json` (including active-year startup indexes used after year close)
-- checks Firebase Storage and deploys Storage rules when a bucket exists
+- creates Firebase Storage and deploys Storage rules when preparing Pro / Parent Access
+- for Pro+: enables Functions APIs, deploys/verifies Family Access Cloud Functions (`createParentAccess`, `purgeStudent`, transfers, messaging, …)
+- for Parent Access + Secretary: also enables Cloud Scheduler, verifies `purgeLeftSchoolStudents`, and creates a founding Secretary activation link
 - rebuilds the Render billing JSON
 - prepares the hosting values for Netlify, GitHub Pages, and Cloudflare Pages
+
+Readiness targets:
+
+- **Starter / paywall only** — billing + Firestore basics
+- **Pro ready (Storage + Parent Access)** — Storage + Parent Portal / Family Access Functions
+- **Parent Access + Secretary ready** — everything above + Secretary activation, year tools, leave-school 30-day purge schedule
 
 ## Hosting notes
 

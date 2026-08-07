@@ -225,11 +225,27 @@ function startClock() {
         const dateEl = document.getElementById('m-current-date');
         if (!timeEl || !dateEl) return;
         const now = new Date();
-        timeEl.textContent = now.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
-        dateEl.textContent = now.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' });
+        const timeText = now.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
+        const dateText = now.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' });
+        timeEl.dataset.text = timeText;
+        dateEl.dataset.text = dateText;
+        timeEl.textContent = timeText;
+        dateEl.textContent = dateText;
     };
     update();
     clockInterval = setInterval(update, 1000);
+}
+
+function measureBrowserChromeBottom() {
+    const vv = window.visualViewport;
+    if (!vv) {
+        document.body.style.setProperty('--m-browser-chrome-bottom', '0px');
+        return;
+    }
+    // Gap between the layout viewport bottom and the visual viewport bottom
+    // (Chrome/Samsung browser toolbars overlapping the page).
+    const chromeBottom = Math.max(0, Math.round(window.innerHeight - (vv.height + vv.offsetTop)));
+    document.body.style.setProperty('--m-browser-chrome-bottom', `${chromeBottom}px`);
 }
 
 function measureHeaderHeight() {
@@ -238,6 +254,7 @@ function measureHeaderHeight() {
         document.getElementById('m-parent-header') ||
         document.getElementById('m-secretary-header');
     if (!header || !document.body.classList.contains('gcq-mobile')) return;
+    measureBrowserChromeBottom();
     const height = Math.ceil(header.getBoundingClientRect().height);
     if (height > 0) {
         document.body.style.setProperty('--m-header-height', `${height}px`);
@@ -429,6 +446,12 @@ function wire() {
             syncClassPill();
             renderMobileHome();
             requestAnimationFrame(measureHeaderHeight);
+            import('../features/skyTheater.js')
+                .then(({ stopSkyTheater, startSkyTheater }) => {
+                    stopSkyTheater();
+                    startSkyTheater();
+                })
+                .catch(() => {});
         } else {
             closeMoreSheet();
             closeClassPicker();
@@ -438,9 +461,19 @@ function wire() {
     window.addEventListener('resize', () => {
         if (document.body.classList.contains('gcq-mobile')) measureHeaderHeight();
     });
+    if (window.visualViewport) {
+        const onViewportChange = () => {
+            if (document.body.classList.contains('gcq-mobile')) measureHeaderHeight();
+        };
+        window.visualViewport.addEventListener('resize', onViewportChange);
+        window.visualViewport.addEventListener('scroll', onViewportChange);
+    }
 
     syncClassPill();
     startClock();
+    import('../features/skyTheater.js')
+        .then(({ startSkyTheater }) => startSkyTheater())
+        .catch((e) => console.warn('Sky Theater failed to start (mobile)', e));
     mirrorUpdateReady();
     observeDesktopClassPill();
     observeOptionsSubtabs();

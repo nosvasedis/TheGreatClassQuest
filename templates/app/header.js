@@ -1,5 +1,44 @@
 // templates/app/header.js
 
+/** Soft INNER letter carve filters — must stay outside elements that mobile hides
+ *  with display:none, or filter:url(#…) silently fails on the mobile chrome. */
+export const svgFiltersHTML = `
+    <svg class="gcq-svg-filters" width="0" height="0" aria-hidden="true" focusable="false"
+         style="position:absolute;width:0;height:0;overflow:hidden;pointer-events:none">
+        <defs>
+            <filter id="gcq-inner-soft-stroke" x="-20%" y="-20%" width="140%" height="140%" color-interpolation-filters="sRGB">
+                <!-- Thin soft inner rim -->
+                <feGaussianBlur in="SourceAlpha" stdDeviation="0.5" result="blur"/>
+                <feComposite in="blur" in2="SourceAlpha" operator="in" result="inBlur"/>
+                <feComposite in="SourceAlpha" in2="inBlur" operator="arithmetic" k1="0" k2="1" k3="-1" k4="0" result="rim"/>
+                <feComponentTransfer in="rim" result="rimBoost">
+                    <feFuncA type="linear" slope="2.4" intercept="0"/>
+                </feComponentTransfer>
+                <feFlood flood-color="rgb(0,0,0)" flood-opacity="0.42" result="shade"/>
+                <feComposite in="shade" in2="rimBoost" operator="in" result="softRim"/>
+                <feMerge>
+                    <feMergeNode in="SourceGraphic"/>
+                    <feMergeNode in="softRim"/>
+                </feMerge>
+            </filter>
+            <filter id="gcq-inner-soft-stroke-sm" x="-30%" y="-30%" width="160%" height="160%" color-interpolation-filters="sRGB">
+                <feGaussianBlur in="SourceAlpha" stdDeviation="0.35" result="blur"/>
+                <feComposite in="blur" in2="SourceAlpha" operator="in" result="inBlur"/>
+                <feComposite in="SourceAlpha" in2="inBlur" operator="arithmetic" k1="0" k2="1" k3="-1" k4="0" result="rim"/>
+                <feComponentTransfer in="rim" result="rimBoost">
+                    <feFuncA type="linear" slope="2.5" intercept="0"/>
+                </feComponentTransfer>
+                <feFlood flood-color="rgb(0,0,0)" flood-opacity="0.4" result="shade"/>
+                <feComposite in="shade" in2="rimBoost" operator="in" result="softRim"/>
+                <feMerge>
+                    <feMergeNode in="SourceGraphic"/>
+                    <feMergeNode in="softRim"/>
+                </feMerge>
+            </filter>
+        </defs>
+    </svg>
+`;
+
 export const headerHTML = `
     <header class="relative z-[1] flex w-full items-center justify-between gap-3 bg-transparent p-4 shadow-none overflow-visible">
             <div class="header-night-stars absolute inset-0 z-0 overflow-hidden pointer-events-none" aria-hidden="true"></div>
@@ -9,10 +48,12 @@ export const headerHTML = `
                 <i class="fas fa-cloud cloud" style="left: 60%; animation-delay: -2s; font-size: 10rem;"></i>
                 <i class="fas fa-cloud cloud cloud-fast" style="left: 80%; animation-delay: -25s;"></i>
             </div>
+            <div class="sky-theater-sky absolute inset-0 z-[2] overflow-hidden pointer-events-none" aria-hidden="true"></div>
 
             <div class="z-10 min-w-0 flex flex-1 flex-col justify-between">
                 <div>
-                    <h1 id="main-app-title" class="font-title text-2xl text-white sm:text-4xl">The Great Class Quest</h1>
+                    <h1 id="main-app-title" class="font-title text-2xl text-white sm:text-4xl"
+                        data-text="The Great Class Quest">The Great Class Quest</h1>
                 </div>
                 <div id="header-quote-container"
                     class="hidden self-start md:inline-flex items-center gap-3 bg-white/20 backdrop-blur-sm border border-white/30 rounded-full px-4 py-1.5 shadow-md mt-2">
@@ -23,21 +64,22 @@ export const headerHTML = `
                 </div>
             </div>
 
-            <div class="z-10 ml-auto flex shrink-0 flex-col justify-between items-end font-title date-time-hover-group">
-                <div id="current-date" class="text-right text-lg font-bold text-white sm:text-2xl md:text-4xl" style="word-spacing: 0.1em;">
+            <div class="z-10 ml-auto flex shrink-0 flex-col justify-between items-end font-title date-time-hover-group relative">
+                <div class="sky-theater-cameo absolute inset-0 z-[3] overflow-visible pointer-events-none" aria-hidden="true"></div>
+                <div id="current-date" class="relative z-[4] text-right text-lg font-bold text-white sm:text-2xl md:text-4xl" style="word-spacing: 0.1em;" data-text="">
                 </div>
 
-                <div class="mt-2 flex items-center gap-2 sm:gap-4">
+                <div class="relative z-[4] mt-2 flex items-center gap-2 sm:gap-4">
                     <div id="gcq-update-ready-mount" class="hidden shrink-0" aria-live="polite"></div>
                     <div
                         class="flex items-center gap-1 bg-white/20 backdrop-blur-sm border border-white/30 rounded-full p-1 shadow-md overflow-visible">
-                        <div id="header-class-selector-wrap" class="relative z-20 overflow-visible">
+                        <div id="header-class-selector-wrap" class="relative z-20 flex items-center overflow-visible">
                             <button type="button" id="header-class-selector-btn"
-                                class="hover:bg-white/40 text-white max-w-[9.5rem] sm:max-w-[13rem] h-7 sm:h-8 pl-2 pr-2 sm:pl-3 sm:pr-2 rounded-full bubbly-button transition-colors duration-300 flex items-center gap-1.5 border border-white/30 font-title text-[10px] sm:text-xs leading-tight"
+                                class="hover:bg-white/40 text-white max-w-[9.5rem] sm:max-w-[13rem] h-7 sm:h-8 pl-2 pr-2 sm:pl-3 sm:pr-2 rounded-full bubbly-button transition-colors duration-300 flex items-center gap-1.5 border border-white/30 font-title leading-none"
                                 title="Choose class" aria-expanded="false" aria-haspopup="listbox">
-                                <span id="header-class-selector-logo" class="text-base sm:text-lg leading-none shrink-0" aria-hidden="true">🏫</span>
-                                <span id="header-class-selector-text" class="truncate text-left font-bold">Class…</span>
-                                <i class="fas fa-chevron-down text-[8px] sm:text-[9px] opacity-80 shrink-0"></i>
+                                <span id="header-class-selector-logo" class="leading-none shrink-0" aria-hidden="true">🏫</span>
+                                <span id="header-class-selector-text" class="truncate text-left font-bold leading-none">Class…</span>
+                                <i class="fas fa-chevron-down opacity-80 shrink-0"></i>
                             </button>
                             <div id="header-class-selector-panel"
                                 class="hidden w-[min(18rem,calc(100vw-2rem))] max-w-[calc(100vw-2rem)] bg-white rounded-2xl shadow-2xl overflow-hidden border-2 border-white/90 ring-4 ring-sky-100/50 origin-top-right">
@@ -62,30 +104,30 @@ export const headerHTML = `
                         <button id="app-info-btn"
                             class="hover:bg-white/40 text-white h-7 w-7 rounded-full bubbly-button transition-colors duration-300 flex items-center justify-center border border-white/30 sm:h-8 sm:w-8"
                             title="Game Guide" aria-label="Open Game Guide">
-                            <i class="fas fa-info text-xs"></i>
+                            <i class="fas fa-info"></i>
                         </button>
                         <button id="projector-mode-btn"
                             class="hover:bg-white/40 text-white h-7 w-7 rounded-full bubbly-button transition-colors duration-300 flex items-center justify-center border border-white/30 sm:h-8 sm:w-8"
                             title="Projector Mode" aria-label="Toggle Projector Mode">
-                            <i class="fas fa-tv text-xs"></i>
+                            <i class="fas fa-tv"></i>
                         </button>
                         <button id="secretary-console-btn"
                             class="hidden hover:bg-white/40 text-white h-7 w-7 rounded-full bubbly-button transition-colors duration-300 flex items-center justify-center border border-white/30 sm:h-8 sm:w-8"
                             title="Secretary Console" aria-label="Open Secretary Console">
-                            <i class="fas fa-building-shield text-xs"></i>
+                            <i class="fas fa-building-shield"></i>
                         </button>
                         <button id="header-settings-btn"
                             class="hover:bg-white/40 text-white h-7 w-7 rounded-full bubbly-button transition-colors duration-300 flex items-center justify-center border border-white/30 sm:h-8 sm:w-8"
                             title="Settings" aria-label="Settings">
-                            <i class="fas fa-cog text-xs"></i>
+                            <i class="fas fa-cog"></i>
                         </button>
                         <button id="logout-btn"
                             class="bg-red-500/80 hover:bg-red-500 text-white h-7 w-7 rounded-full bubbly-button flex items-center justify-center border border-white/30 sm:h-8 sm:w-8"
                             title="Logout" aria-label="Logout">
-                            <i class="fas fa-sign-out-alt text-xs"></i>
+                            <i class="fas fa-sign-out-alt"></i>
                         </button>
                     </div>
-                    <div id="current-time" class="text-xl font-bold leading-none text-white sm:text-3xl md:text-4xl"></div>
+                    <div id="current-time" class="text-xl font-bold leading-none text-white sm:text-3xl md:text-4xl" data-text=""></div>
                 </div>
             </div>
         </header>

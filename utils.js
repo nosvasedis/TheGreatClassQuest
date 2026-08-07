@@ -189,30 +189,16 @@ export function updateDateTime() {
     }
 
     if (dateEl && timeEl) {
-        // 3. FIX: Better Random Color Variance for Glow
-        // We use Day + Hour + Minute to ensure it shifts, but stays consistent for a minute
-        const uniqueTimeSeed = now.getDate() + now.getHours() + (now.getMinutes() * 13);
-        const hue = (uniqueTimeSeed * 137.508) % 360;
-
-        let textShadowStyle;
-
-        if (isNight) {
-            // Night: Higher saturation, slightly darker glow
-            const color = `hsl(${hue}, 80%, 60%)`;
-            textShadowStyle = `0 2px 4px rgba(0,0,0,0.8), 0 0 15px ${color}, 0 0 30px ${color}`;
-        } else {
-            // Day: High brightness
-            const color = `hsl(${hue}, 90%, 50%)`;
-            textShadowStyle = `0 2px 4px rgba(0,0,0,0.3), 0 0 10px ${color}, 0 0 20px ${color}`;
-        }
-
-        dateEl.style.textShadow = textShadowStyle;
-        timeEl.style.textShadow = textShadowStyle;
-        dateEl.style.color = "#ffffff";
-        timeEl.style.color = "#ffffff";
-
-        dateEl.innerText = now.toLocaleDateString('en-GB', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
-        timeEl.innerText = now.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
+        const dateText = now.toLocaleDateString('en-GB', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
+        const timeText = now.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
+        // data-text drives the ::before face (same SVG carve as the title).
+        // Outer depth/halo come from CSS — no colored illumination.
+        dateEl.style.removeProperty('text-shadow');
+        timeEl.style.removeProperty('text-shadow');
+        dateEl.dataset.text = dateText;
+        timeEl.dataset.text = timeText;
+        dateEl.textContent = dateText;
+        timeEl.textContent = timeText;
     }
 
     // 4. Force Wallpaper Re-Check (updates weather visuals in night mode)

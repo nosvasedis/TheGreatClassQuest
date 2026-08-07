@@ -176,7 +176,10 @@ async function main() {
   console.log('1. Open Render → your billing service → Environment.');
   console.log('2. Set BILLING_SCHOOLS_JSON to the contents of billing/render-paste.txt (one line).');
   console.log('3. Send the Secretary activation link through a private channel.');
-  console.log('4. Deploy your app (e.g. Netlify) with:');
+  console.log('4. Deploy Cloud Functions to this school project (Family Access + leave-school purge):');
+  console.log('   node node_modules/firebase-tools/lib/bin/firebase.js deploy --only functions --project ' + projectId);
+  console.log('   Prefer the onboarding console “Parent Access + Secretary ready” target so Functions, Scheduler, and health checks are verified automatically.');
+  console.log('5. Deploy your app (e.g. Netlify) with:');
   console.log('   BILLING_BASE_URL = your Render billing URL');
   console.log('   BILLING_SCHOOL_ID = ' + projectId);
   console.log('');

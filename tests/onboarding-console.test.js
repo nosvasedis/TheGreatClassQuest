@@ -13,6 +13,8 @@ const {
   buildServiceUsageConsumerName,
   normalizeReadinessTarget,
   getRequiredServices,
+  getRequiredFunctionNames,
+  describeReadinessTarget,
   compareRequiredIndexes,
   loadRequiredIndexes,
   getActiveYearQueryIndexes,
@@ -340,14 +342,27 @@ test('formatHostedEnvironmentVariables matches the Netlify env format', () => {
   assert.match(text, /GCQ_CERTIFICATE_IMAGE_PROXY_URL=https:\/\/great-class-quest-storage-proxy\.nvasedis-cc5\.workers\.dev/);
 });
 
-test('admin readiness target enables storage and functions services', () => {
+test('admin readiness target enables storage, functions, and scheduler services', () => {
   assert.equal(normalizeReadinessTarget('admin'), 'admin');
   assert.equal(normalizeReadinessTarget('elite'), 'pro');
 
-  const services = getRequiredServices('admin');
-  assert.ok(services.includes('firebasestorage.googleapis.com'));
-  assert.ok(services.includes('cloudfunctions.googleapis.com'));
-  assert.ok(services.includes('run.googleapis.com'));
+  const adminServices = getRequiredServices('admin');
+  assert.ok(adminServices.includes('firebasestorage.googleapis.com'));
+  assert.ok(adminServices.includes('cloudfunctions.googleapis.com'));
+  assert.ok(adminServices.includes('run.googleapis.com'));
+  assert.ok(adminServices.includes('cloudscheduler.googleapis.com'));
+
+  const proServices = getRequiredServices('pro');
+  assert.ok(proServices.includes('cloudfunctions.googleapis.com'));
+  assert.ok(!proServices.includes('cloudscheduler.googleapis.com'));
+
+  assert.ok(getRequiredFunctionNames('pro').includes('createParentAccess'));
+  assert.ok(getRequiredFunctionNames('pro').includes('purgeStudent'));
+  assert.ok(getRequiredFunctionNames('admin').includes('purgeLeftSchoolStudents'));
+  assert.ok(getRequiredFunctionNames('admin').includes('markStudentLeftSchool'));
+  assert.ok(getRequiredFunctionNames('admin').includes('activateSecretaryAdmin'));
+  assert.equal(describeReadinessTarget('pro'), 'Pro ready (Storage + Parent Access)');
+  assert.equal(describeReadinessTarget('admin'), 'Parent Access + Secretary ready');
 });
 
 test('buildHostingTargets provides provider-specific instructions with shared env text', () => {

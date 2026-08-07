@@ -106,37 +106,130 @@ body {
     animation: hover-pulse 0.8s ease-in-out;
 }
 
-/* --- DATE & TIME GLOW EFFECTS --- */
-
-/* Base Text Style (Always White) */
+/* Date/time — identical face treatment to #main-app-title (same depth +
+   soft white halo, same hard rim, same SVG inner carve). No colored
+   illumination — JS only updates the text. */
 #current-date, #current-time {
-    color: #ffffff !important;
-    transition: text-shadow 2s ease-in-out;
+    position: relative;
+    color: transparent !important;
+    -webkit-text-fill-color: transparent;
+    text-shadow: 0 4px 6px rgba(0, 0, 0, 0.6), 0 0 20px rgba(255, 255, 255, 0.8) !important;
+    -webkit-text-stroke: 0;
 }
 
-/* --- DEPTH SHADOW & GLOW EFFECTS (No Outline) --- */
-
-#current-date, #current-time {
-    color: #ffffff !important;
-    transition: text-shadow 1s ease-in-out;
-    /* Inner stroke identical to the app title: default paint order (fill
-       first, stroke on top) so the dark edge sits INSIDE the white
-       letters — carved 3D inner rim. Shadows/glows above are untouched. */
-    -webkit-text-stroke: 0.75px rgba(0, 0, 0, 0.55);
+#current-date::before,
+#current-time::before {
+    content: attr(data-text);
+    position: absolute;
+    inset: 0;
+    color: #fff !important;
+    -webkit-text-fill-color: #fff;
+    text-align: inherit;
+    word-spacing: inherit;
+    letter-spacing: inherit;
+    text-shadow: none !important;
+    -webkit-text-stroke: 0.65px rgba(0, 0, 0, 0.38);
+    filter: url(#gcq-inner-soft-stroke);
+    pointer-events: none;
+    user-select: none;
 }
 
-/* Header quote, class-picker label, and chrome button icons — same inner
-   carved stroke technique as #main-app-title, but hairline-thin so small
-   type/icons keep their fill. Scoped to text/icons only (no emoji). */
+/* Header quote + class-picker label — lighter soft INNER carve */
 #header-quote-text,
 #header-class-selector-text,
-#header-class-selector-btn > .fa-chevron-down,
+#header-class-selector-btn > .fa-chevron-down {
+    -webkit-text-stroke: 0;
+    filter: url(#gcq-inner-soft-stroke-sm);
+}
+
+/* Header chrome cluster — one optical size so class pill + icons feel uniform */
+#header-class-selector-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.35rem;
+    line-height: 1;
+}
+
+#header-class-selector-logo {
+    font-size: 0.95rem;
+    line-height: 1;
+    width: 1.05em;
+    height: 1.05em;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+#header-class-selector-text {
+    font-size: 0.75rem;
+    line-height: 1;
+    display: inline-flex;
+    align-items: center;
+}
+
+#header-class-selector-btn > .fa-chevron-down {
+    font-size: 0.55rem;
+    line-height: 1;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+#app-info-btn,
+#projector-mode-btn,
+#secretary-console-btn,
+#header-settings-btn,
+#logout-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    line-height: 1;
+}
+
+/* Shared icon face — same SVG carve as title/clock, matched weight */
 #app-info-btn i,
 #projector-mode-btn i,
 #secretary-console-btn i,
 #header-settings-btn i,
 #logout-btn i {
-    -webkit-text-stroke: 0.4px rgba(0, 0, 0, 0.55);
+    font-size: 0.9rem;
+    line-height: 1;
+    width: 1em;
+    height: 1em;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    -webkit-text-stroke: 1.15px currentColor;
+    paint-order: stroke fill;
+    filter: url(#gcq-inner-soft-stroke);
+}
+
+/* Optical-only tweaks (same box size — stroke only) for spindly glyphs */
+#app-info-btn i {
+    -webkit-text-stroke: 1.35px currentColor;
+}
+
+#projector-mode-btn i {
+    -webkit-text-stroke: 1.25px currentColor;
+}
+
+@media (min-width: 640px) {
+    #header-class-selector-logo {
+        font-size: 1.05rem;
+    }
+
+    #header-class-selector-text {
+        font-size: 0.8rem;
+    }
+
+    #app-info-btn i,
+    #projector-mode-btn i,
+    #secretary-console-btn i,
+    #header-settings-btn i,
+    #logout-btn i {
+        font-size: 0.95rem;
+    }
 }
 
 /* Generic Animations */

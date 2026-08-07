@@ -127,15 +127,19 @@ body.gcq-mobile .m-guild-stage__track {
     min-width: 0 !important;
     max-width: 100% !important;
     overflow-x: auto !important;
-    overflow-y: visible !important;
+    overflow-y: hidden !important;
     scroll-snap-type: x mandatory;
     scroll-padding-inline: var(--m-guild-side);
     scroll-behavior: auto;
     -webkit-overflow-scrolling: touch;
-    touch-action: pan-x;
+    /* pan-x alone ate vertical gestures so the page couldn't scroll.
+       pan-x pan-y + overflow-y:hidden lets horizontal snap work while
+       vertical pans chain up to #app-screen main. */
+    touch-action: pan-x pan-y;
     padding: 0.85rem var(--m-guild-side) 1.1rem !important;
     scrollbar-width: none;
     overscroll-behavior-x: contain;
+    overscroll-behavior-y: auto;
 }
 
 body.gcq-mobile .guild-crystal-arena::-webkit-scrollbar {

@@ -1,0 +1,333 @@
+/* Mobile Quest Calendar — single-day agenda (body.gcq-mobile) */
+
+body.gcq-mobile #calendar-grid {
+    display: none !important;
+}
+
+body.gcq-mobile #m-calendar-day {
+    display: block;
+}
+
+body.gcq-mobile #m-calendar-day[hidden] {
+    display: none !important;
+}
+
+body.gcq-mobile .m-calendar-hero {
+    margin-bottom: 0.85rem !important;
+}
+
+body.gcq-mobile .m-calendar-hero .floating-icon {
+    font-size: 2.35rem !important;
+}
+
+body.gcq-mobile .m-calendar-hero__sub {
+    font-size: 0.9rem !important;
+    max-width: 18rem;
+    margin-left: auto;
+    margin-right: auto;
+    color: #64748b !important;
+}
+
+body.gcq-mobile .m-calendar-nav {
+    margin-bottom: 0.85rem !important;
+    padding: 0.65rem 0.7rem !important;
+    gap: 0.35rem;
+    border-radius: 1.35rem !important;
+    background:
+        linear-gradient(145deg, rgba(255, 255, 255, 0.92), rgba(224, 242, 254, 0.78)) !important;
+    border: 1px solid rgba(125, 211, 252, 0.45);
+    box-shadow: 0 12px 28px -16px rgba(14, 116, 144, 0.35) !important;
+}
+
+body.gcq-mobile .m-calendar-nav #prev-month-btn,
+body.gcq-mobile .m-calendar-nav #next-month-btn {
+    width: 2.85rem !important;
+    height: 2.85rem !important;
+    min-height: 2.85rem !important;
+    flex-shrink: 0;
+    border-radius: 1rem !important;
+    background: linear-gradient(145deg, #38bdf8, #0284c7) !important;
+    box-shadow: 0 8px 16px -10px rgba(2, 132, 199, 0.7);
+}
+
+body.gcq-mobile .m-calendar-nav__center {
+    flex: 1;
+}
+
+body.gcq-mobile #calendar-month-year {
+    font-size: 1.05rem !important;
+    line-height: 1.25 !important;
+    color: #0c4a6e !important;
+}
+
+body.gcq-mobile .m-calendar-today-chip {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    margin-top: 0.25rem;
+    padding: 0.15rem 0.55rem;
+    border-radius: 999px;
+    font-size: 0.68rem;
+    font-weight: 800;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: #0369a1;
+    background: rgba(56, 189, 248, 0.2);
+    border: 1px solid rgba(14, 165, 233, 0.28);
+}
+
+body.gcq-mobile .m-calendar-today-chip.hidden {
+    display: none !important;
+}
+
+body.gcq-mobile .m-cal-day-card {
+    display: flex;
+    flex-direction: column;
+    gap: 0.85rem;
+    padding: 1rem 0.95rem 1.15rem;
+    border-radius: 1.45rem;
+    background:
+        radial-gradient(ellipse at 20% 0%, rgba(125, 211, 252, 0.28), transparent 55%),
+        radial-gradient(ellipse at 90% 10%, rgba(253, 224, 71, 0.18), transparent 45%),
+        rgba(255, 255, 255, 0.88);
+    border: 1px solid rgba(255, 255, 255, 0.9);
+    box-shadow:
+        0 18px 36px -20px rgba(15, 40, 90, 0.35),
+        inset 0 1px 0 rgba(255, 255, 255, 0.9);
+}
+
+body.gcq-mobile .m-cal-banner {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.85rem 0.95rem;
+    border-radius: 1.15rem;
+    background: linear-gradient(135deg, #fff1f2, #ffe4e6);
+    border: 1px solid rgba(251, 113, 133, 0.28);
+}
+
+body.gcq-mobile .m-cal-banner__icon {
+    font-size: 1.65rem;
+    line-height: 1;
+}
+
+body.gcq-mobile .m-cal-banner__label {
+    margin: 0;
+    font-family: 'Fredoka One', cursive;
+    font-size: 1.05rem;
+    color: #9f1239;
+}
+
+body.gcq-mobile .m-cal-banner__hint {
+    margin: 0.1rem 0 0;
+    font-size: 0.78rem;
+    color: #be123c;
+    opacity: 0.85;
+}
+
+body.gcq-mobile .m-cal-section__title {
+    margin: 0 0 0.45rem;
+    font-size: 0.72rem !important;
+    font-weight: 800;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: #64748b !important;
+}
+
+body.gcq-mobile .m-cal-section__body {
+    display: flex;
+    flex-direction: column;
+    gap: 0.55rem;
+}
+
+body.gcq-mobile .m-cal-lesson {
+    position: relative;
+    padding: 0.75rem 0.85rem;
+    border-radius: 1rem;
+    box-shadow: 0 8px 18px -14px rgba(15, 23, 42, 0.35);
+}
+
+body.gcq-mobile .m-cal-lesson__meta {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+    margin-bottom: 0.2rem;
+}
+
+body.gcq-mobile .m-cal-lesson__time {
+    font-size: 0.72rem;
+    font-weight: 800;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    opacity: 0.7;
+}
+
+body.gcq-mobile .m-cal-lesson__test {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.12rem 0.45rem;
+    border-radius: 0.55rem;
+    font-size: 0.65rem;
+    font-weight: 900;
+    letter-spacing: 0.04em;
+    color: #fff;
+    background: #e11d48;
+    box-shadow: 0 4px 10px -4px rgba(225, 29, 72, 0.7);
+}
+
+body.gcq-mobile .m-cal-lesson__name {
+    margin: 0;
+    font-size: 1rem;
+    font-weight: 800;
+    line-height: 1.25;
+}
+
+body.gcq-mobile .m-cal-event {
+    display: flex;
+    align-items: center;
+    gap: 0.7rem;
+    padding: 0.75rem 0.8rem;
+    border-radius: 1rem;
+    color: #fff;
+    background: linear-gradient(120deg, #c026d3 0%, #4f46e5 100%);
+    box-shadow: 0 12px 22px -14px rgba(79, 70, 229, 0.65);
+}
+
+body.gcq-mobile .m-cal-event__icon {
+    flex-shrink: 0;
+    padding: 0.25rem 0.45rem;
+    border-radius: 0.55rem;
+    font-size: 0.72rem;
+    font-weight: 800;
+    background: rgba(255, 255, 255, 0.22);
+}
+
+body.gcq-mobile .m-cal-event__body {
+    flex: 1;
+    min-width: 0;
+}
+
+body.gcq-mobile .m-cal-event__title {
+    margin: 0;
+    font-family: 'Fredoka One', cursive;
+    font-size: 0.95rem;
+    line-height: 1.2;
+}
+
+body.gcq-mobile .m-cal-event__type {
+    margin: 0.15rem 0 0;
+    font-size: 0.72rem;
+    opacity: 0.85;
+}
+
+body.gcq-mobile .m-cal-event__delete {
+    flex-shrink: 0;
+    width: 1.85rem;
+    height: 1.85rem;
+    border: none;
+    border-radius: 999px;
+    color: #fff;
+    background: rgba(255, 255, 255, 0.18);
+    cursor: pointer;
+}
+
+body.gcq-mobile .m-cal-stars {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.45rem;
+    padding: 0.7rem 0.85rem;
+    border-radius: 1rem;
+    font-size: 0.92rem;
+    color: #b45309;
+    background: linear-gradient(135deg, #fffbeb, #fef3c7);
+    border: 1px solid rgba(251, 191, 36, 0.35);
+}
+
+body.gcq-mobile .m-cal-stars i {
+    color: #f59e0b;
+}
+
+body.gcq-mobile .m-cal-empty,
+body.gcq-mobile .m-cal-empty-state {
+    margin: 0;
+    text-align: center;
+    color: #64748b;
+    font-size: 0.9rem;
+}
+
+body.gcq-mobile .m-cal-empty-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 1.25rem 0.75rem;
+}
+
+body.gcq-mobile .m-cal-empty-state span {
+    font-size: 1.75rem;
+}
+
+body.gcq-mobile .m-cal-actions {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.55rem;
+    margin-top: 0.15rem;
+}
+
+body.gcq-mobile .m-cal-action {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.4rem;
+    min-height: 2.85rem;
+    padding: 0.55rem 0.7rem;
+    border: none;
+    border-radius: 1rem;
+    font-weight: 800;
+    font-size: 0.88rem;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+}
+
+body.gcq-mobile .m-cal-action--plan {
+    color: #fff;
+    background: linear-gradient(145deg, #38bdf8, #0284c7);
+    box-shadow: 0 10px 20px -12px rgba(2, 132, 199, 0.75);
+}
+
+body.gcq-mobile .m-cal-action--log {
+    color: #92400e;
+    background: linear-gradient(145deg, #fde68a, #fbbf24);
+    box-shadow: 0 10px 20px -12px rgba(217, 119, 6, 0.55);
+}
+
+body.gcq-mobile .m-cal-action:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+    box-shadow: none;
+}
+
+body.gcq-mobile .m-cal-loading {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.55rem;
+    min-height: 10rem;
+    color: #0369a1;
+    font-weight: 700;
+}
+
+body.gcq-mobile .m-cal-loading i {
+    font-size: 1.6rem;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    body.gcq-mobile .m-cal-action,
+    body.gcq-mobile .m-calendar-nav #prev-month-btn,
+    body.gcq-mobile .m-calendar-nav #next-month-btn {
+        transition: none !important;
+    }
+}

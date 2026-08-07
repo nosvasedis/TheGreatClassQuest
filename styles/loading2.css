@@ -13,22 +13,19 @@
     z-index: 9;
     pointer-events: none;
 
-    /* Bloom start: invisible, tiny, blurry */
+    /* Bloom start: invisible + tiny (no blur — filter interpolation flickers on Android) */
     opacity: 0;
     transform: translate(-50%, -50%) scale(0.06);
     transform-origin: center center;
-    filter: blur(10px);
 
     transition:
         opacity 0.6s ease,
-        transform 0.95s cubic-bezier(0.34, 1.56, 0.64, 1),
-        filter 0.85s ease;
+        transform 0.95s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
 .loading-greeting.loading-greeting-visible {
     opacity: 1;
     transform: translate(-50%, -50%) scale(1);
-    filter: blur(0);
 }
 
 #loading-greeting-text {
@@ -88,7 +85,6 @@
 /* Last-second reveal pulse right before screen exits */
 .loading-final-moment .loading-stage {
     transform: translateY(-12px) scale(1.035);
-    filter: drop-shadow(0 18px 34px rgba(14, 116, 144, 0.22));
     transition: transform 220ms cubic-bezier(0.25, 0.88, 0.32, 1);
 }
 
@@ -103,7 +99,6 @@
 .loading-final-moment .loading-spinner-wrap {
     opacity: 0;
     transform: scale(0.68);
-    filter: blur(4px);
     transition: opacity 300ms cubic-bezier(0.25, 0.88, 0.32, 1), transform 300ms cubic-bezier(0.25, 0.88, 0.32, 1);
 }
 
@@ -453,8 +448,9 @@
 .fw-5 { top: 78%; left: 18%; --fw: #6ee7b7; --fwdelay: 1150ms; }
 .fw-6 { top: 74%; left: 79%; --fw: #fdba74; --fwdelay: 750ms; }
 
-/* Constrained hardware still gets the pyrotechnics — it's a one-shot, few-
-   second finale — just without the glow filter, the only paint-heavy part. */
+/* Constrained / mobile hardware: skip fireworks entirely — multi-point
+   box-shadow rings are the main Android flicker source in the finale. */
+#loading-screen.gcq-perf-low .loading-fireworks,
 #loading-screen.gcq-perf-low .loading-firework {
-    filter: none;
+    display: none;
 }

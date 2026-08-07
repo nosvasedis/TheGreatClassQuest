@@ -47,6 +47,9 @@
 /* 10. Particles, screen-flash, shockwave, spark-fly, award effects */
 @import url('./styles/effects.css');
 
+/* 10b. Sky Theater — header date/time flybys & cameos */
+@import url('./styles/sky_theater.css');
+
 /* 11. Student leaderboard card float, absence styles, welcome-back-btn */
 @import url('./styles/leaderboard.css');
 

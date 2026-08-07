@@ -164,16 +164,17 @@
         border-radius: 1rem;
     }
 
-    /* 16px+ prevents iOS focus zoom */
+    /* 16px+ prevents iOS focus zoom.
+       Keep horizontal padding at 0 — the wrap is flex with an in-flow icon,
+       so extra left padding pushed the caret far past the emoji. */
     #auth-screen .auth-field-input {
         font-size: 1rem;
-        padding: 0.75rem 0.9rem 0.75rem 2.55rem;
+        padding: 0.75rem 0;
         min-height: 3rem;
     }
 
     #auth-screen .auth-field-icon {
         font-size: 0.9rem;
-        left: 0.9rem;
     }
 
     #auth-screen .auth-submit-btn {
@@ -330,9 +331,27 @@
         opacity: 0.55;
     }
 
+    /* Android-safe finale: no fireworks / stardust / backdrop blur fighting the GPU */
+    #loading-screen .loading-fireworks,
+    #loading-screen .loading-stardust {
+        display: none !important;
+    }
+
+    #loading-screen.loading-final-moment .loading-stage,
+    #loading-screen.loading-final-moment .loading-spinner-wrap,
+    #loading-screen.loading-final-moment .loading-sun,
+    #loading-screen.loading-final-moment .loading-clouds,
+    #loading-screen.loading-final-moment .loading-cloud-art-layer {
+        filter: none !important;
+    }
+
+    #loading-screen #loading-tip {
+        backdrop-filter: none;
+        -webkit-backdrop-filter: none;
+    }
+
     @media (max-height: 640px) {
-        #loading-screen .loading-journey-icons,
-        #loading-screen .loading-fireworks {
+        #loading-screen .loading-journey-icons {
             display: none;
         }
 

@@ -62,7 +62,7 @@
 .loading-clouds {
     z-index: 1;
     opacity: 1;
-    /* Only transition compositor-friendly props; blur/glow apply instantly in .loading-final-moment (no filter interpolation = smooth sun reveal). */
+    /* Only transition compositor-friendly props in the finale (opacity/transform). */
     transition: opacity 480ms cubic-bezier(0.25, 0.88, 0.32, 1), transform 480ms cubic-bezier(0.25, 0.88, 0.32, 1);
 }
 
@@ -148,7 +148,6 @@
 #loading-screen.loading-final-moment .loading-clouds,
 #loading-screen.loading-final-moment .loading-cloud-art-layer {
     opacity: 0;
-    filter: blur(3px);
     transform: scale(1.04);
 }
 
@@ -640,6 +639,29 @@
 
 #loading-screen.gcq-perf-low .loading-burst {
     display: none;
+}
+
+/* Final-moment: drop paint-heavy filters that flicker on Android GPUs */
+#loading-screen.gcq-perf-low.loading-final-moment .loading-clouds,
+#loading-screen.gcq-perf-low.loading-final-moment .loading-cloud-art-layer {
+    filter: none;
+}
+
+#loading-screen.gcq-perf-low.loading-final-moment .loading-sun {
+    filter: none;
+}
+
+#loading-screen.gcq-perf-low.loading-final-moment .loading-stage {
+    filter: none;
+}
+
+#loading-screen.gcq-perf-low.loading-final-moment .loading-spinner-wrap {
+    filter: none;
+}
+
+#loading-screen.gcq-perf-low .loading-greeting {
+    filter: none;
+    transition: opacity 0.55s ease, transform 0.85s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
 @media (max-width: 640px) {

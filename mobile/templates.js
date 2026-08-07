@@ -6,7 +6,8 @@ const HEADER_CLOUDS = `
         <i class="fas fa-cloud cloud" style="left: 8%; animation-delay: -5s; font-size: 5rem;"></i>
         <i class="fas fa-cloud cloud cloud-fast" style="left: 55%; animation-delay: -15s; font-size: 3.5rem;"></i>
         <i class="fas fa-cloud cloud" style="left: 78%; animation-delay: -2s; font-size: 6rem;"></i>
-    </div>`;
+    </div>
+    <div class="sky-theater-sky m-sky-theater-sky" aria-hidden="true"></div>`;
 
 const HEADER_ACTION_BTN = (id, icon, label, extraClass = '') => `
     <button type="button" id="${id}" class="m-header-btn m-header-btn--mini m-pressable bubbly-button ${extraClass}" title="${label}" aria-label="${label}">
@@ -19,7 +20,7 @@ const teacherHeaderHTML = `
         <div class="m-header__row m-header__row--primary">
             <div class="m-header__brand m-header__brand--pressable" id="m-teacher-brand">
                 <img class="m-header__logo" src="${APP_LOGO_URL}" alt="" width="44" height="44" decoding="async" />
-                <h1 class="m-header__title font-title">The Great Class Quest</h1>
+                <h1 class="m-header__title font-title" data-text="The Great Class Quest">The Great Class Quest</h1>
                 <div class="m-header__brand-sparkle" aria-hidden="true">
                     <span class="m-header__sparkle-star m-hss-1">✨</span>
                     <span class="m-header__sparkle-star m-hss-2">⭐</span>
@@ -35,8 +36,9 @@ const teacherHeaderHTML = `
             </button>
 
             <div class="m-header__clock m-header__clock--center" aria-live="polite">
-                <span id="m-current-time" class="m-header__time">--:--</span>
-                <span id="m-current-date" class="m-header__date">Loading…</span>
+                <div class="sky-theater-cameo m-sky-theater-cameo" aria-hidden="true"></div>
+                <span id="m-current-time" class="m-header__time" data-text="--:--">--:--</span>
+                <span id="m-current-date" class="m-header__date" data-text="Loading…">Loading…</span>
             </div>
 
             <div class="m-header__actions">
@@ -155,7 +157,7 @@ const roleHeaderHTML = (role, markIcon, eyebrow, titleId, subtitleId, actions) =
                 <img class="m-header__logo" src="${APP_LOGO_URL}" alt="" width="40" height="40" decoding="async" />
                 <div class="m-header__copy">
                     <p class="m-header__eyebrow">${eyebrow}</p>
-                    <h1 id="${titleId}" class="m-header__title font-title">Loading…</h1>
+                    <h1 id="${titleId}" class="m-header__title font-title" data-text="Loading…">Loading…</h1>
                     <p id="${subtitleId}" class="m-header__subtitle"></p>
                 </div>
                 <div class="m-header__brand-sparkle" aria-hidden="true">

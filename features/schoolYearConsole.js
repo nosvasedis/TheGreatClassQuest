@@ -254,6 +254,7 @@ function renderPlacementSection({ pendingStudents, activeClasses }) {
                             <span>Guild: ${escapeHtml(student.guildId || 'No guild yet')}</span>
                         </div>
                         <button type="button" class="secretary-chip-btn secretary-chip-btn--rose" data-school-year-left="${escapeHtml(student.id)}">Mark left school</button>
+                        <p class="school-year-student-meta mt-2 text-xs text-slate-500">Turns off parent access now. Removes this student from the app after 30 days.</p>
                     </article>
                 `).join('')}
             </div>
@@ -569,7 +570,7 @@ async function runMarkStudentLeft(button, studentId) {
     try {
         setBusyState(button, true, 'Marking left...');
         await markStudentLeftSchool({ studentId });
-        showToast('Student marked as left school. Their archive stays safe.', 'success');
+        showToast('Student marked as left school. Parent access is turned off now. Their data is removed from the app after 30 days.', 'success');
         onSchoolYearConsoleRerender?.();
     } catch (error) {
         console.error('Could not mark student left:', error);

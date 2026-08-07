@@ -1,6 +1,7 @@
 const { getApp, initializeApp } = require('firebase-admin/app');
 const { getAuth } = require('firebase-admin/auth');
-const { FieldValue, getFirestore } = require('firebase-admin/firestore');
+const { FieldValue, Timestamp, getFirestore } = require('firebase-admin/firestore');
+const { getStorage } = require('firebase-admin/storage');
 const crypto = require('node:crypto');
 const functionsV1 = require('firebase-functions/v1');
 const { HttpsError } = require('firebase-functions/v1/https');
@@ -9,7 +10,10 @@ initializeApp();
 
 const db = getFirestore();
 const auth = getAuth();
+const storage = getStorage();
 const FUNCTIONS_REGION = process.env.GCQ_FIREBASE_FUNCTIONS_REGION || 'europe-west1';
+const LEFT_SCHOOL_PURGE_DAYS = 30;
+const MS_PER_DAY = 24 * 60 * 60 * 1000;
 
 const PUBLIC_DATA_PATH = 'artifacts/great-class-quest/public/data';
 const PROFILE_COLLECTION = 'user_profiles';
@@ -188,6 +192,164 @@ async function requireClassManager(request, classId) {
 async function getParentLink(studentId) {
   const snap = await db.doc(`${PUBLIC_DATA_PATH}/parent_links/${studentId}`).get();
   return snap.exists ? { id: snap.id, ...snap.data() } : null;
+}
+
+function buildPurgeAfterAt(fromMs = Date.now()) {
+  return Timestamp.fromMillis(fromMs + (LEFT_SCHOOL_PURGE_DAYS * MS_PER_DAY));
+}
+
+async function disableParentAccessForStudent(studentId) {
+  const link = await getParentLink(studentId);
+  if (!link) return { disabled: false };
+  if (link.parentUid) {
+    try {
+      await auth.updateUser(link.parentUid, { disabled: true });
+    } catch (error) {
+      if (String(error?.code || '') !== 'auth/user-not-found') throw error;
+    }
+    await db.collection(PROFILE_COLLECTION).doc(link.parentUid).set({ status: 'disabled' }, { merge: true });
+  }
+  await db.doc(`${PUBLIC_DATA_PATH}/parent_links/${studentId}`).set({
+    status: 'disabled',
+    updatedAt: FieldValue.serverTimestamp()
+  }, { merge: true });
+  return { disabled: true };
+}
+
+async function deleteCollectionDocsByStudentId(collectionName, studentId) {
+  const snap = await db.collection(`${PUBLIC_DATA_PATH}/${collectionName}`)
+    .where('studentId', '==', studentId)
+    .get();
+  if (snap.empty) return 0;
+  await commitBatchChunks(snap.docs.map((docSnap) => ({ ref: docSnap.ref })), 'delete');
+  return snap.size;
+}
+
+async function deleteSubcollection(parentRef, subcollectionName) {
+  const snap = await parentRef.collection(subcollectionName).get();
+  if (snap.empty) return 0;
+  await commitBatchChunks(snap.docs.map((docSnap) => ({ ref: docSnap.ref })), 'delete');
+  return snap.size;
+}
+
+async function scrubStudentFromGuildArchives(studentId) {
+  const [liveGuilds, yearGuilds] = await Promise.all([
+    db.collection(`${PUBLIC_DATA_PATH}/guild_scores`).get(),
+    db.collection(`${PUBLIC_DATA_PATH}/guild_year_snapshots`).get()
+  ]);
+  const writes = [];
+  [...liveGuilds.docs, ...yearGuilds.docs].forEach((docSnap) => {
+    const data = docSnap.data() || {};
+    const memberIds = Array.isArray(data.memberIds) ? data.memberIds : null;
+    if (!memberIds || !memberIds.includes(studentId)) return;
+    const nextIds = memberIds.filter((id) => id !== studentId);
+    writes.push({
+      ref: docSnap.ref,
+      payload: {
+        memberIds: nextIds,
+        memberCount: nextIds.length,
+        updatedAt: FieldValue.serverTimestamp()
+      }
+    });
+  });
+  if (writes.length) await commitBatchChunks(writes);
+  return writes.length;
+}
+
+async function deleteStudentStorageFiles(studentId) {
+  if (!studentId) return;
+  const bucket = storage.bucket();
+  const prefixes = [`avatars/${studentId}/`, `familiars/${studentId}/`];
+  await Promise.all(prefixes.map(async (prefix) => {
+    try {
+      await bucket.deleteFiles({ prefix, force: true });
+    } catch (error) {
+      console.warn(`Storage cleanup skipped for ${prefix}:`, error?.message || error);
+    }
+  }));
+}
+
+async function syncStudentThreadParticipants(studentId, { addUid = null, removeUid = null, keepUids = [] } = {}) {
+  const snap = await db.collection(`${PUBLIC_DATA_PATH}/communication_threads`)
+    .where('studentId', '==', studentId)
+    .get();
+  if (snap.empty) return 0;
+  const writes = [];
+  snap.docs.forEach((docSnap) => {
+    const data = docSnap.data() || {};
+    let uids = Array.isArray(data.participantUids) ? data.participantUids.filter(Boolean) : [];
+    if (removeUid) uids = uids.filter((uid) => uid !== removeUid);
+    if (addUid) uids.push(addUid);
+    keepUids.forEach((uid) => {
+      if (uid) uids.push(uid);
+    });
+    uids = Array.from(new Set(uids));
+    let roles = Array.isArray(data.participantRoles) ? data.participantRoles.filter(Boolean) : [];
+    if (addUid && !roles.includes('teacher')) roles.push('teacher');
+    if (!roles.includes('parent') && keepUids.length) roles.push('parent');
+    roles = Array.from(new Set(roles));
+    writes.push({
+      ref: docSnap.ref,
+      payload: {
+        participantUids: uids,
+        participantRoles: roles,
+        updatedAt: FieldValue.serverTimestamp()
+      }
+    });
+  });
+  await commitBatchChunks(writes);
+  return writes.length;
+}
+
+async function purgeStudentData(studentId) {
+  const id = String(studentId || '').trim();
+  if (!id) return { ok: false, reason: 'missing-student-id' };
+
+  const link = await getParentLink(id);
+  const parentUid = link?.parentUid || null;
+  if (parentUid) {
+    await deleteAuthUserIfExists(parentUid);
+    try {
+      await db.collection(PROFILE_COLLECTION).doc(parentUid).delete();
+    } catch (error) {
+      console.warn(`Could not delete parent profile ${parentUid}:`, error?.message || error);
+    }
+  }
+
+  const studentKeyedCollections = [
+    'parent_homework',
+    'communication_threads',
+    'communication_messages',
+    'award_log',
+    'adventure_logs',
+    'attendance',
+    'written_scores',
+    'hero_chronicle_notes',
+    'today_stars',
+    'student_year_enrollments',
+    'student_year_snapshots',
+    'quest_assignments',
+    'quest_events'
+  ];
+  for (const collectionName of studentKeyedCollections) {
+    await deleteCollectionDocsByStudentId(collectionName, id);
+  }
+
+  const scoreRef = db.doc(`${PUBLIC_DATA_PATH}/student_scores/${id}`);
+  await deleteSubcollection(scoreRef, 'monthly_history');
+
+  const directDeletes = [
+    db.doc(`${PUBLIC_DATA_PATH}/parent_links/${id}`),
+    db.doc(`${PUBLIC_DATA_PATH}/parent_snapshots/${id}`),
+    scoreRef,
+    db.doc(`${PUBLIC_DATA_PATH}/students/${id}`)
+  ];
+  await commitBatchChunks(directDeletes.map((ref) => ({ ref })), 'delete');
+
+  await scrubStudentFromGuildArchives(id);
+  await deleteStudentStorageFiles(id);
+
+  return { ok: true, studentId: id, parentUid };
 }
 
 async function getUserByEmail(email) {
@@ -771,12 +933,7 @@ exports.disableParentAccess = callable(async (request) => {
   const studentId = String(request.data?.studentId || '').trim();
   if (!studentId) throw new HttpsError('invalid-argument', 'Student is required.');
   await requireStudentManager(request, studentId);
-  const link = await getParentLink(studentId);
-  if (link?.parentUid) {
-    await auth.updateUser(link.parentUid, { disabled: true });
-    await db.collection(PROFILE_COLLECTION).doc(link.parentUid).set({ status: 'disabled' }, { merge: true });
-  }
-  await db.doc(`${PUBLIC_DATA_PATH}/parent_links/${studentId}`).set({ status: 'disabled' }, { merge: true });
+  await disableParentAccessForStudent(studentId);
   return { ok: true };
 });
 
@@ -1673,6 +1830,7 @@ exports.allocateReturningStudents = callable(async (request) => {
   const owner = classData.createdBy || null;
 
   const writes = [];
+  const placementMeta = [];
   for (const studentId of studentIds) {
     const studentSnap = await db.doc(`${PUBLIC_DATA_PATH}/students/${studentId}`).get();
     if (!studentSnap.exists) {
@@ -1685,6 +1843,10 @@ exports.allocateReturningStudents = callable(async (request) => {
         `${studentData.name || 'That student'} is not waiting for September placement.`
       );
     }
+    placementMeta.push({
+      studentId,
+      previousOwnerUid: studentData.createdBy?.uid || null
+    });
     writes.push({
       ref: db.doc(`${PUBLIC_DATA_PATH}/students/${studentId}`),
       payload: {
@@ -1715,14 +1877,23 @@ exports.allocateReturningStudents = callable(async (request) => {
         placedAt: FieldValue.serverTimestamp()
       }, yearKey)
     });
-    writes.push({
-      ref: db.doc(`${PUBLIC_DATA_PATH}/parent_links/${studentId}`),
-      payload: { classId, updatedAt: FieldValue.serverTimestamp() }
-    });
+    const parentLinkSnap = await db.doc(`${PUBLIC_DATA_PATH}/parent_links/${studentId}`).get();
+    if (parentLinkSnap.exists && (parentLinkSnap.data()?.parentUid || parentLinkSnap.data()?.username)) {
+      writes.push({
+        ref: parentLinkSnap.ref,
+        payload: { classId, updatedAt: FieldValue.serverTimestamp() }
+      });
+    }
   }
 
   await commitBatchChunks(writes);
-  for (const studentId of studentIds) {
+  for (const { studentId, previousOwnerUid } of placementMeta) {
+    const link = await getParentLink(studentId);
+    await syncStudentThreadParticipants(studentId, {
+      addUid: owner?.uid || null,
+      removeUid: previousOwnerUid && previousOwnerUid !== owner?.uid ? previousOwnerUid : null,
+      keepUids: link?.parentUid ? [link.parentUid] : []
+    });
     await upsertParentSnapshot(studentId, {
       activeSchoolYearKey: yearKey,
       classId,
@@ -1737,20 +1908,25 @@ exports.markStudentLeftSchool = callable(async (request) => {
   const studentId = String(request.data?.studentId || '').trim();
   const yearKey = String(request.data?.schoolYearKey || await getPlannedSchoolYearKey()).trim();
   if (!studentId) throw new HttpsError('invalid-argument', 'Student is required.');
+  await getStudent(studentId);
+  const purgeAfterAt = buildPurgeAfterAt();
   await db.doc(`${PUBLIC_DATA_PATH}/students/${studentId}`).set({
     activeSchoolYearKey: yearKey,
     enrollmentStatus: 'inactive',
     classId: null,
     leftSchoolAt: FieldValue.serverTimestamp(),
+    purgeAfterAt,
     updatedAt: FieldValue.serverTimestamp()
   }, { merge: true });
   await db.doc(`${PUBLIC_DATA_PATH}/student_year_enrollments/${studentId}_${yearKey}`).set(withYear({
     studentId,
     enrollmentStatus: 'inactive',
-    leftSchoolAt: FieldValue.serverTimestamp()
+    leftSchoolAt: FieldValue.serverTimestamp(),
+    purgeAfterAt
   }, yearKey), { merge: true });
+  await disableParentAccessForStudent(studentId);
   await upsertParentSnapshot(studentId, { activeSchoolYearKey: yearKey, enrollmentStatus: 'inactive' });
-  return { ok: true };
+  return { ok: true, purgeAfterAt: purgeAfterAt.toDate().toISOString() };
 });
 
 exports.transferStudentToClass = callable(async (request) => {
@@ -1772,9 +1948,11 @@ exports.transferStudentToClass = callable(async (request) => {
     throw new HttpsError('permission-denied', 'You can only transfer students you currently own.');
   }
 
+  const previousOwnerUid = student.createdBy?.uid || null;
   const owner = classData.createdBy || null;
   const schoolYearKey = classData.schoolYearKey || student.activeSchoolYearKey || await getActiveSchoolYearKey();
-  await commitBatchChunks([
+  const parentLink = await getParentLink(studentId);
+  const transferWrites = [
     {
       ref: db.doc(`${PUBLIC_DATA_PATH}/students/${studentId}`),
       payload: {
@@ -1794,10 +1972,6 @@ exports.transferStudentToClass = callable(async (request) => {
       }
     },
     {
-      ref: db.doc(`${PUBLIC_DATA_PATH}/parent_links/${studentId}`),
-      payload: { classId, updatedAt: FieldValue.serverTimestamp() }
-    },
-    {
       ref: db.doc(`${PUBLIC_DATA_PATH}/student_year_enrollments/${studentId}_${schoolYearKey}`),
       payload: withYear({
         studentId,
@@ -1808,7 +1982,19 @@ exports.transferStudentToClass = callable(async (request) => {
         updatedAt: FieldValue.serverTimestamp()
       }, schoolYearKey)
     }
-  ]);
+  ];
+  if (parentLink?.parentUid || parentLink?.username) {
+    transferWrites.push({
+      ref: db.doc(`${PUBLIC_DATA_PATH}/parent_links/${studentId}`),
+      payload: { classId, updatedAt: FieldValue.serverTimestamp() }
+    });
+  }
+  await commitBatchChunks(transferWrites);
+  await syncStudentThreadParticipants(studentId, {
+    addUid: owner?.uid || null,
+    removeUid: previousOwnerUid && previousOwnerUid !== owner?.uid ? previousOwnerUid : null,
+    keepUids: parentLink?.parentUid ? [parentLink.parentUid] : []
+  });
   await upsertParentSnapshot(studentId, {
     activeSchoolYearKey: schoolYearKey,
     classId,
@@ -1816,6 +2002,50 @@ exports.transferStudentToClass = callable(async (request) => {
   });
   return { ok: true };
 });
+
+exports.purgeStudent = callable(async (request) => {
+  const studentId = String(request.data?.studentId || '').trim();
+  if (!studentId) throw new HttpsError('invalid-argument', 'Student is required.');
+  await requireStudentManager(request, studentId);
+  const result = await purgeStudentData(studentId);
+  return result;
+}, { timeoutSeconds: 120, memory: '512MB' });
+
+exports.purgeLeftSchoolStudents = functionsV1.region(FUNCTIONS_REGION)
+  .runWith({ timeoutSeconds: 540, memory: '512MB' })
+  .pubsub.schedule('every 24 hours')
+  .timeZone('Europe/Athens')
+  .onRun(async () => {
+    const now = Timestamp.now();
+    const dueSnap = await db.collection(`${PUBLIC_DATA_PATH}/students`)
+      .where('purgeAfterAt', '<=', now)
+      .get();
+    let purged = 0;
+    let skipped = 0;
+    const errors = [];
+    for (const studentDoc of dueSnap.docs) {
+      const data = studentDoc.data() || {};
+      if ((data.enrollmentStatus || 'active') !== 'inactive') {
+        skipped += 1;
+        continue;
+      }
+      try {
+        await purgeStudentData(studentDoc.id);
+        purged += 1;
+      } catch (error) {
+        console.error(`Failed to purge left-school student ${studentDoc.id}:`, error);
+        errors.push({ studentId: studentDoc.id, message: error?.message || String(error) });
+      }
+    }
+    console.log(JSON.stringify({
+      event: 'purgeLeftSchoolStudents',
+      due: dueSnap.size,
+      purged,
+      skipped,
+      errorCount: errors.length
+    }));
+    return null;
+  });
 
 exports.finalizeRollover = callable(async (request) => {
   const caller = await requireYearOperator(request);

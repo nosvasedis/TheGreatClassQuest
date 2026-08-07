@@ -1,6 +1,6 @@
 // templates/app/index.js
 
-import { headerHTML } from './header.js';
+import { headerHTML, svgFiltersHTML } from './header.js';
 import { mainContentHTML } from './tabs/index.js';
 import { navHTML } from './nav.js';
 import { ceremonyHTML } from './screens/ceremony.js';
@@ -29,6 +29,7 @@ export const awardImmersiveSkyHTML = `
         </div>`;
 
 export const appHTML = `
+    ${svgFiltersHTML}
     <div id="app-screen" class="hidden flex-1 flex flex-col h-full overflow-hidden">
         <div id="award-header-atmosphere" class="award-header-atmosphere relative z-[60] flex shrink-0 flex-col overflow-visible shadow-md"
              style="background: linear-gradient(to right, #89f7fe 0%, #66a6ff 100%);">

@@ -4,6 +4,18 @@ import { injectHTML } from './templates/index.js';
 import { stageLoadingPersonalization, revealStagedLoadingPersonalization, reopenLoadingScreen } from './templates/loading.js';
 injectHTML();
 
+// Browser DevTools helper (not the npm terminal). Available even before theater auto-starts.
+window.__skyTheaterDebugPlay = async (id) => {
+    const mod = await import('./features/skyTheater.js');
+    return mod.debugPlayAct(id);
+};
+window.__skyTheaterListActs = async () => {
+    const mod = await import('./features/skyTheater.js');
+    const ids = mod.listSkyTheaterActs();
+    console.info('[skyTheater] acts:', ids.join(', '));
+    return ids;
+};
+
 import {
     auth,
     createUserWithEmailAndPassword,
@@ -1069,6 +1081,27 @@ function setupAuthListeners() {
                 if (profile.role === ROLE_PARENT) {
                     setupParentSession(user.uid, profile, async () => {
                         if (!isCurrentSession()) return;
+                        const linkedStudentId = profile.linkedStudentId;
+                        if (linkedStudentId) {
+                            try {
+                                const { db, doc, getDoc } = await import('./firebase.js');
+                                const studentSnap = await getDoc(doc(db, 'artifacts/great-class-quest/public/data/students', linkedStudentId));
+                                const enrollmentStatus = studentSnap.exists()
+                                    ? (studentSnap.data()?.enrollmentStatus || 'active')
+                                    : 'missing';
+                                if (!studentSnap.exists() || enrollmentStatus === 'inactive') {
+                                    resetAuthSubmitState();
+                                    const authError = document.getElementById('auth-error');
+                                    if (authError) {
+                                        authError.innerText = 'This family login is no longer active. Contact the school if you need help.';
+                                    }
+                                    await signOut(auth);
+                                    return;
+                                }
+                            } catch (studentCheckError) {
+                                console.warn('Could not verify linked student for parent session:', studentCheckError);
+                            }
+                        }
                         await routeAuthenticatedParent({ loadingScreen, authScreen });
                         await waitForLoadingScreenSettled(loadingScreen);
                         if (isCurrentSession()) offerDeviceCacheChoice(profile.role);
@@ -1162,6 +1195,12 @@ async function initApp() {
             }
         });
 
+        try {
+            const { startSkyTheater } = await import('./features/skyTheater.js');
+            startSkyTheater();
+        } catch (e) {
+            console.warn('Sky Theater failed to start', e);
+        }
         // Audio is initialized on first user gesture (mousedown/touchstart) to satisfy browser autoplay policy
 
         // Solar sync should wait for school settings so we do not

@@ -3,11 +3,13 @@
 @import './tokens.css';
 @import './motion.css';
 @import './chrome.css';
+@import '../../styles/sky_theater.css';
 @import './fabs.css';
 @import './tabs.css';
 @import './home.css';
 @import './auth-loading.css';
 @import './guilds.css';
+@import './calendar.css';
 
 #m-teacher-header,
 #m-teacher-dock,
@@ -46,6 +48,11 @@ body.gcq-mobile #home-dashboard-container {
 
 body.gcq-mobile {
     -webkit-tap-highlight-color: transparent;
+    /* Tailwind h-screen uses 100vh and sits under browser chrome on Android */
+    min-height: 100vh;
+    min-height: 100dvh;
+    min-height: 100svh;
+    height: auto;
 }
 
 body.m-sheet-locked {
@@ -53,14 +60,19 @@ body.m-sheet-locked {
     touch-action: none;
 }
 
-/* App screen flex so dock sits at bottom */
+/* App screen flex so dock sits at bottom of the *visible* viewport */
 body.gcq-mobile #app-screen:not(.hidden),
 body.gcq-mobile #parent-screen:not(.hidden),
 body.gcq-mobile #secretary-screen:not(.hidden) {
     display: flex;
     flex-direction: column;
-    min-height: 100dvh;
-    min-height: 100vh;
+    height: 100vh;
+    height: 100dvh;
+    height: 100svh;
+    max-height: 100vh;
+    max-height: 100dvh;
+    max-height: 100svh;
+    min-height: 0;
 }
 
 body.gcq-mobile #app-screen main,

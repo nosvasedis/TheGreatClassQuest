@@ -60,27 +60,25 @@ main {
     animation: app-fade-in 0.5s ease-out forwards;
 }
 
-/* Loading screen to home handoff */
+/* Loading screen to home handoff.
+   Opacity + light scale only — clip-path + permanent will-change caused
+   stutter/flicker on Android Chrome during the celebratory exit. */
 #loading-screen {
     overflow: hidden;
-    will-change: transform, opacity, clip-path;
 }
 
 @keyframes loading-screen-exit {
     0% {
         opacity: 1;
         transform: scale(1);
-        clip-path: inset(0 0 0 0 round 0);
     }
     40% {
         opacity: 1;
         transform: scale(1.02);
-        clip-path: inset(0 0 0 0 round 0);
     }
     100% {
         opacity: 0;
-        transform: scale(1.06);
-        clip-path: inset(0 0 100% 0 round 2.5rem);
+        transform: scale(1.04);
     }
 }
 
@@ -88,17 +86,14 @@ main {
     0% {
         opacity: 1;
         transform: scale(1) rotate(0deg);
-        filter: drop-shadow(0 0 15px #FBBF24);
     }
     65% {
         opacity: 1;
         transform: scale(1.45) rotate(120deg);
-        filter: drop-shadow(0 0 34px #F59E0B);
     }
     100% {
         opacity: 0;
         transform: scale(0.2) rotate(220deg) translateY(-18px);
-        filter: drop-shadow(0 0 0 #F59E0B);
     }
 }
 
@@ -114,6 +109,7 @@ main {
 }
 
 #loading-screen.loading-screen-exit {
+    will-change: transform, opacity;
     animation: loading-screen-exit 920ms cubic-bezier(0.22, 1, 0.36, 1) forwards;
 }
 

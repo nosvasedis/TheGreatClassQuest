@@ -176,15 +176,77 @@ function targetNeedsStorage(readinessTarget) {
   return target === 'pro' || target === 'admin';
 }
 
+/** Pro Parent Portal + teacher ownership callables (and admin includes these too). */
+function targetNeedsParentRuntime(readinessTarget) {
+  const target = normalizeReadinessTarget(readinessTarget);
+  return target === 'pro' || target === 'admin';
+}
+
+/** Secretary activation, year console, leave-school purge schedule. */
 function targetNeedsAdminRuntime(readinessTarget) {
   return normalizeReadinessTarget(readinessTarget) === 'admin';
 }
 
 function describeReadinessTarget(readinessTarget) {
   const target = normalizeReadinessTarget(readinessTarget);
-  if (target === 'admin') return 'Parent access + Secretary ready';
-  if (target === 'pro') return 'Pro / Elite ready';
+  if (target === 'admin') return 'Parent Access + Secretary ready';
+  if (target === 'pro') return 'Pro ready (Storage + Parent Access)';
   return 'Starter / paywall only';
+}
+
+const PARENT_RUNTIME_FUNCTION_NAMES = [
+  'createParentAccess',
+  'resetParentAccessPassword',
+  'disableParentAccess',
+  'deleteParentAccess',
+  'transferStudentToClass',
+  'allocateReturningStudents',
+  'purgeStudent',
+  'publishParentSummary',
+  'publishParentHomework',
+  'postCommunicationMessage',
+  'syncQuestAssignmentToParentHomework',
+];
+
+const SECRETARY_RUNTIME_FUNCTION_NAMES = [
+  'getSecretaryBootstrapStatus',
+  'activateSecretaryAdmin',
+  'updateSecretaryCredentials',
+  'markStudentLeftSchool',
+  'purgeLeftSchoolStudents',
+  'closeSchoolYear',
+  'finalizeRollover',
+  'previewYearRollover',
+  'ensureOpenSchoolYears',
+  'backfillRoleAccessData',
+  'backfillSchoolYearData',
+];
+
+function getRequiredFunctionNames(readinessTarget) {
+  const target = normalizeReadinessTarget(readinessTarget);
+  if (target === 'admin') {
+    return Array.from(new Set([...PARENT_RUNTIME_FUNCTION_NAMES, ...SECRETARY_RUNTIME_FUNCTION_NAMES]));
+  }
+  if (target === 'pro') {
+    return [...PARENT_RUNTIME_FUNCTION_NAMES];
+  }
+  return [];
+}
+
+function getFirebaseToolsBin() {
+  return path.join(repoRoot, 'node_modules', 'firebase-tools', 'lib', 'bin', 'firebase.js');
+}
+
+function normalizeSiteUrl(siteDomainOrUrl, projectId) {
+  const raw = String(siteDomainOrUrl || '').trim();
+  if (/^https?:\/\//i.test(raw)) {
+    return raw.replace(/\/$/, '');
+  }
+  const domain = normalizeSiteDomain(raw);
+  if (domain) {
+    return `https://${domain}`;
+  }
+  return `https://${String(projectId || '').trim()}.web.app`;
 }
 
 function normalizeFirebaseLocation(value) {
@@ -436,7 +498,7 @@ function getRequiredServices(readinessTarget) {
   if (targetNeedsStorage(target)) {
     base.push('firebasestorage.googleapis.com');
   }
-  if (targetNeedsAdminRuntime(target)) {
+  if (targetNeedsParentRuntime(target)) {
     base.push(
       'cloudfunctions.googleapis.com',
       'cloudbuild.googleapis.com',
@@ -446,7 +508,335 @@ function getRequiredServices(readinessTarget) {
       'pubsub.googleapis.com'
     );
   }
+  if (targetNeedsAdminRuntime(target)) {
+    base.push('cloudscheduler.googleapis.com');
+  }
   return base;
+}
+
+function shortFunctionName(resourceName) {
+  const parts = String(resourceName || '').split('/').filter(Boolean);
+  return parts[parts.length - 1] || '';
+}
+
+async function listDeployedCloudFunctions(projectId, serviceAccount) {
+  const url = `https://cloudfunctions.googleapis.com/v1/projects/${encodeURIComponent(projectId)}/locations/-/functions`;
+  const data = await googleJsonRequest(url, serviceAccount, {
+    quotaProject: projectId,
+  });
+  const functions = Array.isArray(data.functions) ? data.functions : [];
+  return functions
+    .map((entry) => shortFunctionName(entry.name))
+    .filter(Boolean);
+}
+
+async function verifyRequiredCloudFunctions(projectId, serviceAccount, readinessTarget) {
+  const required = getRequiredFunctionNames(readinessTarget);
+  if (!required.length) {
+    return {
+      ok: true,
+      required: [],
+      deployed: [],
+      missing: [],
+      skipped: true,
+    };
+  }
+  const deployed = await listDeployedCloudFunctions(projectId, serviceAccount);
+  const deployedSet = new Set(deployed);
+  const missing = required.filter((name) => !deployedSet.has(name));
+  return {
+    ok: missing.length === 0,
+    required,
+    deployed,
+    missing,
+    skipped: false,
+  };
+}
+
+function deployCloudFunctionsForSchool(projectId, serviceAccountKeyPath) {
+  const firebaseBin = getFirebaseToolsBin();
+  if (!fs.existsSync(firebaseBin)) {
+    return {
+      ok: false,
+      status: 'needs_attention',
+      deployed: false,
+      message: 'firebase-tools is not installed in this repo, so Cloud Functions could not be deployed automatically.',
+      actionHint: 'From the repo root run `npm install`, then rerun this school check, or deploy manually with `node node_modules/firebase-tools/lib/bin/firebase.js deploy --only functions --project ' + projectId + '`.',
+      technicalDetails: `Missing ${firebaseBin}`,
+    };
+  }
+  const result = spawnSync(
+    process.execPath,
+    [firebaseBin, 'deploy', '--only', 'functions', '--project', projectId, '--non-interactive', '--force'],
+    {
+      cwd: repoRoot,
+      encoding: 'utf8',
+      env: {
+        ...process.env,
+        GOOGLE_APPLICATION_CREDENTIALS: serviceAccountKeyPath || process.env.GOOGLE_APPLICATION_CREDENTIALS || '',
+      },
+      timeout: 15 * 60 * 1000,
+      maxBuffer: 10 * 1024 * 1024,
+    }
+  );
+  const stdout = String(result.stdout || '');
+  const stderr = String(result.stderr || '');
+  const combined = `${stdout}\n${stderr}`.trim();
+  if (result.status === 0) {
+    return {
+      ok: true,
+      status: 'done',
+      deployed: true,
+      message: 'Cloud Functions were deployed for this school from the current repo.',
+      actionHint: '',
+      technicalDetails: combined.slice(-4000),
+    };
+  }
+  return {
+    ok: false,
+    status: 'needs_attention',
+    deployed: false,
+    message: 'Cloud Functions deploy did not finish successfully.',
+    actionHint: 'Check that this machine can deploy to the school Firebase project (Blaze billing, IAM, and firebase-tools login/credentials), then rerun. Family Access and leave-school purge need these Functions live on this project.',
+    technicalDetails: combined.slice(-4000) || `exit code ${result.status}`,
+  };
+}
+
+async function inspectLeaveSchoolPurgeSchedule(projectId, serviceAccount, locationId = 'europe-west1') {
+  const location = normalizeFirebaseLocation(locationId);
+  const url = `https://cloudscheduler.googleapis.com/v1/projects/${encodeURIComponent(projectId)}/locations/${encodeURIComponent(location)}/jobs`;
+  try {
+    const data = await googleJsonRequest(url, serviceAccount, {
+      quotaProject: projectId,
+    });
+    const jobs = Array.isArray(data.jobs) ? data.jobs : [];
+    const match = jobs.find((job) => {
+      const haystack = `${job.name || ''} ${job.description || ''} ${job.pubsubTarget?.topicName || ''}`;
+      return /purgeLeftSchoolStudents/i.test(haystack);
+    });
+    return {
+      ok: Boolean(match),
+      job: match || null,
+      jobCount: jobs.length,
+      location,
+      message: match
+        ? 'The daily leave-school purge schedule is present.'
+        : 'No Cloud Scheduler job for purgeLeftSchoolStudents was found yet. Deploying Cloud Functions usually creates it.',
+    };
+  } catch (error) {
+    return {
+      ok: false,
+      job: null,
+      jobCount: 0,
+      location,
+      message: error.message || 'Cloud Scheduler jobs could not be listed.',
+      technicalDetails: error.message || '',
+    };
+  }
+}
+
+async function inspectSecretaryBootstrapState(db) {
+  const roleSnap = await db.doc('artifacts/great-class-quest/public/data/school_roles/secretary').get();
+  const bootstrapSnap = await db.doc(SECRETARY_BOOTSTRAP_DOC).get();
+  const role = roleSnap.exists ? (roleSnap.data() || {}) : null;
+  const bootstrap = bootstrapSnap.exists ? (bootstrapSnap.data() || {}) : null;
+  const secretaryActive = role?.status === 'active' && Boolean(role?.uid);
+  const pendingBootstrap = bootstrap?.status === 'pending';
+  return {
+    secretaryActive,
+    pendingBootstrap,
+    role,
+    bootstrap,
+  };
+}
+
+/**
+ * Deploy/verify Parent Access (+ Secretary) runtime pieces and push task rows.
+ * Returns readiness flags used by final health.
+ */
+async function appendRoleRuntimeTasks({
+  tasks,
+  projectId,
+  serviceAccount,
+  provisioningAuth,
+  readinessTarget,
+  firebaseLocation,
+  siteDomain,
+  serviceAccountKeyPath,
+  createFoundingSecretaryActivation = false,
+}) {
+  const outputs = {
+    secretaryActivation: null,
+    functionsReady: !targetNeedsParentRuntime(readinessTarget),
+    purgeScheduleReady: !targetNeedsAdminRuntime(readinessTarget),
+    secretaryReady: !targetNeedsAdminRuntime(readinessTarget),
+  };
+
+  if (!targetNeedsParentRuntime(readinessTarget)) {
+    return outputs;
+  }
+
+  let functionCheck = {
+    ok: false,
+    missing: getRequiredFunctionNames(readinessTarget),
+    deployed: [],
+    required: getRequiredFunctionNames(readinessTarget),
+  };
+  try {
+    functionCheck = await verifyRequiredCloudFunctions(projectId, provisioningAuth, readinessTarget);
+  } catch (error) {
+    functionCheck = {
+      ok: false,
+      missing: getRequiredFunctionNames(readinessTarget),
+      deployed: [],
+      required: getRequiredFunctionNames(readinessTarget),
+      error: error.message || '',
+    };
+  }
+
+  if (!functionCheck.ok) {
+    const deployResult = deployCloudFunctionsForSchool(projectId, serviceAccountKeyPath);
+    tasks.push(
+      makeTask(
+        'deployFunctions',
+        deployResult.status,
+        'Deploy Cloud Functions for this school',
+        deployResult.message,
+        {
+          actionHint: deployResult.actionHint,
+          technicalDetails: deployResult.technicalDetails || '',
+        }
+      )
+    );
+    try {
+      functionCheck = await verifyRequiredCloudFunctions(projectId, provisioningAuth, readinessTarget);
+    } catch (error) {
+      functionCheck = {
+        ok: false,
+        missing: getRequiredFunctionNames(readinessTarget),
+        deployed: [],
+        required: getRequiredFunctionNames(readinessTarget),
+        error: error.message || '',
+      };
+    }
+  } else {
+    tasks.push(
+      makeTask(
+        'deployFunctions',
+        'already_done',
+        'Deploy Cloud Functions for this school',
+        'The required Cloud Functions are already deployed for this school.'
+      )
+    );
+  }
+
+  outputs.functionsReady = functionCheck.ok;
+  tasks.push(
+    makeTask(
+      'verifyFunctions',
+      functionCheck.ok ? 'done' : 'needs_attention',
+      targetNeedsAdminRuntime(readinessTarget)
+        ? 'Confirm Parent Access + Secretary Functions'
+        : 'Confirm Parent Access Functions',
+      functionCheck.ok
+        ? `All ${functionCheck.required.length} required Functions are live on this school project.`
+        : `Missing Functions: ${(functionCheck.missing || []).join(', ') || 'unknown'}.`,
+      {
+        actionHint: functionCheck.ok
+          ? ''
+          : 'Deploy functions from this repo to the school Firebase project, then rerun the check.',
+        technicalDetails: JSON.stringify({
+          required: functionCheck.required,
+          deployed: functionCheck.deployed,
+          missing: functionCheck.missing,
+        }, null, 2),
+      }
+    )
+  );
+
+  if (targetNeedsAdminRuntime(readinessTarget)) {
+    const schedule = await inspectLeaveSchoolPurgeSchedule(projectId, provisioningAuth, firebaseLocation);
+    outputs.purgeScheduleReady = schedule.ok;
+    tasks.push(
+      makeTask(
+        'verifyPurgeSchedule',
+        schedule.ok ? 'done' : 'needs_attention',
+        'Confirm leave-school 30-day purge schedule',
+        schedule.message,
+        {
+          actionHint: schedule.ok
+            ? ''
+            : 'After a successful Functions deploy, Firebase creates a daily Cloud Scheduler job for purgeLeftSchoolStudents. Enable Cloud Scheduler and redeploy functions if it is missing.',
+          technicalDetails: JSON.stringify({
+            location: schedule.location,
+            job: schedule.job?.name || null,
+            jobCount: schedule.jobCount,
+          }, null, 2),
+        }
+      )
+    );
+
+    try {
+      const app = getAdminApp(projectId, serviceAccount);
+      const db = getFirestore(app);
+      const secretaryState = await inspectSecretaryBootstrapState(db);
+      if (secretaryState.secretaryActive) {
+        outputs.secretaryReady = true;
+        tasks.push(
+          makeTask(
+            'secretaryActivation',
+            'already_done',
+            'Secretary/admin activation',
+            'An active Secretary/admin already exists for this school.'
+          )
+        );
+      } else if (createFoundingSecretaryActivation || !secretaryState.pendingBootstrap) {
+        const activation = await createSecretaryActivation(db, {
+          purpose: 'founding',
+          siteUrl: normalizeSiteUrl(siteDomain, projectId),
+        });
+        outputs.secretaryActivation = activation;
+        outputs.secretaryReady = true;
+        tasks.push(
+          makeTask(
+            'secretaryActivation',
+            'done',
+            'Create Secretary/admin activation link',
+            `A single-use founding activation link was created (expires ${activation.expiresAt}). Send it privately to the school Secretary.`,
+            {
+              technicalDetails: activation.activationUrl,
+            }
+          )
+        );
+      } else {
+        outputs.secretaryReady = true;
+        tasks.push(
+          makeTask(
+            'secretaryActivation',
+            'already_done',
+            'Secretary/admin activation',
+            'A pending Secretary activation already exists. Create a new founding/recovery link only if the previous one expired.'
+          )
+        );
+      }
+    } catch (error) {
+      outputs.secretaryReady = false;
+      tasks.push(
+        makeTask(
+          'secretaryActivation',
+          'needs_attention',
+          'Secretary/admin activation',
+          error.message || 'Secretary activation could not be prepared.',
+          {
+            actionHint: 'Fix the reported issue, then rerun. Leave-school and school-year tools need an activated Secretary.',
+            technicalDetails: error.message || '',
+          }
+        )
+      );
+    }
+  }
+
+  return outputs;
 }
 
 function loadDefaults() {
@@ -2364,9 +2754,9 @@ async function runAutomaticSetup(input) {
         'done',
         'Enable the Google and Firebase services this school needs',
         targetNeedsAdminRuntime(readinessTarget)
-          ? 'The required Google/Firebase services were enabled for paywall, Firestore, Storage, and the admin runtime needed for parent and secretary access.'
-          : targetNeedsStorage(readinessTarget)
-          ? 'The required Google/Firebase services were enabled for paywall, Firestore, rules, and Pro/Elite storage features.'
+          ? 'The required Google/Firebase services were enabled for paywall, Firestore, Storage, Parent Access Functions, Secretary tools, and Cloud Scheduler (leave-school purge).'
+          : targetNeedsParentRuntime(readinessTarget)
+          ? 'The required Google/Firebase services were enabled for paywall, Firestore, Storage, and the Parent Access Cloud Functions runtime.'
           : 'The required Google/Firebase services were enabled for paywall, Firestore, and rules.',
         {
           technicalDetails: JSON.stringify(enabledServices.services, null, 2),
@@ -2665,16 +3055,58 @@ async function runAutomaticSetup(input) {
   let storageBucketName = '';
   let storageRulesStatus = makeTask(
     'storageRules',
-    'needs_attention',
+    targetNeedsStorage(readinessTarget) ? 'needs_attention' : 'already_done',
     'Check Storage bucket and rules',
-    'No Firebase Storage bucket was found for this project.',
+    targetNeedsStorage(readinessTarget)
+      ? 'No Firebase Storage bucket was found for this project.'
+      : 'Starter flow does not require Firebase Storage yet.',
     {
-      actionHint: 'This is okay for paywall and Starter setup, but Pro/Elite image features and Familiar sprites will need Firebase Storage enabled later.',
+      actionHint: targetNeedsStorage(readinessTarget)
+        ? 'Pro image features and Familiar sprites need Firebase Storage.'
+        : '',
     }
   );
 
+  try {
+    const storageReady = await ensureStorageReady(input.projectId, provisioningAuth, firebaseLocation, readinessTarget);
+    tasks.push(
+      makeTask(
+        'ensureStorage',
+        storageReady.status === 'skipped' ? 'already_done' : storageReady.status,
+        'Create or confirm the Firebase Storage bucket',
+        storageReady.status === 'skipped'
+          ? 'Starter flow does not require Firebase Storage yet.'
+          : storageReady.created
+            ? `A Firebase Storage bucket was created for this school in ${firebaseLocation}.`
+            : 'The Firebase Storage bucket already exists for this school.'
+      )
+    );
+    if (storageReady.storageBucket) {
+      firebaseServices.storageBucket = storageReady.storageBucket;
+      firebaseServices.storageMissing = false;
+      storageBucketName = storageReady.storageBucket.bucket?.name || storageReady.storageBucket.name || '';
+    }
+  } catch (error) {
+    tasks.push(
+      makeTask(
+        'ensureStorage',
+        targetNeedsStorage(readinessTarget) ? 'needs_attention' : 'already_done',
+        'Create or confirm the Firebase Storage bucket',
+        targetNeedsStorage(readinessTarget)
+          ? (error.message || 'The Firebase Storage bucket could not be created automatically.')
+          : 'Starter flow does not require Firebase Storage yet.',
+        {
+          actionHint: targetNeedsStorage(readinessTarget)
+            ? 'This often means billing/Blaze is not enabled yet for this Firebase project.'
+            : '',
+          technicalDetails: targetNeedsStorage(readinessTarget) ? (error.message || '') : '',
+        }
+      )
+    );
+  }
+
   if (!firebaseServices.storageMissing && firebaseServices.storageBucket) {
-    storageBucketName = firebaseServices.storageBucket.bucket?.name || firebaseServices.storageBucket.name || '';
+    storageBucketName = firebaseServices.storageBucket.bucket?.name || firebaseServices.storageBucket.name || storageBucketName;
     const storageRulesBefore = await inspectRulesRelease(
       buildStorageReleaseName(input.projectId, storageBucketName),
       storageRulesPath,
@@ -2703,7 +3135,8 @@ async function runAutomaticSetup(input) {
         }, null, 2),
       }
     );
-  } else {
+    tasks.push(storageRulesStatus);
+  } else if (targetNeedsStorage(readinessTarget)) {
     tasks.push(storageRulesStatus);
   }
 
@@ -2745,9 +3178,17 @@ async function runAutomaticSetup(input) {
     )
   );
 
-  if (!firebaseServices.storageMissing && firebaseServices.storageBucket) {
-    tasks.push(storageRulesStatus);
-  }
+  const roleRuntime = await appendRoleRuntimeTasks({
+    tasks,
+    projectId: input.projectId,
+    serviceAccount,
+    provisioningAuth,
+    readinessTarget,
+    firebaseLocation,
+    siteDomain: input.siteDomain,
+    serviceAccountKeyPath: savedKey.keyPath,
+    createFoundingSecretaryActivation: true,
+  });
 
   const subscriptionStatus = await readSubscriptionStatus(input.projectId, serviceAccount);
   const coreReady = Boolean(
@@ -2765,30 +3206,45 @@ async function runAutomaticSetup(input) {
     !targetNeedsStorage(readinessTarget) ||
     (storageBucketName && storageRulesStatus.status !== 'needs_attention')
   );
+  const roleRuntimeReady = Boolean(
+    roleRuntime.functionsReady &&
+    roleRuntime.purgeScheduleReady &&
+    roleRuntime.secretaryReady
+  );
+  const fullyReady = Boolean(coreReady && futureProReady && roleRuntimeReady);
+
+  let healthMessage = 'Almost ready: one or more setup checks still need attention before this school is fully ready.';
+  let healthHint = 'Look at the tasks above marked “Needs attention” or “Working”, then rerun the check.';
+  let summary = 'The setup is close, but one thing still needs attention before the school is fully ready.';
+  if (fullyReady) {
+    if (targetNeedsAdminRuntime(readinessTarget)) {
+      healthMessage = 'This school is ready for Family Access and the Secretary console, including leave-school disable and the 30-day purge schedule.';
+      healthHint = roleRuntime.secretaryActivation
+        ? 'Send the Secretary activation link privately, paste Render, configure hosting, then grant Pro/Elite when the school pays.'
+        : '';
+      summary = 'This school is ready for Parent Access and the Secretary console. Paste Render, configure hosting, send the Secretary activation link, and grant Pro/Elite when appropriate.';
+    } else if (targetNeedsParentRuntime(readinessTarget)) {
+      healthMessage = 'This school is ready for Pro Parent Access (Family Access callables + Storage).';
+      healthHint = '';
+      summary = 'This school is ready for Pro Parent Access. Paste Render, configure hosting, and grant Pro when the school pays.';
+    } else {
+      healthMessage = 'This school is ready for paywall and Starter flow.';
+      healthHint = 'When you need Parent Access, rerun with “Pro ready (Storage + Parent Access)” or “Parent Access + Secretary ready”.';
+      summary = 'This school is ready for Starter. Paste the Render value, configure your hosting provider, and you are done.';
+    }
+  } else if (coreReady && futureProReady && !roleRuntimeReady) {
+    healthMessage = 'Core school setup looks good, but Parent Access / Secretary Functions still need attention.';
+    healthHint = 'Fix the Functions, Scheduler, or Secretary activation tasks above, then rerun.';
+    summary = 'Core setup is close, but the role runtime is not fully ready yet.';
+  }
 
   tasks.push(
     makeTask(
       'finalHealth',
-      coreReady ? 'done' : 'needs_attention',
+      fullyReady ? 'done' : 'needs_attention',
       'Run the final health check',
-      coreReady
-        ? targetNeedsAdminRuntime(readinessTarget)
-          ? 'This school is ready for role-based access, including Storage and the admin runtime needed for parent and secretary accounts.'
-          : targetNeedsStorage(readinessTarget)
-          ? 'This school is ready, including the Storage pieces needed for Pro/Elite image features and Familiar sprites.'
-          : futureProReady
-            ? 'This school is ready for paywall and Starter flow.'
-            : 'This school is ready for paywall and Starter flow. Create Firebase Storage later before using Pro/Elite image features or Familiar sprites.'
-        : 'Almost ready: one or more setup checks still need attention before this school is fully ready.',
-      {
-        actionHint: coreReady
-          ? targetNeedsAdminRuntime(readinessTarget)
-            ? ''
-            : targetNeedsStorage(readinessTarget)
-            ? ''
-            : 'When you are ready to sell Pro/Elite image features, rerun the setup with “Pro / Elite ready” and the tool will prepare Firebase Storage for avatars, story images, and Familiar sprites too.'
-          : 'Look at the tasks above marked “Needs attention” or “Working”, then rerun the check.',
-      }
+      healthMessage,
+      { actionHint: healthHint }
     )
   );
 
@@ -2803,17 +3259,10 @@ async function runAutomaticSetup(input) {
       webConfig: webConfigResult.config,
       renderPath: renderOutput.path,
       firebaseWebConfigStatus: webConfigResult.ok ? 'ready' : 'missing',
+      secretaryActivation: roleRuntime.secretaryActivation,
     },
-    finalStatus: coreReady && futureProReady ? 'ready' : 'needs_attention',
-    summary: coreReady
-      ? targetNeedsAdminRuntime(readinessTarget)
-        ? 'This school is ready for parent access and the secretary console. Paste the Render value, configure your hosting provider, and you are done.'
-        : targetNeedsStorage(readinessTarget)
-        ? 'This school is ready for Pro or Elite. Paste the Render value, configure your hosting provider, and you are done.'
-        : futureProReady
-          ? 'This school is ready for Starter. Paste the Render value, configure your hosting provider, and you are done.'
-          : 'This school is ready for Starter flow. Later, when the school upgrades, rerun the setup with “Pro / Elite ready” and the tool will prepare Firebase Storage too.'
-      : 'The setup is close, but one thing still needs attention before the school is fully ready.',
+    finalStatus: fullyReady ? 'ready' : 'needs_attention',
+    summary,
   };
 }
 
@@ -2914,9 +3363,9 @@ async function recheckExistingSchool(projectId, options = {}) {
         'done',
         'Enable the Google and Firebase services this school needs',
         targetNeedsAdminRuntime(readinessTarget)
-          ? 'The required Google/Firebase services were enabled or already ready for the parent/secretary admin runtime.'
-          : targetNeedsStorage(readinessTarget)
-          ? 'The required Google/Firebase services were enabled or already ready for Pro/Elite features.'
+          ? 'The required Google/Firebase services were enabled or already ready for Parent Access, Secretary tools, and Cloud Scheduler.'
+          : targetNeedsParentRuntime(readinessTarget)
+          ? 'The required Google/Firebase services were enabled or already ready for Storage and Parent Access Functions.'
           : 'The required Google/Firebase services were enabled or already ready for Starter flow.',
         {
           technicalDetails: JSON.stringify(enabledServices.services, null, 2),
@@ -3272,6 +3721,18 @@ async function recheckExistingSchool(projectId, options = {}) {
     };
   }
 
+  const roleRuntime = await appendRoleRuntimeTasks({
+    tasks,
+    projectId,
+    serviceAccount,
+    provisioningAuth,
+    readinessTarget,
+    firebaseLocation,
+    siteDomain: school.siteDomain || defaults.siteDomain,
+    serviceAccountKeyPath: keyPath,
+    createFoundingSecretaryActivation: false,
+  });
+
   const ready = Boolean(
     subscription.exists &&
     renderOutput.renderJson &&
@@ -3282,23 +3743,35 @@ async function recheckExistingSchool(projectId, options = {}) {
     firestoreRulesCheck.matches &&
     indexReport.missingCount === 0 &&
     webConfigResult.ok &&
-    (!targetNeedsStorage(readinessTarget) || Boolean(storageBucketName))
+    (!targetNeedsStorage(readinessTarget) || Boolean(storageBucketName)) &&
+    roleRuntime.functionsReady &&
+    roleRuntime.purgeScheduleReady &&
+    roleRuntime.secretaryReady
   );
+
+  let healthMessage = 'This school still needs attention before it is fully ready.';
+  let summary = 'This school still needs attention.';
+  if (ready) {
+    if (targetNeedsAdminRuntime(readinessTarget)) {
+      healthMessage = 'This saved school looks ready for Family Access and the Secretary console, including the leave-school 30-day purge schedule.';
+      summary = 'This school looks ready for Parent Access and the Secretary console.';
+    } else if (targetNeedsParentRuntime(readinessTarget)) {
+      healthMessage = 'This saved school looks ready for Pro Parent Access (Family Access Functions + Storage).';
+      summary = 'This school looks ready for Pro Parent Access.';
+    } else {
+      healthMessage = 'This saved school looks ready for Starter flow.';
+      summary = 'This school looks ready for Starter flow.';
+    }
+  }
 
   tasks.push(
     makeTask(
       'finalHealth',
       ready ? 'done' : 'needs_attention',
       'Run the final health check',
-      ready
-        ? targetNeedsAdminRuntime(readinessTarget)
-          ? 'This saved school looks ready for parent access and the secretary console, including the admin runtime.'
-          : targetNeedsStorage(readinessTarget)
-          ? 'This saved school looks ready for Pro/Elite, including Storage.'
-          : 'This saved school looks ready for Starter flow.'
-        : 'This school still needs attention before it is fully ready.',
+      healthMessage,
       {
-        actionHint: ready ? '' : 'Fix the checks above, then rerun this school check.',
+        actionHint: ready ? '' : 'Fix the checks above (including Functions / Scheduler / Secretary when required), then rerun this school check.',
       }
     )
   );
@@ -3315,15 +3788,10 @@ async function recheckExistingSchool(projectId, options = {}) {
       webConfig: webConfigResult.config,
       renderPath: renderOutput.path,
       firebaseWebConfigStatus: webConfigResult.ok ? 'ready' : 'missing',
+      secretaryActivation: roleRuntime.secretaryActivation,
     },
     finalStatus: ready ? 'ready' : 'needs_attention',
-    summary: ready
-      ? targetNeedsAdminRuntime(readinessTarget)
-        ? 'This school looks ready for parent access and the secretary console.'
-        : targetNeedsStorage(readinessTarget)
-        ? 'This school looks ready for Pro or Elite.'
-        : 'This school looks ready for Starter flow.'
-      : 'This school still needs attention.',
+    summary,
   };
 }
 
@@ -3368,7 +3836,14 @@ module.exports = {
   extractProjectNumber,
   buildServiceUsageConsumerName,
   normalizeReadinessTarget,
+  targetNeedsStorage,
+  targetNeedsParentRuntime,
+  targetNeedsAdminRuntime,
+  describeReadinessTarget,
   getRequiredServices,
+  getRequiredFunctionNames,
+  PARENT_RUNTIME_FUNCTION_NAMES,
+  SECRETARY_RUNTIME_FUNCTION_NAMES,
   summarizeAssessmentDefaults,
   summarizeGoogleErrorText,
   inspectBootstrapAdminAuth,

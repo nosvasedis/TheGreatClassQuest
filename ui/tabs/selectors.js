@@ -2,10 +2,11 @@
 import * as state from '../../state.js';
 import * as utils from '../../utils.js';
 import * as constants from '../../constants.js';
-import * as modals from '../modals.js';
 import { renderAwardStarsStudentList } from './award.js';
 import { getAwardLogMonthlyStarCredit } from '../../features/awardLogReasonMeta.js';
 import { filterDocsForActiveYear } from '../../utils/schoolYear.js';
+import { getDayAgenda, QUEST_EVENT_ICONS } from '../../utils/calendarDay.js';
+import { escapeHtml } from '../../features/roles/shared.js';
 
 export function findAndSetCurrentClass(targetSelectId = null) {
     if (state.get('globalSelectedClassId')) return;
@@ -49,11 +50,179 @@ export function populateCalendarStars(logSource) {
     }
 }
 
+function isMobileCalendarMode() {
+    return typeof document !== 'undefined' && document.body?.classList.contains('gcq-mobile');
+}
+
+function startOfDay(date) {
+    const d = new Date(date);
+    d.setHours(0, 0, 0, 0);
+    return d;
+}
+
+function renderMobileCalendarDay(customLogs = null) {
+    const dayRoot = document.getElementById('m-calendar-day');
+    const grid = document.getElementById('calendar-grid');
+    if (!dayRoot) return;
+
+    if (grid) grid.hidden = true;
+    dayRoot.hidden = false;
+
+    const logsToRender = filterDocsForActiveYear(
+        customLogs || state.get('allAwardLogs'),
+        state.get('schoolYearState'),
+    );
+    const classEndDates = state.get('teacherSettings')?.schoolYearSettings?.classEndDates || {};
+    const calendarCurrentDate = startOfDay(state.get('calendarCurrentDate') || new Date());
+    const dateString = utils.getDDMMYYYY(calendarCurrentDate);
+    const today = startOfDay(new Date());
+
+    const agenda = getDayAgenda({
+        dateString,
+        allSchoolClasses: state.get('allSchoolClasses'),
+        allTeachersClasses: state.get('allTeachersClasses'),
+        allScheduleOverrides: state.get('allScheduleOverrides'),
+        schoolHolidayRanges: state.get('schoolHolidayRanges'),
+        allQuestEvents: state.get('allQuestEvents'),
+        allQuestAssignments: state.get('allQuestAssignments'),
+        awardLogs: logsToRender,
+        classEndDates,
+        today,
+    });
+
+    const titleEl = document.getElementById('calendar-month-year');
+    if (titleEl) {
+        titleEl.textContent = agenda.day.toLocaleDateString('en-GB', {
+            weekday: 'long',
+            day: 'numeric',
+            month: 'long',
+            year: 'numeric',
+        });
+    }
+
+    const todayChip = document.getElementById('m-calendar-today-chip');
+    if (todayChip) todayChip.classList.toggle('hidden', !agenda.isToday);
+
+    const activeYearStart = state.getActiveSchoolYearStartDate();
+    const activeYearEnd = state.getActiveSchoolYearEndDate();
+    const prevBtn = document.getElementById('prev-month-btn');
+    const nextBtn = document.getElementById('next-month-btn');
+    if (prevBtn) {
+        prevBtn.disabled = Boolean(activeYearStart && calendarCurrentDate <= startOfDay(activeYearStart));
+        prevBtn.setAttribute('aria-label', 'Previous day');
+    }
+    if (nextBtn) {
+        nextBtn.disabled = Boolean(activeYearEnd && calendarCurrentDate >= startOfDay(activeYearEnd));
+        nextBtn.setAttribute('aria-label', 'Next day');
+    }
+
+    const holidayHtml = agenda.isNoSchool
+        ? `<section class="m-cal-banner m-cal-banner--holiday" aria-label="Holiday">
+                <span class="m-cal-banner__icon" aria-hidden="true">${agenda.holidayIcon || '📅'}</span>
+                <div>
+                    <p class="m-cal-banner__label">${escapeHtml(agenda.holidayLabel || 'No School')}</p>
+                    <p class="m-cal-banner__hint">No regular lessons today</p>
+                </div>
+           </section>`
+        : '';
+
+    const lessonsHtml = agenda.classes.length
+        ? agenda.classes.map((c) => {
+            const testTitle = c.testAssignment?.testData?.title;
+            const testHtml = c.testAssignment
+                ? `<span class="m-cal-lesson__test" title="${escapeHtml(testTitle || 'Test')}">📝 TEST</span>`
+                : '';
+            return `<article class="m-cal-lesson ${c.color?.bg || ''} ${c.color?.text || ''} ${c.color?.border ? `border-l-4 ${c.color.border}` : ''}">
+                <div class="m-cal-lesson__meta">
+                    <span class="m-cal-lesson__time">${escapeHtml(c.timeDisplay || 'Lesson')}</span>
+                    ${testHtml}
+                </div>
+                <p class="m-cal-lesson__name">${escapeHtml(c.logo || '')} ${escapeHtml(c.name || 'Class')}</p>
+            </article>`;
+        }).join('')
+        : `<p class="m-cal-empty">No lessons scheduled</p>`;
+
+    const eventsHtml = agenda.questEvents.length
+        ? agenda.questEvents.map((e) => `
+            <article class="m-cal-event">
+                <span class="m-cal-event__icon">${escapeHtml(e.icon)}</span>
+                <div class="m-cal-event__body">
+                    <p class="m-cal-event__title">${escapeHtml(e.title)}</p>
+                    <p class="m-cal-event__type">${escapeHtml(e.type || 'Quest Event')}</p>
+                </div>
+                <button type="button" class="m-cal-event__delete delete-event-btn" data-id="${escapeHtml(e.id)}" data-name="${escapeHtml(e.title)}" aria-label="Delete event">
+                    <i class="fas fa-times" aria-hidden="true"></i>
+                </button>
+            </article>`).join('')
+        : '';
+
+    const starsHtml = agenda.starTotal > 0
+        ? `<section class="m-cal-stars" aria-label="Stars earned">
+                <i class="fas fa-star" aria-hidden="true"></i>
+                <span><strong>${agenda.starTotal}</strong> star${agenda.starTotal === 1 ? '' : 's'} earned this day</span>
+           </section>`
+        : '';
+
+    const isEmpty = !agenda.isNoSchool && !agenda.classes.length && !agenda.questEvents.length && agenda.starTotal <= 0;
+    const emptyHtml = isEmpty
+        ? `<div class="m-cal-empty-state">
+                <span aria-hidden="true">🌤️</span>
+                <p>No lessons or quest events on this day.</p>
+           </div>`
+        : '';
+
+    const showLessonsSection = !isEmpty && !agenda.isNoSchool;
+    const lessonsSection = showLessonsSection
+        ? `<section class="m-cal-section">
+                <h3 class="m-cal-section__title">Lessons</h3>
+                <div class="m-cal-section__body">${lessonsHtml}</div>
+           </section>`
+        : '';
+
+    dayRoot.innerHTML = `
+        <div class="m-cal-day-card">
+            ${holidayHtml}
+            ${emptyHtml}
+            ${lessonsSection}
+            ${agenda.questEvents.length ? `
+            <section class="m-cal-section">
+                <h3 class="m-cal-section__title">Quest Events</h3>
+                <div class="m-cal-section__body m-cal-section__body--events">${eventsHtml}</div>
+            </section>` : ''}
+            ${starsHtml}
+            <div class="m-cal-actions">
+                <button type="button" class="m-cal-action m-cal-action--plan" data-m-cal-action="plan" data-date="${escapeHtml(dateString)}">
+                    <i class="fas fa-wand-magic-sparkles" aria-hidden="true"></i>
+                    Plan day
+                </button>
+                <button type="button" class="m-cal-action m-cal-action--log" data-m-cal-action="logbook" data-date="${escapeHtml(dateString)}" ${agenda.isFuture ? 'disabled' : ''}>
+                    <i class="fas fa-book-open" aria-hidden="true"></i>
+                    Open logbook
+                </button>
+            </div>
+        </div>
+    `;
+}
+
 // Accepts optional 'customLogs' for historical views. 
 // If null, defaults to state.allAwardLogs (Current Month).
 export function renderCalendarTab(customLogs = null) {
+    if (isMobileCalendarMode()) {
+        renderMobileCalendarDay(customLogs);
+        return;
+    }
+
     const grid = document.getElementById('calendar-grid');
+    const dayRoot = document.getElementById('m-calendar-day');
+    if (dayRoot) {
+        dayRoot.hidden = true;
+        dayRoot.innerHTML = '';
+    }
+    if (grid) grid.hidden = false;
     if (!grid) return;
+
+    const todayChip = document.getElementById('m-calendar-today-chip');
+    if (todayChip) todayChip.classList.add('hidden');
 
     // Determine which dataset to use (hide closed-year stars after year-end close)
     const logsToRender = filterDocsForActiveYear(
@@ -89,6 +258,10 @@ export function renderCalendarTab(customLogs = null) {
     const activeYearEnd = state.getActiveSchoolYearEndDate();
     document.getElementById('prev-month-btn').disabled = !activeYearStart || calendarCurrentDate <= activeYearStart;
     document.getElementById('next-month-btn').disabled = !activeYearEnd || (calendarCurrentDate.getMonth() === activeYearEnd.getMonth() && calendarCurrentDate.getFullYear() === activeYearEnd.getFullYear());
+    const prevBtn = document.getElementById('prev-month-btn');
+    const nextBtn = document.getElementById('next-month-btn');
+    if (prevBtn) prevBtn.setAttribute('aria-label', 'Previous month');
+    if (nextBtn) nextBtn.setAttribute('aria-label', 'Next month');
 
     const thirtyDaysAgo = new Date();
     thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
@@ -155,16 +328,8 @@ export function renderCalendarTab(customLogs = null) {
 
             const starHtml = totalStarsThisDay > 0 ? `<div class="calendar-star-count text-center text-amber-600 font-bold -mt-5 mb-2 text-sm relative z-10 filter drop-shadow-sm"><i class="fas fa-star mr-1"></i>${totalStarsThisDay}</div>` : '';
 
-            // --- NEW: Event Icons Map ---
-            const eventIcons = {
-                '2x Star Day': '⭐ x2',
-                'Reason Bonus Day': '✨ Bonus',
-                'Vocabulary Vault': '🔑 Vocab',
-                'The Unbroken Chain': '🔗 Chain',
-                'Grammar Guardians': '🛡️ Grammar',
-                'The Scribe\'s Sketch': '✏️ Sketch',
-                'Five-Sentence Saga': '📜 Saga'
-            };
+            // --- Event Icons Map ---
+            const eventIcons = QUEST_EVENT_ICONS;
 
             const questEventsOnThisDay = state.get('allQuestEvents').filter(e => utils.datesMatch(e.date, dateString));
 

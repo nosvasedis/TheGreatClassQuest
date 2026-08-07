@@ -15,7 +15,9 @@ body.gcq-mobile {
     --m-press-scale: 0.94;
     --m-header-height: 7.25rem;
     --m-dock-height: 4.85rem;
-    --m-dock-clearance: calc(var(--m-dock-height) + env(safe-area-inset-bottom));
+    --m-browser-chrome-bottom: 0px;
+    --m-safe-bottom: max(env(safe-area-inset-bottom, 0px), var(--m-browser-chrome-bottom));
+    --m-dock-clearance: calc(var(--m-dock-height) + var(--m-safe-bottom));
     --m-radius-lg: 1.55rem;
     --m-radius-md: 1.15rem;
     --m-radius-pill: 999px;

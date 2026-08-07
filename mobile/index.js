@@ -155,6 +155,11 @@ function applyMobileMode() {
     if (active) {
         requestAnimationFrame(() => measureMobileChrome());
     }
+    // Calendar switches month-grid ↔ day-agenda when mode flips.
+    const calendarTab = document.getElementById('calendar-tab');
+    if (calendarTab && !calendarTab.classList.contains('hidden')) {
+        import('../ui/tabs.js').then((m) => m.renderCalendarTab()).catch(() => {});
+    }
 }
 
 export function initMobileLayer() {

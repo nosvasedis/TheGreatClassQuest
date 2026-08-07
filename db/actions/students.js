@@ -22,7 +22,7 @@ import { canUseFeature } from '../../utils/subscription.js';
 import { showUpgradePrompt } from '../../utils/upgradePrompt.js';
 import { getUpgradeMessage } from '../../config/tiers/features.js';
 import { withActiveScoreYear, withActiveStudentYear } from '../../utils/schoolYear.js';
-import { allocateReturningStudents, transferStudentToClass } from '../../utils/adminRuntime.js';
+import { allocateReturningStudents, purgeStudent, transferStudentToClass } from '../../utils/adminRuntime.js';
 
 // --- STUDENT & USER ACTIONS ---
 
@@ -76,17 +76,12 @@ export async function handleAddStudent() {
 }
 
 export async function deleteStudent(studentId) {
-    const publicDataPath = "artifacts/great-class-quest/public/data";
+    if (!studentId) return;
     try {
-        await runTransaction(db, async (transaction) => {
-            transaction.delete(doc(db, `${publicDataPath}/students`, studentId));
-            transaction.delete(doc(db, `${publicDataPath}/student_scores`, studentId));
-            if (state.get('todaysStars')[studentId]) {
-                transaction.delete(doc(db, `${publicDataPath}/today_stars`, state.get('todaysStars')[studentId].docId));
-            }
-        });
+        await purgeStudent({ studentId });
+        showToast('Student removed from the app.', 'success');
     } catch (error) {
-        console.error("Error deleting student: ", error);
+        console.error('Error deleting student: ', error);
         showToast(`Error: ${error.message}`, 'error');
     }
 }

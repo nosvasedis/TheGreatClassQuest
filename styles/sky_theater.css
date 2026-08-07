@@ -1,0 +1,392 @@
+/* Sky Theater — alive, happy, playful motion near the sky & clock */
+
+.sky-theater-sky {
+    position: absolute;
+    inset: 0;
+    overflow: hidden;
+    pointer-events: none;
+    z-index: 2;
+}
+
+.sky-theater-cameo {
+    position: absolute;
+    inset: -0.35rem -0.5rem;
+    overflow: visible;
+    pointer-events: none;
+    z-index: 3;
+}
+
+.m-sky-theater-sky {
+    z-index: 1;
+}
+
+.m-header__clock {
+    position: relative;
+}
+
+.m-sky-theater-cameo {
+    z-index: 2;
+    inset: -0.25rem -0.4rem;
+}
+
+.sky-theater-actor {
+    position: absolute;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: clamp(1.45rem, 2.2vw, 2rem);
+    line-height: 1;
+    filter: drop-shadow(0 2px 5px rgba(15, 40, 90, 0.32));
+    will-change: transform, opacity;
+    pointer-events: none;
+    user-select: none;
+    z-index: 5;
+    transform-origin: center center;
+}
+
+.sky-theater-actor.is-night {
+    filter: drop-shadow(0 0 8px rgba(253, 224, 71, 0.5)) drop-shadow(0 2px 6px rgba(15, 23, 42, 0.5));
+}
+
+body.gcq-mobile .sky-theater-actor {
+    font-size: 1.35rem;
+}
+
+/* Shared playful easing */
+/* —— Flybys: organic paths (wobble, bob, bank) —— */
+
+@keyframes st-fly-rl {
+    0%   { transform: translate(0, 0) rotate(-12deg) scale(0.92); opacity: 0; }
+    8%   { opacity: 1; }
+    18%  { transform: translate(-18vw, -0.55rem) rotate(8deg) scale(1); }
+    32%  { transform: translate(-34vw, 0.45rem) rotate(-10deg); }
+    48%  { transform: translate(-52vw, -0.4rem) rotate(6deg) scale(1.04); }
+    64%  { transform: translate(-70vw, 0.5rem) rotate(-8deg); }
+    80%  { transform: translate(-86vw, -0.25rem) rotate(5deg); opacity: 1; }
+    100% { transform: translate(calc(-100vw - 3rem), 0.15rem) rotate(-4deg) scale(0.95); opacity: 0; }
+}
+.st-fly-rl {
+    top: 30%;
+    left: 100%;
+    animation: st-fly-rl 6.8s cubic-bezier(0.37, 0.05, 0.25, 1) forwards;
+}
+
+@keyframes st-fly-rl-banner {
+    0%   { transform: translate(0, 0) rotate(-6deg); opacity: 0; }
+    10%  { opacity: 1; }
+    25%  { transform: translate(-22vw, -0.35rem) rotate(4deg); }
+    45%  { transform: translate(-45vw, 0.4rem) rotate(-5deg); }
+    70%  { transform: translate(-72vw, -0.2rem) rotate(3deg); opacity: 1; }
+    100% { transform: translate(calc(-100vw - 4rem), 0.3rem) rotate(-2deg); opacity: 0; }
+}
+.st-fly-rl-banner {
+    top: 24%;
+    left: 100%;
+    animation: st-fly-rl-banner 7.1s cubic-bezier(0.33, 0.1, 0.2, 1) forwards;
+}
+.st-fly-rl-banner::after {
+    content: 'QUEST!';
+    position: absolute;
+    left: 108%;
+    top: 10%;
+    font-size: 0.55rem;
+    font-weight: 800;
+    letter-spacing: 0.04em;
+    color: #fff;
+    background: rgba(99, 102, 241, 0.88);
+    border: 1px solid rgba(255, 255, 255, 0.75);
+    border-radius: 0.3rem;
+    padding: 0.12rem 0.38rem;
+    white-space: nowrap;
+    animation: st-banner-wiggle 0.55s ease-in-out infinite alternate;
+}
+
+@keyframes st-banner-wiggle {
+    from { transform: rotate(-4deg) translateY(0); }
+    to { transform: rotate(5deg) translateY(-1px); }
+}
+
+/* Confetti bird — flap + hop, not a straight conveyor */
+@keyframes st-fly-rl-trail {
+    0%   { transform: translate(0, 0.2rem) rotate(-18deg) scale(0.9); opacity: 0; }
+    6%   { opacity: 1; }
+    12%  { transform: translate(-10vw, -0.7rem) rotate(14deg) scale(1.05); }
+    20%  { transform: translate(-18vw, 0.55rem) rotate(-16deg) scale(0.98); }
+    28%  { transform: translate(-28vw, -0.85rem) rotate(12deg) scale(1.06); }
+    36%  { transform: translate(-38vw, 0.4rem) rotate(-14deg); }
+    44%  { transform: translate(-48vw, -0.65rem) rotate(10deg) scale(1.04); }
+    52%  { transform: translate(-58vw, 0.5rem) rotate(-12deg); }
+    60%  { transform: translate(-68vw, -0.75rem) rotate(15deg) scale(1.05); }
+    70%  { transform: translate(-78vw, 0.35rem) rotate(-10deg); }
+    82%  { transform: translate(-90vw, -0.5rem) rotate(8deg); opacity: 1; }
+    100% { transform: translate(calc(-100vw - 3rem), 0.2rem) rotate(-6deg) scale(0.92); opacity: 0; }
+}
+.st-fly-rl-trail {
+    top: 34%;
+    left: 100%;
+    animation: st-fly-rl-trail 7.2s cubic-bezier(0.28, 0.15, 0.22, 1) forwards;
+}
+.st-fly-rl-trail::before {
+    content: '✨';
+    position: absolute;
+    right: -0.85rem;
+    top: 0.05rem;
+    font-size: 0.7rem;
+    animation: st-sparkle-twinkle 0.45s ease-in-out infinite alternate;
+}
+
+@keyframes st-fly-lr-slow {
+    0%   { transform: translate(0, 0) scaleX(-1) rotate(8deg); opacity: 0; }
+    10%  { opacity: 1; }
+    30%  { transform: translate(30vw, -0.5rem) scaleX(-1) rotate(-6deg); }
+    55%  { transform: translate(55vw, 0.45rem) scaleX(-1) rotate(7deg); }
+    80%  { transform: translate(82vw, -0.3rem) scaleX(-1) rotate(-4deg); opacity: 1; }
+    100% { transform: translate(calc(100vw + 3rem), 0.2rem) scaleX(-1) rotate(3deg); opacity: 0; }
+}
+.st-fly-lr-slow {
+    top: 38%;
+    right: 100%;
+    left: auto;
+    animation: st-fly-lr-slow 7.2s cubic-bezier(0.35, 0.08, 0.2, 1) forwards;
+}
+
+@keyframes st-fly-lr-bob {
+    0%   { transform: translate(0, 0.4rem) rotate(-5deg) scale(0.92); opacity: 0; }
+    8%   { opacity: 1; }
+    22%  { transform: translate(18vw, -0.75rem) rotate(6deg) scale(1); }
+    40%  { transform: translate(38vw, 0.55rem) rotate(-4deg); }
+    58%  { transform: translate(58vw, -0.65rem) rotate(5deg) scale(1.04); }
+    78%  { transform: translate(80vw, 0.35rem) rotate(-3deg); opacity: 1; }
+    100% { transform: translate(108vw, -0.15rem) rotate(2deg) scale(0.95); opacity: 0; }
+}
+.st-fly-lr-bob {
+    top: 42%;
+    left: -3rem;
+    animation: st-fly-lr-bob 7.6s cubic-bezier(0.4, 0.05, 0.2, 1) forwards;
+}
+
+@keyframes st-fly-rocket {
+    0%   { transform: translate(0, 0) rotate(-28deg) scale(0.85); opacity: 0; }
+    10%  { opacity: 1; transform: translate(-0.15rem, -0.8rem) rotate(-24deg) scale(1); }
+    35%  { transform: translate(0.25rem, -3.2rem) rotate(-16deg) scale(1.05); }
+    60%  { transform: translate(-0.2rem, -5.8rem) rotate(-12deg) scale(1.1); }
+    100% { transform: translate(0.1rem, -9.5rem) rotate(-8deg) scale(1.15); opacity: 0; }
+}
+.st-fly-rocket {
+    left: 78%;
+    bottom: -0.4rem;
+    top: auto;
+    animation: st-fly-rocket 6.8s cubic-bezier(0.18, 0.75, 0.25, 1) forwards;
+}
+.st-fly-rocket::after {
+    content: '💨';
+    position: absolute;
+    bottom: -0.55rem;
+    left: 0.15rem;
+    font-size: 0.65rem;
+    opacity: 0.8;
+    animation: st-sparkle-twinkle 0.35s ease-in-out infinite alternate;
+}
+
+@keyframes st-fly-swoop {
+    0%   { transform: translate(0, -0.5rem) rotate(22deg) scale(0.9); opacity: 0; }
+    12%  { opacity: 1; }
+    28%  { transform: translate(22vw, 1.1rem) rotate(-4deg) scale(1.05); }
+    48%  { transform: translate(48vw, 0.2rem) rotate(10deg); }
+    72%  { transform: translate(75vw, 0.9rem) rotate(-6deg); opacity: 1; }
+    100% { transform: translate(108vw, -0.3rem) rotate(8deg) scale(0.95); opacity: 0; }
+}
+.st-fly-swoop {
+    top: 10%;
+    left: -3rem;
+    animation: st-fly-swoop 7s cubic-bezier(0.3, 0.12, 0.2, 1) forwards;
+}
+
+@keyframes st-fly-zigzag {
+    0%   { transform: translate(0, 0.3rem) rotate(-8deg); opacity: 0; }
+    8%   { opacity: 1; }
+    20%  { transform: translate(16vw, -1rem) rotate(12deg) scale(1.05); }
+    35%  { transform: translate(32vw, 0.85rem) rotate(-14deg); }
+    50%  { transform: translate(50vw, -0.9rem) rotate(10deg); }
+    65%  { transform: translate(68vw, 0.7rem) rotate(-11deg); }
+    82%  { transform: translate(88vw, -0.45rem) rotate(7deg); opacity: 1; }
+    100% { transform: translate(110vw, 0.2rem) rotate(-3deg); opacity: 0; }
+}
+.st-fly-zigzag {
+    top: 48%;
+    left: -3rem;
+    animation: st-fly-zigzag 7.3s cubic-bezier(0.32, 0.1, 0.18, 1) forwards;
+}
+
+@keyframes st-fly-comet {
+    0%   { transform: translate(0, 0) rotate(28deg) scale(0.75); opacity: 0; }
+    10%  { opacity: 1; }
+    40%  { transform: translate(-42vw, 1.8rem) rotate(30deg) scale(1.05); }
+    100% { transform: translate(-112vw, 4.5rem) rotate(34deg) scale(1.2); opacity: 0; }
+}
+.st-fly-comet {
+    top: -0.35rem;
+    left: 100%;
+    animation: st-fly-comet 6.2s cubic-bezier(0.2, 0.4, 0.35, 1) forwards;
+}
+
+@keyframes st-fly-ufo {
+    0%   { transform: translate(0, 0) scale(0.88) rotate(-4deg); opacity: 0; }
+    10%  { opacity: 1; }
+    28%  { transform: translate(28vw, -0.55rem) scale(1) rotate(3deg); }
+    42%  { transform: translate(42vw, 0.15rem) scale(1.08) rotate(0deg); }
+    52%  { transform: translate(48vw, 0.65rem) scale(1.12); } /* hover */
+    62%  { transform: translate(52vw, 0.1rem) scale(1.05) rotate(-2deg); }
+    80%  { transform: translate(78vw, -0.4rem) scale(1) rotate(4deg); opacity: 1; }
+    100% { transform: translate(112vw, 0.2rem) scale(0.9) rotate(-3deg); opacity: 0; }
+}
+.st-fly-ufo {
+    top: 28%;
+    left: -3rem;
+    animation: st-fly-ufo 7.4s cubic-bezier(0.36, 0.08, 0.22, 1) forwards;
+}
+
+@keyframes st-fly-weave {
+    0%   { transform: translate(0, 0) rotate(10deg) scale(0.92); opacity: 0; }
+    8%   { opacity: 1; }
+    22%  { transform: translate(-20vw, 1rem) rotate(-14deg) scale(1.04); }
+    40%  { transform: translate(-42vw, -0.85rem) rotate(12deg); }
+    58%  { transform: translate(-62vw, 0.75rem) rotate(-10deg); }
+    78%  { transform: translate(-84vw, -0.55rem) rotate(8deg); opacity: 1; }
+    100% { transform: translate(-112vw, 0.15rem) rotate(-4deg) scale(0.95); opacity: 0; }
+}
+.st-fly-weave {
+    top: 26%;
+    left: 100%;
+    animation: st-fly-weave 7.1s cubic-bezier(0.3, 0.12, 0.2, 1) forwards;
+}
+
+@keyframes st-fly-arc {
+    0%   { transform: translate(0, 1.2rem) rotate(-8deg) scale(0.65); opacity: 0; }
+    12%  { opacity: 0.95; }
+    35%  { transform: translate(28vw, -0.9rem) rotate(4deg) scale(1.1); }
+    55%  { transform: translate(48vw, -1.35rem) rotate(0deg) scale(1.2); opacity: 1; }
+    78%  { transform: translate(78vw, -0.5rem) rotate(-5deg) scale(1.05); }
+    100% { transform: translate(108vw, 1.1rem) rotate(6deg) scale(0.7); opacity: 0; }
+}
+.st-fly-arc {
+    top: 36%;
+    left: -3rem;
+    font-size: clamp(1.75rem, 2.8vw, 2.45rem);
+    animation: st-fly-arc 7.3s cubic-bezier(0.34, 0.1, 0.2, 1) forwards;
+}
+
+/* —— Cameos: tucked against date (top-right) or time (bottom-right) —— */
+
+@keyframes st-cameo-pop {
+    0%   { transform: translate(0.2rem, 0.3rem) scale(0.15) rotate(-20deg); opacity: 0; }
+    28%  { transform: translate(0, -0.35rem) scale(1.4) rotate(12deg); opacity: 1; }
+    48%  { transform: translate(-0.1rem, 0) scale(0.92) rotate(-6deg); }
+    68%  { transform: translate(0, -0.15rem) scale(1.12) rotate(4deg); opacity: 1; }
+    100% { transform: translate(0.15rem, -0.55rem) scale(0.45) rotate(-8deg); opacity: 0; }
+}
+.st-cameo-pop {
+    right: 0.15rem;
+    bottom: 0.05rem; /* by the time */
+    animation: st-cameo-pop 3.1s cubic-bezier(0.34, 1.4, 0.45, 1) forwards;
+}
+
+@keyframes st-cameo-peek {
+    0%   { transform: translate(0.4rem, 1.2rem) scale(0.6) rotate(8deg); opacity: 0; }
+    25%  { transform: translate(0, 0) scale(1.08) rotate(-4deg); opacity: 1; }
+    45%  { transform: translate(0.08rem, -0.12rem) scale(1) rotate(3deg); } /* wink bob */
+    55%  { transform: translate(0, 0.05rem) scale(1.05) rotate(-2deg); }
+    72%  { transform: translate(0, 0) scale(1) rotate(0deg); opacity: 1; }
+    100% { transform: translate(0.3rem, 1.3rem) scale(0.65) rotate(6deg); opacity: 0; }
+}
+.st-cameo-peek {
+    right: 0.35rem;
+    top: -0.15rem; /* by the date */
+    left: auto;
+    animation: st-cameo-peek 3.25s cubic-bezier(0.34, 1.25, 0.4, 1) forwards;
+}
+
+@keyframes st-cameo-sparks {
+    0%   { transform: translate(0.2rem, 0.4rem) scale(0.3) rotate(-15deg); opacity: 0; }
+    22%  { transform: translate(0, -0.4rem) scale(1.2) rotate(10deg); opacity: 1; }
+    45%  { transform: translate(-0.15rem, -0.15rem) scale(0.95) rotate(-8deg); }
+    65%  { transform: translate(0.1rem, -0.55rem) scale(1.1) rotate(6deg); opacity: 1; }
+    100% { transform: translate(0, -1.1rem) scale(0.55) rotate(-4deg); opacity: 0; }
+}
+.st-cameo-sparks {
+    right: 0.85rem;
+    bottom: 0.05rem; /* sprinkle over time */
+    animation: st-cameo-sparks 3.2s cubic-bezier(0.3, 1.35, 0.4, 1) forwards;
+}
+
+@keyframes st-cameo-stamp {
+    0%   { transform: translate(0, -1rem) scale(1.5) rotate(-18deg); opacity: 0; }
+    32%  { transform: translate(0, 0.08rem) scale(0.92) rotate(4deg); opacity: 1; }
+    48%  { transform: translate(0, -0.12rem) scale(1.12) rotate(-3deg); }
+    70%  { transform: translate(0, 0) scale(1) rotate(0deg); opacity: 1; }
+    100% { transform: translate(0.1rem, 0.2rem) scale(0.8) rotate(6deg); opacity: 0; }
+}
+.st-cameo-stamp {
+    right: 0.2rem;
+    top: 0.15rem; /* stamp on the date */
+    left: auto;
+    animation: st-cameo-stamp 3.05s cubic-bezier(0.2, 1.45, 0.35, 1) forwards;
+}
+
+@keyframes st-cameo-highfive {
+    0%   { transform: translate(0.4rem, 0.2rem) scale(0.2) rotate(-25deg); opacity: 0; }
+    30%  { transform: translate(0, -0.2rem) scale(1.45) rotate(15deg); opacity: 1; }
+    50%  { transform: translate(-0.05rem, 0) scale(0.9) rotate(-8deg); }
+    70%  { transform: translate(0, -0.1rem) scale(1.15) rotate(5deg); opacity: 1; }
+    100% { transform: translate(0.2rem, -0.45rem) scale(0.4) rotate(-10deg); opacity: 0; }
+}
+.st-cameo-highfive {
+    right: 0.55rem;
+    bottom: 0.05rem; /* by the time */
+    top: auto;
+    animation: st-cameo-highfive 3.15s cubic-bezier(0.34, 1.5, 0.4, 1) forwards;
+}
+
+@keyframes st-cameo-treasure {
+    0%   { transform: translate(0.15rem, 0.7rem) scale(0.4) rotate(-14deg); opacity: 0; }
+    28%  { transform: translate(0, -0.2rem) scale(1.25) rotate(8deg); opacity: 1; }
+    48%  { transform: translate(0, 0.05rem) scale(0.95) rotate(-4deg); }
+    68%  { transform: translate(0, -0.08rem) scale(1.1) rotate(3deg); opacity: 1; }
+    100% { transform: translate(0.1rem, 0.45rem) scale(0.6) rotate(-6deg); opacity: 0; }
+}
+.st-cameo-treasure {
+    right: 0.25rem;
+    top: 0.2rem; /* by the date */
+    left: auto;
+    bottom: auto;
+    animation: st-cameo-treasure 3.2s cubic-bezier(0.32, 1.4, 0.4, 1) forwards;
+}
+
+/* Soft sun/moon halo — hugs the time, breathes (not a centered flash) */
+@keyframes st-cameo-halo {
+    0%   { transform: translate(0.35rem, 0.25rem) scale(0.4) rotate(-8deg); opacity: 0; filter: blur(1px); }
+    22%  { transform: translate(0, -0.15rem) scale(1.15) rotate(6deg); opacity: 1; filter: blur(0); }
+    42%  { transform: translate(-0.08rem, 0.08rem) scale(0.95) rotate(-4deg); }
+    62%  { transform: translate(0.05rem, -0.12rem) scale(1.12) rotate(3deg); opacity: 1; }
+    82%  { transform: translate(0, 0) scale(1.05) rotate(-2deg); }
+    100% { transform: translate(0.2rem, -0.35rem) scale(0.7) rotate(4deg); opacity: 0; filter: blur(2px); }
+}
+.st-cameo-halo {
+    right: 0.05rem;
+    bottom: -0.05rem; /* nestled on the time */
+    top: auto;
+    left: auto;
+    animation: st-cameo-halo 3.2s cubic-bezier(0.34, 1.35, 0.4, 1) forwards;
+}
+
+@keyframes st-sparkle-twinkle {
+    from { opacity: 0.35; transform: scale(0.8) rotate(-8deg); }
+    to { opacity: 1; transform: scale(1.15) rotate(8deg); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .sky-theater-sky,
+    .sky-theater-cameo {
+        display: none !important;
+    }
+}

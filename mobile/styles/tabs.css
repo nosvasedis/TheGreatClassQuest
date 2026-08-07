@@ -492,13 +492,13 @@ body.gcq-mobile .app-tab h4 {
     line-height: 1.25 !important;
 }
 
-/* 3. Card Containers — skip Student Roster (its own chrome already frames content) */
+/* 3. Card Containers — skip Student Roster (its own chrome already frames content)
+   and Quest Calendar (mobile day agenda owns its layout in calendar.css) */
 body.gcq-mobile #award-stars-tab .bg-white,
 body.gcq-mobile #shop-tab .bg-white,
 body.gcq-mobile #guilds-tab .bg-white,
 body.gcq-mobile #adventure-log-tab .bg-white,
 body.gcq-mobile #scholars-scroll-tab .bg-white,
-body.gcq-mobile #calendar-tab .bg-white,
 body.gcq-mobile #reward-ideas-tab .bg-white,
 body.gcq-mobile #options-tab .bg-white {
     padding: 0.85rem 0.95rem !important;

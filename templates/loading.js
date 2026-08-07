@@ -47,7 +47,13 @@ function detectLowPowerTier() {
         const memory = navigator.deviceMemory;
         const lowCores = typeof cores === 'number' && cores > 0 && cores <= 4;
         const lowMemory = typeof memory === 'number' && memory > 0 && memory <= 4;
-        _isLowPowerDevice = reducedMotion || lowCores || lowMemory;
+        // Phones (esp. Android Chrome) stutter hard on filter/clip-path/fireworks
+        // during the welcome finale — treat them as low-power for loading only.
+        const coarsePointer = Boolean(window.matchMedia?.('(pointer: coarse)').matches);
+        const narrowViewport = Boolean(window.matchMedia?.('(max-width: 1023px)').matches);
+        const androidUa = /Android/i.test(navigator.userAgent || '');
+        _isLowPowerDevice = reducedMotion || lowCores || lowMemory
+            || androidUa || (coarsePointer && narrowViewport);
     } catch (err) {
         _isLowPowerDevice = false;
     }
@@ -56,7 +62,7 @@ function detectLowPowerTier() {
 
 export const loadingHTML = `
     <div id="loading-screen"
-        class="fixed inset-0 flex flex-col items-center justify-center z-[1100] transition-opacity duration-500"
+        class="fixed inset-0 flex flex-col items-center justify-center z-[1100]"
         style="background: linear-gradient(180deg, #E8F6FF 0%, #BFE8FB 42%, #8FDCEF 68%, #CFF3DC 100%);">
 
         <div class="loading-sky-glow" aria-hidden="true"></div>

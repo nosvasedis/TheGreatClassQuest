@@ -86,6 +86,10 @@ export function markStudentLeftSchool(payload = {}) {
     return callAdmin('markStudentLeftSchool', payload);
 }
 
+export function purgeStudent(payload = {}) {
+    return callAdmin('purgeStudent', payload);
+}
+
 export function transferStudentToClass(payload = {}) {
     return callAdmin('transferStudentToClass', payload);
 }

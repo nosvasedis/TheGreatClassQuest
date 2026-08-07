@@ -19,6 +19,15 @@ test('Teacher Settings contains only teacher-owned controls and no school-wide e
   assert.match(teacherSettings, /My Planning/);
   assert.match(teacherSettings, /Class Grading/);
   assert.match(teacherSettings, /Family Access/);
+  assert.match(teacherSettings, /Parent logins/);
+  assert.doesNotMatch(teacherSettings, /Secretary\/admin credentials are managed only from the Secretary console/);
+  assert.doesNotMatch(teacherSettings, /Role Access Center/);
+  assert.match(read('features/accessManagement.js'), /Parent access is not included in this school's plan/);
+  assert.doesNotMatch(read('features/accessManagement.js'), />Pro\+</);
+  assert.match(read('features/schoolYearConsole.js'), /Parent access is turned off now/);
+  assert.match(read('utils/adminRuntime.js'), /purgeStudent/);
+  assert.match(read('functions/index.js'), /exports\.purgeLeftSchoolStudents/);
+  assert.match(read('functions/index.js'), /exports\.purgeStudent/);
   assert.match(teacherSettings, /<details id="teacher-advanced-data-actions"/);
   assert.match(read('ui/core/listeners.js'), /DELETE MY LOGS/);
 });

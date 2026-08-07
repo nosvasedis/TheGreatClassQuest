@@ -291,11 +291,11 @@ export const optionsTabHTML = `
                                         </div>
                                         <div class="text-center md:text-left flex-1">
                                             <div class="inline-flex items-center gap-2 px-3 py-1 bg-indigo-50 text-indigo-600 rounded-full text-xs font-bold uppercase tracking-wider mb-2 border border-indigo-100">
-                                                <i class="fas fa-lock"></i> Security & Roles
+                                                <i class="fas fa-lock"></i> Parent logins
                                             </div>
-                                            <h2 class="font-title text-4xl text-gray-800 mb-2">Role Access Center</h2>
+                                            <h2 class="font-title text-4xl text-gray-800 mb-2">Family Access</h2>
                                             <p class="text-gray-500 leading-relaxed max-w-2xl">
-                                                Create and manage parent access for students you teach. Secretary/admin credentials are managed only from the Secretary console.
+                                                Create a parent username and password for each student you teach. Families can follow progress, homework, and school messages.
                                             </p>
                                         </div>
                                     </div>

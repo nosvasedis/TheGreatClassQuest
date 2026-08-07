@@ -121,7 +121,10 @@
 /* --- TITLE MAGIC FAIRY PATROL (Safe Height & Long Rest) --- */
 
 header h1.font-title {
-    color: white !important;
+    /* Fill is transparent — white face + inner carve live on ::before
+       (see #main-app-title in wallpaper2.css). Glow stays on the host. */
+    color: transparent !important;
+    -webkit-text-fill-color: transparent;
     background: none !important;
     -webkit-background-clip: border-box !important;
     background-clip: border-box !important;
@@ -137,9 +140,10 @@ header h1.font-title::after {
     left: -30px;
     font-size: 1.4rem;
     color: #FCD34D; /* Gold */
-    /* text-stroke inherits into pseudo-elements — the fairy sparkle must
-       stay pure gold glow, no dark rim. */
+    /* Fairy sparkle: keep stroke/filter off so the soft inner-carve
+       face layer never tints the gold ✦. */
     -webkit-text-stroke: 0;
+    filter: none;
     
     /* Magical Glow */
     text-shadow:

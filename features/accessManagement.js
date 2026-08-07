@@ -38,10 +38,15 @@ function escapeHtml(value) {
         .replace(/'/g, '&#39;');
 }
 
+function isFamilyAccessStudent(student) {
+    const status = student?.enrollmentStatus || 'active';
+    return status !== 'inactive';
+}
+
 function getManageableStudents() {
     const role = state.get('currentUserRole');
     const currentUserId = state.get('currentUserId');
-    const students = state.get('allStudents') || [];
+    const students = (state.get('allStudents') || []).filter(isFamilyAccessStudent);
     if (role === 'secretary') return students;
     return students.filter((student) => student.createdBy?.uid === currentUserId);
 }
@@ -77,12 +82,9 @@ function renderParentAccessCard() {
 
     return `
         <article class="bg-white rounded-3xl border border-sky-100 p-6 shadow-lg">
-            <div class="flex items-center justify-between gap-4 mb-4">
-                <div>
-                    <h3 class="font-title text-2xl text-sky-800">Parent Access</h3>
-                    <p class="text-sm text-slate-500 mt-1">One parent login per student. Parents see curated progress, homework, and school messages.</p>
-                </div>
-                <span class="inline-flex items-center rounded-full bg-sky-100 text-sky-700 px-3 py-1 text-xs font-bold uppercase tracking-wide">Pro+</span>
+            <div class="mb-4">
+                <h3 class="font-title text-2xl text-sky-800">Parent Access</h3>
+                <p class="text-sm text-slate-500 mt-1">One login per student. Share the username and password with the family.</p>
             </div>
             ${students.length ? `
                 <div class="grid gap-4 lg:grid-cols-[minmax(220px,280px)_1fr]">
@@ -129,7 +131,7 @@ export async function renderAccessCenterUi() {
     if (!container) return;
     if (!canUseFeature('parentAccess')) {
         container.innerHTML = `
-            <div class="parent-empty">This school's current plan does not include role-based parent or secretary access.</div>
+            <div class="parent-empty">Parent access is not included in this school's plan.</div>
         `;
         return;
     }

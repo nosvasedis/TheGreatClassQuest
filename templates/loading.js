@@ -23,6 +23,7 @@ const LOADING_TIPS = [
 
 let _tipIntervalId = null;
 let _stagedPersonalization = null;
+let _isLowPowerDevice = null;
 const LOADING_LOGO_URL = new URL('../assets/great-class-quest-logo.svg', import.meta.url).href;
 
 function randomInt(max) {
@@ -33,10 +34,30 @@ function randomRange(min, max) {
     return min + (Math.random() * (max - min));
 }
 
+/**
+ * Best-effort, cached detection of constrained hardware so the loading scene
+ * can automatically shed its costliest filter/blur work on weaker laptops
+ * while keeping full visual density on capable machines. Never throws.
+ */
+function detectLowPowerTier() {
+    if (_isLowPowerDevice !== null) return _isLowPowerDevice;
+    try {
+        const reducedMotion = Boolean(window.matchMedia?.('(prefers-reduced-motion: reduce)').matches);
+        const cores = navigator.hardwareConcurrency;
+        const memory = navigator.deviceMemory;
+        const lowCores = typeof cores === 'number' && cores > 0 && cores <= 4;
+        const lowMemory = typeof memory === 'number' && memory > 0 && memory <= 4;
+        _isLowPowerDevice = reducedMotion || lowCores || lowMemory;
+    } catch (err) {
+        _isLowPowerDevice = false;
+    }
+    return _isLowPowerDevice;
+}
+
 export const loadingHTML = `
     <div id="loading-screen"
         class="fixed inset-0 flex flex-col items-center justify-center z-[1100] transition-opacity duration-500"
-        style="background: linear-gradient(to bottom, #F0F9FF 0%, #E0F2FE 50%, #D6F9E3 100%);">
+        style="background: linear-gradient(180deg, #E8F6FF 0%, #BFE8FB 42%, #8FDCEF 68%, #CFF3DC 100%);">
 
         <div class="loading-sky-glow" aria-hidden="true"></div>
         <div class="loading-sun" aria-hidden="true"></div>
@@ -87,7 +108,14 @@ export const loadingHTML = `
 
         <!-- Center content -->
         <div class="loading-stage">
-            <div class="loading-title">The Great Class Quest</div>
+            <div class="loading-title" data-text="The Great Class Quest">The Great Class Quest</div>
+
+            <div class="loading-title-flourish" aria-hidden="true">
+                <span class="loading-flourish-line"></span>
+                <span class="loading-flourish-gem"></span>
+                <span class="loading-flourish-line"></span>
+            </div>
+
             <div class="loading-subtitle">Every Great Quest Starts With One Brave Step</div>
 
             <div class="loading-spinner-wrap">
@@ -97,10 +125,26 @@ export const loadingHTML = `
                 <div class="loading-simple-ring"></div>
             </div>
 
-            <div class="loading-text">Loading</div>
-
             <div id="loading-greeting" class="loading-greeting">
                 <span id="loading-greeting-text"></span>
+                <span class="loading-stardust" aria-hidden="true">
+                    <i class="loading-stardust-mote sd-1"></i>
+                    <i class="loading-stardust-mote sd-2"></i>
+                    <i class="loading-stardust-mote sd-3"></i>
+                    <i class="loading-stardust-mote sd-4"></i>
+                    <i class="loading-stardust-mote sd-5"></i>
+                    <i class="loading-stardust-mote sd-6"></i>
+                    <i class="loading-stardust-mote sd-7"></i>
+                </span>
+            </div>
+
+            <div class="loading-burst" aria-hidden="true">
+                <span class="loading-burst-star lb-1"><i class="fas fa-star"></i></span>
+                <span class="loading-burst-star lb-2"><i class="fas fa-star"></i></span>
+                <span class="loading-burst-star lb-3"><i class="fas fa-star"></i></span>
+                <span class="loading-burst-star lb-4"><i class="fas fa-star"></i></span>
+                <span class="loading-burst-star lb-5"><i class="fas fa-star"></i></span>
+                <span class="loading-burst-star lb-6"><i class="fas fa-star"></i></span>
             </div>
 
             <div id="loading-tip" class="loading-tip">Preparing your quest&hellip;</div>
@@ -137,6 +181,12 @@ export function initLoadingTips() {
  * Randomize cloud/icon motion so each loading screen has a fresh sky composition.
  */
 export function initLoadingAtmosphere() {
+    const loadingScreen = document.getElementById('loading-screen');
+    const lowPower = detectLowPowerTier();
+    if (loadingScreen) {
+        loadingScreen.classList.toggle('gcq-perf-low', lowPower);
+    }
+
     const cloudArt = Array.from(document.querySelectorAll('.loading-cloud-art'));
     const cloudArtLayer = document.querySelector('.loading-cloud-art-layer');
     const cloudAssets = [
@@ -156,7 +206,8 @@ export function initLoadingAtmosphere() {
         // Real skies have clouds concentrated in the upper portion with a few
         // larger, more prominent ones lower down — not evenly spread top to bottom.
         // We build three loose groups and let randomness mix them naturally.
-        const cloudCount = 32;
+        // Weaker devices (auto-detected) get a lighter sky so motion stays smooth.
+        const cloudCount = lowPower ? 18 : 32;
 
         for (let index = 0; index < cloudCount; index += 1) {
             const cloud = document.createElement('span');
@@ -275,6 +326,7 @@ export function revealStagedLoadingPersonalization() {
     const greetingText = document.getElementById('loading-greeting-text');
     const tipEl        = document.getElementById('loading-tip');
     const stageEl      = document.querySelector('.loading-stage');
+    const burstEl      = document.querySelector('.loading-burst');
     if (!greetingEl || !greetingText || !_stagedPersonalization) return false;
 
     if (_tipIntervalId) {
@@ -283,8 +335,19 @@ export function revealStagedLoadingPersonalization() {
     }
 
     greetingText.textContent = _stagedPersonalization.greeting;
+    // Kept in sync so the cheap ::before(attr(data-text)) glow layer always
+    // mirrors the visible (per-role, personalized) text.
+    greetingText.dataset.text = _stagedPersonalization.greeting;
     greetingEl.classList.add('loading-greeting-visible');
     if (stageEl) stageEl.classList.add('loading-stage-reveal');
+
+    if (burstEl && !detectLowPowerTier()) {
+        // One-shot celebratory sparkle burst — restart cleanly even if this
+        // ever fires more than once for the same screen instance.
+        burstEl.classList.remove('loading-burst-active');
+        void burstEl.offsetWidth;
+        burstEl.classList.add('loading-burst-active');
+    }
 
     if (tipEl) {
         const tipText = _stagedPersonalization.tip;
@@ -313,6 +376,7 @@ export function reopenLoadingScreen() {
     loadingScreen.classList.remove('loading-screen-exit', 'loading-final-moment', 'hidden');
     document.getElementById('loading-greeting')?.classList.remove('loading-greeting-visible');
     document.querySelector('.loading-stage')?.classList.remove('loading-stage-reveal');
+    document.querySelector('.loading-burst')?.classList.remove('loading-burst-active');
     void loadingScreen.offsetWidth; // flush the display change before animating opacity
     requestAnimationFrame(() => {
         loadingScreen.classList.remove('opacity-0', 'pointer-events-none');

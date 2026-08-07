@@ -54,7 +54,29 @@ let pendingSignupBootstrap = null;
 let signupRecoveryContext = null;
 let secretaryAdminRuntimePromise = null;
 let secretarySetupToken = '';
-let teacherSignupAvailable = false;
+/** @type {'checking' | 'active' | 'locked' | 'error'} */
+let schoolAuthState = 'checking';
+
+const AUTH_AVAILABILITY_COPY = {
+    checking: {
+        eyebrow: 'School activation',
+        iconHtml: '<i class="fas fa-spinner fa-spin" aria-hidden="true"></i>',
+        title: 'Checking school activation…',
+        text: 'One moment while we confirm this school is ready.'
+    },
+    locked: {
+        eyebrow: 'School activation',
+        iconHtml: '<i class="fas fa-scroll" aria-hidden="true"></i>',
+        title: 'Awaiting school activation',
+        text: 'Login and signup open after the school Secretary/admin activates this school.'
+    },
+    error: {
+        eyebrow: 'School activation',
+        iconHtml: '<i class="fas fa-cloud-sun" aria-hidden="true"></i>',
+        title: "Couldn't confirm school activation",
+        text: 'We could not reach the activation check. Try again in a moment.'
+    }
+};
 
 function loadSecretaryAdminRuntime() {
     if (!secretaryAdminRuntimePromise) {
@@ -296,6 +318,27 @@ function animateLoadingScreenOut(loadingScreen) {
     } else {
         beginExit();
     }
+}
+
+// Resolves once the loading screen (including any personalized "Welcome"
+// hold) has fully faded out, plus a short buffer so the app has a moment to
+// breathe. Used to delay post-login prompts (like the device cache choice)
+// so they never pop up on top of the loading/welcome moment.
+function waitForLoadingScreenSettled(loadingScreen) {
+    const EXTRA_SETTLE_MS = 600;
+    return new Promise((resolve) => {
+        if (!loadingScreen) { resolve(); return; }
+        if (loadingScreen.classList.contains('hidden')) { setTimeout(resolve, EXTRA_SETTLE_MS); return; }
+        const observer = new MutationObserver(() => {
+            if (loadingScreen.classList.contains('hidden')) {
+                observer.disconnect();
+                setTimeout(resolve, EXTRA_SETTLE_MS);
+            }
+        });
+        observer.observe(loadingScreen, { attributes: true, attributeFilter: ['class'] });
+        // Safety net in case the loading screen never gets dismissed for some reason.
+        setTimeout(() => { observer.disconnect(); resolve(); }, 6000);
+    });
 }
 
 function showInitializationRecovery(error) {
@@ -702,6 +745,32 @@ function getRoleAwareLoginIdentifier() {
     };
 }
 
+function isSchoolAuthOpen() {
+    return schoolAuthState === 'active';
+}
+
+function renderAuthAvailabilityPanel(state) {
+    const panel = document.getElementById('auth-availability-panel');
+    if (!panel) return;
+    const copy = AUTH_AVAILABILITY_COPY[state];
+    if (!copy) {
+        panel.classList.add('hidden');
+        return;
+    }
+    const eyebrow = panel.querySelector('.auth-availability-eyebrow');
+    const icon = panel.querySelector('.auth-availability-icon');
+    const title = panel.querySelector('.auth-availability-title');
+    const text = panel.querySelector('.auth-availability-text');
+    const retryBtn = document.getElementById('auth-availability-retry');
+    if (eyebrow) eyebrow.textContent = copy.eyebrow;
+    if (icon) icon.innerHTML = copy.iconHtml;
+    if (title) title.textContent = copy.title;
+    if (text) text.textContent = copy.text;
+    retryBtn?.classList.toggle('hidden', state !== 'error');
+    panel.classList.remove('hidden');
+    panel.dataset.authAvailability = state;
+}
+
 function syncAuthRoleUi() {
     const title = document.getElementById('auth-title');
     const subtitle = document.getElementById('auth-subtitle');
@@ -714,24 +783,41 @@ function syncAuthRoleUi() {
     const loginForm = document.getElementById('login-form');
     const activationForm = document.getElementById('secretary-activation-form');
     const roleSwitcher = document.getElementById('auth-role-switcher');
-    const availability = document.getElementById('teacher-signup-availability');
+    const interactive = document.getElementById('auth-interactive');
+    const availabilityPanel = document.getElementById('auth-availability-panel');
+    const card = document.getElementById('login-form-container');
 
     if (secretarySetupToken) {
         activeAuthRole = ROLE_SECRETARY;
         activeAuthMode = 'activation';
+        availabilityPanel?.classList.add('hidden');
+        interactive?.classList.remove('hidden');
         roleSwitcher?.classList.add('hidden');
         loginForm?.classList.add('hidden');
         signupForm?.classList.add('hidden');
-        activationForm?.classList.remove('hidden');
         toggleBtn?.classList.add('hidden');
-        availability?.classList.add('hidden');
+        activationForm?.classList.remove('hidden');
+        card?.classList.remove('auth-card--gated');
+        card?.classList.add('auth-card--activation');
         if (title) title.innerText = 'Activate Secretary / Admin';
         if (subtitle) subtitle.innerText = 'This secure one-time link creates the school’s sole administrator account.';
         return;
     }
 
-    roleSwitcher?.classList.remove('hidden');
+    card?.classList.remove('auth-card--activation');
     activationForm?.classList.add('hidden');
+
+    if (schoolAuthState !== 'active') {
+        interactive?.classList.add('hidden');
+        card?.classList.add('auth-card--gated');
+        renderAuthAvailabilityPanel(schoolAuthState);
+        return;
+    }
+
+    availabilityPanel?.classList.add('hidden');
+    interactive?.classList.remove('hidden');
+    card?.classList.remove('auth-card--gated');
+    roleSwitcher?.classList.remove('hidden');
 
     document.querySelectorAll('.auth-role-btn').forEach((btn) => {
         btn.classList.toggle('auth-role-btn-active', btn.dataset.authRole === activeAuthRole);
@@ -762,13 +848,8 @@ function syncAuthRoleUi() {
         signupForm?.classList.toggle('hidden', !isSignup);
         if (toggleBtn) {
             toggleBtn.innerText = isSignup ? 'Already have an account? Login' : 'Need an account? Sign Up';
-            toggleBtn.disabled = !teacherSignupAvailable;
-            toggleBtn.classList.toggle('opacity-50', !teacherSignupAvailable);
-            toggleBtn.classList.toggle('cursor-not-allowed', !teacherSignupAvailable);
-        }
-        availability?.classList.toggle('hidden', teacherSignupAvailable || isSignup);
-        if (availability && !teacherSignupAvailable) {
-            availability.textContent = 'Teacher signup opens after the school Secretary/admin activates this school.';
+            toggleBtn.disabled = false;
+            toggleBtn.classList.remove('opacity-50', 'cursor-not-allowed');
         }
     }
 }
@@ -779,13 +860,15 @@ async function initializeAuthAvailability() {
         syncAuthRoleUi();
         return;
     }
+    schoolAuthState = 'checking';
+    syncAuthRoleUi();
     try {
         const { getSecretaryBootstrapStatus } = await loadSecretaryAdminRuntime();
         const status = await getSecretaryBootstrapStatus();
-        teacherSignupAvailable = status?.state === 'active';
+        schoolAuthState = status?.state === 'active' ? 'active' : 'locked';
     } catch (error) {
         console.warn('Could not verify Secretary activation status:', error?.message || error);
-        teacherSignupAvailable = false;
+        schoolAuthState = 'error';
     }
     syncAuthRoleUi();
 }
@@ -807,8 +890,12 @@ function setupAuthListeners() {
 
     document.getElementById('toggle-auth-mode').addEventListener('click', (e) => {
         if (activeAuthRole !== ROLE_TEACHER) return;
-        if (!teacherSignupAvailable && activeAuthMode !== 'signup') return;
+        if (!isSchoolAuthOpen()) return;
         setAuthMode(activeAuthMode === 'signup' ? 'login' : 'signup');
+    });
+
+    document.getElementById('auth-availability-retry')?.addEventListener('click', () => {
+        void initializeAuthAvailability();
     });
 
     document.getElementById('secretary-activation-form')?.addEventListener('submit', async (e) => {
@@ -826,7 +913,7 @@ function setupAuthListeners() {
             const identifier = buildSyntheticRoleEmail(ROLE_SECRETARY, username);
             window.history.replaceState(null, '', `${window.location.pathname}${window.location.search}`);
             secretarySetupToken = '';
-            teacherSignupAvailable = true;
+            schoolAuthState = 'active';
             await signInWithEmailAndPassword(auth, identifier, password);
         } catch (error) {
             resetAuthSubmitState();
@@ -840,6 +927,9 @@ function setupAuthListeners() {
         const password = document.getElementById('login-password').value;
         const errorEl = document.getElementById('auth-error');
         try {
+            if (!isSchoolAuthOpen()) {
+                throw new Error('Login opens after the school Secretary/admin activates this school.');
+            }
             beginAuthSubmit('login');
             errorEl.innerText = '';
             if (isRoleLogin(activeAuthRole) && !rawUsername) {
@@ -865,8 +955,8 @@ function setupAuthListeners() {
         pendingSignupBootstrap = bootstrapPromise;
         let createdUser = null;
         try {
-            if (!teacherSignupAvailable) {
-                throw new Error('Teacher signup is locked until the Secretary/admin activates this school.');
+            if (!isSchoolAuthOpen()) {
+                throw new Error('Login and signup open after the school Secretary/admin activates this school.');
             }
             beginAuthSubmit('signup');
             errorEl.innerText = '';
@@ -980,7 +1070,8 @@ function setupAuthListeners() {
                     setupParentSession(user.uid, profile, async () => {
                         if (!isCurrentSession()) return;
                         await routeAuthenticatedParent({ loadingScreen, authScreen });
-                        if (isCurrentSession()) offerDeviceCacheChoice();
+                        await waitForLoadingScreenSettled(loadingScreen);
+                        if (isCurrentSession()) offerDeviceCacheChoice(profile.role);
                     });
                 } else {
                     void setupDataListeners(user.uid, newDate, async function onInitialDataReady() {
@@ -990,7 +1081,8 @@ function setupAuthListeners() {
                         } else {
                             await routeAuthenticatedTeacher({ user, loadingScreen, authScreen, appScreen });
                         }
-                        if (isCurrentSession()) offerDeviceCacheChoice();
+                        await waitForLoadingScreenSettled(loadingScreen);
+                        if (isCurrentSession()) offerDeviceCacheChoice(profile.role);
                     }, {
                         role: profile.role,
                         profile,
@@ -1026,6 +1118,7 @@ function setupAuthListeners() {
             if (secretarySetupToken) {
                 syncAuthRoleUi();
             } else {
+                schoolAuthState = 'checking';
                 setAuthRole(ROLE_TEACHER);
                 setAuthMode('login');
                 void initializeAuthAvailability();

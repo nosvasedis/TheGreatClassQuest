@@ -38,88 +38,103 @@ export const authHTML = `
             </h1>
 
             <div id="login-form-container" class="auth-card pop-in">
-                <div class="flex items-center justify-center mb-6">
-                    <div id="auth-role-switcher" class="auth-role-switcher">
-                        <button type="button" class="auth-role-btn auth-role-btn-active" data-auth-role="teacher">
-                            <i class="fas fa-hat-wizard" aria-hidden="true"></i><span>Teacher</span>
+                <div id="auth-availability-panel" class="auth-availability-panel hidden" role="status" aria-live="polite">
+                    <p class="auth-availability-eyebrow"></p>
+                    <div class="auth-availability-icon" aria-hidden="true"></div>
+                    <h2 class="auth-availability-title font-title"></h2>
+                    <p class="auth-availability-text"></p>
+                    <button type="button" id="auth-availability-retry" class="auth-availability-retry hidden">Try again</button>
+                </div>
+
+                <div id="auth-interactive">
+                    <div class="flex items-center justify-center mb-6">
+                        <div id="auth-role-switcher" class="auth-role-switcher">
+                            <button type="button" class="auth-role-btn auth-role-btn-active" data-auth-role="teacher">
+                                <i class="fas fa-hat-wizard" aria-hidden="true"></i><span>Teacher</span>
+                            </button>
+                            <button type="button" class="auth-role-btn" data-auth-role="parent">
+                                <i class="fas fa-heart" aria-hidden="true"></i><span>Parent</span>
+                            </button>
+                            <button type="button" class="auth-role-btn" data-auth-role="secretary">
+                                <i class="fas fa-scroll" aria-hidden="true"></i><span>Secretary</span>
+                            </button>
+                        </div>
+                    </div>
+                    <h2 id="auth-title" class="font-title text-3xl auth-card-title text-center mb-2">Teacher Login</h2>
+                    <p id="auth-subtitle" class="text-center text-sm text-slate-500 mb-6">Teachers sign in with email. Parent and secretary accounts use usernames created by the school.</p>
+                    <form id="login-form">
+                        <div class="mb-4 auth-field" id="login-email-wrap">
+                            <label for="login-email" id="login-email-label" class="auth-field-label">Email</label>
+                            <div class="auth-field-input-wrap">
+                                <i class="fas fa-envelope auth-field-icon" aria-hidden="true"></i>
+                                <input type="email" id="login-email"
+                                    class="auth-field-input"
+                                    autocomplete="off" required>
+                            </div>
+                        </div>
+                        <div class="mb-4 hidden auth-field" id="login-username-wrap">
+                            <label for="login-username" class="auth-field-label">Username</label>
+                            <div class="auth-field-input-wrap">
+                                <i class="fas fa-user auth-field-icon" aria-hidden="true"></i>
+                                <input type="text" id="login-username"
+                                    class="auth-field-input"
+                                    autocomplete="off">
+                            </div>
+                        </div>
+                        <div class="mb-6 auth-field">
+                            <label for="login-password" class="auth-field-label">Password</label>
+                            <div class="auth-field-input-wrap">
+                                <i class="fas fa-lock auth-field-icon" aria-hidden="true"></i>
+                                <input type="password" id="login-password"
+                                    class="auth-field-input"
+                                    autocomplete="new-password" required>
+                            </div>
+                        </div>
+                        <button type="submit" id="login-submit-btn"
+                            class="auth-submit-btn auth-submit-btn--login bubbly-button">
+                            <span class="auth-submit-label">Login</span>
                         </button>
-                        <button type="button" class="auth-role-btn" data-auth-role="parent">
-                            <i class="fas fa-heart" aria-hidden="true"></i><span>Parent</span>
+                    </form>
+
+                    <form id="signup-form" class="hidden">
+                        <div class="mb-4 auth-field">
+                            <label for="signup-name" class="auth-field-label">Your Name</label>
+                            <div class="auth-field-input-wrap">
+                                <i class="fas fa-signature auth-field-icon" aria-hidden="true"></i>
+                                <input type="text" id="signup-name"
+                                    class="auth-field-input"
+                                    autocomplete="off" required>
+                            </div>
+                        </div>
+                        <div class="mb-4 auth-field">
+                            <label for="signup-email" class="auth-field-label">Email</label>
+                            <div class="auth-field-input-wrap">
+                                <i class="fas fa-envelope auth-field-icon" aria-hidden="true"></i>
+                                <input type="email" id="signup-email"
+                                    class="auth-field-input"
+                                    autocomplete="off" required>
+                            </div>
+                        </div>
+                        <div class="mb-6 auth-field">
+                            <label for="signup-password" class="auth-field-label">Password</label>
+                            <div class="auth-field-input-wrap">
+                                <i class="fas fa-lock auth-field-icon" aria-hidden="true"></i>
+                                <input type="password" id="signup-password"
+                                    class="auth-field-input"
+                                    autocomplete="new-password" required>
+                            </div>
+                        </div>
+                        <button type="submit" id="signup-submit-btn"
+                            class="auth-submit-btn auth-submit-btn--signup bubbly-button">
+                            <span class="auth-submit-label">Sign Up</span>
                         </button>
-                        <button type="button" class="auth-role-btn" data-auth-role="secretary">
-                            <i class="fas fa-scroll" aria-hidden="true"></i><span>Secretary</span>
-                        </button>
+                    </form>
+
+                    <div class="text-center mt-4">
+                        <button id="toggle-auth-mode" type="button" class="text-sm auth-toggle-link">Need an account? Sign
+                            Up</button>
                     </div>
                 </div>
-                <h2 id="auth-title" class="font-title text-3xl auth-card-title text-center mb-2">Teacher Login</h2>
-                <p id="auth-subtitle" class="text-center text-sm text-slate-500 mb-6">Teachers sign in with email. Parent and secretary accounts use usernames created by the school.</p>
-                <form id="login-form">
-                    <div class="mb-4 auth-field" id="login-email-wrap">
-                        <label for="login-email" id="login-email-label" class="auth-field-label">Email</label>
-                        <div class="auth-field-input-wrap">
-                            <i class="fas fa-envelope auth-field-icon" aria-hidden="true"></i>
-                            <input type="email" id="login-email"
-                                class="auth-field-input"
-                                autocomplete="off" required>
-                        </div>
-                    </div>
-                    <div class="mb-4 hidden auth-field" id="login-username-wrap">
-                        <label for="login-username" class="auth-field-label">Username</label>
-                        <div class="auth-field-input-wrap">
-                            <i class="fas fa-user auth-field-icon" aria-hidden="true"></i>
-                            <input type="text" id="login-username"
-                                class="auth-field-input"
-                                autocomplete="off">
-                        </div>
-                    </div>
-                    <div class="mb-6 auth-field">
-                        <label for="login-password" class="auth-field-label">Password</label>
-                        <div class="auth-field-input-wrap">
-                            <i class="fas fa-lock auth-field-icon" aria-hidden="true"></i>
-                            <input type="password" id="login-password"
-                                class="auth-field-input"
-                                autocomplete="new-password" required>
-                        </div>
-                    </div>
-                    <button type="submit" id="login-submit-btn"
-                        class="auth-submit-btn auth-submit-btn--login bubbly-button">
-                        <span class="auth-submit-label">Login</span>
-                    </button>
-                </form>
-
-                <form id="signup-form" class="hidden">
-                    <div class="mb-4 auth-field">
-                        <label for="signup-name" class="auth-field-label">Your Name</label>
-                        <div class="auth-field-input-wrap">
-                            <i class="fas fa-signature auth-field-icon" aria-hidden="true"></i>
-                            <input type="text" id="signup-name"
-                                class="auth-field-input"
-                                autocomplete="off" required>
-                        </div>
-                    </div>
-                    <div class="mb-4 auth-field">
-                        <label for="signup-email" class="auth-field-label">Email</label>
-                        <div class="auth-field-input-wrap">
-                            <i class="fas fa-envelope auth-field-icon" aria-hidden="true"></i>
-                            <input type="email" id="signup-email"
-                                class="auth-field-input"
-                                autocomplete="off" required>
-                        </div>
-                    </div>
-                    <div class="mb-6 auth-field">
-                        <label for="signup-password" class="auth-field-label">Password</label>
-                        <div class="auth-field-input-wrap">
-                            <i class="fas fa-lock auth-field-icon" aria-hidden="true"></i>
-                            <input type="password" id="signup-password"
-                                class="auth-field-input"
-                                autocomplete="new-password" required>
-                        </div>
-                    </div>
-                    <button type="submit" id="signup-submit-btn"
-                        class="auth-submit-btn auth-submit-btn--signup bubbly-button">
-                        <span class="auth-submit-label">Sign Up</span>
-                    </button>
-                </form>
 
                 <form id="secretary-activation-form" class="hidden">
                     <div class="mb-4 auth-field">
@@ -165,11 +180,6 @@ export const authHTML = `
                 </form>
 
                 <p id="auth-error" class="text-sm text-red-600 mt-4 text-center h-4"></p>
-                <p id="teacher-signup-availability" class="hidden mt-4 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-center text-xs text-amber-800"></p>
-                <div class="text-center mt-4">
-                    <button id="toggle-auth-mode" type="button" class="text-sm auth-toggle-link">Need an account? Sign
-                        Up</button>
-                </div>
             </div>
         </div>
     </div>

@@ -25,16 +25,16 @@
     inset: -32% -14% auto -18%;
     height: 80vh;
     background:
-        radial-gradient(ellipse at 20% 22%, rgba(125, 211, 252, 0.5) 0%, rgba(125, 211, 252, 0) 68%),
-        radial-gradient(ellipse at 72% 18%, rgba(186, 230, 253, 0.3) 0%, rgba(186, 230, 253, 0) 72%);
+        radial-gradient(ellipse at 20% 22%, rgba(125, 211, 252, 0.58) 0%, rgba(125, 211, 252, 0) 68%),
+        radial-gradient(ellipse at 72% 18%, rgba(103, 232, 249, 0.4) 0%, rgba(103, 232, 249, 0) 72%);
 }
 
 #loading-screen::after {
     inset: auto -12% -34% -12%;
     height: 64vh;
     background:
-        radial-gradient(ellipse at 74% 72%, rgba(110, 231, 183, 0.34) 0%, rgba(110, 231, 183, 0) 70%),
-        radial-gradient(ellipse at 16% 84%, rgba(56, 189, 248, 0.2) 0%, rgba(56, 189, 248, 0) 68%);
+        radial-gradient(ellipse at 74% 72%, rgba(110, 231, 183, 0.42) 0%, rgba(110, 231, 183, 0) 70%),
+        radial-gradient(ellipse at 16% 84%, rgba(56, 189, 248, 0.28) 0%, rgba(56, 189, 248, 0) 68%);
 }
 
 .loading-sky-glow {
@@ -43,9 +43,11 @@
     z-index: 0;
     pointer-events: none;
     background:
-        linear-gradient(180deg, rgba(255, 255, 255, 0.26) 0%, rgba(255, 255, 255, 0) 35%),
-        radial-gradient(circle at 18% 15%, rgba(56, 189, 248, 0.28), rgba(56, 189, 248, 0) 42%),
-        radial-gradient(circle at 80% 74%, rgba(16, 185, 129, 0.2), rgba(16, 185, 129, 0) 46%);
+        linear-gradient(180deg, rgba(255, 255, 255, 0.3) 0%, rgba(255, 255, 255, 0) 35%),
+        radial-gradient(circle at 18% 15%, rgba(56, 189, 248, 0.32), rgba(56, 189, 248, 0) 42%),
+        radial-gradient(circle at 80% 74%, rgba(16, 185, 129, 0.26), rgba(16, 185, 129, 0) 46%),
+        /* Warm ambient halo echoing the sun's corner without touching the sun itself */
+        radial-gradient(circle at 92% 6%, rgba(253, 224, 71, 0.22), rgba(253, 224, 71, 0) 32%);
 }
 
 /* Shared cloud layer behavior */
@@ -246,7 +248,7 @@
     background-position: center;
     background-size: contain;
     opacity: 0.8;
-    filter: blur(0.15px) drop-shadow(0 12px 24px rgba(14, 116, 144, 0.16));
+    filter: blur(0.15px) saturate(1.1) drop-shadow(0 12px 24px rgba(14, 116, 144, 0.16));
     animation-timing-function: linear;
     animation-iteration-count: infinite;
 }
@@ -428,12 +430,14 @@
     z-index: -1;
 }
 
-@keyframes load-title-glow {
+@keyframes loading-glow-pulse {
     0% {
-        text-shadow: 0 0 16px rgba(59, 130, 246, 0.22), 0 2px 6px rgba(15, 23, 42, 0.1);
+        opacity: 0.32;
+        transform: scale(0.98);
     }
     100% {
-        text-shadow: 0 0 30px rgba(14, 165, 233, 0.35), 0 2px 6px rgba(15, 23, 42, 0.1);
+        opacity: 0.62;
+        transform: scale(1.03);
     }
 }
 
@@ -441,23 +445,96 @@
     position: relative;
     z-index: 3;
     font-family: 'Fredoka One', cursive !important;
-    font-size: clamp(2.15rem, 6.1vw, 3.45rem) !important;
-    color: #0f4c81 !important;
+    font-size: clamp(2.3rem, 6.4vw, 3.7rem) !important;
     letter-spacing: 0.02em !important;
     text-align: center !important;
     margin: 0.5rem 0 0.1rem !important;
-    animation: load-title-glow 2.8s ease-in-out infinite alternate !important;
+    /* Storybook gradient fill — deep sky blue into cyan into gold */
+    background: linear-gradient(120deg, #0f4c81 0%, #0ea5e9 46%, #fbbf24 100%) !important;
+    -webkit-background-clip: text !important;
+    background-clip: text !important;
+    color: transparent !important;
+    /* Longhand (not shorthand) so the final-moment reveal can smoothly
+       transition the width/color into the celebratory border below. */
+    -webkit-text-stroke-width: 0.6px;
+    -webkit-text-stroke-color: rgba(255, 255, 255, 0.55);
+    text-shadow: 0 3px 8px rgba(15, 23, 42, 0.16);
+}
+
+/* Cheap "glow breathing" — a single blurred duplicate of the title text that
+   only ever animates opacity/transform (compositor-only), instead of the
+   previous per-frame animated multi-layer text-shadow. */
+.loading-title::before {
+    content: attr(data-text);
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    font: inherit;
+    letter-spacing: inherit;
+    text-align: inherit;
+    color: #7dd3fc;
+    -webkit-text-stroke: 0;
+    filter: blur(14px);
+    opacity: 0.45;
+    pointer-events: none;
+    will-change: opacity, transform;
+    animation: loading-glow-pulse 2.8s ease-in-out infinite alternate;
+}
+
+.loading-title-flourish {
+    position: relative;
+    z-index: 3;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    width: min(58%, 220px);
+    margin: 0.05rem auto 0.4rem;
+}
+
+.loading-flourish-line {
+    flex: 1 1 auto;
+    height: 2px;
+    border-radius: 999px;
+    background: linear-gradient(90deg, rgba(251, 191, 36, 0) 0%, rgba(245, 158, 11, 0.8) 50%, rgba(251, 191, 36, 0) 100%);
+}
+
+.loading-flourish-gem {
+    flex: 0 0 auto;
+    width: 8px;
+    height: 8px;
+    border-radius: 2px;
+    background: linear-gradient(135deg, #fef9c3, #fbbf24);
+    box-shadow: 0 0 6px rgba(251, 191, 36, 0.55);
+    transform: rotate(45deg);
 }
 
 .loading-subtitle {
     font-family: 'Fredoka One', cursive;
-    font-size: clamp(0.58rem, 1.4vw, 0.8rem);
-    letter-spacing: 0.07em;
-    color: #0e7490;
+    font-size: clamp(0.6rem, 1.45vw, 0.84rem);
+    letter-spacing: 0.09em;
+    color: #0891b2;
     text-transform: uppercase;
-    opacity: 0.84;
-    margin-bottom: 0.1rem;
+    opacity: 0.9;
+    margin-bottom: 0.15rem;
     text-align: center;
+}
+
+.loading-subtitle::before,
+.loading-subtitle::after {
+    content: '\2726';
+    display: inline-block;
+    color: #fbbf24;
+    font-size: 0.7em;
+    opacity: 0.85;
+}
+
+.loading-subtitle::before {
+    margin-right: 0.5em;
+}
+
+.loading-subtitle::after {
+    margin-left: 0.5em;
 }
 
 /* Spinner */
@@ -509,7 +586,7 @@
     left: 50%;
     width: 172px;
     height: 172px;
-    border: 5px solid rgba(251, 191, 36, 0.12);
+    border: 5px solid rgba(14, 165, 233, 0.16);
     border-top: 5px solid #fbbf24;
     border-radius: 50%;
     filter: drop-shadow(0 0 10px #f59e0b);
@@ -524,7 +601,7 @@
     left: 15px;
     right: 15px;
     bottom: 15px;
-    border: 4px solid rgba(251, 191, 36, 0.1);
+    border: 4px solid rgba(103, 232, 249, 0.14);
     border-bottom: 4px solid #fde047;
     border-radius: 50%;
     animation: ring-spin-normal 1.5s linear infinite reverse;
@@ -538,6 +615,31 @@
 @keyframes ring-spin-normal {
     from { transform: rotate(0deg); }
     to { transform: rotate(360deg); }
+}
+
+/* --- Auto-detected low-power devices (templates/loading.js: detectLowPowerTier) ---
+   Strip the costliest filter/blur/drop-shadow layers while every element stays
+   on the same cheap transform/opacity animations. Capable machines never see
+   this rule set; constrained ones get a lighter (still lively) sky for free. */
+#loading-screen.gcq-perf-low .loading-cloud-art {
+    filter: none;
+}
+
+#loading-screen.gcq-perf-low .loading-journey-icon {
+    filter: none;
+}
+
+#loading-screen.gcq-perf-low .loading-particle {
+    text-shadow: none;
+}
+
+#loading-screen.gcq-perf-low .loading-title::before,
+#loading-screen.gcq-perf-low #loading-greeting-text::before {
+    display: none;
+}
+
+#loading-screen.gcq-perf-low .loading-burst {
+    display: none;
 }
 
 @media (max-width: 640px) {

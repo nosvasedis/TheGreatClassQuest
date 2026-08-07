@@ -113,19 +113,6 @@ main {
     }
 }
 
-@keyframes loading-text-vanish {
-    0% {
-        opacity: 1;
-        transform: translateY(0) scale(1);
-        letter-spacing: 0.3em;
-    }
-    100% {
-        opacity: 0;
-        transform: translateY(-12px) scale(0.96);
-        letter-spacing: 0.5em;
-    }
-}
-
 #loading-screen.loading-screen-exit {
     animation: loading-screen-exit 920ms cubic-bezier(0.22, 1, 0.36, 1) forwards;
 }
@@ -136,10 +123,6 @@ main {
 
 #loading-screen.loading-screen-exit .loading-simple-ring {
     animation: loading-ring-burst 760ms cubic-bezier(0.2, 0.7, 0.25, 1) forwards;
-}
-
-#loading-screen.loading-screen-exit .loading-text {
-    animation: loading-text-vanish 560ms ease-out forwards !important;
 }
 
 /* First home paint staging */
@@ -219,7 +202,6 @@ main {
     #loading-screen.loading-screen-exit,
     #loading-screen.loading-screen-exit .loading-center-logo,
     #loading-screen.loading-screen-exit .loading-simple-ring,
-    #loading-screen.loading-screen-exit .loading-text,
     .loading-stage,
     .loading-cloud,
     .loading-cloud-art,
@@ -228,8 +210,11 @@ main {
     .loading-sun,
     .loading-sun::after,
     .loading-particle,
+    .loading-burst-star,
     .loading-title,
+    .loading-title::before,
     #loading-greeting-text,
+    #loading-greeting-text::before,
     #home-dashboard-container.home-intro-root.home-intro-visible,
     #home-dashboard-container.home-intro-root.home-intro-visible .horizons-grid > *,
     .app-tab.tab-animate-in,

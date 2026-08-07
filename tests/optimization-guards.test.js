@@ -102,16 +102,26 @@ test('authenticated home readiness cannot fail on optional decoration or browser
   assert.match(home, /Storage may be unavailable in hardened\/private browser profiles/);
 });
 
-test('device cache choice clearly recommends teacher-only school devices', () => {
+test('device cache choice uses role-appropriate wording and never forces a disruptive reload', () => {
   const app = read('app.js');
   const deviceCache = read('utils/deviceCache.js');
+  // Role-specific copy exists for every role this prompt can appear for.
   assert.match(deviceCache, /Keep this teacher device fast\?/);
   assert.match(deviceCache, /Yes — teacher device/);
+  assert.match(deviceCache, /Keep this secretary device fast\?/);
+  assert.match(deviceCache, /Yes — secretary device/);
+  assert.match(deviceCache, /Keep this family device fast\?/);
+  assert.match(deviceCache, /Yes — family device/);
   assert.match(deviceCache, /students, parents, guests, or unrelated accounts/);
   assert.match(deviceCache, /not login, permissions, school-year data, or app features/);
-  assert.doesNotMatch(app, /stageLoadingPersonalization\([\s\S]{0,160}offerDeviceCacheChoice\(\)/);
-  assert.match(app, /await routeAuthenticatedParent\([\s\S]{0,160}offerDeviceCacheChoice\(\)/);
-  assert.match(app, /await routeAuthenticatedTeacher\([\s\S]{0,300}offerDeviceCacheChoice\(\)/);
+  // Saving the "trusted" choice must never force the current session to reload.
+  assert.doesNotMatch(deviceCache, /window\.location\.reload\(\)/);
+  assert.doesNotMatch(app, /stageLoadingPersonalization\([\s\S]{0,160}offerDeviceCacheChoice\(/);
+  // The prompt must wait for the loading screen to fully settle (so it never
+  // overlaps the personalized "Welcome" moment) before it can appear, and it
+  // must be told which role is signed in so the wording matches.
+  assert.match(app, /await routeAuthenticatedParent\([\s\S]{0,200}waitForLoadingScreenSettled\(loadingScreen\)[\s\S]{0,120}offerDeviceCacheChoice\(profile\.role\)/);
+  assert.match(app, /await routeAuthenticatedTeacher\([\s\S]{0,300}waitForLoadingScreenSettled\(loadingScreen\)[\s\S]{0,120}offerDeviceCacheChoice\(profile\.role\)/);
 });
 
 test('authorization rules deny missing profiles and archived-year mutations', () => {
@@ -159,4 +169,21 @@ test('a confirmed year close seeds the following planned year without overwritin
   assert.match(functions, /await ensurePlannedSchoolYearRecord\(followingYearKey\);/);
   assert.match(functions, /activeYearKey: nextYearKey,[\s\S]*nextYearKey: followingYearKey/);
   assert.doesNotMatch(functions, /onSchedule|functions\.pubsub\.schedule|scheduler\.onSchedule/);
+});
+
+test('auth screen gates login behind school activation without the old signup badge', () => {
+  const authTemplate = read('templates/auth.js');
+  const app = read('app.js');
+  const authCss = read('styles/auth.css');
+  assert.doesNotMatch(authTemplate, /teacher-signup-availability/);
+  assert.match(authTemplate, /id="auth-availability-panel"/);
+  assert.match(authTemplate, /id="auth-interactive"/);
+  assert.match(authTemplate, /id="auth-availability-retry"/);
+  assert.match(app, /schoolAuthState = 'checking'/);
+  assert.match(app, /schoolAuthState = status\?\.state === 'active' \? 'active' : 'locked'/);
+  assert.match(app, /schoolAuthState = 'error'/);
+  assert.match(app, /Awaiting school activation/);
+  assert.match(app, /Couldn't confirm school activation/);
+  assert.match(authCss, /\.auth-availability-panel/);
+  assert.match(authCss, /\.auth-card--gated/);
 });

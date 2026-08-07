@@ -137,13 +137,27 @@ header h1.font-title::after {
     left: -30px;
     font-size: 1.4rem;
     color: #FCD34D; /* Gold */
+    /* text-stroke inherits into pseudo-elements — the fairy sparkle must
+       stay pure gold glow, no dark rim. */
+    -webkit-text-stroke: 0;
     
     /* Magical Glow */
-    text-shadow: 
-        0 0 5px #FCD34D, 
-        0 0 10px #FFFFFF, 
+    text-shadow:
+        0 0 5px #FCD34D,
+        0 0 10px #FFFFFF,
         0 0 20px #F59E0B;
-    
+
+    /* A discreet whisper of warm light that travels with the sparkle —
+       small, soft, and barely there. Padding expands the glow disc; the
+       equal negative margin keeps the ✦ exactly where it was. */
+    padding: 0.45rem;
+    margin: -0.45rem;
+    border-radius: 50%;
+    background: radial-gradient(circle,
+        rgba(255, 255, 255, 0.22) 0%,
+        rgba(252, 211, 77, 0.16) 42%,
+        transparent 68%);
+
     opacity: 0;
     pointer-events: none;
     

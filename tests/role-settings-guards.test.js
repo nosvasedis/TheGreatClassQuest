@@ -14,6 +14,8 @@ test('Teacher Settings contains only teacher-owned controls and no school-wide e
   assert.doesNotMatch(teacherSettings, /data-options-tab="danger"/);
   assert.doesNotMatch(teacherSettings, /id="options-manage-subscription-btn"/);
   assert.match(teacherSettings, /Student Tools/);
+  assert.match(teacherSettings, /My Classes/);
+  assert.match(teacherSettings, /data-options-tab="classes"/);
   assert.match(teacherSettings, /My Planning/);
   assert.match(teacherSettings, /Class Grading/);
   assert.match(teacherSettings, /Family Access/);

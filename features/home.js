@@ -427,7 +427,7 @@ function getGeneralDashboard(name, theme, spice) {
         { icon: 'fa-trophy', label: 'Hero Ranks', action: 'open-student-ranks', league: activeLeague },
         { icon: 'fa-plus-circle', label: 'New', action: 'create-class', league: activeLeague },
         { icon: 'fa-globe', label: 'Team History', action: 'open-team-history', league: activeLeague },
-        { icon: 'fa-user-shield', label: 'Family Access', action: 'open-family-access' },
+        { icon: 'fa-chalkboard-teacher', label: 'My Classes', action: 'open-my-classes' },
         { icon: 'fa-calendar-alt', label: 'Plan', action: 'open-day-planner', featureFlag: 'calendar' },
         { icon: 'fa-cog', label: 'Setup', action: 'open-settings' },
     ].filter(tool => !tool.featureFlag || canUseFeature(tool.featureFlag));
@@ -880,29 +880,11 @@ function attachListeners(container) {
 }
 
 async function activateOptionsSubtab(key) {
-    await tabs.showTab('options-tab');
-
-    const button = document.querySelector(`.options-subtab-btn[data-options-tab="${key}"]`);
-    if (!button) return;
-
-    button.click();
-    button.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+    await tabs.showOptionsSubtab(key);
 }
 
 async function openCreateClassForm(scopedLeague) {
-    await tabs.showTab('my-classes-tab');
-
-    const levelSelect = document.getElementById('class-level');
-    if (levelSelect && scopedLeague) {
-        levelSelect.value = scopedLeague;
-        levelSelect.dispatchEvent(new Event('change', { bubbles: true }));
-    }
-
-    const classNameInput = document.getElementById('class-name');
-    if (classNameInput) {
-        classNameInput.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        classNameInput.focus();
-    }
+    modals.openCreateClassModal({ league: scopedLeague });
 }
 
 async function handleAction(action, data) {
@@ -919,7 +901,7 @@ async function handleAction(action, data) {
     else if (action === 'open-team-history') modals.openHistoryModal('team', { league: scopedLeague || null });
     else if (action === 'open-settings') await activateOptionsSubtab('manage');
     else if (action === 'open-holidays') await activateOptionsSubtab('planning');
-    else if (action === 'open-family-access') await activateOptionsSubtab('access');
+    else if (action === 'open-my-classes') await activateOptionsSubtab('classes');
     else if (action === 'open-student-ranks') modals.openStudentRankingsModal();
     else if (action === 'create-class') await openCreateClassForm(scopedLeague);
     else if (action === 'edit-class') modals.openEditClassModal(data.id);

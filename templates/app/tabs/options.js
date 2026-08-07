@@ -17,6 +17,9 @@ export const optionsTabHTML = `
                         <button type="button" class="options-subtab-btn options-subtab-active" data-options-tab="manage">
                             <i class="fas fa-tools mr-1.5"></i> Student Tools
                         </button>
+                        <button type="button" class="options-subtab-btn" data-options-tab="classes">
+                            <i class="fas fa-chalkboard-teacher mr-1.5"></i> My Classes
+                        </button>
                         <button type="button" class="options-subtab-btn" data-options-tab="planning">
                             <i class="fas fa-calendar-alt mr-1.5"></i> My Planning
                         </button>
@@ -208,6 +211,33 @@ export const optionsTabHTML = `
                                 </div>
                             </div>
                             
+                            <div class="space-y-6 hidden" data-options-section="classes">
+                                <div class="relative overflow-hidden rounded-[2rem] border border-emerald-200 bg-white shadow-lg p-6 md:p-8 space-y-6">
+                                    <div class="absolute -top-10 -right-10 w-40 h-40 bg-gradient-to-br from-emerald-200 to-teal-200 rounded-full blur-3xl opacity-50 pointer-events-none"></div>
+                                    <div class="absolute -bottom-10 -left-10 w-40 h-40 bg-gradient-to-tr from-green-100 to-cyan-100 rounded-full blur-3xl opacity-50 pointer-events-none"></div>
+
+                                    <div class="relative z-10 flex flex-col md:flex-row items-center gap-6 mb-2">
+                                        <div class="flex-shrink-0 w-20 h-20 bg-gradient-to-br from-emerald-400 to-teal-500 rounded-2xl flex items-center justify-center shadow-xl shadow-emerald-500/30 floating-icon">
+                                            <i class="fas fa-chalkboard-teacher text-white text-4xl"></i>
+                                        </div>
+                                        <div class="text-center md:text-left flex-1">
+                                            <h2 class="font-title text-3xl text-emerald-800 mb-1">My Classes</h2>
+                                            <p class="text-gray-500 text-sm">Manage your classes and student rosters from one place.</p>
+                                        </div>
+                                    </div>
+
+                                    <div id="class-list" class="relative z-10 space-y-4"></div>
+                                    <div class="relative z-10 mt-2 flex flex-col items-center gap-2 text-center">
+                                        <p class="text-sm text-gray-500">Need to add another class?</p>
+                                        <button id="open-create-class-modal-btn" type="button"
+                                            class="inline-flex items-center justify-center gap-2 bg-white hover:bg-green-50 text-green-700 border border-green-200 font-bold px-4 py-2.5 rounded-xl shadow-sm bubbly-button">
+                                            <i class="fas fa-plus-circle"></i>
+                                            <span>Add New Class</span>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+
                             <div class="space-y-6" data-options-section="planning">
                                 <div id="options-planning-locked" class="options-tier-locked hidden">
                                     <div class="options-tier-locked-icon">📅</div>

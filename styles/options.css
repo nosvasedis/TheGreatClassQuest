@@ -13,21 +13,26 @@
 
 .options-subtab-bar {
     display: flex;
-    flex-wrap: wrap;
-    justify-content: center;
-    gap: 0.5rem;
-    padding: 0.5rem;
+    flex-wrap: nowrap;
+    justify-content: flex-start;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.45rem;
     margin-bottom: 1.5rem;
     background: linear-gradient(135deg, rgba(255,255,255,0.9) 0%, rgba(224,242,254,0.5) 100%);
     border-radius: 2rem;
     border: 3px solid rgba(56, 189, 248, 0.35);
     box-shadow: inset 0 1px 0 rgba(255,255,255,0.8), 0 4px 14px rgba(0,0,0,0.08);
+    overflow-x: auto;
+    overflow-y: hidden;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: thin;
 }
 
 .options-subtab-btn {
     font-family: 'Fredoka One', cursive;
-    font-size: 0.95rem;
-    padding: 0.6rem 1.1rem;
+    font-size: 0.8rem;
+    padding: 0.5rem 0.85rem;
     border-radius: 2rem;
     border: none;
     cursor: pointer;
@@ -37,6 +42,8 @@
     position: relative;
     border-bottom: 3px solid rgba(0,0,0,0.2);
     box-shadow: 0 2px 6px rgba(0,0,0,0.12);
+    white-space: nowrap;
+    flex-shrink: 0;
 }
 
 .options-subtab-btn:hover {
@@ -64,6 +71,11 @@
 .options-subtab-btn[data-options-tab="manage"].options-subtab-active {
     background: linear-gradient(to top, #f59e0b, #fbbf24);
     border-bottom-color: #b45309;
+}
+
+.options-subtab-btn[data-options-tab="classes"].options-subtab-active {
+    background: linear-gradient(to top, #059669, #34d399);
+    border-bottom-color: #047857;
 }
 
 .options-subtab-btn[data-options-tab="planning"].options-subtab-active {

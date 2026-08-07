@@ -94,6 +94,16 @@ export const loadingHTML = `
             <span class="loading-journey-icon ji-12"><i class="fas fa-rocket"></i></span>
         </div>
 
+        <!-- Celebratory fireworks — only ignite during the final greeting moment -->
+        <div class="loading-fireworks" aria-hidden="true">
+            <span class="loading-firework fw-1"></span>
+            <span class="loading-firework fw-2"></span>
+            <span class="loading-firework fw-3"></span>
+            <span class="loading-firework fw-4"></span>
+            <span class="loading-firework fw-5"></span>
+            <span class="loading-firework fw-6"></span>
+        </div>
+
         <!-- Sparkle particles -->
         <div class="loading-particles" aria-hidden="true">
             <span class="loading-particle lp-1"><i class="fas fa-star"></i></span>
@@ -145,6 +155,10 @@ export const loadingHTML = `
                 <span class="loading-burst-star lb-4"><i class="fas fa-star"></i></span>
                 <span class="loading-burst-star lb-5"><i class="fas fa-star"></i></span>
                 <span class="loading-burst-star lb-6"><i class="fas fa-star"></i></span>
+                <span class="loading-burst-star lb-7"><i class="fas fa-star"></i></span>
+                <span class="loading-burst-star lb-8"><i class="fas fa-star"></i></span>
+                <span class="loading-burst-star lb-9"><i class="fas fa-star"></i></span>
+                <span class="loading-burst-star lb-10"><i class="fas fa-star"></i></span>
             </div>
 
             <div id="loading-tip" class="loading-tip">Preparing your quest&hellip;</div>
@@ -341,9 +355,10 @@ export function revealStagedLoadingPersonalization() {
     greetingEl.classList.add('loading-greeting-visible');
     if (stageEl) stageEl.classList.add('loading-stage-reveal');
 
-    if (burstEl && !detectLowPowerTier()) {
+    if (burstEl) {
         // One-shot celebratory sparkle burst — restart cleanly even if this
-        // ever fires more than once for the same screen instance.
+        // ever fires more than once for the same screen instance. Plays on
+        // every device: it's a sub-second finale, not a continuous effect.
         burstEl.classList.remove('loading-burst-active');
         void burstEl.offsetWidth;
         burstEl.classList.add('loading-burst-active');

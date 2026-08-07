@@ -7,7 +7,7 @@ import { showAnimatedModal, showModal } from './base.js';
 import { fetchLogsForDate } from '../../db/queries.js';
 import { ensureHistoryLoaded } from '../../db/actions.js';
 
-export function openCreateClassModal() {
+export function openCreateClassModal(options = {}) {
     const form = document.getElementById('add-class-form');
     if (form) form.reset();
 
@@ -20,6 +20,11 @@ export function openCreateClassModal() {
     if (logoInput) logoInput.value = '📚';
     if (logoButton) logoButton.innerText = '📚';
     if (suggestions) suggestions.innerHTML = '';
+
+    if (levelSelect && options.league) {
+        levelSelect.value = options.league;
+        levelSelect.dispatchEvent(new Event('change', { bubbles: true }));
+    }
     if (generateButton) generateButton.disabled = !levelSelect?.value;
 
     showAnimatedModal('create-class-modal');

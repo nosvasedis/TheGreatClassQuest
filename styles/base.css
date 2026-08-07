@@ -119,6 +119,10 @@ body {
 #current-date, #current-time {
     color: #ffffff !important;
     transition: text-shadow 1s ease-in-out;
+    /* Inner stroke identical to the app title: default paint order (fill
+       first, stroke on top) so the dark edge sits INSIDE the white
+       letters — carved 3D inner rim. Shadows/glows above are untouched. */
+    -webkit-text-stroke: 0.75px rgba(0, 0, 0, 0.55);
 }
 
 /* Generic Animations */

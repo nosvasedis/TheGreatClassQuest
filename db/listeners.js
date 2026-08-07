@@ -946,7 +946,8 @@ export async function setupDataListeners(
                 findAndSetCurrentClass();
                 if (isTabVisible("class-leaderboard-tab"))
                     renderClassLeaderboardTab();
-                if (isTabVisible("my-classes-tab")) renderManageClassesTab();
+                if (isTabVisible("options-tab") || isTabVisible("my-classes-tab"))
+                    renderManageClassesTab();
                 if (isTabVisible("calendar-tab")) renderCalendarTab();
                 if (isTabVisible("award-stars-tab"))
                     renderAwardStarsTab({ preserveStudentOrder: true });

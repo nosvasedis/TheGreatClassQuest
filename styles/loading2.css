@@ -20,8 +20,8 @@
     filter: blur(10px);
 
     transition:
-        opacity 0.65s ease,
-        transform 0.85s cubic-bezier(0.12, 0.9, 0.18, 1),
+        opacity 0.6s ease,
+        transform 0.95s cubic-bezier(0.34, 1.56, 0.64, 1),
         filter 0.85s ease;
 }
 
@@ -138,11 +138,11 @@
        ever touching. */
     transform: translateY(3rem) scale(1.08);
     margin-bottom: 0 !important;
-    /* The exact same bold outline that frames the greeting below now grows
-       onto the title too — but only right here, at the reveal moment, not
-       before. */
-    -webkit-text-stroke-width: 2px;
-    -webkit-text-stroke-color: #5b21b6;
+    /* The exact same inner dark stroke that frames the greeting below now
+       grows onto the title too — but only right here, at the reveal
+       moment, not before. */
+    -webkit-text-stroke-width: 1.5px;
+    -webkit-text-stroke-color: rgba(0, 0, 0, 0.55);
     /* Bouncy "back out" easing gives the move a little life instead of a flat glide */
     transition: transform 0.62s cubic-bezier(0.34, 1.56, 0.64, 1),
         -webkit-text-stroke-width 0.45s ease,
@@ -184,38 +184,43 @@
     letter-spacing: 0.03em;
     font-size: clamp(1.8rem, 6.2vw, 3.3rem);
     line-height: 1.12;
-    /* A light, fluffy "cloud" gradient fill — mostly soft white with gentle
-       tints of color drifting through. Legibility comes entirely from the
-       bold outline below, so this can stay airy and pale on purpose. */
+    /* Storybook gradient fill in the app's own palette — sky blue melting
+       into cyan into sunlight gold (a lighter, airier cousin of the loading
+       title's fill). The 300% scroll shimmers the colors across the words;
+       start/end stops match so the loop is seamless. */
     background: linear-gradient(100deg,
-        #ffffff 0%,
-        #dbeafe 14%,
-        #ede9fe 28%,
-        #ffffff 42%,
-        #fce7f3 56%,
-        #fef9c3 70%,
-        #ffffff 84%,
-        #dbeafe 100%);
+        #0ea5e9 0%,
+        #22d3ee 16%,
+        #7dd3fc 32%,
+        #bae6fd 46%,
+        #fde68a 60%,
+        #fbbf24 74%,
+        #38bdf8 88%,
+        #0ea5e9 100%);
     background-size: 300% 100%;
     -webkit-background-clip: text;
     background-clip: text;
     color: transparent;
     -webkit-text-fill-color: transparent;
-    /* A strong, solid, deliberately different-hued outline traces every
-       letter — this (not a blur or a backdrop smudge) is what keeps the
-       text crisp and readable, identically on every device since it's just
-       a stroke, no filters involved. */
-    -webkit-text-stroke: 2px #5b21b6;
+    /* Same inner stroke as the app header title: stroke paints ON TOP of
+       the fill so the dark edge sits inside the letters — no hue, and no
+       bleed-through since it's an opaque stroke, not a shadow. */
+    -webkit-text-stroke: 1.5px rgba(0, 0, 0, 0.55);
+    /* Shadows live UNDER the transparent gradient fill, so any colored
+       shadow bleeds through and tints the letters (the violet/gold duo
+       read as pink). A pure white halo glows around the letters without
+       tinting the fill at all. */
     text-shadow:
-        0 3px 0 rgba(91, 33, 182, 0.4),
-        0 8px 16px rgba(30, 27, 75, 0.25),
-        0 0 20px rgba(250, 204, 21, 0.45);
+        0 0 22px rgba(255, 255, 255, 0.72),
+        0 0 46px rgba(255, 255, 255, 0.38);
     animation: loading-greeting-shimmer 5s linear infinite;
 }
 
 #loading-screen.loading-final-moment #loading-greeting-text::before {
-    color: #fde047;
-    opacity: 0.5;
+    /* White, not gold — this blurred duplicate sits directly beneath the
+       transparent fill, and a colored layer would bleed through it. */
+    color: #ffffff;
+    opacity: 0.55;
     filter: blur(16px);
     animation-duration: 1.6s;
 }
@@ -335,9 +340,121 @@
     animation: loading-burst-pop 900ms cubic-bezier(0.16, 1, 0.3, 1) var(--bdelay, 0ms) forwards;
 }
 
-.lb-1 { --bx: -130px; --by: -75px; --brot: -35deg; --bdelay: 0ms; }
-.lb-2 { --bx: 120px;  --by: -90px; --brot: 30deg;  --bdelay: 60ms; }
-.lb-3 { --bx: -160px; --by: 35px;  --brot: -50deg; --bdelay: 120ms; }
-.lb-4 { --bx: 155px;  --by: 25px;  --brot: 45deg;  --bdelay: 30ms; }
-.lb-5 { --bx: -75px;  --by: 120px; --brot: -20deg; --bdelay: 150ms; }
-.lb-6 { --bx: 85px;   --by: 130px; --brot: 25deg;  --bdelay: 90ms; }
+.lb-1 { --bx: -130px; --by: -75px;  --brot: -35deg; --bdelay: 0ms; }
+.lb-2 { --bx: 120px;  --by: -90px;  --brot: 30deg;  --bdelay: 60ms; }
+.lb-3 { --bx: -160px; --by: 35px;   --brot: -50deg; --bdelay: 120ms; }
+.lb-4 { --bx: 155px;  --by: 25px;   --brot: 45deg;  --bdelay: 30ms; }
+.lb-5 { --bx: -75px;  --by: 120px;  --brot: -20deg; --bdelay: 150ms; }
+.lb-6 { --bx: 85px;   --by: 130px;  --brot: 25deg;  --bdelay: 90ms; }
+.lb-7 { --bx: -40px;  --by: -140px; --brot: -60deg; --bdelay: 45ms; }
+.lb-8 { --bx: 30px;   --by: -150px; --brot: 55deg;  --bdelay: 105ms; }
+.lb-9 { --bx: -185px; --by: -25px;  --brot: -15deg; --bdelay: 75ms; }
+.lb-10 { --bx: 180px; --by: -35px;  --brot: 40deg;  --bdelay: 135ms; }
+
+/* ── Fireworks finale (greeting phase only) ─────────────────
+   Pure-DOM spark rings: each .loading-firework is a tiny glowing core whose
+   ::before paints a ring of colored sparks via box-shadow; scaling the core
+   flings the whole ring outward. Ignite only while .loading-final-moment is
+   on the screen, so the show starts exactly when the greeting blooms and
+   rides along during the welcome hold. */
+
+.loading-fireworks {
+    position: absolute;
+    inset: 0;
+    z-index: 3;
+    pointer-events: none;
+    overflow: hidden;
+}
+
+.loading-firework {
+    position: absolute;
+    width: 8px;
+    height: 8px;
+    margin: -4px 0 0 -4px;
+    border-radius: 50%;
+    background: #ffffff;
+    opacity: 0;
+    transform: scale(0.12);
+    filter: drop-shadow(0 0 7px var(--fw, #fde047));
+    will-change: transform, opacity;
+}
+
+/* Outer spark ring — 8 hue sparks + 4 small white inner glints */
+.loading-firework::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: 50%;
+    box-shadow:
+        0 -56px 0 0 var(--fw, #fde047),
+        40px -40px 0 0 var(--fw, #fde047),
+        56px 0 0 0 var(--fw, #fde047),
+        40px 40px 0 0 var(--fw, #fde047),
+        0 56px 0 0 var(--fw, #fde047),
+        -40px 40px 0 0 var(--fw, #fde047),
+        -56px 0 0 0 var(--fw, #fde047),
+        -40px -40px 0 0 var(--fw, #fde047),
+        0 -30px 0 -2px #ffffff,
+        30px 0 0 -2px #ffffff,
+        0 30px 0 -2px #ffffff,
+        -30px 0 0 -2px #ffffff;
+}
+
+/* Expanding halo flash at ignition */
+.loading-firework::after {
+    content: '';
+    position: absolute;
+    inset: -10px;
+    border-radius: 50%;
+    border: 3px solid var(--fw, #fde047);
+    opacity: 0;
+}
+
+@keyframes loading-firework-burst {
+    0% {
+        opacity: 0;
+        transform: scale(0.12) rotate(0deg);
+    }
+    10% {
+        opacity: 1;
+    }
+    55% {
+        opacity: 0.95;
+    }
+    100% {
+        opacity: 0;
+        transform: scale(1.65) rotate(26deg);
+    }
+}
+
+@keyframes loading-firework-flash {
+    0% {
+        opacity: 0.85;
+        transform: scale(0.3);
+    }
+    100% {
+        opacity: 0;
+        transform: scale(2.4);
+    }
+}
+
+#loading-screen.loading-final-moment .loading-firework {
+    animation: loading-firework-burst 1.5s cubic-bezier(0.16, 1, 0.3, 1) var(--fwdelay, 0ms) 2;
+}
+
+#loading-screen.loading-final-moment .loading-firework::after {
+    animation: loading-firework-flash 0.55s ease-out var(--fwdelay, 0ms) 2;
+}
+
+.fw-1 { top: 16%; left: 12%; --fw: #fde047; --fwdelay: 150ms; }
+.fw-2 { top: 12%; left: 84%; --fw: #f9a8d4; --fwdelay: 550ms; }
+.fw-3 { top: 52%; left: 7%;  --fw: #67e8f9; --fwdelay: 950ms; }
+.fw-4 { top: 46%; left: 93%; --fw: #c4b5fd; --fwdelay: 350ms; }
+.fw-5 { top: 78%; left: 18%; --fw: #6ee7b7; --fwdelay: 1150ms; }
+.fw-6 { top: 74%; left: 79%; --fw: #fdba74; --fwdelay: 750ms; }
+
+/* Constrained hardware still gets the pyrotechnics — it's a one-shot, few-
+   second finale — just without the glow filter, the only paint-heavy part. */
+#loading-screen.gcq-perf-low .loading-firework {
+    filter: none;
+}

@@ -273,7 +273,7 @@ export function setupUIListeners() {
         }
     });
     tabs.updateBottomNavGateState();
-    document.getElementById('back-to-classes-btn').addEventListener('click', () => tabs.showTab('my-classes-tab'));
+    document.getElementById('back-to-classes-btn').addEventListener('click', () => tabs.showOptionsSubtab('classes'));
 
     // Auth
     document.getElementById('logout-btn').addEventListener('click', async () => {

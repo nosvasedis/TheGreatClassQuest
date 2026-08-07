@@ -234,8 +234,13 @@ export async function applyTabPrimaryRefresh(tabId, opts = {}) {
     if (tabId === 'class-leaderboard-tab') await renderClassLeaderboardTab();
     if (tabId === 'student-leaderboard-tab') await renderStudentLeaderboardTab();
     if (tabId === 'guilds-tab') await renderGuildsTab();
-    if (tabId === 'my-classes-tab') renderManageClassesTab();
     if (tabId === 'manage-students-tab') renderManageStudentsTab();
+    if (tabId === 'options-tab') {
+        const classesSection = document.querySelector('[data-options-section="classes"]');
+        if (classesSection && !classesSection.classList.contains('hidden')) {
+            renderManageClassesTab();
+        }
+    }
 
     if (tabId === 'award-stars-tab') {
         const { findAndSetCurrentClass } = await import('../core.js');
@@ -312,11 +317,26 @@ export async function refreshVisibleTabForGlobalClassChange() {
     syncAwardImmersiveSky(visibleAgain?.id || '', { continueSession: true });
 }
 
+export async function showOptionsSubtab(key) {
+    await showTab('options-tab');
+    const button = document.querySelector(`.options-subtab-btn[data-options-tab="${key}"]`);
+    if (!button || button.classList.contains('hidden')) return;
+    button.click();
+    button.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+}
+
 export async function showTab(tabName) {
     updateBottomNavGateState();
 
     const allTabs = document.querySelectorAll('.app-tab');
     const tabId = tabName.endsWith('-tab') ? tabName : `${tabName}-tab`;
+
+    // My Classes lives under Teacher Settings now
+    if (tabId === 'my-classes-tab') {
+        await showOptionsSubtab('classes');
+        return;
+    }
+
     const nextTab = document.getElementById(tabId);
 
     const currentTab = document.querySelector('.app-tab:not(.hidden)');
@@ -339,9 +359,6 @@ export async function showTab(tabName) {
     document.querySelectorAll('.nav-button[data-tab]').forEach(btn => {
         btn.classList.toggle('active', btn.dataset.tab === tabId);
     });
-    if (tabId === 'manage-students-tab') {
-        document.querySelector('.nav-button[data-tab="my-classes-tab"]').classList.add('active');
-    }
 
     const animationDuration = 350;
 
@@ -438,6 +455,9 @@ export async function showTab(tabName) {
                     sec.classList.toggle('hidden', !isVisible);
                     sec.classList.toggle('options-section-visible', isVisible);
                 });
+                if (key === 'classes') {
+                    renderManageClassesTab();
+                }
                 if (key === 'assessments' && hasAssessmentAccess) {
                     renderAssessmentOptionsUi();
                 }

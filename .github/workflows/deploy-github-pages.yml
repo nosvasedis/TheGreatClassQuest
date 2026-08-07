@@ -1,7 +1,12 @@
-name: Deploy GitHub Pages (manual fallback)
+name: Deploy GitHub Pages
 
 on:
   workflow_dispatch:
+  schedule:
+    # GitHub cron is UTC-only. Fire at both candidate UTC hours for
+    # Europe/Athens midnight (EEST=UTC+3 → 21:00, EET=UTC+2 → 22:00),
+    # then gate the real deploy on the Athens clock below.
+    - cron: '0 21,22 * * *'
 
 concurrency:
   group: github-pages
@@ -13,7 +18,36 @@ permissions:
   id-token: write
 
 jobs:
+  gate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      should_deploy: ${{ steps.check.outputs.should_deploy }}
+    steps:
+      - name: Decide whether to deploy
+        id: check
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "Manual run — deploying."
+            echo "should_deploy=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          athens_hour="$(TZ=Europe/Athens date +%H)"
+          athens_now="$(TZ=Europe/Athens date -Iseconds)"
+          echo "Athens time: ${athens_now} (hour=${athens_hour})"
+
+          if [ "$athens_hour" = "00" ]; then
+            echo "Midnight Athens — deploying."
+            echo "should_deploy=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "Not midnight Athens — skipping this UTC cron slot."
+            echo "should_deploy=false" >> "$GITHUB_OUTPUT"
+          fi
+
   build:
+    needs: gate
+    if: needs.gate.outputs.should_deploy == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
@@ -50,7 +84,8 @@ jobs:
           path: dist
 
   deploy:
-    needs: build
+    needs: [gate, build]
+    if: needs.gate.outputs.should_deploy == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 15
     environment:

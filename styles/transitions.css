@@ -211,6 +211,8 @@ main {
     .loading-sun::after,
     .loading-particle,
     .loading-burst-star,
+    .loading-firework,
+    .loading-firework::after,
     .loading-title,
     .loading-title::before,
     #loading-greeting-text,

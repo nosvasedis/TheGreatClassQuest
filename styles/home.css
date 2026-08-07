@@ -587,11 +587,11 @@
     border-color: #fcd34d;
     box-shadow: 0 8px 25px -5px rgba(217, 119, 6, 0.3);
 }
-.tool-btn-pop[data-action="open-holidays"]:hover { 
-    background: linear-gradient(135deg, #fff1f2 0%, #ffe4e6 100%); 
-    color: #e11d48; 
-    border-color: #fda4af;
-    box-shadow: 0 8px 25px -5px rgba(225, 29, 72, 0.3);
+.tool-btn-pop[data-action="open-my-classes"]:hover {
+    background: linear-gradient(135deg, #f0fdfa 0%, #ccfbf1 100%);
+    color: #0d9488;
+    border-color: #5eead4;
+    box-shadow: 0 8px 25px -5px rgba(13, 148, 136, 0.3);
 }
 .tool-btn-pop[data-action="open-day-planner"]:hover { 
     background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%); 
@@ -600,10 +600,10 @@
     box-shadow: 0 8px 25px -5px rgba(37, 99, 235, 0.3);
 }
 .tool-btn-pop[data-action="open-settings"]:hover { 
-    background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%); 
-    color: #475569; 
-    border-color: #cbd5e1;
-    box-shadow: 0 8px 25px -5px rgba(71, 85, 105, 0.3);
+    background: linear-gradient(135deg, #f9fafb 0%, #f3f4f6 100%); 
+    color: #6b7280; 
+    border-color: #d1d5db;
+    box-shadow: 0 8px 25px -5px rgba(107, 114, 128, 0.3);
 }
 
 /* 4. ROW 1: WEATHER WIDGET - ENHANCED */

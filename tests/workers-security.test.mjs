@@ -45,7 +45,8 @@ test('AI Worker rejects unknown origins and unauthenticated generation before pr
   assert.match(source, /DEEPSEEK_API_KEY/);
   assert.match(source, /TEXT_FALLBACK_MODEL = '@cf\/zai-org\/glm-4\.7-flash'/);
   assert.match(source, /TEXT_FALLBACK_DAILY_LIMIT = 12/);
-  assert.match(source, /response\.status === 401 \|\| response\.status === 403/);
+  assert.match(source, /Any DeepSeek upstream failure/);
+  assert.match(source, /handleWorkersAiTextFallback\(outbound, env, corsHeaders\)/);
   assert.match(source, /X-GCQ-Error-Source': 'workers-ai-budget'/);
   assert.match(source, /stage: 'token'/);
   assert.match(source, /stage: 'app-check'/);

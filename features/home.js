@@ -1323,14 +1323,36 @@ function getReminderPills(classId) {
 }
 
 // --- NEW: Database-backed Shared Caching ---
+function isStaticFallbackQuote(content, type) {
+    const fallback = FALLBACK_QUOTES[type] || FALLBACK_QUOTES.default;
+    return String(content || '').trim() === fallback;
+}
+
+function buildDailyQuoteUserPrompt(type, todayKey) {
+    // Include the UTC day so each day's request is distinct for cache keys and model variety.
+    if (type === 'quote_header') {
+        return `For ${todayKey}, generate one fresh short quote about new beginnings or focus. Do not reuse yesterday's wording.`;
+    }
+    if (type === 'quote_widget') {
+        return `For ${todayKey}, generate one fresh short quote about curiosity or nature. Do not reuse yesterday's wording.`;
+    }
+    return `For ${todayKey}, generate one fresh short inspiring classroom quote.`;
+}
+
 async function getAICachedContent(type) {
     const todayKey = new Date().toISOString().split('T')[0];
     const docId = `daily_content_${todayKey}_${type}`;
     const localKey = `gcq_daily_content_${docId}`;
+    const fallback = FALLBACK_QUOTES[type] || FALLBACK_QUOTES.default;
 
     try {
         const localCached = localStorage.getItem(localKey);
-        if (localCached) return localCached;
+        // Never treat the static fallback as a successful cache hit — that permanently
+        // blocked daily AI retries after a single failed generation.
+        if (localCached && !isStaticFallbackQuote(localCached, type)) return localCached;
+        if (localCached && isStaticFallbackQuote(localCached, type)) {
+            try { localStorage.removeItem(localKey); } catch (_) {}
+        }
     } catch (e) {
         console.warn("Local quote cache read failed.", e);
     }
@@ -1339,8 +1361,6 @@ async function getAICachedContent(type) {
         return dailyContentInFlight.get(docId);
     }
 
-    const fallback = FALLBACK_QUOTES[type] || FALLBACK_QUOTES.default;
-
     const requestPromise = (async () => {
         // 1. Check Firebase First (Shared Cache)
         try {
@@ -1348,13 +1368,15 @@ async function getAICachedContent(type) {
             const docSnap = await getDoc(docRef);
 
             if (docSnap.exists()) {
-                const content = docSnap.data().content;
-                try {
-                    localStorage.setItem(localKey, content);
-                } catch (e) {
-                    console.warn("Local quote cache write failed.", e);
+                const content = String(docSnap.data()?.content || '').trim();
+                if (content && !isStaticFallbackQuote(content, type)) {
+                    try {
+                        localStorage.setItem(localKey, content);
+                    } catch (e) {
+                        console.warn("Local quote cache write failed.", e);
+                    }
+                    return content;
                 }
-                return content;
             }
         } catch (e) {
             console.warn("Cache fetch skipped, trying generation.");
@@ -1367,17 +1389,16 @@ async function getAICachedContent(type) {
 
         try {
             const systemPrompt = "You are a wise sage for a classroom. Generate a short, inspiring quote (max 10 words). No markdown. Just the text.";
-            let userPrompt = "Generate a quote.";
-
-            if (type === 'quote_header') {
-                userPrompt = "Generate a short quote about new beginnings or focus.";
-            } else if (type === 'quote_widget') {
-                userPrompt = "Generate a short quote about curiosity or nature.";
-            }
+            const userPrompt = buildDailyQuoteUserPrompt(type, todayKey);
 
             // Quotes can take >5s because the worker may throttle upstream requests.
             // Keep retries low, but allow enough time for a real response.
-            const content = await callGeminiApi(systemPrompt, userPrompt, { retries: 1, baseDelay: 500, timeoutMs: 20000 });
+            const content = String(
+                await callGeminiApi(systemPrompt, userPrompt, { retries: 1, baseDelay: 500, timeoutMs: 20000 })
+            ).trim();
+            if (!content || isStaticFallbackQuote(content, type)) {
+                throw new Error('AI returned an empty or static fallback quote.');
+            }
 
             // 3. Save to Firebase (So others don't have to generate)
             try {
@@ -1400,8 +1421,8 @@ async function getAICachedContent(type) {
             return content;
         } catch (e) {
             console.error(e);
-            // Cache the fallback locally so we don't re-hit the rate-limited API later today
-            try { localStorage.setItem(localKey, fallback); } catch (_) {}
+            // Do not cache the static fallback — a transient AI failure must not
+            // lock the home quote for the rest of the day.
             return fallback;
         }
     })().finally(() => {

@@ -28,10 +28,19 @@ let subscribed = false;
 let renderDebounce = null;
 let lastHtml = '';
 let cachedQuote = '';
+let cachedQuoteDay = null;
+
+const MOBILE_QUOTE_FALLBACK = 'Every great quest starts with one brave step.';
 
 function getDailyQuoteCardHtml(staggerIndex = 1) {
+    const todayKey = new Date().toISOString().split('T')[0];
+    if (cachedQuoteDay && cachedQuoteDay !== todayKey) {
+        cachedQuote = '';
+        cachedQuoteDay = null;
+    }
     const desktopQuote = document.getElementById('header-quote-text')?.textContent?.trim();
-    const quote = cachedQuote || (desktopQuote && desktopQuote !== 'Loading wisdom...' ? desktopQuote : 'Every great quest starts with one brave step.');
+    const quote = cachedQuote
+        || (desktopQuote && desktopQuote !== 'Loading wisdom...' ? desktopQuote : MOBILE_QUOTE_FALLBACK);
     return `
         <section class="m-home-card m-home-quote-card card-appear-m" style="--stagger:${staggerIndex}" id="m-daily-quote-card">
             <div class="m-home-quote-card__inner">
@@ -46,11 +55,19 @@ function getDailyQuoteCardHtml(staggerIndex = 1) {
 }
 
 function ensureDailyQuoteFetched() {
-    if (cachedQuote) return;
+    const todayKey = new Date().toISOString().split('T')[0];
+    if (cachedQuoteDay && cachedQuoteDay !== todayKey) {
+        cachedQuote = '';
+        cachedQuoteDay = null;
+    }
+    // Keep refetching while we only have the static placeholder so a later AI
+    // success can replace it within the same session.
+    if (cachedQuote && cachedQuote !== MOBILE_QUOTE_FALLBACK) return;
     import('../features/home.js').then((homeModule) => {
         homeModule.fetchDailySpice?.().then((s) => {
             if (s?.headerQuote) {
                 cachedQuote = s.headerQuote;
+                cachedQuoteDay = todayKey;
                 const el = document.getElementById('m-daily-quote-text');
                 if (el) el.textContent = cachedQuote;
             }

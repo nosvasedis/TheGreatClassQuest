@@ -258,7 +258,8 @@ function validatedChatPayload(payload, env) {
 function isLikelyDailyQuoteRequest(payload) {
   const joined = payload.messages.map((message) => String(message.content || '')).join(' ').toLowerCase();
   return joined.includes('short, inspiring quote') || joined.includes('new beginnings') ||
-    joined.includes('curiosity or nature') || joined.includes('wise sage for a classroom');
+    joined.includes('curiosity or nature') || joined.includes('wise sage for a classroom') ||
+    joined.includes('fresh short quote');
 }
 
 async function sha256Hex(input) {
@@ -351,17 +352,18 @@ async function handleChat(payload, env, ctx, corsHeaders) {
   });
   const responseText = await response.text();
   if (!response.ok) {
-    if (response.status === 401 || response.status === 403) {
-      const fallback = await handleWorkersAiTextFallback(outbound, env, corsHeaders);
-      if (quoteKey && fallback.ok && env.QUOTE_CACHE) {
+    // Any DeepSeek upstream failure (auth, billing, rate limit, 5xx) should try
+    // Workers AI before hard-failing the client. Quote UX depends on this path.
+    const fallback = await handleWorkersAiTextFallback(outbound, env, corsHeaders);
+    if (fallback.ok) {
+      if (quoteKey && env.QUOTE_CACHE) {
         ctx.waitUntil(env.QUOTE_CACHE.put(quoteKey, await fallback.clone().text(), { expirationTtl: 86_400 }).catch(() => {}));
       }
       return fallback;
     }
-    const headers = {};
+    const headers = { 'X-GCQ-Error-Source': 'deepseek' };
     const retryAfter = response.headers.get('Retry-After');
     if (retryAfter) headers['Retry-After'] = retryAfter;
-    headers['X-GCQ-Error-Source'] = 'deepseek';
     return json({ error: 'AI text service could not complete the request.' }, response.status, corsHeaders, headers);
   }
   if (quoteKey && env.QUOTE_CACHE) {

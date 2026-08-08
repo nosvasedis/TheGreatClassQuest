@@ -60,7 +60,7 @@ function corsFor(request, env) {
     'Access-Control-Allow-Origin': origin,
     'Access-Control-Allow-Methods': 'POST,OPTIONS',
     'Access-Control-Allow-Headers': 'Content-Type,Authorization,X-Firebase-AppCheck,X-GCQ-Request-ID',
-    'Access-Control-Expose-Headers': 'Retry-After,X-Worker-Cache,X-GCQ-Request-ID,X-GCQ-Error-Source,X-GCQ-AI-Provider',
+    'Access-Control-Expose-Headers': 'Retry-After,X-Worker-Cache,X-GCQ-Request-ID,X-GCQ-Error-Source,X-GCQ-AI-Provider,X-GCQ-Auth-Reason',
     Vary: 'Origin',
   };
 }
@@ -101,6 +101,15 @@ async function resolveJwk(jwksUrl, kid) {
   return jwk || null;
 }
 
+function jwkForVerify(jwk) {
+  // Web Crypto can reject Google JWKS entries that carry alg/use alongside kty/n/e.
+  return {
+    kty: jwk.kty,
+    n: jwk.n,
+    e: jwk.e,
+  };
+}
+
 async function verifyRs256Jwt(token, jwksUrl, validateClaims) {
   const parts = String(token || '').split('.');
   if (parts.length !== 3) throw new Error('Invalid token.');
@@ -108,8 +117,14 @@ async function verifyRs256Jwt(token, jwksUrl, validateClaims) {
   const payload = decodeJwtJson(parts[1]);
   if (header.alg !== 'RS256' || !header.kid) throw new Error('Invalid token algorithm.');
   const jwk = await resolveJwk(jwksUrl, header.kid);
-  if (!jwk) throw new Error('Unknown signing key.');
-  const key = await crypto.subtle.importKey('jwk', jwk, { name: 'RSASSA-PKCS1-v1_5', hash: 'SHA-256' }, false, ['verify']);
+  if (!jwk?.n || !jwk?.e || jwk.kty !== 'RSA') throw new Error('Unknown signing key.');
+  const key = await crypto.subtle.importKey(
+    'jwk',
+    jwkForVerify(jwk),
+    { name: 'RSASSA-PKCS1-v1_5', hash: 'SHA-256' },
+    false,
+    ['verify'],
+  );
   const valid = await crypto.subtle.verify(
     'RSASSA-PKCS1-v1_5',
     key,
@@ -124,14 +139,19 @@ async function verifyRs256Jwt(token, jwksUrl, validateClaims) {
 async function verifyFirebaseIdToken(request, env) {
   const authorization = request.headers.get('Authorization') || '';
   const token = authorization.match(/^Bearer\s+(.+)$/i)?.[1] || '';
+  if (!token) throw new Error('Missing bearer token.');
   const projectId = String(env.FIREBASE_PROJECT_ID || '');
   const now = Math.floor(Date.now() / 1000);
+  const skewSeconds = 300;
   const payload = await verifyRs256Jwt(token, FIREBASE_ID_JWKS_URL, (claims) => {
     if (!projectId || claims.aud !== projectId || claims.iss !== `https://securetoken.google.com/${projectId}`) {
       throw new Error('Invalid token audience.');
     }
-    if (!claims.sub || claims.exp <= now || claims.iat > now + 60 || claims.auth_time > now + 60) {
-      throw new Error('Expired token.');
+    if (!claims.sub) throw new Error('Missing token subject.');
+    if (claims.exp <= now - skewSeconds) throw new Error('Expired token.');
+    if (claims.iat > now + skewSeconds) throw new Error('Token issued in the future.');
+    if (Number.isFinite(claims.auth_time) && claims.auth_time > now + skewSeconds) {
+      throw new Error('Token auth_time in the future.');
     }
   });
   return { uid: payload.sub, token, projectId };
@@ -442,12 +462,16 @@ export default {
     try {
       identity = await verifyFirebaseIdToken(request, env);
     } catch (error) {
-      console.warn(JSON.stringify({ event: 'gcq_auth_rejected', stage: 'token', reason: error?.message || 'verification-failed' }));
+      const reason = String(error?.message || 'verification-failed').slice(0, 120);
+      console.warn(JSON.stringify({ event: 'gcq_auth_rejected', stage: 'token', reason }));
       return json(
-        { error: 'A valid Firebase login is required.' },
+        { error: 'A valid Firebase login is required.', detail: reason },
         401,
         corsHeaders,
-        { 'X-GCQ-Error-Source': 'firebase-token' },
+        {
+          'X-GCQ-Error-Source': 'firebase-token',
+          'X-GCQ-Auth-Reason': reason,
+        },
       );
     }
     try {

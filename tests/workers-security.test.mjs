@@ -53,6 +53,8 @@ test('AI Worker rejects unknown origins and unauthenticated generation before pr
   assert.match(source, /stage: 'profile'/);
   assert.match(source, /firebase-profile-service/);
   assert.match(source, /X-GCQ-Error-Source': 'app-check'/);
+  assert.match(source, /X-GCQ-Auth-Reason/);
+  assert.match(source, /jwkForVerify/);
   assert.match(source, /forceRefresh:\s*true/);
   assert.match(source, /Cache API availability is an optimization/);
   assert.match(source, /redirect:\s*'error'/);

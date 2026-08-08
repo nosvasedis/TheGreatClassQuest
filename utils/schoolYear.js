@@ -184,6 +184,18 @@ export function shouldSkipPostCloseHeroReconcile(schoolYearState = {}) {
         && normalized.rolloverStatus === 'september_setup';
 }
 
+/** True after year-close until the secretary officially opens the next year. */
+export function isSchoolYearAwaitingOpen(schoolYearStateLike = null) {
+    const normalized = normalizeSchoolYearState(schoolYearStateLike || {});
+    return String(normalized.rolloverStatus || '').toLowerCase() === 'september_setup';
+}
+
+/** True once the secretary has opened the active school year. */
+export function isSchoolYearOpen(schoolYearStateLike = null) {
+    const normalized = normalizeSchoolYearState(schoolYearStateLike || {});
+    return String(normalized.rolloverStatus || '').toLowerCase() === 'active';
+}
+
 export function formatSchoolYearLabel(yearKey) {
     if (!yearKey) return 'School year';
     return String(yearKey).replace('-', ' / ');

@@ -610,6 +610,18 @@
     color: #059669;
 }
 
+.m-home-schedule-empty--summer strong { color: #92400e; }
+.m-home-schedule-empty--summer small { color: #b45309; }
+
+.m-home-schedule-empty--sealed strong { color: #1e293b; }
+.m-home-schedule-empty--sealed small { color: #475569; }
+
+.m-home-schedule-empty--weekend strong { color: #0e7490; }
+.m-home-schedule-empty--weekend small { color: #0891b2; }
+
+.m-home-schedule-empty--holiday strong { color: #3730a3; }
+.m-home-schedule-empty--holiday small { color: #4f46e5; }
+
 @media (min-width: 640px) {
     body.gcq-mobile .m-home-actions {
         grid-template-columns: repeat(6, minmax(0, 1fr));

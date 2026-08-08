@@ -6,6 +6,7 @@ import {
     ensureOpenSchoolYears,
     backfillSchoolYearData,
     closeSchoolYear,
+    openSchoolYear,
     finalizeRollover,
     allocateReturningStudents,
     markStudentLeftSchool
@@ -18,6 +19,7 @@ import {
     getScheduledActiveClasses,
     hasSchoolYearBegun,
     isCloseDateReached,
+    isSchoolYearAwaitingOpen,
     normalizeCloseDateInput,
     normalizeSchoolYearState,
     PUBLIC_DATA_PATH
@@ -38,7 +40,9 @@ function friendlyYearStatus(value) {
     const status = String(value || '').trim().toLowerCase();
     if (['completed', 'complete', 'closed'].includes(status)) return 'Finished';
     if (['running', 'processing', 'in_progress'].includes(status)) return 'In progress';
-    if (['september_setup', 'preparing'].includes(status)) return 'Getting ready';
+    if (status === 'september_setup') return 'Between years';
+    if (status === 'preparing') return 'Getting ready';
+    if (status === 'active') return 'Open';
     return 'Ready';
 }
 
@@ -213,6 +217,71 @@ function renderPreparingMode({
     `;
 }
 
+function renderBetweenYearsMode({
+    schoolYearState,
+    activeYearKey,
+    startsAtLabel,
+    lastClosedYearKey,
+    pendingStudents,
+    activeClasses
+}) {
+    const previousLabel = lastClosedYearKey
+        ? formatSchoolYearLabel(lastClosedYearKey)
+        : 'the previous year';
+    return `
+        <div class="school-year-command school-year-command--between">
+            <section class="school-year-hero secretary-card secretary-card--featured school-year-hero--summer">
+                <div class="school-year-hero__copy">
+                    <p class="secretary-card__eyebrow">Your school year</p>
+                    <h2 class="secretary-card__title">${escapeHtml(formatSchoolYearLabel(activeYearKey))}</h2>
+                    <p class="school-year-status-pill school-year-status-pill--summer" role="status">Between years</p>
+                    <p class="text-sm text-slate-600 mt-3 leading-relaxed max-w-xl">
+                        ${escapeHtml(previousLabel)} is sealed. Teachers see the summer break on the school schedule
+                        until you officially open ${escapeHtml(formatSchoolYearLabel(activeYearKey))}.
+                        You can still place returning students anytime.
+                    </p>
+                </div>
+                <div class="school-year-status-grid">
+                    <div class="school-year-status-card school-year-status-card--sky">
+                        <span>Next year</span>
+                        <strong>${escapeHtml(activeYearKey || '—')}</strong>
+                        <small>${escapeHtml(friendlyYearStatus(schoolYearState.rolloverStatus))}</small>
+                    </div>
+                    <div class="school-year-status-card school-year-status-card--amber">
+                        <span>Opens</span>
+                        <strong>${escapeHtml(startsAtLabel)}</strong>
+                        <small>Or open now below</small>
+                    </div>
+                    <div class="school-year-status-card school-year-status-card--emerald">
+                        <span>Waiting placement</span>
+                        <strong>${pendingStudents.length}</strong>
+                        <small>Returning students</small>
+                    </div>
+                </div>
+            </section>
+
+            <section class="secretary-card school-year-open-section">
+                <div class="secretary-card__header">
+                    <div>
+                        <p class="secretary-card__eyebrow">New year</p>
+                        <h3 class="secretary-card__title">Open the school year</h3>
+                    </div>
+                    <div class="secretary-card__badge">Ready</div>
+                </div>
+                <p class="text-sm text-slate-600 leading-relaxed mb-4">
+                    Opens ${escapeHtml(formatSchoolYearLabel(activeYearKey))} for teachers. Summer messaging ends;
+                    student placement stays available until everyone is seated.
+                </p>
+                <button type="button" id="school-year-open-btn" class="secretary-shell__primary-btn">
+                    <i class="fas fa-sun mr-2"></i>Open school year
+                </button>
+            </section>
+
+            ${renderPlacementSection({ pendingStudents, activeClasses })}
+        </div>
+    `;
+}
+
 function renderPlacementSection({ pendingStudents, activeClasses }) {
     if (!pendingStudents.length) return '';
     return `
@@ -379,6 +448,17 @@ export function renderSchoolYearSection() {
         ? 'the official start date'
         : formatCloseDateLabel(startsAt);
 
+    if (isSchoolYearAwaitingOpen(schoolYearState)) {
+        return renderBetweenYearsMode({
+            schoolYearState,
+            activeYearKey,
+            startsAtLabel,
+            lastClosedYearKey: schoolYearState.lastClosedYearKey || null,
+            pendingStudents,
+            activeClasses
+        });
+    }
+
     if (!yearBegun) {
         return renderPreparingMode({
             schoolYearState,
@@ -528,6 +608,33 @@ async function runSchoolYearClose(button) {
     }
 }
 
+async function runSchoolYearOpen(button) {
+    const { schoolYearState } = getSchoolYearSummary();
+    const yearLabel = formatSchoolYearLabel(schoolYearState.activeYearKey);
+    const confirmed = window.confirm(
+        `Open ${yearLabel} now?\n\nTeachers will leave summer break messaging. Returning students can still be placed afterward.`
+    );
+    if (!confirmed) return;
+    try {
+        setBusyState(button, true, 'Opening school year...');
+        const result = await openSchoolYear({
+            schoolYearKey: schoolYearState.activeYearKey
+        });
+        showToast(
+            result?.alreadyOpen
+                ? `${yearLabel} is already open.`
+                : `${yearLabel} is open. Welcome back, heroes!`,
+            'success'
+        );
+        onSchoolYearConsoleRerender?.();
+    } catch (error) {
+        console.error('School year open failed:', error);
+        showToast(error?.message || 'Could not open the school year.', 'error');
+    } finally {
+        setBusyState(button, false);
+    }
+}
+
 async function runSchoolYearFinalize(button) {
     const { schoolYearState } = getSchoolYearSummary();
     try {
@@ -608,6 +715,12 @@ export function handleSchoolYearConsoleClick(event) {
     const closeBtn = event.target.closest('#school-year-close-btn');
     if (closeBtn) {
         runSchoolYearClose(closeBtn);
+        return true;
+    }
+
+    const openBtn = event.target.closest('#school-year-open-btn');
+    if (openBtn) {
+        runSchoolYearOpen(openBtn);
         return true;
     }
 

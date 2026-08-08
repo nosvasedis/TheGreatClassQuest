@@ -5,6 +5,10 @@ import { escapeHtml } from '../features/roles/shared.js';
 import { sumLiveMonthlyStarsFromStudentScores } from '../features/awardLogReasonMeta.js';
 import { getUpcomingScheduledAssessment } from '../features/assessmentConfig.js';
 import { playSound } from '../audio.js';
+import {
+    getScheduleEmptyStateMarkupClass,
+    resolveScheduleEmptyState
+} from '../utils/scheduleEmptyState.js';
 
 const SCHEDULE_GRADIENTS = [
     'from-red-100 to-red-200', 'from-orange-100 to-orange-200', 'from-amber-100 to-amber-200',
@@ -127,13 +131,20 @@ function getClassScheduleRows() {
     const activeId = state.get('globalSelectedClassId');
 
     if (!todaysClasses.length) {
-        const dayOfWeek = new Date().getDay();
-        const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
+        const emptyState = resolveScheduleEmptyState({
+            date: utils.parseFlexibleDate(today) || new Date(),
+            schoolYearState: state.get('schoolYearState'),
+            allSchoolClasses: classes,
+            allScheduleOverrides: overrides,
+            schoolHolidayRanges: state.get('schoolHolidayRanges') || [],
+            classEndDates
+        });
+        const emptyClass = getScheduleEmptyStateMarkupClass(emptyState, { mobile: true });
         return `
-            <div class="m-home-schedule-empty">
-                <span class="m-home-schedule-empty__icon">${isWeekend ? '🏖️' : '⛺'}</span>
-                <strong>${isWeekend ? 'Weekend Break' : "Heroes' Camp"}</strong>
-                <small>${isWeekend ? 'Recharge your mana for next week!' : 'No lessons today. The party is resting!'}</small>
+            <div class="${emptyClass}">
+                <span class="m-home-schedule-empty__icon">${emptyState.icon}</span>
+                <strong>${escapeHtml(emptyState.title)}</strong>
+                <small>${escapeHtml(emptyState.message)}</small>
             </div>`;
     }
 
@@ -491,7 +502,7 @@ export function initMobileHome() {
             'allSchoolClasses', 'allTeachersClasses', 'allStudents', 'allStudentScores',
             'allAwardLogs', 'allAdventureLogs', 'allQuestAssignments', 'currentStoryData',
             'schoolName', 'schoolHolidayRanges', 'allScheduleOverrides', 'teacherSettings',
-            'globalSelectedClassId'
+            'globalSelectedClassId', 'schoolYearState'
         ],
         () => renderMobileHome()
     );

@@ -215,6 +215,7 @@ const SECRETARY_RUNTIME_FUNCTION_NAMES = [
   'markStudentLeftSchool',
   'purgeLeftSchoolStudents',
   'closeSchoolYear',
+  'openSchoolYear',
   'finalizeRollover',
   'previewYearRollover',
   'ensureOpenSchoolYears',

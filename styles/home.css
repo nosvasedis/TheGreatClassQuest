@@ -1123,6 +1123,59 @@
     filter: drop-shadow(0 4px 8px rgba(0,0,0,0.1));
 }
 
+.schedule-empty-camp__title {
+    color: #166534;
+}
+
+.schedule-empty-camp__message {
+    color: #059669;
+}
+
+.schedule-empty-camp--weekend {
+    background: linear-gradient(135deg, #ecfeff 0%, #cffafe 50%, #f0fdfa 100%);
+    border-color: #67e8f9;
+    color: #0e7490;
+}
+
+.schedule-empty-camp--weekend .schedule-empty-camp__title { color: #0e7490; }
+.schedule-empty-camp--weekend .schedule-empty-camp__message { color: #0891b2; }
+
+.schedule-empty-camp--summer {
+    background: linear-gradient(135deg, #fffbeb 0%, #fde68a 45%, #ffedd5 100%);
+    border-color: #fbbf24;
+    color: #92400e;
+}
+
+.schedule-empty-camp--summer::before {
+    background: radial-gradient(circle at 70% 30%, rgba(251, 191, 36, 0.35) 0%, transparent 55%);
+}
+
+.schedule-empty-camp--summer .schedule-empty-camp__title { color: #92400e; }
+.schedule-empty-camp--summer .schedule-empty-camp__message { color: #b45309; }
+
+.schedule-empty-camp--sealed {
+    background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 45%, #fef3c7 100%);
+    border-color: #94a3b8;
+    border-style: solid;
+    color: #334155;
+}
+
+.schedule-empty-camp--sealed::before {
+    background: radial-gradient(circle at 25% 25%, rgba(148, 163, 184, 0.35) 0%, transparent 50%);
+}
+
+.schedule-empty-camp--sealed .schedule-empty-camp__title { color: #1e293b; }
+.schedule-empty-camp--sealed .schedule-empty-camp__message { color: #475569; }
+
+.schedule-empty-camp--holiday {
+    background: linear-gradient(135deg, #eef2ff 0%, #e0e7ff 50%, #faf5ff 100%);
+    border-color: #a5b4fc;
+    color: #3730a3;
+}
+
+.schedule-empty-camp--holiday .schedule-empty-camp__title { color: #3730a3; }
+.schedule-empty-camp--holiday .schedule-empty-camp__message { color: #4f46e5; }
+
 /* 8. FADE ANIMATION - Enhanced */
 .home-fade {
     animation: fadeIn 0.28s ease-out forwards;

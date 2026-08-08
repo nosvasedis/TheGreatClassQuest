@@ -1810,6 +1810,54 @@ exports.closeSchoolYear = callable(async (request) => {
   return { ok: true, jobId };
 });
 
+exports.openSchoolYear = callable(async (request) => {
+  const caller = await requireYearOperator(request);
+  const stateSnap = await db.doc(`${PUBLIC_DATA_PATH}/school_year_state/current`).get();
+  const stateData = stateSnap.exists ? (stateSnap.data() || {}) : {};
+  const activeYearKey = String(request.data?.schoolYearKey || stateData.activeYearKey || '').trim();
+  if (!/^\d{4}-\d{4}$/.test(activeYearKey)) {
+    throw new HttpsError('failed-precondition', 'The active school year is unavailable.');
+  }
+
+  const currentStatus = String(stateData.rolloverStatus || '').toLowerCase();
+  if (currentStatus === 'active') {
+    return {
+      ok: true,
+      alreadyOpen: true,
+      activeYearKey,
+      rolloverStatus: 'active'
+    };
+  }
+
+  const startsAtInput = String(request.data?.startsAt || '').trim();
+  const yearPayload = {
+    status: 'active',
+    openedAt: FieldValue.serverTimestamp(),
+    openedBy: { uid: caller.uid, role: caller.profile.role || 'teacher' },
+    updatedAt: FieldValue.serverTimestamp()
+  };
+  if (startsAtInput) {
+    yearPayload.startsAt = startsAtInput;
+  }
+
+  await db.doc(`${PUBLIC_DATA_PATH}/school_years/${activeYearKey}`).set(yearPayload, { merge: true });
+  await db.doc(`${PUBLIC_DATA_PATH}/school_year_state/current`).set({
+    activeYearKey,
+    rolloverStatus: 'active',
+    openedAt: FieldValue.serverTimestamp(),
+    openedBy: { uid: caller.uid, role: caller.profile.role || 'teacher' },
+    enforceActiveYearQueries: true,
+    updatedAt: FieldValue.serverTimestamp()
+  }, { merge: true });
+
+  return {
+    ok: true,
+    alreadyOpen: false,
+    activeYearKey,
+    rolloverStatus: 'active'
+  };
+});
+
 exports.allocateReturningStudents = callable(async (request) => {
   const caller = await requireAuthedCaller(request);
   const studentIds = Array.isArray(request.data?.studentIds) ? request.data.studentIds.map(String).filter(Boolean) : [];

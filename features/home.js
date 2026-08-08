@@ -13,6 +13,11 @@ import { loadTeacherJourneyState, markTeacherGuideSeen } from './teacherJourney.
 import { getNextAssessmentOccurrenceForToday, getUpcomingScheduledAssessment } from './assessmentConfig.js';
 import { shouldShowQuizButton } from './quizOfTheWeek.js';
 import { sumLiveMonthlyStarsFromStudentScores } from './awardLogReasonMeta.js';
+import { escapeHtml } from './roles/shared.js';
+import {
+    getScheduleEmptyStateMarkupClass,
+    resolveScheduleEmptyState
+} from '../utils/scheduleEmptyState.js';
 
 export { initializeHeaderQuote, fetchDailySpice };
 
@@ -794,20 +799,21 @@ function getScheduleHtml(dateString, activeClassId) {
     const todaysClasses = utils.getClassesOnDay(dateString, allSchoolClasses, allScheduleOverrides, classEndDates);
 
     if (todaysClasses.length === 0) {
-        const dayOfWeek = new Date().getDay(); // 0 = Sunday, 6 = Saturday
-        const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
-
-        const title = isWeekend ? "Weekend Break" : "Heroes' Camp";
-        const message = isWeekend
-            ? "Enjoy your weekend! Recharge your mana for next week."
-            : "No lessons today. The party is resting!";
-        const icon = isWeekend ? "🏖️" : "⛺";
+        const emptyState = resolveScheduleEmptyState({
+            date: utils.parseFlexibleDate(dateString) || new Date(),
+            schoolYearState: state.get('schoolYearState'),
+            allSchoolClasses,
+            allScheduleOverrides,
+            schoolHolidayRanges: state.get('schoolHolidayRanges') || [],
+            classEndDates
+        });
+        const emptyClass = getScheduleEmptyStateMarkupClass(emptyState);
 
         return `
-        <div class="schedule-empty-camp" style="min-height: 325px;">
-            <div class="text-7xl mb-4 animate-bounce-slow filter drop-shadow-sm">${icon}</div>
-            <h4 class="font-title text-3xl text-emerald-800 mb-2">${title}</h4>
-            <p class="text-base text-emerald-600 font-bold opacity-80">${message}</p>
+        <div class="${emptyClass}" style="min-height: 325px;">
+            <div class="text-7xl mb-4 animate-bounce-slow filter drop-shadow-sm">${escapeHtml(emptyState.icon)}</div>
+            <h4 class="font-title text-3xl mb-2 schedule-empty-camp__title">${escapeHtml(emptyState.title)}</h4>
+            <p class="text-base font-bold opacity-80 schedule-empty-camp__message">${escapeHtml(emptyState.message)}</p>
         </div>`;
     }
 

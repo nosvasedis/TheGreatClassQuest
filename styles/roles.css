@@ -46,6 +46,12 @@
     linear-gradient(145deg, rgba(255,255,255,0.98), rgba(240, 249, 255, 0.94) 55%, rgba(236, 253, 245, 0.9));
 }
 
+.school-year-hero--summer {
+  background:
+    radial-gradient(circle at top right, rgba(251, 191, 36, 0.32), transparent 44%),
+    linear-gradient(145deg, rgba(255,255,255,0.98), rgba(255, 251, 235, 0.95) 55%, rgba(254, 243, 199, 0.88));
+}
+
 .school-year-status-pill {
   display: inline-flex;
   align-items: center;
@@ -68,6 +74,12 @@
   color: #047857;
   background: rgba(167, 243, 208, 0.7);
   border: 1px solid rgba(110, 231, 183, 0.85);
+}
+
+.school-year-status-pill--summer {
+  color: #b45309;
+  background: rgba(253, 230, 138, 0.75);
+  border: 1px solid rgba(251, 191, 36, 0.85);
 }
 
 .school-year-action-stack--simple {

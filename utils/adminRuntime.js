@@ -70,6 +70,10 @@ export function closeSchoolYear(payload = {}) {
     return callAdmin('closeSchoolYear', payload);
 }
 
+export function openSchoolYear(payload = {}) {
+    return callAdmin('openSchoolYear', payload);
+}
+
 export function finalizeRollover(payload = {}) {
     return callAdmin('finalizeRollover', payload);
 }

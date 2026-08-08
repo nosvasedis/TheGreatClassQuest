@@ -57,7 +57,9 @@ test('AI Worker rejects unknown origins and unauthenticated generation before pr
   assert.match(source, /jwkForVerify/);
   assert.match(source, /forceRefresh:\s*true/);
   assert.match(source, /Cache API availability is an optimization/);
-  assert.match(source, /redirect:\s*'error'/);
+  assert.match(source, /fetchNoRedirect/);
+  assert.match(source, /redirect:\s*'manual'/);
+  assert.doesNotMatch(source, /redirect:\s*'error'/);
 });
 
 test('AI Worker returns app-check source when App Check is required and missing', async () => {
@@ -144,7 +146,9 @@ test('Storage Worker preserves its route while enforcing an active identity', as
   assert.match(source, /verifyAppCheckToken/);
   assert.match(source, /verifyAppCheckIfRequired/);
   assert.match(source, /requireActiveProfile/);
-  assert.match(source, /redirect:\s*'error'/);
+  assert.match(source, /fetchNoRedirect/);
+  assert.match(source, /redirect:\s*'manual'/);
+  assert.doesNotMatch(source, /redirect:\s*'error'/);
 });
 
 test('Wrangler configs preserve the existing AI and KV bindings and pin Firebase scope', async () => {

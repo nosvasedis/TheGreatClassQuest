@@ -75,12 +75,21 @@ function decodeJwtJson(value) {
   return JSON.parse(new TextDecoder().decode(decodeBase64Url(value)));
 }
 
+async function fetchNoRedirect(url, init = {}) {
+  // Cloudflare Workers only support redirect "follow" | "manual" (not "error").
+  const response = await fetch(url, { ...init, redirect: 'manual' });
+  if (response.type === 'opaqueredirect' || (response.status >= 300 && response.status < 400)) {
+    throw new Error('Unexpected redirect.');
+  }
+  return response;
+}
+
 async function getJwks(url, { maxCacheSeconds = 21_600, forceRefresh = false } = {}) {
   if (!forceRefresh) {
     const cached = jwksCaches.get(url);
     if (cached && Date.now() < cached.expiresAt) return cached.keys;
   }
-  const response = await fetch(url, { redirect: 'error' });
+  const response = await fetchNoRedirect(url);
   if (!response.ok) throw new Error('Signing keys are unavailable.');
   const maxAge = Number(response.headers.get('Cache-Control')?.match(/max-age=(\d+)/)?.[1] || 3600);
   const payload = await response.json();
@@ -194,9 +203,8 @@ async function requireActiveProfile(identity) {
   if (cached?.ok) return;
 
   const url = `https://firestore.googleapis.com/v1/projects/${encodeURIComponent(identity.projectId)}/databases/(default)/documents/user_profiles/${encodeURIComponent(identity.uid)}`;
-  const response = await fetch(url, {
+  const response = await fetchNoRedirect(url, {
     headers: { Authorization: `Bearer ${identity.token}` },
-    redirect: 'error',
   });
   if (!response.ok) {
     response.body?.cancel();
@@ -360,7 +368,7 @@ async function handleChat(payload, env, ctx, corsHeaders) {
     return fallback;
   }
 
-  const response = await fetch(DEEPSEEK_URL, {
+  const response = await fetchNoRedirect(DEEPSEEK_URL, {
     method: 'POST',
     headers: {
       Authorization: `Bearer ${env.DEEPSEEK_API_KEY}`,
@@ -368,7 +376,6 @@ async function handleChat(payload, env, ctx, corsHeaders) {
     },
     body: JSON.stringify(outbound),
     signal: AbortSignal.timeout(55_000),
-    redirect: 'error',
   });
   const responseText = await response.text();
   if (!response.ok) {
@@ -426,12 +433,11 @@ async function handleSpeech(payload, env, corsHeaders) {
       similarity_boost: boundedNumber(payload.voice_settings.similarity_boost, 0.75, 0, 1),
     };
   }
-  const response = await fetch(ELEVENLABS_URL, {
+  const response = await fetchNoRedirect(ELEVENLABS_URL, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', 'xi-api-key': env.ELEVENLABS_API_KEY, Accept: 'audio/mpeg' },
     body: JSON.stringify(outbound),
     signal: AbortSignal.timeout(55_000),
-    redirect: 'error',
   });
   if (!response.ok) {
     response.body?.cancel();

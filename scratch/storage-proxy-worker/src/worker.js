@@ -62,9 +62,18 @@ function decodeJwtJson(value) {
   return JSON.parse(new TextDecoder().decode(decodeBase64Url(value)));
 }
 
+async function fetchNoRedirect(url, init = {}) {
+  // Cloudflare Workers only support redirect "follow" | "manual" (not "error").
+  const response = await fetch(url, { ...init, redirect: 'manual' });
+  if (response.type === 'opaqueredirect' || (response.status >= 300 && response.status < 400)) {
+    throw new Error('Unexpected redirect.');
+  }
+  return response;
+}
+
 async function getGoogleJwks() {
   if (Date.now() < jwksCache.expiresAt && Object.keys(jwksCache.keys).length) return jwksCache.keys;
-  const response = await fetch(GOOGLE_JWKS_URL, { redirect: 'error' });
+  const response = await fetchNoRedirect(GOOGLE_JWKS_URL);
   if (!response.ok) throw new Error('Firebase signing keys unavailable.');
   const maxAge = Number(response.headers.get('Cache-Control')?.match(/max-age=(\d+)/)?.[1] || 3600);
   jwksCache = { keys: await response.json(), expiresAt: Date.now() + Math.min(maxAge, 21_600) * 1000 };
@@ -73,7 +82,7 @@ async function getGoogleJwks() {
 
 async function getAppCheckJwks() {
   if (Date.now() < appCheckJwksCache.expiresAt && appCheckJwksCache.keys.size) return appCheckJwksCache.keys;
-  const response = await fetch(APP_CHECK_JWKS_URL, { redirect: 'error' });
+  const response = await fetchNoRedirect(APP_CHECK_JWKS_URL);
   if (!response.ok) throw new Error('App Check signing keys unavailable.');
   const maxAge = Number(response.headers.get('Cache-Control')?.match(/max-age=(\d+)/)?.[1] || 3600);
   const payload = await response.json();
@@ -146,7 +155,7 @@ async function requireActiveProfile(identity, token) {
   const cached = await caches.default.match(cacheKey);
   if (cached?.ok) return;
   const url = `https://firestore.googleapis.com/v1/projects/${encodeURIComponent(identity.projectId)}/databases/(default)/documents/user_profiles/${encodeURIComponent(identity.uid)}`;
-  const response = await fetch(url, { headers: { Authorization: `Bearer ${token}` }, redirect: 'error' });
+  const response = await fetchNoRedirect(url, { headers: { Authorization: `Bearer ${token}` } });
   if (!response.ok) {
     response.body?.cancel();
     throw new Error('Profile unavailable.');
@@ -227,9 +236,8 @@ export default {
 
     let upstream;
     try {
-      upstream = await fetch(target.toString(), {
+      upstream = await fetchNoRedirect(target.toString(), {
         method: 'GET',
-        redirect: 'error',
         headers: { Authorization: `Bearer ${request.headers.get('x-firebase-token')}` },
       });
     } catch (_) {

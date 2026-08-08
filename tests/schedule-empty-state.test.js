@@ -10,6 +10,16 @@ import {
 
 assert.equal(isSchoolYearAwaitingOpen({ rolloverStatus: 'september_setup' }), true);
 assert.equal(isSchoolYearAwaitingOpen({ rolloverStatus: 'active' }), false);
+assert.equal(isSchoolYearAwaitingOpen({
+  rolloverStatus: 'preparing',
+  lastClosedYearKey: '2025-2026'
+}), true);
+assert.equal(isSchoolYearAwaitingOpen({
+  rolloverStatus: 'preparing',
+  lastClosedYearKey: '2025-2026',
+  openedAt: '2026-09-01'
+}), false);
+assert.equal(isSchoolYearAwaitingOpen({ rolloverStatus: 'preparing' }), false);
 assert.equal(isSchoolYearOpen({ rolloverStatus: 'active' }), true);
 assert.equal(isSchoolYearOpen({ rolloverStatus: 'september_setup' }), false);
 

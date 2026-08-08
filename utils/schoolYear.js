@@ -187,7 +187,13 @@ export function shouldSkipPostCloseHeroReconcile(schoolYearState = {}) {
 /** True after year-close until the secretary officially opens the next year. */
 export function isSchoolYearAwaitingOpen(schoolYearStateLike = null) {
     const normalized = normalizeSchoolYearState(schoolYearStateLike || {});
-    return String(normalized.rolloverStatus || '').toLowerCase() === 'september_setup';
+    const status = String(normalized.rolloverStatus || '').toLowerCase();
+    if (status === 'september_setup') return true;
+    // Live schools may drift to `preparing` after close while still between years.
+    if (normalized.lastClosedYearKey && status !== 'active' && !normalized.openedAt) {
+        return ['preparing', 'closing', 'closed'].includes(status);
+    }
+    return false;
 }
 
 /** True once the secretary has opened the active school year. */

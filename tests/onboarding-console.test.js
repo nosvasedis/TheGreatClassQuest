@@ -361,6 +361,13 @@ test('admin readiness target enables storage, functions, and scheduler services'
   assert.ok(getRequiredFunctionNames('admin').includes('purgeLeftSchoolStudents'));
   assert.ok(getRequiredFunctionNames('admin').includes('markStudentLeftSchool'));
   assert.ok(getRequiredFunctionNames('admin').includes('activateSecretaryAdmin'));
+  assert.ok(getRequiredFunctionNames('admin').includes('closeSchoolYear'));
+  assert.ok(getRequiredFunctionNames('admin').includes('openSchoolYear'));
+  assert.ok(getRequiredFunctionNames('admin').includes('finalizeRollover'));
+  assert.ok(getRequiredFunctionNames('admin').includes('previewYearRollover'));
+  assert.ok(getRequiredFunctionNames('admin').includes('ensureOpenSchoolYears'));
+  assert.ok(getRequiredFunctionNames('admin').includes('backfillSchoolYearData'));
+  assert.ok(!getRequiredFunctionNames('pro').includes('openSchoolYear'));
   assert.equal(describeReadinessTarget('pro'), 'Pro ready (Storage + Parent Access)');
   assert.equal(describeReadinessTarget('admin'), 'Parent Access + Secretary ready');
 });

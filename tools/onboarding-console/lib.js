@@ -182,7 +182,7 @@ function targetNeedsParentRuntime(readinessTarget) {
   return target === 'pro' || target === 'admin';
 }
 
-/** Secretary activation, year console, leave-school purge schedule. */
+/** Secretary activation, school-year close/open console, leave-school purge schedule. */
 function targetNeedsAdminRuntime(readinessTarget) {
   return normalizeReadinessTarget(readinessTarget) === 'admin';
 }
@@ -598,7 +598,7 @@ function deployCloudFunctionsForSchool(projectId, serviceAccountKeyPath) {
     status: 'needs_attention',
     deployed: false,
     message: 'Cloud Functions deploy did not finish successfully.',
-    actionHint: 'Check that this machine can deploy to the school Firebase project (Blaze billing, IAM, and firebase-tools login/credentials), then rerun. Family Access and leave-school purge need these Functions live on this project.',
+    actionHint: 'Check that this machine can deploy to the school Firebase project (Blaze billing, IAM, and firebase-tools login/credentials), then rerun. Family Access, school-year close/open, and leave-school purge need these Functions live on this project.',
     technicalDetails: combined.slice(-4000) || `exit code ${result.status}`,
   };
 }
@@ -737,15 +737,19 @@ async function appendRoleRuntimeTasks({
       'verifyFunctions',
       functionCheck.ok ? 'done' : 'needs_attention',
       targetNeedsAdminRuntime(readinessTarget)
-        ? 'Confirm Parent Access + Secretary Functions'
+        ? 'Confirm Parent Access + Secretary + school-year Functions'
         : 'Confirm Parent Access Functions',
       functionCheck.ok
-        ? `All ${functionCheck.required.length} required Functions are live on this school project.`
+        ? `All ${functionCheck.required.length} required Functions are live on this school project${
+            targetNeedsAdminRuntime(readinessTarget)
+              ? ' (includes closeSchoolYear, openSchoolYear, and September placement tools).'
+              : '.'
+          }`
         : `Missing Functions: ${(functionCheck.missing || []).join(', ') || 'unknown'}.`,
       {
         actionHint: functionCheck.ok
           ? ''
-          : 'Deploy functions from this repo to the school Firebase project, then rerun the check.',
+          : 'Deploy functions from this repo to the school Firebase project (includes openSchoolYear for Secretary year opening), then rerun the check.',
         technicalDetails: JSON.stringify({
           required: functionCheck.required,
           deployed: functionCheck.deployed,
@@ -829,7 +833,7 @@ async function appendRoleRuntimeTasks({
           'Secretary/admin activation',
           error.message || 'Secretary activation could not be prepared.',
           {
-            actionHint: 'Fix the reported issue, then rerun. Leave-school and school-year tools need an activated Secretary.',
+            actionHint: 'Fix the reported issue, then rerun. Leave-school and school-year tools (close + open year) need an activated Secretary.',
             technicalDetails: error.message || '',
           }
         )
@@ -2755,7 +2759,7 @@ async function runAutomaticSetup(input) {
         'done',
         'Enable the Google and Firebase services this school needs',
         targetNeedsAdminRuntime(readinessTarget)
-          ? 'The required Google/Firebase services were enabled for paywall, Firestore, Storage, Parent Access Functions, Secretary tools, and Cloud Scheduler (leave-school purge).'
+          ? 'The required Google/Firebase services were enabled for paywall, Firestore, Storage, Parent Access Functions, Secretary school-year tools (close + open), and Cloud Scheduler (leave-school purge).'
           : targetNeedsParentRuntime(readinessTarget)
           ? 'The required Google/Firebase services were enabled for paywall, Firestore, Storage, and the Parent Access Cloud Functions runtime.'
           : 'The required Google/Firebase services were enabled for paywall, Firestore, and rules.',
@@ -3219,11 +3223,11 @@ async function runAutomaticSetup(input) {
   let summary = 'The setup is close, but one thing still needs attention before the school is fully ready.';
   if (fullyReady) {
     if (targetNeedsAdminRuntime(readinessTarget)) {
-      healthMessage = 'This school is ready for Family Access and the Secretary console, including leave-school disable and the 30-day purge schedule.';
+      healthMessage = 'This school is ready for Family Access and the Secretary console, including school-year close/open, leave-school disable, and the 30-day purge schedule.';
       healthHint = roleRuntime.secretaryActivation
         ? 'Send the Secretary activation link privately, paste Render, configure hosting, then grant Pro/Elite when the school pays.'
         : '';
-      summary = 'This school is ready for Parent Access and the Secretary console. Paste Render, configure hosting, send the Secretary activation link, and grant Pro/Elite when appropriate.';
+      summary = 'This school is ready for Parent Access and the Secretary console (including open/close school year). Paste Render, configure hosting, send the Secretary activation link, and grant Pro/Elite when appropriate.';
     } else if (targetNeedsParentRuntime(readinessTarget)) {
       healthMessage = 'This school is ready for Pro Parent Access (Family Access callables + Storage).';
       healthHint = '';
@@ -3364,7 +3368,7 @@ async function recheckExistingSchool(projectId, options = {}) {
         'done',
         'Enable the Google and Firebase services this school needs',
         targetNeedsAdminRuntime(readinessTarget)
-          ? 'The required Google/Firebase services were enabled or already ready for Parent Access, Secretary tools, and Cloud Scheduler.'
+          ? 'The required Google/Firebase services were enabled or already ready for Parent Access, Secretary school-year tools (close + open), and Cloud Scheduler.'
           : targetNeedsParentRuntime(readinessTarget)
           ? 'The required Google/Firebase services were enabled or already ready for Storage and Parent Access Functions.'
           : 'The required Google/Firebase services were enabled or already ready for Starter flow.',
@@ -3754,7 +3758,7 @@ async function recheckExistingSchool(projectId, options = {}) {
   let summary = 'This school still needs attention.';
   if (ready) {
     if (targetNeedsAdminRuntime(readinessTarget)) {
-      healthMessage = 'This saved school looks ready for Family Access and the Secretary console, including the leave-school 30-day purge schedule.';
+      healthMessage = 'This saved school looks ready for Family Access and the Secretary console, including school-year close/open and the leave-school 30-day purge schedule.';
       summary = 'This school looks ready for Parent Access and the Secretary console.';
     } else if (targetNeedsParentRuntime(readinessTarget)) {
       healthMessage = 'This saved school looks ready for Pro Parent Access (Family Access Functions + Storage).';

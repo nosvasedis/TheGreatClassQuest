@@ -128,9 +128,22 @@ header h1.font-title {
     background: none !important;
     -webkit-background-clip: border-box !important;
     background-clip: border-box !important;
-    text-shadow: 0 4px 8px rgba(0, 0, 0, 0.3), 0 0 15px rgba(255, 255, 255, 0.4) !important;
+    text-shadow: 0 4px 6px rgba(0, 0, 0, 0.6), 0 0 20px rgba(255, 255, 255, 0.8) !important;
     position: relative;
     display: inline-block;
+}
+
+header h1.font-title::before {
+    content: attr(data-text);
+    position: absolute;
+    inset: 0;
+    color: #fff !important;
+    -webkit-text-fill-color: #fff;
+    text-shadow: none !important;
+    -webkit-text-stroke: 0.65px rgba(0, 0, 0, 0.38);
+    filter: url(#gcq-inner-soft-stroke);
+    pointer-events: none;
+    user-select: none;
 }
 
 header h1.font-title::after {

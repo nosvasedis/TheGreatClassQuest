@@ -138,7 +138,10 @@ export function renderSecretaryTab(tabKey) {
 
 export function renderSecretaryConsole(tabKey) {
     const titleEl = document.querySelector('[data-secretary-title]');
-    if (titleEl) titleEl.textContent = 'Secretary Office';
+    if (titleEl) {
+        titleEl.textContent = 'Secretary Office';
+        titleEl.dataset.text = 'Secretary Office';
+    }
 
     if (tabKey) {
         renderSecretaryTab(resolveTabKey(tabKey));

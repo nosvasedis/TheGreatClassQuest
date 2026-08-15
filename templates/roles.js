@@ -22,11 +22,11 @@ const roleHeader = (role, titleAttr, subtitleAttr, logoutId) => `
                 <i class="fas fa-cloud cloud cloud-fast" style="left: 30%; animation-delay: -15s; font-size: 6rem;"></i>
                 <i class="fas fa-cloud cloud" style="left: 60%; animation-delay: -2s; font-size: 10rem;"></i>
             </div>
-            <div class="role-header-brand z-10 min-w-0 flex flex-1 items-center gap-3">
+            <div class="role-header-brand z-10 min-w-0 flex flex-1 items-center gap-3 overflow-visible">
                 <span class="role-header-brand__mark" aria-hidden="true"><i class="fas ${role === 'secretary' ? 'fa-wand-magic-sparkles' : 'fa-heart'}"></i></span>
-                <div class="min-w-0">
+                <div class="min-w-0 overflow-visible">
                     <p class="text-white/80 text-xs font-bold uppercase tracking-widest mb-1">${role === 'secretary' ? 'School Office' : 'Family Portal'}</p>
-                    <h1 class="font-title text-2xl text-white sm:text-3xl truncate" ${titleAttr}>Loading...</h1>
+                    <h1 class="font-title text-2xl text-white sm:text-4xl whitespace-nowrap" ${titleAttr} data-text="Loading...">Loading...</h1>
                     <p class="text-white/90 text-sm font-semibold mt-1 truncate" ${subtitleAttr}></p>
                 </div>
             </div>
@@ -72,7 +72,7 @@ export const roleShellsHTML = `
     <div id="secretary-screen" class="hidden role-shell role-shell--secretary flex flex-col h-full overflow-hidden">
         ${roleHeader('secretary', 'data-secretary-title', 'data-school-name', 'secretary-logout-btn')}
         <main class="role-main secretary-role-main flex-1 overflow-y-auto custom-scrollbar p-4 md:p-6 min-h-0">
-            <section class="role-tab max-w-4xl mx-auto" data-secretary-section="home"></section>
+            <section class="role-tab max-w-7xl mx-auto" data-secretary-section="home"></section>
             <section class="role-tab max-w-4xl mx-auto hidden" data-secretary-section="school"></section>
             <section class="role-tab max-w-4xl mx-auto hidden" data-secretary-section="grades"></section>
             <section class="role-tab max-w-4xl mx-auto hidden" data-secretary-section="messages"></section>

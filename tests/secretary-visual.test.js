@@ -20,13 +20,32 @@ test('Secretary school tabs have explicit, accessible selected colors', () => {
     assert.match(css, /\.role-subtab-btn--emerald\.options-subtab-active\s*\{[\s\S]*?background:/);
 });
 
-test('Secretary Home uses the dedicated welcoming dashboard', () => {
-    const home = read('features/secretary/home.js');
+test('Secretary heading uses the teacher title face treatment', () => {
+    const roles = read('templates/roles.js');
+    const consoleJs = read('features/secretaryConsole.js');
+    const ceremony = read('styles/ceremony2.css');
 
-    assert.match(home, /secretary-home-hero/);
-    assert.match(home, /Your school day/);
-    assert.match(home, /secretary-home-shortcuts/);
-    assert.match(home, /secretary-home-stats/);
+    assert.match(roles, /data-text="Loading\.\.\."/);
+    assert.match(roles, /font-title text-2xl text-white sm:text-4xl/);
+    assert.doesNotMatch(roles, /truncate" \$\{titleAttr\}/);
+    assert.match(consoleJs, /titleEl\.dataset\.text\s*=\s*'Secretary Office'/);
+    assert.match(ceremony, /header h1\.font-title::before\s*\{/);
+    assert.match(ceremony, /content:\s*attr\(data-text\)/);
+});
+
+test('Secretary Home uses the teacher Horizons dashboard', () => {
+    const home = read('features/secretary/home.js');
+    const roles = read('templates/roles.js');
+
+    assert.match(home, /horizons-grid/);
+    assert.match(home, /greeting-panel/);
+    assert.match(home, /weather-card/);
+    assert.match(home, /stat-card-pop/);
+    assert.match(home, /tools-grid-v2/);
+    assert.match(home, /tool-btn-pop/);
+    assert.match(home, /Good Morning/);
+    assert.match(roles, /class="role-tab max-w-7xl mx-auto" data-secretary-section="home"/);
+    assert.doesNotMatch(home, /secretary-home-hero|Your school day|secretary-home-shortcuts/);
     assert.doesNotMatch(home, /renderTabHero/);
 });
 

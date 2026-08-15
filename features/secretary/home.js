@@ -1,9 +1,5 @@
 import * as state from '../../state.js';
-import {
-    escapeHtml,
-    formatFlexibleDate,
-    greetingTime
-} from '../roles/shared.js';
+import { escapeHtml, formatFlexibleDate } from '../roles/shared.js';
 import {
     getStudentMap,
     getClassMap,
@@ -12,6 +8,64 @@ import {
     getThreadStudentLabel
 } from './helpers.js';
 import { canUseFeature, getTier } from '../../utils/subscription.js';
+import { DEFAULT_SCHOOL_NAME } from '../../constants.js';
+
+function getSecretaryHomeTheme() {
+    const hour = new Date().getHours();
+    if (hour >= 5 && hour < 12) {
+        return {
+            greeting: 'Good Morning',
+            greetingGradient: 'from-amber-400 via-orange-400 to-rose-400',
+            weatherBg: 'w-day',
+            weatherIcon: 'fa-school',
+            isNight: false
+        };
+    }
+    if (hour >= 12 && hour < 17) {
+        return {
+            greeting: 'Good Afternoon',
+            greetingGradient: 'from-blue-400 via-cyan-400 to-teal-400',
+            weatherBg: 'w-day',
+            weatherIcon: 'fa-school',
+            isNight: false
+        };
+    }
+    if (hour >= 17 && hour < 21) {
+        return {
+            greeting: 'Good Evening',
+            greetingGradient: 'from-indigo-500 via-purple-500 to-pink-500',
+            weatherBg: 'w-day',
+            weatherIcon: 'fa-school-flag',
+            isNight: false
+        };
+    }
+    return {
+        greeting: 'Good Night',
+        greetingGradient: 'from-indigo-900 via-purple-900 to-slate-800',
+        weatherBg: 'w-night',
+        weatherIcon: 'fa-moon',
+        isNight: true
+    };
+}
+
+function reminderPillsHtml({ unreadThreads, hasFullConsole, tier }) {
+    const pills = [];
+    if (hasFullConsole && unreadThreads > 0) {
+        pills.push(`
+            <button type="button" class="date-pill bg-gradient-to-r from-violet-500 to-indigo-500 text-white shadow-lg flex items-center gap-2 px-4 py-2 rounded-full border-2 border-white/50" data-secretary-tab-link="messages">
+                <span class="text-xl" aria-hidden="true">💬</span>
+                <span class="font-bold">${unreadThreads} message${unreadThreads === 1 ? '' : 's'} waiting</span>
+            </button>
+        `);
+    }
+    pills.push(`
+        <div class="date-pill bg-gradient-to-r from-sky-500 to-cyan-500 text-white shadow-lg flex items-center gap-2 px-4 py-2 rounded-full border-2 border-white/50">
+            <i class="fas fa-gem" aria-hidden="true"></i>
+            <span class="font-bold">${escapeHtml(tier)} plan</span>
+        </div>
+    `);
+    return pills.join('');
+}
 
 export function renderSecretaryHome() {
     const classes = state.get('allSchoolClasses') || [];
@@ -26,135 +80,140 @@ export function renderSecretaryHome() {
     const studentMap = getStudentMap();
     const classMap = getClassMap();
     const profile = state.get('currentUserProfile') || {};
-    const schoolName = state.get('schoolName') || 'Your school';
+    const schoolName = state.get('schoolName') || DEFAULT_SCHOOL_NAME;
     const hasFullConsole = canUseFeature('secretaryAccess');
     const tier = String(getTier() || 'starter');
     const secretaryName = profile.displayName || 'Secretary';
+    const theme = getSecretaryHomeTheme();
+
+    const tools = [
+        { icon: 'fa-chalkboard', label: 'Classes', tab: 'school', schoolSub: 'classes' },
+        { icon: 'fa-user-graduate', label: 'Students', tab: 'school', schoolSub: 'students' },
+        ...(hasFullConsole ? [
+            { icon: 'fa-chart-simple', label: 'Grades', tab: 'grades' },
+            { icon: 'fa-comments', label: 'Messages', tab: 'messages' }
+        ] : []),
+        { icon: 'fa-cog', label: 'Settings', tab: 'admin' }
+    ];
+
+    const latestGradeHtml = latestScoreInfo
+        ? `<button type="button" class="chronicle-item chronicle-homework w-full text-left"${hasFullConsole ? ' data-secretary-tab-link="grades"' : ''}>
+                <div class="chronicle-card-accent chronicle-accent-homework"></div>
+                <div class="flex items-center gap-2.5 mb-3">
+                    <div class="chronicle-icon-badge bg-indigo-500/15 text-indigo-600"><i class="fas fa-star text-sm"></i></div>
+                    <span class="text-xs font-bold text-indigo-700 uppercase tracking-wider">Latest grade</span>
+                </div>
+                <p class="text-sm text-indigo-900 font-medium leading-snug line-clamp-3 flex-1">${escapeHtml(latestScoreInfo.score.title || latestScoreInfo.score.type || 'Assessment')}</p>
+                <p class="text-[11px] text-indigo-700/70 mt-2 font-semibold">${escapeHtml(latestScoreInfo.student?.name || 'Student')} • ${escapeHtml(latestScoreInfo.classData?.name || 'Class')} • ${escapeHtml(formatFlexibleDate(latestScoreInfo.score.date))}</p>
+                <span class="role-score-pill mt-3 self-start">${escapeHtml(latestScoreInfo.label)}</span>
+           </button>`
+        : `<div class="chronicle-item chronicle-homework">
+                <div class="chronicle-card-accent chronicle-accent-homework"></div>
+                <div class="flex items-center gap-2.5 mb-3">
+                    <div class="chronicle-icon-badge bg-indigo-500/15 text-indigo-600"><i class="fas fa-star text-sm"></i></div>
+                    <span class="text-xs font-bold text-indigo-700 uppercase tracking-wider">Latest grade</span>
+                </div>
+                <p class="text-sm text-indigo-900/70 font-medium leading-snug">New grades will appear here when teachers add them.</p>
+           </div>`;
+
+    const latestMessageHtml = latestThread && hasFullConsole
+        ? (() => {
+            const meta = getThreadTypeMeta(latestThread.threadType);
+            const labels = getThreadStudentLabel(latestThread, studentMap, classMap);
+            return `<button type="button" class="chronicle-item chronicle-story w-full text-left" data-secretary-thread="${latestThread.id}" data-secretary-open-messages="1">
+                <div class="chronicle-card-accent chronicle-accent-story"></div>
+                <div class="flex items-center gap-2.5 mb-3">
+                    <div class="chronicle-icon-badge bg-cyan-500/15 text-cyan-600"><i class="fas ${meta.icon} text-sm"></i></div>
+                    <span class="text-xs font-bold text-cyan-700 uppercase tracking-wider">${escapeHtml(meta.label)}</span>
+                </div>
+                <p class="text-sm text-cyan-900 font-medium leading-snug line-clamp-3 flex-1">${escapeHtml(labels.studentName)}</p>
+                <p class="text-[11px] text-cyan-700/70 mt-2 font-semibold">${escapeHtml(labels.className)}</p>
+            </button>`;
+        })()
+        : `<div class="chronicle-item chronicle-story">
+                <div class="chronicle-card-accent chronicle-accent-story"></div>
+                <div class="flex items-center gap-2.5 mb-3">
+                    <div class="chronicle-icon-badge bg-cyan-500/15 text-cyan-600"><i class="fas fa-comments text-sm"></i></div>
+                    <span class="text-xs font-bold text-cyan-700 uppercase tracking-wider">Latest conversation</span>
+                </div>
+                <p class="text-sm text-cyan-900/70 font-medium leading-snug">${hasFullConsole ? 'Family conversations will appear here when they begin.' : 'Family messaging is available with the Elite plan.'}</p>
+           </div>`;
 
     return `
-        <div class="secretary-home">
-            <section class="secretary-home-hero card-appear" style="--stagger:0">
-                <div class="secretary-home-hero__copy">
-                    <span class="secretary-home-hero__badge"><i class="fas fa-wand-magic-sparkles" aria-hidden="true"></i> ${escapeHtml(schoolName)}</span>
-                    <p class="secretary-home-hero__hello">Good ${greetingTime()}, ${escapeHtml(secretaryName)}!</p>
-                    <h2 class="secretary-home-hero__title">Your school day,<br><span>beautifully organised.</span></h2>
-                    <p class="secretary-home-hero__description">See what is happening, find anyone quickly, and keep the whole school moving from one calm place.</p>
-                    <div class="secretary-home-hero__actions">
-                        <button type="button" class="secretary-home-primary-action" data-secretary-tab-link="school">
-                            <i class="fas fa-school" aria-hidden="true"></i> Browse your school
-                        </button>
-                        <button type="button" class="secretary-home-secondary-action" data-secretary-tab-link="admin">
-                            <i class="fas fa-sliders" aria-hidden="true"></i> School settings
-                        </button>
-                    </div>
-                </div>
-                <div class="secretary-home-hero__visual" aria-hidden="true">
-                    <div class="secretary-home-hero__orb">
-                        <i class="fas fa-school-flag"></i>
-                    </div>
-                    <span class="secretary-home-float secretary-home-float--classes"><i class="fas fa-chalkboard"></i><strong>${classes.length}</strong> classes</span>
-                    <span class="secretary-home-float secretary-home-float--students"><i class="fas fa-user-graduate"></i><strong>${students.length}</strong> students</span>
-                    <span class="secretary-home-float secretary-home-float--ready"><i class="fas fa-circle-check"></i> Ready for today</span>
-                </div>
-            </section>
-
-            <section class="secretary-home-section card-appear" style="--stagger:1" aria-labelledby="secretary-home-shortcuts-title">
-                <div class="secretary-home-section__heading">
-                    <div>
-                        <p class="role-card__eyebrow">Where would you like to go?</p>
-                        <h3 id="secretary-home-shortcuts-title" class="role-card__title">Quick actions</h3>
-                    </div>
-                    <span class="secretary-home-plan"><i class="fas fa-gem" aria-hidden="true"></i> ${escapeHtml(tier)} plan</span>
-                </div>
-                <div class="secretary-home-shortcuts">
-                    <button type="button" class="secretary-home-shortcut secretary-home-shortcut--sky" data-secretary-tab-link="school" data-secretary-school-subtab="classes">
-                        <span class="secretary-home-shortcut__icon"><i class="fas fa-chalkboard"></i></span>
-                        <span><strong>Find a class</strong><small>Schedules, levels and teachers</small></span>
-                        <i class="fas fa-arrow-right secretary-home-shortcut__arrow"></i>
-                    </button>
-                    <button type="button" class="secretary-home-shortcut secretary-home-shortcut--emerald" data-secretary-tab-link="school" data-secretary-school-subtab="students">
-                        <span class="secretary-home-shortcut__icon"><i class="fas fa-user-graduate"></i></span>
-                        <span><strong>Find a student</strong><small>Details, notes and family access</small></span>
-                        <i class="fas fa-arrow-right secretary-home-shortcut__arrow"></i>
-                    </button>
-                    ${hasFullConsole ? `<button type="button" class="secretary-home-shortcut secretary-home-shortcut--amber" data-secretary-tab-link="grades">
-                        <span class="secretary-home-shortcut__icon"><i class="fas fa-chart-simple"></i></span>
-                        <span><strong>Review grades</strong><small>The latest school results</small></span>
-                        <i class="fas fa-arrow-right secretary-home-shortcut__arrow"></i>
-                    </button>
-                    <button type="button" class="secretary-home-shortcut secretary-home-shortcut--violet" data-secretary-tab-link="messages">
-                        <span class="secretary-home-shortcut__icon"><i class="fas fa-comments"></i></span>
-                        <span><strong>Open messages</strong><small>${unreadThreads ? `${unreadThreads} conversation${unreadThreads === 1 ? '' : 's'} to check` : 'You are all caught up'}</small></span>
-                        <i class="fas fa-arrow-right secretary-home-shortcut__arrow"></i>
-                    </button>` : ''}
-                </div>
-            </section>
-
-            <section class="secretary-home-stats" aria-label="School at a glance">
-                <article class="secretary-home-stat secretary-home-stat--sky card-appear" style="--stagger:2">
-                    <span class="secretary-home-stat__icon"><i class="fas fa-chalkboard"></i></span>
-                    <div><span>Classes</span><strong>${classes.length.toLocaleString()}</strong><small>Across the school</small></div>
-                </article>
-                <article class="secretary-home-stat secretary-home-stat--emerald card-appear" style="--stagger:3">
-                    <span class="secretary-home-stat__icon"><i class="fas fa-user-graduate"></i></span>
-                    <div><span>Students</span><strong>${students.length.toLocaleString()}</strong><small>Learning with you</small></div>
-                </article>
-                <article class="secretary-home-stat secretary-home-stat--amber card-appear" style="--stagger:4">
-                    <span class="secretary-home-stat__icon"><i class="fas fa-star"></i></span>
-                    <div><span>Stars</span><strong>${totalStars.toLocaleString()}</strong><small>Celebrated so far</small></div>
-                </article>
-                <article class="secretary-home-stat secretary-home-stat--violet card-appear" style="--stagger:5">
-                    <span class="secretary-home-stat__icon"><i class="fas fa-coins"></i></span>
-                    <div><span>Gold</span><strong>${totalGold.toLocaleString()}</strong><small>Earned by students</small></div>
-                </article>
-            </section>
-
-            <div class="secretary-home-feed">
-                <article class="role-card secretary-home-update-card card-appear" style="--stagger:6">
-                <div class="role-card__header">
-                    <div>
-                            <p class="role-card__eyebrow">Latest school update</p>
-                            <h3 class="role-card__title">A new grade</h3>
-                    </div>
-                        ${hasFullConsole ? '<button type="button" class="role-inline-link" data-secretary-tab-link="grades">See all grades</button>' : ''}
-                </div>
-                ${latestScoreInfo
-                        ? `<div class="secretary-home-update">
-                            <span class="secretary-home-update__icon secretary-home-update__icon--amber"><i class="fas fa-star"></i></span>
-                        <div class="role-list-row__body">
-                            <div class="role-list-row__title">${escapeHtml(latestScoreInfo.score.title || latestScoreInfo.score.type || 'Assessment')}</div>
-                            <div class="role-list-row__meta">${escapeHtml(latestScoreInfo.student?.name || 'Student')} • ${escapeHtml(latestScoreInfo.classData?.name || 'Class')} • ${escapeHtml(formatFlexibleDate(latestScoreInfo.score.date))}</div>
+    <div class="w-full max-w-7xl mx-auto">
+        <div class="horizons-grid">
+            <div class="vibrant-card h-span-8 greeting-panel">
+                <div class="greeting-bg-mesh"></div>
+                <div class="greeting-hero-asset">🏫</div>
+                <div class="relative z-10 flex flex-col justify-between h-full">
+                    <div class="flex justify-between items-start mb-4 gap-4">
+                        <div class="flex flex-wrap items-center gap-3 py-1">
+                            ${reminderPillsHtml({ unreadThreads, hasFullConsole, tier })}
                         </div>
-                        <span class="role-score-pill">${escapeHtml(latestScoreInfo.label)}</span>
-                    </div>`
-                        : '<div class="role-empty-state">New grades will appear here when teachers add them.</div>'
-                }
-            </article>
-
-                <article class="role-card secretary-home-update-card card-appear" style="--stagger:7">
-                <div class="role-card__header">
-                    <div>
-                            <p class="role-card__eyebrow">Family connection</p>
-                            <h3 class="role-card__title">Latest conversation</h3>
                     </div>
-                        ${hasFullConsole ? '<button type="button" class="role-inline-link" data-secretary-tab-link="messages">Open inbox</button>' : ''}
+                    <div>
+                        <h2 class="font-title text-4xl md:text-5xl text-slate-800 drop-shadow-sm mb-1">
+                            <span class="text-transparent bg-clip-text bg-gradient-to-r ${theme.greetingGradient}">${theme.greeting}</span>,
+                            <span class="text-transparent bg-clip-text bg-gradient-to-r from-slate-700 to-slate-500 whitespace-nowrap">${escapeHtml(secretaryName)}</span>!
+                        </h2>
+                        <p class="text-gray-500 font-bold text-base opacity-75" data-school-name>
+                            <i class="fas fa-university mr-2"></i>${escapeHtml(schoolName)}
+                        </p>
+                    </div>
                 </div>
-                    ${latestThread && hasFullConsole
-                    ? (() => {
-                        const meta = getThreadTypeMeta(latestThread.threadType);
-                        const labels = getThreadStudentLabel(latestThread, studentMap, classMap);
-                        return `<button type="button" class="role-inbox-item role-inbox-item--active" data-secretary-thread="${latestThread.id}" data-secretary-open-messages="1" style="margin-bottom:0">
-                            <div class="role-inbox-item__icon role-inbox-item__icon--${meta.tone}"><i class="fas ${meta.icon}"></i></div>
-                            <div>
-                                <div class="role-inbox-item__title">${escapeHtml(meta.label)}</div>
-                                <div class="role-inbox-item__meta">${escapeHtml(labels.studentName)} • ${escapeHtml(labels.className)}</div>
-                            </div>
-                        </button>`;
-                    })()
-                        : `<div class="role-empty-state">${hasFullConsole ? 'Family conversations will appear here when they begin.' : 'Family messaging is available with the Elite plan.'}</div>`
-                }
-            </article>
+            </div>
+
+            <div class="vibrant-card h-span-4 weather-card ${theme.weatherBg}${theme.isNight ? ' weather-night' : ''}">
+                <i class="fas ${theme.weatherIcon} weather-sun"></i>
+                <i class="fas fa-cloud weather-cloud"></i>
+                <div class="weather-info">
+                    <div class="text-7xl font-title">${students.length.toLocaleString()}</div>
+                    <div class="text-2xl font-bold uppercase tracking-widest opacity-95">Students</div>
+                </div>
+                <div class="absolute bottom-4 right-4 z-10 text-white/90 text-xs font-bold uppercase tracking-widest">
+                    ${classes.length.toLocaleString()} classes
+                </div>
+            </div>
+
+            <div class="vibrant-card h-span-6 stat-card-pop card-gradient-sun">
+                <span class="text-xs font-bold text-amber-600 uppercase tracking-widest mb-2"><i class="fas fa-star mr-1"></i> School Stars</span>
+                <div class="stat-value-big text-amber-500">${totalStars.toLocaleString()}</div>
+                <div class="text-sm font-bold text-amber-700/60">Earned so far</div>
+            </div>
+            <div class="vibrant-card h-span-3 stat-card-pop card-gradient-sky">
+                <span class="text-xs font-bold text-blue-600 uppercase tracking-widest mb-2"><i class="fas fa-chalkboard mr-1"></i> Classes</span>
+                <div class="stat-value-big text-blue-500">${classes.length.toLocaleString()}</div>
+                <div class="text-sm font-bold text-blue-700/60">Across the school</div>
+            </div>
+            <div class="vibrant-card h-span-3 stat-card-pop card-gradient-royal">
+                <span class="text-xs font-bold text-purple-600 uppercase tracking-widest mb-2"><i class="fas fa-coins mr-1"></i> Treasury</span>
+                <div class="stat-value-big text-purple-500">${totalGold.toLocaleString()}</div>
+                <div class="text-sm font-bold text-purple-700/60">Gold</div>
+            </div>
+
+            <div class="vibrant-card h-span-4 card-glass-white">
+                <div class="flex items-center justify-between gap-3 p-4 pb-0">
+                    <h3 class="text-xs font-bold text-slate-400 uppercase tracking-widest">School tools</h3>
+                </div>
+                <div class="tools-grid-v2">
+                    ${tools.map((tool) => `
+                        <button type="button" class="tool-btn-pop"
+                            data-secretary-tab-link="${tool.tab}"
+                            ${tool.schoolSub ? `data-secretary-school-subtab="${tool.schoolSub}"` : ''}
+                            title="${escapeHtml(tool.label)}">
+                            <i class="fas ${tool.icon}"></i>
+                            <span>${escapeHtml(tool.label)}</span>
+                        </button>
+                    `).join('')}
+                </div>
+            </div>
+            <div class="vibrant-card h-span-8 p-5 bg-gray-50/50 backdrop-blur-sm">
+                <h3 class="text-xs font-bold text-slate-400 uppercase tracking-widest mb-4"><i class="fas fa-history mr-2"></i> Latest at school</h3>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    ${latestGradeHtml}
+                    ${latestMessageHtml}
+                </div>
             </div>
         </div>
-    `;
+    </div>`;
 }

@@ -123,7 +123,10 @@ export function updateParentHeader(snapshot) {
     const schoolName = snapshot.schoolName || state.get('schoolName') || 'Your school';
     const titleEl = document.querySelector('[data-parent-title]');
     const subtitleEl = document.querySelector('[data-parent-student-name]');
-    if (titleEl) titleEl.textContent = `${studentName}'s Progress`;
+    if (titleEl) {
+        titleEl.textContent = `${studentName}'s Progress`;
+        titleEl.dataset.text = `${studentName}'s Progress`;
+    }
     if (subtitleEl) {
         subtitleEl.textContent = snapshot.studentName
             ? `See how ${studentName} is doing at ${schoolName}.`

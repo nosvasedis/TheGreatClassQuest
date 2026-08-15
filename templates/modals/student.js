@@ -234,7 +234,7 @@ export const studentModalsHTML = `
                                     <i class="fas fa-calendar-check"></i>
                                 </div>
                                 <div>
-                                    <h4 class="font-bold text-slate-800 text-sm">Nameday (Εορτολόγιο)</h4>
+                                    <h4 class="font-bold text-slate-800 text-sm">Nameday</h4>
                                     <p class="text-[11px] text-slate-500">Greek Orthodox name day celebration</p>
                                 </div>
                             </div>

@@ -49,6 +49,18 @@ test('Secretary Home uses the teacher Horizons dashboard', () => {
     assert.doesNotMatch(home, /renderTabHero/);
 });
 
+test('Secretary Home plan badge has a colored Elite treatment and a visible icon', () => {
+    const home = read('features/secretary/home.js');
+    const css = read('styles/roles.css');
+
+    assert.match(home, /secretary-plan-pill/);
+    assert.match(home, /secretary-plan-pill__icon/);
+    assert.match(home, /fa-gem/);
+    assert.doesNotMatch(home, /date-pill bg-gradient-to-r from-sky-500/);
+    assert.match(css, /\.secretary-plan-pill--elite\s*\{[\s\S]*?background:/);
+    assert.match(css, /\.secretary-plan-pill__icon\s*\{/);
+});
+
 test('Secretary Admin uses friendly labels and filled active navigation', () => {
     const admin = read('features/secretary/admin.js');
     const year = read('features/schoolYearConsole.js');

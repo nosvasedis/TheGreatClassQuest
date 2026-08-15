@@ -10,6 +10,8 @@ import { canUseFeature } from '../../utils/subscription.js';
 import { showUpgradePrompt } from '../../utils/upgradePrompt.js';
 import { getUpgradeMessage } from '../../config/tiers/features.js';
 import { getScheduledAssessmentStatus, getStudentsAwaitingGradeForScheduledStatus } from '../../features/assessmentConfig.js';
+import { getGuildHouseDisplay } from '../../features/guilds.js';
+import { handleAvatarClick } from '../core/avatar.js';
 
 const LEGACY_ASSIGNMENT_DATE_PREFIX_REGEX = /^\s*\d{1,2}[\/-]\d{1,2}[\/-]\d{4}\s*[:\-]?\s*/;
 
@@ -94,6 +96,35 @@ const HERO_ICONS = {
     'Nomad': '👟'
 };
 
+function fillStudentPortrait(el, { studentId, name, avatarUrl, enlargeable }) {
+    if (!el) return;
+    el.classList.toggle('enlargeable-avatar', Boolean(enlargeable));
+    if (enlargeable && studentId) {
+        el.dataset.studentId = studentId;
+        el.setAttribute('role', 'button');
+        el.setAttribute('tabindex', '0');
+        el.setAttribute('aria-label', 'View portrait');
+        el.title = 'View portrait';
+    } else {
+        delete el.dataset.studentId;
+        el.removeAttribute('role');
+        el.removeAttribute('tabindex');
+        el.removeAttribute('aria-label');
+        el.removeAttribute('title');
+    }
+    el.style.backgroundImage = '';
+    el.replaceChildren();
+    if (avatarUrl) {
+        const img = document.createElement('img');
+        img.src = avatarUrl;
+        img.alt = name ? `${name}'s portrait` : 'Student portrait';
+        img.className = 'w-full h-full object-cover pointer-events-none';
+        el.appendChild(img);
+        return;
+    }
+    el.textContent = name ? name.trim().charAt(0).toUpperCase() : '?';
+}
+
 export function switchEditStudentTab(tabName) {
     const tabButtons = document.querySelectorAll('.edit-student-tab-btn');
     const tabPanels = document.querySelectorAll('.edit-student-tab-panel');
@@ -140,7 +171,7 @@ export function openEditStudentModal(studentId) {
 
     // 2. Fetch Class, Guild & Score Data
     const classData = (state.get('allSchoolClasses') || []).find(c => c.id === student.classId);
-    const guildData = (state.get('allGuilds') || []).find(g => g.id === student.guildId);
+    const guildHouse = getGuildHouseDisplay(student.guildId);
     const scoreData = (state.get('allStudentScores') || []).find(s => s.id === studentId) || {};
 
     // 3. Header Avatar & Preview Box
@@ -152,28 +183,32 @@ export function openEditStudentModal(studentId) {
     const heroIcon = HERO_ICONS[student.heroClass] || '🌟';
     if (heroIconBadge) heroIconBadge.textContent = heroIcon;
 
-    const initialLetter = student.name ? student.name.trim().charAt(0).toUpperCase() : '?';
-
-    if (student.avatar) {
-        if (headerAvatar) {
-            headerAvatar.style.backgroundImage = `url('${student.avatar}')`;
-            headerAvatar.innerHTML = '';
-        }
-        if (avatarPreviewBox) {
-            avatarPreviewBox.style.backgroundImage = `url('${student.avatar}')`;
-            avatarPreviewBox.innerHTML = '';
-        }
-        if (avatarStatusEl) avatarStatusEl.textContent = 'Custom AI Chibi Avatar active';
-    } else {
-        if (headerAvatar) {
-            headerAvatar.style.backgroundImage = '';
-            headerAvatar.innerHTML = `<span class="font-title text-2xl font-bold text-white">${initialLetter}</span>`;
-        }
-        if (avatarPreviewBox) {
-            avatarPreviewBox.style.backgroundImage = '';
-            avatarPreviewBox.innerHTML = `<span class="font-title text-3xl font-bold text-indigo-400">${initialLetter}</span>`;
-        }
-        if (avatarStatusEl) avatarStatusEl.textContent = 'Default initials avatar';
+    fillStudentPortrait(headerAvatar, {
+        studentId,
+        name: student.name,
+        avatarUrl: student.avatar,
+        enlargeable: true,
+    });
+    fillStudentPortrait(avatarPreviewBox, {
+        studentId,
+        name: student.name,
+        avatarUrl: student.avatar,
+        enlargeable: false,
+    });
+    if (headerAvatar) {
+        headerAvatar.onclick = (event) => {
+            event.stopPropagation();
+            handleAvatarClick(event);
+        };
+        headerAvatar.onkeydown = (event) => {
+            if (event.key !== 'Enter' && event.key !== ' ') return;
+            event.preventDefault();
+            event.stopPropagation();
+            handleAvatarClick(event);
+        };
+    }
+    if (avatarStatusEl) {
+        avatarStatusEl.textContent = student.avatar ? 'Custom hero portrait active' : 'Using initials';
     }
 
     // 4. Header Badges
@@ -183,8 +218,8 @@ export function openEditStudentModal(studentId) {
         headerClassBadge.textContent = classData ? `${classData.logo || '📚'} ${classData.name}` : 'No Class';
     }
     if (headerGuildBadge) {
-        if (guildData) {
-            headerGuildBadge.textContent = `${guildData.crest || '🛡️'} ${guildData.name}`;
+        if (guildHouse.assigned) {
+            headerGuildBadge.textContent = guildHouse.label;
             headerGuildBadge.classList.remove('hidden');
         } else {
             headerGuildBadge.classList.add('hidden');
@@ -210,8 +245,12 @@ export function openEditStudentModal(studentId) {
 
     if (currentClassDisplay) currentClassDisplay.textContent = classData ? `${classData.logo || '📚'} ${classData.name}` : 'No class assigned';
     if (currentLeagueDisplay) currentLeagueDisplay.textContent = classData?.questLevel || 'Standard League';
-    if (currentGuildDisplay) currentGuildDisplay.textContent = guildData ? `${guildData.crest || '🛡️'} ${guildData.name}` : 'Unassigned';
-    if (currentGuildDesc) currentGuildDesc.textContent = guildData ? 'Active House Member' : 'No guild assigned yet';
+    if (currentGuildDisplay) currentGuildDisplay.textContent = guildHouse.label;
+    if (currentGuildDesc) {
+        currentGuildDesc.textContent = guildHouse.description;
+        currentGuildDesc.classList.toggle('text-amber-600', !guildHouse.assigned);
+        currentGuildDesc.classList.toggle('text-emerald-700', guildHouse.assigned);
+    }
 
     // 7. Special Dates Dropdowns
     populateDateDropdowns('edit-student-birthday-month', 'edit-student-birthday-day', student.birthday);
@@ -354,7 +393,6 @@ export function openEditStudentModal(studentId) {
     // 11. Quick Action & Hub Buttons
     const openAvatarBtn = document.getElementById('edit-student-open-avatar-btn');
     const hubAvatarBtn = document.getElementById('edit-student-hub-avatar-btn');
-    const headerAvatarWrap = document.getElementById('edit-student-header-avatar-wrap');
 
     const handleOpenAvatar = () => {
         if (!canUseFeature('eliteAI')) {
@@ -371,7 +409,6 @@ export function openEditStudentModal(studentId) {
 
     if (openAvatarBtn) openAvatarBtn.onclick = handleOpenAvatar;
     if (hubAvatarBtn) hubAvatarBtn.onclick = handleOpenAvatar;
-    if (headerAvatarWrap) headerAvatarWrap.onclick = handleOpenAvatar;
 
     const quickMoveBtn = document.getElementById('edit-student-quick-move-btn');
     const hubMoveBtn = document.getElementById('edit-student-hub-move-btn');

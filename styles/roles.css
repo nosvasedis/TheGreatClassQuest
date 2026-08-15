@@ -2355,6 +2355,69 @@
 .secretary-plan-nudge { display: flex; align-items: flex-start; gap: 1rem; background: linear-gradient(135deg, #faf5ff, #eff6ff); }
 .secretary-plan-nudge__icon { display: inline-flex; align-items: center; justify-content: center; flex: 0 0 auto; width: 3rem; height: 3rem; border-radius: 1rem; color: #7c3aed; background: #ede9fe; }
 
+.secretary-home-pill,
+.secretary-plan-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.4rem 0.95rem 0.4rem 0.4rem;
+    border-radius: 9999px;
+    border: 2px solid rgba(255, 255, 255, 0.72);
+    color: #fff;
+    font-family: 'Fredoka One', cursive;
+    letter-spacing: 0.04em;
+    line-height: 1.1;
+    box-shadow: 0 10px 22px rgba(79, 70, 229, 0.22);
+}
+
+.secretary-home-pill--messages {
+    background: linear-gradient(135deg, #7c3aed 0%, #4f46e5 100%);
+}
+
+.secretary-plan-pill--elite {
+    background: linear-gradient(135deg, #6d28d9 0%, #c026d3 58%, #f59e0b 130%);
+    box-shadow: 0 10px 24px rgba(192, 38, 211, 0.28);
+}
+
+.secretary-plan-pill--pro {
+    background: linear-gradient(135deg, #2563eb 0%, #7c3aed 100%);
+}
+
+.secretary-plan-pill--starter {
+    background: linear-gradient(135deg, #0d9488 0%, #2563eb 100%);
+}
+
+.secretary-plan-pill--expired {
+    background: linear-gradient(135deg, #64748b 0%, #334155 100%);
+}
+
+.secretary-plan-pill__icon,
+.secretary-home-pill__icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 1.7rem;
+    height: 1.7rem;
+    border-radius: 9999px;
+    background: rgba(255, 255, 255, 0.22);
+    color: #fde68a;
+    font-size: 0.82rem;
+}
+
+.secretary-plan-pill__icon {
+    color: #fde68a;
+}
+
+.secretary-home-pill__icon {
+    font-size: 0.95rem;
+}
+
+.secretary-plan-pill__label,
+.secretary-home-pill__label {
+    font-size: 0.92rem;
+    color: #fff;
+}
+
 @media (max-width: 640px) {
   .role-header-brand__mark { width: 2.35rem; height: 2.35rem; border-radius: 0.8rem; }
   .role-bottom-nav--secretary { gap: 0.22rem !important; padding: 0.45rem !important; }

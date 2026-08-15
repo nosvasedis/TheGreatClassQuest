@@ -129,6 +129,32 @@ export function getGuildById(id) {
 }
 
 /**
+ * Secretary/teacher copy for a student's permanent guild house.
+ * @param {string|null|undefined} guildId
+ * @returns {{ assigned: boolean, name: string, emoji: string, label: string, description: string }}
+ */
+export function getGuildHouseDisplay(guildId) {
+    const guild = getGuildById(guildId);
+    if (!guild) {
+        return {
+            assigned: false,
+            name: '',
+            emoji: '',
+            label: 'Unassigned',
+            description: 'No guild assigned yet',
+        };
+    }
+    const emoji = guild.emoji || '🛡️';
+    return {
+        assigned: true,
+        name: guild.name,
+        emoji,
+        label: `${emoji} ${guild.name}`,
+        description: 'Active House Member',
+    };
+}
+
+/**
  * Get CSS color variables for a guild.
  * @param {string} guildId
  * @returns {{ primary: string, secondary: string }}

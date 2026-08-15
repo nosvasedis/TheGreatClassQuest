@@ -4227,3 +4227,68 @@
 #edit-student-modal #edit-student-header-avatar {
     transition: transform 0.25s ease, box-shadow 0.25s ease;
 }
+
+.edit-student-forge-btn {
+    position: relative;
+    width: 3.4rem;
+    height: 3.4rem;
+    padding: 0.18rem;
+    border-radius: 1.15rem;
+    border: 2px solid transparent;
+    background:
+        linear-gradient(#fff, #fff) padding-box,
+        linear-gradient(135deg, #818cf8, #c084fc, #22d3ee) border-box;
+    box-shadow: 0 8px 18px rgba(79, 70, 229, 0.18);
+    overflow: visible;
+    cursor: pointer;
+}
+
+.edit-student-forge-btn:hover {
+    transform: translateY(-1px) scale(1.03);
+    box-shadow: 0 12px 22px rgba(79, 70, 229, 0.28);
+}
+
+.edit-student-forge-btn:focus-visible {
+    outline: 3px solid #818cf8;
+    outline-offset: 2px;
+}
+
+.edit-student-forge-btn__portrait {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    height: 100%;
+    border-radius: 0.85rem;
+    overflow: hidden;
+    background: linear-gradient(135deg, #6366f1, #06b6d4);
+    color: #fff;
+    font-weight: 800;
+    font-size: 1.35rem;
+    line-height: 1;
+}
+
+.edit-student-forge-btn__portrait img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    pointer-events: none;
+}
+
+.edit-student-forge-btn__spark {
+    position: absolute;
+    right: -0.35rem;
+    bottom: -0.35rem;
+    width: 1.45rem;
+    height: 1.45rem;
+    border-radius: 9999px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(135deg, #7c3aed, #db2777);
+    color: #fff;
+    font-size: 0.65rem;
+    border: 2px solid #fff;
+    box-shadow: 0 4px 10px rgba(124, 58, 237, 0.35);
+    pointer-events: none;
+}

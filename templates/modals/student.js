@@ -19,9 +19,13 @@ export const studentModalsHTML = `
                 <div class="flex items-start justify-between gap-3 relative z-10">
                     <div class="flex items-center gap-3.5 min-w-0">
                         <!-- Student Avatar with glowing ring -->
-                        <div class="relative shrink-0 group cursor-pointer" id="edit-student-header-avatar-wrap">
+                        <div class="relative shrink-0" id="edit-student-header-avatar-wrap">
                             <div id="edit-student-header-avatar"
-                                class="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl border-2 border-white/80 shadow-md bg-white/20 backdrop-blur-sm flex items-center justify-center text-2xl font-bold text-white overflow-hidden bg-cover bg-center">
+                                class="enlargeable-avatar w-14 h-14 sm:w-16 sm:h-16 rounded-2xl border-2 border-white/80 shadow-md bg-white/20 backdrop-blur-sm flex items-center justify-center text-2xl font-bold text-white overflow-hidden bg-cover bg-center"
+                                title="View portrait"
+                                role="button"
+                                tabindex="0"
+                                aria-label="View portrait">
                             </div>
                             <div id="edit-student-hero-icon-badge"
                                 class="absolute -bottom-1.5 -right-1.5 w-6 h-6 rounded-full bg-amber-400 border-2 border-white text-amber-950 flex items-center justify-center text-[11px] shadow-sm font-bold"
@@ -119,42 +123,31 @@ export const studentModalsHTML = `
                             <i class="fas fa-user-graduate text-cyan-600"></i>
                             <span>Student Name</span>
                         </label>
-                        <div class="relative">
-                            <input type="text" id="edit-student-name-input-full"
-                                class="w-full pl-10 pr-4 py-3 bg-slate-50 border-2 border-slate-200 rounded-xl font-bold text-slate-800 text-base focus:bg-white focus:border-cyan-500 focus:ring-2 focus:ring-cyan-200 outline-none transition-all"
-                                placeholder="Enter student's full name..."
-                                autocomplete="off" required>
-                            <div class="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none">
-                                <i class="fas fa-pencil-alt"></i>
+                        <div class="flex items-center gap-3">
+                            <button type="button" id="edit-student-open-avatar-btn"
+                                class="edit-student-forge-btn bubbly-button shrink-0"
+                                title="Open Avatar Forge"
+                                aria-label="Open Avatar Forge">
+                                <span id="edit-student-avatar-preview-box" class="edit-student-forge-btn__portrait"></span>
+                                <span class="edit-student-forge-btn__spark" aria-hidden="true">
+                                    <i class="fas fa-wand-magic-sparkles"></i>
+                                </span>
+                            </button>
+                            <div class="relative min-w-0 flex-1">
+                                <input type="text" id="edit-student-name-input-full"
+                                    class="w-full pl-10 pr-4 py-3 bg-slate-50 border-2 border-slate-200 rounded-xl font-bold text-slate-800 text-base focus:bg-white focus:border-cyan-500 focus:ring-2 focus:ring-cyan-200 outline-none transition-all"
+                                    placeholder="Enter student's full name..."
+                                    autocomplete="off" required>
+                                <div class="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none">
+                                    <i class="fas fa-pencil-alt"></i>
+                                </div>
                             </div>
                         </div>
+                        <p id="edit-student-avatar-status" class="sr-only">Using initials</p>
                         <p class="text-[11px] text-slate-500 flex items-center gap-1.5">
                             <i class="fas fa-info-circle text-cyan-500"></i>
                             <span>This name appears on class rosters, adventure logs, and parent portals.</span>
                         </p>
-                    </div>
-
-                    <!-- Avatar Card & Forge Shortcut -->
-                    <div class="bg-gradient-to-br from-indigo-50/70 via-purple-50/50 to-white p-4 sm:p-5 rounded-2xl border border-indigo-100 shadow-sm flex flex-col sm:flex-row items-center justify-between gap-4">
-                        <div class="flex items-center gap-4 min-w-0">
-                            <div id="edit-student-avatar-preview-box"
-                                class="w-16 h-16 rounded-2xl border-2 border-indigo-200 shadow-inner bg-white flex items-center justify-center text-3xl font-bold text-indigo-400 overflow-hidden bg-cover bg-center shrink-0">
-                            </div>
-                            <div class="min-w-0 text-center sm:text-left">
-                                <span class="text-[10px] font-black uppercase tracking-wider text-indigo-500 bg-indigo-100/70 px-2 py-0.5 rounded-full inline-block mb-1">
-                                    Visual Identity
-                                </span>
-                                <h4 class="font-bold text-slate-800 text-sm sm:text-base">Chibi Hero Avatar</h4>
-                                <p id="edit-student-avatar-status" class="text-xs text-slate-500 truncate">
-                                    Default initials avatar
-                                </p>
-                            </div>
-                        </div>
-                        <button type="button" id="edit-student-open-avatar-btn"
-                            class="w-full sm:w-auto shrink-0 px-4 py-2.5 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white font-bold text-xs rounded-xl shadow-md bubbly-button flex items-center justify-center gap-2 transition-all">
-                            <i class="fas fa-wand-magic-sparkles"></i>
-                            <span>Avatar Forge</span>
-                        </button>
                     </div>
 
                     <!-- Class & Guild Placement Info Cards -->
@@ -467,11 +460,11 @@ export const studentModalsHTML = `
                         <button type="button" id="edit-student-hub-avatar-btn"
                             class="p-3.5 bg-white hover:bg-indigo-50/50 rounded-2xl border border-slate-200 hover:border-indigo-300 shadow-xs flex items-center gap-3 transition-all text-left group bubbly-button">
                             <div class="w-10 h-10 rounded-xl bg-indigo-100 text-indigo-600 flex items-center justify-center text-lg shrink-0 group-hover:scale-110 transition-transform">
-                                <i class="fas fa-user-astronaut"></i>
+                                <i class="fas fa-wand-magic-sparkles"></i>
                             </div>
                             <div class="min-w-0 flex-1">
                                 <h5 class="font-bold text-slate-800 text-sm">Avatar Forge</h5>
-                                <p class="text-[11px] text-slate-500">Generate AI chibi avatar</p>
+                                <p class="text-[11px] text-slate-500">Create or update a hero portrait</p>
                             </div>
                             <i class="fas fa-chevron-right text-xs text-slate-400 group-hover:translate-x-0.5 transition-transform"></i>
                         </button>

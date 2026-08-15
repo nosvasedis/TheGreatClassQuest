@@ -50,21 +50,30 @@ function getSecretaryHomeTheme() {
 
 function reminderPillsHtml({ unreadThreads, hasFullConsole, tier }) {
     const pills = [];
+    const plan = planBadgeMeta(tier);
     if (hasFullConsole && unreadThreads > 0) {
         pills.push(`
-            <button type="button" class="date-pill bg-gradient-to-r from-violet-500 to-indigo-500 text-white shadow-lg flex items-center gap-2 px-4 py-2 rounded-full border-2 border-white/50" data-secretary-tab-link="messages">
-                <span class="text-xl" aria-hidden="true">💬</span>
-                <span class="font-bold">${unreadThreads} message${unreadThreads === 1 ? '' : 's'} waiting</span>
+            <button type="button" class="secretary-home-pill secretary-home-pill--messages" data-secretary-tab-link="messages">
+                <span class="secretary-home-pill__icon" aria-hidden="true">💬</span>
+                <span class="secretary-home-pill__label">${unreadThreads} message${unreadThreads === 1 ? '' : 's'} waiting</span>
             </button>
         `);
     }
     pills.push(`
-        <div class="date-pill bg-gradient-to-r from-sky-500 to-cyan-500 text-white shadow-lg flex items-center gap-2 px-4 py-2 rounded-full border-2 border-white/50">
-            <i class="fas fa-gem" aria-hidden="true"></i>
-            <span class="font-bold">${escapeHtml(tier)} plan</span>
+        <div class="secretary-plan-pill secretary-plan-pill--${plan.key}">
+            <span class="secretary-plan-pill__icon" aria-hidden="true"><i class="fas ${plan.icon}"></i></span>
+            <span class="secretary-plan-pill__label">${escapeHtml(plan.label)} plan</span>
         </div>
     `);
     return pills.join('');
+}
+
+function planBadgeMeta(tier) {
+    const key = String(tier || 'starter').toLowerCase();
+    if (key === 'elite') return { key, label: 'Elite', icon: 'fa-gem' };
+    if (key === 'pro') return { key, label: 'Pro', icon: 'fa-bolt' };
+    if (key === 'expired') return { key, label: 'Expired', icon: 'fa-hourglass-half' };
+    return { key: 'starter', label: 'Starter', icon: 'fa-seedling' };
 }
 
 export function renderSecretaryHome() {

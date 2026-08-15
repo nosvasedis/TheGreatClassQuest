@@ -7,6 +7,8 @@ import { showToast } from '../effects.js';
 import { playSound } from '../../audio.js';
 import { handleAwardBonusStar, handleBatchAwardBonus } from '../../db/actions.js';
 import { canUseFeature } from '../../utils/subscription.js';
+import { showUpgradePrompt } from '../../utils/upgradePrompt.js';
+import { getUpgradeMessage } from '../../config/tiers/features.js';
 import { getScheduledAssessmentStatus, getStudentsAwaitingGradeForScheduledStatus } from '../../features/assessmentConfig.js';
 
 const LEGACY_ASSIGNMENT_DATE_PREFIX_REGEX = /^\s*\d{1,2}[\/-]\d{1,2}[\/-]\d{4}\s*[:\-]?\s*/;
@@ -82,55 +84,352 @@ export function toggleQuestTestPanel() {
     setQuestTestModalVisible(true);
 }
 
+const HERO_ICONS = {
+    'Guardian': '🛡️',
+    'Sage': '🔮',
+    'Paladin': '⚔️',
+    'Artificer': '⚙️',
+    'Scholar': '📜',
+    'Weaver': '✒️',
+    'Nomad': '👟'
+};
+
+export function switchEditStudentTab(tabName) {
+    const tabButtons = document.querySelectorAll('.edit-student-tab-btn');
+    const tabPanels = document.querySelectorAll('.edit-student-tab-panel');
+
+    tabButtons.forEach(btn => {
+        const isSelected = btn.dataset.tab === tabName;
+        btn.classList.toggle('active', isSelected);
+        btn.classList.toggle('text-cyan-700', isSelected);
+        btn.classList.toggle('bg-white', isSelected);
+        btn.classList.toggle('shadow-sm', isSelected);
+        btn.classList.toggle('border', isSelected);
+        btn.classList.toggle('border-cyan-200/60', isSelected);
+
+        btn.classList.toggle('text-slate-600', !isSelected);
+        btn.classList.toggle('hover:text-slate-900', !isSelected);
+        btn.classList.toggle('hover:bg-white/60', !isSelected);
+        btn.setAttribute('aria-selected', isSelected ? 'true' : 'false');
+    });
+
+    tabPanels.forEach(panel => {
+        panel.classList.add('hidden');
+    });
+
+    const activePanel = document.getElementById(`edit-student-panel-${tabName}`);
+    if (activePanel) {
+        activePanel.classList.remove('hidden');
+    }
+}
+
 export function openEditStudentModal(studentId) {
-    const student = state.get('allStudents').find(s => s.id === studentId);
+    const student = (state.get('allStudents') || []).find(s => s.id === studentId);
     if (!student) return;
 
-    document.getElementById('edit-student-id-input-full').value = studentId;
-    document.getElementById('edit-student-name-input-full').value = student.name;
-    
-    // NEW: Use helper to populate dropdowns
+    // 1. Basic IDs and Name
+    const idInput = document.getElementById('edit-student-id-input-full');
+    const nameInput = document.getElementById('edit-student-name-input-full');
+    const titleEl = document.getElementById('edit-student-title');
+    const subtitleEl = document.getElementById('edit-student-header-subtitle');
+
+    if (idInput) idInput.value = studentId;
+    if (nameInput) nameInput.value = student.name || '';
+    if (titleEl) titleEl.textContent = student.name ? `Edit ${student.name}` : 'Edit Student Details';
+    if (subtitleEl) subtitleEl.textContent = 'Customize profile, celebrations & hero path';
+
+    // 2. Fetch Class, Guild & Score Data
+    const classData = (state.get('allSchoolClasses') || []).find(c => c.id === student.classId);
+    const guildData = (state.get('allGuilds') || []).find(g => g.id === student.guildId);
+    const scoreData = (state.get('allStudentScores') || []).find(s => s.id === studentId) || {};
+
+    // 3. Header Avatar & Preview Box
+    const headerAvatar = document.getElementById('edit-student-header-avatar');
+    const avatarPreviewBox = document.getElementById('edit-student-avatar-preview-box');
+    const avatarStatusEl = document.getElementById('edit-student-avatar-status');
+    const heroIconBadge = document.getElementById('edit-student-hero-icon-badge');
+
+    const heroIcon = HERO_ICONS[student.heroClass] || '🌟';
+    if (heroIconBadge) heroIconBadge.textContent = heroIcon;
+
+    const initialLetter = student.name ? student.name.trim().charAt(0).toUpperCase() : '?';
+
+    if (student.avatar) {
+        if (headerAvatar) {
+            headerAvatar.style.backgroundImage = `url('${student.avatar}')`;
+            headerAvatar.innerHTML = '';
+        }
+        if (avatarPreviewBox) {
+            avatarPreviewBox.style.backgroundImage = `url('${student.avatar}')`;
+            avatarPreviewBox.innerHTML = '';
+        }
+        if (avatarStatusEl) avatarStatusEl.textContent = 'Custom AI Chibi Avatar active';
+    } else {
+        if (headerAvatar) {
+            headerAvatar.style.backgroundImage = '';
+            headerAvatar.innerHTML = `<span class="font-title text-2xl font-bold text-white">${initialLetter}</span>`;
+        }
+        if (avatarPreviewBox) {
+            avatarPreviewBox.style.backgroundImage = '';
+            avatarPreviewBox.innerHTML = `<span class="font-title text-3xl font-bold text-indigo-400">${initialLetter}</span>`;
+        }
+        if (avatarStatusEl) avatarStatusEl.textContent = 'Default initials avatar';
+    }
+
+    // 4. Header Badges
+    const headerClassBadge = document.getElementById('edit-student-header-class-badge');
+    const headerGuildBadge = document.getElementById('edit-student-header-guild-badge');
+    if (headerClassBadge) {
+        headerClassBadge.textContent = classData ? `${classData.logo || '📚'} ${classData.name}` : 'No Class';
+    }
+    if (headerGuildBadge) {
+        if (guildData) {
+            headerGuildBadge.textContent = `${guildData.crest || '🛡️'} ${guildData.name}`;
+            headerGuildBadge.classList.remove('hidden');
+        } else {
+            headerGuildBadge.classList.add('hidden');
+        }
+    }
+
+    // 5. Stats Summary Row
+    const statTotal = document.getElementById('edit-student-stat-total-stars');
+    const statMonthly = document.getElementById('edit-student-stat-monthly-stars');
+    const statGold = document.getElementById('edit-student-stat-gold');
+    const statHeroLevel = document.getElementById('edit-student-stat-hero-level');
+
+    if (statTotal) statTotal.textContent = `${scoreData.totalStars ?? 0} ⭐`;
+    if (statMonthly) statMonthly.textContent = `${scoreData.monthlyStars ?? 0} 🌟`;
+    if (statGold) statGold.textContent = `${scoreData.gold ?? 0} 🪙`;
+    if (statHeroLevel) statHeroLevel.textContent = `Lvl ${scoreData.heroLevel ?? 1}`;
+
+    // 6. Profile Tab Placement Information
+    const currentClassDisplay = document.getElementById('edit-student-current-class-display');
+    const currentLeagueDisplay = document.getElementById('edit-student-current-league-display');
+    const currentGuildDisplay = document.getElementById('edit-student-current-guild-display');
+    const currentGuildDesc = document.getElementById('edit-student-current-guild-desc');
+
+    if (currentClassDisplay) currentClassDisplay.textContent = classData ? `${classData.logo || '📚'} ${classData.name}` : 'No class assigned';
+    if (currentLeagueDisplay) currentLeagueDisplay.textContent = classData?.questLevel || 'Standard League';
+    if (currentGuildDisplay) currentGuildDisplay.textContent = guildData ? `${guildData.crest || '🛡️'} ${guildData.name}` : 'Unassigned';
+    if (currentGuildDesc) currentGuildDesc.textContent = guildData ? 'Active House Member' : 'No guild assigned yet';
+
+    // 7. Special Dates Dropdowns
     populateDateDropdowns('edit-student-birthday-month', 'edit-student-birthday-day', student.birthday);
     populateDateDropdowns('edit-student-nameday-month', 'edit-student-nameday-day', student.nameday);
-    // Load Hero Class into dropdown
-   // Load Hero Class and check if locked
-    const classDropdown = document.getElementById('edit-student-hero-class');
-    const tierNote = document.getElementById('hero-class-tier-note');
-    const heroProgressionEnabled = canUseFeature('heroProgression');
-    const namedayLookupBtn = document.getElementById('lookup-nameday-btn');
-    const eliteAiEnabled = canUseFeature('eliteAI');
-    classDropdown.value = student.heroClass || "";
 
+    // Clear Date Buttons
+    const clearBirthdayBtn = document.getElementById('edit-student-clear-birthday-btn');
+    if (clearBirthdayBtn) {
+        clearBirthdayBtn.onclick = () => {
+            const bM = document.getElementById('edit-student-birthday-month');
+            const bD = document.getElementById('edit-student-birthday-day');
+            if (bM) bM.value = '';
+            if (bD) bD.value = '';
+            showToast('Birthday cleared.', 'info');
+        };
+    }
+
+    const clearNamedayBtn = document.getElementById('edit-student-clear-nameday-btn');
+    if (clearNamedayBtn) {
+        clearNamedayBtn.onclick = () => {
+            const nM = document.getElementById('edit-student-nameday-month');
+            const nD = document.getElementById('edit-student-nameday-day');
+            if (nM) nM.value = '';
+            if (nD) nD.value = '';
+            showToast('Nameday cleared.', 'info');
+        };
+    }
+
+    // Nameday AI Lookup Button State
+    const eliteAiEnabled = canUseFeature('eliteAI');
+    const namedayLookupBtn = document.getElementById('lookup-nameday-btn');
     if (namedayLookupBtn) {
         namedayLookupBtn.className = eliteAiEnabled
-            ? 'bg-indigo-100 text-indigo-700 h-10 w-10 rounded-full bubbly-button flex-shrink-0 transition-colors hover:bg-indigo-200'
-            : 'bg-slate-100 text-slate-400 h-10 w-10 rounded-full bubbly-button flex-shrink-0 border border-slate-200 transition-colors hover:bg-slate-200';
-        namedayLookupBtn.title = eliteAiEnabled ? 'AI Nameday Lookup' : 'Elite plan: AI Nameday Lookup';
+            ? 'bg-indigo-600 hover:bg-indigo-700 text-white h-[42px] px-3.5 rounded-xl bubbly-button flex items-center justify-center gap-1.5 shadow-sm transition-all text-xs font-bold shrink-0 cursor-pointer'
+            : 'bg-slate-200 text-slate-400 h-[42px] px-3.5 rounded-xl bubbly-button flex items-center justify-center gap-1.5 border border-slate-300 transition-all text-xs font-bold shrink-0 cursor-pointer';
+        namedayLookupBtn.title = eliteAiEnabled ? 'AI Nameday Lookup (Greek Orthodox calendar)' : 'Elite plan: AI Nameday Lookup';
         namedayLookupBtn.setAttribute('aria-label', namedayLookupBtn.title);
     }
 
+    // 8. Hero Progression & Interactive Archetype Cards
+    const classDropdown = document.getElementById('edit-student-hero-class');
+    const tierNote = document.getElementById('hero-class-tier-note');
+    const heroProgressionEnabled = canUseFeature('heroProgression');
+    const isLocked = Boolean(student.isHeroClassLocked);
+
+    if (classDropdown) classDropdown.value = student.heroClass || "";
+
     if (!heroProgressionEnabled) {
-        classDropdown.disabled = true;
-        classDropdown.title = 'Hero Classes & Skill Tree are available on Pro and above.';
-        if (tierNote) {
-            tierNote.className = 'text-[10px] text-rose-500 mt-2 font-bold';
-            tierNote.textContent = 'Pro feature: Hero Classes and Skill Tree are locked on Starter.';
+        if (classDropdown) {
+            classDropdown.disabled = true;
+            classDropdown.title = 'Hero Classes & Skill Tree are available on Pro and above.';
         }
-    } else if (student.isHeroClassLocked) {
-        classDropdown.disabled = true;
-        classDropdown.title = "This student has already used their one-time class change.";
         if (tierNote) {
-            tierNote.className = 'text-[10px] text-indigo-400 mt-2 italic';
-            tierNote.textContent = 'This student has used their one-time class change.';
+            tierNote.className = 'text-xs text-rose-600 leading-relaxed font-bold';
+            tierNote.textContent = '🔒 Pro feature: Hero Archetypes and Skill Trees are unlocked on Pro and above.';
+        }
+    } else if (isLocked) {
+        if (classDropdown) {
+            classDropdown.disabled = true;
+            classDropdown.title = "This student has already used their one-time class change.";
+        }
+        if (tierNote) {
+            tierNote.className = 'text-xs text-indigo-700 leading-relaxed italic font-medium';
+            tierNote.textContent = '🔒 Hero Class Locked: This student has already finalized their one-time archetype selection.';
         }
     } else {
-        classDropdown.disabled = false;
-        classDropdown.title = "";
+        if (classDropdown) {
+            classDropdown.disabled = false;
+            classDropdown.title = "";
+        }
         if (tierNote) {
-            tierNote.className = 'text-[10px] text-indigo-400 mt-2 italic';
-            tierNote.textContent = 'Classes grant +10 extra Gold when earning stars for their specific trait.';
+            tierNote.className = 'text-xs text-indigo-700 leading-relaxed font-medium';
+            tierNote.textContent = '⚡ Active Perk: Classes grant +10 extra Gold when earning stars for their specific trait.';
         }
     }
+
+    // Helper to refresh hero cards visual state
+    const refreshHeroCards = (selectedClass) => {
+        document.querySelectorAll('.hero-archetype-card').forEach(card => {
+            const cardClass = card.dataset.class;
+            const isSelected = cardClass === (selectedClass || "");
+            const checkIcon = card.querySelector('.hero-card-check');
+
+            card.classList.toggle('active', isSelected);
+            card.classList.toggle('card-disabled', !heroProgressionEnabled || isLocked);
+
+            if (checkIcon) {
+                checkIcon.classList.toggle('hidden', !isSelected);
+                checkIcon.classList.toggle('flex', isSelected);
+            }
+        });
+
+        // Update header icon
+        if (heroIconBadge) {
+            heroIconBadge.textContent = HERO_ICONS[selectedClass] || '🌟';
+        }
+    };
+
+    refreshHeroCards(student.heroClass || "");
+
+    // Attach click listeners to hero cards
+    document.querySelectorAll('.hero-archetype-card').forEach(card => {
+        card.onclick = () => {
+            if (!heroProgressionEnabled) {
+                showUpgradePrompt({
+                    feature: 'Hero Classes & Skill Tree',
+                    tier: 'Pro',
+                    message: getUpgradeMessage('Pro', 'heroProgression')
+                });
+                return;
+            }
+            if (isLocked && card.dataset.class !== (student.heroClass || "")) {
+                showToast('This student has already chosen their Hero Class and is now locked.', 'error');
+                return;
+            }
+            const chosenClass = card.dataset.class;
+            if (classDropdown) classDropdown.value = chosenClass;
+            refreshHeroCards(chosenClass);
+            playSound('button_click');
+        };
+    });
+
+    // 9. Attach Tab Navigation Listeners
+    document.querySelectorAll('.edit-student-tab-btn').forEach(btn => {
+        btn.onclick = () => {
+            switchEditStudentTab(btn.dataset.tab);
+            playSound('tap');
+        };
+    });
+
+    // Reset to first tab (Profile)
+    switchEditStudentTab('profile');
+
+    // 10. Top Close Button
+    const topCloseBtn = document.getElementById('edit-student-top-close-btn');
+    if (topCloseBtn) {
+        topCloseBtn.onclick = () => hideModal('edit-student-modal');
+    }
+
+    // 11. Quick Action & Hub Buttons
+    const openAvatarBtn = document.getElementById('edit-student-open-avatar-btn');
+    const hubAvatarBtn = document.getElementById('edit-student-hub-avatar-btn');
+    const headerAvatarWrap = document.getElementById('edit-student-header-avatar-wrap');
+
+    const handleOpenAvatar = () => {
+        if (!canUseFeature('eliteAI')) {
+            showUpgradePrompt({
+                feature: 'Avatar Forge',
+                tier: 'Elite',
+                message: getUpgradeMessage('Elite')
+            });
+            return;
+        }
+        hideModal('edit-student-modal');
+        import('../../features/avatar.js').then(a => a.openAvatarMaker(studentId));
+    };
+
+    if (openAvatarBtn) openAvatarBtn.onclick = handleOpenAvatar;
+    if (hubAvatarBtn) hubAvatarBtn.onclick = handleOpenAvatar;
+    if (headerAvatarWrap) headerAvatarWrap.onclick = handleOpenAvatar;
+
+    const quickMoveBtn = document.getElementById('edit-student-quick-move-btn');
+    const hubMoveBtn = document.getElementById('edit-student-hub-move-btn');
+    const handleMove = () => {
+        hideModal('edit-student-modal');
+        openMoveStudentModal(studentId);
+    };
+    if (quickMoveBtn) quickMoveBtn.onclick = handleMove;
+    if (hubMoveBtn) hubMoveBtn.onclick = handleMove;
+
+    const quickGuildBtn = document.getElementById('edit-student-quick-guild-btn');
+    const handleGuildQuiz = () => {
+        hideModal('edit-student-modal');
+        import('./sortingQuiz.js').then(sq => sq.openSortingQuizModal(studentId));
+    };
+    if (quickGuildBtn) quickGuildBtn.onclick = handleGuildQuiz;
+
+    const openSkillTreeBtn = document.getElementById('edit-student-open-skilltree-btn');
+    const hubSkillTreeBtn = document.getElementById('edit-student-hub-skilltree-btn');
+    const handleSkillTree = () => {
+        if (!heroProgressionEnabled) {
+            showUpgradePrompt({
+                feature: 'Hero Classes & Skill Tree',
+                tier: 'Pro',
+                message: getUpgradeMessage('Pro', 'heroProgression')
+            });
+            return;
+        }
+        hideModal('edit-student-modal');
+        import('./skillTree.js').then(st => st.openSkillTreeModal(studentId));
+    };
+    if (openSkillTreeBtn) openSkillTreeBtn.onclick = handleSkillTree;
+    if (hubSkillTreeBtn) hubSkillTreeBtn.onclick = handleSkillTree;
+
+    const hubChronicleBtn = document.getElementById('edit-student-hub-chronicle-btn');
+    if (hubChronicleBtn) {
+        hubChronicleBtn.onclick = () => {
+            hideModal('edit-student-modal');
+            import('./hero.js').then(h => h.openHeroChronicleModal(studentId));
+        };
+    }
+
+    const hubAnalyticsBtn = document.getElementById('edit-student-hub-analytics-btn');
+    if (hubAnalyticsBtn) {
+        hubAnalyticsBtn.onclick = () => {
+            hideModal('edit-student-modal');
+            import('./studentAnalytics.js').then(sa => sa.openStudentAnalyticsModal(studentId));
+        };
+    }
+
+    const hubCertificateBtn = document.getElementById('edit-student-hub-certificate-btn');
+    if (hubCertificateBtn) {
+        hubCertificateBtn.onclick = () => {
+            hideModal('edit-student-modal');
+            import('./reports.js').then(r => r.handleGenerateCertificate(studentId));
+        };
+    }
+
     showAnimatedModal('edit-student-modal');
 }
 

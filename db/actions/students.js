@@ -149,7 +149,7 @@ export async function handleSaveStudentDetails() {
         showToast(`Failed to update: ${error.message}`, 'error');
     } finally {
         btn.disabled = false;
-        btn.innerHTML = 'Save';
+        btn.innerHTML = '<i class="fas fa-check mr-1.5"></i> Save Changes';
     }
 }
 

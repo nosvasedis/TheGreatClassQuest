@@ -1327,11 +1327,24 @@
     color: #e0f2fe;
 }
 
+.guild-crystal-expand-btn.is-season-frozen,
+.guild-crystal-expand-btn[disabled],
 .guild-crystal-expand-btn--fortune.is-season-frozen,
-.guild-crystal-expand-btn--fortune[disabled] {
+.guild-crystal-expand-btn--fortune[disabled],
+.guild-crystal-expand-btn--global.is-season-frozen,
+.guild-crystal-expand-btn--global[disabled] {
     opacity: 0.72;
     cursor: not-allowed;
     filter: grayscale(0.35) saturate(0.7);
+}
+
+.guild-crystal-expand-btn.is-season-frozen:hover,
+.guild-crystal-expand-btn[disabled]:hover {
+    transform: none !important;
+    background: rgba(15, 23, 42, 0.45) !important;
+    border-color: rgba(255, 255, 255, 0.15) !important;
+    color: rgba(255, 255, 255, 0.9) !important;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.25), inset 0 1px 1px rgba(255,255,255,0.1) !important;
 }
 
 @media (prefers-reduced-motion: reduce) {

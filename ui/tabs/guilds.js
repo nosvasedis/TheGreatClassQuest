@@ -906,18 +906,23 @@ export function renderGuildsTab() {
                 <div class="guild-crystal-expand-all-wrap">
                     <button type="button"
                             id="guild-stats-expand-toggle"
-                            class="guild-crystal-expand-btn guild-crystal-expand-btn--global"
-                            aria-expanded="${_guildHallStatsExpanded ? 'true' : 'false'}"
-                            aria-label="${_guildHallStatsExpanded ? 'Hide' : 'Show'} detailed guild analytics">
+                            class="guild-crystal-expand-btn guild-crystal-expand-btn--global${seasonLive ? '' : ' is-season-frozen'}"
+                            data-stats-state="${seasonLive ? (_guildHallStatsExpanded ? 'ready' : 'waiting') : 'locked'}"
+                            ${seasonLive ? '' : 'disabled'}
+                            aria-expanded="${seasonLive && _guildHallStatsExpanded ? 'true' : 'false'}"
+                            aria-label="${seasonLive ? (_guildHallStatsExpanded ? 'Hide' : 'Show') + ' detailed guild analytics' : 'Magical Analytics is locked until the school year begins.'}">
                         <div class="guild-crystal-expand-btn__icon">
-                            <i class="fas fa-chart-pie"></i>
+                            <i class="fas ${seasonLive ? 'fa-chart-pie' : 'fa-snowflake'}"></i>
                         </div>
-                        <span class="guild-crystal-expand-btn__text">Magical Analytics</span>
-                        <span class="guild-crystal-expand-btn__chev" aria-hidden="true">${_guildHallStatsExpanded ? '▲' : '▼'}</span>
+                        <span class="guild-crystal-expand-btn__col">
+                            <span class="guild-crystal-expand-btn__text">Magical Analytics</span>
+                            <span class="guild-crystal-expand-btn__sub" data-state="${seasonLive ? (_guildHallStatsExpanded ? 'ready' : 'waiting') : 'locked'}">${seasonLive ? (_guildHallStatsExpanded ? 'Expanded' : 'Details') : 'Season frozen'}</span>
+                        </span>
+                        <span class="guild-crystal-expand-btn__chev" aria-hidden="true">${seasonLive ? (_guildHallStatsExpanded ? '▲' : '▼') : ''}</span>
                     </button>
                 </div>
             </div>
-            <div class="guild-crystal-arena${_guildHallStatsExpanded ? ' guild-crystal-arena--stats-expanded' : ''}${seasonLive ? '' : ' guild-crystal-arena--frozen'}">${columns.join('')}</div>
+            <div class="guild-crystal-arena${_guildHallStatsExpanded && seasonLive ? ' guild-crystal-arena--stats-expanded' : ''}${seasonLive ? '' : ' guild-crystal-arena--frozen'}">${columns.join('')}</div>
         </div>`;
 
     // ── Update power tracking for next render ─────────────────────────────────
@@ -944,12 +949,13 @@ export function renderGuildsTab() {
         });
     }
 
-    list.querySelector('.guild-crystal-expand-all-wrap')?.classList.toggle('guild-crystal-expand-all-wrap--open', _guildHallStatsExpanded);
+    list.querySelector('.guild-crystal-expand-all-wrap')?.classList.toggle('guild-crystal-expand-all-wrap--open', Boolean(_guildHallStatsExpanded && seasonLive));
 
     const expandToggle = list.querySelector('#guild-stats-expand-toggle');
     expandToggle?.addEventListener('click', (e) => {
         e.preventDefault();
         e.stopPropagation();
+        if (!seasonLive || expandToggle.disabled || expandToggle.classList.contains('is-season-frozen')) return;
         _guildHallStatsExpanded = !_guildHallStatsExpanded;
         
         list.querySelectorAll('.guild-crystal-details-expander').forEach((expander) => {
@@ -964,6 +970,11 @@ export function renderGuildsTab() {
             'aria-label',
             _guildHallStatsExpanded ? 'Hide detailed guild analytics' : 'Show detailed guild analytics'
         );
+        const sub = expandToggle.querySelector('.guild-crystal-expand-btn__sub');
+        if (sub) {
+            sub.textContent = _guildHallStatsExpanded ? 'Expanded' : 'Details';
+            sub.dataset.state = _guildHallStatsExpanded ? 'ready' : 'waiting';
+        }
         const chev = expandToggle.querySelector('.guild-crystal-expand-btn__chev');
         if (chev) chev.textContent = _guildHallStatsExpanded ? '▲' : '▼';
         list.querySelector('.guild-crystal-arena')?.classList.toggle('guild-crystal-arena--stats-expanded', _guildHallStatsExpanded);

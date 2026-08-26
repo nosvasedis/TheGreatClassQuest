@@ -44,27 +44,6 @@
     animation: bounce-slow 2s infinite ease-in-out;
 }
 
-/* Reigning Hero Special Card — glow handled by .cloud-bg-svg via @keyframes hero-cloud-glow in buttons.css */
-.reigning-hero-card {
-    transform: scale(1.05);
-}
-
-.hero-crown-badge {
-    position: absolute;
-    top: -0.9rem;
-    left: 50%;
-    transform: translateX(-50%);
-    font-size: 3rem;
-    filter: drop-shadow(0 0 10px rgba(251, 191, 36, 0.8));
-    z-index: 30;
-    animation: crown-bounce 2s infinite ease-in-out;
-}
-
-@keyframes crown-bounce {
-    0%, 100% { transform: translateX(-50%) translateY(0) rotate(0); }
-    50% { transform: translateX(-50%) translateY(-10px) rotate(5deg); }
-}
-
 /* Reigning Hero — glow lives on .cloud-bg-svg via hero-cloud-glow animation in buttons.css */
 
 .hero-crown-badge {

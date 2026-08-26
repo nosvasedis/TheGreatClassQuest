@@ -42,14 +42,6 @@
     animation: pop-in 0.4s ease-out;
 }
 
-@keyframes subtle-pulse {
-    0%, 100% { transform: scale(1); opacity: 1; }
-    50% { transform: scale(1.03); opacity: 0.8; }
-}
-.login-bg-pulse {
-    animation: subtle-pulse 5s ease-in-out infinite;
-}
-
 /* Returning students — September placement (teacher roster) */
 .returning-students-shell {
     background: linear-gradient(135deg, #fffbeb 0%, #fef3c7 45%, #fff 100%);

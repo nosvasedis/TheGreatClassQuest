@@ -256,6 +256,8 @@
         inset 0 1px 0 rgba(255, 255, 255, 0.55),
         inset 0 -10px 18px -12px rgba(30, 64, 175, 0.35),
         0 -8px 24px -8px rgba(37, 99, 235, 0.22);
+    /* Respect iOS home-indicator so the dock never clips into the gesture bar. */
+    padding-bottom: env(safe-area-inset-bottom, 0px);
 }
 
 /* Static sky-light sheen across the dock — sits under the buttons (they are z-index 1+) */

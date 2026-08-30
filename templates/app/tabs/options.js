@@ -336,7 +336,7 @@ export const optionsTabHTML = `
                                     </div>
                                     <div class="text-center md:text-left flex-1">
                                         <h2 class="font-title text-3xl text-fuchsia-800 mb-1">Assessment Settings</h2>
-                                        <p class="text-sm text-slate-500">Review inherited school rules and configure overrides only for classes you own.</p>
+                                        <p class="text-sm text-slate-500">Review inherited school rules and configure overrides only for classes you own. Tests or dictations can be turned off for a class.</p>
                                     </div>
                                 </div>
                                 <div class="relative z-10 rounded-[1.5rem] border border-fuchsia-100 bg-fuchsia-50/60 p-5">

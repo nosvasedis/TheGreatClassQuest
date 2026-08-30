@@ -36,3 +36,11 @@ export function celebrationEmoji(item) {
     if (t.includes('help') || t.includes('kind')) return '🤝';
     return '🎉';
 }
+
+export function snapshotAssessmentUses(snapshot) {
+    const uses = snapshot?.assessmentUses;
+    if (!uses || typeof uses !== 'object') return { tests: true, dictations: true, any: true };
+    const tests = uses.tests !== false;
+    const dictations = uses.dictations !== false;
+    return { tests, dictations, any: tests || dictations };
+}

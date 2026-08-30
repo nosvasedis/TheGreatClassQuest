@@ -1,6 +1,6 @@
 import * as state from '../../state.js';
 import { escapeHtml, renderTabHero } from '../roles/shared.js';
-import { celebrationEmoji } from './helpers.js';
+import { celebrationEmoji, snapshotAssessmentUses } from './helpers.js';
 
 function getSnapshot() {
     return state.get('currentParentSnapshot') || {};
@@ -14,6 +14,10 @@ export function renderParentHome() {
     const progress = snapshot.progress || {};
     const recentCelebrations = snapshot.recentCelebrations || [];
     const publishedNotes = snapshot.publishedNotes || [];
+    const assessmentUses = snapshotAssessmentUses(snapshot);
+    const latestResultLabel = assessmentUses.tests && assessmentUses.dictations
+        ? 'Latest test'
+        : (assessmentUses.dictations && !assessmentUses.tests ? 'Latest dictation' : 'Latest result');
 
     return `
         ${renderTabHero({
@@ -72,17 +76,17 @@ export function renderParentHome() {
         <div class="grid gap-4 md:grid-cols-2">
             <article class="role-card">
                 <p class="role-card__eyebrow">At a glance</p>
-                <h3 class="role-card__title mb-3">Latest results</h3>
-                <div class="role-stat-grid">
+                <h3 class="role-card__title mb-3">${assessmentUses.any ? 'Latest results' : 'Class notes'}</h3>
+                ${assessmentUses.any ? `<div class="role-stat-grid">
                     <div class="role-stat-tile role-stat-tile--sky">
-                        <div class="role-stat-tile__label">Latest test</div>
+                        <div class="role-stat-tile__label">${latestResultLabel}</div>
                         <div class="role-stat-tile__value" style="font-size:1.15rem">${escapeHtml(snapshot.latestGrade?.label || '—')}</div>
                     </div>
                     <div class="role-stat-tile role-stat-tile--amber">
                         <div class="role-stat-tile__label">Recent scores</div>
                         <div class="role-stat-tile__value" style="font-size:1rem">${escapeHtml(snapshot.gradeAverageLabel || 'N/A')}</div>
                     </div>
-                </div>
+                </div>` : `<p class="text-sm text-slate-600">This class does not record tests or dictations.</p>`}
                 <p class="text-sm text-slate-500 mt-3">Next lesson: ${escapeHtml(snapshot.nextLessonLabel || 'Not scheduled yet')}</p>
             </article>
 

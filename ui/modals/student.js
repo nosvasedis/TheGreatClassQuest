@@ -9,7 +9,7 @@ import { handleAwardBonusStar, handleBatchAwardBonus } from '../../db/actions.js
 import { canUseFeature } from '../../utils/subscription.js';
 import { showUpgradePrompt } from '../../utils/upgradePrompt.js';
 import { getUpgradeMessage } from '../../config/tiers/features.js';
-import { getScheduledAssessmentStatus, getStudentsAwaitingGradeForScheduledStatus } from '../../features/assessmentConfig.js';
+import { getScheduledAssessmentStatus, getStudentsAwaitingGradeForScheduledStatus, classUsesTests } from '../../features/assessmentConfig.js';
 import { getGuildHouseDisplay } from '../../features/guilds.js';
 import { handleAvatarClick } from '../core/avatar.js';
 
@@ -82,8 +82,17 @@ export function clearQuestTestFields(options = {}) {
     }
 }
 
-export function toggleQuestTestPanel() {
-    setQuestTestModalVisible(true);
+function applyQuestTestSchedulingVisibility(classData) {
+    const scheduleBtn = document.getElementById('open-quest-test-modal-btn');
+    const usesTests = classUsesTests(classData);
+    if (scheduleBtn) scheduleBtn.classList.toggle('hidden', !usesTests);
+    if (!usesTests) {
+        clearQuestTestFields({ hide: false });
+        const { summaryCard, headerBadge } = getQuestTestElements();
+        summaryCard?.classList.add('hidden');
+        headerBadge?.classList.add('hidden');
+    }
+    return usesTests;
 }
 
 const HERO_ICONS = {
@@ -482,6 +491,10 @@ export async function openQuestAssignmentModal() {
     document.getElementById('quest-assignment-confirm-btn').innerText = 'Save Assignment';
 
     document.getElementById('quest-assignment-class-id').value = classId;
+    const classData = state.get('allSchoolClasses').find((item) => item.id === classId)
+        || state.get('allTeachersClasses').find((item) => item.id === classId)
+        || null;
+    const usesTests = applyQuestTestSchedulingVisibility(classData);
     const previousAssignmentTextEl = document.getElementById('previous-assignment-text');
     const currentAssignmentTextarea = document.getElementById('quest-assignment-textarea');
     const dateChipEl = document.getElementById('quest-assignment-date-chip');
@@ -647,7 +660,7 @@ export async function openQuestAssignmentModal() {
                 modal.dataset.editingId = lastAssignmentDoc.id;
                 document.getElementById('quest-assignment-confirm-btn').innerText = 'Update Assignment';
                 
-                if (lastAssignment.testData) {
+                if (usesTests && lastAssignment.testData) {
                     const { testDate, testTitle, testCurriculum } = getQuestTestElements();
                     if (testDate) testDate.value = lastAssignment.testData.date || '';
                     if (testTitle) testTitle.value = lastAssignment.testData.title || '';

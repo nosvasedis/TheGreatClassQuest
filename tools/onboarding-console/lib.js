@@ -1241,6 +1241,7 @@ function summarizeAssessmentDefaults(raw) {
       const dictations = value.dictations && typeof value.dictations === 'object' ? value.dictations : null;
       const describeScheme = (scheme) => {
         if (!scheme || typeof scheme !== 'object') return 'not set';
+        if (scheme.mode === 'none') return 'not used';
         if (scheme.mode === 'qualitative') {
           const count = Array.isArray(scheme.scale) ? scheme.scale.filter((entry) => entry && entry.label).length : 0;
           return `${count || 0} labels`;

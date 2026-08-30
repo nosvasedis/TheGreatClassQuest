@@ -1,6 +1,8 @@
 import * as state from '../state.js';
 import * as utils from '../utils.js';
-import { JUNIOR_LEAGUES, questLeagues } from '../constants.js';
+import { EARLY_LEAGUES, JUNIOR_LEAGUES, questLeagues } from '../constants.js';
+
+export const ASSESSMENT_NONE_MIGRATION_KEY = 'assessmentNoneMigrationV1';
 
 export const QUALITATIVE_SCALE_FALLBACK = [
     { id: 'great_3', label: 'Great!!!', normalizedPercent: 100 },
@@ -28,7 +30,26 @@ export function isJuniorLeague(questLevel) {
     return JUNIOR_LEAGUES.includes(questLevel);
 }
 
+export function isEarlyQuestLeague(questLevel) {
+    return EARLY_LEAGUES.includes(questLevel);
+}
+
+export function isAssessmentSchemeEnabled(scheme) {
+    return !!scheme && scheme.mode !== 'none';
+}
+
+export function isEarlyLeagueNoneMigrationComplete() {
+    return state.get('schoolAssessmentNoneMigrated') === true;
+}
+
 export function createLegacyAssessmentDefaultsForLeague(questLevel) {
+    if (isEarlyQuestLeague(questLevel)) {
+        return {
+            tests: { mode: 'none', maxScore: 40, scale: QUALITATIVE_SCALE_FALLBACK },
+            dictations: { mode: 'none', maxScore: 100, scale: QUALITATIVE_SCALE_FALLBACK }
+        };
+    }
+
     if (isJuniorLeague(questLevel)) {
         return {
             tests: { mode: 'numeric', maxScore: 40 },
@@ -57,12 +78,28 @@ function normalizeQualitativeScale(scale, fallbackScale = QUALITATIVE_SCALE_FALL
         .filter(Boolean);
 }
 
+export function withNoneMode(scheme) {
+    const maxScore = Number(scheme?.maxScore);
+    return {
+        mode: 'none',
+        maxScore: maxScore > 0 ? maxScore : 100,
+        scale: normalizeQualitativeScale(scheme?.scale, QUALITATIVE_SCALE_FALLBACK)
+    };
+}
+
 export function normalizeAssessmentScheme(rawScheme, fallbackScheme) {
     const fallback = fallbackScheme || { mode: 'numeric', maxScore: 100 };
-    const requestedMode = rawScheme?.mode === 'qualitative' || rawScheme?.mode === 'numeric'
+    const requestedMode = rawScheme?.mode === 'qualitative' || rawScheme?.mode === 'numeric' || rawScheme?.mode === 'none'
         ? rawScheme.mode
         : null;
     const mode = requestedMode || fallback.mode || 'numeric';
+
+    if (mode === 'none') {
+        return withNoneMode({
+            maxScore: rawScheme?.maxScore ?? fallback.maxScore,
+            scale: rawScheme?.scale || fallback.scale
+        });
+    }
 
     if (mode === 'qualitative') {
         const scale = normalizeQualitativeScale(rawScheme?.scale, fallback.scale || QUALITATIVE_SCALE_FALLBACK);
@@ -90,15 +127,28 @@ export function normalizeAssessmentConfig(rawConfig, questLevel = '') {
     };
 }
 
-export function normalizeAssessmentDefaultsByLeague(rawDefaults = {}) {
-    return questLeagues.reduce((acc, league) => {
+export function normalizeAssessmentDefaultsByLeague(rawDefaults = {}, options = {}) {
+    const normalized = questLeagues.reduce((acc, league) => {
         acc[league] = normalizeAssessmentConfig(rawDefaults?.[league], league);
         return acc;
     }, {});
+
+    if (options.forceEarlyLeagueNone) {
+        EARLY_LEAGUES.forEach((league) => {
+            normalized[league] = {
+                tests: withNoneMode(normalized[league].tests),
+                dictations: withNoneMode(normalized[league].dictations)
+            };
+        });
+    }
+
+    return normalized;
 }
 
 export function getSchoolAssessmentDefaults() {
-    return normalizeAssessmentDefaultsByLeague(state.get('schoolAssessmentDefaults') || {});
+    return normalizeAssessmentDefaultsByLeague(state.get('schoolAssessmentDefaults') || {}, {
+        forceEarlyLeagueNone: !isEarlyLeagueNoneMigrationComplete()
+    });
 }
 
 export function normalizeClassAssessmentConfig(rawConfig, questLevel = '') {
@@ -111,10 +161,19 @@ export function normalizeClassAssessmentConfig(rawConfig, questLevel = '') {
     };
 }
 
-export function resolveAssessmentConfig(classData, schoolDefaults = getSchoolAssessmentDefaults()) {
+export function resolveAssessmentConfig(classData, schoolDefaults = getSchoolAssessmentDefaults(), options = {}) {
     const questLevel = classData?.questLevel || '';
     const schoolConfig = normalizeAssessmentConfig(schoolDefaults?.[questLevel], questLevel);
     const classConfig = normalizeClassAssessmentConfig(classData?.assessmentConfig, questLevel);
+    const migrationComplete = options.earlyLeagueNoneMigrationComplete ?? isEarlyLeagueNoneMigrationComplete();
+
+    if (isEarlyQuestLeague(questLevel) && !migrationComplete) {
+        return {
+            inheritSchoolDefaults: classConfig.inheritSchoolDefaults,
+            tests: withNoneMode(classConfig.inheritSchoolDefaults ? schoolConfig.tests : classConfig.tests),
+            dictations: withNoneMode(classConfig.inheritSchoolDefaults ? schoolConfig.dictations : classConfig.dictations)
+        };
+    }
 
     if (classConfig.inheritSchoolDefaults) {
         return {
@@ -131,15 +190,45 @@ export function resolveAssessmentConfig(classData, schoolDefaults = getSchoolAss
     };
 }
 
-export function getAssessmentSchemeForClass(classData, type, schoolDefaults = getSchoolAssessmentDefaults()) {
-    const resolved = resolveAssessmentConfig(classData, schoolDefaults);
+export function getAssessmentSchemeForClass(classData, type, schoolDefaults = getSchoolAssessmentDefaults(), options = {}) {
+    const resolved = resolveAssessmentConfig(classData, schoolDefaults, options);
     return type === 'dictation' ? resolved.dictations : resolved.tests;
 }
 
-export function getAssessmentSchemeByClassId(classId, type, schoolDefaults = getSchoolAssessmentDefaults()) {
+export function getAssessmentSchemeByClassId(classId, type, schoolDefaults = getSchoolAssessmentDefaults(), options = {}) {
     const classData = (state.get('allSchoolClasses') || []).find((item) => item.id === classId)
         || (state.get('allTeachersClasses') || []).find((item) => item.id === classId);
-    return getAssessmentSchemeForClass(classData, type, schoolDefaults);
+    return getAssessmentSchemeForClass(classData, type, schoolDefaults, options);
+}
+
+export function classUsesTests(classData, schoolDefaults = getSchoolAssessmentDefaults(), options = {}) {
+    if (!classData) return true;
+    return isAssessmentSchemeEnabled(getAssessmentSchemeForClass(classData, 'test', schoolDefaults, options));
+}
+
+export function classUsesDictations(classData, schoolDefaults = getSchoolAssessmentDefaults(), options = {}) {
+    if (!classData) return true;
+    return isAssessmentSchemeEnabled(getAssessmentSchemeForClass(classData, 'dictation', schoolDefaults, options));
+}
+
+export function classUsesAnyAssessments(classData, schoolDefaults = getSchoolAssessmentDefaults(), options = {}) {
+    return classUsesTests(classData, schoolDefaults, options) || classUsesDictations(classData, schoolDefaults, options);
+}
+
+export function getClassAssessmentUsage(classData, schoolDefaults = getSchoolAssessmentDefaults(), options = {}) {
+    const tests = classUsesTests(classData, schoolDefaults, options);
+    const dictations = classUsesDictations(classData, schoolDefaults, options);
+    return { tests, dictations, any: tests || dictations };
+}
+
+export function applyNoneToMatchingClassAssessment(classConfig, schoolConfig, questLevel) {
+    const normalized = normalizeClassAssessmentConfig(classConfig, questLevel);
+    if (normalized.inheritSchoolDefaults) return normalized;
+    return {
+        inheritSchoolDefaults: false,
+        tests: schoolConfig?.tests?.mode === 'none' ? withNoneMode(normalized.tests) : normalized.tests,
+        dictations: schoolConfig?.dictations?.mode === 'none' ? withNoneMode(normalized.dictations) : normalized.dictations
+    };
 }
 
 function normalizeScaleForSnapshot(scale = []) {
@@ -151,7 +240,7 @@ function normalizeScaleForSnapshot(scale = []) {
 }
 
 export function buildAssessmentSnapshot(scheme) {
-    if (!scheme) return null;
+    if (!scheme || scheme.mode === 'none') return null;
     if (scheme.mode === 'qualitative') {
         return {
             mode: 'qualitative',
@@ -216,6 +305,7 @@ export function getAssessmentValueLabel(scoreRecord, classData = null, schoolDef
 
 export function describeAssessmentScheme(scheme) {
     if (!scheme) return 'Not configured';
+    if (scheme.mode === 'none') return 'Not used';
     if (scheme.mode === 'qualitative') {
         return (scheme.scale || []).map((entry) => `${entry.label} (${entry.normalizedPercent}%)`).join(' • ');
     }
@@ -234,10 +324,14 @@ export function getNearestQualitativeLabel(scheme, normalizedPercent) {
     }, null)?.label || '';
 }
 
-export function createAssessmentScorePayload({ studentId, classId, type, title, teacherId, date, value, notes = null, classData = null, schoolDefaults = getSchoolAssessmentDefaults() }) {
+export function createAssessmentScorePayload({ studentId, classId, type, title, teacherId, date, value, notes = null, classData = null, schoolDefaults = getSchoolAssessmentDefaults(), earlyLeagueNoneMigrationComplete }) {
+    const resolveOptions = { earlyLeagueNoneMigrationComplete };
     const scheme = classData
-        ? getAssessmentSchemeForClass(classData, type, schoolDefaults)
-        : getAssessmentSchemeByClassId(classId, type, schoolDefaults);
+        ? getAssessmentSchemeForClass(classData, type, schoolDefaults, resolveOptions)
+        : getAssessmentSchemeByClassId(classId, type, schoolDefaults, resolveOptions);
+    if (!isAssessmentSchemeEnabled(scheme)) {
+        throw new Error('This class does not use this assessment type.');
+    }
     const snapshot = buildAssessmentSnapshot(scheme);
     const payload = {
         studentId,
@@ -289,9 +383,13 @@ export function getQualitativeDistribution(scores = [], classData = null, school
     return distribution;
 }
 
-export function getWeightedAcademicAverage(testScores = [], dictationScores = [], classData = null, schoolDefaults = getSchoolAssessmentDefaults()) {
-    const testAvg = getAssessmentAverage(testScores, classData, schoolDefaults);
-    const dictationAvg = getAssessmentAverage(dictationScores, classData, schoolDefaults);
+export function getWeightedAcademicAverage(testScores = [], dictationScores = [], classData = null, schoolDefaults = getSchoolAssessmentDefaults(), options = {}) {
+    const usesTests = classUsesTests(classData, schoolDefaults, options);
+    const usesDictations = classUsesDictations(classData, schoolDefaults, options);
+    if (!usesTests && !usesDictations) return null;
+
+    const testAvg = usesTests ? getAssessmentAverage(testScores, classData, schoolDefaults) : null;
+    const dictationAvg = usesDictations ? getAssessmentAverage(dictationScores, classData, schoolDefaults) : null;
 
     if (testAvg !== null && dictationAvg !== null) {
         return (testAvg * 0.6) + (dictationAvg * 0.4);
@@ -504,7 +602,18 @@ export function getScheduledAssessmentStatus(assignment, options = {}) {
     const now = options.now instanceof Date ? options.now : new Date();
     const type = options.type || 'test';
     const schoolClasses = state.get('allSchoolClasses') || [];
-    const classData = options.classData || schoolClasses.find((item) => item.id === assignment.classId) || null;
+    const classData = options.classData
+        || schoolClasses.find((item) => item.id === assignment.classId)
+        || (state.get('allTeachersClasses') || []).find((item) => item.id === assignment.classId)
+        || null;
+    const schoolDefaults = options.schoolDefaults || getSchoolAssessmentDefaults();
+    const resolveOptions = { earlyLeagueNoneMigrationComplete: options.earlyLeagueNoneMigrationComplete };
+    if (classData) {
+        const usesType = type === 'dictation'
+            ? classUsesDictations(classData, schoolDefaults, resolveOptions)
+            : classUsesTests(classData, schoolDefaults, resolveOptions);
+        if (!usesType) return null;
+    }
     const scheduledDate = utils.parseFlexibleDate(assignment.testData.date);
     if (!scheduledDate) return null;
 

@@ -3,6 +3,7 @@
 import * as constants from '../constants.js';
 import { datesMatch, getDDMMYYYY, parseDDMMYYYY, getClassesOnDay, simpleHashCode } from '../utils.js';
 import { getAwardLogMonthlyStarCredit } from '../features/awardLogReasonMeta.js';
+import { classUsesTests } from '../features/assessmentConfig.js';
 
 export const QUEST_EVENT_ICONS = {
     '2x Star Day': '⭐ x2',
@@ -98,11 +99,12 @@ export function getDayAgenda({
             && a.testData
             && datesMatch(dateString, a.testData.date),
         );
+        const showTest = testAssignment && classUsesTests(c);
         return {
             ...c,
             color,
             timeDisplay,
-            testAssignment: testAssignment || null,
+            testAssignment: showTest ? testAssignment : null,
         };
     });
 

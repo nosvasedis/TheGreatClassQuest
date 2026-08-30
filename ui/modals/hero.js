@@ -10,6 +10,7 @@ import { loadChart } from '../../utils/lazyLibraries.js';
 import {
     getAssessmentAverage,
     getAssessmentValueLabel,
+    getClassAssessmentUsage,
     getNormalizedPercentForScore,
     getQualitativeDistribution
 } from '../../features/assessmentConfig.js';
@@ -80,10 +81,11 @@ nameEl.innerHTML = `${heroIcon} ${student.name}`;
     }
 
     const classData = state.get('allSchoolClasses').find(c => c.id === student.classId);
+    const usage = getClassAssessmentUsage(classData);
     
     const studentScores = state.get('allWrittenScores').filter(s => s.studentId === studentId);
-    const studentTestScores = studentScores.filter(s => s.type === 'test');
-    const studentDictationScores = studentScores.filter(s => s.type === 'dictation');
+    const studentTestScores = usage.tests ? studentScores.filter(s => s.type === 'test') : [];
+    const studentDictationScores = usage.dictations ? studentScores.filter(s => s.type === 'dictation') : [];
     const totalTests = studentTestScores.length;
     const totalDictations = studentDictationScores.length;
 
@@ -125,12 +127,20 @@ nameEl.innerHTML = `${heroIcon} ${student.name}`;
         }
     }
 
-    let statsHtml = `
+    let statsHtml = usage.any ? `
         <div class="hero-stat-item">
             <div class="icon text-gray-400"><i class="fas fa-scroll"></i></div>
             <div class="text">
                 <div class="title">Trials Logged</div>
                 <div class="value">${totalTests + totalDictations}</div>
+            </div>
+        </div>
+    ` : `
+        <div class="hero-stat-item">
+            <div class="icon text-gray-400"><i class="fas fa-scroll"></i></div>
+            <div class="text">
+                <div class="title">Assessments</div>
+                <div class="value">Not used in this class</div>
             </div>
         </div>
     `;
@@ -171,7 +181,9 @@ nameEl.innerHTML = `${heroIcon} ${student.name}`;
     }
     chartContainer.innerHTML = '';
 
-    if (studentScores.length < 2) {
+    if (!usage.any) {
+        chartContainer.innerHTML = `<div class="flex items-center justify-center h-full text-gray-400">This class does not use tests or dictations.</div>`;
+    } else if (studentScores.length < 2) {
         chartContainer.innerHTML = `<div class="flex items-center justify-center h-full text-gray-400">Log at least two trials to see a progress chart.</div>`;
     } else {
         try {
@@ -187,14 +199,19 @@ nameEl.innerHTML = `${heroIcon} ${student.name}`;
                 return getNormalizedPercentForScore(s, classData) || null;
             });
 
+            const datasets = [];
+            if (usage.tests) {
+                datasets.push({ label: 'Test Score', data: testData, borderColor: '#4ade80', backgroundColor: 'rgba(74, 222, 128, 0.2)', fill: false, tension: 0.1, spanGaps: true });
+            }
+            if (usage.dictations) {
+                datasets.push({ label: 'Dictation Score', data: dictationData, borderColor: '#60a5fa', backgroundColor: 'rgba(96, 165, 250, 0.2)', fill: false, tension: 0.1, spanGaps: true });
+            }
+
             heroStatsChart = new Chart(canvas, {
                 type: 'line',
                 data: {
                     labels: labels,
-                    datasets: [
-                        { label: 'Test Score', data: testData, borderColor: '#4ade80', backgroundColor: 'rgba(74, 222, 128, 0.2)', fill: false, tension: 0.1, spanGaps: true },
-                        { label: 'Dictation Score', data: dictationData, borderColor: '#60a5fa', backgroundColor: 'rgba(96, 165, 250, 0.2)', fill: false, tension: 0.1, spanGaps: true }
-                    ]
+                    datasets
                 },
                 options: {
                     responsive: true, maintainAspectRatio: false,

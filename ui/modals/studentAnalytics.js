@@ -1,7 +1,7 @@
 import * as state from '../../state.js';
 import * as utils from '../../utils.js';
 import { callGeminiApi } from '../../api.js';
-import { getAssessmentValueLabel, getNormalizedPercentForScore, getWeightedAcademicAverage } from '../../features/assessmentConfig.js';
+import { getAssessmentValueLabel, getClassAssessmentUsage, getNormalizedPercentForScore, getWeightedAcademicAverage } from '../../features/assessmentConfig.js';
 import { showToast } from '../effects.js';
 import { hideModal, showAnimatedModal } from './base.js';
 import { requireEliteAI } from '../../utils/upgradePrompt.js';
@@ -544,6 +544,7 @@ function renderPerformance(data) {
     const root = document.getElementById('analytics-performance-content');
     if (!root) return;
     const isStudent = activeAudience === 'student';
+    const usage = getClassAssessmentUsage(data.classData);
     const tableRows = data.scores
         .slice()
         .sort((left, right) => right.sortDate - left.sortDate)
@@ -606,7 +607,7 @@ function renderPerformance(data) {
                 <div class="w-12 h-12 bg-gray-100 text-gray-600 rounded-2xl flex items-center justify-center text-xl shadow-inner shrink-0"><i class="fas fa-list"></i></div>
                 <div class="min-w-0">
                     <span class="text-xs font-bold text-gray-500 uppercase tracking-wider block truncate">${isStudent ? 'Your log' : 'Assessment history'}</span>
-                    <h3 class="font-title text-2xl text-gray-900 leading-tight truncate">${isStudent ? 'Tests & dictations' : 'Tests and dictations'}</h3>
+                    <h3 class="font-title text-2xl text-gray-900 leading-tight truncate">${isStudent ? (usage.any ? (usage.tests && usage.dictations ? 'Tests & dictations' : (usage.tests ? 'Tests' : 'Dictations')) : 'Assessments') : (usage.any ? (usage.tests && usage.dictations ? 'Tests and dictations' : (usage.tests ? 'Tests' : 'Dictations')) : 'Assessments')}</h3>
                 </div>
             </div>
             <div class="overflow-x-auto rounded-xl border border-gray-200">

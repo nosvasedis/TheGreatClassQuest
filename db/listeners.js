@@ -1464,6 +1464,9 @@ export async function setupDataListeners(
                 state.setSchoolAssessmentDefaults(
                     data.assessmentDefaultsByLeague || null,
                 );
+                state.setSchoolAssessmentNoneMigrated(
+                    data.assessmentNoneMigrationV1 === true,
+                );
                 utils.setWeatherCoordinates(weatherLocation);
                 applySchoolNameToDom(data.schoolName);
             } else {
@@ -1473,6 +1476,7 @@ export async function setupDataListeners(
                 setSchoolGraceConfig(null);
                 state.setSchoolWeatherLocation(null);
                 state.setSchoolAssessmentDefaults(null);
+                state.setSchoolAssessmentNoneMigrated(false);
                 utils.setWeatherCoordinates(null);
                 applySchoolNameToDom(null);
             }

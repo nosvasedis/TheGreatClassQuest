@@ -289,7 +289,7 @@ function renderGradingSetup() {
             ${renderAdminSectionIntro(
                 'Grading',
                 'Choose how grades work across your school.',
-                'Set the usual marking style for each league. If one class needs something different, you can change only that class.',
+                'Set the usual marking style for each league — including turning tests or dictations off completely. Nursery and Pre-Junior start with both off. If one class needs something different, you can change only that class.',
                 'fa-clipboard-check',
                 'violet'
             )}

@@ -1,5 +1,6 @@
 import * as state from '../../state.js';
 import { escapeHtml, formatFlexibleDate, renderTabHero, renderEmptyState } from '../roles/shared.js';
+import { snapshotAssessmentUses } from './helpers.js';
 
 function getSnapshot() {
     return state.get('currentParentSnapshot') || {};
@@ -37,6 +38,10 @@ export function renderParentProgress() {
     const gradeHistory = snapshot.gradeHistory || [];
     const attendance = snapshot.attendanceSummary || {};
     const showModal = state.get('parentView')?.progressModalOpen;
+    const assessmentUses = snapshotAssessmentUses(snapshot);
+    const latestResultLabel = assessmentUses.tests && assessmentUses.dictations
+        ? 'Latest test'
+        : (assessmentUses.dictations && !assessmentUses.tests ? 'Latest dictation' : 'Latest result');
 
     return `
         ${renderTabHero({
@@ -48,8 +53,8 @@ export function renderParentProgress() {
 
         <div class="role-stat-grid mb-4">
             <div class="role-stat-tile role-stat-tile--sky">
-                <div class="role-stat-tile__label">Latest test</div>
-                <div class="role-stat-tile__value" style="font-size:1.2rem">${escapeHtml(snapshot.latestGrade?.label || '—')}</div>
+                <div class="role-stat-tile__label">${assessmentUses.any ? latestResultLabel : 'Assessments'}</div>
+                <div class="role-stat-tile__value" style="font-size:1.2rem">${escapeHtml(assessmentUses.any ? (snapshot.latestGrade?.label || '—') : 'Not used')}</div>
             </div>
             <div class="role-stat-tile role-stat-tile--amber">
                 <div class="role-stat-tile__label">Recent scores</div>
@@ -69,7 +74,7 @@ export function renderParentProgress() {
             <div class="role-card__header">
                 <div>
                     <p class="role-card__eyebrow">Recent grades</p>
-                    <h3 class="role-card__title">Latest results</h3>
+                    <h3 class="role-card__title">${assessmentUses.any ? 'Latest results' : 'Assessments'}</h3>
                 </div>
                 ${gradeHistory.length > 5 ? `<button type="button" class="role-inline-link" id="parent-show-full-history">See full history</button>` : ''}
             </div>
@@ -83,7 +88,7 @@ export function renderParentProgress() {
                         <span class="role-score-pill">${escapeHtml(item.scoreLabel || item.label || 'N/A')}</span>
                     </div>
                 `).join('')
-                : renderEmptyState('Published grades will appear here.')
+                : renderEmptyState(assessmentUses.any ? 'Published grades will appear here.' : 'This class does not record tests or dictations.')
             }
         </article>
 

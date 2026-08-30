@@ -415,6 +415,37 @@ async function getRecentCelebrations(studentId) {
   });
 }
 
+async function getSchoolSettings() {
+  const snap = await db.doc(`${PUBLIC_DATA_PATH}/school_settings/holidays`).get();
+  return snap.exists ? (snap.data() || {}) : {};
+}
+
+function isEarlyLeagueName(league) {
+  return league === 'Nursery' || league === 'Pre-Junior';
+}
+
+function schemeIsEnabled(scheme, league) {
+  if (scheme?.mode === 'none') return false;
+  if (scheme?.mode === 'numeric' || scheme?.mode === 'qualitative') return true;
+  return !isEarlyLeagueName(league);
+}
+
+function resolveClassAssessmentUses(classData = {}, schoolSettings = {}) {
+  const league = classData.questLevel || '';
+  const migrated = schoolSettings.assessmentNoneMigrationV1 === true;
+  if (isEarlyLeagueName(league) && !migrated) {
+    return { tests: false, dictations: false };
+  }
+  const inherit = classData.assessmentConfig?.inheritSchoolDefaults !== false;
+  const schoolLeague = schoolSettings.assessmentDefaultsByLeague?.[league] || {};
+  const testsScheme = inherit ? schoolLeague.tests : (classData.assessmentConfig?.tests || schoolLeague.tests);
+  const dictationsScheme = inherit ? schoolLeague.dictations : (classData.assessmentConfig?.dictations || schoolLeague.dictations);
+  return {
+    tests: schemeIsEnabled(testsScheme, league),
+    dictations: schemeIsEnabled(dictationsScheme, league)
+  };
+}
+
 async function countPublishedHomework(studentId) {
   const snap = await db.collection(`${PUBLIC_DATA_PATH}/parent_homework`)
     .where('studentId', '==', studentId)
@@ -436,8 +467,15 @@ async function buildParentSnapshot(studentId, extra = {}) {
   ]);
   const classSnap = await db.doc(`${PUBLIC_DATA_PATH}/classes/${student.classId}`).get();
   const classData = classSnap.exists ? classSnap.data() : {};
+  const schoolSettings = await getSchoolSettings();
+  const assessmentUses = resolveClassAssessmentUses(classData, schoolSettings);
+  const visibleAssessments = assessments.filter((item) => {
+    if (item.type === 'dictation') return assessmentUses.dictations;
+    if (item.type === 'test') return assessmentUses.tests;
+    return assessmentUses.tests || assessmentUses.dictations;
+  });
   const homeworkCount = await countPublishedHomework(studentId);
-  const latestGrade = assessments[0] || null;
+  const latestGrade = visibleAssessments[0] || null;
   const previousSnap = await db.doc(`${PUBLIC_DATA_PATH}/parent_snapshots/${studentId}`).get();
   const existing = previousSnap.exists ? previousSnap.data() : {};
 
@@ -446,6 +484,8 @@ async function buildParentSnapshot(studentId, extra = {}) {
     studentName: student.name || '',
     classId: student.classId,
     className: classData.name || '',
+    questLevel: classData.questLevel || '',
+    assessmentUses,
     heroClass: student.heroClass || '',
     progress: {
       totalStars: score.totalStars || 0,
@@ -460,8 +500,8 @@ async function buildParentSnapshot(studentId, extra = {}) {
           title: latestGrade.title || latestGrade.type || 'Assessment'
         }
       : null,
-    gradeAverageLabel: assessments.length ? `${Math.round(assessments.length)} recent item${assessments.length === 1 ? '' : 's'}` : 'N/A',
-    gradeHistory: assessments.map((item) => ({
+    gradeAverageLabel: visibleAssessments.length ? `${Math.round(visibleAssessments.length)} recent item${visibleAssessments.length === 1 ? '' : 's'}` : 'N/A',
+    gradeHistory: visibleAssessments.map((item) => ({
       title: item.title || item.type || 'Assessment',
       type: item.type || '',
       date: item.date || '',

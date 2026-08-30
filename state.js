@@ -28,6 +28,7 @@ function getDefaultState() {
         schoolSettingsLoaded: false,
         schoolWeatherLocation: null,
         schoolAssessmentDefaults: null,
+        schoolAssessmentNoneMigrated: false,
         currentParentSnapshot: null,
         currentParentHomework: [],
         currentCommunicationThreads: [],
@@ -304,6 +305,9 @@ export function setSchoolWeatherLocation(location) {
 }
 export function setSchoolAssessmentDefaults(defaults) {
     state.schoolAssessmentDefaults = defaults || null;
+}
+export function setSchoolAssessmentNoneMigrated(migrated) {
+    state.schoolAssessmentNoneMigrated = migrated === true;
 }
 export function setCurrentParentSnapshot(snapshot) {
     state.currentParentSnapshot = snapshot || null;

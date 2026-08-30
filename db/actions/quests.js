@@ -25,6 +25,7 @@ import { callGeminiApi, callGeminiApiDetailed, callCloudflareAiImageApi } from '
 import { getGuildLeaderboardData, getGuildLeaderboardForClass } from '../../features/guildScoring.js';
 import { syncQuestAssignmentToParentHomework } from '../../utils/adminRuntime.js';
 import { withActiveScoreYear, withSchoolYear } from '../../utils/schoolYear.js';
+import { classUsesTests } from '../../features/assessmentConfig.js';
 
 const ADVENTURE_LOG_AI_RETRY_DELAYS_MS = [30000, 90000, 240000];
 
@@ -62,12 +63,13 @@ export async function handleSaveQuestAssignment() {
 
         let testDataToSave = null;
         const existingTest = existingDocs.length > 0 ? existingDocs[0].testData : null;
+        const usesTests = classUsesTests(classData);
 
         // LOGIC: Determine which Test Data to use
-        if (formTestDate && formTestTitle) {
+        if (usesTests && formTestDate && formTestTitle) {
             // A. User entered a NEW test in the form -> Use it
             testDataToSave = { date: formTestDate, title: formTestTitle, curriculum: formCurriculum || '' };
-        } else if (existingTest) {
+        } else if (usesTests && existingTest) {
             // B. User left form blank, but there was an OLD test. Check if it's still in the future.
             const today = new Date();
             today.setHours(0, 0, 0, 0);

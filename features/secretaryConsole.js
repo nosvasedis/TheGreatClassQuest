@@ -21,6 +21,9 @@ import {
     wireAssessmentEditor
 } from '../ui/assessmentEditor.js';
 import {
+    ASSESSMENT_NONE_MIGRATION_KEY,
+    applyNoneToMatchingClassAssessment,
+    isEarlyQuestLeague,
     normalizeAssessmentDefaultsByLeague,
     normalizeClassAssessmentConfig
 } from './assessmentConfig.js';
@@ -214,9 +217,27 @@ async function saveSecretaryAssessmentSettings(button) {
         setBusyState(button, true, 'Saving...');
         const schoolDefaults = normalizeAssessmentDefaultsByLeague(readAssessmentDefaultsFromContainer(defaultsContainer));
         const batch = writeBatch(db);
-        batch.set(doc(db, `${PUBLIC_DATA_PATH}/school_settings`, 'holidays'), { assessmentDefaultsByLeague: schoolDefaults }, { merge: true });
+        batch.set(doc(db, `${PUBLIC_DATA_PATH}/school_settings`, 'holidays'), {
+            assessmentDefaultsByLeague: schoolDefaults,
+            [ASSESSMENT_NONE_MIGRATION_KEY]: true
+        }, { merge: true });
 
         const updatedSchoolClasses = (state.get('allSchoolClasses') || []).map((classData) => ({ ...classData }));
+
+        updatedSchoolClasses.forEach((classData) => {
+            if (!isEarlyQuestLeague(classData.questLevel)) return;
+            if (classData.assessmentConfig?.inheritSchoolDefaults !== false) return;
+            const nextConfig = applyNoneToMatchingClassAssessment(
+                classData.assessmentConfig,
+                schoolDefaults[classData.questLevel],
+                classData.questLevel
+            );
+            const testsChanged = nextConfig.tests?.mode !== classData.assessmentConfig?.tests?.mode;
+            const dictationsChanged = nextConfig.dictations?.mode !== classData.assessmentConfig?.dictations?.mode;
+            if (!testsChanged && !dictationsChanged) return;
+            classData.assessmentConfig = nextConfig;
+            batch.set(doc(db, `${PUBLIC_DATA_PATH}/classes`, classData.id), { assessmentConfig: nextConfig }, { merge: true });
+        });
 
         if (classCard) {
             const classId = (classCard.dataset.cardKey || '').replace('secretary-class-', '');
@@ -233,6 +254,7 @@ async function saveSecretaryAssessmentSettings(button) {
 
         await batch.commit();
         state.setSchoolAssessmentDefaults(schoolDefaults);
+        state.setSchoolAssessmentNoneMigrated(true);
         state.setAllSchoolClasses(updatedSchoolClasses);
         state.setAllTeachersClasses(updatedSchoolClasses);
         showToast('Grading settings updated.', 'success');

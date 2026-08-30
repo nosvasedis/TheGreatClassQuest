@@ -7,6 +7,7 @@ import {
 import { questLeagues } from '../constants.js';
 
 function describeSchemeSummary(scheme) {
+    if (scheme.mode === 'none') return 'Not used';
     if (scheme.mode === 'qualitative') {
         const count = (scheme.scale || []).length;
         return `Word scale · ${count} label${count === 1 ? '' : 's'}`;
@@ -43,7 +44,7 @@ function getSchemeEditorHtml(prefix, title, scheme) {
                     <span class="assessment-scheme-editor__icon" aria-hidden="true"><i class="fas ${title === 'Tests' ? 'fa-file-pen' : 'fa-spell-check'}"></i></span>
                     <div>
                         <p class="assessment-scheme-editor__title">${title}</p>
-                        <p class="assessment-scheme-editor__hint">Choose numeric or word-based grading.</p>
+                        <p class="assessment-scheme-editor__hint">Choose numeric, word-based, or not used at all.</p>
                     </div>
                 </div>
                 <label class="assessment-mode-control">
@@ -51,6 +52,7 @@ function getSchemeEditorHtml(prefix, title, scheme) {
                     <select class="assessment-mode-select">
                         <option value="numeric" ${scheme.mode === 'numeric' ? 'selected' : ''}>Numeric scale</option>
                         <option value="qualitative" ${scheme.mode === 'qualitative' ? 'selected' : ''}>Word scale</option>
+                        <option value="none" ${scheme.mode === 'none' ? 'selected' : ''}>Not used</option>
                     </select>
                 </label>
             </div>
@@ -68,6 +70,10 @@ function getSchemeEditorHtml(prefix, title, scheme) {
                 <button type="button" class="assessment-add-scale-btn">
                     <i class="fas fa-plus" aria-hidden="true"></i>Add grade label
                 </button>
+            </div>
+            <div class="assessment-none-panel ${scheme.mode === 'none' ? '' : 'hidden'}" data-mode-panel="none">
+                <p class="assessment-none-panel__title">This type is turned off</p>
+                <p class="assessment-none-panel__description">Teachers will not see ${title.toLowerCase()} anywhere for this league or class — no logging, scheduling, charts, or parent results. You can turn it back on later; the last scale is kept.</p>
             </div>
         </div>
     `;
@@ -147,11 +153,10 @@ export function wireAssessmentEditor(root = document) {
         if (event.target.classList.contains('assessment-mode-select')) {
             const editor = event.target.closest('[data-scheme-editor]');
             if (!editor) return;
-            const numericPanel = editor.querySelector('[data-mode-panel="numeric"]');
-            const qualitativePanel = editor.querySelector('[data-mode-panel="qualitative"]');
-            const isQualitative = event.target.value === 'qualitative';
-            numericPanel?.classList.toggle('hidden', isQualitative);
-            qualitativePanel?.classList.toggle('hidden', !isQualitative);
+            const mode = event.target.value;
+            editor.querySelectorAll('[data-mode-panel]').forEach((panel) => {
+                panel.classList.toggle('hidden', panel.dataset.modePanel !== mode);
+            });
             return;
         }
 
@@ -196,7 +201,16 @@ function readScaleFromEditor(editor) {
 function readSchemeFromCard(card, title) {
     const editor = card.querySelector(`[data-prefix$="${title}"]`)?.closest('[data-scheme-editor]')
         || card.querySelectorAll('[data-scheme-editor]')[title === 'tests' ? 0 : 1];
-    const mode = editor?.querySelector('.assessment-mode-select')?.value === 'qualitative' ? 'qualitative' : 'numeric';
+    const selectedMode = editor?.querySelector('.assessment-mode-select')?.value;
+    const mode = selectedMode === 'qualitative' || selectedMode === 'none' ? selectedMode : 'numeric';
+    if (mode === 'none') {
+        const scale = editor ? readScaleFromEditor(editor) : [];
+        return {
+            mode: 'none',
+            maxScore: Number(editor?.querySelector('.assessment-max-score')?.value || 0) || undefined,
+            scale: scale.length > 0 ? scale : undefined
+        };
+    }
     if (mode === 'qualitative') {
         const scale = readScaleFromEditor(editor);
         return {

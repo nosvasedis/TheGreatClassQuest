@@ -107,11 +107,15 @@ import {
     getAssessmentAverage,
     getAssessmentSchemeForClass,
     getAssessmentValueLabel,
+    getClassAssessmentUsage,
     getNearestQualitativeLabel,
     getNormalizedPercentForScore,
     getScheduledAssessmentStatus,
     getScheduledAssignmentForClassOnDate,
     getStudentsAwaitingGradeForScheduledStatus,
+    classUsesTests,
+    isAssessmentSchemeEnabled,
+    normalizeAssessmentScheme,
     getUpcomingScheduledAssessment,
     getWeightedAcademicAverage,
     listScheduledAssessmentsNeedingGrades
@@ -233,8 +237,18 @@ export async function renderScholarsScrollTab(selectedClassId = null, opts = {})
     const inner = document.getElementById('scroll-dashboard-inner');
 
     if (currentVal) {
-        if (logTrialFab) logTrialFab.disabled = false;
-        if (viewHistoryFab) viewHistoryFab.disabled = false;
+        const classData = state.get('allSchoolClasses').find((c) => c.id === currentVal)
+            || state.get('allTeachersClasses').find((c) => c.id === currentVal);
+        const usage = getClassAssessmentUsage(classData);
+        const hasScores = (state.get('allWrittenScores') || []).some((score) => score.classId === currentVal);
+        if (logTrialFab) {
+            logTrialFab.disabled = !usage.any;
+            logTrialFab.title = usage.any ? 'Log a test or dictation' : 'This class does not use tests or dictations';
+        }
+        if (viewHistoryFab) {
+            viewHistoryFab.disabled = !usage.any && !hasScores;
+            viewHistoryFab.title = (!usage.any && !hasScores) ? 'This class does not use tests or dictations' : 'View History';
+        }
 
         const prevRendered = lastRenderedScrollClassId;
         const classChanged = prevRendered != null && prevRendered !== currentVal;
@@ -286,7 +300,7 @@ function renderScrollDashboard(classId) {
     let testAlert = document.getElementById('scroll-test-alert');
     if (testAlert) testAlert.remove(); // Clear previous to prevent duplicates
 
-    const upcomingTest = getUpcomingScheduledAssessment(classId);
+    const upcomingTest = classUsesTests(classData) ? getUpcomingScheduledAssessment(classId) : null;
 
     if (upcomingTest) {
         const toneClasses = {
@@ -363,6 +377,7 @@ function renderScrollDashboard(classId) {
             if (studentTestScores.length === 0 && studentDictationScores.length === 0) return null;
 
             const avg = getWeightedAcademicAverage(studentTestScores, studentDictationScores, classData);
+            if (!Number.isFinite(avg)) return null;
 
             return { name: student.name, avg };
         }).filter(Boolean);
@@ -379,15 +394,18 @@ function renderScrollDashboard(classId) {
         const studentDictationScores = dictationsByStudentId.get(student.id) || [];
 
         const avg = getWeightedAcademicAverage(studentTestScores, studentDictationScores, classData);
-        const performance = (studentTestScores.length > 0 || studentDictationScores.length > 0)
+        const performance = (studentTestScores.length > 0 || studentDictationScores.length > 0) && Number.isFinite(avg)
             ? { value: avg, display: `${avg.toFixed(1)}%` }
             : { value: 0, display: '--' };
         return { student, performance };
     }).sort((a, b) => b.performance.value - a.performance.value);
 
     // Render Performance Chart
-    if (studentPerformanceData.length === 0 || studentPerformanceData.every(d => d.performance.value === 0)) {
-        chartContainer.innerHTML = `<p class="text-center text-gray-400 p-8">Log some trials to see the performance chart!</p>`;
+    const usage = getClassAssessmentUsage(classData);
+    if (!usage.any) {
+        chartContainer.innerHTML = `<p class="text-center text-gray-400 p-8">This class does not use tests or dictations. The secretary can turn them on in Grading.</p>`;
+    } else if (studentPerformanceData.length === 0 || studentPerformanceData.every(d => d.performance.value === 0)) {
+        chartContainer.innerHTML = `<p class="text-center text-gray-400 p-8">${usage.tests && usage.dictations ? 'Log some trials' : (usage.tests ? 'Log a test' : 'Log a dictation')} to see the performance chart!</p>`;
     } else {
         chartContainer.innerHTML = `<div class="performance-chart-container">${studentPerformanceData.map(({ student, performance }, rowIndex) => {
             const scoreData = scoreMetaByStudentId.get(student.id);
@@ -430,6 +448,19 @@ export function openTrialTypeModal(classId) {
     if (!classId) return;
     const classData = state.get('allSchoolClasses').find(c => c.id === classId);
     if (!classData) return;
+    const usage = getClassAssessmentUsage(classData);
+    if (!usage.any) {
+        showToast('This class does not use tests or dictations.', 'info');
+        return;
+    }
+    if (usage.tests && !usage.dictations) {
+        openBulkLogModal(classId, 'test');
+        return;
+    }
+    if (!usage.tests && usage.dictations) {
+        openBulkLogModal(classId, 'dictation');
+        return;
+    }
 
     modals.showAnimatedModal('trial-type-modal');
 
@@ -597,6 +628,10 @@ export function openBulkLogModal(classId, type, options = {}) {
     const classData = state.get('allSchoolClasses').find((c) => c.id === classId);
     if (!classData) return;
     const assessmentScheme = getAssessmentSchemeForClass(classData, type);
+    if (!isAssessmentSchemeEnabled(assessmentScheme)) {
+        showToast(type === 'dictation' ? 'This class does not use dictations.' : 'This class does not use tests.', 'info');
+        return;
+    }
 
     document.getElementById('bulk-trial-title').innerText = type === 'dictation' ? 'Log Dictation' : 'Log Test';
     document.getElementById('bulk-trial-subtitle').innerText = `${classData.logo} ${classData.name}`;
@@ -737,12 +772,18 @@ export function openTrialHistoryModal(classId) {
     modal.dataset.classId = classId;
     document.getElementById('trial-history-title').innerHTML = `${classData.logo} Trial History`;
 
-    // 1. Reset Toggle Buttons
+    const usage = getClassAssessmentUsage(classData);
+    const scoresForHistory = (state.get('allWrittenScores') || []).filter((score) => score.classId === classId);
+    const showTests = usage.tests || scoresForHistory.some((score) => score.type === 'test');
+    const showDictations = usage.dictations || scoresForHistory.some((score) => score.type === 'dictation');
+    const initialView = showTests ? 'test' : 'dictation';
+
     const viewToggleContainer = document.getElementById('trial-history-view-toggle');
     viewToggleContainer.innerHTML = `
-        <button data-view="test" class="toggle-btn active-toggle px-4 py-2 rounded-xl font-bold text-sm transition-all"><i class="fas fa-file-alt mr-2"></i>Tests</button>
-        <button data-view="dictation" class="toggle-btn px-4 py-2 rounded-xl font-bold text-sm transition-all"><i class="fas fa-microphone-alt mr-2"></i>Dictations</button>
+        ${showTests ? `<button data-view="test" class="toggle-btn ${initialView === 'test' ? 'active-toggle' : ''} px-4 py-2 rounded-xl font-bold text-sm transition-all"><i class="fas fa-file-alt mr-2"></i>Tests</button>` : ''}
+        ${showDictations ? `<button data-view="dictation" class="toggle-btn ${initialView === 'dictation' ? 'active-toggle' : ''} px-4 py-2 rounded-xl font-bold text-sm transition-all"><i class="fas fa-microphone-alt mr-2"></i>Dictations</button>` : ''}
     `;
+    viewToggleContainer.classList.toggle('hidden', !showTests || !showDictations);
 
     viewToggleContainer.querySelectorAll('.toggle-btn').forEach(btn => {
         btn.addEventListener('click', (e) => {
@@ -765,7 +806,7 @@ export function openTrialHistoryModal(classId) {
     });
 
     // 3. Initial Render
-    renderTrialHistoryContent(classId, 'test');
+    renderTrialHistoryContent(classId, initialView);
     modals.showAnimatedModal('trial-history-modal');
 
     // 4. Load full history on demand (one fetch — same query as Student Analytics class scores)
@@ -1019,7 +1060,10 @@ export function openSingleTrialEditModal(classId, trialId) {
     if (!score) return;
 
     const classData = state.get('allSchoolClasses').find(c => c.id === classId);
-    const assessmentScheme = getAssessmentSchemeForClass(classData, score.type);
+    let assessmentScheme = getAssessmentSchemeForClass(classData, score.type);
+    if (!isAssessmentSchemeEnabled(assessmentScheme) && score.gradingSnapshot) {
+        assessmentScheme = normalizeAssessmentScheme(score.gradingSnapshot, score.gradingSnapshot);
+    }
 
     const modal = document.getElementById('bulk-trial-modal');
     document.getElementById('bulk-trial-scheduled-hint')?.classList.add('hidden');
@@ -1187,6 +1231,13 @@ function renderMissingWorkDashboard(classId) {
         container.id = 'makeup-work-container';
     }
     container.innerHTML = '';
+
+    const classData = state.get('allSchoolClasses').find((c) => c.id === classId)
+        || state.get('allTeachersClasses').find((c) => c.id === classId);
+    if (!classUsesTests(classData)) {
+        container.remove();
+        return;
+    }
 
     const studentsInClass = state.get('allStudents').filter(s => s.classId === classId);
     const scoresForClass = state.get('allWrittenScores').filter(s => s.classId === classId);

@@ -1788,8 +1788,8 @@
   gap: 0.35rem;
 }
 
-.assessment-mode-control {
-  flex: 0 0 9rem;
+  .assessment-mode-control {
+  flex: 0 0 11rem;
 }
 
 .assessment-mode-control span,
@@ -1825,10 +1825,24 @@
   box-shadow: 0 0 0 3px rgba(129, 140, 248, 0.18);
 }
 
-.assessment-qualitative-panel__description {
-  margin-bottom: 0.75rem;
+.assessment-none-panel {
+  padding: 0.85rem 0.95rem;
+  border-radius: 0.9rem;
+  background: #f8fafc;
+  border: 1px dashed #cbd5e1;
+}
+
+.assessment-none-panel__title {
+  margin: 0;
+  color: #334155;
+  font-size: 0.86rem;
+  font-weight: 800;
+}
+
+.assessment-none-panel__description {
+  margin: 0.35rem 0 0;
   color: #64748b;
-  font-size: 0.76rem;
+  font-size: 0.78rem;
   line-height: 1.45;
 }
 

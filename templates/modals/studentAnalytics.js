@@ -150,7 +150,7 @@ export const studentAnalyticsModalHTML = `
                                     <i class="fas fa-ghost"></i>
                                 </div>
                                 <h3 class="font-title text-2xl text-gray-800 mb-3">No assessments yet</h3>
-                                <p class="text-gray-500 font-medium text-lg">Once at least one assessment is logged, this friendly snapshot will appear.</p>
+                                <p class="text-gray-500 font-medium text-lg">Once at least one assessment is logged, this friendly snapshot will appear. Some classes do not use tests or dictations.</p>
                             </div>
                         </div>
                         <div class="analytics-panel-shell hidden" data-panel-state="ready">
@@ -176,7 +176,7 @@ export const studentAnalyticsModalHTML = `
                                     <i class="fas fa-scroll"></i>
                                 </div>
                                 <h3 class="font-title text-2xl text-gray-800 mb-3">Need a bit more history</h3>
-                                <p class="text-gray-500 font-medium text-lg">Log more tests or dictations to fill out this view.</p>
+                                <p class="text-gray-500 font-medium text-lg">Log more assessments to fill out this view, or skip this if the class does not use tests or dictations.</p>
                             </div>
                         </div>
                         <div class="analytics-panel-shell hidden" data-panel-state="ready">

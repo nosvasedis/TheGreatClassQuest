@@ -26,7 +26,7 @@ import { getAgeGroupForLeague, getStartOfMonthString, getTodayDateString, compre
 import { handleMarkAbsent } from './log.js';
 import { playSound } from '../../audio.js';
 import { reconcileFamiliarLifecycle } from '../../features/familiars.js';
-import { createAssessmentScorePayload, getNormalizedPercentForScore, qualifiesForHighScore } from '../../features/assessmentConfig.js';
+import { classUsesDictations, classUsesTests, createAssessmentScorePayload, getNormalizedPercentForScore, qualifiesForHighScore } from '../../features/assessmentConfig.js';
 import { handleUseItem, isItemUsable } from '../../features/powerUps.js';
 import { withSchoolYear } from '../../utils/schoolYear.js';
 // GUILD_IDS not needed at module level but kept for reference
@@ -391,6 +391,12 @@ export async function handleBulkSaveTrial() {
         return;
     }
 
+    const usesType = type === 'dictation' ? classUsesDictations(classData) : classUsesTests(classData);
+    if (!usesType) {
+        showToast(type === 'dictation' ? 'This class does not use dictations.' : 'This class does not use tests.', 'info');
+        return;
+    }
+
     const rows = document.querySelectorAll('.bulk-log-item');
     if (rows.length === 0) return;
 
@@ -434,16 +440,22 @@ export async function handleBulkSaveTrial() {
 
             if (!val) return;
 
-            const scoreData = createAssessmentScorePayload({
-                studentId,
-                classId,
-                type,
-                title,
-                teacherId: state.get('currentUserId'),
-                date,
-                value: val,
-                classData
-            });
+            let scoreData;
+            try {
+                scoreData = createAssessmentScorePayload({
+                    studentId,
+                    classId,
+                    type,
+                    title,
+                    teacherId: state.get('currentUserId'),
+                    date,
+                    value: val,
+                    classData
+                });
+            } catch (error) {
+                showToast(error.message || 'Could not save this assessment type.', 'error');
+                throw error;
+            }
 
             savedScoresData.push({ ...scoreData, id: trialId || 'new' });
 

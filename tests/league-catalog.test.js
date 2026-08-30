@@ -66,9 +66,12 @@ test('assessment defaults include all leagues and keep young learners gentle', a
     'Nursery', 'Pre-Junior', 'Junior A', 'Junior B',
     'A', 'B', 'C', 'D', 'E', 'Lower', 'Proficiency',
   ]);
-  assert.equal(defaults.Nursery.tests.maxScore, 40);
-  assert.equal(defaults.Nursery.dictations.mode, 'qualitative');
-  assert.equal(defaults['Pre-Junior'].dictations.mode, 'qualitative');
+  assert.equal(defaults.Nursery.tests.mode, 'none');
+  assert.equal(defaults.Nursery.dictations.mode, 'none');
+  assert.equal(defaults['Pre-Junior'].tests.mode, 'none');
+  assert.equal(defaults['Pre-Junior'].dictations.mode, 'none');
+  assert.equal(defaults['Junior A'].tests.maxScore, 40);
+  assert.equal(defaults['Junior A'].dictations.mode, 'qualitative');
   assert.equal(defaults.Proficiency.tests.maxScore, 100);
 });
 

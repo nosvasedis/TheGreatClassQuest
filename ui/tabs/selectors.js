@@ -7,6 +7,7 @@ import { getAwardLogMonthlyStarCredit } from '../../features/awardLogReasonMeta.
 import { filterDocsForActiveYear } from '../../utils/schoolYear.js';
 import { getDayAgenda, QUEST_EVENT_ICONS } from '../../utils/calendarDay.js';
 import { escapeHtml } from '../../features/roles/shared.js';
+import { classUsesTests } from '../../features/assessmentConfig.js';
 
 export function findAndSetCurrentClass(targetSelectId = null) {
     if (state.get('globalSelectedClassId')) return;
@@ -361,9 +362,10 @@ export function renderCalendarTab(customLogs = null) {
                     a.testData &&
                     utils.datesMatch(dateString, a.testData.date)
                 );
+                const showTest = testAssignment && classUsesTests(c);
 
                 // 2. Create the Indicator
-                const testIndicator = testAssignment
+                const testIndicator = showTest
                     ? `<div class="absolute -top-1.5 -right-1.5 z-20">
                          <span class="relative flex h-3.5 w-3.5">
                            <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75"></span>

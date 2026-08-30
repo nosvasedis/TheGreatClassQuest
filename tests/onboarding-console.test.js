@@ -300,6 +300,22 @@ test('summarizeAssessmentDefaults reports saved grading schemes without rejectin
   });
 });
 
+test('summarizeAssessmentDefaults reports not used for none schemes', () => {
+  const result = summarizeAssessmentDefaults({
+    assessmentDefaultsByLeague: {
+      Nursery: {
+        tests: { mode: 'none' },
+        dictations: { mode: 'none' },
+      },
+    },
+  });
+  assert.deepEqual(result.leagues[0], {
+    league: 'Nursery',
+    tests: 'not used',
+    dictations: 'not used',
+  });
+});
+
 test('formatNetlifyVariables includes Firebase config and billing values', () => {
   const text = formatNetlifyVariables(
     {

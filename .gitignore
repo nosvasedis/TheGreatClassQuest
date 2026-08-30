@@ -63,6 +63,11 @@ docs/
 scripts/README.md
 config/tiers/README.md
 
+# Private Prodigies staff-training deliverables (generated artifacts)
+deliverables/gcq-staff-training/GCQ_Prodigies_Pedagogical_Workshop.pptx
+deliverables/gcq-staff-training/GCQ_Prodigies_Educator_Guidebook.docx
+deliverables/gcq-staff-training/GCQ_Prodigies_Educator_Guidebook.pdf
+
 # Billing: config with secrets and keys (do not push)
 billing/README.md
 billing/schools.json

@@ -64,7 +64,6 @@ export const baseModalsHTML = `
                     <i class="fas fa-search" aria-hidden="true"></i>
                     <input type="text" id="logo-picker-search" placeholder="Search dragons, rockets, books..."
                         autocomplete="off" spellcheck="false" role="searchbox" enterkeyhint="search">
-            <span id="logo-picker-count" class="logo-picker-count" aria-live="polite">0</span>
                 </label>
                 <div id="logo-picker-categories" class="logo-picker-chips" role="group" aria-label="Logo categories"></div>
             </div>

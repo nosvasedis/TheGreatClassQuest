@@ -103,17 +103,20 @@ test('choose-a-class-logo modal is categorized, searchable, and previewed', () =
     assert.match(template, /id="logo-picker-list"/);
     assert.match(template, /id="logo-picker-empty"/);
     assert.match(template, /Choose a Class Logo/);
+    assert.doesNotMatch(template, /logo-picker-count/);
     assert.doesNotMatch(template, /logo-picker-list" class="grid grid-cols-10 gap-4 text-3xl max-h-72/);
 
     const picker = read('ui/modals/base.js');
     const pickerFunction = picker.slice(picker.indexOf('export function showLogoPicker'));
     assert.match(pickerFunction, /classLogoCategories/);
-    assert.match(pickerFunction, /filterClassLogoCatalog/);
+    assert.match(pickerFunction, /ensureLogoPickerCatalog/);
     assert.match(pickerFunction, /logo-picker-search/);
     assert.match(pickerFunction, /data-logo-category/);
     assert.match(pickerFunction, /logoPickerTarget === 'setup'/);
     assert.match(pickerFunction, /addEventListener\('click'/);
     assert.doesNotMatch(pickerFunction, /querySelectorAll\('\.logo-select-btn'\)\.forEach/);
+    assert.doesNotMatch(pickerFunction, /list\.innerHTML = groups/);
+    assert.doesNotMatch(pickerFunction, /logo-picker-count/);
 
     const css = read('styles/modals.css');
     assert.match(css, /\.logo-picker-shell/);

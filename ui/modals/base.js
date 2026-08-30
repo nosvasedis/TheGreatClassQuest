@@ -386,22 +386,28 @@ export function showLogoPicker(target) {
     logoPickerCategory = 'all';
     logoPickerQuery = '';
     wireLogoPickerControls();
+    ensureLogoPickerCatalog();
 
     const search = document.getElementById('logo-picker-search');
     if (search) search.value = '';
 
-    renderLogoPickerBody();
+    syncLogoPickerSelection();
+    applyLogoPickerFilter();
     showAnimatedModal('logo-picker-modal');
     requestAnimationFrame(() => {
         search?.focus();
-        document.querySelector('#logo-picker-list .logo-select-btn.is-selected')?.scrollIntoView({ block: 'nearest' });
+        document.querySelector('#logo-picker-list .logo-select-btn.is-selected:not([hidden])')?.scrollIntoView({ block: 'nearest' });
     });
 }
 
 let logoPickerWired = false;
+let logoPickerCatalogMounted = false;
 let logoPickerTarget = 'create';
 let logoPickerCategory = 'all';
 let logoPickerQuery = '';
+let logoPickerFilterRaf = 0;
+let logoPickerButtons = [];
+let logoPickerGroupEntries = [];
 
 function wireLogoPickerControls() {
     if (logoPickerWired) return;
@@ -417,7 +423,8 @@ function wireLogoPickerControls() {
         const chip = event.target.closest('[data-logo-category]');
         if (chip) {
             logoPickerCategory = chip.dataset.logoCategory || 'all';
-            renderLogoPickerBody();
+            syncLogoPickerChips();
+            applyLogoPickerFilter();
             return;
         }
         const button = event.target.closest('.logo-select-btn');
@@ -429,7 +436,11 @@ function wireLogoPickerControls() {
 
     document.getElementById('logo-picker-search')?.addEventListener('input', (event) => {
         logoPickerQuery = event.target.value || '';
-        renderLogoPickerBody();
+        if (logoPickerFilterRaf) cancelAnimationFrame(logoPickerFilterRaf);
+        logoPickerFilterRaf = requestAnimationFrame(() => {
+            logoPickerFilterRaf = 0;
+            applyLogoPickerFilter();
+        });
     });
 
     modal.addEventListener('keydown', (event) => {
@@ -473,54 +484,93 @@ function escapeLogoPickerText(value) {
         .replace(/"/g, '&quot;');
 }
 
-function renderLogoPickerBody() {
+function ensureLogoPickerCatalog() {
     const list = document.getElementById('logo-picker-list');
     const chips = document.getElementById('logo-picker-categories');
-    const preview = document.getElementById('logo-picker-preview');
-    const countEl = document.getElementById('logo-picker-count');
-    const empty = document.getElementById('logo-picker-empty');
     if (!list || !chips) return;
+    if (logoPickerCatalogMounted && logoPickerButtons.length) return;
 
-    const selectedLogo = getLogoPickerCurrentLogo();
-    if (preview) preview.textContent = selectedLogo;
-
-    const chipHtml = [
+    chips.innerHTML = [
         { id: 'all', label: 'All', icon: '✨' },
         ...constants.classLogoCategories.map((category) => ({
             id: category.id,
             label: category.label,
             icon: category.icon
         }))
-    ].map((chip) => {
-        const isActive = chip.id === logoPickerCategory;
-        return `<button type="button" class="logo-picker-chip${isActive ? ' is-active' : ''}" data-logo-category="${chip.id}" aria-pressed="${isActive ? 'true' : 'false'}"><span aria-hidden="true">${chip.icon}</span><span>${escapeLogoPickerText(chip.label)}</span></button>`;
-    }).join('');
-    chips.innerHTML = chipHtml;
+    ].map((chip) => (
+        `<button type="button" class="logo-picker-chip" data-logo-category="${chip.id}" aria-pressed="false"><span aria-hidden="true">${chip.icon}</span><span>${escapeLogoPickerText(chip.label)}</span></button>`
+    )).join('');
 
-    const groups = constants.filterClassLogoCatalog(logoPickerQuery, logoPickerCategory);
-    const total = groups.reduce((sum, group) => sum + group.items.length, 0);
-    if (countEl) countEl.textContent = String(total);
-
-    if (!groups.length) {
-        list.innerHTML = '';
-        list.classList.add('hidden');
-        empty?.classList.remove('hidden');
-        list.scrollTop = 0;
-        return;
-    }
-
-    empty?.classList.add('hidden');
-    list.classList.remove('hidden');
-    list.innerHTML = groups.map((group) => {
-        const buttons = group.items.map((item) => {
-            const isSelected = item.emoji === selectedLogo;
+    list.innerHTML = constants.classLogoCategories.map((category) => {
+        const buttons = category.items.map((item) => {
             const label = escapeLogoPickerText(item.name);
-            return `<button type="button" class="logo-select-btn${isSelected ? ' is-selected' : ''}" data-logo="${item.emoji}" title="${label}" aria-label="${label}" aria-pressed="${isSelected ? 'true' : 'false'}">${item.emoji}</button>`;
+            const search = [item.emoji, item.name, category.id, category.label, ...item.keywords]
+                .join(' ')
+                .toLowerCase();
+            return `<button type="button" class="logo-select-btn" data-logo="${item.emoji}" data-search="${escapeLogoPickerText(search)}" title="${label}" aria-label="${label}" aria-pressed="false">${item.emoji}</button>`;
         }).join('');
-        return `<section class="logo-picker-group" data-group="${group.id}">
-            <h3 class="logo-picker-group__title"><span aria-hidden="true">${group.icon}</span>${escapeLogoPickerText(group.label)}</h3>
+        return `<section class="logo-picker-group" data-group="${category.id}">
+            <h3 class="logo-picker-group__title"><span aria-hidden="true">${category.icon}</span>${escapeLogoPickerText(category.label)}</h3>
             <div class="logo-picker-grid">${buttons}</div>
         </section>`;
     }).join('');
-    list.scrollTop = 0;
+
+    logoPickerButtons = list.querySelectorAll('.logo-select-btn');
+    logoPickerGroupEntries = [];
+    for (const group of list.querySelectorAll('.logo-picker-group')) {
+        logoPickerGroupEntries.push({
+            group,
+            buttons: group.querySelectorAll('.logo-select-btn')
+        });
+    }
+    logoPickerCatalogMounted = true;
+}
+
+function syncLogoPickerChips() {
+    const chips = document.getElementById('logo-picker-categories');
+    if (!chips) return;
+    for (const chip of chips.children) {
+        const isActive = chip.dataset.logoCategory === logoPickerCategory;
+        chip.classList.toggle('is-active', isActive);
+        chip.setAttribute('aria-pressed', isActive ? 'true' : 'false');
+    }
+}
+
+function syncLogoPickerSelection() {
+    const selectedLogo = getLogoPickerCurrentLogo();
+    const preview = document.getElementById('logo-picker-preview');
+    if (preview) preview.textContent = selectedLogo;
+
+    for (const button of logoPickerButtons) {
+        const isSelected = button.dataset.logo === selectedLogo;
+        button.classList.toggle('is-selected', isSelected);
+        button.setAttribute('aria-pressed', isSelected ? 'true' : 'false');
+    }
+}
+
+function applyLogoPickerFilter() {
+    const list = document.getElementById('logo-picker-list');
+    const empty = document.getElementById('logo-picker-empty');
+    if (!list) return;
+
+    const query = String(logoPickerQuery || '').trim().toLowerCase();
+    let visibleCount = 0;
+
+    for (const { group, buttons } of logoPickerGroupEntries) {
+        const categoryMatch = logoPickerCategory === 'all' || group.dataset.group === logoPickerCategory;
+        let groupVisible = 0;
+        for (const button of buttons) {
+            const matches = categoryMatch && (!query || (button.dataset.search || '').includes(query));
+            button.hidden = !matches;
+            if (matches) groupVisible += 1;
+        }
+        group.hidden = groupVisible === 0;
+        visibleCount += groupVisible;
+    }
+
+    const isEmpty = visibleCount === 0;
+    list.classList.toggle('hidden', isEmpty);
+    empty?.classList.toggle('hidden', !isEmpty);
+    if (!isEmpty) list.scrollTop = 0;
+    syncLogoPickerChips();
 }

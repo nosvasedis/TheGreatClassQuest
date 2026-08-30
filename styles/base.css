@@ -19,6 +19,15 @@ body {
     box-shadow: 0 2px 4px rgba(0,0,0,0.1);
 }
 
+/* Wobble Animation */
+@keyframes wobble {
+    0%, 100% { transform: rotate(-1deg); }
+    50% { transform: rotate(1deg); }
+}
+.wobble {
+    animation: wobble 2s ease-in-out infinite;
+}
+
 /* Wobbly Text (for login) */
 @keyframes wobbly-text {
     0%, 100% { transform: scale(1); }
@@ -28,6 +37,14 @@ body {
 .wobbly-title {
     animation: wobbly-text 4s ease-in-out infinite;
     display: inline-block;
+}
+
+@keyframes subtle-pulse-title {
+    0%, 100% { transform: scale(1); opacity: 1; }
+    50% { transform: scale(1.05); opacity: 0.9; }
+}
+.login-title-pulse {
+    animation: subtle-pulse-title 5s ease-in-out infinite;
 }
 
 

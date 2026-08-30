@@ -103,6 +103,11 @@
     border-bottom-color: #3730a3;
 }
 
+.options-subtab-btn[data-options-tab="danger"].options-subtab-active {
+    background: linear-gradient(to top, #dc2626, #f87171);
+    border-bottom-color: #991b1b;
+}
+
 /* Section content: smooth appear when switching */
 [data-options-section].options-section-visible {
     animation: options-section-in 0.3s ease-out;

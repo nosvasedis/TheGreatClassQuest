@@ -1048,7 +1048,11 @@ function _initFortuneLedgerCollapse() {
 
     const apply = (open) => {
         toggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+        toggle.setAttribute('aria-label', open ? 'Hide Fortune Ledger' : 'Show Fortune Ledger');
         panel.classList.toggle('is-open', open);
+        panel.setAttribute('aria-hidden', open ? 'false' : 'true');
+        if (open) panel.removeAttribute('inert');
+        else panel.setAttribute('inert', '');
         root.dataset.ledgerExpanded = open ? 'true' : 'false';
     };
 
@@ -1141,16 +1145,6 @@ async function _wireFortunesWheel() {
         classEl.textContent = selectedClass
             ? `${selectedClass.name} · League ${selectedClass.questLevel || 'B'}`
             : 'No class selected';
-    }
-    const barMeta = document.getElementById('fortune-ledger-bar-meta');
-    if (barMeta) {
-        const logs = state.get('fortuneWheelLog') || [];
-        const n = logs.length;
-        const bits = [];
-        if (selectedClass) bits.push(selectedClass.name);
-        bits.push(windowMsg);
-        if (n > 0) bits.push(`${n} ritual${n === 1 ? '' : 's'} on record`);
-        barMeta.textContent = bits.join(' · ');
     }
     section.dataset.state = statusTone;
 

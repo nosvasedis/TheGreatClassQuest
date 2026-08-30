@@ -65,10 +65,13 @@ export const guildsTabHTML = `
                                 id="fortune-ledger-toggle"
                                 class="guild-fortune-ledger-section__toggle"
                                 aria-expanded="false"
-                                aria-controls="fortune-ledger-panel">
+                                aria-controls="fortune-ledger-panel"
+                                aria-label="Show Fortune Ledger">
+                            <span class="guild-fortune-ledger-section__toggle-icon" aria-hidden="true">
+                                <i class="fa-solid fa-scroll"></i>
+                            </span>
                             <span class="guild-fortune-ledger-section__toggle-text">
                                 <h3 id="fortune-ledger-heading" class="guild-fortune-ledger-section__title guild-fortune-ledger-section__title--toggle font-title">Fortune Ledger</h3>
-                                <p id="fortune-ledger-bar-meta" class="guild-fortune-ledger-section__toggle-meta"></p>
                             </span>
                             <span class="guild-fortune-ledger-section__toggle-chev" aria-hidden="true"><i class="fa-solid fa-chevron-down"></i></span>
                         </button>
@@ -76,36 +79,40 @@ export const guildsTabHTML = `
                         <div id="fortune-ledger-panel"
                              class="guild-fortune-ledger-section__expandable"
                              role="region"
-                             aria-labelledby="fortune-ledger-heading">
+                             aria-labelledby="fortune-ledger-heading"
+                             aria-hidden="true"
+                             inert>
                             <div class="guild-fortune-ledger-section__expandable-inner">
-                                <header class="guild-fortune-ledger-section__head guild-fortune-ledger-section__head--in-panel">
-                                    <div class="guild-fortune-ledger-section__intro guild-fortune-ledger-section__intro--panel">
-                                        <p class="guild-fortune-ledger-section__lede">
-                                            Glory shifts and guild omens from each ceremony appear below. Use the Fortune's Wheel button above when the ritual window is open.
-                                        </p>
-                                    </div>
-                                    <div class="guild-fortune-ledger-section__context">
-                                        <div id="fortunes-wheel-class" class="guild-fortune-ledger-section__class-chip">No class selected</div>
-                                        <p id="fortunes-wheel-status" class="guild-fortune-ledger-section__hint"></p>
-                                    </div>
-                                </header>
+                                <div class="guild-fortune-ledger-section__expandable-body">
+                                    <header class="guild-fortune-ledger-section__head guild-fortune-ledger-section__head--in-panel">
+                                        <div class="guild-fortune-ledger-section__intro guild-fortune-ledger-section__intro--panel">
+                                            <p class="guild-fortune-ledger-section__lede">
+                                                Glory shifts and guild omens from each ceremony appear below. Use the Fortune's Wheel button above when the ritual window is open.
+                                            </p>
+                                        </div>
+                                        <div class="guild-fortune-ledger-section__context">
+                                            <div id="fortunes-wheel-class" class="guild-fortune-ledger-section__class-chip">No class selected</div>
+                                            <p id="fortunes-wheel-status" class="guild-fortune-ledger-section__hint"></p>
+                                        </div>
+                                    </header>
 
-                                <div id="fortunes-log-section" class="guild-fortune-ledger guild-fortune-ledger--raised">
-                                    <div class="guild-fortune-ledger__header">
-                                        <div class="guild-fortune-ledger__title-block">
-                                            <span class="guild-fortune-ledger__eyebrow">Latest ceremonies</span>
-                                            <div class="guild-fortune-ledger__title">Wheel history</div>
+                                    <div id="fortunes-log-section" class="guild-fortune-ledger guild-fortune-ledger--raised">
+                                        <div class="guild-fortune-ledger__header">
+                                            <div class="guild-fortune-ledger__title-block">
+                                                <span class="guild-fortune-ledger__eyebrow">Latest ceremonies</span>
+                                                <div class="guild-fortune-ledger__title">Wheel history</div>
+                                            </div>
+                                            <div class="guild-fortune-ledger__controls" role="group" aria-label="Ledger pages">
+                                                <button id="fortune-ledger-prev" type="button" class="guild-fortune-ledger__nav" aria-label="Previous entries" disabled>
+                                                    <i class="fa-solid fa-chevron-up"></i>
+                                                </button>
+                                                <button id="fortune-ledger-next" type="button" class="guild-fortune-ledger__nav" aria-label="Next entries" disabled>
+                                                    <i class="fa-solid fa-chevron-down"></i>
+                                                </button>
+                                            </div>
                                         </div>
-                                        <div class="guild-fortune-ledger__controls" role="group" aria-label="Ledger pages">
-                                            <button id="fortune-ledger-prev" type="button" class="guild-fortune-ledger__nav" aria-label="Previous entries" disabled>
-                                                <i class="fa-solid fa-chevron-up"></i>
-                                            </button>
-                                            <button id="fortune-ledger-next" type="button" class="guild-fortune-ledger__nav" aria-label="Next entries" disabled>
-                                                <i class="fa-solid fa-chevron-down"></i>
-                                            </button>
-                                        </div>
+                                        <div id="fortunes-log-list" class="guild-fortune-ledger__list"></div>
                                     </div>
-                                    <div id="fortunes-log-list" class="guild-fortune-ledger__list"></div>
                                 </div>
                             </div>
                         </div>

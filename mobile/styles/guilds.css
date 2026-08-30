@@ -480,6 +480,25 @@ body.gcq-mobile .guild-fortune-ledger-section {
     border-radius: 1.35rem !important;
 }
 
+body.gcq-mobile .guild-fortune-ledger-section__toggle {
+    padding: 0.85rem 1rem !important;
+    gap: 0.75rem !important;
+}
+
+body.gcq-mobile .guild-fortune-ledger-section__toggle-icon {
+    width: 2.4rem !important;
+    height: 2.4rem !important;
+    font-size: 0.95rem !important;
+}
+
+body.gcq-mobile .guild-fortune-ledger-section__title--toggle {
+    font-size: 1.2rem !important;
+}
+
+body.gcq-mobile .guild-fortune-ledger-section__expandable-body {
+    padding: 0.85rem 1rem 1.1rem !important;
+}
+
 body.gcq-mobile .guild-fortune-ledger-section__lede {
     font-size: 0.78rem !important;
     line-height: 1.35 !important;

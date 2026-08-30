@@ -9,7 +9,7 @@
 <p><strong>The Ultimate Gamified Classroom Management System</strong></p>
 
 <p>
-  <img alt="Designed for Teachers and Students" src="https://img.shields.io/badge/Designed%20For-Teachers%20%26%20Students-blueviolet" />
+  <img alt="Designed for Teachers Families and School Office" src="https://img.shields.io/badge/Designed%20For-Teachers%20%7C%20Families%20%7C%20School%20Office-blueviolet" />
   <img alt="Platform Web Browser" src="https://img.shields.io/badge/Platform-Web%20Browser-blue" />
   <img alt="Focus Positive Reinforcement" src="https://img.shields.io/badge/Focus-Positive%20Reinforcement-brightgreen" />
   <img alt="Status Live" src="https://img.shields.io/badge/Status-Live-success" />
@@ -29,26 +29,27 @@
 | Section | Description |
 |--------|--------------|
 | [Project Overview](#-project-overview) | What the app is and who it's for |
+| [Three Interfaces](#-three-interfaces) | Teacher, School Office, Family Portal |
 | [The Quest Master's Philosophy](#-the-quest-masters-philosophy) | Four pedagogical pillars |
-| [Navigation at a Glance](#-navigation-at-a-glance) | All main tabs and what they do |
+| [Navigation at a Glance](#-navigation-at-a-glance) | Ten classroom tabs plus Teacher Settings |
 | [Core Gameplay Loop](#-core-gameplay-loop) | Setup → Award Stars → Adventure Log |
-| [The Economy System](#-the-economy-system-gold--mystic-market) | Gold, Mystic Market, Legendary Artifacts, Hero Classes (Pro+), Boons, Familiars |
+| [The Economy System](#-the-economy-system-gold--mystic-market) | Gold, Mystic Market, Legendary Artifacts, Hero Path (Pro), Boons, Familiars |
 | [Home Dashboard](#-home-dashboard) | Weather, schedule, tools, class/school view |
 | [Team Quest](#-team-quest) | League map, monthly goals, ceremony |
-| [Hero's Challenge](#-heros-challenge) | Leaderboard, Mystic Market, Hero Stats, Prodigy, certificates |
-| [Guilds & Factions](#-guilds--factions) | Guild Hall tab, houses, sorting quiz, year-long race |
-| [My Classes & Roster](#-my-classes--roster) | Classes, students, reports, certificates |
+| [Hero's Challenge](#-heros-challenge) | Student ranks, Trophy Room, Hero Stats, Hall of Prodigies, certificates |
+| [Guilds & Factions](#-guilds--factions) | Guild Hall, Guild Power, Fortune's Wheel, year-long race |
+| [My Classes & Roster](#-my-classes--roster) | Classes and roster (inside Teacher Settings) |
 | [Award Stars](#-award-stars) | Reasons, effects, bounties, Hero's Boon |
-| [Adventure Log](#-adventure-log) | AI diary, story image, Quest Events |
+| [Adventure Log](#-adventure-log) | Diary, Hero of the Day, Hall of Heroes, attendance, homework |
 | [Scholar's Scroll](#-scholars-scroll) | Tests, dictations, Starfall, makeup, performance chart |
 | [Quest Calendar & Planner](#-quest-calendar--planner) | Schedule, cancellations, holidays, Quest Events |
-| [Live Classroom: Wallpaper Mode](#-live-classroom-wallpaper-mode) | The Director, cards, clock, celebrations |
+| [Live Classroom: Projector Mode](#-live-classroom-projector-mode) | The Director, cards, clock, celebrations |
 | [Quest Bounties](#-quest-bounties) | Short-term group challenges |
 | [Special Quest Types](#-special-quest-types) | Vocabulary Vault, Unbroken Chain, and more |
 | [Story Weavers](#-story-weavers) | Collaborative story writing with AI illustrations |
 | [AI & Creative Tools](#-ai--creative-tools) | Avatar Forge, Nameday lookup, reports, Story Weavers |
 | [Tracking & Analytics](#-tracking--analytics) | Hero's Chronicle, Attendance, certificates |
-| [Options & Settings](#-options--settings) | Star Manager, Coin Purse, holidays, profile, danger zone |
+| [Teacher Settings](#-teacher-settings) | Student Tools, My Classes, planning, grading, Family Access, Quiz |
 
 ---
 
@@ -56,10 +57,26 @@
 
 **The Great Class Quest** is a sophisticated web application that gamifies the classroom experience. It replaces traditional behavior charts with a living, breathing RPG-style interface.
 
-- **Triple-layer competition:** Class vs. class on the **Team Quest** map, student vs. student in **Hero's Challenge** for rank and "Prodigy of the Month," and **guild vs. guild** in a year-long race toward the **Guild Ceremony**.
+- **Triple-layer competition:** Class vs. class on the **Team Quest** map, student vs. student in **Hero's Challenge** for rank and **Prodigy of the Month**, and **guild vs. guild** in a year-long race toward the **Great Guild Ceremony**.
 - **Automated tracking:** Stars, gold, inventory, tests, attendance, and logs are stored in **Firestore** and stay in sync.
-- **AI-powered narrative:** **Gemini** writes daily chronicles, certificates, and story illustrations.
-- **Live display:** **Dynamic Wallpaper Mode** turns your screen into a real-time quest dashboard with day/night, weather-aware sky, rotating cards, and celebrations.
+- **AI-powered narrative (Elite):** **Gemini** writes daily chronicles, certificates, and story illustrations.
+- **Live display:** **Projector Mode** turns a classroom PC into a real-time quest dashboard with day/night, weather-aware sky, rotating Director cards, and celebrations.
+
+Teachers in the app can open **The Adventurer's Guide** (information button) for a short classroom explainer.
+
+---
+
+## 🏫 Three Interfaces
+
+The same school year is shared. Each person only sees what they need. All three layouts also exist on **mobile**; the **teacher desktop** is the classroom-PC home (Projector Mode is not on the phone).
+
+| Interface | Who | What it is for |
+|-----------|-----|----------------|
+| **Teacher** | Classroom teacher | The full Quest: ten tabs, Award Stars, ceremonies, Market. |
+| **School Office** (Secretary) | School-year admin | Holidays, year open/close, school grading defaults, family messages. **Elite.** |
+| **Family Portal** (Parent) | One login per child | Progress, homework, attendance snapshot, calm messages. **Pro and Elite.** |
+
+Students do not log in. They live on the classroom screen.
 
 ---
 
@@ -69,29 +86,31 @@ The app is built on four pedagogical pillars:
 
 | Pillar | Description |
 |--------|-------------|
-| **Dual-Layer Motivation** | **Team Quest:** The class advances together on a map (social cohesion). **Hero's Challenge:** Students compete for rank and Prodigy status (personal accountability). |
+| **Triple-layer motivation** | **Team Quest:** The class advances together on a map (belonging). **Hero's Challenge:** Students compete for rank and Prodigy status (accountability). **Guild Hall:** Cross-age houses race all year on **Guild Power** (identity). |
 | **Tangible "Gold" Economy** | Stars become purchasing power. The **Mystic Market** (seasonal + **Legendary Artifacts**) and **Hero's Boon** (peer-to-peer gift) teach delayed gratification and generosity. |
-| **Visual Feedback Loops** | Progress is never abstract: progress bars, floating stats, growing avatars, **League Map** zones (Bronze → Silver → Gold → Crystal), and **Wallpaper Mode** keep the quest visible. |
-| **AI as the "Dungeon Master"** | AI narrates daily logs, suggests words for Story Weavers, generates avatars and certificates, and powers **Hero's Chronicle** reports. |
+| **Visual Feedback Loops** | Progress is never abstract: progress bars, floating stats, growing avatars, **League Map** zones (Bronze Meadows → Silver Peaks → Golden Citadel → Crystal Realm), and **Projector Mode** keep the quest visible. |
+| **AI as the "Dungeon Master"** | On **Elite**, AI narrates daily logs, suggests words for Story Weavers, generates avatars and certificates, and powers **Hero's Chronicle** Oracle reports. On **Pro**, the same rituals exist with more of the teacher's own words. |
 
 ---
 
 ## 🧭 Navigation at a Glance
 
+The teacher **bottom bar has ten tabs**. **My Classes** and roster tools live under the header **cog** (Teacher Settings), not as an eleventh tab.
+
 | Tab | Purpose |
 |-----|---------|
-| **Home** | Dashboard: weather, time greeting, school/class stats, today’s schedule, quick actions (Team History, Holiday, Planner, Report, etc.). |
-| **Team Quest** | Class leaderboard, **League Map** (journey from Bronze Meadows to Crystal Realm), monthly goal (adjusted for holidays/cancellations), **Monthly Award Ceremony**. |
-| **Hero's Challenge** | Student leaderboard with **Individual / Guild** toggle; **Trophy Room** (full collection + inventory); Hero Stats modal, **Prodigy of the Month** archive, certificates. Click an avatar → enlarged avatar (Familiar, Inventory, link to Trophy Room). |
-| **Mystic Market** | Spend Gold on seasonal items (Elite: AI **Restock**), **Legendary Artifacts**, and **Familiar** eggs. Class + student selectors; magical storefront UI. |
-| **Guild Hall** | Crystal columns for all four guilds (Total Stars, member count, top contributors). **This Month's Champion** per guild. Tap emblem for lore; play guild **anthem** (karaoke-style). |
-| **My Classes** | Create/edit classes (name, logo, schedule, Quest League). Click **Students** → **Manage Students** (roster with per-student **Skill Tree**, **Hero's Chronicle**, **Avatar Forge**, **Certificate**, **Move Student**, **Guild Quiz** if no guild). **Report** (AI class summary). |
-| **Award Stars** | Award stars (Teamwork, Creativity, Respect, Focus, etc.), **Quest Bounties**, **Hero's Boon**. Sounds and particle effects. |
-| **Adventure Log** | **Log Today's Adventure** (AI diary + storybook image), view past entries. Buttons: **Quest Assignment**, **Attendance** (Attendance Chronicle), **Hall of Heroes** (Prodigy archive). **Quest Events** are scheduled from **Quest Calendar** → Day Planner. |
-| **Scholar's Scroll** | **Tests** and **Dictations**, **Starfall** on high scores, **Makeup Work** flags, **Performance Chart**, upcoming test alert. |
-| **Quest Calendar** | Month view, **Day Planner** (see/cancel/add lessons, mark holiday, add **Quest Events**). Holiday/cancellation themes. |
-| **Story Weavers** | Collaborative story + Word of the Day + AI art. |
-| **Options** | **Star Manager**, **Coin Purse Manager**, **School Year Planner** (holidays), Profile (display name), **Danger Zone** (purge/erase). |
+| **Home** | Weather, greeting, school or class stats, reminders, shortcuts, **Quiz of the Week** play (Elite). |
+| **Team Quest** | Class vs class **League Map** (Bronze Meadows → Silver Peaks → Golden Citadel → Crystal Realm), monthly goal (holidays/cancellations), start of **Ceremony of the Month**. |
+| **Hero's Challenge** | Student ranks (**By Class / Global**, Monthly / Total). **Trophy Room**, Hero Stats, **Hall of Prodigies**, certificates. Guild *badges* appear on rows; guild *ranking* is Guild Hall. |
+| **Mystic Market** | Own tab. Spend Gold on **Legendary Artifacts**, Elite **seasonal** stock, Elite **Familiar** eggs. |
+| **Guild Hall** | Year-long houses ranked by **Guild Power**. Champions, lore, anthems, **Fortune's Wheel**, **Fortune Ledger**, Magical Analytics, **Great Guild Ceremony**. **Pro.** |
+| **Award Stars** | Clouds; Teamwork, Creativity, Respect, Focus (1–3 stars); Welcome Back; **Hero's Boon**; **Teacher Boon**. |
+| **Adventure Log** | **Log Today's Adventure** (manual on Pro, AI + image on Elite). Crowns **Hero of the Day**. FABs: **Quest Assignment**, **Attendance Chronicle**. **Hall of Heroes** = Hero of the Day legends (not Prodigies). |
+| **Scholar's Scroll** | Tests, dictations, Starfall, make-ups, charts. **Pro.** |
+| **Quest Calendar** | Month grid, Day Planner, Quest Events. School-wide holidays are set in the **School Office**. **Pro.** |
+| **Story Weavers** | Collaborative story, Word of the Day, AI art, PDF print. **Elite.** |
+
+**Teacher Settings** (cog): Student Tools, My Classes, My Planning (class end dates), Profile, Class Grading, Family Access, Quiz.
 
 ---
 
@@ -100,16 +119,16 @@ The app is built on four pedagogical pillars:
 ### 1. Setup & Roster (**My Classes**)
 - **Class:** Name, logo, schedule (days/times), **Quest League** (difficulty/age).
 - **Roster:** Add students; each has Total Stars, Monthly Stars, Gold, Inventory, **Hero Class**, avatar, birthday, nameday.
-- **Personalization:** Edit student → Birthday, **Nameday** (with **AI Nameday Lookup** for Greek Orthodox Εορτολόγιο), **Hero Class** (Pro+, optional lock).
+- **Personalization:** Edit student → Birthday, **Nameday** (Elite: **AI Nameday Lookup** for the Greek Orthodox calendar), **Hero Path** (Pro; first choice free, then lock if they change).
 
 ### 2. The Daily Session (**Award Stars**)
-- Choose student + reason (Teamwork, Creativity, Respect, Focus, Welcome Back, Scholar's Bonus, Story Weaver, etc.).
+- Choose a student and one of the four virtues (**Teamwork**, **Creativity**, **Respect**, **Focus**) at 1–3 stars. **Welcome Back** is an absence flow on the cloud, not a fifth reason button. **Scholar’s Bonus** comes from Starfall; **Story Weaver** stars come from the Story Weavers tab.
 - **Visual feedback:** Particle effects + unique sound (e.g. Magic Chime).
-- Data (timestamp, reason, value) is written to Firestore; on **Pro+**, **Hero Class** can grant **+10 Gold** for matching reason and additional bonuses from that hero’s **Skill Tree** (e.g. extra Gold, bonus stars, guild-wide perks).
+- Data (timestamp, reason, value) is written to Firestore; on **Pro**, **Hero Path** can grant **+10 Gold** for a matching reason and extra Gold or stars from that hero’s **Skill Tree**.
 
 ### 3. The End-of-Day Ritual (**Adventure Log**)
-- **"Log Today's Adventure"** sends the day’s events to the AI.
-- AI writes a whimsical diary entry; an AI image generator creates a **storybook-style** illustration.
+- **"Log Today's Adventure"** (once per class per day, after stars). Crowns **Hero of the Day**.
+- **Pro:** you write the diary. **Elite:** AI writes a whimsical entry and a **storybook-style** illustration.
 - Entry is stored and can be revisited; **Pathfinder's Map** and **Mask of the Protagonist** can be reflected in the narrative.
 
 ---
@@ -117,54 +136,63 @@ The app is built on four pedagogical pillars:
 ## 💰 The Economy System: Gold & Mystic Market
 
 ### 🪙 Gold Coins
-- **Earning:** 1 Star = 1 Gold. **Bonus Gold:** e.g. "2x Days," **Hero Class** match (+10, Pro+), **Hero Skill Tree** perks (extra Gold or bonus stars when the student plays to their class’s strength, Pro+), **Scroll of the Gilded Star** (3× next star).
+- **Earning:** 1 Star = 1 Gold. **Bonus Gold:** e.g. "2× Star Day," **Hero Path** match (+10, Pro), **Skill Tree** perks (Pro), **Scroll of the Gilded Star** (3× next star), Wheel, Quiz of the Week.
 - **Spending** Gold does **not** lower Leaderboard rank (Total Stars are separate).
 
-### 🎪 Mystic Market (Hero's Challenge)
-- **Seasonal stock:** AI generates ~15 items per month by season and league (e.g. Ice Sword in winter; Junior = toys/stickers, Senior = RPG-style artifacts).
-- **Legendary Artifacts:** Always available; fixed list of **power-ups** (see below). Different purchase limits (e.g. 2 Legendary per student per month; Pathfinder’s Map 1 per class per month).
-- **Purchase:** Up to **2 items per month** per student (seasonal); Legendary limits apply per type. Items appear in the student’s **Inventory** and in the **Enlarged Avatar** pop-up.
+### 🎪 Mystic Market (own tab)
+- **Seasonal stock (Elite Restock):** AI generates **15** items for the month and league (5 common / 5 rare / 5 seasonal trophies). Junior art stays toy-like; senior items read as RPG relics. Buying a unique seasonal piece removes it from the shop. There is **no** coded two-seasonal-items-per-month cap.
+- **Legendary Artifacts:** Always available; **two legendary buys per student per month**, plus extra limits on Pathfinder (1/class/month) and Mask (1/student/month).
+- **Purchase:** Items appear in **Trophy Room** / enlarged avatar. Reigning **Hero of the Day** gets **25%** off seasonal prices (lifetime legend discounts can add more, combined cap **40%**).
 
 ### ⚔️ Legendary Artifacts (Power-Ups)
 
 | Artifact | Price | Effect |
 |----------|-------|--------|
-| **Crystal of Clarity** | 15 | Pulsing “hint pass” gem on the student’s card. |
-| **Scroll of the Gilded Star** | 20 | Next star earned = **3× Gold**. |
-| **Time Warp Hourglass** | 25 | **+5 minutes** to all active class bounty timers. |
-| **Elixir of Luck** | 30 | 50% chance for **+1 star** on next lesson. |
-| **The Herald's Banner** | 40 | School-wide victory celebration toast. |
-| **The Starfall Catalyst** | 50 | **Double** the stars from the next high test (Starfall). |
-| **The Pathfinder’s Map** | 60 | **+10 Stars** for the Team Quest (class limit: 1/month). |
-| **The Mask of the Protagonist** | 75 | Student is the **hero** of the next story log. |
+| **Crystal of Clarity** | 15 | Hint-pass glow on the student’s card. |
+| **Scroll of the Gilded Star** | 20 | Next star = **3× Gold**. |
+| **Time Warp Hourglass** | 25 | **+5 minutes** on active class bounty timers. |
+| **Elixir of Luck** | 30 | 50% chance of **+1 star** on the next lesson’s first award. |
+| **Aurum Satchel** | 32 | **50% off** next Market purchase this month. |
+| **Banner of Glory** | 35 | Next **3** stars each write **+1 bonus Guild Glory**. |
+| **The Herald's Banner** | 40 | School-wide celebration toast. |
+| **Bulwark Crest** | 48 | Guild Glory Shield **7 days** (blocks negative Wheel Glory hits). |
+| **The Starfall Catalyst** | 50 | **Double** the next high-test Starfall bonus. |
+| **Chalice of Radiance** | 55 | +1 bonus Glory on qualifying stars for **24h**. |
+| **Compassion Token** | 55 | Hero's Boon costs **0 Gold** for the rest of the month. |
+| **The Pathfinder’s Map** | 60 | Instant **+10** Team Quest stars (class limit: 1/month). |
+| **Archivist's Quill** | 62 | Next Story Weaver class bonus is **1★ instead of 0.5**. |
+| **The Mask of the Protagonist** | 75 | Guarantees **Hero of the Day** on the next log (1/student/month). |
+| **Crown of the Eternal** | 90 | **2×** star-earned Glory until midnight. |
 
-*Use from Inventory in the Hero Stats / enlarged avatar flow; consuming applies the effect and removes the item.*
+*Use from Trophy Room / enlarged avatar; consuming applies the effect and removes the item.*
 
-### 🛡️ Hero Classes & Skill Trees (Pro+)
-Students on **Pro+** can choose a **Hero Class** (e.g. Guardian, Sage, Paladin, Artificer, Scholar, Weaver, Nomad).
+### 🛡️ Hero Classes & Skill Trees (Pro)
+Students on **Pro** (and Elite) can choose a **Hero Path** class (Guardian, Sage, Paladin, Artificer, Scholar, Weaver, Nomad).
 
 - **Class Reasons:** Each class is tied to a reason (e.g. Guardian → Respect, Sage → Creativity, Scholar → Scholar's Bonus, Nomad → Welcome Back).
-- **Leveling (5 tiers):** As students earn stars in their class’s reason across the school year, they climb **five hero levels** (e.g. Guardian: Sentinel → Warden → Protector → Champion → Eternal Guardian). Thresholds are tuned so a typical student (2 lessons/week, ~2–3 stars/lesson) can realistically reach high levels over a **full September–June year**, not in a single month.
+- **Leveling:** Guardian, Sage, Paladin, Artificer, and Weaver climb **five** levels (stars in that virtue: 20 / 45 / 70 / 95 / 120). **Scholar** and **Nomad** climb **three** (10 / 20 / 30) because Scholar's Bonus and Welcome Back are rarer. Thresholds assume a **full September–June year**.
 - **Branching Skill Tree:** At each level, the student chooses **one of two** permanent skills (e.g. “extra Gold when *you* earn Respect” vs. “small Gold bonus to guildmates when *they* earn Respect”). Skills can:
   - Grant **extra Gold** to the hero on matching reasons.
   - Add **bonus stars** (Total + Monthly) when they excel in their class’s reason.
   - Share Gold with **classmates** or **guildmates** on matching reasons.
   - Trigger a **once-per-month guild boost** the first time they play to their class’s strength that month.
-- **Visual Aura:** From higher levels onward, the student’s avatar gains a **class-colored aura ring** on the leaderboard to signal hero status.
+- **Visual Aura:** From **level 3**, the student’s avatar gains a class-coloured aura ring on the leaderboard.
 
-Hero Classes are optional but, once locked, cannot be changed (to preserve long-term identity and investment).
+Hero Path is optional. The first class choice is free; **changing** class after having one **locks** the path.
 
-### 🐾 Familiars (Animated Pets)
+### 🐾 Familiars (Animated Pets, Elite)
 Students can spend Gold on **Familiar Eggs** in the **Mystic Market**. Each student can own **one Familiar** at a time:
 
-- **Egg Purchase:** 4–5 distinct egg lines (e.g. Emberfang – fire dragon, Frostpaw – arctic fox spirit, Thornback – forest toad/treant, Veilshade – shadow sprite, Sparkling – light fairy/phoenix). Each egg has a unique theme, colors, and animation style.
-- **Hatching:** After the student earns about **20 stars** after purchase, the egg **hatches** into a tiny chibi Familiar. The sprite is generated by AI as a **4-frame sprite sheet**, animated on-screen using CSS `steps()` to look like a fully moving game character.
-- **Evolution:** As the student continues to earn stars after hatch, the Familiar **evolves twice more** (Level 2 and Level 3) at calibrated milestones (roughly mid-year and near year-end for a September start). Each evolution triggers a new AI-generated sprite sheet and unique animation.
+- **Egg Purchase (Elite):** Five lines — Thornback (30 Gold), Frostpaw (35), Emberfang (40), Veilshade (45), Sparkling (50).
+- **Hatching:** **20** stars earned after purchase. Elite generates a 4-frame sprite sheet.
+- **Evolution:** Level 2 at **60** stars since hatch; Level 3 at **140** stars since hatch.
 - **Display:** Familiars sit **next to the avatar** on the student leaderboard and appear as a large animated companion in the **enlarged avatar overlay**. Tapping/clicking the Familiar opens a **Familiar Stats** panel (name, current form, “stars together,” and progress to next evolution).
 - **Sounds & Feel:** Hatching and evolution trigger dedicated **sound cues** and celebratory toasts, turning long-term consistency into a visible, emotionally resonant payoff.
 
-### 🎁 Hero's Boon
-From the **Award Stars** tab, a student can **Bestow a Boon** on another (cost: **15 Gold**). The receiver gets **+0.5 Stars** (Total + Monthly); the giver gets peer recognition. Builds generosity and community.
+### 🎁 Hero's Boon and Teacher Boon
+- **Hero's Boon (peer gift):** From Award Stars. Cost **15 Gold** (unless Compassion Token). Receiver **+0.5** stars. **Max 4 per class per day.** Receiver must be in the **bottom 3** monthly stars *or* in a **tie group**. No self-gift. Cannot gift the same classmate twice in a row.
+- **Teacher Boon:** Last **7 days** of the month, **2 stars**, **once per class per month**, named reasons (Leadership, Perseverance, Kindness, Bravery, Helping Others, Remarkable Growth, or custom).
+- The reigning **Hero of the Day** also gets **+1** on their first award that day (labelled “Includes Hero's Boon”) — that is not the 15 Gold gift.
 
 ---
 
@@ -175,9 +203,9 @@ The **Home** tab is your command center and adapts to **weather** and **time of 
 - **Header:** AI-generated **inspirational quote** (cached daily); background shifts with **weather** (sunny, cloudy, rainy, snowy, stormy) and **day/night** (sunrise/sunset from your location).
 - **Time-based greeting:** Good Morning / Afternoon / Evening / Night with matching gradient.
 - **View modes:**
-  - **No class selected:** School-wide stats (School Stars, Heroes count, Treasury), **Global Tools** (Hero Ranks, New Class, **Team History**, **Holiday**, **Plan**, Setup), and **School Schedule** for today.
+  - **No class selected:** School-wide stats (School Stars, Heroes count, Treasury), **Global Tools** (Hero Ranks, New Class, **Team History**, My Classes, **Plan**, Setup), and **School Schedule** for today.
   - **Class selected:** That class’s monthly stars, goal (holiday/cancellation-adjusted), progress bar, **last story sentence**, quick actions (**Report**, **Award Stars**, **Adventure Log**, etc.), **today’s schedule**, and class-specific widgets.
-- **Shortcuts:** Open **Team History**, **Day Planner**, **Holiday** (Options), **Report** (class), **Settings** (Options).
+- **Shortcuts:** Open **Team History**, **Day Planner**, **Report** (class), **Settings**. School-wide **holidays** are edited in the **School Office**, not Teacher Settings.
 
 ---
 
@@ -185,18 +213,18 @@ The **Home** tab is your command center and adapts to **weather** and **time of 
 
 - **League Map:** SVG path from **Bronze Meadows** → **Silver Peaks** → **Golden Citadel** → **Crystal Realm**. Each class is a moving avatar; position is based on **monthly stars** vs. **monthly goal**. Overlap resolution keeps labels readable.
 - **Monthly goal:** Computed from schedule, **school holidays**, and **cancelled lessons** (fewer teaching days ⇒ lower goal). Display shows “goal adjusted by ±X stars” when relevant.
-- **Monthly Award Ceremony:** At the start of a new month, **Team Quest** and **Hero's Challenge** tabs **glow** until the ceremony is run. Full-screen animated ceremony with music/sound reveals last month’s **class** and **student** winners with AI-generated commentary.
+- **Ceremony of the Month:** At the start of a new month, **Team Quest** and **Hero's Challenge** tabs **glow** until you run the dual ritual: league **class** ranks, then **Prodigy of the Month** for the selected class (Co-Prodigy allowed).
 
 ---
 
 ## 🏆 Hero's Challenge
 
-- **Student Leaderboard:** Ranks by Total Stars (and/or Monthly); avatars with **Hero Class aura ring**, Gold, and (optionally) their animated **Familiar** companion. Click student → **Hero Stats** modal or **enlarged avatar** (avatar + Familiar + **Inventory**, link to **Trophy Room**).
+- **Student Leaderboard:** Ranks by Monthly or Total Stars; views **By Class** / **Global Rank**. Avatars with **Hero Path aura** (level ≥ 3), Gold, Familiar (Elite), guild badge, **Reigning Prodigy**, Guild Champion marks. Click student → **Hero Stats** or enlarged avatar (Familiar + inventory → Trophy Room).
 - **Mystic Market & Trophy Room:** Use **Mystic Market** (bottom nav) to browse and buy with Gold. **Trophy Room** shows a student's full **Inventory** (and access to the market); also openable from the enlarged avatar via "See full collection →".
 - **Hero Stats Modal:** Avatar, name, Hero Class, **Trials Logged**, **Average Test Score**, **Best Test**, dictation summary (Junior: qualitative; Senior: average %). **Performance chart** (test/dictation over time). Links to **Hero's Chronicle** and **Certificate**.
-- **Prodigy of the Month / Hall of Heroes:** Archive of past **Prodigy** (and Co-Prodigy) with month selector; open from Hero's Challenge, Home, or **Adventure Log** tab (**Hall of Heroes** button).
+- **Prodigy of the Month / Hall of Prodigies:** Archive of past **Prodigy** (and Co-Prodigy) for **completed** months; open from Hero's Challenge, Home, or related shortcuts. This is **not** Hall of Heroes.
 - **Certificates:** **Generate Certificate** (from roster or Hero Stats) → AI writes a unique paragraph from top reason + monthly stars; PDF download with avatar and themed style (Junior/Mid/Senior).
-- **Guild View:** Switch the leaderboard to **Guild** mode to see the four guilds ranked by **Total Stars** (cumulative for the whole school year), along with member counts and top contributors.
+- **Guild badges:** Rows can show a house emblem. The **guild vs guild** race lives on **Guild Hall** (Guild Power), not as a toggle on this tab.
 
 ---
 
@@ -210,46 +238,42 @@ The **Home** tab is your command center and adapts to **weather** and **time of 
   - **Owl Wisdom** – curiosity, thoughtful learning, calm focus.
   - **Phoenix Rising** – resilience, bouncing back, never giving up.
 - **Guild Sorting Quiz:** From **My Classes → Students (Manage Students)**, students without a guild can take an age-appropriate, story-style **Sorting Quiz**. Their choices are mapped to traits and used to assign a guild in a fun, narrative way.
-- **Year-Long Guild Progress:** Every positive star a student earns also feeds their guild’s **Total Stars**. Guild totals **do not reset monthly**; they accumulate across the school year and are the basis for the end-of-year **Guild Ceremony** (e.g. June 2026) to crown the winning guild.
-- **Guild Leaderboard:** In **Hero’s Challenge**, switch to **Guild** view to see a compact leaderboard of all guilds with:
-  - Total Stars (cumulative, not reset).
-  - Member count and a quick list of top contributors.
-  - Colors/emblems matching the guild’s identity for quick recognition on the projector.
-- **Guild Champions:** At the end of each month, the top earner in every guild is crowned **Guild Champion**. Champions are highlighted on the student leaderboard with a special badge and showcased on the **Guild Hall** crystal columns for that month.
+- **Year-Long Guild Progress:** Stars write **Guild Glory** (**2 Glory per star**). Houses rank by **Guild Power** (fair per-member mix of season Glory, weekly Glory, activity, and momentum) — not raw Total Stars. Totals **do not reset monthly**; June’s **Great Guild Ceremony** crowns the winning guild.
+- **Fortune's Wheel:** Spin on the class’s **last lesson day of the week**, during lesson time, **once per week per class**. **Fortune Ledger** stores outcomes. Magical Analytics expands each crystal column.
+- **Guild Champions:** At the end of each month, the top earner in every guild is **Guild Champion**.
 
 ---
 
 ## 👥 My Classes & Roster
 
-- **Classes:** Create/edit class (name, logo, schedule days, Quest League). **Report**, **Overview**, **Edit** per class.
-- **Manage Students:** Click **Students** on a class to open the roster. Per student: **Skill Tree** (Pro+, hero level and branch choices; button pulses when a new choice is available), **Hero's Chronicle** (notes + Oracle), **Avatar Forge**, **Certificate**, **Move Student** (to another class), **Guild Quiz** (if no guild). **Edit** opens student modal (name, birthday, **Nameday**, **Hero Class** on Pro+, avatar, notes). **Nameday:** magic wand → **AI Nameday Lookup** (Greek Orthodox calendar) to auto-fill date.
+- **Classes:** Create/edit class from **Teacher Settings → My Classes** (name, logo, schedule days, Quest League). **Report**, **Overview**, **Edit** per class.
+- **Manage Students:** Click **Students** on a class to open the roster. Per student: **Skill Tree** (Pro; pulses when a new branch is waiting), **Hero's Chronicle** (notes + Elite Oracle), **Avatar Forge** (Elite), **Certificate**, **Move Student**, **Guild Quiz** (Pro, if no guild). **Edit** opens Profile, Special Dates, Hero Path, Quick Hub.
 - **Class overview modal:** Tabs for class details, **Team History** (past performance/story), and shortcuts.
 
 ---
 
 ## ⭐ Award Stars
 
-- **Reasons:** Teamwork, Creativity, Respect, Focus, Welcome Back, Scholar's Bonus, Story Weaver, Correction, etc. On **Pro+**, **Hero Class** adds +10 Gold when reason matches, and may add extra Gold or bonus stars if the student has unlocked matching **Skill Tree** perks.
+- **Reasons:** Teamwork, Creativity, Respect, Focus. Welcome Back is an absence control (not a fifth button). Scholar's Bonus comes from **Starfall**; Story Weaver stars come from **Story Weavers**. On **Pro**, Hero Path adds +10 Gold when the reason matches, plus Skill Tree perks.
 - **Effects:** Click award → particle burst + sound (e.g. Magic Chime). **Clarity** (Crystal of Clarity) shows a pulsing gem on the card.
-- **Quest Bounties:** “Post a Bounty” → set **Target** (e.g. 20 stars), **Time limit**, **Reward** (e.g. 5 mins free time). Progress bar on **Award Stars** and **Wallpaper Mode**; victory fanfare when target is hit. **Time Warp Hourglass** adds +5 minutes to active timers.
-- **Hero's Boon:** Button to bestow Boon on another student (cost 15 Gold; receiver +0.5 Stars).
+- **Quest Bounties:** “Post a Bounty” → set **Target** (e.g. 20 stars), **Time limit**, **Reward** (e.g. 5 mins free time). Progress bar on **Award Stars** and **Projector Mode**; victory fanfare when target is hit. **Time Warp Hourglass** adds +5 minutes to active timers.
+- **Hero's Boon / Teacher Boon:** See the economy section above. Heart button on eligible clouds; Teacher Boon in the last week of the month.
 
 ---
 
 ## 📜 Adventure Log
 
-- **Log Today's Adventure:** Sends the day’s awards (and optional context like tests, bounties, **Pathfinder**, **Protagonist**) to the AI. AI returns a short story + a **storybook-style image**. Saved as the day’s entry.
-- **Past entries:** Browse by class and month; each shows text + image.
+- **Log Today's Adventure:** Needs stars awarded today; one log per class per day. **Pro:** you write the diary. **Elite:** AI story + storybook image. Each log crowns **Hero of the Day** (Mask of the Protagonist wins if pending; otherwise fair rotation among present students).
+- **Hall of Heroes:** Hero of the Day win tallies and legend tiers — **not** the Prodigy archive. Open it from the log.
 - **Quest Assignment:** Schedule or view **Quest Assignments** (special tasks linked to the log).
 - **Attendance:** Opens **Attendance Chronicle** (month × students matrix, mark present/absent, monthly %).
-- **Hall of Heroes:** Opens the **Prodigy of the Month** archive (past class heroes by month).
-- **Quest Events:** From **Quest Calendar** → Day Planner → **Quest Event** tab: schedule a **Special Quest** (Vocabulary Vault, Unbroken Chain, Grammar Guardians, Scribe’s Sketch, Five-Sentence Saga) with date, type, and parameters (e.g. completion bonus, goal target). Events show on the calendar and can influence goals/logs.
+- **Quest Events:** From **Quest Calendar** → Day Planner → **Quest Event**.
 
 ---
 
 ## 📔 Scholar's Scroll
 
-- **Tests & Dictations:** Log by class and date. **Tests:** score (e.g. 15/20) and optional note. **Dictations:** Junior = qualitative (e.g. Great!!!, Nice Try!); Senior = numeric score. **Starfall:** e.g. 100% on a test triggers optional **Bonus Stars** to the leaderboard; **Starfall Catalyst** doubles that bonus once.
+- **Tests & Dictations:** Log by class and date. **Tests:** score (e.g. 15/20) and optional note. **Dictations:** Junior = qualitative (e.g. Great!!!, Nice Try!); Senior = numeric score. **Starfall:** tests **≥ 95%** may propose **+1** Scholar’s Bonus; strong dictations (**> 85%**, with monthly caps) may propose **+0.5**. You confirm in a modal. **Starfall Catalyst** doubles that student’s next high-test bonus once.
 - **Makeup Work:** Students with **no grade** for a given test date are flagged for makeup.
 - **Performance Chart:** Per-class chart of student performance over recent trials.
 - **Upcoming Test:** If a **Quest Event** has test data for a future date, the Scroll shows an alert (e.g. “Test on [date]”).
@@ -258,9 +282,9 @@ The **Home** tab is your command center and adapts to **weather** and **time of 
 
 ## ❓ Quiz of the Week (Elite)
 
-**Quiz of the Week** is a weekly, class-by-class curriculum quiz that runs like a fun game show. The teacher selects the focus (grammar/vocabulary/mix + topics/keywords), the app generates the questions, and the quiz appears automatically on the class’s **first lesson day of the week** (during lesson time). Students are picked at random to answer, and the class earns rewards based on first-try accuracy.
+**Quiz of the Week** is a weekly, class-by-class curriculum quiz that runs like a fun game show. The teacher selects the focus (grammar/vocabulary/mix + topics/keywords). The app generates **multiple-choice** questions (count scales with class size, about three-quarters of the roster, between 5 and 15). The quiz appears automatically on the class’s **first lesson day of the week** (during lesson time). Students are picked at random to answer, and the class earns rewards based on first-try accuracy.
 
-- **Configure & generate**: Options → **Quiz of the Week**
+- **Configure & generate**: Teacher Settings → **Quiz**
 - **Play / view results**: Home dashboard (class selected) → **Quiz of the Week** button (only appears when eligible)
 
 ---
@@ -269,20 +293,20 @@ The **Home** tab is your command center and adapts to **weather** and **time of 
 
 - **Month grid:** Shows which days have lessons (from class schedules + **one-time overrides**). **School holidays** and **cancelled days** are themed (e.g. Winter Break, No School). Click a day → **Day Planner**.
 - **Day Planner – Schedule:** List of classes scheduled that day; **Cancel** (for your classes) or **Add one-time lesson**. Cancellations and one-time lessons are **Schedule Overrides** and affect **monthly goal** and calendar styling.
-- **Day Planner – Mark Holiday:** Mark a single day as **School Holiday** (no lessons school-wide).
-- **Day Planner – Quest Event:** Add a **Special Quest** (Vocabulary Vault, Unbroken Chain, etc.) for that date with completion bonus and goal.
+- **Day Planner – Mark Holiday:** One-day “no school” for **all classes** (cancels that date and adjusts goals). Multi-day **holiday ranges** belong in the School Office.
+- **Day Planner – Quest Event:** Add **2× Star Day**, **Reason Bonus Day**, or a **Special Quest** (Vocabulary Vault, Unbroken Chain, etc.) with completion bonus and goal.
 
-**School Year Planner (Options):** Add **holiday ranges** (name, start, end, theme: Christmas/Winter, Easter/Spring, Generic). These shade the calendar and reduce **monthly goal** for all classes.
+**School holidays:** Add **holiday ranges** in the **School Office** (Secretary → Admin → School Details). They shade every teacher calendar and reduce **monthly Team Quest goals**. Teachers set only a class **final lesson day** under **My Planning**.
 
 ---
 
-## 🖥️ Live Classroom: Wallpaper Mode
+## 🖥️ Live Classroom: Projector Mode
 
-*Activated via the **TV icon** in the header. Best in fullscreen (e.g. on a big display).*
+*Activated via the **TV icon** in the header. Best in fullscreen (e.g. on a classroom display). Not available on the teacher phone. **Sky Theater** (header weather stage) is separate decoration, not this projector.*
 
 - **Environment:** **Real-time sunrise/sunset** for your location; sky transitions from **Day** (sun, blue) to **Night** (moon, stars). **Seasonal atmosphere** (e.g. leaves, snow) can be applied.
 - **Clock:** Large digital time + date; optional **analogue clock** with ticking hands.
-- **The Director:** Rotates **floating cards** every ~15 seconds (no same card type twice in a row). Card types include:
+- **The Director:** Rotates **floating cards** on a timer (avoids repeating the same card type back-to-back). Card types include:
   - **The Streak** – participation/attendance streaks
   - **Timekeeper** – countdown for active lesson
   - **League Race** – bar chart of classes in the league
@@ -301,13 +325,13 @@ The **Home** tab is your command center and adapts to **weather** and **time of 
 
 - **Concept:** Short-term group challenge: reach **X stars** in **Y minutes** for a **reward** (e.g. 5 mins free time).
 - **Config:** Target, time limit, reward text. **Time Warp Hourglass** adds +5 minutes to active timers.
-- **Display:** Progress bar on **Award Stars** and in **Wallpaper Mode**. **Win:** Fanfare and bounty marked completed.
+- **Display:** Progress bar on **Award Stars** and in **Projector Mode**. **Win:** Fanfare and bounty marked completed.
 
 ---
 
 ## 🗓️ Special Quest Types (Rules & Mechanics)
 
-*Scheduled via **Quest Calendar** → Day Planner → **Quest Event**.*
+*Scheduled via **Quest Calendar** → Day Planner → **Quest Event**. **2× Star Day** doubles awards that day; **Reason Bonus Day** adds +1 star when the chosen virtue matches. Special quests below are **lesson shapes** you run in the room; the planner stores the goal and completion bonus.*
 
 | Quest | Objective | Mechanics |
 |-------|-----------|-----------|
@@ -323,7 +347,7 @@ The **Home** tab is your command center and adapts to **weather** and **time of 
 
 | Tool | Description |
 |------|-------------|
-| **The Story Weavers** | Select class. Class builds a story **one sentence at a time**. **Word of the Day** (teacher or AI suggestion). **Lock in** sentence → AI generates a new **illustration**. **Reveal Story to Class**, **Current Story**, **Story Archive**, **Start New**. Stories can be exported/printed as a PDF storybook. |
+| **The Story Weavers** | **Elite.** Select class. Class builds a story **one sentence at a time**. **Word of the Day** (teacher or AI suggestion). **Lock in** → illustration. Every second addition can award **+0.5** Story Weaver stars to the class. **Reveal**, chronicle, archive, **Print** PDF. |
 
 ---
 
@@ -331,13 +355,13 @@ The **Home** tab is your command center and adapts to **weather** and **time of 
 
 | Feature | Where | What it does |
 |--------|--------|----------------|
-| **Avatar Forge** | Edit Student (or onboarding) | Student picks base (e.g. Wizard, Robot), color, accessory. AI generates a **Chibi-style** avatar; URL saved to profile and used on leaderboards. |
-| **AI Nameday Lookup** | Edit Student → Nameday | Magic wand sends name to AI (Greek Orthodox Εορτολόγιο); returns suggested nameday date and auto-fills. |
+| **Avatar Forge** | Edit Student (or onboarding) | **Elite.** Student picks base (e.g. Wizard, Robot), color, accessory. AI generates a **Chibi-style** avatar. |
+| **AI Nameday Lookup** | Edit Student → Nameday | **Elite.** Magic wand sends name to AI (Greek Orthodox Εορτολόγιο); returns suggested nameday date. |
 | **Class Report** | My Classes → Report | AI **Weekly Summary** + **Suggested Mini-Quest** from behavior + academic data. |
 | **Certificate** | Roster / Hero Stats | AI writes a unique praise paragraph from top reason + monthly stars; PDF with avatar and age-themed style. |
-| **Hero's Chronicle – Oracle** | Student modal → Chronicle | Four report types: **Parent Summary**, **Teacher Strategy**, **Strengths/Weaknesses**, **Goal Suggestion**, from full history. |
-| **Daily Log** | Adventure Log | AI diary entry + storybook image from the day’s events. |
-| **Story Weavers** | Story Weavers tab | Word suggestions + illustration per sentence. |
+| **Hero's Chronicle – Oracle** | Student modal → Chronicle | **Elite.** Four report types: **Parent Summary**, **Teacher Strategy**, **Strengths/Weaknesses**, **Goal Suggestion**. |
+| **Daily Log** | Adventure Log | **Elite:** AI diary + storybook image. **Pro:** teacher writes the diary. |
+| **Story Weavers** | Story Weavers tab | **Elite.** Word suggestions + illustration per sentence. |
 
 ---
 
@@ -351,25 +375,29 @@ The **Home** tab is your command center and adapts to **weather** and **time of 
 - **Tests** and **Dictations** with dates and scores. **Starfall** for high scores; **Makeup Work** for missing grades. **Performance Chart** and **Upcoming Test** alert.
 
 ### Attendance Chronicle
-- **Matrix:** Month × students; presence/absence. **Monthly attendance %**. Attendance can block awarding stars (e.g. must mark present first). Option to **delete column** and mark as **School Holiday**.
+- **Matrix:** Month × students; presence/absence; monthly %. Delete a column as **No Lesson**, optionally **School Holiday**. Today’s present/absent/Welcome Back also live on Award Stars clouds.
 
 ### Certificates
 - **Generate Certificate** → AI paragraph + PDF download (avatar, themed border/icon by age).
 
-### Monthly Ceremony
-- **Team Quest** and **Hero's Challenge** tabs **pulse** when last month’s ceremony is pending. Run ceremony → full-screen reveal (classes + students) with AI commentary.
+### Ceremony of the Month
+- **Team Quest** and **Hero's Challenge** tabs **pulse** when last month’s ceremony is pending. It is a **dual** ritual: league **class** ranks, then **Prodigy of the Month** for the selected class (Co-Prodigy allowed). Full-screen reveal with commentary.
 
 ---
 
-## ⚙️ Options & Settings
+## ⚙️ Teacher Settings
 
-| Block | Features |
-|-------|----------|
-| **Student Star Manager** | Select student. **Add Historical Award** (date, stars, reason) → appends to award log. **Direct Score Override** (Today/Monthly/Total) → no log entry. **Purge Student Score Data** (Danger Zone). |
-| **Coin Purse Manager** | Select student, set **Current Gold**, **Update Balance**. |
-| **School Year Planner** | **Holiday ranges** (name, start, end, theme). List with **Delete**. Affects calendar and **monthly goal** for all classes. |
-| **Profile Settings** | **Display name** (e.g. “Quest Master”) and save. |
-| **Danger Zone** | **Purge Student Score Data**, **Erase Today's Stars**, **Purge All My Award Logs**. |
+Opened from the header **cog**.
+
+| Subtab | Features |
+|--------|----------|
+| **Student Tools** | Star Manager (historical award or direct override), Coin Purse, Familiar sprite forge (Elite). Folded **advanced data actions**: purge selected student scores, undo stars you awarded today, purge your award logs. |
+| **My Classes** | Create/edit classes and **Manage Students**. |
+| **My Planning** | Per-class **final lesson day** (Pro). Holidays = School Office. |
+| **Profile** | Display name. |
+| **Class Grading** | Override school test/dictation defaults for this class (Pro). |
+| **Family Access** | Parent username/password per student (Pro). |
+| **Quiz** | Build Quiz of the Week; play on Home (Elite). |
 
 ---
 

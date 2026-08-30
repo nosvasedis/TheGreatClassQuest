@@ -709,20 +709,19 @@ export function openAppInfoModal() {
         const nextEmoji = rawTier === 'pro' ? '🤖✨' : '⚡🏰';
         const nextPerks = rawTier === 'pro'
             ? [
-                '❓ Quiz of the Week — a weekly curriculum review game-show',
-                '🤖 AI Oracle — personalised class insights automatically',
-                '✍️ AI Adventure Log Writer — logs generated after each lesson',
-                '🎨 AI Story Images — illustrated covers for your class stories',
-                '🔬 Early-access experiments and priority support',
+                '❓ Quiz of the Week — weekly review game-show on Home',
+                '📖 Story Weavers — class story, Word of the Day, PDF book',
+                '🐉 Familiars — one companion egg that hatches and evolves',
+                '🤖 AI Oracle, avatars, certificates, Restock, Adventure Log art',
+                '🏛️ School Office — holidays, year clock, school grading defaults',
               ]
             : [
-                '🏰 Guilds & Sorting Quiz — houses, team competition, champions',
-                '⚔️ Hero Classes & Skill Tree — student identity and levelling',
-                '📅 Calendar & School Year Planner — full academic year planning',
-                '📖 Story Weavers — collaborative storytelling with Word of the Day',
-                "📜 Scholar's Scroll — test tracking, dictations, and performance charts",
-                '📓 Adventure Log — visual diary, Hall of Heroes, lesson stories',
-                '📋 Advanced Attendance — chronicles, monthly view, absence history',
+                '🏰 Guild Hall — houses, Guild Power, Fortune\'s Wheel',
+                '⚔️ Hero Path & Skill Tree — identity tied to classroom virtues',
+                '📅 Quest Calendar & My Planning — events and class end dates',
+                "📜 Scholar's Scroll — tests, dictations, Starfall, pending makeups",
+                '📓 Adventure Log — diary, Hero of the Day, Hall of Heroes',
+                '👨‍👩‍👧 Family Portal — one login per child for homework and progress',
               ];
 
         return `
@@ -747,16 +746,16 @@ export function openAppInfoModal() {
     const studentDailyFlow = [
         { emoji: '🌅', title: 'Arrive as the Hero you Are', body: 'Walk into class knowing your avatar is waiting. Check your missions, your familiar, and your stars from last time — then get ready to earn more!' },
         { emoji: '⭐', title: 'Earn Stars & Conquer Bounties', body: 'Answer questions, speak English, help classmates, complete bounties — every great moment earns stars. The teacher notices EVERYTHING in the Quest!' },
-        { emoji: '🛒', title: 'Build Your Legend', body: 'Visit the Mystic Market, evolve your familiar, level up your hero class, and grow your skill tree. Your character is uniquely yours.' },
-        { emoji: '🎉', title: 'Celebrate & Remember', body: 'Monthly ceremonies spotlight the top heroes. Your class story goes in the Adventure Log. These are moments you will actually remember!' },
+        { emoji: '🛒', title: 'Build Your Legend', body: 'Spend Gold in the Mystic Market (your star rank never drops). On Elite, hatch a Familiar. On Pro, level your Hero Class and Skill Tree. Your character is uniquely yours.' },
+        { emoji: '🎉', title: 'Celebrate & Remember', body: 'Ceremony of the Month ranks the classes, then crowns Prodigy of the Month. Hero of the Day is a different, daily spotlight from the Adventure Log.' },
     ];
 
     // ─────────── TEACHER DAILY FLOW ───────────
     const teacherDailyFlow = [
         { emoji: '🏫', title: 'Open & Orient (2 min)', body: 'Select your class, glance at the Home dashboard — reminders, any ceremonies due, bounty ideas. You know exactly where the Quest stands before the lesson starts.' },
-        { emoji: '⭐', title: 'Award Stars in Real Time', body: 'Tap student avatars to award stars during the lesson. Use reasons (Speaking, Grammar, Effort, Creativity) so students know WHY they earned it. Launch a bounty for an instant energy spike!' },
-        { emoji: '📝', title: 'Record What Matters', body: "Log test scores in Scholar's Scroll, mark attendance, write a quick Adventure Log entry. It takes seconds but builds a rich class history over the year." },
-        { emoji: '🏆', title: 'Review & Celebrate', body: 'End the lesson with a quick look at the leaderboard. Trigger a ceremony when the time is right. Your students leave talking about the Quest — that is the goal!' },
+        { emoji: '⭐', title: 'Award Stars in Real Time', body: 'Tap a cloud and award 1–3 stars for Teamwork, Creativity, Respect, or Focus. Welcome a returning student. Let classmates gift a Hero\'s Boon when the heart is offered. Launch a bounty for a shared timer race.' },
+        { emoji: '📝', title: 'Record What Matters', body: 'Set tomorrow\'s Quest Assignment, mark attendance, and Log Today\'s Adventure (you write it on Pro; Elite can illustrate it). That log crowns Hero of the Day. Tests live on Scholar\'s Scroll when your plan includes it.' },
+        { emoji: '🏆', title: 'Review & Celebrate', body: 'Glance at Team Quest and Hero\'s Challenge. When a new month begins, run the Ceremony of the Month (classes, then Prodigy). Students leave talking about the Quest — that is the goal!' },
     ];
 
     const studentSections = getGuideSections('student');
@@ -769,7 +768,7 @@ export function openAppInfoModal() {
             <span class="guide-philosophy-icon">🌍</span>
             <div>
                 <h4 class="guide-philosophy-title">Why is English Class a Quest? 🗡️</h4>
-                <p class="guide-philosophy-body">Because language learning is an adventure — and adventures need heroes, rewards, companions, and celebrations. <strong>The Great Class Quest</strong> turns every lesson into a chapter of your own story. Stars are XP. Your teacher is the Quest Master. Every word you learn is a new power. Every answer you give is a move forward. You are genuinely becoming a better version of yourself — and the Quest makes that visible, tangible, and FUN. 🚀</p>
+                <p class="guide-philosophy-body">Because language learning is an adventure — and adventures need heroes, rewards, companions, and celebrations. <strong>The Great Class Quest</strong> turns every lesson into a chapter of your own story. Stars are your hero points (and they become Gold). Your teacher is the Quest Master. Every word you learn is a new power. You are becoming a better version of yourself — and the Quest makes that visible and FUN. 🚀</p>
             </div>
         </div>
     </section>`;

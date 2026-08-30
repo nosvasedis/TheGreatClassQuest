@@ -486,7 +486,7 @@ export async function showTab(tabName) {
             });
             if (planningLocked) {
                 planningLocked.addEventListener('click', () => {
-                    showUpgradePrompt({ feature: 'School Year Planner', tier: 'Pro', message: getUpgradeMessage('Pro', 'schoolYearPlanner') });
+                    showUpgradePrompt({ feature: 'My Planning', tier: 'Pro', message: getUpgradeMessage('Pro', 'schoolYearPlanner') });
                 });
                 planningLocked.style.cursor = 'pointer';
             }

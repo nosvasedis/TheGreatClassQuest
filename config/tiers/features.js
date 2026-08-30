@@ -10,7 +10,7 @@ export const FEATURE_DEFINITIONS = {
         emoji: '🏰',
         description: 'Full Guild system and sorting quiz',
         tier: 'Pro',
-        teacherExplain: 'Split your class into four Guilds — Dragon Flame, Grizzly Might, Owl Wisdom, and Phoenix Rising — and run a magical sorting quiz to assign them. Stars, boons, shop relics, quizzes, and Fortune\'s Wheel write auditable Guild Glory, and Guild Power compares guilds fairly per member so team size does not decide the winner. 🏆',
+        teacherExplain: 'Split students into four Guilds — Dragon Flame, Grizzly Might, Owl Wisdom, and Phoenix Rising — with a story-style sorting quiz. Stars, relics, Quiz of the Week, and Fortune\'s Wheel write Guild Glory. Houses rank by Guild Power (fair per member), not raw Total Stars. Spin the Wheel on the class\'s last lesson of the week, once per class. June ends with the Great Guild Ceremony. 🏆',
         studentExplain: 'You belong to a Guild — your House in the Quest world! 🏰 Your stars and special rewards build Guild Glory for your team. Guild Power compares teams fairly, so every hero matters no matter how big the guild is!'
     },
     calendar: {
@@ -18,15 +18,15 @@ export const FEATURE_DEFINITIONS = {
         emoji: '📅',
         description: 'Schedule, holidays, Quest Events',
         tier: 'Pro',
-        teacherExplain: 'A full teaching calendar lives inside the app — plan your lessons, mark holidays, and schedule Quest Events like tests, parties, or challenges. You can add custom reminders and see your week at a glance. No more sticky notes! Every English lesson becomes a planned adventure. 📋✨',
-        studentExplain: 'See what\'s coming up in your Quest! 📅 Your teacher can schedule special events, tests, celebrations and surprises — all visible in the calendar so you\'re always in the loop!'
+        teacherExplain: 'Quest Calendar shows lesson days, cancellations, and Quest Events (2× Star Day, Reason Bonus Day, Vocabulary Vault, and more). Cancel a class or add a one-time lesson from the Day Planner. School-wide holiday ranges are set in the School Office (Secretary). You can still mark a single unexpected closure as a school holiday from the Day Planner. 📋✨',
+        studentExplain: 'See what\'s coming up in your Quest! 📅 Your teacher can schedule special events, celebrations and surprises — all visible in the calendar so you\'re always in the loop!'
     },
     scholarScroll: {
         name: "Scholar's Scroll",
         emoji: '📜',
         description: 'Tests, dictations, performance charts',
         tier: 'Pro',
-        teacherExplain: "Track every test and dictation inside the app — log scores, mark make-up lessons, and see beautiful performance charts that show each student's progress over time. You get a clear academic picture of your whole class without drowning in paper records. The Scroll remembers everything so you don't have to! 📊",
+        teacherExplain: "Log tests and dictations, watch the performance chart, and keep Pending Makeups for students who still need a grade. Outstanding tests (≥95%) can offer Starfall (+1 Scholar's Bonus); strong dictations can offer +0.5 with monthly caps. You confirm Starfall — nothing is forced. 📊",
         studentExplain: "Your Scholar's Scroll is your academic trophy wall! 📜 See your test scores, how you've improved over time, and challenge yourself to beat your own record. Every good grade is proof of your growing power! 💪"
     },
     storyWeavers: {
@@ -34,88 +34,88 @@ export const FEATURE_DEFINITIONS = {
         emoji: '📖',
         description: 'Collaborative story and Word of the Day',
         tier: 'Elite',
-        teacherExplain: "Build collaborative stories with your students using the Story Weavers tool — each student adds a sentence or paragraph to a shared adventure tale. Combine it with Word of the Day to sneak in vocabulary naturally. It's creative writing, class bonding, and English practice stitched into one magical experience. ✍️🌟",
-        studentExplain: "The whole class writes ONE story — and you're part of it! 📖 Each lesson you can add your piece to the adventure, use the Word of the Day, and watch the story grow into something amazing together! ✨"
+        teacherExplain: "The class writes ONE story, sentence by sentence, with a Word of the Day and an illustration on each lock-in. Every second addition can award the whole class +0.5 Story Weaver stars. Print the finished tale as a PDF storybook. Separate from Five-Sentence Saga (a one-day calendar quest). ✍️🌟",
+        studentExplain: "The whole class writes ONE story — and you're part of it! 📖 Each lesson you can add a sentence, use the Word of the Day, and watch the story grow into a real book together! ✨"
     },
     heroProgression: {
         name: 'Hero Classes & Skill Tree',
         emoji: '⚔️',
         description: 'Class identity, leveling, and skill branches',
         tier: 'Pro',
-        teacherExplain: "Every student picks a Hero Class — Guardian, Sage, Paladin, Artificer, Scholar, Weaver, or Nomad — each with its own personality and skill branches. As they earn XP in their class's specialty reason, they level up and unlock skills on their personal Skill Tree. This powerful identity engine makes students feel genuinely heroic and gives you a natural framework to reward different learning styles. ⚔️🧙",
-        studentExplain: "Who is your hero? ⚔️ Choose your Hero Class — Guardian, Sage, Paladin, Artificer, Scholar, Weaver, or Nomad — and level up by earning stars in your specialty. Each level unlocks new skills on your Skill Tree, making your hero more powerful. Your adventure is YOUR adventure! 🌟"
+        teacherExplain: "Every student picks a Hero Class — Guardian, Sage, Paladin, Artificer, Scholar, Weaver, or Nomad. They level by earning stars in that class's matching virtue (not generic XP). Each level offers one of two Skill Tree branches (extra Gold, bonus stars, or help for classmates/guildmates). Matching awards also grant +10 Gold. The first class is free; changing later locks the path. ⚔️🧙",
+        studentExplain: "Who is your hero? ⚔️ Choose your Hero Class — Guardian, Sage, Paladin, Artificer, Scholar, Weaver, or Nomad — and level up by earning stars in your specialty. Each level unlocks a new skill on your Skill Tree. Your adventure is YOUR adventure! 🌟"
     },
     adventureLog: {
         name: 'Adventure Log',
         emoji: '📓',
         description: 'Manual diary entries, Hero of the Day, Hall of Heroes, teacher notes',
         tier: 'Pro',
-        teacherExplain: "The Adventure Log is your class's living memory — write manual diary entries about each lesson, celebrate highlights, and build a beautiful visual timeline of the year. Each saved entry can crown a Hero of the Day, while the Hall of Heroes displays your bigger legends across time. Add personal notes to any entry to remember special moments. On Elite, upgrade to AI-powered automatic story generation with magical illustrations! ✨",
-        studentExplain: "The Adventure Log is your class's story book! 📓 See what your teacher wrote about today's lesson, discover who became Hero of the Day, find YOUR name in the Hall of Heroes, and watch your class journey unfold like a real epic tale! 🏆"
+        teacherExplain: "End the lesson with Log Today's Adventure (once per class per day, after stars). Pro: you write the diary. Elite: AI writes it and paints a storybook picture — you can still edit. Every log crowns Hero of the Day. Hall of Heroes is the archive of those daily crowns — not the monthly Prodigy list. Quest Assignment and Attendance live here too. ✨",
+        studentExplain: "The Adventure Log is your class's story book! 📓 See what happened in today's lesson, discover who became Hero of the Day, and find your name in the Hall of Heroes when you have worn that crown. 🏆"
     },
     schoolYearPlanner: {
-        name: 'School Year Planner',
+        name: 'My Planning',
         emoji: '🗓️',
-        description: 'Holidays, class end dates',
+        description: 'Class end dates (holidays live in the School Office)',
         tier: 'Pro',
-        teacherExplain: "Set up your whole school year in one go — enter term dates, holidays, and class end-dates so the app always knows where you are in the academic calendar. Reminders and ceremonies automatically align with your school's rhythm. Set it once, forget about it, and let the Quest flow naturally all year. 🗓️🎯",
-        studentExplain: "Your teacher has planned the whole Quest year! 🗓️ Holidays and special events are built into the adventure, so the timing of ceremonies and celebrations always matches your school calendar. 🌟"
+        teacherExplain: "Teacher Settings → My Planning sets each class's final lesson day so the calendar and Team Quest goals know when the group finishes. School-wide holiday ranges (Christmas, Easter, breaks) belong to the School Office (Secretary, Elite). 🗓️🎯",
+        studentExplain: "Your school calendar — holidays, last days, and special events — is built into the Quest so ceremonies and goals match real school time. 🌟"
     },
     makeupTracking: {
-        name: 'Make-up Tracking',
+        name: 'Pending Makeups',
         emoji: '🔄',
-        description: 'Track make-up lessons',
+        description: 'Track missing test grades',
         tier: 'Pro',
-        teacherExplain: "Keep a clean record of which students have attended make-up lessons — log dates, mark completion, and never lose track of who still needs theirs. It integrates with attendance so your records are always complete. Great for private English schools managing flexible schedules! ✅📋",
-        studentExplain: "If you missed a lesson, no worries! 🔄 Your teacher tracks make-up lessons in the Quest so nothing gets lost and you always get the chance to catch up on your adventure! 💪"
+        teacherExplain: "On Scholar's Scroll, Pending Makeups lists students who still need a grade after a class test. Log the result or dismiss the row. This is academic catch-up — not a separate make-up-lesson register. ✅📋",
+        studentExplain: "If you missed a test, your teacher can still record your makeup grade on the Scholar's Scroll so your adventure stays complete! 💪"
     },
     advancedAttendance: {
         name: 'Advanced Attendance',
         emoji: '📋',
         description: 'Chronicle and extra controls',
         tier: 'Pro',
-        teacherExplain: "Go beyond a simple present/absent list — the Attendance Chronicle gives you a monthly calendar view, absence history per student, and smart insights. Spot patterns (a student always absent on Mondays?), generate reports, and keep airtight records for parents or school owners. Professionalism made easy. 📋📊",
-        studentExplain: "Showing up consistently is part of being a true Hero! 📋 Your attendance is tracked in the Quest — heroes who keep their streak going earn extra respect from their teachers! ⭐"
+        teacherExplain: "The Attendance Chronicle is a month × students matrix: present, absent, monthly %, and the option to drop a column as No Lesson (or a school holiday). You can also mark today from Award Stars clouds (including Welcome Back). 📋📊",
+        studentExplain: "Showing up consistently is part of being a true Hero! 📋 Your attendance is tracked in the Quest — heroes who keep coming earn extra respect! ⭐"
     },
     eliteAI: {
         name: 'AI Magic ✨',
         emoji: '🤖',
         description: 'AI stories, editing, Hero Chronicle Oracle, story images',
         tier: 'Elite',
-        teacherExplain: "The Elite AI suite brings magic to your classroom: automatic AI story generation for your Adventure Log with beautiful illustrations, full editing capability to refine AI-generated content, the Oracle inside Hero's Chronicle analyses individual student data and generates personalised reports (Parent Summary, Teacher Strategy, Strengths/Weaknesses, Goal Suggestion), and AI Story Images create beautiful illustrated covers for your class stories. Less admin, more inspiration — powered by Gemini AI. 🤖✨🎨",
-        studentExplain: "Your teacher has an AI Oracle inside Hero's Chronicle! 🤖✨ The Oracle helps your teacher understand your progress and give you better support. It's like having a magical advisor watching over your hero's journey! 🌟"
+        teacherExplain: "Elite AI: Adventure Log chronicler + storybook image, Story Weavers illustrations, Avatar Forge, Nameday Lookup, class reports, certificates, Hero's Chronicle Oracle (Parent Summary, Teacher Strategy, Strengths/Weaknesses, Goal Suggestion), and Market Restock for seasonal treasures. You still decide every star. 🤖✨🎨",
+        studentExplain: "Your teacher has an AI Oracle inside Hero's Chronicle! 🤖✨ It helps your teacher understand your progress and support you better — like a magical advisor on your hero's journey! 🌟"
     },
     familiars: {
         name: 'Familiars',
         emoji: '🐉',
         description: 'Magical creature companions that hatch and evolve',
         tier: 'Elite',
-        teacherExplain: "Each student adopts a Familiar — a magical creature egg that hatches and evolves as they earn stars. Familiars grow through multiple stages and are completely unique to each student. It's a powerful long-term engagement hook that makes kids actually excited to come to English class. 🐉🥚",
-        studentExplain: "Your Familiar is your magical companion — it starts as an egg and hatches and evolves as you earn stars! 🐉🥚 Every Familiar is unique. Feed it with your hard work and watch it grow into something spectacular. Don't let it down — it's counting on you!"
+        teacherExplain: "Each student may own one Familiar. Buy an egg in the Mystic Market (30–50 Gold). It hatches after 20 stars earned since purchase, then evolves at 60 and 140 stars since hatch. Displayed beside the avatar. 🐉🥚",
+        studentExplain: "Your Familiar is your magical companion — one egg, then it hatches and evolves as you earn stars! 🐉🥚 Feed it with your hard work and watch it grow. Don't let it down — it's counting on you!"
     },
     parentAccess: {
-        name: 'Parent Portal',
+        name: 'Family Portal',
         emoji: '👨‍👩‍👧',
         description: 'Curated parent access, homework, and family messaging',
         tier: 'Pro',
-        teacherExplain: "Create one parent login per student and let families follow progress in a calm, parent-safe portal. Share homework, parent summaries, celebrations, and structured school communication without exposing confidential teacher notes. Perfect for keeping families involved without adding chaos. 👨‍👩‍👧📘",
-        studentExplain: "Your family can follow your progress, homework, and special moments in a safe portal made just for them. They get to see your growth, cheer you on, and stay connected to your Quest journey! 🌟"
+        teacherExplain: "Create one Family Portal login per student (Teacher Settings → Family Access). Families see progress, homework from Quest Assignment, attendance snapshot, and calm messages — never your private Chronicle. 👨‍👩‍👧📘",
+        studentExplain: "Your family can follow your progress, homework, and special moments in a safe portal made just for them. They get to cheer you on without sitting in the teacher tools! 🌟"
     },
     secretaryAccess: {
-        name: 'Secretary Console',
+        name: 'School Office',
         emoji: '🏛️',
         description: 'School-wide admin access with full oversight',
         tier: 'Elite',
-        teacherExplain: "Elite schools can create a dedicated secretary account with school-wide visibility. The secretary can review every class, student, score, note, communication thread, and grading setup across the whole school from a dedicated command console. 🏛️🗂️",
-        studentExplain: "Your school office can keep the whole Quest organised behind the scenes — classes, messages, and records all stay in sync for every hero. 🏛️"
+        teacherExplain: "The School Office (Secretary) owns the year clock, holiday ranges, school-wide grading defaults, and family messages. Teachers still run the lesson; the office keeps the calendar honest. Open it from the header shield when your school has Secretary access. 🏛️🗂️",
+        studentExplain: "Your school office keeps holidays, the school year, and messages organised behind the scenes so every hero's Quest stays in sync. 🏛️"
     },
     quizOfTheWeek: {
         name: 'Quiz of the Week',
         emoji: '❓',
         description: 'Weekly curriculum quiz game-show',
         tier: 'Elite',
-        teacherExplain: "Quiz of the Week is a weekly, class-by-class curriculum quiz that runs like a fun game show. You pick the focus (grammar/vocabulary/mix + topics/keywords), the app generates the questions, and the quiz appears automatically on the class's first lesson of the week (during lesson time). Students are picked at random to answer, and the class earns rewards based on first-try accuracy. It’s perfect for quick review and building routine accountability — without grading paperwork. ❓🏆",
-        studentExplain: "Quiz of the Week is your class’s weekly challenge! ❓ Your teacher sets the topics and the Quest generates questions for you. Heroes get picked at random to answer — and if your class does well, you unlock rewards. It feels like a game show, but it’s really making your English stronger every week. 🏆"
+        teacherExplain: "Configure in Teacher Settings → Quiz (grammar, vocabulary, or mix). The app writes multiple-choice questions that scale with class size (about three-quarters of the roster, between 5 and 15). Play from Home on the class's first lesson day of the week during lesson time. Students are picked at random; rewards follow first-try accuracy. Not a Scholar's Scroll test. ❓🏆",
+        studentExplain: "Quiz of the Week is your class's weekly challenge! ❓ Heroes get picked at random to answer — and if your class does well, you unlock rewards. It feels like a game show, but it makes your English stronger every week. 🏆"
     }
 };
 
@@ -134,12 +134,13 @@ export function getGuideSections(perspective) {
                 color: 'amber',
                 intro: 'The heart of The Great Class Quest — the motivation engine that keeps every student engaged every single lesson.',
                 features: [
-                    { emoji: '⭐', name: 'Award Stars', tier: 'starter', teacherExplain: 'Your most-used tool! Tap any student\'s avatar and award stars for participation, effort, creativity, correct answers, or any reason you define. Stars power the entire economy — students spend them in the Mystic Market, convert them to gold, and use them in ceremonies. Make it feel special and your students will feel it. ✨', why: 'The fastest way to energise a quiet class or reward a breakthrough moment.' },
-                    { emoji: '💰', name: 'Mystic Market & Shop', tier: 'starter', teacherExplain: 'Students spend their earned stars and gold on items in the Mystic Market — Legendary Artifacts with special powers are always available. On Elite, the shop also gets AI-generated Seasonal Treasures (themed monthly items) and Familiar eggs. You control what\'s in the shop and set prices. The economy creates natural drive: students want to earn more so they can buy more. 🛒✨', why: 'Creates intrinsic motivation without external prizes or stickers.' },
-                    { emoji: '🎁', name: "Hero's Boon", tier: 'starter', teacherExplain: "Hero's Boon is a peer-to-peer gift system — students can spend 15 Gold to bestow a Boon on a classmate, giving them +0.5 Stars! It teaches generosity and community spirit. Students treasure receiving Boons from their friends. Perfect for building classroom camaraderie and celebrating each other's achievements. 🎁💫", why: 'Teaches generosity and builds peer-to-peer connections in the classroom.' },
-                    { emoji: '🏹', name: 'Quest Bounties', tier: 'starter', teacherExplain: 'Launch time-limited Quest Bounties — mini challenges with a star reward that students race to complete. Set a task ("First to read the paragraph correctly wins 5 stars!") and watch the energy in the room completely transform. Bounties are perfect for drilling vocabulary or comprehension in a fun, competitive way. 🏹⏱️', why: 'Instantly boosts engagement and creates memorable competitive moments.' },
-                    { emoji: '🐉', name: 'Familiars', tier: 'elite', teacherExplain: "Each student adopts a Familiar — a magical creature egg that hatches and evolves as they earn stars. Familiars grow through multiple stages and are completely unique to each student. It's a powerful long-term engagement hook that makes kids actually excited to come to English class. 🐉🥚", why: 'Long-term progression that makes every star feel like it matters beyond today.' },
-                    { emoji: '🎉', name: 'Ceremonies', tier: 'starter', teacherExplain: 'Monthly ceremonies are magical end-of-cycle celebrations — the app generates highlights, spotlights top heroes, announces champions, and plays celebration animations. Run it on your projector and your students will talk about it all week. No extra preparation needed — the Quest does it all! 🎉🏆', why: 'Creates emotional peaks that students look forward to every month.' },
+                    { emoji: '⭐', name: 'Award Stars', tier: 'starter', teacherExplain: 'The heart of every lesson. On floating clouds, award 1, 2, or 3 stars for one of four virtues: Teamwork, Creativity, Respect, or Focus. Welcome Back is an absence flow, not a fifth button. Scholar\'s Bonus comes from Starfall; Story Weaver stars come from Story Weavers. Each star also grants 1 Gold. ✨', why: 'The fastest honest way to name virtue in action and fuel the whole Quest.' },
+                    { emoji: '💰', name: 'Mystic Market', tier: 'starter', teacherExplain: 'Its own tab. Students spend Gold (not stars — rank never drops when they shop) on 15 Legendary Artifacts with fixed prices. Two legendary buys per student per month. On Elite, Restock fills seasonal treasures and Familiar eggs. You do not set those prices. Reigning Hero of the Day gets 25% off the seasonal shelf. 🛒✨', why: 'Teaches delayed gratification without selling leaderboard rank.' },
+                    { emoji: '🎁', name: "Hero's Boon", tier: 'starter', teacherExplain: "A classmate spends 15 Gold to give +0.5 stars (free all month with Compassion Token). Max 4 gifts per class per day. The receiver must be in the bottom 3 monthly stars or in a tie group. No self-gift; cannot gift the same classmate twice in a row. Grey hearts mean not eligible. Distinct from Teacher Boon and from the Hero of the Day's automatic +1. 🎁💫", why: 'Teaches generosity with fairness rules the class can see.' },
+                    { emoji: '🎗️', name: 'Teacher Boon', tier: 'starter', teacherExplain: 'In the last 7 days of the month, gift 2 stars once per class with a named reason (Leadership, Perseverance, Kindness, Bravery, Helping Others, Remarkable Growth, or your own words). Free — no Gold. It appears in the Ceremony of the Month. 🎗️', why: 'Names character the four virtue buttons cannot quite capture.' },
+                    { emoji: '🏹', name: 'Quest Bounties', tier: 'starter', teacherExplain: 'A short class challenge: reach X stars in Y minutes for a stated reward (for example five minutes of free time). Post mainly from Home. Progress shows on Award Stars and Projector Mode. Time Warp Hourglass adds +5 minutes to active timers. 🏹⏱️', why: 'Turns a slice of the lesson into a shared race against the clock.' },
+                    { emoji: '🐉', name: 'Familiars', tier: 'elite', key: 'familiars', teacherExplain: FEATURE_DEFINITIONS.familiars.teacherExplain, why: 'Long-term progression that makes every star feel like it matters beyond today.' },
+                    { emoji: '🎉', name: 'Ceremony of the Month', tier: 'starter', teacherExplain: 'A dual ritual when a new month begins: Team Quest league ranks for classes, then Prodigy of the Month for the selected class (Co-Prodigy allowed). Tabs pulse until you run it. Hall of Prodigies archives monthly crowns. The Great Guild Ceremony in June is a different, year-end house crowning. 🎉🏆', why: 'Creates an emotional peak without mixing daily heroes with monthly prodigies.' },
                 ]
             },
             {
@@ -150,7 +151,7 @@ export function getGuideSections(perspective) {
                 intro: 'Every student becomes a unique Hero. Their identity, class, and progression make them feel genuinely invested in every lesson.',
                 features: [
                     { emoji: '🧙', name: 'Hero Classes', tier: 'pro', key: 'heroProgression', teacherExplain: FEATURE_DEFINITIONS.heroProgression.teacherExplain, why: 'Students who identify with their hero class are more likely to stay in character — focused, participatory, and proud.' },
-                    { emoji: '🌳', name: 'Skill Tree', tier: 'pro', key: 'heroProgression', teacherExplain: 'The Skill Tree is each student\'s personal progression path — as they level up, they unlock new skills and abilities. You can see every student\'s tree, understand their growth trajectory, and celebrate milestones. It gives advanced students something to chase and weaker students a clear path to follow. 🌳⬆️', why: 'Makes improvement visible, tangible, and exciting rather than abstract.' },
+                    { emoji: '🌳', name: 'Skill Tree', tier: 'pro', key: 'heroProgression', teacherExplain: 'At each Hero Path level the student chooses one of two permanent skills tied to their class virtue — extra Gold for themselves, bonus stars, or a gift to classmates or guildmates. A button on the roster pulses when a new choice is waiting. From level 3 the avatar gains a class-coloured aura. 🌳⬆️', why: 'Makes improvement visible and tied to real classroom virtues, not generic combat stats.' },
                     { emoji: '🏰', name: 'Guilds & Sorting Quiz', tier: 'pro', key: 'guilds', teacherExplain: FEATURE_DEFINITIONS.guilds.teacherExplain, why: 'Team dynamics transform individual effort into collective pride.' },
                 ]
             },
@@ -163,8 +164,8 @@ export function getGuideSections(perspective) {
                 features: [
                     { emoji: '📜', name: "Scholar's Scroll", tier: 'pro', key: 'scholarScroll', teacherExplain: FEATURE_DEFINITIONS.scholarScroll.teacherExplain, why: "Replaces paper grade sheets with a visual, satisfying record system you'll actually want to open." },
                     { emoji: '❓', name: "Quiz of the Week", tier: 'elite', key: 'quizOfTheWeek', teacherExplain: FEATURE_DEFINITIONS.quizOfTheWeek.teacherExplain, why: 'A weekly review ritual that feels like a game show — not a test.' },
-                    { emoji: '📓', name: "Hero's Chronicle", tier: 'starter', teacherExplain: "Hero's Chronicle is your private notebook for each student — accessible from My Classes → Students → Chronicle button. Add notes by category (General, Academic, Behavioral, Social, Goals), track progress over time, and keep everything in one place. On Elite tier, the Oracle AI can analyse your notes plus trial scores and star awards to generate Parent Summaries, Teacher Strategies, Strengths/Weaknesses analyses, and Goal Suggestions. 📓✨", why: 'Keep detailed records without drowning in paperwork — and let AI help you spot patterns on Elite.' },
-                    { emoji: '🔄', name: 'Make-up Tracking', tier: 'pro', key: 'makeupTracking', teacherExplain: FEATURE_DEFINITIONS.makeupTracking.teacherExplain, why: 'Perfect for private English schools with flexible scheduling — nothing slips through the cracks.' },
+                    { emoji: '📓', name: "Hero's Chronicle", tier: 'starter', teacherExplain: "Private notes per student from My Classes → Students → Chronicle. Categories: General, Academic, Behavioral, Social, Goals. Families never see this notebook. On Elite, the Oracle can write Parent Summary, Teacher Strategy, Strengths/Weaknesses, and Goal Suggestion from notes, trials, and stars. 📓✨", why: 'Keep detailed records without drowning in paperwork — and let AI help you spot patterns on Elite.' },
+                    { emoji: '🔄', name: 'Pending Makeups', tier: 'pro', key: 'makeupTracking', teacherExplain: FEATURE_DEFINITIONS.makeupTracking.teacherExplain, why: 'Missing test grades stay visible until you log them or dismiss the row.' },
                     { emoji: '📋', name: 'Advanced Attendance', tier: 'pro', key: 'advancedAttendance', teacherExplain: FEATURE_DEFINITIONS.advancedAttendance.teacherExplain, why: 'Professional-grade records that protect you and inform parents with clarity.' },
                 ]
             },
@@ -176,9 +177,21 @@ export function getGuideSections(perspective) {
                 intro: 'Everything you need to stay organised across the whole school year — all in one place.',
                 features: [
                     { emoji: '📅', name: 'Calendar & Day Planner', tier: 'pro', key: 'calendar', teacherExplain: FEATURE_DEFINITIONS.calendar.teacherExplain, why: 'Brings your teaching plan and the Quest world into perfect sync — no separate tools needed.' },
-                    { emoji: '🗓️', name: 'School Year Planner', tier: 'pro', key: 'schoolYearPlanner', teacherExplain: FEATURE_DEFINITIONS.schoolYearPlanner.teacherExplain, why: 'One-time setup that makes the app smarter about your entire teaching year.' },
-                    { emoji: '👑', name: 'Hero of the Day', tier: 'pro', key: 'adventureLog', teacherExplain: "Each time you save an Adventure Log entry, the app crowns a Hero of the Day for that lesson and spotlights them across the class story. On Pro this pairs with your manual diary entry; on Elite it appears inside the AI-written chronicle too. 👑📓", why: 'Creates a daily spotlight moment without adding another decision for the teacher.' },
-                    { emoji: '📓', name: 'Adventure Log', tier: 'pro', key: 'adventureLog', teacherExplain: FEATURE_DEFINITIONS.adventureLog.teacherExplain, why: 'Turns your lesson notes into a beautiful, shareable story your students will be proud of.' },
+                    { emoji: '🗓️', name: 'My Planning', tier: 'pro', key: 'schoolYearPlanner', teacherExplain: FEATURE_DEFINITIONS.schoolYearPlanner.teacherExplain, why: 'Class end dates keep Team Quest goals honest after a group finishes.' },
+                    { emoji: '👑', name: 'Hero of the Day', tier: 'pro', key: 'adventureLog', teacherExplain: "Crowned when you Log Today's Adventure. Mask of the Protagonist wins if pending; otherwise a fair rotation among present students. Perks: +1 on their first award that day (labelled Includes Hero's Boon), 25% off seasonal Market, and lifetime legend discounts. Distinct from Prodigy of the Month. 👑📓", why: 'A daily spotlight with real perks — without stealing the monthly crown.' },
+                    { emoji: '📓', name: 'Adventure Log', tier: 'pro', key: 'adventureLog', teacherExplain: FEATURE_DEFINITIONS.adventureLog.teacherExplain, why: 'Turns the hour into a story the class owns — and crowns Hero of the Day.' },
+                ]
+            },
+            {
+                id: 'community',
+                emoji: '🏫',
+                title: 'Families, School Office & Ranks',
+                color: 'emerald',
+                intro: 'The same school year, three interfaces. Students never log in.',
+                features: [
+                    { emoji: '🏆', name: "Hero's Challenge", tier: 'starter', teacherExplain: 'Student vs student ranks (By Class or Global, Monthly or Total). Trophy Room holds inventory. Certificates and Hall of Prodigies live here. Guild badges on rows are identity; guild ranking is Guild Hall. 🏆', why: 'Personal accountability beside the class map race.' },
+                    { emoji: '👨‍👩‍👧', name: 'Family Portal', tier: 'pro', key: 'parentAccess', teacherExplain: FEATURE_DEFINITIONS.parentAccess.teacherExplain, why: 'Families follow homework and growth without seeing teacher-only notes.' },
+                    { emoji: '🏛️', name: 'School Office', tier: 'elite', key: 'secretaryAccess', teacherExplain: FEATURE_DEFINITIONS.secretaryAccess.teacherExplain, why: 'One person owns holidays and the year clock so every teacher calendar matches.' },
                 ]
             },
             {
@@ -189,9 +202,9 @@ export function getGuideSections(perspective) {
                 intro: 'Story writing, vocabulary, and creative expression tools designed specifically for English language teachers.',
                 features: [
                     { emoji: '📖', name: 'Story Weavers', tier: 'elite', key: 'storyWeavers', teacherExplain: FEATURE_DEFINITIONS.storyWeavers.teacherExplain, why: 'Makes creative writing collaborative, exciting, and something students actually want to do.' },
-                    { emoji: '💬', name: 'Word of the Day', tier: 'elite', key: 'storyWeavers', teacherExplain: "Launch a Word of the Day each lesson — students learn the word, use it actively, and earn stars for using it correctly in context. It\'s vocabulary building disguised as a fun daily ritual. Over a school year, students accumulate a rich vocabulary bank they genuinely remember. 💬📚", why: 'Vocabulary sticks when it comes with a story, a context, and a star reward.' },
-                    { emoji: '🗺️', name: 'Quest World Map', tier: 'starter', teacherExplain: 'The Quest World Map visualises your class\'s collective progress through the school year as a literal adventure journey. Students can see how far they\'ve come and what exciting territory lies ahead. Display it on the projector to create a shared sense of adventure. 🗺️⚔️', why: 'Transforms abstract progress into a visual journey students can feel proud of.' },
-                    { emoji: '🖥️', name: 'Projector Mode', tier: 'starter', teacherExplain: "Switch to Projector Mode and the app transforms into a beautiful, animated classroom display — perfect for showing on your classroom projector or smart board. Students see their heroes, the leaderboard, ceremony animations, and the Quest world in full cinematic style. 🖥️🎬", why: 'Turns your classroom screen into an immersive Quest experience that excites students the moment they walk in.' },
+                    { emoji: '💬', name: 'Word of the Day', tier: 'elite', key: 'storyWeavers', teacherExplain: "On Story Weavers, lock a Word of the Day (type it or ask Elite AI to suggest) before the next sentence so the class must use it in the tale. Vocabulary Vault on the calendar is a different, one-day speaking quest. 💬📚", why: 'Vocabulary sticks when it has to live in the next sentence of a shared book.' },
+                    { emoji: '🗺️', name: 'Team Quest', tier: 'starter', teacherExplain: 'Class vs class this month on the League Map: Bronze Meadows → Silver Peaks → Golden Citadel → Crystal Realm. Position is monthly stars versus a goal that already allows for holidays and cancelled lessons. This is not Guild Hall (year-long houses). 🗺️⚔️', why: 'Belonging: the whole class travels together.' },
+                    { emoji: '🖥️', name: 'Projector Mode', tier: 'starter', teacherExplain: "The TV icon on the classroom PC. Day/night sky, weather, clock, and rotating Director cards (streaks, bounty timer, league race, treasury, weather, holidays, birthdays). Not on the teacher phone. Sky Theater in the header is separate decoration. 🖥️🎬", why: 'Turns the classroom display into the Quest the children walk into.' },
                 ]
             },
             {
@@ -202,8 +215,8 @@ export function getGuideSections(perspective) {
                 intro: 'The most advanced frontier of The Great Class Quest — AI-powered tools that save you time and spark creativity.',
                 features: [
                     { emoji: '🔮', name: "Hero's Chronicle Oracle", tier: 'elite', key: 'eliteAI', teacherExplain: "Inside each student's Hero's Chronicle (My Classes → Students → Chronicle), the Oracle AI generates four types of personalised reports: Parent Summary (for parent-teacher meetings), Teacher Strategy (actionable classroom tips), Strengths/Weaknesses Analysis, and Goal Suggestions. The Oracle reads all the student's notes, trial scores, and star awards to give you insights you might have missed. 🔮✨", why: 'Saves hours of analysis and helps you support every student as an individual.' },
-                    { emoji: '✍️', name: 'AI Adventure Log Writer', tier: 'elite', key: 'eliteAI', teacherExplain: 'After each lesson, the AI automatically generates a beautifully written Adventure Log entry based on what happened in class — stars awarded, bounties completed, achievements earned. You can edit or publish as-is. It turns admin into a magical storybook in seconds! ✍️🤖', why: 'Eliminates the time cost of writing lesson logs while making them richer than ever.' },
-                    { emoji: '🎨', name: 'AI Story Images', tier: 'elite', key: 'eliteAI', teacherExplain: 'Generate illustrated cover images for your class stories using AI — beautiful, fantasy-themed artwork created just for your class\'s unique adventure. Students see their story as a real illustrated book. It\'s creative, memorable, and completely unique. 🎨🖼️', why: 'Transforms student writing into something visually stunning that they are genuinely proud of.' },
+                    { emoji: '✍️', name: 'AI Adventure Log Writer', tier: 'elite', key: 'eliteAI', teacherExplain: 'On Elite, Log Today\'s Adventure can write the diary and a storybook image from the lesson. You can edit before (and after) it is saved. Pro teachers write the same ritual by hand. ✍️🤖', why: 'Keeps the closing ritual rich without stealing the teacher\'s last word.' },
+                    { emoji: '🎨', name: 'AI Story Images', tier: 'elite', key: 'eliteAI', teacherExplain: 'Story Weavers generates an illustration when you lock in a sentence. Adventure Log on Elite paints a storybook picture for the day. 🎨🖼️', why: 'Children take home proof that English made a picture-book, not only a worksheet.' },
                     { emoji: '🦸', name: 'AI Avatar Generator', tier: 'elite', key: 'eliteAI', teacherExplain: 'Students create unique AI-generated avatars! They choose a creature type, colour scheme, and accessory, and the AI creates a personalised chibi-style character just for them. Each avatar is completely unique — no two heroes look the same! 🦸✨', why: 'Students feel genuinely attached to their unique identity in the Quest world.' },
                     { emoji: '📄', name: 'AI Reports & Certificates', tier: 'elite', key: 'eliteAI', teacherExplain: 'Generate AI-powered weekly class reports with insights and suggestions, plus beautifully styled certificates with AI-generated personalised text for each student. Perfect for parent meetings and celebrating achievements! 📄🏅', why: 'Professional, personalised output that impresses parents and saves hours of writing.' },
                     { emoji: '🌟', name: 'AI Seasonal Shop', tier: 'elite', key: 'eliteAI', teacherExplain: "Every month, use AI to restock the Mystic Market with brand-new themed seasonal treasures — fantasy items crafted to the current season and your students' age group. Click the \u2018Restock\u2019 button in the Mystic Market and AI generates a fresh batch in seconds. Students love discovering what's new each month! 🛒✨", why: 'Fresh monthly items keep students excited to check the shop and earn more gold every single lesson.' },
@@ -221,11 +234,11 @@ export function getGuideSections(perspective) {
             color: 'amber',
             intro: 'The beating heart of your Quest — earn stars, build your treasure, and become the most powerful hero in the class!',
             features: [
-                { emoji: '⭐', name: 'Earning Stars', tier: 'starter', studentExplain: 'Stars are your EXP points! 🌟 Your teacher awards them for speaking English, answering questions, helping classmates, being creative, or completing challenges. Every star brings you closer to new items, new abilities, and a more powerful hero!', why: 'Every star is proof that you\'re growing as an English hero! 💪' },
-                { emoji: '🛒', name: 'Mystic Market', tier: 'starter', studentExplain: 'Spend your stars and gold in the Mystic Market! 🛒✨ Legendary Artifacts with special powers are always available. On Elite, the shop gets new AI-generated Seasonal Treasures every month, plus Familiar eggs! Your inventory is your treasure chest of hard-earned rewards.', why: 'Every item you buy is proof of how much you\'ve participated and grown! 🏆' },
-                { emoji: '🎁', name: "Hero's Boon", tier: 'starter', studentExplain: "A Hero's Boon is a special gift you can give to a classmate! 🎁💫 It costs 15 Gold, and the receiver gets +0.5 Stars! When someone gives you a Boon, it means they think you did something legendary. You can also save up your Gold to surprise a friend with one!", why: "It's a way to celebrate your friends and build team spirit! ✨" },
-                { emoji: '🏹', name: 'Quest Bounties', tier: 'starter', studentExplain: 'When your teacher launches a Bounty, a challenge appears with a star reward attached! 🏹⏱️ Race to complete it first, or be the best at it, to claim the prize. Bounties are fast, exciting, and completely change the energy of the lesson!', why: 'The fastest way to earn big stars and show off your English skills! 🌟' },
-                { emoji: '🐉', name: 'Your Familiar', tier: 'elite', studentExplain: "Your Familiar is your magical companion — it starts as an egg and hatches and evolves as you earn stars! 🐉🥚 Every Familiar is unique. Feed it with your hard work and watch it grow into something spectacular. Don't let it down — it's counting on you!", why: "A growing creature that's entirely YOURS, reflecting your entire journey. 💫" },
+                { emoji: '⭐', name: 'Earning Stars', tier: 'starter', studentExplain: 'Stars are your hero points! 🌟 Your teacher awards them for Teamwork, Creativity, Respect, or Focus. Every star also gives you 1 Gold. Stars move your class on the Team Quest map and can change your rank in Hero\'s Challenge!', why: 'Every star is proof that you\'re growing as an English hero! 💪' },
+                { emoji: '🛒', name: 'Mystic Market', tier: 'starter', studentExplain: 'Spend Gold (not stars!) in the Mystic Market. 🛒✨ Legendary Artifacts with special powers are always there. On Elite, new seasonal treasures appear each month, plus Familiar eggs. Buying things never lowers your star rank.', why: 'Every item you buy is proof of how much you\'ve participated and grown! 🏆' },
+                { emoji: '🎁', name: "Hero's Boon", tier: 'starter', studentExplain: "A Hero's Boon is a gift of +0.5 stars to a classmate who needs a lift. 🎁💫 It costs 15 Gold. The Quest only lets you gift classmates who are near the bottom this month (or tied) — that keeps it fair. You cannot gift yourself.", why: "It's a way to celebrate friends and practise generosity! ✨" },
+                { emoji: '🏹', name: 'Quest Bounties', tier: 'starter', studentExplain: 'When your teacher posts a Bounty, the whole class races to earn enough stars before the timer ends! 🏹⏱️ Hit the target together and claim the reward (like extra free time).', why: 'A shared race that makes the room buzz! 🌟' },
+                { emoji: '🐉', name: 'Your Familiar', tier: 'elite', studentExplain: FEATURE_DEFINITIONS.familiars.studentExplain, why: "A growing creature that's entirely YOURS, reflecting your entire journey. 💫" },
             ]
         },
         {
@@ -236,7 +249,7 @@ export function getGuideSections(perspective) {
             intro: "This isn't just a class — it's your origin story. Discover who your hero is!",
             features: [
                 { emoji: '⚔️', name: 'Your Hero Class', tier: 'pro', studentExplain: 'Who is your hero? ⚔️ Choose your Hero Class — Guardian, Sage, Paladin, Artificer, Scholar, Weaver, or Nomad — and level up by earning stars in your specialty. Each level unlocks new skills on your Skill Tree, making your hero more powerful. Your adventure is YOUR adventure! 🌟', why: 'Your class defines your strengths and gives you a unique identity in the Quest! 🌟' },
-                { emoji: '🌳', name: 'Skill Tree', tier: 'pro', studentExplain: 'As you level up, you unlock branches on your personal Skill Tree! 🌳✨ Each skill makes you more powerful in different ways. Some students focus on combat skills, others on magic — your tree tells the story of your growth as a hero.', why: 'Levelling up means YOU are visibly, undeniably getting stronger. 💪' },
+                { emoji: '🌳', name: 'Skill Tree', tier: 'pro', studentExplain: 'As you level up, you choose branches on your personal Skill Tree! 🌳✨ Skills might give extra Gold, bonus stars, or a gift to your classmates or guild when you play to your class\'s strength. Your tree tells the story of how you grow as an English hero.', why: 'Levelling up means YOU are visibly, undeniably getting stronger. 💪' },
                 { emoji: '🏰', name: 'Your Guild', tier: 'pro', studentExplain: FEATURE_DEFINITIONS.guilds.studentExplain, why: 'Being part of a team makes every star you earn feel even more important! 🏆' },
             ]
         },
@@ -249,9 +262,9 @@ export function getGuideSections(perspective) {
             features: [
                 { emoji: '❓', name: 'Quiz of the Week', tier: 'elite', key: 'quizOfTheWeek', studentExplain: FEATURE_DEFINITIONS.quizOfTheWeek.studentExplain, why: 'A weekly challenge that helps you remember what you learned — and win rewards!' },
                 { emoji: '📖', name: 'Story Weavers', tier: 'elite', studentExplain: FEATURE_DEFINITIONS.storyWeavers.studentExplain, why: "Your sentences become part of a REAL story your whole class writes together! ✍️" },
-                { emoji: '💬', name: 'Word of the Day', tier: 'elite', studentExplain: "Every lesson there\'s a special Word of the Day! 💬📚 Learn it, use it in conversation or writing, and earn bonus stars. It's a tiny challenge that builds your vocabulary into something superpower-level by the end of the year!", why: 'Small daily words = huge vocabulary by the end of the year. 🌟' },
+                { emoji: '💬', name: 'Word of the Day', tier: 'elite', studentExplain: "On Story Weavers there is a special Word of the Day! 💬📚 Learn it, then use it in the next sentence of the class story. Over the year your vocabulary becomes a superpower!", why: 'Small daily words = huge vocabulary by the end of the year. 🌟' },
                 { emoji: '📜', name: "Scholar's Scroll", tier: 'pro', studentExplain: FEATURE_DEFINITIONS.scholarScroll.studentExplain, why: 'Watching your own scores improve is incredibly motivating! 📈' },
-                { emoji: '🗺️', name: 'Quest Map', tier: 'starter', studentExplain: 'The Quest Map shows your class\'s collective journey through the year like an epic fantasy map! 🗺️⚔️ Every milestone your class hits moves you further into new, exciting territory. It\'s visual proof of how far you\'ve all come together!', why: 'Progress feels REAL when you can see it on a map! 🌍' },
+                { emoji: '🗺️', name: 'Team Quest Map', tier: 'starter', studentExplain: 'The Team Quest map shows your class\'s journey this month! 🗺️⚔️ Earn stars together to travel Bronze Meadows, Silver Peaks, Golden Citadel, and Crystal Realm. It is your class vs other classes — not the Guild race.', why: 'Progress feels REAL when you can see it on a map! 🌍' },
             ]
         },
         {
@@ -261,9 +274,9 @@ export function getGuideSections(perspective) {
             color: 'rose',
             intro: "The Quest isn't just about lessons — it's about those legendary moments you remember forever!",
             features: [
-                { emoji: '🎉', name: 'Monthly Ceremonies', tier: 'starter', studentExplain: "At the end of each month, your class holds a ceremony! 🎉🏆 The app displays the top heroes, guild champions, and highlight moments in a beautiful, animated celebration — sometimes shown on the projector for the whole class to see. Will YOUR name be in the spotlight?", why: 'Your hard work deserves a real celebration every single month! 🌟' },
-                { emoji: '👑', name: 'Hero of the Day', tier: 'pro', studentExplain: "Every Adventure Log can crown a Hero of the Day — one student chosen to represent that lesson's adventure! 👑 If it is you, your name appears in the class chronicle and in special spotlight moments around the Quest.", why: 'A daily spotlight makes each lesson feel like it could become YOUR legendary moment.' },
-                { emoji: '🏆', name: 'Hall of Heroes', tier: 'pro', studentExplain: "The Hall of Heroes displays the greatest heroes in your class — students who showed outstanding performance, growth, or spirit. Getting featured in the Hall of Heroes is a true honour. It lives in the Adventure Log for everyone to see. 🏆👑", why: 'True legends get remembered — could your name be there? ✨' },
+                { emoji: '🎉', name: 'Ceremony of the Month', tier: 'starter', studentExplain: "When a new month begins, your class holds the Ceremony of the Month! 🎉🏆 First the classes on Team Quest are ranked, then one student becomes Prodigy of the Month (sometimes a Co-Prodigy shares the crown). Guild Champions and the Great Guild Ceremony are a different, house story.", why: 'Your hard work deserves a real celebration every single month! 🌟' },
+                { emoji: '👑', name: 'Hero of the Day', tier: 'pro', studentExplain: "When the teacher logs today's adventure, one present student becomes Hero of the Day! 👑 You get a spotlight, a shop discount on seasonal treasures, and +1 star on your first award that day. This is not the same as Prodigy of the Month.", why: 'A daily spotlight makes each lesson feel like it could become YOUR legendary moment.' },
+                { emoji: '🏆', name: 'Hall of Heroes', tier: 'pro', studentExplain: "The Hall of Heroes remembers every Hero of the Day crown. 🏆👑 Getting in means you wore that daily spotlight — it is not the Hall of Prodigies (those are monthly crowns).", why: 'True daily legends get remembered — could your name be there? ✨' },
                 { emoji: '📅', name: 'Quest Events', tier: 'pro', studentExplain: "Your teacher plans special Quest Events — competitions, challenges, and celebrations baked into the Quest calendar! 📅🎊 Some events give bonus rewards, others unlock special ceremonies. Keep your eyes open for what\'s coming up!", why: "There's always something exciting to look forward to in the Quest! 🌟" },
                 { emoji: '📓', name: 'Adventure Log', tier: 'pro', studentExplain: FEATURE_DEFINITIONS.adventureLog.studentExplain, why: 'Your class story is being written every lesson — and you\'re in it! 📖' },
             ]
@@ -293,7 +306,7 @@ export const GATED_TABS = {
     'calendar-tab': {
         feature: FEATURE_DEFINITIONS.calendar.name,
         tier: 'Pro',
-        message: 'Manage your schedule, holidays, and Quest Events.'
+        message: 'Manage your schedule, one-day closures, and Quest Events.'
     },
     'scholars-scroll-tab': {
         feature: FEATURE_DEFINITIONS.scholarScroll.name,
@@ -319,7 +332,7 @@ export const TAB_FEATURE_FLAGS = {
 export const UPGRADE_MESSAGES = {
     Pro: {
         default: 'This feature is available on the Pro plan. Contact me to upgrade.',
-        schoolYearPlanner: 'Planning tools (holidays, class end dates) unlock with Pro.',
+        schoolYearPlanner: 'My Planning (class end dates) unlocks with Pro. School-wide holidays live in the School Office.',
         advancedAttendance: 'The Attendance Chronicle (month view and history) is available on the Pro plan.',
         heroProgression: 'Hero Classes and Skill Tree progression are available on the Pro plan.',
         maxClasses: 'You have reached your plan limit. Upgrade to add more classes.',
@@ -327,9 +340,10 @@ export const UPGRADE_MESSAGES = {
     },
     Elite: {
         default: 'AI-powered features unlock on the Elite plan. Contact me to upgrade.',
-        adventureLog: 'The AI-powered diary and storybook image are on the Elite plan.',
+        adventureLog: 'The AI-powered diary and storybook image are on the Elite plan. Pro still has the full manual log and Hero of the Day.',
         storyWeavers: 'Story Weavers and Word of the Day are available on the Elite plan. Contact me to upgrade.',
-        familiars: 'Familiars — magical creature companions that hatch and evolve — are available on the Elite plan. Contact me to upgrade.'
+        familiars: 'Familiars — one companion egg that hatches and evolves — are available on the Elite plan. Contact me to upgrade.',
+        quizOfTheWeek: 'Quiz of the Week is available on the Elite plan. Configure it in Teacher Settings → Quiz and play from Home.'
     }
 };
 
@@ -343,7 +357,7 @@ export function getTierSummary(rawTier) {
         return {
             badge: 'Top Tier',
             title: 'You are on Elite — the full magical toolkit.',
-            body: 'All AI-powered features unlocked: Hero\'s Chronicle Oracle, AI avatars, AI reports & certificates, AI story images, AI adventure log writer, plus Story Weavers, Familiars, parent portal, secretary console, full analytics, planning, guilds and every classroom magic trick.',
+            body: 'All Elite tools unlocked: Hero\'s Chronicle Oracle, Avatar Forge, AI reports & certificates, Story Weavers images, AI Adventure Log, Market Restock, Familiars, Quiz of the Week, Family Portal, School Office, guilds, Hero Path, and every classroom ritual.',
             cta: 'Thank you for being a founding legend of The Great Class Quest.',
             isTopTier: true
         };
@@ -352,16 +366,16 @@ export function getTierSummary(rawTier) {
         return {
             badge: 'Pro Power',
             title: 'Pro unlocks guilds, planners and advanced logs.',
-            body: "You have access to Guilds, Hero Classes & Skill Tree progression, the Calendar & School Year Planner, Scholar's Scroll, and the full Adventure Log with manual diary entries, Hero of the Day, and Hall of Heroes.",
-            cta: 'Upgrade to Elite to add Story Weavers, Familiars, AI-assisted summaries, Hero\'s Chronicle Oracle, and early-access experiments.',
+            body: "You have Guild Hall, Hero Path & Skill Tree, Quest Calendar, My Planning (class end dates), Scholar's Scroll, Family Access, Attendance Chronicle, and the full Adventure Log with manual diary, Hero of the Day, and Hall of Heroes.",
+            cta: 'Upgrade to Elite for Story Weavers, Familiars, Quiz of the Week, AI chronicler and images, the School Office, and early-access experiments.',
             isTopTier: false
         };
     }
     return {
         badge: 'Starter',
         title: 'Starter keeps things simple and safe.',
-        body: 'Perfect for trying the core experience: award stars, run ceremonies, use Quest Assignment & Attendance, Bounties, and the Mystic Market.',
-        cta: 'Upgrade to Pro to unlock guilds, hero classes, planners, story tools, the full Adventure Log, and the parent portal — or go straight to Elite for AI-powered features, the secretary console, and school-wide admin controls.',
+        body: 'Perfect for trying the core experience: Award Stars (four virtues), Team Quest, Hero\'s Challenge, Ceremony of the Month, Quest Assignment & Attendance, Bounties, Mystic Market artifacts, Hero\'s Boon, Teacher Boon, and Projector Mode.',
+        cta: 'Upgrade to Pro for guilds, Hero Path, calendar, Scholar\'s Scroll, the full Adventure Log, Family Portal — or Elite for AI, Familiars, Quiz of the Week, and the School Office.',
         isTopTier: false
     };
 }
@@ -386,17 +400,17 @@ export function getTiersAtAGlance() {
         {
             tier: 'Starter',
             label: 'Starter',
-            bullets: 'Core stars, ceremonies, Quest Assignment & Attendance, Bounties, Mystic Market, Hero\'s Boon, Quest World Map, Projector Mode, Hero\'s Chronicle (note-taking).'
+            bullets: 'Award Stars, Team Quest, Hero\'s Challenge, Ceremony of the Month, Quest Assignment & Attendance, Bounties, Mystic Market artifacts, Hero\'s Boon, Teacher Boon, Projector Mode, Hero\'s Chronicle notes.'
         },
         {
             tier: 'Pro',
             label: 'Pro',
-            bullets: "Adds Guilds, Hero Classes & Skill Tree progression, Calendar & School Year Planner, Scholar's Scroll, full Adventure Log (manual diary, Hero of the Day, Hall of Heroes)."
+            bullets: "Adds Guild Hall (Guild Power, Fortune's Wheel), Hero Path & Skill Tree, Quest Calendar & My Planning, Scholar's Scroll, Family Access, Attendance Chronicle, full Adventure Log (manual diary, Hero of the Day, Hall of Heroes)."
         },
         {
             tier: 'Elite',
             label: 'Elite',
-            bullets: 'Everything in Pro plus Quiz of the Week (weekly curriculum quiz), Story Weavers (collaborative stories & Word of the Day), Familiars (magical companion eggs), the secretary console, AI-powered features: Hero\'s Chronicle Oracle (AI insights), AI avatars, AI reports & certificates, AI story images, AI adventure log writer, AI seasonal shop (monthly themed treasures), early-access experiments and priority support.'
+            bullets: 'Everything in Pro plus Quiz of the Week, Story Weavers & Word of the Day, Familiars, School Office, and AI: Oracle, Avatar Forge, reports & certificates, story images, Adventure Log writer, Market Restock, Nameday Lookup.'
         }
     ];
 }

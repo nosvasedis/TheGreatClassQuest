@@ -379,6 +379,15 @@
         inset 0 1px 0 rgba(255, 255, 255, 0.85);
     backdrop-filter: blur(16px);
     -webkit-backdrop-filter: blur(16px);
+    transition: background 1s ease, border-color 1s ease, box-shadow 1s ease;
+}
+
+body.night-mode .m-dock {
+    background: rgba(30, 27, 75, 0.78);
+    border-color: rgba(165, 180, 252, 0.32);
+    box-shadow:
+        0 14px 36px -12px rgba(2, 6, 23, 0.55),
+        inset 0 1px 0 rgba(199, 210, 254, 0.22);
 }
 
 .m-dock--teacher,

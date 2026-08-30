@@ -252,12 +252,15 @@
 #bottom-nav-bar {
     /* Same compositor isolation as header — scrolling premium cards shouldn’t hitch the dock. */
     transform: translateZ(0);
+    background: linear-gradient(to right, #89f7fe 0%, #66a6ff 100%);
+    border-top: 1px solid transparent;
     box-shadow:
         inset 0 1px 0 rgba(255, 255, 255, 0.55),
         inset 0 -10px 18px -12px rgba(30, 64, 175, 0.35),
         0 -8px 24px -8px rgba(37, 99, 235, 0.22);
-    /* Respect iOS home-indicator so the dock never clips into the gesture bar. */
-    padding-bottom: env(safe-area-inset-bottom, 0px);
+    transition: background 1s ease, box-shadow 1s ease, border-color 1s ease;
+    /* Tiny lift under the gems; keep the dock compact and still clear the iOS home indicator. */
+    padding-bottom: calc(0.32rem + env(safe-area-inset-bottom, 0px));
 }
 
 /* Static sky-light sheen across the dock — sits under the buttons (they are z-index 1+) */
@@ -270,6 +273,54 @@
     background:
         radial-gradient(ellipse 55% 160% at 50% 0%, rgba(255, 255, 255, 0.38), transparent 62%),
         linear-gradient(to bottom, rgba(255, 255, 255, 0.16), transparent 45%);
+    transition: background 1s ease;
+}
+
+/*
+ * Night dock — same indigo bar as `header.header-night` / award sky.
+ * Projector mode keeps its own floating white chrome.
+ */
+body.night-mode:not(.projector-mode) #bottom-nav-bar {
+    background: linear-gradient(to right, #1e3a8a 0%, #312e81 100%);
+    border-top-color: #4338ca;
+    box-shadow:
+        inset 0 1px 0 rgba(199, 210, 254, 0.28),
+        inset 0 -12px 20px -14px rgba(15, 23, 42, 0.55),
+        0 -10px 28px -12px rgba(15, 23, 42, 0.42);
+}
+
+body.night-mode:not(.projector-mode) #bottom-nav-bar::before {
+    background:
+        radial-gradient(ellipse 60% 140% at 50% 0%, rgba(165, 180, 252, 0.2), transparent 64%),
+        linear-gradient(to bottom, rgba(49, 46, 129, 0.28), transparent 48%);
+}
+
+body.night-mode:not(.projector-mode) #bottom-nav-bar .nav-button.active {
+    box-shadow:
+        inset 0 0 0 1.5px rgba(199, 210, 254, 0.42),
+        inset 0 1px 0 rgba(255, 255, 255, 0.28),
+        0 0 16px rgba(165, 180, 252, 0.42),
+        0 2px 4px rgba(0, 0, 0, 0.5);
+}
+
+body.night-mode:not(.projector-mode):has(header.header-night.header-stormy) #bottom-nav-bar {
+    background: linear-gradient(to right, #0f172a 0%, #1e1b4b 55%, #020617 100%);
+    border-top-color: #312e81;
+}
+
+body.night-mode:not(.projector-mode):has(header.header-night.header-rainy) #bottom-nav-bar {
+    background: linear-gradient(to right, #1e293b 0%, #334155 50%, #0f172a 100%);
+    border-top-color: #475569;
+}
+
+body.night-mode:not(.projector-mode):has(header.header-night.header-snowy) #bottom-nav-bar {
+    background: linear-gradient(to right, #475569 0%, #64748b 50%, #334155 100%);
+    border-top-color: #94a3b8;
+}
+
+body.night-mode:not(.projector-mode):has(header.header-night.header-cloudy) #bottom-nav-bar {
+    background: linear-gradient(to right, #475569 0%, #334155 100%);
+    border-top-color: #64748b;
 }
 
 /*

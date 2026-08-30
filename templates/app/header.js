@@ -103,7 +103,7 @@ export const headerHTML = `
                         </div>
                         <button id="app-info-btn"
                             class="hover:bg-white/40 text-white h-7 w-7 rounded-full bubbly-button transition-colors duration-300 flex items-center justify-center border border-white/30 sm:h-8 sm:w-8"
-                            title="Game Guide" aria-label="Open Game Guide">
+                            title="The Adventurer's Guide" aria-label="Open The Adventurer's Guide">
                             <i class="fas fa-info"></i>
                         </button>
                         <button id="projector-mode-btn"
@@ -113,7 +113,7 @@ export const headerHTML = `
                         </button>
                         <button id="secretary-console-btn"
                             class="hidden hover:bg-white/40 text-white h-7 w-7 rounded-full bubbly-button transition-colors duration-300 flex items-center justify-center border border-white/30 sm:h-8 sm:w-8"
-                            title="Secretary Console" aria-label="Open Secretary Console">
+                            title="School Office" aria-label="Open School Office">
                             <i class="fas fa-building-shield"></i>
                         </button>
                         <button id="header-settings-btn"

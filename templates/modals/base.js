@@ -43,14 +43,37 @@ export const baseModalsHTML = `
     </div>
 
     <div id="logo-picker-modal"
-        class="fixed inset-0 bg-black bg-opacity-50 z-[90] flex items-center justify-center p-4 hidden">
-        <div class="bg-white p-8 rounded-3xl shadow-2xl max-w-3xl w-full pop-in border-4 border-green-300">
-            <h2 class="font-title text-3xl text-green-700 mb-6 text-center">Choose a Class Logo</h2>
-            <div id="logo-picker-list" class="grid grid-cols-10 gap-4 text-3xl max-h-72 overflow-y-auto p-2"></div>
-            <button id="logo-picker-close-btn"
-                class="w-full mt-6 bg-gray-200 hover:bg-gray-300 text-gray-800 font-title text-lg py-2 rounded-xl bubbly-button">
-                Close
-            </button>
+        class="fixed inset-0 bg-slate-950/55 z-[90] flex items-center justify-center p-3 sm:p-4 hidden backdrop-blur-sm"
+        role="dialog" aria-modal="true" aria-labelledby="logo-picker-title">
+        <div class="logo-picker-shell pop-in max-w-4xl w-full max-h-[92vh] flex flex-col overflow-hidden">
+            <div class="logo-picker-header">
+                <div class="logo-picker-header__glow" aria-hidden="true"></div>
+                <button type="button" id="logo-picker-close-btn"
+                    class="logo-picker-close bubbly-button" aria-label="Close class logo picker">
+                    <i class="fas fa-times"></i>
+                </button>
+                <div class="flex items-start gap-4">
+                    <div id="logo-picker-preview" class="logo-picker-preview" aria-hidden="true">📚</div>
+                    <div class="min-w-0 flex-1">
+                        <p class="logo-picker-kicker">Class emblem</p>
+                        <h2 id="logo-picker-title" class="font-title text-3xl sm:text-4xl text-emerald-900 leading-tight">Choose a Class Logo</h2>
+                        <p class="logo-picker-subtitle">Browse by theme, or search by name. One tap sets the emblem.</p>
+                    </div>
+                </div>
+                <label class="logo-picker-search-wrap" for="logo-picker-search">
+                    <i class="fas fa-search" aria-hidden="true"></i>
+                    <input type="text" id="logo-picker-search" placeholder="Search dragons, rockets, books..."
+                        autocomplete="off" spellcheck="false" role="searchbox" enterkeyhint="search">
+            <span id="logo-picker-count" class="logo-picker-count" aria-live="polite">0</span>
+                </label>
+                <div id="logo-picker-categories" class="logo-picker-chips" role="group" aria-label="Logo categories"></div>
+            </div>
+            <div id="logo-picker-list" class="logo-picker-list custom-scrollbar"></div>
+            <div id="logo-picker-empty" class="logo-picker-empty hidden">
+                <span aria-hidden="true">🔍</span>
+                <p>No emblems match that search.</p>
+                <p>Try another word, or pick a category above.</p>
+            </div>
         </div>
     </div>
 `;

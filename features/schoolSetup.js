@@ -1,7 +1,7 @@
 import * as state from '../state.js';
 import { db, doc, collection, writeBatch, serverTimestamp } from '../firebase.js';
 import { showToast } from '../ui/effects.js';
-import { classLogos, questLeagues } from '../constants.js';
+import { isKnownClassLogo, questLeagues } from '../constants.js';
 import * as utils from '../utils.js';
 import { callGeminiApi } from '../api.js';
 import { canUseFeature, getLimit, getTier, getSubscriptionSnapshot } from '../utils/subscription.js';
@@ -114,28 +114,12 @@ function prefillSetupLocationFromState() {
 
 function populateSetupSelectors() {
     const levelSelect = document.getElementById('setup-class-level');
-    const logoGrid = document.getElementById('setup-class-logo-grid');
 
     if (levelSelect && !levelSelect.dataset.ready) {
         levelSelect.innerHTML = questLeagues
             .map((league) => `<option value="${league}">${league}</option>`)
             .join('');
         levelSelect.dataset.ready = 'true';
-    }
-
-    if (logoGrid && !logoGrid.dataset.ready) {
-        logoGrid.innerHTML = classLogos
-            .map((logo) => `
-                <button
-                    type="button"
-                    class="setup-logo-btn w-14 h-14 rounded-[1.35rem] border border-slate-200 bg-slate-50 text-[1.75rem] transition hover:bg-indigo-50 hover:border-indigo-300 bubbly-button shadow-sm"
-                    data-logo="${logo}"
-                    aria-label="Choose ${logo} as the class emoji"
-                    title="${logo}"
-                >${logo}</button>
-            `)
-            .join('');
-        logoGrid.dataset.ready = 'true';
     }
 
     setSelectedSetupLogo(getSelectedSetupLogo() || '📚');
@@ -152,30 +136,15 @@ function syncSetupAssessmentVisibility() {
 }
 
 function getSelectedSetupLogo() {
-    return document.getElementById('setup-class-logo-grid')?.dataset.selectedLogo || '📚';
+    return document.getElementById('setup-class-logo')?.value || '📚';
 }
 
 function setSelectedSetupLogo(logo) {
-    const nextLogo = classLogos.includes(logo) ? logo : '📚';
-    const logoGrid = document.getElementById('setup-class-logo-grid');
+    const nextLogo = isKnownClassLogo(logo) ? logo : '📚';
+    const input = document.getElementById('setup-class-logo');
     const preview = document.getElementById('setup-class-logo-preview');
-    if (logoGrid) {
-        logoGrid.dataset.selectedLogo = nextLogo;
-        logoGrid.querySelectorAll('.setup-logo-btn').forEach((button) => {
-            const isSelected = button.dataset.logo === nextLogo;
-            button.classList.toggle('bg-indigo-600', isSelected);
-            button.classList.toggle('text-white', isSelected);
-            button.classList.toggle('border-indigo-600', isSelected);
-            button.classList.toggle('shadow-lg', isSelected);
-            button.classList.toggle('scale-[1.06]', isSelected);
-            button.classList.toggle('bg-slate-50', !isSelected);
-            button.classList.toggle('text-slate-800', !isSelected);
-            button.classList.toggle('border-slate-200', !isSelected);
-        });
-    }
-    if (preview) {
-        preview.textContent = nextLogo;
-    }
+    if (input) input.value = nextLogo;
+    if (preview) preview.textContent = nextLogo;
 }
 
 function getSetupMaxClasses() {
@@ -373,7 +342,7 @@ function renderSetupDraftClassesList() {
                     allowInherit: true,
                     questLevel: draft.questLevel,
                     title: 'Assessment override',
-                    description: 'Leave this on school defaults unless this class needs a custom test or dictation scale.'
+                    description: 'Leave this on school defaults unless this class needs a custom scale, or turn tests or dictations off.'
                 }) : ''}
             </div>
         </article>
@@ -679,10 +648,8 @@ function setupSetupListeners() {
     document.getElementById('setup-add-class-btn')?.addEventListener('click', handleAddDraftClass);
     document.getElementById('setup-clear-class-form-btn')?.addEventListener('click', resetClassDraftForm);
     document.getElementById('setup-generate-class-name-btn')?.addEventListener('click', handleGenerateSetupClassName);
-    document.getElementById('setup-class-logo-grid')?.addEventListener('click', (event) => {
-        const logoButton = event.target.closest('.setup-logo-btn');
-        if (!logoButton) return;
-        setSelectedSetupLogo(logoButton.dataset.logo || '📚');
+    document.getElementById('setup-logo-picker-btn')?.addEventListener('click', () => {
+        import('../ui/modals/base.js').then(({ showLogoPicker }) => showLogoPicker('setup'));
     });
     document.getElementById('setup-class-name-suggestions')?.addEventListener('click', (event) => {
         if (!event.target.classList.contains('setup-suggestion-btn')) return;

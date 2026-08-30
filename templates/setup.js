@@ -47,13 +47,20 @@ export const setupHTML = `
                                         <select id="setup-class-level" class="w-full px-4 py-3 border border-indigo-200 rounded-2xl focus:ring-2 focus:ring-indigo-500 bg-white"></select>
                                     </div>
                                     <div>
-                                        <label class="block text-sm font-bold text-slate-700 mb-2" for="setup-class-logo-grid">Class emoji</label>
+                                        <label class="block text-sm font-bold text-slate-700 mb-2" for="setup-logo-picker-btn">Class emoji</label>
                                         <div class="rounded-2xl border border-indigo-200 bg-white p-3">
-                                            <div class="flex items-center justify-between gap-3 mb-3">
-                                                <p class="text-xs uppercase tracking-[0.2em] text-slate-400">Selected</p>
+                                            <div class="flex items-center gap-3">
                                                 <div id="setup-class-logo-preview" class="w-14 h-14 rounded-[1.35rem] bg-indigo-100 text-indigo-700 border border-indigo-200 flex items-center justify-center text-3xl shadow-sm">📚</div>
+                                                <div class="min-w-0 flex-1">
+                                                    <button type="button" id="setup-logo-picker-btn"
+                                                        class="w-full bg-indigo-500 hover:bg-indigo-600 text-white font-bold py-3 px-4 rounded-2xl bubbly-button flex items-center justify-center gap-2">
+                                                        <i class="fas fa-icons"></i>
+                                                        <span>Choose emblem</span>
+                                                    </button>
+                                                    <p class="text-xs text-slate-500 mt-2">Search or browse by category — hundreds of class logos.</p>
+                                                </div>
+                                                <input type="hidden" id="setup-class-logo" value="📚">
                                             </div>
-                                            <div id="setup-class-logo-grid" class="grid grid-cols-4 sm:grid-cols-5 gap-3 max-h-56 overflow-y-auto pr-1"></div>
                                         </div>
                                     </div>
                                 </div>

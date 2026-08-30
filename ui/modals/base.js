@@ -382,19 +382,145 @@ export function showLeaguePicker(options = {}) {
 }
 
 export function showLogoPicker(target) {
-    const list = document.getElementById('logo-picker-list');
-    list.innerHTML = constants.classLogos.map(logo => `<button class="logo-select-btn p-2 rounded-lg transition hover:bg-gray-200 bubbly-button" data-logo="${logo}">${logo}</button>`).join('');
-    list.querySelectorAll('.logo-select-btn').forEach(btn => btn.addEventListener('click', () => {
-        playSound('click');
-        const logo = btn.dataset.logo;
-        if (target === 'create') {
-            document.getElementById('class-logo').value = logo;
-            document.getElementById('logo-picker-btn').innerText = logo;
-        } else if (target === 'edit') {
-            document.getElementById('edit-class-logo').value = logo;
-            document.getElementById('edit-logo-picker-btn').innerText = logo;
-        }
-        hideModal('logo-picker-modal');
-    }));
+    logoPickerTarget = target || 'create';
+    logoPickerCategory = 'all';
+    logoPickerQuery = '';
+    wireLogoPickerControls();
+
+    const search = document.getElementById('logo-picker-search');
+    if (search) search.value = '';
+
+    renderLogoPickerBody();
     showAnimatedModal('logo-picker-modal');
+    requestAnimationFrame(() => {
+        search?.focus();
+        document.querySelector('#logo-picker-list .logo-select-btn.is-selected')?.scrollIntoView({ block: 'nearest' });
+    });
+}
+
+let logoPickerWired = false;
+let logoPickerTarget = 'create';
+let logoPickerCategory = 'all';
+let logoPickerQuery = '';
+
+function wireLogoPickerControls() {
+    if (logoPickerWired) return;
+    const modal = document.getElementById('logo-picker-modal');
+    if (!modal) return;
+    logoPickerWired = true;
+
+    modal.addEventListener('click', (event) => {
+        if (event.target === modal) {
+            hideModal('logo-picker-modal');
+            return;
+        }
+        const chip = event.target.closest('[data-logo-category]');
+        if (chip) {
+            logoPickerCategory = chip.dataset.logoCategory || 'all';
+            renderLogoPickerBody();
+            return;
+        }
+        const button = event.target.closest('.logo-select-btn');
+        if (!button) return;
+        playSound('click');
+        applyLogoPickerChoice(button.dataset.logo);
+        hideModal('logo-picker-modal');
+    });
+
+    document.getElementById('logo-picker-search')?.addEventListener('input', (event) => {
+        logoPickerQuery = event.target.value || '';
+        renderLogoPickerBody();
+    });
+
+    modal.addEventListener('keydown', (event) => {
+        if (event.key === 'Escape') hideModal('logo-picker-modal');
+    });
+}
+
+function applyLogoPickerChoice(logo) {
+    if (!logo) return;
+    if (logoPickerTarget === 'edit') {
+        const input = document.getElementById('edit-class-logo');
+        const button = document.getElementById('edit-logo-picker-btn');
+        if (input) input.value = logo;
+        if (button) button.innerText = logo;
+        return;
+    }
+    if (logoPickerTarget === 'setup') {
+        const input = document.getElementById('setup-class-logo');
+        const preview = document.getElementById('setup-class-logo-preview');
+        if (input) input.value = logo;
+        if (preview) preview.textContent = logo;
+        return;
+    }
+    const input = document.getElementById('class-logo');
+    const button = document.getElementById('logo-picker-btn');
+    if (input) input.value = logo;
+    if (button) button.innerText = logo;
+}
+
+function getLogoPickerCurrentLogo() {
+    if (logoPickerTarget === 'edit') return document.getElementById('edit-class-logo')?.value || '📚';
+    if (logoPickerTarget === 'setup') return document.getElementById('setup-class-logo')?.value || '📚';
+    return document.getElementById('class-logo')?.value || '📚';
+}
+
+function escapeLogoPickerText(value) {
+    return String(value || '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;');
+}
+
+function renderLogoPickerBody() {
+    const list = document.getElementById('logo-picker-list');
+    const chips = document.getElementById('logo-picker-categories');
+    const preview = document.getElementById('logo-picker-preview');
+    const countEl = document.getElementById('logo-picker-count');
+    const empty = document.getElementById('logo-picker-empty');
+    if (!list || !chips) return;
+
+    const selectedLogo = getLogoPickerCurrentLogo();
+    if (preview) preview.textContent = selectedLogo;
+
+    const chipHtml = [
+        { id: 'all', label: 'All', icon: '✨' },
+        ...constants.classLogoCategories.map((category) => ({
+            id: category.id,
+            label: category.label,
+            icon: category.icon
+        }))
+    ].map((chip) => {
+        const isActive = chip.id === logoPickerCategory;
+        return `<button type="button" class="logo-picker-chip${isActive ? ' is-active' : ''}" data-logo-category="${chip.id}" aria-pressed="${isActive ? 'true' : 'false'}"><span aria-hidden="true">${chip.icon}</span><span>${escapeLogoPickerText(chip.label)}</span></button>`;
+    }).join('');
+    chips.innerHTML = chipHtml;
+
+    const groups = constants.filterClassLogoCatalog(logoPickerQuery, logoPickerCategory);
+    const total = groups.reduce((sum, group) => sum + group.items.length, 0);
+    if (countEl) countEl.textContent = String(total);
+
+    if (!groups.length) {
+        list.innerHTML = '';
+        list.classList.add('hidden');
+        empty?.classList.remove('hidden');
+        list.scrollTop = 0;
+        return;
+    }
+
+    empty?.classList.add('hidden');
+    list.classList.remove('hidden');
+    list.innerHTML = groups.map((group) => {
+        const buttons = group.items.map((item) => {
+            const isSelected = item.emoji === selectedLogo;
+            const label = escapeLogoPickerText(item.name);
+            return `<button type="button" class="logo-select-btn${isSelected ? ' is-selected' : ''}" data-logo="${item.emoji}" title="${label}" aria-label="${label}" aria-pressed="${isSelected ? 'true' : 'false'}">${item.emoji}</button>`;
+        }).join('');
+        return `<section class="logo-picker-group" data-group="${group.id}">
+            <h3 class="logo-picker-group__title"><span aria-hidden="true">${group.icon}</span>${escapeLogoPickerText(group.label)}</h3>
+            <div class="logo-picker-grid">${buttons}</div>
+        </section>`;
+    }).join('');
+    list.scrollTop = 0;
 }

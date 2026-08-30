@@ -200,6 +200,11 @@ export const JUNIOR_LEAGUES = QUEST_LEAGUE_DEFINITIONS
     .filter((league) => league.isYoungLearner)
     .map((league) => league.name);
 
+/** Nursery and Pre-Junior: default to no tests or dictations. */
+export const EARLY_LEAGUES = QUEST_LEAGUE_DEFINITIONS
+    .filter((league) => league.ageCategory === 'early')
+    .map((league) => league.name);
+
 // ─── Glory Currency (Guild scoring) ──────────────────────────────────────────
 export const GLORY_PER_STAR = 2;
 export const GLORY_EMOJI = '⚜️';
@@ -274,17 +279,12 @@ export function getRarityPalette(rarity, paletteIndex = 0) {
     return tier;
 }
 
-export const classLogos = [
-    '⭐', '🚀', '💡', '🏆', '📚', '🧭', '🧪', '🧠', '🧩', '🗺️',
-    '🦁', '🐲', '🦄', '🤖', '👑', '💎', '🎨', '💻', '📈', '🌍',
-    '🔭', '🦉', '🦊', '💥', '✨', '⚡', '🖋️', '📖', '🍎', '🥇',
-    '🌲', '🌊', '🌋', '🍄', '💍', '🛡️', '⚔️', '🏹', '🔮', '💰',
-    '⚙️', '🕰️', '🔬', '🔱', '⚓', '🔔', '🦖', '🦕', '🌈', '🌙', 
-    '☀️', '☁️', '🗝️', '🗻', '🌃', '🌆', '🏙️', '🏰', '🛸',
-    '🪐', '🌌', '🧬', '🧙', '🧚', '🐢', '🦋', '🌵', '🍁', '🐚',
-    '🌠', '👾', '📜', '⚗️', '🏺', '🧞', '🧜‍♀️', '🦅', '🐺', '⚛️',
-    '🌱', '⏳', '🐼', '🐨', '🦡', '🦔', '🦚', '🪁', '🪀', '🧮', '🧲'
-];
+export {
+    classLogoCategories,
+    classLogos,
+    filterClassLogoCatalog,
+    isKnownClassLogo
+} from './classLogos.js';
 
 export const titleGradients = [
     'from-purple-600 to-pink-500',

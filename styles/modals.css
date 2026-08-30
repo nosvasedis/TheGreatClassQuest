@@ -426,6 +426,325 @@
 
 
 /* ============================================================
+   CLASS LOGO PICKER — categorized emblem gallery
+   ============================================================ */
+.logo-picker-shell {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    background:
+        radial-gradient(circle at 12% 0%, rgba(167, 243, 208, 0.55), transparent 32%),
+        radial-gradient(circle at 92% 6%, rgba(253, 230, 138, 0.42), transparent 28%),
+        linear-gradient(180deg, #f7fffb 0%, #ffffff 38%, #f8fafc 100%);
+    border: 3px solid #6ee7b7;
+    border-radius: 2rem;
+    box-shadow:
+        0 28px 60px rgba(6, 78, 59, 0.22),
+        inset 0 1px 0 rgba(255, 255, 255, 0.9);
+}
+
+.logo-picker-header {
+    position: relative;
+    flex-shrink: 0;
+    padding: 1.25rem 3.4rem 0.85rem 1.25rem;
+    border-bottom: 1px solid rgba(16, 185, 129, 0.16);
+}
+
+.logo-picker-header__glow {
+    position: absolute;
+    inset: -20% 20% auto;
+    height: 7rem;
+    background: radial-gradient(circle, rgba(52, 211, 153, 0.18), transparent 70%);
+    pointer-events: none;
+}
+
+.logo-picker-close {
+    position: absolute;
+    top: 0.85rem;
+    right: 0.85rem;
+    z-index: 2;
+    width: 2.5rem;
+    height: 2.5rem;
+    border-radius: 999px;
+    border: 1px solid rgba(16, 185, 129, 0.22);
+    background: rgba(255, 255, 255, 0.82);
+    color: #065f46;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 6px 16px rgba(6, 95, 70, 0.08);
+}
+
+.logo-picker-close:hover,
+.logo-picker-close:focus-visible {
+    background: #ecfdf5;
+    color: #047857;
+}
+
+.logo-picker-preview {
+    width: 4.25rem;
+    height: 4.25rem;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 2.15rem;
+    line-height: 1;
+    border-radius: 1.35rem;
+    background:
+        radial-gradient(circle at 30% 20%, #fff 0%, #ecfdf5 42%, #d1fae5 100%);
+    border: 2px solid #6ee7b7;
+    box-shadow:
+        0 10px 22px rgba(16, 185, 129, 0.18),
+        inset 0 1px 0 rgba(255, 255, 255, 0.9);
+}
+
+.logo-picker-kicker {
+    margin: 0 0 0.15rem;
+    font-size: 0.68rem;
+    font-weight: 800;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: #059669;
+}
+
+.logo-picker-subtitle {
+    margin: 0.35rem 0 0;
+    color: #64748b;
+    font-size: 0.92rem;
+}
+
+.logo-picker-search-wrap {
+    position: relative;
+    display: flex;
+    align-items: center;
+    margin-top: 1rem;
+    background: rgba(255, 255, 255, 0.92);
+    border: 2px solid #d1fae5;
+    border-radius: 1.15rem;
+    box-shadow: inset 0 1px 2px rgba(15, 118, 110, 0.05);
+}
+
+.logo-picker-search-wrap i {
+    position: absolute;
+    left: 0.95rem;
+    color: #34d399;
+    pointer-events: none;
+}
+
+.logo-picker-search-wrap input {
+    width: 100%;
+    border: 0;
+    background: transparent;
+    padding: 0.8rem 3.6rem 0.8rem 2.6rem;
+    font-size: 0.98rem;
+    color: #0f172a;
+    outline: none;
+}
+
+.logo-picker-search-wrap:focus-within {
+    border-color: #34d399;
+    box-shadow: 0 0 0 4px rgba(52, 211, 153, 0.18);
+}
+
+.logo-picker-count {
+    position: absolute;
+    right: 0.7rem;
+    min-width: 2.4rem;
+    padding: 0.2rem 0.55rem;
+    border-radius: 999px;
+    background: #ecfdf5;
+    color: #047857;
+    font-size: 0.72rem;
+    font-weight: 800;
+    text-align: center;
+}
+
+.logo-picker-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.45rem;
+    padding: 0.85rem 0 0.15rem;
+}
+
+.logo-picker-chip {
+    flex: 0 0 auto;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.42rem 0.8rem;
+    border-radius: 999px;
+    border: 1.5px solid #d1fae5;
+    background: rgba(255, 255, 255, 0.78);
+    color: #115e59;
+    font-size: 0.78rem;
+    font-weight: 800;
+    letter-spacing: 0.01em;
+    cursor: pointer;
+    transition: background 140ms ease, border-color 140ms ease, transform 140ms ease, box-shadow 140ms ease;
+}
+
+.logo-picker-chip:hover,
+.logo-picker-chip:focus-visible {
+    background: #ecfdf5;
+    border-color: #6ee7b7;
+    transform: translateY(-1px);
+}
+
+.logo-picker-chip.is-active {
+    background: linear-gradient(180deg, #34d399 0%, #059669 100%);
+    border-color: #047857;
+    color: #fff;
+    box-shadow: 0 8px 16px rgba(5, 150, 105, 0.28);
+}
+
+.logo-picker-list {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-y: auto;
+    padding: 0.85rem 1.15rem 1.25rem;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(16, 185, 129, 0.35) transparent;
+}
+
+.logo-picker-group {
+    content-visibility: auto;
+    contain-intrinsic-size: 1px 220px;
+    margin-bottom: 1.1rem;
+}
+
+.logo-picker-group:last-child {
+    margin-bottom: 0.2rem;
+}
+
+.logo-picker-group__title {
+    position: sticky;
+    top: 0;
+    z-index: 1;
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    margin: 0 0 0.55rem;
+    padding: 0.28rem 0;
+    font-size: 0.72rem;
+    font-weight: 800;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: #0f766e;
+    background: linear-gradient(180deg, rgba(247, 255, 251, 0.96) 40%, rgba(247, 255, 251, 0.78) 100%);
+}
+
+.logo-picker-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(3.15rem, 1fr));
+    gap: 0.45rem;
+}
+
+#logo-picker-modal .logo-select-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    aspect-ratio: 1;
+    padding: 0;
+    border: 1.5px solid #e2e8f0;
+    border-radius: 1.05rem;
+    background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
+    font-size: 1.7rem;
+    line-height: 1;
+    cursor: pointer;
+    box-shadow: 0 4px 10px rgba(15, 23, 42, 0.05);
+    transition: transform 140ms ease, box-shadow 140ms ease, border-color 140ms ease, background 140ms ease;
+}
+
+#logo-picker-modal .logo-select-btn:hover,
+#logo-picker-modal .logo-select-btn:focus-visible {
+    transform: translateY(-2px) scale(1.06);
+    border-color: #6ee7b7;
+    background: #ecfdf5;
+    box-shadow: 0 10px 18px rgba(16, 185, 129, 0.18);
+    outline: none;
+}
+
+#logo-picker-modal .logo-select-btn.is-selected {
+    border-color: #059669;
+    background: linear-gradient(180deg, #d1fae5 0%, #a7f3d0 100%);
+    box-shadow:
+        0 0 0 3px rgba(16, 185, 129, 0.28),
+        0 10px 18px rgba(5, 150, 105, 0.2);
+    transform: scale(1.04);
+}
+
+.logo-picker-empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.35rem;
+    padding: 2.5rem 1.5rem 2.75rem;
+    color: #64748b;
+    text-align: center;
+}
+
+.logo-picker-empty.hidden {
+    display: none;
+}
+
+.logo-picker-empty span {
+    font-size: 2rem;
+}
+
+.logo-picker-empty p:first-of-type {
+    margin: 0.2rem 0 0;
+    color: #334155;
+    font-weight: 800;
+}
+
+.logo-picker-empty p:last-of-type {
+    margin: 0;
+    font-size: 0.9rem;
+}
+
+@media (max-width: 640px) {
+    .logo-picker-shell {
+        border-radius: 1.5rem;
+        max-height: 94vh;
+    }
+    .logo-picker-header {
+        padding: 1rem 3.1rem 0.7rem 0.95rem;
+    }
+    .logo-picker-preview {
+        width: 3.4rem;
+        height: 3.4rem;
+        font-size: 1.75rem;
+        border-radius: 1.1rem;
+    }
+    .logo-picker-grid {
+        grid-template-columns: repeat(auto-fill, minmax(2.85rem, 1fr));
+        gap: 0.38rem;
+    }
+    #logo-picker-modal .logo-select-btn {
+        font-size: 1.5rem;
+        border-radius: 0.9rem;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .logo-picker-chip,
+    #logo-picker-modal .logo-select-btn {
+        transition: none;
+    }
+    .logo-picker-chip:hover,
+    .logo-picker-chip:focus-visible,
+    #logo-picker-modal .logo-select-btn:hover,
+    #logo-picker-modal .logo-select-btn:focus-visible,
+    #logo-picker-modal .logo-select-btn.is-selected {
+        transform: none;
+    }
+}
+
+
+/* ============================================================
    PRAISE TOAST  (showPraiseToast — student praise)
    ============================================================ */
 @keyframes praise-pop {
